@@ -12,7 +12,43 @@ You do not need to preinstall Python for first install anymore, but the full run
 Without them, asset installation and shell `rsk` maintenance commands still work, but orchestrator execution, `doctor`, validators, and full multi-model flows will be limited.
 :::
 
-## 1. Choose `partial` Or `full`
+## 1. Native Plugin And Extension Install
+
+For single-client use, install **Research Skills** through the client-native extension surface. This is the recommended path when you only need the `research-paper-workflow` skill inside one client.
+
+The native plugin/extension distribution does not require `pip`, `pipx`, or the `rsk` CLI. Use the bootstrap/CLI path when you need any of these:
+
+- cross-client global installation
+- global slash-command symlinks managed by `rsk`
+- `rsk upgrade`, `rsk check`, or `doctor`
+- multi-model orchestrator execution
+
+Local development install commands:
+
+```text
+# Codex
+Install Research Skills from the official Codex plugin marketplace.
+
+# Claude Code
+/plugin marketplace add ./path/to/research-skills
+/plugin install research-skills@research-skills
+
+# Gemini CLI
+gemini extensions install ./path/to/research-skills/plugins/research-skills
+```
+
+This repository contains the packaging metadata used for local validation:
+
+- `.agents/plugins/marketplace.json`
+- `.claude-plugin/marketplace.json`
+- `plugins/research-skills/.codex-plugin/plugin.json`
+- `plugins/research-skills/.claude-plugin/plugin.json`
+- `plugins/research-skills/gemini-extension.json`
+- `plugins/research-skills/skills/research-paper-workflow`
+
+Codex and Claude Code use marketplace catalogs. Gemini CLI uses the official extension system (`gemini-extension.json`) rather than a marketplace JSON.
+
+## 2. Choose `partial` Or `full`
 
 The bootstrap installers now explain these choices interactively if you omit `--profile`.
 
@@ -27,7 +63,7 @@ How `full` works:
 - If Python is missing or too old, bootstrap installs `mise`, then installs `python@3.12`.
 - On Windows, PowerShell installs directly and only installs Git for Windows via `winget` when shell CLI wrappers need Bash.
 
-## 2. Run The Recommended One-Click Bootstrap
+## 3. Run The Recommended One-Click Bootstrap
 
 ### Linux / macOS
 
@@ -98,7 +134,7 @@ What bootstrap installs:
 - project integration files such as `.agent/workflows/`, `CLAUDE.md`, `.gemini/` when you run `rsk init` or `--parts project`
 - shell CLI commands `research-skills`, `rsk`, `rsw` in `full` mode
 
-## 3. Optional: Prepare Python Yourself With `mise`
+## 4. Optional: Prepare Python Yourself With `mise`
 
 You only need this if you want to manage Python manually instead of letting `full` bootstrap handle it.
 
@@ -135,7 +171,7 @@ mise use -g python@3.12
 python3 --version
 ```
 
-## 4. Optional Local Installers
+## 5. Optional Local Installers
 
 If Python is already available, you can use the local cross-platform Python installer:
 
@@ -159,7 +195,7 @@ rsk upgrade --target all --doctor
 rsk init --project-dir /path/to/project
 ```
 
-## 5. Global-First Behaviors & What Gets Installed
+## 6. Global-First Behaviors & What Gets Installed
 
 Default install/upgrade behavior is purely **global**. Your project directories remain completely clean.
 
@@ -171,7 +207,7 @@ This means commands like `/paper` and `/study-design` become natively recognized
 
 _Project-local files (like `.env`) are only written when you explicitly run `rsk init --project-dir .`._
 
-## 6. Common Flags
+## 7. Common Flags
 
 - `--profile partial|full`: choose the install preset explicitly instead of using the prompt.
 - `--target codex|claude|gemini|antigravity|all`: limit installation scope.
@@ -183,7 +219,7 @@ _Project-local files (like `.env`) are only written when you explicitly run `rsk
 - `--dry-run`: preview installation actions only.
 - `--doctor`: run `python3 -m bridges.orchestrator doctor --cwd <project>` after install.
 
-## 7. Zero-Config Usage
+## 8. Zero-Config Usage
 
 Because commands are registered globally, using the system for a new paper is incredibly straightforward:
 
@@ -193,7 +229,7 @@ Because commands are registered globally, using the system for a new paper is in
 
 The model will seamlessly load the global skill assets without cluttering your workspace with boilerplate templates.
 
-## 8. Upgrading and Verifying
+## 9. Upgrading and Verifying
 
 To update everything to the latest global release across all AI clients (no need to navigate to each project):
 

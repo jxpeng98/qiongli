@@ -12,7 +12,43 @@
 如果缺少这些依赖，资产安装和 shell `rsk` 维护命令仍可使用，但 orchestrator 执行、`doctor`、validator 和完整多模型流程会受限。
 :::
 
-## 1. 先选 `partial` 还是 `full`
+## 1. 原生插件与扩展安装
+
+如果你只想在单个客户端里使用，推荐通过客户端自己的原生扩展入口安装 **Research Skills**。这条路径会直接把 `research-paper-workflow` skill 安装到对应客户端，不需要用户先安装 `pip`、`pipx` 或 `rsk` CLI。
+
+如果你需要下面这些能力，再使用 bootstrap / CLI 路径：
+
+- 跨客户端全局安装
+- 由 `rsk` 管理全局 slash command 软链接
+- 使用 `rsk upgrade`、`rsk check` 或 `doctor`
+- 执行多模型 orchestrator
+
+本地开发安装命令：
+
+```text
+# Codex
+从官方 Codex plugin marketplace 安装 Research Skills。
+
+# Claude Code
+/plugin marketplace add ./path/to/research-skills
+/plugin install research-skills@research-skills
+
+# Gemini CLI
+gemini extensions install ./path/to/research-skills/plugins/research-skills
+```
+
+这个仓库包含用于打包和本地校验的元数据：
+
+- `.agents/plugins/marketplace.json`
+- `.claude-plugin/marketplace.json`
+- `plugins/research-skills/.codex-plugin/plugin.json`
+- `plugins/research-skills/.claude-plugin/plugin.json`
+- `plugins/research-skills/gemini-extension.json`
+- `plugins/research-skills/skills/research-paper-workflow`
+
+Codex 和 Claude Code 使用 marketplace catalog。Gemini CLI 使用官方 extension 系统（`gemini-extension.json`），不是 marketplace JSON。
+
+## 2. 先选 `partial` 还是 `full`
 
 如果你不传 `--profile`，bootstrap 会先解释这两种模式，再提示你选择。
 
@@ -27,7 +63,7 @@
 - 如果 Python 缺失或版本过低，bootstrap 会先安装 `mise`，再安装 `python@3.12`。
 - Windows 上由 PowerShell 直接安装，只有在 shell CLI 包装器需要 Bash 时才会通过 `winget` 安装 Git for Windows。
 
-## 2. 运行推荐的一键 bootstrap
+## 3. 运行推荐的一键 bootstrap
 
 ### Linux / macOS
 
@@ -98,7 +134,7 @@ Bootstrap 会安装：
 - `.agent/workflows/`、`CLAUDE.md`、`.gemini/` 等项目集成文件，仅在执行 `rsk init` 或 `--parts project` 时写入
 - `full` 模式下的 shell CLI：`research-skills`、`rsk`、`rsw`
 
-## 3. 可选：自己用 `mise` 准备 Python
+## 4. 可选：自己用 `mise` 准备 Python
 
 只有在你想手动管理 Python，而不是交给 `full` bootstrap 自动处理时，才需要这一节。
 
@@ -135,7 +171,7 @@ mise use -g python@3.12
 python3 --version
 ```
 
-## 4. 可选：本地安装器
+## 5. 可选：本地安装器
 
 如果机器上已经有 Python，可以用跨平台本地安装器：
 
@@ -159,7 +195,7 @@ rsk upgrade --target all --doctor
 rsk init --project-dir /path/to/project
 ```
 
-## 5. 全局优先安装与修改产物
+## 6. 全局优先安装与修改产物
 
 目前系统所有的安装与升级**默认全部是全局操作（Global-first）**，你的项目目录会被保持绝对干净。
 
@@ -171,7 +207,7 @@ rsk init --project-dir /path/to/project
 
 _注：涉及你具体项目内文件的写入（比如需要注入 API Key 的 `.env`），只有在你显式运行 `rsk init --project-dir .` 时才会发生。_
 
-## 6. 常用参数
+## 7. 常用参数
 
 - `--profile partial|full`：显式指定安装模式，跳过交互提示。
 - `--target codex|claude|gemini|antigravity|all`：限制安装范围。
@@ -183,7 +219,7 @@ _注：涉及你具体项目内文件的写入（比如需要注入 API Key 的 
 - `--dry-run`：只预览安装动作。
 - `--doctor`：安装后运行 `python3 -m bridges.orchestrator doctor --cwd <project>`。
 
-## 7. 极简使用指南（零配置）
+## 8. 极简使用指南（零配置）
 
 有了全局化命令注册，现在开启一篇新论文的研究步骤非常简单：
 
@@ -193,7 +229,7 @@ _注：涉及你具体项目内文件的写入（比如需要注入 API Key 的 
 
 模型会自动无缝调取全局后台存放的技能体系，不再往你的工作区里丢一堆恶心的模板文件。
 
-## 8. 日常升级与故障排查
+## 9. 日常升级与故障排查
 
 要将你电脑上所有 AI 客户端的学术引擎统一升级到远端最新版本（你不用再去分别挨个项目升级了）：
 

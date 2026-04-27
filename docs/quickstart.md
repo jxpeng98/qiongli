@@ -17,7 +17,25 @@ If you want the full system, install and configure all of the following:
 Without them, you can still install workflow assets and use shell `rsk check|upgrade|align`, but `doctor`, validators, tests, and full orchestrator execution will be limited.
 :::
 
-## 1. Global One-Click Install
+## 1. Native Plugin And Extension Install
+
+For single-client use, install **Research Skills** through the client-native surface. This installs the `research-paper-workflow` skill without requiring `pip`, `pipx`, or the `rsk` CLI.
+
+```text
+# Codex
+Install Research Skills from the official Codex plugin marketplace.
+
+# Claude Code
+/plugin marketplace add ./path/to/research-skills
+/plugin install research-skills@research-skills
+
+# Gemini CLI
+gemini extensions install ./path/to/research-skills/plugins/research-skills
+```
+
+Use the bootstrap path below when you need cross-client global installation, shell maintenance commands, or the orchestrator runtime.
+
+## 2. Global One-Click Install
 
 The recommended path is the one-click bootstrap. You do not need to manually preinstall Python first or copy files into your projects.
 
@@ -36,7 +54,7 @@ powershell -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -Target 
 
 The bootstrap will install `research-paper-workflow` globally into the respective configuration directories of Codex, Claude Code, and Gemini. It will also create global symlinks for Slash commands.
 
-## 2. Zero-Config Usage
+## 3. Zero-Config Usage
 
 Because the commands are registered globally, using the system is now instantaneous.
 
@@ -46,15 +64,16 @@ Because the commands are registered globally, using the system is now instantane
 
 The AI will seamlessly fetch the global skill package in the background.
 
-## 3. Advanced Entry Modes
+## 4. Advanced Entry Modes
 
 | Entry mode | Use when | Entry |
 |---|---|---|
+| Native plugin / extension | You want the easiest single-client install | Codex marketplace, Claude marketplace, or Gemini extension |
 | Slash commands | You want `/paper`, `/lit-review`, etc. | Included by default via global symlinks |
 | Orchestrator CLI | You want explicit automated task routing and validation | `python3 -m bridges.orchestrator task-plan|task-run|doctor` |
 | Installer / updater CLI | You want install or refresh commands after bootstrap | `research-skills`, `rsk`, `rsw` |
 
-## 4. Choose a Paper Type
+## 5. Choose a Paper Type
 
 The canonical paper-type pipelines are:
 
@@ -67,7 +86,7 @@ The canonical paper-type pipelines are:
 | `theory` | `theory-paper` | Conceptual or theory-building paper |
 | `methods` | `code-first-methods` | Methods paper where code is a first-class deliverable |
 
-## 5. Plan Before You Run
+## 6. Plan Before You Run
 
 Inspect prerequisites and routing before execution:
 
@@ -87,7 +106,7 @@ python3 -m bridges.orchestrator task-plan \
 - functional handoff trace
 - runtime plan (`draft` / `review` / `fallback`)
 
-## 6. Run a Canonical Task
+## 7. Run a Canonical Task
 
 Execute one task with routing, MCP evidence collection, and review:
 
@@ -109,7 +128,7 @@ Common options:
 - `--focus-output` and `--output-budget`: reduce auxiliary artifact spread for this run by keeping only a smaller active output set
 - `--research-depth deep` plus `--max-rounds`: force a narrower, more adversarial evidence-expansion and revision process
 
-## 7. Use Slash Commands When You Want UX
+## 8. Use Slash Commands When You Want UX
 
 After `rsk upgrade`, workflow slash-commands are globally registered via symlinks:
 
@@ -133,7 +152,7 @@ These commands are entry UX only. The canonical task and artifact truth still li
 
 To remove all symlinks: `rsk clean --globals`.
 
-## 8. Know When to Switch to Maintainer Docs
+## 9. Know When to Switch to Maintainer Docs
 
 Use this guide for operation.
 Switch to maintainer docs only when you are changing the system itself:

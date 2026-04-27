@@ -17,7 +17,25 @@
 如果缺少这些依赖，你仍然可以安装 workflow 资产并使用 shell `rsk check|upgrade|align`，但 `doctor`、validator、tests 与完整 orchestrator 执行链会受限。
 :::
 
-## 1. 全局一键安装
+## 1. 原生插件与扩展安装
+
+如果你只想在单个客户端里使用，推荐通过客户端自己的原生扩展入口安装 **Research Skills**。这会直接安装 `research-paper-workflow` skill，不需要用户先安装 `pip`、`pipx` 或 `rsk` CLI。
+
+```text
+# Codex
+从官方 Codex plugin marketplace 安装 Research Skills。
+
+# Claude Code
+/plugin marketplace add ./path/to/research-skills
+/plugin install research-skills@research-skills
+
+# Gemini CLI
+gemini extensions install ./path/to/research-skills/plugins/research-skills
+```
+
+如果你还需要跨客户端全局安装、shell 维护命令或 orchestrator 运行时，再使用下面的 bootstrap 路径。
+
+## 2. 全局一键安装
 
 目前推荐的首装路径是一键 bootstrap。你不需要手动预装 Python，也不需要往你的各个科研文件夹里复制配置文件。
 
@@ -36,7 +54,7 @@ powershell -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -Target 
 
 Bootstrap 会把 `research-paper-workflow` 下载并安装到你电脑上各类 AI 客户端（Codex, Claude, Gemini）的专属全局配置目录下，并自动创建相应的 Slash Command 软链接。
 
-## 2. 极简开局（零配置）
+## 3. 极简开局（零配置）
 
 有了全局化命令注册，现在的开启流程完全可以做到肌肉记忆：
 
@@ -46,15 +64,16 @@ Bootstrap 会把 `research-paper-workflow` 下载并安装到你电脑上各类 
 
 模型会自动寻址并调用全局后台存放的技能体系。
 
-## 3. 进阶调用方式
+## 4. 进阶调用方式
 
 | 入口 | 适用场景 | 说明 |
 |---|---|---|
+| 原生插件 / 扩展 | 你只想在单个客户端里最省事地安装 | Codex marketplace、Claude marketplace 或 Gemini extension |
 | Slash 命令 | 你想直接用 `/paper`、`/lit-review` 等命令 | 基于全局软链接，开箱即可在任何目录触发 |
 | Orchestrator CLI | 你想结合自己的自动化脚本，或执行环境预检 | `python3 -m bridges.orchestrator task-plan|task-run|doctor` |
 | 安装 / 升级 CLI | 你想安装、刷新全局 skill 或卸载软链接 | `research-skills`、`rsk`、`rsw` |
 
-## 4. 先确定 paper type
+## 5. 先确定 paper type
 
 典型 paper type 与 pipeline 对应关系：
 
@@ -67,7 +86,7 @@ Bootstrap 会把 `research-paper-workflow` 下载并安装到你电脑上各类 
 | `theory` | `theory-paper` | 理论或概念型论文 |
 | `methods` | `code-first-methods` | 代码与方法并重的 methods paper |
 
-## 5. 先 plan 再 run
+## 6. 先 plan 再 run
 
 推荐先看任务的依赖和路由：
 
@@ -87,7 +106,7 @@ python3 -m bridges.orchestrator task-plan \
 - handoff 轨迹
 - runtime plan（draft / review / fallback）
 
-## 6. 再执行 canonical task
+## 7. 再执行 canonical task
 
 ```bash
 python3 -m bridges.orchestrator task-run \
@@ -110,7 +129,7 @@ python3 -m bridges.orchestrator task-run \
 - `--focus-output` 与 `--output-budget`：把本次运行收敛到更小的 active outputs，减少辅助文件扩散
 - `--research-depth deep` 配合 `--max-rounds`：强制更窄、更有对抗性的证据扩展与修订流程
 
-## 7. 什么时候切到维护者文档
+## 8. 什么时候切到维护者文档
 
 你只是“使用系统”时，看这一页和 [入门](/zh/guide/) 就够了。
 
