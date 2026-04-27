@@ -26,6 +26,10 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('git add "release/${repo_tag}.md"', content)
         self.assertIn('git tag -a "$repo_tag"', content)
         self.assertIn('git push "$push_remote" "$push_branch" "$repo_tag"', content)
+        self.assertIn('plugins/research-skills/.codex-plugin/plugin.json', content)
+        self.assertIn('.claude-plugin/marketplace.json', content)
+        self.assertIn('plugins/research-skills/.claude-plugin/plugin.json', content)
+        self.assertIn('plugins/research-skills/gemini-extension.json', content)
         self.assertIn('./scripts/release_postflight.sh --tag "$repo_tag"', content)
 
     def test_release_postflight_waits_for_required_workflows(self) -> None:
@@ -44,6 +48,9 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('bash ./scripts/verify_release_tag_version.sh --tag "$TAG"', content)
         self.assertIn("gh release view", content)
         self.assertIn("--prerelease", content)
+        self.assertIn('scripts/build_marketplace_artifacts.py --tag "$TAG" --dist-dir dist', content)
+        self.assertIn('MARKETPLACE_ARTIFACTS=(', content)
+        self.assertIn('gh release upload "$TAG" --repo "$REPO_SLUG" --clobber "${MARKETPLACE_ARTIFACTS[@]}"', content)
 
     def test_release_ready_includes_plugin_distribution_versions(self) -> None:
         content = RELEASE_READY.read_text(encoding="utf-8")

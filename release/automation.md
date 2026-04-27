@@ -27,8 +27,17 @@ This mode runs:
 - push of the primary branch + tag
 - waiting for `CI` and `Install Check`
 - `scripts/release_postflight.sh --create-release`
+- marketplace / extension artifact generation for Codex, Claude Code, and Gemini CLI
 
 Stable tags become normal GitHub Releases. Beta tags become GitHub prereleases, so stable and beta releases can coexist without breaking `releases/latest`.
+
+The release page receives these installable distribution artifacts:
+
+- `research-skills-codex-plugin-<tag>.tar.gz`
+- `research-skills-claude-plugin-<tag>.tar.gz`
+- `research-skills-gemini-extension-<tag>.tar.gz`
+
+These artifacts make the release consumable by the three client-native install surfaces. They do not bypass official directory review: Codex marketplace listing, Claude official plugin directory submission, and Gemini gallery publication still follow each platform's external submission process when applicable.
 
 ## 2) Prepare a publish-ready local state
 
@@ -43,6 +52,8 @@ This is the recommended local entrypoint. It chains:
 - `scripts/pypi_preflight.sh`
 
 When it succeeds, the repository is in a publish-ready state with synchronized version files, validated release docs, and built package artifacts.
+
+The synchronized version files include package metadata, the portable workflow version, skill registry metadata, and client-native distribution manifests under `.agents/`, `.claude-plugin/`, and `plugins/research-skills/`.
 
 ## 3) Manual pre-release gates (optional)
 
@@ -86,6 +97,14 @@ git push origin main --tags
 Runs local/remote consistency checks, attempts CI status verification, checks release docs + rollback docs, and generates:
 
 - `release/acceptance/v0.1.0-receipt.md`
+
+It also runs:
+
+```bash
+python3 scripts/build_marketplace_artifacts.py --tag <tag> --dist-dir dist
+```
+
+When `--create-release` is used, the generated Codex, Claude Code, and Gemini CLI artifacts are attached to the GitHub Release alongside the Python package artifacts. If the GitHub Release already exists, postflight uploads those marketplace artifacts with `--clobber`.
 
 ## Optional flags
 

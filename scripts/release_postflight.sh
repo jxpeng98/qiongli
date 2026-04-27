@@ -401,6 +401,13 @@ else
   echo "[postflight] CI status check skipped by flag"
 fi
 
+python3 scripts/build_marketplace_artifacts.py --tag "$TAG" --dist-dir dist
+MARKETPLACE_ARTIFACTS=(
+  "dist/research-skills-codex-plugin-${TAG}.tar.gz"
+  "dist/research-skills-claude-plugin-${TAG}.tar.gz"
+  "dist/research-skills-gemini-extension-${TAG}.tar.gz"
+)
+
 if ! command -v gh >/dev/null 2>&1 || ! gh auth status >/dev/null 2>&1; then
   echo "[postflight] gh auth is required to verify or create the GitHub release page" >&2
   exit 1
@@ -446,6 +453,8 @@ PY
     exit 1
   fi
   echo "[postflight] GitHub release exists: ${release_state#ok:}"
+  gh release upload "$TAG" --repo "$REPO_SLUG" --clobber "${MARKETPLACE_ARTIFACTS[@]}"
+  echo "[postflight] marketplace artifacts uploaded to existing release"
 elif [[ "$CREATE_RELEASE" -eq 1 ]]; then
   release_args=(
     "$TAG"

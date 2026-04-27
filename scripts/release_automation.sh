@@ -202,7 +202,16 @@ case "$MODE" in
 
     ensure_git_identity
 
-    git add pyproject.toml research_skills/__init__.py research-paper-workflow/VERSION skills/registry.yaml skills
+    git add \
+      pyproject.toml \
+      research_skills/__init__.py \
+      research-paper-workflow/VERSION \
+      skills/registry.yaml \
+      plugins/research-skills/.codex-plugin/plugin.json \
+      .claude-plugin/marketplace.json \
+      plugins/research-skills/.claude-plugin/plugin.json \
+      plugins/research-skills/gemini-extension.json \
+      skills
     if is_prerelease_tag "$repo_tag"; then
       git add "release/${repo_tag}.md"
     else
