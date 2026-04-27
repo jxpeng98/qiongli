@@ -536,8 +536,10 @@ python -m bridges.orchestrator code-build \
 **Process:**
 1. Act as a harsh "Reviewer 2" or Socratic Questioner.
 2. Ask stage-specific critique questions (e.g., claiming causality vs correlation, omitted variables, confirmation bias).
-3. Challenge the Generator to defend or revise their work.
-4. Ensure logical flow, empathy in rebuttals, and rigorous claims.
+3. Keep a persistent issue register in `review/self_critique_log.md`.
+4. Carry unresolved issues across rounds; mark each as open / partial / resolved instead of restarting critique from zero.
+5. Challenge the Generator to defend or revise their work.
+6. Ensure logical flow, empathy in rebuttals, and rigorous claims.
 
 **Output:** Self-critique log and revised (improved) output
 

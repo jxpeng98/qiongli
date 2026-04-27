@@ -1335,6 +1335,35 @@ primary_artifact: code/plan.md
         # F-series task is manuscript stage
         self.assertIn("Do the claims in the Discussion section", prompt)
 
+    def test_self_critique_loop_history_is_injected_into_review_prompt(self) -> None:
+        orchestrator = MockOrchestrator()
+        prompt = orchestrator._build_task_review_prompt(
+            task_packet={
+                "task_id": "F3",
+                "self_critique_loop": {
+                    "enabled": True,
+                    "artifact": "review/self_critique_log.md",
+                    "history_persistent": True,
+                },
+            },
+            mcp_evidence=[],
+            skill_cards=[],
+            draft_output="draft",
+            revision_round=1,
+            revision_history=[
+                {
+                    "round": 0,
+                    "verdict": "BLOCK",
+                    "confidence": 0.5,
+                    "review_content": "Critical Issues: Needed more depth",
+                }
+            ],
+        )
+        self.assertIn("Self-critique loop context", prompt)
+        self.assertIn("review/self_critique_log.md", prompt)
+        self.assertIn("Round 0: BLOCK (confidence=0.50)", prompt)
+        self.assertIn("Needed more depth", prompt)
+
     def test_task_run_revision_loop_converges(self) -> None:
         # Create a mock orchestrator that fails the first review but passes the second
         class ConvergingOrchestrator(MockOrchestrator):
@@ -1385,6 +1414,22 @@ primary_artifact: code/plan.md
         agents_called = [c["agent"] for c in orchestrator.runtime_calls]
         self.assertEqual(agents_called.count("claude"), 2)
         self.assertEqual(agents_called.count("codex"), 2)
+
+        second_review_prompt = [
+            call["prompt"]
+            for call in orchestrator.runtime_calls
+            if call["agent"] == "claude" and "Review the draft" in call["prompt"]
+        ][1]
+        revision_prompt = next(
+            call["prompt"]
+            for call in orchestrator.runtime_calls
+            if call["agent"] == "codex" and "You are revising a research workflow task draft" in call["prompt"]
+        )
+        self.assertIn("Self-critique loop context", second_review_prompt)
+        self.assertIn("Round 0: BLOCK (confidence=0.50)", second_review_prompt)
+        self.assertIn("review/self_critique_log.md", revision_prompt)
+        self.assertIn("Critical Issues: Needed more depth", revision_prompt)
+        self.assertTrue(result.data["self_critique_loop"]["enabled"])
 
     @unittest.mock.patch("sys.stdin.isatty", return_value=False)
     def test_interactive_mode_skips_when_no_tty(self, mock_isatty) -> None:

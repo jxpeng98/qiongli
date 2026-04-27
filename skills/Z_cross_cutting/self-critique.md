@@ -36,6 +36,23 @@ Prevent superficial research by forcing the AI to act as "Reviewer 2" or a "Socr
    - **Dynamic Literature Critique:** The Reviewer first analyzes the provided MCP Evidence (literature abstracts, metadata, full texts) and formulates 2-3 highly specific questions based on the controversies or limitations identified in those exact reference texts.
    - **Stage-Specific Critique:** The Reviewer then appends the rigorous, stage-specific questions (listed below).
    - **Iterative Revision:** The Reviewer passes or blocks the draft. If blocked, the Generator revises targeted fixes until the Reviewer passes the output or reaches the maximum allowed rounds.
+4. **Persistent Issue Register:** Keep `review/self_critique_log.md` as the canonical loop memory across rounds. Do not restart critique from zero after each revision.
+
+## Multi-Round Self-Loop Contract
+
+When this skill is active inside orchestrated research runs, treat critique as a stateful loop rather than isolated review comments.
+
+- Carry unresolved issues forward into the next round.
+- Mark each issue as `open`, `partial`, `resolved`, or `superseded`.
+- Reuse existing issue IDs when the same problem persists.
+- Add new issue IDs only for genuinely new failures introduced by the revision.
+- Record the artifact path, section, evidence basis, required fix, and round-to-round status change.
+
+Use `review/self_critique_log.md` as a compact register like:
+
+| Issue ID | Opened In Round | Status | Severity | Artifact / Section | Critique | Required Fix | Resolution Evidence |
+|---|---|---|---|---|---|---|---|
+| SC-01 | 0 | open | high | `manuscript/manuscript.md` / Discussion | Claim exceeds results evidence | Narrow causal language | Pending |
 
 ## Stage-Specific Critique Questions
 
@@ -117,9 +134,10 @@ This skill is injected into tasks by the `mcp-agent-capability-map.yaml` and sho
 
 - [ ] 至少执行两轮 critique 迭代
 - [ ] 每个 critique 点附带具体修正建议
+- [ ] 每轮保留并更新 issue lineage，而不是把 critique 重置
 - [ ] Overclaiming 已被识别并降级表述
 - [ ] 自相矛盾点已消解或标注为 limitation
-- [ ] Critique log 记录了改进前后的对比
+- [ ] Critique log 记录了改进前后的对比与 issue 状态迁移
 
 ## Common Pitfalls
 

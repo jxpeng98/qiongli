@@ -298,6 +298,8 @@ class ModelOrchestrator:
         "context/research_state.md",
         "context/decision_log.md",
     ]
+    SELF_CRITIQUE_SKILL = "self-critique"
+    SELF_CRITIQUE_ARTIFACT = "review/self_critique_log.md"
     STAGE_I_FRONTMATTER_KEYS = [
         "task_id",
         "template_type",
@@ -1217,6 +1219,49 @@ Provide your verification assessment.
             if output_path not in merged_required:
                 merged_required.append(output_path)
         return merged_contract, merged_required, merged_deferred
+
+    def _build_self_critique_loop(
+        self,
+        required_skills: list[str],
+        max_revision_rounds: int,
+        research_depth: str,
+    ) -> dict[str, Any]:
+        enabled = self.SELF_CRITIQUE_SKILL in required_skills
+        loop_rounds = max(0, max_revision_rounds)
+        return {
+            "enabled": enabled,
+            "skill": self.SELF_CRITIQUE_SKILL,
+            "artifact": self.SELF_CRITIQUE_ARTIFACT,
+            "max_rounds": loop_rounds,
+            "history_persistent": enabled and loop_rounds > 0,
+            "round_policy": "depth-floor" if research_depth == "deep" else "explicit-max-rounds",
+        }
+
+    def _format_revision_history_for_prompt(
+        self,
+        revision_history: list[dict[str, Any]] | None,
+    ) -> str:
+        if not revision_history:
+            return "- No prior self-critique rounds recorded."
+
+        blocks: list[str] = []
+        for entry in revision_history:
+            round_id = entry.get("round", "?")
+            verdict = str(entry.get("verdict", "UNKNOWN")).strip() or "UNKNOWN"
+            try:
+                confidence = float(entry.get("confidence", 0.0) or 0.0)
+            except (TypeError, ValueError):
+                confidence = 0.0
+            review_content = str(entry.get("review_content", "")).strip() or "No review content recorded."
+            blocks.append(
+                "\n".join(
+                    [
+                        f"Round {round_id}: {verdict} (confidence={confidence:.2f})",
+                        review_content,
+                    ]
+                )
+            )
+        return "\n\n".join(blocks)
 
     def _check_task_completion(self, cwd: Path, artifact_root: str, topic: str, task_id: str) -> bool:
         _, outputs = self._load_task_outputs(task_id)
@@ -3478,6 +3523,21 @@ Targeted follow-up context:
                     "- decision_log_fields: " + ", ".join(decision_log_fields)
                 )
             academic_context_section = "\n".join(continuity_lines) + "\n"
+        self_critique_loop = task_packet.get("self_critique_loop", {})
+        self_critique_rules = ""
+        self_critique_section = ""
+        if bool(self_critique_loop.get("enabled")) and bool(self_critique_loop.get("history_persistent")):
+            self_critique_rules = """
+19. Self-critique loop persistence is active for this task.
+20. Keep the draft structurally stable enough for iterative revision instead of rewriting it from scratch in later rounds.
+21. If you emit an auxiliary critique artifact, use `review/self_critique_log.md` as the canonical issue register.
+"""
+            self_critique_section = (
+                "Self-critique loop:\n"
+                f"- critique_artifact: {self_critique_loop.get('artifact', self.SELF_CRITIQUE_ARTIFACT)}\n"
+                f"- max_revision_rounds: {self_critique_loop.get('max_rounds', 0)}\n"
+                "- preserve_issue_lineage_across_rounds: true\n"
+            )
         return f"""You are executing one canonical research workflow task.
 
 Task packet (JSON):
@@ -3498,6 +3558,7 @@ Execution rules:
 {depth_rules}
 {targeted_rules}
 {academic_context_rules}
+{self_critique_rules}
 
 Output control:
 {chr(10).join(output_control_lines)}
@@ -3507,7 +3568,7 @@ MCP evidence snapshot:
 
 Required skill cards:
 {self._format_skill_context(skill_cards)}
-{domain_section}{code_lane_section}{code_lane_template_section}{targeted_section}{academic_context_section}
+{domain_section}{code_lane_section}{code_lane_template_section}{targeted_section}{academic_context_section}{self_critique_section}
 
 Additional context:
 {extra_context or "No additional context."}
@@ -3523,6 +3584,7 @@ Return sections:
         skill_cards: list[dict[str, Any]],
         draft_output: str,
         revision_round: int = 0,
+        revision_history: list[dict[str, Any]] | None = None,
     ) -> str:
         """Build review prompt with self-critique question injection."""
         task_id = str(task_packet.get("task_id", "")).strip()
@@ -3538,6 +3600,25 @@ Return sections:
             critique_section = f"""
 Stage-specific critique questions (MUST address each):
 {formatted}
+"""
+        self_critique_loop = task_packet.get("self_critique_loop", {})
+        self_critique_section = ""
+        self_critique_rule = ""
+        if bool(self_critique_loop.get("enabled")):
+            log_artifact = str(
+                self_critique_loop.get("artifact", self.SELF_CRITIQUE_ARTIFACT)
+            ).strip() or self.SELF_CRITIQUE_ARTIFACT
+            history_block = self._format_revision_history_for_prompt(revision_history)
+            self_critique_section = f"""
+Self-critique loop context:
+- critique_log_artifact: {log_artifact}
+- preserve_issue_lineage: true
+- prior_round_history:
+{history_block}
+"""
+            self_critique_rule = """
+12. Self-critique loop is active. Do not restart critique from zero; carry unresolved issues forward, mark resolved ones explicitly, and separate genuinely new issues from previously raised ones.
+13. In "Self-Critique Log Update", maintain a compact issue register suitable for `review/self_critique_log.md`.
 """
 
         round_note = ""
@@ -3564,6 +3645,8 @@ Stage-specific critique questions (MUST address each):
         targeted_follow_up_section = self._build_targeted_follow_up_context(task_packet)
         if targeted_follow_up_section:
             return_sections.append("- Target Resolution Check")
+        if bool(self_critique_loop.get("enabled")):
+            return_sections.append("- Self-Critique Log Update")
         return_sections.append("- Confidence (0-1)")
         domain_section = ""
         if str(task_packet.get("domain", "")).strip() and str(task_packet.get("domain", "")).strip() != "auto":
@@ -3609,7 +3692,7 @@ MCP evidence snapshot:
 
 Required skill cards:
 {self._format_skill_context(skill_cards)}
-{domain_section}{code_lane_section}{code_lane_review_section}{targeted_section}
+{domain_section}{code_lane_section}{code_lane_review_section}{targeted_section}{self_critique_section}
 
 Review checklist:
 1. Output path coverage against required_outputs.
@@ -3621,6 +3704,7 @@ Review checklist:
 7. Functional-owner scope fit and handoff consistency against functional_handoff_trace.
 {depth_review}
 {targeted_review_rule}
+{self_critique_rule}
 {critique_section}
 
 Dynamic Literature-Based Critique:
@@ -3785,6 +3869,7 @@ Return sections:
         previous_draft: str,
         review_feedback: str,
         revision_round: int,
+        revision_history: list[dict[str, Any]] | None = None,
     ) -> str:
         """Build a revision prompt that integrates review feedback."""
         task_json = json.dumps(task_packet, ensure_ascii=False, indent=2)
@@ -3824,6 +3909,23 @@ Return sections:
                 "8. Preserve wording and structure for unrelated sections whenever possible.\n"
             )
             targeted_return_sections = "- Targeted Change Log\n"
+        self_critique_loop = task_packet.get("self_critique_loop", {})
+        self_critique_section = ""
+        self_critique_rules = ""
+        self_critique_return_sections = ""
+        if bool(self_critique_loop.get("enabled")):
+            history_block = self._format_revision_history_for_prompt(revision_history)
+            self_critique_section = (
+                "Self-critique loop context:\n"
+                f"- critique_log_artifact: {self_critique_loop.get('artifact', self.SELF_CRITIQUE_ARTIFACT)}\n"
+                "- prior_round_history:\n"
+                f"{history_block}\n\n"
+            )
+            self_critique_rules = (
+                "9. Preserve issue lineage across rounds. Do not silently drop previously raised blockers; mark each as resolved, partial, or still-open.\n"
+                "10. Update `review/self_critique_log.md` as the canonical issue register with round-by-round status changes.\n"
+            )
+            self_critique_return_sections = "- Self-Critique Log (review/self_critique_log.md)\n"
         return (
             f"You are revising a research workflow task draft based on review feedback.\n"
             f"This is revision round {revision_round}.\n\n"
@@ -3836,6 +3938,7 @@ Return sections:
             f"{code_lane_section}"
             f"{code_lane_template_section}"
             f"{targeted_section}"
+            f"{self_critique_section}"
             "Revision rules:\n"
             "1. Address every Critical Issue raised in the review.\n"
             "2. Apply every Suggested Fix unless you can justify why it is not applicable.\n"
@@ -3844,9 +3947,11 @@ Return sections:
             "5. Re-check all quality_gates and mark each as PASS/WARN/FAIL.\n"
             "6. If any issue cannot be resolved, explain why under 'Unresolved Issues'.\n"
             f"{targeted_revision_rules}\n"
+            f"{self_critique_rules}"
             "Return sections:\n"
             "- Revision Summary (what changed and why)\n"
             f"{targeted_return_sections}"
+            f"{self_critique_return_sections}"
             "- Revised Draft Outputs (by file path)\n"
             "- Quality Gate Check\n"
             "- Unresolved Issues\n"
@@ -4585,6 +4690,14 @@ Return sections:
                 list(academic_context_update.get("artifacts", [])),
             )
         evidence_expansion_rounds = 2 if depth_mode == "deep" else 1
+        effective_max_rounds = max(0, max_revision_rounds)
+        if depth_mode == "deep":
+            effective_max_rounds = max(effective_max_rounds, 3)
+        self_critique_loop = self._build_self_critique_loop(
+            agent_plan["required_skills"],
+            effective_max_rounds,
+            depth_mode,
+        )
 
         try:
             profile_registry, task_profile_overrides = self._load_profile_bundle(profile_file)
@@ -4670,6 +4783,7 @@ Return sections:
                 "functional_handoff_trace": functional_handoff_trace,
                 "functional_owner_chain": functional_owner_chain,
                 "runtime_plan": dict(agent_plan.get("runtime_plan", {})),
+                "self_critique_loop": dict(self_critique_loop),
             }
         )
         zh_ui = get_language() == "zh-CN"
@@ -4729,6 +4843,14 @@ Return sections:
             f"Research depth: {depth_mode} (evidence_expansion_rounds={evidence_expansion_rounds})."
             + (" / 研究深度设置。" if zh_ui else "")
         )
+        if self_critique_loop.get("enabled"):
+            routing_notes.append(
+                "Self-critique loop ACTIVE: "
+                f"artifact={self_critique_loop.get('artifact', self.SELF_CRITIQUE_ARTIFACT)}, "
+                f"max_rounds={effective_max_rounds}, "
+                "history_persistent=true."
+                + (" / 多轮自循环已启用。" if zh_ui else "")
+            )
         if academic_context_update.get("enabled"):
             routing_notes.append(
                 "Academic context continuity hook ACTIVE: "
@@ -4894,9 +5016,6 @@ Return sections:
 
             # --- Revision loop ---
             current_draft_content = draft_resp.content
-            effective_max_rounds = max(0, max_revision_rounds)
-            if depth_mode == "deep":
-                effective_max_rounds = max(effective_max_rounds, 3)
             for revision_round in range(effective_max_rounds + 1):
                 review_prompt = self._build_task_review_prompt(
                     packet,
@@ -4904,6 +5023,7 @@ Return sections:
                     packet.get("required_skill_cards", []),
                     current_draft_content,
                     revision_round=revision_round,
+                    revision_history=revision_history,
                 )
                 review_resp = self._execute_runtime_agent(
                     review_runtime,
@@ -4928,6 +5048,7 @@ Return sections:
                     "round": revision_round,
                     "verdict": verdict,
                     "confidence": review_confidence,
+                    "review_content": review_resp.content,
                 })
 
                 if verdict == "PASS":
@@ -4948,6 +5069,7 @@ Return sections:
                         current_draft_content,
                         review_resp.content,
                         revision_round=revision_round + 1,
+                        revision_history=revision_history,
                     )
                     revised_resp = self._execute_runtime_agent(
                         draft_runtime,
@@ -5203,6 +5325,7 @@ Return sections:
                     "source_artifact": str(packet.get("structured_source_artifact", "")).strip(),
                     "source_path": str(packet.get("structured_source_path", "")).strip(),
                 },
+                "self_critique_loop": dict(self_critique_loop),
                 "validator_gate": dict(validator_gate_result),
             },
         )

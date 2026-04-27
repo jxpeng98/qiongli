@@ -91,6 +91,7 @@ RESEARCH/[topic]/
 - Use the canonical task and output definitions in `references/workflow-contract.md`.
 - Keep stage labels and task IDs unchanged across models.
 - Do not infer stage order alphabetically when the contract exposes explicit ordering metadata.
+- When `self-critique` is one of the required skills, preserve critique history across revision rounds and treat `review/self_critique_log.md` as the canonical issue register for the loop.
 - If a requested output is missing prerequisites, create a gap note and ask whether to:
   1. continue with placeholders, or
   2. run the prerequisite task first.
