@@ -84,6 +84,38 @@ PY
 
 actual_workflow_version="$(tr -d '\r\n' < research-paper-workflow/VERSION)"
 
+actual_plugin_versions="$(python3 - <<'PY'
+import json
+from pathlib import Path
+
+paths = [
+    Path("plugins/research-skills/.codex-plugin/plugin.json"),
+    Path(".claude-plugin/marketplace.json"),
+    Path("plugins/research-skills/.claude-plugin/plugin.json"),
+    Path("plugins/research-skills/gemini-extension.json"),
+]
+for path in paths:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    versions = []
+
+    def visit(value):
+        if isinstance(value, dict):
+            for key, item in value.items():
+                if key == "version":
+                    versions.append(item)
+                else:
+                    visit(item)
+        elif isinstance(value, list):
+            for item in value:
+                visit(item)
+
+    visit(data)
+    if not versions:
+        raise SystemExit(f"missing version in {path}")
+    print(f"{path}:{','.join(versions)}")
+PY
+)"
+
 [[ "$actual_package_version" == "$expected_package_version" ]] || {
   echo "[verify-release-tag] pyproject version mismatch: tag=$TAG expects $expected_package_version, found $actual_package_version" >&2
   exit 1
@@ -103,5 +135,18 @@ actual_workflow_version="$(tr -d '\r\n' < research-paper-workflow/VERSION)"
   echo "[verify-release-tag] research-paper-workflow/VERSION mismatch: tag=$TAG expects $expected_repo_tag, found $actual_workflow_version" >&2
   exit 1
 }
+
+while IFS= read -r plugin_line; do
+  [[ -n "$plugin_line" ]] || continue
+  plugin_path="${plugin_line%%:*}"
+  plugin_versions="${plugin_line#*:}"
+  IFS=',' read -r -a version_items <<< "$plugin_versions"
+  for actual_plugin_version in "${version_items[@]}"; do
+    [[ "$actual_plugin_version" == "$expected_skill_version" ]] || {
+      echo "[verify-release-tag] ${plugin_path} mismatch: tag=$TAG expects $expected_skill_version, found $actual_plugin_version" >&2
+      exit 1
+    }
+  done
+done <<< "$actual_plugin_versions"
 
 echo "[verify-release-tag] tag and repo versions are aligned: $TAG"

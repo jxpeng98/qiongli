@@ -432,7 +432,10 @@ print_detected_versions() {
 _copy_item() {
   local src="$1"
   local dest="$2"
-  local src_abs dest_abs src_version dest_version auto_detail=""
+  local src_abs dest_abs
+  local src_version=""
+  local dest_version=""
+  local auto_detail=""
   src_abs="$(resolve_abs "$src")"
   dest_abs="$(resolve_abs "$dest")"
   COPY_ITEM_STATUS="ok"

@@ -6,6 +6,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RELEASE_AUTOMATION = REPO_ROOT / "scripts" / "release_automation.sh"
+RELEASE_READY = REPO_ROOT / "scripts" / "release_ready.sh"
 RELEASE_POSTFLIGHT = REPO_ROOT / "scripts" / "release_postflight.sh"
 RELEASE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-automation.yml"
 PUBLISH_PYPI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-pypi.yml"
@@ -43,6 +44,14 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('bash ./scripts/verify_release_tag_version.sh --tag "$TAG"', content)
         self.assertIn("gh release view", content)
         self.assertIn("--prerelease", content)
+
+    def test_release_ready_includes_plugin_distribution_versions(self) -> None:
+        content = RELEASE_READY.read_text(encoding="utf-8")
+
+        self.assertIn('plugins/research-skills/.codex-plugin/plugin.json', content)
+        self.assertIn('.claude-plugin/marketplace.json', content)
+        self.assertIn('plugins/research-skills/.claude-plugin/plugin.json', content)
+        self.assertIn('plugins/research-skills/gemini-extension.json', content)
 
     def test_changelog_section_script_extracts_versioned_sections(self) -> None:
         content = CHANGELOG_SECTION.read_text(encoding="utf-8")
@@ -82,6 +91,10 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('research_skills/__init__.py', content)
         self.assertIn('skills/registry.yaml', content)
         self.assertIn('research-paper-workflow/VERSION', content)
+        self.assertIn('plugins/research-skills/.codex-plugin/plugin.json', content)
+        self.assertIn('.claude-plugin/marketplace.json', content)
+        self.assertIn('plugins/research-skills/.claude-plugin/plugin.json', content)
+        self.assertIn('plugins/research-skills/gemini-extension.json', content)
 
 
 if __name__ == "__main__":

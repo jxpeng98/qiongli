@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
@@ -49,6 +50,30 @@ def replace_pattern(path: Path, pattern: re.Pattern[str], replacement: str) -> b
     return False
 
 
+def replace_json_versions(path: Path, version: str) -> bool:
+    original = path.read_text(encoding="utf-8")
+    data = json.loads(original)
+    changed = False
+
+    def visit(value: object) -> None:
+        nonlocal changed
+        if isinstance(value, dict):
+            for key, item in value.items():
+                if key == "version" and item != version:
+                    value[key] = version
+                    changed = True
+                else:
+                    visit(item)
+        elif isinstance(value, list):
+            for item in value:
+                visit(item)
+
+    visit(data)
+    if changed:
+        path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    return changed
+
+
 def sync_versions(root: Path, raw_version: str) -> list[Path]:
     package_version, skill_version, repo_version = parse_version(raw_version)
     changed: list[Path] = []
@@ -80,6 +105,18 @@ def sync_versions(root: Path, raw_version: str) -> list[Path]:
     if original_repo_version != repo_version:
         version_file.write_text(repo_version + "\n", encoding="utf-8")
         changed.append(version_file)
+
+    json_version_files = (
+        root / "plugins" / "research-skills" / ".codex-plugin" / "plugin.json",
+        root / ".claude-plugin" / "marketplace.json",
+        root / "plugins" / "research-skills" / ".claude-plugin" / "plugin.json",
+        root / "plugins" / "research-skills" / "gemini-extension.json",
+    )
+    for plugin_manifest in json_version_files:
+        if not plugin_manifest.exists():
+            continue
+        if replace_json_versions(plugin_manifest, skill_version):
+            changed.append(plugin_manifest)
 
     return changed
 

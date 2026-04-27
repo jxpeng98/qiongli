@@ -59,6 +59,25 @@ class SyncVersionsTests(unittest.TestCase):
                 "v0.1.0\n",
                 encoding="utf-8",
             )
+            (root / "plugins" / "research-skills" / ".codex-plugin").mkdir(parents=True)
+            (root / "plugins" / "research-skills" / ".codex-plugin" / "plugin.json").write_text(
+                '{\n  "name": "research-skills",\n  "version": "0.1.0"\n}\n',
+                encoding="utf-8",
+            )
+            (root / ".claude-plugin").mkdir()
+            (root / ".claude-plugin" / "marketplace.json").write_text(
+                '{\n  "name": "research-skills",\n  "metadata": {"version": "0.1.0"},\n  "plugins": [{"name": "research-skills", "version": "0.1.0"}]\n}\n',
+                encoding="utf-8",
+            )
+            (root / "plugins" / "research-skills" / ".claude-plugin").mkdir()
+            (root / "plugins" / "research-skills" / ".claude-plugin" / "plugin.json").write_text(
+                '{\n  "name": "research-skills",\n  "version": "0.1.0"\n}\n',
+                encoding="utf-8",
+            )
+            (root / "plugins" / "research-skills" / "gemini-extension.json").write_text(
+                '{\n  "name": "research-skills",\n  "version": "0.1.0"\n}\n',
+                encoding="utf-8",
+            )
             (root / "skills" / "F_writing" / "demo.md").write_text(
                 '---\nid: "demo"\nstage: "F_writing"\n---\n',
                 encoding="utf-8",
@@ -70,6 +89,16 @@ class SyncVersionsTests(unittest.TestCase):
             self.assertIn(root / "research_skills" / "__init__.py", changed)
             self.assertIn(root / "skills" / "registry.yaml", changed)
             self.assertIn(root / "research-paper-workflow" / "VERSION", changed)
+            self.assertIn(
+                root / "plugins" / "research-skills" / ".codex-plugin" / "plugin.json",
+                changed,
+            )
+            self.assertIn(root / ".claude-plugin" / "marketplace.json", changed)
+            self.assertIn(
+                root / "plugins" / "research-skills" / ".claude-plugin" / "plugin.json",
+                changed,
+            )
+            self.assertIn(root / "plugins" / "research-skills" / "gemini-extension.json", changed)
             self.assertIn('version = "0.2.0b2"', (root / "pyproject.toml").read_text())
             self.assertIn(
                 '__version__ = "0.2.0b2"',
@@ -82,5 +111,18 @@ class SyncVersionsTests(unittest.TestCase):
             self.assertEqual(
                 (root / "research-paper-workflow" / "VERSION").read_text().strip(),
                 "v0.2.0-beta.2",
+            )
+            self.assertIn(
+                '"version": "0.2.0-beta.2"',
+                (root / "plugins" / "research-skills" / ".codex-plugin" / "plugin.json").read_text(),
+            )
+            self.assertIn('"version": "0.2.0-beta.2"', (root / ".claude-plugin" / "marketplace.json").read_text())
+            self.assertIn(
+                '"version": "0.2.0-beta.2"',
+                (root / "plugins" / "research-skills" / ".claude-plugin" / "plugin.json").read_text(),
+            )
+            self.assertIn(
+                '"version": "0.2.0-beta.2"',
+                (root / "plugins" / "research-skills" / "gemini-extension.json").read_text(),
             )
             self.assertNotIn(root / "skills" / "F_writing" / "demo.md", changed)

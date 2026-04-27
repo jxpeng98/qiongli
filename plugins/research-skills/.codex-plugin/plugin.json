@@ -1,0 +1,36 @@
+{
+  "name": "research-skills",
+  "version": "0.5.0-beta.3",
+  "description": "Academic research workflow skills for paper planning, literature review, writing, compliance, submission, and research code.",
+  "author": {
+    "name": "Jiaxin Peng",
+    "url": "https://github.com/jxpeng98"
+  },
+  "homepage": "https://github.com/jxpeng98/research-skills",
+  "repository": "https://github.com/jxpeng98/research-skills",
+  "license": "MIT",
+  "keywords": [
+    "research",
+    "academic-writing",
+    "literature-review",
+    "codex-skills"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Research Skills",
+    "shortDescription": "Academic paper workflows for Codex.",
+    "longDescription": "Install the research-paper-workflow skill through the Codex plugin marketplace. It provides standardized paper planning, literature review, manuscript writing, compliance, submission, presentation, and research-code workflows.",
+    "developerName": "Jiaxin Peng",
+    "category": "Education",
+    "capabilities": [
+      "Write"
+    ],
+    "websiteURL": "https://github.com/jxpeng98/research-skills",
+    "defaultPrompt": [
+      "Use $research-paper-workflow to plan my paper.",
+      "Run /lit-review for my research topic.",
+      "Prepare a submission package for my manuscript."
+    ],
+    "brandColor": "#2563EB"
+  }
+}
