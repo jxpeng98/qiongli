@@ -58,7 +58,26 @@
 - [CLI 参考](docs/zh/reference/cli.md)
 - [系统架构](docs/zh/architecture.md)
 
-### 0. 先选 `partial` 还是 `full`
+### 0. 先选安装路径
+
+如果你只想在单个客户端里安装，推荐走各客户端自己的原生扩展入口：
+
+- **Codex：** 官方 Codex plugin marketplace。
+- **Claude Code：** 把本仓库加入 Claude plugin marketplace，然后安装 `research-skills@research-skills`。
+- **Gemini CLI：** 从 `plugins/research-skills` 本地安装 Gemini extension；发布为独立 extension 仓库或 gallery 条目后，也可以从远端安装。
+
+这个仓库提供了三端打包与本地校验元数据：
+
+- `.agents/plugins/marketplace.json`
+- `.claude-plugin/marketplace.json`
+- `plugins/research-skills/.codex-plugin/plugin.json`
+- `plugins/research-skills/.claude-plugin/plugin.json`
+- `plugins/research-skills/gemini-extension.json`
+- `plugins/research-skills/skills/research-paper-workflow`
+
+如果你需要跨客户端全局安装、多端 slash command、`rsk upgrade`、`doctor` 或多模型 orchestrator，再使用下面的 bootstrap / CLI 路径。
+
+### 1. 先选 `partial` 还是 `full`
 
 现在的一键 bootstrap 已经会处理环境准备，你不需要为了首装而手动先装 Python。
 
@@ -75,7 +94,7 @@
 
 如果你不传 `--profile`，脚本会先解释两种模式，再提示你选择。
 
-### 1. 运行一键安装
+### 2. 运行一键安装
 
 Linux / macOS：
 
@@ -121,7 +140,7 @@ pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -Beta -Profile
 - 项目集成文件，例如 `.agent/workflows/`、`CLAUDE.md`、`.gemini/`，仅在执行 `rsk init` 或 `--parts project` 时写入
 - `full` 模式下的 shell CLI：`research-skills`、`rsk`、`rsw`
 
-### 2. 可选：手动准备 Python
+### 3. 可选：手动准备 Python
 
 只有在你想提前自己准备 Python，而不是交给 `full` bootstrap 自动处理时，才需要这一节。
 
@@ -160,7 +179,7 @@ mise use -g python@3.12
 python3 --version
 ```
 
-### 3. 先选入口
+### 4. 先选入口
 
 稳定入口现在有三类：
 
@@ -168,7 +187,7 @@ python3 --version
 - 安装 / 升级 CLI：`research-skills`、`rsk`、`rsw`
 - Orchestrator CLI：`python3 -m bridges.orchestrator ...`
 
-### 4. 可选：本地安装器与刷新路径
+### 5. 可选：本地安装器与刷新路径
 
 如果机器已经有 Python，也可以改用跨平台本地安装器：
 
@@ -195,7 +214,7 @@ rsk upgrade --target all --project-dir . --doctor
 
 *Python 边界：shell 版 `rsk check|upgrade|align` 不需要 Python；`--doctor`、`python3 -m bridges.orchestrator ...`、validator 和 tests 仍然需要 `python3`。*
 
-### 5. 先做环境检查
+### 6. 先做环境检查
 
 如果机器有 Python，建议在跑大任务前先做稳定预检：
 

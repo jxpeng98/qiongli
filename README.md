@@ -61,7 +61,26 @@ Start with the consolidated docs when you need detail:
 - [CLI Reference](docs/reference/cli.md)
 - [Architecture](docs/architecture.md)
 
-### 0. Choose `partial` Or `full`
+### 0. Choose An Install Path
+
+For native client distribution, install **Research Skills** through the client-specific extension surface:
+
+- **Codex:** official Codex plugin marketplace.
+- **Claude Code:** add this repo as a Claude plugin marketplace, then install `research-skills@research-skills`.
+- **Gemini CLI:** install the Gemini extension from `plugins/research-skills` locally, or from a standalone extension repository/gallery entry once published.
+
+This repository ships local packaging metadata for all three surfaces:
+
+- `.agents/plugins/marketplace.json`
+- `.claude-plugin/marketplace.json`
+- `plugins/research-skills/.codex-plugin/plugin.json`
+- `plugins/research-skills/.claude-plugin/plugin.json`
+- `plugins/research-skills/gemini-extension.json`
+- `plugins/research-skills/skills/research-paper-workflow`
+
+Use the bootstrap/CLI path below when you need cross-client global installs, slash-command symlinks, `rsk upgrade`, `doctor`, or multi-model orchestration.
+
+### 1. Choose `partial` Or `full`
 
 The bootstrap installer now handles the environment setup for you. You do not need to preinstall Python just to get started.
 
@@ -78,7 +97,7 @@ Behavior in `full` mode:
 
 If you omit `--profile`, the bootstrap script explains both choices and prompts you to choose.
 
-### 1. Run The One-Click Bootstrap
+### 2. Run The One-Click Bootstrap
 
 Linux / macOS:
 
@@ -124,7 +143,7 @@ This installs:
 - project integration files such as `.agent/workflows/`, `CLAUDE.md`, `.gemini/` when you run `rsk init` or `--parts project`
 - shell CLI commands `research-skills`, `rsk`, `rsw` in `full` mode
 
-### 2. Optional Manual Python Setup
+### 3. Optional Manual Python Setup
 
 You only need this if you want to prepare Python yourself instead of letting `full` bootstrap handle it.
 
@@ -163,7 +182,7 @@ mise use -g python@3.12
 python3 --version
 ```
 
-### 3. Pick An Entry Mode
+### 4. Pick An Entry Mode
 
 Use one of these stable entrypoints:
 
@@ -171,7 +190,7 @@ Use one of these stable entrypoints:
 - Installer / updater CLI: `research-skills`, `rsk`, `rsw`
 - Orchestrator CLI: `python3 -m bridges.orchestrator ...`
 
-### 4. Optional Local Installers And Refresh Paths
+### 5. Optional Local Installers And Refresh Paths
 
 If Python is already available, you can also use the local cross-platform installer:
 
@@ -198,7 +217,7 @@ If you already used the shell bootstrap above, re-run it or `rsk upgrade` with `
 
 *Python boundary: shell `rsk check|upgrade|align` do not require Python; `--doctor`, `python3 -m bridges.orchestrator ...`, validators, and tests still require `python3`.*
 
-### 5. Validate Local Readiness
+### 6. Validate Local Readiness
 
 If Python is available, run the stable preflight checks before a larger workflow:
 
@@ -326,7 +345,30 @@ This section covers the installer/updater CLI only. It does not document the res
 
 ### 1. Ways to install the CLI
 
-#### Option A: Shell bootstrap CLI install (recommended)
+#### Option A: Native plugin / extension install
+
+Use this when:
+- you want the easiest install path inside one client
+- you only need the `research-paper-workflow` skill surfaced in Codex, Claude Code, or Gemini CLI
+- you do not need `rsk`, `doctor`, or cross-client global installation
+
+Install commands for local development:
+
+```text
+# Codex
+Install Research Skills from the official Codex plugin marketplace.
+
+# Claude Code
+/plugin marketplace add ./path/to/research-skills
+/plugin install research-skills@research-skills
+
+# Gemini CLI
+gemini extensions install ./path/to/research-skills/plugins/research-skills
+```
+
+The Codex and Claude entries use marketplace catalogs. Gemini CLI uses the official extension system (`gemini-extension.json`) rather than a marketplace JSON.
+
+#### Option B: Shell bootstrap CLI install
 
 Use this when:
 - the machine does not have Python
@@ -356,7 +398,7 @@ If the command is not found after install, add this directory to `PATH`:
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-#### Option B: Python CLI via `pipx`
+#### Option C: Python CLI via `pipx`
 
 Use this when:
 - Python is already available
@@ -372,7 +414,7 @@ What it installs:
 - Python CLI: `research-skills`, `rsk`, `rsw`
 - It does not automatically write workflow assets into your project; you still run `rsk upgrade`
 
-#### Option C: Install shell CLI from a local clone
+#### Option D: Install shell CLI from a local clone
 
 Use this when:
 - you already cloned this repository
