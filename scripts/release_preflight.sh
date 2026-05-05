@@ -14,6 +14,45 @@ is_prerelease_tag() {
   [[ "$1" == *beta* || "$1" =~ b[0-9]+ ]]
 }
 
+require_python_module() {
+  local module="$1"
+  local package="$2"
+
+  if python3 -c "import ${module}" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  echo "[preflight] missing Python dependency: ${package} (module: ${module})" >&2
+  echo "[preflight] install release dependencies before publishing, for example:" >&2
+  echo "  python3 -m pip install -e ." >&2
+  exit 1
+}
+
+run_logged_stage() {
+  local label="$1"
+  local log_file="$2"
+  local -a statuses
+  shift 2
+
+  echo "[preflight] ${label}"
+  set +e
+  "$@" 2>&1 | tee "$log_file"
+  statuses=("${PIPESTATUS[@]}")
+  set -e
+
+  local command_status="${statuses[0]}"
+  local tee_status="${statuses[1]}"
+  if [[ "$tee_status" -ne 0 ]]; then
+    echo "[preflight] FAIL: ${label} log capture failed with exit code ${tee_status}" >&2
+    exit "$tee_status"
+  fi
+  if [[ "$command_status" -ne 0 ]]; then
+    echo "[preflight] FAIL: ${label} failed with exit code ${command_status}" >&2
+    echo "[preflight] log: ${log_file}" >&2
+    exit "$command_status"
+  fi
+}
+
 usage() {
   cat <<'EOF'
 Usage:
@@ -87,6 +126,8 @@ done
 
 cd "$ROOT_DIR"
 
+require_python_module yaml PyYAML
+
 if [[ -n "$TAG" ]]; then
   if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
     echo "[preflight] tag already exists locally: $TAG" >&2
@@ -154,15 +195,13 @@ unit_log="$(mktemp -t research-skills-unittest.XXXXXX.log)"
 smoke_log="$(mktemp -t research-skills-smoke.XXXXXX.log)"
 trap 'rm -f "$validator_log" "$unit_log" "$smoke_log"' EXIT
 
-echo "[preflight] validator"
-"${validate_cmd[@]}" 2>&1 | tee "$validator_log"
+run_logged_stage "validator" "$validator_log" "${validate_cmd[@]}"
 validator_summary="$(grep '^Summary:' "$validator_log" | tail -n1 || true)"
 if [[ -z "$validator_summary" ]]; then
-  validator_summary="passed"
+  validator_summary="completed"
 fi
 
-echo "[preflight] unit tests"
-python3 -m unittest discover -s tests -v 2>&1 | tee "$unit_log"
+run_logged_stage "unit tests" "$unit_log" python3 -m unittest discover -s tests -v
 unit_ran_line="$(grep -E '^Ran [0-9]+ tests? in ' "$unit_log" | tail -n1 || true)"
 if grep -q '^OK$' "$unit_log"; then
   if [[ -n "$unit_ran_line" ]]; then
@@ -179,8 +218,7 @@ if [[ "$RUN_SMOKE" -eq 1 ]]; then
   if [[ "$MAINTAINER_SMOKE" -eq 1 ]]; then
     smoke_tier="maintainer"
   fi
-  echo "[preflight] smoke (${smoke_tier} tier)"
-  ./scripts/run_beta_smoke.sh --tier "$smoke_tier" 2>&1 | tee "$smoke_log"
+  run_logged_stage "smoke (${smoke_tier} tier)" "$smoke_log" ./scripts/run_beta_smoke.sh --tier "$smoke_tier"
   if grep -q '\[smoke\] passed' "$smoke_log"; then
     smoke_summary="passed (${smoke_tier}-tier)"
   else

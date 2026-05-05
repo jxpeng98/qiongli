@@ -7,6 +7,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RELEASE_AUTOMATION = REPO_ROOT / "scripts" / "release_automation.sh"
 RELEASE_READY = REPO_ROOT / "scripts" / "release_ready.sh"
+RELEASE_PREFLIGHT = REPO_ROOT / "scripts" / "release_preflight.sh"
 RELEASE_POSTFLIGHT = REPO_ROOT / "scripts" / "release_postflight.sh"
 RELEASE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-automation.yml"
 PUBLISH_PYPI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-pypi.yml"
@@ -59,6 +60,23 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('.claude-plugin/marketplace.json', content)
         self.assertIn('plugins/research-skills/.claude-plugin/plugin.json', content)
         self.assertIn('plugins/research-skills/gemini-extension.json', content)
+
+    def test_release_preflight_fails_fast_on_logged_stage_errors(self) -> None:
+        content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
+
+        self.assertIn("run_logged_stage()", content)
+        self.assertIn('statuses=("${PIPESTATUS[@]}")', content)
+        self.assertIn('"[preflight] FAIL: ${label} failed with exit code ${command_status}"', content)
+        self.assertIn('run_logged_stage "validator" "$validator_log" "${validate_cmd[@]}"', content)
+        self.assertIn('run_logged_stage "unit tests" "$unit_log" python3 -m unittest discover -s tests -v', content)
+        self.assertIn('run_logged_stage "smoke (${smoke_tier} tier)" "$smoke_log" ./scripts/run_beta_smoke.sh --tier "$smoke_tier"', content)
+
+    def test_release_preflight_reports_missing_pyyaml_dependency(self) -> None:
+        content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
+
+        self.assertIn('require_python_module yaml PyYAML', content)
+        self.assertIn("[preflight] missing Python dependency: ${package} (module: ${module})", content)
+        self.assertIn("python3 -m pip install -e .", content)
 
     def test_changelog_section_script_extracts_versioned_sections(self) -> None:
         content = CHANGELOG_SECTION.read_text(encoding="utf-8")
