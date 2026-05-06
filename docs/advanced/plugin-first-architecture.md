@@ -36,6 +36,26 @@ This repo keeps one plugin, `research-skills`, and ships one portable skill pack
 
 The thin command wrappers under `plugins/research-skills/commands/` intentionally contain no workflow logic. They only load `research-paper-workflow` and point to `skills/research-paper-workflow/workflows/<command>.md`.
 
+## Upgrade Compatibility
+
+The plugin-first package does not replace the legacy global install in place. Native plugin installation and bootstrap / `rsk` installation use separate surfaces:
+
+- Plugin bundle: managed by the client plugin or extension system.
+- Global skill install: `~/.codex/skills/research-paper-workflow`, `~/.claude/skills/research-paper-workflow`, and `~/.gemini/skills/research-paper-workflow`, managed by `rsk` or bootstrap.
+- Global slash discovery: `~/.claude/commands/*.md` and `~/.gemini/workflows/*.md`, managed by `rsk`.
+
+For ordinary client-native usage, the plugin bundle is enough. For CLI commands, validators, `doctor`, release tooling, or `bridges.orchestrator`, users still need the `full` runtime and should keep the global install aligned with:
+
+```bash
+rsk upgrade --target all --doctor
+```
+
+When migrating fully to the plugin and removing old slash discovery, preview cleanup first:
+
+```bash
+rsk clean --globals --dry-run
+```
+
 ## Quality Contract
 
 Every canonical skill should pass:

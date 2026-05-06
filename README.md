@@ -84,6 +84,8 @@ The plugin is the install/discovery container; `research-paper-workflow` is the 
 
 Use the bootstrap/CLI path below when you need cross-client global installs, slash-command symlinks, `rsk upgrade`, `doctor`, or multi-model orchestration.
 
+Compatibility note: the official plugin does not automatically migrate or delete older global installs under `~/.codex/skills`, `~/.claude/skills`, or `~/.gemini/skills`. If you still need CLI / orchestrator capabilities, keep the `full` runtime and run `rsk upgrade --target all --doctor` so the global skill package matches the plugin version. If you move fully to the plugin, preview cleanup of old slash-command symlinks with `rsk clean --globals --dry-run`.
+
 ### 1. Choose `partial` Or `full`
 
 The bootstrap installer has two profiles. Use `partial` when you only want the cross-client skill package and slash-command discovery. Use `full` when you also want the local shell CLI and Python-backed orchestrator checks.

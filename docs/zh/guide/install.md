@@ -51,7 +51,28 @@ gemini extensions install ./path/to/research-skills/plugins/research-skills
 
 Codex 和 Claude Code 使用 marketplace catalog。Gemini CLI 使用官方 extension 系统（`gemini-extension.json`），不是 marketplace JSON。
 
-## 2. 先选 `partial` 还是 `full`
+## 2. 与旧版全局 Skills 的兼容
+
+新的原生 plugin / extension 安装可以和旧版 `partial` / `full` 安装共存，但不会自动迁移或删除旧安装。
+
+它们是不同的安装面：
+
+| 安装面 | 典型路径 | 管理方 |
+|---|---|---|
+| 原生 plugin bundle | 客户端 plugin / extension store，内部包含 `plugins/research-skills/skills/research-paper-workflow` | Codex / Claude Code / Gemini 的 plugin 系统 |
+| 旧版全局 skill 安装 | `~/.codex/skills/research-paper-workflow`、`~/.claude/skills/research-paper-workflow`、`~/.gemini/skills/research-paper-workflow` | `rsk`、bootstrap 或本地 installer |
+| 旧版 slash command discovery | `~/.claude/commands/*.md`、`~/.gemini/workflows/*.md` | `rsk` 管理的软链接 |
+
+建议按下面规则选择：
+
+- 新用户如果只需要客户端原生 skills 和 `/paper` 这类 workflow，直接安装官方 plugin / extension。
+- 已经装过 `partial` / `full` 的用户，可以在旧全局 skills 旁边再安装 plugin。
+- 如果还需要 `research-skills`、`rsk`、`rsw`、`doctor`、validator 或 `bridges.orchestrator`，继续保留 `full` runtime，并执行 `rsk upgrade --target all --doctor`，让全局 skill package 与 plugin 版本保持一致。
+- 如果准备完全切到官方 plugin，不再需要旧版全局 slash discovery，先用 `rsk clean --globals --dry-run` 查看会清理哪些旧入口。
+
+如果旧版全局 skills 和新 plugin 同时存在，建议保持版本一致，避免不同客户端或不同命令路径加载到不同版本的 `research-paper-workflow`。
+
+## 3. 先选 `partial` 还是 `full`
 
 如果你不传 `--profile`，bootstrap 会先解释这两种模式，再提示你选择。建议选最小可用模式：只用全局 skills 就选 `partial`，需要本地 CLI 和 orchestrator 检查再选 `full`。
 
@@ -92,7 +113,7 @@ Codex 和 Claude Code 使用 marketplace catalog。Gemini CLI 使用官方 exten
 python3 --version
 ```
 
-## 3. 运行推荐的一键 bootstrap
+## 4. 运行推荐的一键 bootstrap
 
 ### Linux / macOS
 
@@ -159,7 +180,7 @@ Bootstrap 会安装：
 - `.agent/workflows/`、`CLAUDE.md`、`.gemini/` 等项目集成文件，仅在执行 `rsk init` 或 `--parts project` 时写入
 - `full` 模式下的 shell CLI：`research-skills`、`rsk`、`rsw`
 
-## 4. 使用已安装的 skills
+## 5. 使用已安装的 skills
 
 `partial` 和 `full` 都是 global-first。安装完成后，日常使用流程是：
 
@@ -173,7 +194,7 @@ Bootstrap 会安装：
 rsk init --project-dir .
 ```
 
-## 5. 可选：本地安装器
+## 6. 可选：本地安装器
 
 如果机器上已经有 Python，可以用跨平台本地安装器：
 
@@ -199,7 +220,7 @@ rsk init --project-dir /path/to/project
 
 如果你先装了 `partial`，之后又安装了 Python 3.12+，可以重新运行 bootstrap 并指定 `--profile full`；如果 shell CLI 已经可用，也可以执行 `rsk upgrade --target all --doctor`。
 
-## 6. 全局优先安装与修改产物
+## 7. 全局优先安装与修改产物
 
 目前系统所有的安装与升级**默认全部是全局操作（Global-first）**，你的项目目录会被保持绝对干净。
 
@@ -211,7 +232,7 @@ rsk init --project-dir /path/to/project
 
 _注：涉及你具体项目内文件的写入（比如需要注入 API Key 的 `.env`），只有在你显式运行 `rsk init --project-dir .` 时才会发生。_
 
-## 7. 常用参数
+## 8. 常用参数
 
 - `--profile partial|full`：显式指定安装模式，跳过交互提示。
 - `--target codex|claude|gemini|antigravity|all`：限制安装范围。
@@ -223,7 +244,7 @@ _注：涉及你具体项目内文件的写入（比如需要注入 API Key 的 
 - `--dry-run`：只预览安装动作。
 - `--doctor`：安装后运行 `python3 -m bridges.orchestrator doctor --cwd <project>`。
 
-## 8. 极简使用指南（零配置）
+## 9. 极简使用指南（零配置）
 
 有了全局化命令注册，现在开启一篇新论文的研究步骤非常简单：
 
@@ -233,12 +254,18 @@ _注：涉及你具体项目内文件的写入（比如需要注入 API Key 的 
 
 模型会自动调用全局安装的技能体系，不会默认往你的工作区写入模板文件。
 
-## 9. 日常升级与故障排查
+## 10. 日常升级与故障排查
 
 要将你电脑上所有 AI 客户端的学术引擎统一升级到远端最新版本（你不用再去分别挨个项目升级了）：
 
 ```bash
 rsk upgrade --target all --doctor
+```
+
+如果已经采用官方 plugin，并想预览清理旧版全局 slash command 软链接：
+
+```bash
+rsk clean --globals --dry-run
 ```
 
 _注：终端工具（如 `rsk check`, `rsk upgrade`, `rsk clean`）现在自身不再依赖 Python 即可运行。但底层的核心验证器（`--doctor`，单元测试 以及 `bridges.orchestrator`）仍需合法的 Python 3 解释器来工作。_
