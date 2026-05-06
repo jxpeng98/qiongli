@@ -44,7 +44,10 @@ This repository contains the packaging metadata used for local validation:
 - `plugins/research-skills/.codex-plugin/plugin.json`
 - `plugins/research-skills/.claude-plugin/plugin.json`
 - `plugins/research-skills/gemini-extension.json`
+- `plugins/research-skills/commands/*.md`
 - `plugins/research-skills/skills/research-paper-workflow`
+
+In this layout, the plugin is the install/discovery container and `research-paper-workflow` is the portable skill package. The plugin command files are thin wrappers; the real workflow logic stays in `skills/research-paper-workflow/workflows/*.md`.
 
 Codex and Claude Code use marketplace catalogs. Gemini CLI uses the official extension system (`gemini-extension.json`) rather than a marketplace JSON.
 

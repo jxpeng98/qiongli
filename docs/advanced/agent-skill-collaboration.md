@@ -2,6 +2,8 @@
 
 This guide is designed to systematically enhance a specific capability (not limited to code) within `research-skills` while maintaining cross-model consistency.
 
+For distribution boundaries, see [Plugin-First Architecture](/advanced/plugin-first-architecture). For skill structure requirements, see [Skill Quality Contract](/maintainer/skill-quality-contract).
+
 ## 1) Define the Goal: Which Capability to Enhance
 
 First, bind the capability to a standard Task ID (`A1`~`I8`):

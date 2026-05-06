@@ -60,6 +60,7 @@ Start with the consolidated docs when you need detail:
 - [Install Guide](docs/guide/install.md)
 - [CLI Reference](docs/reference/cli.md)
 - [Architecture](docs/architecture.md)
+- [Plugin-First Architecture](docs/advanced/plugin-first-architecture.md)
 
 ### 0. Choose An Install Path
 
@@ -76,7 +77,10 @@ This repository ships local packaging metadata for all three surfaces:
 - `plugins/research-skills/.codex-plugin/plugin.json`
 - `plugins/research-skills/.claude-plugin/plugin.json`
 - `plugins/research-skills/gemini-extension.json`
+- `plugins/research-skills/commands/*.md`
 - `plugins/research-skills/skills/research-paper-workflow`
+
+The plugin is the install/discovery container; `research-paper-workflow` is the portable skill package inside it. The 71 academic skill specs under `skills/` are source-of-truth capability cards and are synchronized into the portable/plugin package before release.
 
 Use the bootstrap/CLI path below when you need cross-client global installs, slash-command symlinks, `rsk upgrade`, `doctor`, or multi-model orchestration.
 

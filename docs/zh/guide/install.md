@@ -44,7 +44,10 @@ gemini extensions install ./path/to/research-skills/plugins/research-skills
 - `plugins/research-skills/.codex-plugin/plugin.json`
 - `plugins/research-skills/.claude-plugin/plugin.json`
 - `plugins/research-skills/gemini-extension.json`
+- `plugins/research-skills/commands/*.md`
 - `plugins/research-skills/skills/research-paper-workflow`
+
+在这套结构里，plugin 负责安装、发现和平台入口；`research-paper-workflow` 是 plugin 内真正被加载的 portable skill package。`commands/*.md` 只做薄转发，真实 workflow 逻辑仍在 `skills/research-paper-workflow/workflows/*.md`。
 
 Codex 和 Claude Code 使用 marketplace catalog。Gemini CLI 使用官方 extension 系统（`gemini-extension.json`），不是 marketplace JSON。
 
