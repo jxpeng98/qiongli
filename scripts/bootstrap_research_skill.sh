@@ -17,8 +17,6 @@ RAW_REPO="${RESEARCH_SKILLS_REPO:-$DEFAULT_REPO}"
 INSTALL_CLI=1
 CLI_DIR="${RESEARCH_SKILLS_BIN_DIR:-$HOME/.local/bin}"
 PARTS=""
-MISE_BIN="${HOME}/.local/bin/mise"
-PYTHON_RUNTIME_MODE=""
 
 if [[ -z "${NO_COLOR:-}" ]] && [[ -t 1 ]]; then
   C_RESET='\033[0m'
@@ -64,7 +62,7 @@ Options:
   --cli-dir <path>                     Directory for shell CLI binaries (default: RESEARCH_SKILLS_BIN_DIR or ~/.local/bin)
   --parts <globals,project,cli,doctor> Limit install surfaces passed to the installer
   --overwrite                          Overwrite existing installed files
-  --doctor                             Run orchestrator doctor after install when python3 exists
+  --doctor                             Run orchestrator doctor after install; full profile requires Python 3.12+
   --no-doctor                          Skip doctor even in full profile
   --dry-run                            Print actions without writing files
   -h, --help                           Show help
@@ -73,7 +71,7 @@ Notes:
   - This bootstrap path only requires bash + curl/wget + tar.
   - Remote bootstrap always uses copy mode. For link mode, clone the repo and run scripts/install_research_skill.sh locally.
   - `partial` skips shell CLI installation and doctor.
-  - `full` enables shell CLI installation and doctor (when python3 exists).
+  - `full` enables shell CLI installation and doctor, and requires an existing Python 3.12+.
 EOF
 }
 
@@ -91,7 +89,7 @@ Choose an install profile:
   2) full
      - Installs global workflow assets
      - Installs shell CLI commands (`research-skills`, `rsk`, `rsw`)
-     - Ensures Python 3.12 is available via mise if missing
+     - Requires an existing Python 3.12+ installation
      - Runs orchestrator doctor after install
 
 EOF
@@ -116,6 +114,11 @@ apply_profile_defaults() {
 
 prompt_for_profile() {
   local answer
+
+  if [[ "${RESEARCH_SKILLS_NONINTERACTIVE:-}" == "1" ]]; then
+    err "Missing --profile and no interactive terminal is available. Pass --profile partial or --profile full."
+    exit 2
+  fi
 
   if ! : >/dev/tty 2>/dev/null || ! : </dev/tty 2>/dev/null; then
     err "Missing --profile and no interactive terminal is available. Pass --profile partial or --profile full."
@@ -211,18 +214,6 @@ persist_shell_path_entries() {
   done
 }
 
-resolve_mise_bin() {
-  if have_cmd mise; then
-    command -v mise
-    return 0
-  fi
-  if [[ -x "$MISE_BIN" ]]; then
-    printf '%s\n' "$MISE_BIN"
-    return 0
-  fi
-  return 1
-}
-
 resolve_abs_path() {
   local raw="${1:-}"
   if [[ -z "$raw" ]]; then
@@ -238,37 +229,27 @@ resolve_abs_path() {
   printf '%s\n' "$(cd "$raw" 2>/dev/null && pwd -P)"
 }
 
-install_mise() {
-  local installer_url="https://mise.run"
-  local mise_path
-  local mise_bin_dir shims_dir
+print_python_install_hints() {
+  cat >&2 <<'EOF'
+Python 3.12+ is required for full profile.
+Install Python with any method you prefer, then rerun this command.
 
-  if mise_path="$(resolve_mise_bin)"; then
-    MISE_BIN="$mise_path"
-    mise_bin_dir="$(dirname "$MISE_BIN")"
-    shims_dir="${HOME}/.local/share/mise/shims"
-    persist_shell_path_entries "$mise_bin_dir" "$shims_dir"
-    info "mise:    $MISE_BIN"
-    return 0
-  fi
-
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    info "mise:    install via $installer_url"
-    MISE_BIN="${HOME}/.local/bin/mise"
-    return 0
-  fi
-
-  info "mise:    installing via $installer_url"
-  download_text "$installer_url" | sh
-  if ! mise_path="$(resolve_mise_bin)"; then
-    err "Installed mise but could not locate the binary."
-    exit 1
-  fi
-  MISE_BIN="$mise_path"
-  mise_bin_dir="$(dirname "$MISE_BIN")"
-  shims_dir="${HOME}/.local/share/mise/shims"
-  persist_shell_path_entries "$mise_bin_dir" "$shims_dir"
-  info "mise:    ready -> $MISE_BIN"
+Common options:
+  macOS:
+    - python.org/downloads
+    - brew install python
+    - pyenv install 3.12 && pyenv global 3.12
+    - mise install python@3.12 && mise use -g python@3.12
+  Windows:
+    - python.org/downloads/windows
+    - winget install -e --id Python.Python.3.12 --source winget
+    - Microsoft Store Python 3.12
+    - pyenv-win
+  Linux:
+    - distro package manager, for example apt/dnf/pacman
+    - pyenv install 3.12 && pyenv global 3.12
+    - mise install python@3.12 && mise use -g python@3.12
+EOF
 }
 
 ensure_python_runtime() {
@@ -280,26 +261,16 @@ ensure_python_runtime() {
     if [[ "$current_version" =~ ^([0-9]+)\.([0-9]+)$ ]]; then
       if (( BASH_REMATCH[1] > 3 || (BASH_REMATCH[1] == 3 && BASH_REMATCH[2] >= 12) )); then
         info "python:  $current_python ($current_version)"
-        PYTHON_RUNTIME_MODE="direct"
         return 0
       fi
     fi
-    warn "python3 found at $current_python but version is below 3.12; installing python@3.12 via mise."
+    err "python3 found at $current_python but version is below 3.12."
   else
-    warn "python3 not found; full profile needs Python 3.12 for orchestrator."
+    err "python3 not found."
   fi
 
-  install_mise
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    info "python:  install via mise -> python@3.12"
-    PYTHON_RUNTIME_MODE="mise"
-    return 0
-  fi
-
-  "$MISE_BIN" install python@3.12
-  "$MISE_BIN" use -g python@3.12
-  info "python:  installed via mise -> python@3.12"
-  PYTHON_RUNTIME_MODE="mise"
+  print_python_install_hints
+  exit 1
 }
 
 normalize_repo() {
@@ -778,8 +749,4 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   cmd+=(--dry-run)
 fi
 
-if [[ "$PROFILE" == "full" && "$DRY_RUN" -ne 1 && "$PYTHON_RUNTIME_MODE" == "mise" ]]; then
-  "$MISE_BIN" exec python@3.12 -- "${cmd[@]}"
-else
-  "${cmd[@]}"
-fi
+"${cmd[@]}"

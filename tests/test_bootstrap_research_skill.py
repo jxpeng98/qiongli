@@ -69,6 +69,7 @@ class BootstrapResearchSkillTests(unittest.TestCase):
         self.assertIn("cli:     install ->", result.stdout)
         self.assertIn("--install-cli", result.stdout)
         self.assertIn("--doctor", result.stdout)
+        self.assertNotIn("install via mise", result.stdout)
 
     def test_dry_run_passes_parts_to_installer(self) -> None:
         if not SYSTEM_BASH.exists():
@@ -143,6 +144,9 @@ class BootstrapResearchSkillTests(unittest.TestCase):
             self.skipTest("/bin/bash is not available")
 
         with tempfile.TemporaryDirectory() as tmp_dir:
+            env = dict(os.environ)
+            env["RESEARCH_SKILLS_NONINTERACTIVE"] = "1"
+
             result = subprocess.run(
                 [
                     str(SYSTEM_BASH),
@@ -151,6 +155,7 @@ class BootstrapResearchSkillTests(unittest.TestCase):
                     tmp_dir,
                 ],
                 cwd=str(REPO_ROOT),
+                env=env,
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -160,6 +165,25 @@ class BootstrapResearchSkillTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 2, msg=result.stdout + "\n" + result.stderr)
         self.assertIn("Missing --profile and no interactive terminal is available", result.stderr)
+
+    def test_shell_bootstrap_supports_explicit_noninteractive_mode(self) -> None:
+        content = BOOTSTRAP_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn("RESEARCH_SKILLS_NONINTERACTIVE", content)
+        self.assertIn('[[ "${RESEARCH_SKILLS_NONINTERACTIVE:-}" == "1" ]]', content)
+
+    def test_shell_bootstrap_does_not_install_python_runtime(self) -> None:
+        content = BOOTSTRAP_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertNotIn("install_mise()", content)
+        self.assertNotIn('"$MISE_BIN" install python@3.12', content)
+        self.assertNotIn('"$MISE_BIN" use -g python@3.12', content)
+        self.assertNotIn("PYTHON_RUNTIME_MODE", content)
+        self.assertNotIn("curl https://mise.run", content)
+        self.assertIn("Python 3.12+ is required for full profile", content)
+        self.assertIn("python.org/downloads", content)
+        self.assertIn("brew install python", content)
+        self.assertIn("winget install -e --id Python.Python.3.12", content)
 
     def test_powershell_bootstrap_is_manifest_driven(self) -> None:
         content = POWERSHELL_BOOTSTRAP.read_text(encoding="utf-8")
