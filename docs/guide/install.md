@@ -51,7 +51,28 @@ In this layout, the plugin is the install/discovery container and `research-pape
 
 Codex and Claude Code use marketplace catalogs. Gemini CLI uses the official extension system (`gemini-extension.json`) rather than a marketplace JSON.
 
-## 2. Choose `partial` Or `full`
+## 2. Compatibility With Existing Global Skills
+
+The native plugin/extension install is compatible with older `partial` / `full` installs, but it does not automatically migrate or delete them.
+
+These are separate installation surfaces:
+
+| Surface | Typical path | Managed by |
+|---|---|---|
+| Native plugin bundle | client plugin/extension store, containing `plugins/research-skills/skills/research-paper-workflow` | Codex / Claude Code / Gemini plugin system |
+| Legacy global skill install | `~/.codex/skills/research-paper-workflow`, `~/.claude/skills/research-paper-workflow`, `~/.gemini/skills/research-paper-workflow` | `rsk`, bootstrap, or local installer |
+| Legacy slash-command discovery | `~/.claude/commands/*.md`, `~/.gemini/workflows/*.md` | `rsk` symlink management |
+
+Use this rule:
+
+- New users who only need client-native skills and `/paper`-style workflows should install the official plugin/extension.
+- Existing `partial` / `full` users can install the plugin alongside their current global skills.
+- Users who still need `research-skills`, `rsk`, `rsw`, `doctor`, validators, or `bridges.orchestrator` should keep the `full` runtime and run `rsk upgrade --target all --doctor` so the global skill package stays aligned with the plugin version.
+- Users who are moving fully to the official plugin and no longer need old global slash discovery should inspect cleanup with `rsk clean --globals --dry-run`.
+
+If both old global skills and the new plugin are installed, keep their versions aligned to avoid loading different `research-paper-workflow` copies in different clients or command paths.
+
+## 3. Choose `partial` Or `full`
 
 The bootstrap installers now explain these choices interactively if you omit `--profile`. Choose the smallest profile that matches what you need.
 
@@ -92,7 +113,7 @@ Verify before running `full`:
 python3 --version
 ```
 
-## 3. Run The Recommended One-Click Bootstrap
+## 4. Run The Recommended One-Click Bootstrap
 
 ### Linux / macOS
 
@@ -159,7 +180,7 @@ What bootstrap installs:
 - project integration files such as `.agent/workflows/`, `CLAUDE.md`, `.gemini/` when you run `rsk init` or `--parts project`
 - shell CLI commands `research-skills`, `rsk`, `rsw` in `full` mode
 
-## 4. Use The Installed Skills
+## 5. Use The Installed Skills
 
 Both `partial` and `full` are global-first. After installation:
 
@@ -173,7 +194,7 @@ The model loads the global `research-paper-workflow` package. Your project direc
 rsk init --project-dir .
 ```
 
-## 5. Optional Local Installers
+## 6. Optional Local Installers
 
 If Python is already available, you can use the local cross-platform Python installer:
 
@@ -199,7 +220,7 @@ rsk init --project-dir /path/to/project
 
 If you installed `partial` first and later add Python 3.12+, rerun bootstrap with `--profile full` or use `rsk upgrade --target all --doctor` after the shell CLI exists.
 
-## 6. Global-First Behaviors & What Gets Installed
+## 7. Global-First Behaviors & What Gets Installed
 
 Default install/upgrade behavior is purely **global**. Your project directories remain completely clean.
 
@@ -211,7 +232,7 @@ This means commands like `/paper` and `/study-design` become natively recognized
 
 _Project-local files (like `.env`) are only written when you explicitly run `rsk init --project-dir .`._
 
-## 7. Common Flags
+## 8. Common Flags
 
 - `--profile partial|full`: choose the install preset explicitly instead of using the prompt.
 - `--target codex|claude|gemini|antigravity|all`: limit installation scope.
@@ -223,7 +244,7 @@ _Project-local files (like `.env`) are only written when you explicitly run `rsk
 - `--dry-run`: preview installation actions only.
 - `--doctor`: run `python3 -m bridges.orchestrator doctor --cwd <project>` after install.
 
-## 8. Zero-Config Usage
+## 9. Zero-Config Usage
 
 Because commands are registered globally, using the system for a new paper is incredibly straightforward:
 
@@ -233,12 +254,18 @@ Because commands are registered globally, using the system for a new paper is in
 
 The model will seamlessly load the global skill assets without cluttering your workspace with boilerplate templates.
 
-## 9. Upgrading and Verifying
+## 10. Upgrading and Verifying
 
 To update everything to the latest global release across all AI clients (no need to navigate to each project):
 
 ```bash
 rsk upgrade --target all --doctor
+```
+
+To preview removal of old global slash-command symlinks after adopting the official plugin:
+
+```bash
+rsk clean --globals --dry-run
 ```
 
 _Note: The shell CLI (`rsk check`, `rsk upgrade`, `rsk clean`) runs without Python. However, `--doctor`, test validators, and `bridges.orchestrator` require a valid Python 3 environment._
