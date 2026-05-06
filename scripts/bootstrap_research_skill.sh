@@ -239,7 +239,7 @@ Common options:
     - python.org/downloads
     - brew install python
     - pyenv install 3.12 && pyenv global 3.12
-    - mise install python@3.12 && mise use -g python@3.12
+    - mise
   Windows:
     - python.org/downloads/windows
     - winget install -e --id Python.Python.3.12 --source winget
@@ -248,7 +248,7 @@ Common options:
   Linux:
     - distro package manager, for example apt/dnf/pacman
     - pyenv install 3.12 && pyenv global 3.12
-    - mise install python@3.12 && mise use -g python@3.12
+    - mise
 EOF
 }
 
