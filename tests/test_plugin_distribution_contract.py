@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
 import subprocess
 import unittest
 from pathlib import Path
@@ -11,6 +13,41 @@ PLUGIN_ROOT = REPO_ROOT / "plugins" / "research-skills"
 PLUGIN_SKILL_ROOT = PLUGIN_ROOT / "skills" / "research-paper-workflow"
 WORKFLOW_ROOT = REPO_ROOT / "research-paper-workflow"
 WORKFLOW_VERSION = (WORKFLOW_ROOT / "VERSION").read_text(encoding="utf-8").strip().lstrip("v")
+
+
+def find_usable_bash() -> str | None:
+    candidates: list[str] = []
+    for value in (os.environ.get("BASH"), shutil.which("bash")):
+        if value:
+            candidates.append(value)
+
+    candidates.extend(
+        [
+            "/bin/bash",
+            r"C:\Program Files\Git\bin\bash.exe",
+            r"C:\Program Files\Git\usr\bin\bash.exe",
+        ]
+    )
+
+    seen: set[str] = set()
+    for candidate in candidates:
+        normalized = str(Path(candidate))
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        if not Path(candidate).exists():
+            continue
+
+        result = subprocess.run(
+            [candidate, "--version"],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if result.returncode == 0:
+            return candidate
+
+    return None
 
 
 class PluginDistributionContractTests(unittest.TestCase):
@@ -45,8 +82,12 @@ class PluginDistributionContractTests(unittest.TestCase):
         self.assertFalse(PLUGIN_SKILL_ROOT.is_symlink(), "plugin package must be a real copy, not a symlink")
 
     def test_sync_script_accepts_all_target_in_dry_run(self) -> None:
+        bash = find_usable_bash()
+        if bash is None:
+            self.skipTest("usable bash is not available")
+
         result = subprocess.run(
-            ["bash", "scripts/sync_skill_package.sh", "--target", "all", "--dry-run"],
+            [bash, "scripts/sync_skill_package.sh", "--target", "all", "--dry-run"],
             cwd=REPO_ROOT,
             text=True,
             capture_output=True,
