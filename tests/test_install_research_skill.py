@@ -69,6 +69,14 @@ class InstallResearchSkillTests(unittest.TestCase):
         self.assertIn('doctor_cmd() {', content)
         self.assertIn('PYTHONPATH="$pythonpath" python3 -m bridges.orchestrator "$@"', content)
 
+    def test_full_profile_python_hint_does_not_prefer_mise(self) -> None:
+        content = (REPO_ROOT / "research_skills" / "universal_installer.py").read_text(encoding="utf-8")
+
+        self.assertIn("install Python >= 3.12", content)
+        self.assertIn("python.org/downloads", content)
+        self.assertIn("winget install -e --id Python.Python.3.12", content)
+        self.assertNotIn("preferably with mise", content)
+
     def test_claude_install_defaults_to_global_only_under_system_bash(self) -> None:
         if not SYSTEM_BASH.exists():
             self.skipTest("/bin/bash is not available")

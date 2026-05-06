@@ -55,13 +55,27 @@ Codex 和 Claude Code 使用 marketplace catalog。Gemini CLI 使用官方 exten
 | Profile | 安装内容 | 安装前是否要求 Python | 安装后结果 |
 |---|---|---|---|
 | `partial` | 仅全局 skills | 否 | 资产可用，但 orchestrator 还没准备好 |
-| `full` | `partial` + shell CLI + 缺失时自动补 Python 3.12 + `doctor` | 否 | orchestrator 运行时可直接使用 |
+| `full` | `partial` + shell CLI + 要求本机已有 Python 3.12+ + `doctor` | 是 | orchestrator 运行时可直接使用 |
 
 `full` 的真实行为：
 
 - 如果系统里已经有 `python3 >= 3.12`，bootstrap 会直接复用。
-- 如果 Python 缺失或版本过低，bootstrap 会先安装 `mise`，再安装 `python@3.12`。
+- 如果 Python 缺失或版本过低，bootstrap 会立即失败，并打印可选安装方式。
 - Windows 上由 PowerShell 直接安装，只有在 shell CLI 包装器需要 Bash 时才会通过 `winget` 安装 Git for Windows。
+
+### `full` 模式的 Python 前提
+
+`full` 模式要求机器上已经有 Python 3.12+，并且能在 PATH 中找到。安装器不会再自动安装 Python 或 `mise`。你可以用任何方式安装 Python：
+
+- macOS：python.org 安装包、`brew install python`、`pyenv` 或 `mise`
+- Windows：python.org 安装包、`winget install -e --id Python.Python.3.12 --source winget`、Microsoft Store 或 pyenv-win
+- Linux：系统包管理器、`pyenv` 或 `mise`
+
+运行 `full` 前先确认：
+
+```bash
+python3 --version
+```
 
 ## 3. 运行推荐的一键 bootstrap
 
@@ -72,8 +86,6 @@ Codex 和 Claude Code 使用 marketplace catalog。Gemini CLI 使用官方 exten
 ```bash
 curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --project-dir "$PWD" --target all
 ```
-
-`full` 模式如果自动安装 `mise`，会同时把 `mise` 和 `mise shims` 目录写入当前会话，以及当前 shell 对应的 rc 文件和 `~/.profile`。
 
 强制 `partial`：
 
@@ -100,8 +112,6 @@ curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scrip
 ```powershell
 winget install --id Microsoft.PowerShell --source winget
 ```
-
-`full` 模式如果自动安装 `mise`，会同时把 `mise` 的 bin 目录写入当前会话和用户级 `PATH`。
 
 下载后交互式选择 `partial` 或 `full`：
 
@@ -134,44 +144,7 @@ Bootstrap 会安装：
 - `.agent/workflows/`、`CLAUDE.md`、`.gemini/` 等项目集成文件，仅在执行 `rsk init` 或 `--parts project` 时写入
 - `full` 模式下的 shell CLI：`research-skills`、`rsk`、`rsw`
 
-## 4. 可选：自己用 `mise` 准备 Python
-
-只有在你想手动管理 Python，而不是交给 `full` bootstrap 自动处理时，才需要这一节。
-
-```bash
-# Linux / macOS
-curl https://mise.run | sh
-```
-
-```bash
-# bash
-echo 'eval "$(mise activate bash)"' >> ~/.bashrc
-source ~/.bashrc
-```
-
-```bash
-# zsh
-echo 'eval "$(mise activate zsh)"' >> "${ZDOTDIR-$HOME}/.zshrc"
-source "${ZDOTDIR-$HOME}/.zshrc"
-```
-
-```powershell
-# Windows
-scoop install mise
-```
-
-```powershell
-# Windows 备用方式
-winget install jdx.mise
-```
-
-```bash
-mise install python@3.12
-mise use -g python@3.12
-python3 --version
-```
-
-## 5. 可选：本地安装器
+## 4. 可选：本地安装器
 
 如果机器上已经有 Python，可以用跨平台本地安装器：
 

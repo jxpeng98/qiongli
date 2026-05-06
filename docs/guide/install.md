@@ -55,13 +55,27 @@ The bootstrap installers now explain these choices interactively if you omit `--
 | Profile | What it installs | Python required before install | Result after install |
 |---|---|---|---|
 | `partial` | global skills only | No | Assets are ready; orchestrator is not |
-| `full` | `partial` + shell CLI + Python 3.12 when needed + `doctor` | No | Orchestrator runtime is ready |
+| `full` | `partial` + shell CLI + requires existing Python 3.12+ + `doctor` | Yes | Orchestrator runtime is ready |
 
 How `full` works:
 
 - If `python3 >= 3.12` already exists, bootstrap reuses it.
-- If Python is missing or too old, bootstrap installs `mise`, then installs `python@3.12`.
+- If Python is missing or too old, bootstrap fails fast and prints installation options.
 - On Windows, PowerShell installs directly and only installs Git for Windows via `winget` when shell CLI wrappers need Bash.
+
+### Python prerequisite for `full`
+
+`full` mode requires Python 3.12+ to already be available on PATH. The installer does not install Python or `mise` for you. Install Python using any method you prefer:
+
+- macOS: python.org installer, `brew install python`, `pyenv`, or `mise`
+- Windows: python.org installer, `winget install -e --id Python.Python.3.12 --source winget`, Microsoft Store, or pyenv-win
+- Linux: distro package manager, `pyenv`, or `mise`
+
+Verify before running `full`:
+
+```bash
+python3 --version
+```
 
 ## 3. Run The Recommended One-Click Bootstrap
 
@@ -72,8 +86,6 @@ Prompt for `partial` or `full`:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --project-dir "$PWD" --target all
 ```
-
-If `full` mode installs `mise` automatically, bootstrap also adds the `mise` bin directory and `mise shims` to the current session, the active shell rc file, and `~/.profile`.
 
 Force `partial`:
 
@@ -100,8 +112,6 @@ If `pwsh` is not installed yet, install it first:
 ```powershell
 winget install --id Microsoft.PowerShell --source winget
 ```
-
-If `full` mode installs `mise` automatically, bootstrap also writes the `mise` bin directory into the current session and the user PATH.
 
 Download and prompt for `partial` or `full`:
 
@@ -134,44 +144,7 @@ What bootstrap installs:
 - project integration files such as `.agent/workflows/`, `CLAUDE.md`, `.gemini/` when you run `rsk init` or `--parts project`
 - shell CLI commands `research-skills`, `rsk`, `rsw` in `full` mode
 
-## 4. Optional: Prepare Python Yourself With `mise`
-
-You only need this if you want to manage Python manually instead of letting `full` bootstrap handle it.
-
-```bash
-# Linux / macOS
-curl https://mise.run | sh
-```
-
-```bash
-# bash
-echo 'eval "$(mise activate bash)"' >> ~/.bashrc
-source ~/.bashrc
-```
-
-```bash
-# zsh
-echo 'eval "$(mise activate zsh)"' >> "${ZDOTDIR-$HOME}/.zshrc"
-source "${ZDOTDIR-$HOME}/.zshrc"
-```
-
-```powershell
-# Windows
-scoop install mise
-```
-
-```powershell
-# Windows alternative
-winget install jdx.mise
-```
-
-```bash
-mise install python@3.12
-mise use -g python@3.12
-python3 --version
-```
-
-## 5. Optional Local Installers
+## 4. Optional Local Installers
 
 If Python is already available, you can use the local cross-platform Python installer:
 

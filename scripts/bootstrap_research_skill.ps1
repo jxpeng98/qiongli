@@ -107,7 +107,7 @@ function Show-ProfileHelp {
     Write-Host "  2) full"
     Write-Host "     - Installs global workflow assets"
     Write-Host "     - Installs shell CLI wrappers on Windows"
-    Write-Host "     - Ensures Python 3.12 is available via mise if missing"
+    Write-Host "     - Requires an existing Python 3.12+ installation"
     Write-Host "     - Runs orchestrator doctor"
     Write-Host ""
 }
@@ -306,50 +306,6 @@ function Ensure-GitBash {
     return $bash
 }
 
-function Find-Mise {
-    $command = Get-Command mise -ErrorAction SilentlyContinue
-    if ($command) {
-        return $command.Source
-    }
-    $candidates = @(
-        "$env:LOCALAPPDATA\Microsoft\WinGet\Links\mise.exe",
-        "$env:LOCALAPPDATA\Programs\mise\bin\mise.exe",
-        "$env:LOCALAPPDATA\mise\bin\mise.exe",
-        "$env:USERPROFILE\.local\bin\mise.exe",
-        "$env:ProgramFiles\mise\bin\mise.exe"
-    ) | Where-Object { $_ -and (Test-Path $_) }
-    if ($candidates.Count -gt 0) {
-        return $candidates[0]
-    }
-    return $null
-}
-
-function Ensure-Mise {
-    $mise = Find-Mise
-    if ($mise) {
-        Ensure-PathEntry (Split-Path -Parent $mise) -PersistUser
-        return $mise
-    }
-    $winget = Get-Command winget -ErrorAction SilentlyContinue
-    if (-not $winget) {
-        throw "mise is required for full install, but winget was not found. Install mise manually or choose partial."
-    }
-    Write-Info "mise not found. Installing mise via winget..."
-    if ($DryRun) {
-        Write-Host '[dry-run] winget install jdx.mise'
-        return "$env:LOCALAPPDATA\mise\bin\mise.exe"
-    }
-    Invoke-NativeChecked $winget.Source @("install", "-e", "--id", "jdx.mise", "--source", "winget")
-    Refresh-SessionPath
-    $mise = Find-Mise
-    if (-not $mise) {
-        Write-Warning "mise installation completed but mise.exe was not found in the current session."
-        return $null
-    }
-    Ensure-PathEntry (Split-Path -Parent $mise) -PersistUser
-    return $mise
-}
-
 function Find-UsablePython {
     $candidates = New-Object System.Collections.Generic.List[string]
     foreach ($name in @("python3", "python")) {
@@ -392,74 +348,45 @@ function Find-UsablePython {
     return $null
 }
 
-function Ensure-NativePython312 {
-    $winget = Get-Command winget -ErrorAction SilentlyContinue
-    if (-not $winget) {
-        throw "Python 3.12 is required for full install, but winget was not found. Install Python 3.12 manually or choose partial."
-    }
-    Write-Info "Installing Python 3.12 via winget..."
-    if ($DryRun) {
-        Write-Host '[dry-run] winget install -e --id Python.Python.3.12 --source winget'
-        return @{
-            Mode = "direct"
-            Python = "python"
-            Mise = $null
-        }
-    }
-
-    Invoke-NativeChecked $winget.Source @("install", "-e", "--id", "Python.Python.3.12", "--source", "winget")
-    Refresh-SessionPath
-    $python = Find-UsablePython
-    if (-not $python -or $python.Major -ne 3 -or $python.Minor -lt 12) {
-        throw "Python 3.12 installation completed but a usable python executable was not found."
-    }
-    Write-Info "python:  $($python.Path) ($($python.Version))"
-    return @{
-        Mode = "direct"
-        Python = $python.Path
-        Mise = $null
-    }
+function Write-PythonInstallHints {
+    Write-Error "Python 3.12+ is required for full profile."
+    Write-Host "Install Python with any method you prefer, then rerun this command."
+    Write-Host ""
+    Write-Host "Common options:"
+    Write-Host "  Windows:"
+    Write-Host "    - python.org/downloads/windows"
+    Write-Host "    - winget install -e --id Python.Python.3.12 --source winget"
+    Write-Host "    - Microsoft Store Python 3.12"
+    Write-Host "    - pyenv-win"
+    Write-Host "  macOS:"
+    Write-Host "    - python.org/downloads"
+    Write-Host "    - brew install python"
+    Write-Host "    - pyenv"
+    Write-Host "    - mise"
+    Write-Host "  Linux:"
+    Write-Host "    - distro package manager, for example apt/dnf/pacman"
+    Write-Host "    - pyenv"
+    Write-Host "    - mise"
 }
 
 function Ensure-PythonRuntime {
     $python = Find-UsablePython
-    if ($python) {
-        if ($python.Major -gt 3 -or ($python.Major -eq 3 -and $python.Minor -ge 12)) {
-            Write-Info "python:  $($python.Path) ($($python.Version))"
-            return @{
-                Mode = "direct"
-                Python = $python.Path
-                Mise = $null
-            }
+    if ($python -and ($python.Major -gt 3 -or ($python.Major -eq 3 -and $python.Minor -ge 12))) {
+        Write-Info "python:  $($python.Path) ($($python.Version))"
+        return @{
+            Mode = "direct"
+            Python = $python.Path
         }
-        Write-Info "python exists but is below 3.12. Trying mise first, then native Python 3.12 if needed..."
+    }
+
+    if ($python) {
+        Write-Error "python exists but is below 3.12: $($python.Path) ($($python.Version))"
     }
     else {
-        Write-Info "python not found. Full install will try mise first, then native Python 3.12 if needed..."
+        Write-Error "python not found."
     }
-
-    $mise = Ensure-Mise
-    if (-not $mise) {
-        return Ensure-NativePython312
-    }
-    if ($DryRun) {
-        Write-Host '[dry-run] mise install python@3.12'
-        Write-Host '[dry-run] mise use -g python@3.12'
-        return @{
-            Mode = "mise"
-            Python = "python"
-            Mise = $mise
-        }
-    }
-
-    Invoke-NativeChecked $mise @("install", "python@3.12")
-    Invoke-NativeChecked $mise @("use", "-g", "python@3.12")
-    Refresh-SessionPath
-    return @{
-        Mode = "mise"
-        Python = "python"
-        Mise = $mise
-    }
+    Write-PythonInstallHints
+    throw "Install Python 3.12+ before using --profile full."
 }
 
 function Ensure-Dir([string]$PathValue) {
@@ -704,12 +631,7 @@ function Install-FromRepo([string]$RepoRoot, [string]$ProjectRoot, [string]$Inst
                 else {
                     $env:PYTHONPATH = "$RepoRoot$([System.IO.Path]::PathSeparator)$previousPythonPath"
                 }
-                if ($PythonRuntime.Mode -eq "mise") {
-                    & $PythonRuntime.Mise exec python@3.12 -- python -m bridges.orchestrator doctor --cwd $projectRoot
-                }
-                else {
-                    & $PythonRuntime.Python -m bridges.orchestrator doctor --cwd $projectRoot
-                }
+                & $PythonRuntime.Python -m bridges.orchestrator doctor --cwd $projectRoot
             }
             finally {
                 if ($null -eq $previousPythonPath) {

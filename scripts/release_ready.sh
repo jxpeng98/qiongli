@@ -193,14 +193,4 @@ if [[ -n "$status_snapshot" ]]; then
   printf '%s\n' "$status_snapshot"
 fi
 
-echo "[release-ready] next steps"
-if is_prerelease_tag "$REPO_TAG"; then
-  echo "  git add pyproject.toml research_skills/__init__.py research-paper-workflow/VERSION skills/registry.yaml plugins/research-skills/.codex-plugin/plugin.json .claude-plugin/marketplace.json plugins/research-skills/.claude-plugin/plugin.json plugins/research-skills/gemini-extension.json skills release/${REPO_TAG}.md"
-else
-  echo "  git add pyproject.toml research_skills/__init__.py research-paper-workflow/VERSION skills/registry.yaml plugins/research-skills/.codex-plugin/plugin.json .claude-plugin/marketplace.json plugins/research-skills/.claude-plugin/plugin.json plugins/research-skills/gemini-extension.json skills CHANGELOG.md"
-fi
-echo "  git commit -m 'chore: prepare release ${PACKAGE_VERSION}'"
-echo "  # optional: run the 'Publish to TestPyPI' workflow and validate install before tagging"
-echo "  git tag -a ${REPO_TAG} -m \"research-skills release\""
-echo "  git push origin main --tags"
-echo "  ./scripts/release_automation.sh post --tag ${REPO_TAG} --create-release"
+echo "[release-ready] prepare+verify completed; publish mode owns commit/tag/push"

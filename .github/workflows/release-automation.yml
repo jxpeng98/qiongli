@@ -89,9 +89,9 @@ jobs:
       - name: Inject packaged upstream defaults
         run: bash scripts/inject_project_toml.sh
 
-      - name: Build packaged assets for release attachment
+      - name: Install release dependencies and build package
         run: |
-          pip install build twine
+          python -m pip install -e . build twine
           python -m build
 
       - name: Run release automation
