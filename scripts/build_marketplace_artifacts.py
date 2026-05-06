@@ -62,6 +62,12 @@ def _copy_common_skill(root: Path, dest_plugin_root: Path) -> None:
     _copy_path(root / PLUGIN_ROOT / "skills", dest_plugin_root / "skills")
 
 
+def _copy_commands(root: Path, dest_plugin_root: Path) -> None:
+    commands = root / PLUGIN_ROOT / "commands"
+    if commands.is_dir():
+        _copy_path(commands, dest_plugin_root / "commands")
+
+
 def _make_tarball(source_dir: Path, tar_path: Path) -> None:
     tar_path.parent.mkdir(parents=True, exist_ok=True)
     if tar_path.exists():
@@ -76,6 +82,7 @@ def _build_codex(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> Path:
     _copy_path(root / ".agents" / "plugins" / "marketplace.json", bundle / ".agents" / "plugins" / "marketplace.json")
     plugin_dest = bundle / PLUGIN_ROOT
     _copy_path(root / PLUGIN_ROOT / ".codex-plugin", plugin_dest / ".codex-plugin")
+    _copy_commands(root, plugin_dest)
     _copy_common_skill(root, plugin_dest)
     artifact = dist_dir / f"{bundle_name}.tar.gz"
     _make_tarball(bundle, artifact)
@@ -88,6 +95,7 @@ def _build_claude(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> Path:
     _copy_path(root / ".claude-plugin" / "marketplace.json", bundle / ".claude-plugin" / "marketplace.json")
     plugin_dest = bundle / PLUGIN_ROOT
     _copy_path(root / PLUGIN_ROOT / ".claude-plugin", plugin_dest / ".claude-plugin")
+    _copy_commands(root, plugin_dest)
     _copy_common_skill(root, plugin_dest)
     artifact = dist_dir / f"{bundle_name}.tar.gz"
     _make_tarball(bundle, artifact)

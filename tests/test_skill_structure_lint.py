@@ -5,7 +5,11 @@ import textwrap
 import unittest
 from pathlib import Path
 
-from scripts.validate_research_standard import ValidationReport, validate_skill_structure
+from scripts.validate_research_standard import (
+    ValidationReport,
+    validate_skill_quality_contract,
+    validate_skill_structure,
+)
 
 
 class SkillStructureLintTests(unittest.TestCase):
@@ -209,6 +213,36 @@ class SkillStructureLintTests(unittest.TestCase):
 
         self.assertEqual(report.errors, [])
         self.assertEqual(report.warnings, [])
+
+    def test_skill_quality_contract_warns_for_missing_required_sections(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            skill_path = root / "skills" / "F_writing" / "weak-skill.md"
+            skill_path.parent.mkdir(parents=True, exist_ok=True)
+            skill_path.write_text(
+                self._skill_doc(
+                    """\
+                    ---
+                    id: weak-skill
+                    stage: F_writing
+                    ---
+
+                    # Weak Skill
+
+                    ## Purpose
+
+                    Improve writing.
+                    """
+                ),
+                encoding="utf-8",
+            )
+
+            report = ValidationReport()
+            validate_skill_quality_contract(root, report)
+
+        warning_blob = "\n".join(report.warnings)
+        self.assertIn("skill quality contract gaps", warning_blob)
+        self.assertIn("weak-skill.md", warning_blob)
 
 
 if __name__ == "__main__":

@@ -42,6 +42,7 @@ class MarketplaceArtifactsTests(unittest.TestCase):
                 [
                     f"research-skills-codex-plugin-{current_tag}/.agents/plugins/marketplace.json",
                     f"research-skills-codex-plugin-{current_tag}/plugins/research-skills/.codex-plugin/plugin.json",
+                    f"research-skills-codex-plugin-{current_tag}/plugins/research-skills/commands/paper.md",
                     f"research-skills-codex-plugin-{current_tag}/plugins/research-skills/skills/research-paper-workflow/SKILL.md",
                 ],
             )
@@ -50,6 +51,7 @@ class MarketplaceArtifactsTests(unittest.TestCase):
                 [
                     f"research-skills-claude-plugin-{current_tag}/.claude-plugin/marketplace.json",
                     f"research-skills-claude-plugin-{current_tag}/plugins/research-skills/.claude-plugin/plugin.json",
+                    f"research-skills-claude-plugin-{current_tag}/plugins/research-skills/commands/paper.md",
                     f"research-skills-claude-plugin-{current_tag}/plugins/research-skills/skills/research-paper-workflow/SKILL.md",
                 ],
             )

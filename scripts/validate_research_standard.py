@@ -15,6 +15,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from research_skills.skill_docs import generate_skill_reference_docs
 from research_skills.workflow_contract_doc import generate_workflow_contract_reference
+from scripts.audit_skill_sections import audit_skills
 
 EXPECTED_PAPER_TYPES = {"empirical", "qualitative", "systematic-review", "methods", "theory"}
 EXPECTED_STAGE_IDS = {stage for stage in "ABCDEFGHIJK"}
@@ -680,6 +681,7 @@ def validate_portable_skill(root: Path, report: ValidationReport) -> None:
             "references/workflow-contract.md",
             "references/platform-routing.md",
             "references/coverage-matrix.md",
+            "references/academic-output-rubric.md",
         ):
             report.check(
                 reference_path in skill_content,
@@ -2437,6 +2439,26 @@ def validate_stage_i_templates(root: Path, report: ValidationReport) -> None:
                 f"{relative_path} includes {snippet}",
                 f"{relative_path} is missing Stage-I template snippet: {snippet}",
             )
+
+
+def validate_skill_quality_contract(root: Path, report: ValidationReport) -> None:
+    audit = audit_skills(root)
+    if not audit.skill_results:
+        report.warn(
+            False,
+            "Skill quality contract scanned canonical skills",
+            "skill quality contract found no skills to scan",
+        )
+        return
+    missing = [item for item in audit.first_batch_priority if item.issue_count > 0]
+    report.warn(
+        not missing,
+        "Skill quality contract coverage is complete",
+        (
+            "skill quality contract gaps remain; top priorities: "
+            + ", ".join(str(item.path) for item in missing[:5])
+        ),
+    )
 
 
 def main() -> int:
