@@ -79,6 +79,14 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('run_logged_stage "unit tests" "$unit_log" python3 -m unittest discover -s tests -v', content)
         self.assertIn('run_logged_stage "smoke (${smoke_tier} tier)" "$smoke_log" ./scripts/run_beta_smoke.sh --tier "$smoke_tier"', content)
 
+    def test_release_preflight_preserves_stage_logs_on_failure(self) -> None:
+        content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
+
+        self.assertIn("cleanup_logs()", content)
+        self.assertIn('local status="$?"', content)
+        self.assertIn('if [[ "$status" -eq 0 ]]; then', content)
+        self.assertNotIn('trap \'rm -f "$validator_log" "$unit_log" "$smoke_log"\' EXIT', content)
+
     def test_release_preflight_reports_missing_pyyaml_dependency(self) -> None:
         content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
 

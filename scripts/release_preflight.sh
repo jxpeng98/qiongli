@@ -53,6 +53,18 @@ run_logged_stage() {
   fi
 }
 
+cleanup_logs() {
+  local status="$?"
+  if [[ "$status" -eq 0 ]]; then
+    rm -f "$validator_log" "$unit_log" "$smoke_log"
+  else
+    echo "[preflight] retained logs for failed run:" >&2
+    echo "  validator: $validator_log" >&2
+    echo "  unit tests: $unit_log" >&2
+    echo "  smoke: $smoke_log" >&2
+  fi
+}
+
 usage() {
   cat <<'EOF'
 Usage:
@@ -193,7 +205,7 @@ fi
 validator_log="$(mktemp -t research-skills-validator.XXXXXX.log)"
 unit_log="$(mktemp -t research-skills-unittest.XXXXXX.log)"
 smoke_log="$(mktemp -t research-skills-smoke.XXXXXX.log)"
-trap 'rm -f "$validator_log" "$unit_log" "$smoke_log"' EXIT
+trap cleanup_logs EXIT
 
 run_logged_stage "validator" "$validator_log" "${validate_cmd[@]}"
 validator_summary="$(grep '^Summary:' "$validator_log" | tail -n1 || true)"
