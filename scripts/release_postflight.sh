@@ -9,7 +9,7 @@ SKIP_CI=0
 CREATE_RELEASE=0
 ACCEPTANCE_OUT=""
 CI_STATUS="unknown"
-REQUIRED_WORKFLOWS=("CI" "Install Check")
+REQUIRED_WORKFLOWS=("CI" "Checkout Install Check")
 WAIT_CI=0
 CI_TIMEOUT_SECONDS=1800
 CI_POLL_INTERVAL_SECONDS=30
@@ -174,6 +174,7 @@ except json.JSONDecodeError:
     raise SystemExit(0)
 
 runs = payload.get("workflow_runs", [])
+observed = sorted({r.get("name") or "unknown" for r in runs if r.get("head_sha") == commit})
 results = []
 pending = []
 failed = []
@@ -205,6 +206,7 @@ if pending or missing:
         labels.append("pending=" + ",".join(sorted(pending)))
     if missing:
         labels.append("missing=" + ",".join(sorted(missing)))
+        labels.append("observed=" + ",".join(observed))
     print("pending:" + "; ".join(labels + results))
     raise SystemExit(0)
 print("success:" + "; ".join(results))
