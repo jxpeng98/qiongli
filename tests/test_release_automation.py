@@ -37,11 +37,14 @@ class ReleaseAutomationTests(unittest.TestCase):
     def test_release_postflight_waits_for_required_workflows(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
 
-        self.assertIn('REQUIRED_WORKFLOWS=("CI" "Install Check")', content)
+        self.assertIn('REQUIRED_WORKFLOWS=("CI" "Checkout Install Check")', content)
+        self.assertNotIn('REQUIRED_WORKFLOWS=("CI" "Install Check")', content)
         self.assertIn("--wait-ci", content)
         self.assertIn("query_ci_status", content)
         self.assertIn('ci_json_file="$(mktemp)"', content)
         self.assertNotIn("CI_JSON_PAYLOAD=", content)
+        self.assertIn('observed = sorted({r.get("name") or "unknown" for r in runs if r.get("head_sha") == commit})', content)
+        self.assertIn('labels.append("observed=" + ",".join(observed))', content)
         self.assertIn('refs/remotes/origin/$candidate', content)
         self.assertIn('refresh_primary_branch_ref "$PRIMARY_BRANCH" "$PRIMARY_BRANCH_REF"', content)
         self.assertIn('git fetch --force --no-tags origin "$fetch_ref"', content)
