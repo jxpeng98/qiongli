@@ -8,7 +8,7 @@
 ::: warning 完整功能依赖
 如果你要使用完整功能集，请确保已经安装并配置：
 
-- `python3`
+- `python3` 3.12+
 - `codex`
 - `claude`
 - `gemini`
@@ -37,22 +37,43 @@ gemini extensions install ./path/to/research-skills/plugins/research-skills
 
 ## 2. 全局一键安装
 
-目前推荐的首装路径是一键 bootstrap。你不需要手动预装 Python，也不需要往你的各个科研文件夹里复制配置文件。
+目前推荐的首装路径是一键 bootstrap。已明确知道自己需要什么时，可以直接指定安装模式：
+
+- `partial`：安装全局 skill 资产和 slash workflow discovery，不要求 Python。
+- `full`：包含 `partial` 的全部内容，并安装 shell CLI（`research-skills`、`rsk`、`rsw`）和可选 `doctor` 校验；要求机器上已经有 Python 3.12+。
+
+安装器不会自动安装 Python 或 `mise`。如果要使用 `full`，先通过 python.org、Homebrew、winget、Microsoft Store、pyenv、mise 或系统包管理器安装 Python。
 
 Linux / macOS：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --target all
+# 交互式选择 partial 或 full
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --project-dir "$PWD" --target all
+
+# 强制轻量模式
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --profile partial --project-dir "$PWD" --target all
+
+# 强制完整运行时模式
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --profile full --project-dir "$PWD" --target all
 ```
 
-Windows PowerShell：
+Windows PowerShell 7+：
 
 ```powershell
+winget install --id Microsoft.PowerShell --source winget
 Invoke-WebRequest https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.ps1 -OutFile .\bootstrap_research_skill.ps1
-powershell -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -Target all
+
+# 交互式选择 partial 或 full
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -ProjectDir "$PWD" -Target all
+
+# 强制轻量模式
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -Profile partial -ProjectDir "$PWD" -Target all
+
+# 强制完整运行时模式
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -Profile full -ProjectDir "$PWD" -Target all
 ```
 
-Bootstrap 会把 `research-paper-workflow` 下载并安装到你电脑上各类 AI 客户端（Codex, Claude, Gemini）的专属全局配置目录下，并自动创建相应的 Slash Command 软链接。
+Bootstrap 会把 `research-paper-workflow` 安装到 Codex、Claude Code、Gemini、Antigravity 等客户端的全局配置目录，并自动创建 Slash Command 发现链接。项目内文件只有在你显式运行 `rsk init --project-dir .` 时才会写入。
 
 ## 3. 极简开局（零配置）
 

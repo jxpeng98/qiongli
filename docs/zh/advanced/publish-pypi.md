@@ -41,26 +41,35 @@
 
 ## 1) 日常发布流程
 
-### 1.1 一条命令准备到可发布状态
+### 1.1 一条命令完成发布闭环
 
-推荐直接执行：
+推荐维护者直接执行：
 
 ```bash
-./scripts/release_ready.sh --version 0.2.0
-./scripts/release_ready.sh --version 0.2.0b1 --from-tag v0.2.0
+./scripts/release_automation.sh publish --version 0.2.0 --from-tag v0.1.0
+./scripts/release_automation.sh publish --version 0.2.0b1 --from-tag v0.2.0
 ```
 
-`release_ready.sh` 会串起三段：
+`publish` 是标准发布入口。它会自动走完整本地和远端发布闭环：
 
-- `bump-version.sh`：统一同步以下版本位点：
+1. 规范版本号并运行 `release_ready.sh`
+2. 自动提交 release-prep 文件
+3. 创建并 push release tag
+4. 让 tag 触发 GitHub Actions，通过 Trusted Publisher 发布到 PyPI
+5. 等待 release commit 上必要的 CI workflows：
+   - `CI`
+   - `Checkout Install Check`
+6. 执行 postflight：创建或更新 GitHub Release、上传 marketplace artifacts，并写入 acceptance receipt
 
-- `pyproject.toml`
-- `research_skills/__init__.py`
-- `research-paper-workflow/VERSION`
-- `skills/registry.yaml`
+你可以传入稳定版 `0.2.0`，也可以传入 beta 版 `0.2.0b1`。automation 会自动规范成三种表示：
 
-- `release_automation.sh pre`：运行 strict validator、仓库单元测试、release-tier smoke，并校验 release 文档
-- `pypi_preflight.sh`：构建包、执行 `twine check`，并对生成 wheel 做安装 smoke
+| 层 | 稳定版 | Beta |
+|------|------|------|
+| PyPI package | `0.2.0` | `0.2.0b1` |
+| Skill metadata / registry | `0.2.0` | `0.2.0-beta.1` |
+| Portable skill `VERSION` / git tag | `v0.2.0` | `v0.2.0-beta.1` |
+
+其中 package 版本遵循 [PEP 440](https://peps.python.org/pep-0440/)，skill metadata 使用 SemVer 兼容的 prerelease 语法。当前 release tooling 只支持 `stable` 和 `beta`。
 
 默认的 release smoke tier 是保守配置：内置 literature smoke + `doctor`。如果你还想在发版前补跑更重的 `parallel` / `task-run` profile 路径检查，再显式加 `--maintainer-smoke`。
 
@@ -69,50 +78,29 @@
 - stable 正式版统一维护在 `CHANGELOG.md`
 - beta / prerelease 继续使用 `release/<tag>.md`
 
-你可以传入稳定版 `0.2.0`，也可以传入 beta 版 `0.2.0b1`。
-版本同步阶段会自动规范成三种表示：
+### 1.2 干跑 / 拆分阶段
 
-| 层 | 稳定版 | Beta |
-|------|------|------|
-| PyPI package | `0.2.0` | `0.2.0b1` |
-| Skill metadata / registry | `0.2.0` | `0.2.0-beta.1` |
-| Portable skill `VERSION` / git tag | `v0.2.0` | `v0.2.0-beta.1` |
-
-其中 package 版本遵循 [PEP 440](https://peps.python.org/pep-0440/)，skill metadata 使用 SemVer 兼容的 prerelease 语法。
-
-当前 release tooling 只支持 `stable` 和 `beta`。
-
-如果你想手动拆开执行，旧入口仍然可用：
+如果你只想本地准备和验证，不想创建 tag，可以先跑 `release_ready.sh`：
 
 ```bash
-./scripts/bump-version.sh 0.2.0
-./scripts/release_automation.sh pre --tag v0.2.0
-bash scripts/pypi_preflight.sh
+./scripts/release_ready.sh --version 0.2.0
+./scripts/release_ready.sh --version 0.2.0b1 --from-tag v0.2.0
 ```
 
-### 1.2 Commit + TestPyPI 验证
+`release_ready.sh` 会执行版本同步、strict validator、仓库单元测试、release-tier smoke、release note evidence 更新、包构建检查、`twine check` 和 wheel 安装 smoke。它不会创建 tag，也不会 push。commit、tag、push、等待 CI、创建 GitHub Release、上传 marketplace artifacts、生成 acceptance receipt 都由 `publish` 模式负责。
+
+如果你确实需要拆开执行，入口仍然保留：
 
 ```bash
-git add pyproject.toml research_skills/__init__.py research-paper-workflow/VERSION skills/registry.yaml skills CHANGELOG.md
-git commit -m "chore: prepare release 0.2.0"
+./scripts/release_automation.sh pre --tag v0.2.0 --from-tag v0.1.0
+./scripts/release_automation.sh post --tag v0.2.0 --create-release
 ```
-
-然后运行 GitHub Actions 的 `Publish to TestPyPI` workflow，先完成 TestPyPI 安装和 CLI 行为验证，再创建正式发布 tag。
 
 ---
 
-## 2) 打 Tag 并发布到 PyPI
+## 2) Tag push 之后会发生什么
 
-TestPyPI 验证通过后：
-
-```bash
-git tag v0.2.0
-git push origin main --tags
-```
-
-> **注意**：tag 必须以 `v*` 开头，并使用 repo release 语法，例如 `v0.2.0` 或 `v0.2.0-beta.1`，GitHub Actions 的 `publish-pypi.yml` 才会触发。
-
-Push tag 后，GitHub Actions 会自动：
+`publish` 会创建并 push 以 `v*` 开头的 release tag，例如 `v0.2.0` 或 `v0.2.0-beta.1`。这个 tag 会触发 `publish-pypi.yml`：
 
 1. Checkout 代码
 2. 运行 `inject_project_toml.sh`（把当前仓库 slug 写入 `research_skills/project.toml`）
@@ -120,7 +108,7 @@ Push tag 后，GitHub Actions 会自动：
 4. `twine check` 验证包元数据
 5. 使用 Trusted Publisher 发布到 PyPI
 
-在 GitHub 仓库的 **Actions** 页面可以监控进度。
+之后 postflight 会等待 release commit 上的 `CI` 和 `Checkout Install Check`。如果必需 workflow 没有匹配到，诊断会同时打印该 commit 上实际观察到的 workflow 名称。
 
 ---
 
@@ -188,12 +176,10 @@ pip install --index-url https://test.pypi.org/simple/ research-skills-installer
 
 - [ ] 确认所有功能已合入 `main`
 - [ ] CI 通过（`ci.yml` 绿色）
-- [ ] 运行 `./scripts/release_ready.sh --version <version>` 或 `./scripts/release_automation.sh publish --version <version>`
-- [ ] 如果走的是 `release_ready.sh`，手动 commit release prep 变更
-- [ ] 运行 GitHub Actions `Publish to TestPyPI`，并完成 TestPyPI 安装验证
-- [ ] 如果没有使用 `publish`，手动创建并 push tag
-- [ ] 在 GitHub Actions 确认 `Publish to PyPI` workflow 成功
-- [ ] 如果没有使用 `publish`，运行 release postflight：`./scripts/release_automation.sh post --tag v<version> --create-release`
+- [ ] 可选：先运行 `./scripts/release_ready.sh --version <version>` 做本地干跑
+- [ ] 运行 `./scripts/release_automation.sh publish --version <version> --from-tag <previous-tag>`
+- [ ] 在 GitHub Actions 确认 `Publish to PyPI`、`CI` 和 `Checkout Install Check` 成功
+- [ ] 确认 postflight 创建或更新 GitHub Release，并生成 `release/acceptance/<tag>-receipt.md`
 - [ ] 验证安装：`pipx install research-skills-installer && rsk --help`
 
 ---

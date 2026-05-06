@@ -8,7 +8,7 @@ If you want scenario-driven routes such as literature review, empirical design, 
 ::: warning Full Functionality Requirement
 If you want the full system, install and configure all of the following:
 
-- `python3`
+- `python3` 3.12+
 - `codex`
 - `claude`
 - `gemini`
@@ -37,22 +37,43 @@ Use the bootstrap path below when you need cross-client global installation, she
 
 ## 2. Global One-Click Install
 
-The recommended path is the one-click bootstrap. You do not need to manually preinstall Python first or copy files into your projects.
+The recommended path is the one-click bootstrap. Choose the install profile explicitly when you know what you need:
+
+- `partial`: installs global skill assets and slash workflow discovery. It does not require Python.
+- `full`: installs everything in `partial`, plus the shell CLI (`research-skills`, `rsk`, `rsw`) and optional `doctor` validation. It requires Python 3.12+ to already exist on PATH.
+
+The installer does not install Python or `mise`. If you need `full`, install Python first using python.org, Homebrew, winget, Microsoft Store, pyenv, mise, or your OS package manager.
 
 Linux / macOS:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --target all
+# Prompt for partial or full
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --project-dir "$PWD" --target all
+
+# Force the lightweight profile
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --profile partial --project-dir "$PWD" --target all
+
+# Force the full runtime profile
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --profile full --project-dir "$PWD" --target all
 ```
 
-Windows PowerShell:
+Windows PowerShell 7+:
 
 ```powershell
+winget install --id Microsoft.PowerShell --source winget
 Invoke-WebRequest https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.ps1 -OutFile .\bootstrap_research_skill.ps1
-powershell -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -Target all
+
+# Prompt for partial or full
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -ProjectDir "$PWD" -Target all
+
+# Force the lightweight profile
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -Profile partial -ProjectDir "$PWD" -Target all
+
+# Force the full runtime profile
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -Profile full -ProjectDir "$PWD" -Target all
 ```
 
-The bootstrap will install `research-paper-workflow` globally into the respective configuration directories of Codex, Claude Code, and Gemini. It will also create global symlinks for Slash commands.
+The bootstrap installs `research-paper-workflow` globally into the configuration directories of Codex, Claude Code, Gemini, and Antigravity when selected. Project-local files are only written when you explicitly run `rsk init --project-dir .`.
 
 ## 3. Zero-Config Usage
 

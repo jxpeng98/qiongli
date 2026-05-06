@@ -41,26 +41,35 @@ This repository includes a dedicated TestPyPI workflow: `.github/workflows/publi
 
 ## 1) Routine Publishing Workflow
 
-### 1.1 Prepare a Publish-Ready Release
+### 1.1 Run the End-to-End Publish Automation
 
-Recommended one-command local flow:
+Recommended maintainer flow:
 
 ```bash
-./scripts/release_ready.sh --version 0.2.0
-./scripts/release_ready.sh --version 0.2.0b1 --from-tag v0.2.0
+./scripts/release_automation.sh publish --version 0.2.0 --from-tag v0.1.0
+./scripts/release_automation.sh publish --version 0.2.0b1 --from-tag v0.2.0
 ```
 
-`release_ready.sh` chains these steps:
+`publish` is the canonical release entrypoint. It runs the full local and remote release loop:
 
-- `bump-version.sh` to sync release versions across:
+1. Normalize versions and run `release_ready.sh`.
+2. Commit release-prep files.
+3. Create and push the release tag.
+4. Let tag-triggered GitHub Actions publish to PyPI through Trusted Publisher.
+5. Wait for required CI workflows on the release commit:
+   - `CI`
+   - `Checkout Install Check`
+6. Run postflight with `--create-release`, upload marketplace artifacts, and write an acceptance receipt.
 
-- `pyproject.toml`
-- `research_skills/__init__.py`
-- `research-paper-workflow/VERSION`
-- `skills/registry.yaml`
+Use a stable version such as `0.2.0` or a beta version such as `0.2.0b1`. The automation normalizes it into three synchronized forms:
 
-- `release_automation.sh pre` to run strict validator, repository unit tests, release-tier smoke, and release doc checks
-- `pypi_preflight.sh` to build the package, run `twine check`, and install-smoke the generated wheel
+| Layer | Stable | Beta |
+|------|------|------|
+| PyPI package | `0.2.0` | `0.2.0b1` |
+| Skill metadata / registry | `0.2.0` | `0.2.0-beta.1` |
+| Portable skill `VERSION` / git tag | `v0.2.0` | `v0.2.0-beta.1` |
+
+Package version format follows [PEP 440](https://peps.python.org/pep-0440/), while skill metadata uses SemVer-compatible prerelease syntax. Currently the release tooling supports `stable` and `beta` only.
 
 The default release smoke tier is intentionally conservative: builtin literature smoke + `doctor`. If you also want the heavier `parallel` / `task-run` profile-path checks before publishing, add `--maintainer-smoke`.
 
@@ -69,50 +78,27 @@ Release doc policy:
 - stable releases must be summarized in `CHANGELOG.md`
 - beta / prerelease releases continue to use `release/<tag>.md`
 
-Pass either a stable version such as `0.2.0` or a beta version such as `0.2.0b1`.
-The version sync step normalizes it into three synchronized forms:
+### 1.2 Dry Run / Split Phases
 
-| Layer | Stable | Beta |
-|------|------|------|
-| PyPI package | `0.2.0` | `0.2.0b1` |
-| Skill metadata / registry | `0.2.0` | `0.2.0-beta.1` |
-| Portable skill `VERSION` / git tag | `v0.2.0` | `v0.2.0-beta.1` |
-
-Package version format follows [PEP 440](https://peps.python.org/pep-0440/), while skill metadata uses SemVer-compatible prerelease syntax.
-
-Currently the release tooling supports `stable` and `beta` only.
-
-If you need the old manual entrypoints, they still exist:
+Use `release_ready.sh` when you want to prepare and verify locally without creating a tag:
 
 ```bash
-./scripts/bump-version.sh 0.2.0
-./scripts/release_automation.sh pre --tag v0.2.0
-bash scripts/pypi_preflight.sh
+./scripts/release_ready.sh --version 0.2.0
+./scripts/release_ready.sh --version 0.2.0b1 --from-tag v0.2.0
 ```
 
-### 1.2 Commit + TestPyPI Validation
+`release_ready.sh` runs version sync, strict validator, repository unit tests, release-tier smoke, release note evidence updates, package build checks, `twine check`, and wheel install smoke. It does not tag or push. Publish mode owns commit, tag, push, CI wait, GitHub Release creation, marketplace artifact upload, and acceptance receipt generation.
+
+If you need manual split phases, they still exist:
 
 ```bash
-git add pyproject.toml research_skills/__init__.py research-paper-workflow/VERSION skills/registry.yaml skills CHANGELOG.md
-git commit -m "chore: prepare release 0.2.0"
+./scripts/release_automation.sh pre --tag v0.2.0 --from-tag v0.1.0
+./scripts/release_automation.sh post --tag v0.2.0 --create-release
 ```
 
-Then run the GitHub Actions `Publish to TestPyPI` workflow and verify install / CLI behavior from TestPyPI before creating the production tag.
+## 2) What Happens After The Tag Is Pushed
 
----
-
-## 2) Tag + Publish to PyPI
-
-After TestPyPI validation passes:
-
-```bash
-git tag v0.2.0
-git push origin main --tags
-```
-
-> **Note**: The tag format MUST start with `v*` and use repo release syntax (for example `v0.2.0` or `v0.2.0-beta.1`) for the GitHub Actions `publish-pypi.yml` workflow to trigger.
-
-After pushing the tag, GitHub Actions will automatically:
+`publish` creates and pushes a tag whose format starts with `v*` and uses repo release syntax such as `v0.2.0` or `v0.2.0-beta.1`. That triggers `publish-pypi.yml`, which:
 
 1. Checkout the code.
 2. Run `inject_project_toml.sh` (injects the current repository slug into `research_skills/project.toml` so the installed CLI knows its upstream default).
@@ -120,7 +106,7 @@ After pushing the tag, GitHub Actions will automatically:
 4. `twine check` to validate package metadata.
 5. Publish to PyPI using the Trusted Publisher mechanism.
 
-You can monitor the progress on the **Actions** page of your GitHub repository.
+Postflight then waits for the release commit's `CI` and `Checkout Install Check` workflows. If a required workflow is missing, the diagnostic includes the observed workflow names for that commit.
 
 ---
 
@@ -188,12 +174,10 @@ When cutting a release, follow these steps:
 
 - [ ] Confirm all features are merged into `main`.
 - [ ] Ensure CI is passing (Green `ci.yml`).
-- [ ] Run either `./scripts/release_ready.sh --version <version>` or `./scripts/release_automation.sh publish --version <version>`.
-- [ ] If you used `release_ready.sh`, commit release-prep changes manually.
-- [ ] Run GitHub Actions `Publish to TestPyPI` and validate package installation from TestPyPI.
-- [ ] If you did not use `publish`, create and push the tag manually.
-- [ ] Confirm the `Publish to PyPI` workflow succeeded on GitHub Actions.
-- [ ] If you did not use `publish`, run release postflight: `./scripts/release_automation.sh post --tag v<version> --create-release`
+- [ ] Optional: run `./scripts/release_ready.sh --version <version>` as a local dry run.
+- [ ] Run `./scripts/release_automation.sh publish --version <version> --from-tag <previous-tag>`.
+- [ ] Confirm `Publish to PyPI`, `CI`, and `Checkout Install Check` succeeded on GitHub Actions.
+- [ ] Confirm postflight created or updated the GitHub Release and wrote `release/acceptance/<tag>-receipt.md`.
 - [ ] Verify installation: `pipx install research-skills-installer && rsk --help`
 
 ---
