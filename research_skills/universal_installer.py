@@ -525,7 +525,11 @@ def _print_full_readiness(options: InstallOptions) -> None:
     python_status = "ok" if (version.major, version.minor) >= (3, 12) else "skip"
     _print_result("Python", f"{sys.executable} ({version.major}.{version.minor}.{version.micro})", python_status)
     if python_status != "ok":
-        print("          Hint: install Python >= 3.12, preferably with mise")
+        print(
+            "          Hint: install Python >= 3.12 using python.org/downloads, "
+            "your OS package manager, pyenv, mise, winget install -e --id Python.Python.3.12, "
+            "or another method you prefer"
+        )
     for env_var in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY"):
         value = os.environ.get(env_var, "").strip()
         _print_result(env_var, "configured" if value else "missing", "ok" if value else "skip")

@@ -7,7 +7,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RELEASE_AUTOMATION = REPO_ROOT / "scripts" / "release_automation.sh"
 RELEASE_READY = REPO_ROOT / "scripts" / "release_ready.sh"
+RELEASE_PREFLIGHT = REPO_ROOT / "scripts" / "release_preflight.sh"
 RELEASE_POSTFLIGHT = REPO_ROOT / "scripts" / "release_postflight.sh"
+PYPI_PREFLIGHT = REPO_ROOT / "scripts" / "pypi_preflight.sh"
 RELEASE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-automation.yml"
 PUBLISH_PYPI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-pypi.yml"
 VERIFY_RELEASE_TAG = REPO_ROOT / "scripts" / "verify_release_tag_version.sh"
@@ -60,6 +62,59 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('plugins/research-skills/.claude-plugin/plugin.json', content)
         self.assertIn('plugins/research-skills/gemini-extension.json', content)
 
+    def test_release_ready_does_not_print_manual_publish_steps(self) -> None:
+        content = RELEASE_READY.read_text(encoding="utf-8")
+
+        self.assertIn("prepare+verify completed; publish mode owns commit/tag/push", content)
+        self.assertNotIn('git tag -a ${REPO_TAG}', content)
+        self.assertNotIn('git push origin main --tags', content)
+
+    def test_release_preflight_fails_fast_on_logged_stage_errors(self) -> None:
+        content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
+
+        self.assertIn("run_logged_stage()", content)
+        self.assertIn('statuses=("${PIPESTATUS[@]}")', content)
+        self.assertIn('"[preflight] FAIL: ${label} failed with exit code ${command_status}"', content)
+        self.assertIn('run_logged_stage "validator" "$validator_log" "${validate_cmd[@]}"', content)
+        self.assertIn('run_logged_stage "unit tests" "$unit_log" python3 -m unittest discover -s tests -v', content)
+        self.assertIn('run_logged_stage "smoke (${smoke_tier} tier)" "$smoke_log" ./scripts/run_beta_smoke.sh --tier "$smoke_tier"', content)
+
+    def test_release_preflight_preserves_stage_logs_on_failure(self) -> None:
+        content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
+
+        self.assertIn("cleanup_logs()", content)
+        self.assertIn('local status="$?"', content)
+        self.assertIn('if [[ "$status" -eq 0 ]]; then', content)
+        self.assertNotIn('trap \'rm -f "$validator_log" "$unit_log" "$smoke_log"\' EXIT', content)
+
+    def test_release_preflight_reports_missing_pyyaml_dependency(self) -> None:
+        content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
+
+        self.assertIn('require_python_module yaml PyYAML', content)
+        self.assertIn("[preflight] missing Python dependency: ${package} (module: ${module})", content)
+        self.assertIn("python3 -m pip install -e .", content)
+
+    def test_release_preflight_does_not_print_manual_publish_steps(self) -> None:
+        content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
+
+        self.assertIn("preflight completed; publish mode owns tag/push", content)
+        self.assertNotIn('git tag -a $TAG', content)
+        self.assertNotIn('git push origin $TAG', content)
+
+    def test_pypi_preflight_checks_release_build_dependencies(self) -> None:
+        content = PYPI_PREFLIGHT.read_text(encoding="utf-8")
+
+        self.assertIn("require_python_module build build", content)
+        self.assertIn("require_python_module twine twine", content)
+        self.assertIn("python3 -m pip install -e . build twine", content)
+
+    def test_pypi_preflight_does_not_print_manual_publish_steps(self) -> None:
+        content = PYPI_PREFLIGHT.read_text(encoding="utf-8")
+
+        self.assertIn("package preflight completed; publish mode owns tag/release flow", content)
+        self.assertNotIn("git tag v<version>", content)
+        self.assertNotIn("Publish to TestPyPI", content)
+
     def test_changelog_section_script_extracts_versioned_sections(self) -> None:
         content = CHANGELOG_SECTION.read_text(encoding="utf-8")
 
@@ -84,6 +139,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('args+=(--create-release)', content)
         self.assertIn('bash scripts/verify_release_tag_version.sh --tag "$tag"', content)
         self.assertIn('git config user.name "github-actions[bot]"', content)
+        self.assertIn("python -m pip install -e . build twine", content)
 
     def test_publish_pypi_workflow_verifies_tag_matches_repo_version(self) -> None:
         content = PUBLISH_PYPI_WORKFLOW.read_text(encoding="utf-8")
