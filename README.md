@@ -82,17 +82,29 @@ Use the bootstrap/CLI path below when you need cross-client global installs, sla
 
 ### 1. Choose `partial` Or `full`
 
-The bootstrap installer can install workflow assets without Python in `partial` mode. The full orchestrator experience requires Python 3.12+ to already be installed on your machine.
+The bootstrap installer has two profiles. Use `partial` when you only want the cross-client skill package and slash-command discovery. Use `full` when you also want the local shell CLI and Python-backed orchestrator checks.
 
 | Profile | What you get | Python needed before install | Result after install |
 |---|---|---|---|
-| `partial` | global skills only | No | Assets are ready; orchestrator is not |
-| `full` | `partial` + shell CLI + requires existing Python 3.12+ + `doctor` | Yes | Orchestrator runtime is ready |
+| `partial` | global `research-paper-workflow` skill assets for Codex / Claude Code / Gemini, plus workflow discovery links | No | Slash workflows such as `/paper` and `/lit-review` are ready |
+| `full` | everything in `partial`, shell CLI commands `research-skills` / `rsk` / `rsw`, and optional `doctor` validation | Yes, Python 3.12+ | Full orchestrator runtime is ready |
+
+Use `partial` if:
+
+- you only need native client skills and slash workflows
+- you do not have Python installed yet
+- you want the lowest-friction install on Windows or a locked-down machine
+
+Use `full` if:
+
+- you want `rsk upgrade`, `rsk init`, `rsk doctor`, or `research-skills`
+- you want to run `python3 -m bridges.orchestrator task-plan|task-run|doctor`
+- you want local validators, unit tests, or multi-model orchestration
 
 Behavior in `full` mode:
 
 - If `python3 >= 3.12` already exists, bootstrap reuses it.
-- If Python is missing or too old, bootstrap fails fast and prints installation options.
+- If Python is missing or too old, bootstrap fails fast and prints installation options. It does not install Python or `mise`.
 - On Windows, bootstrap runs directly in PowerShell and installs Git for Windows via `winget` only when shell CLI wrappers need Bash.
 
 If you omit `--profile`, the bootstrap script explains both choices and prompts you to choose.
@@ -151,7 +163,21 @@ This installs:
 - project integration files such as `.agent/workflows/`, `CLAUDE.md`, `.gemini/` when you run `rsk init` or `--parts project`
 - shell CLI commands `research-skills`, `rsk`, `rsw` in `full` mode
 
-### 3. Pick An Entry Mode
+### 3. Use The Installed Skills
+
+After `partial` or `full`, the normal user workflow is global-first:
+
+1. Create or open a research workspace: `mkdir my-paper && cd my-paper`.
+2. Start a supported client such as Claude Code or Gemini CLI.
+3. Run a workflow command such as `/paper`, `/lit-review`, `/paper-write`, or `/code-build`.
+
+Project-local files are not written by default. Run this only when you explicitly want project integration files such as `.env` or local workflow assets:
+
+```bash
+rsk init --project-dir .
+```
+
+### 4. Pick An Entry Mode
 
 Use one of these stable entrypoints:
 
@@ -181,6 +207,8 @@ To refresh an existing install from inside a project:
 ```bash
 rsk upgrade --target all --project-dir . --doctor
 ```
+
+If you used `partial` and later install Python 3.12+, rerun bootstrap with `--profile full` or run `rsk upgrade --target all --doctor` after the shell CLI is available.
 
 If you already used the shell bootstrap above, re-run it or `rsk upgrade` with `--overwrite` whenever you want to refresh installed assets.
 

@@ -1,9 +1,9 @@
 # Multi-Client Install Guide (Codex / Claude Code / Gemini)
 
 ::: warning Full Functionality Requirement
-You do not need to preinstall Python for first install anymore, but the full runtime still depends on:
+You can install the lightweight `partial` profile without Python. The `full` profile and the complete runtime still depend on:
 
-- `python3`
+- `python3` 3.12+
 - `codex`
 - `claude`
 - `gemini`
@@ -50,17 +50,29 @@ Codex and Claude Code use marketplace catalogs. Gemini CLI uses the official ext
 
 ## 2. Choose `partial` Or `full`
 
-The bootstrap installers now explain these choices interactively if you omit `--profile`.
+The bootstrap installers now explain these choices interactively if you omit `--profile`. Choose the smallest profile that matches what you need.
 
 | Profile | What it installs | Python required before install | Result after install |
 |---|---|---|---|
-| `partial` | global skills only | No | Assets are ready; orchestrator is not |
-| `full` | `partial` + shell CLI + requires existing Python 3.12+ + `doctor` | Yes | Orchestrator runtime is ready |
+| `partial` | global `research-paper-workflow` skill assets for Codex / Claude Code / Gemini, plus workflow discovery links | No | Slash workflows such as `/paper` and `/lit-review` are ready |
+| `full` | everything in `partial`, shell CLI commands `research-skills` / `rsk` / `rsw`, and optional `doctor` validation | Yes, Python 3.12+ | Full orchestrator runtime is ready |
+
+Choose `partial` when:
+
+- you only need native client skills and slash workflows
+- Python is not installed yet
+- you want the lowest-friction install on Windows or a locked-down machine
+
+Choose `full` when:
+
+- you want `rsk upgrade`, `rsk init`, `rsk doctor`, or `research-skills`
+- you want `python3 -m bridges.orchestrator task-plan|task-run|doctor`
+- you want local validators, unit tests, or multi-model orchestration
 
 How `full` works:
 
 - If `python3 >= 3.12` already exists, bootstrap reuses it.
-- If Python is missing or too old, bootstrap fails fast and prints installation options.
+- If Python is missing or too old, bootstrap fails fast and prints installation options. It does not install Python or `mise`.
 - On Windows, PowerShell installs directly and only installs Git for Windows via `winget` when shell CLI wrappers need Bash.
 
 ### Python prerequisite for `full`
@@ -144,7 +156,21 @@ What bootstrap installs:
 - project integration files such as `.agent/workflows/`, `CLAUDE.md`, `.gemini/` when you run `rsk init` or `--parts project`
 - shell CLI commands `research-skills`, `rsk`, `rsw` in `full` mode
 
-## 4. Optional Local Installers
+## 4. Use The Installed Skills
+
+Both `partial` and `full` are global-first. After installation:
+
+1. Create or open a research workspace: `mkdir my-paper && cd my-paper`.
+2. Start a supported client such as Claude Code or Gemini CLI.
+3. Run a workflow command such as `/paper`, `/lit-review`, `/paper-write`, or `/code-build`.
+
+The model loads the global `research-paper-workflow` package. Your project directory stays clean unless you explicitly initialize it:
+
+```bash
+rsk init --project-dir .
+```
+
+## 5. Optional Local Installers
 
 If Python is already available, you can use the local cross-platform Python installer:
 
@@ -167,6 +193,8 @@ pipx install research-skills-installer
 rsk upgrade --target all --doctor
 rsk init --project-dir /path/to/project
 ```
+
+If you installed `partial` first and later add Python 3.12+, rerun bootstrap with `--profile full` or use `rsk upgrade --target all --doctor` after the shell CLI exists.
 
 ## 6. Global-First Behaviors & What Gets Installed
 

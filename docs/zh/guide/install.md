@@ -1,9 +1,9 @@
 # 多端客户端安装指南 (Codex / Claude Code / Gemini)
 
 ::: warning 完整功能依赖
-现在首装已经不要求你手动先装 Python，但完整运行时仍然依赖：
+`partial` 轻量模式不要求 Python。`full` 模式和完整运行时仍然依赖：
 
-- `python3`
+- `python3` 3.12+
 - `codex`
 - `claude`
 - `gemini`
@@ -50,17 +50,29 @@ Codex 和 Claude Code 使用 marketplace catalog。Gemini CLI 使用官方 exten
 
 ## 2. 先选 `partial` 还是 `full`
 
-如果你不传 `--profile`，bootstrap 会先解释这两种模式，再提示你选择。
+如果你不传 `--profile`，bootstrap 会先解释这两种模式，再提示你选择。建议选最小可用模式：只用全局 skills 就选 `partial`，需要本地 CLI 和 orchestrator 检查再选 `full`。
 
 | Profile | 安装内容 | 安装前是否要求 Python | 安装后结果 |
 |---|---|---|---|
-| `partial` | 仅全局 skills | 否 | 资产可用，但 orchestrator 还没准备好 |
-| `full` | `partial` + shell CLI + 要求本机已有 Python 3.12+ + `doctor` | 是 | orchestrator 运行时可直接使用 |
+| `partial` | Codex / Claude Code / Gemini 的全局 `research-paper-workflow` skill 资产和 workflow discovery 链接 | 否 | `/paper`、`/lit-review` 等 slash workflow 可直接使用 |
+| `full` | `partial` 的全部内容，加 shell CLI：`research-skills` / `rsk` / `rsw`，以及可选 `doctor` 校验 | 是，需要 Python 3.12+ | 完整 orchestrator 运行时可用 |
+
+适合选 `partial` 的情况：
+
+- 你只需要 AI 客户端里的 skills 和 slash workflow
+- 机器上还没有 Python
+- 你希望在 Windows 或受限机器上先用最低摩擦方式安装
+
+适合选 `full` 的情况：
+
+- 你要使用 `rsk upgrade`、`rsk init`、`rsk doctor` 或 `research-skills`
+- 你要运行 `python3 -m bridges.orchestrator task-plan|task-run|doctor`
+- 你要跑本地 validator、unit tests 或多模型 orchestrator
 
 `full` 的真实行为：
 
 - 如果系统里已经有 `python3 >= 3.12`，bootstrap 会直接复用。
-- 如果 Python 缺失或版本过低，bootstrap 会立即失败，并打印可选安装方式。
+- 如果 Python 缺失或版本过低，bootstrap 会立即失败，并打印可选安装方式。安装器不会自动安装 Python 或 `mise`。
 - Windows 上由 PowerShell 直接安装，只有在 shell CLI 包装器需要 Bash 时才会通过 `winget` 安装 Git for Windows。
 
 ### `full` 模式的 Python 前提
@@ -144,7 +156,21 @@ Bootstrap 会安装：
 - `.agent/workflows/`、`CLAUDE.md`、`.gemini/` 等项目集成文件，仅在执行 `rsk init` 或 `--parts project` 时写入
 - `full` 模式下的 shell CLI：`research-skills`、`rsk`、`rsw`
 
-## 4. 可选：本地安装器
+## 4. 使用已安装的 skills
+
+`partial` 和 `full` 都是 global-first。安装完成后，日常使用流程是：
+
+1. 新建或打开一个研究目录：`mkdir my-paper && cd my-paper`
+2. 启动 Claude Code 或 Gemini CLI 等支持的客户端
+3. 直接运行 slash workflow，例如 `/paper`、`/lit-review`、`/paper-write` 或 `/code-build`
+
+模型会读取全局安装的 `research-paper-workflow`。默认不会往你的项目目录写文件；只有明确初始化项目时才会写入 `.env` 或本地 workflow 资产：
+
+```bash
+rsk init --project-dir .
+```
+
+## 5. 可选：本地安装器
 
 如果机器上已经有 Python，可以用跨平台本地安装器：
 
@@ -167,6 +193,8 @@ pipx install research-skills-installer
 rsk upgrade --target all --doctor
 rsk init --project-dir /path/to/project
 ```
+
+如果你先装了 `partial`，之后又安装了 Python 3.12+，可以重新运行 bootstrap 并指定 `--profile full`；如果 shell CLI 已经可用，也可以执行 `rsk upgrade --target all --doctor`。
 
 ## 6. 全局优先安装与修改产物
 
@@ -196,11 +224,11 @@ _注：涉及你具体项目内文件的写入（比如需要注入 API Key 的 
 
 有了全局化命令注册，现在开启一篇新论文的研究步骤非常简单：
 
-1.新建一个纯空目录：`mkdir my-new-paper && cd my-new-paper`
+1. 新建一个纯空目录：`mkdir my-new-paper && cd my-new-paper`
 2. 唤出终端里的 AI：输入 `claude` 或 `gemini`
 3. 直接调用命令：敲击 `/paper` 或 `/lit-review`
 
-模型会自动无缝调取全局后台存放的技能体系，不再往你的工作区里丢一堆恶心的模板文件。
+模型会自动调用全局安装的技能体系，不会默认往你的工作区写入模板文件。
 
 ## 9. 日常升级与故障排查
 
