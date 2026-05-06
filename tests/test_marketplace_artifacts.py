@@ -20,41 +20,44 @@ class MarketplaceArtifactsTests(unittest.TestCase):
     def test_builds_three_self_contained_marketplace_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             dist_dir = Path(tmp_dir) / "dist"
+            current_tag = (REPO_ROOT / "research-paper-workflow" / "VERSION").read_text(
+                encoding="utf-8"
+            ).strip()
 
-            artifacts = module.build_artifacts(REPO_ROOT, "v0.5.0-beta.3", dist_dir)
+            artifacts = module.build_artifacts(REPO_ROOT, current_tag, dist_dir)
 
             self.assertEqual(
                 sorted(path.name for path in artifacts),
                 [
-                    "research-skills-claude-plugin-v0.5.0-beta.3.tar.gz",
-                    "research-skills-codex-plugin-v0.5.0-beta.3.tar.gz",
-                    "research-skills-gemini-extension-v0.5.0-beta.3.tar.gz",
+                    f"research-skills-claude-plugin-{current_tag}.tar.gz",
+                    f"research-skills-codex-plugin-{current_tag}.tar.gz",
+                    f"research-skills-gemini-extension-{current_tag}.tar.gz",
                 ],
             )
             for artifact in artifacts:
                 self.assertTrue(artifact.is_file(), msg=f"missing artifact: {artifact}")
 
             self._assert_contains(
-                dist_dir / "research-skills-codex-plugin-v0.5.0-beta.3.tar.gz",
+                dist_dir / f"research-skills-codex-plugin-{current_tag}.tar.gz",
                 [
-                    "research-skills-codex-plugin-v0.5.0-beta.3/.agents/plugins/marketplace.json",
-                    "research-skills-codex-plugin-v0.5.0-beta.3/plugins/research-skills/.codex-plugin/plugin.json",
-                    "research-skills-codex-plugin-v0.5.0-beta.3/plugins/research-skills/skills/research-paper-workflow/SKILL.md",
+                    f"research-skills-codex-plugin-{current_tag}/.agents/plugins/marketplace.json",
+                    f"research-skills-codex-plugin-{current_tag}/plugins/research-skills/.codex-plugin/plugin.json",
+                    f"research-skills-codex-plugin-{current_tag}/plugins/research-skills/skills/research-paper-workflow/SKILL.md",
                 ],
             )
             self._assert_contains(
-                dist_dir / "research-skills-claude-plugin-v0.5.0-beta.3.tar.gz",
+                dist_dir / f"research-skills-claude-plugin-{current_tag}.tar.gz",
                 [
-                    "research-skills-claude-plugin-v0.5.0-beta.3/.claude-plugin/marketplace.json",
-                    "research-skills-claude-plugin-v0.5.0-beta.3/plugins/research-skills/.claude-plugin/plugin.json",
-                    "research-skills-claude-plugin-v0.5.0-beta.3/plugins/research-skills/skills/research-paper-workflow/SKILL.md",
+                    f"research-skills-claude-plugin-{current_tag}/.claude-plugin/marketplace.json",
+                    f"research-skills-claude-plugin-{current_tag}/plugins/research-skills/.claude-plugin/plugin.json",
+                    f"research-skills-claude-plugin-{current_tag}/plugins/research-skills/skills/research-paper-workflow/SKILL.md",
                 ],
             )
             self._assert_contains(
-                dist_dir / "research-skills-gemini-extension-v0.5.0-beta.3.tar.gz",
+                dist_dir / f"research-skills-gemini-extension-{current_tag}.tar.gz",
                 [
-                    "research-skills-gemini-extension-v0.5.0-beta.3/gemini-extension.json",
-                    "research-skills-gemini-extension-v0.5.0-beta.3/skills/research-paper-workflow/SKILL.md",
+                    f"research-skills-gemini-extension-{current_tag}/gemini-extension.json",
+                    f"research-skills-gemini-extension-{current_tag}/skills/research-paper-workflow/SKILL.md",
                 ],
             )
 

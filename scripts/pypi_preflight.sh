@@ -6,6 +6,20 @@ RUN_BUILD=1
 RUN_INSTALL_SMOKE=1
 KEEP_DIST=0
 
+require_python_module() {
+  local module="$1"
+  local package="$2"
+
+  if python3 -c "import ${module}" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  echo "[pypi-preflight] missing Python dependency: ${package} (module: ${module})" >&2
+  echo "[pypi-preflight] install release dependencies before publishing, for example:" >&2
+  echo "  python3 -m pip install -e . build twine" >&2
+  exit 1
+}
+
 usage() {
   cat <<'EOF'
 Usage:
@@ -58,6 +72,11 @@ done
 cd "$ROOT_DIR"
 
 if [[ "$RUN_BUILD" -eq 1 ]]; then
+  require_python_module build build
+fi
+require_python_module twine twine
+
+if [[ "$RUN_BUILD" -eq 1 ]]; then
   if [[ "$KEEP_DIST" -eq 0 ]]; then
     echo "[pypi-preflight] cleaning dist/"
     rm -rf dist
@@ -108,6 +127,4 @@ if [[ "$RUN_INSTALL_SMOKE" -eq 1 ]]; then
 fi
 
 echo "[pypi-preflight] all checks passed"
-echo "[pypi-preflight] next steps:"
-echo "  - TestPyPI (manual): run workflow 'Publish to TestPyPI' in GitHub Actions"
-echo "  - PyPI (tag trigger): git tag v<version> && git push origin v<version>"
+echo "[pypi-preflight] package preflight completed; publish mode owns tag/release flow"

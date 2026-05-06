@@ -1410,21 +1410,23 @@ primary_artifact: code/plan.md
         # Check that revision history tracked both rounds
         self.assertIn("Round 0: BLOCK", result.merged_analysis)
         self.assertIn("Round 1: PASS", result.merged_analysis)
-        # Codex (draft) -> Claude (review 1) -> Codex (revise) -> Claude (review 2) -> Gemini (triad)
-        agents_called = [c["agent"] for c in orchestrator.runtime_calls]
-        self.assertEqual(agents_called.count("claude"), 2)
-        self.assertEqual(agents_called.count("codex"), 2)
+        # Draft -> review 1 -> revise -> review 2. Agent routing is task-profile driven,
+        # so assert the loop stages by prompt content instead of fixed agent identities.
+        review_prompts = [
+            call["prompt"]
+            for call in orchestrator.runtime_calls
+            if "Review the draft" in call["prompt"]
+        ]
+        revision_prompts = [
+            call["prompt"]
+            for call in orchestrator.runtime_calls
+            if "You are revising a research workflow task draft" in call["prompt"]
+        ]
+        self.assertEqual(len(review_prompts), 2)
+        self.assertEqual(len(revision_prompts), 1)
 
-        second_review_prompt = [
-            call["prompt"]
-            for call in orchestrator.runtime_calls
-            if call["agent"] == "claude" and "Review the draft" in call["prompt"]
-        ][1]
-        revision_prompt = next(
-            call["prompt"]
-            for call in orchestrator.runtime_calls
-            if call["agent"] == "codex" and "You are revising a research workflow task draft" in call["prompt"]
-        )
+        second_review_prompt = review_prompts[1]
+        revision_prompt = revision_prompts[0]
         self.assertIn("Self-critique loop context", second_review_prompt)
         self.assertIn("Round 0: BLOCK (confidence=0.50)", second_review_prompt)
         self.assertIn("review/self_critique_log.md", revision_prompt)

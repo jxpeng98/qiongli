@@ -246,8 +246,4 @@ if [[ -n "$TAG" && "$SKIP_NOTE_GEN" -eq 0 ]] && is_prerelease_tag "$TAG"; then
 fi
 
 echo "[preflight] all checks passed"
-if [[ -n "$TAG" ]]; then
-  echo "[preflight] next publish commands:"
-  echo "  git tag -a $TAG -m \"research-skills release\""
-  echo "  git push origin $TAG"
-fi
+echo "[preflight] preflight completed; publish mode owns tag/push"
