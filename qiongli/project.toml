@@ -5,7 +5,8 @@
 #
 # You can override upstream at runtime via:
 # - CLI:   `--repo <owner>/<repo>` (or a Git URL)
-# - Env:   `RESEARCH_SKILLS_REPO=<owner>/<repo>` (or a Git URL)
+# - Env:   `QIONGLI_REPO=<owner>/<repo>` (or a Git URL)
+#          Legacy `RESEARCH_SKILLS_REPO` remains supported as a fallback.
 # - Project config: `qiongli.toml` / `.qiongli.toml` (see guides)
 
 [upstream]

@@ -1,8 +1,8 @@
-# CLAUDE.md — Academic Deep Qiongli
+# CLAUDE.md — Qiongli
 
 ## Project Overview
 
-This is an **Academic Deep Qiongli** system: a contract-driven academic workflow covering the full lifecycle from literature review through manuscript production, compliance checking, submission, and presentation.
+This is a **Qiongli Zhengche** (`穷理证澈`) system: a contract-driven academic workflow covering the full lifecycle from literature review through manuscript production, compliance checking, submission, and presentation.
 
 Canonical standard (cross-model):
 - `standards/research-workflow-contract.yaml` — Task IDs, required outputs, quality gates

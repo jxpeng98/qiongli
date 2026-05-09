@@ -268,7 +268,7 @@ class CleanTests(unittest.TestCase):
             (gemini_dir / "agent-profiles.example.json").write_text("{}")
             (project_dir / "CLAUDE.qiongli.md").write_text("stale")
             # Write a template-looking CLAUDE.md
-            (project_dir / "CLAUDE.md").write_text("# Academic Deep Qiongli\nqiongli-workflow")
+            (project_dir / "CLAUDE.md").write_text("# Qiongli\nQiongli Zhengche\nqiongli-workflow")
 
             result = clean(project_dir)
             self.assertEqual(result, 0)

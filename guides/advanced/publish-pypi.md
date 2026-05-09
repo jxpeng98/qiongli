@@ -127,7 +127,7 @@ Local dry-run installation:
 ```bash
 pip install dist/qiongli_installer-*.whl
 qiongli --help
-rsk check --repo <owner>/<repo>
+qiongli check --repo <owner>/<repo>
 ```
 
 ---

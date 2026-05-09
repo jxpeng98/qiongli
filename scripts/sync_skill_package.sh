@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# sync_skill_package.sh — populate distributable research skill packages
+# sync_skill_package.sh — populate distributable qiongli workflow packages
 # Run before install/release to ensure the skill package is self-contained.
 #
 # Usage:

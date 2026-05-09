@@ -1,15 +1,23 @@
-# Academic Deep Qiongli
+# Qiongli (穷理)
 
-A contract-driven academic workflow system for Codex, Claude Code, and Gemini, covering installation, task planning, literature work, manuscript production, and strict Stage-I research code execution under one canonical workflow contract.
+Qiongli is a contract-driven academic workflow system for Codex, Claude Code, and Gemini. It covers installation, task planning, literature work, manuscript production, and strict Stage-I research code execution under one canonical workflow contract.
 
 <div align="center">
-  <a href="#-quick-start-0--1-navigation">🚀 Quick Start</a> | 
-  <a href="docs/reference/cli.md">💻 CLI Reference</a> | 
-  <a href="docs/architecture.md">🏗 Architecture</a> | 
-  <a href="docs/advanced/agent-skill-collaboration.md">🤝 Agent Collaboration</a> | 
+  <a href="#-quick-start-0--1-navigation">🚀 Quick Start</a> |
+  <a href="docs/reference/cli.md">💻 CLI Reference</a> |
+  <a href="docs/architecture.md">🏗 Architecture</a> |
+  <a href="docs/advanced/agent-skill-collaboration.md">🤝 Agent Collaboration</a> |
   <a href="docs/advanced/extend-qiongli.md">🛠️ How to Extend / Contribute</a> |
   <a href="TODO_ROADMAP.md">🗺️ Roadmap</a>
 </div>
+
+## Why The Name
+
+**Qiongli** is the public name of the project, from the Chinese `穷理`: to pursue the underlying principle of a question until its logic, evidence, and limits are clear. For an academic workflow system, the name points to the work this repository is meant to support: not just producing text, but tracing a research claim back through literature, method, code, critique, and reproducible artifacts.
+
+The full system name is **Qiongli Zhengche** (`穷理证澈`). **Zhengche** (`证澈`) names the core methodology: make evidence chains, citation risk, assumptions, and claim boundaries transparent enough to audit. In practice, that means every workflow is tied to Task IDs, quality gates, and output paths under `RESEARCH/[topic]/`, rather than relying on ad hoc prompts.
+
+Technical identifiers follow the public name: the plugin is `qiongli`, the portable skill package is `qiongli-workflow`, and the updater distribution is `qiongli-installer`. Legacy aliases such as `research-skills`, `rsk`, and `rsw` remain available only for compatibility.
 
 ## Features
 
@@ -33,7 +41,7 @@ A contract-driven academic workflow system for Codex, Claude Code, and Gemini, c
 > Full functionality requires a real Python runtime plus all three model CLIs in `PATH`:
 > `python3`, `codex`, `claude`, and `gemini`.
 > You also need the matching runtime authentication. `codex` can run with `OPENAI_API_KEY` or an existing ChatGPT/Codex login, `claude` uses `ANTHROPIC_API_KEY`, and Gemini `direct` mode requires non-interactive auth such as `GEMINI_API_KEY` or Vertex env auth. Google-login-only Gemini automation should use the resident broker path described in [docs/guide/multi-agent.md](docs/guide/multi-agent.md).
-> Without them, you can still install assets and use shell `rsk check|upgrade|align`, but `doctor`, validators, tests, and the full orchestrator flow will be partial or unavailable.
+> Without them, you can still install assets and use shell `qiongli check|upgrade|align`, but `doctor`, validators, tests, and the full orchestrator flow will be partial or unavailable.
 
 ## Design Lineage And Related Projects
 
@@ -82,9 +90,9 @@ This repository ships local packaging metadata for all three surfaces:
 
 The plugin is the install/discovery container; `qiongli-workflow` is the portable skill package inside it. The 71 academic skill specs under `skills/` are source-of-truth capability cards and are synchronized into the portable/plugin package before release.
 
-Use the bootstrap/CLI path below when you need cross-client global installs, slash-command symlinks, `rsk upgrade`, `doctor`, or multi-model orchestration.
+Use the bootstrap/CLI path below when you need cross-client global installs, slash-command symlinks, `qiongli upgrade`, `doctor`, or multi-model orchestration.
 
-Compatibility note: the official plugin does not automatically migrate or delete older global installs under `~/.codex/skills`, `~/.claude/skills`, or `~/.gemini/skills`. If you still need CLI / orchestrator capabilities, keep the `full` runtime and run `rsk upgrade --target all --doctor` so the global skill package matches the plugin version. If you move fully to the plugin, preview cleanup of old slash-command symlinks with `rsk clean --globals --dry-run`.
+Compatibility note: the official plugin does not automatically migrate or delete older global installs under `~/.codex/skills`, `~/.claude/skills`, or `~/.gemini/skills`. If you still need CLI / orchestrator capabilities, keep the `full` runtime and run `qiongli upgrade --target all --doctor` so the global skill package matches the plugin version. If you move fully to the plugin, preview cleanup of old slash-command symlinks with `qiongli clean --globals --dry-run`.
 
 ### 1. Choose `partial` Or `full`
 
@@ -93,7 +101,7 @@ The bootstrap installer has two profiles. Use `partial` when you only want the c
 | Profile | What you get | Python needed before install | Result after install |
 |---|---|---|---|
 | `partial` | global `qiongli-workflow` skill assets for Codex / Claude Code / Gemini, plus workflow discovery links | No | Slash workflows such as `/paper` and `/lit-review` are ready |
-| `full` | everything in `partial`, shell CLI commands `qiongli` / `rsk` / `rsw`, and optional `doctor` validation | Yes, Python 3.12+ | Full orchestrator runtime is ready |
+| `full` | everything in `partial`, shell CLI commands `qiongli` / `ql` plus legacy aliases, and optional `doctor` validation | Yes, Python 3.12+ | Full orchestrator runtime is ready |
 
 Use `partial` if:
 
@@ -103,7 +111,7 @@ Use `partial` if:
 
 Use `full` if:
 
-- you want `rsk upgrade`, `rsk init`, `rsk doctor`, or `qiongli`
+- you want `qiongli upgrade`, `qiongli init`, `qiongli doctor`, or the short legacy aliases `rsk` / `rsw`
 - you want to run `python3 -m bridges.orchestrator task-plan|task-run|doctor`
 - you want local validators, unit tests, or multi-model orchestration
 
@@ -166,8 +174,8 @@ pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Beta -Profile full -
 This installs:
 
 - workflow assets for Codex / Claude Code / Gemini
-- project integration files such as `.agent/workflows/`, `CLAUDE.md`, `.gemini/` when you run `rsk init` or `--parts project`
-- shell CLI commands `qiongli`, `rsk`, `rsw` in `full` mode
+- project integration files such as `.agent/workflows/`, `CLAUDE.md`, `.gemini/` when you run `qiongli init` or `--parts project`
+- shell CLI commands `qiongli`, `ql`, plus legacy aliases `research-skills`, `rsk`, `rsw` in `full` mode
 
 ### 3. Use The Installed Skills
 
@@ -180,7 +188,7 @@ After `partial` or `full`, the normal user workflow is global-first:
 Project-local files are not written by default. Run this only when you explicitly want project integration files such as `.env` or local workflow assets:
 
 ```bash
-rsk init --project-dir .
+qiongli init --project-dir .
 ```
 
 ### 4. Pick An Entry Mode
@@ -188,7 +196,7 @@ rsk init --project-dir .
 Use one of these stable entrypoints:
 
 - Workflow commands in `.agent/workflows/*.md` such as `/paper`, `/lit-review`, `/paper-write`, `/code-build`
-- Installer / updater CLI: `qiongli`, `rsk`, `rsw`
+- Installer / updater CLI: `qiongli`, `ql`, plus legacy aliases `research-skills`, `rsk`, `rsw`
 - Orchestrator CLI: `python3 -m bridges.orchestrator ...`
 
 ### 5. Optional Local Installers And Refresh Paths
@@ -211,14 +219,14 @@ That `pip` / `pipx` path is now optional compatibility distribution for the upda
 To refresh an existing install from inside a project:
 
 ```bash
-rsk upgrade --target all --project-dir . --doctor
+qiongli upgrade --target all --project-dir . --doctor
 ```
 
-If you used `partial` and later install Python 3.12+, rerun bootstrap with `--profile full` or run `rsk upgrade --target all --doctor` after the shell CLI is available.
+If you used `partial` and later install Python 3.12+, rerun bootstrap with `--profile full` or run `qiongli upgrade --target all --doctor` after the shell CLI is available.
 
-If you already used the shell bootstrap above, re-run it or `rsk upgrade` with `--overwrite` whenever you want to refresh installed assets.
+If you already used the shell bootstrap above, re-run it or `qiongli upgrade` with `--overwrite` whenever you want to refresh installed assets.
 
-*Python boundary: shell `rsk check|upgrade|align` do not require Python; `--doctor`, `python3 -m bridges.orchestrator ...`, validators, and tests still require `python3`.*
+*Python boundary: shell `qiongli check|upgrade|align` do not require Python; `--doctor`, `python3 -m bridges.orchestrator ...`, validators, and tests still require `python3`.*
 
 ### 6. Validate Local Readiness
 
@@ -353,7 +361,7 @@ This section covers the installer/updater CLI only. It does not document the res
 Use this when:
 - you want the easiest install path inside one client
 - you only need the `qiongli-workflow` skill surfaced in Codex, Claude Code, or Gemini CLI
-- you do not need `rsk`, `doctor`, or cross-client global installation
+- you do not need `qiongli`, `doctor`, or cross-client global installation
 
 Install commands for local development:
 
@@ -374,8 +382,8 @@ The Codex and Claude entries use marketplace catalogs. Gemini CLI uses the offic
 #### Option B: Shell bootstrap CLI install
 
 Use this when:
-- the machine does not have Python
-- you want `qiongli` / `rsk` / `rsw` quickly
+- you want the shell CLI without installing the PyPI package
+- you want `qiongli` / `ql` quickly, while keeping `rsk` / `rsw` compatibility
 - you also want workflow assets installed at the same time
 
 Command:
@@ -388,12 +396,12 @@ curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/boots
 ```
 
 What it installs:
-- shell CLI: `qiongli`, `rsk`, `rsw`
+- shell CLI: `qiongli`, `ql`, plus legacy aliases `research-skills`, `rsk`, `rsw`
 - `qiongli-workflow` skill into client skill directories
-- project integration files such as `.agent/workflows/`, `CLAUDE.md`, `.gemini/` when you run `rsk init` or `--parts project`
+- project integration files such as `.agent/workflows/`, `CLAUDE.md`, `.gemini/` when you run `qiongli init` or `--parts project`
 
 Default CLI directory:
-- `${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}`
+- `${QIONGLI_BIN_DIR:-${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}}`
 
 If the command is not found after install, add this directory to `PATH`:
 
@@ -414,8 +422,8 @@ pipx install qiongli-installer
 ```
 
 What it installs:
-- Python CLI: `qiongli`, `rsk`, `rsw`
-- It does not automatically write workflow assets into your project; you still run `rsk upgrade`
+- Python CLI: `qiongli`, `ql`, plus legacy aliases `research-skills`, `rsk`, `rsw`
+- It does not automatically write workflow assets into your project; you still run `qiongli upgrade`
 
 #### Option D: Install shell CLI from a local clone
 
@@ -442,7 +450,7 @@ Common args:
 
 | Arg | Purpose | Default / Notes |
 |-----|---------|-----------------|
-| `--repo <owner/repo|git-url>` | Choose the upstream GitHub repo | Defaults to `RESEARCH_SKILLS_REPO`, else `jxpeng98/qiongli` |
+| `--repo <owner/repo|git-url>` | Choose the upstream GitHub repo | Defaults to `QIONGLI_REPO`, then legacy `RESEARCH_SKILLS_REPO`, else `jxpeng98/qiongli` |
 | `--ref <tag-or-branch>` | Install a specific release tag or branch | Defaults to latest release |
 | `--ref-type <tag|branch>` | Tell the installer how to interpret `--ref` | Default `tag` |
 | `--beta` | Install the latest beta / prerelease tag when `--ref` is omitted | Off by default; stable latest release remains the default |
@@ -450,7 +458,7 @@ Common args:
 | `--project-dir <path>` | Choose where project integration files are written when project parts are enabled | Default current directory |
 | `--install-cli` | Install shell CLI commands | Enabled by default |
 | `--no-cli` | Skip shell CLI installation and install workflow assets only | Opposite of `--install-cli` |
-| `--cli-dir <path>` | Choose where the shell CLI is installed | Default `${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}` |
+| `--cli-dir <path>` | Choose where the shell CLI is installed | Default `${QIONGLI_BIN_DIR:-${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}}` |
 | `--overwrite` | Replace existing skill / CLI / project files | Off by default |
 | `--doctor` | Run environment preflight after install | Only runs when `python3` exists |
 | `--dry-run` | Preview the actions only | Does not download or write files |
@@ -501,7 +509,7 @@ Common args:
 | `--project-dir <path>` | Choose where project integration files are written when project parts are enabled | Default current directory |
 | `--install-cli` | Install shell CLI | Off by default |
 | `--no-cli` | Skip shell CLI installation | This is the default behavior |
-| `--cli-dir <path>` | Choose where the shell CLI is installed | Default `${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}` |
+| `--cli-dir <path>` | Choose where the shell CLI is installed | Default `${QIONGLI_BIN_DIR:-${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}}` |
 | `--overwrite` | Replace existing targets | Off by default |
 | `--doctor` | Run `python3 -m bridges.orchestrator doctor` after install | Only runs when `python3` exists |
 | `--dry-run` | Preview the actions only | Does not write files |
@@ -511,10 +519,12 @@ Notes:
 - Use `--mode copy` for one-off installs
 - `--mode link` is for local-repo installs, not remote bootstrap installs
 
-### 4. `rsk` / `qiongli` subcommands
+### 4. `qiongli` subcommands and aliases
 
 Both shell CLI and Python CLI expose:
 - `qiongli`
+- `ql`
+- `research-skills` (legacy)
 - `rsk`
 - `rsw`
 
@@ -527,7 +537,7 @@ Python CLI only:
 - `doctor`
 - `init`
 
-#### `rsk check`
+#### `qiongli check`
 
 Purpose:
 - inspect installed local skill versions
@@ -545,17 +555,17 @@ Args:
 Examples:
 
 ```bash
-rsk check
-rsk check --repo jxpeng98/qiongli
-rsk check --json
+qiongli check
+qiongli check --repo jxpeng98/qiongli
+qiongli check --json
 ```
 
-#### `rsk upgrade`
+#### `qiongli upgrade`
 
 Purpose:
 - download an upstream release/branch archive
 - refresh globally installed skills by default, with optional shell CLI refresh
-- project integration files stay explicit via `rsk init` or `--parts project`
+- project integration files stay explicit via `qiongli init` or `--parts project`
 
 Common args:
 
@@ -577,13 +587,13 @@ Common args:
 Examples:
 
 ```bash
-rsk upgrade --target all --overwrite
-rsk upgrade --project-dir . --parts project,doctor
-rsk upgrade --repo jxpeng98/qiongli --ref main --ref-type branch --project-dir . --target claude
-rsk upgrade --project-dir . --target codex --dry-run
+qiongli upgrade --target all --overwrite
+qiongli upgrade --project-dir . --parts project,doctor
+qiongli upgrade --repo jxpeng98/qiongli --ref main --ref-type branch --project-dir . --target claude
+qiongli upgrade --project-dir . --target codex --dry-run
 ```
 
-#### `rsk doctor`  (Python CLI)
+#### `qiongli doctor`  (Python CLI)
 
 Purpose:
 - run `bridges.orchestrator doctor` against a project path without remembering the module invocation
@@ -591,10 +601,10 @@ Purpose:
 Examples:
 
 ```bash
-rsk doctor --cwd .
+qiongli doctor --cwd .
 ```
 
-#### `rsk init`  (Python CLI)
+#### `qiongli init`  (Python CLI)
 
 Purpose:
 - initialize project-facing workflow assets from the installed package without downloading a fresh archive
@@ -614,11 +624,11 @@ Common args:
 Examples:
 
 ```bash
-rsk init --project-dir .
-rsk init --project-dir . --target claude --overwrite
+qiongli init --project-dir .
+qiongli init --project-dir . --target claude --overwrite
 ```
 
-#### `rsk align`
+#### `qiongli align`
 
 Purpose:
 - print a short explanation of what the CLI installed and which paths `upgrade` modifies
@@ -632,16 +642,18 @@ Args:
 Examples:
 
 ```bash
-rsk align
-rsk align --repo jxpeng98/qiongli
+qiongli align
+qiongli align --repo jxpeng98/qiongli
 ```
 
 ### 5. Useful environment variables
 
 | Env Var | Purpose |
 |---------|---------|
-| `RESEARCH_SKILLS_REPO` | Default upstream repo, so you can omit `--repo` |
-| `RESEARCH_SKILLS_BIN_DIR` | Default install directory for the shell CLI |
+| `QIONGLI_REPO` | Default upstream repo, so you can omit `--repo` |
+| `QIONGLI_BIN_DIR` | Default install directory for the shell CLI |
+| `RESEARCH_SKILLS_REPO` | Legacy fallback for `QIONGLI_REPO` |
+| `RESEARCH_SKILLS_BIN_DIR` | Legacy fallback for `QIONGLI_BIN_DIR` |
 | `CODEX_HOME` | Root directory for Codex skill installation |
 | `CLAUDE_CODE_HOME` | Root directory for Claude Code skill installation |
 | `GEMINI_HOME` | Root directory for Gemini skill installation |
@@ -667,7 +679,7 @@ Still needs Python:
 **Why aren't there separate installers for Economics, Biology, or Computer Science?**
 
 By design, this framework strictly separates the "generic research workflow pipeline" from "discipline-specific knowledge."
-When you install `rsk`, you only install the generic workflow skeleton (e.g., how to run a Literature Review or write an Outline).
+When you install Qiongli, you install the generic workflow skeleton (e.g., how to run a Literature Review or write an Outline).
 
 Discipline-specific knowledge (like Economics libraries, DID methodology checks, or Biology IRB templates) is loaded dynamically at **Runtime** via the `--domain` parameter. 
 For example, using `/code-build --domain econ` tells the system to load `skills/domain-profiles/economics.yaml` at runtime, apply Economics-specific diagnostics, and bypass unrelated profiles. This keeps the base installation lightweight and avoids prompt pollution.

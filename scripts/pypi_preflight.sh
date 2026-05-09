@@ -33,7 +33,7 @@ Checks:
   2) Build sdist + wheel
   3) twine metadata validation
   4) Install latest wheel in a temporary virtualenv
-  5) CLI smoke checks (qiongli / rsk / rsw)
+  5) CLI smoke checks (qiongli / ql / research-skills / rsk / rsw)
 
 Options:
   --no-build         Skip build step (expects artifacts in dist/)
@@ -99,13 +99,15 @@ if [[ "$RUN_INSTALL_SMOKE" -eq 1 ]]; then
   fi
 
   latest_wheel="$(ls -1t dist/*.whl | head -n1)"
-  tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/rs-pypi-preflight.XXXXXX")"
+  tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/qiongli-pypi-preflight.XXXXXX")"
   trap 'rm -rf "$tmp_dir"' EXIT
 
   echo "[pypi-preflight] creating temp venv: $tmp_dir"
   python3 -m venv "$tmp_dir/venv"
   venv_python="$tmp_dir/venv/bin/python"
   venv_qiongli="$tmp_dir/venv/bin/qiongli"
+  venv_ql="$tmp_dir/venv/bin/ql"
+  venv_research_skills="$tmp_dir/venv/bin/research-skills"
   venv_rsk="$tmp_dir/venv/bin/rsk"
   venv_rsw="$tmp_dir/venv/bin/rsw"
 
@@ -114,6 +116,12 @@ if [[ "$RUN_INSTALL_SMOKE" -eq 1 ]]; then
 
   echo "[pypi-preflight] smoke: qiongli --help"
   "$venv_qiongli" --help >/dev/null
+
+  echo "[pypi-preflight] smoke: ql --help"
+  "$venv_ql" --help >/dev/null
+
+  echo "[pypi-preflight] smoke: research-skills --help"
+  "$venv_research_skills" --help >/dev/null
 
   echo "[pypi-preflight] smoke: rsk --help"
   "$venv_rsk" --help >/dev/null

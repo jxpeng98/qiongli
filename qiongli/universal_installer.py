@@ -714,7 +714,7 @@ _CLEANABLE_CONDITIONAL = (
 )
 
 
-def _is_rsk_claude_md(path: Path, repo_root: Path | None) -> bool:
+def _is_qiongli_claude_md(path: Path, repo_root: Path | None) -> bool:
     """Return True if `path` looks like a qiongli template CLAUDE.md."""
     if not path.is_file():
         return False
@@ -722,7 +722,9 @@ def _is_rsk_claude_md(path: Path, repo_root: Path | None) -> bool:
         text = path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return False
-    return "Academic Deep Qiongli" in text and "qiongli-workflow" in text
+    legacy_marker = "Academic Deep Qiongli" in text
+    current_marker = "Qiongli Zhengche" in text or "穷理证澈" in text
+    return (current_marker or legacy_marker) and "qiongli-workflow" in text
 
 
 def clean(project_dir: Path, *, dry_run: bool = False, repo_root: Path | None = None) -> int:
@@ -747,7 +749,7 @@ def clean(project_dir: Path, *, dry_run: bool = False, repo_root: Path | None = 
 
     # Conditional: CLAUDE.md only if it matches our template
     claude_md = project_dir / "CLAUDE.md"
-    if _is_rsk_claude_md(claude_md, repo_root):
+    if _is_qiongli_claude_md(claude_md, repo_root):
         _remove_path(claude_md, dry_run)
         _print_result("Removed", str(claude_md), "ok")
         removed += 1

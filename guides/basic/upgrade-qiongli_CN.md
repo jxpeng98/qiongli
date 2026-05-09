@@ -19,8 +19,8 @@ curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/boots
 
 说明：
 - bootstrap 会下载所选 release 压缩包，并执行其中自带的 `scripts/install_qiongli.sh`。
-- 默认也会安装 shell CLI：`qiongli`、`rsk`、`rsw`。
-- 默认 shell CLI 目录：`${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}`。
+- 默认也会安装 shell CLI：`qiongli`、`ql`、`research-skills`、`rsk`、`rsw`。
+- 默认 shell CLI 目录：`${QIONGLI_BIN_DIR:-${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}}`。
 - 如果只想更新 workflow 资产，可加 `--no-cli`；如果要改安装位置，可加 `--cli-dir <path>`。
 - `--doctor` 是可选项，只有系统存在 `python3` 时才会执行。
 - 远程 bootstrap 只支持 `--mode copy`；如果你需要 `--mode link`，请保留本地 clone。
@@ -35,13 +35,13 @@ pipx install qiongli-installer
 # - qiongli
 # - rsk
 # - rsw
-# 你也可以设置 `RESEARCH_SKILLS_REPO=<owner>/<repo>` 后省略 --repo
-rsk check --repo <owner>/<repo>
-rsk upgrade --repo <owner>/<repo> --target all --doctor
-rsk init --project-dir /path/to/project
+# 你也可以设置 `QIONGLI_REPO=<owner>/<repo>` 后省略 --repo
+qiongli check --repo <owner>/<repo>
+qiongli upgrade --repo <owner>/<repo> --target all --doctor
+qiongli init --project-dir /path/to/project
 ```
 
-> 注意：pip 安装/升级的是“升级器 CLI”；真正刷新三端全局 skill 目录的动作，仍由 `rsk upgrade`（等价于 `qiongli upgrade`）来执行。项目内文件现在改为显式更新：需要时使用 `rsk init` 或 `rsk upgrade --parts project ...`。
+> 注意：pip 安装/升级的是“升级器 CLI”；真正刷新三端全局 skill 目录的动作，仍由 `qiongli upgrade`（等价于 `qiongli upgrade`）来执行。项目内文件现在改为显式更新：需要时使用 `qiongli init` 或 `qiongli upgrade --parts project ...`。
 
 ## 1) 你需要升级的到底是什么？
 
@@ -55,15 +55,15 @@ rsk init --project-dir /path/to/project
 
 升级的本质就是：**把这些目标路径覆盖为新版本**。
 
-_注：项目内文件（如 `.env`）只有在需要时显式执行 `rsk init --project-dir .` 或 `rsk upgrade --parts project` 才会更新。_
+_注：项目内文件（如 `.env`）只有在需要时显式执行 `qiongli init --project-dir .` 或 `qiongli upgrade --parts project` 才会更新。_
 
 ---
 
 ## 2) 检测是否有新版本（推荐）
 
 ```bash
-# 如果已设置 RESEARCH_SKILLS_REPO，可省略 --repo
-rsk check --repo <owner>/<repo>
+# 如果已设置 QIONGLI_REPO，可省略 --repo
+qiongli check --repo <owner>/<repo>
 # 或在仓库内运行（等价）：
 python3 scripts/qiongli_update.py check --repo <owner>/<repo>
 ```
@@ -72,7 +72,7 @@ python3 scripts/qiongli_update.py check --repo <owner>/<repo>
 - `--repo` 用于查询 GitHub 最新 release tag。
 - 若检测到“本地/已安装版本 < 最新版本”，该命令会返回 exit code `1`（方便写自动化）。
 - 你可以设置默认上游来省略 `--repo`：
-  - 环境变量：`export RESEARCH_SKILLS_REPO=<owner>/<repo>`
+  - 环境变量：`export QIONGLI_REPO=<owner>/<repo>`
   - 若你在 `qiongli` 仓库 clone 里运行，且已配置 git remote（优先 `upstream`，其次 `origin`），也可省略 `--repo`
   - 或在你的项目根目录添加 `qiongli.toml`（便于提交到项目仓库，适合 CI）
 
@@ -87,9 +87,9 @@ repo = "<owner>/<repo>" # 或 Git URL
 此后可直接运行：
 
 ```bash
-rsk check
-rsk upgrade --target all --doctor
-rsk init --project-dir .
+qiongli check
+qiongli upgrade --target all --doctor
+qiongli init --project-dir .
 ```
 
 ---
@@ -109,8 +109,8 @@ curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/boots
 如果机器上有 Python，也可以继续使用 CLI：
 
 ```bash
-# 如果已设置 RESEARCH_SKILLS_REPO，可省略 --repo
-rsk upgrade \
+# 如果已设置 QIONGLI_REPO，可省略 --repo
+qiongli upgrade \
   --repo <owner>/<repo> \
   --target all \
   --mode copy \
@@ -130,7 +130,7 @@ python3 scripts/qiongli_update.py upgrade \
 - shell CLI 本身也可以在无 Python 环境下执行 `check`、`upgrade`、`align`。
 - 默认 upgrade 现在是 global-first；只有显式加 `--parts project` 时，才会刷新项目内 workflow 资产。
 - 私有仓库或遇到 API 限流时，建议设置：`GITHUB_TOKEN` 或 `GH_TOKEN`。
-- 默认使用“最新 release tag”；shell bootstrap 和 `rsk upgrade` 也都支持显式指定版本：
+- 默认使用“最新 release tag”；shell bootstrap 和 `qiongli upgrade` 也都支持显式指定版本：
   - `--ref v0.1.0-beta.6 --ref-type tag`
   - `--ref main --ref-type branch`
 
@@ -165,12 +165,12 @@ git pull
 
 1) 定期 check：
 ```bash
-rsk check --repo <owner>/<repo>
+qiongli check --repo <owner>/<repo>
 ```
 2) 返回码为 1 时执行 upgrade：
 ```bash
-rsk upgrade --repo <owner>/<repo> --target all
-rsk init --project-dir /path/to/project
+qiongli upgrade --repo <owner>/<repo> --target all
+qiongli init --project-dir /path/to/project
 ```
 
 如果你希望我把这套升级检测做成 Codex Automation（定期跑并生成 inbox 结果），告诉我运行频率和要覆盖的 project 路径即可。

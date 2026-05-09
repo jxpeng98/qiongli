@@ -16,8 +16,8 @@ curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/boots
 - `tar`
 
 说明：
-- 默认也会安装 shell CLI：`qiongli`、`rsk`、`rsw`。
-- 默认 CLI 目录：`${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}`。
+- 默认也会安装 shell CLI：`qiongli`、`ql`、`research-skills`、`rsk`、`rsw`。
+- 默认 CLI 目录：`${QIONGLI_BIN_DIR:-${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}}`。
 - 如果是已有安装上的刷新/升级，请加 `--overwrite`。
 - 如果你只想安装 workflow 资产，可加 `--no-cli`。
 - 如果你要改 CLI 落盘目录，可用 `--cli-dir <path>`。
@@ -30,7 +30,7 @@ curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/boots
 
 ```bash
 pipx install qiongli-installer
-rsk upgrade --target all --project-dir /path/to/project --doctor
+qiongli upgrade --target all --project-dir /path/to/project --doctor
 ```
 
 ## 3. 本地仓库安装脚本
@@ -51,13 +51,13 @@ rsk upgrade --target all --project-dir /path/to/project --doctor
 
 这意味着像 `/paper`、`/study-design` 这样的命令，**无论你当前在电脑的哪个文件夹下工作，AI 都能原生识别**。
 
-_注：涉及你具体项目内文件的写入（比如需要注入 API Key 的 `.env`），只有在你显式运行 `rsk init --project-dir .` 时才会发生。_
+_注：涉及你具体项目内文件的写入（比如需要注入 API Key 的 `.env`），只有在你显式运行 `qiongli init --project-dir .` 时才会发生。_
 
 ## 常用参数
 
-- `--install-cli`：安装 shell CLI 命令（`qiongli`、`rsk`、`rsw`）。
+- `--install-cli`：安装 shell CLI 命令（`qiongli`、`ql`、`research-skills`、`rsk`、`rsw`）。
 - `--no-cli`：跳过 shell CLI 安装。
-- `--cli-dir <path>`：指定 shell CLI 安装目录（默认：`${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}`）。
+- `--cli-dir <path>`：指定 shell CLI 安装目录（默认：`${QIONGLI_BIN_DIR:-${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}}`）。
 - `--overwrite`：替换现有的安装目标文件。
 - `--dry-run`：仅预览安装操作。
 - `--doctor`：在安装后运行 `python3 -m bridges.orchestrator doctor --cwd <project>` 进行环境预检；若系统没有 `python3` 会自动跳过。
@@ -72,8 +72,8 @@ _注：涉及你具体项目内文件的写入（比如需要注入 API Key 的 
 
 ## 升级指南
 
-- 检测更新：`rsk check --repo <owner>/<repo>`
-- 一键升级（无需 fork 或 git clone）：`rsk upgrade --repo <owner>/<repo> --target all` 自动刷新全局环境。
+- 检测更新：`qiongli check --repo <owner>/<repo>`
+- 一键升级（无需 fork 或 git clone）：`qiongli upgrade --repo <owner>/<repo> --target all` 自动刷新全局环境。
 - 完整升级指南：`guides/basic/upgrade-qiongli_CN.md`
 
 ## 验证安装

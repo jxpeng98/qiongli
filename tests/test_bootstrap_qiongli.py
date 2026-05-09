@@ -13,7 +13,7 @@ POWERSHELL_BOOTSTRAP = REPO_ROOT / "scripts" / "bootstrap_qiongli.ps1"
 SYSTEM_BASH = Path("/bin/bash")
 
 
-class BootstrapResearchSkillTests(unittest.TestCase):
+class BootstrapQiongliTests(unittest.TestCase):
     def test_partial_profile_dry_run_skips_cli_and_doctor(self) -> None:
         if not SYSTEM_BASH.exists():
             self.skipTest("/bin/bash is not available")

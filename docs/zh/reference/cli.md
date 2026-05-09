@@ -5,23 +5,24 @@
 ## 0) 命令名约定
 
 - `qiongli`：主 CLI（pipx/venv 安装后可用，或通过 shell bootstrap 安装）
-- `rsk` / `rsw`：短别名（与 `qiongli` 完全等价）
+- `ql`：短主别名。`research-skills`、`rsk`、`rsw`：旧兼容别名，与 `qiongli` 等价
 
-下文统一用 `rsk` 作为示例。
+下文统一用 `qiongli` 作为示例。
 
 ---
 
 ## 1) Upstream（上游仓库）如何确定（如何省略 `--repo`）
 
-很多命令需要知道“去哪个 GitHub 仓库查询/下载 release”。`rsk` 的上游解析优先级如下（从高到低）：
+很多命令需要知道“去哪个 GitHub 仓库查询/下载 release”。`qiongli` 的上游解析优先级如下（从高到低）：
 
 1. CLI 参数：`--repo <owner/repo|Git URL>`
-2. 环境变量：`RESEARCH_SKILLS_REPO=<owner/repo|Git URL>`
-3. 项目配置文件（从当前目录或 `--project-dir` 向上搜索）：
+2. 环境变量：`QIONGLI_REPO=<owner/repo|Git URL>`
+3. 旧环境变量 fallback：`RESEARCH_SKILLS_REPO=<owner/repo|Git URL>`
+4. 项目配置文件（从当前目录或 `--project-dir` 向上搜索）：
    - `qiongli.toml`
    - `.qiongli.toml`
-4. 打包默认（pipx 安装的包内）：`qiongli/project.toml`（由 CI 注入）
-5. 如果你正在 `qiongli` 仓库 clone 内运行：从 git remote 推断（优先 `upstream`，其次 `origin`）
+5. 打包默认（pipx 安装的包内）：`qiongli/project.toml`（由 CI 注入）
+6. 如果你正在 `qiongli` 仓库 clone 内运行：从 git remote 推断（优先 `upstream`，其次 `origin`）
 
 支持的 repo 形式：
 
@@ -39,20 +40,20 @@ repo = "owner/repo"   # 或 url = "https://github.com/owner/repo.git"
 
 ---
 
-## 2) `rsk`（安装/升级器 CLI）
+## 2) `qiongli`（安装/升级器 CLI）
 
 这个 CLI 现在有两种分发方式：
 - Python CLI：通过 `pip`/`pipx` 安装
-- Shell CLI：由 `bootstrap_qiongli.sh` 默认安装到 `${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}`
+- Shell CLI：由 `bootstrap_qiongli.sh` 默认安装到 `${QIONGLI_BIN_DIR:-${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}}`
 
-### 2.1 `rsk check`（检查版本/是否有更新）
+### 2.1 `qiongli check`（检查版本/是否有更新）
 
 用途：
 - 输出 CLI 版本、本地 repo 版本（若在仓库内运行）、三端已安装版本
 - 可选：查询上游最新 release tag，并判断是否需要升级
 
 ```bash
-rsk check [--repo <owner/repo|url>] [--json] [--strict-network]
+qiongli check [--repo <owner/repo|url>] [--json] [--strict-network]
 ```
 
 关键参数：
@@ -65,7 +66,7 @@ rsk check [--repo <owner/repo|url>] [--json] [--strict-network]
 - `1`：检测到更新可用
 - `2`：参数错误
 
-### 2.2 `rsk upgrade`（下载 release 并执行三端安装脚本）
+### 2.2 `qiongli upgrade`（下载 release 并执行三端安装脚本）
 
 用途：
 - 下载上游 release（默认 latest tag 的 tar.gz）
@@ -73,7 +74,7 @@ rsk check [--repo <owner/repo|url>] [--json] [--strict-network]
 - 默认只刷新全局 skill 目录；项目资产需要显式请求
 
 ```bash
-rsk upgrade \
+qiongli upgrade \
   [--repo <owner/repo|url>] \
   [--ref <tag-or-branch>] \
   [--ref-type tag|branch] \
@@ -86,33 +87,33 @@ rsk upgrade \
 
 说明：
 - `--project-dir` 主要在你显式请求项目侧安装面时生效，例如 `--parts project`。
-- 现在默认的 `upgrade` 是全局刷新。项目接线建议走 `rsk init --project-dir .`；如果确实要在升级时重写项目文件，再显式加 `--parts project`。
+- 现在默认的 `upgrade` 是全局刷新。项目接线建议走 `qiongli init --project-dir .`；如果确实要在升级时重写项目文件，再显式加 `--parts project`。
 - 全局安装后，`upgrade` 会自动创建工作流发现 symlink：`~/.claude/commands/*.md` 和 `~/.gemini/workflows/*.md`，可直接使用 `/paper`、`/lit-review` 等 slash 命令。
 - Shell CLI 会通过随附的 bootstrap helper 执行升级，不依赖 Python。
 - 退出码为底层安装器返回码（若安装失败，沿用其错误码）。
 
-### 2.3 `rsk align`（快速参考）
+### 2.3 `qiongli align`（快速参考）
 
 用途：打印“pipx 安装了什么 / upgrade 会修改哪些路径 / 常见用法”。
 
 ```bash
-rsk align [--repo <owner/repo|url>]
+qiongli align [--repo <owner/repo|url>]
 ```
 
-### 2.4 `rsk init`（项目初始化）
+### 2.4 `qiongli init`（项目初始化）
 
 用途：在项目目录中创建 `.env` 等项目配置。
 
 ```bash
-rsk init [--project-dir <path>] [--target all|codex|claude|gemini] [--dry-run]
+qiongli init [--project-dir <path>] [--target all|codex|claude|gemini] [--dry-run]
 ```
 
-### 2.5 `rsk clean`（清理过期资产）
+### 2.5 `qiongli clean`（清理过期资产）
 
 用途：移除旧版本安装留下的项目本地资产。
 
 ```bash
-rsk clean [--project-dir <path>] [--dry-run] [--globals]
+qiongli clean [--project-dir <path>] [--dry-run] [--globals]
 ```
 
 参数说明：
@@ -120,10 +121,10 @@ rsk clean [--project-dir <path>] [--dry-run] [--globals]
 - `--globals`：同时移除全局工作流发现 symlink（`~/.claude/commands/` 和 `~/.gemini/workflows/`）。只移除指向 `qiongli-workflow` 的 symlink，用户自建的命令不受影响。
 - `--dry-run`：只显示将要移除的内容，不实际删除。
 
-### 2.6 `rsk doctor`（环境预检）
+### 2.6 `qiongli doctor`（环境预检）
 
 ```bash
-rsk doctor [--cwd <path>]
+qiongli doctor [--cwd <path>]
 ```
 
 ---
@@ -285,7 +286,7 @@ mode 列表：
 说明：
 - 依赖 `bash` 和 `curl` 或 `wget`，以及 `tar`。
 - 支持 `--ref <tag-or-branch>` 配合 `--ref-type tag|branch`。
-- 默认会安装 shell CLI 命令：`qiongli`、`rsk`、`rsw`。
+- 默认会安装 shell CLI 命令：`qiongli`、`ql`、`research-skills`、`rsk`、`rsw`。
 - 如果你不想安装 shell CLI，可加 `--no-cli`；如需改目录，可用 `--cli-dir <path>`。
 - 远程 bootstrap 只支持 `--mode copy`。
 - `--doctor` 在没有 `python3` 时会自动跳过。
@@ -305,7 +306,7 @@ mode 列表：
 说明：
 - 这是本地仓库安装器。
 - `copy/link` 安装路径本身不再依赖 Python。
-- 如果需要同时安装 shell CLI，可加 `--install-cli`；默认目录为 `${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}`，也可用 `--cli-dir <path>` 覆盖。
+- 如果需要同时安装 shell CLI，可加 `--install-cli`；默认目录为 `${QIONGLI_BIN_DIR:-${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}}`，也可用 `--cli-dir <path>` 覆盖。
 - `--doctor` 仅在系统存在 `python3` 时运行 `python3 -m bridges.orchestrator doctor --cwd <project>`。
 
 ### 4.3 Release 自动化：`./scripts/release_automation.sh`
@@ -359,7 +360,7 @@ GitHub Actions 构建时会运行它，把当前仓库 slug 写入 `qiongli/proj
 bash scripts/inject_project_toml.sh
 
 # 或覆盖（用于构建时切换到别的 upstream repo）
-RESEARCH_SKILLS_REPO_SLUG="other-owner/other-repo" bash scripts/inject_project_toml.sh
+QIONGLI_REPO_SLUG="other-owner/other-repo" bash scripts/inject_project_toml.sh
 ```
 
 ---

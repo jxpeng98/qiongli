@@ -47,13 +47,13 @@ The plugin-first package does not replace the legacy global install in place. Na
 For ordinary client-native usage, the plugin bundle is enough. For CLI commands, validators, `doctor`, release tooling, or `bridges.orchestrator`, users still need the `full` runtime and should keep the global install aligned with:
 
 ```bash
-rsk upgrade --target all --doctor
+qiongli upgrade --target all --doctor
 ```
 
 When migrating fully to the plugin and removing old slash discovery, preview cleanup first:
 
 ```bash
-rsk clean --globals --dry-run
+qiongli clean --globals --dry-run
 ```
 
 ## Quality Contract

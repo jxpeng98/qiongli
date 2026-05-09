@@ -16,8 +16,8 @@ Requirements:
 - `tar`
 
 Notes:
-- By default this also installs a shell CLI: `qiongli`, `rsk`, `rsw`.
-- Default CLI location: `${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}`.
+- By default this also installs a shell CLI: `qiongli`, `ql`, `research-skills`, `rsk`, `rsw`.
+- Default CLI location: `${QIONGLI_BIN_DIR:-${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}}`.
 - Add `--overwrite` when re-installing/upgrading existing targets.
 - Use `--no-cli` if you only want the workflow assets.
 - Use `--cli-dir <path>` to install the shell CLI elsewhere.
@@ -31,7 +31,7 @@ If Python is already available on the machine, you can install the updater CLI w
 
 ```bash
 pipx install qiongli-installer
-rsk upgrade --target all --project-dir /path/to/project --doctor
+qiongli upgrade --target all --project-dir /path/to/project --doctor
 ```
 
 ## 3. Local Repository Installer
@@ -52,7 +52,7 @@ The installer does two things:
 
 This means commands like `/paper` and `/study-design` become natively recognized by the AI engines **no matter what folder you are working in**.
 
-_Project-local files (like `.env`) are only written when you explicitly run `rsk init --project-dir .`._
+_Project-local files (like `.env`) are only written when you explicitly run `qiongli init --project-dir .`._
 
 Home directory overrides:
 - `CODEX_HOME`: root directory for Codex skill installation.
@@ -62,9 +62,9 @@ Home directory overrides:
 
 ## Common flags
 
-- `--install-cli`: install shell CLI commands (`qiongli`, `rsk`, `rsw`).
+- `--install-cli`: install shell CLI commands (`qiongli`, `ql`, `research-skills`, `rsk`, `rsw`).
 - `--no-cli`: skip shell CLI installation.
-- `--cli-dir <path>`: choose where the shell CLI is installed (default: `${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}`).
+- `--cli-dir <path>`: choose where the shell CLI is installed (default: `${QIONGLI_BIN_DIR:-${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}}`).
 - `--overwrite`: replace existing installation targets.
 - `--dry-run`: preview installation actions only.
 - `--doctor`: run `python3 -m bridges.orchestrator doctor --cwd <project>` after install when `python3` is available.
@@ -79,8 +79,8 @@ Because commands are registered globally, using the system for a new paper is in
 
 ## Upgrade
 
-- Check updates: `rsk check --repo <owner>/<repo>`
-- Upgrade (no fork / no git clone required): `rsk upgrade --repo <owner>/<repo> --target all` for global refresh.
+- Check updates: `qiongli check --repo <owner>/<repo>`
+- Upgrade (no fork / no git clone required): `qiongli upgrade --repo <owner>/<repo> --target all` for global refresh.
 - Full guide: `guides/basic/upgrade-qiongli.md`
 
 ## Verify

@@ -20,7 +20,7 @@ The native plugin/extension distribution does not require `pip`, `pipx`, or the 
 
 - cross-client global installation
 - global slash-command symlinks managed by `rsk`
-- `rsk upgrade`, `rsk check`, or `doctor`
+- `qiongli upgrade`, `qiongli check`, or `doctor`
 - multi-model orchestrator execution
 
 Local development install commands:
@@ -67,8 +67,8 @@ Use this rule:
 
 - New users who only need client-native skills and `/paper`-style workflows should install the official plugin/extension.
 - Existing `partial` / `full` users can install the plugin alongside their current global skills.
-- Users who still need `qiongli`, `rsk`, `rsw`, `doctor`, validators, or `bridges.orchestrator` should keep the `full` runtime and run `rsk upgrade --target all --doctor` so the global skill package stays aligned with the plugin version.
-- Users who are moving fully to the official plugin and no longer need old global slash discovery should inspect cleanup with `rsk clean --globals --dry-run`.
+- Users who still need `qiongli`, `ql`, `research-skills`, `rsk`, `rsw`, `doctor`, validators, or `bridges.orchestrator` should keep the `full` runtime and run `qiongli upgrade --target all --doctor` so the global skill package stays aligned with the plugin version.
+- Users who are moving fully to the official plugin and no longer need old global slash discovery should inspect cleanup with `qiongli clean --globals --dry-run`.
 
 If both old global skills and the new plugin are installed, keep their versions aligned to avoid loading different `qiongli-workflow` copies in different clients or command paths.
 
@@ -89,7 +89,7 @@ Choose `partial` when:
 
 Choose `full` when:
 
-- you want `rsk upgrade`, `rsk init`, `rsk doctor`, or `qiongli`
+- you want `qiongli upgrade`, `qiongli init`, `qiongli doctor`, or `qiongli`
 - you want `python3 -m bridges.orchestrator task-plan|task-run|doctor`
 - you want local validators, unit tests, or multi-model orchestration
 
@@ -177,8 +177,8 @@ pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Beta -Profile full -
 What bootstrap installs:
 
 - workflow assets for Codex / Claude Code / Gemini
-- project integration files such as `.agent/workflows/`, `CLAUDE.md`, `.gemini/` when you run `rsk init` or `--parts project`
-- shell CLI commands `qiongli`, `rsk`, `rsw` in `full` mode
+- project integration files such as `.agent/workflows/`, `CLAUDE.md`, `.gemini/` when you run `qiongli init` or `--parts project`
+- shell CLI commands `qiongli`, `ql`, `research-skills`, `rsk`, `rsw` in `full` mode
 
 ## 5. Use The Installed Skills
 
@@ -191,7 +191,7 @@ Both `partial` and `full` are global-first. After installation:
 The model loads the global `qiongli-workflow` package. Your project directory stays clean unless you explicitly initialize it:
 
 ```bash
-rsk init --project-dir .
+qiongli init --project-dir .
 ```
 
 ## 6. Optional Local Installers
@@ -214,11 +214,11 @@ The `pip` / `pipx` path is still available for the updater CLI, but it is no lon
 
 ```bash
 pipx install qiongli-installer
-rsk upgrade --target all --doctor
-rsk init --project-dir /path/to/project
+qiongli upgrade --target all --doctor
+qiongli init --project-dir /path/to/project
 ```
 
-If you installed `partial` first and later add Python 3.12+, rerun bootstrap with `--profile full` or use `rsk upgrade --target all --doctor` after the shell CLI exists.
+If you installed `partial` first and later add Python 3.12+, rerun bootstrap with `--profile full` or use `qiongli upgrade --target all --doctor` after the shell CLI exists.
 
 ## 7. Global-First Behaviors & What Gets Installed
 
@@ -230,7 +230,7 @@ The installer does two things:
 
 This means commands like `/paper` and `/study-design` become natively recognized by the AI engines **no matter what folder you are working in**.
 
-_Project-local files (like `.env`) are only written when you explicitly run `rsk init --project-dir .`._
+_Project-local files (like `.env`) are only written when you explicitly run `qiongli init --project-dir .`._
 
 ## 8. Common Flags
 
@@ -239,7 +239,7 @@ _Project-local files (like `.env`) are only written when you explicitly run `rsk
 - `--beta`: install the latest beta / prerelease tag when `--ref` is omitted.
 - `--install-cli`: install shell CLI commands even outside `full`.
 - `--no-cli`: skip shell CLI installation even in `full`.
-- `--cli-dir <path>`: choose where the shell CLI is installed. Default: `${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}`.
+- `--cli-dir <path>`: choose where the shell CLI is installed. Default: `${QIONGLI_BIN_DIR:-${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}}`.
 - `--overwrite`: replace existing installation targets.
 - `--dry-run`: preview installation actions only.
 - `--doctor`: run `python3 -m bridges.orchestrator doctor --cwd <project>` after install.
@@ -259,13 +259,13 @@ The model will seamlessly load the global skill assets without cluttering your w
 To update everything to the latest global release across all AI clients (no need to navigate to each project):
 
 ```bash
-rsk upgrade --target all --doctor
+qiongli upgrade --target all --doctor
 ```
 
 To preview removal of old global slash-command symlinks after adopting the official plugin:
 
 ```bash
-rsk clean --globals --dry-run
+qiongli clean --globals --dry-run
 ```
 
-_Note: The shell CLI (`rsk check`, `rsk upgrade`, `rsk clean`) runs without Python. However, `--doctor`, test validators, and `bridges.orchestrator` require a valid Python 3 environment._
+_Note: The shell CLI (`qiongli check`, `qiongli upgrade`, `qiongli clean`) runs without Python. However, `--doctor`, test validators, and `bridges.orchestrator` require a valid Python 3 environment._
