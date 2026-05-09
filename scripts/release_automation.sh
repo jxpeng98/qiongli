@@ -82,7 +82,7 @@ case "$MODE" in
     commit_message=""
     push_remote="origin"
     push_branch=""
-    tag_message="research-skills release"
+    tag_message="qiongli release"
     create_release=1
     skip_remote=0
     skip_ci_status=0
@@ -204,13 +204,13 @@ case "$MODE" in
 
     git add \
       pyproject.toml \
-      research_skills/__init__.py \
-      research-paper-workflow/VERSION \
+      qiongli/__init__.py \
+      qiongli-workflow/VERSION \
       skills/registry.yaml \
-      plugins/research-skills/.codex-plugin/plugin.json \
+      plugins/qiongli/.codex-plugin/plugin.json \
       .claude-plugin/marketplace.json \
-      plugins/research-skills/.claude-plugin/plugin.json \
-      plugins/research-skills/gemini-extension.json \
+      plugins/qiongli/.claude-plugin/plugin.json \
+      plugins/qiongli/gemini-extension.json \
       skills
     if is_prerelease_tag "$repo_tag"; then
       git add "release/${repo_tag}.md"

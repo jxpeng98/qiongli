@@ -14,7 +14,7 @@ Without them, asset installation and shell `rsk` maintenance commands still work
 
 ## 1. Native Plugin And Extension Install
 
-For single-client use, install **Research Skills** through the client-native extension surface. This is the recommended path when you only need the `research-paper-workflow` skill inside one client.
+For single-client use, install **Qiongli** through the client-native extension surface. This is the recommended path when you only need the `qiongli-workflow` skill inside one client.
 
 The native plugin/extension distribution does not require `pip`, `pipx`, or the `rsk` CLI. Use the bootstrap/CLI path when you need any of these:
 
@@ -27,27 +27,27 @@ Local development install commands:
 
 ```text
 # Codex
-Install Research Skills from the official Codex plugin marketplace.
+Install Qiongli from the official Codex plugin marketplace.
 
 # Claude Code
-/plugin marketplace add ./path/to/research-skills
-/plugin install research-skills@research-skills
+/plugin marketplace add ./path/to/qiongli
+/plugin install qiongli@qiongli
 
 # Gemini CLI
-gemini extensions install ./path/to/research-skills/plugins/research-skills
+gemini extensions install ./path/to/qiongli/plugins/qiongli
 ```
 
 This repository contains the packaging metadata used for local validation:
 
 - `.agents/plugins/marketplace.json`
 - `.claude-plugin/marketplace.json`
-- `plugins/research-skills/.codex-plugin/plugin.json`
-- `plugins/research-skills/.claude-plugin/plugin.json`
-- `plugins/research-skills/gemini-extension.json`
-- `plugins/research-skills/commands/*.md`
-- `plugins/research-skills/skills/research-paper-workflow`
+- `plugins/qiongli/.codex-plugin/plugin.json`
+- `plugins/qiongli/.claude-plugin/plugin.json`
+- `plugins/qiongli/gemini-extension.json`
+- `plugins/qiongli/commands/*.md`
+- `plugins/qiongli/skills/qiongli-workflow`
 
-In this layout, the plugin is the install/discovery container and `research-paper-workflow` is the portable skill package. The plugin command files are thin wrappers; the real workflow logic stays in `skills/research-paper-workflow/workflows/*.md`.
+In this layout, the plugin is the install/discovery container and `qiongli-workflow` is the portable skill package. The plugin command files are thin wrappers; the real workflow logic stays in `skills/qiongli-workflow/workflows/*.md`.
 
 Codex and Claude Code use marketplace catalogs. Gemini CLI uses the official extension system (`gemini-extension.json`) rather than a marketplace JSON.
 
@@ -59,18 +59,18 @@ These are separate installation surfaces:
 
 | Surface | Typical path | Managed by |
 |---|---|---|
-| Native plugin bundle | client plugin/extension store, containing `plugins/research-skills/skills/research-paper-workflow` | Codex / Claude Code / Gemini plugin system |
-| Legacy global skill install | `~/.codex/skills/research-paper-workflow`, `~/.claude/skills/research-paper-workflow`, `~/.gemini/skills/research-paper-workflow` | `rsk`, bootstrap, or local installer |
+| Native plugin bundle | client plugin/extension store, containing `plugins/qiongli/skills/qiongli-workflow` | Codex / Claude Code / Gemini plugin system |
+| Legacy global skill install | `~/.codex/skills/qiongli-workflow`, `~/.claude/skills/qiongli-workflow`, `~/.gemini/skills/qiongli-workflow` | `rsk`, bootstrap, or local installer |
 | Legacy slash-command discovery | `~/.claude/commands/*.md`, `~/.gemini/workflows/*.md` | `rsk` symlink management |
 
 Use this rule:
 
 - New users who only need client-native skills and `/paper`-style workflows should install the official plugin/extension.
 - Existing `partial` / `full` users can install the plugin alongside their current global skills.
-- Users who still need `research-skills`, `rsk`, `rsw`, `doctor`, validators, or `bridges.orchestrator` should keep the `full` runtime and run `rsk upgrade --target all --doctor` so the global skill package stays aligned with the plugin version.
+- Users who still need `qiongli`, `rsk`, `rsw`, `doctor`, validators, or `bridges.orchestrator` should keep the `full` runtime and run `rsk upgrade --target all --doctor` so the global skill package stays aligned with the plugin version.
 - Users who are moving fully to the official plugin and no longer need old global slash discovery should inspect cleanup with `rsk clean --globals --dry-run`.
 
-If both old global skills and the new plugin are installed, keep their versions aligned to avoid loading different `research-paper-workflow` copies in different clients or command paths.
+If both old global skills and the new plugin are installed, keep their versions aligned to avoid loading different `qiongli-workflow` copies in different clients or command paths.
 
 ## 3. Choose `partial` Or `full`
 
@@ -78,8 +78,8 @@ The bootstrap installers now explain these choices interactively if you omit `--
 
 | Profile | What it installs | Python required before install | Result after install |
 |---|---|---|---|
-| `partial` | global `research-paper-workflow` skill assets for Codex / Claude Code / Gemini, plus workflow discovery links | No | Slash workflows such as `/paper` and `/lit-review` are ready |
-| `full` | everything in `partial`, shell CLI commands `research-skills` / `rsk` / `rsw`, and optional `doctor` validation | Yes, Python 3.12+ | Full orchestrator runtime is ready |
+| `partial` | global `qiongli-workflow` skill assets for Codex / Claude Code / Gemini, plus workflow discovery links | No | Slash workflows such as `/paper` and `/lit-review` are ready |
+| `full` | everything in `partial`, shell CLI commands `qiongli` / `rsk` / `rsw`, and optional `doctor` validation | Yes, Python 3.12+ | Full orchestrator runtime is ready |
 
 Choose `partial` when:
 
@@ -89,7 +89,7 @@ Choose `partial` when:
 
 Choose `full` when:
 
-- you want `rsk upgrade`, `rsk init`, `rsk doctor`, or `research-skills`
+- you want `rsk upgrade`, `rsk init`, `rsk doctor`, or `qiongli`
 - you want `python3 -m bridges.orchestrator task-plan|task-run|doctor`
 - you want local validators, unit tests, or multi-model orchestration
 
@@ -120,25 +120,25 @@ python3 --version
 Prompt for `partial` or `full`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --project-dir "$PWD" --target all
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --project-dir "$PWD" --target all
 ```
 
 Force `partial`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --profile partial --project-dir "$PWD" --target all
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --profile partial --project-dir "$PWD" --target all
 ```
 
 Force `full`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --profile full --project-dir "$PWD" --target all
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --profile full --project-dir "$PWD" --target all
 ```
 
 Install the latest beta / prerelease:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --beta --profile full --project-dir "$PWD" --target all
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --beta --profile full --project-dir "$PWD" --target all
 ```
 
 ### Windows PowerShell 7+
@@ -152,33 +152,33 @@ winget install --id Microsoft.PowerShell --source winget
 Download and prompt for `partial` or `full`:
 
 ```powershell
-Invoke-WebRequest https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.ps1 -OutFile .\bootstrap_research_skill.ps1
-pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -ProjectDir "$PWD" -Target all
+Invoke-WebRequest https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.ps1 -OutFile .\bootstrap_qiongli.ps1
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -ProjectDir "$PWD" -Target all
 ```
 
 Force `partial`:
 
 ```powershell
-pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -Profile partial -ProjectDir "$PWD" -Target all
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile partial -ProjectDir "$PWD" -Target all
 ```
 
 Force `full`:
 
 ```powershell
-pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -Profile full -ProjectDir "$PWD" -Target all
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile full -ProjectDir "$PWD" -Target all
 ```
 
 Install the latest beta / prerelease:
 
 ```powershell
-pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -Beta -Profile full -ProjectDir "$PWD" -Target all
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Beta -Profile full -ProjectDir "$PWD" -Target all
 ```
 
 What bootstrap installs:
 
 - workflow assets for Codex / Claude Code / Gemini
 - project integration files such as `.agent/workflows/`, `CLAUDE.md`, `.gemini/` when you run `rsk init` or `--parts project`
-- shell CLI commands `research-skills`, `rsk`, `rsw` in `full` mode
+- shell CLI commands `qiongli`, `rsk`, `rsw` in `full` mode
 
 ## 5. Use The Installed Skills
 
@@ -188,7 +188,7 @@ Both `partial` and `full` are global-first. After installation:
 2. Start a supported client such as Claude Code or Gemini CLI.
 3. Run a workflow command such as `/paper`, `/lit-review`, `/paper-write`, or `/code-build`.
 
-The model loads the global `research-paper-workflow` package. Your project directory stays clean unless you explicitly initialize it:
+The model loads the global `qiongli-workflow` package. Your project directory stays clean unless you explicitly initialize it:
 
 ```bash
 rsk init --project-dir .
@@ -199,21 +199,21 @@ rsk init --project-dir .
 If Python is already available, you can use the local cross-platform Python installer:
 
 ```bash
-python3 scripts/bootstrap_research_skill.py --profile partial --project-dir .
-python3 scripts/bootstrap_research_skill.py --profile full --project-dir .
+python3 scripts/bootstrap_qiongli.py --profile partial --project-dir .
+python3 scripts/bootstrap_qiongli.py --profile full --project-dir .
 ```
 
 If you already have a local repository checkout on Linux or macOS, you can also use the local shell installer:
 
 ```bash
-./scripts/install_research_skill.sh --profile partial --target all --project-dir /path/to/project
-./scripts/install_research_skill.sh --profile full --target all --project-dir /path/to/project
+./scripts/install_qiongli.sh --profile partial --target all --project-dir /path/to/project
+./scripts/install_qiongli.sh --profile full --target all --project-dir /path/to/project
 ```
 
 The `pip` / `pipx` path is still available for the updater CLI, but it is no longer the recommended first-install path:
 
 ```bash
-pipx install research-skills-installer
+pipx install qiongli-installer
 rsk upgrade --target all --doctor
 rsk init --project-dir /path/to/project
 ```
@@ -225,7 +225,7 @@ If you installed `partial` first and later add Python 3.12+, rerun bootstrap wit
 Default install/upgrade behavior is purely **global**. Your project directories remain completely clean.
 
 The installer does two things:
-1. **Installs the Core Package:** `research-paper-workflow` is placed into the specific home directories of your AI clients (e.g. `~/.claude/skills/`, `~/.gemini/skills/`).
+1. **Installs the Core Package:** `qiongli-workflow` is placed into the specific home directories of your AI clients (e.g. `~/.claude/skills/`, `~/.gemini/skills/`).
 2. **Registers Slash Commands:** It drops lightweight symlinks into the client's discovery paths (e.g. `~/.claude/commands/paper.md` and `~/.gemini/workflows/lit-review.md`).
 
 This means commands like `/paper` and `/study-design` become natively recognized by the AI engines **no matter what folder you are working in**.

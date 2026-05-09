@@ -15,12 +15,12 @@ Open normal pull requests against `dev`. Merge `dev` into `main` only when the n
 
 The official plugin marketplace entry should point at the stable repository identity:
 
-- Repository: `https://github.com/jxpeng98/research-skills`
+- Repository: `https://github.com/jxpeng98/qiongli`
 - Codex plugin catalog: `.agents/plugins/marketplace.json`
-- Codex manifest: `plugins/research-skills/.codex-plugin/plugin.json`
+- Codex manifest: `plugins/qiongli/.codex-plugin/plugin.json`
 - Claude Code marketplace: `.claude-plugin/marketplace.json`
-- Claude Code manifest: `plugins/research-skills/.claude-plugin/plugin.json`
-- Gemini extension manifest: `plugins/research-skills/gemini-extension.json`
+- Claude Code manifest: `plugins/qiongli/.claude-plugin/plugin.json`
+- Gemini extension manifest: `plugins/qiongli/gemini-extension.json`
 
 The official plugin marketplace should track `main` and release tags, not `dev`. Use `dev` for local marketplace testing and prerelease validation before the official entry is updated.
 

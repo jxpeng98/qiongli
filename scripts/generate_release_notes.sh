@@ -198,7 +198,7 @@ fi
 mkdir -p "$(dirname "$OUTPUT")"
 
 {
-  echo "# research-skills \`${TAG}\` Release Notes"
+  echo "# qiongli \`${TAG}\` Release Notes"
   echo
   echo "Date: ${RELEASE_DATE}"
   echo "Stage: ${STAGE}"
@@ -232,9 +232,9 @@ EOF
   cat <<EOF
 \`\`\`bash
 ./scripts/release_ready.sh --version ${VERSION_HINT}
-git add pyproject.toml research_skills/__init__.py research-paper-workflow/VERSION skills/registry.yaml skills release/${TAG}.md
+git add pyproject.toml qiongli/__init__.py qiongli-workflow/VERSION skills/registry.yaml skills release/${TAG}.md
 git commit -m "chore: prepare release ${VERSION_HINT}"
-git tag -a ${TAG} -m "research-skills release"
+git tag -a ${TAG} -m "qiongli release"
 git push origin main --tags
 ./scripts/release_automation.sh post --tag ${TAG} --create-release
 \`\`\`

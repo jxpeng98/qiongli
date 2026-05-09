@@ -85,7 +85,7 @@ def sync_versions(root: Path, raw_version: str) -> list[Path]:
             f'version = "{package_version}"',
         ),
         (
-            root / "research_skills" / "__init__.py",
+            root / "qiongli" / "__init__.py",
             re.compile(r'^__version__ = "[^"]+"$', re.MULTILINE),
             f'__version__ = "{package_version}"',
         ),
@@ -100,17 +100,17 @@ def sync_versions(root: Path, raw_version: str) -> list[Path]:
         if replace_pattern(path, pattern, replacement):
             changed.append(path)
 
-    version_file = root / "research-paper-workflow" / "VERSION"
+    version_file = root / "qiongli-workflow" / "VERSION"
     original_repo_version = version_file.read_text(encoding="utf-8").strip()
     if original_repo_version != repo_version:
         version_file.write_text(repo_version + "\n", encoding="utf-8")
         changed.append(version_file)
 
     json_version_files = (
-        root / "plugins" / "research-skills" / ".codex-plugin" / "plugin.json",
+        root / "plugins" / "qiongli" / ".codex-plugin" / "plugin.json",
         root / ".claude-plugin" / "marketplace.json",
-        root / "plugins" / "research-skills" / ".claude-plugin" / "plugin.json",
-        root / "plugins" / "research-skills" / "gemini-extension.json",
+        root / "plugins" / "qiongli" / ".claude-plugin" / "plugin.json",
+        root / "plugins" / "qiongli" / "gemini-extension.json",
     )
     for plugin_manifest in json_version_files:
         if not plugin_manifest.exists():

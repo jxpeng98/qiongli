@@ -61,7 +61,7 @@ status_path_from_line() {
 is_expected_release_path() {
   local path="$1"
   case "$path" in
-    pyproject.toml|research_skills/__init__.py|research-paper-workflow/VERSION|skills/registry.yaml|plugins/research-skills/.codex-plugin/plugin.json|.claude-plugin/marketplace.json|plugins/research-skills/.claude-plugin/plugin.json|plugins/research-skills/gemini-extension.json)
+    pyproject.toml|qiongli/__init__.py|qiongli-workflow/VERSION|skills/registry.yaml|plugins/qiongli/.codex-plugin/plugin.json|.claude-plugin/marketplace.json|plugins/qiongli/.claude-plugin/plugin.json|plugins/qiongli/gemini-extension.json)
       return 0
       ;;
     skills/*)

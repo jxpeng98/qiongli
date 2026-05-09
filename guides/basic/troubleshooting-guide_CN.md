@@ -1,6 +1,6 @@
 # 🚨 故障排除与统一错误码指南
 
-本文档列出了在使用 Research Skills Orchestrator CLI 时可能遇到的所有标准 `ERR-RS-*` 错误码，以及它们的根本原因和标准解决方案。
+本文档列出了在使用 Qiongli Orchestrator CLI 时可能遇到的所有标准 `ERR-RS-*` 错误码，以及它们的根本原因和标准解决方案。
 
 > **专业提示：** 如果遇到任何异常行为，你的第一步永远应该是运行交互式诊断工具：
 > `python3 -m bridges.orchestrator doctor --cwd .`

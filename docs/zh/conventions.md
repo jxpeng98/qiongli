@@ -6,9 +6,9 @@
 
 ### Portable Skill 与 Internal Skill Spec
 
-- `research-paper-workflow/` 是面向 Codex / Claude / Gemini 分发的 portable skill package
+- `qiongli-workflow/` 是面向 Codex / Claude / Gemini 分发的 portable skill package
 - `skills/` 是仓库内部的执行规格，不等于客户端安装包
-- 如果改动影响客户端安装体验，先看 `research-paper-workflow/`
+- 如果改动影响客户端安装体验，先看 `qiongli-workflow/`
 - 如果改动影响仓库内部执行行为，先看 `skills/`
 
 ### Functional Agent 与 Runtime Agent
@@ -28,7 +28,7 @@
 | Pipelines | `pipelines/` | DAG 编排与依赖 |
 | Workflows | `.agent/workflows/` | 客户端入口命令 |
 | Bridges | `bridges/` | 运行时适配器 |
-| Portable Skill Package | `research-paper-workflow/` | 面向客户端分发 |
+| Portable Skill Package | `qiongli-workflow/` | 面向客户端分发 |
 
 ## 依赖方向
 
@@ -39,7 +39,7 @@
 3. `roles/` 与 `skills/`
 4. `pipelines/` 与 `.agent/workflows/`
 5. `bridges/`
-6. `research-paper-workflow/` 作为分发面
+6. `qiongli-workflow/` 作为分发面
 
 落地含义：
 
@@ -80,10 +80,10 @@
 3. `templates/`
 4. `pipelines/` 与 `.agent/workflows/`
 5. `bridges/`
-6. `research-paper-workflow/`
+6. `qiongli-workflow/`
 
 ## 继续阅读
 
-- 需要具体修改路径：看 [扩展 Research Skills](/zh/advanced/extend-research-skills)
+- 需要具体修改路径：看 [扩展 Qiongli](/zh/advanced/extend-qiongli)
 - 需要架构总览：看 [系统架构](/zh/architecture)
 - 需要 CLI 与运行入口：看 [CLI 参考](/zh/reference/cli)

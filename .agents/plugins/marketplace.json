@@ -1,14 +1,14 @@
 {
-  "name": "research-skills",
+  "name": "qiongli",
   "interface": {
-    "displayName": "Research Skills"
+    "displayName": "Qiongli"
   },
   "plugins": [
     {
-      "name": "research-skills",
+      "name": "qiongli",
       "source": {
         "source": "local",
-        "path": "./plugins/research-skills"
+        "path": "./plugins/qiongli"
       },
       "policy": {
         "installation": "AVAILABLE",

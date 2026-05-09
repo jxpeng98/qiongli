@@ -3,7 +3,7 @@ import os
 import sys
 from pathlib import Path
 
-CONFIG_FILE = Path.home() / ".config" / "research-skills" / "config.json"
+CONFIG_FILE = Path.home() / ".config" / "qiongli" / "config.json"
 
 TRANSLATIONS = {
     "en": {

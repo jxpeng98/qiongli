@@ -14,7 +14,7 @@
 
 ## 1. 原生插件与扩展安装
 
-如果你只想在单个客户端里使用，推荐通过客户端自己的原生扩展入口安装 **Research Skills**。这条路径会直接把 `research-paper-workflow` skill 安装到对应客户端，不需要用户先安装 `pip`、`pipx` 或 `rsk` CLI。
+如果你只想在单个客户端里使用，推荐通过客户端自己的原生扩展入口安装 **Qiongli**。这条路径会直接把 `qiongli-workflow` skill 安装到对应客户端，不需要用户先安装 `pip`、`pipx` 或 `rsk` CLI。
 
 如果你需要下面这些能力，再使用 bootstrap / CLI 路径：
 
@@ -27,27 +27,27 @@
 
 ```text
 # Codex
-从官方 Codex plugin marketplace 安装 Research Skills。
+从官方 Codex plugin marketplace 安装 Qiongli。
 
 # Claude Code
-/plugin marketplace add ./path/to/research-skills
-/plugin install research-skills@research-skills
+/plugin marketplace add ./path/to/qiongli
+/plugin install qiongli@qiongli
 
 # Gemini CLI
-gemini extensions install ./path/to/research-skills/plugins/research-skills
+gemini extensions install ./path/to/qiongli/plugins/qiongli
 ```
 
 这个仓库包含用于打包和本地校验的元数据：
 
 - `.agents/plugins/marketplace.json`
 - `.claude-plugin/marketplace.json`
-- `plugins/research-skills/.codex-plugin/plugin.json`
-- `plugins/research-skills/.claude-plugin/plugin.json`
-- `plugins/research-skills/gemini-extension.json`
-- `plugins/research-skills/commands/*.md`
-- `plugins/research-skills/skills/research-paper-workflow`
+- `plugins/qiongli/.codex-plugin/plugin.json`
+- `plugins/qiongli/.claude-plugin/plugin.json`
+- `plugins/qiongli/gemini-extension.json`
+- `plugins/qiongli/commands/*.md`
+- `plugins/qiongli/skills/qiongli-workflow`
 
-在这套结构里，plugin 负责安装、发现和平台入口；`research-paper-workflow` 是 plugin 内真正被加载的 portable skill package。`commands/*.md` 只做薄转发，真实 workflow 逻辑仍在 `skills/research-paper-workflow/workflows/*.md`。
+在这套结构里，plugin 负责安装、发现和平台入口；`qiongli-workflow` 是 plugin 内真正被加载的 portable skill package。`commands/*.md` 只做薄转发，真实 workflow 逻辑仍在 `skills/qiongli-workflow/workflows/*.md`。
 
 Codex 和 Claude Code 使用 marketplace catalog。Gemini CLI 使用官方 extension 系统（`gemini-extension.json`），不是 marketplace JSON。
 
@@ -59,18 +59,18 @@ Codex 和 Claude Code 使用 marketplace catalog。Gemini CLI 使用官方 exten
 
 | 安装面 | 典型路径 | 管理方 |
 |---|---|---|
-| 原生 plugin bundle | 客户端 plugin / extension store，内部包含 `plugins/research-skills/skills/research-paper-workflow` | Codex / Claude Code / Gemini 的 plugin 系统 |
-| 旧版全局 skill 安装 | `~/.codex/skills/research-paper-workflow`、`~/.claude/skills/research-paper-workflow`、`~/.gemini/skills/research-paper-workflow` | `rsk`、bootstrap 或本地 installer |
+| 原生 plugin bundle | 客户端 plugin / extension store，内部包含 `plugins/qiongli/skills/qiongli-workflow` | Codex / Claude Code / Gemini 的 plugin 系统 |
+| 旧版全局 skill 安装 | `~/.codex/skills/qiongli-workflow`、`~/.claude/skills/qiongli-workflow`、`~/.gemini/skills/qiongli-workflow` | `rsk`、bootstrap 或本地 installer |
 | 旧版 slash command discovery | `~/.claude/commands/*.md`、`~/.gemini/workflows/*.md` | `rsk` 管理的软链接 |
 
 建议按下面规则选择：
 
 - 新用户如果只需要客户端原生 skills 和 `/paper` 这类 workflow，直接安装官方 plugin / extension。
 - 已经装过 `partial` / `full` 的用户，可以在旧全局 skills 旁边再安装 plugin。
-- 如果还需要 `research-skills`、`rsk`、`rsw`、`doctor`、validator 或 `bridges.orchestrator`，继续保留 `full` runtime，并执行 `rsk upgrade --target all --doctor`，让全局 skill package 与 plugin 版本保持一致。
+- 如果还需要 `qiongli`、`rsk`、`rsw`、`doctor`、validator 或 `bridges.orchestrator`，继续保留 `full` runtime，并执行 `rsk upgrade --target all --doctor`，让全局 skill package 与 plugin 版本保持一致。
 - 如果准备完全切到官方 plugin，不再需要旧版全局 slash discovery，先用 `rsk clean --globals --dry-run` 查看会清理哪些旧入口。
 
-如果旧版全局 skills 和新 plugin 同时存在，建议保持版本一致，避免不同客户端或不同命令路径加载到不同版本的 `research-paper-workflow`。
+如果旧版全局 skills 和新 plugin 同时存在，建议保持版本一致，避免不同客户端或不同命令路径加载到不同版本的 `qiongli-workflow`。
 
 ## 3. 先选 `partial` 还是 `full`
 
@@ -78,8 +78,8 @@ Codex 和 Claude Code 使用 marketplace catalog。Gemini CLI 使用官方 exten
 
 | Profile | 安装内容 | 安装前是否要求 Python | 安装后结果 |
 |---|---|---|---|
-| `partial` | Codex / Claude Code / Gemini 的全局 `research-paper-workflow` skill 资产和 workflow discovery 链接 | 否 | `/paper`、`/lit-review` 等 slash workflow 可直接使用 |
-| `full` | `partial` 的全部内容，加 shell CLI：`research-skills` / `rsk` / `rsw`，以及可选 `doctor` 校验 | 是，需要 Python 3.12+ | 完整 orchestrator 运行时可用 |
+| `partial` | Codex / Claude Code / Gemini 的全局 `qiongli-workflow` skill 资产和 workflow discovery 链接 | 否 | `/paper`、`/lit-review` 等 slash workflow 可直接使用 |
+| `full` | `partial` 的全部内容，加 shell CLI：`qiongli` / `rsk` / `rsw`，以及可选 `doctor` 校验 | 是，需要 Python 3.12+ | 完整 orchestrator 运行时可用 |
 
 适合选 `partial` 的情况：
 
@@ -89,7 +89,7 @@ Codex 和 Claude Code 使用 marketplace catalog。Gemini CLI 使用官方 exten
 
 适合选 `full` 的情况：
 
-- 你要使用 `rsk upgrade`、`rsk init`、`rsk doctor` 或 `research-skills`
+- 你要使用 `rsk upgrade`、`rsk init`、`rsk doctor` 或 `qiongli`
 - 你要运行 `python3 -m bridges.orchestrator task-plan|task-run|doctor`
 - 你要跑本地 validator、unit tests 或多模型 orchestrator
 
@@ -120,25 +120,25 @@ python3 --version
 交互式选择 `partial` 或 `full`：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --project-dir "$PWD" --target all
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --project-dir "$PWD" --target all
 ```
 
 强制 `partial`：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --profile partial --project-dir "$PWD" --target all
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --profile partial --project-dir "$PWD" --target all
 ```
 
 强制 `full`：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --profile full --project-dir "$PWD" --target all
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --profile full --project-dir "$PWD" --target all
 ```
 
 安装最新 beta / prerelease：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --beta --profile full --project-dir "$PWD" --target all
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --beta --profile full --project-dir "$PWD" --target all
 ```
 
 ### Windows PowerShell 7+
@@ -152,33 +152,33 @@ winget install --id Microsoft.PowerShell --source winget
 下载后交互式选择 `partial` 或 `full`：
 
 ```powershell
-Invoke-WebRequest https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.ps1 -OutFile .\bootstrap_research_skill.ps1
-pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -ProjectDir "$PWD" -Target all
+Invoke-WebRequest https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.ps1 -OutFile .\bootstrap_qiongli.ps1
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -ProjectDir "$PWD" -Target all
 ```
 
 强制 `partial`：
 
 ```powershell
-pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -Profile partial -ProjectDir "$PWD" -Target all
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile partial -ProjectDir "$PWD" -Target all
 ```
 
 强制 `full`：
 
 ```powershell
-pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -Profile full -ProjectDir "$PWD" -Target all
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile full -ProjectDir "$PWD" -Target all
 ```
 
 安装最新 beta / prerelease：
 
 ```powershell
-pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -Beta -Profile full -ProjectDir "$PWD" -Target all
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Beta -Profile full -ProjectDir "$PWD" -Target all
 ```
 
 Bootstrap 会安装：
 
 - Codex / Claude Code / Gemini 的 workflow 资产
 - `.agent/workflows/`、`CLAUDE.md`、`.gemini/` 等项目集成文件，仅在执行 `rsk init` 或 `--parts project` 时写入
-- `full` 模式下的 shell CLI：`research-skills`、`rsk`、`rsw`
+- `full` 模式下的 shell CLI：`qiongli`、`rsk`、`rsw`
 
 ## 5. 使用已安装的 skills
 
@@ -188,7 +188,7 @@ Bootstrap 会安装：
 2. 启动 Claude Code 或 Gemini CLI 等支持的客户端
 3. 直接运行 slash workflow，例如 `/paper`、`/lit-review`、`/paper-write` 或 `/code-build`
 
-模型会读取全局安装的 `research-paper-workflow`。默认不会往你的项目目录写文件；只有明确初始化项目时才会写入 `.env` 或本地 workflow 资产：
+模型会读取全局安装的 `qiongli-workflow`。默认不会往你的项目目录写文件；只有明确初始化项目时才会写入 `.env` 或本地 workflow 资产：
 
 ```bash
 rsk init --project-dir .
@@ -199,21 +199,21 @@ rsk init --project-dir .
 如果机器上已经有 Python，可以用跨平台本地安装器：
 
 ```bash
-python3 scripts/bootstrap_research_skill.py --profile partial --project-dir .
-python3 scripts/bootstrap_research_skill.py --profile full --project-dir .
+python3 scripts/bootstrap_qiongli.py --profile partial --project-dir .
+python3 scripts/bootstrap_qiongli.py --profile full --project-dir .
 ```
 
 如果你在 Linux 或 macOS 上已经有本地仓库副本，也可以直接用本地 shell 安装器：
 
 ```bash
-./scripts/install_research_skill.sh --profile partial --target all --project-dir /path/to/project
-./scripts/install_research_skill.sh --profile full --target all --project-dir /path/to/project
+./scripts/install_qiongli.sh --profile partial --target all --project-dir /path/to/project
+./scripts/install_qiongli.sh --profile full --target all --project-dir /path/to/project
 ```
 
 `pip` / `pipx` 路径仍然保留给升级器 CLI，但不再是推荐的首次安装入口：
 
 ```bash
-pipx install research-skills-installer
+pipx install qiongli-installer
 rsk upgrade --target all --doctor
 rsk init --project-dir /path/to/project
 ```
@@ -225,7 +225,7 @@ rsk init --project-dir /path/to/project
 目前系统所有的安装与升级**默认全部是全局操作（Global-first）**，你的项目目录会被保持绝对干净。
 
 安装器主要执行两步：
-1. **安装核心技能包：** 把 `research-paper-workflow` 下载存进你本地 AI 客户端所在的专属配置目录（例如 `~/.claude/skills/` 和 `~/.gemini/skills/`）。
+1. **安装核心技能包：** 把 `qiongli-workflow` 下载存进你本地 AI 客户端所在的专属配置目录（例如 `~/.claude/skills/` 和 `~/.gemini/skills/`）。
 2. **注册快捷指令 (Slash Commands)：** 自动在客户端的发现路径里打下轻量级的软链接（例如 `~/.claude/commands/paper.md`）。
 
 这意味着像 `/paper`、`/study-design` 这样的命令，**无论你当前在电脑的哪个文件夹下工作，AI 都能原生识别**。

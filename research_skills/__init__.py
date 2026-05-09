@@ -1,6 +1,5 @@
 from __future__ import annotations
 
+from qiongli import __version__
+
 __all__ = ["__version__"]
-
-__version__ = "0.7.0b2"
-

@@ -62,10 +62,10 @@ actual_init_version="$(python3 - <<'PY'
 import re
 from pathlib import Path
 
-content = Path("research_skills/__init__.py").read_text(encoding="utf-8")
+content = Path("qiongli/__init__.py").read_text(encoding="utf-8")
 match = re.search(r'^__version__ = "([^"]+)"$', content, re.MULTILINE)
 if not match:
-    raise SystemExit("missing __version__ in research_skills/__init__.py")
+    raise SystemExit("missing __version__ in qiongli/__init__.py")
 print(match.group(1))
 PY
 )"
@@ -82,17 +82,17 @@ print(match.group(1))
 PY
 )"
 
-actual_workflow_version="$(tr -d '\r\n' < research-paper-workflow/VERSION)"
+actual_workflow_version="$(tr -d '\r\n' < qiongli-workflow/VERSION)"
 
 actual_plugin_versions="$(python3 - <<'PY'
 import json
 from pathlib import Path
 
 paths = [
-    Path("plugins/research-skills/.codex-plugin/plugin.json"),
+    Path("plugins/qiongli/.codex-plugin/plugin.json"),
     Path(".claude-plugin/marketplace.json"),
-    Path("plugins/research-skills/.claude-plugin/plugin.json"),
-    Path("plugins/research-skills/gemini-extension.json"),
+    Path("plugins/qiongli/.claude-plugin/plugin.json"),
+    Path("plugins/qiongli/gemini-extension.json"),
 ]
 for path in paths:
     data = json.loads(path.read_text(encoding="utf-8"))
@@ -122,7 +122,7 @@ PY
 }
 
 [[ "$actual_init_version" == "$expected_package_version" ]] || {
-  echo "[verify-release-tag] research_skills/__init__.py mismatch: tag=$TAG expects $expected_package_version, found $actual_init_version" >&2
+  echo "[verify-release-tag] qiongli/__init__.py mismatch: tag=$TAG expects $expected_package_version, found $actual_init_version" >&2
   exit 1
 }
 
@@ -132,7 +132,7 @@ PY
 }
 
 [[ "$actual_workflow_version" == "$expected_repo_tag" ]] || {
-  echo "[verify-release-tag] research-paper-workflow/VERSION mismatch: tag=$TAG expects $expected_repo_tag, found $actual_workflow_version" >&2
+  echo "[verify-release-tag] qiongli-workflow/VERSION mismatch: tag=$TAG expects $expected_repo_tag, found $actual_workflow_version" >&2
   exit 1
 }
 

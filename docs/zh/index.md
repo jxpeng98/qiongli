@@ -2,7 +2,7 @@
 layout: home
 
 hero:
-  name: Research Skills
+  name: Qiongli
   text: 学术工作流文档站
   tagline: 将安装、CLI、工作流入口、架构、MCP 集成与维护者说明收敛到一个统一文档入口。
   actions:

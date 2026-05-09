@@ -13,7 +13,7 @@
 
 ## Publish Actions
 
-- [ ] `git tag -a {{TAG}} -m "research-skills release"`
+- [ ] `git tag -a {{TAG}} -m "qiongli release"`
 - [ ] `git push origin {{TAG}}`
 
 ## Post-Release Verification

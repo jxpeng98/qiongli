@@ -1,13 +1,13 @@
-# Research Skills Framework — Conventions
+# Qiongli Framework — Conventions
 
 ## Terminology
 
 ### Portable Skills vs Internal Skill Specs
 
-- `research-paper-workflow/` is a portable skill package distributed to Codex / Claude / Gemini clients.
+- `qiongli-workflow/` is a portable skill package distributed to Codex / Claude / Gemini clients.
 - `skills/` contains repo-internal skill specifications referenced by `standards/`, `pipelines/`, and validators.
 - Do not assume every markdown file under `skills/` is installable as a standalone client skill package.
-- When a change affects end-user client entry behavior, check `research-paper-workflow/` first.
+- When a change affects end-user client entry behavior, check `qiongli-workflow/` first.
 - When a change affects reusable execution behavior inside this repo, check `skills/` first.
 
 ### Functional Agents vs Runtime Agents
@@ -26,9 +26,9 @@
 | **Functional Agents** | `roles/` | Research responsibility and quality ownership |
 | **Internal Skill Specs** | `skills/` | Reusable execution specs used by tasks and pipelines |
 | **Pipelines** | `pipelines/` | Abstract DAGs defining dependencies and handoffs |
-| **Workflows** | `research-paper-workflow/workflows/` | Slash-command entrypoints (globally symlinked) |
+| **Workflows** | `qiongli-workflow/workflows/` | Slash-command entrypoints (globally symlinked) |
 | **Bridges** | `bridges/` | Runtime adapters and orchestration |
-| **Portable Skill Package** | `research-paper-workflow/` | Cross-client installable entry skill |
+| **Portable Skill Package** | `qiongli-workflow/` | Cross-client installable entry skill |
 
 ## Dependency Direction
 
@@ -39,7 +39,7 @@ Treat the architecture as a one-way dependency graph:
 3. `roles/` and `skills/`
 4. `pipelines/` and `.agent/workflows/`
 5. `bridges/`
-6. `research-paper-workflow/` as the distribution surface
+6. `qiongli-workflow/` as the distribution surface
 
 Practical implications:
 
@@ -107,7 +107,7 @@ Default files to touch in that case:
 
 - `skills/*/*.md`
 - `templates/*.md`
-- `research-paper-workflow/references/stage-*.md`
+- `qiongli-workflow/references/stage-*.md`
 
 ## When to Sink a Capability to MCP, Script, or Template
 
@@ -171,7 +171,7 @@ All typed artifact names are defined in `schemas/artifact-types.yaml`. Use these
 | Layer | Directory | Purpose |
 |---|---|---|
 | **Pipelines** | `pipelines/` | Abstract DAGs defining step sequence + dependencies |
-| **Workflows** | `research-paper-workflow/workflows/` | Slash-command entrypoints (symlinked to `~/.claude/commands/` and `~/.gemini/workflows/`) |
+| **Workflows** | `qiongli-workflow/workflows/` | Slash-command entrypoints (symlinked to `~/.claude/commands/` and `~/.gemini/workflows/`) |
 
 Pipelines reference skill IDs; workflows call skills directly.
 
@@ -184,7 +184,7 @@ When a change spans multiple layers, apply it in this order:
 3. `templates/` for stable structured outputs
 4. `pipelines/` and `.agent/workflows/` for sequencing or entry behavior
 5. `bridges/` only if execution logic must change
-6. `research-paper-workflow/` only if the portable client package must reflect the change
+6. `qiongli-workflow/` only if the portable client package must reflect the change
 
 ## Roles
 
@@ -209,7 +209,7 @@ Domain profiles in `skills/domain-profiles/` customize skill behavior for specif
 4. Add to relevant pipelines in `pipelines/`
 5. Run `python3 scripts/validate_research_standard.py` to verify
 
-If you need a portable client-facing skill package instead of an internal execution spec, follow the `research-paper-workflow/` style and keep it separate from `skills/`.
+If you need a portable client-facing skill package instead of an internal execution spec, follow the `qiongli-workflow/` style and keep it separate from `skills/`.
 
 ## Adding a New Domain Profile
 

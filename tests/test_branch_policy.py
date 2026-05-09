@@ -29,6 +29,13 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertIn("`main`", content)
         self.assertIn("stable release", content)
 
+    def test_maintainer_policy_documents_naming_decision(self) -> None:
+        content = read("docs/maintainer/naming-policy.md")
+        self.assertIn("**Qiongli**", content)
+        self.assertIn("**Qiongli Zhengche**", content)
+        self.assertIn("**Zhengche**", content)
+        self.assertIn("qiongli", content)
+
 
 if __name__ == "__main__":
     unittest.main()

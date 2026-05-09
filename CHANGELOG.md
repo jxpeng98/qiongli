@@ -6,7 +6,7 @@
 
 ### Added
 
-- 为 `scripts/bootstrap_research_skill.ps1` 增加用于生成用户 `PATH` 更新命令的辅助函数，进一步完善 Windows 安装后的环境变量刷新体验。
+- 为 `scripts/bootstrap_qiongli.ps1` 增加用于生成用户 `PATH` 更新命令的辅助函数，进一步完善 Windows 安装后的环境变量刷新体验。
 
 ### Changed
 

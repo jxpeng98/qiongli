@@ -1,6 +1,6 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://research-skills.dev/schemas/domain-profile.schema.json",
+    "$id": "https://qiongli.dev/schemas/domain-profile.schema.json",
     "title": "Domain Profile",
     "description": "Schema for skills/domain-profiles/*.yaml files",
     "type": "object",

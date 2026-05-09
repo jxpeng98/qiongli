@@ -33,7 +33,7 @@ Checks:
   2) Build sdist + wheel
   3) twine metadata validation
   4) Install latest wheel in a temporary virtualenv
-  5) CLI smoke checks (research-skills / rsk / rsw)
+  5) CLI smoke checks (qiongli / rsk / rsw)
 
 Options:
   --no-build         Skip build step (expects artifacts in dist/)
@@ -105,15 +105,15 @@ if [[ "$RUN_INSTALL_SMOKE" -eq 1 ]]; then
   echo "[pypi-preflight] creating temp venv: $tmp_dir"
   python3 -m venv "$tmp_dir/venv"
   venv_python="$tmp_dir/venv/bin/python"
-  venv_research_skills="$tmp_dir/venv/bin/research-skills"
+  venv_qiongli="$tmp_dir/venv/bin/qiongli"
   venv_rsk="$tmp_dir/venv/bin/rsk"
   venv_rsw="$tmp_dir/venv/bin/rsw"
 
   "$venv_python" -m pip install --upgrade pip >/dev/null
   "$venv_python" -m pip install --ignore-installed --force-reinstall "$latest_wheel"
 
-  echo "[pypi-preflight] smoke: research-skills --help"
-  "$venv_research_skills" --help >/dev/null
+  echo "[pypi-preflight] smoke: qiongli --help"
+  "$venv_qiongli" --help >/dev/null
 
   echo "[pypi-preflight] smoke: rsk --help"
   "$venv_rsk" --help >/dev/null

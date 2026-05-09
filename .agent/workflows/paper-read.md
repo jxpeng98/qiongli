@@ -6,7 +6,7 @@ description: 深度阅读并分析单篇学术论文，生成结构化笔记
 
 Conduct in-depth reading and structured analysis of an academic paper.
 
-Canonical Task ID (from the globally installed `research-paper-workflow` skill):
+Canonical Task ID (from the globally installed `qiongli-workflow` skill):
 - `B2` targeted paper reading
 
 ## Paper

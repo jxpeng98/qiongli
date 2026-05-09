@@ -1,6 +1,6 @@
 # Agent + Skill Collaboration Enhancement Guide
 
-This guide is designed to systematically enhance a specific capability (not limited to code) within `research-skills` while maintaining cross-model consistency.
+This guide is designed to systematically enhance a specific capability (not limited to code) within `qiongli` while maintaining cross-model consistency.
 
 For distribution boundaries, see [Plugin-First Architecture](/advanced/plugin-first-architecture). For skill structure requirements, see [Skill Quality Contract](/maintainer/skill-quality-contract).
 

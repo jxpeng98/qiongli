@@ -1,6 +1,0 @@
-# target	op	label	source	destination
-codex	dir-copy	Skill	research-paper-workflow	${CODEX_HOME}/skills/research-paper-workflow
-claude	dir-copy	Skill	research-paper-workflow	${CLAUDE_CODE_HOME}/skills/research-paper-workflow
-gemini	dir-copy	Skill	research-paper-workflow	${GEMINI_HOME}/skills/research-paper-workflow
-antigravity	dir-copy	Skill	research-paper-workflow	${ANTIGRAVITY_HOME}/skills/research-paper-workflow
-project	file-copy	Env	.env.example	${PROJECT_DIR}/.env

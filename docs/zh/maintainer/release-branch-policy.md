@@ -15,12 +15,12 @@
 
 官方 plugin marketplace 条目应指向稳定仓库身份：
 
-- Repository: `https://github.com/jxpeng98/research-skills`
+- Repository: `https://github.com/jxpeng98/qiongli`
 - Codex plugin catalog: `.agents/plugins/marketplace.json`
-- Codex manifest: `plugins/research-skills/.codex-plugin/plugin.json`
+- Codex manifest: `plugins/qiongli/.codex-plugin/plugin.json`
 - Claude Code marketplace: `.claude-plugin/marketplace.json`
-- Claude Code manifest: `plugins/research-skills/.claude-plugin/plugin.json`
-- Gemini extension manifest: `plugins/research-skills/gemini-extension.json`
+- Claude Code manifest: `plugins/qiongli/.claude-plugin/plugin.json`
+- Gemini extension manifest: `plugins/qiongli/gemini-extension.json`
 
 官方 plugin marketplace 应跟踪 `main` 和 release tag，而不是 `dev`。`dev` 用于本地 marketplace 测试和预发布验证，验证完成后再更新官方入口。
 

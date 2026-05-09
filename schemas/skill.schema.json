@@ -1,6 +1,6 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://research-skills.dev/schemas/skill.schema.json",
+    "$id": "https://qiongli.dev/schemas/skill.schema.json",
     "title": "Skill Registry Entry",
     "description": "Schema for entries in skills/registry.yaml. This is the internal skill-spec registry truth; portable skill packages and hand-written skill.yaml files are out of scope.",
     "type": "object",

@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 10
     environment:
       name: testpypi
-      url: https://test.pypi.org/p/research-skills-installer
+      url: https://test.pypi.org/p/qiongli-installer
 
     steps:
       - name: Checkout
@@ -26,7 +26,7 @@ jobs:
 
       - name: Inject packaged upstream defaults
         env:
-          RESEARCH_SKILLS_REPO_SLUG: jxpeng98/research-skills
+          RESEARCH_SKILLS_REPO_SLUG: jxpeng98/qiongli
         run: bash scripts/inject_project_toml.sh
 
       - name: Install build tools

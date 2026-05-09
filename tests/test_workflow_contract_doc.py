@@ -3,11 +3,11 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from research_skills.workflow_contract_doc import generate_workflow_contract_reference
+from qiongli.workflow_contract_doc import generate_workflow_contract_reference
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-WORKFLOW_CONTRACT_DOC = REPO_ROOT / "research-paper-workflow" / "references" / "workflow-contract.md"
+WORKFLOW_CONTRACT_DOC = REPO_ROOT / "qiongli-workflow" / "references" / "workflow-contract.md"
 
 
 class WorkflowContractDocTests(unittest.TestCase):

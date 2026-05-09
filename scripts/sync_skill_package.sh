@@ -5,8 +5,8 @@
 # Usage:
 #   ./scripts/sync_skill_package.sh [--target pkg|plugin|all] [--dry-run]
 #
-# Copies canonical source directories into research-paper-workflow/, then mirrors
-# that portable package into plugins/research-skills/skills/research-paper-workflow/.
+# Copies canonical source directories into qiongli-workflow/, then mirrors
+# that portable package into plugins/qiongli/skills/qiongli-workflow/.
 #
 # These paths are .gitignore'd — they are generated artifacts, not source of truth.
 # The canonical source of truth remains the repo-root directories.
@@ -15,8 +15,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-PKG_DIR="$ROOT_DIR/research-paper-workflow"
-PLUGIN_PKG_DIR="$ROOT_DIR/plugins/research-skills/skills/research-paper-workflow"
+PKG_DIR="$ROOT_DIR/qiongli-workflow"
+PLUGIN_PKG_DIR="$ROOT_DIR/plugins/qiongli/skills/qiongli-workflow"
 
 DRY_RUN=0
 TARGET="pkg"

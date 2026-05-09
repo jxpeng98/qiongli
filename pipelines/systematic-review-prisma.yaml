@@ -2,7 +2,7 @@
 # Systematic Review (PRISMA 2020) Pipeline
 # ─────────────────────────────────────────────
 # Model-agnostic DAG recipe — references skill IDs from registry.yaml
-# Execution layer: .agent/workflows/*.md (Claude Code) or research-paper-workflow/SKILL.md (Codex)
+# Execution layer: .agent/workflows/*.md (Claude Code) or qiongli-workflow/SKILL.md (Codex)
 
 id: systematic-review-prisma
 name: "Systematic Review (PRISMA 2020)"

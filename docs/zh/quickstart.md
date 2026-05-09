@@ -19,18 +19,18 @@
 
 ## 1. 原生插件与扩展安装
 
-如果你只想在单个客户端里使用，推荐通过客户端自己的原生扩展入口安装 **Research Skills**。这会直接安装 `research-paper-workflow` skill，不需要用户先安装 `pip`、`pipx` 或 `rsk` CLI。
+如果你只想在单个客户端里使用，推荐通过客户端自己的原生扩展入口安装 **Qiongli**。这会直接安装 `qiongli-workflow` skill，不需要用户先安装 `pip`、`pipx` 或 `rsk` CLI。
 
 ```text
 # Codex
-从官方 Codex plugin marketplace 安装 Research Skills。
+从官方 Codex plugin marketplace 安装 Qiongli。
 
 # Claude Code
-/plugin marketplace add ./path/to/research-skills
-/plugin install research-skills@research-skills
+/plugin marketplace add ./path/to/qiongli
+/plugin install qiongli@qiongli
 
 # Gemini CLI
-gemini extensions install ./path/to/research-skills/plugins/research-skills
+gemini extensions install ./path/to/qiongli/plugins/qiongli
 ```
 
 如果你还需要跨客户端全局安装、shell 维护命令或 orchestrator 运行时，再使用下面的 bootstrap 路径。
@@ -40,7 +40,7 @@ gemini extensions install ./path/to/research-skills/plugins/research-skills
 目前推荐的首装路径是一键 bootstrap。已明确知道自己需要什么时，可以直接指定安装模式：
 
 - `partial`：安装全局 skill 资产和 slash workflow discovery，不要求 Python。
-- `full`：包含 `partial` 的全部内容，并安装 shell CLI（`research-skills`、`rsk`、`rsw`）和可选 `doctor` 校验；要求机器上已经有 Python 3.12+。
+- `full`：包含 `partial` 的全部内容，并安装 shell CLI（`qiongli`、`rsk`、`rsw`）和可选 `doctor` 校验；要求机器上已经有 Python 3.12+。
 
 安装器不会自动安装 Python 或 `mise`。如果要使用 `full`，先通过 python.org、Homebrew、winget、Microsoft Store、pyenv、mise 或系统包管理器安装 Python。
 
@@ -48,32 +48,32 @@ Linux / macOS：
 
 ```bash
 # 交互式选择 partial 或 full
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --project-dir "$PWD" --target all
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --project-dir "$PWD" --target all
 
 # 强制轻量模式
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --profile partial --project-dir "$PWD" --target all
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --profile partial --project-dir "$PWD" --target all
 
 # 强制完整运行时模式
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --profile full --project-dir "$PWD" --target all
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --profile full --project-dir "$PWD" --target all
 ```
 
 Windows PowerShell 7+：
 
 ```powershell
 winget install --id Microsoft.PowerShell --source winget
-Invoke-WebRequest https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.ps1 -OutFile .\bootstrap_research_skill.ps1
+Invoke-WebRequest https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.ps1 -OutFile .\bootstrap_qiongli.ps1
 
 # 交互式选择 partial 或 full
-pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -ProjectDir "$PWD" -Target all
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -ProjectDir "$PWD" -Target all
 
 # 强制轻量模式
-pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -Profile partial -ProjectDir "$PWD" -Target all
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile partial -ProjectDir "$PWD" -Target all
 
 # 强制完整运行时模式
-pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -Profile full -ProjectDir "$PWD" -Target all
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile full -ProjectDir "$PWD" -Target all
 ```
 
-Bootstrap 会把 `research-paper-workflow` 安装到 Codex、Claude Code、Gemini、Antigravity 等客户端的全局配置目录，并自动创建 Slash Command 发现链接。项目内文件只有在你显式运行 `rsk init --project-dir .` 时才会写入。
+Bootstrap 会把 `qiongli-workflow` 安装到 Codex、Claude Code、Gemini、Antigravity 等客户端的全局配置目录，并自动创建 Slash Command 发现链接。项目内文件只有在你显式运行 `rsk init --project-dir .` 时才会写入。
 
 ## 3. 极简开局（零配置）
 
@@ -92,7 +92,7 @@ Bootstrap 会把 `research-paper-workflow` 安装到 Codex、Claude Code、Gemin
 | 原生插件 / 扩展 | 你只想在单个客户端里最省事地安装 | Codex marketplace、Claude marketplace 或 Gemini extension |
 | Slash 命令 | 你想直接用 `/paper`、`/lit-review` 等命令 | 基于全局软链接，开箱即可在任何目录触发 |
 | Orchestrator CLI | 你想结合自己的自动化脚本，或执行环境预检 | `python3 -m bridges.orchestrator task-plan|task-run|doctor` |
-| 安装 / 升级 CLI | 你想安装、刷新全局 skill 或卸载软链接 | `research-skills`、`rsk`、`rsw` |
+| 安装 / 升级 CLI | 你想安装、刷新全局 skill 或卸载软链接 | `qiongli`、`rsk`、`rsw` |
 
 ## 5. 先确定 paper type
 
@@ -158,4 +158,4 @@ python3 -m bridges.orchestrator task-run \
 
 - 想理解系统分层：看 [系统架构](/zh/architecture)
 - 想判断某个改动该落哪层：看 [规范约定](/zh/conventions)
-- 想改具体行为：看 [扩展 Research Skills](/zh/advanced/extend-research-skills)
+- 想改具体行为：看 [扩展 Qiongli](/zh/advanced/extend-qiongli)

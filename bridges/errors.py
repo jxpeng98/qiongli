@@ -8,7 +8,7 @@ class ErrorCode:
     fix_hint: str
 
 class ResearchError(Exception):
-    """Base exception for all research-skills CLI errors."""
+    """Base exception for all qiongli CLI errors."""
     def __init__(self, err_def: ErrorCode, detail: str = ""):
         self.err_def = err_def
         self.detail = detail

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Simple eval runner for research skills golden tests.
+"""Simple eval runner for qiongli golden tests.
 
 Usage:
     python eval/runner/run_eval.py eval/cases/sr-social-media-mental-health.yaml

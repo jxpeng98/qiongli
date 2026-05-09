@@ -13,8 +13,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from research_skills.skill_docs import generate_skill_reference_docs
-from research_skills.workflow_contract_doc import generate_workflow_contract_reference
+from qiongli.skill_docs import generate_skill_reference_docs
+from qiongli.workflow_contract_doc import generate_workflow_contract_reference
 from scripts.audit_skill_sections import audit_skills
 
 EXPECTED_PAPER_TYPES = {"empirical", "qualitative", "systematic-review", "methods", "theory"}
@@ -660,7 +660,7 @@ def validate_contract(root: Path, report: ValidationReport) -> None:
 
 
 def validate_portable_skill(root: Path, report: ValidationReport) -> None:
-    skill_content = read_text(root, "research-paper-workflow/SKILL.md", report)
+    skill_content = read_text(root, "qiongli-workflow/SKILL.md", report)
     if skill_content:
         frontmatter, _body = parse_frontmatter(skill_content)
         key_set = set(frontmatter.keys())
@@ -670,10 +670,10 @@ def validate_portable_skill(root: Path, report: ValidationReport) -> None:
             f"SKILL.md frontmatter keys must be name+description only; found: {ids_to_text(key_set)}",
         )
         report.check(
-            frontmatter.get("name") == "research-paper-workflow",
+            frontmatter.get("name") == "qiongli-workflow",
             "SKILL.md name matches folder",
             (
-                "SKILL.md name must be research-paper-workflow; found: "
+                "SKILL.md name must be qiongli-workflow; found: "
                 f"{frontmatter.get('name', '<missing>')}"
             ),
         )
@@ -688,14 +688,14 @@ def validate_portable_skill(root: Path, report: ValidationReport) -> None:
                 f"SKILL.md references {reference_path}",
                 f"SKILL.md missing reference link: {reference_path}",
             )
-            target = root / "research-paper-workflow" / reference_path
+            target = root / "qiongli-workflow" / reference_path
             report.check(
                 target.exists(),
                 f"{reference_path} exists",
-                f"Missing file: research-paper-workflow/{reference_path}",
+                f"Missing file: qiongli-workflow/{reference_path}",
             )
 
-    yaml_content = read_text(root, "research-paper-workflow/agents/openai.yaml", report)
+    yaml_content = read_text(root, "qiongli-workflow/agents/openai.yaml", report)
     if yaml_content:
         required_keys = (
             "interface:",
@@ -717,9 +717,9 @@ def validate_portable_skill(root: Path, report: ValidationReport) -> None:
         )
         if prompt is not None:
             report.check(
-                "$research-paper-workflow" in prompt.group(1),
-                "openai.yaml default_prompt invokes $research-paper-workflow",
-                "openai.yaml default_prompt must include $research-paper-workflow",
+                "$qiongli-workflow" in prompt.group(1),
+                "openai.yaml default_prompt invokes $qiongli-workflow",
+                "openai.yaml default_prompt must include $qiongli-workflow",
             )
 
 
@@ -1489,7 +1489,7 @@ def validate_mcp_agent_map(root: Path, report: ValidationReport) -> None:
 def validate_cross_file_consistency(root: Path, report: ValidationReport) -> None:
     markdown_contract = read_text(
         root,
-        "research-paper-workflow/references/workflow-contract.md",
+        "qiongli-workflow/references/workflow-contract.md",
         report,
     )
     if markdown_contract:
@@ -1498,7 +1498,7 @@ def validate_cross_file_consistency(root: Path, report: ValidationReport) -> Non
             markdown_contract == expected_contract,
             "Reference workflow-contract.md is in sync with generated contract docs",
             (
-                "research-paper-workflow/references/workflow-contract.md is out of sync with "
+                "qiongli-workflow/references/workflow-contract.md is out of sync with "
                 "standards/research-workflow-contract.yaml. Run: python3 scripts/generate_workflow_contract_doc.py"
             ),
         )
@@ -1506,7 +1506,7 @@ def validate_cross_file_consistency(root: Path, report: ValidationReport) -> Non
             "Auto-generated from `standards/research-workflow-contract.yaml`" in markdown_contract,
             "Reference workflow-contract.md includes generated-file marker",
             (
-                "research-paper-workflow/references/workflow-contract.md must declare that it is generated "
+                "qiongli-workflow/references/workflow-contract.md must declare that it is generated "
                 "from standards/research-workflow-contract.yaml"
             ),
         )
@@ -1533,7 +1533,7 @@ def validate_cross_file_consistency(root: Path, report: ValidationReport) -> Non
 
     routing_content = read_text(
         root,
-        "research-paper-workflow/references/platform-routing.md",
+        "qiongli-workflow/references/platform-routing.md",
         report,
     )
     if routing_content:
@@ -1541,7 +1541,7 @@ def validate_cross_file_consistency(root: Path, report: ValidationReport) -> Non
             "## Claude Code",
             "## Codex",
             "## Gemini",
-            "$research-paper-workflow",
+            "$qiongli-workflow",
             "Task {ID}",
         ):
             report.check(
@@ -1552,7 +1552,7 @@ def validate_cross_file_consistency(root: Path, report: ValidationReport) -> Non
 
     matrix_content = read_text(
         root,
-        "research-paper-workflow/references/coverage-matrix.md",
+        "qiongli-workflow/references/coverage-matrix.md",
         report,
     )
     if matrix_content:
@@ -1745,7 +1745,7 @@ def validate_pipelines(root: Path, report: ValidationReport) -> None:
         if not content:
             continue
         report.check(
-            "research-paper-workflow" in content,
+            "qiongli-workflow" in content,
             f"{relative_path} references global skill",
             f"{relative_path} missing global skill reference",
         )
@@ -1788,9 +1788,9 @@ def validate_docs(root: Path, report: ValidationReport) -> None:
             f"{relative_path} should reference the agent-skill collaboration guide",
         )
         report.warn(
-            "scripts/install_research_skill.sh" in content,
+            "scripts/install_qiongli.sh" in content,
             f"{relative_path} includes installer command",
-            f"{relative_path} should document scripts/install_research_skill.sh",
+            f"{relative_path} should document scripts/install_qiongli.sh",
         )
 
 
@@ -1835,21 +1835,21 @@ def validate_cross_platform_consistency(root: Path, report: ValidationReport) ->
             f"{wf_path.name} frontmatter missing required 'description' field",
         )
 
-    # --- Check 2: .gemini/research-skills.md references all workflows ---
-    gemini_context = root / ".gemini" / "research-skills.md"
+    # --- Check 2: .gemini/qiongli.md references all workflows ---
+    gemini_context = root / ".gemini" / "qiongli.md"
     if gemini_context.exists():
         gemini_content = gemini_context.read_text(encoding="utf-8")
         report.passed += 1
-        print("[PASS] .gemini/research-skills.md exists")
+        print("[PASS] .gemini/qiongli.md exists")
         for wf_name in sorted(workflow_names):
             report.warn(
                 f"/{wf_name}" in gemini_content,
-                f".gemini/research-skills.md lists /{wf_name}",
-                f".gemini/research-skills.md missing quick command /{wf_name}",
+                f".gemini/qiongli.md lists /{wf_name}",
+                f".gemini/qiongli.md missing quick command /{wf_name}",
             )
     else:
-        report.warnings.append(".gemini/research-skills.md not found")
-        print("[WARN] .gemini/research-skills.md not found")
+        report.warnings.append(".gemini/qiongli.md not found")
+        print("[WARN] .gemini/qiongli.md not found")
 
     # --- Check 3: CLAUDE.md references all workflows ---
     claude_content = read_text(root, "CLAUDE.md", report)
@@ -1871,8 +1871,8 @@ def validate_cross_platform_consistency(root: Path, report: ValidationReport) ->
         ):
             report.warn(
                 key_ref in gemini_content,
-                f".gemini/research-skills.md references {key_ref}",
-                f".gemini/research-skills.md should reference {key_ref} for skill routing",
+                f".gemini/qiongli.md references {key_ref}",
+                f".gemini/qiongli.md should reference {key_ref} for skill routing",
             )
 
 
@@ -2031,7 +2031,7 @@ def validate_guides(root: Path, report: ValidationReport) -> None:
     if not install_content:
         return
     for token in (
-        "install_research_skill.sh",
+        "install_qiongli.sh",
         "--target all",
         "--mode copy|link",
         "CODEX_HOME",
@@ -2196,7 +2196,7 @@ def validate_ci_workflow(root: Path, report: ValidationReport) -> None:
         "bash -n scripts/release_preflight.sh",
         "bash -n scripts/release_postflight.sh",
         "bash -n scripts/release_automation.sh",
-        "bash -n scripts/install_research_skill.sh",
+        "bash -n scripts/install_qiongli.sh",
         "Run standardized pre-release gates",
     ):
         report.check(
@@ -2349,19 +2349,19 @@ def validate_release_artifacts(root: Path, report: ValidationReport) -> None:
                 f"scripts/release_automation.sh missing token: {token}",
             )
 
-    installer_content = read_text(root, "scripts/install_research_skill.sh", report)
+    installer_content = read_text(root, "scripts/install_qiongli.sh", report)
     if installer_content:
         for token in (
             "--target <codex|claude|gemini|antigravity|all>",
             "--project-dir",
             "--doctor",
-            "research-paper-workflow",
+            "qiongli-workflow",
             "ANTIGRAVITY_HOME",
         ):
             report.check(
                 token in installer_content,
-                f"install_research_skill.sh includes {token}",
-                f"scripts/install_research_skill.sh missing token: {token}",
+                f"install_qiongli.sh includes {token}",
+                f"scripts/install_qiongli.sh missing token: {token}",
             )
 
     template_content = read_text(

@@ -429,7 +429,7 @@ class _GeminiACPProcessClient:
                     "terminal": False,
                 },
                 "clientInfo": {
-                    "name": "research-skills",
+                    "name": "qiongli",
                     "version": BROKER_PROTOCOL_VERSION,
                 },
             },

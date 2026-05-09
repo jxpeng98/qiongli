@@ -1,6 +1,6 @@
 # PyPI Package Publishing Guide
 
-This guide explains how to publish `research-skills-installer` to PyPI, as well as the complete workflow for routine version releases.
+This guide explains how to publish `qiongli-installer` to PyPI, as well as the complete workflow for routine version releases.
 
 ## 0) Prerequisites (One-time Setup)
 
@@ -10,9 +10,9 @@ This project uses the [Trusted Publisher](https://docs.pypi.org/trusted-publishe
 
 1. Log in to your account at [pypi.org](https://pypi.org).
 2. If this is the **first time publishing** (the package does not exist on PyPI yet), go to the [Publishing](https://pypi.org/manage/account/publishing/) page. Under "Add a new pending publisher", fill in the following:
-   - **PyPI Project Name**: `research-skills-installer`
+   - **PyPI Project Name**: `qiongli-installer`
    - **Owner**: `<your-github-username>`
-   - **Repository name**: `research-skills`
+   - **Repository name**: `qiongli`
    - **Workflow name**: `publish-pypi.yml`
    - **Environment name**: `pypi`
 3. If the **package already exists**, go to the package's Settings → Publishing → "Add a new publisher", and fill in the same details.
@@ -30,9 +30,9 @@ This repository includes a dedicated TestPyPI workflow: `.github/workflows/publi
 1. Log in to [test.pypi.org](https://test.pypi.org).
 2. Go to Account settings → Publishing.
 3. Add a pending publisher (or add a publisher under the existing project) with:
-   - **PyPI Project Name**: `research-skills-installer`
+   - **PyPI Project Name**: `qiongli-installer`
    - **Owner**: `jxpeng98`
-   - **Repository name**: `research-skills`
+   - **Repository name**: `qiongli`
    - **Workflow name**: `publish-testpypi.yml`
    - **Environment name**: `testpypi`
 4. In GitHub repository Settings → Environments, create environment `testpypi`.
@@ -46,8 +46,8 @@ This repository includes a dedicated TestPyPI workflow: `.github/workflows/publi
 Use the `bump-version.sh` script to sync release versions across:
 
 - `pyproject.toml`
-- `research_skills/__init__.py`
-- `research-paper-workflow/VERSION`
+- `qiongli/__init__.py`
+- `qiongli-workflow/VERSION`
 - `skills/registry.yaml`
 
 ```bash
@@ -70,7 +70,7 @@ Currently the release tooling supports `stable` and `beta` only.
 ### 1.2 Commit + Tag + Push
 
 ```bash
-git add pyproject.toml research_skills/__init__.py research-paper-workflow/VERSION skills/registry.yaml skills
+git add pyproject.toml qiongli/__init__.py qiongli-workflow/VERSION skills/registry.yaml skills
 git commit -m "chore: bump version to 0.2.0"
 git tag v0.2.0
 git push origin main --tags
@@ -83,7 +83,7 @@ git push origin main --tags
 After pushing the tag, GitHub Actions will automatically:
 
 1. Checkout the code.
-2. Run `inject_project_toml.sh` (injects the current repository slug into `research_skills/project.toml` so the installed CLI knows its upstream default).
+2. Run `inject_project_toml.sh` (injects the current repository slug into `qiongli/project.toml` so the installed CLI knows its upstream default).
 3. `python -m build` to build the sdist and wheel.
 4. `twine check` to validate package metadata.
 5. Publish to PyPI using the Trusted Publisher mechanism.
@@ -125,8 +125,8 @@ twine check dist/*
 Local dry-run installation:
 
 ```bash
-pip install dist/research_skills_installer-*.whl
-research-skills --help
+pip install dist/qiongli_installer-*.whl
+qiongli --help
 rsk check --repo <owner>/<repo>
 ```
 
@@ -145,7 +145,7 @@ The workflow will build, validate, and publish with Trusted Publishing to TestPy
 Install and verify from TestPyPI:
 
 ```bash
-pip install --index-url https://test.pypi.org/simple/ research-skills-installer
+pip install --index-url https://test.pypi.org/simple/ qiongli-installer
 ```
 
 Recommended order:
@@ -170,7 +170,7 @@ When cutting a release, follow these steps:
 - [ ] Push: `git push origin main --tags`
 - [ ] Confirm the `Publish to PyPI` workflow succeeded on GitHub Actions.
 - [ ] Run release postflight: `./scripts/release_automation.sh post --tag v<version>`
-- [ ] Verify installation: `pipx install research-skills-installer && rsk --help`
+- [ ] Verify installation: `pipx install qiongli-installer && rsk --help`
 
 ---
 
