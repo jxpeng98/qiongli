@@ -1,6 +1,6 @@
-# Academic Deep Qiongli
+# Qiongli
 
-This project is configured to use the **Academic Deep Qiongli** system with Claude Code.
+This project is configured to use the **Qiongli Zhengche** (`穷理证澈`) system with Claude Code.
 
 > **Note:** The core skill pack is installed globally in your AI environment (e.g., `~/.claude/skills/qiongli-workflow/`). You do not need to install the full skill source code into this project directory.
 

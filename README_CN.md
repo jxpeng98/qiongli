@@ -1,15 +1,23 @@
-# Academic Deep Qiongli
+# 穷理（Qiongli）
 
-一套面向 Codex、Claude Code 与 Gemini 的契约驱动学术工作流系统，把安装、任务规划、文献工作、论文写作与严格 Stage-I 研究代码执行统一到同一套标准合同之下。
+穷理是一套面向 Codex、Claude Code 与 Gemini 的契约驱动学术工作流系统，把安装、任务规划、文献工作、论文写作与严格 Stage-I 研究代码执行统一到同一套标准合同之下。
 
 <div align="center">
-  <a href="#-快速开始-0--1">🚀 快速开始</a> | 
-  <a href="docs/zh/reference/cli.md">💻 CLI 命令大全</a> | 
-  <a href="docs/zh/architecture.md">🏗 系统架构</a> | 
-  <a href="docs/zh/advanced/agent-skill-collaboration.md">🤝 代理人协同指南</a> | 
+  <a href="#-快速开始-0--1">🚀 快速开始</a> |
+  <a href="docs/zh/reference/cli.md">💻 CLI 命令大全</a> |
+  <a href="docs/zh/architecture.md">🏗 系统架构</a> |
+  <a href="docs/zh/advanced/agent-skill-collaboration.md">🤝 代理人协同指南</a> |
   <a href="docs/zh/advanced/extend-qiongli.md">🛠️ 如何二次开发/贡献</a> |
   <a href="TODO_ROADMAP.md">🗺️ Roadmap 蓝图</a>
 </div>
+
+## 为什么叫“穷理”
+
+**穷理**是这个项目的对外主名。它取“追究其理”之意：面对一个研究问题，不止生成一段文本，而是继续向下追到概念、文献、方法、证据、代码与反驳边界。对学术工作流来说，这个名字强调的是把研究判断放回可检查的证据链里。
+
+完整体系名是 **穷理证澈**。其中 **证澈** 是方法论与核心模块名：让证据、引用风险、假设、claim 边界和推理链条清澈可审。落实到仓库里，就是所有 workflow 都围绕 Task ID、质量门和 `RESEARCH/[topic]/` 下的标准产物运行，而不是依赖一次性的 prompt 即兴发挥。
+
+技术命名统一跟随对外主名：plugin ID 是 `qiongli`，便携 skill 包是 `qiongli-workflow`，Python 升级器分发名是 `qiongli-installer`。`research-skills`、`rsk`、`rsw` 等旧入口只作为迁移期兼容别名继续保留。
 
 ## 功能特性
 
@@ -31,7 +39,7 @@
 > [!WARNING]
 > 如果你要使用“完整功能集”，需要真实安装并配置：
 > `python3`、`codex`、`claude`、`gemini` 四个运行时入口，以及对应的 `OPENAI_API_KEY`、`ANTHROPIC_API_KEY`、`GOOGLE_API_KEY`。
-> 如果缺少这些依赖，你仍然可以完成 shell 安装和 `rsk check|upgrade|align`，但 `doctor`、validator、tests 和完整 orchestrator 多模型执行链会受限或不可用。
+> 如果缺少这些依赖，你仍然可以完成 shell 安装和 `qiongli check|upgrade|align`，但 `doctor`、validator、tests 和完整 orchestrator 多模型执行链会受限或不可用。
 
 ## 设计借鉴与相关项目
 
@@ -75,21 +83,21 @@
 - `plugins/qiongli/gemini-extension.json`
 - `plugins/qiongli/skills/qiongli-workflow`
 
-如果你需要跨客户端全局安装、多端 slash command、`rsk upgrade`、`doctor` 或多模型 orchestrator，再使用下面的 bootstrap / CLI 路径。
+如果你需要跨客户端全局安装、多端 slash command、`qiongli upgrade`、`doctor` 或多模型 orchestrator，再使用下面的 bootstrap / CLI 路径。
 
 ### 1. 先选 `partial` 还是 `full`
 
-现在的一键 bootstrap 已经会处理环境准备，你不需要为了首装而手动先装 Python。
+一键 bootstrap 提供两个 profile。`partial` 只安装跨客户端 skill 包和 workflow 发现入口；`full` 还会安装本地 shell CLI，并在已有 Python 运行时的前提下执行 orchestrator 预检。
 
 | Profile | 你会得到什么 | 安装前是否要求 Python | 安装后结果 |
 |---|---|---|---|
 | `partial` | 仅全局 skills | 否 | 资产可用，但 orchestrator 还没准备好 |
-| `full` | `partial` + shell CLI + 缺失时自动补 Python 3.12 + `doctor` | 否 | orchestrator 运行时可直接使用 |
+| `full` | `partial` + `qiongli` / `ql` shell CLI 和兼容别名 + `doctor` | 是，需要 Python 3.12+ | orchestrator 运行时可直接使用 |
 
 `full` 模式的真实行为：
 
 - 如果系统里已经有 `python3 >= 3.12`，bootstrap 会直接复用。
-- 如果 Python 缺失或版本过低，bootstrap 会先安装 `mise`，再安装 `python@3.12`。
+- 如果 Python 缺失或版本过低，bootstrap 会快速失败并打印安装建议。它不会自动安装 Python 或 `mise`。
 - Windows 上由 PowerShell 直接安装，只有在 shell CLI 包装器需要 Bash 时才会通过 `winget` 安装 Git for Windows。
 
 如果你不传 `--profile`，脚本会先解释两种模式，再提示你选择。
@@ -102,9 +110,6 @@ Linux / macOS：
 curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --project-dir "$PWD" --target all
 ```
 
-说明：
-- `full` 模式如果自动安装 `mise`，会同时把 `mise` 和 `mise shims` 目录写入当前会话，以及当前 shell 对应的 rc 文件和 `~/.profile`。
-
 Windows PowerShell 7+：
 
 ```powershell
@@ -112,9 +117,6 @@ winget install --id Microsoft.PowerShell --source winget
 Invoke-WebRequest https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.ps1 -OutFile .\bootstrap_qiongli.ps1
 pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -ProjectDir "$PWD" -Target all
 ```
-
-说明：
-- `full` 模式如果自动安装 `mise`，会同时把 `mise` 的 bin 目录写入当前会话和用户级 `PATH`。
 
 如果你想跳过交互，直接指定 profile：
 
@@ -128,7 +130,7 @@ curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/boots
 # Windows PowerShell 7+
 # skills + workflow 资产安装
 pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile partial -ProjectDir "$PWD" -Target all
-# 完整安装（含 shell CLI 和 Python 环境准备）
+# 完整安装（含 shell CLI 和 doctor；要求已有 Python 3.12+）
 pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile full -ProjectDir "$PWD" -Target all
 # 测试版本
 pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Beta -Profile full -ProjectDir "$PWD" -Target all
@@ -137,12 +139,12 @@ pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Beta -Profile full -
 这一步会安装：
 
 - Codex / Claude Code / Gemini 的 workflow 资产
-- 项目集成文件，例如 `.agent/workflows/`、`CLAUDE.md`、`.gemini/`，仅在执行 `rsk init` 或 `--parts project` 时写入
-- `full` 模式下的 shell CLI：`qiongli`、`rsk`、`rsw`
+- 项目集成文件，例如 `.agent/workflows/`、`CLAUDE.md`、`.gemini/`，仅在执行 `qiongli init` 或 `--parts project` 时写入
+- `full` 模式下的 shell CLI：`qiongli`、`ql`，以及兼容别名 `research-skills`、`rsk`、`rsw`
 
-### 3. 可选：手动准备 Python
+### 3. 为 `full` 准备 Python
 
-只有在你想提前自己准备 Python，而不是交给 `full` bootstrap 自动处理时，才需要这一节。
+只有在你要使用 `full`、`doctor`、orchestrator、validator 或 tests 时，才需要提前准备 Python 3.12+。
 
 推荐用 `mise`：
 
@@ -184,7 +186,7 @@ python3 --version
 稳定入口现在有三类：
 
 - `.agent/workflows/*.md` 里的 workflow 命令，例如 `/paper`、`/lit-review`、`/paper-write`、`/code-build`
-- 安装 / 升级 CLI：`qiongli`、`rsk`、`rsw`
+- 安装 / 升级 CLI：`qiongli`、`ql`，以及兼容别名 `research-skills`、`rsk`、`rsw`
 - Orchestrator CLI：`python3 -m bridges.orchestrator ...`
 
 ### 5. 可选：本地安装器与刷新路径
@@ -207,12 +209,12 @@ pipx install qiongli-installer
 从项目目录刷新已有安装时：
 
 ```bash
-rsk upgrade --target all --project-dir . --doctor
+qiongli upgrade --target all --project-dir . --doctor
 ```
 
-如果你已经跑过上面的 shell bootstrap，后续刷新时重新执行 bootstrap 或 `rsk upgrade --overwrite` 即可。
+如果你已经跑过上面的 shell bootstrap，后续刷新时重新执行 bootstrap 或 `qiongli upgrade --overwrite` 即可。
 
-*Python 边界：shell 版 `rsk check|upgrade|align` 不需要 Python；`--doctor`、`python3 -m bridges.orchestrator ...`、validator 和 tests 仍然需要 `python3`。*
+*Python 边界：shell 版 `qiongli check|upgrade|align` 不需要 Python；`--doctor`、`python3 -m bridges.orchestrator ...`、validator 和 tests 仍然需要 `python3`。*
 
 ### 6. 先做环境检查
 
@@ -341,8 +343,8 @@ python3 -m bridges.orchestrator code-build \
 #### 方案 A：Shell bootstrap 安装 CLI（推荐）
 
 适用场景：
-- 机器上没有 Python
-- 你只想快速安装 `qiongli` / `rsk` / `rsw`
+- 你想使用 shell CLI，但不想先安装 PyPI 包
+- 你想快速使用 `qiongli` / `ql`，同时保留 `rsk` / `rsw` 兼容入口
 - 你希望同时把 workflow 资产也装好
 
 命令：
@@ -355,12 +357,12 @@ curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/boots
 ```
 
 效果：
-- 安装 shell CLI：`qiongli`、`rsk`、`rsw`
+- 安装 shell CLI：`qiongli`、`ql`，以及兼容别名 `research-skills`、`rsk`、`rsw`
 - 安装 `qiongli-workflow` skill 到对应客户端目录
-- 安装项目内 `.agent/workflows/`、`CLAUDE.md`、`.gemini/` 等集成文件
+- 项目集成文件只在执行 `qiongli init` 或 `--parts project` 时写入，例如 `.agent/workflows/`、`CLAUDE.md`、`.gemini/`
 
 默认 CLI 目录：
-- `${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}`
+- `${QIONGLI_BIN_DIR:-${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}}`
 
 如果装完后命令不可用，通常是因为这个目录不在 `PATH` 中。可在 shell 配置里加入：
 
@@ -381,9 +383,9 @@ pipx install qiongli-installer
 ```
 
 效果：
-- 安装 Python 版 `qiongli` / `rsk` / `rsw`
+- 安装 Python 版 `qiongli` / `ql`，以及兼容别名 `research-skills` / `rsk` / `rsw`
 - CLI 本身进入 PATH
-- 不会自动把 workflow 资产写入你的项目，仍需手动执行 `rsk upgrade`
+- 不会自动把 workflow 资产写入你的项目，仍需手动执行 `qiongli upgrade`
 
 #### 方案 C：从本地仓库安装 shell CLI
 
@@ -410,7 +412,7 @@ pipx install qiongli-installer
 
 | 参数 | 作用 | 默认值 / 说明 |
 |------|------|---------------|
-| `--repo <owner/repo|git-url>` | 指定上游 GitHub 仓库 | 默认取 `RESEARCH_SKILLS_REPO`，否则 `jxpeng98/qiongli` |
+| `--repo <owner/repo|git-url>` | 指定上游 GitHub 仓库 | 默认取 `QIONGLI_REPO`，再回退到旧 `RESEARCH_SKILLS_REPO`，否则 `jxpeng98/qiongli` |
 | `--ref <tag-or-branch>` | 指定安装的版本或分支 | 默认自动解析 latest release |
 | `--ref-type <tag|branch>` | 指定 `--ref` 是 tag 还是 branch | 默认 `tag` |
 | `--beta` | 在未传 `--ref` 时安装最新 beta / prerelease tag | 默认关闭，默认仍解析稳定版 latest release |
@@ -418,7 +420,7 @@ pipx install qiongli-installer
 | `--project-dir <path>` | 在启用项目侧安装面时，指定项目集成文件的写入目录 | 默认当前目录 |
 | `--install-cli` | 安装 shell CLI | 默认开启 |
 | `--no-cli` | 跳过 shell CLI 安装，只装 workflow 资产 | 与 `--install-cli` 相反 |
-| `--cli-dir <path>` | 指定 shell CLI 安装目录 | 默认 `${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}` |
+| `--cli-dir <path>` | 指定 shell CLI 安装目录 | 默认 `${QIONGLI_BIN_DIR:-${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}}` |
 | `--overwrite` | 覆盖已存在的 skill / CLI / 项目文件 | 默认关闭 |
 | `--doctor` | 安装后运行环境预检 | 仅在存在 `python3` 时执行 |
 | `--dry-run` | 只打印将要执行的动作 | 不实际下载和写文件 |
@@ -469,7 +471,7 @@ curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/boots
 | `--project-dir <path>` | 在启用项目侧安装面时，指定项目集成文件写入目录 | 默认当前目录 |
 | `--install-cli` | 安装 shell CLI | 默认关闭 |
 | `--no-cli` | 跳过 shell CLI 安装 | 默认行为 |
-| `--cli-dir <path>` | 指定 shell CLI 安装目录 | 默认 `${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}` |
+| `--cli-dir <path>` | 指定 shell CLI 安装目录 | 默认 `${QIONGLI_BIN_DIR:-${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}}` |
 | `--overwrite` | 覆盖已有目标 | 默认关闭 |
 | `--doctor` | 安装后运行 `python3 -m bridges.orchestrator doctor` | 仅在存在 `python3` 时执行 |
 | `--dry-run` | 只打印将要执行的动作 | 不实际写文件 |
@@ -479,10 +481,12 @@ curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/boots
 - 如果你只想一次性安装，推荐 `--mode copy`
 - `--mode link` 适合本地仓库安装，不适合远程 bootstrap
 
-### 4. `rsk` / `qiongli` CLI 子命令说明
+### 4. `qiongli` CLI 子命令与别名
 
 shell CLI 和 Python CLI 都有这些入口名：
 - `qiongli`
+- `ql`
+- `research-skills`（旧兼容入口）
 - `rsk`
 - `rsw`
 
@@ -495,7 +499,7 @@ shell CLI 和 Python CLI 都有这些入口名：
 - `doctor`
 - `init`
 
-#### `rsk check`
+#### `qiongli check`
 
 用途：
 - 查看本地已安装 skill 版本
@@ -513,17 +517,17 @@ shell CLI 和 Python CLI 都有这些入口名：
 示例：
 
 ```bash
-rsk check
-rsk check --repo jxpeng98/qiongli
-rsk check --json
+qiongli check
+qiongli check --repo jxpeng98/qiongli
+qiongli check --json
 ```
 
-#### `rsk upgrade`
+#### `qiongli upgrade`
 
 用途：
 - 下载上游 release/branch 压缩包
 - 默认刷新全局 skill 安装，必要时再刷新 shell CLI
-- 项目集成文件改为通过 `rsk init` 或 `--parts project` 显式更新
+- 项目集成文件改为通过 `qiongli init` 或 `--parts project` 显式更新
 
 常用参数：
 
@@ -545,13 +549,13 @@ rsk check --json
 示例：
 
 ```bash
-rsk upgrade --target all --overwrite
-rsk upgrade --project-dir . --parts project,doctor
-rsk upgrade --repo jxpeng98/qiongli --ref main --ref-type branch --project-dir . --target claude
-rsk upgrade --project-dir . --target codex --dry-run
+qiongli upgrade --target all --overwrite
+qiongli upgrade --project-dir . --parts project,doctor
+qiongli upgrade --repo jxpeng98/qiongli --ref main --ref-type branch --project-dir . --target claude
+qiongli upgrade --project-dir . --target codex --dry-run
 ```
 
-#### `rsk doctor`（仅 Python CLI）
+#### `qiongli doctor`（仅 Python CLI）
 
 用途：
 - 用更短的命令运行 `bridges.orchestrator doctor`
@@ -559,10 +563,10 @@ rsk upgrade --project-dir . --target codex --dry-run
 示例：
 
 ```bash
-rsk doctor --cwd .
+qiongli doctor --cwd .
 ```
 
-#### `rsk init`（仅 Python CLI）
+#### `qiongli init`（仅 Python CLI）
 
 用途：
 - 直接从已安装的包初始化项目侧 workflow 资产，不需要重新下载 release 压缩包
@@ -582,11 +586,11 @@ rsk doctor --cwd .
 示例：
 
 ```bash
-rsk init --project-dir .
-rsk init --project-dir . --target claude --overwrite
+qiongli init --project-dir .
+qiongli init --project-dir . --target claude --overwrite
 ```
 
-#### `rsk align`
+#### `qiongli align`
 
 用途：
 - 打印一个简短说明，告诉你 CLI 装了什么、`upgrade` 会改哪些路径
@@ -600,16 +604,18 @@ rsk init --project-dir . --target claude --overwrite
 示例：
 
 ```bash
-rsk align
-rsk align --repo jxpeng98/qiongli
+qiongli align
+qiongli align --repo jxpeng98/qiongli
 ```
 
 ### 5. 常用环境变量
 
 | 环境变量 | 作用 |
 |----------|------|
-| `RESEARCH_SKILLS_REPO` | 默认上游仓库，省去每次传 `--repo` |
-| `RESEARCH_SKILLS_BIN_DIR` | shell CLI 默认安装目录 |
+| `QIONGLI_REPO` | 默认上游仓库，省去每次传 `--repo` |
+| `QIONGLI_BIN_DIR` | shell CLI 默认安装目录 |
+| `RESEARCH_SKILLS_REPO` | `QIONGLI_REPO` 的旧兼容 fallback |
+| `RESEARCH_SKILLS_BIN_DIR` | `QIONGLI_BIN_DIR` 的旧兼容 fallback |
 | `CODEX_HOME` | Codex skill 安装根目录 |
 | `CLAUDE_CODE_HOME` | Claude Code skill 安装根目录 |
 | `GEMINI_HOME` | Gemini skill 安装根目录 |

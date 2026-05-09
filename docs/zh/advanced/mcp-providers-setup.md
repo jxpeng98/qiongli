@@ -1,6 +1,6 @@
 # 🔌 可选 MCP Provider 接入指南
 
-运行 `rsk upgrade` 后，你可能会看到类似以下的提示信息：
+运行 `qiongli upgrade` 后，你可能会看到类似以下的提示信息：
 
 ```
 ℹ  MCP screening-tracker: 已有 builtin checkpoint stub；如需多人筛选持久化再设置 RESEARCH_MCP_SCREENING_TRACKER_CMD

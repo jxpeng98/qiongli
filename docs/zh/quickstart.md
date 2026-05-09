@@ -14,7 +14,7 @@
 - `gemini`
 - `OPENAI_API_KEY`、`ANTHROPIC_API_KEY`、`GOOGLE_API_KEY`
 
-如果缺少这些依赖，你仍然可以安装 workflow 资产并使用 shell `rsk check|upgrade|align`，但 `doctor`、validator、tests 与完整 orchestrator 执行链会受限。
+如果缺少这些依赖，你仍然可以安装 workflow 资产并使用 shell `qiongli check|upgrade|align`，但 `doctor`、validator、tests 与完整 orchestrator 执行链会受限。
 :::
 
 ## 1. 原生插件与扩展安装
@@ -40,7 +40,7 @@ gemini extensions install ./path/to/qiongli/plugins/qiongli
 目前推荐的首装路径是一键 bootstrap。已明确知道自己需要什么时，可以直接指定安装模式：
 
 - `partial`：安装全局 skill 资产和 slash workflow discovery，不要求 Python。
-- `full`：包含 `partial` 的全部内容，并安装 shell CLI（`qiongli`、`rsk`、`rsw`）和可选 `doctor` 校验；要求机器上已经有 Python 3.12+。
+- `full`：包含 `partial` 的全部内容，并安装 shell CLI（`qiongli`、`ql`、`research-skills`、`rsk`、`rsw`）和可选 `doctor` 校验；要求机器上已经有 Python 3.12+。
 
 安装器不会自动安装 Python 或 `mise`。如果要使用 `full`，先通过 python.org、Homebrew、winget、Microsoft Store、pyenv、mise 或系统包管理器安装 Python。
 
@@ -73,7 +73,7 @@ pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile partial -Pro
 pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile full -ProjectDir "$PWD" -Target all
 ```
 
-Bootstrap 会把 `qiongli-workflow` 安装到 Codex、Claude Code、Gemini、Antigravity 等客户端的全局配置目录，并自动创建 Slash Command 发现链接。项目内文件只有在你显式运行 `rsk init --project-dir .` 时才会写入。
+Bootstrap 会把 `qiongli-workflow` 安装到 Codex、Claude Code、Gemini、Antigravity 等客户端的全局配置目录，并自动创建 Slash Command 发现链接。项目内文件只有在你显式运行 `qiongli init --project-dir .` 时才会写入。
 
 ## 3. 极简开局（零配置）
 
@@ -92,7 +92,7 @@ Bootstrap 会把 `qiongli-workflow` 安装到 Codex、Claude Code、Gemini、Ant
 | 原生插件 / 扩展 | 你只想在单个客户端里最省事地安装 | Codex marketplace、Claude marketplace 或 Gemini extension |
 | Slash 命令 | 你想直接用 `/paper`、`/lit-review` 等命令 | 基于全局软链接，开箱即可在任何目录触发 |
 | Orchestrator CLI | 你想结合自己的自动化脚本，或执行环境预检 | `python3 -m bridges.orchestrator task-plan|task-run|doctor` |
-| 安装 / 升级 CLI | 你想安装、刷新全局 skill 或卸载软链接 | `qiongli`、`rsk`、`rsw` |
+| 安装 / 升级 CLI | 你想安装、刷新全局 skill 或卸载软链接 | `qiongli`、`ql`、`research-skills`、`rsk`、`rsw` |
 
 ## 5. 先确定 paper type
 

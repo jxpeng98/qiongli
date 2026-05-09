@@ -1,8 +1,8 @@
-# Qiongli — Academic Deep Research System
+# Qiongli — Contract-Driven Academic Research System
 
 ## Project Overview
 
-This is an **Academic Deep Qiongli** system providing systematic tools for the full research lifecycle: literature review, paper analysis, gap identification, study design, evidence synthesis, manuscript writing, compliance checking, and submission preparation.
+This is a **Qiongli Zhengche** (`穷理证澈`) system providing systematic tools for the full research lifecycle: literature review, paper analysis, gap identification, study design, evidence synthesis, manuscript writing, compliance checking, and submission preparation.
 
 Canonical standard (cross-model):
 - `standards/research-workflow-contract.yaml`

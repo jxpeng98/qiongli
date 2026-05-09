@@ -1,6 +1,6 @@
 # 🔌 可选 MCP Provider 接入指南
 
-运行 `rsk upgrade` 后，你可能会看到类似以下的提示信息：
+运行 `qiongli upgrade` 后，你可能会看到类似以下的提示信息：
 
 ```
 ⚠  MCP screening-tracker: RESEARCH_MCP_SCREENING_TRACKER_CMD not configured

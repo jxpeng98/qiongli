@@ -1,6 +1,6 @@
 # 🔌 Optional MCP Providers Setup Guide
 
-After running `rsk upgrade`, you may see warnings like:
+After running `qiongli upgrade`, you may see warnings like:
 
 ```
 ℹ  MCP screening-tracker: builtin checkpoint stub available; set RESEARCH_MCP_SCREENING_TRACKER_CMD for multi-reviewer persistence

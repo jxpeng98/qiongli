@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 OUT_PATH="${1:-${ROOT_DIR}/qiongli/project.toml}"
 
-REPO_SLUG="${RESEARCH_SKILLS_REPO_SLUG:-${GITHUB_REPOSITORY:-}}"
+REPO_SLUG="${QIONGLI_REPO_SLUG:-${RESEARCH_SKILLS_REPO_SLUG:-${GITHUB_REPOSITORY:-}}}"
 SERVER_URL="${GITHUB_SERVER_URL:-https://github.com}"
 
 derive_repo_slug_from_git() {
@@ -34,7 +34,7 @@ cat >"$OUT_PATH" <<EOF
 #
 # Override upstream at runtime via:
 # - CLI:   --repo <owner>/<repo> (or a Git URL)
-# - Env:   RESEARCH_SKILLS_REPO=<owner>/<repo>
+# - Env:   QIONGLI_REPO=<owner>/<repo>
 # - Project config: qiongli.toml / .qiongli.toml
 
 [upstream]
@@ -43,4 +43,3 @@ url = "${REMOTE_URL}"
 EOF
 
 echo "[inject-project-toml] wrote: repo=${REPO_SLUG} url=${REMOTE_URL} -> ${OUT_PATH}"
-

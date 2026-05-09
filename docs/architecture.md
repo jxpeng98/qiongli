@@ -58,7 +58,7 @@ flowchart TD
 | Entry mode | Best for | Entry |
 |---|---|---|
 | Claude Code workflows | Slash-command UX inside a project | `.agent/workflows/*.md` |
-| Shell/Python installer CLI | Installing and upgrading assets | `qiongli`, `rsk`, `rsw` |
+| Shell/Python installer CLI | Installing and upgrading assets | `qiongli`, `ql`, `research-skills`, `rsk`, `rsw` |
 | Orchestrator CLI | Task planning, task execution, validation | `python3 -m bridges.orchestrator ...` |
 | Portable skill package | Cross-client distribution surface | `qiongli-workflow/` |
 

@@ -20,7 +20,7 @@
 
 - 跨客户端全局安装
 - 由 `rsk` 管理全局 slash command 软链接
-- 使用 `rsk upgrade`、`rsk check` 或 `doctor`
+- 使用 `qiongli upgrade`、`qiongli check` 或 `doctor`
 - 执行多模型 orchestrator
 
 本地开发安装命令：
@@ -67,8 +67,8 @@ Codex 和 Claude Code 使用 marketplace catalog。Gemini CLI 使用官方 exten
 
 - 新用户如果只需要客户端原生 skills 和 `/paper` 这类 workflow，直接安装官方 plugin / extension。
 - 已经装过 `partial` / `full` 的用户，可以在旧全局 skills 旁边再安装 plugin。
-- 如果还需要 `qiongli`、`rsk`、`rsw`、`doctor`、validator 或 `bridges.orchestrator`，继续保留 `full` runtime，并执行 `rsk upgrade --target all --doctor`，让全局 skill package 与 plugin 版本保持一致。
-- 如果准备完全切到官方 plugin，不再需要旧版全局 slash discovery，先用 `rsk clean --globals --dry-run` 查看会清理哪些旧入口。
+- 如果还需要 `qiongli`、`ql`、`research-skills`、`rsk`、`rsw`、`doctor`、validator 或 `bridges.orchestrator`，继续保留 `full` runtime，并执行 `qiongli upgrade --target all --doctor`，让全局 skill package 与 plugin 版本保持一致。
+- 如果准备完全切到官方 plugin，不再需要旧版全局 slash discovery，先用 `qiongli clean --globals --dry-run` 查看会清理哪些旧入口。
 
 如果旧版全局 skills 和新 plugin 同时存在，建议保持版本一致，避免不同客户端或不同命令路径加载到不同版本的 `qiongli-workflow`。
 
@@ -89,7 +89,7 @@ Codex 和 Claude Code 使用 marketplace catalog。Gemini CLI 使用官方 exten
 
 适合选 `full` 的情况：
 
-- 你要使用 `rsk upgrade`、`rsk init`、`rsk doctor` 或 `qiongli`
+- 你要使用 `qiongli upgrade`、`qiongli init`、`qiongli doctor` 或 `qiongli`
 - 你要运行 `python3 -m bridges.orchestrator task-plan|task-run|doctor`
 - 你要跑本地 validator、unit tests 或多模型 orchestrator
 
@@ -177,8 +177,8 @@ pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Beta -Profile full -
 Bootstrap 会安装：
 
 - Codex / Claude Code / Gemini 的 workflow 资产
-- `.agent/workflows/`、`CLAUDE.md`、`.gemini/` 等项目集成文件，仅在执行 `rsk init` 或 `--parts project` 时写入
-- `full` 模式下的 shell CLI：`qiongli`、`rsk`、`rsw`
+- `.agent/workflows/`、`CLAUDE.md`、`.gemini/` 等项目集成文件，仅在执行 `qiongli init` 或 `--parts project` 时写入
+- `full` 模式下的 shell CLI：`qiongli`、`ql`、`research-skills`、`rsk`、`rsw`
 
 ## 5. 使用已安装的 skills
 
@@ -191,7 +191,7 @@ Bootstrap 会安装：
 模型会读取全局安装的 `qiongli-workflow`。默认不会往你的项目目录写文件；只有明确初始化项目时才会写入 `.env` 或本地 workflow 资产：
 
 ```bash
-rsk init --project-dir .
+qiongli init --project-dir .
 ```
 
 ## 6. 可选：本地安装器
@@ -214,11 +214,11 @@ python3 scripts/bootstrap_qiongli.py --profile full --project-dir .
 
 ```bash
 pipx install qiongli-installer
-rsk upgrade --target all --doctor
-rsk init --project-dir /path/to/project
+qiongli upgrade --target all --doctor
+qiongli init --project-dir /path/to/project
 ```
 
-如果你先装了 `partial`，之后又安装了 Python 3.12+，可以重新运行 bootstrap 并指定 `--profile full`；如果 shell CLI 已经可用，也可以执行 `rsk upgrade --target all --doctor`。
+如果你先装了 `partial`，之后又安装了 Python 3.12+，可以重新运行 bootstrap 并指定 `--profile full`；如果 shell CLI 已经可用，也可以执行 `qiongli upgrade --target all --doctor`。
 
 ## 7. 全局优先安装与修改产物
 
@@ -230,7 +230,7 @@ rsk init --project-dir /path/to/project
 
 这意味着像 `/paper`、`/study-design` 这样的命令，**无论你当前在电脑的哪个文件夹下工作，AI 都能原生识别**。
 
-_注：涉及你具体项目内文件的写入（比如需要注入 API Key 的 `.env`），只有在你显式运行 `rsk init --project-dir .` 时才会发生。_
+_注：涉及你具体项目内文件的写入（比如需要注入 API Key 的 `.env`），只有在你显式运行 `qiongli init --project-dir .` 时才会发生。_
 
 ## 8. 常用参数
 
@@ -239,7 +239,7 @@ _注：涉及你具体项目内文件的写入（比如需要注入 API Key 的 
 - `--beta`：在未传 `--ref` 时安装最新 beta / prerelease tag。
 - `--install-cli`：即使不是 `full` 也安装 shell CLI。
 - `--no-cli`：即使是 `full` 也跳过 shell CLI。
-- `--cli-dir <path>`：指定 shell CLI 安装目录。默认：`${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}`。
+- `--cli-dir <path>`：指定 shell CLI 安装目录。默认：`${QIONGLI_BIN_DIR:-${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}}`。
 - `--overwrite`：覆盖已有安装目标。
 - `--dry-run`：只预览安装动作。
 - `--doctor`：安装后运行 `python3 -m bridges.orchestrator doctor --cwd <project>`。
@@ -259,13 +259,13 @@ _注：涉及你具体项目内文件的写入（比如需要注入 API Key 的 
 要将你电脑上所有 AI 客户端的学术引擎统一升级到远端最新版本（你不用再去分别挨个项目升级了）：
 
 ```bash
-rsk upgrade --target all --doctor
+qiongli upgrade --target all --doctor
 ```
 
 如果已经采用官方 plugin，并想预览清理旧版全局 slash command 软链接：
 
 ```bash
-rsk clean --globals --dry-run
+qiongli clean --globals --dry-run
 ```
 
-_注：终端工具（如 `rsk check`, `rsk upgrade`, `rsk clean`）现在自身不再依赖 Python 即可运行。但底层的核心验证器（`--doctor`，单元测试 以及 `bridges.orchestrator`）仍需合法的 Python 3 解释器来工作。_
+_注：终端工具（如 `qiongli check`, `qiongli upgrade`, `qiongli clean`）现在自身不再依赖 Python 即可运行。但底层的核心验证器（`--doctor`，单元测试 以及 `bridges.orchestrator`）仍需合法的 Python 3 解释器来工作。_

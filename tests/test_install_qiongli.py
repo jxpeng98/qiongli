@@ -12,7 +12,7 @@ INSTALL_SCRIPT = REPO_ROOT / "scripts" / "install_qiongli.sh"
 SYSTEM_BASH = Path("/bin/bash")
 
 
-class InstallResearchSkillTests(unittest.TestCase):
+class InstallQiongliTests(unittest.TestCase):
     def test_same_version_install_reports_current_and_source_versions(self) -> None:
         if not SYSTEM_BASH.exists():
             self.skipTest("/bin/bash is not available")

@@ -142,7 +142,7 @@ twine check dist/*
 ```bash
 pip install dist/qiongli_installer-*.whl
 qiongli --help
-rsk check --repo jxpeng98/qiongli
+qiongli check --repo jxpeng98/qiongli
 ```
 
 ---
