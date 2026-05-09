@@ -11,8 +11,8 @@ DISCUSSION_WRITER = REPO_ROOT / "skills" / "F_writing" / "discussion-writer.md"
 LIMITATION_AUDITOR = REPO_ROOT / "skills" / "H_submission" / "limitation-auditor.md"
 CAPABILITY_MAP = REPO_ROOT / "standards" / "mcp-agent-capability-map.yaml"
 WORKFLOW_CONTRACT = REPO_ROOT / "standards" / "research-workflow-contract.yaml"
-WORKFLOW_REFERENCE = REPO_ROOT / "research-paper-workflow" / "references" / "workflow-contract.md"
-STAGE_E_REFERENCE = REPO_ROOT / "research-paper-workflow" / "references" / "stage-E-synthesis.md"
+WORKFLOW_REFERENCE = REPO_ROOT / "qiongli-workflow" / "references" / "workflow-contract.md"
+STAGE_E_REFERENCE = REPO_ROOT / "qiongli-workflow" / "references" / "stage-E-synthesis.md"
 
 
 class SkillContractAlignmentTests(unittest.TestCase):

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Multi-Model Orchestrator for research-skills.
+Multi-Model Orchestrator for qiongli.
 Single entry point for coordinating Codex, Claude, and Gemini collaboration.
 
 Usage:

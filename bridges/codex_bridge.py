@@ -1,5 +1,5 @@
 """
-Codex CLI Bridge for research-skills.
+Codex CLI Bridge for qiongli.
 Wraps OpenAI Codex CLI (https://github.com/openai/codex).
 
 Python 3.12+ required.

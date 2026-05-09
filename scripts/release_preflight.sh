@@ -176,7 +176,7 @@ echo "[preflight] sync skill package"
 if [[ -x "$ROOT_DIR/scripts/sync_skill_package.sh" ]]; then
   bash "$ROOT_DIR/scripts/sync_skill_package.sh"
   # Verify package is self-contained
-  pkg_dir="$ROOT_DIR/research-paper-workflow"
+  pkg_dir="$ROOT_DIR/qiongli-workflow"
   sync_ok=1
   for check_dir in skills templates standards roles; do
     if [[ ! -d "$pkg_dir/$check_dir" ]]; then
@@ -202,9 +202,9 @@ if [[ "$STRICT_MODE" -eq 1 ]]; then
   validate_cmd+=(--strict)
 fi
 
-validator_log="$(mktemp -t research-skills-validator.XXXXXX.log)"
-unit_log="$(mktemp -t research-skills-unittest.XXXXXX.log)"
-smoke_log="$(mktemp -t research-skills-smoke.XXXXXX.log)"
+validator_log="$(mktemp -t qiongli-validator.XXXXXX.log)"
+unit_log="$(mktemp -t qiongli-unittest.XXXXXX.log)"
+smoke_log="$(mktemp -t qiongli-smoke.XXXXXX.log)"
 trap cleanup_logs EXIT
 
 run_logged_stage "validator" "$validator_log" "${validate_cmd[@]}"

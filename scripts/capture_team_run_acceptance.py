@@ -12,7 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from research_skills.team_run_acceptance import (
+from qiongli.team_run_acceptance import (
     render_team_run_receipt,
     run_team_run_command,
     summarize_team_run_result,

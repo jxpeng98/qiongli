@@ -33,9 +33,9 @@ Stable tags become normal GitHub Releases. Beta tags become GitHub prereleases, 
 
 The release page receives these installable distribution artifacts:
 
-- `research-skills-codex-plugin-<tag>.tar.gz`
-- `research-skills-claude-plugin-<tag>.tar.gz`
-- `research-skills-gemini-extension-<tag>.tar.gz`
+- `qiongli-codex-plugin-<tag>.tar.gz`
+- `qiongli-claude-plugin-<tag>.tar.gz`
+- `qiongli-gemini-extension-<tag>.tar.gz`
 
 These artifacts make the release consumable by the three client-native install surfaces. They do not bypass official directory review: Codex marketplace listing, Claude official plugin directory submission, and Gemini gallery publication still follow each platform's external submission process when applicable.
 
@@ -53,7 +53,7 @@ This is the recommended local entrypoint. It chains:
 
 When it succeeds, the repository is in a publish-ready state with synchronized version files, validated release docs, and built package artifacts.
 
-The synchronized version files include package metadata, the portable workflow version, skill registry metadata, and client-native distribution manifests under `.agents/`, `.claude-plugin/`, and `plugins/research-skills/`.
+The synchronized version files include package metadata, the portable workflow version, skill registry metadata, and client-native distribution manifests under `.agents/`, `.claude-plugin/`, and `plugins/qiongli/`.
 
 ## 3) Manual pre-release gates (optional)
 
@@ -82,9 +82,9 @@ The draft generator remains available, but the default policy is now:
 ## 4) Publish tag
 
 ```bash
-git add pyproject.toml research_skills/__init__.py research-paper-workflow/VERSION skills/registry.yaml skills CHANGELOG.md
+git add pyproject.toml qiongli/__init__.py qiongli-workflow/VERSION skills/registry.yaml skills CHANGELOG.md
 git commit -m "chore: prepare release 0.1.0"
-git tag -a v0.1.0 -m "research-skills release"
+git tag -a v0.1.0 -m "qiongli release"
 git push origin main --tags
 ```
 

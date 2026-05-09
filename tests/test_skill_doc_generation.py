@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from research_skills.skill_docs import generate_skill_reference_docs
+from qiongli.skill_docs import generate_skill_reference_docs
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -60,7 +60,7 @@ class SkillDocGenerationTests(unittest.TestCase):
         self.assertNotIn("`J`-level proofread and polishing entrypoints live at the workflow layer today", en_doc)
 
     def test_workflow_skill_overview_lists_current_stages_and_skills(self) -> None:
-        content = (REPO_ROOT / "research-paper-workflow" / "SKILL.md").read_text(encoding="utf-8")
+        content = (REPO_ROOT / "qiongli-workflow" / "SKILL.md").read_text(encoding="utf-8")
 
         for token in (
             "J_proofread/",

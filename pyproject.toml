@@ -3,9 +3,9 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "research-skills-installer"
+name = "qiongli-installer"
 version = "0.7.0b2"
-description = "Installer/upgrader CLI for research-skills (Codex / Claude Code / Gemini) without requiring a git fork."
+description = "Installer/upgrader CLI for qiongli (Codex / Claude Code / Gemini) without requiring a git fork."
 readme = "README_PYPI.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -23,17 +23,19 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/jxpeng98/research-skills"
-Repository = "https://github.com/jxpeng98/research-skills"
-"Bug Tracker" = "https://github.com/jxpeng98/research-skills/issues"
+Homepage = "https://github.com/jxpeng98/qiongli"
+Repository = "https://github.com/jxpeng98/qiongli"
+"Bug Tracker" = "https://github.com/jxpeng98/qiongli/issues"
 
 [project.scripts]
-research-skills = "research_skills.cli:main"
-rsk = "research_skills.cli:main"
-rsw = "research_skills.cli:main"
+qiongli = "qiongli.cli:main"
+ql = "qiongli.cli:main"
+research-skills = "qiongli.cli:main"
+rsk = "qiongli.cli:main"
+rsw = "qiongli.cli:main"
 
 [tool.setuptools]
-packages = ["research_skills"]
+packages = ["qiongli", "research_skills"]
 
 [tool.setuptools.package-data]
-research_skills = ["project.toml", "install_manifest.tsv"]
+qiongli = ["project.toml", "install_manifest.tsv"]

@@ -8,7 +8,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from research_skills.multi_agent_smoke import main
+from qiongli.multi_agent_smoke import main
 
 
 if __name__ == "__main__":

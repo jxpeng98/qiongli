@@ -1,4 +1,4 @@
-# Academic Deep Research Skills
+# Academic Deep Qiongli
 
 一套面向 Codex、Claude Code 与 Gemini 的契约驱动学术工作流系统，把安装、任务规划、文献工作、论文写作与严格 Stage-I 研究代码执行统一到同一套标准合同之下。
 
@@ -7,7 +7,7 @@
   <a href="docs/zh/reference/cli.md">💻 CLI 命令大全</a> | 
   <a href="docs/zh/architecture.md">🏗 系统架构</a> | 
   <a href="docs/zh/advanced/agent-skill-collaboration.md">🤝 代理人协同指南</a> | 
-  <a href="docs/zh/advanced/extend-research-skills.md">🛠️ 如何二次开发/贡献</a> | 
+  <a href="docs/zh/advanced/extend-qiongli.md">🛠️ 如何二次开发/贡献</a> |
   <a href="TODO_ROADMAP.md">🗺️ Roadmap 蓝图</a>
 </div>
 
@@ -43,7 +43,7 @@
   - 但两者目标不同：CCG 更偏工程开发协作；本仓库把这些思想本地化成学术场景里的 `I5 -> I6 -> I7 -> I8` Stage-I 任务，以及 `RESEARCH/[topic]/` 下的合同化产物。
 - [GuDaStudio/skills](https://github.com/GuDaStudio/skills)
   - 这个项目对 Claude-oriented skill 打包方式，以及 Codex / Gemini 协作能力的可安装化，提供了很好的参考。
-  - 但本仓库的重点不同：`GuDaStudio/skills` 更像通用协作 skill 集合，而 `research-skills` 更强调“单一研究合同 + 单一任务目录 + 单一产物树”的学术工作流。
+  - 但本仓库的重点不同：`GuDaStudio/skills` 更像通用协作 skill 集合，而 `qiongli` 更强调“单一研究合同 + 单一任务目录 + 单一产物树”的学术工作流。
 
 ---
 
@@ -63,17 +63,17 @@
 如果你只想在单个客户端里安装，推荐走各客户端自己的原生扩展入口：
 
 - **Codex：** 官方 Codex plugin marketplace。
-- **Claude Code：** 把本仓库加入 Claude plugin marketplace，然后安装 `research-skills@research-skills`。
-- **Gemini CLI：** 从 `plugins/research-skills` 本地安装 Gemini extension；发布为独立 extension 仓库或 gallery 条目后，也可以从远端安装。
+- **Claude Code：** 把本仓库加入 Claude plugin marketplace，然后安装 `qiongli@qiongli`。
+- **Gemini CLI：** 从 `plugins/qiongli` 本地安装 Gemini extension；发布为独立 extension 仓库或 gallery 条目后，也可以从远端安装。
 
 这个仓库提供了三端打包与本地校验元数据：
 
 - `.agents/plugins/marketplace.json`
 - `.claude-plugin/marketplace.json`
-- `plugins/research-skills/.codex-plugin/plugin.json`
-- `plugins/research-skills/.claude-plugin/plugin.json`
-- `plugins/research-skills/gemini-extension.json`
-- `plugins/research-skills/skills/research-paper-workflow`
+- `plugins/qiongli/.codex-plugin/plugin.json`
+- `plugins/qiongli/.claude-plugin/plugin.json`
+- `plugins/qiongli/gemini-extension.json`
+- `plugins/qiongli/skills/qiongli-workflow`
 
 如果你需要跨客户端全局安装、多端 slash command、`rsk upgrade`、`doctor` 或多模型 orchestrator，再使用下面的 bootstrap / CLI 路径。
 
@@ -99,7 +99,7 @@
 Linux / macOS：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --project-dir "$PWD" --target all
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --project-dir "$PWD" --target all
 ```
 
 说明：
@@ -109,8 +109,8 @@ Windows PowerShell 7+：
 
 ```powershell
 winget install --id Microsoft.PowerShell --source winget
-Invoke-WebRequest https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.ps1 -OutFile .\bootstrap_research_skill.ps1
-pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -ProjectDir "$PWD" -Target all
+Invoke-WebRequest https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.ps1 -OutFile .\bootstrap_qiongli.ps1
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -ProjectDir "$PWD" -Target all
 ```
 
 说明：
@@ -120,25 +120,25 @@ pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -ProjectDir "$
 
 ```bash
 # Linux / macOS
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --profile partial --project-dir "$PWD" --target all
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --profile full --project-dir "$PWD" --target all
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --profile partial --project-dir "$PWD" --target all
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --profile full --project-dir "$PWD" --target all
 ```
 
 ```powershell
 # Windows PowerShell 7+
 # skills + workflow 资产安装
-pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -Profile partial -ProjectDir "$PWD" -Target all
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile partial -ProjectDir "$PWD" -Target all
 # 完整安装（含 shell CLI 和 Python 环境准备）
-pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -Profile full -ProjectDir "$PWD" -Target all
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile full -ProjectDir "$PWD" -Target all
 # 测试版本
-pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -Beta -Profile full -ProjectDir "$PWD" -Target all
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Beta -Profile full -ProjectDir "$PWD" -Target all
 ```
 
 这一步会安装：
 
 - Codex / Claude Code / Gemini 的 workflow 资产
 - 项目集成文件，例如 `.agent/workflows/`、`CLAUDE.md`、`.gemini/`，仅在执行 `rsk init` 或 `--parts project` 时写入
-- `full` 模式下的 shell CLI：`research-skills`、`rsk`、`rsw`
+- `full` 模式下的 shell CLI：`qiongli`、`rsk`、`rsw`
 
 ### 3. 可选：手动准备 Python
 
@@ -184,7 +184,7 @@ python3 --version
 稳定入口现在有三类：
 
 - `.agent/workflows/*.md` 里的 workflow 命令，例如 `/paper`、`/lit-review`、`/paper-write`、`/code-build`
-- 安装 / 升级 CLI：`research-skills`、`rsk`、`rsw`
+- 安装 / 升级 CLI：`qiongli`、`rsk`、`rsw`
 - Orchestrator CLI：`python3 -m bridges.orchestrator ...`
 
 ### 5. 可选：本地安装器与刷新路径
@@ -192,14 +192,14 @@ python3 --version
 如果机器已经有 Python，也可以改用跨平台本地安装器：
 
 ```bash
-python3 scripts/bootstrap_research_skill.py --profile partial --project-dir .
-python3 scripts/bootstrap_research_skill.py --profile full --project-dir .
+python3 scripts/bootstrap_qiongli.py --profile partial --project-dir .
+python3 scripts/bootstrap_qiongli.py --profile full --project-dir .
 ```
 
 如果机器已经有 Python，且你只想继续使用 Python 分发的升级器 CLI，这条路径依然保留：
 
 ```bash
-pipx install research-skills-installer
+pipx install qiongli-installer
 ```
 
 但 `pip` / `pipx` 现在只是兼容性的 CLI 分发方式，不再是推荐的首次安装入口。
@@ -342,21 +342,21 @@ python3 -m bridges.orchestrator code-build \
 
 适用场景：
 - 机器上没有 Python
-- 你只想快速安装 `research-skills` / `rsk` / `rsw`
+- 你只想快速安装 `qiongli` / `rsk` / `rsw`
 - 你希望同时把 workflow 资产也装好
 
 命令：
 
 ```bash
 cd /path/to/your/project
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- \
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- \
   --project-dir "$PWD" \
   --target all
 ```
 
 效果：
-- 安装 shell CLI：`research-skills`、`rsk`、`rsw`
-- 安装 `research-paper-workflow` skill 到对应客户端目录
+- 安装 shell CLI：`qiongli`、`rsk`、`rsw`
+- 安装 `qiongli-workflow` skill 到对应客户端目录
 - 安装项目内 `.agent/workflows/`、`CLAUDE.md`、`.gemini/` 等集成文件
 
 默认 CLI 目录：
@@ -377,11 +377,11 @@ export PATH="$HOME/.local/bin:$PATH"
 命令：
 
 ```bash
-pipx install research-skills-installer
+pipx install qiongli-installer
 ```
 
 效果：
-- 安装 Python 版 `research-skills` / `rsk` / `rsw`
+- 安装 Python 版 `qiongli` / `rsk` / `rsw`
 - CLI 本身进入 PATH
 - 不会自动把 workflow 资产写入你的项目，仍需手动执行 `rsk upgrade`
 
@@ -394,7 +394,7 @@ pipx install research-skills-installer
 命令：
 
 ```bash
-./scripts/install_research_skill.sh \
+./scripts/install_qiongli.sh \
   --target all \
   --project-dir /path/to/project \
   --install-cli \
@@ -404,13 +404,13 @@ pipx install research-skills-installer
 ### 2. Shell bootstrap 参数说明
 
 入口脚本：
-- `scripts/bootstrap_research_skill.sh`
+- `scripts/bootstrap_qiongli.sh`
 
 常用参数：
 
 | 参数 | 作用 | 默认值 / 说明 |
 |------|------|---------------|
-| `--repo <owner/repo|git-url>` | 指定上游 GitHub 仓库 | 默认取 `RESEARCH_SKILLS_REPO`，否则 `jxpeng98/research-skills` |
+| `--repo <owner/repo|git-url>` | 指定上游 GitHub 仓库 | 默认取 `RESEARCH_SKILLS_REPO`，否则 `jxpeng98/qiongli` |
 | `--ref <tag-or-branch>` | 指定安装的版本或分支 | 默认自动解析 latest release |
 | `--ref-type <tag|branch>` | 指定 `--ref` 是 tag 还是 branch | 默认 `tag` |
 | `--beta` | 在未传 `--ref` 时安装最新 beta / prerelease tag | 默认关闭，默认仍解析稳定版 latest release |
@@ -427,8 +427,8 @@ pipx install research-skills-installer
 
 ```bash
 # 安装指定 tag
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- \
-  --repo jxpeng98/research-skills \
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- \
+  --repo jxpeng98/qiongli \
   --ref v0.1.0 \
   --ref-type tag \
   --project-dir "$PWD" \
@@ -436,20 +436,20 @@ curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scrip
   --overwrite
 
 # 安装最新 beta / prerelease
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- \
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- \
   --profile full \
   --beta \
   --project-dir "$PWD" \
   --target all
 
 # 只装 workflow，不装 CLI
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- \
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- \
   --project-dir "$PWD" \
   --target claude \
   --no-cli
 
 # 预演安装动作
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- \
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- \
   --project-dir "$PWD" \
   --target codex \
   --dry-run
@@ -458,7 +458,7 @@ curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scrip
 ### 3. 本地安装脚本参数说明
 
 入口脚本：
-- `scripts/install_research_skill.sh`
+- `scripts/install_qiongli.sh`
 
 常用参数：
 
@@ -479,10 +479,10 @@ curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scrip
 - 如果你只想一次性安装，推荐 `--mode copy`
 - `--mode link` 适合本地仓库安装，不适合远程 bootstrap
 
-### 4. `rsk` / `research-skills` CLI 子命令说明
+### 4. `rsk` / `qiongli` CLI 子命令说明
 
 shell CLI 和 Python CLI 都有这些入口名：
-- `research-skills`
+- `qiongli`
 - `rsk`
 - `rsw`
 
@@ -514,7 +514,7 @@ shell CLI 和 Python CLI 都有这些入口名：
 
 ```bash
 rsk check
-rsk check --repo jxpeng98/research-skills
+rsk check --repo jxpeng98/qiongli
 rsk check --json
 ```
 
@@ -547,7 +547,7 @@ rsk check --json
 ```bash
 rsk upgrade --target all --overwrite
 rsk upgrade --project-dir . --parts project,doctor
-rsk upgrade --repo jxpeng98/research-skills --ref main --ref-type branch --project-dir . --target claude
+rsk upgrade --repo jxpeng98/qiongli --ref main --ref-type branch --project-dir . --target claude
 rsk upgrade --project-dir . --target codex --dry-run
 ```
 
@@ -601,7 +601,7 @@ rsk init --project-dir . --target claude --overwrite
 
 ```bash
 rsk align
-rsk align --repo jxpeng98/research-skills
+rsk align --repo jxpeng98/qiongli
 ```
 
 ### 5. 常用环境变量
@@ -765,7 +765,7 @@ python3 -m unittest tests.test_orchestrator_workflows -v
 python3 scripts/validate_project_artifacts.py --cwd ./project  --topic <topic> --task-id H1 --strict
 ```
 
-如果你希望测试传统的底层安装脚本能力，请使用: `scripts/install_research_skill.sh`
+如果你希望测试传统的底层安装脚本能力，请使用: `scripts/install_qiongli.sh`
 
 
 ### 发版自动化 (Release Automation)
@@ -784,9 +784,9 @@ python3 scripts/validate_project_artifacts.py --cwd ./project  --topic <topic> -
 ## 目录结构介绍
 
 ```
-research-skills/
+qiongli/
 ├── standards/                # 核心合同真源：workflow/capability map
-├── research-paper-workflow/  # 各大平台无缝挂载的便携 Skill 技能包
+├── qiongli-workflow/  # 各大平台无缝挂载的便携 Skill 技能包
 ├── .agent/workflows/         # 安装后的 workflow 入口 markdown / slash-command surface
 ├── bridges/                  # Python Orchestrator 多端路由通信网桥
 ├── skills/                   # 系统全系学术卡片

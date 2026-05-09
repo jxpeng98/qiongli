@@ -1,6 +1,6 @@
 # Rigorous Literature Search
 
-Use this guide when you want the `research-skills` literature stack to behave more like a review-grade academic search workflow instead of a single-engine convenience search.
+Use this guide when you want the `qiongli` literature stack to behave more like a review-grade academic search workflow instead of a single-engine convenience search.
 
 ## Core Principle
 

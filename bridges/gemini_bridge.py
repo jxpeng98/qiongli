@@ -1,5 +1,5 @@
 """
-Gemini CLI Bridge for research-skills.
+Gemini CLI Bridge for qiongli.
 Wraps Google Gemini CLI (https://github.com/google-gemini/gemini-cli).
 
 Python 3.12+ required.

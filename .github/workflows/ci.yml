@@ -32,7 +32,7 @@ jobs:
         run: python -m pip install .
 
       - name: Compile critical modules
-        run: python -m py_compile bridges/base_bridge.py bridges/orchestrator.py scripts/validate_research_standard.py tests/test_orchestrator_workflows.py tests/test_install_research_skill.py
+        run: python -m py_compile bridges/base_bridge.py bridges/orchestrator.py scripts/validate_research_standard.py tests/test_orchestrator_workflows.py tests/test_install_qiongli.py
 
       - name: Validate research standard
         run: python scripts/validate_research_standard.py --strict
@@ -70,7 +70,7 @@ jobs:
           bash -n scripts/release_preflight.sh
           bash -n scripts/release_postflight.sh
           bash -n scripts/release_automation.sh
-          bash -n scripts/install_research_skill.sh
+          bash -n scripts/install_qiongli.sh
           bash -n scripts/inject_project_toml.sh
           bash -n scripts/sync_skill_package.sh
 

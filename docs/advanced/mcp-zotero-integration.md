@@ -1,6 +1,6 @@
 # 📚 External MCP Integration: Zotero (Local Citation Library)
 
-The `research-skills` ecosystem comes with a built-in semantic-search provider that hits the public Semantic Scholar API. This is perfect for discovering global papers. 
+The `qiongli` ecosystem comes with a built-in semantic-search provider that hits the public Semantic Scholar API. This is perfect for discovering global papers.
 
 However, for a highly rigorous systematic review, you may only want the AI to query your own carefully vetted **local Zotero library**. By connecting an external Zotero MCP, the AI will limit its evidence extraction exclusively to papers you have collected and annotated.
 

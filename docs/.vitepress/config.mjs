@@ -56,7 +56,7 @@ const enSidebar = {
       text: 'Advanced',
       items: [
         { text: 'Overview', link: '/advanced/' },
-        { text: 'Extend Research Skills', link: '/advanced/extend-research-skills' },
+        { text: 'Extend Qiongli', link: '/advanced/extend-qiongli' },
         { text: 'Agent + Skill Collaboration', link: '/advanced/agent-skill-collaboration' },
         { text: 'MCP Providers Setup', link: '/advanced/mcp-providers-setup' },
         { text: 'Rigorous Literature Search', link: '/advanced/rigorous-literature-search' },
@@ -73,6 +73,7 @@ const enSidebar = {
         { text: 'CLAUDE Guide Summary', link: '/maintainer/claude-overview' },
         { text: 'Architecture', link: '/architecture' },
         { text: 'Conventions', link: '/conventions' },
+        { text: 'Naming Policy', link: '/maintainer/naming-policy' },
         { text: 'Release Branch Policy', link: '/maintainer/release-branch-policy' },
         { text: 'Publish to PyPI', link: '/advanced/publish-pypi' }
       ]
@@ -120,7 +121,7 @@ const zhSidebar = {
       text: '高级',
       items: [
         { text: '总览', link: '/zh/advanced/' },
-        { text: '扩展 Research Skills', link: '/zh/advanced/extend-research-skills' },
+        { text: '扩展 Qiongli', link: '/zh/advanced/extend-qiongli' },
         { text: 'Agent + Skill 协同', link: '/zh/advanced/agent-skill-collaboration' },
         { text: 'MCP Providers 接入', link: '/zh/advanced/mcp-providers-setup' },
         { text: '严格 Literature Search', link: '/zh/advanced/rigorous-literature-search' },
@@ -137,6 +138,7 @@ const zhSidebar = {
         { text: 'CLAUDE 指南摘要', link: '/zh/maintainer/claude-overview' },
         { text: '系统架构', link: '/zh/architecture' },
         { text: '规范约定', link: '/zh/conventions' },
+        { text: '命名策略', link: '/zh/maintainer/naming-policy' },
         { text: '发布分支策略', link: '/zh/maintainer/release-branch-policy' },
         { text: 'PyPI 发布', link: '/zh/advanced/publish-pypi' }
       ]
@@ -151,7 +153,7 @@ const commonHead = [
 
 /** @type {import('vitepress').UserConfig} */
 export default {
-  title: 'Research Skills',
+  title: 'Qiongli',
   description: 'Contract-driven academic research workflow documentation for Codex, Claude Code, and Gemini.',
   cleanUrls: true,
   lastUpdated: true,
@@ -166,9 +168,9 @@ export default {
         sidebar: enSidebar,
         search: { provider: 'local' },
         outline: { level: [2, 3] },
-        socialLinks: [{ icon: 'github', link: 'https://github.com/jxpeng98/research-skills' }],
+        socialLinks: [{ icon: 'github', link: 'https://github.com/jxpeng98/qiongli' }],
         footer: {
-          message: 'Research Skills documentation',
+          message: 'Qiongli documentation',
           copyright: 'MIT License'
         }
       }
@@ -182,15 +184,15 @@ export default {
         sidebar: zhSidebar,
         search: { provider: 'local' },
         outline: { level: [2, 3] },
-        socialLinks: [{ icon: 'github', link: 'https://github.com/jxpeng98/research-skills' }],
+        socialLinks: [{ icon: 'github', link: 'https://github.com/jxpeng98/qiongli' }],
         footer: {
-          message: 'Research Skills 文档站',
+          message: 'Qiongli 文档站',
           copyright: 'MIT License'
         }
       }
     }
   },
   themeConfig: {
-    logo: { src: '/mark.svg', alt: 'Research Skills' }
+    logo: { src: '/mark.svg', alt: 'Qiongli' }
   }
 }

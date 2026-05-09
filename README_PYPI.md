@@ -1,6 +1,6 @@
-# research-skills-installer
+# qiongli-installer
 
-`research-skills-installer` is a lightweight CLI for installing and upgrading **Research Skills** assets in your project for Codex, Claude Code, and Gemini workflows.
+`qiongli-installer` is a lightweight CLI for installing and upgrading **Qiongli** assets in your project for Codex, Claude Code, and Gemini workflows.
 
 ## What it does
 
@@ -12,20 +12,20 @@
 ## Installation
 
 ```bash
-pip install research-skills-installer
+pip install qiongli-installer
 ```
 
 Or with `pipx`:
 
 ```bash
-pipx install research-skills-installer
+pipx install qiongli-installer
 ```
 
 ## CLI
 
 Main command and aliases:
 
-- `research-skills`
+- `qiongli`
 - `rsk`
 - `rsw`
 
@@ -41,7 +41,7 @@ rsk check
 rsk upgrade --project-dir /path/to/project --target all --doctor
 ```
 
-The package includes a default upstream repo (`jxpeng98/research-skills`), so `--repo` is optional.
+The package includes a default upstream repo (`jxpeng98/qiongli`), so `--repo` is optional.
 Use `--repo` only when you want to override the default.
 
 ## Override default repo (optional)
@@ -50,8 +50,8 @@ The CLI resolves upstream repo in this order:
 
 1. `--repo` argument
 2. `RESEARCH_SKILLS_REPO` environment variable
-3. `research-skills.toml` or `.research-skills.toml` in your project path
-4. Packaged default (`research_skills/project.toml`)
+3. `qiongli.toml` or `.qiongli.toml` in your project path
+4. Packaged default (`qiongli/project.toml`)
 
 ### Option A: Global override
 
@@ -76,11 +76,11 @@ rsk upgrade --project-dir /path/to/project --target all --doctor
 
 ### Option B: Project-level override
 
-Create `research-skills.toml` in your project root:
+Create `qiongli.toml` in your project root:
 
 ```toml
 [upstream]
-repo = "jxpeng98/research-skills"
+repo = "jxpeng98/qiongli"
 url = "https://github.com/<owner>/<repo>"
 ```
 
@@ -90,7 +90,7 @@ This keeps the override local to that project.
 
 ```bash
 # Install from PyPI
-pipx install research-skills-installer
+pipx install qiongli-installer
 
 # Upgrade assets into your project
 rsk upgrade --project-dir /path/to/project --target all --doctor
@@ -98,5 +98,5 @@ rsk upgrade --project-dir /path/to/project --target all --doctor
 
 ## Links
 
-- Repository: https://github.com/jxpeng98/research-skills
-- Issues: https://github.com/jxpeng98/research-skills/issues
+- Repository: https://github.com/jxpeng98/qiongli
+- Issues: https://github.com/jxpeng98/qiongli/issues

@@ -121,7 +121,7 @@ prepare_release_notes_file() {
     exit 1
   }
 
-  TEMP_RELEASE_NOTES="$(mktemp -t research-skills-release-notes.XXXXXX.md)"
+  TEMP_RELEASE_NOTES="$(mktemp -t qiongli-release-notes.XXXXXX.md)"
   python3 scripts/changelog_section.py --version "$version" --output "$TEMP_RELEASE_NOTES"
   RELEASE_NOTES_FILE="$TEMP_RELEASE_NOTES"
   RELEASE_NOTES_LABEL="CHANGELOG.md [${version}]"
@@ -405,9 +405,9 @@ fi
 
 python3 scripts/build_marketplace_artifacts.py --tag "$TAG" --dist-dir dist
 MARKETPLACE_ARTIFACTS=(
-  "dist/research-skills-codex-plugin-${TAG}.tar.gz"
-  "dist/research-skills-claude-plugin-${TAG}.tar.gz"
-  "dist/research-skills-gemini-extension-${TAG}.tar.gz"
+  "dist/qiongli-codex-plugin-${TAG}.tar.gz"
+  "dist/qiongli-claude-plugin-${TAG}.tar.gz"
+  "dist/qiongli-gemini-extension-${TAG}.tar.gz"
 )
 
 if ! command -v gh >/dev/null 2>&1 || ! gh auth status >/dev/null 2>&1; then

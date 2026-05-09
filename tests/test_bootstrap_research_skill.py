@@ -8,8 +8,8 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-BOOTSTRAP_SCRIPT = REPO_ROOT / "scripts" / "bootstrap_research_skill.sh"
-POWERSHELL_BOOTSTRAP = REPO_ROOT / "scripts" / "bootstrap_research_skill.ps1"
+BOOTSTRAP_SCRIPT = REPO_ROOT / "scripts" / "bootstrap_qiongli.sh"
+POWERSHELL_BOOTSTRAP = REPO_ROOT / "scripts" / "bootstrap_qiongli.ps1"
 SYSTEM_BASH = Path("/bin/bash")
 
 
@@ -137,7 +137,7 @@ class BootstrapResearchSkillTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, msg=result.stdout + "\n" + result.stderr)
             self.assertIn("source:   local checkout", result.stdout)
             self.assertFalse((project_dir / ".env").exists())
-            self.assertFalse((cli_dir / "research-skills").exists())
+            self.assertFalse((cli_dir / "qiongli").exists())
 
     def test_missing_profile_in_noninteractive_mode_fails_fast(self) -> None:
         if not SYSTEM_BASH.exists():
@@ -169,8 +169,9 @@ class BootstrapResearchSkillTests(unittest.TestCase):
     def test_shell_bootstrap_supports_explicit_noninteractive_mode(self) -> None:
         content = BOOTSTRAP_SCRIPT.read_text(encoding="utf-8")
 
+        self.assertIn("QIONGLI_NONINTERACTIVE", content)
         self.assertIn("RESEARCH_SKILLS_NONINTERACTIVE", content)
-        self.assertIn('[[ "${RESEARCH_SKILLS_NONINTERACTIVE:-}" == "1" ]]', content)
+        self.assertIn('[[ "${QIONGLI_NONINTERACTIVE:-${RESEARCH_SKILLS_NONINTERACTIVE:-}}" == "1" ]]', content)
 
     def test_shell_bootstrap_does_not_install_python_runtime(self) -> None:
         content = BOOTSTRAP_SCRIPT.read_text(encoding="utf-8")
@@ -215,7 +216,7 @@ class BootstrapResearchSkillTests(unittest.TestCase):
         self.assertIn("Find-UsablePython", content)
         self.assertIn("Copy/paste this command to add it now:", content)
         self.assertIn("pwsh -NoProfile -Command", content)
-        self.assertNotIn('Install-FromRepo "C:\\dry-run\\research-skills"', content)
+        self.assertNotIn('Install-FromRepo "C:\\dry-run\\qiongli"', content)
         self.assertIn("[dry-run] Install workflow assets into client directories", content)
         self.assertNotIn('bootstrapUrl = "https://raw.githubusercontent.com', content)
         self.assertNotIn('$content = @"', content)

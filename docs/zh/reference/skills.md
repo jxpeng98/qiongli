@@ -32,7 +32,7 @@
 
 如果你需要看精确命令参数，去 [CLI 参考](/zh/reference/cli)。
 如果你需要理解运行时 Agent 与 Skill 如何协同，去 [Agent + Skill 协同](/zh/advanced/agent-skill-collaboration)。
-如果你要修改系统本身，去 [扩展 Research Skills](/zh/advanced/extend-research-skills)。
+如果你要修改系统本身，去 [扩展 Qiongli](/zh/advanced/extend-qiongli)。
 如果你更关心“系统综述 / qualitative paper / methods paper / 审稿回复”这种真实场景怎么选路径，请看 [任务场景](/zh/guide/task-recipes)。
 
 ## 先记住几个边界
@@ -286,4 +286,4 @@
 - 想看命令和参数：去 [CLI 参考](/zh/reference/cli)
 - 想理解层次边界：去 [规范约定](/zh/conventions)
 - 想理解运行时协同：去 [Agent + Skill 协同](/zh/advanced/agent-skill-collaboration)
-- 想新增或改写 skill：去 [扩展 Research Skills](/zh/advanced/extend-research-skills)
+- 想新增或改写 skill：去 [扩展 Qiongli](/zh/advanced/extend-qiongli)

@@ -9,7 +9,7 @@ import tempfile
 from pathlib import Path
 
 
-PLUGIN_NAME = "research-skills"
+PLUGIN_NAME = "qiongli"
 PLUGIN_ROOT = Path("plugins") / PLUGIN_NAME
 
 
@@ -117,9 +117,9 @@ def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
     dist_dir = dist_dir.resolve()
     repo_tag, skill_version = _normalize_tag(raw_tag)
 
-    workflow_version = (root / "research-paper-workflow" / "VERSION").read_text(encoding="utf-8").strip()
+    workflow_version = (root / "qiongli-workflow" / "VERSION").read_text(encoding="utf-8").strip()
     if workflow_version != repo_tag:
-        raise ValueError(f"version mismatch in research-paper-workflow/VERSION: expected {repo_tag}, found {workflow_version}")
+        raise ValueError(f"version mismatch in qiongli-workflow/VERSION: expected {repo_tag}, found {workflow_version}")
 
     versioned_json = [
         root / PLUGIN_ROOT / ".codex-plugin" / "plugin.json",
@@ -130,7 +130,7 @@ def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
     for path in versioned_json:
         _assert_json_versions(path, skill_version)
 
-    with tempfile.TemporaryDirectory(prefix="research-skills-marketplace-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="qiongli-marketplace-") as tmp:
         work_dir = Path(tmp)
         artifacts = [
             _build_codex(root, repo_tag, dist_dir, work_dir),

@@ -12,7 +12,7 @@ This guide explains how to:
 This path only needs `bash` plus `curl`/`wget` and `tar`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- \
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- \
   --repo <owner>/<repo> \
   --project-dir /path/to/project \
   --target all \
@@ -20,8 +20,8 @@ curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scrip
 ```
 
 Notes:
-- The bootstrapper downloads the selected release archive and runs `scripts/install_research_skill.sh` from inside it.
-- By default it also installs the shell CLI: `research-skills`, `rsk`, `rsw`.
+- The bootstrapper downloads the selected release archive and runs `scripts/install_qiongli.sh` from inside it.
+- By default it also installs the shell CLI: `qiongli`, `rsk`, `rsw`.
 - Default shell CLI location: `${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}`.
 - Use `--no-cli` to skip shell CLI installation, or `--cli-dir <path>` to change the install location.
 - `--doctor` is optional and only runs when `python3` exists.
@@ -32,9 +32,9 @@ Notes:
 This repository also provides a `pyproject.toml` package for people who want a reusable updater CLI:
 
 ```bash
-pipx install research-skills-installer
+pipx install qiongli-installer
 # This provides 3 equivalent commands (choose any):
-# - research-skills
+# - qiongli
 # - rsk
 # - rsw
 # You can also set `RESEARCH_SKILLS_REPO=<owner>/<repo>` to omit the --repo flag
@@ -43,17 +43,17 @@ rsk upgrade --repo <owner>/<repo> --target all --doctor
 rsk init --project-dir /path/to/project
 ```
 
-> Note: pip installs/upgrades the "updater CLI." The actual refresh of global client skill directories is still performed by `rsk upgrade` (or `research-skills upgrade`). Project-local files are explicit: use `rsk init` or `rsk upgrade --parts project ...` when you want them rewritten.
+> Note: pip installs/upgrades the "updater CLI." The actual refresh of global client skill directories is still performed by `rsk upgrade` (or `qiongli upgrade`). Project-local files are explicit: use `rsk init` or `rsk upgrade --parts project ...` when you want them rewritten.
 
 ## 1) What exactly are you upgrading?
 
 This project has one type of "installation target":
 
 - **Local skill directories for the supported clients** (so Codex / Claude Code / Gemini / Antigravity recognize the skill globally)
-  - Codex: `${CODEX_HOME:-~/.codex}/skills/research-paper-workflow`
-  - Claude: `${CLAUDE_CODE_HOME:-~/.claude}/skills/research-paper-workflow`
-  - Gemini: `${GEMINI_HOME:-~/.gemini}/skills/research-paper-workflow`
-  - Antigravity (global): `${ANTIGRAVITY_HOME:-~/.gemini/antigravity}/skills/research-paper-workflow`
+  - Codex: `${CODEX_HOME:-~/.codex}/skills/qiongli-workflow`
+  - Claude: `${CLAUDE_CODE_HOME:-~/.claude}/skills/qiongli-workflow`
+  - Gemini: `${GEMINI_HOME:-~/.gemini}/skills/qiongli-workflow`
+  - Antigravity (global): `${ANTIGRAVITY_HOME:-~/.gemini/antigravity}/skills/qiongli-workflow`
 
 Upgrading simply means **overwriting these target paths with the new version**.
 
@@ -67,7 +67,7 @@ _Project-local integrations (like `.env`) are only refreshed when you explicitly
 # If RESEARCH_SKILLS_REPO is set, --repo can be omitted
 rsk check --repo <owner>/<repo>
 # Or run within the repository (equivalent):
-python3 scripts/research_skill_update.py check --repo <owner>/<repo>
+python3 scripts/qiongli_update.py check --repo <owner>/<repo>
 ```
 
 Details:
@@ -75,13 +75,13 @@ Details:
 - If it detects that "local/installed version < latest version", the command returns exit code `1` (which is useful for automation scripts).
 - You can set a default upstream to omit `--repo`:
   - Envrionment variable: `export RESEARCH_SKILLS_REPO=<owner>/<repo>`
-  - If you run this inside a `research-skills` clone with a configured git remote (prioritizes `upstream`, then `origin`), `--repo` can be omitted.
-  - Or add a `research-skills.toml` file to your project root (easy to commit to your project repo, great for CI).
+  - If you run this inside a `qiongli` clone with a configured git remote (prioritizes `upstream`, then `origin`), `--repo` can be omitted.
+  - Or add a `qiongli.toml` file to your project root (easy to commit to your project repo, great for CI).
 
 Example (in project root):
 
 ```toml
-# research-skills.toml
+# qiongli.toml
 [upstream]
 repo = "<owner>/<repo>" # Or Git URL
 ```
@@ -101,7 +101,7 @@ rsk init --project-dir .
 This directly downloads the GitHub release archive and executes the installation script inside it:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- \
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- \
   --repo <owner>/<repo> \
   --project-dir /path/to/your/project \
   --target all \
@@ -119,7 +119,7 @@ rsk upgrade \
   --doctor
 
 # Or run within the repository (equivalent):
-python3 scripts/research_skill_update.py upgrade \
+python3 scripts/qiongli_update.py upgrade \
   --repo <owner>/<repo> \
   --target all \
   --mode copy \
@@ -147,8 +147,8 @@ If you are willing to keep a local clone of the repository (no fork needed, just
 1) When installing, use `--mode link` (creates symlinks, meaning future updates don't require re-running the install script):
 
 ```bash
-./scripts/install_research_skill.sh --target all --mode link --overwrite
-python3 -m research_skills.cli init --project-dir /path/to/project --target all --overwrite
+./scripts/install_qiongli.sh --target all --mode link --overwrite
+python3 -m qiongli.cli init --project-dir /path/to/project --target all --overwrite
 ```
 
 2) When updating, simply run:

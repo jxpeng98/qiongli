@@ -20,7 +20,7 @@ class MarketplaceArtifactsTests(unittest.TestCase):
     def test_builds_three_self_contained_marketplace_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             dist_dir = Path(tmp_dir) / "dist"
-            current_tag = (REPO_ROOT / "research-paper-workflow" / "VERSION").read_text(
+            current_tag = (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(
                 encoding="utf-8"
             ).strip()
 
@@ -29,49 +29,49 @@ class MarketplaceArtifactsTests(unittest.TestCase):
             self.assertEqual(
                 sorted(path.name for path in artifacts),
                 [
-                    f"research-skills-claude-plugin-{current_tag}.tar.gz",
-                    f"research-skills-codex-plugin-{current_tag}.tar.gz",
-                    f"research-skills-gemini-extension-{current_tag}.tar.gz",
+                    f"qiongli-claude-plugin-{current_tag}.tar.gz",
+                    f"qiongli-codex-plugin-{current_tag}.tar.gz",
+                    f"qiongli-gemini-extension-{current_tag}.tar.gz",
                 ],
             )
             for artifact in artifacts:
                 self.assertTrue(artifact.is_file(), msg=f"missing artifact: {artifact}")
 
             self._assert_contains(
-                dist_dir / f"research-skills-codex-plugin-{current_tag}.tar.gz",
+                dist_dir / f"qiongli-codex-plugin-{current_tag}.tar.gz",
                 [
-                    f"research-skills-codex-plugin-{current_tag}/.agents/plugins/marketplace.json",
-                    f"research-skills-codex-plugin-{current_tag}/plugins/research-skills/.codex-plugin/plugin.json",
-                    f"research-skills-codex-plugin-{current_tag}/plugins/research-skills/commands/paper.md",
-                    f"research-skills-codex-plugin-{current_tag}/plugins/research-skills/skills/research-paper-workflow/SKILL.md",
+                    f"qiongli-codex-plugin-{current_tag}/.agents/plugins/marketplace.json",
+                    f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/.codex-plugin/plugin.json",
+                    f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/commands/paper.md",
+                    f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
                 ],
             )
             self._assert_contains(
-                dist_dir / f"research-skills-claude-plugin-{current_tag}.tar.gz",
+                dist_dir / f"qiongli-claude-plugin-{current_tag}.tar.gz",
                 [
-                    f"research-skills-claude-plugin-{current_tag}/.claude-plugin/marketplace.json",
-                    f"research-skills-claude-plugin-{current_tag}/plugins/research-skills/.claude-plugin/plugin.json",
-                    f"research-skills-claude-plugin-{current_tag}/plugins/research-skills/commands/paper.md",
-                    f"research-skills-claude-plugin-{current_tag}/plugins/research-skills/skills/research-paper-workflow/SKILL.md",
+                    f"qiongli-claude-plugin-{current_tag}/.claude-plugin/marketplace.json",
+                    f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/.claude-plugin/plugin.json",
+                    f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/commands/paper.md",
+                    f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
                 ],
             )
             self._assert_contains(
-                dist_dir / f"research-skills-gemini-extension-{current_tag}.tar.gz",
+                dist_dir / f"qiongli-gemini-extension-{current_tag}.tar.gz",
                 [
-                    f"research-skills-gemini-extension-{current_tag}/gemini-extension.json",
-                    f"research-skills-gemini-extension-{current_tag}/skills/research-paper-workflow/SKILL.md",
+                    f"qiongli-gemini-extension-{current_tag}/gemini-extension.json",
+                    f"qiongli-gemini-extension-{current_tag}/skills/qiongli-workflow/SKILL.md",
                 ],
             )
 
     def test_fails_when_artifact_versions_do_not_match_tag(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            (root / "research-paper-workflow").mkdir(parents=True)
-            (root / "research-paper-workflow" / "VERSION").write_text("v0.5.0-beta.3\n", encoding="utf-8")
+            (root / "qiongli-workflow").mkdir(parents=True)
+            (root / "qiongli-workflow" / "VERSION").write_text("v0.5.0-beta.3\n", encoding="utf-8")
             (root / ".agents" / "plugins").mkdir(parents=True)
             (root / ".agents" / "plugins" / "marketplace.json").write_text("{}", encoding="utf-8")
-            (root / "plugins" / "research-skills" / ".codex-plugin").mkdir(parents=True)
-            (root / "plugins" / "research-skills" / ".codex-plugin" / "plugin.json").write_text(
+            (root / "plugins" / "qiongli" / ".codex-plugin").mkdir(parents=True)
+            (root / "plugins" / "qiongli" / ".codex-plugin" / "plugin.json").write_text(
                 json.dumps({"version": "0.5.0-beta.2"}),
                 encoding="utf-8",
             )

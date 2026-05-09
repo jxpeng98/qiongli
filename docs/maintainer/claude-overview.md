@@ -23,7 +23,7 @@ When behavior changes, maintainers should prefer fixing:
 3. `templates/`
 4. `pipelines/` and `.agent/workflows/`
 5. `bridges/`
-6. `research-paper-workflow/`
+6. `qiongli-workflow/`
 
 ### 2. Treat workflows as entry UX, not truth
 

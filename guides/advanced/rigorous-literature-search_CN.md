@@ -1,6 +1,6 @@
 # 严格 Academic Literature Search
 
-当你希望 `research-skills` 的文献检索更接近可审计、可复现的 academic review 工作流，而不是单一引擎的便捷搜索时，使用这份指南。
+当你希望 `qiongli` 的文献检索更接近可审计、可复现的 academic review 工作流，而不是单一引擎的便捷搜索时，使用这份指南。
 
 ## 核心原则
 

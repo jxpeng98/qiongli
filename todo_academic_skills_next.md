@@ -1,10 +1,10 @@
 # Academic Skills Next Enhancement TODO
 
-> **For future agents:** This is a phased master TODO for the next generation of the `research-skills` plugin and `research-paper-workflow` skill package. Before implementation, select one phase or one coherent milestone and convert it into a detailed implementation plan.
+> **For future agents:** This is a phased master TODO for the next generation of the `qiongli` plugin and `qiongli-workflow` skill package. Before implementation, select one phase or one coherent milestone and convert it into a detailed implementation plan.
 
 **Goal:** Make the plugin-first academic skills package more evidence-grounded, stateful, venue-aware, methodologically rigorous, and measurable.
 
-**Architecture:** Keep one main plugin, `research-skills`, and one portable skill package, `research-paper-workflow`. Add durable research-state and evidence artifacts first, then upgrade skills and workflows to consume those artifacts. Use tests and eval cases as the main guardrail against vague, generic, or fabricated academic output.
+**Architecture:** Keep one main plugin, `qiongli`, and one portable skill package, `qiongli-workflow`. Add durable research-state and evidence artifacts first, then upgrade skills and workflows to consume those artifacts. Use tests and eval cases as the main guardrail against vague, generic, or fabricated academic output.
 
 **Tech Stack:** Markdown skill specs, YAML contracts, Python validators/eval scripts, shell release/install scripts, Codex / Claude Code / Gemini plugin surfaces.
 
@@ -13,8 +13,8 @@
 ## Operating Principles
 
 - Keep `skills/` as the source of truth for canonical internal skill specs.
-- Keep `research-paper-workflow/` as the portable package for installed client skills.
-- Keep `plugins/research-skills/skills/research-paper-workflow/` as a generated distribution copy.
+- Keep `qiongli-workflow/` as the portable package for installed client skills.
+- Keep `plugins/qiongli/skills/qiongli-workflow/` as a generated distribution copy.
 - Run `bash scripts/sync_skill_package.sh --target all` after source skill or portable package changes.
 - Do not add new skills unless the capability cannot be cleanly added to an existing skill or workflow.
 - Every new scholarly claim feature must encode evidence handling, insufficient-input behavior, and non-fabrication rules.
@@ -66,17 +66,17 @@
 
 **Primary files to create:**
 
-- `research-paper-workflow/templates/evidence-ledger.md`
-- `research-paper-workflow/templates/claim-evidence-ledger.csv`
-- `research-paper-workflow/references/evidence-ledger-contract.md`
+- `qiongli-workflow/templates/evidence-ledger.md`
+- `qiongli-workflow/templates/claim-evidence-ledger.csv`
+- `qiongli-workflow/references/evidence-ledger-contract.md`
 - `scripts/audit_evidence_contract.py`
 - `tests/test_evidence_ledger_contract.py`
 
 **Primary files to modify:**
 
-- `research-paper-workflow/SKILL.md`
-- `research-paper-workflow/references/workflow-contract.md`
-- `research-paper-workflow/templates/claim-evidence-map.md`
+- `qiongli-workflow/SKILL.md`
+- `qiongli-workflow/references/workflow-contract.md`
+- `qiongli-workflow/templates/claim-evidence-map.md`
 - `skills/B_literature/*.md`
 - `skills/E_synthesis/*.md`
 - `skills/F_writing/*.md`
@@ -135,8 +135,8 @@
 
 - `scripts/audit_citation_risk.py`
 - `tests/test_citation_risk_audit.py`
-- `research-paper-workflow/references/citation-risk-policy.md`
-- `research-paper-workflow/templates/citation-risk-report.md`
+- `qiongli-workflow/references/citation-risk-policy.md`
+- `qiongli-workflow/templates/citation-risk-report.md`
 
 **Primary files to modify:**
 
@@ -184,15 +184,15 @@
 
 **Primary files to create:**
 
-- `research-paper-workflow/references/research-state-contract.md`
+- `qiongli-workflow/references/research-state-contract.md`
 - `scripts/audit_research_state.py`
 - `tests/test_research_state_contract.py`
 
 **Primary files to modify:**
 
-- `research-paper-workflow/templates/research-state.md`
-- `research-paper-workflow/templates/decision-log.md`
-- `research-paper-workflow/SKILL.md`
+- `qiongli-workflow/templates/research-state.md`
+- `qiongli-workflow/templates/decision-log.md`
+- `qiongli-workflow/SKILL.md`
 - `skills/Z_cross_cutting/academic-context-maintainer.md`
 - `skills/Z_cross_cutting/model-collaborator.md`
 - `bridges/orchestrator.py`
@@ -238,19 +238,19 @@
 
 **Primary files to create:**
 
-- `research-paper-workflow/templates/stage-handoff.md`
-- `research-paper-workflow/references/stage-handoff-contract.md`
+- `qiongli-workflow/templates/stage-handoff.md`
+- `qiongli-workflow/references/stage-handoff-contract.md`
 - `scripts/audit_stage_handoffs.py`
 - `tests/test_stage_handoff_contract.py`
 
 **Primary files to modify:**
 
-- `research-paper-workflow/references/stage-A-framing.md`
-- `research-paper-workflow/references/stage-B-literature.md`
-- `research-paper-workflow/references/stage-C-design.md`
-- `research-paper-workflow/references/stage-E-synthesis.md`
-- `research-paper-workflow/references/stage-F-writing.md`
-- `research-paper-workflow/references/stage-H-submission.md`
+- `qiongli-workflow/references/stage-A-framing.md`
+- `qiongli-workflow/references/stage-B-literature.md`
+- `qiongli-workflow/references/stage-C-design.md`
+- `qiongli-workflow/references/stage-E-synthesis.md`
+- `qiongli-workflow/references/stage-F-writing.md`
+- `qiongli-workflow/references/stage-H-submission.md`
 - `standards/research-workflow-contract.yaml`
 
 **Tasks:**
@@ -280,14 +280,14 @@
 
 **Primary files to create:**
 
-- `research-paper-workflow/references/venue-profile-contract.md`
-- `research-paper-workflow/venue-profiles/README.md`
-- `research-paper-workflow/venue-profiles/chi.yaml`
-- `research-paper-workflow/venue-profiles/neurips.yaml`
-- `research-paper-workflow/venue-profiles/acl.yaml`
-- `research-paper-workflow/venue-profiles/nature.yaml`
-- `research-paper-workflow/venue-profiles/jama.yaml`
-- `research-paper-workflow/venue-profiles/aom.yaml`
+- `qiongli-workflow/references/venue-profile-contract.md`
+- `qiongli-workflow/venue-profiles/README.md`
+- `qiongli-workflow/venue-profiles/chi.yaml`
+- `qiongli-workflow/venue-profiles/neurips.yaml`
+- `qiongli-workflow/venue-profiles/acl.yaml`
+- `qiongli-workflow/venue-profiles/nature.yaml`
+- `qiongli-workflow/venue-profiles/jama.yaml`
+- `qiongli-workflow/venue-profiles/aom.yaml`
 - `scripts/audit_venue_profiles.py`
 - `tests/test_venue_profiles.py`
 
@@ -299,7 +299,7 @@
 - `skills/H_submission/submission-packager.md`
 - `skills/H_submission/peer-review-simulation.md`
 - `skills/H_submission/rebuttal-assistant.md`
-- `research-paper-workflow/SKILL.md`
+- `qiongli-workflow/SKILL.md`
 
 **Tasks:**
 
@@ -334,9 +334,9 @@
 
 **Primary files to create:**
 
-- `research-paper-workflow/templates/reviewer-objection-map.md`
-- `research-paper-workflow/templates/revision-plan.md`
-- `research-paper-workflow/references/reviewer-model-contract.md`
+- `qiongli-workflow/templates/reviewer-objection-map.md`
+- `qiongli-workflow/templates/revision-plan.md`
+- `qiongli-workflow/references/reviewer-model-contract.md`
 - `tests/test_reviewer_model_contract.py`
 
 **Primary files to modify:**
@@ -346,8 +346,8 @@
 - `skills/H_submission/rebuttal-assistant.md`
 - `skills/H_submission/fatal-flaw-detector.md`
 - `skills/H_submission/limitation-auditor.md`
-- `research-paper-workflow/workflows/rebuttal.md`
-- `research-paper-workflow/workflows/submission-prep.md`
+- `qiongli-workflow/workflows/rebuttal.md`
+- `qiongli-workflow/workflows/submission-prep.md`
 
 **Tasks:**
 
@@ -377,9 +377,9 @@
 
 **Primary files to create:**
 
-- `research-paper-workflow/templates/method-diagnostic-report.md`
-- `research-paper-workflow/templates/validity-threat-matrix.md`
-- `research-paper-workflow/references/method-diagnostic-contract.md`
+- `qiongli-workflow/templates/method-diagnostic-report.md`
+- `qiongli-workflow/templates/validity-threat-matrix.md`
+- `qiongli-workflow/references/method-diagnostic-contract.md`
 - `skills/C_design/method-diagnostician.md`
 - `tests/test_method_diagnostics.py`
 
@@ -425,9 +425,9 @@
 
 **Primary files to create:**
 
-- `research-paper-workflow/templates/reproducible-analysis-pack.md`
-- `research-paper-workflow/templates/analysis-script-order.md`
-- `research-paper-workflow/templates/computational-environment.md`
+- `qiongli-workflow/templates/reproducible-analysis-pack.md`
+- `qiongli-workflow/templates/analysis-script-order.md`
+- `qiongli-workflow/templates/computational-environment.md`
 - `scripts/audit_reproducibility_pack.py`
 - `tests/test_reproducibility_pack.py`
 
@@ -439,7 +439,7 @@
 - `skills/I_code/code-execution.md`
 - `skills/I_code/reproducibility-auditor.md`
 - `skills/I_code/release-packager.md`
-- `research-paper-workflow/workflows/code-build.md`
+- `qiongli-workflow/workflows/code-build.md`
 
 **Tasks:**
 
@@ -469,11 +469,11 @@
 
 **Primary files to create:**
 
-- `research-paper-workflow/templates/screening-conflict-log.md`
-- `research-paper-workflow/templates/coding-book.md`
-- `research-paper-workflow/templates/negative-case-log.md`
-- `research-paper-workflow/references/systematic-review-advanced-contract.md`
-- `research-paper-workflow/references/qualitative-research-contract.md`
+- `qiongli-workflow/templates/screening-conflict-log.md`
+- `qiongli-workflow/templates/coding-book.md`
+- `qiongli-workflow/templates/negative-case-log.md`
+- `qiongli-workflow/references/systematic-review-advanced-contract.md`
+- `qiongli-workflow/references/qualitative-research-contract.md`
 - `tests/test_review_and_qualitative_contracts.py`
 
 **Primary files to modify:**
@@ -483,8 +483,8 @@
 - `skills/E_synthesis/evidence-synthesizer.md`
 - `skills/E_synthesis/qualitative-coding.md`
 - `skills/G_compliance/prisma-checker.md`
-- `research-paper-workflow/templates/prisma-flowchart.md`
-- `research-paper-workflow/templates/grade-summary-of-findings.md`
+- `qiongli-workflow/templates/prisma-flowchart.md`
+- `qiongli-workflow/templates/grade-summary-of-findings.md`
 
 **Tasks:**
 
@@ -508,8 +508,8 @@
 
 **Primary files to create:**
 
-- `research-paper-workflow/templates/paragraph-diagnostic-report.md`
-- `research-paper-workflow/references/paragraph-quality-contract.md`
+- `qiongli-workflow/templates/paragraph-diagnostic-report.md`
+- `qiongli-workflow/references/paragraph-quality-contract.md`
 - `scripts/audit_paragraph_quality.py`
 - `tests/test_paragraph_quality_contract.py`
 
@@ -521,7 +521,7 @@
 - `skills/F_writing/meta-optimizer.md`
 - `skills/J_proofread/human-voice-rewriter.md`
 - `skills/J_proofread/final-proofreader.md`
-- `research-paper-workflow/references/academic-output-rubric.md`
+- `qiongli-workflow/references/academic-output-rubric.md`
 
 **Tasks:**
 
@@ -552,9 +552,9 @@
 
 **Primary files to create:**
 
-- `research-paper-workflow/templates/contribution-calibration.md`
-- `research-paper-workflow/templates/theory-fit-matrix.md`
-- `research-paper-workflow/references/contribution-taxonomy.md`
+- `qiongli-workflow/templates/contribution-calibration.md`
+- `qiongli-workflow/templates/theory-fit-matrix.md`
+- `qiongli-workflow/references/contribution-taxonomy.md`
 - `tests/test_contribution_calibration.py`
 
 **Primary files to modify:**
@@ -655,8 +655,8 @@
 - `docs/zh/guide/install.md`
 - `docs/reference/cli.md`
 - `docs/zh/reference/cli.md`
-- `scripts/research_skills_cli.sh`
-- `scripts/install_research_skill.sh`
+- `scripts/qiongli_cli.sh`
+- `scripts/install_qiongli.sh`
 
 **Tasks:**
 

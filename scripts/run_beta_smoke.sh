@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-TMP_PROFILE="$(mktemp -t research-skills-smoke-profile.XXXXXX.json)"
+TMP_PROFILE="$(mktemp -t qiongli-smoke-profile.XXXXXX.json)"
 SMOKE_TIER="maintainer"
 trap 'rm -f "$TMP_PROFILE"' EXIT
 

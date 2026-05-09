@@ -1,8 +1,8 @@
-# Academic Deep Research Skills
+# Academic Deep Qiongli
 
-This project is configured to use the **Academic Deep Research Skills** system with Claude Code.
+This project is configured to use the **Academic Deep Qiongli** system with Claude Code.
 
-> **Note:** The core skill pack is installed globally in your AI environment (e.g., `~/.claude/skills/research-paper-workflow/`). You do not need to install the full skill source code into this project directory.
+> **Note:** The core skill pack is installed globally in your AI environment (e.g., `~/.claude/skills/qiongli-workflow/`). You do not need to install the full skill source code into this project directory.
 
 ## Quick Commands
 
@@ -47,4 +47,4 @@ RESEARCH/[topic]/
 
 ## Advanced Usage
 
-For full documentation, canonical Task IDs (`A1`–`K4`), and stage playbooks, refer to the globally installed `research-paper-workflow` skill.
+For full documentation, canonical Task IDs (`A1`–`K4`), and stage playbooks, refer to the globally installed `qiongli-workflow` skill.

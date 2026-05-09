@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from research_skills import cli as cli_module
+from qiongli import cli as cli_module
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -43,8 +43,8 @@ class InstallerCliTests(unittest.TestCase):
         joined = "\n".join(lines)
         self.assertIn("What `", joined)
         self.assertIn("upgrade` modifies by default", joined)
-        self.assertIn("Use `rsk init --project-dir .` to create project config", joined)
-        self.assertIn("rsk init", joined)
+        self.assertIn("Use `qiongli init --project-dir .` to create project config", joined)
+        self.assertIn("qiongli init", joined)
 
     def test_upgrade_passes_parts_to_installer(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -52,7 +52,7 @@ class InstallerCliTests(unittest.TestCase):
             extracted_root = temp_root / "archive-root"
             scripts_dir = extracted_root / "scripts"
             scripts_dir.mkdir(parents=True)
-            (scripts_dir / "bootstrap_research_skill.py").write_text("# stub\n", encoding="utf-8")
+            (scripts_dir / "bootstrap_qiongli.py").write_text("# stub\n", encoding="utf-8")
 
             args = argparse.Namespace(
                 repo="owner/repo",

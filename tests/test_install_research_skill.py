@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-INSTALL_SCRIPT = REPO_ROOT / "scripts" / "install_research_skill.sh"
+INSTALL_SCRIPT = REPO_ROOT / "scripts" / "install_qiongli.sh"
 SYSTEM_BASH = Path("/bin/bash")
 
 
@@ -24,11 +24,11 @@ class InstallResearchSkillTests(unittest.TestCase):
             home_dir = temp_root / "home"
             home_dir.mkdir()
             codex_home = temp_root / "codex-home"
-            existing_skill = codex_home / "skills" / "research-paper-workflow"
+            existing_skill = codex_home / "skills" / "qiongli-workflow"
             existing_skill.mkdir(parents=True)
-            source_version = (REPO_ROOT / "research-paper-workflow" / "VERSION").read_text(encoding="utf-8").strip()
+            source_version = (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(encoding="utf-8").strip()
             (existing_skill / "SKILL.md").write_text(
-                "---\nname: research-paper-workflow\ndescription: current\n---\n",
+                "---\nname: qiongli-workflow\ndescription: current\n---\n",
                 encoding="utf-8",
             )
             (existing_skill / "VERSION").write_text(f"{source_version}\n", encoding="utf-8")
@@ -70,7 +70,7 @@ class InstallResearchSkillTests(unittest.TestCase):
         self.assertIn('PYTHONPATH="$pythonpath" python3 -m bridges.orchestrator "$@"', content)
 
     def test_full_profile_python_hint_does_not_prefer_mise(self) -> None:
-        content = (REPO_ROOT / "research_skills" / "universal_installer.py").read_text(encoding="utf-8")
+        content = (REPO_ROOT / "qiongli" / "universal_installer.py").read_text(encoding="utf-8")
 
         self.assertIn("install Python >= 3.12", content)
         self.assertIn("python.org/downloads", content)
@@ -119,7 +119,7 @@ class InstallResearchSkillTests(unittest.TestCase):
             self.assertFalse((project_dir / "CLAUDE.md").exists())
             self.assertFalse((project_dir / ".env").exists())
             self.assertNotIn("Env", result.stdout)
-            self.assertTrue((claude_home / "skills" / "research-paper-workflow" / "SKILL.md").exists())
+            self.assertTrue((claude_home / "skills" / "qiongli-workflow" / "SKILL.md").exists())
 
     def test_antigravity_install_defaults_to_global_skill_only_when_cli_exists(self) -> None:
         if not SYSTEM_BASH.exists():
@@ -166,10 +166,10 @@ class InstallResearchSkillTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, msg=result.stdout + "\n" + result.stderr)
             self.assertIn("CLI", result.stdout)
             self.assertIn("antigravity", result.stdout)
-            self.assertFalse((project_dir / ".agents" / "skills" / "research-paper-workflow" / "SKILL.md").exists())
-            self.assertFalse((project_dir / ".agent" / "skills" / "research-paper-workflow" / "SKILL.md").exists())
+            self.assertFalse((project_dir / ".agents" / "skills" / "qiongli-workflow" / "SKILL.md").exists())
+            self.assertFalse((project_dir / ".agent" / "skills" / "qiongli-workflow" / "SKILL.md").exists())
             self.assertTrue(
-                (antigravity_home / "skills" / "research-paper-workflow" / "SKILL.md").exists()
+                (antigravity_home / "skills" / "qiongli-workflow" / "SKILL.md").exists()
             )
 
     def test_all_target_reports_install_hints_for_missing_clis(self) -> None:
@@ -262,7 +262,7 @@ class InstallResearchSkillTests(unittest.TestCase):
             # Workflows and CLAUDE.md are no longer installed project-locally
             self.assertFalse((project_dir / ".agent" / "workflows" / "proofread.md").exists())
             self.assertFalse((project_dir / "CLAUDE.md").exists())
-            self.assertFalse((claude_home / "skills" / "research-paper-workflow" / "SKILL.md").exists())
+            self.assertFalse((claude_home / "skills" / "qiongli-workflow" / "SKILL.md").exists())
 
     def test_existing_managed_install_auto_upgrades_without_overwrite(self) -> None:
         if not SYSTEM_BASH.exists():
@@ -278,24 +278,24 @@ class InstallResearchSkillTests(unittest.TestCase):
             cli_dir = temp_root / "bin"
             cli_dir.mkdir()
 
-            existing_skill = codex_home / "skills" / "research-paper-workflow"
+            existing_skill = codex_home / "skills" / "qiongli-workflow"
             existing_skill.mkdir(parents=True)
             (existing_skill / "SKILL.md").write_text(
-                "---\nname: research-paper-workflow\ndescription: legacy\n---\n",
+                "---\nname: qiongli-workflow\ndescription: legacy\n---\n",
                 encoding="utf-8",
             )
             (existing_skill / "VERSION").write_text("v0.4.0-beta.14\n", encoding="utf-8")
 
-            (cli_dir / "research-skills").write_text(
-                "#!/usr/bin/env bash\nCLI_FLAVOR=\"shell-bootstrap\"\n# legacy\nresearch-skills <command>\n",
+            (cli_dir / "qiongli").write_text(
+                "#!/usr/bin/env bash\nCLI_FLAVOR=\"shell-bootstrap\"\n# legacy\nqiongli <command>\n",
                 encoding="utf-8",
             )
-            (cli_dir / "research-skills-bootstrap").write_text(
-                "#!/usr/bin/env bash\nDEFAULT_REPO=\"jxpeng98/research-skills\"\n# legacy\n--profile <partial|full>\n",
+            (cli_dir / "qiongli-bootstrap").write_text(
+                "#!/usr/bin/env bash\nDEFAULT_REPO=\"jxpeng98/qiongli\"\n# legacy\n--profile <partial|full>\n",
                 encoding="utf-8",
             )
-            (cli_dir / "rsk").symlink_to(cli_dir / "research-skills")
-            (cli_dir / "rsw").symlink_to(cli_dir / "research-skills")
+            (cli_dir / "rsk").symlink_to(cli_dir / "qiongli")
+            (cli_dir / "rsw").symlink_to(cli_dir / "qiongli")
 
             env = os.environ.copy()
             env["HOME"] = str(home_dir)
@@ -330,10 +330,10 @@ class InstallResearchSkillTests(unittest.TestCase):
             self.assertIn("already linked", result.stdout)
             self.assertEqual(
                 (existing_skill / "VERSION").read_text(encoding="utf-8").strip(),
-                (REPO_ROOT / "research-paper-workflow" / "VERSION").read_text(encoding="utf-8").strip(),
+                (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(encoding="utf-8").strip(),
             )
-            self.assertIn('CLI_FLAVOR="shell-bootstrap"', (cli_dir / "research-skills").read_text(encoding="utf-8"))
-            self.assertIn('DEFAULT_REPO="jxpeng98/research-skills"', (cli_dir / "research-skills-bootstrap").read_text(encoding="utf-8"))
+            self.assertIn('CLI_FLAVOR="shell-bootstrap"', (cli_dir / "qiongli").read_text(encoding="utf-8"))
+            self.assertIn('DEFAULT_REPO="jxpeng98/qiongli"', (cli_dir / "qiongli-bootstrap").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

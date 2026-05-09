@@ -25,7 +25,7 @@ from bridges.providers.research_collab import (
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Run a local Gemini session broker for research-skills.",
+        description="Run a local Gemini session broker for qiongli.",
     )
     parser.add_argument("--host", default="127.0.0.1", help="Bind host (default: 127.0.0.1)")
     parser.add_argument("--port", type=int, default=8767, help="Bind port (default: 8767)")

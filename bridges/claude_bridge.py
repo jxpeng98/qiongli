@@ -1,5 +1,5 @@
 """
-Claude CLI Bridge for research-skills.
+Claude CLI Bridge for qiongli.
 Wraps Anthropic Claude Code CLI.
 
 Python 3.12+ required.

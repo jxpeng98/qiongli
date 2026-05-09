@@ -4,7 +4,7 @@ This page condenses the architecture sections scattered across `README.md` and m
 
 ## Core Principle
 
-Research Skills separates:
+Qiongli separates:
 
 - canonical contract truth
 - capability routing
@@ -26,7 +26,7 @@ That separation is what keeps the system extensible without turning every workfl
 | Internal Skill Specs | `skills/` | Reusable execution behavior |
 | Pipelines / Workflows | `pipelines/`, `.agent/workflows/` | Step sequencing and entry UX |
 | Bridges | `bridges/` | Runtime adapters and orchestration |
-| Portable Skill Package | `research-paper-workflow/` | Cross-client distributable entry skill |
+| Portable Skill Package | `qiongli-workflow/` | Cross-client distributable entry skill |
 
 ## Dependency Direction
 
@@ -58,9 +58,9 @@ flowchart TD
 | Entry mode | Best for | Entry |
 |---|---|---|
 | Claude Code workflows | Slash-command UX inside a project | `.agent/workflows/*.md` |
-| Shell/Python installer CLI | Installing and upgrading assets | `research-skills`, `rsk`, `rsw` |
+| Shell/Python installer CLI | Installing and upgrading assets | `qiongli`, `rsk`, `rsw` |
 | Orchestrator CLI | Task planning, task execution, validation | `python3 -m bridges.orchestrator ...` |
-| Portable skill package | Cross-client distribution surface | `research-paper-workflow/` |
+| Portable skill package | Cross-client distribution surface | `qiongli-workflow/` |
 
 ## Dynamic Discipline Domains
 
@@ -89,13 +89,13 @@ Two external projects are especially relevant to how this repository evolved:
 
 - [fengshao1227/ccg-workflow](https://github.com/fengshao1227/ccg-workflow)
   - Important influence: strict separation between spec, planning, execution, and review.
-  - Important difference: CCG is a general software-engineering collaboration system, while `research-skills` localizes that discipline into academic research workflows and Stage-I tasks `I5 -> I6 -> I7 -> I8`.
+  - Important difference: CCG is a general software-engineering collaboration system, while `qiongli` localizes that discipline into academic research workflows and Stage-I tasks `I5 -> I6 -> I7 -> I8`.
 - [GuDaStudio/skills](https://github.com/GuDaStudio/skills)
   - Important influence: packaging cross-model collaboration capabilities as installable Claude-oriented skills.
-  - Important difference: `GuDaStudio/skills` is a general-purpose skill collection, while `research-skills` is organized around one canonical contract, one task catalog, and one `RESEARCH/[topic]/` artifact tree.
+  - Important difference: `GuDaStudio/skills` is a general-purpose skill collection, while `qiongli` is organized around one canonical contract, one task catalog, and one `RESEARCH/[topic]/` artifact tree.
 
 ## Where To Go Next
 
 - Need edit rules and placement guidance: [Conventions](/conventions)
 - Need exact CLI commands: [CLI Reference](/reference/cli)
-- Need to modify behavior: [Extend Research Skills](/advanced/extend-research-skills)
+- Need to modify behavior: [Extend Qiongli](/advanced/extend-qiongli)

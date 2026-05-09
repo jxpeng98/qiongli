@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-OUT_PATH="${1:-${ROOT_DIR}/research_skills/project.toml}"
+OUT_PATH="${1:-${ROOT_DIR}/qiongli/project.toml}"
 
 REPO_SLUG="${RESEARCH_SKILLS_REPO_SLUG:-${GITHUB_REPOSITORY:-}}"
 SERVER_URL="${GITHUB_SERVER_URL:-https://github.com}"
@@ -35,7 +35,7 @@ cat >"$OUT_PATH" <<EOF
 # Override upstream at runtime via:
 # - CLI:   --repo <owner>/<repo> (or a Git URL)
 # - Env:   RESEARCH_SKILLS_REPO=<owner>/<repo>
-# - Project config: research-skills.toml / .research-skills.toml
+# - Project config: qiongli.toml / .qiongli.toml
 
 [upstream]
 repo = "${REPO_SLUG}"

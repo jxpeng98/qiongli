@@ -9,9 +9,9 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-PLUGIN_ROOT = REPO_ROOT / "plugins" / "research-skills"
-PLUGIN_SKILL_ROOT = PLUGIN_ROOT / "skills" / "research-paper-workflow"
-WORKFLOW_ROOT = REPO_ROOT / "research-paper-workflow"
+PLUGIN_ROOT = REPO_ROOT / "plugins" / "qiongli"
+PLUGIN_SKILL_ROOT = PLUGIN_ROOT / "skills" / "qiongli-workflow"
+WORKFLOW_ROOT = REPO_ROOT / "qiongli-workflow"
 WORKFLOW_VERSION = (WORKFLOW_ROOT / "VERSION").read_text(encoding="utf-8").strip().lstrip("v")
 
 
@@ -63,12 +63,12 @@ class PluginDistributionContractTests(unittest.TestCase):
         self.assertEqual(claude_marketplace["plugins"][0]["version"], WORKFLOW_VERSION)
         self.assertEqual(gemini["version"], WORKFLOW_VERSION)
 
-    def test_codex_marketplace_points_to_local_research_skills_plugin(self) -> None:
+    def test_codex_marketplace_points_to_local_qiongli_plugin(self) -> None:
         marketplace = json.loads((REPO_ROOT / ".agents" / "plugins" / "marketplace.json").read_text(encoding="utf-8"))
         entries = {entry["name"]: entry for entry in marketplace["plugins"]}
 
-        self.assertIn("research-skills", entries)
-        self.assertEqual(entries["research-skills"]["source"], {"source": "local", "path": "./plugins/research-skills"})
+        self.assertIn("qiongli", entries)
+        self.assertEqual(entries["qiongli"]["source"], {"source": "local", "path": "./plugins/qiongli"})
 
     def test_codex_plugin_exposes_skill_directory(self) -> None:
         manifest = json.loads((PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
@@ -95,8 +95,8 @@ class PluginDistributionContractTests(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0, msg=result.stderr + result.stdout)
-        self.assertIn("research-paper-workflow", result.stdout)
-        self.assertIn("plugins/research-skills/skills/research-paper-workflow", result.stdout)
+        self.assertIn("qiongli-workflow", result.stdout)
+        self.assertIn("plugins/qiongli/skills/qiongli-workflow", result.stdout)
 
 
 if __name__ == "__main__":

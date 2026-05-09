@@ -28,10 +28,10 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('git add "release/${repo_tag}.md"', content)
         self.assertIn('git tag -a "$repo_tag"', content)
         self.assertIn('git push "$push_remote" "$push_branch" "$repo_tag"', content)
-        self.assertIn('plugins/research-skills/.codex-plugin/plugin.json', content)
+        self.assertIn('plugins/qiongli/.codex-plugin/plugin.json', content)
         self.assertIn('.claude-plugin/marketplace.json', content)
-        self.assertIn('plugins/research-skills/.claude-plugin/plugin.json', content)
-        self.assertIn('plugins/research-skills/gemini-extension.json', content)
+        self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
+        self.assertIn('plugins/qiongli/gemini-extension.json', content)
         self.assertIn('./scripts/release_postflight.sh --tag "$repo_tag"', content)
 
     def test_release_postflight_waits_for_required_workflows(self) -> None:
@@ -60,10 +60,10 @@ class ReleaseAutomationTests(unittest.TestCase):
     def test_release_ready_includes_plugin_distribution_versions(self) -> None:
         content = RELEASE_READY.read_text(encoding="utf-8")
 
-        self.assertIn('plugins/research-skills/.codex-plugin/plugin.json', content)
+        self.assertIn('plugins/qiongli/.codex-plugin/plugin.json', content)
         self.assertIn('.claude-plugin/marketplace.json', content)
-        self.assertIn('plugins/research-skills/.claude-plugin/plugin.json', content)
-        self.assertIn('plugins/research-skills/gemini-extension.json', content)
+        self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
+        self.assertIn('plugins/qiongli/gemini-extension.json', content)
 
     def test_release_ready_does_not_print_manual_publish_steps(self) -> None:
         content = RELEASE_READY.read_text(encoding="utf-8")
@@ -154,13 +154,13 @@ class ReleaseAutomationTests(unittest.TestCase):
 
         self.assertIn('scripts/sync_versions.py "$TAG" --print-field package_version', content)
         self.assertIn('pyproject.toml', content)
-        self.assertIn('research_skills/__init__.py', content)
+        self.assertIn('qiongli/__init__.py', content)
         self.assertIn('skills/registry.yaml', content)
-        self.assertIn('research-paper-workflow/VERSION', content)
-        self.assertIn('plugins/research-skills/.codex-plugin/plugin.json', content)
+        self.assertIn('qiongli-workflow/VERSION', content)
+        self.assertIn('plugins/qiongli/.codex-plugin/plugin.json', content)
         self.assertIn('.claude-plugin/marketplace.json', content)
-        self.assertIn('plugins/research-skills/.claude-plugin/plugin.json', content)
-        self.assertIn('plugins/research-skills/gemini-extension.json', content)
+        self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
+        self.assertIn('plugins/qiongli/gemini-extension.json', content)
 
 
 if __name__ == "__main__":

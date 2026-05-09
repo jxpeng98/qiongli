@@ -8,7 +8,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from research_skills.skill_docs import generate_skill_reference_docs
+from qiongli.skill_docs import generate_skill_reference_docs
 
 
 def main() -> int:

@@ -1,11 +1,11 @@
-# CLI 命令参考（research-skills）
+# CLI 命令参考（qiongli）
 
 本文件整理本仓库所有“可执行入口”（pipx CLI / Python module / Bash scripts），用于本地与 GitHub CI 保持一致的调用方式。
 
 ## 0) 命令名约定
 
-- `research-skills`：主 CLI（pipx/venv 安装后可用，或通过 shell bootstrap 安装）
-- `rsk` / `rsw`：短别名（与 `research-skills` 完全等价）
+- `qiongli`：主 CLI（pipx/venv 安装后可用，或通过 shell bootstrap 安装）
+- `rsk` / `rsw`：短别名（与 `qiongli` 完全等价）
 
 下文统一用 `rsk` 作为示例。
 
@@ -18,10 +18,10 @@
 1. CLI 参数：`--repo <owner/repo|Git URL>`
 2. 环境变量：`RESEARCH_SKILLS_REPO=<owner/repo|Git URL>`
 3. 项目配置文件（从当前目录或 `--project-dir` 向上搜索）：
-   - `research-skills.toml`
-   - `.research-skills.toml`
-4. 打包默认（pipx 安装的包内）：`research_skills/project.toml`（由 CI 注入）
-5. 如果你正在 `research-skills` 仓库 clone 内运行：从 git remote 推断（优先 `upstream`，其次 `origin`）
+   - `qiongli.toml`
+   - `.qiongli.toml`
+4. 打包默认（pipx 安装的包内）：`qiongli/project.toml`（由 CI 注入）
+5. 如果你正在 `qiongli` 仓库 clone 内运行：从 git remote 推断（优先 `upstream`，其次 `origin`）
 
 支持的 repo 形式：
 
@@ -32,7 +32,7 @@
 推荐把上游提交到你的项目仓库（适合 CI）：
 
 ```toml
-# research-skills.toml
+# qiongli.toml
 [upstream]
 repo = "owner/repo"   # 或 url = "https://github.com/owner/repo.git"
 ```
@@ -43,7 +43,7 @@ repo = "owner/repo"   # 或 url = "https://github.com/owner/repo.git"
 
 这个 CLI 现在有两种分发方式：
 - Python CLI：通过 `pip`/`pipx` 安装
-- Shell CLI：由 `bootstrap_research_skill.sh` 默认安装到 `${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}`
+- Shell CLI：由 `bootstrap_qiongli.sh` 默认安装到 `${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}`
 
 共同支持的命令：`check`、`upgrade`、`align`
 
@@ -73,7 +73,7 @@ rsk check [--repo <owner/repo|url>] [--json] [--strict-network]
 
 用途：
 - 下载上游 release（默认 latest tag 的 tar.gz）
-- 解压后运行其中的 `scripts/install_research_skill.sh`
+- 解压后运行其中的 `scripts/install_qiongli.sh`
 
 ```bash
 rsk upgrade \
@@ -136,7 +136,7 @@ rsk clean [--project-dir <path>] [--dry-run] [--globals]
 
 参数说明：
 - `--project-dir`：要清理的目录（默认当前目录）。
-- `--globals`：同时移除全局工作流发现 symlink（`~/.claude/commands/` 和 `~/.gemini/workflows/`）。只移除指向 `research-paper-workflow` 的 symlink，用户自建的命令不受影响。
+- `--globals`：同时移除全局工作流发现 symlink（`~/.claude/commands/` 和 `~/.gemini/workflows/`）。只移除指向 `qiongli-workflow` 的 symlink，用户自建的命令不受影响。
 - `--dry-run`：只显示将要移除的内容，不实际删除。
 
 ### 2.6 `rsk align`（快速参考）
@@ -278,14 +278,14 @@ mode 列表：
 
 ## 4) Bash 脚本入口（不依赖 pipx）
 
-### 4.1 远程 bootstrap 安装器：`./scripts/bootstrap_research_skill.sh`
+### 4.1 远程 bootstrap 安装器：`./scripts/bootstrap_qiongli.sh`
 
 用途：
 - 在没有 Python 的机器上完成安装或刷新。
-- 下载 GitHub release/branch 压缩包，解压后转调其中的 `scripts/install_research_skill.sh`。
+- 下载 GitHub release/branch 压缩包，解压后转调其中的 `scripts/install_qiongli.sh`。
 
 ```bash
-./scripts/bootstrap_research_skill.sh \
+./scripts/bootstrap_qiongli.sh \
   --repo owner/repo \
   --target all \
   --project-dir /path/to/project \
@@ -295,15 +295,15 @@ mode 列表：
 说明：
 - 依赖 `bash` 和 `curl` 或 `wget`，以及 `tar`。
 - 支持 `--ref <tag-or-branch>` 配合 `--ref-type tag|branch`。
-- 默认会安装 shell CLI 命令：`research-skills`、`rsk`、`rsw`。
+- 默认会安装 shell CLI 命令：`qiongli`、`rsk`、`rsw`。
 - 如果你不想安装 shell CLI，可加 `--no-cli`；如需改目录，可用 `--cli-dir <path>`。
 - 远程 bootstrap 只支持 `--mode copy`。
 - `--doctor` 在没有 `python3` 时会自动跳过。
 
-### 4.2 安装脚本：`./scripts/install_research_skill.sh`
+### 4.2 安装脚本：`./scripts/install_qiongli.sh`
 
 ```bash
-./scripts/install_research_skill.sh \
+./scripts/install_qiongli.sh \
   --target all \
   --mode copy \
   --project-dir /path/to/project \
@@ -341,7 +341,7 @@ mode 列表：
 
 ### 4.5 CI 注入打包默认上游：`./scripts/inject_project_toml.sh`
 
-GitHub Actions 构建时会运行它，把当前仓库 slug 写入 `research_skills/project.toml`，让 pipx 安装后的 CLI 默认指向正确上游。
+GitHub Actions 构建时会运行它，把当前仓库 slug 写入 `qiongli/project.toml`，让 pipx 安装后的 CLI 默认指向正确上游。
 
 ```bash
 bash scripts/inject_project_toml.sh
