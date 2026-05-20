@@ -66,6 +66,49 @@ class CollaborationMode(Enum):
     SINGLE = "single"          # Single model execution
 
 
+RUNTIME_AGENT_CHOICES = ("codex", "claude", "gemini")
+CONTROLLER_EXECUTION_MODE_CHOICES = ("solo", "duo", "triad")
+SOLO_ROLE_GATE_CHOICES = ("strict", "standard", "off")
+
+
+def _add_controller_agnostic_task_run_args(parser: argparse.ArgumentParser) -> None:
+    """Add declaration-only controller metadata flags for task-run."""
+    parser.add_argument(
+        "--execution-mode",
+        choices=CONTROLLER_EXECUTION_MODE_CHOICES,
+        help="Controller-level execution shape: solo, duo, or triad.",
+    )
+    parser.add_argument(
+        "--controller",
+        choices=RUNTIME_AGENT_CHOICES,
+        help="Runtime agent responsible for orchestration control metadata.",
+    )
+    parser.add_argument(
+        "--primary",
+        dest="primary_agent",
+        choices=RUNTIME_AGENT_CHOICES,
+        help="Declared primary runtime agent for this task.",
+    )
+    parser.add_argument(
+        "--reviewer",
+        dest="review_agent",
+        choices=RUNTIME_AGENT_CHOICES,
+        help="Declared review runtime agent for this task.",
+    )
+    parser.add_argument(
+        "--verifier",
+        dest="verifier_agent",
+        choices=RUNTIME_AGENT_CHOICES,
+        help="Declared verification runtime agent for this task.",
+    )
+    parser.add_argument(
+        "--solo-role-gates",
+        choices=SOLO_ROLE_GATE_CHOICES,
+        default="standard",
+        help="Solo-mode role gate strictness: strict, standard, or off.",
+    )
+
+
 class AcademicTaskType(Enum):
     """Academic research task types for intelligent routing."""
     ALGORITHM_IMPL = "algorithm"       # Implement algorithm from paper
@@ -3155,13 +3198,22 @@ Stage-I structure checks:
         artifact_policy: str,
         research_depth: str,
         evidence_expansion_rounds: int,
+        controller_metadata: dict[str, str] | None = None,
         academic_context_update: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        controller_metadata = dict(controller_metadata or {})
         return {
             "task_id": task_id,
             "paper_type": paper_type,
             "topic": topic,
             "venue": venue or "",
+            "execution_mode": controller_metadata.get("execution_mode", ""),
+            "controller": controller_metadata.get("controller", ""),
+            "primary_agent": controller_metadata.get("primary_agent", ""),
+            "review_agent": controller_metadata.get("review_agent", ""),
+            "verifier_agent": controller_metadata.get("verifier_agent", ""),
+            "solo_role_gates": controller_metadata.get("solo_role_gates", ""),
+            "controller_metadata": dict(controller_metadata),
             "artifact_root": artifact_root,
             "required_outputs": required_outputs,
             "contract_required_outputs": contract_required_outputs,
@@ -3226,6 +3278,74 @@ Stage-I structure checks:
             item for item in normalized_contract if item not in selected_set
         ]
         return normalized_contract, selected_outputs, deferred_outputs, artifact_policy
+
+    def _build_controller_metadata(
+        self,
+        *,
+        execution_mode: str | None,
+        controller: str | None,
+        primary_agent: str | None,
+        review_agent: str | None,
+        verifier_agent: str | None,
+        solo_role_gates: str | None,
+        triad: bool,
+    ) -> dict[str, str]:
+        selected_execution_mode = self._normalize_controller_choice(
+            execution_mode,
+            CONTROLLER_EXECUTION_MODE_CHOICES,
+            "execution_mode",
+            default="triad" if triad else "duo",
+        )
+        return {
+            "execution_mode": selected_execution_mode,
+            "controller": self._normalize_controller_choice(
+                controller,
+                RUNTIME_AGENT_CHOICES,
+                "controller",
+                default="codex",
+            ),
+            "primary_agent": self._normalize_controller_choice(
+                primary_agent,
+                RUNTIME_AGENT_CHOICES,
+                "primary_agent",
+                default="",
+            ),
+            "review_agent": self._normalize_controller_choice(
+                review_agent,
+                RUNTIME_AGENT_CHOICES,
+                "review_agent",
+                default="",
+            ),
+            "verifier_agent": self._normalize_controller_choice(
+                verifier_agent,
+                RUNTIME_AGENT_CHOICES,
+                "verifier_agent",
+                default="",
+            ),
+            "solo_role_gates": self._normalize_controller_choice(
+                solo_role_gates,
+                SOLO_ROLE_GATE_CHOICES,
+                "solo_role_gates",
+                default="standard",
+            ),
+        }
+
+    @staticmethod
+    def _normalize_controller_choice(
+        value: str | None,
+        choices: tuple[str, ...],
+        field_name: str,
+        *,
+        default: str,
+    ) -> str:
+        normalized = (value or default).strip().lower()
+        if not normalized:
+            return ""
+        if normalized not in choices:
+            raise ValueError(
+                f"{field_name} must be one of: {', '.join(choices)}."
+            )
+        return normalized
 
     def _collect_skill_context(
         self,
@@ -4649,6 +4769,12 @@ Return sections:
         only_targets: list[str] | None = None,
         skip_validation: bool = False,
         update_academic_context: bool = False,
+        execution_mode: str | None = None,
+        controller: str | None = None,
+        primary_agent: str | None = None,
+        review_agent: str | None = None,
+        verifier_agent: str | None = None,
+        solo_role_gates: str | None = "standard",
     ) -> CollaborationResult:
         """Run task-level orchestration using capability map and contract."""
         normalized_task = task_id.strip().upper()
@@ -4697,6 +4823,15 @@ Return sections:
             agent_plan["required_skills"],
             effective_max_rounds,
             depth_mode,
+        )
+        controller_metadata = self._build_controller_metadata(
+            execution_mode=execution_mode,
+            controller=controller,
+            primary_agent=primary_agent,
+            review_agent=review_agent,
+            verifier_agent=verifier_agent,
+            solo_role_gates=solo_role_gates,
+            triad=triad,
         )
 
         try:
@@ -4751,6 +4886,7 @@ Return sections:
             artifact_policy=artifact_policy,
             research_depth=depth_mode,
             evidence_expansion_rounds=evidence_expansion_rounds,
+            controller_metadata=controller_metadata,
             academic_context_update=academic_context_update,
         )
         packet.update(self._build_domain_packet_fields(domain_context))
@@ -4810,6 +4946,15 @@ Return sections:
             f"review={agent_plan['review_agent']}, "
             f"fallback={agent_plan['fallback_agent']}."
             + (" / 运行预案已确认。" if zh_ui else "")
+        )
+        routing_notes.append(
+            "Controller metadata: "
+            f"execution_mode={controller_metadata['execution_mode']}, "
+            f"controller={controller_metadata['controller']}, "
+            f"primary={controller_metadata['primary_agent'] or 'auto'}, "
+            f"reviewer={controller_metadata['review_agent'] or 'auto'}, "
+            f"verifier={controller_metadata['verifier_agent'] or 'auto'}, "
+            f"solo_role_gates={controller_metadata['solo_role_gates']}."
         )
         routing_notes.append(
             "Output control: "
@@ -5809,6 +5954,7 @@ def main():
         action="store_true",
         help="Append context/research_state.md and context/decision_log.md for supported stage-close tasks.",
     )
+    _add_controller_agnostic_task_run_args(task_run)
 
     team_run_parser = subparsers.add_parser(
         "team-run",
@@ -5920,6 +6066,12 @@ def main():
             only_targets=getattr(args, "only_targets", None),
             skip_validation=getattr(args, "skip_validation", False),
             update_academic_context=getattr(args, "update_academic_context", False),
+            execution_mode=getattr(args, "execution_mode", None),
+            controller=getattr(args, "controller", None),
+            primary_agent=getattr(args, "primary_agent", None),
+            review_agent=getattr(args, "review_agent", None),
+            verifier_agent=getattr(args, "verifier_agent", None),
+            solo_role_gates=getattr(args, "solo_role_gates", "standard"),
         )
     elif args.mode == "team-run":
         result = orchestrator.team_run(
