@@ -21,5 +21,6 @@ Save to: RESEARCH/[topic]/revision/response_matrix.md
 ---
 
 ## Summary of Major Changes
-1.
-2.
+1. 
+2. 
+

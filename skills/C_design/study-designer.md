@@ -273,6 +273,12 @@ Document the registration date and any post-registration deviations with justifi
 - Do not invent citations, data, sample sizes, statistical results, or reviewer comments.
 - Apply `references/academic-output-rubric.md` before finalizing scholarly prose or review artifacts.
 
+### Method Diagnostics
+
+- Produce or consume `RESEARCH/[topic]/design/method-diagnostic-report.md` and `RESEARCH/[topic]/design/validity-threat-matrix.md` when design choices affect inference, measurement, or analysis.
+- Cover construct validity, internal validity, external validity, statistical conclusion validity, measurement validity, data leakage, missingness, confounding, and selection bias.
+- If method details are insufficient, write explicit insufficient-input notes instead of guessing.
+
 ## Quality Bar
 
 The study design is **ready** when:

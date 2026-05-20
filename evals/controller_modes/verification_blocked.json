@@ -1,0 +1,37 @@
+{
+  "artifacts_written": [
+    "manuscript/draft.md",
+    "reviews/codex-blocker.md",
+    "handoffs/blocked-verification-handoff.md"
+  ],
+  "controller": "claude",
+  "execution_mode": "duo",
+  "expected_artifacts": [
+    "manuscript/draft.md",
+    "reviews/codex-blocker.md",
+    "handoffs/blocked-verification-handoff.md"
+  ],
+  "id": "verification_blocked",
+  "primary_agent": "claude",
+  "reviewer_agent": "codex",
+  "scores": {
+    "artifact_completeness": 0.8,
+    "command_verification_honesty": 1.0,
+    "disagreement_resolution": 1.0,
+    "evidence_traceability": 1.0,
+    "handoff_quality": 1.0,
+    "role_gate_compliance": 1.0
+  },
+  "verification": {
+    "blocker_reason": "Required local dataset is intentionally absent in the offline fixture.",
+    "evidence": [
+      {
+        "command": "python scripts/validate_project_artifacts.py offline-fixture",
+        "status": "blocked"
+      }
+    ],
+    "expected_blocked": true,
+    "status": "blocked"
+  },
+  "verifier_agent": "codex"
+}

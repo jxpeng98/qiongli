@@ -47,11 +47,11 @@ Use this contract as the single source of truth for:
 | `B4` | B | Related work writing | `manuscript/manuscript.md` |
 | `B5` | B | Citation management | `bibliography.bib`, `references.ris`, `references.json` |
 | `B6` | B | Literature mapping | `literature/literature_map.md` |
-| `C1` | C | Study design | `study_design.md` |
+| `C1` | C | Study design | `study_design.md`, `design/method-diagnostic-report.md`, `design/validity-threat-matrix.md` |
 | `C1_5` | C | Rival hypothesis design | `design/rival_hypotheses.md` |
 | `C2` | C | Instruments | `instruments/` |
 | `C3` | C | Analysis plan | `analysis_plan.md`, `design/variable_spec.md` |
-| `C3_5` | C | Robustness check plan | `design/robustness_plan.md` |
+| `C3_5` | C | Robustness check plan | `design/robustness_plan.md`, `design/method-diagnostic-report.md`, `design/validity-threat-matrix.md` |
 | `C4` | C | Data management plan | `data_management_plan.md`, `design/dataset_plan.md` |
 | `C5` | C | Preregistration draft | `preregistration.md` |
 | `D1` | D | Ethics pack | `ethics_irb.md` |
@@ -66,7 +66,7 @@ Use this contract as the single source of truth for:
 | `F1` | F | Manuscript outline | `manuscript/outline.md` |
 | `F2` | F | Single section writing | `manuscript/manuscript.md` |
 | `F3` | F | Full draft | `manuscript/manuscript.md`, `manuscript/discussion.md`, `manuscript/discussion_story_spine.md`, `manuscript/results_interpretation.md`, `manuscript/effect_interpretation.md` |
-| `F4` | F | Claim-evidence map | `manuscript/claims_evidence_map.md` |
+| `F4` | F | Claim-evidence map | `manuscript/claims_evidence_map.md`, `evidence/claim-evidence-ledger.csv` |
 | `F5` | F | Figures/tables plan | `manuscript/figures_tables_plan.md`, `manuscript/tables/`, `manuscript/figures/` |
 | `F6` | F | Abstract & Title Optimization | `manuscript/meta_optimization.md` |
 | `G1` | G | Reporting completeness | `reporting_checklist.md` |
@@ -75,7 +75,7 @@ Use this contract as the single source of truth for:
 | `G4` | G | Tone & Style Normalization | `compliance/tone_normalization.md` |
 | `J1` | J | AI fingerprint scan | `proofread/ai_detection_report.md` |
 | `J2` | J | Human-voice rewrite | `proofread/humanized_manuscript.md` |
-| `J3` | J | Similarity & originality check | `proofread/similarity_report.md` |
+| `J3` | J | Similarity & originality check | `proofread/similarity_report.md`, `proofread/citation-risk-report.md` |
 | `J4` | J | Final proofread | `proofread/proofread_checklist.md` |
 | `H1` | H | Submission package | `submission/cover_letter.md`, `submission/submission_checklist.md`, `submission/title_page.md`, `submission/highlights.md`, `submission/suggested_reviewers.md`, `submission/author_contributions_credit.md`, `submission/funding_statement.md`, `submission/coi_statement.md`, `submission/data_availability.md`, `submission/ai_disclosure.md`, `submission/supplementary_inventory.md` |
 | `H2` | H | Rebuttal package | `revision/` |

@@ -13,5 +13,6 @@ The authors declare no competing interests.
 
 Option B — With competing interests:
 
-[Author initials] reports [relationship/interest] with [entity], which could be perceived as a potential conflict of interest.
+[Author initials] reports [relationship/interest] with [entity], which could be perceived as a potential conflict of interest.  
 [Add additional disclosures per author as needed.]
+

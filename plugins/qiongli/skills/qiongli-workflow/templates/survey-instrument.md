@@ -33,3 +33,4 @@ Save to: RESEARCH/[topic]/instruments/survey.md
 ## 5) Scoring Rules
 - Reverse-coded items:
 - Composite score computation:
+

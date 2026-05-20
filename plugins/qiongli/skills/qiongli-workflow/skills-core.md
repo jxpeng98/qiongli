@@ -10,7 +10,14 @@ Consolidated skill reference for token-efficient workflow execution. Use this fi
 
 **Source of truth:** `standards/research-workflow-contract.yaml`
 
-**Rule:** Always map user intent to a canonical Task ID (`A1`...`I8`) and write outputs to the contract path under `RESEARCH/[topic]/`.
+**Rule:** Always map user intent to a canonical Task ID (`A1`...`K4`) and write outputs to the contract path under `RESEARCH/[topic]/`.
+
+**Cross-cutting quality substrate:**
+- Central claims go in `RESEARCH/[topic]/evidence/claim-evidence-ledger.csv` using `references/evidence-ledger-contract.md`.
+- Unsupported central claims become `gap_note` rows and `context/gap_notes.md`, not invented citations.
+- Final writing, proofread, submission, rebuttal, and presentation-facing outputs should apply `references/citation-risk-policy.md`.
+- High-risk stage transitions should write `context/stage_handoff.md` using `references/stage-handoff-contract.md`.
+- Stage C design work should produce or consume `design/method-diagnostic-report.md` and `design/validity-threat-matrix.md`.
 
 ---
 
@@ -40,8 +47,9 @@ Consolidated skill reference for token-efficient workflow execution. Use this fi
 4. Draft data collection instruments and procedures
 5. Pre-specify analysis plan (primary outcomes, models, missingness, robustness)
 6. Plan validity/rigor + reproducibility (DMP + prereg optional)
+7. Produce method diagnostics for construct validity, internal validity, external validity, statistical conclusion validity, measurement validity, data leakage, missingness, confounding, and selection bias
 
-**Templates:** `templates/study-design.md`, `templates/analysis-plan.md`, `templates/data-management-plan.md`
+**Templates:** `templates/study-design.md`, `templates/analysis-plan.md`, `templates/data-management-plan.md`, `templates/method-diagnostic-report.md`, `templates/validity-threat-matrix.md`
 
 **Output:** `DesignSpec`, `AnalysisPlan`
 

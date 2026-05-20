@@ -165,6 +165,12 @@ python3 -m bridges.orchestrator task-run \
   --focus-output manuscript/manuscript.md \
   --research-depth deep --max-rounds 4
 
+# Claude-primary duo writing run with Codex review
+python3 -m bridges.orchestrator task-run \
+  --task-id F3 --paper-type empirical --topic ai-in-education --cwd . \
+  --execution-mode duo --controller claude --primary claude --reviewer codex \
+  --mcp-strict --skills-strict
+
 # Team-run parallel execution
 python3 -m bridges.orchestrator team-run \
   --task-id B1 --paper-type systematic-review --topic ai-in-education --cwd .
@@ -189,7 +195,18 @@ python3 -m bridges.orchestrator code-build \
 - `--mcp-strict`: block execution when required MCP providers are unavailable
 - `--skills-strict`: block execution when required skill spec files are missing
 - `--triad`: request a third independent audit
+- `--execution-mode solo|duo|triad`: record the controller-level collaboration shape
+- `--controller codex|claude|gemini`: record the runtime agent accountable for orchestration metadata
+- `--primary`, `--reviewer`, `--verifier`: record declared task ownership, review, and verification agents
+- `--solo-role-gates strict|standard|off`: control solo-mode role gate strictness
 - Built-in profiles: `focused-delivery`, `deep-research`, `strict-review`, `rapid-draft`, `default`
+
+Controller-mode validation is strict: unsupported controller flag values fail argument parsing. For authoritative runs, combine controller metadata with `--mcp-strict` and `--skills-strict`; do not use `--skip-validation` for submission-facing, Stage-I code, or final manuscript outputs.
+
+Controller guide files:
+- `guides/advanced/controller-modes.md`
+- `guides/advanced/solo-mode.md`
+- `guides/advanced/codex-claude-duo.md`
 
 ### External MCP Connector
 

@@ -7,6 +7,9 @@ artifacts:
   required_core:
     - "context/research_state.md"
     - "context/decision_log.md"
+    - "context/stage_handoff.md"
+    - "evidence/evidence-ledger.md"
+    - "evidence/claim-evidence-ledger.csv"
     - "protocol.md"
     - "framing/research_question.md"
     - "framing/contribution_statement.md"
@@ -39,6 +42,8 @@ artifacts:
     - "analysis_plan.md"
     - "design/variable_spec.md"
     - "design/robustness_plan.md"
+    - "design/method-diagnostic-report.md"
+    - "design/validity-threat-matrix.md"
     - "design/dataset_plan.md"
     - "data_management_plan.md"
     - "data/cleaning_plan.md"
@@ -66,6 +71,7 @@ artifacts:
     - "proofread/ai_detection_report.md"
     - "proofread/humanized_manuscript.md"
     - "proofread/similarity_report.md"
+    - "proofread/citation-risk-report.md"
     - "proofread/proofread_checklist.md"
 
 paper_types:
@@ -171,6 +177,7 @@ stages:
     outputs:
       - "context/research_state.md"
       - "context/decision_log.md"
+      - "context/stage_handoff.md"
       - "framing/research_question.md"
       - "framing/hypothesis.md"
       - "framing/contribution_statement.md"
@@ -184,6 +191,7 @@ stages:
     outputs:
       - "context/research_state.md"
       - "context/decision_log.md"
+      - "context/stage_handoff.md"
       - "protocol.md"
       - "search_strategy.md"
       - "literature/concept_extraction.md"
@@ -206,12 +214,15 @@ stages:
     outputs:
       - "context/research_state.md"
       - "context/decision_log.md"
+      - "context/stage_handoff.md"
       - "study_design.md"
       - "design/rival_hypotheses.md"
       - "instruments/"
       - "analysis_plan.md"
       - "design/variable_spec.md"
       - "design/robustness_plan.md"
+      - "design/method-diagnostic-report.md"
+      - "design/validity-threat-matrix.md"
       - "design/dataset_plan.md"
       - "data_management_plan.md"
       - "preregistration.md"
@@ -222,6 +233,7 @@ stages:
     outputs:
       - "context/research_state.md"
       - "context/decision_log.md"
+      - "context/stage_handoff.md"
       - "ethics_irb.md"
       - "compliance/deidentification_plan.md"
   - id: "E"
@@ -231,6 +243,7 @@ stages:
     outputs:
       - "context/research_state.md"
       - "context/decision_log.md"
+      - "context/stage_handoff.md"
       - "meta_analysis_plan.md"
       - "effect_size_table.md"
       - "meta_analysis_results.md"
@@ -277,6 +290,7 @@ stages:
       - "manuscript/discussion.md"
       - "manuscript/discussion_story_spine.md"
       - "manuscript/claims_evidence_map.md"
+      - "evidence/claim-evidence-ledger.csv"
       - "manuscript/figures_tables_plan.md"
       - "manuscript/results_interpretation.md"
       - "manuscript/effect_interpretation.md"
@@ -300,6 +314,7 @@ stages:
       - "proofread/ai_detection_report.md"
       - "proofread/humanized_manuscript.md"
       - "proofread/similarity_report.md"
+      - "proofread/citation-risk-report.md"
       - "proofread/proofread_checklist.md"
   - id: "H"
     name: "submission-revision"
@@ -308,6 +323,7 @@ stages:
     outputs:
       - "context/research_state.md"
       - "context/decision_log.md"
+      - "context/stage_handoff.md"
       - "submission/cover_letter.md"
       - "submission/submission_checklist.md"
       - "submission/title_page.md"
@@ -417,6 +433,8 @@ task_catalog:
     title: "study-design"
     outputs:
       - "study_design.md"
+      - "design/method-diagnostic-report.md"
+      - "design/validity-threat-matrix.md"
   C1_5:
     stage: "C"
     title: "rival-hypothesis-design"
@@ -438,6 +456,8 @@ task_catalog:
     title: "robustness-plan"
     outputs:
       - "design/robustness_plan.md"
+      - "design/method-diagnostic-report.md"
+      - "design/validity-threat-matrix.md"
   C4:
     stage: "C"
     title: "data-management-plan"
@@ -520,6 +540,7 @@ task_catalog:
     title: "claim-evidence-map"
     outputs:
       - "manuscript/claims_evidence_map.md"
+      - "evidence/claim-evidence-ledger.csv"
   F5:
     stage: "F"
     title: "figures-tables-plan"
@@ -649,6 +670,7 @@ task_catalog:
     title: "similarity-originality-check"
     outputs:
       - "proofread/similarity_report.md"
+      - "proofread/citation-risk-report.md"
   J4:
     stage: "J"
     title: "final-proofread"
