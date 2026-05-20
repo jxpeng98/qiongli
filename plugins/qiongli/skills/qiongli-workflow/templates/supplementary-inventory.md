@@ -22,3 +22,4 @@ Save to: RESEARCH/[topic]/submission/supplementary_inventory.md
 ## Notes
 - Portal file limits (size/count): [fill]
 - Anonymization check completed (if double-blind): [Y/N]
+

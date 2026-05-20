@@ -29,10 +29,10 @@ Repeat this section for each outcome.
 
 ### Outcome [O1]: [Name]
 
-**Contributing studies:** k = [#]
-**Total participants:** N = [#] (if applicable)
-**Effect measure:** [log(OR)/SMD/etc]
-**Model:** [Random-effects (REML/DL) / Fixed-effect]
+**Contributing studies:** k = [#]  
+**Total participants:** N = [#] (if applicable)  
+**Effect measure:** [log(OR)/SMD/etc]  
+**Model:** [Random-effects (REML/DL) / Fixed-effect]  
 
 #### Pooled estimate
 - Pooled effect: [estimate]
@@ -88,3 +88,4 @@ Explain magnitude and practical meaning; note limitations and heterogeneity.
 - Data source: `effect_size_table.md` (+ optional CSV)
 - Code: `analysis/` (R/Python scripts)
 - Parameters used (τ² estimator, CI method, etc.)
+

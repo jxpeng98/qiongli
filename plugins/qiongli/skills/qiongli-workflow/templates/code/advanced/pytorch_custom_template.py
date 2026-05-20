@@ -44,7 +44,7 @@ class ModelTrainer:
             loss = self.model.custom_loss(output, y_tensor)
             loss.backward()
             self.optimizer.step()
-
+            
             if (epoch+1) % 10 == 0:
                 print(f'Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}')
 

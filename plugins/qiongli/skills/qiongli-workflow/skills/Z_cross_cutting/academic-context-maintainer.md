@@ -36,6 +36,7 @@ Keep the project from losing its academic thread by updating two canonical conti
 
 - `context/research_state.md`
 - `context/decision_log.md`
+- `context/stage_handoff.md` when a high-risk stage transition passes work to another stage
 
 The goal is to preserve:
 - the current research question, thesis, or focal puzzle
@@ -204,7 +205,20 @@ If collaborators or models disagree, record:
 
 Do not erase disagreement just to make the state file look tidy.
 
-### 5. Write for academic handoff, not personal memory
+### 5. Write `context/stage_handoff.md` for high-risk transitions
+
+Use `templates/stage-handoff.md` and follow `references/stage-handoff-contract.md` when moving from:
+
+- framing to literature or design
+- literature to design or synthesis
+- design to analysis/code
+- synthesis to manuscript writing
+- writing/proofreading to submission
+- submission review to rebuttal
+
+The handoff must include completed artifacts, decision summary, unresolved questions, evidence dependencies, assumptions passed forward, risks for the next stage, and recommended next tasks.
+
+### 6. Write for academic handoff, not personal memory
 
 A new researcher should be able to open the two continuity files and understand:
 
@@ -235,11 +249,13 @@ Bad continuity updates:
 
 - `templates/research-state.md`
 - `templates/decision-log.md`
+- `templates/stage-handoff.md`
 
 ## Output Contract
 
 - `ResearchStateSnapshot`: write `RESEARCH/[topic]/context/research_state.md`.
 - `ResearchDecisionLog`: write `RESEARCH/[topic]/context/decision_log.md`.
+- `StageHandoff`: write `RESEARCH/[topic]/context/stage_handoff.md` when crossing high-risk stage boundaries.
 - Separate finding, interpretation, and implication in the final artifact.
 - Do not invent citations, data, sample sizes, statistical results, or reviewer comments.
 - Apply `references/academic-output-rubric.md` before finalizing scholarly prose or review artifacts.

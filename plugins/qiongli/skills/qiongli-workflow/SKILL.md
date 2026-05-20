@@ -96,6 +96,10 @@ RESEARCH/[topic]/
   1. continue with placeholders, or
   2. run the prerequisite task first.
 - Keep claims, methods, and evidence aligned (run integrity checks for stage `G`).
+- Track central claims in `RESEARCH/[topic]/evidence/claim-evidence-ledger.csv` using `references/evidence-ledger-contract.md`; unsupported central claims become gap notes, not invented citations.
+- Before final writing, proofread, submission, rebuttal, or presentation-facing outputs, apply `references/citation-risk-policy.md` when citation support is material.
+- At high-risk stage transitions, write `RESEARCH/[topic]/context/stage_handoff.md` using `references/stage-handoff-contract.md`.
+- Use `venue-profiles/` when a target venue profile is available; otherwise create a venue gap note instead of assuming community-specific expectations.
 - Apply `references/academic-output-rubric.md` whenever producing scholarly prose, synthesis, design, review, or submission artifacts.
 - When a workflow references `templates/<name>.md`, load the template from the `templates/` subdirectory of this package.
 
@@ -103,7 +107,7 @@ RESEARCH/[topic]/
 
 Three-tier loading for token efficiency. All paths are relative to this skill package directory:
 
-1. **Quick lookup (~3KB):** Use `skills-summary.md` — skill names + one-line descriptions per stage. Use this to identify which skill to invoke.
+1. **Quick lookup (~6KB):** Use `skills-summary.md` — skill names + one-line descriptions per stage. Use this to identify which skill to invoke.
 2. **Default reference (~19KB):** Use `skills-core.md` — consolidated process descriptions, templates, and output formats. Use this when executing a skill.
 3. **Full specification:** Load `skills/[stage]/[skill-name].md` — detailed edge cases, error recovery, quality bars, and verbose templates. Use this only when the core reference is insufficient.
 
@@ -118,9 +122,10 @@ This package includes the following subdirectories:
 | `skills/` | 71 detailed skill spec files across 13 stage directories |
 | `skills-summary.md` | Quick-reference skill index (~3KB) |
 | `skills-core.md` | Consolidated skill reference (~19KB) |
-| `templates/` | 44 output templates for manuscripts, submissions, ethics, etc. |
+| `templates/` | 50+ output templates for manuscripts, submissions, ethics, evidence, and handoffs |
 | `standards/` | Canonical contract YAML + capability map + agent profiles |
 | `roles/` | 10 agent role definitions for orchestrator execution |
+| `venue-profiles/` | Venue expectation profiles for CHI, ACL, NeurIPS, Nature, JAMA, and AOM |
 
 ## References
 
@@ -128,6 +133,10 @@ This package includes the following subdirectories:
 - Platform routing map: `references/platform-routing.md`
 - Coverage matrix: `references/coverage-matrix.md`
 - Academic output rubric: `references/academic-output-rubric.md`
+- Evidence ledger contract: `references/evidence-ledger-contract.md`
+- Citation risk policy: `references/citation-risk-policy.md`
+- Stage handoff contract: `references/stage-handoff-contract.md`
+- Method diagnostic contract: `references/method-diagnostic-contract.md`
 - Stage playbooks:
   - `references/stage-A-framing.md` (tasks A1–A5)
   - `references/stage-B-literature.md` (tasks B1–B6)

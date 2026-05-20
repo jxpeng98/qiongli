@@ -32,3 +32,4 @@ Save to: RESEARCH/[topic]/manuscript/figures_tables_plan.md
 - [ ] Each figure/table is referenced in Results
 - [ ] Captions are standalone (reader can understand without main text)
 - [ ] Units, uncertainty, and sample sizes are explicit
+

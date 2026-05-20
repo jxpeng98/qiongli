@@ -16,6 +16,7 @@ if str(REPO_ROOT) not in sys.path:
 from qiongli.skill_docs import generate_skill_reference_docs
 from qiongli.workflow_contract_doc import generate_workflow_contract_reference
 from scripts.audit_skill_sections import audit_skills
+from scripts.audit_skill_resource_links import audit_package_resource_links
 
 EXPECTED_PAPER_TYPES = {"empirical", "qualitative", "systematic-review", "methods", "theory"}
 EXPECTED_STAGE_IDS = {stage for stage in "ABCDEFGHIJK"}
@@ -2461,6 +2462,30 @@ def validate_skill_quality_contract(root: Path, report: ValidationReport) -> Non
     )
 
 
+def validate_skill_package_resource_links(root: Path, report: ValidationReport) -> None:
+    for relative_package in (
+        "qiongli-workflow",
+        "plugins/qiongli/skills/qiongli-workflow",
+    ):
+        package_dir = root / relative_package
+        report.check(
+            package_dir.exists(),
+            f"{relative_package} package exists",
+            f"{relative_package} package missing",
+        )
+        if not package_dir.exists():
+            continue
+        missing = audit_package_resource_links(package_dir)
+        report.check(
+            not missing,
+            f"{relative_package} internal resource links resolve",
+            (
+                f"{relative_package} has missing resource links: "
+                + "; ".join(f"{item.source}->{item.target}" for item in missing[:10])
+            ),
+        )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Validate cross-model research workflow standardization consistency."
@@ -2503,6 +2528,7 @@ def main() -> int:
     validate_stage_i_templates(root, report)
     validate_docs(root, report)
     validate_cross_platform_consistency(root, report)
+    validate_skill_package_resource_links(root, report)
 
     total_failed = len(report.errors)
     total_warn = len(report.warnings)

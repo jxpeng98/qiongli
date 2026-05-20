@@ -43,9 +43,9 @@ Save to: RESEARCH/[topic]/notes/[citekey].md
 
 ## Research Questions / Hypotheses
 
-1. **RQ1/H1**:
-2. **RQ2/H2**:
-3. **RQ3/H3**:
+1. **RQ1/H1**: 
+2. **RQ2/H2**: 
+3. **RQ3/H3**: 
 
 ## Theoretical Framework
 
@@ -128,18 +128,18 @@ Save to: RESEARCH/[topic]/notes/[citekey].md
 ## Contributions
 
 ### Theoretical Contributions
--
+- 
 
 ### Practical Implications
--
+- 
 
 ## Limitations
 
 <!-- Authors' acknowledged limitations and your observations -->
 
-1.
-2.
-3.
+1. 
+2. 
+3. 
 
 ### Limitation Classification
 
@@ -154,8 +154,8 @@ Save to: RESEARCH/[topic]/notes/[citekey].md
 
 <!-- What do the authors suggest? What remains unanswered? -->
 
-1.
-2.
+1. 
+2. 
 
 ## Connections to My Research
 
@@ -164,10 +164,10 @@ Save to: RESEARCH/[topic]/notes/[citekey].md
 ### Relevance Score: [ ] High [ ] Medium [ ] Low
 
 ### How It Informs My Research
--
+- 
 
 ### Questions It Raises
--
+- 
 
 ## Key Quotes
 
@@ -180,10 +180,10 @@ Save to: RESEARCH/[topic]/notes/[citekey].md
 <!-- Your critical evaluation of the paper -->
 
 ### Strengths
--
+- 
 
 ### Weaknesses
--
+- 
 
 ## BibTeX (Optional)
 

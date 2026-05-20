@@ -95,3 +95,4 @@ for (outcome in outcomes) {
 
 write.csv(results, file = file.path(out_dir, "meta_analysis_summary.csv"), row.names = FALSE)
 message("\nWrote: ", file.path(out_dir, "meta_analysis_summary.csv"))
+
