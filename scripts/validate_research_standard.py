@@ -17,6 +17,7 @@ from qiongli.skill_docs import generate_skill_reference_docs
 from qiongli.workflow_contract_doc import generate_workflow_contract_reference
 from scripts.audit_skill_sections import audit_skills
 from scripts.audit_skill_resource_links import audit_package_resource_links
+from scripts.audit_solo_role_gates import audit_solo_role_gates
 
 EXPECTED_PAPER_TYPES = {"empirical", "qualitative", "systematic-review", "methods", "theory"}
 EXPECTED_STAGE_IDS = {stage for stage in "ABCDEFGHIJK"}
@@ -125,6 +126,20 @@ STAGE_I_TEMPLATE_EXPECTATIONS = {
     ],
 }
 RELEASE_NOTE_FILE_PATTERN = re.compile(r"^v(\d+)\.(\d+)\.(\d+)(?:-beta\.(\d+))?\.md$")
+CONTROLLER_MODE_REQUIRED_FILES = (
+    "standards/agent-run-contract.yaml",
+    "standards/solo-role-policy.yaml",
+    "templates/agent-run-packet.json",
+    "templates/agent-review-packet.md",
+    "templates/agent-handoff.md",
+    "templates/solo-task-packet.md",
+    "templates/solo-self-review.md",
+    "templates/implementation-intent.md",
+    "templates/writing-claim-map.md",
+    "templates/quality-gate-report.md",
+    "scripts/audit_solo_role_gates.py",
+    "scripts/audit_agent_handoffs.py",
+)
 
 
 @dataclass
@@ -2486,6 +2501,37 @@ def validate_skill_package_resource_links(root: Path, report: ValidationReport) 
         )
 
 
+def validate_controller_mode_contracts(
+    root: Path,
+    report: ValidationReport,
+    *,
+    strict: bool,
+) -> None:
+    if not strict:
+        return
+
+    missing = []
+    for relative_path in CONTROLLER_MODE_REQUIRED_FILES:
+        exists = (root / relative_path).exists()
+        report.check(
+            exists,
+            f"Controller-mode contract exists: {relative_path}",
+            f"Missing controller-mode contract/script: {relative_path}",
+        )
+        if not exists:
+            missing.append(relative_path)
+
+    if missing:
+        return
+
+    audit_errors = audit_solo_role_gates(root)
+    report.check(
+        not audit_errors,
+        "Controller-mode solo role gate audit passes",
+        "Controller-mode solo role gate audit failed: " + "; ".join(audit_errors),
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Validate cross-model research workflow standardization consistency."
@@ -2529,6 +2575,7 @@ def main() -> int:
     validate_docs(root, report)
     validate_cross_platform_consistency(root, report)
     validate_skill_package_resource_links(root, report)
+    validate_controller_mode_contracts(root, report, strict=args.strict)
 
     total_failed = len(report.errors)
     total_warn = len(report.warnings)
