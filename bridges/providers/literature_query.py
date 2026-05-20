@@ -5,6 +5,7 @@ from typing import Any
 
 
 MAX_QUERY_VARIANTS = 4
+SUPPORTED_PROVIDERS = {"semantic_scholar", "openalex", "crossref", "arxiv"}
 STOPWORDS = {
     "a",
     "an",
@@ -87,12 +88,27 @@ def validate_query_plan(plan: dict[str, Any]) -> None:
     if not has_required:
         raise ValueError("Query plan must mark at least one required concept block.")
 
-    translations = plan.get("provider_translations", [])
+    translations = plan.get("provider_translations")
     if not isinstance(translations, list):
         raise ValueError("Provider translations must be a list.")
+    if not translations:
+        raise ValueError("Provider translations must include at least one translation.")
     for translation in translations:
         if not isinstance(translation, dict):
             raise ValueError("Provider translation must be a mapping.")
+        for required_key in (
+            "provider",
+            "query_id",
+            "translated_query",
+            "filters",
+            "rationale",
+        ):
+            if required_key not in translation:
+                raise ValueError(f"Provider translation must include {required_key}.")
+            if required_key != "filters" and not _clean_text(translation.get(required_key)):
+                raise ValueError(f"Provider translation must include {required_key}.")
+        if not isinstance(translation.get("filters"), dict):
+            raise ValueError("Provider translation filters must be a mapping.")
         for concept_id in translation.get("concept_ids", []):
             if concept_id not in concept_ids:
                 raise ValueError(f"Provider translation references unknown concept id: {concept_id}")
@@ -119,6 +135,242 @@ def build_legacy_query_variants(task_packet: dict[str, Any]) -> list[dict[str, s
         }
         for item in plan["legacy_query_variants"]
     ]
+
+
+def translate_query_for_provider(plan: dict[str, Any], provider: str) -> dict[str, Any]:
+    """Translate a provider-neutral query plan into a provider-specific query payload."""
+    normalized_provider = _clean_text(provider).casefold()
+    if normalized_provider not in SUPPORTED_PROVIDERS:
+        raise ValueError(f"Unsupported provider: {provider}")
+
+    validate_query_plan(plan)
+    query = _plan_keyword_query(plan)
+    filters = _normalize_filters(plan.get("filters"))
+    query_id = _translation_query_id(plan, normalized_provider)
+    base_translation: dict[str, Any] = {
+        "query_id": query_id,
+        "provider": normalized_provider,
+        "translated_query": query,
+        "filters": filters,
+        "rationale": _translation_rationale(normalized_provider),
+    }
+
+    if normalized_provider == "semantic_scholar":
+        return base_translation
+    if normalized_provider == "openalex":
+        return _with_openalex_payload(base_translation, filters)
+    if normalized_provider == "crossref":
+        return _with_crossref_payload(base_translation, filters)
+    if normalized_provider == "arxiv":
+        return _with_arxiv_payload(base_translation, plan, filters)
+
+    raise ValueError(f"Unsupported provider: {provider}")
+
+
+def _with_openalex_payload(
+    base_translation: dict[str, Any],
+    filters: dict[str, Any],
+) -> dict[str, Any]:
+    translation = dict(base_translation)
+    filter_parts: list[str] = []
+    if filters.get("year_start"):
+        filter_parts.append(f"from_publication_date:{filters['year_start']}-01-01")
+    if filters.get("year_end"):
+        filter_parts.append(f"to_publication_date:{filters['year_end']}-12-31")
+    if filters.get("publication_type"):
+        filter_parts.append(f"type:{filters['publication_type']}")
+    if filters.get("language"):
+        filter_parts.append(f"language:{filters['language']}")
+
+    translation["payload"] = {
+        "search": translation["translated_query"],
+        "filter": ",".join(filter_parts),
+        "sort": "relevance_score:desc",
+    }
+    return translation
+
+
+def _with_crossref_payload(
+    base_translation: dict[str, Any],
+    filters: dict[str, Any],
+) -> dict[str, Any]:
+    translation = dict(base_translation)
+    crossref_filters: dict[str, Any] = {}
+    if filters.get("year_start"):
+        crossref_filters["from-pub-date"] = f"{filters['year_start']}-01-01"
+    if filters.get("year_end"):
+        crossref_filters["until-pub-date"] = f"{filters['year_end']}-12-31"
+    if filters.get("publication_type"):
+        crossref_filters["type"] = filters["publication_type"]
+
+    translation["payload"] = {
+        "query.bibliographic": translation["translated_query"],
+        "filter": crossref_filters,
+    }
+    return translation
+
+
+def _with_arxiv_payload(
+    base_translation: dict[str, Any],
+    plan: dict[str, Any],
+    filters: dict[str, Any],
+) -> dict[str, Any]:
+    translation = dict(base_translation)
+    field_terms = _fielded_arxiv_terms(plan)
+    arxiv_filters = _arxiv_category_filters(plan)
+    if filters.get("year_start"):
+        arxiv_filters.append(f"submittedDate:[{filters['year_start']}01010000 TO *]")
+    if filters.get("year_end"):
+        arxiv_filters.append(f"submittedDate:[* TO {filters['year_end']}12312359]")
+
+    translation["translated_query"] = " ".join(field_terms)
+    executable_query = _join_arxiv_clauses(field_terms + arxiv_filters)
+    translation["payload"] = {
+        "search_query": executable_query,
+        "filters": arxiv_filters,
+    }
+    return translation
+
+
+def _plan_keyword_query(plan: dict[str, Any]) -> str:
+    keywords: list[str] = []
+    for block in plan.get("concept_blocks", []):
+        if not isinstance(block, dict):
+            continue
+        keywords.extend(_sanitize_query_text(keyword) for keyword in _concept_keywords(block))
+    return " ".join(_dedupe(keywords)[:10])
+
+
+def _concept_keywords(block: dict[str, Any]) -> list[str]:
+    keywords: list[str] = []
+    for key in ("phrases", "terms", "controlled_vocab"):
+        values = block.get(key, [])
+        if not isinstance(values, list):
+            continue
+        keywords.extend(_clean_text(value) for value in values if _clean_text(value))
+    return keywords
+
+
+def _normalize_filters(raw_filters: Any) -> dict[str, Any]:
+    if not isinstance(raw_filters, dict):
+        return {}
+
+    filters: dict[str, Any] = {}
+    for key, value in raw_filters.items():
+        if value in (None, ""):
+            continue
+        normalized_key = str(key)
+        if normalized_key in {"year_start", "year_end"}:
+            year = _normalize_year(value)
+            if year:
+                filters[normalized_key] = year
+            continue
+        normalized_value = _sanitize_filter_value(value)
+        if normalized_value:
+            filters[normalized_key] = normalized_value
+    return filters
+
+
+def _translation_query_id(plan: dict[str, Any], provider: str) -> str:
+    translations = plan.get("provider_translations", [])
+    if isinstance(translations, list):
+        fallback_query_id = ""
+        for translation in translations:
+            if not isinstance(translation, dict):
+                continue
+            query_id = _clean_text(translation.get("query_id"))
+            if query_id and not fallback_query_id:
+                fallback_query_id = query_id
+            if _clean_text(translation.get("provider")).casefold() == provider and query_id:
+                return query_id
+        if fallback_query_id:
+            return f"{fallback_query_id}_{provider}"
+    return f"q1_{provider}"
+
+
+def _translation_rationale(provider: str) -> str:
+    rationales = {
+        "semantic_scholar": (
+            "Readable keyword query because Semantic Scholar search does not support "
+            "full systematic-review Boolean syntax."
+        ),
+        "openalex": "OpenAlex search query with date/type filters and relevance sorting.",
+        "crossref": "Crossref bibliographic query with supported date and work-type filters.",
+        "arxiv": "arXiv fielded query using all, title, and abstract clauses for technical topics.",
+    }
+    return rationales[provider]
+
+
+def _fielded_arxiv_terms(plan: dict[str, Any]) -> list[str]:
+    concept_keywords = [
+        _concept_keywords(block)
+        for block in plan.get("concept_blocks", [])
+        if isinstance(block, dict)
+    ]
+    flattened = [
+        sanitized
+        for group in concept_keywords
+        for item in group
+        if (sanitized := _sanitize_query_text(item))
+    ]
+    fallback = flattened[:3] or [_plan_keyword_query(plan)]
+    all_term = _arxiv_field_value(fallback[0] if len(fallback) > 0 else "")
+    title_term = _arxiv_field_value(fallback[1] if len(fallback) > 1 else fallback[0])
+    abstract_term = _arxiv_field_value(fallback[2] if len(fallback) > 2 else fallback[-1])
+
+    return [
+        f"all:{all_term}",
+        f"ti:{title_term}",
+        f"abs:{abstract_term}",
+    ]
+
+
+def _arxiv_field_value(value: str) -> str:
+    cleaned = _clean_text(value)
+    if " " in cleaned:
+        return f'"{cleaned}"'
+    return cleaned
+
+
+def _join_arxiv_clauses(clauses: list[str]) -> str:
+    cleaned_clauses = [clause for clause in clauses if _clean_text(clause)]
+    return " AND ".join(cleaned_clauses)
+
+
+def _normalize_year(value: Any) -> str:
+    match = re.search(r"(?:^|\D)((?:19|20)\d{2})(?:\D|$)", _clean_text(value))
+    if not match:
+        return ""
+    return match.group(1)
+
+
+def _sanitize_filter_value(value: Any) -> str:
+    cleaned = _clean_text(value)
+    sanitized = re.sub(r"[^A-Za-z0-9_.-]+", "-", cleaned)
+    return sanitized.strip("-")
+
+
+def _sanitize_query_text(value: Any) -> str:
+    cleaned = _clean_text(value)
+    sanitized = re.sub(r"[\"'`()\[\]{}:,;]+", " ", cleaned)
+    return _clean_text(sanitized)
+
+
+def _arxiv_category_filters(plan: dict[str, Any]) -> list[str]:
+    query_text = " ".join(
+        keyword
+        for block in plan.get("concept_blocks", [])
+        if isinstance(block, dict)
+        for keyword in _concept_keywords(block)
+    ).casefold()
+    filters: list[str] = []
+    if any(term in query_text for term in ("computer science", "algorithm", "neural", "software")):
+        filters.append("cat:cs.*")
+    if any(term in query_text for term in ("math", "model", "estimation", "uncertainty", "network")):
+        filters.append("cat:math.*")
+    if any(term in query_text for term in ("stat", "estimation", "uncertainty", "probability")):
+        filters.append("cat:stat.*")
+    return filters
 
 
 def _build_concept_blocks(
@@ -204,6 +456,7 @@ def _build_default_translations(
                 "translated_query": cleaned,
                 "concept_ids": concept_ids,
                 "filters": {},
+                "rationale": f"{query_type.replace('_', ' ')} provider-neutral query seed",
             }
         )
 

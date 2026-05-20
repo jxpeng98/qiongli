@@ -65,6 +65,9 @@ class LiteratureSearchContractAuditTests(unittest.TestCase):
                     r"(?m)^\s+label:\s+Population or corpus\s*$",
                     r"(?m)^\s*-\s+provider:\s+semantic_scholar\s*$",
                     r"(?m)^\s+query_id:\s+q1\s*$",
+                    r"(?m)^\s+translated_query:\s+\"[^\"]+\"\s*$",
+                    r"(?m)^\s+filters:\s+\{\}\s*$",
+                    r"(?m)^\s+rationale:\s+.+\s*$",
                     r"(?m)^\s+max_rounds:\s+2\s*$",
                     r"(?m)^\s+stop_when_new_included_below:\s+3\s*$",
                 )
