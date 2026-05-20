@@ -82,6 +82,17 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('run_logged_stage "unit tests" "$unit_log" python3 -m unittest discover -s tests -v', content)
         self.assertIn('run_logged_stage "smoke (${smoke_tier} tier)" "$smoke_log" ./scripts/run_beta_smoke.sh --tier "$smoke_tier"', content)
 
+    def test_release_preflight_runs_controller_mode_evals_as_warning_stage(self) -> None:
+        content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
+
+        self.assertIn("run_warning_stage()", content)
+        self.assertIn('eval_log="$(mktemp -t qiongli-controller-evals.XXXXXX.log)"', content)
+        self.assertIn(
+            'run_warning_stage "controller-mode evals" "$eval_log" python3 scripts/run_controller_mode_evals.py evals/controller_modes',
+            content,
+        )
+        self.assertIn('"[preflight] WARN: ${label} failed with exit code ${command_status}"', content)
+
     def test_release_preflight_preserves_stage_logs_on_failure(self) -> None:
         content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
 
