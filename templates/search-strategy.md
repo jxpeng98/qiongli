@@ -22,7 +22,9 @@ concept_blocks:
 provider_translations:
   - provider: semantic_scholar
     query_id: q1
-    translated_query: ""
+    translated_query: "replace with provider-specific query"
+    filters: {}
+    rationale: Initial Semantic Scholar translation; replace with executed query rationale.
 filters:
   year_start: ""
   year_end: ""
