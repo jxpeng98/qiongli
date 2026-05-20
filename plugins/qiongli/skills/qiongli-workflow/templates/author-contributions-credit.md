@@ -33,3 +33,4 @@ Save to: RESEARCH/[topic]/submission/author_contributions_credit.md
 
 ## Contribution statement (optional narrative)
 [One short paragraph summarizing roles and responsibilities, if the venue requests narrative format.]
+

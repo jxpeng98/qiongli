@@ -8,7 +8,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = REPO_ROOT / "install" / "install_manifest.tsv"
 PACKAGED_MANIFEST_PATH = REPO_ROOT / "qiongli" / "install_manifest.tsv"
-SYNC_DIRS = ("skills", "templates", "standards", "roles")
+SYNC_DIRS = ("skills", "templates", "standards", "roles", "venue-profiles")
 SYNC_FILES = ("skills-core.md", "skills-summary.md")
 SYNC_EXCLUDE = {"CLAUDE.project.md"}
 

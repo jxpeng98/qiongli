@@ -56,3 +56,4 @@ Fill this table with the effect size already on the **analysis scale** you will 
 
 Export at minimum:
 - `outcome_id`, `study_id`, `yi`, `sei`
+

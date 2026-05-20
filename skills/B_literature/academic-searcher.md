@@ -403,6 +403,12 @@ This skill is called by:
 - Do not invent citations, data, sample sizes, statistical results, or reviewer comments.
 - Apply `references/academic-output-rubric.md` before finalizing scholarly prose or review artifacts.
 
+### Evidence Ledger and Source Integrity
+
+- Update `RESEARCH/[topic]/evidence/claim-evidence-ledger.csv` when producing, revising, or validating central scholarly claims.
+- Follow `references/evidence-ledger-contract.md`: supported claims need source pointers; unsupported central claims become `gap_note` rows and `RESEARCH/[topic]/context/gap_notes.md` entries.
+- For final writing, proofread, submission, rebuttal, citation, or presentation-facing outputs, apply `references/citation-risk-policy.md` and write or update `RESEARCH/[topic]/proofread/citation-risk-report.md` when citation risk is material.
+
 ## Quality Bar
 
 - [ ] 检索式使用 Boolean 逻辑且每个 concept block 至少包含 3 个同义词

@@ -1,6 +1,6 @@
 # Quality Assessment Table Template
 
-<!--
+<!-- 
 Usage: Use this table to assess the quality of included studies.
 Adjust criteria based on study types in your review.
 -->

@@ -391,7 +391,7 @@ def _install_shell_cli(options: InstallOptions) -> None:
 
 # ── Sync skill package ───────────────────────────────────────────────────────
 
-_SYNC_DIRS = ("skills", "templates", "standards", "roles")
+_SYNC_DIRS = ("skills", "templates", "standards", "roles", "venue-profiles")
 _SYNC_FILES = ("skills-core.md", "skills-summary.md")
 _SYNC_EXCLUDE = {"CLAUDE.project.md"}
 

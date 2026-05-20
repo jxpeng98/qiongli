@@ -16,7 +16,7 @@ from pypfopt.discrete_allocation import DiscreteAllocation, get_latest_prices
 def optimize_portfolio(price_data: pd.DataFrame, risk_aversion: float = 1.0):
     """
     Perform Mean-Variance Optimization.
-
+    
     Args:
         price_data: DataFrame with date index and stock tickers as columns
         risk_aversion: Parameter for risk aversion (higher = safer)
@@ -27,16 +27,16 @@ def optimize_portfolio(price_data: pd.DataFrame, risk_aversion: float = 1.0):
 
     # 2. Optimize for Maximal Sharpe Ratio
     ef = EfficientFrontier(mu, S)
-
+    
     # Option: Custom objective (e.g. min volatility)
     # weights = ef.min_volatility()
-
+    
     weights = ef.max_sharpe()
     cleaned_weights = ef.clean_weights()
 
     print("Optimized Weights:")
     print(cleaned_weights)
-
+    
     ef.portfolio_performance(verbose=True)
     return cleaned_weights
 
