@@ -17,9 +17,12 @@ outputs:
     artifact: "search_log.md"
   - type: DedupLog
     artifact: "dedup_log.csv"
+  - type: SearchDiagnostics
+    artifact: "search_diagnostics.md"
 constraints:
   - "Must log exact query strings and timestamps for reproducibility"
   - "Must deduplicate across databases"
+  - "Must write search_diagnostics.md before systematic-review or review-grade screening claims"
 failure_modes:
   - "API rate limits exhausted"
   - "Zero results for narrow queries"
@@ -62,11 +65,13 @@ If a change only affects one of those concerns, update this skill, its templates
 - `RESEARCH/[topic]/search_log.md`
 - `RESEARCH/[topic]/search_results.csv`
 - `RESEARCH/[topic]/dedup_log.csv`
+- `RESEARCH/[topic]/search_diagnostics.md`
 
 Template references:
 - `templates/search-strategy.md`
 - `templates/search-log.md`
 - `templates/dedup-log.csv`
+- `templates/search-diagnostics.md`
 
 ## Provider Ownership Boundary
 
@@ -215,6 +220,18 @@ Append one entry per database execution with:
 - timestamp + interface/API version
 - exact query string + filters
 - counts (retrieved, after dedup, etc.)
+
+#### `search_diagnostics.md` (quality gate)
+
+Use `templates/search-diagnostics.md` and record:
+- `mode`: `systematic_review` for review-grade work, `targeted_search` for bounded scans
+- provider coverage and failures
+- query coverage by concept block and query id
+- known-item recall against seed DOI/title declarations in `search_strategy.md`
+- dedup ratio and unresolved coverage gaps
+- next search actions before screening
+
+Review-grade and systematic-review searches must have at least two productive providers, no unresolved known-item misses, and no zero-hit required concept blocks. Targeted searches may proceed with a single provider, but the limitation must remain visible in `search_diagnostics.md`.
 
 #### Optional: human-readable results summary
 
@@ -399,6 +416,7 @@ This skill is called by:
 - `SearchResults`: write `RESEARCH/[topic]/search_results.csv`.
 - `SearchLog`: write `RESEARCH/[topic]/search_log.md`.
 - `DedupLog`: write `RESEARCH/[topic]/dedup_log.csv`.
+- `SearchDiagnostics`: write `RESEARCH/[topic]/search_diagnostics.md`.
 - Separate finding, interpretation, and implication in the final artifact.
 - Do not invent citations, data, sample sizes, statistical results, or reviewer comments.
 - Apply `references/academic-output-rubric.md` before finalizing scholarly prose or review artifacts.
@@ -415,6 +433,7 @@ This skill is called by:
 - [ ] 至少搜索 2 个数据库
 - [ ] search_log.md 完整记录了每次检索的日期、数据库、命中数
 - [ ] 去重后记录了 dedup_log.csv 中的合并决策
+- [ ] search_diagnostics.md 已记录 provider/query coverage、known-item recall 和 coverage gaps
 - [ ] 检索式经过 domain expert 或 librarian 审议（或标注待审）
 
 ## Common Pitfalls

@@ -10,6 +10,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from scripts.audit_literature_search_quality import (
+    LiteratureSearchQualityResult,
+    audit_literature_search_quality,
+)
+
 EXPECTED_TASK_ID = re.compile(r"^[A-K][0-9_]+$")
 
 
@@ -296,6 +305,124 @@ def check_prisma_flow(path: Path, report: ValidationReport) -> None:
     )
 
 
+def merge_literature_quality_result(
+    result: LiteratureSearchQualityResult,
+    report: ValidationReport,
+) -> None:
+    report.passed += result.passed
+    for error in result.errors:
+        report.errors.append(error)
+        print(f"[FAIL] {error}")
+    for warning in result.warnings:
+        report.warnings.append(warning)
+        print(f"[WARN] {warning}")
+
+
+def validate_literature_stage_quality(
+    project_root: Path,
+    task_id: str,
+    report: ValidationReport,
+) -> None:
+    task = task_id.strip().upper()
+    if task == "B1":
+        merge_literature_quality_result(
+            audit_literature_search_quality(project_root, task_id=task),
+            report,
+        )
+        return
+    if task == "B3":
+        validate_b3_snowball_quality(project_root, report)
+        return
+    if task == "B6":
+        validate_b6_literature_map_quality(project_root, report)
+
+
+def validate_b3_snowball_quality(project_root: Path, report: ValidationReport) -> None:
+    snowball_path = project_root / "snowball_log.md"
+    try:
+        snowball_content = snowball_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        report.errors.append(f"B3 failed to read snowball_log.md: {exc}")
+        print(f"[FAIL] B3 failed to read snowball_log.md: {exc}")
+        return
+
+    lower_content = snowball_content.casefold()
+    report.check(
+        "seed" in lower_content,
+        "B3 snowball_log.md records snowball seeds",
+        "B3 snowball_log.md must record snowball seeds",
+    )
+    report.check(
+        "forward" in lower_content,
+        "B3 snowball_log.md records forward citation evidence",
+        "B3 snowball_log.md must record forward citation evidence",
+    )
+    report.check(
+        "backward" in lower_content,
+        "B3 snowball_log.md records backward citation evidence",
+        "B3 snowball_log.md must record backward citation evidence",
+    )
+    report.check(
+        "saturation_status" in lower_content
+        or "near_saturation" in lower_content
+        or "saturated" in lower_content
+        or "unknown_provider_failure" in lower_content,
+        "B3 snowball_log.md records saturation status",
+        "B3 snowball_log.md must record saturation_status",
+    )
+
+    dedup_path = project_root / "dedup_log.csv"
+    try:
+        with dedup_path.open("r", encoding="utf-8", newline="") as handle:
+            reader = csv.DictReader(handle)
+            header = set(reader.fieldnames or [])
+            rows = list(reader)
+    except OSError as exc:
+        report.errors.append(f"B3 failed to parse dedup_log.csv: {exc}")
+        print(f"[FAIL] B3 failed to parse dedup_log.csv: {exc}")
+        return
+
+    required_dedup_fields = {
+        "candidate_record_id",
+        "canonical_record_id",
+        "decision",
+        "match_basis",
+    }
+    report.check(
+        required_dedup_fields.issubset(header),
+        "B3 dedup_log.csv has reconciliation fields",
+        (
+            "B3 dedup_log.csv must include reconciliation fields: "
+            + ", ".join(sorted(required_dedup_fields))
+        ),
+    )
+    report.check(
+        bool(rows) or "no duplicate" in lower_content or "dedup" in lower_content,
+        "B3 artifacts record dedup reconciliation",
+        "B3 artifacts must record dedup reconciliation decisions or an explicit no-duplicates note",
+    )
+
+
+def validate_b6_literature_map_quality(project_root: Path, report: ValidationReport) -> None:
+    map_path = project_root / "literature" / "literature_map.md"
+    try:
+        content = map_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        report.errors.append(f"B6 failed to read literature/literature_map.md: {exc}")
+        print(f"[FAIL] B6 failed to read literature/literature_map.md: {exc}")
+        return
+    headings = {
+        match.group(1).strip().casefold()
+        for match in re.finditer(r"^##\s+(.+?)\s*$", content, flags=re.MULTILINE)
+    }
+    for section in ("Included Studies", "Concept Streams", "Evidence Gaps"):
+        report.check(
+            section.casefold() in headings,
+            f"B6 literature_map.md includes {section}",
+            f"B6 literature_map.md must include section: {section}",
+        )
+
+
 def validate_task_outputs(
     contract: str,
     project_root: Path,
@@ -445,6 +572,7 @@ def main() -> int:
 
     for node in ordered:
         validate_task_outputs(contract, project_root, node, report)
+        validate_literature_stage_quality(project_root, node, report)
 
     root_deps = plan.get("root_dependencies", {})
     recommended_prereq = [

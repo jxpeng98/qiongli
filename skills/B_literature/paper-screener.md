@@ -7,6 +7,9 @@ inputs:
     description: "Search results to screen"
   - type: RQSet
     description: "Inclusion/exclusion criteria from research questions"
+  - type: SearchDiagnostics
+    description: "Optional search_diagnostics.md with search readiness flags and coverage gaps"
+    required: false
 outputs:
   - type: ScreeningDecisionLog
     artifact: "screening/title_abstract.md"
@@ -51,14 +54,24 @@ Following PRISMA guidelines for transparent, reproducible screening.
 
 - `SearchResults`: Search results to screen
 - `RQSet`: Inclusion/exclusion criteria from research questions
+- `SearchDiagnostics`: `RESEARCH/[topic]/search_diagnostics.md` when produced by `academic-searcher`
 - If a required input is missing or insufficient, write a gap note under `RESEARCH/[topic]/context/gap_notes.md` and ask for the missing artifact instead of inventing content.
 - Treat literature, data, citations, and project files as evidence sources; keep unsupported assumptions visibly marked.
+
+Before screening, inspect `search_diagnostics.md` if it exists. If it contains `known_item_missing`, `query_too_narrow`, `provider_undercoverage`, or `weak_screening_readiness`, screening may continue for triage, but it cannot be described as review-grade until the gap is resolved or a protocol-visible limitation is recorded.
 
 ## Process
 
 ### Stage 1: Title/Abstract Screening
 
 For each paper, evaluate against inclusion/exclusion criteria based on title and abstract only.
+
+Carry forward search provenance in each screening row:
+- `record_id`
+- `query_id`
+- `source`
+- `relevance_reason`
+- `diagnostic_flags`
 
 #### Screening Checklist
 
@@ -158,11 +171,11 @@ Split outputs so later PRISMA and synthesis steps can reconcile counts determini
 
 ## Stage 1: Title/Abstract Screening
 
-| ID | Title | Year | Include | Exclude Reason |
-|----|-------|------|---------|----------------|
-| 1 | [Title] | 2023 | ✓ | |
-| 2 | [Title] | 2022 | ✗ | Off-topic |
-| 3 | [Title] | 2023 | ? | Need full-text |
+| record_id | query_id | source | Title | Year | relevance_reason | diagnostic_flags | Include | Exclude Reason |
+|----|----|----|-------|------|------|------|---------|----------------|
+| 1 | q1 | semantic_scholar | [Title] | 2023 | concept match |  | yes | |
+| 2 | q1 | openalex | [Title] | 2022 | weak match | provider_undercoverage | no | Off-topic |
+| 3 | q2 | semantic_scholar | [Title] | 2023 | abstract match | known_item_missing | uncertain | Need full-text |
 
 **Summary:**
 - Total screened: N
@@ -199,8 +212,8 @@ Include retrieval status and explicit exclusion reasons.
 ```markdown
 # Full-text Screening
 
-| record_id | decision (include/exclude) | exclusion_reason | fulltext_status | notes |
-|---|---|---|---|---|
+| record_id | query_id | source | decision (include/exclude) | exclusion_reason | fulltext_status | diagnostic_flags | notes |
+|---|---|---|---|---|---|---|---|
 ```
 
 Use a controlled `fulltext_status` set:
@@ -240,6 +253,7 @@ This skill is called by:
 - `ScreeningDecisionLog`: write `RESEARCH/[topic]/screening/title_abstract.md`.
 - `FullTextScreening`: write `RESEARCH/[topic]/screening/full_text.md`.
 - `PRISMAFlowData`: write `RESEARCH/[topic]/screening/prisma_flow.md`.
+- Consume `RESEARCH/[topic]/search_diagnostics.md`; unresolved diagnostic flags must remain visible in screening outputs.
 - Separate finding, interpretation, and implication in the final artifact.
 - Do not invent citations, data, sample sizes, statistical results, or reviewer comments.
 - Apply `references/academic-output-rubric.md` before finalizing scholarly prose or review artifacts.
@@ -255,6 +269,8 @@ This skill is called by:
 - [ ] Inclusion/exclusion criteria 已前置定义且无歧义
 - [ ] Title-abstract 和 full-text screening 分阶段记录
 - [ ] 每条排除决策附带排除理由
+- [ ] 每条 screening row 保留 record_id、query_id、source、relevance_reason、diagnostic_flags
+- [ ] 若 search_diagnostics.md 有 unresolved flags，不宣称 review-grade screening readiness
 - [ ] PRISMA flow 数据可直接生成 flow diagram
 - [ ] 存在 inter-rater reliability 描述（或标注为单筛）
 

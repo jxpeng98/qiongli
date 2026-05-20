@@ -140,6 +140,26 @@ CONTROLLER_MODE_REQUIRED_FILES = (
     "scripts/audit_solo_role_gates.py",
     "scripts/audit_agent_handoffs.py",
 )
+LITERATURE_FIRST_REQUIRED_FILES = (
+    "bridges/providers/literature_diagnostics.py",
+    "bridges/providers/literature_artifacts.py",
+    "scripts/audit_literature_search_quality.py",
+    "scripts/materialize_literature_search_bundle.py",
+    "qiongli-workflow/references/literature-search-quality-contract.md",
+    "templates/search-diagnostics.md",
+    "tests/test_literature_diagnostics.py",
+    "tests/test_literature_artifact_materialization.py",
+    "tests/test_literature_search_quality_audit.py",
+)
+LITERATURE_SEARCH_DIAGNOSTIC_SECTIONS = (
+    "Search Scope",
+    "Known-Item Recall",
+    "Provider Coverage",
+    "Query Coverage",
+    "Deduplication Summary",
+    "Coverage Gaps",
+    "Next Search Actions",
+)
 
 
 @dataclass
@@ -2532,6 +2552,122 @@ def validate_controller_mode_contracts(
     )
 
 
+def validate_literature_first_contracts(
+    root: Path,
+    report: ValidationReport,
+    *,
+    strict: bool,
+) -> None:
+    if not strict:
+        return
+
+    missing = []
+    for relative_path in LITERATURE_FIRST_REQUIRED_FILES:
+        exists = (root / relative_path).exists()
+        report.check(
+            exists,
+            f"Literature-first contract exists: {relative_path}",
+            f"Missing literature-first contract/script/template/test: {relative_path}",
+        )
+        if not exists:
+            missing.append(relative_path)
+
+    if missing:
+        return
+
+    stage_b = read_text(root, "qiongli-workflow/references/stage-B-literature.md", report)
+    quality_contract = read_text(
+        root,
+        "qiongli-workflow/references/literature-search-quality-contract.md",
+        report,
+    )
+    diagnostics_template = read_text(root, "templates/search-diagnostics.md", report)
+    project_validator = read_text(root, "scripts/validate_project_artifacts.py", report)
+    materializer = read_text(root, "scripts/materialize_literature_search_bundle.py", report)
+    artifact_writer = read_text(root, "bridges/providers/literature_artifacts.py", report)
+    diagnostics_builder = read_text(root, "bridges/providers/literature_diagnostics.py", report)
+    academic_searcher = read_text(root, "skills/B_literature/academic-searcher.md", report)
+    snowballer = read_text(root, "skills/B_literature/citation-snowballer.md", report)
+    screener = read_text(root, "skills/B_literature/paper-screener.md", report)
+
+    reference_expectations = (
+        (stage_b, "search_diagnostics.md", "Stage B reference documents search_diagnostics.md"),
+        (
+            stage_b,
+            "literature-search-quality-contract.md",
+            "Stage B reference links the literature search quality contract",
+        ),
+        (
+            quality_contract,
+            "scripts/audit_literature_search_quality.py",
+            "Literature search quality contract references the audit script",
+        ),
+        (
+            quality_contract,
+            "templates/search-diagnostics.md",
+            "Literature search quality contract references the diagnostics template",
+        ),
+        (
+            quality_contract,
+            "tests/test_literature_search_quality_audit.py",
+            "Literature search quality contract references the regression tests",
+        ),
+        (
+            project_validator,
+            "audit_literature_search_quality",
+            "Project artifact validator calls the literature search quality audit",
+        ),
+        (
+            project_validator,
+            "validate_literature_stage_quality",
+            "Project artifact validator includes B-stage literature quality gates",
+        ),
+        (
+            materializer,
+            "materialize_search_bundle",
+            "Literature search bundle CLI delegates to canonical materializer",
+        ),
+        (
+            artifact_writer,
+            "search_diagnostics.md",
+            "Literature artifact writer writes search_diagnostics.md",
+        ),
+        (
+            diagnostics_builder,
+            "build_search_diagnostics_v2",
+            "Literature diagnostics module exposes build_search_diagnostics_v2",
+        ),
+        (
+            academic_searcher,
+            "search_diagnostics.md",
+            "Academic searcher skill produces search diagnostics",
+        ),
+        (
+            snowballer,
+            "search_diagnostics.md",
+            "Citation snowballer skill consumes search diagnostics",
+        ),
+        (
+            screener,
+            "search_diagnostics.md",
+            "Paper screener skill consumes search diagnostics",
+        ),
+    )
+    for content, token, pass_msg in reference_expectations:
+        report.check(
+            token in content,
+            pass_msg,
+            f"{pass_msg} (missing token: {token})",
+        )
+
+    for section in LITERATURE_SEARCH_DIAGNOSTIC_SECTIONS:
+        report.check(
+            f"## {section}" in diagnostics_template,
+            f"search-diagnostics template includes {section}",
+            f"templates/search-diagnostics.md missing section: {section}",
+        )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Validate cross-model research workflow standardization consistency."
@@ -2576,6 +2712,7 @@ def main() -> int:
     validate_cross_platform_consistency(root, report)
     validate_skill_package_resource_links(root, report)
     validate_controller_mode_contracts(root, report, strict=args.strict)
+    validate_literature_first_contracts(root, report, strict=args.strict)
 
     total_failed = len(report.errors)
     total_warn = len(report.warnings)

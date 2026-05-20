@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
+from bridges.providers.literature_artifacts import read_search_diagnostics
 from bridges.providers.literature_search import dedupe_search_results, normalize_search_hit, record_match_key
 
 
@@ -34,11 +35,14 @@ def run_citation_graph(
 ) -> dict[str, Any]:
     timestamp = retrieved_at or datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     project_root = _artifact_project_root(task_packet, cwd)
+    search_diagnostics = read_search_diagnostics(project_root)
+    diagnostics_summary = _search_diagnostics_summary(search_diagnostics)
     seed_limit = _resolve_limit(task_packet, "seed_limit", DEFAULT_SEED_LIMIT, upper=10)
     graph_limit = _resolve_limit(task_packet, "graph_limit", DEFAULT_GRAPH_LIMIT, upper=20)
 
     seed_candidates = extract_seed_candidates(task_packet, project_root)
     resolved_seeds, resolution_failures = resolve_seed_candidates(seed_candidates, search_fn, limit=seed_limit)
+    resolved_seeds = _annotate_seed_selection_reasons(resolved_seeds, search_diagnostics)
 
     if not resolved_seeds:
         return {
@@ -53,6 +57,7 @@ def run_citation_graph(
                 "search_results": [],
                 "dedup_log": [],
                 "snowball_log": [],
+                "search_diagnostics_summary": diagnostics_summary,
                 "artifact_bundle": _artifact_bundle(),
             },
         }
@@ -171,6 +176,17 @@ def run_citation_graph(
             }
         )
 
+    saturation = _snowball_saturation(
+        search_diagnostics=search_diagnostics,
+        unique_candidate_count=len(unique_candidates),
+        graph_failures=graph_failures,
+    )
+    _annotate_snowball_log(
+        snowball_log,
+        resolved_seeds=resolved_seeds,
+        saturation_status=saturation["status"],
+    )
+
     if unique_candidates:
         status = "warning" if graph_failures or resolution_failures else "ok"
         summary = (
@@ -200,6 +216,8 @@ def run_citation_graph(
             "search_results": unique_candidates,
             "dedup_log": dedup_log,
             "snowball_log": snowball_log,
+            "search_diagnostics_summary": diagnostics_summary,
+            "snowball_saturation": saturation,
             "artifact_bundle": _artifact_bundle(),
         },
     }
@@ -346,6 +364,108 @@ def _artifact_project_root(task_packet: dict[str, Any], cwd: Path) -> Path:
     return cwd / artifact_root.replace("[topic]", topic)
 
 
+def _annotate_seed_selection_reasons(
+    resolved_seeds: list[dict[str, str]],
+    search_diagnostics: dict[str, Any],
+) -> list[dict[str, str]]:
+    annotated: list[dict[str, str]] = []
+    for seed in resolved_seeds:
+        item = dict(seed)
+        item["seed_selection_reason"] = _seed_selection_reason(item, search_diagnostics)
+        annotated.append(item)
+    return annotated
+
+
+def _seed_selection_reason(seed: dict[str, str], search_diagnostics: dict[str, Any]) -> str:
+    source = seed.get("source", "")
+    if source.startswith("task_packet:"):
+        base_reason = "user-declared seed"
+    elif source == "search_results.csv":
+        base_reason = "seed from search results"
+    else:
+        base_reason = f"seed from {source}" if source else "seed from local artifact"
+    if search_diagnostics:
+        status = search_diagnostics.get("status") or search_diagnostics.get("status_reason")
+        suffix = f"; diagnostics status {status}" if status else "; diagnostics available"
+        return base_reason + suffix
+    return base_reason
+
+
+def _annotate_snowball_log(
+    snowball_log: list[dict[str, str]],
+    *,
+    resolved_seeds: list[dict[str, str]],
+    saturation_status: str,
+) -> None:
+    reason_by_seed_id = {
+        seed["seed_record_id"]: seed.get("seed_selection_reason", "")
+        for seed in resolved_seeds
+        if seed.get("seed_record_id")
+    }
+    for entry in snowball_log:
+        entry.setdefault("round", "1")
+        entry.setdefault(
+            "seed_selection_reason",
+            reason_by_seed_id.get(entry.get("seed_record_id", ""), ""),
+        )
+        entry.setdefault("saturation_status", saturation_status)
+
+
+def _snowball_saturation(
+    *,
+    search_diagnostics: dict[str, Any],
+    unique_candidate_count: int,
+    graph_failures: list[dict[str, str]],
+) -> dict[str, Any]:
+    threshold = _saturation_threshold(search_diagnostics)
+    if graph_failures and unique_candidate_count == 0:
+        status = "unknown_provider_failure"
+    elif unique_candidate_count == 0:
+        status = "saturated"
+    elif unique_candidate_count < threshold:
+        status = "near_saturation"
+    else:
+        status = "expanding"
+    return {
+        "status": status,
+        "unique_candidate_count": unique_candidate_count,
+        "threshold": threshold,
+        "diagnostics_available": bool(search_diagnostics),
+    }
+
+
+def _saturation_threshold(search_diagnostics: dict[str, Any]) -> int:
+    stopping_rules = search_diagnostics.get("stopping_rules")
+    if isinstance(stopping_rules, dict):
+        raw_threshold = stopping_rules.get("stop_when_new_included_below")
+        try:
+            return max(1, int(str(raw_threshold).strip()))
+        except (TypeError, ValueError):
+            pass
+    return 3
+
+
+def _search_diagnostics_summary(search_diagnostics: dict[str, Any]) -> dict[str, Any]:
+    if not search_diagnostics:
+        return {"available": False}
+    screening_readiness = search_diagnostics.get("screening_readiness", {})
+    bundle_gate = search_diagnostics.get("bundle_gate", search_diagnostics.get("bundle_gate_state", {}))
+    return {
+        "available": True,
+        "status": search_diagnostics.get("status", ""),
+        "status_reason": search_diagnostics.get("status_reason", ""),
+        "screening_ready": _state_value(screening_readiness, "ready"),
+        "bundle_gate_state": _state_value(bundle_gate, "state"),
+        "unique_result_count": search_diagnostics.get("unique_result_count", ""),
+    }
+
+
+def _state_value(value: Any, key: str) -> Any:
+    if isinstance(value, dict):
+        return value.get(key, "")
+    return value
+
+
 def _read_existing_search_results(project_root: Path) -> list[dict[str, str]]:
     path = project_root / "search_results.csv"
     if not path.exists():
@@ -442,4 +562,3 @@ def _resolve_limit(task_packet: dict[str, Any], key: str, default: int, *, upper
     except (TypeError, ValueError):
         return default
     return max(1, min(parsed, upper))
-

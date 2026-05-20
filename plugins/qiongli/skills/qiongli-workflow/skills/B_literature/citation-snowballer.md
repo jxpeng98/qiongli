@@ -5,6 +5,9 @@ description: "Trace citations forward and backward from seed papers to expand co
 inputs:
   - type: SearchResults
     description: "Initial search results for seed selection"
+  - type: SearchDiagnostics
+    description: "Optional search_diagnostics.md for seed priorities, coverage gaps, and weak concept streams"
+    required: false
 outputs:
   - type: SnowballLog
     artifact: "snowball_log.md"
@@ -43,10 +46,12 @@ Extend literature search beyond database queries by:
 - dedup decisions created during snowball expansion must be recorded in `dedup_log.csv`
 - final normalized bibliography still belongs to `metadata-registry`
 - builtin baseline may resolve seeds from `search_results.csv`, `bibliography.bib`, and `notes/*.md` before falling back to explicit `target_paper_id`
+- when `search_diagnostics.md` exists, seed selection should prioritize missing known items, provider-undercovered concept streams, and high-value included records before generic citation-count ranking
 
 ## Inputs
 
 - `SearchResults`: Initial search results for seed selection
+- `SearchDiagnostics`: Optional `RESEARCH/[topic]/search_diagnostics.md` with diagnostic flags and coverage gaps
 - If a required input is missing or insufficient, write a gap note under `RESEARCH/[topic]/context/gap_notes.md` and ask for the missing artifact instead of inventing content.
 - Treat literature, data, citations, and project files as evidence sources; keep unsupported assumptions visibly marked.
 
@@ -69,6 +74,8 @@ Builtin baseline rule:
 | Key authors | Papers by recognized domain experts |
 
 **Recommended seed set size:** 5-15 papers
+
+Record `seed_selection_reason` for each seed. Valid reasons include `known_item_missing_followup`, `provider_undercoverage`, `high_citation`, `recent_review`, `concept_stream_gap`, and `manual_protocol_seed`.
 
 ### Step 2: Forward Citation Search
 
@@ -139,6 +146,12 @@ Level 2 (optional): Citations/references of high-value Level 1 papers
 - Diminishing returns: New papers increasingly off-topic
 - Resource limits: Time/API rate constraints
 
+Record `saturation_status` for each round:
+- `open`: enough new candidates to continue
+- `near_saturation`: fewer new unique candidates than the configured threshold
+- `saturated`: zero new candidates after deduplication
+- `unknown_provider_failure`: provider errors prevent a defensible saturation judgment
+
 ### Step 5: Deduplication
 
 Apply strict deduplication against existing corpus:
@@ -173,9 +186,9 @@ Score new candidates for inclusion priority:
 
 ## Seed Papers
 
-| # | Citation | Citations | Selected Because |
-|---|----------|-----------|------------------|
-| 1 | Smith (2023) | 150 | High citations |
+| # | Citation | Citations | seed_selection_reason |
+|---|----------|-----------|-----------------------|
+| 1 | Smith (2023) | 150 | high_citation |
 | 2 | Jones (2020) | 500 | Seminal work |
 | 3 | Lee (2022) | 80 | Recent review |
 
@@ -223,6 +236,7 @@ Score new candidates for inclusion priority:
 | New unique papers identified | |
 | Already in corpus (duplicates) | |
 | **Papers added to screening** | |
+| Saturation status | |
 
 ## High-Priority Additions
 
@@ -274,6 +288,7 @@ This skill is called by:
 - `SnowballLog`: write `RESEARCH/[topic]/snowball_log.md`.
 - `SearchResults`: write `RESEARCH/[topic]/search_results.csv`.
 - `DedupLog`: write `RESEARCH/[topic]/dedup_log.csv`.
+- Consume `RESEARCH/[topic]/search_diagnostics.md` when present and preserve diagnostic flags in seed-selection notes.
 - Separate finding, interpretation, and implication in the final artifact.
 - Do not invent citations, data, sample sizes, statistical results, or reviewer comments.
 - Apply `references/academic-output-rubric.md` before finalizing scholarly prose or review artifacts.
@@ -288,7 +303,8 @@ This skill is called by:
 
 - [ ] Forward 和 backward 两个方向都已执行
 - [ ] Snowball log 记录了每轮新增和排除文献数
-- [ ] 达到 saturation（连续一轮无新增有效文献）
+- [ ] Snowball log 记录了 `seed_selection_reason` 和 `saturation_status`
+- [ ] 达到 saturation（连续一轮无新增有效文献）或明确 `near_saturation` / `unknown_provider_failure`
 - [ ] 新增文献已经过 screening criteria 筛选
 - [ ] 结果已合并回 search_results.csv 并去重
 

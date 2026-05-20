@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from bridges.providers.literature_artifacts import read_search_diagnostics
 from bridges.providers.metadata_registry import artifact_project_root
 
 
@@ -23,6 +24,8 @@ def run_screening_tracker(task_packet: dict[str, Any], cwd: Path) -> dict[str, A
     full_text_path = screening_dir / "full_text.md"
     prisma_flow_path = screening_dir / "prisma_flow.md"
     retrieval_manifest_path = project_root / "retrieval_manifest.csv"
+    search_diagnostics_path = project_root / "search_diagnostics.md"
+    search_diagnostics = read_search_diagnostics(project_root)
 
     title_abstract_rows = _parse_title_abstract_rows(title_abstract_path)
     full_text_rows = _parse_full_text_rows(full_text_path)
@@ -44,6 +47,7 @@ def run_screening_tracker(task_packet: dict[str, Any], cwd: Path) -> dict[str, A
         full_text_rows=full_text_rows,
         manifest_rows=manifest_rows,
         prisma_counts=prisma_counts,
+        search_diagnostics=search_diagnostics,
     )
     provenance = [
         str(path)
@@ -52,6 +56,7 @@ def run_screening_tracker(task_packet: dict[str, Any], cwd: Path) -> dict[str, A
             full_text_path,
             prisma_flow_path,
             retrieval_manifest_path,
+            search_diagnostics_path,
         )
         if path.exists()
     ]
@@ -74,6 +79,9 @@ def run_screening_tracker(task_packet: dict[str, Any], cwd: Path) -> dict[str, A
             "project_root": str(project_root),
             "checkpoint_state": checkpoint_state,
             "resume_state": resume_state,
+            "search_diagnostics": search_diagnostics,
+            "screening_readiness": _screening_readiness(search_diagnostics),
+            "bundle_gate_state": _bundle_gate_state(search_diagnostics),
             "title_abstract_rows": title_abstract_rows[:200],
             "full_text_rows": full_text_rows[:200],
             "retrieval_manifest_rows": manifest_rows[:200],
@@ -143,6 +151,7 @@ def _build_resume_state(
     full_text_rows: list[dict[str, str]],
     manifest_rows: list[dict[str, str]],
     prisma_counts: dict[str, int],
+    search_diagnostics: dict[str, Any],
 ) -> dict[str, Any]:
     title_abstract_complete = len(title_abstract_rows) > 0
     pending_manifest = [
@@ -210,7 +219,23 @@ def _build_resume_state(
         "decided_full_text_records": len(decided_ids),
         "pending_retrieval_records": len(pending_manifest),
         "pending_full_text_decisions": len(undecided_accessible),
+        "screening_readiness": _screening_readiness(search_diagnostics),
+        "bundle_gate_state": _bundle_gate_state(search_diagnostics),
     }
+
+
+def _screening_readiness(search_diagnostics: dict[str, Any]) -> dict[str, Any]:
+    value = search_diagnostics.get("screening_readiness")
+    return dict(value) if isinstance(value, dict) else {}
+
+
+def _bundle_gate_state(search_diagnostics: dict[str, Any]) -> dict[str, Any]:
+    value = search_diagnostics.get("bundle_gate", search_diagnostics.get("bundle_gate_state"))
+    if isinstance(value, dict):
+        return dict(value)
+    if value:
+        return {"state": str(value)}
+    return {}
 
 
 def _parse_title_abstract_rows(path: Path) -> list[dict[str, str]]:

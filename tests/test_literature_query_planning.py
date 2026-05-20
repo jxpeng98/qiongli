@@ -101,6 +101,19 @@ class LiteratureQueryPlanningTests(unittest.TestCase):
         self.assertIn("sensitivity_probe", query_types)
         validate_query_plan(plan)
 
+    def test_task_packet_can_request_review_grade_search_mode(self):
+        plan = build_structured_query_plan(
+            {
+                "paper_type": "empirical",
+                "search_mode": "review_grade",
+                "research_question": "How do teams adopt AI assistants?",
+                "keywords": ["teams", "AI assistants"],
+            }
+        )
+
+        self.assertEqual(plan["search_mode"], "review_grade")
+        validate_query_plan(plan)
+
     def test_validate_query_plan_fails_without_required_concept(self):
         plan = build_structured_query_plan(
             {
