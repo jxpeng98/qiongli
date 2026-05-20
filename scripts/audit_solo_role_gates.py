@@ -7,7 +7,8 @@ from pathlib import Path
 from typing import Any, Callable
 
 
-EXECUTION_MODES = {"solo_codex", "solo_claude", "solo_gemini", "duo", "triad"}
+EXECUTION_MODES = {"solo", "solo_codex", "solo_claude", "solo_gemini", "duo", "triad"}
+RUNTIME_AGENTS = {"codex", "claude", "gemini"}
 WRITING_TASK_TYPES = {"writing", "drafting", "manuscript", "paper_write"}
 CODE_TASK_TYPES = {"code", "coding", "implementation", "software"}
 
@@ -65,13 +66,17 @@ def _audit_run_packet(
     run_id: str,
 ) -> list[str]:
     errors: list[str] = []
-    execution_mode = _normalized(packet.get("execution_mode"))
+    execution_mode = _effective_execution_mode(packet)
+    role_gate_level = _normalized(packet.get("solo_role_gates")) or "standard"
     verification_status = packet.get("verification_status")
     artifact_paths, artifact_errors = _artifact_paths(root, packet)
     errors.extend(f"{run_id}: {error}" for error in artifact_errors)
 
     if not _normalized(verification_status):
         errors.append(f"{run_id}: missing verification_status")
+
+    if role_gate_level == "off":
+        return errors
 
     if execution_mode == "solo_codex" and _is_writing_packet(packet, artifact_paths):
         if not _has_existing_artifact(artifact_paths, _is_claim_map_path):
@@ -107,6 +112,16 @@ def _audit_review_blockers(
                 f"{reviewed_run_id}: reviewer blocker conflicts with final status passed"
             )
     return errors
+
+
+def _effective_execution_mode(packet: dict[str, Any]) -> str:
+    execution_mode = _normalized(packet.get("execution_mode"))
+    if execution_mode != "solo":
+        return execution_mode
+    solo_agent = _normalized(packet.get("primary_agent")) or _normalized(packet.get("controller"))
+    if solo_agent in RUNTIME_AGENTS:
+        return f"solo_{solo_agent}"
+    return execution_mode
 
 
 def _review_has_blocker(review: dict[str, Any]) -> bool:
