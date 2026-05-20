@@ -172,6 +172,14 @@
       }
     }
   },
+  "controller_defaults": {
+    "execution_mode": "duo",
+    "controller": "codex",
+    "primary": "auto",
+    "reviewer": "auto",
+    "verifier": "auto",
+    "solo_role_gates": "standard"
+  },
   "task_overrides": {
     "F3": {
       "profile": "default",

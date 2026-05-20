@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import importlib
 import re
+from dataclasses import asdict, is_dataclass
 from datetime import datetime, timezone
-from typing import Any, Callable
+from typing import Any, Callable, Mapping
 
 from bridges.providers.literature_query import (
     build_legacy_query_variants,
@@ -68,6 +70,18 @@ def run_scholarly_search(
             failed_query_count=0,
             raw_result_count=0,
             unique_result_count=0,
+            duplicate_count=0,
+        )
+        diagnostics = _append_search_diagnostics_v2(
+            diagnostics,
+            query_plan=query_plan,
+            unique_results=[],
+            search_log=[],
+            dedup_log=[],
+            provider_summaries={},
+            failures=[],
+            raw_result_count=0,
+            normalized_result_count=0,
             duplicate_count=0,
         )
         return {
@@ -164,6 +178,18 @@ def run_scholarly_search(
         raw_result_count=raw_result_count,
         normalized_result_count=len(normalized_results),
         unique_result_count=len(unique_results),
+        duplicate_count=duplicate_count,
+    )
+    diagnostics = _append_search_diagnostics_v2(
+        diagnostics,
+        query_plan=query_plan,
+        unique_results=unique_results,
+        search_log=search_log,
+        dedup_log=dedup_log,
+        provider_summaries=provider_summaries,
+        failures=failures,
+        raw_result_count=raw_result_count,
+        normalized_result_count=len(normalized_results),
         duplicate_count=duplicate_count,
     )
 
@@ -334,6 +360,95 @@ def _build_search_diagnostics(
     }
 
 
+def _append_search_diagnostics_v2(
+    diagnostics: dict[str, Any],
+    *,
+    query_plan: dict[str, Any],
+    unique_results: list[dict[str, Any]],
+    search_log: list[dict[str, Any]],
+    dedup_log: list[dict[str, Any]],
+    provider_summaries: dict[str, dict[str, Any]],
+    failures: list[dict[str, str]],
+    raw_result_count: int,
+    normalized_result_count: int,
+    duplicate_count: int,
+) -> dict[str, Any]:
+    builder = _load_search_diagnostics_v2_builder()
+    if builder is None:
+        return diagnostics
+
+    try:
+        v2_diagnostics = builder(
+            query_plan=query_plan,
+            search_log=search_log,
+            search_results=unique_results,
+            dedup_log=dedup_log,
+            provider_summaries=provider_summaries,
+            raw_diagnostics={
+                **diagnostics,
+                "failures": failures,
+                "raw_result_count": raw_result_count,
+                "normalized_result_count": normalized_result_count,
+                "duplicate_count": duplicate_count,
+            },
+        )
+    except TypeError:
+        try:
+            v2_diagnostics = builder(
+                query_plan,
+                search_log,
+                unique_results,
+                dedup_log,
+                provider_summaries,
+                diagnostics,
+            )
+        except Exception as exc:  # pragma: no cover - defensive compatibility path.
+            return {**diagnostics, "diagnostics_v2_error": str(exc)}
+    except Exception as exc:  # pragma: no cover - defensive compatibility path.
+        return {**diagnostics, "diagnostics_v2_error": str(exc)}
+
+    v2_mapping = _coerce_diagnostics_mapping(v2_diagnostics)
+    if not v2_mapping:
+        return diagnostics
+    return _merge_without_overwriting(diagnostics, v2_mapping)
+
+
+def _load_search_diagnostics_v2_builder() -> Callable[..., Any] | None:
+    try:
+        module = importlib.import_module("bridges.providers.literature_diagnostics")
+    except ImportError:
+        return None
+    builder = getattr(module, "build_search_diagnostics_v2", None)
+    return builder if callable(builder) else None
+
+
+def _coerce_diagnostics_mapping(value: Any) -> dict[str, Any]:
+    if isinstance(value, Mapping):
+        return dict(value)
+    if is_dataclass(value) and not isinstance(value, type):
+        return asdict(value)
+    to_dict = getattr(value, "to_dict", None)
+    if callable(to_dict):
+        converted = to_dict()
+        if isinstance(converted, Mapping):
+            return dict(converted)
+    return {}
+
+
+def _merge_without_overwriting(
+    baseline: dict[str, Any],
+    extra: dict[str, Any],
+) -> dict[str, Any]:
+    merged = dict(baseline)
+    for key, value in extra.items():
+        if key not in merged:
+            merged[key] = value
+            continue
+        if isinstance(merged[key], dict) and isinstance(value, Mapping):
+            merged[key] = _merge_without_overwriting(merged[key], dict(value))
+    return merged
+
+
 def normalize_search_hit(
     hit: dict[str, Any],
     *,
@@ -418,6 +533,7 @@ def _artifact_bundle() -> dict[str, str]:
         "search_log": "search_log.md",
         "search_results": "search_results.csv",
         "dedup_log": "dedup_log.csv",
+        "search_diagnostics": "search_diagnostics.md",
     }
 
 

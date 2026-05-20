@@ -56,7 +56,11 @@ def build_structured_query_plan(task_packet: dict[str, Any]) -> dict[str, Any]:
     )
 
     return {
-        "search_mode": _search_mode(task_packet.get("paper_type")),
+        "search_mode": _search_mode(
+            task_packet.get("paper_type"),
+            task_packet.get("search_mode"),
+            task_packet.get("review_grade"),
+        ),
         "concept_blocks": concept_blocks,
         "provider_translations": provider_translations,
         "filters": _build_filters(task_packet),
@@ -534,11 +538,26 @@ def _normalize_known_items(raw_known_items: Any) -> list[dict[str, str]]:
     return known_items
 
 
-def _search_mode(raw_paper_type: Any) -> str:
+def _search_mode(
+    raw_paper_type: Any,
+    raw_search_mode: Any = None,
+    raw_review_grade: Any = None,
+) -> str:
+    requested_mode = _clean_text(raw_search_mode).casefold().replace("-", "_")
+    if requested_mode in {"review_grade", "systematic_review", "targeted_search"}:
+        return requested_mode
+    if _truthy(raw_review_grade):
+        return "review_grade"
     paper_type = _clean_text(raw_paper_type).casefold().replace("_", "-")
     if paper_type == "systematic-review":
         return "systematic_review"
     return "targeted_search"
+
+
+def _truthy(raw: Any) -> bool:
+    if isinstance(raw, bool):
+        return raw
+    return _clean_text(raw).casefold() in {"1", "true", "yes", "y", "review_grade"}
 
 
 def _clean_keywords(raw_keywords: Any) -> list[str]:

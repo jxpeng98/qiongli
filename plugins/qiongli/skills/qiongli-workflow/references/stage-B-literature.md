@@ -4,7 +4,7 @@ This stage builds the *evidence base* for positioning: search → screening → 
 
 ## Canonical outputs (contract paths)
 
-- `B1` → `protocol.md`, `search_strategy.md`, `search_log.md`, `search_results.csv`, `dedup_log.csv`, `snowball_log.md`, `screening/`, `notes/`, `bibliography.bib`, `retrieval_manifest.csv`, `extraction_table.md`, `quality_table.md`, `synthesis_matrix.md`, `synthesis.md`
+- `B1` → `protocol.md`, `search_strategy.md`, `search_log.md`, `search_results.csv`, `dedup_log.csv`, `search_diagnostics.md`, `snowball_log.md`, `screening/`, `notes/`, `bibliography.bib`, `retrieval_manifest.csv`, `extraction_table.md`, `quality_table.md`, `synthesis_matrix.md`, `synthesis.md`
 - `B1_5` → `literature/concept_extraction.md`
 - `B2` → `notes/`, `bibliography.bib`, `retrieval_manifest.csv`
 - `B3` → `snowball_log.md`, `search_results.csv`, `dedup_log.csv`
@@ -16,6 +16,7 @@ This stage builds the *evidence base* for positioning: search → screening → 
 
 - `Q4` (reproducibility baseline) starts here: search queries, inclusion/exclusion, and logs must be reproducible.
 - For `systematic-review`, PRISMA consistency is enforced later (`G2`), but data should be prepared in B.
+- `B1` search quality is validated against `references/literature-search-quality-contract.md`; `search_diagnostics.md` is required before review-grade screening or systematic-review claims.
 
 ## Literature Provider Contract
 
@@ -57,6 +58,7 @@ Use `B1` when you want an end-to-end pipeline. If you only need one component (e
 - `search_log.md` records dates/timestamps + counts per source, plus the provider or overlay used for each execution
 - `search_results.csv` is a dedup-ready record table (one row per record)
 - `dedup_log.csv` records merge/drop decisions and the basis for each dedup action
+- `search_diagnostics.md` records mode-aware search quality checks, known-item recall, provider/query coverage, dedup ratio, coverage gaps, and next search actions
 - `snowball_log.md` records citation-based expansions when used
 - `screening/` contains title/abstract + full-text decisions and reasons
 - `notes/` contains structured notes for included studies
@@ -128,9 +130,24 @@ Where `fulltext_status` uses a controlled set:
 
 - Search strategy cannot be reproduced (missing exact query strings / limits / dates)
 - Dedup is undocumented (later PRISMA counts cannot reconcile)
+- Search diagnostics are missing or still show `known_item_missing`, `provider_undercoverage`, `query_too_narrow`, or `weak_screening_readiness` when the workflow claims review-grade coverage
 - Retrieval provenance is undocumented (later full-text decisions cannot be audited)
 - Screening reasons are inconsistent or missing (PRISMA 2020 failure)
 - Synthesis makes claims not supported by extracted evidence
+
+### Search diagnostics gate
+
+Write `search_diagnostics.md` from templates/search-diagnostics.md after provider execution and deduplication. The audit command is:
+
+```bash
+python3 scripts/audit_literature_search_quality.py RESEARCH/[topic] --task-id B1
+```
+
+Mode-aware expectations:
+- `systematic_review` / review-grade: at least two productive providers, no unresolved known-item misses, no zero-hit required concept blocks, and no weak screening readiness flag
+- `targeted_search`: single-provider coverage or zero-hit concept blocks are warnings, but the artifact must not be used later as evidence of exhaustive coverage
+
+Provider JSON output can be materialized with `scripts/materialize_literature_search_bundle.py`, which writes `search_strategy.md`, `search_results.csv`, `search_log.md`, `dedup_log.csv`, and `search_diagnostics.md`.
 
 ---
 
@@ -178,6 +195,7 @@ Recommended note filename convention:
 
 **Definition of done**
 - `snowball_log.md` lists seeds + forward/backward expansions + dedup decisions
+- each round records `seed_selection_reason` and `saturation_status`
 - `search_results.csv` is updated or append-ready for new snowballed candidates
 - `dedup_log.csv` records which snowballed candidates were merged, dropped, or kept separate
 - The corpus expands with a documented rationale (not “add everything”)
@@ -185,8 +203,8 @@ Recommended note filename convention:
 Suggested `snowball_log.md` table:
 
 ```markdown
-| seed_citekey | direction (forward/backward) | candidate | decision | reason |
-|---|---|---|---|---|
+| seed_citekey | seed_selection_reason | direction (forward/backward) | candidate | decision | reason | saturation_status |
+|---|---|---|---|---|---|---|
 ```
 
 ---
@@ -223,8 +241,9 @@ Goal: map the field so your paper can claim novelty without hand-waving.
 
 **Definition of done**
 - A taxonomy/map with:
-  - clusters/themes
-  - representative papers per cluster
-  - open problems per cluster
+  - included studies
+  - concept streams
+  - representative papers per stream
+  - evidence gaps and open problems per stream
 
 Write into: `literature/literature_map.md`.

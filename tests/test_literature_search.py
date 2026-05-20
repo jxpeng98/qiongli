@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sys
+import types
 import unittest
 
 from bridges.providers.literature_search import (
@@ -308,6 +310,99 @@ class LiteratureSearchBaselineTests(unittest.TestCase):
         self.assertEqual(diagnostics["normalized_result_count"], 1)
         self.assertEqual(data["provider_summaries"]["semantic_scholar"]["raw_hits"], 2)
         self.assertEqual(data["provider_summaries"]["semantic_scholar"]["normalized_hits"], 1)
+
+    def test_run_scholarly_search_appends_diagnostics_v2_without_overwriting_baseline(self) -> None:
+        module_name = "bridges.providers.literature_diagnostics"
+        fake_module = types.ModuleType(module_name)
+
+        def build_search_diagnostics_v2(
+            query_plan: dict[str, object],
+            *,
+            search_log: list[dict[str, object]],
+            search_results: list[dict[str, object]],
+            dedup_log: list[dict[str, object]],
+            provider_summaries: dict[str, dict[str, object]],
+            raw_diagnostics: dict[str, object],
+        ) -> dict[str, object]:
+            self.assertIn("search_mode", query_plan)
+            self.assertEqual(1, len(search_log))
+            self.assertEqual(1, len(search_results))
+            self.assertEqual([], dedup_log)
+            self.assertIn("semantic_scholar", provider_summaries)
+            self.assertEqual(1, raw_diagnostics["attempted_query_count"])
+            return {
+                "attempted_query_count": 999,
+                "gate_status": "warning",
+                "screening_readiness": {
+                    "ready": False,
+                    "reason": "Known-item recall has unresolved gaps.",
+                },
+                "bundle_gate": {
+                    "state": "blocked",
+                    "reason": "Resolve diagnostics before screening.",
+                },
+            }
+
+        fake_module.build_search_diagnostics_v2 = build_search_diagnostics_v2
+        previous_module = sys.modules.get(module_name)
+        sys.modules[module_name] = fake_module
+        self.addCleanup(self._restore_module, module_name, previous_module)
+
+        result = run_scholarly_search(
+            {
+                "topic": "platform governance",
+            },
+            lambda query, limit: {
+                "data": [
+                    {
+                        "paperId": "diagnostic-hit",
+                        "title": f"Diagnostic Result for {query}",
+                        "authors": [{"name": "Alex Smith"}],
+                        "year": 2024,
+                    }
+                ],
+            },
+            retrieved_at="2026-03-25T12:00:00+00:00",
+        )
+
+        diagnostics = result["data"]["search_diagnostics"]
+        self.assertEqual(diagnostics["attempted_query_count"], 1)
+        self.assertEqual(diagnostics["gate_status"], "warning")
+        self.assertEqual(diagnostics["screening_readiness"]["ready"], False)
+        self.assertEqual(diagnostics["bundle_gate"]["state"], "blocked")
+        self.assertEqual(result["data"]["artifact_bundle"]["search_diagnostics"], "search_diagnostics.md")
+
+    def test_run_scholarly_search_uses_real_diagnostics_v2_builder(self) -> None:
+        result = run_scholarly_search(
+            {
+                "topic": "platform governance",
+            },
+            lambda query, limit: {
+                "data": [
+                    {
+                        "paperId": "real-diagnostic-hit",
+                        "title": f"Real Diagnostic Result for {query}",
+                        "authors": [{"name": "Alex Smith"}],
+                        "year": 2024,
+                    }
+                ],
+            },
+            retrieved_at="2026-03-25T12:00:00+00:00",
+        )
+
+        diagnostics = result["data"]["search_diagnostics"]
+        self.assertNotIn("diagnostics_v2_error", diagnostics)
+        self.assertEqual(diagnostics["search_mode"], "targeted_search")
+        self.assertIn(diagnostics["gate_status"], {"pass", "warning"})
+        self.assertIn("provider_coverage", diagnostics)
+        self.assertIn("screening_readiness", diagnostics)
+
+    @staticmethod
+    def _restore_module(module_name: str, previous_module: object | None) -> None:
+        if previous_module is None:
+            sys.modules.pop(module_name, None)
+        else:
+            sys.modules[module_name] = previous_module
 
 
 if __name__ == "__main__":
