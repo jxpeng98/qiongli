@@ -7,6 +7,32 @@ Save to: RESEARCH/[topic]/search_strategy.md
 
 # Search Strategy: [Review or Project Title]
 
+## Machine-Readable Search Plan
+
+```yaml
+search_mode: systematic_review
+concept_blocks:
+  - id: c1_population
+    label: Population or corpus
+    required: true
+    terms: []
+    phrases: []
+    controlled_vocab: []
+    exclusions: []
+provider_translations:
+  - provider: semantic_scholar
+    query_id: q1
+    translated_query: ""
+filters:
+  year_start: ""
+  year_end: ""
+  language: ""
+known_items: []
+stopping_rules:
+  max_rounds: 2
+  stop_when_new_included_below: 3
+```
+
 ## 1) Research Scope
 - Review question / focal RQ:
 - Population / context:
