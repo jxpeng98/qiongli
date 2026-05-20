@@ -4,6 +4,8 @@ import re
 from datetime import datetime, timezone
 from typing import Any, Callable
 
+from bridges.providers.literature_query import build_legacy_query_variants
+
 
 SearchFn = Callable[[str, int], dict[str, Any]]
 
@@ -42,50 +44,7 @@ NON_ALNUM_RE = re.compile(r"[^a-z0-9]+")
 
 
 def build_query_variants(task_packet: dict[str, Any]) -> list[dict[str, str]]:
-    seen: set[str] = set()
-    variants: list[dict[str, str]] = []
-
-    def add_variant(query: str, rationale: str) -> None:
-        cleaned = " ".join(str(query).strip().split())
-        if not cleaned:
-            return
-        key = cleaned.casefold()
-        if key in seen:
-            return
-        seen.add(key)
-        variants.append(
-            {
-                "query_id": f"q{len(variants) + 1}",
-                "query": cleaned,
-                "rationale": rationale,
-            }
-        )
-
-    topic = str(task_packet.get("topic", "")).strip()
-    if topic:
-        add_variant(topic, "topic seed")
-
-    direct_query = str(task_packet.get("query", "")).strip()
-    if direct_query:
-        add_variant(direct_query, "explicit query")
-
-    research_question = str(task_packet.get("research_question", "")).strip()
-    if research_question:
-        add_variant(research_question, "research question")
-        distilled = _distill_question(research_question)
-        if distilled and distilled.casefold() != research_question.casefold():
-            add_variant(distilled, "distilled research question keywords")
-
-    keyword_bundle = _build_keyword_bundle(task_packet.get("keywords"))
-    if keyword_bundle:
-        add_variant(keyword_bundle, "keyword bundle")
-
-    for alias_key in ("target_title", "title"):
-        alias_value = str(task_packet.get(alias_key, "")).strip()
-        if alias_value:
-            add_variant(alias_value, f"{alias_key} seed")
-
-    return variants[:MAX_QUERY_VARIANTS]
+    return build_legacy_query_variants(task_packet)
 
 
 def run_scholarly_search(
