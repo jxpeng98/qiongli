@@ -1,15 +1,23 @@
 # Changelog
 
-本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-04-01）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。`0.4.0` 采用正式版 summary 写法，已将 `0.3.0` 之后的 beta 演进合并整理，不再按小 beta 分段展开。
+本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-05-20）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。`0.4.0` 采用正式版 summary 写法，已将 `0.3.0` 之后的 beta 演进合并整理，不再按小 beta 分段展开。
 
-## [Unreleased] - 2026-04-01
+## [Unreleased] - 2026-05-20
 
 ### Added
 
+- 新增 controller-agnostic execution 基础能力，支持在 `task-run` 中记录 `solo`、`duo`、`triad` 执行模式，以及 `controller`、`primary`、`reviewer`、`verifier` 和 `solo-role-gates` ownership metadata。
+- 新增 controller-mode contracts、solo role policy、agent handoff、disagreement matrix、duo review report、solo self-review、implementation intent、writing claim map 和 quality gate report 模板。
+- 新增 `scripts/audit_solo_role_gates.py` 与 `scripts/audit_agent_handoffs.py`，用于离线审计 Codex-only 写作、Claude-only 工程、duo handoff 和 blocking disagreement artifacts。
+- 新增 controller-mode 使用指南：`guides/advanced/controller-modes.md`、`guides/advanced/solo-mode.md` 与 `guides/advanced/codex-claude-duo.md`。
+- 新增 controller-mode offline eval corpus 与 runner：`evals/controller_modes/*.json` 和 `scripts/run_controller_mode_evals.py`，覆盖 Codex-only、Claude-only、Claude-primary + Codex review、Codex-primary + Claude review、duo disagreement 与 expected verification blocked 场景。
 - 为 `scripts/bootstrap_qiongli.ps1` 增加用于生成用户 `PATH` 更新命令的辅助函数，进一步完善 Windows 安装后的环境变量刷新体验。
 
 ### Changed
 
+- `scripts/validate_research_standard.py --strict` 现在会检查 controller-mode contract 文件，并运行 solo role gate audit，防止缺失 claim map、implementation intent 或 verification status 的运行记录通过严格验证。
+- `scripts/release_preflight.sh` 新增 controller-mode eval warning stage；当前作为发布前风险提示，不阻断 beta 发版。
+- README、README_CN、CLAUDE.md 和 `qiongli-workflow/SKILL.md` 补充 controller-aware task-run flags、solo gates、duo disagreement handling 和 strict validation 建议。
 - 正式版发布流程改为以 `CHANGELOG.md` 作为 GitHub Release 的说明来源；beta / prerelease 继续使用 `release/<tag>.md`。
 
 ## [0.4.0] - 2026-04-01

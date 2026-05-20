@@ -15,6 +15,7 @@ This is a **self-contained skill package**. All assets needed for execution — 
 2. Ask for `task_id` from the contract (for example `F3` or `G1`).
 3. Execute the task and write outputs to `RESEARCH/[topic]/` using the exact file paths.
 4. Apply quality gates before submission tasks (`H1`, `H2`).
+5. For orchestrator `task-run`, declare controller ownership when relevant with `--execution-mode`, `--controller`, `--primary`, `--reviewer`, `--verifier`, and `--solo-role-gates`.
 
 ## Available Workflow Commands
 
@@ -96,14 +97,22 @@ RESEARCH/[topic]/
   1. continue with placeholders, or
   2. run the prerequisite task first.
 - Keep claims, methods, and evidence aligned (run integrity checks for stage `G`).
+- Track central claims in `RESEARCH/[topic]/evidence/claim-evidence-ledger.csv` using `references/evidence-ledger-contract.md`; unsupported central claims become gap notes, not invented citations.
+- Before final writing, proofread, submission, rebuttal, or presentation-facing outputs, apply `references/citation-risk-policy.md` when citation support is material.
+- At high-risk stage transitions, write `RESEARCH/[topic]/context/stage_handoff.md` using `references/stage-handoff-contract.md`.
+- Use `venue-profiles/` when a target venue profile is available; otherwise create a venue gap note instead of assuming community-specific expectations.
 - Apply `references/academic-output-rubric.md` whenever producing scholarly prose, synthesis, design, review, or submission artifacts.
+- Treat controller-mode metadata as audit-relevant: `task-run` accepts only `solo|duo|triad` for `--execution-mode`, only runtime agents for `--controller` / `--primary` / `--reviewer` / `--verifier`, and only `strict|standard|off` for `--solo-role-gates`.
+- Use `--mcp-strict` and `--skills-strict` for authoritative controller-aware runs; avoid `--skip-validation` for submission-facing, Stage-I code, or final manuscript outputs.
+- In solo mode, record role-specific gate intent: Codex-only writing should cover evidence ledger, citation risk, claim calibration, and scholarly voice checks; Claude-only engineering should cover implementation intent, declared write set, failing-test-first discipline, command evidence, and rollback notes. Current offline audits hard-block missing claim-map artifacts for Codex-only writing and missing implementation-intent artifacts for Claude-only code unless solo gates are `off`.
+- In Codex-Claude duo mode, record blocking disagreements with a disagreement matrix and resolve them by evidence, method risk, implementation validity, and downstream publication impact.
 - When a workflow references `templates/<name>.md`, load the template from the `templates/` subdirectory of this package.
 
 ## Skill Loading Strategy
 
 Three-tier loading for token efficiency. All paths are relative to this skill package directory:
 
-1. **Quick lookup (~3KB):** Use `skills-summary.md` — skill names + one-line descriptions per stage. Use this to identify which skill to invoke.
+1. **Quick lookup (~6KB):** Use `skills-summary.md` — skill names + one-line descriptions per stage. Use this to identify which skill to invoke.
 2. **Default reference (~19KB):** Use `skills-core.md` — consolidated process descriptions, templates, and output formats. Use this when executing a skill.
 3. **Full specification:** Load `skills/[stage]/[skill-name].md` — detailed edge cases, error recovery, quality bars, and verbose templates. Use this only when the core reference is insufficient.
 
@@ -118,9 +127,10 @@ This package includes the following subdirectories:
 | `skills/` | 71 detailed skill spec files across 13 stage directories |
 | `skills-summary.md` | Quick-reference skill index (~3KB) |
 | `skills-core.md` | Consolidated skill reference (~19KB) |
-| `templates/` | 44 output templates for manuscripts, submissions, ethics, etc. |
+| `templates/` | 50+ output templates for manuscripts, submissions, ethics, evidence, and handoffs |
 | `standards/` | Canonical contract YAML + capability map + agent profiles |
 | `roles/` | 10 agent role definitions for orchestrator execution |
+| `venue-profiles/` | Venue expectation profiles for CHI, ACL, NeurIPS, Nature, JAMA, and AOM |
 
 ## References
 
@@ -128,6 +138,10 @@ This package includes the following subdirectories:
 - Platform routing map: `references/platform-routing.md`
 - Coverage matrix: `references/coverage-matrix.md`
 - Academic output rubric: `references/academic-output-rubric.md`
+- Evidence ledger contract: `references/evidence-ledger-contract.md`
+- Citation risk policy: `references/citation-risk-policy.md`
+- Stage handoff contract: `references/stage-handoff-contract.md`
+- Method diagnostic contract: `references/method-diagnostic-contract.md`
 - Stage playbooks:
   - `references/stage-A-framing.md` (tasks A1–A5)
   - `references/stage-B-literature.md` (tasks B1–B6)

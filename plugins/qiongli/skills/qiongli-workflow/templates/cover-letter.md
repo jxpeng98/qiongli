@@ -27,7 +27,8 @@ Please consider our manuscript, **"[Title]"**, for publication in **[Venue]**.
 
 Thank you for your time and consideration.
 
-Sincerely,
-[Name]
-[Affiliation]
+Sincerely,  
+[Name]  
+[Affiliation]  
 [Email]
+

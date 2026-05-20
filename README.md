@@ -69,6 +69,7 @@ Start with the consolidated docs when you need detail:
 - [CLI Reference](docs/reference/cli.md)
 - [Architecture](docs/architecture.md)
 - [Plugin-First Architecture](docs/advanced/plugin-first-architecture.md)
+- [Controller Modes](guides/advanced/controller-modes.md)
 
 ### 0. Choose An Install Path
 
@@ -281,6 +282,8 @@ Common controls:
 - `--focus-output` and `--output-budget`: reduce auxiliary artifact spread by shrinking the active output set
 - `--research-depth deep` plus `--max-rounds`: enforce a narrower, more adversarial evidence-expansion and revision loop
 - `--only-target <id>`: for structured Stage-I tasks `I4`-`I8`, reload the existing artifact and rerun only the selected actionable target
+- Controller-aware flags: `--execution-mode solo|duo|triad`, `--controller`, `--primary`, `--reviewer`, `--verifier`, and `--solo-role-gates strict|standard|off`
+- Strict controller-mode validation: invalid controller flag values are rejected; pair controller-aware runs with `--mcp-strict` and `--skills-strict` when missing providers or skill specs must block execution
 
 Example: rerun one planning step only
 
@@ -292,6 +295,24 @@ python3 -m bridges.orchestrator task-run \
   --cwd . \
   --only-target S1
 ```
+
+Example: Claude-primary duo writing run with Codex review
+
+```bash
+python3 -m bridges.orchestrator task-run \
+  --task-id F3 \
+  --paper-type empirical \
+  --topic ai-in-education \
+  --cwd . \
+  --execution-mode duo \
+  --controller claude \
+  --primary claude \
+  --reviewer codex \
+  --mcp-strict \
+  --skills-strict
+```
+
+See [Controller Modes](guides/advanced/controller-modes.md), [Solo Mode](guides/advanced/solo-mode.md), and [Codex-Claude Duo](guides/advanced/codex-claude-duo.md) for controller-aware task-run conventions, solo gates, and disagreement handling.
 
 ### 8. Run the Strict Academic Code Flow
 
@@ -867,6 +888,7 @@ Useful knobs for `task-run`:
 - `--research-depth deep`: adds explicit evidence-expansion, contradiction-check, and narrow-claim pressure.
 - `--max-rounds <n>`: increases revision depth after review blocks.
 - `--only-target <id>`: for Stage-I structured artifacts, reload the existing artifact and rerun only the selected actionable target(s).
+- `--execution-mode`, `--controller`, `--primary`, `--reviewer`, `--verifier`, `--solo-role-gates`: record strict controller-mode metadata for solo, duo, or triad task ownership.
 - Built-in profiles: `focused-delivery`, `deep-research`, `strict-review`, `rapid-draft`, `default`.
 
 **Execution Modes**

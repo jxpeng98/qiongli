@@ -25,3 +25,4 @@ Save to: RESEARCH/[topic]/manuscript/claims_evidence_map.md
 - [ ] Results statements do not leak interpretation beyond evidence
 - [ ] Limitations address main threats (not cosmetic)
 - [ ] Every figure/table is referenced and explained
+

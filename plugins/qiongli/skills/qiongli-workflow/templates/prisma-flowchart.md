@@ -1,6 +1,6 @@
 # PRISMA 2020 Flow Diagram Template
 
-<!--
+<!-- 
 Usage: Fill in numbers from your systematic review screening process.
 Based on: PRISMA 2020 Statement (Page et al., 2021)
 -->
@@ -42,25 +42,25 @@ Based on: PRISMA 2020 Statement (Page et al., 2021)
 
 ### Duplicate removal
 
-- Records before deduplication: n =
-- Duplicates removed: n =
+- Records before deduplication: n = 
+- Duplicates removed: n = 
 - **Records after deduplication: n = **
 
 ### Title/Abstract Screening
 
-- Records screened: n =
-- Records excluded: n =
+- Records screened: n = 
+- Records excluded: n = 
 
 ### Full-text Retrieval
 
-- Reports sought for retrieval: n =
-- Reports not retrieved: n =
-  - Reasons:
+- Reports sought for retrieval: n = 
+- Reports not retrieved: n = 
+  - Reasons: 
 
 ### Full-text Screening
 
-- Reports assessed for eligibility: n =
-- Reports excluded: n =
+- Reports assessed for eligibility: n = 
+- Reports excluded: n = 
   - Reason 1: [description] (n = )
   - Reason 2: [description] (n = )
   - Reason 3: [description] (n = )
@@ -85,7 +85,7 @@ flowchart TD
         A2["Records identified from other sources
         (n = )"]
     end
-
+    
     subgraph screening ["Screening"]
         B["Records after duplicates removed
         (n = )"]
@@ -104,14 +104,14 @@ flowchart TD
         Reason 2 (n = )
         Reason 3 (n = )"]
     end
-
+    
     subgraph included ["Included"]
         I["Studies included in review
         (n = )"]
         J["Reports of included studies
         (n = )"]
     end
-
+    
     A1 --> B
     A2 --> B
     B --> C

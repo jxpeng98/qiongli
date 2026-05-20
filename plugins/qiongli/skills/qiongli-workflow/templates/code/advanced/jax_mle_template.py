@@ -22,12 +22,12 @@ class CustomMLE:
     def log_likelihood(self, params, data, *args):
         """
         Define the Log-Likelihood function here.
-
+        
         Args:
             params: JAX array of parameters
             data: JAX array of observed data
             args: Additional arguments (covariates, etc.)
-
+            
         Returns:
             Scalar log-likelihood value
         """
@@ -53,26 +53,26 @@ class CustomMLE:
         # Wrapper for scipy.optimize
         def func(p):
             return float(self.negative_log_likelihood(jnp.array(p), data))
-
+            
         def jac(p):
             return np.array(nll_grad(jnp.array(p), data))
 
         print("Starting optimization...")
         self.result = minimize(
-            func,
-            initial_params,
-            method=method,
+            func, 
+            initial_params, 
+            method=method, 
             jac=jac,
             options={'disp': True}
         )
-
+        
         self.params = self.result.x
         return self.result
 
     def summary(self):
         if self.result is None:
             return "Model not fitted."
-
+        
         return {
             "success": self.result.success,
             "params": self.params,

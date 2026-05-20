@@ -1,6 +1,6 @@
 # Data Extraction Table Template
 
-<!--
+<!-- 
 Usage: Use this table to systematically extract data from included studies.
 Customize columns based on your research questions.
 -->
@@ -98,15 +98,15 @@ Customize columns based on your research questions.
 
 #### Contributions
 
-- Theoretical:
-- Practical:
-- Methodological:
+- Theoretical: 
+- Practical: 
+- Methodological: 
 
 #### Limitations
 
-1.
-2.
-3.
+1. 
+2. 
+3. 
 
 #### Limitation Tags
 
@@ -119,11 +119,11 @@ Customize columns based on your research questions.
 
 #### Future Research
 
--
+- 
 
 #### Notes
 
--
+- 
 
 ---
 

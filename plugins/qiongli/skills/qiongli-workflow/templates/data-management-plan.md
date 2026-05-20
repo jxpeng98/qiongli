@@ -39,3 +39,4 @@ Save to: RESEARCH/[topic]/data_management_plan.md
 - Where it will be shared (repo/archive):
 - Licensing:
 - Restricted access plan (if not fully open):
+

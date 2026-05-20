@@ -53,15 +53,40 @@ run_logged_stage() {
   fi
 }
 
+run_warning_stage() {
+  local label="$1"
+  local log_file="$2"
+  local -a statuses
+  shift 2
+
+  echo "[preflight] ${label}"
+  set +e
+  "$@" 2>&1 | tee "$log_file"
+  statuses=("${PIPESTATUS[@]}")
+  set -e
+
+  local command_status="${statuses[0]}"
+  local tee_status="${statuses[1]}"
+  if [[ "$tee_status" -ne 0 ]]; then
+    echo "[preflight] WARN: ${label} log capture failed with exit code ${tee_status}" >&2
+    return 0
+  fi
+  if [[ "$command_status" -ne 0 ]]; then
+    echo "[preflight] WARN: ${label} failed with exit code ${command_status}" >&2
+    echo "[preflight] warning log: ${log_file}" >&2
+  fi
+}
+
 cleanup_logs() {
   local status="$?"
   if [[ "$status" -eq 0 ]]; then
-    rm -f "$validator_log" "$unit_log" "$smoke_log"
+    rm -f "$validator_log" "$unit_log" "$smoke_log" "$eval_log"
   else
     echo "[preflight] retained logs for failed run:" >&2
     echo "  validator: $validator_log" >&2
     echo "  unit tests: $unit_log" >&2
     echo "  smoke: $smoke_log" >&2
+    echo "  controller-mode evals: $eval_log" >&2
   fi
 }
 
@@ -205,6 +230,7 @@ fi
 validator_log="$(mktemp -t qiongli-validator.XXXXXX.log)"
 unit_log="$(mktemp -t qiongli-unittest.XXXXXX.log)"
 smoke_log="$(mktemp -t qiongli-smoke.XXXXXX.log)"
+eval_log="$(mktemp -t qiongli-controller-evals.XXXXXX.log)"
 trap cleanup_logs EXIT
 
 run_logged_stage "validator" "$validator_log" "${validate_cmd[@]}"
@@ -224,6 +250,8 @@ if grep -q '^OK$' "$unit_log"; then
 else
   unittest_summary="FAILED"
 fi
+
+run_warning_stage "controller-mode evals" "$eval_log" python3 scripts/run_controller_mode_evals.py evals/controller_modes
 
 if [[ "$RUN_SMOKE" -eq 1 ]]; then
   smoke_tier="release"

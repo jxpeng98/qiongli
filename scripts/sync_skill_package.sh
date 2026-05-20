@@ -57,6 +57,7 @@ SYNC_DIRS=(
   "templates"
   "standards"
   "roles"
+  "venue-profiles"
 )
 
 SYNC_FILES=(

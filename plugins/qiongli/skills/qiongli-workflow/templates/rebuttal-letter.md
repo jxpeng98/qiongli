@@ -12,8 +12,8 @@ Dear [Editor/Reviewers],
 Thank you for the thoughtful and constructive feedback on our manuscript, **"[Title]"**. We have revised the paper accordingly and summarize the major changes below.
 
 ## Summary of Major Revisions
-1.
-2.
+1. 
+2. 
 
 ---
 
@@ -38,5 +38,6 @@ Thank you for the thoughtful and constructive feedback on our manuscript, **"[Ti
 
 ---
 
-Sincerely,
+Sincerely,  
 [Authors]
+

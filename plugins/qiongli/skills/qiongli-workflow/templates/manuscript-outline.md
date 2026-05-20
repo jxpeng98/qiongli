@@ -19,12 +19,12 @@ Save to: RESEARCH/[topic]/manuscript/outline.md
 ## 1) Core Story
 - **One-sentence claim**:
 - **What’s new** (3 bullets):
-  -
-  -
-  -
+  - 
+  - 
+  - 
 - **Why it matters** (2 bullets):
-  -
-  -
+  - 
+  - 
 
 ---
 
@@ -42,16 +42,16 @@ Save to: RESEARCH/[topic]/manuscript/outline.md
 - Implications:
 
 ### 1. Introduction
-P1: Context + why important (evidence/citation: )
-P2: Concrete gap (evidence/citation: )
-P3: Approach overview (pointer to method)
-P4: Key results preview (pointer to results)
-P5: Contributions list (bullet) + roadmap
+P1: Context + why important (evidence/citation: )  
+P2: Concrete gap (evidence/citation: )  
+P3: Approach overview (pointer to method)  
+P4: Key results preview (pointer to results)  
+P5: Contributions list (bullet) + roadmap  
 
 ### 2. Related Work / Literature Positioning
-Theme A: what is known + where it falls short (citations)
-Theme B: competing approaches + tradeoffs (citations)
-Theme C: why your angle is needed (citations)
+Theme A: what is known + where it falls short (citations)  
+Theme B: competing approaches + tradeoffs (citations)  
+Theme C: why your angle is needed (citations)  
 
 ### 3. Methods
 - Design summary:
