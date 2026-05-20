@@ -58,6 +58,71 @@ class SoloRoleGateAuditTests(unittest.TestCase):
         self.assertIn("claude-code", joined)
         self.assertIn("implementation intent", joined)
 
+    def test_task_run_solo_codex_writing_without_claim_map_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            write_json(
+                root / "runs" / "task-run-codex-writing.json",
+                {
+                    "run_id": "task-run-codex-writing",
+                    "execution_mode": "solo",
+                    "controller": "codex",
+                    "primary_agent": "codex",
+                    "task_type": "writing",
+                    "verification_status": "passed",
+                    "artifacts_written": ["manuscript/draft.md"],
+                },
+            )
+
+            errors = audit_solo_role_gates(root)
+
+        joined = "\n".join(errors).lower()
+        self.assertIn("task-run-codex-writing", joined)
+        self.assertIn("claim map", joined)
+
+    def test_task_run_solo_claude_code_without_implementation_intent_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            write_json(
+                root / "runs" / "task-run-claude-code.json",
+                {
+                    "run_id": "task-run-claude-code",
+                    "execution_mode": "solo",
+                    "controller": "claude",
+                    "primary_agent": "claude",
+                    "task_type": "code",
+                    "verification_status": "passed",
+                    "artifacts_written": ["code/change.patch"],
+                },
+            )
+
+            errors = audit_solo_role_gates(root)
+
+        joined = "\n".join(errors).lower()
+        self.assertIn("task-run-claude-code", joined)
+        self.assertIn("implementation intent", joined)
+
+    def test_solo_role_gates_off_skips_role_specific_artifact_gates(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            write_json(
+                root / "runs" / "codex-writing-experiment.json",
+                {
+                    "run_id": "codex-writing-experiment",
+                    "execution_mode": "solo",
+                    "controller": "codex",
+                    "primary_agent": "codex",
+                    "solo_role_gates": "off",
+                    "task_type": "writing",
+                    "verification_status": "passed",
+                    "artifacts_written": ["manuscript/draft.md"],
+                },
+            )
+
+            errors = audit_solo_role_gates(root)
+
+        self.assertEqual([], errors)
+
     def test_duo_run_without_handoff_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
