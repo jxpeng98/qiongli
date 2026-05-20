@@ -65,6 +65,7 @@
 - [安装指南](docs/zh/guide/install.md)
 - [CLI 参考](docs/zh/reference/cli.md)
 - [系统架构](docs/zh/architecture.md)
+- [Controller Modes](guides/advanced/controller-modes.md)
 
 ### 0. 先选安装路径
 
@@ -265,6 +266,8 @@ python3 -m bridges.orchestrator task-run \
 - `--focus-output` 与 `--output-budget`：缩小 active outputs，减少辅助文件扩散
 - `--research-depth deep` 配合 `--max-rounds`：强制更窄、更有对抗性的证据扩展与修订流程
 - `--only-target <id>`：对结构化 Stage-I 任务 `I4`-`I8`，回读现有 artifact，并且只重跑指定 actionable target
+- Controller-aware flags：`--execution-mode solo|duo|triad`、`--controller`、`--primary`、`--reviewer`、`--verifier`、`--solo-role-gates strict|standard|off`
+- 严格 controller-mode validation：非法 controller 参数会被 CLI 拒绝；需要缺失 provider 或 skill spec 直接阻断时，配合 `--mcp-strict` 与 `--skills-strict`
 
 示例：只重跑一个 planning step
 
@@ -276,6 +279,24 @@ python3 -m bridges.orchestrator task-run \
   --cwd . \
   --only-target S1
 ```
+
+示例：Claude-primary duo 写作执行，并由 Codex 复核
+
+```bash
+python3 -m bridges.orchestrator task-run \
+  --task-id F3 \
+  --paper-type empirical \
+  --topic ai-in-education \
+  --cwd . \
+  --execution-mode duo \
+  --controller claude \
+  --primary claude \
+  --reviewer codex \
+  --mcp-strict \
+  --skills-strict
+```
+
+更多 controller-aware task-run 约定、solo gates 和 disagreement 处理见 [Controller Modes](guides/advanced/controller-modes.md)、[Solo Mode](guides/advanced/solo-mode.md) 与 [Codex-Claude Duo](guides/advanced/codex-claude-duo.md)。
 
 ### 8. 运行严格学术代码流
 
@@ -739,6 +760,7 @@ python3 -m bridges.orchestrator code-build --method "Transformer Fine-Tuning" --
 - `--research-depth deep`：显式要求证据扩展、反例搜索、边界条件检查与更窄结论。
 - `--max-rounds <n>`：提高 review 阻断后的修订轮数。
 - `--only-target <id>`：对 Stage-I 结构化产物，回读已有 artifact，并且只重跑指定 actionable target。
+- `--execution-mode`、`--controller`、`--primary`、`--reviewer`、`--verifier`、`--solo-role-gates`：记录 solo / duo / triad 的严格 controller-mode ownership metadata。
 - 内置 profiles：`focused-delivery`、`deep-research`、`strict-review`、`rapid-draft`、`default`。
 
 ---
