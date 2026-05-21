@@ -8,3 +8,5 @@ expected_dimensions:
   venue_fit: 0.75
   method_validity: 0.9
   scholarly_voice: 0.8
+  quality_gate_compliance: 0.85
+  domain_method_fit: 0.9
