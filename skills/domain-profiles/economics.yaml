@@ -42,6 +42,21 @@ method_templates:
       - "Cluster SE at treatment-group level"
       - "Report pre-treatment balance table"
       - "Robustness: alternative control groups, placebo tests"
+    assumptions:
+      - "Untreated potential outcomes follow parallel trends conditional on fixed effects and controls."
+      - "No anticipation or spillovers across treated and control units."
+    required_diagnostics:
+      - "Event-study pre-trend coefficients with joint pre-period test."
+      - "Treatment timing and cohort support table."
+    required_artifacts:
+      - "Main DID table with clustered standard errors."
+      - "Event-study plot and placebo or alternative-control robustness table."
+    failure_modes:
+      - "Staggered adoption with heterogeneous effects estimated by naive TWFE."
+      - "Controls affected by treatment or spillovers contaminating comparison units."
+    minimum_report_fields:
+      - "Treatment definition, timing, unit, and comparison group."
+      - "Estimator, fixed effects, clustering level, and identifying assumption."
 
   - name: "Regression Discontinuity (RD)"
     tier: standard
@@ -52,6 +67,21 @@ method_templates:
       - "McCrary density test for manipulation"
       - "Robustness: bandwidth sensitivity, different polynomial orders"
       - "Covariate balance at cutoff"
+    assumptions:
+      - "Potential outcomes are continuous at the cutoff absent treatment."
+      - "Units cannot precisely manipulate the running variable around the cutoff."
+    required_diagnostics:
+      - "Density manipulation test at the cutoff."
+      - "Bandwidth, polynomial order, and covariate balance sensitivity checks."
+    required_artifacts:
+      - "Binned RD plot with fitted local polynomials."
+      - "RD estimate table across bandwidth and polynomial specifications."
+    failure_modes:
+      - "Endogenous sorting or heaping around the cutoff."
+      - "Overfit global polynomials or selectively chosen bandwidths."
+    minimum_report_fields:
+      - "Running variable, cutoff, treatment rule, bandwidth, and kernel."
+      - "Local estimate, robust confidence interval, and effective sample size."
 
   - name: "Instrumental Variables (2SLS)"
     tier: standard
@@ -62,6 +92,21 @@ method_templates:
       - "Over-identification test (Sargan/Hansen J) if >1 instrument"
       - "Reduced-form estimate for interpretation"
       - "Weak instrument robust inference (Anderson-Rubin)"
+    assumptions:
+      - "Instrument relevance after included controls and fixed effects."
+      - "Instrument affects the outcome only through the endogenous regressor."
+    required_diagnostics:
+      - "First-stage strength statistics and reduced-form estimates."
+      - "Overidentification and weak-instrument robust inference where applicable."
+    required_artifacts:
+      - "First-stage, reduced-form, and second-stage tables."
+      - "Instrument construction and exclusion-restriction rationale."
+    failure_modes:
+      - "Weak instruments producing biased and imprecise 2SLS estimates."
+      - "Instrument exclusion violations through omitted mechanisms."
+    minimum_report_fields:
+      - "Endogenous regressor, instrument set, first-stage coefficient, and F-statistic."
+      - "Estimator, controls, fixed effects, clustering, and local effect interpretation."
 
   - name: "Synthetic Control"
     tier: advanced
@@ -70,6 +115,21 @@ method_templates:
       - "Pre-treatment fit quality (RMSPE)"
       - "Placebo tests (in-space and in-time)"
       - "Donor pool selection criteria documented"
+    assumptions:
+      - "Weighted donor pool approximates the treated unit's untreated counterfactual."
+      - "No donor unit receives spillovers from the treatment."
+    required_diagnostics:
+      - "Pre-treatment RMSPE and predictor balance comparison."
+      - "In-space and in-time placebo distribution."
+    required_artifacts:
+      - "Treated versus synthetic outcome path plot."
+      - "Donor weights, predictor balance, and gap plot."
+    failure_modes:
+      - "Poor pre-treatment fit undermining counterfactual credibility."
+      - "Donor pool contamination or post-treatment predictor selection."
+    minimum_report_fields:
+      - "Treated unit, intervention date, donor pool, predictors, and optimization window."
+      - "Fit metrics, placebo rank, and post-treatment effect summary."
 
   - name: "BLP Demand Estimation"
     tier: advanced
@@ -78,6 +138,21 @@ method_templates:
       - "Instrument validity (BLP/Hausman/Gandhi-Houde)"
       - "Convergence diagnostics for GMM"
       - "Report elasticity matrix and markup estimates"
+    assumptions:
+      - "Product-market shares arise from the specified random-coefficients demand system."
+      - "Demand shocks are orthogonal to excluded instruments."
+    required_diagnostics:
+      - "GMM convergence, gradient, and objective value diagnostics."
+      - "Instrument relevance and sensitivity to alternative instrument sets."
+    required_artifacts:
+      - "Elasticity, diversion, and markup tables."
+      - "Instrument summary and model convergence log."
+    failure_modes:
+      - "Weak or invalid instruments for endogenous prices."
+      - "Non-convergence or economically implausible substitution patterns."
+    minimum_report_fields:
+      - "Market definition, products, shares, outside option, and price endogeneity treatment."
+      - "Random coefficients, instruments, GMM settings, elasticities, and markups."
 
 stats_diagnostics:
   - "Parallel trends: event study coefficients + joint F-test on pre-periods"
