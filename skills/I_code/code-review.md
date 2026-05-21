@@ -40,10 +40,10 @@ Secondary model reviews code logic, security, statistical validity, and domain-s
 
 ## Domain Integration
 
-When `--domain` is specified, load the corresponding `skills/domain-profiles/*.yaml` and apply:
+When `--domain` is specified, load `skills/domain-profiles/[domain].yaml` and apply:
 - Domain-specific **common_pitfalls** as mandatory review items
 - Domain-specific **stats_diagnostics** as validation checkpoints
-- Domain-specific **method_templates.checklist** for each detected method
+- Domain-specific **method_templates[*].required_diagnostics**, **failure_modes**, and **minimum_report_fields** for each detected method
 
 ## Inputs
 
@@ -53,6 +53,10 @@ When `--domain` is specified, load the corresponding `skills/domain-profiles/*.y
 - Treat literature, data, citations, and project files as evidence sources; keep unsupported assumptions visibly marked.
 
 ## Process
+
+### Gate-Aware Review
+
+Review code and analysis outputs against `standards/quality-gate-contract.yaml`. For domain methods, load `skills/domain-profiles/[domain].yaml` and compare the implementation to `method_templates[*].required_diagnostics`, `failure_modes`, and `minimum_report_fields`; block when reported estimates omit required fields or diagnostics.
 
 ### Correctness
 - Does the implementation match the method/spec (I5)?
@@ -77,66 +81,9 @@ When `--domain` is specified, load the corresponding `skills/domain-profiles/*.y
 - Safe file I/O paths
 - Privacy constraints respected (D3)
 
-## Domain-Specific Review Rules
+## Domain Profile Review Contract
 
-### Economics / Econometrics
-- [ ] Clustered SE at correct level (not observation-level for panel)
-- [ ] No look-ahead bias in feature construction
-- [ ] Staggered DID uses robust estimator (not naïve TWFE)
-- [ ] First-stage F-stat reported for IV
-- [ ] Pre-treatment balance table present
-
-### Finance
-- [ ] Look-ahead bias check (no future data in features)
-- [ ] Survivorship bias documented (delisted firms handled)
-- [ ] Transaction costs / market impact acknowledged in backtests
-- [ ] Overlapping observations use Newey-West correction
-
-### Psychology / Behavioral
-- [ ] SEM fit indices reported (CFI, RMSEA, SRMR)
-- [ ] Reliability reported (α and ω, not just α)
-- [ ] Mediation uses bootstrap CI (not Baron & Kenny)
-- [ ] Common method bias assessed
-- [ ] Scale translation procedure documented (if applicable)
-
-### Biomedical / Clinical
-- [ ] PH assumption tested (Schoenfeld) for Cox models
-- [ ] EPV ≥ 10 in logistic regression
-- [ ] CONSORT flow diagram present for RCT
-- [ ] Multiple imputation used (not single imputation)
-- [ ] ITT as primary analysis (per-protocol as sensitivity)
-
-### Education
-- [ ] Nested structure modeled (HLM, not naïve OLS)
-- [ ] Pre-test controlled (ANCOVA, not gain scores)
-- [ ] IRT fit statistics within acceptable range
-- [ ] No student leakage across CV folds
-
-### CS / AI
-- [ ] Results averaged over ≥ 3 random seeds (report mean ± std)
-- [ ] Ablation study included
-- [ ] Fair baseline comparison (same hyperparameter budget)
-- [ ] Data contamination check for LLM evaluations
-- [ ] Compute cost reported (GPU hours, model size)
-- [ ] No train/test leakage
-
-### Political Science / Sociology
-- [ ] Survey weights applied correctly
-- [ ] Post-treatment variables not used as controls
-- [ ] Topic model validated (semantic coherence + hand-coding)
-- [ ] Replication data/code deposited
-
-### Epidemiology
-- [ ] DAG drawn and adjustment set justified
-- [ ] E-value computed for unmeasured confounding
-- [ ] Immortal time bias ruled out
-- [ ] Informative censoring assessment present
-
-### Ecology / Environmental
-- [ ] Pseudo-replication ruled out
-- [ ] Spatial autocorrelation tested (Moran's I on residuals)
-- [ ] Zero-inflation addressed if count data
-- [ ] SDM: spatial block cross-validation used
+Do not maintain local domain review checklists in this skill. For each detected method, load `skills/domain-profiles/[domain].yaml`, match against `method_templates[*]`, and review implementation, outputs, and reports against the template's `required_diagnostics`, `required_artifacts`, `failure_modes`, and `minimum_report_fields`. If the method is absent from the profile, record an insufficient-input or unsupported-method finding rather than inventing domain rules.
 
 ## Required review format (`code/code_review.md`)
 

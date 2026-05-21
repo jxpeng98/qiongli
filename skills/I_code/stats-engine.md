@@ -122,6 +122,10 @@ What is the research goal?
 
 ## Process
 
+### Method-Pack Execution Constraints
+
+When `--domain` is specified, load `skills/domain-profiles/[domain].yaml` and treat `method_templates[*].required_diagnostics` and `minimum_report_fields` as mandatory output checks. The model or script recommendation must name which diagnostics can be executed with the available inputs and which are blocked.
+
 1. **Select model(s)** aligned to estimand and data type (use decision tree above).
 2. **Load domain diagnostics** from domain profile if `--domain` is specified.
 3. **Run diagnostics** (assumptions, residual patterns, convergence).
@@ -129,43 +133,9 @@ What is the research goal?
 5. **Record robustness checks** and sensitivity analyses.
 6. **Domain checklist**: verify domain-specific diagnostics are addressed.
 
-## Domain-Specific Diagnostic Quick Reference
+## Domain Profile Consumption
 
-### Economics / Econometrics
-- Parallel trends (DID) — event study pre-period F-test
-- First-stage F-stat > 10 (IV)
-- Clustering SE at treatment level
-- Stationarity (ADF/KPSS for time series)
-
-### Psychology / Behavioral
-- Model fit (CFI ≥ 0.95, RMSEA ≤ 0.06, SRMR ≤ 0.08)
-- Reliability (α, ω)
-- Common method bias (Harman single-factor)
-- Effect sizes (Cohen's d, η², ω²)
-
-### Biomedical / Clinical
-- PH assumption (Schoenfeld test)
-- Events per variable (EPV ≥ 10)
-- Missing data pattern → multiple imputation
-- Calibration + discrimination (AUC, Hosmer-Lemeshow)
-
-### CS / AI
-- Cross-validation with proper stratification
-- Statistical test across folds (paired t / Wilcoxon)
-- Report variance across random seeds
-- Baseline comparison with same hyperparameter budget
-
-### Ecology / Environmental
-- Overdispersion check (quasi-AIC)
-- Spatial autocorrelation (Moran's I)
-- Zero-inflation (Vuong test)
-- Pseudo-replication audit
-
-### Epidemiology
-- DAG-identified adjustment set
-- E-value for unmeasured confounding
-- Informative censoring assessment
-- Immortal time bias check
+Do not maintain local domain diagnostic checklists in this skill. When a domain is active, load `skills/domain-profiles/[domain].yaml`, match the selected method to `method_templates[*]`, and use its `required_diagnostics`, `assumptions`, and `minimum_report_fields` as the executable reporting contract. If no method template matches, report the gap and blocked diagnostics instead of substituting generic rules.
 
 ## Common Pitfalls (Cross-Domain)
 
