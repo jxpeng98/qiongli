@@ -178,6 +178,24 @@ This installs:
 - project integration files such as `.agent/workflows/`, `CLAUDE.md`, `.gemini/` when you run `qiongli init` or `--parts project`
 - shell CLI commands `qiongli`, `ql`, plus legacy aliases `research-skills`, `rsk`, `rsw` in `full` mode
 
+### npm / npx Alternative
+
+If you prefer a Node-based installer, the npm package is a real standalone entrypoint and does not depend on PyPI:
+
+```bash
+npm install -g qiongli
+qiongli install --target all --project-dir "$PWD"
+```
+
+For beta testing without a global install:
+
+```bash
+npx qiongli@beta install --target all --project-dir "$PWD"
+npx qiongli@beta check --json
+```
+
+The npm package bundles the full `qiongli-workflow` payload. Advanced commands such as `qiongli doctor`, `qiongli task-run`, and `qiongli team-run` delegate to the bundled Python bridge and require Python 3.12+ plus `PyYAML`.
+
 ### 3. Use The Installed Skills
 
 After `partial` or `full`, the normal user workflow is global-first:
@@ -430,7 +448,34 @@ If the command is not found after install, add this directory to `PATH`:
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-#### Option C: Python CLI via `pipx`
+#### Option C: npm CLI via `npm` / `npx`
+
+Use this when:
+- Node.js is already available
+- you want an npm-native installer that bundles the skills payload
+- you still want optional bridge commands without installing the PyPI package
+
+Command:
+
+```bash
+npm install -g qiongli
+qiongli install --target all --project-dir "$PWD"
+```
+
+Beta without global install:
+
+```bash
+npx qiongli@beta install --target all --project-dir "$PWD"
+```
+
+What it installs:
+- npm CLI: `qiongli`
+- `qiongli-workflow` skill into client skill directories
+- optional Python bridge runtime source inside the npm package for `doctor`, `task-run`, and `team-run`
+
+The npm package does not run a `postinstall` hook. Installing the package itself does not modify user skill directories; `qiongli install` or `qiongli upgrade` performs the asset installation.
+
+#### Option D: Python CLI via `pipx`
 
 Use this when:
 - Python is already available
@@ -446,7 +491,7 @@ What it installs:
 - Python CLI: `qiongli`, `ql`, plus legacy aliases `research-skills`, `rsk`, `rsw`
 - It does not automatically write workflow assets into your project; you still run `qiongli upgrade`
 
-#### Option D: Install shell CLI from a local clone
+#### Option E: Install shell CLI from a local clone
 
 Use this when:
 - you already cloned this repository

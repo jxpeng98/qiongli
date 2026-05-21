@@ -32,6 +32,8 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('.claude-plugin/marketplace.json', content)
         self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
         self.assertIn('plugins/qiongli/gemini-extension.json', content)
+        self.assertIn('packages/npm-qiongli', content)
+        self.assertIn('npm_preflight.sh', content)
         self.assertIn('./scripts/release_postflight.sh --tag "$repo_tag"', content)
 
     def test_publish_mode_allows_beta_release_from_dev_only(self) -> None:
@@ -193,10 +195,12 @@ class ReleaseAutomationTests(unittest.TestCase):
         content = VERIFY_RELEASE_TAG.read_text(encoding="utf-8")
 
         self.assertIn('scripts/sync_versions.py "$TAG" --print-field package_version', content)
+        self.assertIn('scripts/sync_versions.py "$TAG" --print-field npm_version', content)
         self.assertIn('pyproject.toml', content)
         self.assertIn('qiongli/__init__.py', content)
         self.assertIn('skills/registry.yaml', content)
         self.assertIn('qiongli-workflow/VERSION', content)
+        self.assertIn('packages/npm-qiongli/package.json', content)
         self.assertIn('plugins/qiongli/.codex-plugin/plugin.json', content)
         self.assertIn('.claude-plugin/marketplace.json', content)
         self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)

@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 10
     environment:
       name: testpypi
-      url: https://test.pypi.org/p/qiongli-installer
+      url: https://test.pypi.org/p/qiongli
 
     steps:
       - name: Checkout

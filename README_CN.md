@@ -143,6 +143,24 @@ pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Beta -Profile full -
 - 项目集成文件，例如 `.agent/workflows/`、`CLAUDE.md`、`.gemini/`，仅在执行 `qiongli init` 或 `--parts project` 时写入
 - `full` 模式下的 shell CLI：`qiongli`、`ql`，以及兼容别名 `research-skills`、`rsk`、`rsw`
 
+### npm / npx 替代入口
+
+如果你更偏向 Node 生态，可以直接用 npm 包。这个入口是独立安装器，不依赖 PyPI：
+
+```bash
+npm install -g qiongli
+qiongli install --target all --project-dir "$PWD"
+```
+
+如果只是测试 beta，不想全局安装：
+
+```bash
+npx qiongli@beta install --target all --project-dir "$PWD"
+npx qiongli@beta check --json
+```
+
+npm 包内会携带完整 `qiongli-workflow` skills payload。`qiongli doctor`、`qiongli task-run`、`qiongli team-run` 等高级命令会委托到 npm 包内置的 Python bridge 源码执行，因此仍要求本机已有 Python 3.12+ 和 `PyYAML`。
+
 ### 3. 为 `full` 准备 Python
 
 只有在你要使用 `full`、`doctor`、orchestrator、validator 或 tests 时，才需要提前准备 Python 3.12+。
@@ -391,7 +409,34 @@ curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/boots
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-#### 方案 B：通过 `pipx` 安装 Python CLI
+#### 方案 B：通过 npm / npx 安装 npm CLI
+
+适用场景：
+- 机器上已经有 Node.js
+- 你想使用 npm 原生安装入口，并由 npm 包直接携带 skills payload
+- 你不想为了安装 skills 先安装 PyPI 包
+
+命令：
+
+```bash
+npm install -g qiongli
+qiongli install --target all --project-dir "$PWD"
+```
+
+beta 测试：
+
+```bash
+npx qiongli@beta install --target all --project-dir "$PWD"
+```
+
+效果：
+- 安装 npm 版 `qiongli`
+- 安装 `qiongli-workflow` skill 到对应客户端目录
+- npm 包内置 Python bridge 源码，供 `doctor`、`task-run`、`team-run` 等高级命令委托使用
+
+npm 包没有 `postinstall` hook。安装 npm 包本身不会修改用户 skill 目录；只有执行 `qiongli install` 或 `qiongli upgrade` 时才会写入资产。
+
+#### 方案 C：通过 `pipx` 安装 Python CLI
 
 适用场景：
 - 机器上已经有 Python
@@ -408,7 +453,7 @@ pipx install qiongli
 - CLI 本身进入 PATH
 - 不会自动把 workflow 资产写入你的项目，仍需手动执行 `qiongli upgrade`
 
-#### 方案 C：从本地仓库安装 shell CLI
+#### 方案 D：从本地仓库安装 shell CLI
 
 适用场景：
 - 你已经 clone 了这个仓库
