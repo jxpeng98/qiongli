@@ -515,6 +515,38 @@ function Expand-ManifestPath([string]$Template, [hashtable]$Values) {
     return $result
 }
 
+$LegacySkillPackageNames = @(
+    "research-paper-workflow"
+)
+
+function Write-LegacyResidueReport([string]$InstallTarget, [hashtable]$ClientHomes) {
+    $targets = if ($InstallTarget -eq "all") { @("codex", "claude", "gemini", "antigravity") } else { @($InstallTarget) }
+    $found = $false
+    foreach ($targetName in $targets) {
+        $clientHome = [string]$ClientHomes[$targetName]
+        if (-not $clientHome) {
+            continue
+        }
+        $skillRoot = Join-Path $clientHome "skills"
+        foreach ($legacyName in $LegacySkillPackageNames) {
+            $legacyPath = Join-Path $skillRoot $legacyName
+            if (-not (Test-Path -LiteralPath $legacyPath)) {
+                continue
+            }
+            if (-not $found) {
+                Write-Host ""
+                Write-Host "== Legacy Install Residues =="
+                $found = $true
+            }
+            Write-Skip "Legacy Skill" "$targetName`: $legacyName -> $legacyPath"
+        }
+    }
+    if ($found) {
+        Write-Info "legacy skill directories are left in place; remove them manually after confirming they are unused."
+        Write-Info "qiongli clean --globals removes legacy workflow discovery symlinks only."
+    }
+}
+
 function Install-FromRepo([string]$RepoRoot, [string]$ProjectRoot, [string]$InstallTarget, [bool]$DoInstallCli, [bool]$DoDoctor, [hashtable]$PythonRuntime) {
     $projectRoot = [System.IO.Path]::GetFullPath($ProjectRoot)
     $skillSrc = Join-Path $RepoRoot "qiongli-workflow"
@@ -535,6 +567,12 @@ function Install-FromRepo([string]$RepoRoot, [string]$ProjectRoot, [string]$Inst
         GEMINI_HOME = $geminiHome
         ANTIGRAVITY_HOME = $antigravityHome
     }
+    $clientHomes = @{
+        codex = $codexHome
+        claude = $claudeHome
+        gemini = $geminiHome
+        antigravity = $antigravityHome
+    }
 
     Write-Host ""
     Write-Host "Qiongli Windows Bootstrap"
@@ -542,6 +580,7 @@ function Install-FromRepo([string]$RepoRoot, [string]$ProjectRoot, [string]$Inst
     Write-Info "project: $projectRoot"
     Write-Info "target:  $InstallTarget"
     Write-Info "profile: $Profile"
+    Write-LegacyResidueReport $InstallTarget $clientHomes
 
     Write-Host ""
     Write-Host "== CLI Checks =="

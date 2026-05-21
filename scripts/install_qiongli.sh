@@ -343,6 +343,10 @@ skill_package_state() {
   fi
 }
 
+LEGACY_SKILL_PACKAGE_NAMES=(
+  "research-paper-workflow"
+)
+
 same_file_content() {
   local src="$1"
   local dest="$2"
@@ -435,6 +439,40 @@ print_detected_versions() {
   if [[ "$TARGET" == "antigravity" || "$TARGET" == "all" ]]; then
     detected="$(skill_package_state "$ANTIGRAVITY_SKILL_DEST")"
     info "antigravity: $detected"
+  fi
+}
+
+skill_dest_for_target() {
+  local target="$1"
+  case "$target" in
+    codex) printf '%s\n' "$CODEX_SKILL_DEST" ;;
+    claude) printf '%s\n' "$CLAUDE_SKILL_DEST" ;;
+    gemini) printf '%s\n' "$GEMINI_SKILL_DEST" ;;
+    antigravity) printf '%s\n' "$ANTIGRAVITY_SKILL_DEST" ;;
+    *) return 1 ;;
+  esac
+}
+
+print_legacy_residue_report() {
+  local found=0
+  local target dest skill_root legacy_name legacy_path
+  for target in codex claude gemini antigravity; do
+    [[ "$TARGET" == "$target" || "$TARGET" == "all" ]] || continue
+    dest="$(skill_dest_for_target "$target")"
+    skill_root="$(dirname "$dest")"
+    for legacy_name in "${LEGACY_SKILL_PACKAGE_NAMES[@]}"; do
+      legacy_path="$skill_root/$legacy_name"
+      [[ -e "$legacy_path" || -L "$legacy_path" ]] || continue
+      if [[ "$found" -eq 0 ]]; then
+        section "Legacy Install Residues"
+        found=1
+      fi
+      skip "Legacy Skill" "$target: $legacy_name -> $legacy_path"
+    done
+  done
+  if [[ "$found" -eq 1 ]]; then
+    info "legacy skill directories are left in place; remove them manually after confirming they are unused."
+    info "\`qiongli clean --globals\` removes legacy workflow discovery symlinks only."
   fi
 }
 
@@ -775,6 +813,9 @@ if [[ "$INSTALL_CLI" -eq 1 ]]; then
   info "cli:     install -> $CLI_DIR"
 fi
 print_detected_versions "$SOURCE_SKILL_VERSION"
+if [[ "$INSTALL_GLOBALS" -eq 1 ]]; then
+  print_legacy_residue_report
+fi
 
 section "CLI Checks"
 case "$TARGET" in
