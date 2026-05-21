@@ -34,11 +34,11 @@ npm install -g qiongli
 qiongli install --target all --project-dir /path/to/project
 ```
 
-For beta testing without a global install:
+For prerelease testing without a global install:
 
 ```bash
-npx qiongli@beta install --target all --project-dir /path/to/project
-npx qiongli@beta check --json
+npx qiongli@next install --target all --project-dir /path/to/project
+npx qiongli@next check --json
 ```
 
 The npm package bundles the full `qiongli-workflow` skills payload. Advanced commands such as `qiongli doctor`, `qiongli task-run`, and `qiongli team-run` use the Python bridge source bundled inside the npm package and require Python 3.12+ plus `PyYAML`.
