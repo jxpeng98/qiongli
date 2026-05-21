@@ -8,6 +8,7 @@ from scripts.validate_research_standard import (
     ValidationReport,
     validate_controller_mode_contracts,
     validate_literature_first_contracts,
+    validate_quality_gate_contracts,
 )
 
 
@@ -53,6 +54,53 @@ class ResearchStandardValidatorTests(unittest.TestCase):
         self.assertIn("scripts/materialize_literature_search_bundle.py", joined)
         self.assertIn("templates/search-diagnostics.md", joined)
         self.assertIn("qiongli-workflow/references/literature-search-quality-contract.md", joined)
+
+    def test_non_strict_quality_gate_contract_does_not_require_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            report = ValidationReport()
+
+            validate_quality_gate_contracts(root, report, strict=False)
+
+        self.assertEqual([], report.errors)
+
+    def test_strict_quality_gate_contract_reports_missing_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            report = ValidationReport()
+
+            validate_quality_gate_contracts(root, report, strict=True)
+
+        joined = "\n".join(report.errors)
+        self.assertIn("standards/quality-gate-contract.yaml", joined)
+        self.assertIn("scripts/audit_quality_gates.py", joined)
+        self.assertIn("templates/quality-gate-report.md", joined)
+        self.assertIn("tests/test_quality_gate_contract.py", joined)
+
+    def test_strict_quality_gate_contract_reports_malformed_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            required_files = {
+                "standards/quality-gate-contract.yaml": "gates:\n  Q1: [unterminated\n",
+                "scripts/audit_quality_gates.py": "placeholder\n",
+                "templates/quality-gate-report.md": (
+                    "# Quality Gate Report\n\n```yaml\n"
+                    "gates: {}\n"
+                    "```\n"
+                ),
+                "tests/test_quality_gate_contract.py": "placeholder\n",
+            }
+            for relative_path, content in required_files.items():
+                path = root / relative_path
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content, encoding="utf-8")
+            report = ValidationReport()
+
+            validate_quality_gate_contracts(root, report, strict=True)
+
+        joined = "\n".join(report.errors)
+        self.assertIn("Quality gate contract failed to load", joined)
+        self.assertIn("standards/quality-gate-contract.yaml", joined)
 
     def test_strict_controller_mode_contract_runs_solo_gate_audit(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
