@@ -16,7 +16,7 @@ Prerelease note draft generator:
 If you want the whole path chained together, use:
 
 ```bash
-./scripts/release_automation.sh publish --version 0.1.0 --from-tag v0.1.0-beta.6
+./scripts/release_automation.sh publish --tag v0.1.0 --from-tag v0.1.0-beta.6
 ```
 
 This mode runs:
@@ -94,7 +94,7 @@ Beta release from `dev`:
 
 ```bash
 git switch dev
-./scripts/release_automation.sh publish --version 0.8.0b1 --skip-bump --from-tag v0.7.0-beta.2
+./scripts/release_automation.sh publish --tag v0.8.0-beta.1 --skip-bump --from-tag v0.7.0-beta.2
 ```
 
 ## 5) Post-release checks
@@ -117,7 +117,8 @@ When `--create-release` is used, the generated Codex, Claude Code, and Gemini CL
 
 ## Optional flags
 
-- `--version <version>`: required by `publish`, accepts stable (`0.2.0`) and beta (`0.2.0b1`) forms.
+- `--tag <tag>`: preferred by `publish`, accepts stable (`v0.2.0`) and beta (`v0.2.0-beta.1`) tag forms.
+- `--version <version>`: compatibility input for `publish`, accepts stable (`0.2.0`) and beta (`0.2.0b1`) forms.
 - `--skip-smoke`: skip smoke stage during preflight.
 - `--maintainer-smoke`: upgrade preflight smoke from the default release tier to the maintainer tier (`parallel` + `task-run` profile checks).
 - `--skip-note-gen`: skip prerelease draft generation of `release/<tag>.md`.

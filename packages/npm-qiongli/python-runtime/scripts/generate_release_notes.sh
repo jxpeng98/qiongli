@@ -184,7 +184,7 @@ if [[ -n "$FROM_TAG" ]] && ! git rev-parse -q --verify "refs/tags/$FROM_TAG" >/d
   exit 1
 fi
 
-PUBLISH_CMD="./scripts/release_automation.sh publish --version ${VERSION_HINT} --skip-bump"
+PUBLISH_CMD="./scripts/release_automation.sh publish --tag ${TAG} --skip-bump"
 if [[ -n "$FROM_TAG" ]]; then
   PUBLISH_CMD="${PUBLISH_CMD} --from-tag ${FROM_TAG}"
 fi

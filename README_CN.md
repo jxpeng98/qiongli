@@ -845,11 +845,11 @@ python3 scripts/validate_project_artifacts.py --cwd ./project  --topic <topic> -
 由 CI 接管或手动拉草稿：
 ```bash
 # 从 main/master 一条命令走完整稳定版发版
-./scripts/release_automation.sh publish --version 0.1.0 --from-tag v0.1.0-beta.6
+./scripts/release_automation.sh publish --tag v0.1.0 --from-tag v0.1.0-beta.6
 
 # 从 dev 一条命令走完整 beta 发版
 git switch dev
-./scripts/release_automation.sh publish --version 0.8.0b1 --skip-bump --from-tag v0.7.0-beta.2
+./scripts/release_automation.sh publish --tag v0.8.0-beta.1 --skip-bump --from-tag v0.7.0-beta.2
 
 # 需要拆阶段时再手动执行
 ./scripts/release_automation.sh pre --tag v0.1.0 --from-tag v0.1.0-beta.6

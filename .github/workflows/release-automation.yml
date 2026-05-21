@@ -109,11 +109,14 @@ jobs:
           args=()
 
           if [[ "$mode" == "publish" ]]; then
-            if [[ -z "${{ inputs.version }}" ]]; then
-              echo "publish mode requires 'version' input" >&2
+            if [[ -n "${{ inputs.version }}" ]]; then
+              args+=(--version "${{ inputs.version }}")
+            elif [[ -n "$tag" ]]; then
+              args+=(--tag "$tag")
+            else
+              echo "publish mode requires 'version' or 'tag' input" >&2
               exit 2
             fi
-            args+=(--version "${{ inputs.version }}")
           else
             if [[ -z "$tag" ]]; then
               echo "${mode} mode requires 'tag' input" >&2
