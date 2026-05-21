@@ -1,6 +1,6 @@
 # 发布指南（PyPI Package Publishing）
 
-本指南说明如何将 `qiongli-installer` 发布到 PyPI，以及日常版本发布的完整流程。
+本指南说明如何将 `qiongli` 发布到 PyPI，以及日常版本发布的完整流程。
 
 ## 0) 前置条件（一次性配置）
 
@@ -10,7 +10,7 @@
 
 1. 登录 [pypi.org](https://pypi.org)，进入你的账号
 2. 如果是**首次发布**（PyPI 上还没有这个包），进入 [Publishing](https://pypi.org/manage/account/publishing/) 页面，在 "Add a new pending publisher" 中填写：
-   - **PyPI Project Name**: `qiongli-installer`
+   - **PyPI Project Name**: `qiongli`
    - **Owner**: `jxpeng98`
    - **Repository name**: `qiongli`
    - **Workflow name**: `publish-pypi.yml`
@@ -30,7 +30,7 @@
 1. 登录 [test.pypi.org](https://test.pypi.org)
 2. 进入 Account settings → Publishing
 3. 添加 pending publisher（或在已有项目下添加 publisher），填写：
-   - **PyPI Project Name**: `qiongli-installer`
+   - **PyPI Project Name**: `qiongli`
    - **Owner**: `jxpeng98`
    - **Repository name**: `qiongli`
    - **Workflow name**: `publish-testpypi.yml`
@@ -145,7 +145,7 @@ qiongli check --repo jxpeng98/qiongli
 发布后从 TestPyPI 安装验证：
 
 ```bash
-pip install --index-url https://test.pypi.org/simple/ qiongli-installer
+pip install --index-url https://test.pypi.org/simple/ qiongli
 ```
 
 推荐顺序：
@@ -170,7 +170,7 @@ pip install --index-url https://test.pypi.org/simple/ qiongli-installer
 - [ ] Push：`git push origin main --tags`
 - [ ] 在 GitHub Actions 确认 `Publish to PyPI` workflow 成功
 - [ ] 运行 release postflight：`./scripts/release_automation.sh post --tag v<version>`
-- [ ] 验证安装：`pipx install qiongli-installer && rsk --help`
+- [ ] 验证安装：`pipx install qiongli && rsk --help`
 
 ---
 

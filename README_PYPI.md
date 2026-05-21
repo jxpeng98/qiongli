@@ -1,6 +1,6 @@
-# qiongli-installer
+# qiongli
 
-`qiongli-installer` is the lightweight updater CLI for **Qiongli** (`穷理`), a contract-driven academic workflow system for Codex, Claude Code, and Gemini.
+`qiongli` is the lightweight updater CLI for **Qiongli** (`穷理`), a contract-driven academic workflow system for Codex, Claude Code, and Gemini.
 
 The full system name is **Qiongli Zhengche** (`穷理证澈`): Qiongli names the public research workflow, while Zhengche names the evidence-governance method that keeps claims, citations, assumptions, and output paths auditable.
 
@@ -14,13 +14,13 @@ The full system name is **Qiongli Zhengche** (`穷理证澈`): Qiongli names the
 ## Installation
 
 ```bash
-pip install qiongli-installer
+pip install qiongli
 ```
 
 Or with `pipx`:
 
 ```bash
-pipx install qiongli-installer
+pipx install qiongli
 ```
 
 ## CLI
@@ -95,7 +95,7 @@ This keeps the override local to that project.
 
 ```bash
 # Install from PyPI
-pipx install qiongli-installer
+pipx install qiongli
 
 # Upgrade assets into your project
 qiongli upgrade --project-dir /path/to/project --target all --doctor

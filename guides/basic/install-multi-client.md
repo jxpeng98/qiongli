@@ -30,7 +30,7 @@ Notes:
 If Python is already available on the machine, you can install the updater CLI with `pipx`:
 
 ```bash
-pipx install qiongli-installer
+pipx install qiongli
 qiongli upgrade --target all --project-dir /path/to/project --doctor
 ```
 

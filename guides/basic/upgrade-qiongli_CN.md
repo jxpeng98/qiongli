@@ -30,7 +30,7 @@ curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/boots
 本仓库也提供 `pyproject.toml` 包，适合需要可复用升级器 CLI 的场景：
 
 ```bash
-pipx install qiongli-installer
+pipx install qiongli
 # 提供 3 个等价命令（任选其一）：
 # - qiongli
 # - rsk

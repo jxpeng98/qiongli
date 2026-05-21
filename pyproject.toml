@@ -3,7 +3,7 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "qiongli-installer"
+name = "qiongli"
 version = "0.8.0b1"
 description = "Installer/upgrader CLI for qiongli (Codex / Claude Code / Gemini) without requiring a git fork."
 readme = "README_PYPI.md"

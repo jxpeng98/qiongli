@@ -213,7 +213,7 @@ If you already have a local repository checkout on Linux or macOS, you can also 
 The `pip` / `pipx` path is still available for the updater CLI, but it is no longer the recommended first-install path:
 
 ```bash
-pipx install qiongli-installer
+pipx install qiongli
 qiongli upgrade --target all --doctor
 qiongli init --project-dir /path/to/project
 ```

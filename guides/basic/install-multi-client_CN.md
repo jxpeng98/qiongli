@@ -29,7 +29,7 @@ curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/boots
 如果机器上已经有 Python，也可以继续使用 `pipx` 安装升级器 CLI：
 
 ```bash
-pipx install qiongli-installer
+pipx install qiongli
 qiongli upgrade --target all --project-dir /path/to/project --doctor
 ```
 
