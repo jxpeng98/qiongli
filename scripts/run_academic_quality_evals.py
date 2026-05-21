@@ -16,6 +16,8 @@ REQUIRED_DIMENSIONS = [
     "venue_fit",
     "method_validity",
     "scholarly_voice",
+    "quality_gate_compliance",
+    "domain_method_fit",
 ]
 
 
