@@ -213,7 +213,7 @@ python3 scripts/bootstrap_qiongli.py --profile full --project-dir .
 `pip` / `pipx` 路径仍然保留给升级器 CLI，但不再是推荐的首次安装入口：
 
 ```bash
-pipx install qiongli-installer
+pipx install qiongli
 qiongli upgrade --target all --doctor
 qiongli init --project-dir /path/to/project
 ```

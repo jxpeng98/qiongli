@@ -32,7 +32,7 @@ Notes:
 This repository also provides a `pyproject.toml` package for people who want a reusable updater CLI:
 
 ```bash
-pipx install qiongli-installer
+pipx install qiongli
 # This provides 3 equivalent commands (choose any):
 # - qiongli
 # - rsk

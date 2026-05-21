@@ -17,7 +17,7 @@ Qiongli is a contract-driven academic workflow system for Codex, Claude Code, an
 
 The full system name is **Qiongli Zhengche** (`穷理证澈`). **Zhengche** (`证澈`) names the core methodology: make evidence chains, citation risk, assumptions, and claim boundaries transparent enough to audit. In practice, that means every workflow is tied to Task IDs, quality gates, and output paths under `RESEARCH/[topic]/`, rather than relying on ad hoc prompts.
 
-Technical identifiers follow the public name: the plugin is `qiongli`, the portable skill package is `qiongli-workflow`, and the updater distribution is `qiongli-installer`. Legacy aliases such as `research-skills`, `rsk`, and `rsw` remain available only for compatibility.
+Technical identifiers follow the public name: the plugin is `qiongli`, the portable skill package is `qiongli-workflow`, and the updater distribution is `qiongli`. Legacy aliases such as `research-skills`, `rsk`, and `rsw` remain available only for compatibility.
 
 ## Features
 
@@ -212,7 +212,7 @@ python3 scripts/bootstrap_qiongli.py --profile full --project-dir .
 If Python is already available and you specifically want the Python-distributed updater CLI, that path still exists:
 
 ```bash
-pipx install qiongli-installer
+pipx install qiongli
 ```
 
 That `pip` / `pipx` path is now optional compatibility distribution for the updater CLI. It is not the recommended first-install path.
@@ -439,7 +439,7 @@ Use this when:
 Command:
 
 ```bash
-pipx install qiongli-installer
+pipx install qiongli
 ```
 
 What it installs:

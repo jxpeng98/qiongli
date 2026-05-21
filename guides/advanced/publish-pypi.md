@@ -1,6 +1,6 @@
 # PyPI Package Publishing Guide
 
-This guide explains how to publish `qiongli-installer` to PyPI, as well as the complete workflow for routine version releases.
+This guide explains how to publish `qiongli` to PyPI, as well as the complete workflow for routine version releases.
 
 ## 0) Prerequisites (One-time Setup)
 
@@ -10,7 +10,7 @@ This project uses the [Trusted Publisher](https://docs.pypi.org/trusted-publishe
 
 1. Log in to your account at [pypi.org](https://pypi.org).
 2. If this is the **first time publishing** (the package does not exist on PyPI yet), go to the [Publishing](https://pypi.org/manage/account/publishing/) page. Under "Add a new pending publisher", fill in the following:
-   - **PyPI Project Name**: `qiongli-installer`
+   - **PyPI Project Name**: `qiongli`
    - **Owner**: `<your-github-username>`
    - **Repository name**: `qiongli`
    - **Workflow name**: `publish-pypi.yml`
@@ -30,7 +30,7 @@ This repository includes a dedicated TestPyPI workflow: `.github/workflows/publi
 1. Log in to [test.pypi.org](https://test.pypi.org).
 2. Go to Account settings → Publishing.
 3. Add a pending publisher (or add a publisher under the existing project) with:
-   - **PyPI Project Name**: `qiongli-installer`
+   - **PyPI Project Name**: `qiongli`
    - **Owner**: `jxpeng98`
    - **Repository name**: `qiongli`
    - **Workflow name**: `publish-testpypi.yml`
@@ -145,7 +145,7 @@ The workflow will build, validate, and publish with Trusted Publishing to TestPy
 Install and verify from TestPyPI:
 
 ```bash
-pip install --index-url https://test.pypi.org/simple/ qiongli-installer
+pip install --index-url https://test.pypi.org/simple/ qiongli
 ```
 
 Recommended order:
@@ -170,7 +170,7 @@ When cutting a release, follow these steps:
 - [ ] Push: `git push origin main --tags`
 - [ ] Confirm the `Publish to PyPI` workflow succeeded on GitHub Actions.
 - [ ] Run release postflight: `./scripts/release_automation.sh post --tag v<version>`
-- [ ] Verify installation: `pipx install qiongli-installer && rsk --help`
+- [ ] Verify installation: `pipx install qiongli && rsk --help`
 
 ---
 

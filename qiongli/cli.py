@@ -361,7 +361,7 @@ def _latest_release_tag(repo: str, include_beta: bool = False) -> str:
 def _check_pip_version() -> tuple[str, str]:
     """Returns (latest_version, status_message)."""
     try:
-        url = "https://pypi.org/pypi/qiongli-installer/json"
+        url = "https://pypi.org/pypi/qiongli/json"
         req = urllib.request.Request(url, headers={"User-Agent": "qiongli-updater"})
         with urllib.request.urlopen(req, timeout=5) as response:
             data = json.loads(response.read().decode("utf-8", errors="replace"))
@@ -373,7 +373,7 @@ def _check_pip_version() -> tuple[str, str]:
             parsed_current = Version.parse(__version__)
             if parsed_latest and parsed_current:
                 if parsed_latest.sort_key() > parsed_current.sort_key():
-                    return latest, "update available -> pipx upgrade qiongli-installer"
+                    return latest, "update available -> pipx upgrade qiongli"
                 return latest, "up-to-date"
             return latest, "unknown comparison"
     except Exception as e:

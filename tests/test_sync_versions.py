@@ -44,7 +44,7 @@ class SyncVersionsTests(unittest.TestCase):
             (root / "qiongli-workflow").mkdir()
 
             (root / "pyproject.toml").write_text(
-                'name = "qiongli-installer"\nversion = "0.1.0"\n',
+                'name = "qiongli"\nversion = "0.1.0"\n',
                 encoding="utf-8",
             )
             (root / "qiongli" / "__init__.py").write_text(

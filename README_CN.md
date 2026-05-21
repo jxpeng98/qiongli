@@ -17,7 +17,7 @@
 
 完整体系名是 **穷理证澈**。其中 **证澈** 是方法论与核心模块名：让证据、引用风险、假设、claim 边界和推理链条清澈可审。落实到仓库里，就是所有 workflow 都围绕 Task ID、质量门和 `RESEARCH/[topic]/` 下的标准产物运行，而不是依赖一次性的 prompt 即兴发挥。
 
-技术命名统一跟随对外主名：plugin ID 是 `qiongli`，便携 skill 包是 `qiongli-workflow`，Python 升级器分发名是 `qiongli-installer`。`research-skills`、`rsk`、`rsw` 等旧入口只作为迁移期兼容别名继续保留。
+技术命名统一跟随对外主名：plugin ID 是 `qiongli`，便携 skill 包是 `qiongli-workflow`，Python 升级器分发名是 `qiongli`。`research-skills`、`rsk`、`rsw` 等旧入口只作为迁移期兼容别名继续保留。
 
 ## 功能特性
 
@@ -202,7 +202,7 @@ python3 scripts/bootstrap_qiongli.py --profile full --project-dir .
 如果机器已经有 Python，且你只想继续使用 Python 分发的升级器 CLI，这条路径依然保留：
 
 ```bash
-pipx install qiongli-installer
+pipx install qiongli
 ```
 
 但 `pip` / `pipx` 现在只是兼容性的 CLI 分发方式，不再是推荐的首次安装入口。
@@ -400,7 +400,7 @@ export PATH="$HOME/.local/bin:$PATH"
 命令：
 
 ```bash
-pipx install qiongli-installer
+pipx install qiongli
 ```
 
 效果：
