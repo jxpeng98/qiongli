@@ -7,6 +7,7 @@ from pathlib import Path
 from scripts.validate_research_standard import (
     ValidationReport,
     validate_controller_mode_contracts,
+    validate_domain_method_pack_contracts,
     validate_literature_first_contracts,
     validate_quality_gate_contracts,
 )
@@ -76,6 +77,26 @@ class ResearchStandardValidatorTests(unittest.TestCase):
         self.assertIn("scripts/audit_quality_gates.py", joined)
         self.assertIn("templates/quality-gate-report.md", joined)
         self.assertIn("tests/test_quality_gate_contract.py", joined)
+
+    def test_non_strict_domain_method_pack_contract_does_not_require_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            report = ValidationReport()
+
+            validate_domain_method_pack_contracts(root, report, strict=False)
+
+        self.assertEqual([], report.errors)
+
+    def test_strict_domain_method_pack_contract_reports_missing_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            report = ValidationReport()
+
+            validate_domain_method_pack_contracts(root, report, strict=True)
+
+        joined = "\n".join(report.errors)
+        self.assertIn("scripts/audit_domain_method_packs.py", joined)
+        self.assertIn("tests/test_domain_method_packs.py", joined)
 
     def test_strict_quality_gate_contract_reports_malformed_contract(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
