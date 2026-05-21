@@ -232,6 +232,9 @@ else
   echo "[preflight] WARN: sync_skill_package.sh not found, skipping sync" >&2
 fi
 
+echo "[preflight] sync npm payload"
+python3 scripts/sync_npm_package_payload.py
+
 validate_cmd=(python3 scripts/validate_research_standard.py)
 if [[ "$STRICT_MODE" -eq 1 ]]; then
   validate_cmd+=(--strict)

@@ -38,6 +38,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('.claude-plugin/marketplace.json', content)
         self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
         self.assertIn('plugins/qiongli/gemini-extension.json', content)
+        self.assertIn('plugins/qiongli/skills/qiongli-workflow', content)
         self.assertIn('packages/npm-qiongli', content)
         self.assertIn('npm_preflight.sh', content)
         self.assertIn('./scripts/release_postflight.sh --tag "$repo_tag"', content)
@@ -92,6 +93,11 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('.claude-plugin/marketplace.json', content)
         self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
         self.assertIn('plugins/qiongli/gemini-extension.json', content)
+        self.assertIn('packages/npm-qiongli|packages/npm-qiongli/*', content)
+        self.assertIn(
+            'plugins/qiongli/skills/qiongli-workflow|plugins/qiongli/skills/qiongli-workflow/*',
+            content,
+        )
 
     def test_release_ready_does_not_print_manual_publish_steps(self) -> None:
         content = RELEASE_READY.read_text(encoding="utf-8")
@@ -109,6 +115,20 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('run_logged_stage "validator" "$validator_log" "${validate_cmd[@]}"', content)
         self.assertIn('run_logged_stage "unit tests" "$unit_log" python3 -m unittest discover -s tests -v', content)
         self.assertIn('run_logged_stage "smoke (${smoke_tier} tier)" "$smoke_log" ./scripts/run_beta_smoke.sh --tier "$smoke_tier"', content)
+
+    def test_release_preflight_syncs_npm_payload_before_tests(self) -> None:
+        content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
+
+        self.assertIn('echo "[preflight] sync npm payload"', content)
+        self.assertIn("python3 scripts/sync_npm_package_payload.py", content)
+        self.assertLess(
+            content.index("python3 scripts/sync_npm_package_payload.py"),
+            content.index('run_logged_stage "validator" "$validator_log" "${validate_cmd[@]}"'),
+        )
+        self.assertLess(
+            content.index("python3 scripts/sync_npm_package_payload.py"),
+            content.index('run_logged_stage "unit tests" "$unit_log" python3 -m unittest discover -s tests -v'),
+        )
 
     def test_release_preflight_runs_controller_mode_evals_as_warning_stage(self) -> None:
         content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
@@ -219,8 +239,15 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('qiongli/__init__.py', content)
         self.assertIn('skills/registry.yaml', content)
         self.assertIn('qiongli-workflow/VERSION', content)
+        self.assertIn('qiongli-workflow/skills/registry.yaml', content)
         self.assertIn('packages/npm-qiongli/package.json', content)
+        self.assertIn('packages/npm-qiongli/payload/qiongli-workflow/VERSION', content)
+        self.assertIn('packages/npm-qiongli/payload/qiongli-workflow/skills/registry.yaml', content)
+        self.assertIn('packages/npm-qiongli/python-runtime/qiongli/__init__.py', content)
+        self.assertIn('packages/npm-qiongli/python-runtime/skills/registry.yaml', content)
         self.assertIn('plugins/qiongli/.codex-plugin/plugin.json', content)
+        self.assertIn('plugins/qiongli/skills/qiongli-workflow/VERSION', content)
+        self.assertIn('plugins/qiongli/skills/qiongli-workflow/skills/registry.yaml', content)
         self.assertIn('.claude-plugin/marketplace.json', content)
         self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
         self.assertIn('plugins/qiongli/gemini-extension.json', content)

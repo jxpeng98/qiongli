@@ -76,14 +76,64 @@ import re
 from pathlib import Path
 
 content = Path("skills/registry.yaml").read_text(encoding="utf-8")
-match = re.search(r'^\s*version: "([^"]+)"$', content, re.MULTILINE)
-if not match:
+versions = set(re.findall(r'^\s*version: "([^"]+)"$', content, re.MULTILINE))
+if not versions:
     raise SystemExit("missing version in skills/registry.yaml")
-print(match.group(1))
+if len(versions) != 1:
+    raise SystemExit(f"mixed versions in skills/registry.yaml: {sorted(versions)}")
+print(versions.pop())
 PY
 )"
 
 actual_workflow_version="$(tr -d '\r\n' < qiongli-workflow/VERSION)"
+actual_workflow_registry_version="$(python3 - <<'PY'
+import re
+from pathlib import Path
+
+path = Path("qiongli-workflow/skills/registry.yaml")
+content = path.read_text(encoding="utf-8")
+versions = set(re.findall(r'^\s*version: "([^"]+)"$', content, re.MULTILINE))
+if not versions:
+    raise SystemExit(f"missing version in {path}")
+if len(versions) != 1:
+    raise SystemExit(f"mixed versions in {path}: {sorted(versions)}")
+print(versions.pop())
+PY
+)"
+actual_bundled_workflow_version="$(tr -d '\r\n' < packages/npm-qiongli/payload/qiongli-workflow/VERSION)"
+actual_bundled_workflow_registry_version="$(python3 - <<'PY'
+import re
+from pathlib import Path
+
+path = Path("packages/npm-qiongli/payload/qiongli-workflow/skills/registry.yaml")
+if not path.exists():
+    raise SystemExit("missing packages/npm-qiongli/payload/qiongli-workflow/skills/registry.yaml")
+content = path.read_text(encoding="utf-8")
+versions = set(re.findall(r'^\s*version: "([^"]+)"$', content, re.MULTILINE))
+if not versions:
+    raise SystemExit(f"missing version in {path}")
+if len(versions) != 1:
+    raise SystemExit(f"mixed versions in {path}: {sorted(versions)}")
+print(versions.pop())
+PY
+)"
+actual_plugin_workflow_version="$(tr -d '\r\n' < plugins/qiongli/skills/qiongli-workflow/VERSION)"
+actual_plugin_workflow_registry_version="$(python3 - <<'PY'
+import re
+from pathlib import Path
+
+path = Path("plugins/qiongli/skills/qiongli-workflow/skills/registry.yaml")
+if not path.exists():
+    raise SystemExit("missing plugins/qiongli/skills/qiongli-workflow/skills/registry.yaml")
+content = path.read_text(encoding="utf-8")
+versions = set(re.findall(r'^\s*version: "([^"]+)"$', content, re.MULTILINE))
+if not versions:
+    raise SystemExit(f"missing version in {path}")
+if len(versions) != 1:
+    raise SystemExit(f"mixed versions in {path}: {sorted(versions)}")
+print(versions.pop())
+PY
+)"
 
 actual_npm_version="$(python3 - <<'PY'
 import json
@@ -93,6 +143,38 @@ path = Path("packages/npm-qiongli/package.json")
 if not path.exists():
     raise SystemExit("missing packages/npm-qiongli/package.json")
 print(json.loads(path.read_text(encoding="utf-8"))["version"])
+PY
+)"
+
+actual_bundled_init_version="$(python3 - <<'PY'
+import re
+from pathlib import Path
+
+path = Path("packages/npm-qiongli/python-runtime/qiongli/__init__.py")
+if not path.exists():
+    raise SystemExit("missing packages/npm-qiongli/python-runtime/qiongli/__init__.py")
+content = path.read_text(encoding="utf-8")
+match = re.search(r'^__version__ = "([^"]+)"$', content, re.MULTILINE)
+if not match:
+    raise SystemExit("missing __version__ in packages/npm-qiongli/python-runtime/qiongli/__init__.py")
+print(match.group(1))
+PY
+)"
+
+actual_bundled_registry_version="$(python3 - <<'PY'
+import re
+from pathlib import Path
+
+path = Path("packages/npm-qiongli/python-runtime/skills/registry.yaml")
+if not path.exists():
+    raise SystemExit("missing packages/npm-qiongli/python-runtime/skills/registry.yaml")
+content = path.read_text(encoding="utf-8")
+versions = set(re.findall(r'^\s*version: "([^"]+)"$', content, re.MULTILINE))
+if not versions:
+    raise SystemExit("missing version in packages/npm-qiongli/python-runtime/skills/registry.yaml")
+if len(versions) != 1:
+    raise SystemExit(f"mixed versions in {path}: {sorted(versions)}")
+print(versions.pop())
 PY
 )"
 
@@ -148,8 +230,43 @@ PY
   exit 1
 }
 
+[[ "$actual_workflow_registry_version" == "$expected_skill_version" ]] || {
+  echo "[verify-release-tag] qiongli-workflow/skills/registry.yaml mismatch: tag=$TAG expects $expected_skill_version, found $actual_workflow_registry_version" >&2
+  exit 1
+}
+
+[[ "$actual_bundled_workflow_version" == "$expected_repo_tag" ]] || {
+  echo "[verify-release-tag] packages/npm-qiongli/payload/qiongli-workflow/VERSION mismatch: tag=$TAG expects $expected_repo_tag, found $actual_bundled_workflow_version" >&2
+  exit 1
+}
+
+[[ "$actual_bundled_workflow_registry_version" == "$expected_skill_version" ]] || {
+  echo "[verify-release-tag] packages/npm-qiongli/payload/qiongli-workflow/skills/registry.yaml mismatch: tag=$TAG expects $expected_skill_version, found $actual_bundled_workflow_registry_version" >&2
+  exit 1
+}
+
+[[ "$actual_plugin_workflow_version" == "$expected_repo_tag" ]] || {
+  echo "[verify-release-tag] plugins/qiongli/skills/qiongli-workflow/VERSION mismatch: tag=$TAG expects $expected_repo_tag, found $actual_plugin_workflow_version" >&2
+  exit 1
+}
+
+[[ "$actual_plugin_workflow_registry_version" == "$expected_skill_version" ]] || {
+  echo "[verify-release-tag] plugins/qiongli/skills/qiongli-workflow/skills/registry.yaml mismatch: tag=$TAG expects $expected_skill_version, found $actual_plugin_workflow_registry_version" >&2
+  exit 1
+}
+
 [[ "$actual_npm_version" == "$expected_npm_version" ]] || {
   echo "[verify-release-tag] packages/npm-qiongli/package.json mismatch: tag=$TAG expects $expected_npm_version, found $actual_npm_version" >&2
+  exit 1
+}
+
+[[ "$actual_bundled_init_version" == "$expected_package_version" ]] || {
+  echo "[verify-release-tag] packages/npm-qiongli/python-runtime/qiongli/__init__.py mismatch: tag=$TAG expects $expected_package_version, found $actual_bundled_init_version" >&2
+  exit 1
+}
+
+[[ "$actual_bundled_registry_version" == "$expected_skill_version" ]] || {
+  echo "[verify-release-tag] packages/npm-qiongli/python-runtime/skills/registry.yaml mismatch: tag=$TAG expects $expected_skill_version, found $actual_bundled_registry_version" >&2
   exit 1
 }
 
