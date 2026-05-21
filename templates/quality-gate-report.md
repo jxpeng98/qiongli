@@ -7,17 +7,27 @@
 - reviewer:
 - date:
 
-## Passed Gates
+## Gate Status
 
-- None.
-
-## Failed Gates
-
-- None.
-
-## Blocked Verification
-
-- None.
+```yaml
+gates:
+  Q1:
+    status: WARN
+    evidence: []
+    blocking_issues: []
+  Q2:
+    status: WARN
+    evidence: []
+    blocking_issues: []
+  Q3:
+    status: WARN
+    evidence: []
+    blocking_issues: []
+  Q4:
+    status: WARN
+    evidence: []
+    blocking_issues: []
+```
 
 ## Next Actions
 
