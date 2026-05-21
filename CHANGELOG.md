@@ -1,11 +1,15 @@
 # Changelog
 
-本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-05-20）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。`0.4.0` 采用正式版 summary 写法，已将 `0.3.0` 之后的 beta 演进合并整理，不再按小 beta 分段展开。
+本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-05-21）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。`0.4.0` 采用正式版 summary 写法，已将 `0.3.0` 之后的 beta 演进合并整理，不再按小 beta 分段展开。
 
-## [Unreleased] - 2026-05-20
+## [Unreleased] - 2026-05-21
 
 ### Added
 
+- 新增 literature-first Stage B 搜索质量诊断合同，覆盖 `targeted_search`、`review_grade`、`systematic_review` 三种模式，并输出 concept coverage、known-item recall、provider coverage、query health、dedup health、screening readiness、snowball readiness 和 recommended actions。
+- 新增 deterministic literature search bundle materializer，可将 provider 输出物化为 `search_strategy.md`、`search_log.md`、`search_results.csv`、`dedup_log.csv` 和 `search_diagnostics.md`。
+- 新增 `scripts/audit_literature_search_quality.py` 与 `scripts/materialize_literature_search_bundle.py`，为 B1/B3/B6 的离线验收提供可回归执行入口。
+- 新增 `qiongli-workflow/references/literature-search-quality-contract.md` 与 `templates/search-diagnostics.md`，明确 Stage B 搜索闭环的 artifact contract。
 - 新增 controller-agnostic execution 基础能力，支持在 `task-run` 中记录 `solo`、`duo`、`triad` 执行模式，以及 `controller`、`primary`、`reviewer`、`verifier` 和 `solo-role-gates` ownership metadata。
 - 新增 controller-mode contracts、solo role policy、agent handoff、disagreement matrix、duo review report、solo self-review、implementation intent、writing claim map 和 quality gate report 模板。
 - 新增 `scripts/audit_solo_role_gates.py` 与 `scripts/audit_agent_handoffs.py`，用于离线审计 Codex-only 写作、Claude-only 工程、duo handoff 和 blocking disagreement artifacts。
@@ -15,6 +19,11 @@
 
 ### Changed
 
+- `run_scholarly_search()` 保持兼容旧调用，同时追加 v2 search diagnostics；`paper_type=systematic-review` 默认进入 `systematic_review` gate，其他任务默认 `targeted_search`，也可显式声明 `review_grade`。
+- citation snowballing 与 screening tracker 现在会消费 search diagnostics，用于 seed rationale、coverage gap、saturation、screening readiness 和后续轮次建议。
+- `scripts/validate_project_artifacts.py` 现在对 B1/B3/B6 执行 mode-aware literature quality gate；strict 模式会阻断系统综述级搜索缺失 diagnostics、单 provider、required concept 零覆盖、known item 未召回、snowball 缺少双向记录等问题。
+- `scripts/validate_research_standard.py --strict` 现在会检查 literature-first contracts、templates、scripts、tests 以及 portable package / plugin mirror 中的资源一致性。
+- Stage B skills 更新为围绕 search diagnostics、materialized artifacts、snowball readiness 和 screening readiness 执行，减少“只写搜索记录但不可验收”的宽松路径。
 - `scripts/validate_research_standard.py --strict` 现在会检查 controller-mode contract 文件，并运行 solo role gate audit，防止缺失 claim map、implementation intent 或 verification status 的运行记录通过严格验证。
 - `scripts/release_preflight.sh` 新增 controller-mode eval warning stage；当前作为发布前风险提示，不阻断 beta 发版。
 - README、README_CN、CLAUDE.md 和 `qiongli-workflow/SKILL.md` 补充 controller-aware task-run flags、solo gates、duo disagreement handling 和 strict validation 建议。
