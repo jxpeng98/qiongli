@@ -184,6 +184,11 @@ if [[ -n "$FROM_TAG" ]] && ! git rev-parse -q --verify "refs/tags/$FROM_TAG" >/d
   exit 1
 fi
 
+PUBLISH_CMD="./scripts/release_automation.sh publish --version ${VERSION_HINT} --skip-bump"
+if [[ -n "$FROM_TAG" ]]; then
+  PUBLISH_CMD="${PUBLISH_CMD} --from-tag ${FROM_TAG}"
+fi
+
 COMMITS=""
 if [[ -n "$FROM_TAG" ]]; then
   COMMITS="$(git log --no-merges --pretty='- %s (%h)' "${FROM_TAG}..HEAD" | head -n "$MAX_COMMITS" || true)"
@@ -229,14 +234,10 @@ EOF
   echo
   echo "## Publish Steps"
   echo
-  cat <<EOF
+cat <<EOF
 \`\`\`bash
-./scripts/release_ready.sh --version ${VERSION_HINT}
-git add pyproject.toml qiongli/__init__.py qiongli-workflow/VERSION skills/registry.yaml skills release/${TAG}.md
-git commit -m "chore: prepare release ${VERSION_HINT}"
-git tag -a ${TAG} -m "qiongli release"
-git push origin main --tags
-./scripts/release_automation.sh post --tag ${TAG} --create-release
+./scripts/release_ready.sh --version ${VERSION_HINT} --skip-bump
+${PUBLISH_CMD}
 \`\`\`
 EOF
   echo

@@ -24,12 +24,12 @@ This mode runs:
 - `scripts/release_ready.sh`
 - release-prep commit creation
 - annotated tag creation
-- push of the primary branch + tag
+- push of the release branch + tag
 - waiting for `CI` and `Install Check`
 - `scripts/release_postflight.sh --create-release`
 - marketplace / extension artifact generation for Codex, Claude Code, and Gemini CLI
 
-Stable tags become normal GitHub Releases. Beta tags become GitHub prereleases, so stable and beta releases can coexist without breaking `releases/latest`.
+Stable tags publish from the primary branch (`main` or `master`) and become normal GitHub Releases. Beta tags may publish from `dev` or the primary branch and become GitHub prereleases, so stable and beta releases can coexist without breaking `releases/latest`.
 
 The release page receives these installable distribution artifacts:
 
@@ -81,11 +81,20 @@ The draft generator remains available, but the default policy is now:
 
 ## 4) Publish tag
 
+Stable release from the primary branch:
+
 ```bash
 git add pyproject.toml qiongli/__init__.py qiongli-workflow/VERSION skills/registry.yaml skills CHANGELOG.md
 git commit -m "chore: prepare release 0.1.0"
 git tag -a v0.1.0 -m "qiongli release"
 git push origin main --tags
+```
+
+Beta release from `dev`:
+
+```bash
+git switch dev
+./scripts/release_automation.sh publish --version 0.8.0b1 --skip-bump --from-tag v0.7.0-beta.2
 ```
 
 ## 5) Post-release checks
