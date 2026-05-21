@@ -221,6 +221,9 @@ class BootstrapQiongliTests(unittest.TestCase):
         self.assertNotIn('bootstrapUrl = "https://raw.githubusercontent.com', content)
         self.assertNotIn('$content = @"', content)
         self.assertIn('$env:PYTHONPATH = $RepoRoot', content)
+        self.assertIn("Write-LegacyResidueReport", content)
+        self.assertIn("Legacy Install Residues", content)
+        self.assertIn("research-paper-workflow", content)
 
     def test_shell_bootstrap_documents_beta_channel(self) -> None:
         content = BOOTSTRAP_SCRIPT.read_text(encoding="utf-8")

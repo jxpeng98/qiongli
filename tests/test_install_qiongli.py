@@ -390,6 +390,56 @@ class InstallQiongliTests(unittest.TestCase):
             self.assertFalse((existing_skill / "legacy.txt").exists())
             self.assertTrue((existing_skill / "skills-core.md").exists())
 
+    def test_install_reports_legacy_global_skill_residues(self) -> None:
+        if not SYSTEM_BASH.exists():
+            self.skipTest("/bin/bash is not available")
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            home_dir = temp_root / "home"
+            home_dir.mkdir()
+            codex_home = temp_root / "codex-home"
+            legacy_skill = codex_home / "skills" / "research-paper-workflow"
+            legacy_skill.mkdir(parents=True)
+            (legacy_skill / "SKILL.md").write_text(
+                "---\nname: research-paper-workflow\ndescription: legacy\n---\n",
+                encoding="utf-8",
+            )
+
+            env = os.environ.copy()
+            env["HOME"] = str(home_dir)
+            env["CODEX_HOME"] = str(codex_home)
+            env["NO_COLOR"] = "1"
+
+            result = subprocess.run(
+                [
+                    str(SYSTEM_BASH),
+                    str(INSTALL_SCRIPT),
+                    "--target",
+                    "codex",
+                    "--mode",
+                    "copy",
+                    "--project-dir",
+                    str(project_dir),
+                    "--parts",
+                    "globals",
+                ],
+                cwd=str(REPO_ROOT),
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, msg=result.stdout + "\n" + result.stderr)
+            self.assertIn("Legacy Install Residues", result.stdout)
+            self.assertIn("codex: research-paper-workflow", result.stdout)
+            self.assertIn(str(legacy_skill), result.stdout)
+            self.assertTrue(legacy_skill.exists())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -181,6 +181,40 @@ def _skill_package_state(path: Path) -> str:
     return _skill_package_version(path) or "unknown"
 
 
+_LEGACY_SKILL_PACKAGE_NAMES = ("research-paper-workflow",)
+_WORKFLOW_LINK_PACKAGE_MARKERS = ("qiongli-workflow", *_LEGACY_SKILL_PACKAGE_NAMES)
+
+
+def _selected_target_names(target: str) -> tuple[str, ...]:
+    return TARGET_CHOICES[:-1] if target == "all" else (target,)
+
+
+def _legacy_global_skill_residues(
+    target: str,
+    target_paths: dict[str, Path],
+) -> list[tuple[str, str, Path]]:
+    residues: list[tuple[str, str, Path]] = []
+    for target_name in _selected_target_names(target):
+        skill_root = target_paths[target_name].parent
+        for legacy_name in _LEGACY_SKILL_PACKAGE_NAMES:
+            candidate = skill_root / legacy_name
+            if candidate.exists() or candidate.is_symlink():
+                residues.append((target_name, legacy_name, candidate))
+    return residues
+
+
+def _print_legacy_install_residues(target: str, target_paths: dict[str, Path]) -> None:
+    residues = _legacy_global_skill_residues(target, target_paths)
+    if not residues:
+        return
+    _print_section("Legacy Install Residues")
+    for target_name, legacy_name, path in residues:
+        _print_result("Legacy Skill", f"{target_name}: {legacy_name} -> {path}", "skip")
+    print("          These legacy skill directories are left in place.")
+    print("          Remove them manually after confirming you no longer use them.")
+    print("          `qiongli clean --globals` removes legacy workflow discovery symlinks only.")
+
+
 def _skill_copy_detail(dest: Path, src_version: str, dest_version: str = "", action: str = "") -> str:
     if action == "skip":
         return f"{dest} (current {src_version}; source {src_version}; already installed)"
@@ -631,16 +665,15 @@ def install(options: InstallOptions) -> int:
     if install_cli:
         print(f"  cli:     install -> {options.cli_dir}")
 
-    _print_detected_versions(
-        options.target,
-        source_version,
-        {
-            "codex": codex_dest,
-            "claude": claude_dest,
-            "gemini": gemini_dest,
-            "antigravity": antigravity_dest,
-        },
-    )
+    target_paths = {
+        "codex": codex_dest,
+        "claude": claude_dest,
+        "gemini": gemini_dest,
+        "antigravity": antigravity_dest,
+    }
+    _print_detected_versions(options.target, source_version, target_paths)
+    if install_globals:
+        _print_legacy_install_residues(options.target, target_paths)
     _print_full_readiness(options)
     _print_cli_checks(options.target)
 
@@ -713,7 +746,9 @@ def install(options: InstallOptions) -> int:
 _CLEANABLE_GLOBS = (
     ".agent/workflows/*.md",
     ".agent/skills/qiongli-workflow",
+    ".agent/skills/research-paper-workflow",
     ".agents/skills/qiongli-workflow",
+    ".agents/skills/research-paper-workflow",
     "CLAUDE.qiongli.md",
     ".gemini/qiongli.md",
     ".gemini/agent-profiles.example.json",
@@ -792,7 +827,7 @@ def clean_workflow_symlinks(*, dry_run: bool = False) -> int:
             if not link.is_symlink():
                 continue
             target_path = str(link.resolve())
-            if "qiongli-workflow" in target_path:
+            if any(marker in target_path for marker in _WORKFLOW_LINK_PACKAGE_MARKERS):
                 _remove_path(link, dry_run)
                 _print_result("Removed", f"{link.name} -> {target}", "ok")
                 removed += 1

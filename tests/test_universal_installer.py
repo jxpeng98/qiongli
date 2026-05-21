@@ -133,6 +133,42 @@ class UniversalInstallerTests(unittest.TestCase):
                 stdout.getvalue(),
             )
 
+    def test_install_reports_legacy_global_skill_residues(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            codex_home = temp_root / "codex-home"
+            legacy_skill = codex_home / "skills" / "research-paper-workflow"
+            legacy_skill.mkdir(parents=True)
+            (legacy_skill / "SKILL.md").write_text(
+                "---\nname: research-paper-workflow\ndescription: legacy\n---\n",
+                encoding="utf-8",
+            )
+
+            env = os.environ.copy()
+            env["CODEX_HOME"] = str(codex_home)
+            env["PATH"] = ""
+
+            stdout = io.StringIO()
+            with mock.patch.dict(os.environ, env, clear=True):
+                with contextlib.redirect_stdout(stdout):
+                    result = install(
+                        InstallOptions(
+                            repo_root=REPO_ROOT,
+                            project_dir=project_dir,
+                            target="codex",
+                            profile="partial",
+                        )
+                    )
+
+            self.assertEqual(result, 0)
+            rendered = stdout.getvalue()
+            self.assertIn("Legacy Install Residues", rendered)
+            self.assertIn("codex: research-paper-workflow", rendered)
+            self.assertIn(str(legacy_skill), rendered)
+            self.assertTrue(legacy_skill.exists())
+
     def test_existing_unmanaged_cli_requires_overwrite(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             temp_root = Path(tmp_dir)
@@ -302,9 +338,15 @@ class CleanTests(unittest.TestCase):
             skill_dir = project_dir / ".agents" / "skills" / "qiongli-workflow"
             skill_dir.mkdir(parents=True)
             (skill_dir / "SKILL.md").write_text("stale skill")
+            legacy_named_skill = project_dir / ".agents" / "skills" / "research-paper-workflow"
+            legacy_named_skill.mkdir(parents=True)
+            (legacy_named_skill / "SKILL.md").write_text("stale legacy skill")
             legacy_skill = project_dir / ".agent" / "skills" / "qiongli-workflow"
             legacy_skill.mkdir(parents=True)
             (legacy_skill / "SKILL.md").write_text("stale skill")
+            legacy_agent_skill = project_dir / ".agent" / "skills" / "research-paper-workflow"
+            legacy_agent_skill.mkdir(parents=True)
+            (legacy_agent_skill / "SKILL.md").write_text("stale legacy skill")
             gemini_dir = project_dir / ".gemini"
             gemini_dir.mkdir(parents=True)
             (gemini_dir / "qiongli.md").write_text("stale quickstart")
@@ -320,6 +362,8 @@ class CleanTests(unittest.TestCase):
             self.assertFalse((workflows_dir / "lit-review.md").exists())
             self.assertFalse(skill_dir.exists())
             self.assertFalse(legacy_skill.exists())
+            self.assertFalse(legacy_named_skill.exists())
+            self.assertFalse(legacy_agent_skill.exists())
             self.assertFalse((gemini_dir / "qiongli.md").exists())
             self.assertFalse((gemini_dir / "agent-profiles.example.json").exists())
             self.assertFalse((project_dir / "CLAUDE.qiongli.md").exists())
@@ -386,6 +430,29 @@ class CleanTests(unittest.TestCase):
             self.assertTrue((commands_dir / "my-custom.md").exists())
             # Other symlink preserved
             self.assertTrue(other_link.is_symlink())
+
+    def test_clean_workflow_symlinks_removes_legacy_skill_links(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            claude_home = temp_root / "claude-home"
+            commands_dir = claude_home / "commands"
+            commands_dir.mkdir(parents=True)
+            legacy_wf = claude_home / "skills" / "research-paper-workflow" / "workflows"
+            legacy_wf.mkdir(parents=True)
+            (legacy_wf / "paper.md").write_text("legacy workflow")
+            legacy_link = commands_dir / "paper.md"
+            legacy_link.symlink_to(legacy_wf / "paper.md")
+
+            env = os.environ.copy()
+            env["CLAUDE_CODE_HOME"] = str(claude_home)
+            env["GEMINI_HOME"] = str(temp_root / "gemini-home")
+            with mock.patch.dict(os.environ, env, clear=True):
+                from qiongli.universal_installer import clean_workflow_symlinks
+
+                result = clean_workflow_symlinks()
+
+            self.assertEqual(result, 0)
+            self.assertFalse(legacy_link.exists())
 
 
 class SymlinkAndSummaryTests(unittest.TestCase):
