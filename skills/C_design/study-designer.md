@@ -73,6 +73,10 @@ Do not split these into separate top-level skills unless a new artifact path and
 
 ## Process
 
+### Gate And Method-Pack Alignment
+
+When a domain profile is available, load `skills/domain-profiles/[domain].yaml` and use each selected method template's `assumptions`, `required_diagnostics`, `required_artifacts`, `failure_modes`, and `minimum_report_fields` as constraints. Before finalizing `RESEARCH/[topic]/study_design.md`, check Q1 from `standards/quality-gate-contract.yaml`: every RQ or hypothesis must map to a method, data source, measurement plan, and analysis strategy. Record unresolved validity threats in `RESEARCH/[topic]/design/validity-threat-matrix.md`.
+
 ### Step 1: Choose Study Type (Fit-to-Question)
 
 Pick the simplest design that can answer the RQ credibly. Use this decision matrix:

@@ -244,6 +244,83 @@ class SkillStructureLintTests(unittest.TestCase):
         self.assertIn("skill quality contract gaps", warning_blob)
         self.assertIn("weak-skill.md", warning_blob)
 
+    def test_gate_and_method_pack_consumers_reference_required_contract_fields(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        required_tokens = {
+            "skills/C_design/study-designer.md": [
+                "quality-gate-contract.yaml",
+                "Q1",
+                "design/validity-threat-matrix.md",
+            ],
+            "skills/C_design/robustness-planner.md": [
+                "quality-gate-contract.yaml",
+                "method_templates",
+                "required_diagnostics",
+            ],
+            "skills/I_code/stats-engine.md": [
+                "method_templates",
+                "required_diagnostics",
+                "minimum_report_fields",
+            ],
+            "skills/I_code/code-builder.md": [
+                "method_templates",
+                "required_artifacts",
+                "failure_modes",
+            ],
+            "skills/I_code/code-review.md": [
+                "quality-gate-contract.yaml",
+                "failure_modes",
+                "minimum_report_fields",
+            ],
+        }
+
+        missing_tokens: list[str] = []
+        for relative_path, tokens in required_tokens.items():
+            text = (root / relative_path).read_text(encoding="utf-8")
+            missing_tokens.extend(
+                f"{relative_path}: {token}" for token in tokens if token not in text
+            )
+
+        self.assertEqual(missing_tokens, [])
+
+    def test_method_pack_consumers_do_not_duplicate_domain_specific_rules(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        forbidden_tokens = {
+            "skills/I_code/stats-engine.md": [
+                "Domain-Specific Diagnostic Quick Reference",
+            ],
+            "skills/I_code/code-review.md": [
+                "Domain-Specific Review Rules",
+            ],
+        }
+        required_tokens = {
+            "skills/I_code/stats-engine.md": [
+                "skills/domain-profiles/[domain].yaml",
+                "method_templates[*].required_diagnostics",
+                "minimum_report_fields",
+            ],
+            "skills/I_code/code-review.md": [
+                "skills/domain-profiles/[domain].yaml",
+                "method_templates[*].required_diagnostics",
+                "failure_modes",
+                "minimum_report_fields",
+            ],
+        }
+
+        failures: list[str] = []
+        for relative_path, tokens in forbidden_tokens.items():
+            text = (root / relative_path).read_text(encoding="utf-8")
+            failures.extend(
+                f"{relative_path}: remove {token}" for token in tokens if token in text
+            )
+        for relative_path, tokens in required_tokens.items():
+            text = (root / relative_path).read_text(encoding="utf-8")
+            failures.extend(
+                f"{relative_path}: add {token}" for token in tokens if token not in text
+            )
+
+        self.assertEqual(failures, [])
+
 
 if __name__ == "__main__":
     unittest.main()

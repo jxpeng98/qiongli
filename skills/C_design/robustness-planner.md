@@ -55,6 +55,10 @@ Pre-specify robustness checks, sensitivity analysis, and bounds scaling linked t
 
 ## Process
 
+### Gate And Method-Pack Robustness
+
+Use Q1 and Q4 from `standards/quality-gate-contract.yaml` to connect robustness checks to design validity and reproducibility. Use the active domain profile's `method_templates[*].required_diagnostics` as the minimum robustness checklist. If the selected method has no matching template, write an insufficient-input gap note in `RESEARCH/[topic]/design/validity-threat-matrix.md` instead of inventing diagnostics.
+
 ### Step 1: Map Threats to Validity
 
 For each research question and hypothesis, identify the key threats:
