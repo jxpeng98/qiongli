@@ -335,6 +335,61 @@ class InstallQiongliTests(unittest.TestCase):
             self.assertIn('CLI_FLAVOR="shell-bootstrap"', (cli_dir / "qiongli").read_text(encoding="utf-8"))
             self.assertIn('DEFAULT_REPO="jxpeng98/qiongli"', (cli_dir / "qiongli-bootstrap").read_text(encoding="utf-8"))
 
+    def test_existing_versionless_managed_install_auto_upgrades_without_overwrite(self) -> None:
+        if not SYSTEM_BASH.exists():
+            self.skipTest("/bin/bash is not available")
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            home_dir = temp_root / "home"
+            home_dir.mkdir()
+            codex_home = temp_root / "codex-home"
+            existing_skill = codex_home / "skills" / "qiongli-workflow"
+            existing_skill.mkdir(parents=True)
+            source_version = (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(encoding="utf-8").strip()
+            (existing_skill / "SKILL.md").write_text(
+                "---\nname: qiongli-workflow\ndescription: legacy without version\n---\n",
+                encoding="utf-8",
+            )
+            (existing_skill / "legacy.txt").write_text("old", encoding="utf-8")
+
+            env = os.environ.copy()
+            env["HOME"] = str(home_dir)
+            env["CODEX_HOME"] = str(codex_home)
+            env["NO_COLOR"] = "1"
+
+            result = subprocess.run(
+                [
+                    str(SYSTEM_BASH),
+                    str(INSTALL_SCRIPT),
+                    "--target",
+                    "codex",
+                    "--mode",
+                    "copy",
+                    "--project-dir",
+                    str(project_dir),
+                    "--parts",
+                    "globals",
+                ],
+                cwd=str(REPO_ROOT),
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, msg=result.stdout + "\n" + result.stderr)
+            self.assertIn(
+                f"current unknown; source {source_version}; updated unknown -> {source_version}",
+                result.stdout,
+            )
+            self.assertEqual((existing_skill / "VERSION").read_text(encoding="utf-8").strip(), source_version)
+            self.assertFalse((existing_skill / "legacy.txt").exists())
+            self.assertTrue((existing_skill / "skills-core.md").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

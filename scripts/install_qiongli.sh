@@ -334,6 +334,15 @@ skill_package_version() {
   read_version_file "$path/VERSION"
 }
 
+skill_package_state() {
+  local path="$1"
+  if is_qiongli_package_dir "$path"; then
+    skill_package_version "$path" || printf 'unknown\n'
+  else
+    printf 'not installed\n'
+  fi
+}
+
 same_file_content() {
   local src="$1"
   local dest="$2"
@@ -412,19 +421,19 @@ print_detected_versions() {
   section "Detected Versions"
   info "source:      ${source_version:-unknown}"
   if [[ "$TARGET" == "codex" || "$TARGET" == "all" ]]; then
-    detected="$(skill_package_version "$CODEX_SKILL_DEST" || true)"; detected="${detected:-not installed}"
+    detected="$(skill_package_state "$CODEX_SKILL_DEST")"
     info "codex:       $detected"
   fi
   if [[ "$TARGET" == "claude" || "$TARGET" == "all" ]]; then
-    detected="$(skill_package_version "$CLAUDE_SKILL_DEST" || true)"; detected="${detected:-not installed}"
+    detected="$(skill_package_state "$CLAUDE_SKILL_DEST")"
     info "claude:      $detected"
   fi
   if [[ "$TARGET" == "gemini" || "$TARGET" == "all" ]]; then
-    detected="$(skill_package_version "$GEMINI_SKILL_DEST" || true)"; detected="${detected:-not installed}"
+    detected="$(skill_package_state "$GEMINI_SKILL_DEST")"
     info "gemini:      $detected"
   fi
   if [[ "$TARGET" == "antigravity" || "$TARGET" == "all" ]]; then
-    detected="$(skill_package_version "$ANTIGRAVITY_SKILL_DEST" || true)"; detected="${detected:-not installed}"
+    detected="$(skill_package_state "$ANTIGRAVITY_SKILL_DEST")"
     info "antigravity: $detected"
   fi
 }
@@ -458,6 +467,8 @@ _copy_item() {
           return 0
         fi
         auto_detail="$(skill_copy_detail "$dest" "$src_version" "$dest_version" "update")"
+      elif [[ -n "$src_version" ]] && is_qiongli_package_dir "$dest"; then
+        auto_detail="$(skill_copy_detail "$dest" "$src_version" "unknown" "update")"
       elif [[ -L "$dest" && "$MODE" == "link" && "$(resolve_abs "$dest")" == "$src_abs" ]]; then
         COPY_ITEM_STATUS="skip"
         COPY_ITEM_DETAIL="$dest (already linked)"

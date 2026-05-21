@@ -17,6 +17,15 @@ class BranchPolicyTests(unittest.TestCase):
             content = read(workflow)
             self.assertIn('branches: ["main", "master", "dev"]', content)
 
+    def test_ci_syncs_skill_package_before_strict_research_validation(self) -> None:
+        content = read(".github/workflows/ci.yml")
+        sync_cmd = "bash scripts/sync_skill_package.sh --target all"
+        validate_cmd = "python scripts/validate_research_standard.py --strict"
+
+        self.assertIn(sync_cmd, content)
+        self.assertIn(validate_cmd, content)
+        self.assertLess(content.index(sync_cmd), content.index(validate_cmd))
+
     def test_release_workflow_allows_beta_from_dev_but_stable_from_primary(self) -> None:
         content = read("scripts/release_automation.sh")
         self.assertIn('DEV_PRERELEASE_BRANCH="dev"', content)
