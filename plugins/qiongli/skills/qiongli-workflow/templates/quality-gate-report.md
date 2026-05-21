@@ -12,21 +12,25 @@
 ```yaml
 gates:
   Q1:
-    status: WARN
+    status: BLOCKED
     evidence: []
-    blocking_issues: []
+    blocking_issues:
+      - Evidence has not been supplied yet.
   Q2:
-    status: WARN
+    status: BLOCKED
     evidence: []
-    blocking_issues: []
+    blocking_issues:
+      - Evidence has not been supplied yet.
   Q3:
-    status: WARN
+    status: BLOCKED
     evidence: []
-    blocking_issues: []
+    blocking_issues:
+      - Evidence has not been supplied yet.
   Q4:
-    status: WARN
+    status: BLOCKED
     evidence: []
-    blocking_issues: []
+    blocking_issues:
+      - Evidence has not been supplied yet.
 ```
 
 ## Passed Gates

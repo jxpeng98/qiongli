@@ -84,19 +84,23 @@ class QualityGateContractTests(unittest.TestCase):
                 gates:
                   Q1:
                     status: PASS
-                    evidence: []
+                    evidence:
+                      - reports/q1-verification.md
                     blocking_issues: []
                   Q2:
                     status: WARN
-                    evidence: []
+                    evidence:
+                      - reports/q2-review.md
                     blocking_issues: []
                   Q3:
                     status: PASS
-                    evidence: []
+                    evidence:
+                      - reports/q3-implementation.md
                     blocking_issues: []
                   Q4:
                     status: WARN
-                    evidence: []
+                    evidence:
+                      - reports/q4-validation.md
                     blocking_issues: []
                 """,
             )
@@ -105,6 +109,75 @@ class QualityGateContractTests(unittest.TestCase):
 
         self.assertTrue(result.passed)
         self.assertEqual([], result.errors)
+
+    def test_gate_report_rejects_pass_or_warn_without_evidence(self) -> None:
+        contract = self.audit_module.load_gate_contract(CONTRACT_PATH)
+        cases = (
+            (
+                "Q1",
+                "PASS",
+                "Q1 status PASS requires non-empty evidence",
+                """
+                gates:
+                  Q1:
+                    status: PASS
+                    evidence: []
+                    blocking_issues: []
+                  Q2:
+                    status: WARN
+                    evidence:
+                      - reports/q2-review.md
+                    blocking_issues: []
+                  Q3:
+                    status: PASS
+                    evidence:
+                      - reports/q3-implementation.md
+                    blocking_issues: []
+                  Q4:
+                    status: WARN
+                    evidence:
+                      - reports/q4-validation.md
+                    blocking_issues: []
+                """,
+            ),
+            (
+                "Q2",
+                "WARN",
+                "Q2 status WARN requires non-empty evidence",
+                """
+                gates:
+                  Q1:
+                    status: PASS
+                    evidence:
+                      - reports/q1-verification.md
+                    blocking_issues: []
+                  Q2:
+                    status: WARN
+                    evidence: []
+                    blocking_issues: []
+                  Q3:
+                    status: PASS
+                    evidence:
+                      - reports/q3-implementation.md
+                    blocking_issues: []
+                  Q4:
+                    status: WARN
+                    evidence:
+                      - reports/q4-validation.md
+                    blocking_issues: []
+                """,
+            ),
+        )
+        for gate_id, status, expected_error, yaml_block in cases:
+            with self.subTest(gate_id=gate_id, status=status):
+                with tempfile.TemporaryDirectory() as tmp_dir:
+                    report_path = Path(tmp_dir) / "quality-gate-report.md"
+                    write_report(report_path, yaml_block)
+
+                    result = self.audit_module.audit_gate_report(report_path, contract)
+
+                self.assertFalse(result.passed)
+                self.assertIn(expected_error, result.errors)
 
     def test_cli_reports_missing_contract_without_traceback(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

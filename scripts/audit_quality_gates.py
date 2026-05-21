@@ -64,6 +64,9 @@ def audit_gate_report(path: Path, contract: dict[str, object]) -> GateAuditResul
         if status not in status_values:
             errors.append(f"{gate_id} status {status or '<missing>'} not in contract status_values")
 
+        if status in {"PASS", "WARN"} and not _has_non_empty_items(gate_report.get("evidence")):
+            errors.append(f"{gate_id} status {status} requires non-empty evidence")
+
         if status in {"FAIL", "BLOCKED"} and not _has_non_empty_items(gate_report.get("blocking_issues")):
             errors.append(f"{gate_id} status {status} requires non-empty blocking_issues")
 
