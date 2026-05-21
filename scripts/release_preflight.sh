@@ -9,6 +9,9 @@ TAG=""
 SKIP_NOTE_GEN=0
 NOTE_OVERWRITE=0
 FROM_TAG=""
+FAILED_STAGE=""
+FAILED_LOG=""
+FAILED_STATUS=""
 
 is_prerelease_tag() {
   [[ "$1" == *beta* || "$1" =~ b[0-9]+ ]]
@@ -47,6 +50,9 @@ run_logged_stage() {
     exit "$tee_status"
   fi
   if [[ "$command_status" -ne 0 ]]; then
+    FAILED_STAGE="$label"
+    FAILED_LOG="$log_file"
+    FAILED_STATUS="$command_status"
     echo "[preflight] FAIL: ${label} failed with exit code ${command_status}" >&2
     echo "[preflight] log: ${log_file}" >&2
     exit "$command_status"
@@ -87,6 +93,10 @@ cleanup_logs() {
     echo "  unit tests: $unit_log" >&2
     echo "  smoke: $smoke_log" >&2
     echo "  controller-mode evals: $eval_log" >&2
+    if [[ -n "$FAILED_LOG" && -f "$FAILED_LOG" ]]; then
+      echo "[preflight] failure summary: ${FAILED_STAGE} exited with ${FAILED_STATUS}" >&2
+      tail -n 120 "$FAILED_LOG" >&2
+    fi
   fi
 }
 
