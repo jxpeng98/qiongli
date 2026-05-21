@@ -46,7 +46,7 @@ jobs:
         working-directory: packages/npm-qiongli
         run: |
           if [[ "${GITHUB_REF_NAME}" == *beta* ]]; then
-            npm publish --tag beta
+            npm publish --tag next
           else
             npm publish --tag latest
           fi

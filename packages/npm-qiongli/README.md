@@ -12,7 +12,7 @@ qiongli install --target all
 Or run without a global install:
 
 ```bash
-npx qiongli@beta install --target all
+npx qiongli@next install --target all
 ```
 
 The npm package contains the complete `qiongli-workflow` skill payload and does not depend on PyPI for skill installation.

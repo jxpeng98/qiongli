@@ -77,8 +77,23 @@ class NpmPackageContractTests(unittest.TestCase):
         self.assertNotIn("qiongli-installer", pypi_workflow)
         self.assertIn("id-token: write", npm_workflow)
         self.assertIn("node-version: '24'", npm_workflow)
-        self.assertIn("npm publish --tag", npm_workflow)
+        self.assertIn("npm publish --tag next", npm_workflow)
+        self.assertIn("npm publish --tag latest", npm_workflow)
+        self.assertNotIn("npm publish --tag beta", npm_workflow)
         self.assertIn("scripts/npm_preflight.sh", npm_workflow)
+
+    def test_docs_use_npm_next_dist_tag_for_prereleases(self) -> None:
+        docs = "\n".join(
+            [
+                (REPO_ROOT / "README.md").read_text(encoding="utf-8"),
+                (REPO_ROOT / "README_CN.md").read_text(encoding="utf-8"),
+                (REPO_ROOT / "guides" / "basic" / "install-multi-client.md").read_text(encoding="utf-8"),
+                (NPM_PACKAGE_ROOT / "README.md").read_text(encoding="utf-8"),
+            ]
+        )
+
+        self.assertIn("qiongli@next", docs)
+        self.assertNotIn("qiongli@beta", docs)
 
     def test_npm_preflight_packs_from_package_directory_with_temp_cache(self) -> None:
         preflight = (REPO_ROOT / "scripts" / "npm_preflight.sh").read_text(encoding="utf-8")

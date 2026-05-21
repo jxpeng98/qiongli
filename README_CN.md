@@ -152,11 +152,11 @@ npm install -g qiongli
 qiongli install --target all --project-dir "$PWD"
 ```
 
-如果只是测试 beta，不想全局安装：
+如果只是测试 prerelease，不想全局安装：
 
 ```bash
-npx qiongli@beta install --target all --project-dir "$PWD"
-npx qiongli@beta check --json
+npx qiongli@next install --target all --project-dir "$PWD"
+npx qiongli@next check --json
 ```
 
 npm 包内会携带完整 `qiongli-workflow` skills payload。`qiongli doctor`、`qiongli task-run`、`qiongli team-run` 等高级命令会委托到 npm 包内置的 Python bridge 源码执行，因此仍要求本机已有 Python 3.12+ 和 `PyYAML`。
@@ -423,10 +423,10 @@ npm install -g qiongli
 qiongli install --target all --project-dir "$PWD"
 ```
 
-beta 测试：
+prerelease 测试：
 
 ```bash
-npx qiongli@beta install --target all --project-dir "$PWD"
+npx qiongli@next install --target all --project-dir "$PWD"
 ```
 
 效果：
