@@ -54,6 +54,7 @@ Examples:
   ./scripts/release_automation.sh post --tag v0.1.0
   ./scripts/release_automation.sh post --tag v0.1.0 --create-release
   ./scripts/release_automation.sh publish --version 0.1.0 --from-tag v0.1.0-beta.6
+  ./scripts/release_automation.sh publish --tag v0.1.0 --from-tag v0.1.0-beta.6
 
 Notes:
   - pre  -> runs scripts/release_preflight.sh
@@ -78,6 +79,7 @@ case "$MODE" in
     ;;
   publish)
     version=""
+    version_from_tag=""
     from_tag=""
     allow_dirty=0
     skip_bump=0
@@ -99,6 +101,11 @@ case "$MODE" in
         --version)
           [[ $# -ge 2 ]] || { echo "[release-automation] missing value for --version" >&2; exit 2; }
           version="$2"
+          shift 2
+          ;;
+        --tag)
+          [[ $# -ge 2 ]] || { echo "[release-automation] missing value for --tag" >&2; exit 2; }
+          version_from_tag="$2"
           shift 2
           ;;
         --from-tag)
@@ -182,10 +189,25 @@ case "$MODE" in
       esac
     done
 
-    [[ -n "$version" ]] || { echo "[release-automation] publish mode requires --version" >&2; exit 2; }
+    [[ -n "$version" || -n "$version_from_tag" ]] || { echo "[release-automation] publish mode requires --version or --tag" >&2; exit 2; }
 
-    repo_tag="$(normalize_field "$version" repo_version)"
-    package_version="$(normalize_field "$version" package_version)"
+    if [[ -n "$version" && -n "$version_from_tag" ]]; then
+      repo_tag_from_version="$(normalize_field "$version" repo_version)"
+      repo_tag_from_tag="$(normalize_field "$version_from_tag" repo_version)"
+      if [[ -n "$version" && -n "$version_from_tag" && "$repo_tag_from_version" != "$repo_tag_from_tag" ]]; then
+        echo "[release-automation] --version and --tag point to different releases: ${repo_tag_from_version} != ${repo_tag_from_tag}" >&2
+        exit 2
+      fi
+      version_input="$version"
+      repo_tag="$repo_tag_from_version"
+    elif [[ -n "$version" ]]; then
+      version_input="$version"
+      repo_tag="$(normalize_field "$version_input" repo_version)"
+    else
+      version_input="$version_from_tag"
+      repo_tag="$(normalize_field "$version_input" repo_version)"
+    fi
+    package_version="$(normalize_field "$version_input" package_version)"
 
     primary_branch="$(detect_primary_branch)"
     current_branch="$(git rev-parse --abbrev-ref HEAD)"
@@ -206,7 +228,7 @@ case "$MODE" in
       commit_message="chore: prepare release ${package_version}"
     fi
 
-    ./scripts/release_ready.sh --version "$version" "${ready_args[@]}"
+    ./scripts/release_ready.sh --version "$version_input" "${ready_args[@]}"
 
     ensure_git_identity
 

@@ -321,7 +321,7 @@ Notes:
 ### 4.3 Release Automation: `./scripts/release_automation.sh`
 
 ```bash
-./scripts/release_automation.sh publish --version 0.1.0 --from-tag v0.1.0-beta.X
+./scripts/release_automation.sh publish --tag v0.1.0 --from-tag v0.1.0-beta.X
 ./scripts/release_automation.sh pre  --tag v0.1.0-beta.X
 ./scripts/release_automation.sh post --tag v0.1.0-beta.X --create-release
 ```

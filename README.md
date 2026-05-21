@@ -990,11 +990,11 @@ If you wish to test the legacy installation method, the script is located at: `s
 ### Release Automation
 ```bash
 # Full end-to-end stable publish from main/master
-./scripts/release_automation.sh publish --version 0.1.0 --from-tag v0.1.0-beta.6
+./scripts/release_automation.sh publish --tag v0.1.0 --from-tag v0.1.0-beta.6
 
 # Full end-to-end beta publish from dev
 git switch dev
-./scripts/release_automation.sh publish --version 0.8.0b1 --skip-bump --from-tag v0.7.0-beta.2
+./scripts/release_automation.sh publish --tag v0.8.0-beta.1 --skip-bump --from-tag v0.7.0-beta.2
 
 # Manual split phases when needed
 ./scripts/release_automation.sh pre --tag v0.1.0 --from-tag v0.1.0-beta.6
