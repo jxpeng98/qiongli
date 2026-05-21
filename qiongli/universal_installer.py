@@ -162,13 +162,23 @@ def _read_version_file(path: Path) -> str:
         return ""
 
 
-def _skill_package_version(path: Path) -> str:
+def _is_qiongli_package_dir(path: Path) -> bool:
     if not path.is_dir():
-        return ""
+        return False
     skill_text = _read_text(path / "SKILL.md")
-    if "name: qiongli-workflow" not in skill_text:
+    return "name: qiongli-workflow" in skill_text
+
+
+def _skill_package_version(path: Path) -> str:
+    if not _is_qiongli_package_dir(path):
         return ""
     return _read_version_file(path / "VERSION")
+
+
+def _skill_package_state(path: Path) -> str:
+    if not _is_qiongli_package_dir(path):
+        return "not installed"
+    return _skill_package_version(path) or "unknown"
 
 
 def _skill_copy_detail(dest: Path, src_version: str, dest_version: str = "", action: str = "") -> str:
@@ -212,6 +222,8 @@ def _copy_path(src: Path, dest: Path, mode: str, overwrite: bool, dry_run: bool)
                 if src_version == dest_version:
                     return "skip", _skill_copy_detail(dest, src_version, action="skip")
                 auto_detail = _skill_copy_detail(dest, src_version, dest_version, action="update")
+            elif src_version and _is_qiongli_package_dir(dest):
+                auto_detail = _skill_copy_detail(dest, src_version, "unknown", action="update")
             elif src.is_file() and dest.is_file():
                 if _read_bytes(src) == _read_bytes(dest):
                     return "skip", f"{dest} (already current)"
@@ -310,8 +322,7 @@ def _print_detected_versions(target: str, source_version: str, target_paths: dic
     print(f"  source:      {source_version or 'unknown'}")
     section_targets = TARGET_CHOICES[:-1] if target == "all" else (target,)
     for item in section_targets:
-        dest_version = _skill_package_version(target_paths[item])
-        state = dest_version or "not installed"
+        state = _skill_package_state(target_paths[item])
         print(f"  {item:<11} {state}")
 
 

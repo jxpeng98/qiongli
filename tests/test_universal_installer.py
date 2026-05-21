@@ -90,6 +90,49 @@ class UniversalInstallerTests(unittest.TestCase):
             self.assertFalse((existing_skill / "legacy.txt").exists())
             self.assertTrue((existing_skill / "skills-core.md").exists())
 
+    def test_existing_versionless_managed_skill_auto_updates_without_overwrite(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            codex_home = temp_root / "codex-home"
+            existing_skill = codex_home / "skills" / "qiongli-workflow"
+            existing_skill.mkdir(parents=True)
+            source_version = (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(encoding="utf-8").strip()
+            (existing_skill / "SKILL.md").write_text(
+                "---\nname: qiongli-workflow\ndescription: legacy without version\n---\n",
+                encoding="utf-8",
+            )
+            (existing_skill / "legacy.txt").write_text("old", encoding="utf-8")
+
+            env = os.environ.copy()
+            env["CODEX_HOME"] = str(codex_home)
+            env["PATH"] = ""
+
+            stdout = io.StringIO()
+            with mock.patch.dict(os.environ, env, clear=True):
+                with contextlib.redirect_stdout(stdout):
+                    result = install(
+                        InstallOptions(
+                            repo_root=REPO_ROOT,
+                            project_dir=project_dir,
+                            target="codex",
+                            profile="partial",
+                        )
+                    )
+
+            self.assertEqual(result, 0)
+            self.assertEqual(
+                (existing_skill / "VERSION").read_text(encoding="utf-8").strip(),
+                source_version,
+            )
+            self.assertFalse((existing_skill / "legacy.txt").exists())
+            self.assertTrue((existing_skill / "skills-core.md").exists())
+            self.assertIn(
+                f"current unknown; source {source_version}; updated unknown -> {source_version}",
+                stdout.getvalue(),
+            )
+
     def test_existing_unmanaged_cli_requires_overwrite(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             temp_root = Path(tmp_dir)
