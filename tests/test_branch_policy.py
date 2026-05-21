@@ -17,9 +17,11 @@ class BranchPolicyTests(unittest.TestCase):
             content = read(workflow)
             self.assertIn('branches: ["main", "master", "dev"]', content)
 
-    def test_release_workflow_remains_stable_branch_only(self) -> None:
+    def test_release_workflow_allows_beta_from_dev_but_stable_from_primary(self) -> None:
         content = read("scripts/release_automation.sh")
-        self.assertIn("publish mode must run from the primary branch ($primary_branch)", content)
+        self.assertIn('DEV_PRERELEASE_BRANCH="dev"', content)
+        self.assertIn('if is_prerelease_tag "$repo_tag" && [[ "$current_branch" == "$DEV_PRERELEASE_BRANCH" ]]; then', content)
+        self.assertIn("Stable releases use primary branch ($primary_branch); prerelease releases may run from $DEV_PRERELEASE_BRANCH", content)
         self.assertIn('push_branch="$current_branch"', content)
 
     def test_maintainer_policy_documents_official_plugin_and_branch_roles(self) -> None:

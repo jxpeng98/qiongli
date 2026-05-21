@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 TAG=""
+DEV_PRERELEASE_BRANCH="dev"
 REPO_SLUG=""
 SKIP_REMOTE=0
 SKIP_CI=0
@@ -64,19 +65,27 @@ derive_repo_slug() {
 detect_primary_branch() {
   local candidate
   for candidate in main master; do
-    if git show-ref --verify --quiet "refs/heads/$candidate"; then
-      printf '%s\t%s\n' "$candidate" "$candidate"
-      return 0
-    fi
-    if git show-ref --verify --quiet "refs/remotes/origin/$candidate"; then
-      printf '%s\trefs/remotes/origin/%s\n' "$candidate" "$candidate"
+    if detect_branch_ref "$candidate"; then
       return 0
     fi
   done
   return 1
 }
 
-refresh_primary_branch_ref() {
+detect_branch_ref() {
+  local branch="$1"
+  if git show-ref --verify --quiet "refs/heads/$branch"; then
+    printf '%s\t%s\n' "$branch" "$branch"
+    return 0
+  fi
+  if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+    printf '%s\trefs/remotes/origin/%s\n' "$branch" "$branch"
+    return 0
+  fi
+  return 1
+}
+
+refresh_branch_ref() {
   local branch="$1"
   local ref="$2"
   local fetch_ref=""
@@ -100,6 +109,26 @@ refresh_primary_branch_ref() {
 
 is_prerelease_tag() {
   [[ "$1" == *beta* || "$1" =~ b[0-9]+ ]]
+}
+
+select_release_branch_ref() {
+  local tag="$1"
+  local commit="$2"
+  local branch_ref=""
+  local branch=""
+  local ref=""
+
+  if is_prerelease_tag "$tag" && branch_ref="$(detect_branch_ref "$DEV_PRERELEASE_BRANCH")"; then
+    branch="${branch_ref%%$'\t'*}"
+    ref="${branch_ref#*$'\t'}"
+    refresh_branch_ref "$branch" "$ref" >/dev/null
+    if git merge-base --is-ancestor "$commit" "$ref"; then
+      printf '%s\n' "$branch_ref"
+      return 0
+    fi
+  fi
+
+  detect_primary_branch
 }
 
 prepare_release_notes_file() {
@@ -285,19 +314,19 @@ echo "[postflight] local tag commit: $LOCAL_TAG_COMMIT"
 
 bash ./scripts/verify_release_tag_version.sh --tag "$TAG"
 
-if ! primary_branch_record="$(detect_primary_branch)"; then
-  echo "[postflight] unable to detect primary branch (expected main or master locally or under origin/)" >&2
+if ! release_branch_record="$(select_release_branch_ref "$TAG" "$LOCAL_TAG_COMMIT")"; then
+  echo "[postflight] unable to detect release branch (expected dev for reachable prerelease tags, or main/master locally or under origin/)" >&2
   exit 1
 fi
-PRIMARY_BRANCH="${primary_branch_record%%$'\t'*}"
-PRIMARY_BRANCH_REF="${primary_branch_record#*$'\t'}"
+RELEASE_BRANCH="${release_branch_record%%$'\t'*}"
+RELEASE_BRANCH_REF="${release_branch_record#*$'\t'}"
 
-refresh_primary_branch_ref "$PRIMARY_BRANCH" "$PRIMARY_BRANCH_REF"
+refresh_branch_ref "$RELEASE_BRANCH" "$RELEASE_BRANCH_REF"
 
-if git merge-base --is-ancestor "$LOCAL_TAG_COMMIT" "$PRIMARY_BRANCH_REF"; then
-  echo "[postflight] tag commit is reachable from $PRIMARY_BRANCH"
+if git merge-base --is-ancestor "$LOCAL_TAG_COMMIT" "$RELEASE_BRANCH_REF"; then
+  echo "[postflight] tag commit is reachable from $RELEASE_BRANCH"
 else
-  echo "[postflight] tag commit is not reachable from $PRIMARY_BRANCH" >&2
+  echo "[postflight] tag commit is not reachable from $RELEASE_BRANCH" >&2
   exit 1
 fi
 
@@ -310,15 +339,15 @@ prepare_release_notes_file "$TAG"
 echo "[postflight] release docs present: $RELEASE_NOTES_LABEL"
 
 if [[ "$SKIP_REMOTE" -eq 0 ]]; then
-  if REMOTE_MAIN="$(git ls-remote --heads origin "$PRIMARY_BRANCH" 2>/dev/null | awk '{print $1}' | head -n 1)" \
+  if REMOTE_BRANCH="$(git ls-remote --heads origin "$RELEASE_BRANCH" 2>/dev/null | awk '{print $1}' | head -n 1)" \
     && REMOTE_TAG="$(git ls-remote --tags origin "${TAG}^{}" 2>/dev/null | awk '{print $1}' | head -n 1)"; then
-    [[ -n "$REMOTE_MAIN" ]] || { echo "[postflight] remote branch not found: $PRIMARY_BRANCH" >&2; exit 1; }
+    [[ -n "$REMOTE_BRANCH" ]] || { echo "[postflight] remote branch not found: $RELEASE_BRANCH" >&2; exit 1; }
     [[ -n "$REMOTE_TAG" ]] || { echo "[postflight] remote tag not found: $TAG" >&2; exit 1; }
     [[ "$REMOTE_TAG" == "$LOCAL_TAG_COMMIT" ]] || {
       echo "[postflight] remote tag commit mismatch: local=$LOCAL_TAG_COMMIT remote=$REMOTE_TAG" >&2
       exit 1
     }
-    echo "[postflight] remote refs verified (branch=$PRIMARY_BRANCH, tag=$TAG)"
+    echo "[postflight] remote refs verified (branch=$RELEASE_BRANCH, tag=$TAG)"
   else
     echo "[postflight] warning: remote check skipped (network/auth unavailable)"
     SKIP_REMOTE=1
@@ -344,7 +373,7 @@ if [[ "$SKIP_CI" -eq 0 ]]; then
       wait_deadline=$((SECONDS + CI_TIMEOUT_SECONDS))
       while true; do
         set +e
-        CI_RESULT="$(query_ci_status "$REPO_SLUG" "$PRIMARY_BRANCH" "$LOCAL_TAG_COMMIT")"
+        CI_RESULT="$(query_ci_status "$REPO_SLUG" "$RELEASE_BRANCH" "$LOCAL_TAG_COMMIT")"
         CI_EXIT=$?
         set -e
 
@@ -376,7 +405,7 @@ if [[ "$SKIP_CI" -eq 0 ]]; then
       done
     else
       set +e
-      CI_RESULT="$(query_ci_status "$REPO_SLUG" "$PRIMARY_BRANCH" "$LOCAL_TAG_COMMIT")"
+      CI_RESULT="$(query_ci_status "$REPO_SLUG" "$RELEASE_BRANCH" "$LOCAL_TAG_COMMIT")"
       CI_EXIT=$?
       set -e
 

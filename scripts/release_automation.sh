@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 MODE="${1:-}"
+DEV_PRERELEASE_BRANCH="dev"
 shift || true
 
 normalize_field() {
@@ -60,6 +61,7 @@ Notes:
   - Run them in two phases: preflight before tagging, then postflight after the tag exists remotely.
   - pre supports pass-through flags such as --from-tag, --skip-note-gen, --note-overwrite, --skip-smoke, --maintainer-smoke, and --no-strict.
   - publish -> runs release_ready, commits release-prep files, creates/pushes the tag, waits for CI, then runs postflight with release-page creation.
+  - publish stable releases from the primary branch; publish prerelease/beta tags from dev or the primary branch.
 EOF
 }
 
@@ -182,18 +184,24 @@ case "$MODE" in
 
     [[ -n "$version" ]] || { echo "[release-automation] publish mode requires --version" >&2; exit 2; }
 
+    repo_tag="$(normalize_field "$version" repo_version)"
+    package_version="$(normalize_field "$version" package_version)"
+
     primary_branch="$(detect_primary_branch)"
     current_branch="$(git rev-parse --abbrev-ref HEAD)"
     if [[ -z "$push_branch" ]]; then
       push_branch="$current_branch"
     fi
-    if [[ "$push_branch" != "$primary_branch" ]]; then
-      echo "[release-automation] publish mode must run from the primary branch ($primary_branch). Current push branch: $push_branch" >&2
+
+    release_branch="$primary_branch"
+    if is_prerelease_tag "$repo_tag" && [[ "$current_branch" == "$DEV_PRERELEASE_BRANCH" ]]; then
+      release_branch="$DEV_PRERELEASE_BRANCH"
+    fi
+    if [[ "$current_branch" != "$release_branch" || "$push_branch" != "$release_branch" ]]; then
+      echo "[release-automation] publish mode must run from the release branch. Stable releases use primary branch ($primary_branch); prerelease releases may run from $DEV_PRERELEASE_BRANCH. Current branch: $current_branch; push branch: $push_branch; expected release branch: $release_branch" >&2
       exit 1
     fi
 
-    repo_tag="$(normalize_field "$version" repo_version)"
-    package_version="$(normalize_field "$version" package_version)"
     if [[ -z "$commit_message" ]]; then
       commit_message="chore: prepare release ${package_version}"
     fi

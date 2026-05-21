@@ -34,6 +34,15 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('plugins/qiongli/gemini-extension.json', content)
         self.assertIn('./scripts/release_postflight.sh --tag "$repo_tag"', content)
 
+    def test_publish_mode_allows_beta_release_from_dev_only(self) -> None:
+        content = RELEASE_AUTOMATION.read_text(encoding="utf-8")
+
+        self.assertIn('DEV_PRERELEASE_BRANCH="dev"', content)
+        self.assertIn('release_branch="$primary_branch"', content)
+        self.assertIn('if is_prerelease_tag "$repo_tag" && [[ "$current_branch" == "$DEV_PRERELEASE_BRANCH" ]]; then', content)
+        self.assertIn('release_branch="$DEV_PRERELEASE_BRANCH"', content)
+        self.assertIn('Current branch: $current_branch; push branch: $push_branch; expected release branch: $release_branch', content)
+
     def test_release_postflight_waits_for_required_workflows(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
 
@@ -45,8 +54,8 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertNotIn("CI_JSON_PAYLOAD=", content)
         self.assertIn('observed = sorted({r.get("name") or "unknown" for r in runs if r.get("head_sha") == commit})', content)
         self.assertIn('labels.append("observed=" + ",".join(observed))', content)
-        self.assertIn('refs/remotes/origin/$candidate', content)
-        self.assertIn('refresh_primary_branch_ref "$PRIMARY_BRANCH" "$PRIMARY_BRANCH_REF"', content)
+        self.assertIn('refs/remotes/origin/$branch', content)
+        self.assertIn('refresh_branch_ref "$RELEASE_BRANCH" "$RELEASE_BRANCH_REF"', content)
         self.assertIn('git fetch --force --no-tags origin "$fetch_ref"', content)
         self.assertIn('python3 scripts/changelog_section.py --version "$version" --output "$TEMP_RELEASE_NOTES"', content)
         self.assertIn('RELEASE_NOTES_LABEL="CHANGELOG.md [${version}]"', content)
@@ -56,6 +65,17 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('scripts/build_marketplace_artifacts.py --tag "$TAG" --dist-dir dist', content)
         self.assertIn('MARKETPLACE_ARTIFACTS=(', content)
         self.assertIn('gh release upload "$TAG" --repo "$REPO_SLUG" --clobber "${MARKETPLACE_ARTIFACTS[@]}"', content)
+
+    def test_release_postflight_accepts_beta_tags_reachable_from_dev(self) -> None:
+        content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
+
+        self.assertIn('DEV_PRERELEASE_BRANCH="dev"', content)
+        self.assertIn('select_release_branch_ref()', content)
+        self.assertIn('if is_prerelease_tag "$tag" && branch_ref="$(detect_branch_ref "$DEV_PRERELEASE_BRANCH")"; then', content)
+        self.assertIn('RELEASE_BRANCH="${release_branch_record%%$\'\\t\'*}"', content)
+        self.assertIn('refresh_branch_ref "$RELEASE_BRANCH" "$RELEASE_BRANCH_REF"', content)
+        self.assertIn('git merge-base --is-ancestor "$LOCAL_TAG_COMMIT" "$RELEASE_BRANCH_REF"', content)
+        self.assertIn('query_ci_status "$REPO_SLUG" "$RELEASE_BRANCH" "$LOCAL_TAG_COMMIT"', content)
 
     def test_release_ready_includes_plugin_distribution_versions(self) -> None:
         content = RELEASE_READY.read_text(encoding="utf-8")
@@ -136,6 +156,15 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('parser.add_argument("--version", required=True', content)
         self.assertIn('print(f"[changelog] missing version section: {args.version}"', content)
         self.assertIn('Path(args.output).write_text(section, encoding="utf-8")', content)
+
+    def test_prerelease_note_generator_points_to_publish_mode(self) -> None:
+        content = (REPO_ROOT / "scripts" / "generate_release_notes.sh").read_text(encoding="utf-8")
+
+        self.assertIn('PUBLISH_CMD="./scripts/release_automation.sh publish --version ${VERSION_HINT} --skip-bump"', content)
+        self.assertIn('PUBLISH_CMD="${PUBLISH_CMD} --from-tag ${FROM_TAG}"', content)
+        self.assertIn('${PUBLISH_CMD}', content)
+        self.assertIn('release_ready.sh --version', content)
+        self.assertNotIn('git push origin main --tags', content)
 
     def test_release_workflow_exposes_publish_mode(self) -> None:
         content = RELEASE_WORKFLOW.read_text(encoding="utf-8")

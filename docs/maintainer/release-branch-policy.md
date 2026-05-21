@@ -6,10 +6,10 @@ This repository uses `dev` for active development and keeps `main` as the stable
 
 | Branch | Role | Allowed changes |
 |--------|------|-----------------|
-| `dev` | Active development and integration | Features, fixes, prerelease plugin packaging work, docs, tests, and CI hardening. |
-| `main` | Stable release source | Release-prep commits, stable tags, postflight acceptance receipts, and emergency fixes that are ready to publish. |
+| `dev` | Active development, integration, and beta release source | Features, fixes, prerelease plugin packaging work, beta release-prep commits, beta tags, docs, tests, and CI hardening. |
+| `main` | Stable release source | Stable release-prep commits, stable tags, postflight acceptance receipts, and emergency fixes that are ready to publish. |
 
-Open normal pull requests against `dev`. Merge `dev` into `main` only when the next release candidate has passed the release gates and the plugin package is ready for a stable release.
+Open normal pull requests against `dev`. Beta releases may publish from `dev` after the release gates pass. Merge `dev` into `main` only when the next release candidate has passed the release gates and the plugin package is ready for a stable release.
 
 ## Official Plugin Linkage
 
@@ -46,8 +46,14 @@ python3 -m unittest discover -s tests -v
 python3 scripts/build_marketplace_artifacts.py --tag v0.7.0-beta.2 --dist-dir dist
 ```
 
-5. Merge to `main` only after CI, install checks, and release preflight pass.
+5. Publish beta releases from `dev` when the release-prep commit and preflight evidence are ready:
+
+```bash
+./scripts/release_automation.sh publish --version 0.8.0b1 --skip-bump --from-tag v0.7.0-beta.2
+```
+
+6. Merge to `main` only after CI, install checks, and release preflight pass for a stable release candidate.
 
 ## Stable Release Rule
 
-Only `main` should create stable release tags and official marketplace artifacts. The release automation enforces this by requiring publish mode to run from the primary branch. Keep beta and release-candidate work on `dev` until it is ready to become a stable release.
+Only `main` should create stable release tags and official marketplace artifacts. The release automation enforces this by requiring stable publish mode to run from the primary branch. Prerelease tags may publish from `dev`; postflight then checks that the beta tag commit is reachable from `dev` and queries CI on `dev`. Keep release-candidate work on `dev` until it is ready to become a stable release.
