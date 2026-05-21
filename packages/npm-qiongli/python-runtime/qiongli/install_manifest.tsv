@@ -1,0 +1,6 @@
+# target	op	label	source	destination
+codex	dir-copy	Skill	qiongli-workflow	${CODEX_HOME}/skills/qiongli-workflow
+claude	dir-copy	Skill	qiongli-workflow	${CLAUDE_CODE_HOME}/skills/qiongli-workflow
+gemini	dir-copy	Skill	qiongli-workflow	${GEMINI_HOME}/skills/qiongli-workflow
+antigravity	dir-copy	Skill	qiongli-workflow	${ANTIGRAVITY_HOME}/skills/qiongli-workflow
+project	file-copy	Env	.env.example	${PROJECT_DIR}/.env

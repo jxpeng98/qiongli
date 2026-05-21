@@ -25,7 +25,25 @@ Notes:
 - Installer mode selection is `--mode copy|link`. Remote bootstrap only supports `--mode copy`.
 - Remote bootstrap only supports `--mode copy`. If you want `--mode link`, clone the repo and use the local installer below.
 
-## 2. Optional Python CLI
+## 2. Optional npm CLI
+
+If Node.js is already available, you can install the standalone npm CLI instead of the Python CLI:
+
+```bash
+npm install -g qiongli
+qiongli install --target all --project-dir /path/to/project
+```
+
+For beta testing without a global install:
+
+```bash
+npx qiongli@beta install --target all --project-dir /path/to/project
+npx qiongli@beta check --json
+```
+
+The npm package bundles the full `qiongli-workflow` skills payload. Advanced commands such as `qiongli doctor`, `qiongli task-run`, and `qiongli team-run` use the Python bridge source bundled inside the npm package and require Python 3.12+ plus `PyYAML`.
+
+## 3. Optional Python CLI
 
 If Python is already available on the machine, you can install the updater CLI with `pipx`:
 
@@ -34,7 +52,7 @@ pipx install qiongli
 qiongli upgrade --target all --project-dir /path/to/project --doctor
 ```
 
-## 3. Local Repository Installer
+## 4. Local Repository Installer
 
 If you already have a repository checkout, you can run the installer directly:
 

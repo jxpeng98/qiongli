@@ -1,6 +1,9 @@
 {
   "name": "qiongli-docs",
   "private": true,
+  "workspaces": [
+    "packages/npm-qiongli"
+  ],
   "scripts": {
     "docs:dev": "vitepress dev docs --host",
     "docs:build": "vitepress build docs",

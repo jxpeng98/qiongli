@@ -18,13 +18,14 @@ SPEC.loader.exec_module(sync_versions_module)
 
 class SyncVersionsTests(unittest.TestCase):
     def test_parse_version_normalizes_beta_layers(self) -> None:
-        package_version, skill_version, repo_version = sync_versions_module.parse_version(
+        package_version, skill_version, repo_version, npm_version = sync_versions_module.parse_version(
             "0.2.0b3"
         )
 
         self.assertEqual(package_version, "0.2.0b3")
         self.assertEqual(skill_version, "0.2.0-beta.3")
         self.assertEqual(repo_version, "v0.2.0-beta.3")
+        self.assertEqual(npm_version, "0.2.0-beta.3")
 
     def test_main_print_field_outputs_repo_version_without_syncing(self) -> None:
         stdout = io.StringIO()
@@ -42,6 +43,7 @@ class SyncVersionsTests(unittest.TestCase):
             (root / "qiongli").mkdir()
             (root / "skills" / "F_writing").mkdir(parents=True)
             (root / "qiongli-workflow").mkdir()
+            (root / "packages" / "npm-qiongli").mkdir(parents=True)
 
             (root / "pyproject.toml").write_text(
                 'name = "qiongli"\nversion = "0.1.0"\n',
@@ -57,6 +59,10 @@ class SyncVersionsTests(unittest.TestCase):
             )
             (root / "qiongli-workflow" / "VERSION").write_text(
                 "v0.1.0\n",
+                encoding="utf-8",
+            )
+            (root / "packages" / "npm-qiongli" / "package.json").write_text(
+                '{\n  "name": "qiongli",\n  "version": "0.1.0"\n}\n',
                 encoding="utf-8",
             )
             (root / "plugins" / "qiongli" / ".codex-plugin").mkdir(parents=True)
@@ -89,6 +95,7 @@ class SyncVersionsTests(unittest.TestCase):
             self.assertIn(root / "qiongli" / "__init__.py", changed)
             self.assertIn(root / "skills" / "registry.yaml", changed)
             self.assertIn(root / "qiongli-workflow" / "VERSION", changed)
+            self.assertIn(root / "packages" / "npm-qiongli" / "package.json", changed)
             self.assertIn(
                 root / "plugins" / "qiongli" / ".codex-plugin" / "plugin.json",
                 changed,
@@ -111,6 +118,10 @@ class SyncVersionsTests(unittest.TestCase):
             self.assertEqual(
                 (root / "qiongli-workflow" / "VERSION").read_text().strip(),
                 "v0.2.0-beta.2",
+            )
+            self.assertIn(
+                '"version": "0.2.0-beta.2"',
+                (root / "packages" / "npm-qiongli" / "package.json").read_text(),
             )
             self.assertIn(
                 '"version": "0.2.0-beta.2"',
