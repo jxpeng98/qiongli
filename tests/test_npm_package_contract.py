@@ -61,6 +61,10 @@ class NpmPackageContractTests(unittest.TestCase):
             package_json["version"],
             (workflow_root / "VERSION").read_text(encoding="utf-8").strip().removeprefix("v"),
         )
+        self.assertEqual(
+            (REPO_ROOT / "qiongli-workflow" / "skills" / "registry.yaml").read_text(encoding="utf-8"),
+            (workflow_root / "skills" / "registry.yaml").read_text(encoding="utf-8"),
+        )
 
         self.assertTrue((runtime_root / "bridges" / "orchestrator.py").is_file())
         self.assertTrue((runtime_root / "bridges" / "providers" / "literature_search.py").is_file())
@@ -68,6 +72,14 @@ class NpmPackageContractTests(unittest.TestCase):
         self.assertTrue((runtime_root / "qiongli" / "workflow_contract_doc.py").is_file())
         self.assertTrue((runtime_root / "standards" / "research-workflow-contract.yaml").is_file())
         self.assertTrue((runtime_root / "skills" / "registry.yaml").is_file())
+        self.assertEqual(
+            (REPO_ROOT / "qiongli" / "__init__.py").read_text(encoding="utf-8"),
+            (runtime_root / "qiongli" / "__init__.py").read_text(encoding="utf-8"),
+        )
+        self.assertEqual(
+            (REPO_ROOT / "skills" / "registry.yaml").read_text(encoding="utf-8"),
+            (runtime_root / "skills" / "registry.yaml").read_text(encoding="utf-8"),
+        )
 
     def test_release_workflows_cover_pypi_and_npm_names(self) -> None:
         pypi_workflow = (REPO_ROOT / ".github" / "workflows" / "publish-pypi.yml").read_text(encoding="utf-8")

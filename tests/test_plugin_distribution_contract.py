@@ -80,6 +80,14 @@ class PluginDistributionContractTests(unittest.TestCase):
         self.assertTrue((PLUGIN_SKILL_ROOT / "SKILL.md").is_file())
         self.assertTrue((PLUGIN_SKILL_ROOT / "skills" / "registry.yaml").is_file())
         self.assertFalse(PLUGIN_SKILL_ROOT.is_symlink(), "plugin package must be a real copy, not a symlink")
+        self.assertEqual(
+            (WORKFLOW_ROOT / "VERSION").read_text(encoding="utf-8"),
+            (PLUGIN_SKILL_ROOT / "VERSION").read_text(encoding="utf-8"),
+        )
+        self.assertEqual(
+            (WORKFLOW_ROOT / "skills" / "registry.yaml").read_text(encoding="utf-8"),
+            (PLUGIN_SKILL_ROOT / "skills" / "registry.yaml").read_text(encoding="utf-8"),
+        )
 
     def test_sync_script_accepts_all_target_in_dry_run(self) -> None:
         bash = find_usable_bash()

@@ -91,22 +91,41 @@ def sync_versions(root: Path, raw_version: str) -> list[Path]:
             re.compile(r'^__version__ = "[^"]+"$', re.MULTILINE),
             f'__version__ = "{package_version}"',
         ),
-        (
-            root / "skills" / "registry.yaml",
-            re.compile(r'^(\s*version: )"[^"]+"$', re.MULTILINE),
-            rf'\g<1>"{skill_version}"',
-        ),
     ]
 
     for path, pattern, replacement in replacements:
         if replace_pattern(path, pattern, replacement):
             changed.append(path)
 
-    version_file = root / "qiongli-workflow" / "VERSION"
-    original_repo_version = version_file.read_text(encoding="utf-8").strip()
-    if original_repo_version != repo_version:
-        version_file.write_text(repo_version + "\n", encoding="utf-8")
-        changed.append(version_file)
+    registry_files = (
+        root / "skills" / "registry.yaml",
+        root / "qiongli-workflow" / "skills" / "registry.yaml",
+        root / "packages" / "npm-qiongli" / "payload" / "qiongli-workflow" / "skills" / "registry.yaml",
+        root / "packages" / "npm-qiongli" / "python-runtime" / "skills" / "registry.yaml",
+        root / "plugins" / "qiongli" / "skills" / "qiongli-workflow" / "skills" / "registry.yaml",
+    )
+    for registry_file in registry_files:
+        if not registry_file.exists():
+            continue
+        if replace_pattern(
+            registry_file,
+            re.compile(r'^(\s*version: )"[^"]+"$', re.MULTILINE),
+            rf'\g<1>"{skill_version}"',
+        ):
+            changed.append(registry_file)
+
+    workflow_version_files = (
+        root / "qiongli-workflow" / "VERSION",
+        root / "packages" / "npm-qiongli" / "payload" / "qiongli-workflow" / "VERSION",
+        root / "plugins" / "qiongli" / "skills" / "qiongli-workflow" / "VERSION",
+    )
+    for workflow_version_file in workflow_version_files:
+        if not workflow_version_file.exists():
+            continue
+        original_repo_version = workflow_version_file.read_text(encoding="utf-8").strip()
+        if original_repo_version != repo_version:
+            workflow_version_file.write_text(repo_version + "\n", encoding="utf-8")
+            changed.append(workflow_version_file)
 
     json_version_files = (
         root / "plugins" / "qiongli" / ".codex-plugin" / "plugin.json",
@@ -124,6 +143,19 @@ def sync_versions(root: Path, raw_version: str) -> list[Path]:
     if npm_manifest.exists():
         if replace_json_versions(npm_manifest, npm_version):
             changed.append(npm_manifest)
+
+    bundled_python_init_files = (
+        root / "packages" / "npm-qiongli" / "python-runtime" / "qiongli" / "__init__.py",
+    )
+    for bundled_python_init in bundled_python_init_files:
+        if not bundled_python_init.exists():
+            continue
+        if replace_pattern(
+            bundled_python_init,
+            re.compile(r'^__version__ = "[^"]+"$', re.MULTILINE),
+            f'__version__ = "{package_version}"',
+        ):
+            changed.append(bundled_python_init)
 
     return changed
 

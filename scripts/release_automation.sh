@@ -242,6 +242,7 @@ case "$MODE" in
       .claude-plugin/marketplace.json \
       plugins/qiongli/.claude-plugin/plugin.json \
       plugins/qiongli/gemini-extension.json \
+      plugins/qiongli/skills/qiongli-workflow \
       skills
     if is_prerelease_tag "$repo_tag"; then
       git add "release/${repo_tag}.md"

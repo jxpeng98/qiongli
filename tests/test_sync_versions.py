@@ -42,7 +42,7 @@ class SyncVersionsTests(unittest.TestCase):
             root = Path(tmp_dir)
             (root / "qiongli").mkdir()
             (root / "skills" / "F_writing").mkdir(parents=True)
-            (root / "qiongli-workflow").mkdir()
+            (root / "qiongli-workflow" / "skills").mkdir(parents=True)
             (root / "packages" / "npm-qiongli").mkdir(parents=True)
 
             (root / "pyproject.toml").write_text(
@@ -61,13 +61,62 @@ class SyncVersionsTests(unittest.TestCase):
                 "v0.1.0\n",
                 encoding="utf-8",
             )
+            (root / "qiongli-workflow" / "skills" / "registry.yaml").write_text(
+                'skills:\n  - id: "demo"\n    version: "0.1.0"\n',
+                encoding="utf-8",
+            )
             (root / "packages" / "npm-qiongli" / "package.json").write_text(
                 '{\n  "name": "qiongli",\n  "version": "0.1.0"\n}\n',
+                encoding="utf-8",
+            )
+            (root / "packages" / "npm-qiongli" / "payload" / "qiongli-workflow").mkdir(parents=True)
+            (root / "packages" / "npm-qiongli" / "payload" / "qiongli-workflow" / "VERSION").write_text(
+                "v0.1.0\n",
+                encoding="utf-8",
+            )
+            (root / "packages" / "npm-qiongli" / "payload" / "qiongli-workflow" / "skills").mkdir()
+            (
+                root
+                / "packages"
+                / "npm-qiongli"
+                / "payload"
+                / "qiongli-workflow"
+                / "skills"
+                / "registry.yaml"
+            ).write_text(
+                'skills:\n  - id: "demo"\n    version: "0.1.0"\n',
+                encoding="utf-8",
+            )
+            (root / "packages" / "npm-qiongli" / "python-runtime" / "qiongli").mkdir(parents=True)
+            (root / "packages" / "npm-qiongli" / "python-runtime" / "qiongli" / "__init__.py").write_text(
+                '__version__ = "0.1.0"\n',
+                encoding="utf-8",
+            )
+            (root / "packages" / "npm-qiongli" / "python-runtime" / "skills").mkdir(parents=True)
+            (root / "packages" / "npm-qiongli" / "python-runtime" / "skills" / "registry.yaml").write_text(
+                'skills:\n  - id: "demo"\n    version: "0.1.0"\n',
                 encoding="utf-8",
             )
             (root / "plugins" / "qiongli" / ".codex-plugin").mkdir(parents=True)
             (root / "plugins" / "qiongli" / ".codex-plugin" / "plugin.json").write_text(
                 '{\n  "name": "qiongli",\n  "version": "0.1.0"\n}\n',
+                encoding="utf-8",
+            )
+            (root / "plugins" / "qiongli" / "skills" / "qiongli-workflow" / "skills").mkdir(parents=True)
+            (root / "plugins" / "qiongli" / "skills" / "qiongli-workflow" / "VERSION").write_text(
+                "v0.1.0\n",
+                encoding="utf-8",
+            )
+            (
+                root
+                / "plugins"
+                / "qiongli"
+                / "skills"
+                / "qiongli-workflow"
+                / "skills"
+                / "registry.yaml"
+            ).write_text(
+                'skills:\n  - id: "demo"\n    version: "0.1.0"\n',
                 encoding="utf-8",
             )
             (root / ".claude-plugin").mkdir()
@@ -95,9 +144,43 @@ class SyncVersionsTests(unittest.TestCase):
             self.assertIn(root / "qiongli" / "__init__.py", changed)
             self.assertIn(root / "skills" / "registry.yaml", changed)
             self.assertIn(root / "qiongli-workflow" / "VERSION", changed)
+            self.assertIn(root / "qiongli-workflow" / "skills" / "registry.yaml", changed)
             self.assertIn(root / "packages" / "npm-qiongli" / "package.json", changed)
             self.assertIn(
+                root / "packages" / "npm-qiongli" / "payload" / "qiongli-workflow" / "VERSION",
+                changed,
+            )
+            self.assertIn(
+                root
+                / "packages"
+                / "npm-qiongli"
+                / "payload"
+                / "qiongli-workflow"
+                / "skills"
+                / "registry.yaml",
+                changed,
+            )
+            self.assertIn(
+                root / "packages" / "npm-qiongli" / "python-runtime" / "qiongli" / "__init__.py",
+                changed,
+            )
+            self.assertIn(
+                root / "packages" / "npm-qiongli" / "python-runtime" / "skills" / "registry.yaml",
+                changed,
+            )
+            self.assertIn(
                 root / "plugins" / "qiongli" / ".codex-plugin" / "plugin.json",
+                changed,
+            )
+            self.assertIn(root / "plugins" / "qiongli" / "skills" / "qiongli-workflow" / "VERSION", changed)
+            self.assertIn(
+                root
+                / "plugins"
+                / "qiongli"
+                / "skills"
+                / "qiongli-workflow"
+                / "skills"
+                / "registry.yaml",
                 changed,
             )
             self.assertIn(root / ".claude-plugin" / "marketplace.json", changed)
@@ -120,12 +203,56 @@ class SyncVersionsTests(unittest.TestCase):
                 "v0.2.0-beta.2",
             )
             self.assertIn(
+                'version: "0.2.0-beta.2"',
+                (root / "qiongli-workflow" / "skills" / "registry.yaml").read_text(),
+            )
+            self.assertIn(
                 '"version": "0.2.0-beta.2"',
                 (root / "packages" / "npm-qiongli" / "package.json").read_text(),
+            )
+            self.assertEqual(
+                (root / "packages" / "npm-qiongli" / "payload" / "qiongli-workflow" / "VERSION").read_text().strip(),
+                "v0.2.0-beta.2",
+            )
+            self.assertIn(
+                'version: "0.2.0-beta.2"',
+                (
+                    root
+                    / "packages"
+                    / "npm-qiongli"
+                    / "payload"
+                    / "qiongli-workflow"
+                    / "skills"
+                    / "registry.yaml"
+                ).read_text(),
+            )
+            self.assertIn(
+                '__version__ = "0.2.0b2"',
+                (root / "packages" / "npm-qiongli" / "python-runtime" / "qiongli" / "__init__.py").read_text(),
+            )
+            self.assertIn(
+                'version: "0.2.0-beta.2"',
+                (root / "packages" / "npm-qiongli" / "python-runtime" / "skills" / "registry.yaml").read_text(),
             )
             self.assertIn(
                 '"version": "0.2.0-beta.2"',
                 (root / "plugins" / "qiongli" / ".codex-plugin" / "plugin.json").read_text(),
+            )
+            self.assertEqual(
+                (root / "plugins" / "qiongli" / "skills" / "qiongli-workflow" / "VERSION").read_text().strip(),
+                "v0.2.0-beta.2",
+            )
+            self.assertIn(
+                'version: "0.2.0-beta.2"',
+                (
+                    root
+                    / "plugins"
+                    / "qiongli"
+                    / "skills"
+                    / "qiongli-workflow"
+                    / "skills"
+                    / "registry.yaml"
+                ).read_text(),
             )
             self.assertIn('"version": "0.2.0-beta.2"', (root / ".claude-plugin" / "marketplace.json").read_text())
             self.assertIn(
