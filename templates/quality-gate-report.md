@@ -29,6 +29,18 @@ gates:
     blocking_issues: []
 ```
 
+## Passed Gates
+
+- None.
+
+## Failed Gates
+
+- None.
+
+## Blocked Verification
+
+- None.
+
 ## Next Actions
 
 - None.
