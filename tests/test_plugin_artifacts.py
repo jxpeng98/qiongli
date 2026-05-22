@@ -9,15 +9,15 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SCRIPT_PATH = REPO_ROOT / "scripts" / "build_marketplace_artifacts.py"
-SPEC = importlib.util.spec_from_file_location("build_marketplace_artifacts", SCRIPT_PATH)
+SCRIPT_PATH = REPO_ROOT / "scripts" / "build_plugin_artifacts.py"
+SPEC = importlib.util.spec_from_file_location("build_plugin_artifacts", SCRIPT_PATH)
 assert SPEC is not None and SPEC.loader is not None
 module = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(module)
 
 
-class MarketplaceArtifactsTests(unittest.TestCase):
-    def test_builds_three_self_contained_marketplace_artifacts(self) -> None:
+class PluginArtifactsTests(unittest.TestCase):
+    def test_builds_three_self_contained_plugin_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             dist_dir = Path(tmp_dir) / "dist"
             current_tag = (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(
@@ -40,7 +40,6 @@ class MarketplaceArtifactsTests(unittest.TestCase):
             self._assert_contains(
                 dist_dir / f"qiongli-codex-plugin-{current_tag}.tar.gz",
                 [
-                    f"qiongli-codex-plugin-{current_tag}/.agents/plugins/marketplace.json",
                     f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/.codex-plugin/plugin.json",
                     f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/commands/paper.md",
                     f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
@@ -49,7 +48,6 @@ class MarketplaceArtifactsTests(unittest.TestCase):
             self._assert_contains(
                 dist_dir / f"qiongli-claude-plugin-{current_tag}.tar.gz",
                 [
-                    f"qiongli-claude-plugin-{current_tag}/.claude-plugin/marketplace.json",
                     f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/.claude-plugin/plugin.json",
                     f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/commands/paper.md",
                     f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
@@ -68,8 +66,6 @@ class MarketplaceArtifactsTests(unittest.TestCase):
             root = Path(tmp_dir)
             (root / "qiongli-workflow").mkdir(parents=True)
             (root / "qiongli-workflow" / "VERSION").write_text("v0.5.0-beta.3\n", encoding="utf-8")
-            (root / ".agents" / "plugins").mkdir(parents=True)
-            (root / ".agents" / "plugins" / "marketplace.json").write_text("{}", encoding="utf-8")
             (root / "plugins" / "qiongli" / ".codex-plugin").mkdir(parents=True)
             (root / "plugins" / "qiongli" / ".codex-plugin" / "plugin.json").write_text(
                 json.dumps({"version": "0.5.0-beta.2"}),

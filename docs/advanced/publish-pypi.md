@@ -87,7 +87,7 @@ Use `release_ready.sh` when you want to prepare and verify locally without creat
 ./scripts/release_ready.sh --version 0.2.0b1 --from-tag v0.2.0
 ```
 
-`release_ready.sh` runs version sync, strict validator, repository unit tests, release-tier smoke, release note evidence updates, package build checks, `twine check`, and wheel install smoke. It does not tag or push. Publish mode owns commit, tag, push, CI wait, GitHub Release creation, marketplace artifact upload, and acceptance receipt generation.
+`release_ready.sh` runs version sync, strict validator, repository unit tests, release-tier smoke, release note evidence updates, package build checks, `twine check`, and wheel install smoke. It does not tag or push. Publish mode owns commit, tag, push, CI wait, GitHub Release creation, plugin artifact upload, and acceptance receipt generation.
 
 If you need manual split phases, they still exist:
 

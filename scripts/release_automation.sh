@@ -256,7 +256,6 @@ case "$MODE" in
       package-lock.json \
       packages/npm-qiongli \
       plugins/qiongli/.codex-plugin/plugin.json \
-      .claude-plugin/marketplace.json \
       plugins/qiongli/.claude-plugin/plugin.json \
       plugins/qiongli/gemini-extension.json \
       plugins/qiongli/skills/qiongli-workflow \

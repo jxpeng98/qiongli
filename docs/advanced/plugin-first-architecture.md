@@ -13,7 +13,7 @@ Qiongli is distributed as one plugin package, not as dozens of separate academic
 
 ## Plugin vs Skill
 
-A **plugin** is the distribution container. It owns manifests, marketplace metadata, command wrappers, bundled skills, and platform-specific install surfaces.
+A **plugin** is the distribution container. It owns manifests, command wrappers, bundled skills, and platform-specific install surfaces.
 
 A **skill** is the reusable execution contract. It tells the model how to perform a specific research task, what inputs are required, what artifact to write, and what quality bar must be met.
 

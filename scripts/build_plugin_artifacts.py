@@ -79,7 +79,6 @@ def _make_tarball(source_dir: Path, tar_path: Path) -> None:
 def _build_codex(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> Path:
     bundle_name = f"{PLUGIN_NAME}-codex-plugin-{tag}"
     bundle = work_dir / bundle_name
-    _copy_path(root / ".agents" / "plugins" / "marketplace.json", bundle / ".agents" / "plugins" / "marketplace.json")
     plugin_dest = bundle / PLUGIN_ROOT
     _copy_path(root / PLUGIN_ROOT / ".codex-plugin", plugin_dest / ".codex-plugin")
     _copy_commands(root, plugin_dest)
@@ -92,7 +91,6 @@ def _build_codex(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> Path:
 def _build_claude(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> Path:
     bundle_name = f"{PLUGIN_NAME}-claude-plugin-{tag}"
     bundle = work_dir / bundle_name
-    _copy_path(root / ".claude-plugin" / "marketplace.json", bundle / ".claude-plugin" / "marketplace.json")
     plugin_dest = bundle / PLUGIN_ROOT
     _copy_path(root / PLUGIN_ROOT / ".claude-plugin", plugin_dest / ".claude-plugin")
     _copy_commands(root, plugin_dest)
@@ -123,14 +121,13 @@ def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
 
     versioned_json = [
         root / PLUGIN_ROOT / ".codex-plugin" / "plugin.json",
-        root / ".claude-plugin" / "marketplace.json",
         root / PLUGIN_ROOT / ".claude-plugin" / "plugin.json",
         root / PLUGIN_ROOT / "gemini-extension.json",
     ]
     for path in versioned_json:
         _assert_json_versions(path, skill_version)
 
-    with tempfile.TemporaryDirectory(prefix="qiongli-marketplace-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="qiongli-plugin-") as tmp:
         work_dir = Path(tmp)
         artifacts = [
             _build_codex(root, repo_tag, dist_dir, work_dir),
@@ -141,14 +138,14 @@ def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Build Codex, Claude Code, and Gemini marketplace/extension artifacts.")
+    parser = argparse.ArgumentParser(description="Build Codex, Claude Code, and Gemini plugin/extension artifacts.")
     parser.add_argument("--tag", required=True, help="Release tag, for example v0.5.0-beta.3")
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1], help="Repository root")
     parser.add_argument("--dist-dir", type=Path, default=Path("dist"), help="Output directory")
     args = parser.parse_args(argv)
 
     artifacts = build_artifacts(args.root, args.tag, args.dist_dir)
-    print("[marketplace-artifacts] built")
+    print("[plugin-artifacts] built")
     for artifact in artifacts:
         print(f"  - {artifact}")
     return 0
@@ -158,5 +155,5 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except ValueError as exc:
-        print(f"[marketplace-artifacts] {exc}")
+        print(f"[plugin-artifacts] {exc}")
         raise SystemExit(2)

@@ -50,7 +50,8 @@ class BranchPolicyTests(unittest.TestCase):
 
     def test_maintainer_policy_documents_official_plugin_and_branch_roles(self) -> None:
         content = read("docs/maintainer/release-branch-policy.md")
-        self.assertIn("official plugin marketplace", content)
+        self.assertIn("official public marketplace", content)
+        self.assertIn("jxpeng98/skillsplace", content)
         self.assertIn("`dev`", content)
         self.assertIn("`main`", content)
         self.assertIn("stable release", content)
