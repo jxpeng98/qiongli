@@ -59,7 +59,7 @@
 5. 等待 release commit 上必要的 CI workflows：
    - `CI`
    - `Checkout Install Check`
-6. 执行 postflight：创建或更新 GitHub Release、上传 marketplace artifacts，并写入 acceptance receipt
+6. 执行 postflight：创建或更新 GitHub Release、上传 plugin artifacts，并写入 acceptance receipt
 
 你可以传入稳定版 `0.2.0`，也可以传入 beta 版 `0.2.0b1`。automation 会自动规范成三种表示：
 
@@ -87,7 +87,7 @@
 ./scripts/release_ready.sh --version 0.2.0b1 --from-tag v0.2.0
 ```
 
-`release_ready.sh` 会执行版本同步、strict validator、仓库单元测试、release-tier smoke、release note evidence 更新、包构建检查、`twine check` 和 wheel 安装 smoke。它不会创建 tag，也不会 push。commit、tag、push、等待 CI、创建 GitHub Release、上传 marketplace artifacts、生成 acceptance receipt 都由 `publish` 模式负责。
+`release_ready.sh` 会执行版本同步、strict validator、仓库单元测试、release-tier smoke、release note evidence 更新、包构建检查、`twine check` 和 wheel 安装 smoke。它不会创建 tag，也不会 push。commit、tag、push、等待 CI、创建 GitHub Release、上传 plugin artifacts、生成 acceptance receipt 都由 `publish` 模式负责。
 
 如果你确实需要拆开执行，入口仍然保留：
 

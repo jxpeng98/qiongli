@@ -21,6 +21,19 @@ For full detail, read [Install](/guide/install).
 
 ## 2. Install Workflow Assets
 
+If you chose the native plugin path, install Qiongli from the shared Skillsplace marketplace:
+
+```bash
+codex plugin marketplace add jxpeng98/skillsplace --ref main
+```
+
+```bash
+claude plugin marketplace add jxpeng98/skillsplace@main
+claude plugin install qiongli@skillsplace
+```
+
+For cross-client global workflow assets, use the bootstrap installer.
+
 Linux / macOS:
 
 ```bash

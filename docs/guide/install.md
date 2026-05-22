@@ -16,15 +16,32 @@ Qiongli has several installation surfaces because users need different levels of
 
 Use this when you only need Qiongli inside one supported client.
 
+Codex installs through the shared [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace:
+
+```bash
+codex plugin marketplace add jxpeng98/skillsplace --ref main
+codex plugin marketplace list
+```
+
+Then install or enable `qiongli` from the Codex plugin UI.
+
+Claude Code uses the same Skillsplace catalog:
+
+```bash
+claude plugin marketplace add jxpeng98/skillsplace@main
+claude plugin install qiongli@skillsplace
+```
+
+Inside an interactive Claude Code session, use:
+
 ```text
-# Codex
-Install Qiongli from the official Codex plugin marketplace.
+/plugin marketplace add jxpeng98/skillsplace@main
+/plugin install qiongli@skillsplace
+```
 
-# Claude Code
-/plugin marketplace add ./path/to/qiongli
-/plugin install qiongli@qiongli
+Gemini CLI still installs the local extension payload directly:
 
-# Gemini CLI
+```bash
 gemini extensions install ./path/to/qiongli/plugins/qiongli
 ```
 

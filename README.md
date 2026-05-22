@@ -98,14 +98,12 @@ Start with the consolidated docs when you need detail:
 
 For native client distribution, install **Qiongli** through the client-specific extension surface:
 
-- **Codex:** official Codex plugin marketplace.
-- **Claude Code:** add this repo as a Claude plugin marketplace, then install `qiongli@qiongli`.
+- **Codex:** add the shared [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace, then install or enable `qiongli` from the Codex plugin UI.
+- **Claude Code:** add the shared [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace, then install `qiongli@skillsplace`.
 - **Gemini CLI:** install the Gemini extension from `plugins/qiongli` locally, or from a standalone extension repository/gallery entry once published.
 
-This repository ships local packaging metadata for all three surfaces:
+Public Codex and Claude marketplace catalog metadata now lives in `jxpeng98/skillsplace`. This repository keeps the plugin payload and platform manifests that the shared marketplace points to:
 
-- `.agents/plugins/marketplace.json`
-- `.claude-plugin/marketplace.json`
 - `plugins/qiongli/.codex-plugin/plugin.json`
 - `plugins/qiongli/.claude-plugin/plugin.json`
 - `plugins/qiongli/gemini-extension.json`
@@ -425,21 +423,38 @@ Use this when:
 - you only need the `qiongli-workflow` skill surfaced in Codex, Claude Code, or Gemini CLI
 - you do not need `qiongli`, `doctor`, or cross-client global installation
 
-Install commands for local development:
+Install commands:
+
+Codex:
+
+```bash
+codex plugin marketplace add jxpeng98/skillsplace --ref main
+codex plugin marketplace list
+```
+
+Then install or enable `qiongli` from the Codex plugin UI.
+
+Claude Code:
+
+```bash
+claude plugin marketplace add jxpeng98/skillsplace@main
+claude plugin install qiongli@skillsplace
+```
+
+In an interactive Claude Code session:
 
 ```text
-# Codex
-Install Qiongli from the official Codex plugin marketplace.
+/plugin marketplace add jxpeng98/skillsplace@main
+/plugin install qiongli@skillsplace
+```
 
-# Claude Code
-/plugin marketplace add ./path/to/qiongli
-/plugin install qiongli@qiongli
+Gemini CLI:
 
-# Gemini CLI
+```bash
 gemini extensions install ./path/to/qiongli/plugins/qiongli
 ```
 
-The Codex and Claude entries use marketplace catalogs. Gemini CLI uses the official extension system (`gemini-extension.json`) rather than a marketplace JSON.
+Codex and Claude install from the shared Skillsplace marketplace catalog. Gemini CLI uses the official extension system (`gemini-extension.json`) rather than a marketplace JSON.
 
 #### Option B: Shell bootstrap CLI install
 
