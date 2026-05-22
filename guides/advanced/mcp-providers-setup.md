@@ -1,6 +1,6 @@
 # 🔌 Optional MCP Providers Setup Guide
 
-After running `rsk upgrade`, you may see warnings like:
+After running `qiongli upgrade`, you may see warnings like:
 
 ```
 ⚠  MCP screening-tracker: RESEARCH_MCP_SCREENING_TRACKER_CMD not configured

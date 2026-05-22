@@ -1,6 +1,6 @@
 # 📚 外部 MCP 集成：Zotero (本地文献库)
 
-`research-skills` 生态系统内置了一个语义搜索引擎 provider，它调用公开的 Semantic Scholar API。这非常适合用来发现全球范围内的学术论文。
+`qiongli` 生态系统内置了一个语义搜索引擎 provider，它调用公开的 Semantic Scholar API。这非常适合用来发现全球范围内的学术论文。
 
 但是，为了进行极其严谨的系统集成综述，你可能希望 AI 仅查询你**仔细筛选过的本地 Zotero 文献库**。通过挂载外部的 Zotero MCP，AI 会将其证据提取范围完全限制在你收集并批注过的论文内。
 

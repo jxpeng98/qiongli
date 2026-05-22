@@ -2,9 +2,9 @@ name: Checkout Install Check
 
 on:
   push:
-    branches: ["main", "master"]
+    branches: ["main", "master", "dev"]
   pull_request:
-    branches: ["main", "master"]
+    branches: ["main", "master", "dev"]
   workflow_dispatch:
 
 jobs:
@@ -38,19 +38,19 @@ jobs:
           project_dir="$RUNNER_TEMP/project-partial"
           cli_dir="$RUNNER_TEMP/bin-partial"
 
-          bash scripts/bootstrap_research_skill.sh \
+          bash scripts/bootstrap_qiongli.sh \
             --profile partial \
             --source-repo "$PWD" \
             --project-dir "$project_dir" \
             --cli-dir "$cli_dir" \
             --overwrite
 
-          test -f "$CODEX_HOME/skills/research-paper-workflow/SKILL.md"
-          test -f "$CLAUDE_CODE_HOME/skills/research-paper-workflow/SKILL.md"
-          test -f "$GEMINI_HOME/skills/research-paper-workflow/SKILL.md"
-          test -f "$CLAUDE_CODE_HOME/skills/research-paper-workflow/workflows/proofread.md"
-          test -f "$GEMINI_HOME/skills/research-paper-workflow/workflows/paper.md"
-          test ! -e "$cli_dir/research-skills"
+          test -f "$CODEX_HOME/skills/qiongli-workflow/SKILL.md"
+          test -f "$CLAUDE_CODE_HOME/skills/qiongli-workflow/SKILL.md"
+          test -f "$GEMINI_HOME/skills/qiongli-workflow/SKILL.md"
+          test -f "$CLAUDE_CODE_HOME/skills/qiongli-workflow/workflows/proofread.md"
+          test -f "$GEMINI_HOME/skills/qiongli-workflow/workflows/paper.md"
+          test ! -e "$cli_dir/qiongli"
           test ! -e "$project_dir/.agent"
           test ! -e "$project_dir/.gemini"
           test ! -e "$project_dir/.env"
@@ -73,7 +73,7 @@ jobs:
           project_dir="$RUNNER_TEMP/project-full"
           cli_dir="$RUNNER_TEMP/bin-full"
 
-          bash scripts/bootstrap_research_skill.sh \
+          bash scripts/bootstrap_qiongli.sh \
             --profile full \
             --source-repo "$PWD" \
             --project-dir "$project_dir" \
@@ -81,11 +81,11 @@ jobs:
             --no-doctor \
             --overwrite
 
-          test -f "$CODEX_HOME/skills/research-paper-workflow/SKILL.md"
-          test -f "$CLAUDE_CODE_HOME/skills/research-paper-workflow/workflows/proofread.md"
-          test -f "$GEMINI_HOME/skills/research-paper-workflow/workflows/paper.md"
-          test -f "$cli_dir/research-skills"
-          test -x "$cli_dir/research-skills"
+          test -f "$CODEX_HOME/skills/qiongli-workflow/SKILL.md"
+          test -f "$CLAUDE_CODE_HOME/skills/qiongli-workflow/workflows/proofread.md"
+          test -f "$GEMINI_HOME/skills/qiongli-workflow/workflows/paper.md"
+          test -f "$cli_dir/qiongli"
+          test -x "$cli_dir/qiongli"
           if [[ ! -L "$cli_dir/rsk" && ! -f "$cli_dir/rsk" ]]; then
             echo "Missing CLI alias: $cli_dir/rsk" >&2
             exit 1
@@ -125,7 +125,7 @@ jobs:
           $projectDir = Join-Path $env:RUNNER_TEMP "project-partial"
           $cliDir = Join-Path $env:RUNNER_TEMP "bin-partial"
 
-          & .\scripts\bootstrap_research_skill.ps1 `
+          & .\scripts\bootstrap_qiongli.ps1 `
             -Profile partial `
             -SourceRepo $PWD `
             -ProjectDir $projectDir `
@@ -133,18 +133,18 @@ jobs:
             -Overwrite
 
           $checks = @(
-            (Join-Path $env:CODEX_HOME "skills\research-paper-workflow\SKILL.md"),
-            (Join-Path $env:CLAUDE_CODE_HOME "skills\research-paper-workflow\SKILL.md"),
-            (Join-Path $env:GEMINI_HOME "skills\research-paper-workflow\SKILL.md"),
-            (Join-Path $env:CLAUDE_CODE_HOME "skills\research-paper-workflow\workflows\proofread.md"),
-            (Join-Path $env:GEMINI_HOME "skills\research-paper-workflow\workflows\paper.md")
+            (Join-Path $env:CODEX_HOME "skills\qiongli-workflow\SKILL.md"),
+            (Join-Path $env:CLAUDE_CODE_HOME "skills\qiongli-workflow\SKILL.md"),
+            (Join-Path $env:GEMINI_HOME "skills\qiongli-workflow\SKILL.md"),
+            (Join-Path $env:CLAUDE_CODE_HOME "skills\qiongli-workflow\workflows\proofread.md"),
+            (Join-Path $env:GEMINI_HOME "skills\qiongli-workflow\workflows\paper.md")
           )
           foreach ($path in $checks) {
             if (-not (Test-Path $path)) {
               throw "Missing expected install output: $path"
             }
           }
-          if (Test-Path (Join-Path $cliDir "research-skills")) {
+          if (Test-Path (Join-Path $cliDir "qiongli")) {
             throw "Partial install should not create CLI files."
           }
           $unexpected = @(
@@ -168,7 +168,7 @@ jobs:
           $projectDir = Join-Path $env:RUNNER_TEMP "project-full"
           $cliDir = Join-Path $env:RUNNER_TEMP "bin-full"
 
-          & .\scripts\bootstrap_research_skill.ps1 `
+          & .\scripts\bootstrap_qiongli.ps1 `
             -Profile full `
             -SourceRepo $PWD `
             -ProjectDir $projectDir `
@@ -177,10 +177,10 @@ jobs:
             -Overwrite
 
           $checks = @(
-            (Join-Path $env:CODEX_HOME "skills\research-paper-workflow\SKILL.md"),
-            (Join-Path $env:CLAUDE_CODE_HOME "skills\research-paper-workflow\workflows\proofread.md"),
-            (Join-Path $env:GEMINI_HOME "skills\research-paper-workflow\workflows\paper.md"),
-            (Join-Path $cliDir "research-skills.cmd"),
+            (Join-Path $env:CODEX_HOME "skills\qiongli-workflow\SKILL.md"),
+            (Join-Path $env:CLAUDE_CODE_HOME "skills\qiongli-workflow\workflows\proofread.md"),
+            (Join-Path $env:GEMINI_HOME "skills\qiongli-workflow\workflows\paper.md"),
+            (Join-Path $cliDir "qiongli.cmd"),
             (Join-Path $cliDir "rsk.cmd"),
             (Join-Path $cliDir "rsw.cmd")
           )

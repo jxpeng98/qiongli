@@ -30,18 +30,18 @@ Verified from source:
 - `bridges/codex_bridge.py`
 - `bridges/claude_bridge.py`
 - `bridges/gemini_bridge.py`
-- `research_skills/skill_docs.py`
-- `research_skills/cli.py`
+- `qiongli/skill_docs.py`
+- `qiongli/cli.py`
 - `scripts/release_ready.sh`
 - `scripts/bump-version.sh`
 - `scripts/release_preflight.sh`
 - `scripts/run_literature_smoke.sh`
 - `scripts/generate_release_notes.sh`
-- `scripts/install_research_skill.sh`
+- `scripts/install_qiongli.sh`
 - `scripts/sync_versions.py`
 - `docs/conventions.md`
-- `guides/advanced/extend-research-skills.md`
-- `research-paper-workflow/SKILL.md`
+- `guides/advanced/extend-qiongli.md`
+- `qiongli-workflow/SKILL.md`
 - `tests/test_orchestrator_workflows.py`
 - `tests/test_literature_pipeline_integration.py`
 - `tests/test_skill_doc_generation.py`
@@ -136,7 +136,7 @@ Key facts confirmed from current repo:
 ### 9. Cross-Platform Workflow Consistency
 
 - [x] Removed non-standard `argument-hint` from all workflow frontmatter (Gemini compatibility)
-- [x] Enhanced `.gemini/research-skills.md` with task-ID routing, skill loading strategy, and architecture references
+- [x] Enhanced `.gemini/qiongli.md` with task-ID routing, skill loading strategy, and architecture references
 - [x] Added `validate_cross_platform_consistency()` CI guard rail to catch future regressions
 - [x] Verified all 14 workflows discoverable across Claude, Codex, and Gemini
 
@@ -154,7 +154,7 @@ Key facts confirmed from current repo:
 - [x] Registered all 4 in `skills/registry.yaml`
 - [x] Created `.agent/workflows/academic-present.md` slash-command workflow
 - [x] Integrated `slidev-theme-scholarly` layouts, components, and presets
-- [x] Updated README.md, README_CN.md, and `.gemini/research-skills.md`
+- [x] Updated README.md, README_CN.md, and `.gemini/qiongli.md`
 
 ### 12. Structure Guardrails and Content Completion
 
@@ -236,7 +236,7 @@ Key facts confirmed from current repo:
 ### 29. Self-Contained Global Skill Package
 
 - [x] Eliminated all static project-local assets from `rsk upgrade` (manifest: 12 → 5 entries)
-- [x] Bundled workflows into the skill directory (`research-paper-workflow/workflows/`)
+- [x] Bundled workflows into the skill directory (`qiongli-workflow/workflows/`)
 - [x] Created `scripts/sync_skill_package.sh` to populate the package with `skills/`, `templates/`, `standards/`, `roles/`, and `skills-core.md` before install
 - [x] Added `_sync_skill_package()` to the Python installer, called automatically before `dir-copy`
 - [x] Updated SKILL.md to reference all bundled assets with relative paths
@@ -351,7 +351,7 @@ Key facts confirmed from current repo:
 - [x] ~~Shrink project bootstrap toward minimal or zero static project assets~~ (Completed in Milestone 29)
   - global skill directories are now the primary install target
   - Antigravity workspace skill copies are removed via `rsk clean`
-  - `.agent/workflows/`, `CLAUDE.md`, and `.gemini/research-skills.md` are no longer installed project-locally
+  - `.agent/workflows/`, `CLAUDE.md`, and `.gemini/qiongli.md` are no longer installed project-locally
   - `.env` remains as an opt-in project-level asset via `rsk init --parts project`
   - all runtime assets bundled into the self-contained global skill package
 
@@ -374,7 +374,7 @@ Key facts confirmed from current repo:
   - [ ] Evaluate if additional reinforcement is needed for full-text API reliability and rate-limiting fallbacks before closing
 
 - [x] Close the YAML <-> portable markdown contract gap
-  - [x] auto-generate `research-paper-workflow/references/workflow-contract.md`
+  - [x] auto-generate `qiongli-workflow/references/workflow-contract.md`
   - [x] enforce stronger YAML/MD equivalence validation
 
 - [x] ~~Add a skill-structure lint layer~~ (Completed in Milestone 26)

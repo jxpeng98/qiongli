@@ -1,8 +1,8 @@
 # External Capability Borrowing Framework
 
-As the `research-skills` ecosystem grows, you will frequently encounter useful prompts, workflow structures, or capabilities created by the broader AI or academic community. 
+As the `qiongli` ecosystem grows, you will frequently encounter useful prompts, workflow structures, or capabilities created by the broader AI or academic community.
 
-This guide defines the rubric for assessing and integrating external ideas into the `research-paper-workflow` system without causing structural drift or violating our `task_id` contracts.
+This guide defines the rubric for assessing and integrating external ideas into the `qiongli-workflow` system without causing structural drift or violating our `task_id` contracts.
 
 ## 1. Classification & Intake
 

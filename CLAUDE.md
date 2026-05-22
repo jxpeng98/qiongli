@@ -1,14 +1,14 @@
-# CLAUDE.md — Academic Deep Research Skills
+# CLAUDE.md — Qiongli
 
 ## Project Overview
 
-This is an **Academic Deep Research Skills** system: a contract-driven academic workflow covering the full lifecycle from literature review through manuscript production, compliance checking, submission, and presentation.
+This is a **Qiongli Zhengche** (`穷理证澈`) system: a contract-driven academic workflow covering the full lifecycle from literature review through manuscript production, compliance checking, submission, and presentation.
 
 Canonical standard (cross-model):
 - `standards/research-workflow-contract.yaml` — Task IDs, required outputs, quality gates
 - `standards/mcp-agent-capability-map.yaml` — MCP tool mapping & primary/fallback agents
-- `research-paper-workflow/references/workflow-contract.md` — **Task ID table** (A1–K4)
-- `research-paper-workflow/references/platform-routing.md` — Task ID → workflow mapping
+- `qiongli-workflow/references/workflow-contract.md` — **Task ID table** (A1–K4)
+- `qiongli-workflow/references/platform-routing.md` — Task ID → workflow mapping
 - Artifact root: `RESEARCH/[topic]/`
 
 Local validation:
@@ -16,7 +16,7 @@ Local validation:
 python3 scripts/validate_research_standard.py --strict
 python3 -m unittest tests.test_orchestrator_workflows -v
 python3 -m bridges.orchestrator doctor --cwd .
-./scripts/install_research_skill.sh --target all --project-dir /path/to/project --doctor
+./scripts/install_qiongli.sh --target all --project-dir /path/to/project --doctor
 ```
 
 ## Quick Commands
@@ -55,16 +55,16 @@ When a user requests a specific task (e.g. "I need to do A1_5 hypothesis generat
    - `H1` → `/submission-prep` workflow
    - `K1` → `/academic-present` workflow
 3. For detailed execution guidance on any task ID, read the corresponding **stage playbook**:
-   - `research-paper-workflow/references/stage-A-framing.md` (tasks A1–A5)
-   - `research-paper-workflow/references/stage-B-literature.md` (tasks B1–B6)
-   - `research-paper-workflow/references/stage-C-design.md` (tasks C1–C5)
-   - `research-paper-workflow/references/stage-D-ethics.md` (tasks D1–D3)
-   - `research-paper-workflow/references/stage-E-synthesis.md` (tasks E1–E5)
-   - `research-paper-workflow/references/stage-F-writing.md` (tasks F1–F6)
-   - `research-paper-workflow/references/stage-G-compliance.md` (tasks G1–G4)
-   - `research-paper-workflow/references/stage-J-proofread.md` (tasks J1–J4)
-   - `research-paper-workflow/references/stage-H-submission.md` (tasks H1–H4)
-   - `research-paper-workflow/references/stage-I-code.md` (tasks I1–I8)
+   - `qiongli-workflow/references/stage-A-framing.md` (tasks A1–A5)
+   - `qiongli-workflow/references/stage-B-literature.md` (tasks B1–B6)
+   - `qiongli-workflow/references/stage-C-design.md` (tasks C1–C5)
+   - `qiongli-workflow/references/stage-D-ethics.md` (tasks D1–D3)
+   - `qiongli-workflow/references/stage-E-synthesis.md` (tasks E1–E5)
+   - `qiongli-workflow/references/stage-F-writing.md` (tasks F1–F6)
+   - `qiongli-workflow/references/stage-G-compliance.md` (tasks G1–G4)
+   - `qiongli-workflow/references/stage-J-proofread.md` (tasks J1–J4)
+   - `qiongli-workflow/references/stage-H-submission.md` (tasks H1–H4)
+   - `qiongli-workflow/references/stage-I-code.md` (tasks I1–I8)
 
 ## Skill Loading Strategy
 
@@ -165,6 +165,12 @@ python3 -m bridges.orchestrator task-run \
   --focus-output manuscript/manuscript.md \
   --research-depth deep --max-rounds 4
 
+# Claude-primary duo writing run with Codex review
+python3 -m bridges.orchestrator task-run \
+  --task-id F3 --paper-type empirical --topic ai-in-education --cwd . \
+  --execution-mode duo --controller claude --primary claude --reviewer codex \
+  --mcp-strict --skills-strict
+
 # Team-run parallel execution
 python3 -m bridges.orchestrator team-run \
   --task-id B1 --paper-type systematic-review --topic ai-in-education --cwd .
@@ -189,7 +195,18 @@ python3 -m bridges.orchestrator code-build \
 - `--mcp-strict`: block execution when required MCP providers are unavailable
 - `--skills-strict`: block execution when required skill spec files are missing
 - `--triad`: request a third independent audit
+- `--execution-mode solo|duo|triad`: record the controller-level collaboration shape
+- `--controller codex|claude|gemini`: record the runtime agent accountable for orchestration metadata
+- `--primary`, `--reviewer`, `--verifier`: record declared task ownership, review, and verification agents
+- `--solo-role-gates strict|standard|off`: control solo-mode role gate strictness
 - Built-in profiles: `focused-delivery`, `deep-research`, `strict-review`, `rapid-draft`, `default`
+
+Controller-mode validation is strict: unsupported controller flag values fail argument parsing. For authoritative runs, combine controller metadata with `--mcp-strict` and `--skills-strict`; do not use `--skip-validation` for submission-facing, Stage-I code, or final manuscript outputs.
+
+Controller guide files:
+- `guides/advanced/controller-modes.md`
+- `guides/advanced/solo-mode.md`
+- `guides/advanced/codex-claude-duo.md`
 
 ### External MCP Connector
 
@@ -204,7 +221,7 @@ python3 -m bridges.orchestrator code-build \
 2. Register in `skills/registry.yaml` — this is the **single canonical skill version source**
 3. Add a summary entry to `skills-core.md`
 4. Update `CLAUDE.md` skill directory listing (this file)
-5. Update `.gemini/research-skills.md` skill directory listing
+5. Update `.gemini/qiongli.md` skill directory listing
 6. Run `python3 scripts/validate_research_standard.py --strict` to verify
 
 ### When Modifying Workflows
@@ -217,7 +234,7 @@ python3 -m bridges.orchestrator code-build \
 
 Three guide files must stay synchronized:
 - `CLAUDE.md` (this file) — Claude Code reads when working in the repo
-- `.gemini/research-skills.md` — Gemini reads when working in the repo
+- `.gemini/qiongli.md` — Gemini reads when working in the repo
 - `templates/CLAUDE.project.md` — installed to user projects as `CLAUDE.md`
 
 All three must list the same workflow commands and skill directory structure.
@@ -226,6 +243,6 @@ All three must list the same workflow commands and skill directory structure.
 - Layer model and dependency direction: `docs/architecture.md`
 - Edit rules and decision boundaries: `docs/conventions.md`
 - Runtime cooperation: `docs/advanced/agent-skill-collaboration.md`
-- Extend / contribute: `docs/advanced/extend-research-skills.md`
+- Extend / contribute: `docs/advanced/extend-qiongli.md`
 - Release automation: `scripts/release_automation.sh`
 - Version sync: `scripts/sync_versions.py`

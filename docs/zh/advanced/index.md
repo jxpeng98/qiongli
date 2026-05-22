@@ -4,7 +4,7 @@
 
 ## 主题
 
-- [扩展 Research Skills](/zh/advanced/extend-research-skills)
+- [扩展 Qiongli](/zh/advanced/extend-qiongli)
 - [Agent + Skill 协同](/zh/advanced/agent-skill-collaboration)
 - [MCP Providers 接入](/zh/advanced/mcp-providers-setup)
 - [严格 Academic Literature Search](/zh/advanced/rigorous-literature-search)

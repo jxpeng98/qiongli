@@ -23,7 +23,7 @@
 3. `templates/`
 4. `pipelines/` 与 `.agent/workflows/`
 5. `bridges/`
-6. `research-paper-workflow/`
+6. `qiongli-workflow/`
 
 ### 2. 把 workflows 当成入口 UX，而不是真源
 

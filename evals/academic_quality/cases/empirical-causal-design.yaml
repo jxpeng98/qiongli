@@ -1,0 +1,12 @@
+id: empirical-causal-design
+scenario: Empirical causal design with observational data
+expected_dimensions:
+  artifact_completeness: 0.85
+  evidence_traceability: 0.8
+  no_fabricated_sources: 1.0
+  claim_calibration: 0.8
+  venue_fit: 0.75
+  method_validity: 0.9
+  scholarly_voice: 0.8
+  quality_gate_compliance: 0.85
+  domain_method_fit: 0.9

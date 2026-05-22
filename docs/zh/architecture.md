@@ -4,7 +4,7 @@
 
 ## 核心原则
 
-Research Skills 把以下几层明确拆开：
+Qiongli 把以下几层明确拆开：
 
 - 契约真源
 - 能力路由
@@ -26,7 +26,7 @@ Research Skills 把以下几层明确拆开：
 | Internal Skill Specs | `skills/` | 可复用执行行为 |
 | Pipelines / Workflows | `pipelines/`、`.agent/workflows/` | 步骤编排与入口 UX |
 | Bridges | `bridges/` | 运行时适配器与 orchestrator |
-| Portable Skill Package | `research-paper-workflow/` | 面向客户端分发的安装技能包 |
+| Portable Skill Package | `qiongli-workflow/` | 面向客户端分发的安装技能包 |
 
 ## 依赖方向
 
@@ -58,9 +58,9 @@ flowchart TD
 | 入口方式 | 适用场景 | 入口 |
 |---|---|---|
 | Claude Code workflows | 你想用斜杠命令在项目里操作 | `.agent/workflows/*.md` |
-| Shell / Python 安装 CLI | 你要安装或升级 assets | `research-skills`、`rsk`、`rsw` |
+| Shell / Python 安装 CLI | 你要安装或升级 assets | `qiongli`、`rsk`、`rsw` |
 | Orchestrator CLI | 你要显式规划任务、执行任务、做校验 | `python3 -m bridges.orchestrator ...` |
-| Portable skill package | 你要做跨客户端分发 | `research-paper-workflow/` |
+| Portable skill package | 你要做跨客户端分发 | `qiongli-workflow/` |
 
 ## 动态领域挂载
 
@@ -88,13 +88,13 @@ flowchart TD
 
 - [fengshao1227/ccg-workflow](https://github.com/fengshao1227/ccg-workflow)
   - 主要借鉴：把 spec、planning、execution、review 严格拆开。
-  - 主要差异：CCG 偏通用软件工程协作；`research-skills` 把这套纪律本地化到学术研究场景，形成 `I5 -> I6 -> I7 -> I8` 的 Stage-I 代码任务。
+  - 主要差异：CCG 偏通用软件工程协作；`qiongli` 把这套纪律本地化到学术研究场景，形成 `I5 -> I6 -> I7 -> I8` 的 Stage-I 代码任务。
 - [GuDaStudio/skills](https://github.com/GuDaStudio/skills)
   - 主要借鉴：把跨模型协作能力打包成可安装的 Claude-oriented skill。
-  - 主要差异：`GuDaStudio/skills` 更像通用 skill 集合；`research-skills` 则围绕单一合同、单一任务目录和 `RESEARCH/[topic]/` 产物树组织。
+  - 主要差异：`GuDaStudio/skills` 更像通用 skill 集合；`qiongli` 则围绕单一合同、单一任务目录和 `RESEARCH/[topic]/` 产物树组织。
 
 ## 下一步去哪里
 
 - 要看修改规则和落点判断：去 [规范约定](/zh/conventions)
 - 要看 CLI 精确参数：去 [CLI 参考](/zh/reference/cli)
-- 要改系统行为：去 [扩展 Research Skills](/zh/advanced/extend-research-skills)
+- 要改系统行为：去 [扩展 Qiongli](/zh/advanced/extend-qiongli)

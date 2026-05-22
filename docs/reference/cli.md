@@ -1,27 +1,28 @@
-# CLI Command Reference (research-skills)
+# CLI Command Reference (qiongli)
 
-This document outlines all "executable entry points" (pipx CLI / Python module / Bash scripts) mapping local calls and GitHub CI configurations for the `research-skills` package.
+This document outlines all "executable entry points" (pipx CLI / Python module / Bash scripts) mapping local calls and GitHub CI configurations for the `qiongli` package.
 
 ## 0) Command Name Conventions
 
-- `research-skills`: The main CLI (available after pipx/venv installation, or after shell bootstrap install).
-- `rsk` / `rsw`: Short aliases (completely equivalent to `research-skills`).
+- `qiongli`: The main CLI (available after pipx/venv installation, or after shell bootstrap install).
+- `ql`: short primary alias. `research-skills`, `rsk`, and `rsw`: legacy compatibility aliases, equivalent to `qiongli`.
 
-The rest of this document will use `rsk` as the example.
+The rest of this document will use `qiongli` as the example.
 
 ---
 
 ## 1) How Upstream Repositories are Resolved (Omitting `--repo`)
 
-Many commands need to know "which GitHub repository to query/download releases from." The resolution order for `rsk` upstream is as follows (highest to lowest priority):
+Many commands need to know "which GitHub repository to query/download releases from." The resolution order for `qiongli` upstream is as follows (highest to lowest priority):
 
 1. CLI Argument: `--repo <owner/repo|Git URL>`
-2. Environment Variable: `RESEARCH_SKILLS_REPO=<owner/repo|Git URL>`
-3. Project Configuration File (searched upwards from the current directory or `--project-dir`):
-   - `research-skills.toml`
-   - `.research-skills.toml`
-4. Package Default (inside the pipx installed package): `research_skills/project.toml` (Injected by CI during publishing)
-5. If running inside a `research-skills` repository clone: Inferred from git remote (prioritizes `upstream`, then `origin`)
+2. Environment Variable: `QIONGLI_REPO=<owner/repo|Git URL>`
+3. Legacy environment fallback: `RESEARCH_SKILLS_REPO=<owner/repo|Git URL>`
+4. Project Configuration File (searched upwards from the current directory or `--project-dir`):
+   - `qiongli.toml`
+   - `.qiongli.toml`
+5. Package Default (inside the pipx installed package): `qiongli/project.toml` (Injected by CI during publishing)
+6. If running inside a `qiongli` repository clone: Inferred from git remote (prioritizes `upstream`, then `origin`)
 
 Supported repo formats:
 
@@ -32,27 +33,27 @@ Supported repo formats:
 We highly recommend committing the upstream configuration to your project repository (useful for CI automation):
 
 ```toml
-# research-skills.toml
+# qiongli.toml
 [upstream]
 repo = "owner/repo"   # Or url = "https://github.com/owner/repo.git"
 ```
 
 ---
 
-## 2) `rsk` (Installer & Updater CLI)
+## 2) `qiongli` (Installer & Updater CLI)
 
 There are two distributions of this CLI:
 - Python CLI: installed via `pip`/`pipx`
-- Shell CLI: installed by `bootstrap_research_skill.sh` into `${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}` by default
+- Shell CLI: installed by `bootstrap_qiongli.sh` into `${QIONGLI_BIN_DIR:-${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}}` by default
 
-### 2.1 `rsk check` (Check versions/Available updates)
+### 2.1 `qiongli check` (Check versions/Available updates)
 
 Use Case:
 - Outputs the CLI version, local repo version (if run from a clone), and installed versions across all 3 client directories.
 - Optional: Queries the upstream latest release tag and determines if an upgrade is needed.
 
 ```bash
-rsk check [--repo <owner/repo|url>] [--json] [--strict-network]
+qiongli check [--repo <owner/repo|url>] [--json] [--strict-network]
 ```
 
 Key Flags:
@@ -65,15 +66,15 @@ Exit Codes:
 - `1`: Update available.
 - `2`: Invalid argument.
 
-### 2.2 `rsk upgrade` (Download release & execute installers)
+### 2.2 `qiongli upgrade` (Download release & execute installers)
 
 Use Case:
 - Downloads the upstream release (defaults to latest tag `.tar.gz`).
-- Extracts it and executes `scripts/install_research_skill.sh`.
+- Extracts it and executes `scripts/install_qiongli.sh`.
 - Defaults to refreshing global skill directories only; project assets are opt-in.
 
 ```bash
-rsk upgrade \
+qiongli upgrade \
   [--repo <owner/repo|url>] \
   [--ref <tag-or-branch>] \
   [--ref-type tag|branch] \
@@ -86,50 +87,50 @@ rsk upgrade \
 
 Notes:
 - `--project-dir` matters when you also request project-facing surfaces, such as `--parts project`.
-- Default `upgrade` now behaves as a global refresh. Use `rsk init --project-dir .` for project bootstrap, or `rsk upgrade --parts project ...` when you explicitly want project files rewritten.
+- Default `upgrade` now behaves as a global refresh. Use `qiongli init --project-dir .` for project bootstrap, or `qiongli upgrade --parts project ...` when you explicitly want project files rewritten.
 - After global install, `upgrade` creates workflow discovery symlinks: `~/.claude/commands/*.md` and `~/.gemini/workflows/*.md` → enables direct `/paper`, `/lit-review`, etc. invocation.
 - Shell CLI uses the bundled bootstrap helper and does not require Python.
 - The command exits with the error code returned by the underlying installer.
 
-### 2.3 `rsk align` (Quick Reference Guide)
+### 2.3 `qiongli align` (Quick Reference Guide)
 
 Use Case: Prints an overview of "what pipx installed / paths modified by upgrades / common commands".
 
 ```bash
-rsk align [--repo <owner/repo|url>]
+qiongli align [--repo <owner/repo|url>]
 ```
 
-### 2.4 `rsk init` (Project Bootstrap)
+### 2.4 `qiongli init` (Project Bootstrap)
 
 Use Case: Creates project-local `.env` configuration in your project directory.
 
 ```bash
-rsk init [--project-dir <path>] [--target all|codex|claude|gemini] [--dry-run]
+qiongli init [--project-dir <path>] [--target all|codex|claude|gemini] [--dry-run]
 ```
 
 Notes:
 - Only creates project-facing assets (`.env`). Does not touch global skill directories.
 - Safe to run multiple times; will not overwrite existing files unless `--overwrite` is passed.
 
-### 2.5 `rsk clean` (Remove Stale Assets)
+### 2.5 `qiongli clean` (Remove Stale Assets)
 
 Use Case: Removes stale project-local assets left from older installations.
 
 ```bash
-rsk clean [--project-dir <path>] [--dry-run] [--globals]
+qiongli clean [--project-dir <path>] [--dry-run] [--globals]
 ```
 
 Flags:
-- `--project-dir`: Directory to clean (default: current dir). Removes `.agent/workflows/`, `.agents/skills/research-paper-workflow/`, `CLAUDE.research-skills.md`, `.gemini/research-skills.md`, and template-matching `CLAUDE.md`.
-- `--globals`: Also remove workflow discovery symlinks from `~/.claude/commands/` and `~/.gemini/workflows/`. Only removes symlinks that point to `research-paper-workflow` — user-created commands are preserved.
+- `--project-dir`: Directory to clean (default: current dir). Removes `.agent/workflows/`, `.agents/skills/qiongli-workflow/`, `CLAUDE.qiongli.md`, `.gemini/qiongli.md`, and template-matching `CLAUDE.md`.
+- `--globals`: Also remove workflow discovery symlinks from `~/.claude/commands/` and `~/.gemini/workflows/`. Only removes symlinks that point to `qiongli-workflow` — user-created commands are preserved.
 - `--dry-run`: Show what would be removed without deleting.
 
-### 2.6 `rsk doctor` (Environment Preflight)
+### 2.6 `qiongli doctor` (Environment Preflight)
 
 Use Case: Runs orchestrator preflight checks (CLIs, API keys, MCP wiring).
 
 ```bash
-rsk doctor [--cwd <path>]
+qiongli doctor [--cwd <path>]
 ```
 
 ---
@@ -274,14 +275,14 @@ Available modes:
 
 ## 4) Bash Scripts (Non-pipx)
 
-### 4.1 Remote Bootstrap Installer: `./scripts/bootstrap_research_skill.sh`
+### 4.1 Remote Bootstrap Installer: `./scripts/bootstrap_qiongli.sh`
 
 Use case:
 - Install or refresh skills on machines without Python.
-- Downloads a GitHub release/branch archive, extracts it, and then runs `scripts/install_research_skill.sh` from that archive.
+- Downloads a GitHub release/branch archive, extracts it, and then runs `scripts/install_qiongli.sh` from that archive.
 
 ```bash
-./scripts/bootstrap_research_skill.sh \
+./scripts/bootstrap_qiongli.sh \
   --repo owner/repo \
   --target all \
   --project-dir /path/to/project \
@@ -291,15 +292,15 @@ Use case:
 Notes:
 - Requires `bash` and either `curl` or `wget`, plus `tar`.
 - Supports `--ref <tag-or-branch>` with `--ref-type tag|branch`.
-- Installs shell CLI commands by default: `research-skills`, `rsk`, `rsw`.
+- Installs shell CLI commands by default: `qiongli`, `ql`, `research-skills`, `rsk`, `rsw`.
 - Use `--no-cli` to skip shell CLI installation, or `--cli-dir <path>` to choose the install location.
 - Remote bootstrap supports `--mode copy` only.
 - `--doctor` auto-skips when `python3` is unavailable.
 
-### 4.2 Installer Script: `./scripts/install_research_skill.sh`
+### 4.2 Installer Script: `./scripts/install_qiongli.sh`
 
 ```bash
-./scripts/install_research_skill.sh \
+./scripts/install_qiongli.sh \
   --target all \
   --mode copy \
   --project-dir /path/to/project \
@@ -311,7 +312,7 @@ Notes:
 Notes:
 - This is the local-repository installer.
 - The copy/link install path no longer requires Python.
-- Add `--install-cli` to also install the shell CLI into `${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}` or `--cli-dir <path>`.
+- Add `--install-cli` to also install the shell CLI into `${QIONGLI_BIN_DIR:-${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}}` or `--cli-dir <path>`.
 - `--doctor` runs `python3 -m bridges.orchestrator doctor --cwd <project>` only when `python3` exists.
 
 ### 4.3 Release Automation: `./scripts/release_automation.sh`
@@ -359,13 +360,13 @@ Release preflight now uses the `release` tier by default. Use `--maintainer-smok
 
 ### 4.6 CI Default Upstream Injector: `./scripts/inject_project_toml.sh`
 
-Executed by GitHub actions during packaging to hardcode the repo slug into `research_skills/project.toml`.
+Executed by GitHub actions during packaging to hardcode the repo slug into `qiongli/project.toml`.
 
 ```bash
 bash scripts/inject_project_toml.sh
 
 # Or override the repo slug dynamically during builds
-RESEARCH_SKILLS_REPO_SLUG="other-owner/other-repo" bash scripts/inject_project_toml.sh
+QIONGLI_REPO_SLUG="other-owner/other-repo" bash scripts/inject_project_toml.sh
 ```
 
 ---

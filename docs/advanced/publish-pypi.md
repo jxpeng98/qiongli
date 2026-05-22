@@ -1,6 +1,6 @@
 # PyPI Package Publishing Guide
 
-This guide explains how to publish `research-skills-installer` to PyPI, as well as the complete workflow for routine version releases.
+This guide explains how to publish `qiongli` to PyPI, as well as the complete workflow for routine version releases.
 
 ## 0) Prerequisites (One-time Setup)
 
@@ -10,9 +10,9 @@ This project uses the [Trusted Publisher](https://docs.pypi.org/trusted-publishe
 
 1. Log in to your account at [pypi.org](https://pypi.org).
 2. If this is the **first time publishing** (the package does not exist on PyPI yet), go to the [Publishing](https://pypi.org/manage/account/publishing/) page. Under "Add a new pending publisher", fill in the following:
-   - **PyPI Project Name**: `research-skills-installer`
+   - **PyPI Project Name**: `qiongli`
    - **Owner**: `<your-github-username>`
-   - **Repository name**: `research-skills`
+   - **Repository name**: `qiongli`
    - **Workflow name**: `publish-pypi.yml`
    - **Environment name**: `pypi`
 3. If the **package already exists**, go to the package's Settings → Publishing → "Add a new publisher", and fill in the same details.
@@ -30,9 +30,9 @@ This repository includes a dedicated TestPyPI workflow: `.github/workflows/publi
 1. Log in to [test.pypi.org](https://test.pypi.org).
 2. Go to Account settings → Publishing.
 3. Add a pending publisher (or add a publisher under the existing project) with:
-   - **PyPI Project Name**: `research-skills-installer`
+   - **PyPI Project Name**: `qiongli`
    - **Owner**: `jxpeng98`
-   - **Repository name**: `research-skills`
+   - **Repository name**: `qiongli`
    - **Workflow name**: `publish-testpypi.yml`
    - **Environment name**: `testpypi`
 4. In GitHub repository Settings → Environments, create environment `testpypi`.
@@ -101,7 +101,7 @@ If you need manual split phases, they still exist:
 `publish` creates and pushes a tag whose format starts with `v*` and uses repo release syntax such as `v0.2.0` or `v0.2.0-beta.1`. That triggers `publish-pypi.yml`, which:
 
 1. Checkout the code.
-2. Run `inject_project_toml.sh` (injects the current repository slug into `research_skills/project.toml` so the installed CLI knows its upstream default).
+2. Run `inject_project_toml.sh` (injects the current repository slug into `qiongli/project.toml` so the installed CLI knows its upstream default).
 3. `python -m build` to build the sdist and wheel.
 4. `twine check` to validate package metadata.
 5. Publish to PyPI using the Trusted Publisher mechanism.
@@ -138,9 +138,9 @@ twine check dist/*
 Local dry-run installation:
 
 ```bash
-pip install dist/research_skills_installer-*.whl
-research-skills --help
-rsk check --repo <owner>/<repo>
+pip install dist/qiongli_installer-*.whl
+qiongli --help
+qiongli check --repo <owner>/<repo>
 ```
 
 ---
@@ -158,7 +158,7 @@ The workflow will build, validate, and publish with Trusted Publishing to TestPy
 Install and verify from TestPyPI:
 
 ```bash
-pip install --index-url https://test.pypi.org/simple/ research-skills-installer
+pip install --index-url https://test.pypi.org/simple/ qiongli
 ```
 
 Recommended order:
@@ -178,7 +178,7 @@ When cutting a release, follow these steps:
 - [ ] Run `./scripts/release_automation.sh publish --version <version> --from-tag <previous-tag>`.
 - [ ] Confirm `Publish to PyPI`, `CI`, and `Checkout Install Check` succeeded on GitHub Actions.
 - [ ] Confirm postflight created or updated the GitHub Release and wrote `release/acceptance/<tag>-receipt.md`.
-- [ ] Verify installation: `pipx install research-skills-installer && rsk --help`
+- [ ] Verify installation: `pipx install qiongli && rsk --help`
 
 ---
 

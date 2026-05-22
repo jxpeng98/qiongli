@@ -16,7 +16,7 @@ except ModuleNotFoundError:
     )
     sys.modules["yaml"] = yaml_stub
 
-from research_skills.multi_agent_smoke import (
+from qiongli.multi_agent_smoke import (
     FAIL,
     PASS,
     WARN,

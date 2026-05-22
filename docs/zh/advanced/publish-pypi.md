@@ -1,6 +1,6 @@
 # 发布指南（PyPI Package Publishing）
 
-本指南说明如何将 `research-skills-installer` 发布到 PyPI，以及日常版本发布的完整流程。
+本指南说明如何将 `qiongli` 发布到 PyPI，以及日常版本发布的完整流程。
 
 ## 0) 前置条件（一次性配置）
 
@@ -10,9 +10,9 @@
 
 1. 登录 [pypi.org](https://pypi.org)，进入你的账号
 2. 如果是**首次发布**（PyPI 上还没有这个包），进入 [Publishing](https://pypi.org/manage/account/publishing/) 页面，在 "Add a new pending publisher" 中填写：
-   - **PyPI Project Name**: `research-skills-installer`
+   - **PyPI Project Name**: `qiongli`
    - **Owner**: `jxpeng98`
-   - **Repository name**: `research-skills`
+   - **Repository name**: `qiongli`
    - **Workflow name**: `publish-pypi.yml`
    - **Environment name**: `pypi`
 3. 如果**已有该包**，进入包的 Settings → Publishing → "Add a new publisher"，填写同上
@@ -30,9 +30,9 @@
 1. 登录 [test.pypi.org](https://test.pypi.org)
 2. 进入 Account settings → Publishing
 3. 添加 pending publisher（或在已有项目下添加 publisher），填写：
-   - **PyPI Project Name**: `research-skills-installer`
+   - **PyPI Project Name**: `qiongli`
    - **Owner**: `jxpeng98`
-   - **Repository name**: `research-skills`
+   - **Repository name**: `qiongli`
    - **Workflow name**: `publish-testpypi.yml`
    - **Environment name**: `testpypi`
 4. 回到 GitHub 仓库 Settings → Environments，创建环境 `testpypi`
@@ -103,7 +103,7 @@
 `publish` 会创建并 push 以 `v*` 开头的 release tag，例如 `v0.2.0` 或 `v0.2.0-beta.1`。这个 tag 会触发 `publish-pypi.yml`：
 
 1. Checkout 代码
-2. 运行 `inject_project_toml.sh`（把当前仓库 slug 写入 `research_skills/project.toml`）
+2. 运行 `inject_project_toml.sh`（把当前仓库 slug 写入 `qiongli/project.toml`）
 3. `python -m build` 构建 sdist + wheel
 4. `twine check` 验证包元数据
 5. 使用 Trusted Publisher 发布到 PyPI
@@ -140,9 +140,9 @@ twine check dist/*
 本地试装：
 
 ```bash
-pip install dist/research_skills_installer-*.whl
-research-skills --help
-rsk check --repo jxpeng98/research-skills
+pip install dist/qiongli_installer-*.whl
+qiongli --help
+qiongli check --repo jxpeng98/qiongli
 ```
 
 ---
@@ -160,7 +160,7 @@ rsk check --repo jxpeng98/research-skills
 发布后从 TestPyPI 安装验证：
 
 ```bash
-pip install --index-url https://test.pypi.org/simple/ research-skills-installer
+pip install --index-url https://test.pypi.org/simple/ qiongli
 ```
 
 推荐顺序：
@@ -180,7 +180,7 @@ pip install --index-url https://test.pypi.org/simple/ research-skills-installer
 - [ ] 运行 `./scripts/release_automation.sh publish --version <version> --from-tag <previous-tag>`
 - [ ] 在 GitHub Actions 确认 `Publish to PyPI`、`CI` 和 `Checkout Install Check` 成功
 - [ ] 确认 postflight 创建或更新 GitHub Release，并生成 `release/acceptance/<tag>-receipt.md`
-- [ ] 验证安装：`pipx install research-skills-installer && rsk --help`
+- [ ] 验证安装：`pipx install qiongli && rsk --help`
 
 ---
 
