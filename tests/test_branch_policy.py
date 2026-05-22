@@ -26,6 +26,21 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertIn(validate_cmd, content)
         self.assertLess(content.index(sync_cmd), content.index(validate_cmd))
 
+    def test_ci_syncs_npm_payload_after_injected_project_defaults(self) -> None:
+        content = read(".github/workflows/ci.yml")
+        inject_cmd = "bash scripts/inject_project_toml.sh"
+        payload_cmd = "python scripts/sync_npm_package_payload.py"
+        validate_cmd = "python scripts/validate_research_standard.py --strict"
+        unit_cmd = "python -m unittest discover -s tests -v"
+
+        self.assertIn(inject_cmd, content)
+        self.assertIn(payload_cmd, content)
+        self.assertIn(validate_cmd, content)
+        self.assertIn(unit_cmd, content)
+        self.assertLess(content.index(inject_cmd), content.index(payload_cmd))
+        self.assertLess(content.index(payload_cmd), content.index(validate_cmd))
+        self.assertLess(content.index(payload_cmd), content.index(unit_cmd))
+
     def test_release_workflow_allows_beta_from_dev_but_stable_from_primary(self) -> None:
         content = read("scripts/release_automation.sh")
         self.assertIn('DEV_PRERELEASE_BRANCH="dev"', content)

@@ -12,6 +12,7 @@ RELEASE_POSTFLIGHT = REPO_ROOT / "scripts" / "release_postflight.sh"
 PYPI_PREFLIGHT = REPO_ROOT / "scripts" / "pypi_preflight.sh"
 RELEASE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-automation.yml"
 PUBLISH_PYPI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-pypi.yml"
+PUBLISH_NPM_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-npm.yml"
 VERIFY_RELEASE_TAG = REPO_ROOT / "scripts" / "verify_release_tag_version.sh"
 CHANGELOG_SECTION = REPO_ROOT / "scripts" / "changelog_section.py"
 
@@ -231,6 +232,26 @@ class ReleaseAutomationTests(unittest.TestCase):
         content = PUBLISH_PYPI_WORKFLOW.read_text(encoding="utf-8")
 
         self.assertIn('bash scripts/verify_release_tag_version.sh --tag "${GITHUB_REF_NAME}"', content)
+
+    def test_tag_publish_workflows_sync_generated_payloads_before_version_verify(self) -> None:
+        for workflow in (PUBLISH_PYPI_WORKFLOW, PUBLISH_NPM_WORKFLOW):
+            with self.subTest(workflow=workflow.name):
+                content = workflow.read_text(encoding="utf-8")
+
+                verify = 'bash scripts/verify_release_tag_version.sh --tag "${GITHUB_REF_NAME}"'
+                self.assertIn("bash scripts/sync_skill_package.sh --target all", content)
+                self.assertIn("python3 scripts/sync_npm_package_payload.py", content)
+                self.assertLess(content.index("bash scripts/sync_skill_package.sh --target all"), content.index(verify))
+                self.assertLess(content.index("python3 scripts/sync_npm_package_payload.py"), content.index(verify))
+
+    def test_release_workflow_syncs_generated_payloads_before_version_verify(self) -> None:
+        content = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+
+        verify = 'bash scripts/verify_release_tag_version.sh --tag "$tag"'
+        self.assertIn("bash scripts/sync_skill_package.sh --target all", content)
+        self.assertIn("python3 scripts/sync_npm_package_payload.py", content)
+        self.assertLess(content.index("bash scripts/sync_skill_package.sh --target all"), content.index(verify))
+        self.assertLess(content.index("python3 scripts/sync_npm_package_payload.py"), content.index(verify))
 
     def test_verify_release_tag_script_checks_expected_files(self) -> None:
         content = VERIFY_RELEASE_TAG.read_text(encoding="utf-8")

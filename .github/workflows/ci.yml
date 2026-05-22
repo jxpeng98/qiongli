@@ -38,6 +38,9 @@ jobs:
         shell: bash
         run: bash scripts/sync_skill_package.sh --target all
 
+      - name: Sync npm package payload
+        run: python scripts/sync_npm_package_payload.py
+
       - name: Validate research standard
         run: python scripts/validate_research_standard.py --strict
 
