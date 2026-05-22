@@ -249,6 +249,12 @@ artifact_types:
     produced_by: [manuscript-architect]
     consumed_by: [tone-normalizer, prisma-checker, reporting-checker, meta-optimizer, fatal-flaw-detector, peer-review-simulation, submission-packager]
 
+  - name: ResearchProposal
+    description: "Research proposal, prospectus, opening report, or study-plan document for approval before results-focused drafting"
+    format: markdown
+    produced_by: [proposal-writer]
+    consumed_by: [submission-packager, peer-review-simulation, academic-context-maintainer]
+
   - name: ClaimGraph
     description: "Claim-evidence integrity map linking assertions to supporting data"
     format: markdown
