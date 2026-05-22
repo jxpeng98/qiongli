@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import tempfile
 import unittest
 from pathlib import Path
@@ -13,6 +15,46 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 class InstallerCliTests(unittest.TestCase):
+    def test_check_prints_latest_stable_and_prerelease(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            skill_dirs = {
+                "codex": root / "codex",
+                "claude": root / "claude",
+                "gemini": root / "gemini",
+            }
+            args = argparse.Namespace(
+                repo="owner/repo",
+                json=False,
+                strict_network=False,
+                beta=False,
+            )
+
+            def fake_http_get_json(url: str) -> object:
+                if url.endswith("/releases/latest"):
+                    return {"tag_name": "v1.0.0"}
+                if "/releases?per_page=" in url:
+                    return [
+                        {"tag_name": "v1.1.0-beta.1", "prerelease": True, "draft": False},
+                        {"tag_name": "v1.0.0", "prerelease": False, "draft": False},
+                    ]
+                raise AssertionError(f"Unexpected URL: {url}")
+
+            stdout = io.StringIO()
+            with mock.patch.object(cli_module, "_find_repo_root", return_value=None), mock.patch.object(
+                cli_module, "_check_pip_version", return_value=("1.0.0", "up-to-date")
+            ), mock.patch.object(cli_module, "_check_system_env", return_value={}), mock.patch.object(
+                cli_module, "_installed_skill_dirs", return_value=skill_dirs
+            ), mock.patch.object(cli_module, "_http_get_json", side_effect=fake_http_get_json), contextlib.redirect_stdout(
+                stdout
+            ):
+                exit_code = cli_module.cmd_check(args)
+
+        self.assertEqual(exit_code, 0)
+        output = stdout.getvalue()
+        self.assertIn("   - Latest: v1.0.0", output)
+        self.assertIn("   - Pre-release: v1.1.0-beta.1", output)
+
     def test_init_defaults_to_project_part(self) -> None:
         args = argparse.Namespace(
             project_dir=".",
