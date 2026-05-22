@@ -56,7 +56,7 @@ skills/
 ├── C_design/        (study-designer, rival-hypothesis-designer, robustness-planner, dataset-finder, variable-constructor, data-dictionary-builder, data-management-plan, prereg-writer, variable-operationalizer)
 ├── D_ethics/        (ethics-irb-helper, statement-generator, deidentification-planner)
 ├── E_synthesis/     (effect-size-calculator, evidence-synthesizer, quality-assessor, publication-bias-checker, qualitative-coding)
-├── F_writing/       (manuscript-architect, analysis-interpreter, effect-size-interpreter, table-generator, figure-specifier, meta-optimizer, discussion-writer)
+├── F_writing/       (manuscript-architect, proposal-writer, analysis-interpreter, effect-size-interpreter, table-generator, figure-specifier, meta-optimizer, discussion-writer)
 ├── G_compliance/    (prisma-checker, reporting-checker, tone-normalizer)
 ├── J_proofread/     (ai-fingerprint-scanner, human-voice-rewriter, similarity-checker, final-proofreader)
 ├── H_submission/    (submission-packager, rebuttal-assistant, peer-review-simulation, fatal-flaw-detector, reviewer-empathy-checker, credit-taxonomy-helper, limitation-auditor)
@@ -78,6 +78,7 @@ RESEARCH/[topic]/
 ├── notes/                   # Individual paper notes
 ├── extraction_table.md      # Data extraction table
 ├── synthesis.md             # Final synthesis report
+├── proposal/                # Research proposal / opening report
 ├── manuscript/              # Outline, draft, claims map, figures plan
 ├── proofread/               # AI detection, humanization, similarity, final proofread
 ├── submission/              # Cover letter, checklist, statements

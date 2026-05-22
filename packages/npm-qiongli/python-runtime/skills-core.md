@@ -111,6 +111,23 @@ Consolidated skill reference for token-efficient workflow execution. Use this fi
 
 ---
 
+## proposal-writer
+
+**Purpose:** Draft research proposals, opening reports, prospectuses, and study plans before results-focused manuscript writing
+
+**Process:**
+1. Ingest framing artifacts (RQ, gap analysis, theory, contribution)
+2. Ingest design artifacts (study design, analysis plan, DMP, optional venue/program expectations)
+3. Draft rationale, literature gap, theory, RQs/objectives, expected contribution, methods, analysis, ethics, feasibility, timeline, and risks
+4. Mark missing citations, data access, ethics status, sample-size rationale, and institutional requirements as gap notes
+5. Keep planned finding, interpretation, and implication separate; do not write planned work as completed results
+
+**Template:** `templates/research-proposal-template.md`
+
+**Output:** `ResearchProposal` → `proposal/research_proposal.md`
+
+---
+
 ## ethics-irb-helper
 
 **Purpose:** Ethics/IRB documentation bundle (not legal advice)
