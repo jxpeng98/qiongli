@@ -98,9 +98,11 @@ class NpmPackageContractTests(unittest.TestCase):
         self.assertNotIn("qiongli-installer", pypi_workflow)
         self.assertIn("id-token: write", npm_workflow)
         self.assertIn("node-version: '24'", npm_workflow)
+        self.assertNotIn("package-manager-cache", npm_workflow)
         self.assertIn("npm publish --tag next", npm_workflow)
         self.assertIn("npm publish --tag latest", npm_workflow)
         self.assertIn("npm dist-tag rm qiongli latest", npm_workflow)
+        self.assertIn("[npm-publish] warning: unable to remove beta latest dist-tag", npm_workflow)
         self.assertNotIn("npm publish --tag beta", npm_workflow)
         self.assertIn("scripts/npm_preflight.sh", npm_workflow)
 
