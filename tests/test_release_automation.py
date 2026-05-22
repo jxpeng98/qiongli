@@ -54,6 +54,21 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('release_branch="$DEV_PRERELEASE_BRANCH"', content)
         self.assertIn('Current branch: $current_branch; push branch: $push_branch; expected release branch: $release_branch', content)
 
+    def test_publish_mode_syncs_generated_payloads_before_commit_and_tag(self) -> None:
+        content = RELEASE_AUTOMATION.read_text(encoding="utf-8")
+
+        sync_skill = 'bash scripts/sync_skill_package.sh --target all'
+        sync_npm = "python3 scripts/sync_npm_package_payload.py"
+        audit = "python3 scripts/audit_distribution_payloads.py"
+        verify = 'bash scripts/verify_release_tag_version.sh --tag "$repo_tag"'
+        git_add = "git add \\"
+        tag = 'git tag -a "$repo_tag"'
+
+        for expected in (sync_skill, sync_npm, audit, verify):
+            self.assertIn(expected, content)
+            self.assertLess(content.index(expected), content.index(git_add))
+            self.assertLess(content.index(expected), content.index(tag))
+
     def test_release_postflight_waits_for_required_workflows(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
 
