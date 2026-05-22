@@ -5,14 +5,14 @@
   },
   "metadata": {
     "description": "Academic research workflow plugins for Claude Code.",
-    "version": "0.9.0-beta.4"
+    "version": "0.10.0-beta.1"
   },
   "plugins": [
     {
       "name": "qiongli",
       "source": "./plugins/qiongli",
       "description": "Academic paper workflows for planning, literature review, writing, compliance, submission, and research code.",
-      "version": "0.9.0-beta.4",
+      "version": "0.10.0-beta.1",
       "author": {
         "name": "Jiaxin Peng"
       },
