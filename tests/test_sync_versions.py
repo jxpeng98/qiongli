@@ -69,6 +69,18 @@ class SyncVersionsTests(unittest.TestCase):
                 '{\n  "name": "qiongli",\n  "version": "0.1.0"\n}\n',
                 encoding="utf-8",
             )
+            (root / "package-lock.json").write_text(
+                '{\n'
+                '  "name": "qiongli-docs",\n'
+                '  "lockfileVersion": 3,\n'
+                '  "packages": {\n'
+                '    "": {"name": "qiongli-docs"},\n'
+                '    "node_modules/qiongli": {"resolved": "packages/npm-qiongli", "link": true},\n'
+                '    "packages/npm-qiongli": {"name": "qiongli", "version": "0.1.0"}\n'
+                '  }\n'
+                '}\n',
+                encoding="utf-8",
+            )
             (root / "packages" / "npm-qiongli" / "payload" / "qiongli-workflow").mkdir(parents=True)
             (root / "packages" / "npm-qiongli" / "payload" / "qiongli-workflow" / "VERSION").write_text(
                 "v0.1.0\n",
@@ -146,6 +158,7 @@ class SyncVersionsTests(unittest.TestCase):
             self.assertIn(root / "qiongli-workflow" / "VERSION", changed)
             self.assertIn(root / "qiongli-workflow" / "skills" / "registry.yaml", changed)
             self.assertIn(root / "packages" / "npm-qiongli" / "package.json", changed)
+            self.assertIn(root / "package-lock.json", changed)
             self.assertIn(
                 root / "packages" / "npm-qiongli" / "payload" / "qiongli-workflow" / "VERSION",
                 changed,
@@ -209,6 +222,10 @@ class SyncVersionsTests(unittest.TestCase):
             self.assertIn(
                 '"version": "0.2.0-beta.2"',
                 (root / "packages" / "npm-qiongli" / "package.json").read_text(),
+            )
+            self.assertIn(
+                '"version": "0.2.0-beta.2"',
+                (root / "package-lock.json").read_text(),
             )
             self.assertEqual(
                 (root / "packages" / "npm-qiongli" / "payload" / "qiongli-workflow" / "VERSION").read_text().strip(),

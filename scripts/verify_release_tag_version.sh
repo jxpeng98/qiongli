@@ -132,6 +132,21 @@ print(json.loads(path.read_text(encoding="utf-8"))["version"])
 PY
 )"
 
+actual_npm_lock_version="$(python3 - <<'PY'
+import json
+from pathlib import Path
+
+path = Path("package-lock.json")
+if not path.exists():
+    raise SystemExit("missing package-lock.json")
+data = json.loads(path.read_text(encoding="utf-8"))
+try:
+    print(data["packages"]["packages/npm-qiongli"]["version"])
+except KeyError as exc:
+    raise SystemExit(f"missing package-lock workspace version: {exc}") from exc
+PY
+)"
+
 actual_bundled_init_version="$(python3 - <<'PY'
 import re
 from pathlib import Path
@@ -238,6 +253,11 @@ PY
 
 [[ "$actual_npm_version" == "$expected_npm_version" ]] || {
   echo "[verify-release-tag] packages/npm-qiongli/package.json mismatch: tag=$TAG expects $expected_npm_version, found $actual_npm_version" >&2
+  exit 1
+}
+
+[[ "$actual_npm_lock_version" == "$expected_npm_version" ]] || {
+  echo "[verify-release-tag] package-lock.json mismatch: tag=$TAG expects $expected_npm_version, found $actual_npm_lock_version" >&2
   exit 1
 }
 

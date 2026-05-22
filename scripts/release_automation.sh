@@ -237,6 +237,7 @@ case "$MODE" in
       qiongli/__init__.py \
       qiongli-workflow/VERSION \
       skills/registry.yaml \
+      package-lock.json \
       packages/npm-qiongli \
       plugins/qiongli/.codex-plugin/plugin.json \
       .claude-plugin/marketplace.json \
