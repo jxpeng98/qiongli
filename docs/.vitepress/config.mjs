@@ -1,5 +1,6 @@
 const enNav = [
   { text: 'Guide', link: '/guide/' },
+  { text: 'Workflows', link: '/guide/task-recipes' },
   { text: 'Examples', link: '/examples/' },
   { text: 'CLI', link: '/reference/cli' },
   { text: 'Architecture', link: '/architecture' },
@@ -9,6 +10,7 @@ const enNav = [
 
 const zhNav = [
   { text: '入门', link: '/zh/guide/' },
+  { text: '工作流', link: '/zh/guide/task-recipes' },
   { text: '示例', link: '/zh/examples/' },
   { text: 'CLI', link: '/zh/reference/cli' },
   { text: '架构', link: '/zh/architecture' },
@@ -23,9 +25,9 @@ const enSidebar = {
       items: [
         { text: 'Overview', link: '/guide/' },
         { text: 'Quickstart', link: '/quickstart' },
-        { text: 'Multi-Agent Runtime Guide', link: '/guide/multi-agent' },
-        { text: 'Task Recipes', link: '/guide/task-recipes' },
         { text: 'Install', link: '/guide/install' },
+        { text: 'Research Workflows', link: '/guide/task-recipes' },
+        { text: 'Multi-Agent Runtime', link: '/guide/multi-agent' },
         { text: 'Upgrade', link: '/guide/upgrade' },
         { text: 'Troubleshooting', link: '/guide/troubleshooting' }
       ]
@@ -58,6 +60,7 @@ const enSidebar = {
         { text: 'Overview', link: '/advanced/' },
         { text: 'Extend Qiongli', link: '/advanced/extend-qiongli' },
         { text: 'Agent + Skill Collaboration', link: '/advanced/agent-skill-collaboration' },
+        { text: 'Plugin-First Architecture', link: '/advanced/plugin-first-architecture' },
         { text: 'MCP Providers Setup', link: '/advanced/mcp-providers-setup' },
         { text: 'Rigorous Literature Search', link: '/advanced/rigorous-literature-search' },
         { text: 'Zotero Integration', link: '/advanced/mcp-zotero-integration' },
@@ -88,9 +91,9 @@ const zhSidebar = {
       items: [
         { text: '总览', link: '/zh/guide/' },
         { text: '快速开始', link: '/zh/quickstart' },
-        { text: '多 Agent 运行指南', link: '/zh/guide/multi-agent' },
-        { text: '任务场景', link: '/zh/guide/task-recipes' },
         { text: '安装', link: '/zh/guide/install' },
+        { text: '研究工作流', link: '/zh/guide/task-recipes' },
+        { text: '多 Agent 运行', link: '/zh/guide/multi-agent' },
         { text: '升级', link: '/zh/guide/upgrade' },
         { text: '故障排除', link: '/zh/guide/troubleshooting' }
       ]
@@ -123,6 +126,7 @@ const zhSidebar = {
         { text: '总览', link: '/zh/advanced/' },
         { text: '扩展 Qiongli', link: '/zh/advanced/extend-qiongli' },
         { text: 'Agent + Skill 协同', link: '/zh/advanced/agent-skill-collaboration' },
+        { text: 'Plugin-First 架构', link: '/advanced/plugin-first-architecture' },
         { text: 'MCP Providers 接入', link: '/zh/advanced/mcp-providers-setup' },
         { text: '严格 Literature Search', link: '/zh/advanced/rigorous-literature-search' },
         { text: 'Zotero 集成', link: '/zh/advanced/mcp-zotero-integration' },
@@ -148,13 +152,14 @@ const zhSidebar = {
 
 const commonHead = [
   ['meta', { name: 'theme-color', content: '#0f766e' }],
-  ['meta', { name: 'author', content: 'Jiaxin Peng' }]
+  ['meta', { name: 'author', content: 'Jiaxin Peng' }],
+  ['link', { rel: 'icon', type: 'image/svg+xml', href: '/mark.svg' }]
 ]
 
 /** @type {import('vitepress').UserConfig} */
 export default {
   title: 'Qiongli',
-  description: 'Contract-driven academic research workflow documentation for Codex, Claude Code, and Gemini.',
+  description: 'Contract-driven academic research workflows for Codex, Claude Code, and Gemini.',
   cleanUrls: true,
   lastUpdated: true,
   head: commonHead,

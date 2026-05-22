@@ -1,15 +1,62 @@
-# Qiongli (穷理)
-
-Qiongli is a contract-driven academic workflow system for Codex, Claude Code, and Gemini. It covers installation, task planning, literature work, manuscript production, and strict Stage-I research code execution under one canonical workflow contract.
-
 <div align="center">
-  <a href="#-quick-start-0--1-navigation">🚀 Quick Start</a> |
-  <a href="docs/reference/cli.md">💻 CLI Reference</a> |
-  <a href="docs/architecture.md">🏗 Architecture</a> |
-  <a href="docs/advanced/agent-skill-collaboration.md">🤝 Agent Collaboration</a> |
-  <a href="docs/advanced/extend-qiongli.md">🛠️ How to Extend / Contribute</a> |
-  <a href="TODO_ROADMAP.md">🗺️ Roadmap</a>
+  <img src="docs/public/mark.svg" alt="Qiongli logo" width="104" height="104">
+  <h1>Qiongli (穷理)</h1>
+  <p><strong>Contract-driven academic workflows for Codex, Claude Code, and Gemini.</strong></p>
+  <p>Plan papers, run literature work, draft manuscripts, execute research code, and audit evidence through one canonical task contract.</p>
+  <p>
+    <a href="docs/quickstart.md">Quick Start</a> ·
+    <a href="docs/guide/install.md">Install</a> ·
+    <a href="docs/guide/task-recipes.md">Research Recipes</a> ·
+    <a href="docs/reference/cli.md">CLI</a> ·
+    <a href="docs/architecture.md">Architecture</a>
+  </p>
 </div>
+
+## What Qiongli Does
+
+Qiongli turns academic work into explicit, reviewable task flows. Instead of asking an agent to improvise a paper end to end, each run is tied to Task IDs, quality gates, role handoffs, and output paths under `RESEARCH/[topic]/`.
+
+Use it when you need:
+
+- **Research workflows:** systematic review, empirical study, qualitative study, RCT preregistration, theory paper, and code-first methods paper routes.
+- **Literature rigor:** provider-aware search planning, search diagnostics, materialized search bundles, dedup logs, screening readiness, and snowball readiness.
+- **Writing integrity:** claim-evidence mapping, citation risk checks, figures/tables planning, limitations review, proofreading, and rebuttal preparation.
+- **Research code discipline:** strict Stage-I `I5 -> I6 -> I7 -> I8` specification, planning, execution, and review artifacts.
+- **Multi-agent review:** Codex / Claude / Gemini orchestration with solo, duo, and triad modes, explicit handoffs, disagreement records, and verification status.
+
+## Start Here
+
+Choose the smallest entrypoint that matches the job:
+
+| Need | Recommended path | Details |
+|---|---|---|
+| Use Qiongli in one AI client | Native plugin / extension | [Install guide](docs/guide/install.md) |
+| Install workflow assets across clients | Bootstrap `partial` profile | [Quick start](docs/quickstart.md) |
+| Use `qiongli doctor`, validators, or orchestrator | Bootstrap `full` profile with Python 3.12+ | [Multi-agent guide](docs/guide/multi-agent.md) |
+| Script installs through npm | `npm install -g qiongli` or `npx qiongli@latest` | [CLI reference](docs/reference/cli.md) |
+| Update the Python CLI distribution | `pipx install qiongli` or `pipx upgrade qiongli` | [Upgrade guide](docs/guide/upgrade.md) |
+| Pick a paper route | Start from task recipes | [Task recipes](docs/guide/task-recipes.md) |
+
+## Current Capability Map
+
+| Area | What is covered |
+|---|---|
+| Framing | question refinement, contribution crafting, hypotheses, theory maps, gap analysis, venue fit |
+| Literature | academic search, concept expansion, screening, extraction, citation snowballing, full-text retrieval, reference management |
+| Design | study design, variables, robustness, datasets, preregistration, data management |
+| Ethics and compliance | IRB support, deidentification, ethics statements, PRISMA and reporting checks |
+| Writing and synthesis | evidence synthesis, manuscript architecture, analysis interpretation, tables, figures, discussion, limitations |
+| Submission and rebuttal | peer-review simulation, fatal-flaw detection, cover materials, reviewer response |
+| Code and reproducibility | data cleaning, merging, statistics, code build/review, release packaging, reproducibility audits |
+| Presentation | talk planning, slide architecture, Slidev, Beamer, and PPTX-oriented outputs |
+
+## Runtime Boundary
+
+> [!WARNING]
+> Full functionality requires a real Python runtime plus all three model CLIs in `PATH`:
+> `python3`, `codex`, `claude`, and `gemini`.
+> You also need the matching runtime authentication. `codex` can run with `OPENAI_API_KEY` or an existing ChatGPT/Codex login, `claude` uses `ANTHROPIC_API_KEY`, and Gemini `direct` mode requires non-interactive auth such as `GEMINI_API_KEY` or Vertex env auth. Google-login-only Gemini automation should use the resident broker path described in [docs/guide/multi-agent.md](docs/guide/multi-agent.md).
+> Without them, you can still install assets and use shell `qiongli check|upgrade|align`, but `doctor`, validators, tests, and the full orchestrator flow will be partial or unavailable.
 
 ## Why The Name
 
@@ -18,30 +65,6 @@ Qiongli is a contract-driven academic workflow system for Codex, Claude Code, an
 The full system name is **Qiongli Zhengche** (`穷理证澈`). **Zhengche** (`证澈`) names the core methodology: make evidence chains, citation risk, assumptions, and claim boundaries transparent enough to audit. In practice, that means every workflow is tied to Task IDs, quality gates, and output paths under `RESEARCH/[topic]/`, rather than relying on ad hoc prompts.
 
 Technical identifiers follow the public name: the plugin is `qiongli`, the portable skill package is `qiongli-workflow`, and the updater distribution is `qiongli`. Legacy aliases such as `research-skills`, `rsk`, and `rsw` remain available only for compatibility.
-
-## Features
-
-- 📚 **Systematic Literature Review** - PRISMA 2020 compliant methodology
-- 📖 **Deep Paper Reading** - Structured notes + BibTeX
-- 🧪 **Evidence Synthesis & Meta-analysis** - Narrative / qualitative / quantitative pooling (PRISMA-aligned)
-- 📝 **Full Manuscript Drafting** - Outline → draft → claim-evidence integrity → figures/tables
-- 🧩 **Study Design → Publication** - Study design, ethics/IRB pack, submission prep, rebuttal workflow
-- 🔍 **Research Gap Identification** - 5 types of academic gap analysis
-- 🧠 **Theoretical Framework Building** - Concept relationship mapping
-- ✍️ **Academic Writing Assistance** - Standard-compliant formatting
-- 🧑‍⚖️ **Multi-Persona Peer Review** - Parallel, independent cross-reviews (Methodologist, Domain Expert, "Reviewer 2")
-- 🔎 **AI De-fingerprinting & Proofread** - Multi-AI collaborative de-AI rewriting, similarity reduction, and final proofread
-- 🚀 **Strict Stage-I Academic Code Flow** - `I5 -> I6 -> I7 -> I8` with structured spec/plan/execute/review artifacts and targeted follow-up
-- 🎤 **Academic Presentation** - Story arc design → slide content spec → output to Slidev (scholarly theme), LaTeX Beamer, or PPTX
-- 🛡️ **Iterative Critique Loop (Red Teaming)** - AI self-review and Socratic questioning to continuously narrow down and refine outputs
-- 🤖 **Multi-Model Collaboration** - Codex + Claude + Gemini coordination across research stages
-- ⚡ **Token Optimized** - Layered skills architecture (~90% reduction)
-
-> [!WARNING]
-> Full functionality requires a real Python runtime plus all three model CLIs in `PATH`:
-> `python3`, `codex`, `claude`, and `gemini`.
-> You also need the matching runtime authentication. `codex` can run with `OPENAI_API_KEY` or an existing ChatGPT/Codex login, `claude` uses `ANTHROPIC_API_KEY`, and Gemini `direct` mode requires non-interactive auth such as `GEMINI_API_KEY` or Vertex env auth. Google-login-only Gemini automation should use the resident broker path described in [docs/guide/multi-agent.md](docs/guide/multi-agent.md).
-> Without them, you can still install assets and use shell `qiongli check|upgrade|align`, but `doctor`, validators, tests, and the full orchestrator flow will be partial or unavailable.
 
 ## Design Lineage And Related Projects
 
