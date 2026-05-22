@@ -1,15 +1,61 @@
-# 穷理（Qiongli）
-
-穷理是一套面向 Codex、Claude Code 与 Gemini 的契约驱动学术工作流系统，把安装、任务规划、文献工作、论文写作与严格 Stage-I 研究代码执行统一到同一套标准合同之下。
-
 <div align="center">
-  <a href="#-快速开始-0--1">🚀 快速开始</a> |
-  <a href="docs/zh/reference/cli.md">💻 CLI 命令大全</a> |
-  <a href="docs/zh/architecture.md">🏗 系统架构</a> |
-  <a href="docs/zh/advanced/agent-skill-collaboration.md">🤝 代理人协同指南</a> |
-  <a href="docs/zh/advanced/extend-qiongli.md">🛠️ 如何二次开发/贡献</a> |
-  <a href="TODO_ROADMAP.md">🗺️ Roadmap 蓝图</a>
+  <img src="docs/public/mark.svg" alt="Qiongli logo" width="104" height="104">
+  <h1>穷理（Qiongli）</h1>
+  <p><strong>面向 Codex、Claude Code 与 Gemini 的契约驱动学术工作流系统。</strong></p>
+  <p>用同一套 Task ID、质量门、角色交接和标准产物路径，串联文献、写作、研究代码、审稿与可复查证据链。</p>
+  <p>
+    <a href="docs/zh/quickstart.md">快速开始</a> ·
+    <a href="docs/zh/guide/install.md">安装</a> ·
+    <a href="docs/zh/guide/task-recipes.md">任务场景</a> ·
+    <a href="docs/zh/reference/cli.md">CLI</a> ·
+    <a href="docs/zh/architecture.md">架构</a>
+  </p>
 </div>
+
+## 穷理现在能做什么
+
+穷理把学术工作拆成可执行、可审计的任务链。它不是让模型一次性即兴生成整篇论文，而是把每一步绑定到 Task ID、质量门、角色交接和 `RESEARCH/[topic]/` 下的标准产物。
+
+适合用于：
+
+- **研究工作流：** systematic review、empirical study、qualitative study、RCT preregistration、theory paper、code-first methods paper。
+- **文献严谨性：** provider-aware search planning、search diagnostics、search bundle、dedup log、screening readiness、snowball readiness。
+- **写作完整性：** claim-evidence map、citation risk、图表规划、limitations review、proofreading、rebuttal。
+- **研究代码纪律：** 严格 Stage-I `I5 -> I6 -> I7 -> I8`，覆盖 specification、planning、execution、review。
+- **多 agent 审阅：** Codex / Claude / Gemini 的 solo、duo、triad 模式，显式 handoff、disagreement record 和 verification status。
+
+## 从哪里开始
+
+按你的目标选择最小入口：
+
+| 目标 | 推荐入口 | 说明 |
+|---|---|---|
+| 只在一个 AI 客户端里使用 | 原生 plugin / extension | [安装指南](docs/zh/guide/install.md) |
+| 给多个客户端安装 workflow assets | Bootstrap `partial` profile | [快速开始](docs/zh/quickstart.md) |
+| 使用 `qiongli doctor`、validator 或 orchestrator | Bootstrap `full` profile，要求 Python 3.12+ | [多 Agent 指南](docs/zh/guide/multi-agent.md) |
+| 通过 npm 做脚本化安装 | `npm install -g qiongli` 或 `npx qiongli@latest` | [CLI 参考](docs/zh/reference/cli.md) |
+| 更新 Python CLI 分发 | `pipx install qiongli` 或 `pipx upgrade qiongli` | [升级指南](docs/zh/guide/upgrade.md) |
+| 选择论文路线 | 从任务场景开始 | [任务场景](docs/zh/guide/task-recipes.md) |
+
+## 当前能力地图
+
+| 领域 | 覆盖内容 |
+|---|---|
+| Framing | 问题精炼、贡献陈述、假设、理论图、gap 分析、venue fit |
+| Literature | 学术搜索、概念扩展、筛选、抽取、citation snowballing、全文检索、reference bridge |
+| Design | 研究设计、变量、robustness、dataset、preregistration、data management |
+| Ethics and compliance | IRB、deidentification、ethics statement、PRISMA、reporting checks |
+| Writing and synthesis | 证据综合、manuscript architecture、analysis interpretation、表格、图、discussion、limitations |
+| Submission and rebuttal | peer-review simulation、fatal-flaw detection、cover materials、response matrix |
+| Code and reproducibility | data cleaning、merge、statistics、code build/review、release packaging、reproducibility audit |
+| Presentation | 报告规划、slide architecture、Slidev、Beamer、PPTX-oriented outputs |
+
+## 运行时边界
+
+> [!WARNING]
+> 如果你要使用“完整功能集”，需要真实安装并配置：
+> `python3`、`codex`、`claude`、`gemini` 四个运行时入口，以及对应的 `OPENAI_API_KEY`、`ANTHROPIC_API_KEY`、`GOOGLE_API_KEY`。
+> 如果缺少这些依赖，你仍然可以完成 shell 安装和 `qiongli check|upgrade|align`，但 `doctor`、validator、tests 和完整 orchestrator 多模型执行链会受限或不可用。
 
 ## 为什么叫“穷理”
 
@@ -18,28 +64,6 @@
 完整体系名是 **穷理证澈**。其中 **证澈** 是方法论与核心模块名：让证据、引用风险、假设、claim 边界和推理链条清澈可审。落实到仓库里，就是所有 workflow 都围绕 Task ID、质量门和 `RESEARCH/[topic]/` 下的标准产物运行，而不是依赖一次性的 prompt 即兴发挥。
 
 技术命名统一跟随对外主名：plugin ID 是 `qiongli`，便携 skill 包是 `qiongli-workflow`，Python 升级器分发名是 `qiongli`。`research-skills`、`rsk`、`rsw` 等旧入口只作为迁移期兼容别名继续保留。
-
-## 功能特性
-
-- 📚 **系统性文献综述** - 遵循 PRISMA 2020 方法论
-- 📖 **论文深度阅读** - 结构化笔记 + BibTeX 引用生成
-- 🧪 **证据综合与 Meta 分析** - 叙述/定性/定量综合（对齐 PRISMA）
-- 📝 **完整论文草稿** - 大纲→全文→claim-evidence 校验→图表规划
-- 🧩 **研究设计到发表** - 研究设计、伦理/IRB、投稿打包、rebuttal 返修流程
-- 🔍 **研究 Gap 识别** - 5类学术空白深度分析
-- 🧠 **理论框架构建** - 概念关系映射与假设推导
-- ✍️ **学术写作辅助** - 严格对齐各领域的学术语言规范
-- 🧑‍⚖️ **多角色专家互审** - 平行独立审稿模拟（Methodologist, Domain Expert, "Reviewer 2"）
-- 🔎 **AI 去痕与终审校对** - 多 AI 协作去 AI 化改写、降重检测、终审校对
-- 🚀 **严格 Stage-I 学术代码流** - `I5 -> I6 -> I7 -> I8` 结构化 spec/plan/execute/review 产物，以及定向 follow-up 重跑
-- 🎤 **学术报告制作** - 故事线设计 → 幻灯片内容定义 → 输出到 Slidev（scholarly 主题）、LaTeX Beamer 或 PPTX
-- 🤖 **多模型（Multi-Model）协同** - 混合调度 Codex、Claude、Gemini 跨阶段作业
-- ⚡ **Token 深度优化** - 采用分层结构，指令 Token 开销降低 ~90%
-
-> [!WARNING]
-> 如果你要使用“完整功能集”，需要真实安装并配置：
-> `python3`、`codex`、`claude`、`gemini` 四个运行时入口，以及对应的 `OPENAI_API_KEY`、`ANTHROPIC_API_KEY`、`GOOGLE_API_KEY`。
-> 如果缺少这些依赖，你仍然可以完成 shell 安装和 `qiongli check|upgrade|align`，但 `doctor`、validator、tests 和完整 orchestrator 多模型执行链会受限或不可用。
 
 ## 设计借鉴与相关项目
 
