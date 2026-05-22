@@ -49,7 +49,7 @@
 | `C_design` | 研究设计、变量、稳健性、数据可得性 | 9 | “这个研究该怎么设计和 operationalize？” |
 | `D_ethics` | IRB、隐私、治理 | 3 | “伦理与数据合规材料要怎么准备？” |
 | `E_synthesis` | 证据综合、质量评估、发表偏倚 | 5 | “已有证据要怎么整合和评级？” |
-| `F_writing` | 结构、结果解释、表格、图、摘要 | 7 | “如何把分析结果写成论文？” |
+| `F_writing` | 结构、结果解释、表格、图、摘要 | 8 | “如何把分析结果写成论文？” |
 | `G_compliance` | PRISMA、报告规范、学术语气 | 3 | “论文是否已经满足提交前规范？” |
 | `J_proofread` | AI 痕迹检查、人声化改写、相似度、终稿校对 | 4 | “怎么在投稿前去 AI 痕迹并做终稿校对？” |
 | `H_submission` | 投稿包、回复审稿、模拟评审 | 7 | “投稿前后怎么打包和应对审稿？” |
@@ -133,6 +133,7 @@
 | Skill | 中文名 | 适用场景 | 产出类型 |
 |---|---|---|---|
 | `manuscript-architect` | 论文架构师 | 当你需要搭建论文整体结构、章节推进和核心论证主线时使用。 | `ManuscriptOutline`, `Manuscript`, `ClaimGraph`, `FiguresTablesPlan` |
+| `proposal-writer` | 开题报告撰写 | 当你需要为论文、课题、基金或课程项目撰写 research proposal、开题报告、prospectus 或研究计划书时使用。 | `ResearchProposal` |
 | `analysis-interpreter` | 结果分析解释 | 当你需要把 quant 或 qualitative findings 写成有分析深度的结果叙述时使用。 | `ResultInterpretation` |
 | `effect-size-interpreter` | 效应量解释 | 当你需要把统计系数翻译成读者能理解的实际意义时使用。 | `EffectInterpretation` |
 | `table-generator` | 论文表格生成 | 当你需要把统计结果整理成论文级表格时使用。 | `FormattedTables` |

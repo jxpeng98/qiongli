@@ -49,7 +49,7 @@ If you want scenario-driven routes such as "systematic review", "methods paper",
 | `C_design` | design, variables, robustness, datasets | 9 | "How should this study be designed and operationalized?" |
 | `D_ethics` | IRB, privacy, governance | 3 | "What ethics and data-protection materials do I need?" |
 | `E_synthesis` | evidence synthesis, quality, bias | 5 | "How do I combine and rate evidence?" |
-| `F_writing` | manuscript building, tables, figures, results writing | 7 | "How do I turn analysis into publishable text?" |
+| `F_writing` | manuscript building, tables, figures, results writing | 8 | "How do I turn analysis into publishable text?" |
 | `G_compliance` | reporting checklists, tone, PRISMA | 3 | "Is this compliant and submission-ready?" |
 | `J_proofread` | AI detection, humanization, similarity, final polish | 4 | "How do I de-AI and finalize the manuscript?" |
 | `H_submission` | submission package, rebuttal, review simulation | 7 | "How do I package, defend, and stress-test the paper?" |
@@ -133,6 +133,7 @@ Use Stage F when the main question is turning evidence and analysis into section
 | Skill | Display Name | When to use | Produces |
 |---|---|---|---|
 | `manuscript-architect` | Manuscript Architect | You want to draft a paper from an existing `RESEARCH/[topic]/` project folder (empirical study or systematic review). | `ManuscriptOutline`, `Manuscript`, `ClaimGraph`, `FiguresTablesPlan` |
+| `proposal-writer` | Proposal Writer | When preparing a research proposal, opening report, prospectus, study plan, or 开题报告 before results-focused manuscript drafting. | `ResearchProposal` |
 | `analysis-interpreter` | Analysis Interpreter | After primary analysis is complete | `ResultInterpretation` |
 | `effect-size-interpreter` | Effect Size Interpreter | After primary analysis is complete | `EffectInterpretation` |
 | `table-generator` | Table Generator | After primary analysis is complete | `FormattedTables` |
