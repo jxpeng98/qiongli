@@ -151,6 +151,16 @@ LITERATURE_FIRST_REQUIRED_FILES = (
     "tests/test_literature_artifact_materialization.py",
     "tests/test_literature_search_quality_audit.py",
 )
+QUALITY_GATE_CONTRACT_REQUIRED_FILES = (
+    "standards/quality-gate-contract.yaml",
+    "scripts/audit_quality_gates.py",
+    "templates/quality-gate-report.md",
+    "tests/test_quality_gate_contract.py",
+)
+DOMAIN_METHOD_PACK_REQUIRED_FILES = (
+    "scripts/audit_domain_method_packs.py",
+    "tests/test_domain_method_packs.py",
+)
 LITERATURE_SEARCH_DIAGNOSTIC_SECTIONS = (
     "Search Scope",
     "Known-Item Recall",
@@ -2668,6 +2678,104 @@ def validate_literature_first_contracts(
         )
 
 
+def validate_quality_gate_contracts(
+    root: Path,
+    report: ValidationReport,
+    *,
+    strict: bool,
+) -> None:
+    if not strict:
+        return
+
+    missing = []
+    for relative_path in QUALITY_GATE_CONTRACT_REQUIRED_FILES:
+        exists = (root / relative_path).exists()
+        report.check(
+            exists,
+            f"Quality gate contract exists: {relative_path}",
+            f"Missing quality gate contract/script/template/test: {relative_path}",
+        )
+        if not exists:
+            missing.append(relative_path)
+
+    if missing:
+        return
+
+    from scripts.audit_quality_gates import (
+        QualityGateContractError,
+        audit_gate_report,
+        load_gate_contract,
+    )
+
+    try:
+        contract = load_gate_contract(root / "standards" / "quality-gate-contract.yaml")
+    except QualityGateContractError as exc:
+        report.check(
+            False,
+            "Quality gate contract loads",
+            f"Quality gate contract failed to load: {exc}",
+        )
+        return
+
+    gate_ids = set((contract.get("gates") or {}).keys())
+    report.check(
+        gate_ids == EXPECTED_QUALITY_GATES,
+        "Quality gate contract defines Q1-Q4",
+        (
+            "Quality gate contract mismatch. Missing: "
+            f"{ids_to_text(EXPECTED_QUALITY_GATES - gate_ids) or 'none'}; "
+            f"Extra: {ids_to_text(gate_ids - EXPECTED_QUALITY_GATES) or 'none'}"
+        ),
+    )
+
+    audit_result = audit_gate_report(root / "templates" / "quality-gate-report.md", contract)
+    report.check(
+        audit_result.passed,
+        "Quality gate report template satisfies contract",
+        "Quality gate report template audit failed: " + "; ".join(audit_result.errors),
+    )
+
+
+def validate_domain_method_pack_contracts(
+    root: Path,
+    report: ValidationReport,
+    *,
+    strict: bool,
+) -> None:
+    if not strict:
+        return
+
+    missing = []
+    for relative_path in DOMAIN_METHOD_PACK_REQUIRED_FILES:
+        exists = (root / relative_path).exists()
+        report.check(
+            exists,
+            f"Domain method-pack contract exists: {relative_path}",
+            f"Missing domain method-pack script/test: {relative_path}",
+        )
+        if not exists:
+            missing.append(relative_path)
+
+    if missing:
+        return
+
+    from scripts.audit_domain_method_packs import audit_domain_profile
+
+    audit_errors: list[str] = []
+    for name in ("economics", "finance"):
+        profile_path = root / "skills" / "domain-profiles" / f"{name}.yaml"
+        try:
+            audit_errors.extend(audit_domain_profile(profile_path).errors)
+        except Exception as exc:  # pragma: no cover - defensive validator boundary
+            audit_errors.append(f"Domain method-pack profile failed to load: {profile_path}: {exc}")
+
+    report.check(
+        not audit_errors,
+        "Economics and finance domain method packs satisfy required fields",
+        "Domain method-pack audit failed: " + "; ".join(audit_errors),
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Validate cross-model research workflow standardization consistency."
@@ -2713,6 +2821,8 @@ def main() -> int:
     validate_skill_package_resource_links(root, report)
     validate_controller_mode_contracts(root, report, strict=args.strict)
     validate_literature_first_contracts(root, report, strict=args.strict)
+    validate_quality_gate_contracts(root, report, strict=args.strict)
+    validate_domain_method_pack_contracts(root, report, strict=args.strict)
 
     total_failed = len(report.errors)
     total_warn = len(report.warnings)

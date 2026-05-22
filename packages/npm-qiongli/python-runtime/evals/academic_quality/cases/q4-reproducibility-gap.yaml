@@ -1,0 +1,21 @@
+id: q4-reproducibility-gap
+scenario: Q4 reproducibility failure where computational outputs lack environment, script, and order baseline
+metadata:
+  gate: Q4
+  severity: block
+  domain: computational social science
+  method: reproducible analysis
+expected_failures:
+  - gate: Q4
+    severity: block
+    reason: Computational outputs cannot be reproduced because environment, scripts, and execution order are missing.
+expected_dimensions:
+  artifact_completeness: 0.45
+  evidence_traceability: 0.75
+  no_fabricated_sources: 1.0
+  claim_calibration: 0.7
+  venue_fit: 0.65
+  method_validity: 0.55
+  scholarly_voice: 0.75
+  quality_gate_compliance: 0.25
+  domain_method_fit: 0.55

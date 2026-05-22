@@ -264,4 +264,6 @@ while IFS= read -r plugin_line; do
   done
 done <<< "$actual_plugin_versions"
 
+python3 scripts/audit_distribution_payloads.py
+
 echo "[verify-release-tag] tag and repo versions are aligned: $TAG"

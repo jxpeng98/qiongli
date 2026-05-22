@@ -34,6 +34,16 @@ def copy_path(src: Path, dest: Path, *, dry_run: bool) -> None:
         shutil.copy2(src, dest)
 
 
+def fail_if_symlinks(path: Path) -> None:
+    if not path.exists():
+        return
+    if path.is_symlink():
+        raise RuntimeError(f"generated npm package path is a symlink: {path}")
+    for item in path.rglob("*"):
+        if item.is_symlink():
+            raise RuntimeError(f"generated npm package path contains symlink: {item}")
+
+
 def sync_npm_payload(root: Path, *, dry_run: bool = False) -> None:
     npm_root = root / "packages" / "npm-qiongli"
     payload_root = npm_root / "payload"
@@ -65,6 +75,10 @@ def sync_npm_payload(root: Path, *, dry_run: bool = False) -> None:
             copy_path(src, runtime_root / item, dry_run=dry_run)
             if item == "LICENSE":
                 copy_path(src, npm_root / "LICENSE", dry_run=dry_run)
+
+    if not dry_run:
+        fail_if_symlinks(payload_root)
+        fail_if_symlinks(runtime_root)
 
 
 def main(argv: list[str] | None = None) -> int:

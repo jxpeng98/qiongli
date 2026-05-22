@@ -1,0 +1,21 @@
+id: finance-event-study-leakage
+scenario: Finance event study with event leakage or contaminated estimation window
+metadata:
+  gate: Q1
+  severity: block
+  domain: finance
+  method: Event Study
+expected_failures:
+  - gate: Q1
+    severity: block
+    reason: Event window shows leakage risk and the estimation window overlaps contaminated pre-event information.
+expected_dimensions:
+  artifact_completeness: 0.7
+  evidence_traceability: 0.75
+  no_fabricated_sources: 1.0
+  claim_calibration: 0.5
+  venue_fit: 0.7
+  method_validity: 0.35
+  scholarly_voice: 0.75
+  quality_gate_compliance: 0.35
+  domain_method_fit: 0.3

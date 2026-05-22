@@ -235,6 +235,9 @@ fi
 echo "[preflight] sync npm payload"
 python3 scripts/sync_npm_package_payload.py
 
+echo "[preflight] audit distribution payload alignment"
+python3 scripts/audit_distribution_payloads.py
+
 validate_cmd=(python3 scripts/validate_research_standard.py)
 if [[ "$STRICT_MODE" -eq 1 ]]; then
   validate_cmd+=(--strict)
