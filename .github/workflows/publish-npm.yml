@@ -26,7 +26,6 @@ jobs:
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
-          package-manager-cache: false
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -54,7 +53,7 @@ jobs:
             npm publish --tag next
             latest="$(npm view qiongli dist-tags.latest --silent || true)"
             if [[ "$latest" == *"-beta."* ]]; then
-              npm dist-tag rm qiongli latest
+              npm dist-tag rm qiongli latest || echo "[npm-publish] warning: unable to remove beta latest dist-tag"
             fi
           else
             npm publish --tag latest
