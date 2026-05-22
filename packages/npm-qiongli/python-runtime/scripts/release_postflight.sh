@@ -432,8 +432,8 @@ else
   echo "[postflight] CI status check skipped by flag"
 fi
 
-python3 scripts/build_marketplace_artifacts.py --tag "$TAG" --dist-dir dist
-MARKETPLACE_ARTIFACTS=(
+python3 scripts/build_plugin_artifacts.py --tag "$TAG" --dist-dir dist
+PLUGIN_ARTIFACTS=(
   "dist/qiongli-codex-plugin-${TAG}.tar.gz"
   "dist/qiongli-claude-plugin-${TAG}.tar.gz"
   "dist/qiongli-gemini-extension-${TAG}.tar.gz"
@@ -484,8 +484,8 @@ PY
     exit 1
   fi
   echo "[postflight] GitHub release exists: ${release_state#ok:}"
-  gh release upload "$TAG" --repo "$REPO_SLUG" --clobber "${MARKETPLACE_ARTIFACTS[@]}"
-  echo "[postflight] marketplace artifacts uploaded to existing release"
+  gh release upload "$TAG" --repo "$REPO_SLUG" --clobber "${PLUGIN_ARTIFACTS[@]}"
+  echo "[postflight] plugin artifacts uploaded to existing release"
 elif [[ "$CREATE_RELEASE" -eq 1 ]]; then
   release_args=(
     "$TAG"
@@ -496,7 +496,7 @@ elif [[ "$CREATE_RELEASE" -eq 1 ]]; then
   if [[ "$IS_PRERELEASE" -eq 1 ]]; then
     release_args+=(--prerelease)
   fi
-  release_args+=(dist/*)
+  release_args+=("${PLUGIN_ARTIFACTS[@]}")
   gh release create "${release_args[@]}"
   if [[ "$IS_PRERELEASE" -eq 1 ]]; then
     echo "[postflight] GitHub prerelease created: $TAG"

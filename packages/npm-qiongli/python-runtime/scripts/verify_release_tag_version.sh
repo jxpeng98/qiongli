@@ -185,7 +185,6 @@ from pathlib import Path
 
 paths = [
     Path("plugins/qiongli/.codex-plugin/plugin.json"),
-    Path(".claude-plugin/marketplace.json"),
     Path("plugins/qiongli/.claude-plugin/plugin.json"),
     Path("plugins/qiongli/gemini-extension.json"),
 ]

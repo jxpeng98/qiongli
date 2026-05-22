@@ -22,7 +22,7 @@ The official public marketplace entry lives in `jxpeng98/skillsplace` and should
 - Claude Code manifest: `plugins/qiongli/.claude-plugin/plugin.json`
 - Gemini extension manifest: `plugins/qiongli/gemini-extension.json`
 
-The Skillsplace catalog should track `main` and release tags, not `dev`. Use `dev` for local plugin packaging tests and prerelease validation before the shared marketplace entry is updated. Local marketplace files in this repository, when retained for transitional tooling, should be treated as build/test metadata rather than the public install source.
+The Skillsplace catalog should track `main` and release tags, not `dev`. Use `dev` for local plugin packaging tests and prerelease validation before the shared marketplace entry is updated. This repository no longer carries Codex or Claude marketplace catalog files; it only owns the plugin payload and platform manifests.
 
 ## Development Flow
 
@@ -43,7 +43,7 @@ python3 -m unittest discover -s tests -v
 4. For prerelease packaging checks, build plugin artifacts from the intended tag:
 
 ```bash
-python3 scripts/build_marketplace_artifacts.py --tag v0.7.0-beta.2 --dist-dir dist
+python3 scripts/build_plugin_artifacts.py --tag v0.7.0-beta.2 --dist-dir dist
 ```
 
 5. Publish beta releases from `dev` when the release-prep commit and preflight evidence are ready:

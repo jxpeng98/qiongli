@@ -145,7 +145,6 @@ def sync_versions(root: Path, raw_version: str) -> list[Path]:
 
     json_version_files = (
         root / "plugins" / "qiongli" / ".codex-plugin" / "plugin.json",
-        root / ".claude-plugin" / "marketplace.json",
         root / "plugins" / "qiongli" / ".claude-plugin" / "plugin.json",
         root / "plugins" / "qiongli" / "gemini-extension.json",
     )

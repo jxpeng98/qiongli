@@ -54,21 +54,11 @@ class PluginDistributionContractTests(unittest.TestCase):
     def test_platform_manifests_share_workflow_version(self) -> None:
         codex = json.loads((PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
         claude = json.loads((PLUGIN_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        claude_marketplace = json.loads((REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
         gemini = json.loads((PLUGIN_ROOT / "gemini-extension.json").read_text(encoding="utf-8"))
 
         self.assertEqual(codex["version"], WORKFLOW_VERSION)
         self.assertEqual(claude["version"], WORKFLOW_VERSION)
-        self.assertEqual(claude_marketplace["metadata"]["version"], WORKFLOW_VERSION)
-        self.assertEqual(claude_marketplace["plugins"][0]["version"], WORKFLOW_VERSION)
         self.assertEqual(gemini["version"], WORKFLOW_VERSION)
-
-    def test_codex_marketplace_points_to_local_qiongli_plugin(self) -> None:
-        marketplace = json.loads((REPO_ROOT / ".agents" / "plugins" / "marketplace.json").read_text(encoding="utf-8"))
-        entries = {entry["name"]: entry for entry in marketplace["plugins"]}
-
-        self.assertIn("qiongli", entries)
-        self.assertEqual(entries["qiongli"]["source"], {"source": "local", "path": "./plugins/qiongli"})
 
     def test_codex_plugin_exposes_skill_directory(self) -> None:
         manifest = json.loads((PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))

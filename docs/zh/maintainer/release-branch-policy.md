@@ -22,7 +22,7 @@
 - Claude Code manifest: `plugins/qiongli/.claude-plugin/plugin.json`
 - Gemini extension manifest: `plugins/qiongli/gemini-extension.json`
 
-Skillsplace catalog 应跟踪 `main` 和 release tag，而不是 `dev`。`dev` 用于本地 plugin packaging 测试和预发布验证，验证完成后再更新统一 marketplace 入口。本仓库内若仍保留 local marketplace 文件，只应视作过渡期 build/test 元数据，而不是公开安装源。
+Skillsplace catalog 应跟踪 `main` 和 release tag，而不是 `dev`。`dev` 用于本地 plugin packaging 测试和预发布验证，验证完成后再更新统一 marketplace 入口。本仓库不再携带 Codex 或 Claude marketplace catalog 文件，只负责 plugin payload 和平台 manifest。
 
 ## 开发流程
 
@@ -43,7 +43,7 @@ python3 -m unittest discover -s tests -v
 4. 如需检查预发布打包，用目标 tag 构建 plugin artifacts：
 
 ```bash
-python3 scripts/build_marketplace_artifacts.py --tag v0.7.0-beta.2 --dist-dir dist
+python3 scripts/build_plugin_artifacts.py --tag v0.7.0-beta.2 --dist-dir dist
 ```
 
 5. 只有当 CI、install checks 和 release preflight 都通过后，才把变更合入 `main`。

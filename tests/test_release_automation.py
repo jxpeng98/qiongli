@@ -36,7 +36,6 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('git tag -a "$repo_tag"', content)
         self.assertIn('git push "$push_remote" "$push_branch" "$repo_tag"', content)
         self.assertIn('plugins/qiongli/.codex-plugin/plugin.json', content)
-        self.assertIn('.claude-plugin/marketplace.json', content)
         self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
         self.assertIn('plugins/qiongli/gemini-extension.json', content)
         self.assertIn('plugins/qiongli/skills/qiongli-workflow', content)
@@ -88,9 +87,10 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('bash ./scripts/verify_release_tag_version.sh --tag "$TAG"', content)
         self.assertIn("gh release view", content)
         self.assertIn("--prerelease", content)
-        self.assertIn('scripts/build_marketplace_artifacts.py --tag "$TAG" --dist-dir dist', content)
-        self.assertIn('MARKETPLACE_ARTIFACTS=(', content)
-        self.assertIn('gh release upload "$TAG" --repo "$REPO_SLUG" --clobber "${MARKETPLACE_ARTIFACTS[@]}"', content)
+        self.assertIn('scripts/build_plugin_artifacts.py --tag "$TAG" --dist-dir dist', content)
+        self.assertIn('PLUGIN_ARTIFACTS=(', content)
+        self.assertIn('gh release upload "$TAG" --repo "$REPO_SLUG" --clobber "${PLUGIN_ARTIFACTS[@]}"', content)
+        self.assertIn('release_args+=("${PLUGIN_ARTIFACTS[@]}")', content)
 
     def test_release_postflight_accepts_beta_tags_reachable_from_dev(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
@@ -107,7 +107,6 @@ class ReleaseAutomationTests(unittest.TestCase):
         content = RELEASE_READY.read_text(encoding="utf-8")
 
         self.assertIn('plugins/qiongli/.codex-plugin/plugin.json', content)
-        self.assertIn('.claude-plugin/marketplace.json', content)
         self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
         self.assertIn('plugins/qiongli/gemini-extension.json', content)
         self.assertIn('packages/npm-qiongli|packages/npm-qiongli/*', content)
@@ -289,7 +288,6 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('plugins/qiongli/.codex-plugin/plugin.json', content)
         self.assertIn('plugins/qiongli/skills/qiongli-workflow/VERSION', content)
         self.assertIn('plugins/qiongli/skills/qiongli-workflow/skills/registry.yaml', content)
-        self.assertIn('.claude-plugin/marketplace.json', content)
         self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
         self.assertIn('plugins/qiongli/gemini-extension.json', content)
 

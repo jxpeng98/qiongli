@@ -30,23 +30,13 @@ class QiongliNamingTests(unittest.TestCase):
         self.assertNotIn("pipx upgrade qiongli-installer", cli_source)
 
     def test_plugin_manifests_use_qiongli_public_identity(self) -> None:
-        marketplace = json.loads((REPO_ROOT / ".agents" / "plugins" / "marketplace.json").read_text(encoding="utf-8"))
         codex_manifest = json.loads((REPO_ROOT / "plugins" / "qiongli" / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        claude_marketplace = json.loads((REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
         claude_manifest = json.loads((REPO_ROOT / "plugins" / "qiongli" / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
         gemini_manifest = json.loads((REPO_ROOT / "plugins" / "qiongli" / "gemini-extension.json").read_text(encoding="utf-8"))
-
-        self.assertEqual(marketplace["name"], "qiongli")
-        self.assertEqual(marketplace["interface"]["displayName"], "Qiongli")
-        self.assertEqual(marketplace["plugins"][0]["name"], "qiongli")
-        self.assertEqual(marketplace["plugins"][0]["source"], {"source": "local", "path": "./plugins/qiongli"})
 
         for manifest in (codex_manifest, claude_manifest, gemini_manifest):
             self.assertEqual(manifest["name"], "qiongli")
             self.assertIn("Qiongli", manifest["description"])
-
-        self.assertEqual(claude_marketplace["name"], "qiongli")
-        self.assertEqual(claude_marketplace["plugins"][0]["source"], "./plugins/qiongli")
 
     def test_portable_skill_id_uses_qiongli_workflow(self) -> None:
         skill_root = REPO_ROOT / "qiongli-workflow"
