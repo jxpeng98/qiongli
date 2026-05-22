@@ -89,6 +89,11 @@ jobs:
       - name: Inject packaged upstream defaults
         run: bash scripts/inject_project_toml.sh
 
+      - name: Sync generated distribution payloads
+        run: |
+          bash scripts/sync_skill_package.sh --target all
+          python3 scripts/sync_npm_package_payload.py
+
       - name: Install release dependencies and build package
         run: |
           python -m pip install -e . build twine

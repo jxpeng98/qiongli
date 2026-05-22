@@ -36,6 +36,11 @@ jobs:
       - name: Install Python runtime dependency
         run: python -m pip install PyYAML
 
+      - name: Sync generated distribution payloads
+        run: |
+          bash scripts/sync_skill_package.sh --target all
+          python3 scripts/sync_npm_package_payload.py
+
       - name: Verify tag matches repo version
         run: bash scripts/verify_release_tag_version.sh --tag "${GITHUB_REF_NAME}"
 
