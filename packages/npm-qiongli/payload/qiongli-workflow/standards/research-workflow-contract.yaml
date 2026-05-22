@@ -50,6 +50,7 @@ artifacts:
     - "data/merge_plan.md"
     - "ethics_irb.md"
     - "compliance/deidentification_plan.md"
+    - "proposal/research_proposal.md"
     - "manuscript/results_interpretation.md"
     - "manuscript/effect_interpretation.md"
     - "manuscript/tables/"
@@ -285,6 +286,7 @@ stages:
     outputs:
       - "context/research_state.md"
       - "context/decision_log.md"
+      - "proposal/research_proposal.md"
       - "manuscript/outline.md"
       - "manuscript/manuscript.md"
       - "manuscript/discussion.md"

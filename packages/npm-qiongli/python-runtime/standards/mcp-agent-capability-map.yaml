@@ -247,6 +247,7 @@ skill_registry:
   - "evidence-synthesizer"
   - "effect-size-calculator"
   - "manuscript-architect"
+  - "proposal-writer"
   - "prisma-checker"
   - "reporting-checker"
   - "submission-packager"
@@ -464,6 +465,12 @@ skill_catalog:
       - "manuscript/manuscript.md"
       - "manuscript/claims_evidence_map.md"
       - "manuscript/figures_tables_plan.md"
+  proposal-writer:
+    file: "skills/F_writing/proposal-writer.md"
+    category: "manuscript-structure"
+    focus: "Draft research proposals, opening reports, prospectuses, and study plans from framing and design artifacts."
+    default_outputs:
+      - "proposal/research_proposal.md"
   analysis-interpreter:
     file: "skills/F_writing/analysis-interpreter.md"
     category: "manuscript-structure"

@@ -64,6 +64,7 @@ Quick-reference index of all canonical skills (~3KB). For detailed specification
 | Skill | Purpose |
 |-------|---------|
 | manuscript-architect | Draft and revise full research paper (outline → manuscript) |
+| proposal-writer | Draft research proposals, opening reports, prospectuses, and study plans |
 | analysis-interpreter | Translate findings into analytical prose with uncertainty |
 | effect-size-interpreter | Explain estimate magnitude in interpretable units |
 | table-generator | Generate publication-ready tables |

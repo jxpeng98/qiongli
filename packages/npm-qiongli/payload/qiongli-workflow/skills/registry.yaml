@@ -650,6 +650,25 @@ skills:
     tooling_requirements: [filesystem]
     domain_aware: true
 
+  - id: proposal-writer
+    stage: F_writing
+    version: "0.10.1"
+    file: skills/F_writing/proposal-writer.md
+    canonical: true
+    summary: "Draft research proposals, opening reports, prospectuses, and study plans from framing and design artifacts."
+    display_name: "Proposal Writer"
+    when_to_use: "When preparing a research proposal, opening report, prospectus, study plan, or 开题报告 before results-focused manuscript drafting."
+    summary_zh: "根据选题、文献空白、理论框架和研究设计起草 research proposal、开题报告或研究计划书。"
+    display_name_zh: "开题报告撰写"
+    when_to_use_zh: "当你需要为论文、课题、基金或课程项目撰写 research proposal、开题报告、prospectus 或研究计划书时使用。"
+    inputs: [RQSet, GapAnalysis, TheoreticalFramework, ContributionStatement, DesignSpec, AnalysisPlan, DataManagementPlan, VenueAnalysis]
+    outputs: [ResearchProposal]
+    tags: [writing, proposal, opening-report, prospectus, study-plan, drafting]
+    depends_on: [question-refiner, gap-analyzer, theory-mapper, contribution-crafter, study-designer]
+    compatible_models: [codex, claude, gemini, gpt]
+    tooling_requirements: [filesystem]
+    domain_aware: true
+
   - id: analysis-interpreter
     stage: F_writing
     version: "0.10.1"
