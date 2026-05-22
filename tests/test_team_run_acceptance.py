@@ -4,7 +4,7 @@ import unittest
 from datetime import datetime, timezone
 from pathlib import Path
 
-from research_skills.team_run_acceptance import (
+from qiongli.team_run_acceptance import (
     render_team_run_receipt,
     summarize_team_run_result,
 )

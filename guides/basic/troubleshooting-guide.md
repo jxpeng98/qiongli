@@ -1,6 +1,6 @@
 # 🚨 Troubleshooting & Unified Error Codes Guide
 
-This document lists all standard `ERR-RS-*` error codes you might encounter while using the Research Skills Orchestrator CLI, along with their root causes and standard solutions.
+This document lists all standard `ERR-RS-*` error codes you might encounter while using the Qiongli Orchestrator CLI, along with their root causes and standard solutions.
 
 > **Pro Tip:** If you encounter any unexpected behavior, your first step should always be to run the interactive doctor: 
 > `python3 -m bridges.orchestrator doctor --cwd .`

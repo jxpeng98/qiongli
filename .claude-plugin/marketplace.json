@@ -1,23 +1,23 @@
 {
-  "name": "research-skills",
+  "name": "qiongli",
   "owner": {
     "name": "Jiaxin Peng"
   },
   "metadata": {
     "description": "Academic research workflow plugins for Claude Code.",
-    "version": "0.7.0-beta.2"
+    "version": "0.10.1"
   },
   "plugins": [
     {
-      "name": "research-skills",
-      "source": "./plugins/research-skills",
+      "name": "qiongli",
+      "source": "./plugins/qiongli",
       "description": "Academic paper workflows for planning, literature review, writing, compliance, submission, and research code.",
-      "version": "0.7.0-beta.2",
+      "version": "0.10.1",
       "author": {
         "name": "Jiaxin Peng"
       },
-      "homepage": "https://github.com/jxpeng98/research-skills",
-      "repository": "https://github.com/jxpeng98/research-skills",
+      "homepage": "https://github.com/jxpeng98/qiongli",
+      "repository": "https://github.com/jxpeng98/qiongli",
       "license": "MIT",
       "category": "education",
       "tags": [

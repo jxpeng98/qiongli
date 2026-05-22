@@ -7,8 +7,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = REPO_ROOT / "install" / "install_manifest.tsv"
-PACKAGED_MANIFEST_PATH = REPO_ROOT / "research_skills" / "install_manifest.tsv"
-SYNC_DIRS = ("skills", "templates", "standards", "roles")
+PACKAGED_MANIFEST_PATH = REPO_ROOT / "qiongli" / "install_manifest.tsv"
+SYNC_DIRS = ("skills", "templates", "standards", "roles", "venue-profiles")
 SYNC_FILES = ("skills-core.md", "skills-summary.md")
 SYNC_EXCLUDE = {"CLAUDE.project.md"}
 
@@ -33,7 +33,7 @@ def _read_manifest() -> list[dict[str, str]]:
 
 
 def _ensure_skill_package_synced() -> None:
-    pkg = REPO_ROOT / "research-paper-workflow"
+    pkg = REPO_ROOT / "qiongli-workflow"
     for dir_name in SYNC_DIRS:
         src = REPO_ROOT / dir_name
         dest = pkg / dir_name
@@ -114,12 +114,12 @@ class InstallManifestTests(unittest.TestCase):
             seen.add(key)
 
     def test_all_global_skill_entries_use_dir_copy(self) -> None:
-        """All global skill entries should use dir-copy with the research-paper-workflow source."""
+        """All global skill entries should use dir-copy with the qiongli-workflow source."""
         entries = _read_manifest()
         for entry in entries:
             if entry["target"] in {"codex", "claude", "gemini", "antigravity"}:
                 self.assertEqual(entry["op"], "dir-copy", msg=f"expected dir-copy for {entry}")
-                self.assertEqual(entry["source"], "research-paper-workflow", msg=f"unexpected source for {entry}")
+                self.assertEqual(entry["source"], "qiongli-workflow", msg=f"unexpected source for {entry}")
 
     def test_no_project_dir_in_global_entries(self) -> None:
         """Global install entries must not reference PROJECT_DIR."""
@@ -130,7 +130,7 @@ class InstallManifestTests(unittest.TestCase):
 
     def test_skill_source_contains_bundled_workflows(self) -> None:
         """The skill source directory must contain bundled workflows."""
-        skill_src = REPO_ROOT / "research-paper-workflow"
+        skill_src = REPO_ROOT / "qiongli-workflow"
         workflows_dir = skill_src / "workflows"
         self.assertTrue(workflows_dir.is_dir(), msg="missing workflows directory in skill source")
         workflow_files = list(workflows_dir.glob("*.md"))
@@ -142,7 +142,7 @@ class InstallManifestTests(unittest.TestCase):
 
     def test_skill_source_is_self_contained(self) -> None:
         """After sync, the skill package must be self-contained with all required assets."""
-        pkg = REPO_ROOT / "research-paper-workflow"
+        pkg = REPO_ROOT / "qiongli-workflow"
         # skills-core.md
         self.assertTrue((pkg / "skills-core.md").is_file(), msg="missing skills-core.md in skill package")
         # skills-summary.md (3-tier loading: summary < core < full)

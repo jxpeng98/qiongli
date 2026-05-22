@@ -5,7 +5,7 @@
 The most portable install path is the shell bootstrapper. It downloads the selected release archive and runs the bundled installer:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- \
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- \
   --project-dir /path/to/project \
   --target all
 ```
@@ -16,8 +16,8 @@ Requirements:
 - `tar`
 
 Notes:
-- By default this also installs a shell CLI: `research-skills`, `rsk`, `rsw`.
-- Default CLI location: `${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}`.
+- By default this also installs a shell CLI: `qiongli`, `ql`, `research-skills`, `rsk`, `rsw`.
+- Default CLI location: `${QIONGLI_BIN_DIR:-${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}}`.
 - Add `--overwrite` when re-installing/upgrading existing targets.
 - Use `--no-cli` if you only want the workflow assets.
 - Use `--cli-dir <path>` to install the shell CLI elsewhere.
@@ -25,21 +25,39 @@ Notes:
 - Installer mode selection is `--mode copy|link`. Remote bootstrap only supports `--mode copy`.
 - Remote bootstrap only supports `--mode copy`. If you want `--mode link`, clone the repo and use the local installer below.
 
-## 2. Optional Python CLI
+## 2. Optional npm CLI
+
+If Node.js is already available, you can install the standalone npm CLI instead of the Python CLI:
+
+```bash
+npm install -g qiongli
+qiongli install --target all --project-dir /path/to/project
+```
+
+For prerelease testing without a global install:
+
+```bash
+npx qiongli@next install --target all --project-dir /path/to/project
+npx qiongli@next check --json
+```
+
+The npm package bundles the full `qiongli-workflow` skills payload. Advanced commands such as `qiongli doctor`, `qiongli task-run`, and `qiongli team-run` use the Python bridge source bundled inside the npm package and require Python 3.12+ plus `PyYAML`.
+
+## 3. Optional Python CLI
 
 If Python is already available on the machine, you can install the updater CLI with `pipx`:
 
 ```bash
-pipx install research-skills-installer
-rsk upgrade --target all --project-dir /path/to/project --doctor
+pipx install qiongli
+qiongli upgrade --target all --project-dir /path/to/project --doctor
 ```
 
-## 3. Local Repository Installer
+## 4. Local Repository Installer
 
 If you already have a repository checkout, you can run the installer directly:
 
 ```bash
-./scripts/install_research_skill.sh --target all --project-dir /path/to/project --install-cli --doctor
+./scripts/install_qiongli.sh --target all --project-dir /path/to/project --install-cli --doctor
 ```
 
 ## Global-First Behaviors & What Gets Installed
@@ -47,12 +65,12 @@ If you already have a repository checkout, you can run the installer directly:
 Default install/upgrade behavior is purely **global**. Your project directories remain clean.
 
 The installer does two things:
-1. **Installs the Core Package:** `research-paper-workflow` is placed into the specific home directories of your AI clients (e.g. `~/.claude/skills/`, `~/.gemini/skills/`).
+1. **Installs the Core Package:** `qiongli-workflow` is placed into the specific home directories of your AI clients (e.g. `~/.claude/skills/`, `~/.gemini/skills/`).
 2. **Registers Slash Commands:** It drops lightweight symlinks into the client's discovery paths (e.g. `~/.claude/commands/paper.md` and `~/.gemini/workflows/lit-review.md`).
 
 This means commands like `/paper` and `/study-design` become natively recognized by the AI engines **no matter what folder you are working in**.
 
-_Project-local files (like `.env`) are only written when you explicitly run `rsk init --project-dir .`._
+_Project-local files (like `.env`) are only written when you explicitly run `qiongli init --project-dir .`._
 
 Home directory overrides:
 - `CODEX_HOME`: root directory for Codex skill installation.
@@ -62,9 +80,9 @@ Home directory overrides:
 
 ## Common flags
 
-- `--install-cli`: install shell CLI commands (`research-skills`, `rsk`, `rsw`).
+- `--install-cli`: install shell CLI commands (`qiongli`, `ql`, `research-skills`, `rsk`, `rsw`).
 - `--no-cli`: skip shell CLI installation.
-- `--cli-dir <path>`: choose where the shell CLI is installed (default: `${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}`).
+- `--cli-dir <path>`: choose where the shell CLI is installed (default: `${QIONGLI_BIN_DIR:-${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}}`).
 - `--overwrite`: replace existing installation targets.
 - `--dry-run`: preview installation actions only.
 - `--doctor`: run `python3 -m bridges.orchestrator doctor --cwd <project>` after install when `python3` is available.
@@ -79,9 +97,9 @@ Because commands are registered globally, using the system for a new paper is in
 
 ## Upgrade
 
-- Check updates: `rsk check --repo <owner>/<repo>`
-- Upgrade (no fork / no git clone required): `rsk upgrade --repo <owner>/<repo> --target all` for global refresh.
-- Full guide: `guides/basic/upgrade-research-skills.md`
+- Check updates: `qiongli check --repo <owner>/<repo>`
+- Upgrade (no fork / no git clone required): `qiongli upgrade --repo <owner>/<repo> --target all` for global refresh.
+- Full guide: `guides/basic/upgrade-qiongli.md`
 
 ## Verify
 

@@ -6,7 +6,7 @@ description: Build academic research code from paper descriptions or methodology
 
 Builds academic research code using the repo's strict Stage-I workflow rather than generic product-engineering scaffolds.
 
-Canonical Task IDs (from the globally installed `research-paper-workflow` skill):
+Canonical Task IDs (from the globally installed `qiongli-workflow` skill):
 - `I1` method implementation
 - `I2` reproduction
 - `I3` data pipeline

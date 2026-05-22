@@ -88,7 +88,7 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         handle = tempfile.NamedTemporaryFile(
             mode="w",
             suffix=".json",
-            prefix="research-skills-profile-",
+            prefix="qiongli-profile-",
             delete=False,
             encoding="utf-8",
         )

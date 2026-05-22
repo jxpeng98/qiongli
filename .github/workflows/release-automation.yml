@@ -89,6 +89,11 @@ jobs:
       - name: Inject packaged upstream defaults
         run: bash scripts/inject_project_toml.sh
 
+      - name: Sync generated distribution payloads
+        run: |
+          bash scripts/sync_skill_package.sh --target all
+          python3 scripts/sync_npm_package_payload.py
+
       - name: Install release dependencies and build package
         run: |
           python -m pip install -e . build twine
@@ -109,11 +114,14 @@ jobs:
           args=()
 
           if [[ "$mode" == "publish" ]]; then
-            if [[ -z "${{ inputs.version }}" ]]; then
-              echo "publish mode requires 'version' input" >&2
+            if [[ -n "${{ inputs.version }}" ]]; then
+              args+=(--version "${{ inputs.version }}")
+            elif [[ -n "$tag" ]]; then
+              args+=(--tag "$tag")
+            else
+              echo "publish mode requires 'version' or 'tag' input" >&2
               exit 2
             fi
-            args+=(--version "${{ inputs.version }}")
           else
             if [[ -z "$tag" ]]; then
               echo "${mode} mode requires 'tag' input" >&2

@@ -16,7 +16,7 @@ Prerelease note draft generator:
 If you want the whole path chained together, use:
 
 ```bash
-./scripts/release_automation.sh publish --version 0.1.0 --from-tag v0.1.0-beta.6
+./scripts/release_automation.sh publish --tag v0.1.0 --from-tag v0.1.0-beta.6
 ```
 
 This mode runs:
@@ -24,18 +24,18 @@ This mode runs:
 - `scripts/release_ready.sh`
 - release-prep commit creation
 - annotated tag creation
-- push of the primary branch + tag
+- push of the release branch + tag
 - waiting for `CI` and `Install Check`
 - `scripts/release_postflight.sh --create-release`
 - marketplace / extension artifact generation for Codex, Claude Code, and Gemini CLI
 
-Stable tags become normal GitHub Releases. Beta tags become GitHub prereleases, so stable and beta releases can coexist without breaking `releases/latest`.
+Stable tags publish from the primary branch (`main` or `master`) and become normal GitHub Releases. Beta tags may publish from `dev` or the primary branch and become GitHub prereleases, so stable and beta releases can coexist without breaking `releases/latest`.
 
 The release page receives these installable distribution artifacts:
 
-- `research-skills-codex-plugin-<tag>.tar.gz`
-- `research-skills-claude-plugin-<tag>.tar.gz`
-- `research-skills-gemini-extension-<tag>.tar.gz`
+- `qiongli-codex-plugin-<tag>.tar.gz`
+- `qiongli-claude-plugin-<tag>.tar.gz`
+- `qiongli-gemini-extension-<tag>.tar.gz`
 
 These artifacts make the release consumable by the three client-native install surfaces. They do not bypass official directory review: Codex marketplace listing, Claude official plugin directory submission, and Gemini gallery publication still follow each platform's external submission process when applicable.
 
@@ -53,7 +53,7 @@ This is the recommended local entrypoint. It chains:
 
 When it succeeds, the repository is in a publish-ready state with synchronized version files, validated release docs, and built package artifacts.
 
-The synchronized version files include package metadata, the portable workflow version, skill registry metadata, and client-native distribution manifests under `.agents/`, `.claude-plugin/`, and `plugins/research-skills/`.
+The synchronized version files include package metadata, the portable workflow version, skill registry metadata, and client-native distribution manifests under `.agents/`, `.claude-plugin/`, and `plugins/qiongli/`.
 
 ## 3) Manual pre-release gates (optional)
 
@@ -81,11 +81,20 @@ The draft generator remains available, but the default policy is now:
 
 ## 4) Publish tag
 
+Stable release from the primary branch:
+
 ```bash
-git add pyproject.toml research_skills/__init__.py research-paper-workflow/VERSION skills/registry.yaml skills CHANGELOG.md
+git add pyproject.toml qiongli/__init__.py qiongli-workflow/VERSION skills/registry.yaml skills CHANGELOG.md
 git commit -m "chore: prepare release 0.1.0"
-git tag -a v0.1.0 -m "research-skills release"
+git tag -a v0.1.0 -m "qiongli release"
 git push origin main --tags
+```
+
+Beta release from `dev`:
+
+```bash
+git switch dev
+./scripts/release_automation.sh publish --tag v0.8.0-beta.1 --skip-bump --from-tag v0.7.0-beta.2
 ```
 
 ## 5) Post-release checks
@@ -108,7 +117,8 @@ When `--create-release` is used, the generated Codex, Claude Code, and Gemini CL
 
 ## Optional flags
 
-- `--version <version>`: required by `publish`, accepts stable (`0.2.0`) and beta (`0.2.0b1`) forms.
+- `--tag <tag>`: preferred by `publish`, accepts stable (`v0.2.0`) and beta (`v0.2.0-beta.1`) tag forms.
+- `--version <version>`: compatibility input for `publish`, accepts stable (`0.2.0`) and beta (`0.2.0b1`) forms.
 - `--skip-smoke`: skip smoke stage during preflight.
 - `--maintainer-smoke`: upgrade preflight smoke from the default release tier to the maintainer tier (`parallel` + `task-run` profile checks).
 - `--skip-note-gen`: skip prerelease draft generation of `release/<tag>.md`.

@@ -1,6 +1,6 @@
 # 🚨 Troubleshooting & Unified Error Codes Guide
 
-This document lists all standard `ERR-RS-*` error codes you might encounter while using the Research Skills Orchestrator CLI, along with their root causes and standard solutions.
+This document lists all standard `ERR-RS-*` error codes you might encounter while using the Qiongli Orchestrator CLI, along with their root causes and standard solutions.
 
 > **Pro Tip:** If you encounter any unexpected behavior, your first step should always be to run the interactive doctor: 
 > `python3 -m bridges.orchestrator doctor --cwd .`
@@ -38,7 +38,7 @@ These errors occur when the Orchestrator cannot locate a required CLI binary (li
     - RHEL/CentOS/Fedora: `sudo dnf reinstall ca-certificates curl` then `sudo update-ca-trust`
   - If you are behind a corporate proxy, install the proxy root certificate into the system trust store.
   - Retry with the exact script name and shell expansion:
-    - `curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --project-dir "$PWD" --target all`
+    - `curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --project-dir "$PWD" --target all`
   - Avoid `curl -k` unless you are doing a temporary local test and understand the security tradeoff.
 
 ---

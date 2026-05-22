@@ -6,7 +6,7 @@ description: 构建研究的理论框架，梳理概念关系
 
 Build a theoretical framework for your research by mapping concepts, theories, and their relationships.
 
-Canonical Task ID (from the globally installed `research-paper-workflow` skill):
+Canonical Task ID (from the globally installed `qiongli-workflow` skill):
 - `A3` theoretical framing
 
 ## Topic

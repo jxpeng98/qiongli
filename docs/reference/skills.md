@@ -32,7 +32,7 @@ Then the system decides which skills to load.
 
 If you need exact runtime flags, use [CLI Reference](/reference/cli).
 If you need to understand how agents and skills interact at runtime, use [Agent + Skill Collaboration](/advanced/agent-skill-collaboration).
-If you need to modify the system, use [Extend Research Skills](/advanced/extend-research-skills).
+If you need to modify the system, use [Extend Qiongli](/advanced/extend-qiongli).
 If you want scenario-driven routes such as "systematic review", "methods paper", or "rebuttal prep", use [Task Recipes](/guide/task-recipes).
 
 ## Important Boundaries
@@ -286,4 +286,4 @@ For example, the Stage-I code lane can load field-specific method checks through
 - Need command syntax: [CLI Reference](/reference/cli)
 - Need to understand layer boundaries: [Conventions](/conventions)
 - Need to understand runtime cooperation: [Agent + Skill Collaboration](/advanced/agent-skill-collaboration)
-- Need to change or add skills: [Extend Research Skills](/advanced/extend-research-skills)
+- Need to change or add skills: [Extend Qiongli](/advanced/extend-qiongli)

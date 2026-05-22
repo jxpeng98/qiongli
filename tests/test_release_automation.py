@@ -12,6 +12,7 @@ RELEASE_POSTFLIGHT = REPO_ROOT / "scripts" / "release_postflight.sh"
 PYPI_PREFLIGHT = REPO_ROOT / "scripts" / "pypi_preflight.sh"
 RELEASE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-automation.yml"
 PUBLISH_PYPI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-pypi.yml"
+PUBLISH_NPM_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-npm.yml"
 VERIFY_RELEASE_TAG = REPO_ROOT / "scripts" / "verify_release_tag_version.sh"
 CHANGELOG_SECTION = REPO_ROOT / "scripts" / "changelog_section.py"
 
@@ -22,17 +23,51 @@ class ReleaseAutomationTests(unittest.TestCase):
 
         self.assertIn("<pre|post|publish>", content)
         self.assertIn("publish --version 0.1.0", content)
+        self.assertIn("publish --tag v0.1.0", content)
         self.assertIn("./scripts/release_ready.sh --version", content)
+        self.assertIn("publish mode requires --version or --tag", content)
+        self.assertIn('version_from_tag="$2"', content)
+        self.assertIn('repo_tag_from_version="$(normalize_field "$version" repo_version)"', content)
+        self.assertIn('repo_tag_from_tag="$(normalize_field "$version_from_tag" repo_version)"', content)
+        self.assertIn('if [[ -n "$version" && -n "$version_from_tag" && "$repo_tag_from_version" != "$repo_tag_from_tag" ]]; then', content)
         self.assertIn("--maintainer-smoke", content)
         self.assertIn("git add CHANGELOG.md", content)
         self.assertIn('git add "release/${repo_tag}.md"', content)
         self.assertIn('git tag -a "$repo_tag"', content)
         self.assertIn('git push "$push_remote" "$push_branch" "$repo_tag"', content)
-        self.assertIn('plugins/research-skills/.codex-plugin/plugin.json', content)
+        self.assertIn('plugins/qiongli/.codex-plugin/plugin.json', content)
         self.assertIn('.claude-plugin/marketplace.json', content)
-        self.assertIn('plugins/research-skills/.claude-plugin/plugin.json', content)
-        self.assertIn('plugins/research-skills/gemini-extension.json', content)
+        self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
+        self.assertIn('plugins/qiongli/gemini-extension.json', content)
+        self.assertIn('plugins/qiongli/skills/qiongli-workflow', content)
+        self.assertIn('packages/npm-qiongli', content)
+        self.assertIn('package-lock.json', content)
+        self.assertIn('npm_preflight.sh', content)
         self.assertIn('./scripts/release_postflight.sh --tag "$repo_tag"', content)
+
+    def test_publish_mode_allows_beta_release_from_dev_only(self) -> None:
+        content = RELEASE_AUTOMATION.read_text(encoding="utf-8")
+
+        self.assertIn('DEV_PRERELEASE_BRANCH="dev"', content)
+        self.assertIn('release_branch="$primary_branch"', content)
+        self.assertIn('if is_prerelease_tag "$repo_tag" && [[ "$current_branch" == "$DEV_PRERELEASE_BRANCH" ]]; then', content)
+        self.assertIn('release_branch="$DEV_PRERELEASE_BRANCH"', content)
+        self.assertIn('Current branch: $current_branch; push branch: $push_branch; expected release branch: $release_branch', content)
+
+    def test_publish_mode_syncs_generated_payloads_before_commit_and_tag(self) -> None:
+        content = RELEASE_AUTOMATION.read_text(encoding="utf-8")
+
+        sync_skill = 'bash scripts/sync_skill_package.sh --target all'
+        sync_npm = "python3 scripts/sync_npm_package_payload.py"
+        audit = "python3 scripts/audit_distribution_payloads.py"
+        verify = 'bash scripts/verify_release_tag_version.sh --tag "$repo_tag"'
+        git_add = "git add \\"
+        tag = 'git tag -a "$repo_tag"'
+
+        for expected in (sync_skill, sync_npm, audit, verify):
+            self.assertIn(expected, content)
+            self.assertLess(content.index(expected), content.index(git_add))
+            self.assertLess(content.index(expected), content.index(tag))
 
     def test_release_postflight_waits_for_required_workflows(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
@@ -45,8 +80,8 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertNotIn("CI_JSON_PAYLOAD=", content)
         self.assertIn('observed = sorted({r.get("name") or "unknown" for r in runs if r.get("head_sha") == commit})', content)
         self.assertIn('labels.append("observed=" + ",".join(observed))', content)
-        self.assertIn('refs/remotes/origin/$candidate', content)
-        self.assertIn('refresh_primary_branch_ref "$PRIMARY_BRANCH" "$PRIMARY_BRANCH_REF"', content)
+        self.assertIn('refs/remotes/origin/$branch', content)
+        self.assertIn('refresh_branch_ref "$RELEASE_BRANCH" "$RELEASE_BRANCH_REF"', content)
         self.assertIn('git fetch --force --no-tags origin "$fetch_ref"', content)
         self.assertIn('python3 scripts/changelog_section.py --version "$version" --output "$TEMP_RELEASE_NOTES"', content)
         self.assertIn('RELEASE_NOTES_LABEL="CHANGELOG.md [${version}]"', content)
@@ -57,13 +92,30 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('MARKETPLACE_ARTIFACTS=(', content)
         self.assertIn('gh release upload "$TAG" --repo "$REPO_SLUG" --clobber "${MARKETPLACE_ARTIFACTS[@]}"', content)
 
+    def test_release_postflight_accepts_beta_tags_reachable_from_dev(self) -> None:
+        content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
+
+        self.assertIn('DEV_PRERELEASE_BRANCH="dev"', content)
+        self.assertIn('select_release_branch_ref()', content)
+        self.assertIn('if is_prerelease_tag "$tag" && branch_ref="$(detect_branch_ref "$DEV_PRERELEASE_BRANCH")"; then', content)
+        self.assertIn('RELEASE_BRANCH="${release_branch_record%%$\'\\t\'*}"', content)
+        self.assertIn('refresh_branch_ref "$RELEASE_BRANCH" "$RELEASE_BRANCH_REF"', content)
+        self.assertIn('git merge-base --is-ancestor "$LOCAL_TAG_COMMIT" "$RELEASE_BRANCH_REF"', content)
+        self.assertIn('query_ci_status "$REPO_SLUG" "$RELEASE_BRANCH" "$LOCAL_TAG_COMMIT"', content)
+
     def test_release_ready_includes_plugin_distribution_versions(self) -> None:
         content = RELEASE_READY.read_text(encoding="utf-8")
 
-        self.assertIn('plugins/research-skills/.codex-plugin/plugin.json', content)
+        self.assertIn('plugins/qiongli/.codex-plugin/plugin.json', content)
         self.assertIn('.claude-plugin/marketplace.json', content)
-        self.assertIn('plugins/research-skills/.claude-plugin/plugin.json', content)
-        self.assertIn('plugins/research-skills/gemini-extension.json', content)
+        self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
+        self.assertIn('plugins/qiongli/gemini-extension.json', content)
+        self.assertIn('packages/npm-qiongli|packages/npm-qiongli/*', content)
+        self.assertIn('package-lock.json', content)
+        self.assertIn(
+            'plugins/qiongli/skills/qiongli-workflow|plugins/qiongli/skills/qiongli-workflow/*',
+            content,
+        )
 
     def test_release_ready_does_not_print_manual_publish_steps(self) -> None:
         content = RELEASE_READY.read_text(encoding="utf-8")
@@ -82,10 +134,43 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('run_logged_stage "unit tests" "$unit_log" python3 -m unittest discover -s tests -v', content)
         self.assertIn('run_logged_stage "smoke (${smoke_tier} tier)" "$smoke_log" ./scripts/run_beta_smoke.sh --tier "$smoke_tier"', content)
 
+    def test_release_preflight_syncs_npm_payload_before_tests(self) -> None:
+        content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
+
+        self.assertIn('echo "[preflight] sync npm payload"', content)
+        self.assertIn("python3 scripts/sync_npm_package_payload.py", content)
+        self.assertLess(
+            content.index("python3 scripts/sync_npm_package_payload.py"),
+            content.index('run_logged_stage "validator" "$validator_log" "${validate_cmd[@]}"'),
+        )
+        self.assertLess(
+            content.index("python3 scripts/sync_npm_package_payload.py"),
+            content.index('run_logged_stage "unit tests" "$unit_log" python3 -m unittest discover -s tests -v'),
+        )
+
+    def test_release_preflight_runs_controller_mode_evals_as_warning_stage(self) -> None:
+        content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
+
+        self.assertIn("run_warning_stage()", content)
+        self.assertIn('eval_log="$(mktemp -t qiongli-controller-evals.XXXXXX.log)"', content)
+        self.assertIn(
+            'run_warning_stage "controller-mode evals" "$eval_log" python3 scripts/run_controller_mode_evals.py evals/controller_modes',
+            content,
+        )
+        self.assertIn('"[preflight] WARN: ${label} failed with exit code ${command_status}"', content)
+
     def test_release_preflight_preserves_stage_logs_on_failure(self) -> None:
         content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
 
         self.assertIn("cleanup_logs()", content)
+        self.assertIn('FAILED_STAGE=""', content)
+        self.assertIn('FAILED_LOG=""', content)
+        self.assertIn('FAILED_STATUS=""', content)
+        self.assertIn('FAILED_STAGE="$label"', content)
+        self.assertIn('FAILED_LOG="$log_file"', content)
+        self.assertIn('FAILED_STATUS="$command_status"', content)
+        self.assertIn('"[preflight] failure summary: ${FAILED_STAGE} exited with ${FAILED_STATUS}"', content)
+        self.assertIn('tail -n 120 "$FAILED_LOG"', content)
         self.assertIn('local status="$?"', content)
         self.assertIn('if [[ "$status" -eq 0 ]]; then', content)
         self.assertNotIn('trap \'rm -f "$validator_log" "$unit_log" "$smoke_log"\' EXIT', content)
@@ -126,6 +211,16 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('print(f"[changelog] missing version section: {args.version}"', content)
         self.assertIn('Path(args.output).write_text(section, encoding="utf-8")', content)
 
+    def test_prerelease_note_generator_points_to_publish_mode(self) -> None:
+        content = (REPO_ROOT / "scripts" / "generate_release_notes.sh").read_text(encoding="utf-8")
+
+        self.assertIn('PUBLISH_CMD="./scripts/release_automation.sh publish --tag ${TAG} --skip-bump"', content)
+        self.assertNotIn('PUBLISH_CMD="./scripts/release_automation.sh publish --version ${VERSION_HINT} --skip-bump"', content)
+        self.assertIn('PUBLISH_CMD="${PUBLISH_CMD} --from-tag ${FROM_TAG}"', content)
+        self.assertIn('${PUBLISH_CMD}', content)
+        self.assertIn('release_ready.sh --version', content)
+        self.assertNotIn('git push origin main --tags', content)
+
     def test_release_workflow_exposes_publish_mode(self) -> None:
         content = RELEASE_WORKFLOW.read_text(encoding="utf-8")
 
@@ -134,6 +229,10 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn("- publish", content)
         self.assertIn("maintainer_smoke:", content)
         self.assertIn("version:", content)
+        self.assertIn('if [[ -n "${{ inputs.version }}" ]]; then', content)
+        self.assertIn('elif [[ -n "$tag" ]]; then', content)
+        self.assertIn('args+=(--tag "$tag")', content)
+        self.assertNotIn("publish mode requires 'version' input", content)
         self.assertIn("fetch-depth: 0", content)
         self.assertIn('git fetch --force --prune origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*', content)
         self.assertIn('if [[ "${{ github.event_name }}" == "push" ]]; then', content)
@@ -149,18 +248,50 @@ class ReleaseAutomationTests(unittest.TestCase):
 
         self.assertIn('bash scripts/verify_release_tag_version.sh --tag "${GITHUB_REF_NAME}"', content)
 
+    def test_tag_publish_workflows_sync_generated_payloads_before_version_verify(self) -> None:
+        for workflow in (PUBLISH_PYPI_WORKFLOW, PUBLISH_NPM_WORKFLOW):
+            with self.subTest(workflow=workflow.name):
+                content = workflow.read_text(encoding="utf-8")
+
+                verify = 'bash scripts/verify_release_tag_version.sh --tag "${GITHUB_REF_NAME}"'
+                self.assertIn("bash scripts/sync_skill_package.sh --target all", content)
+                self.assertIn("python3 scripts/sync_npm_package_payload.py", content)
+                self.assertLess(content.index("bash scripts/sync_skill_package.sh --target all"), content.index(verify))
+                self.assertLess(content.index("python3 scripts/sync_npm_package_payload.py"), content.index(verify))
+
+    def test_release_workflow_syncs_generated_payloads_before_version_verify(self) -> None:
+        content = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+
+        verify = 'bash scripts/verify_release_tag_version.sh --tag "$tag"'
+        self.assertIn("bash scripts/sync_skill_package.sh --target all", content)
+        self.assertIn("python3 scripts/sync_npm_package_payload.py", content)
+        self.assertLess(content.index("bash scripts/sync_skill_package.sh --target all"), content.index(verify))
+        self.assertLess(content.index("python3 scripts/sync_npm_package_payload.py"), content.index(verify))
+
     def test_verify_release_tag_script_checks_expected_files(self) -> None:
         content = VERIFY_RELEASE_TAG.read_text(encoding="utf-8")
 
         self.assertIn('scripts/sync_versions.py "$TAG" --print-field package_version', content)
+        self.assertIn('scripts/sync_versions.py "$TAG" --print-field npm_version', content)
         self.assertIn('pyproject.toml', content)
-        self.assertIn('research_skills/__init__.py', content)
+        self.assertIn('qiongli/__init__.py', content)
         self.assertIn('skills/registry.yaml', content)
-        self.assertIn('research-paper-workflow/VERSION', content)
-        self.assertIn('plugins/research-skills/.codex-plugin/plugin.json', content)
+        self.assertIn('qiongli-workflow/VERSION', content)
+        self.assertNotIn('actual_workflow_registry_version', content)
+        self.assertNotIn('Path("qiongli-workflow/skills/registry.yaml")', content)
+        self.assertNotIn('echo "[verify-release-tag] qiongli-workflow/skills/registry.yaml mismatch', content)
+        self.assertIn('packages/npm-qiongli/package.json', content)
+        self.assertIn('package-lock.json', content)
+        self.assertIn('packages/npm-qiongli/payload/qiongli-workflow/VERSION', content)
+        self.assertIn('packages/npm-qiongli/payload/qiongli-workflow/skills/registry.yaml', content)
+        self.assertIn('packages/npm-qiongli/python-runtime/qiongli/__init__.py', content)
+        self.assertIn('packages/npm-qiongli/python-runtime/skills/registry.yaml', content)
+        self.assertIn('plugins/qiongli/.codex-plugin/plugin.json', content)
+        self.assertIn('plugins/qiongli/skills/qiongli-workflow/VERSION', content)
+        self.assertIn('plugins/qiongli/skills/qiongli-workflow/skills/registry.yaml', content)
         self.assertIn('.claude-plugin/marketplace.json', content)
-        self.assertIn('plugins/research-skills/.claude-plugin/plugin.json', content)
-        self.assertIn('plugins/research-skills/gemini-extension.json', content)
+        self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
+        self.assertIn('plugins/qiongli/gemini-extension.json', content)
 
 
 if __name__ == "__main__":

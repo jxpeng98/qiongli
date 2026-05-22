@@ -14,23 +14,23 @@ If you want the full system, install and configure all of the following:
 - `gemini`
 - `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`
 
-Without them, you can still install workflow assets and use shell `rsk check|upgrade|align`, but `doctor`, validators, tests, and full orchestrator execution will be limited.
+Without them, you can still install workflow assets and use shell `qiongli check|upgrade|align`, but `doctor`, validators, tests, and full orchestrator execution will be limited.
 :::
 
 ## 1. Native Plugin And Extension Install
 
-For single-client use, install **Research Skills** through the client-native surface. This installs the `research-paper-workflow` skill without requiring `pip`, `pipx`, or the `rsk` CLI.
+For single-client use, install **Qiongli** through the client-native surface. This installs the `qiongli-workflow` skill without requiring `pip`, `pipx`, or the `rsk` CLI.
 
 ```text
 # Codex
-Install Research Skills from the official Codex plugin marketplace.
+Install Qiongli from the official Codex plugin marketplace.
 
 # Claude Code
-/plugin marketplace add ./path/to/research-skills
-/plugin install research-skills@research-skills
+/plugin marketplace add ./path/to/qiongli
+/plugin install qiongli@qiongli
 
 # Gemini CLI
-gemini extensions install ./path/to/research-skills/plugins/research-skills
+gemini extensions install ./path/to/qiongli/plugins/qiongli
 ```
 
 Use the bootstrap path below when you need cross-client global installation, shell maintenance commands, or the orchestrator runtime.
@@ -40,7 +40,7 @@ Use the bootstrap path below when you need cross-client global installation, she
 The recommended path is the one-click bootstrap. Choose the install profile explicitly when you know what you need:
 
 - `partial`: installs global skill assets and slash workflow discovery. It does not require Python.
-- `full`: installs everything in `partial`, plus the shell CLI (`research-skills`, `rsk`, `rsw`) and optional `doctor` validation. It requires Python 3.12+ to already exist on PATH.
+- `full`: installs everything in `partial`, plus the shell CLI (`qiongli`, `ql`, `research-skills`, `rsk`, `rsw`) and optional `doctor` validation. It requires Python 3.12+ to already exist on PATH.
 
 The installer does not install Python or `mise`. If you need `full`, install Python first using python.org, Homebrew, winget, Microsoft Store, pyenv, mise, or your OS package manager.
 
@@ -48,32 +48,32 @@ Linux / macOS:
 
 ```bash
 # Prompt for partial or full
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --project-dir "$PWD" --target all
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --project-dir "$PWD" --target all
 
 # Force the lightweight profile
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --profile partial --project-dir "$PWD" --target all
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --profile partial --project-dir "$PWD" --target all
 
 # Force the full runtime profile
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.sh | bash -s -- --profile full --project-dir "$PWD" --target all
+curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --profile full --project-dir "$PWD" --target all
 ```
 
 Windows PowerShell 7+:
 
 ```powershell
 winget install --id Microsoft.PowerShell --source winget
-Invoke-WebRequest https://raw.githubusercontent.com/jxpeng98/research-skills/main/scripts/bootstrap_research_skill.ps1 -OutFile .\bootstrap_research_skill.ps1
+Invoke-WebRequest https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.ps1 -OutFile .\bootstrap_qiongli.ps1
 
 # Prompt for partial or full
-pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -ProjectDir "$PWD" -Target all
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -ProjectDir "$PWD" -Target all
 
 # Force the lightweight profile
-pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -Profile partial -ProjectDir "$PWD" -Target all
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile partial -ProjectDir "$PWD" -Target all
 
 # Force the full runtime profile
-pwsh -ExecutionPolicy Bypass -File .\bootstrap_research_skill.ps1 -Profile full -ProjectDir "$PWD" -Target all
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile full -ProjectDir "$PWD" -Target all
 ```
 
-The bootstrap installs `research-paper-workflow` globally into the configuration directories of Codex, Claude Code, Gemini, and Antigravity when selected. Project-local files are only written when you explicitly run `rsk init --project-dir .`.
+The bootstrap installs `qiongli-workflow` globally into the configuration directories of Codex, Claude Code, Gemini, and Antigravity when selected. Project-local files are only written when you explicitly run `qiongli init --project-dir .`.
 
 ## 3. Zero-Config Usage
 
@@ -92,7 +92,7 @@ The AI will seamlessly fetch the global skill package in the background.
 | Native plugin / extension | You want the easiest single-client install | Codex marketplace, Claude marketplace, or Gemini extension |
 | Slash commands | You want `/paper`, `/lit-review`, etc. | Included by default via global symlinks |
 | Orchestrator CLI | You want explicit automated task routing and validation | `python3 -m bridges.orchestrator task-plan|task-run|doctor` |
-| Installer / updater CLI | You want install or refresh commands after bootstrap | `research-skills`, `rsk`, `rsw` |
+| Installer / updater CLI | You want install or refresh commands after bootstrap | `qiongli`, `ql`, `research-skills`, `rsk`, `rsw` |
 
 ## 5. Choose a Paper Type
 
@@ -151,7 +151,7 @@ Common options:
 
 ## 8. Use Slash Commands When You Want UX
 
-After `rsk upgrade`, workflow slash-commands are globally registered via symlinks:
+After `qiongli upgrade`, workflow slash-commands are globally registered via symlinks:
 
 - **Claude Code**: `~/.claude/commands/*.md`
 - **Gemini CLI**: `~/.gemini/workflows/*.md`
@@ -171,7 +171,7 @@ No per-project setup required. Available commands:
 
 These commands are entry UX only. The canonical task and artifact truth still lives in `standards/`.
 
-To remove all symlinks: `rsk clean --globals`.
+To remove all symlinks: `qiongli clean --globals`.
 
 ## 9. Know When to Switch to Maintainer Docs
 
@@ -180,4 +180,4 @@ Switch to maintainer docs only when you are changing the system itself:
 
 - Architecture and layer model: [Architecture](/architecture)
 - Edit rules and decision boundaries: [Conventions](/conventions)
-- Where to modify specific behavior: [Extend Research Skills](/advanced/extend-research-skills)
+- Where to modify specific behavior: [Extend Qiongli](/advanced/extend-qiongli)

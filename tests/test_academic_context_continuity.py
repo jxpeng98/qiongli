@@ -71,7 +71,7 @@ class AcademicContextContinuityTests(unittest.TestCase):
 
     def test_generated_workflow_contract_reference_includes_academic_context_section(self) -> None:
         content = (
-            REPO_ROOT / "research-paper-workflow" / "references" / "workflow-contract.md"
+            REPO_ROOT / "qiongli-workflow" / "references" / "workflow-contract.md"
         ).read_text(encoding="utf-8")
 
         for token in (

@@ -1,47 +1,83 @@
-# research-skills-installer
+# qiongli
 
-`research-skills-installer` is a lightweight CLI for installing and upgrading **Research Skills** assets in your project for Codex, Claude Code, and Gemini workflows.
+`qiongli` is the lightweight updater CLI for **Qiongli** (`穷理`), a contract-driven academic workflow system for Codex, Claude Code, and Gemini.
+
+The full system name is **Qiongli Zhengche** (`穷理证澈`): Qiongli names the public research workflow, while Zhengche names the evidence-governance method that keeps claims, citations, assumptions, and output paths auditable.
 
 ## What it does
 
-- Install workflow/skill assets into your project
+- Install or refresh global `qiongli-workflow` skill assets
 - Upgrade assets to newer upstream versions
 - Support `codex`, `claude`, `gemini`, or `all` targets
 - Run doctor checks before/after installation
 
 ## Installation
 
+For a global CLI command, `pipx` is recommended:
+
 ```bash
-pip install research-skills-installer
+pipx install qiongli
 ```
 
-Or with `pipx`:
+Upgrade an existing PyPI install with:
 
 ```bash
-pipx install research-skills-installer
+pipx upgrade qiongli
+```
+
+You can also install with `pip`:
+
+```bash
+pip install qiongli
+```
+
+If you use `pip` inside an active virtual environment, the CLI is installed into that environment. That only affects where the Python command lives; it does not make the workflow assets project-local.
+
+## Global-first update model
+
+Current releases separate the package install from workflow asset installation:
+
+- `pipx install qiongli` / `pipx upgrade qiongli` updates the lightweight Python CLI.
+- `qiongli upgrade --target all` refreshes the global `qiongli-workflow` skill assets for Codex, Claude Code, Gemini, and Antigravity.
+- `--project-dir` is not required for normal global upgrades. It only selects a project when you run `doctor`, load project-level `qiongli.toml` / `.qiongli.toml`, or explicitly write project files with `qiongli init` / `--parts project`.
+
+Global assets are written under client home directories such as:
+
+```text
+~/.codex/skills/qiongli-workflow
+~/.claude/skills/qiongli-workflow
+~/.gemini/skills/qiongli-workflow
 ```
 
 ## CLI
 
 Main command and aliases:
 
-- `research-skills`
+- `qiongli`
+- `ql`
+- `research-skills` (legacy)
 - `rsk`
 - `rsw`
 
 ### Check updates
 
 ```bash
-rsk check
+qiongli check
 ```
 
 ### Upgrade assets
 
 ```bash
-rsk upgrade --project-dir /path/to/project --target all --doctor
+qiongli upgrade --target all
 ```
 
-The package includes a default upstream repo (`jxpeng98/research-skills`), so `--repo` is optional.
+Run `doctor` only when you want to check a specific project runtime:
+
+```bash
+qiongli upgrade --target all --doctor --project-dir /path/to/project
+```
+
+The package includes a default upstream repo (`jxpeng98/qiongli`), so `--repo` is optional.
 Use `--repo` only when you want to override the default.
 
 ## Override default repo (optional)
@@ -49,16 +85,17 @@ Use `--repo` only when you want to override the default.
 The CLI resolves upstream repo in this order:
 
 1. `--repo` argument
-2. `RESEARCH_SKILLS_REPO` environment variable
-3. `research-skills.toml` or `.research-skills.toml` in your project path
-4. Packaged default (`research_skills/project.toml`)
+2. `QIONGLI_REPO` environment variable
+3. legacy `RESEARCH_SKILLS_REPO` environment variable
+4. `qiongli.toml` or `.qiongli.toml` in your project path
+5. Packaged default (`qiongli/project.toml`)
 
 ### Option A: Global override
 
 Add this to your shell profile (`~/.zshrc`, `~/.bashrc`, etc.):
 
 ```bash
-export RESEARCH_SKILLS_REPO="<owner>/<repo>"
+export QIONGLI_REPO="<owner>/<repo>"
 ```
 
 Then reload shell:
@@ -70,17 +107,17 @@ source ~/.zshrc
 Now you can run:
 
 ```bash
-rsk check
-rsk upgrade --project-dir /path/to/project --target all --doctor
+qiongli check
+qiongli upgrade --target all
 ```
 
 ### Option B: Project-level override
 
-Create `research-skills.toml` in your project root:
+Create `qiongli.toml` in your project root:
 
 ```toml
 [upstream]
-repo = "jxpeng98/research-skills"
+repo = "jxpeng98/qiongli"
 url = "https://github.com/<owner>/<repo>"
 ```
 
@@ -89,14 +126,18 @@ This keeps the override local to that project.
 ## Typical usage
 
 ```bash
-# Install from PyPI
-pipx install research-skills-installer
+# Install or update the CLI from PyPI
+pipx install qiongli
+pipx upgrade qiongli
 
-# Upgrade assets into your project
-rsk upgrade --project-dir /path/to/project --target all --doctor
+# Refresh global workflow assets
+qiongli upgrade --target all
+
+# Optional: initialize project-local files only when you want them
+qiongli init --project-dir /path/to/project
 ```
 
 ## Links
 
-- Repository: https://github.com/jxpeng98/research-skills
-- Issues: https://github.com/jxpeng98/research-skills/issues
+- Repository: https://github.com/jxpeng98/qiongli
+- Issues: https://github.com/jxpeng98/qiongli/issues

@@ -40,7 +40,7 @@ class LiteratureContractTests(unittest.TestCase):
 
     def test_stage_b_reference_documents_new_bundle_artifacts(self) -> None:
         content = (
-            REPO_ROOT / "research-paper-workflow" / "references" / "stage-B-literature.md"
+            REPO_ROOT / "qiongli-workflow" / "references" / "stage-B-literature.md"
         ).read_text(encoding="utf-8")
 
         for token in (

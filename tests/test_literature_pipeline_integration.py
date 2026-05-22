@@ -8,7 +8,9 @@ from typing import Any
 
 from bridges.mcp_connectors import MCPConnector
 from bridges.providers.citation_graph import run_citation_graph
+from bridges.providers.literature_artifacts import materialize_search_bundle
 from bridges.providers.literature_search import run_scholarly_search
+from bridges.providers.screening_tracker import run_screening_tracker
 
 
 class LiteraturePipelineIntegrationTests(unittest.TestCase):
@@ -46,9 +48,17 @@ class LiteraturePipelineIntegrationTests(unittest.TestCase):
                 retrieved_at="2026-03-25T00:00:00+00:00",
             )
             self.assertEqual(search_output["status"], "ok")
+            search_output["data"]["search_diagnostics"]["screening_readiness"] = {
+                "ready": False,
+                "reason": "Known-item recall requires review before screening.",
+            }
+            search_output["data"]["search_diagnostics"]["bundle_gate"] = {
+                "state": "needs_review",
+                "reason": "Search diagnostics require review.",
+            }
             initial_results = search_output["data"]["search_results"]
             self.assertEqual(len(initial_results), 1)
-            self._write_search_results(project_root / "search_results.csv", initial_results)
+            materialize_search_bundle(project_root, search_output)
 
             citation_output = run_citation_graph(
                 task_packet,
@@ -61,6 +71,22 @@ class LiteraturePipelineIntegrationTests(unittest.TestCase):
             self.assertEqual(citation_output["status"], "ok")
             self.assertGreaterEqual(len(citation_output["data"]["resolved_seeds"]), 1)
             self.assertEqual(len(citation_output["data"]["search_results"]), 1)
+            self.assertEqual(
+                citation_output["data"]["search_diagnostics_summary"]["bundle_gate_state"],
+                "needs_review",
+            )
+            self.assertTrue(
+                all(
+                    entry["saturation_status"]
+                    for entry in citation_output["data"]["snowball_log"]
+                )
+            )
+            self.assertTrue(
+                any(
+                    "diagnostics" in entry["seed_selection_reason"]
+                    for entry in citation_output["data"]["snowball_log"]
+                )
+            )
 
             combined_results = initial_results + citation_output["data"]["search_results"]
             self._write_search_results(project_root / "search_results.csv", combined_results)
@@ -85,6 +111,16 @@ class LiteraturePipelineIntegrationTests(unittest.TestCase):
             self.assertEqual(fulltext_evidence.data["summary_counts"]["total"], 2)
             self.assertEqual(fulltext_evidence.data["summary_counts"]["oa_candidates"], 1)
             self.assertEqual(fulltext_evidence.data["summary_counts"]["unresolved"], 1)
+
+            screening_output = run_screening_tracker(task_packet, root)
+            self.assertEqual(
+                screening_output["data"]["screening_readiness"]["ready"],
+                False,
+            )
+            self.assertEqual(
+                screening_output["data"]["resume_state"]["bundle_gate_state"]["state"],
+                "needs_review",
+            )
 
     @staticmethod
     def _write_search_results(path: Path, rows: list[dict[str, Any]]) -> None:

@@ -1,0 +1,33 @@
+{
+  "name": "qiongli",
+  "version": "0.10.1",
+  "description": "npm/npx installer and optional Python bridge runtime for Qiongli academic workflow skills.",
+  "type": "module",
+  "bin": {
+    "qiongli": "bin/qiongli.mjs"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "payload/",
+    "python-runtime/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/jxpeng98/qiongli",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jxpeng98/qiongli.git",
+    "directory": "packages/npm-qiongli"
+  },
+  "bugs": {
+    "url": "https://github.com/jxpeng98/qiongli/issues"
+  }
+}

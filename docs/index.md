@@ -2,7 +2,7 @@
 layout: home
 
 hero:
-  name: Research Skills
+  name: Qiongli
   text: Contract-Driven Academic Workflow Docs
   tagline: A consolidated documentation hub for installation, CLI usage, workflow entrypoints, architecture, MCP integrations, and maintainer guidance.
   actions:

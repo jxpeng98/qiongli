@@ -1,6 +1,6 @@
 # Guide
 
-Use this section when you are operating Research Skills as a user or project owner.
+Use this section when you are operating Qiongli as a user or project owner.
 
 ## Start Here
 

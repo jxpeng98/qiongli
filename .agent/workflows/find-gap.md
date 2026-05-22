@@ -6,7 +6,7 @@ description: 系统性识别研究领域中的学术空白和研究机会
 
 Systematically identify research gaps and opportunities in a given research area.
 
-Canonical Task ID (from the globally installed `research-paper-workflow` skill):
+Canonical Task ID (from the globally installed `qiongli-workflow` skill):
 - `A4` research gap scan
 
 ## Research Area
