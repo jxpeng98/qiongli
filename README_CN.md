@@ -95,14 +95,12 @@
 
 如果你只想在单个客户端里安装，推荐走各客户端自己的原生扩展入口：
 
-- **Codex：** 官方 Codex plugin marketplace。
-- **Claude Code：** 把本仓库加入 Claude plugin marketplace，然后安装 `qiongli@qiongli`。
+- **Codex：** 添加统一的 [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace，然后在 Codex plugin UI 中安装或启用 `qiongli`。
+- **Claude Code：** 添加统一的 [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace，然后安装 `qiongli@skillsplace`。
 - **Gemini CLI：** 从 `plugins/qiongli` 本地安装 Gemini extension；发布为独立 extension 仓库或 gallery 条目后，也可以从远端安装。
 
-这个仓库提供了三端打包与本地校验元数据：
+公开的 Codex / Claude marketplace catalog 现在由 `jxpeng98/skillsplace` 统一维护。本仓库保留被统一 marketplace 指向的 plugin payload 和平台 manifest：
 
-- `.agents/plugins/marketplace.json`
-- `.claude-plugin/marketplace.json`
 - `plugins/qiongli/.codex-plugin/plugin.json`
 - `plugins/qiongli/.claude-plugin/plugin.json`
 - `plugins/qiongli/gemini-extension.json`

@@ -16,15 +16,32 @@ Qiongli 有多个安装入口，是因为不同用户需要的运行时能力不
 
 只需要在一个客户端里使用 Qiongli 时，优先选这个入口。
 
+Codex 通过统一的 [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace 安装：
+
+```bash
+codex plugin marketplace add jxpeng98/skillsplace --ref main
+codex plugin marketplace list
+```
+
+然后在 Codex plugin UI 中安装或启用 `qiongli`。
+
+Claude Code 使用同一个 Skillsplace catalog：
+
+```bash
+claude plugin marketplace add jxpeng98/skillsplace@main
+claude plugin install qiongli@skillsplace
+```
+
+在 Claude Code 交互会话中，也可以使用 slash commands：
+
 ```text
-# Codex
-从官方 Codex plugin marketplace 安装 Qiongli。
+/plugin marketplace add jxpeng98/skillsplace@main
+/plugin install qiongli@skillsplace
+```
 
-# Claude Code
-/plugin marketplace add ./path/to/qiongli
-/plugin install qiongli@qiongli
+Gemini CLI 仍然直接安装本地 extension payload：
 
-# Gemini CLI
+```bash
 gemini extensions install ./path/to/qiongli/plugins/qiongli
 ```
 

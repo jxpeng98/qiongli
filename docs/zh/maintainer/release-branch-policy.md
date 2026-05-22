@@ -13,16 +13,16 @@
 
 ## 官方 Plugin 接入
 
-官方 plugin marketplace 条目应指向稳定仓库身份：
+公开的官方 marketplace 条目现在由 `jxpeng98/skillsplace` 统一维护，并指向稳定的 Qiongli plugin payload：
 
-- Repository: `https://github.com/jxpeng98/qiongli`
-- Codex plugin catalog: `.agents/plugins/marketplace.json`
+- Marketplace repository: `https://github.com/jxpeng98/skillsplace`
+- Qiongli repository: `https://github.com/jxpeng98/qiongli`
+- Plugin subdirectory: `plugins/qiongli`
 - Codex manifest: `plugins/qiongli/.codex-plugin/plugin.json`
-- Claude Code marketplace: `.claude-plugin/marketplace.json`
 - Claude Code manifest: `plugins/qiongli/.claude-plugin/plugin.json`
 - Gemini extension manifest: `plugins/qiongli/gemini-extension.json`
 
-官方 plugin marketplace 应跟踪 `main` 和 release tag，而不是 `dev`。`dev` 用于本地 marketplace 测试和预发布验证，验证完成后再更新官方入口。
+Skillsplace catalog 应跟踪 `main` 和 release tag，而不是 `dev`。`dev` 用于本地 plugin packaging 测试和预发布验证，验证完成后再更新统一 marketplace 入口。本仓库内若仍保留 local marketplace 文件，只应视作过渡期 build/test 元数据，而不是公开安装源。
 
 ## 开发流程
 
@@ -40,7 +40,7 @@ python3 scripts/validate_research_standard.py --strict
 python3 -m unittest discover -s tests -v
 ```
 
-4. 如需检查预发布打包，用目标 tag 构建 marketplace artifacts：
+4. 如需检查预发布打包，用目标 tag 构建 plugin artifacts：
 
 ```bash
 python3 scripts/build_marketplace_artifacts.py --tag v0.7.0-beta.2 --dist-dir dist
@@ -50,4 +50,4 @@ python3 scripts/build_marketplace_artifacts.py --tag v0.7.0-beta.2 --dist-dir di
 
 ## 稳定发布规则
 
-只有 `main` 应创建稳定 release tag 和官方 marketplace artifacts。release automation 已要求 publish mode 必须从 primary branch 运行。beta 和 release-candidate 工作保留在 `dev`，直到它可以成为稳定发布。
+只有 `main` 应创建稳定 release tag 和公开 plugin artifacts；统一的 Skillsplace 条目也应在 release gates 通过后再推进。release automation 已要求 publish mode 必须从 primary branch 运行。beta 和 release-candidate 工作保留在 `dev`，直到它可以成为稳定发布。
