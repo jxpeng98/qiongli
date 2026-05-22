@@ -40,6 +40,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('plugins/qiongli/gemini-extension.json', content)
         self.assertIn('plugins/qiongli/skills/qiongli-workflow', content)
         self.assertIn('packages/npm-qiongli', content)
+        self.assertIn('package-lock.json', content)
         self.assertIn('npm_preflight.sh', content)
         self.assertIn('./scripts/release_postflight.sh --tag "$repo_tag"', content)
 
@@ -94,6 +95,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
         self.assertIn('plugins/qiongli/gemini-extension.json', content)
         self.assertIn('packages/npm-qiongli|packages/npm-qiongli/*', content)
+        self.assertIn('package-lock.json', content)
         self.assertIn(
             'plugins/qiongli/skills/qiongli-workflow|plugins/qiongli/skills/qiongli-workflow/*',
             content,
@@ -243,6 +245,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertNotIn('Path("qiongli-workflow/skills/registry.yaml")', content)
         self.assertNotIn('echo "[verify-release-tag] qiongli-workflow/skills/registry.yaml mismatch', content)
         self.assertIn('packages/npm-qiongli/package.json', content)
+        self.assertIn('package-lock.json', content)
         self.assertIn('packages/npm-qiongli/payload/qiongli-workflow/VERSION', content)
         self.assertIn('packages/npm-qiongli/payload/qiongli-workflow/skills/registry.yaml', content)
         self.assertIn('packages/npm-qiongli/python-runtime/qiongli/__init__.py', content)

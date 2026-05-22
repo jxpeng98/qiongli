@@ -30,6 +30,15 @@ class NpmPackageContractTests(unittest.TestCase):
         self.assertTrue(root_package_json["private"])
         self.assertIn("packages/npm-qiongli", root_package_json["workspaces"])
 
+    def test_package_lock_tracks_workspace_version(self) -> None:
+        package_json = json.loads((NPM_PACKAGE_ROOT / "package.json").read_text(encoding="utf-8"))
+        package_lock = json.loads((REPO_ROOT / "package-lock.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(
+            package_lock["packages"]["packages/npm-qiongli"]["version"],
+            package_json["version"],
+        )
+
     def test_sync_versions_exposes_npm_semver_prerelease(self) -> None:
         result = subprocess.run(
             [

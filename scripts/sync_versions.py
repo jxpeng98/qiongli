@@ -76,6 +76,22 @@ def replace_json_versions(path: Path, version: str) -> bool:
     return changed
 
 
+def replace_npm_lock_workspace_version(path: Path, version: str) -> bool:
+    original = path.read_text(encoding="utf-8")
+    data = json.loads(original)
+    packages = data.get("packages")
+    if not isinstance(packages, dict):
+        raise ValueError(f"missing packages object in {path}")
+    workspace = packages.get("packages/npm-qiongli")
+    if not isinstance(workspace, dict):
+        raise ValueError(f"missing packages/npm-qiongli entry in {path}")
+    if workspace.get("version") == version:
+        return False
+    workspace["version"] = version
+    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    return True
+
+
 def sync_versions(root: Path, raw_version: str) -> list[Path]:
     package_version, skill_version, repo_version, npm_version = parse_version(raw_version)
     changed: list[Path] = []
@@ -143,6 +159,11 @@ def sync_versions(root: Path, raw_version: str) -> list[Path]:
     if npm_manifest.exists():
         if replace_json_versions(npm_manifest, npm_version):
             changed.append(npm_manifest)
+
+    npm_lock = root / "package-lock.json"
+    if npm_lock.exists():
+        if replace_npm_lock_workspace_version(npm_lock, npm_version):
+            changed.append(npm_lock)
 
     bundled_python_init_files = (
         root / "packages" / "npm-qiongli" / "python-runtime" / "qiongli" / "__init__.py",
