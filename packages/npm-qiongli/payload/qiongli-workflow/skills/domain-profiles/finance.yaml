@@ -35,6 +35,21 @@ method_templates:
       - "Run Ljung-Box on standardized residuals"
       - "Test ARCH effects (Engle LM test) before fitting"
       - "Specify innovation distribution (normal / t / skewed-t)"
+    assumptions:
+      - "Return innovations are conditionally heteroskedastic with a correctly specified variance process."
+      - "Standardized residual distribution matches the chosen innovation family sufficiently for inference."
+    required_diagnostics:
+      - "ARCH LM test and residual Ljung-Box tests on levels and squares."
+      - "Information criteria and standardized residual distribution checks."
+    required_artifacts:
+      - "Conditional volatility series and parameter table."
+      - "Residual diagnostic table and model selection comparison."
+    failure_modes:
+      - "Unmodeled leverage, regime shifts, or heavy tails bias volatility forecasts."
+      - "Nonstationary or near-integrated variance dynamics."
+    minimum_report_fields:
+      - "Return frequency, sample window, mean equation, variance equation, and innovation distribution."
+      - "Parameter estimates, persistence, diagnostics, and forecast horizon."
 
   - name: "Event Study"
     tier: standard
@@ -44,6 +59,21 @@ method_templates:
       - "Use market model or Fama-French for expected returns"
       - "Report CAR with parametric (Patell) and non-parametric (rank) tests"
       - "Check for event-date clustering"
+    assumptions:
+      - "The event date is correctly timed and not anticipated by the market."
+      - "Expected-return model captures normal returns over the estimation window."
+    required_diagnostics:
+      - "Estimation-window fit and event-date clustering assessment."
+      - "Parametric and nonparametric abnormal-return tests."
+    required_artifacts:
+      - "AAR and CAR plot over the event window."
+      - "CAR test table by window and expected-return model."
+    failure_modes:
+      - "Confounding events or leakage around the event date."
+      - "Overlapping event windows creating dependent abnormal returns."
+    minimum_report_fields:
+      - "Event definition, event date source, estimation window, event windows, and benchmark model."
+      - "AAR, CAR, test statistics, sample exclusions, and clustering treatment."
 
   - name: "Portfolio Optimization (MVO)"
     tier: standard
@@ -52,6 +82,21 @@ method_templates:
       - "Shrink covariance (Ledoit-Wolf) if N/T ratio is high"
       - "Report weights, expected return, risk, Sharpe ratio"
       - "Run sensitivity to return estimates"
+    assumptions:
+      - "Inputs approximate forward-looking expected returns, covariance, and constraints."
+      - "Investor objective is adequately represented by mean-variance utility."
+    required_diagnostics:
+      - "Sensitivity to expected-return and covariance estimates."
+      - "Constraint binding and weight concentration checks."
+    required_artifacts:
+      - "Efficient frontier and selected portfolio weights."
+      - "Risk-return summary with turnover and constraint report."
+    failure_modes:
+      - "Estimation error produces unstable or concentrated weights."
+      - "Ignoring transaction costs, liquidity, or short-sale constraints."
+    minimum_report_fields:
+      - "Asset universe, sample period, return estimator, covariance estimator, and constraints."
+      - "Weights, expected return, volatility, Sharpe ratio, and sensitivity results."
 
   - name: "Fama-French / Factor Models"
     tier: standard
@@ -61,6 +106,21 @@ method_templates:
       - "Report alpha, factor loadings, t-stats"
       - "Check for multicollinearity among factors"
       - "Double-sort or Fama-MacBeth cross-section explicitly"
+    assumptions:
+      - "Factor returns span systematic risk exposures relevant to the tested assets."
+      - "Residuals are appropriately handled for serial and cross-sectional dependence."
+    required_diagnostics:
+      - "Factor correlation and multicollinearity checks."
+      - "Residual autocorrelation and heteroskedasticity diagnostics."
+    required_artifacts:
+      - "Alpha and factor-loading regression table."
+      - "Fama-MacBeth or portfolio-sort table with corrected standard errors."
+    failure_modes:
+      - "Omitted factors or data-snooped factors misstate alpha."
+      - "Incorrect standard errors with overlapping returns or panel dependence."
+    minimum_report_fields:
+      - "Factor set, test assets, return frequency, sample period, and estimation method."
+      - "Alphas, betas, t-statistics, R-squared, and standard-error correction."
 
   - name: "Options Pricing / Derivatives"
     tier: advanced
@@ -69,6 +129,21 @@ method_templates:
       - "Specify payoff, exercise type, and market conventions"
       - "Validate vs closed-form (Black-Scholes) where possible"
       - "Report Greeks (delta, gamma, vega, theta)"
+    assumptions:
+      - "Pricing model dynamics and market conventions match the derivative being valued."
+      - "Calibration inputs are contemporaneous and arbitrage-consistent."
+    required_diagnostics:
+      - "Calibration error against observed prices or implied volatilities."
+      - "Sensitivity of price and Greeks to volatility, rates, and dividends."
+    required_artifacts:
+      - "Pricing inputs, model configuration, and valuation output."
+      - "Greeks table and calibration or validation comparison."
+    failure_modes:
+      - "Mismatched day count, exercise style, settlement, or dividend conventions."
+      - "Using Black-Scholes assumptions for products requiring stochastic volatility or path dependence."
+    minimum_report_fields:
+      - "Payoff, underlying, maturity, exercise style, market conventions, curve, and volatility input."
+      - "Model, calibration source, price, Greeks, and validation benchmark."
 
 stats_diagnostics:
   - "Stationarity: ADF / KPSS tests before time-series modeling"

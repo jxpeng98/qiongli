@@ -71,6 +71,10 @@ When the user does not specify a language, infer the best fit from the domain pr
 
 ## Process
 
+### Method-Pack Artifact Contract
+
+Generated analysis code must produce or update the active `method_templates[*].required_artifacts`. If a method template lists `failure_modes`, include checks or comments that make those risks visible in `RESEARCH/[topic]/code/reproducibility_audit.md`.
+
 ### Tier 1: Standard (Template Matching)
 
 For well-defined, standard methodologies (e.g., OLS, ARIMA, Transformer, SEM, Cox PH).

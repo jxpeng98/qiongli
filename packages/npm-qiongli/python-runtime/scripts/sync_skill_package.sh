@@ -88,12 +88,13 @@ sync_dir() {
   # Clean copy: remove stale files or symlinks, copy fresh, prune excludes.
   rm -rf "$dest"
   mkdir -p "$(dirname "$dest")"
-  cp -a "$src" "$dest"
+  cp -aL "$src" "$dest"
   for excl in "${EXCLUDE_FILES[@]}"; do
     find "$dest" -name "$excl" -delete 2>/dev/null || true
   done
   find "$dest" -name '.DS_Store' -delete 2>/dev/null || true
   find "$dest" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
+  fail_if_symlinks "$dest"
   echo "  [ok] $rel/"
 }
 
@@ -111,8 +112,19 @@ sync_file() {
     return
   fi
   mkdir -p "$(dirname "$dest")"
-  cp "$src" "$dest"
+  cp -L "$src" "$dest"
+  fail_if_symlinks "$dest"
   echo "  [ok] $rel"
+}
+
+fail_if_symlinks() {
+  local path="$1"
+  local first_link=""
+  first_link="$(find "$path" -type l -print -quit 2>/dev/null || true)"
+  if [[ -n "$first_link" ]]; then
+    echo "  [fail] generated package contains symlink: $first_link" >&2
+    exit 1
+  fi
 }
 
 sync_package() {
@@ -140,9 +152,10 @@ sync_plugin_package() {
   echo "Syncing skill package: $PLUGIN_PKG_DIR"
   rm -rf "$PLUGIN_PKG_DIR"
   mkdir -p "$(dirname "$PLUGIN_PKG_DIR")"
-  cp -a "$PKG_DIR" "$PLUGIN_PKG_DIR"
+  cp -aL "$PKG_DIR" "$PLUGIN_PKG_DIR"
   find "$PLUGIN_PKG_DIR" -name '.DS_Store' -delete 2>/dev/null || true
   find "$PLUGIN_PKG_DIR" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
+  fail_if_symlinks "$PLUGIN_PKG_DIR"
   echo "  [ok] mirrored portable package"
 }
 

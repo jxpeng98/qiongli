@@ -1245,15 +1245,19 @@ platform_mapping:
 quality_gates:
   - id: "Q1"
     name: "question-to-method alignment"
+    contract_ref: "standards/quality-gate-contract.yaml#gates.Q1"
     rule: "RQs in framing match methods and outcomes in manuscript"
   - id: "Q2"
     name: "claim-evidence traceability"
+    contract_ref: "standards/quality-gate-contract.yaml#gates.Q2"
     rule: "All major claims mapped to evidence and citations"
   - id: "Q3"
     name: "reporting completeness"
+    contract_ref: "standards/quality-gate-contract.yaml#gates.Q3"
     rule: "Use reporting-checker or prisma-checker before submission"
   - id: "Q4"
     name: "reproducibility baseline"
+    contract_ref: "standards/quality-gate-contract.yaml#gates.Q4"
     rule: "Analysis decisions and artifact paths are documented"
 
 # ── Shard Directory Convention (team-run) ───────────────────────────
