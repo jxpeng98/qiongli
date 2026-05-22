@@ -1,8 +1,12 @@
 # Changelog
 
-本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-05-21）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。`0.4.0` 采用正式版 summary 写法，已将 `0.3.0` 之后的 beta 演进合并整理，不再按小 beta 分段展开。
+本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-05-22）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
 
-## [Unreleased] - 2026-05-21
+## [Unreleased]
+
+暂无。
+
+## [0.10.1] - 2026-05-22
 
 ### Added
 
@@ -28,6 +32,13 @@
 - `scripts/release_preflight.sh` 新增 controller-mode eval warning stage；当前作为发布前风险提示，不阻断 beta 发版。
 - README、README_CN、CLAUDE.md 和 `qiongli-workflow/SKILL.md` 补充 controller-aware task-run flags、solo gates、duo disagreement handling 和 strict validation 建议。
 - 正式版发布流程改为以 `CHANGELOG.md` 作为 GitHub Release 的说明来源；beta / prerelease 继续使用 `release/<tag>.md`。
+- 发布脚本和版本同步现在会跟踪 `package-lock.json` 的 workspace 版本，确保 npm workspace metadata 与 release tag 保持一致。
+
+### Fixed
+
+- 修复 release tag 校验早于 generated payload 同步执行时可能出现的版本不一致；publish 模式现在会先同步 skill package 与 npm payload，再执行 payload audit 和 tag 版本校验。
+- 修复 npm prerelease 发布后的 `latest` dist-tag 清理失败会导致 workflow 失败的问题，改为 best-effort 清理并保持 beta 版本通过 `next` 分发。
+- 修复 quality gate contract 路径诊断在 CI 中的稳定性问题。
 
 ## [0.4.0] - 2026-04-01
 

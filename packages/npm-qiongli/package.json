@@ -1,6 +1,6 @@
 {
   "name": "qiongli",
-  "version": "0.10.1-beta.2",
+  "version": "0.10.1",
   "description": "npm/npx installer and optional Python bridge runtime for Qiongli academic workflow skills.",
   "type": "module",
   "bin": {
