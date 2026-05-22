@@ -91,6 +91,7 @@ class NpmPackageContractTests(unittest.TestCase):
         self.assertIn("node-version: '24'", npm_workflow)
         self.assertIn("npm publish --tag next", npm_workflow)
         self.assertIn("npm publish --tag latest", npm_workflow)
+        self.assertIn("npm dist-tag rm qiongli latest", npm_workflow)
         self.assertNotIn("npm publish --tag beta", npm_workflow)
         self.assertIn("scripts/npm_preflight.sh", npm_workflow)
 

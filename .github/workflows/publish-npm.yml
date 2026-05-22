@@ -47,6 +47,10 @@ jobs:
         run: |
           if [[ "${GITHUB_REF_NAME}" == *beta* ]]; then
             npm publish --tag next
+            latest="$(npm view qiongli dist-tags.latest --silent || true)"
+            if [[ "$latest" == *"-beta."* ]]; then
+              npm dist-tag rm qiongli latest
+            fi
           else
             npm publish --tag latest
           fi
