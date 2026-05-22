@@ -4,15 +4,22 @@ import re
 import unittest
 from pathlib import Path
 
+import yaml
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 QUALITATIVE_CODING = REPO_ROOT / "skills" / "E_synthesis" / "qualitative-coding.md"
 DISCUSSION_WRITER = REPO_ROOT / "skills" / "F_writing" / "discussion-writer.md"
 LIMITATION_AUDITOR = REPO_ROOT / "skills" / "H_submission" / "limitation-auditor.md"
+PROPOSAL_WRITER = REPO_ROOT / "skills" / "F_writing" / "proposal-writer.md"
+ARTIFACT_TYPES = REPO_ROOT / "schemas" / "artifact-types.yaml"
+ACADEMIC_WRITE_WORKFLOW = REPO_ROOT / "qiongli-workflow" / "workflows" / "academic-write.md"
 CAPABILITY_MAP = REPO_ROOT / "standards" / "mcp-agent-capability-map.yaml"
 WORKFLOW_CONTRACT = REPO_ROOT / "standards" / "research-workflow-contract.yaml"
 WORKFLOW_REFERENCE = REPO_ROOT / "qiongli-workflow" / "references" / "workflow-contract.md"
 STAGE_E_REFERENCE = REPO_ROOT / "qiongli-workflow" / "references" / "stage-E-synthesis.md"
+STAGE_F_REFERENCE = REPO_ROOT / "qiongli-workflow" / "references" / "stage-F-writing.md"
+REGISTRY = REPO_ROOT / "skills" / "registry.yaml"
 
 
 class SkillContractAlignmentTests(unittest.TestCase):
@@ -35,6 +42,36 @@ class SkillContractAlignmentTests(unittest.TestCase):
         self.assertIn('artifact: "revision/limitation_mitigations.md"', limitation)
         self.assertNotIn('artifact: "tools/limitations_audit.md"', limitation)
         self.assertNotIn('artifact: "tools/limitation_mitigations.md"', limitation)
+
+    def test_proposal_writer_contract_is_registered(self) -> None:
+        registry = yaml.safe_load(REGISTRY.read_text(encoding="utf-8"))
+        entries = {item["id"]: item for item in registry["skills"]}
+
+        self.assertIn("proposal-writer", entries)
+        proposal_entry = entries["proposal-writer"]
+        self.assertEqual(proposal_entry["stage"], "F_writing")
+        self.assertEqual(proposal_entry["file"], "skills/F_writing/proposal-writer.md")
+        self.assertIn("ResearchProposal", proposal_entry["outputs"])
+
+        artifact_payload = yaml.safe_load(ARTIFACT_TYPES.read_text(encoding="utf-8"))
+        artifact_names = {item["name"]: item for item in artifact_payload["artifact_types"]}
+        self.assertIn("ResearchProposal", artifact_names)
+        self.assertIn("proposal-writer", artifact_names["ResearchProposal"]["produced_by"])
+
+        proposal = PROPOSAL_WRITER.read_text(encoding="utf-8")
+        self.assertIn('artifact: "proposal/research_proposal.md"', proposal)
+        self.assertIn("not a preregistration", proposal)
+        self.assertIn("opening report", proposal.lower())
+        self.assertIn("开题报告", proposal)
+
+        academic_write = ACADEMIC_WRITE_WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("Research Proposal", academic_write)
+        self.assertIn("Opening Report", academic_write)
+        self.assertIn("开题报告", academic_write)
+
+        stage_f = STAGE_F_REFERENCE.read_text(encoding="utf-8")
+        self.assertIn("proposal/research_proposal.md", stage_f)
+        self.assertIn("opening report", stage_f.lower())
 
     def test_capability_map_matches_canonical_outputs(self) -> None:
         content = CAPABILITY_MAP.read_text(encoding="utf-8")
