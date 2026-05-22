@@ -2707,13 +2707,14 @@ def validate_quality_gate_contracts(
         load_gate_contract,
     )
 
+    contract_relative_path = "standards/quality-gate-contract.yaml"
     try:
-        contract = load_gate_contract(root / "standards" / "quality-gate-contract.yaml")
+        contract = load_gate_contract(root / contract_relative_path)
     except QualityGateContractError as exc:
         report.check(
             False,
             "Quality gate contract loads",
-            f"Quality gate contract failed to load: {exc}",
+            f"Quality gate contract failed to load: {contract_relative_path}: {exc}",
         )
         return
 

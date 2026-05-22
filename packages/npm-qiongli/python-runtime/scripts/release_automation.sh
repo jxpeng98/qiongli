@@ -43,6 +43,20 @@ ensure_git_identity() {
   exit 1
 }
 
+sync_generated_distribution_payloads() {
+  local repo_tag="$1"
+
+  echo "[release-automation] sync generated distribution payloads"
+  bash scripts/sync_skill_package.sh --target all
+  python3 scripts/sync_npm_package_payload.py
+
+  echo "[release-automation] audit generated distribution payloads"
+  python3 scripts/audit_distribution_payloads.py
+
+  echo "[release-automation] verify release tag version"
+  bash scripts/verify_release_tag_version.sh --tag "$repo_tag"
+}
+
 usage() {
   cat <<'EOF'
 Usage:
@@ -61,7 +75,7 @@ Notes:
   - post -> runs scripts/release_postflight.sh
   - Run them in two phases: preflight before tagging, then postflight after the tag exists remotely.
   - pre supports pass-through flags such as --from-tag, --skip-note-gen, --note-overwrite, --skip-smoke, --maintainer-smoke, and --no-strict.
-  - publish -> runs release_ready (including pypi_preflight.sh and npm_preflight.sh), commits release-prep files, creates/pushes the tag, waits for CI, then runs postflight with release-page creation.
+  - publish -> runs release_ready (including pypi_preflight.sh and npm_preflight.sh), syncs generated distribution payloads, commits release-prep files, creates/pushes the tag, waits for CI, then runs postflight with release-page creation.
   - publish stable releases from the primary branch; publish prerelease/beta tags from dev or the primary branch.
 EOF
 }
@@ -229,6 +243,8 @@ case "$MODE" in
     fi
 
     ./scripts/release_ready.sh --version "$version_input" "${ready_args[@]}"
+
+    sync_generated_distribution_payloads "$repo_tag"
 
     ensure_git_identity
 
