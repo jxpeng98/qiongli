@@ -13,14 +13,40 @@ The full system name is **Qiongli Zhengche** (`穷理证澈`): Qiongli names the
 
 ## Installation
 
+For a global CLI command, `pipx` is recommended:
+
+```bash
+pipx install qiongli
+```
+
+Upgrade an existing PyPI install with:
+
+```bash
+pipx upgrade qiongli
+```
+
+You can also install with `pip`:
+
 ```bash
 pip install qiongli
 ```
 
-Or with `pipx`:
+If you use `pip` inside an active virtual environment, the CLI is installed into that environment. That only affects where the Python command lives; it does not make the workflow assets project-local.
 
-```bash
-pipx install qiongli
+## Global-first update model
+
+Current releases separate the package install from workflow asset installation:
+
+- `pipx install qiongli` / `pipx upgrade qiongli` updates the lightweight Python CLI.
+- `qiongli upgrade --target all` refreshes the global `qiongli-workflow` skill assets for Codex, Claude Code, Gemini, and Antigravity.
+- `--project-dir` is not required for normal global upgrades. It only selects a project when you run `doctor`, load project-level `qiongli.toml` / `.qiongli.toml`, or explicitly write project files with `qiongli init` / `--parts project`.
+
+Global assets are written under client home directories such as:
+
+```text
+~/.codex/skills/qiongli-workflow
+~/.claude/skills/qiongli-workflow
+~/.gemini/skills/qiongli-workflow
 ```
 
 ## CLI
@@ -42,7 +68,13 @@ qiongli check
 ### Upgrade assets
 
 ```bash
-qiongli upgrade --project-dir /path/to/project --target all --doctor
+qiongli upgrade --target all
+```
+
+Run `doctor` only when you want to check a specific project runtime:
+
+```bash
+qiongli upgrade --target all --doctor --project-dir /path/to/project
 ```
 
 The package includes a default upstream repo (`jxpeng98/qiongli`), so `--repo` is optional.
@@ -76,7 +108,7 @@ Now you can run:
 
 ```bash
 qiongli check
-qiongli upgrade --project-dir /path/to/project --target all --doctor
+qiongli upgrade --target all
 ```
 
 ### Option B: Project-level override
@@ -94,11 +126,15 @@ This keeps the override local to that project.
 ## Typical usage
 
 ```bash
-# Install from PyPI
+# Install or update the CLI from PyPI
 pipx install qiongli
+pipx upgrade qiongli
 
-# Upgrade assets into your project
-qiongli upgrade --project-dir /path/to/project --target all --doctor
+# Refresh global workflow assets
+qiongli upgrade --target all
+
+# Optional: initialize project-local files only when you want them
+qiongli init --project-dir /path/to/project
 ```
 
 ## Links

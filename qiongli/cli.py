@@ -358,6 +358,53 @@ def _latest_release_tag(repo: str, include_beta: bool = False) -> str:
     raise RuntimeError(f"Unable to resolve latest tag for {repo}")
 
 
+def _latest_prerelease_tag(repo: str) -> str:
+    """Return the newest pre-release tag, or an empty string when none exists."""
+    errors: list[Exception] = []
+
+    list_url = f"https://api.github.com/repos/{repo}/releases?per_page=50"
+    try:
+        releases = _http_get_json(list_url)
+        if isinstance(releases, list):
+            best: tuple[tuple[int, int, int, int], str] | None = None
+            for rel in releases:
+                if bool(rel.get("draft")):
+                    continue
+                rel_tag = str(rel.get("tag_name", "")).strip()
+                parsed = Version.parse(rel_tag)
+                is_prerelease = bool(rel.get("prerelease")) or (parsed is not None and parsed.beta is not None)
+                if not parsed or not is_prerelease:
+                    continue
+                key = parsed.sort_key()
+                if best is None or key > best[0]:
+                    best = (key, rel_tag)
+            if best:
+                return best[1]
+    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError) as exc:
+        errors.append(exc)
+
+    tags_url = f"https://api.github.com/repos/{repo}/tags?per_page=50"
+    try:
+        tags_payload = _http_get_json(tags_url)
+        if isinstance(tags_payload, list):
+            best: tuple[tuple[int, int, int, int], str] | None = None
+            for t_obj in tags_payload:
+                t_name = str(t_obj.get("name", "")).strip()
+                parsed = Version.parse(t_name)
+                if not parsed or parsed.beta is None:
+                    continue
+                key = parsed.sort_key()
+                if best is None or key > best[0]:
+                    best = (key, t_name)
+            return best[1] if best else ""
+    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError) as exc:
+        errors.append(exc)
+
+    if errors:
+        raise RuntimeError(f"Unable to resolve latest pre-release tag for {repo}: {errors[-1]}")
+    return ""
+
+
 def _check_pip_version() -> tuple[str, str]:
     """Returns (latest_version, status_message)."""
     try:
@@ -438,10 +485,12 @@ def cmd_check(args: argparse.Namespace) -> int:
     resolved_repo, resolved_source = _resolve_upstream_repo(getattr(args, "repo", None), repo_root)
 
     latest_tag = ""
+    prerelease_tag = ""
     latest_version: Version | None = None
+    prerelease_version: Version | None = None
     if resolved_repo:
         try:
-            latest_tag = _latest_release_tag(resolved_repo, include_beta=getattr(args, "beta", False))
+            latest_tag = _latest_release_tag(resolved_repo, include_beta=False)
             latest_version = Version.parse(latest_tag)
         except Exception as exc:  # noqa: BLE001
             if args.strict_network:
@@ -450,6 +499,16 @@ def cmd_check(args: argparse.Namespace) -> int:
             if "404" in str(exc) and not _github_token():
                 hint = " (private repo? set GITHUB_TOKEN or GH_TOKEN)"
             latest_tag = f"<unavailable: {exc}{hint}>"
+        try:
+            prerelease_tag = _latest_prerelease_tag(resolved_repo)
+            prerelease_version = Version.parse(prerelease_tag) if prerelease_tag else None
+        except Exception as exc:  # noqa: BLE001
+            if args.strict_network:
+                raise
+            hint = ""
+            if "404" in str(exc) and not _github_token():
+                hint = " (private repo? set GITHUB_TOKEN or GH_TOKEN)"
+            prerelease_tag = f"<unavailable: {exc}{hint}>"
 
     payload = {
         "cli_package": {
@@ -463,6 +522,7 @@ def cmd_check(args: argparse.Namespace) -> int:
         "local_repo_version": local[0] if local else "",
         "installed": installed,
         "latest_release": latest_tag,
+        "latest_prerelease": prerelease_tag,
     }
 
     if args.json:
@@ -502,10 +562,15 @@ def cmd_check(args: argparse.Namespace) -> int:
         suffix = f" (from {resolved_source})" if resolved_source else ""
         print(f"   - Repo: {resolved_repo}{suffix}")
         print(f"   - Latest: {latest_tag}")
+        print(f"   - Pre-release: {prerelease_tag or '<none>'}")
     else:
         print(
             "   - Latest: <skipped (pass --repo, set QIONGLI_REPO, or add qiongli.toml)>"
         )
+
+    if getattr(args, "beta", False) and prerelease_version:
+        if latest_version is None or prerelease_version.sort_key() > latest_version.sort_key():
+            latest_version = prerelease_version
 
     if latest_version:
         local_versions: list[Version] = []
@@ -758,7 +823,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Fail if upstream version check fails (default: warn and continue)",
     )
-    check.add_argument("--beta", action="store_true", help="Include beta/pre-release tags in checks")
+    check.add_argument(
+        "--beta",
+        action="store_true",
+        help="Use beta/pre-release tags for update status; output always shows stable and pre-release separately",
+    )
 
     upgrade = subparsers.add_parser("upgrade", help="Download release archive and run installer with overwrite")
     upgrade.add_argument(
