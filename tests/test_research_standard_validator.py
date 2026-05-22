@@ -120,8 +120,10 @@ class ResearchStandardValidatorTests(unittest.TestCase):
             validate_quality_gate_contracts(root, report, strict=True)
 
         joined = "\n".join(report.errors)
-        self.assertIn("Quality gate contract failed to load", joined)
-        self.assertIn("standards/quality-gate-contract.yaml", joined)
+        self.assertIn(
+            "Quality gate contract failed to load: standards/quality-gate-contract.yaml",
+            joined,
+        )
 
     def test_strict_controller_mode_contract_runs_solo_gate_audit(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
