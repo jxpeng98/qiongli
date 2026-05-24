@@ -15,6 +15,12 @@ description: 准备学术报告（选择报告类型 → 内容规划 → 幻灯
 - **LaTeX Beamer** — PDF 输出，数学公式支持
 - **PowerPoint (PPTX)** — 可编辑格式
 
+## Academic Boundary Review
+
+Before drafting this stage's checkpoint outputs, use `boundary-interviewer` when `context/boundary_review.md` is missing, stale, or contradicted by the current task. Continue within the locked boundary when the artifact already answers the stage question. Narrowing is allowed; broadening requires a new boundary review entry with a revisit trigger.
+
+For presentation work, lock audience, slide-evidence, oral-claim, and disclosure boundaries before shortening or dramatizing claims.
+
 ## Steps
 
 ### 1. Talk Planning（报告规划）

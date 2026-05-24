@@ -15,6 +15,12 @@ $ARGUMENTS
 
 ## Workflow
 
+## Academic Boundary Review
+
+Before drafting this stage's checkpoint outputs, use `boundary-interviewer` when `context/boundary_review.md` is missing, stale, or contradicted by the current task. Continue within the locked boundary when the artifact already answers the stage question. Narrowing is allowed; broadening requires a new boundary review entry with a revisit trigger.
+
+For ethics work, lock consent, privacy, governance, vulnerable-group, deidentification, data-sharing, and disclosure boundaries before drafting approvals.
+
 ### Step 0: Select Project Folder
 
 Ask the user:

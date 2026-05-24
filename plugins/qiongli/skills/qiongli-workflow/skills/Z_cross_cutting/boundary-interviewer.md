@@ -79,6 +79,14 @@ The skill is not a generic requirements interview. It should help answer: what c
 8. Preserve rival explanations, null cases, contradictory evidence, or trustworthiness risks when the question affects design or synthesis.
 9. Sync locked decisions into `context/decision_log.md`; sync unresolved risks into `context/stage_handoff.md`.
 
+## Downstream Continuation
+
+After the user answers a boundary question, write or update `context/boundary_review.md` and continue within the locked boundary for the current task. Later Qiongli skills must treat that artifact as a constraint:
+
+- They may narrow scope, claim strength, evidence thresholds, method commitments, code/data decisions, or submission/presentation promises.
+- They must not broaden a locked boundary without adding a new `revisit_trigger`, the new evidence or user decision that justifies the change, and the affected downstream artifacts.
+- When a later task conflicts with the boundary review, ask the smallest necessary follow-up question before continuing.
+
 ## Output Contract
 
 Write `RESEARCH/[topic]/context/boundary_review.md` using `templates/boundary-review.md`.

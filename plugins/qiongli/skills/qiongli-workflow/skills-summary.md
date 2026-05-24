@@ -129,7 +129,7 @@ Quick-reference index of all canonical skills (~3KB). For detailed specification
 | Skill | Purpose |
 |-------|---------|
 | academic-context-maintainer | Maintain research state and decision log across stages |
-| boundary-interviewer | Clarify scholarly boundaries one question at a time before high-risk work proceeds |
+| boundary-interviewer | Clarify scholarly boundaries one question at a time, then reuse locked answers as downstream constraints |
 | metadata-enricher | Normalize and complete paper metadata |
 | model-collaborator | Multi-model collaboration for research tasks |
 | self-critique | Iterative red teaming and Socratic critique |

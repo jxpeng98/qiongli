@@ -37,6 +37,11 @@ from .gemini_bridge import GeminiBridge
 from .mcp_connectors import MCPEvidence, MCPConnector
 from .i18n import get_language, get_text
 from .critique_questions import get_critique_questions
+from .boundary_questions import (
+    BOUNDARY_ARTIFACT,
+    build_boundary_question_plan,
+    format_boundary_prompt_section,
+)
 from .providers.research_collab import (
     DEFAULT_BROKER_TIMEOUT_SECONDS,
     GEMINI_TRANSPORT_ENV,
@@ -1188,6 +1193,62 @@ Provide your verification assessment.
 
     def _project_root_for_topic(self, cwd: Path, artifact_root: str, topic: str) -> Path:
         return cwd / artifact_root.replace("[topic]", topic)
+
+    def _load_boundary_review_context(
+        self,
+        cwd: Path,
+        artifact_root: str,
+        topic: str,
+    ) -> str:
+        project_root = self._project_root_for_topic(cwd, artifact_root, topic)
+        boundary_path = project_root / BOUNDARY_ARTIFACT
+        if not boundary_path.is_file():
+            return ""
+        return boundary_path.read_text(encoding="utf-8")
+
+    def _build_boundary_review_packet(
+        self,
+        task_id: str,
+        required_skills: list[str],
+        existing_boundary_review: str,
+    ) -> dict[str, Any]:
+        plan = build_boundary_question_plan(
+            task_id=task_id,
+            required_skills=required_skills,
+            existing_boundary_review=existing_boundary_review,
+        )
+        return {
+            "enabled": plan.enabled,
+            "status": plan.status,
+            "task_id": plan.task_id,
+            "stage": plan.stage,
+            "level": plan.level,
+            "artifact": plan.artifact,
+            "required_before_draft": plan.required_before_draft,
+            "dimensions": list(plan.dimensions),
+            "questions": list(plan.questions),
+            "reason": plan.reason,
+            "existing_review": existing_boundary_review.strip(),
+        }
+
+    def _format_boundary_review_context(self, task_packet: dict[str, Any]) -> str:
+        boundary_review = task_packet.get("boundary_review", {})
+        if not isinstance(boundary_review, dict) or not boundary_review.get("enabled"):
+            return ""
+        plan = build_boundary_question_plan(
+            task_id=str(boundary_review.get("task_id", task_packet.get("task_id", ""))),
+            required_skills=[
+                str(item)
+                for item in task_packet.get("required_skills", [])
+                if str(item).strip()
+            ],
+            existing_boundary_review=str(boundary_review.get("existing_review", "")),
+            forced=bool(boundary_review.get("required_before_draft")),
+        )
+        return format_boundary_prompt_section(
+            plan,
+            str(boundary_review.get("existing_review", "")),
+        )
 
     def _build_academic_context_update(
         self,
@@ -3200,8 +3261,22 @@ Stage-I structure checks:
         evidence_expansion_rounds: int,
         controller_metadata: dict[str, str] | None = None,
         academic_context_update: dict[str, Any] | None = None,
+        boundary_review: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         controller_metadata = dict(controller_metadata or {})
+        boundary_review = dict(boundary_review or {})
+        required_outputs = list(required_outputs)
+        contract_required_outputs = list(contract_required_outputs)
+        deferred_outputs = list(deferred_outputs)
+        boundary_artifact = str(boundary_review.get("artifact", "")).strip()
+        if boundary_review.get("required_before_draft") and boundary_artifact:
+            if boundary_artifact not in required_outputs:
+                required_outputs.append(boundary_artifact)
+            if boundary_artifact not in contract_required_outputs:
+                contract_required_outputs.append(boundary_artifact)
+            deferred_outputs = [
+                output for output in deferred_outputs if output != boundary_artifact
+            ]
         return {
             "task_id": task_id,
             "paper_type": paper_type,
@@ -3226,6 +3301,7 @@ Stage-I structure checks:
             "research_depth": research_depth,
             "evidence_expansion_rounds": evidence_expansion_rounds,
             "academic_context_update": dict(academic_context_update or {}),
+            "boundary_review": boundary_review,
         }
 
     def _select_task_outputs(
@@ -3658,6 +3734,15 @@ Targeted follow-up context:
                 f"- max_revision_rounds: {self_critique_loop.get('max_rounds', 0)}\n"
                 "- preserve_issue_lineage_across_rounds: true\n"
             )
+        boundary_section = self._format_boundary_review_context(task_packet)
+        boundary_rules = ""
+        if boundary_section:
+            return_sections.append("- Academic Boundary Review")
+            boundary_rules = """
+22. Academic boundary review is active.
+23. If no answered boundary review exists and required_before_draft is true, ask exactly the first listed boundary question and write the answer to `context/boundary_review.md` before producing broader outputs.
+24. If an answered boundary review exists, continue within it and do not broaden claim strength, evidence threshold, population, corpus, method, code/data decision, submission promise, or presentation claim without a new boundary review entry.
+"""
         return f"""You are executing one canonical research workflow task.
 
 Task packet (JSON):
@@ -3679,6 +3764,7 @@ Execution rules:
 {targeted_rules}
 {academic_context_rules}
 {self_critique_rules}
+{boundary_rules}
 
 Output control:
 {chr(10).join(output_control_lines)}
@@ -3688,7 +3774,7 @@ MCP evidence snapshot:
 
 Required skill cards:
 {self._format_skill_context(skill_cards)}
-{domain_section}{code_lane_section}{code_lane_template_section}{targeted_section}{academic_context_section}{self_critique_section}
+{domain_section}{code_lane_section}{code_lane_template_section}{targeted_section}{academic_context_section}{self_critique_section}{boundary_section}
 
 Additional context:
 {extra_context or "No additional context."}
@@ -3798,6 +3884,13 @@ Targeted follow-up context:
             targeted_review_rule = """
 11. When targeted follow-up mode is active, assess whether the selected actionable targets were resolved without reopening unrelated scope.
 """
+        boundary_section = self._format_boundary_review_context(task_packet)
+        boundary_review_rule = ""
+        if boundary_section:
+            return_sections.append("- Boundary Compliance")
+            boundary_review_rule = """
+14. Boundary review is active. Block if the draft broadens the locked boundary, upgrades claim strength, lowers evidence threshold, hides a limitation, or makes a code/data/submission/presentation promise beyond the answered boundary.
+"""
 
         return f"""Review the draft for this canonical research workflow task.
 {round_note}
@@ -3812,7 +3905,7 @@ MCP evidence snapshot:
 
 Required skill cards:
 {self._format_skill_context(skill_cards)}
-{domain_section}{code_lane_section}{code_lane_review_section}{targeted_section}{self_critique_section}
+{domain_section}{code_lane_section}{code_lane_review_section}{targeted_section}{self_critique_section}{boundary_section}
 
 Review checklist:
 1. Output path coverage against required_outputs.
@@ -3825,6 +3918,7 @@ Review checklist:
 {depth_review}
 {targeted_review_rule}
 {self_critique_rule}
+{boundary_review_rule}
 {critique_section}
 
 Dynamic Literature-Based Critique:
@@ -4046,6 +4140,15 @@ Return sections:
                 "10. Update `review/self_critique_log.md` as the canonical issue register with round-by-round status changes.\n"
             )
             self_critique_return_sections = "- Self-Critique Log (review/self_critique_log.md)\n"
+        boundary_section = self._format_boundary_review_context(task_packet)
+        boundary_revision_rules = ""
+        boundary_return_sections = ""
+        if boundary_section:
+            boundary_revision_rules = (
+                "11. Boundary review is active. Resolve boundary violations by narrowing the output or by creating a new boundary review entry with the revisit trigger.\n"
+                "12. Do not broaden claim strength, evidence threshold, scope, method, code/data choices, submission promises, or presentation claims silently.\n"
+            )
+            boundary_return_sections = "- Boundary Compliance\n"
         return (
             f"You are revising a research workflow task draft based on review feedback.\n"
             f"This is revision round {revision_round}.\n\n"
@@ -4059,6 +4162,7 @@ Return sections:
             f"{code_lane_template_section}"
             f"{targeted_section}"
             f"{self_critique_section}"
+            f"{boundary_section}\n\n"
             "Revision rules:\n"
             "1. Address every Critical Issue raised in the review.\n"
             "2. Apply every Suggested Fix unless you can justify why it is not applicable.\n"
@@ -4068,10 +4172,12 @@ Return sections:
             "6. If any issue cannot be resolved, explain why under 'Unresolved Issues'.\n"
             f"{targeted_revision_rules}\n"
             f"{self_critique_rules}"
+            f"{boundary_revision_rules}"
             "Return sections:\n"
             "- Revision Summary (what changed and why)\n"
             f"{targeted_return_sections}"
             f"{self_critique_return_sections}"
+            f"{boundary_return_sections}"
             "- Revised Draft Outputs (by file path)\n"
             "- Quality Gate Check\n"
             "- Unresolved Issues\n"
@@ -4798,11 +4904,28 @@ Return sections:
             msg = f"Task '{normalized_task}' is invalid or missing in workflow contract."
             raise ConfigError(ERR_CFG_INVALID_TASK, detail=msg) from exc
 
+        existing_boundary_review = self._load_boundary_review_context(
+            cwd,
+            artifact_root,
+            normalized_topic,
+        )
+        boundary_review = self._build_boundary_review_packet(
+            normalized_task,
+            agent_plan["required_skills"],
+            existing_boundary_review,
+        )
         contract_outputs, required_outputs, deferred_outputs, artifact_policy = self._select_task_outputs(
             contract_outputs,
             focus_outputs=focus_outputs,
             output_budget=output_budget,
         )
+        if boundary_review.get("required_before_draft"):
+            contract_outputs, required_outputs, deferred_outputs = self._append_optional_outputs(
+                contract_outputs,
+                required_outputs,
+                deferred_outputs,
+                [str(boundary_review["artifact"])],
+            )
         academic_context_update = self._build_academic_context_update(
             normalized_task,
             agent_plan["required_skills"],
@@ -4888,6 +5011,7 @@ Return sections:
             evidence_expansion_rounds=evidence_expansion_rounds,
             controller_metadata=controller_metadata,
             academic_context_update=academic_context_update,
+            boundary_review=boundary_review,
         )
         packet.update(self._build_domain_packet_fields(domain_context))
         if plan_result.data:
@@ -4996,6 +5120,20 @@ Return sections:
                 "history_persistent=true."
                 + (" / 多轮自循环已启用。" if zh_ui else "")
             )
+        if boundary_review.get("enabled"):
+            routing_notes.append(
+                "Boundary review hook ACTIVE: "
+                f"artifact={boundary_review.get('artifact')}, "
+                f"status={boundary_review.get('status')}, "
+                f"level={boundary_review.get('level')}, "
+                f"required_before_draft={boundary_review.get('required_before_draft')}."
+            )
+            if boundary_review.get("questions"):
+                routing_notes.append(
+                    "Boundary review first question: "
+                    + str(boundary_review["questions"][0])
+                    + "."
+                )
         if academic_context_update.get("enabled"):
             routing_notes.append(
                 "Academic context continuity hook ACTIVE: "
@@ -5471,6 +5609,7 @@ Return sections:
                     "source_path": str(packet.get("structured_source_path", "")).strip(),
                 },
                 "self_critique_loop": dict(self_critique_loop),
+                "boundary_review": dict(boundary_review),
                 "validator_gate": dict(validator_gate_result),
             },
         )

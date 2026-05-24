@@ -121,6 +121,94 @@ stage_question_sets:
   K:
     - "Which spoken claim needs a stronger caveat for this audience?"
 
+stage_boundary_policy:
+  A:
+    default_level: "L2"
+    checkpoint_tasks: ["A1", "A2", "A5"]
+    dimensions: ["phenomenon_boundary", "construct_boundary", "contribution_boundary", "claim_strength_boundary", "evidence_threshold_boundary", "venue_reviewer_boundary"]
+    questions:
+      - "What evidence would make this research question answerable in one paper?"
+      - "Which population, context, time period, or corpus is explicitly out of scope?"
+      - "Which contribution type is being claimed, and which adjacent contribution is excluded?"
+  B:
+    default_level: "L2"
+    checkpoint_tasks: ["B1", "B4", "B6"]
+    dimensions: ["phenomenon_boundary", "evidence_threshold_boundary", "rival_explanation_boundary", "generalizability_boundary", "venue_reviewer_boundary"]
+    questions:
+      - "Which search boundary would a systematic-review reader challenge first?"
+      - "Which contrary literature must be included before the gap can be trusted?"
+      - "What inclusion or exclusion rule would change the direction of the synthesis?"
+  C:
+    default_level: "L3"
+    checkpoint_tasks: ["C1", "C3", "C5"]
+    dimensions: ["construct_boundary", "claim_strength_boundary", "evidence_threshold_boundary", "method_validity_boundary", "rival_explanation_boundary", "ethics_governance_boundary"]
+    questions:
+      - "What rival explanation would make the preferred design insufficient?"
+      - "Which claim type can this design support without overstating causality or generality?"
+      - "What evidence would force the design to narrow the research question?"
+  D:
+    default_level: "L3"
+    checkpoint_tasks: ["D1", "D2", "D3"]
+    dimensions: ["ethics_governance_boundary", "generalizability_boundary", "method_validity_boundary", "submission_revision_boundary"]
+    questions:
+      - "What consent, privacy, or governance boundary limits what can be collected or shared?"
+      - "Which participant or data-subject risk remains even if identifiers are removed?"
+      - "What disclosure must appear in ethics, data management, or submission materials?"
+  E:
+    default_level: "L3"
+    checkpoint_tasks: ["E1", "E4", "E5"]
+    dimensions: ["evidence_threshold_boundary", "method_validity_boundary", "rival_explanation_boundary", "generalizability_boundary", "claim_strength_boundary"]
+    questions:
+      - "What heterogeneity boundary makes pooling or synthesis scientifically invalid?"
+      - "Which publication-bias or certainty-grading result would force a weaker conclusion?"
+      - "What population, intervention, context, or outcome boundary limits the synthesis?"
+  F:
+    default_level: "L2"
+    checkpoint_tasks: ["F1", "F3", "F4", "F6"]
+    dimensions: ["claim_strength_boundary", "evidence_threshold_boundary", "rival_explanation_boundary", "generalizability_boundary", "venue_reviewer_boundary"]
+    questions:
+      - "Which central claim would a reviewer say exceeds the available evidence?"
+      - "Which boundary condition belongs in the discussion rather than being hidden in limitations?"
+      - "What finding, interpretation, or implication must be separated to avoid overclaiming?"
+  G:
+    default_level: "L2"
+    checkpoint_tasks: ["G1", "G2", "G3"]
+    dimensions: ["evidence_threshold_boundary", "venue_reviewer_boundary", "submission_revision_boundary", "ethics_governance_boundary"]
+    questions:
+      - "Which reporting requirement changes the evidence or disclosure boundary?"
+      - "Which claim-evidence mismatch would block compliance sign-off?"
+      - "What checklist item reveals a boundary that the manuscript has not stated?"
+  H:
+    default_level: "L3"
+    checkpoint_tasks: ["H1", "H2", "H4"]
+    dimensions: ["submission_revision_boundary", "venue_reviewer_boundary", "claim_strength_boundary", "evidence_threshold_boundary", "ethics_governance_boundary"]
+    questions:
+      - "What promise in the cover letter or rebuttal cannot be truthfully supported?"
+      - "Which reviewer concern requires narrowing a claim instead of adding rhetoric?"
+      - "What fatal flaw should be disclosed, corrected, or explicitly bounded?"
+  I:
+    default_level: "L3"
+    checkpoint_tasks: ["I1", "I3", "I5", "I8"]
+    dimensions: ["research_code_boundary", "method_validity_boundary", "evidence_threshold_boundary", "ethics_governance_boundary", "generalizability_boundary"]
+    questions:
+      - "Which code or data decision would change the scientific interpretation of the results?"
+      - "What data lineage, split, seed, exclusion, or transformation must be locked before implementation?"
+      - "Which reproducibility failure would force a weaker methods or results claim?"
+  J:
+    default_level: "L1"
+    checkpoint_tasks: ["J1", "J3", "J4"]
+    dimensions: ["claim_strength_boundary", "submission_revision_boundary", "venue_reviewer_boundary"]
+    questions:
+      - "Which wording change would alter the scientific meaning rather than merely improve style?"
+      - "Which final-proofread change risks broadening a claim beyond the locked boundary?"
+  K:
+    default_level: "L1"
+    checkpoint_tasks: ["K1", "K2", "K4"]
+    dimensions: ["claim_strength_boundary", "evidence_threshold_boundary", "venue_reviewer_boundary", "submission_revision_boundary"]
+    questions:
+      - "What oral or slide claim must be narrower than the manuscript claim?"
+      - "Which evidence limitation must be visible to the presentation audience?"
+
 sync_targets:
   - "context/research_state.md"
   - "context/decision_log.md"

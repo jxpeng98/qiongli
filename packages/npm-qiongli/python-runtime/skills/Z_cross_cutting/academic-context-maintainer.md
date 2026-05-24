@@ -205,6 +205,15 @@ If collaborators or models disagree, record:
 
 Do not erase disagreement just to make the state file look tidy.
 
+## Boundary Review Continuity
+
+When `context/boundary_review.md` exists, treat it as a project-level academic constraint, not as optional notes.
+
+- Do not broaden locked boundaries in `research_state.md`, `decision_log.md`, or `stage_handoff.md`.
+- If later evidence narrows a boundary, update the boundary review and record the downstream consequence.
+- If later work needs to broaden a boundary, create a new boundary review entry with the triggering evidence, affected claim, and required downstream updates.
+- Preserve `claim_strength_boundary`, `evidence_threshold_boundary`, `method_validity_boundary`, `generalizability_boundary`, `research_code_boundary`, `submission_revision_boundary`, and `revisit_trigger` fields when refreshing context artifacts.
+
 ### 5. Write `context/stage_handoff.md` for high-risk transitions
 
 Use `templates/stage-handoff.md` and follow `references/stage-handoff-contract.md` when moving from:
