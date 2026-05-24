@@ -288,6 +288,7 @@ skill_registry:
   - "slidev-scholarly-builder"
   - "beamer-builder"
   - "academic-context-maintainer"
+  - "boundary-interviewer"
   - "data-dictionary-builder"
   - "data-management-plan"
   - "prereg-writer"
@@ -309,6 +310,12 @@ skill_catalog:
     default_outputs:
       - "context/research_state.md"
       - "context/decision_log.md"
+  boundary-interviewer:
+    file: "skills/Z_cross_cutting/boundary-interviewer.md"
+    category: "research-boundary"
+    focus: "Clarify scholarly boundaries one question at a time before high-risk Qiongli work proceeds."
+    default_outputs:
+      - "context/boundary_review.md"
   qualitative-coding:
     file: "skills/E_synthesis/qualitative-coding.md"
     category: "synthesis"

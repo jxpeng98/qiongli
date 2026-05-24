@@ -57,7 +57,16 @@ mkdir my-paper
 cd my-paper
 ```
 
-然后打开你使用的客户端，运行 workflow 命令：
+然后打开你使用的客户端，并使用该客户端支持的入口。
+
+Codex：
+
+```text
+/skills
+$qiongli plan an empirical paper on ai-in-education
+```
+
+Claude Code 或 Gemini CLI：
 
 ```text
 /paper
@@ -66,7 +75,9 @@ cd my-paper
 /code-build
 ```
 
-这些命令是入口 UX。真正的任务定义、预期产物、质量门和角色边界都在 Qiongli contracts 里。
+Codex 用 `/skills` 发现 skill，用 `$qiongli` 执行；它不会注册自定义 `/qiongli` slash command。Claude Code 和 Gemini 在安装 command/workflow discovery 后可以使用 slash workflow 入口。这些入口只是 UX wrapper；真正的任务定义、预期产物、质量门和角色边界都在 Qiongli contracts 里。
+
+完整客户端用法看 [使用 Agent Skills](/zh/guide/using-agent-skills)。
 
 ## 4. 选择研究路线
 

@@ -166,7 +166,7 @@ def _is_qiongli_package_dir(path: Path) -> bool:
     if not path.is_dir():
         return False
     skill_text = _read_text(path / "SKILL.md")
-    return "name: qiongli-workflow" in skill_text
+    return "name: qiongli\n" in skill_text or "name: qiongli-workflow" in skill_text
 
 
 def _skill_package_version(path: Path) -> str:

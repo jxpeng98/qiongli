@@ -34,6 +34,12 @@ Use this skill when a task could drift in research scope, claim strength, eviden
 
 The skill is not a generic requirements interview. It should help answer: what can this project honestly claim, for whom, with what evidence, against which rivals, and under what limits?
 
+## When to Use
+
+- Before high-risk framing, study design, writing, submission, research code, or handoff work when scope, claim strength, evidence threshold, validity risk, generalizability, or reviewer expectations remain unclear.
+- When `context/boundary_review.md` is missing, stale, or contradicted by the current task.
+- When broadening a previous boundary would change downstream artifacts, claims, evidence thresholds, code decisions, or submission promises.
+
 ## Related Task IDs
 
 - MVP trigger stages: `A`, `C`, `F`, `H`, `I`

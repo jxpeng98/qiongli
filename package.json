@@ -5,6 +5,7 @@
     "packages/npm-qiongli"
   ],
   "scripts": {
+    "validate": "python3 scripts/validate_marketplace_install.py && npm --prefix packages/npm-qiongli test",
     "docs:dev": "vitepress dev docs --host",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs --host"

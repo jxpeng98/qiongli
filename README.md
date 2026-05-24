@@ -6,6 +6,7 @@
   <p>
     <a href="docs/quickstart.md">Quick Start</a> ·
     <a href="docs/guide/install.md">Install</a> ·
+    <a href="docs/guide/using-agent-skills.md">Use Skills</a> ·
     <a href="docs/guide/task-recipes.md">Research Recipes</a> ·
     <a href="docs/reference/cli.md">CLI</a> ·
     <a href="docs/architecture.md">Architecture</a>
@@ -31,6 +32,7 @@ Choose the smallest entrypoint that matches the job:
 | Need | Recommended path | Details |
 |---|---|---|
 | Use Qiongli in one AI client | Native plugin / extension | [Install guide](docs/guide/install.md) |
+| Know what to type after install | Client-specific skill entrypoints | [Using agent skills](docs/guide/using-agent-skills.md) |
 | Install workflow assets across clients | Bootstrap `partial` profile | [Quick start](docs/quickstart.md) |
 | Use `qiongli doctor`, validators, or orchestrator | Bootstrap `full` profile with Python 3.12+ | [Multi-agent guide](docs/guide/multi-agent.md) |
 | Script installs through npm | `npm install -g qiongli` or `npx qiongli@latest` | [CLI reference](docs/reference/cli.md) |
@@ -89,6 +91,7 @@ Start with the consolidated docs when you need detail:
 - [Quick Start](docs/quickstart.md)
 - [Multi-Agent Runtime Guide](docs/guide/multi-agent.md)
 - [Install Guide](docs/guide/install.md)
+- [Using Agent Skills](docs/guide/using-agent-skills.md)
 - [CLI Reference](docs/reference/cli.md)
 - [Architecture](docs/architecture.md)
 - [Plugin-First Architecture](docs/advanced/plugin-first-architecture.md)
@@ -110,7 +113,13 @@ Public Codex and Claude marketplace catalog metadata now lives in `jxpeng98/skil
 - `plugins/qiongli/commands/*.md`
 - `plugins/qiongli/skills/qiongli-workflow`
 
-The plugin is the install/discovery container; `qiongli-workflow` is the portable skill package inside it. The 71 academic skill specs under `skills/` are source-of-truth capability cards and are synchronized into the portable/plugin package before release.
+The plugin is the install/discovery container; `qiongli-workflow` is the portable skill package inside it. The user-visible skill name is `qiongli`; the install directory stays `qiongli-workflow` for compatibility. The 71 academic skill specs under `skills/` are source-of-truth capability cards and are synchronized into the portable/plugin package before release.
+
+Invocation depends on the client surface:
+
+- **Codex:** discover with `/skills`, then invoke the installed skill as `$qiongli`. Codex does not expose a custom `/qiongli` slash command.
+- **Claude Code / Gemini CLI:** use workflow commands such as `/paper`, `/lit-review`, `/paper-write`, and `/code-build` when command/workflow discovery is installed.
+- **Shell CLI / orchestrator:** use `qiongli`, `ql`, or `python3 -m bridges.orchestrator ...` when you need checks, upgrades, task plans, or multi-agent execution.
 
 Use the bootstrap/CLI path below when you need cross-client global installs, slash-command symlinks, `qiongli upgrade`, `doctor`, or multi-model orchestration.
 
@@ -122,7 +131,7 @@ The bootstrap installer has two profiles. Use `partial` when you only want the c
 
 | Profile | What you get | Python needed before install | Result after install |
 |---|---|---|---|
-| `partial` | global `qiongli-workflow` skill assets for Codex / Claude Code / Gemini, plus workflow discovery links | No | Slash workflows such as `/paper` and `/lit-review` are ready |
+| `partial` | global `qiongli-workflow` skill assets for Codex / Claude Code / Gemini, plus workflow discovery links where the client supports them | No | Codex can use `$qiongli`; Claude/Gemini slash workflows such as `/paper` and `/lit-review` are ready |
 | `full` | everything in `partial`, shell CLI commands `qiongli` / `ql` plus legacy aliases, and optional `doctor` validation | Yes, Python 3.12+ | Full orchestrator runtime is ready |
 
 Use `partial` if:
@@ -222,8 +231,11 @@ The npm package bundles the full `qiongli-workflow` payload. Advanced commands s
 After `partial` or `full`, the normal user workflow is global-first:
 
 1. Create or open a research workspace: `mkdir my-paper && cd my-paper`.
-2. Start a supported client such as Claude Code or Gemini CLI.
-3. Run a workflow command such as `/paper`, `/lit-review`, `/paper-write`, or `/code-build`.
+2. Start a supported client.
+3. Use the entrypoint that client supports:
+   - Codex: run `/skills` to confirm `qiongli`, then invoke `$qiongli` with your task, for example `$qiongli plan an empirical paper on ai-in-education`.
+   - Claude Code / Gemini CLI: run a workflow command such as `/paper`, `/lit-review`, `/paper-write`, or `/code-build`.
+   - Shell: run `qiongli doctor`, `qiongli upgrade`, or `python3 -m bridges.orchestrator task-plan|task-run` when you installed the full runtime.
 
 Project-local files are not written by default. Run this only when you explicitly want project integration files such as `.env` or local workflow assets:
 
@@ -235,7 +247,8 @@ qiongli init --project-dir .
 
 Use one of these stable entrypoints:
 
-- Workflow commands in `.agent/workflows/*.md` such as `/paper`, `/lit-review`, `/paper-write`, `/code-build`
+- Codex skill invocation: `/skills` for discovery, `$qiongli` for execution
+- Workflow commands in `.agent/workflows/*.md` such as `/paper`, `/lit-review`, `/paper-write`, `/code-build` where slash-command discovery is available
 - Installer / updater CLI: `qiongli`, `ql`, plus legacy aliases `research-skills`, `rsk`, `rsw`
 - Orchestrator CLI: `python3 -m bridges.orchestrator ...`
 
@@ -386,9 +399,9 @@ python3 -m bridges.orchestrator code-build \
   --cwd .
 ```
 
-### 9. Use Workflow Commands When You Want Slash-Command UX
+### 9. Use Workflow Commands When Your Client Supports Slash-Command UX
 
-If your client is using the installed workflow entry markdowns, try these commands:
+If your client is using the installed workflow entry markdowns, try these commands. Codex users should use `/skills` and `$qiongli` instead; Codex does not register these as custom slash commands.
 
 | Command | Purpose | Example |
 |---------|---------|---------|

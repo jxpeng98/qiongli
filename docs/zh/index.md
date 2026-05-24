@@ -35,6 +35,7 @@ features:
 | 你想做什么 | 从这里开始 | 原因 |
 |---|---|---|
 | 只在一个客户端试用 Qiongli | [安装](/zh/guide/install) | 原生 plugin / extension 路径最轻。 |
+| 安装后不知道输入什么 | [使用 Agent Skills](/zh/guide/using-agent-skills) | Codex、Claude Code、Gemini 和 shell 暴露 Qiongli 的方式不同。 |
 | 给多个客户端安装全局 workflow | [快速开始](/zh/quickstart) | Bootstrap `partial` 不要求 Python，只安装 workflow assets。 |
 | 使用 validator、`doctor` 或 orchestrated task | [多 Agent 运行](/zh/guide/multi-agent) | `full` runtime 说明 Python、模型 CLI、认证、Gemini broker/direct 和验证边界。 |
 | 选择论文工作流 | [任务场景](/zh/guide/task-recipes) | 将真实研究目标映射到 paper type、stage、Task ID 和产物。 |
@@ -54,6 +55,7 @@ Qiongli 发布的是一个统一的便携 workflow 包：`qiongli-workflow`。�
 ## 文档地图
 
 - [入门](/zh/guide/): 安装、使用、升级、故障排除和 runtime 选择。
+- [使用 Agent Skills](/zh/guide/using-agent-skills): 按客户端说明调用方式，包括 Codex 的 `/skills` 和 `$qiongli`。
 - [任务场景](/zh/guide/task-recipes): 按 paper type 和常见研究目标选择路线。
 - [示例](/zh/examples/): systematic review、empirical、qualitative、methods、theory 的 playbook。
 - [参考](/zh/reference/): CLI 行为、skills catalog 和使用者约定。

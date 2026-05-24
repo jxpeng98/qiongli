@@ -38,11 +38,17 @@ class QiongliNamingTests(unittest.TestCase):
             self.assertEqual(manifest["name"], "qiongli")
             self.assertIn("Qiongli", manifest["description"])
 
-    def test_portable_skill_id_uses_qiongli_workflow(self) -> None:
+    def test_portable_skill_identity_is_visible_as_qiongli(self) -> None:
         skill_root = REPO_ROOT / "qiongli-workflow"
         skill_text = (skill_root / "SKILL.md").read_text(encoding="utf-8")
+        plugin_skill_text = (
+            REPO_ROOT / "plugins" / "qiongli" / "skills" / "qiongli-workflow" / "SKILL.md"
+        ).read_text(encoding="utf-8")
 
-        self.assertIn("name: qiongli-workflow", skill_text)
+        self.assertIn("name: qiongli\n", skill_text)
+        self.assertIn("# Qiongli Academic Workflow", skill_text)
+        self.assertNotIn("name: research-paper-workflow", skill_text)
+        self.assertIn("name: qiongli\n", plugin_skill_text)
         self.assertTrue((REPO_ROOT / "plugins" / "qiongli" / "skills" / "qiongli-workflow" / "SKILL.md").is_file())
 
         manifest = (REPO_ROOT / "install" / "install_manifest.tsv").read_text(encoding="utf-8")

@@ -325,7 +325,7 @@ read_version_file() {
 is_qiongli_package_dir() {
   local path="$1"
   [[ -d "$path" && -f "$path/SKILL.md" ]] || return 1
-  grep -q 'name: qiongli-workflow' "$path/SKILL.md"
+  grep -Eq '^name:[[:space:]]*(qiongli|qiongli-workflow)[[:space:]]*$' "$path/SKILL.md"
 }
 
 skill_package_version() {

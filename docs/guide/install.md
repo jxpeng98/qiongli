@@ -7,10 +7,12 @@ Qiongli has several installation surfaces because users need different levels of
 | Surface | Best for | Installs | Python required |
 |---|---|---|---|
 | Native plugin / extension | One client, least setup | Client plugin plus `qiongli-workflow` | No |
-| Bootstrap `partial` | Global workflow assets across clients | Skills and slash workflow discovery | No |
+| Bootstrap `partial` | Global workflow assets across clients | Skills and workflow discovery where supported | No |
 | Bootstrap `full` | Runtime checks and orchestration | `partial` plus shell CLI and `doctor` support | Yes, Python 3.12+ |
 | npm / npx | Node-based automation | npm CLI plus bundled workflow payload | Only for advanced bridge commands |
 | pipx / pip | Python updater CLI | Python CLI distribution | Yes |
+
+The user-visible skill name is `qiongli`. The installed directory is still `qiongli-workflow` for compatibility with existing clients and release artifacts.
 
 ## Native Plugin And Extension
 
@@ -46,6 +48,19 @@ gemini extensions install ./path/to/qiongli/plugins/qiongli
 ```
 
 This path does not install the shell CLI, Python bridge, or global slash-command symlinks. Use bootstrap or npm when you need those.
+
+## Use After Install
+
+Restart the target client after installing or upgrading. Then use the entrypoint that client exposes:
+
+| Client | Discovery | Invocation |
+|---|---|---|
+| Codex | `/skills` should list `qiongli` | `$qiongli <research task>` |
+| Claude Code | Plugin UI, `/plugin`, or global command discovery | `/paper`, `/lit-review`, `/paper-write`, `/code-build` |
+| Gemini CLI | Extension list or global workflow discovery | `/paper`, `/lit-review`, `/paper-write`, `/code-build` |
+| Shell | `qiongli check` | `qiongli doctor`, `qiongli upgrade`, `python3 -m bridges.orchestrator ...` |
+
+Codex does not expose a custom `/qiongli` slash command. Use `/skills` to confirm the skill exists, then invoke `$qiongli`.
 
 ## Bootstrap Partial
 
@@ -130,12 +145,14 @@ qiongli upgrade --target all --doctor --project-dir /path/to/project
 
 Depending on the surface, Qiongli may install:
 
-- `qiongli-workflow` skill assets under client home directories
-- workflow command discovery links such as `/paper`, `/lit-review`, `/paper-write`, and `/code-build`
+- `qiongli-workflow` skill assets under client home directories, visible to users as `qiongli`
+- workflow command discovery links such as `/paper`, `/lit-review`, `/paper-write`, and `/code-build` in clients that support that discovery model
 - shell commands `qiongli`, `ql`, and compatibility aliases `research-skills`, `rsk`, `rsw`
 - optional project integration files when you explicitly run `qiongli init --project-dir .`
 
 Project-local files are not written by default. The global workflow package can be used from any research workspace.
+
+For invocation details, see [Using Agent Skills](/guide/using-agent-skills).
 
 ## Keep Versions Aligned
 

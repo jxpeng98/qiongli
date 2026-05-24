@@ -35,6 +35,7 @@ features:
 | You want to... | Start here | Why |
 |---|---|---|
 | Try Qiongli in one client | [Install](/guide/install) | Native plugin / extension paths keep setup small. |
+| Know what to type after install | [Using Agent Skills](/guide/using-agent-skills) | Codex, Claude Code, Gemini, and shell expose Qiongli differently. |
 | Install global workflows for several clients | [Quickstart](/quickstart) | Bootstrap `partial` installs workflow assets without requiring Python. |
 | Run validators, `doctor`, or orchestrated tasks | [Multi-Agent Runtime](/guide/multi-agent) | `full` runtime explains Python, model CLIs, auth, broker/direct Gemini modes, and verification. |
 | Pick a paper workflow | [Task Recipes](/guide/task-recipes) | Maps real research goals to paper types, stages, Task IDs, and expected outputs. |
@@ -54,6 +55,7 @@ Qiongli ships a single portable workflow package, `qiongli-workflow`, with stage
 ## Documentation Map
 
 - [Guide](/guide/): operational path for installation, usage, upgrades, troubleshooting, and runtime choices.
+- [Using Agent Skills](/guide/using-agent-skills): client-by-client invocation rules, including Codex `/skills` and `$qiongli`.
 - [Task Recipes](/guide/task-recipes): scenario-driven routes for paper types and common research goals.
 - [Examples](/examples/): concrete playbooks for systematic review, empirical, qualitative, methods, and theory papers.
 - [Reference](/reference/): CLI behavior, skill catalog, and operator-facing conventions.
