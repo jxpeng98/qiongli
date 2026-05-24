@@ -568,6 +568,20 @@ python -m bridges.orchestrator code-build \
 
 **Output:** Self-critique log and revised (improved) output
 
+## boundary-interviewer
+
+**Purpose:** Clarify scholarly boundaries one question at a time before high-risk Qiongli work proceeds.
+
+**Process:**
+1. Inspect existing research artifacts before asking the user.
+2. Map the task to an academic boundary dimension: phenomenon, construct, contribution, claim strength, evidence threshold, method validity, rival explanation, generalizability, ethics/governance, venue/reviewer, research code, or submission/revision.
+3. Ask exactly one blocking academic question when artifacts cannot answer it.
+4. Provide a recommended answer with rationale, evidence threshold, reviewer consequence, and confidence.
+5. Record claim strength, evidence threshold, rival explanations, validity or trustworthiness risk, generalizability limit, and downstream sync targets.
+6. Sync downstream-relevant decisions into `context/decision_log.md` or `context/stage_handoff.md`.
+
+**Output:** `BoundaryReview` -> `context/boundary_review.md`
+
 ---
 
 ## presentation-planner

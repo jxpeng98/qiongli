@@ -1371,6 +1371,25 @@ skills:
     tooling_requirements: [filesystem]
     domain_aware: true
 
+  - id: boundary-interviewer
+    stage: Z_cross_cutting
+    version: "0.10.1"
+    file: skills/Z_cross_cutting/boundary-interviewer.md
+    canonical: true
+    summary: "Clarify scholarly boundaries one question at a time before high-risk Qiongli work proceeds."
+    display_name: "Boundary Interviewer"
+    when_to_use: "Use before high-risk framing, study design, writing, submission, research code, or handoff work when research scope, claim strength, evidence threshold, validity risk, generalizability, or reviewer expectations remain unclear."
+    summary_zh: "在高风险学术任务前用一次一个问题的方式确认研究范围、主张强度、证据阈值、有效性风险与审稿边界。"
+    display_name_zh: "学术边界追问器"
+    when_to_use_zh: "当研究问题、claim 强度、证据阈值、方法有效性、外推范围、投稿承诺或阶段交接仍不清楚时使用。"
+    inputs: [UserQuery, AnyArtifact]
+    outputs: [BoundaryReview]
+    tags: [cross-cutting, boundary, grill-me, academic-judgment, claim-strength, evidence-threshold, validity, generalizability, venue-fit, handoff]
+    depends_on: []
+    compatible_models: [codex, claude, gemini, gpt]
+    tooling_requirements: [filesystem]
+    domain_aware: true
+
   - id: model-collaborator
     stage: Z_cross_cutting
     version: "0.10.1"

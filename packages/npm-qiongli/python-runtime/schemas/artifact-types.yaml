@@ -494,6 +494,12 @@ artifact_types:
     produced_by: [self-critique]
     consumed_by: [research-orchestrator]
 
+  - name: BoundaryReview
+    description: "Academic boundary decision record covering scope, constructs, contribution, claim strength, evidence threshold, rival explanations, validity risks, generalizability limits, venue expectations, and downstream handoff"
+    format: markdown
+    produced_by: [boundary-interviewer]
+    consumed_by: [academic-context-maintainer, manuscript-architect, study-designer, submission-packager, code-specification, self-critique, model-collaborator]
+
   - name: ResearchStateSnapshot
     description: "Project-level academic state summary capturing current question, locked decisions, evidence position, disputes, and next-stage priorities"
     format: markdown

@@ -38,6 +38,22 @@ Store selection as `[paper_type]`.
 Ask the user to choose a Task ID from the contract (for example `F3`, `G1`, `B1`).
 If the user describes intent in natural language, map it to the closest Task ID and confirm once.
 
+## Step 1.6: Academic Boundary Review Trigger (MVP)
+
+For MVP, use `boundary-interviewer` before proceeding when the selected task belongs to `A`, `C`, `F`, `H`, or `I` and any of these academic boundaries remain unclear:
+
+- research question answerability
+- construct definition or contested terminology
+- contribution type and non-claims
+- claim strength and evidence threshold
+- rival explanations or contradictory evidence
+- validity, trustworthiness, or reproducibility risk
+- generalizability limit
+- venue or reviewer expectation
+- submission or revision promise
+
+The boundary pass must inspect project artifacts first. If artifacts do not settle the issue, ask one blocking academic question with a recommended answer, evidence threshold, and downstream impact.
+
 ## Step 2: Choose What You Want to Do Now
 
 Ask the user to pick a **stage** first. Then show only the relevant **sub-options** and ask them to pick one.
