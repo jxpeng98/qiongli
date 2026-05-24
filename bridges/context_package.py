@@ -69,6 +69,20 @@ def _format_list(items: list[str]) -> str:
     return "\n".join(f"- {item}" for item in items)
 
 
+def _boundary_review_text(task_packet: dict[str, object]) -> str:
+    boundary = task_packet.get("boundary_review", {})
+    if not isinstance(boundary, dict):
+        return "Not provided"
+    existing = str(boundary.get("existing_review", "")).strip()
+    if existing:
+        return existing
+    status = str(boundary.get("status", "")).strip()
+    artifact = str(boundary.get("artifact", "")).strip()
+    if status or artifact:
+        return f"status: {status or 'unknown'}\nartifact: {artifact or 'context/boundary_review.md'}"
+    return "Not provided"
+
+
 def _build_header(manifest: dict[str, object]) -> str:
     return "\n".join(
         [
@@ -91,6 +105,7 @@ def _build_codex_context(task_packet: dict[str, object], manifest: dict[str, obj
             "## Verification Commands\n"
             + _format_list(_list_value(task_packet, "verification_commands")),
             "## Artifact Paths\n" + _format_list(_list_value(task_packet, "artifact_paths")),
+            f"## Boundary Review\n{_boundary_review_text(task_packet)}",
         ]
     )
 
@@ -103,6 +118,7 @@ def _build_claude_context(task_packet: dict[str, object], manifest: dict[str, ob
             f"## Evidence Ledger\n{_string_value(task_packet, 'evidence_ledger') or 'Not provided'}",
             "## Writing/Review Standards\n"
             + (_string_value(task_packet, "writing_review_standards") or "Not provided"),
+            f"## Boundary Review\n{_boundary_review_text(task_packet)}",
         ]
     )
 
@@ -112,5 +128,6 @@ def _build_gemini_context(task_packet: dict[str, object], manifest: dict[str, ob
         [
             _build_header(manifest),
             f"## Task Packet\n{json.dumps(task_packet, sort_keys=True, indent=2)}",
+            f"## Boundary Review\n{_boundary_review_text(task_packet)}",
         ]
     )
