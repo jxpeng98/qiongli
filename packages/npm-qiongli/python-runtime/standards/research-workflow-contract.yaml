@@ -1266,7 +1266,7 @@ platform_mapping:
     J3: "/proofread [topic] --focus similarity"
     J4: "/proofread [topic] --focus final_proofread"
   codex:
-    entry: "$qiongli-workflow"
+    entry: "$qiongli"
     task_selector: "Use Task ID from task_catalog (for example F3 or G1)"
   gemini:
     prompt_pattern: "Task {ID} on RESEARCH/[topic] using outputs defined in contract_version 1.0.0"

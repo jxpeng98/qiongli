@@ -755,10 +755,10 @@ def validate_portable_skill(root: Path, report: ValidationReport) -> None:
             f"SKILL.md frontmatter keys must be name+description only; found: {ids_to_text(key_set)}",
         )
         report.check(
-            frontmatter.get("name") == "qiongli-workflow",
-            "SKILL.md name matches folder",
+            frontmatter.get("name") == "qiongli",
+            "SKILL.md name exposes Qiongli",
             (
-                "SKILL.md name must be qiongli-workflow; found: "
+                "SKILL.md name must be qiongli; found: "
                 f"{frontmatter.get('name', '<missing>')}"
             ),
         )
@@ -802,9 +802,9 @@ def validate_portable_skill(root: Path, report: ValidationReport) -> None:
         )
         if prompt is not None:
             report.check(
-                "$qiongli-workflow" in prompt.group(1),
-                "openai.yaml default_prompt invokes $qiongli-workflow",
-                "openai.yaml default_prompt must include $qiongli-workflow",
+                "$qiongli" in prompt.group(1),
+                "openai.yaml default_prompt invokes $qiongli",
+                "openai.yaml default_prompt must include $qiongli",
             )
 
 
@@ -1626,7 +1626,7 @@ def validate_cross_file_consistency(root: Path, report: ValidationReport) -> Non
             "## Claude Code",
             "## Codex",
             "## Gemini",
-            "$qiongli-workflow",
+            "$qiongli",
             "Task {ID}",
         ):
             report.check(

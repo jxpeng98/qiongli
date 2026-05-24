@@ -17,7 +17,7 @@ A **plugin** is the distribution container. It owns manifests, command wrappers,
 
 A **skill** is the reusable execution contract. It tells the model how to perform a specific research task, what inputs are required, what artifact to write, and what quality bar must be met.
 
-This repo keeps one plugin, `qiongli`, and ships one portable skill package, `qiongli-workflow`, inside it. The 71 academic skill specs remain internal capability cards under `skills/`; they are synchronized into the portable package during release.
+This repo keeps one plugin, `qiongli`, and ships one portable skill package directory, `qiongli-workflow`, inside it. The portable package declares the user-visible skill name `qiongli`; the directory name stays `qiongli-workflow` so existing install paths, release artifacts, and compatibility checks remain stable. The 71 academic skill specs remain internal capability cards under `skills/`; they are synchronized into the portable package during release.
 
 ## Source Of Truth
 
@@ -30,7 +30,7 @@ This repo keeps one plugin, `qiongli`, and ships one portable skill package, `qi
 
 | Platform | Manifest | Runtime entry |
 |----------|----------|---------------|
-| Codex | `plugins/qiongli/.codex-plugin/plugin.json`; public catalog entry in `jxpeng98/skillsplace` | `skills/qiongli-workflow/` |
+| Codex | `plugins/qiongli/.codex-plugin/plugin.json`; public catalog entry in `jxpeng98/skillsplace` | `skills/qiongli-workflow/`, visible as `qiongli` in `/skills`, invoked as `$qiongli` |
 | Claude Code | `plugins/qiongli/.claude-plugin/plugin.json`; public catalog entry in `jxpeng98/skillsplace` | `commands/*.md` plus `skills/qiongli-workflow/` |
 | Gemini | `plugins/qiongli/gemini-extension.json` | `skills/qiongli-workflow/` |
 

@@ -7,10 +7,12 @@ Qiongli 有多个安装入口，是因为不同用户需要的运行时能力不
 | 入口 | 适合场景 | 安装内容 | 是否要求 Python |
 |---|---|---|---|
 | 原生 plugin / extension | 单个客户端，最少配置 | 客户端 plugin 和 `qiongli-workflow` | 否 |
-| Bootstrap `partial` | 多客户端全局 workflow assets | skills 和 slash workflow discovery | 否 |
+| Bootstrap `partial` | 多客户端全局 workflow assets | skills 和客户端支持的 workflow discovery | 否 |
 | Bootstrap `full` | runtime check 和 orchestrator | `partial` 加 shell CLI 与 `doctor` 支持 | 是，Python 3.12+ |
 | npm / npx | Node 自动化安装 | npm CLI 和内置 workflow payload | 只有高级 bridge 命令需要 |
 | pipx / pip | Python updater CLI | Python CLI 分发 | 是 |
+
+用户可见的 skill 名称是 `qiongli`。安装目录仍然是 `qiongli-workflow`，这是为了兼容已有客户端和 release artifacts。
 
 ## 原生 Plugin 和 Extension
 
@@ -46,6 +48,19 @@ gemini extensions install ./path/to/qiongli/plugins/qiongli
 ```
 
 这条路径不会安装 shell CLI、Python bridge 或全局 slash-command symlinks。需要这些能力时，用 bootstrap 或 npm。
+
+## 安装后如何使用
+
+安装或升级后，先重启目标客户端。然后使用该客户端暴露的入口：
+
+| 客户端 | 发现方式 | 调用方式 |
+|---|---|---|
+| Codex | `/skills` 应该能列出 `qiongli` | `$qiongli <research task>` |
+| Claude Code | Plugin UI、`/plugin` 或全局 command discovery | `/paper`、`/lit-review`、`/paper-write`、`/code-build` |
+| Gemini CLI | Extension list 或全局 workflow discovery | `/paper`、`/lit-review`、`/paper-write`、`/code-build` |
+| Shell | `qiongli check` | `qiongli doctor`、`qiongli upgrade`、`python3 -m bridges.orchestrator ...` |
+
+Codex 不暴露自定义 `/qiongli` slash command。先用 `/skills` 确认 skill 存在，再用 `$qiongli` 调用。
 
 ## Bootstrap Partial
 
@@ -130,12 +145,14 @@ qiongli upgrade --target all --doctor --project-dir /path/to/project
 
 根据入口不同，Qiongli 可能安装：
 
-- 客户端 home 目录下的 `qiongli-workflow` skill assets
-- `/paper`、`/lit-review`、`/paper-write`、`/code-build` 等 workflow command discovery links
+- 客户端 home 目录下的 `qiongli-workflow` skill assets，用户侧显示为 `qiongli`
+- 在支持该 discovery 模型的客户端中，提供 `/paper`、`/lit-review`、`/paper-write`、`/code-build` 等 workflow command discovery links
 - shell 命令 `qiongli`、`ql` 和兼容别名 `research-skills`、`rsk`、`rsw`
 - 只有显式运行 `qiongli init --project-dir .` 时才写入的项目集成文件
 
 默认不会写入项目本地文件。全局 workflow package 可在任意研究工作区使用。
+
+完整调用细节见 [使用 Agent Skills](/zh/guide/using-agent-skills)。
 
 ## 保持版本一致
 

@@ -7,6 +7,28 @@ This document lists all standard `ERR-RS-*` error codes you might encounter whil
 
 ---
 
+## Client Skill Discovery
+
+### Codex does not respond to `/qiongli`.
+
+- **Cause**: Codex does not expose Qiongli as a custom slash command. Qiongli is a Codex skill, not a Codex slash command.
+- **Fix**:
+  - Restart Codex after installing or upgrading.
+  - Run `/skills` and confirm that `qiongli` is listed.
+  - Invoke the skill with `$qiongli`, for example `$qiongli plan a literature review on ai-in-education`.
+  - If `/skills` only shows `research-paper-workflow`, refresh the current package with `qiongli upgrade --target codex --overwrite`, restart Codex, and check again.
+- **Note**: The install directory may still be named `qiongli-workflow`; that is expected. The user-visible skill name should be `qiongli`.
+
+### Claude Code or Gemini does not show `/paper` or `/lit-review`.
+
+- **Cause**: The workflow command discovery files were not installed, the client was not restarted, or only the Codex-facing skill package was installed.
+- **Fix**:
+  - For global multi-client usage, run `qiongli upgrade --target all --overwrite`.
+  - Restart Claude Code or Gemini CLI.
+  - If you installed only the native plugin, confirm that the plugin is enabled in the client.
+
+---
+
 ## Environment & Authentication (ENV)
 
 These errors occur when the Orchestrator cannot locate a required CLI binary (like `claude` or `codex`) or the corresponding API keys in your environment.

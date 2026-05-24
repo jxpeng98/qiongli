@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -95,6 +96,27 @@ class PluginDistributionContractTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stderr + result.stdout)
         self.assertIn("qiongli-workflow", result.stdout)
         self.assertIn("plugins/qiongli/skills/qiongli-workflow", result.stdout)
+
+    def test_marketplace_validator_builds_platform_artifacts_and_checks_invocation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            result = subprocess.run(
+                [
+                    "python3",
+                    "scripts/validate_marketplace_install.py",
+                    "--dist-dir",
+                    tmp_dir,
+                ],
+                cwd=REPO_ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr + result.stdout)
+        self.assertIn("[OK] codex marketplace artifact", result.stdout)
+        self.assertIn("[OK] claude marketplace artifact", result.stdout)
+        self.assertIn("[OK] gemini marketplace artifact", result.stdout)
+        self.assertIn("qiongli invocation", result.stdout)
 
 
 if __name__ == "__main__":

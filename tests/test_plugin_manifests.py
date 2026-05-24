@@ -31,6 +31,8 @@ class PluginManifestTests(unittest.TestCase):
         self.assertLessEqual(len(interface["defaultPrompt"]), 3)
         for prompt in interface["defaultPrompt"]:
             self.assertLessEqual(len(prompt), 128)
+            self.assertNotIn(" /", prompt)
+        self.assertTrue(any("$qiongli" in prompt for prompt in interface["defaultPrompt"]))
 
     def test_claude_plugin_manifest_exposes_workflow_skill(self) -> None:
         manifest = json.loads(CLAUDE_PLUGIN_MANIFEST.read_text(encoding="utf-8"))
@@ -50,7 +52,8 @@ class PluginManifestTests(unittest.TestCase):
     def test_plugin_contains_discoverable_research_paper_workflow_skill(self) -> None:
         self.assertTrue((PLUGIN_SKILL / "SKILL.md").is_file())
         skill_text = (PLUGIN_SKILL / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("name: qiongli-workflow", skill_text)
+        self.assertIn("name: qiongli\n", skill_text)
+        self.assertIn("# Qiongli Academic Workflow", skill_text)
         self.assertTrue((PLUGIN_SKILL / "workflows" / "paper.md").is_file())
         self.assertTrue((PLUGIN_SKILL / "references" / "workflow-contract.md").is_file())
 

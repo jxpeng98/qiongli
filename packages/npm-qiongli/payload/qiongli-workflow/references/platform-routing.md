@@ -25,7 +25,7 @@ Use this mapping to keep behavior consistent across tools.
 
 ## Codex
 
-- Use `$qiongli-workflow`
+- Use `$qiongli`
 - Provide: `paper_type`, `task_id`, `topic`, and optional `venue`
 - Follow artifact paths from workflow contract
 - For multi-agent execution, apply `standards/mcp-agent-capability-map.yaml`:

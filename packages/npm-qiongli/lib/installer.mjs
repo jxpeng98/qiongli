@@ -201,7 +201,8 @@ function discoveryDirectory(target, skillDest) {
 
 function isQiongliSkillDir(skillDir) {
   try {
-    return fs.readFileSync(path.join(skillDir, 'SKILL.md'), 'utf-8').includes('name: qiongli-workflow');
+    const content = fs.readFileSync(path.join(skillDir, 'SKILL.md'), 'utf-8');
+    return /^name:\s*(qiongli|qiongli-workflow)\s*$/m.test(content);
   } catch {
     return false;
   }

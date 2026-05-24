@@ -6,15 +6,17 @@
 
 1. [快速开始](/zh/quickstart)
 2. [安装](/zh/guide/install)
-3. [任务场景](/zh/guide/task-recipes)
-4. [多 Agent 运行指南](/zh/guide/multi-agent)
-5. [CLI 参考](/zh/reference/cli)
-6. [故障排除](/zh/guide/troubleshooting)
+3. [使用 Agent Skills](/zh/guide/using-agent-skills)
+4. [任务场景](/zh/guide/task-recipes)
+5. [多 Agent 运行指南](/zh/guide/multi-agent)
+6. [CLI 参考](/zh/reference/cli)
+7. [故障排除](/zh/guide/troubleshooting)
 
 ## 内容说明
 
 - [快速开始](/zh/quickstart)：最小安装入口、首个工作区、paper route 和质量门上下文。
 - [安装](/zh/guide/install)：原生 plugin、bootstrap、npm、pipx 等安装面。
+- [使用 Agent Skills](/zh/guide/using-agent-skills)：安装后在 Codex、Claude Code、Gemini CLI 和 shell 中该如何调用。
 - [任务场景](/zh/guide/task-recipes)：按“我要做什么”来选 stages、Task IDs 和 skills。
 - [多 Agent 运行指南](/zh/guide/multi-agent)：解释 broker / direct / auto、Gemini 认证矩阵、桌面 broker 启动方式与回退逻辑。
 - [示例](/zh/examples/)：按 systematic-review、empirical、qualitative、methods、theory 查看标准推荐路线。
