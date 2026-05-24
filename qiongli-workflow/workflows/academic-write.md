@@ -116,6 +116,12 @@ Clarify:
 5. What citation style is required?
 6. What is the target venue/audience?
 
+### Academic Boundary Review Trigger (MVP)
+
+Use `boundary-interviewer` before drafting when the writing task has unresolved boundaries around section purpose, target audience, venue expectations, claim strength, available evidence, citation gaps, contribution type, finding-vs-interpretation-vs-implication, boundary conditions, evidence threshold, or whether planned work is being written as completed work.
+
+The boundary pass must identify the strongest defensible wording for the central claim and the evidence threshold required to use that wording. If the answer changes a central claim, synchronize the decision into `context/decision_log.md` or flag it for `academic-context-maintainer`.
+
 ### Step 2: Gather Required Input
 
 For each section type, request:

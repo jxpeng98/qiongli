@@ -52,6 +52,12 @@ Ask:
 
 Also ask where the current manuscript draft lives (path or paste).
 
+### Academic Boundary Review Trigger (MVP)
+
+Use `boundary-interviewer` before submission or rebuttal work when unresolved boundaries remain around journal fit, submission readiness, missing statements, data/code availability, authorship declarations, reviewer-sensitive weaknesses, impossible reviewer requests, response commitments, claim strength, or evidence threshold.
+
+The boundary pass must ask one academic question at a time. The answer must state which submission or revision artifact changes, what promise can truthfully be made, and whether the decision belongs in `context/decision_log.md` or `context/stage_handoff.md`.
+
 ### Step 2: Reporting Compliance Check
 
 Use **reporting-checker** to generate:
