@@ -172,6 +172,14 @@ class BoundaryInterviewerContractTests(unittest.TestCase):
         self.assertIn("## boundary-interviewer", SKILLS_CORE.read_text(encoding="utf-8"))
         self.assertIn("| boundary-interviewer |", SKILLS_SUMMARY.read_text(encoding="utf-8"))
 
+    def test_boundary_skill_documents_downstream_continuation(self) -> None:
+        content = SKILL.read_text(encoding="utf-8")
+
+        self.assertIn("After the user answers", content)
+        self.assertIn("continue within the locked boundary", content)
+        self.assertIn("must not broaden", content)
+        self.assertIn("revisit_trigger", content)
+
     def test_mvp_workflows_include_academic_boundary_trigger(self) -> None:
         workflow_paths = [
             REPO_ROOT / "qiongli-workflow" / "workflows" / "paper.md",
