@@ -188,6 +188,22 @@ class BoundaryInterviewerContractTests(unittest.TestCase):
             self.assertIn("claim strength", content, path.as_posix())
             self.assertIn("evidence threshold", content, path.as_posix())
 
+    def test_v2_workflows_include_boundary_trigger_for_all_remaining_stages(self) -> None:
+        workflow_paths = [
+            REPO_ROOT / "qiongli-workflow" / "workflows" / "lit-review.md",
+            REPO_ROOT / "qiongli-workflow" / "workflows" / "ethics-check.md",
+            REPO_ROOT / "qiongli-workflow" / "workflows" / "synthesize.md",
+            REPO_ROOT / "qiongli-workflow" / "workflows" / "compliance-check.md",
+            REPO_ROOT / "qiongli-workflow" / "workflows" / "proofread.md",
+            REPO_ROOT / "qiongli-workflow" / "workflows" / "academic-present.md",
+        ]
+
+        for path in workflow_paths:
+            content = path.read_text(encoding="utf-8")
+            self.assertIn("boundary-interviewer", content, path.as_posix())
+            self.assertIn("context/boundary_review.md", content, path.as_posix())
+            self.assertIn("locked boundary", content, path.as_posix())
+
 
 if __name__ == "__main__":
     unittest.main()
