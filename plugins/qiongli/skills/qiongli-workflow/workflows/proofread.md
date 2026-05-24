@@ -21,6 +21,12 @@ Use this workflow after manuscript drafting (Stage F) and compliance checks (Sta
 | `J3` | Similarity & originality check — reduce text overlap |
 | `J4` | Final proofread — grammar, consistency, flow |
 
+## Academic Boundary Review
+
+Before drafting this stage's checkpoint outputs, use `boundary-interviewer` when `context/boundary_review.md` is missing, stale, or contradicted by the current task. Continue within the locked boundary when the artifact already answers the stage question. Narrowing is allowed; broadening requires a new boundary review entry with a revisit trigger.
+
+For proofread work, lock meaning-preservation and final claim wording boundaries before style, similarity, or AI-detection edits.
+
 ## Quick Start
 
 ```

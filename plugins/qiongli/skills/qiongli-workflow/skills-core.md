@@ -579,6 +579,7 @@ python -m bridges.orchestrator code-build \
 4. Provide a recommended answer with rationale, evidence threshold, reviewer consequence, and confidence.
 5. Record claim strength, evidence threshold, rival explanations, validity or trustworthiness risk, generalizability limit, and downstream sync targets.
 6. Sync downstream-relevant decisions into `context/decision_log.md` or `context/stage_handoff.md`.
+7. After the user answers, continue the active task within the locked boundary and require later skills to narrow, not broaden, unless a `revisit_trigger` records the justification.
 
 **Output:** `BoundaryReview` -> `context/boundary_review.md`
 
