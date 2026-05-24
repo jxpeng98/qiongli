@@ -95,6 +95,25 @@ class BoundaryInterviewerContractTests(unittest.TestCase):
             stage_questions["I"],
         )
 
+    def test_v2_contract_covers_all_academic_stages(self) -> None:
+        contract = yaml.safe_load(CONTRACT.read_text(encoding="utf-8"))
+        stage_policy = contract["stage_boundary_policy"]
+
+        self.assertEqual(set(stage_policy), set("ABCDEFGHIJK"))
+        for stage, policy in stage_policy.items():
+            self.assertIn("checkpoint_tasks", policy, stage)
+            self.assertIn("default_level", policy, stage)
+            self.assertIn(policy["default_level"], {"L1", "L2", "L3"}, stage)
+            self.assertGreaterEqual(len(policy["dimensions"]), 2, stage)
+            self.assertGreaterEqual(len(policy["questions"]), 2, stage)
+
+        self.assertIn("B1", stage_policy["B"]["checkpoint_tasks"])
+        self.assertIn("D1", stage_policy["D"]["checkpoint_tasks"])
+        self.assertIn("E5", stage_policy["E"]["checkpoint_tasks"])
+        self.assertIn("G3", stage_policy["G"]["checkpoint_tasks"])
+        self.assertIn("J4", stage_policy["J"]["checkpoint_tasks"])
+        self.assertIn("K4", stage_policy["K"]["checkpoint_tasks"])
+
     def test_template_preserves_academic_decision_record(self) -> None:
         self.assertTrue(TEMPLATE.is_file())
         template = TEMPLATE.read_text(encoding="utf-8")
