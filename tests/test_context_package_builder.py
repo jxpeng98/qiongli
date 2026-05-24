@@ -86,6 +86,28 @@ class ContextPackageBuilderTests(unittest.TestCase):
         self.assertIn("Task: P3-T3.1", gemini_context)
         self.assertIn("Topic: Research tooling", gemini_context)
 
+    def test_context_package_includes_boundary_review_for_all_agents(self) -> None:
+        task_packet = {
+            "task_id": "F3",
+            "paper_type": "empirical",
+            "topic": "ai-writing",
+            "boundary_review": {
+                "artifact": "context/boundary_review.md",
+                "status": "answered",
+                "existing_review": "- locked_decision: Claims are associative, not causal.",
+            },
+        }
+
+        package = build_context_package(
+            task_packet,
+            controller="codex",
+            agents=["claude", "gemini"],
+        )
+
+        self.assertIn("Claims are associative, not causal", package["agent_contexts"]["codex"])
+        self.assertIn("Claims are associative, not causal", package["agent_contexts"]["claude"])
+        self.assertIn("Claims are associative, not causal", package["agent_contexts"]["gemini"])
+
     def test_template_scaffold_declares_manifest_fields(self) -> None:
         self.assertTrue(TEMPLATE_PATH.exists(), f"Missing required artifact: {TEMPLATE_PATH}")
 
