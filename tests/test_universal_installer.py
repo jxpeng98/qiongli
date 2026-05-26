@@ -292,6 +292,38 @@ class UniversalInstallerTests(unittest.TestCase):
             self.assertFalse((project_dir / ".env").exists())
             self.assertFalse((temp_root / ".local" / "bin" / "qiongli").exists())
 
+    def test_install_materializes_requested_subject(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            codex_home = temp_root / "codex-home"
+            env = os.environ.copy()
+            env["CODEX_HOME"] = str(codex_home)
+            env["PATH"] = ""
+
+            with mock.patch.dict(os.environ, env, clear=True):
+                result = install(
+                    InstallOptions(
+                        repo_root=REPO_ROOT,
+                        project_dir=project_dir,
+                        target="codex",
+                        profile="partial",
+                        subject="economics",
+                    )
+                )
+
+            self.assertEqual(result, 0)
+            skill_dir = codex_home / "skills" / "qiongli-workflow"
+            self.assertEqual((skill_dir / "SUBJECT").read_text(encoding="utf-8").strip(), "economics")
+            self.assertTrue((skill_dir / "skills" / "domain-profiles" / "economics.yaml").exists())
+            self.assertFalse((skill_dir / "skills" / "domain-profiles" / "cs-ai.yaml").exists())
+            self.assertTrue((skill_dir / "skills" / "F_writing" / "manuscript-architect.md").exists())
+            self.assertIn(
+                "Economics Overlay",
+                (skill_dir / "skills" / "F_writing" / "manuscript-architect.md").read_text(encoding="utf-8"),
+            )
+
     def test_full_profile_allows_explicit_no_cli(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             temp_root = Path(tmp_dir)

@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from . import __version__
+from .subject_materializer import SubjectCatalogError, SubjectMaterializationError
 from .universal_installer import PART_CHOICES, InstallOptions, clean, clean_workflow_symlinks, install
 
 TAG_PATTERN = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:-beta\.(\d+)|b(\d+))?$")
@@ -262,6 +263,18 @@ def _installed_skill_dirs() -> dict[str, Path]:
     }
 
 
+def _read_installed_subject(skill_dir: Path) -> str | None:
+    if not skill_dir.exists():
+        return None
+    subject_path = skill_dir / "SUBJECT"
+    if subject_path.exists():
+        subject = _read_text(subject_path)
+        return subject or "core"
+    if (skill_dir / "SKILL.md").exists():
+        return "core"
+    return None
+
+
 def _read_installed_version(skill_dir: Path) -> tuple[str, Version] | None:
     version_path = skill_dir / "VERSION"
     if not version_path.exists():
@@ -476,6 +489,7 @@ def cmd_check(args: argparse.Namespace) -> int:
             "path": str(path),
             "installed": path.exists(),
             "version": None,
+            "subject": _read_installed_subject(path),
         }
         found = _read_installed_version(path)
         if found:
@@ -717,20 +731,60 @@ def cmd_upgrade(args: argparse.Namespace) -> int:
         if not install_script.exists():
             print(f"[error] Python install script not found in archive: {install_script}", file=sys.stderr)
             return 1
-        return install(
+        return _run_installer(
             InstallOptions(
-                repo_root=extracted_root,
-                project_dir=project_dir,
-                target=args.target,
-                mode=args.mode,
-                overwrite=args.overwrite,
-                install_cli=install_cli,
-                cli_dir=Path(args.cli_dir).expanduser().resolve() if getattr(args, "cli_dir", None) else None,
-                doctor=args.doctor,
-                dry_run=args.dry_run,
-                parts=_parse_parts_arg(getattr(args, "parts", None)),
-            )
+                    repo_root=extracted_root,
+                    project_dir=project_dir,
+                    subject=args.subject,
+                    target=args.target,
+                    mode=args.mode,
+                    overwrite=args.overwrite,
+                    install_cli=install_cli,
+                    cli_dir=Path(args.cli_dir).expanduser().resolve() if getattr(args, "cli_dir", None) else None,
+                    doctor=args.doctor,
+                    dry_run=args.dry_run,
+                    parts=_parse_parts_arg(getattr(args, "parts", None)),
+                )
         )
+
+
+def _packaged_payload_root() -> Path:
+    package_payload = Path(__file__).resolve().parent / "payload"
+    if (package_payload / "qiongli-workflow" / "SKILL.md").exists():
+        return package_payload
+    return Path(__file__).resolve().parents[1]
+
+
+def cmd_install(args: argparse.Namespace) -> int:
+    project_dir = Path(args.project_dir).expanduser().resolve()
+    install_cli = None
+    if getattr(args, "install_cli", False):
+        install_cli = True
+    if getattr(args, "no_cli", False):
+        install_cli = False
+    return _run_installer(
+        InstallOptions(
+            repo_root=_packaged_payload_root(),
+            project_dir=project_dir,
+            subject=args.subject,
+            target=args.target,
+            mode=args.mode,
+            overwrite=args.overwrite,
+            install_cli=install_cli,
+            cli_dir=Path(args.cli_dir).expanduser().resolve() if getattr(args, "cli_dir", None) else None,
+            doctor=args.doctor,
+            dry_run=args.dry_run,
+            parts=_parse_parts_arg(getattr(args, "parts", None)),
+        )
+    )
+
+
+def _run_installer(options: InstallOptions) -> int:
+    try:
+        return install(options)
+    except (SubjectCatalogError, SubjectMaterializationError) as exc:
+        print(f"[error] {exc}", file=sys.stderr)
+        return 2
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
@@ -851,6 +905,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Install target (default: all)",
     )
     upgrade.add_argument("--beta", action="store_true", help="Include beta/pre-release tags for upgrade")
+    upgrade.add_argument("--subject", default="core", help="Subject package to install (default: core)")
     upgrade.add_argument(
         "--mode",
         default="copy",
@@ -880,6 +935,36 @@ def build_parser() -> argparse.ArgumentParser:
     upgrade.add_argument("--doctor", action="store_true", help="Run orchestrator doctor after install")
     upgrade.add_argument("--dry-run", action="store_true", help="Show install actions only")
     upgrade.add_argument(
+        "--parts",
+        help=f"Comma-separated install surfaces to apply: {', '.join(PART_CHOICES)}.",
+    )
+
+    install_parser = subparsers.add_parser("install", help="Install bundled qiongli workflow assets")
+    install_parser.add_argument(
+        "--target",
+        default="all",
+        choices=["codex", "claude", "gemini", "antigravity", "all"],
+        help="Install target (default: all)",
+    )
+    install_parser.add_argument("--subject", default="core", help="Subject package to install (default: core)")
+    install_parser.add_argument(
+        "--mode",
+        default="copy",
+        choices=["copy", "link"],
+        help="Install mode (default: copy)",
+    )
+    install_parser.add_argument(
+        "--project-dir",
+        default=str(Path.cwd()),
+        help="Project directory used when project surfaces are enabled (default: current dir)",
+    )
+    install_parser.add_argument("--install-cli", action="store_true", help="Install or refresh shell CLI wrappers")
+    install_parser.add_argument("--no-cli", action="store_true", help="Skip shell CLI installation")
+    install_parser.add_argument("--cli-dir", help="Directory for shell CLI wrappers")
+    install_parser.add_argument("--overwrite", action="store_true", default=False, help="Overwrite existing installs")
+    install_parser.add_argument("--doctor", action="store_true", help="Run orchestrator doctor after install")
+    install_parser.add_argument("--dry-run", action="store_true", help="Show install actions only")
+    install_parser.add_argument(
         "--parts",
         help=f"Comma-separated install surfaces to apply: {', '.join(PART_CHOICES)}.",
     )
@@ -942,6 +1027,8 @@ def main() -> int:
     args = parser.parse_args()
     if args.cmd == "check":
         return cmd_check(args)
+    if args.cmd == "install":
+        return cmd_install(args)
     if args.cmd == "upgrade":
         return cmd_upgrade(args)
     if args.cmd == "align":

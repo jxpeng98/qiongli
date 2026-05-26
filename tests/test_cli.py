@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import io
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -74,6 +75,32 @@ class InstallerCliTests(unittest.TestCase):
         self.assertEqual(options.parts, ("project",))
         self.assertEqual(options.target, "all")
 
+    def test_install_command_passes_subject_to_installer(self) -> None:
+        with mock.patch.object(cli_module, "install", return_value=0) as install_mock:
+            with mock.patch.object(
+                cli_module.sys,
+                "argv",
+                ["qiongli", "install", "--subject", "economics", "--target", "codex"],
+            ):
+                exit_code = cli_module.main()
+
+        self.assertEqual(exit_code, 0)
+        options = install_mock.call_args.args[0]
+        self.assertEqual(options.subject, "economics")
+        self.assertEqual(options.target, "codex")
+
+    def test_install_unknown_subject_reports_available_subjects(self) -> None:
+        stderr = io.StringIO()
+        with mock.patch.object(
+            cli_module.sys,
+            "argv",
+            ["qiongli", "install", "--subject", "unknown", "--target", "codex", "--dry-run"],
+        ), contextlib.redirect_stderr(stderr):
+            exit_code = cli_module.main()
+
+        self.assertEqual(exit_code, 2)
+        self.assertIn("Unknown subject 'unknown'. Available subjects: core, economics", stderr.getvalue())
+
     def test_align_describes_global_first_upgrade_and_project_init(self) -> None:
         args = argparse.Namespace(repo="owner/repo")
 
@@ -108,6 +135,7 @@ class InstallerCliTests(unittest.TestCase):
                 doctor=False,
                 dry_run=False,
                 parts="project,cli",
+                subject="economics",
             )
 
             with mock.patch.object(cli_module, "_download") as download_mock, mock.patch.object(
@@ -119,6 +147,41 @@ class InstallerCliTests(unittest.TestCase):
         download_mock.assert_called_once()
         options = install_mock.call_args.args[0]
         self.assertEqual(options.parts, ("project", "cli"))
+        self.assertEqual(options.subject, "economics")
+
+    def test_check_json_reports_installed_subject(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            skill_dir = root / "codex" / "skills" / "qiongli-workflow"
+            skill_dir.mkdir(parents=True)
+            (skill_dir / "VERSION").write_text("v9.9.9\n", encoding="utf-8")
+            (skill_dir / "SUBJECT").write_text("economics\n", encoding="utf-8")
+            args = argparse.Namespace(
+                repo="",
+                json=True,
+                strict_network=False,
+                beta=False,
+            )
+            skill_dirs = {
+                "codex": skill_dir,
+                "claude": root / "claude" / "skills" / "qiongli-workflow",
+                "gemini": root / "gemini" / "skills" / "qiongli-workflow",
+            }
+
+            stdout = io.StringIO()
+            with mock.patch.object(cli_module, "_find_repo_root", return_value=None), mock.patch.object(
+                cli_module, "_check_pip_version", return_value=("9.9.9", "up-to-date")
+            ), mock.patch.object(cli_module, "_check_system_env", return_value={}), mock.patch.object(
+                cli_module, "_installed_skill_dirs", return_value=skill_dirs
+            ), mock.patch.object(
+                cli_module, "_resolve_upstream_repo", return_value=(None, "")
+            ), contextlib.redirect_stdout(stdout):
+                exit_code = cli_module.cmd_check(args)
+
+        self.assertEqual(exit_code, 0)
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual(payload["installed"]["codex"]["subject"], "economics")
+        self.assertEqual(payload["installed"]["claude"]["subject"], None)
 
     def test_doctor_runs_orchestrator_subprocess(self) -> None:
         args = argparse.Namespace(cwd=".")
