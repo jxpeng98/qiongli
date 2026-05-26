@@ -25,6 +25,25 @@ class AcademicContextContinuityTests(unittest.TestCase):
         ):
             self.assertIn(token, content)
 
+    def test_boundary_review_is_academic_context_artifact(self) -> None:
+        content = (REPO_ROOT / "standards" / "research-workflow-contract.yaml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('"context/boundary_review.md"', content)
+        self.assertIn("boundary_review_required_sections:", content)
+        self.assertIn("claim_strength_boundary", content)
+        self.assertIn("revisit_trigger", content)
+
+    def test_context_maintainer_consumes_boundary_review(self) -> None:
+        content = (
+            REPO_ROOT / "skills" / "Z_cross_cutting" / "academic-context-maintainer.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("context/boundary_review.md", content)
+        self.assertIn("Do not broaden locked boundaries", content)
+        self.assertIn("research_state.md", content)
+        self.assertIn("decision_log.md", content)
+        self.assertIn("stage_handoff.md", content)
+
     def test_capability_map_wires_continuity_skill_into_stage_close_tasks(self) -> None:
         content = (REPO_ROOT / "standards" / "mcp-agent-capability-map.yaml").read_text(
             encoding="utf-8"

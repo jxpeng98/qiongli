@@ -1,271 +1,178 @@
-# 多端客户端安装指南 (Codex / Claude Code / Gemini)
+# 安装 Qiongli
 
-::: warning 完整功能依赖
-`partial` 轻量模式不要求 Python。`full` 模式和完整运行时仍然依赖：
+Qiongli 有多个安装入口，是因为不同用户需要的运行时能力不同。先选能满足目标的最小入口。
 
-- `python3` 3.12+
-- `codex`
-- `claude`
-- `gemini`
-- `OPENAI_API_KEY`、`ANTHROPIC_API_KEY`、`GOOGLE_API_KEY`
+## 安装入口
 
-如果缺少这些依赖，资产安装和 shell `rsk` 维护命令仍可使用，但 orchestrator 执行、`doctor`、validator 和完整多模型流程会受限。
-:::
+| 入口 | 适合场景 | 安装内容 | 是否要求 Python |
+|---|---|---|---|
+| 原生 plugin / extension | 单个客户端，最少配置 | 客户端 plugin 和 `qiongli-workflow` | 否 |
+| Claude Desktop Skill ZIP | Claude Desktop 或 Claude.ai，尤其适合不熟悉 code / CLI 环境的用户 | 个人上传的 `qiongli` Skill | 否 |
+| Bootstrap `partial` | 多客户端全局 workflow assets | skills 和客户端支持的 workflow discovery | 否 |
+| Bootstrap `full` | runtime check 和 orchestrator | `partial` 加 shell CLI 与 `doctor` 支持 | 是，Python 3.12+ |
+| npm / npx | Node 自动化安装 | npm CLI 和内置 workflow payload | 只有高级 bridge 命令需要 |
+| pipx / pip | Python updater CLI | Python CLI 分发 | 是 |
 
-## 1. 原生插件与扩展安装
+用户可见的 skill 名称是 `qiongli`。安装目录仍然是 `qiongli-workflow`，这是为了兼容已有客户端和 release artifacts。
 
-如果你只想在单个客户端里使用，推荐通过客户端自己的原生扩展入口安装 **Qiongli**。这条路径会直接把 `qiongli-workflow` skill 安装到对应客户端，不需要用户先安装 `pip`、`pipx` 或 `rsk` CLI。
+## 原生 Plugin 和 Extension
 
-如果你需要下面这些能力，再使用 bootstrap / CLI 路径：
+只需要在一个客户端里使用 Qiongli 时，优先选这个入口。
 
-- 跨客户端全局安装
-- 由 `rsk` 管理全局 slash command 软链接
-- 使用 `qiongli upgrade`、`qiongli check` 或 `doctor`
-- 执行多模型 orchestrator
+Codex 通过统一的 [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace 安装：
 
-本地开发安装命令：
+```bash
+codex plugin marketplace add jxpeng98/skillsplace --ref main
+codex plugin marketplace list
+```
+
+然后在 Codex plugin UI 中安装或启用 `qiongli`。
+
+Claude Code 使用同一个 Skillsplace catalog：
+
+```bash
+claude plugin marketplace add jxpeng98/skillsplace@main
+claude plugin install qiongli@skillsplace
+```
+
+在 Claude Code 交互会话中，也可以使用 slash commands：
 
 ```text
-# Codex
-从官方 Codex plugin marketplace 安装 Qiongli。
+/plugin marketplace add jxpeng98/skillsplace@main
+/plugin install qiongli@skillsplace
+```
 
-# Claude Code
-/plugin marketplace add ./path/to/qiongli
-/plugin install qiongli@qiongli
+Claude Desktop 和 Claude.ai 不安装第三方 Claude Code plugin marketplace。如果你使用 Desktop 或网页版，并且不熟悉 code / CLI 环境，优先使用 release ZIP 路径，不需要任何终端命令：
 
-# Gemini CLI
+1. 从 GitHub Release assets 下载 `qiongli-claude-desktop-skill-<tag>.zip`。
+2. 在 Claude Desktop 中，把 ZIP 拖拽到 Skills 上传/安装流程中；也可以打开 `Customize > Skills`，点击 `+`，选择 `Create skill`，再选择 `Upload a skill`。
+3. 在 Claude.ai 网页版中，使用同样的 `Customize > Skills` 上传流程，选择同一个 ZIP。
+4. 启用上传后的 `qiongli` skill。
+
+Gemini CLI 仍然直接安装本地 extension payload：
+
+```bash
 gemini extensions install ./path/to/qiongli/plugins/qiongli
 ```
 
-这个仓库包含用于打包和本地校验的元数据：
+这条路径不会安装 shell CLI、Python bridge 或全局 slash-command symlinks。需要这些能力时，用 bootstrap 或 npm。
 
-- `.agents/plugins/marketplace.json`
-- `.claude-plugin/marketplace.json`
-- `plugins/qiongli/.codex-plugin/plugin.json`
-- `plugins/qiongli/.claude-plugin/plugin.json`
-- `plugins/qiongli/gemini-extension.json`
-- `plugins/qiongli/commands/*.md`
-- `plugins/qiongli/skills/qiongli-workflow`
+## 安装后如何使用
 
-在这套结构里，plugin 负责安装、发现和平台入口；`qiongli-workflow` 是 plugin 内真正被加载的 portable skill package。`commands/*.md` 只做薄转发，真实 workflow 逻辑仍在 `skills/qiongli-workflow/workflows/*.md`。
+安装或升级后，先重启目标客户端。然后使用该客户端暴露的入口：
 
-Codex 和 Claude Code 使用 marketplace catalog。Gemini CLI 使用官方 extension 系统（`gemini-extension.json`），不是 marketplace JSON。
-
-## 2. 与旧版全局 Skills 的兼容
-
-新的原生 plugin / extension 安装可以和旧版 `partial` / `full` 安装共存，但不会自动迁移或删除旧安装。
-
-它们是不同的安装面：
-
-| 安装面 | 典型路径 | 管理方 |
+| 客户端 | 发现方式 | 调用方式 |
 |---|---|---|
-| 原生 plugin bundle | 客户端 plugin / extension store，内部包含 `plugins/qiongli/skills/qiongli-workflow` | Codex / Claude Code / Gemini 的 plugin 系统 |
-| 旧版全局 skill 安装 | `~/.codex/skills/qiongli-workflow`、`~/.claude/skills/qiongli-workflow`、`~/.gemini/skills/qiongli-workflow` | `rsk`、bootstrap 或本地 installer |
-| 旧版 slash command discovery | `~/.claude/commands/*.md`、`~/.gemini/workflows/*.md` | `rsk` 管理的软链接 |
+| Codex | `/skills` 应该能列出 `qiongli` | `$qiongli <research task>` |
+| Claude Code | Plugin UI、`/plugin` 或全局 command discovery | `/paper`、`/lit-review`、`/paper-write`、`/code-build` |
+| Gemini CLI | Extension list 或全局 workflow discovery | `/paper`、`/lit-review`、`/paper-write`、`/code-build` |
+| Shell | `qiongli check` | `qiongli doctor`、`qiongli upgrade`、`python3 -m bridges.orchestrator ...` |
 
-建议按下面规则选择：
+Codex 不暴露自定义 `/qiongli` slash command。先用 `/skills` 确认 skill 存在，再用 `$qiongli` 调用。
 
-- 新用户如果只需要客户端原生 skills 和 `/paper` 这类 workflow，直接安装官方 plugin / extension。
-- 已经装过 `partial` / `full` 的用户，可以在旧全局 skills 旁边再安装 plugin。
-- 如果还需要 `qiongli`、`ql`、`research-skills`、`rsk`、`rsw`、`doctor`、validator 或 `bridges.orchestrator`，继续保留 `full` runtime，并执行 `qiongli upgrade --target all --doctor`，让全局 skill package 与 plugin 版本保持一致。
-- 如果准备完全切到官方 plugin，不再需要旧版全局 slash discovery，先用 `qiongli clean --globals --dry-run` 查看会清理哪些旧入口。
+## Bootstrap Partial
 
-如果旧版全局 skills 和新 plugin 同时存在，建议保持版本一致，避免不同客户端或不同命令路径加载到不同版本的 `qiongli-workflow`。
-
-## 3. 先选 `partial` 还是 `full`
-
-如果你不传 `--profile`，bootstrap 会先解释这两种模式，再提示你选择。建议选最小可用模式：只用全局 skills 就选 `partial`，需要本地 CLI 和 orchestrator 检查再选 `full`。
-
-| Profile | 安装内容 | 安装前是否要求 Python | 安装后结果 |
-|---|---|---|---|
-| `partial` | Codex / Claude Code / Gemini 的全局 `qiongli-workflow` skill 资产和 workflow discovery 链接 | 否 | `/paper`、`/lit-review` 等 slash workflow 可直接使用 |
-| `full` | `partial` 的全部内容，加 shell CLI：`qiongli` / `rsk` / `rsw`，以及可选 `doctor` 校验 | 是，需要 Python 3.12+ | 完整 orchestrator 运行时可用 |
-
-适合选 `partial` 的情况：
-
-- 你只需要 AI 客户端里的 skills 和 slash workflow
-- 机器上还没有 Python
-- 你希望在 Windows 或受限机器上先用最低摩擦方式安装
-
-适合选 `full` 的情况：
-
-- 你要使用 `qiongli upgrade`、`qiongli init`、`qiongli doctor` 或 `qiongli`
-- 你要运行 `python3 -m bridges.orchestrator task-plan|task-run|doctor`
-- 你要跑本地 validator、unit tests 或多模型 orchestrator
-
-`full` 的真实行为：
-
-- 如果系统里已经有 `python3 >= 3.12`，bootstrap 会直接复用。
-- 如果 Python 缺失或版本过低，bootstrap 会立即失败，并打印可选安装方式。安装器不会自动安装 Python 或 `mise`。
-- Windows 上由 PowerShell 直接安装，只有在 shell CLI 包装器需要 Bash 时才会通过 `winget` 安装 Git for Windows。
-
-### `full` 模式的 Python 前提
-
-`full` 模式要求机器上已经有 Python 3.12+，并且能在 PATH 中找到。安装器不会再自动安装 Python 或 `mise`。你可以用任何方式安装 Python：
-
-- macOS：python.org 安装包、`brew install python`、`pyenv` 或 `mise`
-- Windows：python.org 安装包、`winget install -e --id Python.Python.3.12 --source winget`、Microsoft Store 或 pyenv-win
-- Linux：系统包管理器、`pyenv` 或 `mise`
-
-运行 `full` 前先确认：
-
-```bash
-python3 --version
-```
-
-## 4. 运行推荐的一键 bootstrap
-
-### Linux / macOS
-
-交互式选择 `partial` 或 `full`：
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --project-dir "$PWD" --target all
-```
-
-强制 `partial`：
+`partial` 用于安装跨客户端 workflow package，不要求 Python：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --profile partial --project-dir "$PWD" --target all
 ```
 
-强制 `full`：
+Windows PowerShell 7+：
+
+```powershell
+winget install --id Microsoft.PowerShell --source winget
+Invoke-WebRequest https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.ps1 -OutFile .\bootstrap_qiongli.ps1
+pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile partial -ProjectDir "$PWD" -Target all
+```
+
+`partial` 会安装 workflow assets 和 discovery links，但不会运行完整 runtime validation。
+
+## Bootstrap Full
+
+需要本地验证或 orchestrated task execution 时，用 `full`：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --profile full --project-dir "$PWD" --target all
 ```
 
-安装最新 beta / prerelease：
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.sh | bash -s -- --beta --profile full --project-dir "$PWD" --target all
-```
-
-### Windows PowerShell 7+
-
-如果机器上还没有 `pwsh`，先安装：
-
-```powershell
-winget install --id Microsoft.PowerShell --source winget
-```
-
-下载后交互式选择 `partial` 或 `full`：
-
-```powershell
-Invoke-WebRequest https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/bootstrap_qiongli.ps1 -OutFile .\bootstrap_qiongli.ps1
-pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -ProjectDir "$PWD" -Target all
-```
-
-强制 `partial`：
-
-```powershell
-pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile partial -ProjectDir "$PWD" -Target all
-```
-
-强制 `full`：
+Windows PowerShell 7+：
 
 ```powershell
 pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile full -ProjectDir "$PWD" -Target all
 ```
 
-安装最新 beta / prerelease：
+`full` 要求 Python 3.12+ 已经在 `PATH` 上。安装器不会安装 Python 或 `mise`。
 
-```powershell
-pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Beta -Profile full -ProjectDir "$PWD" -Target all
-```
-
-Bootstrap 会安装：
-
-- Codex / Claude Code / Gemini 的 workflow 资产
-- `.agent/workflows/`、`CLAUDE.md`、`.gemini/` 等项目集成文件，仅在执行 `qiongli init` 或 `--parts project` 时写入
-- `full` 模式下的 shell CLI：`qiongli`、`ql`、`research-skills`、`rsk`、`rsw`
-
-## 5. 使用已安装的 skills
-
-`partial` 和 `full` 都是 global-first。安装完成后，日常使用流程是：
-
-1. 新建或打开一个研究目录：`mkdir my-paper && cd my-paper`
-2. 启动 Claude Code 或 Gemini CLI 等支持的客户端
-3. 直接运行 slash workflow，例如 `/paper`、`/lit-review`、`/paper-write` 或 `/code-build`
-
-模型会读取全局安装的 `qiongli-workflow`。默认不会往你的项目目录写文件；只有明确初始化项目时才会写入 `.env` 或本地 workflow 资产：
+安装后检查工作区：
 
 ```bash
-qiongli init --project-dir .
+qiongli doctor --project-dir .
+python3 -m bridges.orchestrator doctor --cwd .
 ```
 
-## 6. 可选：本地安装器
+## npm / npx
 
-如果机器上已经有 Python，可以用跨平台本地安装器：
+如果你想用 Node 分发的安装器，并让 workflow payload 跟随 npm 包：
 
 ```bash
-python3 scripts/bootstrap_qiongli.py --profile partial --project-dir .
-python3 scripts/bootstrap_qiongli.py --profile full --project-dir .
+npm install -g qiongli
+qiongli install --target all --project-dir "$PWD"
 ```
 
-如果你在 Linux 或 macOS 上已经有本地仓库副本，也可以直接用本地 shell 安装器：
+一次性运行：
 
 ```bash
-./scripts/install_qiongli.sh --profile partial --target all --project-dir /path/to/project
-./scripts/install_qiongli.sh --profile full --target all --project-dir /path/to/project
+npx qiongli@latest install --target all --project-dir "$PWD"
+npx qiongli@latest check --json
 ```
 
-`pip` / `pipx` 路径仍然保留给升级器 CLI，但不再是推荐的首次安装入口：
+测试 prerelease 时仍可使用 `next` dist-tag：
+
+```bash
+npx qiongli@next install --target all --project-dir "$PWD"
+```
+
+## pipx / pip
+
+如果你明确需要 Python 分发的 updater CLI，用 pipx：
 
 ```bash
 pipx install qiongli
-qiongli upgrade --target all --doctor
-qiongli init --project-dir /path/to/project
+qiongli upgrade --target all
 ```
 
-如果你先装了 `partial`，之后又安装了 Python 3.12+，可以重新运行 bootstrap 并指定 `--profile full`；如果 shell CLI 已经可用，也可以执行 `qiongli upgrade --target all --doctor`。
-
-## 7. 全局优先安装与修改产物
-
-目前系统所有的安装与升级**默认全部是全局操作（Global-first）**，你的项目目录会被保持绝对干净。
-
-安装器主要执行两步：
-1. **安装核心技能包：** 把 `qiongli-workflow` 下载存进你本地 AI 客户端所在的专属配置目录（例如 `~/.claude/skills/` 和 `~/.gemini/skills/`）。
-2. **注册快捷指令 (Slash Commands)：** 自动在客户端的发现路径里打下轻量级的软链接（例如 `~/.claude/commands/paper.md`）。
-
-这意味着像 `/paper`、`/study-design` 这样的命令，**无论你当前在电脑的哪个文件夹下工作，AI 都能原生识别**。
-
-_注：涉及你具体项目内文件的写入（比如需要注入 API Key 的 `.env`），只有在你显式运行 `qiongli init --project-dir .` 时才会发生。_
-
-## 8. 常用参数
-
-- `--profile partial|full`：显式指定安装模式，跳过交互提示。
-- `--target codex|claude|gemini|antigravity|all`：限制安装范围。
-- `--beta`：在未传 `--ref` 时安装最新 beta / prerelease tag。
-- `--install-cli`：即使不是 `full` 也安装 shell CLI。
-- `--no-cli`：即使是 `full` 也跳过 shell CLI。
-- `--cli-dir <path>`：指定 shell CLI 安装目录。默认：`${QIONGLI_BIN_DIR:-${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}}`。
-- `--overwrite`：覆盖已有安装目标。
-- `--dry-run`：只预览安装动作。
-- `--doctor`：安装后运行 `python3 -m bridges.orchestrator doctor --cwd <project>`。
-
-## 9. 极简使用指南（零配置）
-
-有了全局化命令注册，现在开启一篇新论文的研究步骤非常简单：
-
-1. 新建一个纯空目录：`mkdir my-new-paper && cd my-new-paper`
-2. 唤出终端里的 AI：输入 `claude` 或 `gemini`
-3. 直接调用命令：敲击 `/paper` 或 `/lit-review`
-
-模型会自动调用全局安装的技能体系，不会默认往你的工作区写入模板文件。
-
-## 10. 日常升级与故障排查
-
-要将你电脑上所有 AI 客户端的学术引擎统一升级到远端最新版本（你不用再去分别挨个项目升级了）：
+升级：
 
 ```bash
-qiongli upgrade --target all --doctor
+pipx upgrade qiongli
+qiongli upgrade --target all --doctor --project-dir /path/to/project
 ```
 
-如果已经采用官方 plugin，并想预览清理旧版全局 slash command 软链接：
+## 实际会安装什么
+
+根据入口不同，Qiongli 可能安装：
+
+- 客户端 home 目录下的 `qiongli-workflow` skill assets，用户侧显示为 `qiongli`
+- 在支持该 discovery 模型的客户端中，提供 `/paper`、`/lit-review`、`/paper-write`、`/code-build` 等 workflow command discovery links
+- shell 命令 `qiongli`、`ql` 和兼容别名 `research-skills`、`rsk`、`rsw`
+- 只有显式运行 `qiongli init --project-dir .` 时才写入的项目集成文件
+
+默认不会写入项目本地文件。全局 workflow package 可在任意研究工作区使用。
+
+完整调用细节见 [使用 Agent Skills](/zh/guide/using-agent-skills)。
+
+## 保持版本一致
+
+如果你同时使用多个安装面，保持 plugin、global skill assets、npm payload 和 Python CLI 一致：
+
+```bash
+qiongli check
+qiongli upgrade --target all
+```
+
+如果你已经完全转向原生 plugin，不再需要旧的全局 slash commands，先 dry-run 清理：
 
 ```bash
 qiongli clean --globals --dry-run
 ```
-
-_注：终端工具（如 `qiongli check`, `qiongli upgrade`, `qiongli clean`）现在自身不再依赖 Python 即可运行。但底层的核心验证器（`--doctor`，单元测试 以及 `bridges.orchestrator`）仍需合法的 Python 3 解释器来工作。_

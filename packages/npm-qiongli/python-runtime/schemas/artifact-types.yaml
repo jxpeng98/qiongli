@@ -249,6 +249,12 @@ artifact_types:
     produced_by: [manuscript-architect]
     consumed_by: [tone-normalizer, prisma-checker, reporting-checker, meta-optimizer, fatal-flaw-detector, peer-review-simulation, submission-packager]
 
+  - name: ResearchProposal
+    description: "Research proposal, prospectus, opening report, or study-plan document for approval before results-focused drafting"
+    format: markdown
+    produced_by: [proposal-writer]
+    consumed_by: [submission-packager, peer-review-simulation, academic-context-maintainer]
+
   - name: ClaimGraph
     description: "Claim-evidence integrity map linking assertions to supporting data"
     format: markdown
@@ -487,6 +493,12 @@ artifact_types:
     format: markdown
     produced_by: [self-critique]
     consumed_by: [research-orchestrator]
+
+  - name: BoundaryReview
+    description: "Academic boundary decision record covering scope, constructs, contribution, claim strength, evidence threshold, rival explanations, validity risks, generalizability limits, venue expectations, and downstream handoff"
+    format: markdown
+    produced_by: [boundary-interviewer]
+    consumed_by: [academic-context-maintainer, manuscript-architect, study-designer, submission-packager, code-specification, self-critique, model-collaborator]
 
   - name: ResearchStateSnapshot
     description: "Project-level academic state summary capturing current question, locked decisions, evidence position, disputes, and next-stage priorities"

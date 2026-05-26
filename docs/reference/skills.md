@@ -49,13 +49,13 @@ If you want scenario-driven routes such as "systematic review", "methods paper",
 | `C_design` | design, variables, robustness, datasets | 9 | "How should this study be designed and operationalized?" |
 | `D_ethics` | IRB, privacy, governance | 3 | "What ethics and data-protection materials do I need?" |
 | `E_synthesis` | evidence synthesis, quality, bias | 5 | "How do I combine and rate evidence?" |
-| `F_writing` | manuscript building, tables, figures, results writing | 7 | "How do I turn analysis into publishable text?" |
+| `F_writing` | manuscript building, tables, figures, results writing | 8 | "How do I turn analysis into publishable text?" |
 | `G_compliance` | reporting checklists, tone, PRISMA | 3 | "Is this compliant and submission-ready?" |
 | `J_proofread` | AI detection, humanization, similarity, final polish | 4 | "How do I de-AI and finalize the manuscript?" |
 | `H_submission` | submission package, rebuttal, review simulation | 7 | "How do I package, defend, and stress-test the paper?" |
 | `I_code` | academic code, stats, reproducibility | 10 | "How do I implement and verify research code?" |
 | `K_presentation` | academic talks, slide planning, Slidev, Beamer | 4 | "How do I turn the paper into a defensible talk?" |
-| `Z_cross_cutting` | metadata, model collaboration, self-critique | 4 | "How do I improve quality across stages?" |
+| `Z_cross_cutting` | metadata, model collaboration, self-critique | 5 | "How do I improve quality across stages?" |
 
 ## Canonical Skills By Stage
 
@@ -133,6 +133,7 @@ Use Stage F when the main question is turning evidence and analysis into section
 | Skill | Display Name | When to use | Produces |
 |---|---|---|---|
 | `manuscript-architect` | Manuscript Architect | You want to draft a paper from an existing `RESEARCH/[topic]/` project folder (empirical study or systematic review). | `ManuscriptOutline`, `Manuscript`, `ClaimGraph`, `FiguresTablesPlan` |
+| `proposal-writer` | Proposal Writer | When preparing a research proposal, opening report, prospectus, study plan, or 开题报告 before results-focused manuscript drafting. | `ResearchProposal` |
 | `analysis-interpreter` | Analysis Interpreter | After primary analysis is complete | `ResultInterpretation` |
 | `effect-size-interpreter` | Effect Size Interpreter | After primary analysis is complete | `EffectInterpretation` |
 | `table-generator` | Table Generator | After primary analysis is complete | `FormattedTables` |
@@ -221,6 +222,7 @@ Use Stage Z when the need cuts across stages rather than belonging to one paper 
 |---|---|---|---|
 | `metadata-enricher` | Metadata Enricher | Use when you need to normalize and enrich doi, venue, year, author metadata across artifacts. | `Bibliography` |
 | `academic-context-maintainer` | Academic Context Maintainer | Use when you need a stage-aware academic state summary that preserves research question scope, locked methodological choices, stable findings, unresolved disputes, and decision rationale across long-running paper workflows. | `ResearchStateSnapshot`, `ResearchDecisionLog` |
+| `boundary-interviewer` | Boundary Interviewer | Use before high-risk framing, study design, writing, submission, research code, or handoff work when research scope, claim strength, evidence threshold, validity risk, generalizability, or reviewer expectations remain unclear. | `BoundaryReview` |
 | `model-collaborator` | Model Collaborator | Use when literature screening, peer review simulation, rebuttal drafting, qualitative coding, or code/statistics validation benefits from independent multi-model passes before synthesis. | `CollaborationTrace` |
 | `self-critique` | Self-Critique | Use when you need to iterative red teaming against superficial reasoning, contradictions, and overclaiming. | `CritiqueLog` |
 

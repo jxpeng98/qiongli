@@ -111,6 +111,23 @@ Consolidated skill reference for token-efficient workflow execution. Use this fi
 
 ---
 
+## proposal-writer
+
+**Purpose:** Draft research proposals, opening reports, prospectuses, and study plans before results-focused manuscript writing
+
+**Process:**
+1. Ingest framing artifacts (RQ, gap analysis, theory, contribution)
+2. Ingest design artifacts (study design, analysis plan, DMP, optional venue/program expectations)
+3. Draft rationale, literature gap, theory, RQs/objectives, expected contribution, methods, analysis, ethics, feasibility, timeline, and risks
+4. Mark missing citations, data access, ethics status, sample-size rationale, and institutional requirements as gap notes
+5. Keep planned finding, interpretation, and implication separate; do not write planned work as completed results
+
+**Template:** `templates/research-proposal-template.md`
+
+**Output:** `ResearchProposal` → `proposal/research_proposal.md`
+
+---
+
 ## ethics-irb-helper
 
 **Purpose:** Ethics/IRB documentation bundle (not legal advice)
@@ -550,6 +567,21 @@ python -m bridges.orchestrator code-build \
 6. Ensure logical flow, empathy in rebuttals, and rigorous claims.
 
 **Output:** Self-critique log and revised (improved) output
+
+## boundary-interviewer
+
+**Purpose:** Clarify scholarly boundaries one question at a time before high-risk Qiongli work proceeds.
+
+**Process:**
+1. Inspect existing research artifacts before asking the user.
+2. Map the task to an academic boundary dimension: phenomenon, construct, contribution, claim strength, evidence threshold, method validity, rival explanation, generalizability, ethics/governance, venue/reviewer, research code, or submission/revision.
+3. Ask exactly one blocking academic question when artifacts cannot answer it.
+4. Provide a recommended answer with rationale, evidence threshold, reviewer consequence, and confidence.
+5. Record claim strength, evidence threshold, rival explanations, validity or trustworthiness risk, generalizability limit, and downstream sync targets.
+6. Sync downstream-relevant decisions into `context/decision_log.md` or `context/stage_handoff.md`.
+7. After the user answers, continue the active task within the locked boundary and require later skills to narrow, not broaden, unless a `revisit_trigger` records the justification.
+
+**Output:** `BoundaryReview` -> `context/boundary_review.md`
 
 ---
 

@@ -3,50 +3,66 @@ layout: home
 
 hero:
   name: Qiongli
-  text: 学术工作流文档站
-  tagline: 将安装、CLI、工作流入口、架构、MCP 集成与维护者说明收敛到一个统一文档入口。
+  text: 面向 AI 编程代理的契约化学术工作流。
+  tagline: 一次安装后，在 Codex、Claude Code 或 Gemini 中运行带 Task ID、质量门、文献诊断、角色交接和可审计产物的研究流程。
+  image:
+    src: /mark.svg
+    alt: Qiongli logo
   actions:
     - theme: brand
-      text: 开始使用
-      link: /zh/guide/
+      text: 快速开始
+      link: /zh/quickstart
     - theme: alt
-      text: CLI 参考
-      link: /zh/reference/cli
+      text: 选择工作流
+      link: /zh/guide/task-recipes
     - theme: alt
-      text: 系统架构
-      link: /zh/architecture
+      text: 安装
+      link: /zh/guide/install
 
 features:
-  - title: 使用者路径
-    details: 先看快速开始、安装、升级、故障排除，再进入 shell / Python CLI 的具体命令。
-  - title: 契约优先
-    details: 把 standards、capability routing、roles、skills、pipelines、bridges 放进同一张结构图里理解。
-  - title: 高级集成
-    details: 把 MCP Provider、Zotero、Agent + Skill 协同与扩展方式整合为连续文档路径。
-  - title: 维护者入口
-    details: 把 CLAUDE.md、约定规范、发布流程和维护说明整理成站内可导航页面。
+  - title: 安装路径清楚
+    details: 根据实际需要选择原生 plugin、bootstrap partial/full、npm 或 pipx，而不是先装一堆不需要的运行时。
+  - title: 研究路线明确
+    details: 从 systematic review、empirical、qualitative、RCT、theory、code-first methods 等路线开始。
+  - title: 证据合同可审
+    details: 把 claim、citation、search log、diagnostics、method、code 和 review status 固定到标准产物路径里。
+  - title: 多 Agent 可控
+    details: 支持 solo、duo、triad 模式，并记录 handoff、disagreement 与 verification outcome。
 ---
 
-## 文档导航
+## 先选入口
 
-- [入门](/zh/guide/): 先看安装、升级、故障排除与快速开始。
-- [多 Agent 运行指南](/zh/guide/multi-agent): 集中说明 runtime 路由、Gemini 的 broker/direct/auto、以及不同环境下的认证策略。
-- [任务场景](/zh/guide/task-recipes): 按真实目标选择 stages、Task IDs 与 skills。
-- [示例](/zh/examples/): 查看按 systematic-review、empirical、qualitative、methods、theory 组织的标准路线图。
-- [参考](/zh/reference/): 查看 CLI 命令参考、Skills 指南与系统规范。
-- [架构](/zh/architecture): 了解层次模型、依赖方向、领域挂载和多模型协同。
-- [高级](/zh/advanced/): 进入 MCP、Zotero、扩展与协同增强等主题。
-- [维护者](/zh/maintainer/): 查看 CLAUDE 指南摘要、发布操作和维护约定。
+| 你想做什么 | 从这里开始 | 原因 |
+|---|---|---|
+| 只在一个客户端试用 Qiongli | [安装](/zh/guide/install) | 原生 plugin / extension 路径最轻。 |
+| 安装后不知道输入什么 | [使用 Agent Skills](/zh/guide/using-agent-skills) | Codex、Claude Code、Gemini 和 shell 暴露 Qiongli 的方式不同。 |
+| 给多个客户端安装全局 workflow | [快速开始](/zh/quickstart) | Bootstrap `partial` 不要求 Python，只安装 workflow assets。 |
+| 使用 validator、`doctor` 或 orchestrated task | [多 Agent 运行](/zh/guide/multi-agent) | `full` runtime 说明 Python、模型 CLI、认证、Gemini broker/direct 和验证边界。 |
+| 选择论文工作流 | [任务场景](/zh/guide/task-recipes) | 将真实研究目标映射到 paper type、stage、Task ID 和产物。 |
+| 自动化安装或升级 | [CLI 参考](/zh/reference/cli) | 覆盖 `qiongli`、`ql`、npm/npx、pipx、兼容别名和 JSON 检查。 |
 
-## 文档来源
+## 当前系统覆盖什么
 
-本网站整理并重组了以下原始文档内容：
+Qiongli 发布的是一个统一的便携 workflow 包：`qiongli-workflow`。文档按研究者和项目维护者真正要完成的动作组织：
 
-- `README.md`
-- `README_CN.md`
-- `docs/`
-- `guides/basic/`
-- `guides/advanced/`
-- `CLAUDE.md`
+- **定义研究问题：** refine question、找 gap、画 theory map、判断 venue、定义 contribution claim。
+- **构建文献基础：** provider-aware search、search bundle、diagnostics、dedup、screening、extraction、citation snowballing。
+- **设计并执行研究：** 变量、数据集、robustness、preregistration、ethics artifact、data management。
+- **写作并审计论文：** 章节结构、claim-evidence integrity、图表、limitations、submission、rebuttal。
+- **处理研究代码：** 用 Stage-I specification -> planning -> execution -> review 路线处理 code-first 或 methods-heavy 工作。
+- **协调多模型：** 在 Codex、Claude Code、Gemini 之间分配 controller、primary、reviewer、verifier，并保存交接与验证状态。
 
-原始 Markdown 文件仍保留在仓库中；VitePress 站点主要解决的是“内容分散、入口不统一、使用路径不清晰”的问题。
+## 文档地图
+
+- [入门](/zh/guide/): 安装、使用、升级、故障排除和 runtime 选择。
+- [使用 Agent Skills](/zh/guide/using-agent-skills): 按客户端说明调用方式，包括 Codex 的 `/skills` 和 `$qiongli`。
+- [任务场景](/zh/guide/task-recipes): 按 paper type 和常见研究目标选择路线。
+- [示例](/zh/examples/): systematic review、empirical、qualitative、methods、theory 的 playbook。
+- [参考](/zh/reference/): CLI 行为、skills catalog 和使用者约定。
+- [架构](/zh/architecture): contracts、skills、roles、pipelines、bridges 和 package surfaces 如何组合。
+- [高级](/zh/advanced/): 扩展、MCP providers、Zotero、严格 literature search 和 plugin-first distribution。
+- [维护者](/zh/maintainer/): release policy、naming policy 和贡献者实现指南。
+
+## 运行时边界
+
+安装 assets 和使用 workflow discovery 比完整 orchestrator 轻得多。你可以在没有 Python 的情况下安装 `qiongli-workflow`；但 `doctor`、validator、tests 和模型协同 task execution 需要 Python 3.12+、相关模型 CLI 和对应认证。

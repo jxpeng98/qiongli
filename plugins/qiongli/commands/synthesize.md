@@ -2,6 +2,6 @@
 description: Run the synthesize research workflow.
 ---
 
-Load the `qiongli-workflow` skill from this plugin, then follow `skills/qiongli-workflow/workflows/synthesize.md`.
+Load the `qiongli` skill from this plugin, then follow `skills/qiongli-workflow/workflows/synthesize.md`.
 
 Use that workflow as the source of truth for task order, artifacts, and quality gates.

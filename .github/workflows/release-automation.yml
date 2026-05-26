@@ -87,9 +87,11 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Inject packaged upstream defaults
+        if: ${{ github.event_name == 'push' || inputs.mode != 'publish' }}
         run: bash scripts/inject_project_toml.sh
 
       - name: Sync generated distribution payloads
+        if: ${{ github.event_name == 'push' || inputs.mode != 'publish' }}
         run: |
           bash scripts/sync_skill_package.sh --target all
           python3 scripts/sync_npm_package_payload.py
@@ -97,7 +99,9 @@ jobs:
       - name: Install release dependencies and build package
         run: |
           python -m pip install -e . build twine
-          python -m build
+          if [[ "${{ github.event_name }}" == "push" || "${{ inputs.mode }}" != "publish" ]]; then
+            python -m build
+          fi
 
       - name: Run release automation
         env:
@@ -151,10 +155,10 @@ jobs:
           if [[ "${{ github.event_name }}" != "push" && "${{ inputs.skip_ci_status }}" == "true" ]]; then
             args+=(--skip-ci-status)
           fi
-          if [[ "${{ github.event_name }}" == "push" || "${{ inputs.create_release }}" == "true" ]]; then
-            args+=(--create-release)
-          elif [[ "$mode" == "publish" ]]; then
+          if [[ "$mode" == "publish" && "${{ inputs.create_release }}" != "true" ]]; then
             args+=(--no-create-release)
+          elif [[ "$mode" != "publish" && ( "${{ github.event_name }}" == "push" || "${{ inputs.create_release }}" == "true" ) ]]; then
+            args+=(--create-release)
           fi
 
           if [[ "$mode" != "publish" ]]; then

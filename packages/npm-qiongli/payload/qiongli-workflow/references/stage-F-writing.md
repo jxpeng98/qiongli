@@ -10,6 +10,7 @@ This stage turns artifacts into a publishable narrative: outline → draft → c
 - `F4` → `manuscript/claims_evidence_map.md`
 - `F5` → `manuscript/figures_tables_plan.md`, `manuscript/tables/`, `manuscript/figures/`
 - `F6` → `manuscript/meta_optimization.md`
+- Proposal / opening report → `proposal/research_proposal.md` (skill: `proposal-writer`; no separate task ID)
 
 ## Quality gate focus
 
@@ -22,6 +23,20 @@ This stage turns artifacts into a publishable narrative: outline → draft → c
 - Qualitative findings should be interpreted as process, mechanism, or meaning claims, not left as theme labels plus quotes.
 - If evidence only supports a narrow descriptive claim, write the narrow claim plainly; do not fake depth with abstract language.
 - Related work and discussion should be organized around arguments, tensions, or explanatory structures rather than paper-by-paper listing.
+
+---
+
+## Proposal / Opening Report — Research Proposal Writing
+
+Use `proposal-writer` when the requested output is a research proposal, prospectus, opening report, 开题报告, or study plan. This is a pre-results approval artifact: it synthesizes the RQ, literature gap, theory, contribution, study design, analysis plan, ethics/data management, feasibility, timeline, and risks into `proposal/research_proposal.md`.
+
+Definition of done:
+- The proposal states what will be studied, why it matters, how it will be executed, and what would count as success.
+- Missing citations, data access, ethics status, sample-size rationale, or institutional requirements are visible as gap notes.
+- Planned findings, interpretations, and implications are separated from completed results.
+- The proposal is not treated as a preregistration, systematic review protocol, or manuscript draft.
+
+Write into: `proposal/research_proposal.md`.
 
 ---
 

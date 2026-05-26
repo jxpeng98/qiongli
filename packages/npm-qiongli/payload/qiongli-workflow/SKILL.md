@@ -1,9 +1,9 @@
 ---
-name: qiongli-workflow
-description: Standardized end-to-end workflow for academic paper production across Codex, Claude Code, and Gemini. Use when a user needs to choose a paper type (empirical, qualitative, systematic review, methods, theory), select a workflow stage, and produce consistent artifacts under RESEARCH/[topic]/ with explicit task IDs, quality gates, and submission-ready outputs.
+name: qiongli
+description: Qiongli academic workflow for Codex, Claude Code, and Gemini. Use when a user needs to plan papers, run literature reviews, choose a paper type (empirical, qualitative, systematic review, methods, theory), select a workflow stage, and produce consistent artifacts under RESEARCH/[topic]/ with explicit task IDs, quality gates, and submission-ready outputs.
 ---
 
-# Research Paper Workflow
+# Qiongli Academic Workflow
 
 Run a model-agnostic paper workflow using shared Task IDs and artifact contracts.
 
@@ -17,9 +17,9 @@ This is a **self-contained skill package**. All assets needed for execution — 
 4. Apply quality gates before submission tasks (`H1`, `H2`).
 5. For orchestrator `task-run`, declare controller ownership when relevant with `--execution-mode`, `--controller`, `--primary`, `--reviewer`, `--verifier`, and `--solo-role-gates`.
 
-## Available Workflow Commands
+## Workflow Entry Points
 
-These commands map to the same behavior across Codex, Claude Code, and Gemini:
+In Codex, invoke this skill with `/skills` or `$qiongli`, then ask for one of these workflows. Claude Code and Gemini surfaces may expose the same workflows as slash-style command wrappers:
 
 ```
 /paper [topic] [venue]                # Master router — choose paper type + task ID
@@ -41,7 +41,7 @@ These commands map to the same behavior across Codex, Claude Code, and Gemini:
 
 ## Bundled Workflows
 
-Full workflow definitions are included in the `workflows/` subdirectory of this skill package. When a user invokes any command above (e.g. `/paper`, `/lit-review`), read the corresponding file from `workflows/<command-name>.md` for the complete execution instructions.
+Full workflow definitions are included in the `workflows/` subdirectory of this skill package. When a user invokes any workflow above (for example, `$qiongli run paper` or `/paper` on clients that support workflow wrappers), read the corresponding file from `workflows/<command-name>.md` for the complete execution instructions.
 
 The `workflows/paper.md` file is the **master router** — it maps every Task ID (A1–K4) to the correct sub-workflow or skill card. Start there for any task-ID-based request.
 
@@ -56,7 +56,7 @@ skills/
 ├── C_design/        (study-designer, rival-hypothesis-designer, robustness-planner, dataset-finder, variable-constructor, data-dictionary-builder, data-management-plan, prereg-writer, variable-operationalizer)
 ├── D_ethics/        (ethics-irb-helper, statement-generator, deidentification-planner)
 ├── E_synthesis/     (effect-size-calculator, evidence-synthesizer, quality-assessor, publication-bias-checker, qualitative-coding)
-├── F_writing/       (manuscript-architect, analysis-interpreter, effect-size-interpreter, table-generator, figure-specifier, meta-optimizer, discussion-writer)
+├── F_writing/       (manuscript-architect, proposal-writer, analysis-interpreter, effect-size-interpreter, table-generator, figure-specifier, meta-optimizer, discussion-writer)
 ├── G_compliance/    (prisma-checker, reporting-checker, tone-normalizer)
 ├── J_proofread/     (ai-fingerprint-scanner, human-voice-rewriter, similarity-checker, final-proofreader)
 ├── H_submission/    (submission-packager, rebuttal-assistant, peer-review-simulation, fatal-flaw-detector, reviewer-empathy-checker, credit-taxonomy-helper, limitation-auditor)
@@ -78,6 +78,7 @@ RESEARCH/[topic]/
 ├── notes/                   # Individual paper notes
 ├── extraction_table.md      # Data extraction table
 ├── synthesis.md             # Final synthesis report
+├── proposal/                # Research proposal / opening report
 ├── manuscript/              # Outline, draft, claims map, figures plan
 ├── proofread/               # AI detection, humanization, similarity, final proofread
 ├── submission/              # Cover letter, checklist, statements

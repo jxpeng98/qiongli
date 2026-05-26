@@ -59,7 +59,7 @@ Recommended maintainer flow:
 5. Wait for required CI workflows on the release commit:
    - `CI`
    - `Checkout Install Check`
-6. Run postflight with `--create-release`, upload marketplace artifacts, and write an acceptance receipt.
+6. Run postflight with `--create-release`, upload plugin artifacts, and write an acceptance receipt.
 
 Use a stable version such as `0.2.0` or a beta version such as `0.2.0b1`. The automation normalizes it into three synchronized forms:
 
@@ -87,7 +87,7 @@ Use `release_ready.sh` when you want to prepare and verify locally without creat
 ./scripts/release_ready.sh --version 0.2.0b1 --from-tag v0.2.0
 ```
 
-`release_ready.sh` runs version sync, strict validator, repository unit tests, release-tier smoke, release note evidence updates, package build checks, `twine check`, and wheel install smoke. It does not tag or push. Publish mode owns commit, tag, push, CI wait, GitHub Release creation, marketplace artifact upload, and acceptance receipt generation.
+`release_ready.sh` runs version sync, strict validator, repository unit tests, release-tier smoke, release note evidence updates, package build checks, `twine check`, and wheel install smoke. It does not tag or push. Publish mode owns commit, tag, push, CI wait, GitHub Release creation, plugin artifact upload, and acceptance receipt generation.
 
 If you need manual split phases, they still exist:
 

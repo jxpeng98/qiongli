@@ -1,6 +1,6 @@
 {
   "name": "qiongli",
-  "version": "0.10.1",
+  "version": "0.11.0-beta.1",
   "description": "Qiongli academic research workflow skills for paper planning, literature review, writing, compliance, submission, and research code.",
   "author": {
     "name": "Jiaxin Peng",
@@ -19,7 +19,7 @@
   "interface": {
     "displayName": "Qiongli",
     "shortDescription": "Academic paper workflows for Codex.",
-    "longDescription": "Install the qiongli-workflow skill through the Codex plugin marketplace. It provides standardized paper planning, literature review, manuscript writing, compliance, submission, presentation, and research-code workflows.",
+    "longDescription": "Install the Qiongli skill through the Codex plugin marketplace. It provides standardized paper planning, literature review, manuscript writing, compliance, submission, presentation, and research-code workflows.",
     "developerName": "Jiaxin Peng",
     "category": "Education",
     "capabilities": [
@@ -27,9 +27,9 @@
     ],
     "websiteURL": "https://github.com/jxpeng98/qiongli",
     "defaultPrompt": [
-      "Use $qiongli-workflow to plan my paper.",
-      "Run /lit-review for my research topic.",
-      "Prepare a submission package for my manuscript."
+      "Use $qiongli to plan my paper.",
+      "Use $qiongli to run a literature review for my research topic.",
+      "Use $qiongli to prepare a submission package for my manuscript."
     ],
     "brandColor": "#2563EB"
   }

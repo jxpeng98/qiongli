@@ -170,6 +170,12 @@ LITERATURE_SEARCH_DIAGNOSTIC_SECTIONS = (
     "Coverage Gaps",
     "Next Search Actions",
 )
+BOUNDARY_REVIEW_REQUIRED_MARKERS = (
+    "claim_strength_boundary",
+    "evidence_threshold_boundary",
+    "locked_decision",
+    "revisit_trigger",
+)
 
 
 @dataclass
@@ -252,6 +258,39 @@ def read_text(root: Path, relative_path: str, report: ValidationReport) -> str:
     report.passed += 1
     print(f"[PASS] Read file: {relative_path}")
     return content
+
+
+def validate_boundary_review(project_root: Path) -> list[str]:
+    boundary_path = project_root / "context" / "boundary_review.md"
+    if not boundary_path.is_file():
+        return []
+
+    text = boundary_path.read_text(encoding="utf-8").lower()
+    issues: list[str] = []
+    for marker in BOUNDARY_REVIEW_REQUIRED_MARKERS:
+        if marker not in text:
+            issues.append(f"boundary_review missing required marker: {marker}")
+
+    manuscript_path = project_root / "manuscript" / "main.md"
+    if manuscript_path.is_file() and "associative" in text and "not causal" in text:
+        manuscript = manuscript_path.read_text(encoding="utf-8").lower()
+        if "proves" in manuscript or "caused" in manuscript or "causal effect" in manuscript:
+            issues.append(
+                "boundary_review violation: manuscript uses causal wording despite associative boundary"
+            )
+    return issues
+
+
+def validate_boundary_review_gate(root: Path, report: ValidationReport) -> None:
+    issues = validate_boundary_review(root)
+    if not issues:
+        report.passed += 1
+        print("[PASS] boundary_review gate")
+        return
+
+    for issue in issues:
+        report.errors.append(issue)
+        print(f"[FAIL] {issue}")
 
 
 def extract_top_level_section(content: str, key: str) -> str:
@@ -716,10 +755,10 @@ def validate_portable_skill(root: Path, report: ValidationReport) -> None:
             f"SKILL.md frontmatter keys must be name+description only; found: {ids_to_text(key_set)}",
         )
         report.check(
-            frontmatter.get("name") == "qiongli-workflow",
-            "SKILL.md name matches folder",
+            frontmatter.get("name") == "qiongli",
+            "SKILL.md name exposes Qiongli",
             (
-                "SKILL.md name must be qiongli-workflow; found: "
+                "SKILL.md name must be qiongli; found: "
                 f"{frontmatter.get('name', '<missing>')}"
             ),
         )
@@ -763,9 +802,9 @@ def validate_portable_skill(root: Path, report: ValidationReport) -> None:
         )
         if prompt is not None:
             report.check(
-                "$qiongli-workflow" in prompt.group(1),
-                "openai.yaml default_prompt invokes $qiongli-workflow",
-                "openai.yaml default_prompt must include $qiongli-workflow",
+                "$qiongli" in prompt.group(1),
+                "openai.yaml default_prompt invokes $qiongli",
+                "openai.yaml default_prompt must include $qiongli",
             )
 
 
@@ -1587,7 +1626,7 @@ def validate_cross_file_consistency(root: Path, report: ValidationReport) -> Non
             "## Claude Code",
             "## Codex",
             "## Gemini",
-            "$qiongli-workflow",
+            "$qiongli",
             "Task {ID}",
         ):
             report.check(
@@ -2799,6 +2838,7 @@ def main() -> int:
 
     print(f"Validating research standard in: {root}")
     validate_contract(root, report)
+    validate_boundary_review_gate(root, report)
     validate_skill_registry(root, report)
     validate_skill_structure(root, report)
     validate_generated_skill_docs(root, report)

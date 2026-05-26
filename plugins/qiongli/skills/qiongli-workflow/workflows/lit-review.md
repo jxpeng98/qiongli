@@ -15,6 +15,12 @@ $ARGUMENTS
 
 ## Workflow
 
+## Academic Boundary Review
+
+Before drafting this stage's checkpoint outputs, use `boundary-interviewer` when `context/boundary_review.md` is missing, stale, or contradicted by the current task. Continue within the locked boundary when the artifact already answers the stage question. Narrowing is allowed; broadening requires a new boundary review entry with a revisit trigger.
+
+For literature work, lock search boundary, inclusion/exclusion rules, contrary literature, corpus limits, and evidence threshold before synthesis.
+
 ### Phase 0: Project Scaffolding
 
 Create the project directory structure:

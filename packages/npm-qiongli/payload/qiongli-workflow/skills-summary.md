@@ -64,6 +64,7 @@ Quick-reference index of all canonical skills (~3KB). For detailed specification
 | Skill | Purpose |
 |-------|---------|
 | manuscript-architect | Draft and revise full research paper (outline → manuscript) |
+| proposal-writer | Draft research proposals, opening reports, prospectuses, and study plans |
 | analysis-interpreter | Translate findings into analytical prose with uncertainty |
 | effect-size-interpreter | Explain estimate magnitude in interpretable units |
 | table-generator | Generate publication-ready tables |
@@ -128,6 +129,7 @@ Quick-reference index of all canonical skills (~3KB). For detailed specification
 | Skill | Purpose |
 |-------|---------|
 | academic-context-maintainer | Maintain research state and decision log across stages |
+| boundary-interviewer | Clarify scholarly boundaries one question at a time, then reuse locked answers as downstream constraints |
 | metadata-enricher | Normalize and complete paper metadata |
 | model-collaborator | Multi-model collaboration for research tasks |
 | self-critique | Iterative red teaming and Socratic critique |

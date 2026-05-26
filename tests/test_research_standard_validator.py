@@ -6,6 +6,7 @@ from pathlib import Path
 
 from scripts.validate_research_standard import (
     ValidationReport,
+    validate_boundary_review,
     validate_controller_mode_contracts,
     validate_domain_method_pack_contracts,
     validate_literature_first_contracts,
@@ -97,6 +98,55 @@ class ResearchStandardValidatorTests(unittest.TestCase):
         joined = "\n".join(report.errors)
         self.assertIn("scripts/audit_domain_method_packs.py", joined)
         self.assertIn("tests/test_domain_method_packs.py", joined)
+
+    def test_boundary_review_gate_blocks_missing_required_sections(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            project = Path(tmp_dir)
+            manuscript = project / "manuscript" / "main.md"
+            boundary = project / "context" / "boundary_review.md"
+            manuscript.parent.mkdir(parents=True, exist_ok=True)
+            boundary.parent.mkdir(parents=True, exist_ok=True)
+            manuscript.write_text("The intervention proves a causal effect.", encoding="utf-8")
+            boundary.write_text(
+                "# Boundary Review\n\n- locked_decision: Claims are associative only.\n",
+                encoding="utf-8",
+            )
+
+            issues = validate_boundary_review(project)
+
+        joined = "\n".join(issues)
+        self.assertIn("boundary_review missing required marker: claim_strength_boundary", joined)
+        self.assertIn("boundary_review missing required marker: evidence_threshold_boundary", joined)
+
+    def test_boundary_review_gate_passes_when_claims_are_within_boundary(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            project = Path(tmp_dir)
+            manuscript = project / "manuscript" / "main.md"
+            boundary = project / "context" / "boundary_review.md"
+            manuscript.parent.mkdir(parents=True, exist_ok=True)
+            boundary.parent.mkdir(parents=True, exist_ok=True)
+            manuscript.write_text(
+                "The evidence suggests an associative relationship.",
+                encoding="utf-8",
+            )
+            boundary.write_text(
+                "\n".join(
+                    [
+                        "# Boundary Review",
+                        "## Claim Strength And Evidence Threshold",
+                        "- claim_strength_boundary: associative, not causal",
+                        "- evidence_threshold_boundary: triangulated observational evidence",
+                        "## Locked Decisions And Revisit Triggers",
+                        "- locked_decision: Do not use causal language.",
+                        "- revisit_trigger: new identification strategy or randomized evidence",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            issues = validate_boundary_review(project)
+
+        self.assertEqual([], issues)
 
     def test_strict_quality_gate_contract_reports_malformed_contract(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

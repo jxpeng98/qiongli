@@ -619,10 +619,16 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         )
 
         self.assertIn("\"artifact_policy\": \"focused\"", result.merged_analysis)
-        self.assertIn("\"required_outputs\": [\n    \"manuscript/manuscript.md\"\n  ]", result.merged_analysis)
+        self.assertIn(
+            "\"required_outputs\": [\n"
+            "    \"manuscript/manuscript.md\",\n"
+            "    \"context/boundary_review.md\"\n"
+            "  ]",
+            result.merged_analysis,
+        )
         self.assertIn("\"deferred_outputs\": [", result.merged_analysis)
         self.assertIn("manuscript/results_interpretation.md", result.merged_analysis)
-        self.assertIn("Output control: policy=focused, active_outputs=1/5.", result.merged_analysis)
+        self.assertIn("Output control: policy=focused, active_outputs=2/6.", result.merged_analysis)
 
     def test_build_task_prompts_include_deep_research_constraints(self) -> None:
         orchestrator = MockOrchestrator()
@@ -694,6 +700,108 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         self.assertIn("research_state_sections:", draft_prompt)
         self.assertIn("decision_log_fields: decision_id, rationale, revisit_trigger", draft_prompt)
         self.assertIn("Academic Context Update", draft_prompt)
+
+    def test_task_packet_includes_boundary_review_plan(self) -> None:
+        orchestrator = MockOrchestrator()
+        packet = orchestrator._build_task_packet(
+            task_id="B1",
+            paper_type="systematic-review",
+            topic="ai-literature",
+            venue=None,
+            artifact_root="RESEARCH/[topic]/",
+            required_outputs=["literature/search_strategy.md"],
+            contract_required_outputs=["literature/search_strategy.md"],
+            deferred_outputs=[],
+            required_mcp=["filesystem"],
+            required_skills=["literature-search-planner"],
+            required_skill_cards=[],
+            quality_gates=["Q2"],
+            artifact_policy="contract",
+            research_depth="standard",
+            evidence_expansion_rounds=1,
+            boundary_review={
+                "enabled": True,
+                "status": "required",
+                "task_id": "B1",
+                "stage": "B",
+                "level": "L2",
+                "artifact": "context/boundary_review.md",
+                "required_before_draft": True,
+                "dimensions": ["evidence_threshold_boundary"],
+                "questions": ["Which search boundary would a systematic-review reader challenge first?"],
+                "existing_review": "",
+            },
+        )
+
+        self.assertTrue(packet["boundary_review"]["enabled"])
+        self.assertEqual(packet["boundary_review"]["stage"], "B")
+        self.assertIn("context/boundary_review.md", packet["required_outputs"])
+
+    def test_draft_prompt_injects_answered_boundary_review(self) -> None:
+        orchestrator = MockOrchestrator()
+        packet = {
+            "task_id": "F3",
+            "required_outputs": ["manuscript/main.md"],
+            "deferred_outputs": [],
+            "artifact_policy": "contract",
+            "research_depth": "standard",
+            "evidence_expansion_rounds": 1,
+            "required_skills": ["manuscript-architect"],
+            "required_skill_cards": [],
+            "quality_gates": ["Q2"],
+            "boundary_review": {
+                "enabled": True,
+                "status": "answered",
+                "task_id": "F3",
+                "stage": "F",
+                "level": "L2",
+                "artifact": "context/boundary_review.md",
+                "required_before_draft": False,
+                "dimensions": ["claim_strength_boundary"],
+                "questions": ["Which central claim would a reviewer say exceeds the available evidence?"],
+                "existing_review": "- locked_decision: Claims are associative, not causal.",
+            },
+        }
+        prompt = orchestrator._build_task_draft_prompt(
+            packet,
+            [MCPEvidence(provider="filesystem", status="ok", summary="mock evidence")],
+            [],
+            None,
+        )
+
+        self.assertIn("Academic boundary review", prompt)
+        self.assertIn("Claims are associative, not causal", prompt)
+        self.assertIn("must not broaden", prompt)
+
+    def test_review_prompt_blocks_boundary_broadening(self) -> None:
+        orchestrator = MockOrchestrator()
+        packet = {
+            "task_id": "F3",
+            "required_outputs": ["manuscript/main.md"],
+            "deferred_outputs": [],
+            "research_depth": "standard",
+            "boundary_review": {
+                "enabled": True,
+                "status": "answered",
+                "task_id": "F3",
+                "stage": "F",
+                "level": "L2",
+                "artifact": "context/boundary_review.md",
+                "required_before_draft": False,
+                "dimensions": ["claim_strength_boundary"],
+                "questions": ["Which central claim would a reviewer say exceeds the available evidence?"],
+                "existing_review": "- locked_decision: Claims are associative, not causal.",
+            },
+        }
+        prompt = orchestrator._build_task_review_prompt(
+            packet,
+            [MCPEvidence(provider="filesystem", status="ok", summary="mock evidence")],
+            [],
+            "Draft claims the intervention caused the outcome.",
+        )
+
+        self.assertIn("Block if the draft broadens", prompt)
+        self.assertIn("Claims are associative, not causal", prompt)
 
     def test_stage_i_prompt_templates_are_structured(self) -> None:
         orchestrator = MockOrchestrator()
