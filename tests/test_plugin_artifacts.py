@@ -17,7 +17,7 @@ SPEC.loader.exec_module(module)
 
 
 class PluginArtifactsTests(unittest.TestCase):
-    def test_builds_three_self_contained_plugin_artifacts(self) -> None:
+    def test_builds_release_distribution_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             dist_dir = Path(tmp_dir) / "dist"
             current_tag = (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(
@@ -29,6 +29,7 @@ class PluginArtifactsTests(unittest.TestCase):
             self.assertEqual(
                 sorted(path.name for path in artifacts),
                 [
+                    f"qiongli-claude-desktop-skill-{current_tag}.zip",
                     f"qiongli-claude-plugin-{current_tag}.tar.gz",
                     f"qiongli-codex-plugin-{current_tag}.tar.gz",
                     f"qiongli-gemini-extension-{current_tag}.tar.gz",

@@ -7,6 +7,7 @@ Qiongli 有多个安装入口，是因为不同用户需要的运行时能力不
 | 入口 | 适合场景 | 安装内容 | 是否要求 Python |
 |---|---|---|---|
 | 原生 plugin / extension | 单个客户端，最少配置 | 客户端 plugin 和 `qiongli-workflow` | 否 |
+| Claude Desktop Skill ZIP | Claude Desktop 或 Claude.ai，且不能添加第三方 plugin marketplace | 个人上传的 `qiongli` Skill | 否 |
 | Bootstrap `partial` | 多客户端全局 workflow assets | skills 和客户端支持的 workflow discovery | 否 |
 | Bootstrap `full` | runtime check 和 orchestrator | `partial` 加 shell CLI 与 `doctor` 支持 | 是，Python 3.12+ |
 | npm / npx | Node 自动化安装 | npm CLI 和内置 workflow payload | 只有高级 bridge 命令需要 |
@@ -40,6 +41,13 @@ claude plugin install qiongli@skillsplace
 /plugin marketplace add jxpeng98/skillsplace@main
 /plugin install qiongli@skillsplace
 ```
+
+Claude Desktop 和 Claude.ai 不安装第三方 Claude Code plugin marketplace。Desktop 使用 release ZIP 路径：
+
+1. 从 GitHub Release assets 下载 `qiongli-claude-desktop-skill-<tag>.zip`。
+2. 打开 `Customize > Skills`。
+3. 点击 `+`，选择 `Create skill`，再选择 `Upload a skill`。
+4. 上传 ZIP，并启用上传后的 `qiongli` skill。
 
 Gemini CLI 仍然直接安装本地 extension payload：
 
