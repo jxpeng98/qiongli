@@ -23,6 +23,8 @@
 
 如果你使用 Claude Desktop 或 Claude.ai 网页版，并且不想处理 code / CLI 环境，从 GitHub Release assets 下载 `qiongli-claude-desktop-skill-<tag>.zip`。在 Claude Desktop 中把 ZIP 拖拽到 Skills 上传/安装流程中，或使用 `Customize > Skills > + > Create skill > Upload a skill`。Claude.ai 网页版也使用同一个 ZIP 上传流程。
 
+Desktop/Web ZIP 是为了满足 Claude 上传文件数限制而生成的 slim 包。它保留 workflows、templates、standards、venue profiles、`skills-summary.md` 和 `skills-core.md`，但省略细分 per-skill markdown specs。需要完整细分 skill 语料时，使用 plugin/source 发行。
+
 如果你选择 Codex 或 Claude Code 的原生 plugin 路径，从统一的 Skillsplace marketplace 安装 Qiongli：
 
 ```bash
