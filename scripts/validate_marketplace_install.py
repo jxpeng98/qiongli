@@ -5,6 +5,7 @@ import argparse
 import json
 import tarfile
 import tempfile
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -56,6 +57,15 @@ def _read_json(path: Path) -> dict[str, object]:
 def _extract_single_root(artifact: Path, dest: Path) -> Path:
     with tarfile.open(artifact, "r:gz") as tar:
         tar.extractall(dest, filter="data")
+    roots = [item for item in dest.iterdir() if item.is_dir()]
+    if len(roots) != 1:
+        raise ValueError(f"{artifact} should extract to one top-level directory, found {len(roots)}")
+    return roots[0]
+
+
+def _extract_single_zip_root(artifact: Path, dest: Path) -> Path:
+    with zipfile.ZipFile(artifact) as archive:
+        archive.extractall(dest)
     roots = [item for item in dest.iterdir() if item.is_dir()]
     if len(roots) != 1:
         raise ValueError(f"{artifact} should extract to one top-level directory, found {len(roots)}")
@@ -146,6 +156,20 @@ def _validate_artifact(artifact: Path, spec: ArtifactSpec, expected_repo_tag: st
     return f"[OK] {spec.platform} marketplace artifact: {SKILL_NAME} invocation checked"
 
 
+def _validate_claude_desktop_artifact(artifact: Path, expected_repo_tag: str) -> str:
+    with tempfile.TemporaryDirectory(prefix="qiongli-claude-desktop-artifact-") as tmp:
+        skill_root = _extract_single_zip_root(artifact, Path(tmp))
+        if skill_root.name != SKILL_NAME:
+            raise ValueError(f"{artifact} must contain top-level {SKILL_NAME}/ directory")
+        _assert_skill_invocation(skill_root, expected_repo_tag)
+        if (skill_root / ".claude-plugin").exists():
+            raise ValueError(f"{artifact} must not include Claude Code plugin metadata")
+        if (skill_root / "commands").exists():
+            raise ValueError(f"{artifact} must not include Claude Code slash command wrappers")
+
+    return f"[OK] claude-desktop skill artifact: {SKILL_NAME} invocation checked"
+
+
 def validate(root: Path, dist_dir: Path) -> list[str]:
     root = root.resolve()
     dist_dir = dist_dir.resolve()
@@ -157,10 +181,19 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
     messages: list[str] = []
 
     for platform, spec in ARTIFACT_SPECS.items():
-        candidates = [artifact for name, artifact in by_platform.items() if f"-{platform}-" in name]
-        if len(candidates) != 1:
-            raise ValueError(f"expected one {platform} artifact, found {len(candidates)}")
-        messages.append(_validate_artifact(candidates[0], spec, expected_repo_tag, expected_version))
+        artifact_name = f"{PLUGIN_NAME}-{platform}-plugin-{expected_repo_tag}.tar.gz"
+        if platform == "gemini":
+            artifact_name = f"{PLUGIN_NAME}-gemini-extension-{expected_repo_tag}.tar.gz"
+        artifact = by_platform.get(artifact_name)
+        if artifact is None:
+            raise ValueError(f"expected {platform} artifact: {artifact_name}")
+        messages.append(_validate_artifact(artifact, spec, expected_repo_tag, expected_version))
+
+    desktop_name = f"{PLUGIN_NAME}-claude-desktop-skill-{expected_repo_tag}.zip"
+    desktop_artifact = by_platform.get(desktop_name)
+    if desktop_artifact is None:
+        raise ValueError(f"expected claude-desktop artifact: {desktop_name}")
+    messages.append(_validate_claude_desktop_artifact(desktop_artifact, expected_repo_tag))
 
     return messages
 

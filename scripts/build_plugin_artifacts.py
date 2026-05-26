@@ -6,6 +6,7 @@ import json
 import shutil
 import tarfile
 import tempfile
+import zipfile
 from pathlib import Path
 
 
@@ -76,6 +77,16 @@ def _make_tarball(source_dir: Path, tar_path: Path) -> None:
         tar.add(source_dir, arcname=source_dir.name)
 
 
+def _make_zip(source_dir: Path, zip_path: Path) -> None:
+    zip_path.parent.mkdir(parents=True, exist_ok=True)
+    if zip_path.exists():
+        zip_path.unlink()
+    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for item in sorted(source_dir.rglob("*")):
+            if item.is_file():
+                archive.write(item, item.relative_to(source_dir.parent).as_posix())
+
+
 def _build_codex(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> Path:
     bundle_name = f"{PLUGIN_NAME}-codex-plugin-{tag}"
     bundle = work_dir / bundle_name
@@ -110,6 +121,15 @@ def _build_gemini(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> Path:
     return artifact
 
 
+def _build_claude_desktop_skill(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> Path:
+    bundle_name = f"{PLUGIN_NAME}-claude-desktop-skill-{tag}"
+    skill_dest = work_dir / "qiongli"
+    _copy_path(root / "qiongli-workflow", skill_dest)
+    artifact = dist_dir / f"{bundle_name}.zip"
+    _make_zip(skill_dest, artifact)
+    return artifact
+
+
 def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
     root = root.resolve()
     dist_dir = dist_dir.resolve()
@@ -133,6 +153,7 @@ def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
             _build_codex(root, repo_tag, dist_dir, work_dir),
             _build_claude(root, repo_tag, dist_dir, work_dir),
             _build_gemini(root, repo_tag, dist_dir, work_dir),
+            _build_claude_desktop_skill(root, repo_tag, dist_dir, work_dir),
         ]
     return artifacts
 
