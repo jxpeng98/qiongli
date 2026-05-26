@@ -6,6 +6,29 @@
 
 暂无。
 
+## [0.11.0] - 2026-05-26
+
+### Added
+
+- 新增 Claude Desktop / Claude.ai 可直接安装的 `qiongli-claude-desktop-skill-<tag>.zip` 发布产物。该 ZIP 以顶层 `qiongli/` skill 目录打包，适合不熟悉命令行或无法接入第三方 marketplace 的 Desktop / Web 用户通过拖拽或上传安装。
+- 新增 Claude Desktop ZIP 的构建、结构校验与回归测试，`scripts/build_plugin_artifacts.py` 现在会同时生成 Codex、Claude Code、Gemini 与 Claude Desktop skill 发行产物，并由 release postflight 上传到 GitHub Release。
+- 新增 academic boundary interviewer 能力，覆盖研究问题、数据、方法、证据边界与写作主张边界，并提供 `boundary-review` artifact、contract、template、question engine 和严格校验。
+- 新增跨阶段 boundary review 支持：`task-run`、context package、academic context continuity 与各阶段 workflow 现在可记录、传播并消费学术边界决策，降低后续写作越界或 claim 过度扩张风险。
+- 新增 research proposal writer skill 与 proposal template，将 proposal 写作纳入 Stage F writing contract 与发行包。
+
+### Changed
+
+- README、README_CN、安装指南与 quickstart 现在突出 Desktop / Web 用户的 ZIP 下载安装路径：从 GitHub Release 下载 Desktop skill ZIP，然后在 Claude Skills 中拖拽或上传，无需本地 Code 环境。
+- Qiongli 插件安装说明改为 plugin-first / Skillsplace 路径，并移除仓库内旧的 marketplace catalog，减少用户误用过期入口。
+- 文档站与中英文指南完成品牌与导航刷新，安装、troubleshooting、agent skills 使用说明更聚焦当前发行模型。
+- 发布自动化改进了 publish mode 的本地/CI 行为，避免 release-prep 前污染工作区，并确保 generated distribution payload 在 tag 校验前完成同步。
+
+### Fixed
+
+- 修复 release workflow 在 publish mode 中传递无效 `--create-release` 参数导致发布失败的问题。
+- 修复 publish workflow 预构建步骤改写版本文件后导致 `release_ready` 因工作区不干净而失败的问题。
+- 修复 marketplace/plugin 分发校验命名与 invocation 覆盖不足的问题，确保公开插件身份与发行产物保持一致。
+
 ## [0.10.1] - 2026-05-22
 
 ### Added
