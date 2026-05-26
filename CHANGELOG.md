@@ -1,10 +1,22 @@
 # Changelog
 
-本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-05-22）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
+本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-05-26）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
 
 ## [Unreleased]
 
 暂无。
+
+## [0.11.1] - 2026-05-26
+
+### Changed
+
+- Claude Desktop / Claude.ai ZIP 现在改为 slim skill package：保留可执行 workflows、templates、contracts、standards、roles、venue profiles、`skills-core.md`、`skills-summary.md` 与 `skills/registry.yaml`，但省略细分 per-skill markdown specs，避免触发 Claude 上传文件数上限。
+- README、README_CN、quickstart 与 install guides 现在明确说明 Desktop/Web ZIP 是轻量安装包；需要完整细分 skill 语料时，应使用 Codex / Claude Code / Gemini plugin 包或源码仓库。
+- Release validator 现在会校验 Claude Desktop ZIP 的文件数预算，并阻止误把细分 skill specs 打进 Desktop/Web 上传包。
+
+### Fixed
+
+- 修复 GitHub Release 中 `qiongli-claude-desktop-skill-<tag>.zip` 因包含过多文件而无法拖拽或上传安装到 Claude Desktop / Claude.ai 的问题。实际发布 ZIP 现在控制在 Claude 的 200 文件限制以内。
 
 ## [0.11.0] - 2026-05-26
 
