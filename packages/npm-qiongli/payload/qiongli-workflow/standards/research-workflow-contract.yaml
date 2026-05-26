@@ -50,6 +50,7 @@ artifacts:
     - "data/merge_plan.md"
     - "ethics_irb.md"
     - "compliance/deidentification_plan.md"
+    - "proposal/research_proposal.md"
     - "manuscript/results_interpretation.md"
     - "manuscript/effect_interpretation.md"
     - "manuscript/tables/"
@@ -140,6 +141,7 @@ academic_context_continuity:
   artifacts:
     - "context/research_state.md"
     - "context/decision_log.md"
+    - "context/boundary_review.md"
   refresh_points:
     A: "Lock the working research question, scope boundaries, construct definitions, contribution thesis, and venue-positioning assumptions."
     B: "Summarize the literature topology, inclusion/exclusion logic, evidence gaps, and contested concepts that must survive into design and writing."
@@ -168,6 +170,32 @@ academic_context_continuity:
     - "evidence_basis"
     - "revisit_trigger"
     - "downstream_impact"
+  boundary_review_required_sections:
+    - "academic boundary map"
+    - "claim strength and evidence threshold"
+    - "claim_strength_boundary"
+    - "evidence_threshold_boundary"
+    - "method_validity_boundary"
+    - "rival explanations and validity risks"
+    - "generalizability and venue limits"
+    - "generalizability_boundary"
+    - "research code, submission, or presentation commitments when relevant"
+    - "research_code_boundary"
+    - "submission_revision_boundary"
+    - "locked decisions and revisit triggers"
+    - "revisit_trigger"
+  boundary_refresh_points:
+    A: "Refresh phenomenon, construct, contribution, claim strength, and evidence threshold boundaries."
+    B: "Refresh literature corpus, inclusion/exclusion, and rival-literature boundaries."
+    C: "Refresh method-validity, operationalization, and claim-strength boundaries."
+    D: "Refresh consent, privacy, governance, and disclosure boundaries."
+    E: "Refresh synthesis, pooling, heterogeneity, and certainty boundaries."
+    F: "Refresh claim-evidence, interpretation, implication, and limitation boundaries."
+    G: "Refresh reporting, checklist, and compliance boundaries."
+    H: "Refresh submission, rebuttal, reviewer-promise, and fatal-flaw boundaries."
+    I: "Refresh code/data lineage, reproducibility, and analysis-validity boundaries."
+    J: "Refresh final wording and meaning-preservation boundaries."
+    K: "Refresh presentation claim, audience, and disclosure boundaries."
 
 stages:
   - id: "A"
@@ -285,6 +313,7 @@ stages:
     outputs:
       - "context/research_state.md"
       - "context/decision_log.md"
+      - "proposal/research_proposal.md"
       - "manuscript/outline.md"
       - "manuscript/manuscript.md"
       - "manuscript/discussion.md"
@@ -1237,7 +1266,7 @@ platform_mapping:
     J3: "/proofread [topic] --focus similarity"
     J4: "/proofread [topic] --focus final_proofread"
   codex:
-    entry: "$qiongli-workflow"
+    entry: "$qiongli"
     task_selector: "Use Task ID from task_catalog (for example F3 or G1)"
   gemini:
     prompt_pattern: "Task {ID} on RESEARCH/[topic] using outputs defined in contract_version 1.0.0"

@@ -41,7 +41,7 @@ class SkillDocGenerationTests(unittest.TestCase):
 
         self.assertIn("论文架构师", zh_doc)
         self.assertIn("当你需要搭建论文整体结构、章节推进和核心论证主线时使用。", zh_doc)
-        self.assertIn("| `F_writing` | 结构、结果解释、表格、图、摘要 | 7 |", zh_doc)
+        self.assertIn("| `F_writing` | 结构、结果解释、表格、图、摘要 | 8 |", zh_doc)
 
     def test_generated_skill_docs_include_current_domain_profiles(self) -> None:
         generated = generate_skill_reference_docs(REPO_ROOT)

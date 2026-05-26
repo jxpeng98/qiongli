@@ -49,13 +49,13 @@
 | `C_design` | 研究设计、变量、稳健性、数据可得性 | 9 | “这个研究该怎么设计和 operationalize？” |
 | `D_ethics` | IRB、隐私、治理 | 3 | “伦理与数据合规材料要怎么准备？” |
 | `E_synthesis` | 证据综合、质量评估、发表偏倚 | 5 | “已有证据要怎么整合和评级？” |
-| `F_writing` | 结构、结果解释、表格、图、摘要 | 7 | “如何把分析结果写成论文？” |
+| `F_writing` | 结构、结果解释、表格、图、摘要 | 8 | “如何把分析结果写成论文？” |
 | `G_compliance` | PRISMA、报告规范、学术语气 | 3 | “论文是否已经满足提交前规范？” |
 | `J_proofread` | AI 痕迹检查、人声化改写、相似度、终稿校对 | 4 | “怎么在投稿前去 AI 痕迹并做终稿校对？” |
 | `H_submission` | 投稿包、回复审稿、模拟评审 | 7 | “投稿前后怎么打包和应对审稿？” |
 | `I_code` | 学术代码、统计、可复现性 | 10 | “研究代码如何实现、审查、复现？” |
 | `K_presentation` | 学术报告、幻灯片规划、Slidev、Beamer | 4 | “怎么把论文变成一个可讲、可答辩的学术报告？” |
-| `Z_cross_cutting` | 元数据、多模型协作、自我批判 | 4 | “哪些能力是跨阶段通用的？” |
+| `Z_cross_cutting` | 元数据、多模型协作、自我批判 | 5 | “哪些能力是跨阶段通用的？” |
 
 ## 按 Stage 看 Canonical Skills
 
@@ -133,6 +133,7 @@
 | Skill | 中文名 | 适用场景 | 产出类型 |
 |---|---|---|---|
 | `manuscript-architect` | 论文架构师 | 当你需要搭建论文整体结构、章节推进和核心论证主线时使用。 | `ManuscriptOutline`, `Manuscript`, `ClaimGraph`, `FiguresTablesPlan` |
+| `proposal-writer` | 开题报告撰写 | 当你需要为论文、课题、基金或课程项目撰写 research proposal、开题报告、prospectus 或研究计划书时使用。 | `ResearchProposal` |
 | `analysis-interpreter` | 结果分析解释 | 当你需要把 quant 或 qualitative findings 写成有分析深度的结果叙述时使用。 | `ResultInterpretation` |
 | `effect-size-interpreter` | 效应量解释 | 当你需要把统计系数翻译成读者能理解的实际意义时使用。 | `EffectInterpretation` |
 | `table-generator` | 论文表格生成 | 当你需要把统计结果整理成论文级表格时使用。 | `FormattedTables` |
@@ -221,6 +222,7 @@
 |---|---|---|---|
 | `metadata-enricher` | 元数据补全 | 当 DOI、作者、年份或 venue 元数据在不同产物之间不一致时使用。 | `Bibliography` |
 | `academic-context-maintainer` | 学术上下文维护 | 当你需要在长周期论文流程中持续保留研究问题边界、已锁定方法决策、稳定结论和未解决争议时使用。 | `ResearchStateSnapshot`, `ResearchDecisionLog` |
+| `boundary-interviewer` | 学术边界追问器 | 当研究问题、claim 强度、证据阈值、方法有效性、外推范围、投稿承诺或阶段交接仍不清楚时使用。 | `BoundaryReview` |
 | `model-collaborator` | 多模型协作 | 当你需要 Codex、Claude 和 Gemini 分工协作或交叉复核时使用。 | `CollaborationTrace` |
 | `self-critique` | 自我批判 | 当你想主动提高 red-teaming 强度、压制浅层推理和过度主张时使用。 | `CritiqueLog` |
 

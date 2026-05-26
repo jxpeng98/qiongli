@@ -70,6 +70,21 @@ Canonical Task IDs (from the globally installed `qiongli-workflow` skill):
 
 If `--topic` is omitted, `code-build` falls back to the legacy prompt-driven mode for quick one-off code generation. If `--topic` is present, the strict Stage-I flow is the primary path.
 
+## Academic Boundary Review Trigger (MVP)
+
+For `I5` and `I6`, use `boundary-interviewer` before writing the specification or plan when a code decision could change scientific interpretation, reproducibility, claim strength, or claim-evidence traceability.
+
+Use the boundary pass for:
+
+- analysis-plan assumptions that implementation must preserve
+- data provenance, preprocessing, missingness, split, or leakage decisions
+- random seed, stochastic operation, dependency, or environment choices that affect reproducibility
+- synthetic or fixture data limits that affect validation
+- output artifacts that feed manuscript claims, figures, tables, or evidence ledgers
+- non-goals that prevent the code from implying a broader method claim than the paper supports
+
+The boundary pass must ask one academic question at a time and must record which code decision could change the research claim or evidence threshold.
+
 ## Execution Rules
 
 - Treat this as academic research code, not frontend/backend product delivery.

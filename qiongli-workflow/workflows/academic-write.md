@@ -55,6 +55,15 @@ Writing a critical literature review that:
 - Highlights gaps and contradictions
 - Builds toward your research rationale
 
+### Research Proposal / Opening Report / 开题报告
+Writing a research proposal, prospectus, opening report, or 开题报告 that:
+- States the research problem, RQ/objectives, and expected contribution
+- Positions the work against the literature gap and theoretical framework
+- Justifies study design, data, analysis, ethics, and data management choices
+- Shows feasibility through timeline, milestones, risks, and fallback plans
+- Marks missing citations, permissions, institutional requirements, and unresolved evidence gaps
+- Writes planned work as planned work, not as completed findings
+
 ### Methodology
 Writing a rigorous methodology section that:
 - Justifies research design choices
@@ -107,6 +116,12 @@ Clarify:
 5. What citation style is required?
 6. What is the target venue/audience?
 
+### Academic Boundary Review Trigger (MVP)
+
+Use `boundary-interviewer` before drafting when the writing task has unresolved boundaries around section purpose, target audience, venue expectations, claim strength, available evidence, citation gaps, contribution type, finding-vs-interpretation-vs-implication, boundary conditions, evidence threshold, or whether planned work is being written as completed work.
+
+The boundary pass must identify the strongest defensible wording for the central claim and the evidence threshold required to use that wording. If the answer changes a central claim, synchronize the decision into `context/decision_log.md` or flag it for `academic-context-maintainer`.
+
 ### Step 2: Gather Required Input
 
 For each section type, request:
@@ -135,6 +150,14 @@ For each section type, request:
 - Extraction table from `/lit-review`
 - Key themes to cover
 - Gap analysis from `/find-gap`
+
+**Research Proposal / Opening Report / 开题报告:**
+- Research questions from `framing/research_question.md`
+- Gap analysis and key citations from `gap_analysis.md` or literature notes
+- Theoretical framework and contribution statement
+- Study design, analysis plan, and data management plan
+- Target program, department, funder, course, or committee requirements if available
+- Timeline, feasibility constraints, and known risks
 
 **Methodology:**
 - Research design details

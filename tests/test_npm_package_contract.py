@@ -30,6 +30,13 @@ class NpmPackageContractTests(unittest.TestCase):
         self.assertTrue(root_package_json["private"])
         self.assertIn("packages/npm-qiongli", root_package_json["workspaces"])
 
+    def test_root_package_exposes_validate_for_marketplace_installability(self) -> None:
+        root_package_json = json.loads((REPO_ROOT / "package.json").read_text(encoding="utf-8"))
+
+        validate_script = root_package_json["scripts"]["validate"]
+        self.assertIn("scripts/validate_marketplace_install.py", validate_script)
+        self.assertIn("npm --prefix packages/npm-qiongli test", validate_script)
+
     def test_package_lock_tracks_workspace_version(self) -> None:
         package_json = json.loads((NPM_PACKAGE_ROOT / "package.json").read_text(encoding="utf-8"))
         package_lock = json.loads((REPO_ROOT / "package-lock.json").read_text(encoding="utf-8"))

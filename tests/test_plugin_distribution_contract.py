@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -54,21 +55,11 @@ class PluginDistributionContractTests(unittest.TestCase):
     def test_platform_manifests_share_workflow_version(self) -> None:
         codex = json.loads((PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
         claude = json.loads((PLUGIN_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        claude_marketplace = json.loads((REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
         gemini = json.loads((PLUGIN_ROOT / "gemini-extension.json").read_text(encoding="utf-8"))
 
         self.assertEqual(codex["version"], WORKFLOW_VERSION)
         self.assertEqual(claude["version"], WORKFLOW_VERSION)
-        self.assertEqual(claude_marketplace["metadata"]["version"], WORKFLOW_VERSION)
-        self.assertEqual(claude_marketplace["plugins"][0]["version"], WORKFLOW_VERSION)
         self.assertEqual(gemini["version"], WORKFLOW_VERSION)
-
-    def test_codex_marketplace_points_to_local_qiongli_plugin(self) -> None:
-        marketplace = json.loads((REPO_ROOT / ".agents" / "plugins" / "marketplace.json").read_text(encoding="utf-8"))
-        entries = {entry["name"]: entry for entry in marketplace["plugins"]}
-
-        self.assertIn("qiongli", entries)
-        self.assertEqual(entries["qiongli"]["source"], {"source": "local", "path": "./plugins/qiongli"})
 
     def test_codex_plugin_exposes_skill_directory(self) -> None:
         manifest = json.loads((PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
@@ -105,6 +96,28 @@ class PluginDistributionContractTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stderr + result.stdout)
         self.assertIn("qiongli-workflow", result.stdout)
         self.assertIn("plugins/qiongli/skills/qiongli-workflow", result.stdout)
+
+    def test_marketplace_validator_builds_platform_artifacts_and_checks_invocation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            result = subprocess.run(
+                [
+                    "python3",
+                    "scripts/validate_marketplace_install.py",
+                    "--dist-dir",
+                    tmp_dir,
+                ],
+                cwd=REPO_ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertEqual(result.returncode, 0, msg=result.stderr + result.stdout)
+        self.assertIn("[OK] codex marketplace artifact", result.stdout)
+        self.assertIn("[OK] claude marketplace artifact", result.stdout)
+        self.assertIn("[OK] claude-desktop skill artifact", result.stdout)
+        self.assertIn("[OK] gemini marketplace artifact", result.stdout)
+        self.assertIn("qiongli invocation", result.stdout)
 
 
 if __name__ == "__main__":

@@ -52,6 +52,12 @@ Use **question-refiner** to confirm:
 3. Constraints (data access, population access, timeline)
 4. What claims are acceptable (strong causal vs association)
 
+### Academic Boundary Review Trigger (MVP)
+
+Before drafting `C1` through `C5`, use `boundary-interviewer` when the design still has unresolved scholarly boundaries around claim strength, evidence threshold, unit of analysis, population or case boundary, construct operationalization, identification logic, sampling, saturation, data access, analysis strategy, rival hypotheses, validity, trustworthiness, ethics constraints, or preregistration commitments.
+
+The boundary question must identify what kind of claim the design can support: descriptive, interpretive, associative, causal, predictive, methodological, or exploratory. It must also state what evidence would weaken the design enough to narrow the claim.
+
 ### Step 2: Produce Study Design + Analysis Plan
 
 Use **study-designer** to draft:

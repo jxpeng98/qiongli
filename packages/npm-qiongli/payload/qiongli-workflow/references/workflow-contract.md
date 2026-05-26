@@ -109,6 +109,7 @@ Use this layer to preserve project-level academic state across long-running stag
 
 - artifact: `context/research_state.md`
 - artifact: `context/decision_log.md`
+- artifact: `context/boundary_review.md`
 
 ### Refresh Points
 

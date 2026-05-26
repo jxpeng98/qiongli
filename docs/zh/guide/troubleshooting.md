@@ -7,6 +7,28 @@
 
 ---
 
+## 客户端 Skill 发现
+
+### Codex 对 `/qiongli` 没有反应。
+
+- **原因**：Codex 不会把 Qiongli 暴露成自定义 slash command。Qiongli 在 Codex 中是 skill，不是 slash command。
+- **修复**：
+  - 安装或升级后重启 Codex。
+  - 运行 `/skills`，确认列表里有 `qiongli`。
+  - 使用 `$qiongli` 调用，例如 `$qiongli plan a literature review on ai-in-education`。
+  - 如果 `/skills` 只看到 `research-paper-workflow`，运行 `qiongli upgrade --target codex --overwrite` 刷新当前包，重启 Codex 后再检查。
+- **说明**：安装目录仍然可能叫 `qiongli-workflow`，这是正常的。用户可见的 skill 名称应该是 `qiongli`。
+
+### Claude Code 或 Gemini 看不到 `/paper`、`/lit-review`。
+
+- **原因**：workflow command discovery 文件未安装、客户端尚未重启，或你只安装了 Codex-facing skill package。
+- **修复**：
+  - 需要跨客户端全局使用时，运行 `qiongli upgrade --target all --overwrite`。
+  - 重启 Claude Code 或 Gemini CLI。
+  - 如果只安装了原生 plugin，确认该 plugin 已在客户端启用。
+
+---
+
 ## 环境与认证 (ENV)
 
 当 Orchestrator 无法在环境中找到所需的 CLI 二进制文件（如 `claude` 或 `codex`）或相应的 API 密钥时，会发生这些错误。
