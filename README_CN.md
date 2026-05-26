@@ -97,7 +97,7 @@
 
 - **Codex：** 添加统一的 [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace，然后在 Codex plugin UI 中安装或启用 `qiongli`。
 - **Claude Code：** 添加统一的 [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace，然后安装 `qiongli@skillsplace`。
-- **Claude Desktop / Claude.ai：** 如果不想处理 code / CLI 环境，从 GitHub Release assets 下载 `qiongli-claude-desktop-skill-<tag>.zip`，然后拖拽到 Claude Desktop 的 Skills 上传/安装流程中，或在 `Customize > Skills > + > Create skill > Upload a skill` 中上传。Claude.ai 网页版也使用同一个 ZIP 上传流程。这个 ZIP 是面向 Desktop/Web 的 slim skill 包：保留 workflows、templates、contracts 和合并后的 skill reference，但省略细分 per-skill markdown 文件，以满足 Claude 上传文件数限制。
+- **Claude Desktop / Claude.ai：** 如果不想处理 code / CLI 环境，从 GitHub Release assets 下载对应 subject ZIP。默认通用包用 `qiongli-claude-desktop-skill-core-<tag>.zip`，经济学专精包用 `qiongli-claude-desktop-skill-economics-<tag>.zip`。然后拖拽到 Claude Desktop 的 Skills 上传/安装流程中，或在 `Customize > Skills > + > Create skill > Upload a skill` 中上传。旧名 `qiongli-claude-desktop-skill-<tag>.zip` 暂时保留为 core alias。
 - **Gemini CLI：** 从 `plugins/qiongli` 本地安装 Gemini extension；发布为独立 extension 仓库或 gallery 条目后，也可以从远端安装。
 
 公开的 Codex / Claude marketplace catalog 现在由 `jxpeng98/skillsplace` 统一维护。本仓库保留被统一 marketplace 指向的 plugin payload 和平台 manifest：
@@ -109,7 +109,13 @@
 
 Claude Desktop 不走 Claude Code 的第三方 plugin marketplace 路径。Desktop 使用上面的 GitHub Release ZIP 手动上传；ZIP 内部顶层目录是 `qiongli/`，与 `SKILL.md` 里的 skill 名称一致。
 
-Desktop/Web ZIP 是有意压缩后的安装包：它保留可执行 workflow、模板、标准、venue profiles、`skills-summary.md` 和 `skills-core.md`，但不包含每个细分 skill 的详细 markdown spec。需要完整细分 skill 语料时，使用 Codex / Claude Code / Gemini plugin 包或源码仓库。
+Desktop/Web ZIP 是 subject 专精安装包，不是降质删减版。它保留统一 workflow、模板、标准、所选 profiles、`skills-summary.md` 和 `skills-core.md`；economics ZIP 还包含经过 layered overlays 生成的 selected effective skill markdown。需要完整 canonical 源码细节时，使用 Codex / Claude Code / Gemini plugin 包或源码仓库。
+
+### Subject 专精安装
+
+`core` 是默认 subject，保持原有通用 Qiongli 行为。`economics` 是第一版学科专精包。所有 subject 共享同一套 workflow contract、templates、standards 和 quality gates，安装目录仍是 `qiongli-workflow`，同一客户端一次只有一个 active subject。
+
+generic skills 源文件不会被复制成学科版本。effective package 由 `skill_refs`、subject overlays 和分层 section overrides 生成。切换 subject 时，重新运行 install 或 upgrade，并指定新的 `--subject`。
 
 如果你需要跨客户端全局安装、多端 slash command、`qiongli upgrade`、`doctor` 或多模型 orchestrator，再使用下面的 bootstrap / CLI 路径。
 
@@ -176,17 +182,18 @@ pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Beta -Profile full -
 
 ```bash
 npm install -g qiongli
-qiongli install --target all --project-dir "$PWD"
+qiongli install --subject core --target all --project-dir "$PWD"
+qiongli install --subject economics --target all --project-dir "$PWD"
 ```
 
 如果只是测试 prerelease，不想全局安装：
 
 ```bash
-npx qiongli@next install --target all --project-dir "$PWD"
+npx qiongli@next install --subject economics --target all --project-dir "$PWD"
 npx qiongli@next check --json
 ```
 
-npm 包内会携带完整 `qiongli-workflow` skills payload。`qiongli doctor`、`qiongli task-run`、`qiongli team-run` 等高级命令会委托到 npm 包内置的 Python bridge 源码执行，因此仍要求本机已有 Python 3.12+ 和 `PyYAML`。
+npm 包内携带预生成的 `core` 与 `economics` payload。`--subject` 默认是 `core`；`qiongli check --json` 会显示 bundled payload subject 和各 target 已安装 subject。`qiongli doctor`、`qiongli task-run`、`qiongli team-run` 等高级命令会委托到 npm 包内置的 Python bridge 源码执行，因此仍要求本机已有 Python 3.12+ 和 `PyYAML`。
 
 ### 3. 为 `full` 准备 Python
 
@@ -447,13 +454,14 @@ export PATH="$HOME/.local/bin:$PATH"
 
 ```bash
 npm install -g qiongli
-qiongli install --target all --project-dir "$PWD"
+qiongli install --subject core --target all --project-dir "$PWD"
+qiongli install --subject economics --target all --project-dir "$PWD"
 ```
 
 prerelease 测试：
 
 ```bash
-npx qiongli@next install --target all --project-dir "$PWD"
+npx qiongli@next install --subject economics --target all --project-dir "$PWD"
 ```
 
 效果：
@@ -729,15 +737,13 @@ qiongli align --repo jxpeng98/qiongli
 
 ---
 
-## 🧬 动态领域挂载 (Dynamic Domains)
+## 🧬 Subject 专精安装与动态领域挂载
 
-**为什么没有针对 Economics、Computer Science 或 Biology 单独做拆分安装包？**
+**Subject package 和 runtime domain 是什么关系？**
 
-在系统架构上，我们**将“核心执行管线”与“学科专业知识”彻底解耦**。
-当你执行在客户端执行安装时，获取的仅仅是纯“骨架”能力（比如如何做系统性综述，如何规划提纲）。 
+Qiongli 现在支持 subject-specialized installs。`core` 是默认通用包；`economics` 会安装同一套 canonical workflow，但只启用经济学所选 profiles、effective skill markdown 和 economics overlays。
 
-实际执行时，特定的检查清单（如经济学的平行趋势检验、生物的 IRB 安全条例）均通过 `--domain` 以 **动态按需挂载 (Runtime Injection)** 方式实现。
-例如，使用 `/code-build --domain econ` 时，系统会在运行时加载 `skills/domain-profiles/economics.yaml`，应用经济学专属诊断，并屏蔽不相关领域 profile。这种设计保持底层安装轻量，同时避免 Prompt 污染。
+`--domain econ` 这类 runtime flag 仍然用于单次 task packet 的临时强调，但不再替代 subject packaging。当你希望某个客户端默认就是经济学专精工作流时，使用 `qiongli install --subject economics --target all`。如果只是当前任务需要临时领域约束，再使用 runtime domain。
 
 ---
 

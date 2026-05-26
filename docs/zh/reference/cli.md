@@ -61,12 +61,33 @@ qiongli check [--repo <owner/repo|url>] [--json] [--strict-network]
 - `--json`：只输出 JSON（便于 CI/脚本）
 - `--strict-network`：如果上游查询失败则返回失败（默认仅提示并继续）
 
+JSON 输出会包含每个 target 当前安装的 active subject。旧 managed install 如果没有 `SUBJECT` marker，会按 legacy `core` 处理。
+
 退出码约定：
 - `0`：无更新/或跳过上游检查
 - `1`：检测到更新可用
 - `2`：参数错误
 
-### 2.2 `qiongli upgrade`（下载 release 并执行三端安装脚本）
+### 2.2 `qiongli install`（安装包内 subject payload）
+
+用途：
+- 把 PyPI 包内携带的 subject payload 安装到全局客户端 skill 目录。
+- 默认是 `--subject core`；经济学专精包使用 `--subject economics`。
+
+```bash
+qiongli install \
+  [--subject core|economics] \
+  [--target codex|claude|gemini|antigravity|all] \
+  [--mode copy|link] \
+  [--project-dir <path>] \
+  [--overwrite] \
+  [--doctor] \
+  [--dry-run]
+```
+
+Subject package 是专精安装包，不是降质删减版。不同 subject 共享同一套 workflow contracts 与 quality gates；专精 subject 会选择 active profiles 并应用 layered skill overlays。切换 subject 时，重新运行 `install` 或 `upgrade` 并指定新的 `--subject`。
+
+### 2.3 `qiongli upgrade`（下载 release 并执行三端安装脚本）
 
 用途：
 - 下载上游 release（默认 latest tag 的 tar.gz）
@@ -78,6 +99,7 @@ qiongli upgrade \
   [--repo <owner/repo|url>] \
   [--ref <tag-or-branch>] \
   [--ref-type tag|branch] \
+  [--subject core|economics] \
   [--target codex|claude|gemini|antigravity|all] \
   [--project-dir <path>] \
   [--no-overwrite] \
@@ -88,11 +110,12 @@ qiongli upgrade \
 说明：
 - `--project-dir` 主要在你显式请求项目侧安装面时生效，例如 `--parts project`。
 - 现在默认的 `upgrade` 是全局刷新。项目接线建议走 `qiongli init --project-dir .`；如果确实要在升级时重写项目文件，再显式加 `--parts project`。
+- `--subject` 默认是 `core`；使用 `--subject economics` 会 materialize 并安装经济学专精包。
 - 全局安装后，`upgrade` 会自动创建工作流发现 symlink：`~/.claude/commands/*.md` 和 `~/.gemini/workflows/*.md`，可直接使用 `/paper`、`/lit-review` 等 slash 命令。
 - Shell CLI 会通过随附的 bootstrap helper 执行升级，不依赖 Python。
 - 退出码为底层安装器返回码（若安装失败，沿用其错误码）。
 
-### 2.3 `qiongli align`（快速参考）
+### 2.4 `qiongli align`（快速参考）
 
 用途：打印“pipx 安装了什么 / upgrade 会修改哪些路径 / 常见用法”。
 
@@ -100,7 +123,7 @@ qiongli upgrade \
 qiongli align [--repo <owner/repo|url>]
 ```
 
-### 2.4 `qiongli init`（项目初始化）
+### 2.5 `qiongli init`（项目初始化）
 
 用途：在项目目录中创建 `.env` 等项目配置。
 
@@ -108,7 +131,7 @@ qiongli align [--repo <owner/repo|url>]
 qiongli init [--project-dir <path>] [--target all|codex|claude|gemini] [--dry-run]
 ```
 
-### 2.5 `qiongli clean`（清理过期资产）
+### 2.6 `qiongli clean`（清理过期资产）
 
 用途：移除旧版本安装留下的项目本地资产。
 
@@ -121,7 +144,7 @@ qiongli clean [--project-dir <path>] [--dry-run] [--globals]
 - `--globals`：同时移除全局工作流发现 symlink（`~/.claude/commands/` 和 `~/.gemini/workflows/`）。只移除指向 `qiongli-workflow` 的 symlink，用户自建的命令不受影响。
 - `--dry-run`：只显示将要移除的内容，不实际删除。
 
-### 2.6 `qiongli doctor`（环境预检）
+### 2.7 `qiongli doctor`（环境预检）
 
 ```bash
 qiongli doctor [--cwd <path>]

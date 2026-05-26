@@ -13,7 +13,7 @@ Qiongli has several installation surfaces because users need different levels of
 | npm / npx | Node-based automation | npm CLI plus bundled workflow payload | Only for advanced bridge commands |
 | pipx / pip | Python updater CLI | Python CLI distribution | Yes |
 
-The user-visible skill name is `qiongli`. The installed directory is still `qiongli-workflow` for compatibility with existing clients and release artifacts.
+The user-visible skill name is `qiongli`. The installed directory is still `qiongli-workflow` for compatibility with existing clients and release artifacts. `core` is the default subject; `economics` is the first specialized subject package.
 
 ## Native Plugin And Extension
 
@@ -44,12 +44,12 @@ Inside an interactive Claude Code session, use:
 
 Claude Desktop and Claude.ai do not install third-party Claude Code plugin marketplaces. If you use Desktop or the web app and are not familiar with a code/CLI environment, use the release ZIP path instead. It requires no terminal commands:
 
-1. Download `qiongli-claude-desktop-skill-<tag>.zip` from the GitHub Release assets.
+1. Download `qiongli-claude-desktop-skill-core-<tag>.zip` or `qiongli-claude-desktop-skill-economics-<tag>.zip` from the GitHub Release assets.
 2. In Claude Desktop, drag the ZIP into the Skills upload/install flow, or open `Customize > Skills`, click `+`, choose `Create skill`, then `Upload a skill`.
 3. In Claude.ai, use the same `Customize > Skills` upload flow and select the same ZIP.
 4. Enable the uploaded `qiongli` skill.
 
-The release ZIP is a slim Desktop/Web skill package designed to stay below Claude's upload file-count limit. It preserves executable workflows, templates, standards, venue profiles, `skills-summary.md`, and `skills-core.md`; detailed per-skill markdown specs remain available in the Codex / Claude Code / Gemini plugin packages and source repository.
+The release ZIP is a subject-specialized Desktop/Web package, not a reduced-quality cut. It preserves executable workflows, templates, standards, selected profiles, `skills-summary.md`, and `skills-core.md`; the economics ZIP also includes selected effective skill markdown generated with layered overlays. Detailed canonical source remains available in the Codex / Claude Code / Gemini plugin packages and source repository.
 
 Gemini CLI still installs the local extension payload directly:
 
@@ -119,20 +119,21 @@ Use npm when you want a Node-distributed installer with the workflow payload bun
 
 ```bash
 npm install -g qiongli
-qiongli install --target all --project-dir "$PWD"
+qiongli install --subject core --target all --project-dir "$PWD"
+qiongli install --subject economics --target all --project-dir "$PWD"
 ```
 
 For one-off runs:
 
 ```bash
-npx qiongli@latest install --target all --project-dir "$PWD"
+npx qiongli@latest install --subject economics --target all --project-dir "$PWD"
 npx qiongli@latest check --json
 ```
 
 Prerelease testing remains available through the `next` dist-tag:
 
 ```bash
-npx qiongli@next install --target all --project-dir "$PWD"
+npx qiongli@next install --subject economics --target all --project-dir "$PWD"
 ```
 
 ## pipx / pip
@@ -141,15 +142,18 @@ Use pipx when you specifically want the Python-distributed updater CLI:
 
 ```bash
 pipx install qiongli
-qiongli upgrade --target all
+qiongli install --subject core --target all
+qiongli install --subject economics --target all
 ```
 
 Upgrade it with:
 
 ```bash
 pipx upgrade qiongli
-qiongli upgrade --target all --doctor --project-dir /path/to/project
+qiongli upgrade --subject economics --target all --doctor --project-dir /path/to/project
 ```
+
+`--subject` defaults to `core`. To switch a client from core to economics, rerun `install` or `upgrade` with `--subject economics`; rerun with `--subject core` to switch back. `qiongli check --json` reports the active installed subject per target, and legacy installs without a `SUBJECT` file are treated as `core`.
 
 ## What Gets Installed
 
@@ -170,7 +174,7 @@ If you use multiple surfaces, keep plugin, global skill assets, npm payload, and
 
 ```bash
 qiongli check
-qiongli upgrade --target all
+qiongli upgrade --subject core --target all
 ```
 
 If you move fully to native plugins and no longer need legacy global slash commands, inspect cleanup first:
