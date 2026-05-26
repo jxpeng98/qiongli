@@ -35,17 +35,18 @@ class ClaudeDesktopSkillArtifactTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             artifacts = self.build_module.build_artifacts(REPO_ROOT, tag, Path(tmp))
 
-            desktop_artifacts = [
-                artifact for artifact in artifacts if artifact.name == f"qiongli-claude-desktop-skill-{tag}.zip"
-            ]
-            self.assertEqual(1, len(desktop_artifacts))
+            desktop_artifacts = {artifact.name: artifact for artifact in artifacts if artifact.suffix == ".zip"}
+            self.assertIn(f"qiongli-claude-desktop-skill-{tag}.zip", desktop_artifacts)
+            self.assertIn(f"qiongli-claude-desktop-skill-core-{tag}.zip", desktop_artifacts)
+            self.assertIn(f"qiongli-claude-desktop-skill-economics-{tag}.zip", desktop_artifacts)
 
-            with zipfile.ZipFile(desktop_artifacts[0]) as archive:
+            with zipfile.ZipFile(desktop_artifacts[f"qiongli-claude-desktop-skill-core-{tag}.zip"]) as archive:
                 names = set(archive.namelist())
                 file_names = [name for name in names if not name.endswith("/")]
 
                 self.assertIn("qiongli/SKILL.md", names)
                 self.assertIn("qiongli/VERSION", names)
+                self.assertIn("qiongli/SUBJECT", names)
                 self.assertIn("qiongli/skills-core.md", names)
                 self.assertIn("qiongli/skills-summary.md", names)
                 self.assertIn("qiongli/skills/registry.yaml", names)
@@ -64,12 +65,44 @@ class ClaudeDesktopSkillArtifactTests(unittest.TestCase):
                 self.assertEqual([], detailed_skill_specs)
 
                 skill_text = archive.read("qiongli/SKILL.md").decode("utf-8")
+                subject_text = archive.read("qiongli/SUBJECT").decode("utf-8").strip()
                 version_text = archive.read("qiongli/VERSION").decode("utf-8").strip()
 
         self.assertIn("name: qiongli", skill_text)
-        self.assertIn("Claude Desktop / Claude.ai slim package", skill_text)
+        self.assertIn("Core Workflow Map", skill_text)
         self.assertNotIn("skills/[stage]/[skill-name].md", skill_text)
+        self.assertEqual("core", subject_text)
         self.assertEqual(tag, version_text)
+
+    def test_build_artifacts_creates_economics_desktop_skill_zip(self) -> None:
+        tag = (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(encoding="utf-8").strip()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            artifacts = self.build_module.build_artifacts(REPO_ROOT, tag, Path(tmp))
+            economics_artifact = next(
+                artifact for artifact in artifacts if artifact.name == f"qiongli-claude-desktop-skill-economics-{tag}.zip"
+            )
+
+            with zipfile.ZipFile(economics_artifact) as archive:
+                names = set(archive.namelist())
+                file_names = [name for name in names if not name.endswith("/")]
+
+                self.assertIn("qiongli/SUBJECT", names)
+                self.assertIn("qiongli/skills/C_design/econ-identification-auditor.md", names)
+                self.assertIn("qiongli/skills/F_writing/manuscript-architect.md", names)
+                self.assertIn("qiongli/skills/I_code/stats-engine.md", names)
+                self.assertIn("qiongli/skills/domain-profiles/economics.yaml", names)
+                self.assertNotIn("qiongli/skills/domain-profiles/cs-ai.yaml", names)
+                self.assertNotIn("qiongli/venue-profiles/acl.yaml", names)
+                self.assertLessEqual(len(file_names), self.DESKTOP_FILE_BUDGET)
+
+                subject_text = archive.read("qiongli/SUBJECT").decode("utf-8").strip()
+                manuscript_text = archive.read("qiongli/skills/F_writing/manuscript-architect.md").decode("utf-8")
+                stats_text = archive.read("qiongli/skills/I_code/stats-engine.md").decode("utf-8")
+
+        self.assertEqual("economics", subject_text)
+        self.assertIn("## Economics Overlay", manuscript_text)
+        self.assertIn("Naive TWFE under staggered adoption", stats_text)
 
 
 if __name__ == "__main__":
