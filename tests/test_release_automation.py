@@ -238,6 +238,8 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('if [[ "${{ github.event_name }}" == "push" ]]; then', content)
         self.assertIn('mode="post"', content)
         self.assertIn('args+=(--maintainer-smoke)', content)
+        self.assertIn('if [[ "$mode" == "publish" && "${{ inputs.create_release }}" != "true" ]]; then', content)
+        self.assertIn('elif [[ "$mode" != "publish" && ( "${{ github.event_name }}" == "push" || "${{ inputs.create_release }}" == "true" ) ]]; then', content)
         self.assertIn('args+=(--create-release)', content)
         self.assertIn('bash scripts/verify_release_tag_version.sh --tag "$tag"', content)
         self.assertIn('git config user.name "github-actions[bot]"', content)

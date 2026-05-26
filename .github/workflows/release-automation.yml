@@ -151,10 +151,10 @@ jobs:
           if [[ "${{ github.event_name }}" != "push" && "${{ inputs.skip_ci_status }}" == "true" ]]; then
             args+=(--skip-ci-status)
           fi
-          if [[ "${{ github.event_name }}" == "push" || "${{ inputs.create_release }}" == "true" ]]; then
-            args+=(--create-release)
-          elif [[ "$mode" == "publish" ]]; then
+          if [[ "$mode" == "publish" && "${{ inputs.create_release }}" != "true" ]]; then
             args+=(--no-create-release)
+          elif [[ "$mode" != "publish" && ( "${{ github.event_name }}" == "push" || "${{ inputs.create_release }}" == "true" ) ]]; then
+            args+=(--create-release)
           fi
 
           if [[ "$mode" != "publish" ]]; then
