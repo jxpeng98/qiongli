@@ -1,0 +1,266 @@
+subjects:
+  core:
+    display_name: Qiongli Core
+    package_goal: "General-purpose Qiongli academic workflow across paper types and methods."
+    domain_profiles:
+      - economics
+      - finance
+      - psychology
+      - biomedical
+      - education
+      - cs-ai
+      - business-management
+      - epidemiology
+      - political-science
+      - ecology-environmental
+      - custom-template
+    venue_profiles:
+      - acl
+      - aom
+      - chi
+      - jama
+      - nature
+      - neurips
+    skill_groups:
+      - order: 1
+        heading: "Research Framing"
+        subheading: "Question, contribution, theory, and venue fit"
+        stages: ["A"]
+        skill_refs:
+          - question-refiner
+          - contribution-crafter
+          - hypothesis-generator
+          - theory-mapper
+          - gap-analyzer
+          - venue-analyzer
+      - order: 2
+        heading: "Literature Grounding"
+        subheading: "Search, screening, extraction, citation, and mapping"
+        stages: ["B"]
+        skill_refs:
+          - academic-searcher
+          - paper-screener
+          - paper-extractor
+          - citation-snowballer
+          - fulltext-fetcher
+          - citation-formatter
+          - concept-extractor
+          - literature-mapper
+          - reference-manager-bridge
+      - order: 3
+        heading: "Study Design"
+        subheading: "Design, variables, data, preregistration, and robustness"
+        stages: ["C"]
+        skill_refs:
+          - study-designer
+          - rival-hypothesis-designer
+          - robustness-planner
+          - dataset-finder
+          - variable-constructor
+          - data-dictionary-builder
+          - data-management-plan
+          - prereg-writer
+          - variable-operationalizer
+      - order: 4
+        heading: "Ethics and Disclosure"
+        subheading: "IRB, participant protection, and disclosure statements"
+        stages: ["D"]
+        skill_refs:
+          - ethics-irb-helper
+          - statement-generator
+          - deidentification-planner
+      - order: 5
+        heading: "Evidence Synthesis"
+        subheading: "Effect sizes, synthesis, quality, and publication-bias checks"
+        stages: ["E"]
+        skill_refs:
+          - effect-size-calculator
+          - evidence-synthesizer
+          - quality-assessor
+          - publication-bias-checker
+          - qualitative-coding
+      - order: 6
+        heading: "Manuscript Writing"
+        subheading: "Architecture, interpretation, tables, figures, and discussion"
+        stages: ["F"]
+        skill_refs:
+          - manuscript-architect
+          - proposal-writer
+          - analysis-interpreter
+          - effect-size-interpreter
+          - table-generator
+          - figure-specifier
+          - meta-optimizer
+          - discussion-writer
+      - order: 7
+        heading: "Reporting Compliance"
+        subheading: "PRISMA, reporting, and academic tone checks"
+        stages: ["G"]
+        skill_refs:
+          - prisma-checker
+          - reporting-checker
+          - tone-normalizer
+      - order: 8
+        heading: "Submission and Review"
+        subheading: "Packaging, rebuttal, reviewer simulation, and limitations"
+        stages: ["H"]
+        skill_refs:
+          - submission-packager
+          - rebuttal-assistant
+          - peer-review-simulation
+          - fatal-flaw-detector
+          - reviewer-empathy-checker
+          - credit-taxonomy-helper
+          - limitation-auditor
+      - order: 9
+        heading: "Research Code and Statistics"
+        subheading: "Code planning, execution, review, reproducibility, and stats"
+        stages: ["I"]
+        skill_refs:
+          - code-builder
+          - data-cleaning-planner
+          - data-merge-planner
+          - code-specification
+          - code-planning
+          - code-execution
+          - code-review
+          - reproducibility-auditor
+          - release-packager
+          - stats-engine
+      - order: 10
+        heading: "Proofreading and Similarity"
+        subheading: "Human voice, similarity, final proofread, and AI trace checks"
+        stages: ["J"]
+        skill_refs:
+          - ai-fingerprint-scanner
+          - human-voice-rewriter
+          - similarity-checker
+          - final-proofreader
+      - order: 11
+        heading: "Presentation"
+        subheading: "Scholarly slide, Slidev, and Beamer workflows"
+        stages: ["K"]
+        skill_refs:
+          - presentation-planner
+          - slide-architect
+          - slidev-scholarly-builder
+          - beamer-builder
+      - order: 12
+        heading: "Cross-Cutting Governance"
+        subheading: "Context, metadata, collaboration, boundaries, and self-critique"
+        stages: ["Z"]
+        skill_refs:
+          - metadata-enricher
+          - academic-context-maintainer
+          - boundary-interviewer
+          - model-collaborator
+          - self-critique
+
+  economics:
+    display_name: Qiongli Economics
+    extends: core
+    package_goal: "Economics-focused empirical, theory, and reproducibility workflow."
+    domain_profiles:
+      - economics
+    venue_profiles:
+      - aer
+      - qje
+      - restud
+    template_refs:
+      - analysis-plan.md
+      - claim-evidence-ledger.csv
+      - data-availability.md
+      - data-management-plan.md
+      - figures-tables-plan.md
+      - manuscript-outline.md
+      - method-diagnostic-report.md
+      - quality-gate-report.md
+      - research-state.md
+      - search-log.md
+      - stage-handoff.md
+      - study-design.md
+      - validity-threat-matrix.md
+      - writing-claim-map.md
+      - code/economics/causal_did.py
+      - code/statistics/meta_analysis_random_effects.py
+    skill_overrides:
+      - skill: manuscript-architect
+        overlay: overlays/skills/manuscript-architect.md
+        mode: append
+      - skill: stats-engine
+        overlay: overlays/skills/stats-engine.md
+        mode: replace_sections
+        sections:
+          - Quality Bar
+          - Common Pitfalls
+    subject_specific_skill_refs:
+      - econ-identification-auditor
+    skill_groups:
+      - order: 1
+        heading: "Research Framing"
+        subheading: "Question, contribution, theory, and venue fit"
+        stages: ["A"]
+        task_ids: ["A1", "A2", "A3", "A4", "A5"]
+        skill_refs:
+          - question-refiner
+          - contribution-crafter
+          - gap-analyzer
+          - theory-mapper
+          - hypothesis-generator
+          - venue-analyzer
+      - order: 2
+        heading: "Economics Literature Positioning"
+        subheading: "Search, mapping, extraction, and citation grounding"
+        stages: ["B"]
+        task_ids: ["B1", "B2", "B3", "B4", "B5", "B6"]
+        skill_refs:
+          - academic-searcher
+          - citation-snowballer
+          - literature-mapper
+          - paper-extractor
+          - paper-screener
+          - reference-manager-bridge
+      - order: 3
+        heading: "Identification and Study Design"
+        subheading: "Causal design, estimands, variables, and robustness"
+        stages: ["C", "I"]
+        task_ids: ["C1", "C2", "C3", "C4", "C5", "I9"]
+        skill_refs:
+          - study-designer
+          - rival-hypothesis-designer
+          - robustness-planner
+          - dataset-finder
+          - variable-constructor
+          - data-dictionary-builder
+          - prereg-writer
+          - stats-engine
+          - econ-identification-auditor
+      - order: 4
+        heading: "Economics Evidence and Results"
+        subheading: "Effect interpretation, tables, figures, and result diagnostics"
+        stages: ["E", "F"]
+        task_ids: ["E1", "E2", "E3", "F1", "F2", "F3", "F4"]
+        skill_refs:
+          - effect-size-calculator
+          - evidence-synthesizer
+          - analysis-interpreter
+          - effect-size-interpreter
+          - table-generator
+          - figure-specifier
+      - order: 5
+        heading: "Manuscript and Reproducibility"
+        subheading: "Paper architecture, reproducibility, compliance, and submission readiness"
+        stages: ["F", "G", "H", "I", "J"]
+        task_ids: ["F5", "F6", "G1", "G2", "G3", "H1", "H2", "I1", "I2", "I7", "I8", "J4"]
+        skill_refs:
+          - manuscript-architect
+          - discussion-writer
+          - meta-optimizer
+          - reporting-checker
+          - tone-normalizer
+          - submission-packager
+          - fatal-flaw-detector
+          - code-builder
+          - code-review
+          - reproducibility-auditor
+          - final-proofreader
