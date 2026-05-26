@@ -3,18 +3,84 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import tarfile
 import tempfile
 import zipfile
 from pathlib import Path
 
-from qiongli.subject_materializer import MaterializeOptions, materialize_subject_package, validate_subject_catalog
+try:
+    from qiongli.subject_materializer import MaterializeOptions, materialize_subject_package, validate_subject_catalog
+except ModuleNotFoundError as exc:
+    if exc.name != "yaml":
+        raise
+    MaterializeOptions = None
+    materialize_subject_package = None
+    validate_subject_catalog = None
 
 
 PLUGIN_NAME = "qiongli"
 PLUGIN_ROOT = Path("plugins") / PLUGIN_NAME
 DESKTOP_SKILL_FILE_BUDGET = 180
+ECONOMICS_SKILL_REFS = (
+    "question-refiner",
+    "contribution-crafter",
+    "gap-analyzer",
+    "theory-mapper",
+    "hypothesis-generator",
+    "venue-analyzer",
+    "academic-searcher",
+    "citation-snowballer",
+    "literature-mapper",
+    "paper-extractor",
+    "paper-screener",
+    "reference-manager-bridge",
+    "study-designer",
+    "rival-hypothesis-designer",
+    "robustness-planner",
+    "dataset-finder",
+    "variable-constructor",
+    "data-dictionary-builder",
+    "prereg-writer",
+    "stats-engine",
+    "econ-identification-auditor",
+    "effect-size-calculator",
+    "evidence-synthesizer",
+    "analysis-interpreter",
+    "effect-size-interpreter",
+    "table-generator",
+    "figure-specifier",
+    "manuscript-architect",
+    "discussion-writer",
+    "meta-optimizer",
+    "reporting-checker",
+    "tone-normalizer",
+    "submission-packager",
+    "fatal-flaw-detector",
+    "code-builder",
+    "code-review",
+    "reproducibility-auditor",
+    "final-proofreader",
+)
+ECONOMICS_TEMPLATES = (
+    "analysis-plan.md",
+    "claim-evidence-ledger.csv",
+    "data-availability.md",
+    "data-management-plan.md",
+    "figures-tables-plan.md",
+    "manuscript-outline.md",
+    "method-diagnostic-report.md",
+    "quality-gate-report.md",
+    "research-state.md",
+    "search-log.md",
+    "stage-handoff.md",
+    "study-design.md",
+    "validity-threat-matrix.md",
+    "writing-claim-map.md",
+    "code/economics/causal_did.py",
+    "code/statistics/meta_analysis_random_effects.py",
+)
 
 
 def _normalize_tag(raw: str) -> tuple[str, str]:
@@ -91,20 +157,144 @@ def _make_zip(source_dir: Path, zip_path: Path) -> None:
 
 
 def _copy_claude_desktop_skill(root: Path, skill_dest: Path, subject: str) -> None:
-    materialize_subject_package(
-        MaterializeOptions(
-            source=root,
-            out=skill_dest,
-            subject=subject,
-            flavor="desktop",
+    if materialize_subject_package is not None and MaterializeOptions is not None:
+        materialize_subject_package(
+            MaterializeOptions(
+                source=root,
+                out=skill_dest,
+                subject=subject,
+                flavor="desktop",
+            )
         )
-    )
+    else:
+        _copy_claude_desktop_skill_without_pyyaml(root, skill_dest, subject)
     file_count = sum(1 for item in skill_dest.rglob("*") if item.is_file())
     if file_count > DESKTOP_SKILL_FILE_BUDGET:
         raise ValueError(
             f"Claude Desktop {subject} skill package has {file_count} files; "
             f"limit is {DESKTOP_SKILL_FILE_BUDGET}"
         )
+
+
+def _copy_claude_desktop_skill_without_pyyaml(root: Path, skill_dest: Path, subject: str) -> None:
+    if subject not in {"core", "economics"}:
+        raise ValueError("PyYAML is required to materialize non-core/non-economics subjects")
+    source = root / "qiongli-workflow"
+    skill_dest.mkdir(parents=True)
+    for filename in ("VERSION", "skills-core.md", "skills-summary.md"):
+        _copy_path(source / filename, skill_dest / filename)
+    for dirname in ("workflows", "references", "standards", "roles", "agents"):
+        source_path = source / dirname
+        if source_path.exists():
+            _copy_path(source_path, skill_dest / dirname)
+
+    (skill_dest / "SUBJECT").write_text(subject + "\n", encoding="utf-8")
+    if subject == "core":
+        _write_fallback_skill_md(skill_dest, "Qiongli Core", "General-purpose Qiongli academic workflow.")
+        _copy_path(source / "templates", skill_dest / "templates")
+        _copy_path(source / "venue-profiles", skill_dest / "venue-profiles")
+        _copy_path(source / "skills" / "registry.yaml", skill_dest / "skills" / "registry.yaml")
+        _copy_path(source / "skills" / "domain-profiles", skill_dest / "skills" / "domain-profiles")
+        return
+
+    _write_fallback_skill_md(
+        skill_dest,
+        "Qiongli Economics",
+        "Economics-focused empirical, theory, and reproducibility workflow.",
+    )
+    for rel in ECONOMICS_TEMPLATES:
+        _copy_path(source / "templates" / rel, skill_dest / "templates" / rel)
+    _copy_path(source / "skills" / "domain-profiles" / "economics.yaml", skill_dest / "skills" / "domain-profiles" / "economics.yaml")
+    for venue in ("aer", "qje", "restud"):
+        _copy_path(root / "subjects" / "economics" / "venue-profiles" / f"{venue}.yaml", skill_dest / "venue-profiles" / f"{venue}.yaml")
+
+    entries = _fallback_registry_entries(root)
+    registry_lines = ["skills:"]
+    for skill_id in ECONOMICS_SKILL_REFS:
+        rel = entries[skill_id]
+        registry_lines.extend([f"  - id: {skill_id}", f"    file: {rel}"])
+        if skill_id == "econ-identification-auditor":
+            src = root / "subjects" / "economics" / "skills" / "econ-identification-auditor.md"
+        else:
+            src = source / rel
+        text = src.read_text(encoding="utf-8")
+        if skill_id == "manuscript-architect":
+            overlay = (root / "subjects" / "economics" / "overlays" / "skills" / "manuscript-architect.md").read_text(
+                encoding="utf-8"
+            )
+            text = text.rstrip() + "\n\n" + overlay.strip() + "\n"
+        elif skill_id == "stats-engine":
+            overlay = (root / "subjects" / "economics" / "overlays" / "skills" / "stats-engine.md").read_text(
+                encoding="utf-8"
+            )
+            for section in ("Quality Bar", "Common Pitfalls"):
+                text = _replace_markdown_section(text, overlay, section)
+        dest = skill_dest / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(text, encoding="utf-8")
+    registry_path = skill_dest / "skills" / "registry.yaml"
+    registry_path.parent.mkdir(parents=True, exist_ok=True)
+    registry_path.write_text("\n".join(registry_lines) + "\n", encoding="utf-8")
+
+
+def _write_fallback_skill_md(skill_dest: Path, display_name: str, description: str) -> None:
+    text = "\n".join(
+        [
+            "---",
+            "name: qiongli",
+            f"description: {description}",
+            "---",
+            "",
+            f"# {display_name}",
+            "",
+            description,
+            "",
+            f"## {display_name.removeprefix('Qiongli ')} Workflow Map",
+            "",
+            "Use `workflows/`, `references/`, `templates/`, and `skills/registry.yaml` as the active subject contract.",
+            "",
+        ]
+    )
+    (skill_dest / "SKILL.md").write_text(text, encoding="utf-8")
+
+
+def _fallback_registry_entries(root: Path) -> dict[str, str]:
+    entries: dict[str, str] = {}
+    for registry in (root / "skills" / "registry.yaml", root / "subjects" / "economics" / "skills" / "registry.yaml"):
+        current_id: str | None = None
+        for line in registry.read_text(encoding="utf-8").splitlines():
+            id_match = re.match(r"\s*-\s*id:\s*[\"']?([^\"'\n#]+)", line)
+            if id_match:
+                current_id = id_match.group(1).strip()
+                continue
+            file_match = re.match(r"\s*file:\s*[\"']?([^\"'\n#]+)", line)
+            if current_id and file_match:
+                entries[current_id] = file_match.group(1).strip()
+                current_id = None
+    return entries
+
+
+def _replace_markdown_section(base_text: str, overlay_text: str, section: str) -> str:
+    base_range = _find_section_range(base_text, section)
+    overlay_range = _find_section_range(overlay_text, section)
+    if base_range is None or overlay_range is None:
+        raise ValueError(f"fallback overlay missing section: {section}")
+    base_start, base_end = base_range
+    overlay_start, overlay_end = overlay_range
+    replacement = overlay_text[overlay_start:overlay_end].strip() + "\n"
+    return base_text[:base_start].rstrip() + "\n\n" + replacement + base_text[base_end:].lstrip()
+
+
+def _find_section_range(text: str, section: str) -> tuple[int, int] | None:
+    heading_re = re.compile(r"(?m)^(?P<marker>#{2})\s+(?P<title>.+?)\s*$")
+    wanted = re.sub(r"\s+", " ", section.strip().lower())
+    for match in heading_re.finditer(text):
+        title = re.sub(r"\s+", " ", match.group("title").strip().lower())
+        if title != wanted and not title.startswith(wanted + " "):
+            continue
+        next_match = heading_re.search(text, match.end())
+        return match.start(), next_match.start() if next_match else len(text)
+    return None
 
 
 def _build_codex(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> Path:
@@ -151,6 +341,8 @@ def _build_claude_desktop_skill(root: Path, tag: str, dist_dir: Path, work_dir: 
 
 
 def _desktop_subjects(root: Path) -> list[str]:
+    if validate_subject_catalog is None:
+        return ["core", "economics"]
     subjects = sorted(validate_subject_catalog(root).subjects)
     if "core" in subjects:
         subjects.remove("core")
