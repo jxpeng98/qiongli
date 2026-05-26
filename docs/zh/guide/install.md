@@ -49,6 +49,8 @@ Claude Desktop 和 Claude.ai 不安装第三方 Claude Code plugin marketplace�
 3. 在 Claude.ai 网页版中，使用同样的 `Customize > Skills` 上传流程，选择同一个 ZIP。
 4. 启用上传后的 `qiongli` skill。
 
+Release ZIP 是为了满足 Claude 上传文件数限制而生成的 Desktop/Web slim skill 包。它保留可执行 workflows、templates、standards、venue profiles、`skills-summary.md` 和 `skills-core.md`；每个细分 skill 的详细 markdown spec 仍保留在 Codex / Claude Code / Gemini plugin 包和源码仓库中。
+
 Gemini CLI 仍然直接安装本地 extension payload：
 
 ```bash

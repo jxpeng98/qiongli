@@ -15,6 +15,7 @@ from build_plugin_artifacts import build_artifacts
 PLUGIN_NAME = "qiongli"
 SKILL_DIR_NAME = "qiongli-workflow"
 SKILL_NAME = "qiongli"
+CLAUDE_DESKTOP_FILE_BUDGET = 180
 
 
 @dataclass(frozen=True)
@@ -70,6 +71,32 @@ def _extract_single_zip_root(artifact: Path, dest: Path) -> Path:
     if len(roots) != 1:
         raise ValueError(f"{artifact} should extract to one top-level directory, found {len(roots)}")
     return roots[0]
+
+
+def _assert_claude_desktop_zip_budget(artifact: Path) -> int:
+    with zipfile.ZipFile(artifact) as archive:
+        file_names = [name for name in archive.namelist() if not name.endswith("/")]
+
+    if len(file_names) > CLAUDE_DESKTOP_FILE_BUDGET:
+        raise ValueError(
+            f"{artifact} contains {len(file_names)} files; "
+            f"Claude Desktop upload budget is {CLAUDE_DESKTOP_FILE_BUDGET}"
+        )
+
+    detailed_skill_specs = [
+        name
+        for name in file_names
+        if name.startswith(f"{SKILL_NAME}/skills/")
+        and name != f"{SKILL_NAME}/skills/registry.yaml"
+        and name.endswith(".md")
+    ]
+    if detailed_skill_specs:
+        raise ValueError(
+            f"{artifact} includes detailed skill specs that should be omitted from the Desktop ZIP: "
+            + ", ".join(detailed_skill_specs[:5])
+        )
+
+    return len(file_names)
 
 
 def _assert_file(path: Path, label: str) -> None:
@@ -157,17 +184,23 @@ def _validate_artifact(artifact: Path, spec: ArtifactSpec, expected_repo_tag: st
 
 
 def _validate_claude_desktop_artifact(artifact: Path, expected_repo_tag: str) -> str:
+    file_count = _assert_claude_desktop_zip_budget(artifact)
     with tempfile.TemporaryDirectory(prefix="qiongli-claude-desktop-artifact-") as tmp:
         skill_root = _extract_single_zip_root(artifact, Path(tmp))
         if skill_root.name != SKILL_NAME:
             raise ValueError(f"{artifact} must contain top-level {SKILL_NAME}/ directory")
         _assert_skill_invocation(skill_root, expected_repo_tag)
+        _assert_file(skill_root / "skills-core.md", "consolidated skill core")
+        _assert_file(skill_root / "skills-summary.md", "consolidated skill summary")
         if (skill_root / ".claude-plugin").exists():
             raise ValueError(f"{artifact} must not include Claude Code plugin metadata")
         if (skill_root / "commands").exists():
             raise ValueError(f"{artifact} must not include Claude Code slash command wrappers")
 
-    return f"[OK] claude-desktop skill artifact: {SKILL_NAME} invocation checked"
+    return (
+        f"[OK] claude-desktop skill artifact: {SKILL_NAME} invocation checked; "
+        f"{file_count}/{CLAUDE_DESKTOP_FILE_BUDGET} files under desktop file budget"
+    )
 
 
 def validate(root: Path, dist_dir: Path) -> list[str]:

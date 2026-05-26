@@ -23,6 +23,8 @@ def _load_build_artifacts_module():
 
 
 class ClaudeDesktopSkillArtifactTests(unittest.TestCase):
+    DESKTOP_FILE_BUDGET = 180
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.build_module = _load_build_artifacts_module()
@@ -40,18 +42,33 @@ class ClaudeDesktopSkillArtifactTests(unittest.TestCase):
 
             with zipfile.ZipFile(desktop_artifacts[0]) as archive:
                 names = set(archive.namelist())
+                file_names = [name for name in names if not name.endswith("/")]
 
                 self.assertIn("qiongli/SKILL.md", names)
                 self.assertIn("qiongli/VERSION", names)
+                self.assertIn("qiongli/skills-core.md", names)
+                self.assertIn("qiongli/skills-summary.md", names)
                 self.assertIn("qiongli/skills/registry.yaml", names)
                 self.assertIn("qiongli/workflows/paper.md", names)
                 self.assertNotIn("qiongli/.claude-plugin/plugin.json", names)
                 self.assertFalse(any(name.startswith("qiongli/commands/") for name in names))
+                self.assertLessEqual(len(file_names), self.DESKTOP_FILE_BUDGET)
+
+                detailed_skill_specs = [
+                    name
+                    for name in file_names
+                    if name.startswith("qiongli/skills/")
+                    and name != "qiongli/skills/registry.yaml"
+                    and name.endswith(".md")
+                ]
+                self.assertEqual([], detailed_skill_specs)
 
                 skill_text = archive.read("qiongli/SKILL.md").decode("utf-8")
                 version_text = archive.read("qiongli/VERSION").decode("utf-8").strip()
 
         self.assertIn("name: qiongli", skill_text)
+        self.assertIn("Claude Desktop / Claude.ai slim package", skill_text)
+        self.assertNotIn("skills/[stage]/[skill-name].md", skill_text)
         self.assertEqual(tag, version_text)
 
 
