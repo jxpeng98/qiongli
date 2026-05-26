@@ -17,6 +17,7 @@ export function parseArgv(argv) {
     dryRun: false,
     json: false,
     globals: false,
+    subject: 'core',
   };
   const rest = [];
 
@@ -30,6 +31,9 @@ export function parseArgv(argv) {
       i += 1;
     } else if (arg === '--project-dir') {
       options.projectDir = requireValue(restArgs, i, arg);
+      i += 1;
+    } else if (arg === '--subject') {
+      options.subject = requireValue(restArgs, i, arg);
       i += 1;
     } else if (arg === '--cwd') {
       options.cwd = requireValue(restArgs, i, arg);

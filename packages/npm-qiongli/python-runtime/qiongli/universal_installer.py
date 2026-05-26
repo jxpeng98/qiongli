@@ -5,10 +5,13 @@ import shutil
 import stat
 import subprocess
 import sys
+import tempfile
 from functools import lru_cache
 from importlib import resources
 from dataclasses import dataclass
 from pathlib import Path
+
+from .subject_materializer import MaterializeOptions, SubjectMaterializationError, materialize_subject_package, validate_subject_catalog
 
 
 TARGET_CHOICES = ("codex", "claude", "gemini", "antigravity", "all")
@@ -21,6 +24,7 @@ LEGACY_MANIFEST_PATH = Path(__file__).resolve().parents[1] / "install" / "instal
 class InstallOptions:
     repo_root: Path
     project_dir: Path
+    subject: str = "core"
     target: str = "all"
     mode: str = "copy"
     overwrite: bool = False
@@ -47,6 +51,7 @@ def apply_profile(options: InstallOptions) -> InstallOptions:
     return InstallOptions(
         repo_root=options.repo_root,
         project_dir=options.project_dir,
+        subject=options.subject,
         target=options.target,
         mode=options.mode,
         overwrite=options.overwrite,
@@ -175,6 +180,13 @@ def _skill_package_version(path: Path) -> str:
     return _read_version_file(path / "VERSION")
 
 
+def _skill_package_subject(path: Path) -> str:
+    if not _is_qiongli_package_dir(path):
+        return ""
+    subject = _read_version_file(path / "SUBJECT")
+    return subject or "core"
+
+
 def _skill_package_state(path: Path) -> str:
     if not _is_qiongli_package_dir(path):
         return "not installed"
@@ -225,6 +237,19 @@ def _skill_copy_detail(dest: Path, src_version: str, dest_version: str = "", act
     return str(dest)
 
 
+def _skill_subject_copy_detail(
+    dest: Path,
+    src_version: str,
+    src_subject: str,
+    dest_version: str,
+    dest_subject: str,
+) -> str:
+    return (
+        f"{dest} (current {dest_version}/{dest_subject}; source {src_version}/{src_subject}; "
+        f"updated {dest_subject} -> {src_subject})"
+    )
+
+
 @lru_cache(maxsize=None)
 def _managed_copy_markers(src_name: str) -> tuple[str, ...]:
     markers = {
@@ -252,10 +277,15 @@ def _copy_path(src: Path, dest: Path, mode: str, overwrite: bool, dry_run: bool)
         auto_detail = ""
         if not overwrite:
             dest_version = _skill_package_version(dest)
+            src_subject = _skill_package_subject(src)
+            dest_subject = _skill_package_subject(dest)
             if src_version and dest_version:
-                if src_version == dest_version:
+                if src_version == dest_version and src_subject == dest_subject:
                     return "skip", _skill_copy_detail(dest, src_version, action="skip")
-                auto_detail = _skill_copy_detail(dest, src_version, dest_version, action="update")
+                if src_subject and dest_subject and src_subject != dest_subject:
+                    auto_detail = _skill_subject_copy_detail(dest, src_version, src_subject, dest_version, dest_subject)
+                else:
+                    auto_detail = _skill_copy_detail(dest, src_version, dest_version, action="update")
             elif src_version and _is_qiongli_package_dir(dest):
                 auto_detail = _skill_copy_detail(dest, src_version, "unknown", action="update")
             elif src.is_file() and dest.is_file():
@@ -613,6 +643,7 @@ def install(options: InstallOptions) -> int:
         InstallOptions(
             repo_root=_resolve(options.repo_root),
             project_dir=_resolve(options.project_dir),
+            subject=options.subject,
             target=options.target,
             mode=options.mode,
             overwrite=options.overwrite,
@@ -636,7 +667,12 @@ def install(options: InstallOptions) -> int:
     doctor = bool(options.doctor) if selected_parts is None else "doctor" in selected_parts
 
     repo_root = options.repo_root
-    skill_src = repo_root / "qiongli-workflow"
+    catalog = validate_subject_catalog(repo_root)
+    if options.subject not in catalog.subjects:
+        available = ", ".join(sorted(catalog.subjects))
+        raise SubjectMaterializationError(f"Unknown subject '{options.subject}'. Available subjects: {available}")
+    base_skill_src = repo_root / "qiongli-workflow"
+    skill_src = base_skill_src
     if not (skill_src / "SKILL.md").exists():
         raise FileNotFoundError(f"Missing skill source: {skill_src / 'SKILL.md'}")
 
@@ -658,6 +694,7 @@ def install(options: InstallOptions) -> int:
     print(f"  source:  {repo_root}")
     print(f"  project: {options.project_dir}")
     print(f"  target:  {options.target} | mode: {options.mode}")
+    print(f"  subject: {options.subject}")
     if options.profile:
         print(f"  profile: {options.profile}")
     if selected_parts is not None:
@@ -681,34 +718,58 @@ def install(options: InstallOptions) -> int:
     if install_globals and not options.dry_run:
         _sync_skill_package(repo_root, dry_run=options.dry_run)
 
-    section_targets = ("codex", "claude", "gemini", "antigravity")
-    for section_target in section_targets:
-        if options.target not in {section_target, "all"}:
-            continue
-        entries_for_target = [
-            entry
-            for entry in manifest_entries
-            if entry["target"] == section_target
-            and (
-                (install_globals and _manifest_entry_part(entry) == "globals")
-                or (install_project and _manifest_entry_part(entry) == "project")
+    materialized_tmp: tempfile.TemporaryDirectory[str] | None = None
+    if install_globals:
+        materialized_tmp = tempfile.TemporaryDirectory(prefix="qiongli-subject-")
+        skill_src = Path(materialized_tmp.name) / "qiongli-workflow"
+        if options.dry_run:
+            _print_section("Subject Package")
+            _print_result("Subject", f"{options.subject} (dry-run)", "skip")
+            skill_src = base_skill_src
+        else:
+            materialize_subject_package(
+                MaterializeOptions(
+                    source=repo_root,
+                    out=skill_src,
+                    subject=options.subject,
+                    flavor="full",
+                )
             )
-        ]
-        if not entries_for_target:
-            continue
+            _print_section("Subject Package")
+            _print_result("Subject", f"{options.subject} -> {skill_src}", "ok")
 
-        _print_section(section_target.capitalize() if section_target != "antigravity" else "Antigravity")
-        for entry in entries_for_target:
-            op = entry["op"]
-            label = entry["label"]
-            src = repo_root / entry["source"]
-            dest = _expand_path(entry["destination"], manifest_values)
-
-            if op in {"dir-copy", "file-copy"}:
-                _copy_display(src, dest, label, options)
+    section_targets = ("codex", "claude", "gemini", "antigravity")
+    try:
+        for section_target in section_targets:
+            if options.target not in {section_target, "all"}:
+                continue
+            entries_for_target = [
+                entry
+                for entry in manifest_entries
+                if entry["target"] == section_target
+                and (
+                    (install_globals and _manifest_entry_part(entry) == "globals")
+                    or (install_project and _manifest_entry_part(entry) == "project")
+                )
+            ]
+            if not entries_for_target:
                 continue
 
-            raise ValueError(f"Unsupported manifest operation: {op}")
+            _print_section(section_target.capitalize() if section_target != "antigravity" else "Antigravity")
+            for entry in entries_for_target:
+                op = entry["op"]
+                label = entry["label"]
+                src = skill_src if entry["source"] == "qiongli-workflow" else repo_root / entry["source"]
+                dest = _expand_path(entry["destination"], manifest_values)
+
+                if op in {"dir-copy", "file-copy"}:
+                    _copy_display(src, dest, label, options)
+                    continue
+
+                raise ValueError(f"Unsupported manifest operation: {op}")
+    finally:
+        if materialized_tmp is not None:
+            materialized_tmp.cleanup()
 
     # Create workflow discovery symlinks (Claude: commands/, Gemini: workflows/)
     if install_globals and not options.dry_run:

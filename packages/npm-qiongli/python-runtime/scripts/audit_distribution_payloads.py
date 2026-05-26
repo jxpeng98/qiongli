@@ -30,11 +30,15 @@ NPM_RUNTIME_DIRS = (
     "roles",
     "venue-profiles",
     "skills",
+    "subjects",
     "pipelines",
     "schemas",
     "evals",
 )
 NPM_RUNTIME_FILES = ("skills-core.md", "skills-summary.md", "LICENSE")
+NPM_RUNTIME_EXTRA_EXCLUDES = {
+    "qiongli": {"payload"},
+}
 
 
 @dataclass(frozen=True)
@@ -175,7 +179,12 @@ def audit(root: Path) -> list[AuditIssue]:
         src = root / dir_name
         if src.exists():
             issues.extend(
-                _compare_trees(src, npm_runtime / dir_name, f"npm runtime {dir_name}/ vs source {dir_name}/")
+                _compare_trees(
+                    src,
+                    npm_runtime / dir_name,
+                    f"npm runtime {dir_name}/ vs source {dir_name}/",
+                    extra_excluded_names=NPM_RUNTIME_EXTRA_EXCLUDES.get(dir_name),
+                )
             )
     for file_name in NPM_RUNTIME_FILES:
         src = root / file_name

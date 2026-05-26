@@ -44,6 +44,7 @@ class DistributionPayloadTests(unittest.TestCase):
                 "standards",
                 "roles",
                 "venue-profiles",
+                "subjects",
             ):
                 src = REPO_ROOT / rel
                 dest = root / rel
@@ -81,6 +82,7 @@ class DistributionPayloadTests(unittest.TestCase):
                 "standards",
                 "roles",
                 "venue-profiles",
+                "subjects",
             ):
                 src = REPO_ROOT / rel
                 dest = root / rel
