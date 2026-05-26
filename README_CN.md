@@ -97,7 +97,7 @@
 
 - **Codex：** 添加统一的 [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace，然后在 Codex plugin UI 中安装或启用 `qiongli`。
 - **Claude Code：** 添加统一的 [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace，然后安装 `qiongli@skillsplace`。
-- **Claude Desktop / Claude.ai：** 从 GitHub Release assets 下载 `qiongli-claude-desktop-skill-<tag>.zip`，然后在 `Customize > Skills > + > Create skill > Upload a skill` 中上传。
+- **Claude Desktop / Claude.ai：** 如果不想处理 code / CLI 环境，从 GitHub Release assets 下载 `qiongli-claude-desktop-skill-<tag>.zip`，然后拖拽到 Claude Desktop 的 Skills 上传/安装流程中，或在 `Customize > Skills > + > Create skill > Upload a skill` 中上传。Claude.ai 网页版也使用同一个 ZIP 上传流程。
 - **Gemini CLI：** 从 `plugins/qiongli` 本地安装 Gemini extension；发布为独立 extension 仓库或 gallery 条目后，也可以从远端安装。
 
 公开的 Codex / Claude marketplace catalog 现在由 `jxpeng98/skillsplace` 统一维护。本仓库保留被统一 marketplace 指向的 plugin payload 和平台 manifest：
