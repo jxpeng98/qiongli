@@ -5,6 +5,7 @@ import json
 import tarfile
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 
@@ -29,6 +30,8 @@ class PluginArtifactsTests(unittest.TestCase):
             self.assertEqual(
                 sorted(path.name for path in artifacts),
                 [
+                    f"qiongli-claude-desktop-skill-core-{current_tag}.zip",
+                    f"qiongli-claude-desktop-skill-economics-{current_tag}.zip",
                     f"qiongli-claude-desktop-skill-{current_tag}.zip",
                     f"qiongli-claude-plugin-{current_tag}.tar.gz",
                     f"qiongli-codex-plugin-{current_tag}.tar.gz",
@@ -61,6 +64,24 @@ class PluginArtifactsTests(unittest.TestCase):
                     f"qiongli-gemini-extension-{current_tag}/skills/qiongli-workflow/SKILL.md",
                 ],
             )
+            self._assert_zip_contains(
+                dist_dir / f"qiongli-claude-desktop-skill-core-{current_tag}.zip",
+                [
+                    "qiongli/SKILL.md",
+                    "qiongli/SUBJECT",
+                    "qiongli/skills/registry.yaml",
+                ],
+            )
+            self._assert_zip_contains(
+                dist_dir / f"qiongli-claude-desktop-skill-economics-{current_tag}.zip",
+                [
+                    "qiongli/SKILL.md",
+                    "qiongli/SUBJECT",
+                    "qiongli/skills/C_design/econ-identification-auditor.md",
+                    "qiongli/skills/F_writing/manuscript-architect.md",
+                    "qiongli/venue-profiles/aer.yaml",
+                ],
+            )
 
     def test_fails_when_artifact_versions_do_not_match_tag(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -79,6 +100,12 @@ class PluginArtifactsTests(unittest.TestCase):
     def _assert_contains(self, artifact: Path, expected: list[str]) -> None:
         with tarfile.open(artifact, "r:gz") as tar:
             names = set(tar.getnames())
+        for name in expected:
+            self.assertIn(name, names)
+
+    def _assert_zip_contains(self, artifact: Path, expected: list[str]) -> None:
+        with zipfile.ZipFile(artifact) as archive:
+            names = set(archive.namelist())
         for name in expected:
             self.assertIn(name, names)
 

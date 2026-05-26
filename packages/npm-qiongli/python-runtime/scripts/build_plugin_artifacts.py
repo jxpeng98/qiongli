@@ -9,90 +9,12 @@ import tempfile
 import zipfile
 from pathlib import Path
 
+from qiongli.subject_materializer import MaterializeOptions, materialize_subject_package, validate_subject_catalog
+
 
 PLUGIN_NAME = "qiongli"
 PLUGIN_ROOT = Path("plugins") / PLUGIN_NAME
 DESKTOP_SKILL_FILE_BUDGET = 180
-
-
-DESKTOP_SKILL_TEXT = """---
-name: qiongli
-description: Qiongli academic workflow for Codex, Claude Code, and Gemini. Use when a user needs to plan papers, run literature reviews, choose a paper type (empirical, qualitative, systematic review, methods, theory), select a workflow stage, and produce consistent artifacts under RESEARCH/[topic]/ with explicit task IDs, quality gates, and submission-ready outputs.
----
-
-# Qiongli Academic Workflow
-
-Run a model-agnostic paper workflow using shared Task IDs and artifact contracts.
-
-This is the Claude Desktop / Claude.ai slim package. It stays under Claude's uploaded skill ZIP file-count limit while preserving the executable workflow surface: workflows, consolidated skill references, output templates, standards, roles, venue profiles, and contracts.
-
-## Quick Start
-
-1. Ask for `paper_type`: `empirical`, `qualitative`, `systematic-review`, `methods`, or `theory`.
-2. Ask for `task_id` from the contract, for example `F3` or `G1`.
-3. Read `workflows/paper.md` as the master router, then follow the matching workflow file.
-4. Use `skills-summary.md` to identify the relevant capability and `skills-core.md` for the consolidated process details.
-5. Write outputs to `RESEARCH/[topic]/` using the paths and templates declared by the workflow and `references/workflow-contract.md`.
-6. Apply quality gates before submission-facing, proofread, final writing, code, or presentation outputs.
-
-## Bundled Workflows
-
-Full workflow definitions are included in `workflows/`. The `workflows/paper.md` file is the master router and maps Task IDs A1-K4 to the correct workflow and output contract.
-
-Available workflow entry points include:
-
-```
-/paper
-/lit-review
-/paper-read
-/find-gap
-/build-framework
-/academic-write
-/synthesize
-/paper-write
-/study-design
-/ethics-check
-/submission-prep
-/rebuttal
-/code-build
-/proofread
-/academic-present
-```
-
-## Skill Loading Strategy
-
-This Desktop/Web package uses two consolidated references:
-
-1. `skills-summary.md` for quick lookup of skill names and one-line descriptions.
-2. `skills-core.md` for process instructions, output formats, and common templates.
-
-Detailed per-skill markdown files are intentionally omitted from this ZIP to keep the package installable in Claude Desktop and Claude.ai. The full Codex, Claude Code, Gemini, and source-repo distributions keep those detailed files for advanced local workflows.
-
-## Required Behavior
-
-- Use canonical task and output definitions in `references/workflow-contract.md`.
-- Keep stage labels and task IDs unchanged across models.
-- When a workflow references `templates/<name>.md`, load the template from `templates/`.
-- Use `references/academic-output-rubric.md` for scholarly prose, synthesis, design, review, and submission artifacts.
-- Use `references/citation-risk-policy.md` when citation support is material.
-- Track central claims with `templates/claim-evidence-ledger.csv` and the evidence rules in `references/evidence-ledger-contract.md`.
-- Write stage handoffs from `templates/stage-handoff.md` at high-risk transitions.
-- Use `venue-profiles/` when a target venue profile is available; otherwise create a venue gap note.
-
-## Bundled Assets
-
-| Directory / File | Contents |
-|------------------|----------|
-| `workflows/` | 16 workflow definitions |
-| `references/` | Stage playbooks and workflow contracts |
-| `skills-summary.md` | Quick-reference skill index |
-| `skills-core.md` | Consolidated skill reference |
-| `skills/registry.yaml` | Skill metadata registry |
-| `templates/` | Output templates for manuscripts, submissions, ethics, evidence, and handoffs |
-| `standards/` | Canonical contract YAML and capability map |
-| `roles/` | Agent role definitions |
-| `venue-profiles/` | Venue expectation profiles |
-"""
 
 
 def _normalize_tag(raw: str) -> tuple[str, str]:
@@ -168,26 +90,19 @@ def _make_zip(source_dir: Path, zip_path: Path) -> None:
                 archive.write(item, item.relative_to(source_dir.parent).as_posix())
 
 
-def _copy_claude_desktop_skill(root: Path, skill_dest: Path) -> None:
-    source = root / "qiongli-workflow"
-    skill_dest.mkdir(parents=True)
-
-    (skill_dest / "SKILL.md").write_text(DESKTOP_SKILL_TEXT, encoding="utf-8")
-    for filename in ("VERSION", "skills-core.md", "skills-summary.md"):
-        _copy_path(source / filename, skill_dest / filename)
-
-    for dirname in ("workflows", "references", "templates", "standards", "roles", "venue-profiles", "agents"):
-        source_path = source / dirname
-        if source_path.exists():
-            _copy_path(source_path, skill_dest / dirname)
-
-    registry_source = source / "skills" / "registry.yaml"
-    _copy_path(registry_source, skill_dest / "skills" / "registry.yaml")
-
+def _copy_claude_desktop_skill(root: Path, skill_dest: Path, subject: str) -> None:
+    materialize_subject_package(
+        MaterializeOptions(
+            source=root,
+            out=skill_dest,
+            subject=subject,
+            flavor="desktop",
+        )
+    )
     file_count = sum(1 for item in skill_dest.rglob("*") if item.is_file())
     if file_count > DESKTOP_SKILL_FILE_BUDGET:
         raise ValueError(
-            f"Claude Desktop skill package has {file_count} files; "
+            f"Claude Desktop {subject} skill package has {file_count} files; "
             f"limit is {DESKTOP_SKILL_FILE_BUDGET}"
         )
 
@@ -226,13 +141,21 @@ def _build_gemini(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> Path:
     return artifact
 
 
-def _build_claude_desktop_skill(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> Path:
-    bundle_name = f"{PLUGIN_NAME}-claude-desktop-skill-{tag}"
-    skill_dest = work_dir / "qiongli"
-    _copy_claude_desktop_skill(root, skill_dest)
+def _build_claude_desktop_skill(root: Path, tag: str, dist_dir: Path, work_dir: Path, subject: str) -> Path:
+    bundle_name = f"{PLUGIN_NAME}-claude-desktop-skill-{subject}-{tag}"
+    skill_dest = work_dir / f"desktop-{subject}" / "qiongli"
+    _copy_claude_desktop_skill(root, skill_dest, subject)
     artifact = dist_dir / f"{bundle_name}.zip"
     _make_zip(skill_dest, artifact)
     return artifact
+
+
+def _desktop_subjects(root: Path) -> list[str]:
+    subjects = sorted(validate_subject_catalog(root).subjects)
+    if "core" in subjects:
+        subjects.remove("core")
+        subjects.insert(0, "core")
+    return subjects
 
 
 def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
@@ -254,11 +177,18 @@ def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
 
     with tempfile.TemporaryDirectory(prefix="qiongli-plugin-") as tmp:
         work_dir = Path(tmp)
+        desktop_artifacts = [
+            _build_claude_desktop_skill(root, repo_tag, dist_dir, work_dir, subject)
+            for subject in _desktop_subjects(root)
+        ]
+        legacy_desktop_artifact = dist_dir / f"{PLUGIN_NAME}-claude-desktop-skill-{repo_tag}.zip"
+        shutil.copy2(dist_dir / f"{PLUGIN_NAME}-claude-desktop-skill-core-{repo_tag}.zip", legacy_desktop_artifact)
         artifacts = [
             _build_codex(root, repo_tag, dist_dir, work_dir),
             _build_claude(root, repo_tag, dist_dir, work_dir),
             _build_gemini(root, repo_tag, dist_dir, work_dir),
-            _build_claude_desktop_skill(root, repo_tag, dist_dir, work_dir),
+            *desktop_artifacts,
+            legacy_desktop_artifact,
         ]
     return artifacts
 

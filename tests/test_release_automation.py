@@ -89,6 +89,8 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn("--prerelease", content)
         self.assertIn('scripts/build_plugin_artifacts.py --tag "$TAG" --dist-dir dist', content)
         self.assertIn('PLUGIN_ARTIFACTS=(', content)
+        self.assertIn('"dist/qiongli-claude-desktop-skill-core-${TAG}.zip"', content)
+        self.assertIn('"dist/qiongli-claude-desktop-skill-economics-${TAG}.zip"', content)
         self.assertIn('"dist/qiongli-claude-desktop-skill-${TAG}.zip"', content)
         self.assertIn('gh release upload "$TAG" --repo "$REPO_SLUG" --clobber "${PLUGIN_ARTIFACTS[@]}"', content)
         self.assertIn('release_args+=("${PLUGIN_ARTIFACTS[@]}")', content)

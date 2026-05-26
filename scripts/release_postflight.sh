@@ -437,6 +437,8 @@ PLUGIN_ARTIFACTS=(
   "dist/qiongli-codex-plugin-${TAG}.tar.gz"
   "dist/qiongli-claude-plugin-${TAG}.tar.gz"
   "dist/qiongli-gemini-extension-${TAG}.tar.gz"
+  "dist/qiongli-claude-desktop-skill-core-${TAG}.zip"
+  "dist/qiongli-claude-desktop-skill-economics-${TAG}.zip"
   "dist/qiongli-claude-desktop-skill-${TAG}.zip"
 )
 

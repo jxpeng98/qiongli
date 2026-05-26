@@ -9,6 +9,8 @@ import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
+import yaml
+
 from build_plugin_artifacts import build_artifacts
 
 
@@ -73,7 +75,7 @@ def _extract_single_zip_root(artifact: Path, dest: Path) -> Path:
     return roots[0]
 
 
-def _assert_claude_desktop_zip_budget(artifact: Path) -> int:
+def _assert_claude_desktop_zip_budget(artifact: Path, subject: str) -> int:
     with zipfile.ZipFile(artifact) as archive:
         file_names = [name for name in archive.namelist() if not name.endswith("/")]
 
@@ -83,18 +85,19 @@ def _assert_claude_desktop_zip_budget(artifact: Path) -> int:
             f"Claude Desktop upload budget is {CLAUDE_DESKTOP_FILE_BUDGET}"
         )
 
-    detailed_skill_specs = [
-        name
-        for name in file_names
-        if name.startswith(f"{SKILL_NAME}/skills/")
-        and name != f"{SKILL_NAME}/skills/registry.yaml"
-        and name.endswith(".md")
-    ]
-    if detailed_skill_specs:
-        raise ValueError(
-            f"{artifact} includes detailed skill specs that should be omitted from the Desktop ZIP: "
-            + ", ".join(detailed_skill_specs[:5])
-        )
+    if subject == "core":
+        detailed_skill_specs = [
+            name
+            for name in file_names
+            if name.startswith(f"{SKILL_NAME}/skills/")
+            and name != f"{SKILL_NAME}/skills/registry.yaml"
+            and name.endswith(".md")
+        ]
+        if detailed_skill_specs:
+            raise ValueError(
+                f"{artifact} includes detailed skill specs that should be omitted from the core Desktop ZIP: "
+                + ", ".join(detailed_skill_specs[:5])
+            )
 
     return len(file_names)
 
@@ -127,6 +130,60 @@ def _assert_skill_invocation(skill_root: Path, expected_repo_tag: str) -> list[s
     if not workflow_names:
         raise ValueError(f"{skill_root / 'workflows'} must contain invokable workflows")
     return workflow_names
+
+
+def _assert_subject_marker(skill_root: Path, expected_subject: str) -> None:
+    actual_subject = (skill_root / "SUBJECT").read_text(encoding="utf-8").strip()
+    if actual_subject != expected_subject:
+        raise ValueError(f"{skill_root / 'SUBJECT'} expected {expected_subject}, found {actual_subject}")
+
+
+def _load_registry_ids(skill_root: Path) -> set[str]:
+    registry = yaml.safe_load((skill_root / "skills" / "registry.yaml").read_text(encoding="utf-8")) or {}
+    skills = registry.get("skills")
+    if not isinstance(skills, list):
+        raise ValueError(f"{skill_root / 'skills' / 'registry.yaml'} must contain a skills list")
+    ids = {str(entry.get("id")) for entry in skills if isinstance(entry, dict)}
+    if not ids:
+        raise ValueError(f"{skill_root / 'skills' / 'registry.yaml'} must contain registry ids")
+    return ids
+
+
+def _assert_core_desktop_package(skill_root: Path) -> None:
+    _assert_subject_marker(skill_root, "core")
+    if (skill_root / "skills" / "A_framing" / "question-refiner.md").exists():
+        raise ValueError("core Desktop ZIP must remain slim and omit detailed generic skill specs")
+
+
+def _assert_economics_desktop_package(skill_root: Path) -> None:
+    _assert_subject_marker(skill_root, "economics")
+    registry_ids = _load_registry_ids(skill_root)
+    for expected in ("econ-identification-auditor", "stats-engine", "manuscript-architect"):
+        if expected not in registry_ids:
+            raise ValueError(f"economics registry missing selected skill: {expected}")
+    for excluded in ("citation-formatter", "prisma-checker", "beamer-builder", "ai-fingerprint-scanner"):
+        if excluded in registry_ids:
+            raise ValueError(f"economics registry includes unselected generic skill: {excluded}")
+
+    domain_root = skill_root / "skills" / "domain-profiles"
+    domain_profiles = sorted(path.name for path in domain_root.glob("*.yaml"))
+    if domain_profiles != ["economics.yaml"]:
+        raise ValueError(f"economics package must include only economics domain profile, found {domain_profiles}")
+
+    venue_profiles = sorted(path.stem for path in (skill_root / "venue-profiles").glob("*.yaml"))
+    if venue_profiles != ["aer", "qje", "restud"]:
+        raise ValueError(f"economics package venue profiles mismatch: {venue_profiles}")
+
+    manuscript = (skill_root / "skills" / "F_writing" / "manuscript-architect.md").read_text(encoding="utf-8")
+    if "## Economics Overlay" not in manuscript:
+        raise ValueError("economics manuscript-architect effective skill missing append overlay")
+
+    stats = (skill_root / "skills" / "I_code" / "stats-engine.md").read_text(encoding="utf-8")
+    for expected in ("The estimand, identifying variation", "Naive TWFE under staggered adoption"):
+        if expected not in stats:
+            raise ValueError("economics stats-engine effective skill missing replace_sections overlay")
+    if not (skill_root / "skills" / "C_design" / "econ-identification-auditor.md").is_file():
+        raise ValueError("economics package missing subject-specific skill")
 
 
 def _assert_command_invocation(plugin_root: Path, workflow_names: list[str]) -> None:
@@ -183,13 +240,17 @@ def _validate_artifact(artifact: Path, spec: ArtifactSpec, expected_repo_tag: st
     return f"[OK] {spec.platform} marketplace artifact: {SKILL_NAME} invocation checked"
 
 
-def _validate_claude_desktop_artifact(artifact: Path, expected_repo_tag: str) -> str:
-    file_count = _assert_claude_desktop_zip_budget(artifact)
-    with tempfile.TemporaryDirectory(prefix="qiongli-claude-desktop-artifact-") as tmp:
+def _validate_claude_desktop_artifact(artifact: Path, expected_repo_tag: str, subject: str) -> str:
+    file_count = _assert_claude_desktop_zip_budget(artifact, subject)
+    with tempfile.TemporaryDirectory(prefix=f"qiongli-claude-desktop-{subject}-artifact-") as tmp:
         skill_root = _extract_single_zip_root(artifact, Path(tmp))
         if skill_root.name != SKILL_NAME:
             raise ValueError(f"{artifact} must contain top-level {SKILL_NAME}/ directory")
         _assert_skill_invocation(skill_root, expected_repo_tag)
+        if subject == "economics":
+            _assert_economics_desktop_package(skill_root)
+        else:
+            _assert_core_desktop_package(skill_root)
         _assert_file(skill_root / "skills-core.md", "consolidated skill core")
         _assert_file(skill_root / "skills-summary.md", "consolidated skill summary")
         if (skill_root / ".claude-plugin").exists():
@@ -198,7 +259,7 @@ def _validate_claude_desktop_artifact(artifact: Path, expected_repo_tag: str) ->
             raise ValueError(f"{artifact} must not include Claude Code slash command wrappers")
 
     return (
-        f"[OK] claude-desktop skill artifact: {SKILL_NAME} invocation checked; "
+        f"[OK] claude-desktop {subject} skill artifact: {SKILL_NAME} invocation checked; "
         f"{file_count}/{CLAUDE_DESKTOP_FILE_BUDGET} files under desktop file budget"
     )
 
@@ -222,11 +283,18 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
             raise ValueError(f"expected {platform} artifact: {artifact_name}")
         messages.append(_validate_artifact(artifact, spec, expected_repo_tag, expected_version))
 
-    desktop_name = f"{PLUGIN_NAME}-claude-desktop-skill-{expected_repo_tag}.zip"
-    desktop_artifact = by_platform.get(desktop_name)
-    if desktop_artifact is None:
-        raise ValueError(f"expected claude-desktop artifact: {desktop_name}")
-    messages.append(_validate_claude_desktop_artifact(desktop_artifact, expected_repo_tag))
+    for subject in ("core", "economics"):
+        desktop_name = f"{PLUGIN_NAME}-claude-desktop-skill-{subject}-{expected_repo_tag}.zip"
+        desktop_artifact = by_platform.get(desktop_name)
+        if desktop_artifact is None:
+            raise ValueError(f"expected claude-desktop {subject} artifact: {desktop_name}")
+        messages.append(_validate_claude_desktop_artifact(desktop_artifact, expected_repo_tag, subject))
+
+    legacy_desktop_name = f"{PLUGIN_NAME}-claude-desktop-skill-{expected_repo_tag}.zip"
+    legacy_desktop_artifact = by_platform.get(legacy_desktop_name)
+    if legacy_desktop_artifact is None:
+        raise ValueError(f"expected legacy claude-desktop artifact: {legacy_desktop_name}")
+    messages.append(_validate_claude_desktop_artifact(legacy_desktop_artifact, expected_repo_tag, "core"))
 
     return messages
 
