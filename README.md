@@ -103,6 +103,7 @@ For native client distribution, install **Qiongli** through the client-specific 
 
 - **Codex:** add the shared [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace, then install or enable `qiongli` from the Codex plugin UI.
 - **Claude Code:** add the shared [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace, then install `qiongli@skillsplace`.
+- **Claude Desktop / Claude.ai:** download `qiongli-claude-desktop-skill-<tag>.zip` from the GitHub Release assets, then upload it from `Customize > Skills > + > Create skill > Upload a skill`.
 - **Gemini CLI:** install the Gemini extension from `plugins/qiongli` locally, or from a standalone extension repository/gallery entry once published.
 
 Public Codex and Claude marketplace catalog metadata now lives in `jxpeng98/skillsplace`. This repository keeps the plugin payload and platform manifests that the shared marketplace points to:
@@ -114,6 +115,8 @@ Public Codex and Claude marketplace catalog metadata now lives in `jxpeng98/skil
 - `plugins/qiongli/skills/qiongli-workflow`
 
 The plugin is the install/discovery container; `qiongli-workflow` is the portable skill package inside it. The user-visible skill name is `qiongli`; the install directory stays `qiongli-workflow` for compatibility. The 71 academic skill specs under `skills/` are source-of-truth capability cards and are synchronized into the portable/plugin package before release.
+
+Claude Desktop does not use the Claude Code third-party plugin marketplace path. For Desktop, use the release ZIP above; the ZIP contains a top-level `qiongli/` skill folder so the folder name matches `SKILL.md`.
 
 Invocation depends on the client surface:
 
@@ -461,13 +464,20 @@ In an interactive Claude Code session:
 /plugin install qiongli@skillsplace
 ```
 
+Claude Desktop / Claude.ai:
+
+1. Download `qiongli-claude-desktop-skill-<tag>.zip` from the GitHub Release assets.
+2. Open `Customize > Skills`.
+3. Click `+`, choose `Create skill`, then `Upload a skill`.
+4. Select the ZIP and enable the uploaded `qiongli` skill.
+
 Gemini CLI:
 
 ```bash
 gemini extensions install ./path/to/qiongli/plugins/qiongli
 ```
 
-Codex and Claude install from the shared Skillsplace marketplace catalog. Gemini CLI uses the official extension system (`gemini-extension.json`) rather than a marketplace JSON.
+Codex and Claude Code install from the shared Skillsplace marketplace catalog. Claude Desktop uses the GitHub Release ZIP upload path. Gemini CLI uses the official extension system (`gemini-extension.json`) rather than a marketplace JSON.
 
 #### Option B: Shell bootstrap CLI install
 

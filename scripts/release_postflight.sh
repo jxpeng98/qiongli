@@ -437,6 +437,7 @@ PLUGIN_ARTIFACTS=(
   "dist/qiongli-codex-plugin-${TAG}.tar.gz"
   "dist/qiongli-claude-plugin-${TAG}.tar.gz"
   "dist/qiongli-gemini-extension-${TAG}.tar.gz"
+  "dist/qiongli-claude-desktop-skill-${TAG}.zip"
 )
 
 if ! command -v gh >/dev/null 2>&1 || ! gh auth status >/dev/null 2>&1; then
