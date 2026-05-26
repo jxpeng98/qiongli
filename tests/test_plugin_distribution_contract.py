@@ -116,6 +116,7 @@ class PluginDistributionContractTests(unittest.TestCase):
         self.assertIn("[OK] codex marketplace artifact", result.stdout)
         self.assertIn("[OK] claude marketplace artifact", result.stdout)
         self.assertIn("[OK] claude-desktop skill artifact", result.stdout)
+        self.assertIn("under desktop file budget", result.stdout)
         self.assertIn("[OK] gemini marketplace artifact", result.stdout)
         self.assertIn("qiongli invocation", result.stdout)
 
