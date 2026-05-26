@@ -61,12 +61,33 @@ Key Flags:
 - `--json`: Output JSON only (useful for CI/Scripts).
 - `--strict-network`: Return a failure code if upstream polling fails (defaults to warning and continuing).
 
+JSON output includes the active installed subject for each target. Older managed installs that do not have a `SUBJECT` marker are reported as legacy `core`.
+
 Exit Codes:
 - `0`: No updates available / upstream check bypassed.
 - `1`: Update available.
 - `2`: Invalid argument.
 
-### 2.2 `qiongli upgrade` (Download release & execute installers)
+### 2.2 `qiongli install` (Install bundled subject payload)
+
+Use Case:
+- Installs the subject payload bundled inside the PyPI package into global client skill directories.
+- Defaults to `--subject core`; use `--subject economics` for the economics-specialized package.
+
+```bash
+qiongli install \
+  [--subject core|economics] \
+  [--target codex|claude|gemini|antigravity|all] \
+  [--mode copy|link] \
+  [--project-dir <path>] \
+  [--overwrite] \
+  [--doctor] \
+  [--dry-run]
+```
+
+Subject packages are specialized installs, not reduced-quality cuts. They share the same workflow contracts and quality gates, while specialized subjects select active profiles and apply layered skill overlays. Switch subjects by rerunning `install` or `upgrade` with a new `--subject`.
+
+### 2.3 `qiongli upgrade` (Download release & execute installers)
 
 Use Case:
 - Downloads the upstream release (defaults to latest tag `.tar.gz`).
@@ -78,6 +99,7 @@ qiongli upgrade \
   [--repo <owner/repo|url>] \
   [--ref <tag-or-branch>] \
   [--ref-type tag|branch] \
+  [--subject core|economics] \
   [--target codex|claude|gemini|antigravity|all] \
   [--project-dir <path>] \
   [--no-overwrite] \
@@ -88,11 +110,12 @@ qiongli upgrade \
 Notes:
 - `--project-dir` matters when you also request project-facing surfaces, such as `--parts project`.
 - Default `upgrade` now behaves as a global refresh. Use `qiongli init --project-dir .` for project bootstrap, or `qiongli upgrade --parts project ...` when you explicitly want project files rewritten.
+- `--subject` defaults to `core`; use `--subject economics` to materialize and install the economics-specialized package.
 - After global install, `upgrade` creates workflow discovery symlinks: `~/.claude/commands/*.md` and `~/.gemini/workflows/*.md` → enables direct `/paper`, `/lit-review`, etc. invocation.
 - Shell CLI uses the bundled bootstrap helper and does not require Python.
 - The command exits with the error code returned by the underlying installer.
 
-### 2.3 `qiongli align` (Quick Reference Guide)
+### 2.4 `qiongli align` (Quick Reference Guide)
 
 Use Case: Prints an overview of "what pipx installed / paths modified by upgrades / common commands".
 
@@ -100,7 +123,7 @@ Use Case: Prints an overview of "what pipx installed / paths modified by upgrade
 qiongli align [--repo <owner/repo|url>]
 ```
 
-### 2.4 `qiongli init` (Project Bootstrap)
+### 2.5 `qiongli init` (Project Bootstrap)
 
 Use Case: Creates project-local `.env` configuration in your project directory.
 
@@ -112,7 +135,7 @@ Notes:
 - Only creates project-facing assets (`.env`). Does not touch global skill directories.
 - Safe to run multiple times; will not overwrite existing files unless `--overwrite` is passed.
 
-### 2.5 `qiongli clean` (Remove Stale Assets)
+### 2.6 `qiongli clean` (Remove Stale Assets)
 
 Use Case: Removes stale project-local assets left from older installations.
 
@@ -125,7 +148,7 @@ Flags:
 - `--globals`: Also remove workflow discovery symlinks from `~/.claude/commands/` and `~/.gemini/workflows/`. Only removes symlinks that point to `qiongli-workflow` — user-created commands are preserved.
 - `--dry-run`: Show what would be removed without deleting.
 
-### 2.6 `qiongli doctor` (Environment Preflight)
+### 2.7 `qiongli doctor` (Environment Preflight)
 
 Use Case: Runs orchestrator preflight checks (CLIs, API keys, MCP wiring).
 

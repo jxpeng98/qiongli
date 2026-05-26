@@ -31,17 +31,18 @@ If Node.js is already available, you can install the standalone npm CLI instead 
 
 ```bash
 npm install -g qiongli
-qiongli install --target all --project-dir /path/to/project
+qiongli install --subject core --target all --project-dir /path/to/project
+qiongli install --subject economics --target all --project-dir /path/to/project
 ```
 
 For prerelease testing without a global install:
 
 ```bash
-npx qiongli@next install --target all --project-dir /path/to/project
+npx qiongli@next install --subject economics --target all --project-dir /path/to/project
 npx qiongli@next check --json
 ```
 
-The npm package bundles the full `qiongli-workflow` skills payload. Advanced commands such as `qiongli doctor`, `qiongli task-run`, and `qiongli team-run` use the Python bridge source bundled inside the npm package and require Python 3.12+ plus `PyYAML`.
+The npm package bundles pre-materialized `core` and `economics` subject payloads. `--subject` defaults to `core`; switch subjects by rerunning install or upgrade with a different `--subject`. Advanced commands such as `qiongli doctor`, `qiongli task-run`, and `qiongli team-run` use the Python bridge source bundled inside the npm package and require Python 3.12+ plus `PyYAML`.
 
 ## 3. Optional Python CLI
 
@@ -49,7 +50,7 @@ If Python is already available on the machine, you can install the updater CLI w
 
 ```bash
 pipx install qiongli
-qiongli upgrade --target all --project-dir /path/to/project --doctor
+qiongli install --subject economics --target all --project-dir /path/to/project --doctor
 ```
 
 ## 4. Local Repository Installer
@@ -65,7 +66,7 @@ If you already have a repository checkout, you can run the installer directly:
 Default install/upgrade behavior is purely **global**. Your project directories remain clean.
 
 The installer does two things:
-1. **Installs the Core Package:** `qiongli-workflow` is placed into the specific home directories of your AI clients (e.g. `~/.claude/skills/`, `~/.gemini/skills/`).
+1. **Installs the active subject package:** `qiongli-workflow` is placed into the specific home directories of your AI clients (e.g. `~/.claude/skills/`, `~/.gemini/skills/`). `core` is the default; `economics` is selected with `--subject economics`.
 2. **Registers Slash Commands:** It drops lightweight symlinks into the client's discovery paths (e.g. `~/.claude/commands/paper.md` and `~/.gemini/workflows/lit-review.md`).
 
 This means commands like `/paper` and `/study-design` become natively recognized by the AI engines **no matter what folder you are working in**.
@@ -98,7 +99,7 @@ Because commands are registered globally, using the system for a new paper is in
 ## Upgrade
 
 - Check updates: `qiongli check --repo <owner>/<repo>`
-- Upgrade (no fork / no git clone required): `qiongli upgrade --repo <owner>/<repo> --target all` for global refresh.
+- Upgrade (no fork / no git clone required): `qiongli upgrade --repo <owner>/<repo> --subject economics --target all` for global refresh.
 - Full guide: `guides/basic/upgrade-qiongli.md`
 
 ## Verify

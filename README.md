@@ -103,7 +103,7 @@ For native client distribution, install **Qiongli** through the client-specific 
 
 - **Codex:** add the shared [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace, then install or enable `qiongli` from the Codex plugin UI.
 - **Claude Code:** add the shared [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace, then install `qiongli@skillsplace`.
-- **Claude Desktop / Claude.ai:** if you do not want to use a code/CLI environment, download `qiongli-claude-desktop-skill-<tag>.zip` from the GitHub Release assets, then drag it into Claude Desktop's Skills upload/install flow or upload it from `Customize > Skills > + > Create skill > Upload a skill`. Claude.ai uses the same ZIP upload flow. This ZIP is a slim Desktop/Web skill package that keeps workflows, templates, contracts, and consolidated skill references while omitting detailed per-skill markdown files to stay under Claude's upload file-count limit.
+- **Claude Desktop / Claude.ai:** if you do not want to use a code/CLI environment, download a subject ZIP from the GitHub Release assets, then drag it into Claude Desktop's Skills upload/install flow or upload it from `Customize > Skills > + > Create skill > Upload a skill`. Use `qiongli-claude-desktop-skill-core-<tag>.zip` for the default general workflow or `qiongli-claude-desktop-skill-economics-<tag>.zip` for the economics-specialized package. The legacy `qiongli-claude-desktop-skill-<tag>.zip` remains a core alias for one release cycle.
 - **Gemini CLI:** install the Gemini extension from `plugins/qiongli` locally, or from a standalone extension repository/gallery entry once published.
 
 Public Codex and Claude marketplace catalog metadata now lives in `jxpeng98/skillsplace`. This repository keeps the plugin payload and platform manifests that the shared marketplace points to:
@@ -117,6 +117,12 @@ Public Codex and Claude marketplace catalog metadata now lives in `jxpeng98/skil
 The plugin is the install/discovery container; `qiongli-workflow` is the portable skill package inside it. The user-visible skill name is `qiongli`; the install directory stays `qiongli-workflow` for compatibility. The 71 academic skill specs under `skills/` are source-of-truth capability cards and are synchronized into the portable/plugin package before release.
 
 Claude Desktop does not use the Claude Code third-party plugin marketplace path. For Desktop, use the release ZIP above; the ZIP contains a top-level `qiongli/` skill folder so the folder name matches `SKILL.md`.
+
+### Subject Packages
+
+`core` is the default subject everywhere and preserves the existing general Qiongli behavior. `economics` is the first specialized subject package. Subject packages are specialized installs, not reduced-quality cuts: they share the same workflow contracts, templates, standards, quality gates, and install path, while the materializer filters active profiles and applies subject overlays to selected skills.
+
+Generic skill source files are not duplicated. The effective package is generated from `skill_refs`, subject overlays, and layered section overrides. To switch subjects, rerun install or upgrade with a different subject; each client has one active `qiongli-workflow` subject at a time.
 
 Invocation depends on the client surface:
 
@@ -217,17 +223,18 @@ If you prefer a Node-based installer, the npm package is a real standalone entry
 
 ```bash
 npm install -g qiongli
-qiongli install --target all --project-dir "$PWD"
+qiongli install --subject core --target all --project-dir "$PWD"
+qiongli install --subject economics --target all --project-dir "$PWD"
 ```
 
 For prerelease testing without a global install:
 
 ```bash
-npx qiongli@next install --target all --project-dir "$PWD"
+npx qiongli@next install --subject economics --target all --project-dir "$PWD"
 npx qiongli@next check --json
 ```
 
-The npm package bundles the full `qiongli-workflow` payload. Advanced commands such as `qiongli doctor`, `qiongli task-run`, and `qiongli team-run` delegate to the bundled Python bridge and require Python 3.12+ plus `PyYAML`.
+The npm package bundles pre-materialized `core` and `economics` payloads. `--subject` defaults to `core`; `qiongli check --json` reports the bundled subject payload and installed target subjects. Advanced commands such as `qiongli doctor`, `qiongli task-run`, and `qiongli team-run` delegate to the bundled Python bridge and require Python 3.12+ plus `PyYAML`.
 
 ### 3. Use The Installed Skills
 
@@ -466,13 +473,13 @@ In an interactive Claude Code session:
 
 Claude Desktop / Claude.ai:
 
-1. Download `qiongli-claude-desktop-skill-<tag>.zip` from the GitHub Release assets.
+1. Download `qiongli-claude-desktop-skill-core-<tag>.zip` or `qiongli-claude-desktop-skill-economics-<tag>.zip` from the GitHub Release assets.
 2. Drag the ZIP into Claude Desktop's Skills upload/install flow, or open `Customize > Skills`.
 3. Click `+`, choose `Create skill`, then `Upload a skill`.
 4. In Claude.ai, use the same `Customize > Skills` upload flow and select the same ZIP.
 5. Enable the uploaded `qiongli` skill.
 
-The Desktop/Web ZIP is intentionally slim: it preserves executable workflows, templates, standards, venue profiles, `skills-summary.md`, and `skills-core.md`, but omits detailed per-skill markdown specs so Claude Desktop accepts the upload. Use the Codex / Claude Code / Gemini plugin packages or the source repository when you need the full detailed skill corpus.
+The Desktop/Web ZIP is subject-specialized, not lower quality. It preserves executable workflows, templates, standards, selected profiles, `skills-summary.md`, and `skills-core.md`; the economics ZIP also includes selected effective skill markdown with layered overlays. Use the Codex / Claude Code / Gemini plugin packages or the source repository when you need the full canonical source tree.
 
 Gemini CLI:
 
@@ -523,13 +530,14 @@ Command:
 
 ```bash
 npm install -g qiongli
-qiongli install --target all --project-dir "$PWD"
+qiongli install --subject core --target all --project-dir "$PWD"
+qiongli install --subject economics --target all --project-dir "$PWD"
 ```
 
 Prerelease without global install:
 
 ```bash
-npx qiongli@next install --target all --project-dir "$PWD"
+npx qiongli@next install --subject economics --target all --project-dir "$PWD"
 ```
 
 What it installs:
@@ -804,15 +812,13 @@ Still needs Python:
 
 ---
 
-## Dynamic Discipline Domains
+## Subject Packages And Runtime Domains
 
-**Why aren't there separate installers for Economics, Biology, or Computer Science?**
+**How do subject packages relate to runtime domains?**
 
-By design, this framework strictly separates the "generic research workflow pipeline" from "discipline-specific knowledge."
-When you install Qiongli, you install the generic workflow skeleton (e.g., how to run a Literature Review or write an Outline).
+Qiongli now supports subject-specialized installs. `core` is the default general package; `economics` installs the same canonical workflow with economics-selected profiles, effective skill markdown, and economics overlays.
 
-Discipline-specific knowledge (like Economics libraries, DID methodology checks, or Biology IRB templates) is loaded dynamically at **Runtime** via the `--domain` parameter. 
-For example, using `/code-build --domain econ` tells the system to load `skills/domain-profiles/economics.yaml` at runtime, apply Economics-specific diagnostics, and bypass unrelated profiles. This keeps the base installation lightweight and avoids prompt pollution.
+Runtime flags such as `--domain econ` still matter for a single task packet, but they no longer replace subject packaging. Use `qiongli install --subject economics --target all` when the client should operate as an economics-specialized Qiongli install by default. Use runtime domains for temporary task-level emphasis inside the active subject.
 
 ---
 

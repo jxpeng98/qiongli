@@ -11,6 +11,7 @@ Use this page when you want to start using Qiongli, not maintain it. The shortes
 
 | Situation | Use | Requires Python before install |
 |---|---|---|
+| Claude Desktop/Web with no CLI | Subject Desktop ZIP, such as `qiongli-claude-desktop-skill-economics-<tag>.zip` | No |
 | One client, minimal setup | Native plugin / extension | No |
 | Several clients need global workflow assets | Bootstrap `partial` | No |
 | You need `doctor`, validators, or orchestrator task execution | Bootstrap `full` | Yes, Python 3.12+ |
@@ -21,9 +22,9 @@ For full detail, read [Install](/guide/install).
 
 ## 2. Install Workflow Assets
 
-If you use Claude Desktop or Claude.ai and do not want to work in a code/CLI environment, download `qiongli-claude-desktop-skill-<tag>.zip` from the GitHub Release assets. Drag the ZIP into Claude Desktop's Skills upload/install flow, or use `Customize > Skills > + > Create skill > Upload a skill`. The same ZIP upload flow also works in Claude.ai.
+If you use Claude Desktop or Claude.ai and do not want to work in a code/CLI environment, download the subject ZIP you need from the GitHub Release assets. Use `qiongli-claude-desktop-skill-core-<tag>.zip` for the default workflow or `qiongli-claude-desktop-skill-economics-<tag>.zip` for the economics-specialized workflow. Drag the ZIP into Claude Desktop's Skills upload/install flow, or use `Customize > Skills > + > Create skill > Upload a skill`. The same ZIP upload flow also works in Claude.ai.
 
-The Desktop/Web ZIP is a slim package built for Claude's upload limits. It keeps workflows, templates, standards, venue profiles, `skills-summary.md`, and `skills-core.md`, but omits detailed per-skill markdown specs. Use the plugin/source distribution when you need the full detailed skill corpus.
+The Desktop/Web ZIP is a subject-specialized package, not a reduced-quality cut. It keeps workflows, templates, standards, selected profiles, `skills-summary.md`, and `skills-core.md`; the economics ZIP also includes selected effective skill markdown generated with layered overlays.
 
 If you chose the native plugin path for Codex or Claude Code, install Qiongli from the shared Skillsplace marketplace:
 
@@ -53,6 +54,16 @@ pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile partial -Pro
 ```
 
 Use `--profile full` instead of `partial` when Python 3.12+ is already installed and you want runtime checks, validators, or orchestrated tasks.
+
+For npm or pipx installs, `--subject` defaults to `core`:
+
+```bash
+qiongli install --subject economics --target all
+npx qiongli@latest install --subject economics --target all
+qiongli check --json
+```
+
+Switch subjects by rerunning `install` or `upgrade` with the new `--subject`.
 
 ## 3. Start A Research Workspace
 

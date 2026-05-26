@@ -7,6 +7,7 @@ The full system name is **Qiongli Zhengche** (`穷理证澈`): Qiongli names the
 ## What it does
 
 - Install or refresh global `qiongli-workflow` skill assets
+- Select the active subject package with `--subject core|economics`
 - Upgrade assets to newer upstream versions
 - Support `codex`, `claude`, `gemini`, or `all` targets
 - Run doctor checks before/after installation
@@ -38,7 +39,9 @@ If you use `pip` inside an active virtual environment, the CLI is installed into
 Current releases separate the package install from workflow asset installation:
 
 - `pipx install qiongli` / `pipx upgrade qiongli` updates the lightweight Python CLI.
-- `qiongli upgrade --target all` refreshes the global `qiongli-workflow` skill assets for Codex, Claude Code, Gemini, and Antigravity.
+- `qiongli install --subject core --target all` installs the default general package.
+- `qiongli install --subject economics --target all` installs the economics-specialized package.
+- `qiongli upgrade --subject economics --target all` refreshes the active global `qiongli-workflow` skill assets for Codex, Claude Code, Gemini, and Antigravity.
 - `--project-dir` is not required for normal global upgrades. It only selects a project when you run `doctor`, load project-level `qiongli.toml` / `.qiongli.toml`, or explicitly write project files with `qiongli init` / `--parts project`.
 
 Global assets are written under client home directories such as:
@@ -68,13 +71,15 @@ qiongli check
 ### Upgrade assets
 
 ```bash
-qiongli upgrade --target all
+qiongli install --subject core --target all
+qiongli install --subject economics --target all
+qiongli upgrade --subject economics --target all
 ```
 
 Run `doctor` only when you want to check a specific project runtime:
 
 ```bash
-qiongli upgrade --target all --doctor --project-dir /path/to/project
+qiongli upgrade --subject economics --target all --doctor --project-dir /path/to/project
 ```
 
 The package includes a default upstream repo (`jxpeng98/qiongli`), so `--repo` is optional.
@@ -108,7 +113,7 @@ Now you can run:
 
 ```bash
 qiongli check
-qiongli upgrade --target all
+qiongli upgrade --subject core --target all
 ```
 
 ### Option B: Project-level override
@@ -131,11 +136,14 @@ pipx install qiongli
 pipx upgrade qiongli
 
 # Refresh global workflow assets
-qiongli upgrade --target all
+qiongli install --subject core --target all
+qiongli install --subject economics --target all
 
 # Optional: initialize project-local files only when you want them
 qiongli init --project-dir /path/to/project
 ```
+
+`--subject` defaults to `core`. Subject packages are specialized installs, not reduced-quality cuts: they share the same workflow contracts and quality gates, while `economics` uses selected profiles and layered skill overlays. Switching subjects is just another install/upgrade with the new `--subject`; older installs without a `SUBJECT` marker are treated as legacy `core`.
 
 ## Links
 
