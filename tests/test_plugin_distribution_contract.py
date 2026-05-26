@@ -115,6 +115,7 @@ class PluginDistributionContractTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stderr + result.stdout)
         self.assertIn("[OK] codex marketplace artifact", result.stdout)
         self.assertIn("[OK] claude marketplace artifact", result.stdout)
+        self.assertIn("[OK] claude-desktop skill artifact", result.stdout)
         self.assertIn("[OK] gemini marketplace artifact", result.stdout)
         self.assertIn("qiongli invocation", result.stdout)
 

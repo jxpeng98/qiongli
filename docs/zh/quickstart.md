@@ -21,7 +21,9 @@
 
 ## 2. 安装 workflow assets
 
-如果你选择原生 plugin 路径，从统一的 Skillsplace marketplace 安装 Qiongli：
+如果你使用 Claude Desktop 或 Claude.ai 网页版，并且不想处理 code / CLI 环境，从 GitHub Release assets 下载 `qiongli-claude-desktop-skill-<tag>.zip`。在 Claude Desktop 中把 ZIP 拖拽到 Skills 上传/安装流程中，或使用 `Customize > Skills > + > Create skill > Upload a skill`。Claude.ai 网页版也使用同一个 ZIP 上传流程。
+
+如果你选择 Codex 或 Claude Code 的原生 plugin 路径，从统一的 Skillsplace marketplace 安装 Qiongli：
 
 ```bash
 codex plugin marketplace add jxpeng98/skillsplace --ref main
