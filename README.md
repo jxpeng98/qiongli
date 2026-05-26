@@ -103,7 +103,7 @@ For native client distribution, install **Qiongli** through the client-specific 
 
 - **Codex:** add the shared [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace, then install or enable `qiongli` from the Codex plugin UI.
 - **Claude Code:** add the shared [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace, then install `qiongli@skillsplace`.
-- **Claude Desktop / Claude.ai:** if you do not want to use a code/CLI environment, download `qiongli-claude-desktop-skill-<tag>.zip` from the GitHub Release assets, then drag it into Claude Desktop's Skills upload/install flow or upload it from `Customize > Skills > + > Create skill > Upload a skill`. Claude.ai uses the same ZIP upload flow.
+- **Claude Desktop / Claude.ai:** if you do not want to use a code/CLI environment, download `qiongli-claude-desktop-skill-<tag>.zip` from the GitHub Release assets, then drag it into Claude Desktop's Skills upload/install flow or upload it from `Customize > Skills > + > Create skill > Upload a skill`. Claude.ai uses the same ZIP upload flow. This ZIP is a slim Desktop/Web skill package that keeps workflows, templates, contracts, and consolidated skill references while omitting detailed per-skill markdown files to stay under Claude's upload file-count limit.
 - **Gemini CLI:** install the Gemini extension from `plugins/qiongli` locally, or from a standalone extension repository/gallery entry once published.
 
 Public Codex and Claude marketplace catalog metadata now lives in `jxpeng98/skillsplace`. This repository keeps the plugin payload and platform manifests that the shared marketplace points to:
@@ -471,6 +471,8 @@ Claude Desktop / Claude.ai:
 3. Click `+`, choose `Create skill`, then `Upload a skill`.
 4. In Claude.ai, use the same `Customize > Skills` upload flow and select the same ZIP.
 5. Enable the uploaded `qiongli` skill.
+
+The Desktop/Web ZIP is intentionally slim: it preserves executable workflows, templates, standards, venue profiles, `skills-summary.md`, and `skills-core.md`, but omits detailed per-skill markdown specs so Claude Desktop accepts the upload. Use the Codex / Claude Code / Gemini plugin packages or the source repository when you need the full detailed skill corpus.
 
 Gemini CLI:
 

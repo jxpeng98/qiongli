@@ -49,6 +49,8 @@ Claude Desktop and Claude.ai do not install third-party Claude Code plugin marke
 3. In Claude.ai, use the same `Customize > Skills` upload flow and select the same ZIP.
 4. Enable the uploaded `qiongli` skill.
 
+The release ZIP is a slim Desktop/Web skill package designed to stay below Claude's upload file-count limit. It preserves executable workflows, templates, standards, venue profiles, `skills-summary.md`, and `skills-core.md`; detailed per-skill markdown specs remain available in the Codex / Claude Code / Gemini plugin packages and source repository.
+
 Gemini CLI still installs the local extension payload directly:
 
 ```bash
