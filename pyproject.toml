@@ -38,4 +38,4 @@ rsw = "qiongli.cli:main"
 packages = ["qiongli", "research_skills"]
 
 [tool.setuptools.package-data]
-qiongli = ["project.toml", "install_manifest.tsv"]
+qiongli = ["project.toml", "install_manifest.tsv", "payload/**/*"]
