@@ -3,13 +3,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import tarfile
 import tempfile
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
-
-import yaml
 
 from build_plugin_artifacts import build_artifacts
 
@@ -139,11 +138,11 @@ def _assert_subject_marker(skill_root: Path, expected_subject: str) -> None:
 
 
 def _load_registry_ids(skill_root: Path) -> set[str]:
-    registry = yaml.safe_load((skill_root / "skills" / "registry.yaml").read_text(encoding="utf-8")) or {}
-    skills = registry.get("skills")
-    if not isinstance(skills, list):
-        raise ValueError(f"{skill_root / 'skills' / 'registry.yaml'} must contain a skills list")
-    ids = {str(entry.get("id")) for entry in skills if isinstance(entry, dict)}
+    registry_text = (skill_root / "skills" / "registry.yaml").read_text(encoding="utf-8")
+    ids = {
+        match.group(1).strip()
+        for match in re.finditer(r"(?m)^\s*-?\s*id:\s*[\"']?([^\"'\n#]+)", registry_text)
+    }
     if not ids:
         raise ValueError(f"{skill_root / 'skills' / 'registry.yaml'} must contain registry ids")
     return ids
@@ -259,7 +258,7 @@ def _validate_claude_desktop_artifact(artifact: Path, expected_repo_tag: str, su
             raise ValueError(f"{artifact} must not include Claude Code slash command wrappers")
 
     return (
-        f"[OK] claude-desktop {subject} skill artifact: {SKILL_NAME} invocation checked; "
+        f"[OK] claude-desktop skill artifact ({subject}): {SKILL_NAME} invocation checked; "
         f"{file_count}/{CLAUDE_DESKTOP_FILE_BUDGET} files under desktop file budget"
     )
 
