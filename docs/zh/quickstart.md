@@ -11,7 +11,7 @@
 
 | 场景 | 使用 | 安装前是否需要 Python |
 |---|---|---|
-| Claude Desktop/Web 且不想用 CLI | subject Desktop ZIP，例如 `qiongli-claude-desktop-skill-economics-<tag>.zip` | 否 |
+| Claude Desktop/Web 且不想用 CLI | focused subject Desktop ZIP，例如 `qiongli-claude-desktop-skill-economics-<tag>.zip` | 否 |
 | 只在一个客户端里用 | 原生 plugin / extension | 否 |
 | 多个客户端需要全局 workflow assets | Bootstrap `partial` | 否 |
 | 需要 `doctor`、validator 或 orchestrator task execution | Bootstrap `full` | 是，Python 3.12+ |
@@ -22,9 +22,9 @@
 
 ## 2. 安装 workflow assets
 
-如果你使用 Claude Desktop 或 Claude.ai 网页版，并且不想处理 code / CLI 环境，从 GitHub Release assets 下载需要的 subject ZIP。默认通用 workflow 用 `qiongli-claude-desktop-skill-core-<tag>.zip`；经济学专精 workflow 用 `qiongli-claude-desktop-skill-economics-<tag>.zip`。在 Claude Desktop 中把 ZIP 拖拽到 Skills 上传/安装流程中，或使用 `Customize > Skills > + > Create skill > Upload a skill`。Claude.ai 网页版也使用同一个 ZIP 上传流程。
+如果你使用 Claude Desktop 或 Claude.ai 网页版，并且不想处理 code / CLI 环境，从 GitHub Release assets 下载需要的 focused subject ZIP。默认通用 workflow 用 `qiongli-claude-desktop-skill-core-<tag>.zip`；经济学专精 workflow 用 `qiongli-claude-desktop-skill-economics-<tag>.zip`；官方 economics/accounting 交叉学科包用 `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip`。在 Claude Desktop 中把 ZIP 拖拽到 Skills 上传/安装流程中，或使用 `Customize > Skills > + > Create skill > Upload a skill`。Claude.ai 网页版也使用同一个 ZIP 上传流程。
 
-Desktop/Web ZIP 是 subject 专精包，不是降质删减版。它保留 workflows、templates、standards、所选 profiles、`skills-summary.md` 和 `skills-core.md`；economics ZIP 还包含通过 layered overlays 生成的 selected effective skill markdown。
+Desktop/Web ZIP 使用 `coverage=focused`，用于保持上传文件数预算。它是 subject 专精包，不是降质删减版：保留 workflows、templates、standards、所选 profiles、`skills-summary.md` 和 `skills-core.md`；专精 ZIP 还包含通过 layered overlays 生成的 selected effective skill markdown。
 
 如果你选择 Codex 或 Claude Code 的原生 plugin 路径，从统一的 Skillsplace marketplace 安装 Qiongli：
 
@@ -55,15 +55,17 @@ pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile partial -Pro
 
 如果机器已经有 Python 3.12+，并且你需要 runtime check、validator 或 orchestrated task，把 `--profile partial` 改成 `--profile full`。
 
-npm 或 pipx 安装中，`--subject` 默认是 `core`：
+npm 或 pipx 安装中，`--subject` 默认是 `core`，`--coverage` 默认是 `complete`：
 
 ```bash
 qiongli install --subject economics --target all
 npx qiongli@latest install --subject economics --target all
+qiongli install --subject economics-accounting --target all
+qiongli install --subject economics --coverage focused --target all
 qiongli check --json
 ```
 
-切换 subject 时，重新运行 `install` 或 `upgrade` 并指定新的 `--subject`。
+不确定怎么选时使用默认 complete：它会保留全量框架，并叠加指定 subject 专精。只有明确想要精简包时才使用 `--coverage focused`。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新的参数。
 
 ## 3. 创建研究工作区
 

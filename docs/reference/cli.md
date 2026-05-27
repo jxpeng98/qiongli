@@ -61,7 +61,7 @@ Key Flags:
 - `--json`: Output JSON only (useful for CI/Scripts).
 - `--strict-network`: Return a failure code if upstream polling fails (defaults to warning and continuing).
 
-JSON output includes the active installed subject for each target. Older managed installs that do not have a `SUBJECT` marker are reported as legacy `core`.
+JSON output includes the active installed subject and coverage for each target. Older managed installs that do not have a `SUBJECT_MANIFEST.json` or `SUBJECT` marker are reported as legacy `core` / `complete`.
 
 Exit Codes:
 - `0`: No updates available / upstream check bypassed.
@@ -72,11 +72,12 @@ Exit Codes:
 
 Use Case:
 - Installs the subject payload bundled inside the PyPI package into global client skill directories.
-- Defaults to `--subject core`; use `--subject economics` for the economics-specialized package.
+- Defaults to `--subject core --coverage complete`; use `--subject economics` for full Qiongli plus economics specialization.
 
 ```bash
 qiongli install \
-  [--subject core|economics] \
+  [--subject core|economics|economics-accounting] \
+  [--coverage complete|focused] \
   [--target codex|claude|gemini|antigravity|all] \
   [--mode copy|link] \
   [--project-dir <path>] \
@@ -85,7 +86,7 @@ qiongli install \
   [--dry-run]
 ```
 
-Subject packages are specialized installs, not reduced-quality cuts. They share the same workflow contracts and quality gates, while specialized subjects select active profiles and apply layered skill overlays. Switch subjects by rerunning `install` or `upgrade` with a new `--subject`.
+Subject packages are specialized installs, not reduced-quality cuts. Complete coverage keeps the full core framework and adds the selected subject overlays and subject-specific skills. Focused coverage selects the subject profile set and active effective skills for slim installs. Switch subjects or coverage by rerunning `install` or `upgrade` with new flags.
 
 ### 2.3 `qiongli upgrade` (Download release & execute installers)
 
@@ -99,7 +100,8 @@ qiongli upgrade \
   [--repo <owner/repo|url>] \
   [--ref <tag-or-branch>] \
   [--ref-type tag|branch] \
-  [--subject core|economics] \
+  [--subject core|economics|economics-accounting] \
+  [--coverage complete|focused] \
   [--target codex|claude|gemini|antigravity|all] \
   [--project-dir <path>] \
   [--no-overwrite] \
@@ -110,7 +112,7 @@ qiongli upgrade \
 Notes:
 - `--project-dir` matters when you also request project-facing surfaces, such as `--parts project`.
 - Default `upgrade` now behaves as a global refresh. Use `qiongli init --project-dir .` for project bootstrap, or `qiongli upgrade --parts project ...` when you explicitly want project files rewritten.
-- `--subject` defaults to `core`; use `--subject economics` to materialize and install the economics-specialized package.
+- `--subject` defaults to `core` and `--coverage` defaults to `complete`; use `--subject economics` for full Qiongli plus economics specialization, or add `--coverage focused` for the slim selected package.
 - After global install, `upgrade` creates workflow discovery symlinks: `~/.claude/commands/*.md` and `~/.gemini/workflows/*.md` → enables direct `/paper`, `/lit-review`, etc. invocation.
 - Shell CLI uses the bundled bootstrap helper and does not require Python.
 - The command exits with the error code returned by the underlying installer.

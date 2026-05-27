@@ -62,15 +62,16 @@ flowchart TD
 | Orchestrator CLI | 你要显式规划任务、执行任务、做校验 | `python3 -m bridges.orchestrator ...` |
 | Portable skill package | 你要做跨客户端分发 | `qiongli-workflow/` |
 
-## 动态领域挂载
+## Subject Package 与动态领域挂载
 
-基础系统保持通用。学科专精通过运行时注入的 domain profile 完成，例如 `skills/domain-profiles/economics.yaml`。
+canonical source 保持通用。可安装的学科专精包由 `subjects/catalog.yaml`、subject overlays、selected profiles 和 subject-specific skills 生成。CLI/npm 默认是 `coverage=complete`，即保留全量 core 框架并叠加指定 subject layer；`coverage=focused` 是 Desktop/Web ZIP 使用的精简 selected package。
 
-这样做的收益是：
+runtime domain flags 和 domain profiles 仍然用于单次 task packet 的临时强调，但不再替代 subject packaging。这样做的收益是：
 
-- 安装包更轻
-- 不相关学科不会污染默认 prompt
+- 源码保持统一，不复制 generic skills
+- 不相关学科不会污染 focused package
 - 可以按领域注入专属库、诊断项、报告规范和方法学先验
+- 可以维护官方 composite subject，例如 `economics-accounting`
 
 ## 多模型运行时协同
 
