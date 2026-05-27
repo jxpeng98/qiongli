@@ -67,6 +67,46 @@ ECONOMICS_ACCOUNTING_SKILL_REFS = (
     *ECONOMICS_SKILL_REFS,
     "accounting-measurement-auditor",
 )
+ACCOUNTING_SKILL_REFS = (
+    "question-refiner",
+    "contribution-crafter",
+    "gap-analyzer",
+    "theory-mapper",
+    "hypothesis-generator",
+    "venue-analyzer",
+    "academic-searcher",
+    "citation-snowballer",
+    "literature-mapper",
+    "paper-extractor",
+    "paper-screener",
+    "reference-manager-bridge",
+    "study-designer",
+    "rival-hypothesis-designer",
+    "robustness-planner",
+    "dataset-finder",
+    "variable-constructor",
+    "data-dictionary-builder",
+    "prereg-writer",
+    "stats-engine",
+    "accounting-measurement-auditor",
+    "effect-size-calculator",
+    "evidence-synthesizer",
+    "analysis-interpreter",
+    "effect-size-interpreter",
+    "table-generator",
+    "figure-specifier",
+    "manuscript-architect",
+    "discussion-writer",
+    "meta-optimizer",
+    "reporting-checker",
+    "tone-normalizer",
+    "submission-packager",
+    "fatal-flaw-detector",
+    "code-builder",
+    "code-review",
+    "reproducibility-auditor",
+    "final-proofreader",
+)
 ECONOMICS_TEMPLATES = (
     "analysis-plan.md",
     "claim-evidence-ledger.csv",
@@ -84,6 +124,22 @@ ECONOMICS_TEMPLATES = (
     "writing-claim-map.md",
     "code/economics/causal_did.py",
     "code/statistics/meta_analysis_random_effects.py",
+)
+ACCOUNTING_TEMPLATES = (
+    "analysis-plan.md",
+    "claim-evidence-ledger.csv",
+    "data-availability.md",
+    "data-management-plan.md",
+    "figures-tables-plan.md",
+    "manuscript-outline.md",
+    "method-diagnostic-report.md",
+    "quality-gate-report.md",
+    "research-state.md",
+    "search-log.md",
+    "stage-handoff.md",
+    "study-design.md",
+    "validity-threat-matrix.md",
+    "writing-claim-map.md",
 )
 
 
@@ -182,8 +238,8 @@ def _copy_claude_desktop_skill(root: Path, skill_dest: Path, subject: str) -> No
 
 
 def _copy_claude_desktop_skill_without_pyyaml(root: Path, skill_dest: Path, subject: str) -> None:
-    if subject not in {"core", "economics", "economics-accounting"}:
-        raise ValueError("PyYAML is required to materialize non-core/non-economics subjects")
+    if subject not in {"core", "economics", "accounting", "economics-accounting"}:
+        raise ValueError("PyYAML is required to materialize non-core/non-economics/non-accounting subjects")
     source = root / "qiongli-workflow"
     skill_dest.mkdir(parents=True)
     for filename in ("VERSION", "skills-core.md", "skills-summary.md"):
@@ -222,15 +278,30 @@ def _copy_claude_desktop_skill_without_pyyaml(root: Path, skill_dest: Path, subj
             "Qiongli Economics + Accounting",
             "Cross-disciplinary economics and accounting workflow for archival, causal, and reporting-setting research.",
         )
+    elif subject == "accounting":
+        _write_fallback_skill_md(
+            skill_dest,
+            "Qiongli Accounting",
+            "Accounting-focused archival, disclosure, audit, and measurement workflow.",
+        )
     else:
         _write_fallback_skill_md(
             skill_dest,
             "Qiongli Economics",
             "Economics-focused empirical, theory, and reproducibility workflow.",
         )
-    for rel in ECONOMICS_TEMPLATES:
+    template_refs = ACCOUNTING_TEMPLATES if subject == "accounting" else ECONOMICS_TEMPLATES
+    for rel in template_refs:
         _copy_path(source / "templates" / rel, skill_dest / "templates" / rel)
-    _copy_path(source / "skills" / "domain-profiles" / "economics.yaml", skill_dest / "skills" / "domain-profiles" / "economics.yaml")
+    if subject != "accounting":
+        _copy_path(source / "skills" / "domain-profiles" / "economics.yaml", skill_dest / "skills" / "domain-profiles" / "economics.yaml")
+    if subject == "accounting":
+        _copy_path(root / "skills" / "domain-profiles" / "accounting.yaml", skill_dest / "skills" / "domain-profiles" / "accounting.yaml")
+        for venue in ("accounting-review", "journal-of-accounting-research", "review-of-accounting-studies"):
+            _copy_path(
+                root / "subjects" / "accounting" / "venue-profiles" / f"{venue}.yaml",
+                skill_dest / "venue-profiles" / f"{venue}.yaml",
+            )
     if subject == "economics-accounting":
         _copy_path(root / "skills" / "domain-profiles" / "accounting.yaml", skill_dest / "skills" / "domain-profiles" / "accounting.yaml")
         for venue in ("aer", "qje", "restud"):
@@ -246,26 +317,34 @@ def _copy_claude_desktop_skill_without_pyyaml(root: Path, skill_dest: Path, subj
 
     entries = _fallback_registry_entries(root)
     registry_lines = ["skills:"]
-    skill_refs = ECONOMICS_ACCOUNTING_SKILL_REFS if subject == "economics-accounting" else ECONOMICS_SKILL_REFS
+    if subject == "accounting":
+        skill_refs = ACCOUNTING_SKILL_REFS
+    elif subject == "economics-accounting":
+        skill_refs = ECONOMICS_ACCOUNTING_SKILL_REFS
+    else:
+        skill_refs = ECONOMICS_SKILL_REFS
     for skill_id in skill_refs:
         rel = entries[skill_id]
         registry_lines.extend([f"  - id: {skill_id}", f"    file: {rel}"])
         if skill_id == "econ-identification-auditor":
             src = root / "subjects" / "economics" / "skills" / "econ-identification-auditor.md"
         elif skill_id == "accounting-measurement-auditor":
-            src = root / "subjects" / "economics-accounting" / "skills" / "accounting-measurement-auditor.md"
+            src = root / "subjects" / "accounting" / "skills" / "accounting-measurement-auditor.md"
         else:
             src = source / rel
         text = src.read_text(encoding="utf-8")
         if skill_id == "manuscript-architect":
-            overlay_subject = "economics-accounting" if subject == "economics-accounting" else "economics"
+            overlay_subject = subject if subject in {"accounting", "economics-accounting"} else "economics"
             overlay = (root / "subjects" / overlay_subject / "overlays" / "skills" / "manuscript-architect.md").read_text(encoding="utf-8")
             text = text.rstrip() + "\n\n" + overlay.strip() + "\n"
         elif skill_id == "stats-engine":
-            overlay_subject = "economics-accounting" if subject == "economics-accounting" else "economics"
+            overlay_subject = subject if subject in {"accounting", "economics-accounting"} else "economics"
             overlay = (root / "subjects" / overlay_subject / "overlays" / "skills" / "stats-engine.md").read_text(encoding="utf-8")
             for section in ("Quality Bar", "Common Pitfalls"):
                 text = _replace_markdown_section(text, overlay, section)
+        elif skill_id == "variable-constructor" and subject == "accounting":
+            overlay = (root / "subjects" / "accounting" / "overlays" / "skills" / "variable-constructor.md").read_text(encoding="utf-8")
+            text = text.rstrip() + "\n\n" + overlay.strip() + "\n"
         dest = skill_dest / rel
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(text, encoding="utf-8")
@@ -300,7 +379,7 @@ def _fallback_registry_entries(root: Path) -> dict[str, str]:
     for registry in (
         root / "skills" / "registry.yaml",
         root / "subjects" / "economics" / "skills" / "registry.yaml",
-        root / "subjects" / "economics-accounting" / "skills" / "registry.yaml",
+        root / "subjects" / "accounting" / "skills" / "registry.yaml",
     ):
         current_id: str | None = None
         for line in registry.read_text(encoding="utf-8").splitlines():
@@ -383,7 +462,7 @@ def _build_claude_desktop_skill(root: Path, tag: str, dist_dir: Path, work_dir: 
 
 def _desktop_subjects(root: Path) -> list[str]:
     if validate_subject_catalog is None:
-        return ["core", "economics", "economics-accounting"]
+        return ["core", "accounting", "economics", "economics-accounting"]
     subjects = sorted(validate_subject_catalog(root).subjects)
     if "core" in subjects:
         subjects.remove("core")
