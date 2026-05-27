@@ -31,7 +31,6 @@ class PluginArtifactsTests(unittest.TestCase):
             self.assertEqual(
                 sorted(path.name for path in artifacts),
                 [
-                    f"qiongli-claude-desktop-skill-accounting-{current_tag}.zip",
                     f"qiongli-claude-desktop-skill-core-{current_tag}.zip",
                     f"qiongli-claude-desktop-skill-economics-accounting-{current_tag}.zip",
                     f"qiongli-claude-desktop-skill-economics-{current_tag}.zip",
@@ -83,16 +82,6 @@ class PluginArtifactsTests(unittest.TestCase):
                     "qiongli/skills/C_design/econ-identification-auditor.md",
                     "qiongli/skills/F_writing/manuscript-architect.md",
                     "qiongli/venue-profiles/aer.yaml",
-                ],
-            )
-            self._assert_zip_contains(
-                dist_dir / f"qiongli-claude-desktop-skill-accounting-{current_tag}.zip",
-                [
-                    "qiongli/SKILL.md",
-                    "qiongli/SUBJECT",
-                    "qiongli/skills/C_design/accounting-measurement-auditor.md",
-                    "qiongli/skills/F_writing/manuscript-architect.md",
-                    "qiongli/venue-profiles/accounting-review.yaml",
                 ],
             )
             self._assert_zip_contains(
