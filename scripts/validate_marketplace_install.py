@@ -139,13 +139,20 @@ def _assert_subject_marker(skill_root: Path, expected_subject: str) -> None:
         raise ValueError(f"{skill_root / 'SUBJECT'} expected {expected_subject}, found {actual_subject}")
 
 
-def _assert_subject_manifest(skill_root: Path, expected_subject: str, expected_coverage: str) -> None:
+def _assert_subject_manifest(
+    skill_root: Path,
+    expected_subject: str,
+    expected_coverage: str,
+    expected_layers: list[str] | None = None,
+) -> None:
     manifest_path = skill_root / "SUBJECT_MANIFEST.json"
     manifest = _read_json(manifest_path)
     if manifest.get("subject") != expected_subject:
         raise ValueError(f"{manifest_path} expected subject {expected_subject}, found {manifest.get('subject')}")
     if manifest.get("coverage") != expected_coverage:
         raise ValueError(f"{manifest_path} expected coverage {expected_coverage}, found {manifest.get('coverage')}")
+    if expected_layers is not None and manifest.get("layers") != expected_layers:
+        raise ValueError(f"{manifest_path} expected layers {expected_layers}, found {manifest.get('layers')}")
 
 
 def _load_registry_ids(skill_root: Path) -> set[str]:
@@ -205,7 +212,12 @@ def _assert_economics_desktop_package(skill_root: Path) -> None:
 
 def _assert_economics_accounting_desktop_package(skill_root: Path) -> None:
     _assert_subject_marker(skill_root, "economics-accounting")
-    _assert_subject_manifest(skill_root, "economics-accounting", "focused")
+    _assert_subject_manifest(
+        skill_root,
+        "economics-accounting",
+        "focused",
+        ["core", "economics", "accounting", "economics-accounting"],
+    )
     registry_ids = _load_registry_ids(skill_root)
     for expected in ("econ-identification-auditor", "accounting-measurement-auditor", "stats-engine"):
         if expected not in registry_ids:

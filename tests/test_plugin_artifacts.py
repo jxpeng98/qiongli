@@ -114,6 +114,11 @@ class PluginArtifactsTests(unittest.TestCase):
             self.assertTrue((dest / "skills" / "C_design" / "accounting-measurement-auditor.md").exists())
             registry = (dest / "skills" / "registry.yaml").read_text(encoding="utf-8")
             self.assertIn("id: accounting-measurement-auditor", registry)
+            manifest = json.loads((dest / "SUBJECT_MANIFEST.json").read_text(encoding="utf-8"))
+            self.assertEqual(
+                ["core", "economics", "accounting", "economics-accounting"],
+                manifest["layers"],
+            )
 
     def test_fails_when_artifact_versions_do_not_match_tag(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

@@ -23,6 +23,12 @@ except ModuleNotFoundError as exc:
 PLUGIN_NAME = "qiongli"
 PLUGIN_ROOT = Path("plugins") / PLUGIN_NAME
 DESKTOP_SKILL_FILE_BUDGET = 180
+FALLBACK_SUBJECT_LAYERS = {
+    "core": ["core"],
+    "economics": ["core", "economics"],
+    "accounting": ["core", "accounting"],
+    "economics-accounting": ["core", "economics", "accounting", "economics-accounting"],
+}
 ECONOMICS_SKILL_REFS = (
     "question-refiner",
     "contribution-crafter",
@@ -269,7 +275,7 @@ def _copy_claude_desktop_skill(root: Path, skill_dest: Path, subject: str) -> No
 
 
 def _copy_claude_desktop_skill_without_pyyaml(root: Path, skill_dest: Path, subject: str) -> None:
-    if subject not in {"core", "economics", "accounting", "economics-accounting"}:
+    if subject not in FALLBACK_SUBJECT_LAYERS:
         raise ValueError("PyYAML is required to materialize non-core/non-economics/non-accounting subjects")
     source = root / "qiongli-workflow"
     skill_dest.mkdir(parents=True)
@@ -287,7 +293,7 @@ def _copy_claude_desktop_skill_without_pyyaml(root: Path, skill_dest: Path, subj
                 "subject": subject,
                 "coverage": "focused",
                 "flavor": "desktop",
-                "layers": ["core"] if subject == "core" else ["core", subject],
+                "layers": FALLBACK_SUBJECT_LAYERS[subject],
             },
             indent=2,
             sort_keys=True,
