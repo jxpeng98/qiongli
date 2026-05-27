@@ -164,6 +164,7 @@ def _copy_claude_desktop_skill(root: Path, skill_dest: Path, subject: str) -> No
                 out=skill_dest,
                 subject=subject,
                 flavor="desktop",
+                coverage="focused",
             )
         )
     else:
@@ -189,6 +190,20 @@ def _copy_claude_desktop_skill_without_pyyaml(root: Path, skill_dest: Path, subj
             _copy_path(source_path, skill_dest / dirname)
 
     (skill_dest / "SUBJECT").write_text(subject + "\n", encoding="utf-8")
+    (skill_dest / "SUBJECT_MANIFEST.json").write_text(
+        json.dumps(
+            {
+                "subject": subject,
+                "coverage": "focused",
+                "flavor": "desktop",
+                "layers": ["core"] if subject == "core" else ["core", subject],
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     if subject == "core":
         _write_fallback_skill_md(skill_dest, "Qiongli Core", "General-purpose Qiongli academic workflow.")
         _copy_path(source / "templates", skill_dest / "templates")

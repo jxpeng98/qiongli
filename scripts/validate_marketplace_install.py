@@ -137,6 +137,15 @@ def _assert_subject_marker(skill_root: Path, expected_subject: str) -> None:
         raise ValueError(f"{skill_root / 'SUBJECT'} expected {expected_subject}, found {actual_subject}")
 
 
+def _assert_subject_manifest(skill_root: Path, expected_subject: str, expected_coverage: str) -> None:
+    manifest_path = skill_root / "SUBJECT_MANIFEST.json"
+    manifest = _read_json(manifest_path)
+    if manifest.get("subject") != expected_subject:
+        raise ValueError(f"{manifest_path} expected subject {expected_subject}, found {manifest.get('subject')}")
+    if manifest.get("coverage") != expected_coverage:
+        raise ValueError(f"{manifest_path} expected coverage {expected_coverage}, found {manifest.get('coverage')}")
+
+
 def _load_registry_ids(skill_root: Path) -> set[str]:
     registry_text = (skill_root / "skills" / "registry.yaml").read_text(encoding="utf-8")
     ids = {
@@ -150,12 +159,14 @@ def _load_registry_ids(skill_root: Path) -> set[str]:
 
 def _assert_core_desktop_package(skill_root: Path) -> None:
     _assert_subject_marker(skill_root, "core")
+    _assert_subject_manifest(skill_root, "core", "focused")
     if (skill_root / "skills" / "A_framing" / "question-refiner.md").exists():
         raise ValueError("core Desktop ZIP must remain slim and omit detailed generic skill specs")
 
 
 def _assert_economics_desktop_package(skill_root: Path) -> None:
     _assert_subject_marker(skill_root, "economics")
+    _assert_subject_manifest(skill_root, "economics", "focused")
     registry_ids = _load_registry_ids(skill_root)
     for expected in ("econ-identification-auditor", "stats-engine", "manuscript-architect"):
         if expected not in registry_ids:
