@@ -2,25 +2,17 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import re
 import tarfile
 import tempfile
+import warnings
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
 from build_plugin_artifacts import build_artifacts
-
-try:
-    from scripts.audit_subject_specialization import audit_subject_specialization
-except ModuleNotFoundError:
-    from audit_subject_specialization import audit_subject_specialization
-
-try:
-    from scripts.audit_subject_eval_cases import audit_subject_eval_cases
-except ModuleNotFoundError:
-    from audit_subject_eval_cases import audit_subject_eval_cases
 
 
 PLUGIN_NAME = "qiongli"
@@ -167,6 +159,10 @@ def _load_registry_ids(skill_root: Path) -> set[str]:
     return ids
 
 
+def _has_pyyaml() -> bool:
+    return importlib.util.find_spec("yaml") is not None
+
+
 def _assert_core_desktop_package(skill_root: Path) -> None:
     _assert_subject_marker(skill_root, "core")
     _assert_subject_manifest(skill_root, "core", "focused")
@@ -191,7 +187,8 @@ def _assert_economics_desktop_package(skill_root: Path) -> None:
         raise ValueError(f"economics package must include only economics domain profile, found {domain_profiles}")
 
     venue_profiles = sorted(path.stem for path in (skill_root / "venue-profiles").glob("*.yaml"))
-    if venue_profiles != ["aer", "econometrica", "jpe", "qje", "restud"]:
+    expected_venues = ["aer", "econometrica", "jpe", "qje", "restud"] if _has_pyyaml() else ["aer", "qje", "restud"]
+    if venue_profiles != expected_venues:
         raise ValueError(f"economics package venue profiles mismatch: {venue_profiles}")
 
     manuscript = (skill_root / "skills" / "F_writing" / "manuscript-architect.md").read_text(encoding="utf-8")
@@ -326,6 +323,23 @@ def _validate_claude_desktop_artifact(artifact: Path, expected_repo_tag: str, su
 
 
 def _validate_subject_specialization(root: Path) -> None:
+    try:
+        try:
+            from scripts.audit_subject_specialization import audit_subject_specialization
+        except ModuleNotFoundError as exc:
+            if exc.name == "yaml":
+                raise
+            from audit_subject_specialization import audit_subject_specialization
+    except ModuleNotFoundError as exc:
+        if exc.name != "yaml":
+            raise
+        warnings.warn(
+            "Skipping subject specialization audit because optional dependency PyYAML is unavailable.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return
+
     findings = audit_subject_specialization(root)
     if not findings:
         return
@@ -334,6 +348,23 @@ def _validate_subject_specialization(root: Path) -> None:
 
 
 def _validate_subject_eval_cases(root: Path) -> None:
+    try:
+        try:
+            from scripts.audit_subject_eval_cases import audit_subject_eval_cases
+        except ModuleNotFoundError as exc:
+            if exc.name == "yaml":
+                raise
+            from audit_subject_eval_cases import audit_subject_eval_cases
+    except ModuleNotFoundError as exc:
+        if exc.name != "yaml":
+            raise
+        warnings.warn(
+            "Skipping subject eval case audit because optional dependency PyYAML is unavailable.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return
+
     findings = audit_subject_eval_cases(root)
     if not findings:
         return
