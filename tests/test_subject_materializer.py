@@ -118,6 +118,12 @@ class SubjectMaterializerTests(unittest.TestCase):
                 encoding="utf-8"
             )
             self.assertIn("economic magnitude", analysis_interpreter)
+            replication_auditor = (out / "skills" / "I_code" / "econ-replication-package-auditor.md").read_text(
+                encoding="utf-8"
+            )
+            self.assertTrue(replication_auditor.startswith("---\n"))
+            self.assertIn("id: econ-replication-package-auditor", replication_auditor)
+            self.assertIn("## Quality Bar", replication_auditor)
 
     def test_materialization_writes_subject_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
