@@ -4,10 +4,11 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
-from qiongli.subject_materializer import validate_subject_catalog
+from qiongli.subject_materializer import MaterializeOptions, materialize_subject_package, validate_subject_catalog
 
 
 EXCLUDED_NAMES = {
@@ -172,18 +173,42 @@ def _audit_subject_payloads(root: Path, subjects_root: Path, label: str) -> list
         return issues
 
     catalog = validate_subject_catalog(root)
-    for subject in sorted(catalog.subjects):
-        for coverage in ("complete", "focused"):
-            workflow = subjects_root / subject / coverage / "qiongli-workflow"
-            manifest_path = workflow / "SUBJECT_MANIFEST.json"
-            manifest, manifest_issues = _read_json(manifest_path, label)
-            issues.extend(manifest_issues)
-            if manifest is None:
-                continue
-            if manifest.get("subject") != subject:
-                issues.append(AuditIssue(label, f"{manifest_path} expected subject {subject}, found {manifest.get('subject')}"))
-            if manifest.get("coverage") != coverage:
-                issues.append(AuditIssue(label, f"{manifest_path} expected coverage {coverage}, found {manifest.get('coverage')}"))
+    with tempfile.TemporaryDirectory(prefix="qiongli-subject-payload-audit-") as tmp:
+        expected_root = Path(tmp)
+        for subject in sorted(catalog.subjects):
+            for coverage in ("complete", "focused"):
+                workflow = subjects_root / subject / coverage / "qiongli-workflow"
+                subject_label = f"{label} {subject}/{coverage}"
+                manifest_path = workflow / "SUBJECT_MANIFEST.json"
+                manifest, manifest_issues = _read_json(manifest_path, subject_label)
+                issues.extend(manifest_issues)
+                if manifest is not None:
+                    if manifest.get("subject") != subject:
+                        issues.append(
+                            AuditIssue(
+                                subject_label,
+                                f"{manifest_path} expected subject {subject}, found {manifest.get('subject')}",
+                            )
+                        )
+                    if manifest.get("coverage") != coverage:
+                        issues.append(
+                            AuditIssue(
+                                subject_label,
+                                f"{manifest_path} expected coverage {coverage}, found {manifest.get('coverage')}",
+                            )
+                        )
+
+                expected = expected_root / subject / coverage / "qiongli-workflow"
+                materialize_subject_package(
+                    MaterializeOptions(
+                        source=root,
+                        out=expected,
+                        subject=subject,
+                        flavor="full",
+                        coverage=coverage,
+                    )
+                )
+                issues.extend(_compare_trees(expected, workflow, subject_label))
     return issues
 
 
