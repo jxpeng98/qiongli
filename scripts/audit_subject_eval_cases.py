@@ -120,8 +120,6 @@ def _audit_case(root: Path, case: SubjectEvalCase) -> list[SubjectEvalFinding]:
 
         findings: list[SubjectEvalFinding] = []
         registry_ids = _load_registry_ids(package_root)
-        if case.coverage == "complete":
-            registry_ids |= _load_focused_registry_ids(root, case)
         domain_profiles = {path.name for path in (package_root / "skills" / "domain-profiles").glob("*.yaml")}
         skills_text = _load_skills_text(package_root)
 
@@ -175,21 +173,6 @@ def _load_registry_ids(package_root: Path) -> set[str]:
     if not isinstance(skills, list):
         return set()
     return {entry["id"] for entry in skills if isinstance(entry, dict) and isinstance(entry.get("id"), str)}
-
-
-def _load_focused_registry_ids(root: Path, case: SubjectEvalCase) -> set[str]:
-    with tempfile.TemporaryDirectory(prefix=f"qiongli-subject-eval-focused-{case.id}-") as tmp_dir:
-        package_root = Path(tmp_dir) / "qiongli-workflow"
-        materialize_subject_package(
-            MaterializeOptions(
-                source=root,
-                out=package_root,
-                subject=case.subject,
-                flavor="full",
-                coverage="focused",
-            )
-        )
-        return _load_registry_ids(package_root)
 
 
 def _load_skills_text(package_root: Path) -> str:
