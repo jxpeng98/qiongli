@@ -100,7 +100,10 @@ class InstallerCliTests(unittest.TestCase):
             exit_code = cli_module.main()
 
         self.assertEqual(exit_code, 2)
-        self.assertIn("Unknown subject 'unknown'. Available subjects: core, economics", stderr.getvalue())
+        self.assertIn(
+            "Unknown subject 'unknown'. Available subjects: accounting, core, economics, economics-accounting",
+            stderr.getvalue(),
+        )
 
     def test_align_describes_global_first_upgrade_and_project_init(self) -> None:
         args = argparse.Namespace(repo="owner/repo")
