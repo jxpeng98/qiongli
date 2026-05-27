@@ -1,0 +1,15 @@
+id: economics-accounting-disclosure-study
+subject: economics-accounting
+coverage: complete
+prompt: "Plan a causal archival study of mandatory disclosure rules and capital-market outcomes."
+expected_skill_refs:
+  - econ-identification-auditor
+  - accounting-measurement-auditor
+expected_terms:
+  - disclosure
+  - identification
+  - measurement
+expected_domain_profiles:
+  - economics.yaml
+  - accounting.yaml
+forbidden_domain_profiles: []
