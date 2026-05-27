@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import stat
@@ -11,7 +12,13 @@ from importlib import resources
 from dataclasses import dataclass
 from pathlib import Path
 
-from .subject_materializer import MaterializeOptions, SubjectMaterializationError, materialize_subject_package, validate_subject_catalog
+from .subject_materializer import (
+    COVERAGE_CHOICES,
+    MaterializeOptions,
+    SubjectMaterializationError,
+    materialize_subject_package,
+    validate_subject_catalog,
+)
 
 
 TARGET_CHOICES = ("codex", "claude", "gemini", "antigravity", "all")
@@ -25,6 +32,7 @@ class InstallOptions:
     repo_root: Path
     project_dir: Path
     subject: str = "core"
+    coverage: str = "complete"
     target: str = "all"
     mode: str = "copy"
     overwrite: bool = False
@@ -52,6 +60,7 @@ def apply_profile(options: InstallOptions) -> InstallOptions:
         repo_root=options.repo_root,
         project_dir=options.project_dir,
         subject=options.subject,
+        coverage=options.coverage,
         target=options.target,
         mode=options.mode,
         overwrite=options.overwrite,
@@ -183,8 +192,28 @@ def _skill_package_version(path: Path) -> str:
 def _skill_package_subject(path: Path) -> str:
     if not _is_qiongli_package_dir(path):
         return ""
+    manifest = _skill_package_manifest(path)
+    if isinstance(manifest.get("subject"), str) and manifest["subject"].strip():
+        return str(manifest["subject"]).strip()
     subject = _read_version_file(path / "SUBJECT")
     return subject or "core"
+
+
+def _skill_package_coverage(path: Path) -> str:
+    if not _is_qiongli_package_dir(path):
+        return ""
+    manifest = _skill_package_manifest(path)
+    if isinstance(manifest.get("coverage"), str) and manifest["coverage"].strip():
+        return str(manifest["coverage"]).strip()
+    return "complete"
+
+
+def _skill_package_manifest(path: Path) -> dict[str, object]:
+    try:
+        payload = json.loads((path / "SUBJECT_MANIFEST.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
 
 
 def _skill_package_state(path: Path) -> str:
@@ -227,6 +256,29 @@ def _print_legacy_install_residues(target: str, target_paths: dict[str, Path]) -
     print("          `qiongli clean --globals` removes legacy workflow discovery symlinks only.")
 
 
+def _print_subject_switch_warnings(target: str, target_paths: dict[str, Path], requested_subject: str) -> None:
+    if requested_subject != "core":
+        return
+    warnings: list[tuple[str, str]] = []
+    for target_name in _selected_target_names(target):
+        dest = target_paths[target_name]
+        current_subject = _skill_package_subject(dest)
+        if current_subject and current_subject != "core":
+            warnings.append((target_name, current_subject))
+    if not warnings:
+        return
+    _print_section("Subject Switch")
+    for target_name, current_subject in warnings:
+        _print_result(
+            "Subject",
+            (
+                f"{target_name}: Changing active subject from {current_subject} to core; "
+                "subject overlays and subject-specific skills will be removed from this active package."
+            ),
+            "skip",
+        )
+
+
 def _skill_copy_detail(dest: Path, src_version: str, dest_version: str = "", action: str = "") -> str:
     if action == "skip":
         return f"{dest} (current {src_version}; source {src_version}; already installed)"
@@ -241,12 +293,15 @@ def _skill_subject_copy_detail(
     dest: Path,
     src_version: str,
     src_subject: str,
+    src_coverage: str,
     dest_version: str,
     dest_subject: str,
+    dest_coverage: str,
 ) -> str:
     return (
-        f"{dest} (current {dest_version}/{dest_subject}; source {src_version}/{src_subject}; "
-        f"updated {dest_subject} -> {src_subject})"
+        f"{dest} (current {dest_version}/{dest_subject}/{dest_coverage}; "
+        f"source {src_version}/{src_subject}/{src_coverage}; "
+        f"updated {dest_subject}/{dest_coverage} -> {src_subject}/{src_coverage})"
     )
 
 
@@ -279,11 +334,25 @@ def _copy_path(src: Path, dest: Path, mode: str, overwrite: bool, dry_run: bool)
             dest_version = _skill_package_version(dest)
             src_subject = _skill_package_subject(src)
             dest_subject = _skill_package_subject(dest)
+            src_coverage = _skill_package_coverage(src)
+            dest_coverage = _skill_package_coverage(dest)
             if src_version and dest_version:
-                if src_version == dest_version and src_subject == dest_subject:
+                if src_version == dest_version and src_subject == dest_subject and src_coverage == dest_coverage:
                     return "skip", _skill_copy_detail(dest, src_version, action="skip")
-                if src_subject and dest_subject and src_subject != dest_subject:
-                    auto_detail = _skill_subject_copy_detail(dest, src_version, src_subject, dest_version, dest_subject)
+                if (
+                    src_subject
+                    and dest_subject
+                    and (src_subject != dest_subject or src_coverage != dest_coverage)
+                ):
+                    auto_detail = _skill_subject_copy_detail(
+                        dest,
+                        src_version,
+                        src_subject,
+                        src_coverage,
+                        dest_version,
+                        dest_subject,
+                        dest_coverage,
+                    )
                 else:
                     auto_detail = _skill_copy_detail(dest, src_version, dest_version, action="update")
             elif src_version and _is_qiongli_package_dir(dest):
@@ -644,6 +713,7 @@ def install(options: InstallOptions) -> int:
             repo_root=_resolve(options.repo_root),
             project_dir=_resolve(options.project_dir),
             subject=options.subject,
+            coverage=options.coverage,
             target=options.target,
             mode=options.mode,
             overwrite=options.overwrite,
@@ -660,6 +730,9 @@ def install(options: InstallOptions) -> int:
         raise ValueError(f"Unsupported target: {options.target}")
     if options.mode not in {"copy", "link"}:
         raise ValueError(f"Unsupported mode: {options.mode}")
+    if options.coverage not in COVERAGE_CHOICES:
+        available = ", ".join(sorted(COVERAGE_CHOICES))
+        raise SubjectMaterializationError(f"unsupported coverage: {options.coverage}. Available coverage: {available}")
     selected_parts = normalize_parts(options.parts)
     install_globals = True if selected_parts is None else "globals" in selected_parts
     install_project = False if selected_parts is None else "project" in selected_parts
@@ -695,6 +768,7 @@ def install(options: InstallOptions) -> int:
     print(f"  project: {options.project_dir}")
     print(f"  target:  {options.target} | mode: {options.mode}")
     print(f"  subject: {options.subject}")
+    print(f"  coverage: {options.coverage}")
     if options.profile:
         print(f"  profile: {options.profile}")
     if selected_parts is not None:
@@ -713,6 +787,8 @@ def install(options: InstallOptions) -> int:
         _print_legacy_install_residues(options.target, target_paths)
     _print_full_readiness(options)
     _print_cli_checks(options.target)
+    if install_globals:
+        _print_subject_switch_warnings(options.target, target_paths, options.subject)
 
     # Sync bundled assets into the skill package before dir-copy
     if install_globals and not options.dry_run:
@@ -733,10 +809,11 @@ def install(options: InstallOptions) -> int:
                     out=skill_src,
                     subject=options.subject,
                     flavor="full",
+                    coverage=options.coverage,
                 )
             )
             _print_section("Subject Package")
-            _print_result("Subject", f"{options.subject} -> {skill_src}", "ok")
+            _print_result("Subject", f"{options.subject}/{options.coverage} -> {skill_src}", "ok")
 
     section_targets = ("codex", "claude", "gemini", "antigravity")
     try:
