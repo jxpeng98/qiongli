@@ -12,6 +12,11 @@ from pathlib import Path
 
 from build_plugin_artifacts import build_artifacts
 
+try:
+    from scripts.audit_subject_specialization import audit_subject_specialization
+except ModuleNotFoundError:
+    from audit_subject_specialization import audit_subject_specialization
+
 
 PLUGIN_NAME = "qiongli"
 SKILL_DIR_NAME = "qiongli-workflow"
@@ -315,6 +320,14 @@ def _validate_claude_desktop_artifact(artifact: Path, expected_repo_tag: str, su
     )
 
 
+def _validate_subject_specialization(root: Path) -> None:
+    findings = audit_subject_specialization(root)
+    if not findings:
+        return
+    details = "\n".join(f"{finding.subject}: {finding.code}: {finding.message}" for finding in findings)
+    raise SystemExit(f"Subject specialization audit failed:\n{details}")
+
+
 def validate(root: Path, dist_dir: Path) -> list[str]:
     root = root.resolve()
     dist_dir = dist_dir.resolve()
@@ -346,6 +359,8 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
     if legacy_desktop_artifact is None:
         raise ValueError(f"expected legacy claude-desktop artifact: {legacy_desktop_name}")
     messages.append(_validate_claude_desktop_artifact(legacy_desktop_artifact, expected_repo_tag, "core"))
+
+    _validate_subject_specialization(root)
 
     return messages
 
