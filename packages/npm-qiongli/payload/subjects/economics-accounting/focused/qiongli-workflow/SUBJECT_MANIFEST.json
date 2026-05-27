@@ -1,0 +1,9 @@
+{
+  "coverage": "focused",
+  "flavor": "full",
+  "layers": [
+    "core",
+    "economics-accounting"
+  ],
+  "subject": "economics-accounting"
+}
