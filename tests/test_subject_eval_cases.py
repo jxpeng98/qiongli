@@ -19,8 +19,13 @@ class SubjectEvalCaseTests(unittest.TestCase):
         cases = load_subject_eval_cases(CASE_DIR)
         case_ids = {case.id for case in cases}
 
-        self.assertIn("economics-did-identification", case_ids)
-        self.assertIn("economics-accounting-disclosure-study", case_ids)
+        self.assertEqual(
+            case_ids,
+            {
+                "economics-did-identification",
+                "economics-accounting-disclosure-study",
+            },
+        )
 
     def test_eval_cases_pass_against_materialized_outputs(self) -> None:
         self.assertEqual(audit_subject_eval_cases(REPO_ROOT), [])
