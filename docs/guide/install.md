@@ -13,7 +13,7 @@ Qiongli has several installation surfaces because users need different levels of
 | npm / npx | Node-based automation | npm CLI plus bundled workflow payload | Only for advanced bridge commands |
 | pipx / pip | Python updater CLI | Python CLI distribution | Yes |
 
-The user-visible skill name is `qiongli`. The installed directory is still `qiongli-workflow` for compatibility with existing clients and release artifacts. `core` is the default subject. Specialized CLI/npm installs default to `coverage=complete`, meaning full Qiongli plus the requested subject specialization.
+The user-visible skill name is `qiongli`. The installed directory is still `qiongli-workflow` for compatibility with existing clients and release artifacts. `core` is the default subject, so the default install is `core/complete`. Specialized CLI/npm installs default to `coverage=complete`, meaning full Qiongli plus the requested subject specialization.
 
 ## Native Plugin And Extension
 
@@ -44,7 +44,7 @@ Inside an interactive Claude Code session, use:
 
 Claude Desktop and Claude.ai do not install third-party Claude Code plugin marketplaces. If you use Desktop or the web app and are not familiar with a code/CLI environment, use the release ZIP path instead. It requires no terminal commands:
 
-1. Download `qiongli-claude-desktop-skill-core-<tag>.zip`, `qiongli-claude-desktop-skill-economics-<tag>.zip`, or `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip` from the GitHub Release assets.
+1. Download `qiongli-claude-desktop-skill-core-<tag>.zip`, `qiongli-claude-desktop-skill-economics-<tag>.zip`, or `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip` from the GitHub Release assets. Public Desktop ZIP subjects in this phase are `core`, `economics`, and `economics-accounting`; there is no standalone accounting Desktop ZIP yet.
 2. In Claude Desktop, drag the ZIP into the Skills upload/install flow, or open `Customize > Skills`, click `+`, choose `Create skill`, then `Upload a skill`.
 3. In Claude.ai, use the same `Customize > Skills` upload flow and select the same ZIP.
 4. Enable the uploaded `qiongli` skill.
@@ -121,7 +121,9 @@ Use npm when you want a Node-distributed installer with the workflow payload bun
 npm install -g qiongli
 qiongli install --subject core --target all --project-dir "$PWD"
 qiongli install --subject economics --target all --project-dir "$PWD"
+qiongli install --subject accounting --target all --project-dir "$PWD"
 qiongli install --subject economics-accounting --target all --project-dir "$PWD"
+qiongli install --subject economics --coverage focused --target all --project-dir "$PWD"
 ```
 
 For one-off runs:
@@ -144,8 +146,9 @@ Use pipx when you specifically want the Python-distributed updater CLI:
 
 ```bash
 pipx install qiongli
-qiongli install --subject core --target all
+qiongli install --target all
 qiongli install --subject economics --target all
+qiongli install --subject accounting --target all
 qiongli install --subject economics-accounting --target all
 ```
 
@@ -153,10 +156,16 @@ Upgrade it with:
 
 ```bash
 pipx upgrade qiongli
-qiongli upgrade --subject economics --target all --doctor --project-dir /path/to/project
+qiongli upgrade --subject accounting --target all --doctor --project-dir /path/to/project
 ```
 
-`--subject` defaults to `core`, and `--coverage` defaults to `complete`. Use complete when you are unsure: it keeps the full framework and adds the requested subject overlays and subject-specific skills. Use `--coverage focused` for deliberate slim installs and Desktop/Web-equivalent packages. To switch a client from one subject or coverage to another, rerun `install` or `upgrade` with new flags. `qiongli check --json` reports the active installed subject and coverage per target; legacy installs without a `SUBJECT_MANIFEST.json` or `SUBJECT` file are treated as `core` / `complete`.
+`--subject` defaults to `core`, and `--coverage` defaults to `complete`. Use complete when you are unsure: `--subject economics` means `economics/complete`, not a reduced package, and `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. Use `--coverage focused` for deliberate slim installs and Desktop/Web-equivalent packages. Current official subjects are `core`, `economics`, `accounting`, and the named composite `economics-accounting`; official composite subjects are not arbitrary comma-separated stacking. To switch a client from one subject or coverage to another, rerun `install` or `upgrade` with new flags. `qiongli check --json` reports the active installed subject and coverage per target; legacy installs without a `SUBJECT_MANIFEST.json` or `SUBJECT` file are treated as `core` / `complete`.
+
+Create a custom scaffold before materializing local overlays:
+
+```bash
+qiongli customize --subject economics --name my-econ-lab --out ./qiongli-custom/econ-lab
+```
 
 Local custom overlays are supported by the source materializer:
 
@@ -169,7 +178,7 @@ python3 scripts/materialize_subject_package.py \
   --out /tmp/qiongli-workflow
 ```
 
-Use this when you need local overlays, profiles, registry entries, or custom skill markdown. npm runtime installs do not accept `--custom-dir` in this phase.
+Use this when you need local overlays, profiles, registry entries, or custom skill markdown. Custom overlays affect generated output only and do not rewrite canonical source files. `qiongli customize` plus `--custom-dir` materialization is for the Python/source checkout workflow; npm runtime installs pre-generated payloads and do not accept `--custom-dir` in this phase.
 
 ## What Gets Installed
 

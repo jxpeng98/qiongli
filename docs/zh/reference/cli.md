@@ -72,11 +72,11 @@ JSON 输出会包含每个 target 当前安装的 active subject 和 coverage。
 
 用途：
 - 把 PyPI 包内携带的 subject payload 安装到全局客户端 skill 目录。
-- 默认是 `--subject core --coverage complete`；经济学专精使用 `--subject economics`，表示全量 Qiongli 加 economics 专精。
+- 默认是 `--subject core --coverage complete`；经济学专精使用 `--subject economics`，表示全量 Qiongli 加 economics 专精；会计专精使用 `--subject accounting`，表示全量 Qiongli 加 accounting 专精。
 
 ```bash
 qiongli install \
-  [--subject core|economics|economics-accounting] \
+  [--subject core|economics|accounting|economics-accounting] \
   [--coverage complete|focused] \
   [--target codex|claude|gemini|antigravity|all] \
   [--mode copy|link] \
@@ -86,7 +86,17 @@ qiongli install \
   [--dry-run]
 ```
 
-Subject package 是专精安装包，不是降质删减版。`complete` coverage 保留全量 core 框架，并叠加所选 subject overlays 与 subject-specific skills。`focused` coverage 只选择该 subject 的 profiles 和 active effective skills，用于精简安装。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新参数。
+示例：
+
+```bash
+qiongli install --target all
+qiongli install --subject economics --target all
+qiongli install --subject accounting --target all
+qiongli install --subject economics-accounting --target all
+qiongli install --subject economics --coverage focused --target all
+```
+
+Subject package 是专精安装包，不是降质删减版。默认安装是 `core/complete`。`--subject economics` 表示 `economics/complete`，不是缩水包；`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。`focused` coverage 只选择该 subject 的 profiles 和 active effective skills，用于有意选择的精简安装和 Desktop/Web ZIP。当前官方 subjects 是 `core`、`economics`、`accounting` 和命名 composite subject `economics-accounting`；官方 composite subjects 不是任意逗号分隔叠加。本阶段公开 Desktop ZIP subjects 是 `core`、`economics` 和 `economics-accounting`，还没有 standalone accounting Desktop ZIP。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新参数。
 
 ### 2.3 `qiongli upgrade`（下载 release 并执行三端安装脚本）
 
@@ -100,7 +110,7 @@ qiongli upgrade \
   [--repo <owner/repo|url>] \
   [--ref <tag-or-branch>] \
   [--ref-type tag|branch] \
-  [--subject core|economics|economics-accounting] \
+  [--subject core|economics|accounting|economics-accounting] \
   [--coverage complete|focused] \
   [--target codex|claude|gemini|antigravity|all] \
   [--project-dir <path>] \
@@ -112,7 +122,8 @@ qiongli upgrade \
 说明：
 - `--project-dir` 主要在你显式请求项目侧安装面时生效，例如 `--parts project`。
 - 现在默认的 `upgrade` 是全局刷新。项目接线建议走 `qiongli init --project-dir .`；如果确实要在升级时重写项目文件，再显式加 `--parts project`。
-- `--subject` 默认是 `core`，`--coverage` 默认是 `complete`；使用 `--subject economics` 会安装全量 Qiongli 加 economics 专精，显式加 `--coverage focused` 时才安装精简 selected 包。
+- `--subject` 默认是 `core`，`--coverage` 默认是 `complete`；使用 `--subject economics` 会安装全量 Qiongli 加 economics 专精，使用 `--subject accounting` 会安装全量 Qiongli 加 accounting 专精，显式加 `--coverage focused` 时才安装精简 selected 包。
+- 示例：`qiongli upgrade --subject accounting --target all`。
 - 全局安装后，`upgrade` 会自动创建工作流发现 symlink：`~/.claude/commands/*.md` 和 `~/.gemini/workflows/*.md`，可直接使用 `/paper`、`/lit-review` 等 slash 命令。
 - Shell CLI 会通过随附的 bootstrap helper 执行升级，不依赖 Python。
 - 退出码为底层安装器返回码（若安装失败，沿用其错误码）。
@@ -151,6 +162,20 @@ qiongli clean [--project-dir <path>] [--dry-run] [--globals]
 ```bash
 qiongli doctor [--cwd <path>]
 ```
+
+### 2.8 `qiongli customize`（创建 custom subject overlay）
+
+用途：
+- 为 Python/source checkout materialization 工作流创建本地 custom overlay scaffold。
+- Custom overlays 只影响 generated output，不会改写 canonical source files。
+- npm runtime installs 在这个阶段使用预生成 payloads，不会在 install 时 materialize `--custom-dir` overlays。
+
+```bash
+qiongli customize --subject economics --name my-econ-lab --out ./qiongli-custom/econ-lab
+python3 scripts/materialize_subject_package.py --subject economics --custom-dir ./qiongli-custom/econ-lab --source . --out /tmp/qiongli-workflow
+```
+
+开发或加深一个 subject 时，需要同步更新 `subjects/catalog.yaml`、subject overlays、subject-specific registry and markdown、选定的 domain and venue profiles、subject eval fixtures、specialization audit expected terms、materializer tests、该 subject 可通过 npm 安装时的 npm payload tests，以及该 subject 有 Desktop/Web artifact 时的 release validation。
 
 ---
 
