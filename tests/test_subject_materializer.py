@@ -28,6 +28,7 @@ class SubjectMaterializerTests(unittest.TestCase):
                     out=out,
                     subject="economics",
                     flavor="full",
+                    coverage="focused",
                 )
             )
 
@@ -54,6 +55,39 @@ class SubjectMaterializerTests(unittest.TestCase):
             self.assertNotIn("模型选择有统计学依据", stats)
             self.assertIn("## Common Pitfalls", stats)
             self.assertIn("naive TWFE", stats)
+
+    def test_default_economics_complete_package_keeps_core_coverage_and_overlays(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out = Path(tmp_dir) / "qiongli-workflow"
+
+            materialize_subject_package(
+                MaterializeOptions(
+                    source=REPO_ROOT,
+                    out=out,
+                    subject="economics",
+                    flavor="full",
+                )
+            )
+
+            manifest = json.loads((out / "SUBJECT_MANIFEST.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["coverage"], "complete")
+
+            registry = yaml.safe_load((out / "skills" / "registry.yaml").read_text(encoding="utf-8"))
+            registry_ids = {entry["id"] for entry in registry["skills"]}
+            self.assertIn("prisma-checker", registry_ids)
+            self.assertIn("citation-formatter", registry_ids)
+            self.assertIn("econ-identification-auditor", registry_ids)
+
+            self.assertTrue((out / "skills" / "domain-profiles" / "cs-ai.yaml").exists())
+            self.assertTrue((out / "skills" / "domain-profiles" / "finance.yaml").exists())
+            self.assertTrue((out / "skills" / "domain-profiles" / "economics.yaml").exists())
+            self.assertTrue((out / "venue-profiles" / "neurips.yaml").exists())
+            self.assertTrue((out / "venue-profiles" / "aer.yaml").exists())
+
+            manuscript = (out / "skills" / "F_writing" / "manuscript-architect.md").read_text(encoding="utf-8")
+            self.assertIn("## Economics Overlay", manuscript)
+            stats = (out / "skills" / "I_code" / "stats-engine.md").read_text(encoding="utf-8")
+            self.assertIn("clustered standard errors", stats)
 
     def test_materialization_writes_subject_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -95,7 +129,7 @@ class SubjectMaterializerTests(unittest.TestCase):
             out = Path(tmp_dir) / "qiongli-workflow"
 
             materialize_subject_package(
-                MaterializeOptions(source=REPO_ROOT, out=out, subject="economics", flavor="full")
+                MaterializeOptions(source=REPO_ROOT, out=out, subject="economics", flavor="full", coverage="focused")
             )
 
             self.assertTrue((out / "skills" / "domain-profiles" / "economics.yaml").exists())
