@@ -1,0 +1,16 @@
+id: accounting-accruals-measurement
+subject: accounting
+coverage: focused
+prompt: "Plan an archival accounting paper about discretionary accruals and earnings management."
+expected_skill_refs:
+  - accounting-measurement-auditor
+expected_terms:
+  - accrual
+  - measurement
+  - disclosure
+expected_domain_profiles:
+  - accounting.yaml
+forbidden_domain_profiles:
+  - economics.yaml
+  - cs-ai.yaml
+  - biomedical.yaml
