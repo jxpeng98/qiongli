@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from . import __version__
+from .custom_subject import scaffold_custom_subject
 from .subject_materializer import SubjectCatalogError, SubjectMaterializationError
 from .universal_installer import PART_CHOICES, InstallOptions, clean, clean_workflow_symlinks, install
 
@@ -843,6 +844,13 @@ def cmd_clean(args: argparse.Namespace) -> int:
         rc = rc or rc2
     return rc
 
+
+def cmd_customize(args: argparse.Namespace) -> int:
+    scaffold_custom_subject(Path(args.out), base_subject=args.subject, name=args.name, force=args.force)
+    print(f"Created custom subject overlay at {args.out}")
+    return 0
+
+
 def cmd_align(args: argparse.Namespace) -> int:
     repo_hint = (
         args.repo.strip()
@@ -1056,6 +1064,12 @@ def build_parser() -> argparse.ArgumentParser:
     clean_parser.add_argument("--dry-run", action="store_true", help="Show what would be removed without deleting")
     clean_parser.add_argument("--globals", action="store_true", help="Also remove workflow discovery symlinks from global dirs")
 
+    customize = subparsers.add_parser("customize", help="Create a local custom subject overlay directory")
+    customize.add_argument("--subject", default="core", help="Base subject package to customize (default: core)")
+    customize.add_argument("--name", required=True, help="Name for the local custom subject layer")
+    customize.add_argument("--out", required=True, help="Output directory for the custom subject layer")
+    customize.add_argument("--force", action="store_true", help="Allow writing into an existing directory")
+
     return parser
 
 
@@ -1076,6 +1090,8 @@ def main() -> int:
         return cmd_init(args)
     if args.cmd == "clean":
         return cmd_clean(args)
+    if args.cmd == "customize":
+        return cmd_customize(args)
     raise RuntimeError(f"Unhandled command: {args.cmd}")
 
 
