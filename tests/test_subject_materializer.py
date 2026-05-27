@@ -124,6 +124,165 @@ class SubjectMaterializerTests(unittest.TestCase):
                     )
                 )
 
+    def test_custom_dir_appends_overlay_skill_and_profiles(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            custom_dir = root / "custom"
+            (custom_dir / "overlays" / "skills").mkdir(parents=True)
+            (custom_dir / "skills").mkdir(parents=True)
+            (custom_dir / "domain-profiles").mkdir(parents=True)
+            (custom_dir / "venue-profiles").mkdir(parents=True)
+            (custom_dir / "subject.yaml").write_text(
+                "\n".join(
+                    [
+                        "skill_refs: [custom-validity-auditor]",
+                        "domain_profiles: [custom-ledger]",
+                        "venue_profiles: [custom-journal]",
+                        "skill_overrides:",
+                        "  - skill: manuscript-architect",
+                        "    overlay: overlays/skills/manuscript-architect.md",
+                        "    mode: append",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            (custom_dir / "skills" / "registry.yaml").write_text(
+                "\n".join(
+                    [
+                        "skills:",
+                        "  - id: custom-validity-auditor",
+                        "    stage: C_design",
+                        "    version: \"0.1.0\"",
+                        "    file: skills/C_design/custom-validity-auditor.md",
+                        "    canonical: false",
+                        "    summary: Custom validity audit",
+                        "    display_name: Custom Validity Auditor",
+                        "    when_to_use: Custom validity checks",
+                        "    inputs: [DesignSpec]",
+                        "    outputs: [CustomAudit]",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            (custom_dir / "skills" / "custom-validity-auditor.md").write_text(
+                "# Custom Validity Auditor\n\nCustom audit body.\n",
+                encoding="utf-8",
+            )
+            (custom_dir / "overlays" / "skills" / "manuscript-architect.md").write_text(
+                "## Custom Overlay\n\nRequire local lab disclosure language.\n",
+                encoding="utf-8",
+            )
+            (custom_dir / "domain-profiles" / "custom-ledger.yaml").write_text(
+                "domain: custom-ledger\n",
+                encoding="utf-8",
+            )
+            (custom_dir / "venue-profiles" / "custom-journal.yaml").write_text(
+                "venue: custom-journal\n",
+                encoding="utf-8",
+            )
+            out = root / "qiongli-workflow"
+
+            materialize_subject_package(
+                MaterializeOptions(
+                    source=REPO_ROOT,
+                    out=out,
+                    subject="economics",
+                    flavor="full",
+                    coverage="focused",
+                    custom_dir=custom_dir,
+                )
+            )
+
+            registry = yaml.safe_load((out / "skills" / "registry.yaml").read_text(encoding="utf-8"))
+            registry_ids = {entry["id"] for entry in registry["skills"]}
+            self.assertIn("custom-validity-auditor", registry_ids)
+            self.assertTrue((out / "skills" / "C_design" / "custom-validity-auditor.md").exists())
+            self.assertTrue((out / "skills" / "domain-profiles" / "custom-ledger.yaml").exists())
+            self.assertTrue((out / "venue-profiles" / "custom-journal.yaml").exists())
+            manuscript = (out / "skills" / "F_writing" / "manuscript-architect.md").read_text(encoding="utf-8")
+            self.assertIn("## Custom Overlay", manuscript)
+
+    def test_custom_registry_duplicate_id_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            custom_dir = root / "custom"
+            (custom_dir / "skills").mkdir(parents=True)
+            (custom_dir / "skills" / "registry.yaml").write_text(
+                "\n".join(
+                    [
+                        "skills:",
+                        "  - id: stats-engine",
+                        "    stage: I_code",
+                        "    version: \"0.1.0\"",
+                        "    file: skills/I_code/stats-engine.md",
+                        "    canonical: false",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(SubjectMaterializationError, "duplicate custom registry id"):
+                materialize_subject_package(
+                    MaterializeOptions(
+                        source=REPO_ROOT,
+                        out=root / "out",
+                        subject="economics",
+                        custom_dir=custom_dir,
+                    )
+                )
+
+    def test_custom_unknown_skill_ref_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            custom_dir = root / "custom"
+            custom_dir.mkdir(parents=True)
+            (custom_dir / "subject.yaml").write_text(
+                "skill_refs: [missing-custom-skill]\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(SubjectMaterializationError, "custom subject references unknown skills"):
+                materialize_subject_package(
+                    MaterializeOptions(
+                        source=REPO_ROOT,
+                        out=root / "out",
+                        subject="economics",
+                        custom_dir=custom_dir,
+                    )
+                )
+
+    def test_custom_replace_sections_missing_section_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            custom_dir = root / "custom"
+            (custom_dir / "overlays" / "skills").mkdir(parents=True)
+            (custom_dir / "subject.yaml").write_text(
+                "\n".join(
+                    [
+                        "skill_overrides:",
+                        "  - skill: manuscript-architect",
+                        "    overlay: overlays/skills/manuscript-architect.md",
+                        "    mode: replace_sections",
+                        "    sections: [Does Not Exist]",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            (custom_dir / "overlays" / "skills" / "manuscript-architect.md").write_text(
+                "## Does Not Exist\n\nReplacement.\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(SubjectMaterializationError, "base skill missing replace_sections section"):
+                materialize_subject_package(
+                    MaterializeOptions(
+                        source=REPO_ROOT,
+                        out=root / "out",
+                        subject="economics",
+                        custom_dir=custom_dir,
+                    )
+                )
+
     def test_materialized_economics_filters_profiles(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             out = Path(tmp_dir) / "qiongli-workflow"

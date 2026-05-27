@@ -29,6 +29,11 @@ def main(argv: list[str] | None = None) -> int:
         default="complete",
         help="Subject coverage to materialize (default: complete).",
     )
+    parser.add_argument(
+        "--custom-dir",
+        type=Path,
+        help="Optional local customization directory applied only to this materialized output.",
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -39,6 +44,7 @@ def main(argv: list[str] | None = None) -> int:
                 subject=args.subject,
                 flavor=args.flavor,
                 coverage=args.coverage,
+                custom_dir=args.custom_dir,
             )
         )
     except (SubjectCatalogError, SubjectMaterializationError) as exc:

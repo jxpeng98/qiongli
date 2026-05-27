@@ -69,6 +69,18 @@ class MaterializeOptions:
     subject: str = "core"
     flavor: str = "full"
     coverage: str = "complete"
+    custom_dir: Path | None = None
+
+
+@dataclass(frozen=True)
+class CustomSubjectLayer:
+    root: Path | None = None
+    skill_refs: tuple[str, ...] = ()
+    domain_profiles: tuple[str, ...] = ()
+    venue_profiles: tuple[str, ...] = ()
+    skill_overrides: tuple[dict[str, Any], ...] = ()
+    registry_entries: tuple[dict[str, Any], ...] = ()
+    skill_sources: dict[str, Path] = field(default_factory=dict)
 
 
 def load_subject_catalog(root: Path) -> dict[str, Any]:
@@ -144,8 +156,11 @@ def materialize_subject_package(options: MaterializeOptions) -> None:
     package_root = _package_root(source)
     base_registry = _load_registry_entries(source / "skills" / "registry.yaml")
     subject_registry = _load_all_subject_registry_entries(source)
+    custom_layer = _load_custom_layer(options.custom_dir)
+    _assert_no_custom_registry_conflicts([*base_registry, *subject_registry], list(custom_layer.registry_entries))
     subject_skill_sources = _load_subject_skill_sources(source)
-    registry_by_id = {entry["id"]: entry for entry in [*base_registry, *subject_registry]}
+    registry_by_id = {entry["id"]: entry for entry in [*base_registry, *subject_registry, *custom_layer.registry_entries]}
+    _assert_custom_refs_exist(custom_layer, registry_by_id)
 
     if out.exists():
         shutil.rmtree(out)
@@ -153,8 +168,9 @@ def materialize_subject_package(options: MaterializeOptions) -> None:
 
     _copy_common_package_assets(package_root, out)
     _materialize_templates(package_root, out, subject, options.coverage)
-    _materialize_venue_profiles(package_root, source, out, subject, options.coverage)
+    _materialize_venue_profiles(package_root, source, out, subject, options.coverage, custom_layer)
     selected_entries = _selected_registry_entries(subject, base_registry, subject_registry, options.coverage)
+    selected_entries = _append_custom_selected_entries(selected_entries, custom_layer, registry_by_id)
     _materialize_skills(
         source=source,
         package_root=package_root,
@@ -162,11 +178,12 @@ def materialize_subject_package(options: MaterializeOptions) -> None:
         subject=subject,
         selected_entries=selected_entries,
         subject_skill_sources=subject_skill_sources,
+        custom_layer=custom_layer,
         coverage=options.coverage,
         include_detailed_skills=options.flavor == "full" or subject.id != "core",
     )
     _write_registry(out, selected_entries)
-    _write_subject_markers(package_root, out, subject, options.flavor, options.coverage)
+    _write_subject_markers(package_root, out, subject, options.flavor, options.coverage, custom_layer)
     _assert_no_symlinks(out)
     _assert_selected_skill_refs_exist(subject, registry_by_id)
 
@@ -261,6 +278,7 @@ def _materialize_venue_profiles(
     out: Path,
     subject: SubjectDefinition,
     coverage: str,
+    custom_layer: CustomSubjectLayer,
 ) -> None:
     dest_root = out / "venue-profiles"
     src = package_root / "venue-profiles"
@@ -268,17 +286,20 @@ def _materialize_venue_profiles(
         if src.exists():
             _copy_path(src, dest_root)
         if coverage != "complete" or subject.id == "core":
+            _materialize_custom_profiles(custom_layer, "venue-profiles", custom_layer.venue_profiles, dest_root)
             return
     else:
         src = None
 
     if subject.id == "core" or not subject.venue_profiles:
+        _materialize_custom_profiles(custom_layer, "venue-profiles", custom_layer.venue_profiles, dest_root)
         return
     for profile in subject.venue_profiles:
         src = _find_venue_profile(package_root, source, subject.id, profile)
         if not src.exists():
             raise SubjectMaterializationError(f"subject {subject.id} references missing venue profile: {profile}")
         _copy_path(src, dest_root / f"{profile}.yaml")
+    _materialize_custom_profiles(custom_layer, "venue-profiles", custom_layer.venue_profiles, dest_root)
 
 
 def _find_venue_profile(package_root: Path, source: Path, subject_id: str, profile: str) -> Path:
@@ -291,24 +312,45 @@ def _find_venue_profile(package_root: Path, source: Path, subject_id: str, profi
     return package_root / "venue-profiles" / f"{profile}.yaml"
 
 
-def _materialize_domain_profiles(package_root: Path, out: Path, subject: SubjectDefinition, coverage: str) -> None:
+def _materialize_custom_profiles(
+    custom_layer: CustomSubjectLayer,
+    dirname: str,
+    profiles: tuple[str, ...],
+    dest_root: Path,
+) -> None:
+    if custom_layer.root is None:
+        return
+    for profile in profiles:
+        src = custom_layer.root / dirname / f"{profile}.yaml"
+        if not src.is_file():
+            raise SubjectMaterializationError(f"custom subject references missing {dirname[:-1]}: {profile}")
+        _copy_path(src, dest_root / f"{profile}.yaml")
+
+
+def _materialize_domain_profiles(
+    package_root: Path,
+    out: Path,
+    subject: SubjectDefinition,
+    coverage: str,
+    custom_layer: CustomSubjectLayer,
+) -> None:
     source = package_root.parent if package_root.name == "qiongli-workflow" else package_root
     src_root = package_root / "skills" / "domain-profiles"
     if not src_root.exists():
         src_root = source / "skills" / "domain-profiles"
     dest_root = out / "skills" / "domain-profiles"
-    if not src_root.exists():
-        return
-    if coverage == "complete" or subject.id == "core" or not subject.domain_profiles:
-        _copy_path(src_root, dest_root)
-        return
-    for profile in subject.domain_profiles:
-        src = src_root / f"{profile}.yaml"
-        if not src.exists():
-            src = source / "skills" / "domain-profiles" / f"{profile}.yaml"
-        if not src.exists():
-            raise SubjectMaterializationError(f"subject {subject.id} references missing domain profile: {profile}")
-        _copy_path(src, dest_root / f"{profile}.yaml")
+    if src_root.exists():
+        if coverage == "complete" or subject.id == "core" or not subject.domain_profiles:
+            _copy_path(src_root, dest_root)
+        else:
+            for profile in subject.domain_profiles:
+                src = src_root / f"{profile}.yaml"
+                if not src.exists():
+                    src = source / "skills" / "domain-profiles" / f"{profile}.yaml"
+                if not src.exists():
+                    raise SubjectMaterializationError(f"subject {subject.id} references missing domain profile: {profile}")
+                _copy_path(src, dest_root / f"{profile}.yaml")
+    _materialize_custom_profiles(custom_layer, "domain-profiles", custom_layer.domain_profiles, dest_root)
 
 
 def _selected_registry_entries(
@@ -347,6 +389,17 @@ def _dedupe_registry_entries(entries: list[dict[str, Any]]) -> list[dict[str, An
     return selected
 
 
+def _append_custom_selected_entries(
+    selected_entries: list[dict[str, Any]],
+    custom_layer: CustomSubjectLayer,
+    registry_by_id: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    if not custom_layer.skill_refs:
+        return selected_entries
+    custom_entries = [dict(registry_by_id[skill_ref]) for skill_ref in custom_layer.skill_refs]
+    return _dedupe_registry_entries([*selected_entries, *custom_entries])
+
+
 def _materialize_skills(
     *,
     source: Path,
@@ -355,14 +408,16 @@ def _materialize_skills(
     subject: SubjectDefinition,
     selected_entries: list[dict[str, Any]],
     subject_skill_sources: dict[str, Path],
+    custom_layer: CustomSubjectLayer,
     coverage: str,
     include_detailed_skills: bool,
 ) -> None:
-    _materialize_domain_profiles(package_root, out, subject, coverage)
+    _materialize_domain_profiles(package_root, out, subject, coverage, custom_layer)
     if not include_detailed_skills:
         return
 
-    overrides = {str(item.get("skill")): item for item in subject.skill_overrides}
+    subject_overrides = _overrides_by_skill(subject.skill_overrides, f"subject {subject.id}")
+    custom_overrides = _overrides_by_skill(custom_layer.skill_overrides, "custom subject")
     for entry in selected_entries:
         skill_id = str(entry["id"])
         rel = Path(str(entry["file"]))
@@ -372,19 +427,23 @@ def _materialize_skills(
             src = source / rel
         if not src.exists() and skill_id in subject_skill_sources:
             src = subject_skill_sources[skill_id]
+        if not src.exists() and skill_id in custom_layer.skill_sources:
+            src = custom_layer.skill_sources[skill_id]
         if not src.exists():
             raise SubjectMaterializationError(f"missing skill source for {skill_id}: {src}")
 
         text = src.read_text(encoding="utf-8")
-        if skill_id in overrides:
-            text = _apply_overlay(source, subject, skill_id, text, overrides[skill_id])
+        for override in subject_overrides.get(skill_id, []):
+            text = _apply_overlay(source / "subjects" / subject.id, skill_id, text, override)
+        if custom_layer.root is not None:
+            for override in custom_overrides.get(skill_id, []):
+                text = _apply_overlay(custom_layer.root, skill_id, text, override)
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(text, encoding="utf-8")
 
 
 def _apply_overlay(
-    source: Path,
-    subject: SubjectDefinition,
+    overlay_root: Path,
     skill_id: str,
     base_text: str,
     override: dict[str, Any],
@@ -392,7 +451,7 @@ def _apply_overlay(
     overlay_rel = override.get("overlay")
     if not isinstance(overlay_rel, str) or not overlay_rel.strip():
         raise SubjectMaterializationError(f"skill override for {skill_id} must define overlay")
-    overlay_path = source / "subjects" / subject.id / overlay_rel
+    overlay_path = overlay_root / overlay_rel
     if not overlay_path.is_file():
         raise SubjectMaterializationError(f"missing overlay for {skill_id}: {overlay_path}")
     overlay_text = overlay_path.read_text(encoding="utf-8").strip()
@@ -454,6 +513,7 @@ def _write_subject_markers(
     subject: SubjectDefinition,
     flavor: str,
     coverage: str,
+    custom_layer: CustomSubjectLayer,
 ) -> None:
     version = (package_root / "VERSION").read_text(encoding="utf-8").strip()
     (out / "VERSION").write_text(version + "\n", encoding="utf-8")
@@ -464,7 +524,7 @@ def _write_subject_markers(
                 "subject": subject.id,
                 "coverage": coverage,
                 "flavor": flavor,
-                "layers": _subject_layers(subject),
+                "layers": _subject_layers(subject, custom_layer),
             },
             indent=2,
             sort_keys=True,
@@ -475,11 +535,13 @@ def _write_subject_markers(
     (out / "SKILL.md").write_text(_render_skill_md(subject, flavor), encoding="utf-8")
 
 
-def _subject_layers(subject: SubjectDefinition) -> list[str]:
+def _subject_layers(subject: SubjectDefinition, custom_layer: CustomSubjectLayer) -> list[str]:
     layers: list[str] = []
     if subject.extends:
         layers.append(subject.extends)
     layers.append(subject.id)
+    if custom_layer.root is not None:
+        layers.append("custom")
     return layers
 
 
@@ -572,6 +634,98 @@ def _load_subject_skill_sources(source: Path) -> dict[str, Path]:
     return sources
 
 
+def _load_custom_layer(custom_dir: Path | None) -> CustomSubjectLayer:
+    if custom_dir is None:
+        return CustomSubjectLayer()
+    root = Path(custom_dir).resolve()
+    if not root.is_dir():
+        raise SubjectMaterializationError(f"custom subject directory does not exist: {root}")
+
+    spec = _load_custom_subject_spec(root)
+    registry_entries = tuple(_load_registry_entries(root / "skills" / "registry.yaml"))
+    skill_sources = _load_custom_skill_sources(root, registry_entries)
+    return CustomSubjectLayer(
+        root=root,
+        skill_refs=tuple(_custom_string_list(spec.get("skill_refs"), "skill_refs")),
+        domain_profiles=tuple(_custom_string_list(spec.get("domain_profiles"), "domain_profiles")),
+        venue_profiles=tuple(_custom_string_list(spec.get("venue_profiles"), "venue_profiles")),
+        skill_overrides=tuple(_custom_dict_list(spec.get("skill_overrides"), "skill_overrides")),
+        registry_entries=registry_entries,
+        skill_sources=skill_sources,
+    )
+
+
+def _load_custom_subject_spec(root: Path) -> dict[str, Any]:
+    spec_path = root / "subject.yaml"
+    if not spec_path.is_file():
+        return {}
+    try:
+        payload = yaml.safe_load(spec_path.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError as exc:
+        raise SubjectMaterializationError(f"malformed custom subject spec {spec_path}: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise SubjectMaterializationError(f"{spec_path} must contain an object")
+    return payload
+
+
+def _load_custom_skill_sources(root: Path, registry_entries: tuple[dict[str, Any], ...]) -> dict[str, Path]:
+    sources: dict[str, Path] = {}
+    for entry in registry_entries:
+        skill_id = str(entry["id"])
+        rel = Path(str(entry.get("file") or ""))
+        candidates = []
+        if str(rel):
+            candidates.append(root / rel)
+        candidates.append(root / "skills" / f"{skill_id}.md")
+        for candidate in candidates:
+            if candidate.is_file():
+                sources[skill_id] = candidate
+                break
+        else:
+            sources[skill_id] = root / "skills" / f"{skill_id}.md"
+    return sources
+
+
+def _assert_no_custom_registry_conflicts(
+    canonical_entries: list[dict[str, Any]],
+    custom_entries: list[dict[str, Any]],
+) -> None:
+    canonical_ids = {str(entry["id"]) for entry in canonical_entries}
+    custom_ids: set[str] = set()
+    for entry in custom_entries:
+        skill_id = str(entry["id"])
+        if skill_id in canonical_ids or skill_id in custom_ids:
+            raise SubjectMaterializationError(f"duplicate custom registry id: {skill_id}")
+        custom_ids.add(skill_id)
+
+
+def _assert_custom_refs_exist(
+    custom_layer: CustomSubjectLayer,
+    registry_by_id: dict[str, dict[str, Any]],
+) -> None:
+    refs = set(custom_layer.skill_refs)
+    for override in custom_layer.skill_overrides:
+        refs.add(_override_skill(override, "custom subject"))
+    missing = sorted(refs - set(registry_by_id))
+    if missing:
+        raise SubjectMaterializationError(f"custom subject references unknown skills: {', '.join(missing)}")
+
+
+def _overrides_by_skill(overrides: tuple[dict[str, Any], ...], label: str) -> dict[str, list[dict[str, Any]]]:
+    result: dict[str, list[dict[str, Any]]] = {}
+    for override in overrides:
+        skill_id = _override_skill(override, label)
+        result.setdefault(skill_id, []).append(override)
+    return result
+
+
+def _override_skill(override: dict[str, Any], label: str) -> str:
+    skill_id = override.get("skill")
+    if not isinstance(skill_id, str) or not skill_id.strip():
+        raise SubjectMaterializationError(f"{label} skill override must define skill")
+    return skill_id.strip()
+
+
 def _assert_selected_skill_refs_exist(subject: SubjectDefinition, registry_by_id: dict[str, dict[str, Any]]) -> None:
     missing = sorted(set(subject.skill_refs) - set(registry_by_id))
     if missing:
@@ -639,3 +793,17 @@ def _dict_list(value: object, key: str, label: str) -> list[dict[str, Any]]:
             raise SubjectCatalogError(f"{label} field {key} must contain only objects")
         result.append(dict(item))
     return result
+
+
+def _custom_string_list(value: object, key: str) -> list[str]:
+    try:
+        return _string_list(value, key, "custom subject")
+    except SubjectCatalogError as exc:
+        raise SubjectMaterializationError(str(exc)) from exc
+
+
+def _custom_dict_list(value: object, key: str) -> list[dict[str, Any]]:
+    try:
+        return _dict_list(value, key, "custom subject")
+    except SubjectCatalogError as exc:
+        raise SubjectMaterializationError(str(exc)) from exc
