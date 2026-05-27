@@ -307,6 +307,7 @@ subjects:
           - Quality Bar
           - Common Pitfalls
     subject_specific_skill_refs:
+      - econ-identification-auditor
       - accounting-measurement-auditor
     skill_groups:
       - order: 1
