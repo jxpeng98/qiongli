@@ -92,19 +92,25 @@ def sync_subject_payloads(root: Path, payload_root: Path, *, dry_run: bool) -> N
     subjects_root = payload_root / "subjects"
     if dry_run:
         for subject in sorted(catalog.subjects):
-            print(f"[npm-sync] would materialize subject {subject} -> {subjects_root / subject / 'qiongli-workflow'}")
+            for coverage in ("complete", "focused"):
+                print(
+                    "[npm-sync] would materialize "
+                    f"subject {subject}/{coverage} -> {subjects_root / subject / coverage / 'qiongli-workflow'}"
+                )
         return
     if subjects_root.exists():
         shutil.rmtree(subjects_root)
     for subject in sorted(catalog.subjects):
-        materialize_subject_package(
-            MaterializeOptions(
-                source=root,
-                out=subjects_root / subject / "qiongli-workflow",
-                subject=subject,
-                flavor="full",
+        for coverage in ("complete", "focused"):
+            materialize_subject_package(
+                MaterializeOptions(
+                    source=root,
+                    out=subjects_root / subject / coverage / "qiongli-workflow",
+                    subject=subject,
+                    flavor="full",
+                    coverage=coverage,
+                )
             )
-        )
 
 
 def main(argv: list[str] | None = None) -> int:

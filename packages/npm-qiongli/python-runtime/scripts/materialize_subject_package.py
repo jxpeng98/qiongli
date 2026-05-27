@@ -23,6 +23,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--source", type=Path, default=REPO_ROOT, help="Repository or bundled payload root.")
     parser.add_argument("--out", type=Path, required=True, help="Output package directory.")
     parser.add_argument("--flavor", choices=("full", "desktop"), default="full", help="Output package flavor.")
+    parser.add_argument(
+        "--coverage",
+        choices=("complete", "focused"),
+        default="complete",
+        help="Subject coverage to materialize (default: complete).",
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -32,6 +38,7 @@ def main(argv: list[str] | None = None) -> int:
                 out=args.out,
                 subject=args.subject,
                 flavor=args.flavor,
+                coverage=args.coverage,
             )
         )
     except (SubjectCatalogError, SubjectMaterializationError) as exc:

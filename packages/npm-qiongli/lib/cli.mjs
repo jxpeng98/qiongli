@@ -30,6 +30,7 @@ export async function main(argv, { stdout = process.stdout, stderr = process.std
         overwrite: parsed.options.overwrite,
         dryRun: parsed.options.dryRun,
         subject: parsed.options.subject,
+        coverage: parsed.options.coverage,
       });
     } catch (error) {
       stderr.write(`[qiongli] ${error.message}\n`);
@@ -42,7 +43,10 @@ export async function main(argv, { stdout = process.stdout, stderr = process.std
   if (parsed.command === 'check') {
     let payload;
     try {
-      payload = { ...buildCheck({ packageRoot: root }), python_bridge: checkPythonRuntime() };
+      payload = {
+        ...buildCheck({ packageRoot: root, subject: parsed.options.subject, coverage: parsed.options.coverage }),
+        python_bridge: checkPythonRuntime(),
+      };
     } catch (error) {
       stderr.write(`[qiongli] ${error.message}\n`);
       return 2;
@@ -53,6 +57,7 @@ export async function main(argv, { stdout = process.stdout, stderr = process.std
       stdout.write(`Qiongli npm package: ${payload.npm_package.version}\n`);
       stdout.write(`Payload version: ${payload.payload.version || '<unknown>'}\n`);
       stdout.write(`Payload subject: ${payload.payload.subject || '<unknown>'}\n`);
+      stdout.write(`Payload coverage: ${payload.payload.coverage || '<unknown>'}\n`);
       stdout.write(`Python bridge: ${payload.python_bridge.ok ? 'ok' : 'warn'} - ${payload.python_bridge.message}\n`);
     }
     return 0;
@@ -96,6 +101,7 @@ function printInstallResult(result, stdout) {
   stdout.write('Qiongli npm installer\n');
   stdout.write(`source version: ${result.sourceVersion || '<unknown>'}\n`);
   stdout.write(`source subject: ${result.sourceSubject || '<unknown>'}\n`);
+  stdout.write(`source coverage: ${result.sourceCoverage || '<unknown>'}\n`);
   for (const residue of result.legacyResidues) {
     stdout.write(`[legacy] ${residue.target}: ${residue.legacyName} -> ${residue.path}\n`);
   }
@@ -110,7 +116,7 @@ function helpText() {
 
 Usage:
   qiongli install --subject core --target all
-  qiongli upgrade --subject economics --target all
+  qiongli upgrade --subject economics --coverage complete --target all
   qiongli check [--json]
   qiongli clean --project-dir . [--globals]
   qiongli runtime doctor
@@ -121,6 +127,7 @@ Usage:
 Options:
   --target codex|claude|gemini|antigravity|all
   --subject core|economics
+  --coverage complete|focused
   --mode copy|link
   --overwrite
   --dry-run
