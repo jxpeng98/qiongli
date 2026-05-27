@@ -69,7 +69,7 @@ User intent (自然语言)
 
 这种情况下，**不要一上来就改 `standards/`**。当前架构把“核心工作流”和“领域知识”拆开了，推荐默认从 `skills/domain-profiles/` 进入。
 
-如果目标是可安装的 subject package，优先从 `subjects/catalog.yaml` 和 subject overlays 入手，不要复制 generic skills。CLI/npm 安装默认是 `coverage=complete`，会保留全量 core 框架并叠加 subject 专精；`coverage=focused` 主要用于精简 selected package 和 Desktop/Web ZIP。官方交叉学科应建模为显式 composite subject，例如 `economics-accounting`，而不是运行时自由堆叠多个 subject。
+如果目标是可安装的 subject package，优先从 `subjects/catalog.yaml` 和 subject overlays 入手，不要复制 generic skills。CLI/npm 安装默认是 `coverage=complete`，会保留全量 core 框架并叠加 subject 专精；`coverage=focused` 主要用于精简 selected package 和 Desktop/Web ZIP。官方交叉学科应建模为显式 composite subject，例如 `economics-accounting`，而不是运行时自由堆叠多个 subject。完整概念边界见 [Subject Packaging Model](/zh/advanced/subject-packaging-model)。
 
 | 你的目标 | 首改文件 | 什么时候再往上层改 |
 |---|---|---|

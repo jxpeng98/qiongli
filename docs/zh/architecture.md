@@ -66,6 +66,8 @@ flowchart TD
 
 canonical source 保持通用。可安装的学科专精包由 `subjects/catalog.yaml`、subject overlays、selected profiles 和 subject-specific skills 生成。CLI/npm 默认是 `coverage=complete`，即保留全量 core 框架并叠加指定 subject layer；`coverage=focused` 是 Desktop/Web ZIP 使用的精简 selected package。
 
+用户和开发者两个视角的完整区别见 [Subject Packaging Model](/zh/advanced/subject-packaging-model)。
+
 runtime domain flags 和 domain profiles 仍然用于单次 task packet 的临时强调，但不再替代 subject packaging。这样做的收益是：
 
 - 源码保持统一，不复制 generic skills

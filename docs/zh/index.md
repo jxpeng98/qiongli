@@ -60,7 +60,7 @@ Qiongli 发布的是一个统一的便携 workflow 包：`qiongli-workflow`。�
 - [示例](/zh/examples/): systematic review、empirical、qualitative、methods、theory 的 playbook。
 - [参考](/zh/reference/): CLI 行为、skills catalog 和使用者约定。
 - [架构](/zh/architecture): contracts、skills、roles、pipelines、bridges 和 package surfaces 如何组合。
-- [高级](/zh/advanced/): 扩展、MCP providers、Zotero、严格 literature search 和 plugin-first distribution。
+- [高级](/zh/advanced/): subject packaging、扩展、MCP providers、Zotero、严格 literature search 和 plugin-first distribution。
 - [维护者](/zh/maintainer/): release policy、naming policy 和贡献者实现指南。
 
 ## 运行时边界
