@@ -461,13 +461,7 @@ def _build_claude_desktop_skill(root: Path, tag: str, dist_dir: Path, work_dir: 
 
 
 def _desktop_subjects(root: Path) -> list[str]:
-    if validate_subject_catalog is None:
-        return ["core", "accounting", "economics", "economics-accounting"]
-    subjects = sorted(validate_subject_catalog(root).subjects)
-    if "core" in subjects:
-        subjects.remove("core")
-        subjects.insert(0, "core")
-    return subjects
+    return ["core", "economics", "economics-accounting"]
 
 
 def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
