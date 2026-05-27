@@ -846,7 +846,11 @@ def cmd_clean(args: argparse.Namespace) -> int:
 
 
 def cmd_customize(args: argparse.Namespace) -> int:
-    scaffold_custom_subject(Path(args.out), base_subject=args.subject, name=args.name, force=args.force)
+    try:
+        scaffold_custom_subject(Path(args.out), base_subject=args.subject, name=args.name, force=args.force)
+    except (FileExistsError, ValueError) as exc:
+        print(f"[error] {exc}", file=sys.stderr)
+        return 2
     print(f"Created custom subject overlay at {args.out}")
     return 0
 

@@ -130,12 +130,14 @@ Subject packaging 需要同时区分两个视角：用户选择安装形态，�
 
 ### 本地自定义
 
-当个人、课题组或项目需要本地 overlays、profiles 或 custom skills，但不想修改 canonical Qiongli source 时，可以创建本地 custom subject layer。这个目录只影响 materialize 后的 generated output。
+当个人、课题组或项目需要本地 overlays、profiles 或 custom skills，但不想修改 canonical Qiongli source 时，可以创建本地 custom subject layer。这个 scaffold / materialization 路径面向 Python/source checkout 工作流；这个目录只影响 materialize 后的 generated output。
 
 ```bash
 qiongli customize --subject economics --name my-econ-lab --out ./qiongli-custom/econ-lab
 python3 scripts/materialize_subject_package.py --subject economics --custom-dir ./qiongli-custom/econ-lab --source . --out /tmp/qiongli-workflow
 ```
+
+npm runtime installs 只使用预生成 payloads；在这个阶段不接受 runtime `--custom-dir`。
 
 如果你需要跨客户端全局安装、多端 slash command、`qiongli upgrade`、`doctor` 或多模型 orchestrator，再使用下面的 bootstrap / CLI 路径。
 
