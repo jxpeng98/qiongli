@@ -196,6 +196,45 @@ def _assert_economics_desktop_package(skill_root: Path) -> None:
         raise ValueError("economics package missing subject-specific skill")
 
 
+def _assert_economics_accounting_desktop_package(skill_root: Path) -> None:
+    _assert_subject_marker(skill_root, "economics-accounting")
+    _assert_subject_manifest(skill_root, "economics-accounting", "focused")
+    registry_ids = _load_registry_ids(skill_root)
+    for expected in ("econ-identification-auditor", "accounting-measurement-auditor", "stats-engine"):
+        if expected not in registry_ids:
+            raise ValueError(f"economics-accounting registry missing selected skill: {expected}")
+    for excluded in ("biomedical", "beamer-builder", "ai-fingerprint-scanner"):
+        if excluded in registry_ids:
+            raise ValueError(f"economics-accounting registry includes unselected skill: {excluded}")
+
+    domain_profiles = sorted(path.name for path in (skill_root / "skills" / "domain-profiles").glob("*.yaml"))
+    if domain_profiles != ["accounting.yaml", "economics.yaml"]:
+        raise ValueError(f"economics-accounting package domain profiles mismatch: {domain_profiles}")
+
+    venue_profiles = sorted(path.stem for path in (skill_root / "venue-profiles").glob("*.yaml"))
+    expected_venues = [
+        "accounting-review",
+        "aer",
+        "journal-of-accounting-research",
+        "qje",
+        "restud",
+        "review-of-accounting-studies",
+    ]
+    if venue_profiles != expected_venues:
+        raise ValueError(f"economics-accounting package venue profiles mismatch: {venue_profiles}")
+
+    manuscript = (skill_root / "skills" / "F_writing" / "manuscript-architect.md").read_text(encoding="utf-8")
+    if "## Economics and Accounting Overlay" not in manuscript:
+        raise ValueError("economics-accounting manuscript-architect missing composite overlay")
+
+    stats = (skill_root / "skills" / "I_code" / "stats-engine.md").read_text(encoding="utf-8")
+    if "archival accounting" not in stats:
+        raise ValueError("economics-accounting stats-engine missing composite overlay")
+
+    if not (skill_root / "skills" / "C_design" / "accounting-measurement-auditor.md").is_file():
+        raise ValueError("economics-accounting package missing accounting subject-specific skill")
+
+
 def _assert_command_invocation(plugin_root: Path, workflow_names: list[str]) -> None:
     commands_dir = plugin_root / "commands"
     _assert_dir(commands_dir, "slash command directory")
@@ -259,6 +298,8 @@ def _validate_claude_desktop_artifact(artifact: Path, expected_repo_tag: str, su
         _assert_skill_invocation(skill_root, expected_repo_tag)
         if subject == "economics":
             _assert_economics_desktop_package(skill_root)
+        elif subject == "economics-accounting":
+            _assert_economics_accounting_desktop_package(skill_root)
         else:
             _assert_core_desktop_package(skill_root)
         _assert_file(skill_root / "skills-core.md", "consolidated skill core")
@@ -293,7 +334,7 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
             raise ValueError(f"expected {platform} artifact: {artifact_name}")
         messages.append(_validate_artifact(artifact, spec, expected_repo_tag, expected_version))
 
-    for subject in ("core", "economics"):
+    for subject in ("core", "economics", "economics-accounting"):
         desktop_name = f"{PLUGIN_NAME}-claude-desktop-skill-{subject}-{expected_repo_tag}.zip"
         desktop_artifact = by_platform.get(desktop_name)
         if desktop_artifact is None:

@@ -14,7 +14,7 @@ class SubjectCatalogTests(unittest.TestCase):
     def test_core_and_economics_catalog_groups_are_ordered(self) -> None:
         catalog = load_subject_catalog(REPO_ROOT)
 
-        self.assertEqual(["core", "economics"], sorted(catalog["subjects"]))
+        self.assertEqual(["core", "economics", "economics-accounting"], sorted(catalog["subjects"]))
         economics = catalog["subjects"]["economics"]
         self.assertEqual("core", economics["extends"])
         self.assertIn("skill_groups", economics)
@@ -36,6 +36,10 @@ class SubjectCatalogTests(unittest.TestCase):
         self.assertIn("manuscript-architect", economics.skill_refs)
         self.assertIn("stats-engine", economics.skill_refs)
         self.assertIn("econ-identification-auditor", economics.skill_refs)
+
+        composite = catalog.subjects["economics-accounting"]
+        self.assertIn("econ-identification-auditor", composite.skill_refs)
+        self.assertIn("accounting-measurement-auditor", composite.skill_refs)
 
     def test_invalid_group_order_reports_clear_error(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

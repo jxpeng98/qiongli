@@ -140,6 +140,44 @@ class SubjectMaterializerTests(unittest.TestCase):
             self.assertTrue((out / "venue-profiles" / "aer.yaml").exists())
             self.assertFalse((out / "venue-profiles" / "neurips.yaml").exists())
 
+    def test_materializes_economics_accounting_focused_composite(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out = Path(tmp_dir) / "qiongli-workflow"
+
+            materialize_subject_package(
+                MaterializeOptions(
+                    source=REPO_ROOT,
+                    out=out,
+                    subject="economics-accounting",
+                    flavor="full",
+                    coverage="focused",
+                )
+            )
+
+            manifest = json.loads((out / "SUBJECT_MANIFEST.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["subject"], "economics-accounting")
+            self.assertEqual(manifest["coverage"], "focused")
+
+            registry = yaml.safe_load((out / "skills" / "registry.yaml").read_text(encoding="utf-8"))
+            registry_ids = {entry["id"] for entry in registry["skills"]}
+            self.assertIn("econ-identification-auditor", registry_ids)
+            self.assertIn("accounting-measurement-auditor", registry_ids)
+            self.assertNotIn("biomedical", registry_ids)
+
+            self.assertTrue((out / "skills" / "C_design" / "econ-identification-auditor.md").exists())
+            self.assertTrue((out / "skills" / "C_design" / "accounting-measurement-auditor.md").exists())
+            self.assertTrue((out / "skills" / "domain-profiles" / "economics.yaml").exists())
+            self.assertTrue((out / "skills" / "domain-profiles" / "accounting.yaml").exists())
+            self.assertFalse((out / "skills" / "domain-profiles" / "cs-ai.yaml").exists())
+            self.assertTrue((out / "venue-profiles" / "qje.yaml").exists())
+            self.assertTrue((out / "venue-profiles" / "accounting-review.yaml").exists())
+            self.assertFalse((out / "venue-profiles" / "neurips.yaml").exists())
+
+            manuscript = (out / "skills" / "F_writing" / "manuscript-architect.md").read_text(encoding="utf-8")
+            self.assertIn("## Economics and Accounting Overlay", manuscript)
+            stats = (out / "skills" / "I_code" / "stats-engine.md").read_text(encoding="utf-8")
+            self.assertIn("archival accounting", stats)
+
     def test_materializes_core_desktop_package_under_file_budget(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             out = Path(tmp_dir) / "qiongli"

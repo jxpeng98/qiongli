@@ -63,6 +63,10 @@ ECONOMICS_SKILL_REFS = (
     "reproducibility-auditor",
     "final-proofreader",
 )
+ECONOMICS_ACCOUNTING_SKILL_REFS = (
+    *ECONOMICS_SKILL_REFS,
+    "accounting-measurement-auditor",
+)
 ECONOMICS_TEMPLATES = (
     "analysis-plan.md",
     "claim-evidence-ledger.csv",
@@ -178,7 +182,7 @@ def _copy_claude_desktop_skill(root: Path, skill_dest: Path, subject: str) -> No
 
 
 def _copy_claude_desktop_skill_without_pyyaml(root: Path, skill_dest: Path, subject: str) -> None:
-    if subject not in {"core", "economics"}:
+    if subject not in {"core", "economics", "economics-accounting"}:
         raise ValueError("PyYAML is required to materialize non-core/non-economics subjects")
     source = root / "qiongli-workflow"
     skill_dest.mkdir(parents=True)
@@ -212,36 +216,54 @@ def _copy_claude_desktop_skill_without_pyyaml(root: Path, skill_dest: Path, subj
         _copy_path(source / "skills" / "domain-profiles", skill_dest / "skills" / "domain-profiles")
         return
 
-    _write_fallback_skill_md(
-        skill_dest,
-        "Qiongli Economics",
-        "Economics-focused empirical, theory, and reproducibility workflow.",
-    )
+    if subject == "economics-accounting":
+        _write_fallback_skill_md(
+            skill_dest,
+            "Qiongli Economics + Accounting",
+            "Cross-disciplinary economics and accounting workflow for archival, causal, and reporting-setting research.",
+        )
+    else:
+        _write_fallback_skill_md(
+            skill_dest,
+            "Qiongli Economics",
+            "Economics-focused empirical, theory, and reproducibility workflow.",
+        )
     for rel in ECONOMICS_TEMPLATES:
         _copy_path(source / "templates" / rel, skill_dest / "templates" / rel)
     _copy_path(source / "skills" / "domain-profiles" / "economics.yaml", skill_dest / "skills" / "domain-profiles" / "economics.yaml")
-    for venue in ("aer", "qje", "restud"):
-        _copy_path(root / "subjects" / "economics" / "venue-profiles" / f"{venue}.yaml", skill_dest / "venue-profiles" / f"{venue}.yaml")
+    if subject == "economics-accounting":
+        _copy_path(root / "skills" / "domain-profiles" / "accounting.yaml", skill_dest / "skills" / "domain-profiles" / "accounting.yaml")
+        for venue in ("aer", "qje", "restud"):
+            _copy_path(root / "subjects" / "economics" / "venue-profiles" / f"{venue}.yaml", skill_dest / "venue-profiles" / f"{venue}.yaml")
+        for venue in ("accounting-review", "journal-of-accounting-research", "review-of-accounting-studies"):
+            _copy_path(
+                root / "subjects" / "economics-accounting" / "venue-profiles" / f"{venue}.yaml",
+                skill_dest / "venue-profiles" / f"{venue}.yaml",
+            )
+    else:
+        for venue in ("aer", "qje", "restud"):
+            _copy_path(root / "subjects" / "economics" / "venue-profiles" / f"{venue}.yaml", skill_dest / "venue-profiles" / f"{venue}.yaml")
 
     entries = _fallback_registry_entries(root)
     registry_lines = ["skills:"]
-    for skill_id in ECONOMICS_SKILL_REFS:
+    skill_refs = ECONOMICS_ACCOUNTING_SKILL_REFS if subject == "economics-accounting" else ECONOMICS_SKILL_REFS
+    for skill_id in skill_refs:
         rel = entries[skill_id]
         registry_lines.extend([f"  - id: {skill_id}", f"    file: {rel}"])
         if skill_id == "econ-identification-auditor":
             src = root / "subjects" / "economics" / "skills" / "econ-identification-auditor.md"
+        elif skill_id == "accounting-measurement-auditor":
+            src = root / "subjects" / "economics-accounting" / "skills" / "accounting-measurement-auditor.md"
         else:
             src = source / rel
         text = src.read_text(encoding="utf-8")
         if skill_id == "manuscript-architect":
-            overlay = (root / "subjects" / "economics" / "overlays" / "skills" / "manuscript-architect.md").read_text(
-                encoding="utf-8"
-            )
+            overlay_subject = "economics-accounting" if subject == "economics-accounting" else "economics"
+            overlay = (root / "subjects" / overlay_subject / "overlays" / "skills" / "manuscript-architect.md").read_text(encoding="utf-8")
             text = text.rstrip() + "\n\n" + overlay.strip() + "\n"
         elif skill_id == "stats-engine":
-            overlay = (root / "subjects" / "economics" / "overlays" / "skills" / "stats-engine.md").read_text(
-                encoding="utf-8"
-            )
+            overlay_subject = "economics-accounting" if subject == "economics-accounting" else "economics"
+            overlay = (root / "subjects" / overlay_subject / "overlays" / "skills" / "stats-engine.md").read_text(encoding="utf-8")
             for section in ("Quality Bar", "Common Pitfalls"):
                 text = _replace_markdown_section(text, overlay, section)
         dest = skill_dest / rel
@@ -275,7 +297,11 @@ def _write_fallback_skill_md(skill_dest: Path, display_name: str, description: s
 
 def _fallback_registry_entries(root: Path) -> dict[str, str]:
     entries: dict[str, str] = {}
-    for registry in (root / "skills" / "registry.yaml", root / "subjects" / "economics" / "skills" / "registry.yaml"):
+    for registry in (
+        root / "skills" / "registry.yaml",
+        root / "subjects" / "economics" / "skills" / "registry.yaml",
+        root / "subjects" / "economics-accounting" / "skills" / "registry.yaml",
+    ):
         current_id: str | None = None
         for line in registry.read_text(encoding="utf-8").splitlines():
             id_match = re.match(r"\s*-\s*id:\s*[\"']?([^\"'\n#]+)", line)
@@ -357,7 +383,7 @@ def _build_claude_desktop_skill(root: Path, tag: str, dist_dir: Path, work_dir: 
 
 def _desktop_subjects(root: Path) -> list[str]:
     if validate_subject_catalog is None:
-        return ["core", "economics"]
+        return ["core", "economics", "economics-accounting"]
     subjects = sorted(validate_subject_catalog(root).subjects)
     if "core" in subjects:
         subjects.remove("core")

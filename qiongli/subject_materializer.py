@@ -143,7 +143,8 @@ def materialize_subject_package(options: MaterializeOptions) -> None:
 
     package_root = _package_root(source)
     base_registry = _load_registry_entries(source / "skills" / "registry.yaml")
-    subject_registry = _load_registry_entries(source / "subjects" / subject.id / "skills" / "registry.yaml")
+    subject_registry = _load_all_subject_registry_entries(source)
+    subject_skill_sources = _load_subject_skill_sources(source)
     registry_by_id = {entry["id"]: entry for entry in [*base_registry, *subject_registry]}
 
     if out.exists():
@@ -160,6 +161,7 @@ def materialize_subject_package(options: MaterializeOptions) -> None:
         out=out,
         subject=subject,
         selected_entries=selected_entries,
+        subject_skill_sources=subject_skill_sources,
         coverage=options.coverage,
         include_detailed_skills=options.flavor == "full" or subject.id != "core",
     )
@@ -273,12 +275,20 @@ def _materialize_venue_profiles(
     if subject.id == "core" or not subject.venue_profiles:
         return
     for profile in subject.venue_profiles:
-        src = source / "subjects" / subject.id / "venue-profiles" / f"{profile}.yaml"
-        if not src.exists():
-            src = package_root / "venue-profiles" / f"{profile}.yaml"
+        src = _find_venue_profile(package_root, source, subject.id, profile)
         if not src.exists():
             raise SubjectMaterializationError(f"subject {subject.id} references missing venue profile: {profile}")
         _copy_path(src, dest_root / f"{profile}.yaml")
+
+
+def _find_venue_profile(package_root: Path, source: Path, subject_id: str, profile: str) -> Path:
+    current = source / "subjects" / subject_id / "venue-profiles" / f"{profile}.yaml"
+    if current.exists():
+        return current
+    for candidate in sorted((source / "subjects").glob(f"*/venue-profiles/{profile}.yaml")):
+        if candidate.exists():
+            return candidate
+    return package_root / "venue-profiles" / f"{profile}.yaml"
 
 
 def _materialize_domain_profiles(package_root: Path, out: Path, subject: SubjectDefinition, coverage: str) -> None:
@@ -294,6 +304,8 @@ def _materialize_domain_profiles(package_root: Path, out: Path, subject: Subject
         return
     for profile in subject.domain_profiles:
         src = src_root / f"{profile}.yaml"
+        if not src.exists():
+            src = source / "skills" / "domain-profiles" / f"{profile}.yaml"
         if not src.exists():
             raise SubjectMaterializationError(f"subject {subject.id} references missing domain profile: {profile}")
         _copy_path(src, dest_root / f"{profile}.yaml")
@@ -342,6 +354,7 @@ def _materialize_skills(
     out: Path,
     subject: SubjectDefinition,
     selected_entries: list[dict[str, Any]],
+    subject_skill_sources: dict[str, Path],
     coverage: str,
     include_detailed_skills: bool,
 ) -> None:
@@ -354,12 +367,11 @@ def _materialize_skills(
         skill_id = str(entry["id"])
         rel = Path(str(entry["file"]))
         dest = out / rel
-        if skill_id in subject.subject_specific_skill_refs:
-            src = source / "subjects" / subject.id / "skills" / f"{skill_id}.md"
-        else:
-            src = package_root / rel
-            if not src.exists():
-                src = source / rel
+        src = package_root / rel
+        if not src.exists():
+            src = source / rel
+        if not src.exists() and skill_id in subject_skill_sources:
+            src = subject_skill_sources[skill_id]
         if not src.exists():
             raise SubjectMaterializationError(f"missing skill source for {skill_id}: {src}")
 
@@ -541,6 +553,23 @@ def _load_registry_entries(path: Path) -> list[dict[str, Any]]:
             raise SubjectMaterializationError(f"{path} contains invalid skill registry entry")
         entries.append(dict(entry))
     return entries
+
+
+def _load_all_subject_registry_entries(source: Path) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
+    for registry_path in sorted((source / "subjects").glob("*/skills/registry.yaml")):
+        entries.extend(_load_registry_entries(registry_path))
+    return entries
+
+
+def _load_subject_skill_sources(source: Path) -> dict[str, Path]:
+    sources: dict[str, Path] = {}
+    for registry_path in sorted((source / "subjects").glob("*/skills/registry.yaml")):
+        subject_root = registry_path.parents[1]
+        for entry in _load_registry_entries(registry_path):
+            skill_id = str(entry["id"])
+            sources.setdefault(skill_id, subject_root / "skills" / f"{skill_id}.md")
+    return sources
 
 
 def _assert_selected_skill_refs_exist(subject: SubjectDefinition, registry_by_id: dict[str, dict[str, Any]]) -> None:
