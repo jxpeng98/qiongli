@@ -126,7 +126,7 @@ Usage:
 
 Options:
   --target codex|claude|gemini|antigravity|all
-  --subject core|economics
+  --subject core|economics|accounting|economics-accounting
   --coverage complete|focused
   --mode copy|link
   --overwrite
