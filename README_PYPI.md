@@ -7,7 +7,7 @@ The full system name is **Qiongli Zhengche** (`穷理证澈`): Qiongli names the
 ## What it does
 
 - Install or refresh global `qiongli-workflow` skill assets
-- Select the active subject package with `--subject core|economics|economics-accounting`
+- Select the active subject package with `--subject core|economics|accounting|economics-accounting`
 - Choose package coverage with `--coverage complete|focused` (`complete` is the default)
 - Upgrade assets to newer upstream versions
 - Support `codex`, `claude`, `gemini`, or `all` targets
@@ -40,11 +40,12 @@ If you use `pip` inside an active virtual environment, the CLI is installed into
 Current releases separate the package install from workflow asset installation:
 
 - `pipx install qiongli` / `pipx upgrade qiongli` updates the lightweight Python CLI.
-- `qiongli install --subject core --target all` installs the default general package.
+- `qiongli install --target all` installs the default `core/complete` package.
 - `qiongli install --subject economics --target all` installs the full framework plus economics specialization.
+- `qiongli install --subject accounting --target all` installs the full framework plus accounting specialization.
 - `qiongli install --subject economics --coverage focused --target all` installs the slimmer economics-focused package.
 - `qiongli install --subject economics-accounting --target all` installs the official economics/accounting composite.
-- `qiongli upgrade --subject economics --target all` refreshes the active global `qiongli-workflow` skill assets for Codex, Claude Code, Gemini, and Antigravity.
+- `qiongli upgrade --subject accounting --target all` refreshes the active global `qiongli-workflow` skill assets for Codex, Claude Code, Gemini, and Antigravity.
 - `--project-dir` is not required for normal global upgrades. It only selects a project when you run `doctor`, load project-level `qiongli.toml` / `.qiongli.toml`, or explicitly write project files with `qiongli init` / `--parts project`.
 
 Global assets are written under client home directories such as:
@@ -74,11 +75,12 @@ qiongli check
 ### Upgrade assets
 
 ```bash
-qiongli install --subject core --target all
+qiongli install --target all
 qiongli install --subject economics --target all
+qiongli install --subject accounting --target all
 qiongli install --subject economics --coverage focused --target all
 qiongli install --subject economics-accounting --target all
-qiongli upgrade --subject economics --target all
+qiongli upgrade --subject accounting --target all
 ```
 
 Run `doctor` only when you want to check a specific project runtime:
@@ -141,15 +143,22 @@ pipx install qiongli
 pipx upgrade qiongli
 
 # Refresh global workflow assets
-qiongli install --subject core --target all
+qiongli install --target all
 qiongli install --subject economics --target all
+qiongli install --subject accounting --target all
 qiongli install --subject economics-accounting --target all
 
 # Optional: initialize project-local files only when you want them
 qiongli init --project-dir /path/to/project
 ```
 
-`--subject` defaults to `core` and `--coverage` defaults to `complete`. With complete coverage, a specialized install keeps the full core framework and adds the requested subject overlays and subject-specific skills, so `qiongli install --subject economics` is full Qiongli plus economics specialization. Use `--coverage focused` only when you deliberately want the slimmer selected subject package used by Desktop/Web ZIPs. Subject packages are specialized installs, not reduced-quality cuts; switching subjects or coverage is another install/upgrade with the new flags. Older installs without a `SUBJECT_MANIFEST.json` or `SUBJECT` marker are treated as legacy `core` / `complete`.
+`--subject` defaults to `core` and `--coverage` defaults to `complete`, so the default install is `core/complete`. With complete coverage, a specialized install keeps the full core framework and adds the requested subject overlays and subject-specific skills. `--subject economics` means `economics/complete`, not a reduced package. `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. Use `--coverage focused` only when you deliberately want the slimmer selected subject package used by Desktop/Web ZIPs. Current official subjects are `core`, `economics`, `accounting`, and the named composite `economics-accounting`; composites are not arbitrary comma-separated stacking. Public Desktop ZIP subjects are `core`, `economics`, and `economics-accounting`, with no standalone accounting Desktop ZIP in this phase. Subject packages are specialized installs, not reduced-quality cuts; switching subjects or coverage is another install/upgrade with the new flags. Older installs without a `SUBJECT_MANIFEST.json` or `SUBJECT` marker are treated as legacy `core` / `complete`.
+
+Create local customization scaffolds from a source checkout when you need generated output with local overlays:
+
+```bash
+qiongli customize --subject economics --name my-econ-lab --out ./qiongli-custom/econ-lab
+```
 
 Local customization is supported through the source materializer:
 
@@ -162,7 +171,7 @@ python3 scripts/materialize_subject_package.py \
   --out /tmp/qiongli-workflow
 ```
 
-The custom directory can add local overlays, profiles, registry entries, and custom skill markdown for that generated output only. It does not modify the canonical source tree.
+The custom directory can add local overlays, profiles, registry entries, and custom skill markdown for that generated output only. It does not modify the canonical source tree. `qiongli customize` plus `--custom-dir` materialization is for the Python/source checkout workflow; npm runtime installs use pre-generated payloads in this phase.
 
 ## Links
 

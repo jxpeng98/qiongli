@@ -121,16 +121,20 @@ Subject packaging 需要同时区分两个视角：用户选择安装形态，�
 |---|---|---|
 | 不知道选什么 | `core / complete` | `qiongli install --target all` |
 | 全量框架 + economics 专精 | `economics / complete` | `qiongli install --subject economics --target all` |
+| 全量框架 + accounting 专精 | `accounting / complete` | `qiongli install --subject accounting --target all` |
 | 轻量 economics 包 | `economics / focused` | `qiongli install --subject economics --coverage focused --target all` |
 | 官方 economics/accounting 交叉学科包 | `economics-accounting / complete` | `qiongli install --subject economics-accounting --target all` |
+| 更新 CLI 后刷新 accounting | `accounting / complete` | `qiongli upgrade --subject accounting --target all` |
 
 对开发者来说，`core` 负责共享 workflow contracts、generic skills、templates、standards 和 quality gates。specialized subject 通过 selected profiles、append overlays、声明式 section replacements 和少量 subject-specific skills 增加学科深度。generic skills 源文件不会复制成学科版本；effective package 由 `skill_refs`、subject overlays、分层 section overrides 和可选本地 custom overlays 生成。
 
-第一版可用 subject 包括 `core`、`economics`，以及官方组合 subject `economics-accounting`。subject package 是专精安装包，不是降质删减版。切换 subject 或 coverage 时，重新运行 install 或 upgrade；同一客户端一次只有一个 active `qiongli-workflow` package。
+当前官方 subjects 包括 `core`、`economics`、`accounting` 和官方组合 subject `economics-accounting`。默认安装是 `core/complete`。`--subject economics` 表示 `economics/complete`，不是缩水包；`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。`--coverage focused` 是有意选择的精简路径，也是 Desktop/Web ZIP 路径。本阶段公开 Desktop ZIP subjects 是 `core`、`economics` 和 `economics-accounting`；还没有 standalone accounting Desktop ZIP。官方 composite subjects 是命名 subject，不是任意逗号分隔叠加。切换 subject 或 coverage 时，重新运行 install 或 upgrade；同一客户端一次只有一个 active `qiongli-workflow` package。
+
+开发或加深一个 subject 时，需要同步更新：`subjects/catalog.yaml`、subject overlays、subject-specific registry and markdown、选定的 domain and venue profiles、subject eval fixtures、specialization audit expected terms、materializer tests、该 subject 可通过 npm 安装时的 npm payload tests，以及该 subject 有 Desktop/Web artifact 时的 release validation。
 
 ### 本地自定义
 
-当个人、课题组或项目需要本地 overlays、profiles 或 custom skills，但不想修改 canonical Qiongli source 时，可以创建本地 custom subject layer。这个 scaffold / materialization 路径面向 Python/source checkout 工作流；这个目录只影响 materialize 后的 generated output。
+当个人、课题组或项目需要本地 overlays、profiles 或 custom skills，但不想修改 canonical Qiongli source 时，可以创建本地 custom subject layer。这个 scaffold / materialization 路径面向 Python/source checkout 工作流；custom overlays 只影响 materialize 后的 generated output，不会改写 canonical source files。
 
 ```bash
 qiongli customize --subject economics --name my-econ-lab --out ./qiongli-custom/econ-lab
@@ -204,8 +208,9 @@ pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Beta -Profile full -
 
 ```bash
 npm install -g qiongli
-qiongli install --subject core --target all --project-dir "$PWD"
+qiongli install --target all --project-dir "$PWD"
 qiongli install --subject economics --target all --project-dir "$PWD"
+qiongli install --subject accounting --target all --project-dir "$PWD"
 qiongli install --subject economics-accounting --target all --project-dir "$PWD"
 ```
 
@@ -216,7 +221,7 @@ npx qiongli@next install --subject economics --target all --project-dir "$PWD"
 npx qiongli@next check --json
 ```
 
-npm 包内携带预生成的 `core`、`economics` 与 `economics-accounting` payload，并同时提供 `complete` / `focused` coverage。`--subject` 默认是 `core`，`--coverage` 默认是 `complete`；只有在明确需要精简包时才使用 `--coverage focused`。`qiongli check --json` 会显示 bundled payload subject/coverage 和各 target 已安装 subject/coverage。`qiongli doctor`、`qiongli task-run`、`qiongli team-run` 等高级命令会委托到 npm 包内置的 Python bridge 源码执行，因此仍要求本机已有 Python 3.12+ 和 `PyYAML`。
+npm 包内携带预生成的 `core`、`economics`、`accounting` 与 `economics-accounting` payload，并同时提供 `complete` / `focused` coverage。`--subject` 默认是 `core`，`--coverage` 默认是 `complete`；只有在明确需要精简包时才使用 `--coverage focused`。`qiongli check --json` 会显示 bundled payload subject/coverage 和各 target 已安装 subject/coverage。`qiongli doctor`、`qiongli task-run`、`qiongli team-run` 等高级命令会委托到 npm 包内置的 Python bridge 源码执行，因此仍要求本机已有 Python 3.12+ 和 `PyYAML`。
 
 ### 3. 为 `full` 准备 Python
 
@@ -477,8 +482,9 @@ export PATH="$HOME/.local/bin:$PATH"
 
 ```bash
 npm install -g qiongli
-qiongli install --subject core --target all --project-dir "$PWD"
+qiongli install --target all --project-dir "$PWD"
 qiongli install --subject economics --target all --project-dir "$PWD"
+qiongli install --subject accounting --target all --project-dir "$PWD"
 qiongli install --subject economics --coverage focused --target all --project-dir "$PWD"
 ```
 
@@ -765,7 +771,7 @@ qiongli align --repo jxpeng98/qiongli
 
 **Subject package 和 runtime domain 是什么关系？**
 
-Qiongli 现在支持 subject-specialized installs。`core` 是默认通用包；`economics` 和 `economics-accounting` 会安装同一套 canonical workflow，并叠加学科 overlays 与 subject-specific skills。CLI/npm 默认是 `coverage=complete`，所以专精安装会保留全量框架；`coverage=focused` 主要用于有意选择精简包和 Desktop/Web ZIP。
+Qiongli 现在支持 subject-specialized installs。`core` 是默认通用包；`economics`、`accounting` 和命名 composite subject `economics-accounting` 会安装同一套 canonical workflow，并叠加学科 overlays 与 subject-specific skills。CLI/npm 默认是 `coverage=complete`，所以专精安装会保留全量框架；`coverage=focused` 主要用于有意选择精简包和 Desktop/Web ZIP。
 
 `--domain econ` 这类 runtime flag 仍然用于单次 task packet 的临时强调，但不再替代 subject packaging。当你希望某个客户端默认就是经济学专精工作流时，使用 `qiongli install --subject economics --target all`。如果只是当前任务需要临时领域约束，再使用 runtime domain。
 

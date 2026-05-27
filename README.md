@@ -128,16 +128,20 @@ For users:
 |---|---|---|
 | Unsure what to choose | `core / complete` | `qiongli install --target all` |
 | Full framework plus economics expertise | `economics / complete` | `qiongli install --subject economics --target all` |
+| Full framework plus accounting expertise | `accounting / complete` | `qiongli install --subject accounting --target all` |
 | Slim economics package | `economics / focused` | `qiongli install --subject economics --coverage focused --target all` |
 | Official economics/accounting cross-discipline package | `economics-accounting / complete` | `qiongli install --subject economics-accounting --target all` |
+| Refresh accounting after updating the CLI | `accounting / complete` | `qiongli upgrade --subject accounting --target all` |
 
 For developers, `core` owns shared workflow contracts, generic skills, templates, standards, and quality gates. Specialized subjects add discipline depth through selected profiles, append overlays, declared section replacements, and a small number of subject-specific skills. Generic skill source files are not duplicated. Effective packages are generated from `skill_refs`, subject overlays, layered section overrides, and optional local custom overlays.
 
-Available v1 subjects are `core`, `economics`, and the official composite `economics-accounting`. Subject packages are specialized installs, not reduced-quality cuts. To switch subjects or coverage, rerun install or upgrade. Each client still has one active `qiongli-workflow` package at a time.
+Current official subjects are `core`, `economics`, `accounting`, and the official composite `economics-accounting`. Default install means `core/complete`. `--subject economics` means `economics/complete`, not a reduced package. `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. `--coverage focused` is the deliberate slim path and the Desktop/Web ZIP path. Public Desktop ZIP subjects in this phase are `core`, `economics`, and `economics-accounting`; there is no standalone accounting Desktop ZIP yet. Official composite subjects are named subjects, not arbitrary comma-separated stacking. To switch subjects or coverage, rerun install or upgrade. Each client still has one active `qiongli-workflow` package at a time.
+
+When adding or deepening a subject, update these together: `subjects/catalog.yaml`, subject overlays, subject-specific registry and markdown, selected domain and venue profiles, subject eval fixtures, specialization audit expected terms, materializer tests, npm payload tests when the subject is installable through npm, and release validation if the subject has a Desktop/Web artifact.
 
 ### Local Customization
 
-Use a local custom subject layer when a user, lab, or project needs overlays, profiles, or custom skills without changing canonical Qiongli source. This scaffold and materialization path is for the Python/source checkout workflow. The custom layer affects generated output only.
+Use a local custom subject layer when a user, lab, or project needs overlays, profiles, or custom skills without changing canonical Qiongli source. This scaffold and materialization path is for the Python/source checkout workflow. Custom overlays affect generated output only and do not rewrite canonical source files.
 
 ```bash
 qiongli customize --subject economics --name my-econ-lab --out ./qiongli-custom/econ-lab
@@ -245,8 +249,9 @@ If you prefer a Node-based installer, the npm package is a real standalone entry
 
 ```bash
 npm install -g qiongli
-qiongli install --subject core --target all --project-dir "$PWD"
+qiongli install --target all --project-dir "$PWD"
 qiongli install --subject economics --target all --project-dir "$PWD"
+qiongli install --subject accounting --target all --project-dir "$PWD"
 qiongli install --subject economics-accounting --target all --project-dir "$PWD"
 ```
 
@@ -257,7 +262,7 @@ npx qiongli@next install --subject economics --target all --project-dir "$PWD"
 npx qiongli@next check --json
 ```
 
-The npm package bundles pre-materialized `core`, `economics`, and `economics-accounting` payloads in both `complete` and `focused` coverage. `--subject` defaults to `core`, and `--coverage` defaults to `complete`; use `--coverage focused` only when you want the slim subject package. `qiongli check --json` reports the bundled subject/coverage payload and installed target subjects. Advanced commands such as `qiongli doctor`, `qiongli task-run`, and `qiongli team-run` delegate to the bundled Python bridge and require Python 3.12+ plus `PyYAML`.
+The npm package bundles pre-materialized `core`, `economics`, `accounting`, and `economics-accounting` payloads in both `complete` and `focused` coverage. `--subject` defaults to `core`, and `--coverage` defaults to `complete`; use `--coverage focused` only when you want the slim subject package. `qiongli check --json` reports the bundled subject/coverage payload and installed target subjects. Advanced commands such as `qiongli doctor`, `qiongli task-run`, and `qiongli team-run` delegate to the bundled Python bridge and require Python 3.12+ plus `PyYAML`.
 
 ### 3. Use The Installed Skills
 
@@ -553,8 +558,9 @@ Command:
 
 ```bash
 npm install -g qiongli
-qiongli install --subject core --target all --project-dir "$PWD"
+qiongli install --target all --project-dir "$PWD"
 qiongli install --subject economics --target all --project-dir "$PWD"
+qiongli install --subject accounting --target all --project-dir "$PWD"
 qiongli install --subject economics --coverage focused --target all --project-dir "$PWD"
 ```
 
@@ -840,7 +846,7 @@ Still needs Python:
 
 **How do subject packages relate to runtime domains?**
 
-Qiongli now supports subject-specialized installs. `core` is the default general package; `economics` and `economics-accounting` install the same canonical workflow with subject overlays and subject-specific skills. CLI/npm installs default to `coverage=complete`, so a specialized install keeps the full framework and adds the requested specialization. `coverage=focused` is for deliberate slim packages and Desktop/Web ZIPs.
+Qiongli now supports subject-specialized installs. `core` is the default general package; `economics`, `accounting`, and the named composite `economics-accounting` install the same canonical workflow with subject overlays and subject-specific skills. CLI/npm installs default to `coverage=complete`, so a specialized install keeps the full framework and adds the requested specialization. `coverage=focused` is for deliberate slim packages and Desktop/Web ZIPs.
 
 Runtime flags such as `--domain econ` still matter for a single task packet, but they no longer replace subject packaging. Use `qiongli install --subject economics --target all` when the client should operate as an economics-specialized Qiongli install by default. Use runtime domains for temporary task-level emphasis inside the active subject.
 
