@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import shutil
 import tarfile
 import tempfile
 import unittest
@@ -30,6 +31,7 @@ class PluginArtifactsTests(unittest.TestCase):
             self.assertEqual(
                 sorted(path.name for path in artifacts),
                 [
+                    f"qiongli-claude-desktop-skill-accounting-{current_tag}.zip",
                     f"qiongli-claude-desktop-skill-core-{current_tag}.zip",
                     f"qiongli-claude-desktop-skill-economics-accounting-{current_tag}.zip",
                     f"qiongli-claude-desktop-skill-economics-{current_tag}.zip",
@@ -84,6 +86,16 @@ class PluginArtifactsTests(unittest.TestCase):
                 ],
             )
             self._assert_zip_contains(
+                dist_dir / f"qiongli-claude-desktop-skill-accounting-{current_tag}.zip",
+                [
+                    "qiongli/SKILL.md",
+                    "qiongli/SUBJECT",
+                    "qiongli/skills/C_design/accounting-measurement-auditor.md",
+                    "qiongli/skills/F_writing/manuscript-architect.md",
+                    "qiongli/venue-profiles/accounting-review.yaml",
+                ],
+            )
+            self._assert_zip_contains(
                 dist_dir / f"qiongli-claude-desktop-skill-economics-accounting-{current_tag}.zip",
                 [
                     "qiongli/SKILL.md",
@@ -94,6 +106,25 @@ class PluginArtifactsTests(unittest.TestCase):
                     "qiongli/venue-profiles/accounting-review.yaml",
                 ],
             )
+
+    def test_fallback_economics_accounting_desktop_skill_includes_accounting_auditor(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = self._make_fallback_root(Path(tmp_dir) / "repo")
+            dest = Path(tmp_dir) / "qiongli"
+            original_materializer = module.materialize_subject_package
+            original_options = module.MaterializeOptions
+            try:
+                module.materialize_subject_package = None
+                module.MaterializeOptions = None
+
+                module._copy_claude_desktop_skill(root, dest, "economics-accounting")
+            finally:
+                module.materialize_subject_package = original_materializer
+                module.MaterializeOptions = original_options
+
+            self.assertTrue((dest / "skills" / "C_design" / "accounting-measurement-auditor.md").exists())
+            registry = (dest / "skills" / "registry.yaml").read_text(encoding="utf-8")
+            self.assertIn("id: accounting-measurement-auditor", registry)
 
     def test_fails_when_artifact_versions_do_not_match_tag(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -120,6 +151,16 @@ class PluginArtifactsTests(unittest.TestCase):
             names = set(archive.namelist())
         for name in expected:
             self.assertIn(name, names)
+
+    def _make_fallback_root(self, root: Path) -> Path:
+        shutil.copytree(REPO_ROOT / "qiongli-workflow", root / "qiongli-workflow")
+        shutil.copytree(REPO_ROOT / "templates", root / "qiongli-workflow" / "templates")
+        shutil.copytree(REPO_ROOT / "skills", root / "qiongli-workflow" / "skills")
+        shutil.copytree(REPO_ROOT / "skills", root / "skills")
+        shutil.copytree(REPO_ROOT / "subjects", root / "subjects")
+        shutil.copy2(REPO_ROOT / "skills-core.md", root / "qiongli-workflow" / "skills-core.md")
+        shutil.copy2(REPO_ROOT / "skills-summary.md", root / "qiongli-workflow" / "skills-summary.md")
+        return root
 
 
 if __name__ == "__main__":
