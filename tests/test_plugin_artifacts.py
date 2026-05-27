@@ -143,8 +143,8 @@ class PluginArtifactsTests(unittest.TestCase):
 
     def _make_fallback_root(self, root: Path) -> Path:
         shutil.copytree(REPO_ROOT / "qiongli-workflow", root / "qiongli-workflow")
-        shutil.copytree(REPO_ROOT / "templates", root / "qiongli-workflow" / "templates")
-        shutil.copytree(REPO_ROOT / "skills", root / "qiongli-workflow" / "skills")
+        shutil.copytree(REPO_ROOT / "templates", root / "qiongli-workflow" / "templates", dirs_exist_ok=True)
+        shutil.copytree(REPO_ROOT / "skills", root / "qiongli-workflow" / "skills", dirs_exist_ok=True)
         shutil.copytree(REPO_ROOT / "skills", root / "skills")
         shutil.copytree(REPO_ROOT / "subjects", root / "subjects")
         shutil.copy2(REPO_ROOT / "skills-core.md", root / "qiongli-workflow" / "skills-core.md")
