@@ -151,15 +151,16 @@ def materialize_subject_package(options: MaterializeOptions) -> None:
     out.mkdir(parents=True)
 
     _copy_common_package_assets(package_root, out)
-    _materialize_templates(package_root, out, subject)
-    _materialize_venue_profiles(package_root, source, out, subject)
-    selected_entries = _selected_registry_entries(subject, base_registry, subject_registry)
+    _materialize_templates(package_root, out, subject, options.coverage)
+    _materialize_venue_profiles(package_root, source, out, subject, options.coverage)
+    selected_entries = _selected_registry_entries(subject, base_registry, subject_registry, options.coverage)
     _materialize_skills(
         source=source,
         package_root=package_root,
         out=out,
         subject=subject,
         selected_entries=selected_entries,
+        coverage=options.coverage,
         include_detailed_skills=options.flavor == "full" or subject.id != "core",
     )
     _write_registry(out, selected_entries)
@@ -237,12 +238,12 @@ def _copy_common_package_assets(package_root: Path, out: Path) -> None:
             _copy_path(src, out / dirname)
 
 
-def _materialize_templates(package_root: Path, out: Path, subject: SubjectDefinition) -> None:
+def _materialize_templates(package_root: Path, out: Path, subject: SubjectDefinition, coverage: str) -> None:
     src_root = package_root / "templates"
     dest_root = out / "templates"
     if not src_root.exists():
         return
-    if subject.id == "core" or not subject.template_refs:
+    if coverage == "complete" or subject.id == "core" or not subject.template_refs:
         _copy_path(src_root, dest_root)
         return
     for rel in subject.template_refs:
@@ -257,12 +258,19 @@ def _materialize_venue_profiles(
     source: Path,
     out: Path,
     subject: SubjectDefinition,
+    coverage: str,
 ) -> None:
     dest_root = out / "venue-profiles"
-    if subject.id == "core" or not subject.venue_profiles:
-        src = package_root / "venue-profiles"
+    src = package_root / "venue-profiles"
+    if coverage == "complete" or subject.id == "core" or not subject.venue_profiles:
         if src.exists():
             _copy_path(src, dest_root)
+        if coverage != "complete" or subject.id == "core":
+            return
+    else:
+        src = None
+
+    if subject.id == "core" or not subject.venue_profiles:
         return
     for profile in subject.venue_profiles:
         src = source / "subjects" / subject.id / "venue-profiles" / f"{profile}.yaml"
@@ -273,7 +281,7 @@ def _materialize_venue_profiles(
         _copy_path(src, dest_root / f"{profile}.yaml")
 
 
-def _materialize_domain_profiles(package_root: Path, out: Path, subject: SubjectDefinition) -> None:
+def _materialize_domain_profiles(package_root: Path, out: Path, subject: SubjectDefinition, coverage: str) -> None:
     source = package_root.parent if package_root.name == "qiongli-workflow" else package_root
     src_root = package_root / "skills" / "domain-profiles"
     if not src_root.exists():
@@ -281,7 +289,7 @@ def _materialize_domain_profiles(package_root: Path, out: Path, subject: Subject
     dest_root = out / "skills" / "domain-profiles"
     if not src_root.exists():
         return
-    if subject.id == "core" or not subject.domain_profiles:
+    if coverage == "complete" or subject.id == "core" or not subject.domain_profiles:
         _copy_path(src_root, dest_root)
         return
     for profile in subject.domain_profiles:
@@ -295,15 +303,35 @@ def _selected_registry_entries(
     subject: SubjectDefinition,
     base_registry: list[dict[str, Any]],
     subject_registry: list[dict[str, Any]],
+    coverage: str,
 ) -> list[dict[str, Any]]:
     if subject.id == "core":
         return [dict(entry) for entry in base_registry]
     by_id = {entry["id"]: entry for entry in [*base_registry, *subject_registry]}
+    if coverage == "complete":
+        selected = [dict(entry) for entry in base_registry]
+        for skill_ref in subject.subject_specific_skill_refs:
+            if skill_ref not in by_id:
+                raise SubjectMaterializationError(f"subject {subject.id} references unknown skill: {skill_ref}")
+            selected.append(dict(by_id[skill_ref]))
+        return _dedupe_registry_entries(selected)
     selected: list[dict[str, Any]] = []
     for skill_ref in subject.skill_refs:
         if skill_ref not in by_id:
             raise SubjectMaterializationError(f"subject {subject.id} references unknown skill: {skill_ref}")
         selected.append(dict(by_id[skill_ref]))
+    return selected
+
+
+def _dedupe_registry_entries(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    selected: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for entry in entries:
+        skill_id = str(entry["id"])
+        if skill_id in seen:
+            continue
+        seen.add(skill_id)
+        selected.append(entry)
     return selected
 
 
@@ -314,9 +342,10 @@ def _materialize_skills(
     out: Path,
     subject: SubjectDefinition,
     selected_entries: list[dict[str, Any]],
+    coverage: str,
     include_detailed_skills: bool,
 ) -> None:
-    _materialize_domain_profiles(package_root, out, subject)
+    _materialize_domain_profiles(package_root, out, subject, coverage)
     if not include_detailed_skills:
         return
 
