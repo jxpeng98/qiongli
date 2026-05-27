@@ -128,6 +128,15 @@ Subject packaging 需要同时区分两个视角：用户选择安装形态，�
 
 第一版可用 subject 包括 `core`、`economics`，以及官方组合 subject `economics-accounting`。subject package 是专精安装包，不是降质删减版。切换 subject 或 coverage 时，重新运行 install 或 upgrade；同一客户端一次只有一个 active `qiongli-workflow` package。
 
+### 本地自定义
+
+当个人、课题组或项目需要本地 overlays、profiles 或 custom skills，但不想修改 canonical Qiongli source 时，可以创建本地 custom subject layer。这个目录只影响 materialize 后的 generated output。
+
+```bash
+qiongli customize --subject economics --name my-econ-lab --out ./qiongli-custom/econ-lab
+python3 scripts/materialize_subject_package.py --subject economics --custom-dir ./qiongli-custom/econ-lab --source . --out /tmp/qiongli-workflow
+```
+
 如果你需要跨客户端全局安装、多端 slash command、`qiongli upgrade`、`doctor` 或多模型 orchestrator，再使用下面的 bootstrap / CLI 路径。
 
 ### 1. 先选 `partial` 还是 `full`
