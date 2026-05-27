@@ -80,13 +80,14 @@ class InstallerCliTests(unittest.TestCase):
             with mock.patch.object(
                 cli_module.sys,
                 "argv",
-                ["qiongli", "install", "--subject", "economics", "--target", "codex"],
+                ["qiongli", "install", "--subject", "economics", "--coverage", "focused", "--target", "codex"],
             ):
                 exit_code = cli_module.main()
 
         self.assertEqual(exit_code, 0)
         options = install_mock.call_args.args[0]
         self.assertEqual(options.subject, "economics")
+        self.assertEqual(options.coverage, "focused")
         self.assertEqual(options.target, "codex")
 
     def test_install_unknown_subject_reports_available_subjects(self) -> None:
@@ -136,6 +137,7 @@ class InstallerCliTests(unittest.TestCase):
                 dry_run=False,
                 parts="project,cli",
                 subject="economics",
+                coverage="focused",
             )
 
             with mock.patch.object(cli_module, "_download") as download_mock, mock.patch.object(
@@ -148,6 +150,7 @@ class InstallerCliTests(unittest.TestCase):
         options = install_mock.call_args.args[0]
         self.assertEqual(options.parts, ("project", "cli"))
         self.assertEqual(options.subject, "economics")
+        self.assertEqual(options.coverage, "focused")
 
     def test_check_json_reports_installed_subject(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -156,6 +159,10 @@ class InstallerCliTests(unittest.TestCase):
             skill_dir.mkdir(parents=True)
             (skill_dir / "VERSION").write_text("v9.9.9\n", encoding="utf-8")
             (skill_dir / "SUBJECT").write_text("economics\n", encoding="utf-8")
+            (skill_dir / "SUBJECT_MANIFEST.json").write_text(
+                json.dumps({"subject": "economics", "coverage": "focused", "flavor": "full", "layers": ["core", "economics"]}),
+                encoding="utf-8",
+            )
             args = argparse.Namespace(
                 repo="",
                 json=True,
@@ -181,7 +188,9 @@ class InstallerCliTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         payload = json.loads(stdout.getvalue())
         self.assertEqual(payload["installed"]["codex"]["subject"], "economics")
+        self.assertEqual(payload["installed"]["codex"]["coverage"], "focused")
         self.assertEqual(payload["installed"]["claude"]["subject"], None)
+        self.assertEqual(payload["installed"]["claude"]["coverage"], None)
 
     def test_doctor_runs_orchestrator_subprocess(self) -> None:
         args = argparse.Namespace(cwd=".")
