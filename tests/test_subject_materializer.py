@@ -373,6 +373,21 @@ class SubjectMaterializerTests(unittest.TestCase):
             stats = (out / "skills" / "I_code" / "stats-engine.md").read_text(encoding="utf-8")
             self.assertIn("archival accounting", stats)
 
+    def test_materializes_accounting_focused_package(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out = Path(tmp_dir) / "qiongli-workflow"
+            materialize_subject_package(
+                MaterializeOptions(source=REPO_ROOT, out=out, subject="accounting", flavor="full", coverage="focused")
+            )
+            registry = yaml.safe_load((out / "skills" / "registry.yaml").read_text(encoding="utf-8"))
+            registry_ids = {entry["id"] for entry in registry["skills"]}
+            self.assertIn("accounting-measurement-auditor", registry_ids)
+            self.assertNotIn("econ-identification-auditor", registry_ids)
+            self.assertTrue((out / "skills" / "domain-profiles" / "accounting.yaml").exists())
+            self.assertFalse((out / "skills" / "domain-profiles" / "economics.yaml").exists())
+            manuscript = (out / "skills" / "F_writing" / "manuscript-architect.md").read_text(encoding="utf-8")
+            self.assertIn("## Accounting Overlay", manuscript)
+
     def test_materializes_core_desktop_package_under_file_budget(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             out = Path(tmp_dir) / "qiongli"

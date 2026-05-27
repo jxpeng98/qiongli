@@ -22,6 +22,7 @@ class SubjectEvalCaseTests(unittest.TestCase):
         self.assertEqual(
             case_ids,
             {
+                "accounting-accruals-measurement",
                 "economics-did-identification",
                 "economics-accounting-disclosure-study",
             },

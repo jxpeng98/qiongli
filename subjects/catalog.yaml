@@ -279,6 +279,116 @@ subjects:
           - econ-replication-package-auditor
           - final-proofreader
 
+  accounting:
+    display_name: Qiongli Accounting
+    extends: core
+    package_goal: "Accounting-focused archival, disclosure, audit, and measurement workflow."
+    domain_profiles:
+      - accounting
+    venue_profiles:
+      - accounting-review
+      - journal-of-accounting-research
+      - review-of-accounting-studies
+    template_refs:
+      - analysis-plan.md
+      - claim-evidence-ledger.csv
+      - data-availability.md
+      - data-management-plan.md
+      - figures-tables-plan.md
+      - manuscript-outline.md
+      - method-diagnostic-report.md
+      - quality-gate-report.md
+      - research-state.md
+      - search-log.md
+      - stage-handoff.md
+      - study-design.md
+      - validity-threat-matrix.md
+      - writing-claim-map.md
+    skill_overrides:
+      - skill: manuscript-architect
+        overlay: overlays/skills/manuscript-architect.md
+        mode: append
+      - skill: stats-engine
+        overlay: overlays/skills/stats-engine.md
+        mode: replace_sections
+        sections:
+          - Quality Bar
+          - Common Pitfalls
+      - skill: variable-constructor
+        overlay: overlays/skills/variable-constructor.md
+        mode: append
+    subject_specific_skill_refs:
+      - accounting-measurement-auditor
+    skill_groups:
+      - order: 1
+        heading: "Accounting Research Framing"
+        subheading: "Question, contribution, institutional setting, and venue fit"
+        stages: ["A"]
+        task_ids: ["A1", "A2", "A3", "A4", "A5"]
+        skill_refs:
+          - question-refiner
+          - contribution-crafter
+          - gap-analyzer
+          - theory-mapper
+          - hypothesis-generator
+          - venue-analyzer
+      - order: 2
+        heading: "Accounting Literature Positioning"
+        subheading: "Search, mapping, extraction, citation grounding, and construct positioning"
+        stages: ["B"]
+        task_ids: ["B1", "B2", "B3", "B4", "B5", "B6"]
+        skill_refs:
+          - academic-searcher
+          - citation-snowballer
+          - literature-mapper
+          - paper-extractor
+          - paper-screener
+          - reference-manager-bridge
+      - order: 3
+        heading: "Measurement and Research Design"
+        subheading: "Accounting constructs, archival variables, sample construction, and robustness"
+        stages: ["C", "I"]
+        task_ids: ["C1", "C2", "C3", "C4", "C5", "I9"]
+        skill_refs:
+          - study-designer
+          - rival-hypothesis-designer
+          - robustness-planner
+          - dataset-finder
+          - variable-constructor
+          - data-dictionary-builder
+          - prereg-writer
+          - stats-engine
+          - accounting-measurement-auditor
+      - order: 4
+        heading: "Results and Interpretation"
+        subheading: "Measurement diagnostics, evidence synthesis, tables, figures, and inference"
+        stages: ["E", "F"]
+        task_ids: ["E1", "E2", "E3", "F1", "F2", "F3", "F4"]
+        skill_refs:
+          - effect-size-calculator
+          - evidence-synthesizer
+          - analysis-interpreter
+          - effect-size-interpreter
+          - table-generator
+          - figure-specifier
+      - order: 5
+        heading: "Manuscript and Submission"
+        subheading: "Paper architecture, reporting transparency, compliance, and submission readiness"
+        stages: ["F", "G", "H", "I", "J"]
+        task_ids: ["F5", "F6", "G1", "G2", "G3", "H1", "H2", "I1", "I2", "I7", "I8", "J4"]
+        skill_refs:
+          - manuscript-architect
+          - discussion-writer
+          - meta-optimizer
+          - reporting-checker
+          - tone-normalizer
+          - submission-packager
+          - fatal-flaw-detector
+          - code-builder
+          - code-review
+          - reproducibility-auditor
+          - final-proofreader
+
   economics-accounting:
     display_name: Qiongli Economics + Accounting
     extends: core
