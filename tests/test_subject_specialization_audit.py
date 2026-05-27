@@ -18,6 +18,10 @@ class SubjectSpecializationAuditTests(unittest.TestCase):
     def test_focused_output_excludes_unselected_profiles(self) -> None:
         self.assertEqual([], audit_subject_specialization(REPO_ROOT, subjects=["economics"]))
 
+    def test_unknown_subject_reports_clear_error(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unknown subject\\(s\\): does-not-exist"):
+            audit_subject_specialization(REPO_ROOT, subjects=["does-not-exist"])
+
     def test_missing_overlay_term_is_reported(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             temp_root = Path(tmp_dir)

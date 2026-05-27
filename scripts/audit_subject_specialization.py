@@ -48,6 +48,7 @@ def audit_subject_specialization(root: Path, subjects: list[str] | None = None) 
     root = Path(root)
     catalog = validate_subject_catalog(root)
     subject_ids = subjects if subjects is not None else sorted(subject_id for subject_id in catalog.subjects if subject_id != "core")
+    _validate_requested_subjects(subject_ids, catalog.subjects)
 
     findings: list[SubjectSpecializationFinding] = []
     for subject_id in subject_ids:
@@ -57,6 +58,15 @@ def audit_subject_specialization(root: Path, subjects: list[str] | None = None) 
         findings.extend(_audit_subject_definition(subject))
         findings.extend(_audit_materialized_outputs(root, subject))
     return findings
+
+
+def _validate_requested_subjects(subject_ids: list[str], available_subjects: dict[str, SubjectDefinition]) -> None:
+    unknown = sorted(set(subject_ids) - set(available_subjects))
+    if not unknown:
+        return
+    available = ", ".join(sorted(available_subjects))
+    requested = ", ".join(unknown)
+    raise ValueError(f"unknown subject(s): {requested}. Available subjects: {available}")
 
 
 def _audit_subject_definition(subject: SubjectDefinition) -> list[SubjectSpecializationFinding]:
@@ -246,7 +256,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--json", action="store_true", help="Emit findings as JSON.")
     args = parser.parse_args(argv)
 
-    findings = audit_subject_specialization(args.root, args.subjects)
+    try:
+        findings = audit_subject_specialization(args.root, args.subjects)
+    except ValueError as exc:
+        print(f"[FAIL] subject specialization audit: {exc}", file=sys.stderr)
+        return 2
     if args.json:
         print(json.dumps([asdict(finding) for finding in findings], indent=2, sort_keys=True))
     else:
