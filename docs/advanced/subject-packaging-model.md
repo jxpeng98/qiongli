@@ -62,6 +62,8 @@ If unsure, use `complete`.
 
 Composite subjects are official cross-disciplinary packages, such as `economics-accounting`.
 
+`composes` is metadata, not automatic union. It records that an official composite subject was designed from component subject expectations, but the composite still declares its own ordered groups, profile selection, overlays, and subject-specific skills.
+
 They are not automatic unions of multiple subjects. A composite must define its own ordered groups, profile selection, overlays, and subject-specific skills. This keeps the package coherent and avoids accidental conflicts between disciplines.
 
 Use a composite when the research question is inherently cross-disciplinary and a single subject would miss important norms.
