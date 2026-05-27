@@ -17,6 +17,11 @@ try:
 except ModuleNotFoundError:
     from audit_subject_specialization import audit_subject_specialization
 
+try:
+    from scripts.audit_subject_eval_cases import audit_subject_eval_cases
+except ModuleNotFoundError:
+    from audit_subject_eval_cases import audit_subject_eval_cases
+
 
 PLUGIN_NAME = "qiongli"
 SKILL_DIR_NAME = "qiongli-workflow"
@@ -328,6 +333,14 @@ def _validate_subject_specialization(root: Path) -> None:
     raise ValueError(f"Subject specialization audit failed:\n{details}")
 
 
+def _validate_subject_eval_cases(root: Path) -> None:
+    findings = audit_subject_eval_cases(root)
+    if not findings:
+        return
+    details = "\n".join(f"{finding.case_id}: {finding.code}: {finding.message}" for finding in findings)
+    raise ValueError(f"Subject eval case audit failed:\n{details}")
+
+
 def validate(root: Path, dist_dir: Path) -> list[str]:
     root = root.resolve()
     dist_dir = dist_dir.resolve()
@@ -361,6 +374,7 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
     messages.append(_validate_claude_desktop_artifact(legacy_desktop_artifact, expected_repo_tag, "core"))
 
     _validate_subject_specialization(root)
+    _validate_subject_eval_cases(root)
 
     return messages
 
