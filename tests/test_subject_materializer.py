@@ -89,6 +89,36 @@ class SubjectMaterializerTests(unittest.TestCase):
             stats = (out / "skills" / "I_code" / "stats-engine.md").read_text(encoding="utf-8")
             self.assertIn("clustered standard errors", stats)
 
+    def test_economics_complete_contains_v2_method_depth(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out = Path(tmp_dir) / "qiongli-workflow"
+
+            materialize_subject_package(
+                MaterializeOptions(
+                    source=REPO_ROOT,
+                    out=out,
+                    subject="economics",
+                    flavor="full",
+                    coverage="complete",
+                )
+            )
+
+            registry = yaml.safe_load((out / "skills" / "registry.yaml").read_text(encoding="utf-8"))
+            registry_ids = {entry["id"] for entry in registry["skills"]}
+            self.assertIn("econ-replication-package-auditor", registry_ids)
+
+            self.assertTrue((out / "venue-profiles" / "econometrica.yaml").exists())
+            self.assertTrue((out / "venue-profiles" / "jpe.yaml").exists())
+
+            study_designer = (out / "skills" / "C_design" / "study-designer.md").read_text(encoding="utf-8")
+            self.assertIn("## Economics Overlay", study_designer)
+            robustness_planner = (out / "skills" / "C_design" / "robustness-planner.md").read_text(encoding="utf-8")
+            self.assertIn("identification threat", robustness_planner)
+            analysis_interpreter = (out / "skills" / "F_writing" / "analysis-interpreter.md").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn("economic magnitude", analysis_interpreter)
+
     def test_materialization_writes_subject_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             out = Path(tmp_dir) / "qiongli-workflow"

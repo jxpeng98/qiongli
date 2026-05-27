@@ -165,6 +165,8 @@ subjects:
       - economics
     venue_profiles:
       - aer
+      - econometrica
+      - jpe
       - qje
       - restud
     template_refs:
@@ -188,6 +190,15 @@ subjects:
       - skill: manuscript-architect
         overlay: overlays/skills/manuscript-architect.md
         mode: append
+      - skill: study-designer
+        overlay: overlays/skills/study-designer.md
+        mode: append
+      - skill: robustness-planner
+        overlay: overlays/skills/robustness-planner.md
+        mode: append
+      - skill: analysis-interpreter
+        overlay: overlays/skills/analysis-interpreter.md
+        mode: append
       - skill: stats-engine
         overlay: overlays/skills/stats-engine.md
         mode: replace_sections
@@ -196,6 +207,7 @@ subjects:
           - Common Pitfalls
     subject_specific_skill_refs:
       - econ-identification-auditor
+      - econ-replication-package-auditor
     skill_groups:
       - order: 1
         heading: "Research Framing"
@@ -264,6 +276,7 @@ subjects:
           - code-builder
           - code-review
           - reproducibility-auditor
+          - econ-replication-package-auditor
           - final-proofreader
 
   economics-accounting:
