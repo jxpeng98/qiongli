@@ -66,6 +66,8 @@ flowchart TD
 
 The canonical source stays generic. Installable specialization is generated from `subjects/catalog.yaml`, subject overlays, selected profiles, and subject-specific skills. CLI/npm installs default to `coverage=complete`, which keeps the full core framework and adds the requested subject layer. `coverage=focused` is the slim selected package used by Desktop/Web ZIPs.
 
+For the detailed user/developer distinction, see [Subject Packaging Model](/advanced/subject-packaging-model).
+
 Runtime domain flags and domain profiles still matter for a single task packet, but they no longer replace subject packaging. This keeps the source tree unified while still allowing:
 
 - domain-specific libraries

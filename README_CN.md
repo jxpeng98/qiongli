@@ -113,11 +113,20 @@ Desktop/Web ZIP 使用 `coverage=focused`，用于保持上传文件数预算。
 
 ### Subject 专精安装
 
-`core` 是默认 subject，保持原有通用 Qiongli 行为。CLI/npm 默认使用 `coverage=complete`：安装完整 core 框架，再叠加指定 subject 的 overlays 和 subject-specific skills。因此 `qiongli install --subject economics` 表示“全量 Qiongli + economics 专精”，不是精简 economics。
+Subject packaging 需要同时区分两个视角：用户选择安装形态，开发者判断专精内容应该放在哪一层。完整说明见 [Subject Packaging Model](docs/zh/advanced/subject-packaging-model.md)。
 
-如果你明确想要精简包，显式使用 `--coverage focused`。第一版可用 subject 包括 `core`、`economics`，以及官方组合 subject `economics-accounting`。所有 subject 共享同一套 workflow contract、templates、standards 和 quality gates，安装目录仍是 `qiongli-workflow`，同一客户端一次只有一个 active package。
+对用户来说：
 
-generic skills 源文件不会被复制成学科版本。effective package 由 `skill_refs`、subject overlays、分层 section overrides 和可选本地 custom overlays 生成。切换 subject 或 coverage 时，重新运行 install 或 upgrade，并指定新的 `--subject` / `--coverage`。
+| 需求 | 安装形态 | 命令 |
+|---|---|---|
+| 不知道选什么 | `core / complete` | `qiongli install --target all` |
+| 全量框架 + economics 专精 | `economics / complete` | `qiongli install --subject economics --target all` |
+| 轻量 economics 包 | `economics / focused` | `qiongli install --subject economics --coverage focused --target all` |
+| 官方 economics/accounting 交叉学科包 | `economics-accounting / complete` | `qiongli install --subject economics-accounting --target all` |
+
+对开发者来说，`core` 负责共享 workflow contracts、generic skills、templates、standards 和 quality gates。specialized subject 通过 selected profiles、append overlays、声明式 section replacements 和少量 subject-specific skills 增加学科深度。generic skills 源文件不会复制成学科版本；effective package 由 `skill_refs`、subject overlays、分层 section overrides 和可选本地 custom overlays 生成。
+
+第一版可用 subject 包括 `core`、`economics`，以及官方组合 subject `economics-accounting`。subject package 是专精安装包，不是降质删减版。切换 subject 或 coverage 时，重新运行 install 或 upgrade；同一客户端一次只有一个 active `qiongli-workflow` package。
 
 如果你需要跨客户端全局安装、多端 slash command、`qiongli upgrade`、`doctor` 或多模型 orchestrator，再使用下面的 bootstrap / CLI 路径。
 

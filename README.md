@@ -120,12 +120,20 @@ Claude Desktop does not use the Claude Code third-party plugin marketplace path.
 
 ### Subject Packages
 
-`core` is the default subject everywhere and preserves the existing general Qiongli behavior. Specialized subjects now have two coverage modes:
+Subject packaging has two audiences: users choose an install shape, while developers decide where specialization belongs. The full model is documented in [Subject Packaging Model](docs/advanced/subject-packaging-model.md).
 
-- `complete` is the CLI/npm default. It installs the full core framework plus the requested subject overlays and subject-specific skills, so `qiongli install --subject economics` means "full Qiongli plus economics specialization."
-- `focused` installs the selected subject profile set and active effective skills. This is the Desktop/Web ZIP mode and is also available from CLI/npm when you deliberately want a slimmer package.
+For users:
 
-Available v1 subjects are `core`, `economics`, and the official composite `economics-accounting`. Subject packages are specialized installs, not reduced-quality cuts: they share the same workflow contracts, templates, standards, quality gates, and install path. Generic skill source files are not duplicated; effective packages are generated from `skill_refs`, subject overlays, layered section overrides, and optional local custom overlays. To switch subjects or coverage, rerun install or upgrade. Each client still has one active `qiongli-workflow` package at a time.
+| Need | Install shape | Command |
+|---|---|---|
+| Unsure what to choose | `core / complete` | `qiongli install --target all` |
+| Full framework plus economics expertise | `economics / complete` | `qiongli install --subject economics --target all` |
+| Slim economics package | `economics / focused` | `qiongli install --subject economics --coverage focused --target all` |
+| Official economics/accounting cross-discipline package | `economics-accounting / complete` | `qiongli install --subject economics-accounting --target all` |
+
+For developers, `core` owns shared workflow contracts, generic skills, templates, standards, and quality gates. Specialized subjects add discipline depth through selected profiles, append overlays, declared section replacements, and a small number of subject-specific skills. Generic skill source files are not duplicated. Effective packages are generated from `skill_refs`, subject overlays, layered section overrides, and optional local custom overlays.
+
+Available v1 subjects are `core`, `economics`, and the official composite `economics-accounting`. Subject packages are specialized installs, not reduced-quality cuts. To switch subjects or coverage, rerun install or upgrade. Each client still has one active `qiongli-workflow` package at a time.
 
 Invocation depends on the client surface:
 

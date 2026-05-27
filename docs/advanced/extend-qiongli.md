@@ -146,7 +146,7 @@ In this repo, "specializing a direction" usually means:
 
 In other words, do **not** start from `standards/` unless the contract itself changes. The default entrypoint for specialization is `skills/domain-profiles/`.
 
-For installable subject packages, start from `subjects/catalog.yaml` and subject overlays instead of copying generic skills. CLI/npm installs default to `coverage=complete`, which keeps the full core framework and adds subject specialization. `coverage=focused` is for slim selected packages and Desktop/Web ZIPs. Official cross-disciplinary packages should be modeled as explicit composite subjects such as `economics-accounting`, not as free-form runtime stacking.
+For installable subject packages, start from `subjects/catalog.yaml` and subject overlays instead of copying generic skills. CLI/npm installs default to `coverage=complete`, which keeps the full core framework and adds subject specialization. `coverage=focused` is for slim selected packages and Desktop/Web ZIPs. Official cross-disciplinary packages should be modeled as explicit composite subjects such as `economics-accounting`, not as free-form runtime stacking. For the full conceptual boundary, see [Subject Packaging Model](/advanced/subject-packaging-model).
 
 | You want to change... | Start here | Escalate only when... |
 |---|---|---|
