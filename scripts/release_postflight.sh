@@ -439,6 +439,7 @@ PLUGIN_ARTIFACTS=(
   "dist/qiongli-gemini-extension-${TAG}.tar.gz"
   "dist/qiongli-claude-desktop-skill-core-${TAG}.zip"
   "dist/qiongli-claude-desktop-skill-economics-${TAG}.zip"
+  "dist/qiongli-claude-desktop-skill-economics-accounting-${TAG}.zip"
   "dist/qiongli-claude-desktop-skill-${TAG}.zip"
 )
 
