@@ -137,12 +137,14 @@ Available v1 subjects are `core`, `economics`, and the official composite `econo
 
 ### Local Customization
 
-Use a local custom subject layer when a user, lab, or project needs overlays, profiles, or custom skills without changing canonical Qiongli source. The custom layer affects generated output only.
+Use a local custom subject layer when a user, lab, or project needs overlays, profiles, or custom skills without changing canonical Qiongli source. This scaffold and materialization path is for the Python/source checkout workflow. The custom layer affects generated output only.
 
 ```bash
 qiongli customize --subject economics --name my-econ-lab --out ./qiongli-custom/econ-lab
 python3 scripts/materialize_subject_package.py --subject economics --custom-dir ./qiongli-custom/econ-lab --source . --out /tmp/qiongli-workflow
 ```
+
+npm runtime installs use pre-generated payloads only and do not accept a runtime `--custom-dir` in this phase.
 
 Invocation depends on the client surface:
 

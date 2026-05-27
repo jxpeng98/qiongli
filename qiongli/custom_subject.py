@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import yaml
+
 
 def scaffold_custom_subject(out: Path, *, base_subject: str, name: str, force: bool = False) -> None:
     if out.exists() and any(out.iterdir()) and not force:
@@ -18,21 +20,22 @@ def scaffold_custom_subject(out: Path, *, base_subject: str, name: str, force: b
     domain_profiles.mkdir(parents=True, exist_ok=True)
     venue_profiles.mkdir(parents=True, exist_ok=True)
 
+    subject_payload = {
+        "name": name,
+        "base_subject": base_subject,
+        "skill_refs": [],
+        "domain_profiles": [],
+        "venue_profiles": [],
+        "skill_overrides": [
+            {
+                "skill": "manuscript-architect",
+                "overlay": "overlays/skills/manuscript-architect.md",
+                "mode": "append",
+            }
+        ],
+    }
     (out / "subject.yaml").write_text(
-        "\n".join(
-            [
-                f"name: {name}",
-                f"base_subject: {base_subject}",
-                "skill_refs: []",
-                "domain_profiles: []",
-                "venue_profiles: []",
-                "skill_overrides:",
-                "  - skill: manuscript-architect",
-                "    overlay: overlays/skills/manuscript-architect.md",
-                "    mode: append",
-                "",
-            ]
-        ),
+        yaml.safe_dump(subject_payload, sort_keys=False, allow_unicode=True),
         encoding="utf-8",
     )
     (skills / "registry.yaml").write_text("skills: []\n", encoding="utf-8")
