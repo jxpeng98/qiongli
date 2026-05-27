@@ -24,12 +24,6 @@ from qiongli.subject_materializer import (  # noqa: E402
 )
 
 
-FORBIDDEN_FOCUSED_DOMAIN_PROFILES = {
-    "economics": {"cs-ai.yaml", "biomedical.yaml", "psychology.yaml"},
-    "accounting": {"cs-ai.yaml", "biomedical.yaml", "psychology.yaml", "economics.yaml"},
-    "economics-accounting": {"cs-ai.yaml", "biomedical.yaml", "psychology.yaml"},
-}
-
 SUBJECT_TERMS = {
     "economics": ("identification", "estimand", "robustness", "causal"),
     "accounting": ("accrual", "disclosure", "measurement", "audit"),
@@ -124,23 +118,27 @@ def _audit_materialized_outputs(root: Path, subject: SubjectDefinition) -> list[
             )
         )
 
-        findings = _audit_focused_domain_profiles(focused, subject.id)
+        findings = _audit_focused_domain_profiles(focused, subject)
         findings.extend(_audit_overlay_subject_terms(root, subject))
         findings.extend(_audit_materialized_subject_terms(complete, subject))
         return findings
 
 
-def _audit_focused_domain_profiles(package_root: Path, subject_id: str) -> list[SubjectSpecializationFinding]:
+def _audit_focused_domain_profiles(
+    package_root: Path,
+    subject: SubjectDefinition,
+) -> list[SubjectSpecializationFinding]:
     profile_root = package_root / "skills" / "domain-profiles"
     present = {path.name for path in sorted(profile_root.glob("*.yaml"))}
-    forbidden = sorted(FORBIDDEN_FOCUSED_DOMAIN_PROFILES.get(subject_id, set()) & present)
-    if not forbidden:
+    allowed = {f"{profile}.yaml" for profile in subject.domain_profiles}
+    unrelated = sorted(present - allowed)
+    if not unrelated:
         return []
     return [
         SubjectSpecializationFinding(
-            subject=subject_id,
+            subject=subject.id,
             code="unrelated-focused-profile",
-            message=f"focused output includes unrelated domain profiles: {', '.join(forbidden)}",
+            message=f"focused output includes undeclared domain profiles: {', '.join(unrelated)}",
         )
     ]
 

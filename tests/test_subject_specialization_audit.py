@@ -4,7 +4,9 @@ import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+import scripts.audit_subject_specialization as subject_audit
 from scripts.audit_subject_specialization import audit_subject_specialization
 
 
@@ -17,6 +19,28 @@ class SubjectSpecializationAuditTests(unittest.TestCase):
 
     def test_focused_output_excludes_unselected_profiles(self) -> None:
         self.assertEqual([], audit_subject_specialization(REPO_ROOT, subjects=["economics"]))
+
+    def test_rogue_focused_profile_is_reported_even_when_not_in_forbidden_set(self) -> None:
+        real_materialize = subject_audit.materialize_subject_package
+
+        def materialize_with_rogue_profile(options: subject_audit.MaterializeOptions) -> None:
+            real_materialize(options)
+            if options.subject == "economics" and options.coverage == "focused":
+                profile_root = options.out / "skills" / "domain-profiles"
+                profile_root.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(
+                    REPO_ROOT / "skills" / "domain-profiles" / "finance.yaml",
+                    profile_root / "finance.yaml",
+                )
+
+        with patch.object(subject_audit, "materialize_subject_package", side_effect=materialize_with_rogue_profile):
+            findings = audit_subject_specialization(REPO_ROOT, subjects=["economics"])
+
+        self.assertIn("unrelated-focused-profile", {finding.code for finding in findings})
+        self.assertTrue(
+            any("finance.yaml" in finding.message for finding in findings),
+            [f"{finding.subject}: {finding.code}: {finding.message}" for finding in findings],
+        )
 
     def test_unknown_subject_reports_clear_error(self) -> None:
         with self.assertRaisesRegex(ValueError, "unknown subject\\(s\\): does-not-exist"):
