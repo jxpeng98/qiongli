@@ -27,7 +27,7 @@ domain_aware: true
 
 # Accounting Measurement Auditor Skill
 
-Audit whether an economics-accounting study's variables and sample construction can support the intended reporting, disclosure, governance, audit, tax, or earnings-quality claim.
+Audit whether an accounting study's variables and sample construction can support the intended reporting, disclosure, governance, audit, tax, or earnings-quality claim.
 
 ## Purpose
 
@@ -89,5 +89,5 @@ Write `RESEARCH/[topic]/analysis/accounting_measurement_audit.md`:
 ## Quality Bar
 
 - Every variable has a source, transformation, fiscal timing, and missingness rule.
-- Every causal or mechanism claim distinguishes accounting measurement from economic interpretation.
+- Every causal or mechanism claim distinguishes accounting measurement from causal identification and substantive interpretation.
 - Every sample filter has a documented reason and selection-risk note.

@@ -54,7 +54,30 @@ function makeTempPackage() {
     'focused',
     'economics focused workflow\n',
   );
-  return { root, legacyWorkflow, coreWorkflow, coreFocusedWorkflow, economicsWorkflow, economicsFocusedWorkflow };
+  const accountingWorkflow = createWorkflow(
+    root,
+    path.join('payload', 'subjects', 'accounting', 'complete', 'qiongli-workflow'),
+    'accounting',
+    'complete',
+    'accounting complete workflow\n',
+  );
+  const accountingFocusedWorkflow = createWorkflow(
+    root,
+    path.join('payload', 'subjects', 'accounting', 'focused', 'qiongli-workflow'),
+    'accounting',
+    'focused',
+    'accounting focused workflow\n',
+  );
+  return {
+    root,
+    legacyWorkflow,
+    coreWorkflow,
+    coreFocusedWorkflow,
+    economicsWorkflow,
+    economicsFocusedWorkflow,
+    accountingWorkflow,
+    accountingFocusedWorkflow,
+  };
 }
 
 function createWorkflow(root, rel, subject, coverage, workflowText) {
@@ -149,12 +172,51 @@ test('installSkills installs selected economics focused subject payload', () => 
   assert.equal(fs.readFileSync(path.join(dest, 'workflows', 'paper.md'), 'utf-8'), 'economics focused workflow\n');
 });
 
+test('installSkills installs selected accounting complete subject payload', () => {
+  const { root } = makeTempPackage();
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-home-'));
+
+  const result = installSkills({
+    packageRoot: root,
+    target: 'codex',
+    subject: 'accounting',
+    env: { HOME: home },
+    platform: 'linux',
+  });
+
+  const dest = path.join(home, '.codex', 'skills', 'qiongli-workflow');
+  assert.equal(result.sourceSubject, 'accounting');
+  assert.equal(result.sourceCoverage, 'complete');
+  assert.equal(readSkillSubject(dest), 'accounting');
+  assert.equal(readSkillCoverage(dest), 'complete');
+  assert.equal(fs.readFileSync(path.join(dest, 'workflows', 'paper.md'), 'utf-8'), 'accounting complete workflow\n');
+});
+
+test('installSkills installs selected accounting focused subject payload', () => {
+  const { root } = makeTempPackage();
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-home-'));
+
+  installSkills({
+    packageRoot: root,
+    target: 'codex',
+    subject: 'accounting',
+    coverage: 'focused',
+    env: { HOME: home },
+    platform: 'linux',
+  });
+
+  const dest = path.join(home, '.codex', 'skills', 'qiongli-workflow');
+  assert.equal(readSkillSubject(dest), 'accounting');
+  assert.equal(readSkillCoverage(dest), 'focused');
+  assert.equal(fs.readFileSync(path.join(dest, 'workflows', 'paper.md'), 'utf-8'), 'accounting focused workflow\n');
+});
+
 test('installSkills reports available subjects for unknown subject', () => {
   const { root } = makeTempPackage();
 
   assert.throws(
     () => installSkills({ packageRoot: root, target: 'codex', subject: 'biomedical' }),
-    /Unknown subject 'biomedical'\. Available subjects: core, economics/,
+    /Unknown subject 'biomedical'\. Available subjects: accounting, core, economics/,
   );
 });
 
@@ -238,8 +300,10 @@ test('buildCheck reports payload and installed subjects', () => {
 
   assert.equal(result.payload.subject, 'core');
   assert.equal(result.payload.coverage, 'complete');
-  assert.deepEqual(result.payload.available_subjects, ['core', 'economics']);
+  assert.deepEqual(result.payload.available_subjects, ['accounting', 'core', 'economics']);
+  assert.deepEqual(result.payload.available_coverage.accounting, ['complete', 'focused']);
   assert.deepEqual(result.payload.available_coverage.core, ['complete', 'focused']);
+  assert.deepEqual(result.payload.available_coverage.economics, ['complete', 'focused']);
   assert.equal(result.installed.codex.subject, 'economics');
   assert.equal(result.installed.codex.coverage, 'complete');
   assert.equal(result.installed.codex.version, 'v9.9.9-beta.1');

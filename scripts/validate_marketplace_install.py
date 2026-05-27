@@ -191,7 +191,7 @@ def _assert_economics_desktop_package(skill_root: Path) -> None:
         raise ValueError(f"economics package must include only economics domain profile, found {domain_profiles}")
 
     venue_profiles = sorted(path.stem for path in (skill_root / "venue-profiles").glob("*.yaml"))
-    if venue_profiles != ["aer", "qje", "restud"]:
+    if venue_profiles != ["aer", "econometrica", "jpe", "qje", "restud"]:
         raise ValueError(f"economics package venue profiles mismatch: {venue_profiles}")
 
     manuscript = (skill_root / "skills" / "F_writing" / "manuscript-architect.md").read_text(encoding="utf-8")

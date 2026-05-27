@@ -12,6 +12,16 @@ from pathlib import Path
 
 from build_plugin_artifacts import build_artifacts
 
+try:
+    from scripts.audit_subject_specialization import audit_subject_specialization
+except ModuleNotFoundError:
+    from audit_subject_specialization import audit_subject_specialization
+
+try:
+    from scripts.audit_subject_eval_cases import audit_subject_eval_cases
+except ModuleNotFoundError:
+    from audit_subject_eval_cases import audit_subject_eval_cases
+
 
 PLUGIN_NAME = "qiongli"
 SKILL_DIR_NAME = "qiongli-workflow"
@@ -181,7 +191,7 @@ def _assert_economics_desktop_package(skill_root: Path) -> None:
         raise ValueError(f"economics package must include only economics domain profile, found {domain_profiles}")
 
     venue_profiles = sorted(path.stem for path in (skill_root / "venue-profiles").glob("*.yaml"))
-    if venue_profiles != ["aer", "qje", "restud"]:
+    if venue_profiles != ["aer", "econometrica", "jpe", "qje", "restud"]:
         raise ValueError(f"economics package venue profiles mismatch: {venue_profiles}")
 
     manuscript = (skill_root / "skills" / "F_writing" / "manuscript-architect.md").read_text(encoding="utf-8")
@@ -315,6 +325,22 @@ def _validate_claude_desktop_artifact(artifact: Path, expected_repo_tag: str, su
     )
 
 
+def _validate_subject_specialization(root: Path) -> None:
+    findings = audit_subject_specialization(root)
+    if not findings:
+        return
+    details = "\n".join(f"{finding.subject}: {finding.code}: {finding.message}" for finding in findings)
+    raise ValueError(f"Subject specialization audit failed:\n{details}")
+
+
+def _validate_subject_eval_cases(root: Path) -> None:
+    findings = audit_subject_eval_cases(root)
+    if not findings:
+        return
+    details = "\n".join(f"{finding.case_id}: {finding.code}: {finding.message}" for finding in findings)
+    raise ValueError(f"Subject eval case audit failed:\n{details}")
+
+
 def validate(root: Path, dist_dir: Path) -> list[str]:
     root = root.resolve()
     dist_dir = dist_dir.resolve()
@@ -346,6 +372,9 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
     if legacy_desktop_artifact is None:
         raise ValueError(f"expected legacy claude-desktop artifact: {legacy_desktop_name}")
     messages.append(_validate_claude_desktop_artifact(legacy_desktop_artifact, expected_repo_tag, "core"))
+
+    _validate_subject_specialization(root)
+    _validate_subject_eval_cases(root)
 
     return messages
 
