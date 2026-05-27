@@ -49,6 +49,11 @@ class SubjectCatalogTests(unittest.TestCase):
         self.assertIn("accounting-measurement-auditor", subject.skill_refs)
         self.assertEqual(subject.domain_profiles, ("accounting",))
 
+    def test_composite_subject_declares_component_subjects(self) -> None:
+        catalog = validate_subject_catalog(REPO_ROOT)
+        subject = catalog.subjects["economics-accounting"]
+        self.assertEqual(subject.composes, ("economics", "accounting"))
+
     def test_invalid_group_order_reports_clear_error(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)

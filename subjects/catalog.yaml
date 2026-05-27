@@ -392,6 +392,9 @@ subjects:
   economics-accounting:
     display_name: Qiongli Economics + Accounting
     extends: core
+    composes:
+      - economics
+      - accounting
     package_goal: "Cross-disciplinary economics and accounting workflow for archival, causal, and reporting-setting research."
     domain_profiles:
       - economics

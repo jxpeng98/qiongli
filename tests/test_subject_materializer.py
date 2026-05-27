@@ -145,6 +145,24 @@ class SubjectMaterializerTests(unittest.TestCase):
             self.assertEqual(manifest["flavor"], "full")
             self.assertEqual(manifest["layers"], ["core", "economics"])
 
+    def test_composite_manifest_lists_component_layers(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out = Path(tmp_dir) / "qiongli-workflow"
+            materialize_subject_package(
+                MaterializeOptions(
+                    source=REPO_ROOT,
+                    out=out,
+                    subject="economics-accounting",
+                    flavor="full",
+                    coverage="complete",
+                )
+            )
+            manifest = json.loads((out / "SUBJECT_MANIFEST.json").read_text(encoding="utf-8"))
+            self.assertEqual(
+                manifest["layers"],
+                ["core", "economics", "accounting", "economics-accounting"],
+            )
+
     def test_unknown_coverage_reports_clear_error(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             out = Path(tmp_dir) / "qiongli-workflow"

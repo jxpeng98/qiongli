@@ -62,6 +62,8 @@ qiongli install --subject economics
 
 Composite subject 是官方维护的交叉学科包，例如 `economics-accounting`。
 
+`composes` 是 metadata，不是自动 union。它只记录官方 composite subject 是基于哪些 component subject 的期望设计出来的；composite 仍然必须显式声明自己的 ordered groups、profile selection、overlays 和 subject-specific skills。
+
 它不是多个 subject 的自动 union。每个 composite 必须显式定义 ordered groups、profile selection、overlays 和 subject-specific skills。这样可以保持 package 连贯，并避免不同学科规则之间发生隐性冲突。
 
 当研究问题天然跨学科，且单一 subject 无法覆盖重要规范时，使用 composite。
