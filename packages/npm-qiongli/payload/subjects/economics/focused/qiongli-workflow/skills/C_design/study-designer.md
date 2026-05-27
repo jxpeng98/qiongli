@@ -314,3 +314,10 @@ The study design is **ready** when:
 - This skill is not legal advice; for ethics/IRB packaging, use **ethics-irb-helper**.
 - For implementation code, pair with **code-builder** (and **model-collaborator** when helpful).
 - For downstream variable or dataset specifics, pair with **variable-constructor** and **dataset-finder**.
+
+## Economics Overlay
+
+- State the estimand before the model and distinguish it from the estimating equation.
+- Identify the source of variation, the comparison group, and the identifying assumption.
+- For panel or policy designs, describe timing, treatment definition, anticipation, and spillover risks.
+- Record the main identification threat and the design feature that addresses it.

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import shutil
+import tempfile
 from pathlib import Path
 
 from qiongli.subject_materializer import MaterializeOptions, materialize_subject_package, validate_subject_catalog
@@ -52,8 +53,13 @@ def sync_npm_payload(root: Path, *, dry_run: bool = False) -> None:
     payload_root = npm_root / "payload"
     runtime_root = npm_root / "python-runtime"
 
-    copy_path(root / "qiongli-workflow", payload_root / "qiongli-workflow", dry_run=dry_run)
-    sync_subject_payloads(root, payload_root, dry_run=dry_run)
+    with tempfile.TemporaryDirectory(prefix="qiongli-payload-source-") as tmp:
+        materialize_source = build_materialize_source(root, Path(tmp), dry_run=dry_run)
+
+        sync_python_payload(root, materialize_source, dry_run=dry_run)
+
+        copy_path(materialize_source / "qiongli-workflow", payload_root / "qiongli-workflow", dry_run=dry_run)
+        sync_subject_payloads(root, payload_root, dry_run=dry_run, materialize_source=materialize_source)
 
     runtime_dirs = (
         "bridges",
@@ -87,7 +93,42 @@ def sync_npm_payload(root: Path, *, dry_run: bool = False) -> None:
         fail_if_symlinks(runtime_root)
 
 
-def sync_subject_payloads(root: Path, payload_root: Path, *, dry_run: bool) -> None:
+def build_materialize_source(root: Path, tmp_root: Path, *, dry_run: bool) -> Path:
+    if dry_run:
+        return root
+    source = tmp_root / "source"
+    for item in ("qiongli-workflow", "skills", "subjects"):
+        copy_path(root / item, source / item, dry_run=False)
+    for item in ("skills", "templates", "standards", "roles", "venue-profiles"):
+        src = root / item
+        if src.exists():
+            extra_excludes = {"CLAUDE.project.md"} if item == "templates" else None
+            copy_path(src, source / "qiongli-workflow" / item, dry_run=False, extra_exclude_dirs=extra_excludes)
+    for item in ("skills-core.md", "skills-summary.md"):
+        src = root / item
+        if src.exists():
+            copy_path(src, source / "qiongli-workflow" / item, dry_run=False)
+    return source
+
+
+def sync_python_payload(root: Path, materialize_source: Path, *, dry_run: bool) -> None:
+    payload_root = root / "qiongli" / "payload"
+    for item in ("qiongli-workflow", "skills", "subjects"):
+        src = materialize_source / item if item == "qiongli-workflow" else root / item
+        copy_path(src, payload_root / item, dry_run=dry_run)
+    sync_subject_payloads(root, payload_root, dry_run=dry_run, materialize_source=payload_root, clear_subjects_root=False)
+    if not dry_run:
+        fail_if_symlinks(payload_root)
+
+
+def sync_subject_payloads(
+    root: Path,
+    payload_root: Path,
+    *,
+    dry_run: bool,
+    materialize_source: Path | None = None,
+    clear_subjects_root: bool = True,
+) -> None:
     catalog = validate_subject_catalog(root)
     subjects_root = payload_root / "subjects"
     if dry_run:
@@ -98,13 +139,13 @@ def sync_subject_payloads(root: Path, payload_root: Path, *, dry_run: bool) -> N
                     f"subject {subject}/{coverage} -> {subjects_root / subject / coverage / 'qiongli-workflow'}"
                 )
         return
-    if subjects_root.exists():
+    if clear_subjects_root and subjects_root.exists():
         shutil.rmtree(subjects_root)
     for subject in sorted(catalog.subjects):
         for coverage in ("complete", "focused"):
             materialize_subject_package(
                 MaterializeOptions(
-                    source=root,
+                    source=materialize_source or root,
                     out=subjects_root / subject / coverage / "qiongli-workflow",
                     subject=subject,
                     flavor="full",

@@ -38,6 +38,7 @@ class SubjectDefinition:
     package_goal: str
     extends: str | None
     skill_groups: tuple[SubjectGroup, ...]
+    composes: tuple[str, ...] = ()
     domain_profiles: tuple[str, ...] = ()
     venue_profiles: tuple[str, ...] = ()
     template_refs: tuple[str, ...] = ()
@@ -114,6 +115,7 @@ def validate_subject_catalog(root: Path) -> SubjectCatalog:
             package_goal=_required_string(raw_subject, "package_goal", subject_id),
             extends=_optional_string(raw_subject.get("extends")),
             skill_groups=tuple(groups),
+            composes=tuple(_string_list(raw_subject.get("composes"), "composes", subject_id)),
             domain_profiles=tuple(_string_list(raw_subject.get("domain_profiles"), "domain_profiles", subject_id)),
             venue_profiles=tuple(_string_list(raw_subject.get("venue_profiles"), "venue_profiles", subject_id)),
             template_refs=tuple(_string_list(raw_subject.get("template_refs"), "template_refs", subject_id)),
@@ -131,6 +133,13 @@ def validate_subject_catalog(root: Path) -> SubjectCatalog:
     for subject_id, subject in subjects.items():
         if subject.extends and subject.extends not in subjects:
             raise SubjectCatalogError(f"subject {subject_id} extends unknown subject: {subject.extends}")
+        if subject_id == "core" and subject.composes:
+            raise SubjectCatalogError("subject core cannot compose other subjects")
+        for component in subject.composes:
+            if component not in subjects:
+                raise SubjectCatalogError(f"subject {subject_id} composes unknown subject: {component}")
+            if component == subject_id:
+                raise SubjectCatalogError(f"subject {subject_id} cannot compose itself")
 
     return SubjectCatalog(subjects=subjects)
 
@@ -539,7 +548,11 @@ def _subject_layers(subject: SubjectDefinition, custom_layer: CustomSubjectLayer
     layers: list[str] = []
     if subject.extends:
         layers.append(subject.extends)
-    layers.append(subject.id)
+    for component in subject.composes:
+        if component not in layers:
+            layers.append(component)
+    if subject.id not in layers:
+        layers.append(subject.id)
     if custom_layer.root is not None:
         layers.append("custom")
     return layers

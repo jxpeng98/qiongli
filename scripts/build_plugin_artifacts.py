@@ -188,6 +188,35 @@ def _copy_path(src: Path, dest: Path) -> None:
         shutil.copy2(src, dest)
 
 
+def _copy_path_excluding(src: Path, dest: Path, excluded_names: set[str]) -> None:
+    if dest.exists():
+        if dest.is_dir():
+            shutil.rmtree(dest)
+        else:
+            dest.unlink()
+    if src.is_dir():
+        shutil.copytree(src, dest, ignore=lambda _copy_src, names: {name for name in names if name in excluded_names})
+    else:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dest)
+
+
+def _build_materialize_source(root: Path, work_dir: Path) -> Path:
+    source = work_dir / "materialize-source"
+    for item in ("qiongli-workflow", "skills", "subjects"):
+        _copy_path(root / item, source / item)
+    for item in ("skills", "templates", "standards", "roles", "venue-profiles"):
+        src = root / item
+        if src.exists():
+            excluded = {"CLAUDE.project.md"} if item == "templates" else set()
+            _copy_path_excluding(src, source / "qiongli-workflow" / item, excluded)
+    for item in ("skills-core.md", "skills-summary.md"):
+        src = root / item
+        if src.exists():
+            _copy_path(src, source / "qiongli-workflow" / item)
+    return source
+
+
 def _copy_common_skill(root: Path, dest_plugin_root: Path) -> None:
     _copy_path(root / PLUGIN_ROOT / "skills", dest_plugin_root / "skills")
 
@@ -217,18 +246,20 @@ def _make_zip(source_dir: Path, zip_path: Path) -> None:
 
 
 def _copy_claude_desktop_skill(root: Path, skill_dest: Path, subject: str) -> None:
-    if materialize_subject_package is not None and MaterializeOptions is not None:
-        materialize_subject_package(
-            MaterializeOptions(
-                source=root,
-                out=skill_dest,
-                subject=subject,
-                flavor="desktop",
-                coverage="focused",
+    with tempfile.TemporaryDirectory(prefix="qiongli-desktop-source-") as tmp:
+        materialize_root = _build_materialize_source(root, Path(tmp))
+        if materialize_subject_package is not None and MaterializeOptions is not None:
+            materialize_subject_package(
+                MaterializeOptions(
+                    source=materialize_root,
+                    out=skill_dest,
+                    subject=subject,
+                    flavor="desktop",
+                    coverage="focused",
+                )
             )
-        )
-    else:
-        _copy_claude_desktop_skill_without_pyyaml(root, skill_dest, subject)
+        else:
+            _copy_claude_desktop_skill_without_pyyaml(materialize_root, skill_dest, subject)
     file_count = sum(1 for item in skill_dest.rglob("*") if item.is_file())
     if file_count > DESKTOP_SKILL_FILE_BUDGET:
         raise ValueError(

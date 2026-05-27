@@ -1,0 +1,9 @@
+{
+  "coverage": "complete",
+  "flavor": "full",
+  "layers": [
+    "core",
+    "accounting"
+  ],
+  "subject": "accounting"
+}
