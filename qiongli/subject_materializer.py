@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 import shutil
 from dataclasses import dataclass, field
@@ -15,6 +16,9 @@ class SubjectCatalogError(ValueError):
 
 class SubjectMaterializationError(ValueError):
     """Raised when a subject package cannot be generated safely."""
+
+
+COVERAGE_CHOICES = {"complete", "focused"}
 
 
 @dataclass(frozen=True)
@@ -64,6 +68,7 @@ class MaterializeOptions:
     out: Path
     subject: str = "core"
     flavor: str = "full"
+    coverage: str = "complete"
 
 
 def load_subject_catalog(root: Path) -> dict[str, Any]:
@@ -123,6 +128,9 @@ def materialize_subject_package(options: MaterializeOptions) -> None:
     out = Path(options.out).resolve()
     if options.flavor not in {"full", "desktop"}:
         raise SubjectMaterializationError(f"unsupported materialization flavor: {options.flavor}")
+    if options.coverage not in COVERAGE_CHOICES:
+        available = ", ".join(sorted(COVERAGE_CHOICES))
+        raise SubjectMaterializationError(f"unsupported coverage: {options.coverage}. Available coverage: {available}")
 
     catalog = validate_subject_catalog(source)
     try:
@@ -155,7 +163,7 @@ def materialize_subject_package(options: MaterializeOptions) -> None:
         include_detailed_skills=options.flavor == "full" or subject.id != "core",
     )
     _write_registry(out, selected_entries)
-    _write_subject_markers(package_root, out, subject, options.flavor)
+    _write_subject_markers(package_root, out, subject, options.flavor, options.coverage)
     _assert_no_symlinks(out)
     _assert_selected_skill_refs_exist(subject, registry_by_id)
 
@@ -399,11 +407,39 @@ def _write_registry(out: Path, entries: list[dict[str, Any]]) -> None:
     registry_path.write_text(yaml.safe_dump({"skills": entries}, sort_keys=False, allow_unicode=True), encoding="utf-8")
 
 
-def _write_subject_markers(package_root: Path, out: Path, subject: SubjectDefinition, flavor: str) -> None:
+def _write_subject_markers(
+    package_root: Path,
+    out: Path,
+    subject: SubjectDefinition,
+    flavor: str,
+    coverage: str,
+) -> None:
     version = (package_root / "VERSION").read_text(encoding="utf-8").strip()
     (out / "VERSION").write_text(version + "\n", encoding="utf-8")
     (out / "SUBJECT").write_text(subject.id + "\n", encoding="utf-8")
+    (out / "SUBJECT_MANIFEST.json").write_text(
+        json.dumps(
+            {
+                "subject": subject.id,
+                "coverage": coverage,
+                "flavor": flavor,
+                "layers": _subject_layers(subject),
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     (out / "SKILL.md").write_text(_render_skill_md(subject, flavor), encoding="utf-8")
+
+
+def _subject_layers(subject: SubjectDefinition) -> list[str]:
+    layers: list[str] = []
+    if subject.extends:
+        layers.append(subject.extends)
+    layers.append(subject.id)
+    return layers
 
 
 def _render_skill_md(subject: SubjectDefinition, flavor: str) -> str:

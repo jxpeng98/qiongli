@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -53,6 +54,41 @@ class SubjectMaterializerTests(unittest.TestCase):
             self.assertNotIn("模型选择有统计学依据", stats)
             self.assertIn("## Common Pitfalls", stats)
             self.assertIn("naive TWFE", stats)
+
+    def test_materialization_writes_subject_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out = Path(tmp_dir) / "qiongli-workflow"
+
+            materialize_subject_package(
+                MaterializeOptions(
+                    source=REPO_ROOT,
+                    out=out,
+                    subject="economics",
+                    flavor="full",
+                    coverage="focused",
+                )
+            )
+
+            manifest = json.loads((out / "SUBJECT_MANIFEST.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["subject"], "economics")
+            self.assertEqual(manifest["coverage"], "focused")
+            self.assertEqual(manifest["flavor"], "full")
+            self.assertEqual(manifest["layers"], ["core", "economics"])
+
+    def test_unknown_coverage_reports_clear_error(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out = Path(tmp_dir) / "qiongli-workflow"
+
+            with self.assertRaisesRegex(SubjectMaterializationError, "unsupported coverage"):
+                materialize_subject_package(
+                    MaterializeOptions(
+                        source=REPO_ROOT,
+                        out=out,
+                        subject="economics",
+                        flavor="full",
+                        coverage="wide",
+                    )
+                )
 
     def test_materialized_economics_filters_profiles(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
