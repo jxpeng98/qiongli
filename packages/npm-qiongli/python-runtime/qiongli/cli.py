@@ -266,6 +266,9 @@ def _installed_skill_dirs() -> dict[str, Path]:
 def _read_installed_subject(skill_dir: Path) -> str | None:
     if not skill_dir.exists():
         return None
+    manifest = _read_installed_subject_manifest(skill_dir)
+    if isinstance(manifest.get("subject"), str) and manifest["subject"].strip():
+        return str(manifest["subject"]).strip()
     subject_path = skill_dir / "SUBJECT"
     if subject_path.exists():
         subject = _read_text(subject_path)
@@ -273,6 +276,25 @@ def _read_installed_subject(skill_dir: Path) -> str | None:
     if (skill_dir / "SKILL.md").exists():
         return "core"
     return None
+
+
+def _read_installed_coverage(skill_dir: Path) -> str | None:
+    if not skill_dir.exists():
+        return None
+    manifest = _read_installed_subject_manifest(skill_dir)
+    if isinstance(manifest.get("coverage"), str) and manifest["coverage"].strip():
+        return str(manifest["coverage"]).strip()
+    if (skill_dir / "SKILL.md").exists():
+        return "complete"
+    return None
+
+
+def _read_installed_subject_manifest(skill_dir: Path) -> dict[str, object]:
+    try:
+        payload = json.loads((skill_dir / "SUBJECT_MANIFEST.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
 
 
 def _read_installed_version(skill_dir: Path) -> tuple[str, Version] | None:
@@ -490,6 +512,7 @@ def cmd_check(args: argparse.Namespace) -> int:
             "installed": path.exists(),
             "version": None,
             "subject": _read_installed_subject(path),
+            "coverage": _read_installed_coverage(path),
         }
         found = _read_installed_version(path)
         if found:
@@ -736,6 +759,7 @@ def cmd_upgrade(args: argparse.Namespace) -> int:
                     repo_root=extracted_root,
                     project_dir=project_dir,
                     subject=args.subject,
+                    coverage=getattr(args, "coverage", "complete"),
                     target=args.target,
                     mode=args.mode,
                     overwrite=args.overwrite,
@@ -767,6 +791,7 @@ def cmd_install(args: argparse.Namespace) -> int:
             repo_root=_packaged_payload_root(),
             project_dir=project_dir,
             subject=args.subject,
+            coverage=args.coverage,
             target=args.target,
             mode=args.mode,
             overwrite=args.overwrite,
@@ -907,6 +932,12 @@ def build_parser() -> argparse.ArgumentParser:
     upgrade.add_argument("--beta", action="store_true", help="Include beta/pre-release tags for upgrade")
     upgrade.add_argument("--subject", default="core", help="Subject package to install (default: core)")
     upgrade.add_argument(
+        "--coverage",
+        default="complete",
+        choices=["complete", "focused"],
+        help="Subject coverage to install (default: complete)",
+    )
+    upgrade.add_argument(
         "--mode",
         default="copy",
         choices=["copy", "link"],
@@ -947,6 +978,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Install target (default: all)",
     )
     install_parser.add_argument("--subject", default="core", help="Subject package to install (default: core)")
+    install_parser.add_argument(
+        "--coverage",
+        default="complete",
+        choices=["complete", "focused"],
+        help="Subject coverage to install (default: complete)",
+    )
     install_parser.add_argument(
         "--mode",
         default="copy",

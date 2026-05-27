@@ -18,6 +18,7 @@ export function parseArgv(argv) {
     json: false,
     globals: false,
     subject: 'core',
+    coverage: 'complete',
   };
   const rest = [];
 
@@ -34,6 +35,9 @@ export function parseArgv(argv) {
       i += 1;
     } else if (arg === '--subject') {
       options.subject = requireValue(restArgs, i, arg);
+      i += 1;
+    } else if (arg === '--coverage') {
+      options.coverage = requireValue(restArgs, i, arg);
       i += 1;
     } else if (arg === '--cwd') {
       options.cwd = requireValue(restArgs, i, arg);
