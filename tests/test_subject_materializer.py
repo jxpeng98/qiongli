@@ -375,7 +375,7 @@ class SubjectMaterializerTests(unittest.TestCase):
             registry_ids = {entry["id"] for entry in registry["skills"]}
             self.assertIn("econ-identification-auditor", registry_ids)
             self.assertIn("accounting-measurement-auditor", registry_ids)
-            self.assertNotIn("biomedical", registry_ids)
+            self.assertNotIn("econ-replication-package-auditor", registry_ids)
 
             self.assertTrue((out / "skills" / "C_design" / "econ-identification-auditor.md").exists())
             self.assertTrue((out / "skills" / "C_design" / "accounting-measurement-auditor.md").exists())
