@@ -7,12 +7,15 @@
 ### Added
 
 - 新增 subject-specialized package 体系：`core` 作为默认兼容 subject，`economics` 作为第一版学科专精安装包。subject catalog 使用 ordered groups，并通过 `skill_refs`、overlays 和 layered section overrides 生成 effective package。
-- 新增 `qiongli install --subject core|economics`、`qiongli upgrade --subject economics`、npm/npx 同名参数，以及 `check --json` 中的 installed subject 输出。旧安装缺少 `SUBJECT` marker 时按 legacy `core` 处理。
-- GitHub Release 现在生成 `qiongli-claude-desktop-skill-core-<tag>.zip` 和 `qiongli-claude-desktop-skill-economics-<tag>.zip`；旧名 `qiongli-claude-desktop-skill-<tag>.zip` 暂时作为 core alias 保留。
+- 新增 coverage-aware subject 安装：CLI/npm 默认 `coverage=complete`，即全量 core 框架加指定 subject 专精；显式 `--coverage focused` 时生成精简 selected subject package。
+- 新增官方 composite subject `economics-accounting`，用于经济学/会计交叉场景，仍 materialize 为单一 active `qiongli-workflow`。
+- 新增 `qiongli install --subject core|economics|economics-accounting --coverage complete|focused`、`qiongli upgrade --subject economics`、npm/npx 同名参数，以及 `check --json` 中的 installed subject/coverage 输出。旧安装缺少 `SUBJECT_MANIFEST.json` 或 `SUBJECT` marker 时按 legacy `core` / `complete` 处理。
+- Python materializer 新增 `--custom-dir`，支持本地 overlays、profiles、registry entries 和 custom skill markdown，只影响本次 materialized output，不回写 canonical source。
+- GitHub Release 现在生成 `qiongli-claude-desktop-skill-core-<tag>.zip`、`qiongli-claude-desktop-skill-economics-<tag>.zip` 和 `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip`；旧名 `qiongli-claude-desktop-skill-<tag>.zip` 暂时作为 core alias 保留。
 
 ### Changed
 
-- Desktop/Web 文档改为引导用户选择 subject ZIP。subject package 是专精安装包，不是降质删减版；统一 workflow、contract、templates、standards 与 quality gates 保持一致，学科深度通过 overlays 和 selected profiles 增强。
+- Desktop/Web 文档改为引导用户选择 focused subject ZIP。subject package 是专精安装包，不是降质删减版；统一 workflow、contract、templates、standards 与 quality gates 保持一致，学科深度通过 overlays、selected profiles、official composite subjects 和 local customization 增强。
 
 ## [0.11.1] - 2026-05-26
 

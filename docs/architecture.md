@@ -62,16 +62,17 @@ flowchart TD
 | Orchestrator CLI | Task planning, task execution, validation | `python3 -m bridges.orchestrator ...` |
 | Portable skill package | Cross-client distribution surface | `qiongli-workflow/` |
 
-## Dynamic Discipline Domains
+## Subject Packages And Discipline Domains
 
-The base system stays generic. Discipline specialization is injected at runtime through domain profiles such as `skills/domain-profiles/economics.yaml`.
+The canonical source stays generic. Installable specialization is generated from `subjects/catalog.yaml`, subject overlays, selected profiles, and subject-specific skills. CLI/npm installs default to `coverage=complete`, which keeps the full core framework and adds the requested subject layer. `coverage=focused` is the slim selected package used by Desktop/Web ZIPs.
 
-This keeps the installed package small while still allowing:
+Runtime domain flags and domain profiles still matter for a single task packet, but they no longer replace subject packaging. This keeps the source tree unified while still allowing:
 
 - domain-specific libraries
 - diagnostics and robustness checks
 - reporting standards
 - venue or methodology priors
+- official composite subjects such as `economics-accounting`
 
 ## Multi-Model Runtime Collaboration
 

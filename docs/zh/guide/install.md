@@ -13,7 +13,7 @@ Qiongli 有多个安装入口，是因为不同用户需要的运行时能力不
 | npm / npx | Node 自动化安装 | npm CLI 和内置 workflow payload | 只有高级 bridge 命令需要 |
 | pipx / pip | Python updater CLI | Python CLI 分发 | 是 |
 
-用户可见的 skill 名称是 `qiongli`。安装目录仍然是 `qiongli-workflow`，这是为了兼容已有客户端和 release artifacts。`core` 是默认 subject；`economics` 是第一版学科专精包。
+用户可见的 skill 名称是 `qiongli`。安装目录仍然是 `qiongli-workflow`，这是为了兼容已有客户端和 release artifacts。`core` 是默认 subject。CLI/npm 专精安装默认使用 `coverage=complete`，也就是全量 Qiongli 框架加指定 subject 专精。
 
 ## 原生 Plugin 和 Extension
 
@@ -44,12 +44,12 @@ claude plugin install qiongli@skillsplace
 
 Claude Desktop 和 Claude.ai 不安装第三方 Claude Code plugin marketplace。如果你使用 Desktop 或网页版，并且不熟悉 code / CLI 环境，优先使用 release ZIP 路径，不需要任何终端命令：
 
-1. 从 GitHub Release assets 下载 `qiongli-claude-desktop-skill-core-<tag>.zip` 或 `qiongli-claude-desktop-skill-economics-<tag>.zip`。
+1. 从 GitHub Release assets 下载 `qiongli-claude-desktop-skill-core-<tag>.zip`、`qiongli-claude-desktop-skill-economics-<tag>.zip` 或 `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip`。
 2. 在 Claude Desktop 中，把 ZIP 拖拽到 Skills 上传/安装流程中；也可以打开 `Customize > Skills`，点击 `+`，选择 `Create skill`，再选择 `Upload a skill`。
 3. 在 Claude.ai 网页版中，使用同样的 `Customize > Skills` 上传流程，选择同一个 ZIP。
 4. 启用上传后的 `qiongli` skill。
 
-Release ZIP 是 subject 专精 Desktop/Web 包，不是降质删减版。它保留可执行 workflows、templates、standards、所选 profiles、`skills-summary.md` 和 `skills-core.md`；economics ZIP 还包含通过 layered overlays 生成的 selected effective skill markdown。完整 canonical source 仍保留在 Codex / Claude Code / Gemini plugin 包和源码仓库中。
+Release ZIP 使用 `coverage=focused`，用于保持上传文件数预算。它是 subject 专精 Desktop/Web 包，不是降质删减版：保留可执行 workflows、templates、standards、所选 profiles、`skills-summary.md` 和 `skills-core.md`；专精 ZIP 还包含通过 layered overlays 生成的 selected effective skill markdown。完整 canonical source 可通过默认 `coverage=complete` 的 CLI/npm 安装、Codex / Claude Code / Gemini plugin 包和源码仓库获得。
 
 Gemini CLI 仍然直接安装本地 extension payload：
 
@@ -121,12 +121,14 @@ python3 -m bridges.orchestrator doctor --cwd .
 npm install -g qiongli
 qiongli install --subject core --target all --project-dir "$PWD"
 qiongli install --subject economics --target all --project-dir "$PWD"
+qiongli install --subject economics-accounting --target all --project-dir "$PWD"
 ```
 
 一次性运行：
 
 ```bash
 npx qiongli@latest install --subject economics --target all --project-dir "$PWD"
+npx qiongli@latest install --subject economics --coverage focused --target all --project-dir "$PWD"
 npx qiongli@latest check --json
 ```
 
@@ -144,6 +146,7 @@ npx qiongli@next install --subject economics --target all --project-dir "$PWD"
 pipx install qiongli
 qiongli install --subject core --target all
 qiongli install --subject economics --target all
+qiongli install --subject economics-accounting --target all
 ```
 
 升级：
@@ -153,7 +156,20 @@ pipx upgrade qiongli
 qiongli upgrade --subject economics --target all --doctor --project-dir /path/to/project
 ```
 
-`--subject` 默认是 `core`。如果要把某个客户端从 core 切到 economics，重新运行 `install` 或 `upgrade` 并指定 `--subject economics`；指定 `--subject core` 可切回通用包。`qiongli check --json` 会输出每个 target 当前安装的 subject；旧安装缺少 `SUBJECT` 文件时按 legacy `core` 处理。
+`--subject` 默认是 `core`，`--coverage` 默认是 `complete`。不确定怎么选时使用 complete：它保留全量框架，并叠加指定 subject overlays 与 subject-specific skills。只有明确需要精简包或 Desktop/Web 等价包时才使用 `--coverage focused`。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新参数。`qiongli check --json` 会输出每个 target 当前安装的 subject 和 coverage；旧安装缺少 `SUBJECT_MANIFEST.json` 或 `SUBJECT` 文件时按 legacy `core` / `complete` 处理。
+
+本地自定义 overlays 通过源码 materializer 支持：
+
+```bash
+python3 scripts/materialize_subject_package.py \
+  --subject economics \
+  --coverage complete \
+  --source . \
+  --custom-dir /path/to/custom-qiongli \
+  --out /tmp/qiongli-workflow
+```
+
+这个路径适合添加本地 overlays、profiles、registry entries 或 custom skill markdown。npm runtime 安装在这一阶段不支持 `--custom-dir`。
 
 ## 实际会安装什么
 

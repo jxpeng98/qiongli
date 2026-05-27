@@ -61,7 +61,7 @@ qiongli check [--repo <owner/repo|url>] [--json] [--strict-network]
 - `--json`：只输出 JSON（便于 CI/脚本）
 - `--strict-network`：如果上游查询失败则返回失败（默认仅提示并继续）
 
-JSON 输出会包含每个 target 当前安装的 active subject。旧 managed install 如果没有 `SUBJECT` marker，会按 legacy `core` 处理。
+JSON 输出会包含每个 target 当前安装的 active subject 和 coverage。旧 managed install 如果没有 `SUBJECT_MANIFEST.json` 或 `SUBJECT` marker，会按 legacy `core` / `complete` 处理。
 
 退出码约定：
 - `0`：无更新/或跳过上游检查
@@ -72,11 +72,12 @@ JSON 输出会包含每个 target 当前安装的 active subject。旧 managed i
 
 用途：
 - 把 PyPI 包内携带的 subject payload 安装到全局客户端 skill 目录。
-- 默认是 `--subject core`；经济学专精包使用 `--subject economics`。
+- 默认是 `--subject core --coverage complete`；经济学专精使用 `--subject economics`，表示全量 Qiongli 加 economics 专精。
 
 ```bash
 qiongli install \
-  [--subject core|economics] \
+  [--subject core|economics|economics-accounting] \
+  [--coverage complete|focused] \
   [--target codex|claude|gemini|antigravity|all] \
   [--mode copy|link] \
   [--project-dir <path>] \
@@ -85,7 +86,7 @@ qiongli install \
   [--dry-run]
 ```
 
-Subject package 是专精安装包，不是降质删减版。不同 subject 共享同一套 workflow contracts 与 quality gates；专精 subject 会选择 active profiles 并应用 layered skill overlays。切换 subject 时，重新运行 `install` 或 `upgrade` 并指定新的 `--subject`。
+Subject package 是专精安装包，不是降质删减版。`complete` coverage 保留全量 core 框架，并叠加所选 subject overlays 与 subject-specific skills。`focused` coverage 只选择该 subject 的 profiles 和 active effective skills，用于精简安装。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新参数。
 
 ### 2.3 `qiongli upgrade`（下载 release 并执行三端安装脚本）
 
@@ -99,7 +100,8 @@ qiongli upgrade \
   [--repo <owner/repo|url>] \
   [--ref <tag-or-branch>] \
   [--ref-type tag|branch] \
-  [--subject core|economics] \
+  [--subject core|economics|economics-accounting] \
+  [--coverage complete|focused] \
   [--target codex|claude|gemini|antigravity|all] \
   [--project-dir <path>] \
   [--no-overwrite] \
@@ -110,7 +112,7 @@ qiongli upgrade \
 说明：
 - `--project-dir` 主要在你显式请求项目侧安装面时生效，例如 `--parts project`。
 - 现在默认的 `upgrade` 是全局刷新。项目接线建议走 `qiongli init --project-dir .`；如果确实要在升级时重写项目文件，再显式加 `--parts project`。
-- `--subject` 默认是 `core`；使用 `--subject economics` 会 materialize 并安装经济学专精包。
+- `--subject` 默认是 `core`，`--coverage` 默认是 `complete`；使用 `--subject economics` 会安装全量 Qiongli 加 economics 专精，显式加 `--coverage focused` 时才安装精简 selected 包。
 - 全局安装后，`upgrade` 会自动创建工作流发现 symlink：`~/.claude/commands/*.md` 和 `~/.gemini/workflows/*.md`，可直接使用 `/paper`、`/lit-review` 等 slash 命令。
 - Shell CLI 会通过随附的 bootstrap helper 执行升级，不依赖 Python。
 - 退出码为底层安装器返回码（若安装失败，沿用其错误码）。
