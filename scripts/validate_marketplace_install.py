@@ -325,7 +325,7 @@ def _validate_subject_specialization(root: Path) -> None:
     if not findings:
         return
     details = "\n".join(f"{finding.subject}: {finding.code}: {finding.message}" for finding in findings)
-    raise SystemExit(f"Subject specialization audit failed:\n{details}")
+    raise ValueError(f"Subject specialization audit failed:\n{details}")
 
 
 def validate(root: Path, dist_dir: Path) -> list[str]:
