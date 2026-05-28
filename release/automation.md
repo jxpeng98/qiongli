@@ -19,13 +19,15 @@ If you want the whole path chained together, use:
 ./scripts/release_automation.sh publish --tag v0.1.0 --from-tag v0.1.0-beta.6
 ```
 
+`publish` is the only routine release entrypoint. Do not manually create release tags and do not manually dispatch production publish workflows for normal releases.
+
 This mode runs:
 
 - `scripts/release_ready.sh`
 - release-prep commit creation
 - annotated tag creation
 - push of the release branch + tag
-- waiting for `CI` and `Install Check`
+- waiting for branch checks (`CI`, `Checkout Install Check`) and tag publish workflows (`Publish to PyPI`, `Publish to npm`)
 - `scripts/release_postflight.sh --create-release`
 - marketplace / extension artifact generation for Codex, Claude Code, and Gemini CLI
 
@@ -79,23 +81,16 @@ The draft generator remains available, but the default policy is now:
 - stable tags publish from `CHANGELOG.md`
 - prerelease tags publish from `release/<tag>.md`
 
-## 4) Publish tag
+## 4) Publish from the release branch
 
-Stable release from the primary branch:
-
-```bash
-git add pyproject.toml qiongli/__init__.py qiongli-workflow/VERSION skills/registry.yaml skills CHANGELOG.md
-git commit -m "chore: prepare release 0.1.0"
-git tag -a v0.1.0 -m "qiongli release"
-git push origin main --tags
-```
-
-Beta release from `dev`:
+Stable releases run from the primary branch. Beta releases run from `dev`:
 
 ```bash
 git switch dev
 ./scripts/release_automation.sh publish --tag v0.8.0-beta.1 --skip-bump --from-tag v0.7.0-beta.2
 ```
+
+The command above owns the release-prep commit, tag creation, branch/tag push, registry publish wait, GitHub Release, and acceptance receipt.
 
 ## 5) Post-release checks
 
@@ -103,7 +98,7 @@ git switch dev
 ./scripts/release_automation.sh post --tag v0.1.0 --create-release
 ```
 
-Runs local/remote consistency checks, attempts CI status verification, checks release docs + rollback docs, and generates:
+Runs local/remote consistency checks, checks branch CI + tag publish status, checks release docs + rollback docs, and generates:
 
 - `release/acceptance/v0.1.0-receipt.md`
 
@@ -128,7 +123,7 @@ When `--create-release` is used, the generated Codex, Claude Code, and Gemini CL
 - `--allow-dirty`: let `release_ready.sh` continue on a dirty worktree.
 - `--commit-message <msg>`: override the release-prep commit message used by `publish`.
 - `--push-remote <name>` / `--push-branch <name>`: override the remote/branch used by `publish`.
-- `--wait-ci`: wait for required workflows to succeed before release creation.
+- `--wait-ci`: wait for required branch checks and tag publish workflows to succeed before release creation.
 - `--ci-timeout-seconds <n>` / `--ci-poll-interval-seconds <n>`: control publish wait behavior.
 - `--skip-remote`: skip remote ref checks in postflight.
 - `--skip-ci-status`: skip GitHub Actions status checks in postflight.
@@ -138,4 +133,5 @@ When `--create-release` is used, the generated Codex, Claude Code, and Gemini CL
 
 - Workflow: `.github/workflows/release-automation.yml`
 - Trigger: `workflow_dispatch`
-- Inputs: `mode`, plus `version` for `publish` or `tag` for `pre` / `post`
+- Inputs: `mode` and `tag`
+- Purpose: diagnostic `pre` / recovery `post` only. Production publishing is intentionally kept in `scripts/release_automation.sh publish` so tag creation and downstream registry workflows have one owner.

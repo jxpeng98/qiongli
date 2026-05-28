@@ -55,11 +55,16 @@
 1. 规范版本号并运行 `release_ready.sh`
 2. 自动提交 release-prep 文件
 3. 创建并 push release tag
-4. 让 tag 触发 GitHub Actions，通过 Trusted Publisher 发布到 PyPI
-5. 等待 release commit 上必要的 CI workflows：
+4. 让 tag 触发 GitHub Actions，发布到 PyPI 和 npm
+5. 等待 release commit 上必要的 branch workflows：
    - `CI`
    - `Checkout Install Check`
-6. 执行 postflight：创建或更新 GitHub Release、上传 plugin artifacts，并写入 acceptance receipt
+6. 等待必要的 tag publish workflows：
+   - `Publish to PyPI`
+   - `Publish to npm`
+7. 执行 postflight：创建或更新 GitHub Release、上传 plugin artifacts，并写入 acceptance receipt
+
+日常生产发布必须走 `./scripts/release_automation.sh publish`。生产 publish workflows 只是 tag 触发后的执行面，不再作为手动发布入口。
 
 你可以传入稳定版 `0.2.0`，也可以传入 beta 版 `0.2.0b1`。automation 会自动规范成三种表示：
 
@@ -87,7 +92,7 @@
 ./scripts/release_ready.sh --version 0.2.0b1 --from-tag v0.2.0
 ```
 
-`release_ready.sh` 会执行版本同步、strict validator、仓库单元测试、release-tier smoke、release note evidence 更新、包构建检查、`twine check` 和 wheel 安装 smoke。它不会创建 tag，也不会 push。commit、tag、push、等待 CI、创建 GitHub Release、上传 plugin artifacts、生成 acceptance receipt 都由 `publish` 模式负责。
+`release_ready.sh` 会执行版本同步、strict validator、仓库单元测试、release-tier smoke、release note evidence 更新、包构建检查、`twine check` 和 wheel 安装 smoke。它不会创建 tag，也不会 push。commit、tag、push、等待 branch CI、等待 tag publish、创建 GitHub Release、上传 plugin artifacts、生成 acceptance receipt 都由 `publish` 模式负责。
 
 如果你确实需要拆开执行，入口仍然保留：
 
@@ -107,6 +112,8 @@
 3. `python -m build` 构建 sdist + wheel
 4. `twine check` 验证包元数据
 5. 使用 Trusted Publisher 发布到 PyPI
+
+同一个 tag 也会触发 `publish-npm.yml`，它会校验 bundled npm package，并把 stable 版本发布到 `latest`，把 beta 版本发布到 `next`。
 
 之后 postflight 会等待 release commit 上的 `CI` 和 `Checkout Install Check`。如果必需 workflow 没有匹配到，诊断会同时打印该 commit 上实际观察到的 workflow 名称。
 

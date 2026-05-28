@@ -1088,6 +1088,8 @@ If you wish to test the legacy installation method, the script is located at: `s
 
 
 ### Release Automation
+Use `scripts/release_automation.sh publish` as the release entrypoint. Do not create release tags or trigger publish workflows manually during routine releases; `publish` owns the release-prep commit, tag push, CI/publish wait, GitHub Release, plugin artifacts, and acceptance receipt.
+
 ```bash
 # Full end-to-end stable publish from main/master
 ./scripts/release_automation.sh publish --tag v0.1.0 --from-tag v0.1.0-beta.6
@@ -1096,7 +1098,7 @@ If you wish to test the legacy installation method, the script is located at: `s
 git switch dev
 ./scripts/release_automation.sh publish --tag v0.8.0-beta.1 --skip-bump --from-tag v0.7.0-beta.2
 
-# Manual split phases when needed
+# Diagnostic / recovery split phases when needed
 ./scripts/release_automation.sh pre --tag v0.1.0 --from-tag v0.1.0-beta.6
 ./scripts/release_automation.sh post --tag v0.1.0 --create-release
 ```
