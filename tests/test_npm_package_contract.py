@@ -78,7 +78,7 @@ class NpmPackageContractTests(unittest.TestCase):
             (workflow_root / "VERSION").read_text(encoding="utf-8").strip().removeprefix("v"),
         )
         self.assertEqual(
-            (REPO_ROOT / "qiongli-workflow" / "skills" / "registry.yaml").read_text(encoding="utf-8"),
+            (REPO_ROOT / "skills" / "registry.yaml").read_text(encoding="utf-8"),
             (workflow_root / "skills" / "registry.yaml").read_text(encoding="utf-8"),
         )
 
