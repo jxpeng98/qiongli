@@ -86,6 +86,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+      - name: Install release dependencies
+        run: python -m pip install -e . build twine
+
       - name: Inject packaged upstream defaults
         if: ${{ github.event_name == 'push' || inputs.mode != 'publish' }}
         run: bash scripts/inject_project_toml.sh
@@ -96,9 +99,8 @@ jobs:
           bash scripts/sync_skill_package.sh --target all
           python3 scripts/sync_npm_package_payload.py
 
-      - name: Install release dependencies and build package
+      - name: Build package
         run: |
-          python -m pip install -e . build twine
           if [[ "${{ github.event_name }}" == "push" || "${{ inputs.mode }}" != "publish" ]]; then
             python -m build
           fi
