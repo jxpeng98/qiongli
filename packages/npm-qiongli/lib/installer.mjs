@@ -30,16 +30,44 @@ export function readSkillVersion(skillDir) {
   }
 }
 
+export function readSkillSubject(skillDir) {
+  if (!isQiongliSkillDir(skillDir)) {
+    return '';
+  }
+  const manifest = readSubjectManifest(skillDir);
+  if (typeof manifest.subject === 'string' && manifest.subject.trim()) {
+    return manifest.subject.trim();
+  }
+  try {
+    return fs.readFileSync(path.join(skillDir, 'SUBJECT'), 'utf-8').trim() || 'core';
+  } catch {
+    return 'core';
+  }
+}
+
+export function readSkillCoverage(skillDir) {
+  if (!isQiongliSkillDir(skillDir)) {
+    return '';
+  }
+  const manifest = readSubjectManifest(skillDir);
+  if (typeof manifest.coverage === 'string' && manifest.coverage.trim()) {
+    return manifest.coverage.trim();
+  }
+  return 'complete';
+}
+
 export function installSkills({
   packageRoot,
   target = 'all',
   mode = 'copy',
   overwrite = false,
   dryRun = false,
+  subject = 'core',
+  coverage = 'complete',
   env = process.env,
   platform = process.platform,
 } = {}) {
-  const workflowSrc = path.join(packageRoot, 'payload', 'qiongli-workflow');
+  const workflowSrc = resolveSubjectPayload({ packageRoot, subject, coverage });
   if (!fs.existsSync(path.join(workflowSrc, 'SKILL.md'))) {
     throw new Error(`Missing qiongli-workflow payload: ${workflowSrc}`);
   }
@@ -47,6 +75,8 @@ export function installSkills({
   const targetPaths = resolveTargetPaths({ env });
   const selectedTargets = target === 'all' ? TARGETS : [target];
   const sourceVersion = readSkillVersion(workflowSrc);
+  const sourceSubject = readSkillSubject(workflowSrc) || subject;
+  const sourceCoverage = readSkillCoverage(workflowSrc) || coverage;
   const actions = [];
   const legacyResidues = [];
 
@@ -57,14 +87,14 @@ export function installSkills({
       legacyResidues.push({ target: item, legacyName: LEGACY_SKILL_NAME, path: legacyPath });
     }
 
-    actions.push(copySkill({ src: workflowSrc, dest, mode, overwrite, dryRun, sourceVersion }));
+    actions.push(copySkill({ src: workflowSrc, dest, mode, overwrite, dryRun, sourceVersion, sourceSubject, sourceCoverage }));
 
     if ((item === 'claude' || item === 'gemini') && actions.at(-1).status !== 'skip') {
       actions.push(...installWorkflowDiscovery({ target: item, skillDest: dest, dryRun, platform }));
     }
   }
 
-  return { sourceVersion, actions, legacyResidues, targetPaths };
+  return { sourceVersion, sourceSubject, sourceCoverage, actions, legacyResidues, targetPaths };
 }
 
 export function cleanAssets({ projectDir = '.', globals = false, dryRun = false, env = process.env } = {}) {
@@ -113,9 +143,9 @@ export function cleanAssets({ projectDir = '.', globals = false, dryRun = false,
   return { removed };
 }
 
-export function buildCheck({ packageRoot, env = process.env } = {}) {
+export function buildCheck({ packageRoot, subject = 'core', coverage = 'complete', env = process.env } = {}) {
   const packageJson = JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf-8'));
-  const payload = path.join(packageRoot, 'payload', 'qiongli-workflow');
+  const payload = resolveSubjectPayload({ packageRoot, subject, coverage });
   const targetPaths = resolveTargetPaths({ env });
   const installed = {};
   for (const [target, skillDir] of Object.entries(targetPaths)) {
@@ -123,6 +153,8 @@ export function buildCheck({ packageRoot, env = process.env } = {}) {
       path: skillDir,
       installed: isQiongliSkillDir(skillDir),
       version: readSkillVersion(skillDir) || null,
+      subject: readSkillSubject(skillDir) || null,
+      coverage: readSkillCoverage(skillDir) || null,
     };
   }
   return {
@@ -133,18 +165,29 @@ export function buildCheck({ packageRoot, env = process.env } = {}) {
     payload: {
       path: payload,
       version: readSkillVersion(payload),
+      subject: readSkillSubject(payload) || subject,
+      coverage: readSkillCoverage(payload) || coverage,
+      available_subjects: availableSubjects(packageRoot),
+      available_coverage: availableCoverage(packageRoot),
     },
     installed,
   };
 }
 
-function copySkill({ src, dest, mode, overwrite, dryRun, sourceVersion }) {
+function copySkill({ src, dest, mode, overwrite, dryRun, sourceVersion, sourceSubject, sourceCoverage }) {
   if (fs.existsSync(dest)) {
     if (!overwrite) {
       if (isQiongliSkillDir(dest)) {
         const destVersion = readSkillVersion(dest);
-        if (destVersion === sourceVersion) {
-          return { label: 'Skill', status: 'skip', path: dest, detail: `already current ${sourceVersion}` };
+        const destSubject = readSkillSubject(dest);
+        const destCoverage = readSkillCoverage(dest);
+        if (destVersion === sourceVersion && destSubject === sourceSubject && destCoverage === sourceCoverage) {
+          return {
+            label: 'Skill',
+            status: 'skip',
+            path: dest,
+            detail: `already current ${sourceVersion} (${sourceSubject}/${sourceCoverage})`,
+          };
         }
       } else {
         return { label: 'Skill', status: 'skip', path: dest, detail: 'use --overwrite for unmanaged directory' };
@@ -162,7 +205,92 @@ function copySkill({ src, dest, mode, overwrite, dryRun, sourceVersion }) {
     }
   }
 
-  return { label: 'Skill', status: 'ok', path: dest, detail: `installed ${sourceVersion}` };
+  return { label: 'Skill', status: 'ok', path: dest, detail: `installed ${sourceVersion} (${sourceSubject}/${sourceCoverage})` };
+}
+
+function resolveSubjectPayload({ packageRoot, subject, coverage = 'complete' }) {
+  const requested = subject || 'core';
+  const requestedCoverage = coverage || 'complete';
+  const subjectPayload = path.join(packageRoot, 'payload', 'subjects', requested, requestedCoverage, 'qiongli-workflow');
+  if (fs.existsSync(path.join(subjectPayload, 'SKILL.md'))) {
+    return subjectPayload;
+  }
+  const legacySubjectPayload = path.join(packageRoot, 'payload', 'subjects', requested, 'qiongli-workflow');
+  if (requestedCoverage === 'complete' && fs.existsSync(path.join(legacySubjectPayload, 'SKILL.md'))) {
+    return legacySubjectPayload;
+  }
+  const legacyCore = path.join(packageRoot, 'payload', 'qiongli-workflow');
+  if (requested === 'core' && requestedCoverage === 'complete' && fs.existsSync(path.join(legacyCore, 'SKILL.md'))) {
+    return legacyCore;
+  }
+  const subjects = availableSubjects(packageRoot);
+  if (!subjects.includes(requested)) {
+    throw new Error(`Unknown subject '${requested}'. Available subjects: ${subjects.join(', ') || 'core'}`);
+  }
+  const coverageOptions = availableCoverage(packageRoot)[requested] || [];
+  throw new Error(
+    `Unknown coverage '${requestedCoverage}' for subject '${requested}'. Available coverage: ${coverageOptions.join(', ') || 'complete'}`,
+  );
+}
+
+function availableSubjects(packageRoot) {
+  const subjectsDir = path.join(packageRoot, 'payload', 'subjects');
+  const subjects = [];
+  if (fs.existsSync(subjectsDir)) {
+    for (const name of fs.readdirSync(subjectsDir)) {
+      const legacyWorkflow = path.join(subjectsDir, name, 'qiongli-workflow');
+      const coverageRoot = path.join(subjectsDir, name);
+      const hasCoverage = fs.readdirSync(coverageRoot).some((coverageName) => {
+        const workflow = path.join(coverageRoot, coverageName, 'qiongli-workflow');
+        return fs.existsSync(path.join(workflow, 'SKILL.md'));
+      });
+      if (fs.existsSync(path.join(legacyWorkflow, 'SKILL.md')) || hasCoverage) {
+        subjects.push(name);
+      }
+    }
+  }
+  const legacyCore = path.join(packageRoot, 'payload', 'qiongli-workflow');
+  if (!subjects.includes('core') && fs.existsSync(path.join(legacyCore, 'SKILL.md'))) {
+    subjects.push('core');
+  }
+  return subjects.sort();
+}
+
+function availableCoverage(packageRoot) {
+  const subjectsDir = path.join(packageRoot, 'payload', 'subjects');
+  const result = {};
+  if (fs.existsSync(subjectsDir)) {
+    for (const subject of fs.readdirSync(subjectsDir)) {
+      const subjectRoot = path.join(subjectsDir, subject);
+      const coverage = [];
+      for (const name of fs.readdirSync(subjectRoot)) {
+        const workflow = path.join(subjectRoot, name, 'qiongli-workflow');
+        if (fs.existsSync(path.join(workflow, 'SKILL.md'))) {
+          coverage.push(name);
+        }
+      }
+      if (fs.existsSync(path.join(subjectRoot, 'qiongli-workflow', 'SKILL.md'))) {
+        coverage.push('complete');
+      }
+      if (coverage.length > 0) {
+        result[subject] = [...new Set(coverage)].sort();
+      }
+    }
+  }
+  const legacyCore = path.join(packageRoot, 'payload', 'qiongli-workflow');
+  if (fs.existsSync(path.join(legacyCore, 'SKILL.md'))) {
+    result.core = [...new Set([...(result.core || []), 'complete'])].sort();
+  }
+  return result;
+}
+
+function readSubjectManifest(skillDir) {
+  try {
+    const payload = JSON.parse(fs.readFileSync(path.join(skillDir, 'SUBJECT_MANIFEST.json'), 'utf-8'));
+    return payload && typeof payload === 'object' && !Array.isArray(payload) ? payload : {};
+  } catch {
+    return {};
+  }
 }
 
 function installWorkflowDiscovery({ target, skillDest, dryRun, platform }) {

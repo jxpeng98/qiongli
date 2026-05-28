@@ -5,6 +5,7 @@
 ## 主题
 
 - [扩展 Qiongli](/zh/advanced/extend-qiongli)
+- [Subject Packaging Model](/zh/advanced/subject-packaging-model)
 - [Agent + Skill 协同](/zh/advanced/agent-skill-collaboration)
 - [MCP Providers 接入](/zh/advanced/mcp-providers-setup)
 - [严格 Academic Literature Search](/zh/advanced/rigorous-literature-search)
@@ -15,5 +16,6 @@
 
 - 接入新的搜索、全文、统计或运行时 Provider
 - 为某个研究方向做领域专精
+- 理解 core、subject、focused coverage、composite 和 custom overlays 的使用边界
 - 调整 agent、profile、skill 之间的协作方式
 - 维护或发布 Python 包分发链路

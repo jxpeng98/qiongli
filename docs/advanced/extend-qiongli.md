@@ -146,6 +146,8 @@ In this repo, "specializing a direction" usually means:
 
 In other words, do **not** start from `standards/` unless the contract itself changes. The default entrypoint for specialization is `skills/domain-profiles/`.
 
+For installable subject packages, start from `subjects/catalog.yaml` and subject overlays instead of copying generic skills. CLI/npm installs default to `coverage=complete`, which keeps the full core framework and adds subject specialization. `coverage=focused` is for slim selected packages and Desktop/Web ZIPs. Official cross-disciplinary packages should be modeled as explicit composite subjects such as `economics-accounting`, not as free-form runtime stacking. For the full conceptual boundary, see [Subject Packaging Model](/advanced/subject-packaging-model).
+
 | You want to change... | Start here | Escalate only when... |
 |---|---|---|
 | Recommended libraries, method checklists, diagnostics, pitfalls, databases, venue norms | `skills/domain-profiles/<domain>.yaml` | You add new fields and must update `schemas/domain-profile.schema.json` |
@@ -171,6 +173,19 @@ Recommended order:
    - If no, update the relevant `domain_aware` skill specs as well.
 4. If you introduce new profile fields, update `schemas/domain-profile.schema.json`.
 5. Only move up to `standards/` when you are adding a skill, changing task routing, or changing contract artifacts.
+
+For local customization without changing canonical source, materialize with a custom directory:
+
+```bash
+python3 scripts/materialize_subject_package.py \
+  --subject economics \
+  --coverage complete \
+  --source . \
+  --custom-dir /path/to/custom-qiongli \
+  --out /tmp/qiongli-workflow
+```
+
+The custom directory may contain `subject.yaml`, `overlays/skills/*.md`, `skills/registry.yaml`, `skills/*.md`, `domain-profiles/*.yaml`, and `venue-profiles/*.yaml`. It only affects that generated output and fails fast on unknown skill refs, duplicate registry ids, or missing `replace_sections` headings.
 
 Skill files commonly touched during broader domain specialization:
 - `skills/A_framing/venue-analyzer.md`

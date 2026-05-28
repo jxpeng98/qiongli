@@ -24,16 +24,35 @@ curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/boots
 - `--doctor` 是可选项，只有检测到 `python3` 时才会执行。
 - 远程 bootstrap 只支持 `--mode copy`。如果你需要 `--mode link`，请先 clone 仓库，再使用下面的本地安装脚本。
 
-## 2. 可选：Python CLI
+## 2. 可选：npm CLI
+
+如果机器上已经有 Node.js，可以使用 npm 包内置的 subject payload：
+
+```bash
+npm install -g qiongli
+qiongli install --subject core --target all --project-dir /path/to/project
+qiongli install --subject economics --target all --project-dir /path/to/project
+```
+
+如果只是测试 prerelease，不想全局安装：
+
+```bash
+npx qiongli@next install --subject economics --target all --project-dir /path/to/project
+npx qiongli@next check --json
+```
+
+`--subject` 默认是 `core`。切换 subject 时，重新运行 install 或 upgrade 并指定新的 `--subject`。
+
+## 3. 可选：Python CLI
 
 如果机器上已经有 Python，也可以继续使用 `pipx` 安装升级器 CLI：
 
 ```bash
 pipx install qiongli
-qiongli upgrade --target all --project-dir /path/to/project --doctor
+qiongli install --subject economics --target all --project-dir /path/to/project --doctor
 ```
 
-## 3. 本地仓库安装脚本
+## 4. 本地仓库安装脚本
 
 如果你已经有仓库副本，可以直接运行统一安装脚本：
 
@@ -46,7 +65,7 @@ qiongli upgrade --target all --project-dir /path/to/project --doctor
 目前系统所有的安装与升级**默认全部是全局操作（Global-first）**，你的项目目录会被保持绝对干净。
 
 安装器主要执行两步：
-1. **安装核心技能包：** 把 `qiongli-workflow` 下载存进你本地 AI 客户端所在的专属配置目录（例如 `~/.claude/skills/` 和 `~/.gemini/skills/`）。
+1. **安装 active subject package：** 把 `qiongli-workflow` 下载存进你本地 AI 客户端所在的专属配置目录（例如 `~/.claude/skills/` 和 `~/.gemini/skills/`）。`core` 是默认 subject；`economics` 通过 `--subject economics` 选择。
 2. **注册快捷指令 (Slash Commands)：** 自动在客户端的发现路径里打下轻量级的软链接（例如 `~/.claude/commands/paper.md`）。
 
 这意味着像 `/paper`、`/study-design` 这样的命令，**无论你当前在电脑的哪个文件夹下工作，AI 都能原生识别**。
@@ -73,7 +92,7 @@ _注：涉及你具体项目内文件的写入（比如需要注入 API Key 的 
 ## 升级指南
 
 - 检测更新：`qiongli check --repo <owner>/<repo>`
-- 一键升级（无需 fork 或 git clone）：`qiongli upgrade --repo <owner>/<repo> --target all` 自动刷新全局环境。
+- 一键升级（无需 fork 或 git clone）：`qiongli upgrade --repo <owner>/<repo> --subject economics --target all` 自动刷新全局环境。
 - 完整升级指南：`guides/basic/upgrade-qiongli_CN.md`
 
 ## 验证安装

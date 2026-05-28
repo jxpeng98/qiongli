@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "qiongli"
-version = "0.11.1"
+version = "0.12.0b1"
 description = "Installer/upgrader CLI for qiongli (Codex / Claude Code / Gemini) without requiring a git fork."
 readme = "README_PYPI.md"
 requires-python = ">=3.12"
@@ -38,4 +38,4 @@ rsw = "qiongli.cli:main"
 packages = ["qiongli", "research_skills"]
 
 [tool.setuptools.package-data]
-qiongli = ["project.toml", "install_manifest.tsv"]
+qiongli = ["project.toml", "install_manifest.tsv", "payload/**/*"]

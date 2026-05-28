@@ -264,6 +264,7 @@
 
 当前仓库自带的 profile 包括：
 
+- `accounting`
 - `biomedical`
 - `business-management`
 - `cs-ai`

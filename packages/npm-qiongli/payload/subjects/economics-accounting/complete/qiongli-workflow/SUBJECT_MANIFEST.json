@@ -1,0 +1,11 @@
+{
+  "coverage": "complete",
+  "flavor": "full",
+  "layers": [
+    "core",
+    "economics",
+    "accounting",
+    "economics-accounting"
+  ],
+  "subject": "economics-accounting"
+}

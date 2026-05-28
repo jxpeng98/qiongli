@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import shutil
 import tarfile
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 
@@ -29,6 +31,9 @@ class PluginArtifactsTests(unittest.TestCase):
             self.assertEqual(
                 sorted(path.name for path in artifacts),
                 [
+                    f"qiongli-claude-desktop-skill-core-{current_tag}.zip",
+                    f"qiongli-claude-desktop-skill-economics-accounting-{current_tag}.zip",
+                    f"qiongli-claude-desktop-skill-economics-{current_tag}.zip",
                     f"qiongli-claude-desktop-skill-{current_tag}.zip",
                     f"qiongli-claude-plugin-{current_tag}.tar.gz",
                     f"qiongli-codex-plugin-{current_tag}.tar.gz",
@@ -61,6 +66,59 @@ class PluginArtifactsTests(unittest.TestCase):
                     f"qiongli-gemini-extension-{current_tag}/skills/qiongli-workflow/SKILL.md",
                 ],
             )
+            self._assert_zip_contains(
+                dist_dir / f"qiongli-claude-desktop-skill-core-{current_tag}.zip",
+                [
+                    "qiongli/SKILL.md",
+                    "qiongli/SUBJECT",
+                    "qiongli/skills/registry.yaml",
+                ],
+            )
+            self._assert_zip_contains(
+                dist_dir / f"qiongli-claude-desktop-skill-economics-{current_tag}.zip",
+                [
+                    "qiongli/SKILL.md",
+                    "qiongli/SUBJECT",
+                    "qiongli/skills/C_design/econ-identification-auditor.md",
+                    "qiongli/skills/F_writing/manuscript-architect.md",
+                    "qiongli/venue-profiles/aer.yaml",
+                ],
+            )
+            self._assert_zip_contains(
+                dist_dir / f"qiongli-claude-desktop-skill-economics-accounting-{current_tag}.zip",
+                [
+                    "qiongli/SKILL.md",
+                    "qiongli/SUBJECT",
+                    "qiongli/skills/C_design/econ-identification-auditor.md",
+                    "qiongli/skills/C_design/accounting-measurement-auditor.md",
+                    "qiongli/skills/F_writing/manuscript-architect.md",
+                    "qiongli/venue-profiles/accounting-review.yaml",
+                ],
+            )
+
+    def test_fallback_economics_accounting_desktop_skill_includes_accounting_auditor(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = self._make_fallback_root(Path(tmp_dir) / "repo")
+            dest = Path(tmp_dir) / "qiongli"
+            original_materializer = module.materialize_subject_package
+            original_options = module.MaterializeOptions
+            try:
+                module.materialize_subject_package = None
+                module.MaterializeOptions = None
+
+                module._copy_claude_desktop_skill(root, dest, "economics-accounting")
+            finally:
+                module.materialize_subject_package = original_materializer
+                module.MaterializeOptions = original_options
+
+            self.assertTrue((dest / "skills" / "C_design" / "accounting-measurement-auditor.md").exists())
+            registry = (dest / "skills" / "registry.yaml").read_text(encoding="utf-8")
+            self.assertIn("id: accounting-measurement-auditor", registry)
+            manifest = json.loads((dest / "SUBJECT_MANIFEST.json").read_text(encoding="utf-8"))
+            self.assertEqual(
+                ["core", "economics", "accounting", "economics-accounting"],
+                manifest["layers"],
+            )
 
     def test_fails_when_artifact_versions_do_not_match_tag(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -81,6 +139,22 @@ class PluginArtifactsTests(unittest.TestCase):
             names = set(tar.getnames())
         for name in expected:
             self.assertIn(name, names)
+
+    def _assert_zip_contains(self, artifact: Path, expected: list[str]) -> None:
+        with zipfile.ZipFile(artifact) as archive:
+            names = set(archive.namelist())
+        for name in expected:
+            self.assertIn(name, names)
+
+    def _make_fallback_root(self, root: Path) -> Path:
+        shutil.copytree(REPO_ROOT / "qiongli-workflow", root / "qiongli-workflow")
+        shutil.copytree(REPO_ROOT / "templates", root / "qiongli-workflow" / "templates", dirs_exist_ok=True)
+        shutil.copytree(REPO_ROOT / "skills", root / "qiongli-workflow" / "skills", dirs_exist_ok=True)
+        shutil.copytree(REPO_ROOT / "skills", root / "skills")
+        shutil.copytree(REPO_ROOT / "subjects", root / "subjects")
+        shutil.copy2(REPO_ROOT / "skills-core.md", root / "qiongli-workflow" / "skills-core.md")
+        shutil.copy2(REPO_ROOT / "skills-summary.md", root / "qiongli-workflow" / "skills-summary.md")
+        return root
 
 
 if __name__ == "__main__":

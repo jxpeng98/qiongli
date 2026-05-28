@@ -11,6 +11,7 @@
 
 | 场景 | 使用 | 安装前是否需要 Python |
 |---|---|---|
+| Claude Desktop/Web 且不想用 CLI | focused subject Desktop ZIP，例如 `qiongli-claude-desktop-skill-economics-<tag>.zip` | 否 |
 | 只在一个客户端里用 | 原生 plugin / extension | 否 |
 | 多个客户端需要全局 workflow assets | Bootstrap `partial` | 否 |
 | 需要 `doctor`、validator 或 orchestrator task execution | Bootstrap `full` | 是，Python 3.12+ |
@@ -21,9 +22,9 @@
 
 ## 2. 安装 workflow assets
 
-如果你使用 Claude Desktop 或 Claude.ai 网页版，并且不想处理 code / CLI 环境，从 GitHub Release assets 下载 `qiongli-claude-desktop-skill-<tag>.zip`。在 Claude Desktop 中把 ZIP 拖拽到 Skills 上传/安装流程中，或使用 `Customize > Skills > + > Create skill > Upload a skill`。Claude.ai 网页版也使用同一个 ZIP 上传流程。
+如果你使用 Claude Desktop 或 Claude.ai 网页版，并且不想处理 code / CLI 环境，从 GitHub Release assets 下载需要的 focused subject ZIP。本阶段公开 Desktop ZIP subjects 是 `core`、`economics` 和 `economics-accounting`，还没有 standalone accounting Desktop ZIP。默认通用 workflow 用 `qiongli-claude-desktop-skill-core-<tag>.zip`；经济学专精 workflow 用 `qiongli-claude-desktop-skill-economics-<tag>.zip`；官方 economics/accounting 交叉学科包用 `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip`。在 Claude Desktop 中把 ZIP 拖拽到 Skills 上传/安装流程中，或使用 `Customize > Skills > + > Create skill > Upload a skill`。Claude.ai 网页版也使用同一个 ZIP 上传流程。
 
-Desktop/Web ZIP 是为了满足 Claude 上传文件数限制而生成的 slim 包。它保留 workflows、templates、standards、venue profiles、`skills-summary.md` 和 `skills-core.md`，但省略细分 per-skill markdown specs。需要完整细分 skill 语料时，使用 plugin/source 发行。
+Desktop/Web ZIP 使用 `coverage=focused`，用于保持上传文件数预算。它是 subject 专精包，不是降质删减版：保留 workflows、templates、standards、所选 profiles、`skills-summary.md` 和 `skills-core.md`；专精 ZIP 还包含通过 layered overlays 生成的 selected effective skill markdown。
 
 如果你选择 Codex 或 Claude Code 的原生 plugin 路径，从统一的 Skillsplace marketplace 安装 Qiongli：
 
@@ -53,6 +54,21 @@ pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile partial -Pro
 ```
 
 如果机器已经有 Python 3.12+，并且你需要 runtime check、validator 或 orchestrated task，把 `--profile partial` 改成 `--profile full`。
+
+npm 或 pipx 安装中，`--subject` 默认是 `core`，`--coverage` 默认是 `complete`：
+
+```bash
+qiongli install --subject economics --target all
+qiongli install --subject accounting --target all
+npx qiongli@latest install --subject economics --target all
+qiongli install --subject economics-accounting --target all
+qiongli install --subject economics --coverage focused --target all
+qiongli upgrade --subject accounting --target all
+qiongli customize --subject economics --name my-econ-lab --out ./qiongli-custom/econ-lab
+qiongli check --json
+```
+
+不确定怎么选时使用默认 complete：`qiongli install --target all` 表示 `core/complete`，`--subject economics` 表示 `economics/complete`，`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。只有明确想要精简包或 Desktop/Web ZIP 形态时才使用 `--coverage focused`。官方 composite subjects（例如 `economics-accounting`）是命名 subject，不是任意逗号分隔叠加。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新的参数。Custom overlays 只影响 generated output，不会改写 canonical source files；`qiongli customize` 加 `--custom-dir` materialization 面向 Python/source checkout 工作流，npm runtime installs 在这个阶段使用预生成 payloads。
 
 ## 3. 创建研究工作区
 

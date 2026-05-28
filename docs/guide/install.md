@@ -13,7 +13,7 @@ Qiongli has several installation surfaces because users need different levels of
 | npm / npx | Node-based automation | npm CLI plus bundled workflow payload | Only for advanced bridge commands |
 | pipx / pip | Python updater CLI | Python CLI distribution | Yes |
 
-The user-visible skill name is `qiongli`. The installed directory is still `qiongli-workflow` for compatibility with existing clients and release artifacts.
+The user-visible skill name is `qiongli`. The installed directory is still `qiongli-workflow` for compatibility with existing clients and release artifacts. `core` is the default subject, so the default install is `core/complete`. Specialized CLI/npm installs default to `coverage=complete`, meaning full Qiongli plus the requested subject specialization.
 
 ## Native Plugin And Extension
 
@@ -44,12 +44,12 @@ Inside an interactive Claude Code session, use:
 
 Claude Desktop and Claude.ai do not install third-party Claude Code plugin marketplaces. If you use Desktop or the web app and are not familiar with a code/CLI environment, use the release ZIP path instead. It requires no terminal commands:
 
-1. Download `qiongli-claude-desktop-skill-<tag>.zip` from the GitHub Release assets.
+1. Download `qiongli-claude-desktop-skill-core-<tag>.zip`, `qiongli-claude-desktop-skill-economics-<tag>.zip`, or `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip` from the GitHub Release assets. Public Desktop ZIP subjects in this phase are `core`, `economics`, and `economics-accounting`; there is no standalone accounting Desktop ZIP yet.
 2. In Claude Desktop, drag the ZIP into the Skills upload/install flow, or open `Customize > Skills`, click `+`, choose `Create skill`, then `Upload a skill`.
 3. In Claude.ai, use the same `Customize > Skills` upload flow and select the same ZIP.
 4. Enable the uploaded `qiongli` skill.
 
-The release ZIP is a slim Desktop/Web skill package designed to stay below Claude's upload file-count limit. It preserves executable workflows, templates, standards, venue profiles, `skills-summary.md`, and `skills-core.md`; detailed per-skill markdown specs remain available in the Codex / Claude Code / Gemini plugin packages and source repository.
+The release ZIP uses `coverage=focused` to stay under upload limits. It is a subject-specialized Desktop/Web package, not a reduced-quality cut. It preserves executable workflows, templates, standards, selected profiles, `skills-summary.md`, and `skills-core.md`; specialized ZIPs also include selected effective skill markdown generated with layered overlays. Detailed canonical source remains available through CLI/npm `coverage=complete`, the Codex / Claude Code / Gemini plugin packages, and the source repository.
 
 Gemini CLI still installs the local extension payload directly:
 
@@ -119,20 +119,25 @@ Use npm when you want a Node-distributed installer with the workflow payload bun
 
 ```bash
 npm install -g qiongli
-qiongli install --target all --project-dir "$PWD"
+qiongli install --subject core --target all --project-dir "$PWD"
+qiongli install --subject economics --target all --project-dir "$PWD"
+qiongli install --subject accounting --target all --project-dir "$PWD"
+qiongli install --subject economics-accounting --target all --project-dir "$PWD"
+qiongli install --subject economics --coverage focused --target all --project-dir "$PWD"
 ```
 
 For one-off runs:
 
 ```bash
-npx qiongli@latest install --target all --project-dir "$PWD"
+npx qiongli@latest install --subject economics --target all --project-dir "$PWD"
+npx qiongli@latest install --subject economics --coverage focused --target all --project-dir "$PWD"
 npx qiongli@latest check --json
 ```
 
 Prerelease testing remains available through the `next` dist-tag:
 
 ```bash
-npx qiongli@next install --target all --project-dir "$PWD"
+npx qiongli@next install --subject economics --target all --project-dir "$PWD"
 ```
 
 ## pipx / pip
@@ -141,15 +146,39 @@ Use pipx when you specifically want the Python-distributed updater CLI:
 
 ```bash
 pipx install qiongli
-qiongli upgrade --target all
+qiongli install --target all
+qiongli install --subject economics --target all
+qiongli install --subject accounting --target all
+qiongli install --subject economics-accounting --target all
 ```
 
 Upgrade it with:
 
 ```bash
 pipx upgrade qiongli
-qiongli upgrade --target all --doctor --project-dir /path/to/project
+qiongli upgrade --subject accounting --target all --doctor --project-dir /path/to/project
 ```
+
+`--subject` defaults to `core`, and `--coverage` defaults to `complete`. Use complete when you are unsure: `--subject economics` means `economics/complete`, not a reduced package, and `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. Use `--coverage focused` for deliberate slim installs and Desktop/Web-equivalent packages. Current official subjects are `core`, `economics`, `accounting`, and the named composite `economics-accounting`; official composite subjects are not arbitrary comma-separated stacking. To switch a client from one subject or coverage to another, rerun `install` or `upgrade` with new flags. `qiongli check --json` reports the active installed subject and coverage per target; legacy installs without a `SUBJECT_MANIFEST.json` or `SUBJECT` file are treated as `core` / `complete`.
+
+Create a custom scaffold before materializing local overlays:
+
+```bash
+qiongli customize --subject economics --name my-econ-lab --out ./qiongli-custom/econ-lab
+```
+
+Local custom overlays are supported by the source materializer:
+
+```bash
+python3 scripts/materialize_subject_package.py \
+  --subject economics \
+  --coverage complete \
+  --source . \
+  --custom-dir /path/to/custom-qiongli \
+  --out /tmp/qiongli-workflow
+```
+
+Use this when you need local overlays, profiles, registry entries, or custom skill markdown. Custom overlays affect generated output only and do not rewrite canonical source files. `qiongli customize` plus `--custom-dir` materialization is for the Python/source checkout workflow; npm runtime installs pre-generated payloads and do not accept `--custom-dir` in this phase.
 
 ## What Gets Installed
 
@@ -170,7 +199,7 @@ If you use multiple surfaces, keep plugin, global skill assets, npm payload, and
 
 ```bash
 qiongli check
-qiongli upgrade --target all
+qiongli upgrade --subject core --target all
 ```
 
 If you move fully to native plugins and no longer need legacy global slash commands, inspect cleanup first:

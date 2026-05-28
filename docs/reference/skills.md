@@ -264,6 +264,7 @@ The base skill system stays generic. Domain specialization is injected at runtim
 
 Current shipped profiles include:
 
+- `accounting`
 - `biomedical`
 - `business-management`
 - `cs-ai`

@@ -11,6 +11,7 @@ Use this page when you want to start using Qiongli, not maintain it. The shortes
 
 | Situation | Use | Requires Python before install |
 |---|---|---|
+| Claude Desktop/Web with no CLI | Focused subject Desktop ZIP, such as `qiongli-claude-desktop-skill-economics-<tag>.zip` | No |
 | One client, minimal setup | Native plugin / extension | No |
 | Several clients need global workflow assets | Bootstrap `partial` | No |
 | You need `doctor`, validators, or orchestrator task execution | Bootstrap `full` | Yes, Python 3.12+ |
@@ -21,9 +22,9 @@ For full detail, read [Install](/guide/install).
 
 ## 2. Install Workflow Assets
 
-If you use Claude Desktop or Claude.ai and do not want to work in a code/CLI environment, download `qiongli-claude-desktop-skill-<tag>.zip` from the GitHub Release assets. Drag the ZIP into Claude Desktop's Skills upload/install flow, or use `Customize > Skills > + > Create skill > Upload a skill`. The same ZIP upload flow also works in Claude.ai.
+If you use Claude Desktop or Claude.ai and do not want to work in a code/CLI environment, download the focused subject ZIP you need from the GitHub Release assets. Public Desktop ZIP subjects in this phase are `core`, `economics`, and `economics-accounting`; there is no standalone accounting Desktop ZIP yet. Use `qiongli-claude-desktop-skill-core-<tag>.zip` for the default workflow, `qiongli-claude-desktop-skill-economics-<tag>.zip` for economics, or `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip` for the official economics/accounting composite. Drag the ZIP into Claude Desktop's Skills upload/install flow, or use `Customize > Skills > + > Create skill > Upload a skill`. The same ZIP upload flow also works in Claude.ai.
 
-The Desktop/Web ZIP is a slim package built for Claude's upload limits. It keeps workflows, templates, standards, venue profiles, `skills-summary.md`, and `skills-core.md`, but omits detailed per-skill markdown specs. Use the plugin/source distribution when you need the full detailed skill corpus.
+The Desktop/Web ZIP uses `coverage=focused` to stay under upload limits. It is a subject-specialized package, not a reduced-quality cut. It keeps workflows, templates, standards, selected profiles, `skills-summary.md`, and `skills-core.md`; specialized ZIPs also include selected effective skill markdown generated with layered overlays.
 
 If you chose the native plugin path for Codex or Claude Code, install Qiongli from the shared Skillsplace marketplace:
 
@@ -53,6 +54,21 @@ pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile partial -Pro
 ```
 
 Use `--profile full` instead of `partial` when Python 3.12+ is already installed and you want runtime checks, validators, or orchestrated tasks.
+
+For npm or pipx installs, `--subject` defaults to `core` and `--coverage` defaults to `complete`:
+
+```bash
+qiongli install --subject economics --target all
+qiongli install --subject accounting --target all
+npx qiongli@latest install --subject economics --target all
+qiongli install --subject economics-accounting --target all
+qiongli install --subject economics --coverage focused --target all
+qiongli upgrade --subject accounting --target all
+qiongli customize --subject economics --name my-econ-lab --out ./qiongli-custom/econ-lab
+qiongli check --json
+```
+
+Use the default complete coverage when you are unsure: `qiongli install --target all` means `core/complete`, `--subject economics` means `economics/complete`, and `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. Use `--coverage focused` only when you deliberately want the slimmer selected subject package and Desktop/Web ZIP shape. Official composite subjects such as `economics-accounting` are named subjects, not arbitrary comma-separated stacking. Switch subjects or coverage by rerunning `install` or `upgrade` with new flags. Custom overlays affect generated output only and do not rewrite canonical source files; `qiongli customize` plus `--custom-dir` materialization is for the Python/source checkout workflow, while npm runtime installs pre-generated payloads in this phase.
 
 ## 3. Start A Research Workspace
 
