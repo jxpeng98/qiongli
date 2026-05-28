@@ -1,27 +1,19 @@
 name: Release Automation
 
 on:
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
     inputs:
       mode:
-        description: "Run phase"
+        description: "Run diagnostic/recovery phase"
         required: true
         type: choice
         default: pre
         options:
           - pre
           - post
-          - publish
-      version:
-        description: "Release version for publish mode (for example 0.1.0 or 0.1.1b1)"
-        required: false
-        type: string
       tag:
         description: "Release tag (for example v0.1.0 or v0.1.1-beta.1)"
-        required: false
+        required: true
         type: string
       skip_smoke:
         description: "Skip smoke checks in pre mode"
@@ -29,7 +21,7 @@ on:
         type: boolean
         default: false
       maintainer_smoke:
-        description: "Run maintainer smoke tier in pre/publish mode"
+        description: "Run maintainer smoke tier in pre mode"
         required: false
         type: boolean
         default: false
@@ -90,51 +82,30 @@ jobs:
         run: python -m pip install -e . build twine
 
       - name: Inject packaged upstream defaults
-        if: ${{ github.event_name == 'push' || inputs.mode != 'publish' }}
         run: bash scripts/inject_project_toml.sh
 
       - name: Sync generated distribution payloads
-        if: ${{ github.event_name == 'push' || inputs.mode != 'publish' }}
         run: |
           bash scripts/sync_skill_package.sh --target all
           python3 scripts/sync_npm_package_payload.py
 
       - name: Build package
-        run: |
-          if [[ "${{ github.event_name }}" == "push" || "${{ inputs.mode }}" != "publish" ]]; then
-            python -m build
-          fi
+        run: python -m build
 
       - name: Run release automation
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git fetch --force --prune origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
-          if [[ "${{ github.event_name }}" == "push" ]]; then
-            mode="post"
-            tag="${{ github.ref_name }}"
-          else
-            mode="${{ inputs.mode }}"
-            tag="${{ inputs.tag }}"
-          fi
+          mode="${{ inputs.mode }}"
+          tag="${{ inputs.tag }}"
           args=()
 
-          if [[ "$mode" == "publish" ]]; then
-            if [[ -n "${{ inputs.version }}" ]]; then
-              args+=(--version "${{ inputs.version }}")
-            elif [[ -n "$tag" ]]; then
-              args+=(--tag "$tag")
-            else
-              echo "publish mode requires 'version' or 'tag' input" >&2
-              exit 2
-            fi
-          else
-            if [[ -z "$tag" ]]; then
-              echo "${mode} mode requires 'tag' input" >&2
-              exit 2
-            fi
-            args+=(--tag "$tag")
+          if [[ -z "$tag" ]]; then
+            echo "${mode} mode requires 'tag' input" >&2
+            exit 2
           fi
+          args+=(--tag "$tag")
 
           if [[ "${{ inputs.skip_smoke }}" == "true" ]]; then
             args+=(--skip-smoke)
@@ -151,21 +122,17 @@ jobs:
           if [[ -n "${{ inputs.from_tag }}" ]]; then
             args+=(--from-tag "${{ inputs.from_tag }}")
           fi
-          if [[ "${{ github.event_name }}" != "push" && "${{ inputs.skip_remote }}" == "true" ]]; then
+          if [[ "${{ inputs.skip_remote }}" == "true" ]]; then
             args+=(--skip-remote)
           fi
-          if [[ "${{ github.event_name }}" != "push" && "${{ inputs.skip_ci_status }}" == "true" ]]; then
+          if [[ "${{ inputs.skip_ci_status }}" == "true" ]]; then
             args+=(--skip-ci-status)
           fi
-          if [[ "$mode" == "publish" && "${{ inputs.create_release }}" != "true" ]]; then
-            args+=(--no-create-release)
-          elif [[ "$mode" != "publish" && ( "${{ github.event_name }}" == "push" || "${{ inputs.create_release }}" == "true" ) ]]; then
+          if [[ "${{ inputs.create_release }}" == "true" ]]; then
             args+=(--create-release)
           fi
 
-          if [[ "$mode" != "publish" ]]; then
-            bash scripts/verify_release_tag_version.sh --tag "$tag"
-          fi
+          bash scripts/verify_release_tag_version.sh --tag "$tag"
 
           ./scripts/release_automation.sh "$mode" "${args[@]}"
 

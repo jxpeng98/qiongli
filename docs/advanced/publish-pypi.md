@@ -55,11 +55,16 @@ Recommended maintainer flow:
 1. Normalize versions and run `release_ready.sh`.
 2. Commit release-prep files.
 3. Create and push the release tag.
-4. Let tag-triggered GitHub Actions publish to PyPI through Trusted Publisher.
-5. Wait for required CI workflows on the release commit:
+4. Let tag-triggered GitHub Actions publish to PyPI and npm.
+5. Wait for required branch workflows on the release commit:
    - `CI`
    - `Checkout Install Check`
-6. Run postflight with `--create-release`, upload plugin artifacts, and write an acceptance receipt.
+6. Wait for required tag publish workflows:
+   - `Publish to PyPI`
+   - `Publish to npm`
+7. Run postflight with `--create-release`, upload plugin artifacts, and write an acceptance receipt.
+
+Routine production publishing must go through `./scripts/release_automation.sh publish`. The production publish workflows are tag-triggered execution surfaces, not manual release entrypoints.
 
 Use a stable version such as `0.2.0` or a beta version such as `0.2.0b1`. The automation normalizes it into three synchronized forms:
 
@@ -87,7 +92,7 @@ Use `release_ready.sh` when you want to prepare and verify locally without creat
 ./scripts/release_ready.sh --version 0.2.0b1 --from-tag v0.2.0
 ```
 
-`release_ready.sh` runs version sync, strict validator, repository unit tests, release-tier smoke, release note evidence updates, package build checks, `twine check`, and wheel install smoke. It does not tag or push. Publish mode owns commit, tag, push, CI wait, GitHub Release creation, plugin artifact upload, and acceptance receipt generation.
+`release_ready.sh` runs version sync, strict validator, repository unit tests, release-tier smoke, release note evidence updates, package build checks, `twine check`, and wheel install smoke. It does not tag or push. Publish mode owns commit, tag, push, branch CI wait, tag publish wait, GitHub Release creation, plugin artifact upload, and acceptance receipt generation.
 
 If you need manual split phases, they still exist:
 
@@ -106,7 +111,9 @@ If you need manual split phases, they still exist:
 4. `twine check` to validate package metadata.
 5. Publish to PyPI using the Trusted Publisher mechanism.
 
-Postflight then waits for the release commit's `CI` and `Checkout Install Check` workflows. If a required workflow is missing, the diagnostic includes the observed workflow names for that commit.
+The same tag also triggers `publish-npm.yml`, which validates the bundled npm package and publishes stable versions to `latest` or beta versions to `next`.
+
+Postflight then waits for the release commit's `CI` and `Checkout Install Check` workflows and the tag's `Publish to PyPI` / `Publish to npm` workflows. If a required workflow is missing, the diagnostic includes the observed workflow names for that commit.
 
 ---
 

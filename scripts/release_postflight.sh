@@ -10,7 +10,8 @@ SKIP_CI=0
 CREATE_RELEASE=0
 ACCEPTANCE_OUT=""
 CI_STATUS="unknown"
-REQUIRED_WORKFLOWS=("CI" "Checkout Install Check")
+BRANCH_REQUIRED_WORKFLOWS=("CI" "Checkout Install Check")
+TAG_REQUIRED_WORKFLOWS=("Publish to PyPI" "Publish to npm")
 WAIT_CI=0
 CI_TIMEOUT_SECONDS=1800
 CI_POLL_INTERVAL_SECONDS=30
@@ -33,7 +34,7 @@ Description:
   Run standardized post-release checks:
     1) verify local/remote tag consistency
     2) verify release docs (stable uses CHANGELOG.md, prerelease uses release/<tag>.md) + rollback docs
-    3) optionally check CI status on GitHub Actions
+    3) optionally check branch CI and tag publish status on GitHub Actions
     4) generate release acceptance receipt from template
 
 Options:
@@ -41,7 +42,7 @@ Options:
   --repo <owner/repo>   Optional GitHub repo slug. Auto-derived from origin if omitted.
   --skip-remote         Skip remote ref checks.
   --skip-ci-status      Skip GitHub Actions status check.
-  --wait-ci             Wait for required GitHub Actions workflows to complete successfully.
+  --wait-ci             Wait for branch checks and tag publish workflows to complete successfully.
   --ci-timeout-seconds <n>
                         Max time to wait for CI when --wait-ci is enabled (default: 1800).
   --ci-poll-interval-seconds <n>
@@ -156,19 +157,21 @@ prepare_release_notes_file() {
   RELEASE_NOTES_LABEL="CHANGELOG.md [${version}]"
 }
 
-query_ci_status() {
+query_actions_status() {
   local repo_slug="$1"
-  local branch="$2"
+  local ref_name="$2"
   local commit="$3"
+  shift 3
   local api_url ci_json ci_json_file
   local -a curl_cmd
+  local -a required_workflows=("$@")
 
   if [[ -z "$repo_slug" ]]; then
     printf 'skipped:no-repo-slug\n'
     return 0
   fi
 
-  api_url="https://api.github.com/repos/${repo_slug}/actions/runs?branch=${branch}&per_page=20"
+  api_url="https://api.github.com/repos/${repo_slug}/actions/runs?branch=${ref_name}&per_page=20"
   curl_cmd=(curl -fsSL "$api_url")
   if [[ -n "${GH_TOKEN:-}" ]]; then
     curl_cmd=(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" "$api_url")
@@ -183,7 +186,7 @@ query_ci_status() {
   printf '%s' "$ci_json" >"$ci_json_file"
 
   set +e
-  python3 - "$ci_json_file" "$commit" "${REQUIRED_WORKFLOWS[@]}" <<'PY'
+  python3 - "$ci_json_file" "$commit" "${required_workflows[@]}" <<'PY'
 import json
 import sys
 
@@ -366,70 +369,81 @@ if [[ "$SKIP_CI" -eq 0 ]]; then
       echo "[postflight] cannot derive repo slug while --wait-ci is enabled" >&2
       exit 1
     fi
-    echo "[postflight] warning: cannot derive repo slug, skip CI status check"
+    echo "[postflight] warning: cannot derive repo slug, skip GitHub Actions status check"
     CI_STATUS="skipped"
   else
     if [[ "$WAIT_CI" -eq 1 ]]; then
       wait_deadline=$((SECONDS + CI_TIMEOUT_SECONDS))
       while true; do
         set +e
-        CI_RESULT="$(query_ci_status "$REPO_SLUG" "$RELEASE_BRANCH" "$LOCAL_TAG_COMMIT")"
-        CI_EXIT=$?
+        BRANCH_CI_RESULT="$(query_actions_status "$REPO_SLUG" "$RELEASE_BRANCH" "$LOCAL_TAG_COMMIT" "${BRANCH_REQUIRED_WORKFLOWS[@]}")"
+        BRANCH_CI_EXIT=$?
+        TAG_PUBLISH_RESULT="$(query_actions_status "$REPO_SLUG" "$TAG" "$LOCAL_TAG_COMMIT" "${TAG_REQUIRED_WORKFLOWS[@]}")"
+        TAG_PUBLISH_EXIT=$?
         set -e
 
-        if [[ "$CI_EXIT" -ne 0 ]]; then
+        if [[ "$BRANCH_CI_EXIT" -ne 0 ]]; then
           CI_STATUS="failed"
-          echo "[postflight] CI failed for release commit: $CI_RESULT" >&2
+          echo "[postflight] branch checks failed for release commit: $BRANCH_CI_RESULT" >&2
+          exit 1
+        fi
+        if [[ "$TAG_PUBLISH_EXIT" -ne 0 ]]; then
+          CI_STATUS="failed"
+          echo "[postflight] tag publish workflows failed for release commit: $TAG_PUBLISH_RESULT" >&2
           exit 1
         fi
 
-        if [[ "$CI_RESULT" == success:* ]]; then
-          CI_STATUS="success"
-          echo "[postflight] CI status: $CI_RESULT"
+        if [[ "$BRANCH_CI_RESULT" == success:* && "$TAG_PUBLISH_RESULT" == success:* ]]; then
+          CI_STATUS="success:branch-and-tag"
+          echo "[postflight] branch checks: $BRANCH_CI_RESULT"
+          echo "[postflight] tag publish workflows: $TAG_PUBLISH_RESULT"
           break
         fi
 
-        if [[ "$CI_RESULT" == skipped:* ]]; then
+        if [[ "$BRANCH_CI_RESULT" == skipped:* || "$TAG_PUBLISH_RESULT" == skipped:* ]]; then
           CI_STATUS="skipped"
-          echo "[postflight] unable to query CI status while --wait-ci is enabled: $CI_RESULT" >&2
+          echo "[postflight] unable to query GitHub Actions status while --wait-ci is enabled: branch=$BRANCH_CI_RESULT tag=$TAG_PUBLISH_RESULT" >&2
           exit 1
         fi
 
         CI_STATUS="pending"
         if (( SECONDS >= wait_deadline )); then
-          echo "[postflight] timed out waiting for CI success: $CI_RESULT" >&2
+          echo "[postflight] timed out waiting for branch checks and tag publish workflows: branch=$BRANCH_CI_RESULT tag=$TAG_PUBLISH_RESULT" >&2
           exit 1
         fi
-        echo "[postflight] waiting for CI success: $CI_RESULT"
+        echo "[postflight] waiting for branch checks and tag publish workflows: branch=$BRANCH_CI_RESULT tag=$TAG_PUBLISH_RESULT"
         sleep "$CI_POLL_INTERVAL_SECONDS"
       done
     else
       set +e
-      CI_RESULT="$(query_ci_status "$REPO_SLUG" "$RELEASE_BRANCH" "$LOCAL_TAG_COMMIT")"
-      CI_EXIT=$?
+      BRANCH_CI_RESULT="$(query_actions_status "$REPO_SLUG" "$RELEASE_BRANCH" "$LOCAL_TAG_COMMIT" "${BRANCH_REQUIRED_WORKFLOWS[@]}")"
+      BRANCH_CI_EXIT=$?
+      TAG_PUBLISH_RESULT="$(query_actions_status "$REPO_SLUG" "$TAG" "$LOCAL_TAG_COMMIT" "${TAG_REQUIRED_WORKFLOWS[@]}")"
+      TAG_PUBLISH_EXIT=$?
       set -e
 
-      if [[ "$CI_EXIT" -eq 0 ]]; then
-        if [[ "$CI_RESULT" == success:* ]]; then
-          CI_STATUS="success"
-          echo "[postflight] CI status: $CI_RESULT"
-        elif [[ "$CI_RESULT" == skipped:* ]]; then
+      if [[ "$BRANCH_CI_EXIT" -eq 0 && "$TAG_PUBLISH_EXIT" -eq 0 ]]; then
+        if [[ "$BRANCH_CI_RESULT" == success:* && "$TAG_PUBLISH_RESULT" == success:* ]]; then
+          CI_STATUS="success:branch-and-tag"
+          echo "[postflight] branch checks: $BRANCH_CI_RESULT"
+          echo "[postflight] tag publish workflows: $TAG_PUBLISH_RESULT"
+        elif [[ "$BRANCH_CI_RESULT" == skipped:* || "$TAG_PUBLISH_RESULT" == skipped:* ]]; then
           CI_STATUS="skipped"
-          echo "[postflight] warning: unable to query CI status ($CI_RESULT)"
+          echo "[postflight] warning: unable to query GitHub Actions status (branch=$BRANCH_CI_RESULT tag=$TAG_PUBLISH_RESULT)"
         else
           CI_STATUS="pending"
-          echo "[postflight] warning: CI status unresolved: $CI_RESULT"
+          echo "[postflight] warning: GitHub Actions status unresolved: branch=$BRANCH_CI_RESULT tag=$TAG_PUBLISH_RESULT"
         fi
       else
         CI_STATUS="failed"
-        echo "[postflight] CI failed for release commit: $CI_RESULT" >&2
+        echo "[postflight] GitHub Actions failed for release commit: branch=$BRANCH_CI_RESULT tag=$TAG_PUBLISH_RESULT" >&2
         exit 1
       fi
     fi
   fi
 else
   CI_STATUS="skipped"
-  echo "[postflight] CI status check skipped by flag"
+  echo "[postflight] GitHub Actions status check skipped by flag"
 fi
 
 python3 scripts/build_plugin_artifacts.py --tag "$TAG" --dist-dir dist

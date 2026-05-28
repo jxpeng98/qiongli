@@ -375,8 +375,9 @@ Notes:
 
 Recommended:
 
-- use `publish` for the full end-to-end release path
-- use `pre` / `post` only when you need to split release prep and release acceptance into separate phases manually
+- use `publish` as the only routine release entrypoint
+- use `pre` / `post` only for diagnostics or recovery
+- let `publish` own commit, tag, push, branch CI wait, tag publish wait, GitHub Release, and acceptance receipt
 - stable releases publish from the matching `CHANGELOG.md` section
 - beta / prerelease releases publish from `release/<tag>.md`
 

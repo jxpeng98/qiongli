@@ -68,17 +68,21 @@ class ReleaseAutomationTests(unittest.TestCase):
             self.assertLess(content.index(expected), content.index(git_add))
             self.assertLess(content.index(expected), content.index(tag))
 
-    def test_release_postflight_waits_for_required_workflows(self) -> None:
+    def test_release_postflight_waits_for_branch_and_tag_workflows(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
 
-        self.assertIn('REQUIRED_WORKFLOWS=("CI" "Checkout Install Check")', content)
+        self.assertIn('BRANCH_REQUIRED_WORKFLOWS=("CI" "Checkout Install Check")', content)
+        self.assertIn('TAG_REQUIRED_WORKFLOWS=("Publish to PyPI" "Publish to npm")', content)
         self.assertNotIn('REQUIRED_WORKFLOWS=("CI" "Install Check")', content)
         self.assertIn("--wait-ci", content)
-        self.assertIn("query_ci_status", content)
+        self.assertIn("query_actions_status", content)
         self.assertIn('ci_json_file="$(mktemp)"', content)
         self.assertNotIn("CI_JSON_PAYLOAD=", content)
         self.assertIn('observed = sorted({r.get("name") or "unknown" for r in runs if r.get("head_sha") == commit})', content)
         self.assertIn('labels.append("observed=" + ",".join(observed))', content)
+        self.assertIn('query_actions_status "$REPO_SLUG" "$RELEASE_BRANCH" "$LOCAL_TAG_COMMIT" "${BRANCH_REQUIRED_WORKFLOWS[@]}"', content)
+        self.assertIn('query_actions_status "$REPO_SLUG" "$TAG" "$LOCAL_TAG_COMMIT" "${TAG_REQUIRED_WORKFLOWS[@]}"', content)
+        self.assertIn('CI_STATUS="success:branch-and-tag"', content)
         self.assertIn('refs/remotes/origin/$branch', content)
         self.assertIn('refresh_branch_ref "$RELEASE_BRANCH" "$RELEASE_BRANCH_REF"', content)
         self.assertIn('git fetch --force --no-tags origin "$fetch_ref"', content)
@@ -104,7 +108,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('RELEASE_BRANCH="${release_branch_record%%$\'\\t\'*}"', content)
         self.assertIn('refresh_branch_ref "$RELEASE_BRANCH" "$RELEASE_BRANCH_REF"', content)
         self.assertIn('git merge-base --is-ancestor "$LOCAL_TAG_COMMIT" "$RELEASE_BRANCH_REF"', content)
-        self.assertIn('query_ci_status "$REPO_SLUG" "$RELEASE_BRANCH" "$LOCAL_TAG_COMMIT"', content)
+        self.assertIn('query_actions_status "$REPO_SLUG" "$RELEASE_BRANCH" "$LOCAL_TAG_COMMIT" "${BRANCH_REQUIRED_WORKFLOWS[@]}"', content)
 
     def test_release_ready_includes_plugin_distribution_versions(self) -> None:
         content = RELEASE_READY.read_text(encoding="utf-8")
@@ -223,31 +227,32 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('release_ready.sh --version', content)
         self.assertNotIn('git push origin main --tags', content)
 
-    def test_release_workflow_exposes_publish_mode(self) -> None:
+    def test_release_workflow_is_diagnostic_wrapper_not_publish_entrypoint(self) -> None:
         content = RELEASE_WORKFLOW.read_text(encoding="utf-8")
 
-        self.assertIn("push:", content)
-        self.assertIn('tags:\n      - "v*"', content)
-        self.assertIn("- publish", content)
+        self.assertIn("workflow_dispatch:", content)
+        self.assertNotIn("push:", content)
+        self.assertNotIn('tags:\n      - "v*"', content)
+        self.assertNotIn("- publish", content)
         self.assertIn("maintainer_smoke:", content)
-        self.assertIn("version:", content)
-        self.assertIn('if [[ -n "${{ inputs.version }}" ]]; then', content)
-        self.assertIn('elif [[ -n "$tag" ]]; then', content)
+        self.assertNotIn("      version:\n", content)
+        self.assertNotIn('if [[ -n "${{ inputs.version }}" ]]; then', content)
+        self.assertNotIn('elif [[ -n "$tag" ]]; then', content)
         self.assertIn('args+=(--tag "$tag")', content)
         self.assertNotIn("publish mode requires 'version' input", content)
         self.assertIn("fetch-depth: 0", content)
         self.assertIn('git fetch --force --prune origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*', content)
-        self.assertIn('if [[ "${{ github.event_name }}" == "push" ]]; then', content)
-        self.assertIn('mode="post"', content)
+        self.assertNotIn('if [[ "${{ github.event_name }}" == "push" ]]; then', content)
+        self.assertNotIn('mode="post"', content)
         self.assertIn('args+=(--maintainer-smoke)', content)
-        self.assertIn("if: ${{ github.event_name == 'push' || inputs.mode != 'publish' }}", content)
-        self.assertIn('if [[ "${{ github.event_name }}" == "push" || "${{ inputs.mode }}" != "publish" ]]; then', content)
-        self.assertIn('if [[ "$mode" == "publish" && "${{ inputs.create_release }}" != "true" ]]; then', content)
-        self.assertIn('elif [[ "$mode" != "publish" && ( "${{ github.event_name }}" == "push" || "${{ inputs.create_release }}" == "true" ) ]]; then', content)
+        self.assertNotIn("if: ${{ github.event_name == 'push' || inputs.mode != 'publish' }}", content)
+        self.assertNotIn('if [[ "${{ github.event_name }}" == "push" || "${{ inputs.mode }}" != "publish" ]]; then', content)
+        self.assertNotIn('if [[ "$mode" == "publish"', content)
         self.assertIn('args+=(--create-release)', content)
         self.assertIn('bash scripts/verify_release_tag_version.sh --tag "$tag"', content)
         self.assertIn('git config user.name "github-actions[bot]"', content)
         self.assertIn("python -m pip install -e . build twine", content)
+        self.assertIn("./scripts/release_automation.sh \"$mode\" \"${args[@]}\"", content)
 
     def test_publish_pypi_workflow_verifies_tag_matches_repo_version(self) -> None:
         content = PUBLISH_PYPI_WORKFLOW.read_text(encoding="utf-8")
@@ -255,21 +260,17 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('bash scripts/verify_release_tag_version.sh --tag "${RELEASE_TAG}"', content)
         self.assertNotIn('bash scripts/verify_release_tag_version.sh --tag "${GITHUB_REF_NAME}"', content)
 
-    def test_tag_publish_workflows_can_dispatch_existing_tag_without_retagging(self) -> None:
+    def test_tag_publish_workflows_do_not_expose_manual_publish_dispatch(self) -> None:
         for workflow in (PUBLISH_PYPI_WORKFLOW, PUBLISH_NPM_WORKFLOW):
             with self.subTest(workflow=workflow.name):
                 content = workflow.read_text(encoding="utf-8")
 
-                self.assertIn("workflow_dispatch:", content)
-                self.assertIn("tag:", content)
-                self.assertIn(
-                    "ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}",
-                    content,
-                )
-                self.assertIn(
-                    "RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}",
-                    content,
-                )
+                self.assertNotIn("workflow_dispatch:", content)
+                self.assertNotIn("inputs.tag", content)
+                self.assertIn("push:", content)
+                self.assertIn('tags:\n      - "v*"', content)
+                self.assertIn("ref: ${{ github.ref }}", content)
+                self.assertIn("RELEASE_TAG: ${{ github.ref_name }}", content)
                 self.assertIn('bash scripts/verify_release_tag_version.sh --tag "${RELEASE_TAG}"', content)
 
     def test_tag_publish_workflows_sync_generated_payloads_before_version_verify(self) -> None:

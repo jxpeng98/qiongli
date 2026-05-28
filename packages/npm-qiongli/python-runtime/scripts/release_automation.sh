@@ -73,9 +73,9 @@ Examples:
 Notes:
   - pre  -> runs scripts/release_preflight.sh
   - post -> runs scripts/release_postflight.sh
-  - Run them in two phases: preflight before tagging, then postflight after the tag exists remotely.
+  - publish is the canonical release entrypoint. Use pre/post only for diagnostics or recovery.
   - pre supports pass-through flags such as --from-tag, --skip-note-gen, --note-overwrite, --skip-smoke, --maintainer-smoke, and --no-strict.
-  - publish -> runs release_ready (including pypi_preflight.sh and npm_preflight.sh), syncs generated distribution payloads, commits release-prep files, creates/pushes the tag, waits for CI, then runs postflight with release-page creation.
+  - publish -> runs release_ready (including pypi_preflight.sh and npm_preflight.sh), syncs generated distribution payloads, commits release-prep files, creates/pushes the tag, waits for branch CI and tag publish workflows, then runs postflight with release-page creation.
   - publish stable releases from the primary branch; publish prerelease/beta tags from dev or the primary branch.
 EOF
 }
