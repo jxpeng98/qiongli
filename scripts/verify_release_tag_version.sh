@@ -86,6 +86,39 @@ PY
 )"
 
 actual_workflow_version="$(tr -d '\r\n' < qiongli-workflow/VERSION)"
+actual_python_payload_workflow_version="$(tr -d '\r\n' < qiongli/payload/qiongli-workflow/VERSION)"
+actual_python_payload_workflow_registry_version="$(python3 - <<'PY'
+import re
+from pathlib import Path
+
+path = Path("qiongli/payload/qiongli-workflow/skills/registry.yaml")
+if not path.exists():
+    raise SystemExit("missing qiongli/payload/qiongli-workflow/skills/registry.yaml")
+content = path.read_text(encoding="utf-8")
+versions = set(re.findall(r'^\s*version: "([^"]+)"$', content, re.MULTILINE))
+if not versions:
+    raise SystemExit(f"missing version in {path}")
+if len(versions) != 1:
+    raise SystemExit(f"mixed versions in {path}: {sorted(versions)}")
+print(versions.pop())
+PY
+)"
+actual_python_payload_registry_version="$(python3 - <<'PY'
+import re
+from pathlib import Path
+
+path = Path("qiongli/payload/skills/registry.yaml")
+if not path.exists():
+    raise SystemExit("missing qiongli/payload/skills/registry.yaml")
+content = path.read_text(encoding="utf-8")
+versions = set(re.findall(r'^\s*version: "([^"]+)"$', content, re.MULTILINE))
+if not versions:
+    raise SystemExit(f"missing version in {path}")
+if len(versions) != 1:
+    raise SystemExit(f"mixed versions in {path}: {sorted(versions)}")
+print(versions.pop())
+PY
+)"
 actual_bundled_workflow_version="$(tr -d '\r\n' < packages/npm-qiongli/payload/qiongli-workflow/VERSION)"
 actual_bundled_workflow_registry_version="$(python3 - <<'PY'
 import re
@@ -227,6 +260,21 @@ PY
 
 [[ "$actual_workflow_version" == "$expected_repo_tag" ]] || {
   echo "[verify-release-tag] qiongli-workflow/VERSION mismatch: tag=$TAG expects $expected_repo_tag, found $actual_workflow_version" >&2
+  exit 1
+}
+
+[[ "$actual_python_payload_workflow_version" == "$expected_repo_tag" ]] || {
+  echo "[verify-release-tag] qiongli/payload/qiongli-workflow/VERSION mismatch: tag=$TAG expects $expected_repo_tag, found $actual_python_payload_workflow_version" >&2
+  exit 1
+}
+
+[[ "$actual_python_payload_workflow_registry_version" == "$expected_skill_version" ]] || {
+  echo "[verify-release-tag] qiongli/payload/qiongli-workflow/skills/registry.yaml mismatch: tag=$TAG expects $expected_skill_version, found $actual_python_payload_workflow_registry_version" >&2
+  exit 1
+}
+
+[[ "$actual_python_payload_registry_version" == "$expected_skill_version" ]] || {
+  echo "[verify-release-tag] qiongli/payload/skills/registry.yaml mismatch: tag=$TAG expects $expected_skill_version, found $actual_python_payload_registry_version" >&2
   exit 1
 }
 

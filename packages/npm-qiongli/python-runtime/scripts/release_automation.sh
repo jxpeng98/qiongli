@@ -251,6 +251,7 @@ case "$MODE" in
     git add \
       pyproject.toml \
       qiongli/__init__.py \
+      qiongli/payload \
       qiongli-workflow/VERSION \
       skills/registry.yaml \
       package-lock.json \
