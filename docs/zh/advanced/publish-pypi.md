@@ -83,6 +83,14 @@
 - stable 正式版统一维护在 `CHANGELOG.md`
 - beta / prerelease 继续使用 `release/<tag>.md`
 
+Beta 通道策略：
+
+- beta 是可选的预发布验证版本，不是每次 stable 前的必经步骤
+- 当 release 改动发布自动化、package payload、installer、package metadata、CI 或 publish workflows 这类高风险面时，应先发 beta 验证
+- 文档、小修复和低风险维护可以直接发 stable
+- 如果 stable 没有对应的新 beta，npm `latest` 会前进，npm `next` 会继续停在上一个 beta
+- `next` 表示“最新预发布验证版”，不保证比 `latest` 新；不要为了移动 `next` 而机械发 beta
+
 ### 1.2 干跑 / 拆分阶段
 
 如果你只想本地准备和验证，不想创建 tag，可以先跑 `release_ready.sh`：

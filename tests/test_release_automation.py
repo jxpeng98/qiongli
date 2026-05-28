@@ -15,6 +15,11 @@ PUBLISH_PYPI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-pypi.yml"
 PUBLISH_NPM_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-npm.yml"
 VERIFY_RELEASE_TAG = REPO_ROOT / "scripts" / "verify_release_tag_version.sh"
 CHANGELOG_SECTION = REPO_ROOT / "scripts" / "changelog_section.py"
+RELEASE_AUTOMATION_DOC = REPO_ROOT / "release" / "automation.md"
+PUBLISH_PYPI_DOC = REPO_ROOT / "docs" / "advanced" / "publish-pypi.md"
+PUBLISH_PYPI_ZH_DOC = REPO_ROOT / "docs" / "zh" / "advanced" / "publish-pypi.md"
+RELEASE_BRANCH_POLICY_DOC = REPO_ROOT / "docs" / "maintainer" / "release-branch-policy.md"
+RELEASE_BRANCH_POLICY_ZH_DOC = REPO_ROOT / "docs" / "zh" / "maintainer" / "release-branch-policy.md"
 
 
 class ReleaseAutomationTests(unittest.TestCase):
@@ -50,6 +55,26 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('package-lock.json', content)
         self.assertIn('npm_preflight.sh', content)
         self.assertIn('./scripts/release_postflight.sh --tag "$repo_tag"', content)
+
+    def test_docs_define_optional_beta_channel_policy(self) -> None:
+        docs = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in (
+                RELEASE_AUTOMATION_DOC,
+                PUBLISH_PYPI_DOC,
+                PUBLISH_PYPI_ZH_DOC,
+                RELEASE_BRANCH_POLICY_DOC,
+                RELEASE_BRANCH_POLICY_ZH_DOC,
+            )
+        )
+
+        self.assertIn("Beta releases are optional validation releases", docs)
+        self.assertIn("Beta channel policy", docs)
+        self.assertIn("Beta 通道策略", docs)
+        self.assertIn("beta 不是每个 stable release 的必经步骤", docs)
+        self.assertIn("npm `latest` advances", docs)
+        self.assertIn("npm `next` remains on the previous beta", docs)
+        self.assertIn("不要为了移动 `next` 而机械发 beta", docs)
 
     def test_publish_mode_allows_beta_release_from_dev_only(self) -> None:
         content = RELEASE_AUTOMATION.read_text(encoding="utf-8")

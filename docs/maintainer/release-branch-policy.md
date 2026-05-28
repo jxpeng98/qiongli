@@ -57,3 +57,5 @@ python3 scripts/build_plugin_artifacts.py --tag v0.7.0-beta.2 --dist-dir dist
 ## Stable Release Rule
 
 Only `main` should create stable release tags and public plugin artifacts, and the shared Skillsplace entry should only be advanced after those release gates pass. The release automation enforces stable publish mode from the primary branch. Prerelease tags may publish from `dev`; postflight then checks that the beta tag commit is reachable from `dev` and queries CI on `dev`. Keep release-candidate work on `dev` until it is ready to become a stable release.
+
+Beta is not mandatory for every stable release. Use beta when the release changes high-risk surfaces such as release automation, package payloads, installers, package metadata, CI, or publish workflows. Low-risk docs and small fixes may publish directly from `main` as stable. When stable ships without a matching beta, npm `latest` advances and npm `next` intentionally remains on the previous beta; `next` means latest prerelease validation build, not a channel that must always be newer than stable.
