@@ -83,6 +83,13 @@ Release doc policy:
 - stable releases must be summarized in `CHANGELOG.md`
 - beta / prerelease releases continue to use `release/<tag>.md`
 
+Beta channel policy:
+
+- beta is optional; publish it when the release needs prerelease validation for release automation, package payloads, installers, package metadata, CI, or publish workflows
+- routine docs, small fixes, and low-risk maintenance may publish directly as stable
+- if stable publishes without a matching beta, npm `latest` advances while npm `next` remains on the previous beta
+- `next` means "latest prerelease validation build", not "newer than latest stable"; do not publish a mechanical beta only to move `next`
+
 ### 1.2 Dry Run / Split Phases
 
 Use `release_ready.sh` when you want to prepare and verify locally without creating a tag:

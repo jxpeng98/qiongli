@@ -33,6 +33,10 @@ This mode runs:
 
 Stable tags publish from the primary branch (`main` or `master`) and become normal GitHub Releases. Beta tags may publish from `dev` or the primary branch and become GitHub prereleases, so stable and beta releases can coexist without breaking `releases/latest`.
 
+Beta releases are optional validation releases, not a required step before every stable release. Use beta when the release changes high-risk surfaces such as release automation, package payload layout, installer behavior, package metadata, CI, or publish workflows. Routine docs, small fixes, and low-risk maintenance may publish directly as stable.
+
+If a stable release ships without a matching beta, the prerelease channel remains on the previous beta. For npm, `latest` advances with stable releases while `next` continues to point at the most recent beta. This is intentional: `next` means "latest prerelease validation build", not "newer than latest stable". Do not publish a mechanical beta only to move `next`.
+
 The release page receives these installable distribution artifacts:
 
 - `qiongli-codex-plugin-<tag>.tar.gz`

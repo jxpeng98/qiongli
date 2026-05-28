@@ -51,3 +51,5 @@ python3 scripts/build_plugin_artifacts.py --tag v0.7.0-beta.2 --dist-dir dist
 ## 稳定发布规则
 
 只有 `main` 应创建稳定 release tag 和公开 plugin artifacts；统一的 Skillsplace 条目也应在 release gates 通过后再推进。release automation 已要求 publish mode 必须从 primary branch 运行。beta 和 release-candidate 工作保留在 `dev`，直到它可以成为稳定发布。
+
+beta 不是每个 stable release 的必经步骤。只有当 release 改动发布自动化、package payload、installer、package metadata、CI 或 publish workflows 这类高风险面时，才需要先用 beta 验证。低风险文档、小修复和维护改动可以直接从 `main` 发 stable。若 stable 没有对应的新 beta，npm `latest` 会前进，npm `next` 会有意停在上一个 beta；`next` 表示最新预发布验证版，不是必须始终比 stable 更新的通道。
