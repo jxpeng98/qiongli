@@ -13,13 +13,14 @@
 
 ## Publish Actions
 
-- [ ] `git tag -a {{TAG}} -m "qiongli release"`
-- [ ] `git push origin {{TAG}}`
+- [ ] `./scripts/release_automation.sh publish --tag {{TAG}} ...`
+- [ ] Release automation pushed the release branch and tag.
+- [ ] Tag-triggered PyPI and npm publish workflows completed.
 
 ## Post-Release Verification
 
 - [ ] Remote branch/tag consistency verified.
-- [ ] GitHub Actions CI status verified for release commit.
+- [ ] GitHub Actions branch checks and tag publish workflows verified for release commit.
 - [ ] GitHub Release page exists and notes are attached.
 - [ ] Rollback path validated (`release/rollback.md`).
 

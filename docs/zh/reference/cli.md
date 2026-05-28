@@ -369,8 +369,9 @@ mode 列表：
 
 推荐方式：
 
-- 需要完整端到端发版时，用 `publish`
-- 只有在你明确想把 release prep 和 release acceptance 拆开执行时，再用 `pre` / `post`
+- 日常发布只用 `publish`
+- 只有诊断或恢复时才用 `pre` / `post`
+- 让 `publish` 统一负责 commit、tag、push、等待 branch CI、等待 tag publish、GitHub Release 和 acceptance receipt
 - stable 正式版从 `CHANGELOG.md` 对应章节发布
 - beta / prerelease 继续从 `release/<tag>.md` 发布
 
