@@ -260,8 +260,12 @@ class ReleaseAutomationTests(unittest.TestCase):
                 content = workflow.read_text(encoding="utf-8")
 
                 verify = 'bash scripts/verify_release_tag_version.sh --tag "${GITHUB_REF_NAME}"'
+                install = "python -m pip install -e ."
                 self.assertIn("bash scripts/sync_skill_package.sh --target all", content)
                 self.assertIn("python3 scripts/sync_npm_package_payload.py", content)
+                self.assertIn(install, content)
+                self.assertLess(content.index(install), content.index("bash scripts/sync_skill_package.sh --target all"))
+                self.assertLess(content.index(install), content.index("python3 scripts/sync_npm_package_payload.py"))
                 self.assertLess(content.index("bash scripts/sync_skill_package.sh --target all"), content.index(verify))
                 self.assertLess(content.index("python3 scripts/sync_npm_package_payload.py"), content.index(verify))
 
@@ -269,8 +273,12 @@ class ReleaseAutomationTests(unittest.TestCase):
         content = RELEASE_WORKFLOW.read_text(encoding="utf-8")
 
         verify = 'bash scripts/verify_release_tag_version.sh --tag "$tag"'
+        install = "python -m pip install -e . build twine"
         self.assertIn("bash scripts/sync_skill_package.sh --target all", content)
         self.assertIn("python3 scripts/sync_npm_package_payload.py", content)
+        self.assertIn(install, content)
+        self.assertLess(content.index(install), content.index("bash scripts/sync_skill_package.sh --target all"))
+        self.assertLess(content.index(install), content.index("python3 scripts/sync_npm_package_payload.py"))
         self.assertLess(content.index("bash scripts/sync_skill_package.sh --target all"), content.index(verify))
         self.assertLess(content.index("python3 scripts/sync_npm_package_payload.py"), content.index(verify))
 
