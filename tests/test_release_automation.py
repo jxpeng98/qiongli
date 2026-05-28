@@ -39,6 +39,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
         self.assertIn('plugins/qiongli/gemini-extension.json', content)
         self.assertIn('plugins/qiongli/skills/qiongli-workflow', content)
+        self.assertIn('qiongli-workflow/skills/registry.yaml', content)
         self.assertIn('packages/npm-qiongli', content)
         self.assertIn('package-lock.json', content)
         self.assertIn('npm_preflight.sh', content)
@@ -122,6 +123,7 @@ class ReleaseAutomationTests(unittest.TestCase):
             'plugins/qiongli/skills/qiongli-workflow|plugins/qiongli/skills/qiongli-workflow/*',
             content,
         )
+        self.assertIn('qiongli-workflow/skills/registry.yaml', content)
 
     def test_release_ready_does_not_print_manual_publish_steps(self) -> None:
         content = RELEASE_READY.read_text(encoding="utf-8")
