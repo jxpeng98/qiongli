@@ -252,14 +252,32 @@ class ReleaseAutomationTests(unittest.TestCase):
     def test_publish_pypi_workflow_verifies_tag_matches_repo_version(self) -> None:
         content = PUBLISH_PYPI_WORKFLOW.read_text(encoding="utf-8")
 
-        self.assertIn('bash scripts/verify_release_tag_version.sh --tag "${GITHUB_REF_NAME}"', content)
+        self.assertIn('bash scripts/verify_release_tag_version.sh --tag "${RELEASE_TAG}"', content)
+        self.assertNotIn('bash scripts/verify_release_tag_version.sh --tag "${GITHUB_REF_NAME}"', content)
+
+    def test_tag_publish_workflows_can_dispatch_existing_tag_without_retagging(self) -> None:
+        for workflow in (PUBLISH_PYPI_WORKFLOW, PUBLISH_NPM_WORKFLOW):
+            with self.subTest(workflow=workflow.name):
+                content = workflow.read_text(encoding="utf-8")
+
+                self.assertIn("workflow_dispatch:", content)
+                self.assertIn("tag:", content)
+                self.assertIn(
+                    "ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}",
+                    content,
+                )
+                self.assertIn(
+                    "RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}",
+                    content,
+                )
+                self.assertIn('bash scripts/verify_release_tag_version.sh --tag "${RELEASE_TAG}"', content)
 
     def test_tag_publish_workflows_sync_generated_payloads_before_version_verify(self) -> None:
         for workflow in (PUBLISH_PYPI_WORKFLOW, PUBLISH_NPM_WORKFLOW):
             with self.subTest(workflow=workflow.name):
                 content = workflow.read_text(encoding="utf-8")
 
-                verify = 'bash scripts/verify_release_tag_version.sh --tag "${GITHUB_REF_NAME}"'
+                verify = 'bash scripts/verify_release_tag_version.sh --tag "${RELEASE_TAG}"'
                 install = "python -m pip install -e ."
                 self.assertIn("bash scripts/sync_skill_package.sh --target all", content)
                 self.assertIn("python3 scripts/sync_npm_package_payload.py", content)
