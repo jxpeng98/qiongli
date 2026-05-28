@@ -1,7 +1,7 @@
 skills:
 - id: question-refiner
   stage: A_framing
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/A_framing/question-refiner.md
   canonical: true
   summary: Transform vague topics into structured RQs via PICO/PEO + FINER evaluation.
@@ -32,7 +32,7 @@ skills:
   domain_aware: false
 - id: contribution-crafter
   stage: A_framing
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/A_framing/contribution-crafter.md
   canonical: true
   summary: Draft a compelling contribution statement highlighting theoretical, methodological,
@@ -65,7 +65,7 @@ skills:
   domain_aware: true
 - id: gap-analyzer
   stage: A_framing
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/A_framing/gap-analyzer.md
   canonical: true
   summary: Identify and categorize research gaps using 5-type taxonomy with FINER
@@ -99,7 +99,7 @@ skills:
   domain_aware: false
 - id: theory-mapper
   stage: A_framing
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/A_framing/theory-mapper.md
   canonical: true
   summary: Map theoretical concepts, relationships, and frameworks with Mermaid diagrams.
@@ -134,7 +134,7 @@ skills:
   domain_aware: false
 - id: hypothesis-generator
   stage: A_framing
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/A_framing/hypothesis-generator.md
   canonical: true
   summary: Translate RQs into testable hypotheses with mechanisms and boundary conditions.
@@ -166,7 +166,7 @@ skills:
   domain_aware: false
 - id: venue-analyzer
   stage: A_framing
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/A_framing/venue-analyzer.md
   canonical: true
   summary: Analyze venue fit, formatting constraints, and reviewer expectations.
@@ -199,7 +199,7 @@ skills:
   domain_aware: true
 - id: academic-searcher
   stage: B_literature
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/B_literature/academic-searcher.md
   canonical: true
   summary: Own query design, provider-backed retrieval, and deduplicated search outputs
@@ -237,7 +237,7 @@ skills:
   domain_aware: false
 - id: citation-snowballer
   stage: B_literature
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/B_literature/citation-snowballer.md
   canonical: true
   summary: Forward/backward citation tracing to expand corpus and find seminal works.
@@ -270,7 +270,7 @@ skills:
   domain_aware: false
 - id: literature-mapper
   stage: B_literature
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/B_literature/literature-mapper.md
   canonical: true
   summary: Build literature taxonomy with mechanism-based cluster labels and open
@@ -303,7 +303,7 @@ skills:
   domain_aware: false
 - id: paper-extractor
   stage: B_literature
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/B_literature/paper-extractor.md
   canonical: true
   summary: Extract structured theory, method, data, findings, and limitation slots
@@ -337,7 +337,7 @@ skills:
   domain_aware: false
 - id: paper-screener
   stage: B_literature
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/B_literature/paper-screener.md
   canonical: true
   summary: Two-stage PRISMA-compliant systematic screening with decision logging.
@@ -371,7 +371,7 @@ skills:
   domain_aware: false
 - id: reference-manager-bridge
   stage: B_literature
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/B_literature/reference-manager-bridge.md
   canonical: true
   summary: Export/import references between research system and Zotero/Mendeley/EndNote.
@@ -409,7 +409,7 @@ skills:
   domain_aware: false
 - id: study-designer
   stage: C_design
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/C_design/study-designer.md
   canonical: true
   summary: Own study design rationale, measures, analysis summary, and design handoff
@@ -448,7 +448,7 @@ skills:
   domain_aware: true
 - id: rival-hypothesis-designer
   stage: C_design
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/C_design/rival-hypothesis-designer.md
   canonical: true
   summary: Construct competing theories and rival explanations to strengthen design.
@@ -480,7 +480,7 @@ skills:
   domain_aware: false
 - id: robustness-planner
   stage: C_design
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/C_design/robustness-planner.md
   canonical: true
   summary: Pre-specify robustness checks, sensitivity analysis, and bounds scaling.
@@ -511,7 +511,7 @@ skills:
   domain_aware: true
 - id: dataset-finder
   stage: C_design
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/C_design/dataset-finder.md
   canonical: true
   summary: Identify feasible datasets, access routes, and coverage risks before implementation.
@@ -546,7 +546,7 @@ skills:
   domain_aware: true
 - id: variable-constructor
   stage: C_design
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/C_design/variable-constructor.md
   canonical: true
   summary: Operationalize constructs into auditable variables, coding rules, and transformations.
@@ -581,7 +581,7 @@ skills:
   domain_aware: true
 - id: data-dictionary-builder
   stage: C_design
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/C_design/data-dictionary-builder.md
   canonical: true
   summary: Create structured data dictionaries defining every variable's name, type,
@@ -614,7 +614,7 @@ skills:
   domain_aware: false
 - id: prereg-writer
   stage: C_design
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/C_design/prereg-writer.md
   canonical: true
   summary: Generate preregistration documents for OSF/AsPredicted/ClinicalTrials.gov
@@ -649,7 +649,7 @@ skills:
   domain_aware: true
 - id: stats-engine
   stage: I_code
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/I_code/stats-engine.md
   canonical: true
   summary: Statistical modeling and hypothesis testing with domain-driven diagnostics.
@@ -721,7 +721,7 @@ skills:
   domain_aware: true
 - id: effect-size-calculator
   stage: E_synthesis
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/E_synthesis/effect-size-calculator.md
   canonical: true
   summary: Calculate standard effect sizes from raw statistics to enable meta-analysis.
@@ -754,7 +754,7 @@ skills:
   domain_aware: true
 - id: evidence-synthesizer
   stage: E_synthesis
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/E_synthesis/evidence-synthesizer.md
   canonical: true
   summary: Synthesize evidence narratively or quantitatively with PRISMA-aligned reporting.
@@ -788,7 +788,7 @@ skills:
   domain_aware: false
 - id: analysis-interpreter
   stage: F_writing
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/F_writing/analysis-interpreter.md
   canonical: true
   summary: Translate findings into analytical prose with uncertainty, mechanisms,
@@ -822,7 +822,7 @@ skills:
   domain_aware: true
 - id: effect-size-interpreter
   stage: F_writing
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/F_writing/effect-size-interpreter.md
   canonical: true
   summary: Explain the substantive magnitude of estimates in interpretable units.
@@ -855,7 +855,7 @@ skills:
   domain_aware: true
 - id: table-generator
   stage: F_writing
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/F_writing/table-generator.md
   canonical: true
   summary: Generate publication-ready tables from statistical output with venue-aware
@@ -888,7 +888,7 @@ skills:
   domain_aware: true
 - id: figure-specifier
   stage: F_writing
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/F_writing/figure-specifier.md
   canonical: true
   summary: Specify publication-quality figures with reproducible code and accessibility
@@ -922,7 +922,7 @@ skills:
   domain_aware: true
 - id: manuscript-architect
   stage: F_writing
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/F_writing/manuscript-architect.md
   canonical: true
   summary: Own story spine, section drafting, and deep analytical framing as one manuscript
@@ -960,7 +960,7 @@ skills:
   domain_aware: true
 - id: discussion-writer
   stage: F_writing
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/F_writing/discussion-writer.md
   canonical: true
   summary: Drafts the Discussion section using a structured story spine, separating
@@ -996,7 +996,7 @@ skills:
   domain_aware: true
 - id: meta-optimizer
   stage: F_writing
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/F_writing/meta-optimizer.md
   canonical: true
   summary: Optimize abstract, title, keywords for indexing and discoverability.
@@ -1028,7 +1028,7 @@ skills:
   domain_aware: true
 - id: reporting-checker
   stage: G_compliance
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/G_compliance/reporting-checker.md
   canonical: true
   summary: Validate CONSORT/STROBE/COREQ/SRQR/TRIPOD reporting completeness.
@@ -1062,7 +1062,7 @@ skills:
   domain_aware: true
 - id: tone-normalizer
   stage: G_compliance
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/G_compliance/tone-normalizer.md
   canonical: true
   summary: Cut fluff, hedge words, and absolute claims for concise academic tone.
@@ -1093,7 +1093,7 @@ skills:
   domain_aware: false
 - id: submission-packager
   stage: H_submission
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/H_submission/submission-packager.md
   canonical: true
   summary: 'Assemble submission package: cover letter, disclosures, supplementary
@@ -1128,7 +1128,7 @@ skills:
   domain_aware: true
 - id: fatal-flaw-detector
   stage: H_submission
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/H_submission/fatal-flaw-detector.md
   canonical: true
   summary: Desk-reject analysis identifying critical flaws blocking publication.
@@ -1159,7 +1159,7 @@ skills:
   domain_aware: true
 - id: code-builder
   stage: I_code
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/I_code/code-builder.md
   canonical: true
   summary: Convert academic methods into executable code with domain-profile library
@@ -1194,7 +1194,7 @@ skills:
   domain_aware: true
 - id: code-review
   stage: I_code
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/I_code/code-review.md
   canonical: true
   summary: Secondary model reviews code logic, security, and statistical validity.
@@ -1227,7 +1227,7 @@ skills:
   domain_aware: true
 - id: reproducibility-auditor
   stage: I_code
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/I_code/reproducibility-auditor.md
   canonical: true
   summary: Verify seeds, containerization, and fail-graceful contingencies.
@@ -1259,7 +1259,7 @@ skills:
   domain_aware: false
 - id: final-proofreader
   stage: J_proofread
-  version: 0.12.0-beta.1
+  version: 0.12.0
   file: skills/J_proofread/final-proofreader.md
   canonical: true
   summary: Language-level polish covering grammar, tense, acronyms, cross-references,
