@@ -134,6 +134,14 @@ class NpmPackageContractTests(unittest.TestCase):
         self.assertIn('cd "$PKG_DIR"\n  NPM_CONFIG_CACHE="$NPM_CACHE" npm pack --dry-run', preflight)
         self.assertNotIn('npm --prefix "$PKG_DIR" pack --dry-run', preflight)
 
+    def test_sync_npm_payload_bootstraps_repo_imports_before_package_install(self) -> None:
+        sync_script = (REPO_ROOT / "scripts" / "sync_npm_package_payload.py").read_text(encoding="utf-8")
+
+        self.assertIn("import sys", sync_script)
+        self.assertIn("REPO_ROOT = Path(__file__).resolve().parents[1]", sync_script)
+        self.assertIn("sys.path.insert(0, str(REPO_ROOT))", sync_script)
+        self.assertLess(sync_script.index("sys.path.insert(0, str(REPO_ROOT))"), sync_script.index("from qiongli.subject_materializer"))
+
 
 if __name__ == "__main__":
     unittest.main()
