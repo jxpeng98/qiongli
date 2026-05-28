@@ -252,6 +252,7 @@ case "$MODE" in
       pyproject.toml \
       qiongli/__init__.py \
       qiongli-workflow/VERSION \
+      qiongli-workflow/skills/registry.yaml \
       skills/registry.yaml \
       package-lock.json \
       packages/npm-qiongli \
