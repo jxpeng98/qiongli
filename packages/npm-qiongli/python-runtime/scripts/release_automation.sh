@@ -287,7 +287,16 @@ case "$MODE" in
       post_args+=(--create-release)
     fi
 
-    ./scripts/release_postflight.sh --tag "$repo_tag" "${post_args[@]}"
+    acceptance_out="release/acceptance/${repo_tag}-receipt.md"
+    ./scripts/release_postflight.sh --tag "$repo_tag" --acceptance-out "$acceptance_out" "${post_args[@]}"
+
+    if [[ -f "$acceptance_out" ]]; then
+      git add "$acceptance_out"
+      if ! git diff --cached --quiet -- "$acceptance_out"; then
+        git commit -m "chore: record release ${repo_tag} acceptance"
+        git push "$push_remote" "$push_branch"
+      fi
+    fi
     ;;
   -h|--help|help)
     usage

@@ -6,6 +6,20 @@
 
 暂无未发布变更。
 
+## [0.12.1] - 2026-05-28
+
+### Changed
+
+- 发布入口统一收敛到 `scripts/release_automation.sh publish`：该流程现在负责 release-ready 检查、generated payload 同步、release-prep commit、tag push、branch CI 等待、PyPI/npm tag publish 等待、GitHub Release 创建和 acceptance receipt 记录。
+- PyPI/npm publish workflows 改为只响应 `v*` tag push，移除手动 `workflow_dispatch` 发布入口；`.github/workflows/release-automation.yml` 保留为诊断/恢复 wrapper，不再作为发布入口。
+- release postflight 现在同时等待分支检查 `CI`、`Checkout Install Check` 和 tag 发布 workflows `Publish to PyPI`、`Publish to npm`，避免只检查 branch CI 却漏掉实际发布失败。
+
+### Fixed
+
+- 修复 release-prep 未 stage Python payload 更新的问题，确保 `qiongli/payload`、npm payload、plugin mirror 和版本校验使用同一套发布版本。
+- 修复 tag 版本校验未覆盖 Python runtime payload registry 的问题，避免 PyPI 包和 npm 包内置 payload 出现隐性版本漂移。
+- 修复 postflight 生成 acceptance receipt 后留下未跟踪文件的问题；`publish` 成功后会自动提交并推送 `release/acceptance/<tag>-receipt.md`。
+
 ## [0.12.0] - 2026-05-28
 
 ### Added
