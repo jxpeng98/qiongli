@@ -5,6 +5,7 @@ Use this section when the default install and CLI path is already clear and you 
 ## Topics
 
 - [Extend Qiongli](/advanced/extend-qiongli)
+- [Subject Packaging Model](/advanced/subject-packaging-model)
 - [Agent + Skill Collaboration](/advanced/agent-skill-collaboration)
 - [MCP Providers Setup](/advanced/mcp-providers-setup)
 - [Rigorous Literature Search](/advanced/rigorous-literature-search)
@@ -15,5 +16,6 @@ Use this section when the default install and CLI path is already clear and you 
 
 - connect an external search, full-text, stats, or runtime provider
 - specialize workflows for a domain or research direction
+- understand when to use core, subject, focused coverage, composites, or custom overlays
 - refine how agents, profiles, and skills collaborate
 - publish or maintain the Python package distribution

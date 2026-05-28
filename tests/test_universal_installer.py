@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import json
 import os
 import tempfile
 import unittest
@@ -291,6 +292,107 @@ class UniversalInstallerTests(unittest.TestCase):
             self.assertFalse((project_dir / ".agents" / "skills" / "qiongli-workflow" / "SKILL.md").exists())
             self.assertFalse((project_dir / ".env").exists())
             self.assertFalse((temp_root / ".local" / "bin" / "qiongli").exists())
+
+    def test_install_materializes_requested_subject(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            codex_home = temp_root / "codex-home"
+            env = os.environ.copy()
+            env["CODEX_HOME"] = str(codex_home)
+            env["PATH"] = ""
+
+            with mock.patch.dict(os.environ, env, clear=True):
+                result = install(
+                    InstallOptions(
+                        repo_root=REPO_ROOT,
+                        project_dir=project_dir,
+                        target="codex",
+                        profile="partial",
+                        subject="economics",
+                    )
+                )
+
+            self.assertEqual(result, 0)
+            skill_dir = codex_home / "skills" / "qiongli-workflow"
+            self.assertEqual((skill_dir / "SUBJECT").read_text(encoding="utf-8").strip(), "economics")
+            manifest = json.loads((skill_dir / "SUBJECT_MANIFEST.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["coverage"], "complete")
+            self.assertTrue((skill_dir / "skills" / "domain-profiles" / "economics.yaml").exists())
+            self.assertTrue((skill_dir / "skills" / "domain-profiles" / "cs-ai.yaml").exists())
+            self.assertTrue((skill_dir / "skills" / "F_writing" / "manuscript-architect.md").exists())
+            self.assertIn(
+                "Economics Overlay",
+                (skill_dir / "skills" / "F_writing" / "manuscript-architect.md").read_text(encoding="utf-8"),
+            )
+
+    def test_install_can_materialize_focused_subject_coverage(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            codex_home = temp_root / "codex-home"
+            env = os.environ.copy()
+            env["CODEX_HOME"] = str(codex_home)
+            env["PATH"] = ""
+
+            with mock.patch.dict(os.environ, env, clear=True):
+                result = install(
+                    InstallOptions(
+                        repo_root=REPO_ROOT,
+                        project_dir=project_dir,
+                        target="codex",
+                        profile="partial",
+                        subject="economics",
+                        coverage="focused",
+                    )
+                )
+
+            self.assertEqual(result, 0)
+            skill_dir = codex_home / "skills" / "qiongli-workflow"
+            manifest = json.loads((skill_dir / "SUBJECT_MANIFEST.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["coverage"], "focused")
+            self.assertTrue((skill_dir / "skills" / "domain-profiles" / "economics.yaml").exists())
+            self.assertFalse((skill_dir / "skills" / "domain-profiles" / "cs-ai.yaml").exists())
+
+    def test_install_warns_when_switching_from_subject_to_core(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            codex_home = temp_root / "codex-home"
+            existing_skill = codex_home / "skills" / "qiongli-workflow"
+            existing_skill.mkdir(parents=True)
+            source_version = (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(encoding="utf-8").strip()
+            (existing_skill / "SKILL.md").write_text(
+                "---\nname: qiongli\ndescription: old\n---\n",
+                encoding="utf-8",
+            )
+            (existing_skill / "VERSION").write_text(f"{source_version}\n", encoding="utf-8")
+            (existing_skill / "SUBJECT").write_text("economics\n", encoding="utf-8")
+            (existing_skill / "SUBJECT_MANIFEST.json").write_text(
+                json.dumps({"subject": "economics", "coverage": "focused", "flavor": "full", "layers": ["core", "economics"]}),
+                encoding="utf-8",
+            )
+            env = os.environ.copy()
+            env["CODEX_HOME"] = str(codex_home)
+            env["PATH"] = ""
+            stdout = io.StringIO()
+
+            with mock.patch.dict(os.environ, env, clear=True), contextlib.redirect_stdout(stdout):
+                result = install(
+                    InstallOptions(
+                        repo_root=REPO_ROOT,
+                        project_dir=project_dir,
+                        target="codex",
+                        profile="partial",
+                        subject="core",
+                    )
+                )
+
+            self.assertEqual(result, 0)
+            self.assertIn("Changing active subject from economics to core", stdout.getvalue())
 
     def test_full_profile_allows_explicit_no_cli(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

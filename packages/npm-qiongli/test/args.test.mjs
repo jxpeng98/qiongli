@@ -11,14 +11,18 @@ test('parseArgv parses install options and defaults', () => {
   assert.equal(parsed.options.mode, 'copy');
   assert.equal(parsed.options.projectDir, '.');
   assert.equal(parsed.options.dryRun, true);
+  assert.equal(parsed.options.subject, 'core');
+  assert.equal(parsed.options.coverage, 'complete');
   assert.deepEqual(parsed.rest, []);
 });
 
 test('parseArgv treats upgrade as install with overwrite', () => {
-  const parsed = parseArgv(['upgrade', '--target', 'codex']);
+  const parsed = parseArgv(['upgrade', '--target', 'codex', '--subject', 'economics', '--coverage', 'focused']);
 
   assert.equal(parsed.command, 'install');
   assert.equal(parsed.options.target, 'codex');
+  assert.equal(parsed.options.subject, 'economics');
+  assert.equal(parsed.options.coverage, 'focused');
   assert.equal(parsed.options.overwrite, true);
 });
 

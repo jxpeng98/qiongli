@@ -21,24 +21,43 @@ export async function main(argv, { stdout = process.stdout, stderr = process.std
   }
 
   if (parsed.command === 'install') {
-    const result = installSkills({
-      packageRoot: root,
-      target: parsed.options.target,
-      mode: parsed.options.mode,
-      overwrite: parsed.options.overwrite,
-      dryRun: parsed.options.dryRun,
-    });
+    let result;
+    try {
+      result = installSkills({
+        packageRoot: root,
+        target: parsed.options.target,
+        mode: parsed.options.mode,
+        overwrite: parsed.options.overwrite,
+        dryRun: parsed.options.dryRun,
+        subject: parsed.options.subject,
+        coverage: parsed.options.coverage,
+      });
+    } catch (error) {
+      stderr.write(`[qiongli] ${error.message}\n`);
+      return 2;
+    }
     printInstallResult(result, stdout);
     return 0;
   }
 
   if (parsed.command === 'check') {
-    const payload = { ...buildCheck({ packageRoot: root }), python_bridge: checkPythonRuntime() };
+    let payload;
+    try {
+      payload = {
+        ...buildCheck({ packageRoot: root, subject: parsed.options.subject, coverage: parsed.options.coverage }),
+        python_bridge: checkPythonRuntime(),
+      };
+    } catch (error) {
+      stderr.write(`[qiongli] ${error.message}\n`);
+      return 2;
+    }
     if (parsed.options.json) {
       stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
     } else {
       stdout.write(`Qiongli npm package: ${payload.npm_package.version}\n`);
       stdout.write(`Payload version: ${payload.payload.version || '<unknown>'}\n`);
+      stdout.write(`Payload subject: ${payload.payload.subject || '<unknown>'}\n`);
+      stdout.write(`Payload coverage: ${payload.payload.coverage || '<unknown>'}\n`);
       stdout.write(`Python bridge: ${payload.python_bridge.ok ? 'ok' : 'warn'} - ${payload.python_bridge.message}\n`);
     }
     return 0;
@@ -81,6 +100,8 @@ export async function main(argv, { stdout = process.stdout, stderr = process.std
 function printInstallResult(result, stdout) {
   stdout.write('Qiongli npm installer\n');
   stdout.write(`source version: ${result.sourceVersion || '<unknown>'}\n`);
+  stdout.write(`source subject: ${result.sourceSubject || '<unknown>'}\n`);
+  stdout.write(`source coverage: ${result.sourceCoverage || '<unknown>'}\n`);
   for (const residue of result.legacyResidues) {
     stdout.write(`[legacy] ${residue.target}: ${residue.legacyName} -> ${residue.path}\n`);
   }
@@ -94,8 +115,8 @@ function helpText() {
   return `Qiongli npm installer
 
 Usage:
-  qiongli install --target all
-  qiongli upgrade --target all
+  qiongli install --subject core --target all
+  qiongli upgrade --subject economics --coverage complete --target all
   qiongli check [--json]
   qiongli clean --project-dir . [--globals]
   qiongli runtime doctor
@@ -105,6 +126,8 @@ Usage:
 
 Options:
   --target codex|claude|gemini|antigravity|all
+  --subject core|economics|accounting|economics-accounting
+  --coverage complete|focused
   --mode copy|link
   --overwrite
   --dry-run

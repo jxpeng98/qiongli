@@ -60,7 +60,7 @@ Qiongli ships a single portable workflow package, `qiongli-workflow`, with stage
 - [Examples](/examples/): concrete playbooks for systematic review, empirical, qualitative, methods, and theory papers.
 - [Reference](/reference/): CLI behavior, skill catalog, and operator-facing conventions.
 - [Architecture](/architecture): how contracts, skills, roles, pipelines, bridges, and package surfaces fit together.
-- [Advanced](/advanced/): extension, MCP providers, Zotero, rigorous literature search, and plugin-first distribution.
+- [Advanced](/advanced/): subject packaging, extension, MCP providers, Zotero, rigorous literature search, and plugin-first distribution.
 - [Maintainer](/maintainer/): release policy, naming policy, and implementation guidance for contributors.
 
 ## Runtime Boundary

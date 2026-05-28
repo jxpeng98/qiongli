@@ -4,8 +4,11 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+
+from qiongli.subject_materializer import MaterializeOptions, materialize_subject_package, validate_subject_catalog
 
 
 EXCLUDED_NAMES = {
@@ -30,11 +33,22 @@ NPM_RUNTIME_DIRS = (
     "roles",
     "venue-profiles",
     "skills",
+    "subjects",
     "pipelines",
     "schemas",
     "evals",
 )
 NPM_RUNTIME_FILES = ("skills-core.md", "skills-summary.md", "LICENSE")
+NPM_RUNTIME_EXTRA_EXCLUDES = {
+    "qiongli": {"payload"},
+}
+PYTHON_PAYLOAD_SOURCE_DIRS = ("skills", "subjects")
+PYTHON_PAYLOAD_EXTRA_EXCLUDES = {
+    "subjects": {"complete", "focused"},
+}
+GENERATED_PACKAGE_DIRS = ("skills", "templates", "standards", "roles", "venue-profiles")
+GENERATED_PACKAGE_FILES = ("skills-core.md", "skills-summary.md")
+GENERATED_PACKAGE_EXCLUDED_NAMES = set(GENERATED_PACKAGE_DIRS) | set(GENERATED_PACKAGE_FILES)
 
 
 @dataclass(frozen=True)
@@ -138,12 +152,100 @@ def _assert_no_symlinks(root: Path, label: str) -> list[AuditIssue]:
     return issues
 
 
+def _read_json(path: Path, label: str) -> tuple[dict[str, object] | None, list[AuditIssue]]:
+    if not path.is_file():
+        return None, [AuditIssue(label, f"missing: {path}")]
+    if path.is_symlink():
+        return None, [AuditIssue(label, f"symlink: {path}")]
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return None, [AuditIssue(label, f"malformed JSON: {path}: {exc}")]
+    if not isinstance(payload, dict):
+        return None, [AuditIssue(label, f"manifest must be a JSON object: {path}")]
+    return payload, []
+
+
+def _audit_subject_payloads(root: Path, subjects_root: Path, label: str) -> list[AuditIssue]:
+    issues: list[AuditIssue] = []
+    if not subjects_root.exists():
+        issues.append(AuditIssue(label, f"missing: {subjects_root}"))
+        return issues
+
+    catalog = validate_subject_catalog(root)
+    with tempfile.TemporaryDirectory(prefix="qiongli-subject-payload-audit-") as tmp:
+        expected_root = Path(tmp)
+        for subject in sorted(catalog.subjects):
+            for coverage in ("complete", "focused"):
+                workflow = subjects_root / subject / coverage / "qiongli-workflow"
+                subject_label = f"{label} {subject}/{coverage}"
+                manifest_path = workflow / "SUBJECT_MANIFEST.json"
+                manifest, manifest_issues = _read_json(manifest_path, subject_label)
+                issues.extend(manifest_issues)
+                if manifest is not None:
+                    if manifest.get("subject") != subject:
+                        issues.append(
+                            AuditIssue(
+                                subject_label,
+                                f"{manifest_path} expected subject {subject}, found {manifest.get('subject')}",
+                            )
+                        )
+                    if manifest.get("coverage") != coverage:
+                        issues.append(
+                            AuditIssue(
+                                subject_label,
+                                f"{manifest_path} expected coverage {coverage}, found {manifest.get('coverage')}",
+                            )
+                        )
+
+                expected = expected_root / subject / coverage / "qiongli-workflow"
+                materialize_subject_package(
+                    MaterializeOptions(
+                        source=root,
+                        out=expected,
+                        subject=subject,
+                        flavor="full",
+                        coverage=coverage,
+                    )
+                )
+                issues.extend(_compare_trees(expected, workflow, subject_label))
+    return issues
+
+
+def _audit_generated_skill_package(root: Path, generated: Path, label: str) -> list[AuditIssue]:
+    issues: list[AuditIssue] = []
+    workflow = root / "qiongli-workflow"
+    issues.extend(
+        _compare_trees(
+            workflow,
+            generated,
+            f"{label} base package vs portable package",
+            extra_excluded_names=GENERATED_PACKAGE_EXCLUDED_NAMES,
+        )
+    )
+    for dir_name in GENERATED_PACKAGE_DIRS:
+        extra_excludes = SKILL_PACKAGE_EXCLUDED_NAMES if dir_name == "templates" else set()
+        issues.extend(
+            _compare_trees(
+                root / dir_name,
+                generated / dir_name,
+                f"{label} {dir_name}/ vs source {dir_name}/",
+                extra_excluded_names=extra_excludes,
+            )
+        )
+    for file_name in GENERATED_PACKAGE_FILES:
+        issues.extend(_compare_files(root / file_name, generated / file_name, f"{label} {file_name} vs source"))
+    return issues
+
+
 def audit(root: Path) -> list[AuditIssue]:
     root = root.resolve()
     workflow = root / "qiongli-workflow"
     plugin_workflow = root / "plugins" / "qiongli" / "skills" / "qiongli-workflow"
     npm_payload = root / "packages" / "npm-qiongli" / "payload" / "qiongli-workflow"
+    npm_payload_subjects = root / "packages" / "npm-qiongli" / "payload" / "subjects"
     npm_runtime = root / "packages" / "npm-qiongli" / "python-runtime"
+    python_payload = root / "qiongli" / "payload"
 
     issues: list[AuditIssue] = []
 
@@ -151,31 +253,40 @@ def audit(root: Path) -> list[AuditIssue]:
         ("portable package", workflow),
         ("plugin mirror", plugin_workflow),
         ("npm payload", npm_payload),
+        ("npm subject payloads", npm_payload_subjects),
         ("npm python-runtime", npm_runtime),
+        ("python bundled payload", python_payload),
     ):
         issues.extend(_assert_no_symlinks(path, label))
 
-    issues.extend(_compare_trees(workflow, plugin_workflow, "plugin mirror vs portable package"))
-    issues.extend(_compare_trees(workflow, npm_payload, "npm payload vs portable package"))
+    issues.extend(_audit_generated_skill_package(root, plugin_workflow, "plugin mirror"))
+    issues.extend(_audit_generated_skill_package(root, npm_payload, "npm payload"))
+    issues.extend(_audit_generated_skill_package(root, python_payload / "qiongli-workflow", "python payload"))
 
-    for dir_name in SKILL_SYNC_DIRS:
-        extra_excludes = SKILL_PACKAGE_EXCLUDED_NAMES if dir_name == "templates" else set()
+    for dir_name in PYTHON_PAYLOAD_SOURCE_DIRS:
         issues.extend(
             _compare_trees(
                 root / dir_name,
-                workflow / dir_name,
-                f"portable {dir_name}/ vs source {dir_name}/",
-                extra_excluded_names=extra_excludes,
+                python_payload / dir_name,
+                f"python payload {dir_name}/ vs source {dir_name}/",
+                extra_excluded_names=PYTHON_PAYLOAD_EXTRA_EXCLUDES.get(dir_name),
             )
         )
-    for file_name in SKILL_SYNC_FILES:
-        issues.extend(_compare_files(root / file_name, workflow / file_name, f"portable {file_name} vs source"))
+
+    issues.extend(_audit_subject_payloads(root, npm_payload_subjects, "npm subject payload coverage"))
+    if python_payload.exists():
+        issues.extend(_audit_subject_payloads(root, python_payload / "subjects", "python subject payload coverage"))
 
     for dir_name in NPM_RUNTIME_DIRS:
         src = root / dir_name
         if src.exists():
             issues.extend(
-                _compare_trees(src, npm_runtime / dir_name, f"npm runtime {dir_name}/ vs source {dir_name}/")
+                _compare_trees(
+                    src,
+                    npm_runtime / dir_name,
+                    f"npm runtime {dir_name}/ vs source {dir_name}/",
+                    extra_excluded_names=NPM_RUNTIME_EXTRA_EXCLUDES.get(dir_name),
+                )
             )
     for file_name in NPM_RUNTIME_FILES:
         src = root / file_name

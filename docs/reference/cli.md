@@ -61,12 +61,44 @@ Key Flags:
 - `--json`: Output JSON only (useful for CI/Scripts).
 - `--strict-network`: Return a failure code if upstream polling fails (defaults to warning and continuing).
 
+JSON output includes the active installed subject and coverage for each target. Older managed installs that do not have a `SUBJECT_MANIFEST.json` or `SUBJECT` marker are reported as legacy `core` / `complete`.
+
 Exit Codes:
 - `0`: No updates available / upstream check bypassed.
 - `1`: Update available.
 - `2`: Invalid argument.
 
-### 2.2 `qiongli upgrade` (Download release & execute installers)
+### 2.2 `qiongli install` (Install bundled subject payload)
+
+Use Case:
+- Installs the subject payload bundled inside the PyPI package into global client skill directories.
+- Defaults to `--subject core --coverage complete`; use `--subject economics` for full Qiongli plus economics specialization or `--subject accounting` for full Qiongli plus accounting specialization.
+
+```bash
+qiongli install \
+  [--subject core|economics|accounting|economics-accounting] \
+  [--coverage complete|focused] \
+  [--target codex|claude|gemini|antigravity|all] \
+  [--mode copy|link] \
+  [--project-dir <path>] \
+  [--overwrite] \
+  [--doctor] \
+  [--dry-run]
+```
+
+Examples:
+
+```bash
+qiongli install --target all
+qiongli install --subject economics --target all
+qiongli install --subject accounting --target all
+qiongli install --subject economics-accounting --target all
+qiongli install --subject economics --coverage focused --target all
+```
+
+Subject packages are specialized installs, not reduced-quality cuts. Default install is `core/complete`. `--subject economics` means `economics/complete`, not a reduced package. `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. Focused coverage selects the subject profile set and active effective skills for deliberate slim installs and Desktop/Web ZIPs. Current official subjects are `core`, `economics`, `accounting`, and the named composite `economics-accounting`; official composites are not arbitrary comma-separated stacking. Public Desktop ZIP subjects are `core`, `economics`, and `economics-accounting`, with no standalone accounting Desktop ZIP in this phase. Switch subjects or coverage by rerunning `install` or `upgrade` with new flags.
+
+### 2.3 `qiongli upgrade` (Download release & execute installers)
 
 Use Case:
 - Downloads the upstream release (defaults to latest tag `.tar.gz`).
@@ -78,6 +110,8 @@ qiongli upgrade \
   [--repo <owner/repo|url>] \
   [--ref <tag-or-branch>] \
   [--ref-type tag|branch] \
+  [--subject core|economics|accounting|economics-accounting] \
+  [--coverage complete|focused] \
   [--target codex|claude|gemini|antigravity|all] \
   [--project-dir <path>] \
   [--no-overwrite] \
@@ -88,11 +122,13 @@ qiongli upgrade \
 Notes:
 - `--project-dir` matters when you also request project-facing surfaces, such as `--parts project`.
 - Default `upgrade` now behaves as a global refresh. Use `qiongli init --project-dir .` for project bootstrap, or `qiongli upgrade --parts project ...` when you explicitly want project files rewritten.
+- `--subject` defaults to `core` and `--coverage` defaults to `complete`; use `--subject economics` for full Qiongli plus economics specialization, `--subject accounting` for full Qiongli plus accounting specialization, or add `--coverage focused` for the slim selected package.
+- Example: `qiongli upgrade --subject accounting --target all`.
 - After global install, `upgrade` creates workflow discovery symlinks: `~/.claude/commands/*.md` and `~/.gemini/workflows/*.md` → enables direct `/paper`, `/lit-review`, etc. invocation.
 - Shell CLI uses the bundled bootstrap helper and does not require Python.
 - The command exits with the error code returned by the underlying installer.
 
-### 2.3 `qiongli align` (Quick Reference Guide)
+### 2.4 `qiongli align` (Quick Reference Guide)
 
 Use Case: Prints an overview of "what pipx installed / paths modified by upgrades / common commands".
 
@@ -100,7 +136,7 @@ Use Case: Prints an overview of "what pipx installed / paths modified by upgrade
 qiongli align [--repo <owner/repo|url>]
 ```
 
-### 2.4 `qiongli init` (Project Bootstrap)
+### 2.5 `qiongli init` (Project Bootstrap)
 
 Use Case: Creates project-local `.env` configuration in your project directory.
 
@@ -112,7 +148,7 @@ Notes:
 - Only creates project-facing assets (`.env`). Does not touch global skill directories.
 - Safe to run multiple times; will not overwrite existing files unless `--overwrite` is passed.
 
-### 2.5 `qiongli clean` (Remove Stale Assets)
+### 2.6 `qiongli clean` (Remove Stale Assets)
 
 Use Case: Removes stale project-local assets left from older installations.
 
@@ -125,13 +161,27 @@ Flags:
 - `--globals`: Also remove workflow discovery symlinks from `~/.claude/commands/` and `~/.gemini/workflows/`. Only removes symlinks that point to `qiongli-workflow` — user-created commands are preserved.
 - `--dry-run`: Show what would be removed without deleting.
 
-### 2.6 `qiongli doctor` (Environment Preflight)
+### 2.7 `qiongli doctor` (Environment Preflight)
 
 Use Case: Runs orchestrator preflight checks (CLIs, API keys, MCP wiring).
 
 ```bash
 qiongli doctor [--cwd <path>]
 ```
+
+### 2.8 `qiongli customize` (Create a custom subject overlay)
+
+Use Case:
+- Creates a local custom overlay scaffold for the Python/source checkout materialization workflow.
+- Custom overlays affect generated output only and do not rewrite canonical source files.
+- npm runtime installs use pre-generated payloads in this phase and do not materialize `--custom-dir` overlays at install time.
+
+```bash
+qiongli customize --subject economics --name my-econ-lab --out ./qiongli-custom/econ-lab
+python3 scripts/materialize_subject_package.py --subject economics --custom-dir ./qiongli-custom/econ-lab --source . --out /tmp/qiongli-workflow
+```
+
+Developer subject-depth workflow: when adding or deepening a subject, update `subjects/catalog.yaml`, subject overlays, subject-specific registry and markdown, selected domain and venue profiles, subject eval fixtures, specialization audit expected terms, materializer tests, npm payload tests when the subject is installable through npm, and release validation if the subject has a Desktop/Web artifact.
 
 ---
 

@@ -60,6 +60,7 @@ const enSidebar = {
       items: [
         { text: 'Overview', link: '/advanced/' },
         { text: 'Extend Qiongli', link: '/advanced/extend-qiongli' },
+        { text: 'Subject Packaging Model', link: '/advanced/subject-packaging-model' },
         { text: 'Agent + Skill Collaboration', link: '/advanced/agent-skill-collaboration' },
         { text: 'Plugin-First Architecture', link: '/advanced/plugin-first-architecture' },
         { text: 'MCP Providers Setup', link: '/advanced/mcp-providers-setup' },
@@ -127,6 +128,7 @@ const zhSidebar = {
       items: [
         { text: '总览', link: '/zh/advanced/' },
         { text: '扩展 Qiongli', link: '/zh/advanced/extend-qiongli' },
+        { text: 'Subject Packaging Model', link: '/zh/advanced/subject-packaging-model' },
         { text: 'Agent + Skill 协同', link: '/zh/advanced/agent-skill-collaboration' },
         { text: 'Plugin-First 架构', link: '/advanced/plugin-first-architecture' },
         { text: 'MCP Providers 接入', link: '/zh/advanced/mcp-providers-setup' },

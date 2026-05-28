@@ -69,6 +69,8 @@ User intent (自然语言)
 
 这种情况下，**不要一上来就改 `standards/`**。当前架构把“核心工作流”和“领域知识”拆开了，推荐默认从 `skills/domain-profiles/` 进入。
 
+如果目标是可安装的 subject package，优先从 `subjects/catalog.yaml` 和 subject overlays 入手，不要复制 generic skills。CLI/npm 安装默认是 `coverage=complete`，会保留全量 core 框架并叠加 subject 专精；`coverage=focused` 主要用于精简 selected package 和 Desktop/Web ZIP。官方交叉学科应建模为显式 composite subject，例如 `economics-accounting`，而不是运行时自由堆叠多个 subject。完整概念边界见 [Subject Packaging Model](/zh/advanced/subject-packaging-model)。
+
 | 你的目标 | 首改文件 | 什么时候再往上层改 |
 |---|---|---|
 | 调整推荐库、方法模板、诊断项、常见坑、数据库、期刊规范 | `skills/domain-profiles/<domain>.yaml` | 只有新增字段时才改 `schemas/domain-profile.schema.json` |
@@ -94,6 +96,19 @@ User intent (自然语言)
    - 如果还要影响选题、检索、设计、写作、投稿，继续更新对应的 `domain_aware` skill。
 4. 如果你新增了 domain profile 里的字段，再同步更新 `schemas/domain-profile.schema.json`。
 5. 只有在新增了 skill、改变了 task 路由、或者改变了产物契约时，才升级到 `standards/` 层。
+
+如果只是做本地自定义，不想改 canonical source，可以用 custom directory materialize：
+
+```bash
+python3 scripts/materialize_subject_package.py \
+  --subject economics \
+  --coverage complete \
+  --source . \
+  --custom-dir /path/to/custom-qiongli \
+  --out /tmp/qiongli-workflow
+```
+
+custom directory 可以包含 `subject.yaml`、`overlays/skills/*.md`、`skills/registry.yaml`、`skills/*.md`、`domain-profiles/*.yaml` 和 `venue-profiles/*.yaml`。它只影响本次生成输出；未知 skill ref、重复 registry id 或 `replace_sections` 缺失标题都会 fail fast。
 
 常见会一起受方向影响的 skill：
 - `skills/A_framing/venue-analyzer.md`
