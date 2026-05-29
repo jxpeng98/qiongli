@@ -273,7 +273,9 @@ Current shipped profiles include:
 - `education`
 - `epidemiology`
 - `finance`
+- `geoeconomics`
 - `political-science`
+- `political-economy`
 - `psychology`
 
 Use domain profiles when:

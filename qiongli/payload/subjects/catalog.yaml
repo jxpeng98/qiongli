@@ -11,6 +11,8 @@ subjects:
       - education
       - cs-ai
       - business-management
+      - political-economy
+      - geoeconomics
       - epidemiology
       - political-science
       - ecology-environmental
@@ -603,6 +605,230 @@ subjects:
         task_ids: ["F5", "F6", "G1", "G2", "G3", "H1", "H2", "I1", "I2", "I7", "I8", "J4"]
         skill_refs:
           - manuscript-architect
+          - discussion-writer
+          - meta-optimizer
+          - reporting-checker
+          - tone-normalizer
+          - submission-packager
+          - fatal-flaw-detector
+          - code-builder
+          - code-review
+          - reproducibility-auditor
+          - final-proofreader
+
+  political-economy:
+    display_name: Qiongli Political Economy
+    extends: core
+    package_goal: "Political economy workflow focused on political institutions, actors, incentives, distributional conflict, policy processes, and economic outcomes."
+    domain_profiles:
+      - political-economy
+    venue_profiles:
+      - apsr
+      - ajps
+      - journal-of-politics
+      - world-politics
+      - comparative-political-studies
+    template_refs:
+      - analysis-plan.md
+      - claim-evidence-ledger.csv
+      - data-availability.md
+      - data-management-plan.md
+      - figures-tables-plan.md
+      - manuscript-outline.md
+      - method-diagnostic-report.md
+      - quality-gate-report.md
+      - research-state.md
+      - search-log.md
+      - stage-handoff.md
+      - study-design.md
+      - validity-threat-matrix.md
+      - writing-claim-map.md
+    skill_overrides:
+      - skill: manuscript-architect
+        overlay: overlays/skills/manuscript-architect.md
+        mode: append
+      - skill: study-designer
+        overlay: overlays/skills/study-designer.md
+        mode: append
+      - skill: literature-mapper
+        overlay: overlays/skills/literature-mapper.md
+        mode: append
+      - skill: stats-engine
+        overlay: overlays/skills/stats-engine.md
+        mode: append
+    subject_specific_skill_refs:
+      - political-economy-mechanism-auditor
+    skill_groups:
+      - order: 1
+        heading: "Political Economy Framing"
+        subheading: "Actors, institutions, incentives, contribution, and venue fit"
+        stages: ["A"]
+        task_ids: ["A1", "A2", "A3", "A4", "A5"]
+        skill_refs:
+          - question-refiner
+          - contribution-crafter
+          - gap-analyzer
+          - theory-mapper
+          - hypothesis-generator
+          - venue-analyzer
+      - order: 2
+        heading: "Political Economy Literature"
+        subheading: "Mechanism, institution, actor, and outcome positioning"
+        stages: ["B"]
+        task_ids: ["B1", "B2", "B3", "B4", "B5", "B6"]
+        skill_refs:
+          - academic-searcher
+          - citation-snowballer
+          - literature-mapper
+          - paper-extractor
+          - paper-screener
+          - reference-manager-bridge
+      - order: 3
+        heading: "Mechanism and Study Design"
+        subheading: "Actor-institution-outcome design, political mechanism, and robustness"
+        stages: ["C", "I"]
+        task_ids: ["C1", "C2", "C3", "C4", "C5", "I9"]
+        skill_refs:
+          - study-designer
+          - rival-hypothesis-designer
+          - robustness-planner
+          - dataset-finder
+          - variable-constructor
+          - data-dictionary-builder
+          - prereg-writer
+          - stats-engine
+          - political-economy-mechanism-auditor
+      - order: 4
+        heading: "Evidence and Manuscript"
+        subheading: "Political mechanism evidence, tables, figures, interpretation, and paper architecture"
+        stages: ["E", "F"]
+        task_ids: ["E1", "E2", "E3", "F1", "F2", "F3", "F4", "F5"]
+        skill_refs:
+          - effect-size-calculator
+          - evidence-synthesizer
+          - analysis-interpreter
+          - effect-size-interpreter
+          - table-generator
+          - figure-specifier
+          - manuscript-architect
+      - order: 5
+        heading: "Political Economy Review Readiness"
+        subheading: "Discussion, reporting, compliance, review risk, and reproducibility"
+        stages: ["F", "G", "H", "I", "J"]
+        task_ids: ["F6", "G1", "G2", "G3", "H1", "H2", "I1", "I2", "I7", "I8", "J4"]
+        skill_refs:
+          - discussion-writer
+          - meta-optimizer
+          - reporting-checker
+          - tone-normalizer
+          - submission-packager
+          - fatal-flaw-detector
+          - code-builder
+          - code-review
+          - reproducibility-auditor
+          - final-proofreader
+
+  geoeconomics:
+    display_name: Qiongli Geoeconomics
+    extends: core
+    package_goal: "Geoeconomics workflow focused on economic statecraft, sanctions, supply chains, financial tools, strategic competition, and security-economic outcomes."
+    domain_profiles:
+      - geoeconomics
+    venue_profiles:
+      - international-security
+      - international-organization
+      - review-of-international-political-economy
+      - world-politics
+      - global-policy
+    template_refs:
+      - analysis-plan.md
+      - claim-evidence-ledger.csv
+      - data-availability.md
+      - data-management-plan.md
+      - figures-tables-plan.md
+      - manuscript-outline.md
+      - method-diagnostic-report.md
+      - quality-gate-report.md
+      - research-state.md
+      - search-log.md
+      - stage-handoff.md
+      - study-design.md
+      - validity-threat-matrix.md
+      - writing-claim-map.md
+    skill_overrides:
+      - skill: manuscript-architect
+        overlay: overlays/skills/manuscript-architect.md
+        mode: append
+      - skill: study-designer
+        overlay: overlays/skills/study-designer.md
+        mode: append
+      - skill: literature-mapper
+        overlay: overlays/skills/literature-mapper.md
+        mode: append
+      - skill: venue-analyzer
+        overlay: overlays/skills/venue-analyzer.md
+        mode: append
+    subject_specific_skill_refs:
+      - geoeconomic-statecraft-auditor
+    skill_groups:
+      - order: 1
+        heading: "Geoeconomics Framing"
+        subheading: "Economic statecraft, strategic objective, contribution, and venue fit"
+        stages: ["A"]
+        task_ids: ["A1", "A2", "A3", "A4", "A5"]
+        skill_refs:
+          - question-refiner
+          - contribution-crafter
+          - gap-analyzer
+          - theory-mapper
+          - hypothesis-generator
+          - venue-analyzer
+      - order: 2
+        heading: "Geoeconomics Literature"
+        subheading: "Instrument, target response, supply chain, sanctions, and IPE positioning"
+        stages: ["B"]
+        task_ids: ["B1", "B2", "B3", "B4", "B5", "B6"]
+        skill_refs:
+          - academic-searcher
+          - citation-snowballer
+          - literature-mapper
+          - paper-extractor
+          - paper-screener
+          - reference-manager-bridge
+      - order: 3
+        heading: "Statecraft Design and Exposure"
+        subheading: "Sender-target-instrument-response logic, timing, exposure, and robustness"
+        stages: ["C", "I"]
+        task_ids: ["C1", "C2", "C3", "C4", "C5", "I9"]
+        skill_refs:
+          - study-designer
+          - rival-hypothesis-designer
+          - robustness-planner
+          - dataset-finder
+          - variable-constructor
+          - data-dictionary-builder
+          - prereg-writer
+          - stats-engine
+          - geoeconomic-statecraft-auditor
+      - order: 4
+        heading: "Geoeconomic Evidence and Manuscript"
+        subheading: "Strategic response evidence, tables, figures, interpretation, and paper architecture"
+        stages: ["E", "F"]
+        task_ids: ["E1", "E2", "E3", "F1", "F2", "F3", "F4", "F5"]
+        skill_refs:
+          - effect-size-calculator
+          - evidence-synthesizer
+          - analysis-interpreter
+          - effect-size-interpreter
+          - table-generator
+          - figure-specifier
+          - manuscript-architect
+      - order: 5
+        heading: "Geoeconomics Review Readiness"
+        subheading: "Discussion, policy claims, reporting, review risk, and reproducibility"
+        stages: ["F", "G", "H", "I", "J"]
+        task_ids: ["F6", "G1", "G2", "G3", "H1", "H2", "I1", "I2", "I7", "I8", "J4"]
+        skill_refs:
           - discussion-writer
           - meta-optimizer
           - reporting-checker

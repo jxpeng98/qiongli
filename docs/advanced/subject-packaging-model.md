@@ -10,6 +10,8 @@ The installed skill directory is always `qiongli-workflow`, and each client has 
 |---|---|---|
 | You are unsure what to choose | `qiongli install --target all` | Default `core / complete`: full general Qiongli framework |
 | You know the work is economics | `qiongli install --subject economics --target all` | Full framework plus economics specialization |
+| You know the work is political economy | `qiongli install --subject political-economy --target all` | Full framework plus institutions, distributional conflict, and policy mechanism specialization |
+| You know the work is geoeconomics | `qiongli install --subject geoeconomics --target all` | Full framework plus strategic economic statecraft specialization |
 | You want a slim economics package | `qiongli install --subject economics --coverage focused --target all` | Economics-selected profiles, overlays, and active effective skills |
 | You need an official cross-disciplinary package | `qiongli install --subject economics-accounting --target all` | Full framework plus the economics/accounting composite layer |
 | You want local custom rules | `python3 scripts/materialize_subject_package.py --custom-dir <path> ...` | One generated package with local overlays, profiles, or skills |
@@ -29,7 +31,7 @@ Use `core` when the project is general, exploratory, or not yet clearly tied to 
 
 ### Specialized Subjects
 
-A specialized subject, such as `economics`, keeps the same Qiongli workflow but adds a discipline layer. It does not fork the workflow contract.
+A specialized subject, such as `economics`, `political-economy`, or `geoeconomics`, keeps the same Qiongli workflow but adds a discipline layer. It does not fork the workflow contract.
 
 It can add:
 
@@ -67,6 +69,8 @@ Composite subjects are official cross-disciplinary packages, such as `economics-
 They are not automatic unions of multiple subjects. A composite must define its own ordered groups, profile selection, overlays, and subject-specific skills. This keeps the package coherent and avoids accidental conflicts between disciplines.
 
 Use a composite when the research question is inherently cross-disciplinary and a single subject would miss important norms.
+
+Use `political-economy` and `geoeconomics` as separate subjects when you want those domains as the active package. They are not a composite pair and should not be installed together in one Desktop/Web ZIP.
 
 ### Local Customization
 
