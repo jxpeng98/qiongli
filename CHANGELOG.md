@@ -1,10 +1,27 @@
 # Changelog
 
-本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-05-28）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
+本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-05-29）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
 
 ## [Unreleased]
 
 暂无未发布变更。
+
+## [0.14.0] - 2026-05-29
+
+### Added
+
+- 新增官方 `political-economy` 与 `geoeconomics` focused subject packages，分别面向政治经济学机制/制度/分配分析，以及 geoeconomic statecraft、制裁、供应链和战略竞争分析。
+- GitHub Release 现在生成 `qiongli-claude-desktop-skill-political-economy-<tag>.zip` 和 `qiongli-claude-desktop-skill-geoeconomics-<tag>.zip`，并同步生成对应 Codex / Claude Code marketplace artifacts。
+- 新增 political economy 和 geoeconomics 的 domain profiles、venue profiles、subject-specific auditor skills、subject overlays、catalog entries、generated payloads 和 specialization audit coverage。
+
+### Changed
+
+- Desktop/Web、CLI、npm/npx 与 install 文档更新为包含 `political-economy` 和 `geoeconomics` 的 focused subject 分发路径，适合 Claude Desktop 中按单一专精 subject 安装使用。
+- Release artifact 构建和 postflight 校验扩展到新 subject，确保政治经济学和 geoeconomics 的 Claude Desktop ZIP、Codex plugin 与 Claude plugin 都随正式版发布。
+
+### Fixed
+
+- 修复 release preflight 在版本 bump 后没有重新生成 skill reference docs 的问题，避免 `docs/reference/skills.md` 与 `docs/zh/reference/skills.md` 出现发布前校验漂移。
 
 ## [0.13.0] - 2026-05-29
 
