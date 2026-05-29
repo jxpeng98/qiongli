@@ -49,6 +49,8 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
         self.assertIn('plugins/qiongli/gemini-extension.json', content)
         self.assertIn('plugins/qiongli/skills/qiongli-workflow', content)
+        self.assertIn('docs/reference/skills.md', content)
+        self.assertIn('docs/zh/reference/skills.md', content)
         self.assertNotIn('qiongli-workflow/skills/registry.yaml', content)
         self.assertIn('qiongli/payload', content)
         self.assertIn('packages/npm-qiongli', content)
@@ -130,17 +132,23 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('"dist/qiongli-accounting-codex-plugin-${TAG}.tar.gz"', content)
         self.assertIn('"dist/qiongli-business-codex-plugin-${TAG}.tar.gz"', content)
         self.assertIn('"dist/qiongli-finance-codex-plugin-${TAG}.tar.gz"', content)
+        self.assertIn('"dist/qiongli-political-economy-codex-plugin-${TAG}.tar.gz"', content)
+        self.assertIn('"dist/qiongli-geoeconomics-codex-plugin-${TAG}.tar.gz"', content)
         self.assertIn('"dist/qiongli-economics-accounting-codex-plugin-${TAG}.tar.gz"', content)
         self.assertIn('"dist/qiongli-core-claude-plugin-${TAG}.tar.gz"', content)
         self.assertIn('"dist/qiongli-economics-claude-plugin-${TAG}.tar.gz"', content)
         self.assertIn('"dist/qiongli-accounting-claude-plugin-${TAG}.tar.gz"', content)
         self.assertIn('"dist/qiongli-business-claude-plugin-${TAG}.tar.gz"', content)
         self.assertIn('"dist/qiongli-finance-claude-plugin-${TAG}.tar.gz"', content)
+        self.assertIn('"dist/qiongli-political-economy-claude-plugin-${TAG}.tar.gz"', content)
+        self.assertIn('"dist/qiongli-geoeconomics-claude-plugin-${TAG}.tar.gz"', content)
         self.assertIn('"dist/qiongli-economics-accounting-claude-plugin-${TAG}.tar.gz"', content)
         self.assertIn('"dist/qiongli-claude-desktop-skill-core-${TAG}.zip"', content)
         self.assertIn('"dist/qiongli-claude-desktop-skill-economics-${TAG}.zip"', content)
         self.assertIn('"dist/qiongli-claude-desktop-skill-business-${TAG}.zip"', content)
         self.assertIn('"dist/qiongli-claude-desktop-skill-finance-${TAG}.zip"', content)
+        self.assertIn('"dist/qiongli-claude-desktop-skill-political-economy-${TAG}.zip"', content)
+        self.assertIn('"dist/qiongli-claude-desktop-skill-geoeconomics-${TAG}.zip"', content)
         self.assertIn('"dist/qiongli-claude-desktop-skill-${TAG}.zip"', content)
         self.assertIn('gh release upload "$TAG" --repo "$REPO_SLUG" --clobber "${PLUGIN_ARTIFACTS[@]}"', content)
         self.assertIn('release_args+=("${PLUGIN_ARTIFACTS[@]}")', content)
@@ -165,6 +173,8 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('packages/npm-qiongli|packages/npm-qiongli/*', content)
         self.assertIn('qiongli/payload|qiongli/payload/*', content)
         self.assertIn('package-lock.json', content)
+        self.assertIn('docs/reference/skills.md', content)
+        self.assertIn('docs/zh/reference/skills.md', content)
         self.assertIn(
             'plugins/qiongli/skills/qiongli-workflow|plugins/qiongli/skills/qiongli-workflow/*',
             content,
@@ -193,12 +203,18 @@ class ReleaseAutomationTests(unittest.TestCase):
 
         self.assertIn('echo "[preflight] sync npm payload"', content)
         self.assertIn("python3 scripts/sync_npm_package_payload.py", content)
+        self.assertIn('echo "[preflight] sync skill reference docs"', content)
+        self.assertIn("python3 scripts/generate_skill_docs.py", content)
         self.assertLess(
             content.index("python3 scripts/sync_npm_package_payload.py"),
+            content.index("python3 scripts/generate_skill_docs.py"),
+        )
+        self.assertLess(
+            content.index("python3 scripts/generate_skill_docs.py"),
             content.index('run_logged_stage "validator" "$validator_log" "${validate_cmd[@]}"'),
         )
         self.assertLess(
-            content.index("python3 scripts/sync_npm_package_payload.py"),
+            content.index("python3 scripts/generate_skill_docs.py"),
             content.index('run_logged_stage "unit tests" "$unit_log" python3 -m unittest discover -s tests -v'),
         )
 
