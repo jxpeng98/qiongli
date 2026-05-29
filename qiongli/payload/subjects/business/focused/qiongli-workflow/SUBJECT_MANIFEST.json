@@ -1,0 +1,9 @@
+{
+  "coverage": "focused",
+  "flavor": "full",
+  "layers": [
+    "core",
+    "business"
+  ],
+  "subject": "business"
+}

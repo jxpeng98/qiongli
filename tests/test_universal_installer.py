@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from qiongli.universal_installer import InstallOptions, clean, install
+from qiongli.universal_installer import InstallOptions, clean, clean_global_legacy_skills, install
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -134,7 +134,7 @@ class UniversalInstallerTests(unittest.TestCase):
                 stdout.getvalue(),
             )
 
-    def test_install_reports_legacy_global_skill_residues(self) -> None:
+    def test_install_removes_legacy_global_skill_residues(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             temp_root = Path(tmp_dir)
             project_dir = temp_root / "project"
@@ -165,10 +165,40 @@ class UniversalInstallerTests(unittest.TestCase):
 
             self.assertEqual(result, 0)
             rendered = stdout.getvalue()
-            self.assertIn("Legacy Install Residues", rendered)
+            self.assertIn("Legacy Install Cleanup", rendered)
             self.assertIn("codex: research-paper-workflow", rendered)
             self.assertIn(str(legacy_skill), rendered)
-            self.assertTrue(legacy_skill.exists())
+            self.assertFalse(legacy_skill.exists())
+
+    def test_install_keeps_unmanaged_legacy_named_global_dir(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            codex_home = temp_root / "codex-home"
+            legacy_named_dir = codex_home / "skills" / "research-paper-workflow"
+            legacy_named_dir.mkdir(parents=True)
+            (legacy_named_dir / "notes.txt").write_text("user data", encoding="utf-8")
+
+            env = os.environ.copy()
+            env["CODEX_HOME"] = str(codex_home)
+            env["PATH"] = ""
+
+            stdout = io.StringIO()
+            with mock.patch.dict(os.environ, env, clear=True):
+                with contextlib.redirect_stdout(stdout):
+                    result = install(
+                        InstallOptions(
+                            repo_root=REPO_ROOT,
+                            project_dir=project_dir,
+                            target="codex",
+                            profile="partial",
+                        )
+                    )
+
+            self.assertEqual(result, 0)
+            self.assertIn("unmanaged legacy-named path", stdout.getvalue())
+            self.assertTrue(legacy_named_dir.exists())
 
     def test_existing_unmanaged_cli_requires_overwrite(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -555,6 +585,28 @@ class CleanTests(unittest.TestCase):
 
             self.assertEqual(result, 0)
             self.assertFalse(legacy_link.exists())
+
+    def test_clean_globals_removes_legacy_global_skill_dirs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            codex_home = temp_root / "codex-home"
+            legacy_skill = codex_home / "skills" / "research-paper-workflow"
+            legacy_skill.mkdir(parents=True)
+            (legacy_skill / "SKILL.md").write_text(
+                "---\nname: research-paper-workflow\ndescription: legacy\n---\n",
+                encoding="utf-8",
+            )
+
+            env = os.environ.copy()
+            env["CODEX_HOME"] = str(codex_home)
+            env["CLAUDE_CODE_HOME"] = str(temp_root / "claude-home")
+            env["GEMINI_HOME"] = str(temp_root / "gemini-home")
+            env["ANTIGRAVITY_HOME"] = str(temp_root / "antigravity-home")
+            with mock.patch.dict(os.environ, env, clear=True):
+                result = clean_global_legacy_skills()
+
+            self.assertEqual(result, 0)
+            self.assertFalse(legacy_skill.exists())
 
 
 class SymlinkAndSummaryTests(unittest.TestCase):

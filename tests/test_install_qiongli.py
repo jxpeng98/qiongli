@@ -390,7 +390,7 @@ class InstallQiongliTests(unittest.TestCase):
             self.assertFalse((existing_skill / "legacy.txt").exists())
             self.assertTrue((existing_skill / "skills-core.md").exists())
 
-    def test_install_reports_legacy_global_skill_residues(self) -> None:
+    def test_install_removes_legacy_global_skill_residues(self) -> None:
         if not SYSTEM_BASH.exists():
             self.skipTest("/bin/bash is not available")
 
@@ -435,10 +435,10 @@ class InstallQiongliTests(unittest.TestCase):
             )
 
             self.assertEqual(result.returncode, 0, msg=result.stdout + "\n" + result.stderr)
-            self.assertIn("Legacy Install Residues", result.stdout)
+            self.assertIn("Legacy Install Cleanup", result.stdout)
             self.assertIn("codex: research-paper-workflow", result.stdout)
             self.assertIn(str(legacy_skill), result.stdout)
-            self.assertTrue(legacy_skill.exists())
+            self.assertFalse(legacy_skill.exists())
 
 
 if __name__ == "__main__":

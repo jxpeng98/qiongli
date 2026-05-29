@@ -31,12 +31,26 @@ class PluginArtifactsTests(unittest.TestCase):
             self.assertEqual(
                 sorted(path.name for path in artifacts),
                 [
+                    f"qiongli-accounting-claude-plugin-{current_tag}.tar.gz",
+                    f"qiongli-accounting-codex-plugin-{current_tag}.tar.gz",
+                    f"qiongli-business-claude-plugin-{current_tag}.tar.gz",
+                    f"qiongli-business-codex-plugin-{current_tag}.tar.gz",
+                    f"qiongli-claude-desktop-skill-business-{current_tag}.zip",
                     f"qiongli-claude-desktop-skill-core-{current_tag}.zip",
                     f"qiongli-claude-desktop-skill-economics-accounting-{current_tag}.zip",
                     f"qiongli-claude-desktop-skill-economics-{current_tag}.zip",
+                    f"qiongli-claude-desktop-skill-finance-{current_tag}.zip",
                     f"qiongli-claude-desktop-skill-{current_tag}.zip",
                     f"qiongli-claude-plugin-{current_tag}.tar.gz",
                     f"qiongli-codex-plugin-{current_tag}.tar.gz",
+                    f"qiongli-core-claude-plugin-{current_tag}.tar.gz",
+                    f"qiongli-core-codex-plugin-{current_tag}.tar.gz",
+                    f"qiongli-economics-accounting-claude-plugin-{current_tag}.tar.gz",
+                    f"qiongli-economics-accounting-codex-plugin-{current_tag}.tar.gz",
+                    f"qiongli-economics-claude-plugin-{current_tag}.tar.gz",
+                    f"qiongli-economics-codex-plugin-{current_tag}.tar.gz",
+                    f"qiongli-finance-claude-plugin-{current_tag}.tar.gz",
+                    f"qiongli-finance-codex-plugin-{current_tag}.tar.gz",
                     f"qiongli-gemini-extension-{current_tag}.tar.gz",
                 ],
             )
@@ -57,6 +71,53 @@ class PluginArtifactsTests(unittest.TestCase):
                     f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/.claude-plugin/plugin.json",
                     f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/commands/paper.md",
                     f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+                ],
+            )
+            self._assert_contains(
+                dist_dir / f"qiongli-economics-codex-plugin-{current_tag}.tar.gz",
+                [
+                    f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/.codex-plugin/plugin.json",
+                    f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/commands/paper.md",
+                    f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/skills/qiongli-workflow/SUBJECT",
+                    f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/skills/qiongli-workflow/skills/C_design/econ-identification-auditor.md",
+                ],
+            )
+            self._assert_contains(
+                dist_dir / f"qiongli-economics-claude-plugin-{current_tag}.tar.gz",
+                [
+                    f"qiongli-economics-claude-plugin-{current_tag}/plugins/qiongli-economics/.claude-plugin/plugin.json",
+                    f"qiongli-economics-claude-plugin-{current_tag}/plugins/qiongli-economics/commands/paper.md",
+                    f"qiongli-economics-claude-plugin-{current_tag}/plugins/qiongli-economics/skills/qiongli-workflow/SUBJECT",
+                    f"qiongli-economics-claude-plugin-{current_tag}/plugins/qiongli-economics/skills/qiongli-workflow/skills/C_design/econ-identification-auditor.md",
+                ],
+            )
+            codex_manifest = self._read_tar_json(
+                dist_dir / f"qiongli-economics-codex-plugin-{current_tag}.tar.gz",
+                f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/.codex-plugin/plugin.json",
+            )
+            self.assertEqual(codex_manifest["name"], "qiongli-economics")
+            self.assertEqual(codex_manifest["interface"]["displayName"], "Qiongli Economics")
+            self.assertIn("Economics-specialized", codex_manifest["interface"]["longDescription"])
+            claude_manifest = self._read_tar_json(
+                dist_dir / f"qiongli-economics-claude-plugin-{current_tag}.tar.gz",
+                f"qiongli-economics-claude-plugin-{current_tag}/plugins/qiongli-economics/.claude-plugin/plugin.json",
+            )
+            self.assertEqual(claude_manifest["name"], "qiongli-economics")
+            self.assertIn("Economics-specialized", claude_manifest["description"])
+            self._assert_contains(
+                dist_dir / f"qiongli-business-codex-plugin-{current_tag}.tar.gz",
+                [
+                    f"qiongli-business-codex-plugin-{current_tag}/plugins/qiongli-business/.codex-plugin/plugin.json",
+                    f"qiongli-business-codex-plugin-{current_tag}/plugins/qiongli-business/skills/qiongli-workflow/SUBJECT",
+                    f"qiongli-business-codex-plugin-{current_tag}/plugins/qiongli-business/skills/qiongli-workflow/skills/C_design/business-journal-positioning-auditor.md",
+                ],
+            )
+            self._assert_contains(
+                dist_dir / f"qiongli-finance-claude-plugin-{current_tag}.tar.gz",
+                [
+                    f"qiongli-finance-claude-plugin-{current_tag}/plugins/qiongli-finance/.claude-plugin/plugin.json",
+                    f"qiongli-finance-claude-plugin-{current_tag}/plugins/qiongli-finance/skills/qiongli-workflow/SUBJECT",
+                    f"qiongli-finance-claude-plugin-{current_tag}/plugins/qiongli-finance/skills/qiongli-workflow/skills/C_design/finance-identification-risk-auditor.md",
                 ],
             )
             self._assert_contains(
@@ -82,6 +143,24 @@ class PluginArtifactsTests(unittest.TestCase):
                     "qiongli/skills/C_design/econ-identification-auditor.md",
                     "qiongli/skills/F_writing/manuscript-architect.md",
                     "qiongli/venue-profiles/aer.yaml",
+                ],
+            )
+            self._assert_zip_contains(
+                dist_dir / f"qiongli-claude-desktop-skill-business-{current_tag}.zip",
+                [
+                    "qiongli/SKILL.md",
+                    "qiongli/SUBJECT",
+                    "qiongli/skills/C_design/business-journal-positioning-auditor.md",
+                    "qiongli/venue-profiles/academy-of-management-journal.yaml",
+                ],
+            )
+            self._assert_zip_contains(
+                dist_dir / f"qiongli-claude-desktop-skill-finance-{current_tag}.zip",
+                [
+                    "qiongli/SKILL.md",
+                    "qiongli/SUBJECT",
+                    "qiongli/skills/C_design/finance-identification-risk-auditor.md",
+                    "qiongli/venue-profiles/journal-of-finance.yaml",
                 ],
             )
             self._assert_zip_contains(
@@ -139,6 +218,13 @@ class PluginArtifactsTests(unittest.TestCase):
             names = set(tar.getnames())
         for name in expected:
             self.assertIn(name, names)
+
+    def _read_tar_json(self, artifact: Path, member: str) -> dict[str, object]:
+        with tarfile.open(artifact, "r:gz") as tar:
+            extracted = tar.extractfile(member)
+            self.assertIsNotNone(extracted, msg=f"missing tar member: {member}")
+            assert extracted is not None
+            return json.loads(extracted.read().decode("utf-8"))
 
     def _assert_zip_contains(self, artifact: Path, expected: list[str]) -> None:
         with zipfile.ZipFile(artifact) as archive:

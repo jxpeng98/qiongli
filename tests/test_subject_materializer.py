@@ -163,6 +163,73 @@ class SubjectMaterializerTests(unittest.TestCase):
                 ["core", "economics", "accounting", "economics-accounting"],
             )
 
+    def test_materializes_business_focused_package_with_journal_overlay(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out = Path(tmp_dir) / "qiongli-workflow"
+
+            materialize_subject_package(
+                MaterializeOptions(
+                    source=REPO_ROOT,
+                    out=out,
+                    subject="business",
+                    flavor="full",
+                    coverage="focused",
+                )
+            )
+
+            manifest = json.loads((out / "SUBJECT_MANIFEST.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["layers"], ["core", "business"])
+            skill_text = (out / "SKILL.md").read_text(encoding="utf-8")
+            self.assertIn("## Business Workflow Map", skill_text)
+            self.assertIn("doctoral-level journal manuscripts", skill_text)
+
+            registry = yaml.safe_load((out / "skills" / "registry.yaml").read_text(encoding="utf-8"))
+            registry_ids = {entry["id"] for entry in registry["skills"]}
+            self.assertIn("business-journal-positioning-auditor", registry_ids)
+            self.assertIn("manuscript-architect", registry_ids)
+
+            self.assertTrue((out / "skills" / "domain-profiles" / "business-management.yaml").exists())
+            self.assertFalse((out / "skills" / "domain-profiles" / "finance.yaml").exists())
+            self.assertTrue((out / "venue-profiles" / "academy-of-management-journal.yaml").exists())
+
+            manuscript = (out / "skills" / "F_writing" / "manuscript-architect.md").read_text(encoding="utf-8")
+            self.assertIn("## Business Overlay", manuscript)
+            self.assertIn("doctoral-level journal contribution", manuscript)
+
+    def test_materializes_finance_focused_package_with_risk_overlay(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out = Path(tmp_dir) / "qiongli-workflow"
+
+            materialize_subject_package(
+                MaterializeOptions(
+                    source=REPO_ROOT,
+                    out=out,
+                    subject="finance",
+                    flavor="full",
+                    coverage="focused",
+                )
+            )
+
+            manifest = json.loads((out / "SUBJECT_MANIFEST.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["layers"], ["core", "finance"])
+            skill_text = (out / "SKILL.md").read_text(encoding="utf-8")
+            self.assertIn("## Finance Workflow Map", skill_text)
+            self.assertIn("doctoral-level journal manuscripts", skill_text)
+
+            registry = yaml.safe_load((out / "skills" / "registry.yaml").read_text(encoding="utf-8"))
+            registry_ids = {entry["id"] for entry in registry["skills"]}
+            self.assertIn("finance-identification-risk-auditor", registry_ids)
+            self.assertIn("stats-engine", registry_ids)
+
+            self.assertTrue((out / "skills" / "domain-profiles" / "finance.yaml").exists())
+            self.assertFalse((out / "skills" / "domain-profiles" / "business-management.yaml").exists())
+            self.assertTrue((out / "venue-profiles" / "journal-of-finance.yaml").exists())
+
+            stats = (out / "skills" / "I_code" / "stats-engine.md").read_text(encoding="utf-8")
+            self.assertIn("## Quality Bar", stats)
+            self.assertIn("asset pricing", stats)
+            self.assertIn("look-ahead bias", stats)
+
     def test_unknown_coverage_reports_clear_error(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             out = Path(tmp_dir) / "qiongli-workflow"

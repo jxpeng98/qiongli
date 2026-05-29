@@ -84,7 +84,8 @@ export function installSkills({
     const dest = targetPaths[item];
     const legacyPath = path.join(path.dirname(dest), LEGACY_SKILL_NAME);
     if (fs.existsSync(legacyPath)) {
-      legacyResidues.push({ target: item, legacyName: LEGACY_SKILL_NAME, path: legacyPath });
+      const status = removeLegacySkillPath(legacyPath, LEGACY_SKILL_NAME, dryRun);
+      legacyResidues.push({ target: item, legacyName: LEGACY_SKILL_NAME, path: legacyPath, status });
     }
 
     actions.push(copySkill({ src: workflowSrc, dest, mode, overwrite, dryRun, sourceVersion, sourceSubject, sourceCoverage }));
@@ -122,6 +123,12 @@ export function cleanAssets({ projectDir = '.', globals = false, dryRun = false,
 
   if (globals) {
     const targetPaths = resolveTargetPaths({ env });
+    for (const skillDest of Object.values(targetPaths)) {
+      const legacyPath = path.join(path.dirname(skillDest), LEGACY_SKILL_NAME);
+      if (fs.existsSync(legacyPath) && removeLegacySkillPath(legacyPath, LEGACY_SKILL_NAME, dryRun) !== 'kept') {
+        removed.push(legacyPath);
+      }
+    }
     for (const [target, skillDest] of Object.entries(targetPaths)) {
       if (target !== 'claude' && target !== 'gemini') {
         continue;
@@ -336,6 +343,26 @@ function isQiongliSkillDir(skillDir) {
   }
 }
 
+function isLegacySkillPath(skillDir, legacyName) {
+  try {
+    if (fs.lstatSync(skillDir).isSymbolicLink()) {
+      return true;
+    }
+    const content = fs.readFileSync(path.join(skillDir, 'SKILL.md'), 'utf-8');
+    return new RegExp(`^name:\\s*${escapeRegExp(legacyName)}\\s*$`, 'm').test(content);
+  } catch {
+    return false;
+  }
+}
+
+function removeLegacySkillPath(legacyPath, legacyName, dryRun) {
+  if (!isLegacySkillPath(legacyPath, legacyName)) {
+    return 'kept';
+  }
+  removePath(legacyPath, dryRun);
+  return dryRun ? 'dry-run' : 'removed';
+}
+
 function isManagedDiscoveryFile(item) {
   try {
     if (fs.lstatSync(item).isSymbolicLink()) {
@@ -354,4 +381,8 @@ function removePath(target, dryRun) {
     return;
   }
   fs.rmSync(target, { recursive: true, force: true });
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

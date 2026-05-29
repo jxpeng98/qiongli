@@ -328,6 +328,14 @@ is_qiongli_package_dir() {
   grep -Eq '^name:[[:space:]]*(qiongli|qiongli-workflow)[[:space:]]*$' "$path/SKILL.md"
 }
 
+is_legacy_skill_package_path() {
+  local path="$1"
+  local legacy_name="$2"
+  [[ -L "$path" ]] && return 0
+  [[ -d "$path" && -f "$path/SKILL.md" ]] || return 1
+  grep -Eq "^name:[[:space:]]*${legacy_name}[[:space:]]*$" "$path/SKILL.md"
+}
+
 skill_package_version() {
   local path="$1"
   is_qiongli_package_dir "$path" || return 1
@@ -453,7 +461,7 @@ skill_dest_for_target() {
   esac
 }
 
-print_legacy_residue_report() {
+cleanup_legacy_residue_report() {
   local found=0
   local target dest skill_root legacy_name legacy_path
   for target in codex claude gemini antigravity; do
@@ -464,16 +472,21 @@ print_legacy_residue_report() {
       legacy_path="$skill_root/$legacy_name"
       [[ -e "$legacy_path" || -L "$legacy_path" ]] || continue
       if [[ "$found" -eq 0 ]]; then
-        section "Legacy Install Residues"
+        section "Legacy Install Cleanup"
         found=1
       fi
-      skip "Legacy Skill" "$target: $legacy_name -> $legacy_path"
+      if is_legacy_skill_package_path "$legacy_path" "$legacy_name"; then
+        if [[ "$DRY_RUN" -eq 1 ]]; then
+          ok "Legacy Skill" "$target: $legacy_name -> $legacy_path (dry-run)"
+        else
+          rm -rf -- "$legacy_path"
+          ok "Legacy Skill" "$target: $legacy_name -> $legacy_path (removed)"
+        fi
+      else
+        skip "Legacy Skill" "$target: $legacy_name -> $legacy_path (unmanaged legacy-named path)"
+      fi
     done
   done
-  if [[ "$found" -eq 1 ]]; then
-    info "legacy skill directories are left in place; remove them manually after confirming they are unused."
-    info "\`qiongli clean --globals\` removes legacy workflow discovery symlinks only."
-  fi
 }
 
 _copy_item() {
@@ -814,7 +827,7 @@ if [[ "$INSTALL_CLI" -eq 1 ]]; then
 fi
 print_detected_versions "$SOURCE_SKILL_VERSION"
 if [[ "$INSTALL_GLOBALS" -eq 1 ]]; then
-  print_legacy_residue_report
+  cleanup_legacy_residue_report
 fi
 
 section "CLI Checks"

@@ -1,23 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
   <title id="title">Qiongli logo</title>
-  <desc id="desc">A Q-shaped research mark with an internal evidence path.</desc>
+  <desc id="desc">A Q-shaped research mark with an open book, evidence prism, and connected audit path.</desc>
   <defs>
-    <linearGradient id="qiongli-ring" x1="24" y1="20" x2="104" y2="108" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#0f766e"/>
-      <stop offset="0.58" stop-color="#1d4ed8"/>
-      <stop offset="1" stop-color="#c2410c"/>
+    <linearGradient id="qiongli-prism" x1="50" y1="29" x2="80" y2="78" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#a7f3f5"/>
+      <stop offset="0.5" stop-color="#2ca7b8"/>
+      <stop offset="1" stop-color="#0b3a70"/>
     </linearGradient>
-    <filter id="soft-shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#0f172a" flood-opacity="0.14"/>
-    </filter>
   </defs>
-  <rect x="10" y="10" width="108" height="108" rx="24" fill="#f8fafc" filter="url(#soft-shadow)"/>
-  <rect x="10" y="10" width="108" height="108" rx="24" fill="none" stroke="#dbe4ea" stroke-width="2"/>
-  <circle cx="61" cy="59" r="30" fill="none" stroke="url(#qiongli-ring)" stroke-width="12"/>
-  <path d="M80 80l19 19" fill="none" stroke="#0f172a" stroke-width="12" stroke-linecap="round"/>
-  <path d="M39 62l15-14 16 11 16-18" fill="none" stroke="#0f172a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="39" cy="62" r="5" fill="#0f766e"/>
-  <circle cx="54" cy="48" r="5" fill="#1d4ed8"/>
-  <circle cx="70" cy="59" r="5" fill="#1d4ed8"/>
-  <circle cx="86" cy="41" r="5" fill="#c2410c"/>
+  <circle cx="64" cy="67" r="51" fill="#ffffff"/>
+  <path d="M23 72a42 42 0 1 1 80 18" fill="none" stroke="#0b3a70" stroke-width="9" stroke-linecap="butt"/>
+  <path d="M73 95c11 12 27 15 45 8-16 13-35 15-52 4-6-4-12-9-17-16h17c2 1 5 2 7 4z" fill="#0b3a70"/>
+  <path d="M21 70l34-8" fill="none" stroke="#c59a3a" stroke-width="4" stroke-linecap="round"/>
+  <path d="M78 62l32 11" fill="none" stroke="#c59a3a" stroke-width="4" stroke-linecap="round"/>
+  <path d="M64 29l-17 36 17 16 17-16z" fill="url(#qiongli-prism)"/>
+  <path d="M64 29v52L47 65z" fill="#1d9aaa" opacity="0.62"/>
+  <path d="M64 29l17 36-17-9z" fill="#b8f1f3" opacity="0.82"/>
+  <path d="M47 65l17-9 17 9-17 16z" fill="#0b3a70" opacity="0.72"/>
+  <path d="M47 65l17-9 17 9M64 29v52M54 50l10 6 8-17" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+  <path d="M31 91c13-5 25-3 34 9v10c-12-8-25-10-41-5 1-5 3-10 7-14z" fill="#ffffff" stroke="#0b3a70" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M97 91c-13-5-25-3-34 9v10c12-8 25-10 41-5-1-5-3-10-7-14z" fill="#ffffff" stroke="#0b3a70" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M35 100c11-3 20-2 29 5M93 100c-11-3-20-2-29 5" fill="none" stroke="#2c8da0" stroke-width="3" stroke-linecap="round"/>
+  <path d="M28 83l16-11 17 12 18-8 20-10" fill="none" stroke="#0b3a70" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M61 84l18-8 20-10" fill="none" stroke="#2c9da6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="28" cy="83" r="6" fill="#0b3a70" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="44" cy="72" r="7" fill="#0b3a70" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="61" cy="84" r="7" fill="#2c9da6" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="79" cy="76" r="5.5" fill="#2c9da6" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="99" cy="66" r="7" fill="#ffffff" stroke="#c59a3a" stroke-width="4"/>
 </svg>

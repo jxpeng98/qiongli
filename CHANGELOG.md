@@ -6,6 +6,19 @@
 
 暂无未发布变更。
 
+## [0.13.0] - 2026-05-29
+
+### Added
+
+- 新增官方 `business` 与 `finance` subject packages，面向本科及以上研究使用，同时以博士及以上可投稿学术期刊论文为质量门槛，覆盖 catalog、overlays、subject-specific skills、venue profiles、eval cases 和 generated payloads。
+- GitHub Release 现在为 `business` 和 `finance` 生成 Codex / Claude Code marketplace artifacts，以及 `qiongli-claude-desktop-skill-business-<tag>.zip` 和 `qiongli-claude-desktop-skill-finance-<tag>.zip` Claude Desktop focused ZIPs。
+- CLI、npm/npx 与 installer subject 参数支持 `--subject business` 和 `--subject finance`；Skillsplace 可暴露 `qiongli-business` 与 `qiongli-finance` 独立安装条目。
+
+### Changed
+
+- Marketplace 和 Desktop ZIP 文档更新为多 subject 分发模型，明确当前公开 Desktop ZIP subjects 为 `core`、`economics`、`business`、`finance` 和 `economics-accounting`，仍不发布 standalone accounting Desktop ZIP。
+- Release postflight、artifact contract tests 与 marketplace install validator 扩展到 business / finance 的 Codex、Claude Code 和 Claude Desktop 产物。
+
 ## [0.12.1] - 2026-05-28
 
 ### Changed

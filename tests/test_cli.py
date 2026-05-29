@@ -101,7 +101,7 @@ class InstallerCliTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 2)
         self.assertIn(
-            "Unknown subject 'unknown'. Available subjects: accounting, core, economics, economics-accounting",
+            "Unknown subject 'unknown'. Available subjects: accounting, business, core, economics, economics-accounting, finance",
             stderr.getvalue(),
         )
 

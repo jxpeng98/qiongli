@@ -23,8 +23,10 @@ class SubjectEvalCaseTests(unittest.TestCase):
             case_ids,
             {
                 "accounting-accruals-measurement",
+                "business-management-journal-positioning",
                 "economics-did-identification",
                 "economics-accounting-disclosure-study",
+                "finance-asset-pricing-risk",
             },
         )
 

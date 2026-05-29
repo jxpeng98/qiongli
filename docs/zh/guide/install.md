@@ -26,13 +26,15 @@ codex plugin marketplace add jxpeng98/skillsplace --ref main
 codex plugin marketplace list
 ```
 
-然后在 Codex plugin UI 中安装或启用 `qiongli`。
+然后在 Codex plugin UI 中安装或启用 `qiongli`，这是默认 core package。也可以选择 `qiongli-economics`、`qiongli-accounting`、`qiongli-business`、`qiongli-finance`、`qiongli-economics-accounting` 这类 subject entry，它们会安装对应的 `subject/complete` package。
 
 Claude Code 使用同一个 Skillsplace catalog：
 
 ```bash
 claude plugin marketplace add jxpeng98/skillsplace@main
 claude plugin install qiongli@skillsplace
+# Subject 专精安装：
+claude plugin install qiongli-economics@skillsplace
 ```
 
 在 Claude Code 交互会话中，也可以使用 slash commands：
@@ -40,11 +42,12 @@ claude plugin install qiongli@skillsplace
 ```text
 /plugin marketplace add jxpeng98/skillsplace@main
 /plugin install qiongli@skillsplace
+/plugin install qiongli-economics@skillsplace
 ```
 
 Claude Desktop 和 Claude.ai 不安装第三方 Claude Code plugin marketplace。如果你使用 Desktop 或网页版，并且不熟悉 code / CLI 环境，优先使用 release ZIP 路径，不需要任何终端命令：
 
-1. 从 GitHub Release assets 下载 `qiongli-claude-desktop-skill-core-<tag>.zip`、`qiongli-claude-desktop-skill-economics-<tag>.zip` 或 `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip`。本阶段公开 Desktop ZIP subjects 是 `core`、`economics` 和 `economics-accounting`；还没有 standalone accounting Desktop ZIP。
+1. 从 GitHub Release assets 下载 `qiongli-claude-desktop-skill-core-<tag>.zip`、`qiongli-claude-desktop-skill-economics-<tag>.zip`、`qiongli-claude-desktop-skill-business-<tag>.zip`、`qiongli-claude-desktop-skill-finance-<tag>.zip` 或 `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip`。本阶段公开 Desktop ZIP subjects 是 `core`、`economics`、`business`、`finance` 和 `economics-accounting`；还没有 standalone accounting Desktop ZIP。
 2. 在 Claude Desktop 中，把 ZIP 拖拽到 Skills 上传/安装流程中；也可以打开 `Customize > Skills`，点击 `+`，选择 `Create skill`，再选择 `Upload a skill`。
 3. 在 Claude.ai 网页版中，使用同样的 `Customize > Skills` 上传流程，选择同一个 ZIP。
 4. 启用上传后的 `qiongli` skill。
@@ -159,7 +162,7 @@ pipx upgrade qiongli
 qiongli upgrade --subject accounting --target all --doctor --project-dir /path/to/project
 ```
 
-`--subject` 默认是 `core`，`--coverage` 默认是 `complete`。不确定怎么选时使用 complete：`--subject economics` 表示 `economics/complete`，不是缩水包；`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。只有明确需要精简包或 Desktop/Web 等价包时才使用 `--coverage focused`。当前官方 subjects 是 `core`、`economics`、`accounting` 和命名 composite subject `economics-accounting`；官方 composite subjects 不是任意逗号分隔叠加。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新参数。`qiongli check --json` 会输出每个 target 当前安装的 subject 和 coverage；旧安装缺少 `SUBJECT_MANIFEST.json` 或 `SUBJECT` 文件时按 legacy `core` / `complete` 处理。
+`--subject` 默认是 `core`，`--coverage` 默认是 `complete`。不确定怎么选时使用 complete：`--subject economics`、`--subject business`、`--subject finance` 表示 complete 专精安装，不是缩水包；`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。只有明确需要精简包或 Desktop/Web 等价包时才使用 `--coverage focused`。当前官方 subjects 是 `core`、`economics`、`accounting`、`business`、`finance` 和命名 composite subject `economics-accounting`；官方 composite subjects 不是任意逗号分隔叠加。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新参数。`qiongli check --json` 会输出每个 target 当前安装的 subject 和 coverage；旧安装缺少 `SUBJECT_MANIFEST.json` 或 `SUBJECT` 文件时按 legacy `core` / `complete` 处理。
 
 先创建 custom scaffold，再 materialize 本地 overlays：
 
@@ -202,7 +205,7 @@ qiongli check
 qiongli upgrade --subject core --target all
 ```
 
-如果你已经完全转向原生 plugin，不再需要旧的全局 slash commands，先 dry-run 清理：
+如果你已经完全转向原生 plugin，不再需要旧的全局 skill 目录或 slash discovery，先 dry-run 清理：
 
 ```bash
 qiongli clean --globals --dry-run

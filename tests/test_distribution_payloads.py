@@ -31,30 +31,31 @@ class DistributionPayloadTests(unittest.TestCase):
         issues = self.audit_module.audit(REPO_ROOT)
         self.assertEqual([], issues)
 
-    def test_distribution_includes_accounting_subject_payloads(self) -> None:
+    def test_distribution_includes_specialized_subject_payloads(self) -> None:
         for payload_root in (
             REPO_ROOT / "qiongli" / "payload" / "subjects",
             REPO_ROOT / "packages" / "npm-qiongli" / "payload" / "subjects",
         ):
-            with self.subTest(payload_root=payload_root):
-                self.assertTrue(
-                    (
-                        payload_root
-                        / "accounting"
-                        / "complete"
-                        / "qiongli-workflow"
-                        / "SUBJECT_MANIFEST.json"
-                    ).exists()
-                )
-                self.assertTrue(
-                    (
-                        payload_root
-                        / "accounting"
-                        / "focused"
-                        / "qiongli-workflow"
-                        / "SUBJECT_MANIFEST.json"
-                    ).exists()
-                )
+            for subject in ("accounting", "business", "finance"):
+                with self.subTest(payload_root=payload_root, subject=subject):
+                    self.assertTrue(
+                        (
+                            payload_root
+                            / subject
+                            / "complete"
+                            / "qiongli-workflow"
+                            / "SUBJECT_MANIFEST.json"
+                        ).exists()
+                    )
+                    self.assertTrue(
+                        (
+                            payload_root
+                            / subject
+                            / "focused"
+                            / "qiongli-workflow"
+                            / "SUBJECT_MANIFEST.json"
+                        ).exists()
+                    )
 
     def test_audit_detects_stale_npm_payload(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

@@ -25,9 +25,11 @@ from qiongli.subject_materializer import (  # noqa: E402
 
 
 SUBJECT_TERMS = {
+    "business": ("business", "management", "theory contribution", "doctoral-level journal"),
     "economics": ("identification", "estimand", "robustness", "causal"),
     "accounting": ("accrual", "disclosure", "measurement", "audit"),
     "economics-accounting": ("identification", "disclosure", "measurement", "causal"),
+    "finance": ("asset pricing", "risk-adjusted", "look-ahead bias", "finance"),
 }
 
 

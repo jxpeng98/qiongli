@@ -1,0 +1,9 @@
+{
+  "coverage": "focused",
+  "flavor": "full",
+  "layers": [
+    "core",
+    "finance"
+  ],
+  "subject": "finance"
+}

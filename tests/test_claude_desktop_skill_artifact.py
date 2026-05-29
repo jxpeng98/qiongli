@@ -37,8 +37,10 @@ class ClaudeDesktopSkillArtifactTests(unittest.TestCase):
 
             desktop_artifacts = {artifact.name: artifact for artifact in artifacts if artifact.suffix == ".zip"}
             self.assertIn(f"qiongli-claude-desktop-skill-{tag}.zip", desktop_artifacts)
+            self.assertIn(f"qiongli-claude-desktop-skill-business-{tag}.zip", desktop_artifacts)
             self.assertIn(f"qiongli-claude-desktop-skill-core-{tag}.zip", desktop_artifacts)
             self.assertIn(f"qiongli-claude-desktop-skill-economics-{tag}.zip", desktop_artifacts)
+            self.assertIn(f"qiongli-claude-desktop-skill-finance-{tag}.zip", desktop_artifacts)
 
             with zipfile.ZipFile(desktop_artifacts[f"qiongli-claude-desktop-skill-core-{tag}.zip"]) as archive:
                 names = set(archive.namelist())
@@ -103,6 +105,41 @@ class ClaudeDesktopSkillArtifactTests(unittest.TestCase):
         self.assertEqual("economics", subject_text)
         self.assertIn("## Economics Overlay", manuscript_text)
         self.assertIn("Naive TWFE under staggered adoption", stats_text)
+
+    def test_build_artifacts_creates_business_and_finance_desktop_skill_zips(self) -> None:
+        tag = (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(encoding="utf-8").strip()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            artifacts = self.build_module.build_artifacts(REPO_ROOT, tag, Path(tmp))
+            desktop_artifacts = {artifact.name: artifact for artifact in artifacts if artifact.suffix == ".zip"}
+
+            with zipfile.ZipFile(desktop_artifacts[f"qiongli-claude-desktop-skill-business-{tag}.zip"]) as archive:
+                business_names = set(archive.namelist())
+                business_file_names = [name for name in business_names if not name.endswith("/")]
+                business_subject = archive.read("qiongli/SUBJECT").decode("utf-8").strip()
+                business_skill = archive.read(
+                    "qiongli/skills/C_design/business-journal-positioning-auditor.md"
+                ).decode("utf-8")
+
+            with zipfile.ZipFile(desktop_artifacts[f"qiongli-claude-desktop-skill-finance-{tag}.zip"]) as archive:
+                finance_names = set(archive.namelist())
+                finance_file_names = [name for name in finance_names if not name.endswith("/")]
+                finance_subject = archive.read("qiongli/SUBJECT").decode("utf-8").strip()
+                finance_skill = archive.read(
+                    "qiongli/skills/C_design/finance-identification-risk-auditor.md"
+                ).decode("utf-8")
+
+        self.assertEqual("business", business_subject)
+        self.assertIn("qiongli/skills/domain-profiles/business-management.yaml", business_names)
+        self.assertIn("qiongli/venue-profiles/academy-of-management-journal.yaml", business_names)
+        self.assertIn("doctoral-level journal contribution", business_skill)
+        self.assertLessEqual(len(business_file_names), self.DESKTOP_FILE_BUDGET)
+
+        self.assertEqual("finance", finance_subject)
+        self.assertIn("qiongli/skills/domain-profiles/finance.yaml", finance_names)
+        self.assertIn("qiongli/venue-profiles/journal-of-finance.yaml", finance_names)
+        self.assertIn("risk-adjusted", finance_skill)
+        self.assertLessEqual(len(finance_file_names), self.DESKTOP_FILE_BUDGET)
 
 
 if __name__ == "__main__":
