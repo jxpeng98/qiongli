@@ -183,6 +183,16 @@ def _is_qiongli_package_dir(path: Path) -> bool:
     return "name: qiongli\n" in skill_text or "name: qiongli-workflow" in skill_text
 
 
+def _skill_name(path: Path) -> str:
+    skill_text = _read_text(path / "SKILL.md")
+    for raw_line in skill_text.splitlines():
+        line = raw_line.strip()
+        if not line.startswith("name:"):
+            continue
+        return line.split(":", 1)[1].strip().strip("\"'")
+    return ""
+
+
 def _skill_package_version(path: Path) -> str:
     if not _is_qiongli_package_dir(path):
         return ""
@@ -244,16 +254,53 @@ def _legacy_global_skill_residues(
     return residues
 
 
-def _print_legacy_install_residues(target: str, target_paths: dict[str, Path]) -> None:
+def _is_legacy_skill_package_path(path: Path, legacy_name: str) -> bool:
+    if path.is_symlink():
+        return True
+    if not path.is_dir():
+        return False
+    return _skill_name(path) == legacy_name
+
+
+def _cleanup_legacy_global_skill_residues(target: str, target_paths: dict[str, Path], *, dry_run: bool) -> int:
     residues = _legacy_global_skill_residues(target, target_paths)
     if not residues:
-        return
-    _print_section("Legacy Install Residues")
+        return 0
+    removed = 0
+    _print_section("Legacy Install Cleanup")
     for target_name, legacy_name, path in residues:
-        _print_result("Legacy Skill", f"{target_name}: {legacy_name} -> {path}", "skip")
-    print("          These legacy skill directories are left in place.")
-    print("          Remove them manually after confirming you no longer use them.")
-    print("          `qiongli clean --globals` removes legacy workflow discovery symlinks only.")
+        detail = f"{target_name}: {legacy_name} -> {path}"
+        if _is_legacy_skill_package_path(path, legacy_name):
+            _remove_path(path, dry_run)
+            _print_result("Legacy Skill", f"{detail} ({'dry-run' if dry_run else 'removed'})", "ok")
+            removed += 1
+            continue
+        _print_result("Legacy Skill", f"{detail} (unmanaged legacy-named path)", "skip")
+    return removed
+
+
+def _global_skill_target_paths() -> dict[str, Path]:
+    codex_dest = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex"))) / "skills" / "qiongli-workflow"
+    claude_dest = Path(os.environ.get("CLAUDE_CODE_HOME", str(Path.home() / ".claude"))) / "skills" / "qiongli-workflow"
+    gemini_dest = Path(os.environ.get("GEMINI_HOME", str(Path.home() / ".gemini"))) / "skills" / "qiongli-workflow"
+    antigravity_dest = (
+        Path(os.environ.get("ANTIGRAVITY_HOME", str(Path.home() / ".gemini" / "antigravity")))
+        / "skills"
+        / "qiongli-workflow"
+    )
+    return {
+        "codex": codex_dest,
+        "claude": claude_dest,
+        "gemini": gemini_dest,
+        "antigravity": antigravity_dest,
+    }
+
+
+def clean_global_legacy_skills(*, target: str = "all", dry_run: bool = False) -> int:
+    if target not in TARGET_CHOICES:
+        raise ValueError(f"Unsupported target: {target}")
+    _cleanup_legacy_global_skill_residues(target, _global_skill_target_paths(), dry_run=dry_run)
+    return 0
 
 
 def _print_subject_switch_warnings(target: str, target_paths: dict[str, Path], requested_subject: str) -> None:
@@ -749,10 +796,11 @@ def install(options: InstallOptions) -> int:
     if not (skill_src / "SKILL.md").exists():
         raise FileNotFoundError(f"Missing skill source: {skill_src / 'SKILL.md'}")
 
-    codex_dest = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex"))) / "skills" / "qiongli-workflow"
-    claude_dest = Path(os.environ.get("CLAUDE_CODE_HOME", str(Path.home() / ".claude"))) / "skills" / "qiongli-workflow"
-    gemini_dest = Path(os.environ.get("GEMINI_HOME", str(Path.home() / ".gemini"))) / "skills" / "qiongli-workflow"
-    antigravity_dest = Path(os.environ.get("ANTIGRAVITY_HOME", str(Path.home() / ".gemini" / "antigravity"))) / "skills" / "qiongli-workflow"
+    target_paths = _global_skill_target_paths()
+    codex_dest = target_paths["codex"]
+    claude_dest = target_paths["claude"]
+    gemini_dest = target_paths["gemini"]
+    antigravity_dest = target_paths["antigravity"]
     source_version = _skill_package_version(skill_src)
     manifest_values = {
         "PROJECT_DIR": str(options.project_dir),
@@ -776,15 +824,9 @@ def install(options: InstallOptions) -> int:
     if install_cli:
         print(f"  cli:     install -> {options.cli_dir}")
 
-    target_paths = {
-        "codex": codex_dest,
-        "claude": claude_dest,
-        "gemini": gemini_dest,
-        "antigravity": antigravity_dest,
-    }
     _print_detected_versions(options.target, source_version, target_paths)
     if install_globals:
-        _print_legacy_install_residues(options.target, target_paths)
+        _cleanup_legacy_global_skill_residues(options.target, target_paths, dry_run=options.dry_run)
     _print_full_readiness(options)
     _print_cli_checks(options.target)
     if install_globals:

@@ -103,7 +103,7 @@ function printInstallResult(result, stdout) {
   stdout.write(`source subject: ${result.sourceSubject || '<unknown>'}\n`);
   stdout.write(`source coverage: ${result.sourceCoverage || '<unknown>'}\n`);
   for (const residue of result.legacyResidues) {
-    stdout.write(`[legacy] ${residue.target}: ${residue.legacyName} -> ${residue.path}\n`);
+    stdout.write(`[legacy:${residue.status}] ${residue.target}: ${residue.legacyName} -> ${residue.path}\n`);
   }
   for (const action of result.actions) {
     stdout.write(`[${action.status}] ${action.label} -> ${action.path} (${action.detail})\n`);
@@ -126,7 +126,7 @@ Usage:
 
 Options:
   --target codex|claude|gemini|antigravity|all
-  --subject core|economics|accounting|economics-accounting
+  --subject core|economics|accounting|business|finance|economics-accounting
   --coverage complete|focused
   --mode copy|link
   --overwrite

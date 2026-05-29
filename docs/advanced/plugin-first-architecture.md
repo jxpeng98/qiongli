@@ -52,7 +52,7 @@ For ordinary client-native usage, the plugin bundle is enough. For CLI commands,
 qiongli upgrade --target all --doctor
 ```
 
-When migrating fully to the plugin and removing old slash discovery, preview cleanup first:
+When migrating fully to the plugin and removing old global skill directories or slash discovery, preview cleanup first:
 
 ```bash
 qiongli clean --globals --dry-run

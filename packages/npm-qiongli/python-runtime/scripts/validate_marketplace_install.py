@@ -210,6 +210,41 @@ def _assert_economics_desktop_package(skill_root: Path) -> None:
         raise ValueError("economics package missing subject-specific skill")
 
 
+def _assert_business_desktop_package(skill_root: Path) -> None:
+    _assert_subject_marker(skill_root, "business")
+    _assert_subject_manifest(skill_root, "business", "focused")
+    registry_ids = _load_registry_ids(skill_root)
+    for expected in ("business-journal-positioning-auditor", "stats-engine", "manuscript-architect"):
+        if expected not in registry_ids:
+            raise ValueError(f"business registry missing selected skill: {expected}")
+
+    domain_profiles = sorted(path.name for path in (skill_root / "skills" / "domain-profiles").glob("*.yaml"))
+    if domain_profiles != ["business-management.yaml"]:
+        raise ValueError(f"business package domain profiles mismatch: {domain_profiles}")
+
+    venue_profiles = sorted(path.stem for path in (skill_root / "venue-profiles").glob("*.yaml"))
+    expected_venues = [
+        "academy-of-management-journal",
+        "journal-of-management",
+        "journal-of-marketing",
+        "organization-science",
+        "strategic-management-journal",
+    ]
+    fallback_venues = [
+        "academy-of-management-journal",
+        "organization-science",
+        "strategic-management-journal",
+    ]
+    if venue_profiles not in (expected_venues, fallback_venues):
+        raise ValueError(f"business package venue profiles mismatch: {venue_profiles}")
+
+    manuscript = (skill_root / "skills" / "F_writing" / "manuscript-architect.md").read_text(encoding="utf-8")
+    if "## Business Overlay" not in manuscript:
+        raise ValueError("business manuscript-architect missing append overlay")
+    if not (skill_root / "skills" / "C_design" / "business-journal-positioning-auditor.md").is_file():
+        raise ValueError("business package missing subject-specific skill")
+
+
 def _assert_economics_accounting_desktop_package(skill_root: Path) -> None:
     _assert_subject_marker(skill_root, "economics-accounting")
     _assert_subject_manifest(
@@ -254,6 +289,42 @@ def _assert_economics_accounting_desktop_package(skill_root: Path) -> None:
         raise ValueError("economics-accounting package missing accounting subject-specific skill")
 
 
+def _assert_finance_desktop_package(skill_root: Path) -> None:
+    _assert_subject_marker(skill_root, "finance")
+    _assert_subject_manifest(skill_root, "finance", "focused")
+    registry_ids = _load_registry_ids(skill_root)
+    for expected in ("finance-identification-risk-auditor", "stats-engine", "manuscript-architect"):
+        if expected not in registry_ids:
+            raise ValueError(f"finance registry missing selected skill: {expected}")
+
+    domain_profiles = sorted(path.name for path in (skill_root / "skills" / "domain-profiles").glob("*.yaml"))
+    if domain_profiles != ["finance.yaml"]:
+        raise ValueError(f"finance package domain profiles mismatch: {domain_profiles}")
+
+    venue_profiles = sorted(path.stem for path in (skill_root / "venue-profiles").glob("*.yaml"))
+    expected_venues = [
+        "financial-management",
+        "journal-of-corporate-finance",
+        "journal-of-finance",
+        "journal-of-financial-economics",
+        "review-of-financial-studies",
+    ]
+    fallback_venues = [
+        "journal-of-finance",
+        "journal-of-financial-economics",
+        "review-of-financial-studies",
+    ]
+    if venue_profiles not in (expected_venues, fallback_venues):
+        raise ValueError(f"finance package venue profiles mismatch: {venue_profiles}")
+
+    stats = (skill_root / "skills" / "I_code" / "stats-engine.md").read_text(encoding="utf-8")
+    for expected in ("asset pricing", "look-ahead bias"):
+        if expected not in stats:
+            raise ValueError("finance stats-engine effective skill missing replace_sections overlay")
+    if not (skill_root / "skills" / "C_design" / "finance-identification-risk-auditor.md").is_file():
+        raise ValueError("finance package missing subject-specific skill")
+
+
 def _assert_command_invocation(plugin_root: Path, workflow_names: list[str]) -> None:
     commands_dir = plugin_root / "commands"
     _assert_dir(commands_dir, "slash command directory")
@@ -272,13 +343,19 @@ def _assert_command_invocation(plugin_root: Path, workflow_names: list[str]) -> 
             raise ValueError(f"{command_path} must load {SKILL_NAME} and reference {expected_reference}")
 
 
-def _assert_manifest(platform: str, manifest_path: Path, expected_version: str) -> None:
+def _assert_manifest(
+    platform: str,
+    manifest_path: Path,
+    expected_version: str,
+    *,
+    expected_plugin_name: str = PLUGIN_NAME,
+) -> None:
     manifest = _read_json(manifest_path)
     for key in ("name", "version", "description"):
         if not manifest.get(key):
             raise ValueError(f"{manifest_path} missing required field: {key}")
-    if manifest["name"] != PLUGIN_NAME:
-        raise ValueError(f"{manifest_path} expected name {PLUGIN_NAME}, found {manifest['name']}")
+    if manifest["name"] != expected_plugin_name:
+        raise ValueError(f"{manifest_path} expected name {expected_plugin_name}, found {manifest['name']}")
     if manifest["version"] != expected_version:
         raise ValueError(f"{manifest_path} expected version {expected_version}, found {manifest['version']}")
 
@@ -293,19 +370,37 @@ def _assert_manifest(platform: str, manifest_path: Path, expected_version: str) 
             raise ValueError(f"{manifest_path} defaultPrompt must include ${SKILL_NAME}")
 
 
-def _validate_artifact(artifact: Path, spec: ArtifactSpec, expected_repo_tag: str, expected_version: str) -> str:
+def _validate_artifact(
+    artifact: Path,
+    spec: ArtifactSpec,
+    expected_repo_tag: str,
+    expected_version: str,
+    *,
+    plugin_name: str = PLUGIN_NAME,
+    subject: str | None = None,
+    coverage: str | None = None,
+) -> str:
     with tempfile.TemporaryDirectory(prefix=f"qiongli-{spec.platform}-artifact-") as tmp:
         bundle_root = _extract_single_root(artifact, Path(tmp))
-        plugin_root = (bundle_root / spec.plugin_root).resolve()
-        manifest_path = plugin_root / spec.manifest.relative_to(spec.plugin_root)
-        skill_root = plugin_root / "skills" / SKILL_DIR_NAME
+        if spec.platform == "gemini":
+            plugin_root = bundle_root.resolve()
+            manifest_path = plugin_root / "gemini-extension.json"
+            skill_root = plugin_root / "skills" / SKILL_DIR_NAME
+        else:
+            plugin_root = (bundle_root / "plugins" / plugin_name).resolve()
+            manifest_path = plugin_root / (".codex-plugin" if spec.platform == "codex" else ".claude-plugin") / "plugin.json"
+            skill_root = plugin_root / "skills" / SKILL_DIR_NAME
 
-        _assert_manifest(spec.platform, manifest_path, expected_version)
+        _assert_manifest(spec.platform, manifest_path, expected_version, expected_plugin_name=plugin_name)
         workflow_names = _assert_skill_invocation(skill_root, expected_repo_tag)
+        if subject is not None:
+            _assert_subject_marker(skill_root, subject)
+            _assert_subject_manifest(skill_root, subject, coverage or "complete")
         if spec.requires_commands:
             _assert_command_invocation(plugin_root, workflow_names)
 
-    return f"[OK] {spec.platform} marketplace artifact: {SKILL_NAME} invocation checked"
+    subject_suffix = f" ({subject})" if subject else ""
+    return f"[OK] {spec.platform} marketplace artifact{subject_suffix}: {SKILL_NAME} invocation checked"
 
 
 def _validate_claude_desktop_artifact(artifact: Path, expected_repo_tag: str, subject: str) -> str:
@@ -317,8 +412,12 @@ def _validate_claude_desktop_artifact(artifact: Path, expected_repo_tag: str, su
         _assert_skill_invocation(skill_root, expected_repo_tag)
         if subject == "economics":
             _assert_economics_desktop_package(skill_root)
+        elif subject == "business":
+            _assert_business_desktop_package(skill_root)
         elif subject == "economics-accounting":
             _assert_economics_accounting_desktop_package(skill_root)
+        elif subject == "finance":
+            _assert_finance_desktop_package(skill_root)
         else:
             _assert_core_desktop_package(skill_root)
         _assert_file(skill_root / "skills-core.md", "consolidated skill core")
@@ -403,7 +502,28 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
             raise ValueError(f"expected {platform} artifact: {artifact_name}")
         messages.append(_validate_artifact(artifact, spec, expected_repo_tag, expected_version))
 
-    for subject in ("core", "economics", "economics-accounting"):
+    marketplace_subjects = ("core", "economics", "accounting", "business", "finance", "economics-accounting")
+    for subject in marketplace_subjects:
+        plugin_name = f"{PLUGIN_NAME}-{subject}"
+        for platform in ("codex", "claude"):
+            spec = ARTIFACT_SPECS[platform]
+            artifact_name = f"{plugin_name}-{platform}-plugin-{expected_repo_tag}.tar.gz"
+            artifact = by_platform.get(artifact_name)
+            if artifact is None:
+                raise ValueError(f"expected {platform} marketplace {subject} artifact: {artifact_name}")
+            messages.append(
+                _validate_artifact(
+                    artifact,
+                    spec,
+                    expected_repo_tag,
+                    expected_version,
+                    plugin_name=plugin_name,
+                    subject=subject,
+                    coverage="complete",
+                )
+            )
+
+    for subject in ("core", "economics", "business", "finance", "economics-accounting"):
         desktop_name = f"{PLUGIN_NAME}-claude-desktop-skill-{subject}-{expected_repo_tag}.zip"
         desktop_artifact = by_platform.get(desktop_name)
         if desktop_artifact is None:

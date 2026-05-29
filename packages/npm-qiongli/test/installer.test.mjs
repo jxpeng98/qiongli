@@ -6,6 +6,7 @@ import test from 'node:test';
 
 import {
   buildCheck,
+  cleanAssets,
   installSkills,
   readSkillCoverage,
   readSkillSubject,
@@ -68,6 +69,34 @@ function makeTempPackage() {
     'focused',
     'accounting focused workflow\n',
   );
+  const businessWorkflow = createWorkflow(
+    root,
+    path.join('payload', 'subjects', 'business', 'complete', 'qiongli-workflow'),
+    'business',
+    'complete',
+    'business complete workflow\n',
+  );
+  const businessFocusedWorkflow = createWorkflow(
+    root,
+    path.join('payload', 'subjects', 'business', 'focused', 'qiongli-workflow'),
+    'business',
+    'focused',
+    'business focused workflow\n',
+  );
+  const financeWorkflow = createWorkflow(
+    root,
+    path.join('payload', 'subjects', 'finance', 'complete', 'qiongli-workflow'),
+    'finance',
+    'complete',
+    'finance complete workflow\n',
+  );
+  const financeFocusedWorkflow = createWorkflow(
+    root,
+    path.join('payload', 'subjects', 'finance', 'focused', 'qiongli-workflow'),
+    'finance',
+    'focused',
+    'finance focused workflow\n',
+  );
   return {
     root,
     legacyWorkflow,
@@ -77,6 +106,10 @@ function makeTempPackage() {
     economicsFocusedWorkflow,
     accountingWorkflow,
     accountingFocusedWorkflow,
+    businessWorkflow,
+    businessFocusedWorkflow,
+    financeWorkflow,
+    financeFocusedWorkflow,
   };
 }
 
@@ -111,10 +144,12 @@ test('resolveTargetPaths uses client home environment overrides', () => {
   assert.equal(paths.antigravity, path.join('/x/ag', 'skills', 'qiongli-workflow'));
 });
 
-test('installSkills copies managed payload and reports legacy residues', () => {
+test('installSkills copies managed payload and removes legacy residues', () => {
   const { root } = makeTempPackage();
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-home-'));
-  fs.mkdirSync(path.join(home, '.codex', 'skills', 'research-paper-workflow'), { recursive: true });
+  const legacyDir = path.join(home, '.codex', 'skills', 'research-paper-workflow');
+  fs.mkdirSync(legacyDir, { recursive: true });
+  fs.writeFileSync(path.join(legacyDir, 'SKILL.md'), '---\nname: research-paper-workflow\n---\n');
 
   const result = installSkills({
     packageRoot: root,
@@ -131,6 +166,8 @@ test('installSkills copies managed payload and reports legacy residues', () => {
   assert.equal(fs.readFileSync(path.join(dest, 'workflows', 'paper.md'), 'utf-8'), 'core complete workflow\n');
   assert.equal(result.legacyResidues.length, 1);
   assert.equal(result.legacyResidues[0].legacyName, 'research-paper-workflow');
+  assert.equal(result.legacyResidues[0].status, 'removed');
+  assert.equal(fs.existsSync(legacyDir), false);
 });
 
 test('installSkills installs selected economics complete subject payload', () => {
@@ -211,12 +248,51 @@ test('installSkills installs selected accounting focused subject payload', () =>
   assert.equal(fs.readFileSync(path.join(dest, 'workflows', 'paper.md'), 'utf-8'), 'accounting focused workflow\n');
 });
 
+test('installSkills installs selected business complete subject payload', () => {
+  const { root } = makeTempPackage();
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-home-'));
+
+  const result = installSkills({
+    packageRoot: root,
+    target: 'codex',
+    subject: 'business',
+    env: { HOME: home },
+    platform: 'linux',
+  });
+
+  const dest = path.join(home, '.codex', 'skills', 'qiongli-workflow');
+  assert.equal(result.sourceSubject, 'business');
+  assert.equal(result.sourceCoverage, 'complete');
+  assert.equal(readSkillSubject(dest), 'business');
+  assert.equal(readSkillCoverage(dest), 'complete');
+  assert.equal(fs.readFileSync(path.join(dest, 'workflows', 'paper.md'), 'utf-8'), 'business complete workflow\n');
+});
+
+test('installSkills installs selected finance focused subject payload', () => {
+  const { root } = makeTempPackage();
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-home-'));
+
+  installSkills({
+    packageRoot: root,
+    target: 'codex',
+    subject: 'finance',
+    coverage: 'focused',
+    env: { HOME: home },
+    platform: 'linux',
+  });
+
+  const dest = path.join(home, '.codex', 'skills', 'qiongli-workflow');
+  assert.equal(readSkillSubject(dest), 'finance');
+  assert.equal(readSkillCoverage(dest), 'focused');
+  assert.equal(fs.readFileSync(path.join(dest, 'workflows', 'paper.md'), 'utf-8'), 'finance focused workflow\n');
+});
+
 test('installSkills reports available subjects for unknown subject', () => {
   const { root } = makeTempPackage();
 
   assert.throws(
     () => installSkills({ packageRoot: root, target: 'codex', subject: 'biomedical' }),
-    /Unknown subject 'biomedical'\. Available subjects: accounting, core, economics/,
+    /Unknown subject 'biomedical'\. Available subjects: accounting, business, core, economics, finance/,
   );
 });
 
@@ -300,11 +376,25 @@ test('buildCheck reports payload and installed subjects', () => {
 
   assert.equal(result.payload.subject, 'core');
   assert.equal(result.payload.coverage, 'complete');
-  assert.deepEqual(result.payload.available_subjects, ['accounting', 'core', 'economics']);
+  assert.deepEqual(result.payload.available_subjects, ['accounting', 'business', 'core', 'economics', 'finance']);
   assert.deepEqual(result.payload.available_coverage.accounting, ['complete', 'focused']);
+  assert.deepEqual(result.payload.available_coverage.business, ['complete', 'focused']);
   assert.deepEqual(result.payload.available_coverage.core, ['complete', 'focused']);
   assert.deepEqual(result.payload.available_coverage.economics, ['complete', 'focused']);
+  assert.deepEqual(result.payload.available_coverage.finance, ['complete', 'focused']);
   assert.equal(result.installed.codex.subject, 'economics');
   assert.equal(result.installed.codex.coverage, 'complete');
   assert.equal(result.installed.codex.version, 'v9.9.9-beta.1');
+});
+
+test('cleanAssets globals removes legacy skill directories', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-clean-home-'));
+  const legacyDir = path.join(home, '.codex', 'skills', 'research-paper-workflow');
+  fs.mkdirSync(legacyDir, { recursive: true });
+  fs.writeFileSync(path.join(legacyDir, 'SKILL.md'), '---\nname: research-paper-workflow\n---\n');
+
+  const result = cleanAssets({ projectDir: home, globals: true, env: { HOME: home } });
+
+  assert.equal(fs.existsSync(legacyDir), false);
+  assert.equal(result.removed.includes(legacyDir), true);
 });

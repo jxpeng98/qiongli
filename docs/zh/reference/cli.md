@@ -76,7 +76,7 @@ JSON 输出会包含每个 target 当前安装的 active subject 和 coverage。
 
 ```bash
 qiongli install \
-  [--subject core|economics|accounting|economics-accounting] \
+  [--subject core|economics|accounting|business|finance|economics-accounting] \
   [--coverage complete|focused] \
   [--target codex|claude|gemini|antigravity|all] \
   [--mode copy|link] \
@@ -96,7 +96,7 @@ qiongli install --subject economics-accounting --target all
 qiongli install --subject economics --coverage focused --target all
 ```
 
-Subject package 是专精安装包，不是降质删减版。默认安装是 `core/complete`。`--subject economics` 表示 `economics/complete`，不是缩水包；`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。`focused` coverage 只选择该 subject 的 profiles 和 active effective skills，用于有意选择的精简安装和 Desktop/Web ZIP。当前官方 subjects 是 `core`、`economics`、`accounting` 和命名 composite subject `economics-accounting`；官方 composite subjects 不是任意逗号分隔叠加。本阶段公开 Desktop ZIP subjects 是 `core`、`economics` 和 `economics-accounting`，还没有 standalone accounting Desktop ZIP。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新参数。
+Subject package 是专精安装包，不是降质删减版。默认安装是 `core/complete`。`--subject economics`、`--subject business`、`--subject finance` 表示 complete 专精安装，不是缩水包；`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。`focused` coverage 只选择该 subject 的 profiles 和 active effective skills，用于有意选择的精简安装和 Desktop/Web ZIP。当前官方 subjects 是 `core`、`economics`、`accounting`、`business`、`finance` 和命名 composite subject `economics-accounting`；官方 composite subjects 不是任意逗号分隔叠加。本阶段公开 Desktop ZIP subjects 是 `core`、`economics`、`business`、`finance` 和 `economics-accounting`，还没有 standalone accounting Desktop ZIP。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新参数。
 
 ### 2.3 `qiongli upgrade`（下载 release 并执行三端安装脚本）
 
@@ -110,7 +110,7 @@ qiongli upgrade \
   [--repo <owner/repo|url>] \
   [--ref <tag-or-branch>] \
   [--ref-type tag|branch] \
-  [--subject core|economics|accounting|economics-accounting] \
+  [--subject core|economics|accounting|business|finance|economics-accounting] \
   [--coverage complete|focused] \
   [--target codex|claude|gemini|antigravity|all] \
   [--project-dir <path>] \

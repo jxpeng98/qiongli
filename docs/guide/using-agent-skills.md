@@ -45,7 +45,7 @@ If `/skills` only shows `research-paper-workflow`, you are seeing an older globa
 qiongli upgrade --target codex --overwrite
 ```
 
-The upgrade keeps legacy directories unless you explicitly remove them, so old entries can coexist with the new `qiongli` skill until cleaned up.
+Current qiongli installers remove confirmed legacy `research-paper-workflow` global skill directories during upgrade. Use `qiongli clean --globals --dry-run` first if you want to preview global cleanup separately.
 
 ## Claude Code And Gemini Usage
 

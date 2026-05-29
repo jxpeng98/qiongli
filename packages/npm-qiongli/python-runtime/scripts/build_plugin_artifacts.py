@@ -22,13 +22,56 @@ except ModuleNotFoundError as exc:
 
 PLUGIN_NAME = "qiongli"
 PLUGIN_ROOT = Path("plugins") / PLUGIN_NAME
+SKILL_DIR_NAME = "qiongli-workflow"
 DESKTOP_SKILL_FILE_BUDGET = 180
 FALLBACK_SUBJECT_LAYERS = {
     "core": ["core"],
+    "business": ["core", "business"],
     "economics": ["core", "economics"],
     "accounting": ["core", "accounting"],
     "economics-accounting": ["core", "economics", "accounting", "economics-accounting"],
+    "finance": ["core", "finance"],
 }
+BUSINESS_SKILL_REFS = (
+    "question-refiner",
+    "contribution-crafter",
+    "gap-analyzer",
+    "theory-mapper",
+    "hypothesis-generator",
+    "venue-analyzer",
+    "academic-searcher",
+    "citation-snowballer",
+    "literature-mapper",
+    "paper-extractor",
+    "paper-screener",
+    "reference-manager-bridge",
+    "study-designer",
+    "rival-hypothesis-designer",
+    "robustness-planner",
+    "dataset-finder",
+    "variable-constructor",
+    "data-dictionary-builder",
+    "qualitative-coding",
+    "stats-engine",
+    "business-journal-positioning-auditor",
+    "effect-size-calculator",
+    "evidence-synthesizer",
+    "analysis-interpreter",
+    "effect-size-interpreter",
+    "table-generator",
+    "figure-specifier",
+    "manuscript-architect",
+    "discussion-writer",
+    "meta-optimizer",
+    "reporting-checker",
+    "tone-normalizer",
+    "submission-packager",
+    "fatal-flaw-detector",
+    "code-builder",
+    "code-review",
+    "reproducibility-auditor",
+    "final-proofreader",
+)
 ECONOMICS_SKILL_REFS = (
     "question-refiner",
     "contribution-crafter",
@@ -113,6 +156,46 @@ ACCOUNTING_SKILL_REFS = (
     "reproducibility-auditor",
     "final-proofreader",
 )
+FINANCE_SKILL_REFS = (
+    "question-refiner",
+    "contribution-crafter",
+    "gap-analyzer",
+    "theory-mapper",
+    "hypothesis-generator",
+    "venue-analyzer",
+    "academic-searcher",
+    "citation-snowballer",
+    "literature-mapper",
+    "paper-extractor",
+    "paper-screener",
+    "reference-manager-bridge",
+    "study-designer",
+    "rival-hypothesis-designer",
+    "robustness-planner",
+    "dataset-finder",
+    "variable-constructor",
+    "data-dictionary-builder",
+    "prereg-writer",
+    "stats-engine",
+    "finance-identification-risk-auditor",
+    "effect-size-calculator",
+    "evidence-synthesizer",
+    "analysis-interpreter",
+    "effect-size-interpreter",
+    "table-generator",
+    "figure-specifier",
+    "manuscript-architect",
+    "discussion-writer",
+    "meta-optimizer",
+    "reporting-checker",
+    "tone-normalizer",
+    "submission-packager",
+    "fatal-flaw-detector",
+    "code-builder",
+    "code-review",
+    "reproducibility-auditor",
+    "final-proofreader",
+)
 ECONOMICS_TEMPLATES = (
     "analysis-plan.md",
     "claim-evidence-ledger.csv",
@@ -147,6 +230,8 @@ ACCOUNTING_TEMPLATES = (
     "validity-threat-matrix.md",
     "writing-claim-map.md",
 )
+BUSINESS_TEMPLATES = ACCOUNTING_TEMPLATES
+FINANCE_TEMPLATES = (*ACCOUNTING_TEMPLATES, "code/statistics/meta_analysis_random_effects.py")
 
 
 def _normalize_tag(raw: str) -> tuple[str, str]:
@@ -227,6 +312,23 @@ def _copy_common_skill(root: Path, dest_plugin_root: Path) -> None:
     _copy_path(root / PLUGIN_ROOT / "skills", dest_plugin_root / "skills")
 
 
+def _copy_subject_skill(root: Path, dest_plugin_root: Path, subject: str) -> None:
+    if materialize_subject_package is None or MaterializeOptions is None:
+        raise ValueError("PyYAML is required to build subject-specific marketplace plugin artifacts")
+
+    with tempfile.TemporaryDirectory(prefix=f"qiongli-marketplace-{subject}-source-") as tmp:
+        materialize_root = _build_materialize_source(root, Path(tmp))
+        materialize_subject_package(
+            MaterializeOptions(
+                source=materialize_root,
+                out=dest_plugin_root / "skills" / SKILL_DIR_NAME,
+                subject=subject,
+                flavor="full",
+                coverage="complete",
+            )
+        )
+
+
 def _copy_commands(root: Path, dest_plugin_root: Path) -> None:
     commands = root / PLUGIN_ROOT / "commands"
     if commands.is_dir():
@@ -276,7 +378,7 @@ def _copy_claude_desktop_skill(root: Path, skill_dest: Path, subject: str) -> No
 
 def _copy_claude_desktop_skill_without_pyyaml(root: Path, skill_dest: Path, subject: str) -> None:
     if subject not in FALLBACK_SUBJECT_LAYERS:
-        raise ValueError("PyYAML is required to materialize non-core/non-economics/non-accounting subjects")
+        raise ValueError("PyYAML is required to materialize unknown subject packages")
     source = root / "qiongli-workflow"
     skill_dest.mkdir(parents=True)
     for filename in ("VERSION", "skills-core.md", "skills-summary.md"):
@@ -309,11 +411,23 @@ def _copy_claude_desktop_skill_without_pyyaml(root: Path, skill_dest: Path, subj
         _copy_path(source / "skills" / "domain-profiles", skill_dest / "skills" / "domain-profiles")
         return
 
-    if subject == "economics-accounting":
+    if subject == "business":
+        _write_fallback_skill_md(
+            skill_dest,
+            "Qiongli Business",
+            "Business-focused management, strategy, organization, marketing, and operations workflow for doctoral-level journal manuscripts.",
+        )
+    elif subject == "economics-accounting":
         _write_fallback_skill_md(
             skill_dest,
             "Qiongli Economics + Accounting",
             "Cross-disciplinary economics and accounting workflow for archival, causal, and reporting-setting research.",
+        )
+    elif subject == "finance":
+        _write_fallback_skill_md(
+            skill_dest,
+            "Qiongli Finance",
+            "Finance-focused corporate finance, asset pricing, market microstructure, and risk workflow for doctoral-level journal manuscripts.",
         )
     elif subject == "accounting":
         _write_fallback_skill_md(
@@ -327,11 +441,26 @@ def _copy_claude_desktop_skill_without_pyyaml(root: Path, skill_dest: Path, subj
             "Qiongli Economics",
             "Economics-focused empirical, theory, and reproducibility workflow.",
         )
-    template_refs = ACCOUNTING_TEMPLATES if subject == "accounting" else ECONOMICS_TEMPLATES
+    if subject == "accounting":
+        template_refs = ACCOUNTING_TEMPLATES
+    elif subject == "business":
+        template_refs = BUSINESS_TEMPLATES
+    elif subject == "finance":
+        template_refs = FINANCE_TEMPLATES
+    else:
+        template_refs = ECONOMICS_TEMPLATES
     for rel in template_refs:
         _copy_path(source / "templates" / rel, skill_dest / "templates" / rel)
-    if subject != "accounting":
+    if subject in {"economics", "economics-accounting"}:
         _copy_path(source / "skills" / "domain-profiles" / "economics.yaml", skill_dest / "skills" / "domain-profiles" / "economics.yaml")
+    if subject == "business":
+        _copy_path(root / "skills" / "domain-profiles" / "business-management.yaml", skill_dest / "skills" / "domain-profiles" / "business-management.yaml")
+        for venue in ("academy-of-management-journal", "organization-science", "strategic-management-journal"):
+            _copy_path(root / "subjects" / "business" / "venue-profiles" / f"{venue}.yaml", skill_dest / "venue-profiles" / f"{venue}.yaml")
+    if subject == "finance":
+        _copy_path(root / "skills" / "domain-profiles" / "finance.yaml", skill_dest / "skills" / "domain-profiles" / "finance.yaml")
+        for venue in ("journal-of-finance", "review-of-financial-studies", "journal-of-financial-economics"):
+            _copy_path(root / "subjects" / "finance" / "venue-profiles" / f"{venue}.yaml", skill_dest / "venue-profiles" / f"{venue}.yaml")
     if subject == "accounting":
         _copy_path(root / "skills" / "domain-profiles" / "accounting.yaml", skill_dest / "skills" / "domain-profiles" / "accounting.yaml")
         for venue in ("accounting-review", "journal-of-accounting-research", "review-of-accounting-studies"):
@@ -348,7 +477,7 @@ def _copy_claude_desktop_skill_without_pyyaml(root: Path, skill_dest: Path, subj
                 root / "subjects" / "economics-accounting" / "venue-profiles" / f"{venue}.yaml",
                 skill_dest / "venue-profiles" / f"{venue}.yaml",
             )
-    else:
+    elif subject == "economics":
         for venue in ("aer", "qje", "restud"):
             _copy_path(root / "subjects" / "economics" / "venue-profiles" / f"{venue}.yaml", skill_dest / "venue-profiles" / f"{venue}.yaml")
 
@@ -356,8 +485,12 @@ def _copy_claude_desktop_skill_without_pyyaml(root: Path, skill_dest: Path, subj
     registry_lines = ["skills:"]
     if subject == "accounting":
         skill_refs = ACCOUNTING_SKILL_REFS
+    elif subject == "business":
+        skill_refs = BUSINESS_SKILL_REFS
     elif subject == "economics-accounting":
         skill_refs = ECONOMICS_ACCOUNTING_SKILL_REFS
+    elif subject == "finance":
+        skill_refs = FINANCE_SKILL_REFS
     else:
         skill_refs = ECONOMICS_SKILL_REFS
     for skill_id in skill_refs:
@@ -367,15 +500,19 @@ def _copy_claude_desktop_skill_without_pyyaml(root: Path, skill_dest: Path, subj
             src = root / "subjects" / "economics" / "skills" / "econ-identification-auditor.md"
         elif skill_id == "accounting-measurement-auditor":
             src = root / "subjects" / "accounting" / "skills" / "accounting-measurement-auditor.md"
+        elif skill_id == "business-journal-positioning-auditor":
+            src = root / "subjects" / "business" / "skills" / "business-journal-positioning-auditor.md"
+        elif skill_id == "finance-identification-risk-auditor":
+            src = root / "subjects" / "finance" / "skills" / "finance-identification-risk-auditor.md"
         else:
             src = source / rel
         text = src.read_text(encoding="utf-8")
         if skill_id == "manuscript-architect":
-            overlay_subject = subject if subject in {"accounting", "economics-accounting"} else "economics"
+            overlay_subject = subject if subject in {"accounting", "business", "economics-accounting", "finance"} else "economics"
             overlay = (root / "subjects" / overlay_subject / "overlays" / "skills" / "manuscript-architect.md").read_text(encoding="utf-8")
             text = text.rstrip() + "\n\n" + overlay.strip() + "\n"
         elif skill_id == "stats-engine":
-            overlay_subject = subject if subject in {"accounting", "economics-accounting"} else "economics"
+            overlay_subject = subject if subject in {"accounting", "business", "economics-accounting", "finance"} else "economics"
             overlay = (root / "subjects" / overlay_subject / "overlays" / "skills" / "stats-engine.md").read_text(encoding="utf-8")
             for section in ("Quality Bar", "Common Pitfalls"):
                 text = _replace_markdown_section(text, overlay, section)
@@ -413,11 +550,11 @@ def _write_fallback_skill_md(skill_dest: Path, display_name: str, description: s
 
 def _fallback_registry_entries(root: Path) -> dict[str, str]:
     entries: dict[str, str] = {}
-    for registry in (
+    registries = [
         root / "skills" / "registry.yaml",
-        root / "subjects" / "economics" / "skills" / "registry.yaml",
-        root / "subjects" / "accounting" / "skills" / "registry.yaml",
-    ):
+        *sorted((root / "subjects").glob("*/skills/registry.yaml")),
+    ]
+    for registry in registries:
         current_id: str | None = None
         for line in registry.read_text(encoding="utf-8").splitlines():
             id_match = re.match(r"\s*-\s*id:\s*[\"']?([^\"'\n#]+)", line)
@@ -454,28 +591,186 @@ def _find_section_range(text: str, section: str) -> tuple[int, int] | None:
     return None
 
 
-def _build_codex(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> Path:
-    bundle_name = f"{PLUGIN_NAME}-codex-plugin-{tag}"
+def _subject_definitions(root: Path) -> dict[str, tuple[str, str]]:
+    if validate_subject_catalog is None:
+        return {
+            "core": ("Qiongli Core", "General-purpose Qiongli academic workflow."),
+            "business": (
+                "Qiongli Business",
+                "Business-focused management, strategy, organization, marketing, and operations workflow for doctoral-level journal manuscripts.",
+            ),
+            "economics": ("Qiongli Economics", "Economics-focused empirical, theory, and reproducibility workflow."),
+            "accounting": ("Qiongli Accounting", "Accounting-focused archival, disclosure, audit, and measurement workflow."),
+            "economics-accounting": (
+                "Qiongli Economics + Accounting",
+                "Cross-disciplinary economics and accounting workflow for archival, causal, and reporting-setting research.",
+            ),
+            "finance": (
+                "Qiongli Finance",
+                "Finance-focused corporate finance, asset pricing, market microstructure, and risk workflow for doctoral-level journal manuscripts.",
+            ),
+        }
+    catalog = validate_subject_catalog(root)
+    return {
+        subject_id: (subject.display_name, subject.package_goal)
+        for subject_id, subject in catalog.subjects.items()
+    }
+
+
+def _marketplace_subjects(root: Path) -> list[str]:
+    return sorted(_subject_definitions(root))
+
+
+def _subject_plugin_name(subject: str) -> str:
+    return f"{PLUGIN_NAME}-{subject}"
+
+
+def _subject_modifier(display_name: str) -> str:
+    return display_name.removeprefix("Qiongli ").strip() or "Core"
+
+
+def _subject_description(display_name: str, package_goal: str, subject: str) -> str:
+    if subject == "core":
+        return f"General-purpose Qiongli marketplace plugin. {package_goal}"
+    modifier = _subject_modifier(display_name)
+    return (
+        f"{modifier}-specialized Qiongli marketplace plugin. "
+        f"Installs the {subject}/complete subject package with the full workflow plus subject overlays, "
+        f"selected profiles, and subject-specific skills. {package_goal}"
+    )
+
+
+def _write_subject_manifest(
+    manifest_path: Path,
+    *,
+    platform: str,
+    plugin_name: str,
+    subject: str,
+    display_name: str,
+    package_goal: str,
+) -> None:
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["name"] = plugin_name
+    manifest["description"] = _subject_description(display_name, package_goal, subject)
+    keywords = manifest.get("keywords")
+    if isinstance(keywords, list):
+        additions = ["qiongli-subject", subject]
+        manifest["keywords"] = [*keywords, *[item for item in additions if item not in keywords]]
+
+    if platform == "codex":
+        interface = manifest.get("interface")
+        if not isinstance(interface, dict):
+            interface = {}
+            manifest["interface"] = interface
+        interface["displayName"] = display_name
+        if subject == "core":
+            interface["shortDescription"] = "General academic paper workflows for Codex."
+            interface["defaultPrompt"] = [
+                "Use $qiongli to plan my paper.",
+                "Use $qiongli to run a literature review for my research topic.",
+                "Use $qiongli to prepare a submission package for my manuscript.",
+            ]
+        else:
+            modifier = _subject_modifier(display_name)
+            interface["shortDescription"] = f"{modifier}-specialized academic workflows for Codex."
+            interface["defaultPrompt"] = [
+                f"Use $qiongli to plan my {modifier.lower()} paper.",
+                f"Use $qiongli to run a {modifier.lower()} literature review.",
+                f"Use $qiongli to prepare {modifier.lower()} methods, diagnostics, and reporting checks.",
+            ]
+        interface["longDescription"] = _subject_description(display_name, package_goal, subject)
+
+    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def _build_marketplace_plugin(
+    root: Path,
+    tag: str,
+    dist_dir: Path,
+    work_dir: Path,
+    *,
+    platform: str,
+    subject: str,
+    plugin_name: str,
+    artifact_name: str,
+    display_name: str,
+    package_goal: str,
+) -> Path:
+    bundle_name = f"{artifact_name}-{platform}-plugin-{tag}"
     bundle = work_dir / bundle_name
-    plugin_dest = bundle / PLUGIN_ROOT
-    _copy_path(root / PLUGIN_ROOT / ".codex-plugin", plugin_dest / ".codex-plugin")
+    plugin_dest = bundle / "plugins" / plugin_name
+    manifest_dir = ".codex-plugin" if platform == "codex" else ".claude-plugin"
+    _copy_path(root / PLUGIN_ROOT / manifest_dir, plugin_dest / manifest_dir)
+    _write_subject_manifest(
+        plugin_dest / manifest_dir / "plugin.json",
+        platform=platform,
+        plugin_name=plugin_name,
+        subject=subject,
+        display_name=display_name,
+        package_goal=package_goal,
+    )
     _copy_commands(root, plugin_dest)
-    _copy_common_skill(root, plugin_dest)
+    _copy_subject_skill(root, plugin_dest, subject)
     artifact = dist_dir / f"{bundle_name}.tar.gz"
     _make_tarball(bundle, artifact)
     return artifact
+
+
+def _build_codex(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> Path:
+    display_name, package_goal = _subject_definitions(root)["core"]
+    return _build_marketplace_plugin(
+        root,
+        tag,
+        dist_dir,
+        work_dir,
+        platform="codex",
+        subject="core",
+        plugin_name=PLUGIN_NAME,
+        artifact_name=PLUGIN_NAME,
+        display_name="Qiongli",
+        package_goal=package_goal,
+    )
 
 
 def _build_claude(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> Path:
-    bundle_name = f"{PLUGIN_NAME}-claude-plugin-{tag}"
-    bundle = work_dir / bundle_name
-    plugin_dest = bundle / PLUGIN_ROOT
-    _copy_path(root / PLUGIN_ROOT / ".claude-plugin", plugin_dest / ".claude-plugin")
-    _copy_commands(root, plugin_dest)
-    _copy_common_skill(root, plugin_dest)
-    artifact = dist_dir / f"{bundle_name}.tar.gz"
-    _make_tarball(bundle, artifact)
-    return artifact
+    display_name, package_goal = _subject_definitions(root)["core"]
+    return _build_marketplace_plugin(
+        root,
+        tag,
+        dist_dir,
+        work_dir,
+        platform="claude",
+        subject="core",
+        plugin_name=PLUGIN_NAME,
+        artifact_name=PLUGIN_NAME,
+        display_name="Qiongli",
+        package_goal=package_goal,
+    )
+
+
+def _build_subject_marketplace_plugins(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> list[Path]:
+    subject_defs = _subject_definitions(root)
+    artifacts: list[Path] = []
+    for subject in _marketplace_subjects(root):
+        display_name, package_goal = subject_defs[subject]
+        plugin_name = _subject_plugin_name(subject)
+        artifact_name = plugin_name
+        for platform in ("codex", "claude"):
+            artifacts.append(
+                _build_marketplace_plugin(
+                    root,
+                    tag,
+                    dist_dir,
+                    work_dir,
+                    platform=platform,
+                    subject=subject,
+                    plugin_name=plugin_name,
+                    artifact_name=artifact_name,
+                    display_name=display_name,
+                    package_goal=package_goal,
+                )
+            )
+    return artifacts
 
 
 def _build_gemini(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> Path:
@@ -498,7 +793,7 @@ def _build_claude_desktop_skill(root: Path, tag: str, dist_dir: Path, work_dir: 
 
 
 def _desktop_subjects(root: Path) -> list[str]:
-    return ["core", "economics", "economics-accounting"]
+    return ["core", "economics", "business", "finance", "economics-accounting"]
 
 
 def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
@@ -526,9 +821,11 @@ def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
         ]
         legacy_desktop_artifact = dist_dir / f"{PLUGIN_NAME}-claude-desktop-skill-{repo_tag}.zip"
         shutil.copy2(dist_dir / f"{PLUGIN_NAME}-claude-desktop-skill-core-{repo_tag}.zip", legacy_desktop_artifact)
+        subject_marketplace_artifacts = _build_subject_marketplace_plugins(root, repo_tag, dist_dir, work_dir)
         artifacts = [
             _build_codex(root, repo_tag, dist_dir, work_dir),
             _build_claude(root, repo_tag, dist_dir, work_dir),
+            *subject_marketplace_artifacts,
             _build_gemini(root, repo_tag, dist_dir, work_dir),
             *desktop_artifacts,
             legacy_desktop_artifact,

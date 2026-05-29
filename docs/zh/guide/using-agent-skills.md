@@ -45,7 +45,7 @@ $qiongli prepare a submission checklist for my CHI paper
 qiongli upgrade --target codex --overwrite
 ```
 
-升级不会自动删除旧目录，所以旧条目可能和新的 `qiongli` 同时存在，直到你明确清理旧安装。
+当前 qiongli 安装器会在升级时删除确认过的 `research-paper-workflow` 旧全局 skill 目录。如果你想单独预览全局清理，先运行 `qiongli clean --globals --dry-run`。
 
 ## Claude Code 和 Gemini 用法
 

@@ -14,7 +14,10 @@ class SubjectCatalogTests(unittest.TestCase):
     def test_core_and_economics_catalog_groups_are_ordered(self) -> None:
         catalog = load_subject_catalog(REPO_ROOT)
 
-        self.assertEqual(["accounting", "core", "economics", "economics-accounting"], sorted(catalog["subjects"]))
+        self.assertEqual(
+            ["accounting", "business", "core", "economics", "economics-accounting", "finance"],
+            sorted(catalog["subjects"]),
+        )
         economics = catalog["subjects"]["economics"]
         self.assertEqual("core", economics["extends"])
         self.assertIn("skill_groups", economics)
@@ -48,6 +51,26 @@ class SubjectCatalogTests(unittest.TestCase):
         self.assertEqual([group.order for group in subject.skill_groups], [1, 2, 3, 4, 5])
         self.assertIn("accounting-measurement-auditor", subject.skill_refs)
         self.assertEqual(subject.domain_profiles, ("accounting",))
+
+    def test_business_subject_is_journal_grade_and_explicit(self) -> None:
+        catalog = validate_subject_catalog(REPO_ROOT)
+        subject = catalog.subjects["business"]
+        self.assertEqual(subject.extends, "core")
+        self.assertEqual([group.order for group in subject.skill_groups], [1, 2, 3, 4, 5])
+        self.assertIn("business-journal-positioning-auditor", subject.skill_refs)
+        self.assertEqual(subject.domain_profiles, ("business-management",))
+        self.assertIn("doctoral", subject.package_goal.lower())
+        self.assertIn("journal", subject.package_goal.lower())
+
+    def test_finance_subject_is_journal_grade_and_explicit(self) -> None:
+        catalog = validate_subject_catalog(REPO_ROOT)
+        subject = catalog.subjects["finance"]
+        self.assertEqual(subject.extends, "core")
+        self.assertEqual([group.order for group in subject.skill_groups], [1, 2, 3, 4, 5])
+        self.assertIn("finance-identification-risk-auditor", subject.skill_refs)
+        self.assertEqual(subject.domain_profiles, ("finance",))
+        self.assertIn("doctoral", subject.package_goal.lower())
+        self.assertIn("journal", subject.package_goal.lower())
 
     def test_composite_subject_declares_component_subjects(self) -> None:
         catalog = validate_subject_catalog(REPO_ROOT)

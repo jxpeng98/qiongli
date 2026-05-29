@@ -17,7 +17,14 @@ from pathlib import Path
 from . import __version__
 from .custom_subject import scaffold_custom_subject
 from .subject_materializer import SubjectCatalogError, SubjectMaterializationError
-from .universal_installer import PART_CHOICES, InstallOptions, clean, clean_workflow_symlinks, install
+from .universal_installer import (
+    PART_CHOICES,
+    InstallOptions,
+    clean,
+    clean_global_legacy_skills,
+    clean_workflow_symlinks,
+    install,
+)
 
 TAG_PATTERN = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:-beta\.(\d+)|b(\d+))?$")
 RELEASE_NOTE_PATTERN = re.compile(r"^v(\d+)\.(\d+)\.(\d+)-beta\.(\d+)\.md$")
@@ -841,7 +848,8 @@ def cmd_clean(args: argparse.Namespace) -> int:
     rc = clean(project_dir, dry_run=args.dry_run)
     if getattr(args, "globals", False):
         rc2 = clean_workflow_symlinks(dry_run=args.dry_run)
-        rc = rc or rc2
+        rc3 = clean_global_legacy_skills(dry_run=args.dry_run)
+        rc = rc or rc2 or rc3
     return rc
 
 

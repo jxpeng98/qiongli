@@ -519,7 +519,26 @@ $LegacySkillPackageNames = @(
     "research-paper-workflow"
 )
 
-function Write-LegacyResidueReport([string]$InstallTarget, [hashtable]$ClientHomes) {
+function Test-LegacySkillPackagePath([string]$PathValue, [string]$LegacyName) {
+    $item = Get-Item -LiteralPath $PathValue -Force -ErrorAction SilentlyContinue
+    if (-not $item) {
+        return $false
+    }
+    if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+        return $true
+    }
+    if (-not $item.PSIsContainer) {
+        return $false
+    }
+    $skillPath = Join-Path $PathValue "SKILL.md"
+    if (-not (Test-Path -LiteralPath $skillPath -PathType Leaf)) {
+        return $false
+    }
+    $content = Get-Content -LiteralPath $skillPath -Raw
+    return $content -match "(?m)^name:\s*$([regex]::Escape($LegacyName))\s*$"
+}
+
+function Remove-LegacyResidues([string]$InstallTarget, [hashtable]$ClientHomes) {
     $targets = if ($InstallTarget -eq "all") { @("codex", "claude", "gemini", "antigravity") } else { @($InstallTarget) }
     $found = $false
     foreach ($targetName in $targets) {
@@ -535,15 +554,20 @@ function Write-LegacyResidueReport([string]$InstallTarget, [hashtable]$ClientHom
             }
             if (-not $found) {
                 Write-Host ""
-                Write-Host "== Legacy Install Residues =="
+                Write-Host "== Legacy Install Cleanup =="
                 $found = $true
             }
-            Write-Skip "Legacy Skill" "$targetName`: $legacyName -> $legacyPath"
+            if (Test-LegacySkillPackagePath $legacyPath $legacyName) {
+                if (-not $DryRun) {
+                    Remove-Item -LiteralPath $legacyPath -Recurse -Force
+                }
+                $suffix = if ($DryRun) { "dry-run" } else { "removed" }
+                Write-Ok "Legacy Skill" "$targetName`: $legacyName -> $legacyPath ($suffix)"
+            }
+            else {
+                Write-Skip "Legacy Skill" "$targetName`: $legacyName -> $legacyPath (unmanaged legacy-named path)"
+            }
         }
-    }
-    if ($found) {
-        Write-Info "legacy skill directories are left in place; remove them manually after confirming they are unused."
-        Write-Info "qiongli clean --globals removes legacy workflow discovery symlinks only."
     }
 }
 
@@ -580,7 +604,7 @@ function Install-FromRepo([string]$RepoRoot, [string]$ProjectRoot, [string]$Inst
     Write-Info "project: $projectRoot"
     Write-Info "target:  $InstallTarget"
     Write-Info "profile: $Profile"
-    Write-LegacyResidueReport $InstallTarget $clientHomes
+    Remove-LegacyResidues $InstallTarget $clientHomes
 
     Write-Host ""
     Write-Host "== CLI Checks =="

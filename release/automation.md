@@ -41,9 +41,23 @@ The release page receives these installable distribution artifacts:
 
 - `qiongli-codex-plugin-<tag>.tar.gz`
 - `qiongli-claude-plugin-<tag>.tar.gz`
+- `qiongli-core-codex-plugin-<tag>.tar.gz`
+- `qiongli-core-claude-plugin-<tag>.tar.gz`
+- `qiongli-economics-codex-plugin-<tag>.tar.gz`
+- `qiongli-economics-claude-plugin-<tag>.tar.gz`
+- `qiongli-accounting-codex-plugin-<tag>.tar.gz`
+- `qiongli-accounting-claude-plugin-<tag>.tar.gz`
+- `qiongli-business-codex-plugin-<tag>.tar.gz`
+- `qiongli-business-claude-plugin-<tag>.tar.gz`
+- `qiongli-finance-codex-plugin-<tag>.tar.gz`
+- `qiongli-finance-claude-plugin-<tag>.tar.gz`
+- `qiongli-economics-accounting-codex-plugin-<tag>.tar.gz`
+- `qiongli-economics-accounting-claude-plugin-<tag>.tar.gz`
 - `qiongli-gemini-extension-<tag>.tar.gz`
 
-These artifacts make the release consumable by the three client-native install surfaces. They do not bypass official directory review: Codex marketplace listing, Claude official plugin directory submission, and Gemini gallery publication still follow each platform's external submission process when applicable.
+The release page also receives focused Claude Desktop ZIPs for `core`, `economics`, `business`, `finance`, and `economics-accounting`, plus the legacy core alias `qiongli-claude-desktop-skill-<tag>.zip`.
+
+The unqualified `qiongli-*plugin` artifacts remain the default core-compatible entries. The subject-qualified Codex and Claude Code artifacts let the shared Skillsplace marketplace expose separate install choices such as `qiongli-economics`, `qiongli-business`, `qiongli-finance`, or `qiongli-economics-accounting`, each with its own plugin manifest and materialized `subject/complete` skill package. These artifacts make the release consumable by the three client-native install surfaces. They do not bypass official directory review: Codex marketplace listing, Claude official plugin directory submission, and Gemini gallery publication still follow each platform's external submission process when applicable.
 
 ## 2) Prepare a publish-ready local state
 

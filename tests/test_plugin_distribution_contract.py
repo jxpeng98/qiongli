@@ -114,7 +114,13 @@ class PluginDistributionContractTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, msg=result.stderr + result.stdout)
         self.assertIn("[OK] codex marketplace artifact", result.stdout)
+        self.assertIn("[OK] codex marketplace artifact (economics)", result.stdout)
+        self.assertIn("[OK] codex marketplace artifact (business)", result.stdout)
+        self.assertIn("[OK] codex marketplace artifact (finance)", result.stdout)
         self.assertIn("[OK] claude marketplace artifact", result.stdout)
+        self.assertIn("[OK] claude marketplace artifact (economics)", result.stdout)
+        self.assertIn("[OK] claude marketplace artifact (business)", result.stdout)
+        self.assertIn("[OK] claude marketplace artifact (finance)", result.stdout)
         self.assertIn("[OK] claude-desktop skill artifact", result.stdout)
         self.assertIn("under desktop file budget", result.stdout)
         self.assertIn("[OK] gemini marketplace artifact", result.stdout)

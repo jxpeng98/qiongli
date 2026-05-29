@@ -11,5 +11,5 @@ test('help documents all official subject options', async () => {
   });
 
   assert.equal(exitCode, 0);
-  assert.match(output, /--subject core\|economics\|accounting\|economics-accounting/);
+  assert.match(output, /--subject core\|economics\|accounting\|business\|finance\|economics-accounting/);
 });
