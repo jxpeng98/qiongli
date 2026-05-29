@@ -793,7 +793,11 @@ def _build_claude_desktop_skill(root: Path, tag: str, dist_dir: Path, work_dir: 
 
 
 def _desktop_subjects(root: Path) -> list[str]:
-    return ["core", "economics", "business", "finance", "economics-accounting"]
+    return [
+        subject
+        for subject in _marketplace_subjects(root)
+        if subject != "accounting"
+    ]
 
 
 def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:

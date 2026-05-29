@@ -273,6 +273,8 @@ Current shipped profiles include:
 - `education`
 - `epidemiology`
 - `finance`
+- `geoeconomics`
+- `political-economy`
 - `political-science`
 - `psychology`
 

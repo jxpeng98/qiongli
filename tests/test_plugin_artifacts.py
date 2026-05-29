@@ -40,6 +40,8 @@ class PluginArtifactsTests(unittest.TestCase):
                     f"qiongli-claude-desktop-skill-economics-accounting-{current_tag}.zip",
                     f"qiongli-claude-desktop-skill-economics-{current_tag}.zip",
                     f"qiongli-claude-desktop-skill-finance-{current_tag}.zip",
+                    f"qiongli-claude-desktop-skill-geoeconomics-{current_tag}.zip",
+                    f"qiongli-claude-desktop-skill-political-economy-{current_tag}.zip",
                     f"qiongli-claude-desktop-skill-{current_tag}.zip",
                     f"qiongli-claude-plugin-{current_tag}.tar.gz",
                     f"qiongli-codex-plugin-{current_tag}.tar.gz",
@@ -52,6 +54,10 @@ class PluginArtifactsTests(unittest.TestCase):
                     f"qiongli-finance-claude-plugin-{current_tag}.tar.gz",
                     f"qiongli-finance-codex-plugin-{current_tag}.tar.gz",
                     f"qiongli-gemini-extension-{current_tag}.tar.gz",
+                    f"qiongli-geoeconomics-claude-plugin-{current_tag}.tar.gz",
+                    f"qiongli-geoeconomics-codex-plugin-{current_tag}.tar.gz",
+                    f"qiongli-political-economy-claude-plugin-{current_tag}.tar.gz",
+                    f"qiongli-political-economy-codex-plugin-{current_tag}.tar.gz",
                 ],
             )
             for artifact in artifacts:
@@ -121,6 +127,22 @@ class PluginArtifactsTests(unittest.TestCase):
                 ],
             )
             self._assert_contains(
+                dist_dir / f"qiongli-political-economy-codex-plugin-{current_tag}.tar.gz",
+                [
+                    f"qiongli-political-economy-codex-plugin-{current_tag}/plugins/qiongli-political-economy/.codex-plugin/plugin.json",
+                    f"qiongli-political-economy-codex-plugin-{current_tag}/plugins/qiongli-political-economy/skills/qiongli-workflow/SUBJECT",
+                    f"qiongli-political-economy-codex-plugin-{current_tag}/plugins/qiongli-political-economy/skills/qiongli-workflow/skills/H_submission/political-economy-mechanism-auditor.md",
+                ],
+            )
+            self._assert_contains(
+                dist_dir / f"qiongli-geoeconomics-claude-plugin-{current_tag}.tar.gz",
+                [
+                    f"qiongli-geoeconomics-claude-plugin-{current_tag}/plugins/qiongli-geoeconomics/.claude-plugin/plugin.json",
+                    f"qiongli-geoeconomics-claude-plugin-{current_tag}/plugins/qiongli-geoeconomics/skills/qiongli-workflow/SUBJECT",
+                    f"qiongli-geoeconomics-claude-plugin-{current_tag}/plugins/qiongli-geoeconomics/skills/qiongli-workflow/skills/H_submission/geoeconomic-statecraft-auditor.md",
+                ],
+            )
+            self._assert_contains(
                 dist_dir / f"qiongli-gemini-extension-{current_tag}.tar.gz",
                 [
                     f"qiongli-gemini-extension-{current_tag}/gemini-extension.json",
@@ -161,6 +183,26 @@ class PluginArtifactsTests(unittest.TestCase):
                     "qiongli/SUBJECT",
                     "qiongli/skills/C_design/finance-identification-risk-auditor.md",
                     "qiongli/venue-profiles/journal-of-finance.yaml",
+                ],
+            )
+            self._assert_zip_contains(
+                dist_dir / f"qiongli-claude-desktop-skill-political-economy-{current_tag}.zip",
+                [
+                    "qiongli/SKILL.md",
+                    "qiongli/SUBJECT",
+                    "qiongli/skills/H_submission/political-economy-mechanism-auditor.md",
+                    "qiongli/skills/domain-profiles/political-economy.yaml",
+                    "qiongli/venue-profiles/apsr.yaml",
+                ],
+            )
+            self._assert_zip_contains(
+                dist_dir / f"qiongli-claude-desktop-skill-geoeconomics-{current_tag}.zip",
+                [
+                    "qiongli/SKILL.md",
+                    "qiongli/SUBJECT",
+                    "qiongli/skills/H_submission/geoeconomic-statecraft-auditor.md",
+                    "qiongli/skills/domain-profiles/geoeconomics.yaml",
+                    "qiongli/venue-profiles/international-security.yaml",
                 ],
             )
             self._assert_zip_contains(

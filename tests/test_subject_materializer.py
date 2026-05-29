@@ -230,6 +230,70 @@ class SubjectMaterializerTests(unittest.TestCase):
             self.assertIn("asset pricing", stats)
             self.assertIn("look-ahead bias", stats)
 
+    def test_materializes_political_economy_focused_package_with_mechanism_overlay(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out = Path(tmp_dir) / "qiongli-workflow"
+
+            materialize_subject_package(
+                MaterializeOptions(
+                    source=REPO_ROOT,
+                    out=out,
+                    subject="political-economy",
+                    flavor="full",
+                    coverage="focused",
+                )
+            )
+
+            manifest = json.loads((out / "SUBJECT_MANIFEST.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["layers"], ["core", "political-economy"])
+            skill_text = (out / "SKILL.md").read_text(encoding="utf-8")
+            self.assertIn("## Political Economy Workflow Map", skill_text)
+
+            registry = yaml.safe_load((out / "skills" / "registry.yaml").read_text(encoding="utf-8"))
+            registry_ids = {entry["id"] for entry in registry["skills"]}
+            self.assertIn("political-economy-mechanism-auditor", registry_ids)
+            self.assertIn("study-designer", registry_ids)
+
+            self.assertTrue((out / "skills" / "domain-profiles" / "political-economy.yaml").exists())
+            self.assertFalse((out / "skills" / "domain-profiles" / "geoeconomics.yaml").exists())
+            self.assertTrue((out / "venue-profiles" / "apsr.yaml").exists())
+
+            manuscript = (out / "skills" / "F_writing" / "manuscript-architect.md").read_text(encoding="utf-8")
+            self.assertIn("## Political Economy Overlay", manuscript)
+            self.assertIn("political mechanism", manuscript)
+
+    def test_materializes_geoeconomics_focused_package_with_statecraft_overlay(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out = Path(tmp_dir) / "qiongli-workflow"
+
+            materialize_subject_package(
+                MaterializeOptions(
+                    source=REPO_ROOT,
+                    out=out,
+                    subject="geoeconomics",
+                    flavor="full",
+                    coverage="focused",
+                )
+            )
+
+            manifest = json.loads((out / "SUBJECT_MANIFEST.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["layers"], ["core", "geoeconomics"])
+            skill_text = (out / "SKILL.md").read_text(encoding="utf-8")
+            self.assertIn("## Geoeconomics Workflow Map", skill_text)
+
+            registry = yaml.safe_load((out / "skills" / "registry.yaml").read_text(encoding="utf-8"))
+            registry_ids = {entry["id"] for entry in registry["skills"]}
+            self.assertIn("geoeconomic-statecraft-auditor", registry_ids)
+            self.assertIn("venue-analyzer", registry_ids)
+
+            self.assertTrue((out / "skills" / "domain-profiles" / "geoeconomics.yaml").exists())
+            self.assertFalse((out / "skills" / "domain-profiles" / "political-economy.yaml").exists())
+            self.assertTrue((out / "venue-profiles" / "international-security.yaml").exists())
+
+            manuscript = (out / "skills" / "F_writing" / "manuscript-architect.md").read_text(encoding="utf-8")
+            self.assertIn("## Geoeconomics Overlay", manuscript)
+            self.assertIn("strategic economic statecraft", manuscript)
+
     def test_unknown_coverage_reports_clear_error(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             out = Path(tmp_dir) / "qiongli-workflow"

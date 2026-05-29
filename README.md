@@ -103,10 +103,10 @@ For native client distribution, install **Qiongli** through the client-specific 
 
 - **Codex:** add the shared [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace, then install or enable `qiongli` for the default core package or a subject entry such as `qiongli-economics`.
 - **Claude Code:** add the shared [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace, then install `qiongli@skillsplace` for core or a subject entry such as `qiongli-economics@skillsplace`.
-- **Claude Desktop / Claude.ai:** if you do not want to use a code/CLI environment, download a focused subject ZIP from the GitHub Release assets, then drag it into Claude Desktop's Skills upload/install flow or upload it from `Customize > Skills > + > Create skill > Upload a skill`. Use `qiongli-claude-desktop-skill-core-<tag>.zip` for the default general workflow, `qiongli-claude-desktop-skill-economics-<tag>.zip` for economics, `qiongli-claude-desktop-skill-business-<tag>.zip` for business, `qiongli-claude-desktop-skill-finance-<tag>.zip` for finance, or `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip` for the official economics/accounting composite. The legacy `qiongli-claude-desktop-skill-<tag>.zip` remains a core alias for one release cycle.
+- **Claude Desktop / Claude.ai:** if you do not want to use a code/CLI environment, download a focused subject ZIP from the GitHub Release assets, then drag it into Claude Desktop's Skills upload/install flow or upload it from `Customize > Skills > + > Create skill > Upload a skill`. Use `qiongli-claude-desktop-skill-core-<tag>.zip` for the default general workflow, `qiongli-claude-desktop-skill-economics-<tag>.zip` for economics, `qiongli-claude-desktop-skill-political-economy-<tag>.zip` for political economy, `qiongli-claude-desktop-skill-geoeconomics-<tag>.zip` for geoeconomics, `qiongli-claude-desktop-skill-business-<tag>.zip` for business, `qiongli-claude-desktop-skill-finance-<tag>.zip` for finance, or `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip` for the official economics/accounting composite. The legacy `qiongli-claude-desktop-skill-<tag>.zip` remains a core alias for one release cycle.
 - **Gemini CLI:** install the Gemini extension from `plugins/qiongli` locally, or from a standalone extension repository/gallery entry once published.
 
-Public Codex and Claude marketplace catalog metadata now lives in `jxpeng98/skillsplace`. Release builds now attach separate Codex and Claude Code plugin artifacts for `core`, `economics`, `accounting`, `business`, `finance`, and `economics-accounting` so the shared marketplace can list subject-specific install choices. This repository keeps the source plugin payload and platform manifests that those generated artifacts derive from:
+Public Codex and Claude marketplace catalog metadata now lives in `jxpeng98/skillsplace`. Release builds now attach separate Codex and Claude Code plugin artifacts for `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting` so the shared marketplace can list subject-specific install choices. This repository keeps the source plugin payload and platform manifests that those generated artifacts derive from:
 
 - `plugins/qiongli/.codex-plugin/plugin.json`
 - `plugins/qiongli/.claude-plugin/plugin.json`
@@ -131,13 +131,15 @@ For users:
 | Full framework plus accounting expertise | `accounting / complete` | `qiongli install --subject accounting --target all` |
 | Full framework plus business expertise | `business / complete` | `qiongli install --subject business --target all` |
 | Full framework plus finance expertise | `finance / complete` | `qiongli install --subject finance --target all` |
+| Full framework plus political economy expertise | `political-economy / complete` | `qiongli install --subject political-economy --target all` |
+| Full framework plus geoeconomics expertise | `geoeconomics / complete` | `qiongli install --subject geoeconomics --target all` |
 | Slim economics package | `economics / focused` | `qiongli install --subject economics --coverage focused --target all` |
 | Official economics/accounting cross-discipline package | `economics-accounting / complete` | `qiongli install --subject economics-accounting --target all` |
 | Refresh accounting after updating the CLI | `accounting / complete` | `qiongli upgrade --subject accounting --target all` |
 
 For developers, `core` owns shared workflow contracts, generic skills, templates, standards, and quality gates. Specialized subjects add discipline depth through selected profiles, append overlays, declared section replacements, and a small number of subject-specific skills. Generic skill source files are not duplicated. Effective packages are generated from `skill_refs`, subject overlays, layered section overrides, and optional local custom overlays.
 
-Current official subjects are `core`, `economics`, `accounting`, `business`, `finance`, and the official composite `economics-accounting`. Default install means `core/complete`. `--subject economics`, `--subject business`, and `--subject finance` mean complete specialized installs, not reduced packages. `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. `--coverage focused` is the deliberate slim path and the Desktop/Web ZIP path. Public Desktop ZIP subjects in this phase are `core`, `economics`, `business`, `finance`, and `economics-accounting`; there is no standalone accounting Desktop ZIP yet. Official composite subjects are named subjects, not arbitrary comma-separated stacking. To switch subjects or coverage, rerun install or upgrade. Each client still has one active `qiongli-workflow` package at a time.
+Current official subjects are `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and the official composite `economics-accounting`. Default install means `core/complete`. `--subject economics`, `--subject business`, `--subject finance`, `--subject political-economy`, and `--subject geoeconomics` mean complete specialized installs, not reduced packages. `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. `--coverage focused` is the deliberate slim path and the Desktop/Web ZIP path. Public Desktop ZIP subjects in this phase are `core`, `economics`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting`; there is no standalone accounting Desktop ZIP yet. `political-economy` and `geoeconomics` are independent subjects, not a composite pair. Official composite subjects are named subjects, not arbitrary comma-separated stacking. To switch subjects or coverage, rerun install or upgrade. Each client still has one active `qiongli-workflow` package at a time.
 
 When adding or deepening a subject, update these together: `subjects/catalog.yaml`, subject overlays, subject-specific registry and markdown, selected domain and venue profiles, subject eval fixtures, specialization audit expected terms, materializer tests, npm payload tests when the subject is installable through npm, and release validation if the subject has a Desktop/Web artifact.
 
@@ -254,6 +256,8 @@ npm install -g qiongli
 qiongli install --target all --project-dir "$PWD"
 qiongli install --subject economics --target all --project-dir "$PWD"
 qiongli install --subject accounting --target all --project-dir "$PWD"
+qiongli install --subject political-economy --target all --project-dir "$PWD"
+qiongli install --subject geoeconomics --target all --project-dir "$PWD"
 qiongli install --subject economics-accounting --target all --project-dir "$PWD"
 ```
 
@@ -264,7 +268,7 @@ npx qiongli@next install --subject economics --target all --project-dir "$PWD"
 npx qiongli@next check --json
 ```
 
-The npm package bundles pre-materialized `core`, `economics`, `accounting`, `business`, `finance`, and `economics-accounting` payloads in both `complete` and `focused` coverage. `--subject` defaults to `core`, and `--coverage` defaults to `complete`; use `--coverage focused` only when you want the slim subject package. `qiongli check --json` reports the bundled subject/coverage payload and installed target subjects. Advanced commands such as `qiongli doctor`, `qiongli task-run`, and `qiongli team-run` delegate to the bundled Python bridge and require Python 3.12+ plus `PyYAML`.
+The npm package bundles pre-materialized `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting` payloads in both `complete` and `focused` coverage. `--subject` defaults to `core`, and `--coverage` defaults to `complete`; use `--coverage focused` only when you want the slim subject package. `qiongli check --json` reports the bundled subject/coverage payload and installed target subjects. Advanced commands such as `qiongli doctor`, `qiongli task-run`, and `qiongli team-run` delegate to the bundled Python bridge and require Python 3.12+ plus `PyYAML`.
 
 ### 3. Use The Installed Skills
 
@@ -486,7 +490,7 @@ codex plugin marketplace list
 ```
 
 Then install or enable `qiongli` from the Codex plugin UI.
-Subject entries such as `qiongli-economics`, `qiongli-accounting`, `qiongli-business`, `qiongli-finance`, and `qiongli-economics-accounting` install the corresponding `subject/complete` package instead of the default core package.
+Subject entries such as `qiongli-economics`, `qiongli-accounting`, `qiongli-business`, `qiongli-finance`, `qiongli-political-economy`, `qiongli-geoeconomics`, and `qiongli-economics-accounting` install the corresponding `subject/complete` package instead of the default core package.
 
 Claude Code:
 
@@ -507,7 +511,7 @@ In an interactive Claude Code session:
 
 Claude Desktop / Claude.ai:
 
-1. Download `qiongli-claude-desktop-skill-core-<tag>.zip`, `qiongli-claude-desktop-skill-economics-<tag>.zip`, `qiongli-claude-desktop-skill-business-<tag>.zip`, `qiongli-claude-desktop-skill-finance-<tag>.zip`, or `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip` from the GitHub Release assets.
+1. Download `qiongli-claude-desktop-skill-core-<tag>.zip`, `qiongli-claude-desktop-skill-economics-<tag>.zip`, `qiongli-claude-desktop-skill-business-<tag>.zip`, `qiongli-claude-desktop-skill-finance-<tag>.zip`, `qiongli-claude-desktop-skill-political-economy-<tag>.zip`, `qiongli-claude-desktop-skill-geoeconomics-<tag>.zip`, or `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip` from the GitHub Release assets.
 2. Drag the ZIP into Claude Desktop's Skills upload/install flow, or open `Customize > Skills`.
 3. Click `+`, choose `Create skill`, then `Upload a skill`.
 4. In Claude.ai, use the same `Customize > Skills` upload flow and select the same ZIP.
@@ -852,7 +856,7 @@ Still needs Python:
 
 **How do subject packages relate to runtime domains?**
 
-Qiongli now supports subject-specialized installs. `core` is the default general package; `economics`, `accounting`, `business`, `finance`, and the named composite `economics-accounting` install the same canonical workflow with subject overlays and subject-specific skills. CLI/npm installs default to `coverage=complete`, so a specialized install keeps the full framework and adds the requested specialization. `coverage=focused` is for deliberate slim packages and Desktop/Web ZIPs.
+Qiongli now supports subject-specialized installs. `core` is the default general package; `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and the named composite `economics-accounting` install the same canonical workflow with subject overlays and subject-specific skills. CLI/npm installs default to `coverage=complete`, so a specialized install keeps the full framework and adds the requested specialization. `coverage=focused` is for deliberate slim packages and Desktop/Web ZIPs.
 
 Runtime flags such as `--domain econ` still matter for a single task packet, but they no longer replace subject packaging. Use `qiongli install --subject economics --target all` when the client should operate as an economics-specialized Qiongli install by default. Use runtime domains for temporary task-level emphasis inside the active subject.
 

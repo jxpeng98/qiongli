@@ -22,7 +22,7 @@
 
 ## 2. 安装 workflow assets
 
-如果你使用 Claude Desktop 或 Claude.ai 网页版，并且不想处理 code / CLI 环境，从 GitHub Release assets 下载需要的 focused subject ZIP。本阶段公开 Desktop ZIP subjects 是 `core`、`economics`、`business`、`finance` 和 `economics-accounting`，还没有 standalone accounting Desktop ZIP。默认通用 workflow 用 `qiongli-claude-desktop-skill-core-<tag>.zip`；经济学专精 workflow 用 `qiongli-claude-desktop-skill-economics-<tag>.zip`；business 专精 workflow 用 `qiongli-claude-desktop-skill-business-<tag>.zip`；finance 专精 workflow 用 `qiongli-claude-desktop-skill-finance-<tag>.zip`；官方 economics/accounting 交叉学科包用 `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip`。在 Claude Desktop 中把 ZIP 拖拽到 Skills 上传/安装流程中，或使用 `Customize > Skills > + > Create skill > Upload a skill`。Claude.ai 网页版也使用同一个 ZIP 上传流程。
+如果你使用 Claude Desktop 或 Claude.ai 网页版，并且不想处理 code / CLI 环境，从 GitHub Release assets 下载需要的 focused subject ZIP。本阶段公开 Desktop ZIP subjects 是 `core`、`economics`、`business`、`finance`、`political-economy`、`geoeconomics` 和 `economics-accounting`，还没有 standalone accounting Desktop ZIP。默认通用 workflow 用 `qiongli-claude-desktop-skill-core-<tag>.zip`；经济学专精 workflow 用 `qiongli-claude-desktop-skill-economics-<tag>.zip`；political economy 专精 workflow 用 `qiongli-claude-desktop-skill-political-economy-<tag>.zip`；geoeconomics 专精 workflow 用 `qiongli-claude-desktop-skill-geoeconomics-<tag>.zip`；business 专精 workflow 用 `qiongli-claude-desktop-skill-business-<tag>.zip`；finance 专精 workflow 用 `qiongli-claude-desktop-skill-finance-<tag>.zip`；官方 economics/accounting 交叉学科包用 `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip`。在 Claude Desktop 中把 ZIP 拖拽到 Skills 上传/安装流程中，或使用 `Customize > Skills > + > Create skill > Upload a skill`。Claude.ai 网页版也使用同一个 ZIP 上传流程。
 
 Desktop/Web ZIP 使用 `coverage=focused`，用于保持上传文件数预算。它是 subject 专精包，不是降质删减版：保留 workflows、templates、standards、所选 profiles、`skills-summary.md` 和 `skills-core.md`；专精 ZIP 还包含通过 layered overlays 生成的 selected effective skill markdown。
 
@@ -61,6 +61,8 @@ npm 或 pipx 安装中，`--subject` 默认是 `core`，`--coverage` 默认是 `
 qiongli install --subject economics --target all
 qiongli install --subject accounting --target all
 npx qiongli@latest install --subject economics --target all
+qiongli install --subject political-economy --target all
+qiongli install --subject geoeconomics --target all
 qiongli install --subject economics-accounting --target all
 qiongli install --subject economics --coverage focused --target all
 qiongli upgrade --subject accounting --target all
@@ -68,7 +70,7 @@ qiongli customize --subject economics --name my-econ-lab --out ./qiongli-custom/
 qiongli check --json
 ```
 
-不确定怎么选时使用默认 complete：`qiongli install --target all` 表示 `core/complete`，`--subject economics`、`--subject business` 和 `--subject finance` 表示 complete 专精安装，`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。只有明确想要精简包或 Desktop/Web ZIP 形态时才使用 `--coverage focused`。官方 composite subjects（例如 `economics-accounting`）是命名 subject，不是任意逗号分隔叠加。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新的参数。Custom overlays 只影响 generated output，不会改写 canonical source files；`qiongli customize` 加 `--custom-dir` materialization 面向 Python/source checkout 工作流，npm runtime installs 在这个阶段使用预生成 payloads。
+不确定怎么选时使用默认 complete：`qiongli install --target all` 表示 `core/complete`，`--subject economics`、`--subject business`、`--subject finance`、`--subject political-economy` 和 `--subject geoeconomics` 表示 complete 专精安装，`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。只有明确想要精简包或 Desktop/Web ZIP 形态时才使用 `--coverage focused`。`political-economy` 和 `geoeconomics` 是两个独立 subject，不是一个 composite。官方 composite subjects（例如 `economics-accounting`）是命名 subject，不是任意逗号分隔叠加。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新的参数。Custom overlays 只影响 generated output，不会改写 canonical source files；`qiongli customize` 加 `--custom-dir` materialization 面向 Python/source checkout 工作流，npm runtime installs 在这个阶段使用预生成 payloads。
 
 ## 3. 创建研究工作区
 

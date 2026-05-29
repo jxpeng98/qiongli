@@ -36,7 +36,7 @@ class DistributionPayloadTests(unittest.TestCase):
             REPO_ROOT / "qiongli" / "payload" / "subjects",
             REPO_ROOT / "packages" / "npm-qiongli" / "payload" / "subjects",
         ):
-            for subject in ("accounting", "business", "finance"):
+            for subject in ("accounting", "business", "finance", "political-economy", "geoeconomics"):
                 with self.subTest(payload_root=payload_root, subject=subject):
                     self.assertTrue(
                         (
