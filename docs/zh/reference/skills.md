@@ -273,7 +273,9 @@
 - `education`
 - `epidemiology`
 - `finance`
+- `geoeconomics`
 - `political-science`
+- `political-economy`
 - `psychology`
 
 适合使用 domain profile 的情况：

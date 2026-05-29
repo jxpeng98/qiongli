@@ -26,7 +26,7 @@ codex plugin marketplace add jxpeng98/skillsplace --ref main
 codex plugin marketplace list
 ```
 
-Then install or enable `qiongli` from the Codex plugin UI for the default core package. Subject entries such as `qiongli-economics`, `qiongli-accounting`, `qiongli-business`, `qiongli-finance`, and `qiongli-economics-accounting` install the corresponding `subject/complete` package from the same marketplace.
+Then install or enable `qiongli` from the Codex plugin UI for the default core package. Subject entries such as `qiongli-economics`, `qiongli-accounting`, `qiongli-business`, `qiongli-finance`, `qiongli-political-economy`, `qiongli-geoeconomics`, and `qiongli-economics-accounting` install the corresponding `subject/complete` package from the same marketplace.
 
 Claude Code uses the same Skillsplace catalog:
 
@@ -47,7 +47,7 @@ Inside an interactive Claude Code session, use:
 
 Claude Desktop and Claude.ai do not install third-party Claude Code plugin marketplaces. If you use Desktop or the web app and are not familiar with a code/CLI environment, use the release ZIP path instead. It requires no terminal commands:
 
-1. Download `qiongli-claude-desktop-skill-core-<tag>.zip`, `qiongli-claude-desktop-skill-economics-<tag>.zip`, `qiongli-claude-desktop-skill-business-<tag>.zip`, `qiongli-claude-desktop-skill-finance-<tag>.zip`, or `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip` from the GitHub Release assets. Public Desktop ZIP subjects in this phase are `core`, `economics`, `business`, `finance`, and `economics-accounting`; there is no standalone accounting Desktop ZIP yet.
+1. Download `qiongli-claude-desktop-skill-core-<tag>.zip`, `qiongli-claude-desktop-skill-economics-<tag>.zip`, `qiongli-claude-desktop-skill-business-<tag>.zip`, `qiongli-claude-desktop-skill-finance-<tag>.zip`, `qiongli-claude-desktop-skill-political-economy-<tag>.zip`, `qiongli-claude-desktop-skill-geoeconomics-<tag>.zip`, or `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip` from the GitHub Release assets. Public Desktop ZIP subjects in this phase are `core`, `economics`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting`; there is no standalone accounting Desktop ZIP yet.
 2. In Claude Desktop, drag the ZIP into the Skills upload/install flow, or open `Customize > Skills`, click `+`, choose `Create skill`, then `Upload a skill`.
 3. In Claude.ai, use the same `Customize > Skills` upload flow and select the same ZIP.
 4. Enable the uploaded `qiongli` skill.
@@ -152,6 +152,8 @@ pipx install qiongli
 qiongli install --target all
 qiongli install --subject economics --target all
 qiongli install --subject accounting --target all
+qiongli install --subject political-economy --target all
+qiongli install --subject geoeconomics --target all
 qiongli install --subject economics-accounting --target all
 ```
 
@@ -162,7 +164,7 @@ pipx upgrade qiongli
 qiongli upgrade --subject accounting --target all --doctor --project-dir /path/to/project
 ```
 
-`--subject` defaults to `core`, and `--coverage` defaults to `complete`. Use complete when you are unsure: `--subject economics`, `--subject business`, and `--subject finance` mean complete specialized installs, not reduced packages, and `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. Use `--coverage focused` for deliberate slim installs and Desktop/Web-equivalent packages. Current official subjects are `core`, `economics`, `accounting`, `business`, `finance`, and the named composite `economics-accounting`; official composite subjects are not arbitrary comma-separated stacking. To switch a client from one subject or coverage to another, rerun `install` or `upgrade` with new flags. `qiongli check --json` reports the active installed subject and coverage per target; legacy installs without a `SUBJECT_MANIFEST.json` or `SUBJECT` file are treated as `core` / `complete`.
+`--subject` defaults to `core`, and `--coverage` defaults to `complete`. Use complete when you are unsure: `--subject economics`, `--subject business`, `--subject finance`, `--subject political-economy`, and `--subject geoeconomics` mean complete specialized installs, not reduced packages, and `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. Use `--coverage focused` for deliberate slim installs and Desktop/Web-equivalent packages. Current official subjects are `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and the named composite `economics-accounting`; `political-economy` and `geoeconomics` are independent subject choices, not a composite. Official composite subjects are not arbitrary comma-separated stacking. To switch a client from one subject or coverage to another, rerun `install` or `upgrade` with new flags. `qiongli check --json` reports the active installed subject and coverage per target; legacy installs without a `SUBJECT_MANIFEST.json` or `SUBJECT` file are treated as `core` / `complete`.
 
 Create a custom scaffold before materializing local overlays:
 

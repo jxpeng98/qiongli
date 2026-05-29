@@ -1,0 +1,326 @@
+---
+id: citation-snowballer
+stage: B_literature
+description: "Trace citations forward and backward from seed papers to expand corpus coverage and identify seminal works."
+inputs:
+  - type: SearchResults
+    description: "Initial search results for seed selection"
+  - type: SearchDiagnostics
+    description: "Optional search_diagnostics.md for seed priorities, coverage gaps, and weak concept streams"
+    required: false
+outputs:
+  - type: SnowballLog
+    artifact: "snowball_log.md"
+  - type: SearchResults
+    artifact: "search_results.csv"
+  - type: DedupLog
+    artifact: "dedup_log.csv"
+constraints:
+  - "Must select 5-15 seed papers"
+  - "Must apply relevance scoring with weighted factors"
+  - "Must deduplicate against existing corpus"
+failure_modes:
+  - "API rate limits during large-scale snowballing"
+  - "Diminishing returns after level 1"
+tools: [filesystem, scholarly-search, citation-graph]
+tags: [literature, citations, snowballing, forward-backward]
+domain_aware: false
+---
+
+# Citation Snowballer Skill
+
+Systematically trace citations forward and backward to identify additional relevant papers.
+
+## Purpose
+
+Extend literature search beyond database queries by:
+- Forward citation searching (who cites this paper?)
+- Backward reference searching (what does this paper cite?)
+- Identifying seminal and highly-cited works
+- Capturing papers missed by keyword searches
+
+## Provider Ownership Boundary
+
+- `citation-graph` owns `snowball_log.md`
+- this layer may append candidate records into `search_results.csv`
+- dedup decisions created during snowball expansion must be recorded in `dedup_log.csv`
+- final normalized bibliography still belongs to `metadata-registry`
+- builtin baseline may resolve seeds from `search_results.csv`, `bibliography.bib`, and `notes/*.md` before falling back to explicit `target_paper_id`
+- when `search_diagnostics.md` exists, seed selection should prioritize missing known items, provider-undercovered concept streams, and high-value included records before generic citation-count ranking
+
+## Inputs
+
+- `SearchResults`: Initial search results for seed selection
+- `SearchDiagnostics`: Optional `RESEARCH/[topic]/search_diagnostics.md` with diagnostic flags and coverage gaps
+- If a required input is missing or insufficient, write a gap note under `RESEARCH/[topic]/context/gap_notes.md` and ask for the missing artifact instead of inventing content.
+- Treat literature, data, citations, and project files as evidence sources; keep unsupported assumptions visibly marked.
+
+## Process
+
+### Step 1: Identify Seed Papers
+
+Select seed papers from initial search results based on:
+
+Builtin baseline rule:
+- if `target_paper_id` is absent, first harvest seed identifiers from `search_results.csv`, `bibliography.bib`, and `notes/*.md`
+- use title lookup only as a fallback; prefer stable IDs (`paper_id`, DOI) when available
+
+**Selection Criteria:**
+| Criterion | Description |
+|-----------|-------------|
+| High citations | Top 10% by citation count in search results |
+| Seminal works | Foundational papers identified in abstracts |
+| Recent reviews | Systematic reviews or meta-analyses (last 5 years) |
+| Key authors | Papers by recognized domain experts |
+
+**Recommended seed set size:** 5-15 papers
+
+Record `seed_selection_reason` for each seed. Valid reasons include `known_item_missing_followup`, `provider_undercoverage`, `high_citation`, `recent_review`, `concept_stream_gap`, and `manual_protocol_seed`.
+
+### Step 2: Forward Citation Search
+
+Find papers that cite the seed papers.
+
+#### Using Semantic Scholar API
+```
+Endpoint: https://api.semanticscholar.org/graph/v1/paper/{paper_id}/citations
+Parameters:
+  fields: paperId,title,abstract,year,authors,citationCount,venue
+  limit: 100
+  offset: [paginate as needed]
+```
+
+#### Using OpenAlex API
+```
+Endpoint: https://api.openalex.org/works
+Parameters:
+  filter: cites:{openalex_id}
+  per-page: 100
+  cursor: [paginate as needed]
+```
+
+**Process:**
+1. For each seed paper, retrieve all citing papers
+2. Apply date filters (match original search criteria)
+3. Remove papers already in search results (by DOI/title)
+4. Score by relevance (citation count, venue quality)
+
+### Step 3: Backward Reference Search
+
+Find papers cited by the seed papers.
+
+#### Using Semantic Scholar API
+```
+Endpoint: https://api.semanticscholar.org/graph/v1/paper/{paper_id}/references
+Parameters:
+  fields: paperId,title,abstract,year,authors,citationCount,venue
+  limit: 100
+```
+
+#### Using Crossref API (for DOI-based lookup)
+```
+Endpoint: https://api.crossref.org/works/{doi}
+Field: reference[] (list of cited works)
+```
+
+**Process:**
+1. For each seed paper, retrieve reference list
+2. Apply date filters
+3. Remove duplicates
+4. Prioritize frequently cited references (appear in multiple seed papers)
+
+### Step 4: Iterative Snowballing
+
+For thorough coverage, consider second-level snowballing:
+
+```
+Level 0: Original search results
+    ↓
+Level 1: Citations of seed papers (forward) + References of seed papers (backward)
+    ↓
+Level 2 (optional): Citations/references of high-value Level 1 papers
+```
+
+**Stopping criteria:**
+- Saturation: Few new unique papers found
+- Diminishing returns: New papers increasingly off-topic
+- Resource limits: Time/API rate constraints
+
+Record `saturation_status` for each round:
+- `open`: enough new candidates to continue
+- `near_saturation`: fewer new unique candidates than the configured threshold
+- `saturated`: zero new candidates after deduplication
+- `unknown_provider_failure`: provider errors prevent a defensible saturation judgment
+
+### Step 5: Deduplication
+
+Apply strict deduplication against existing corpus:
+
+**Priority Order:**
+1. DOI match (exact)
+2. Semantic Scholar ID match
+3. arXiv ID match
+4. Title + Year + First Author (fuzzy, threshold > 0.9)
+
+### Step 6: Relevance Scoring
+
+Score new candidates for inclusion priority:
+
+| Factor | Weight | Scoring |
+|--------|--------|---------|
+| Citation frequency | 30% | How many seed papers cite/are cited by this |
+| Citation count | 20% | Total citations (log-scaled) |
+| Recency | 20% | Newer = higher score |
+| Venue quality | 15% | Top venue = higher score |
+| Title relevance | 15% | Keyword match with search terms |
+
+## Output Format
+
+```markdown
+# Citation Snowballing Log
+
+## Review: [Topic]
+## Date: [Date]
+
+---
+
+## Seed Papers
+
+| # | Citation | Citations | seed_selection_reason |
+|---|----------|-----------|-----------------------|
+| 1 | Smith (2023) | 150 | high_citation |
+| 2 | Jones (2020) | 500 | Seminal work |
+| 3 | Lee (2022) | 80 | Recent review |
+
+---
+
+## Forward Citation Results
+
+### From: Smith (2023)
+
+| # | Title | Year | Citations | Relevance | Status |
+|---|-------|------|-----------|-----------|--------|
+| 1 | [Title] | 2024 | 25 | High | NEW |
+| 2 | [Title] | 2023 | 10 | Medium | DUPLICATE |
+
+**Total forward citations found:** X
+**New unique papers:** Y
+**Duplicates removed:** Z
+
+### From: Jones (2020)
+[Similar table...]
+
+---
+
+## Backward Reference Results
+
+### From: Smith (2023)
+
+| # | Title | Year | Cited by N seeds | Status |
+|---|-------|------|------------------|--------|
+| 1 | [Title] | 2018 | 3 | NEW - HIGH PRIORITY |
+| 2 | [Title] | 2015 | 1 | NEW |
+
+**Total references found:** X
+**New unique papers:** Y
+
+---
+
+## Summary
+
+| Metric | Count |
+|--------|-------|
+| Seed papers | |
+| Total forward citations examined | |
+| Total backward references examined | |
+| New unique papers identified | |
+| Already in corpus (duplicates) | |
+| **Papers added to screening** | |
+| Saturation status | |
+
+## High-Priority Additions
+
+Papers cited by multiple seeds or with high relevance scores:
+
+| # | Title | Year | Score | Reason |
+|---|-------|------|-------|--------|
+| 1 | | | | Cited by 3 seeds |
+| 2 | | | | 500+ citations, seminal |
+
+---
+
+## API Calls Log
+
+| Timestamp | Endpoint | Parameters | Results |
+|-----------|----------|------------|---------|
+| [Time] | S2 citations | paper_id=X | 45 |
+| [Time] | S2 references | paper_id=X | 30 |
+
+---
+
+*Snowballing completed: [Date]*
+```
+
+## API Reference
+
+### Semantic Scholar
+- Citations: `GET /paper/{id}/citations`
+- References: `GET /paper/{id}/references`
+- Rate limit: 100 requests/5 min (public)
+
+### OpenAlex
+- Citing works: `GET /works?filter=cites:{id}`
+- Referenced works: Access via work's `referenced_works` field
+- Rate limit: 10 requests/sec
+
+### Crossref
+- References: `GET /works/{doi}` → `reference` field
+- Note: Reference quality varies by publisher
+
+## Usage
+
+This skill is called by:
+- `/lit-review` Phase 3.5 - Citation snowballing
+- `/find-gap` - Identifying seminal works and research clusters
+
+## Output Contract
+
+- `SnowballLog`: write `RESEARCH/[topic]/snowball_log.md`.
+- `SearchResults`: write `RESEARCH/[topic]/search_results.csv`.
+- `DedupLog`: write `RESEARCH/[topic]/dedup_log.csv`.
+- Consume `RESEARCH/[topic]/search_diagnostics.md` when present and preserve diagnostic flags in seed-selection notes.
+- Separate finding, interpretation, and implication in the final artifact.
+- Do not invent citations, data, sample sizes, statistical results, or reviewer comments.
+- Apply `references/academic-output-rubric.md` before finalizing scholarly prose or review artifacts.
+
+### Evidence Ledger and Source Integrity
+
+- Update `RESEARCH/[topic]/evidence/claim-evidence-ledger.csv` when producing, revising, or validating central scholarly claims.
+- Follow `references/evidence-ledger-contract.md`: supported claims need source pointers; unsupported central claims become `gap_note` rows and `RESEARCH/[topic]/context/gap_notes.md` entries.
+- For final writing, proofread, submission, rebuttal, citation, or presentation-facing outputs, apply `references/citation-risk-policy.md` and write or update `RESEARCH/[topic]/proofread/citation-risk-report.md` when citation risk is material.
+
+## Quality Bar
+
+- [ ] Forward 和 backward 两个方向都已执行
+- [ ] Snowball log 记录了每轮新增和排除文献数
+- [ ] Snowball log 记录了 `seed_selection_reason` 和 `saturation_status`
+- [ ] 达到 saturation（连续一轮无新增有效文献）或明确 `near_saturation` / `unknown_provider_failure`
+- [ ] 新增文献已经过 screening criteria 筛选
+- [ ] 结果已合并回 search_results.csv 并去重
+
+## Common Pitfalls
+
+| Pitfall | Problem | Fix |
+|---------|---------|-----|
+| 无 stopping rule | 无限滚雪球 | 定义 saturation 标准（连续 N 轮无新增） |
+| 只做 backward | 遗漏后续跟进研究 | Forward + backward 并行执行 |
+| 未去重 | 新增文献与已有重复 | 每轮合并后运行 dedup |
+| 种子论文选择偏差 | 只从一个流派出发 | 选择跨流派的多个 seed papers |
+| 无记录追踪 | 不知道新增来自哪个 seed | Snowball log 标注 source paper |
+
+## When to Use
+
+- 已有种子文献但覆盖不够时
+- 需要发现 seminal works 或 foundational papers 时
+- 数据库检索遗漏了重要文献时
+- 需要向 Reviewer 证明 exhaustive search effort 时

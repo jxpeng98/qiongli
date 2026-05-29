@@ -72,11 +72,11 @@ JSON 输出会包含每个 target 当前安装的 active subject 和 coverage。
 
 用途：
 - 把 PyPI 包内携带的 subject payload 安装到全局客户端 skill 目录。
-- 默认是 `--subject core --coverage complete`；经济学专精使用 `--subject economics`，表示全量 Qiongli 加 economics 专精；会计专精使用 `--subject accounting`，表示全量 Qiongli 加 accounting 专精。
+- 默认是 `--subject core --coverage complete`；`--subject economics`、`--subject political-economy` 或 `--subject geoeconomics` 表示全量 Qiongli 加所选 subject 专精。
 
 ```bash
 qiongli install \
-  [--subject core|economics|accounting|business|finance|economics-accounting] \
+  [--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting] \
   [--coverage complete|focused] \
   [--target codex|claude|gemini|antigravity|all] \
   [--mode copy|link] \
@@ -92,11 +92,13 @@ qiongli install \
 qiongli install --target all
 qiongli install --subject economics --target all
 qiongli install --subject accounting --target all
+qiongli install --subject political-economy --target all
+qiongli install --subject geoeconomics --target all
 qiongli install --subject economics-accounting --target all
 qiongli install --subject economics --coverage focused --target all
 ```
 
-Subject package 是专精安装包，不是降质删减版。默认安装是 `core/complete`。`--subject economics`、`--subject business`、`--subject finance` 表示 complete 专精安装，不是缩水包；`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。`focused` coverage 只选择该 subject 的 profiles 和 active effective skills，用于有意选择的精简安装和 Desktop/Web ZIP。当前官方 subjects 是 `core`、`economics`、`accounting`、`business`、`finance` 和命名 composite subject `economics-accounting`；官方 composite subjects 不是任意逗号分隔叠加。本阶段公开 Desktop ZIP subjects 是 `core`、`economics`、`business`、`finance` 和 `economics-accounting`，还没有 standalone accounting Desktop ZIP。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新参数。
+Subject package 是专精安装包，不是降质删减版。默认安装是 `core/complete`。`--subject economics`、`--subject business`、`--subject finance`、`--subject political-economy` 和 `--subject geoeconomics` 表示 complete 专精安装，不是缩水包；`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。`focused` coverage 只选择该 subject 的 profiles 和 active effective skills，用于有意选择的精简安装和 Desktop/Web ZIP。当前官方 subjects 是 `core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics` 和命名 composite subject `economics-accounting`；`political-economy` 和 `geoeconomics` 是两个独立 subject 选择，不是一个 composite。官方 composite subjects 不是任意逗号分隔叠加。本阶段公开 Desktop ZIP subjects 是 `core`、`economics`、`business`、`finance`、`political-economy`、`geoeconomics` 和 `economics-accounting`，还没有 standalone accounting Desktop ZIP。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新参数。
 
 ### 2.3 `qiongli upgrade`（下载 release 并执行三端安装脚本）
 
@@ -110,7 +112,7 @@ qiongli upgrade \
   [--repo <owner/repo|url>] \
   [--ref <tag-or-branch>] \
   [--ref-type tag|branch] \
-  [--subject core|economics|accounting|business|finance|economics-accounting] \
+  [--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting] \
   [--coverage complete|focused] \
   [--target codex|claude|gemini|antigravity|all] \
   [--project-dir <path>] \

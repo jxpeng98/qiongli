@@ -10,6 +10,8 @@ Qiongli 使用一套 canonical workflow，再通过不同 subject package 生成
 |---|---|---|
 | 不知道该选什么 | `qiongli install --target all` | 默认 `core / complete`：全量通用 Qiongli 框架 |
 | 明确做经济学 | `qiongli install --subject economics --target all` | 全量框架 + economics 专精 |
+| 明确做 political economy | `qiongli install --subject political-economy --target all` | 全量框架 + institutions、distributional conflict 和 policy mechanism 专精 |
+| 明确做 geoeconomics | `qiongli install --subject geoeconomics --target all` | 全量框架 + strategic economic statecraft 专精 |
 | 想要轻量 economics 包 | `qiongli install --subject economics --coverage focused --target all` | economics selected profiles、overlays 和 active effective skills |
 | 需要官方交叉学科 | `qiongli install --subject economics-accounting --target all` | 全量框架 + economics/accounting composite layer |
 | 想加入本地规则 | `python3 scripts/materialize_subject_package.py --custom-dir <path> ...` | 生成一次带本地 overlays、profiles 或 skills 的 package |
@@ -29,7 +31,7 @@ Qiongli 使用一套 canonical workflow，再通过不同 subject package 生成
 
 ### Specialized Subjects
 
-`economics` 这类 specialized subject 保留同一套 Qiongli workflow，只是在其上叠加学科层。它不会 fork workflow contract。
+`economics`、`political-economy`、`geoeconomics` 这类 specialized subject 保留同一套 Qiongli workflow，只是在其上叠加学科层。它不会 fork workflow contract。
 
 subject 可以增加：
 
@@ -67,6 +69,8 @@ Composite subject 是官方维护的交叉学科包，例如 `economics-accounti
 它不是多个 subject 的自动 union。每个 composite 必须显式定义 ordered groups、profile selection、overlays 和 subject-specific skills。这样可以保持 package 连贯，并避免不同学科规则之间发生隐性冲突。
 
 当研究问题天然跨学科，且单一 subject 无法覆盖重要规范时，使用 composite。
+
+当你希望 active package 明确服务 political economy 或 geoeconomics 时，分别安装对应 subject。它们是两个独立 subject，不是一个 composite pair，也不应该合并进同一个 Desktop/Web ZIP。
 
 ### Local Customization
 
