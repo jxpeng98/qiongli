@@ -250,6 +250,8 @@ case "$MODE" in
 
     git add \
       pyproject.toml \
+      docs/reference/skills.md \
+      docs/zh/reference/skills.md \
       qiongli/__init__.py \
       qiongli/payload \
       qiongli-workflow/VERSION \

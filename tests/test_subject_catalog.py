@@ -15,7 +15,16 @@ class SubjectCatalogTests(unittest.TestCase):
         catalog = load_subject_catalog(REPO_ROOT)
 
         self.assertEqual(
-            ["accounting", "business", "core", "economics", "economics-accounting", "finance"],
+            [
+                "accounting",
+                "business",
+                "core",
+                "economics",
+                "economics-accounting",
+                "finance",
+                "geoeconomics",
+                "political-economy",
+            ],
             sorted(catalog["subjects"]),
         )
         economics = catalog["subjects"]["economics"]
@@ -71,6 +80,24 @@ class SubjectCatalogTests(unittest.TestCase):
         self.assertEqual(subject.domain_profiles, ("finance",))
         self.assertIn("doctoral", subject.package_goal.lower())
         self.assertIn("journal", subject.package_goal.lower())
+
+    def test_political_economy_subject_is_mechanism_focused_and_explicit(self) -> None:
+        catalog = validate_subject_catalog(REPO_ROOT)
+        subject = catalog.subjects["political-economy"]
+        self.assertEqual(subject.extends, "core")
+        self.assertEqual([group.order for group in subject.skill_groups], [1, 2, 3, 4, 5])
+        self.assertEqual(subject.domain_profiles, ("political-economy",))
+        self.assertIn("political-economy-mechanism-auditor", subject.skill_refs)
+        self.assertIn("political institutions", subject.package_goal.lower())
+
+    def test_geoeconomics_subject_is_statecraft_focused_and_explicit(self) -> None:
+        catalog = validate_subject_catalog(REPO_ROOT)
+        subject = catalog.subjects["geoeconomics"]
+        self.assertEqual(subject.extends, "core")
+        self.assertEqual([group.order for group in subject.skill_groups], [1, 2, 3, 4, 5])
+        self.assertEqual(subject.domain_profiles, ("geoeconomics",))
+        self.assertIn("geoeconomic-statecraft-auditor", subject.skill_refs)
+        self.assertIn("strategic competition", subject.package_goal.lower())
 
     def test_composite_subject_declares_component_subjects(self) -> None:
         catalog = validate_subject_catalog(REPO_ROOT)

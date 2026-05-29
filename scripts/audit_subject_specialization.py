@@ -30,6 +30,8 @@ SUBJECT_TERMS = {
     "accounting": ("accrual", "disclosure", "measurement", "audit"),
     "economics-accounting": ("identification", "disclosure", "measurement", "causal"),
     "finance": ("asset pricing", "risk-adjusted", "look-ahead bias", "finance"),
+    "political-economy": ("political mechanism", "institution", "distributional conflict", "policy"),
+    "geoeconomics": ("sanctions", "statecraft", "supply chain", "strategic competition"),
 }
 
 

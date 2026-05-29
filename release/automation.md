@@ -51,13 +51,17 @@ The release page receives these installable distribution artifacts:
 - `qiongli-business-claude-plugin-<tag>.tar.gz`
 - `qiongli-finance-codex-plugin-<tag>.tar.gz`
 - `qiongli-finance-claude-plugin-<tag>.tar.gz`
+- `qiongli-political-economy-codex-plugin-<tag>.tar.gz`
+- `qiongli-political-economy-claude-plugin-<tag>.tar.gz`
+- `qiongli-geoeconomics-codex-plugin-<tag>.tar.gz`
+- `qiongli-geoeconomics-claude-plugin-<tag>.tar.gz`
 - `qiongli-economics-accounting-codex-plugin-<tag>.tar.gz`
 - `qiongli-economics-accounting-claude-plugin-<tag>.tar.gz`
 - `qiongli-gemini-extension-<tag>.tar.gz`
 
-The release page also receives focused Claude Desktop ZIPs for `core`, `economics`, `business`, `finance`, and `economics-accounting`, plus the legacy core alias `qiongli-claude-desktop-skill-<tag>.zip`.
+The release page also receives focused Claude Desktop ZIPs for `core`, `economics`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting`, plus the legacy core alias `qiongli-claude-desktop-skill-<tag>.zip`.
 
-The unqualified `qiongli-*plugin` artifacts remain the default core-compatible entries. The subject-qualified Codex and Claude Code artifacts let the shared Skillsplace marketplace expose separate install choices such as `qiongli-economics`, `qiongli-business`, `qiongli-finance`, or `qiongli-economics-accounting`, each with its own plugin manifest and materialized `subject/complete` skill package. These artifacts make the release consumable by the three client-native install surfaces. They do not bypass official directory review: Codex marketplace listing, Claude official plugin directory submission, and Gemini gallery publication still follow each platform's external submission process when applicable.
+The unqualified `qiongli-*plugin` artifacts remain the default core-compatible entries. The subject-qualified Codex and Claude Code artifacts let the shared Skillsplace marketplace expose separate install choices such as `qiongli-economics`, `qiongli-business`, `qiongli-finance`, `qiongli-political-economy`, `qiongli-geoeconomics`, or `qiongli-economics-accounting`, each with its own plugin manifest and materialized `subject/complete` skill package. These artifacts make the release consumable by the three client-native install surfaces. They do not bypass official directory review: Codex marketplace listing, Claude official plugin directory submission, and Gemini gallery publication still follow each platform's external submission process when applicable.
 
 ## 2) Prepare a publish-ready local state
 
