@@ -27,6 +27,7 @@ from .universal_installer import (
 )
 from bridges.provider_config import (
     global_provider_config_path,
+    provider_capability_mode,
     provider_config_summary,
     redact_provider_config,
     resolve_provider_config,
@@ -941,7 +942,7 @@ def cmd_provider(args: argparse.Namespace) -> int:
         payload = {
             "config_path": str(global_provider_config_path()),
             "providers": summary,
-            "capability_mode": _provider_capability_mode(summary),
+            "capability_mode": provider_capability_mode(summary),
         }
         if args.json:
             print(json.dumps(payload, indent=2, sort_keys=True))
@@ -955,13 +956,6 @@ def cmd_provider(args: argparse.Namespace) -> int:
     if action == "setup":
         return _cmd_provider_setup(args)
     raise RuntimeError(f"Unhandled provider command: {action}")
-
-
-def _provider_capability_mode(summary: dict[str, str]) -> str:
-    academic_providers = ("openalex", "semantic_scholar", "crossref", "pubmed")
-    if any(summary.get(provider) == "configured" for provider in academic_providers):
-        return "provider_connected"
-    return "strategy_only"
 
 
 def _cmd_provider_setup(args: argparse.Namespace) -> int:

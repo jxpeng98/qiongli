@@ -36,6 +36,7 @@ from .codex_bridge import CodexBridge
 from .gemini_bridge import GeminiBridge
 from .mcp_connectors import MCPEvidence, MCPConnector
 from .i18n import get_language, get_text
+from .provider_config import provider_capability_mode, provider_config_summary, resolve_provider_config
 from .critique_questions import get_critique_questions
 from .boundary_questions import (
     BOUNDARY_ARTIFACT,
@@ -2046,6 +2047,23 @@ Provide your verification assessment.
                     f"Missing file: {path}",
                     f"Restore {filename} under standards/ before running task-run.",
                 )
+
+        provider_summary = provider_config_summary(resolve_provider_config(cwd=target_cwd))
+        configured_literature_providers = [
+            provider for provider, status in provider_summary.items() if status == "configured"
+        ]
+        for provider in configured_literature_providers:
+            add_check(f"Literature provider {provider}", "ok", "configured")
+        capability_mode = provider_capability_mode(provider_summary)
+        if capability_mode == "provider_connected":
+            add_check("Literature search capability", "ok", capability_mode)
+        else:
+            add_check(
+                "Literature search capability",
+                "warning",
+                "strategy_only; no configured external literature providers",
+                "Run qiongli provider setup or qiongli provider set before relying on external literature search.",
+            )
 
         runtime_registry = {
             "codex": ("OPENAI_API_KEY",),

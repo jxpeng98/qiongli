@@ -13,6 +13,7 @@ from bridges.command_runtime import current_python_command
 from bridges import i18n as i18n_module
 from bridges.mcp_connectors import MCPEvidence
 from bridges.orchestrator import CollaborationMode, ModelOrchestrator
+from bridges.provider_config import set_provider_value
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -317,6 +318,17 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         self.assertIn("MCP scholarly-search: env override configured:", result.merged_analysis)
         self.assertIn("MCP metadata-registry: builtin available: mcp_metadata_registry.py", result.merged_analysis)
         self.assertIn("MCP fulltext-retrieval: builtin available: mcp_fulltext_retrieval.py", result.merged_analysis)
+
+    def test_doctor_reports_literature_provider_config(self) -> None:
+        orchestrator = ModelOrchestrator(standards_dir=REPO_ROOT / "standards")
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            config_home = Path(tmp_dir) / "config"
+            with mock.patch.dict(os.environ, {"QIONGLI_CONFIG_HOME": str(config_home)}, clear=False):
+                set_provider_value("semantic-scholar", "api-key", "doctor-key")
+                result = orchestrator.doctor(REPO_ROOT)
+
+        self.assertIn("Literature provider semantic_scholar: configured", result.merged_analysis)
+        self.assertIn("Literature search capability: provider_connected", result.merged_analysis)
 
     def test_doctor_reports_metadata_registry_enrichment_overlay(self) -> None:
         orchestrator = ModelOrchestrator(standards_dir=REPO_ROOT / "standards")

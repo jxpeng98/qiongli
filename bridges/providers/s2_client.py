@@ -1,11 +1,13 @@
 import json
-import os
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
+
+from bridges.provider_config import resolve_provider_config
 
 S2_GRAPH_BASE = "https://api.semanticscholar.org/graph/v1"
 DEFAULT_TIMEOUT_SECONDS = 15
@@ -67,7 +69,7 @@ def _make_request(url: str) -> dict[str, Any]:
         "User-Agent": "Research-Skills-MCP/1.0",
         "Accept": "application/json",
     }
-    api_key = os.environ.get("SEMANTIC_SCHOLAR_API_KEY") or os.environ.get("S2_API_KEY")
+    api_key = _semantic_scholar_api_key()
     if api_key:
         headers["x-api-key"] = api_key
 
@@ -91,6 +93,16 @@ def _make_request(url: str) -> dict[str, Any]:
             return {"error": str(exc), "data": []}
 
     return {"error": "Semantic Scholar request exhausted retries.", "data": []}
+
+
+def _semantic_scholar_api_key() -> str:
+    providers = resolve_provider_config(cwd=Path.cwd()).get("providers", {})
+    if not isinstance(providers, dict):
+        return ""
+    semantic_scholar = providers.get("semantic_scholar", {})
+    if not isinstance(semantic_scholar, dict):
+        return ""
+    return str(semantic_scholar.get("api_key", "")).strip()
 
 
 def _search_query_with_keyword_filters(
