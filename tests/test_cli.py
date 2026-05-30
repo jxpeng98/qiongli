@@ -4,6 +4,7 @@ import argparse
 import contextlib
 import io
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -207,6 +208,58 @@ class InstallerCliTests(unittest.TestCase):
         command = run_mock.call_args.args[0]
         self.assertEqual(command[:3], [cli_module.sys.executable, "-m", "bridges.orchestrator"])
         self.assertEqual(command[3:], ["doctor", "--cwd", str(Path(".").resolve())])
+
+    def test_provider_set_and_list_redacts_global_config(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            config_home = Path(tmp_dir) / "config"
+            with mock.patch.dict(os.environ, {"QIONGLI_CONFIG_HOME": str(config_home)}, clear=False):
+                with mock.patch.object(
+                    cli_module.sys,
+                    "argv",
+                    ["qiongli", "provider", "set", "semantic-scholar", "api-key", "cli-secret"],
+                ):
+                    self.assertEqual(cli_module.main(), 0)
+
+                stdout = io.StringIO()
+                with mock.patch.object(
+                    cli_module.sys,
+                    "argv",
+                    ["qiongli", "provider", "list", "--json"],
+                ), contextlib.redirect_stdout(stdout):
+                    self.assertEqual(cli_module.main(), 0)
+
+        payload = json.loads(stdout.getvalue())
+        rendered = json.dumps(payload, sort_keys=True)
+        self.assertNotIn("cli-secret", rendered)
+        self.assertEqual(payload["providers"]["semantic_scholar"]["fields"]["api_key"], "configured")
+
+    def test_provider_doctor_json_reports_provider_connected_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            config_home = Path(tmp_dir) / "config"
+            with mock.patch.dict(os.environ, {"QIONGLI_CONFIG_HOME": str(config_home)}, clear=False):
+                for provider, field, value in (
+                    ("openalex", "email", "user@example.com"),
+                    ("semantic-scholar", "api-key", "cli-secret"),
+                ):
+                    with mock.patch.object(
+                        cli_module.sys,
+                        "argv",
+                        ["qiongli", "provider", "set", provider, field, value],
+                    ):
+                        self.assertEqual(cli_module.main(), 0)
+
+                stdout = io.StringIO()
+                with mock.patch.object(
+                    cli_module.sys,
+                    "argv",
+                    ["qiongli", "provider", "doctor", "--json"],
+                ), contextlib.redirect_stdout(stdout):
+                    self.assertEqual(cli_module.main(), 0)
+
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual(payload["capability_mode"], "provider_connected")
+        self.assertEqual(payload["providers"]["openalex"], "configured")
+        self.assertEqual(payload["providers"]["semantic_scholar"], "configured")
 
 
 if __name__ == "__main__":
