@@ -93,7 +93,7 @@ RESEARCH/[topic]/
 - Use the canonical task and output definitions in `references/workflow-contract.md`.
 - Keep stage labels and task IDs unchanged across models.
 - Do not infer stage order alphabetically when the contract exposes explicit ordering metadata.
-- When `self-critique` is one of the required skills, preserve critique history across revision rounds and treat `review/self_critique_log.md` as the canonical issue register for the loop.
+- When `self-critique` is one of the required skills, preserve critique history across revision rounds, treat `review/self_critique_log.md` as the canonical issue register, require the configured minimum review passes before convergence, and never convert a `BLOCK` verdict into `PASS` because of high confidence alone.
 - If a requested output is missing prerequisites, create a gap note and ask whether to:
   1. continue with placeholders, or
   2. run the prerequisite task first.
@@ -108,6 +108,14 @@ RESEARCH/[topic]/
 - In solo mode, record role-specific gate intent: Codex-only writing should cover evidence ledger, citation risk, claim calibration, and scholarly voice checks; Claude-only engineering should cover implementation intent, declared write set, failing-test-first discipline, command evidence, and rollback notes. Current offline audits hard-block missing claim-map artifacts for Codex-only writing and missing implementation-intent artifacts for Claude-only code unless solo gates are `off`.
 - In Codex-Claude duo mode, record blocking disagreements with a disagreement matrix and resolve them by evidence, method risk, implementation validity, and downstream publication impact.
 - When a workflow references `templates/<name>.md`, load the template from the `templates/` subdirectory of this package.
+
+## Literature Provider Configuration
+
+- CLI, Codex, and Claude Code installs can configure external literature providers with `qiongli provider setup` and audit them with `qiongli provider doctor`.
+- Treat `provider_connected` as the only mode where configured external academic provider credentials are available to the local runtime.
+- Treat `strategy_only` as a constrained mode: use platform search or user-supplied corpus, record the limitation, and do not claim review-grade external provider coverage.
+- Claude Desktop/Web focused ZIPs are skill-only packages kept within the 180-file upload budget. They cannot store provider keys or execute OpenAlex, Semantic Scholar, Crossref, or PubMed API calls by themselves.
+- Desktop/Web users need a provider companion or platform-native search capability before claiming `provider_connected` literature search.
 
 ## Skill Loading Strategy
 

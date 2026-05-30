@@ -201,10 +201,16 @@ class ReleaseAutomationTests(unittest.TestCase):
     def test_release_preflight_syncs_npm_payload_before_tests(self) -> None:
         content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
 
+        sync_skill = 'bash "$ROOT_DIR/scripts/sync_skill_package.sh" --target all'
         self.assertIn('echo "[preflight] sync npm payload"', content)
+        self.assertIn(sync_skill, content)
         self.assertIn("python3 scripts/sync_npm_package_payload.py", content)
         self.assertIn('echo "[preflight] sync skill reference docs"', content)
         self.assertIn("python3 scripts/generate_skill_docs.py", content)
+        self.assertLess(
+            content.index(sync_skill),
+            content.index("python3 scripts/audit_distribution_payloads.py"),
+        )
         self.assertLess(
             content.index("python3 scripts/sync_npm_package_payload.py"),
             content.index("python3 scripts/generate_skill_docs.py"),

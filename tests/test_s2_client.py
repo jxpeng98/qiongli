@@ -3,12 +3,14 @@ from __future__ import annotations
 import io
 import json
 import os
+import tempfile
 import unittest
 import urllib.error
 import urllib.parse
 import warnings
 from unittest import mock
 
+from bridges.provider_config import set_provider_value
 from bridges.providers import s2_client
 
 
@@ -164,6 +166,32 @@ class SemanticScholarClientTests(unittest.TestCase):
 
         self.assertEqual(result, {"data": []})
         self.assertEqual(captured_headers["X-api-key"], "demo-key")
+
+    def test_make_request_reads_api_key_from_global_provider_config(self) -> None:
+        captured_headers: dict[str, str] = {}
+
+        def fake_urlopen(request, timeout):  # type: ignore[no-untyped-def]
+            del timeout
+            captured_headers.update(dict(request.header_items()))
+            return _FakeResponse({"data": []})
+
+        with tempfile.TemporaryDirectory() as config_home, self.subTest("global provider config"):
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "QIONGLI_CONFIG_HOME": config_home,
+                    "QIONGLI_SEMANTIC_SCHOLAR_API_KEY": "",
+                    "SEMANTIC_SCHOLAR_API_KEY": "",
+                    "S2_API_KEY": "",
+                },
+                clear=False,
+            ):
+                set_provider_value("semantic-scholar", "api-key", "stored-key")
+                with mock.patch("urllib.request.urlopen", side_effect=fake_urlopen):
+                    result = s2_client._make_request("https://example.com")
+
+        self.assertEqual(result, {"data": []})
+        self.assertEqual(captured_headers["X-api-key"], "stored-key")
 
     def test_make_request_retries_http_429_then_succeeds(self) -> None:
         attempts = {"count": 0}

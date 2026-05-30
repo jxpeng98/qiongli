@@ -48,6 +48,10 @@ Prevent superficial research by forcing the AI to act as "Reviewer 2" or a "Socr
 
 When this skill is active inside orchestrated research runs, treat critique as a stateful loop rather than isolated review comments.
 
+- Run a draft -> review -> targeted revision -> review loop until the reviewer passes after the minimum review count or the maximum revision count is reached.
+- Standard runs require at least 2 review passes before convergence when revision rounds are available; deep runs require at least 3 review passes.
+- A `BLOCK` verdict always remains blocking, even with high confidence. Confidence records certainty; it does not convert a blocker into a pass.
+- A `PASS` before the minimum review count triggers a stability review of the same current draft, not immediate termination.
 - Carry unresolved issues forward into the next round.
 - Mark each issue as `open`, `partial`, `resolved`, or `superseded`.
 - Reuse existing issue IDs when the same problem persists.

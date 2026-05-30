@@ -52,7 +52,9 @@ Claude Desktop and Claude.ai do not install third-party Claude Code plugin marke
 3. In Claude.ai, use the same `Customize > Skills` upload flow and select the same ZIP.
 4. Enable the uploaded `qiongli` skill.
 
-The release ZIP uses `coverage=focused` to stay under upload limits. It is a subject-specialized Desktop/Web package, not a reduced-quality cut. It preserves executable workflows, templates, standards, selected profiles, `skills-summary.md`, and `skills-core.md`; specialized ZIPs also include selected effective skill markdown generated with layered overlays. Detailed canonical source remains available through CLI/npm `coverage=complete`, the Codex / Claude Code / Gemini plugin packages, and the source repository.
+The release ZIP uses `coverage=focused` to stay under the current 180-file upload budget. It is a subject-specialized Desktop/Web package, not a reduced-quality cut. It preserves executable workflows, templates, standards, selected profiles, `skills-summary.md`, and `skills-core.md`; specialized ZIPs also include selected effective skill markdown generated with layered overlays. Detailed canonical source remains available through CLI/npm `coverage=complete`, the Codex / Claude Code / Gemini plugin packages, and the source repository.
+
+Literature provider keys are configured outside the Desktop ZIP. CLI, Codex, and Claude Code users can run `qiongli provider setup`, then verify `provider_connected` or `strategy_only` with `qiongli provider doctor`. The Desktop/Web ZIP is a skill-only package: it cannot store API keys or execute OpenAlex, Semantic Scholar, Crossref, or PubMed calls by itself. Desktop users need a provider companion or platform-native search before claiming `provider_connected`; otherwise record the run as `strategy_only` and treat platform search or user-supplied corpus as the evidence source.
 
 Gemini CLI still installs the local extension payload directly:
 

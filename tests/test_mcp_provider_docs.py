@@ -26,6 +26,28 @@ class MCPProviderDocsTests(unittest.TestCase):
         ):
             self.assertIn(token, content)
 
+    def test_install_docs_document_desktop_provider_boundary(self) -> None:
+        docs = {
+            "README.md": (REPO_ROOT / "README.md").read_text(encoding="utf-8"),
+            "docs/guide/install.md": (REPO_ROOT / "docs" / "guide" / "install.md").read_text(
+                encoding="utf-8"
+            ),
+            "docs/zh/guide/install.md": (
+                REPO_ROOT / "docs" / "zh" / "guide" / "install.md"
+            ).read_text(encoding="utf-8"),
+        }
+
+        for label, content in docs.items():
+            with self.subTest(label=label):
+                for token in (
+                    "`qiongli provider setup`",
+                    "provider companion",
+                    "provider_connected",
+                    "strategy_only",
+                    "180",
+                ):
+                    self.assertIn(token, content)
+
     def test_chinese_provider_setup_includes_capability_matrix_and_modes(self) -> None:
         content = (
             REPO_ROOT / "docs" / "zh" / "advanced" / "mcp-providers-setup.md"
