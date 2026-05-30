@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Claude Desktop MCPB for Qiongli academic literature provider search.",
   "scripts": {
-    "test": "node --check server/index.mjs",
+    "test": "node --test test/*.test.mjs",
     "start": "node server/index.mjs"
   },
   "dependencies": {
