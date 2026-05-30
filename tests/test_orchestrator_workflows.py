@@ -1426,9 +1426,9 @@ primary_artifact: code/plan.md
 
     def test_parse_review_verdict_convergence(self) -> None:
         orchestrator = MockOrchestrator()
-        # High confidence but BLOCK should auto-converge to PASS
+        # High confidence confirms the reviewer's certainty; it must not override BLOCK.
         verdict, conf = orchestrator._parse_review_verdict("- Verdict: BLOCK\nConfidence: 0.9")
-        self.assertEqual(verdict, "PASS")
+        self.assertEqual(verdict, "BLOCK")
         self.assertEqual(conf, 0.9)
 
     def test_critique_question_injection(self) -> None:
@@ -1540,6 +1540,105 @@ primary_artifact: code/plan.md
         self.assertIn("review/self_critique_log.md", revision_prompt)
         self.assertIn("Critical Issues: Needed more depth", revision_prompt)
         self.assertTrue(result.data["self_critique_loop"]["enabled"])
+        self.assertEqual(result.data["review_loop_state"]["status"], "passed")
+
+    def test_task_run_self_critique_requires_stability_review_after_pass(self) -> None:
+        class PassingReviewOrchestrator(MockOrchestrator):
+            def __init__(self) -> None:
+                super().__init__()
+                self.review_count = 0
+
+            def _execute_runtime_agent(
+                self,
+                agent_name: str,
+                prompt: str,
+                cwd: Path,
+                runtime_options: dict[str, Any] | None = None,
+                profile_directive: str | None = None,
+            ) -> BridgeResponse:
+                if "Review the draft" in prompt:
+                    self.review_count += 1
+                    self.runtime_calls.append({
+                        "agent": agent_name,
+                        "prompt": prompt,
+                        "runtime_options": dict(runtime_options or {}),
+                        "profile_directive": profile_directive or "",
+                        "cwd": str(cwd),
+                    })
+                    return BridgeResponse(
+                        success=True,
+                        model=agent_name,
+                        content="Verdict: PASS\nConfidence: 0.92\nCritical Issues: none",
+                    )
+                return super()._execute_runtime_agent(
+                    agent_name, prompt, cwd, runtime_options, profile_directive
+                )
+
+        orchestrator = PassingReviewOrchestrator()
+        result = orchestrator.task_run(
+            task_id="F3",
+            paper_type="empirical",
+            topic="stable-pass",
+            cwd=REPO_ROOT,
+            skip_validation=True,
+        )
+
+        review_prompts = [
+            call["prompt"]
+            for call in orchestrator.runtime_calls
+            if "Review the draft" in call["prompt"]
+        ]
+        revision_prompts = [
+            call["prompt"]
+            for call in orchestrator.runtime_calls
+            if "You are revising a research workflow task draft" in call["prompt"]
+        ]
+        self.assertEqual(len(review_prompts), 2)
+        self.assertEqual(len(revision_prompts), 0)
+        self.assertIn("running stability review 2/2 before convergence", result.merged_analysis)
+        self.assertEqual(result.data["review_loop_state"]["status"], "passed")
+        self.assertEqual(result.data["review_loop_state"]["reviews_completed"], 2)
+
+    def test_task_run_final_block_marks_loop_blocked(self) -> None:
+        class BlockingReviewOrchestrator(MockOrchestrator):
+            def _execute_runtime_agent(
+                self,
+                agent_name: str,
+                prompt: str,
+                cwd: Path,
+                runtime_options: dict[str, Any] | None = None,
+                profile_directive: str | None = None,
+            ) -> BridgeResponse:
+                if "Review the draft" in prompt:
+                    self.runtime_calls.append({
+                        "agent": agent_name,
+                        "prompt": prompt,
+                        "runtime_options": dict(runtime_options or {}),
+                        "profile_directive": profile_directive or "",
+                        "cwd": str(cwd),
+                    })
+                    return BridgeResponse(
+                        success=True,
+                        model=agent_name,
+                        content="Verdict: BLOCK\nConfidence: 0.88\nCritical Issues: unresolved overclaim",
+                    )
+                return super()._execute_runtime_agent(
+                    agent_name, prompt, cwd, runtime_options, profile_directive
+                )
+
+        orchestrator = BlockingReviewOrchestrator()
+        result = orchestrator.task_run(
+            task_id="F3",
+            paper_type="empirical",
+            topic="blocked-loop",
+            cwd=REPO_ROOT,
+            skip_validation=True,
+        )
+
+        self.assertEqual(result.data["review_loop_state"]["status"], "blocked")
+        self.assertEqual(result.data["review_loop_state"]["final_verdict"], "BLOCK")
+        self.assertLessEqual(result.confidence, 0.55)
+        self.assertIn("Review BLOCKED at final round 2", result.merged_analysis)
 
     @unittest.mock.patch("sys.stdin.isatty", return_value=False)
     def test_interactive_mode_skips_when_no_tty(self, mock_isatty) -> None:
