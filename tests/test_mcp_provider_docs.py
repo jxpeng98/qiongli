@@ -41,10 +41,8 @@ class MCPProviderDocsTests(unittest.TestCase):
             with self.subTest(label=label):
                 for token in (
                     "`qiongli provider setup`",
-                    "`qiongli companion setup`",
-                    "`qiongli companion doctor --json`",
-                    "`qiongli companion export-status --json`",
-                    "provider companion",
+                    ".mcpb",
+                    "qiongli-literature-provider",
                     "provider_connected",
                     "strategy_only",
                     "180",
