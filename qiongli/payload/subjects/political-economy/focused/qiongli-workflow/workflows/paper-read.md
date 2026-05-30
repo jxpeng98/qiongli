@@ -30,7 +30,9 @@ Set `[topic]` variable based on user selection.
 Ensure the target directory structure exists:
 ```
 RESEARCH/[topic]/
+├── literature/
 ├── notes/
+├── retrieval_manifest.csv
 └── bibliography.bib
 ```
 
@@ -42,7 +44,18 @@ Attempt to access the paper through:
 3. arXiv API (for arXiv links)
 4. Title search via Semantic Scholar
 
-If full text unavailable, work with abstract and metadata.
+If full text unavailable, work with abstract and metadata only. Mark the note and project-level summary entry with `evidence_limit: abstract_only` or `evidence_limit: metadata_only`.
+
+### Step 1.5: Truthfulness Boundary
+
+Apply this boundary before writing any note, summary, matrix row, or BibTeX-adjacent claim:
+
+- Do not invent citations, page numbers, sample sizes, methods, results, effect sizes, datasets, author claims, or implications.
+- Every central claim must have a source anchor: paper section, page, table, quote, abstract, metadata field, or existing note anchor.
+- Separate author claims, extracted facts, agent interpretation, and project relevance.
+- Label inference strength as `direct_evidence`, `reasonable_inference`, or `unsupported_gap`.
+- If evidence is missing, write an `unsupported_gap` entry or uncertainty note instead of completing the field.
+- B2 may organize targeted reading evidence, but it must not claim systematic-review-grade coverage.
 
 ### Step 2: Metadata Extraction
 
@@ -110,7 +123,7 @@ Apply the **quality-assessor** skill:
 ### Step 5: Generate Outputs
 
 **Paper Note** (Markdown):
-Create structured note using the template → Save to `RESEARCH/[topic]/notes/[citekey].md`
+Create structured note using `templates/paper-note.md` → Save to `RESEARCH/[topic]/notes/[citekey].md`
 
 Use the **metadata-enricher** skill to:
 1. Normalize DOI and metadata via Crossref/OpenAlex
@@ -122,6 +135,32 @@ Use the **fulltext-fetcher** skill to:
 
 **BibTeX Entry**:
 Generate properly formatted BibTeX → Append to `RESEARCH/[topic]/bibliography.bib`
+
+### Step 6: Project-Level Reading Summary
+
+Update or create these B2 summary artifacts:
+
+1. `RESEARCH/[topic]/literature/paper_reading_matrix.md` using `templates/paper-reading-matrix.md`
+2. `RESEARCH/[topic]/literature/paper_reading_summary.md` using `templates/paper-reading-summary.md`
+
+For the current paper, add or update:
+- citation/citekey
+- `evidence_limit`
+- retrieval status and version read
+- theory/framework
+- method or identification strategy
+- dataset/source
+- main finding
+- limitations
+- project relevance
+- `source_anchor`
+- inference strength (`direct_evidence`, `reasonable_inference`, `unsupported_gap`)
+
+When merging into existing summary files:
+- Preserve existing human-written notes.
+- Do not overwrite prior synthesis prose unless the replacement is strictly better grounded and all source anchors are retained.
+- If a safe merge is unclear, append a dated entry under the relevant section.
+- Put unsupported or under-specified material in the uncertainty register.
 
 ## Output Format
 
@@ -136,6 +175,13 @@ The paper note should follow this structure:
 - **Venue**:
 - **DOI**:
 - **Evidence Rating**: [ ] A [ ] B [ ] C [ ] D [ ] E
+- **Evidence Limit**: full_text / abstract_only / metadata_only / unavailable
+- **Retrieval Status**: retrieved_oa / retrieved_preprint / abstract_only / not_retrieved:<reason>
+
+## Source Anchors
+| Claim ID | Claim Type | Source Anchor | Inference Strength |
+|---|---|---|---|
+| C1 | author_claim / extracted_fact / interpretation / project_relevance | section/table/page/abstract/metadata | direct_evidence / reasonable_inference / unsupported_gap |
 
 ## Quick Summary
 [2-3 sentence summary]

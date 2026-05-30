@@ -536,6 +536,15 @@ class SubjectMaterializerTests(unittest.TestCase):
             self.assertFalse((out / "skills" / "domain-profiles" / "economics.yaml").exists())
             manuscript = (out / "skills" / "F_writing" / "manuscript-architect.md").read_text(encoding="utf-8")
             self.assertIn("## Accounting Overlay", manuscript)
+            for template_name in (
+                "paper-note.md",
+                "paper-reading-summary.md",
+                "paper-reading-matrix.md",
+            ):
+                self.assertTrue(
+                    (out / "templates" / template_name).exists(),
+                    msg=f"missing B2 paper-read template in focused package: {template_name}",
+                )
 
     def test_materializes_core_desktop_package_under_file_budget(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

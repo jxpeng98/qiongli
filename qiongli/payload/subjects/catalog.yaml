@@ -173,6 +173,9 @@ subjects:
       - restud
     template_refs:
       - analysis-plan.md
+      - paper-note.md
+      - paper-reading-summary.md
+      - paper-reading-matrix.md
       - claim-evidence-ledger.csv
       - data-availability.md
       - data-management-plan.md
@@ -293,6 +296,9 @@ subjects:
       - review-of-accounting-studies
     template_refs:
       - analysis-plan.md
+      - paper-note.md
+      - paper-reading-summary.md
+      - paper-reading-matrix.md
       - claim-evidence-ledger.csv
       - data-availability.md
       - data-management-plan.md
@@ -405,6 +411,9 @@ subjects:
       - journal-of-marketing
     template_refs:
       - analysis-plan.md
+      - paper-note.md
+      - paper-reading-summary.md
+      - paper-reading-matrix.md
       - claim-evidence-ledger.csv
       - data-availability.md
       - data-management-plan.md
@@ -517,6 +526,9 @@ subjects:
       - financial-management
     template_refs:
       - analysis-plan.md
+      - paper-note.md
+      - paper-reading-summary.md
+      - paper-reading-matrix.md
       - claim-evidence-ledger.csv
       - data-availability.md
       - data-management-plan.md
@@ -630,6 +642,9 @@ subjects:
       - comparative-political-studies
     template_refs:
       - analysis-plan.md
+      - paper-note.md
+      - paper-reading-summary.md
+      - paper-reading-matrix.md
       - claim-evidence-ledger.csv
       - data-availability.md
       - data-management-plan.md
@@ -742,6 +757,9 @@ subjects:
       - global-policy
     template_refs:
       - analysis-plan.md
+      - paper-note.md
+      - paper-reading-summary.md
+      - paper-reading-matrix.md
       - claim-evidence-ledger.csv
       - data-availability.md
       - data-management-plan.md
@@ -859,6 +877,9 @@ subjects:
       - review-of-accounting-studies
     template_refs:
       - analysis-plan.md
+      - paper-note.md
+      - paper-reading-summary.md
+      - paper-reading-matrix.md
       - claim-evidence-ledger.csv
       - data-availability.md
       - data-management-plan.md

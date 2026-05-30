@@ -433,6 +433,8 @@ task_catalog:
       - "notes/"
       - "bibliography.bib"
       - "retrieval_manifest.csv"
+      - "literature/paper_reading_summary.md"
+      - "literature/paper_reading_matrix.md"
   B3:
     stage: "B"
     title: "citation-snowballing"

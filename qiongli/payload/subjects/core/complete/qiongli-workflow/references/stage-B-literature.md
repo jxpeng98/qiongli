@@ -6,7 +6,7 @@ This stage builds the *evidence base* for positioning: search → screening → 
 
 - `B1` → `protocol.md`, `search_strategy.md`, `search_log.md`, `search_results.csv`, `dedup_log.csv`, `search_diagnostics.md`, `snowball_log.md`, `screening/`, `notes/`, `bibliography.bib`, `retrieval_manifest.csv`, `extraction_table.md`, `quality_table.md`, `synthesis_matrix.md`, `synthesis.md`
 - `B1_5` → `literature/concept_extraction.md`
-- `B2` → `notes/`, `bibliography.bib`, `retrieval_manifest.csv`
+- `B2` → `notes/`, `bibliography.bib`, `retrieval_manifest.csv`, `literature/paper_reading_summary.md`, `literature/paper_reading_matrix.md`
 - `B3` → `snowball_log.md`, `search_results.csv`, `dedup_log.csv`
 - `B4` → `manuscript/manuscript.md` (related work section)
 - `B5` → `bibliography.bib`, `references.ris`, `references.json`
@@ -185,9 +185,21 @@ Use when you have 3–10 seed papers to bootstrap the project.
 **Definition of done**
 - `notes/` contains structured notes for each seed paper
 - `bibliography.bib` has citekeys that match note filenames
+- `retrieval_manifest.csv` records access status, source provider, version read, and retrieval limits
+- `literature/paper_reading_matrix.md` compares seed papers by theory, method/identification, dataset/source, main finding, limitation, project relevance, source anchors, and evidence limit
+- `literature/paper_reading_summary.md` organizes targeted reading into grounded themes, method/data patterns, stable single-paper or multi-paper findings, contradictions, gaps, writing-ready citation points, and uncertainty registers
 
 Recommended note filename convention:
 - `notes/{citekey}.md` (citekey derived from first author + year + keyword)
+
+### Truthfulness boundary
+
+B2 organizes targeted reading evidence; it does not create systematic-review-grade synthesis unless the upstream corpus and screening artifacts support that claim. Do not invent citations, page numbers, sample sizes, methods, results, effect sizes, datasets, author claims, or implications. If only metadata or an abstract is available, mark `evidence_limit: abstract_only` or `evidence_limit: metadata_only`, keep unsupported fields empty, and write missing claims as `unsupported_gap` entries.
+
+Every project-level summary claim should carry:
+- `source_anchor`: citekey plus section, page, table, quote ID, abstract, or metadata field
+- `evidence_limit`: `full_text`, `abstract_only`, `metadata_only`, or `unavailable`
+- `inference_strength`: `direct_evidence`, `reasonable_inference`, or `unsupported_gap`
 
 ---
 

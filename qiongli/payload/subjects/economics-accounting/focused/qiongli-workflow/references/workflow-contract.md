@@ -42,7 +42,7 @@ Use this contract as the single source of truth for:
 | `A5` | A | Target venue analysis | `framing/venue_analysis.md` |
 | `B1` | B | Systematic review | `protocol.md`, `search_strategy.md`, `search_log.md`, `search_results.csv`, `dedup_log.csv`, `snowball_log.md`, `screening/`, `notes/`, `bibliography.bib`, `retrieval_manifest.csv`, `extraction_table.md`, `quality_table.md`, `synthesis_matrix.md`, `synthesis.md` |
 | `B1_5` | B | Concept/keyword extraction | `literature/concept_extraction.md` |
-| `B2` | B | Targeted paper reading | `notes/`, `bibliography.bib`, `retrieval_manifest.csv` |
+| `B2` | B | Targeted paper reading | `notes/`, `bibliography.bib`, `retrieval_manifest.csv`, `literature/paper_reading_summary.md`, `literature/paper_reading_matrix.md` |
 | `B3` | B | Citation snowballing | `snowball_log.md`, `search_results.csv`, `dedup_log.csv` |
 | `B4` | B | Related work writing | `manuscript/manuscript.md` |
 | `B5` | B | Citation management | `bibliography.bib`, `references.ris`, `references.json` |
