@@ -209,7 +209,7 @@ fi
 
 echo "[preflight] sync skill package"
 if [[ -x "$ROOT_DIR/scripts/sync_skill_package.sh" ]]; then
-  bash "$ROOT_DIR/scripts/sync_skill_package.sh"
+  bash "$ROOT_DIR/scripts/sync_skill_package.sh" --target all
   # Verify package is self-contained
   pkg_dir="$ROOT_DIR/qiongli-workflow"
   sync_ok=1
