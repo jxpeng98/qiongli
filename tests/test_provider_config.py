@@ -5,6 +5,7 @@ from pathlib import Path
 
 from bridges.provider_config import (
     global_provider_config_path,
+    provider_capability_mode,
     redact_provider_config,
     resolve_provider_config,
     set_provider_value,
@@ -105,6 +106,26 @@ def test_redacted_config_never_exposes_secret_values(tmp_path: Path, monkeypatch
     assert "user@example.com" not in rendered
     assert redacted["providers"]["semantic_scholar"]["fields"]["api_key"] == "configured"
     assert redacted["providers"]["openalex"]["fields"]["email"] == "configured"
+
+
+def test_provider_capability_mode_reports_connected_only_when_configured() -> None:
+    assert provider_capability_mode(
+        {
+            "openalex": "missing",
+            "semantic_scholar": "missing",
+            "crossref": "missing",
+            "pubmed": "missing",
+        }
+    ) == "strategy_only"
+
+    assert provider_capability_mode(
+        {
+            "openalex": "missing",
+            "semantic_scholar": "configured",
+            "crossref": "missing",
+            "pubmed": "missing",
+        }
+    ) == "provider_connected"
 
 
 def test_set_and_unset_provider_value_round_trip_global_config(tmp_path: Path, monkeypatch) -> None:

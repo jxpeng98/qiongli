@@ -85,6 +85,13 @@ def provider_config_summary(config: Mapping[str, object]) -> dict[str, str]:
     return summary
 
 
+def provider_capability_mode(summary: Mapping[str, str]) -> str:
+    academic_providers = ("openalex", "semantic_scholar", "crossref", "pubmed")
+    if any(summary.get(provider) == "configured" for provider in academic_providers):
+        return "provider_connected"
+    return "strategy_only"
+
+
 def set_provider_value(provider: str, field: str, value: str, *, project_dir: Path | str | None = None) -> Path:
     if project_dir is not None:
         raise NotImplementedError("project provider writes are not implemented yet")
