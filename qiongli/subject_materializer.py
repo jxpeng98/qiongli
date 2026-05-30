@@ -596,7 +596,7 @@ def _render_skill_md(subject: SubjectDefinition, flavor: str) -> str:
             "- Treat `provider_connected` as the only mode where configured external academic provider credentials are available to the local runtime.",
             "- Treat `strategy_only` as a constrained mode: use platform search or user-supplied corpus, record the limitation, and do not claim review-grade external provider coverage.",
             "- Claude Desktop/Web focused ZIPs are skill-only packages kept within the 180-file upload budget. They cannot store provider keys or execute OpenAlex, Semantic Scholar, Crossref, or PubMed API calls by themselves.",
-            "- Desktop/Web users need a provider companion or platform-native search capability before claiming `provider_connected` literature search.",
+            "- Desktop/Web users need a provider companion or platform-native search capability before claiming `provider_connected` literature search. When the local CLI is installed, use `qiongli companion setup`, verify with `qiongli companion doctor --json`, and export an auditable snapshot with `qiongli companion export-status --json`.",
             "",
             "## Skill Loading Strategy",
             "",
