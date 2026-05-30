@@ -54,7 +54,7 @@ Claude Desktop 和 Claude.ai 不安装第三方 Claude Code plugin marketplace�
 
 Release ZIP 使用 `coverage=focused`，用于保持当前 180 文件上传预算。它是 subject 专精 Desktop/Web 包，不是降质删减版：保留可执行 workflows、templates、standards、所选 profiles、`skills-summary.md` 和 `skills-core.md`；专精 ZIP 还包含通过 layered overlays 生成的 selected effective skill markdown。完整 canonical source 可通过默认 `coverage=complete` 的 CLI/npm 安装、Codex / Claude Code / Gemini plugin 包和源码仓库获得。
 
-Literature provider keys 在 Desktop ZIP 之外配置。CLI、Codex 和 Claude Code 用户可以运行 `qiongli provider setup`，再用 `qiongli provider doctor` 检查当前是 `provider_connected` 还是 `strategy_only`。同时安装本地 CLI 的 Desktop 用户可以走 provider companion 路径：运行 `qiongli companion setup`，用 `qiongli companion doctor --json` 验证，并在 Desktop workflow 需要可审计状态时提供 `qiongli companion export-status --json`。Desktop/Web ZIP 是 skill-only package：它本身不能保存 API key，也不能直接执行 OpenAlex、Semantic Scholar、Crossref 或 PubMed 调用。Desktop 用户需要 provider companion 或平台原生搜索能力，才能声称 `provider_connected`；否则要把运行记录为 `strategy_only`，并把平台搜索或用户提供的 corpus 作为证据来源。
+Literature provider keys 在 Desktop ZIP 之外配置。CLI、Codex 和 Claude Code 用户可以运行 `qiongli provider setup`，再用 `qiongli provider doctor` 检查当前是 `provider_connected` 还是 `strategy_only`。需要外部 provider search 的 Desktop 用户应安装 Qiongli Literature Provider MCPB（`qiongli-literature-provider.mcpb`，可用后安装）。Desktop/Web ZIP 是 skill-only package：它本身不能保存 API key，也不能直接执行 OpenAlex、Semantic Scholar、Crossref 或 PubMed 调用。Desktop 用户需要 `qiongli-literature-provider` MCPB 或平台原生搜索能力，才能声称 `provider_connected`；否则要把运行记录为 `strategy_only`，并把平台搜索或用户提供的 corpus 作为证据来源。
 
 Gemini CLI 仍然直接安装本地 extension payload：
 

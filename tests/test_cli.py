@@ -261,54 +261,5 @@ class InstallerCliTests(unittest.TestCase):
         self.assertEqual(payload["providers"]["openalex"], "configured")
         self.assertEqual(payload["providers"]["semantic_scholar"], "configured")
 
-    def test_companion_doctor_json_reports_strategy_only_without_config(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            config_home = Path(tmp_dir) / "config"
-            stdout = io.StringIO()
-            with mock.patch.dict(os.environ, {"QIONGLI_CONFIG_HOME": str(config_home)}, clear=False):
-                with mock.patch.object(
-                    cli_module.sys,
-                    "argv",
-                    ["qiongli", "companion", "doctor", "--json"],
-                ), contextlib.redirect_stdout(stdout):
-                    self.assertEqual(cli_module.main(), 0)
-
-        payload = json.loads(stdout.getvalue())
-        self.assertEqual(payload["status"], "ok")
-        self.assertEqual(payload["capability_mode"], "strategy_only")
-        self.assertEqual(payload["providers"]["openalex"], "missing")
-        self.assertEqual(payload["providers"]["semantic_scholar"], "missing")
-        self.assertTrue(payload["config_path"].endswith("providers.json"))
-
-    def test_companion_setup_and_export_status_json_do_not_leak_secret(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            config_home = Path(tmp_dir) / "config"
-            with mock.patch.dict(os.environ, {"QIONGLI_CONFIG_HOME": str(config_home)}, clear=False):
-                with mock.patch.object(
-                    cli_module.sys,
-                    "argv",
-                    ["qiongli", "companion", "setup"],
-                ), mock.patch("builtins.input", side_effect=["user@example.com", "desktop-secret"]):
-                    self.assertEqual(cli_module.main(), 0)
-
-                stdout = io.StringIO()
-                with mock.patch.object(
-                    cli_module.sys,
-                    "argv",
-                    ["qiongli", "companion", "export-status", "--json"],
-                ), contextlib.redirect_stdout(stdout):
-                    self.assertEqual(cli_module.main(), 0)
-
-        payload = json.loads(stdout.getvalue())
-        rendered = json.dumps(payload, sort_keys=True)
-        self.assertEqual(payload["status"], "ok")
-        self.assertEqual(payload["capability_mode"], "provider_connected")
-        self.assertEqual(payload["providers"]["openalex"], "configured")
-        self.assertEqual(payload["providers"]["semantic_scholar"], "configured")
-        self.assertEqual(payload["providers"]["crossref"], "missing")
-        self.assertNotIn("desktop-secret", rendered)
-        self.assertNotIn("user@example.com", rendered)
-
-
 if __name__ == "__main__":
     unittest.main()

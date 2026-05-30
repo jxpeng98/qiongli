@@ -958,55 +958,6 @@ def cmd_provider(args: argparse.Namespace) -> int:
     raise RuntimeError(f"Unhandled provider command: {action}")
 
 
-def cmd_companion(args: argparse.Namespace) -> int:
-    action = getattr(args, "companion_cmd", "")
-    if action == "setup":
-        return _cmd_companion_setup(args)
-    if action in {"doctor", "export-status"}:
-        payload = _companion_status_payload()
-        if args.json:
-            print(json.dumps(payload, indent=2, sort_keys=True))
-            return 0
-        print("Qiongli Provider Companion")
-        print("==========================")
-        for provider, status in payload["providers"].items():
-            print(f"- {provider}: {status}")
-        print(f"- capability_mode: {payload['capability_mode']}")
-        print(f"- config_path: {payload['config_path']}")
-        return 0
-    raise RuntimeError(f"Unhandled companion command: {action}")
-
-
-def _companion_status_payload() -> dict[str, object]:
-    config = resolve_provider_config(cwd=Path.cwd())
-    summary = provider_config_summary(config)
-    return {
-        "status": "ok",
-        "config_path": str(global_provider_config_path()),
-        "providers": summary,
-        "capability_mode": provider_capability_mode(summary),
-    }
-
-
-def _cmd_companion_setup(args: argparse.Namespace) -> int:
-    del args
-    print("Qiongli Provider Companion Setup")
-    print("This writes the same provider config used by CLI, Codex, and Claude Code.")
-    print("Press Enter to skip optional values.")
-    prompts = (
-        ("openalex", "email", "OpenAlex email"),
-        ("semantic-scholar", "api-key", "Semantic Scholar API key"),
-    )
-    for provider, field, label in prompts:
-        value = input(f"{label}: ").strip()
-        if value:
-            set_provider_value(provider, field, value)
-    payload = _companion_status_payload()
-    print(f"Provider companion status: {payload['capability_mode']}")
-    print(f"Provider configuration saved to {global_provider_config_path()}")
-    return 0
-
-
 def _cmd_provider_setup(args: argparse.Namespace) -> int:
     del args
     print("Qiongli Literature Search Setup")
@@ -1170,14 +1121,6 @@ def build_parser() -> argparse.ArgumentParser:
     provider_doctor.add_argument("--json", action="store_true", help="Emit JSON only")
     provider_doctor.add_argument("--network", action="store_true", help="Reserved for future network checks")
 
-    companion = subparsers.add_parser("companion", help="Configure and inspect the local Desktop provider companion")
-    companion_subparsers = companion.add_subparsers(dest="companion_cmd", required=True)
-    companion_subparsers.add_parser("setup", help="Interactively configure provider companion credentials")
-    companion_doctor = companion_subparsers.add_parser("doctor", help="Check provider companion status")
-    companion_doctor.add_argument("--json", action="store_true", help="Emit JSON only")
-    companion_export = companion_subparsers.add_parser("export-status", help="Export provider companion status")
-    companion_export.add_argument("--json", action="store_true", help="Emit JSON only")
-
     doctor = subparsers.add_parser("doctor", help="Run orchestrator doctor for the current project")
     doctor.add_argument(
         "--cwd",
@@ -1247,8 +1190,6 @@ def main() -> int:
         return cmd_align(args)
     if args.cmd == "provider":
         return cmd_provider(args)
-    if args.cmd == "companion":
-        return cmd_companion(args)
     if args.cmd == "doctor":
         return cmd_doctor(args)
     if args.cmd == "init":
