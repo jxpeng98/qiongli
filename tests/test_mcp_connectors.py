@@ -9,6 +9,7 @@ from unittest import mock
 
 from bridges.command_runtime import current_python_command
 from bridges.mcp_connectors import MCPConnector
+from bridges.provider_config import set_provider_value
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -67,6 +68,20 @@ class MCPConnectorTests(unittest.TestCase):
 
         self.assertEqual(resolution.source, "builtin")
         self.assertTrue((resolution.native_script or "").endswith("mcp_research_collab.py"))
+
+    def test_builtin_scholarly_search_reports_provider_config(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            config_home = root / "config"
+            with mock.patch.dict(os.environ, {"QIONGLI_CONFIG_HOME": str(config_home)}, clear=False):
+                set_provider_value("openalex", "email", "user@example.com")
+                evidence = self.connector.collect("scholarly-search", {}, root)
+
+        self.assertEqual(evidence.provider, "scholarly-search")
+        self.assertEqual(evidence.status, "warning")
+        self.assertEqual(evidence.data["provider_config"]["openalex"], "configured")
+        self.assertEqual(evidence.data["provider_config"]["semantic_scholar"], "missing")
+        self.assertEqual(evidence.data["capability_mode"], "provider_connected")
 
     def test_collect_external_provider_executes_quoted_env_command_with_space_paths(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

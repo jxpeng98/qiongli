@@ -36,6 +36,7 @@ from .codex_bridge import CodexBridge
 from .gemini_bridge import GeminiBridge
 from .mcp_connectors import MCPEvidence, MCPConnector
 from .i18n import get_language, get_text
+from .provider_config import provider_capability_mode, provider_config_summary, resolve_provider_config
 from .critique_questions import get_critique_questions
 from .boundary_questions import (
     BOUNDARY_ARTIFACT,
@@ -1332,13 +1333,29 @@ Provide your verification assessment.
     ) -> dict[str, Any]:
         enabled = self.SELF_CRITIQUE_SKILL in required_skills
         loop_rounds = max(0, max_revision_rounds)
+        max_review_rounds = loop_rounds + 1
+        if enabled and loop_rounds > 0:
+            min_review_rounds = 3 if research_depth == "deep" else 2
+            min_review_rounds = min(min_review_rounds, max_review_rounds)
+        else:
+            min_review_rounds = 1
         return {
             "enabled": enabled,
             "skill": self.SELF_CRITIQUE_SKILL,
             "artifact": self.SELF_CRITIQUE_ARTIFACT,
             "max_rounds": loop_rounds,
+            "max_review_rounds": max_review_rounds,
+            "min_review_rounds": min_review_rounds,
+            "required_consecutive_passes": 1,
             "history_persistent": enabled and loop_rounds > 0,
             "round_policy": "depth-floor" if research_depth == "deep" else "explicit-max-rounds",
+            "pass_policy": "stability-review-before-stop" if min_review_rounds > 1 else "single-pass-stop",
+            "block_policy": "revise-until-pass-or-max-rounds",
+            "stopping_conditions": [
+                "PASS after min_review_rounds and required_consecutive_passes",
+                "BLOCK at max_revision_rounds",
+                "runtime failure during review or revision",
+            ],
         }
 
     def _format_revision_history_for_prompt(
@@ -1366,6 +1383,98 @@ Provide your verification assessment.
                 )
             )
         return "\n\n".join(blocks)
+
+    def _bounded_loop_int(
+        self,
+        loop_config: dict[str, Any],
+        key: str,
+        default: int,
+        minimum: int = 1,
+    ) -> int:
+        try:
+            value = int(loop_config.get(key, default) or default)
+        except (TypeError, ValueError):
+            value = default
+        return max(minimum, value)
+
+    def _count_consecutive_passes(self, revision_history: list[dict[str, Any]]) -> int:
+        count = 0
+        for entry in reversed(revision_history):
+            if str(entry.get("verdict", "")).strip().upper() != "PASS":
+                break
+            count += 1
+        return count
+
+    def _next_review_loop_action(
+        self,
+        self_critique_loop: dict[str, Any],
+        revision_history: list[dict[str, Any]],
+        review_round: int,
+        max_revision_rounds: int,
+    ) -> tuple[str, str, str]:
+        """Return (action, note, status) for the review/revision loop."""
+        latest = revision_history[-1] if revision_history else {}
+        verdict = str(latest.get("verdict", "BLOCK")).strip().upper() or "BLOCK"
+        try:
+            confidence = float(latest.get("confidence", 0.0) or 0.0)
+        except (TypeError, ValueError):
+            confidence = 0.0
+
+        reviews_completed = len(revision_history)
+        min_review_rounds = self._bounded_loop_int(
+            self_critique_loop,
+            "min_review_rounds",
+            1,
+        )
+        required_consecutive_passes = self._bounded_loop_int(
+            self_critique_loop,
+            "required_consecutive_passes",
+            1,
+        )
+        consecutive_passes = self._count_consecutive_passes(revision_history)
+
+        if verdict == "PASS":
+            if reviews_completed < min_review_rounds:
+                return (
+                    "review_again",
+                    (
+                        f"Review PASSED at round {review_round} "
+                        f"(confidence={confidence:.2f}); running stability review "
+                        f"{reviews_completed + 1}/{min_review_rounds} before convergence."
+                    ),
+                    "stability_review",
+                )
+            if consecutive_passes < required_consecutive_passes:
+                return (
+                    "review_again",
+                    (
+                        f"Review PASSED at round {review_round} "
+                        f"(confidence={confidence:.2f}); waiting for "
+                        f"{required_consecutive_passes} consecutive PASS verdicts."
+                    ),
+                    "stability_review",
+                )
+            return (
+                "stop",
+                f"Review PASSED at round {review_round} (confidence={confidence:.2f}); loop converged.",
+                "passed",
+            )
+
+        if review_round < max_revision_rounds:
+            return (
+                "revise",
+                f"Review BLOCKED at round {review_round} (confidence={confidence:.2f}); revising.",
+                "revision_required",
+            )
+
+        return (
+            "stop",
+            (
+                f"Review BLOCKED at final round {review_round} "
+                f"(confidence={confidence:.2f}); max rounds reached."
+            ),
+            "blocked",
+        )
 
     def _check_task_completion(self, cwd: Path, artifact_root: str, topic: str, task_id: str) -> bool:
         _, outputs = self._load_task_outputs(task_id)
@@ -1938,6 +2047,23 @@ Provide your verification assessment.
                     f"Missing file: {path}",
                     f"Restore {filename} under standards/ before running task-run.",
                 )
+
+        provider_summary = provider_config_summary(resolve_provider_config(cwd=target_cwd))
+        configured_literature_providers = [
+            provider for provider, status in provider_summary.items() if status == "configured"
+        ]
+        for provider in configured_literature_providers:
+            add_check(f"Literature provider {provider}", "ok", "configured")
+        capability_mode = provider_capability_mode(provider_summary)
+        if capability_mode == "provider_connected":
+            add_check("Literature search capability", "ok", capability_mode)
+        else:
+            add_check(
+                "Literature search capability",
+                "warning",
+                "strategy_only; no configured external literature providers",
+                "Run qiongli provider setup or qiongli provider set before relying on external literature search.",
+            )
 
         runtime_registry = {
             "codex": ("OPENAI_API_KEY",),
@@ -3815,16 +3941,31 @@ Stage-specific critique questions (MUST address each):
                 self_critique_loop.get("artifact", self.SELF_CRITIQUE_ARTIFACT)
             ).strip() or self.SELF_CRITIQUE_ARTIFACT
             history_block = self._format_revision_history_for_prompt(revision_history)
+            min_review_rounds = self._bounded_loop_int(
+                self_critique_loop,
+                "min_review_rounds",
+                1,
+            )
+            required_consecutive_passes = self._bounded_loop_int(
+                self_critique_loop,
+                "required_consecutive_passes",
+                1,
+            )
             self_critique_section = f"""
 Self-critique loop context:
 - critique_log_artifact: {log_artifact}
 - preserve_issue_lineage: true
+- min_review_rounds_before_convergence: {min_review_rounds}
+- required_consecutive_passes: {required_consecutive_passes}
+- current_review_round: {revision_round}
 - prior_round_history:
 {history_block}
 """
             self_critique_rule = """
 12. Self-critique loop is active. Do not restart critique from zero; carry unresolved issues forward, mark resolved ones explicitly, and separate genuinely new issues from previously raised ones.
 13. In "Self-Critique Log Update", maintain a compact issue register suitable for `review/self_critique_log.md`.
+14. A confident BLOCK is still a BLOCK. Return PASS only when no critical issue remains after checking the prior draft/revision history.
+15. If this follows an earlier PASS, perform a stability review: look for regressions, hidden contradictions, unresolved prior issues, and newly introduced failures.
 """
 
         round_note = ""
@@ -3853,6 +3994,7 @@ Self-critique loop context:
             return_sections.append("- Target Resolution Check")
         if bool(self_critique_loop.get("enabled")):
             return_sections.append("- Self-Critique Log Update")
+            return_sections.append("- Loop Decision")
         return_sections.append("- Confidence (0-1)")
         domain_section = ""
         if str(task_packet.get("domain", "")).strip() and str(task_packet.get("domain", "")).strip() != "auto":
@@ -3889,7 +4031,7 @@ Targeted follow-up context:
         if boundary_section:
             return_sections.append("- Boundary Compliance")
             boundary_review_rule = """
-14. Boundary review is active. Block if the draft broadens the locked boundary, upgrades claim strength, lowers evidence threshold, hides a limitation, or makes a code/data/submission/presentation promise beyond the answered boundary.
+16. Boundary review is active. Block if the draft broadens the locked boundary, upgrades claim strength, lowers evidence threshold, hides a limitation, or makes a code/data/submission/presentation promise beyond the answered boundary.
 """
 
         return f"""Review the draft for this canonical research workflow task.
@@ -4069,10 +4211,6 @@ Return sections:
                     pass
                 break
 
-        # Convergence: high confidence auto-passes even if labeled BLOCK
-        if confidence >= 0.85 and verdict == "BLOCK":
-            verdict = "PASS"
-
         return verdict, confidence
 
     def _build_task_revision_prompt(
@@ -4129,15 +4267,22 @@ Return sections:
         self_critique_return_sections = ""
         if bool(self_critique_loop.get("enabled")):
             history_block = self._format_revision_history_for_prompt(revision_history)
+            min_review_rounds = self._bounded_loop_int(
+                self_critique_loop,
+                "min_review_rounds",
+                1,
+            )
             self_critique_section = (
                 "Self-critique loop context:\n"
                 f"- critique_log_artifact: {self_critique_loop.get('artifact', self.SELF_CRITIQUE_ARTIFACT)}\n"
+                f"- min_review_rounds_before_convergence: {min_review_rounds}\n"
                 "- prior_round_history:\n"
                 f"{history_block}\n\n"
             )
             self_critique_rules = (
                 "9. Preserve issue lineage across rounds. Do not silently drop previously raised blockers; mark each as resolved, partial, or still-open.\n"
                 "10. Update `review/self_critique_log.md` as the canonical issue register with round-by-round status changes.\n"
+                "11. Treat every BLOCK finding as requiring either a concrete fix in the revised artifact or an explicit unresolved-issue rationale.\n"
             )
             self_critique_return_sections = "- Self-Critique Log (review/self_critique_log.md)\n"
         boundary_section = self._format_boundary_review_context(task_packet)
@@ -4145,8 +4290,8 @@ Return sections:
         boundary_return_sections = ""
         if boundary_section:
             boundary_revision_rules = (
-                "11. Boundary review is active. Resolve boundary violations by narrowing the output or by creating a new boundary review entry with the revisit trigger.\n"
-                "12. Do not broaden claim strength, evidence threshold, scope, method, code/data choices, submission promises, or presentation claims silently.\n"
+                "12. Boundary review is active. Resolve boundary violations by narrowing the output or by creating a new boundary review entry with the revisit trigger.\n"
+                "13. Do not broaden claim strength, evidence threshold, scope, method, code/data choices, submission promises, or presentation claims silently.\n"
             )
             boundary_return_sections = "- Boundary Compliance\n"
         return (
@@ -4869,6 +5014,7 @@ Return sections:
         review_profile: str | None = None,
         triad_profile: str | None = None,
         max_revision_rounds: int = 2,
+        min_review_rounds: int | None = None,
         focus_outputs: list[str] | None = None,
         output_budget: int | None = None,
         research_depth: str = "standard",
@@ -4947,6 +5093,16 @@ Return sections:
             effective_max_rounds,
             depth_mode,
         )
+        if min_review_rounds is not None:
+            max_reviews = int(self_critique_loop.get("max_review_rounds", effective_max_rounds + 1) or 1)
+            bounded_min_reviews = max(1, min(max_reviews, int(min_review_rounds)))
+            self_critique_loop["min_review_rounds"] = bounded_min_reviews
+            self_critique_loop["min_review_rounds_source"] = "argument"
+            self_critique_loop["pass_policy"] = (
+                "stability-review-before-stop"
+                if bounded_min_reviews > 1
+                else "single-pass-stop"
+            )
         controller_metadata = self._build_controller_metadata(
             execution_mode=execution_mode,
             controller=controller,
@@ -5117,6 +5273,8 @@ Return sections:
                 "Self-critique loop ACTIVE: "
                 f"artifact={self_critique_loop.get('artifact', self.SELF_CRITIQUE_ARTIFACT)}, "
                 f"max_rounds={effective_max_rounds}, "
+                f"min_review_rounds={self_critique_loop.get('min_review_rounds', 1)}, "
+                f"pass_policy={self_critique_loop.get('pass_policy', 'single-pass-stop')}, "
                 "history_persistent=true."
                 + (" / 多轮自循环已启用。" if zh_ui else "")
             )
@@ -5287,7 +5445,19 @@ Return sections:
         review_resp: BridgeResponse | None = None
         review_runtime: str | None = None
         revision_history: list[dict[str, Any]] = []
+        revisions_attempted = 0
+        review_loop_state: dict[str, Any] = {
+            "enabled": bool(self_critique_loop.get("enabled")),
+            "status": "skipped",
+            "final_verdict": "NOT_RUN",
+            "reviews_completed": 0,
+            "revisions_attempted": 0,
+            "min_review_rounds": self_critique_loop.get("min_review_rounds", 1),
+            "max_revision_rounds": effective_max_rounds,
+            "stopped_reason": "",
+        }
         if draft_resp.success:
+            review_loop_state["status"] = "running"
             review_runtime, review_notes = self._resolve_runtime_agent(
                 preferred_agent=agent_plan["review_agent"],
                 fallback_chain=[agent_plan["fallback_agent"]],
@@ -5321,8 +5491,16 @@ Return sections:
                 )
 
                 if not review_resp or not review_resp.success:
-                    routing_notes.append(
-                        f"Review failed at round {revision_round}; stopping revision loop."
+                    stop_note = f"Review failed at round {revision_round}; stopping revision loop."
+                    routing_notes.append(stop_note)
+                    review_loop_state.update(
+                        {
+                            "status": "review_failed",
+                            "final_verdict": "ERROR",
+                            "reviews_completed": len(revision_history),
+                            "revisions_attempted": revisions_attempted,
+                            "stopped_reason": stop_note,
+                        }
                     )
                     break
 
@@ -5333,18 +5511,46 @@ Return sections:
                     "confidence": review_confidence,
                     "review_content": review_resp.content,
                 })
+                review_loop_state.update(
+                    {
+                        "final_verdict": verdict,
+                        "reviews_completed": len(revision_history),
+                        "revisions_attempted": revisions_attempted,
+                    }
+                )
 
-                if verdict == "PASS":
-                    routing_notes.append(
-                        f"Review PASSED at round {revision_round} (confidence={review_confidence:.2f})."
+                loop_action, loop_note, loop_status = self._next_review_loop_action(
+                    self_critique_loop,
+                    revision_history,
+                    revision_round,
+                    effective_max_rounds,
+                )
+                routing_notes.append(loop_note)
+
+                if loop_action == "stop":
+                    review_loop_state.update(
+                        {
+                            "status": loop_status,
+                            "reviews_completed": len(revision_history),
+                            "revisions_attempted": revisions_attempted,
+                            "stopped_reason": loop_note,
+                        }
                     )
                     break
 
-                # BLOCK — revise if we have rounds left
-                if revision_round < effective_max_rounds:
-                    routing_notes.append(
-                        f"Review BLOCKED at round {revision_round} (confidence={review_confidence:.2f}); revising."
+                if loop_action == "review_again":
+                    review_loop_state.update(
+                        {
+                            "status": loop_status,
+                            "reviews_completed": len(revision_history),
+                            "revisions_attempted": revisions_attempted,
+                            "stopped_reason": loop_note,
+                        }
                     )
+                    continue
+
+                # BLOCK — revise if we have rounds left
+                if loop_action == "revise":
                     revision_prompt = self._build_task_revision_prompt(
                         packet,
                         mcp_evidence,
@@ -5354,6 +5560,7 @@ Return sections:
                         revision_round=revision_round + 1,
                         revision_history=revision_history,
                     )
+                    revisions_attempted += 1
                     revised_resp = self._execute_runtime_agent(
                         draft_runtime,
                         revision_prompt,
@@ -5368,15 +5575,29 @@ Return sections:
                     if revised_resp.success:
                         current_draft_content = revised_resp.content
                         draft_resp = revised_resp
+                        review_loop_state.update(
+                            {
+                                "status": loop_status,
+                                "reviews_completed": len(revision_history),
+                                "revisions_attempted": revisions_attempted,
+                                "stopped_reason": loop_note,
+                            }
+                        )
                     else:
-                        routing_notes.append(
+                        stop_note = (
                             f"Revision draft failed at round {revision_round + 1}; keeping previous draft."
                         )
+                        routing_notes.append(stop_note)
+                        review_loop_state.update(
+                            {
+                                "status": "revision_failed",
+                                "final_verdict": verdict,
+                                "reviews_completed": len(revision_history),
+                                "revisions_attempted": revisions_attempted,
+                                "stopped_reason": stop_note,
+                            }
+                        )
                         break
-                else:
-                    routing_notes.append(
-                        f"Review BLOCKED at final round {revision_round} (confidence={review_confidence:.2f}); max rounds reached."
-                    )
         else:
             routing_notes.append("Skipped independent review because draft generation failed.")
 
@@ -5541,6 +5762,18 @@ Return sections:
                     f"- Round {r['round']}: {r['verdict']} (confidence={r['confidence']:.2f})"
                     for r in revision_history
                 ),
+                "",
+                "## Review Loop State",
+                "\n".join(
+                    [
+                        f"- status: {review_loop_state.get('status', 'unknown')}",
+                        f"- final_verdict: {review_loop_state.get('final_verdict', 'UNKNOWN')}",
+                        f"- reviews_completed: {review_loop_state.get('reviews_completed', 0)}",
+                        f"- revisions_attempted: {review_loop_state.get('revisions_attempted', 0)}",
+                        f"- min_review_rounds: {review_loop_state.get('min_review_rounds', 1)}",
+                        f"- stopped_reason: {review_loop_state.get('stopped_reason', '')}",
+                    ]
+                ),
             ])
         if review_resp:
             merged_parts.extend(
@@ -5582,6 +5815,10 @@ Return sections:
             confidence = 0.65
         else:
             confidence = 0.0
+        if review_loop_state.get("final_verdict") == "BLOCK" and confidence > 0:
+            confidence = min(confidence, 0.55)
+        if review_loop_state.get("status") in {"review_failed", "revision_failed"} and confidence > 0:
+            confidence = min(confidence, 0.45)
         # Adjust confidence based on validator gate
         if not validator_gate_result["passed"] and confidence > 0:
             missing_ratio = len(validator_gate_result["missing"]) / max(validator_gate_result["checked"], 1)
@@ -5609,6 +5846,7 @@ Return sections:
                     "source_path": str(packet.get("structured_source_path", "")).strip(),
                 },
                 "self_critique_loop": dict(self_critique_loop),
+                "review_loop_state": dict(review_loop_state),
                 "boundary_review": dict(boundary_review),
                 "validator_gate": dict(validator_gate_result),
             },
@@ -6061,6 +6299,11 @@ def main():
         help="Maximum revision rounds when review returns BLOCK (default: 2, 0 = single-pass)",
     )
     task_run.add_argument(
+        "--min-review-rounds",
+        type=int,
+        help="Minimum review passes before a PASS verdict can converge when self-critique is active.",
+    )
+    task_run.add_argument(
         "--focus-output",
         action="append",
         dest="focus_outputs",
@@ -6199,6 +6442,7 @@ def main():
             review_profile=getattr(args, "review_profile", None),
             triad_profile=getattr(args, "triad_profile", None),
             max_revision_rounds=getattr(args, "max_rounds", 2),
+            min_review_rounds=getattr(args, "min_review_rounds", None),
             focus_outputs=getattr(args, "focus_outputs", None),
             output_budget=getattr(args, "output_budget", None),
             research_depth=getattr(args, "research_depth", "standard"),

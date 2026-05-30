@@ -72,6 +72,9 @@ class ClaudeDesktopSkillArtifactTests(unittest.TestCase):
 
         self.assertIn("name: qiongli", skill_text)
         self.assertIn("Core Workflow Map", skill_text)
+        self.assertIn("provider_connected", skill_text)
+        self.assertIn("strategy_only", skill_text)
+        self.assertIn("provider companion", skill_text)
         self.assertNotIn("skills/[stage]/[skill-name].md", skill_text)
         self.assertEqual("core", subject_text)
         self.assertEqual(tag, version_text)
