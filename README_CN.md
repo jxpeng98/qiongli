@@ -109,9 +109,9 @@
 
 Claude Desktop 不走 Claude Code 的第三方 plugin marketplace 路径。Desktop 使用上面的 GitHub Release ZIP 手动上传；ZIP 内部顶层目录是 `qiongli/`，与 `SKILL.md` 里的 skill 名称一致。
 
-Desktop/Web ZIP 使用 `coverage=focused`，用于保持当前 180 文件上传预算。它是 subject 专精安装包，不是降质删减版：保留统一 workflow、模板、标准、所选 profiles、`skills-summary.md` 和 `skills-core.md`；专精 ZIP 还包含经过 layered overlays 生成的 selected effective skill markdown。需要全量 canonical 源码细节时，使用默认 `coverage=complete` 的 CLI/npm 安装、Codex / Claude Code / Gemini plugin 包或源码仓库。
+Desktop/Web ZIP 使用 `coverage=focused`，用于保持当前 180 文件上传预算。它是 subject 专精安装包，不是降质删减版：保留统一 workflows、prompts、templates、standards、所选 profiles、`skills-summary.md` 和 `skills-core.md`；专精 ZIP 还包含经过 layered overlays 生成的 selected effective skill markdown。这个 Desktop skill ZIP 是 skill-only asset：只包含 workflows/prompts/templates，不保存 secrets，也不执行 provider calls。需要全量 canonical 源码细节时，使用默认 `coverage=complete` 的 CLI/npm 安装、Codex / Claude Code / Gemini plugin 包或源码仓库。
 
-Literature provider keys 在 Desktop ZIP 之外配置。CLI、Codex 和 Claude Code 用户可以运行 `qiongli provider setup`，再用 `qiongli provider doctor` 检查当前是 `provider_connected` 还是 `strategy_only`。需要外部 provider search 的 Desktop 用户应安装 Qiongli Literature Provider MCPB（`qiongli-literature-provider.mcpb`，可用后安装）。Desktop/Web ZIP 是 skill-only package：它本身不能保存 API key，也不能直接执行 OpenAlex、Semantic Scholar、Crossref 或 PubMed 调用。Desktop 用户需要 `qiongli-literature-provider` MCPB 或平台原生搜索能力，才能声称 `provider_connected`；否则要把运行记录为 `strategy_only`，并把平台搜索或用户提供的 corpus 作为证据来源。
+独立的 Qiongli Literature Provider `.mcpb`（`qiongli-literature-provider.mcpb`）才是 Claude Desktop 本地 provider asset。它在本地运行 Desktop literature search，支持 OpenAlex 和 Semantic Scholar，并通过 Desktop 配置 UI 填写 OpenAlex email 和 Semantic Scholar API key；敏感 key 交给 Claude Desktop sensitive-field handling，不写入 Desktop skill ZIP。CLI、Codex 和 Claude Code 用户可以运行 `qiongli provider setup`，再用 `qiongli provider doctor` 检查当前是 `provider_connected` 还是 `strategy_only`。Desktop 用户需要 `qiongli-literature-provider` MCPB 或平台原生搜索能力，才能声称 `provider_connected`；如果没有 MCPB 或平台原生搜索能力，就把运行记录为 `strategy_only`，并把平台搜索或用户提供的 corpus 作为证据来源。
 
 ### Subject 专精安装
 
