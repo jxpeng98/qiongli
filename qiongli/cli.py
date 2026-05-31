@@ -1100,6 +1100,23 @@ def build_parser() -> argparse.ArgumentParser:
         help=f"Comma-separated install surfaces to apply: {', '.join(PART_CHOICES)}.",
     )
 
+    setup = subparsers.add_parser(
+        "setup",
+        help="Interactively configures Qiongli for CLI/Codex/Claude Code use",
+    )
+    setup.add_argument(
+        "--project-dir",
+        default=str(Path.cwd()),
+        help="Project directory to configure (default: current dir)",
+    )
+    setup.add_argument("--dry-run", action="store_true", help="Show planned setup actions only")
+    setup.add_argument(
+        "--no-doctor",
+        action="store_true",
+        default=False,
+        help="Skip doctor after setup",
+    )
+
     align = subparsers.add_parser("align", help="Print a short usage alignment (what installs where)")
     align.add_argument("--repo", help="Optional upstream repo in owner/repo form (used in examples)")
 
@@ -1186,6 +1203,11 @@ def main() -> int:
         return cmd_install(args)
     if args.cmd == "upgrade":
         return cmd_upgrade(args)
+    if args.cmd == "setup":
+        from qiongli.setup_wizard import run_setup_wizard
+
+        result = run_setup_wizard(args)
+        return result if isinstance(result, int) else 0
     if args.cmd == "align":
         return cmd_align(args)
     if args.cmd == "provider":
