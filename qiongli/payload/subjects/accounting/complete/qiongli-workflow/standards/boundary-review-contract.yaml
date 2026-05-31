@@ -11,6 +11,47 @@ principles:
   never_invent_evidence_or_citations: true
   sync_downstream_decisions: true
 
+academic_grill_loop:
+  name: "academic-grill-loop"
+  purpose: "academic-idea-discovery-and-boundary-critique"
+  source_credit:
+    inspired_by: "Matt Pocock's grill-me skill"
+    url: "https://github.com/mattpocock/skills/blob/main/skills/productivity/grill-me/SKILL.md"
+    adaptation_note: "Qiongli adapts the interaction pattern for academic judgment; it is not a generic requirements interview or copied workflow."
+  adapted_principles:
+    - "inspect_artifacts_before_asking"
+    - "one_scholarly_question_at_a_time"
+    - "recommended_answer_required"
+    - "paper_type_aware"
+    - "claim_evidence_aware"
+    - "rival_explanation_aware"
+    - "venue_reviewer_aware"
+  trigger_conditions:
+    - "The user starts from a vague topic, broad domain, or unranked set of ideas."
+    - "The next stage could create an RQ, gap, contribution, design, manuscript claim, submission promise, or presentation claim."
+    - "Existing artifacts do not already settle the scholarly boundary."
+  stage_prompts:
+    A:
+      - "From this vague topic, which defensible research idea could become one paper rather than a field overview?"
+      - "What evidence would make the candidate idea answerable in one paper?"
+      - "Which construct, population, setting, time period, or corpus should be excluded so the idea stays publishable?"
+      - "What would make this idea interesting to a venue reviewer rather than merely underexplored?"
+    B:
+      - "Which literature stream would change whether this is a real gap or only a search artifact?"
+      - "Which contrary vocabulary, null-result term, or adjacent discipline must be searched before trusting the idea?"
+    C:
+      - "Which rival explanation would make the proposed design unable to support the idea?"
+      - "What evidence threshold separates a descriptive idea from an associative, causal, interpretive, or methodological claim?"
+    F:
+      - "Which manuscript claim would overstate the idea beyond the available evidence?"
+      - "Which finding, interpretation, or implication must be separated before the idea becomes writable?"
+    H:
+      - "Which submission or rebuttal promise would overclaim the idea?"
+      - "What narrower alternative would a skeptical reviewer find defensible?"
+    I:
+      - "Which code, data, or reproducibility decision would change the scientific interpretation of the idea?"
+  output_expectation: "Record the asked question, recommended answer, user or artifact answer, locked decision, evidence threshold, rival risks, and revisit trigger in context/boundary_review.md."
+
 levels:
   L0:
     name: "silent-artifact-check"

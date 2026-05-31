@@ -79,6 +79,9 @@ This repository is not built in isolation. Two external projects are especially 
 - [GuDaStudio/skills](https://github.com/GuDaStudio/skills)
   - This project is a useful reference for packaging Claude-oriented collaboration skills and for making Codex / Gemini cooperation installable as reusable skill assets.
   - The difference is packaging model and target domain: `GuDaStudio/skills` is a general collaboration skill collection, while `qiongli` uses one research contract, one artifact tree, and one task catalog for academic work.
+- [Matt Pocock's `grill-me` skill](https://github.com/mattpocock/skills/blob/main/skills/productivity/grill-me/SKILL.md)
+  - We credit the one-question-at-a-time interaction pattern and the habit of giving a recommended answer while clarifying an idea.
+  - Qiongli adapts it into an academic idea-discovery loop: instead of grilling software plans, it tests whether a topic can become a defensible paper idea with clear claim strength, evidence threshold, rival explanations, feasibility, and reviewer risk.
 
 ---
 

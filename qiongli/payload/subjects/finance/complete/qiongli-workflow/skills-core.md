@@ -570,12 +570,12 @@ python -m bridges.orchestrator code-build \
 
 ## boundary-interviewer
 
-**Purpose:** Clarify scholarly boundaries one question at a time before high-risk Qiongli work proceeds.
+**Purpose:** Clarify scholarly boundaries one question at a time before high-risk Qiongli work proceeds; also run the Academic Grill Loop for academic idea discovery when a vague topic needs to become a defensible paper idea.
 
 **Process:**
 1. Inspect existing research artifacts before asking the user.
 2. Map the task to an academic boundary dimension: phenomenon, construct, contribution, claim strength, evidence threshold, method validity, rival explanation, generalizability, ethics/governance, venue/reviewer, research code, or submission/revision.
-3. Ask exactly one blocking academic question when artifacts cannot answer it.
+3. For brainstorms or Stage A work, use the Academic Grill Loop: ask one scholarly question at a time that tests whether the topic can become one answerable paper.
 4. Provide a recommended answer with rationale, evidence threshold, reviewer consequence, and confidence.
 5. Record claim strength, evidence threshold, rival explanations, validity or trustworthiness risk, generalizability limit, and downstream sync targets.
 6. Sync downstream-relevant decisions into `context/decision_log.md` or `context/stage_handoff.md`.

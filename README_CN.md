@@ -76,6 +76,9 @@
 - [GuDaStudio/skills](https://github.com/GuDaStudio/skills)
   - 这个项目对 Claude-oriented skill 打包方式，以及 Codex / Gemini 协作能力的可安装化，提供了很好的参考。
   - 但本仓库的重点不同：`GuDaStudio/skills` 更像通用协作 skill 集合，而 `qiongli` 更强调“单一研究合同 + 单一任务目录 + 单一产物树”的学术工作流。
+- [Matt Pocock 的 `grill-me` skill](https://github.com/mattpocock/skills/blob/main/skills/productivity/grill-me/SKILL.md)
+  - 本项目 credit 它“一次只追问一个问题、同时给推荐答案”的交互模式。
+  - Qiongli 将它改造成 academic idea-discovery loop：不追问通用软件方案，而是检验一个 topic 是否能成为有 claim 强度、证据阈值、rival explanations、可行性和审稿风险边界的学术 idea。
 
 ---
 

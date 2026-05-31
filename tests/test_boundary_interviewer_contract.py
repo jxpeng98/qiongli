@@ -14,6 +14,10 @@ REGISTRY = REPO_ROOT / "skills" / "registry.yaml"
 SKILL = REPO_ROOT / "skills" / "Z_cross_cutting" / "boundary-interviewer.md"
 SKILLS_CORE = REPO_ROOT / "skills-core.md"
 SKILLS_SUMMARY = REPO_ROOT / "skills-summary.md"
+README = REPO_ROOT / "README.md"
+PAPER_WORKFLOW = REPO_ROOT / "qiongli-workflow" / "workflows" / "paper.md"
+FIND_GAP_WORKFLOW = REPO_ROOT / "qiongli-workflow" / "workflows" / "find-gap.md"
+STAGE_A_REFERENCE = REPO_ROOT / "qiongli-workflow" / "references" / "stage-A-framing.md"
 
 
 class BoundaryInterviewerContractTests(unittest.TestCase):
@@ -43,6 +47,36 @@ class BoundaryInterviewerContractTests(unittest.TestCase):
             "submission_revision_boundary",
         ):
             self.assertIn(expected, dimensions)
+
+    def test_contract_declares_academic_grill_loop_for_idea_discovery(self) -> None:
+        contract = yaml.safe_load(CONTRACT.read_text(encoding="utf-8"))
+        grill_loop = contract["academic_grill_loop"]
+
+        self.assertEqual(grill_loop["name"], "academic-grill-loop")
+        self.assertEqual(grill_loop["purpose"], "academic-idea-discovery-and-boundary-critique")
+        self.assertEqual(grill_loop["source_credit"]["inspired_by"], "Matt Pocock's grill-me skill")
+        self.assertIn("https://github.com/mattpocock/skills", grill_loop["source_credit"]["url"])
+
+        for expected in (
+            "inspect_artifacts_before_asking",
+            "one_scholarly_question_at_a_time",
+            "recommended_answer_required",
+            "paper_type_aware",
+            "claim_evidence_aware",
+            "rival_explanation_aware",
+            "venue_reviewer_aware",
+        ):
+            self.assertIn(expected, grill_loop["adapted_principles"])
+
+    def test_contract_stage_a_grill_prompts_help_find_academic_ideas(self) -> None:
+        contract = yaml.safe_load(CONTRACT.read_text(encoding="utf-8"))
+        prompts = contract["academic_grill_loop"]["stage_prompts"]["A"]
+        joined = "\n".join(prompts)
+
+        self.assertIn("vague topic", joined)
+        self.assertIn("defensible research idea", joined)
+        self.assertIn("evidence would make", joined)
+        self.assertIn("one paper", joined)
 
     def test_contract_requires_scholarly_decision_fields(self) -> None:
         contract = yaml.safe_load(CONTRACT.read_text(encoding="utf-8"))
@@ -172,6 +206,23 @@ class BoundaryInterviewerContractTests(unittest.TestCase):
         self.assertIn("## boundary-interviewer", SKILLS_CORE.read_text(encoding="utf-8"))
         self.assertIn("| boundary-interviewer |", SKILLS_SUMMARY.read_text(encoding="utf-8"))
 
+    def test_boundary_interviewer_documents_academic_grill_adaptation_and_credit(self) -> None:
+        skill_text = SKILL.read_text(encoding="utf-8")
+        readme = README.read_text(encoding="utf-8")
+
+        for phrase in (
+            "Academic Grill Loop",
+            "academic idea discovery",
+            "not a generic grill-me clone",
+            "Matt Pocock",
+            "https://github.com/mattpocock/skills",
+        ):
+            self.assertIn(phrase, skill_text)
+
+        self.assertIn("Matt Pocock", readme)
+        self.assertIn("grill-me", readme)
+        self.assertIn("academic idea-discovery", readme)
+
     def test_boundary_skill_documents_downstream_continuation(self) -> None:
         content = SKILL.read_text(encoding="utf-8")
 
@@ -195,6 +246,21 @@ class BoundaryInterviewerContractTests(unittest.TestCase):
             self.assertIn("boundary-interviewer", content, path.as_posix())
             self.assertIn("claim strength", content, path.as_posix())
             self.assertIn("evidence threshold", content, path.as_posix())
+
+    def test_stage_a_and_find_gap_trigger_academic_grill_loop(self) -> None:
+        stage_a = STAGE_A_REFERENCE.read_text(encoding="utf-8")
+        paper = PAPER_WORKFLOW.read_text(encoding="utf-8")
+        find_gap = FIND_GAP_WORKFLOW.read_text(encoding="utf-8")
+
+        for label, content in (
+            ("stage-A", stage_a),
+            ("paper workflow", paper),
+            ("find-gap workflow", find_gap),
+        ):
+            self.assertIn("Academic Grill Loop", content, label)
+            self.assertIn("one scholarly question at a time", content, label)
+            self.assertIn("recommended answer", content, label)
+            self.assertIn("idea-discovery", content, label)
 
     def test_v2_workflows_include_boundary_trigger_for_all_remaining_stages(self) -> None:
         workflow_paths = [

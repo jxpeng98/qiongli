@@ -313,7 +313,7 @@ skill_catalog:
   boundary-interviewer:
     file: "skills/Z_cross_cutting/boundary-interviewer.md"
     category: "research-boundary"
-    focus: "Clarify scholarly boundaries one question at a time before high-risk Qiongli work proceeds."
+    focus: "Run academic idea-discovery and clarify scholarly boundaries one question at a time before high-risk Qiongli work proceeds."
     default_outputs:
       - "context/boundary_review.md"
   qualitative-coding:
