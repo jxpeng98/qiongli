@@ -13,9 +13,10 @@ This is a **self-contained skill package**. All assets needed for execution — 
 
 1. Ask for `paper_type`: `empirical`, `qualitative`, `systematic-review`, `methods`, or `theory`.
 2. Ask for `task_id` from the contract (for example `F3` or `G1`).
-3. Execute the task and write outputs to `RESEARCH/[topic]/` using the exact file paths.
-4. Apply quality gates before submission tasks (`H1`, `H2`).
-5. For orchestrator `task-run`, declare controller ownership when relevant with `--execution-mode`, `--controller`, `--primary`, `--reviewer`, `--verifier`, and `--solo-role-gates`.
+3. If the user is brainstorming or starting from a vague topic, run the Academic Idea Funnel and write `context/idea_funnel.md` before Stage A outputs.
+4. Execute the task and write outputs to `RESEARCH/[topic]/` using the exact file paths.
+5. Apply quality gates before submission tasks (`H1`, `H2`).
+6. For orchestrator `task-run`, declare controller ownership when relevant with `--execution-mode`, `--controller`, `--primary`, `--reviewer`, `--verifier`, and `--solo-role-gates`.
 
 ## Workflow Entry Points
 
@@ -70,7 +71,7 @@ skills/
 
 ```
 RESEARCH/[topic]/
-├── context/                 # Project-level research state + decision log
+├── context/                 # Project-level research state, idea funnel, boundary review, and decision log
 ├── framing/                 # A-stage outputs (RQ, hypothesis, contribution, venue)
 ├── protocol.md              # Research protocol
 ├── search_log.md            # Reproducible search records
@@ -92,6 +93,7 @@ RESEARCH/[topic]/
 
 - Use the canonical task and output definitions in `references/workflow-contract.md`.
 - Keep stage labels and task IDs unchanged across models.
+- Before unresolved Stage A work, `/paper` routing, or `/find-gap` from a vague topic, run the Academic Idea Funnel and write `RESEARCH/[topic]/context/idea_funnel.md`; then hand off locked or unresolved scholarly boundaries into `RESEARCH/[topic]/context/boundary_review.md`.
 - Do not infer stage order alphabetically when the contract exposes explicit ordering metadata.
 - When `self-critique` is one of the required skills, preserve critique history across revision rounds, treat `review/self_critique_log.md` as the canonical issue register, require the configured minimum review passes before convergence, and never convert a `BLOCK` verdict into `PASS` because of high confidence alone.
 - If a requested output is missing prerequisites, create a gap note and ask whether to:
