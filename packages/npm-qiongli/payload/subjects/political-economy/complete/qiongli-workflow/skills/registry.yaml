@@ -2395,6 +2395,7 @@ skills:
   - UserQuery
   - AnyArtifact
   outputs:
+  - AcademicIdeaFunnel
   - BoundaryReview
   tags:
   - cross-cutting

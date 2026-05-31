@@ -82,6 +82,7 @@ This repository is not built in isolation. Two external projects are especially 
 - [Matt Pocock's `grill-me` skill](https://github.com/mattpocock/skills/blob/main/skills/productivity/grill-me/SKILL.md)
   - We credit the one-question-at-a-time interaction pattern and the habit of giving a recommended answer while clarifying an idea.
   - Qiongli adapts it into an academic idea-discovery loop: instead of grilling software plans, it tests whether a topic can become a defensible paper idea with clear claim strength, evidence threshold, rival explanations, feasibility, and reviewer risk.
+  - The Academic Idea Funnel is this academic adaptation as a reusable artifact: `RESEARCH/[topic]/context/idea_funnel.md` records candidate idea triage, the recommended idea, weakest assumption, evidence plan, reviewer risk, and the handoff into `context/boundary_review.md`.
 
 ---
 

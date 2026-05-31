@@ -8,6 +8,8 @@ inputs:
   - type: AnyArtifact
     description: "Existing research artifacts that may already settle the academic boundary"
 outputs:
+  - type: AcademicIdeaFunnel
+    artifact: "context/idea_funnel.md"
   - type: BoundaryReview
     artifact: "context/boundary_review.md"
 constraints:
@@ -33,6 +35,26 @@ Clarify scholarly boundaries before high-risk Qiongli work proceeds.
 Use this skill when a task could drift in research scope, claim strength, evidence threshold, method validity, writing promise, or submission commitment. It adapts the grill-me pattern into an academic workflow: inspect existing artifacts first, ask one blocking question at a time, recommend the most defensible answer, and preserve the decision for downstream stages.
 
 The skill is not a generic requirements interview. It should help answer: what can this project honestly claim, for whom, with what evidence, against which rivals, and under what limits?
+
+## Academic Idea Funnel
+
+When the user is brainstorming, comparing possible topics, running `/find-gap`, or starting Stage A without a settled idea, first write `RESEARCH/[topic]/context/idea_funnel.md` using `templates/idea-funnel.md`. The Academic Idea Funnel is the structured record of idea discovery before boundary locking: it ranks candidate ideas, names the recommended idea, states the core claim, research question, candidate gap, contribution type, evidence plan, weakest assumption, rival explanation, reviewer risk, `next_stage_recommendation`, and `boundary_review_handoff`.
+
+Use `context/idea_funnel.md` to decide which idea is worth turning into `A1`, `A2`, `A4`, or `A5` artifacts. Then use `context/boundary_review.md` to lock the selected idea's scholarly boundaries, especially claim strength, evidence threshold, generalizability, method validity, and venue risk. The funnel may recommend narrowing or rejecting an idea before a boundary review is needed.
+
+### Candidate Idea Triage
+
+For broad topics, compare at least two candidate ideas unless the user's artifacts already settle the choice. Each candidate should record:
+
+- one-sentence idea
+- paper type fit
+- candidate gap
+- contribution type
+- evidence needed
+- feasibility
+- novelty risk
+- reviewer risk
+- triage decision: keep, revise, or reject
 
 ## Academic Grill Loop
 
@@ -71,6 +93,7 @@ For Stage A idea-discovery, prefer questions that move from "interesting topic" 
 ## Output (contract path)
 
 - `RESEARCH/[topic]/context/boundary_review.md`
+- `RESEARCH/[topic]/context/idea_funnel.md`
 
 ## Inputs
 
@@ -118,7 +141,21 @@ After the user answers a boundary question, write or update `context/boundary_re
 
 ## Output Contract
 
-Write `RESEARCH/[topic]/context/boundary_review.md` using `templates/boundary-review.md`.
+For broad-topic brainstorms, first write `RESEARCH/[topic]/context/idea_funnel.md` using `templates/idea-funnel.md`.
+
+The idea funnel artifact must include:
+
+- source prompt and existing artifacts checked
+- Candidate Idea Triage
+- recommended research idea
+- core claim, research question, candidate gap, and contribution type
+- evidence plan
+- weakest assumption and rival risk
+- reviewer and venue fit
+- next_stage_recommendation
+- boundary_review_handoff
+
+After the idea is selected or narrowed, write `RESEARCH/[topic]/context/boundary_review.md` using `templates/boundary-review.md`.
 
 The artifact must include:
 

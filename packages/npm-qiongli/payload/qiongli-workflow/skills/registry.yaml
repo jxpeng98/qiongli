@@ -1383,7 +1383,7 @@ skills:
     display_name_zh: "学术边界追问器"
     when_to_use_zh: "当研究问题、claim 强度、证据阈值、方法有效性、外推范围、投稿承诺或阶段交接仍不清楚时使用。"
     inputs: [UserQuery, AnyArtifact]
-    outputs: [BoundaryReview]
+    outputs: [AcademicIdeaFunnel, BoundaryReview]
     tags: [cross-cutting, boundary, grill-me, academic-judgment, claim-strength, evidence-threshold, validity, generalizability, venue-fit, handoff]
     depends_on: []
     compatible_models: [codex, claude, gemini, gpt]
