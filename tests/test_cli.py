@@ -91,6 +91,33 @@ class InstallerCliTests(unittest.TestCase):
         self.assertEqual(options.coverage, "focused")
         self.assertEqual(options.target, "codex")
 
+    def test_setup_command_dispatches_to_setup_wizard(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            with mock.patch("qiongli.setup_wizard.run_setup_wizard", return_value=object()) as setup_mock:
+                with mock.patch.object(
+                    cli_module.sys,
+                    "argv",
+                    ["qiongli", "setup", "--dry-run", "--project-dir", tmp_dir, "--no-doctor"],
+                ):
+                    exit_code = cli_module.main()
+
+        self.assertEqual(exit_code, 0)
+        setup_mock.assert_called_once()
+        args = setup_mock.call_args.args[0]
+        self.assertEqual(args.cmd, "setup")
+        self.assertEqual(args.project_dir, tmp_dir)
+        self.assertTrue(args.dry_run)
+        self.assertTrue(args.no_doctor)
+
+    def test_setup_command_is_listed_in_help(self) -> None:
+        parser = cli_module.build_parser()
+
+        help_text = parser.format_help()
+        normalized_help = " ".join(help_text.split())
+
+        self.assertIn("setup", help_text)
+        self.assertIn("Interactively configures Qiongli for CLI/Codex/Claude Code use", normalized_help)
+
     def test_install_unknown_subject_reports_available_subjects(self) -> None:
         stderr = io.StringIO()
         with mock.patch.object(
