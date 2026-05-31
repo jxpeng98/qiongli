@@ -9,6 +9,7 @@ build/
 docs/.vitepress/dist/
 output/test_runtime/
 .worktrees/
+docs/superpowers/
 
 # Local agent artifacts generated during `rsk` install tests
 .gemini/
