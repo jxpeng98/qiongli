@@ -46,12 +46,8 @@ ensure_git_identity() {
 sync_generated_distribution_payloads() {
   local repo_tag="$1"
 
-  echo "[release-automation] sync generated distribution payloads"
-  bash scripts/sync_skill_package.sh --target all
-  python3 scripts/sync_npm_package_payload.py
-
-  echo "[release-automation] audit generated distribution payloads"
-  python3 scripts/audit_distribution_payloads.py
+  echo "[release-automation] materialize distribution payloads"
+  python3 scripts/materialize_distribution_payloads.py --target all --in-place
 
   echo "[release-automation] verify release tag version"
   bash scripts/verify_release_tag_version.sh --tag "$repo_tag"
@@ -264,7 +260,6 @@ case "$MODE" in
       docs/reference/skills.md \
       docs/zh/reference/skills.md \
       qiongli/__init__.py \
-      qiongli/payload \
       qiongli-workflow/VERSION \
       skills/registry.yaml \
       package-lock.json \
@@ -272,7 +267,6 @@ case "$MODE" in
       plugins/qiongli/.codex-plugin/plugin.json \
       plugins/qiongli/.claude-plugin/plugin.json \
       plugins/qiongli/gemini-extension.json \
-      plugins/qiongli/skills/qiongli-workflow \
       skills
     if is_prerelease_tag "$repo_tag"; then
       git add "release/${repo_tag}.md"

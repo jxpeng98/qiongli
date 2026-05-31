@@ -50,12 +50,8 @@ jobs:
       - name: Check generated payload edits
         run: python scripts/check_generated_payload_edits.py --base-ref origin/dev
 
-      - name: Sync bundled skill package
-        shell: bash
-        run: bash scripts/sync_skill_package.sh --target all
-
-      - name: Sync npm package payload
-        run: python scripts/sync_npm_package_payload.py
+      - name: Materialize distribution payloads
+        run: python scripts/materialize_distribution_payloads.py --target all --in-place
 
       - name: Validate research standard
         run: python scripts/validate_research_standard.py --strict

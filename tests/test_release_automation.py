@@ -48,14 +48,13 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('plugins/qiongli/.codex-plugin/plugin.json', content)
         self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
         self.assertIn('plugins/qiongli/gemini-extension.json', content)
-        self.assertIn('plugins/qiongli/skills/qiongli-workflow', content)
         self.assertIn('docs/reference/skills.md', content)
         self.assertIn('docs/zh/reference/skills.md', content)
         self.assertNotIn('qiongli-workflow/skills/registry.yaml', content)
-        self.assertIn('qiongli/payload', content)
         self.assertIn('packages/npm-qiongli', content)
         self.assertIn('package-lock.json', content)
         self.assertIn('npm_preflight.sh', content)
+        self.assertIn("python3 scripts/materialize_distribution_payloads.py --target all --in-place", content)
         self.assertIn('./scripts/release_postflight.sh --tag "$repo_tag"', content)
 
     def test_docs_define_optional_beta_channel_policy(self) -> None:
@@ -90,14 +89,12 @@ class ReleaseAutomationTests(unittest.TestCase):
     def test_publish_mode_syncs_generated_payloads_before_commit_and_tag(self) -> None:
         content = RELEASE_AUTOMATION.read_text(encoding="utf-8")
 
-        sync_skill = 'bash scripts/sync_skill_package.sh --target all'
-        sync_npm = "python3 scripts/sync_npm_package_payload.py"
-        audit = "python3 scripts/audit_distribution_payloads.py"
+        materialize = "python3 scripts/materialize_distribution_payloads.py --target all --in-place"
         verify = 'bash scripts/verify_release_tag_version.sh --tag "$repo_tag"'
         git_add = "git add \\"
         tag = 'git tag -a "$repo_tag"'
 
-        for expected in (sync_skill, sync_npm, audit, verify):
+        for expected in (materialize, verify):
             self.assertIn(expected, content)
             self.assertLess(content.index(expected), content.index(git_add))
             self.assertLess(content.index(expected), content.index(tag))
@@ -190,15 +187,12 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('plugins/qiongli/.codex-plugin/plugin.json', content)
         self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
         self.assertIn('plugins/qiongli/gemini-extension.json', content)
-        self.assertIn('packages/npm-qiongli|packages/npm-qiongli/*', content)
-        self.assertIn('qiongli/payload|qiongli/payload/*', content)
+        self.assertIn('packages/npm-qiongli/package.json', content)
         self.assertIn('package-lock.json', content)
         self.assertIn('docs/reference/skills.md', content)
         self.assertIn('docs/zh/reference/skills.md', content)
-        self.assertIn(
-            'plugins/qiongli/skills/qiongli-workflow|plugins/qiongli/skills/qiongli-workflow/*',
-            content,
-        )
+        self.assertNotIn('qiongli/payload|qiongli/payload/*', content)
+        self.assertNotIn('plugins/qiongli/skills/qiongli-workflow|plugins/qiongli/skills/qiongli-workflow/*', content)
         self.assertNotIn('qiongli-workflow/skills/registry.yaml', content)
 
     def test_release_ready_does_not_print_manual_publish_steps(self) -> None:
@@ -234,18 +228,13 @@ class ReleaseAutomationTests(unittest.TestCase):
     def test_release_preflight_syncs_npm_payload_before_tests(self) -> None:
         content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
 
-        sync_skill = 'bash "$ROOT_DIR/scripts/sync_skill_package.sh" --target all'
-        self.assertIn('echo "[preflight] sync npm payload"', content)
-        self.assertIn(sync_skill, content)
-        self.assertIn("python3 scripts/sync_npm_package_payload.py", content)
+        materialize = "python3 scripts/materialize_distribution_payloads.py --target all --in-place"
+        self.assertIn('echo "[preflight] materialize distribution payloads"', content)
+        self.assertIn(materialize, content)
         self.assertIn('echo "[preflight] sync skill reference docs"', content)
         self.assertIn("python3 scripts/generate_skill_docs.py", content)
         self.assertLess(
-            content.index(sync_skill),
-            content.index("python3 scripts/audit_distribution_payloads.py"),
-        )
-        self.assertLess(
-            content.index("python3 scripts/sync_npm_package_payload.py"),
+            content.index(materialize),
             content.index("python3 scripts/generate_skill_docs.py"),
         )
         self.assertLess(
@@ -304,6 +293,16 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn("require_python_module build build", content)
         self.assertIn("require_python_module twine twine", content)
         self.assertIn("python3 -m pip install -e . build twine", content)
+
+    def test_pypi_preflight_materializes_payloads_before_build(self) -> None:
+        content = PYPI_PREFLIGHT.read_text(encoding="utf-8")
+
+        materialize = "python3 scripts/materialize_distribution_payloads.py --target all --in-place"
+        build = "python3 -m build"
+
+        self.assertIn(materialize, content)
+        self.assertIn(build, content)
+        self.assertLess(content.index(materialize), content.index(build))
 
     def test_pypi_preflight_does_not_print_manual_publish_steps(self) -> None:
         content = PYPI_PREFLIGHT.read_text(encoding="utf-8")
@@ -383,26 +382,22 @@ class ReleaseAutomationTests(unittest.TestCase):
 
                 verify = 'bash scripts/verify_release_tag_version.sh --tag "${RELEASE_TAG}"'
                 install = "python -m pip install -e ."
-                self.assertIn("bash scripts/sync_skill_package.sh --target all", content)
-                self.assertIn("python3 scripts/sync_npm_package_payload.py", content)
+                materialize = "python3 scripts/materialize_distribution_payloads.py --target all --in-place"
+                self.assertIn(materialize, content)
                 self.assertIn(install, content)
-                self.assertLess(content.index(install), content.index("bash scripts/sync_skill_package.sh --target all"))
-                self.assertLess(content.index(install), content.index("python3 scripts/sync_npm_package_payload.py"))
-                self.assertLess(content.index("bash scripts/sync_skill_package.sh --target all"), content.index(verify))
-                self.assertLess(content.index("python3 scripts/sync_npm_package_payload.py"), content.index(verify))
+                self.assertLess(content.index(install), content.index(materialize))
+                self.assertLess(content.index(materialize), content.index(verify))
 
     def test_release_workflow_syncs_generated_payloads_before_version_verify(self) -> None:
         content = RELEASE_WORKFLOW.read_text(encoding="utf-8")
 
         verify = 'bash scripts/verify_release_tag_version.sh --tag "$tag"'
         install = "python -m pip install -e . build twine"
-        self.assertIn("bash scripts/sync_skill_package.sh --target all", content)
-        self.assertIn("python3 scripts/sync_npm_package_payload.py", content)
+        materialize = "python3 scripts/materialize_distribution_payloads.py --target all --in-place"
+        self.assertIn(materialize, content)
         self.assertIn(install, content)
-        self.assertLess(content.index(install), content.index("bash scripts/sync_skill_package.sh --target all"))
-        self.assertLess(content.index(install), content.index("python3 scripts/sync_npm_package_payload.py"))
-        self.assertLess(content.index("bash scripts/sync_skill_package.sh --target all"), content.index(verify))
-        self.assertLess(content.index("python3 scripts/sync_npm_package_payload.py"), content.index(verify))
+        self.assertLess(content.index(install), content.index(materialize))
+        self.assertLess(content.index(materialize), content.index(verify))
 
     def test_verify_release_tag_script_checks_expected_files(self) -> None:
         content = VERIFY_RELEASE_TAG.read_text(encoding="utf-8")

@@ -232,36 +232,26 @@ if [[ -n "$TAG" ]]; then
   fi
 fi
 
-echo "[preflight] sync skill package"
-if [[ -x "$ROOT_DIR/scripts/sync_skill_package.sh" ]]; then
-  bash "$ROOT_DIR/scripts/sync_skill_package.sh" --target all
-  # Verify package is self-contained
-  pkg_dir="$ROOT_DIR/qiongli-workflow"
-  sync_ok=1
-  for check_dir in skills templates standards roles; do
-    if [[ ! -d "$pkg_dir/$check_dir" ]]; then
-      echo "[preflight] missing bundled directory: $check_dir" >&2
-      sync_ok=0
-    fi
-  done
-  if [[ ! -f "$pkg_dir/skills-core.md" ]]; then
-    echo "[preflight] missing bundled file: skills-core.md" >&2
+echo "[preflight] materialize distribution payloads"
+python3 scripts/materialize_distribution_payloads.py --target all --in-place
+
+pkg_dir="$ROOT_DIR/qiongli-workflow"
+sync_ok=1
+for check_dir in skills templates standards roles; do
+  if [[ ! -d "$pkg_dir/$check_dir" ]]; then
+    echo "[preflight] missing bundled directory: $check_dir" >&2
     sync_ok=0
   fi
-  if [[ "$sync_ok" -eq 0 ]]; then
-    echo "[preflight] FAIL: skill package is not self-contained" >&2
-    exit 1
-  fi
-  echo "[preflight] skill package verified self-contained"
-else
-  echo "[preflight] WARN: sync_skill_package.sh not found, skipping sync" >&2
+done
+if [[ ! -f "$pkg_dir/skills-core.md" ]]; then
+  echo "[preflight] missing bundled file: skills-core.md" >&2
+  sync_ok=0
 fi
-
-echo "[preflight] sync npm payload"
-python3 scripts/sync_npm_package_payload.py
-
-echo "[preflight] audit distribution payload alignment"
-python3 scripts/audit_distribution_payloads.py
+if [[ "$sync_ok" -eq 0 ]]; then
+  echo "[preflight] FAIL: skill package is not self-contained" >&2
+  exit 1
+fi
+echo "[preflight] skill package verified self-contained"
 
 echo "[preflight] sync skill reference docs"
 python3 scripts/generate_skill_docs.py

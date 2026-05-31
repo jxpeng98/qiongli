@@ -12,7 +12,6 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_ROOT = REPO_ROOT / "plugins" / "qiongli"
-PLUGIN_SKILL_ROOT = PLUGIN_ROOT / "skills" / "qiongli-workflow"
 WORKFLOW_ROOT = REPO_ROOT / "qiongli-workflow"
 WORKFLOW_VERSION = (WORKFLOW_ROOT / "VERSION").read_text(encoding="utf-8").strip().lstrip("v")
 
@@ -53,6 +52,26 @@ def find_usable_bash() -> str | None:
 
 
 class PluginDistributionContractTests(unittest.TestCase):
+    def materialize_plugin_payload(self, tmp_dir: str) -> Path:
+        out = Path(tmp_dir) / "dist-source"
+        result = subprocess.run(
+            [
+                sys.executable,
+                "scripts/materialize_distribution_payloads.py",
+                "--target",
+                "plugin",
+                "--out",
+                str(out),
+                "--force",
+            ],
+            cwd=REPO_ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stderr + result.stdout)
+        return out / "plugins" / "qiongli"
+
     def test_platform_manifests_share_workflow_version(self) -> None:
         codex = json.loads((PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
         claude = json.loads((PLUGIN_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
@@ -66,20 +85,26 @@ class PluginDistributionContractTests(unittest.TestCase):
         manifest = json.loads((PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
 
         self.assertEqual(manifest["skills"], "./skills/")
-        self.assertTrue((PLUGIN_ROOT / "skills").is_dir())
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            materialized_plugin = self.materialize_plugin_payload(tmp_dir)
+            self.assertTrue((materialized_plugin / "skills").is_dir())
 
     def test_plugin_package_contains_real_portable_skill_copy(self) -> None:
-        self.assertTrue((PLUGIN_SKILL_ROOT / "SKILL.md").is_file())
-        self.assertTrue((PLUGIN_SKILL_ROOT / "skills" / "registry.yaml").is_file())
-        self.assertFalse(PLUGIN_SKILL_ROOT.is_symlink(), "plugin package must be a real copy, not a symlink")
-        self.assertEqual(
-            (WORKFLOW_ROOT / "VERSION").read_text(encoding="utf-8"),
-            (PLUGIN_SKILL_ROOT / "VERSION").read_text(encoding="utf-8"),
-        )
-        self.assertEqual(
-            (WORKFLOW_ROOT / "skills" / "registry.yaml").read_text(encoding="utf-8"),
-            (PLUGIN_SKILL_ROOT / "skills" / "registry.yaml").read_text(encoding="utf-8"),
-        )
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            materialized_plugin = self.materialize_plugin_payload(tmp_dir)
+            plugin_skill_root = materialized_plugin / "skills" / "qiongli-workflow"
+
+            self.assertTrue((plugin_skill_root / "SKILL.md").is_file())
+            self.assertTrue((plugin_skill_root / "skills" / "registry.yaml").is_file())
+            self.assertFalse(plugin_skill_root.is_symlink(), "plugin package must be a real copy, not a symlink")
+            self.assertEqual(
+                (WORKFLOW_ROOT / "VERSION").read_text(encoding="utf-8"),
+                (plugin_skill_root / "VERSION").read_text(encoding="utf-8"),
+            )
+            self.assertEqual(
+                (WORKFLOW_ROOT / "skills" / "registry.yaml").read_text(encoding="utf-8"),
+                (plugin_skill_root / "skills" / "registry.yaml").read_text(encoding="utf-8"),
+            )
 
     def test_sync_script_accepts_all_target_in_dry_run(self) -> None:
         bash = find_usable_bash()

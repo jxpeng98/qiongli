@@ -8,7 +8,6 @@ from bridges.providers.literature_schema import QUERY_PLAN_REQUIRED_KEYS
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SEARCH_STRATEGY_TEMPLATE_PATHS = (
     Path("templates/search-strategy.md"),
-    Path("plugins/qiongli/skills/qiongli-workflow/templates/search-strategy.md"),
 )
 
 

@@ -103,10 +103,34 @@ def materialize_python_payload(root: Path) -> None:
         sync_python_payload(root, materialize_source, dry_run=False)
 
 
+def materialize_plugin_payload(root: Path) -> None:
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+    from scripts.sync_npm_package_payload import build_materialize_source, copy_path, fail_if_symlinks
+
+    with tempfile.TemporaryDirectory(prefix="qiongli-plugin-payload-source-") as tmp:
+        materialize_source = build_materialize_source(root, Path(tmp), dry_run=False)
+        portable_source = materialize_source / "qiongli-workflow"
+        portable_dest = root / "qiongli-workflow"
+        plugin_dest = root / "plugins" / "qiongli" / "skills" / "qiongli-workflow"
+
+        print(f"Syncing skill package: {portable_dest}")
+        copy_path(portable_source, portable_dest, dry_run=False)
+        fail_if_symlinks(portable_dest)
+        print("  [ok] portable package")
+
+        print(f"Syncing skill package: {plugin_dest}")
+        copy_path(portable_dest, plugin_dest, dry_run=False)
+        fail_if_symlinks(plugin_dest)
+        print("  [ok] mirrored portable package")
+
+    print("[done] Skill package is self-contained.")
+
+
 def materialize_in_place(root: Path, target: str) -> None:
     root = root.resolve()
     if target in {"plugin", "all"}:
-        run_command(["bash", "scripts/sync_skill_package.sh", "--target", "all"], cwd=root)
+        materialize_plugin_payload(root)
     if target == "python":
         materialize_python_payload(root)
     if target in {"npm", "all"}:

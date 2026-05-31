@@ -309,7 +309,12 @@ def _build_materialize_source(root: Path, work_dir: Path) -> Path:
 
 
 def _copy_common_skill(root: Path, dest_plugin_root: Path) -> None:
-    _copy_path(root / PLUGIN_ROOT / "skills", dest_plugin_root / "skills")
+    generated_skill = root / PLUGIN_ROOT / "skills"
+    if generated_skill.is_dir():
+        _copy_path(generated_skill, dest_plugin_root / "skills")
+        return
+
+    _copy_subject_skill(root, dest_plugin_root, "core")
 
 
 def _copy_subject_skill(root: Path, dest_plugin_root: Path, subject: str) -> None:
