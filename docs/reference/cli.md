@@ -96,6 +96,8 @@ Wizard choices:
 
 Provider keys entered through setup use the same provider config as `qiongli provider setup` and `qiongli provider doctor`. Secrets are stored outside generated research artifacts. Setup configures credentials and runs doctor/capability checks; it does not promise that an external literature search will run.
 
+When invoked through the npm launcher, `qiongli setup` uses the bundled Python bridge and requires Python 3.12+ plus `PyYAML`. The explicit `qiongli install ...` npm command remains available for Node-only asset installation.
+
 ### 2.3 `qiongli install` (Install bundled subject payload)
 
 Use Case:

@@ -166,6 +166,8 @@ wizard 会引导 CLI、Codex 和 Claude Code 用户完成：
 
 通过 setup 输入的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。密钥会保存在生成的研究 artifacts 之外。provider 步骤用于配置凭据并执行 doctor/capability 检查；它不保证一定产生外部检索结果。
 
+在 npm 安装中，`qiongli setup` 会委托到 npm 包内置的 Python bridge，因此要求本机已有 Python 3.12+ 和 `PyYAML`。如果只需要 Node-only asset installer，继续使用显式 `qiongli install ...` 命令。
+
 ## pipx / pip
 
 如果你明确需要 Python 分发的 updater CLI，用 pipx：

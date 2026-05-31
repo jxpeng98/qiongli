@@ -166,6 +166,8 @@ The wizard guides CLI, Codex, and Claude Code users through:
 
 Provider keys entered through setup use the same provider config as `qiongli provider setup` and `qiongli provider doctor`. Secrets are stored outside generated research artifacts. The provider step configures credentials and runs doctor/capability checks; it does not guarantee external search results.
 
+On npm installs, `qiongli setup` delegates to the bundled Python bridge and therefore requires Python 3.12+ plus `PyYAML`. Use explicit `qiongli install ...` commands when you want the Node-only asset installer.
+
 ## pipx / pip
 
 Use pipx when you specifically want the Python-distributed updater CLI:
