@@ -261,6 +261,5 @@ class InstallerCliTests(unittest.TestCase):
         self.assertEqual(payload["providers"]["openalex"], "configured")
         self.assertEqual(payload["providers"]["semantic_scholar"], "configured")
 
-
 if __name__ == "__main__":
     unittest.main()

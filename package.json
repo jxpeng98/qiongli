@@ -6,6 +6,7 @@
   ],
   "scripts": {
     "validate": "python3 scripts/validate_marketplace_install.py && npm --prefix packages/npm-qiongli test",
+    "mcpb:pack": "python3 scripts/build_literature_mcpb.py --dist-dir dist",
     "docs:dev": "vitepress dev docs --host",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs --host"
