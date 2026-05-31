@@ -72,7 +72,7 @@ Exit Codes:
 
 Use Case:
 - Recommended first command after installing the CLI with npm, pipx, pip, or bootstrap.
-- Guides CLI, Codex, and Claude Code users through runtime surface, subject, coverage, install scope, optional provider key setup, and doctor verification.
+- Guides CLI, Codex, and Claude Code users through install vs upgrade, runtime surface, subject, coverage, install mode, install scope, overwrite policy, upgrade source, optional provider key setup, and doctor verification.
 
 ```bash
 qiongli setup [--project-dir <path>] [--dry-run] [--no-doctor]
@@ -86,17 +86,24 @@ qiongli setup --dry-run
 qiongli setup --project-dir "$PWD" --no-doctor
 ```
 
+When invoked through the npm launcher, `qiongli setup` uses the bundled Python bridge and requires Python 3.12+ plus `PyYAML`. The explicit `qiongli install ...` npm command remains available for Node-only asset installation.
+
 Wizard choices:
+- Setup path: `install` or `upgrade`.
 - Runtime surface: `cli`, `codex`, `claude-code`, or `multi-platform`.
 - Subject: `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, or `economics-accounting`.
 - Coverage: `complete` or `focused`.
+- Install mode: `--mode copy` for normal use, or `--mode link` for local development.
 - Install scope: `all`, `globals`, `project`, or `cli`.
+- Shell CLI directory when the selected scope includes CLI wrappers.
+- Overwrite policy: `--overwrite` for install refreshes, or `--no-overwrite` when upgrading without replacing managed files.
+- Upgrade source: latest stable, latest beta, optional `--repo`, explicit `--ref`, and `--ref-type tag|branch`.
 - Optional provider keys for literature provider credentials.
 - Doctor verification unless `--no-doctor` is set.
 
-Provider keys entered through setup use the same provider config as `qiongli provider setup` and `qiongli provider doctor`. Secrets are stored outside generated research artifacts. Setup configures credentials and runs doctor/capability checks; it does not promise that an external literature search will run.
+Every prompt includes a short `Tip:` comment that explains why the choice matters and which install or upgrade behavior it changes.
 
-When invoked through the npm launcher, `qiongli setup` uses the bundled Python bridge and requires Python 3.12+ plus `PyYAML`. The explicit `qiongli install ...` npm command remains available for Node-only asset installation.
+Provider keys entered through setup use the same provider config as `qiongli provider setup` and `qiongli provider doctor`. Secrets are stored outside generated research artifacts. Setup configures credentials and runs doctor/capability checks; it does not promise that an external literature search will run.
 
 ### 2.3 `qiongli install` (Install bundled subject payload)
 

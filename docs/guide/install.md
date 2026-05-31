@@ -157,12 +157,19 @@ qiongli setup --project-dir "$PWD" --no-doctor
 
 The wizard guides CLI, Codex, and Claude Code users through:
 
+- setup path: `install` for first-time bundled asset installation, or `upgrade` for an upstream refresh
 - runtime surface: CLI, Codex, Claude Code, or multi-platform
 - subject choice
 - coverage choice: `complete` or `focused`
+- install mode: `--mode copy` for normal use, or `--mode link` for local checkout development
 - install scope: `all`, `globals`, `project`, or `cli`
+- shell CLI directory when CLI wrappers are enabled
+- overwrite policy: `--overwrite` for replacing managed installs, or `--no-overwrite` on upgrade when you want to preserve existing managed files
+- upgrade source: latest stable, latest beta, an explicit `--ref` tag, an explicit `--ref-type branch`, and optional `--repo`
 - optional literature provider key setup
 - doctor verification, unless `--no-doctor` is set
+
+Every prompt prints a short `Tip:` comment explaining what the choice changes, so new users can follow the install or upgrade path without knowing the full CLI flag set first.
 
 Provider keys entered through setup use the same provider config as `qiongli provider setup` and `qiongli provider doctor`. Secrets are stored outside generated research artifacts. The provider step configures credentials and runs doctor/capability checks; it does not guarantee external search results.
 
