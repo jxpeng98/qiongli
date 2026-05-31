@@ -16,6 +16,20 @@ class BranchPolicyTests(unittest.TestCase):
         for workflow in (".github/workflows/ci.yml", ".github/workflows/install-check.yml"):
             content = read(workflow)
             self.assertIn('branches: ["main", "master", "dev"]', content)
+            self.assertIn("release/acceptance/**", content)
+
+    def test_ci_workflow_cancels_stale_runs_and_splits_test_tiers(self) -> None:
+        content = read(".github/workflows/ci.yml")
+
+        self.assertIn("concurrency:", content)
+        self.assertIn("cancel-in-progress: true", content)
+        self.assertIn("cache: pip", content)
+        self.assertIn("test-tier: full", content)
+        self.assertIn("test-tier: windows-smoke", content)
+        self.assertIn("if: matrix.test-tier == 'full'", content)
+        self.assertIn("if: matrix.test-tier == 'windows-smoke'", content)
+        self.assertIn("python -m unittest tests.test_install_qiongli tests.test_bootstrap_qiongli tests.test_universal_installer tests.test_command_runtime tests.test_release_automation tests.test_branch_policy", content)
+        self.assertIn("./scripts/release_preflight.sh --quick", content)
 
     def test_ci_syncs_skill_package_before_strict_research_validation(self) -> None:
         content = read(".github/workflows/ci.yml")

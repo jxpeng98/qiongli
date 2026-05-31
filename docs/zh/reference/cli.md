@@ -417,9 +417,11 @@ mode 列表：
 也可单独运行：
 
 ```bash
-./scripts/release_preflight.sh [--tag v0.1.0-beta.X] [--skip-smoke] [--maintainer-smoke] [--no-strict]
-./scripts/release_postflight.sh --tag v0.1.0-beta.X [--skip-remote] [--skip-ci-status] [--wait-ci] [--create-release]
+./scripts/release_preflight.sh [--tag v0.1.0-beta.X] [--quick] [--skip-smoke] [--maintainer-smoke] [--no-strict]
+./scripts/release_postflight.sh --tag v0.1.0-beta.X [--skip-remote] [--skip-ci-status] [--wait-ci] [--ci-timeout-seconds 900] [--ci-timeout-mode soft] [--create-release]
 ```
+
+对于 beta release，`--ci-timeout-mode soft` 会让 postflight 只等待指定窗口，之后把未完成的 CI 记录为 acceptance receipt 里的 `pending` 状态并继续。stable release 保持默认 hard 模式。
 
 ### 4.4 Beta smoke：`./scripts/run_beta_smoke.sh`
 
