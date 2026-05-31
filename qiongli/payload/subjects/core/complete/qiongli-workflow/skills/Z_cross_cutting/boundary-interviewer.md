@@ -34,11 +34,34 @@ Use this skill when a task could drift in research scope, claim strength, eviden
 
 The skill is not a generic requirements interview. It should help answer: what can this project honestly claim, for whom, with what evidence, against which rivals, and under what limits?
 
+## Academic Grill Loop
+
+The Academic Grill Loop is Qiongli's academic idea discovery and boundary-critique adaptation of the grill-me interaction pattern. It is not a generic grill-me clone: the loop must convert a broad topic or early idea into a defensible scholarly choice by testing claim strength, evidence threshold, rival explanations, feasibility, venue expectations, and generalizability.
+
+Credit: the interaction pattern is inspired by Matt Pocock's `grill-me` skill at `https://github.com/mattpocock/skills/blob/main/skills/productivity/grill-me/SKILL.md`. Qiongli changes the substance of the loop for academic work: questions are paper-type aware, evidence-bound, reviewer-sensitive, and recorded as reusable research constraints.
+
+Use the Academic Grill Loop when the user is brainstorming, selecting among research ideas, starting Stage A, running `/find-gap`, or entering a later stage with an idea whose academic boundary is still unclear. The loop is:
+
+1. Inspect artifacts first: `research_state`, `decision_log`, RQ, contribution, gap analysis, design, claim map, and handoff notes.
+2. Choose the smallest scholarly uncertainty that would most change the idea, claim, method, or venue position.
+3. Ask one scholarly question at a time.
+4. Provide a recommended answer with academic rationale, expected evidence basis, claim-strength implication, reviewer or venue consequence, and confidence.
+5. Record the answer as a boundary decision, including what would force the idea to narrow or be revisited.
+
+For Stage A idea-discovery, prefer questions that move from "interesting topic" to "publishable research idea":
+
+- What evidence would make this idea answerable in one paper?
+- Which population, setting, time period, or corpus is out of scope?
+- Which construct definition makes the idea testable or interpretable?
+- What contribution type is primary, and which adjacent contribution is not being claimed?
+- Who would cite this work if it succeeds, and why would they care?
+
 ## When to Use
 
 - Before high-risk framing, study design, writing, submission, research code, or handoff work when scope, claim strength, evidence threshold, validity risk, generalizability, or reviewer expectations remain unclear.
 - When `context/boundary_review.md` is missing, stale, or contradicted by the current task.
 - When broadening a previous boundary would change downstream artifacts, claims, evidence thresholds, code decisions, or submission promises.
+- When a vague topic or brainstorm needs to become a defensible academic idea before `A1`, `A2`, `A4`, or `A5` artifacts are drafted.
 
 ## Related Task IDs
 

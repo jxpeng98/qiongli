@@ -2381,12 +2381,13 @@ skills:
   version: 0.14.0-beta.1
   file: skills/Z_cross_cutting/boundary-interviewer.md
   canonical: true
-  summary: Clarify scholarly boundaries one question at a time before high-risk Qiongli
-    work proceeds.
+  summary: Run academic idea-discovery and boundary critique one question at a time
+    before high-risk Qiongli work proceeds.
   display_name: Boundary Interviewer
-  when_to_use: Use before high-risk framing, study design, writing, submission, research
-    code, or handoff work when research scope, claim strength, evidence threshold,
-    validity risk, generalizability, or reviewer expectations remain unclear.
+  when_to_use: Use during brainstorms, Stage A framing, gap finding, or before high-risk
+    study design, writing, submission, research code, and handoff work when research
+    scope, claim strength, evidence threshold, validity risk, generalizability, or
+    reviewer expectations remain unclear.
   summary_zh: 在高风险学术任务前用一次一个问题的方式确认研究范围、主张强度、证据阈值、有效性风险与审稿边界。
   display_name_zh: 学术边界追问器
   when_to_use_zh: 当研究问题、claim 强度、证据阈值、方法有效性、外推范围、投稿承诺或阶段交接仍不清楚时使用。
