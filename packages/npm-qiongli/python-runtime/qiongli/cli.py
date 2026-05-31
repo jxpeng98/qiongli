@@ -25,6 +25,15 @@ from .universal_installer import (
     clean_workflow_symlinks,
     install,
 )
+from bridges.provider_config import (
+    global_provider_config_path,
+    provider_capability_mode,
+    provider_config_summary,
+    redact_provider_config,
+    resolve_provider_config,
+    set_provider_value,
+    unset_provider_value,
+)
 
 TAG_PATTERN = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:-beta\.(\d+)|b(\d+))?$")
 RELEASE_NOTE_PATTERN = re.compile(r"^v(\d+)\.(\d+)\.(\d+)-beta\.(\d+)\.md$")
@@ -902,6 +911,71 @@ def cmd_align(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_provider(args: argparse.Namespace) -> int:
+    action = getattr(args, "provider_cmd", "")
+    if action == "set":
+        path = set_provider_value(args.provider, args.field, args.value)
+        print(f"Configured {args.provider} {args.field} in {path}")
+        return 0
+    if action == "unset":
+        path = unset_provider_value(args.provider, args.field)
+        print(f"Removed {args.provider} {args.field} from {path}")
+        return 0
+    if action == "list":
+        config = resolve_provider_config(cwd=Path.cwd())
+        redacted = redact_provider_config(config)
+        if args.json:
+            print(json.dumps(redacted, indent=2, sort_keys=True))
+            return 0
+        print("Qiongli Literature Providers")
+        print("============================")
+        providers = redacted.get("providers", {})
+        if isinstance(providers, dict):
+            for provider, raw in providers.items():
+                configured = bool(raw.get("configured")) if isinstance(raw, dict) else False
+                status = "configured" if configured else "missing"
+                print(f"- {provider}: {status}")
+        return 0
+    if action == "doctor":
+        config = resolve_provider_config(cwd=Path.cwd())
+        summary = provider_config_summary(config)
+        payload = {
+            "config_path": str(global_provider_config_path()),
+            "providers": summary,
+            "capability_mode": provider_capability_mode(summary),
+        }
+        if args.json:
+            print(json.dumps(payload, indent=2, sort_keys=True))
+            return 0
+        print("Qiongli Literature Provider Doctor")
+        print("==================================")
+        for provider, status in summary.items():
+            print(f"- {provider}: {status}")
+        print(f"- capability_mode: {payload['capability_mode']}")
+        return 0
+    if action == "setup":
+        return _cmd_provider_setup(args)
+    raise RuntimeError(f"Unhandled provider command: {action}")
+
+
+def _cmd_provider_setup(args: argparse.Namespace) -> int:
+    del args
+    print("Qiongli Literature Search Setup")
+    print("Press Enter to skip optional values.")
+    prompts = (
+        ("openalex", "email", "OpenAlex email"),
+        ("semantic-scholar", "api-key", "Semantic Scholar API key"),
+        ("crossref", "email", "Crossref email"),
+        ("pubmed", "api-key", "PubMed/NCBI API key"),
+    )
+    for provider, field, label in prompts:
+        value = input(f"{label}: ").strip()
+        if value:
+            set_provider_value(provider, field, value)
+    print(f"Provider configuration saved to {global_provider_config_path()}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Install/upgrade qiongli (Codex/Claude/Gemini) without requiring a git fork."
@@ -1026,8 +1100,43 @@ def build_parser() -> argparse.ArgumentParser:
         help=f"Comma-separated install surfaces to apply: {', '.join(PART_CHOICES)}.",
     )
 
+    setup = subparsers.add_parser(
+        "setup",
+        help="Interactively configures Qiongli for CLI/Codex/Claude Code use",
+    )
+    setup.add_argument(
+        "--project-dir",
+        default=str(Path.cwd()),
+        help="Project directory to configure (default: current dir)",
+    )
+    setup.add_argument("--dry-run", action="store_true", help="Show planned setup actions only")
+    setup.add_argument(
+        "--no-doctor",
+        action="store_true",
+        default=False,
+        help="Skip doctor after setup",
+    )
+
     align = subparsers.add_parser("align", help="Print a short usage alignment (what installs where)")
     align.add_argument("--repo", help="Optional upstream repo in owner/repo form (used in examples)")
+
+    provider = subparsers.add_parser("provider", help="Configure literature search providers")
+    provider_subparsers = provider.add_subparsers(dest="provider_cmd", required=True)
+    provider_setup = provider_subparsers.add_parser("setup", help="Interactively configure literature providers")
+    provider_setup.add_argument("--global", dest="global_config", action="store_true", help="Write global config")
+    provider_setup.add_argument("--project", action="store_true", help="Reserved for future project-local writes")
+    provider_set = provider_subparsers.add_parser("set", help="Set a provider config value")
+    provider_set.add_argument("provider", help="Provider name, e.g. openalex or semantic-scholar")
+    provider_set.add_argument("field", help="Field name, e.g. email or api-key")
+    provider_set.add_argument("value", help="Config value")
+    provider_unset = provider_subparsers.add_parser("unset", help="Unset a provider config value")
+    provider_unset.add_argument("provider", help="Provider name, e.g. openalex or semantic-scholar")
+    provider_unset.add_argument("field", help="Field name, e.g. email or api-key")
+    provider_list = provider_subparsers.add_parser("list", help="List configured literature providers")
+    provider_list.add_argument("--json", action="store_true", help="Emit JSON only")
+    provider_doctor = provider_subparsers.add_parser("doctor", help="Check literature provider configuration")
+    provider_doctor.add_argument("--json", action="store_true", help="Emit JSON only")
+    provider_doctor.add_argument("--network", action="store_true", help="Reserved for future network checks")
 
     doctor = subparsers.add_parser("doctor", help="Run orchestrator doctor for the current project")
     doctor.add_argument(
@@ -1094,8 +1203,15 @@ def main() -> int:
         return cmd_install(args)
     if args.cmd == "upgrade":
         return cmd_upgrade(args)
+    if args.cmd == "setup":
+        from qiongli.setup_wizard import run_setup_wizard
+
+        result = run_setup_wizard(args)
+        return result if isinstance(result, int) else 0
     if args.cmd == "align":
         return cmd_align(args)
+    if args.cmd == "provider":
+        return cmd_provider(args)
     if args.cmd == "doctor":
         return cmd_doctor(args)
     if args.cmd == "init":

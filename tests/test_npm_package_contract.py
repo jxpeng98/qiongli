@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
+import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -96,6 +99,27 @@ class NpmPackageContractTests(unittest.TestCase):
             (REPO_ROOT / "skills" / "registry.yaml").read_text(encoding="utf-8"),
             (runtime_root / "skills" / "registry.yaml").read_text(encoding="utf-8"),
         )
+
+    def test_npm_runtime_setup_wizard_resolves_npm_payload_root(self) -> None:
+        env = os.environ.copy()
+        env["PYTHONPATH"] = str(NPM_PACKAGE_ROOT / "python-runtime")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-c",
+                    "from qiongli.setup_wizard import _packaged_payload_root; print(_packaged_payload_root())",
+                ],
+                cwd=temp_dir,
+                env=env,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), str(NPM_PACKAGE_ROOT / "payload"))
 
     def test_release_workflows_cover_pypi_and_npm_names(self) -> None:
         pypi_workflow = (REPO_ROOT / ".github" / "workflows" / "publish-pypi.yml").read_text(encoding="utf-8")
