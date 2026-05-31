@@ -68,7 +68,35 @@ Exit Codes:
 - `1`: Update available.
 - `2`: Invalid argument.
 
-### 2.2 `qiongli install` (Install bundled subject payload)
+### 2.2 `qiongli setup` (Interactive CLI setup wizard)
+
+Use Case:
+- Recommended first command after installing the CLI with npm, pipx, pip, or bootstrap.
+- Guides CLI, Codex, and Claude Code users through runtime surface, subject, coverage, install scope, optional provider key setup, and doctor verification.
+
+```bash
+qiongli setup [--project-dir <path>] [--dry-run] [--no-doctor]
+```
+
+Examples:
+
+```bash
+qiongli setup
+qiongli setup --dry-run
+qiongli setup --project-dir "$PWD" --no-doctor
+```
+
+Wizard choices:
+- Runtime surface: `cli`, `codex`, `claude-code`, or `multi-platform`.
+- Subject: `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, or `economics-accounting`.
+- Coverage: `complete` or `focused`.
+- Install scope: `all`, `globals`, `project`, or `cli`.
+- Optional provider keys for literature provider credentials.
+- Doctor verification unless `--no-doctor` is set.
+
+Provider keys entered through setup use the same provider config as `qiongli provider setup` and `qiongli provider doctor`. Secrets are stored outside generated research artifacts. Setup configures credentials and runs doctor/capability checks; it does not promise that an external literature search will run.
+
+### 2.3 `qiongli install` (Install bundled subject payload)
 
 Use Case:
 - Installs the subject payload bundled inside the PyPI package into global client skill directories.
@@ -100,7 +128,7 @@ qiongli install --subject economics --coverage focused --target all
 
 Subject packages are specialized installs, not reduced-quality cuts. Default install is `core/complete`. `--subject economics`, `--subject business`, `--subject finance`, `--subject political-economy`, and `--subject geoeconomics` mean complete specialized installs, not reduced packages. `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. Focused coverage selects the subject profile set and active effective skills for deliberate slim installs and Desktop/Web ZIPs. Current official subjects are `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and the named composite `economics-accounting`; `political-economy` and `geoeconomics` are independent subject choices, not a composite. Official composites are not arbitrary comma-separated stacking. Public Desktop ZIP subjects are `core`, `economics`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting`, with no standalone accounting Desktop ZIP in this phase. Switch subjects or coverage by rerunning `install` or `upgrade` with new flags.
 
-### 2.3 `qiongli upgrade` (Download release & execute installers)
+### 2.4 `qiongli upgrade` (Download release & execute installers)
 
 Use Case:
 - Downloads the upstream release (defaults to latest tag `.tar.gz`).
@@ -130,7 +158,7 @@ Notes:
 - Shell CLI uses the bundled bootstrap helper and does not require Python.
 - The command exits with the error code returned by the underlying installer.
 
-### 2.4 `qiongli align` (Quick Reference Guide)
+### 2.5 `qiongli align` (Quick Reference Guide)
 
 Use Case: Prints an overview of "what pipx installed / paths modified by upgrades / common commands".
 
@@ -138,7 +166,7 @@ Use Case: Prints an overview of "what pipx installed / paths modified by upgrade
 qiongli align [--repo <owner/repo|url>]
 ```
 
-### 2.5 `qiongli init` (Project Bootstrap)
+### 2.6 `qiongli init` (Project Bootstrap)
 
 Use Case: Creates project-local `.env` configuration in your project directory.
 
@@ -150,7 +178,7 @@ Notes:
 - Only creates project-facing assets (`.env`). Does not touch global skill directories.
 - Safe to run multiple times; will not overwrite existing files unless `--overwrite` is passed.
 
-### 2.6 `qiongli clean` (Remove Stale Assets)
+### 2.7 `qiongli clean` (Remove Stale Assets)
 
 Use Case: Removes stale project-local assets left from older installations.
 
@@ -163,7 +191,7 @@ Flags:
 - `--globals`: Also remove workflow discovery symlinks from `~/.claude/commands/` and `~/.gemini/workflows/`. Only removes symlinks that point to `qiongli-workflow` — user-created commands are preserved.
 - `--dry-run`: Show what would be removed without deleting.
 
-### 2.7 `qiongli doctor` (Environment Preflight)
+### 2.8 `qiongli doctor` (Environment Preflight)
 
 Use Case: Runs orchestrator preflight checks (CLIs, API keys, MCP wiring).
 
@@ -171,7 +199,7 @@ Use Case: Runs orchestrator preflight checks (CLIs, API keys, MCP wiring).
 qiongli doctor [--cwd <path>]
 ```
 
-### 2.8 `qiongli customize` (Create a custom subject overlay)
+### 2.9 `qiongli customize` (Create a custom subject overlay)
 
 Use Case:
 - Creates a local custom overlay scaffold for the Python/source checkout materialization workflow.

@@ -270,6 +270,18 @@ npx qiongli@next check --json
 
 The npm package bundles pre-materialized `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting` payloads in both `complete` and `focused` coverage. `--subject` defaults to `core`, and `--coverage` defaults to `complete`; use `--coverage focused` only when you want the slim subject package. `qiongli check --json` reports the bundled subject/coverage payload and installed target subjects. Advanced commands such as `qiongli doctor`, `qiongli task-run`, and `qiongli team-run` delegate to the bundled Python bridge and require Python 3.12+ plus `PyYAML`.
 
+Recommended first command after npm, pipx, pip, or bootstrap install:
+
+```bash
+qiongli setup
+qiongli setup --dry-run
+qiongli setup --project-dir "$PWD" --no-doctor
+```
+
+The setup wizard is for CLI, Codex, and Claude Code users who want help choosing the runtime surface (`cli`, `codex`, `claude-code`, or `multi-platform`), subject, coverage (`complete` or `focused`), and install scope (`all`, `globals`, `project`, or `cli`). It can also prompt for optional literature provider keys, then run doctor verification unless you pass `--no-doctor`.
+
+Provider keys entered through `qiongli setup` use the same provider config as `qiongli provider setup` and `qiongli provider doctor`. Secrets are stored in the provider configuration outside generated research artifacts. Setup configures credentials and runs doctor/capability checks; it does not by itself guarantee external search results.
+
 ### 3. Use The Installed Skills
 
 After `partial` or `full`, the normal user workflow is global-first:
@@ -589,6 +601,20 @@ What it installs:
 
 The npm package does not run a `postinstall` hook. Installing the package itself does not modify user skill directories; `qiongli install` or `qiongli upgrade` performs the asset installation.
 
+#### Recommended CLI Setup Wizard
+
+After installing the shell CLI through bootstrap, npm, pipx, or pip, run the setup wizard first:
+
+```bash
+qiongli setup
+qiongli setup --dry-run
+qiongli setup --project-dir "$PWD" --no-doctor
+```
+
+The wizard guides CLI, Codex, and Claude Code installs through runtime surface selection (`cli`, `codex`, `claude-code`, or `multi-platform`), subject choice, coverage choice (`complete` or `focused`), install scope (`all`, `globals`, `project`, or `cli`), optional literature provider key setup, and doctor verification.
+
+Provider keys entered through setup use the same provider config as `qiongli provider setup` and `qiongli provider doctor`. Secrets stay outside generated research artifacts. The provider step configures credentials and checks capabilities; it should not be described as a promise that an external literature search will run.
+
 #### Option D: Python CLI via `pipx`
 
 Use this when:
@@ -599,7 +625,10 @@ Command:
 
 ```bash
 pipx install qiongli
+qiongli setup
 ```
+
+`qiongli setup` guides the same choices interactively. For scriptable installs, keep using `qiongli upgrade` or explicit `qiongli install ...` commands as documented above.
 
 What it installs:
 - Python CLI: `qiongli`, `ql`, plus legacy aliases `research-skills`, `rsk`, `rsw`

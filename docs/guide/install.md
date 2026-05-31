@@ -145,19 +145,42 @@ Prerelease testing remains available through the `next` dist-tag:
 npx qiongli@next install --subject economics --target all --project-dir "$PWD"
 ```
 
+## Recommended CLI Setup Wizard
+
+After installing the CLI with npm, pipx, pip, or the bootstrap script, run the interactive setup wizard before hand-writing install flags:
+
+```bash
+qiongli setup
+qiongli setup --dry-run
+qiongli setup --project-dir "$PWD" --no-doctor
+```
+
+The wizard guides CLI, Codex, and Claude Code users through:
+
+- runtime surface: CLI, Codex, Claude Code, or multi-platform
+- subject choice
+- coverage choice: `complete` or `focused`
+- install scope: `all`, `globals`, `project`, or `cli`
+- optional literature provider key setup
+- doctor verification, unless `--no-doctor` is set
+
+Provider keys entered through setup use the same provider config as `qiongli provider setup` and `qiongli provider doctor`. Secrets are stored outside generated research artifacts. The provider step configures credentials and runs doctor/capability checks; it does not guarantee external search results.
+
 ## pipx / pip
 
 Use pipx when you specifically want the Python-distributed updater CLI:
 
 ```bash
 pipx install qiongli
-qiongli install --target all
+qiongli setup
 qiongli install --subject economics --target all
 qiongli install --subject accounting --target all
 qiongli install --subject political-economy --target all
 qiongli install --subject geoeconomics --target all
 qiongli install --subject economics-accounting --target all
 ```
+
+`qiongli setup` can guide the same choices interactively. Scriptable installs can still use `qiongli upgrade` or explicit `qiongli install ...` commands as shown here.
 
 Upgrade it with:
 

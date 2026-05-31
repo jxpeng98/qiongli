@@ -145,19 +145,42 @@ npx qiongli@latest check --json
 npx qiongli@next install --subject economics --target all --project-dir "$PWD"
 ```
 
+## 推荐的 CLI Setup Wizard
+
+通过 npm、pipx、pip 或 bootstrap script 安装 CLI 后，先运行交互式 setup wizard，再手写安装参数：
+
+```bash
+qiongli setup
+qiongli setup --dry-run
+qiongli setup --project-dir "$PWD" --no-doctor
+```
+
+wizard 会引导 CLI、Codex 和 Claude Code 用户完成：
+
+- runtime surface：CLI、Codex、Claude Code 或 multi-platform
+- subject 选择
+- coverage 选择：`complete` 或 `focused`
+- install scope：`all`、`globals`、`project` 或 `cli`
+- 可选 literature provider key setup
+- doctor verification，除非设置 `--no-doctor`
+
+通过 setup 输入的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。密钥会保存在生成的研究 artifacts 之外。provider 步骤用于配置凭据并执行 doctor/capability 检查；它不保证一定产生外部检索结果。
+
 ## pipx / pip
 
 如果你明确需要 Python 分发的 updater CLI，用 pipx：
 
 ```bash
 pipx install qiongli
-qiongli install --target all
+qiongli setup
 qiongli install --subject economics --target all
 qiongli install --subject accounting --target all
 qiongli install --subject political-economy --target all
 qiongli install --subject geoeconomics --target all
 qiongli install --subject economics-accounting --target all
 ```
+
+`qiongli setup` 可以交互式引导同一组选项。脚本化安装仍可使用这里展示的 `qiongli upgrade` 或显式 `qiongli install ...` 命令。
 
 升级：
 

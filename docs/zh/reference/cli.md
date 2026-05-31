@@ -68,7 +68,35 @@ JSON 输出会包含每个 target 当前安装的 active subject 和 coverage。
 - `1`：检测到更新可用
 - `2`：参数错误
 
-### 2.2 `qiongli install`（安装包内 subject payload）
+### 2.2 `qiongli setup`（交互式 CLI setup wizard）
+
+用途：
+- npm、pipx、pip 或 bootstrap 安装 CLI 后的推荐第一个命令。
+- 引导 CLI、Codex 和 Claude Code 用户选择 runtime surface、subject、coverage、install scope、可选 provider key setup，并执行 doctor verification。
+
+```bash
+qiongli setup [--project-dir <path>] [--dry-run] [--no-doctor]
+```
+
+示例：
+
+```bash
+qiongli setup
+qiongli setup --dry-run
+qiongli setup --project-dir "$PWD" --no-doctor
+```
+
+wizard 选项：
+- Runtime surface：`cli`、`codex`、`claude-code` 或 `multi-platform`。
+- Subject：`core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics` 或 `economics-accounting`。
+- Coverage：`complete` 或 `focused`。
+- Install scope：`all`、`globals`、`project` 或 `cli`。
+- 可选 literature provider credentials。
+- Doctor verification，除非设置 `--no-doctor`。
+
+通过 setup 输入的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。密钥保存在生成的研究 artifacts 之外。setup 会配置凭据并执行 doctor/capability 检查；它不承诺一定会运行外部 literature search。
+
+### 2.3 `qiongli install`（安装包内 subject payload）
 
 用途：
 - 把 PyPI 包内携带的 subject payload 安装到全局客户端 skill 目录。
@@ -100,7 +128,7 @@ qiongli install --subject economics --coverage focused --target all
 
 Subject package 是专精安装包，不是降质删减版。默认安装是 `core/complete`。`--subject economics`、`--subject business`、`--subject finance`、`--subject political-economy` 和 `--subject geoeconomics` 表示 complete 专精安装，不是缩水包；`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。`focused` coverage 只选择该 subject 的 profiles 和 active effective skills，用于有意选择的精简安装和 Desktop/Web ZIP。当前官方 subjects 是 `core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics` 和命名 composite subject `economics-accounting`；`political-economy` 和 `geoeconomics` 是两个独立 subject 选择，不是一个 composite。官方 composite subjects 不是任意逗号分隔叠加。本阶段公开 Desktop ZIP subjects 是 `core`、`economics`、`business`、`finance`、`political-economy`、`geoeconomics` 和 `economics-accounting`，还没有 standalone accounting Desktop ZIP。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新参数。
 
-### 2.3 `qiongli upgrade`（下载 release 并执行三端安装脚本）
+### 2.4 `qiongli upgrade`（下载 release 并执行三端安装脚本）
 
 用途：
 - 下载上游 release（默认 latest tag 的 tar.gz）
@@ -130,7 +158,7 @@ qiongli upgrade \
 - Shell CLI 会通过随附的 bootstrap helper 执行升级，不依赖 Python。
 - 退出码为底层安装器返回码（若安装失败，沿用其错误码）。
 
-### 2.4 `qiongli align`（快速参考）
+### 2.5 `qiongli align`（快速参考）
 
 用途：打印“pipx 安装了什么 / upgrade 会修改哪些路径 / 常见用法”。
 
@@ -138,7 +166,7 @@ qiongli upgrade \
 qiongli align [--repo <owner/repo|url>]
 ```
 
-### 2.5 `qiongli init`（项目初始化）
+### 2.6 `qiongli init`（项目初始化）
 
 用途：在项目目录中创建 `.env` 等项目配置。
 
@@ -146,7 +174,7 @@ qiongli align [--repo <owner/repo|url>]
 qiongli init [--project-dir <path>] [--target all|codex|claude|gemini] [--dry-run]
 ```
 
-### 2.6 `qiongli clean`（清理过期资产）
+### 2.7 `qiongli clean`（清理过期资产）
 
 用途：移除旧版本安装留下的项目本地资产。
 
@@ -159,13 +187,13 @@ qiongli clean [--project-dir <path>] [--dry-run] [--globals]
 - `--globals`：同时移除全局工作流发现 symlink（`~/.claude/commands/` 和 `~/.gemini/workflows/`）。只移除指向 `qiongli-workflow` 的 symlink，用户自建的命令不受影响。
 - `--dry-run`：只显示将要移除的内容，不实际删除。
 
-### 2.7 `qiongli doctor`（环境预检）
+### 2.8 `qiongli doctor`（环境预检）
 
 ```bash
 qiongli doctor [--cwd <path>]
 ```
 
-### 2.8 `qiongli customize`（创建 custom subject overlay）
+### 2.9 `qiongli customize`（创建 custom subject overlay）
 
 用途：
 - 为 Python/source checkout materialization 工作流创建本地 custom overlay scaffold。
