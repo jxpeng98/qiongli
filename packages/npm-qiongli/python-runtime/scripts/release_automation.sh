@@ -76,6 +76,7 @@ Notes:
   - publish is the canonical release entrypoint. Use pre/post only for diagnostics or recovery.
   - pre supports pass-through flags such as --from-tag, --skip-note-gen, --note-overwrite, --skip-smoke, --maintainer-smoke, and --no-strict.
   - publish -> runs release_ready (including pypi_preflight.sh and npm_preflight.sh), syncs generated distribution payloads, commits release-prep files, creates/pushes the tag, waits for branch CI and tag publish workflows, then runs postflight with release-page creation.
+  - publish supports --ci-timeout-mode hard|soft. Use soft for beta releases when CI may exceed the local wait window; keep hard for stable releases.
   - publish stable releases from the primary branch; publish prerelease/beta tags from dev or the primary branch.
 EOF
 }
@@ -106,6 +107,7 @@ case "$MODE" in
     skip_ci_status=0
     wait_ci=1
     ci_timeout_seconds=1800
+    ci_timeout_mode="hard"
     ci_poll_interval_seconds=30
     ready_args=()
     post_args=()
@@ -188,6 +190,15 @@ case "$MODE" in
         --ci-timeout-seconds)
           [[ $# -ge 2 ]] || { echo "[release-automation] missing value for --ci-timeout-seconds" >&2; exit 2; }
           ci_timeout_seconds="$2"
+          shift 2
+          ;;
+        --ci-timeout-mode)
+          [[ $# -ge 2 ]] || { echo "[release-automation] missing value for --ci-timeout-mode" >&2; exit 2; }
+          ci_timeout_mode="$2"
+          [[ "$ci_timeout_mode" == "hard" || "$ci_timeout_mode" == "soft" ]] || {
+            echo "[release-automation] --ci-timeout-mode must be hard or soft" >&2
+            exit 2
+          }
           shift 2
           ;;
         --ci-poll-interval-seconds)
@@ -283,7 +294,7 @@ case "$MODE" in
     git push "$push_remote" "$push_branch" "$repo_tag"
 
     if [[ "$wait_ci" -eq 1 ]]; then
-      post_args+=(--wait-ci --ci-timeout-seconds "$ci_timeout_seconds" --ci-poll-interval-seconds "$ci_poll_interval_seconds")
+      post_args+=(--wait-ci --ci-timeout-seconds "$ci_timeout_seconds" --ci-timeout-mode "$ci_timeout_mode" --ci-poll-interval-seconds "$ci_poll_interval_seconds")
     fi
     if [[ "$create_release" -eq 1 ]]; then
       post_args+=(--create-release)

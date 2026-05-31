@@ -14,6 +14,7 @@ BRANCH_REQUIRED_WORKFLOWS=("CI" "Checkout Install Check")
 TAG_REQUIRED_WORKFLOWS=("Publish to PyPI" "Publish to npm")
 WAIT_CI=0
 CI_TIMEOUT_SECONDS=1800
+CI_TIMEOUT_MODE="hard"
 CI_POLL_INTERVAL_SECONDS=30
 TEMP_RELEASE_NOTES=""
 
@@ -45,6 +46,8 @@ Options:
   --wait-ci             Wait for branch checks and tag publish workflows to complete successfully.
   --ci-timeout-seconds <n>
                         Max time to wait for CI when --wait-ci is enabled (default: 1800).
+  --ci-timeout-mode <hard|soft>
+                        hard fails on unresolved CI after timeout; soft records pending/skipped and continues (default: hard).
   --ci-poll-interval-seconds <n>
                         Poll interval for CI checks when --wait-ci is enabled (default: 30).
   --create-release      Create GitHub release if missing and gh auth is available.
@@ -157,18 +160,17 @@ prepare_release_notes_file() {
   RELEASE_NOTES_LABEL="CHANGELOG.md [${version}]"
 }
 
-query_actions_status() {
+fetch_actions_runs() {
   local repo_slug="$1"
   local ref_name="$2"
-  local commit="$3"
-  shift 3
-  local api_url ci_json ci_json_file
+  local api_url ci_json
   local -a curl_cmd
-  local -a required_workflows=("$@")
 
-  if [[ -z "$repo_slug" ]]; then
-    printf 'skipped:no-repo-slug\n'
-    return 0
+  if command -v gh >/dev/null 2>&1; then
+    if ci_json="$(gh api "repos/${repo_slug}/actions/runs?branch=${ref_name}&per_page=20" 2>/dev/null)"; then
+      printf '%s' "$ci_json"
+      return 0
+    fi
   fi
 
   api_url="https://api.github.com/repos/${repo_slug}/actions/runs?branch=${ref_name}&per_page=20"
@@ -177,7 +179,23 @@ query_actions_status() {
     curl_cmd=(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" "$api_url")
   fi
 
-  if ! ci_json="$("${curl_cmd[@]}" 2>/dev/null)"; then
+  "${curl_cmd[@]}"
+}
+
+query_actions_status() {
+  local repo_slug="$1"
+  local ref_name="$2"
+  local commit="$3"
+  shift 3
+  local ci_json ci_json_file
+  local -a required_workflows=("$@")
+
+  if [[ -z "$repo_slug" ]]; then
+    printf 'skipped:no-repo-slug\n'
+    return 0
+  fi
+
+  if ! ci_json="$(fetch_actions_runs "$repo_slug" "$ref_name" 2>/dev/null)"; then
     printf 'skipped:request-failed\n'
     return 0
   fi
@@ -279,6 +297,15 @@ while [[ $# -gt 0 ]]; do
       CI_TIMEOUT_SECONDS="$2"
       shift 2
       ;;
+    --ci-timeout-mode)
+      [[ $# -ge 2 ]] || { echo "[postflight] missing value for --ci-timeout-mode" >&2; exit 2; }
+      CI_TIMEOUT_MODE="$2"
+      [[ "$CI_TIMEOUT_MODE" == "hard" || "$CI_TIMEOUT_MODE" == "soft" ]] || {
+        echo "[postflight] --ci-timeout-mode must be hard or soft" >&2
+        exit 2
+      }
+      shift 2
+      ;;
     --ci-poll-interval-seconds)
       [[ $# -ge 2 ]] || { echo "[postflight] missing value for --ci-poll-interval-seconds" >&2; exit 2; }
       CI_POLL_INTERVAL_SECONDS="$2"
@@ -366,11 +393,17 @@ fi
 if [[ "$SKIP_CI" -eq 0 ]]; then
   if [[ -z "$REPO_SLUG" ]]; then
     if [[ "$WAIT_CI" -eq 1 ]]; then
-      echo "[postflight] cannot derive repo slug while --wait-ci is enabled" >&2
-      exit 1
+      if [[ "$CI_TIMEOUT_MODE" == "soft" ]]; then
+        echo "[postflight] warning: cannot derive repo slug while --wait-ci is enabled; continuing because --ci-timeout-mode=soft"
+        CI_STATUS="skipped:query-unavailable"
+      else
+        echo "[postflight] cannot derive repo slug while --wait-ci is enabled" >&2
+        exit 1
+      fi
+    else
+      echo "[postflight] warning: cannot derive repo slug, skip GitHub Actions status check"
+      CI_STATUS="skipped"
     fi
-    echo "[postflight] warning: cannot derive repo slug, skip GitHub Actions status check"
-    CI_STATUS="skipped"
   else
     if [[ "$WAIT_CI" -eq 1 ]]; then
       wait_deadline=$((SECONDS + CI_TIMEOUT_SECONDS))
@@ -401,6 +434,11 @@ if [[ "$SKIP_CI" -eq 0 ]]; then
         fi
 
         if [[ "$BRANCH_CI_RESULT" == skipped:* || "$TAG_PUBLISH_RESULT" == skipped:* ]]; then
+          if [[ "$CI_TIMEOUT_MODE" == "soft" ]]; then
+            CI_STATUS="skipped:query-unavailable"
+            echo "[postflight] warning: unable to query GitHub Actions status while --wait-ci is enabled; continuing because --ci-timeout-mode=soft: branch=$BRANCH_CI_RESULT tag=$TAG_PUBLISH_RESULT"
+            break
+          fi
           CI_STATUS="skipped"
           echo "[postflight] unable to query GitHub Actions status while --wait-ci is enabled: branch=$BRANCH_CI_RESULT tag=$TAG_PUBLISH_RESULT" >&2
           exit 1
@@ -408,6 +446,11 @@ if [[ "$SKIP_CI" -eq 0 ]]; then
 
         CI_STATUS="pending"
         if (( SECONDS >= wait_deadline )); then
+          CI_STATUS="pending:timeout-after-${CI_TIMEOUT_SECONDS}s"
+          if [[ "$CI_TIMEOUT_MODE" == "soft" ]]; then
+            echo "[postflight] warning: timed out waiting for branch checks and tag publish workflows; continuing because --ci-timeout-mode=soft: branch=$BRANCH_CI_RESULT tag=$TAG_PUBLISH_RESULT"
+            break
+          fi
           echo "[postflight] timed out waiting for branch checks and tag publish workflows: branch=$BRANCH_CI_RESULT tag=$TAG_PUBLISH_RESULT" >&2
           exit 1
         fi

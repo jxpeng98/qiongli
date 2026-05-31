@@ -147,6 +147,7 @@ When `--create-release` is used, the generated Codex, Claude Code, and Gemini CL
 - `--push-remote <name>` / `--push-branch <name>`: override the remote/branch used by `publish`.
 - `--wait-ci`: wait for required branch checks and tag publish workflows to succeed before release creation.
 - `--ci-timeout-seconds <n>` / `--ci-poll-interval-seconds <n>`: control publish wait behavior.
+- `--ci-timeout-mode hard|soft`: `hard` fails if required workflows are unresolved after the wait window; `soft` records `pending` or query-unavailable CI status in the acceptance receipt and continues. Use `soft` for beta releases only when a bounded local wait is preferred.
 - `--skip-remote`: skip remote ref checks in postflight.
 - `--skip-ci-status`: skip GitHub Actions status checks in postflight.
 - `--create-release`: if `gh auth` is available, create GitHub release page from the prerelease note file or the matching `CHANGELOG.md` section for stable tags.

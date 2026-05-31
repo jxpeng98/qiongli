@@ -423,9 +423,11 @@ Recommended:
 Also executable individually:
 
 ```bash
-./scripts/release_preflight.sh [--tag v0.1.0-beta.X] [--skip-smoke] [--maintainer-smoke] [--no-strict]
-./scripts/release_postflight.sh --tag v0.1.0-beta.X [--skip-remote] [--skip-ci-status] [--wait-ci] [--create-release]
+./scripts/release_preflight.sh [--tag v0.1.0-beta.X] [--quick] [--skip-smoke] [--maintainer-smoke] [--no-strict]
+./scripts/release_postflight.sh --tag v0.1.0-beta.X [--skip-remote] [--skip-ci-status] [--wait-ci] [--ci-timeout-seconds 900] [--ci-timeout-mode soft] [--create-release]
 ```
+
+For beta releases, `--ci-timeout-mode soft` lets postflight wait for a bounded window and then record unresolved CI as `pending` in the acceptance receipt. Keep the default hard mode for stable releases.
 
 ### 4.4 Beta smoke tests: `./scripts/run_beta_smoke.sh`
 
