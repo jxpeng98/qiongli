@@ -11,6 +11,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 NPM_PACKAGE_ROOT = REPO_ROOT / "packages" / "npm-qiongli"
+MATERIALIZER = REPO_ROOT / "scripts" / "materialize_distribution_payloads.py"
 
 
 class NpmPackageContractTests(unittest.TestCase):
@@ -69,9 +70,32 @@ class NpmPackageContractTests(unittest.TestCase):
         self.assertEqual(result.stdout.strip(), "0.8.0-beta.1")
 
     def test_npm_payload_and_python_runtime_are_bundled(self) -> None:
-        workflow_root = NPM_PACKAGE_ROOT / "payload" / "qiongli-workflow"
-        runtime_root = NPM_PACKAGE_ROOT / "python-runtime"
-        package_json = json.loads((NPM_PACKAGE_ROOT / "package.json").read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as tmp:
+            materialized_root = Path(tmp) / "qiongli-dist"
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(MATERIALIZER),
+                    "--target",
+                    "npm",
+                    "--out",
+                    str(materialized_root),
+                    "--force",
+                ],
+                cwd=REPO_ROOT,
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            package_root = materialized_root / "packages" / "npm-qiongli"
+            workflow_root = package_root / "payload" / "qiongli-workflow"
+            runtime_root = package_root / "python-runtime"
+
+            self._assert_npm_payload_and_runtime(package_root, workflow_root, runtime_root)
+
+    def _assert_npm_payload_and_runtime(self, package_root: Path, workflow_root: Path, runtime_root: Path) -> None:
+        package_json = json.loads((package_root / "package.json").read_text(encoding="utf-8"))
 
         self.assertTrue((workflow_root / "SKILL.md").is_file())
         self.assertTrue((workflow_root / "workflows" / "paper.md").is_file())
@@ -102,15 +126,34 @@ class NpmPackageContractTests(unittest.TestCase):
 
     def test_npm_runtime_setup_wizard_resolves_npm_payload_root(self) -> None:
         env = os.environ.copy()
-        env["PYTHONPATH"] = str(NPM_PACKAGE_ROOT / "python-runtime")
         with tempfile.TemporaryDirectory() as temp_dir:
+            materialized_root = Path(temp_dir) / "qiongli-dist"
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(MATERIALIZER),
+                    "--target",
+                    "npm",
+                    "--out",
+                    str(materialized_root),
+                    "--force",
+                ],
+                cwd=REPO_ROOT,
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            package_root = materialized_root / "packages" / "npm-qiongli"
+            expected_payload_root = (package_root / "payload").resolve()
+            env["PYTHONPATH"] = str(package_root / "python-runtime")
             result = subprocess.run(
                 [
                     sys.executable,
                     "-c",
                     "from qiongli.setup_wizard import _packaged_payload_root; print(_packaged_payload_root())",
                 ],
-                cwd=temp_dir,
+                cwd=Path(temp_dir),
                 env=env,
                 text=True,
                 stdout=subprocess.PIPE,
@@ -119,7 +162,7 @@ class NpmPackageContractTests(unittest.TestCase):
             )
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout.strip(), str(NPM_PACKAGE_ROOT / "payload"))
+        self.assertEqual(str(Path(result.stdout.strip()).resolve()), str(expected_payload_root))
 
     def test_release_workflows_cover_pypi_and_npm_names(self) -> None:
         pypi_workflow = (REPO_ROOT / ".github" / "workflows" / "publish-pypi.yml").read_text(encoding="utf-8")

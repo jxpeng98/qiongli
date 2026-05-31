@@ -22,15 +22,15 @@ The official public marketplace entry lives in `jxpeng98/skillsplace` and should
 - Claude Code manifest: `plugins/qiongli/.claude-plugin/plugin.json`
 - Gemini extension manifest: `plugins/qiongli/gemini-extension.json`
 
-The Skillsplace catalog should track `main` and release tags, not `dev`. Use `dev` for local plugin packaging tests and prerelease validation before the shared marketplace entry is updated. This repository no longer carries Codex or Claude marketplace catalog files; it only owns the plugin payload and platform manifests.
+The Skillsplace catalog should track `main` and release tags, not `dev`. Use `dev` for local plugin packaging tests and prerelease validation before the shared marketplace entry is updated. This repository no longer carries Codex or Claude marketplace catalog files; it owns the plugin manifests and materializes the release payload from canonical source.
 
 ## Development Flow
 
 1. Start feature and packaging work on `dev`.
-2. Keep the portable skill package synchronized before validation:
+2. Materialize the portable skill package into a staging directory before artifact validation:
 
 ```bash
-bash scripts/sync_skill_package.sh --target all
+python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qiongli-dist --force
 ```
 
 3. Run the normal validation set on `dev`:

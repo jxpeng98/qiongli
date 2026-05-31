@@ -32,18 +32,17 @@ Clean checkout `qiongli-workflow/` shape:
 - `qiongli-workflow/agents/`
 - `qiongli-workflow/references/`
 - `qiongli-workflow/workflows/`
-- `qiongli-workflow/venue-profiles/`
 
 The clean checkout does not contain `qiongli-workflow/templates/`,
-`qiongli-workflow/standards/`, or `qiongli-workflow/roles/`. Those package
-mirror directories are created only by materialization commands when a
-self-contained skill package is needed.
+`qiongli-workflow/standards/`, `qiongli-workflow/roles/`, or
+`qiongli-workflow/venue-profiles/`. Those package mirror directories are
+created only by materialization commands when a self-contained skill package
+is needed.
 
 Treat root-level directories as the source of truth for duplicated domains:
 `templates/`, `standards/`, `roles/`, `venue-profiles/`, and `skills/`.
-`qiongli-workflow/venue-profiles/` is still present in the current checkout
-for compatibility, but future cleanup should remove tracked generated outputs
-from the repository and keep materialized package copies in staging only.
+Generated package copies stay out of the repository checkout and are
+materialized only for validation or packaging.
 
 ## Generated and materialized outputs
 
@@ -58,20 +57,18 @@ source during local checks, CI, release staging, and package publishing.
 In-place materialization can also create ignored package mirror paths under
 `qiongli-workflow/`, including `qiongli-workflow/skills/`,
 `qiongli-workflow/templates/`, `qiongli-workflow/standards/`,
-`qiongli-workflow/roles/`, `qiongli-workflow/skills-core.md`, and
-`qiongli-workflow/skills-summary.md`. These paths are not part of the clean
-checkout source tree.
+`qiongli-workflow/roles/`, `qiongli-workflow/venue-profiles/`,
+`qiongli-workflow/skills-core.md`, and `qiongli-workflow/skills-summary.md`.
+These paths are not part of the clean checkout source tree.
 
 Feature PRs should not commit generated outputs. GitHub Actions may materialize payloads in a temporary workspace to validate packaging. Release automation may materialize payloads in a staging workspace before building artifacts.
 
-## Planned cleanup
+## Output-free checkout
 
-After the staged materialization flow is stable, remove tracked generated
-outputs from the repository. The intended end state is staging-only
-materialization for generated payloads while release artifacts keep the same
-installed structure. This cleanup should happen in a later PR so source
-boundary enforcement, materialization commands, and release packaging can be
-reviewed independently.
+Generated outputs are intentionally untracked. A clean checkout remains
+output-free, while release artifacts keep the same installed structure by
+materializing payloads during local checks, CI, release staging, and package
+publishing.
 
 ## Adding a new skill
 

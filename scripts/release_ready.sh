@@ -61,7 +61,7 @@ status_path_from_line() {
 is_expected_release_path() {
   local path="$1"
   case "$path" in
-    pyproject.toml|qiongli/__init__.py|qiongli-workflow/VERSION|skills/registry.yaml|docs/reference/skills.md|docs/zh/reference/skills.md|qiongli/payload|qiongli/payload/*|package-lock.json|plugins/qiongli/.codex-plugin/plugin.json|plugins/qiongli/.claude-plugin/plugin.json|plugins/qiongli/gemini-extension.json|packages/npm-qiongli|packages/npm-qiongli/*|plugins/qiongli/skills/qiongli-workflow|plugins/qiongli/skills/qiongli-workflow/*)
+    pyproject.toml|qiongli/__init__.py|qiongli-workflow/VERSION|skills/registry.yaml|docs/reference/skills.md|docs/zh/reference/skills.md|package-lock.json|plugins/qiongli/.codex-plugin/plugin.json|plugins/qiongli/.claude-plugin/plugin.json|plugins/qiongli/gemini-extension.json|packages/npm-qiongli/package.json|packages/npm-qiongli/README.md|packages/npm-qiongli/LICENSE|packages/npm-qiongli/bin/*|packages/npm-qiongli/lib/*|packages/npm-qiongli/test/*)
       return 0
       ;;
     skills/*)

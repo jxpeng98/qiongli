@@ -41,26 +41,26 @@ class DistributionMaterializationDocsTests(unittest.TestCase):
             "`qiongli-workflow/agents/`",
             "`qiongli-workflow/references/`",
             "`qiongli-workflow/workflows/`",
-            "`qiongli-workflow/venue-profiles/`",
         ):
             with self.subTest(token=token):
                 self.assertIn(token, content)
 
         self.assertIn(
             "does not contain `qiongli-workflow/templates/`, "
-            "`qiongli-workflow/standards/`, or `qiongli-workflow/roles/`",
+            "`qiongli-workflow/standards/`, `qiongli-workflow/roles/`, "
+            "or `qiongli-workflow/venue-profiles/`",
             normalized,
         )
 
-    def test_docs_explain_future_generated_output_cleanup(self) -> None:
+    def test_docs_explain_output_free_checkout(self) -> None:
         content = DOC_PATH.read_text(encoding="utf-8")
         normalized = _normalize_whitespace(content)
 
-        self.assertIn("Planned cleanup", content)
+        self.assertIn("Output-free checkout", content)
 
         for token in (
-            "remove tracked generated outputs from the repository",
-            "staging-only materialization",
+            "Generated outputs are intentionally untracked",
+            "clean checkout remains output-free",
             "release artifacts keep the same installed structure",
         ):
             with self.subTest(token=token):

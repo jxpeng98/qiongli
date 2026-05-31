@@ -39,7 +39,7 @@ def is_generated_payload_path(path: str) -> bool:
 
 def changed_files_from_git(base_ref: str) -> list[str]:
     result = subprocess.run(
-        ["git", "diff", "--name-only", f"{base_ref}...HEAD"],
+        ["git", "diff", "--name-status", f"{base_ref}...HEAD"],
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -48,7 +48,24 @@ def changed_files_from_git(base_ref: str) -> list[str]:
     if result.returncode != 0:
         print(result.stderr.strip(), file=sys.stderr)
         raise SystemExit(result.returncode)
-    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    return changed_non_deleted_paths_from_name_status(result.stdout.splitlines())
+
+
+def changed_non_deleted_paths_from_name_status(lines: list[str]) -> list[str]:
+    changed: list[str] = []
+    for line in lines:
+        if not line.strip():
+            continue
+        parts = line.split("\t")
+        status = parts[0]
+        if status == "D":
+            continue
+        if status.startswith(("R", "C")) and len(parts) >= 3:
+            changed.append(parts[2])
+            continue
+        if len(parts) >= 2:
+            changed.append(parts[1])
+    return changed
 
 
 def check_changed_files(changed_files: list[str]) -> list[str]:

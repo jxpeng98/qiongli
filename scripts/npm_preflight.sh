@@ -8,14 +8,8 @@ NPM_CACHE="${NPM_CONFIG_CACHE:-${TMPDIR:-/tmp}/qiongli-npm-cache}"
 cd "$ROOT_DIR"
 mkdir -p "$NPM_CACHE"
 
-echo "[npm-preflight] syncing portable skill package"
-bash scripts/sync_skill_package.sh --target all
-
-echo "[npm-preflight] syncing npm payload"
-python3 scripts/sync_npm_package_payload.py
-
-echo "[npm-preflight] auditing distribution payload alignment"
-python3 scripts/audit_distribution_payloads.py
+echo "[npm-preflight] materialize distribution payloads"
+python3 scripts/materialize_distribution_payloads.py --target all --in-place
 
 echo "[npm-preflight] running node tests"
 NPM_CONFIG_CACHE="$NPM_CACHE" npm --prefix "$PKG_DIR" test

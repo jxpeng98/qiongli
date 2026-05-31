@@ -136,6 +136,41 @@ class GeneratedPayloadGuardTests(unittest.TestCase):
         self.assertEqual(1, result.returncode)
         self.assertIn("packages/npm-qiongli/payload/qiongli-workflow/SKILL.md", result.stderr)
 
+    def test_diff_mode_allows_deleted_generated_payload_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            subprocess.run(["git", "init"], cwd=repo, check=True, stdout=subprocess.PIPE)
+            subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=repo, check=True)
+            subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo, check=True)
+            generated = repo / "packages/npm-qiongli/payload/qiongli-workflow/SKILL.md"
+            generated.parent.mkdir(parents=True)
+            generated.write_text("generated\n", encoding="utf-8")
+            subprocess.run(["git", "add", "."], cwd=repo, check=True)
+            subprocess.run(["git", "commit", "-m", "initial generated output"], cwd=repo, check=True, stdout=subprocess.PIPE)
+            base = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=repo,
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+            ).stdout.strip()
+
+            generated.unlink()
+            subprocess.run(["git", "add", "-u"], cwd=repo, check=True)
+            subprocess.run(["git", "commit", "-m", "drop generated output"], cwd=repo, check=True, stdout=subprocess.PIPE)
+
+            result = subprocess.run(
+                [sys.executable, str(GUARD_PATH), "--base-ref", base],
+                cwd=repo,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+
+        self.assertEqual(0, result.returncode)
+        self.assertIn("no generated distribution payload edits detected", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

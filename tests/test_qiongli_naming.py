@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
+import tempfile
 import tomllib
 import unittest
 from pathlib import Path
@@ -41,15 +44,32 @@ class QiongliNamingTests(unittest.TestCase):
     def test_portable_skill_identity_is_visible_as_qiongli(self) -> None:
         skill_root = REPO_ROOT / "qiongli-workflow"
         skill_text = (skill_root / "SKILL.md").read_text(encoding="utf-8")
-        plugin_skill_text = (
-            REPO_ROOT / "plugins" / "qiongli" / "skills" / "qiongli-workflow" / "SKILL.md"
-        ).read_text(encoding="utf-8")
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out = Path(tmp_dir) / "dist-source"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "scripts/materialize_distribution_payloads.py",
+                    "--target",
+                    "plugin",
+                    "--out",
+                    str(out),
+                    "--force",
+                ],
+                cwd=REPO_ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, msg=result.stderr + result.stdout)
+            plugin_skill = out / "plugins" / "qiongli" / "skills" / "qiongli-workflow" / "SKILL.md"
+            self.assertTrue(plugin_skill.is_file())
+            plugin_skill_text = plugin_skill.read_text(encoding="utf-8")
 
         self.assertIn("name: qiongli\n", skill_text)
         self.assertIn("# Qiongli Academic Workflow", skill_text)
         self.assertNotIn("name: research-paper-workflow", skill_text)
         self.assertIn("name: qiongli\n", plugin_skill_text)
-        self.assertTrue((REPO_ROOT / "plugins" / "qiongli" / "skills" / "qiongli-workflow" / "SKILL.md").is_file())
 
         manifest = (REPO_ROOT / "install" / "install_manifest.tsv").read_text(encoding="utf-8")
         self.assertIn("qiongli-workflow\t${CODEX_HOME}/skills/qiongli-workflow", manifest)

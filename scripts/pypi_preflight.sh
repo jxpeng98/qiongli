@@ -82,6 +82,9 @@ if [[ "$RUN_BUILD" -eq 1 ]]; then
     rm -rf dist
   fi
 
+  echo "[pypi-preflight] materialize distribution payloads"
+  python3 scripts/materialize_distribution_payloads.py --target all --in-place
+
   echo "[pypi-preflight] building package"
   python3 -m build
 fi

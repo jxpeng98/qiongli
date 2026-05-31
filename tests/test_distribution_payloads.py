@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -10,6 +11,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 AUDIT_PATH = REPO_ROOT / "scripts" / "audit_distribution_payloads.py"
+MATERIALIZER_PATH = REPO_ROOT / "scripts" / "materialize_distribution_payloads.py"
 
 
 def _load_audit_module():
@@ -26,15 +28,37 @@ class DistributionPayloadTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.audit_module = _load_audit_module()
+        cls._materialized_tmp = tempfile.TemporaryDirectory()
+        cls.materialized_root = Path(cls._materialized_tmp.name) / "qiongli-dist"
+        subprocess.run(
+            [
+                sys.executable,
+                str(MATERIALIZER_PATH),
+                "--target",
+                "all",
+                "--out",
+                str(cls.materialized_root),
+                "--force",
+            ],
+            cwd=REPO_ROOT,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls._materialized_tmp.cleanup()
 
     def test_current_distribution_payloads_match_sources(self) -> None:
-        issues = self.audit_module.audit(REPO_ROOT)
+        issues = self.audit_module.audit(self.materialized_root)
         self.assertEqual([], issues)
 
     def test_distribution_includes_specialized_subject_payloads(self) -> None:
         for payload_root in (
-            REPO_ROOT / "qiongli" / "payload" / "subjects",
-            REPO_ROOT / "packages" / "npm-qiongli" / "payload" / "subjects",
+            self.materialized_root / "qiongli" / "payload" / "subjects",
+            self.materialized_root / "packages" / "npm-qiongli" / "payload" / "subjects",
         ):
             for subject in ("accounting", "business", "finance", "political-economy", "geoeconomics"):
                 with self.subTest(payload_root=payload_root, subject=subject):
@@ -114,35 +138,7 @@ class DistributionPayloadTests(unittest.TestCase):
                 self.assertIn("registry.yaml", joined)
 
     def _copy_distribution_tree(self, root: Path) -> None:
-        for rel in (
-            "qiongli-workflow",
-            "qiongli",
-            "plugins/qiongli/skills/qiongli-workflow",
-            "packages/npm-qiongli/payload/qiongli-workflow",
-            "packages/npm-qiongli/payload/subjects",
-            "packages/npm-qiongli/python-runtime",
-            "skills",
-            "templates",
-            "standards",
-            "roles",
-            "venue-profiles",
-            "subjects",
-        ):
-            src = REPO_ROOT / rel
-            dest = root / rel
-            if src.is_dir():
-                shutil.copytree(src, dest, symlinks=False)
-        for rel in (
-            "skills-core.md",
-            "skills-summary.md",
-            "LICENSE",
-            "packages/npm-qiongli/package.json",
-            "packages/npm-qiongli/LICENSE",
-        ):
-            src = REPO_ROOT / rel
-            dest = root / rel
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(src, dest)
+        shutil.copytree(self.materialized_root, root, symlinks=False, dirs_exist_ok=True)
 
 
 if __name__ == "__main__":

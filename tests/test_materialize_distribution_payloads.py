@@ -108,6 +108,13 @@ class DistributionMaterializerTests(unittest.TestCase):
             self.assertTrue((out / "plugins/qiongli/skills/qiongli-workflow/skills/registry.yaml").is_file())
             self.assertTrue((out / "qiongli-workflow/skills/registry.yaml").is_file())
 
+    def test_plugin_materializer_does_not_depend_on_bash(self) -> None:
+        source = MATERIALIZER_PATH.read_text(encoding="utf-8")
+
+        self.assertNotIn("scripts/sync_skill_package.sh", source)
+        self.assertNotIn('["bash"', source)
+        self.assertIn("def materialize_plugin_payload", source)
+
 
 if __name__ == "__main__":
     unittest.main()

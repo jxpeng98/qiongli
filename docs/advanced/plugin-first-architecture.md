@@ -6,7 +6,7 @@ Qiongli is distributed as one plugin package, not as dozens of separate academic
 
 | Layer | Path | Role |
 |-------|------|------|
-| Main plugin | `plugins/qiongli/` | Install payload, discovery, version, and platform entrypoints. |
+| Main plugin | `plugins/qiongli/` | Source manifests, discovery commands, version metadata, and platform entrypoints. |
 | Portable skill package | `qiongli-workflow/` | The cross-client runtime skill loaded by Codex, Claude Code, and Gemini. |
 | Source skill specs | `skills/` | Canonical academic capability specs maintained by this repository. |
 | Workflow commands | `qiongli-workflow/workflows/` and `plugins/qiongli/commands/` | User entrypoints such as `/paper`, `/lit-review`, and `/code-build`. |
@@ -17,14 +17,15 @@ A **plugin** is the distribution container. It owns manifests, command wrappers,
 
 A **skill** is the reusable execution contract. It tells the model how to perform a specific research task, what inputs are required, what artifact to write, and what quality bar must be met.
 
-This repo keeps one plugin, `qiongli`, and ships one portable skill package directory, `qiongli-workflow`, inside it. The portable package declares the user-visible skill name `qiongli`; the directory name stays `qiongli-workflow` so existing install paths, release artifacts, and compatibility checks remain stable. The 71 academic skill specs remain internal capability cards under `skills/`; they are synchronized into the portable package during release.
+This repo keeps one plugin, `qiongli`, and ships one portable skill package directory, `qiongli-workflow`, inside release artifacts. The portable package declares the user-visible skill name `qiongli`; the directory name stays `qiongli-workflow` so existing install paths, release artifacts, and compatibility checks remain stable. The 71 academic skill specs remain internal capability cards under `skills/`; they are materialized into the portable package during release.
 
 ## Source Of Truth
 
 - Edit source skills in `skills/`.
 - Edit portable package shell files such as `qiongli-workflow/SKILL.md`, `workflows/`, and `references/` directly.
-- Run `bash scripts/sync_skill_package.sh --target all` before testing artifacts or publishing.
-- Do not edit `plugins/qiongli/skills/qiongli-workflow/` by hand; it is a distribution copy.
+- Run `python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qiongli-dist --force` before testing staged artifacts.
+- Release automation runs `python3 scripts/materialize_distribution_payloads.py --target all --in-place` inside the release workspace before publishing.
+- Do not edit generated payloads such as `plugins/qiongli/skills/qiongli-workflow/`; they are rebuilt from canonical source and are not tracked in the clean development checkout.
 
 ## Platform Surfaces
 
@@ -34,7 +35,7 @@ This repo keeps one plugin, `qiongli`, and ships one portable skill package dire
 | Claude Code | `plugins/qiongli/.claude-plugin/plugin.json`; public catalog entry in `jxpeng98/skillsplace` | `commands/*.md` plus `skills/qiongli-workflow/` |
 | Gemini | `plugins/qiongli/gemini-extension.json` | `skills/qiongli-workflow/` |
 
-The shared Skillsplace repository is the public marketplace source of truth. It points to this repository's `plugins/qiongli` subdirectory through git-subdir entries, so this repository should own the plugin payload and manifests, not duplicate public marketplace catalog state.
+The shared Skillsplace repository is the public marketplace source of truth. It points to this repository's `plugins/qiongli` subdirectory through git-subdir entries, so this repository should own the plugin manifests and generated release payload, not duplicate public marketplace catalog state.
 
 The thin command wrappers under `plugins/qiongli/commands/` intentionally contain no workflow logic. They only load `qiongli-workflow` and point to `skills/qiongli-workflow/workflows/<command>.md`.
 

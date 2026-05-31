@@ -33,7 +33,7 @@ class BranchPolicyTests(unittest.TestCase):
 
     def test_ci_syncs_skill_package_before_strict_research_validation(self) -> None:
         content = read(".github/workflows/ci.yml")
-        sync_cmd = "bash scripts/sync_skill_package.sh --target all"
+        sync_cmd = "python scripts/materialize_distribution_payloads.py --target all --in-place"
         validate_cmd = "python scripts/validate_research_standard.py --strict"
 
         self.assertIn(sync_cmd, content)
@@ -43,19 +43,16 @@ class BranchPolicyTests(unittest.TestCase):
     def test_ci_rejects_generated_payload_edits_before_sync_steps(self) -> None:
         content = read(".github/workflows/ci.yml")
         guard_cmd = "python scripts/check_generated_payload_edits.py --base-ref origin/dev"
-        sync_cmd = "bash scripts/sync_skill_package.sh --target all"
-        payload_cmd = "python scripts/sync_npm_package_payload.py"
+        sync_cmd = "python scripts/materialize_distribution_payloads.py --target all --in-place"
 
         self.assertIn(guard_cmd, content)
         self.assertIn(sync_cmd, content)
-        self.assertIn(payload_cmd, content)
         self.assertLess(content.index(guard_cmd), content.index(sync_cmd))
-        self.assertLess(content.index(guard_cmd), content.index(payload_cmd))
 
     def test_ci_syncs_npm_payload_after_injected_project_defaults(self) -> None:
         content = read(".github/workflows/ci.yml")
         inject_cmd = "bash scripts/inject_project_toml.sh"
-        payload_cmd = "python scripts/sync_npm_package_payload.py"
+        payload_cmd = "python scripts/materialize_distribution_payloads.py --target all --in-place"
         validate_cmd = "python scripts/validate_research_standard.py --strict"
         unit_cmd = "python -m unittest discover -s tests -v"
 
