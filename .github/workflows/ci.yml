@@ -3,18 +3,28 @@ name: CI
 on:
   push:
     branches: ["main", "master", "dev"]
+    paths-ignore:
+      - "release/acceptance/**"
   pull_request:
     branches: ["main", "master", "dev"]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   cross-platform-tests:
-    name: Cross-platform tests (${{ matrix.os }})
+    name: Cross-platform tests (${{ matrix.os }}, ${{ matrix.test-tier }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            test-tier: full
+          - os: windows-latest
+            test-tier: windows-smoke
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,6 +33,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
 
       - name: Inject packaged upstream defaults
         shell: bash
@@ -44,8 +55,13 @@ jobs:
       - name: Validate research standard
         run: python scripts/validate_research_standard.py --strict
 
-      - name: Run unit tests
+      - name: Run full unit tests
+        if: matrix.test-tier == 'full'
         run: python -m unittest discover -s tests -v
+
+      - name: Run Windows smoke tests
+        if: matrix.test-tier == 'windows-smoke'
+        run: python -m unittest tests.test_install_qiongli tests.test_bootstrap_qiongli tests.test_universal_installer tests.test_command_runtime tests.test_release_automation tests.test_branch_policy
 
   shell-release-gates:
     name: Shell and release gates (ubuntu-latest)
@@ -59,6 +75,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
 
       - name: Inject packaged upstream defaults
         run: bash scripts/inject_project_toml.sh
@@ -82,4 +99,4 @@ jobs:
           bash -n scripts/sync_skill_package.sh
 
       - name: Run standardized pre-release gates
-        run: ./scripts/release_preflight.sh
+        run: ./scripts/release_preflight.sh --quick

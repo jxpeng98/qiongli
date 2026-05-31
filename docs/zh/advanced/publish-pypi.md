@@ -102,6 +102,14 @@ Beta 通道策略：
 
 `release_ready.sh` 会执行版本同步、strict validator、仓库单元测试、release-tier smoke、release note evidence 更新、包构建检查、`twine check` 和 wheel 安装 smoke。它不会创建 tag，也不会 push。commit、tag、push、等待 branch CI、等待 tag publish、创建 GitHub Release、上传 plugin artifacts、生成 acceptance receipt 都由 `publish` 模式负责。
 
+如果 beta release 的 GitHub Actions 可能超过本地等待窗口，可以使用 bounded soft wait：
+
+```bash
+./scripts/release_automation.sh publish --version 0.15.0b2 --from-tag v0.15.0-beta.1 --ci-timeout-seconds 900 --ci-timeout-mode soft
+```
+
+soft 模式仍然会在 workflow 已完成且失败时退出；它只会在 CI 仍 pending 或暂时无法查询时继续，并把状态写入 acceptance receipt。stable release 应继续使用默认 hard 模式。
+
 如果你确实需要拆开执行，入口仍然保留：
 
 ```bash

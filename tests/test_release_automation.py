@@ -153,6 +153,26 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('gh release upload "$TAG" --repo "$REPO_SLUG" --clobber "${PLUGIN_ARTIFACTS[@]}"', content)
         self.assertIn('release_args+=("${PLUGIN_ARTIFACTS[@]}")', content)
 
+    def test_release_postflight_supports_soft_ci_timeout_and_gh_api_fallback(self) -> None:
+        content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
+
+        self.assertIn('CI_TIMEOUT_MODE="hard"', content)
+        self.assertIn("--ci-timeout-mode <hard|soft>", content)
+        self.assertIn('fetch_actions_runs()', content)
+        self.assertIn('gh api "repos/${repo_slug}/actions/runs?branch=${ref_name}&per_page=20"', content)
+        self.assertIn('curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" "$api_url"', content)
+        self.assertIn('[[ "$CI_TIMEOUT_MODE" == "hard" || "$CI_TIMEOUT_MODE" == "soft" ]]', content)
+        self.assertIn('CI_STATUS="pending:timeout-after-${CI_TIMEOUT_SECONDS}s"', content)
+        self.assertIn('CI_STATUS="skipped:query-unavailable"', content)
+        self.assertIn('if [[ "$CI_TIMEOUT_MODE" == "soft" ]]; then', content)
+
+    def test_publish_mode_passes_ci_timeout_mode_to_postflight(self) -> None:
+        content = RELEASE_AUTOMATION.read_text(encoding="utf-8")
+
+        self.assertIn('ci_timeout_mode="hard"', content)
+        self.assertIn("--ci-timeout-mode", content)
+        self.assertIn('post_args+=(--wait-ci --ci-timeout-seconds "$ci_timeout_seconds" --ci-timeout-mode "$ci_timeout_mode" --ci-poll-interval-seconds "$ci_poll_interval_seconds")', content)
+
     def test_release_postflight_accepts_beta_tags_reachable_from_dev(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
 
@@ -197,6 +217,19 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('run_logged_stage "validator" "$validator_log" "${validate_cmd[@]}"', content)
         self.assertIn('run_logged_stage "unit tests" "$unit_log" python3 -m unittest discover -s tests -v', content)
         self.assertIn('run_logged_stage "smoke (${smoke_tier} tier)" "$smoke_log" ./scripts/run_beta_smoke.sh --tier "$smoke_tier"', content)
+
+    def test_release_preflight_supports_quick_ci_gate(self) -> None:
+        content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
+
+        self.assertIn("QUICK_MODE=0", content)
+        self.assertIn("RUN_UNIT_TESTS=1", content)
+        self.assertIn("RUN_CONTROLLER_EVALS=1", content)
+        self.assertIn("--quick", content)
+        self.assertIn("--skip-unit-tests", content)
+        self.assertIn("--skip-controller-evals", content)
+        self.assertIn('echo "[preflight] unit tests skipped"', content)
+        self.assertIn('echo "[preflight] controller-mode evals skipped"', content)
+        self.assertIn('unittest_summary="skipped"', content)
 
     def test_release_preflight_syncs_npm_payload_before_tests(self) -> None:
         content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
