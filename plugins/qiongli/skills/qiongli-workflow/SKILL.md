@@ -114,8 +114,8 @@ RESEARCH/[topic]/
 - CLI, Codex, and Claude Code installs can configure external literature providers with `qiongli provider setup` and audit them with `qiongli provider doctor`.
 - Treat `provider_connected` as the only mode where configured external academic provider credentials are available to the local runtime.
 - Treat `strategy_only` as a constrained mode: use platform search or user-supplied corpus, record the limitation, and do not claim review-grade external provider coverage.
-- Claude Desktop/Web focused ZIPs are skill-only packages kept within the 180-file upload budget. They cannot store provider keys or execute OpenAlex, Semantic Scholar, Crossref, or PubMed API calls by themselves.
-- Desktop/Web users need the Qiongli Literature Provider MCPB (`qiongli-literature-provider.mcpb`) or platform-native search capability before claiming `provider_connected` literature search. The Desktop/Web ZIP remains skill-only and does not store keys or execute provider calls by itself.
+- Claude Desktop/Web focused ZIPs are skill-only packages kept within the 180-file upload budget. They contain workflows/prompts/templates, store no secrets, and cannot execute OpenAlex, Semantic Scholar, Crossref, or PubMed API calls by themselves.
+- Desktop/Web users need the Qiongli Literature Provider `.mcpb` (`qiongli-literature-provider.mcpb`) or platform-native search capability before claiming `provider_connected` literature search. The MCPB is the separate local Claude Desktop provider for OpenAlex and Semantic Scholar configuration. If no MCPB or platform-native search is available, record the run as `strategy_only`.
 
 ## Skill Loading Strategy
 
