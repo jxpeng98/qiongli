@@ -278,7 +278,7 @@ qiongli setup --dry-run
 qiongli setup --project-dir "$PWD" --no-doctor
 ```
 
-The setup wizard is for CLI, Codex, and Claude Code users who want help choosing the runtime surface (`cli`, `codex`, `claude-code`, or `multi-platform`), subject, coverage (`complete` or `focused`), and install scope (`all`, `globals`, `project`, or `cli`). It can also prompt for optional literature provider keys, then run doctor verification unless you pass `--no-doctor`.
+The setup wizard is for CLI, Codex, and Claude Code users who want help choosing install or upgrade, runtime surface (`cli`, `codex`, `claude-code`, or `multi-platform`), subject, coverage (`complete` or `focused`), `--mode copy|link`, install scope (`all`, `globals`, `project`, or `cli`), CLI directory, `--overwrite` / `--no-overwrite`, upgrade source (`--repo`, `--ref`, `--ref-type`, or beta), optional literature provider keys, and doctor verification unless you pass `--no-doctor`. Every prompt includes a short `Tip:` comment explaining what the choice changes.
 
 On npm installs, `qiongli setup` delegates to the bundled Python bridge and therefore requires Python 3.12+ plus `PyYAML`. If you only need Node-based asset installation, use explicit `qiongli install ...` commands.
 
@@ -613,7 +613,7 @@ qiongli setup --dry-run
 qiongli setup --project-dir "$PWD" --no-doctor
 ```
 
-The wizard guides CLI, Codex, and Claude Code installs through runtime surface selection (`cli`, `codex`, `claude-code`, or `multi-platform`), subject choice, coverage choice (`complete` or `focused`), install scope (`all`, `globals`, `project`, or `cli`), optional literature provider key setup, and doctor verification.
+The wizard guides CLI, Codex, and Claude Code installs through install or upgrade selection, runtime surface (`cli`, `codex`, `claude-code`, or `multi-platform`), subject choice, coverage choice (`complete` or `focused`), `--mode copy|link`, install scope (`all`, `globals`, `project`, or `cli`), CLI directory, `--overwrite` / `--no-overwrite`, optional upgrade source, literature provider key setup, and doctor verification. Every prompt includes a short `Tip:` comment explaining what the choice changes.
 
 On npm installs, `qiongli setup` delegates to the bundled Python bridge and therefore requires Python 3.12+ plus `PyYAML`. Use explicit `qiongli install ...` commands when you want the Node-only installer path.
 
