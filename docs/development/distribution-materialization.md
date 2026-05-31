@@ -131,6 +131,11 @@ For ordinary feature work, run source-level tests first:
 python -m unittest tests.test_subject_catalog tests.test_subject_materializer
 ```
 
-If the change affects packaging, run the generated payload audit in a local
-staging workspace. Future automation should use the unified materialization
-entrypoint so generated files are not committed back to feature branches.
+If the change affects packaging, materialize into a local staging workspace:
+
+- `python scripts/materialize_distribution_payloads.py --target all --out /tmp/qiongli-dist --force`
+- `python scripts/materialize_distribution_payloads.py --target plugin --out /tmp/qiongli-plugin --force`
+
+Use `python scripts/materialize_distribution_payloads.py --target all --in-place`
+only for explicit release or maintenance work. Feature PRs should prefer
+`--out` so generated files are not committed back to feature branches.
