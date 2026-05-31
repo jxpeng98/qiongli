@@ -100,6 +100,17 @@ class DistributionMaterializationDocsTests(unittest.TestCase):
         self.assertIn("GitHub Actions may materialize payloads in a temporary workspace", content)
         self.assertIn("Release automation may materialize payloads in a staging workspace", content)
 
+    def test_docs_show_unified_materializer_commands(self) -> None:
+        content = DOC_PATH.read_text(encoding="utf-8")
+
+        for token in (
+            "`python scripts/materialize_distribution_payloads.py --target all --out /tmp/qiongli-dist --force`",
+            "`python scripts/materialize_distribution_payloads.py --target plugin --out /tmp/qiongli-plugin --force`",
+            "`python scripts/materialize_distribution_payloads.py --target all --in-place`",
+        ):
+            with self.subTest(token=token):
+                self.assertIn(token, content)
+
 
 if __name__ == "__main__":
     unittest.main()
