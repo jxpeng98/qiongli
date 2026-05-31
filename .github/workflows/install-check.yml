@@ -3,9 +3,15 @@ name: Checkout Install Check
 on:
   push:
     branches: ["main", "master", "dev"]
+    paths-ignore:
+      - "release/acceptance/**"
   pull_request:
     branches: ["main", "master", "dev"]
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   unix-checkout-bootstrap:

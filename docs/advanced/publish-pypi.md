@@ -101,6 +101,14 @@ Use `release_ready.sh` when you want to prepare and verify locally without creat
 
 `release_ready.sh` runs version sync, strict validator, repository unit tests, release-tier smoke, release note evidence updates, package build checks, `twine check`, and wheel install smoke. It does not tag or push. Publish mode owns commit, tag, push, branch CI wait, tag publish wait, GitHub Release creation, plugin artifact upload, and acceptance receipt generation.
 
+For beta releases where GitHub Actions may exceed the local wait window, publish mode can use a bounded soft wait:
+
+```bash
+./scripts/release_automation.sh publish --version 0.15.0b2 --from-tag v0.15.0-beta.1 --ci-timeout-seconds 900 --ci-timeout-mode soft
+```
+
+Soft mode still fails on completed workflow failures. It only continues when CI is pending or temporarily unqueryable, and records that status in the acceptance receipt. Stable releases should keep the default hard mode.
+
 If you need manual split phases, they still exist:
 
 ```bash

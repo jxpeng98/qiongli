@@ -2,7 +2,10 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+QUICK_MODE=0
 RUN_SMOKE=1
+RUN_UNIT_TESTS=1
+RUN_CONTROLLER_EVALS=1
 MAINTAINER_SMOKE=0
 STRICT_MODE=1
 TAG=""
@@ -121,6 +124,9 @@ Options:
   --skip-note-gen Skip auto generation of release/<tag>.md draft for prerelease tags.
   --note-overwrite  Overwrite release/<tag>.md when auto-generating prerelease draft.
   --skip-smoke    Skip smoke test stage.
+  --skip-unit-tests  Skip repository unit tests.
+  --skip-controller-evals  Skip controller-mode eval warning stage.
+  --quick         Run the lightweight CI gate: validator + package checks only.
   --maintainer-smoke  Run maintainer smoke tier instead of release smoke tier.
   --no-strict     Run validator without --strict.
   -h, --help      Show this message.
@@ -151,6 +157,21 @@ while [[ $# -gt 0 ]]; do
       RUN_SMOKE=0
       shift
       ;;
+    --skip-unit-tests)
+      RUN_UNIT_TESTS=0
+      shift
+      ;;
+    --skip-controller-evals)
+      RUN_CONTROLLER_EVALS=0
+      shift
+      ;;
+    --quick)
+      QUICK_MODE=1
+      RUN_SMOKE=0
+      RUN_UNIT_TESTS=0
+      RUN_CONTROLLER_EVALS=0
+      shift
+      ;;
     --maintainer-smoke)
       MAINTAINER_SMOKE=1
       shift
@@ -174,6 +195,10 @@ done
 cd "$ROOT_DIR"
 
 require_python_module yaml PyYAML
+
+if [[ "$QUICK_MODE" -eq 1 ]]; then
+  echo "[preflight] quick CI gate enabled"
+fi
 
 if [[ -n "$TAG" ]]; then
   if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
@@ -258,19 +283,28 @@ if [[ -z "$validator_summary" ]]; then
   validator_summary="completed"
 fi
 
-run_logged_stage "unit tests" "$unit_log" python3 -m unittest discover -s tests -v
-unit_ran_line="$(grep -E '^Ran [0-9]+ tests? in ' "$unit_log" | tail -n1 || true)"
-if grep -q '^OK$' "$unit_log"; then
-  if [[ -n "$unit_ran_line" ]]; then
-    unittest_summary="${unit_ran_line} ... OK"
+if [[ "$RUN_UNIT_TESTS" -eq 1 ]]; then
+  run_logged_stage "unit tests" "$unit_log" python3 -m unittest discover -s tests -v
+  unit_ran_line="$(grep -E '^Ran [0-9]+ tests? in ' "$unit_log" | tail -n1 || true)"
+  if grep -q '^OK$' "$unit_log"; then
+    if [[ -n "$unit_ran_line" ]]; then
+      unittest_summary="${unit_ran_line} ... OK"
+    else
+      unittest_summary="OK"
+    fi
   else
-    unittest_summary="OK"
+    unittest_summary="FAILED"
   fi
 else
-  unittest_summary="FAILED"
+  echo "[preflight] unit tests skipped"
+  unittest_summary="skipped"
 fi
 
-run_warning_stage "controller-mode evals" "$eval_log" python3 scripts/run_controller_mode_evals.py evals/controller_modes
+if [[ "$RUN_CONTROLLER_EVALS" -eq 1 ]]; then
+  run_warning_stage "controller-mode evals" "$eval_log" python3 scripts/run_controller_mode_evals.py evals/controller_modes
+else
+  echo "[preflight] controller-mode evals skipped"
+fi
 
 if [[ "$RUN_SMOKE" -eq 1 ]]; then
   smoke_tier="release"
