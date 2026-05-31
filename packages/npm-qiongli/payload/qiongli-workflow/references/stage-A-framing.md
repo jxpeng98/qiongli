@@ -23,9 +23,9 @@ This stage turns a topic into a *defensible* research plan: what you will claim,
 - `Q1` (question-to-method alignment) applies to all A-tasks.
 - `Q2` (claim-evidence traceability) starts in `A2` (contribution) and is enforced later in `F4/G3`.
 
-## Academic Grill Loop For Idea-Discovery
+## Academic Idea Funnel / Academic Grill Loop For Idea-Discovery
 
-Before drafting `A1`, `A2`, `A4`, or `A5` from a vague topic, use `boundary-interviewer` as the Academic Grill Loop. This is an academic idea-discovery pass, not a generic brainstorming questionnaire.
+Before drafting `A1`, `A2`, `A4`, or `A5` from a vague topic, use `boundary-interviewer` to run the Academic Idea Funnel. This is an academic idea-discovery pass, not a generic brainstorming questionnaire.
 
 The loop must:
 
@@ -33,7 +33,8 @@ The loop must:
 - ask one scholarly question at a time;
 - include a recommended answer with academic rationale, evidence threshold, claim-strength implication, and reviewer or venue consequence;
 - convert broad interest into a defensible research idea that can fit one paper;
-- record the locked decision, rival risks, and revisit trigger in `context/boundary_review.md`.
+- record candidate idea triage, the recommended idea, weakest assumption, and next task in `context/idea_funnel.md`;
+- hand off locked decisions, rival risks, and revisit trigger into `context/boundary_review.md`.
 
 Use Stage A grill questions such as:
 
@@ -42,6 +43,8 @@ Use Stage A grill questions such as:
 3. Which population, context, time period, corpus, or construct definition is explicitly out of scope?
 4. What contribution type is primary, and which adjacent contribution is not being claimed?
 5. Who would cite this work if it succeeds, and why would they care?
+
+`context/idea_funnel.md` is the preflight artifact for choosing the idea. `context/boundary_review.md` is the follow-on artifact for locking claim strength, evidence threshold, scope limits, and reviewer-facing risks.
 
 ---
 

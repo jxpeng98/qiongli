@@ -494,6 +494,12 @@ artifact_types:
     produced_by: [self-critique]
     consumed_by: [research-orchestrator]
 
+  - name: AcademicIdeaFunnel
+    description: "Academic idea discovery record that triages broad topics into a defensible research idea with claim, gap, contribution type, evidence plan, weakest assumption, reviewer risk, and boundary-review handoff"
+    format: markdown
+    produced_by: [boundary-interviewer]
+    consumed_by: [question-refiner, contribution-crafter, gap-analyzer, venue-analyzer, academic-context-maintainer, manuscript-architect, study-designer]
+
   - name: BoundaryReview
     description: "Academic boundary decision record covering scope, constructs, contribution, claim strength, evidence threshold, rival explanations, validity risks, generalizability limits, venue expectations, and downstream handoff"
     format: markdown

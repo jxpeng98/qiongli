@@ -576,12 +576,13 @@ python -m bridges.orchestrator code-build \
 1. Inspect existing research artifacts before asking the user.
 2. Map the task to an academic boundary dimension: phenomenon, construct, contribution, claim strength, evidence threshold, method validity, rival explanation, generalizability, ethics/governance, venue/reviewer, research code, or submission/revision.
 3. For brainstorms or Stage A work, use the Academic Grill Loop: ask one scholarly question at a time that tests whether the topic can become one answerable paper.
-4. Provide a recommended answer with rationale, evidence threshold, reviewer consequence, and confidence.
-5. Record claim strength, evidence threshold, rival explanations, validity or trustworthiness risk, generalizability limit, and downstream sync targets.
-6. Sync downstream-relevant decisions into `context/decision_log.md` or `context/stage_handoff.md`.
-7. After the user answers, continue the active task within the locked boundary and require later skills to narrow, not broaden, unless a `revisit_trigger` records the justification.
+4. Write `AcademicIdeaFunnel` -> `context/idea_funnel.md` before Stage A outputs when the idea is still unsettled; include Candidate Idea Triage, recommended idea, core claim, research question, candidate gap, contribution type, evidence plan, weakest assumption, reviewer risk, `next_stage_recommendation`, and `boundary_review_handoff`.
+5. Provide a recommended answer with rationale, evidence threshold, reviewer consequence, and confidence.
+6. Record claim strength, evidence threshold, rival explanations, validity or trustworthiness risk, generalizability limit, and downstream sync targets.
+7. Sync downstream-relevant decisions into `context/decision_log.md` or `context/stage_handoff.md`.
+8. After the user answers, continue the active task within the locked boundary and require later skills to narrow, not broaden, unless a `revisit_trigger` records the justification.
 
-**Output:** `BoundaryReview` -> `context/boundary_review.md`
+**Output:** `AcademicIdeaFunnel` -> `context/idea_funnel.md`; `BoundaryReview` -> `context/boundary_review.md`
 
 ---
 
