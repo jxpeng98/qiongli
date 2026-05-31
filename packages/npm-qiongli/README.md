@@ -6,6 +6,7 @@
 
 ```bash
 npm install -g qiongli
+qiongli setup
 qiongli install --target all
 qiongli install --subject economics --target all
 qiongli install --subject accounting --target all
@@ -37,6 +38,8 @@ npx qiongli@next upgrade --subject economics --target all
 
 The npm package contains pre-materialized `core`, `economics`, `accounting`, `business`, `finance`, and `economics-accounting` `qiongli-workflow` subject payloads in both `complete` and `focused` coverage. It does not depend on PyPI for skill installation and does not run `postinstall`.
 
+`qiongli setup` is the interactive guided path for choosing runtime surface, subject, coverage, install scope, optional literature provider keys, and doctor verification. It delegates to the bundled Python bridge, so it requires Python 3.12+ with `PyYAML`. If you only need Node-based asset installation, use explicit `qiongli install ...` commands.
+
 ## Global-first update model
 
 The npm package and the installed workflow assets are separate surfaces:
@@ -62,7 +65,7 @@ Global assets are written under client home directories such as:
 ~/.gemini/skills/qiongli-workflow
 ```
 
-Advanced bridge commands such as `doctor`, `task-run`, and `team-run` use the Python runtime bundled in the npm package and require Python 3.12+ with `PyYAML`.
+Advanced bridge commands such as `setup`, `doctor`, `task-run`, and `team-run` use the Python runtime bundled in the npm package and require Python 3.12+ with `PyYAML`.
 
 Runtime `--custom-dir` customization is not supported by npm in this phase. Use the source checkout when you need local custom overlays, profiles, or skills:
 

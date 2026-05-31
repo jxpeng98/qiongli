@@ -49,6 +49,24 @@ class CLISetupDocsTests(unittest.TestCase):
                 self.assertIn("qiongli setup", content)
                 self.assertIn(guide_core_install, content)
 
+    def test_cli_setup_docs_disclose_npm_python_bridge_requirement(self) -> None:
+        for path in (
+            Path("README.md"),
+            Path("README_CN.md"),
+            Path("docs/guide/install.md"),
+            Path("docs/zh/guide/install.md"),
+            Path("docs/reference/cli.md"),
+            Path("docs/zh/reference/cli.md"),
+            Path("packages/npm-qiongli/README.md"),
+        ):
+            content = (REPO_ROOT / path).read_text(encoding="utf-8")
+            setup_snippet = self._extract_setup_snippet(content)
+            with self.subTest(path=str(path)):
+                self.assertIn("Python 3.12+", setup_snippet)
+                self.assertIn("PyYAML", setup_snippet)
+                self.assertRegex(setup_snippet, re.compile(r"Python bridge|Python 桥|Python bridge"))
+                self.assertIn("qiongli install", setup_snippet)
+
     def test_cli_setup_reference_documents_provider_boundaries(self) -> None:
         expectations = {
             Path("docs/reference/cli.md"): (

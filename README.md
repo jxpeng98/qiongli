@@ -280,6 +280,8 @@ qiongli setup --project-dir "$PWD" --no-doctor
 
 The setup wizard is for CLI, Codex, and Claude Code users who want help choosing the runtime surface (`cli`, `codex`, `claude-code`, or `multi-platform`), subject, coverage (`complete` or `focused`), and install scope (`all`, `globals`, `project`, or `cli`). It can also prompt for optional literature provider keys, then run doctor verification unless you pass `--no-doctor`.
 
+On npm installs, `qiongli setup` delegates to the bundled Python bridge and therefore requires Python 3.12+ plus `PyYAML`. If you only need Node-based asset installation, use explicit `qiongli install ...` commands.
+
 Provider keys entered through `qiongli setup` use the same provider config as `qiongli provider setup` and `qiongli provider doctor`. Secrets are stored in the provider configuration outside generated research artifacts. Setup configures credentials and runs doctor/capability checks; it does not by itself guarantee external search results.
 
 ### 3. Use The Installed Skills
@@ -612,6 +614,8 @@ qiongli setup --project-dir "$PWD" --no-doctor
 ```
 
 The wizard guides CLI, Codex, and Claude Code installs through runtime surface selection (`cli`, `codex`, `claude-code`, or `multi-platform`), subject choice, coverage choice (`complete` or `focused`), install scope (`all`, `globals`, `project`, or `cli`), optional literature provider key setup, and doctor verification.
+
+On npm installs, `qiongli setup` delegates to the bundled Python bridge and therefore requires Python 3.12+ plus `PyYAML`. Use explicit `qiongli install ...` commands when you want the Node-only installer path.
 
 Provider keys entered through setup use the same provider config as `qiongli provider setup` and `qiongli provider doctor`. Secrets stay outside generated research artifacts. The provider step configures credentials and checks capabilities; it should not be described as a promise that an external literature search will run.
 

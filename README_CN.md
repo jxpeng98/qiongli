@@ -241,6 +241,8 @@ qiongli setup --project-dir "$PWD" --no-doctor
 
 setup wizard 面向 CLI、Codex 和 Claude Code 用户，会交互式引导选择 runtime surface（`cli`、`codex`、`claude-code` 或 `multi-platform`）、subject、coverage（`complete` 或 `focused`）、install scope（`all`、`globals`、`project` 或 `cli`），也可以配置可选的 literature provider keys，并在最后执行 doctor verification，除非使用 `--no-doctor`。
 
+在 npm 安装中，`qiongli setup` 会委托到 npm 包内置的 Python bridge，因此要求本机已有 Python 3.12+ 和 `PyYAML`。如果只需要 Node-based asset installation，继续使用显式 `qiongli install ...` 命令。
+
 通过 `qiongli setup` 输入的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。密钥会保存在生成的研究 artifacts 之外。setup 只负责配置凭据并执行 doctor/capability 检查，不承诺一定能运行外部检索。
 
 ### 3. 为 `full` 准备 Python
@@ -532,6 +534,8 @@ qiongli setup --project-dir "$PWD" --no-doctor
 ```
 
 wizard 会引导 CLI、Codex 和 Claude Code 安装选择 runtime surface（`cli`、`codex`、`claude-code` 或 `multi-platform`）、subject、coverage（`complete` 或 `focused`）、install scope（`all`、`globals`、`project` 或 `cli`）、可选 literature provider key setup，以及 doctor verification。
+
+在 npm 安装中，`qiongli setup` 会委托到 npm 包内置的 Python bridge，因此要求本机已有 Python 3.12+ 和 `PyYAML`。如果只需要 Node-only installer path，继续使用显式 `qiongli install ...` 命令。
 
 通过 setup 输入的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。密钥保存在生成的研究 artifacts 之外。provider 步骤会配置凭据并检查 capability，不应被描述成一定会执行外部 literature search。
 

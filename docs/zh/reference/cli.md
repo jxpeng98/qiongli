@@ -96,6 +96,8 @@ wizard 选项：
 
 通过 setup 输入的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。密钥保存在生成的研究 artifacts 之外。setup 会配置凭据并执行 doctor/capability 检查；它不承诺一定会运行外部 literature search。
 
+通过 npm launcher 调用时，`qiongli setup` 使用 npm 包内置的 Python bridge，因此要求 Python 3.12+ 和 `PyYAML`。显式 `qiongli install ...` npm 命令仍可用于 Node-only asset installation。
+
 ### 2.3 `qiongli install`（安装包内 subject payload）
 
 用途：
