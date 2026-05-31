@@ -38,6 +38,12 @@ Store selection as `[paper_type]`.
 Ask the user to choose a Task ID from the contract (for example `F3`, `G1`, `B1`).
 If the user describes intent in natural language, map it to the closest Task ID and confirm once.
 
+## Step 1.5a: Academic Grill Loop For Idea-Discovery
+
+When the user is still choosing an idea, starts from a vague topic, or selects an `A` task without settled scope, use `boundary-interviewer` as the Academic Grill Loop before drafting artifacts. This loop is for academic idea-discovery: inspect existing `RESEARCH/[topic]/` artifacts first, ask one scholarly question at a time, provide a recommended answer with evidence threshold and reviewer impact, then record the locked decision in `context/boundary_review.md`.
+
+Do not turn this into a long questionnaire. The first question should be the one most likely to decide whether the topic can become a defensible paper idea, for example: "What evidence would make this idea answerable in one paper?"
+
 ## Step 1.6: Academic Boundary Review Trigger (MVP)
 
 For MVP, use `boundary-interviewer` before proceeding when the selected task belongs to `A`, `C`, `F`, `H`, or `I` and any of these academic boundaries remain unclear:

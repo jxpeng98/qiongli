@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -101,7 +102,7 @@ class PluginDistributionContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             result = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "scripts/validate_marketplace_install.py",
                     "--dist-dir",
                     tmp_dir,
