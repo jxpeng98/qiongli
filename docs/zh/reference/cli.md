@@ -72,7 +72,7 @@ JSON 输出会包含每个 target 当前安装的 active subject 和 coverage。
 
 用途：
 - npm、pipx、pip 或 bootstrap 安装 CLI 后的推荐第一个命令。
-- 引导 CLI、Codex 和 Claude Code 用户选择 runtime surface、subject、coverage、install scope、可选 provider key setup，并执行 doctor verification。
+- 引导 CLI、Codex 和 Claude Code 用户选择 install/upgrade、runtime surface、subject、coverage、install mode、install scope、overwrite 策略、upgrade source、可选 provider key setup，并执行 doctor verification。
 
 ```bash
 qiongli setup [--project-dir <path>] [--dry-run] [--no-doctor]
@@ -86,17 +86,24 @@ qiongli setup --dry-run
 qiongli setup --project-dir "$PWD" --no-doctor
 ```
 
+通过 npm launcher 调用时，`qiongli setup` 使用 npm 包内置的 Python bridge，因此要求 Python 3.12+ 和 `PyYAML`。显式 `qiongli install ...` npm 命令仍可用于 Node-only asset installation。
+
 wizard 选项：
+- Setup path：`install` 或 `upgrade`。
 - Runtime surface：`cli`、`codex`、`claude-code` 或 `multi-platform`。
 - Subject：`core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics` 或 `economics-accounting`。
 - Coverage：`complete` 或 `focused`。
+- Install mode：普通用户用 `--mode copy`，本地开发 checkout 用 `--mode link`。
 - Install scope：`all`、`globals`、`project` 或 `cli`。
+- 所选 scope 包含 CLI wrapper 时的 CLI 目录。
+- Overwrite 策略：install refresh 使用 `--overwrite`；升级但不替换 managed files 时使用 `--no-overwrite`。
+- Upgrade source：latest stable、latest beta、可选 `--repo`、显式 `--ref`，以及 `--ref-type tag|branch`。
 - 可选 literature provider credentials。
 - Doctor verification，除非设置 `--no-doctor`。
 
-通过 setup 输入的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。密钥保存在生成的研究 artifacts 之外。setup 会配置凭据并执行 doctor/capability 检查；它不承诺一定会运行外部 literature search。
+每一步 prompt 都包含简短的 `Tip:` 注释，解释这个选择为什么重要，以及会改变哪种安装或升级行为。
 
-通过 npm launcher 调用时，`qiongli setup` 使用 npm 包内置的 Python bridge，因此要求 Python 3.12+ 和 `PyYAML`。显式 `qiongli install ...` npm 命令仍可用于 Node-only asset installation。
+通过 setup 输入的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。密钥保存在生成的研究 artifacts 之外。setup 会配置凭据并执行 doctor/capability 检查；它不承诺一定会运行外部 literature search。
 
 ### 2.3 `qiongli install`（安装包内 subject payload）
 

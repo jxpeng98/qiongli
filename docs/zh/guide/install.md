@@ -157,12 +157,19 @@ qiongli setup --project-dir "$PWD" --no-doctor
 
 wizard 会引导 CLI、Codex 和 Claude Code 用户完成：
 
+- setup path：`install` 用于首次安装内置 assets，`upgrade` 用于从上游刷新
 - runtime surface：CLI、Codex、Claude Code 或 multi-platform
 - subject 选择
 - coverage 选择：`complete` 或 `focused`
+- install mode：普通用户使用 `--mode copy`，本地 checkout 开发使用 `--mode link`
 - install scope：`all`、`globals`、`project` 或 `cli`
+- 启用 CLI wrapper 时的 CLI 目录
+- overwrite 策略：需要替换已管理安装时使用 `--overwrite`；升级但保留现有 managed files 时使用 `--no-overwrite`
+- upgrade source：latest stable、latest beta、显式 `--ref` tag、显式 `--ref-type branch`，以及可选 `--repo`
 - 可选 literature provider key setup
 - doctor verification，除非设置 `--no-doctor`
+
+每一步 prompt 都会打印简短的 `Tip:` 注释，解释这个选择会改变什么；不熟悉完整 CLI 参数的用户也可以按引导完成安装或升级。
 
 通过 setup 输入的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。密钥会保存在生成的研究 artifacts 之外。provider 步骤用于配置凭据并执行 doctor/capability 检查；它不保证一定产生外部检索结果。
 
