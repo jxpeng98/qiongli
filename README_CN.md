@@ -231,6 +231,18 @@ npx qiongli@next check --json
 
 npm 包内携带预生成的 `core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics` 与 `economics-accounting` payload，并同时提供 `complete` / `focused` coverage。`--subject` 默认是 `core`，`--coverage` 默认是 `complete`；只有在明确需要精简包时才使用 `--coverage focused`。`qiongli check --json` 会显示 bundled payload subject/coverage 和各 target 已安装 subject/coverage。`qiongli doctor`、`qiongli task-run`、`qiongli team-run` 等高级命令会委托到 npm 包内置的 Python bridge 源码执行，因此仍要求本机已有 Python 3.12+ 和 `PyYAML`。
 
+npm、pipx、pip 或 bootstrap 安装 CLI 后，推荐第一个运行：
+
+```bash
+qiongli setup
+qiongli setup --dry-run
+qiongli setup --project-dir "$PWD" --no-doctor
+```
+
+setup wizard 面向 CLI、Codex 和 Claude Code 用户，会交互式引导选择 runtime surface（`cli`、`codex`、`claude-code` 或 `multi-platform`）、subject、coverage（`complete` 或 `focused`）、install scope（`all`、`globals`、`project` 或 `cli`），也可以配置可选的 literature provider keys，并在最后执行 doctor verification，除非使用 `--no-doctor`。
+
+通过 `qiongli setup` 输入的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。密钥会保存在生成的研究 artifacts 之外。setup 只负责配置凭据并执行 doctor/capability 检查，不承诺一定能运行外部检索。
+
 ### 3. 为 `full` 准备 Python
 
 只有在你要使用 `full`、`doctor`、orchestrator、validator 或 tests 时，才需要提前准备 Python 3.12+。
@@ -509,6 +521,20 @@ npx qiongli@next install --subject economics --target all --project-dir "$PWD"
 
 npm 包没有 `postinstall` hook。安装 npm 包本身不会修改用户 skill 目录；只有执行 `qiongli install` 或 `qiongli upgrade` 时才会写入资产。
 
+#### 推荐的 CLI Setup Wizard
+
+通过 bootstrap、npm、pipx 或 pip 安装 shell CLI 后，先运行 setup wizard：
+
+```bash
+qiongli setup
+qiongli setup --dry-run
+qiongli setup --project-dir "$PWD" --no-doctor
+```
+
+wizard 会引导 CLI、Codex 和 Claude Code 安装选择 runtime surface（`cli`、`codex`、`claude-code` 或 `multi-platform`）、subject、coverage（`complete` 或 `focused`）、install scope（`all`、`globals`、`project` 或 `cli`）、可选 literature provider key setup，以及 doctor verification。
+
+通过 setup 输入的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。密钥保存在生成的研究 artifacts 之外。provider 步骤会配置凭据并检查 capability，不应被描述成一定会执行外部 literature search。
+
 #### 方案 C：通过 `pipx` 安装 Python CLI
 
 适用场景：
@@ -519,7 +545,10 @@ npm 包没有 `postinstall` hook。安装 npm 包本身不会修改用户 skill 
 
 ```bash
 pipx install qiongli
+qiongli setup
 ```
+
+`qiongli setup` 会交互式引导同一组选项。脚本化安装仍可继续使用上文记录的 `qiongli upgrade` 或显式 `qiongli install ...` 命令。
 
 效果：
 - 安装 Python 版 `qiongli` / `ql`，以及兼容别名 `research-skills` / `rsk` / `rsw`
