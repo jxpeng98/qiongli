@@ -29,8 +29,12 @@ class CLISetupDocsTests(unittest.TestCase):
                     "--no-doctor",
                     "subject",
                     "coverage",
+                    "--mode",
+                    "--overwrite",
                 ):
                     self.assertIn(token, content)
+                self.assertRegex(content, re.compile(r"install.*upgrade|安装.*升级", re.S))
+                self.assertRegex(content, re.compile(r"CLI (directory|目录)|shell CLI"))
                 self.assertRegex(content, re.compile(r"provider (config|配置)|provider config"))
 
     def test_cli_setup_docs_keep_scriptable_npm_install_examples(self) -> None:

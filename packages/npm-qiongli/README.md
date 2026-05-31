@@ -38,7 +38,7 @@ npx qiongli@next upgrade --subject economics --target all
 
 The npm package contains pre-materialized `core`, `economics`, `accounting`, `business`, `finance`, and `economics-accounting` `qiongli-workflow` subject payloads in both `complete` and `focused` coverage. It does not depend on PyPI for skill installation and does not run `postinstall`.
 
-`qiongli setup` is the interactive guided path for choosing runtime surface, subject, coverage, install scope, optional literature provider keys, and doctor verification. It delegates to the bundled Python bridge, so it requires Python 3.12+ with `PyYAML`. If you only need Node-based asset installation, use explicit `qiongli install ...` commands.
+`qiongli setup` is the interactive guided path for choosing install or upgrade, runtime surface, subject, coverage, `--mode copy|link`, install scope, CLI directory, `--overwrite` / `--no-overwrite`, optional upgrade source, literature provider keys, and doctor verification. Each prompt includes a short `Tip:` comment. It delegates to the bundled Python bridge, so it requires Python 3.12+ with `PyYAML`. If you only need Node-based asset installation, use explicit `qiongli install ...` commands.
 
 ## Global-first update model
 

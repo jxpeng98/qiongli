@@ -239,7 +239,7 @@ qiongli setup --dry-run
 qiongli setup --project-dir "$PWD" --no-doctor
 ```
 
-setup wizard 面向 CLI、Codex 和 Claude Code 用户，会交互式引导选择 runtime surface（`cli`、`codex`、`claude-code` 或 `multi-platform`）、subject、coverage（`complete` 或 `focused`）、install scope（`all`、`globals`、`project` 或 `cli`），也可以配置可选的 literature provider keys，并在最后执行 doctor verification，除非使用 `--no-doctor`。
+setup wizard 面向 CLI、Codex 和 Claude Code 用户，会交互式引导选择 install 或 upgrade、runtime surface（`cli`、`codex`、`claude-code` 或 `multi-platform`）、subject、coverage（`complete` 或 `focused`）、`--mode copy|link`、install scope（`all`、`globals`、`project` 或 `cli`）、CLI 目录、`--overwrite` / `--no-overwrite`、upgrade source（`--repo`、`--ref`、`--ref-type` 或 beta）、可选 literature provider keys，并在最后执行 doctor verification，除非使用 `--no-doctor`。每一步 prompt 都会显示简短的 `Tip:` 注释，解释这个选择会改变什么。
 
 在 npm 安装中，`qiongli setup` 会委托到 npm 包内置的 Python bridge，因此要求本机已有 Python 3.12+ 和 `PyYAML`。如果只需要 Node-based asset installation，继续使用显式 `qiongli install ...` 命令。
 
@@ -533,7 +533,7 @@ qiongli setup --dry-run
 qiongli setup --project-dir "$PWD" --no-doctor
 ```
 
-wizard 会引导 CLI、Codex 和 Claude Code 安装选择 runtime surface（`cli`、`codex`、`claude-code` 或 `multi-platform`）、subject、coverage（`complete` 或 `focused`）、install scope（`all`、`globals`、`project` 或 `cli`）、可选 literature provider key setup，以及 doctor verification。
+wizard 会引导 CLI、Codex 和 Claude Code 安装选择 install 或 upgrade、runtime surface（`cli`、`codex`、`claude-code` 或 `multi-platform`）、subject、coverage（`complete` 或 `focused`）、`--mode copy|link`、install scope（`all`、`globals`、`project` 或 `cli`）、CLI 目录、`--overwrite` / `--no-overwrite`、可选 upgrade source、literature provider key setup，以及 doctor verification。每一步 prompt 都会显示简短的 `Tip:` 注释，解释这个选择会改变什么。
 
 在 npm 安装中，`qiongli setup` 会委托到 npm 包内置的 Python bridge，因此要求本机已有 Python 3.12+ 和 `PyYAML`。如果只需要 Node-only installer path，继续使用显式 `qiongli install ...` 命令。
 
