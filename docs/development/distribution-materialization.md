@@ -20,7 +20,32 @@ Edit these files when changing the academic workflow:
   subject-specific venue profiles.
 - `skills-core.md` and `skills-summary.md` for top-level skill references.
 
-## Generated outputs
+## Repository structure
+
+The repository intentionally separates the clean checkout source tree from
+installable package shapes.
+
+Clean checkout `qiongli-workflow/` shape:
+
+- `qiongli-workflow/SKILL.md`
+- `qiongli-workflow/VERSION`
+- `qiongli-workflow/agents/`
+- `qiongli-workflow/references/`
+- `qiongli-workflow/workflows/`
+- `qiongli-workflow/venue-profiles/`
+
+The clean checkout does not contain `qiongli-workflow/templates/`,
+`qiongli-workflow/standards/`, or `qiongli-workflow/roles/`. Those package
+mirror directories are created only by materialization commands when a
+self-contained skill package is needed.
+
+Treat root-level directories as the source of truth for duplicated domains:
+`templates/`, `standards/`, `roles/`, `venue-profiles/`, and `skills/`.
+`qiongli-workflow/venue-profiles/` is still present in the current checkout
+for compatibility, but future cleanup should remove tracked generated outputs
+from the repository and keep materialized package copies in staging only.
+
+## Generated and materialized outputs
 
 Do not edit materialized copies directly. They are generated from canonical
 source during local checks, CI, release staging, and package publishing.
@@ -29,15 +54,24 @@ source during local checks, CI, release staging, and package publishing.
 - `packages/npm-qiongli/payload/`
 - `packages/npm-qiongli/python-runtime/`
 - `plugins/qiongli/skills/qiongli-workflow/`
-- `qiongli-workflow/skills/`
-- `qiongli-workflow/templates/`
-- `qiongli-workflow/standards/`
-- `qiongli-workflow/roles/`
-- `qiongli-workflow/venue-profiles/`
-- `qiongli-workflow/skills-core.md`
-- `qiongli-workflow/skills-summary.md`
+
+In-place materialization can also create ignored package mirror paths under
+`qiongli-workflow/`, including `qiongli-workflow/skills/`,
+`qiongli-workflow/templates/`, `qiongli-workflow/standards/`,
+`qiongli-workflow/roles/`, `qiongli-workflow/skills-core.md`, and
+`qiongli-workflow/skills-summary.md`. These paths are not part of the clean
+checkout source tree.
 
 Feature PRs should not commit generated outputs. GitHub Actions may materialize payloads in a temporary workspace to validate packaging. Release automation may materialize payloads in a staging workspace before building artifacts.
+
+## Planned cleanup
+
+After the staged materialization flow is stable, remove tracked generated
+outputs from the repository. The intended end state is staging-only
+materialization for generated payloads while release artifacts keep the same
+installed structure. This cleanup should happen in a later PR so source
+boundary enforcement, materialization commands, and release packaging can be
+reviewed independently.
 
 ## Adding a new skill
 

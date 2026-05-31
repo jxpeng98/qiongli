@@ -8,13 +8,18 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DOC_PATH = REPO_ROOT / "docs" / "development" / "distribution-materialization.md"
 
 
+def _normalize_whitespace(content: str) -> str:
+    return " ".join(content.split())
+
+
 class DistributionMaterializationDocsTests(unittest.TestCase):
     def test_docs_define_source_and_generated_boundaries(self) -> None:
         content = DOC_PATH.read_text(encoding="utf-8")
 
         for token in (
             "Canonical source",
-            "Generated outputs",
+            "Repository structure",
+            "Generated and materialized outputs",
             "`skills/`",
             "`templates/`",
             "`subjects/`",
@@ -24,6 +29,42 @@ class DistributionMaterializationDocsTests(unittest.TestCase):
         ):
             with self.subTest(token=token):
                 self.assertIn(token, content)
+
+    def test_docs_describe_clean_checkout_qiongli_workflow_shape(self) -> None:
+        content = DOC_PATH.read_text(encoding="utf-8")
+        normalized = _normalize_whitespace(content)
+
+        for token in (
+            "Clean checkout `qiongli-workflow/` shape",
+            "`qiongli-workflow/SKILL.md`",
+            "`qiongli-workflow/VERSION`",
+            "`qiongli-workflow/agents/`",
+            "`qiongli-workflow/references/`",
+            "`qiongli-workflow/workflows/`",
+            "`qiongli-workflow/venue-profiles/`",
+        ):
+            with self.subTest(token=token):
+                self.assertIn(token, content)
+
+        self.assertIn(
+            "does not contain `qiongli-workflow/templates/`, "
+            "`qiongli-workflow/standards/`, or `qiongli-workflow/roles/`",
+            normalized,
+        )
+
+    def test_docs_explain_future_generated_output_cleanup(self) -> None:
+        content = DOC_PATH.read_text(encoding="utf-8")
+        normalized = _normalize_whitespace(content)
+
+        self.assertIn("Planned cleanup", content)
+
+        for token in (
+            "remove tracked generated outputs from the repository",
+            "staging-only materialization",
+            "release artifacts keep the same installed structure",
+        ):
+            with self.subTest(token=token):
+                self.assertIn(token, normalized)
 
     def test_docs_explain_how_to_add_future_skills(self) -> None:
         content = DOC_PATH.read_text(encoding="utf-8")
