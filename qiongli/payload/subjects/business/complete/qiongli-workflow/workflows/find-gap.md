@@ -15,6 +15,16 @@ $ARGUMENTS
 
 ## Workflow
 
+### Step 0: Academic Grill Loop For Idea-Discovery
+
+Before running a gap scan from a broad or vague area, use `boundary-interviewer` as the Academic Grill Loop. This is an academic idea-discovery pass: inspect existing project artifacts first, ask one scholarly question at a time, provide a recommended answer with academic rationale and evidence threshold, and record the decision in `RESEARCH/[topic]/context/boundary_review.md`.
+
+The first question should identify which research opportunity is academically defensible, not merely underexplored. Prefer a question such as:
+
+> "From this vague topic, which defensible research idea could become one paper, and what evidence would make it answerable?"
+
+If the user accepts the recommended answer, use it as the scope for `question-refiner`, search planning, and `gap-analyzer`. If they choose a different answer, lock that alternative and continue within it.
+
 ### Step 1: Research Question Clarification
 
 Use the **question-refiner** skill to:
