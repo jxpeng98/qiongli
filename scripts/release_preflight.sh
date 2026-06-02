@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+PREFLIGHT_ROOT="$ROOT_DIR"
 QUICK_MODE=0
 RUN_SMOKE=1
 RUN_UNIT_TESTS=1
@@ -12,6 +13,7 @@ TAG=""
 SKIP_NOTE_GEN=0
 NOTE_OVERWRITE=0
 FROM_TAG=""
+MATERIALIZE_OUT=""
 FAILED_STAGE=""
 FAILED_LOG=""
 FAILED_STATUS=""
@@ -127,6 +129,8 @@ Options:
   --skip-unit-tests  Skip repository unit tests.
   --skip-controller-evals  Skip controller-mode eval warning stage.
   --quick         Run the lightweight CI gate: validator + package checks only.
+  --materialize-out <dir>  Materialize generated payloads into a staging
+                  directory and run package validation against that tree.
   --maintainer-smoke  Run maintainer smoke tier instead of release smoke tier.
   --no-strict     Run validator without --strict.
   -h, --help      Show this message.
@@ -171,6 +175,11 @@ while [[ $# -gt 0 ]]; do
       RUN_UNIT_TESTS=0
       RUN_CONTROLLER_EVALS=0
       shift
+      ;;
+    --materialize-out)
+      [[ $# -ge 2 ]] || { echo "[preflight] missing value for --materialize-out" >&2; exit 2; }
+      MATERIALIZE_OUT="$2"
+      shift 2
       ;;
     --maintainer-smoke)
       MAINTAINER_SMOKE=1
@@ -233,9 +242,14 @@ if [[ -n "$TAG" ]]; then
 fi
 
 echo "[preflight] materialize distribution payloads"
-python3 scripts/materialize_distribution_payloads.py --target all --in-place
+if [[ -n "$MATERIALIZE_OUT" ]]; then
+  python3 scripts/materialize_distribution_payloads.py --target all --out "$MATERIALIZE_OUT" --force
+  PREFLIGHT_ROOT="$MATERIALIZE_OUT"
+else
+  python3 scripts/materialize_distribution_payloads.py --target all --in-place
+fi
 
-pkg_dir="$ROOT_DIR/qiongli-workflow"
+pkg_dir="$PREFLIGHT_ROOT/qiongli-workflow"
 sync_ok=1
 for check_dir in skills templates standards roles; do
   if [[ ! -d "$pkg_dir/$check_dir" ]]; then
@@ -254,9 +268,12 @@ fi
 echo "[preflight] skill package verified self-contained"
 
 echo "[preflight] sync skill reference docs"
-python3 scripts/generate_skill_docs.py
+(
+  cd "$PREFLIGHT_ROOT"
+  python3 scripts/generate_skill_docs.py
+)
 
-validate_cmd=(python3 scripts/validate_research_standard.py)
+validate_cmd=(python3 scripts/validate_research_standard.py --root "$PREFLIGHT_ROOT")
 if [[ "$STRICT_MODE" -eq 1 ]]; then
   validate_cmd+=(--strict)
 fi

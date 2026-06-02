@@ -246,6 +246,20 @@ class ReleaseAutomationTests(unittest.TestCase):
             content.index('run_logged_stage "unit tests" "$unit_log" python3 -m unittest discover -s tests -v'),
         )
 
+    def test_release_preflight_supports_staged_materialization_for_ci(self) -> None:
+        content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
+
+        staged_materialize = 'python3 scripts/materialize_distribution_payloads.py --target all --out "$MATERIALIZE_OUT" --force'
+        staged_validate = 'validate_cmd=(python3 scripts/validate_research_standard.py --root "$PREFLIGHT_ROOT")'
+
+        self.assertIn("--materialize-out <dir>", content)
+        self.assertIn("MATERIALIZE_OUT=\"\"", content)
+        self.assertIn("PREFLIGHT_ROOT=\"$ROOT_DIR\"", content)
+        self.assertIn(staged_materialize, content)
+        self.assertIn('PREFLIGHT_ROOT="$MATERIALIZE_OUT"', content)
+        self.assertIn(staged_validate, content)
+        self.assertLess(content.index(staged_materialize), content.index(staged_validate))
+
     def test_release_preflight_runs_controller_mode_evals_as_warning_stage(self) -> None:
         content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
 
