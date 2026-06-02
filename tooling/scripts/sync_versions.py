@@ -100,6 +100,20 @@ def replace_npm_lock_workspace_version(path: Path, version: str) -> bool:
     return True
 
 
+def replace_uv_lock_editable_package_version(path: Path, package_name: str, version: str) -> bool:
+    original = path.read_text(encoding="utf-8")
+    package_block_pattern = re.compile(
+        rf'(?ms)^(\[\[package\]\]\nname = "{re.escape(package_name)}"\nversion = ")[^"]+(".*?source = \{{ editable = "\." \}}.*?)(?=^\[\[package\]\]|\Z)'
+    )
+    updated, count = package_block_pattern.subn(rf"\g<1>{version}\g<2>", original, count=1)
+    if count == 0:
+        raise ValueError(f"missing editable package {package_name!r} in {path}")
+    if updated == original:
+        return False
+    path.write_text(updated, encoding="utf-8")
+    return True
+
+
 def sync_versions(root: Path, raw_version: str) -> list[Path]:
     root = root.resolve()
     package_version, skill_version, repo_version, npm_version = parse_version(raw_version)
@@ -154,11 +168,22 @@ def sync_versions(root: Path, raw_version: str) -> list[Path]:
             workflow_version_file.write_text(repo_version + "\n", encoding="utf-8")
             changed.append(workflow_version_file)
 
-    json_version_files = (
-        root / "plugins" / "qiongli" / ".codex-plugin" / "plugin.json",
-        root / "plugins" / "qiongli" / ".claude-plugin" / "plugin.json",
-        root / "plugins" / "qiongli" / "gemini-extension.json",
+    plugin_roots = (
+        layout.plugin_package,
+        root / "plugins" / "qiongli",
     )
+    json_version_files = []
+    seen_json_version_files: set[Path] = set()
+    for plugin_root in plugin_roots:
+        for relative_path in (
+            Path(".codex-plugin") / "plugin.json",
+            Path(".claude-plugin") / "plugin.json",
+            Path("gemini-extension.json"),
+        ):
+            candidate = plugin_root / relative_path
+            if candidate not in seen_json_version_files:
+                json_version_files.append(candidate)
+                seen_json_version_files.add(candidate)
     for plugin_manifest in json_version_files:
         if not plugin_manifest.exists():
             continue
@@ -174,6 +199,11 @@ def sync_versions(root: Path, raw_version: str) -> list[Path]:
     if npm_lock.exists():
         if replace_npm_lock_workspace_version(npm_lock, npm_version):
             changed.append(npm_lock)
+
+    uv_lock = root / "uv.lock"
+    if uv_lock.exists():
+        if replace_uv_lock_editable_package_version(uv_lock, "qiongli", package_version):
+            changed.append(uv_lock)
 
     bundled_python_init_files = (
         root / "packages" / "npm-qiongli" / "python-runtime" / "qiongli" / "__init__.py",
