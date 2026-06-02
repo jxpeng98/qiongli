@@ -239,6 +239,10 @@ class RepoLayout:
             "venue-profiles": self.venue_profiles,
             "subjects": self.subjects,
             "schemas": self.schemas,
+            "scripts": self.scripts,
+            "pipelines": self.pipelines,
+            "install": self.install,
+            "release": self.release,
         }
         if first in source_roots:
             return source_roots[first] / rest

@@ -811,6 +811,7 @@ def validate_portable_skill(root: Path, report: ValidationReport) -> None:
 
 
 def validate_skill_registry(root: Path, report: ValidationReport) -> None:
+    layout = RepoLayout(root)
     artifact_content = read_text(root, "schemas/artifact-types.yaml", report)
     artifact_types = parse_artifact_types(artifact_content) if artifact_content else []
     artifact_type_set = set(artifact_types)
@@ -909,7 +910,7 @@ def validate_skill_registry(root: Path, report: ValidationReport) -> None:
             )
             seen_files.add(entry.file)
             report.check(
-                (root / entry.file).exists(),
+                layout.resolve_source_path(entry.file).exists(),
                 f"Registry file exists on disk for {skill_id}",
                 f"skills/registry.yaml points to missing file for {skill_id}: {entry.file}",
             )
@@ -940,7 +941,7 @@ def validate_skill_registry(root: Path, report: ValidationReport) -> None:
             ),
         )
 
-        skill_path = root / entry.file
+        skill_path = layout.resolve_source_path(entry.file)
         if not skill_path.exists():
             continue
         frontmatter, _body = parse_frontmatter(skill_path.read_text(encoding="utf-8"))
@@ -989,13 +990,14 @@ def _count_normalized_occurrences(content: str, needle: str) -> int:
 
 def validate_skill_structure(root: Path, report: ValidationReport) -> None:
     """Validate that every registered skill file follows the canonical skeleton."""
+    layout = RepoLayout(root)
     registry_content = read_text(root, "skills/registry.yaml", report)
     if not registry_content:
         return
     entries = parse_skill_registry_entries(registry_content)
     for skill_id in sorted(entries):
         entry = entries[skill_id]
-        skill_path = root / entry.file
+        skill_path = layout.resolve_source_path(entry.file)
         if not skill_path.exists():
             continue
         content = skill_path.read_text(encoding="utf-8")
@@ -1110,6 +1112,7 @@ def validate_single_skill_source_of_truth(root: Path, report: ValidationReport) 
 
 
 def validate_mcp_agent_map(root: Path, report: ValidationReport) -> None:
+    layout = RepoLayout(root)
     map_content = read_text(root, "standards/mcp-agent-capability-map.yaml", report)
     if not map_content:
         return
@@ -1305,7 +1308,7 @@ def validate_mcp_agent_map(root: Path, report: ValidationReport) -> None:
                 f"Skill catalog file should be under skills/: {skill_name} -> {skill_file}",
             )
             report.check(
-                (root / skill_file).exists(),
+                layout.resolve_source_path(skill_file).exists(),
                 f"Skill catalog file exists: {skill_name}",
                 f"Skill catalog file path missing: {skill_name} -> {skill_file}",
             )
@@ -1354,7 +1357,7 @@ def validate_mcp_agent_map(root: Path, report: ValidationReport) -> None:
                 f"functional_agents file should stay under roles/: {functional_agent_name} -> {agent_file}",
             )
             report.check(
-                (root / agent_file).exists(),
+                layout.resolve_source_path(agent_file).exists(),
                 f"Functional agent role file exists: {functional_agent_name}",
                 f"functional_agents file missing on disk: {functional_agent_name} -> {agent_file}",
             )
@@ -1377,7 +1380,7 @@ def validate_mcp_agent_map(root: Path, report: ValidationReport) -> None:
             ),
         )
 
-        if agent_file and (root / agent_file).exists():
+        if agent_file and layout.resolve_source_path(agent_file).exists():
             role_content = read_text(root, agent_file, report)
             role_id = parse_yaml_scalar(role_content, "id", indent=0)
             preferred_skills = set(
@@ -2580,9 +2583,10 @@ def validate_controller_mode_contracts(
     if not strict:
         return
 
+    layout = RepoLayout(root)
     missing = []
     for relative_path in CONTROLLER_MODE_REQUIRED_FILES:
-        exists = (root / relative_path).exists()
+        exists = layout.resolve_source_path(relative_path).exists()
         report.check(
             exists,
             f"Controller-mode contract exists: {relative_path}",
@@ -2611,9 +2615,10 @@ def validate_literature_first_contracts(
     if not strict:
         return
 
+    layout = RepoLayout(root)
     missing = []
     for relative_path in LITERATURE_FIRST_REQUIRED_FILES:
-        exists = (root / relative_path).exists()
+        exists = layout.resolve_source_path(relative_path).exists()
         report.check(
             exists,
             f"Literature-first contract exists: {relative_path}",

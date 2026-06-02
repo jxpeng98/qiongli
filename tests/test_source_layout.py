@@ -91,6 +91,18 @@ class SourceLayoutTests(unittest.TestCase):
             layout.gemini_platform / "qiongli.md",
             layout.resolve_source_path(".gemini/qiongli.md"),
         )
+        self.assertEqual(
+            layout.scripts / "release_preflight.sh",
+            layout.resolve_source_path("scripts/release_preflight.sh"),
+        )
+        self.assertEqual(
+            layout.install / "install_manifest.tsv",
+            layout.resolve_source_path("install/install_manifest.tsv"),
+        )
+        self.assertEqual(
+            layout.release / "automation.md",
+            layout.resolve_source_path("release/automation.md"),
+        )
         self.assertEqual(layout.skills_core, layout.resolve_source_path("skills-core.md"))
 
 
