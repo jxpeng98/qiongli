@@ -2,7 +2,10 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-MANIFEST_PATH="$ROOT_DIR/install/install_manifest.tsv"
+MANIFEST_PATH="$ROOT_DIR/tooling/install/install_manifest.tsv"
+if [[ ! -f "$MANIFEST_PATH" ]]; then
+  MANIFEST_PATH="$ROOT_DIR/install/install_manifest.tsv"
+fi
 TARGET="all"
 MODE="copy"
 PROJECT_DIR="$(pwd)"

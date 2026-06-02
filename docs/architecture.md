@@ -24,7 +24,7 @@ That separation is what keeps the system extensible without turning every workfl
 | Capability Map | `standards/mcp-agent-capability-map.yaml` | Runtime routing, MCP and skill requirements |
 | Functional Agents | `roles/` | Ownership, quality thresholds, tone |
 | Internal Skill Specs | `skills/` | Reusable execution behavior |
-| Pipelines / Workflows | `pipelines/`, `.agent/workflows/` | Step sequencing and entry UX |
+| Pipelines / Workflows | `tooling/pipelines/`, `.agent/workflows/` | Step sequencing and entry UX |
 | Bridges | `bridges/` | Runtime adapters and orchestration |
 | Portable Skill Package | `qiongli-workflow/` | Cross-client distributable entry skill |
 

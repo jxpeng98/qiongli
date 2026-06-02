@@ -5,7 +5,7 @@
 ### Portable Skills vs Internal Skill Specs
 
 - `qiongli-workflow/` is a portable skill package distributed to Codex / Claude / Gemini clients.
-- `skills/` contains repo-internal skill specifications referenced by `standards/`, `pipelines/`, and validators.
+- `skills/` contains repo-internal skill specifications referenced by `standards/`, `tooling/pipelines/`, and validators.
 - Do not assume every markdown file under `skills/` is installable as a standalone client skill package.
 - When a change affects end-user client entry behavior, check `qiongli-workflow/` first.
 - When a change affects reusable execution behavior inside this repo, check `skills/` first.
@@ -25,7 +25,7 @@
 | **Capability Map** | `standards/mcp-agent-capability-map.yaml` | Skill/MCP/runtime routing |
 | **Functional Agents** | `roles/` | Research responsibility and quality ownership |
 | **Internal Skill Specs** | `skills/` | Reusable execution specs used by tasks and pipelines |
-| **Pipelines** | `pipelines/` | Abstract DAGs defining dependencies and handoffs |
+| **Pipelines** | `tooling/pipelines/` | Abstract DAGs defining dependencies and handoffs |
 | **Workflows** | `qiongli-workflow/workflows/` | Slash-command entrypoints (globally symlinked) |
 | **Bridges** | `bridges/` | Runtime adapters and orchestration |
 | **Portable Skill Package** | `qiongli-workflow/` | Cross-client installable entry skill |
@@ -37,14 +37,14 @@ Treat the architecture as a one-way dependency graph:
 1. `standards/research-workflow-contract.yaml`
 2. `standards/mcp-agent-capability-map.yaml`
 3. `roles/` and `skills/`
-4. `pipelines/` and `.agent/workflows/`
+4. `tooling/pipelines/` and `.agent/workflows/`
 5. `bridges/`
 6. `qiongli-workflow/` as the distribution surface
 
 Practical implications:
 
 - Do not redefine artifact paths or quality gates outside `standards/research-workflow-contract.yaml`.
-- Do not create a second routing truth inside `pipelines/`, `bridges/`, or client workflow files.
+- Do not create a second routing truth inside `tooling/pipelines/`, `bridges/`, or client workflow files.
 - Do not let a portable client skill package become the hidden source of internal execution truth.
 - If two layers disagree, fix the upstream layer first rather than patching downstream symptoms.
 
@@ -170,7 +170,7 @@ All typed artifact names are defined in `schemas/artifact-types.yaml`. Use these
 
 | Layer | Directory | Purpose |
 |---|---|---|
-| **Pipelines** | `pipelines/` | Abstract DAGs defining step sequence + dependencies |
+| **Pipelines** | `tooling/pipelines/` | Abstract DAGs defining step sequence + dependencies |
 | **Workflows** | `qiongli-workflow/workflows/` | Slash-command entrypoints (symlinked to `~/.claude/commands/` and `~/.gemini/workflows/`) |
 
 Pipelines reference skill IDs; workflows call skills directly.
@@ -182,7 +182,7 @@ When a change spans multiple layers, apply it in this order:
 1. `standards/` for contract or routing truth
 2. `roles/` and `skills/` for responsibility or execution details
 3. `templates/` for stable structured outputs
-4. `pipelines/` and `.agent/workflows/` for sequencing or entry behavior
+4. `tooling/pipelines/` and `.agent/workflows/` for sequencing or entry behavior
 5. `bridges/` only if execution logic must change
 6. `qiongli-workflow/` only if the portable client package must reflect the change
 
@@ -206,7 +206,7 @@ Domain profiles in `skills/domain-profiles/` customize skill behavior for specif
 1. Create `skills/{STAGE}/{skill-name}.md` with full YAML frontmatter
 2. Add entry to `skills/registry.yaml`
 3. Add new artifact types to `schemas/artifact-types.yaml` if needed
-4. Add to relevant pipelines in `pipelines/`
+4. Add to relevant pipelines in `tooling/pipelines/`
 5. Run `python3 scripts/validate_research_standard.py` to verify
 
 If you need a portable client-facing skill package instead of an internal execution spec, follow the `qiongli-workflow/` style and keep it separate from `skills/`.

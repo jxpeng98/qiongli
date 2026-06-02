@@ -21,7 +21,7 @@ When behavior changes, maintainers should prefer fixing:
 1. `standards/`
 2. `roles/` or `skills/`
 3. `templates/`
-4. `pipelines/` and `.agent/workflows/`
+4. `tooling/pipelines/` and `.agent/workflows/`
 5. `bridges/`
 6. `qiongli-workflow/`
 

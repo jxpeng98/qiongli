@@ -24,7 +24,7 @@ Qiongli 把以下几层明确拆开：
 | Capability Map | `standards/mcp-agent-capability-map.yaml` | 运行时路由、MCP 与 skill 要求 |
 | Functional Agents | `roles/` | 责任归属、质量阈值、语气与审稿风格 |
 | Internal Skill Specs | `skills/` | 可复用执行行为 |
-| Pipelines / Workflows | `pipelines/`、`.agent/workflows/` | 步骤编排与入口 UX |
+| Pipelines / Workflows | `tooling/pipelines/`、`.agent/workflows/` | 步骤编排与入口 UX |
 | Bridges | `bridges/` | 运行时适配器与 orchestrator |
 | Portable Skill Package | `qiongli-workflow/` | 面向客户端分发的安装技能包 |
 

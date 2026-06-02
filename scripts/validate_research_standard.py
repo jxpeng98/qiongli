@@ -1678,12 +1678,12 @@ def validate_pipelines(root: Path, report: ValidationReport) -> None:
     )
     functional_agent_registry = set(functional_registry)
 
-    pipeline_dir = root / "pipelines"
+    pipeline_dir = RepoLayout(root).pipelines
     pipeline_paths = sorted(pipeline_dir.glob("*.yaml"))
     report.check(
         bool(pipeline_paths),
-        "pipelines/ contains YAML pipeline definitions",
-        "pipelines/ must contain at least one .yaml pipeline definition",
+        "tooling/pipelines/ contains YAML pipeline definitions",
+        "tooling/pipelines/ must contain at least one .yaml pipeline definition",
     )
 
     for pipeline_path in pipeline_paths:

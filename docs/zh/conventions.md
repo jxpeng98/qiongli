@@ -25,7 +25,7 @@
 | Capability Map | `standards/mcp-agent-capability-map.yaml` | MCP / skill / runtime 路由 |
 | Functional Agents | `roles/` | 责任与质量 ownership |
 | Internal Skill Specs | `skills/` | 可复用执行规格 |
-| Pipelines | `pipelines/` | DAG 编排与依赖 |
+| Pipelines | `tooling/pipelines/` | DAG 编排与依赖 |
 | Workflows | `.agent/workflows/` | 客户端入口命令 |
 | Bridges | `bridges/` | 运行时适配器 |
 | Portable Skill Package | `qiongli-workflow/` | 面向客户端分发 |
@@ -37,14 +37,14 @@
 1. `standards/research-workflow-contract.yaml`
 2. `standards/mcp-agent-capability-map.yaml`
 3. `roles/` 与 `skills/`
-4. `pipelines/` 与 `.agent/workflows/`
+4. `tooling/pipelines/` 与 `.agent/workflows/`
 5. `bridges/`
 6. `qiongli-workflow/` 作为分发面
 
 落地含义：
 
 - 不要在 `standards/` 之外重新定义 artifact path 或 quality gate
-- 不要在 `pipelines/`、`bridges/`、workflow 文件里再造第二份 routing truth
+- 不要在 `tooling/pipelines/`、`bridges/`、workflow 文件里再造第二份 routing truth
 - 不要让 portable client package 变成隐藏的内部真源
 
 ## 什么时候该新增顶层 skill
@@ -78,7 +78,7 @@
 1. `standards/`
 2. `roles/` 与 `skills/`
 3. `templates/`
-4. `pipelines/` 与 `.agent/workflows/`
+4. `tooling/pipelines/` 与 `.agent/workflows/`
 5. `bridges/`
 6. `qiongli-workflow/`
 

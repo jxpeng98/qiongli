@@ -21,7 +21,7 @@
 1. `standards/`
 2. `roles/` 或 `skills/`
 3. `templates/`
-4. `pipelines/` 与 `.agent/workflows/`
+4. `tooling/pipelines/` 与 `.agent/workflows/`
 5. `bridges/`
 6. `qiongli-workflow/`
 

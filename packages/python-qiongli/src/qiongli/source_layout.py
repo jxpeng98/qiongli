@@ -137,6 +137,22 @@ class RepoLayout:
         return self.root / "scripts"
 
     @property
+    def tooling(self) -> Path:
+        return self.root / "tooling"
+
+    @property
+    def pipelines(self) -> Path:
+        path = self.tooling / "pipelines"
+        legacy_path = self.root / "pipelines"
+        return path if path.exists() else legacy_path
+
+    @property
+    def install(self) -> Path:
+        path = self.tooling / "install"
+        legacy_path = self.root / "install"
+        return path if path.exists() else legacy_path
+
+    @property
     def release(self) -> Path:
         return self.root / "release"
 

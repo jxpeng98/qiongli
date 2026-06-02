@@ -916,10 +916,10 @@ The core execution stack is organized into six layers:
 | Layer | Current Location | Responsibility |
 |---|---|---|
 | **Contract** | `standards/research-workflow-contract.yaml` | Defines canonical Task IDs, artifact paths, and quality gates |
-| **Functional Agents** | `roles/` + `pipelines/` | Research responsibility layer (literature, methods, writing, compliance, etc.) |
+| **Functional Agents** | `roles/` + `tooling/pipelines/` | Research responsibility layer (literature, methods, writing, compliance, etc.) |
 | **Runtime Agents** | `standards/mcp-agent-capability-map.yaml` + `bridges/` | Chooses which model runtime executes a step (`codex`, `claude`, `gemini`) |
 | **Internal Skill Specs** | `skills/` | Reusable execution specs referenced by the capability map and pipelines |
-| **Pipelines / Workflows** | `pipelines/` + `.agent/workflows/` | DAGs and user entrypoints that sequence skills for a paper type or command |
+| **Pipelines / Workflows** | `tooling/pipelines/` + `.agent/workflows/` | DAGs and user entrypoints that sequence skills for a paper type or command |
 | **Bridges** | `bridges/` | Runtime adapters, orchestration, and MCP integration |
 
 One additional distribution surface sits beside the execution stack:
@@ -944,7 +944,7 @@ flowchart TD
   Capability["Capability Map\nstandards/mcp-agent-capability-map.yaml"]
   Agents["Functional Agents\nroles/"]
   Skills["Internal Skill Specs\nskills/"]
-  Pipelines["Pipelines + Workflows\npipelines/ + .agent/workflows/"]
+  Pipelines["Pipelines + Workflows\ntooling/pipelines/ + .agent/workflows/"]
   Bridges["Bridges / Runtime\nbridges/"]
   Portable["Portable Skill Package\nqiongli-workflow/"]
 
@@ -1161,7 +1161,7 @@ qiongli/
 ├── standards/                # Canonical workflow contract + capability map
 ├── qiongli-workflow/  # Portable cross-client skill package (distribution surface)
 ├── .agent/workflows/         # Installed workflow entry markdowns / slash-command surface
-├── pipelines/                # Abstract DAGs for paper-type workflows and handoffs
+├── tooling/pipelines/        # Abstract DAGs for paper-type workflows and handoffs
 ├── roles/                    # Functional-agent role configs (research responsibility layer)
 ├── bridges/                  # Runtime orchestration and model adapters
 ├── skills/                   # Internal skill specs referenced by the capability map
