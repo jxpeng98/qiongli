@@ -20,6 +20,28 @@ source and a `packages/` boundary for every installable or publishable package.
 The legacy `research_skills` package remains as a deprecated compatibility
 shim during the migration window.
 
+## Implementation Status
+
+Status: implemented on `feat/repository-restructure`.
+
+The executed branch keeps the moderate hybrid target and preserves stable
+compatibility entrypoints:
+
+- canonical academic content lives under `content/`,
+- Python runtime and compatibility shims live under `packages/python-qiongli/`,
+- plugin sources, manifests, commands, and platform assets live under
+  `packages/qiongli-plugin/`,
+- `eval/` and `evals/` are unified under `evals/`,
+- guides are merged into `docs/`,
+- `pipelines/`, `install/`, `release/`, and real script implementations live
+  under `tooling/`,
+- root `scripts/` remains as a thin compatibility wrapper layer,
+- generated root shapes such as `qiongli-workflow/`, `plugins/qiongli/`,
+  `.agent/`, and `.gemini/` remain untracked materialized outputs.
+
+For the current maintainer-facing structure, use
+[`docs/development/repository-structure.md`](repository-structure.md).
+
 ## Current State
 
 The latest `dev` tree has 777 tracked files. The largest top-level groups are:

@@ -18,16 +18,16 @@
 
 当行为发生变化时，优先按下面顺序修：
 
-1. `standards/`
-2. `roles/` 或 `skills/`
-3. `templates/`
-4. `tooling/pipelines/` 与 `.agent/workflows/`
-5. `bridges/`
-6. `qiongli-workflow/`
+1. `content/standards/`
+2. `content/roles/` 或 `content/skills/`
+3. `content/templates/`
+4. `tooling/pipelines/`、`content/workflow/workflows/` 或 `packages/qiongli-plugin/platforms/`
+5. `packages/python-qiongli/src/qiongli/`
+6. 只能通过 materialization 生成的 `qiongli-workflow/`
 
 ### 2. 把 workflows 当成入口 UX，而不是真源
 
-斜杠命令只是易用入口。产物真相、路由真相、Task 真相仍然在 `standards/` 这一层。
+斜杠命令只是易用入口。产物真相、路由真相、Task 真相仍然在 `content/standards/` 这一层。
 
 ### 3. 通过稳定命令驱动仓库
 
