@@ -12,6 +12,7 @@ CLI_DOC = REPO_ROOT / "docs" / "reference" / "cli.md"
 CLI_ZH_DOC = REPO_ROOT / "docs" / "zh" / "reference" / "cli.md"
 PUBLISH_PYPI_DOC = REPO_ROOT / "docs" / "advanced" / "publish-pypi.md"
 PUBLISH_PYPI_ZH_DOC = REPO_ROOT / "docs" / "zh" / "advanced" / "publish-pypi.md"
+SKILL_QUALITY_CONTRACT_DOC = REPO_ROOT / "docs" / "maintainer" / "skill-quality-contract.md"
 
 
 def _normalize_whitespace(content: str) -> str:
@@ -163,6 +164,17 @@ class DistributionMaterializationDocsTests(unittest.TestCase):
         ):
             with self.subTest(token=token):
                 self.assertIn(token, content)
+
+    def test_maintainer_docs_use_materializer_instead_of_sync_helpers(self) -> None:
+        content = SKILL_QUALITY_CONTRACT_DOC.read_text(encoding="utf-8")
+
+        self.assertNotIn("sync_skill_package.sh", content)
+        self.assertNotIn("sync_npm_package_payload.py", content)
+        self.assertIn(
+            "python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qiongli-dist --force",
+            content,
+        )
+        self.assertIn("staged package validation", content)
 
 
 if __name__ == "__main__":
