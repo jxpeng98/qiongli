@@ -102,7 +102,7 @@ class PluginDistributionContractTests(unittest.TestCase):
                 (plugin_skill_root / "VERSION").read_text(encoding="utf-8"),
             )
             self.assertEqual(
-                (WORKFLOW_ROOT / "skills" / "registry.yaml").read_text(encoding="utf-8"),
+                (REPO_ROOT / "skills" / "registry.yaml").read_text(encoding="utf-8"),
                 (plugin_skill_root / "skills" / "registry.yaml").read_text(encoding="utf-8"),
             )
 

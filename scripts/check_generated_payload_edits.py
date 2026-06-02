@@ -7,34 +7,22 @@ import subprocess
 import sys
 from pathlib import Path
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from generated_output_paths import is_generated_output_path, normalize_generated_path
+
 
 ALLOW_ENV = "QIONGLI_ALLOW_GENERATED_PAYLOAD_CHANGES"
 
-GENERATED_PREFIXES = (
-    "qiongli/payload/",
-    "packages/npm-qiongli/payload/",
-    "packages/npm-qiongli/python-runtime/",
-    "plugins/qiongli/skills/qiongli-workflow/",
-    "qiongli-workflow/skills/",
-    "qiongli-workflow/templates/",
-    "qiongli-workflow/standards/",
-    "qiongli-workflow/roles/",
-    "qiongli-workflow/venue-profiles/",
-)
-
-GENERATED_FILES = {
-    "qiongli-workflow/skills-core.md",
-    "qiongli-workflow/skills-summary.md",
-}
-
 
 def normalize_path(path: str) -> str:
-    return Path(path.strip()).as_posix().lstrip("./")
+    return normalize_generated_path(path)
 
 
 def is_generated_payload_path(path: str) -> bool:
-    normalized = normalize_path(path)
-    return normalized in GENERATED_FILES or any(normalized.startswith(prefix) for prefix in GENERATED_PREFIXES)
+    return is_generated_output_path(path)
 
 
 def changed_files_from_git(base_ref: str) -> list[str]:
