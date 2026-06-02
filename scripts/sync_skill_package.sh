@@ -9,17 +9,21 @@
 # Usage:
 #   ./scripts/sync_skill_package.sh [--target pkg|plugin|all] [--dry-run]
 #
-# Copies canonical source directories into qiongli-workflow/, then mirrors
+# Copies canonical content sources into qiongli-workflow/, then mirrors
 # that portable package into plugins/qiongli/skills/qiongli-workflow/.
 #
 # These paths are .gitignore'd — they are generated artifacts, not source of truth.
-# The canonical source of truth remains the repo-root directories.
+# The canonical source of truth remains content/.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PKG_DIR="$ROOT_DIR/qiongli-workflow"
+PKG_SOURCE_DIR="$ROOT_DIR/content/workflow"
+if [[ ! -d "$PKG_SOURCE_DIR" ]]; then
+  PKG_SOURCE_DIR="$ROOT_DIR/qiongli-workflow"
+fi
 PLUGIN_PKG_DIR="$ROOT_DIR/plugins/qiongli/skills/qiongli-workflow"
 
 DRY_RUN=0
@@ -81,7 +85,10 @@ EXCLUDE_FILES=(
 sync_dir() {
   local package_dir="$1"
   local rel="$2"
-  local src="$ROOT_DIR/$rel"
+  local src="$ROOT_DIR/content/$rel"
+  if [[ ! -d "$src" ]]; then
+    src="$ROOT_DIR/$rel"
+  fi
   local dest="$package_dir/$rel"
   if [[ ! -d "$src" ]]; then
     echo "  [skip] $rel (source not found)"
@@ -107,7 +114,10 @@ sync_dir() {
 sync_file() {
   local package_dir="$1"
   local rel="$2"
-  local src="$ROOT_DIR/$rel"
+  local src="$ROOT_DIR/content/$rel"
+  if [[ ! -f "$src" ]]; then
+    src="$ROOT_DIR/$rel"
+  fi
   local dest="$package_dir/$rel"
   if [[ ! -f "$src" ]]; then
     echo "  [skip] $rel (source not found)"
@@ -137,8 +147,16 @@ sync_package() {
   local package_dir="$1"
   if [[ "$DRY_RUN" -eq 1 ]]; then
     echo "Syncing skill package: $package_dir"
+    echo "  [dry-run] base $PKG_SOURCE_DIR/ → $package_dir/"
   else
-    mkdir -p "$package_dir"
+    if [[ "$(cd "$PKG_SOURCE_DIR" && pwd)" != "$(mkdir -p "$package_dir" && cd "$package_dir" && pwd)" ]]; then
+      rm -rf "$package_dir"
+      mkdir -p "$(dirname "$package_dir")"
+      cp -aL "$PKG_SOURCE_DIR" "$package_dir"
+      find "$package_dir" -name '.DS_Store' -delete 2>/dev/null || true
+      find "$package_dir" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
+      fail_if_symlinks "$package_dir"
+    fi
     echo "Syncing skill package: $package_dir"
   fi
   for dir in "${SYNC_DIRS[@]}"; do

@@ -8,8 +8,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+LAYOUT = RepoLayout(REPO_ROOT)
 AUDIT_PATH = REPO_ROOT / "scripts" / "audit_distribution_payloads.py"
 MATERIALIZER_PATH = REPO_ROOT / "scripts" / "materialize_distribution_payloads.py"
 
@@ -99,7 +102,7 @@ class DistributionPayloadTests(unittest.TestCase):
             root = Path(tmp)
             self._copy_distribution_tree(root)
 
-            target = root / "qiongli-workflow/SKILL.md"
+            target = root / LAYOUT.workflow.relative_to(REPO_ROOT) / "SKILL.md"
             link = root / "packages/npm-qiongli/payload/qiongli-workflow/SKILL-link.md"
             link.symlink_to(target)
 

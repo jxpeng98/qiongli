@@ -4,22 +4,24 @@ import re
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-QUALITATIVE_CODING = REPO_ROOT / "skills" / "E_synthesis" / "qualitative-coding.md"
-DISCUSSION_WRITER = REPO_ROOT / "skills" / "F_writing" / "discussion-writer.md"
-LIMITATION_AUDITOR = REPO_ROOT / "skills" / "H_submission" / "limitation-auditor.md"
-PROPOSAL_WRITER = REPO_ROOT / "skills" / "F_writing" / "proposal-writer.md"
-ARTIFACT_TYPES = REPO_ROOT / "schemas" / "artifact-types.yaml"
-ACADEMIC_WRITE_WORKFLOW = REPO_ROOT / "qiongli-workflow" / "workflows" / "academic-write.md"
-CAPABILITY_MAP = REPO_ROOT / "standards" / "mcp-agent-capability-map.yaml"
-WORKFLOW_CONTRACT = REPO_ROOT / "standards" / "research-workflow-contract.yaml"
-WORKFLOW_REFERENCE = REPO_ROOT / "qiongli-workflow" / "references" / "workflow-contract.md"
-STAGE_E_REFERENCE = REPO_ROOT / "qiongli-workflow" / "references" / "stage-E-synthesis.md"
-STAGE_F_REFERENCE = REPO_ROOT / "qiongli-workflow" / "references" / "stage-F-writing.md"
-REGISTRY = REPO_ROOT / "skills" / "registry.yaml"
+QUALITATIVE_CODING = RepoLayout(REPO_ROOT).skills / "E_synthesis" / "qualitative-coding.md"
+DISCUSSION_WRITER = RepoLayout(REPO_ROOT).skills / "F_writing" / "discussion-writer.md"
+LIMITATION_AUDITOR = RepoLayout(REPO_ROOT).skills / "H_submission" / "limitation-auditor.md"
+PROPOSAL_WRITER = RepoLayout(REPO_ROOT).skills / "F_writing" / "proposal-writer.md"
+ARTIFACT_TYPES = RepoLayout(REPO_ROOT).schemas / "artifact-types.yaml"
+ACADEMIC_WRITE_WORKFLOW = RepoLayout(REPO_ROOT).workflow / "workflows" / "academic-write.md"
+CAPABILITY_MAP = RepoLayout(REPO_ROOT).standards / "mcp-agent-capability-map.yaml"
+WORKFLOW_CONTRACT = RepoLayout(REPO_ROOT).standards / "research-workflow-contract.yaml"
+WORKFLOW_REFERENCE = RepoLayout(REPO_ROOT).workflow / "references" / "workflow-contract.md"
+STAGE_E_REFERENCE = RepoLayout(REPO_ROOT).workflow / "references" / "stage-E-synthesis.md"
+STAGE_F_REFERENCE = RepoLayout(REPO_ROOT).workflow / "references" / "stage-F-writing.md"
+REGISTRY = RepoLayout(REPO_ROOT).skills / "registry.yaml"
 
 
 class SkillContractAlignmentTests(unittest.TestCase):

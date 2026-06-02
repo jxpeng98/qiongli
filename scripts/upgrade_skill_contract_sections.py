@@ -5,6 +5,8 @@ import argparse
 import re
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 import yaml
 
 
@@ -143,10 +145,11 @@ def upgrade_skill_file(path: Path) -> bool:
 
 
 def _skill_files(root: Path, stages: set[str] | None) -> list[Path]:
-    paths = sorted((root / "skills").rglob("*.md"))
+    skills_root = RepoLayout(root).skills
+    paths = sorted(skills_root.rglob("*.md"))
     if stages is None:
         return paths
-    return [path for path in paths if path.relative_to(root / "skills").parts[0] in stages]
+    return [path for path in paths if path.relative_to(skills_root).parts[0] in stages]
 
 
 def main(argv: list[str] | None = None) -> int:

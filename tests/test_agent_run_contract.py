@@ -4,15 +4,17 @@ import json
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-CONTRACT_PATH = REPO_ROOT / "standards" / "agent-run-contract.yaml"
-RUN_PACKET_PATH = REPO_ROOT / "templates" / "agent-run-packet.json"
-REVIEW_PACKET_PATH = REPO_ROOT / "templates" / "agent-review-packet.md"
-HANDOFF_PATH = REPO_ROOT / "templates" / "agent-handoff.md"
+CONTRACT_PATH = RepoLayout(REPO_ROOT).standards / "agent-run-contract.yaml"
+RUN_PACKET_PATH = RepoLayout(REPO_ROOT).templates / "agent-run-packet.json"
+REVIEW_PACKET_PATH = RepoLayout(REPO_ROOT).templates / "agent-review-packet.md"
+HANDOFF_PATH = RepoLayout(REPO_ROOT).templates / "agent-handoff.md"
 
 REQUIRED_RUN_FIELDS = {
     "run_id",

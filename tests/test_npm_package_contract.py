@@ -8,10 +8,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 NPM_PACKAGE_ROOT = REPO_ROOT / "packages" / "npm-qiongli"
 MATERIALIZER = REPO_ROOT / "scripts" / "materialize_distribution_payloads.py"
+LAYOUT = RepoLayout(REPO_ROOT)
 
 
 class NpmPackageContractTests(unittest.TestCase):
@@ -105,7 +108,7 @@ class NpmPackageContractTests(unittest.TestCase):
             (workflow_root / "VERSION").read_text(encoding="utf-8").strip().removeprefix("v"),
         )
         self.assertEqual(
-            (REPO_ROOT / "skills" / "registry.yaml").read_text(encoding="utf-8"),
+            (LAYOUT.skills / "registry.yaml").read_text(encoding="utf-8"),
             (workflow_root / "skills" / "registry.yaml").read_text(encoding="utf-8"),
         )
 
@@ -120,7 +123,7 @@ class NpmPackageContractTests(unittest.TestCase):
             (runtime_root / "qiongli" / "__init__.py").read_text(encoding="utf-8"),
         )
         self.assertEqual(
-            (REPO_ROOT / "skills" / "registry.yaml").read_text(encoding="utf-8"),
+            (LAYOUT.skills / "registry.yaml").read_text(encoding="utf-8"),
             (runtime_root / "skills" / "registry.yaml").read_text(encoding="utf-8"),
         )
 

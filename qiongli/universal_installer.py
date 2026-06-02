@@ -12,6 +12,7 @@ from importlib import resources
 from dataclasses import dataclass
 from pathlib import Path
 
+from .source_layout import RepoLayout
 from .subject_materializer import (
     COVERAGE_CHOICES,
     MaterializeOptions,
@@ -590,16 +591,24 @@ _SYNC_EXCLUDE = {"CLAUDE.project.md"}
 def _sync_skill_package(repo_root: Path, *, dry_run: bool = False) -> None:
     """Populate qiongli-workflow/ with bundled copies of repo assets.
 
-    The canonical source of truth remains the repo-root directories.
+    The canonical source of truth remains the content/ source tree.
     These copies are .gitignore'd and regenerated on every install/upgrade.
     """
+    layout = RepoLayout(repo_root)
     pkg_dir = repo_root / "qiongli-workflow"
     if not pkg_dir.is_dir():
         return
 
     _print_section("Sync Skill Package")
+    source_dirs = {
+        "skills": layout.skills,
+        "templates": layout.templates,
+        "standards": layout.standards,
+        "roles": layout.roles,
+        "venue-profiles": layout.venue_profiles,
+    }
     for dir_name in _SYNC_DIRS:
-        src = repo_root / dir_name
+        src = source_dirs[dir_name]
         dest = pkg_dir / dir_name
         if not src.is_dir():
             _print_result("Sync", f"{dir_name}/ (source not found)", "skip")
@@ -620,7 +629,7 @@ def _sync_skill_package(repo_root: Path, *, dry_run: bool = False) -> None:
         _print_result("Sync", f"{dir_name}/ ({file_count} files)", "ok")
 
     for file_name in _SYNC_FILES:
-        src = repo_root / file_name
+        src = layout.resolve_source_path(file_name)
         dest = pkg_dir / file_name
         if not src.is_file():
             _print_result("Sync", f"{file_name} (source not found)", "skip")
@@ -791,7 +800,7 @@ def install(options: InstallOptions) -> int:
     if options.subject not in catalog.subjects:
         available = ", ".join(sorted(catalog.subjects))
         raise SubjectMaterializationError(f"Unknown subject '{options.subject}'. Available subjects: {available}")
-    base_skill_src = repo_root / "qiongli-workflow"
+    base_skill_src = RepoLayout(repo_root).workflow
     skill_src = base_skill_src
     if not (skill_src / "SKILL.md").exists():
         raise FileNotFoundError(f"Missing skill source: {skill_src / 'SKILL.md'}")

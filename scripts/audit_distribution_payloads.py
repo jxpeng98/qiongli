@@ -4,10 +4,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import shutil
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
 from qiongli.subject_materializer import MaterializeOptions, materialize_subject_package, validate_subject_catalog
 
 
@@ -139,6 +141,47 @@ def _compare_files(left: Path, right: Path, label: str) -> list[AuditIssue]:
     return issues
 
 
+def _copy_path(src: Path, dest: Path, *, extra_excluded_names: set[str] | None = None) -> None:
+    if src.is_dir():
+        shutil.copytree(
+            src,
+            dest,
+            ignore=lambda _copy_src, names: {
+                name for name in names if extra_excluded_names and name in extra_excluded_names
+            },
+        )
+        return
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(src, dest)
+
+
+def _build_materialize_source(root: Path, tmp_root: Path) -> Path:
+    layout = RepoLayout(root)
+    source = tmp_root / "source"
+    _copy_path(layout.workflow, source / "qiongli-workflow")
+    _copy_path(layout.skills, source / "skills")
+    _copy_path(layout.subjects, source / "subjects")
+    package_dirs = {
+        "skills": layout.skills,
+        "templates": layout.templates,
+        "standards": layout.standards,
+        "roles": layout.roles,
+        "venue-profiles": layout.venue_profiles,
+    }
+    for item, src in package_dirs.items():
+        if src.exists():
+            extra_excludes = SKILL_PACKAGE_EXCLUDED_NAMES if item == "templates" else None
+            _copy_path(src, source / "qiongli-workflow" / item, extra_excluded_names=extra_excludes)
+    package_files = {
+        "skills-core.md": layout.skills_core,
+        "skills-summary.md": layout.skills_summary,
+    }
+    for item, src in package_files.items():
+        if src.exists():
+            _copy_path(src, source / "qiongli-workflow" / item)
+    return source
+
+
 def _assert_no_symlinks(root: Path, label: str) -> list[AuditIssue]:
     issues: list[AuditIssue] = []
     if not root.exists():
@@ -174,7 +217,9 @@ def _audit_subject_payloads(root: Path, subjects_root: Path, label: str) -> list
 
     catalog = validate_subject_catalog(root)
     with tempfile.TemporaryDirectory(prefix="qiongli-subject-payload-audit-") as tmp:
-        expected_root = Path(tmp)
+        tmp_root = Path(tmp)
+        materialize_source = _build_materialize_source(root, tmp_root / "materialize")
+        expected_root = tmp_root / "expected"
         for subject in sorted(catalog.subjects):
             for coverage in ("complete", "focused"):
                 workflow = subjects_root / subject / coverage / "qiongli-workflow"
@@ -201,7 +246,7 @@ def _audit_subject_payloads(root: Path, subjects_root: Path, label: str) -> list
                 expected = expected_root / subject / coverage / "qiongli-workflow"
                 materialize_subject_package(
                     MaterializeOptions(
-                        source=root,
+                        source=materialize_source,
                         out=expected,
                         subject=subject,
                         flavor="full",
@@ -214,7 +259,9 @@ def _audit_subject_payloads(root: Path, subjects_root: Path, label: str) -> list
 
 def _audit_generated_skill_package(root: Path, generated: Path, label: str) -> list[AuditIssue]:
     issues: list[AuditIssue] = []
-    workflow = root / "qiongli-workflow"
+    layout = RepoLayout(root)
+    legacy_workflow = root / "qiongli-workflow"
+    workflow = legacy_workflow if legacy_workflow.exists() else layout.workflow
     issues.extend(
         _compare_trees(
             workflow,
@@ -223,23 +270,35 @@ def _audit_generated_skill_package(root: Path, generated: Path, label: str) -> l
             extra_excluded_names=GENERATED_PACKAGE_EXCLUDED_NAMES,
         )
     )
+    source_dirs = {
+        "skills": layout.skills,
+        "templates": layout.templates,
+        "standards": layout.standards,
+        "roles": layout.roles,
+        "venue-profiles": layout.venue_profiles,
+    }
     for dir_name in GENERATED_PACKAGE_DIRS:
         extra_excludes = SKILL_PACKAGE_EXCLUDED_NAMES if dir_name == "templates" else set()
         issues.extend(
             _compare_trees(
-                root / dir_name,
+                source_dirs[dir_name],
                 generated / dir_name,
                 f"{label} {dir_name}/ vs source {dir_name}/",
                 extra_excluded_names=extra_excludes,
             )
         )
+    source_files = {
+        "skills-core.md": layout.skills_core,
+        "skills-summary.md": layout.skills_summary,
+    }
     for file_name in GENERATED_PACKAGE_FILES:
-        issues.extend(_compare_files(root / file_name, generated / file_name, f"{label} {file_name} vs source"))
+        issues.extend(_compare_files(source_files[file_name], generated / file_name, f"{label} {file_name} vs source"))
     return issues
 
 
 def audit(root: Path) -> list[AuditIssue]:
     root = root.resolve()
+    layout = RepoLayout(root)
     workflow = root / "qiongli-workflow"
     plugin_workflow = root / "plugins" / "qiongli" / "skills" / "qiongli-workflow"
     npm_payload = root / "packages" / "npm-qiongli" / "payload" / "qiongli-workflow"
@@ -264,9 +323,13 @@ def audit(root: Path) -> list[AuditIssue]:
     issues.extend(_audit_generated_skill_package(root, python_payload / "qiongli-workflow", "python payload"))
 
     for dir_name in PYTHON_PAYLOAD_SOURCE_DIRS:
+        source_dirs = {
+            "skills": layout.skills,
+            "subjects": layout.subjects,
+        }
         issues.extend(
             _compare_trees(
-                root / dir_name,
+                source_dirs[dir_name],
                 python_payload / dir_name,
                 f"python payload {dir_name}/ vs source {dir_name}/",
                 extra_excluded_names=PYTHON_PAYLOAD_EXTRA_EXCLUDES.get(dir_name),
@@ -278,7 +341,21 @@ def audit(root: Path) -> list[AuditIssue]:
         issues.extend(_audit_subject_payloads(root, python_payload / "subjects", "python subject payload coverage"))
 
     for dir_name in NPM_RUNTIME_DIRS:
-        src = root / dir_name
+        runtime_sources = {
+            "bridges": root / "bridges",
+            "qiongli": root / "qiongli",
+            "scripts": root / "scripts",
+            "standards": layout.standards,
+            "templates": layout.templates,
+            "roles": layout.roles,
+            "venue-profiles": layout.venue_profiles,
+            "skills": layout.skills,
+            "subjects": layout.subjects,
+            "pipelines": root / "pipelines",
+            "schemas": layout.schemas,
+            "evals": root / "evals",
+        }
+        src = runtime_sources[dir_name]
         if src.exists():
             issues.extend(
                 _compare_trees(
@@ -289,7 +366,12 @@ def audit(root: Path) -> list[AuditIssue]:
                 )
             )
     for file_name in NPM_RUNTIME_FILES:
-        src = root / file_name
+        runtime_files = {
+            "skills-core.md": layout.skills_core,
+            "skills-summary.md": layout.skills_summary,
+            "LICENSE": root / "LICENSE",
+        }
+        src = runtime_files[file_name]
         if src.exists():
             issues.extend(_compare_files(src, npm_runtime / file_name, f"npm runtime {file_name} vs source"))
     issues.extend(_compare_files(root / "LICENSE", root / "packages" / "npm-qiongli" / "LICENSE", "npm LICENSE vs source"))

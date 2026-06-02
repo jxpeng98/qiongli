@@ -7,6 +7,12 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from qiongli.source_layout import RepoLayout
+
 
 REQUIRED_SECTIONS = [
     "Purpose",
@@ -116,7 +122,7 @@ class AuditResult:
 
 
 def _read_skill_files(root: Path) -> list[Path]:
-    skills_dir = root / "skills"
+    skills_dir = RepoLayout(root).skills
     if not skills_dir.is_dir():
         return []
     return sorted(path for path in skills_dir.rglob("*.md") if path.is_file())
@@ -135,7 +141,7 @@ def _stage_for(path: Path, root: Path, text: str) -> str:
     if match:
         return match.group(1).strip()
     try:
-        rel = path.relative_to(root / "skills")
+        rel = path.relative_to(RepoLayout(root).skills)
     except ValueError:
         return "unknown"
     return rel.parts[0] if rel.parts else "unknown"

@@ -39,7 +39,7 @@ class SyncVersionsTests(unittest.TestCase):
 
     def test_sync_versions_updates_expected_files(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
-            root = Path(tmp_dir)
+            root = Path(tmp_dir).resolve()
             (root / "qiongli").mkdir()
             (root / "skills" / "F_writing").mkdir(parents=True)
             (root / "qiongli-workflow" / "skills").mkdir(parents=True)

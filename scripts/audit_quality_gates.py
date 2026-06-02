@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,10 @@ import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from qiongli.source_layout import RepoLayout
 
 
 @dataclass
@@ -117,13 +122,13 @@ def main() -> int:
     parser.add_argument(
         "--contract",
         type=Path,
-        default=REPO_ROOT / "standards" / "quality-gate-contract.yaml",
+        default=RepoLayout(REPO_ROOT).standards / "quality-gate-contract.yaml",
         help="Quality gate contract path.",
     )
     parser.add_argument(
         "--report",
         type=Path,
-        default=REPO_ROOT / "templates" / "quality-gate-report.md",
+        default=RepoLayout(REPO_ROOT).templates / "quality-gate-report.md",
         help="Quality gate report path.",
     )
     args = parser.parse_args()

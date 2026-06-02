@@ -5,6 +5,7 @@ import textwrap
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
 from scripts.audit_method_diagnostics import audit_method_diagnostic_report
 
 
@@ -24,7 +25,7 @@ class MethodDiagnosticsTests(unittest.TestCase):
             "skills/C_design/robustness-planner.md",
             "skills/C_design/variable-operationalizer.md",
         ):
-            content = (REPO_ROOT / relative).read_text(encoding="utf-8")
+            content = RepoLayout(REPO_ROOT).resolve_source_path(relative).read_text(encoding="utf-8")
             for token in expected_tokens:
                 with self.subTest(relative=relative, token=token):
                     self.assertIn(token, content)

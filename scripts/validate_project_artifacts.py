@@ -18,6 +18,7 @@ from scripts.audit_literature_search_quality import (
     LiteratureSearchQualityResult,
     audit_literature_search_quality,
 )
+from qiongli.source_layout import RepoLayout
 
 EXPECTED_TASK_ID = re.compile(r"^[A-K][0-9_]+$")
 
@@ -115,7 +116,7 @@ def normalize_topic(topic: str) -> str:
 
 
 def read_contract(repo_root: Path) -> str:
-    contract_path = repo_root / "standards" / "research-workflow-contract.yaml"
+    contract_path = RepoLayout(repo_root).standards / "research-workflow-contract.yaml"
     return contract_path.read_text(encoding="utf-8")
 
 

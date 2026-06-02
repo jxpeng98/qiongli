@@ -16,6 +16,7 @@ from pathlib import Path
 
 from . import __version__
 from .custom_subject import scaffold_custom_subject
+from .source_layout import RepoLayout
 from .subject_materializer import SubjectCatalogError, SubjectMaterializationError
 from .universal_installer import (
     PART_CHOICES,
@@ -242,7 +243,7 @@ def _resolve_upstream_repo(
 
 
 def _local_repo_version(root: Path) -> tuple[str, Version] | None:
-    version_path = root / "qiongli-workflow" / "VERSION"
+    version_path = RepoLayout(root).workflow / "VERSION"
     if version_path.exists():
         raw = _read_text(version_path)
         parsed = Version.parse(raw)

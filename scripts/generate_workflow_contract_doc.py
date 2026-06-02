@@ -9,10 +9,11 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from qiongli.workflow_contract_doc import generate_workflow_contract_reference
+from qiongli.source_layout import RepoLayout
 
 
 def main() -> int:
-    target = REPO_ROOT / "qiongli-workflow" / "references" / "workflow-contract.md"
+    target = RepoLayout(REPO_ROOT).workflow / "references" / "workflow-contract.md"
     target.write_text(generate_workflow_contract_reference(REPO_ROOT), encoding="utf-8")
     print(f"[WRITE] {target.relative_to(REPO_ROOT)}")
     return 0

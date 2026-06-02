@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -10,6 +11,11 @@ import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from qiongli.source_layout import RepoLayout
+
 REQUIRED_METHOD_FIELDS = {
     "assumptions",
     "required_diagnostics",
@@ -75,8 +81,9 @@ def _is_non_empty_string_list(value: Any) -> bool:
 
 
 def _default_profile_paths() -> list[Path]:
+    skills_root = RepoLayout(REPO_ROOT).skills
     return [
-        REPO_ROOT / "skills" / "domain-profiles" / f"{name}.yaml"
+        skills_root / "domain-profiles" / f"{name}.yaml"
         for name in DEFAULT_PROFILE_NAMES
     ]
 

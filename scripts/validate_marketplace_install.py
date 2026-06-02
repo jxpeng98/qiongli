@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from build_plugin_artifacts import build_artifacts
+from qiongli.source_layout import RepoLayout
 
 
 PLUGIN_NAME = "qiongli"
@@ -486,7 +487,7 @@ def _validate_subject_eval_cases(root: Path) -> None:
 def validate(root: Path, dist_dir: Path) -> list[str]:
     root = root.resolve()
     dist_dir = dist_dir.resolve()
-    expected_repo_tag = (root / SKILL_DIR_NAME / "VERSION").read_text(encoding="utf-8").strip()
+    expected_repo_tag = (RepoLayout(root).workflow / "VERSION").read_text(encoding="utf-8").strip()
     expected_version = expected_repo_tag.removeprefix("v")
 
     artifacts = build_artifacts(root, expected_repo_tag, dist_dir)

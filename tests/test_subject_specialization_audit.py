@@ -4,6 +4,8 @@ import shutil
 import tempfile
 import unittest
 from pathlib import Path
+
+from qiongli.source_layout import RepoLayout
 from unittest.mock import patch
 
 import scripts.audit_subject_specialization as subject_audit
@@ -29,7 +31,7 @@ class SubjectSpecializationAuditTests(unittest.TestCase):
                 profile_root = options.out / "skills" / "domain-profiles"
                 profile_root.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(
-                    REPO_ROOT / "skills" / "domain-profiles" / "finance.yaml",
+                    RepoLayout(REPO_ROOT).skills / "domain-profiles" / "finance.yaml",
                     profile_root / "finance.yaml",
                 )
 
@@ -64,8 +66,10 @@ class SubjectSpecializationAuditTests(unittest.TestCase):
         )
 
     def _copy_minimal_repo(self, temp_root: Path) -> None:
-        for name in ("qiongli-workflow", "skills", "subjects"):
-            shutil.copytree(REPO_ROOT / name, temp_root / name)
+        layout = RepoLayout(REPO_ROOT)
+        shutil.copytree(layout.workflow, temp_root / "qiongli-workflow")
+        shutil.copytree(layout.skills, temp_root / "skills")
+        shutil.copytree(layout.subjects, temp_root / "subjects")
 
 
 if __name__ == "__main__":

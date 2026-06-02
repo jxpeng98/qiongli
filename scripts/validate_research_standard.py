@@ -14,6 +14,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from qiongli.skill_docs import generate_skill_reference_docs
+from qiongli.source_layout import RepoLayout
 from qiongli.workflow_contract_doc import generate_workflow_contract_reference
 from scripts.audit_skill_sections import audit_skills
 from scripts.audit_skill_resource_links import audit_package_resource_links
@@ -244,7 +245,7 @@ def references_collaboration_guide(content: str) -> bool:
 
 
 def read_text(root: Path, relative_path: str, report: ValidationReport) -> str:
-    target = root / relative_path
+    target = RepoLayout(root).resolve_source_path(relative_path)
     if not target.exists():
         report.errors.append(f"Missing file: {relative_path}")
         print(f"[FAIL] Missing file: {relative_path}")
@@ -773,7 +774,7 @@ def validate_portable_skill(root: Path, report: ValidationReport) -> None:
                 f"SKILL.md references {reference_path}",
                 f"SKILL.md missing reference link: {reference_path}",
             )
-            target = root / "qiongli-workflow" / reference_path
+            target = RepoLayout(root).workflow / reference_path
             report.check(
                 target.exists(),
                 f"{reference_path} exists",
@@ -2726,9 +2727,10 @@ def validate_quality_gate_contracts(
     if not strict:
         return
 
+    layout = RepoLayout(root)
     missing = []
     for relative_path in QUALITY_GATE_CONTRACT_REQUIRED_FILES:
-        exists = (root / relative_path).exists()
+        exists = layout.resolve_source_path(relative_path).exists()
         report.check(
             exists,
             f"Quality gate contract exists: {relative_path}",
@@ -2748,7 +2750,7 @@ def validate_quality_gate_contracts(
 
     contract_relative_path = "standards/quality-gate-contract.yaml"
     try:
-        contract = load_gate_contract(root / contract_relative_path)
+        contract = load_gate_contract(layout.resolve_source_path(contract_relative_path))
     except QualityGateContractError as exc:
         report.check(
             False,
@@ -2768,7 +2770,7 @@ def validate_quality_gate_contracts(
         ),
     )
 
-    audit_result = audit_gate_report(root / "templates" / "quality-gate-report.md", contract)
+    audit_result = audit_gate_report(layout.resolve_source_path("templates/quality-gate-report.md"), contract)
     report.check(
         audit_result.passed,
         "Quality gate report template satisfies contract",
@@ -2785,9 +2787,10 @@ def validate_domain_method_pack_contracts(
     if not strict:
         return
 
+    layout = RepoLayout(root)
     missing = []
     for relative_path in DOMAIN_METHOD_PACK_REQUIRED_FILES:
-        exists = (root / relative_path).exists()
+        exists = layout.resolve_source_path(relative_path).exists()
         report.check(
             exists,
             f"Domain method-pack contract exists: {relative_path}",
@@ -2803,7 +2806,7 @@ def validate_domain_method_pack_contracts(
 
     audit_errors: list[str] = []
     for name in ("economics", "finance"):
-        profile_path = root / "skills" / "domain-profiles" / f"{name}.yaml"
+        profile_path = layout.skills / "domain-profiles" / f"{name}.yaml"
         try:
             audit_errors.extend(audit_domain_profile(profile_path).errors)
         except Exception as exc:  # pragma: no cover - defensive validator boundary

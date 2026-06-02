@@ -20,6 +20,7 @@ from bridges.providers.research_collab import (
     broker_status_from_env,
     gemini_noninteractive_auth_status,
 )
+from qiongli.source_layout import RepoLayout
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -579,7 +580,7 @@ class MultiAgentSmokeRunner:
     def _make_orchestrator(self):
         from bridges.orchestrator import ModelOrchestrator
 
-        return ModelOrchestrator(standards_dir=REPO_ROOT / "standards")
+        return ModelOrchestrator(standards_dir=RepoLayout(REPO_ROOT).standards)
 
     def _smoke_profile_file(self) -> Path:
         out_dir = Path(self.report.outputs["json_report"]).resolve().parent

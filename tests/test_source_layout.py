@@ -60,6 +60,19 @@ class SourceLayoutTests(unittest.TestCase):
         self.assertIn(Path("qiongli/payload"), layout.generated_output_roots)
         self.assertIn(Path("packages/npm-qiongli/payload"), layout.generated_output_roots)
         self.assertIn(Path("plugins/qiongli/skills/qiongli-workflow"), layout.generated_output_roots)
+        self.assertIn(Path("qiongli-workflow"), layout.generated_output_roots)
+        self.assertIn(Path("content/workflow/skills"), layout.generated_output_roots)
+        self.assertIn(Path("content/workflow/templates"), layout.generated_output_roots)
+
+    def test_resolves_legacy_source_paths_to_current_content_tree(self) -> None:
+        layout = RepoLayout(REPO_ROOT)
+
+        self.assertEqual(layout.skills / "registry.yaml", layout.resolve_source_path("skills/registry.yaml"))
+        self.assertEqual(
+            layout.workflow / "references" / "workflow-contract.md",
+            layout.resolve_source_path("qiongli-workflow/references/workflow-contract.md"),
+        )
+        self.assertEqual(layout.skills_core, layout.resolve_source_path("skills-core.md"))
 
 
 if __name__ == "__main__":

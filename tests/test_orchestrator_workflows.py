@@ -5,6 +5,8 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+
+from qiongli.source_layout import RepoLayout
 from typing import Any
 from unittest import mock
 
@@ -21,7 +23,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 class MockOrchestrator(ModelOrchestrator):
     def __init__(self) -> None:
-        super().__init__(standards_dir=REPO_ROOT / "standards")
+        super().__init__(standards_dir=RepoLayout(REPO_ROOT).standards)
         self.runtime_calls: list[dict[str, Any]] = []
 
     def _runtime_preflight_error(
@@ -303,7 +305,7 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         self.assertIn("Academic Code Reviewer", result.merged_analysis)
 
     def test_doctor_distinguishes_builtin_env_override_and_external_slot(self) -> None:
-        orchestrator = ModelOrchestrator(standards_dir=REPO_ROOT / "standards")
+        orchestrator = ModelOrchestrator(standards_dir=RepoLayout(REPO_ROOT).standards)
         script_path = REPO_ROOT / "scripts" / "mcp_scholarly_search.py"
         with mock.patch.dict(
             os.environ,
@@ -320,7 +322,7 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         self.assertIn("MCP fulltext-retrieval: builtin available: mcp_fulltext_retrieval.py", result.merged_analysis)
 
     def test_doctor_reports_literature_provider_config(self) -> None:
-        orchestrator = ModelOrchestrator(standards_dir=REPO_ROOT / "standards")
+        orchestrator = ModelOrchestrator(standards_dir=RepoLayout(REPO_ROOT).standards)
         with tempfile.TemporaryDirectory() as tmp_dir:
             config_home = Path(tmp_dir) / "config"
             with mock.patch.dict(os.environ, {"QIONGLI_CONFIG_HOME": str(config_home)}, clear=False):
@@ -331,7 +333,7 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         self.assertIn("Literature search capability: provider_connected", result.merged_analysis)
 
     def test_doctor_reports_metadata_registry_enrichment_overlay(self) -> None:
-        orchestrator = ModelOrchestrator(standards_dir=REPO_ROOT / "standards")
+        orchestrator = ModelOrchestrator(standards_dir=RepoLayout(REPO_ROOT).standards)
         with mock.patch.dict(
             os.environ,
             {
@@ -348,7 +350,7 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         self.assertIn("MCP metadata-registry enrichment: overlay configured:", result.merged_analysis)
 
     def test_doctor_reports_fulltext_resolution_overlay(self) -> None:
-        orchestrator = ModelOrchestrator(standards_dir=REPO_ROOT / "standards")
+        orchestrator = ModelOrchestrator(standards_dir=RepoLayout(REPO_ROOT).standards)
         with mock.patch.dict(
             os.environ,
             {

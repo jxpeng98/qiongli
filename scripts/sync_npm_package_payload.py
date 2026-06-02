@@ -18,6 +18,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from qiongli.source_layout import RepoLayout
 from qiongli.subject_materializer import MaterializeOptions, materialize_subject_package, validate_subject_catalog
 
 
@@ -61,6 +62,7 @@ def fail_if_symlinks(path: Path) -> None:
 
 
 def sync_npm_payload(root: Path, *, dry_run: bool = False) -> None:
+    layout = RepoLayout(root)
     npm_root = root / "packages" / "npm-qiongli"
     payload_root = npm_root / "payload"
     runtime_root = npm_root / "python-runtime"
@@ -73,28 +75,31 @@ def sync_npm_payload(root: Path, *, dry_run: bool = False) -> None:
         copy_path(materialize_source / "qiongli-workflow", payload_root / "qiongli-workflow", dry_run=dry_run)
         sync_subject_payloads(root, payload_root, dry_run=dry_run, materialize_source=materialize_source)
 
-    runtime_dirs = (
-        "bridges",
-        "qiongli",
-        "scripts",
-        "standards",
-        "templates",
-        "roles",
-        "venue-profiles",
-        "skills",
-        "subjects",
-        "pipelines",
-        "schemas",
-        "evals",
-    )
-    for item in runtime_dirs:
-        src = root / item
+    runtime_dirs = {
+        "bridges": root / "bridges",
+        "qiongli": root / "qiongli",
+        "scripts": root / "scripts",
+        "standards": layout.standards,
+        "templates": layout.templates,
+        "roles": layout.roles,
+        "venue-profiles": layout.venue_profiles,
+        "skills": layout.skills,
+        "subjects": layout.subjects,
+        "pipelines": root / "pipelines",
+        "schemas": layout.schemas,
+        "evals": root / "evals",
+    }
+    for item, src in runtime_dirs.items():
         if src.exists():
             extra_excludes = {"payload"} if item == "qiongli" else None
             copy_path(src, runtime_root / item, dry_run=dry_run, extra_exclude_dirs=extra_excludes)
 
-    for item in ("skills-core.md", "skills-summary.md", "LICENSE"):
-        src = root / item
+    runtime_files = {
+        "skills-core.md": layout.skills_core,
+        "skills-summary.md": layout.skills_summary,
+        "LICENSE": root / "LICENSE",
+    }
+    for item, src in runtime_files.items():
         if src.exists():
             copy_path(src, runtime_root / item, dry_run=dry_run)
             if item == "LICENSE":
@@ -108,25 +113,41 @@ def sync_npm_payload(root: Path, *, dry_run: bool = False) -> None:
 def build_materialize_source(root: Path, tmp_root: Path, *, dry_run: bool) -> Path:
     if dry_run:
         return root
+    layout = RepoLayout(root)
     source = tmp_root / "source"
-    for item in ("qiongli-workflow", "skills", "subjects"):
-        copy_path(root / item, source / item, dry_run=False)
-    for item in ("skills", "templates", "standards", "roles", "venue-profiles"):
-        src = root / item
+    copy_path(layout.workflow, source / "qiongli-workflow", dry_run=False)
+    copy_path(layout.skills, source / "skills", dry_run=False)
+    copy_path(layout.subjects, source / "subjects", dry_run=False)
+    package_mirrors = {
+        "skills": layout.skills,
+        "templates": layout.templates,
+        "standards": layout.standards,
+        "roles": layout.roles,
+        "venue-profiles": layout.venue_profiles,
+    }
+    for item, src in package_mirrors.items():
         if src.exists():
             extra_excludes = {"CLAUDE.project.md"} if item == "templates" else None
             copy_path(src, source / "qiongli-workflow" / item, dry_run=False, extra_exclude_dirs=extra_excludes)
-    for item in ("skills-core.md", "skills-summary.md"):
-        src = root / item
+    package_files = {
+        "skills-core.md": layout.skills_core,
+        "skills-summary.md": layout.skills_summary,
+    }
+    for item, src in package_files.items():
         if src.exists():
             copy_path(src, source / "qiongli-workflow" / item, dry_run=False)
     return source
 
 
 def sync_python_payload(root: Path, materialize_source: Path, *, dry_run: bool) -> None:
+    layout = RepoLayout(root)
     payload_root = root / "qiongli" / "payload"
-    for item in ("qiongli-workflow", "skills", "subjects"):
-        src = materialize_source / item if item == "qiongli-workflow" else root / item
+    payload_sources = {
+        "qiongli-workflow": materialize_source / "qiongli-workflow",
+        "skills": layout.skills,
+        "subjects": layout.subjects,
+    }
+    for item, src in payload_sources.items():
         copy_path(src, payload_root / item, dry_run=dry_run)
     sync_subject_payloads(root, payload_root, dry_run=dry_run, materialize_source=payload_root, clear_subjects_root=False)
     if not dry_run:

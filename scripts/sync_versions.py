@@ -7,6 +7,12 @@ import re
 import sys
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from qiongli.source_layout import RepoLayout
+
 
 VERSION_PATTERN = re.compile(
     r"^(?:v)?(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(?:(?:-beta\.|b)(?P<beta>\d+))?$"
@@ -93,8 +99,10 @@ def replace_npm_lock_workspace_version(path: Path, version: str) -> bool:
 
 
 def sync_versions(root: Path, raw_version: str) -> list[Path]:
+    root = root.resolve()
     package_version, skill_version, repo_version, npm_version = parse_version(raw_version)
     changed: list[Path] = []
+    layout = RepoLayout(root)
 
     replacements: list[tuple[Path, re.Pattern[str], str]] = [
         (
@@ -114,7 +122,7 @@ def sync_versions(root: Path, raw_version: str) -> list[Path]:
             changed.append(path)
 
     registry_files = (
-        root / "skills" / "registry.yaml",
+        layout.skills / "registry.yaml",
         root / "qiongli-workflow" / "skills" / "registry.yaml",
         root / "packages" / "npm-qiongli" / "payload" / "qiongli-workflow" / "skills" / "registry.yaml",
         root / "packages" / "npm-qiongli" / "python-runtime" / "skills" / "registry.yaml",
@@ -131,6 +139,7 @@ def sync_versions(root: Path, raw_version: str) -> list[Path]:
             changed.append(registry_file)
 
     workflow_version_files = (
+        layout.workflow / "VERSION",
         root / "qiongli-workflow" / "VERSION",
         root / "packages" / "npm-qiongli" / "payload" / "qiongli-workflow" / "VERSION",
         root / "plugins" / "qiongli" / "skills" / "qiongli-workflow" / "VERSION",

@@ -640,13 +640,29 @@ expand_manifest_path() {
 
 # Legacy copy_workflows_from_manifest removed — workflows now bundled in skill dir-copy
 
+resolve_source_path() {
+  local source_rel="$1"
+  if [[ "$source_rel" == "qiongli-workflow" ]]; then
+    if [[ -f "$ROOT_DIR/qiongli-workflow/SKILL.md" ]]; then
+      printf '%s\n' "$ROOT_DIR/qiongli-workflow"
+      return
+    fi
+    if [[ -f "$ROOT_DIR/content/workflow/SKILL.md" ]]; then
+      printf '%s\n' "$ROOT_DIR/content/workflow"
+      return
+    fi
+  fi
+  printf '%s\n' "$ROOT_DIR/$source_rel"
+}
+
 apply_manifest_entry() {
   local op="$1"
   local label="$2"
   local source_rel="$3"
   local dest_tpl="$4"
-  local src="$ROOT_DIR/$source_rel"
+  local src
   local dest
+  src="$(resolve_source_path "$source_rel")"
   dest="$(expand_manifest_path "$dest_tpl")"
 
   case "$op" in
@@ -800,7 +816,7 @@ CLI_DIR="$(resolve_abs "$CLI_DIR")"
 if [[ "$PARTS_ACTIVE" -eq 1 ]]; then
   parse_parts_spec "$PARTS_SPEC"
 fi
-SKILL_SRC="$ROOT_DIR/qiongli-workflow"
+SKILL_SRC="$(resolve_source_path "qiongli-workflow")"
 if [[ ! -f "$SKILL_SRC/SKILL.md" ]]; then
   echo "Missing skill source: $SKILL_SRC/SKILL.md" >&2
   exit 1

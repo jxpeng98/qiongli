@@ -6,6 +6,8 @@ from typing import Any
 
 import yaml
 
+from .source_layout import RepoLayout
+
 
 STAGE_DISPLAY_ORDER = ["A", "B", "C", "D", "E", "F", "G", "J", "H", "I", "K"]
 STAGE_LABELS = {
@@ -112,7 +114,7 @@ ACRONYM_TOKENS = {
 
 
 def load_workflow_contract(root: Path) -> dict[str, Any]:
-    path = root / "standards" / "research-workflow-contract.yaml"
+    path = RepoLayout(root).standards / "research-workflow-contract.yaml"
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
 

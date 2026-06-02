@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 import yaml
 
+from .source_layout import RepoLayout
+
 
 STAGE_ORDER = [
     "A_framing",
@@ -193,7 +195,8 @@ class SkillDocEntry:
 
 
 def load_skill_doc_entries(root: Path) -> list[SkillDocEntry]:
-    payload = yaml.safe_load((root / "skills" / "registry.yaml").read_text(encoding="utf-8")) or {}
+    layout = RepoLayout(root)
+    payload = yaml.safe_load((layout.skills / "registry.yaml").read_text(encoding="utf-8")) or {}
     skills = payload.get("skills", [])
     entries: list[SkillDocEntry] = []
     for item in skills:
@@ -223,7 +226,7 @@ def load_skill_doc_entries(root: Path) -> list[SkillDocEntry]:
 
 
 def load_domain_profile_ids(root: Path) -> list[str]:
-    profile_dir = root / "skills" / "domain-profiles"
+    profile_dir = RepoLayout(root).skills / "domain-profiles"
     profile_ids = [
         path.stem
         for path in sorted(profile_dir.glob("*.yaml"))

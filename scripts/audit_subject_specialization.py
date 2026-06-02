@@ -22,6 +22,7 @@ from qiongli.subject_materializer import (  # noqa: E402
     materialize_subject_package,
     validate_subject_catalog,
 )
+from qiongli.source_layout import RepoLayout  # noqa: E402
 
 
 SUBJECT_TERMS = {
@@ -43,7 +44,7 @@ class SubjectSpecializationFinding:
 
 
 def audit_subject_specialization(root: Path, subjects: list[str] | None = None) -> list[SubjectSpecializationFinding]:
-    root = Path(root)
+    root = Path(root).resolve()
     catalog = validate_subject_catalog(root)
     subject_ids = subjects if subjects is not None else sorted(subject_id for subject_id in catalog.subjects if subject_id != "core")
     _validate_requested_subjects(subject_ids, catalog.subjects)
@@ -192,7 +193,7 @@ def _audit_overlay_subject_terms(root: Path, subject: SubjectDefinition) -> list
         return []
 
     findings: list[SubjectSpecializationFinding] = []
-    overlay_root = root / "subjects" / subject.id
+    overlay_root = RepoLayout(root).subjects / subject.id
     for override in subject.skill_overrides:
         overlay_rel = override.get("overlay")
         if not isinstance(overlay_rel, str) or not overlay_rel.strip():

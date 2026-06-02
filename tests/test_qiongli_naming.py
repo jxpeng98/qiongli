@@ -8,8 +8,11 @@ import tomllib
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+LAYOUT = RepoLayout(REPO_ROOT)
 
 
 class QiongliNamingTests(unittest.TestCase):
@@ -42,7 +45,7 @@ class QiongliNamingTests(unittest.TestCase):
             self.assertIn("Qiongli", manifest["description"])
 
     def test_portable_skill_identity_is_visible_as_qiongli(self) -> None:
-        skill_root = REPO_ROOT / "qiongli-workflow"
+        skill_root = LAYOUT.workflow
         skill_text = (skill_root / "SKILL.md").read_text(encoding="utf-8")
         with tempfile.TemporaryDirectory() as tmp_dir:
             out = Path(tmp_dir) / "dist-source"

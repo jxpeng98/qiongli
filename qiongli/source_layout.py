@@ -10,15 +10,16 @@ GENERATED_OUTPUT_ROOTS = (
     Path("packages/npm-qiongli/payload"),
     Path("packages/npm-qiongli/python-runtime"),
     Path("plugins/qiongli/skills/qiongli-workflow"),
-    Path("qiongli-workflow/skills"),
-    Path("qiongli-workflow/templates"),
-    Path("qiongli-workflow/standards"),
-    Path("qiongli-workflow/roles"),
-    Path("qiongli-workflow/venue-profiles"),
+    Path("qiongli-workflow"),
+    Path("content/workflow/skills"),
+    Path("content/workflow/templates"),
+    Path("content/workflow/standards"),
+    Path("content/workflow/roles"),
+    Path("content/workflow/venue-profiles"),
 )
 GENERATED_OUTPUT_FILES = (
-    Path("qiongli-workflow/skills-core.md"),
-    Path("qiongli-workflow/skills-summary.md"),
+    Path("content/workflow/skills-core.md"),
+    Path("content/workflow/skills-summary.md"),
 )
 
 
@@ -45,43 +46,47 @@ class RepoLayout:
 
     @property
     def workflow(self) -> Path:
-        return self.root / "qiongli-workflow"
+        return self._content_path("workflow", legacy_name="qiongli-workflow")
+
+    @property
+    def content(self) -> Path:
+        return self.root / "content"
 
     @property
     def skills(self) -> Path:
-        return self.root / "skills"
+        return self._content_path("skills")
 
     @property
     def templates(self) -> Path:
-        return self.root / "templates"
+        return self._content_path("templates")
 
     @property
     def standards(self) -> Path:
-        return self.root / "standards"
+        return self._content_path("standards")
 
     @property
     def roles(self) -> Path:
-        return self.root / "roles"
+        return self._content_path("roles")
 
     @property
     def venue_profiles(self) -> Path:
-        return self.root / "venue-profiles"
+        return self._content_path("venue-profiles")
 
     @property
     def subjects(self) -> Path:
-        return self.root / "subjects"
+        return self._content_path("subjects")
 
     @property
     def schemas(self) -> Path:
-        return self.root / "schemas"
+        return self._content_path("schemas")
 
     @property
     def skills_core(self) -> Path:
-        return self.root / "skills-core.md"
+        return self._content_path("skills-core.md")
 
     @property
     def skills_summary(self) -> Path:
-        return self.root / "skills-summary.md"
+        return self._content_path("skills-summary.md")
 
     @property
     def python_package(self) -> Path:
@@ -134,3 +139,36 @@ class RepoLayout:
     @property
     def generated_output_files(self) -> tuple[Path, ...]:
         return GENERATED_OUTPUT_FILES
+
+    def resolve_source_path(self, relative_path: Path | str) -> Path:
+        rel = Path(str(relative_path))
+        if rel.is_absolute():
+            return rel
+        parts = rel.parts
+        if not parts:
+            return self.root
+
+        first = parts[0]
+        rest = Path(*parts[1:]) if len(parts) > 1 else Path()
+        source_roots = {
+            "qiongli-workflow": self.workflow,
+            "skills": self.skills,
+            "templates": self.templates,
+            "standards": self.standards,
+            "roles": self.roles,
+            "venue-profiles": self.venue_profiles,
+            "subjects": self.subjects,
+            "schemas": self.schemas,
+        }
+        if first in source_roots:
+            return source_roots[first] / rest
+        if first == "skills-core.md":
+            return self.skills_core
+        if first == "skills-summary.md":
+            return self.skills_summary
+        return self.root / rel
+
+    def _content_path(self, name: str, *, legacy_name: str | None = None) -> Path:
+        content_path = self.content / name
+        legacy_path = self.root / (legacy_name or name)
+        return content_path if content_path.exists() else legacy_path

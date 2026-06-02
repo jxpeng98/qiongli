@@ -7,6 +7,8 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+
+from qiongli.source_layout import RepoLayout
 from unittest import mock
 
 from qiongli.universal_installer import InstallOptions, clean, clean_global_legacy_skills, install
@@ -24,7 +26,7 @@ class UniversalInstallerTests(unittest.TestCase):
             codex_home = temp_root / "codex-home"
             existing_skill = codex_home / "skills" / "qiongli-workflow"
             existing_skill.mkdir(parents=True)
-            source_version = (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(encoding="utf-8").strip()
+            source_version = (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(encoding="utf-8").strip()
             (existing_skill / "SKILL.md").write_text(
                 "---\nname: qiongli-workflow\ndescription: current\n---\n",
                 encoding="utf-8",
@@ -86,7 +88,7 @@ class UniversalInstallerTests(unittest.TestCase):
             self.assertEqual(result, 0)
             self.assertEqual(
                 (existing_skill / "VERSION").read_text(encoding="utf-8").strip(),
-                (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(encoding="utf-8").strip(),
+                (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(encoding="utf-8").strip(),
             )
             self.assertFalse((existing_skill / "legacy.txt").exists())
             self.assertTrue((existing_skill / "skills-core.md").exists())
@@ -99,7 +101,7 @@ class UniversalInstallerTests(unittest.TestCase):
             codex_home = temp_root / "codex-home"
             existing_skill = codex_home / "skills" / "qiongli-workflow"
             existing_skill.mkdir(parents=True)
-            source_version = (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(encoding="utf-8").strip()
+            source_version = (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(encoding="utf-8").strip()
             (existing_skill / "SKILL.md").write_text(
                 "---\nname: qiongli-workflow\ndescription: legacy without version\n---\n",
                 encoding="utf-8",
@@ -394,7 +396,7 @@ class UniversalInstallerTests(unittest.TestCase):
             codex_home = temp_root / "codex-home"
             existing_skill = codex_home / "skills" / "qiongli-workflow"
             existing_skill.mkdir(parents=True)
-            source_version = (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(encoding="utf-8").strip()
+            source_version = (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(encoding="utf-8").strip()
             (existing_skill / "SKILL.md").write_text(
                 "---\nname: qiongli\ndescription: old\n---\n",
                 encoding="utf-8",

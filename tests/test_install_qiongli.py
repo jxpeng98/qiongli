@@ -6,6 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 INSTALL_SCRIPT = REPO_ROOT / "scripts" / "install_qiongli.sh"
@@ -26,7 +28,7 @@ class InstallQiongliTests(unittest.TestCase):
             codex_home = temp_root / "codex-home"
             existing_skill = codex_home / "skills" / "qiongli-workflow"
             existing_skill.mkdir(parents=True)
-            source_version = (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(encoding="utf-8").strip()
+            source_version = (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(encoding="utf-8").strip()
             (existing_skill / "SKILL.md").write_text(
                 "---\nname: qiongli-workflow\ndescription: current\n---\n",
                 encoding="utf-8",
@@ -330,7 +332,7 @@ class InstallQiongliTests(unittest.TestCase):
             self.assertIn("already linked", result.stdout)
             self.assertEqual(
                 (existing_skill / "VERSION").read_text(encoding="utf-8").strip(),
-                (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(encoding="utf-8").strip(),
+                (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(encoding="utf-8").strip(),
             )
             self.assertIn('CLI_FLAVOR="shell-bootstrap"', (cli_dir / "qiongli").read_text(encoding="utf-8"))
             self.assertIn('DEFAULT_REPO="jxpeng98/qiongli"', (cli_dir / "qiongli-bootstrap").read_text(encoding="utf-8"))
@@ -348,7 +350,7 @@ class InstallQiongliTests(unittest.TestCase):
             codex_home = temp_root / "codex-home"
             existing_skill = codex_home / "skills" / "qiongli-workflow"
             existing_skill.mkdir(parents=True)
-            source_version = (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(encoding="utf-8").strip()
+            source_version = (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(encoding="utf-8").strip()
             (existing_skill / "SKILL.md").write_text(
                 "---\nname: qiongli-workflow\ndescription: legacy without version\n---\n",
                 encoding="utf-8",

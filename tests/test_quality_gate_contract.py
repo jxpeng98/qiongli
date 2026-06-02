@@ -8,10 +8,12 @@ import textwrap
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = REPO_ROOT / "scripts" / "audit_quality_gates.py"
-CONTRACT_PATH = REPO_ROOT / "standards" / "quality-gate-contract.yaml"
+CONTRACT_PATH = RepoLayout(REPO_ROOT).standards / "quality-gate-contract.yaml"
 
 
 def load_audit_module():

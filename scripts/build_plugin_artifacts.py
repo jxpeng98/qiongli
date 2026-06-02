@@ -10,6 +10,8 @@ import tempfile
 import zipfile
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 try:
     from qiongli.subject_materializer import MaterializeOptions, materialize_subject_package, validate_subject_catalog
 except ModuleNotFoundError as exc:
@@ -293,16 +295,27 @@ def _copy_path_excluding(src: Path, dest: Path, excluded_names: set[str]) -> Non
 
 
 def _build_materialize_source(root: Path, work_dir: Path) -> Path:
+    layout = RepoLayout(root)
     source = work_dir / "materialize-source"
-    for item in ("qiongli-workflow", "skills", "subjects"):
-        _copy_path(root / item, source / item)
-    for item in ("skills", "templates", "standards", "roles", "venue-profiles"):
-        src = root / item
+    _copy_path(layout.workflow, source / "qiongli-workflow")
+    _copy_path(layout.skills, source / "skills")
+    _copy_path(layout.subjects, source / "subjects")
+    source_dirs = {
+        "skills": layout.skills,
+        "templates": layout.templates,
+        "standards": layout.standards,
+        "roles": layout.roles,
+        "venue-profiles": layout.venue_profiles,
+    }
+    for item, src in source_dirs.items():
         if src.exists():
             excluded = {"CLAUDE.project.md"} if item == "templates" else set()
             _copy_path_excluding(src, source / "qiongli-workflow" / item, excluded)
-    for item in ("skills-core.md", "skills-summary.md"):
-        src = root / item
+    source_files = {
+        "skills-core.md": layout.skills_core,
+        "skills-summary.md": layout.skills_summary,
+    }
+    for item, src in source_files.items():
         if src.exists():
             _copy_path(src, source / "qiongli-workflow" / item)
     return source
@@ -815,10 +828,11 @@ def _desktop_subjects(root: Path) -> list[str]:
 
 def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
     root = root.resolve()
+    layout = RepoLayout(root)
     dist_dir = dist_dir.resolve()
     repo_tag, skill_version = _normalize_tag(raw_tag)
 
-    workflow_version = (root / "qiongli-workflow" / "VERSION").read_text(encoding="utf-8").strip()
+    workflow_version = (layout.workflow / "VERSION").read_text(encoding="utf-8").strip()
     if workflow_version != repo_tag:
         raise ValueError(f"version mismatch in qiongli-workflow/VERSION: expected {repo_tag}, found {workflow_version}")
 

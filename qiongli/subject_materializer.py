@@ -9,6 +9,8 @@ from typing import Any
 
 import yaml
 
+from qiongli.source_layout import RepoLayout
+
 
 class SubjectCatalogError(ValueError):
     """Raised when subject catalog metadata is invalid."""
@@ -85,7 +87,7 @@ class CustomSubjectLayer:
 
 
 def load_subject_catalog(root: Path) -> dict[str, Any]:
-    path = Path(root) / "subjects" / "catalog.yaml"
+    path = RepoLayout(Path(root)).subjects / "catalog.yaml"
     if not path.is_file():
         raise SubjectCatalogError(f"missing subject catalog: {path}")
     try:
@@ -163,7 +165,8 @@ def materialize_subject_package(options: MaterializeOptions) -> None:
         ) from exc
 
     package_root = _package_root(source)
-    base_registry = _load_registry_entries(source / "skills" / "registry.yaml")
+    layout = RepoLayout(source)
+    base_registry = _load_registry_entries(layout.skills / "registry.yaml")
     subject_registry = _load_all_subject_registry_entries(source)
     custom_layer = _load_custom_layer(options.custom_dir)
     _assert_no_custom_registry_conflicts([*base_registry, *subject_registry], list(custom_layer.registry_entries))
@@ -230,7 +233,8 @@ def _parse_groups(subject_id: str, raw_groups: object) -> list[SubjectGroup]:
 
 def _load_registry_ids(root: Path) -> set[str]:
     ids: set[str] = set()
-    for registry_path in [root / "skills" / "registry.yaml", *sorted((root / "subjects").glob("*/skills/registry.yaml"))]:
+    layout = RepoLayout(root)
+    for registry_path in [layout.skills / "registry.yaml", *sorted(layout.subjects.glob("*/skills/registry.yaml"))]:
         if not registry_path.is_file():
             continue
         try:
@@ -247,27 +251,46 @@ def _load_registry_ids(root: Path) -> set[str]:
 
 
 def _package_root(source: Path) -> Path:
-    candidate = source / "qiongli-workflow"
+    candidate = RepoLayout(source).workflow
     if candidate.is_dir():
         return candidate
+    legacy_candidate = source / "qiongli-workflow"
+    if legacy_candidate.is_dir():
+        return legacy_candidate
     if (source / "SKILL.md").is_file() and (source / "VERSION").is_file():
         return source
     raise SubjectMaterializationError(f"missing qiongli-workflow package under {source}")
 
 
 def _copy_common_package_assets(package_root: Path, out: Path) -> None:
+    source = package_root.parent if package_root.name in {"qiongli-workflow", "workflow"} else package_root
+    layout = RepoLayout(source)
     for name in ("VERSION", "skills-core.md", "skills-summary.md"):
         src = package_root / name
+        if not src.is_file() and name == "skills-core.md":
+            src = layout.skills_core
+        if not src.is_file() and name == "skills-summary.md":
+            src = layout.skills_summary
         if src.is_file():
             _copy_path(src, out / name)
+    source_dirs = {
+        "workflows": package_root / "workflows",
+        "references": package_root / "references",
+        "standards": layout.standards,
+        "roles": layout.roles,
+        "agents": package_root / "agents",
+    }
     for dirname in ("workflows", "references", "standards", "roles", "agents"):
-        src = package_root / dirname
+        src = source_dirs[dirname]
         if src.exists():
             _copy_path(src, out / dirname)
 
 
 def _materialize_templates(package_root: Path, out: Path, subject: SubjectDefinition, coverage: str) -> None:
+    source = package_root.parent if package_root.name in {"qiongli-workflow", "workflow"} else package_root
     src_root = package_root / "templates"
+    if not src_root.exists():
+        src_root = RepoLayout(source).templates
     dest_root = out / "templates"
     if not src_root.exists():
         return
@@ -291,6 +314,8 @@ def _materialize_venue_profiles(
 ) -> None:
     dest_root = out / "venue-profiles"
     src = package_root / "venue-profiles"
+    if not src.exists():
+        src = RepoLayout(source).venue_profiles
     if coverage == "complete" or subject.id == "core" or not subject.venue_profiles:
         if src.exists():
             _copy_path(src, dest_root)
@@ -312,10 +337,11 @@ def _materialize_venue_profiles(
 
 
 def _find_venue_profile(package_root: Path, source: Path, subject_id: str, profile: str) -> Path:
-    current = source / "subjects" / subject_id / "venue-profiles" / f"{profile}.yaml"
+    subjects = RepoLayout(source).subjects
+    current = subjects / subject_id / "venue-profiles" / f"{profile}.yaml"
     if current.exists():
         return current
-    for candidate in sorted((source / "subjects").glob(f"*/venue-profiles/{profile}.yaml")):
+    for candidate in sorted(subjects.glob(f"*/venue-profiles/{profile}.yaml")):
         if candidate.exists():
             return candidate
     return package_root / "venue-profiles" / f"{profile}.yaml"
@@ -343,10 +369,11 @@ def _materialize_domain_profiles(
     coverage: str,
     custom_layer: CustomSubjectLayer,
 ) -> None:
-    source = package_root.parent if package_root.name == "qiongli-workflow" else package_root
+    source = package_root.parent if package_root.name in {"qiongli-workflow", "workflow"} else package_root
+    layout = RepoLayout(source)
     src_root = package_root / "skills" / "domain-profiles"
     if not src_root.exists():
-        src_root = source / "skills" / "domain-profiles"
+        src_root = layout.skills / "domain-profiles"
     dest_root = out / "skills" / "domain-profiles"
     if src_root.exists():
         if coverage == "complete" or subject.id == "core" or not subject.domain_profiles:
@@ -355,7 +382,7 @@ def _materialize_domain_profiles(
             for profile in subject.domain_profiles:
                 src = src_root / f"{profile}.yaml"
                 if not src.exists():
-                    src = source / "skills" / "domain-profiles" / f"{profile}.yaml"
+                    src = layout.skills / "domain-profiles" / f"{profile}.yaml"
                 if not src.exists():
                     raise SubjectMaterializationError(f"subject {subject.id} references missing domain profile: {profile}")
                 _copy_path(src, dest_root / f"{profile}.yaml")
@@ -427,13 +454,14 @@ def _materialize_skills(
 
     subject_overrides = _overrides_by_skill(subject.skill_overrides, f"subject {subject.id}")
     custom_overrides = _overrides_by_skill(custom_layer.skill_overrides, "custom subject")
+    layout = RepoLayout(source)
     for entry in selected_entries:
         skill_id = str(entry["id"])
         rel = Path(str(entry["file"]))
         dest = out / rel
         src = package_root / rel
         if not src.exists():
-            src = source / rel
+            src = layout.resolve_source_path(rel)
         if not src.exists() and skill_id in subject_skill_sources:
             src = subject_skill_sources[skill_id]
         if not src.exists() and skill_id in custom_layer.skill_sources:
@@ -443,7 +471,7 @@ def _materialize_skills(
 
         text = src.read_text(encoding="utf-8")
         for override in subject_overrides.get(skill_id, []):
-            text = _apply_overlay(source / "subjects" / subject.id, skill_id, text, override)
+            text = _apply_overlay(RepoLayout(source).subjects / subject.id, skill_id, text, override)
         if custom_layer.root is not None:
             for override in custom_overrides.get(skill_id, []):
                 text = _apply_overlay(custom_layer.root, skill_id, text, override)
@@ -640,14 +668,14 @@ def _load_registry_entries(path: Path) -> list[dict[str, Any]]:
 
 def _load_all_subject_registry_entries(source: Path) -> list[dict[str, Any]]:
     entries: list[dict[str, Any]] = []
-    for registry_path in sorted((source / "subjects").glob("*/skills/registry.yaml")):
+    for registry_path in sorted(RepoLayout(source).subjects.glob("*/skills/registry.yaml")):
         entries.extend(_load_registry_entries(registry_path))
     return entries
 
 
 def _load_subject_skill_sources(source: Path) -> dict[str, Path]:
     sources: dict[str, Path] = {}
-    for registry_path in sorted((source / "subjects").glob("*/skills/registry.yaml")):
+    for registry_path in sorted(RepoLayout(source).subjects.glob("*/skills/registry.yaml")):
         subject_root = registry_path.parents[1]
         for entry in _load_registry_entries(registry_path):
             skill_id = str(entry["id"])

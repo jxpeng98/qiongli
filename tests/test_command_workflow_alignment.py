@@ -3,9 +3,11 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-WORKFLOW_DIR = REPO_ROOT / "qiongli-workflow" / "workflows"
+WORKFLOW_DIR = RepoLayout(REPO_ROOT).workflow / "workflows"
 COMMAND_DIR = REPO_ROOT / "plugins" / "qiongli" / "commands"
 
 
