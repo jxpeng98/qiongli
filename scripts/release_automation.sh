@@ -257,6 +257,7 @@ case "$MODE" in
       qiongli-workflow/VERSION \
       skills/registry.yaml \
       package-lock.json \
+      uv.lock \
       packages/npm-qiongli \
       plugins/qiongli/.codex-plugin/plugin.json \
       plugins/qiongli/.claude-plugin/plugin.json \

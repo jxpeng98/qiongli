@@ -7,6 +7,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RELEASE_AUTOMATION = REPO_ROOT / "scripts" / "release_automation.sh"
 RELEASE_READY = REPO_ROOT / "scripts" / "release_ready.sh"
+PACKAGED_RELEASE_AUTOMATION = REPO_ROOT / "packages" / "npm-qiongli" / "python-runtime" / "scripts" / "release_automation.sh"
+PACKAGED_RELEASE_READY = REPO_ROOT / "packages" / "npm-qiongli" / "python-runtime" / "scripts" / "release_ready.sh"
 RELEASE_PREFLIGHT = REPO_ROOT / "scripts" / "release_preflight.sh"
 RELEASE_POSTFLIGHT = REPO_ROOT / "scripts" / "release_postflight.sh"
 PYPI_PREFLIGHT = REPO_ROOT / "scripts" / "pypi_preflight.sh"
@@ -55,6 +57,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('qiongli/payload', content)
         self.assertIn('packages/npm-qiongli', content)
         self.assertIn('package-lock.json', content)
+        self.assertIn('uv.lock', content)
         self.assertIn('npm_preflight.sh', content)
         self.assertIn('./scripts/release_postflight.sh --tag "$repo_tag"', content)
 
@@ -101,6 +104,13 @@ class ReleaseAutomationTests(unittest.TestCase):
             self.assertIn(expected, content)
             self.assertLess(content.index(expected), content.index(git_add))
             self.assertLess(content.index(expected), content.index(tag))
+
+    def test_packaged_release_scripts_include_uv_lock_release_paths(self) -> None:
+        automation_content = PACKAGED_RELEASE_AUTOMATION.read_text(encoding="utf-8")
+        ready_content = PACKAGED_RELEASE_READY.read_text(encoding="utf-8")
+
+        self.assertIn('uv.lock', automation_content)
+        self.assertIn('uv.lock', ready_content)
 
     def test_release_postflight_waits_for_branch_and_tag_workflows(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
@@ -173,6 +183,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('packages/npm-qiongli|packages/npm-qiongli/*', content)
         self.assertIn('qiongli/payload|qiongli/payload/*', content)
         self.assertIn('package-lock.json', content)
+        self.assertIn('uv.lock', content)
         self.assertIn('docs/reference/skills.md', content)
         self.assertIn('docs/zh/reference/skills.md', content)
         self.assertIn(
