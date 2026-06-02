@@ -1,0 +1,66 @@
+from __future__ import annotations
+
+import unittest
+from pathlib import Path
+
+from qiongli.source_layout import RepoLayout, discover_repo_root
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+class SourceLayoutTests(unittest.TestCase):
+    def test_discover_repo_root_from_test_file(self) -> None:
+        self.assertEqual(REPO_ROOT, discover_repo_root(Path(__file__)))
+
+    def test_current_canonical_content_roots_exist(self) -> None:
+        layout = RepoLayout(REPO_ROOT)
+
+        expected_files = (
+            layout.workflow / "SKILL.md",
+            layout.workflow / "VERSION",
+            layout.skills / "registry.yaml",
+            layout.templates / "idea-funnel.md",
+            layout.standards / "research-workflow-contract.yaml",
+            layout.roles / "pi.yaml",
+            layout.venue_profiles / "nature.yaml",
+            layout.subjects / "catalog.yaml",
+            layout.skills_core,
+            layout.skills_summary,
+        )
+
+        for path in expected_files:
+            with self.subTest(path=path):
+                self.assertTrue(path.exists(), f"{path} should exist")
+
+    def test_current_package_and_tooling_roots_exist(self) -> None:
+        layout = RepoLayout(REPO_ROOT)
+
+        expected_dirs = (
+            layout.python_package,
+            layout.research_skills_package,
+            layout.npm_package,
+            layout.plugin_package,
+            layout.literature_mcpb_package,
+            layout.scripts,
+            layout.release,
+            layout.evals,
+            layout.eval_legacy,
+            layout.docs,
+            layout.tests,
+        )
+
+        for path in expected_dirs:
+            with self.subTest(path=path):
+                self.assertTrue(path.is_dir(), f"{path} should be a directory")
+
+    def test_materialized_output_roots_are_named(self) -> None:
+        layout = RepoLayout(REPO_ROOT)
+
+        self.assertIn(Path("qiongli/payload"), layout.generated_output_roots)
+        self.assertIn(Path("packages/npm-qiongli/payload"), layout.generated_output_roots)
+        self.assertIn(Path("plugins/qiongli/skills/qiongli-workflow"), layout.generated_output_roots)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -4,27 +4,24 @@ import subprocess
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+LAYOUT = RepoLayout(REPO_ROOT)
 
-GENERATED_OUTPUT_ROOTS = (
-    "qiongli/payload",
-    "packages/npm-qiongli/payload",
-    "packages/npm-qiongli/python-runtime",
-    "plugins/qiongli/skills/qiongli-workflow",
-    "qiongli-workflow/venue-profiles",
-)
+GENERATED_OUTPUT_ROOTS = tuple(str(path) for path in LAYOUT.generated_output_roots)
 
 CANONICAL_SOURCE_PATHS = (
-    "qiongli-workflow/SKILL.md",
-    "qiongli-workflow/references/workflow-contract.md",
-    "qiongli-workflow/workflows/paper.md",
-    "skills/registry.yaml",
-    "templates/idea-funnel.md",
-    "standards/research-workflow-contract.yaml",
-    "roles/pi.yaml",
-    "venue-profiles/nature.yaml",
-    "subjects/catalog.yaml",
+    str(LAYOUT.workflow.relative_to(REPO_ROOT) / "SKILL.md"),
+    str(LAYOUT.workflow.relative_to(REPO_ROOT) / "references" / "workflow-contract.md"),
+    str(LAYOUT.workflow.relative_to(REPO_ROOT) / "workflows" / "paper.md"),
+    str(LAYOUT.skills.relative_to(REPO_ROOT) / "registry.yaml"),
+    str(LAYOUT.templates.relative_to(REPO_ROOT) / "idea-funnel.md"),
+    str(LAYOUT.standards.relative_to(REPO_ROOT) / "research-workflow-contract.yaml"),
+    str(LAYOUT.roles.relative_to(REPO_ROOT) / "pi.yaml"),
+    str(LAYOUT.venue_profiles.relative_to(REPO_ROOT) / "nature.yaml"),
+    str(LAYOUT.subjects.relative_to(REPO_ROOT) / "catalog.yaml"),
 )
 
 

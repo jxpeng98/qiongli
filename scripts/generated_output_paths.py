@@ -1,24 +1,17 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
-GENERATED_OUTPUT_DIRECTORIES = (
-    "qiongli/payload",
-    "packages/npm-qiongli/payload",
-    "packages/npm-qiongli/python-runtime",
-    "plugins/qiongli/skills/qiongli-workflow",
-    "qiongli-workflow/skills",
-    "qiongli-workflow/templates",
-    "qiongli-workflow/standards",
-    "qiongli-workflow/roles",
-    "qiongli-workflow/venue-profiles",
-)
+from qiongli.source_layout import GENERATED_OUTPUT_FILES as GENERATED_OUTPUT_FILE_PATHS
+from qiongli.source_layout import GENERATED_OUTPUT_ROOTS
 
-GENERATED_OUTPUT_FILES = (
-    "qiongli-workflow/skills-core.md",
-    "qiongli-workflow/skills-summary.md",
-)
+GENERATED_OUTPUT_DIRECTORIES = tuple(path.as_posix() for path in GENERATED_OUTPUT_ROOTS)
+GENERATED_OUTPUT_FILES = tuple(path.as_posix() for path in GENERATED_OUTPUT_FILE_PATHS)
 
 GENERATED_OUTPUT_PATHS = GENERATED_OUTPUT_DIRECTORIES + GENERATED_OUTPUT_FILES
 
