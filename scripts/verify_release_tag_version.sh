@@ -7,15 +7,24 @@ TAG=""
 usage() {
   cat <<'EOF'
 Usage:
-  ./scripts/verify_release_tag_version.sh --tag <tag>
+  ./scripts/verify_release_tag_version.sh [--root <dir>] --tag <tag>
 
 Description:
   Verify that a Git release tag matches the package and workflow versions in the repo.
+
+Options:
+  --root <dir>  Repository root to verify. Defaults to this script's checkout.
+  --tag <tag>   Required release tag.
 EOF
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --root)
+      [[ $# -ge 2 ]] || { echo "[verify-release-tag] missing value for --root" >&2; exit 2; }
+      ROOT_DIR="$(cd "$2" && pwd)"
+      shift 2
+      ;;
     --tag)
       [[ $# -ge 2 ]] || { echo "[verify-release-tag] missing value for --tag" >&2; exit 2; }
       TAG="$2"
@@ -331,6 +340,6 @@ while IFS= read -r plugin_line; do
   done
 done <<< "$actual_plugin_versions"
 
-python3 scripts/audit_distribution_payloads.py
+python3 scripts/audit_distribution_payloads.py --root "$ROOT_DIR"
 
 echo "[verify-release-tag] tag and repo versions are aligned: $TAG"

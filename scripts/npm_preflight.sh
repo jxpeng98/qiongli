@@ -2,8 +2,39 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-PKG_DIR="$ROOT_DIR/packages/npm-qiongli"
 NPM_CACHE="${NPM_CONFIG_CACHE:-${TMPDIR:-/tmp}/qiongli-npm-cache}"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  ./scripts/npm_preflight.sh [options]
+
+Options:
+  --root <dir>  Repository root to check. Defaults to this script's checkout.
+  -h, --help    Show this message.
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --root)
+      [[ $# -ge 2 ]] || { echo "[npm-preflight] missing value for --root" >&2; exit 2; }
+      ROOT_DIR="$(cd "$2" && pwd)"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "[npm-preflight] unknown option: $1" >&2
+      usage
+      exit 2
+      ;;
+  esac
+done
+
+PKG_DIR="$ROOT_DIR/packages/npm-qiongli"
 
 cd "$ROOT_DIR"
 mkdir -p "$NPM_CACHE"

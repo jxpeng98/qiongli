@@ -17,10 +17,14 @@ CI_TIMEOUT_SECONDS=1800
 CI_TIMEOUT_MODE="hard"
 CI_POLL_INTERVAL_SECONDS=30
 TEMP_RELEASE_NOTES=""
+POSTFLIGHT_STAGING_DIR=""
 
 cleanup() {
   if [[ -n "$TEMP_RELEASE_NOTES" && -f "$TEMP_RELEASE_NOTES" ]]; then
     rm -f "$TEMP_RELEASE_NOTES"
+  fi
+  if [[ -n "$POSTFLIGHT_STAGING_DIR" && -d "$POSTFLIGHT_STAGING_DIR" ]]; then
+    rm -rf "$POSTFLIGHT_STAGING_DIR"
   fi
 }
 
@@ -342,7 +346,11 @@ if ! LOCAL_TAG_COMMIT="$(git rev-parse "$TAG^{}" 2>/dev/null)"; then
 fi
 echo "[postflight] local tag commit: $LOCAL_TAG_COMMIT"
 
-bash ./scripts/verify_release_tag_version.sh --tag "$TAG"
+POSTFLIGHT_STAGING_DIR="$(mktemp -d "${TMPDIR:-/tmp}/qiongli-postflight.XXXXXX")"
+echo "[postflight] materialize distribution payloads"
+python3 scripts/materialize_distribution_payloads.py --target all --out "$POSTFLIGHT_STAGING_DIR" --force
+
+bash ./scripts/verify_release_tag_version.sh --root "$POSTFLIGHT_STAGING_DIR" --tag "$TAG"
 
 if ! release_branch_record="$(select_release_branch_ref "$TAG" "$LOCAL_TAG_COMMIT")"; then
   echo "[postflight] unable to detect release branch (expected dev for reachable prerelease tags, or main/master locally or under origin/)" >&2
@@ -489,7 +497,7 @@ else
   echo "[postflight] GitHub Actions status check skipped by flag"
 fi
 
-python3 scripts/build_plugin_artifacts.py --tag "$TAG" --dist-dir dist
+python3 scripts/build_plugin_artifacts.py --root "$POSTFLIGHT_STAGING_DIR" --tag "$TAG" --dist-dir dist
 PLUGIN_ARTIFACTS=(
   "dist/qiongli-codex-plugin-${TAG}.tar.gz"
   "dist/qiongli-claude-plugin-${TAG}.tar.gz"

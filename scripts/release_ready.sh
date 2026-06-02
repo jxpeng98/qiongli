@@ -11,6 +11,16 @@ SKILL_VERSION=""
 REPO_TAG=""
 PRE_ARGS=()
 PYPI_ARGS=()
+RELEASE_STAGING_DIR=""
+RELEASE_STAGING_AUTO=0
+
+cleanup() {
+  if [[ "$RELEASE_STAGING_AUTO" -eq 1 && -n "$RELEASE_STAGING_DIR" && -d "$RELEASE_STAGING_DIR" ]]; then
+    rm -rf "$RELEASE_STAGING_DIR"
+  fi
+}
+
+trap cleanup EXIT
 
 is_prerelease_tag() {
   [[ "$1" == *beta* || "$1" =~ b[0-9]+ ]]
@@ -37,6 +47,7 @@ Options:
   --no-strict          Pass through to release preflight validator.
   --skip-note-gen      Pass through to release preflight.
   --note-overwrite     Pass through to release preflight.
+  --staging-dir <dir>  Staging root used for materialized distribution checks.
   --no-build           Pass through to PyPI preflight.
   --no-install-smoke   Pass through to PyPI preflight.
   --keep-dist          Pass through to PyPI preflight.
@@ -137,6 +148,11 @@ while [[ $# -gt 0 ]]; do
       PRE_ARGS+=("$1")
       shift
       ;;
+    --staging-dir)
+      [[ $# -ge 2 ]] || { echo "[release-ready] missing value for --staging-dir" >&2; exit 2; }
+      RELEASE_STAGING_DIR="$2"
+      shift 2
+      ;;
     --no-build|--no-install-smoke|--keep-dist)
       PYPI_ARGS+=("$1")
       shift
@@ -175,14 +191,25 @@ if [[ -n "$FROM_TAG" ]]; then
   PRE_ARGS+=(--from-tag "$FROM_TAG")
 fi
 
+if [[ -z "$RELEASE_STAGING_DIR" ]]; then
+  RELEASE_STAGING_DIR="$(mktemp -d "${TMPDIR:-/tmp}/qiongli-release-ready.XXXXXX")"
+  RELEASE_STAGING_AUTO=1
+else
+  mkdir -p "$RELEASE_STAGING_DIR"
+  RELEASE_STAGING_DIR="$(cd "$RELEASE_STAGING_DIR" && pwd)"
+fi
+
 echo "[release-ready] release preflight"
-./scripts/release_automation.sh pre "${PRE_ARGS[@]}"
+./scripts/release_automation.sh pre "${PRE_ARGS[@]}" --materialize-out "$RELEASE_STAGING_DIR"
+
+echo "[release-ready] verify staged release tag version"
+bash ./scripts/verify_release_tag_version.sh --root "$RELEASE_STAGING_DIR" --tag "$REPO_TAG"
 
 echo "[release-ready] package preflight"
-bash ./scripts/pypi_preflight.sh "${PYPI_ARGS[@]}"
+bash ./scripts/pypi_preflight.sh --root "$RELEASE_STAGING_DIR" "${PYPI_ARGS[@]}"
 
 echo "[release-ready] npm package preflight"
-bash ./scripts/npm_preflight.sh
+bash ./scripts/npm_preflight.sh --root "$RELEASE_STAGING_DIR"
 
 echo "[release-ready] publish-ready state confirmed"
 echo "[release-ready] normalized versions"

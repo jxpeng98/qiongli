@@ -85,10 +85,10 @@ jobs:
         run: bash scripts/inject_project_toml.sh
 
       - name: Materialize distribution payloads
-        run: python3 scripts/materialize_distribution_payloads.py --target all --in-place
+        run: python3 scripts/materialize_distribution_payloads.py --target all --out "$RUNNER_TEMP/qiongli-release-dist" --force
 
       - name: Build package
-        run: python -m build
+        run: cd "$RUNNER_TEMP/qiongli-release-dist" && python -m build
 
       - name: Run release automation
         env:
@@ -104,6 +104,9 @@ jobs:
             exit 2
           fi
           args+=(--tag "$tag")
+          if [[ "$mode" == "pre" ]]; then
+            args+=(--materialize-out "$RUNNER_TEMP/qiongli-preflight-dist")
+          fi
 
           if [[ "${{ inputs.skip_smoke }}" == "true" ]]; then
             args+=(--skip-smoke)
@@ -130,7 +133,7 @@ jobs:
             args+=(--create-release)
           fi
 
-          bash scripts/verify_release_tag_version.sh --tag "$tag"
+          bash scripts/verify_release_tag_version.sh --root "$RUNNER_TEMP/qiongli-release-dist" --tag "$tag"
 
           ./scripts/release_automation.sh "$mode" "${args[@]}"
 

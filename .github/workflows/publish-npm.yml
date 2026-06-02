@@ -40,16 +40,16 @@ jobs:
         run: python -m pip install -e .
 
       - name: Materialize distribution payloads
-        run: python3 scripts/materialize_distribution_payloads.py --target all --in-place
+        run: python3 scripts/materialize_distribution_payloads.py --target all --out "$RUNNER_TEMP/qiongli-dist" --force
 
       - name: Verify tag matches repo version
-        run: bash scripts/verify_release_tag_version.sh --tag "${RELEASE_TAG}"
+        run: bash scripts/verify_release_tag_version.sh --root "$RUNNER_TEMP/qiongli-dist" --tag "${RELEASE_TAG}"
 
       - name: Run npm package preflight
-        run: bash scripts/npm_preflight.sh
+        run: bash scripts/npm_preflight.sh --root "$RUNNER_TEMP/qiongli-dist"
 
       - name: Publish to npm
-        working-directory: packages/npm-qiongli
+        working-directory: ${{ runner.temp }}/qiongli-dist/packages/npm-qiongli
         run: |
           if [[ "${RELEASE_TAG}" == *beta* ]]; then
             npm publish --tag next
