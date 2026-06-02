@@ -29,40 +29,56 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertIn("if: matrix.test-tier == 'full'", content)
         self.assertIn("if: matrix.test-tier == 'windows-smoke'", content)
         self.assertIn("python -m unittest tests.test_install_qiongli tests.test_bootstrap_qiongli tests.test_universal_installer tests.test_command_runtime tests.test_release_automation tests.test_branch_policy", content)
-        self.assertIn("./scripts/release_preflight.sh --quick", content)
+        self.assertIn('./scripts/release_preflight.sh --quick --materialize-out "$RUNNER_TEMP/qiongli-preflight-dist"', content)
 
-    def test_ci_syncs_skill_package_before_strict_research_validation(self) -> None:
+    def test_ci_materializes_payloads_to_runner_temp_before_strict_research_validation(self) -> None:
         content = read(".github/workflows/ci.yml")
-        sync_cmd = "python scripts/materialize_distribution_payloads.py --target all --in-place"
-        validate_cmd = "python scripts/validate_research_standard.py --strict"
+        materialize_cmd = 'python scripts/materialize_distribution_payloads.py --target all --out "$RUNNER_TEMP/qiongli-dist" --force'
+        validate_cmd = 'python scripts/validate_research_standard.py --root "$RUNNER_TEMP/qiongli-dist" --strict'
 
-        self.assertIn(sync_cmd, content)
+        self.assertIn(materialize_cmd, content)
         self.assertIn(validate_cmd, content)
-        self.assertLess(content.index(sync_cmd), content.index(validate_cmd))
+        self.assertLess(content.index(materialize_cmd), content.index(validate_cmd))
+        self.assertNotIn("python scripts/materialize_distribution_payloads.py --target all --in-place", content)
 
     def test_ci_rejects_generated_payload_edits_before_sync_steps(self) -> None:
         content = read(".github/workflows/ci.yml")
         guard_cmd = "python scripts/check_generated_payload_edits.py --base-ref origin/dev"
-        sync_cmd = "python scripts/materialize_distribution_payloads.py --target all --in-place"
+        materialize_cmd = 'python scripts/materialize_distribution_payloads.py --target all --out "$RUNNER_TEMP/qiongli-dist" --force'
 
         self.assertIn(guard_cmd, content)
-        self.assertIn(sync_cmd, content)
-        self.assertLess(content.index(guard_cmd), content.index(sync_cmd))
+        self.assertIn(materialize_cmd, content)
+        self.assertLess(content.index(guard_cmd), content.index(materialize_cmd))
 
-    def test_ci_syncs_npm_payload_after_injected_project_defaults(self) -> None:
+    def test_ci_audits_staged_payload_after_injected_project_defaults(self) -> None:
         content = read(".github/workflows/ci.yml")
         inject_cmd = "bash scripts/inject_project_toml.sh"
-        payload_cmd = "python scripts/materialize_distribution_payloads.py --target all --in-place"
-        validate_cmd = "python scripts/validate_research_standard.py --strict"
+        payload_cmd = 'python scripts/materialize_distribution_payloads.py --target all --out "$RUNNER_TEMP/qiongli-dist" --force'
+        audit_cmd = 'python scripts/audit_distribution_payloads.py --root "$RUNNER_TEMP/qiongli-dist"'
+        validate_cmd = 'python scripts/validate_research_standard.py --root "$RUNNER_TEMP/qiongli-dist" --strict'
         unit_cmd = "python -m unittest discover -s tests -v"
 
         self.assertIn(inject_cmd, content)
         self.assertIn(payload_cmd, content)
+        self.assertIn(audit_cmd, content)
         self.assertIn(validate_cmd, content)
         self.assertIn(unit_cmd, content)
         self.assertLess(content.index(inject_cmd), content.index(payload_cmd))
+        self.assertLess(content.index(payload_cmd), content.index(audit_cmd))
         self.assertLess(content.index(payload_cmd), content.index(validate_cmd))
         self.assertLess(content.index(payload_cmd), content.index(unit_cmd))
+
+    def test_windows_ci_smoke_tier_skips_heavy_payload_materialization(self) -> None:
+        content = read(".github/workflows/ci.yml")
+        materialize_step = '''      - name: Materialize distribution payloads
+        if: matrix.test-tier == 'full'
+        run: python scripts/materialize_distribution_payloads.py --target all --out "$RUNNER_TEMP/qiongli-dist" --force'''
+        audit_step = '''      - name: Audit staged distribution payloads
+        if: matrix.test-tier == 'full'
+        run: python scripts/audit_distribution_payloads.py --root "$RUNNER_TEMP/qiongli-dist"'''
+
+        self.assertIn(materialize_step, content)
+        self.assertIn(audit_step, content)
 
     def test_release_workflow_allows_beta_from_dev_but_stable_from_primary(self) -> None:
         content = read("scripts/release_automation.sh")

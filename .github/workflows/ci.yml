@@ -51,10 +51,16 @@ jobs:
         run: python scripts/check_generated_payload_edits.py --base-ref origin/dev
 
       - name: Materialize distribution payloads
-        run: python scripts/materialize_distribution_payloads.py --target all --in-place
+        if: matrix.test-tier == 'full'
+        run: python scripts/materialize_distribution_payloads.py --target all --out "$RUNNER_TEMP/qiongli-dist" --force
+
+      - name: Audit staged distribution payloads
+        if: matrix.test-tier == 'full'
+        run: python scripts/audit_distribution_payloads.py --root "$RUNNER_TEMP/qiongli-dist"
 
       - name: Validate research standard
-        run: python scripts/validate_research_standard.py --strict
+        if: matrix.test-tier == 'full'
+        run: python scripts/validate_research_standard.py --root "$RUNNER_TEMP/qiongli-dist" --strict
 
       - name: Run full unit tests
         if: matrix.test-tier == 'full'
@@ -102,4 +108,4 @@ jobs:
           bash -n scripts/sync_skill_package.sh
 
       - name: Run standardized pre-release gates
-        run: ./scripts/release_preflight.sh --quick
+        run: ./scripts/release_preflight.sh --quick --materialize-out "$RUNNER_TEMP/qiongli-preflight-dist"
