@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+"""Internal compatibility helper for materializing legacy package mirrors.
+
+Do not use this as the normal feature-development entrypoint.
+Use scripts/materialize_distribution_payloads.py for local checks, CI, release
+staging, and package publishing.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -160,11 +167,17 @@ def sync_subject_payloads(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Sync generated npm package payload/runtime content.")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Internal compatibility helper for generated npm payload/runtime content. "
+            "Use scripts/materialize_distribution_payloads.py for normal workflows."
+        )
+    )
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
 
+    print("[npm-sync] internal compatibility helper; prefer scripts/materialize_distribution_payloads.py")
     sync_npm_payload(args.root.resolve(), dry_run=args.dry_run)
     print("[npm-sync] package payload synced" if not args.dry_run else "[npm-sync] dry-run complete")
     return 0

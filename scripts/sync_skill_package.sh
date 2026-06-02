@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # sync_skill_package.sh — populate distributable qiongli workflow packages
-# Run before install/release to ensure the skill package is self-contained.
+#
+# Internal compatibility helper.
+# Do not use this as the normal feature-development entrypoint.
+# Use scripts/materialize_distribution_payloads.py for local checks, CI,
+# release staging, and package publishing.
 #
 # Usage:
 #   ./scripts/sync_skill_package.sh [--target pkg|plugin|all] [--dry-run]
@@ -49,6 +53,8 @@ case "$TARGET" in
   pkg|plugin|all) ;;
   *) echo "Unknown target: $TARGET (expected pkg, plugin, or all)" >&2; exit 1 ;;
 esac
+
+echo "[sync-skill-package] internal compatibility helper; prefer scripts/materialize_distribution_payloads.py" >&2
 
 # ── Sync targets ─────────────────────────────────────────────────────────────
 

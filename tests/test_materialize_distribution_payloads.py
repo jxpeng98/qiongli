@@ -10,6 +10,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MATERIALIZER_PATH = REPO_ROOT / "scripts" / "materialize_distribution_payloads.py"
+SYNC_SKILL_PACKAGE = REPO_ROOT / "scripts" / "sync_skill_package.sh"
+SYNC_NPM_PAYLOAD = REPO_ROOT / "scripts" / "sync_npm_package_payload.py"
 
 
 def _load_materializer_module():
@@ -114,6 +116,16 @@ class DistributionMaterializerTests(unittest.TestCase):
         self.assertNotIn("scripts/sync_skill_package.sh", source)
         self.assertNotIn('["bash"', source)
         self.assertIn("def materialize_plugin_payload", source)
+
+    def test_legacy_sync_helpers_are_marked_internal(self) -> None:
+        sync_skill = SYNC_SKILL_PACKAGE.read_text(encoding="utf-8")
+        sync_npm = SYNC_NPM_PAYLOAD.read_text(encoding="utf-8")
+
+        for content in (sync_skill, sync_npm):
+            with self.subTest(script=content.splitlines()[0]):
+                self.assertIn("Internal compatibility helper", content)
+                self.assertIn("scripts/materialize_distribution_payloads.py", content)
+                self.assertIn("Do not use this as the normal feature-development entrypoint", content)
 
 
 if __name__ == "__main__":
