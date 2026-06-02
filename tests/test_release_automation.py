@@ -251,9 +251,11 @@ class ReleaseAutomationTests(unittest.TestCase):
     def test_release_preflight_syncs_npm_payload_before_tests(self) -> None:
         content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
 
-        materialize = "python3 scripts/materialize_distribution_payloads.py --target all --in-place"
+        materialize = 'python3 scripts/materialize_distribution_payloads.py --target all --out "$MATERIALIZE_OUT" --force'
         self.assertIn('echo "[preflight] materialize distribution payloads"', content)
         self.assertIn(materialize, content)
+        self.assertIn('MATERIALIZE_OUT="$(mktemp -d "${TMPDIR:-/tmp}/qiongli-release-preflight.XXXXXX")"', content)
+        self.assertIn('if [[ "$MATERIALIZE_IN_PLACE" -eq 1 ]]; then', content)
         self.assertIn('echo "[preflight] sync skill reference docs"', content)
         self.assertIn("python3 scripts/generate_skill_docs.py", content)
         self.assertLess(
@@ -276,10 +278,14 @@ class ReleaseAutomationTests(unittest.TestCase):
         staged_validate = 'validate_cmd=(python3 scripts/validate_research_standard.py --root "$PREFLIGHT_ROOT")'
 
         self.assertIn("--materialize-out <dir>", content)
+        self.assertIn("--in-place", content)
         self.assertIn("MATERIALIZE_OUT=\"\"", content)
+        self.assertIn("MATERIALIZE_IN_PLACE=0", content)
         self.assertIn("PREFLIGHT_ROOT=\"$ROOT_DIR\"", content)
         self.assertIn(staged_materialize, content)
         self.assertIn('PREFLIGHT_ROOT="$MATERIALIZE_OUT"', content)
+        self.assertIn('if [[ "$MATERIALIZE_IN_PLACE" -eq 1 ]]; then', content)
+        self.assertIn('[preflight] in-place materialization requires explicit --in-place', content)
         self.assertIn(staged_validate, content)
         self.assertLess(content.index(staged_materialize), content.index(staged_validate))
 
@@ -334,14 +340,18 @@ class ReleaseAutomationTests(unittest.TestCase):
     def test_pypi_preflight_materializes_payloads_before_build(self) -> None:
         content = PYPI_PREFLIGHT.read_text(encoding="utf-8")
 
-        materialize = "python3 scripts/materialize_distribution_payloads.py --target all --in-place"
+        materialize = 'python3 scripts/materialize_distribution_payloads.py --target all --out "$PREFLIGHT_ROOT" --force'
         build = "python3 -m build"
 
         self.assertIn("--root <dir>", content)
         self.assertIn('ROOT_DIR="$(cd "$2" && pwd)"', content)
+        self.assertIn("--in-place", content)
+        self.assertIn("PREFLIGHT_ROOT=\"\"", content)
+        self.assertIn('PREFLIGHT_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/qiongli-pypi-preflight-root.XXXXXX")"', content)
+        self.assertIn('if [[ "$PREFLIGHT_IN_PLACE" -eq 1 ]]; then', content)
         self.assertIn(materialize, content)
         self.assertIn(build, content)
-        self.assertIn('cd "$ROOT_DIR"', content)
+        self.assertIn('cd "$PREFLIGHT_ROOT"', content)
         self.assertLess(content.index(materialize), content.index(build))
 
     def test_npm_preflight_accepts_staging_root(self) -> None:
@@ -349,9 +359,14 @@ class ReleaseAutomationTests(unittest.TestCase):
 
         self.assertIn("--root <dir>", content)
         self.assertIn('ROOT_DIR="$(cd "$2" && pwd)"', content)
+        self.assertIn("--in-place", content)
+        self.assertIn("PREFLIGHT_ROOT=\"\"", content)
+        self.assertIn('PREFLIGHT_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/qiongli-npm-preflight-root.XXXXXX")"', content)
+        self.assertIn('if [[ "$PREFLIGHT_IN_PLACE" -eq 1 ]]; then', content)
         self.assertIn('PKG_DIR="$ROOT_DIR/packages/npm-qiongli"', content)
-        self.assertIn("python3 scripts/materialize_distribution_payloads.py --target all --in-place", content)
-        self.assertIn('cd "$ROOT_DIR"', content)
+        self.assertIn('PKG_DIR="$PREFLIGHT_ROOT/packages/npm-qiongli"', content)
+        self.assertIn('python3 scripts/materialize_distribution_payloads.py --target all --out "$PREFLIGHT_ROOT" --force', content)
+        self.assertIn('cd "$PREFLIGHT_ROOT"', content)
 
     def test_pypi_preflight_does_not_print_manual_publish_steps(self) -> None:
         content = PYPI_PREFLIGHT.read_text(encoding="utf-8")

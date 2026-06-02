@@ -48,8 +48,13 @@ Use `docs/maintainer/skill-quality-gap-report.md` to prioritize work:
 2. Design and synthesis: `C_design`, `D_ethics`, `E_synthesis`.
 3. Submission, presentation, cross-cutting, and domain profile support.
 
-For each batch, update source files under `skills/`, run the audit, then sync the portable and plugin packages with:
+For each batch, update source files under `skills/`, run the audit, then use
+staged package validation to confirm the portable and plugin package shapes:
 
 ```bash
-bash scripts/sync_skill_package.sh --target all
+python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qiongli-dist --force
+python3 scripts/audit_distribution_payloads.py --root /tmp/qiongli-dist
 ```
+
+Do not review or commit generated package mirrors. If the staged package looks
+wrong, fix the canonical skill source, registry metadata, or materializer logic.

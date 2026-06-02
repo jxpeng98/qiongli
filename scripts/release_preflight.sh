@@ -14,6 +14,7 @@ SKIP_NOTE_GEN=0
 NOTE_OVERWRITE=0
 FROM_TAG=""
 MATERIALIZE_OUT=""
+MATERIALIZE_IN_PLACE=0
 FAILED_STAGE=""
 FAILED_LOG=""
 FAILED_STATUS=""
@@ -131,6 +132,8 @@ Options:
   --quick         Run the lightweight CI gate: validator + package checks only.
   --materialize-out <dir>  Materialize generated payloads into a staging
                   directory and run package validation against that tree.
+  --in-place      Materialize generated payloads in the source checkout.
+                  This is for explicit release maintenance only.
   --maintainer-smoke  Run maintainer smoke tier instead of release smoke tier.
   --no-strict     Run validator without --strict.
   -h, --help      Show this message.
@@ -181,6 +184,10 @@ while [[ $# -gt 0 ]]; do
       MATERIALIZE_OUT="$2"
       shift 2
       ;;
+    --in-place)
+      MATERIALIZE_IN_PLACE=1
+      shift
+      ;;
     --maintainer-smoke)
       MAINTAINER_SMOKE=1
       shift
@@ -202,6 +209,11 @@ while [[ $# -gt 0 ]]; do
 done
 
 cd "$ROOT_DIR"
+
+if [[ "$MATERIALIZE_IN_PLACE" -eq 1 && -n "$MATERIALIZE_OUT" ]]; then
+  echo "[preflight] --in-place and --materialize-out are mutually exclusive" >&2
+  exit 2
+fi
 
 require_python_module yaml PyYAML
 
@@ -242,11 +254,15 @@ if [[ -n "$TAG" ]]; then
 fi
 
 echo "[preflight] materialize distribution payloads"
-if [[ -n "$MATERIALIZE_OUT" ]]; then
+if [[ "$MATERIALIZE_IN_PLACE" -eq 1 ]]; then
+  echo "[preflight] in-place materialization requires explicit --in-place"
+  python3 scripts/materialize_distribution_payloads.py --target all --in-place
+else
+  if [[ -z "$MATERIALIZE_OUT" ]]; then
+    MATERIALIZE_OUT="$(mktemp -d "${TMPDIR:-/tmp}/qiongli-release-preflight.XXXXXX")"
+  fi
   python3 scripts/materialize_distribution_payloads.py --target all --out "$MATERIALIZE_OUT" --force
   PREFLIGHT_ROOT="$MATERIALIZE_OUT"
-else
-  python3 scripts/materialize_distribution_payloads.py --target all --in-place
 fi
 
 pkg_dir="$PREFLIGHT_ROOT/qiongli-workflow"
