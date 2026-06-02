@@ -24,7 +24,7 @@ This repo keeps one plugin, `qiongli`, and ships one portable skill package dire
 - Edit source skills in `skills/`.
 - Edit portable package shell files such as `qiongli-workflow/SKILL.md`, `workflows/`, and `references/` directly.
 - Run `python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qiongli-dist --force` before testing staged artifacts.
-- Release automation runs `python3 scripts/materialize_distribution_payloads.py --target all --in-place` inside the release workspace before publishing.
+- Release automation materializes payloads in a release staging workspace before publishing and does not write generated payloads back to the source checkout.
 - Do not edit generated payloads such as `plugins/qiongli/skills/qiongli-workflow/`; they are rebuilt from canonical source and are not tracked in the clean development checkout.
 
 ## Platform Surfaces
@@ -35,7 +35,7 @@ This repo keeps one plugin, `qiongli`, and ships one portable skill package dire
 | Claude Code | `plugins/qiongli/.claude-plugin/plugin.json`; public catalog entry in `jxpeng98/skillsplace` | `commands/*.md` plus `skills/qiongli-workflow/` |
 | Gemini | `plugins/qiongli/gemini-extension.json` | `skills/qiongli-workflow/` |
 
-The shared Skillsplace repository is the public marketplace source of truth. It points to this repository's `plugins/qiongli` subdirectory through git-subdir entries, so this repository should own the plugin manifests and generated release payload, not duplicate public marketplace catalog state.
+The shared Skillsplace repository is the public marketplace source of truth. It points to this repository's `plugins/qiongli` subdirectory through git-subdir entries, so this repository should own the plugin manifests and source used to generate release payloads, not duplicate public marketplace catalog state.
 
 The thin command wrappers under `plugins/qiongli/commands/` intentionally contain no workflow logic. They only load `qiongli-workflow` and point to `skills/qiongli-workflow/workflows/<command>.md`.
 

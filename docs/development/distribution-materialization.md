@@ -63,6 +63,18 @@ These paths are not part of the clean checkout source tree.
 
 Feature PRs should not commit generated outputs. GitHub Actions may materialize payloads in a temporary workspace to validate packaging. Release automation may materialize payloads in a staging workspace before building artifacts.
 
+## Source-only feature development
+
+Normal feature PRs should update canonical source, tests, and documentation
+only. Only canonical source belongs in review; package mirror directories are
+not review targets, and generated payload diffs should be treated as a signal
+that the source change was made in the wrong place or that local cleanup is
+needed.
+
+When a feature affects installable packages, validate the package contract by
+materializing into a staging directory and running package tests against that
+staged tree. Do not copy those staged files back into the source checkout.
+
 ## Output-free checkout
 
 Generated outputs are intentionally untracked. A clean checkout remains

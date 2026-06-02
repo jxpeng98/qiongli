@@ -6,6 +6,12 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DOC_PATH = REPO_ROOT / "docs" / "development" / "distribution-materialization.md"
+PLUGIN_ARCHITECTURE_DOC = REPO_ROOT / "docs" / "advanced" / "plugin-first-architecture.md"
+README_PATH = REPO_ROOT / "README.md"
+CLI_DOC = REPO_ROOT / "docs" / "reference" / "cli.md"
+CLI_ZH_DOC = REPO_ROOT / "docs" / "zh" / "reference" / "cli.md"
+PUBLISH_PYPI_DOC = REPO_ROOT / "docs" / "advanced" / "publish-pypi.md"
+PUBLISH_PYPI_ZH_DOC = REPO_ROOT / "docs" / "zh" / "advanced" / "publish-pypi.md"
 
 
 def _normalize_whitespace(content: str) -> str:
@@ -99,6 +105,53 @@ class DistributionMaterializationDocsTests(unittest.TestCase):
         self.assertIn("Feature PRs should not commit generated outputs", content)
         self.assertIn("GitHub Actions may materialize payloads in a temporary workspace", content)
         self.assertIn("Release automation may materialize payloads in a staging workspace", content)
+
+    def test_docs_define_source_only_feature_pr_contract(self) -> None:
+        content = DOC_PATH.read_text(encoding="utf-8")
+        normalized = _normalize_whitespace(content)
+
+        self.assertIn("Source-only feature development", content)
+        self.assertIn(
+            "Normal feature PRs should update canonical source, tests, and documentation only",
+            normalized,
+        )
+        self.assertIn("package mirror directories are not review targets", normalized)
+
+    def test_plugin_architecture_uses_staged_release_materialization(self) -> None:
+        content = PLUGIN_ARCHITECTURE_DOC.read_text(encoding="utf-8")
+        normalized = _normalize_whitespace(content)
+
+        self.assertIn("release staging workspace", normalized)
+        self.assertIn("does not write generated payloads back to the source checkout", normalized)
+        self.assertNotIn("--target all --in-place` inside the release workspace", content)
+
+    def test_subject_development_docs_point_to_staged_package_contract_tests(self) -> None:
+        docs = {
+            "README.md": README_PATH.read_text(encoding="utf-8"),
+            "docs/reference/cli.md": CLI_DOC.read_text(encoding="utf-8"),
+            "docs/zh/reference/cli.md": CLI_ZH_DOC.read_text(encoding="utf-8"),
+        }
+
+        for path, content in docs.items():
+            with self.subTest(path=path):
+                self.assertNotIn("npm payload tests", content)
+                self.assertIn("staged materialization", content)
+                self.assertIn("npm package contract tests", content)
+
+    def test_publish_docs_use_staged_preflight_roots_for_manual_checks(self) -> None:
+        docs = {
+            "docs/advanced/publish-pypi.md": PUBLISH_PYPI_DOC.read_text(encoding="utf-8"),
+            "docs/zh/advanced/publish-pypi.md": PUBLISH_PYPI_ZH_DOC.read_text(encoding="utf-8"),
+        }
+
+        for path, content in docs.items():
+            with self.subTest(path=path):
+                self.assertIn("--out /tmp/qiongli-dist --force", content)
+                self.assertIn("bash scripts/pypi_preflight.sh --root /tmp/qiongli-dist", content)
+                self.assertIn("bash scripts/npm_preflight.sh --root /tmp/qiongli-dist", content)
+                self.assertNotIn("bash scripts/pypi_preflight.sh\n", content)
+                self.assertNotIn("bash scripts/pypi_preflight.sh --no-build\n", content)
+                self.assertNotIn("inject_project_toml.sh --root", content)
 
     def test_docs_show_unified_materializer_commands(self) -> None:
         content = DOC_PATH.read_text(encoding="utf-8")

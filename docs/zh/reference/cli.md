@@ -214,7 +214,7 @@ qiongli customize --subject economics --name my-econ-lab --out ./qiongli-custom/
 python3 scripts/materialize_subject_package.py --subject economics --custom-dir ./qiongli-custom/econ-lab --source . --out /tmp/qiongli-workflow
 ```
 
-开发或加深一个 subject 时，需要同步更新 `subjects/catalog.yaml`、subject overlays、subject-specific registry and markdown、选定的 domain and venue profiles、subject eval fixtures、specialization audit expected terms、materializer tests、该 subject 可通过 npm 安装时的 npm payload tests，以及该 subject 有 Desktop/Web artifact 时的 release validation。
+开发或加深一个 subject 时，需要同步更新 `subjects/catalog.yaml`、subject overlays、subject-specific registry and markdown、选定的 domain and venue profiles、subject eval fixtures、specialization audit expected terms、materializer tests、基于 staged materialization 的 npm package contract tests（当该 subject 可通过 npm 安装时），以及该 subject 有 Desktop/Web artifact 时的 release validation。
 
 ---
 
