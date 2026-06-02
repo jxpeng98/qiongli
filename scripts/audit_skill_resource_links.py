@@ -1,67 +1,26 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import argparse
-import re
-from dataclasses import dataclass
+import runpy
+import sys
+from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
-
-RESOURCE_LINK_PATTERN = re.compile(
-    r"`((?:references|templates|workflows|skills|standards|roles|venue-profiles)/[^`\n]+?)`"
-)
-IGNORED_MARKERS = ("<", ">", "*", "[", "]", "...")
-
-
-@dataclass(frozen=True)
-class MissingResourceLink:
-    source: str
-    target: str
-
-
-def _is_literal_resource_path(path: str) -> bool:
-    if path.endswith("/"):
-        return False
-    return not any(marker in path for marker in IGNORED_MARKERS)
-
-
-def audit_package_resource_links(package_dir: Path) -> list[MissingResourceLink]:
-    package_dir = package_dir.resolve()
-    missing: list[MissingResourceLink] = []
-    for markdown_path in sorted(package_dir.rglob("*.md")):
-        if any(part in {".git", "node_modules", "__pycache__"} for part in markdown_path.parts):
-            continue
-        content = markdown_path.read_text(encoding="utf-8")
-        for match in RESOURCE_LINK_PATTERN.finditer(content):
-            target = match.group(1).strip()
-            if not _is_literal_resource_path(target):
-                continue
-            if not (package_dir / target).exists():
-                missing.append(
-                    MissingResourceLink(
-                        source=str(markdown_path.relative_to(package_dir)),
-                        target=target,
-                    )
-                )
-    return missing
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Audit qiongli skill package markdown resource links."
-    )
-    parser.add_argument("package_dir", type=Path)
-    args = parser.parse_args()
-
-    missing = audit_package_resource_links(args.package_dir)
-    for item in missing:
-        print(f"[FAIL] {item.source} -> {item.target}")
-    if missing:
-        print(f"Missing resource links: {len(missing)}")
-        return 1
-    print("[PASS] All resource links resolve")
-    return 0
-
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+_TARGET = _REPO_ROOT / "tooling" / "scripts" / Path(__file__).name
+for _import_root in (_TARGET.parent, _REPO_ROOT / "packages" / "python-qiongli" / "src", _REPO_ROOT):
+    if str(_import_root) not in sys.path:
+        sys.path.insert(0, str(_import_root))
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    runpy.run_path(str(_TARGET), run_name="__main__")
+else:
+    _spec = spec_from_file_location(f"_qiongli_tooling_scripts_{Path(__file__).stem}", _TARGET)
+    if _spec is None or _spec.loader is None:
+        raise ImportError(f"Unable to load {_TARGET}")
+    _module = module_from_spec(_spec)
+    sys.modules[_spec.name] = _module
+    _spec.loader.exec_module(_module)
+    for _name, _value in vars(_module).items():
+        if _name not in {"__name__", "__package__", "__loader__", "__spec__"}:
+            globals()[_name] = _value

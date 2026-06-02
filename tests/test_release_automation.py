@@ -3,18 +3,21 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-RELEASE_AUTOMATION = REPO_ROOT / "scripts" / "release_automation.sh"
-RELEASE_READY = REPO_ROOT / "scripts" / "release_ready.sh"
-RELEASE_PREFLIGHT = REPO_ROOT / "scripts" / "release_preflight.sh"
-RELEASE_POSTFLIGHT = REPO_ROOT / "scripts" / "release_postflight.sh"
-PYPI_PREFLIGHT = REPO_ROOT / "scripts" / "pypi_preflight.sh"
+LAYOUT = RepoLayout(REPO_ROOT)
+RELEASE_AUTOMATION = LAYOUT.scripts / "release_automation.sh"
+RELEASE_READY = LAYOUT.scripts / "release_ready.sh"
+RELEASE_PREFLIGHT = LAYOUT.scripts / "release_preflight.sh"
+RELEASE_POSTFLIGHT = LAYOUT.scripts / "release_postflight.sh"
+PYPI_PREFLIGHT = LAYOUT.scripts / "pypi_preflight.sh"
 RELEASE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-automation.yml"
 PUBLISH_PYPI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-pypi.yml"
 PUBLISH_NPM_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-npm.yml"
-VERIFY_RELEASE_TAG = REPO_ROOT / "scripts" / "verify_release_tag_version.sh"
-CHANGELOG_SECTION = REPO_ROOT / "scripts" / "changelog_section.py"
+VERIFY_RELEASE_TAG = LAYOUT.scripts / "verify_release_tag_version.sh"
+CHANGELOG_SECTION = LAYOUT.scripts / "changelog_section.py"
 RELEASE_AUTOMATION_DOC = REPO_ROOT / "tooling" / "release" / "automation.md"
 PUBLISH_PYPI_DOC = REPO_ROOT / "docs" / "advanced" / "publish-pypi.md"
 PUBLISH_PYPI_ZH_DOC = REPO_ROOT / "docs" / "zh" / "advanced" / "publish-pypi.md"
@@ -355,7 +358,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertLess(content.index(materialize), content.index(build))
 
     def test_npm_preflight_accepts_staging_root(self) -> None:
-        content = (REPO_ROOT / "scripts" / "npm_preflight.sh").read_text(encoding="utf-8")
+        content = (LAYOUT.scripts / "npm_preflight.sh").read_text(encoding="utf-8")
 
         self.assertIn("--root <dir>", content)
         self.assertIn('ROOT_DIR="$(cd "$2" && pwd)"', content)
@@ -384,7 +387,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('Path(args.output).write_text(section, encoding="utf-8")', content)
 
     def test_prerelease_note_generator_points_to_publish_mode(self) -> None:
-        content = (REPO_ROOT / "scripts" / "generate_release_notes.sh").read_text(encoding="utf-8")
+        content = (LAYOUT.scripts / "generate_release_notes.sh").read_text(encoding="utf-8")
 
         self.assertIn('PUBLISH_CMD="./scripts/release_automation.sh publish --tag ${TAG} --skip-bump"', content)
         self.assertNotIn('PUBLISH_CMD="./scripts/release_automation.sh publish --version ${VERSION_HINT} --skip-bump"', content)

@@ -1,25 +1,26 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from pathlib import Path
+import runpy
 import sys
+from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-PYTHON_SOURCE_ROOT = REPO_ROOT / "packages" / "python-qiongli" / "src"
-for import_root in (PYTHON_SOURCE_ROOT, REPO_ROOT):
-    if str(import_root) not in sys.path:
-        sys.path.insert(0, str(import_root))
-
-from qiongli.workflow_contract_doc import generate_workflow_contract_reference
-from qiongli.source_layout import RepoLayout
-
-
-def main() -> int:
-    target = RepoLayout(REPO_ROOT).workflow / "references" / "workflow-contract.md"
-    target.write_text(generate_workflow_contract_reference(REPO_ROOT), encoding="utf-8")
-    print(f"[WRITE] {target.relative_to(REPO_ROOT)}")
-    return 0
-
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+_TARGET = _REPO_ROOT / "tooling" / "scripts" / Path(__file__).name
+for _import_root in (_TARGET.parent, _REPO_ROOT / "packages" / "python-qiongli" / "src", _REPO_ROOT):
+    if str(_import_root) not in sys.path:
+        sys.path.insert(0, str(_import_root))
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    runpy.run_path(str(_TARGET), run_name="__main__")
+else:
+    _spec = spec_from_file_location(f"_qiongli_tooling_scripts_{Path(__file__).stem}", _TARGET)
+    if _spec is None or _spec.loader is None:
+        raise ImportError(f"Unable to load {_TARGET}")
+    _module = module_from_spec(_spec)
+    sys.modules[_spec.name] = _module
+    _spec.loader.exec_module(_module)
+    for _name, _value in vars(_module).items():
+        if _name not in {"__name__", "__package__", "__loader__", "__spec__"}:
+            globals()[_name] = _value

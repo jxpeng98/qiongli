@@ -1,61 +1,26 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import argparse
+import runpy
 import sys
+from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-PYTHON_SOURCE_ROOT = REPO_ROOT / "packages" / "python-qiongli" / "src"
-for import_root in (PYTHON_SOURCE_ROOT, REPO_ROOT):
-    if str(import_root) not in sys.path:
-        sys.path.insert(0, str(import_root))
-
-from qiongli.subject_materializer import (  # noqa: E402
-    MaterializeOptions,
-    SubjectCatalogError,
-    SubjectMaterializationError,
-    materialize_subject_package,
-)
-
-
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Materialize a Qiongli subject-specific skill package.")
-    parser.add_argument("--subject", default="core", help="Subject id to materialize (default: core).")
-    parser.add_argument("--source", type=Path, default=REPO_ROOT, help="Repository or bundled payload root.")
-    parser.add_argument("--out", type=Path, required=True, help="Output package directory.")
-    parser.add_argument("--flavor", choices=("full", "desktop"), default="full", help="Output package flavor.")
-    parser.add_argument(
-        "--coverage",
-        choices=("complete", "focused"),
-        default="complete",
-        help="Subject coverage to materialize (default: complete).",
-    )
-    parser.add_argument(
-        "--custom-dir",
-        type=Path,
-        help="Optional local customization directory applied only to this materialized output.",
-    )
-    args = parser.parse_args(argv)
-
-    try:
-        materialize_subject_package(
-            MaterializeOptions(
-                source=args.source,
-                out=args.out,
-                subject=args.subject,
-                flavor=args.flavor,
-                coverage=args.coverage,
-                custom_dir=args.custom_dir,
-            )
-        )
-    except (SubjectCatalogError, SubjectMaterializationError) as exc:
-        print(f"[materialize-subject] {exc}", file=sys.stderr)
-        return 2
-
-    print(f"[materialize-subject] {args.subject} -> {args.out}")
-    return 0
-
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+_TARGET = _REPO_ROOT / "tooling" / "scripts" / Path(__file__).name
+for _import_root in (_TARGET.parent, _REPO_ROOT / "packages" / "python-qiongli" / "src", _REPO_ROOT):
+    if str(_import_root) not in sys.path:
+        sys.path.insert(0, str(_import_root))
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    runpy.run_path(str(_TARGET), run_name="__main__")
+else:
+    _spec = spec_from_file_location(f"_qiongli_tooling_scripts_{Path(__file__).stem}", _TARGET)
+    if _spec is None or _spec.loader is None:
+        raise ImportError(f"Unable to load {_TARGET}")
+    _module = module_from_spec(_spec)
+    sys.modules[_spec.name] = _module
+    _spec.loader.exec_module(_module)
+    for _name, _value in vars(_module).items():
+        if _name not in {"__name__", "__package__", "__loader__", "__spec__"}:
+            globals()[_name] = _value

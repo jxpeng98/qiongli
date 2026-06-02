@@ -11,7 +11,7 @@ from qiongli.source_layout import RepoLayout
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SYNC_VERSIONS_PATH = REPO_ROOT / "scripts" / "sync_versions.py"
+SYNC_VERSIONS_PATH = RepoLayout(REPO_ROOT).scripts / "sync_versions.py"
 SPEC = importlib.util.spec_from_file_location("sync_versions_module", SYNC_VERSIONS_PATH)
 assert SPEC is not None and SPEC.loader is not None
 sync_versions_module = importlib.util.module_from_spec(SPEC)

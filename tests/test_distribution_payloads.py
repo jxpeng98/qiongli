@@ -13,8 +13,8 @@ from qiongli.source_layout import RepoLayout
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LAYOUT = RepoLayout(REPO_ROOT)
-AUDIT_PATH = REPO_ROOT / "scripts" / "audit_distribution_payloads.py"
-MATERIALIZER_PATH = REPO_ROOT / "scripts" / "materialize_distribution_payloads.py"
+AUDIT_PATH = LAYOUT.scripts / "audit_distribution_payloads.py"
+MATERIALIZER_PATH = LAYOUT.scripts / "materialize_distribution_payloads.py"
 
 
 def _load_audit_module():

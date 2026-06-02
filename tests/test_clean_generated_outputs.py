@@ -7,10 +7,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-CLEANER_PATH = REPO_ROOT / "scripts" / "clean_generated_outputs.py"
-PATHS_PATH = REPO_ROOT / "scripts" / "generated_output_paths.py"
+LAYOUT = RepoLayout(REPO_ROOT)
+CLEANER_PATH = LAYOUT.scripts / "clean_generated_outputs.py"
+PATHS_PATH = LAYOUT.scripts / "generated_output_paths.py"
 
 
 def _load_paths_module():

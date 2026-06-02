@@ -11,7 +11,7 @@ from qiongli.source_layout import RepoLayout
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-BUILD_ARTIFACTS_PATH = REPO_ROOT / "scripts" / "build_plugin_artifacts.py"
+BUILD_ARTIFACTS_PATH = RepoLayout(REPO_ROOT).scripts / "build_plugin_artifacts.py"
 
 
 def _load_build_artifacts_module():

@@ -134,7 +134,9 @@ class RepoLayout:
 
     @property
     def scripts(self) -> Path:
-        return self.root / "scripts"
+        path = self.tooling / "scripts"
+        legacy_path = self.root / "scripts"
+        return path if path.exists() else legacy_path
 
     @property
     def tooling(self) -> Path:

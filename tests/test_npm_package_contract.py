@@ -12,9 +12,9 @@ from qiongli.source_layout import RepoLayout
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-NPM_PACKAGE_ROOT = REPO_ROOT / "packages" / "npm-qiongli"
-MATERIALIZER = REPO_ROOT / "scripts" / "materialize_distribution_payloads.py"
 LAYOUT = RepoLayout(REPO_ROOT)
+NPM_PACKAGE_ROOT = REPO_ROOT / "packages" / "npm-qiongli"
+MATERIALIZER = LAYOUT.scripts / "materialize_distribution_payloads.py"
 
 
 class NpmPackageContractTests(unittest.TestCase):
@@ -198,7 +198,7 @@ class NpmPackageContractTests(unittest.TestCase):
         self.assertNotIn("qiongli@beta", docs)
 
     def test_npm_preflight_packs_from_package_directory_with_temp_cache(self) -> None:
-        preflight = (REPO_ROOT / "scripts" / "npm_preflight.sh").read_text(encoding="utf-8")
+        preflight = (LAYOUT.scripts / "npm_preflight.sh").read_text(encoding="utf-8")
 
         self.assertIn('NPM_CACHE="${NPM_CONFIG_CACHE:-${TMPDIR:-/tmp}/qiongli-npm-cache}"', preflight)
         self.assertIn('NPM_CONFIG_CACHE="$NPM_CACHE" npm --prefix "$PKG_DIR" test', preflight)
@@ -206,10 +206,10 @@ class NpmPackageContractTests(unittest.TestCase):
         self.assertNotIn('npm --prefix "$PKG_DIR" pack --dry-run', preflight)
 
     def test_sync_npm_payload_bootstraps_repo_imports_before_package_install(self) -> None:
-        sync_script = (REPO_ROOT / "scripts" / "sync_npm_package_payload.py").read_text(encoding="utf-8")
+        sync_script = (LAYOUT.scripts / "sync_npm_package_payload.py").read_text(encoding="utf-8")
 
         self.assertIn("import sys", sync_script)
-        self.assertIn("REPO_ROOT = Path(__file__).resolve().parents[1]", sync_script)
+        self.assertIn("REPO_ROOT = Path(__file__).resolve().parents[2]", sync_script)
         self.assertIn('PYTHON_SOURCE_ROOT = REPO_ROOT / "packages" / "python-qiongli" / "src"', sync_script)
         self.assertIn("sys.path.insert(0, str(import_root))", sync_script)
         self.assertLess(sync_script.index("sys.path.insert(0, str(import_root))"), sync_script.index("from qiongli.subject_materializer"))

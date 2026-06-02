@@ -8,9 +8,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-GUARD_PATH = REPO_ROOT / "scripts" / "check_generated_payload_edits.py"
+LAYOUT = RepoLayout(REPO_ROOT)
+GUARD_PATH = LAYOUT.scripts / "check_generated_payload_edits.py"
 
 
 def _load_guard_module():

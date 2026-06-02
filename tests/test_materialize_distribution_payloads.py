@@ -7,11 +7,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-MATERIALIZER_PATH = REPO_ROOT / "scripts" / "materialize_distribution_payloads.py"
-SYNC_SKILL_PACKAGE = REPO_ROOT / "scripts" / "sync_skill_package.sh"
-SYNC_NPM_PAYLOAD = REPO_ROOT / "scripts" / "sync_npm_package_payload.py"
+LAYOUT = RepoLayout(REPO_ROOT)
+MATERIALIZER_PATH = LAYOUT.scripts / "materialize_distribution_payloads.py"
+SYNC_SKILL_PACKAGE = LAYOUT.scripts / "sync_skill_package.sh"
+SYNC_NPM_PAYLOAD = LAYOUT.scripts / "sync_npm_package_payload.py"
 
 
 def _load_materializer_module():
