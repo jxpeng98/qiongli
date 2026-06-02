@@ -70,6 +70,18 @@ output-free, while release artifacts keep the same installed structure by
 materializing payloads during local checks, CI, release staging, and package
 publishing.
 
+If local maintenance creates in-place outputs, preview cleanup first:
+
+```bash
+python scripts/clean_generated_outputs.py --dry-run
+```
+
+Then remove only ignored generated output paths:
+
+```bash
+python scripts/clean_generated_outputs.py --apply
+```
+
 ## Adding a new skill
 
 Use the root `skills/` tree as the source of truth.

@@ -10,6 +10,11 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from generated_output_paths import is_generated_output_path
 
 EXCLUDED_NAMES = {
     ".git",
@@ -22,29 +27,9 @@ EXCLUDED_NAMES = {
     "node_modules",
 }
 
-MATERIALIZED_OUTPUT_PREFIXES = (
-    "qiongli/payload",
-    "packages/npm-qiongli/payload",
-    "packages/npm-qiongli/python-runtime",
-    "plugins/qiongli/skills/qiongli-workflow",
-    "qiongli-workflow/skills",
-    "qiongli-workflow/templates",
-    "qiongli-workflow/standards",
-    "qiongli-workflow/roles",
-    "qiongli-workflow/venue-profiles",
-)
-
-MATERIALIZED_OUTPUT_FILES = {
-    "qiongli-workflow/skills-core.md",
-    "qiongli-workflow/skills-summary.md",
-}
-
 
 def is_materialized_output_path(path: Path | str) -> bool:
-    rel = Path(path).as_posix().lstrip("./")
-    return rel in MATERIALIZED_OUTPUT_FILES or any(
-        rel == prefix or rel.startswith(f"{prefix}/") for prefix in MATERIALIZED_OUTPUT_PREFIXES
-    )
+    return is_generated_output_path(path)
 
 
 def copy_source_tree(source: Path, dest: Path) -> None:
