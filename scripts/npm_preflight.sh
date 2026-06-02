@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+PREFLIGHT_ROOT=""
+PREFLIGHT_IN_PLACE=0
 NPM_CACHE="${NPM_CONFIG_CACHE:-${TMPDIR:-/tmp}/qiongli-npm-cache}"
 
 usage() {
@@ -11,6 +13,8 @@ Usage:
 
 Options:
   --root <dir>  Repository root to check. Defaults to this script's checkout.
+  --in-place    Materialize generated payloads in --root. Use only for
+                explicit release maintenance.
   -h, --help    Show this message.
 EOF
 }
@@ -21,6 +25,10 @@ while [[ $# -gt 0 ]]; do
       [[ $# -ge 2 ]] || { echo "[npm-preflight] missing value for --root" >&2; exit 2; }
       ROOT_DIR="$(cd "$2" && pwd)"
       shift 2
+      ;;
+    --in-place)
+      PREFLIGHT_IN_PLACE=1
+      shift
       ;;
     -h|--help)
       usage
@@ -34,13 +42,27 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if [[ "$PREFLIGHT_IN_PLACE" -eq 1 ]]; then
+  PREFLIGHT_ROOT="$ROOT_DIR"
+else
+  PREFLIGHT_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/qiongli-npm-preflight-root.XXXXXX")"
+fi
+
 PKG_DIR="$ROOT_DIR/packages/npm-qiongli"
 
 cd "$ROOT_DIR"
 mkdir -p "$NPM_CACHE"
 
 echo "[npm-preflight] materialize distribution payloads"
-python3 scripts/materialize_distribution_payloads.py --target all --in-place
+if [[ "$PREFLIGHT_IN_PLACE" -eq 1 ]]; then
+  echo "[npm-preflight] in-place materialization requires explicit --in-place"
+  python3 scripts/materialize_distribution_payloads.py --target all --in-place
+else
+  python3 scripts/materialize_distribution_payloads.py --target all --out "$PREFLIGHT_ROOT" --force
+fi
+
+cd "$PREFLIGHT_ROOT"
+PKG_DIR="$PREFLIGHT_ROOT/packages/npm-qiongli"
 
 echo "[npm-preflight] running node tests"
 NPM_CONFIG_CACHE="$NPM_CACHE" npm --prefix "$PKG_DIR" test

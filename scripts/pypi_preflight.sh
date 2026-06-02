@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+PREFLIGHT_ROOT=""
+PREFLIGHT_IN_PLACE=0
 RUN_BUILD=1
 RUN_INSTALL_SMOKE=1
 KEEP_DIST=0
@@ -37,6 +39,8 @@ Checks:
 
 Options:
   --root <dir>      Repository root to check. Defaults to this script's checkout.
+  --in-place        Materialize generated payloads in --root. Use only for
+                    explicit release maintenance.
   --no-build         Skip build step (expects artifacts in dist/)
   --no-install-smoke Skip temporary venv install + CLI smoke checks
   --keep-dist        Do not delete existing dist/ before build
@@ -50,6 +54,10 @@ while [[ $# -gt 0 ]]; do
       [[ $# -ge 2 ]] || { echo "[pypi-preflight] missing value for --root" >&2; exit 2; }
       ROOT_DIR="$(cd "$2" && pwd)"
       shift 2
+      ;;
+    --in-place)
+      PREFLIGHT_IN_PLACE=1
+      shift
       ;;
     --no-build)
       RUN_BUILD=0
@@ -75,21 +83,33 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-cd "$ROOT_DIR"
-
 if [[ "$RUN_BUILD" -eq 1 ]]; then
   require_python_module build build
 fi
 require_python_module twine twine
+
+if [[ "$PREFLIGHT_IN_PLACE" -eq 1 ]]; then
+  PREFLIGHT_ROOT="$ROOT_DIR"
+else
+  PREFLIGHT_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/qiongli-pypi-preflight-root.XXXXXX")"
+fi
+
+cd "$ROOT_DIR"
+echo "[pypi-preflight] materialize distribution payloads"
+if [[ "$PREFLIGHT_IN_PLACE" -eq 1 ]]; then
+  echo "[pypi-preflight] in-place materialization requires explicit --in-place"
+  python3 scripts/materialize_distribution_payloads.py --target all --in-place
+else
+  python3 scripts/materialize_distribution_payloads.py --target all --out "$PREFLIGHT_ROOT" --force
+fi
+
+cd "$PREFLIGHT_ROOT"
 
 if [[ "$RUN_BUILD" -eq 1 ]]; then
   if [[ "$KEEP_DIST" -eq 0 ]]; then
     echo "[pypi-preflight] cleaning dist/"
     rm -rf dist
   fi
-
-  echo "[pypi-preflight] materialize distribution payloads"
-  python3 scripts/materialize_distribution_payloads.py --target all --in-place
 
   echo "[pypi-preflight] building package"
   python3 -m build
