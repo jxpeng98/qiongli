@@ -7,8 +7,9 @@ from qiongli.source_layout import RepoLayout
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-WORKFLOW_DIR = RepoLayout(REPO_ROOT).workflow / "workflows"
-COMMAND_DIR = REPO_ROOT / "plugins" / "qiongli" / "commands"
+LAYOUT = RepoLayout(REPO_ROOT)
+WORKFLOW_DIR = LAYOUT.workflow / "workflows"
+COMMAND_DIR = LAYOUT.plugin_package / "commands"
 
 
 class CommandWorkflowAlignmentTests(unittest.TestCase):

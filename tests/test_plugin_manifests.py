@@ -12,7 +12,7 @@ from qiongli.source_layout import RepoLayout
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LAYOUT = RepoLayout(REPO_ROOT)
-PLUGIN_ROOT = REPO_ROOT / "plugins" / "qiongli"
+PLUGIN_ROOT = LAYOUT.plugin_package
 CODEX_PLUGIN_MANIFEST = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
 CLAUDE_PLUGIN_MANIFEST = PLUGIN_ROOT / ".claude-plugin" / "plugin.json"
 GEMINI_EXTENSION_MANIFEST = PLUGIN_ROOT / "gemini-extension.json"

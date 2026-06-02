@@ -36,9 +36,9 @@ class QiongliNamingTests(unittest.TestCase):
         self.assertNotIn("pipx upgrade qiongli-installer", cli_source)
 
     def test_plugin_manifests_use_qiongli_public_identity(self) -> None:
-        codex_manifest = json.loads((REPO_ROOT / "plugins" / "qiongli" / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        claude_manifest = json.loads((REPO_ROOT / "plugins" / "qiongli" / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        gemini_manifest = json.loads((REPO_ROOT / "plugins" / "qiongli" / "gemini-extension.json").read_text(encoding="utf-8"))
+        codex_manifest = json.loads((LAYOUT.plugin_package / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        claude_manifest = json.loads((LAYOUT.plugin_package / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        gemini_manifest = json.loads((LAYOUT.plugin_package / "gemini-extension.json").read_text(encoding="utf-8"))
 
         for manifest in (codex_manifest, claude_manifest, gemini_manifest):
             self.assertEqual(manifest["name"], "qiongli")
@@ -74,7 +74,7 @@ class QiongliNamingTests(unittest.TestCase):
         self.assertNotIn("name: research-paper-workflow", skill_text)
         self.assertIn("name: qiongli\n", plugin_skill_text)
 
-        manifest = (REPO_ROOT / "install" / "install_manifest.tsv").read_text(encoding="utf-8")
+        manifest = (LAYOUT.install / "install_manifest.tsv").read_text(encoding="utf-8")
         self.assertIn("qiongli-workflow\t${CODEX_HOME}/skills/qiongli-workflow", manifest)
         self.assertNotIn("research-paper-workflow\t${CODEX_HOME}/skills/research-paper-workflow", manifest)
 

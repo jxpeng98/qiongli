@@ -10,7 +10,7 @@ from qiongli.source_layout import RepoLayout
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LAYOUT = RepoLayout(REPO_ROOT)
-MANIFEST_PATH = REPO_ROOT / "install" / "install_manifest.tsv"
+MANIFEST_PATH = LAYOUT.install / "install_manifest.tsv"
 PACKAGED_MANIFEST_PATH = LAYOUT.python_package / "install_manifest.tsv"
 SYNC_DIRS = ("skills", "templates", "standards", "roles", "venue-profiles")
 SYNC_FILES = ("skills-core.md", "skills-summary.md")

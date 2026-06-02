@@ -189,7 +189,7 @@ class NpmPackageContractTests(unittest.TestCase):
             [
                 (REPO_ROOT / "README.md").read_text(encoding="utf-8"),
                 (REPO_ROOT / "README_CN.md").read_text(encoding="utf-8"),
-                (REPO_ROOT / "guides" / "basic" / "install-multi-client.md").read_text(encoding="utf-8"),
+                (REPO_ROOT / "docs" / "guide" / "install.md").read_text(encoding="utf-8"),
                 (NPM_PACKAGE_ROOT / "README.md").read_text(encoding="utf-8"),
             ]
         )
