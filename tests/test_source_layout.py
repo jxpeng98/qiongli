@@ -39,6 +39,8 @@ class SourceLayoutTests(unittest.TestCase):
         expected_dirs = (
             layout.python_package,
             layout.research_skills_package,
+            layout.bridges_package,
+            layout.bridges_compat_package,
             layout.npm_package,
             layout.plugin_package,
             layout.literature_mcpb_package,
@@ -57,7 +59,7 @@ class SourceLayoutTests(unittest.TestCase):
     def test_materialized_output_roots_are_named(self) -> None:
         layout = RepoLayout(REPO_ROOT)
 
-        self.assertIn(Path("qiongli/payload"), layout.generated_output_roots)
+        self.assertIn(Path("packages/python-qiongli/src/qiongli/payload"), layout.generated_output_roots)
         self.assertIn(Path("packages/npm-qiongli/payload"), layout.generated_output_roots)
         self.assertIn(Path("plugins/qiongli/skills/qiongli-workflow"), layout.generated_output_roots)
         self.assertIn(Path("qiongli-workflow"), layout.generated_output_roots)

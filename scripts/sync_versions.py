@@ -8,8 +8,10 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+PYTHON_SOURCE_ROOT = REPO_ROOT / "packages" / "python-qiongli" / "src"
+for import_root in (PYTHON_SOURCE_ROOT, REPO_ROOT):
+    if str(import_root) not in sys.path:
+        sys.path.insert(0, str(import_root))
 
 from qiongli.source_layout import RepoLayout
 
@@ -111,7 +113,7 @@ def sync_versions(root: Path, raw_version: str) -> list[Path]:
             f'version = "{package_version}"',
         ),
         (
-            root / "qiongli" / "__init__.py",
+            layout.python_package / "__init__.py",
             re.compile(r'^__version__ = "[^"]+"$', re.MULTILINE),
             f'__version__ = "{package_version}"',
         ),

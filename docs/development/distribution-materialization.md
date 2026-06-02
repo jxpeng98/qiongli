@@ -49,7 +49,7 @@ materialized only for validation or packaging.
 Do not edit materialized copies directly. They are generated from canonical
 source during local checks, CI, release staging, and package publishing.
 
-- `qiongli/payload/`
+- `packages/python-qiongli/src/qiongli/payload/`
 - `packages/npm-qiongli/payload/`
 - `packages/npm-qiongli/python-runtime/`
 - `plugins/qiongli/skills/qiongli-workflow/`
@@ -107,7 +107,7 @@ Use the root `skills/` tree as the source of truth.
 5. Run materialization checks locally if the change affects installable
    packages.
 
-Do not edit materialized copies under `qiongli/payload/`,
+Do not edit materialized copies under `packages/python-qiongli/src/qiongli/payload/`,
 `packages/npm-qiongli/payload/`, `packages/npm-qiongli/python-runtime/`,
 `plugins/qiongli/skills/qiongli-workflow/`, or mirrored directories under
 `qiongli-workflow/`.

@@ -31,7 +31,7 @@ def _init_git_repo(repo: Path, *, ignore_generated: bool = True) -> None:
         (repo / ".gitignore").write_text(
             "\n".join(
                 [
-                    "/qiongli/payload/",
+                    "/packages/python-qiongli/src/qiongli/payload/",
                     "/packages/npm-qiongli/payload/",
                     "/packages/npm-qiongli/python-runtime/",
                     "/plugins/qiongli/skills/qiongli-workflow/",

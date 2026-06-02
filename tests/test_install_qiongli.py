@@ -10,6 +10,7 @@ from qiongli.source_layout import RepoLayout
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+LAYOUT = RepoLayout(REPO_ROOT)
 INSTALL_SCRIPT = REPO_ROOT / "scripts" / "install_qiongli.sh"
 SYSTEM_BASH = Path("/bin/bash")
 
@@ -69,10 +70,11 @@ class InstallQiongliTests(unittest.TestCase):
         content = INSTALL_SCRIPT.read_text(encoding="utf-8")
 
         self.assertIn('doctor_cmd() {', content)
+        self.assertIn('local python_source_root="$ROOT_DIR/packages/python-qiongli/src"', content)
         self.assertIn('PYTHONPATH="$pythonpath" python3 -m bridges.orchestrator "$@"', content)
 
     def test_full_profile_python_hint_does_not_prefer_mise(self) -> None:
-        content = (REPO_ROOT / "qiongli" / "universal_installer.py").read_text(encoding="utf-8")
+        content = (LAYOUT.python_package / "universal_installer.py").read_text(encoding="utf-8")
 
         self.assertIn("install Python >= 3.12", content)
         self.assertIn("python.org/downloads", content)

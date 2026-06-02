@@ -70,7 +70,7 @@ class DistributionMaterializerTests(unittest.TestCase):
             generated = source / "packages/npm-qiongli/payload/qiongli-workflow/SKILL.md"
             generated.parent.mkdir(parents=True)
             generated.write_text("generated\n", encoding="utf-8")
-            python_payload = source / "qiongli/payload/qiongli-workflow/SKILL.md"
+            python_payload = source / "packages/python-qiongli/src/qiongli/payload/qiongli-workflow/SKILL.md"
             python_payload.parent.mkdir(parents=True)
             python_payload.write_text("generated\n", encoding="utf-8")
             plugin_payload = source / "plugins/qiongli/skills/qiongli-workflow/SKILL.md"
@@ -81,7 +81,7 @@ class DistributionMaterializerTests(unittest.TestCase):
 
             self.assertTrue((dest / "skills" / "registry.yaml").is_file())
             self.assertFalse((dest / "packages/npm-qiongli/payload").exists())
-            self.assertFalse((dest / "qiongli/payload").exists())
+            self.assertFalse((dest / "packages/python-qiongli/src/qiongli/payload").exists())
             self.assertFalse((dest / "plugins/qiongli/skills/qiongli-workflow").exists())
 
     def test_plugin_target_materializes_to_staging_without_touching_source(self) -> None:

@@ -30,7 +30,7 @@ class DistributionMaterializationDocsTests(unittest.TestCase):
             "`skills/`",
             "`templates/`",
             "`subjects/`",
-            "`qiongli/payload/`",
+            "`packages/python-qiongli/src/qiongli/payload/`",
             "`packages/npm-qiongli/payload/`",
             "`plugins/qiongli/skills/qiongli-workflow/`",
         ):

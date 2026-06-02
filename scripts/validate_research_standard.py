@@ -10,8 +10,10 @@ from pathlib import Path
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+PYTHON_SOURCE_ROOT = REPO_ROOT / "packages" / "python-qiongli" / "src"
+for import_root in (PYTHON_SOURCE_ROOT, REPO_ROOT):
+    if str(import_root) not in sys.path:
+        sys.path.insert(0, str(import_root))
 
 from qiongli.skill_docs import generate_skill_reference_docs
 from qiongli.source_layout import RepoLayout
@@ -142,8 +144,8 @@ CONTROLLER_MODE_REQUIRED_FILES = (
     "scripts/audit_agent_handoffs.py",
 )
 LITERATURE_FIRST_REQUIRED_FILES = (
-    "bridges/providers/literature_diagnostics.py",
-    "bridges/providers/literature_artifacts.py",
+    "packages/python-qiongli/src/qiongli/bridges/providers/literature_diagnostics.py",
+    "packages/python-qiongli/src/qiongli/bridges/providers/literature_artifacts.py",
     "scripts/audit_literature_search_quality.py",
     "scripts/materialize_literature_search_bundle.py",
     "qiongli-workflow/references/literature-search-quality-contract.md",
@@ -1963,7 +1965,7 @@ def validate_cross_platform_consistency(root: Path, report: ValidationReport) ->
 
 
 def validate_orchestrator(root: Path, report: ValidationReport) -> None:
-    content = read_text(root, "bridges/orchestrator.py", report)
+    content = read_text(root, "packages/python-qiongli/src/qiongli/bridges/orchestrator.py", report)
     if not content:
         return
     report.check(
@@ -2134,19 +2136,19 @@ def validate_guides(root: Path, report: ValidationReport) -> None:
 
 
 def validate_mcp_connector(root: Path, report: ValidationReport) -> None:
-    content = read_text(root, "bridges/mcp_connectors.py", report)
+    content = read_text(root, "packages/python-qiongli/src/qiongli/bridges/mcp_connectors.py", report)
     if not content:
         return
     for token in ("class MCPConnector", "class MCPEvidence", "RESEARCH_MCP_", "filesystem"):
         report.check(
             token in content,
             f"mcp_connectors.py includes {token}",
-            f"bridges/mcp_connectors.py missing token: {token}",
+            f"packages/python-qiongli/src/qiongli/bridges/mcp_connectors.py missing token: {token}",
         )
 
 
 def validate_claude_bridge(root: Path, report: ValidationReport) -> None:
-    content = read_text(root, "bridges/claude_bridge.py", report)
+    content = read_text(root, "packages/python-qiongli/src/qiongli/bridges/claude_bridge.py", report)
     if not content:
         return
     for token in (
@@ -2159,12 +2161,12 @@ def validate_claude_bridge(root: Path, report: ValidationReport) -> None:
         report.check(
             token in content,
             f"claude_bridge.py includes {token}",
-            f"bridges/claude_bridge.py missing token: {token}",
+            f"packages/python-qiongli/src/qiongli/bridges/claude_bridge.py missing token: {token}",
         )
 
 
 def validate_base_bridge(root: Path, report: ValidationReport) -> None:
-    content = read_text(root, "bridges/base_bridge.py", report)
+    content = read_text(root, "packages/python-qiongli/src/qiongli/bridges/base_bridge.py", report)
     if not content:
         return
     for token in (
@@ -2178,7 +2180,7 @@ def validate_base_bridge(root: Path, report: ValidationReport) -> None:
         report.check(
             token in content,
             f"base_bridge.py includes {token}",
-            f"bridges/base_bridge.py missing token: {token}",
+            f"packages/python-qiongli/src/qiongli/bridges/base_bridge.py missing token: {token}",
         )
 
 
@@ -2634,8 +2636,8 @@ def validate_literature_first_contracts(
     diagnostics_template = read_text(root, "templates/search-diagnostics.md", report)
     project_validator = read_text(root, "scripts/validate_project_artifacts.py", report)
     materializer = read_text(root, "scripts/materialize_literature_search_bundle.py", report)
-    artifact_writer = read_text(root, "bridges/providers/literature_artifacts.py", report)
-    diagnostics_builder = read_text(root, "bridges/providers/literature_diagnostics.py", report)
+    artifact_writer = read_text(root, "packages/python-qiongli/src/qiongli/bridges/providers/literature_artifacts.py", report)
+    diagnostics_builder = read_text(root, "packages/python-qiongli/src/qiongli/bridges/providers/literature_diagnostics.py", report)
     academic_searcher = read_text(root, "skills/B_literature/academic-searcher.md", report)
     snowballer = read_text(root, "skills/B_literature/citation-snowballer.md", report)
     screener = read_text(root, "skills/B_literature/paper-screener.md", report)

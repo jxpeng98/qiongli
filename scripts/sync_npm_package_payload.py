@@ -15,8 +15,10 @@ import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+PYTHON_SOURCE_ROOT = REPO_ROOT / "packages" / "python-qiongli" / "src"
+for import_root in (PYTHON_SOURCE_ROOT, REPO_ROOT):
+    if str(import_root) not in sys.path:
+        sys.path.insert(0, str(import_root))
 
 from qiongli.source_layout import RepoLayout
 from qiongli.subject_materializer import MaterializeOptions, materialize_subject_package, validate_subject_catalog
@@ -76,8 +78,8 @@ def sync_npm_payload(root: Path, *, dry_run: bool = False) -> None:
         sync_subject_payloads(root, payload_root, dry_run=dry_run, materialize_source=materialize_source)
 
     runtime_dirs = {
-        "bridges": root / "bridges",
-        "qiongli": root / "qiongli",
+        "bridges": layout.bridges_compat_package,
+        "qiongli": layout.python_package,
         "scripts": root / "scripts",
         "standards": layout.standards,
         "templates": layout.templates,
@@ -141,7 +143,7 @@ def build_materialize_source(root: Path, tmp_root: Path, *, dry_run: bool) -> Pa
 
 def sync_python_payload(root: Path, materialize_source: Path, *, dry_run: bool) -> None:
     layout = RepoLayout(root)
-    payload_root = root / "qiongli" / "payload"
+    payload_root = layout.python_package / "payload"
     payload_sources = {
         "qiongli-workflow": materialize_source / "qiongli-workflow",
         "skills": layout.skills,

@@ -5,12 +5,19 @@ import argparse
 import importlib.util
 import json
 import re
+import sys
 import tarfile
 import tempfile
 import warnings
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+PYTHON_SOURCE_ROOT = REPO_ROOT / "packages" / "python-qiongli" / "src"
+for import_root in (PYTHON_SOURCE_ROOT, REPO_ROOT):
+    if str(import_root) not in sys.path:
+        sys.path.insert(0, str(import_root))
 
 from build_plugin_artifacts import build_artifacts
 from qiongli.source_layout import RepoLayout

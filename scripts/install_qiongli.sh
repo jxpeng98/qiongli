@@ -240,9 +240,10 @@ has_python3() {
 }
 
 doctor_cmd() {
-  local pythonpath="$ROOT_DIR"
+  local python_source_root="$ROOT_DIR/packages/python-qiongli/src"
+  local pythonpath="$python_source_root:$ROOT_DIR"
   if [[ -n "${PYTHONPATH:-}" ]]; then
-    pythonpath="$ROOT_DIR:$PYTHONPATH"
+    pythonpath="$pythonpath:$PYTHONPATH"
   fi
   PYTHONPATH="$pythonpath" python3 -m bridges.orchestrator "$@"
 }

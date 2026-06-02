@@ -11,8 +11,10 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_DIR = Path(__file__).resolve().parent
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
+PYTHON_SOURCE_ROOT = REPO_ROOT / "packages" / "python-qiongli" / "src"
+for import_root in (PYTHON_SOURCE_ROOT, SCRIPT_DIR, REPO_ROOT):
+    if str(import_root) not in sys.path:
+        sys.path.insert(0, str(import_root))
 
 from generated_output_paths import is_generated_output_path
 
@@ -79,8 +81,10 @@ def run_command(command: list[str], *, cwd: Path) -> None:
 
 
 def materialize_python_payload(root: Path) -> None:
-    if str(root) not in sys.path:
-        sys.path.insert(0, str(root))
+    python_source_root = root / "packages" / "python-qiongli" / "src"
+    for import_root in (python_source_root, root):
+        if str(import_root) not in sys.path:
+            sys.path.insert(0, str(import_root))
     from scripts.sync_npm_package_payload import build_materialize_source, sync_python_payload
 
     with tempfile.TemporaryDirectory(prefix="qiongli-python-payload-source-") as tmp:
@@ -89,8 +93,10 @@ def materialize_python_payload(root: Path) -> None:
 
 
 def materialize_plugin_payload(root: Path) -> None:
-    if str(root) not in sys.path:
-        sys.path.insert(0, str(root))
+    python_source_root = root / "packages" / "python-qiongli" / "src"
+    for import_root in (python_source_root, root):
+        if str(import_root) not in sys.path:
+            sys.path.insert(0, str(import_root))
     from scripts.sync_npm_package_payload import build_materialize_source, copy_path, fail_if_symlinks
 
     with tempfile.TemporaryDirectory(prefix="qiongli-plugin-payload-source-") as tmp:

@@ -16,7 +16,7 @@ from pathlib import Path
 
 from . import __version__
 from .custom_subject import scaffold_custom_subject
-from .source_layout import RepoLayout
+from .source_layout import RepoLayout, discover_repo_root
 from .subject_materializer import SubjectCatalogError, SubjectMaterializationError
 from .universal_installer import (
     PART_CHOICES,
@@ -74,9 +74,19 @@ def _read_text(path: Path) -> str:
 
 
 def _find_repo_root(start: Path) -> Path | None:
-    for candidate in (start, *start.parents):
-        if (candidate / "standards" / "research-workflow-contract.yaml").exists():
+    current = start.resolve()
+    if current.is_file():
+        current = current.parent
+
+    for candidate in (current, *current.parents):
+        layout = RepoLayout(candidate)
+        if (layout.standards / "research-workflow-contract.yaml").exists():
             return candidate
+
+    try:
+        return discover_repo_root(current)
+    except ValueError:
+        pass
     return None
 
 
@@ -696,7 +706,11 @@ def _run_orchestrator_doctor(cwd: Path) -> int:
     repo_root = _find_repo_root(Path.cwd())
     if repo_root is not None:
         existing_pythonpath = env.get("PYTHONPATH", "")
-        env["PYTHONPATH"] = str(repo_root) if not existing_pythonpath else f"{repo_root}{os.pathsep}{existing_pythonpath}"
+        layout = RepoLayout(repo_root)
+        import_roots = (layout.python_source_root, repo_root)
+        env["PYTHONPATH"] = os.pathsep.join(
+            [*(str(root) for root in import_roots), *([existing_pythonpath] if existing_pythonpath else [])]
+        )
     result = subprocess.run(
         [sys.executable, "-m", "bridges.orchestrator", "doctor", "--cwd", str(cwd)],
         stdout=subprocess.PIPE,
@@ -794,6 +808,9 @@ def _packaged_payload_root() -> Path:
     package_payload = Path(__file__).resolve().parent / "payload"
     if (package_payload / "qiongli-workflow" / "SKILL.md").exists():
         return package_payload
+    repo_root = _find_repo_root(Path(__file__).resolve())
+    if repo_root is not None:
+        return repo_root
     return Path(__file__).resolve().parents[1]
 
 
@@ -836,7 +853,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
 
 def cmd_init(args: argparse.Namespace) -> int:
     project_dir = Path(args.project_dir).expanduser().resolve()
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = _packaged_payload_root()
     parts = _parse_parts_arg(getattr(args, "parts", None)) or ("project",)
     return install(
         InstallOptions(

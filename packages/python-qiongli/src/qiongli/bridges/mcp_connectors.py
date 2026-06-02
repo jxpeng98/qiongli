@@ -195,7 +195,13 @@ class MCPConnector:
 
     def _provider_native_script(self, provider: str) -> Path:
         safe_provider_name = provider.replace("-", "_")
-        return Path(__file__).resolve().parents[1] / "scripts" / f"mcp_{safe_provider_name}.py"
+        script_name = f"mcp_{safe_provider_name}.py"
+        current = Path(__file__).resolve()
+        for parent in current.parents:
+            candidate = parent / "scripts" / script_name
+            if candidate.exists():
+                return candidate
+        return current.parents[1] / "scripts" / script_name
 
     def resolve_provider(self, provider: str) -> MCPProviderResolution:
         env_name = self._provider_env_var(provider)

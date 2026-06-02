@@ -60,7 +60,7 @@ class DistributionPayloadTests(unittest.TestCase):
 
     def test_distribution_includes_specialized_subject_payloads(self) -> None:
         for payload_root in (
-            self.materialized_root / "qiongli" / "payload" / "subjects",
+            RepoLayout(self.materialized_root).python_package / "payload" / "subjects",
             self.materialized_root / "packages" / "npm-qiongli" / "payload" / "subjects",
         ):
             for subject in ("accounting", "business", "finance", "political-economy", "geoeconomics"):
@@ -114,7 +114,7 @@ class DistributionPayloadTests(unittest.TestCase):
     def test_audit_detects_stale_generated_subject_payload(self) -> None:
         for payload_root in (
             "packages/npm-qiongli/payload/subjects",
-            "qiongli/payload/subjects",
+            "packages/python-qiongli/src/qiongli/payload/subjects",
         ):
             with self.subTest(payload_root=payload_root), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)

@@ -254,7 +254,7 @@ case "$MODE" in
       pyproject.toml \
       docs/reference/skills.md \
       docs/zh/reference/skills.md \
-      qiongli/__init__.py \
+      packages/python-qiongli/src/qiongli/__init__.py \
       qiongli-workflow/VERSION \
       skills/registry.yaml \
       package-lock.json \

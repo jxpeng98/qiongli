@@ -112,14 +112,15 @@ class NpmPackageContractTests(unittest.TestCase):
             (workflow_root / "skills" / "registry.yaml").read_text(encoding="utf-8"),
         )
 
-        self.assertTrue((runtime_root / "bridges" / "orchestrator.py").is_file())
-        self.assertTrue((runtime_root / "bridges" / "providers" / "literature_search.py").is_file())
+        self.assertTrue((runtime_root / "bridges" / "__init__.py").is_file())
+        self.assertTrue((runtime_root / "qiongli" / "bridges" / "orchestrator.py").is_file())
+        self.assertTrue((runtime_root / "qiongli" / "bridges" / "providers" / "literature_search.py").is_file())
         self.assertTrue((runtime_root / "scripts" / "validate_project_artifacts.py").is_file())
         self.assertTrue((runtime_root / "qiongli" / "workflow_contract_doc.py").is_file())
         self.assertTrue((runtime_root / "standards" / "research-workflow-contract.yaml").is_file())
         self.assertTrue((runtime_root / "skills" / "registry.yaml").is_file())
         self.assertEqual(
-            (REPO_ROOT / "qiongli" / "__init__.py").read_text(encoding="utf-8"),
+            (LAYOUT.python_package / "__init__.py").read_text(encoding="utf-8"),
             (runtime_root / "qiongli" / "__init__.py").read_text(encoding="utf-8"),
         )
         self.assertEqual(
@@ -209,8 +210,9 @@ class NpmPackageContractTests(unittest.TestCase):
 
         self.assertIn("import sys", sync_script)
         self.assertIn("REPO_ROOT = Path(__file__).resolve().parents[1]", sync_script)
-        self.assertIn("sys.path.insert(0, str(REPO_ROOT))", sync_script)
-        self.assertLess(sync_script.index("sys.path.insert(0, str(REPO_ROOT))"), sync_script.index("from qiongli.subject_materializer"))
+        self.assertIn('PYTHON_SOURCE_ROOT = REPO_ROOT / "packages" / "python-qiongli" / "src"', sync_script)
+        self.assertIn("sys.path.insert(0, str(import_root))", sync_script)
+        self.assertLess(sync_script.index("sys.path.insert(0, str(import_root))"), sync_script.index("from qiongli.subject_materializer"))
 
 
 if __name__ == "__main__":

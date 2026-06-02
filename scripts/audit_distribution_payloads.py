@@ -5,9 +5,16 @@ import argparse
 import hashlib
 import json
 import shutil
+import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+PYTHON_SOURCE_ROOT = REPO_ROOT / "packages" / "python-qiongli" / "src"
+for import_root in (PYTHON_SOURCE_ROOT, REPO_ROOT):
+    if str(import_root) not in sys.path:
+        sys.path.insert(0, str(import_root))
 
 from qiongli.source_layout import RepoLayout
 from qiongli.subject_materializer import MaterializeOptions, materialize_subject_package, validate_subject_catalog
@@ -304,7 +311,7 @@ def audit(root: Path) -> list[AuditIssue]:
     npm_payload = root / "packages" / "npm-qiongli" / "payload" / "qiongli-workflow"
     npm_payload_subjects = root / "packages" / "npm-qiongli" / "payload" / "subjects"
     npm_runtime = root / "packages" / "npm-qiongli" / "python-runtime"
-    python_payload = root / "qiongli" / "payload"
+    python_payload = layout.python_package / "payload"
 
     issues: list[AuditIssue] = []
 
@@ -342,8 +349,8 @@ def audit(root: Path) -> list[AuditIssue]:
 
     for dir_name in NPM_RUNTIME_DIRS:
         runtime_sources = {
-            "bridges": root / "bridges",
-            "qiongli": root / "qiongli",
+            "bridges": layout.bridges_compat_package,
+            "qiongli": layout.python_package,
             "scripts": root / "scripts",
             "standards": layout.standards,
             "templates": layout.templates,

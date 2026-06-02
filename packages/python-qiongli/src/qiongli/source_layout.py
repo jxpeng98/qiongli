@@ -6,7 +6,7 @@ from pathlib import Path
 
 REPO_MARKERS = ("pyproject.toml", ".git")
 GENERATED_OUTPUT_ROOTS = (
-    Path("qiongli/payload"),
+    Path("packages/python-qiongli/src/qiongli/payload"),
     Path("packages/npm-qiongli/payload"),
     Path("packages/npm-qiongli/python-runtime"),
     Path("plugins/qiongli/skills/qiongli-workflow"),
@@ -89,12 +89,30 @@ class RepoLayout:
         return self._content_path("skills-summary.md")
 
     @property
+    def python_source_root(self) -> Path:
+        return self.root / "packages" / "python-qiongli" / "src"
+
+    @property
     def python_package(self) -> Path:
-        return self.root / "qiongli"
+        package_path = self.python_source_root / "qiongli"
+        legacy_path = self.root / "qiongli"
+        return package_path if package_path.exists() else legacy_path
 
     @property
     def research_skills_package(self) -> Path:
-        return self.root / "research_skills"
+        package_path = self.python_source_root / "research_skills"
+        legacy_path = self.root / "research_skills"
+        return package_path if package_path.exists() else legacy_path
+
+    @property
+    def bridges_package(self) -> Path:
+        package_path = self.python_package / "bridges"
+        legacy_path = self.root / "bridges"
+        return package_path if package_path.exists() else legacy_path
+
+    @property
+    def bridges_compat_package(self) -> Path:
+        return self.python_source_root / "bridges"
 
     @property
     def npm_package(self) -> Path:

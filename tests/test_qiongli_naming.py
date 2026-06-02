@@ -28,7 +28,7 @@ class QiongliNamingTests(unittest.TestCase):
         self.assertEqual(scripts["rsw"], "qiongli.cli:main")
 
     def test_pypi_version_check_uses_qiongli_distribution(self) -> None:
-        cli_source = (REPO_ROOT / "qiongli" / "cli.py").read_text(encoding="utf-8")
+        cli_source = (LAYOUT.python_package / "cli.py").read_text(encoding="utf-8")
 
         self.assertIn("https://pypi.org/pypi/qiongli/json", cli_source)
         self.assertIn("pipx upgrade qiongli", cli_source)
