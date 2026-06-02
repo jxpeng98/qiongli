@@ -124,12 +124,14 @@ soft 模式仍然会在 workflow 已完成且失败时退出；它只会在 CI �
 `publish` 会创建并 push 以 `v*` 开头的 release tag，例如 `v0.2.0` 或 `v0.2.0-beta.1`。这个 tag 会触发 `publish-pypi.yml`：
 
 1. Checkout 代码
-2. 运行 `inject_project_toml.sh`（把当前仓库 slug 写入 `qiongli/project.toml`）
-3. `python -m build` 构建 sdist + wheel
-4. `twine check` 验证包元数据
-5. 使用 Trusted Publisher 发布到 PyPI
+2. 在 checkout 中运行 `inject_project_toml.sh`，把当前仓库 slug 写入 `qiongli/project.toml`
+3. 将 release payload materialize 到 `$RUNNER_TEMP/qiongli-dist`
+4. 基于 staged root 验证 release tag
+5. 从 staged root 执行 `python -m build` 构建 sdist + wheel
+6. 运行 `twine check` 验证 staged package metadata
+7. 使用 Trusted Publisher 发布到 PyPI
 
-同一个 tag 也会触发 `publish-npm.yml`，它会校验 bundled npm package，并把 stable 版本发布到 `latest`，把 beta 版本发布到 `next`。
+同一个 tag 也会触发 `publish-npm.yml`，它会校验 staged bundled npm package，并把 stable 版本发布到 `latest`，把 beta 版本发布到 `next`。
 
 之后 postflight 会等待 release commit 上的 `CI` 和 `Checkout Install Check`。如果必需 workflow 没有匹配到，诊断会同时打印该 commit 上实际观察到的 workflow 名称。
 
@@ -140,8 +142,10 @@ soft 模式仍然会在 workflow 已完成且失败时退出；它只会在 CI �
 如果你想绕开 `release_ready.sh` 单独跑包预检，可以执行：
 
 ```bash
-bash scripts/pypi_preflight.sh
-bash scripts/pypi_preflight.sh --no-build
+python scripts/materialize_distribution_payloads.py --target all --out /tmp/qiongli-dist --force
+bash scripts/verify_release_tag_version.sh --root /tmp/qiongli-dist --tag <tag>
+bash scripts/pypi_preflight.sh --root /tmp/qiongli-dist
+bash scripts/npm_preflight.sh --root /tmp/qiongli-dist
 ```
 
 等价的手动步骤如下：
@@ -151,9 +155,10 @@ bash scripts/pypi_preflight.sh --no-build
 pip install build twine
 
 # 注入上游 repo 信息
-bash scripts/inject_project_toml.sh
+bash /tmp/qiongli-dist/scripts/inject_project_toml.sh
 
 # 构建
+cd /tmp/qiongli-dist
 python -m build
 
 # 验证
