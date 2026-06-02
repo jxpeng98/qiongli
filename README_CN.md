@@ -977,7 +977,7 @@ qiongli/
 │   ├── [...]                 # 对应阶段 A 到 K
 │   └── domain-profiles/      # (动态挂载的领域知识图谱 Economics, Bio等)
 ├── schemas/                  # Validator 数据验证
-├── eval/                     # 性能及覆盖率对焦 Test Cases
+├── evals/                    # 性能、覆盖率与质量评测资产
 ├── guides/                   # 最佳实践与深潜开发文档
 ├── scripts/                  # CI 维护器
 └── tests/                    # 单元测试验证

@@ -146,7 +146,19 @@ class RepoLayout:
 
     @property
     def eval_legacy(self) -> Path:
-        return self.root / "eval"
+        return self.evals
+
+    @property
+    def eval_cases(self) -> Path:
+        return self.evals / "cases"
+
+    @property
+    def eval_rubrics(self) -> Path:
+        return self.evals / "rubrics"
+
+    @property
+    def eval_runner(self) -> Path:
+        return self.evals / "runner"
 
     @property
     def docs(self) -> Path:

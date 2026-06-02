@@ -1168,7 +1168,7 @@ qiongli/
 │   ├── [...]                 # Stages A through K
 │   └── domain-profiles/      # Domain-specific configs (economics, cs-ai, etc.)
 ├── schemas/                  # JSON schemas + artifact type vocab
-├── eval/                     # Golden test cases
+├── evals/                    # Evaluation cases, rubrics, runners, and suites
 ├── guides/                   # Basic and Advanced tutorials
 ├── scripts/                  # CI, installers, validators
 └── tests/                    # Unit tests

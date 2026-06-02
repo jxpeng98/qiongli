@@ -2,7 +2,7 @@
 """Simple eval runner for qiongli golden tests.
 
 Usage:
-    python eval/runner/run_eval.py eval/cases/sr-social-media-mental-health.yaml
+    python evals/runner/run_eval.py evals/cases/sr-social-media-mental-health.yaml
 
 This runner validates that skill outputs match expected structure.
 It does NOT execute skills — it checks existing outputs against expectations.
@@ -95,7 +95,7 @@ def run_case(case_path: str, output_dir: str = None):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python eval/runner/run_eval.py <case.yaml> [output_dir]")
+        print("Usage: python evals/runner/run_eval.py <case.yaml> [output_dir]")
         sys.exit(1)
 
     case_path = sys.argv[1]

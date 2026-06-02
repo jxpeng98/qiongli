@@ -47,7 +47,9 @@ class SourceLayoutTests(unittest.TestCase):
             layout.scripts,
             layout.release,
             layout.evals,
-            layout.eval_legacy,
+            layout.eval_cases,
+            layout.eval_rubrics,
+            layout.eval_runner,
             layout.docs,
             layout.tests,
         )
