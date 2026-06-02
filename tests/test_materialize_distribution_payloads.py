@@ -87,6 +87,31 @@ class DistributionMaterializerTests(unittest.TestCase):
             self.assertFalse((dest / "packages/python-qiongli/src/qiongli/payload").exists())
             self.assertFalse((dest / "plugins/qiongli").exists())
 
+    def test_source_tree_copy_excludes_local_build_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source"
+            dest = Path(tmp) / "dest"
+            (source / "content" / "workflow").mkdir(parents=True)
+            (source / "content" / "workflow" / "SKILL.md").write_text("source\n", encoding="utf-8")
+
+            local_artifacts = (
+                source / "dist" / "qiongli-0.15.0b1-py3-none-any.whl",
+                source / "build" / "lib" / "qiongli" / "__init__.py",
+                source / "qiongli.egg-info" / "PKG-INFO",
+                source / "packages" / "python-qiongli" / "src" / "qiongli.egg-info" / "PKG-INFO",
+            )
+            for artifact in local_artifacts:
+                artifact.parent.mkdir(parents=True, exist_ok=True)
+                artifact.write_text("generated\n", encoding="utf-8")
+
+            self.materializer.copy_source_tree(source, dest)
+
+            self.assertTrue((dest / "content" / "workflow" / "SKILL.md").is_file())
+            self.assertFalse((dest / "dist").exists())
+            self.assertFalse((dest / "build").exists())
+            self.assertFalse((dest / "qiongli.egg-info").exists())
+            self.assertFalse((dest / "packages" / "python-qiongli" / "src" / "qiongli.egg-info").exists())
+
     def test_plugin_target_materializes_to_staging_without_touching_source(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "staging"

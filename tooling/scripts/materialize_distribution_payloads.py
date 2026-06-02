@@ -26,8 +26,11 @@ EXCLUDED_NAMES = {
     ".venv",
     ".worktrees",
     "__pycache__",
+    "build",
+    "dist",
     "node_modules",
 }
+EXCLUDED_NAME_SUFFIXES = (".egg-info",)
 
 
 def is_materialized_output_path(path: Path | str) -> bool:
@@ -42,7 +45,7 @@ def copy_source_tree(source: Path, dest: Path) -> None:
         ignored: set[str] = set()
         current_path = Path(current).resolve()
         for name in names:
-            if name in EXCLUDED_NAMES:
+            if name in EXCLUDED_NAMES or name.endswith(EXCLUDED_NAME_SUFFIXES):
                 ignored.add(name)
                 continue
             candidate = current_path / name
