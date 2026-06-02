@@ -428,6 +428,62 @@ function Copy-InstallItem([string]$Source, [string]$Destination, [string]$Label,
     Write-Ok $Label $Destination
 }
 
+function Sync-SkillPackage([string]$RepoRoot) {
+    $workflowSource = Join-Path $RepoRoot "content\workflow"
+    if (-not (Test-Path (Join-Path $workflowSource "SKILL.md"))) {
+        return
+    }
+
+    Write-Host ""
+    Write-Host "== Sync Skill Package =="
+    $packageRoot = Join-Path $RepoRoot "qiongli-workflow"
+    if (Test-Path -LiteralPath $packageRoot) {
+        Remove-Item -LiteralPath $packageRoot -Recurse -Force
+    }
+    Ensure-Dir $packageRoot
+    foreach ($item in Get-ChildItem -LiteralPath $workflowSource -Force) {
+        Copy-Item -LiteralPath $item.FullName -Destination $packageRoot -Recurse -Force
+    }
+
+    $sourceDirs = @{
+        "skills" = Join-Path $RepoRoot "content\skills"
+        "templates" = Join-Path $RepoRoot "content\templates"
+        "standards" = Join-Path $RepoRoot "content\standards"
+        "roles" = Join-Path $RepoRoot "content\roles"
+        "venue-profiles" = Join-Path $RepoRoot "content\venue-profiles"
+    }
+    foreach ($name in $sourceDirs.Keys) {
+        $src = $sourceDirs[$name]
+        if (-not (Test-Path -LiteralPath $src -PathType Container)) {
+            Write-Skip "Sync" "$name/ (source not found)"
+            continue
+        }
+        $dest = Join-Path $packageRoot $name
+        if (Test-Path -LiteralPath $dest) {
+            Remove-Item -LiteralPath $dest -Recurse -Force
+        }
+        Copy-Item -LiteralPath $src -Destination $dest -Recurse -Force
+        if ($name -eq "templates") {
+            $projectTemplate = Join-Path $dest "CLAUDE.project.md"
+            if (Test-Path -LiteralPath $projectTemplate) {
+                Remove-Item -LiteralPath $projectTemplate -Force
+            }
+        }
+        Write-Ok "Sync" "$name/"
+    }
+
+    foreach ($fileName in @("skills-core.md", "skills-summary.md")) {
+        $src = Join-Path $RepoRoot "content\$fileName"
+        if (Test-Path -LiteralPath $src -PathType Leaf) {
+            Copy-Item -LiteralPath $src -Destination (Join-Path $packageRoot $fileName) -Force
+            Write-Ok "Sync" $fileName
+        }
+        else {
+            Write-Skip "Sync" "$fileName (source not found)"
+        }
+    }
+}
+
 function Write-CmdWrapper([string]$Destination, [string]$BashPath, [string]$ScriptName) {
     $content = @(
         '@echo off'
@@ -486,7 +542,14 @@ function Write-QuickstartFallback([string]$QuickstartPath) {
 }
 
 function Read-InstallManifest([string]$RepoRoot) {
-    $manifestPath = Join-Path $RepoRoot "install\install_manifest.tsv"
+    $manifestCandidates = @(
+        (Join-Path $RepoRoot "tooling\install\install_manifest.tsv"),
+        (Join-Path $RepoRoot "install\install_manifest.tsv")
+    )
+    $manifestPath = $manifestCandidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+    if (-not $manifestPath) {
+        throw "Missing install manifest under tooling\install or install: $RepoRoot"
+    }
     $entries = @()
     foreach ($line in Get-Content $manifestPath) {
         if (-not $line.Trim() -or $line.TrimStart().StartsWith("#")) {
@@ -505,6 +568,35 @@ function Read-InstallManifest([string]$RepoRoot) {
         }
     }
     return $entries
+}
+
+function Resolve-RepoSourcePath([string]$RepoRoot, [string]$Source) {
+    $candidates = switch ($Source) {
+        "qiongli-workflow" {
+            @("qiongli-workflow", "content\workflow")
+            break
+        }
+        ".agent\workflows" {
+            @("packages\qiongli-plugin\platforms\agent\workflows", ".agent\workflows")
+            break
+        }
+        ".gemini" {
+            @("packages\qiongli-plugin\platforms\gemini", ".gemini")
+            break
+        }
+        default {
+            @($Source)
+            break
+        }
+    }
+
+    foreach ($candidate in $candidates) {
+        $path = Join-Path $RepoRoot $candidate
+        if (Test-Path -LiteralPath $path) {
+            return $path
+        }
+    }
+    return Join-Path $RepoRoot $Source
 }
 
 function Expand-ManifestPath([string]$Template, [hashtable]$Values) {
@@ -573,7 +665,8 @@ function Remove-LegacyResidues([string]$InstallTarget, [hashtable]$ClientHomes) 
 
 function Install-FromRepo([string]$RepoRoot, [string]$ProjectRoot, [string]$InstallTarget, [bool]$DoInstallCli, [bool]$DoDoctor, [hashtable]$PythonRuntime) {
     $projectRoot = [System.IO.Path]::GetFullPath($ProjectRoot)
-    $skillSrc = Join-Path $RepoRoot "qiongli-workflow"
+    Sync-SkillPackage $RepoRoot
+    $skillSrc = Resolve-RepoSourcePath $RepoRoot "qiongli-workflow"
     if (-not (Test-Path (Join-Path $skillSrc "SKILL.md"))) {
         throw "Missing skill source: $skillSrc\SKILL.md"
     }
@@ -631,7 +724,7 @@ function Install-FromRepo([string]$RepoRoot, [string]$ProjectRoot, [string]$Inst
             Write-Host "== $([char]::ToUpper($sectionTarget[0]) + $sectionTarget.Substring(1)) =="
         }
         foreach ($entry in $manifest | Where-Object { $_.Target -eq $sectionTarget }) {
-            $src = Join-Path $RepoRoot $entry.Source
+            $src = Resolve-RepoSourcePath $RepoRoot $entry.Source
             $dest = Expand-ManifestPath $entry.Destination $manifestValues
             switch ($entry.Operation) {
                 "dir-copy" { Copy-InstallItem $src $dest $entry.Label }
@@ -639,7 +732,8 @@ function Install-FromRepo([string]$RepoRoot, [string]$ProjectRoot, [string]$Inst
                 "glob-copy" {
                     $workflowDest = $dest.TrimEnd('\','/')
                     Ensure-Dir $workflowDest
-                    $workflowFiles = Get-ChildItem -Path (Join-Path $RepoRoot ".agent\workflows") -Filter *.md | Sort-Object Name
+                    $workflowSource = Resolve-RepoSourcePath $RepoRoot ".agent\workflows"
+                    $workflowFiles = Get-ChildItem -Path $workflowSource -Filter *.md | Sort-Object Name
                     foreach ($workflow in $workflowFiles) {
                         Copy-InstallItem $workflow.FullName (Join-Path $workflowDest $workflow.Name) "Workflow"
                     }
@@ -690,11 +784,14 @@ function Install-FromRepo([string]$RepoRoot, [string]$ProjectRoot, [string]$Inst
             Push-Location $RepoRoot
             try {
                 $previousPythonPath = $env:PYTHONPATH
+                $pythonSourceRoot = Join-Path $RepoRoot "packages\python-qiongli\src"
+                $pythonPathEntries = @($pythonSourceRoot, $RepoRoot)
                 if ([string]::IsNullOrWhiteSpace($previousPythonPath)) {
-                    $env:PYTHONPATH = $RepoRoot
+                    $env:PYTHONPATH = ($pythonPathEntries -join [System.IO.Path]::PathSeparator)
                 }
                 else {
-                    $env:PYTHONPATH = "$RepoRoot$([System.IO.Path]::PathSeparator)$previousPythonPath"
+                    $pythonPathEntries += $previousPythonPath
+                    $env:PYTHONPATH = ($pythonPathEntries -join [System.IO.Path]::PathSeparator)
                 }
                 & $PythonRuntime.Python -m bridges.orchestrator doctor --cwd $projectRoot
             }

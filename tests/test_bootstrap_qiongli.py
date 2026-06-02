@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -15,6 +16,7 @@ BOOTSTRAP_SCRIPT = REPO_ROOT / "scripts" / "bootstrap_qiongli.sh"
 BOOTSTRAP_SCRIPT_SOURCE = LAYOUT.scripts / "bootstrap_qiongli.sh"
 POWERSHELL_BOOTSTRAP = REPO_ROOT / "scripts" / "bootstrap_qiongli.ps1"
 POWERSHELL_BOOTSTRAP_SOURCE = LAYOUT.scripts / "bootstrap_qiongli.ps1"
+INJECT_PROJECT_TOML_SOURCE = LAYOUT.scripts / "inject_project_toml.sh"
 SYSTEM_BASH = Path("/bin/bash")
 
 
@@ -194,7 +196,16 @@ class BootstrapQiongliTests(unittest.TestCase):
     def test_powershell_bootstrap_is_manifest_driven(self) -> None:
         content = POWERSHELL_BOOTSTRAP_SOURCE.read_text(encoding="utf-8")
 
-        self.assertIn("install\\install_manifest.tsv", content)
+        self.assertIn("tooling\\install\\install_manifest.tsv", content)
+        self.assertIn("Resolve-RepoSourcePath", content)
+        self.assertIn("Sync-SkillPackage", content)
+        self.assertIn('"qiongli-workflow"', content)
+        self.assertIn('"content\\workflow"', content)
+        self.assertIn('"content\\skills"', content)
+        self.assertIn('"skills-core.md"', content)
+        self.assertIn('"skills-summary.md"', content)
+        self.assertIn('".agent\\workflows"', content)
+        self.assertIn('"packages\\qiongli-plugin\\platforms\\agent\\workflows"', content)
         self.assertIn("Expand-Archive", content)
         self.assertIn("Install-FromRepo", content)
         self.assertIn("[switch]$Beta", content)
@@ -225,10 +236,41 @@ class BootstrapQiongliTests(unittest.TestCase):
         self.assertIn("[dry-run] Install workflow assets into client directories", content)
         self.assertNotIn('bootstrapUrl = "https://raw.githubusercontent.com', content)
         self.assertNotIn('$content = @"', content)
-        self.assertIn('$env:PYTHONPATH = $RepoRoot', content)
+        self.assertIn('"packages\\python-qiongli\\src"', content)
+        self.assertIn("$pythonPathEntries", content)
+        self.assertNotIn('$env:PYTHONPATH = $RepoRoot', content)
         self.assertIn("Remove-LegacyResidues", content)
         self.assertIn("Legacy Install Cleanup", content)
         self.assertIn("research-paper-workflow", content)
+
+    def test_inject_project_toml_defaults_to_python_package_source(self) -> None:
+        if not SYSTEM_BASH.exists():
+            self.skipTest("/bin/bash is not available")
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            script = temp_root / "tooling" / "scripts" / "inject_project_toml.sh"
+            script.parent.mkdir(parents=True)
+            shutil.copy2(INJECT_PROJECT_TOML_SOURCE, script)
+            env = os.environ.copy()
+            env["GITHUB_REPOSITORY"] = "owner/repo"
+
+            result = subprocess.run(
+                [str(SYSTEM_BASH), str(script)],
+                cwd=temp_root,
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=False,
+            )
+
+            expected = temp_root / "packages" / "python-qiongli" / "src" / "qiongli" / "project.toml"
+            legacy = temp_root / "qiongli" / "project.toml"
+            self.assertEqual(result.returncode, 0, msg=result.stdout + "\n" + result.stderr)
+            self.assertTrue(expected.is_file())
+            self.assertFalse(legacy.exists())
+            self.assertIn("repo = \"owner/repo\"", expected.read_text(encoding="utf-8"))
 
     def test_shell_bootstrap_documents_beta_channel(self) -> None:
         content = BOOTSTRAP_SCRIPT_SOURCE.read_text(encoding="utf-8")
