@@ -33,6 +33,7 @@ class GeneratedPayloadGuardTests(unittest.TestCase):
             "packages/python-qiongli/src/qiongli/payload/qiongli-workflow/SKILL.md",
             "packages/npm-qiongli/payload/qiongli-workflow/SKILL.md",
             "packages/npm-qiongli/python-runtime/qiongli/__init__.py",
+            "plugins/qiongli/.codex-plugin/plugin.json",
             "plugins/qiongli/skills/qiongli-workflow/SKILL.md",
             "qiongli-workflow/SKILL.md",
             "qiongli-workflow/skills/registry.yaml",
@@ -54,6 +55,8 @@ class GeneratedPayloadGuardTests(unittest.TestCase):
             "content/venue-profiles/nature.yaml",
             "content/subjects/catalog.yaml",
             "content/subjects/finance/skills/finance-identification-risk-auditor.md",
+            "packages/qiongli-plugin/.codex-plugin/plugin.json",
+            "packages/qiongli-plugin/commands/paper.md",
             "content/skills-core.md",
             "content/skills-summary.md",
         ]

@@ -34,7 +34,7 @@ def _init_git_repo(repo: Path, *, ignore_generated: bool = True) -> None:
                     "/packages/python-qiongli/src/qiongli/payload/",
                     "/packages/npm-qiongli/payload/",
                     "/packages/npm-qiongli/python-runtime/",
-                    "/plugins/qiongli/skills/qiongli-workflow/",
+                    "/plugins/qiongli/",
                     "/qiongli-workflow/",
                     "/content/workflow/skills/",
                     "/content/workflow/skills-core.md",

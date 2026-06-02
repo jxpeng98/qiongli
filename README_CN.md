@@ -101,14 +101,14 @@
 - **Codex：** 添加统一的 [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace，然后在 Codex plugin UI 中安装或启用默认 `qiongli`，或选择 `qiongli-economics` 等 subject entry。
 - **Claude Code：** 添加统一的 [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace，然后安装 `qiongli@skillsplace`；经济学专精可安装 `qiongli-economics@skillsplace`。
 - **Claude Desktop / Claude.ai：** 如果不想处理 code / CLI 环境，从 GitHub Release assets 下载 focused subject ZIP。默认通用包用 `qiongli-claude-desktop-skill-core-<tag>.zip`，经济学专精包用 `qiongli-claude-desktop-skill-economics-<tag>.zip`，political economy 专精包用 `qiongli-claude-desktop-skill-political-economy-<tag>.zip`，geoeconomics 专精包用 `qiongli-claude-desktop-skill-geoeconomics-<tag>.zip`，business 专精包用 `qiongli-claude-desktop-skill-business-<tag>.zip`，finance 专精包用 `qiongli-claude-desktop-skill-finance-<tag>.zip`，官方 economics/accounting 交叉学科包用 `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip`。然后拖拽到 Claude Desktop 的 Skills 上传/安装流程中，或在 `Customize > Skills > + > Create skill > Upload a skill` 中上传。旧名 `qiongli-claude-desktop-skill-<tag>.zip` 暂时保留为 core alias。
-- **Gemini CLI：** 从 `plugins/qiongli` 本地安装 Gemini extension；发布为独立 extension 仓库或 gallery 条目后，也可以从远端安装。
+- **Gemini CLI：** 从 `packages/qiongli-plugin` 本地安装 Gemini extension；发布为独立 extension 仓库或 gallery 条目后，也可以从远端安装。
 
 公开的 Codex / Claude marketplace catalog 现在由 `jxpeng98/skillsplace` 统一维护。Release 构建会为 `core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics`、`economics-accounting` 生成独立 Codex / Claude Code plugin artifacts，让 marketplace 可以展示多个 subject 安装选项。本仓库保留这些生成 artifacts 的源 plugin payload 和平台 manifest：
 
-- `plugins/qiongli/.codex-plugin/plugin.json`
-- `plugins/qiongli/.claude-plugin/plugin.json`
-- `plugins/qiongli/gemini-extension.json`
-- `plugins/qiongli/skills/qiongli-workflow`
+- `packages/qiongli-plugin/.codex-plugin/plugin.json`
+- `packages/qiongli-plugin/.claude-plugin/plugin.json`
+- `packages/qiongli-plugin/gemini-extension.json`
+- `plugins/qiongli/skills/qiongli-workflow`（materialized artifact）
 
 Claude Desktop 不走 Claude Code 的第三方 plugin marketplace 路径。Desktop 使用上面的 GitHub Release ZIP 手动上传；ZIP 内部顶层目录是 `qiongli/`，与 `SKILL.md` 里的 skill 名称一致。
 

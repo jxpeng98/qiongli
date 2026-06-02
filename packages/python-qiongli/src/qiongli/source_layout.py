@@ -9,7 +9,7 @@ GENERATED_OUTPUT_ROOTS = (
     Path("packages/python-qiongli/src/qiongli/payload"),
     Path("packages/npm-qiongli/payload"),
     Path("packages/npm-qiongli/python-runtime"),
-    Path("plugins/qiongli/skills/qiongli-workflow"),
+    Path("plugins/qiongli"),
     Path("qiongli-workflow"),
     Path("content/workflow/skills"),
     Path("content/workflow/templates"),
@@ -124,6 +124,12 @@ class RepoLayout:
 
     @property
     def plugin_package(self) -> Path:
+        package_path = self.root / "packages" / "qiongli-plugin"
+        legacy_path = self.root / "plugins" / "qiongli"
+        return package_path if package_path.exists() else legacy_path
+
+    @property
+    def plugin_artifact_package(self) -> Path:
         return self.root / "plugins" / "qiongli"
 
     @property

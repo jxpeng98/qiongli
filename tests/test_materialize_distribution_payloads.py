@@ -82,7 +82,7 @@ class DistributionMaterializerTests(unittest.TestCase):
             self.assertTrue((dest / "skills" / "registry.yaml").is_file())
             self.assertFalse((dest / "packages/npm-qiongli/payload").exists())
             self.assertFalse((dest / "packages/python-qiongli/src/qiongli/payload").exists())
-            self.assertFalse((dest / "plugins/qiongli/skills/qiongli-workflow").exists())
+            self.assertFalse((dest / "plugins/qiongli").exists())
 
     def test_plugin_target_materializes_to_staging_without_touching_source(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -106,6 +106,8 @@ class DistributionMaterializerTests(unittest.TestCase):
             )
 
             self.assertEqual(0, result.returncode, result.stderr)
+            self.assertTrue((out / "plugins/qiongli/.codex-plugin/plugin.json").is_file())
+            self.assertTrue((out / "plugins/qiongli/commands/paper.md").is_file())
             self.assertTrue((out / "plugins/qiongli/skills/qiongli-workflow/SKILL.md").is_file())
             self.assertTrue((out / "plugins/qiongli/skills/qiongli-workflow/skills/registry.yaml").is_file())
             self.assertTrue((out / "qiongli-workflow/skills/registry.yaml").is_file())

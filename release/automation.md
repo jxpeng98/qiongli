@@ -77,7 +77,7 @@ This is the recommended local entrypoint. It chains:
 
 When it succeeds, the repository is in a publish-ready state with synchronized version files, validated release docs, and built package artifacts.
 
-The synchronized version files include package metadata, the portable workflow version, skill registry metadata, and client-native distribution manifests under `.agents/`, `.claude-plugin/`, and `plugins/qiongli/`.
+The synchronized version files include package metadata, the portable workflow version, skill registry metadata, and client-native distribution manifests under `.agents/`, `.claude-plugin/`, and `packages/qiongli-plugin/`.
 
 ## 3) Manual pre-release gates (optional)
 

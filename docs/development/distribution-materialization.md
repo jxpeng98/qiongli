@@ -9,16 +9,16 @@ subject-specific installs self-contained.
 
 Edit these files when changing the academic workflow:
 
-- `qiongli-workflow/` for the package shell, `SKILL.md`, `VERSION`,
+- `content/workflow/` for the package shell, `SKILL.md`, `VERSION`,
   workflows, references, and agents.
-- `skills/` for reusable academic skills.
-- `templates/` for output templates and task packet templates.
-- `standards/` for machine-readable contracts and policies.
-- `roles/` for agent role definitions.
-- `venue-profiles/` for venue metadata.
-- `subjects/` for subject catalogs, subject skills, overlays, and
+- `content/skills/` for reusable academic skills.
+- `content/templates/` for output templates and task packet templates.
+- `content/standards/` for machine-readable contracts and policies.
+- `content/roles/` for agent role definitions.
+- `content/venue-profiles/` for venue metadata.
+- `content/subjects/` for subject catalogs, subject skills, overlays, and
   subject-specific venue profiles.
-- `skills-core.md` and `skills-summary.md` for top-level skill references.
+- `content/skills-core.md` and `content/skills-summary.md` for top-level skill references.
 
 ## Repository structure
 
@@ -39,8 +39,9 @@ The clean checkout does not contain `qiongli-workflow/templates/`,
 created only by materialization commands when a self-contained skill package
 is needed.
 
-Treat root-level directories as the source of truth for duplicated domains:
-`templates/`, `standards/`, `roles/`, `venue-profiles/`, and `skills/`.
+Treat `content/` directories as the source of truth for duplicated domains:
+`content/templates/`, `content/standards/`, `content/roles/`,
+`content/venue-profiles/`, and `content/skills/`.
 Generated package copies stay out of the repository checkout and are
 materialized only for validation or packaging.
 
@@ -52,7 +53,7 @@ source during local checks, CI, release staging, and package publishing.
 - `packages/python-qiongli/src/qiongli/payload/`
 - `packages/npm-qiongli/payload/`
 - `packages/npm-qiongli/python-runtime/`
-- `plugins/qiongli/skills/qiongli-workflow/`
+- `plugins/qiongli/`
 
 In-place materialization can also create ignored package mirror paths under
 `qiongli-workflow/`, including `qiongli-workflow/skills/`,
@@ -96,12 +97,12 @@ python scripts/clean_generated_outputs.py --apply
 
 ## Adding a new skill
 
-Use the root `skills/` tree as the source of truth.
+Use the `content/skills/` tree as the source of truth.
 
-1. Create the skill file under `skills/<stage>/<skill-id>.md`.
-2. Add its metadata to `skills/registry.yaml`.
+1. Create the skill file under `content/skills/<stage>/<skill-id>.md`.
+2. Add its metadata to `content/skills/registry.yaml`.
 3. If the skill should appear in subject installs, reference its id from
-   `subjects/catalog.yaml` in the relevant subject group.
+   `content/subjects/catalog.yaml` in the relevant subject group.
 4. Add or update tests for the registry, section contract, and subject
    materialization behavior.
 5. Run materialization checks locally if the change affects installable
@@ -109,17 +110,17 @@ Use the root `skills/` tree as the source of truth.
 
 Do not edit materialized copies under `packages/python-qiongli/src/qiongli/payload/`,
 `packages/npm-qiongli/payload/`, `packages/npm-qiongli/python-runtime/`,
-`plugins/qiongli/skills/qiongli-workflow/`, or mirrored directories under
+`plugins/qiongli/`, or mirrored directories under
 `qiongli-workflow/`.
 
 ## Adding or extending a subject package
 
-Use `subjects/` as the source of truth for subject-specific behavior.
+Use `content/subjects/` as the source of truth for subject-specific behavior.
 
-1. Add or update the subject definition in `subjects/catalog.yaml`.
-2. Put subject-specific skills in `subjects/<subject-id>/skills/`.
-3. Put subject-specific overlay content in `subjects/<subject-id>/overlays/`.
-4. Add venue profiles under `subjects/<subject-id>/venue-profiles/` when the
+1. Add or update the subject definition in `content/subjects/catalog.yaml`.
+2. Put subject-specific skills in `content/subjects/<subject-id>/skills/`.
+3. Put subject-specific overlay content in `content/subjects/<subject-id>/overlays/`.
+4. Add venue profiles under `content/subjects/<subject-id>/venue-profiles/` when the
    subject needs target-journal or conference guidance.
 5. Use `complete` coverage for full subject installs and `focused` coverage
    for slim subject packages.

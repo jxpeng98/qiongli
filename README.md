@@ -108,15 +108,15 @@ For native client distribution, install **Qiongli** through the client-specific 
 - **Codex:** add the shared [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace, then install or enable `qiongli` for the default core package or a subject entry such as `qiongli-economics`.
 - **Claude Code:** add the shared [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace, then install `qiongli@skillsplace` for core or a subject entry such as `qiongli-economics@skillsplace`.
 - **Claude Desktop / Claude.ai:** if you do not want to use a code/CLI environment, download a focused subject ZIP from the GitHub Release assets, then drag it into Claude Desktop's Skills upload/install flow or upload it from `Customize > Skills > + > Create skill > Upload a skill`. Use `qiongli-claude-desktop-skill-core-<tag>.zip` for the default general workflow, `qiongli-claude-desktop-skill-economics-<tag>.zip` for economics, `qiongli-claude-desktop-skill-political-economy-<tag>.zip` for political economy, `qiongli-claude-desktop-skill-geoeconomics-<tag>.zip` for geoeconomics, `qiongli-claude-desktop-skill-business-<tag>.zip` for business, `qiongli-claude-desktop-skill-finance-<tag>.zip` for finance, or `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip` for the official economics/accounting composite. The legacy `qiongli-claude-desktop-skill-<tag>.zip` remains a core alias for one release cycle.
-- **Gemini CLI:** install the Gemini extension from `plugins/qiongli` locally, or from a standalone extension repository/gallery entry once published.
+- **Gemini CLI:** install the Gemini extension from `packages/qiongli-plugin` locally, or from a standalone extension repository/gallery entry once published.
 
 Public Codex and Claude marketplace catalog metadata now lives in `jxpeng98/skillsplace`. Release builds now attach separate Codex and Claude Code plugin artifacts for `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting` so the shared marketplace can list subject-specific install choices. This repository keeps the source plugin payload and platform manifests that those generated artifacts derive from:
 
-- `plugins/qiongli/.codex-plugin/plugin.json`
-- `plugins/qiongli/.claude-plugin/plugin.json`
-- `plugins/qiongli/gemini-extension.json`
-- `plugins/qiongli/commands/*.md`
-- `plugins/qiongli/skills/qiongli-workflow`
+- `packages/qiongli-plugin/.codex-plugin/plugin.json`
+- `packages/qiongli-plugin/.claude-plugin/plugin.json`
+- `packages/qiongli-plugin/gemini-extension.json`
+- `packages/qiongli-plugin/commands/*.md`
+- `plugins/qiongli/skills/qiongli-workflow` (materialized artifact)
 
 The plugin is the install/discovery container; `qiongli-workflow` is the portable skill package inside it. The user-visible skill name is `qiongli`; the install directory stays `qiongli-workflow` for compatibility. The 71 academic skill specs under `skills/` are source-of-truth capability cards and are synchronized into the portable/plugin package before release.
 
@@ -542,7 +542,7 @@ The separate Qiongli Literature Provider `.mcpb` (`qiongli-literature-provider.m
 Gemini CLI:
 
 ```bash
-gemini extensions install ./path/to/qiongli/plugins/qiongli
+gemini extensions install ./path/to/qiongli/packages/qiongli-plugin
 ```
 
 Codex and Claude Code install from the shared Skillsplace marketplace catalog. Claude Desktop uses the GitHub Release ZIP upload path. Gemini CLI uses the official extension system (`gemini-extension.json`) rather than a marketplace JSON.

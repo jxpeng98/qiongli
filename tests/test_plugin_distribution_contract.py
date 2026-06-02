@@ -14,7 +14,7 @@ from qiongli.source_layout import RepoLayout
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LAYOUT = RepoLayout(REPO_ROOT)
-PLUGIN_ROOT = REPO_ROOT / "plugins" / "qiongli"
+PLUGIN_ROOT = LAYOUT.plugin_package
 WORKFLOW_ROOT = LAYOUT.workflow
 WORKFLOW_VERSION = (WORKFLOW_ROOT / "VERSION").read_text(encoding="utf-8").strip().lstrip("v")
 

@@ -30,7 +30,6 @@ except ModuleNotFoundError as exc:
 
 
 PLUGIN_NAME = "qiongli"
-PLUGIN_ROOT = Path("plugins") / PLUGIN_NAME
 SKILL_DIR_NAME = "qiongli-workflow"
 DESKTOP_SKILL_FILE_BUDGET = 180
 FALLBACK_SUBJECT_LAYERS = {
@@ -329,7 +328,7 @@ def _build_materialize_source(root: Path, work_dir: Path) -> Path:
 
 
 def _copy_common_skill(root: Path, dest_plugin_root: Path) -> None:
-    generated_skill = root / PLUGIN_ROOT / "skills"
+    generated_skill = RepoLayout(root).plugin_artifact_package / "skills"
     if generated_skill.is_dir():
         _copy_path(generated_skill, dest_plugin_root / "skills")
         return
@@ -355,7 +354,7 @@ def _copy_subject_skill(root: Path, dest_plugin_root: Path, subject: str) -> Non
 
 
 def _copy_commands(root: Path, dest_plugin_root: Path) -> None:
-    commands = root / PLUGIN_ROOT / "commands"
+    commands = RepoLayout(root).plugin_package / "commands"
     if commands.is_dir():
         _copy_path(commands, dest_plugin_root / "commands")
 
@@ -733,7 +732,7 @@ def _build_marketplace_plugin(
     bundle = work_dir / bundle_name
     plugin_dest = bundle / "plugins" / plugin_name
     manifest_dir = ".codex-plugin" if platform == "codex" else ".claude-plugin"
-    _copy_path(root / PLUGIN_ROOT / manifest_dir, plugin_dest / manifest_dir)
+    _copy_path(RepoLayout(root).plugin_package / manifest_dir, plugin_dest / manifest_dir)
     _write_subject_manifest(
         plugin_dest / manifest_dir / "plugin.json",
         platform=platform,
@@ -809,7 +808,7 @@ def _build_subject_marketplace_plugins(root: Path, tag: str, dist_dir: Path, wor
 def _build_gemini(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> Path:
     bundle_name = f"{PLUGIN_NAME}-gemini-extension-{tag}"
     bundle = work_dir / bundle_name
-    _copy_path(root / PLUGIN_ROOT / "gemini-extension.json", bundle / "gemini-extension.json")
+    _copy_path(RepoLayout(root).plugin_package / "gemini-extension.json", bundle / "gemini-extension.json")
     _copy_common_skill(root, bundle)
     artifact = dist_dir / f"{bundle_name}.tar.gz"
     _make_tarball(bundle, artifact)
@@ -844,9 +843,9 @@ def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
         raise ValueError(f"version mismatch in qiongli-workflow/VERSION: expected {repo_tag}, found {workflow_version}")
 
     versioned_json = [
-        root / PLUGIN_ROOT / ".codex-plugin" / "plugin.json",
-        root / PLUGIN_ROOT / ".claude-plugin" / "plugin.json",
-        root / PLUGIN_ROOT / "gemini-extension.json",
+        layout.plugin_package / ".codex-plugin" / "plugin.json",
+        layout.plugin_package / ".claude-plugin" / "plugin.json",
+        layout.plugin_package / "gemini-extension.json",
     ]
     for path in versioned_json:
         _assert_json_versions(path, skill_version)

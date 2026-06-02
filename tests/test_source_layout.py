@@ -61,7 +61,7 @@ class SourceLayoutTests(unittest.TestCase):
 
         self.assertIn(Path("packages/python-qiongli/src/qiongli/payload"), layout.generated_output_roots)
         self.assertIn(Path("packages/npm-qiongli/payload"), layout.generated_output_roots)
-        self.assertIn(Path("plugins/qiongli/skills/qiongli-workflow"), layout.generated_output_roots)
+        self.assertIn(Path("plugins/qiongli"), layout.generated_output_roots)
         self.assertIn(Path("qiongli-workflow"), layout.generated_output_roots)
         self.assertIn(Path("content/workflow/skills"), layout.generated_output_roots)
         self.assertIn(Path("content/workflow/templates"), layout.generated_output_roots)

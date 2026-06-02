@@ -259,9 +259,9 @@ case "$MODE" in
       skills/registry.yaml \
       package-lock.json \
       packages/npm-qiongli \
-      plugins/qiongli/.codex-plugin/plugin.json \
-      plugins/qiongli/.claude-plugin/plugin.json \
-      plugins/qiongli/gemini-extension.json \
+      packages/qiongli-plugin/.codex-plugin/plugin.json \
+      packages/qiongli-plugin/.claude-plugin/plugin.json \
+      packages/qiongli-plugin/gemini-extension.json \
       skills
     if is_prerelease_tag "$repo_tag"; then
       git add "release/${repo_tag}.md"

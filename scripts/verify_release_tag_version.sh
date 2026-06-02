@@ -226,9 +226,9 @@ import json
 from pathlib import Path
 
 paths = [
-    Path("plugins/qiongli/.codex-plugin/plugin.json"),
-    Path("plugins/qiongli/.claude-plugin/plugin.json"),
-    Path("plugins/qiongli/gemini-extension.json"),
+    Path("packages/qiongli-plugin/.codex-plugin/plugin.json"),
+    Path("packages/qiongli-plugin/.claude-plugin/plugin.json"),
+    Path("packages/qiongli-plugin/gemini-extension.json"),
 ]
 for path in paths:
     data = json.loads(path.read_text(encoding="utf-8"))
