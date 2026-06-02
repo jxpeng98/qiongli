@@ -16,7 +16,7 @@ class BranchPolicyTests(unittest.TestCase):
         for workflow in (".github/workflows/ci.yml", ".github/workflows/install-check.yml"):
             content = read(workflow)
             self.assertIn('branches: ["main", "master", "dev"]', content)
-            self.assertIn("release/acceptance/**", content)
+            self.assertIn("tooling/release/acceptance/**", content)
 
     def test_ci_workflow_cancels_stale_runs_and_splits_test_tiers(self) -> None:
         content = read(".github/workflows/ci.yml")

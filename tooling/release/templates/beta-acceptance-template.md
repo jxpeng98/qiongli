@@ -1,9 +1,9 @@
-# Beta Acceptance Receipt — v0.1.0-beta.2
+# Release Acceptance Receipt — {{TAG}}
 
-- Date: 2026-02-27
-- Release Tag: v0.1.0-beta.2
-- Commit: fd107390d3572045abb0532bed7518d5a2d3f123
-- CI Status: skipped
+- Date: {{DATE}}
+- Release Tag: {{TAG}}
+- Commit: {{COMMIT}}
+- CI Status: {{CI_STATUS}}
 
 ## Publish Preconditions (Preflight)
 
@@ -13,15 +13,16 @@
 
 ## Publish Actions
 
-- [ ] `git tag -a v0.1.0-beta.2 -m "qiongli beta release"`
-- [ ] `git push origin v0.1.0-beta.2`
+- [ ] `./scripts/release_automation.sh publish --tag {{TAG}} ...`
+- [ ] Release automation pushed the release branch and tag.
+- [ ] Tag-triggered PyPI and npm publish workflows completed.
 
 ## Post-Release Verification
 
 - [ ] Remote branch/tag consistency verified.
-- [ ] GitHub Actions CI status verified for release commit.
+- [ ] GitHub Actions branch checks and tag publish workflows verified for release commit.
 - [ ] GitHub Release page exists and notes are attached.
-- [ ] Rollback path validated (`release/rollback.md`).
+- [ ] Rollback path validated (`tooling/release/rollback.md`).
 
 ## Collaboration Validation (Codex / Claude / Gemini)
 

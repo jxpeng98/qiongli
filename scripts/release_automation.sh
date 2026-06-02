@@ -264,7 +264,7 @@ case "$MODE" in
       packages/qiongli-plugin/gemini-extension.json \
       skills
     if is_prerelease_tag "$repo_tag"; then
-      git add "release/${repo_tag}.md"
+      git add "tooling/release/${repo_tag}.md"
     else
       git add CHANGELOG.md
     fi
@@ -289,7 +289,7 @@ case "$MODE" in
       post_args+=(--create-release)
     fi
 
-    acceptance_out="release/acceptance/${repo_tag}-receipt.md"
+    acceptance_out="tooling/release/acceptance/${repo_tag}-receipt.md"
     ./scripts/release_postflight.sh --tag "$repo_tag" --acceptance-out "$acceptance_out" "${post_args[@]}"
 
     if [[ -f "$acceptance_out" ]]; then

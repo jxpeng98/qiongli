@@ -488,7 +488,7 @@ def parse_task_functional_routing(content: str) -> tuple[dict[str, str], dict[st
 
 
 def select_latest_release_note(root: Path) -> Path | None:
-    release_dir = root / "release"
+    release_dir = RepoLayout(root).release
     if not release_dir.exists():
         return None
     candidates: list[tuple[tuple[int, int, int, int, int], Path]] = []
@@ -2386,7 +2386,7 @@ def validate_release_artifacts(root: Path, report: ValidationReport) -> None:
         for token in (
             "--tag <tag>",
             "--from-tag <tag>",
-            "release/${TAG}.md",
+            "tooling/release/${TAG}.md",
             "## Highlights (Draft)",
             "## Validation Evidence",
             "## Publish Steps",
@@ -2409,7 +2409,7 @@ def validate_release_artifacts(root: Path, report: ValidationReport) -> None:
         for token in (
             "git ls-remote --heads origin",
             "actions/runs?branch",
-            "release/templates/beta-acceptance-template.md",
+            "tooling/release/templates/beta-acceptance-template.md",
             "--create-release",
             "gh release view",
         ):
@@ -2450,17 +2450,17 @@ def validate_release_artifacts(root: Path, report: ValidationReport) -> None:
             )
 
     template_content = read_text(
-        root, "release/templates/beta-acceptance-template.md", report
+        root, "tooling/release/templates/beta-acceptance-template.md", report
     )
     if template_content:
         for token in ("{{TAG}}", "{{DATE}}", "{{COMMIT}}", "{{CI_STATUS}}"):
             report.check(
                 token in template_content,
                 f"beta-acceptance-template.md includes {token}",
-                f"release/templates/beta-acceptance-template.md missing token: {token}",
+                f"tooling/release/templates/beta-acceptance-template.md missing token: {token}",
             )
 
-    automation_doc = read_text(root, "release/automation.md", report)
+    automation_doc = read_text(root, "tooling/release/automation.md", report)
     if automation_doc:
         for token in (
             "release_ready.sh",
@@ -2473,15 +2473,15 @@ def validate_release_artifacts(root: Path, report: ValidationReport) -> None:
         ):
             report.check(
                 token in automation_doc,
-                f"release/automation.md includes {token}",
-                f"release/automation.md missing token: {token}",
+                f"tooling/release/automation.md includes {token}",
+                f"tooling/release/automation.md missing token: {token}",
             )
 
     latest_note = select_latest_release_note(root)
     report.check(
         latest_note is not None,
         "release includes at least one release note",
-        "release/ missing release note files (expected vX.Y.Z.md or vX.Y.Z-beta.N.md)",
+        "tooling/release/ missing release note files (expected vX.Y.Z.md or vX.Y.Z-beta.N.md)",
     )
     if latest_note is not None:
         relative_note_path = str(latest_note.relative_to(root))
@@ -2498,7 +2498,7 @@ def validate_release_artifacts(root: Path, report: ValidationReport) -> None:
                 f"{relative_note_path} missing token: {token}",
             )
 
-    rollback_content = read_text(root, "release/rollback.md", report)
+    rollback_content = read_text(root, "tooling/release/rollback.md", report)
     if rollback_content:
         for token in (
             "Git Tag Rollback",
@@ -2509,7 +2509,7 @@ def validate_release_artifacts(root: Path, report: ValidationReport) -> None:
             report.check(
                 token in rollback_content,
                 f"rollback.md includes {token}",
-                f"release/rollback.md missing token: {token}",
+                f"tooling/release/rollback.md missing token: {token}",
             )
 
 

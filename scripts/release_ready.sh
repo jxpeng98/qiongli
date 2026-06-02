@@ -80,7 +80,7 @@ is_expected_release_path() {
       ;;
   esac
   if is_prerelease_tag "$REPO_TAG"; then
-    [[ "$path" == "release/${REPO_TAG}.md" ]] && return 0
+    [[ "$path" == "tooling/release/${REPO_TAG}.md" ]] && return 0
   else
     [[ "$path" == "CHANGELOG.md" ]] && return 0
   fi

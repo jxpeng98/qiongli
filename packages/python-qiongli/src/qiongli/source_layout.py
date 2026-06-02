@@ -154,7 +154,9 @@ class RepoLayout:
 
     @property
     def release(self) -> Path:
-        return self.root / "release"
+        path = self.tooling / "release"
+        legacy_path = self.root / "release"
+        return path if path.exists() else legacy_path
 
     @property
     def evals(self) -> Path:

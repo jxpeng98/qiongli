@@ -15,7 +15,7 @@ PUBLISH_PYPI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-pypi.yml"
 PUBLISH_NPM_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-npm.yml"
 VERIFY_RELEASE_TAG = REPO_ROOT / "scripts" / "verify_release_tag_version.sh"
 CHANGELOG_SECTION = REPO_ROOT / "scripts" / "changelog_section.py"
-RELEASE_AUTOMATION_DOC = REPO_ROOT / "release" / "automation.md"
+RELEASE_AUTOMATION_DOC = REPO_ROOT / "tooling" / "release" / "automation.md"
 PUBLISH_PYPI_DOC = REPO_ROOT / "docs" / "advanced" / "publish-pypi.md"
 PUBLISH_PYPI_ZH_DOC = REPO_ROOT / "docs" / "zh" / "advanced" / "publish-pypi.md"
 RELEASE_BRANCH_POLICY_DOC = REPO_ROOT / "docs" / "maintainer" / "release-branch-policy.md"
@@ -37,10 +37,10 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('if [[ -n "$version" && -n "$version_from_tag" && "$repo_tag_from_version" != "$repo_tag_from_tag" ]]; then', content)
         self.assertIn("--maintainer-smoke", content)
         self.assertIn("git add CHANGELOG.md", content)
-        self.assertIn('git add "release/${repo_tag}.md"', content)
+        self.assertIn('git add "tooling/release/${repo_tag}.md"', content)
         self.assertIn('git tag -a "$repo_tag"', content)
         self.assertIn('git push "$push_remote" "$push_branch" "$repo_tag"', content)
-        self.assertIn('acceptance_out="release/acceptance/${repo_tag}-receipt.md"', content)
+        self.assertIn('acceptance_out="tooling/release/acceptance/${repo_tag}-receipt.md"', content)
         self.assertIn('./scripts/release_postflight.sh --tag "$repo_tag" --acceptance-out "$acceptance_out"', content)
         self.assertIn('git add "$acceptance_out"', content)
         self.assertIn('chore: record release ${repo_tag} acceptance', content)

@@ -38,7 +38,7 @@ Usage:
 Description:
   Run standardized post-release checks:
     1) verify local/remote tag consistency
-    2) verify release docs (stable uses CHANGELOG.md, prerelease uses release/<tag>.md) + rollback docs
+    2) verify release docs (stable uses CHANGELOG.md, prerelease uses tooling/release/<tag>.md) + rollback docs
     3) optionally check branch CI and tag publish status on GitHub Actions
     4) generate release acceptance receipt from template
 
@@ -55,7 +55,7 @@ Options:
   --ci-poll-interval-seconds <n>
                         Poll interval for CI checks when --wait-ci is enabled (default: 30).
   --create-release      Create GitHub release if missing and gh auth is available.
-  --acceptance-out <p>  Output path for acceptance receipt (default: release/acceptance/<tag>-receipt.md).
+  --acceptance-out <p>  Output path for acceptance receipt (default: tooling/release/acceptance/<tag>-receipt.md).
   -h, --help            Show this message.
 EOF
 }
@@ -144,7 +144,7 @@ prepare_release_notes_file() {
   local version="${tag#v}"
 
   if is_prerelease_tag "$tag"; then
-    RELEASE_NOTES_FILE="release/${tag}.md"
+    RELEASE_NOTES_FILE="tooling/release/${tag}.md"
     RELEASE_NOTES_LABEL="$RELEASE_NOTES_FILE"
     [[ -f "$RELEASE_NOTES_FILE" ]] || {
       echo "[postflight] missing prerelease notes: $RELEASE_NOTES_FILE" >&2
@@ -368,8 +368,8 @@ else
   exit 1
 fi
 
-ROLLBACK_PATH="release/rollback.md"
-TEMPLATE_PATH="release/templates/beta-acceptance-template.md"
+ROLLBACK_PATH="tooling/release/rollback.md"
+TEMPLATE_PATH="tooling/release/templates/beta-acceptance-template.md"
 
 [[ -f "$ROLLBACK_PATH" ]] || { echo "[postflight] missing rollback doc: $ROLLBACK_PATH" >&2; exit 1; }
 [[ -f "$TEMPLATE_PATH" ]] || { echo "[postflight] missing acceptance template: $TEMPLATE_PATH" >&2; exit 1; }
@@ -598,7 +598,7 @@ else
 fi
 
 if [[ -z "$ACCEPTANCE_OUT" ]]; then
-  ACCEPTANCE_OUT="release/acceptance/${TAG}-receipt.md"
+  ACCEPTANCE_OUT="tooling/release/acceptance/${TAG}-receipt.md"
 fi
 mkdir -p "$(dirname "$ACCEPTANCE_OUT")"
 

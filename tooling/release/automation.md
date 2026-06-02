@@ -87,7 +87,7 @@ The synchronized version files include package metadata, the portable workflow v
 
 Runs validator + repository unit tests + release-tier smoke checks, verifies the tag is not already used, and then:
 
-- beta / prerelease tags: auto-generate `release/<tag>.md` draft if missing
+- beta / prerelease tags: auto-generate `tooling/release/<tag>.md` draft if missing
 - stable tags: verify the matching version section already exists in `CHANGELOG.md`
 
 After checks pass, preflight auto-fills validation evidence lines in prerelease notes.
@@ -101,7 +101,7 @@ Manual prerelease draft generation (optional):
 The draft generator remains available, but the default policy is now:
 
 - stable tags publish from `CHANGELOG.md`
-- prerelease tags publish from `release/<tag>.md`
+- prerelease tags publish from `tooling/release/<tag>.md`
 
 ## 4) Publish from the release branch
 
@@ -122,7 +122,7 @@ The command above owns the release-prep commit, tag creation, branch/tag push, r
 
 Runs local/remote consistency checks, checks branch CI + tag publish status, checks release docs + rollback docs, and generates:
 
-- `release/acceptance/v0.1.0-receipt.md`
+- `tooling/release/acceptance/v0.1.0-receipt.md`
 
 It also runs:
 
@@ -138,8 +138,8 @@ When `--create-release` is used, the generated Codex, Claude Code, and Gemini CL
 - `--version <version>`: compatibility input for `publish`, accepts stable (`0.2.0`) and beta (`0.2.0b1`) forms.
 - `--skip-smoke`: skip smoke stage during preflight.
 - `--maintainer-smoke`: upgrade preflight smoke from the default release tier to the maintainer tier (`parallel` + `task-run` profile checks).
-- `--skip-note-gen`: skip prerelease draft generation of `release/<tag>.md`.
-- `--note-overwrite`: overwrite existing `release/<tag>.md` when generating prerelease draft.
+- `--skip-note-gen`: skip prerelease draft generation of `tooling/release/<tag>.md`.
+- `--note-overwrite`: overwrite existing `tooling/release/<tag>.md` when generating prerelease draft.
 - `--from-tag <tag>`: choose baseline tag used for prerelease draft highlights.
 - `--skip-bump`: start `release_ready.sh` from preflight/package checks only.
 - `--allow-dirty`: let `release_ready.sh` continue on a dirty worktree.

@@ -21,14 +21,14 @@ Usage:
   ./scripts/generate_release_notes.sh --tag <tag> [options]
 
 Description:
-  Generate a draft release notes file at release/<tag>.md.
+  Generate a draft release notes file at tooling/release/<tag>.md.
   This is primarily for beta / prerelease release notes. Stable releases should
   be documented in CHANGELOG.md and published from the matching changelog section.
 
 Options:
   --tag <tag>           Required release tag (for example v0.1.0 or v0.1.1-beta.1)
   --from-tag <tag>      Optional baseline tag for commit highlights
-  --output <path>       Output file path (default: release/<tag>.md)
+  --output <path>       Output file path (default: tooling/release/<tag>.md)
   --date <YYYY-MM-DD>   Release date (default: today)
   --stage <name>        Optional stage label (default: inferred from tag)
   --max-commits <n>     Max commits to include in highlights (default: 12)
@@ -122,7 +122,7 @@ done
 cd "$ROOT_DIR"
 
 if [[ -z "$OUTPUT" ]]; then
-  OUTPUT="release/${TAG}.md"
+  OUTPUT="tooling/release/${TAG}.md"
 fi
 
 if [[ -z "$STAGE" ]]; then
@@ -241,7 +241,7 @@ ${PUBLISH_CMD}
 \`\`\`
 EOF
   echo
-  echo "For rollback procedure, see \`release/rollback.md\`."
+  echo "For rollback procedure, see \`tooling/release/rollback.md\`."
   if [[ -n "$FROM_TAG" ]]; then
     echo
     echo "_Baseline tag for highlights: \`${FROM_TAG}\`_"

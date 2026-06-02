@@ -4,7 +4,7 @@ on:
   push:
     branches: ["main", "master", "dev"]
     paths-ignore:
-      - "release/acceptance/**"
+      - "tooling/release/acceptance/**"
   pull_request:
     branches: ["main", "master", "dev"]
 

@@ -113,7 +113,7 @@ Usage:
 
 Description:
   Run standardized pre-release gates:
-    0) prerelease: auto-generate release/<tag>.md draft
+    0) prerelease: auto-generate tooling/release/<tag>.md draft
        stable: verify matching CHANGELOG.md section exists
     1) strict standard validator
     2) repository unit tests
@@ -124,8 +124,8 @@ Options:
   --tag <tag>     Optional release tag to pre-check. If provided, script verifies
                   the tag does not already exist locally.
   --from-tag <t>  Optional baseline tag passed to prerelease note generator.
-  --skip-note-gen Skip auto generation of release/<tag>.md draft for prerelease tags.
-  --note-overwrite  Overwrite release/<tag>.md when auto-generating prerelease draft.
+  --skip-note-gen Skip auto generation of tooling/release/<tag>.md draft for prerelease tags.
+  --note-overwrite  Overwrite tooling/release/<tag>.md when auto-generating prerelease draft.
   --skip-smoke    Skip smoke test stage.
   --skip-unit-tests  Skip repository unit tests.
   --skip-controller-evals  Skip controller-mode eval warning stage.
@@ -243,8 +243,8 @@ if [[ -n "$TAG" ]]; then
       echo "[preflight] prerelease note generation skipped"
     fi
 
-    if [[ ! -f "release/${TAG}.md" ]]; then
-      echo "[preflight] missing prerelease notes file: release/${TAG}.md" >&2
+    if [[ ! -f "tooling/release/${TAG}.md" ]]; then
+      echo "[preflight] missing prerelease notes file: tooling/release/${TAG}.md" >&2
       exit 1
     fi
   else
