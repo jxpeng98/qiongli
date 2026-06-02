@@ -62,6 +62,9 @@ const enSidebar = {
         { text: 'Extend Qiongli', link: '/advanced/extend-qiongli' },
         { text: 'Subject Packaging Model', link: '/advanced/subject-packaging-model' },
         { text: 'Agent + Skill Collaboration', link: '/advanced/agent-skill-collaboration' },
+        { text: 'Controller Modes', link: '/advanced/controller-modes' },
+        { text: 'Solo Mode', link: '/advanced/solo-mode' },
+        { text: 'Codex-Claude Duo', link: '/advanced/codex-claude-duo' },
         { text: 'Plugin-First Architecture', link: '/advanced/plugin-first-architecture' },
         { text: 'MCP Providers Setup', link: '/advanced/mcp-providers-setup' },
         { text: 'Rigorous Literature Search', link: '/advanced/rigorous-literature-search' },
@@ -79,6 +82,7 @@ const enSidebar = {
         { text: 'Architecture', link: '/architecture' },
         { text: 'Conventions', link: '/conventions' },
         { text: 'Naming Policy', link: '/maintainer/naming-policy' },
+        { text: 'External Borrowing', link: '/maintainer/external-borrowing' },
         { text: 'Release Branch Policy', link: '/maintainer/release-branch-policy' },
         { text: 'Publish to PyPI', link: '/advanced/publish-pypi' }
       ]

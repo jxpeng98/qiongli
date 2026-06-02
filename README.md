@@ -99,7 +99,7 @@ Start with the consolidated docs when you need detail:
 - [CLI Reference](docs/reference/cli.md)
 - [Architecture](docs/architecture.md)
 - [Plugin-First Architecture](docs/advanced/plugin-first-architecture.md)
-- [Controller Modes](guides/advanced/controller-modes.md)
+- [Controller Modes](docs/advanced/controller-modes.md)
 
 ### 0. Choose An Install Path
 
@@ -426,7 +426,7 @@ python3 -m bridges.orchestrator task-run \
   --skills-strict
 ```
 
-See [Controller Modes](guides/advanced/controller-modes.md), [Solo Mode](guides/advanced/solo-mode.md), and [Codex-Claude Duo](guides/advanced/codex-claude-duo.md) for controller-aware task-run conventions, solo gates, and disagreement handling.
+See [Controller Modes](docs/advanced/controller-modes.md), [Solo Mode](docs/advanced/solo-mode.md), and [Codex-Claude Duo](docs/advanced/codex-claude-duo.md) for controller-aware task-run conventions, solo gates, and disagreement handling.
 
 ### 8. Run the Strict Academic Code Flow
 
@@ -1026,7 +1026,7 @@ Functional Routing                 Runtime Routing
             -> RESEARCH/[topic]/...
 ```
 
-See [docs/advanced/agent-skill-collaboration.md](docs/advanced/agent-skill-collaboration.md) for the current guide. The legacy mirror remains at [guides/advanced/agent-skill-collaboration.md](guides/advanced/agent-skill-collaboration.md).
+See [docs/advanced/agent-skill-collaboration.md](docs/advanced/agent-skill-collaboration.md) for the current guide.
 
 ---
 
@@ -1169,7 +1169,7 @@ qiongli/
 │   └── domain-profiles/      # Domain-specific configs (economics, cs-ai, etc.)
 ├── schemas/                  # JSON schemas + artifact type vocab
 ├── evals/                    # Evaluation cases, rubrics, runners, and suites
-├── guides/                   # Basic and Advanced tutorials
+├── docs/                     # VitePress documentation site
 ├── scripts/                  # CI, installers, validators
 └── tests/                    # Unit tests
 ```

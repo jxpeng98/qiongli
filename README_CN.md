@@ -92,7 +92,7 @@
 - [安装指南](docs/zh/guide/install.md)
 - [CLI 参考](docs/zh/reference/cli.md)
 - [系统架构](docs/zh/architecture.md)
-- [Controller Modes](guides/advanced/controller-modes.md)
+- [Controller Modes](docs/advanced/controller-modes.md)
 
 ### 0. 先选安装路径
 
@@ -401,7 +401,7 @@ python3 -m bridges.orchestrator task-run \
   --skills-strict
 ```
 
-更多 controller-aware task-run 约定、solo gates 和 disagreement 处理见 [Controller Modes](guides/advanced/controller-modes.md)、[Solo Mode](guides/advanced/solo-mode.md) 与 [Codex-Claude Duo](guides/advanced/codex-claude-duo.md)。
+更多 controller-aware task-run 约定、solo gates 和 disagreement 处理见 [Controller Modes](docs/advanced/controller-modes.md)、[Solo Mode](docs/advanced/solo-mode.md) 与 [Codex-Claude Duo](docs/advanced/codex-claude-duo.md)。
 
 ### 8. 运行严格学术代码流
 
@@ -860,7 +860,7 @@ MCP 证据采集                  Agent 运行时路由
            质量门 + 产物落盘输出
               -> RESEARCH/[topic]/...
 ```
-*(详情请参考 [docs/zh/advanced/agent-skill-collaboration.md](docs/zh/advanced/agent-skill-collaboration.md)；旧版镜像路径仍保留在 [guides/advanced/agent-skill-collaboration.md](guides/advanced/agent-skill-collaboration.md))*
+*(详情请参考 [docs/zh/advanced/agent-skill-collaboration.md](docs/zh/advanced/agent-skill-collaboration.md)。)*
 
 ---
 
@@ -978,7 +978,7 @@ qiongli/
 │   └── domain-profiles/      # (动态挂载的领域知识图谱 Economics, Bio等)
 ├── schemas/                  # Validator 数据验证
 ├── evals/                    # 性能、覆盖率与质量评测资产
-├── guides/                   # 最佳实践与深潜开发文档
+├── docs/                     # VitePress 文档站
 ├── scripts/                  # CI 维护器
 └── tests/                    # 单元测试验证
 ```

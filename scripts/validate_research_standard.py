@@ -239,7 +239,6 @@ def references_collaboration_guide(content: str) -> bool:
     return any(
         token in content
         for token in (
-            "guides/advanced/agent-skill-collaboration.md",
             "docs/advanced/agent-skill-collaboration.md",
             "docs/zh/advanced/agent-skill-collaboration.md",
         )
@@ -2100,38 +2099,36 @@ def validate_orchestrator(root: Path, report: ValidationReport) -> None:
 
 
 def validate_guides(root: Path, report: ValidationReport) -> None:
-    content = read_text(root, "guides/advanced/agent-skill-collaboration.md", report)
+    content = read_text(root, "docs/advanced/agent-skill-collaboration.md", report)
     if not content:
         return
     for token in ("Task ID", "required_skills", "task-run", "--summarizer", "--profile-file", "doctor"):
         report.check(
             token in content,
             f"collaboration guide includes {token}",
-            f"guides/advanced/agent-skill-collaboration.md missing key token: {token}",
+            f"docs/advanced/agent-skill-collaboration.md missing key token: {token}",
         )
     report.check(
         "RESEARCH_MCP_" in content,
         "collaboration guide documents external MCP env contract",
-        "guides/advanced/agent-skill-collaboration.md should include RESEARCH_MCP_ env contract",
+        "docs/advanced/agent-skill-collaboration.md should include RESEARCH_MCP_ env contract",
     )
 
-    install_content = read_text(root, "guides/basic/install-multi-client.md", report)
+    install_content = read_text(root, "docs/guide/install.md", report)
     if not install_content:
         return
     for token in (
-        "install_qiongli.sh",
+        "bootstrap_qiongli.sh",
         "--target all",
-        "--mode copy|link",
-        "CODEX_HOME",
-        "CLAUDE_CODE_HOME",
-        "GEMINI_HOME",
-        "ANTIGRAVITY_HOME",
+        "--mode copy",
+        "--mode link",
+        "qiongli install",
         "bridges.orchestrator doctor",
     ):
         report.check(
             token in install_content,
             f"install guide includes {token}",
-            f"guides/basic/install-multi-client.md missing token: {token}",
+            f"docs/guide/install.md missing token: {token}",
         )
 
 
