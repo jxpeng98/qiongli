@@ -36,6 +36,7 @@ Checks:
   5) CLI smoke checks (qiongli / ql / research-skills / rsk / rsw)
 
 Options:
+  --root <dir>      Repository root to check. Defaults to this script's checkout.
   --no-build         Skip build step (expects artifacts in dist/)
   --no-install-smoke Skip temporary venv install + CLI smoke checks
   --keep-dist        Do not delete existing dist/ before build
@@ -45,6 +46,11 @@ EOF
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --root)
+      [[ $# -ge 2 ]] || { echo "[pypi-preflight] missing value for --root" >&2; exit 2; }
+      ROOT_DIR="$(cd "$2" && pwd)"
+      shift 2
+      ;;
     --no-build)
       RUN_BUILD=0
       shift

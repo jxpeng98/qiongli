@@ -29,7 +29,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn("<pre|post|publish>", content)
         self.assertIn("publish --version 0.1.0", content)
         self.assertIn("publish --tag v0.1.0", content)
-        self.assertIn("./scripts/release_ready.sh --version", content)
+        self.assertIn('./scripts/release_ready.sh "${release_ready_args[@]}"', content)
         self.assertIn("publish mode requires --version or --tag", content)
         self.assertIn('version_from_tag="$2"', content)
         self.assertIn('repo_tag_from_version="$(normalize_field "$version" repo_version)"', content)
@@ -54,7 +54,8 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('packages/npm-qiongli', content)
         self.assertIn('package-lock.json', content)
         self.assertIn('npm_preflight.sh', content)
-        self.assertIn("python3 scripts/materialize_distribution_payloads.py --target all --in-place", content)
+        self.assertIn('release_ready_args=(--version "$version_input")', content)
+        self.assertNotIn("python3 scripts/materialize_distribution_payloads.py --target all --in-place", content)
         self.assertIn('./scripts/release_postflight.sh --tag "$repo_tag"', content)
 
     def test_docs_define_optional_beta_channel_policy(self) -> None:
@@ -86,18 +87,19 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('release_branch="$DEV_PRERELEASE_BRANCH"', content)
         self.assertIn('Current branch: $current_branch; push branch: $push_branch; expected release branch: $release_branch', content)
 
-    def test_publish_mode_syncs_generated_payloads_before_commit_and_tag(self) -> None:
+    def test_publish_mode_uses_release_ready_staging_before_commit_and_tag(self) -> None:
         content = RELEASE_AUTOMATION.read_text(encoding="utf-8")
 
-        materialize = "python3 scripts/materialize_distribution_payloads.py --target all --in-place"
-        verify = 'bash scripts/verify_release_tag_version.sh --tag "$repo_tag"'
+        release_ready = '"${release_ready_args[@]}"'
         git_add = "git add \\"
         tag = 'git tag -a "$repo_tag"'
 
-        for expected in (materialize, verify):
-            self.assertIn(expected, content)
-            self.assertLess(content.index(expected), content.index(git_add))
-            self.assertLess(content.index(expected), content.index(tag))
+        self.assertNotIn("sync_generated_distribution_payloads", content)
+        self.assertNotIn("materialize_distribution_payloads.py --target all --in-place", content)
+        self.assertIn('release_ready_args=(--version "$version_input")', content)
+        self.assertIn(release_ready, content)
+        self.assertLess(content.index(release_ready), content.index(git_add))
+        self.assertLess(content.index(release_ready), content.index(tag))
 
     def test_release_postflight_waits_for_branch_and_tag_workflows(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
@@ -119,10 +121,12 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('git fetch --force --no-tags origin "$fetch_ref"', content)
         self.assertIn('python3 scripts/changelog_section.py --version "$version" --output "$TEMP_RELEASE_NOTES"', content)
         self.assertIn('RELEASE_NOTES_LABEL="CHANGELOG.md [${version}]"', content)
-        self.assertIn('bash ./scripts/verify_release_tag_version.sh --tag "$TAG"', content)
+        self.assertIn('POSTFLIGHT_STAGING_DIR=""', content)
+        self.assertIn('python3 scripts/materialize_distribution_payloads.py --target all --out "$POSTFLIGHT_STAGING_DIR" --force', content)
+        self.assertIn('bash ./scripts/verify_release_tag_version.sh --root "$POSTFLIGHT_STAGING_DIR" --tag "$TAG"', content)
         self.assertIn("gh release view", content)
         self.assertIn("--prerelease", content)
-        self.assertIn('scripts/build_plugin_artifacts.py --tag "$TAG" --dist-dir dist', content)
+        self.assertIn('scripts/build_plugin_artifacts.py --root "$POSTFLIGHT_STAGING_DIR" --tag "$TAG" --dist-dir dist', content)
         self.assertIn('PLUGIN_ARTIFACTS=(', content)
         self.assertIn('"dist/qiongli-core-codex-plugin-${TAG}.tar.gz"', content)
         self.assertIn('"dist/qiongli-economics-codex-plugin-${TAG}.tar.gz"', content)
@@ -194,6 +198,25 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertNotIn('qiongli/payload|qiongli/payload/*', content)
         self.assertNotIn('plugins/qiongli/skills/qiongli-workflow|plugins/qiongli/skills/qiongli-workflow/*', content)
         self.assertNotIn('qiongli-workflow/skills/registry.yaml', content)
+
+    def test_release_ready_runs_package_preflights_from_staging_root(self) -> None:
+        content = RELEASE_READY.read_text(encoding="utf-8")
+
+        preflight = './scripts/release_automation.sh pre "${PRE_ARGS[@]}" --materialize-out "$RELEASE_STAGING_DIR"'
+        verify = 'bash ./scripts/verify_release_tag_version.sh --root "$RELEASE_STAGING_DIR" --tag "$REPO_TAG"'
+        pypi = 'bash ./scripts/pypi_preflight.sh --root "$RELEASE_STAGING_DIR" "${PYPI_ARGS[@]}"'
+        npm = 'bash ./scripts/npm_preflight.sh --root "$RELEASE_STAGING_DIR"'
+
+        self.assertIn('RELEASE_STAGING_DIR=""', content)
+        self.assertIn('--staging-dir <dir>', content)
+        self.assertIn('mktemp -d "${TMPDIR:-/tmp}/qiongli-release-ready.XXXXXX"', content)
+        self.assertIn(preflight, content)
+        self.assertIn(verify, content)
+        self.assertIn(pypi, content)
+        self.assertIn(npm, content)
+        self.assertLess(content.index(preflight), content.index(verify))
+        self.assertLess(content.index(verify), content.index(pypi))
+        self.assertLess(content.index(pypi), content.index(npm))
 
     def test_release_ready_does_not_print_manual_publish_steps(self) -> None:
         content = RELEASE_READY.read_text(encoding="utf-8")
@@ -314,9 +337,21 @@ class ReleaseAutomationTests(unittest.TestCase):
         materialize = "python3 scripts/materialize_distribution_payloads.py --target all --in-place"
         build = "python3 -m build"
 
+        self.assertIn("--root <dir>", content)
+        self.assertIn('ROOT_DIR="$(cd "$2" && pwd)"', content)
         self.assertIn(materialize, content)
         self.assertIn(build, content)
+        self.assertIn('cd "$ROOT_DIR"', content)
         self.assertLess(content.index(materialize), content.index(build))
+
+    def test_npm_preflight_accepts_staging_root(self) -> None:
+        content = (REPO_ROOT / "scripts" / "npm_preflight.sh").read_text(encoding="utf-8")
+
+        self.assertIn("--root <dir>", content)
+        self.assertIn('ROOT_DIR="$(cd "$2" && pwd)"', content)
+        self.assertIn('PKG_DIR="$ROOT_DIR/packages/npm-qiongli"', content)
+        self.assertIn("python3 scripts/materialize_distribution_payloads.py --target all --in-place", content)
+        self.assertIn('cd "$ROOT_DIR"', content)
 
     def test_pypi_preflight_does_not_print_manual_publish_steps(self) -> None:
         content = PYPI_PREFLIGHT.read_text(encoding="utf-8")
@@ -365,7 +400,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertNotIn('if [[ "${{ github.event_name }}" == "push" || "${{ inputs.mode }}" != "publish" ]]; then', content)
         self.assertNotIn('if [[ "$mode" == "publish"', content)
         self.assertIn('args+=(--create-release)', content)
-        self.assertIn('bash scripts/verify_release_tag_version.sh --tag "$tag"', content)
+        self.assertIn('bash scripts/verify_release_tag_version.sh --root "$RUNNER_TEMP/qiongli-release-dist" --tag "$tag"', content)
         self.assertIn('git config user.name "github-actions[bot]"', content)
         self.assertIn("python -m pip install -e . build twine", content)
         self.assertIn("./scripts/release_automation.sh \"$mode\" \"${args[@]}\"", content)
@@ -373,7 +408,8 @@ class ReleaseAutomationTests(unittest.TestCase):
     def test_publish_pypi_workflow_verifies_tag_matches_repo_version(self) -> None:
         content = PUBLISH_PYPI_WORKFLOW.read_text(encoding="utf-8")
 
-        self.assertIn('bash scripts/verify_release_tag_version.sh --tag "${RELEASE_TAG}"', content)
+        self.assertIn('bash scripts/verify_release_tag_version.sh --root "$RUNNER_TEMP/qiongli-dist" --tag "${RELEASE_TAG}"', content)
+        self.assertIn('packages-dir: ${{ runner.temp }}/qiongli-dist/dist', content)
         self.assertNotIn('bash scripts/verify_release_tag_version.sh --tag "${GITHUB_REF_NAME}"', content)
 
     def test_tag_publish_workflows_do_not_expose_manual_publish_dispatch(self) -> None:
@@ -387,35 +423,40 @@ class ReleaseAutomationTests(unittest.TestCase):
                 self.assertIn('tags:\n      - "v*"', content)
                 self.assertIn("ref: ${{ github.ref }}", content)
                 self.assertIn("RELEASE_TAG: ${{ github.ref_name }}", content)
-                self.assertIn('bash scripts/verify_release_tag_version.sh --tag "${RELEASE_TAG}"', content)
+                self.assertIn('bash scripts/verify_release_tag_version.sh --root "$RUNNER_TEMP/qiongli-dist" --tag "${RELEASE_TAG}"', content)
 
-    def test_tag_publish_workflows_sync_generated_payloads_before_version_verify(self) -> None:
+    def test_tag_publish_workflows_materialize_staging_before_version_verify(self) -> None:
         for workflow in (PUBLISH_PYPI_WORKFLOW, PUBLISH_NPM_WORKFLOW):
             with self.subTest(workflow=workflow.name):
                 content = workflow.read_text(encoding="utf-8")
 
-                verify = 'bash scripts/verify_release_tag_version.sh --tag "${RELEASE_TAG}"'
+                verify = 'bash scripts/verify_release_tag_version.sh --root "$RUNNER_TEMP/qiongli-dist" --tag "${RELEASE_TAG}"'
                 install = "python -m pip install -e ."
-                materialize = "python3 scripts/materialize_distribution_payloads.py --target all --in-place"
+                materialize = 'python3 scripts/materialize_distribution_payloads.py --target all --out "$RUNNER_TEMP/qiongli-dist" --force'
                 self.assertIn(materialize, content)
                 self.assertIn(install, content)
+                self.assertNotIn("python3 scripts/materialize_distribution_payloads.py --target all --in-place", content)
                 self.assertLess(content.index(install), content.index(materialize))
                 self.assertLess(content.index(materialize), content.index(verify))
 
-    def test_release_workflow_syncs_generated_payloads_before_version_verify(self) -> None:
+    def test_release_workflow_materializes_staging_before_version_verify(self) -> None:
         content = RELEASE_WORKFLOW.read_text(encoding="utf-8")
 
-        verify = 'bash scripts/verify_release_tag_version.sh --tag "$tag"'
+        verify = 'bash scripts/verify_release_tag_version.sh --root "$RUNNER_TEMP/qiongli-release-dist" --tag "$tag"'
         install = "python -m pip install -e . build twine"
-        materialize = "python3 scripts/materialize_distribution_payloads.py --target all --in-place"
+        materialize = 'python3 scripts/materialize_distribution_payloads.py --target all --out "$RUNNER_TEMP/qiongli-release-dist" --force'
         self.assertIn(materialize, content)
         self.assertIn(install, content)
+        self.assertNotIn("python3 scripts/materialize_distribution_payloads.py --target all --in-place", content)
         self.assertLess(content.index(install), content.index(materialize))
         self.assertLess(content.index(materialize), content.index(verify))
 
     def test_verify_release_tag_script_checks_expected_files(self) -> None:
         content = VERIFY_RELEASE_TAG.read_text(encoding="utf-8")
 
+        self.assertIn("--root <dir>", content)
+        self.assertIn('ROOT_DIR="$(cd "$2" && pwd)"', content)
+        self.assertIn('cd "$ROOT_DIR"', content)
         self.assertIn('scripts/sync_versions.py "$TAG" --print-field package_version', content)
         self.assertIn('scripts/sync_versions.py "$TAG" --print-field npm_version', content)
         self.assertIn('pyproject.toml', content)
@@ -439,6 +480,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('plugins/qiongli/skills/qiongli-workflow/skills/registry.yaml', content)
         self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
         self.assertIn('plugins/qiongli/gemini-extension.json', content)
+        self.assertIn('python3 scripts/audit_distribution_payloads.py --root "$ROOT_DIR"', content)
 
 
 if __name__ == "__main__":

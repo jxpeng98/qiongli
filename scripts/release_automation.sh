@@ -43,16 +43,6 @@ ensure_git_identity() {
   exit 1
 }
 
-sync_generated_distribution_payloads() {
-  local repo_tag="$1"
-
-  echo "[release-automation] materialize distribution payloads"
-  python3 scripts/materialize_distribution_payloads.py --target all --in-place
-
-  echo "[release-automation] verify release tag version"
-  bash scripts/verify_release_tag_version.sh --tag "$repo_tag"
-}
-
 usage() {
   cat <<'EOF'
 Usage:
@@ -71,7 +61,7 @@ Notes:
   - post -> runs scripts/release_postflight.sh
   - publish is the canonical release entrypoint. Use pre/post only for diagnostics or recovery.
   - pre supports pass-through flags such as --from-tag, --skip-note-gen, --note-overwrite, --skip-smoke, --maintainer-smoke, and --no-strict.
-  - publish -> runs release_ready (including pypi_preflight.sh and npm_preflight.sh), syncs generated distribution payloads, commits release-prep files, creates/pushes the tag, waits for branch CI and tag publish workflows, then runs postflight with release-page creation.
+  - publish -> runs release_ready with staged distribution checks (including pypi_preflight.sh and npm_preflight.sh), commits release-prep files, creates/pushes the tag, waits for branch CI and tag publish workflows, then runs postflight with release-page creation.
   - publish supports --ci-timeout-mode hard|soft. Use soft for beta releases when CI may exceed the local wait window; keep hard for stable releases.
   - publish stable releases from the primary branch; publish prerelease/beta tags from dev or the primary branch.
 EOF
@@ -139,6 +129,11 @@ case "$MODE" in
         --skip-smoke|--maintainer-smoke|--no-strict|--skip-note-gen|--note-overwrite|--no-build|--no-install-smoke|--keep-dist)
           ready_args+=("$1")
           shift
+          ;;
+        --staging-dir)
+          [[ $# -ge 2 ]] || { echo "[release-automation] missing value for --staging-dir" >&2; exit 2; }
+          ready_args+=("$1" "$2")
+          shift 2
           ;;
         --commit-message)
           [[ $# -ge 2 ]] || { echo "[release-automation] missing value for --commit-message" >&2; exit 2; }
@@ -249,9 +244,9 @@ case "$MODE" in
       commit_message="chore: prepare release ${package_version}"
     fi
 
-    ./scripts/release_ready.sh --version "$version_input" "${ready_args[@]}"
-
-    sync_generated_distribution_payloads "$repo_tag"
+    release_ready_args=(--version "$version_input")
+    release_ready_args+=("${ready_args[@]}")
+    ./scripts/release_ready.sh "${release_ready_args[@]}"
 
     ensure_git_identity
 

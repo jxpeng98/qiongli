@@ -39,16 +39,18 @@ jobs:
         run: bash scripts/inject_project_toml.sh
 
       - name: Materialize distribution payloads
-        run: python3 scripts/materialize_distribution_payloads.py --target all --in-place
+        run: python3 scripts/materialize_distribution_payloads.py --target all --out "$RUNNER_TEMP/qiongli-dist" --force
 
       - name: Verify tag matches repo version
-        run: bash scripts/verify_release_tag_version.sh --tag "${RELEASE_TAG}"
+        run: bash scripts/verify_release_tag_version.sh --root "$RUNNER_TEMP/qiongli-dist" --tag "${RELEASE_TAG}"
 
       - name: Build package
-        run: python -m build
+        run: cd "$RUNNER_TEMP/qiongli-dist" && python -m build
 
       - name: Validate package
-        run: twine check dist/*
+        run: cd "$RUNNER_TEMP/qiongli-dist" && twine check dist/*
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: ${{ runner.temp }}/qiongli-dist/dist
