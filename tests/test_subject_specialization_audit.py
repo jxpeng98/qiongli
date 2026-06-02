@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import importlib.util
 import shutil
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,11 +10,15 @@ from pathlib import Path
 from qiongli.source_layout import RepoLayout
 from unittest.mock import patch
 
-import scripts.audit_subject_specialization as subject_audit
-from scripts.audit_subject_specialization import audit_subject_specialization
-
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+SCRIPT_PATH = RepoLayout(REPO_ROOT).scripts / "audit_subject_specialization.py"
+SPEC = importlib.util.spec_from_file_location("audit_subject_specialization", SCRIPT_PATH)
+assert SPEC is not None and SPEC.loader is not None
+subject_audit = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = subject_audit
+SPEC.loader.exec_module(subject_audit)
+audit_subject_specialization = subject_audit.audit_subject_specialization
 
 
 class SubjectSpecializationAuditTests(unittest.TestCase):

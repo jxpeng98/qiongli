@@ -6,10 +6,15 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+LAYOUT = RepoLayout(REPO_ROOT)
 BOOTSTRAP_SCRIPT = REPO_ROOT / "scripts" / "bootstrap_qiongli.sh"
+BOOTSTRAP_SCRIPT_SOURCE = LAYOUT.scripts / "bootstrap_qiongli.sh"
 POWERSHELL_BOOTSTRAP = REPO_ROOT / "scripts" / "bootstrap_qiongli.ps1"
+POWERSHELL_BOOTSTRAP_SOURCE = LAYOUT.scripts / "bootstrap_qiongli.ps1"
 SYSTEM_BASH = Path("/bin/bash")
 
 
@@ -167,14 +172,14 @@ class BootstrapQiongliTests(unittest.TestCase):
         self.assertIn("Missing --profile and no interactive terminal is available", result.stderr)
 
     def test_shell_bootstrap_supports_explicit_noninteractive_mode(self) -> None:
-        content = BOOTSTRAP_SCRIPT.read_text(encoding="utf-8")
+        content = BOOTSTRAP_SCRIPT_SOURCE.read_text(encoding="utf-8")
 
         self.assertIn("QIONGLI_NONINTERACTIVE", content)
         self.assertIn("RESEARCH_SKILLS_NONINTERACTIVE", content)
         self.assertIn('[[ "${QIONGLI_NONINTERACTIVE:-${RESEARCH_SKILLS_NONINTERACTIVE:-}}" == "1" ]]', content)
 
     def test_shell_bootstrap_does_not_install_python_runtime(self) -> None:
-        content = BOOTSTRAP_SCRIPT.read_text(encoding="utf-8")
+        content = BOOTSTRAP_SCRIPT_SOURCE.read_text(encoding="utf-8")
 
         self.assertNotIn("install_mise()", content)
         self.assertNotIn('"$MISE_BIN" install python@3.12', content)
@@ -187,7 +192,7 @@ class BootstrapQiongliTests(unittest.TestCase):
         self.assertIn("winget install -e --id Python.Python.3.12", content)
 
     def test_powershell_bootstrap_is_manifest_driven(self) -> None:
-        content = POWERSHELL_BOOTSTRAP.read_text(encoding="utf-8")
+        content = POWERSHELL_BOOTSTRAP_SOURCE.read_text(encoding="utf-8")
 
         self.assertIn("install\\install_manifest.tsv", content)
         self.assertIn("Expand-Archive", content)
@@ -226,7 +231,7 @@ class BootstrapQiongliTests(unittest.TestCase):
         self.assertIn("research-paper-workflow", content)
 
     def test_shell_bootstrap_documents_beta_channel(self) -> None:
-        content = BOOTSTRAP_SCRIPT.read_text(encoding="utf-8")
+        content = BOOTSTRAP_SCRIPT_SOURCE.read_text(encoding="utf-8")
 
         self.assertIn("--beta", content)
         self.assertIn("--source-repo", content)

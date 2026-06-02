@@ -526,8 +526,11 @@ def _windows_shell_cli_available() -> bool:
 def _install_shell_cli(options: InstallOptions) -> None:
     assert options.cli_dir is not None
     repo_root = options.repo_root
-    cli_src = repo_root / "scripts" / "qiongli_cli.sh"
-    bootstrap_src = repo_root / "scripts" / "bootstrap_qiongli.sh"
+    script_source_dir = repo_root / "tooling" / "scripts"
+    if not script_source_dir.is_dir():
+        script_source_dir = repo_root / "scripts"
+    cli_src = script_source_dir / "qiongli_cli.sh"
+    bootstrap_src = script_source_dir / "bootstrap_qiongli.sh"
     cli_dir = options.cli_dir
     cli_dest = cli_dir / "qiongli"
     bootstrap_dest = cli_dir / "qiongli-bootstrap"

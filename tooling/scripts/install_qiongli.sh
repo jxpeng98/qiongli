@@ -600,8 +600,12 @@ install_alias_link() {
 }
 
 install_cli_assets() {
-  local cli_src="$ROOT_DIR/scripts/qiongli_cli.sh"
-  local bootstrap_src="$ROOT_DIR/scripts/bootstrap_qiongli.sh"
+  local script_source_dir="$ROOT_DIR/tooling/scripts"
+  if [[ ! -d "$script_source_dir" ]]; then
+    script_source_dir="$ROOT_DIR/scripts"
+  fi
+  local cli_src="$script_source_dir/qiongli_cli.sh"
+  local bootstrap_src="$script_source_dir/bootstrap_qiongli.sh"
   local cli_dest="$CLI_DIR/qiongli"
   local bootstrap_dest="$CLI_DIR/qiongli-bootstrap"
 

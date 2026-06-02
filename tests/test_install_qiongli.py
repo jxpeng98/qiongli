@@ -12,6 +12,7 @@ from qiongli.source_layout import RepoLayout
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LAYOUT = RepoLayout(REPO_ROOT)
 INSTALL_SCRIPT = REPO_ROOT / "scripts" / "install_qiongli.sh"
+INSTALL_SCRIPT_SOURCE = LAYOUT.scripts / "install_qiongli.sh"
 SYSTEM_BASH = Path("/bin/bash")
 
 
@@ -67,7 +68,7 @@ class InstallQiongliTests(unittest.TestCase):
             self.assertIn(f"current {source_version}; source {source_version}; already installed", result.stdout)
 
     def test_doctor_command_exports_repo_root_on_pythonpath(self) -> None:
-        content = INSTALL_SCRIPT.read_text(encoding="utf-8")
+        content = INSTALL_SCRIPT_SOURCE.read_text(encoding="utf-8")
 
         self.assertIn('doctor_cmd() {', content)
         self.assertIn('local python_source_root="$ROOT_DIR/packages/python-qiongli/src"', content)
