@@ -19,7 +19,10 @@ GENERATED_OUTPUT_PATHS = GENERATED_OUTPUT_DIRECTORIES + GENERATED_OUTPUT_FILES
 
 
 def normalize_generated_path(path: Path | str) -> str:
-    return Path(str(path).strip()).as_posix().lstrip("./")
+    rel = Path(str(path).strip()).as_posix()
+    while rel.startswith("./"):
+        rel = rel[2:]
+    return rel
 
 
 def is_generated_output_path(path: Path | str) -> bool:

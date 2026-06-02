@@ -33,6 +33,8 @@ class GeneratedPayloadGuardTests(unittest.TestCase):
 
     def test_classifies_generated_payload_paths(self) -> None:
         generated_paths = [
+            ".agent/workflows/paper.md",
+            ".gemini/qiongli.md",
             "packages/python-qiongli/src/qiongli/payload/qiongli-workflow/SKILL.md",
             "packages/npm-qiongli/payload/qiongli-workflow/SKILL.md",
             "packages/npm-qiongli/python-runtime/qiongli/__init__.py",
@@ -60,6 +62,8 @@ class GeneratedPayloadGuardTests(unittest.TestCase):
             "content/subjects/finance/skills/finance-identification-risk-auditor.md",
             "packages/qiongli-plugin/.codex-plugin/plugin.json",
             "packages/qiongli-plugin/commands/paper.md",
+            "packages/qiongli-plugin/platforms/agent/workflows/paper.md",
+            "packages/qiongli-plugin/platforms/gemini/qiongli.md",
             "content/skills-core.md",
             "content/skills-summary.md",
         ]

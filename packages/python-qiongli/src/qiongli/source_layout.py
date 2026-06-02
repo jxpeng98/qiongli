@@ -6,6 +6,8 @@ from pathlib import Path
 
 REPO_MARKERS = ("pyproject.toml", ".git")
 GENERATED_OUTPUT_ROOTS = (
+    Path(".agent"),
+    Path(".gemini"),
     Path("packages/python-qiongli/src/qiongli/payload"),
     Path("packages/npm-qiongli/payload"),
     Path("packages/npm-qiongli/python-runtime"),
@@ -133,6 +135,26 @@ class RepoLayout:
         return self.root / "plugins" / "qiongli"
 
     @property
+    def agent_platform(self) -> Path:
+        path = self.plugin_package / "platforms" / "agent"
+        legacy_path = self.root / ".agent"
+        return path if path.exists() else legacy_path
+
+    @property
+    def gemini_platform(self) -> Path:
+        path = self.plugin_package / "platforms" / "gemini"
+        legacy_path = self.root / ".gemini"
+        return path if path.exists() else legacy_path
+
+    @property
+    def agent_platform_artifact(self) -> Path:
+        return self.root / ".agent"
+
+    @property
+    def gemini_platform_artifact(self) -> Path:
+        return self.root / ".gemini"
+
+    @property
     def scripts(self) -> Path:
         path = self.tooling / "scripts"
         legacy_path = self.root / "scripts"
@@ -207,6 +229,8 @@ class RepoLayout:
         first = parts[0]
         rest = Path(*parts[1:]) if len(parts) > 1 else Path()
         source_roots = {
+            ".agent": self.agent_platform,
+            ".gemini": self.gemini_platform,
             "qiongli-workflow": self.workflow,
             "skills": self.skills,
             "templates": self.templates,

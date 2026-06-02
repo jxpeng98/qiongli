@@ -1883,7 +1883,8 @@ def validate_docs(root: Path, report: ValidationReport) -> None:
 
 def validate_cross_platform_consistency(root: Path, report: ValidationReport) -> None:
     """Ensure workflow files stay consistent across Codex, Claude, and Gemini."""
-    workflow_dir = root / ".agent" / "workflows"
+    layout = RepoLayout(root)
+    workflow_dir = layout.agent_platform / "workflows"
     if not workflow_dir.exists():
         report.errors.append("Missing .agent/workflows/ directory")
         print("[FAIL] Missing .agent/workflows/ directory")
@@ -1923,7 +1924,7 @@ def validate_cross_platform_consistency(root: Path, report: ValidationReport) ->
         )
 
     # --- Check 2: .gemini/qiongli.md references all workflows ---
-    gemini_context = root / ".gemini" / "qiongli.md"
+    gemini_context = layout.gemini_platform / "qiongli.md"
     if gemini_context.exists():
         gemini_content = gemini_context.read_text(encoding="utf-8")
         report.passed += 1

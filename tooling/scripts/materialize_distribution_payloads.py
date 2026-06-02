@@ -118,6 +118,18 @@ def materialize_plugin_payload(root: Path) -> None:
         fail_if_symlinks(plugin_root)
         print("  [ok] plugin package source")
 
+        if layout.agent_platform.exists():
+            print(f"Syncing agent platform files: {layout.agent_platform_artifact}")
+            copy_path(layout.agent_platform, layout.agent_platform_artifact, dry_run=False)
+            fail_if_symlinks(layout.agent_platform_artifact)
+            print("  [ok] agent platform files")
+
+        if layout.gemini_platform.exists():
+            print(f"Syncing Gemini platform files: {layout.gemini_platform_artifact}")
+            copy_path(layout.gemini_platform, layout.gemini_platform_artifact, dry_run=False)
+            fail_if_symlinks(layout.gemini_platform_artifact)
+            print("  [ok] Gemini platform files")
+
         print(f"Syncing skill package: {plugin_dest}")
         copy_path(portable_dest, plugin_dest, dry_run=False)
         fail_if_symlinks(plugin_dest)
