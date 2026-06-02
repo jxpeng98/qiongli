@@ -59,7 +59,7 @@ The Qiongli Literature Provider `.mcpb` (`qiongli-literature-provider.mcpb`) is 
 Gemini CLI still installs the local extension payload directly:
 
 ```bash
-gemini extensions install ./path/to/qiongli/plugins/qiongli
+gemini extensions install ./path/to/qiongli/packages/qiongli-plugin
 ```
 
 This path does not install the shell CLI, Python bridge, or global slash-command symlinks. Use bootstrap or npm when you need those.

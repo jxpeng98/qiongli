@@ -1,67 +1,26 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import argparse
-from dataclasses import dataclass, field
+import runpy
+import sys
+from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
-import yaml
-
-
-REQUIRED_FIELDS = [
-    "venue_id",
-    "community",
-    "article_types",
-    "contribution_expectations",
-    "methods_expectations",
-    "evidence_standards",
-    "writing_style",
-    "common_reviewer_objections",
-    "formatting_constraints",
-    "required_reporting_standards",
-]
-
-
-@dataclass
-class VenueProfileAuditResult:
-    errors: list[str] = field(default_factory=list)
-    warnings: list[str] = field(default_factory=list)
-
-
-def audit_venue_profile(path: Path) -> VenueProfileAuditResult:
-    result = VenueProfileAuditResult()
-    if not path.exists():
-        result.errors.append(f"missing venue profile: {path}")
-        return result
-    payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    if not isinstance(payload, dict):
-        result.errors.append("venue profile must be a YAML object")
-        return result
-    for field in REQUIRED_FIELDS:
-        value = payload.get(field)
-        if value in (None, "", []):
-            result.errors.append(f"missing required field: {field}")
-    venue_id = str(payload.get("venue_id", "")).strip()
-    if venue_id and path.stem != venue_id:
-        result.errors.append(f"venue_id must match filename stem: {path.stem}")
-    return result
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Audit qiongli venue profile YAML files.")
-    parser.add_argument("profile", type=Path)
-    args = parser.parse_args()
-
-    result = audit_venue_profile(args.profile)
-    for error in result.errors:
-        print(f"[FAIL] {error}")
-    for warning in result.warnings:
-        print(f"[WARN] {warning}")
-    if result.errors:
-        return 1
-    print("[PASS] Venue profile is valid")
-    return 0
-
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+_TARGET = _REPO_ROOT / "tooling" / "scripts" / Path(__file__).name
+for _import_root in (_TARGET.parent, _REPO_ROOT / "packages" / "python-qiongli" / "src", _REPO_ROOT):
+    if str(_import_root) not in sys.path:
+        sys.path.insert(0, str(_import_root))
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    runpy.run_path(str(_TARGET), run_name="__main__")
+else:
+    _spec = spec_from_file_location(f"_qiongli_tooling_scripts_{Path(__file__).stem}", _TARGET)
+    if _spec is None or _spec.loader is None:
+        raise ImportError(f"Unable to load {_TARGET}")
+    _module = module_from_spec(_spec)
+    sys.modules[_spec.name] = _module
+    _spec.loader.exec_module(_module)
+    for _name, _value in vars(_module).items():
+        if _name not in {"__name__", "__package__", "__loader__", "__spec__"}:
+            globals()[_name] = _value

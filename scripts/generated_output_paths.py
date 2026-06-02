@@ -1,34 +1,26 @@
+#!/usr/bin/env python3
 from __future__ import annotations
 
+import runpy
+import sys
+from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+_TARGET = _REPO_ROOT / "tooling" / "scripts" / Path(__file__).name
+for _import_root in (_TARGET.parent, _REPO_ROOT / "packages" / "python-qiongli" / "src", _REPO_ROOT):
+    if str(_import_root) not in sys.path:
+        sys.path.insert(0, str(_import_root))
 
-GENERATED_OUTPUT_DIRECTORIES = (
-    "qiongli/payload",
-    "packages/npm-qiongli/payload",
-    "packages/npm-qiongli/python-runtime",
-    "plugins/qiongli/skills/qiongli-workflow",
-    "qiongli-workflow/skills",
-    "qiongli-workflow/templates",
-    "qiongli-workflow/standards",
-    "qiongli-workflow/roles",
-    "qiongli-workflow/venue-profiles",
-)
-
-GENERATED_OUTPUT_FILES = (
-    "qiongli-workflow/skills-core.md",
-    "qiongli-workflow/skills-summary.md",
-)
-
-GENERATED_OUTPUT_PATHS = GENERATED_OUTPUT_DIRECTORIES + GENERATED_OUTPUT_FILES
-
-
-def normalize_generated_path(path: Path | str) -> str:
-    return Path(str(path).strip()).as_posix().lstrip("./")
-
-
-def is_generated_output_path(path: Path | str) -> bool:
-    rel = normalize_generated_path(path)
-    return rel in GENERATED_OUTPUT_FILES or any(
-        rel == directory or rel.startswith(f"{directory}/") for directory in GENERATED_OUTPUT_DIRECTORIES
-    )
+if __name__ == "__main__":
+    runpy.run_path(str(_TARGET), run_name="__main__")
+else:
+    _spec = spec_from_file_location(f"_qiongli_tooling_scripts_{Path(__file__).stem}", _TARGET)
+    if _spec is None or _spec.loader is None:
+        raise ImportError(f"Unable to load {_TARGET}")
+    _module = module_from_spec(_spec)
+    sys.modules[_spec.name] = _module
+    _spec.loader.exec_module(_module)
+    for _name, _value in vars(_module).items():
+        if _name not in {"__name__", "__package__", "__loader__", "__spec__"}:
+            globals()[_name] = _value

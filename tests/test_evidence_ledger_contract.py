@@ -4,6 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 from scripts.audit_evidence_contract import audit_evidence_ledger
 
 
@@ -13,9 +15,9 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 class EvidenceLedgerContractTests(unittest.TestCase):
     def test_bundled_evidence_contract_assets_exist(self) -> None:
         expected = [
-            REPO_ROOT / "templates" / "evidence-ledger.md",
-            REPO_ROOT / "templates" / "claim-evidence-ledger.csv",
-            REPO_ROOT / "qiongli-workflow" / "references" / "evidence-ledger-contract.md",
+            RepoLayout(REPO_ROOT).templates / "evidence-ledger.md",
+            RepoLayout(REPO_ROOT).templates / "claim-evidence-ledger.csv",
+            RepoLayout(REPO_ROOT).workflow / "references" / "evidence-ledger-contract.md",
         ]
         for path in expected:
             with self.subTest(path=path):

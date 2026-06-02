@@ -3,12 +3,14 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-POLICY_PATH = REPO_ROOT / "standards" / "agent-routing-policy.yaml"
+POLICY_PATH = RepoLayout(REPO_ROOT).standards / "agent-routing-policy.yaml"
 
 STAGE_DEFAULTS = {
     "B_literature": {"primary": "claude", "reviewer": "codex", "verifier": "codex"},

@@ -1,16 +1,24 @@
 from __future__ import annotations
 
+import importlib.util
 import shutil
+import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
-import scripts.audit_subject_specialization as subject_audit
-from scripts.audit_subject_specialization import audit_subject_specialization
+from qiongli.source_layout import RepoLayout
+from unittest.mock import patch
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+SCRIPT_PATH = RepoLayout(REPO_ROOT).scripts / "audit_subject_specialization.py"
+SPEC = importlib.util.spec_from_file_location("audit_subject_specialization", SCRIPT_PATH)
+assert SPEC is not None and SPEC.loader is not None
+subject_audit = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = subject_audit
+SPEC.loader.exec_module(subject_audit)
+audit_subject_specialization = subject_audit.audit_subject_specialization
 
 
 class SubjectSpecializationAuditTests(unittest.TestCase):
@@ -29,7 +37,7 @@ class SubjectSpecializationAuditTests(unittest.TestCase):
                 profile_root = options.out / "skills" / "domain-profiles"
                 profile_root.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(
-                    REPO_ROOT / "skills" / "domain-profiles" / "finance.yaml",
+                    RepoLayout(REPO_ROOT).skills / "domain-profiles" / "finance.yaml",
                     profile_root / "finance.yaml",
                 )
 
@@ -64,8 +72,10 @@ class SubjectSpecializationAuditTests(unittest.TestCase):
         )
 
     def _copy_minimal_repo(self, temp_root: Path) -> None:
-        for name in ("qiongli-workflow", "skills", "subjects"):
-            shutil.copytree(REPO_ROOT / name, temp_root / name)
+        layout = RepoLayout(REPO_ROOT)
+        shutil.copytree(layout.workflow, temp_root / "qiongli-workflow")
+        shutil.copytree(layout.skills, temp_root / "skills")
+        shutil.copytree(layout.subjects, temp_root / "subjects")
 
 
 if __name__ == "__main__":

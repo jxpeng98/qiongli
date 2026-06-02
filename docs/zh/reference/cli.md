@@ -412,7 +412,7 @@ mode 列表：
 - 只有诊断或恢复时才用 `pre` / `post`
 - 让 `publish` 统一负责 commit、tag、push、等待 branch CI、等待 tag publish、GitHub Release 和 acceptance receipt
 - stable 正式版从 `CHANGELOG.md` 对应章节发布
-- beta / prerelease 继续从 `release/<tag>.md` 发布
+- beta / prerelease 继续从 `tooling/release/<tag>.md` 发布
 
 也可单独运行：
 

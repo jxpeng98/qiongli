@@ -3,13 +3,15 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 class DisagreementAdjudicationTemplateTests(unittest.TestCase):
     def test_disagreement_matrix_includes_required_fields(self) -> None:
-        template = REPO_ROOT / "templates" / "disagreement-matrix.md"
+        template = RepoLayout(REPO_ROOT).templates / "disagreement-matrix.md"
         content = template.read_text(encoding="utf-8")
 
         for field in (

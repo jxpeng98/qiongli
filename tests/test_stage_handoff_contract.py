@@ -5,6 +5,8 @@ import textwrap
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 from scripts.audit_stage_handoffs import audit_stage_handoff
 
 
@@ -14,8 +16,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 class StageHandoffContractTests(unittest.TestCase):
     def test_bundled_stage_handoff_assets_exist(self) -> None:
         for path in (
-            REPO_ROOT / "qiongli-workflow" / "references" / "stage-handoff-contract.md",
-            REPO_ROOT / "templates" / "stage-handoff.md",
+            RepoLayout(REPO_ROOT).workflow / "references" / "stage-handoff-contract.md",
+            RepoLayout(REPO_ROOT).templates / "stage-handoff.md",
         ):
             with self.subTest(path=path):
                 self.assertTrue(path.exists(), f"Missing {path}")

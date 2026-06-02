@@ -7,10 +7,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-CLEANER_PATH = REPO_ROOT / "scripts" / "clean_generated_outputs.py"
-PATHS_PATH = REPO_ROOT / "scripts" / "generated_output_paths.py"
+LAYOUT = RepoLayout(REPO_ROOT)
+CLEANER_PATH = LAYOUT.scripts / "clean_generated_outputs.py"
+PATHS_PATH = LAYOUT.scripts / "generated_output_paths.py"
 
 
 def _load_paths_module():
@@ -31,17 +34,18 @@ def _init_git_repo(repo: Path, *, ignore_generated: bool = True) -> None:
         (repo / ".gitignore").write_text(
             "\n".join(
                 [
-                    "/qiongli/payload/",
+                    "/packages/python-qiongli/src/qiongli/payload/",
                     "/packages/npm-qiongli/payload/",
                     "/packages/npm-qiongli/python-runtime/",
-                    "/plugins/qiongli/skills/qiongli-workflow/",
-                    "/qiongli-workflow/skills/",
-                    "/qiongli-workflow/skills-core.md",
-                    "/qiongli-workflow/skills-summary.md",
-                    "/qiongli-workflow/templates/",
-                    "/qiongli-workflow/standards/",
-                    "/qiongli-workflow/roles/",
-                    "/qiongli-workflow/venue-profiles/",
+                    "/plugins/qiongli/",
+                    "/qiongli-workflow/",
+                    "/content/workflow/skills/",
+                    "/content/workflow/skills-core.md",
+                    "/content/workflow/skills-summary.md",
+                    "/content/workflow/templates/",
+                    "/content/workflow/standards/",
+                    "/content/workflow/roles/",
+                    "/content/workflow/venue-profiles/",
                     "",
                 ]
             ),
@@ -75,9 +79,9 @@ class CleanGeneratedOutputsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
             _init_git_repo(repo)
-            generated = repo / "qiongli-workflow/templates/paper-note.md"
-            generated_file = repo / "qiongli-workflow/skills-core.md"
-            source = repo / "templates/paper-note.md"
+            generated = repo / "content/workflow/templates/paper-note.md"
+            generated_file = repo / "content/workflow/skills-core.md"
+            source = repo / "content/templates/paper-note.md"
             _write(generated)
             _write(generated_file)
             _write(source)
@@ -92,8 +96,8 @@ class CleanGeneratedOutputsTests(unittest.TestCase):
             )
 
             self.assertEqual(0, result.returncode, result.stderr)
-            self.assertIn("Would remove qiongli-workflow/templates", result.stdout)
-            self.assertIn("Would remove qiongli-workflow/skills-core.md", result.stdout)
+            self.assertIn("Would remove content/workflow/templates", result.stdout)
+            self.assertIn("Would remove content/workflow/skills-core.md", result.stdout)
             self.assertTrue(generated.exists())
             self.assertTrue(generated_file.exists())
             self.assertTrue(source.exists())
@@ -103,9 +107,9 @@ class CleanGeneratedOutputsTests(unittest.TestCase):
             repo = Path(tmp)
             _init_git_repo(repo)
             generated = repo / "packages/npm-qiongli/python-runtime/qiongli/__pycache__/module.pyc"
-            mirrored_skill = repo / "qiongli-workflow/skills/registry.yaml"
-            source_skill = repo / "skills/registry.yaml"
-            source_template = repo / "templates/paper-note.md"
+            mirrored_skill = repo / "content/workflow/skills/registry.yaml"
+            source_skill = repo / "content/skills/registry.yaml"
+            source_template = repo / "content/templates/paper-note.md"
             _write(generated)
             _write(mirrored_skill)
             _write(source_skill)
@@ -122,9 +126,9 @@ class CleanGeneratedOutputsTests(unittest.TestCase):
 
             self.assertEqual(0, result.returncode, result.stderr)
             self.assertIn("Removed packages/npm-qiongli/python-runtime", result.stdout)
-            self.assertIn("Removed qiongli-workflow/skills", result.stdout)
+            self.assertIn("Removed content/workflow/skills", result.stdout)
             self.assertFalse((repo / "packages/npm-qiongli/python-runtime").exists())
-            self.assertFalse((repo / "qiongli-workflow/skills").exists())
+            self.assertFalse((repo / "content/workflow/skills").exists())
             self.assertTrue(source_skill.exists())
             self.assertTrue(source_template.exists())
 

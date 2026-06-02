@@ -3,19 +3,22 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-RELEASE_AUTOMATION = REPO_ROOT / "scripts" / "release_automation.sh"
-RELEASE_READY = REPO_ROOT / "scripts" / "release_ready.sh"
-RELEASE_PREFLIGHT = REPO_ROOT / "scripts" / "release_preflight.sh"
-RELEASE_POSTFLIGHT = REPO_ROOT / "scripts" / "release_postflight.sh"
-PYPI_PREFLIGHT = REPO_ROOT / "scripts" / "pypi_preflight.sh"
+LAYOUT = RepoLayout(REPO_ROOT)
+RELEASE_AUTOMATION = LAYOUT.scripts / "release_automation.sh"
+RELEASE_READY = LAYOUT.scripts / "release_ready.sh"
+RELEASE_PREFLIGHT = LAYOUT.scripts / "release_preflight.sh"
+RELEASE_POSTFLIGHT = LAYOUT.scripts / "release_postflight.sh"
+PYPI_PREFLIGHT = LAYOUT.scripts / "pypi_preflight.sh"
 RELEASE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-automation.yml"
 PUBLISH_PYPI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-pypi.yml"
 PUBLISH_NPM_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-npm.yml"
-VERIFY_RELEASE_TAG = REPO_ROOT / "scripts" / "verify_release_tag_version.sh"
-CHANGELOG_SECTION = REPO_ROOT / "scripts" / "changelog_section.py"
-RELEASE_AUTOMATION_DOC = REPO_ROOT / "release" / "automation.md"
+VERIFY_RELEASE_TAG = LAYOUT.scripts / "verify_release_tag_version.sh"
+CHANGELOG_SECTION = LAYOUT.scripts / "changelog_section.py"
+RELEASE_AUTOMATION_DOC = REPO_ROOT / "tooling" / "release" / "automation.md"
 PUBLISH_PYPI_DOC = REPO_ROOT / "docs" / "advanced" / "publish-pypi.md"
 PUBLISH_PYPI_ZH_DOC = REPO_ROOT / "docs" / "zh" / "advanced" / "publish-pypi.md"
 RELEASE_BRANCH_POLICY_DOC = REPO_ROOT / "docs" / "maintainer" / "release-branch-policy.md"
@@ -37,17 +40,17 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('if [[ -n "$version" && -n "$version_from_tag" && "$repo_tag_from_version" != "$repo_tag_from_tag" ]]; then', content)
         self.assertIn("--maintainer-smoke", content)
         self.assertIn("git add CHANGELOG.md", content)
-        self.assertIn('git add "release/${repo_tag}.md"', content)
+        self.assertIn('git add "tooling/release/${repo_tag}.md"', content)
         self.assertIn('git tag -a "$repo_tag"', content)
         self.assertIn('git push "$push_remote" "$push_branch" "$repo_tag"', content)
-        self.assertIn('acceptance_out="release/acceptance/${repo_tag}-receipt.md"', content)
+        self.assertIn('acceptance_out="tooling/release/acceptance/${repo_tag}-receipt.md"', content)
         self.assertIn('./scripts/release_postflight.sh --tag "$repo_tag" --acceptance-out "$acceptance_out"', content)
         self.assertIn('git add "$acceptance_out"', content)
         self.assertIn('chore: record release ${repo_tag} acceptance', content)
         self.assertIn('git push "$push_remote" "$push_branch"', content)
-        self.assertIn('plugins/qiongli/.codex-plugin/plugin.json', content)
-        self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
-        self.assertIn('plugins/qiongli/gemini-extension.json', content)
+        self.assertIn('packages/qiongli-plugin/.codex-plugin/plugin.json', content)
+        self.assertIn('packages/qiongli-plugin/.claude-plugin/plugin.json', content)
+        self.assertIn('packages/qiongli-plugin/gemini-extension.json', content)
         self.assertIn('docs/reference/skills.md', content)
         self.assertIn('docs/zh/reference/skills.md', content)
         self.assertNotIn('qiongli-workflow/skills/registry.yaml', content)
@@ -188,14 +191,14 @@ class ReleaseAutomationTests(unittest.TestCase):
     def test_release_ready_includes_plugin_distribution_versions(self) -> None:
         content = RELEASE_READY.read_text(encoding="utf-8")
 
-        self.assertIn('plugins/qiongli/.codex-plugin/plugin.json', content)
-        self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
-        self.assertIn('plugins/qiongli/gemini-extension.json', content)
+        self.assertIn('packages/qiongli-plugin/.codex-plugin/plugin.json', content)
+        self.assertIn('packages/qiongli-plugin/.claude-plugin/plugin.json', content)
+        self.assertIn('packages/qiongli-plugin/gemini-extension.json', content)
         self.assertIn('packages/npm-qiongli/package.json', content)
         self.assertIn('package-lock.json', content)
         self.assertIn('docs/reference/skills.md', content)
         self.assertIn('docs/zh/reference/skills.md', content)
-        self.assertNotIn('qiongli/payload|qiongli/payload/*', content)
+        self.assertNotIn('packages/python-qiongli/src/qiongli/payload|packages/python-qiongli/src/qiongli/payload/*', content)
         self.assertNotIn('plugins/qiongli/skills/qiongli-workflow|plugins/qiongli/skills/qiongli-workflow/*', content)
         self.assertNotIn('qiongli-workflow/skills/registry.yaml', content)
 
@@ -355,7 +358,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertLess(content.index(materialize), content.index(build))
 
     def test_npm_preflight_accepts_staging_root(self) -> None:
-        content = (REPO_ROOT / "scripts" / "npm_preflight.sh").read_text(encoding="utf-8")
+        content = (LAYOUT.scripts / "npm_preflight.sh").read_text(encoding="utf-8")
 
         self.assertIn("--root <dir>", content)
         self.assertIn('ROOT_DIR="$(cd "$2" && pwd)"', content)
@@ -384,7 +387,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('Path(args.output).write_text(section, encoding="utf-8")', content)
 
     def test_prerelease_note_generator_points_to_publish_mode(self) -> None:
-        content = (REPO_ROOT / "scripts" / "generate_release_notes.sh").read_text(encoding="utf-8")
+        content = (LAYOUT.scripts / "generate_release_notes.sh").read_text(encoding="utf-8")
 
         self.assertIn('PUBLISH_CMD="./scripts/release_automation.sh publish --tag ${TAG} --skip-bump"', content)
         self.assertNotIn('PUBLISH_CMD="./scripts/release_automation.sh publish --version ${VERSION_HINT} --skip-bump"', content)
@@ -475,26 +478,26 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('scripts/sync_versions.py "$TAG" --print-field package_version', content)
         self.assertIn('scripts/sync_versions.py "$TAG" --print-field npm_version', content)
         self.assertIn('pyproject.toml', content)
-        self.assertIn('qiongli/__init__.py', content)
+        self.assertIn('packages/python-qiongli/src/qiongli/__init__.py', content)
         self.assertIn('skills/registry.yaml', content)
         self.assertIn('qiongli-workflow/VERSION', content)
         self.assertNotIn('actual_workflow_registry_version', content)
         self.assertNotIn('Path("qiongli-workflow/skills/registry.yaml")', content)
         self.assertNotIn('echo "[verify-release-tag] qiongli-workflow/skills/registry.yaml mismatch', content)
-        self.assertIn('qiongli/payload/qiongli-workflow/VERSION', content)
-        self.assertIn('qiongli/payload/qiongli-workflow/skills/registry.yaml', content)
-        self.assertIn('qiongli/payload/skills/registry.yaml', content)
+        self.assertIn('packages/python-qiongli/src/qiongli/payload/qiongli-workflow/VERSION', content)
+        self.assertIn('packages/python-qiongli/src/qiongli/payload/qiongli-workflow/skills/registry.yaml', content)
+        self.assertIn('packages/python-qiongli/src/qiongli/payload/skills/registry.yaml', content)
         self.assertIn('packages/npm-qiongli/package.json', content)
         self.assertIn('package-lock.json', content)
         self.assertIn('packages/npm-qiongli/payload/qiongli-workflow/VERSION', content)
         self.assertIn('packages/npm-qiongli/payload/qiongli-workflow/skills/registry.yaml', content)
         self.assertIn('packages/npm-qiongli/python-runtime/qiongli/__init__.py', content)
         self.assertIn('packages/npm-qiongli/python-runtime/skills/registry.yaml', content)
-        self.assertIn('plugins/qiongli/.codex-plugin/plugin.json', content)
+        self.assertIn('packages/qiongli-plugin/.codex-plugin/plugin.json', content)
         self.assertIn('plugins/qiongli/skills/qiongli-workflow/VERSION', content)
         self.assertIn('plugins/qiongli/skills/qiongli-workflow/skills/registry.yaml', content)
-        self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
-        self.assertIn('plugins/qiongli/gemini-extension.json', content)
+        self.assertIn('packages/qiongli-plugin/.claude-plugin/plugin.json', content)
+        self.assertIn('packages/qiongli-plugin/gemini-extension.json', content)
         self.assertIn('python3 scripts/audit_distribution_payloads.py --root "$ROOT_DIR"', content)
 
 

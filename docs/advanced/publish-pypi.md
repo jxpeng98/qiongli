@@ -81,7 +81,7 @@ The default release smoke tier is intentionally conservative: builtin literature
 Release doc policy:
 
 - stable releases must be summarized in `CHANGELOG.md`
-- beta / prerelease releases continue to use `release/<tag>.md`
+- beta / prerelease releases continue to use `tooling/release/<tag>.md`
 
 Beta channel policy:
 
@@ -204,7 +204,7 @@ When cutting a release, follow these steps:
 - [ ] Optional: run `./scripts/release_ready.sh --version <version>` as a local dry run.
 - [ ] Run `./scripts/release_automation.sh publish --version <version> --from-tag <previous-tag>`.
 - [ ] Confirm `Publish to PyPI`, `CI`, and `Checkout Install Check` succeeded on GitHub Actions.
-- [ ] Confirm postflight created or updated the GitHub Release and wrote `release/acceptance/<tag>-receipt.md`.
+- [ ] Confirm postflight created or updated the GitHub Release and wrote `tooling/release/acceptance/<tag>-receipt.md`.
 - [ ] Verify installation: `pipx install qiongli && rsk --help`
 
 ---

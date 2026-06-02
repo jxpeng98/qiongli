@@ -27,12 +27,12 @@ class DistributionMaterializationDocsTests(unittest.TestCase):
             "Canonical source",
             "Repository structure",
             "Generated and materialized outputs",
-            "`skills/`",
-            "`templates/`",
-            "`subjects/`",
-            "`qiongli/payload/`",
+            "`content/skills/`",
+            "`content/templates/`",
+            "`content/subjects/`",
+            "`packages/python-qiongli/src/qiongli/payload/`",
             "`packages/npm-qiongli/payload/`",
-            "`plugins/qiongli/skills/qiongli-workflow/`",
+            "`plugins/qiongli/`",
         ):
             with self.subTest(token=token):
                 self.assertIn(token, content)
@@ -78,9 +78,9 @@ class DistributionMaterializationDocsTests(unittest.TestCase):
 
         for token in (
             "Adding a new skill",
-            "`skills/<stage>/<skill-id>.md`",
-            "`skills/registry.yaml`",
-            "`subjects/catalog.yaml`",
+            "`content/skills/<stage>/<skill-id>.md`",
+            "`content/skills/registry.yaml`",
+            "`content/subjects/catalog.yaml`",
             "Do not edit materialized copies",
         ):
             with self.subTest(token=token):
@@ -91,8 +91,8 @@ class DistributionMaterializationDocsTests(unittest.TestCase):
 
         for token in (
             "Adding or extending a subject package",
-            "`subjects/<subject-id>/skills/`",
-            "`subjects/<subject-id>/overlays/`",
+            "`content/subjects/<subject-id>/skills/`",
+            "`content/subjects/<subject-id>/overlays/`",
             "`python scripts/materialize_subject_package.py`",
             "`complete`",
             "`focused`",

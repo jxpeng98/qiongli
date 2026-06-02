@@ -7,11 +7,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-MATERIALIZER_PATH = REPO_ROOT / "scripts" / "materialize_distribution_payloads.py"
-SYNC_SKILL_PACKAGE = REPO_ROOT / "scripts" / "sync_skill_package.sh"
-SYNC_NPM_PAYLOAD = REPO_ROOT / "scripts" / "sync_npm_package_payload.py"
+LAYOUT = RepoLayout(REPO_ROOT)
+MATERIALIZER_PATH = LAYOUT.scripts / "materialize_distribution_payloads.py"
+SYNC_SKILL_PACKAGE = LAYOUT.scripts / "sync_skill_package.sh"
+SYNC_NPM_PAYLOAD = LAYOUT.scripts / "sync_npm_package_payload.py"
 
 
 def _load_materializer_module():
@@ -70,7 +73,7 @@ class DistributionMaterializerTests(unittest.TestCase):
             generated = source / "packages/npm-qiongli/payload/qiongli-workflow/SKILL.md"
             generated.parent.mkdir(parents=True)
             generated.write_text("generated\n", encoding="utf-8")
-            python_payload = source / "qiongli/payload/qiongli-workflow/SKILL.md"
+            python_payload = source / "packages/python-qiongli/src/qiongli/payload/qiongli-workflow/SKILL.md"
             python_payload.parent.mkdir(parents=True)
             python_payload.write_text("generated\n", encoding="utf-8")
             plugin_payload = source / "plugins/qiongli/skills/qiongli-workflow/SKILL.md"
@@ -81,8 +84,33 @@ class DistributionMaterializerTests(unittest.TestCase):
 
             self.assertTrue((dest / "skills" / "registry.yaml").is_file())
             self.assertFalse((dest / "packages/npm-qiongli/payload").exists())
-            self.assertFalse((dest / "qiongli/payload").exists())
-            self.assertFalse((dest / "plugins/qiongli/skills/qiongli-workflow").exists())
+            self.assertFalse((dest / "packages/python-qiongli/src/qiongli/payload").exists())
+            self.assertFalse((dest / "plugins/qiongli").exists())
+
+    def test_source_tree_copy_excludes_local_build_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source"
+            dest = Path(tmp) / "dest"
+            (source / "content" / "workflow").mkdir(parents=True)
+            (source / "content" / "workflow" / "SKILL.md").write_text("source\n", encoding="utf-8")
+
+            local_artifacts = (
+                source / "dist" / "qiongli-0.15.0b1-py3-none-any.whl",
+                source / "build" / "lib" / "qiongli" / "__init__.py",
+                source / "qiongli.egg-info" / "PKG-INFO",
+                source / "packages" / "python-qiongli" / "src" / "qiongli.egg-info" / "PKG-INFO",
+            )
+            for artifact in local_artifacts:
+                artifact.parent.mkdir(parents=True, exist_ok=True)
+                artifact.write_text("generated\n", encoding="utf-8")
+
+            self.materializer.copy_source_tree(source, dest)
+
+            self.assertTrue((dest / "content" / "workflow" / "SKILL.md").is_file())
+            self.assertFalse((dest / "dist").exists())
+            self.assertFalse((dest / "build").exists())
+            self.assertFalse((dest / "qiongli.egg-info").exists())
+            self.assertFalse((dest / "packages" / "python-qiongli" / "src" / "qiongli.egg-info").exists())
 
     def test_plugin_target_materializes_to_staging_without_touching_source(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -106,9 +134,13 @@ class DistributionMaterializerTests(unittest.TestCase):
             )
 
             self.assertEqual(0, result.returncode, result.stderr)
+            self.assertTrue((out / "plugins/qiongli/.codex-plugin/plugin.json").is_file())
+            self.assertTrue((out / "plugins/qiongli/commands/paper.md").is_file())
             self.assertTrue((out / "plugins/qiongli/skills/qiongli-workflow/SKILL.md").is_file())
             self.assertTrue((out / "plugins/qiongli/skills/qiongli-workflow/skills/registry.yaml").is_file())
             self.assertTrue((out / "qiongli-workflow/skills/registry.yaml").is_file())
+            self.assertTrue((out / ".agent/workflows/paper.md").is_file())
+            self.assertTrue((out / ".gemini/qiongli.md").is_file())
 
     def test_plugin_materializer_does_not_depend_on_bash(self) -> None:
         source = MATERIALIZER_PATH.read_text(encoding="utf-8")

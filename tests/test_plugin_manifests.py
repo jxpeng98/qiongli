@@ -7,13 +7,16 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-PLUGIN_ROOT = REPO_ROOT / "plugins" / "qiongli"
+LAYOUT = RepoLayout(REPO_ROOT)
+PLUGIN_ROOT = LAYOUT.plugin_package
 CODEX_PLUGIN_MANIFEST = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
 CLAUDE_PLUGIN_MANIFEST = PLUGIN_ROOT / ".claude-plugin" / "plugin.json"
 GEMINI_EXTENSION_MANIFEST = PLUGIN_ROOT / "gemini-extension.json"
-WORKFLOW_VERSION = REPO_ROOT / "qiongli-workflow" / "VERSION"
+WORKFLOW_VERSION = LAYOUT.workflow / "VERSION"
 
 
 class PluginManifestTests(unittest.TestCase):

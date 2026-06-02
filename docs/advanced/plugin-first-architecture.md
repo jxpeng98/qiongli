@@ -6,10 +6,10 @@ Qiongli is distributed as one plugin package, not as dozens of separate academic
 
 | Layer | Path | Role |
 |-------|------|------|
-| Main plugin | `plugins/qiongli/` | Source manifests, discovery commands, version metadata, and platform entrypoints. |
+| Main plugin | `packages/qiongli-plugin/` | Source manifests, discovery commands, version metadata, and platform entrypoints. |
 | Portable skill package | `qiongli-workflow/` | The cross-client runtime skill loaded by Codex, Claude Code, and Gemini. |
-| Source skill specs | `skills/` | Canonical academic capability specs maintained by this repository. |
-| Workflow commands | `qiongli-workflow/workflows/` and `plugins/qiongli/commands/` | User entrypoints such as `/paper`, `/lit-review`, and `/code-build`. |
+| Source skill specs | `content/skills/` | Canonical academic capability specs maintained by this repository. |
+| Workflow commands | `qiongli-workflow/workflows/` and `packages/qiongli-plugin/commands/` | User entrypoints such as `/paper`, `/lit-review`, and `/code-build`. |
 
 ## Plugin vs Skill
 
@@ -21,23 +21,23 @@ This repo keeps one plugin, `qiongli`, and ships one portable skill package dire
 
 ## Source Of Truth
 
-- Edit source skills in `skills/`.
-- Edit portable package shell files such as `qiongli-workflow/SKILL.md`, `workflows/`, and `references/` directly.
+- Edit source skills in `content/skills/`.
+- Edit portable package shell files such as `content/workflow/SKILL.md`, `workflows/`, and `references/` directly.
 - Run `python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qiongli-dist --force` before testing staged artifacts.
 - Release automation materializes payloads in a release staging workspace before publishing and does not write generated payloads back to the source checkout.
-- Do not edit generated payloads such as `plugins/qiongli/skills/qiongli-workflow/`; they are rebuilt from canonical source and are not tracked in the clean development checkout.
+- Do not edit generated payloads such as `plugins/qiongli/`; they are rebuilt from canonical source and are not tracked in the clean development checkout.
 
 ## Platform Surfaces
 
 | Platform | Manifest | Runtime entry |
 |----------|----------|---------------|
-| Codex | `plugins/qiongli/.codex-plugin/plugin.json`; public catalog entry in `jxpeng98/skillsplace` | `skills/qiongli-workflow/`, visible as `qiongli` in `/skills`, invoked as `$qiongli` |
-| Claude Code | `plugins/qiongli/.claude-plugin/plugin.json`; public catalog entry in `jxpeng98/skillsplace` | `commands/*.md` plus `skills/qiongli-workflow/` |
-| Gemini | `plugins/qiongli/gemini-extension.json` | `skills/qiongli-workflow/` |
+| Codex | `packages/qiongli-plugin/.codex-plugin/plugin.json`; public catalog entry in `jxpeng98/skillsplace` | `skills/qiongli-workflow/`, visible as `qiongli` in `/skills`, invoked as `$qiongli` |
+| Claude Code | `packages/qiongli-plugin/.claude-plugin/plugin.json`; public catalog entry in `jxpeng98/skillsplace` | `commands/*.md` plus `skills/qiongli-workflow/` |
+| Gemini | `packages/qiongli-plugin/gemini-extension.json` | `skills/qiongli-workflow/` |
 
-The shared Skillsplace repository is the public marketplace source of truth. It points to this repository's `plugins/qiongli` subdirectory through git-subdir entries, so this repository should own the plugin manifests and source used to generate release payloads, not duplicate public marketplace catalog state.
+The shared Skillsplace repository is the public marketplace source of truth. It points to this repository's `packages/qiongli-plugin` subdirectory through git-subdir entries, so this repository should own the plugin manifests and source used to generate release payloads, not duplicate public marketplace catalog state.
 
-The thin command wrappers under `plugins/qiongli/commands/` intentionally contain no workflow logic. They only load `qiongli-workflow` and point to `skills/qiongli-workflow/workflows/<command>.md`.
+The thin command wrappers under `packages/qiongli-plugin/commands/` intentionally contain no workflow logic. They only load `qiongli-workflow` and point to `skills/qiongli-workflow/workflows/<command>.md`.
 
 ## Upgrade Compatibility
 

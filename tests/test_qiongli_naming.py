@@ -8,8 +8,11 @@ import tomllib
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+LAYOUT = RepoLayout(REPO_ROOT)
 
 
 class QiongliNamingTests(unittest.TestCase):
@@ -25,7 +28,7 @@ class QiongliNamingTests(unittest.TestCase):
         self.assertEqual(scripts["rsw"], "qiongli.cli:main")
 
     def test_pypi_version_check_uses_qiongli_distribution(self) -> None:
-        cli_source = (REPO_ROOT / "qiongli" / "cli.py").read_text(encoding="utf-8")
+        cli_source = (LAYOUT.python_package / "cli.py").read_text(encoding="utf-8")
 
         self.assertIn("https://pypi.org/pypi/qiongli/json", cli_source)
         self.assertIn("pipx upgrade qiongli", cli_source)
@@ -33,16 +36,16 @@ class QiongliNamingTests(unittest.TestCase):
         self.assertNotIn("pipx upgrade qiongli-installer", cli_source)
 
     def test_plugin_manifests_use_qiongli_public_identity(self) -> None:
-        codex_manifest = json.loads((REPO_ROOT / "plugins" / "qiongli" / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        claude_manifest = json.loads((REPO_ROOT / "plugins" / "qiongli" / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        gemini_manifest = json.loads((REPO_ROOT / "plugins" / "qiongli" / "gemini-extension.json").read_text(encoding="utf-8"))
+        codex_manifest = json.loads((LAYOUT.plugin_package / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        claude_manifest = json.loads((LAYOUT.plugin_package / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        gemini_manifest = json.loads((LAYOUT.plugin_package / "gemini-extension.json").read_text(encoding="utf-8"))
 
         for manifest in (codex_manifest, claude_manifest, gemini_manifest):
             self.assertEqual(manifest["name"], "qiongli")
             self.assertIn("Qiongli", manifest["description"])
 
     def test_portable_skill_identity_is_visible_as_qiongli(self) -> None:
-        skill_root = REPO_ROOT / "qiongli-workflow"
+        skill_root = LAYOUT.workflow
         skill_text = (skill_root / "SKILL.md").read_text(encoding="utf-8")
         with tempfile.TemporaryDirectory() as tmp_dir:
             out = Path(tmp_dir) / "dist-source"
@@ -71,7 +74,7 @@ class QiongliNamingTests(unittest.TestCase):
         self.assertNotIn("name: research-paper-workflow", skill_text)
         self.assertIn("name: qiongli\n", plugin_skill_text)
 
-        manifest = (REPO_ROOT / "install" / "install_manifest.tsv").read_text(encoding="utf-8")
+        manifest = (LAYOUT.install / "install_manifest.tsv").read_text(encoding="utf-8")
         self.assertIn("qiongli-workflow\t${CODEX_HOME}/skills/qiongli-workflow", manifest)
         self.assertNotIn("research-paper-workflow\t${CODEX_HOME}/skills/research-paper-workflow", manifest)
 

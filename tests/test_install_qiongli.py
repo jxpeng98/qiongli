@@ -6,9 +6,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+LAYOUT = RepoLayout(REPO_ROOT)
 INSTALL_SCRIPT = REPO_ROOT / "scripts" / "install_qiongli.sh"
+INSTALL_SCRIPT_SOURCE = LAYOUT.scripts / "install_qiongli.sh"
 SYSTEM_BASH = Path("/bin/bash")
 
 
@@ -26,7 +30,7 @@ class InstallQiongliTests(unittest.TestCase):
             codex_home = temp_root / "codex-home"
             existing_skill = codex_home / "skills" / "qiongli-workflow"
             existing_skill.mkdir(parents=True)
-            source_version = (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(encoding="utf-8").strip()
+            source_version = (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(encoding="utf-8").strip()
             (existing_skill / "SKILL.md").write_text(
                 "---\nname: qiongli-workflow\ndescription: current\n---\n",
                 encoding="utf-8",
@@ -64,13 +68,14 @@ class InstallQiongliTests(unittest.TestCase):
             self.assertIn(f"current {source_version}; source {source_version}; already installed", result.stdout)
 
     def test_doctor_command_exports_repo_root_on_pythonpath(self) -> None:
-        content = INSTALL_SCRIPT.read_text(encoding="utf-8")
+        content = INSTALL_SCRIPT_SOURCE.read_text(encoding="utf-8")
 
         self.assertIn('doctor_cmd() {', content)
+        self.assertIn('local python_source_root="$ROOT_DIR/packages/python-qiongli/src"', content)
         self.assertIn('PYTHONPATH="$pythonpath" python3 -m bridges.orchestrator "$@"', content)
 
     def test_full_profile_python_hint_does_not_prefer_mise(self) -> None:
-        content = (REPO_ROOT / "qiongli" / "universal_installer.py").read_text(encoding="utf-8")
+        content = (LAYOUT.python_package / "universal_installer.py").read_text(encoding="utf-8")
 
         self.assertIn("install Python >= 3.12", content)
         self.assertIn("python.org/downloads", content)
@@ -330,7 +335,7 @@ class InstallQiongliTests(unittest.TestCase):
             self.assertIn("already linked", result.stdout)
             self.assertEqual(
                 (existing_skill / "VERSION").read_text(encoding="utf-8").strip(),
-                (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(encoding="utf-8").strip(),
+                (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(encoding="utf-8").strip(),
             )
             self.assertIn('CLI_FLAVOR="shell-bootstrap"', (cli_dir / "qiongli").read_text(encoding="utf-8"))
             self.assertIn('DEFAULT_REPO="jxpeng98/qiongli"', (cli_dir / "qiongli-bootstrap").read_text(encoding="utf-8"))
@@ -348,7 +353,7 @@ class InstallQiongliTests(unittest.TestCase):
             codex_home = temp_root / "codex-home"
             existing_skill = codex_home / "skills" / "qiongli-workflow"
             existing_skill.mkdir(parents=True)
-            source_version = (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(encoding="utf-8").strip()
+            source_version = (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(encoding="utf-8").strip()
             (existing_skill / "SKILL.md").write_text(
                 "---\nname: qiongli-workflow\ndescription: legacy without version\n---\n",
                 encoding="utf-8",

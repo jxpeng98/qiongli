@@ -5,6 +5,8 @@ import sys
 import types
 import unittest
 from pathlib import Path
+
+from qiongli.source_layout import RepoLayout
 from unittest import mock
 
 try:
@@ -110,7 +112,7 @@ class _FailDirectGemini:
 
 class _BrokerRoutingOrchestrator(ModelOrchestrator):
     def __init__(self) -> None:
-        super().__init__(standards_dir=REPO_ROOT / "standards")
+        super().__init__(standards_dir=RepoLayout(REPO_ROOT).standards)
         self.gemini = _FailDirectGemini()
 
     def _runtime_preflight_error(
@@ -274,7 +276,7 @@ class ResearchCollabTests(unittest.TestCase):
         self.assertEqual(response.content, "broker:broker route test")
 
     def test_preflight_broker_transport_accepts_healthy_broker_without_direct_auth(self) -> None:
-        orchestrator = ModelOrchestrator(standards_dir=REPO_ROOT / "standards")
+        orchestrator = ModelOrchestrator(standards_dir=RepoLayout(REPO_ROOT).standards)
 
         with mock.patch.dict(os.environ, {GEMINI_TRANSPORT_ENV: "broker"}, clear=False):
             with mock.patch.object(
@@ -292,7 +294,7 @@ class ResearchCollabTests(unittest.TestCase):
         self.assertIsNone(error)
 
     def test_preflight_direct_transport_ignores_broker_and_requires_direct_auth(self) -> None:
-        orchestrator = ModelOrchestrator(standards_dir=REPO_ROOT / "standards")
+        orchestrator = ModelOrchestrator(standards_dir=RepoLayout(REPO_ROOT).standards)
 
         with mock.patch.dict(os.environ, {GEMINI_TRANSPORT_ENV: "direct"}, clear=False):
             with mock.patch.object(
@@ -311,7 +313,7 @@ class ResearchCollabTests(unittest.TestCase):
         self.assertEqual(error, "direct auth missing")
 
     def test_doctor_marks_direct_auth_ok_when_auto_transport_resolves_to_broker(self) -> None:
-        orchestrator = ModelOrchestrator(standards_dir=REPO_ROOT / "standards")
+        orchestrator = ModelOrchestrator(standards_dir=RepoLayout(REPO_ROOT).standards)
 
         with mock.patch.dict(os.environ, {}, clear=False):
             with mock.patch("bridges.orchestrator.shutil.which", side_effect=lambda name: f"/tmp/{name}"):

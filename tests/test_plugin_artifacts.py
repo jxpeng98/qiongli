@@ -9,9 +9,11 @@ import unittest
 import zipfile
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SCRIPT_PATH = REPO_ROOT / "scripts" / "build_plugin_artifacts.py"
+SCRIPT_PATH = RepoLayout(REPO_ROOT).scripts / "build_plugin_artifacts.py"
 SPEC = importlib.util.spec_from_file_location("build_plugin_artifacts", SCRIPT_PATH)
 assert SPEC is not None and SPEC.loader is not None
 module = importlib.util.module_from_spec(SPEC)
@@ -22,7 +24,7 @@ class PluginArtifactsTests(unittest.TestCase):
     def test_builds_release_distribution_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             dist_dir = Path(tmp_dir) / "dist"
-            current_tag = (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(
+            current_tag = (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(
                 encoding="utf-8"
             ).strip()
 
@@ -275,13 +277,13 @@ class PluginArtifactsTests(unittest.TestCase):
             self.assertIn(name, names)
 
     def _make_fallback_root(self, root: Path) -> Path:
-        shutil.copytree(REPO_ROOT / "qiongli-workflow", root / "qiongli-workflow")
-        shutil.copytree(REPO_ROOT / "templates", root / "qiongli-workflow" / "templates", dirs_exist_ok=True)
-        shutil.copytree(REPO_ROOT / "skills", root / "qiongli-workflow" / "skills", dirs_exist_ok=True)
-        shutil.copytree(REPO_ROOT / "skills", root / "skills")
-        shutil.copytree(REPO_ROOT / "subjects", root / "subjects")
-        shutil.copy2(REPO_ROOT / "skills-core.md", root / "qiongli-workflow" / "skills-core.md")
-        shutil.copy2(REPO_ROOT / "skills-summary.md", root / "qiongli-workflow" / "skills-summary.md")
+        shutil.copytree(RepoLayout(REPO_ROOT).workflow, root / "qiongli-workflow")
+        shutil.copytree(RepoLayout(REPO_ROOT).templates, root / "qiongli-workflow" / "templates", dirs_exist_ok=True)
+        shutil.copytree(RepoLayout(REPO_ROOT).skills, root / "qiongli-workflow" / "skills", dirs_exist_ok=True)
+        shutil.copytree(RepoLayout(REPO_ROOT).skills, root / "skills")
+        shutil.copytree(RepoLayout(REPO_ROOT).subjects, root / "subjects")
+        shutil.copy2(RepoLayout(REPO_ROOT).skills_core, root / "qiongli-workflow" / "skills-core.md")
+        shutil.copy2(RepoLayout(REPO_ROOT).skills_summary, root / "qiongli-workflow" / "skills-summary.md")
         return root
 
 

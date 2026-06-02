@@ -81,7 +81,7 @@
 当前 release 文档策略：
 
 - stable 正式版统一维护在 `CHANGELOG.md`
-- beta / prerelease 继续使用 `release/<tag>.md`
+- beta / prerelease 继续使用 `tooling/release/<tag>.md`
 
 Beta 通道策略：
 
@@ -207,7 +207,7 @@ pip install --index-url https://test.pypi.org/simple/ qiongli
 - [ ] 可选：先运行 `./scripts/release_ready.sh --version <version>` 做本地干跑
 - [ ] 运行 `./scripts/release_automation.sh publish --version <version> --from-tag <previous-tag>`
 - [ ] 在 GitHub Actions 确认 `Publish to PyPI`、`CI` 和 `Checkout Install Check` 成功
-- [ ] 确认 postflight 创建或更新 GitHub Release，并生成 `release/acceptance/<tag>-receipt.md`
+- [ ] 确认 postflight 创建或更新 GitHub Release，并生成 `tooling/release/acceptance/<tag>-receipt.md`
 - [ ] 验证安装：`pipx install qiongli && rsk --help`
 
 ---

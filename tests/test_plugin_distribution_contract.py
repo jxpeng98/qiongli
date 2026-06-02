@@ -9,10 +9,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-PLUGIN_ROOT = REPO_ROOT / "plugins" / "qiongli"
-WORKFLOW_ROOT = REPO_ROOT / "qiongli-workflow"
+LAYOUT = RepoLayout(REPO_ROOT)
+PLUGIN_ROOT = LAYOUT.plugin_package
+WORKFLOW_ROOT = LAYOUT.workflow
 WORKFLOW_VERSION = (WORKFLOW_ROOT / "VERSION").read_text(encoding="utf-8").strip().lstrip("v")
 
 
@@ -102,7 +105,7 @@ class PluginDistributionContractTests(unittest.TestCase):
                 (plugin_skill_root / "VERSION").read_text(encoding="utf-8"),
             )
             self.assertEqual(
-                (REPO_ROOT / "skills" / "registry.yaml").read_text(encoding="utf-8"),
+                (LAYOUT.skills / "registry.yaml").read_text(encoding="utf-8"),
                 (plugin_skill_root / "skills" / "registry.yaml").read_text(encoding="utf-8"),
             )
 

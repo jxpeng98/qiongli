@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 import unittest
 from pathlib import Path
+
+from qiongli.source_layout import RepoLayout
 from typing import Any
 
 from bridges.base_bridge import BridgeResponse
@@ -18,7 +20,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 class MetadataCaptureOrchestrator(ModelOrchestrator):
     def __init__(self) -> None:
-        super().__init__(standards_dir=REPO_ROOT / "standards")
+        super().__init__(standards_dir=RepoLayout(REPO_ROOT).standards)
         self.runtime_calls: list[dict[str, Any]] = []
 
     def _runtime_preflight_error(

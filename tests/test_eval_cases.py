@@ -8,11 +8,14 @@ from pathlib import Path
 
 import yaml
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-EVAL_CASES_DIR = REPO_ROOT / "eval" / "cases"
-PIPELINES_DIR = REPO_ROOT / "pipelines"
-RUN_EVAL_PATH = REPO_ROOT / "eval" / "runner" / "run_eval.py"
+LAYOUT = RepoLayout(REPO_ROOT)
+EVAL_CASES_DIR = REPO_ROOT / "evals" / "cases"
+PIPELINES_DIR = LAYOUT.pipelines
+RUN_EVAL_PATH = REPO_ROOT / "evals" / "runner" / "run_eval.py"
 TARGET_PIPELINES = {"systematic-review-prisma", "empirical-study", "theory-paper"}
 
 

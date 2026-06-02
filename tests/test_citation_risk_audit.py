@@ -4,6 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 from scripts.audit_citation_risk import audit_citation_integrity
 
 
@@ -13,8 +15,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 class CitationRiskAuditTests(unittest.TestCase):
     def test_bundled_citation_risk_assets_exist(self) -> None:
         for path in (
-            REPO_ROOT / "qiongli-workflow" / "references" / "citation-risk-policy.md",
-            REPO_ROOT / "templates" / "citation-risk-report.md",
+            RepoLayout(REPO_ROOT).workflow / "references" / "citation-risk-policy.md",
+            RepoLayout(REPO_ROOT).templates / "citation-risk-report.md",
         ):
             with self.subTest(path=path):
                 self.assertTrue(path.exists(), f"Missing {path}")

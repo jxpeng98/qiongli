@@ -142,5 +142,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: release-acceptance
-          path: release/acceptance/
+          path: tooling/release/acceptance/
           if-no-files-found: ignore

@@ -3,11 +3,16 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+LAYOUT = RepoLayout(REPO_ROOT)
 
 
 def read(path: str) -> str:
+    if path.startswith("scripts/"):
+        return (LAYOUT.scripts / Path(path).relative_to("scripts")).read_text(encoding="utf-8")
     return (REPO_ROOT / path).read_text(encoding="utf-8")
 
 
@@ -16,7 +21,7 @@ class BranchPolicyTests(unittest.TestCase):
         for workflow in (".github/workflows/ci.yml", ".github/workflows/install-check.yml"):
             content = read(workflow)
             self.assertIn('branches: ["main", "master", "dev"]', content)
-            self.assertIn("release/acceptance/**", content)
+            self.assertIn("tooling/release/acceptance/**", content)
 
     def test_ci_workflow_cancels_stale_runs_and_splits_test_tiers(self) -> None:
         content = read(".github/workflows/ci.yml")

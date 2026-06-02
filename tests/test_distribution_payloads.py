@@ -8,10 +8,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-AUDIT_PATH = REPO_ROOT / "scripts" / "audit_distribution_payloads.py"
-MATERIALIZER_PATH = REPO_ROOT / "scripts" / "materialize_distribution_payloads.py"
+LAYOUT = RepoLayout(REPO_ROOT)
+AUDIT_PATH = LAYOUT.scripts / "audit_distribution_payloads.py"
+MATERIALIZER_PATH = LAYOUT.scripts / "materialize_distribution_payloads.py"
 
 
 def _load_audit_module():
@@ -57,7 +60,7 @@ class DistributionPayloadTests(unittest.TestCase):
 
     def test_distribution_includes_specialized_subject_payloads(self) -> None:
         for payload_root in (
-            self.materialized_root / "qiongli" / "payload" / "subjects",
+            RepoLayout(self.materialized_root).python_package / "payload" / "subjects",
             self.materialized_root / "packages" / "npm-qiongli" / "payload" / "subjects",
         ):
             for subject in ("accounting", "business", "finance", "political-economy", "geoeconomics"):
@@ -99,7 +102,7 @@ class DistributionPayloadTests(unittest.TestCase):
             root = Path(tmp)
             self._copy_distribution_tree(root)
 
-            target = root / "qiongli-workflow/SKILL.md"
+            target = root / LAYOUT.workflow.relative_to(REPO_ROOT) / "SKILL.md"
             link = root / "packages/npm-qiongli/payload/qiongli-workflow/SKILL-link.md"
             link.symlink_to(target)
 
@@ -111,7 +114,7 @@ class DistributionPayloadTests(unittest.TestCase):
     def test_audit_detects_stale_generated_subject_payload(self) -> None:
         for payload_root in (
             "packages/npm-qiongli/payload/subjects",
-            "qiongli/payload/subjects",
+            "packages/python-qiongli/src/qiongli/payload/subjects",
         ):
             with self.subTest(payload_root=payload_root), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)

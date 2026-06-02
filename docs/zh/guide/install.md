@@ -59,7 +59,7 @@ Release ZIP 使用 `coverage=focused`，用于保持当前 180 文件上传预�
 Gemini CLI 仍然直接安装本地 extension payload：
 
 ```bash
-gemini extensions install ./path/to/qiongli/plugins/qiongli
+gemini extensions install ./path/to/qiongli/packages/qiongli-plugin
 ```
 
 这条路径不会安装 shell CLI、Python bridge 或全局 slash-command symlinks。需要这些能力时，用 bootstrap 或 npm。

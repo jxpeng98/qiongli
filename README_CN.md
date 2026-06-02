@@ -92,7 +92,7 @@
 - [安装指南](docs/zh/guide/install.md)
 - [CLI 参考](docs/zh/reference/cli.md)
 - [系统架构](docs/zh/architecture.md)
-- [Controller Modes](guides/advanced/controller-modes.md)
+- [Controller Modes](docs/advanced/controller-modes.md)
 
 ### 0. 先选安装路径
 
@@ -101,14 +101,15 @@
 - **Codex：** 添加统一的 [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace，然后在 Codex plugin UI 中安装或启用默认 `qiongli`，或选择 `qiongli-economics` 等 subject entry。
 - **Claude Code：** 添加统一的 [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace，然后安装 `qiongli@skillsplace`；经济学专精可安装 `qiongli-economics@skillsplace`。
 - **Claude Desktop / Claude.ai：** 如果不想处理 code / CLI 环境，从 GitHub Release assets 下载 focused subject ZIP。默认通用包用 `qiongli-claude-desktop-skill-core-<tag>.zip`，经济学专精包用 `qiongli-claude-desktop-skill-economics-<tag>.zip`，political economy 专精包用 `qiongli-claude-desktop-skill-political-economy-<tag>.zip`，geoeconomics 专精包用 `qiongli-claude-desktop-skill-geoeconomics-<tag>.zip`，business 专精包用 `qiongli-claude-desktop-skill-business-<tag>.zip`，finance 专精包用 `qiongli-claude-desktop-skill-finance-<tag>.zip`，官方 economics/accounting 交叉学科包用 `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip`。然后拖拽到 Claude Desktop 的 Skills 上传/安装流程中，或在 `Customize > Skills > + > Create skill > Upload a skill` 中上传。旧名 `qiongli-claude-desktop-skill-<tag>.zip` 暂时保留为 core alias。
-- **Gemini CLI：** 从 `plugins/qiongli` 本地安装 Gemini extension；发布为独立 extension 仓库或 gallery 条目后，也可以从远端安装。
+- **Gemini CLI：** 从 `packages/qiongli-plugin` 本地安装 Gemini extension；发布为独立 extension 仓库或 gallery 条目后，也可以从远端安装。
 
 公开的 Codex / Claude marketplace catalog 现在由 `jxpeng98/skillsplace` 统一维护。Release 构建会为 `core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics`、`economics-accounting` 生成独立 Codex / Claude Code plugin artifacts，让 marketplace 可以展示多个 subject 安装选项。本仓库保留这些生成 artifacts 的源 plugin payload 和平台 manifest：
 
-- `plugins/qiongli/.codex-plugin/plugin.json`
-- `plugins/qiongli/.claude-plugin/plugin.json`
-- `plugins/qiongli/gemini-extension.json`
-- `plugins/qiongli/skills/qiongli-workflow`
+- `packages/qiongli-plugin/.codex-plugin/plugin.json`
+- `packages/qiongli-plugin/.claude-plugin/plugin.json`
+- `packages/qiongli-plugin/gemini-extension.json`
+- `packages/qiongli-plugin/platforms/`
+- `plugins/qiongli/skills/qiongli-workflow`（materialized artifact）
 
 Claude Desktop 不走 Claude Code 的第三方 plugin marketplace 路径。Desktop 使用上面的 GitHub Release ZIP 手动上传；ZIP 内部顶层目录是 `qiongli/`，与 `SKILL.md` 里的 skill 名称一致。
 
@@ -139,7 +140,7 @@ Subject packaging 需要同时区分两个视角：用户选择安装形态，�
 
 当前官方 subjects 包括 `core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics` 和官方组合 subject `economics-accounting`。默认安装是 `core/complete`。`--subject economics`、`--subject business`、`--subject finance`、`--subject political-economy` 和 `--subject geoeconomics` 表示 complete 专精安装，不是缩水包；`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。`--coverage focused` 是有意选择的精简路径，也是 Desktop/Web ZIP 路径。本阶段公开 Desktop ZIP subjects 是 `core`、`economics`、`business`、`finance`、`political-economy`、`geoeconomics` 和 `economics-accounting`；还没有 standalone accounting Desktop ZIP。`political-economy` 和 `geoeconomics` 是两个独立 subject，不是彼此叠加的交叉学科包。官方 composite subjects 是命名 subject，不是任意逗号分隔叠加。切换 subject 或 coverage 时，重新运行 install 或 upgrade；同一客户端一次只有一个 active `qiongli-workflow` package。
 
-开发或加深一个 subject 时，需要同步更新：`subjects/catalog.yaml`、subject overlays、subject-specific registry and markdown、选定的 domain and venue profiles、subject eval fixtures、specialization audit expected terms、materializer tests、该 subject 可通过 npm 安装时的 npm payload tests，以及该 subject 有 Desktop/Web artifact 时的 release validation。
+开发或加深一个 subject 时，需要同步更新：`content/subjects/catalog.yaml`、subject overlays、subject-specific registry and markdown、选定的 domain and venue profiles、subject eval fixtures、specialization audit expected terms、materializer tests、该 subject 可通过 npm 安装时的 npm payload tests，以及该 subject 有 Desktop/Web artifact 时的 release validation。
 
 ### 本地自定义
 
@@ -401,7 +402,7 @@ python3 -m bridges.orchestrator task-run \
   --skills-strict
 ```
 
-更多 controller-aware task-run 约定、solo gates 和 disagreement 处理见 [Controller Modes](guides/advanced/controller-modes.md)、[Solo Mode](guides/advanced/solo-mode.md) 与 [Codex-Claude Duo](guides/advanced/codex-claude-duo.md)。
+更多 controller-aware task-run 约定、solo gates 和 disagreement 处理见 [Controller Modes](docs/advanced/controller-modes.md)、[Solo Mode](docs/advanced/solo-mode.md) 与 [Codex-Claude Duo](docs/advanced/codex-claude-duo.md)。
 
 ### 8. 运行严格学术代码流
 
@@ -824,8 +825,8 @@ Qiongli 现在支持 subject-specialized installs。`core` 是默认通用包；
 ## 🏗 标准化层与跨模型契约
 为了让 Codex、Claude、Gemini 输出可相互继承的中间件，系统使用严苛的“契约”驱动运转。
 
-- **工作流契约**: `standards/research-workflow-contract.yaml` (所有 Task ID，必需前置条件与质量门规范)
-- **能力映射路由**: `standards/mcp-agent-capability-map.yaml` (所有 MCP 工具代理，自动 fallback 以及检查清单）
+- **工作流契约**: `content/standards/research-workflow-contract.yaml` (所有 Task ID，必需前置条件与质量门规范)
+- **能力映射路由**: `content/standards/mcp-agent-capability-map.yaml` (所有 MCP 工具代理，自动 fallback 以及检查清单）
 - **落盘规范**: 所有代理人生成的学术内容必须严格落进 `RESEARCH/[topic]/` 对应目录下。
 
 ### Skills + Agents 协同流程（ASCII）
@@ -860,7 +861,7 @@ MCP 证据采集                  Agent 运行时路由
            质量门 + 产物落盘输出
               -> RESEARCH/[topic]/...
 ```
-*(详情请参考 [docs/zh/advanced/agent-skill-collaboration.md](docs/zh/advanced/agent-skill-collaboration.md)；旧版镜像路径仍保留在 [guides/advanced/agent-skill-collaboration.md](guides/advanced/agent-skill-collaboration.md))*
+*(详情请参考 [docs/zh/advanced/agent-skill-collaboration.md](docs/zh/advanced/agent-skill-collaboration.md)。)*
 
 ---
 
@@ -969,17 +970,19 @@ git switch dev
 
 ```
 qiongli/
-├── standards/                # 核心合同真源：workflow/capability map
-├── qiongli-workflow/  # 各大平台无缝挂载的便携 Skill 技能包
-├── .agent/workflows/         # 安装后的 workflow 入口 markdown / slash-command surface
-├── bridges/                  # Python Orchestrator 多端路由通信网桥
-├── skills/                   # 系统全系学术卡片
-│   ├── [...]                 # 对应阶段 A 到 K
-│   └── domain-profiles/      # (动态挂载的领域知识图谱 Economics, Bio等)
-├── schemas/                  # Validator 数据验证
-├── eval/                     # 性能及覆盖率对焦 Test Cases
-├── guides/                   # 最佳实践与深潜开发文档
-├── scripts/                  # CI 维护器
+├── content/                  # 学术内容 canonical source
+│   ├── workflow/             # 生成 qiongli-workflow package 的源
+│   ├── standards/            # workflow contract + capability map
+│   ├── skills/               # internal skill specs
+│   ├── templates/            # 可复用 artifact templates
+│   ├── roles/                # functional-agent role configs
+│   ├── subjects/             # subject catalog 与 overlays
+│   └── schemas/              # Validator 数据验证
+├── packages/                 # Python、npm、plugin、MCPB package sources
+├── tooling/                  # scripts、pipelines、install、release assets
+├── evals/                    # 性能、覆盖率与质量评测资产
+├── docs/                     # VitePress 文档站
+├── scripts/                  # 指向 tooling/scripts 的稳定 wrapper
 └── tests/                    # 单元测试验证
 ```
 

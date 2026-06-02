@@ -8,9 +8,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-GUARD_PATH = REPO_ROOT / "scripts" / "check_generated_payload_edits.py"
+LAYOUT = RepoLayout(REPO_ROOT)
+GUARD_PATH = LAYOUT.scripts / "check_generated_payload_edits.py"
 
 
 def _load_guard_module():
@@ -30,10 +33,14 @@ class GeneratedPayloadGuardTests(unittest.TestCase):
 
     def test_classifies_generated_payload_paths(self) -> None:
         generated_paths = [
-            "qiongli/payload/qiongli-workflow/SKILL.md",
+            ".agent/workflows/paper.md",
+            ".gemini/qiongli.md",
+            "packages/python-qiongli/src/qiongli/payload/qiongli-workflow/SKILL.md",
             "packages/npm-qiongli/payload/qiongli-workflow/SKILL.md",
             "packages/npm-qiongli/python-runtime/qiongli/__init__.py",
+            "plugins/qiongli/.codex-plugin/plugin.json",
             "plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+            "qiongli-workflow/SKILL.md",
             "qiongli-workflow/skills/registry.yaml",
             "qiongli-workflow/templates/paper-note.md",
         ]
@@ -43,18 +50,22 @@ class GeneratedPayloadGuardTests(unittest.TestCase):
 
     def test_keeps_canonical_source_paths_allowed(self) -> None:
         source_paths = [
-            "qiongli-workflow/SKILL.md",
-            "qiongli-workflow/workflows/paper-read.md",
-            "qiongli-workflow/references/stage-B-literature.md",
-            "skills/B_literature/academic-searcher.md",
-            "templates/paper-note.md",
-            "standards/research-workflow-contract.yaml",
-            "roles/literature-ra.yaml",
-            "venue-profiles/nature.yaml",
-            "subjects/catalog.yaml",
-            "subjects/finance/skills/finance-identification-risk-auditor.md",
-            "skills-core.md",
-            "skills-summary.md",
+            "content/workflow/SKILL.md",
+            "content/workflow/workflows/paper-read.md",
+            "content/workflow/references/stage-B-literature.md",
+            "content/skills/B_literature/academic-searcher.md",
+            "content/templates/paper-note.md",
+            "content/standards/research-workflow-contract.yaml",
+            "content/roles/literature-ra.yaml",
+            "content/venue-profiles/nature.yaml",
+            "content/subjects/catalog.yaml",
+            "content/subjects/finance/skills/finance-identification-risk-auditor.md",
+            "packages/qiongli-plugin/.codex-plugin/plugin.json",
+            "packages/qiongli-plugin/commands/paper.md",
+            "packages/qiongli-plugin/platforms/agent/workflows/paper.md",
+            "packages/qiongli-plugin/platforms/gemini/qiongli.md",
+            "content/skills-core.md",
+            "content/skills-summary.md",
         ]
         for path in source_paths:
             with self.subTest(path=path):

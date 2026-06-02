@@ -418,7 +418,7 @@ Recommended:
 - use `pre` / `post` only for diagnostics or recovery
 - let `publish` own commit, tag, push, branch CI wait, tag publish wait, GitHub Release, and acceptance receipt
 - stable releases publish from the matching `CHANGELOG.md` section
-- beta / prerelease releases publish from `release/<tag>.md`
+- beta / prerelease releases publish from `tooling/release/<tag>.md`
 
 Also executable individually:
 

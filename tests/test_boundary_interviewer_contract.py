@@ -3,21 +3,23 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-CONTRACT = REPO_ROOT / "standards" / "boundary-review-contract.yaml"
-TEMPLATE = REPO_ROOT / "templates" / "boundary-review.md"
-ARTIFACT_TYPES = REPO_ROOT / "schemas" / "artifact-types.yaml"
-REGISTRY = REPO_ROOT / "skills" / "registry.yaml"
-SKILL = REPO_ROOT / "skills" / "Z_cross_cutting" / "boundary-interviewer.md"
-SKILLS_CORE = REPO_ROOT / "skills-core.md"
-SKILLS_SUMMARY = REPO_ROOT / "skills-summary.md"
+CONTRACT = RepoLayout(REPO_ROOT).standards / "boundary-review-contract.yaml"
+TEMPLATE = RepoLayout(REPO_ROOT).templates / "boundary-review.md"
+ARTIFACT_TYPES = RepoLayout(REPO_ROOT).schemas / "artifact-types.yaml"
+REGISTRY = RepoLayout(REPO_ROOT).skills / "registry.yaml"
+SKILL = RepoLayout(REPO_ROOT).skills / "Z_cross_cutting" / "boundary-interviewer.md"
+SKILLS_CORE = RepoLayout(REPO_ROOT).skills_core
+SKILLS_SUMMARY = RepoLayout(REPO_ROOT).skills_summary
 README = REPO_ROOT / "README.md"
-PAPER_WORKFLOW = REPO_ROOT / "qiongli-workflow" / "workflows" / "paper.md"
-FIND_GAP_WORKFLOW = REPO_ROOT / "qiongli-workflow" / "workflows" / "find-gap.md"
-STAGE_A_REFERENCE = REPO_ROOT / "qiongli-workflow" / "references" / "stage-A-framing.md"
+PAPER_WORKFLOW = RepoLayout(REPO_ROOT).workflow / "workflows" / "paper.md"
+FIND_GAP_WORKFLOW = RepoLayout(REPO_ROOT).workflow / "workflows" / "find-gap.md"
+STAGE_A_REFERENCE = RepoLayout(REPO_ROOT).workflow / "references" / "stage-A-framing.md"
 
 
 class BoundaryInterviewerContractTests(unittest.TestCase):
@@ -233,11 +235,11 @@ class BoundaryInterviewerContractTests(unittest.TestCase):
 
     def test_mvp_workflows_include_academic_boundary_trigger(self) -> None:
         workflow_paths = [
-            REPO_ROOT / "qiongli-workflow" / "workflows" / "paper.md",
-            REPO_ROOT / "qiongli-workflow" / "workflows" / "study-design.md",
-            REPO_ROOT / "qiongli-workflow" / "workflows" / "code-build.md",
-            REPO_ROOT / "qiongli-workflow" / "workflows" / "academic-write.md",
-            REPO_ROOT / "qiongli-workflow" / "workflows" / "submission-prep.md",
+            RepoLayout(REPO_ROOT).workflow / "workflows" / "paper.md",
+            RepoLayout(REPO_ROOT).workflow / "workflows" / "study-design.md",
+            RepoLayout(REPO_ROOT).workflow / "workflows" / "code-build.md",
+            RepoLayout(REPO_ROOT).workflow / "workflows" / "academic-write.md",
+            RepoLayout(REPO_ROOT).workflow / "workflows" / "submission-prep.md",
         ]
 
         for path in workflow_paths:
@@ -264,12 +266,12 @@ class BoundaryInterviewerContractTests(unittest.TestCase):
 
     def test_v2_workflows_include_boundary_trigger_for_all_remaining_stages(self) -> None:
         workflow_paths = [
-            REPO_ROOT / "qiongli-workflow" / "workflows" / "lit-review.md",
-            REPO_ROOT / "qiongli-workflow" / "workflows" / "ethics-check.md",
-            REPO_ROOT / "qiongli-workflow" / "workflows" / "synthesize.md",
-            REPO_ROOT / "qiongli-workflow" / "workflows" / "compliance-check.md",
-            REPO_ROOT / "qiongli-workflow" / "workflows" / "proofread.md",
-            REPO_ROOT / "qiongli-workflow" / "workflows" / "academic-present.md",
+            RepoLayout(REPO_ROOT).workflow / "workflows" / "lit-review.md",
+            RepoLayout(REPO_ROOT).workflow / "workflows" / "ethics-check.md",
+            RepoLayout(REPO_ROOT).workflow / "workflows" / "synthesize.md",
+            RepoLayout(REPO_ROOT).workflow / "workflows" / "compliance-check.md",
+            RepoLayout(REPO_ROOT).workflow / "workflows" / "proofread.md",
+            RepoLayout(REPO_ROOT).workflow / "workflows" / "academic-present.md",
         ]
 
         for path in workflow_paths:

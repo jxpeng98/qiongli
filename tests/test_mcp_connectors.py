@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+import bridges.mcp_connectors as mcp_connectors_module
 from bridges.command_runtime import current_python_command
 from bridges.mcp_connectors import MCPConnector
 from bridges.provider_config import set_provider_value
@@ -40,6 +41,21 @@ class MCPConnectorTests(unittest.TestCase):
 
         self.assertEqual(resolution.source, "builtin")
         self.assertTrue((resolution.native_script or "").endswith("mcp_metadata_registry.py"))
+
+    def test_resolve_provider_detects_builtin_from_installed_package_with_checkout_cwd(self) -> None:
+        installed_file = "/tmp/site-packages/qiongli/bridges/mcp_connectors.py"
+        with mock.patch.object(mcp_connectors_module, "__file__", installed_file), mock.patch.dict(
+            os.environ,
+            {},
+            clear=False,
+        ):
+            resolution = self.connector.resolve_provider("metadata-registry")
+
+        self.assertEqual(resolution.source, "builtin")
+        self.assertEqual(
+            resolution.native_script,
+            str(REPO_ROOT / "scripts" / "mcp_metadata_registry.py"),
+        )
 
     def test_resolve_provider_detects_external_slot(self) -> None:
         with mock.patch.dict(os.environ, {}, clear=False):

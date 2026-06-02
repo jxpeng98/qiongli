@@ -34,8 +34,12 @@ research-skills = "qiongli.cli:main"
 rsk = "qiongli.cli:main"
 rsw = "qiongli.cli:main"
 
-[tool.setuptools]
-packages = ["qiongli", "research_skills"]
+[tool.setuptools.package-dir]
+"" = "packages/python-qiongli/src"
+
+[tool.setuptools.packages.find]
+where = ["packages/python-qiongli/src"]
+include = ["qiongli*", "research_skills*", "bridges*"]
 
 [tool.setuptools.package-data]
 qiongli = ["project.toml", "install_manifest.tsv", "payload/**/*"]

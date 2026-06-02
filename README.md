@@ -99,7 +99,7 @@ Start with the consolidated docs when you need detail:
 - [CLI Reference](docs/reference/cli.md)
 - [Architecture](docs/architecture.md)
 - [Plugin-First Architecture](docs/advanced/plugin-first-architecture.md)
-- [Controller Modes](guides/advanced/controller-modes.md)
+- [Controller Modes](docs/advanced/controller-modes.md)
 
 ### 0. Choose An Install Path
 
@@ -108,17 +108,18 @@ For native client distribution, install **Qiongli** through the client-specific 
 - **Codex:** add the shared [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace, then install or enable `qiongli` for the default core package or a subject entry such as `qiongli-economics`.
 - **Claude Code:** add the shared [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace, then install `qiongli@skillsplace` for core or a subject entry such as `qiongli-economics@skillsplace`.
 - **Claude Desktop / Claude.ai:** if you do not want to use a code/CLI environment, download a focused subject ZIP from the GitHub Release assets, then drag it into Claude Desktop's Skills upload/install flow or upload it from `Customize > Skills > + > Create skill > Upload a skill`. Use `qiongli-claude-desktop-skill-core-<tag>.zip` for the default general workflow, `qiongli-claude-desktop-skill-economics-<tag>.zip` for economics, `qiongli-claude-desktop-skill-political-economy-<tag>.zip` for political economy, `qiongli-claude-desktop-skill-geoeconomics-<tag>.zip` for geoeconomics, `qiongli-claude-desktop-skill-business-<tag>.zip` for business, `qiongli-claude-desktop-skill-finance-<tag>.zip` for finance, or `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip` for the official economics/accounting composite. The legacy `qiongli-claude-desktop-skill-<tag>.zip` remains a core alias for one release cycle.
-- **Gemini CLI:** install the Gemini extension from `plugins/qiongli` locally, or from a standalone extension repository/gallery entry once published.
+- **Gemini CLI:** install the Gemini extension from `packages/qiongli-plugin` locally, or from a standalone extension repository/gallery entry once published.
 
 Public Codex and Claude marketplace catalog metadata now lives in `jxpeng98/skillsplace`. Release builds now attach separate Codex and Claude Code plugin artifacts for `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting` so the shared marketplace can list subject-specific install choices. This repository keeps the source plugin payload and platform manifests that those generated artifacts derive from:
 
-- `plugins/qiongli/.codex-plugin/plugin.json`
-- `plugins/qiongli/.claude-plugin/plugin.json`
-- `plugins/qiongli/gemini-extension.json`
-- `plugins/qiongli/commands/*.md`
-- `plugins/qiongli/skills/qiongli-workflow`
+- `packages/qiongli-plugin/.codex-plugin/plugin.json`
+- `packages/qiongli-plugin/.claude-plugin/plugin.json`
+- `packages/qiongli-plugin/gemini-extension.json`
+- `packages/qiongli-plugin/commands/*.md`
+- `packages/qiongli-plugin/platforms/`
+- `plugins/qiongli/skills/qiongli-workflow` (materialized artifact)
 
-The plugin is the install/discovery container; `qiongli-workflow` is the portable skill package inside it. The user-visible skill name is `qiongli`; the install directory stays `qiongli-workflow` for compatibility. The 71 academic skill specs under `skills/` are source-of-truth capability cards and are synchronized into the portable/plugin package before release.
+The plugin is the install/discovery container; `qiongli-workflow` is the portable skill package inside it. The user-visible skill name is `qiongli`; the install directory stays `qiongli-workflow` for compatibility. The academic skill specs under `content/skills/` are source-of-truth capability cards and are synchronized into the portable/plugin package before release.
 
 Claude Desktop does not use the Claude Code third-party plugin marketplace path. For Desktop, use the release ZIP above; the ZIP contains a top-level `qiongli/` skill folder so the folder name matches `SKILL.md`.
 
@@ -145,7 +146,7 @@ For developers, `core` owns shared workflow contracts, generic skills, templates
 
 Current official subjects are `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and the official composite `economics-accounting`. Default install means `core/complete`. `--subject economics`, `--subject business`, `--subject finance`, `--subject political-economy`, and `--subject geoeconomics` mean complete specialized installs, not reduced packages. `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. `--coverage focused` is the deliberate slim path and the Desktop/Web ZIP path. Public Desktop ZIP subjects in this phase are `core`, `economics`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting`; there is no standalone accounting Desktop ZIP yet. `political-economy` and `geoeconomics` are independent subjects, not a composite pair. Official composite subjects are named subjects, not arbitrary comma-separated stacking. To switch subjects or coverage, rerun install or upgrade. Each client still has one active `qiongli-workflow` package at a time.
 
-When adding or deepening a subject, update these together: `subjects/catalog.yaml`, subject overlays, subject-specific registry and markdown, selected domain and venue profiles, subject eval fixtures, specialization audit expected terms, materializer tests, npm package contract tests against staged materialization when the subject is installable through npm, and release validation if the subject has a Desktop/Web artifact.
+When adding or deepening a subject, update these together: `content/subjects/catalog.yaml`, subject overlays, subject-specific registry and markdown, selected domain and venue profiles, subject eval fixtures, specialization audit expected terms, materializer tests, npm package contract tests against staged materialization when the subject is installable through npm, and release validation if the subject has a Desktop/Web artifact.
 
 ### Local Customization
 
@@ -426,7 +427,7 @@ python3 -m bridges.orchestrator task-run \
   --skills-strict
 ```
 
-See [Controller Modes](guides/advanced/controller-modes.md), [Solo Mode](guides/advanced/solo-mode.md), and [Codex-Claude Duo](guides/advanced/codex-claude-duo.md) for controller-aware task-run conventions, solo gates, and disagreement handling.
+See [Controller Modes](docs/advanced/controller-modes.md), [Solo Mode](docs/advanced/solo-mode.md), and [Codex-Claude Duo](docs/advanced/codex-claude-duo.md) for controller-aware task-run conventions, solo gates, and disagreement handling.
 
 ### 8. Run the Strict Academic Code Flow
 
@@ -542,7 +543,7 @@ The separate Qiongli Literature Provider `.mcpb` (`qiongli-literature-provider.m
 Gemini CLI:
 
 ```bash
-gemini extensions install ./path/to/qiongli/plugins/qiongli
+gemini extensions install ./path/to/qiongli/packages/qiongli-plugin
 ```
 
 Codex and Claude Code install from the shared Skillsplace marketplace catalog. Claude Desktop uses the GitHub Release ZIP upload path. Gemini CLI uses the official extension system (`gemini-extension.json`) rather than a marketplace JSON.
@@ -905,8 +906,8 @@ Runtime flags such as `--domain econ` still matter for a single task packet, but
 
 The system operates on a single canonical workflow contract ensuring that Codex, Claude, and Gemini produce outputs in identical formats and paths.
 
-- **The Contract**: `standards/research-workflow-contract.yaml` (Task IDs, required outputs, quality gates)
-- **The Routing**: `standards/mcp-agent-capability-map.yaml` (MCP tool mapping & primary/fallback agents)
+- **The Contract**: `content/standards/research-workflow-contract.yaml` (Task IDs, required outputs, quality gates)
+- **The Routing**: `content/standards/mcp-agent-capability-map.yaml` (MCP tool mapping & primary/fallback agents)
 - **Output Standard**: All generated content saves strictly to `RESEARCH/[topic]/`
 
 ### Layer Model
@@ -915,22 +916,22 @@ The core execution stack is organized into six layers:
 
 | Layer | Current Location | Responsibility |
 |---|---|---|
-| **Contract** | `standards/research-workflow-contract.yaml` | Defines canonical Task IDs, artifact paths, and quality gates |
-| **Functional Agents** | `roles/` + `pipelines/` | Research responsibility layer (literature, methods, writing, compliance, etc.) |
-| **Runtime Agents** | `standards/mcp-agent-capability-map.yaml` + `bridges/` | Chooses which model runtime executes a step (`codex`, `claude`, `gemini`) |
-| **Internal Skill Specs** | `skills/` | Reusable execution specs referenced by the capability map and pipelines |
-| **Pipelines / Workflows** | `pipelines/` + `.agent/workflows/` | DAGs and user entrypoints that sequence skills for a paper type or command |
-| **Bridges** | `bridges/` | Runtime adapters, orchestration, and MCP integration |
+| **Contract** | `content/standards/research-workflow-contract.yaml` | Defines canonical Task IDs, artifact paths, and quality gates |
+| **Functional Agents** | `content/roles/` + `tooling/pipelines/` | Research responsibility layer (literature, methods, writing, compliance, etc.) |
+| **Runtime Agents** | `content/standards/mcp-agent-capability-map.yaml` + `packages/python-qiongli/src/qiongli/bridges/` | Chooses which model runtime executes a step (`codex`, `claude`, `gemini`) |
+| **Internal Skill Specs** | `content/skills/` | Reusable execution specs referenced by the capability map and pipelines |
+| **Pipelines / Workflows** | `tooling/pipelines/` + `content/workflow/workflows/` + `packages/qiongli-plugin/platforms/` | DAGs and user entrypoints that sequence skills for a paper type or command |
+| **Bridges** | `packages/python-qiongli/src/qiongli/bridges/` | Runtime adapters, orchestration, and MCP integration |
 
 One additional distribution surface sits beside the execution stack:
 
-- **Portable Skill Package**: `qiongli-workflow/` is the installable cross-client entry skill for Codex/Claude/Gemini.
-- **Important**: `qiongli-workflow/` is not the authoritative source for every internal capability spec; `skills/` and `standards/` remain the internal source-of-truth layers.
+- **Portable Skill Package**: generated `qiongli-workflow/` is the installable cross-client entry skill for Codex/Claude/Gemini.
+- **Important**: `qiongli-workflow/` is not the editable source; `content/workflow/`, `content/skills/`, and `content/standards/` remain the source-of-truth layers.
 
 ### Terminology
 
-- **Portable skill** means an end-user installable skill package such as `qiongli-workflow/`.
-- **Internal skill spec** means a repo-internal markdown spec under `skills/` used by the capability map, pipelines, and validators.
+- **Portable skill** means an end-user installable skill package such as generated `qiongli-workflow/`.
+- **Internal skill spec** means a repo-internal markdown spec under `content/skills/` used by the capability map, pipelines, and validators.
 - **Functional agent** means the research responsibility layer (today represented primarily by `roles/` and pipeline ownership patterns).
 - **Runtime agent** means the actual model executor (`codex`, `claude`, `gemini`).
 
@@ -940,13 +941,13 @@ Maintain these dependencies in one direction only:
 
 ```mermaid
 flowchart TD
-  Contract["Contract\nstandards/research-workflow-contract.yaml"]
-  Capability["Capability Map\nstandards/mcp-agent-capability-map.yaml"]
-  Agents["Functional Agents\nroles/"]
-  Skills["Internal Skill Specs\nskills/"]
-  Pipelines["Pipelines + Workflows\npipelines/ + .agent/workflows/"]
-  Bridges["Bridges / Runtime\nbridges/"]
-  Portable["Portable Skill Package\nqiongli-workflow/"]
+  Contract["Contract\ncontent/standards/research-workflow-contract.yaml"]
+  Capability["Capability Map\ncontent/standards/mcp-agent-capability-map.yaml"]
+  Agents["Functional Agents\ncontent/roles/"]
+  Skills["Internal Skill Specs\ncontent/skills/"]
+  Pipelines["Pipelines + Workflows\ntooling/pipelines/ + content/workflow/workflows/"]
+  Bridges["Bridges / Runtime\npackages/python-qiongli/src/qiongli/bridges/"]
+  Portable["Generated Portable Skill\nqiongli-workflow/"]
 
   Contract --> Capability
   Contract --> Skills
@@ -968,7 +969,7 @@ Operational rules:
 - `Functional Agents` define responsibility and ownership. They do not replace runtime selection.
 - `Internal Skill Specs` define reusable execution behavior. They do not replace the contract or the capability map.
 - `Pipelines / Workflows` sequence existing pieces. They should not become a second source of artifact or ownership truth.
-- `Bridges` execute the plan. They should not encode contract logic that diverges from `standards/`.
+- `Bridges` execute the plan. They should not encode contract logic that diverges from `content/standards/`.
 
 ### Maintainer Mapping
 
@@ -1026,7 +1027,7 @@ Functional Routing                 Runtime Routing
             -> RESEARCH/[topic]/...
 ```
 
-See [docs/advanced/agent-skill-collaboration.md](docs/advanced/agent-skill-collaboration.md) for the current guide. The legacy mirror remains at [guides/advanced/agent-skill-collaboration.md](guides/advanced/agent-skill-collaboration.md).
+See [docs/advanced/agent-skill-collaboration.md](docs/advanced/agent-skill-collaboration.md) for the current guide.
 
 ---
 
@@ -1158,19 +1159,19 @@ git switch dev
 
 ```
 qiongli/
-├── standards/                # Canonical workflow contract + capability map
-├── qiongli-workflow/  # Portable cross-client skill package (distribution surface)
-├── .agent/workflows/         # Installed workflow entry markdowns / slash-command surface
-├── pipelines/                # Abstract DAGs for paper-type workflows and handoffs
-├── roles/                    # Functional-agent role configs (research responsibility layer)
-├── bridges/                  # Runtime orchestration and model adapters
-├── skills/                   # Internal skill specs referenced by the capability map
-│   ├── [...]                 # Stages A through K
-│   └── domain-profiles/      # Domain-specific configs (economics, cs-ai, etc.)
-├── schemas/                  # JSON schemas + artifact type vocab
-├── eval/                     # Golden test cases
-├── guides/                   # Basic and Advanced tutorials
-├── scripts/                  # CI, installers, validators
+├── content/                  # Canonical academic content source
+│   ├── workflow/             # Source for generated qiongli-workflow package
+│   ├── standards/            # Workflow contract + capability map
+│   ├── skills/               # Internal skill specs referenced by the capability map
+│   ├── templates/            # Reusable artifact templates
+│   ├── roles/                # Functional-agent role configs
+│   ├── subjects/             # Subject catalog and overlays
+│   └── schemas/              # JSON schemas + artifact type vocab
+├── packages/                 # Python, npm, plugin, and MCPB package sources
+├── tooling/                  # Scripts, pipelines, installer data, release assets
+├── evals/                    # Evaluation cases, rubrics, runners, and suites
+├── docs/                     # VitePress documentation site
+├── scripts/                  # Stable wrapper entrypoints for tooling/scripts
 └── tests/                    # Unit tests
 ```
 

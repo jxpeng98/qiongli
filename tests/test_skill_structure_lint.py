@@ -5,6 +5,7 @@ import textwrap
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
 from scripts.validate_research_standard import (
     ValidationReport,
     validate_skill_quality_contract,
@@ -275,8 +276,9 @@ class SkillStructureLintTests(unittest.TestCase):
         }
 
         missing_tokens: list[str] = []
+        layout = RepoLayout(root)
         for relative_path, tokens in required_tokens.items():
-            text = (root / relative_path).read_text(encoding="utf-8")
+            text = layout.resolve_source_path(relative_path).read_text(encoding="utf-8")
             missing_tokens.extend(
                 f"{relative_path}: {token}" for token in tokens if token not in text
             )
@@ -308,13 +310,14 @@ class SkillStructureLintTests(unittest.TestCase):
         }
 
         failures: list[str] = []
+        layout = RepoLayout(root)
         for relative_path, tokens in forbidden_tokens.items():
-            text = (root / relative_path).read_text(encoding="utf-8")
+            text = layout.resolve_source_path(relative_path).read_text(encoding="utf-8")
             failures.extend(
                 f"{relative_path}: remove {token}" for token in tokens if token in text
             )
         for relative_path, tokens in required_tokens.items():
-            text = (root / relative_path).read_text(encoding="utf-8")
+            text = layout.resolve_source_path(relative_path).read_text(encoding="utf-8")
             failures.extend(
                 f"{relative_path}: add {token}" for token in tokens if token not in text
             )
