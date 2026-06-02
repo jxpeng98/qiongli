@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from bridges.command_runtime import current_python_command, split_command
+from qiongli.source_layout import RepoLayout, discover_repo_root
 
 
 @dataclass
@@ -196,12 +197,38 @@ class MCPConnector:
     def _provider_native_script(self, provider: str) -> Path:
         safe_provider_name = provider.replace("-", "_")
         script_name = f"mcp_{safe_provider_name}.py"
+        for repo_root in self._repo_root_candidates():
+            for candidate in (
+                repo_root / "scripts" / script_name,
+                repo_root / "tooling" / "scripts" / script_name,
+            ):
+                if candidate.exists():
+                    return candidate
         current = Path(__file__).resolve()
         for parent in current.parents:
             candidate = parent / "scripts" / script_name
             if candidate.exists():
                 return candidate
         return current.parents[1] / "scripts" / script_name
+
+    def _repo_root_candidates(self) -> list[Path]:
+        roots: list[Path] = []
+        for start in (Path.cwd(), Path(__file__).resolve()):
+            try:
+                root = discover_repo_root(start)
+            except ValueError:
+                continue
+            if not self._looks_like_qiongli_source_root(root):
+                continue
+            if root not in roots:
+                roots.append(root)
+        return roots
+
+    def _looks_like_qiongli_source_root(self, root: Path) -> bool:
+        layout = RepoLayout(root)
+        return (layout.workflow / "SKILL.md").is_file() and (
+            layout.standards / "mcp-agent-capability-map.yaml"
+        ).is_file()
 
     def resolve_provider(self, provider: str) -> MCPProviderResolution:
         env_name = self._provider_env_var(provider)

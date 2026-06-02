@@ -133,6 +133,16 @@ class InstallerCliTests(unittest.TestCase):
             stderr.getvalue(),
         )
 
+    def test_packaged_payload_root_falls_back_to_checkout_cwd_when_payload_is_absent(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            fake_site_file = Path(tmp_dir) / "site-packages" / "qiongli" / "cli.py"
+            fake_site_file.parent.mkdir(parents=True)
+            fake_site_file.write_text("# installed package placeholder\n", encoding="utf-8")
+            with mock.patch.object(cli_module, "__file__", str(fake_site_file)):
+                payload_root = cli_module._packaged_payload_root()
+
+        self.assertEqual(payload_root, REPO_ROOT)
+
     def test_align_describes_global_first_upgrade_and_project_init(self) -> None:
         args = argparse.Namespace(repo="owner/repo")
 

@@ -808,10 +808,16 @@ def _packaged_payload_root() -> Path:
     package_payload = Path(__file__).resolve().parent / "payload"
     if (package_payload / "qiongli-workflow" / "SKILL.md").exists():
         return package_payload
-    repo_root = _find_repo_root(Path(__file__).resolve())
-    if repo_root is not None:
-        return repo_root
+    for start in (Path.cwd(), Path(__file__).resolve()):
+        repo_root = _find_repo_root(start)
+        if repo_root is not None and _looks_like_qiongli_payload_source(repo_root):
+            return repo_root
     return Path(__file__).resolve().parents[1]
+
+
+def _looks_like_qiongli_payload_source(root: Path) -> bool:
+    layout = RepoLayout(root)
+    return (layout.workflow / "SKILL.md").is_file() and (layout.subjects / "catalog.yaml").is_file()
 
 
 def cmd_install(args: argparse.Namespace) -> int:
