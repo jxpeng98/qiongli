@@ -18,6 +18,9 @@ qiongli install --subject economics-accounting --target all
 qiongli install --subject economics --coverage focused --target all
 ```
 
+`qiongli setup` uses the bundled Python bridge and requires Python 3.12+ with `PyYAML`.
+Use explicit `qiongli install ...` commands when you only need Node-based asset installation.
+
 Update an existing global install with:
 
 ```bash
