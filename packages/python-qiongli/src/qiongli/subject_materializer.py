@@ -21,6 +21,11 @@ class SubjectMaterializationError(ValueError):
 
 
 COVERAGE_CHOICES = {"complete", "focused"}
+AGENT_PACKET_TEMPLATES = (
+    "agent-handoff.md",
+    "agent-review-packet.md",
+    "agent-run-packet.json",
+)
 
 
 @dataclass(frozen=True)
@@ -276,8 +281,8 @@ def _copy_common_package_assets(package_root: Path, out: Path) -> None:
     source_dirs = {
         "workflows": package_root / "workflows",
         "references": package_root / "references",
-        "standards": layout.standards,
-        "roles": layout.roles,
+        "standards": package_root / "standards" if (package_root / "standards").exists() else layout.standards,
+        "roles": package_root / "roles" if (package_root / "roles").exists() else layout.roles,
         "agents": package_root / "agents",
     }
     for dirname in ("workflows", "references", "standards", "roles", "agents"):
@@ -297,7 +302,11 @@ def _materialize_templates(package_root: Path, out: Path, subject: SubjectDefini
     if coverage == "complete" or subject.id == "core" or not subject.template_refs:
         _copy_path(src_root, dest_root)
         return
-    for rel in subject.template_refs:
+    template_refs = list(subject.template_refs)
+    for rel in AGENT_PACKET_TEMPLATES:
+        if rel not in template_refs:
+            template_refs.append(rel)
+    for rel in template_refs:
         src = src_root / rel
         if not src.exists():
             raise SubjectMaterializationError(f"subject {subject.id} references missing template: {rel}")

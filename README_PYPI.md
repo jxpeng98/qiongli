@@ -7,7 +7,7 @@ The full system name is **Qiongli Zhengche** (`穷理证澈`): Qiongli names the
 ## What it does
 
 - Install or refresh global `qiongli-workflow` skill assets
-- Select the active subject package with `--subject core|economics|accounting|economics-accounting`
+- Select the active subject package with `--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting`
 - Choose package coverage with `--coverage complete|focused` (`complete` is the default)
 - Upgrade assets to newer upstream versions
 - Support `codex`, `claude`, `gemini`, or `all` targets
@@ -43,6 +43,10 @@ Current releases separate the package install from workflow asset installation:
 - `qiongli install --target all` installs the default `core/complete` package.
 - `qiongli install --subject economics --target all` installs the full framework plus economics specialization.
 - `qiongli install --subject accounting --target all` installs the full framework plus accounting specialization.
+- `qiongli install --subject business --target all` installs the full framework plus business/management specialization.
+- `qiongli install --subject finance --target all` installs the full framework plus finance specialization.
+- `qiongli install --subject political-economy --target all` installs the full framework plus political economy specialization.
+- `qiongli install --subject geoeconomics --target all` installs the full framework plus geoeconomics specialization.
 - `qiongli install --subject economics --coverage focused --target all` installs the slimmer economics-focused package.
 - `qiongli install --subject economics-accounting --target all` installs the official economics/accounting composite.
 - `qiongli upgrade --subject accounting --target all` refreshes the active global `qiongli-workflow` skill assets for Codex, Claude Code, Gemini, and Antigravity.
@@ -78,6 +82,10 @@ qiongli check
 qiongli install --target all
 qiongli install --subject economics --target all
 qiongli install --subject accounting --target all
+qiongli install --subject business --target all
+qiongli install --subject finance --target all
+qiongli install --subject political-economy --target all
+qiongli install --subject geoeconomics --target all
 qiongli install --subject economics --coverage focused --target all
 qiongli install --subject economics-accounting --target all
 qiongli upgrade --subject accounting --target all
@@ -146,13 +154,17 @@ pipx upgrade qiongli
 qiongli install --target all
 qiongli install --subject economics --target all
 qiongli install --subject accounting --target all
+qiongli install --subject business --target all
+qiongli install --subject finance --target all
+qiongli install --subject political-economy --target all
+qiongli install --subject geoeconomics --target all
 qiongli install --subject economics-accounting --target all
 
 # Optional: initialize project-local files only when you want them
 qiongli init --project-dir /path/to/project
 ```
 
-`--subject` defaults to `core` and `--coverage` defaults to `complete`, so the default install is `core/complete`. With complete coverage, a specialized install keeps the full core framework and adds the requested subject overlays and subject-specific skills. `--subject economics` means `economics/complete`, not a reduced package. `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. Use `--coverage focused` only when you deliberately want the slimmer selected subject package used by Desktop/Web ZIPs. Current official subjects are `core`, `economics`, `accounting`, and the named composite `economics-accounting`; composites are not arbitrary comma-separated stacking. Public Desktop ZIP subjects are `core`, `economics`, and `economics-accounting`, with no standalone accounting Desktop ZIP in this phase. Subject packages are specialized installs, not reduced-quality cuts; switching subjects or coverage is another install/upgrade with the new flags. Older installs without a `SUBJECT_MANIFEST.json` or `SUBJECT` marker are treated as legacy `core` / `complete`.
+`--subject` defaults to `core` and `--coverage` defaults to `complete`, so the default install is `core/complete`. With complete coverage, a specialized install keeps the full core framework and adds the requested subject overlays and subject-specific skills. `--subject economics`, `--subject business`, `--subject finance`, `--subject political-economy`, and `--subject geoeconomics` mean complete specialized installs, not reduced packages. `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. Use `--coverage focused` only when you deliberately want the slimmer selected subject package used by Desktop/Web ZIPs. Current official subjects are `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and the named composite `economics-accounting`; composites are not arbitrary comma-separated stacking. Public Desktop ZIP subjects are `core`, `economics`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting`, with no standalone accounting Desktop ZIP in this phase. Subject packages are specialized installs, not reduced-quality cuts; switching subjects or coverage is another install/upgrade with the new flags. Older installs without a `SUBJECT_MANIFEST.json` or `SUBJECT` marker are treated as legacy `core` / `complete`.
 
 Create local customization scaffolds from a source checkout when you need generated output with local overlays:
 

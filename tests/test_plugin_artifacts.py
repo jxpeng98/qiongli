@@ -27,6 +27,13 @@ class PluginArtifactsTests(unittest.TestCase):
             current_tag = (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(
                 encoding="utf-8"
             ).strip()
+            desktop_agent_support = [
+                "qiongli/agents/openai.yaml",
+                "qiongli/roles/pi.yaml",
+                "qiongli/templates/agent-run-packet.json",
+                "qiongli/templates/agent-review-packet.md",
+                "qiongli/templates/agent-handoff.md",
+            ]
 
             artifacts = module.build_artifacts(REPO_ROOT, current_tag, dist_dir)
 
@@ -71,6 +78,8 @@ class PluginArtifactsTests(unittest.TestCase):
                     f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/.codex-plugin/plugin.json",
                     f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/commands/paper.md",
                     f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+                    f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/agents/openai.yaml",
+                    f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/roles/pi.yaml",
                 ],
             )
             self._assert_contains(
@@ -79,6 +88,8 @@ class PluginArtifactsTests(unittest.TestCase):
                     f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/.claude-plugin/plugin.json",
                     f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/commands/paper.md",
                     f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+                    f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/agents/openai.yaml",
+                    f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/roles/pi.yaml",
                 ],
             )
             self._assert_contains(
@@ -87,6 +98,8 @@ class PluginArtifactsTests(unittest.TestCase):
                     f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/.codex-plugin/plugin.json",
                     f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/commands/paper.md",
                     f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/skills/qiongli-workflow/SUBJECT",
+                    f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/skills/qiongli-workflow/agents/openai.yaml",
+                    f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/skills/qiongli-workflow/roles/pi.yaml",
                     f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/skills/qiongli-workflow/skills/C_design/econ-identification-auditor.md",
                 ],
             )
@@ -149,11 +162,14 @@ class PluginArtifactsTests(unittest.TestCase):
                 [
                     f"qiongli-gemini-extension-{current_tag}/gemini-extension.json",
                     f"qiongli-gemini-extension-{current_tag}/skills/qiongli-workflow/SKILL.md",
+                    f"qiongli-gemini-extension-{current_tag}/skills/qiongli-workflow/agents/openai.yaml",
+                    f"qiongli-gemini-extension-{current_tag}/skills/qiongli-workflow/roles/pi.yaml",
                 ],
             )
             self._assert_zip_contains(
                 dist_dir / f"qiongli-claude-desktop-skill-core-{current_tag}.zip",
-                [
+                desktop_agent_support
+                + [
                     "qiongli/SKILL.md",
                     "qiongli/SUBJECT",
                     "qiongli/skills/registry.yaml",
@@ -161,7 +177,8 @@ class PluginArtifactsTests(unittest.TestCase):
             )
             self._assert_zip_contains(
                 dist_dir / f"qiongli-claude-desktop-skill-economics-{current_tag}.zip",
-                [
+                desktop_agent_support
+                + [
                     "qiongli/SKILL.md",
                     "qiongli/SUBJECT",
                     "qiongli/skills/C_design/econ-identification-auditor.md",
@@ -171,7 +188,8 @@ class PluginArtifactsTests(unittest.TestCase):
             )
             self._assert_zip_contains(
                 dist_dir / f"qiongli-claude-desktop-skill-business-{current_tag}.zip",
-                [
+                desktop_agent_support
+                + [
                     "qiongli/SKILL.md",
                     "qiongli/SUBJECT",
                     "qiongli/skills/C_design/business-journal-positioning-auditor.md",
@@ -180,7 +198,8 @@ class PluginArtifactsTests(unittest.TestCase):
             )
             self._assert_zip_contains(
                 dist_dir / f"qiongli-claude-desktop-skill-finance-{current_tag}.zip",
-                [
+                desktop_agent_support
+                + [
                     "qiongli/SKILL.md",
                     "qiongli/SUBJECT",
                     "qiongli/skills/C_design/finance-identification-risk-auditor.md",
@@ -189,7 +208,8 @@ class PluginArtifactsTests(unittest.TestCase):
             )
             self._assert_zip_contains(
                 dist_dir / f"qiongli-claude-desktop-skill-political-economy-{current_tag}.zip",
-                [
+                desktop_agent_support
+                + [
                     "qiongli/SKILL.md",
                     "qiongli/SUBJECT",
                     "qiongli/skills/H_submission/political-economy-mechanism-auditor.md",
@@ -199,7 +219,8 @@ class PluginArtifactsTests(unittest.TestCase):
             )
             self._assert_zip_contains(
                 dist_dir / f"qiongli-claude-desktop-skill-geoeconomics-{current_tag}.zip",
-                [
+                desktop_agent_support
+                + [
                     "qiongli/SKILL.md",
                     "qiongli/SUBJECT",
                     "qiongli/skills/H_submission/geoeconomic-statecraft-auditor.md",
@@ -209,7 +230,8 @@ class PluginArtifactsTests(unittest.TestCase):
             )
             self._assert_zip_contains(
                 dist_dir / f"qiongli-claude-desktop-skill-economics-accounting-{current_tag}.zip",
-                [
+                desktop_agent_support
+                + [
                     "qiongli/SKILL.md",
                     "qiongli/SUBJECT",
                     "qiongli/skills/C_design/econ-identification-auditor.md",
