@@ -240,6 +240,11 @@ ACCOUNTING_TEMPLATES = (
 )
 BUSINESS_TEMPLATES = ACCOUNTING_TEMPLATES
 FINANCE_TEMPLATES = (*ACCOUNTING_TEMPLATES, "code/statistics/meta_analysis_random_effects.py")
+AGENT_PACKET_TEMPLATES = (
+    "agent-handoff.md",
+    "agent-review-packet.md",
+    "agent-run-packet.json",
+)
 
 
 def _normalize_tag(raw: str) -> tuple[str, str]:
@@ -473,7 +478,7 @@ def _copy_claude_desktop_skill_without_pyyaml(root: Path, skill_dest: Path, subj
         template_refs = FINANCE_TEMPLATES
     else:
         template_refs = ECONOMICS_TEMPLATES
-    for rel in template_refs:
+    for rel in (*template_refs, *AGENT_PACKET_TEMPLATES):
         _copy_path(source / "templates" / rel, skill_dest / "templates" / rel)
     if subject in {"economics", "economics-accounting"}:
         _copy_path(source / "skills" / "domain-profiles" / "economics.yaml", skill_dest / "skills" / "domain-profiles" / "economics.yaml")
