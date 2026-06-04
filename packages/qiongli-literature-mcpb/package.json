@@ -8,9 +8,7 @@
     "test": "node --test test/*.test.mjs",
     "start": "node server/index.mjs"
   },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0"
-  },
+  "dependencies": {},
   "devDependencies": {},
   "engines": {
     "node": ">=18"

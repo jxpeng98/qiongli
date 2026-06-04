@@ -1,8 +1,16 @@
-import { readConfig, providerStatus } from "./config.mjs";
+import {
+  providerConfigPath,
+  providerFieldAliases,
+  readConfig,
+  providerStatus,
+  redactedProviderStatus,
+  saveProviderValue
+} from "./config.mjs";
 import { buildEvidence } from "./evidence.mjs";
 import { dedupeResults } from "./normalize.mjs";
 import { searchOpenAlex } from "./providers/openalex.mjs";
 import { searchSemanticScholar } from "./providers/semantic-scholar.mjs";
+import { startJsonRpcStdioServer } from "./stdio.mjs";
 
 const MIN_LIMIT = 1;
 const MAX_LIMIT = 50;
@@ -15,6 +23,35 @@ export const TOOL_DECLARATIONS = [
       type: "object",
       additionalProperties: false,
       properties: {}
+    }
+  },
+  {
+    name: "qiongli_config_status",
+    description: "Report shared Qiongli provider configuration status without exposing secrets.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {}
+    }
+  },
+  {
+    name: "qiongli_save_provider_config",
+    description: "Save a Qiongli provider email or API key into the shared local provider config.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["provider", "field", "value"],
+      properties: {
+        provider: {
+          type: "string"
+        },
+        field: {
+          type: "string"
+        },
+        value: {
+          type: "string"
+        }
+      }
     }
   },
   {
@@ -122,6 +159,32 @@ export function handleStatus(context = {}) {
   return providerStatus(resolveConfig(context));
 }
 
+export function handleConfigStatus(context = {}) {
+  const env = context.env ?? process.env;
+  const config = resolveConfig(context);
+  return {
+    ...redactedProviderStatus(config),
+    config_path: providerConfigPath(env),
+    provider_env_aliases: providerFieldAliases()
+  };
+}
+
+export async function handleSaveProviderConfig(input = {}, context = {}) {
+  const env = context.env ?? process.env;
+  const result = saveProviderValue({
+    provider: input.provider,
+    field: input.field,
+    value: input.value,
+    env
+  });
+  return {
+    status: "saved",
+    provider: result.provider,
+    field: result.field,
+    config_path: result.path
+  };
+}
+
 export async function handleSearch(input = {}, context = {}) {
   const config = resolveConfig(context);
   const query = searchQuery(input);
@@ -212,6 +275,14 @@ export async function handleToolCall(name, input = {}, context = {}) {
     return toolResult(handleStatus(context));
   }
 
+  if (name === "qiongli_config_status") {
+    return toolResult(handleConfigStatus(context));
+  }
+
+  if (name === "qiongli_save_provider_config") {
+    return toolResult(await handleSaveProviderConfig(input, context));
+  }
+
   if (name === "qiongli_literature_search") {
     return toolResult(await handleSearch(input, context));
   }
@@ -220,34 +291,14 @@ export async function handleToolCall(name, input = {}, context = {}) {
 }
 
 export async function startStdioServer() {
-  const [{ Server }, { StdioServerTransport }, { CallToolRequestSchema, ListToolsRequestSchema }] =
-    await Promise.all([
-      import("@modelcontextprotocol/sdk/server/index.js"),
-      import("@modelcontextprotocol/sdk/server/stdio.js"),
-      import("@modelcontextprotocol/sdk/types.js")
-    ]);
-
-  const server = new Server(
-    {
+  await startJsonRpcStdioServer({
+    serverInfo: {
       name: "qiongli-literature-provider",
       version: "0.1.0"
     },
-    {
-      capabilities: {
-        tools: {}
-      }
-    }
-  );
-
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: listTools()
-  }));
-
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    return handleToolCall(request.params.name, request.params.arguments ?? {});
+    listTools,
+    handleToolCall
   });
-
-  await server.connect(new StdioServerTransport());
 }
 
 function isDirectRun() {
