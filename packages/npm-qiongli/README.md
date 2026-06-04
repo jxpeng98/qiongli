@@ -74,6 +74,24 @@ Global assets are written under client home directories such as:
 
 Advanced bridge commands such as `setup`, `doctor`, `task-run`, and `team-run` use the Python runtime bundled in the npm package and require Python 3.12+ with `PyYAML`.
 
+## MCP server
+
+The npm launcher also delegates MCP commands to the bundled Python bridge:
+
+```bash
+qiongli mcp serve --transport stdio
+qiongli mcp doctor --json
+qiongli mcp config example --target codex --json
+```
+
+Use `stdio` when the desktop client can launch a local command. Use HTTP only for clients that require an endpoint:
+
+```bash
+qiongli mcp serve --transport http --host 127.0.0.1 --port 8765
+```
+
+Provider keys can be configured with `qiongli mcp configure ...`, `qiongli provider setup`, or the MCP tool `qiongli_open_config_wizard`. Status and tool output are redacted; raw key values are not printed.
+
 Runtime `--custom-dir` customization is not supported by npm in this phase. Use the source checkout when you need local custom overlays, profiles, or skills:
 
 ```bash

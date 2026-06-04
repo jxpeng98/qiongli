@@ -152,6 +152,48 @@ class MCPConnectorTests(unittest.TestCase):
         self.assertEqual(evidence.data["provider"], "screening-tracker")
         self.assertEqual(evidence.data["topic"], "demo-topic")
 
+    def test_collect_external_provider_injects_saved_provider_config_env(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            config_home = root / "config"
+            workspace = root / "workspace"
+            workspace.mkdir(parents=True)
+            script = workspace / "provider env stub.py"
+            script.write_text(
+                "import json\n"
+                "import os\n"
+                "response = {\n"
+                "    'status': 'ok',\n"
+                "    'summary': 'provider env captured',\n"
+                "    'data': {\n"
+                "        'openalex_email': os.environ.get('OPENALEX_EMAIL'),\n"
+                "        's2_api_key': os.environ.get('S2_API_KEY'),\n"
+                "        'qiongli_s2_api_key': os.environ.get('QIONGLI_SEMANTIC_SCHOLAR_API_KEY'),\n"
+                "    },\n"
+                "}\n"
+                "print(json.dumps(response))\n",
+                encoding="utf-8",
+            )
+
+            with mock.patch.dict(os.environ, {"QIONGLI_CONFIG_HOME": str(config_home)}, clear=False):
+                set_provider_value("openalex", "email", "user@example.com")
+                set_provider_value("semantic-scholar", "api-key", "stored-key")
+
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "QIONGLI_CONFIG_HOME": str(config_home),
+                    "RESEARCH_MCP_SCREENING_TRACKER_CMD": current_python_command(str(script)),
+                },
+                clear=False,
+            ):
+                evidence = self.connector.collect("screening-tracker", {}, workspace)
+
+        self.assertEqual(evidence.status, "ok")
+        self.assertEqual(evidence.data["openalex_email"], "user@example.com")
+        self.assertEqual(evidence.data["s2_api_key"], "stored-key")
+        self.assertEqual(evidence.data["qiongli_s2_api_key"], "stored-key")
+
     def test_builtin_metadata_registry_normalizes_local_doi(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)

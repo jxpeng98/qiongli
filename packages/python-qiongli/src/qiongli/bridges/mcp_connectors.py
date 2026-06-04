@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from bridges.command_runtime import current_python_command, split_command
+from bridges.provider_config import provider_config_env, resolve_provider_config
 from qiongli.source_layout import RepoLayout, discover_repo_root
 
 
@@ -116,12 +117,15 @@ class MCPConnector:
         }
         try:
             parsed_cmd = split_command(command)
+            child_env = dict(os.environ)
+            child_env.update(provider_config_env(resolve_provider_config(cwd=cwd, env=child_env)))
             run_result = subprocess.run(
                 parsed_cmd,
                 input=json.dumps(payload, ensure_ascii=False),
                 capture_output=True,
                 text=True,
                 cwd=str(cwd),
+                env=child_env,
                 timeout=self.timeout_seconds,
                 check=False,
             )

@@ -1144,6 +1144,9 @@ def build_parser() -> argparse.ArgumentParser:
     align = subparsers.add_parser("align", help="Print a short usage alignment (what installs where)")
     align.add_argument("--repo", help="Optional upstream repo in owner/repo form (used in examples)")
 
+    mcp = subparsers.add_parser("mcp", help="Run or configure the cross-platform Qiongli MCP server")
+    mcp.add_argument("mcp_args", nargs=argparse.REMAINDER)
+
     provider = subparsers.add_parser("provider", help="Configure literature search providers")
     provider_subparsers = provider.add_subparsers(dest="provider_cmd", required=True)
     provider_setup = provider_subparsers.add_parser("setup", help="Interactively configure literature providers")
@@ -1234,6 +1237,10 @@ def main() -> int:
         return result if isinstance(result, int) else 0
     if args.cmd == "align":
         return cmd_align(args)
+    if args.cmd == "mcp":
+        from bridges.mcp_cli import main as mcp_main
+
+        return mcp_main(args.mcp_args)
     if args.cmd == "provider":
         return cmd_provider(args)
     if args.cmd == "doctor":

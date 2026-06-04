@@ -39,3 +39,10 @@ test('parseArgv delegates setup without consuming setup flags', () => {
   assert.equal(parsed.command, 'setup');
   assert.deepEqual(parsed.rest, ['--dry-run', '--project-dir', '/tmp/project', '--no-doctor']);
 });
+
+test('parseArgv delegates mcp without consuming mcp flags', () => {
+  const parsed = parseArgv(['mcp', 'serve', '--transport', 'stdio']);
+
+  assert.equal(parsed.command, 'mcp');
+  assert.deepEqual(parsed.rest, ['serve', '--transport', 'stdio']);
+});
