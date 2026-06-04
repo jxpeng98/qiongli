@@ -105,7 +105,7 @@ Start with the consolidated docs when you need detail:
 
 For native client distribution, install **Qiongli** through the client-specific extension surface:
 
-- **Codex:** add the shared [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace, then install or enable `qiongli` for the default core package or a subject entry such as `qiongli-economics`.
+- **Codex:** add the shared [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace, then install or enable `qiongli` for the default core package or a subject entry such as `qiongli-economics`. The Codex plugin also bundles a local Node literature-provider MCP runtime, so those MCP tools do not need the `qiongli` CLI.
 - **Claude Code:** add the shared [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace, then install `qiongli@skillsplace` for core or a subject entry such as `qiongli-economics@skillsplace`.
 - **Claude Desktop / Claude.ai:** if you do not want to use a code/CLI environment, download a focused subject ZIP from the GitHub Release assets, then drag it into Claude Desktop's Skills upload/install flow or upload it from `Customize > Skills > + > Create skill > Upload a skill`. Use `qiongli-claude-desktop-skill-core-<tag>.zip` for the default general workflow, `qiongli-claude-desktop-skill-economics-<tag>.zip` for economics, `qiongli-claude-desktop-skill-political-economy-<tag>.zip` for political economy, `qiongli-claude-desktop-skill-geoeconomics-<tag>.zip` for geoeconomics, `qiongli-claude-desktop-skill-business-<tag>.zip` for business, `qiongli-claude-desktop-skill-finance-<tag>.zip` for finance, or `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip` for the official economics/accounting composite. The legacy `qiongli-claude-desktop-skill-<tag>.zip` remains a core alias for one release cycle.
 - **Gemini CLI:** install the Gemini extension from `packages/qiongli-plugin` locally, or from a standalone extension repository/gallery entry once published.
@@ -113,6 +113,8 @@ For native client distribution, install **Qiongli** through the client-specific 
 Public Codex and Claude marketplace catalog metadata now lives in `jxpeng98/skillsplace`. Release builds now attach separate Codex and Claude Code plugin artifacts for `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting` so the shared marketplace can list subject-specific install choices. This repository keeps the source plugin payload and platform manifests that those generated artifacts derive from:
 
 - `packages/qiongli-plugin/.codex-plugin/plugin.json`
+- `packages/qiongli-plugin/.mcp.json`
+- `packages/qiongli-plugin/mcp/qiongli-literature-provider/`
 - `packages/qiongli-plugin/.claude-plugin/plugin.json`
 - `packages/qiongli-plugin/gemini-extension.json`
 - `packages/qiongli-plugin/commands/*.md`
@@ -496,8 +498,8 @@ This section covers the installer/updater CLI only. It does not document the res
 
 Use this when:
 - you want the easiest install path inside one client
-- you only need the `qiongli-workflow` skill surfaced in Codex, Claude Code, or Gemini CLI
-- you do not need `qiongli`, `doctor`, or cross-client global installation
+- you only need the `qiongli-workflow` skill surfaced in Codex, Claude Code, or Gemini CLI, or you want Codex to receive the bundled Qiongli MCP registration
+- you do not need `doctor` or cross-client global installation; install the local `qiongli` CLI separately only when you need the full Python-backed runtime
 
 Install commands:
 
@@ -510,6 +512,8 @@ codex plugin marketplace list
 
 Then install or enable `qiongli` from the Codex plugin UI.
 Subject entries such as `qiongli-economics`, `qiongli-accounting`, `qiongli-business`, `qiongli-finance`, `qiongli-political-economy`, `qiongli-geoeconomics`, and `qiongli-economics-accounting` install the corresponding `subject/complete` package instead of the default core package.
+
+Codex plugin artifacts include `.mcp.json` and `mcp/qiongli-literature-provider/`, so Codex can register and launch the local literature-provider MCP server from the plugin bundle instead of requiring a hand-written MCP config snippet or a global `qiongli` command.
 
 Claude Code:
 
@@ -538,7 +542,17 @@ Claude Desktop / Claude.ai:
 
 The Desktop/Web ZIP uses `coverage=focused` to stay under the current 180-file upload budget. It is subject-specialized, not lower quality: it preserves executable workflows, prompts, templates, standards, selected profiles, `skills-summary.md`, and `skills-core.md`; specialized ZIPs also include selected effective skill markdown with layered overlays. This Desktop skill ZIP is skill-only: it contains workflows/prompts/templates, stores no secrets, and does not execute provider calls. Use CLI/npm with the default `coverage=complete`, the plugin packages, or the source repository when you need the full canonical source tree.
 
-The separate Qiongli Literature Provider `.mcpb` (`qiongli-literature-provider.mcpb`) is the Claude Desktop local provider asset. It runs local Desktop literature search through OpenAlex and Semantic Scholar, exposes a Desktop configuration UI for OpenAlex email and Semantic Scholar API key values, and relies on Claude Desktop sensitive-field handling instead of putting keys in the skill ZIP. CLI, Codex, and Claude Code users can run `qiongli provider setup`, then verify `provider_connected` or `strategy_only` with `qiongli provider doctor`. Desktop users need the `qiongli-literature-provider` MCPB or platform-native search before claiming `provider_connected`; if no MCPB or platform-native search is available, record the run as `strategy_only` and treat platform search or user-supplied corpus as the evidence source.
+The separate Qiongli Literature Provider `.mcpb` (`qiongli-literature-provider.mcpb`) is the Claude Desktop local provider asset. It runs local Desktop literature search through OpenAlex and Semantic Scholar, exposes a Desktop configuration UI for OpenAlex email and Semantic Scholar API key values, and relies on Claude Desktop sensitive-field handling instead of putting keys in the skill ZIP. It contains a zero-dependency Node stdio MCP server, so Desktop users do not need the `qiongli` CLI or an npm install for this MCPB. CLI, Codex, and Claude Code users can still run `qiongli provider setup`, then verify `provider_connected` or `strategy_only` with `qiongli provider doctor`. Desktop users need the `qiongli-literature-provider` MCPB or platform-native search before claiming `provider_connected`; if no MCPB or platform-native search is available, record the run as `strategy_only` and treat platform search or user-supplied corpus as the evidence source.
+
+The full Qiongli MCP server is available through the CLI for clients that can launch a local MCP command:
+
+```bash
+qiongli mcp serve --transport stdio
+qiongli mcp config example --target codex --json
+qiongli mcp doctor --json
+```
+
+Desktop users who do not use a terminal can configure provider keys through bundled MCP tools such as `qiongli_save_provider_config`. The full CLI server also exposes `qiongli_open_config_wizard`. HTTP mode is available with `qiongli mcp serve --transport http`, but a remote server is only needed when the MCP client cannot launch local commands or when you intentionally need a shared managed endpoint.
 
 Gemini CLI:
 
@@ -604,7 +618,7 @@ npx qiongli@next install --subject economics --target all --project-dir "$PWD"
 What it installs:
 - npm CLI: `qiongli`
 - `qiongli-workflow` skill into client skill directories
-- optional Python bridge runtime source inside the npm package for `doctor`, `task-run`, and `team-run`
+- optional Python bridge runtime source inside the npm package for `doctor`, `task-run`, `team-run`, and `mcp`
 
 The npm package does not run a `postinstall` hook. Installing the package itself does not modify user skill directories; `qiongli install` or `qiongli upgrade` performs the asset installation.
 

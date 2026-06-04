@@ -16,6 +16,7 @@
     "codex-skills"
   ],
   "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Qiongli",
     "shortDescription": "Academic paper workflows for Codex.",

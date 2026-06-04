@@ -6,7 +6,7 @@ Qiongli has several installation surfaces because users need different levels of
 
 | Surface | Best for | Installs | Python required |
 |---|---|---|---|
-| Native plugin / extension | One client, least setup | Client plugin plus `qiongli-workflow` | No |
+| Native plugin / extension | One client, least setup | Client plugin plus `qiongli-workflow`; Codex also includes bundled literature MCP runtime | No for skill use or bundled literature MCP; Python/CLI only for full runtime |
 | Claude Desktop Skill ZIP | Claude Desktop or Claude.ai, especially when you do not want to use a code/CLI environment | Personal `qiongli` Skill upload | No |
 | Bootstrap `partial` | Global workflow assets across clients | Skills and workflow discovery where supported | No |
 | Bootstrap `full` | Runtime checks and orchestration | `partial` plus shell CLI and `doctor` support | Yes, Python 3.12+ |
@@ -27,6 +27,8 @@ codex plugin marketplace list
 ```
 
 Then install or enable `qiongli` from the Codex plugin UI for the default core package. Subject entries such as `qiongli-economics`, `qiongli-accounting`, `qiongli-business`, `qiongli-finance`, `qiongli-political-economy`, `qiongli-geoeconomics`, and `qiongli-economics-accounting` install the corresponding `subject/complete` package from the same marketplace.
+
+The Codex plugin bundles its MCP registration through `.mcp.json` and includes a zero-dependency Node literature-provider server under `mcp/qiongli-literature-provider/`. Codex users do not need to hand-write a separate MCP config or install the `qiongli` CLI for those bundled literature tools. Provider keys remain outside the plugin and can be configured with the bundled MCP tool `qiongli_save_provider_config`, or with `qiongli mcp configure` / `qiongli provider setup` when the CLI is installed. The full Python-backed `qiongli mcp serve` server still requires the npm, pipx/pip, or `full` bootstrap runtime.
 
 Claude Code uses the same Skillsplace catalog:
 
@@ -54,7 +56,7 @@ Claude Desktop and Claude.ai do not install third-party Claude Code plugin marke
 
 The release ZIP uses `coverage=focused` to stay under the current 180-file upload budget. It is a subject-specialized Desktop/Web package, not a reduced-quality cut. It preserves executable workflows, prompts, templates, standards, selected profiles, `skills-summary.md`, and `skills-core.md`; specialized ZIPs also include selected effective skill markdown generated with layered overlays. This Desktop skill ZIP is skill-only: it contains workflows/prompts/templates, stores no secrets, and does not execute provider calls. Detailed canonical source remains available through CLI/npm `coverage=complete`, the Codex / Claude Code / Gemini plugin packages, and the source repository.
 
-The Qiongli Literature Provider `.mcpb` (`qiongli-literature-provider.mcpb`) is a separate Claude Desktop local provider asset. It runs Desktop literature search through OpenAlex and Semantic Scholar, exposes a Desktop configuration UI for OpenAlex email and Semantic Scholar API key values, and uses Claude Desktop sensitive-field handling instead of putting keys in the skill ZIP. CLI, Codex, and Claude Code users can run `qiongli provider setup`, then verify `provider_connected` or `strategy_only` with `qiongli provider doctor`. Desktop users need the `qiongli-literature-provider` MCPB or platform-native search before claiming `provider_connected`; if no MCPB or platform-native search is available, record the run as `strategy_only` and treat platform search or user-supplied corpus as the evidence source.
+The Qiongli Literature Provider `.mcpb` (`qiongli-literature-provider.mcpb`) is a separate Claude Desktop local provider asset. It runs Desktop literature search through OpenAlex and Semantic Scholar, exposes a Desktop configuration UI for OpenAlex email and Semantic Scholar API key values, and uses Claude Desktop sensitive-field handling instead of putting keys in the skill ZIP. It contains its own zero-dependency Node stdio server, so Desktop users do not need the `qiongli` CLI or an npm install to use this MCPB. CLI, Codex, and Claude Code users can still run `qiongli provider setup`, then verify `provider_connected` or `strategy_only` with `qiongli provider doctor`. Desktop users need the `qiongli-literature-provider` MCPB or platform-native search before claiming `provider_connected`; if no MCPB or platform-native search is available, record the run as `strategy_only` and treat platform search or user-supplied corpus as the evidence source.
 
 Gemini CLI still installs the local extension payload directly:
 

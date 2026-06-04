@@ -59,6 +59,24 @@ class PluginManifestTests(unittest.TestCase):
             self.assertNotIn(" /", prompt)
         self.assertTrue(any("$qiongli" in prompt for prompt in interface["defaultPrompt"]))
 
+    def test_codex_plugin_bundles_qiongli_mcp_server(self) -> None:
+        manifest = json.loads(CODEX_PLUGIN_MANIFEST.read_text(encoding="utf-8"))
+        mcp_manifest_path = PLUGIN_ROOT / ".mcp.json"
+        mcp_manifest = json.loads(mcp_manifest_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(manifest["mcpServers"], "./.mcp.json")
+        server = mcp_manifest["mcpServers"]["qiongli"]
+        self.assertEqual(server["command"], "node")
+        self.assertEqual(server["args"], ["./mcp/qiongli-literature-provider/index.mjs"])
+        self.assertEqual(server["cwd"], ".")
+        self.assertEqual(server["startup_timeout_sec"], 20)
+        self.assertEqual(server["tool_timeout_sec"], 60)
+        self.assertNotIn("env", server)
+        self.assertTrue((PLUGIN_ROOT / "mcp" / "qiongli-literature-provider" / "index.mjs").is_file())
+        self.assertNotIn("QIONGLI_OPENALEX_EMAIL", json.dumps(mcp_manifest))
+        self.assertNotIn("SEMANTIC_SCHOLAR_API_KEY", json.dumps(mcp_manifest))
+        self.assertNotIn("qiongli mcp", json.dumps(mcp_manifest))
+
     def test_claude_plugin_manifest_exposes_workflow_skill(self) -> None:
         manifest = json.loads(CLAUDE_PLUGIN_MANIFEST.read_text(encoding="utf-8"))
 

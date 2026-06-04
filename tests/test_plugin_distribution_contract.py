@@ -91,6 +91,25 @@ class PluginDistributionContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             materialized_plugin = self.materialize_plugin_payload(tmp_dir)
             self.assertTrue((materialized_plugin / "skills").is_dir())
+            self.assertTrue((materialized_plugin / ".mcp.json").is_file())
+            self.assertTrue(
+                (materialized_plugin / "mcp" / "qiongli-literature-provider" / "index.mjs").is_file()
+            )
+
+    def test_codex_plugin_materializes_bundled_mcp_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            materialized_plugin = self.materialize_plugin_payload(tmp_dir)
+            manifest = json.loads(
+                (materialized_plugin / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
+            )
+            mcp_manifest = json.loads((materialized_plugin / ".mcp.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(manifest["mcpServers"], "./.mcp.json")
+        self.assertEqual(mcp_manifest["mcpServers"]["qiongli"]["command"], "node")
+        self.assertEqual(
+            mcp_manifest["mcpServers"]["qiongli"]["args"],
+            ["./mcp/qiongli-literature-provider/index.mjs"],
+        )
 
     def test_plugin_package_contains_real_portable_skill_copy(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
