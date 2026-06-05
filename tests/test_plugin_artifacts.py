@@ -76,6 +76,8 @@ class PluginArtifactsTests(unittest.TestCase):
                 dist_dir / f"qiongli-codex-plugin-{current_tag}.tar.gz",
                 [
                     f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/.codex-plugin/plugin.json",
+                    f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/.mcp.json",
+                    f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/mcp/qiongli-literature-provider/index.mjs",
                     f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/commands/paper.md",
                     f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
                     f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/agents/openai.yaml",
@@ -96,6 +98,8 @@ class PluginArtifactsTests(unittest.TestCase):
                 dist_dir / f"qiongli-economics-codex-plugin-{current_tag}.tar.gz",
                 [
                     f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/.codex-plugin/plugin.json",
+                    f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/.mcp.json",
+                    f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/mcp/qiongli-literature-provider/index.mjs",
                     f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/commands/paper.md",
                     f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/skills/qiongli-workflow/SUBJECT",
                     f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/skills/qiongli-workflow/agents/openai.yaml",

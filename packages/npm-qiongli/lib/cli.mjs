@@ -4,6 +4,7 @@ import { buildCheck, cleanAssets, installSkills } from './installer.mjs';
 import { checkPythonRuntime, runBridgeCommand, runPythonCliCommand as defaultRunPythonCliCommand } from './python-runtime.mjs';
 
 const BRIDGE_COMMANDS = new Set(['doctor', 'task-run', 'team-run', 'parallel', 'chain', 'role', 'single', 'code-build', 'task-plan']);
+const PYTHON_CLI_COMMANDS = new Set(['setup', 'mcp']);
 
 export async function main(argv, {
   stdout = process.stdout,
@@ -90,8 +91,8 @@ export async function main(argv, {
     return result.ok ? 0 : 1;
   }
 
-  if (parsed.command === 'setup') {
-    return runPythonCliCommand({ packageRoot: root, args: ['setup', ...parsed.rest] });
+  if (PYTHON_CLI_COMMANDS.has(parsed.command)) {
+    return runPythonCliCommand({ packageRoot: root, args: [parsed.command, ...parsed.rest] });
   }
 
   if (BRIDGE_COMMANDS.has(parsed.command)) {
@@ -129,6 +130,8 @@ Usage:
   qiongli clean --project-dir . [--globals]
   qiongli runtime doctor
   qiongli setup [--dry-run] [--project-dir .] [--no-doctor]
+  qiongli mcp serve --transport stdio
+  qiongli mcp doctor --json
   qiongli doctor --cwd .
   qiongli task-run ...
   qiongli team-run ...

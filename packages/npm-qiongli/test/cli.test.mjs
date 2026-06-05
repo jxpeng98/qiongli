@@ -42,3 +42,20 @@ test('main dispatches setup to Python CLI runner and returns its code', async ()
     ['setup', '--dry-run', '--project-dir', '/tmp/project', '--no-doctor'],
   ]);
 });
+
+test('main dispatches mcp to Python CLI runner and returns its code', async () => {
+  const calls = [];
+  const exitCode = await main(['mcp', 'serve', '--transport', 'stdio'], {
+    stdout: { write: () => {} },
+    stderr: { write: () => {} },
+    runPythonCliCommand: ({ args }) => {
+      calls.push(args);
+      return 9;
+    },
+  });
+
+  assert.equal(exitCode, 9);
+  assert.deepEqual(calls, [
+    ['mcp', 'serve', '--transport', 'stdio'],
+  ]);
+});

@@ -85,6 +85,24 @@ def provider_config_summary(config: Mapping[str, object]) -> dict[str, str]:
     return summary
 
 
+def provider_config_env(config: Mapping[str, object]) -> dict[str, str]:
+    providers = config.get("providers", {})
+    if not isinstance(providers, Mapping):
+        providers = {}
+    env: dict[str, str] = {}
+    for provider, field_map in PROVIDER_FIELDS.items():
+        raw = providers.get(provider, {})
+        if not isinstance(raw, Mapping):
+            continue
+        for field, aliases in field_map.items():
+            value = str(raw.get(field, "")).strip()
+            if not value:
+                continue
+            for alias in aliases:
+                env[alias] = value
+    return env
+
+
 def provider_capability_mode(summary: Mapping[str, str]) -> str:
     academic_providers = ("openalex", "semantic_scholar", "crossref", "pubmed")
     if any(summary.get(provider) == "configured" for provider in academic_providers):

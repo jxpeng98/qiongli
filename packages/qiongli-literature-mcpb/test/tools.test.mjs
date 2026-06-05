@@ -1,9 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import {
   TOOL_DECLARATIONS,
   handleExportEvidence,
   handleSearch,
+  handleSaveProviderConfig,
   handleStatus
 } from "../server/index.mjs";
 
@@ -12,6 +16,8 @@ test("tool declarations match manifest tool names", () => {
     TOOL_DECLARATIONS.map((tool) => tool.name),
     [
       "qiongli_literature_status",
+      "qiongli_config_status",
+      "qiongli_save_provider_config",
       "qiongli_literature_search",
       "qiongli_literature_export_evidence"
     ]
@@ -33,6 +39,28 @@ test("handleStatus redacts configured secrets", () => {
   assert.equal(status.providers.semantic_scholar, "configured");
   assert.equal(serialized.includes("person@example.com"), false);
   assert.equal(serialized.includes("secret-key"), false);
+});
+
+test("handleSaveProviderConfig writes shared provider config without echoing secrets", async () => {
+  const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-config-"));
+  try {
+    const response = await handleSaveProviderConfig(
+      { provider: "semantic-scholar", field: "api-key", value: "secret-key" },
+      { env: { QIONGLI_CONFIG_HOME: configHome } }
+    );
+    const configPath = path.join(configHome, "providers.json");
+    const config = JSON.parse(await readFile(configPath, "utf8"));
+    const serialized = JSON.stringify(response);
+
+    assert.equal(response.status, "saved");
+    assert.equal(response.provider, "semantic_scholar");
+    assert.equal(response.field, "api_key");
+    assert.equal(config.providers.semantic_scholar.enabled, true);
+    assert.equal(config.providers.semantic_scholar.api_key, "secret-key");
+    assert.equal(serialized.includes("secret-key"), false);
+  } finally {
+    await rm(configHome, { recursive: true, force: true });
+  }
 });
 
 test("handleSearch rejects blank query with sanitized error", async () => {

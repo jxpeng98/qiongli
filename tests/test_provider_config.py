@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import json
+import tempfile
+import unittest
 from pathlib import Path
+from unittest import mock
 
 from bridges.provider_config import (
     global_provider_config_path,
+    provider_config_env,
     provider_capability_mode,
     redact_provider_config,
     resolve_provider_config,
@@ -141,3 +145,43 @@ def test_set_and_unset_provider_value_round_trip_global_config(tmp_path: Path, m
     resolved_after_unset = resolve_provider_config(cwd=tmp_path, env={})
 
     assert resolved_after_unset["providers"]["semantic_scholar"]["configured"] is False
+
+
+def test_provider_config_env_emits_primary_and_legacy_aliases_without_redaction(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("QIONGLI_CONFIG_HOME", str(tmp_path / "config"))
+    set_provider_value("openalex", "email", "user@example.com")
+    set_provider_value("semantic-scholar", "api-key", "stored-key")
+
+    config = resolve_provider_config(cwd=tmp_path, env={})
+    env = provider_config_env(config)
+
+    assert env["QIONGLI_OPENALEX_EMAIL"] == "user@example.com"
+    assert env["OPENALEX_EMAIL"] == "user@example.com"
+    assert env["QIONGLI_SEMANTIC_SCHOLAR_API_KEY"] == "stored-key"
+    assert env["SEMANTIC_SCHOLAR_API_KEY"] == "stored-key"
+    assert env["S2_API_KEY"] == "stored-key"
+
+
+class ProviderConfigEnvTests(unittest.TestCase):
+    def test_provider_config_env_emits_primary_and_legacy_aliases_without_redaction(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            with mock.patch.dict(
+                "os.environ",
+                {"QIONGLI_CONFIG_HOME": str(root / "config")},
+                clear=False,
+            ):
+                set_provider_value("openalex", "email", "user@example.com")
+                set_provider_value("semantic-scholar", "api-key", "stored-key")
+
+                config = resolve_provider_config(cwd=root, env={})
+                env = provider_config_env(config)
+
+        self.assertEqual(env["QIONGLI_OPENALEX_EMAIL"], "user@example.com")
+        self.assertEqual(env["OPENALEX_EMAIL"], "user@example.com")
+        self.assertEqual(env["QIONGLI_SEMANTIC_SCHOLAR_API_KEY"], "stored-key")
+        self.assertEqual(env["SEMANTIC_SCHOLAR_API_KEY"], "stored-key")
+        self.assertEqual(env["S2_API_KEY"], "stored-key")

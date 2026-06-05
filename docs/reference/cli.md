@@ -105,6 +105,32 @@ Every prompt includes a short `Tip:` comment that explains why the choice matter
 
 Provider keys entered through setup use the same provider config as `qiongli provider setup` and `qiongli provider doctor`. Secrets are stored outside generated research artifacts. Setup configures credentials and runs doctor/capability checks; it does not promise that an external literature search will run.
 
+### 2.2.1 `qiongli mcp` (Cross-platform MCP server)
+
+Use Case:
+- Runs the local Qiongli MCP server for desktop or agent clients that support MCP.
+- Lets CLI users and desktop-only users configure the same provider keys.
+- Generates client config examples without embedding secrets.
+
+```bash
+qiongli mcp serve --transport stdio
+qiongli mcp serve --transport http --host 127.0.0.1 --port 8765
+qiongli mcp configure --provider openalex --field email --value you@example.com
+qiongli mcp doctor --json
+qiongli mcp config example --target codex --json
+qiongli mcp wizard
+```
+
+MCP tools exposed by the server:
+- `qiongli_config_status`
+- `qiongli_save_provider_config`
+- `qiongli_collect_evidence`
+- `qiongli_list_provider_env`
+- `qiongli_test_provider`
+- `qiongli_open_config_wizard`
+
+Default `stdio` mode is local and does not require a remote server. HTTP mode can also run locally; use a remote server only when the client cannot launch local MCP commands or when you need a managed shared endpoint.
+
 ### 2.3 `qiongli install` (Install bundled subject payload)
 
 Use Case:
