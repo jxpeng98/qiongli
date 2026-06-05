@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import tempfile
 from dataclasses import asdict, dataclass
@@ -36,6 +37,17 @@ SUBJECT_TERMS = {
     "political-economy": ("political mechanism", "institution", "distributional conflict", "policy"),
     "geoeconomics": ("sanctions", "statecraft", "supply chain", "strategic competition"),
 }
+APPEND_OVERLAY_REQUIRED_SECTIONS = {
+    "activation",
+    "required context",
+    "subject-specific procedure",
+    "reviewer-risk checks",
+    "output requirements",
+    "blocked conditions",
+}
+MIN_APPEND_OVERLAY_SECTIONS = 4
+REPLACE_OVERLAY_REQUIRED_SECTIONS = {"quality bar", "common pitfalls"}
+MIN_REPLACE_OVERLAY_ITEMS = 8
 
 
 @dataclass(frozen=True)
@@ -127,6 +139,7 @@ def _audit_materialized_outputs(root: Path, subject: SubjectDefinition) -> list[
 
         findings = _audit_focused_domain_profiles(focused, subject)
         findings.extend(_audit_overlay_subject_terms(root, subject))
+        findings.extend(_audit_overlay_instruction_depth(root, subject))
         findings.extend(_audit_materialized_subject_terms(complete, subject))
         return findings
 
@@ -215,6 +228,80 @@ def _audit_overlay_subject_terms(root: Path, subject: SubjectDefinition) -> list
             )
         )
     return findings
+
+
+def _audit_overlay_instruction_depth(root: Path, subject: SubjectDefinition) -> list[SubjectSpecializationFinding]:
+    findings: list[SubjectSpecializationFinding] = []
+    overlay_root = RepoLayout(root).subjects / subject.id
+    for override in subject.skill_overrides:
+        overlay_rel = override.get("overlay")
+        if not isinstance(overlay_rel, str) or not overlay_rel.strip():
+            continue
+        overlay_path = overlay_root / overlay_rel
+        if not overlay_path.is_file():
+            continue
+        text = overlay_path.read_text(encoding="utf-8")
+        mode = str(override.get("mode") or "append")
+        if mode == "append":
+            present = _markdown_subsections(text) & APPEND_OVERLAY_REQUIRED_SECTIONS
+            if len(present) < MIN_APPEND_OVERLAY_SECTIONS:
+                rel_path = overlay_path.relative_to(root)
+                findings.append(
+                    SubjectSpecializationFinding(
+                        subject=subject.id,
+                        code="thin-overlay-instructions",
+                        message=(
+                            f"{rel_path} has {len(present)} overlay instruction sections; "
+                            f"expected at least {MIN_APPEND_OVERLAY_SECTIONS}"
+                        ),
+                    )
+                )
+        elif mode == "replace_sections":
+            present = _markdown_sections(text)
+            missing = sorted(REPLACE_OVERLAY_REQUIRED_SECTIONS - present)
+            item_count = _instruction_item_count(text)
+            if missing or item_count < MIN_REPLACE_OVERLAY_ITEMS:
+                rel_path = overlay_path.relative_to(root)
+                detail = (
+                    f"missing sections: {', '.join(missing)}"
+                    if missing
+                    else f"has {item_count} checklist/table items; expected at least {MIN_REPLACE_OVERLAY_ITEMS}"
+                )
+                findings.append(
+                    SubjectSpecializationFinding(
+                        subject=subject.id,
+                        code="thin-overlay-instructions",
+                        message=f"{rel_path} replacement overlay is too thin: {detail}",
+                    )
+                )
+    return findings
+
+
+def _markdown_sections(text: str) -> set[str]:
+    return {
+        _normalize_heading(match.group("title"))
+        for match in re.finditer(r"(?m)^##\s+(?P<title>.+?)\s*$", text)
+    }
+
+
+def _markdown_subsections(text: str) -> set[str]:
+    return {
+        _normalize_heading(match.group("title"))
+        for match in re.finditer(r"(?m)^###\s+(?P<title>.+?)\s*$", text)
+    }
+
+
+def _instruction_item_count(text: str) -> int:
+    count = 0
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith(("- ", "- [ ] ", "|")) and not set(stripped) <= {"|", "-", " "}:
+            count += 1
+    return count
+
+
+def _normalize_heading(value: str) -> str:
+    return re.sub(r"\s+", " ", value.strip().lower())
 
 
 def _subject_layer_skill_paths(package_root: Path, subject: SubjectDefinition) -> list[Path]:

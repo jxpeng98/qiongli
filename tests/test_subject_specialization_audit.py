@@ -71,6 +71,23 @@ class SubjectSpecializationAuditTests(unittest.TestCase):
             [f"{finding.subject}: {finding.code}: {finding.message}" for finding in findings],
         )
 
+    def test_short_append_overlay_is_reported(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            self._copy_minimal_repo(temp_root)
+            overlay = temp_root / "subjects" / "economics" / "overlays" / "skills" / "manuscript-architect.md"
+            overlay.write_text(
+                "## Economics Overlay\n\n- Mention identification and robustness.\n",
+                encoding="utf-8",
+            )
+
+            findings = audit_subject_specialization(temp_root, subjects=["economics"])
+
+        self.assertTrue(
+            any(finding.code == "thin-overlay-instructions" for finding in findings),
+            [f"{finding.subject}: {finding.code}: {finding.message}" for finding in findings],
+        )
+
     def _copy_minimal_repo(self, temp_root: Path) -> None:
         layout = RepoLayout(REPO_ROOT)
         shutil.copytree(layout.workflow, temp_root / "qiongli-workflow")

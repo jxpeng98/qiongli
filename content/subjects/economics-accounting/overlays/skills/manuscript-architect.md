@@ -1,9 +1,31 @@
 ## Economics and Accounting Overlay
 
-When the active subject is economics-accounting, apply these additional manuscript constraints:
+### Activation
+Apply this overlay when `manuscript-architect` is used for the economics-accounting composite subject, especially archival studies of disclosure, reporting rules, regulation, capital markets, governance, audit, or causal policy effects.
 
-- State both the economics mechanism and the accounting institution or reporting setting before the empirical design.
-- Separate construct validity, identification validity, and reporting-compliance validity in the methods narrative.
-- Require the introduction to name the accounting proxy, the economic behavior it captures, and the main alternative construct it might also measure.
-- In tables, expose sample filters, fixed effects, clustering, winsorization, and fiscal timing close to the main estimates.
-- In limitations, distinguish measurement limits from identification limits instead of merging them into a generic caveat.
+### Required Context
+- Require the economics estimand, identifying variation, accounting construct, empirical proxy, disclosure or reporting institution, fiscal timing, sample source, and target venue family.
+- Require whether the manuscript primarily speaks to economics, accounting, or a cross-disciplinary conversation.
+- Require current evidence for identification, measurement validity, sample construction, and capital-market outcome interpretation.
+
+### Subject-Specific Procedure
+1. Architect the introduction around a cross-disciplinary contribution rather than a blind union of economics and accounting.
+2. Map each central claim to both causal identification and accounting measurement: estimand, variation, construct, proxy, source item, fiscal timing, and outcome.
+3. Separate disclosure or reporting institution logic from capital-market outcome interpretation.
+4. Resolve tensions between economics design credibility and accounting construct validity before structuring results.
+5. Place replication, data access, archival sample construction, and measurement robustness into the manuscript plan.
+
+### Reviewer-Risk Checks
+- Check whether economics reviewers would reject the design for weak identification.
+- Check whether accounting reviewers would reject the paper for weak construct-proxy mapping or institutional setting.
+- Check whether the paper claims capital-market effects without aligning disclosure timing, fiscal periods, and outcome windows.
+
+### Output Requirements
+- The manuscript architecture must include `Identification`, `Accounting Measurement`, `Disclosure Institution`, `Capital-Market Outcome`, and `Composite Reviewer Risk`.
+- Every central claim must state which discipline's standard it satisfies and which remains a gap.
+- Missing identification or measurement evidence must appear as a revision task.
+
+### Blocked Conditions
+- Block cross-disciplinary contribution claims when either identification or measurement logic is absent.
+- Block disclosure-effect claims when fiscal timing or outcome windows are unspecified.
+- Do not treat the composite subject as an automatic union of two literatures without resolving their standards.
