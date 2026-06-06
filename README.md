@@ -244,7 +244,7 @@ Source credit: [Matt Pocock's skills repository](https://github.com/mattpocock/s
 | `content/skills/` | Canonical academic capability cards and registry |
 | `content/subjects/` | Subject catalog, overlays, subject-specific skills, and materialization rules |
 | `content/templates/` | Research artifact templates |
-| `content/standards/` | Workflow contract, MCP capability map, schemas, and quality gates |
+| `content/standards/` | Canonical contracts including `standards/research-workflow-contract.yaml`, `standards/mcp-agent-capability-map.yaml`, schemas, and quality gates |
 | `packages/python-qiongli/` | Python CLI/runtime package and bridge modules |
 | `packages/npm-qiongli/` | npm installer, bundled payload, and Python bridge entry |
 | `packages/qiongli-plugin/` | Codex/Claude Code/Gemini plugin source and bundled literature MCP runtime |
@@ -256,6 +256,8 @@ Generated outputs are intentionally not normal feature-review targets. Normal fe
 
 When adding or deepening a subject, update `content/subjects/catalog.yaml`, subject overlays, subject-specific registry/markdown, selected profiles, eval fixtures, specialization audit expected terms, materializer tests, npm package contract tests against staged materialization, and release validation if the subject has a Desktop/Web artifact.
 
+For agent and skill collaboration details, see [Agent-Skill Collaboration](docs/advanced/agent-skill-collaboration.md). The legacy shell installer source remains available at `scripts/install_qiongli.sh`; most users should prefer the install paths in [docs/guide/install.md](docs/guide/install.md).
+
 ## Verification
 
 Common local checks:
@@ -263,6 +265,7 @@ Common local checks:
 ```bash
 uv run python -m unittest tests.test_mcp_cli tests.test_mcp_tool_handlers tests.test_mcp_stdio_server -v
 uv run python -m unittest tests.test_orchestrator_workflows tests.test_controller_agnostic_orchestration -v
+uv run python scripts/validate_research_standard.py --strict
 npm test --prefix packages/npm-qiongli
 git diff --check
 ```
