@@ -77,6 +77,50 @@ CONTROLLER_EXECUTION_MODE_CHOICES = ("solo", "duo", "triad")
 SOLO_ROLE_GATE_CHOICES = ("strict", "standard", "off")
 
 
+def _default_standards_dir(
+    module_file: Path | None = None,
+    cwd: Path | None = None,
+) -> Path:
+    """Resolve standards/ across source checkout, npm runtime, and packaged payloads."""
+    source_path = Path(module_file or __file__)
+    source_file = source_path.resolve()
+    root_pairs: list[tuple[Path, Path]] = []
+    for package_root in (source_path.parents[1], source_file.parents[1]):
+        runtime_root = package_root.parent
+        pair = (package_root, runtime_root)
+        if pair not in root_pairs:
+            root_pairs.append(pair)
+
+    candidates: list[Path] = []
+    for qiongli_package_root, runtime_root in root_pairs:
+        candidates.extend(
+            [
+                qiongli_package_root / "standards",
+                runtime_root / "standards",
+                qiongli_package_root / "payload" / "qiongli-workflow" / "standards",
+                runtime_root / "payload" / "qiongli-workflow" / "standards",
+            ]
+        )
+
+    for start in (cwd, source_file):
+        if start is None:
+            continue
+        try:
+            from qiongli.source_layout import RepoLayout, discover_repo_root
+
+            candidates.append(RepoLayout(discover_repo_root(start)).standards)
+        except ValueError:
+            continue
+
+    for candidate in candidates:
+        if (
+            (candidate / "research-workflow-contract.yaml").is_file()
+            and (candidate / "mcp-agent-capability-map.yaml").is_file()
+        ):
+            return candidate
+    return root_pairs[0][0] / "standards"
+
+
 def _add_controller_agnostic_task_run_args(parser: argparse.ArgumentParser) -> None:
     """Add declaration-only controller metadata flags for task-run."""
     parser.add_argument(
@@ -362,7 +406,7 @@ class ModelOrchestrator:
         "I7": "code/performance_profile.md",
         "I8": "code/code_review.md",
     }
-    DEFAULT_STANDARDS_DIR = Path(__file__).resolve().parents[1] / "standards"
+    DEFAULT_STANDARDS_DIR = _default_standards_dir()
     
     def __init__(
         self,
@@ -377,7 +421,7 @@ class ModelOrchestrator:
         self.codex = CodexBridge(sandbox=codex_sandbox)
         self.claude = ClaudeBridge(permission_mode=claude_permission_mode)
         self.gemini = GeminiBridge(sandbox=gemini_sandbox)
-        self.standards_dir = standards_dir or self.DEFAULT_STANDARDS_DIR
+        self.standards_dir = standards_dir or _default_standards_dir(cwd=Path.cwd())
         self.mcp_connector = MCPConnector(timeout_seconds=mcp_timeout_seconds)
         self.interactive = interactive
         self._skill_registry_metadata_cache: dict[str, dict[str, str]] | None = None

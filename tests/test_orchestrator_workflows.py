@@ -14,6 +14,7 @@ from bridges.base_bridge import BridgeResponse, CollaborationResult
 from bridges.command_runtime import current_python_command
 from bridges import i18n as i18n_module
 from bridges.mcp_connectors import MCPEvidence
+from bridges import orchestrator as orchestrator_module
 from bridges.orchestrator import CollaborationMode, ModelOrchestrator
 from bridges.provider_config import set_provider_value
 
@@ -100,6 +101,33 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         profile_path = Path(handle.name)
         self.addCleanup(profile_path.unlink, missing_ok=True)
         return profile_path
+
+    def test_default_standards_dir_uses_runtime_root_standards(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            runtime_root = root / "python-runtime"
+            module_file = runtime_root / "qiongli" / "bridges" / "orchestrator.py"
+            module_file.parent.mkdir(parents=True)
+            module_file.write_text("# fake module\n", encoding="utf-8")
+            standards = runtime_root / "standards"
+            standards.mkdir()
+            (standards / "research-workflow-contract.yaml").write_text("tasks: {}\n", encoding="utf-8")
+            (standards / "mcp-agent-capability-map.yaml").write_text("mcp_registry: []\n", encoding="utf-8")
+
+            resolved = orchestrator_module._default_standards_dir(
+                module_file=module_file,
+                cwd=root / "project",
+            )
+
+        self.assertEqual(resolved, standards)
+
+    def test_default_standards_dir_uses_repo_content_standards_from_source_tree(self) -> None:
+        resolved = orchestrator_module._default_standards_dir(
+            module_file=Path(orchestrator_module.__file__),
+            cwd=REPO_ROOT,
+        )
+
+        self.assertEqual(resolved, RepoLayout(REPO_ROOT).standards)
 
     def test_parallel_runs_with_mock_runtime(self) -> None:
         orchestrator = MockOrchestrator()
