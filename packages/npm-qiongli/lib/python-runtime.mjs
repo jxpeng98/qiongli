@@ -55,8 +55,17 @@ export function checkPythonRuntime({
   };
 }
 
-export function runBridgeCommand({ packageRoot, command, args, cwd = process.cwd(), env = process.env, stdio = 'inherit' }) {
-  const runtime = checkPythonRuntime();
+export function runBridgeCommand({
+  packageRoot,
+  command,
+  args,
+  cwd = process.cwd(),
+  env = process.env,
+  stdio = 'inherit',
+  checkRuntime = checkPythonRuntime,
+  spawnSync = nodeSpawnSync,
+}) {
+  const runtime = checkRuntime();
   if (!runtime.ok) {
     console.error(`[qiongli] ${runtime.message}`);
     console.error(`Hint: ${runtime.hint}`);
@@ -64,7 +73,7 @@ export function runBridgeCommand({ packageRoot, command, args, cwd = process.cwd
   }
 
   const childEnv = buildPythonRuntimeEnv({ packageRoot, env });
-  const result = nodeSpawnSync(runtime.python, ['-m', 'bridges.orchestrator', command, ...args], {
+  const result = spawnSync(runtime.python, ['-m', 'bridges.orchestrator', command, ...args], {
     cwd,
     env: childEnv,
     stdio,

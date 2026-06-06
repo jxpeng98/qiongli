@@ -77,6 +77,50 @@ CONTROLLER_EXECUTION_MODE_CHOICES = ("solo", "duo", "triad")
 SOLO_ROLE_GATE_CHOICES = ("strict", "standard", "off")
 
 
+def _default_standards_dir(
+    module_file: Path | None = None,
+    cwd: Path | None = None,
+) -> Path:
+    """Resolve standards/ across source checkout, npm runtime, and packaged payloads."""
+    source_path = Path(module_file or __file__)
+    source_file = source_path.resolve()
+    root_pairs: list[tuple[Path, Path]] = []
+    for package_root in (source_path.parents[1], source_file.parents[1]):
+        runtime_root = package_root.parent
+        pair = (package_root, runtime_root)
+        if pair not in root_pairs:
+            root_pairs.append(pair)
+
+    candidates: list[Path] = []
+    for qiongli_package_root, runtime_root in root_pairs:
+        candidates.extend(
+            [
+                qiongli_package_root / "standards",
+                runtime_root / "standards",
+                qiongli_package_root / "payload" / "qiongli-workflow" / "standards",
+                runtime_root / "payload" / "qiongli-workflow" / "standards",
+            ]
+        )
+
+    for start in (cwd, source_file):
+        if start is None:
+            continue
+        try:
+            from qiongli.source_layout import RepoLayout, discover_repo_root
+
+            candidates.append(RepoLayout(discover_repo_root(start)).standards)
+        except ValueError:
+            continue
+
+    for candidate in candidates:
+        if (
+            (candidate / "research-workflow-contract.yaml").is_file()
+            and (candidate / "mcp-agent-capability-map.yaml").is_file()
+        ):
+            return candidate
+    return root_pairs[0][0] / "standards"
+
+
 def _add_controller_agnostic_task_run_args(parser: argparse.ArgumentParser) -> None:
     """Add declaration-only controller metadata flags for task-run."""
     parser.add_argument(
@@ -362,7 +406,7 @@ class ModelOrchestrator:
         "I7": "code/performance_profile.md",
         "I8": "code/code_review.md",
     }
-    DEFAULT_STANDARDS_DIR = Path(__file__).resolve().parents[1] / "standards"
+    DEFAULT_STANDARDS_DIR = _default_standards_dir()
     
     def __init__(
         self,
@@ -377,7 +421,7 @@ class ModelOrchestrator:
         self.codex = CodexBridge(sandbox=codex_sandbox)
         self.claude = ClaudeBridge(permission_mode=claude_permission_mode)
         self.gemini = GeminiBridge(sandbox=gemini_sandbox)
-        self.standards_dir = standards_dir or self.DEFAULT_STANDARDS_DIR
+        self.standards_dir = standards_dir or _default_standards_dir(cwd=Path.cwd())
         self.mcp_connector = MCPConnector(timeout_seconds=mcp_timeout_seconds)
         self.interactive = interactive
         self._skill_registry_metadata_cache: dict[str, dict[str, str]] | None = None
@@ -3532,6 +3576,24 @@ Stage-I structure checks:
             ),
         }
 
+    def _controller_runtime_overrides(
+        self,
+        controller_metadata: dict[str, str],
+    ) -> dict[str, str]:
+        execution_mode = str(controller_metadata.get("execution_mode", "")).strip()
+        if not execution_mode:
+            return {}
+
+        overrides: dict[str, str] = {}
+        primary = str(controller_metadata.get("primary_agent", "")).strip()
+        reviewer = str(controller_metadata.get("review_agent", "")).strip()
+
+        if primary:
+            overrides["primary_agent"] = primary
+        if reviewer and execution_mode in {"duo", "triad"}:
+            overrides["review_agent"] = reviewer
+        return overrides
+
     @staticmethod
     def _normalize_controller_choice(
         value: str | None,
@@ -3869,7 +3931,7 @@ Targeted follow-up context:
 23. If no answered boundary review exists and required_before_draft is true, ask exactly the first listed boundary question and write the answer to `context/boundary_review.md` before producing broader outputs.
 24. If an answered boundary review exists, continue within it and do not broaden claim strength, evidence threshold, population, corpus, method, code/data decision, submission promise, or presentation claim without a new boundary review entry.
 """
-        return f"""You are executing one canonical research workflow task.
+        return f"""Draft the task outputs for this canonical research workflow task.
 
 Task packet (JSON):
 {json.dumps(task_packet, ensure_ascii=False, indent=2)}
@@ -5112,6 +5174,12 @@ Return sections:
             solo_role_gates=solo_role_gates,
             triad=triad,
         )
+        runtime_overrides = self._controller_runtime_overrides(controller_metadata)
+        effective_runtime_plan = {
+            "primary_agent": runtime_overrides.get("primary_agent", agent_plan["primary_agent"]),
+            "review_agent": runtime_overrides.get("review_agent", agent_plan["review_agent"]),
+            "fallback_agent": agent_plan["fallback_agent"],
+        }
 
         try:
             profile_registry, task_profile_overrides = self._load_profile_bundle(profile_file)
@@ -5198,7 +5266,7 @@ Return sections:
                 "functional_preferred_skills": agent_plan["functional_preferred_skills"],
                 "functional_handoff_trace": functional_handoff_trace,
                 "functional_owner_chain": functional_owner_chain,
-                "runtime_plan": dict(agent_plan.get("runtime_plan", {})),
+                "runtime_plan": dict(effective_runtime_plan),
                 "self_critique_loop": dict(self_critique_loop),
             }
         )
@@ -5222,9 +5290,9 @@ Return sections:
             )
         routing_notes.append(
             "Runtime plan: "
-            f"draft={agent_plan['primary_agent']}, "
-            f"review={agent_plan['review_agent']}, "
-            f"fallback={agent_plan['fallback_agent']}."
+            f"draft={effective_runtime_plan['primary_agent']}, "
+            f"review={effective_runtime_plan['review_agent']}, "
+            f"fallback={effective_runtime_plan['fallback_agent']}."
             + (" / 运行预案已确认。" if zh_ui else "")
         )
         routing_notes.append(
@@ -5236,6 +5304,12 @@ Return sections:
             f"verifier={controller_metadata['verifier_agent'] or 'auto'}, "
             f"solo_role_gates={controller_metadata['solo_role_gates']}."
         )
+        if runtime_overrides:
+            routing_notes.append(
+                "Controller runtime override: "
+                f"draft={effective_runtime_plan['primary_agent']}, "
+                f"review={effective_runtime_plan['review_agent']}."
+            )
         routing_notes.append(
             "Output control: "
             f"policy={artifact_policy}, active_outputs={len(required_outputs)}/{len(contract_outputs)}."
@@ -5387,8 +5461,8 @@ Return sections:
         }
 
         primary_runtime, primary_notes = self._resolve_runtime_agent(
-            preferred_agent=agent_plan["primary_agent"],
-            fallback_chain=[agent_plan["fallback_agent"]],
+            preferred_agent=effective_runtime_plan["primary_agent"],
+            fallback_chain=[effective_runtime_plan["fallback_agent"]],
             cwd=cwd,
             runtime_options_by_agent=draft_runtime_options,
         )
@@ -5417,8 +5491,8 @@ Return sections:
         fallback_runtime: str | None = None
         if not draft_resp.success:
             candidate_runtime, fallback_notes = self._resolve_runtime_agent(
-                preferred_agent=agent_plan["fallback_agent"],
-                fallback_chain=[agent_plan["review_agent"]],
+                preferred_agent=effective_runtime_plan["fallback_agent"],
+                fallback_chain=[effective_runtime_plan["review_agent"]],
                 cwd=cwd,
                 runtime_options_by_agent=draft_runtime_options,
             )
@@ -5459,8 +5533,8 @@ Return sections:
         if draft_resp.success:
             review_loop_state["status"] = "running"
             review_runtime, review_notes = self._resolve_runtime_agent(
-                preferred_agent=agent_plan["review_agent"],
-                fallback_chain=[agent_plan["fallback_agent"]],
+                preferred_agent=effective_runtime_plan["review_agent"],
+                fallback_chain=[effective_runtime_plan["fallback_agent"]],
                 exclude_agent=draft_runtime,
                 cwd=cwd,
                 runtime_options_by_agent=review_runtime_options,

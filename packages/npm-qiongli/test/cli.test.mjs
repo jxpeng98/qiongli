@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import path from 'node:path';
 import test from 'node:test';
 
 import { main } from '../lib/cli.mjs';
@@ -58,4 +59,108 @@ test('main dispatches mcp to Python CLI runner and returns its code', async () =
   assert.deepEqual(calls, [
     ['mcp', 'serve', '--transport', 'stdio'],
   ]);
+});
+
+test('main dispatches task-run to Python bridge runner and preserves args', async () => {
+  const calls = [];
+  const exitCode = await main([
+    'task-run',
+    '--task-id',
+    'F3',
+    '--paper-type',
+    'empirical',
+    '--topic',
+    'ai-in-education',
+    '--cwd',
+    '/tmp/project',
+    '--execution-mode',
+    'duo',
+    '--primary',
+    'codex',
+    '--reviewer',
+    'claude',
+  ], {
+    stdout: { write: () => {} },
+    stderr: { write: () => {} },
+    runBridgeCommand: ({ command, args }) => {
+      calls.push({ command, args });
+      return 11;
+    },
+  });
+
+  assert.equal(exitCode, 11);
+  assert.deepEqual(calls, [{
+    command: 'task-run',
+    args: [
+      '--task-id',
+      'F3',
+      '--paper-type',
+      'empirical',
+      '--topic',
+      'ai-in-education',
+      '--cwd',
+      '/tmp/project',
+      '--execution-mode',
+      'duo',
+      '--primary',
+      'codex',
+      '--reviewer',
+      'claude',
+    ],
+  }]);
+});
+
+test('main injects default cwd for doctor bridge command', async () => {
+  const calls = [];
+  const exitCode = await main(['doctor'], {
+    stdout: { write: () => {} },
+    stderr: { write: () => {} },
+    runBridgeCommand: ({ command, args }) => {
+      calls.push({ command, args });
+      return 13;
+    },
+  });
+
+  assert.equal(exitCode, 13);
+  assert.equal(calls[0].command, 'doctor');
+  assert.deepEqual(calls[0].args, ['--cwd', '.']);
+});
+
+test('runBridgeCommand invokes bridges.orchestrator with packaged PYTHONPATH', async () => {
+  const calls = [];
+  const { runBridgeCommand } = await import('../lib/python-runtime.mjs');
+  const exitCode = runBridgeCommand({
+    packageRoot: '/pkg',
+    command: 'task-run',
+    args: ['--task-id', 'F3', '--cwd', '/tmp/project'],
+    cwd: '/repo',
+    env: { PYTHONPATH: '/existing' },
+    stdio: 'pipe',
+    checkRuntime: () => ({
+      ok: true,
+      python: 'python3',
+      version: '3.12.9',
+      message: 'ready',
+      hint: '',
+    }),
+    spawnSync: (cmd, args, options) => {
+      calls.push({ cmd, args, options });
+      return { status: 17 };
+    },
+  });
+
+  assert.equal(exitCode, 17);
+  assert.equal(calls[0].cmd, 'python3');
+  assert.deepEqual(calls[0].args, [
+    '-m',
+    'bridges.orchestrator',
+    'task-run',
+    '--task-id',
+    'F3',
+    '--cwd',
+    '/tmp/project',
+  ]);
+  assert.equal(calls[0].options.cwd, '/repo');
+  assert.equal(calls[0].options.stdio, 'pipe');
+  assert.equal(calls[0].options.env.PYTHONPATH, `/pkg/python-runtime${path.delimiter}/existing`);
 });
