@@ -1,6 +1,6 @@
 # Controller Modes
 
-Controller mode records who owns orchestration, review, and verification during `task-run`. When an execution mode is declared, controller flags also route the draft and review runtimes while the capability map continues to provide task requirements and fallback routes.
+Controller mode records who owns orchestration, review, and verification during `task-run`. Under the resolved execution mode, `--primary` and `--reviewer` also route the draft and review runtimes while the capability map continues to provide task requirements and fallback routes.
 
 ## Flags
 
@@ -12,14 +12,14 @@ Use these flags with `python3 -m bridges.orchestrator task-run`:
 | `--controller` | `codex`, `claude`, `gemini` | Declares the runtime agent accountable for orchestration metadata. Defaults to `codex`. |
 | `--primary` | `codex`, `claude`, `gemini` | Declares the primary runtime agent for the task packet. |
 | `--reviewer` | `codex`, `claude`, `gemini` | Declares the review runtime agent for the task packet. |
-| `--verifier` | `codex`, `claude`, `gemini` | Declares the verification runtime agent for the task packet. |
+| `--verifier` | `codex`, `claude`, `gemini` | Records the verification agent for audit metadata. |
 | `--solo-role-gates` | `strict`, `standard`, `off` | Sets solo-mode gate strictness. Defaults to `standard`. |
 
 Invalid values are rejected by the CLI parser. Use `--mcp-strict` and `--skills-strict` when controller declarations must also fail fast on missing providers or skill specs.
 
 ## Runtime Override Semantics
 
-`--primary` and `--reviewer` override the draft and review runtime agents for `task-run` when `--execution-mode` is declared. The capability map still supplies required skills, MCP requirements, output contracts, quality gates, and fallback routes.
+`--primary` and `--reviewer` override the draft and review runtime agents for `task-run` under the resolved execution mode; `duo` is the default when no mode is supplied. The capability map still supplies required skills, MCP requirements, output contracts, quality gates, and fallback routes.
 
 - `solo`: `--primary` controls the draft runtime; reviewer is not forced unless the task still requires an independent review gate.
 - `duo`: `--primary` controls draft and `--reviewer` controls review.
