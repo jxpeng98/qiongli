@@ -3587,14 +3587,11 @@ Stage-I structure checks:
         overrides: dict[str, str] = {}
         primary = str(controller_metadata.get("primary_agent", "")).strip()
         reviewer = str(controller_metadata.get("review_agent", "")).strip()
-        verifier = str(controller_metadata.get("verifier_agent", "")).strip()
 
         if primary:
             overrides["primary_agent"] = primary
         if reviewer and execution_mode in {"duo", "triad"}:
             overrides["review_agent"] = reviewer
-        if verifier and execution_mode == "triad":
-            overrides["verifier_agent"] = verifier
         return overrides
 
     @staticmethod
@@ -5178,15 +5175,11 @@ Return sections:
             triad=triad,
         )
         runtime_overrides = self._controller_runtime_overrides(controller_metadata)
-        if runtime_overrides:
-            agent_plan = dict(agent_plan)
-            agent_plan.update(
-                {
-                    key: value
-                    for key, value in runtime_overrides.items()
-                    if key in {"primary_agent", "review_agent", "fallback_agent"}
-                }
-            )
+        effective_runtime_plan = {
+            "primary_agent": runtime_overrides.get("primary_agent", agent_plan["primary_agent"]),
+            "review_agent": runtime_overrides.get("review_agent", agent_plan["review_agent"]),
+            "fallback_agent": agent_plan["fallback_agent"],
+        }
 
         try:
             profile_registry, task_profile_overrides = self._load_profile_bundle(profile_file)
@@ -5273,7 +5266,7 @@ Return sections:
                 "functional_preferred_skills": agent_plan["functional_preferred_skills"],
                 "functional_handoff_trace": functional_handoff_trace,
                 "functional_owner_chain": functional_owner_chain,
-                "runtime_plan": dict(agent_plan.get("runtime_plan", {})),
+                "runtime_plan": dict(effective_runtime_plan),
                 "self_critique_loop": dict(self_critique_loop),
             }
         )
@@ -5297,9 +5290,9 @@ Return sections:
             )
         routing_notes.append(
             "Runtime plan: "
-            f"draft={agent_plan['primary_agent']}, "
-            f"review={agent_plan['review_agent']}, "
-            f"fallback={agent_plan['fallback_agent']}."
+            f"draft={effective_runtime_plan['primary_agent']}, "
+            f"review={effective_runtime_plan['review_agent']}, "
+            f"fallback={effective_runtime_plan['fallback_agent']}."
             + (" / 运行预案已确认。" if zh_ui else "")
         )
         routing_notes.append(
@@ -5314,8 +5307,8 @@ Return sections:
         if runtime_overrides:
             routing_notes.append(
                 "Controller runtime override: "
-                f"draft={agent_plan['primary_agent']}, "
-                f"review={agent_plan['review_agent']}."
+                f"draft={effective_runtime_plan['primary_agent']}, "
+                f"review={effective_runtime_plan['review_agent']}."
             )
         routing_notes.append(
             "Output control: "
@@ -5468,8 +5461,8 @@ Return sections:
         }
 
         primary_runtime, primary_notes = self._resolve_runtime_agent(
-            preferred_agent=agent_plan["primary_agent"],
-            fallback_chain=[agent_plan["fallback_agent"]],
+            preferred_agent=effective_runtime_plan["primary_agent"],
+            fallback_chain=[effective_runtime_plan["fallback_agent"]],
             cwd=cwd,
             runtime_options_by_agent=draft_runtime_options,
         )
@@ -5498,8 +5491,8 @@ Return sections:
         fallback_runtime: str | None = None
         if not draft_resp.success:
             candidate_runtime, fallback_notes = self._resolve_runtime_agent(
-                preferred_agent=agent_plan["fallback_agent"],
-                fallback_chain=[agent_plan["review_agent"]],
+                preferred_agent=effective_runtime_plan["fallback_agent"],
+                fallback_chain=[effective_runtime_plan["review_agent"]],
                 cwd=cwd,
                 runtime_options_by_agent=draft_runtime_options,
             )
@@ -5540,8 +5533,8 @@ Return sections:
         if draft_resp.success:
             review_loop_state["status"] = "running"
             review_runtime, review_notes = self._resolve_runtime_agent(
-                preferred_agent=agent_plan["review_agent"],
-                fallback_chain=[agent_plan["fallback_agent"]],
+                preferred_agent=effective_runtime_plan["review_agent"],
+                fallback_chain=[effective_runtime_plan["fallback_agent"]],
                 exclude_agent=draft_runtime,
                 cwd=cwd,
                 runtime_options_by_agent=review_runtime_options,

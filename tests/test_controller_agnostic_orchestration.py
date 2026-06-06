@@ -39,9 +39,17 @@ class MetadataCaptureOrchestrator(ModelOrchestrator):
         runtime_options: dict[str, Any] | None = None,
         profile_directive: str | None = None,
     ) -> BridgeResponse:
+        stage = "other"
+        if "Draft the task outputs for this canonical research workflow task." in prompt:
+            stage = "draft"
+        elif "Review the draft for this canonical research workflow task." in prompt:
+            stage = "review"
+        elif "You are revising a research workflow task draft based on review feedback." in prompt:
+            stage = "revision"
         self.runtime_calls.append(
             {
                 "agent": agent_name,
+                "stage": stage,
                 "prompt": prompt,
                 "runtime_options": dict(runtime_options or {}),
                 "profile_directive": profile_directive or "",
@@ -122,16 +130,24 @@ class ControllerAgnosticOrchestrationTests(unittest.TestCase):
             },
             packet["controller_metadata"],
         )
+        self.assertEqual(
+            {
+                "primary_agent": "codex",
+                "review_agent": "claude",
+                "fallback_agent": "gemini",
+            },
+            packet["runtime_plan"],
+        )
 
         draft_agents = [
             call["agent"]
             for call in orchestrator.runtime_calls
-            if "Draft the task outputs" in call["prompt"]
+            if call["stage"] == "draft"
         ]
         review_agents = [
             call["agent"]
             for call in orchestrator.runtime_calls
-            if "Review the draft" in call["prompt"]
+            if call["stage"] == "review"
         ]
         self.assertEqual(["codex"], draft_agents)
         self.assertTrue(review_agents)
@@ -166,11 +182,20 @@ class ControllerAgnosticOrchestrationTests(unittest.TestCase):
             review_agent="claude",
             skip_validation=True,
         )
+        packet = result.data["task_packet"]
+        self.assertEqual(
+            {
+                "primary_agent": "codex",
+                "review_agent": "claude",
+                "fallback_agent": "gemini",
+            },
+            packet["runtime_plan"],
+        )
 
         draft_agents = [
             call["agent"]
             for call in orchestrator.runtime_calls
-            if "Draft the task outputs" in call["prompt"]
+            if call["stage"] == "draft"
         ]
         self.assertEqual(["gemini"], draft_agents)
         self.assertIn("Runtime agent 'codex' unavailable:", result.merged_analysis)
