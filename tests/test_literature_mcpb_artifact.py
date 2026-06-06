@@ -71,6 +71,16 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
         self.assertEqual(package.get("dependencies", {}), {})
         self.assertNotIn("@modelcontextprotocol/sdk", server_index)
 
+    def test_literature_mcpb_readme_explains_manual_skill_pairing_boundaries(self) -> None:
+        readme = (PACKAGE_ROOT / "README.md").read_text(encoding="utf-8")
+
+        self.assertIn("manual Desktop skill ZIP", readme)
+        self.assertIn("qiongli-claude-desktop-skill", readme)
+        self.assertIn("literature MCP tools", readme)
+        self.assertIn("full CLI MCP", readme)
+        self.assertIn("qiongli_task_run", readme)
+        self.assertIn("does not launch orchestrator agents", readme)
+
     def test_build_literature_mcpb_contains_required_files(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             dist = Path(tmp_dir) / "dist"

@@ -118,6 +118,7 @@ qiongli mcp serve --transport http --host 127.0.0.1 --port 8765
 qiongli mcp configure --provider openalex --field email --value you@example.com
 qiongli mcp doctor --json
 qiongli mcp config example --target codex --json
+qiongli mcp config example --target claude-code --json
 qiongli mcp wizard
 ```
 
@@ -128,8 +129,11 @@ MCP tools exposed by the server:
 - `qiongli_list_provider_env`
 - `qiongli_test_provider`
 - `qiongli_open_config_wizard`
+- `qiongli_orchestrator_doctor`
+- `qiongli_task_plan`
+- `qiongli_task_run`
 
-Default `stdio` mode is local and does not require a remote server. HTTP mode can also run locally; use a remote server only when the client cannot launch local MCP commands or when you need a managed shared endpoint.
+Default `stdio` mode is local and does not require a remote server. HTTP mode can also run locally; use a remote server only when the client cannot launch local MCP commands or when you need a managed shared endpoint. `qiongli_task_run` defaults to preview mode and launches local model CLIs only when the MCP caller explicitly sets JSON boolean `run_agents: true`.
 
 ### 2.3 `qiongli install` (Install bundled subject payload)
 

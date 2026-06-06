@@ -82,7 +82,16 @@ The npm launcher also delegates MCP commands to the bundled Python bridge:
 qiongli mcp serve --transport stdio
 qiongli mcp doctor --json
 qiongli mcp config example --target codex --json
+qiongli mcp config example --target claude-code --json
 ```
+
+The full CLI MCP server exposes provider tools plus orchestrator tools:
+
+- `qiongli_orchestrator_doctor`
+- `qiongli_task_plan`
+- `qiongli_task_run`
+
+`qiongli_task_run` defaults to preview mode and launches local Codex, Claude, or Gemini processes only when the MCP caller explicitly sends JSON boolean `run_agents: true`.
 
 Use `stdio` when the desktop client can launch a local command. Use HTTP only for clients that require an endpoint:
 

@@ -36,6 +36,9 @@ class MCPStdioServerTests(unittest.TestCase):
         self.assertEqual(responses[1]["id"], 2)
         tool_names = {tool["name"] for tool in responses[1]["result"]["tools"]}
         self.assertIn("qiongli_config_status", tool_names)
+        self.assertIn("qiongli_orchestrator_doctor", tool_names)
+        self.assertIn("qiongli_task_plan", tool_names)
+        self.assertIn("qiongli_task_run", tool_names)
 
     def test_stdio_server_calls_tool_without_leaking_saved_secret(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -73,6 +76,34 @@ class MCPStdioServerTests(unittest.TestCase):
             responses[1]["result"]["structuredContent"]["providers"]["semantic_scholar"],
             "configured",
         )
+
+    def test_stdio_server_can_preview_task_run_without_launching_agents(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            messages = [
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "tools/call",
+                    "params": {
+                        "name": "qiongli_task_run",
+                        "arguments": {
+                            "cwd": str(root),
+                            "task_id": "F3",
+                            "paper_type": "empirical",
+                            "topic": "desktop-manual-smoke",
+                        },
+                    },
+                },
+            ]
+            process = self._run_server(messages, root)
+
+        self.assertEqual(process.returncode, 0, process.stderr)
+        responses = [json.loads(line) for line in process.stdout.splitlines() if line.strip()]
+        payload = responses[0]["result"]["structuredContent"]
+        self.assertEqual(payload["mode"], "task-run-preview")
+        self.assertFalse(payload["run_agents"])
+        self.assertEqual(payload["data"]["task_packet"]["task_id"], "F3")
 
     def _run_server(
         self,
