@@ -172,10 +172,10 @@ class ControllerAgnosticOrchestrationTests(unittest.TestCase):
             for call in orchestrator.runtime_calls
             if "Draft the task outputs" in call["prompt"]
         ]
-        self.assertEqual(["claude"], draft_agents)
+        self.assertEqual(["gemini"], draft_agents)
         self.assertIn("Runtime agent 'codex' unavailable:", result.merged_analysis)
         self.assertIn(
-            "Runtime routed agent 'codex' to 'claude'.",
+            "Runtime routed agent 'codex' to 'gemini'.",
             result.merged_analysis,
         )
 

@@ -5466,16 +5466,10 @@ Return sections:
             agent: self._profile_runtime_options(triad_profile_cfg, agent)
             for agent in self.RUNTIME_AGENTS
         }
-        primary_fallback_chain = [agent_plan["fallback_agent"]]
-        if runtime_overrides.get("review_agent"):
-            primary_fallback_chain = [
-                agent_plan["review_agent"],
-                agent_plan["fallback_agent"],
-            ]
 
         primary_runtime, primary_notes = self._resolve_runtime_agent(
             preferred_agent=agent_plan["primary_agent"],
-            fallback_chain=primary_fallback_chain,
+            fallback_chain=[agent_plan["fallback_agent"]],
             cwd=cwd,
             runtime_options_by_agent=draft_runtime_options,
         )
