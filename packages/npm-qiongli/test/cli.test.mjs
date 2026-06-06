@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import path from 'node:path';
 import test from 'node:test';
 
 import { main } from '../lib/cli.mjs';
@@ -159,4 +160,7 @@ test('runBridgeCommand invokes bridges.orchestrator with packaged PYTHONPATH', a
     '--cwd',
     '/tmp/project',
   ]);
+  assert.equal(calls[0].options.cwd, '/repo');
+  assert.equal(calls[0].options.stdio, 'pipe');
+  assert.equal(calls[0].options.env.PYTHONPATH, `/pkg/python-runtime${path.delimiter}/existing`);
 });
