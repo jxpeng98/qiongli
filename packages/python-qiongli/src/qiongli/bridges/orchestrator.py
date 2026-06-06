@@ -3576,6 +3576,27 @@ Stage-I structure checks:
             ),
         }
 
+    def _controller_runtime_overrides(
+        self,
+        controller_metadata: dict[str, str],
+    ) -> dict[str, str]:
+        execution_mode = str(controller_metadata.get("execution_mode", "")).strip()
+        if not execution_mode:
+            return {}
+
+        overrides: dict[str, str] = {}
+        primary = str(controller_metadata.get("primary_agent", "")).strip()
+        reviewer = str(controller_metadata.get("review_agent", "")).strip()
+        verifier = str(controller_metadata.get("verifier_agent", "")).strip()
+
+        if primary:
+            overrides["primary_agent"] = primary
+        if reviewer and execution_mode in {"duo", "triad"}:
+            overrides["review_agent"] = reviewer
+        if verifier and execution_mode == "triad":
+            overrides["verifier_agent"] = verifier
+        return overrides
+
     @staticmethod
     def _normalize_controller_choice(
         value: str | None,
@@ -3913,7 +3934,7 @@ Targeted follow-up context:
 23. If no answered boundary review exists and required_before_draft is true, ask exactly the first listed boundary question and write the answer to `context/boundary_review.md` before producing broader outputs.
 24. If an answered boundary review exists, continue within it and do not broaden claim strength, evidence threshold, population, corpus, method, code/data decision, submission promise, or presentation claim without a new boundary review entry.
 """
-        return f"""You are executing one canonical research workflow task.
+        return f"""Draft the task outputs for this canonical research workflow task.
 
 Task packet (JSON):
 {json.dumps(task_packet, ensure_ascii=False, indent=2)}
@@ -5156,6 +5177,16 @@ Return sections:
             solo_role_gates=solo_role_gates,
             triad=triad,
         )
+        runtime_overrides = self._controller_runtime_overrides(controller_metadata)
+        if runtime_overrides:
+            agent_plan = dict(agent_plan)
+            agent_plan.update(
+                {
+                    key: value
+                    for key, value in runtime_overrides.items()
+                    if key in {"primary_agent", "review_agent", "fallback_agent"}
+                }
+            )
 
         try:
             profile_registry, task_profile_overrides = self._load_profile_bundle(profile_file)
@@ -5280,6 +5311,12 @@ Return sections:
             f"verifier={controller_metadata['verifier_agent'] or 'auto'}, "
             f"solo_role_gates={controller_metadata['solo_role_gates']}."
         )
+        if runtime_overrides:
+            routing_notes.append(
+                "Controller runtime override: "
+                f"draft={agent_plan['primary_agent']}, "
+                f"review={agent_plan['review_agent']}."
+            )
         routing_notes.append(
             "Output control: "
             f"policy={artifact_policy}, active_outputs={len(required_outputs)}/{len(contract_outputs)}."
@@ -5429,10 +5466,16 @@ Return sections:
             agent: self._profile_runtime_options(triad_profile_cfg, agent)
             for agent in self.RUNTIME_AGENTS
         }
+        primary_fallback_chain = [agent_plan["fallback_agent"]]
+        if runtime_overrides.get("review_agent"):
+            primary_fallback_chain = [
+                agent_plan["review_agent"],
+                agent_plan["fallback_agent"],
+            ]
 
         primary_runtime, primary_notes = self._resolve_runtime_agent(
             preferred_agent=agent_plan["primary_agent"],
-            fallback_chain=[agent_plan["fallback_agent"]],
+            fallback_chain=primary_fallback_chain,
             cwd=cwd,
             runtime_options_by_agent=draft_runtime_options,
         )

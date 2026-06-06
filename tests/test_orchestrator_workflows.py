@@ -999,7 +999,7 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         draft_prompts = [
             call["prompt"]
             for call in orchestrator.runtime_calls
-            if "You are executing one canonical research workflow task." in call["prompt"]
+            if "Draft the task outputs for this canonical research workflow task." in call["prompt"]
         ]
         self.assertTrue(draft_prompts)
         draft_prompt = draft_prompts[0]
@@ -1018,7 +1018,10 @@ class OrchestratorWorkflowTests(unittest.TestCase):
                 runtime_options: dict[str, Any] | None = None,
                 profile_directive: str | None = None,
             ) -> BridgeResponse:
-                if "You are executing one canonical research workflow task." in prompt and '"task_id": "I6"' in prompt:
+                if (
+                    "Draft the task outputs for this canonical research workflow task." in prompt
+                    and '"task_id": "I6"' in prompt
+                ):
                     content = """---
 task_id: I6
 template_type: code_plan
@@ -1236,7 +1239,7 @@ primary_artifact: code/plan.md
                         "cwd": str(cwd),
                     }
                 )
-                if "You are executing one canonical research workflow task." in prompt:
+                if "Draft the task outputs for this canonical research workflow task." in prompt:
                     return BridgeResponse(success=True, model=agent_name, content=revised_artifact)
                 if "Review the draft" in prompt:
                     return BridgeResponse(
@@ -1264,7 +1267,7 @@ primary_artifact: code/plan.md
         draft_prompts = [
             call["prompt"]
             for call in orchestrator.runtime_calls
-            if "You are executing one canonical research workflow task." in call["prompt"]
+            if "Draft the task outputs for this canonical research workflow task." in call["prompt"]
         ]
         self.assertTrue(draft_prompts)
         self.assertIn("Targeted follow-up mode is active.", draft_prompts[0])
@@ -1295,7 +1298,7 @@ primary_artifact: code/plan.md
         draft_prompts = [
             call["prompt"]
             for call in orchestrator.runtime_calls
-            if "You are executing one canonical research workflow task." in call["prompt"]
+            if "Draft the task outputs for this canonical research workflow task." in call["prompt"]
         ]
         self.assertTrue(draft_prompts)
         self.assertIn("Academic context continuity update is active for this run.", draft_prompts[0])
