@@ -207,10 +207,15 @@ Typical usage:
 python3 -m bridges.orchestrator task-run \
   --task-id F3 \
   --paper-type empirical \
-  --topic ai-in-education \
+  --topic my-topic \
   --cwd . \
-  --triad
+  --execution-mode duo \
+  --controller codex \
+  --primary codex \
+  --reviewer claude
 ```
+
+Controller flags are now runtime-routing flags as well as audit metadata. This run asks Codex to draft and Claude to review. If the declared primary runtime fails preflight, the orchestrator records the failure and routes through the capability-map fallback instead of silently dropping the task.
 
 In triad mode, Gemini is just one participant in the runtime plan. If Gemini transport resolves to broker, the orchestrator sends Gemini work to the broker while Codex and Claude continue to run directly.
 

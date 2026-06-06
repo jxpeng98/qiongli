@@ -51,6 +51,20 @@ These errors occur when the Orchestrator cannot locate a required CLI binary (li
 - **Fix**: Install the underlying CLI tools globally:
   - `npm install -g @anthropic-ai/claude-code`
 
+### `qiongli doctor` from npm reports PyYAML missing.
+- **Cause**: The npm wrapper found a Python 3.12+ executable, but that Python environment does not have `PyYAML`.
+- **Fix**:
+
+```bash
+python3 -m pip install PyYAML
+```
+
+or install the Python CLI through pipx:
+
+```bash
+pipx install qiongli
+```
+
 ### `[ERR-RS-ENV-003]` `curl: (60) SSL certificate problem: certificate is not yet valid`.
 - **Cause**: The install command reached GitHub, but TLS validation failed before the script could be downloaded. This usually means the machine clock is wrong, the CA certificate bundle is stale, or a proxy is intercepting HTTPS traffic.
 - **Fix**:
@@ -76,6 +90,16 @@ These errors occur when the YAML contracts or JSON config maps contain invalid s
 ### `[ERR-RS-CFG-002]` Could not read or parse standard YAML contracts.
 - **Cause**: The `standards/` directory is missing critical standard files (like `research-workflow-contract.yaml`), or the YAML syntax is broken.
 - **Fix**: Restore the `.yaml` files from version control. Run `python3 scripts/validate_research_standard.py --strict` to pinpoint YAML syntax errors.
+
+### `doctor` reports missing standards files.
+- **Cause**: The Python runtime cannot resolve the bundled `standards/` directory.
+- **Fix**: Upgrade to a version with runtime standards discovery, then rerun:
+
+```bash
+qiongli doctor --cwd .
+```
+
+If you are running from source, use the repo root as the working directory or run through `uv run python -m bridges.orchestrator doctor --cwd .`.
 
 ### `[ERR-RS-CFG-003]` Unknown Task ID or invalid phase logic requested.
 - **Cause**: You tried to run `rsk task-run --task-id X99`, but `X99` does not exist in the platform mapping.
