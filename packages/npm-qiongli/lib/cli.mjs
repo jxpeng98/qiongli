@@ -1,7 +1,11 @@
 import { parseArgv } from './args.mjs';
 import { packageRoot } from './package-root.mjs';
 import { buildCheck, cleanAssets, installSkills } from './installer.mjs';
-import { checkPythonRuntime, runBridgeCommand, runPythonCliCommand as defaultRunPythonCliCommand } from './python-runtime.mjs';
+import {
+  checkPythonRuntime,
+  runBridgeCommand as defaultRunBridgeCommand,
+  runPythonCliCommand as defaultRunPythonCliCommand,
+} from './python-runtime.mjs';
 
 const BRIDGE_COMMANDS = new Set(['doctor', 'task-run', 'team-run', 'parallel', 'chain', 'role', 'single', 'code-build', 'task-plan']);
 const PYTHON_CLI_COMMANDS = new Set(['setup', 'mcp']);
@@ -9,6 +13,7 @@ const PYTHON_CLI_COMMANDS = new Set(['setup', 'mcp']);
 export async function main(argv, {
   stdout = process.stdout,
   stderr = process.stderr,
+  runBridgeCommand = defaultRunBridgeCommand,
   runPythonCliCommand = defaultRunPythonCliCommand,
 } = {}) {
   const root = packageRoot();

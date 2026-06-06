@@ -59,3 +59,68 @@ test('main dispatches mcp to Python CLI runner and returns its code', async () =
     ['mcp', 'serve', '--transport', 'stdio'],
   ]);
 });
+
+test('main dispatches task-run to Python bridge runner and preserves args', async () => {
+  const calls = [];
+  const exitCode = await main([
+    'task-run',
+    '--task-id',
+    'F3',
+    '--paper-type',
+    'empirical',
+    '--topic',
+    'ai-in-education',
+    '--cwd',
+    '/tmp/project',
+    '--execution-mode',
+    'duo',
+    '--primary',
+    'codex',
+    '--reviewer',
+    'claude',
+  ], {
+    stdout: { write: () => {} },
+    stderr: { write: () => {} },
+    runBridgeCommand: ({ command, args }) => {
+      calls.push({ command, args });
+      return 11;
+    },
+  });
+
+  assert.equal(exitCode, 11);
+  assert.deepEqual(calls, [{
+    command: 'task-run',
+    args: [
+      '--task-id',
+      'F3',
+      '--paper-type',
+      'empirical',
+      '--topic',
+      'ai-in-education',
+      '--cwd',
+      '/tmp/project',
+      '--execution-mode',
+      'duo',
+      '--primary',
+      'codex',
+      '--reviewer',
+      'claude',
+    ],
+  }]);
+});
+
+test('main injects default cwd for doctor bridge command', async () => {
+  const calls = [];
+  const exitCode = await main(['doctor'], {
+    stdout: { write: () => {} },
+    stderr: { write: () => {} },
+    runBridgeCommand: ({ command, args }) => {
+      calls.push({ command, args });
+      return 13;
+    },
+  });
+
+  assert.equal(exitCode, 13);
+  assert.equal(calls[0].command, 'doctor');
+  assert.deepEqual(calls[0].args, ['--cwd', '.']);
+});
