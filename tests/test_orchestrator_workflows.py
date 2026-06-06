@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -73,6 +75,25 @@ class MockOrchestrator(ModelOrchestrator):
         ], []
 
 
+def _write_fake_cli(bin_dir: Path, name: str, response_text: str) -> Path:
+    script = bin_dir / name
+    script.write_text(
+        "#!/usr/bin/env python3\n"
+        "import json\n"
+        "import sys\n"
+        "name = sys.argv[0].split('/')[-1]\n"
+        "if name == 'codex':\n"
+        "    print(json.dumps({'type': 'thread.started', 'thread_id': 'fake-codex'}))\n"
+        f"    print(json.dumps({{'type': 'event', 'item': {{'type': 'agent_message', 'text': {response_text!r}}}}}))\n"
+        "    print(json.dumps({'type': 'turn.completed'}))\n"
+        "else:\n"
+        f"    print(json.dumps({{'type': 'assistant', 'session_id': 'fake-claude', 'content': {response_text!r}}}))\n",
+        encoding="utf-8",
+    )
+    script.chmod(0o755)
+    return script
+
+
 class OrchestratorWorkflowTests(unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -128,6 +149,57 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         )
 
         self.assertEqual(resolved, RepoLayout(REPO_ROOT).standards)
+
+    def test_task_run_invokes_fake_codex_and_claude_subprocesses(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp = Path(tmp_dir)
+            bin_dir = temp / "bin"
+            bin_dir.mkdir()
+            _write_fake_cli(bin_dir, "codex", "fake codex draft PASS CONFIDENCE: 0.9")
+            _write_fake_cli(bin_dir, "claude", "fake claude review PASS CONFIDENCE: 0.9")
+
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}{os.pathsep}{env.get('PATH', '')}"
+            env["RESEARCH_CLI_LANG"] = "en"
+            command = [
+                sys.executable,
+                "-m",
+                "bridges.orchestrator",
+                "task-run",
+                "--task-id",
+                "F3",
+                "--paper-type",
+                "empirical",
+                "--topic",
+                "fake-cli-e2e",
+                "--cwd",
+                str(REPO_ROOT),
+                "--execution-mode",
+                "duo",
+                "--primary",
+                "codex",
+                "--reviewer",
+                "claude",
+                "--skip-validation",
+            ]
+
+            completed = subprocess.run(
+                command,
+                cwd=REPO_ROOT,
+                env=env,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+            )
+
+        self.assertEqual(completed.returncode, 0, completed.stdout)
+        payload = json.loads(completed.stdout)
+        self.assertEqual(payload["mode"], "task-run")
+        self.assertTrue(payload["codex"]["success"])
+        self.assertTrue(payload["claude"]["success"])
+        self.assertIn("fake codex draft", payload["codex"]["content"])
+        self.assertIn("fake claude review", payload["claude"]["content"])
 
     def test_parallel_runs_with_mock_runtime(self) -> None:
         orchestrator = MockOrchestrator()
