@@ -58,6 +58,19 @@ The release ZIP uses `coverage=focused` to stay under the current 180-file uploa
 
 The Qiongli Literature Provider `.mcpb` (`qiongli-literature-provider.mcpb`) is a separate Claude Desktop local provider asset. It runs Desktop literature search through OpenAlex and Semantic Scholar, exposes a Desktop configuration UI for OpenAlex email and Semantic Scholar API key values, and uses Claude Desktop sensitive-field handling instead of putting keys in the skill ZIP. It contains its own zero-dependency Node stdio server, so Desktop users do not need the `qiongli` CLI or an npm install to use this MCPB. CLI, Codex, and Claude Code users can still run `qiongli provider setup`, then verify `provider_connected` or `strategy_only` with `qiongli provider doctor`. Desktop users need the `qiongli-literature-provider` MCPB or platform-native search before claiming `provider_connected`; if no MCPB or platform-native search is available, record the run as `strategy_only` and treat platform search or user-supplied corpus as the evidence source.
 
+Manual Desktop installs can combine two local assets:
+
+- Skill ZIP: enables Qiongli agent instructions, workflows, subject overlays, and skill guidance inside Claude Desktop/Web.
+- Literature MCPB: enables local literature MCP calls and provider configuration.
+
+Those two assets do not by themselves expose the full Python-backed orchestrator. If a local client should call `qiongli_task_plan`, `qiongli_task_run`, or `qiongli_orchestrator_doctor` as MCP tools, install the npm, pipx/pip, or bootstrap `full` CLI runtime and configure:
+
+```bash
+qiongli mcp serve --transport stdio
+```
+
+`qiongli_task_run` defaults to preview mode. It launches local Codex, Claude, or Gemini processes only when the MCP caller explicitly sends JSON boolean `run_agents: true` and the local runtime passes `doctor`.
+
 Gemini CLI still installs the local extension payload directly:
 
 ```bash

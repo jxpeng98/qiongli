@@ -48,7 +48,11 @@ def build_parser() -> argparse.ArgumentParser:
     config = subparsers.add_parser("config", help="Print MCP client configuration examples")
     config_subparsers = config.add_subparsers(dest="config_cmd", required=True)
     example = config_subparsers.add_parser("example", help="Print a client config fragment")
-    example.add_argument("--target", choices=["codex", "claude", "cursor", "gemini"], default="codex")
+    example.add_argument(
+        "--target",
+        choices=["codex", "claude", "claude-code", "cursor", "gemini"],
+        default="codex",
+    )
     example.add_argument("--json", action="store_true")
 
     return parser
@@ -162,7 +166,7 @@ def _doctor_payload(cwd: Path) -> dict[str, Any]:
 
 def config_example(target: str) -> dict[str, Any]:
     server = {"command": "qiongli", "args": ["mcp", "serve", "--transport", "stdio"]}
-    if target == "claude":
+    if target in {"claude", "claude-code"}:
         config: dict[str, Any] = {"mcpServers": {"qiongli": server}}
     elif target == "codex":
         config = {"mcp_servers": {"qiongli": server}}
@@ -179,6 +183,15 @@ def config_example(target: str) -> dict[str, Any]:
             "qiongli_save_provider_config",
             "qiongli_config_status",
         ],
+        "orchestration_tools": [
+            "qiongli_orchestrator_doctor",
+            "qiongli_task_plan",
+            "qiongli_task_run",
+        ],
+        "safety": {
+            "task_run_default": "preview",
+            "run_agents_required": True,
+        },
     }
 
 

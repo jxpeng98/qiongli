@@ -8,6 +8,7 @@ Use the full CLI server when the desktop or agent client can start a local `qion
 
 ```bash
 qiongli mcp config example --target codex --json
+qiongli mcp config example --target claude-code --json
 ```
 
 The server command is:
@@ -17,6 +18,15 @@ qiongli mcp serve --transport stdio
 ```
 
 This mode does not require a remote server. The client launches the local process, and Qiongli reads provider credentials from the shared provider configuration. It requires the npm, pipx/pip, or `full` bootstrap runtime so that `qiongli` is on `PATH`.
+
+The full CLI server exposes both provider/configuration tools and orchestrator tools:
+
+- `qiongli_config_status`, `qiongli_save_provider_config`, and `qiongli_collect_evidence` for MCP/provider readiness.
+- `qiongli_orchestrator_doctor` for local runtime preflight checks.
+- `qiongli_task_plan` for a no-agent task plan.
+- `qiongli_task_run` for a controlled task-run surface. It defaults to preview and does not launch local Codex, Claude, or Gemini processes unless the caller explicitly passes JSON boolean `run_agents: true`.
+
+Use the full CLI server when Codex, Claude Code, or another local client needs to call the Qiongli orchestrator as a tool.
 
 ## Codex Bundled Plugin MCP
 
@@ -35,6 +45,12 @@ The bundled Codex runtime focuses on literature-provider tools. Use the full CLI
 ## Claude Desktop MCPB
 
 The Claude Desktop `qiongli-literature-provider.mcpb` also contains the zero-dependency Node literature-provider server. It exposes user configuration fields for OpenAlex email, Semantic Scholar API key, and default result limit, so a Desktop user can install the MCPB and configure provider keys without installing `qiongli` or running npm.
+
+For manual Claude Desktop installs, treat the Skill ZIP and MCPB as complementary assets:
+
+- The `qiongli-claude-desktop-skill-*.zip` upload provides the agent instructions, workflows, templates, subject overlays, and skill guidance.
+- The `qiongli-literature-provider.mcpb` install provides literature MCP tools such as `qiongli_literature_search`.
+- The MCPB does not launch orchestrator agents. If the same Desktop or coding client needs `qiongli_task_run`, install the full CLI MCP server separately with `qiongli mcp serve --transport stdio`.
 
 ## Provider Keys
 
