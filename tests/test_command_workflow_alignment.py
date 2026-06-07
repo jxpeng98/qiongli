@@ -10,6 +10,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 LAYOUT = RepoLayout(REPO_ROOT)
 WORKFLOW_DIR = LAYOUT.workflow / "workflows"
 COMMAND_DIR = LAYOUT.plugin_package / "commands"
+PLATFORM_AGENT_WORKFLOW_DIR = LAYOUT.plugin_package / "platforms" / "agent" / "workflows"
 
 
 class CommandWorkflowAlignmentTests(unittest.TestCase):
@@ -29,6 +30,19 @@ class CommandWorkflowAlignmentTests(unittest.TestCase):
                 self.assertLessEqual(len(nonempty_lines), 15)
                 self.assertIn("qiongli-workflow", text)
                 self.assertIn(f"workflows/{workflow.name}", text)
+
+    def test_platform_agent_workflows_match_canonical_workflows(self) -> None:
+        for workflow in sorted(WORKFLOW_DIR.glob("*.md")):
+            platform_workflow = PLATFORM_AGENT_WORKFLOW_DIR / workflow.name
+            with self.subTest(workflow=workflow.name):
+                self.assertTrue(
+                    platform_workflow.exists(),
+                    msg=f"missing platform agent workflow copy: {platform_workflow}",
+                )
+                self.assertEqual(
+                    workflow.read_text(encoding="utf-8"),
+                    platform_workflow.read_text(encoding="utf-8"),
+                )
 
 
 if __name__ == "__main__":

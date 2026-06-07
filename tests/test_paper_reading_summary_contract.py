@@ -38,6 +38,29 @@ class PaperReadingSummaryContractTests(unittest.TestCase):
         ):
             self.assertIn(token, content)
 
+    def test_platform_paper_read_workflow_matches_b2_summary_contract(self) -> None:
+        content = (
+            REPO_ROOT
+            / "packages"
+            / "qiongli-plugin"
+            / "platforms"
+            / "agent"
+            / "workflows"
+            / "paper-read.md"
+        ).read_text(encoding="utf-8")
+
+        for token in (
+            "literature/",
+            "retrieval_manifest.csv",
+            "literature/paper_reading_summary.md",
+            "literature/paper_reading_matrix.md",
+            "evidence_limit: abstract_only",
+            "Do not invent citations, page numbers, sample sizes, methods, results, effect sizes, datasets, author claims, or implications.",
+            "Source Anchors",
+            "unsupported_gap",
+        ):
+            self.assertIn(token, content)
+
     def test_paper_note_template_requires_source_anchors_and_uncertainty(self) -> None:
         content = (REPO_ROOT / "content" / "templates" / "paper-note.md").read_text(
             encoding="utf-8"
