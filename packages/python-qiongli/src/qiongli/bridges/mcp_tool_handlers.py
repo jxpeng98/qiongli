@@ -135,6 +135,7 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
                 "venue": {"type": "string"},
                 "context": {"type": "string"},
                 "execution_mode": {"type": "string", "enum": ["solo", "duo", "triad"]},
+                "triad": {"type": "boolean"},
                 "controller": {"type": "string", "enum": ["codex", "claude", "gemini"]},
                 "primary": {"type": "string", "enum": ["codex", "claude", "gemini"]},
                 "reviewer": {"type": "string", "enum": ["codex", "claude", "gemini"]},
@@ -289,6 +290,7 @@ def _tool_task_run(args: dict[str, Any]) -> dict[str, Any]:
             task_packet.setdefault("paper_type", data.get("paper_type", task_run_kwargs["paper_type"]))
             task_packet.setdefault("topic", data.get("topic", task_run_kwargs["topic"]))
             task_packet.setdefault("artifact_root", data.get("artifact_root"))
+            task_packet.update(_task_run_preview_domain_fields(orchestrator, task_run_kwargs))
             task_packet["runtime_plan"] = preview["effective_runtime_plan"]
         return payload
 
@@ -335,6 +337,8 @@ def _model_orchestrator() -> Any:
 
 
 def _task_run_kwargs(args: dict[str, Any]) -> dict[str, Any]:
+    execution_mode = _optional_str(args, "execution_mode")
+    triad_default = execution_mode == "triad"
     return {
         "task_id": _required_str(args, "task_id"),
         "paper_type": _required_str(args, "paper_type"),
@@ -346,7 +350,8 @@ def _task_run_kwargs(args: dict[str, Any]) -> dict[str, Any]:
         "mcp_strict": _optional_bool(args, "mcp_strict", default=False),
         "skills_strict": _optional_bool(args, "skills_strict", default=False),
         "profile": _optional_str(args, "profile", "default") or "default",
-        "execution_mode": _optional_str(args, "execution_mode"),
+        "execution_mode": execution_mode,
+        "triad": _optional_bool(args, "triad", default=triad_default),
         "controller": _optional_str(args, "controller"),
         "primary_agent": _optional_str(args, "primary"),
         "review_agent": _optional_str(args, "reviewer"),
@@ -367,7 +372,7 @@ def _task_run_preview(
         review_agent=task_run_kwargs["review_agent"],
         verifier_agent=task_run_kwargs["verifier_agent"],
         solo_role_gates=task_run_kwargs["solo_role_gates"],
-        triad=False,
+        triad=bool(task_run_kwargs.get("triad")),
     )
     runtime_plan = plan_data.get("runtime_plan", {})
     effective_runtime_plan = dict(runtime_plan) if isinstance(runtime_plan, dict) else {}
@@ -379,6 +384,28 @@ def _task_run_preview(
         "effective_runtime_plan": effective_runtime_plan,
         "task_run_arguments": _serializable_task_run_arguments(task_run_kwargs),
     }
+
+
+def _task_run_preview_domain_fields(
+    orchestrator: Any,
+    task_run_kwargs: dict[str, Any],
+) -> dict[str, str]:
+    requested_domain = str(task_run_kwargs.get("domain") or "auto").strip() or "auto"
+    load_context = getattr(orchestrator, "_load_domain_profile_context", None)
+    build_fields = getattr(orchestrator, "_build_domain_packet_fields", None)
+    if not callable(load_context) or not callable(build_fields):
+        return {"domain": requested_domain, "requested_domain": requested_domain}
+
+    domain_context = load_context(requested_domain)
+    raw_fields = build_fields(domain_context)
+    fields = dict(raw_fields) if isinstance(raw_fields, dict) else {}
+    if not fields.get("domain"):
+        context_domain = domain_context.get("domain") if isinstance(domain_context, dict) else None
+        fields["domain"] = str(context_domain or requested_domain).strip() or requested_domain
+    if not fields.get("requested_domain"):
+        context_requested = domain_context.get("requested_domain") if isinstance(domain_context, dict) else None
+        fields["requested_domain"] = str(context_requested or requested_domain).strip() or requested_domain
+    return fields
 
 
 def _serializable_task_run_arguments(task_run_kwargs: dict[str, Any]) -> dict[str, Any]:
