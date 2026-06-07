@@ -1,0 +1,199 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+from typing import Any
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+PYTHON_SOURCE_ROOT = REPO_ROOT / "packages" / "python-qiongli" / "src"
+for import_root in (Path(__file__).resolve().parent, PYTHON_SOURCE_ROOT, REPO_ROOT):
+    if str(import_root) not in sys.path:
+        sys.path.insert(0, str(import_root))
+
+from build_plugin_artifacts import _desktop_subjects, _marketplace_subjects
+
+
+DEFAULT_REPO_SLUG = "jxpeng98/qiongli"
+PLUGIN_NAME = "qiongli"
+MCPB_MANIFEST = REPO_ROOT / "packages" / "qiongli-literature-mcpb" / "manifest.json"
+
+
+def _normalize_tag(raw: str) -> str:
+    tag = raw.strip()
+    if not tag:
+        raise ValueError("tag is required")
+    return tag if tag.startswith("v") else f"v{tag}"
+
+
+def _asset_url(repo_slug: str, tag: str, name: str) -> str:
+    return f"https://github.com/{repo_slug}/releases/download/{tag}/{name}"
+
+
+def _mcpb_asset_name() -> str:
+    manifest = json.loads(MCPB_MANIFEST.read_text(encoding="utf-8"))
+    name = manifest.get("name")
+    version = manifest.get("version")
+    if not isinstance(name, str) or not name:
+        raise ValueError(f"{MCPB_MANIFEST} must define name")
+    if not isinstance(version, str) or not version:
+        raise ValueError(f"{MCPB_MANIFEST} must define version")
+    return f"{name}-{version}.mcpb"
+
+
+def _release_assets(tag: str, root: Path) -> dict[str, list[str] | str]:
+    marketplace_subjects = _marketplace_subjects(root)
+    desktop_subjects = _desktop_subjects(root)
+    plugin_tarballs = [
+        f"{PLUGIN_NAME}-{platform}-plugin-{tag}.tar.gz"
+        for platform in ("codex", "claude")
+    ]
+    for subject in marketplace_subjects:
+        plugin_name = f"{PLUGIN_NAME}-{subject}"
+        plugin_tarballs.extend(
+            f"{plugin_name}-{platform}-plugin-{tag}.tar.gz"
+            for platform in ("codex", "claude")
+        )
+
+    return {
+        "download_guide": f"qiongli-downloads-{tag}.md",
+        "download_index": f"qiongli-downloads-{tag}.json",
+        "claude_desktop_skills": [
+            f"{PLUGIN_NAME}-claude-desktop-skill-{subject}-{tag}.zip"
+            for subject in desktop_subjects
+        ],
+        "claude_desktop_legacy_core_skill": f"{PLUGIN_NAME}-claude-desktop-skill-{tag}.zip",
+        "claude_desktop_literature_mcpb": _mcpb_asset_name(),
+        "gemini_extension": f"{PLUGIN_NAME}-gemini-extension-{tag}.tar.gz",
+        "maintainer_plugin_tarballs": plugin_tarballs,
+    }
+
+
+def build_index(tag: str, repo_slug: str = DEFAULT_REPO_SLUG, root: Path = REPO_ROOT) -> dict[str, Any]:
+    tag = _normalize_tag(tag)
+    assets = _release_assets(tag, root)
+    return {
+        "tag": tag,
+        "release_url": f"https://github.com/{repo_slug}/releases/tag/{tag}",
+        "recommended": {
+            "codex": {
+                "install": "marketplace",
+                "command": "codex plugin marketplace add jxpeng98/skillsplace --ref main",
+                "manual_asset": None,
+            },
+            "claude_code": {
+                "install": "marketplace",
+                "command": "claude plugin marketplace add jxpeng98/skillsplace@main",
+                "manual_asset": None,
+            },
+            "claude_desktop_skill": {
+                "install": "download_zip",
+                "asset_pattern": f"{PLUGIN_NAME}-claude-desktop-skill-<subject>-{tag}.zip",
+            },
+            "claude_desktop_literature_mcpb": {
+                "install": "download_mcpb",
+                "asset": assets["claude_desktop_literature_mcpb"],
+            },
+            "gemini": {
+                "install": "download_tarball",
+                "asset": assets["gemini_extension"],
+            },
+        },
+        "assets": {
+            key: value for key, value in assets.items()
+        },
+        "asset_urls": {
+            key: (
+                [_asset_url(repo_slug, tag, item) for item in value]
+                if isinstance(value, list)
+                else _asset_url(repo_slug, tag, value)
+            )
+            for key, value in assets.items()
+        },
+    }
+
+
+def render_markdown(index: dict[str, Any]) -> str:
+    tag = str(index["tag"])
+    release_url = str(index["release_url"])
+    assets = index["assets"]
+    desktop_skills = list(assets["claude_desktop_skills"])
+    mcpb_asset = str(assets["claude_desktop_literature_mcpb"])
+    gemini_asset = str(assets["gemini_extension"])
+    guide_asset = str(assets["download_guide"])
+    index_asset = str(assets["download_index"])
+
+    desktop_rows = "\n".join(
+        f"| `{asset.removeprefix('qiongli-claude-desktop-skill-').removesuffix(f'-{tag}.zip')}` | `{asset}` |"
+        for asset in desktop_skills
+    )
+
+    lines = [
+        f"# Qiongli {tag} Download Guide",
+        "",
+        "Start here before using GitHub's asset list. Most users should not download plugin tarballs manually.",
+        "",
+        f"Release page: {release_url}",
+        "",
+        "## Start here",
+        "",
+        "| You use | Download or install | Why |",
+        "|---|---|---|",
+        "| Codex | Use the marketplace command; do not download a plugin tarball. | Marketplace install keeps skills and bundled literature MCP registration together. |",
+        "| Claude Code | Use the marketplace command; do not download a plugin tarball. | Marketplace install keeps slash commands, skills, and bundled literature MCP together. |",
+        "| Claude Desktop/Web skills | Download exactly one Desktop skill ZIP from the table below. | ZIPs are focused skill packages sized for Desktop/Web upload. |",
+        f"| Claude Desktop literature tools | Download `{mcpb_asset}`. | MCPB adds local literature/provider tools and provider key configuration. |",
+        f"| Gemini CLI | Download `{gemini_asset}` only when you need the release artifact directly. | Gemini uses the extension tarball. |",
+        "| Maintainers | Use plugin tarballs only for manual marketplace artifact checks. | They are not the normal end-user install path. |",
+        "",
+        "## Claude Desktop/Web skill ZIPs",
+        "",
+        "| Subject | Asset |",
+        "|---|---|",
+        desktop_rows,
+        "",
+        "## Machine-readable index",
+        "",
+        f"- Human guide asset: `{guide_asset}`",
+        f"- JSON index asset: `{index_asset}`",
+        "",
+        "The JSON index groups assets by install surface so scripts do not need to parse GitHub's flat asset list.",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def write_outputs(tag: str, out_dir: Path, repo_slug: str, root: Path = REPO_ROOT) -> tuple[Path, Path]:
+    tag = _normalize_tag(tag)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    index = build_index(tag, repo_slug=repo_slug, root=root)
+    guide_path = out_dir / f"qiongli-downloads-{tag}.md"
+    index_path = out_dir / f"qiongli-downloads-{tag}.json"
+    guide_path.write_text(render_markdown(index), encoding="utf-8")
+    index_path.write_text(json.dumps(index, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return guide_path, index_path
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Generate Qiongli GitHub release download guide assets.")
+    parser.add_argument("--tag", required=True, help="Release tag, for example v1.1.0-beta.2")
+    parser.add_argument("--out-dir", type=Path, default=Path("dist"), help="Directory for generated guide assets")
+    parser.add_argument("--repo", default=DEFAULT_REPO_SLUG, help="GitHub repo slug used in generated URLs")
+    args = parser.parse_args(argv)
+
+    try:
+        guide_path, index_path = write_outputs(args.tag, args.out_dir, args.repo)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(f"[downloads] {exc}", file=sys.stderr)
+        return 1
+
+    print(f"[downloads] generated: {guide_path}")
+    print(f"[downloads] generated: {index_path}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

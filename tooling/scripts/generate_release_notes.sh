@@ -135,6 +135,15 @@ fi
 
 VERSION_HINT="${TAG#v}"
 VERSION_HINT="${VERSION_HINT/-beta./b}"
+MCPB_VERSION="$(python3 - <<'PY'
+import json
+from pathlib import Path
+
+manifest = json.loads(Path("packages/qiongli-literature-mcpb/manifest.json").read_text(encoding="utf-8"))
+print(manifest["version"])
+PY
+)"
+MCPB_ASSET="qiongli-literature-provider-${MCPB_VERSION}.mcpb"
 
 if [[ "$UPDATE_EXISTING" -eq 1 && -e "$OUTPUT" ]]; then
   python3 - "$OUTPUT" "$VALIDATOR_RESULT" "$UNITTEST_RESULT" "$SMOKE_RESULT" <<'PY'
@@ -211,6 +220,21 @@ mkdir -p "$(dirname "$OUTPUT")"
   echo "## Highlights (Draft)"
   echo
   echo "${COMMITS}"
+  echo
+  echo "## Download Guide"
+  echo
+  echo "Most users should not download plugin tarballs manually from GitHub's flat asset list."
+  echo
+  echo "| You use | Recommended path |"
+  echo "|---|---|"
+  echo "| Codex | Use \`codex plugin marketplace add jxpeng98/skillsplace --ref main\`; no manual tarball download required. |"
+  echo "| Claude Code | Use \`claude plugin marketplace add jxpeng98/skillsplace@main\`; no manual tarball download required. |"
+  echo "| Claude Desktop/Web skills | Download one \`qiongli-claude-desktop-skill-<subject>-${TAG}.zip\` asset. Start with \`qiongli-claude-desktop-skill-core-${TAG}.zip\` unless you need a subject package. |"
+  echo "| Claude Desktop literature tools | Download \`${MCPB_ASSET}\` and pair it with a Desktop skill ZIP when provider calls are required. |"
+  echo "| Gemini CLI | Download \`qiongli-gemini-extension-${TAG}.tar.gz\` only when installing from a release artifact. |"
+  echo "| Maintainers | Use Codex/Claude plugin tarballs only for manual marketplace artifact checks. |"
+  echo
+  echo "The release also includes \`qiongli-downloads-${TAG}.md\` and \`qiongli-downloads-${TAG}.json\` to group the asset list by install surface."
   echo
   echo "## Validation Evidence"
   echo

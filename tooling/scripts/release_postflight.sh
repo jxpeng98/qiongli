@@ -498,6 +498,8 @@ else
 fi
 
 python3 scripts/build_plugin_artifacts.py --root "$POSTFLIGHT_STAGING_DIR" --tag "$TAG" --dist-dir dist
+MCPB_ARTIFACT="$(python3 scripts/build_literature_mcpb.py --dist-dir dist | tail -n 1)"
+python3 scripts/generate_release_downloads.py --tag "$TAG" --out-dir dist
 PLUGIN_ARTIFACTS=(
   "dist/qiongli-codex-plugin-${TAG}.tar.gz"
   "dist/qiongli-claude-plugin-${TAG}.tar.gz"
@@ -526,6 +528,9 @@ PLUGIN_ARTIFACTS=(
   "dist/qiongli-claude-desktop-skill-geoeconomics-${TAG}.zip"
   "dist/qiongli-claude-desktop-skill-economics-accounting-${TAG}.zip"
   "dist/qiongli-claude-desktop-skill-${TAG}.zip"
+  "$MCPB_ARTIFACT"
+  "dist/qiongli-downloads-${TAG}.md"
+  "dist/qiongli-downloads-${TAG}.json"
 )
 
 if ! command -v gh >/dev/null 2>&1 || ! gh auth status >/dev/null 2>&1; then

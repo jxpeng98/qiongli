@@ -159,6 +159,11 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('"dist/qiongli-claude-desktop-skill-political-economy-${TAG}.zip"', content)
         self.assertIn('"dist/qiongli-claude-desktop-skill-geoeconomics-${TAG}.zip"', content)
         self.assertIn('"dist/qiongli-claude-desktop-skill-${TAG}.zip"', content)
+        self.assertIn('MCPB_ARTIFACT="$(python3 scripts/build_literature_mcpb.py --dist-dir dist | tail -n 1)"', content)
+        self.assertIn('"$MCPB_ARTIFACT"', content)
+        self.assertIn("python3 scripts/generate_release_downloads.py --tag \"$TAG\" --out-dir dist", content)
+        self.assertIn('"dist/qiongli-downloads-${TAG}.md"', content)
+        self.assertIn('"dist/qiongli-downloads-${TAG}.json"', content)
         self.assertIn('gh release upload "$TAG" --repo "$REPO_SLUG" --clobber "${PLUGIN_ARTIFACTS[@]}"', content)
         self.assertIn('release_args+=("${PLUGIN_ARTIFACTS[@]}")', content)
 
