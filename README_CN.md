@@ -1,5 +1,4 @@
 <div align="center">
-  <img src="docs/public/mark.svg" alt="Qiongli logo" width="104" height="104">
   <h1>穷理（Qiongli）</h1>
   <p><strong>面向 Codex、Claude Code 与 Gemini 的契约驱动学术工作流系统。</strong></p>
   <p>用同一套 Task ID、质量门、角色交接和标准产物路径，串联文献、写作、研究代码、审稿与可复查证据链。</p>

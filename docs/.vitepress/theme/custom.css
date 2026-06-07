@@ -1,6 +1,7 @@
 :root {
   --vp-font-family-base: "Avenir Next", "Helvetica Neue", "Segoe UI", sans-serif;
   --vp-font-family-mono: "IBM Plex Mono", "SFMono-Regular", "Consolas", monospace;
+  --qiongli-font-family-brand: "Iowan Old Style", "Palatino Linotype", Palatino, "Songti SC", "STSong", Georgia, serif;
   --vp-c-brand-1: #0f766e;
   --vp-c-brand-2: #0b5e59;
   --vp-c-brand-3: #0a4a46;
@@ -19,8 +20,15 @@
   background: linear-gradient(180deg, #f8fafc 0%, #ffffff 36%);
 }
 
-.VPNavBarTitle .logo {
-  border-radius: 6px;
+.VPNavBarTitle .title,
+.VPHero .name {
+  font-family: var(--qiongli-font-family-brand);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.VPNavBarTitle .title {
+  color: #12344d;
 }
 
 .VPHero .tagline {

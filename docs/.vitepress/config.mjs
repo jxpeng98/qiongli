@@ -162,8 +162,7 @@ const zhSidebar = {
 
 const commonHead = [
   ['meta', { name: 'theme-color', content: '#0f766e' }],
-  ['meta', { name: 'author', content: 'Jiaxin Peng' }],
-  ['link', { rel: 'icon', type: 'image/svg+xml', href: '/mark.svg' }]
+  ['meta', { name: 'author', content: 'Jiaxin Peng' }]
 ]
 
 /** @type {import('vitepress').UserConfig} */
@@ -207,7 +206,5 @@ export default {
       }
     }
   },
-  themeConfig: {
-    logo: { src: '/mark.svg', alt: 'Qiongli' }
-  }
+  themeConfig: {}
 }

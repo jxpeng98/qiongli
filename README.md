@@ -1,5 +1,4 @@
 <div align="center">
-  <img src="docs/public/mark.svg" alt="Qiongli logo" width="104" height="104">
   <h1>Qiongli (穷理)</h1>
   <p><strong>Contract-driven academic workflows for Codex, Claude Code, Claude Desktop, and Gemini.</strong></p>
   <p>Plan papers, run literature work, draft manuscripts, execute research code, and audit evidence through one canonical task contract.</p>
