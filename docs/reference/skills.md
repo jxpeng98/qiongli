@@ -222,7 +222,7 @@ Use Stage Z when the need cuts across stages rather than belonging to one paper 
 |---|---|---|---|
 | `metadata-enricher` | Metadata Enricher | Use when you need to normalize and enrich doi, venue, year, author metadata across artifacts. | `Bibliography` |
 | `academic-context-maintainer` | Academic Context Maintainer | Use when you need a stage-aware academic state summary that preserves research question scope, locked methodological choices, stable findings, unresolved disputes, and decision rationale across long-running paper workflows. | `ResearchStateSnapshot`, `ResearchDecisionLog` |
-| `boundary-interviewer` | Boundary Interviewer | Use before high-risk framing, study design, writing, submission, research code, or handoff work when research scope, claim strength, evidence threshold, validity risk, generalizability, or reviewer expectations remain unclear. | `BoundaryReview` |
+| `boundary-interviewer` | Boundary Interviewer | Use during brainstorms, Stage A framing, gap finding, or before high-risk study design, writing, submission, research code, and handoff work when research scope, claim strength, evidence threshold, validity risk, generalizability, or reviewer expectations remain unclear. | `AcademicIdeaFunnel`, `BoundaryReview` |
 | `model-collaborator` | Model Collaborator | Use when literature screening, peer review simulation, rebuttal drafting, qualitative coding, or code/statistics validation benefits from independent multi-model passes before synthesis. | `CollaborationTrace` |
 | `self-critique` | Self-Critique | Use when you need to iterative red teaming against superficial reasoning, contradictions, and overclaiming. | `CritiqueLog` |
 

@@ -84,13 +84,11 @@ jobs:
       - name: Inject packaged upstream defaults
         run: bash scripts/inject_project_toml.sh
 
-      - name: Sync generated distribution payloads
-        run: |
-          bash scripts/sync_skill_package.sh --target all
-          python3 scripts/sync_npm_package_payload.py
+      - name: Materialize distribution payloads
+        run: python3 scripts/materialize_distribution_payloads.py --target all --out "$RUNNER_TEMP/qiongli-release-dist" --force
 
       - name: Build package
-        run: python -m build
+        run: cd "$RUNNER_TEMP/qiongli-release-dist" && python -m build
 
       - name: Run release automation
         env:
@@ -106,6 +104,9 @@ jobs:
             exit 2
           fi
           args+=(--tag "$tag")
+          if [[ "$mode" == "pre" ]]; then
+            args+=(--materialize-out "$RUNNER_TEMP/qiongli-preflight-dist")
+          fi
 
           if [[ "${{ inputs.skip_smoke }}" == "true" ]]; then
             args+=(--skip-smoke)
@@ -132,7 +133,7 @@ jobs:
             args+=(--create-release)
           fi
 
-          bash scripts/verify_release_tag_version.sh --tag "$tag"
+          bash scripts/verify_release_tag_version.sh --root "$RUNNER_TEMP/qiongli-release-dist" --tag "$tag"
 
           ./scripts/release_automation.sh "$mode" "${args[@]}"
 
@@ -141,5 +142,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: release-acceptance
-          path: release/acceptance/
+          path: tooling/release/acceptance/
           if-no-files-found: ignore

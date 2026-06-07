@@ -3,12 +3,12 @@ import unittest
 from pathlib import Path
 
 from bridges.providers.literature_schema import QUERY_PLAN_REQUIRED_KEYS
+from qiongli.source_layout import RepoLayout
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SEARCH_STRATEGY_TEMPLATE_PATHS = (
     Path("templates/search-strategy.md"),
-    Path("plugins/qiongli/skills/qiongli-workflow/templates/search-strategy.md"),
 )
 
 
@@ -43,7 +43,7 @@ class LiteratureSearchContractAuditTests(unittest.TestCase):
 
         for relative_path in SEARCH_STRATEGY_TEMPLATE_PATHS:
             with self.subTest(template=str(relative_path)):
-                template = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
+                template = RepoLayout(REPO_ROOT).resolve_source_path(relative_path).read_text(encoding="utf-8")
                 search_plan_blocks = [
                     block
                     for block in machine_readable_search_plan_blocks(template)

@@ -81,7 +81,7 @@ The default release smoke tier is intentionally conservative: builtin literature
 Release doc policy:
 
 - stable releases must be summarized in `CHANGELOG.md`
-- beta / prerelease releases continue to use `release/<tag>.md`
+- beta / prerelease releases continue to use `tooling/release/<tag>.md`
 
 Beta channel policy:
 
@@ -101,6 +101,14 @@ Use `release_ready.sh` when you want to prepare and verify locally without creat
 
 `release_ready.sh` runs version sync, strict validator, repository unit tests, release-tier smoke, release note evidence updates, package build checks, `twine check`, and wheel install smoke. It does not tag or push. Publish mode owns commit, tag, push, branch CI wait, tag publish wait, GitHub Release creation, plugin artifact upload, and acceptance receipt generation.
 
+For beta releases where GitHub Actions may exceed the local wait window, publish mode can use a bounded soft wait:
+
+```bash
+./scripts/release_automation.sh publish --version 0.15.0b2 --from-tag v0.15.0-beta.1 --ci-timeout-seconds 900 --ci-timeout-mode soft
+```
+
+Soft mode still fails on completed workflow failures. It only continues when CI is pending or temporarily unqueryable, and records that status in the acceptance receipt. Stable releases should keep the default hard mode.
+
 If you need manual split phases, they still exist:
 
 ```bash
@@ -113,12 +121,14 @@ If you need manual split phases, they still exist:
 `publish` creates and pushes a tag whose format starts with `v*` and uses repo release syntax such as `v0.2.0` or `v0.2.0-beta.1`. That triggers `publish-pypi.yml`, which:
 
 1. Checkout the code.
-2. Run `inject_project_toml.sh` (injects the current repository slug into `qiongli/project.toml` so the installed CLI knows its upstream default).
-3. `python -m build` to build the sdist and wheel.
-4. `twine check` to validate package metadata.
-5. Publish to PyPI using the Trusted Publisher mechanism.
+2. Run `inject_project_toml.sh` in the checkout so the installed CLI knows its upstream default.
+3. Materialize the release payload into `$RUNNER_TEMP/qiongli-dist`.
+4. Verify the release tag against the staged root.
+5. `python -m build` from the staged root to build the sdist and wheel.
+6. `twine check` to validate staged package metadata.
+7. Publish to PyPI using the Trusted Publisher mechanism.
 
-The same tag also triggers `publish-npm.yml`, which validates the bundled npm package and publishes stable versions to `latest` or beta versions to `next`.
+The same tag also triggers `publish-npm.yml`, which validates the staged bundled npm package and publishes stable versions to `latest` or beta versions to `next`.
 
 Postflight then waits for the release commit's `CI` and `Checkout Install Check` workflows and the tag's `Publish to PyPI` / `Publish to npm` workflows. If a required workflow is missing, the diagnostic includes the observed workflow names for that commit.
 
@@ -129,8 +139,10 @@ Postflight then waits for the release commit's `CI` and `Checkout Install Check`
 If you want to run package checks outside `release_ready.sh`, use:
 
 ```bash
-bash scripts/pypi_preflight.sh
-bash scripts/pypi_preflight.sh --no-build
+python scripts/materialize_distribution_payloads.py --target all --out /tmp/qiongli-dist --force
+bash scripts/verify_release_tag_version.sh --root /tmp/qiongli-dist --tag <tag>
+bash scripts/pypi_preflight.sh --root /tmp/qiongli-dist
+bash scripts/npm_preflight.sh --root /tmp/qiongli-dist
 ```
 
 Equivalent manual build steps:
@@ -140,9 +152,10 @@ Equivalent manual build steps:
 pip install build twine
 
 # Inject upstream repo info
-bash scripts/inject_project_toml.sh
+bash /tmp/qiongli-dist/scripts/inject_project_toml.sh
 
 # Build
+cd /tmp/qiongli-dist
 python -m build
 
 # Validate
@@ -191,7 +204,7 @@ When cutting a release, follow these steps:
 - [ ] Optional: run `./scripts/release_ready.sh --version <version>` as a local dry run.
 - [ ] Run `./scripts/release_automation.sh publish --version <version> --from-tag <previous-tag>`.
 - [ ] Confirm `Publish to PyPI`, `CI`, and `Checkout Install Check` succeeded on GitHub Actions.
-- [ ] Confirm postflight created or updated the GitHub Release and wrote `release/acceptance/<tag>-receipt.md`.
+- [ ] Confirm postflight created or updated the GitHub Release and wrote `tooling/release/acceptance/<tag>-receipt.md`.
 - [ ] Verify installation: `pipx install qiongli && rsk --help`
 
 ---

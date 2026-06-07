@@ -3,26 +3,39 @@ name: CI
 on:
   push:
     branches: ["main", "master", "dev"]
+    paths-ignore:
+      - "tooling/release/acceptance/**"
   pull_request:
     branches: ["main", "master", "dev"]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   cross-platform-tests:
-    name: Cross-platform tests (${{ matrix.os }})
+    name: Cross-platform tests (${{ matrix.os }}, ${{ matrix.test-tier }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            test-tier: full
+          - os: windows-latest
+            test-tier: windows-smoke
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
 
       - name: Inject packaged upstream defaults
         shell: bash
@@ -32,20 +45,30 @@ jobs:
         run: python -m pip install .
 
       - name: Compile critical modules
-        run: python -m py_compile bridges/base_bridge.py bridges/orchestrator.py scripts/validate_research_standard.py tests/test_orchestrator_workflows.py tests/test_install_qiongli.py
+        run: python -m py_compile packages/python-qiongli/src/qiongli/bridges/base_bridge.py packages/python-qiongli/src/qiongli/bridges/orchestrator.py scripts/validate_research_standard.py tests/test_orchestrator_workflows.py tests/test_install_qiongli.py
 
-      - name: Sync bundled skill package
-        shell: bash
-        run: bash scripts/sync_skill_package.sh --target all
+      - name: Check generated payload edits
+        run: python scripts/check_generated_payload_edits.py --base-ref origin/dev
 
-      - name: Sync npm package payload
-        run: python scripts/sync_npm_package_payload.py
+      - name: Materialize distribution payloads
+        if: matrix.test-tier == 'full'
+        run: python scripts/materialize_distribution_payloads.py --target all --out "$RUNNER_TEMP/qiongli-dist" --force
+
+      - name: Audit staged distribution payloads
+        if: matrix.test-tier == 'full'
+        run: python scripts/audit_distribution_payloads.py --root "$RUNNER_TEMP/qiongli-dist"
 
       - name: Validate research standard
-        run: python scripts/validate_research_standard.py --strict
+        if: matrix.test-tier == 'full'
+        run: python scripts/validate_research_standard.py --root "$RUNNER_TEMP/qiongli-dist" --strict
 
-      - name: Run unit tests
+      - name: Run full unit tests
+        if: matrix.test-tier == 'full'
         run: python -m unittest discover -s tests -v
+
+      - name: Run Windows smoke tests
+        if: matrix.test-tier == 'windows-smoke'
+        run: python -m unittest tests.test_install_qiongli tests.test_bootstrap_qiongli tests.test_universal_installer tests.test_command_runtime tests.test_release_automation tests.test_branch_policy
 
   shell-release-gates:
     name: Shell and release gates (ubuntu-latest)
@@ -54,11 +77,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
 
       - name: Inject packaged upstream defaults
         run: bash scripts/inject_project_toml.sh
@@ -67,7 +93,7 @@ jobs:
         run: python -m pip install .
 
       - name: Compile critical modules
-        run: python -m py_compile bridges/base_bridge.py bridges/orchestrator.py scripts/validate_research_standard.py tests/test_orchestrator_workflows.py
+        run: python -m py_compile packages/python-qiongli/src/qiongli/bridges/base_bridge.py packages/python-qiongli/src/qiongli/bridges/orchestrator.py scripts/validate_research_standard.py tests/test_orchestrator_workflows.py
 
       - name: Validate shell scripts syntax
         run: |
@@ -82,4 +108,4 @@ jobs:
           bash -n scripts/sync_skill_package.sh
 
       - name: Run standardized pre-release gates
-        run: ./scripts/release_preflight.sh
+        run: ./scripts/release_preflight.sh --quick --materialize-out "$RUNNER_TEMP/qiongli-preflight-dist"

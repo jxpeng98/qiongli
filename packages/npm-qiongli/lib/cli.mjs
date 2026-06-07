@@ -1,11 +1,21 @@
 import { parseArgv } from './args.mjs';
 import { packageRoot } from './package-root.mjs';
 import { buildCheck, cleanAssets, installSkills } from './installer.mjs';
-import { checkPythonRuntime, runBridgeCommand } from './python-runtime.mjs';
+import {
+  checkPythonRuntime,
+  runBridgeCommand as defaultRunBridgeCommand,
+  runPythonCliCommand as defaultRunPythonCliCommand,
+} from './python-runtime.mjs';
 
 const BRIDGE_COMMANDS = new Set(['doctor', 'task-run', 'team-run', 'parallel', 'chain', 'role', 'single', 'code-build', 'task-plan']);
+const PYTHON_CLI_COMMANDS = new Set(['setup', 'mcp']);
 
-export async function main(argv, { stdout = process.stdout, stderr = process.stderr } = {}) {
+export async function main(argv, {
+  stdout = process.stdout,
+  stderr = process.stderr,
+  runBridgeCommand = defaultRunBridgeCommand,
+  runPythonCliCommand = defaultRunPythonCliCommand,
+} = {}) {
   const root = packageRoot();
   let parsed;
   try {
@@ -86,6 +96,10 @@ export async function main(argv, { stdout = process.stdout, stderr = process.std
     return result.ok ? 0 : 1;
   }
 
+  if (PYTHON_CLI_COMMANDS.has(parsed.command)) {
+    return runPythonCliCommand({ packageRoot: root, args: [parsed.command, ...parsed.rest] });
+  }
+
   if (BRIDGE_COMMANDS.has(parsed.command)) {
     const args = parsed.command === 'doctor' && !parsed.rest.includes('--cwd')
       ? ['--cwd', parsed.options.cwd || '.', ...parsed.rest]
@@ -120,6 +134,9 @@ Usage:
   qiongli check [--json]
   qiongli clean --project-dir . [--globals]
   qiongli runtime doctor
+  qiongli setup [--dry-run] [--project-dir .] [--no-doctor]
+  qiongli mcp serve --transport stdio
+  qiongli mcp doctor --json
   qiongli doctor --cwd .
   qiongli task-run ...
   qiongli team-run ...
@@ -131,5 +148,6 @@ Options:
   --mode copy|link
   --overwrite
   --dry-run
+  --no-doctor
 `;
 }

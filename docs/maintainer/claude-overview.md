@@ -18,16 +18,16 @@ This page distills the operational guidance from `CLAUDE.md` into a maintainer-f
 
 When behavior changes, maintainers should prefer fixing:
 
-1. `standards/`
-2. `roles/` or `skills/`
-3. `templates/`
-4. `pipelines/` and `.agent/workflows/`
-5. `bridges/`
-6. `qiongli-workflow/`
+1. `content/standards/`
+2. `content/roles/` or `content/skills/`
+3. `content/templates/`
+4. `tooling/pipelines/`, `content/workflow/workflows/`, or `packages/qiongli-plugin/platforms/`
+5. `packages/python-qiongli/src/qiongli/`
+6. generated `qiongli-workflow/` only through materialization
 
 ### 2. Treat workflows as entry UX, not truth
 
-Slash commands are convenient entrypoints. Artifact truth, routing truth, and task truth still live in the standards layer.
+Slash commands are convenient entrypoints. Artifact truth, routing truth, and task truth still live in `content/standards/`.
 
 ### 3. Use the repo through stable commands
 

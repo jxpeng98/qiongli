@@ -8,8 +8,10 @@ from qiongli.team_run_acceptance import (
     render_team_run_receipt,
     summarize_team_run_result,
 )
+from qiongli.source_layout import RepoLayout
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+LAYOUT = RepoLayout(REPO_ROOT)
 
 
 class TeamRunAcceptanceTests(unittest.TestCase):
@@ -69,18 +71,14 @@ class TeamRunAcceptanceTests(unittest.TestCase):
         self.assertIn('"task_description": "B1 systematic-review acceptance-probe"', receipt)
 
     def test_collaboration_docs_and_receipts_are_present(self) -> None:
-        guide_en = (REPO_ROOT / "guides" / "advanced" / "agent-skill-collaboration.md").read_text(encoding="utf-8")
         doc_en = (REPO_ROOT / "docs" / "advanced" / "agent-skill-collaboration.md").read_text(encoding="utf-8")
-        guide_zh = (REPO_ROOT / "guides" / "advanced" / "agent-skill-collaboration_CN.md").read_text(encoding="utf-8")
         doc_zh = (REPO_ROOT / "docs" / "zh" / "advanced" / "agent-skill-collaboration.md").read_text(encoding="utf-8")
 
-        self.assertEqual(guide_en, doc_en)
-        self.assertEqual(guide_zh, doc_zh)
-        self.assertIn("scripts/capture_team_run_acceptance.py", guide_en)
-        self.assertIn("scripts/capture_team_run_acceptance.py", guide_zh)
+        self.assertIn("scripts/capture_team_run_acceptance.py", doc_en)
+        self.assertIn("scripts/capture_team_run_acceptance.py", doc_zh)
 
-        self.assertTrue((REPO_ROOT / "release" / "acceptance" / "team-run-b1-local-receipt.md").exists())
-        self.assertTrue((REPO_ROOT / "release" / "acceptance" / "team-run-h3-local-receipt.md").exists())
+        self.assertTrue((LAYOUT.release / "acceptance" / "team-run-b1-local-receipt.md").exists())
+        self.assertTrue((LAYOUT.release / "acceptance" / "team-run-h3-local-receipt.md").exists())
 
 
 if __name__ == "__main__":

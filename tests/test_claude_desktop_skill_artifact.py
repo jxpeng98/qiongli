@@ -7,9 +7,11 @@ import unittest
 import zipfile
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-BUILD_ARTIFACTS_PATH = REPO_ROOT / "scripts" / "build_plugin_artifacts.py"
+BUILD_ARTIFACTS_PATH = RepoLayout(REPO_ROOT).scripts / "build_plugin_artifacts.py"
 
 
 def _load_build_artifacts_module():
@@ -30,7 +32,7 @@ class ClaudeDesktopSkillArtifactTests(unittest.TestCase):
         cls.build_module = _load_build_artifacts_module()
 
     def test_build_artifacts_creates_claude_desktop_skill_zip(self) -> None:
-        tag = (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(encoding="utf-8").strip()
+        tag = (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(encoding="utf-8").strip()
 
         with tempfile.TemporaryDirectory() as tmp:
             artifacts = self.build_module.build_artifacts(REPO_ROOT, tag, Path(tmp))
@@ -72,12 +74,25 @@ class ClaudeDesktopSkillArtifactTests(unittest.TestCase):
 
         self.assertIn("name: qiongli", skill_text)
         self.assertIn("Core Workflow Map", skill_text)
+        self.assertIn("provider_connected", skill_text)
+        self.assertIn("strategy_only", skill_text)
+        self.assertIn("qiongli-literature-provider", skill_text)
+        self.assertIn(".mcpb", skill_text)
+        self.assertIn("manual Desktop install", skill_text)
+        self.assertIn("manual MCP install", skill_text)
+        self.assertIn("qiongli mcp serve --transport stdio", skill_text)
+        self.assertIn("qiongli_task_run", skill_text)
+        self.assertIn("agent runtime", skill_text)
+        self.assertIn("OpenAlex", skill_text)
+        self.assertIn("Semantic Scholar", skill_text)
+        self.assertIn("If no MCPB or platform-native search is available", skill_text)
+        self.assertIn("workflows/prompts/templates", skill_text)
         self.assertNotIn("skills/[stage]/[skill-name].md", skill_text)
         self.assertEqual("core", subject_text)
         self.assertEqual(tag, version_text)
 
     def test_build_artifacts_creates_economics_desktop_skill_zip(self) -> None:
-        tag = (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(encoding="utf-8").strip()
+        tag = (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(encoding="utf-8").strip()
 
         with tempfile.TemporaryDirectory() as tmp:
             artifacts = self.build_module.build_artifacts(REPO_ROOT, tag, Path(tmp))
@@ -107,7 +122,7 @@ class ClaudeDesktopSkillArtifactTests(unittest.TestCase):
         self.assertIn("Naive TWFE under staggered adoption", stats_text)
 
     def test_build_artifacts_creates_business_and_finance_desktop_skill_zips(self) -> None:
-        tag = (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(encoding="utf-8").strip()
+        tag = (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(encoding="utf-8").strip()
 
         with tempfile.TemporaryDirectory() as tmp:
             artifacts = self.build_module.build_artifacts(REPO_ROOT, tag, Path(tmp))

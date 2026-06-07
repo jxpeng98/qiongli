@@ -1,0 +1,203 @@
+from __future__ import annotations
+
+import argparse
+import json
+import time
+from pathlib import Path
+from typing import Any
+
+from bridges.mcp_config_wizard import start_config_wizard
+from bridges.mcp_tool_handlers import SERVER_NAME
+from bridges.provider_config import (
+    PROVIDER_FIELDS,
+    global_provider_config_path,
+    provider_capability_mode,
+    provider_config_summary,
+    redact_provider_config,
+    resolve_provider_config,
+    set_provider_value,
+)
+from qiongli import __version__
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Run and configure the Qiongli cross-platform MCP server.")
+    subparsers = parser.add_subparsers(dest="cmd", required=True)
+
+    serve = subparsers.add_parser("serve", help="Run the MCP server")
+    serve.add_argument("--transport", choices=["stdio", "http"], default="stdio")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8765)
+
+    doctor = subparsers.add_parser("doctor", help="Check MCP provider configuration")
+    doctor.add_argument("--cwd", default=str(Path.cwd()))
+    doctor.add_argument("--json", action="store_true")
+
+    configure = subparsers.add_parser("configure", help="Save a provider config value")
+    configure.add_argument("--provider", required=True)
+    configure.add_argument("--field", required=True)
+    configure.add_argument("--value", required=True)
+    configure.add_argument("--json", action="store_true")
+
+    wizard = subparsers.add_parser("wizard", help="Start a local provider configuration wizard")
+    wizard.add_argument("--host", default="127.0.0.1")
+    wizard.add_argument("--port", type=int, default=0)
+    wizard.add_argument("--no-block", action="store_true")
+    wizard.add_argument("--json", action="store_true")
+
+    config = subparsers.add_parser("config", help="Print MCP client configuration examples")
+    config_subparsers = config.add_subparsers(dest="config_cmd", required=True)
+    example = config_subparsers.add_parser("example", help="Print a client config fragment")
+    example.add_argument(
+        "--target",
+        choices=["codex", "claude", "claude-code", "cursor", "gemini"],
+        default="codex",
+    )
+    example.add_argument("--json", action="store_true")
+
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if args.cmd == "serve":
+        return _cmd_serve(args)
+    if args.cmd == "doctor":
+        return _cmd_doctor(args)
+    if args.cmd == "configure":
+        return _cmd_configure(args)
+    if args.cmd == "wizard":
+        return _cmd_wizard(args)
+    if args.cmd == "config":
+        return _cmd_config(args)
+    raise RuntimeError(f"Unhandled MCP command: {args.cmd}")
+
+
+def _cmd_serve(args: argparse.Namespace) -> int:
+    if args.transport == "stdio":
+        from bridges.mcp_server_stdio import run_stdio
+
+        return run_stdio()
+    from bridges.mcp_server_http import run_http_server
+
+    return run_http_server(host=args.host, port=args.port)
+
+
+def _cmd_doctor(args: argparse.Namespace) -> int:
+    payload = _doctor_payload(Path(args.cwd))
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return 0
+    print("Qiongli MCP Doctor")
+    print("==================")
+    print(f"- server: {payload['server']['name']} {payload['server']['version']}")
+    print(f"- config_path: {payload['config_path']}")
+    for provider, status in payload["providers"].items():
+        print(f"- {provider}: {status}")
+    print(f"- capability_mode: {payload['capability_mode']}")
+    return 0
+
+
+def _cmd_configure(args: argparse.Namespace) -> int:
+    path = set_provider_value(args.provider, args.field, args.value)
+    payload = {
+        "status": "saved",
+        "provider": _normalize_label(args.provider),
+        "field": _normalize_label(args.field),
+        "config_path": str(path),
+    }
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(f"Saved {payload['provider']} {payload['field']} in {path}")
+    return 0
+
+
+def _cmd_wizard(args: argparse.Namespace) -> int:
+    wizard = start_config_wizard(host=args.host, port=args.port)
+    payload = {
+        "url": wizard.url,
+        "host": wizard.host,
+        "port": wizard.port,
+        "config_path": wizard.config_path,
+    }
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(f"Qiongli MCP config wizard: {wizard.url}")
+        print(f"Config path: {wizard.config_path}")
+    if args.no_block:
+        return 0
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        wizard.stop()
+        return 0
+
+
+def _cmd_config(args: argparse.Namespace) -> int:
+    if args.config_cmd != "example":
+        raise RuntimeError(f"Unhandled MCP config command: {args.config_cmd}")
+    payload = config_example(args.target)
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(json.dumps(payload["config"], indent=2, sort_keys=True))
+    return 0
+
+
+def _doctor_payload(cwd: Path) -> dict[str, Any]:
+    config = resolve_provider_config(cwd=cwd)
+    summary = provider_config_summary(config)
+    return {
+        "server": {"name": SERVER_NAME, "version": __version__},
+        "config_path": str(global_provider_config_path()),
+        "providers": summary,
+        "capability_mode": provider_capability_mode(summary),
+        "redacted_config": redact_provider_config(config),
+        "provider_env_aliases": {
+            provider: {field: list(aliases) for field, aliases in fields.items()}
+            for provider, fields in PROVIDER_FIELDS.items()
+        },
+    }
+
+
+def config_example(target: str) -> dict[str, Any]:
+    server = {"command": "qiongli", "args": ["mcp", "serve", "--transport", "stdio"]}
+    if target in {"claude", "claude-code"}:
+        config: dict[str, Any] = {"mcpServers": {"qiongli": server}}
+    elif target == "codex":
+        config = {"mcp_servers": {"qiongli": server}}
+    elif target == "cursor":
+        config = {"mcpServers": {"qiongli": server}}
+    else:
+        config = {"mcpServers": {"qiongli": server}}
+    return {
+        "target": target,
+        "server": server,
+        "config": config,
+        "configuration_tools": [
+            "qiongli_open_config_wizard",
+            "qiongli_save_provider_config",
+            "qiongli_config_status",
+        ],
+        "orchestration_tools": [
+            "qiongli_orchestrator_doctor",
+            "qiongli_task_plan",
+            "qiongli_task_run",
+        ],
+        "safety": {
+            "task_run_default": "preview",
+            "run_agents_required": True,
+        },
+    }
+
+
+def _normalize_label(value: str) -> str:
+    return value.strip().lower().replace("-", "_")
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

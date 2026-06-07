@@ -1,9 +1,0 @@
-{
-  "coverage": "complete",
-  "flavor": "full",
-  "layers": [
-    "core",
-    "geoeconomics"
-  ],
-  "subject": "geoeconomics"
-}

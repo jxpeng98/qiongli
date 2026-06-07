@@ -1,8 +1,0 @@
-{
-  "coverage": "focused",
-  "flavor": "full",
-  "layers": [
-    "core"
-  ],
-  "subject": "core"
-}

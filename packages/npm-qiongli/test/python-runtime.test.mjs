@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
+import path from 'node:path';
 import test from 'node:test';
 
-import { checkPythonRuntime } from '../lib/python-runtime.mjs';
+import { checkPythonRuntime, runPythonCliCommand } from '../lib/python-runtime.mjs';
 
 test('checkPythonRuntime reports missing Python with install guidance', () => {
   const result = checkPythonRuntime({
@@ -48,4 +49,42 @@ test('checkPythonRuntime accepts Python 3.12 with PyYAML', () => {
   assert.equal(result.ok, true);
   assert.equal(result.python, 'python3');
   assert.equal(result.version, '3.12.9');
+});
+
+test('runPythonCliCommand invokes qiongli.cli with packaged PYTHONPATH', () => {
+  const calls = [];
+  const exitCode = runPythonCliCommand({
+    packageRoot: '/pkg',
+    args: ['setup', '--dry-run', '--project-dir', '/tmp/project', '--no-doctor'],
+    cwd: '/repo',
+    env: { PYTHONPATH: '/existing' },
+    stdio: 'pipe',
+    checkRuntime: () => ({
+      ok: true,
+      python: 'python3',
+      version: '3.12.9',
+      message: 'ready',
+      hint: '',
+    }),
+    spawnSync: (cmd, args, options) => {
+      calls.push({ cmd, args, options });
+      return { status: 5 };
+    },
+  });
+
+  assert.equal(exitCode, 5);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].cmd, 'python3');
+  assert.deepEqual(calls[0].args, [
+    '-m',
+    'qiongli.cli',
+    'setup',
+    '--dry-run',
+    '--project-dir',
+    '/tmp/project',
+    '--no-doctor',
+  ]);
+  assert.equal(calls[0].options.cwd, '/repo');
+  assert.equal(calls[0].options.stdio, 'pipe');
+  assert.equal(calls[0].options.env.PYTHONPATH, `/pkg/python-runtime${path.delimiter}/existing`);
 });

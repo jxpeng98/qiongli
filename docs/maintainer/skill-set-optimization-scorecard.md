@@ -2,10 +2,23 @@
 
 ## Baseline
 
-- Canonical registered skills: 73
+- Canonical registered skills: 73, sourced from `content/skills/` and `content/skills/registry.yaml`.
 - Current gate model: Q1-Q4 labels exist in workflow contracts and task routing.
 - Current domain model: domain profiles are injected at runtime.
 - Current eval model: offline academic quality fixtures score broad quality dimensions.
+
+## Retired Root TODOs
+
+The former root-level planning files `TODO_ROADMAP.md` and
+`todo_academic_skills_next.md` were retired after the repository restructure.
+They mixed completed milestone history, stale pre-restructure paths, and active
+ideas that now belong in focused maintainer docs or implementation specs.
+
+Use this scorecard for skill-set optimization priorities, and use
+`docs/development/repository-structure.md` for source-layout ownership. Future
+roadmap updates should be added to focused docs under `docs/maintainer/`,
+`docs/development/`, or a dedicated implementation spec instead of recreating a
+root TODO file.
 
 ## Next Optimization Targets
 

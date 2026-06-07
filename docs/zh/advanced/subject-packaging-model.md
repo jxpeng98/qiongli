@@ -104,7 +104,7 @@ customization 只影响本次生成输出，不会写回 canonical repository。
 |---|---|---|---|
 | Workflow contract | `qiongli-workflow/`, `standards/`, `references/` | 共享 task IDs、outputs、quality gates | 是 |
 | Generic skills | `skills/*/*.md` | canonical cross-disciplinary capability cards | 是 |
-| Generic profiles | `skills/domain-profiles/*.yaml`, `qiongli-workflow/venue-profiles/*.yaml` | 可复用的 domain 和 venue metadata | core 可用 |
+| Generic profiles | `skills/domain-profiles/*.yaml`, `venue-profiles/*.yaml` | 可复用的 domain 和 venue metadata | materialize 后进入 core package |
 | Subject catalog | `subjects/catalog.yaml` | ordered subject groups 和 selected assets | 只有 materialize 后才进入 package |
 | Subject overlays | `subjects/<subject>/overlays/skills/*.md` | append 或替换声明 section | 否 |
 | Subject skills | `subjects/<subject>/skills/*.md` | 少量学科专属 skills | 否 |

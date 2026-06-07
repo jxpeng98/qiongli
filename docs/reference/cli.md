@@ -68,7 +68,74 @@ Exit Codes:
 - `1`: Update available.
 - `2`: Invalid argument.
 
-### 2.2 `qiongli install` (Install bundled subject payload)
+### 2.2 `qiongli setup` (Interactive CLI setup wizard)
+
+Use Case:
+- Recommended first command after installing the CLI with npm, pipx, pip, or bootstrap.
+- Guides CLI, Codex, and Claude Code users through install vs upgrade, runtime surface, subject, coverage, install mode, install scope, overwrite policy, upgrade source, optional provider key setup, and doctor verification.
+
+```bash
+qiongli setup [--project-dir <path>] [--dry-run] [--no-doctor]
+```
+
+Examples:
+
+```bash
+qiongli setup
+qiongli setup --dry-run
+qiongli setup --project-dir "$PWD" --no-doctor
+```
+
+When invoked through the npm launcher, `qiongli setup` uses the bundled Python bridge and requires Python 3.12+ plus `PyYAML`. The explicit `qiongli install ...` npm command remains available for Node-only asset installation.
+
+Wizard choices:
+- Setup path: `install` or `upgrade`.
+- Runtime surface: `cli`, `codex`, `claude-code`, or `multi-platform`.
+- Subject: `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, or `economics-accounting`.
+- Coverage: `complete` or `focused`.
+- Install mode: `--mode copy` for normal use, or `--mode link` for local development.
+- Install scope: `all`, `globals`, `project`, or `cli`.
+- Shell CLI directory when the selected scope includes CLI wrappers.
+- Overwrite policy: `--overwrite` for install refreshes, or `--no-overwrite` when upgrading without replacing managed files.
+- Upgrade source: latest stable, latest beta, optional `--repo`, explicit `--ref`, and `--ref-type tag|branch`.
+- Optional provider keys for literature provider credentials.
+- Doctor verification unless `--no-doctor` is set.
+
+Every prompt includes a short `Tip:` comment that explains why the choice matters and which install or upgrade behavior it changes.
+
+Provider keys entered through setup use the same provider config as `qiongli provider setup` and `qiongli provider doctor`. Secrets are stored outside generated research artifacts. Setup configures credentials and runs doctor/capability checks; it does not promise that an external literature search will run.
+
+### 2.2.1 `qiongli mcp` (Cross-platform MCP server)
+
+Use Case:
+- Runs the local Qiongli MCP server for desktop or agent clients that support MCP.
+- Lets CLI users and desktop-only users configure the same provider keys.
+- Generates client config examples without embedding secrets.
+
+```bash
+qiongli mcp serve --transport stdio
+qiongli mcp serve --transport http --host 127.0.0.1 --port 8765
+qiongli mcp configure --provider openalex --field email --value you@example.com
+qiongli mcp doctor --json
+qiongli mcp config example --target codex --json
+qiongli mcp config example --target claude-code --json
+qiongli mcp wizard
+```
+
+MCP tools exposed by the server:
+- `qiongli_config_status`
+- `qiongli_save_provider_config`
+- `qiongli_collect_evidence`
+- `qiongli_list_provider_env`
+- `qiongli_test_provider`
+- `qiongli_open_config_wizard`
+- `qiongli_orchestrator_doctor`
+- `qiongli_task_plan`
+- `qiongli_task_run`
+
+Default `stdio` mode is local and does not require a remote server. HTTP mode can also run locally; use a remote server only when the client cannot launch local MCP commands or when you need a managed shared endpoint. `qiongli_task_run` defaults to preview mode and launches local model CLIs only when the MCP caller explicitly sets JSON boolean `run_agents: true`.
+
+### 2.3 `qiongli install` (Install bundled subject payload)
 
 Use Case:
 - Installs the subject payload bundled inside the PyPI package into global client skill directories.
@@ -100,7 +167,7 @@ qiongli install --subject economics --coverage focused --target all
 
 Subject packages are specialized installs, not reduced-quality cuts. Default install is `core/complete`. `--subject economics`, `--subject business`, `--subject finance`, `--subject political-economy`, and `--subject geoeconomics` mean complete specialized installs, not reduced packages. `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. Focused coverage selects the subject profile set and active effective skills for deliberate slim installs and Desktop/Web ZIPs. Current official subjects are `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and the named composite `economics-accounting`; `political-economy` and `geoeconomics` are independent subject choices, not a composite. Official composites are not arbitrary comma-separated stacking. Public Desktop ZIP subjects are `core`, `economics`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting`, with no standalone accounting Desktop ZIP in this phase. Switch subjects or coverage by rerunning `install` or `upgrade` with new flags.
 
-### 2.3 `qiongli upgrade` (Download release & execute installers)
+### 2.4 `qiongli upgrade` (Download release & execute installers)
 
 Use Case:
 - Downloads the upstream release (defaults to latest tag `.tar.gz`).
@@ -130,7 +197,7 @@ Notes:
 - Shell CLI uses the bundled bootstrap helper and does not require Python.
 - The command exits with the error code returned by the underlying installer.
 
-### 2.4 `qiongli align` (Quick Reference Guide)
+### 2.5 `qiongli align` (Quick Reference Guide)
 
 Use Case: Prints an overview of "what pipx installed / paths modified by upgrades / common commands".
 
@@ -138,7 +205,7 @@ Use Case: Prints an overview of "what pipx installed / paths modified by upgrade
 qiongli align [--repo <owner/repo|url>]
 ```
 
-### 2.5 `qiongli init` (Project Bootstrap)
+### 2.6 `qiongli init` (Project Bootstrap)
 
 Use Case: Creates project-local `.env` configuration in your project directory.
 
@@ -150,7 +217,7 @@ Notes:
 - Only creates project-facing assets (`.env`). Does not touch global skill directories.
 - Safe to run multiple times; will not overwrite existing files unless `--overwrite` is passed.
 
-### 2.6 `qiongli clean` (Remove Stale Assets)
+### 2.7 `qiongli clean` (Remove Stale Assets)
 
 Use Case: Removes stale project-local assets left from older installations.
 
@@ -163,7 +230,7 @@ Flags:
 - `--globals`: Also remove workflow discovery symlinks from `~/.claude/commands/` and `~/.gemini/workflows/`. Only removes symlinks that point to `qiongli-workflow` — user-created commands are preserved.
 - `--dry-run`: Show what would be removed without deleting.
 
-### 2.7 `qiongli doctor` (Environment Preflight)
+### 2.8 `qiongli doctor` (Environment Preflight)
 
 Use Case: Runs orchestrator preflight checks (CLIs, API keys, MCP wiring).
 
@@ -171,7 +238,7 @@ Use Case: Runs orchestrator preflight checks (CLIs, API keys, MCP wiring).
 qiongli doctor [--cwd <path>]
 ```
 
-### 2.8 `qiongli customize` (Create a custom subject overlay)
+### 2.9 `qiongli customize` (Create a custom subject overlay)
 
 Use Case:
 - Creates a local custom overlay scaffold for the Python/source checkout materialization workflow.
@@ -183,7 +250,7 @@ qiongli customize --subject economics --name my-econ-lab --out ./qiongli-custom/
 python3 scripts/materialize_subject_package.py --subject economics --custom-dir ./qiongli-custom/econ-lab --source . --out /tmp/qiongli-workflow
 ```
 
-Developer subject-depth workflow: when adding or deepening a subject, update `subjects/catalog.yaml`, subject overlays, subject-specific registry and markdown, selected domain and venue profiles, subject eval fixtures, specialization audit expected terms, materializer tests, npm payload tests when the subject is installable through npm, and release validation if the subject has a Desktop/Web artifact.
+Developer subject-depth workflow: when adding or deepening a subject, update `subjects/catalog.yaml`, subject overlays, subject-specific registry and markdown, selected domain and venue profiles, subject eval fixtures, specialization audit expected terms, materializer tests, npm package contract tests against staged materialization when the subject is installable through npm, and release validation if the subject has a Desktop/Web artifact.
 
 ---
 
@@ -381,14 +448,16 @@ Recommended:
 - use `pre` / `post` only for diagnostics or recovery
 - let `publish` own commit, tag, push, branch CI wait, tag publish wait, GitHub Release, and acceptance receipt
 - stable releases publish from the matching `CHANGELOG.md` section
-- beta / prerelease releases publish from `release/<tag>.md`
+- beta / prerelease releases publish from `tooling/release/<tag>.md`
 
 Also executable individually:
 
 ```bash
-./scripts/release_preflight.sh [--tag v0.1.0-beta.X] [--skip-smoke] [--maintainer-smoke] [--no-strict]
-./scripts/release_postflight.sh --tag v0.1.0-beta.X [--skip-remote] [--skip-ci-status] [--wait-ci] [--create-release]
+./scripts/release_preflight.sh [--tag v0.1.0-beta.X] [--quick] [--skip-smoke] [--maintainer-smoke] [--no-strict]
+./scripts/release_postflight.sh --tag v0.1.0-beta.X [--skip-remote] [--skip-ci-status] [--wait-ci] [--ci-timeout-seconds 900] [--ci-timeout-mode soft] [--create-release]
 ```
+
+For beta releases, `--ci-timeout-mode soft` lets postflight wait for a bounded window and then record unresolved CI as `pending` in the acceptance receipt. Keep the default hard mode for stable releases.
 
 ### 4.4 Beta smoke tests: `./scripts/run_beta_smoke.sh`
 

@@ -12,7 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 class PaperReadingSummaryContractTests(unittest.TestCase):
     def test_b2_contract_declares_project_summary_outputs(self) -> None:
         contract = yaml.safe_load(
-            (REPO_ROOT / "standards" / "research-workflow-contract.yaml").read_text(
+            (REPO_ROOT / "content" / "standards" / "research-workflow-contract.yaml").read_text(
                 encoding="utf-8"
             )
         )
@@ -24,7 +24,7 @@ class PaperReadingSummaryContractTests(unittest.TestCase):
 
     def test_paper_read_workflow_enforces_truthful_summary_boundaries(self) -> None:
         content = (
-            REPO_ROOT / "qiongli-workflow" / "workflows" / "paper-read.md"
+            REPO_ROOT / "content" / "workflow" / "workflows" / "paper-read.md"
         ).read_text(encoding="utf-8")
 
         for token in (
@@ -39,7 +39,7 @@ class PaperReadingSummaryContractTests(unittest.TestCase):
             self.assertIn(token, content)
 
     def test_paper_note_template_requires_source_anchors_and_uncertainty(self) -> None:
-        content = (REPO_ROOT / "templates" / "paper-note.md").read_text(
+        content = (REPO_ROOT / "content" / "templates" / "paper-note.md").read_text(
             encoding="utf-8"
         )
 
@@ -54,12 +54,12 @@ class PaperReadingSummaryContractTests(unittest.TestCase):
             self.assertIn(token, content)
 
     def test_project_summary_templates_exist_and_block_unsupported_claims(self) -> None:
-        summary = (REPO_ROOT / "templates" / "paper-reading-summary.md").read_text(
-            encoding="utf-8"
-        )
-        matrix = (REPO_ROOT / "templates" / "paper-reading-matrix.md").read_text(
-            encoding="utf-8"
-        )
+        summary = (
+            REPO_ROOT / "content" / "templates" / "paper-reading-summary.md"
+        ).read_text(encoding="utf-8")
+        matrix = (
+            REPO_ROOT / "content" / "templates" / "paper-reading-matrix.md"
+        ).read_text(encoding="utf-8")
 
         for token in (
             "source_anchor",

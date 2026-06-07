@@ -62,6 +62,9 @@ const enSidebar = {
         { text: 'Extend Qiongli', link: '/advanced/extend-qiongli' },
         { text: 'Subject Packaging Model', link: '/advanced/subject-packaging-model' },
         { text: 'Agent + Skill Collaboration', link: '/advanced/agent-skill-collaboration' },
+        { text: 'Controller Modes', link: '/advanced/controller-modes' },
+        { text: 'Solo Mode', link: '/advanced/solo-mode' },
+        { text: 'Codex-Claude Duo', link: '/advanced/codex-claude-duo' },
         { text: 'Plugin-First Architecture', link: '/advanced/plugin-first-architecture' },
         { text: 'MCP Providers Setup', link: '/advanced/mcp-providers-setup' },
         { text: 'Rigorous Literature Search', link: '/advanced/rigorous-literature-search' },
@@ -78,7 +81,9 @@ const enSidebar = {
         { text: 'CLAUDE Guide Summary', link: '/maintainer/claude-overview' },
         { text: 'Architecture', link: '/architecture' },
         { text: 'Conventions', link: '/conventions' },
+        { text: 'Repository Structure', link: '/development/repository-structure' },
         { text: 'Naming Policy', link: '/maintainer/naming-policy' },
+        { text: 'External Borrowing', link: '/maintainer/external-borrowing' },
         { text: 'Release Branch Policy', link: '/maintainer/release-branch-policy' },
         { text: 'Publish to PyPI', link: '/advanced/publish-pypi' }
       ]
@@ -146,6 +151,7 @@ const zhSidebar = {
         { text: 'CLAUDE 指南摘要', link: '/zh/maintainer/claude-overview' },
         { text: '系统架构', link: '/zh/architecture' },
         { text: '规范约定', link: '/zh/conventions' },
+        { text: '仓库结构', link: '/zh/development/repository-structure' },
         { text: '命名策略', link: '/zh/maintainer/naming-policy' },
         { text: '发布分支策略', link: '/zh/maintainer/release-branch-policy' },
         { text: 'PyPI 发布', link: '/zh/advanced/publish-pypi' }
@@ -156,8 +162,7 @@ const zhSidebar = {
 
 const commonHead = [
   ['meta', { name: 'theme-color', content: '#0f766e' }],
-  ['meta', { name: 'author', content: 'Jiaxin Peng' }],
-  ['link', { rel: 'icon', type: 'image/svg+xml', href: '/mark.svg' }]
+  ['meta', { name: 'author', content: 'Jiaxin Peng' }]
 ]
 
 /** @type {import('vitepress').UserConfig} */
@@ -201,7 +206,5 @@ export default {
       }
     }
   },
-  themeConfig: {
-    logo: { src: '/mark.svg', alt: 'Qiongli' }
-  }
+  themeConfig: {}
 }

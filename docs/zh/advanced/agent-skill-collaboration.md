@@ -157,14 +157,14 @@ python3 scripts/capture_team_run_acceptance.py \
   --topic acceptance-probe \
   --cwd . \
   --max-units 2 \
-  --receipt release/acceptance/team-run-b1-local-receipt.md
+  --receipt tooling/release/acceptance/team-run-b1-local-receipt.md
 
 python3 scripts/capture_team_run_acceptance.py \
   --task-id H3 \
   --paper-type empirical \
   --topic acceptance-probe \
   --cwd . \
-  --receipt release/acceptance/team-run-h3-local-receipt.md
+  --receipt tooling/release/acceptance/team-run-h3-local-receipt.md
 ```
 
 判读规则：

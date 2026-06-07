@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import shutil
+import tempfile
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-MANIFEST_PATH = REPO_ROOT / "install" / "install_manifest.tsv"
-PACKAGED_MANIFEST_PATH = REPO_ROOT / "qiongli" / "install_manifest.tsv"
+LAYOUT = RepoLayout(REPO_ROOT)
+MANIFEST_PATH = LAYOUT.install / "install_manifest.tsv"
+PACKAGED_MANIFEST_PATH = LAYOUT.python_package / "install_manifest.tsv"
 SYNC_DIRS = ("skills", "templates", "standards", "roles", "venue-profiles")
 SYNC_FILES = ("skills-core.md", "skills-summary.md")
 SYNC_EXCLUDE = {"CLAUDE.project.md"}
@@ -32,10 +36,11 @@ def _read_manifest() -> list[dict[str, str]]:
     return entries
 
 
-def _ensure_skill_package_synced() -> None:
-    pkg = REPO_ROOT / "qiongli-workflow"
+def _build_skill_package(pkg: Path) -> None:
+    layout = RepoLayout(REPO_ROOT)
+    shutil.copytree(layout.workflow, pkg)
     for dir_name in SYNC_DIRS:
-        src = REPO_ROOT / dir_name
+        src = layout.resolve_source_path(dir_name)
         dest = pkg / dir_name
         if not src.is_dir():
             continue
@@ -49,7 +54,7 @@ def _ensure_skill_package_synced() -> None:
             for path in dest.rglob(excluded):
                 path.unlink()
     for file_name in SYNC_FILES:
-        src = REPO_ROOT / file_name
+        src = layout.resolve_source_path(file_name)
         dest = pkg / file_name
         if src.is_file():
             shutil.copy2(src, dest)
@@ -58,9 +63,13 @@ def _ensure_skill_package_synced() -> None:
 class InstallManifestTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        # The bundled skill package is generated and gitignored. Sync it explicitly
-        # so these assertions do not depend on leftover local state.
-        _ensure_skill_package_synced()
+        cls._tmp = tempfile.TemporaryDirectory()
+        cls.skill_pkg = Path(cls._tmp.name) / "qiongli-workflow"
+        _build_skill_package(cls.skill_pkg)
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls._tmp.cleanup()
 
     def test_packaged_manifest_matches_repo_manifest(self) -> None:
         self.assertTrue(PACKAGED_MANIFEST_PATH.exists(), msg="missing packaged install manifest")
@@ -98,7 +107,7 @@ class InstallManifestTests(unittest.TestCase):
 
         for entry in entries:
             self.assertIn(entry["op"], allowed_ops, msg=entry)
-            source = REPO_ROOT / entry["source"]
+            source = RepoLayout(REPO_ROOT).resolve_source_path(entry["source"])
             self.assertTrue(source.exists(), msg=f"missing source: {entry['source']}")
 
             destination = entry["destination"]
@@ -130,7 +139,7 @@ class InstallManifestTests(unittest.TestCase):
 
     def test_skill_source_contains_bundled_workflows(self) -> None:
         """The skill source directory must contain bundled workflows."""
-        skill_src = REPO_ROOT / "qiongli-workflow"
+        skill_src = RepoLayout(REPO_ROOT).workflow
         workflows_dir = skill_src / "workflows"
         self.assertTrue(workflows_dir.is_dir(), msg="missing workflows directory in skill source")
         workflow_files = list(workflows_dir.glob("*.md"))
@@ -142,7 +151,7 @@ class InstallManifestTests(unittest.TestCase):
 
     def test_skill_source_is_self_contained(self) -> None:
         """After sync, the skill package must be self-contained with all required assets."""
-        pkg = REPO_ROOT / "qiongli-workflow"
+        pkg = self.skill_pkg
         # skills-core.md
         self.assertTrue((pkg / "skills-core.md").is_file(), msg="missing skills-core.md in skill package")
         # skills-summary.md (3-tier loading: summary < core < full)

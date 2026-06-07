@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+from qiongli.source_layout import RepoLayout
 from typing import Any
 from unittest import mock
 
@@ -12,7 +16,9 @@ from bridges.base_bridge import BridgeResponse, CollaborationResult
 from bridges.command_runtime import current_python_command
 from bridges import i18n as i18n_module
 from bridges.mcp_connectors import MCPEvidence
+from bridges import orchestrator as orchestrator_module
 from bridges.orchestrator import CollaborationMode, ModelOrchestrator
+from bridges.provider_config import set_provider_value
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -20,7 +26,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 class MockOrchestrator(ModelOrchestrator):
     def __init__(self) -> None:
-        super().__init__(standards_dir=REPO_ROOT / "standards")
+        super().__init__(standards_dir=RepoLayout(REPO_ROOT).standards)
         self.runtime_calls: list[dict[str, Any]] = []
 
     def _runtime_preflight_error(
@@ -69,6 +75,25 @@ class MockOrchestrator(ModelOrchestrator):
         ], []
 
 
+def _write_fake_cli(bin_dir: Path, name: str, response_text: str) -> Path:
+    script = bin_dir / name
+    script.write_text(
+        "#!/usr/bin/env python3\n"
+        "import json\n"
+        "import sys\n"
+        "name = sys.argv[0].split('/')[-1]\n"
+        "if name == 'codex':\n"
+        "    print(json.dumps({'type': 'thread.started', 'thread_id': 'fake-codex'}))\n"
+        f"    print(json.dumps({{'type': 'event', 'item': {{'type': 'agent_message', 'text': {response_text!r}}}}}))\n"
+        "    print(json.dumps({'type': 'turn.completed'}))\n"
+        "else:\n"
+        f"    print(json.dumps({{'type': 'assistant', 'session_id': 'fake-claude', 'content': {response_text!r}}}))\n",
+        encoding="utf-8",
+    )
+    script.chmod(0o755)
+    return script
+
+
 class OrchestratorWorkflowTests(unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -97,6 +122,84 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         profile_path = Path(handle.name)
         self.addCleanup(profile_path.unlink, missing_ok=True)
         return profile_path
+
+    def test_default_standards_dir_uses_runtime_root_standards(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            runtime_root = root / "python-runtime"
+            module_file = runtime_root / "qiongli" / "bridges" / "orchestrator.py"
+            module_file.parent.mkdir(parents=True)
+            module_file.write_text("# fake module\n", encoding="utf-8")
+            standards = runtime_root / "standards"
+            standards.mkdir()
+            (standards / "research-workflow-contract.yaml").write_text("tasks: {}\n", encoding="utf-8")
+            (standards / "mcp-agent-capability-map.yaml").write_text("mcp_registry: []\n", encoding="utf-8")
+
+            resolved = orchestrator_module._default_standards_dir(
+                module_file=module_file,
+                cwd=root / "project",
+            )
+
+        self.assertEqual(resolved, standards)
+
+    def test_default_standards_dir_uses_repo_content_standards_from_source_tree(self) -> None:
+        resolved = orchestrator_module._default_standards_dir(
+            module_file=Path(orchestrator_module.__file__),
+            cwd=REPO_ROOT,
+        )
+
+        self.assertEqual(resolved, RepoLayout(REPO_ROOT).standards)
+
+    def test_task_run_invokes_fake_codex_and_claude_subprocesses(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp = Path(tmp_dir)
+            bin_dir = temp / "bin"
+            bin_dir.mkdir()
+            _write_fake_cli(bin_dir, "codex", "fake codex draft PASS CONFIDENCE: 0.9")
+            _write_fake_cli(bin_dir, "claude", "fake claude review PASS CONFIDENCE: 0.9")
+
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}{os.pathsep}{env.get('PATH', '')}"
+            env["RESEARCH_CLI_LANG"] = "en"
+            command = [
+                sys.executable,
+                "-m",
+                "bridges.orchestrator",
+                "task-run",
+                "--task-id",
+                "F3",
+                "--paper-type",
+                "empirical",
+                "--topic",
+                "fake-cli-e2e",
+                "--cwd",
+                str(REPO_ROOT),
+                "--execution-mode",
+                "duo",
+                "--primary",
+                "codex",
+                "--reviewer",
+                "claude",
+                "--skip-validation",
+            ]
+
+            completed = subprocess.run(
+                command,
+                cwd=REPO_ROOT,
+                env=env,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+            )
+
+        self.assertEqual(completed.returncode, 0, completed.stdout)
+        payload = json.loads(completed.stdout)
+        self.assertEqual(payload["mode"], "task-run")
+        self.assertTrue(payload["codex"]["success"])
+        self.assertTrue(payload["claude"]["success"])
+        self.assertIn("fake codex draft", payload["codex"]["content"])
+        self.assertIn("fake claude review", payload["claude"]["content"])
 
     def test_parallel_runs_with_mock_runtime(self) -> None:
         orchestrator = MockOrchestrator()
@@ -302,7 +405,7 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         self.assertIn("Academic Code Reviewer", result.merged_analysis)
 
     def test_doctor_distinguishes_builtin_env_override_and_external_slot(self) -> None:
-        orchestrator = ModelOrchestrator(standards_dir=REPO_ROOT / "standards")
+        orchestrator = ModelOrchestrator(standards_dir=RepoLayout(REPO_ROOT).standards)
         script_path = REPO_ROOT / "scripts" / "mcp_scholarly_search.py"
         with mock.patch.dict(
             os.environ,
@@ -318,8 +421,19 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         self.assertIn("MCP metadata-registry: builtin available: mcp_metadata_registry.py", result.merged_analysis)
         self.assertIn("MCP fulltext-retrieval: builtin available: mcp_fulltext_retrieval.py", result.merged_analysis)
 
+    def test_doctor_reports_literature_provider_config(self) -> None:
+        orchestrator = ModelOrchestrator(standards_dir=RepoLayout(REPO_ROOT).standards)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            config_home = Path(tmp_dir) / "config"
+            with mock.patch.dict(os.environ, {"QIONGLI_CONFIG_HOME": str(config_home)}, clear=False):
+                set_provider_value("semantic-scholar", "api-key", "doctor-key")
+                result = orchestrator.doctor(REPO_ROOT)
+
+        self.assertIn("Literature provider semantic_scholar: configured", result.merged_analysis)
+        self.assertIn("Literature search capability: provider_connected", result.merged_analysis)
+
     def test_doctor_reports_metadata_registry_enrichment_overlay(self) -> None:
-        orchestrator = ModelOrchestrator(standards_dir=REPO_ROOT / "standards")
+        orchestrator = ModelOrchestrator(standards_dir=RepoLayout(REPO_ROOT).standards)
         with mock.patch.dict(
             os.environ,
             {
@@ -336,7 +450,7 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         self.assertIn("MCP metadata-registry enrichment: overlay configured:", result.merged_analysis)
 
     def test_doctor_reports_fulltext_resolution_overlay(self) -> None:
-        orchestrator = ModelOrchestrator(standards_dir=REPO_ROOT / "standards")
+        orchestrator = ModelOrchestrator(standards_dir=RepoLayout(REPO_ROOT).standards)
         with mock.patch.dict(
             os.environ,
             {
@@ -957,7 +1071,7 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         draft_prompts = [
             call["prompt"]
             for call in orchestrator.runtime_calls
-            if "You are executing one canonical research workflow task." in call["prompt"]
+            if "Draft the task outputs for this canonical research workflow task." in call["prompt"]
         ]
         self.assertTrue(draft_prompts)
         draft_prompt = draft_prompts[0]
@@ -976,7 +1090,10 @@ class OrchestratorWorkflowTests(unittest.TestCase):
                 runtime_options: dict[str, Any] | None = None,
                 profile_directive: str | None = None,
             ) -> BridgeResponse:
-                if "You are executing one canonical research workflow task." in prompt and '"task_id": "I6"' in prompt:
+                if (
+                    "Draft the task outputs for this canonical research workflow task." in prompt
+                    and '"task_id": "I6"' in prompt
+                ):
                     content = """---
 task_id: I6
 template_type: code_plan
@@ -1194,7 +1311,7 @@ primary_artifact: code/plan.md
                         "cwd": str(cwd),
                     }
                 )
-                if "You are executing one canonical research workflow task." in prompt:
+                if "Draft the task outputs for this canonical research workflow task." in prompt:
                     return BridgeResponse(success=True, model=agent_name, content=revised_artifact)
                 if "Review the draft" in prompt:
                     return BridgeResponse(
@@ -1222,7 +1339,7 @@ primary_artifact: code/plan.md
         draft_prompts = [
             call["prompt"]
             for call in orchestrator.runtime_calls
-            if "You are executing one canonical research workflow task." in call["prompt"]
+            if "Draft the task outputs for this canonical research workflow task." in call["prompt"]
         ]
         self.assertTrue(draft_prompts)
         self.assertIn("Targeted follow-up mode is active.", draft_prompts[0])
@@ -1253,7 +1370,7 @@ primary_artifact: code/plan.md
         draft_prompts = [
             call["prompt"]
             for call in orchestrator.runtime_calls
-            if "You are executing one canonical research workflow task." in call["prompt"]
+            if "Draft the task outputs for this canonical research workflow task." in call["prompt"]
         ]
         self.assertTrue(draft_prompts)
         self.assertIn("Academic context continuity update is active for this run.", draft_prompts[0])
@@ -1426,9 +1543,9 @@ primary_artifact: code/plan.md
 
     def test_parse_review_verdict_convergence(self) -> None:
         orchestrator = MockOrchestrator()
-        # High confidence but BLOCK should auto-converge to PASS
+        # High confidence confirms the reviewer's certainty; it must not override BLOCK.
         verdict, conf = orchestrator._parse_review_verdict("- Verdict: BLOCK\nConfidence: 0.9")
-        self.assertEqual(verdict, "PASS")
+        self.assertEqual(verdict, "BLOCK")
         self.assertEqual(conf, 0.9)
 
     def test_critique_question_injection(self) -> None:
@@ -1540,6 +1657,105 @@ primary_artifact: code/plan.md
         self.assertIn("review/self_critique_log.md", revision_prompt)
         self.assertIn("Critical Issues: Needed more depth", revision_prompt)
         self.assertTrue(result.data["self_critique_loop"]["enabled"])
+        self.assertEqual(result.data["review_loop_state"]["status"], "passed")
+
+    def test_task_run_self_critique_requires_stability_review_after_pass(self) -> None:
+        class PassingReviewOrchestrator(MockOrchestrator):
+            def __init__(self) -> None:
+                super().__init__()
+                self.review_count = 0
+
+            def _execute_runtime_agent(
+                self,
+                agent_name: str,
+                prompt: str,
+                cwd: Path,
+                runtime_options: dict[str, Any] | None = None,
+                profile_directive: str | None = None,
+            ) -> BridgeResponse:
+                if "Review the draft" in prompt:
+                    self.review_count += 1
+                    self.runtime_calls.append({
+                        "agent": agent_name,
+                        "prompt": prompt,
+                        "runtime_options": dict(runtime_options or {}),
+                        "profile_directive": profile_directive or "",
+                        "cwd": str(cwd),
+                    })
+                    return BridgeResponse(
+                        success=True,
+                        model=agent_name,
+                        content="Verdict: PASS\nConfidence: 0.92\nCritical Issues: none",
+                    )
+                return super()._execute_runtime_agent(
+                    agent_name, prompt, cwd, runtime_options, profile_directive
+                )
+
+        orchestrator = PassingReviewOrchestrator()
+        result = orchestrator.task_run(
+            task_id="F3",
+            paper_type="empirical",
+            topic="stable-pass",
+            cwd=REPO_ROOT,
+            skip_validation=True,
+        )
+
+        review_prompts = [
+            call["prompt"]
+            for call in orchestrator.runtime_calls
+            if "Review the draft" in call["prompt"]
+        ]
+        revision_prompts = [
+            call["prompt"]
+            for call in orchestrator.runtime_calls
+            if "You are revising a research workflow task draft" in call["prompt"]
+        ]
+        self.assertEqual(len(review_prompts), 2)
+        self.assertEqual(len(revision_prompts), 0)
+        self.assertIn("running stability review 2/2 before convergence", result.merged_analysis)
+        self.assertEqual(result.data["review_loop_state"]["status"], "passed")
+        self.assertEqual(result.data["review_loop_state"]["reviews_completed"], 2)
+
+    def test_task_run_final_block_marks_loop_blocked(self) -> None:
+        class BlockingReviewOrchestrator(MockOrchestrator):
+            def _execute_runtime_agent(
+                self,
+                agent_name: str,
+                prompt: str,
+                cwd: Path,
+                runtime_options: dict[str, Any] | None = None,
+                profile_directive: str | None = None,
+            ) -> BridgeResponse:
+                if "Review the draft" in prompt:
+                    self.runtime_calls.append({
+                        "agent": agent_name,
+                        "prompt": prompt,
+                        "runtime_options": dict(runtime_options or {}),
+                        "profile_directive": profile_directive or "",
+                        "cwd": str(cwd),
+                    })
+                    return BridgeResponse(
+                        success=True,
+                        model=agent_name,
+                        content="Verdict: BLOCK\nConfidence: 0.88\nCritical Issues: unresolved overclaim",
+                    )
+                return super()._execute_runtime_agent(
+                    agent_name, prompt, cwd, runtime_options, profile_directive
+                )
+
+        orchestrator = BlockingReviewOrchestrator()
+        result = orchestrator.task_run(
+            task_id="F3",
+            paper_type="empirical",
+            topic="blocked-loop",
+            cwd=REPO_ROOT,
+            skip_validation=True,
+        )
+
+        self.assertEqual(result.data["review_loop_state"]["status"], "blocked")
+        self.assertEqual(result.data["review_loop_state"]["final_verdict"], "BLOCK")
+        self.assertLessEqual(result.confidence, 0.55)
+        self.assertIn("Review BLOCKED at final round 2", result.merged_analysis)
 
     @unittest.mock.patch("sys.stdin.isatty", return_value=False)
     def test_interactive_mode_skips_when_no_tty(self, mock_isatty) -> None:

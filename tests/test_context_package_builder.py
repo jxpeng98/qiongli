@@ -5,11 +5,13 @@ import json
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 from bridges.context_package import build_context_package
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-TEMPLATE_PATH = REPO_ROOT / "templates" / "context-manifest.json"
+TEMPLATE_PATH = RepoLayout(REPO_ROOT).templates / "context-manifest.json"
 
 
 class ContextPackageBuilderTests(unittest.TestCase):

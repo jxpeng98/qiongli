@@ -1,0 +1,94 @@
+{
+  "manifest_version": "0.3",
+  "name": "qiongli-literature-provider",
+  "display_name": "Qiongli Literature Provider",
+  "version": "0.1.0",
+  "description": "Local Claude Desktop MCP server for academic literature search through OpenAlex and Semantic Scholar.",
+  "author": {
+    "name": "Qiongli"
+  },
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.mjs",
+    "mcp_config": {
+      "command": "node",
+      "args": [
+        "${__dirname}/server/index.mjs"
+      ],
+      "env": {
+        "QIONGLI_MCPB_OPENALEX_EMAIL": "${user_config.openalex_email}",
+        "QIONGLI_MCPB_SEMANTIC_SCHOLAR_API_KEY": "${user_config.semantic_scholar_api_key}",
+        "QIONGLI_MCPB_DEFAULT_LIMIT": "${user_config.default_result_limit}"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "qiongli_literature_status",
+      "description": "Report configured literature providers and capability mode without exposing secrets."
+    },
+    {
+      "name": "qiongli_config_status",
+      "description": "Report shared Qiongli provider configuration status without exposing secrets."
+    },
+    {
+      "name": "qiongli_save_provider_config",
+      "description": "Save a Qiongli provider email or API key into the shared local provider config."
+    },
+    {
+      "name": "qiongli_literature_search",
+      "description": "Search academic literature using configured OpenAlex and Semantic Scholar providers."
+    },
+    {
+      "name": "qiongli_literature_export_evidence",
+      "description": "Export an auditable provider capability and search evidence snapshot."
+    }
+  ],
+  "compatibility": {
+    "claude_desktop": ">=1.0.0",
+    "platforms": [
+      "darwin",
+      "win32"
+    ],
+    "runtimes": {
+      "node": ">=18.0.0"
+    }
+  },
+  "user_config": {
+    "openalex_email": {
+      "type": "string",
+      "title": "OpenAlex email",
+      "description": "Email address included in OpenAlex requests for polite pool access.",
+      "sensitive": true,
+      "required": false
+    },
+    "semantic_scholar_api_key": {
+      "type": "string",
+      "title": "Semantic Scholar API key",
+      "description": "Semantic Scholar API key. Leave blank to use only unauthenticated provider paths.",
+      "sensitive": true,
+      "required": false
+    },
+    "default_result_limit": {
+      "type": "number",
+      "title": "Default result limit",
+      "description": "Maximum results per provider when a tool call does not specify a limit.",
+      "default": 10,
+      "min": 1,
+      "max": 50,
+      "required": false
+    }
+  },
+  "keywords": [
+    "academic",
+    "literature",
+    "openalex",
+    "semantic-scholar",
+    "qiongli"
+  ],
+  "license": "MIT",
+  "privacy_policies": [
+    "https://openalex.org/privacy",
+    "https://www.semanticscholar.org/product/api/license"
+  ]
+}

@@ -4,6 +4,7 @@ import argparse
 import contextlib
 import io
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -90,6 +91,33 @@ class InstallerCliTests(unittest.TestCase):
         self.assertEqual(options.coverage, "focused")
         self.assertEqual(options.target, "codex")
 
+    def test_setup_command_dispatches_to_setup_wizard(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            with mock.patch("qiongli.setup_wizard.run_setup_wizard", return_value=object()) as setup_mock:
+                with mock.patch.object(
+                    cli_module.sys,
+                    "argv",
+                    ["qiongli", "setup", "--dry-run", "--project-dir", tmp_dir, "--no-doctor"],
+                ):
+                    exit_code = cli_module.main()
+
+        self.assertEqual(exit_code, 0)
+        setup_mock.assert_called_once()
+        args = setup_mock.call_args.args[0]
+        self.assertEqual(args.cmd, "setup")
+        self.assertEqual(args.project_dir, tmp_dir)
+        self.assertTrue(args.dry_run)
+        self.assertTrue(args.no_doctor)
+
+    def test_setup_command_is_listed_in_help(self) -> None:
+        parser = cli_module.build_parser()
+
+        help_text = parser.format_help()
+        normalized_help = " ".join(help_text.split())
+
+        self.assertIn("setup", help_text)
+        self.assertIn("Interactively configures Qiongli for CLI/Codex/Claude Code use", normalized_help)
+
     def test_install_unknown_subject_reports_available_subjects(self) -> None:
         stderr = io.StringIO()
         with mock.patch.object(
@@ -104,6 +132,16 @@ class InstallerCliTests(unittest.TestCase):
             "Unknown subject 'unknown'. Available subjects: accounting, business, core, economics, economics-accounting, finance",
             stderr.getvalue(),
         )
+
+    def test_packaged_payload_root_falls_back_to_checkout_cwd_when_payload_is_absent(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            fake_site_file = Path(tmp_dir) / "site-packages" / "qiongli" / "cli.py"
+            fake_site_file.parent.mkdir(parents=True)
+            fake_site_file.write_text("# installed package placeholder\n", encoding="utf-8")
+            with mock.patch.object(cli_module, "__file__", str(fake_site_file)):
+                payload_root = cli_module._packaged_payload_root()
+
+        self.assertEqual(payload_root, REPO_ROOT)
 
     def test_align_describes_global_first_upgrade_and_project_init(self) -> None:
         args = argparse.Namespace(repo="owner/repo")
@@ -208,6 +246,57 @@ class InstallerCliTests(unittest.TestCase):
         self.assertEqual(command[:3], [cli_module.sys.executable, "-m", "bridges.orchestrator"])
         self.assertEqual(command[3:], ["doctor", "--cwd", str(Path(".").resolve())])
 
+    def test_provider_set_and_list_redacts_global_config(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            config_home = Path(tmp_dir) / "config"
+            with mock.patch.dict(os.environ, {"QIONGLI_CONFIG_HOME": str(config_home)}, clear=False):
+                with mock.patch.object(
+                    cli_module.sys,
+                    "argv",
+                    ["qiongli", "provider", "set", "semantic-scholar", "api-key", "cli-secret"],
+                ):
+                    self.assertEqual(cli_module.main(), 0)
+
+                stdout = io.StringIO()
+                with mock.patch.object(
+                    cli_module.sys,
+                    "argv",
+                    ["qiongli", "provider", "list", "--json"],
+                ), contextlib.redirect_stdout(stdout):
+                    self.assertEqual(cli_module.main(), 0)
+
+        payload = json.loads(stdout.getvalue())
+        rendered = json.dumps(payload, sort_keys=True)
+        self.assertNotIn("cli-secret", rendered)
+        self.assertEqual(payload["providers"]["semantic_scholar"]["fields"]["api_key"], "configured")
+
+    def test_provider_doctor_json_reports_provider_connected_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            config_home = Path(tmp_dir) / "config"
+            with mock.patch.dict(os.environ, {"QIONGLI_CONFIG_HOME": str(config_home)}, clear=False):
+                for provider, field, value in (
+                    ("openalex", "email", "user@example.com"),
+                    ("semantic-scholar", "api-key", "cli-secret"),
+                ):
+                    with mock.patch.object(
+                        cli_module.sys,
+                        "argv",
+                        ["qiongli", "provider", "set", provider, field, value],
+                    ):
+                        self.assertEqual(cli_module.main(), 0)
+
+                stdout = io.StringIO()
+                with mock.patch.object(
+                    cli_module.sys,
+                    "argv",
+                    ["qiongli", "provider", "doctor", "--json"],
+                ), contextlib.redirect_stdout(stdout):
+                    self.assertEqual(cli_module.main(), 0)
+
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual(payload["capability_mode"], "provider_connected")
+        self.assertEqual(payload["providers"]["openalex"], "configured")
+        self.assertEqual(payload["providers"]["semantic_scholar"], "configured")
 
 if __name__ == "__main__":
     unittest.main()
