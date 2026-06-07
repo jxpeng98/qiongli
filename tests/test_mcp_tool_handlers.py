@@ -343,6 +343,204 @@ class MCPToolHandlerTests(unittest.TestCase):
         self.assertEqual(preview["task_run_arguments"]["review_agent"], "claude")
         self.assertFalse(preview["will_launch_agents"])
 
+    def test_task_run_preview_maps_triad_execution_mode_to_metadata(self) -> None:
+        class StubResult:
+            mode = "task-plan"
+            confidence = 0.8
+            merged_analysis = "preview"
+            recommendations: list[str] = []
+            data = {
+                "task_id": "F3",
+                "paper_type": "empirical",
+                "topic": "my-topic",
+                "artifact_root": "RESEARCH/[topic]/",
+                "runtime_plan": {
+                    "primary_agent": "codex",
+                    "review_agent": "claude",
+                    "fallback_agent": "gemini",
+                },
+            }
+
+        class StubOrchestrator:
+            def task_plan(self, **_kwargs: object) -> StubResult:
+                return StubResult()
+
+            def _build_controller_metadata(self, **kwargs: object) -> dict[str, str]:
+                self.controller_kwargs = kwargs
+                return {
+                    "execution_mode": str(kwargs["execution_mode"]),
+                    "controller": str(kwargs["controller"]),
+                    "primary_agent": str(kwargs["primary_agent"]),
+                    "review_agent": str(kwargs["review_agent"]),
+                    "verifier_agent": str(kwargs["verifier_agent"] or ""),
+                    "solo_role_gates": str(kwargs["solo_role_gates"]),
+                    "triad": str(kwargs["triad"]),
+                }
+
+            def _controller_runtime_overrides(self, _metadata: dict[str, str]) -> dict[str, str]:
+                return {}
+
+        stub = StubOrchestrator()
+        with mock.patch.object(tool_handlers, "ModelOrchestrator", return_value=stub):
+            result = call_qiongli_tool(
+                "qiongli_task_run",
+                {
+                    "task_id": "F3",
+                    "paper_type": "empirical",
+                    "topic": "my-topic",
+                    "cwd": ".",
+                    "execution_mode": "triad",
+                    "controller": "codex",
+                    "primary": "codex",
+                    "reviewer": "claude",
+                    "verifier": "gemini",
+                },
+            )
+
+        self.assertFalse(result["isError"])
+        preview = result["structuredContent"]["data"]["task_run_preview"]
+        self.assertIs(stub.controller_kwargs["triad"], True)
+        self.assertEqual(preview["controller_metadata"]["triad"], "True")
+
+    def test_task_run_preview_includes_domain_context_in_task_packet(self) -> None:
+        class StubResult:
+            mode = "task-plan"
+            confidence = 0.8
+            merged_analysis = "preview"
+            recommendations: list[str] = []
+            data = {
+                "task_id": "F3",
+                "paper_type": "empirical",
+                "topic": "my-topic",
+                "artifact_root": "RESEARCH/[topic]/",
+                "runtime_plan": {
+                    "primary_agent": "codex",
+                    "review_agent": "claude",
+                    "fallback_agent": "gemini",
+                },
+            }
+
+        class StubOrchestrator:
+            def task_plan(self, **_kwargs: object) -> StubResult:
+                return StubResult()
+
+            def _build_controller_metadata(self, **_kwargs: object) -> dict[str, str]:
+                return {
+                    "execution_mode": "duo",
+                    "controller": "codex",
+                    "primary_agent": "",
+                    "review_agent": "",
+                    "verifier_agent": "",
+                    "solo_role_gates": "standard",
+                }
+
+            def _controller_runtime_overrides(self, _metadata: dict[str, str]) -> dict[str, str]:
+                return {}
+
+            def _load_domain_profile_context(self, domain: str) -> dict[str, str]:
+                return {
+                    "requested_domain": domain,
+                    "domain": "finance",
+                    "status": "loaded",
+                    "display_name": "Finance",
+                }
+
+            def _build_domain_packet_fields(self, domain_context: dict[str, str]) -> dict[str, str]:
+                return {
+                    "domain": domain_context["domain"],
+                    "requested_domain": domain_context["requested_domain"],
+                    "domain_profile_status": domain_context["status"],
+                    "domain_profile_display_name": domain_context["display_name"],
+                }
+
+        stub = StubOrchestrator()
+        with mock.patch.object(tool_handlers, "ModelOrchestrator", return_value=stub):
+            result = call_qiongli_tool(
+                "qiongli_task_run",
+                {
+                    "task_id": "F3",
+                    "paper_type": "empirical",
+                    "topic": "my-topic",
+                    "cwd": ".",
+                    "domain": "finance",
+                },
+            )
+
+        task_packet = result["structuredContent"]["data"]["task_packet"]
+        self.assertEqual(task_packet["domain"], "finance")
+        self.assertEqual(task_packet["requested_domain"], "finance")
+        self.assertIn("domain_profile_status", task_packet)
+        self.assertIn("domain_profile_display_name", task_packet)
+
+    def test_task_run_preview_includes_auto_domain_context_in_task_packet(self) -> None:
+        class StubResult:
+            mode = "task-plan"
+            confidence = 0.8
+            merged_analysis = "preview"
+            recommendations: list[str] = []
+            data = {
+                "task_id": "F3",
+                "paper_type": "empirical",
+                "topic": "my-topic",
+                "artifact_root": "RESEARCH/[topic]/",
+                "runtime_plan": {
+                    "primary_agent": "codex",
+                    "review_agent": "claude",
+                    "fallback_agent": "gemini",
+                },
+            }
+
+        class StubOrchestrator:
+            def task_plan(self, **_kwargs: object) -> StubResult:
+                return StubResult()
+
+            def _build_controller_metadata(self, **_kwargs: object) -> dict[str, str]:
+                return {
+                    "execution_mode": "duo",
+                    "controller": "codex",
+                    "primary_agent": "",
+                    "review_agent": "",
+                    "verifier_agent": "",
+                    "solo_role_gates": "standard",
+                }
+
+            def _controller_runtime_overrides(self, _metadata: dict[str, str]) -> dict[str, str]:
+                return {}
+
+            def _load_domain_profile_context(self, domain: str) -> dict[str, str]:
+                return {
+                    "requested_domain": domain,
+                    "domain": "auto",
+                    "status": "auto",
+                    "display_name": "Auto-detect",
+                }
+
+            def _build_domain_packet_fields(self, domain_context: dict[str, str]) -> dict[str, str]:
+                return {
+                    "domain": domain_context["domain"],
+                    "requested_domain": domain_context["requested_domain"],
+                    "domain_profile_status": domain_context["status"],
+                    "domain_profile_display_name": domain_context["display_name"],
+                }
+
+        stub = StubOrchestrator()
+        with mock.patch.object(tool_handlers, "ModelOrchestrator", return_value=stub):
+            result = call_qiongli_tool(
+                "qiongli_task_run",
+                {
+                    "task_id": "F3",
+                    "paper_type": "empirical",
+                    "topic": "my-topic",
+                    "cwd": ".",
+                },
+            )
+
+        task_packet = result["structuredContent"]["data"]["task_packet"]
+        self.assertEqual(task_packet["domain"], "auto")
+        self.assertEqual(task_packet["requested_domain"], "auto")
+        self.assertIn("domain_profile_status", task_packet)
+        self.assertIn("domain_profile_display_name", task_packet)
+
     def test_task_run_tool_can_launch_agents_when_explicitly_enabled(self) -> None:
         class StubResult:
             mode = "task-run"
@@ -380,6 +578,79 @@ class MCPToolHandlerTests(unittest.TestCase):
         self.assertTrue(payload["run_agents"])
         self.assertEqual(stub.kwargs["execution_mode"], "duo")
         self.assertEqual(stub.kwargs["controller"], "codex")
+
+    def test_task_run_tool_maps_triad_execution_mode_to_triad_flag(self) -> None:
+        class StubResult:
+            mode = "task-run"
+            confidence = 0.95
+            merged_analysis = "run ok"
+            recommendations: list[str] = []
+            data = {"runtime_plan": {"draft": "codex", "review": "claude"}}
+
+        class StubOrchestrator:
+            def task_run(self, **kwargs: object) -> StubResult:
+                self.kwargs = kwargs
+                return StubResult()
+
+        stub = StubOrchestrator()
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            with mock.patch.object(tool_handlers, "ModelOrchestrator", return_value=stub):
+                result = call_qiongli_tool(
+                    "qiongli_task_run",
+                    {
+                        "cwd": str(root),
+                        "task_id": "F3",
+                        "paper_type": "empirical",
+                        "topic": "my-topic",
+                        "execution_mode": "triad",
+                        "controller": "codex",
+                        "primary": "codex",
+                        "reviewer": "claude",
+                        "verifier": "gemini",
+                        "run_agents": True,
+                    },
+                )
+
+        self.assertFalse(result["isError"])
+        self.assertIs(stub.kwargs["triad"], True)
+
+    def test_task_run_tool_explicit_false_triad_overrides_triad_execution_mode(self) -> None:
+        class StubResult:
+            mode = "task-run"
+            confidence = 0.95
+            merged_analysis = "run ok"
+            recommendations: list[str] = []
+            data = {"runtime_plan": {"draft": "codex", "review": "claude"}}
+
+        class StubOrchestrator:
+            def task_run(self, **kwargs: object) -> StubResult:
+                self.kwargs = kwargs
+                return StubResult()
+
+        stub = StubOrchestrator()
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            with mock.patch.object(tool_handlers, "ModelOrchestrator", return_value=stub):
+                result = call_qiongli_tool(
+                    "qiongli_task_run",
+                    {
+                        "cwd": str(root),
+                        "task_id": "F3",
+                        "paper_type": "empirical",
+                        "topic": "my-topic",
+                        "execution_mode": "triad",
+                        "triad": False,
+                        "controller": "codex",
+                        "primary": "codex",
+                        "reviewer": "claude",
+                        "verifier": "gemini",
+                        "run_agents": True,
+                    },
+                )
+
+        self.assertFalse(result["isError"])
+        self.assertIs(stub.kwargs["triad"], False)
 
 
 if __name__ == "__main__":

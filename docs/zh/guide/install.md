@@ -6,7 +6,7 @@ Qiongli 有多个安装入口，是因为不同用户需要的运行时能力不
 
 | 入口 | 适合场景 | 安装内容 | 是否要求 Python |
 |---|---|---|---|
-| 原生 plugin / extension | 单个客户端，最少配置 | 客户端 plugin 和 `qiongli-workflow` | 否 |
+| 原生 plugin / extension | 单个客户端，最少配置 | 客户端 plugin 和 `qiongli-workflow`；Codex 和 Claude Code 在适用平台内置 literature MCP runtime | skill 使用和内置 literature MCP 不要求；完整 runtime 需要 Python/CLI |
 | Claude Desktop Skill ZIP | Claude Desktop 或 Claude.ai，尤其适合不熟悉 code / CLI 环境的用户 | 个人上传的 `qiongli` Skill | 否 |
 | Bootstrap `partial` | 多客户端全局 workflow assets | skills 和客户端支持的 workflow discovery | 否 |
 | Bootstrap `full` | runtime check 和 orchestrator | `partial` 加 shell CLI 与 `doctor` 支持 | 是，Python 3.12+ |
@@ -46,6 +46,8 @@ claude plugin install qiongli-economics@skillsplace
 /plugin install qiongli@skillsplace
 /plugin install qiongli-economics@skillsplace
 ```
+
+Claude Code marketplace plugin 也内置 `mcp/qiongli-literature-provider/` 下的零依赖 Node literature-provider MCP runtime，提供与 Codex plugin 相同的文献 provider、search 和 status 工具。只使用这些内置 literature/provider 工具时，不需要安装 `qiongli` CLI。完整 Python-backed orchestration MCP 仍然是独立 CLI runtime：如果需要 `qiongli_task_plan`、`qiongli_task_run` 或 `qiongli_orchestrator_doctor` 等工具，需要 npm、pipx/pip 或 `full` bootstrap，并运行 `qiongli mcp serve --transport stdio`。
 
 Claude Desktop 和 Claude.ai 不安装第三方 Claude Code plugin marketplace。如果你使用 Desktop 或网页版，并且不熟悉 code / CLI 环境，优先使用 release ZIP 路径，不需要任何终端命令：
 

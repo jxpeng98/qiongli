@@ -32,7 +32,7 @@ This repo keeps one plugin, `qiongli`, and ships one portable skill package dire
 | Platform | Manifest | Runtime entry |
 |----------|----------|---------------|
 | Codex | `packages/qiongli-plugin/.codex-plugin/plugin.json` plus bundled `packages/qiongli-plugin/.mcp.json`; public catalog entry in `jxpeng98/skillsplace` | `skills/qiongli-workflow/`, visible as `qiongli` in `/skills`, invoked as `$qiongli`; bundled Node literature-provider MCP runtime under `mcp/qiongli-literature-provider/` |
-| Claude Code | `packages/qiongli-plugin/.claude-plugin/plugin.json`; public catalog entry in `jxpeng98/skillsplace` | `commands/*.md` plus `skills/qiongli-workflow/` |
+| Claude Code | `packages/qiongli-plugin/.claude-plugin/plugin.json`; public catalog entry in `jxpeng98/skillsplace` | `commands/*.md` plus `skills/qiongli-workflow/`; bundled Node literature-provider MCP runtime under `mcp/qiongli-literature-provider/` |
 | Gemini | `packages/qiongli-plugin/gemini-extension.json` | `skills/qiongli-workflow/` |
 
 The shared Skillsplace repository is the public marketplace source of truth. It points to this repository's `packages/qiongli-plugin` subdirectory through git-subdir entries, so this repository should own the plugin manifests and source used to generate release payloads, not duplicate public marketplace catalog state.
@@ -47,7 +47,7 @@ The plugin-first package does not replace the legacy global install in place. Na
 - Global skill install: `~/.codex/skills/qiongli-workflow`, `~/.claude/skills/qiongli-workflow`, and `~/.gemini/skills/qiongli-workflow`, managed by `rsk` or bootstrap.
 - Global slash discovery: `~/.claude/commands/*.md` and `~/.gemini/workflows/*.md`, managed by `rsk`.
 
-For ordinary skill-only client-native usage and Codex bundled literature-provider MCP usage, the plugin bundle is enough. For the full Python-backed MCP server, CLI commands, validators, `doctor`, release tooling, or `bridges.orchestrator`, users still need the local `qiongli` CLI/runtime and should keep the global install aligned with:
+For ordinary skill-only client-native usage and Codex/Claude Code bundled literature-provider MCP usage, the plugin bundle is enough. For the full Python-backed MCP server, CLI commands, validators, `doctor`, release tooling, or `bridges.orchestrator`, users still need the local `qiongli` CLI/runtime and should keep the global install aligned with:
 
 ```bash
 qiongli upgrade --target all --doctor

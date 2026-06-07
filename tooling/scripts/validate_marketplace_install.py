@@ -19,7 +19,7 @@ for import_root in (PYTHON_SOURCE_ROOT, REPO_ROOT):
     if str(import_root) not in sys.path:
         sys.path.insert(0, str(import_root))
 
-from build_plugin_artifacts import build_artifacts
+from build_plugin_artifacts import _desktop_subjects, _marketplace_subjects, build_artifacts
 from qiongli.source_layout import RepoLayout
 
 
@@ -35,6 +35,7 @@ class ArtifactSpec:
     manifest: Path
     plugin_root: Path
     requires_commands: bool
+    expects_bundled_mcp: bool = False
 
 
 ARTIFACT_SPECS = {
@@ -43,12 +44,14 @@ ARTIFACT_SPECS = {
         manifest=Path("plugins") / PLUGIN_NAME / ".codex-plugin" / "plugin.json",
         plugin_root=Path("plugins") / PLUGIN_NAME,
         requires_commands=True,
+        expects_bundled_mcp=True,
     ),
     "claude": ArtifactSpec(
         platform="claude",
         manifest=Path("plugins") / PLUGIN_NAME / ".claude-plugin" / "plugin.json",
         plugin_root=Path("plugins") / PLUGIN_NAME,
         requires_commands=True,
+        expects_bundled_mcp=True,
     ),
     "gemini": ArtifactSpec(
         platform="gemini",
@@ -183,6 +186,11 @@ def _assert_core_desktop_package(skill_root: Path) -> None:
     _assert_subject_manifest(skill_root, "core", "focused")
     if (skill_root / "skills" / "A_framing" / "question-refiner.md").exists():
         raise ValueError("core Desktop ZIP must remain slim and omit detailed generic skill specs")
+
+
+def _assert_focused_desktop_package(skill_root: Path, subject: str) -> None:
+    _assert_subject_marker(skill_root, subject)
+    _assert_subject_manifest(skill_root, subject, "focused")
 
 
 def _assert_economics_desktop_package(skill_root: Path) -> None:
@@ -351,6 +359,41 @@ def _assert_command_invocation(plugin_root: Path, workflow_names: list[str]) -> 
             raise ValueError(f"{command_path} must load {SKILL_NAME} and reference {expected_reference}")
 
 
+def _assert_bundled_literature_mcp(plugin_root: Path, platform: str) -> None:
+    provider_entrypoint = plugin_root / "mcp" / "qiongli-literature-provider" / "index.mjs"
+    _assert_file(provider_entrypoint, "bundled literature MCP entrypoint")
+
+    if platform == "codex":
+        codex_manifest_path = plugin_root / ".codex-plugin" / "plugin.json"
+        codex_manifest = _read_json(codex_manifest_path)
+        if codex_manifest.get("mcpServers") != "./.mcp.json":
+            raise ValueError(f"{codex_manifest_path} mcpServers must point to ./.mcp.json")
+        config_path = plugin_root / ".mcp.json"
+        expected_args = ["./mcp/qiongli-literature-provider/index.mjs"]
+    elif platform == "claude":
+        config_path = plugin_root / ".claude-plugin" / "plugin.json"
+        expected_args = ["${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs"]
+    else:
+        raise ValueError(f"unsupported bundled literature MCP platform: {platform}")
+
+    config_text = config_path.read_text(encoding="utf-8")
+    for forbidden in ("QIONGLI_OPENALEX_EMAIL", "SEMANTIC_SCHOLAR_API_KEY", "qiongli mcp"):
+        if forbidden in config_text:
+            raise ValueError(f"{config_path} must not contain forbidden bundled MCP config string: {forbidden}")
+
+    config = _read_json(config_path)
+    mcp_servers = config.get("mcpServers")
+    if not isinstance(mcp_servers, dict):
+        raise ValueError(f"{config_path} missing mcpServers")
+    server = mcp_servers.get("qiongli")
+    if not isinstance(server, dict):
+        raise ValueError(f"{config_path} missing mcpServers.qiongli")
+    if server.get("command") != "node":
+        raise ValueError(f"{config_path} mcpServers.qiongli.command must be node")
+    if server.get("args") != expected_args:
+        raise ValueError(f"{config_path} mcpServers.qiongli.args expected {expected_args}, found {server.get('args')}")
+
+
 def _assert_manifest(
     platform: str,
     manifest_path: Path,
@@ -406,9 +449,14 @@ def _validate_artifact(
             _assert_subject_manifest(skill_root, subject, coverage or "complete")
         if spec.requires_commands:
             _assert_command_invocation(plugin_root, workflow_names)
+        if spec.expects_bundled_mcp:
+            _assert_bundled_literature_mcp(plugin_root, spec.platform)
 
     subject_suffix = f" ({subject})" if subject else ""
-    return f"[OK] {spec.platform} marketplace artifact{subject_suffix}: {SKILL_NAME} invocation checked"
+    checked = f"{SKILL_NAME} invocation checked"
+    if spec.expects_bundled_mcp:
+        checked += "; bundled literature MCP checked"
+    return f"[OK] {spec.platform} marketplace artifact{subject_suffix}: {checked}"
 
 
 def _validate_claude_desktop_artifact(artifact: Path, expected_repo_tag: str, subject: str) -> str:
@@ -426,8 +474,10 @@ def _validate_claude_desktop_artifact(artifact: Path, expected_repo_tag: str, su
             _assert_economics_accounting_desktop_package(skill_root)
         elif subject == "finance":
             _assert_finance_desktop_package(skill_root)
-        else:
+        elif subject == "core":
             _assert_core_desktop_package(skill_root)
+        else:
+            _assert_focused_desktop_package(skill_root, subject)
         _assert_file(skill_root / "skills-core.md", "consolidated skill core")
         _assert_file(skill_root / "skills-summary.md", "consolidated skill summary")
         if (skill_root / ".claude-plugin").exists():
@@ -510,8 +560,7 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
             raise ValueError(f"expected {platform} artifact: {artifact_name}")
         messages.append(_validate_artifact(artifact, spec, expected_repo_tag, expected_version))
 
-    marketplace_subjects = ("core", "economics", "accounting", "business", "finance", "economics-accounting")
-    for subject in marketplace_subjects:
+    for subject in _marketplace_subjects(root):
         plugin_name = f"{PLUGIN_NAME}-{subject}"
         for platform in ("codex", "claude"):
             spec = ARTIFACT_SPECS[platform]
@@ -531,7 +580,7 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
                 )
             )
 
-    for subject in ("core", "economics", "business", "finance", "economics-accounting"):
+    for subject in _desktop_subjects(root):
         desktop_name = f"{PLUGIN_NAME}-claude-desktop-skill-{subject}-{expected_repo_tag}.zip"
         desktop_artifact = by_platform.get(desktop_name)
         if desktop_artifact is None:
