@@ -85,6 +85,25 @@ class PluginManifestTests(unittest.TestCase):
         self.assertEqual(manifest["repository"], "https://github.com/jxpeng98/qiongli")
         self.assertEqual(manifest["license"], "MIT")
 
+    def test_claude_plugin_bundles_qiongli_mcp_server(self) -> None:
+        manifest = json.loads(CLAUDE_PLUGIN_MANIFEST.read_text(encoding="utf-8"))
+
+        self.assertIn("mcpServers", manifest)
+        self.assertIn("qiongli", manifest["mcpServers"])
+        server = manifest["mcpServers"]["qiongli"]
+        self.assertEqual(server["command"], "node")
+        self.assertEqual(
+            server["args"],
+            ["${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs"],
+        )
+        self.assertEqual(server["cwd"], "${CLAUDE_PLUGIN_ROOT}")
+        self.assertNotIn("env", server)
+        self.assertTrue((PLUGIN_ROOT / "mcp" / "qiongli-literature-provider" / "index.mjs").is_file())
+        manifest_text = json.dumps(manifest)
+        self.assertNotIn("QIONGLI_OPENALEX_EMAIL", manifest_text)
+        self.assertNotIn("SEMANTIC_SCHOLAR_API_KEY", manifest_text)
+        self.assertNotIn("qiongli mcp", manifest_text)
+
     def test_gemini_extension_manifest_exposes_workflow_skill(self) -> None:
         manifest = json.loads(GEMINI_EXTENSION_MANIFEST.read_text(encoding="utf-8"))
 

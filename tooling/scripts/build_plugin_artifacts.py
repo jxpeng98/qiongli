@@ -370,7 +370,7 @@ def _copy_codex_mcp_manifest(root: Path, dest_plugin_root: Path) -> None:
         _copy_path(mcp_manifest, dest_plugin_root / ".mcp.json")
 
 
-def _copy_codex_mcp_runtime(root: Path, dest_plugin_root: Path) -> None:
+def _copy_literature_mcp_runtime(root: Path, dest_plugin_root: Path) -> None:
     mcp_runtime = RepoLayout(root).plugin_package / "mcp"
     if mcp_runtime.is_dir():
         _copy_path(mcp_runtime, dest_plugin_root / "mcp")
@@ -762,7 +762,7 @@ def _build_marketplace_plugin(
     )
     if platform == "codex":
         _copy_codex_mcp_manifest(root, plugin_dest)
-        _copy_codex_mcp_runtime(root, plugin_dest)
+    _copy_literature_mcp_runtime(root, plugin_dest)
     _copy_commands(root, plugin_dest)
     _copy_subject_skill(root, plugin_dest, subject)
     artifact = dist_dir / f"{bundle_name}.tar.gz"

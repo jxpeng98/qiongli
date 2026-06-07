@@ -88,6 +88,7 @@ class PluginArtifactsTests(unittest.TestCase):
                 dist_dir / f"qiongli-claude-plugin-{current_tag}.tar.gz",
                 [
                     f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/.claude-plugin/plugin.json",
+                    f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/mcp/qiongli-literature-provider/index.mjs",
                     f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/commands/paper.md",
                     f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
                     f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/agents/openai.yaml",
@@ -111,10 +112,15 @@ class PluginArtifactsTests(unittest.TestCase):
                 dist_dir / f"qiongli-economics-claude-plugin-{current_tag}.tar.gz",
                 [
                     f"qiongli-economics-claude-plugin-{current_tag}/plugins/qiongli-economics/.claude-plugin/plugin.json",
+                    f"qiongli-economics-claude-plugin-{current_tag}/plugins/qiongli-economics/mcp/qiongli-literature-provider/index.mjs",
                     f"qiongli-economics-claude-plugin-{current_tag}/plugins/qiongli-economics/commands/paper.md",
                     f"qiongli-economics-claude-plugin-{current_tag}/plugins/qiongli-economics/skills/qiongli-workflow/SUBJECT",
                     f"qiongli-economics-claude-plugin-{current_tag}/plugins/qiongli-economics/skills/qiongli-workflow/skills/C_design/econ-identification-auditor.md",
                 ],
+            )
+            self._assert_claude_manifest_mcp_server(
+                dist_dir / f"qiongli-claude-plugin-{current_tag}.tar.gz",
+                f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/.claude-plugin/plugin.json",
             )
             codex_manifest = self._read_tar_json(
                 dist_dir / f"qiongli-economics-codex-plugin-{current_tag}.tar.gz",
@@ -129,6 +135,10 @@ class PluginArtifactsTests(unittest.TestCase):
             )
             self.assertEqual(claude_manifest["name"], "qiongli-economics")
             self.assertIn("Economics-specialized", claude_manifest["description"])
+            self._assert_claude_manifest_mcp_server(
+                dist_dir / f"qiongli-economics-claude-plugin-{current_tag}.tar.gz",
+                f"qiongli-economics-claude-plugin-{current_tag}/plugins/qiongli-economics/.claude-plugin/plugin.json",
+            )
             self._assert_contains(
                 dist_dir / f"qiongli-business-codex-plugin-{current_tag}.tar.gz",
                 [
@@ -141,9 +151,14 @@ class PluginArtifactsTests(unittest.TestCase):
                 dist_dir / f"qiongli-finance-claude-plugin-{current_tag}.tar.gz",
                 [
                     f"qiongli-finance-claude-plugin-{current_tag}/plugins/qiongli-finance/.claude-plugin/plugin.json",
+                    f"qiongli-finance-claude-plugin-{current_tag}/plugins/qiongli-finance/mcp/qiongli-literature-provider/index.mjs",
                     f"qiongli-finance-claude-plugin-{current_tag}/plugins/qiongli-finance/skills/qiongli-workflow/SUBJECT",
                     f"qiongli-finance-claude-plugin-{current_tag}/plugins/qiongli-finance/skills/qiongli-workflow/skills/C_design/finance-identification-risk-auditor.md",
                 ],
+            )
+            self._assert_claude_manifest_mcp_server(
+                dist_dir / f"qiongli-finance-claude-plugin-{current_tag}.tar.gz",
+                f"qiongli-finance-claude-plugin-{current_tag}/plugins/qiongli-finance/.claude-plugin/plugin.json",
             )
             self._assert_contains(
                 dist_dir / f"qiongli-political-economy-codex-plugin-{current_tag}.tar.gz",
@@ -295,6 +310,18 @@ class PluginArtifactsTests(unittest.TestCase):
             self.assertIsNotNone(extracted, msg=f"missing tar member: {member}")
             assert extracted is not None
             return json.loads(extracted.read().decode("utf-8"))
+
+    def _assert_claude_manifest_mcp_server(self, artifact: Path, member: str) -> None:
+        manifest = self._read_tar_json(artifact, member)
+        self.assertIn("mcpServers", manifest)
+        self.assertIn("qiongli", manifest["mcpServers"])
+        server = manifest["mcpServers"]["qiongli"]
+        self.assertEqual(server["command"], "node")
+        self.assertEqual(
+            server["args"],
+            ["${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs"],
+        )
+        self.assertEqual(server["cwd"], "${CLAUDE_PLUGIN_ROOT}")
 
     def _assert_zip_contains(self, artifact: Path, expected: list[str]) -> None:
         with zipfile.ZipFile(artifact) as archive:

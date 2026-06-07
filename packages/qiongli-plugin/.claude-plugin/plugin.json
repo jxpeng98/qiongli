@@ -14,5 +14,14 @@
     "academic-writing",
     "literature-review",
     "claude-code-plugins"
-  ]
+  ],
+  "mcpServers": {
+    "qiongli": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs"
+      ],
+      "cwd": "${CLAUDE_PLUGIN_ROOT}"
+    }
+  }
 }

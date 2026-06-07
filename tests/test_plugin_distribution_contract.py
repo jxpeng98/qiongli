@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import shutil
@@ -17,6 +18,14 @@ LAYOUT = RepoLayout(REPO_ROOT)
 PLUGIN_ROOT = LAYOUT.plugin_package
 WORKFLOW_ROOT = LAYOUT.workflow
 WORKFLOW_VERSION = (WORKFLOW_ROOT / "VERSION").read_text(encoding="utf-8").strip().lstrip("v")
+VALIDATOR_SCRIPT_PATH = LAYOUT.scripts / "validate_marketplace_install.py"
+if str(LAYOUT.scripts) not in sys.path:
+    sys.path.insert(0, str(LAYOUT.scripts))
+VALIDATOR_SPEC = importlib.util.spec_from_file_location("validate_marketplace_install", VALIDATOR_SCRIPT_PATH)
+assert VALIDATOR_SPEC is not None and VALIDATOR_SPEC.loader is not None
+validator = importlib.util.module_from_spec(VALIDATOR_SPEC)
+sys.modules["validate_marketplace_install"] = validator
+VALIDATOR_SPEC.loader.exec_module(validator)
 
 
 def find_usable_bash() -> str | None:
@@ -111,6 +120,37 @@ class PluginDistributionContractTests(unittest.TestCase):
             ["./mcp/qiongli-literature-provider/index.mjs"],
         )
 
+    def test_claude_plugin_materializes_bundled_mcp_server(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            materialized_plugin = self.materialize_plugin_payload(tmp_dir)
+            manifest = json.loads(
+                (materialized_plugin / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8")
+            )
+
+            self.assertIn("mcpServers", manifest)
+            self.assertIn("qiongli", manifest["mcpServers"])
+            server = manifest["mcpServers"]["qiongli"]
+            self.assertEqual(server["command"], "node")
+            self.assertEqual(
+                server["args"],
+                ["${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs"],
+            )
+            self.assertEqual(server["cwd"], "${CLAUDE_PLUGIN_ROOT}")
+            self.assertTrue(
+                (materialized_plugin / "mcp" / "qiongli-literature-provider" / "index.mjs").is_file()
+            )
+
+    def test_codex_bundled_mcp_validation_requires_plugin_manifest_reference(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            materialized_plugin = self.materialize_plugin_payload(tmp_dir)
+            manifest_path = materialized_plugin / ".codex-plugin" / "plugin.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            del manifest["mcpServers"]
+            manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "mcpServers"):
+                validator._assert_bundled_literature_mcp(materialized_plugin, "codex")
+
     def test_plugin_package_contains_real_portable_skill_copy(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             materialized_plugin = self.materialize_plugin_payload(tmp_dir)
@@ -165,14 +205,37 @@ class PluginDistributionContractTests(unittest.TestCase):
         self.assertIn("[OK] codex marketplace artifact (economics)", result.stdout)
         self.assertIn("[OK] codex marketplace artifact (business)", result.stdout)
         self.assertIn("[OK] codex marketplace artifact (finance)", result.stdout)
+        self.assertIn(
+            "[OK] codex marketplace artifact (political-economy): "
+            "qiongli invocation checked; bundled literature MCP checked",
+            result.stdout,
+        )
+        self.assertIn(
+            "[OK] codex marketplace artifact (geoeconomics): "
+            "qiongli invocation checked; bundled literature MCP checked",
+            result.stdout,
+        )
         self.assertIn("[OK] claude marketplace artifact", result.stdout)
         self.assertIn("[OK] claude marketplace artifact (economics)", result.stdout)
         self.assertIn("[OK] claude marketplace artifact (business)", result.stdout)
         self.assertIn("[OK] claude marketplace artifact (finance)", result.stdout)
+        self.assertIn(
+            "[OK] claude marketplace artifact (political-economy): "
+            "qiongli invocation checked; bundled literature MCP checked",
+            result.stdout,
+        )
+        self.assertIn(
+            "[OK] claude marketplace artifact (geoeconomics): "
+            "qiongli invocation checked; bundled literature MCP checked",
+            result.stdout,
+        )
         self.assertIn("[OK] claude-desktop skill artifact", result.stdout)
+        self.assertIn("[OK] claude-desktop skill artifact (political-economy)", result.stdout)
+        self.assertIn("[OK] claude-desktop skill artifact (geoeconomics)", result.stdout)
         self.assertIn("under desktop file budget", result.stdout)
         self.assertIn("[OK] gemini marketplace artifact", result.stdout)
         self.assertIn("qiongli invocation", result.stdout)
+        self.assertIn("bundled literature MCP checked", result.stdout)
 
 
 if __name__ == "__main__":
