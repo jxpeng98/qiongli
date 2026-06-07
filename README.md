@@ -40,20 +40,21 @@ Qiongli now has four deliberately separate surfaces:
 
 This separation matters for Desktop users. A manual Skill ZIP install gives Claude Desktop/Web the Qiongli skill and subject overlays. A `.mcpb` install gives Desktop literature MCP calls. The full local agent runtime is a separate CLI/MCP surface.
 
-## Choose An Entry Point
+## Installation Decision Guide
 
-Start with the smallest surface that matches the job.
+Start with the smallest surface that matches the job. "Full workflow" means the complete Qiongli methodology, workflows, templates, quality gates, skill registry, and subject overlays. It does not automatically mean local provider calls or local agent execution.
 
-| Need | Recommended path | Python required |
-|---|---|---|
-| Use Qiongli inside Codex | Install `qiongli` or a subject entry from the shared Skillsplace marketplace | No for skills and bundled literature MCP |
-| Use Qiongli inside Claude Code | Install `qiongli@skillsplace` or a subject entry such as `qiongli-economics@skillsplace` | No for skills |
-| Use Qiongli inside Claude Desktop/Web without a code environment | Upload a focused `qiongli-claude-desktop-skill-*.zip` | No |
-| Add Desktop literature search/provider tools | Install `qiongli-literature-provider.mcpb` | No |
-| Expose orchestrator tools as MCP | Install npm/pipx/bootstrap `full`, then configure `qiongli mcp serve --transport stdio` | Yes |
-| Install workflow assets across clients | Bootstrap `partial` | No |
-| Use `doctor`, validators, and local multi-agent runs | Bootstrap `full`, npm bridge commands, or Python CLI | Yes, Python 3.12+ |
-| Script installs through Node | `npm install -g qiongli` or `npx qiongli@latest` | Only for Python bridge commands |
+| Install path | Use it when | Advantages | Trade-offs |
+|---|---|---|---|
+| **Codex marketplace plugin**: `codex plugin marketplace add jxpeng98/skillsplace --ref main` | You use Codex and want Qiongli as a native skill/plugin. | Installs the Qiongli skill, subject packages such as `qiongli-economics`, and the bundled zero-dependency literature MCP registration/runtime. No Python needed for skill use or bundled literature MCP. | Full Python-backed orchestrator MCP still requires npm/pipx/bootstrap `full` plus `qiongli mcp serve --transport stdio`. |
+| **Claude Code marketplace plugin**: `claude plugin marketplace add jxpeng98/skillsplace@main` | You use Claude Code and want the full Qiongli workflow from the marketplace. | Installs the full `subject/complete` workflow package for `qiongli` and subject entries such as `qiongli-economics@skillsplace`; includes slash workflow commands like `/paper`, `/lit-review`, and `/code-build`, plus the same zero-dependency Node literature MCP runtime as Codex for provider, search, and status tools. No Python needed for skill/command use or bundled literature MCP. | Full Python-backed tools such as `qiongli_task_run` still require npm/pipx/bootstrap `full` plus `qiongli mcp serve --transport stdio`. |
+| **Claude Desktop/Web Skill ZIP** | You want Qiongli in Claude Desktop or Claude.ai without a code environment. | No terminal required. Good for skill-guided paper planning, writing, review, and focused subject packages. | Focused package kept under Desktop upload limits; skill-only, no secrets, no provider calls, no local agent execution. |
+| **Claude Desktop Literature MCPB**: `qiongli-literature-provider.mcpb` | Desktop needs local OpenAlex/Semantic Scholar search and provider key configuration. | No Python or npm install; pairs cleanly with the Desktop Skill ZIP. | Literature/provider tools only. It does not install Qiongli skills and does not launch orchestrator agents. |
+| **npm / npx**: `npm install -g qiongli` or `npx qiongli@latest ...` | You want scriptable installs, upgrades, and prebuilt complete/focused subject payloads through Node. | Good default for cross-client asset installation; no PyPI dependency for skill payloads. | Advanced bridge commands such as `setup`, `doctor`, `task-run`, and `mcp` need Python 3.12+ with `PyYAML`. |
+| **Bootstrap `partial`** | You want portable workflow assets and command discovery across clients without Python. | Simple shell/PowerShell path for skills and workflow discovery links. | No runtime validation, no Python bridge, no local orchestrator execution. |
+| **Bootstrap `full` / pipx / pip Python CLI** | You need `doctor`, validators, local `task-plan`, `task-run`, `team-run`, or full CLI MCP. | Most complete runtime surface; enables local checks and Python-backed orchestration. | Requires Python 3.12+, model CLIs in `PATH`, and runtime auth for actual agent execution. |
+
+Claude Code marketplace status: yes, Claude Code can install the full Qiongli methodology through Skillsplace for core and subject `complete` packages. Codex and Claude Code both install the skill/command package plus the bundled zero-dependency Node literature MCP runtime for provider, search, and status tools. The full Python-backed orchestration MCP remains separate and still requires npm/pipx/bootstrap `full` plus `qiongli mcp serve --transport stdio`.
 
 Detailed install instructions live in [docs/guide/install.md](docs/guide/install.md). The quickest route from nothing installed is [docs/quickstart.md](docs/quickstart.md).
 

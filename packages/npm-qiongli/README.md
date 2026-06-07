@@ -76,6 +76,8 @@ Advanced bridge commands such as `setup`, `doctor`, `task-run`, and `team-run` u
 
 ## MCP server
 
+Native Codex and Claude Code plugins can bundle the zero-dependency Node literature-provider MCP runtime for provider, status, and search tools. npm, pipx/pip, or bootstrap `full` remains the path for the Python-backed full CLI MCP server and orchestration tools.
+
 The npm launcher also delegates MCP commands to the bundled Python bridge:
 
 ```bash

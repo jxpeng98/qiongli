@@ -6,7 +6,7 @@ Qiongli has several installation surfaces because users need different levels of
 
 | Surface | Best for | Installs | Python required |
 |---|---|---|---|
-| Native plugin / extension | One client, least setup | Client plugin plus `qiongli-workflow`; Codex also includes bundled literature MCP runtime | No for skill use or bundled literature MCP; Python/CLI only for full runtime |
+| Native plugin / extension | One client, least setup | Client plugin plus `qiongli-workflow`; Codex and Claude Code include bundled literature MCP runtime where applicable | No for skill use or bundled literature MCP; Python/CLI only for full runtime |
 | Claude Desktop Skill ZIP | Claude Desktop or Claude.ai, especially when you do not want to use a code/CLI environment | Personal `qiongli` Skill upload | No |
 | Bootstrap `partial` | Global workflow assets across clients | Skills and workflow discovery where supported | No |
 | Bootstrap `full` | Runtime checks and orchestration | `partial` plus shell CLI and `doctor` support | Yes, Python 3.12+ |
@@ -46,6 +46,8 @@ Inside an interactive Claude Code session, use:
 /plugin install qiongli@skillsplace
 /plugin install qiongli-economics@skillsplace
 ```
+
+The Claude Code plugin also bundles the zero-dependency Node literature-provider MCP runtime under `mcp/qiongli-literature-provider/`, using the same provider, search, and status tools as the Codex plugin. It covers literature-provider MCP without installing the `qiongli` CLI. Full Python-backed orchestration tools such as `qiongli_task_plan`, `qiongli_task_run`, and `qiongli_orchestrator_doctor` still require the npm, pipx/pip, or bootstrap `full` CLI runtime and `qiongli mcp serve --transport stdio`.
 
 Claude Desktop and Claude.ai do not install third-party Claude Code plugin marketplaces. If you use Desktop or the web app and are not familiar with a code/CLI environment, use the release ZIP path instead. It requires no terminal commands:
 

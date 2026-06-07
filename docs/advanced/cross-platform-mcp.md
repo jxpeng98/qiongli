@@ -42,6 +42,18 @@ Provider keys are not embedded in the plugin manifest. Desktop users can configu
 
 The bundled Codex runtime focuses on literature-provider tools. Use the full CLI stdio server when you need the Python-backed orchestration MCP tools.
 
+## Claude Code Bundled Plugin MCP
+
+The Claude Code plugin package declares a bundled `qiongli` MCP server from `packages/qiongli-plugin/.claude-plugin/plugin.json`. It uses the same zero-dependency Node literature-provider runtime under `packages/qiongli-plugin/mcp/qiongli-literature-provider/` as the Codex plugin.
+
+The bundled server entry is:
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs
+```
+
+This bundled runtime covers literature-provider tools such as provider configuration, status, and search without requiring the `qiongli` CLI. Use the full CLI stdio server when Claude Code needs Python-backed orchestration tools such as `qiongli_orchestrator_doctor`, `qiongli_task_plan`, or `qiongli_task_run`.
+
 ## Claude Desktop MCPB
 
 The Claude Desktop `qiongli-literature-provider.mcpb` also contains the zero-dependency Node literature-provider server. It exposes user configuration fields for OpenAlex email, Semantic Scholar API key, and default result limit, so a Desktop user can install the MCPB and configure provider keys without installing `qiongli` or running npm.
