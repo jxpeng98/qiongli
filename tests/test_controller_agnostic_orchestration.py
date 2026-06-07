@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 import unittest
 from pathlib import Path
+
+from qiongli.source_layout import RepoLayout
 from typing import Any
 
 from bridges.base_bridge import BridgeResponse
@@ -18,7 +20,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 class MetadataCaptureOrchestrator(ModelOrchestrator):
     def __init__(self) -> None:
-        super().__init__(standards_dir=REPO_ROOT / "standards")
+        super().__init__(standards_dir=RepoLayout(REPO_ROOT).standards)
         self.runtime_calls: list[dict[str, Any]] = []
 
     def _runtime_preflight_error(
@@ -37,9 +39,17 @@ class MetadataCaptureOrchestrator(ModelOrchestrator):
         runtime_options: dict[str, Any] | None = None,
         profile_directive: str | None = None,
     ) -> BridgeResponse:
+        stage = "other"
+        if "Draft the task outputs for this canonical research workflow task." in prompt:
+            stage = "draft"
+        elif "Review the draft for this canonical research workflow task." in prompt:
+            stage = "review"
+        elif "You are revising a research workflow task draft based on review feedback." in prompt:
+            stage = "revision"
         self.runtime_calls.append(
             {
                 "agent": agent_name,
+                "stage": stage,
                 "prompt": prompt,
                 "runtime_options": dict(runtime_options or {}),
                 "profile_directive": profile_directive or "",
@@ -85,7 +95,7 @@ class ControllerAgnosticOrchestrationTests(unittest.TestCase):
         self.assertEqual("codex", args.verifier_agent)
         self.assertEqual("strict", args.solo_role_gates)
 
-    def test_task_run_records_controller_metadata_without_changing_runtime_plan(self) -> None:
+    def test_task_run_uses_controller_runtime_overrides_for_draft_and_review(self) -> None:
         orchestrator = MetadataCaptureOrchestrator()
 
         result = orchestrator.task_run(
@@ -93,37 +103,106 @@ class ControllerAgnosticOrchestrationTests(unittest.TestCase):
             paper_type="empirical",
             topic="controller-metadata",
             cwd=REPO_ROOT,
-            execution_mode="solo",
-            controller="Claude",
-            primary_agent="claude",
-            review_agent="codex",
+            execution_mode="duo",
+            controller="codex",
+            primary_agent="codex",
+            review_agent="claude",
             verifier_agent="codex",
-            solo_role_gates="strict",
+            solo_role_gates="standard",
             skip_validation=True,
         )
 
         packet = result.data["task_packet"]
-        self.assertEqual("solo", packet["execution_mode"])
-        self.assertEqual("claude", packet["controller"])
-        self.assertEqual("claude", packet["primary_agent"])
-        self.assertEqual("codex", packet["review_agent"])
+        self.assertEqual("duo", packet["execution_mode"])
+        self.assertEqual("codex", packet["controller"])
+        self.assertEqual("codex", packet["primary_agent"])
+        self.assertEqual("claude", packet["review_agent"])
         self.assertEqual("codex", packet["verifier_agent"])
-        self.assertEqual("strict", packet["solo_role_gates"])
+        self.assertEqual("standard", packet["solo_role_gates"])
         self.assertEqual(
             {
-                "execution_mode": "solo",
-                "controller": "claude",
-                "primary_agent": "claude",
-                "review_agent": "codex",
+                "execution_mode": "duo",
+                "controller": "codex",
+                "primary_agent": "codex",
+                "review_agent": "claude",
                 "verifier_agent": "codex",
-                "solo_role_gates": "strict",
+                "solo_role_gates": "standard",
             },
             packet["controller_metadata"],
         )
+        self.assertEqual(
+            {
+                "primary_agent": "codex",
+                "review_agent": "claude",
+                "fallback_agent": "gemini",
+            },
+            packet["runtime_plan"],
+        )
 
-        self.assertEqual("writing-agent", packet["functional_owner"])
-        self.assertIn("runtime_plan", packet)
-        self.assertGreaterEqual(len(orchestrator.runtime_calls), 2)
+        draft_agents = [
+            call["agent"]
+            for call in orchestrator.runtime_calls
+            if call["stage"] == "draft"
+        ]
+        review_agents = [
+            call["agent"]
+            for call in orchestrator.runtime_calls
+            if call["stage"] == "review"
+        ]
+        self.assertEqual(["codex"], draft_agents)
+        self.assertTrue(review_agents)
+        self.assertEqual("claude", review_agents[0])
+        self.assertIn(
+            "Controller runtime override: draft=codex, review=claude.",
+            result.merged_analysis,
+        )
+
+    def test_controller_runtime_override_falls_back_when_declared_agent_unavailable(self) -> None:
+        class CodexUnavailableOrchestrator(MetadataCaptureOrchestrator):
+            def _runtime_preflight_error(
+                self,
+                agent_name: str,
+                cwd: Path,
+                runtime_options: dict[str, Any] | None = None,
+            ) -> str | None:
+                if agent_name == "codex":
+                    return "codex CLI not found in PATH. Please install it first."
+                return None
+
+        orchestrator = CodexUnavailableOrchestrator()
+
+        result = orchestrator.task_run(
+            task_id="F3",
+            paper_type="empirical",
+            topic="controller-fallback",
+            cwd=REPO_ROOT,
+            execution_mode="duo",
+            controller="codex",
+            primary_agent="codex",
+            review_agent="claude",
+            skip_validation=True,
+        )
+        packet = result.data["task_packet"]
+        self.assertEqual(
+            {
+                "primary_agent": "codex",
+                "review_agent": "claude",
+                "fallback_agent": "gemini",
+            },
+            packet["runtime_plan"],
+        )
+
+        draft_agents = [
+            call["agent"]
+            for call in orchestrator.runtime_calls
+            if call["stage"] == "draft"
+        ]
+        self.assertEqual(["gemini"], draft_agents)
+        self.assertIn("Runtime agent 'codex' unavailable:", result.merged_analysis)
+        self.assertIn(
+            "Runtime routed agent 'codex' to 'gemini'.",
+            result.merged_analysis,
+        )
 
 
 if __name__ == "__main__":

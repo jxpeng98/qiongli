@@ -1,104 +1,66 @@
 # Architecture
 
-This page condenses the architecture sections scattered across `README.md` and maintainer guidance into one stable overview.
+Qiongli uses a hybrid repository layout: canonical academic content, runtime
+code, package shells, and maintainer tooling live in separate source
+boundaries, while release and install payloads are materialized as generated
+outputs.
 
-## Core Principle
+## Source Boundaries
 
-Qiongli separates:
+| Boundary | Editable source | Responsibility |
+|---|---|---|
+| Academic content | `content/` | Workflow package source, internal skills, templates, standards, roles, subjects, schemas, and venue profiles |
+| Python runtime | `packages/python-qiongli/src/` | `qiongli`, deprecated `research_skills` shim, bridge adapters, CLI/runtime code |
+| Package shells | `packages/npm-qiongli/`, `packages/qiongli-plugin/`, `packages/qiongli-literature-mcpb/` | Publishable npm, plugin, and MCPB package sources |
+| Maintainer tooling | `tooling/scripts/`, `tooling/pipelines/`, `tooling/install/`, `tooling/release/` | Automation, pipeline descriptors, installer manifests, release assets |
+| Quality assets | `evals/`, `tests/` | Evaluation cases/runners and cross-package regression tests |
+| Documentation | `docs/` | VitePress docs and maintainer guidance |
 
-- canonical contract truth
-- capability routing
-- functional ownership
-- reusable execution specs
-- workflow sequencing
-- runtime execution
-- client-facing distribution
+Root `scripts/` files are compatibility wrappers. Keep user-facing commands and
+CI references stable there, but edit script implementations under
+`tooling/scripts/`.
 
-That separation is what keeps the system extensible without turning every workflow tweak into a hidden contract change.
+Root `qiongli-workflow/`, `plugins/qiongli/`, `.agent/`, and `.gemini/` are
+generated artifact shapes. Edit their sources under `content/workflow/` or
+`packages/qiongli-plugin/`.
 
 ## Layer Model
 
-| Layer | Primary location | Responsibility |
+| Layer | Primary editable source | Responsibility |
 |---|---|---|
-| Contract | `standards/research-workflow-contract.yaml` | Task IDs, artifacts, quality gates |
-| Capability Map | `standards/mcp-agent-capability-map.yaml` | Runtime routing, MCP and skill requirements |
-| Functional Agents | `roles/` | Ownership, quality thresholds, tone |
-| Internal Skill Specs | `skills/` | Reusable execution behavior |
-| Pipelines / Workflows | `pipelines/`, `.agent/workflows/` | Step sequencing and entry UX |
-| Bridges | `bridges/` | Runtime adapters and orchestration |
-| Portable Skill Package | `qiongli-workflow/` | Cross-client distributable entry skill |
-
-## Dependency Direction
-
-```mermaid
-flowchart TD
-  Contract["Contract"]
-  Capability["Capability Map"]
-  Roles["Roles"]
-  Skills["Internal Skills"]
-  Pipelines["Pipelines / Workflows"]
-  Bridges["Bridges"]
-  Portable["Portable Skill Package"]
-
-  Contract --> Capability
-  Contract --> Roles
-  Contract --> Skills
-  Contract --> Pipelines
-  Capability --> Roles
-  Capability --> Skills
-  Capability --> Pipelines
-  Pipelines --> Bridges
-  Roles --> Pipelines
-  Skills --> Pipelines
-  Bridges --> Portable
-```
+| Contract | `content/standards/research-workflow-contract.yaml` | Task IDs, artifacts, quality gates |
+| Capability Map | `content/standards/mcp-agent-capability-map.yaml` | Runtime routing, MCP and skill requirements |
+| Functional Agents | `content/roles/` | Ownership, quality thresholds, tone |
+| Internal Skill Specs | `content/skills/` | Reusable execution behavior |
+| Pipelines | `tooling/pipelines/` | Step sequencing and handoffs |
+| Client entry UX | `content/workflow/workflows/`, `packages/qiongli-plugin/platforms/` | Portable workflows and platform command surfaces |
+| Runtime | `packages/python-qiongli/src/qiongli/` | CLI, installers, orchestration, providers |
+| Distribution | materialized staging tree | `qiongli-workflow/`, plugin payloads, npm payload, Python payload |
 
 ## Stable User-Facing Entry Modes
 
-| Entry mode | Best for | Entry |
+| Entry mode | Best for | Stable entry |
 |---|---|---|
-| Claude Code workflows | Slash-command UX inside a project | `.agent/workflows/*.md` |
-| Shell/Python installer CLI | Installing and upgrading assets | `qiongli`, `ql`, `research-skills`, `rsk`, `rsw` |
-| Orchestrator CLI | Task planning, task execution, validation | `python3 -m bridges.orchestrator ...` |
-| Portable skill package | Cross-client distribution surface | `qiongli-workflow/` |
+| CLI install/upgrade | Installing and upgrading assets | `qiongli`, `ql`, `research-skills`, `rsk`, `rsw` |
+| Script entrypoints | CI, release, local maintenance | `scripts/*.py`, `scripts/*.sh` wrappers |
+| Orchestrator CLI | Task planning, execution, validation | `python3 -m qiongli.bridges.orchestrator ...` |
+| Portable skill package | Cross-client distribution surface | generated `qiongli-workflow/` |
+| Plugin package | Codex/Claude/Gemini plugin distribution | generated `plugins/qiongli/` |
 
-## Subject Packages And Discipline Domains
+## Dependency Direction
 
-The canonical source stays generic. Installable specialization is generated from `subjects/catalog.yaml`, subject overlays, selected profiles, and subject-specific skills. CLI/npm installs default to `coverage=complete`, which keeps the full core framework and adds the requested subject layer. `coverage=focused` is the slim selected package used by Desktop/Web ZIPs.
+Treat the system as a one-way graph:
 
-For the detailed user/developer distinction, see [Subject Packaging Model](/advanced/subject-packaging-model).
+1. `content/standards/`
+2. `content/roles/` and `content/skills/`
+3. `content/templates/`
+4. `tooling/pipelines/` and platform command sources
+5. `packages/python-qiongli/src/qiongli/`
+6. materialized distribution payloads
 
-Runtime domain flags and domain profiles still matter for a single task packet, but they no longer replace subject packaging. This keeps the source tree unified while still allowing:
+Generated payloads must not become hidden sources of truth. If a generated
+directory disagrees with `content/` or `packages/`, fix the source and
+materialize again.
 
-- domain-specific libraries
-- diagnostics and robustness checks
-- reporting standards
-- venue or methodology priors
-- official composite subjects such as `economics-accounting`
-
-## Multi-Model Runtime Collaboration
-
-At execution time, the system can coordinate `codex`, `claude`, and `gemini` through the orchestrator.
-
-Common modes:
-
-- `parallel`: same prompt, multiple runtimes, one synthesis
-- `task-run`: one canonical task with contract-driven review flow
-- `team-run`: one task, multiple work units, then merge/review
-
-## Design Lineage And Related Projects
-
-Two external projects are especially relevant to how this repository evolved:
-
-- [fengshao1227/ccg-workflow](https://github.com/fengshao1227/ccg-workflow)
-  - Important influence: strict separation between spec, planning, execution, and review.
-  - Important difference: CCG is a general software-engineering collaboration system, while `qiongli` localizes that discipline into academic research workflows and Stage-I tasks `I5 -> I6 -> I7 -> I8`.
-- [GuDaStudio/skills](https://github.com/GuDaStudio/skills)
-  - Important influence: packaging cross-model collaboration capabilities as installable Claude-oriented skills.
-  - Important difference: `GuDaStudio/skills` is a general-purpose skill collection, while `qiongli` is organized around one canonical contract, one task catalog, and one `RESEARCH/[topic]/` artifact tree.
-
-## Where To Go Next
-
-- Need edit rules and placement guidance: [Conventions](/conventions)
-- Need exact CLI commands: [CLI Reference](/reference/cli)
-- Need to modify behavior: [Extend Qiongli](/advanced/extend-qiongli)
+For exact directory responsibilities, see
+[Repository Structure](/development/repository-structure).

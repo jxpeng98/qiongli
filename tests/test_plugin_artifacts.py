@@ -9,9 +9,11 @@ import unittest
 import zipfile
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SCRIPT_PATH = REPO_ROOT / "scripts" / "build_plugin_artifacts.py"
+SCRIPT_PATH = RepoLayout(REPO_ROOT).scripts / "build_plugin_artifacts.py"
 SPEC = importlib.util.spec_from_file_location("build_plugin_artifacts", SCRIPT_PATH)
 assert SPEC is not None and SPEC.loader is not None
 module = importlib.util.module_from_spec(SPEC)
@@ -22,9 +24,16 @@ class PluginArtifactsTests(unittest.TestCase):
     def test_builds_release_distribution_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             dist_dir = Path(tmp_dir) / "dist"
-            current_tag = (REPO_ROOT / "qiongli-workflow" / "VERSION").read_text(
+            current_tag = (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(
                 encoding="utf-8"
             ).strip()
+            desktop_agent_support = [
+                "qiongli/agents/openai.yaml",
+                "qiongli/roles/pi.yaml",
+                "qiongli/templates/agent-run-packet.json",
+                "qiongli/templates/agent-review-packet.md",
+                "qiongli/templates/agent-handoff.md",
+            ]
 
             artifacts = module.build_artifacts(REPO_ROOT, current_tag, dist_dir)
 
@@ -67,24 +76,35 @@ class PluginArtifactsTests(unittest.TestCase):
                 dist_dir / f"qiongli-codex-plugin-{current_tag}.tar.gz",
                 [
                     f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/.codex-plugin/plugin.json",
+                    f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/.mcp.json",
+                    f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/mcp/qiongli-literature-provider/index.mjs",
                     f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/commands/paper.md",
                     f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+                    f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/agents/openai.yaml",
+                    f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/roles/pi.yaml",
                 ],
             )
             self._assert_contains(
                 dist_dir / f"qiongli-claude-plugin-{current_tag}.tar.gz",
                 [
                     f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/.claude-plugin/plugin.json",
+                    f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/mcp/qiongli-literature-provider/index.mjs",
                     f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/commands/paper.md",
                     f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+                    f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/agents/openai.yaml",
+                    f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/roles/pi.yaml",
                 ],
             )
             self._assert_contains(
                 dist_dir / f"qiongli-economics-codex-plugin-{current_tag}.tar.gz",
                 [
                     f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/.codex-plugin/plugin.json",
+                    f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/.mcp.json",
+                    f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/mcp/qiongli-literature-provider/index.mjs",
                     f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/commands/paper.md",
                     f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/skills/qiongli-workflow/SUBJECT",
+                    f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/skills/qiongli-workflow/agents/openai.yaml",
+                    f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/skills/qiongli-workflow/roles/pi.yaml",
                     f"qiongli-economics-codex-plugin-{current_tag}/plugins/qiongli-economics/skills/qiongli-workflow/skills/C_design/econ-identification-auditor.md",
                 ],
             )
@@ -92,10 +112,15 @@ class PluginArtifactsTests(unittest.TestCase):
                 dist_dir / f"qiongli-economics-claude-plugin-{current_tag}.tar.gz",
                 [
                     f"qiongli-economics-claude-plugin-{current_tag}/plugins/qiongli-economics/.claude-plugin/plugin.json",
+                    f"qiongli-economics-claude-plugin-{current_tag}/plugins/qiongli-economics/mcp/qiongli-literature-provider/index.mjs",
                     f"qiongli-economics-claude-plugin-{current_tag}/plugins/qiongli-economics/commands/paper.md",
                     f"qiongli-economics-claude-plugin-{current_tag}/plugins/qiongli-economics/skills/qiongli-workflow/SUBJECT",
                     f"qiongli-economics-claude-plugin-{current_tag}/plugins/qiongli-economics/skills/qiongli-workflow/skills/C_design/econ-identification-auditor.md",
                 ],
+            )
+            self._assert_claude_manifest_mcp_server(
+                dist_dir / f"qiongli-claude-plugin-{current_tag}.tar.gz",
+                f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/.claude-plugin/plugin.json",
             )
             codex_manifest = self._read_tar_json(
                 dist_dir / f"qiongli-economics-codex-plugin-{current_tag}.tar.gz",
@@ -110,6 +135,10 @@ class PluginArtifactsTests(unittest.TestCase):
             )
             self.assertEqual(claude_manifest["name"], "qiongli-economics")
             self.assertIn("Economics-specialized", claude_manifest["description"])
+            self._assert_claude_manifest_mcp_server(
+                dist_dir / f"qiongli-economics-claude-plugin-{current_tag}.tar.gz",
+                f"qiongli-economics-claude-plugin-{current_tag}/plugins/qiongli-economics/.claude-plugin/plugin.json",
+            )
             self._assert_contains(
                 dist_dir / f"qiongli-business-codex-plugin-{current_tag}.tar.gz",
                 [
@@ -122,9 +151,14 @@ class PluginArtifactsTests(unittest.TestCase):
                 dist_dir / f"qiongli-finance-claude-plugin-{current_tag}.tar.gz",
                 [
                     f"qiongli-finance-claude-plugin-{current_tag}/plugins/qiongli-finance/.claude-plugin/plugin.json",
+                    f"qiongli-finance-claude-plugin-{current_tag}/plugins/qiongli-finance/mcp/qiongli-literature-provider/index.mjs",
                     f"qiongli-finance-claude-plugin-{current_tag}/plugins/qiongli-finance/skills/qiongli-workflow/SUBJECT",
                     f"qiongli-finance-claude-plugin-{current_tag}/plugins/qiongli-finance/skills/qiongli-workflow/skills/C_design/finance-identification-risk-auditor.md",
                 ],
+            )
+            self._assert_claude_manifest_mcp_server(
+                dist_dir / f"qiongli-finance-claude-plugin-{current_tag}.tar.gz",
+                f"qiongli-finance-claude-plugin-{current_tag}/plugins/qiongli-finance/.claude-plugin/plugin.json",
             )
             self._assert_contains(
                 dist_dir / f"qiongli-political-economy-codex-plugin-{current_tag}.tar.gz",
@@ -147,11 +181,14 @@ class PluginArtifactsTests(unittest.TestCase):
                 [
                     f"qiongli-gemini-extension-{current_tag}/gemini-extension.json",
                     f"qiongli-gemini-extension-{current_tag}/skills/qiongli-workflow/SKILL.md",
+                    f"qiongli-gemini-extension-{current_tag}/skills/qiongli-workflow/agents/openai.yaml",
+                    f"qiongli-gemini-extension-{current_tag}/skills/qiongli-workflow/roles/pi.yaml",
                 ],
             )
             self._assert_zip_contains(
                 dist_dir / f"qiongli-claude-desktop-skill-core-{current_tag}.zip",
-                [
+                desktop_agent_support
+                + [
                     "qiongli/SKILL.md",
                     "qiongli/SUBJECT",
                     "qiongli/skills/registry.yaml",
@@ -159,7 +196,8 @@ class PluginArtifactsTests(unittest.TestCase):
             )
             self._assert_zip_contains(
                 dist_dir / f"qiongli-claude-desktop-skill-economics-{current_tag}.zip",
-                [
+                desktop_agent_support
+                + [
                     "qiongli/SKILL.md",
                     "qiongli/SUBJECT",
                     "qiongli/skills/C_design/econ-identification-auditor.md",
@@ -169,7 +207,8 @@ class PluginArtifactsTests(unittest.TestCase):
             )
             self._assert_zip_contains(
                 dist_dir / f"qiongli-claude-desktop-skill-business-{current_tag}.zip",
-                [
+                desktop_agent_support
+                + [
                     "qiongli/SKILL.md",
                     "qiongli/SUBJECT",
                     "qiongli/skills/C_design/business-journal-positioning-auditor.md",
@@ -178,7 +217,8 @@ class PluginArtifactsTests(unittest.TestCase):
             )
             self._assert_zip_contains(
                 dist_dir / f"qiongli-claude-desktop-skill-finance-{current_tag}.zip",
-                [
+                desktop_agent_support
+                + [
                     "qiongli/SKILL.md",
                     "qiongli/SUBJECT",
                     "qiongli/skills/C_design/finance-identification-risk-auditor.md",
@@ -187,7 +227,8 @@ class PluginArtifactsTests(unittest.TestCase):
             )
             self._assert_zip_contains(
                 dist_dir / f"qiongli-claude-desktop-skill-political-economy-{current_tag}.zip",
-                [
+                desktop_agent_support
+                + [
                     "qiongli/SKILL.md",
                     "qiongli/SUBJECT",
                     "qiongli/skills/H_submission/political-economy-mechanism-auditor.md",
@@ -197,7 +238,8 @@ class PluginArtifactsTests(unittest.TestCase):
             )
             self._assert_zip_contains(
                 dist_dir / f"qiongli-claude-desktop-skill-geoeconomics-{current_tag}.zip",
-                [
+                desktop_agent_support
+                + [
                     "qiongli/SKILL.md",
                     "qiongli/SUBJECT",
                     "qiongli/skills/H_submission/geoeconomic-statecraft-auditor.md",
@@ -207,7 +249,8 @@ class PluginArtifactsTests(unittest.TestCase):
             )
             self._assert_zip_contains(
                 dist_dir / f"qiongli-claude-desktop-skill-economics-accounting-{current_tag}.zip",
-                [
+                desktop_agent_support
+                + [
                     "qiongli/SKILL.md",
                     "qiongli/SUBJECT",
                     "qiongli/skills/C_design/econ-identification-auditor.md",
@@ -268,6 +311,18 @@ class PluginArtifactsTests(unittest.TestCase):
             assert extracted is not None
             return json.loads(extracted.read().decode("utf-8"))
 
+    def _assert_claude_manifest_mcp_server(self, artifact: Path, member: str) -> None:
+        manifest = self._read_tar_json(artifact, member)
+        self.assertIn("mcpServers", manifest)
+        self.assertIn("qiongli", manifest["mcpServers"])
+        server = manifest["mcpServers"]["qiongli"]
+        self.assertEqual(server["command"], "node")
+        self.assertEqual(
+            server["args"],
+            ["${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs"],
+        )
+        self.assertEqual(server["cwd"], "${CLAUDE_PLUGIN_ROOT}")
+
     def _assert_zip_contains(self, artifact: Path, expected: list[str]) -> None:
         with zipfile.ZipFile(artifact) as archive:
             names = set(archive.namelist())
@@ -275,13 +330,13 @@ class PluginArtifactsTests(unittest.TestCase):
             self.assertIn(name, names)
 
     def _make_fallback_root(self, root: Path) -> Path:
-        shutil.copytree(REPO_ROOT / "qiongli-workflow", root / "qiongli-workflow")
-        shutil.copytree(REPO_ROOT / "templates", root / "qiongli-workflow" / "templates", dirs_exist_ok=True)
-        shutil.copytree(REPO_ROOT / "skills", root / "qiongli-workflow" / "skills", dirs_exist_ok=True)
-        shutil.copytree(REPO_ROOT / "skills", root / "skills")
-        shutil.copytree(REPO_ROOT / "subjects", root / "subjects")
-        shutil.copy2(REPO_ROOT / "skills-core.md", root / "qiongli-workflow" / "skills-core.md")
-        shutil.copy2(REPO_ROOT / "skills-summary.md", root / "qiongli-workflow" / "skills-summary.md")
+        shutil.copytree(RepoLayout(REPO_ROOT).workflow, root / "qiongli-workflow")
+        shutil.copytree(RepoLayout(REPO_ROOT).templates, root / "qiongli-workflow" / "templates", dirs_exist_ok=True)
+        shutil.copytree(RepoLayout(REPO_ROOT).skills, root / "qiongli-workflow" / "skills", dirs_exist_ok=True)
+        shutil.copytree(RepoLayout(REPO_ROOT).skills, root / "skills")
+        shutil.copytree(RepoLayout(REPO_ROOT).subjects, root / "subjects")
+        shutil.copy2(RepoLayout(REPO_ROOT).skills_core, root / "qiongli-workflow" / "skills-core.md")
+        shutil.copy2(RepoLayout(REPO_ROOT).skills_summary, root / "qiongli-workflow" / "skills-summary.md")
         return root
 
 

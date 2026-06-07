@@ -32,3 +32,17 @@ test('parseArgv delegates bridge commands without consuming bridge flags', () =>
   assert.equal(parsed.command, 'task-run');
   assert.deepEqual(parsed.rest, ['--task-id', 'B1', '--cwd', '/tmp/project']);
 });
+
+test('parseArgv delegates setup without consuming setup flags', () => {
+  const parsed = parseArgv(['setup', '--dry-run', '--project-dir', '/tmp/project', '--no-doctor']);
+
+  assert.equal(parsed.command, 'setup');
+  assert.deepEqual(parsed.rest, ['--dry-run', '--project-dir', '/tmp/project', '--no-doctor']);
+});
+
+test('parseArgv delegates mcp without consuming mcp flags', () => {
+  const parsed = parseArgv(['mcp', 'serve', '--transport', 'stdio']);
+
+  assert.equal(parsed.command, 'mcp');
+  assert.deepEqual(parsed.rest, ['serve', '--transport', 'stdio']);
+});

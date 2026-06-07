@@ -5,9 +5,6 @@ hero:
   name: Qiongli
   text: 面向 AI 编程代理的契约化学术工作流。
   tagline: 一次安装后，在 Codex、Claude Code 或 Gemini 中运行带 Task ID、质量门、文献诊断、角色交接和可审计产物的研究流程。
-  image:
-    src: /mark.svg
-    alt: Qiongli logo
   actions:
     - theme: brand
       text: 快速开始

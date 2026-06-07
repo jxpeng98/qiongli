@@ -6,7 +6,7 @@ Qiongli has several installation surfaces because users need different levels of
 
 | Surface | Best for | Installs | Python required |
 |---|---|---|---|
-| Native plugin / extension | One client, least setup | Client plugin plus `qiongli-workflow` | No |
+| Native plugin / extension | One client, least setup | Client plugin plus `qiongli-workflow`; Codex and Claude Code include bundled literature MCP runtime where applicable | No for skill use or bundled literature MCP; Python/CLI only for full runtime |
 | Claude Desktop Skill ZIP | Claude Desktop or Claude.ai, especially when you do not want to use a code/CLI environment | Personal `qiongli` Skill upload | No |
 | Bootstrap `partial` | Global workflow assets across clients | Skills and workflow discovery where supported | No |
 | Bootstrap `full` | Runtime checks and orchestration | `partial` plus shell CLI and `doctor` support | Yes, Python 3.12+ |
@@ -28,6 +28,8 @@ codex plugin marketplace list
 
 Then install or enable `qiongli` from the Codex plugin UI for the default core package. Subject entries such as `qiongli-economics`, `qiongli-accounting`, `qiongli-business`, `qiongli-finance`, `qiongli-political-economy`, `qiongli-geoeconomics`, and `qiongli-economics-accounting` install the corresponding `subject/complete` package from the same marketplace.
 
+The Codex plugin bundles its MCP registration through `.mcp.json` and includes a zero-dependency Node literature-provider server under `mcp/qiongli-literature-provider/`. Codex users do not need to hand-write a separate MCP config or install the `qiongli` CLI for those bundled literature tools. Provider keys remain outside the plugin and can be configured with the bundled MCP tool `qiongli_save_provider_config`, or with `qiongli mcp configure` / `qiongli provider setup` when the CLI is installed. The full Python-backed `qiongli mcp serve` server still requires the npm, pipx/pip, or `full` bootstrap runtime.
+
 Claude Code uses the same Skillsplace catalog:
 
 ```bash
@@ -45,6 +47,8 @@ Inside an interactive Claude Code session, use:
 /plugin install qiongli-economics@skillsplace
 ```
 
+The Claude Code plugin also bundles the zero-dependency Node literature-provider MCP runtime under `mcp/qiongli-literature-provider/`, using the same provider, search, and status tools as the Codex plugin. It covers literature-provider MCP without installing the `qiongli` CLI. Full Python-backed orchestration tools such as `qiongli_task_plan`, `qiongli_task_run`, and `qiongli_orchestrator_doctor` still require the npm, pipx/pip, or bootstrap `full` CLI runtime and `qiongli mcp serve --transport stdio`.
+
 Claude Desktop and Claude.ai do not install third-party Claude Code plugin marketplaces. If you use Desktop or the web app and are not familiar with a code/CLI environment, use the release ZIP path instead. It requires no terminal commands:
 
 1. Download `qiongli-claude-desktop-skill-core-<tag>.zip`, `qiongli-claude-desktop-skill-economics-<tag>.zip`, `qiongli-claude-desktop-skill-business-<tag>.zip`, `qiongli-claude-desktop-skill-finance-<tag>.zip`, `qiongli-claude-desktop-skill-political-economy-<tag>.zip`, `qiongli-claude-desktop-skill-geoeconomics-<tag>.zip`, or `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip` from the GitHub Release assets. Public Desktop ZIP subjects in this phase are `core`, `economics`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting`; there is no standalone accounting Desktop ZIP yet.
@@ -52,12 +56,27 @@ Claude Desktop and Claude.ai do not install third-party Claude Code plugin marke
 3. In Claude.ai, use the same `Customize > Skills` upload flow and select the same ZIP.
 4. Enable the uploaded `qiongli` skill.
 
-The release ZIP uses `coverage=focused` to stay under upload limits. It is a subject-specialized Desktop/Web package, not a reduced-quality cut. It preserves executable workflows, templates, standards, selected profiles, `skills-summary.md`, and `skills-core.md`; specialized ZIPs also include selected effective skill markdown generated with layered overlays. Detailed canonical source remains available through CLI/npm `coverage=complete`, the Codex / Claude Code / Gemini plugin packages, and the source repository.
+The release ZIP uses `coverage=focused` to stay under the current 180-file upload budget. It is a subject-specialized Desktop/Web package, not a reduced-quality cut. It preserves executable workflows, prompts, templates, standards, selected profiles, `skills-summary.md`, and `skills-core.md`; specialized ZIPs also include selected effective skill markdown generated with layered overlays. This Desktop skill ZIP is skill-only: it contains workflows/prompts/templates, stores no secrets, and does not execute provider calls. Detailed canonical source remains available through CLI/npm `coverage=complete`, the Codex / Claude Code / Gemini plugin packages, and the source repository.
+
+The Qiongli Literature Provider `.mcpb` (`qiongli-literature-provider.mcpb`) is a separate Claude Desktop local provider asset. It runs Desktop literature search through OpenAlex and Semantic Scholar, exposes a Desktop configuration UI for OpenAlex email and Semantic Scholar API key values, and uses Claude Desktop sensitive-field handling instead of putting keys in the skill ZIP. It contains its own zero-dependency Node stdio server, so Desktop users do not need the `qiongli` CLI or an npm install to use this MCPB. CLI, Codex, and Claude Code users can still run `qiongli provider setup`, then verify `provider_connected` or `strategy_only` with `qiongli provider doctor`. Desktop users need the `qiongli-literature-provider` MCPB or platform-native search before claiming `provider_connected`; if no MCPB or platform-native search is available, record the run as `strategy_only` and treat platform search or user-supplied corpus as the evidence source.
+
+Manual Desktop installs can combine two local assets:
+
+- Skill ZIP: enables Qiongli agent instructions, workflows, subject overlays, and skill guidance inside Claude Desktop/Web.
+- Literature MCPB: enables local literature MCP calls and provider configuration.
+
+Those two assets do not by themselves expose the full Python-backed orchestrator. If a local client should call `qiongli_task_plan`, `qiongli_task_run`, or `qiongli_orchestrator_doctor` as MCP tools, install the npm, pipx/pip, or bootstrap `full` CLI runtime and configure:
+
+```bash
+qiongli mcp serve --transport stdio
+```
+
+`qiongli_task_run` defaults to preview mode. It launches local Codex, Claude, or Gemini processes only when the MCP caller explicitly sends JSON boolean `run_agents: true` and the local runtime passes `doctor`.
 
 Gemini CLI still installs the local extension payload directly:
 
 ```bash
-gemini extensions install ./path/to/qiongli/plugins/qiongli
+gemini extensions install ./path/to/qiongli/packages/qiongli-plugin
 ```
 
 This path does not install the shell CLI, Python bridge, or global slash-command symlinks. Use bootstrap or npm when you need those.
@@ -143,19 +162,51 @@ Prerelease testing remains available through the `next` dist-tag:
 npx qiongli@next install --subject economics --target all --project-dir "$PWD"
 ```
 
+## Recommended CLI Setup Wizard
+
+After installing the CLI with npm, pipx, pip, or the bootstrap script, run the interactive setup wizard before hand-writing install flags:
+
+```bash
+qiongli setup
+qiongli setup --dry-run
+qiongli setup --project-dir "$PWD" --no-doctor
+```
+
+The wizard guides CLI, Codex, and Claude Code users through:
+
+- setup path: `install` for first-time bundled asset installation, or `upgrade` for an upstream refresh
+- runtime surface: CLI, Codex, Claude Code, or multi-platform
+- subject choice
+- coverage choice: `complete` or `focused`
+- install mode: `--mode copy` for normal use, or `--mode link` for local checkout development
+- install scope: `all`, `globals`, `project`, or `cli`
+- shell CLI directory when CLI wrappers are enabled
+- overwrite policy: `--overwrite` for replacing managed installs, or `--no-overwrite` on upgrade when you want to preserve existing managed files
+- upgrade source: latest stable, latest beta, an explicit `--ref` tag, an explicit `--ref-type branch`, and optional `--repo`
+- optional literature provider key setup
+- doctor verification, unless `--no-doctor` is set
+
+Every prompt prints a short `Tip:` comment explaining what the choice changes, so new users can follow the install or upgrade path without knowing the full CLI flag set first.
+
+Provider keys entered through setup use the same provider config as `qiongli provider setup` and `qiongli provider doctor`. Secrets are stored outside generated research artifacts. The provider step configures credentials and runs doctor/capability checks; it does not guarantee external search results.
+
+On npm installs, `qiongli setup` delegates to the bundled Python bridge and therefore requires Python 3.12+ plus `PyYAML`. Use explicit `qiongli install ...` commands when you want the Node-only asset installer.
+
 ## pipx / pip
 
 Use pipx when you specifically want the Python-distributed updater CLI:
 
 ```bash
 pipx install qiongli
-qiongli install --target all
+qiongli setup
 qiongli install --subject economics --target all
 qiongli install --subject accounting --target all
 qiongli install --subject political-economy --target all
 qiongli install --subject geoeconomics --target all
 qiongli install --subject economics-accounting --target all
 ```
+
+`qiongli setup` can guide the same choices interactively. Scriptable installs can still use `qiongli upgrade` or explicit `qiongli install ...` commands as shown here.
 
 Upgrade it with:
 

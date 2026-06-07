@@ -1,88 +1,26 @@
+#!/usr/bin/env python3
 from __future__ import annotations
 
-import argparse
+import runpy
 import sys
+from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-
-from qiongli.universal_installer import PART_CHOICES, PROFILE_CHOICES, TARGET_CHOICES, InstallOptions, install
-
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Cross-platform local installer for qiongli with partial/full profiles."
-    )
-    parser.add_argument(
-        "--profile",
-        choices=PROFILE_CHOICES,
-        default="partial",
-        help="Install preset: partial (assets only) or full (assets + shell CLI when supported + doctor).",
-    )
-    parser.add_argument(
-        "--target",
-        choices=TARGET_CHOICES,
-        default="all",
-        help="Install target (default: all).",
-    )
-    parser.add_argument(
-        "--mode",
-        choices=("copy", "link"),
-        default="copy",
-        help="Install mode (default: copy).",
-    )
-    parser.add_argument(
-        "--project-dir",
-        default=str(Path.cwd()),
-        help="Project directory used when project surfaces are enabled (default: current dir).",
-    )
-    parser.add_argument("--overwrite", action="store_true", help="Overwrite existing installed files.")
-    parser.add_argument("--install-cli", action="store_true", help="Force shell CLI installation.")
-    parser.add_argument("--no-cli", action="store_true", help="Skip shell CLI installation.")
-    parser.add_argument("--doctor", action="store_true", help="Force doctor after install.")
-    parser.add_argument("--no-doctor", action="store_true", help="Skip doctor even in full profile.")
-    parser.add_argument("--cli-dir", help="Directory for shell CLI binaries.")
-    parser.add_argument(
-        "--parts",
-        help=f"Comma-separated install surfaces to apply: {', '.join(PART_CHOICES)}.",
-    )
-    parser.add_argument("--dry-run", action="store_true", help="Show install actions without writing files.")
-    return parser
-
-
-def main() -> int:
-    parser = build_parser()
-    args = parser.parse_args()
-
-    install_cli = None
-    if args.install_cli:
-        install_cli = True
-    if args.no_cli:
-        install_cli = False
-
-    doctor = None
-    if args.doctor:
-        doctor = True
-    if args.no_doctor:
-        doctor = False
-
-    options = InstallOptions(
-        repo_root=REPO_ROOT,
-        project_dir=Path(args.project_dir),
-        target=args.target,
-        mode=args.mode,
-        overwrite=args.overwrite,
-        install_cli=install_cli,
-        cli_dir=Path(args.cli_dir) if args.cli_dir else None,
-        doctor=doctor,
-        dry_run=args.dry_run,
-        profile=args.profile,
-        parts=tuple(part.strip() for part in str(args.parts or "").split(",") if part.strip()) or None,
-    )
-    return install(options)
-
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+_TARGET = _REPO_ROOT / "tooling" / "scripts" / Path(__file__).name
+for _import_root in (_TARGET.parent, _REPO_ROOT / "packages" / "python-qiongli" / "src", _REPO_ROOT):
+    if str(_import_root) not in sys.path:
+        sys.path.insert(0, str(_import_root))
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    runpy.run_path(str(_TARGET), run_name="__main__")
+else:
+    _spec = spec_from_file_location(f"_qiongli_tooling_scripts_{Path(__file__).stem}", _TARGET)
+    if _spec is None or _spec.loader is None:
+        raise ImportError(f"Unable to load {_TARGET}")
+    _module = module_from_spec(_spec)
+    sys.modules[_spec.name] = _module
+    _spec.loader.exec_module(_module)
+    for _name, _value in vars(_module).items():
+        if _name not in {"__name__", "__package__", "__loader__", "__spec__"}:
+            globals()[_name] = _value

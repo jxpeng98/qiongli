@@ -24,7 +24,7 @@ Before editing anything, distinguish these layers clearly:
   - This is the research responsibility layer: literature, methods, writing, compliance, etc.
 - **Runtime Agents**: `codex`, `claude`, `gemini`
   - These are model executors selected by the capability map and bridges.
-- **Pipelines**: `pipelines/`
+- **Pipelines**: `tooling/pipelines/`
   - Abstract DAG definitions and handoff plans.
 - **Workflows**: `.agent/workflows/`
   - Claude Code interaction layer and user entrypoints.
@@ -45,7 +45,7 @@ If you worked on an earlier version of the repo, use this map first:
 |---|---|---|
 | "The skill package is the system" | `qiongli-workflow/` is only the portable distribution surface | `standards/` or `skills/`, not the portable package |
 | "Agent means Claude/Codex/Gemini" | Split into `functional agents` (`roles/`) and `runtime agents` (`standards/` + `bridges/`) | `roles/` for ownership, `capability map` for runtime routing |
-| "Slash command = workflow truth" | `.agent/workflows/` is only the entry layer; `pipelines/` is the DAG layer | `pipelines/` first, then `.agent/workflows/` |
+| "Slash command = workflow truth" | `.agent/workflows/` is only the entry layer; `tooling/pipelines/` is the DAG layer | `tooling/pipelines/` first, then `.agent/workflows/` |
 | "A new micro-step needs a new skill file" | Many changes belong in templates, parent skill fields, or MCP/provider logic | `templates/`, parent skill markdown, or MCP/bridge layer |
 | "Bridges can patch missing standards" | `bridges/` should execute standards, not replace them | Fix `standards/` first |
 
@@ -61,7 +61,7 @@ For maintainers, the internal layers are:
 
 - `standards/` for truth
 - `roles/` and `skills/` for reusable responsibility and execution behavior
-- `pipelines/` for DAG sequencing
+- `tooling/pipelines/` for DAG sequencing
 - `bridges/` for runtime behavior
 
 If a user-visible command changes but the underlying truth did not, update the entry layer only.
@@ -90,7 +90,7 @@ User intent (Natural Language)
 Single Source of Truth:
 - The contract (Tasks and Outputs): `standards/research-workflow-contract.yaml`
 - The orchestration (Routing of skills/mcp/agents): `standards/mcp-agent-capability-map.yaml`
-- Functional ownership conventions: `roles/` + `pipelines/`
+- Functional ownership conventions: `roles/` + `tooling/pipelines/`
 - Stage DoD (Detailed "Definition of Done"): `qiongli-workflow/references/stage-*.md`
 
 ### 1.2 Stage Map (Recommended starting point)
@@ -131,11 +131,11 @@ Categorizing your changes will directly determine which file layer you should ed
 | You want to change... | Start here | Then check |
 |---|---|---|
 | Required output paths or stage deliverables | `standards/research-workflow-contract.yaml` | `skills/registry.yaml`, templates, workflow references |
-| Functional owner or runtime routing | `standards/mcp-agent-capability-map.yaml` | `roles/`, `pipelines/`, `bridges/` |
+| Functional owner or runtime routing | `standards/mcp-agent-capability-map.yaml` | `roles/`, `tooling/pipelines/`, `bridges/` |
 | How a reusable step behaves | `skills/*/*.md` | `templates/`, stage references |
 | A repeated table / markdown structure | `templates/` | Parent skill markdown |
 | External provider / search / stats connector | `bridges/` + MCP registry | capability map task bindings |
-| Claude slash-command menu or UX | `.agent/workflows/*.md` | `pipelines/`, README/quickstart |
+| Claude slash-command menu or UX | `.agent/workflows/*.md` | `tooling/pipelines/`, README/quickstart |
 | Cross-client portable skill behavior | `qiongli-workflow/` | workflow references, README |
 
 ## 2.3) Domain Specialization: How to Customize a Direction
@@ -320,7 +320,7 @@ If the capability turns out to be a provider wrapper or a field-level sub-extrac
 
 1. Start with `roles/` to clarify the functional-owner concept and preferred skill set.
 2. Update `standards/mcp-agent-capability-map.yaml` if task ownership, required skills, or review expectations change.
-3. Update `pipelines/` if the handoff sequence between literature / methods / writing / compliance responsibilities changes.
+3. Update `tooling/pipelines/` if the handoff sequence between literature / methods / writing / compliance responsibilities changes.
 4. Only touch `bridges/` if the runtime execution logic itself must change.
 
 ### 3.6 "I want to integrate a new external MCP (e.g., local tools for scholar/search/stats)."

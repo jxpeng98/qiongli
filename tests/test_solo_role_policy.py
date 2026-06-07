@@ -3,17 +3,19 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-POLICY_PATH = REPO_ROOT / "standards" / "solo-role-policy.yaml"
-SOLO_TASK_PACKET_PATH = REPO_ROOT / "templates" / "solo-task-packet.md"
-SOLO_SELF_REVIEW_PATH = REPO_ROOT / "templates" / "solo-self-review.md"
-IMPLEMENTATION_INTENT_PATH = REPO_ROOT / "templates" / "implementation-intent.md"
-WRITING_CLAIM_MAP_PATH = REPO_ROOT / "templates" / "writing-claim-map.md"
-QUALITY_GATE_REPORT_PATH = REPO_ROOT / "templates" / "quality-gate-report.md"
+POLICY_PATH = RepoLayout(REPO_ROOT).standards / "solo-role-policy.yaml"
+SOLO_TASK_PACKET_PATH = RepoLayout(REPO_ROOT).templates / "solo-task-packet.md"
+SOLO_SELF_REVIEW_PATH = RepoLayout(REPO_ROOT).templates / "solo-self-review.md"
+IMPLEMENTATION_INTENT_PATH = RepoLayout(REPO_ROOT).templates / "implementation-intent.md"
+WRITING_CLAIM_MAP_PATH = RepoLayout(REPO_ROOT).templates / "writing-claim-map.md"
+QUALITY_GATE_REPORT_PATH = RepoLayout(REPO_ROOT).templates / "quality-gate-report.md"
 
 SOLO_ROLES = {"solo_codex", "solo_claude", "solo_gemini"}
 

@@ -3,13 +3,15 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 class AcademicContextContinuityTests(unittest.TestCase):
     def test_workflow_contract_defines_context_artifacts_and_refresh_points(self) -> None:
-        content = (REPO_ROOT / "standards" / "research-workflow-contract.yaml").read_text(
+        content = (RepoLayout(REPO_ROOT).standards / "research-workflow-contract.yaml").read_text(
             encoding="utf-8"
         )
 
@@ -26,7 +28,7 @@ class AcademicContextContinuityTests(unittest.TestCase):
             self.assertIn(token, content)
 
     def test_boundary_review_is_academic_context_artifact(self) -> None:
-        content = (REPO_ROOT / "standards" / "research-workflow-contract.yaml").read_text(
+        content = (RepoLayout(REPO_ROOT).standards / "research-workflow-contract.yaml").read_text(
             encoding="utf-8"
         )
         self.assertIn('"context/boundary_review.md"', content)
@@ -36,7 +38,7 @@ class AcademicContextContinuityTests(unittest.TestCase):
 
     def test_context_maintainer_consumes_boundary_review(self) -> None:
         content = (
-            REPO_ROOT / "skills" / "Z_cross_cutting" / "academic-context-maintainer.md"
+            RepoLayout(REPO_ROOT).skills / "Z_cross_cutting" / "academic-context-maintainer.md"
         ).read_text(encoding="utf-8")
         self.assertIn("context/boundary_review.md", content)
         self.assertIn("Do not broaden locked boundaries", content)
@@ -45,7 +47,7 @@ class AcademicContextContinuityTests(unittest.TestCase):
         self.assertIn("stage_handoff.md", content)
 
     def test_capability_map_wires_continuity_skill_into_stage_close_tasks(self) -> None:
-        content = (REPO_ROOT / "standards" / "mcp-agent-capability-map.yaml").read_text(
+        content = (RepoLayout(REPO_ROOT).standards / "mcp-agent-capability-map.yaml").read_text(
             encoding="utf-8"
         )
 
@@ -64,10 +66,10 @@ class AcademicContextContinuityTests(unittest.TestCase):
 
     def test_continuity_skill_and_templates_define_academic_state_not_runtime_state(self) -> None:
         skill = (
-            REPO_ROOT / "skills" / "Z_cross_cutting" / "academic-context-maintainer.md"
+            RepoLayout(REPO_ROOT).skills / "Z_cross_cutting" / "academic-context-maintainer.md"
         ).read_text(encoding="utf-8")
-        template = (REPO_ROOT / "templates" / "research-state.md").read_text(encoding="utf-8")
-        log_template = (REPO_ROOT / "templates" / "decision-log.md").read_text(encoding="utf-8")
+        template = (RepoLayout(REPO_ROOT).templates / "research-state.md").read_text(encoding="utf-8")
+        log_template = (RepoLayout(REPO_ROOT).templates / "decision-log.md").read_text(encoding="utf-8")
 
         for token in (
             "This skill is not a runtime memory compactor.",
@@ -90,7 +92,7 @@ class AcademicContextContinuityTests(unittest.TestCase):
 
     def test_generated_workflow_contract_reference_includes_academic_context_section(self) -> None:
         content = (
-            REPO_ROOT / "qiongli-workflow" / "references" / "workflow-contract.md"
+            RepoLayout(REPO_ROOT).workflow / "references" / "workflow-contract.md"
         ).read_text(encoding="utf-8")
 
         for token in (

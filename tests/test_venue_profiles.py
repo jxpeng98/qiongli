@@ -4,6 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 import yaml
 
 from scripts.audit_venue_profiles import audit_venue_profile
@@ -14,7 +16,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 class VenueProfileTests(unittest.TestCase):
     def test_initial_venue_profiles_exist_and_are_valid(self) -> None:
-        profile_dir = REPO_ROOT / "venue-profiles"
+        profile_dir = RepoLayout(REPO_ROOT).venue_profiles
         for venue_id in ("chi", "acl", "neurips", "nature", "jama", "aom"):
             with self.subTest(venue_id=venue_id):
                 path = profile_dir / f"{venue_id}.yaml"

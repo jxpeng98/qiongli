@@ -81,7 +81,7 @@
 当前 release 文档策略：
 
 - stable 正式版统一维护在 `CHANGELOG.md`
-- beta / prerelease 继续使用 `release/<tag>.md`
+- beta / prerelease 继续使用 `tooling/release/<tag>.md`
 
 Beta 通道策略：
 
@@ -102,6 +102,14 @@ Beta 通道策略：
 
 `release_ready.sh` 会执行版本同步、strict validator、仓库单元测试、release-tier smoke、release note evidence 更新、包构建检查、`twine check` 和 wheel 安装 smoke。它不会创建 tag，也不会 push。commit、tag、push、等待 branch CI、等待 tag publish、创建 GitHub Release、上传 plugin artifacts、生成 acceptance receipt 都由 `publish` 模式负责。
 
+如果 beta release 的 GitHub Actions 可能超过本地等待窗口，可以使用 bounded soft wait：
+
+```bash
+./scripts/release_automation.sh publish --version 0.15.0b2 --from-tag v0.15.0-beta.1 --ci-timeout-seconds 900 --ci-timeout-mode soft
+```
+
+soft 模式仍然会在 workflow 已完成且失败时退出；它只会在 CI 仍 pending 或暂时无法查询时继续，并把状态写入 acceptance receipt。stable release 应继续使用默认 hard 模式。
+
 如果你确实需要拆开执行，入口仍然保留：
 
 ```bash
@@ -116,12 +124,14 @@ Beta 通道策略：
 `publish` 会创建并 push 以 `v*` 开头的 release tag，例如 `v0.2.0` 或 `v0.2.0-beta.1`。这个 tag 会触发 `publish-pypi.yml`：
 
 1. Checkout 代码
-2. 运行 `inject_project_toml.sh`（把当前仓库 slug 写入 `qiongli/project.toml`）
-3. `python -m build` 构建 sdist + wheel
-4. `twine check` 验证包元数据
-5. 使用 Trusted Publisher 发布到 PyPI
+2. 在 checkout 中运行 `inject_project_toml.sh`，把当前仓库 slug 写入 `qiongli/project.toml`
+3. 将 release payload materialize 到 `$RUNNER_TEMP/qiongli-dist`
+4. 基于 staged root 验证 release tag
+5. 从 staged root 执行 `python -m build` 构建 sdist + wheel
+6. 运行 `twine check` 验证 staged package metadata
+7. 使用 Trusted Publisher 发布到 PyPI
 
-同一个 tag 也会触发 `publish-npm.yml`，它会校验 bundled npm package，并把 stable 版本发布到 `latest`，把 beta 版本发布到 `next`。
+同一个 tag 也会触发 `publish-npm.yml`，它会校验 staged bundled npm package，并把 stable 版本发布到 `latest`，把 beta 版本发布到 `next`。
 
 之后 postflight 会等待 release commit 上的 `CI` 和 `Checkout Install Check`。如果必需 workflow 没有匹配到，诊断会同时打印该 commit 上实际观察到的 workflow 名称。
 
@@ -132,8 +142,10 @@ Beta 通道策略：
 如果你想绕开 `release_ready.sh` 单独跑包预检，可以执行：
 
 ```bash
-bash scripts/pypi_preflight.sh
-bash scripts/pypi_preflight.sh --no-build
+python scripts/materialize_distribution_payloads.py --target all --out /tmp/qiongli-dist --force
+bash scripts/verify_release_tag_version.sh --root /tmp/qiongli-dist --tag <tag>
+bash scripts/pypi_preflight.sh --root /tmp/qiongli-dist
+bash scripts/npm_preflight.sh --root /tmp/qiongli-dist
 ```
 
 等价的手动步骤如下：
@@ -143,9 +155,10 @@ bash scripts/pypi_preflight.sh --no-build
 pip install build twine
 
 # 注入上游 repo 信息
-bash scripts/inject_project_toml.sh
+bash /tmp/qiongli-dist/scripts/inject_project_toml.sh
 
 # 构建
+cd /tmp/qiongli-dist
 python -m build
 
 # 验证
@@ -194,7 +207,7 @@ pip install --index-url https://test.pypi.org/simple/ qiongli
 - [ ] 可选：先运行 `./scripts/release_ready.sh --version <version>` 做本地干跑
 - [ ] 运行 `./scripts/release_automation.sh publish --version <version> --from-tag <previous-tag>`
 - [ ] 在 GitHub Actions 确认 `Publish to PyPI`、`CI` 和 `Checkout Install Check` 成功
-- [ ] 确认 postflight 创建或更新 GitHub Release，并生成 `release/acceptance/<tag>-receipt.md`
+- [ ] 确认 postflight 创建或更新 GitHub Release，并生成 `tooling/release/acceptance/<tag>-receipt.md`
 - [ ] 验证安装：`pipx install qiongli && rsk --help`
 
 ---

@@ -7,8 +7,10 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+import bridges.mcp_connectors as mcp_connectors_module
 from bridges.command_runtime import current_python_command
 from bridges.mcp_connectors import MCPConnector
+from bridges.provider_config import set_provider_value
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -40,6 +42,21 @@ class MCPConnectorTests(unittest.TestCase):
         self.assertEqual(resolution.source, "builtin")
         self.assertTrue((resolution.native_script or "").endswith("mcp_metadata_registry.py"))
 
+    def test_resolve_provider_detects_builtin_from_installed_package_with_checkout_cwd(self) -> None:
+        installed_file = "/tmp/site-packages/qiongli/bridges/mcp_connectors.py"
+        with mock.patch.object(mcp_connectors_module, "__file__", installed_file), mock.patch.dict(
+            os.environ,
+            {},
+            clear=False,
+        ):
+            resolution = self.connector.resolve_provider("metadata-registry")
+
+        self.assertEqual(resolution.source, "builtin")
+        self.assertEqual(
+            resolution.native_script,
+            str(REPO_ROOT / "scripts" / "mcp_metadata_registry.py"),
+        )
+
     def test_resolve_provider_detects_external_slot(self) -> None:
         with mock.patch.dict(os.environ, {}, clear=False):
             resolution = self.connector.resolve_provider("extraction-store")
@@ -67,6 +84,20 @@ class MCPConnectorTests(unittest.TestCase):
 
         self.assertEqual(resolution.source, "builtin")
         self.assertTrue((resolution.native_script or "").endswith("mcp_research_collab.py"))
+
+    def test_builtin_scholarly_search_reports_provider_config(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            config_home = root / "config"
+            with mock.patch.dict(os.environ, {"QIONGLI_CONFIG_HOME": str(config_home)}, clear=False):
+                set_provider_value("openalex", "email", "user@example.com")
+                evidence = self.connector.collect("scholarly-search", {}, root)
+
+        self.assertEqual(evidence.provider, "scholarly-search")
+        self.assertEqual(evidence.status, "warning")
+        self.assertEqual(evidence.data["provider_config"]["openalex"], "configured")
+        self.assertEqual(evidence.data["provider_config"]["semantic_scholar"], "missing")
+        self.assertEqual(evidence.data["capability_mode"], "provider_connected")
 
     def test_collect_external_provider_executes_quoted_env_command_with_space_paths(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -120,6 +151,48 @@ class MCPConnectorTests(unittest.TestCase):
         self.assertEqual(evidence.data["source"], "fixture")
         self.assertEqual(evidence.data["provider"], "screening-tracker")
         self.assertEqual(evidence.data["topic"], "demo-topic")
+
+    def test_collect_external_provider_injects_saved_provider_config_env(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            config_home = root / "config"
+            workspace = root / "workspace"
+            workspace.mkdir(parents=True)
+            script = workspace / "provider env stub.py"
+            script.write_text(
+                "import json\n"
+                "import os\n"
+                "response = {\n"
+                "    'status': 'ok',\n"
+                "    'summary': 'provider env captured',\n"
+                "    'data': {\n"
+                "        'openalex_email': os.environ.get('OPENALEX_EMAIL'),\n"
+                "        's2_api_key': os.environ.get('S2_API_KEY'),\n"
+                "        'qiongli_s2_api_key': os.environ.get('QIONGLI_SEMANTIC_SCHOLAR_API_KEY'),\n"
+                "    },\n"
+                "}\n"
+                "print(json.dumps(response))\n",
+                encoding="utf-8",
+            )
+
+            with mock.patch.dict(os.environ, {"QIONGLI_CONFIG_HOME": str(config_home)}, clear=False):
+                set_provider_value("openalex", "email", "user@example.com")
+                set_provider_value("semantic-scholar", "api-key", "stored-key")
+
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "QIONGLI_CONFIG_HOME": str(config_home),
+                    "RESEARCH_MCP_SCREENING_TRACKER_CMD": current_python_command(str(script)),
+                },
+                clear=False,
+            ):
+                evidence = self.connector.collect("screening-tracker", {}, workspace)
+
+        self.assertEqual(evidence.status, "ok")
+        self.assertEqual(evidence.data["openalex_email"], "user@example.com")
+        self.assertEqual(evidence.data["s2_api_key"], "stored-key")
+        self.assertEqual(evidence.data["qiongli_s2_api_key"], "stored-key")
 
     def test_builtin_metadata_registry_normalizes_local_doi(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

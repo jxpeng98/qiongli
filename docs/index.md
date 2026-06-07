@@ -5,9 +5,6 @@ hero:
   name: Qiongli
   text: Contract-bound research workflows for AI coding agents.
   tagline: Install once, then use Codex, Claude Code, or Gemini to run academic workflows with explicit task IDs, quality gates, literature diagnostics, role handoffs, and auditable artifacts.
-  image:
-    src: /mark.svg
-    alt: Qiongli logo
   actions:
     - theme: brand
       text: Start With Quickstart

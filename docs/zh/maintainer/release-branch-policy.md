@@ -17,20 +17,20 @@
 
 - Marketplace repository: `https://github.com/jxpeng98/skillsplace`
 - Qiongli repository: `https://github.com/jxpeng98/qiongli`
-- Plugin subdirectory: `plugins/qiongli`
-- Codex manifest: `plugins/qiongli/.codex-plugin/plugin.json`
-- Claude Code manifest: `plugins/qiongli/.claude-plugin/plugin.json`
-- Gemini extension manifest: `plugins/qiongli/gemini-extension.json`
+- Plugin subdirectory: `packages/qiongli-plugin`
+- Codex manifest: `packages/qiongli-plugin/.codex-plugin/plugin.json`
+- Claude Code manifest: `packages/qiongli-plugin/.claude-plugin/plugin.json`
+- Gemini extension manifest: `packages/qiongli-plugin/gemini-extension.json`
 
-Skillsplace catalog 应跟踪 `main` 和 release tag，而不是 `dev`。`dev` 用于本地 plugin packaging 测试和预发布验证，验证完成后再更新统一 marketplace 入口。本仓库不再携带 Codex 或 Claude marketplace catalog 文件，只负责 plugin payload 和平台 manifest。
+Skillsplace catalog 应跟踪 `main` 和 release tag，而不是 `dev`。`dev` 用于本地 plugin packaging 测试和预发布验证，验证完成后再更新统一 marketplace 入口。本仓库不再携带 Codex 或 Claude marketplace catalog 文件，只负责 plugin manifest，并从 canonical source materialize release payload。
 
 ## 开发流程
 
 1. 功能和 packaging 工作从 `dev` 开始。
-2. 验证前同步 portable skill package：
+2. 验证 artifact 前，把 portable skill package materialize 到 staging 目录：
 
 ```bash
-bash scripts/sync_skill_package.sh --target all
+python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qiongli-dist --force
 ```
 
 3. 在 `dev` 上运行常规验证：

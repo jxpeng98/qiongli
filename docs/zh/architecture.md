@@ -1,103 +1,56 @@
 # 系统架构
 
-这一页把 `README_CN.md`、`README.md` 与维护者说明中分散的架构信息收敛成一个稳定入口。
+Qiongli 现在采用 hybrid 仓库布局：学术内容、运行时代码、包壳、维护工具分别有清晰 source 边界；发布和安装所需的 payload 只在 staging/materialization 阶段生成。
 
-## 核心原则
+## Source 边界
 
-Qiongli 把以下几层明确拆开：
+| 边界 | 可编辑源 | 职责 |
+|---|---|---|
+| 学术内容 | `content/` | workflow package source、internal skills、templates、standards、roles、subjects、schemas、venue profiles |
+| Python runtime | `packages/python-qiongli/src/` | `qiongli`、弃用兼容的 `research_skills` shim、bridge adapters、CLI/runtime code |
+| 包壳 | `packages/npm-qiongli/`、`packages/qiongli-plugin/`、`packages/qiongli-literature-mcpb/` | npm、plugin、MCPB 发布源 |
+| 维护工具 | `tooling/scripts/`、`tooling/pipelines/`、`tooling/install/`、`tooling/release/` | 自动化、pipeline 描述、安装 manifest、release 资产 |
+| 质量资产 | `evals/`、`tests/` | eval cases/runners 与跨包回归测试 |
+| 文档 | `docs/` | VitePress 文档和维护者说明 |
 
-- 契约真源
-- 能力路由
-- 功能责任
-- 可复用执行规格
-- 工作流编排
-- 运行时执行
-- 面向客户端的分发层
+根目录 `scripts/` 是兼容 wrapper。用户命令和 CI 可以继续使用 `scripts/...`，但维护者应编辑 `tooling/scripts/`。
 
-这样做的目的，是避免“改了一个 workflow 文案，却悄悄把 contract 改坏了”。
+根目录 `qiongli-workflow/`、`plugins/qiongli/`、`.agent/`、`.gemini/` 是生成后的 artifact 形状。要改源文件，请到 `content/workflow/` 或 `packages/qiongli-plugin/`。
 
 ## 分层模型
 
-| 层 | 主要位置 | 职责 |
+| 层 | 主要可编辑源 | 职责 |
 |---|---|---|
-| Contract | `standards/research-workflow-contract.yaml` | Task ID、产物路径、质量门 |
-| Capability Map | `standards/mcp-agent-capability-map.yaml` | 运行时路由、MCP 与 skill 要求 |
-| Functional Agents | `roles/` | 责任归属、质量阈值、语气与审稿风格 |
-| Internal Skill Specs | `skills/` | 可复用执行行为 |
-| Pipelines / Workflows | `pipelines/`、`.agent/workflows/` | 步骤编排与入口 UX |
-| Bridges | `bridges/` | 运行时适配器与 orchestrator |
-| Portable Skill Package | `qiongli-workflow/` | 面向客户端分发的安装技能包 |
-
-## 依赖方向
-
-```mermaid
-flowchart TD
-  Contract["Contract"]
-  Capability["Capability Map"]
-  Roles["Roles"]
-  Skills["Internal Skills"]
-  Pipelines["Pipelines / Workflows"]
-  Bridges["Bridges"]
-  Portable["Portable Skill Package"]
-
-  Contract --> Capability
-  Contract --> Roles
-  Contract --> Skills
-  Contract --> Pipelines
-  Capability --> Roles
-  Capability --> Skills
-  Capability --> Pipelines
-  Pipelines --> Bridges
-  Roles --> Pipelines
-  Skills --> Pipelines
-  Bridges --> Portable
-```
+| Contract | `content/standards/research-workflow-contract.yaml` | Task ID、产物路径、质量门 |
+| Capability Map | `content/standards/mcp-agent-capability-map.yaml` | 运行时路由、MCP 与 skill 要求 |
+| Functional Agents | `content/roles/` | 责任归属、质量阈值、语气 |
+| Internal Skill Specs | `content/skills/` | 可复用执行行为 |
+| Pipelines | `tooling/pipelines/` | 步骤编排与 handoff |
+| Client entry UX | `content/workflow/workflows/`、`packages/qiongli-plugin/platforms/` | portable workflows 与平台命令入口 |
+| Runtime | `packages/python-qiongli/src/qiongli/` | CLI、installer、orchestration、providers |
+| Distribution | materialized staging tree | `qiongli-workflow/`、plugin payload、npm payload、Python payload |
 
 ## 稳定入口
 
-| 入口方式 | 适用场景 | 入口 |
+| 入口方式 | 适用场景 | 稳定入口 |
 |---|---|---|
-| Claude Code workflows | 你想用斜杠命令在项目里操作 | `.agent/workflows/*.md` |
-| Shell / Python 安装 CLI | 你要安装或升级 assets | `qiongli`、`rsk`、`rsw` |
-| Orchestrator CLI | 你要显式规划任务、执行任务、做校验 | `python3 -m bridges.orchestrator ...` |
-| Portable skill package | 你要做跨客户端分发 | `qiongli-workflow/` |
+| CLI install/upgrade | 安装与升级 assets | `qiongli`、`ql`、`research-skills`、`rsk`、`rsw` |
+| Script entrypoints | CI、release、本地维护 | `scripts/*.py`、`scripts/*.sh` wrappers |
+| Orchestrator CLI | 任务规划、执行、校验 | `python3 -m qiongli.bridges.orchestrator ...` |
+| Portable skill package | 跨客户端分发 | 生成后的 `qiongli-workflow/` |
+| Plugin package | Codex/Claude/Gemini plugin 分发 | 生成后的 `plugins/qiongli/` |
 
-## Subject Package 与动态领域挂载
+## 依赖方向
 
-canonical source 保持通用。可安装的学科专精包由 `subjects/catalog.yaml`、subject overlays、selected profiles 和 subject-specific skills 生成。CLI/npm 默认是 `coverage=complete`，即保留全量 core 框架并叠加指定 subject layer；`coverage=focused` 是 Desktop/Web ZIP 使用的精简 selected package。
+默认把系统看成单向依赖图：
 
-用户和开发者两个视角的完整区别见 [Subject Packaging Model](/zh/advanced/subject-packaging-model)。
+1. `content/standards/`
+2. `content/roles/` 与 `content/skills/`
+3. `content/templates/`
+4. `tooling/pipelines/` 与 platform command source
+5. `packages/python-qiongli/src/qiongli/`
+6. materialized distribution payloads
 
-runtime domain flags 和 domain profiles 仍然用于单次 task packet 的临时强调，但不再替代 subject packaging。这样做的收益是：
+生成 payload 不能反过来成为隐藏真源。如果生成目录与 `content/` 或 `packages/` 不一致，应修源文件后重新 materialize。
 
-- 源码保持统一，不复制 generic skills
-- 不相关学科不会污染 focused package
-- 可以按领域注入专属库、诊断项、报告规范和方法学先验
-- 可以维护官方 composite subject，例如 `economics-accounting`
-
-## 多模型运行时协同
-
-运行时可以通过 orchestrator 联动 `codex`、`claude`、`gemini`。
-
-常见模式：
-
-- `parallel`：同一个 prompt，多端分析，一个总结
-- `task-run`：围绕单个 canonical task 的契约执行链
-- `team-run`：单 task 拆多工作单元，再汇总与审查
-
-## 设计借鉴与相关项目
-
-有两个外部项目对这个仓库的演化尤其重要：
-
-- [fengshao1227/ccg-workflow](https://github.com/fengshao1227/ccg-workflow)
-  - 主要借鉴：把 spec、planning、execution、review 严格拆开。
-  - 主要差异：CCG 偏通用软件工程协作；`qiongli` 把这套纪律本地化到学术研究场景，形成 `I5 -> I6 -> I7 -> I8` 的 Stage-I 代码任务。
-- [GuDaStudio/skills](https://github.com/GuDaStudio/skills)
-  - 主要借鉴：把跨模型协作能力打包成可安装的 Claude-oriented skill。
-  - 主要差异：`GuDaStudio/skills` 更像通用 skill 集合；`qiongli` 则围绕单一合同、单一任务目录和 `RESEARCH/[topic]/` 产物树组织。
-
-## 下一步去哪里
-
-- 要看修改规则和落点判断：去 [规范约定](/zh/conventions)
-- 要看 CLI 精确参数：去 [CLI 参考](/zh/reference/cli)
-- 要改系统行为：去 [扩展 Qiongli](/zh/advanced/extend-qiongli)
+精确目录职责见英文维护页 [Repository Structure](/development/repository-structure)。

@@ -68,7 +68,44 @@ JSON 输出会包含每个 target 当前安装的 active subject 和 coverage。
 - `1`：检测到更新可用
 - `2`：参数错误
 
-### 2.2 `qiongli install`（安装包内 subject payload）
+### 2.2 `qiongli setup`（交互式 CLI setup wizard）
+
+用途：
+- npm、pipx、pip 或 bootstrap 安装 CLI 后的推荐第一个命令。
+- 引导 CLI、Codex 和 Claude Code 用户选择 install/upgrade、runtime surface、subject、coverage、install mode、install scope、overwrite 策略、upgrade source、可选 provider key setup，并执行 doctor verification。
+
+```bash
+qiongli setup [--project-dir <path>] [--dry-run] [--no-doctor]
+```
+
+示例：
+
+```bash
+qiongli setup
+qiongli setup --dry-run
+qiongli setup --project-dir "$PWD" --no-doctor
+```
+
+通过 npm launcher 调用时，`qiongli setup` 使用 npm 包内置的 Python bridge，因此要求 Python 3.12+ 和 `PyYAML`。显式 `qiongli install ...` npm 命令仍可用于 Node-only asset installation。
+
+wizard 选项：
+- Setup path：`install` 或 `upgrade`。
+- Runtime surface：`cli`、`codex`、`claude-code` 或 `multi-platform`。
+- Subject：`core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics` 或 `economics-accounting`。
+- Coverage：`complete` 或 `focused`。
+- Install mode：普通用户用 `--mode copy`，本地开发 checkout 用 `--mode link`。
+- Install scope：`all`、`globals`、`project` 或 `cli`。
+- 所选 scope 包含 CLI wrapper 时的 CLI 目录。
+- Overwrite 策略：install refresh 使用 `--overwrite`；升级但不替换 managed files 时使用 `--no-overwrite`。
+- Upgrade source：latest stable、latest beta、可选 `--repo`、显式 `--ref`，以及 `--ref-type tag|branch`。
+- 可选 literature provider credentials。
+- Doctor verification，除非设置 `--no-doctor`。
+
+每一步 prompt 都包含简短的 `Tip:` 注释，解释这个选择为什么重要，以及会改变哪种安装或升级行为。
+
+通过 setup 输入的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。密钥保存在生成的研究 artifacts 之外。setup 会配置凭据并执行 doctor/capability 检查；它不承诺一定会运行外部 literature search。
+
+### 2.3 `qiongli install`（安装包内 subject payload）
 
 用途：
 - 把 PyPI 包内携带的 subject payload 安装到全局客户端 skill 目录。
@@ -100,7 +137,7 @@ qiongli install --subject economics --coverage focused --target all
 
 Subject package 是专精安装包，不是降质删减版。默认安装是 `core/complete`。`--subject economics`、`--subject business`、`--subject finance`、`--subject political-economy` 和 `--subject geoeconomics` 表示 complete 专精安装，不是缩水包；`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。`focused` coverage 只选择该 subject 的 profiles 和 active effective skills，用于有意选择的精简安装和 Desktop/Web ZIP。当前官方 subjects 是 `core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics` 和命名 composite subject `economics-accounting`；`political-economy` 和 `geoeconomics` 是两个独立 subject 选择，不是一个 composite。官方 composite subjects 不是任意逗号分隔叠加。本阶段公开 Desktop ZIP subjects 是 `core`、`economics`、`business`、`finance`、`political-economy`、`geoeconomics` 和 `economics-accounting`，还没有 standalone accounting Desktop ZIP。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新参数。
 
-### 2.3 `qiongli upgrade`（下载 release 并执行三端安装脚本）
+### 2.4 `qiongli upgrade`（下载 release 并执行三端安装脚本）
 
 用途：
 - 下载上游 release（默认 latest tag 的 tar.gz）
@@ -130,7 +167,7 @@ qiongli upgrade \
 - Shell CLI 会通过随附的 bootstrap helper 执行升级，不依赖 Python。
 - 退出码为底层安装器返回码（若安装失败，沿用其错误码）。
 
-### 2.4 `qiongli align`（快速参考）
+### 2.5 `qiongli align`（快速参考）
 
 用途：打印“pipx 安装了什么 / upgrade 会修改哪些路径 / 常见用法”。
 
@@ -138,7 +175,7 @@ qiongli upgrade \
 qiongli align [--repo <owner/repo|url>]
 ```
 
-### 2.5 `qiongli init`（项目初始化）
+### 2.6 `qiongli init`（项目初始化）
 
 用途：在项目目录中创建 `.env` 等项目配置。
 
@@ -146,7 +183,7 @@ qiongli align [--repo <owner/repo|url>]
 qiongli init [--project-dir <path>] [--target all|codex|claude|gemini] [--dry-run]
 ```
 
-### 2.6 `qiongli clean`（清理过期资产）
+### 2.7 `qiongli clean`（清理过期资产）
 
 用途：移除旧版本安装留下的项目本地资产。
 
@@ -159,13 +196,13 @@ qiongli clean [--project-dir <path>] [--dry-run] [--globals]
 - `--globals`：同时移除全局工作流发现 symlink（`~/.claude/commands/` 和 `~/.gemini/workflows/`）。只移除指向 `qiongli-workflow` 的 symlink，用户自建的命令不受影响。
 - `--dry-run`：只显示将要移除的内容，不实际删除。
 
-### 2.7 `qiongli doctor`（环境预检）
+### 2.8 `qiongli doctor`（环境预检）
 
 ```bash
 qiongli doctor [--cwd <path>]
 ```
 
-### 2.8 `qiongli customize`（创建 custom subject overlay）
+### 2.9 `qiongli customize`（创建 custom subject overlay）
 
 用途：
 - 为 Python/source checkout materialization 工作流创建本地 custom overlay scaffold。
@@ -177,7 +214,7 @@ qiongli customize --subject economics --name my-econ-lab --out ./qiongli-custom/
 python3 scripts/materialize_subject_package.py --subject economics --custom-dir ./qiongli-custom/econ-lab --source . --out /tmp/qiongli-workflow
 ```
 
-开发或加深一个 subject 时，需要同步更新 `subjects/catalog.yaml`、subject overlays、subject-specific registry and markdown、选定的 domain and venue profiles、subject eval fixtures、specialization audit expected terms、materializer tests、该 subject 可通过 npm 安装时的 npm payload tests，以及该 subject 有 Desktop/Web artifact 时的 release validation。
+开发或加深一个 subject 时，需要同步更新 `subjects/catalog.yaml`、subject overlays、subject-specific registry and markdown、选定的 domain and venue profiles、subject eval fixtures、specialization audit expected terms、materializer tests、基于 staged materialization 的 npm package contract tests（当该 subject 可通过 npm 安装时），以及该 subject 有 Desktop/Web artifact 时的 release validation。
 
 ---
 
@@ -375,14 +412,16 @@ mode 列表：
 - 只有诊断或恢复时才用 `pre` / `post`
 - 让 `publish` 统一负责 commit、tag、push、等待 branch CI、等待 tag publish、GitHub Release 和 acceptance receipt
 - stable 正式版从 `CHANGELOG.md` 对应章节发布
-- beta / prerelease 继续从 `release/<tag>.md` 发布
+- beta / prerelease 继续从 `tooling/release/<tag>.md` 发布
 
 也可单独运行：
 
 ```bash
-./scripts/release_preflight.sh [--tag v0.1.0-beta.X] [--skip-smoke] [--maintainer-smoke] [--no-strict]
-./scripts/release_postflight.sh --tag v0.1.0-beta.X [--skip-remote] [--skip-ci-status] [--wait-ci] [--create-release]
+./scripts/release_preflight.sh [--tag v0.1.0-beta.X] [--quick] [--skip-smoke] [--maintainer-smoke] [--no-strict]
+./scripts/release_postflight.sh --tag v0.1.0-beta.X [--skip-remote] [--skip-ci-status] [--wait-ci] [--ci-timeout-seconds 900] [--ci-timeout-mode soft] [--create-release]
 ```
+
+对于 beta release，`--ci-timeout-mode soft` 会让 postflight 只等待指定窗口，之后把未完成的 CI 记录为 acceptance receipt 里的 `pending` 状态并继续。stable release 保持默认 hard 模式。
 
 ### 4.4 Beta smoke：`./scripts/run_beta_smoke.sh`
 

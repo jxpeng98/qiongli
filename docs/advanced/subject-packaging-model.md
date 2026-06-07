@@ -104,7 +104,7 @@ The source tree is layered. Generic workflow behavior stays canonical; subject d
 |---|---|---|---|
 | Workflow contract | `qiongli-workflow/`, `standards/`, `references/` | shared task IDs, outputs, quality gates | yes |
 | Generic skills | `skills/*/*.md` | canonical cross-disciplinary capability cards | yes |
-| Generic profiles | `skills/domain-profiles/*.yaml`, `qiongli-workflow/venue-profiles/*.yaml` | reusable domain and venue metadata | available to core |
+| Generic profiles | `skills/domain-profiles/*.yaml`, `venue-profiles/*.yaml` | reusable domain and venue metadata | materialized into core packages |
 | Subject catalog | `subjects/catalog.yaml` | ordered subject groups and selected assets | no direct runtime behavior without materialization |
 | Subject overlays | `subjects/<subject>/overlays/skills/*.md` | append or replace declared skill sections | no |
 | Subject skills | `subjects/<subject>/skills/*.md` | small number of discipline-specific skills | no |

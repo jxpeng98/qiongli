@@ -4,6 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 from scripts.audit_domain_method_packs import audit_domain_profile
 
 
@@ -15,7 +17,7 @@ class DomainMethodPackAuditTests(unittest.TestCase):
         for name in ("economics", "finance"):
             with self.subTest(name=name):
                 result = audit_domain_profile(
-                    REPO_ROOT / "skills" / "domain-profiles" / f"{name}.yaml"
+                    RepoLayout(REPO_ROOT).skills / "domain-profiles" / f"{name}.yaml"
                 )
 
                 self.assertEqual([], result.errors)

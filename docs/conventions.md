@@ -1,218 +1,83 @@
-# Qiongli Framework — Conventions
+# Qiongli Framework - Conventions
 
 ## Terminology
 
-### Portable Skills vs Internal Skill Specs
+- `content/` is the canonical academic source tree.
+- `packages/` contains installable or publishable package sources.
+- `tooling/` contains maintainer automation and operational assets.
+- Root `scripts/` is a stable wrapper layer; edit implementations in
+  `tooling/scripts/`.
+- Root `qiongli-workflow/`, `plugins/qiongli/`, `.agent/`, and `.gemini/`
+  are generated distribution shapes; edit their sources in `content/` or
+  `packages/qiongli-plugin/`.
 
-- `qiongli-workflow/` is a portable skill package distributed to Codex / Claude / Gemini clients.
-- `skills/` contains repo-internal skill specifications referenced by `standards/`, `pipelines/`, and validators.
-- Do not assume every markdown file under `skills/` is installable as a standalone client skill package.
-- When a change affects end-user client entry behavior, check `qiongli-workflow/` first.
-- When a change affects reusable execution behavior inside this repo, check `skills/` first.
+## Edit Order
 
-### Functional Agents vs Runtime Agents
+When a change spans multiple layers, apply it in this order:
 
-- Functional agents are the research responsibility layer: literature, methods, writing, compliance, and similar ownership boundaries.
-- Today, that layer is represented primarily by `roles/` and pipeline ownership patterns.
-- Runtime agents are the actual model executors: `codex`, `claude`, and `gemini`.
-- Keep these concepts separate in docs, schemas, and routing logic.
+1. `content/standards/` for contract or routing truth.
+2. `content/roles/` and `content/skills/` for responsibility or execution
+   behavior.
+3. `content/templates/` for stable structured outputs.
+4. `tooling/pipelines/`, `content/workflow/workflows/`, and
+   `packages/qiongli-plugin/platforms/` for sequencing or entry UX.
+5. `packages/python-qiongli/src/qiongli/` only if runtime execution must
+   change.
+6. Generated payloads only through staged materialization.
 
-## System Layers
+## Where To Put Changes
 
-| Layer | Directory / File | Purpose |
-|---|---|---|
-| **Contract** | `standards/research-workflow-contract.yaml` | Canonical task IDs, artifact paths, quality gates |
-| **Capability Map** | `standards/mcp-agent-capability-map.yaml` | Skill/MCP/runtime routing |
-| **Functional Agents** | `roles/` | Research responsibility and quality ownership |
-| **Internal Skill Specs** | `skills/` | Reusable execution specs used by tasks and pipelines |
-| **Pipelines** | `pipelines/` | Abstract DAGs defining dependencies and handoffs |
-| **Workflows** | `qiongli-workflow/workflows/` | Slash-command entrypoints (globally symlinked) |
-| **Bridges** | `bridges/` | Runtime adapters and orchestration |
-| **Portable Skill Package** | `qiongli-workflow/` | Cross-client installable entry skill |
+| If the change is mainly... | Put it here |
+|---|---|
+| Artifact paths, task outputs, quality gates | `content/standards/research-workflow-contract.yaml` |
+| Runtime routing, MCP requirements, skill requirements | `content/standards/mcp-agent-capability-map.yaml` |
+| Functional ownership, thresholds, tone | `content/roles/` |
+| Reusable task behavior | `content/skills/` |
+| Reusable markdown/table structure | `content/templates/` |
+| Subject catalog or subject overlays | `content/subjects/` |
+| Domain or venue profile data | `content/skills/domain-profiles/`, `content/venue-profiles/` |
+| Pipeline sequencing | `tooling/pipelines/` |
+| Maintainer automation | `tooling/scripts/` |
+| Public script entrypoint compatibility | root `scripts/` wrapper, only when compatibility changes |
+| Python runtime, CLI, installer, bridges | `packages/python-qiongli/src/qiongli/` |
+| Plugin manifests or command sources | `packages/qiongli-plugin/` |
+| Agent/Gemini platform command source | `packages/qiongli-plugin/platforms/` |
+| npm package wrapper | `packages/npm-qiongli/` |
+| Evaluation cases, rubrics, runners | `evals/` |
 
-## Dependency Direction
-
-Treat the architecture as a one-way dependency graph:
-
-1. `standards/research-workflow-contract.yaml`
-2. `standards/mcp-agent-capability-map.yaml`
-3. `roles/` and `skills/`
-4. `pipelines/` and `.agent/workflows/`
-5. `bridges/`
-6. `qiongli-workflow/` as the distribution surface
-
-Practical implications:
-
-- Do not redefine artifact paths or quality gates outside `standards/research-workflow-contract.yaml`.
-- Do not create a second routing truth inside `pipelines/`, `bridges/`, or client workflow files.
-- Do not let a portable client skill package become the hidden source of internal execution truth.
-- If two layers disagree, fix the upstream layer first rather than patching downstream symptoms.
-
-## Top-Level Skill Admission Rules
+## Skill Admission Rules
 
 Create a new internal top-level skill only when all four conditions hold:
 
 1. It consumes typed inputs and produces typed outputs.
 2. It owns at least one stable artifact path under `RESEARCH/[topic]/`.
 3. It is worth direct pipeline or task-level dependency wiring.
-4. It carries distinct failure modes, review expectations, or quality-gate value.
+4. It carries distinct failure modes, review expectations, or quality-gate
+   value.
 
-Default demotion rules:
+Otherwise prefer extending an existing skill, template, provider adapter, role,
+or pipeline step.
 
-- Keep **provider adapters** in `mcp_registry` / bridge code, not in `skills/`.
-- Keep **database-specific or API-specific calls** as MCP/provider abilities, not top-level skills.
-- Keep **micro-steps inside an existing artifact-producing skill** as embedded subflows.
-- Keep **field-level extraction variants** as structured slots inside an existing extraction template.
+## Generated Output Rule
 
-Common examples that should **not** become top-level skills:
+Do not edit generated payloads directly. Use:
 
-- `query-builder`
-- `keyword-expander`
-- `semantic-scholar-search`
-- `crossref-search`
-- `database-connector`
-- `methodology-extractor`
-- `dataset-extractor`
-- `theory-extractor`
-- `limitation-extractor`
-
-Examples that can remain top-level because they own contract artifacts:
-
-- `academic-searcher`
-- `paper-extractor`
-- `study-designer`
-- `manuscript-architect`
-- `citation-formatter`
-- `table-generator`
-- `figure-specifier`
-
-## When to Extend an Existing Skill Instead
-
-Prefer expanding an existing skill spec when the change is one of these:
-
-- A new subsection, checklist, or review rule inside an existing deliverable.
-- A new extraction slot inside `paper-extractor`.
-- A new search heuristic, provider order, or query tactic inside `academic-searcher`.
-- A new manuscript subsection pattern inside `manuscript-architect`.
-- A new robustness or diagnostic variant that still lands in the same parent artifact.
-
-Good signals that the change belongs inside an existing skill:
-
-1. The artifact path does not change.
-2. The parent skill already owns the review or failure mode.
-3. Pipelines do not need to branch directly on the sub-capability.
-4. The change mostly affects output shape, prompts, or checklist content.
-
-Default files to touch in that case:
-
-- `skills/*/*.md`
-- `templates/*.md`
-- `qiongli-workflow/references/stage-*.md`
-
-## When to Sink a Capability to MCP, Script, or Template
-
-Use this routing table before creating a new skill:
-
-| If the change is mainly... | Put it here | Why |
-|---|---|---|
-| External API / provider / database access | `mcp_registry` + `bridges/` | Provider wiring should stay below the skill layer |
-| Reusable text/table structure | `templates/` | Structure reuse is not the same as a new orchestration unit |
-| Validation / transformation / local automation | `scripts/` | Script logic should not inflate the skill taxonomy |
-| Role ownership / thresholds / tone | `roles/` | This is functional-agent behavior, not skill behavior |
-| Task routing / runtime selection | `standards/mcp-agent-capability-map.yaml` | Routing belongs in the capability map |
-
-Concrete examples:
-
-- Add a Crossref fallback: update MCP/provider logic, not `skills/`.
-- Add a new extraction column: update `templates/extraction-table.md` and `paper-extractor.md`.
-- Add a release or validation helper: add or update a script under `scripts/`.
-- Add a different owner for `C4`: update `task_functional_routing`, not the skill file.
-
-## Skill Naming
-
-- `kebab-case` for all skill file names (e.g., `gap-analyzer.md`)
-- Skill ID matches filename without `.md` extension
-- Stage prefix in directory path (`A_framing/`, `B_literature/`, etc.)
-
-## YAML Frontmatter Contract
-
-Every skill `.md` file MUST begin with YAML frontmatter containing:
-
-```yaml
----
-id: skill-name
-stage: A_framing          # Stage directory name
-version: "1.0.0"          # Semver
-                       # or "1.0.0-beta.1" for prereleases
-description: "One-line description"
-inputs:
-  - type: ArtifactType    # From schemas/artifact-types.yaml
-    description: "..."
-    required: false        # Optional, defaults to true
-outputs:
-  - type: ArtifactType
-    artifact: "path/file.md"
-constraints:
-  - "Must ..."
-failure_modes:
-  - "When ..."
-tools: [filesystem, scholarly-search]
-tags: [stage, topic, method]
-domain_aware: false
----
+```bash
+python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qiongli-dist --force
 ```
 
-## Artifact Types
+Generated paths are ignored and guarded, including:
 
-All typed artifact names are defined in `schemas/artifact-types.yaml`. Use these types consistently in frontmatter `inputs` and `outputs`, registry entries, and pipeline step definitions.
+- `qiongli-workflow/`
+- `plugins/qiongli/`
+- `.agent/`
+- `.gemini/`
+- `packages/python-qiongli/src/qiongli/payload/`
+- `packages/npm-qiongli/payload/`
+- `packages/npm-qiongli/python-runtime/`
 
-## Pipeline DAGs vs Workflow Slash-Commands
+## `research_skills`
 
-| Layer | Directory | Purpose |
-|---|---|---|
-| **Pipelines** | `pipelines/` | Abstract DAGs defining step sequence + dependencies |
-| **Workflows** | `qiongli-workflow/workflows/` | Slash-command entrypoints (symlinked to `~/.claude/commands/` and `~/.gemini/workflows/`) |
-
-Pipelines reference skill IDs; workflows call skills directly.
-
-## Edit Order
-
-When a change spans multiple layers, apply it in this order:
-
-1. `standards/` for contract or routing truth
-2. `roles/` and `skills/` for responsibility or execution details
-3. `templates/` for stable structured outputs
-4. `pipelines/` and `.agent/workflows/` for sequencing or entry behavior
-5. `bridges/` only if execution logic must change
-6. `qiongli-workflow/` only if the portable client package must reflect the change
-
-## Roles
-
-Role configs in `roles/` define the current functional-agent layer: preferred skills, quality thresholds, and tone for different research responsibilities. Pass `--role pi` to adjust behavior.
-
-## Domain Profiles
-
-Domain profiles in `skills/domain-profiles/` customize skill behavior for specific disciplines. Each profile includes:
-- Library recommendations per language
-- Method templates with checklists
-- Statistical diagnostics
-- Reporting guidelines
-- Default databases and query syntax
-- Methodology priors
-- Venue norms
-
-## Adding a New Internal Skill Spec
-
-1. Create `skills/{STAGE}/{skill-name}.md` with full YAML frontmatter
-2. Add entry to `skills/registry.yaml`
-3. Add new artifact types to `schemas/artifact-types.yaml` if needed
-4. Add to relevant pipelines in `pipelines/`
-5. Run `python3 scripts/validate_research_standard.py` to verify
-
-If you need a portable client-facing skill package instead of an internal execution spec, follow the `qiongli-workflow/` style and keep it separate from `skills/`.
-
-## Adding a New Domain Profile
-
-1. Copy `skills/domain-profiles/custom-template.yaml`
-2. Fill in all sections following the schema in `schemas/domain-profile.schema.json`
-3. Run validator to confirm
+`research_skills` is a deprecated compatibility shim under
+`packages/python-qiongli/src/research_skills/`. Keep it working during the
+migration window, but use `qiongli` for new imports and docs.

@@ -536,6 +536,11 @@ class SubjectMaterializerTests(unittest.TestCase):
             self.assertFalse((out / "skills" / "domain-profiles" / "economics.yaml").exists())
             manuscript = (out / "skills" / "F_writing" / "manuscript-architect.md").read_text(encoding="utf-8")
             self.assertIn("## Accounting Overlay", manuscript)
+            self.assertTrue((out / "roles" / "pi.yaml").exists())
+            self.assertTrue((out / "agents" / "openai.yaml").exists())
+            self.assertTrue((out / "templates" / "agent-run-packet.json").exists())
+            self.assertTrue((out / "templates" / "agent-review-packet.md").exists())
+            self.assertTrue((out / "templates" / "agent-handoff.md").exists())
             for template_name in (
                 "paper-note.md",
                 "paper-reading-summary.md",
@@ -558,6 +563,11 @@ class SubjectMaterializerTests(unittest.TestCase):
             self.assertLessEqual(len(files), 180)
             self.assertEqual((out / "SUBJECT").read_text(encoding="utf-8").strip(), "core")
             self.assertTrue((out / "skills" / "registry.yaml").exists())
+            self.assertTrue((out / "roles" / "pi.yaml").exists())
+            self.assertTrue((out / "agents" / "openai.yaml").exists())
+            self.assertTrue((out / "templates" / "agent-run-packet.json").exists())
+            self.assertTrue((out / "templates" / "agent-review-packet.md").exists())
+            self.assertTrue((out / "templates" / "agent-handoff.md").exists())
             self.assertFalse((out / "skills" / "F_writing" / "manuscript-architect.md").exists())
 
     def test_replace_sections_requires_declared_base_section(self) -> None:

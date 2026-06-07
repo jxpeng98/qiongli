@@ -1,19 +1,31 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-PLUGIN_ROOT = REPO_ROOT / "plugins" / "qiongli"
-PLUGIN_SKILL_ROOT = PLUGIN_ROOT / "skills" / "qiongli-workflow"
-WORKFLOW_ROOT = REPO_ROOT / "qiongli-workflow"
+LAYOUT = RepoLayout(REPO_ROOT)
+PLUGIN_ROOT = LAYOUT.plugin_package
+WORKFLOW_ROOT = LAYOUT.workflow
 WORKFLOW_VERSION = (WORKFLOW_ROOT / "VERSION").read_text(encoding="utf-8").strip().lstrip("v")
+VALIDATOR_SCRIPT_PATH = LAYOUT.scripts / "validate_marketplace_install.py"
+if str(LAYOUT.scripts) not in sys.path:
+    sys.path.insert(0, str(LAYOUT.scripts))
+VALIDATOR_SPEC = importlib.util.spec_from_file_location("validate_marketplace_install", VALIDATOR_SCRIPT_PATH)
+assert VALIDATOR_SPEC is not None and VALIDATOR_SPEC.loader is not None
+validator = importlib.util.module_from_spec(VALIDATOR_SPEC)
+sys.modules["validate_marketplace_install"] = validator
+VALIDATOR_SPEC.loader.exec_module(validator)
 
 
 def find_usable_bash() -> str | None:
@@ -52,6 +64,26 @@ def find_usable_bash() -> str | None:
 
 
 class PluginDistributionContractTests(unittest.TestCase):
+    def materialize_plugin_payload(self, tmp_dir: str) -> Path:
+        out = Path(tmp_dir) / "dist-source"
+        result = subprocess.run(
+            [
+                sys.executable,
+                "scripts/materialize_distribution_payloads.py",
+                "--target",
+                "plugin",
+                "--out",
+                str(out),
+                "--force",
+            ],
+            cwd=REPO_ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stderr + result.stdout)
+        return out / "plugins" / "qiongli"
+
     def test_platform_manifests_share_workflow_version(self) -> None:
         codex = json.loads((PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
         claude = json.loads((PLUGIN_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
@@ -65,20 +97,76 @@ class PluginDistributionContractTests(unittest.TestCase):
         manifest = json.loads((PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
 
         self.assertEqual(manifest["skills"], "./skills/")
-        self.assertTrue((PLUGIN_ROOT / "skills").is_dir())
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            materialized_plugin = self.materialize_plugin_payload(tmp_dir)
+            self.assertTrue((materialized_plugin / "skills").is_dir())
+            self.assertTrue((materialized_plugin / ".mcp.json").is_file())
+            self.assertTrue(
+                (materialized_plugin / "mcp" / "qiongli-literature-provider" / "index.mjs").is_file()
+            )
+
+    def test_codex_plugin_materializes_bundled_mcp_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            materialized_plugin = self.materialize_plugin_payload(tmp_dir)
+            manifest = json.loads(
+                (materialized_plugin / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
+            )
+            mcp_manifest = json.loads((materialized_plugin / ".mcp.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(manifest["mcpServers"], "./.mcp.json")
+        self.assertEqual(mcp_manifest["mcpServers"]["qiongli"]["command"], "node")
+        self.assertEqual(
+            mcp_manifest["mcpServers"]["qiongli"]["args"],
+            ["./mcp/qiongli-literature-provider/index.mjs"],
+        )
+
+    def test_claude_plugin_materializes_bundled_mcp_server(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            materialized_plugin = self.materialize_plugin_payload(tmp_dir)
+            manifest = json.loads(
+                (materialized_plugin / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8")
+            )
+
+            self.assertIn("mcpServers", manifest)
+            self.assertIn("qiongli", manifest["mcpServers"])
+            server = manifest["mcpServers"]["qiongli"]
+            self.assertEqual(server["command"], "node")
+            self.assertEqual(
+                server["args"],
+                ["${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs"],
+            )
+            self.assertEqual(server["cwd"], "${CLAUDE_PLUGIN_ROOT}")
+            self.assertTrue(
+                (materialized_plugin / "mcp" / "qiongli-literature-provider" / "index.mjs").is_file()
+            )
+
+    def test_codex_bundled_mcp_validation_requires_plugin_manifest_reference(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            materialized_plugin = self.materialize_plugin_payload(tmp_dir)
+            manifest_path = materialized_plugin / ".codex-plugin" / "plugin.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            del manifest["mcpServers"]
+            manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "mcpServers"):
+                validator._assert_bundled_literature_mcp(materialized_plugin, "codex")
 
     def test_plugin_package_contains_real_portable_skill_copy(self) -> None:
-        self.assertTrue((PLUGIN_SKILL_ROOT / "SKILL.md").is_file())
-        self.assertTrue((PLUGIN_SKILL_ROOT / "skills" / "registry.yaml").is_file())
-        self.assertFalse(PLUGIN_SKILL_ROOT.is_symlink(), "plugin package must be a real copy, not a symlink")
-        self.assertEqual(
-            (WORKFLOW_ROOT / "VERSION").read_text(encoding="utf-8"),
-            (PLUGIN_SKILL_ROOT / "VERSION").read_text(encoding="utf-8"),
-        )
-        self.assertEqual(
-            (WORKFLOW_ROOT / "skills" / "registry.yaml").read_text(encoding="utf-8"),
-            (PLUGIN_SKILL_ROOT / "skills" / "registry.yaml").read_text(encoding="utf-8"),
-        )
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            materialized_plugin = self.materialize_plugin_payload(tmp_dir)
+            plugin_skill_root = materialized_plugin / "skills" / "qiongli-workflow"
+
+            self.assertTrue((plugin_skill_root / "SKILL.md").is_file())
+            self.assertTrue((plugin_skill_root / "skills" / "registry.yaml").is_file())
+            self.assertFalse(plugin_skill_root.is_symlink(), "plugin package must be a real copy, not a symlink")
+            self.assertEqual(
+                (WORKFLOW_ROOT / "VERSION").read_text(encoding="utf-8"),
+                (plugin_skill_root / "VERSION").read_text(encoding="utf-8"),
+            )
+            self.assertEqual(
+                (LAYOUT.skills / "registry.yaml").read_text(encoding="utf-8"),
+                (plugin_skill_root / "skills" / "registry.yaml").read_text(encoding="utf-8"),
+            )
 
     def test_sync_script_accepts_all_target_in_dry_run(self) -> None:
         bash = find_usable_bash()
@@ -101,7 +189,7 @@ class PluginDistributionContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             result = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "scripts/validate_marketplace_install.py",
                     "--dist-dir",
                     tmp_dir,
@@ -117,14 +205,37 @@ class PluginDistributionContractTests(unittest.TestCase):
         self.assertIn("[OK] codex marketplace artifact (economics)", result.stdout)
         self.assertIn("[OK] codex marketplace artifact (business)", result.stdout)
         self.assertIn("[OK] codex marketplace artifact (finance)", result.stdout)
+        self.assertIn(
+            "[OK] codex marketplace artifact (political-economy): "
+            "qiongli invocation checked; bundled literature MCP checked",
+            result.stdout,
+        )
+        self.assertIn(
+            "[OK] codex marketplace artifact (geoeconomics): "
+            "qiongli invocation checked; bundled literature MCP checked",
+            result.stdout,
+        )
         self.assertIn("[OK] claude marketplace artifact", result.stdout)
         self.assertIn("[OK] claude marketplace artifact (economics)", result.stdout)
         self.assertIn("[OK] claude marketplace artifact (business)", result.stdout)
         self.assertIn("[OK] claude marketplace artifact (finance)", result.stdout)
+        self.assertIn(
+            "[OK] claude marketplace artifact (political-economy): "
+            "qiongli invocation checked; bundled literature MCP checked",
+            result.stdout,
+        )
+        self.assertIn(
+            "[OK] claude marketplace artifact (geoeconomics): "
+            "qiongli invocation checked; bundled literature MCP checked",
+            result.stdout,
+        )
         self.assertIn("[OK] claude-desktop skill artifact", result.stdout)
+        self.assertIn("[OK] claude-desktop skill artifact (political-economy)", result.stdout)
+        self.assertIn("[OK] claude-desktop skill artifact (geoeconomics)", result.stdout)
         self.assertIn("under desktop file budget", result.stdout)
         self.assertIn("[OK] gemini marketplace artifact", result.stdout)
         self.assertIn("qiongli invocation", result.stdout)
+        self.assertIn("bundled literature MCP checked", result.stdout)
 
 
 if __name__ == "__main__":

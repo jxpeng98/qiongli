@@ -55,23 +55,61 @@ export function checkPythonRuntime({
   };
 }
 
-export function runBridgeCommand({ packageRoot, command, args, cwd = process.cwd(), env = process.env, stdio = 'inherit' }) {
-  const runtime = checkPythonRuntime();
+export function runBridgeCommand({
+  packageRoot,
+  command,
+  args,
+  cwd = process.cwd(),
+  env = process.env,
+  stdio = 'inherit',
+  checkRuntime = checkPythonRuntime,
+  spawnSync = nodeSpawnSync,
+}) {
+  const runtime = checkRuntime();
   if (!runtime.ok) {
     console.error(`[qiongli] ${runtime.message}`);
     console.error(`Hint: ${runtime.hint}`);
     return 1;
   }
 
-  const pythonPath = path.join(packageRoot, 'python-runtime');
-  const childEnv = {
-    ...env,
-    PYTHONPATH: env.PYTHONPATH ? `${pythonPath}${path.delimiter}${env.PYTHONPATH}` : pythonPath,
-  };
-  const result = nodeSpawnSync(runtime.python, ['-m', 'bridges.orchestrator', command, ...args], {
+  const childEnv = buildPythonRuntimeEnv({ packageRoot, env });
+  const result = spawnSync(runtime.python, ['-m', 'bridges.orchestrator', command, ...args], {
     cwd,
     env: childEnv,
     stdio,
   });
   return typeof result.status === 'number' ? result.status : 1;
+}
+
+export function runPythonCliCommand({
+  packageRoot,
+  args,
+  cwd = process.cwd(),
+  env = process.env,
+  stdio = 'inherit',
+  checkRuntime = checkPythonRuntime,
+  spawnSync = nodeSpawnSync,
+}) {
+  const runtime = checkRuntime();
+  if (!runtime.ok) {
+    console.error(`[qiongli] ${runtime.message}`);
+    console.error(`Hint: ${runtime.hint}`);
+    return 1;
+  }
+
+  const childEnv = buildPythonRuntimeEnv({ packageRoot, env });
+  const result = spawnSync(runtime.python, ['-m', 'qiongli.cli', ...args], {
+    cwd,
+    env: childEnv,
+    stdio,
+  });
+  return typeof result.status === 'number' ? result.status : 1;
+}
+
+function buildPythonRuntimeEnv({ packageRoot, env }) {
+  const pythonPath = path.join(packageRoot, 'python-runtime');
+  return {
+    ...env,
+    PYTHONPATH: env.PYTHONPATH ? `${pythonPath}${path.delimiter}${env.PYTHONPATH}` : pythonPath,
+  };
 }

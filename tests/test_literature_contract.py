@@ -3,13 +3,16 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+LAYOUT = RepoLayout(REPO_ROOT)
 
 
 class LiteratureContractTests(unittest.TestCase):
     def test_research_workflow_contract_includes_shared_literature_bundle(self) -> None:
-        content = (REPO_ROOT / "standards" / "research-workflow-contract.yaml").read_text(
+        content = (LAYOUT.standards / "research-workflow-contract.yaml").read_text(
             encoding="utf-8"
         )
 
@@ -25,7 +28,7 @@ class LiteratureContractTests(unittest.TestCase):
             self.assertIn(token, content)
 
     def test_capability_map_contains_literature_provider_contract(self) -> None:
-        content = (REPO_ROOT / "standards" / "mcp-agent-capability-map.yaml").read_text(
+        content = (LAYOUT.standards / "mcp-agent-capability-map.yaml").read_text(
             encoding="utf-8"
         )
 
@@ -40,7 +43,7 @@ class LiteratureContractTests(unittest.TestCase):
 
     def test_stage_b_reference_documents_new_bundle_artifacts(self) -> None:
         content = (
-            REPO_ROOT / "qiongli-workflow" / "references" / "stage-B-literature.md"
+            LAYOUT.workflow / "references" / "stage-B-literature.md"
         ).read_text(encoding="utf-8")
 
         for token in (
@@ -54,7 +57,7 @@ class LiteratureContractTests(unittest.TestCase):
             self.assertIn(token, content)
 
     def test_academic_searcher_uses_provider_layer_language(self) -> None:
-        content = (REPO_ROOT / "skills" / "B_literature" / "academic-searcher.md").read_text(
+        content = (LAYOUT.skills / "B_literature" / "academic-searcher.md").read_text(
             encoding="utf-8"
         )
 
@@ -70,8 +73,8 @@ class LiteratureContractTests(unittest.TestCase):
         self.assertNotIn("read_url_content", content)
 
     def test_literature_templates_exist(self) -> None:
-        self.assertTrue((REPO_ROOT / "templates" / "dedup-log.csv").exists())
-        self.assertTrue((REPO_ROOT / "templates" / "retrieval-manifest.csv").exists())
+        self.assertTrue((LAYOUT.templates / "dedup-log.csv").exists())
+        self.assertTrue((LAYOUT.templates / "retrieval-manifest.csv").exists())
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ Qiongli 有多个安装入口，是因为不同用户需要的运行时能力不
 
 | 入口 | 适合场景 | 安装内容 | 是否要求 Python |
 |---|---|---|---|
-| 原生 plugin / extension | 单个客户端，最少配置 | 客户端 plugin 和 `qiongli-workflow` | 否 |
+| 原生 plugin / extension | 单个客户端，最少配置 | 客户端 plugin 和 `qiongli-workflow`；Codex 和 Claude Code 在适用平台内置 literature MCP runtime | skill 使用和内置 literature MCP 不要求；完整 runtime 需要 Python/CLI |
 | Claude Desktop Skill ZIP | Claude Desktop 或 Claude.ai，尤其适合不熟悉 code / CLI 环境的用户 | 个人上传的 `qiongli` Skill | 否 |
 | Bootstrap `partial` | 多客户端全局 workflow assets | skills 和客户端支持的 workflow discovery | 否 |
 | Bootstrap `full` | runtime check 和 orchestrator | `partial` 加 shell CLI 与 `doctor` 支持 | 是，Python 3.12+ |
@@ -28,6 +28,8 @@ codex plugin marketplace list
 
 然后在 Codex plugin UI 中安装或启用 `qiongli`，这是默认 core package。也可以选择 `qiongli-economics`、`qiongli-accounting`、`qiongli-business`、`qiongli-finance`、`qiongli-political-economy`、`qiongli-geoeconomics`、`qiongli-economics-accounting` 这类 subject entry，它们会安装对应的 `subject/complete` package。
 
+Codex plugin 自带 `.mcp.json` 和 `mcp/qiongli-literature-provider/` 下的零依赖 Node literature-provider MCP runtime。只使用这些内置文献 provider 工具时，桌面用户不需要安装 `qiongli` CLI，也不需要手写 MCP config。Provider key 不写入 plugin manifest；可以通过内置 MCP 工具 `qiongli_save_provider_config` 保存，或者在已安装 CLI 时用 `qiongli mcp configure` / `qiongli provider setup` 配置。完整 Python-backed `qiongli mcp serve` 仍需要 npm、pipx/pip 或 `full` bootstrap runtime。
+
 Claude Code 使用同一个 Skillsplace catalog：
 
 ```bash
@@ -45,6 +47,8 @@ claude plugin install qiongli-economics@skillsplace
 /plugin install qiongli-economics@skillsplace
 ```
 
+Claude Code marketplace plugin 也内置 `mcp/qiongli-literature-provider/` 下的零依赖 Node literature-provider MCP runtime，提供与 Codex plugin 相同的文献 provider、search 和 status 工具。只使用这些内置 literature/provider 工具时，不需要安装 `qiongli` CLI。完整 Python-backed orchestration MCP 仍然是独立 CLI runtime：如果需要 `qiongli_task_plan`、`qiongli_task_run` 或 `qiongli_orchestrator_doctor` 等工具，需要 npm、pipx/pip 或 `full` bootstrap，并运行 `qiongli mcp serve --transport stdio`。
+
 Claude Desktop 和 Claude.ai 不安装第三方 Claude Code plugin marketplace。如果你使用 Desktop 或网页版，并且不熟悉 code / CLI 环境，优先使用 release ZIP 路径，不需要任何终端命令：
 
 1. 从 GitHub Release assets 下载 `qiongli-claude-desktop-skill-core-<tag>.zip`、`qiongli-claude-desktop-skill-economics-<tag>.zip`、`qiongli-claude-desktop-skill-business-<tag>.zip`、`qiongli-claude-desktop-skill-finance-<tag>.zip`、`qiongli-claude-desktop-skill-political-economy-<tag>.zip`、`qiongli-claude-desktop-skill-geoeconomics-<tag>.zip` 或 `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip`。本阶段公开 Desktop ZIP subjects 是 `core`、`economics`、`business`、`finance`、`political-economy`、`geoeconomics` 和 `economics-accounting`；还没有 standalone accounting Desktop ZIP。
@@ -52,12 +56,14 @@ Claude Desktop 和 Claude.ai 不安装第三方 Claude Code plugin marketplace�
 3. 在 Claude.ai 网页版中，使用同样的 `Customize > Skills` 上传流程，选择同一个 ZIP。
 4. 启用上传后的 `qiongli` skill。
 
-Release ZIP 使用 `coverage=focused`，用于保持上传文件数预算。它是 subject 专精 Desktop/Web 包，不是降质删减版：保留可执行 workflows、templates、standards、所选 profiles、`skills-summary.md` 和 `skills-core.md`；专精 ZIP 还包含通过 layered overlays 生成的 selected effective skill markdown。完整 canonical source 可通过默认 `coverage=complete` 的 CLI/npm 安装、Codex / Claude Code / Gemini plugin 包和源码仓库获得。
+Release ZIP 使用 `coverage=focused`，用于保持当前 180 文件上传预算。它是 subject 专精 Desktop/Web 包，不是降质删减版：保留可执行 workflows、prompts、templates、standards、所选 profiles、`skills-summary.md` 和 `skills-core.md`；专精 ZIP 还包含通过 layered overlays 生成的 selected effective skill markdown。这个 Desktop skill ZIP 是 skill-only asset：只包含 workflows/prompts/templates，不保存 secrets，也不执行 provider calls。完整 canonical source 可通过默认 `coverage=complete` 的 CLI/npm 安装、Codex / Claude Code / Gemini plugin 包和源码仓库获得。
+
+独立的 Qiongli Literature Provider `.mcpb`（`qiongli-literature-provider.mcpb`）才是 Claude Desktop 本地 provider asset。它在本地运行 Desktop literature search，支持 OpenAlex 和 Semantic Scholar，并通过 Desktop 配置 UI 填写 OpenAlex email 和 Semantic Scholar API key；敏感 key 交给 Claude Desktop sensitive-field handling，不写入 Desktop skill ZIP。这个 MCPB 自带零依赖 Node stdio server，所以 Desktop 用户不需要安装 `qiongli` CLI 或运行 npm install。CLI、Codex 和 Claude Code 用户仍然可以运行 `qiongli provider setup`，再用 `qiongli provider doctor` 检查当前是 `provider_connected` 还是 `strategy_only`。Desktop 用户需要 `qiongli-literature-provider` MCPB 或平台原生搜索能力，才能声称 `provider_connected`；如果没有 MCPB 或平台原生搜索能力，就把运行记录为 `strategy_only`，并把平台搜索或用户提供的 corpus 作为证据来源。
 
 Gemini CLI 仍然直接安装本地 extension payload：
 
 ```bash
-gemini extensions install ./path/to/qiongli/plugins/qiongli
+gemini extensions install ./path/to/qiongli/packages/qiongli-plugin
 ```
 
 这条路径不会安装 shell CLI、Python bridge 或全局 slash-command symlinks。需要这些能力时，用 bootstrap 或 npm。
@@ -143,19 +149,51 @@ npx qiongli@latest check --json
 npx qiongli@next install --subject economics --target all --project-dir "$PWD"
 ```
 
+## 推荐的 CLI Setup Wizard
+
+通过 npm、pipx、pip 或 bootstrap script 安装 CLI 后，先运行交互式 setup wizard，再手写安装参数：
+
+```bash
+qiongli setup
+qiongli setup --dry-run
+qiongli setup --project-dir "$PWD" --no-doctor
+```
+
+wizard 会引导 CLI、Codex 和 Claude Code 用户完成：
+
+- setup path：`install` 用于首次安装内置 assets，`upgrade` 用于从上游刷新
+- runtime surface：CLI、Codex、Claude Code 或 multi-platform
+- subject 选择
+- coverage 选择：`complete` 或 `focused`
+- install mode：普通用户使用 `--mode copy`，本地 checkout 开发使用 `--mode link`
+- install scope：`all`、`globals`、`project` 或 `cli`
+- 启用 CLI wrapper 时的 CLI 目录
+- overwrite 策略：需要替换已管理安装时使用 `--overwrite`；升级但保留现有 managed files 时使用 `--no-overwrite`
+- upgrade source：latest stable、latest beta、显式 `--ref` tag、显式 `--ref-type branch`，以及可选 `--repo`
+- 可选 literature provider key setup
+- doctor verification，除非设置 `--no-doctor`
+
+每一步 prompt 都会打印简短的 `Tip:` 注释，解释这个选择会改变什么；不熟悉完整 CLI 参数的用户也可以按引导完成安装或升级。
+
+通过 setup 输入的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。密钥会保存在生成的研究 artifacts 之外。provider 步骤用于配置凭据并执行 doctor/capability 检查；它不保证一定产生外部检索结果。
+
+在 npm 安装中，`qiongli setup` 会委托到 npm 包内置的 Python bridge，因此要求本机已有 Python 3.12+ 和 `PyYAML`。如果只需要 Node-only asset installer，继续使用显式 `qiongli install ...` 命令。
+
 ## pipx / pip
 
 如果你明确需要 Python 分发的 updater CLI，用 pipx：
 
 ```bash
 pipx install qiongli
-qiongli install --target all
+qiongli setup
 qiongli install --subject economics --target all
 qiongli install --subject accounting --target all
 qiongli install --subject political-economy --target all
 qiongli install --subject geoeconomics --target all
 qiongli install --subject economics-accounting --target all
 ```
+
+`qiongli setup` 可以交互式引导同一组选项。脚本化安装仍可使用这里展示的 `qiongli upgrade` 或显式 `qiongli install ...` 命令。
 
 升级：
 

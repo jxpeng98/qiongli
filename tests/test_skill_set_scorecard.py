@@ -5,10 +5,12 @@ from pathlib import Path
 
 import yaml
 
+from qiongli.source_layout import RepoLayout
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SCORECARD_PATH = ROOT / "docs" / "maintainer" / "skill-set-optimization-scorecard.md"
-REGISTRY_PATH = ROOT / "skills" / "registry.yaml"
+REGISTRY_PATH = RepoLayout(ROOT).skills / "registry.yaml"
 
 
 class SkillSetScorecardTests(unittest.TestCase):
