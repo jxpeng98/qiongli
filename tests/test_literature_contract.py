@@ -8,9 +8,7 @@ from qiongli.source_layout import RepoLayout
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LAYOUT = RepoLayout(REPO_ROOT)
-PLATFORM_AGENT_WORKFLOWS = (
-    REPO_ROOT / "packages" / "qiongli-plugin" / "platforms" / "agent" / "workflows"
-)
+PLATFORM_AGENT_WORKFLOWS = LAYOUT.plugin_package / "platforms" / "agent" / "workflows"
 
 
 class LiteratureContractTests(unittest.TestCase):

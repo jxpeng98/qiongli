@@ -5,8 +5,11 @@ from pathlib import Path
 
 import yaml
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+LAYOUT = RepoLayout(REPO_ROOT)
 
 
 class PaperReadingSummaryContractTests(unittest.TestCase):
@@ -40,9 +43,7 @@ class PaperReadingSummaryContractTests(unittest.TestCase):
 
     def test_platform_paper_read_workflow_matches_b2_summary_contract(self) -> None:
         content = (
-            REPO_ROOT
-            / "packages"
-            / "qiongli-plugin"
+            LAYOUT.plugin_package
             / "platforms"
             / "agent"
             / "workflows"
