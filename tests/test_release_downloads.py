@@ -41,24 +41,33 @@ class ReleaseDownloadsTests(unittest.TestCase):
 
         self.assertIn("# Qiongli v1.1.0-beta.2 Download Guide", guide)
         self.assertIn("Start here", guide)
+        self.assertIn("npx qiongli@next install --target all", guide)
         self.assertIn("Use the marketplace command; do not download a plugin tarball", guide)
-        self.assertIn("qiongli-claude-desktop-skill-core-v1.1.0-beta.2.zip", guide)
+        self.assertIn("qiongli-next-claude-desktop-skill-core-v1.1.0-beta.2.zip", guide)
         self.assertIn("qiongli-literature-provider-0.1.0.mcpb", guide)
         self.assertIn("qiongli-downloads-v1.1.0-beta.2.json", guide)
 
         self.assertEqual(index["tag"], "v1.1.0-beta.2")
+        self.assertEqual(index["channel"], "next")
         self.assertEqual(index["release_url"], "https://github.com/jxpeng98/qiongli/releases/tag/v1.1.0-beta.2")
+        self.assertEqual(index["recommended"]["qiongli_cli"]["install"], "npm_next")
         self.assertEqual(index["recommended"]["codex"]["install"], "marketplace")
+        self.assertEqual(index["recommended"]["codex"]["plugin"], "qiongli-next")
         self.assertEqual(index["recommended"]["claude_code"]["install"], "marketplace")
+        self.assertEqual(index["recommended"]["claude_code"]["plugin"], "qiongli-next")
         self.assertEqual(
             index["recommended"]["claude_desktop_literature_mcpb"]["asset"],
             "qiongli-literature-provider-0.1.0.mcpb",
         )
         self.assertIn(
-            "qiongli-claude-desktop-skill-economics-v1.1.0-beta.2.zip",
+            "qiongli-next-claude-desktop-skill-core-v1.1.0-beta.2.zip",
             index["assets"]["claude_desktop_skills"],
         )
         self.assertIn(
+            "qiongli-next-claude-plugin-v1.1.0-beta.2.tar.gz",
+            index["assets"]["maintainer_plugin_tarballs"],
+        )
+        self.assertNotIn(
             "qiongli-economics-claude-plugin-v1.1.0-beta.2.tar.gz",
             index["assets"]["maintainer_plugin_tarballs"],
         )
@@ -90,7 +99,7 @@ class ReleaseDownloadsTests(unittest.TestCase):
         self.assertIn("## Download Guide", notes)
         self.assertIn("Most users should not download plugin tarballs manually", notes)
         self.assertIn("qiongli-downloads-v1.1.0-beta.2.md", notes)
-        self.assertIn("qiongli-claude-desktop-skill-core-v1.1.0-beta.2.zip", notes)
+        self.assertIn("qiongli-next-claude-desktop-skill-core-v1.1.0-beta.2.zip", notes)
         self.assertIn("qiongli-literature-provider-0.1.0.mcpb", notes)
 
 

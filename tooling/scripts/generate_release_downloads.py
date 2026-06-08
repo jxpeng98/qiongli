@@ -14,11 +14,12 @@ for import_root in (Path(__file__).resolve().parent, PYTHON_SOURCE_ROOT, REPO_RO
     if str(import_root) not in sys.path:
         sys.path.insert(0, str(import_root))
 
-from build_plugin_artifacts import _desktop_subjects, _marketplace_subjects
+from build_plugin_artifacts import _desktop_subjects, _is_prerelease_tag, _marketplace_subjects
 
 
 DEFAULT_REPO_SLUG = "jxpeng98/qiongli"
 PLUGIN_NAME = "qiongli"
+NEXT_PLUGIN_NAME = "qiongli-next"
 MCPB_MANIFEST = REPO_ROOT / "packages" / "qiongli-literature-mcpb" / "manifest.json"
 
 
@@ -45,6 +46,22 @@ def _mcpb_asset_name() -> str:
 
 
 def _release_assets(tag: str, root: Path) -> dict[str, list[str] | str]:
+    if _is_prerelease_tag(tag):
+        return {
+            "download_guide": f"qiongli-downloads-{tag}.md",
+            "download_index": f"qiongli-downloads-{tag}.json",
+            "claude_desktop_skills": [
+                f"{NEXT_PLUGIN_NAME}-claude-desktop-skill-core-{tag}.zip",
+            ],
+            "claude_desktop_legacy_core_skill": "",
+            "claude_desktop_literature_mcpb": _mcpb_asset_name(),
+            "gemini_extension": "",
+            "maintainer_plugin_tarballs": [
+                f"{NEXT_PLUGIN_NAME}-codex-plugin-{tag}.tar.gz",
+                f"{NEXT_PLUGIN_NAME}-claude-plugin-{tag}.tar.gz",
+            ],
+        }
+
     marketplace_subjects = _marketplace_subjects(root)
     desktop_subjects = _desktop_subjects(root)
     plugin_tarballs = [
@@ -74,34 +91,53 @@ def _release_assets(tag: str, root: Path) -> dict[str, list[str] | str]:
 
 def build_index(tag: str, repo_slug: str = DEFAULT_REPO_SLUG, root: Path = REPO_ROOT) -> dict[str, Any]:
     tag = _normalize_tag(tag)
+    is_next = _is_prerelease_tag(tag)
     assets = _release_assets(tag, root)
+    recommended: dict[str, Any] = {
+        "qiongli_cli": {
+            "install": "npm_next" if is_next else "npm_latest",
+            "command": (
+                'npx qiongli@next install --target all --project-dir "$PWD"'
+                if is_next
+                else 'npx qiongli@latest install --target all --project-dir "$PWD"'
+            ),
+        },
+        "codex": {
+            "install": "marketplace",
+            "command": "codex plugin marketplace add jxpeng98/skillsplace --ref main",
+            "plugin": NEXT_PLUGIN_NAME if is_next else PLUGIN_NAME,
+            "manual_asset": None,
+        },
+        "claude_code": {
+            "install": "marketplace",
+            "command": "claude plugin marketplace add jxpeng98/skillsplace@main",
+            "plugin": NEXT_PLUGIN_NAME if is_next else PLUGIN_NAME,
+            "manual_asset": None,
+        },
+        "claude_desktop_skill": {
+            "install": "download_zip",
+            "asset_pattern": (
+                f"{NEXT_PLUGIN_NAME}-claude-desktop-skill-core-{tag}.zip"
+                if is_next
+                else f"{PLUGIN_NAME}-claude-desktop-skill-<subject>-{tag}.zip"
+            ),
+        },
+        "claude_desktop_literature_mcpb": {
+            "install": "download_mcpb",
+            "asset": assets["claude_desktop_literature_mcpb"],
+        },
+    }
+    if not is_next:
+        recommended["gemini"] = {
+            "install": "download_tarball",
+            "asset": assets["gemini_extension"],
+        }
+
     return {
         "tag": tag,
+        "channel": "next" if is_next else "stable",
         "release_url": f"https://github.com/{repo_slug}/releases/tag/{tag}",
-        "recommended": {
-            "codex": {
-                "install": "marketplace",
-                "command": "codex plugin marketplace add jxpeng98/skillsplace --ref main",
-                "manual_asset": None,
-            },
-            "claude_code": {
-                "install": "marketplace",
-                "command": "claude plugin marketplace add jxpeng98/skillsplace@main",
-                "manual_asset": None,
-            },
-            "claude_desktop_skill": {
-                "install": "download_zip",
-                "asset_pattern": f"{PLUGIN_NAME}-claude-desktop-skill-<subject>-{tag}.zip",
-            },
-            "claude_desktop_literature_mcpb": {
-                "install": "download_mcpb",
-                "asset": assets["claude_desktop_literature_mcpb"],
-            },
-            "gemini": {
-                "install": "download_tarball",
-                "asset": assets["gemini_extension"],
-            },
-        },
+        "recommended": recommended,
         "assets": {
             key: value for key, value in assets.items()
         },
@@ -112,13 +148,26 @@ def build_index(tag: str, repo_slug: str = DEFAULT_REPO_SLUG, root: Path = REPO_
                 else _asset_url(repo_slug, tag, value)
             )
             for key, value in assets.items()
+            if value
         },
     }
 
 
+def _desktop_skill_label(asset: str, tag: str) -> str:
+    for prefix in (
+        f"{NEXT_PLUGIN_NAME}-claude-desktop-skill-",
+        f"{PLUGIN_NAME}-claude-desktop-skill-",
+    ):
+        if asset.startswith(prefix):
+            return asset.removeprefix(prefix).removesuffix(f"-{tag}.zip")
+    return asset
+
+
 def render_markdown(index: dict[str, Any]) -> str:
     tag = str(index["tag"])
+    channel = str(index["channel"])
     release_url = str(index["release_url"])
+    recommended = index["recommended"]
     assets = index["assets"]
     desktop_skills = list(assets["claude_desktop_skills"])
     mcpb_asset = str(assets["claude_desktop_literature_mcpb"])
@@ -127,7 +176,7 @@ def render_markdown(index: dict[str, Any]) -> str:
     index_asset = str(assets["download_index"])
 
     desktop_rows = "\n".join(
-        f"| `{asset.removeprefix('qiongli-claude-desktop-skill-').removesuffix(f'-{tag}.zip')}` | `{asset}` |"
+        f"| `{_desktop_skill_label(asset, tag)}` | `{asset}` |"
         for asset in desktop_skills
     )
 
@@ -135,6 +184,7 @@ def render_markdown(index: dict[str, Any]) -> str:
         f"# Qiongli {tag} Download Guide",
         "",
         "Start here before using GitHub's asset list. Most users should not download plugin tarballs manually.",
+        f"Channel: {channel}",
         "",
         f"Release page: {release_url}",
         "",
@@ -142,11 +192,11 @@ def render_markdown(index: dict[str, Any]) -> str:
         "",
         "| You use | Download or install | Why |",
         "|---|---|---|",
+        f"| Qiongli CLI | `{recommended['qiongli_cli']['command']}` | Exercises the npm `{recommended['qiongli_cli']['install']}` channel and bundled CLI payload. |",
         "| Codex | Use the marketplace command; do not download a plugin tarball. | Marketplace install keeps skills and bundled literature MCP registration together. |",
         "| Claude Code | Use the marketplace command; do not download a plugin tarball. | Marketplace install keeps slash commands, skills, and bundled literature MCP together. |",
         "| Claude Desktop/Web skills | Download exactly one Desktop skill ZIP from the table below. | ZIPs are focused skill packages sized for Desktop/Web upload. |",
         f"| Claude Desktop literature tools | Download `{mcpb_asset}`. | MCPB adds local literature/provider tools and provider key configuration. |",
-        f"| Gemini CLI | Download `{gemini_asset}` only when you need the release artifact directly. | Gemini uses the extension tarball. |",
         "| Maintainers | Use plugin tarballs only for manual marketplace artifact checks. | They are not the normal end-user install path. |",
         "",
         "## Claude Desktop/Web skill ZIPs",
@@ -163,6 +213,11 @@ def render_markdown(index: dict[str, Any]) -> str:
         "The JSON index groups assets by install surface so scripts do not need to parse GitHub's flat asset list.",
         "",
     ]
+    if gemini_asset:
+        lines.insert(
+            15,
+            f"| Gemini CLI | Download `{gemini_asset}` only when you need the release artifact directly. | Gemini uses the extension tarball. |",
+        )
     return "\n".join(lines)
 
 

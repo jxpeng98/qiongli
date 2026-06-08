@@ -104,6 +104,8 @@
 
 公开的 Codex / Claude marketplace catalog 现在由 `jxpeng98/skillsplace` 统一维护。Release 构建会为 `core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics`、`economics-accounting` 生成独立 Codex / Claude Code plugin artifacts，让 marketplace 可以展示多个 subject 安装选项。本仓库保留这些生成 artifacts 的源 plugin payload 和平台 manifest：
 
+Beta / prerelease 测试使用单独的 `qiongli-next` entry。它只发布 core 版本，不生成 subject plugin variants；Codex 和 Claude Code 的 `qiongli-next` artifacts 仍然内置 Node literature-provider MCP runtime。Claude Desktop 测试使用 `qiongli-next-claude-desktop-skill-core-<tag>.zip`，并与单独的 `qiongli-literature-provider-<version>.mcpb` 配合使用。CLI prerelease 测试使用 `npx qiongli@next install --target all --project-dir "$PWD"`。
+
 - `packages/qiongli-plugin/.codex-plugin/plugin.json`
 - `packages/qiongli-plugin/.mcp.json`
 - `packages/qiongli-plugin/mcp/qiongli-literature-provider/`

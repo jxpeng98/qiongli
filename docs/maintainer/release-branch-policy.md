@@ -22,7 +22,15 @@ The official public marketplace entry lives in `jxpeng98/skillsplace` and should
 - Claude Code manifest: `packages/qiongli-plugin/.claude-plugin/plugin.json`
 - Gemini extension manifest: `packages/qiongli-plugin/gemini-extension.json`
 
-The Skillsplace catalog should track `main` and release tags, not `dev`. Use `dev` for local plugin packaging tests and prerelease validation before the shared marketplace entry is updated. This repository no longer carries Codex or Claude marketplace catalog files; it owns the plugin manifests and materializes the release payload from canonical source.
+The stable Skillsplace catalog entries should track `main` and stable release tags, not `dev`. Use `dev` for local plugin packaging tests and prerelease validation before the shared marketplace entry is updated. This repository no longer carries Codex or Claude marketplace catalog files; it owns the plugin manifests and materializes the release payload from canonical source.
+
+Prerelease tags publish the `qiongli-next` testing channel instead of the full stable marketplace matrix. The generated next artifacts are:
+
+- `qiongli-next-codex-plugin-<tag>.tar.gz`
+- `qiongli-next-claude-plugin-<tag>.tar.gz`
+- `qiongli-next-claude-desktop-skill-core-<tag>.zip`
+
+The `qiongli-next` Codex and Claude Code plugin artifacts install only the `core/complete` skill package and keep the bundled zero-dependency Node literature MCP runtime. They do not publish subject plugin variants. Claude Desktop testing uses the focused core ZIP plus the separate `qiongli-literature-provider-<version>.mcpb` release asset. The Skillsplace catalog may expose a separate `qiongli-next` entry for beta testing while stable `qiongli` and subject entries continue to point at stable artifacts.
 
 ## Development Flow
 
@@ -45,6 +53,8 @@ python3 -m unittest discover -s tests -v
 ```bash
 python3 scripts/build_plugin_artifacts.py --tag v0.7.0-beta.2 --dist-dir dist
 ```
+
+For beta tags this command should produce only `qiongli-next` core artifacts; for stable tags it should preserve the full `qiongli`, `qiongli-core`, subject, Desktop subject, and Gemini artifact structure.
 
 5. Publish beta releases from `dev` when the release-prep commit and preflight evidence are ready:
 
