@@ -16,6 +16,7 @@ PYPI_PREFLIGHT = LAYOUT.scripts / "pypi_preflight.sh"
 RELEASE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-automation.yml"
 INSTALL_CHECK_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "install-check.yml"
 MACOS_INSTALL_CHECK_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "install-check-macos.yml"
+AUTO_RERUN_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "auto-rerun-failed-actions.yml"
 PUBLISH_PYPI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-pypi.yml"
 PUBLISH_NPM_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-npm.yml"
 VERIFY_RELEASE_TAG = LAYOUT.scripts / "verify_release_tag_version.sh"
@@ -173,24 +174,35 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('gh release upload "$TAG" --repo "$REPO_SLUG" --clobber "${PLUGIN_ARTIFACTS[@]}"', content)
         self.assertIn('release_args+=("${PLUGIN_ARTIFACTS[@]}")', content)
 
-    def test_checkout_install_check_keeps_macos_out_of_push_workflow(self) -> None:
+    def test_checkout_install_check_runs_all_platforms_on_push_and_pr(self) -> None:
         main_content = INSTALL_CHECK_WORKFLOW.read_text(encoding="utf-8")
-        macos_content = MACOS_INSTALL_CHECK_WORKFLOW.read_text(encoding="utf-8")
 
         self.assertIn("name: Checkout Install Check", main_content)
         self.assertIn("push:", main_content)
         self.assertIn("pull_request:", main_content)
         self.assertIn("workflow_dispatch:", main_content)
-        self.assertIn("os: [ubuntu-latest]", main_content)
-        self.assertNotIn("os: [ubuntu-latest, macos-latest]", main_content)
-        self.assertNotIn("runs-on: macos-latest", main_content)
+        self.assertIn("os: [ubuntu-latest, macos-latest]", main_content)
+        self.assertIn("runs-on: windows-latest", main_content)
 
-        self.assertIn("name: macOS Checkout Install Check", macos_content)
-        self.assertNotIn("push:", macos_content)
-        self.assertIn("pull_request:", macos_content)
-        self.assertIn("workflow_dispatch:", macos_content)
-        self.assertIn("name: Unix Bootstrap From Checkout (macos-latest)", macos_content)
-        self.assertIn("runs-on: macos-latest", macos_content)
+        self.assertFalse(
+            MACOS_INSTALL_CHECK_WORKFLOW.exists(),
+            msg="macOS checkout checks should stay in the main workflow to avoid duplicate checks.",
+        )
+
+    def test_failed_ci_and_checkout_runs_are_rerun_once(self) -> None:
+        content = AUTO_RERUN_WORKFLOW.read_text(encoding="utf-8")
+
+        self.assertIn("name: Auto Rerun Failed Actions", content)
+        self.assertIn("workflow_run:", content)
+        self.assertIn("workflows:", content)
+        self.assertIn("- CI", content)
+        self.assertIn("- Checkout Install Check", content)
+        self.assertNotIn("- Release Automation", content)
+        self.assertNotIn("- Publish to PyPI", content)
+        self.assertIn("actions: write", content)
+        self.assertIn("github.event.workflow_run.conclusion == 'failure'", content)
+        self.assertIn("github.event.workflow_run.run_attempt < 2", content)
+        self.assertIn('gh run rerun "$RUN_ID" --repo "$REPO" --failed', content)
 
     def test_release_postflight_supports_soft_ci_timeout_and_gh_api_fallback(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
