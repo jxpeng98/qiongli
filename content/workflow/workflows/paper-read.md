@@ -38,11 +38,13 @@ RESEARCH/[topic]/
 
 ### Step 1: Paper Retrieval
 
-Attempt to access the paper through:
-1. Direct URL (if provided)
-2. DOI lookup via Semantic Scholar API
-3. arXiv API (for arXiv links)
-4. Title search via Semantic Scholar
+Attempt to access the paper through the MCP/provider stack:
+1. Direct URL or user-supplied local file when provided.
+2. `metadata-registry` DOI/title metadata lookup using configured Crossref/OpenAlex overlays when available.
+3. `scholarly-search` title/identifier lookup using configured Semantic Scholar, OpenAlex, arXiv, or platform-native provider paths.
+4. `fulltext-retrieval` retrieval planning for OA PDF, preprint, or abstract-only access.
+
+Record provider capability mode as `provider_connected` or `strategy_only`. If no MCP/provider or platform-native search is available, use user-supplied metadata only and keep that evidence boundary visible.
 
 If full text unavailable, work with abstract and metadata only. Mark the note and project-level summary entry with `evidence_limit: abstract_only` or `evidence_limit: metadata_only`.
 
@@ -126,12 +128,14 @@ Apply the **quality-assessor** skill:
 Create structured note using `templates/paper-note.md` → Save to `RESEARCH/[topic]/notes/[citekey].md`
 
 Use the **metadata-enricher** skill to:
-1. Normalize DOI and metadata via Crossref/OpenAlex
-2. Generate consistent citekey
+1. Normalize DOI and metadata through `metadata-registry` using Crossref/OpenAlex overlays when configured.
+2. Generate a consistent citekey from normalized metadata or clearly marked user-supplied metadata.
+3. Record `strategy_only` when metadata is abstract-only, metadata-only, or manually supplied.
 
 Use the **fulltext-fetcher** skill to:
-1. Attempt OA retrieval if full text not available
-2. Document retrieval status
+1. Route full-text planning through `fulltext-retrieval`.
+2. Attempt OA/preprint retrieval only through configured resolver overlays or user-provided files.
+3. Document retrieval status, version read, and evidence limit in `retrieval_manifest.csv`.
 
 **BibTeX Entry**:
 Generate properly formatted BibTeX → Append to `RESEARCH/[topic]/bibliography.bib`

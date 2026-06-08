@@ -15,6 +15,12 @@ $ARGUMENTS
 
 ## Workflow
 
+## Academic Boundary Review
+
+Before drafting this stage's checkpoint outputs, use `boundary-interviewer` when `context/boundary_review.md` is missing, stale, or contradicted by the current task. Continue within the locked boundary when the artifact already answers the stage question. Narrowing is allowed; broadening requires a new boundary review entry with a revisit trigger.
+
+For literature work, lock search boundary, inclusion/exclusion rules, contrary literature, corpus limits, and evidence threshold before synthesis.
+
 ### Phase 0: Project Scaffolding
 
 Create the project directory structure:
@@ -74,11 +80,11 @@ Output: Updated protocol with registration section → `RESEARCH/[topic]/protoco
 Develop comprehensive search strategy:
 1. Identify key concepts and synonyms
 2. Build Boolean search queries
-3. Select appropriate databases:
-   - Semantic Scholar (primary - 200M+ papers)
-   - arXiv (CS/AI/Physics/Math)
-   - Google Scholar (broad coverage)
-   - PubMed (biomedical - if relevant)
+3. Select appropriate MCP/provider overlays:
+   - `scholarly-search` for discovery providers such as Semantic Scholar, OpenAlex, arXiv, PubMed, SSRN, or platform-native search
+   - `metadata-registry` for DOI, title, author, venue, and year normalization
+   - `fulltext-retrieval` for OA, preprint, repository, or user-supplied full-text planning
+4. Record whether each selected provider is available as `provider_connected` or limited to `strategy_only`
 
 Output: Search strategy document → `RESEARCH/[topic]/search_strategy.md`
 
@@ -90,11 +96,13 @@ Wait for explicit user approval before proceeding to Phase 3.
 ### Phase 3: Literature Search Execution
 
 Use the **academic-searcher** skill to:
-1. Execute Semantic Scholar API search
-2. Execute arXiv API search (if relevant domain)
-3. Supplement with Google Scholar web search
-4. Remove duplicates (DOI-first, then title+year+author)
-5. Document search results per database
+1. Execute provider translations through the `scholarly-search` MCP/provider adapter.
+2. Record provider capability mode as `provider_connected` or `strategy_only` in `search_log.md` and `search_diagnostics.md`.
+3. Use configured provider overlays for Semantic Scholar, OpenAlex, arXiv, PubMed, SSRN, or other sources when available.
+4. Log any platform-native or manual supplementary search as supplemental evidence instead of treating it as the reproducible provider pipeline.
+5. Normalize bibliography metadata through the `metadata-registry` MCP/provider adapter before final BibTeX generation.
+6. Remove duplicates (DOI-first, then title+year+author) and append decisions to `dedup_log.csv`.
+7. Document normalized search results per provider.
 
 **Document all searches** → `RESEARCH/[topic]/search_log.md`
 **Save dedup-ready record table** → `RESEARCH/[topic]/search_results.csv`
@@ -123,9 +131,11 @@ Grey literature sources:
 - Institutional repositories
 
 Use the **fulltext-fetcher** skill to:
-1. Attempt OA retrieval via Unpaywall/CORE/Semantic Scholar
-2. Document retrieval status for each paper
-3. Log "not retrieved" reasons (required for PRISMA)
+1. Route retrieval planning through the `fulltext-retrieval` MCP/provider adapter.
+2. Use configured resolver overlays for OA providers such as Unpaywall, CORE, arXiv, PMC, or Semantic Scholar `openAccessPdf` when available.
+3. Draft or update `retrieval_manifest.csv` and `screening/full_text.md` even when full-text retrieval is delegated to an external resolver.
+4. Document retrieval status for each paper.
+5. Log `not_retrieved:<reason>` values required for PRISMA.
 
 Output:
 - Snowball log → `RESEARCH/[topic]/snowball_log.md`
@@ -161,7 +171,7 @@ Use the **paper-extractor** skill to extract from each included paper:
 - Limitations
 - Future work suggestions
 
-Output: 
+Output:
 - Individual paper notes → `RESEARCH/[topic]/notes/`
 - Extraction table → `RESEARCH/[topic]/extraction_table.md`
 

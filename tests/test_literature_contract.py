@@ -8,6 +8,7 @@ from qiongli.source_layout import RepoLayout
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LAYOUT = RepoLayout(REPO_ROOT)
+PLATFORM_AGENT_WORKFLOWS = LAYOUT.plugin_package / "platforms" / "agent" / "workflows"
 
 
 class LiteratureContractTests(unittest.TestCase):
@@ -75,6 +76,40 @@ class LiteratureContractTests(unittest.TestCase):
     def test_literature_templates_exist(self) -> None:
         self.assertTrue((LAYOUT.templates / "dedup-log.csv").exists())
         self.assertTrue((LAYOUT.templates / "retrieval-manifest.csv").exists())
+
+    def test_literature_workflows_route_through_provider_adapters(self) -> None:
+        workflow_paths = (
+            LAYOUT.workflow / "workflows" / "lit-review.md",
+            LAYOUT.workflow / "workflows" / "paper-read.md",
+            PLATFORM_AGENT_WORKFLOWS / "lit-review.md",
+            PLATFORM_AGENT_WORKFLOWS / "paper-read.md",
+        )
+
+        required_tokens = (
+            "MCP/provider",
+            "`scholarly-search`",
+            "`metadata-registry`",
+            "`fulltext-retrieval`",
+            "provider_connected",
+            "strategy_only",
+        )
+        forbidden_tokens = (
+            "Execute Semantic Scholar API search",
+            "Execute arXiv API search",
+            "Supplement with Google Scholar web search",
+            "Attempt OA retrieval via Unpaywall/CORE/Semantic Scholar",
+            "DOI lookup via Semantic Scholar API",
+            "arXiv API (for arXiv links)",
+            "Title search via Semantic Scholar",
+        )
+
+        for path in workflow_paths:
+            with self.subTest(workflow=str(path.relative_to(REPO_ROOT))):
+                content = path.read_text(encoding="utf-8")
+                for token in required_tokens:
+                    self.assertIn(token, content)
+                for token in forbidden_tokens:
+                    self.assertNotIn(token, content)
 
 
 if __name__ == "__main__":

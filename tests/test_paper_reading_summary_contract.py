@@ -5,8 +5,11 @@ from pathlib import Path
 
 import yaml
 
+from qiongli.source_layout import RepoLayout
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+LAYOUT = RepoLayout(REPO_ROOT)
 
 
 class PaperReadingSummaryContractTests(unittest.TestCase):
@@ -34,6 +37,27 @@ class PaperReadingSummaryContractTests(unittest.TestCase):
             "Do not invent citations, page numbers, sample sizes, methods, results, effect sizes, datasets, author claims, or implications.",
             "direct_evidence",
             "reasonable_inference",
+            "unsupported_gap",
+        ):
+            self.assertIn(token, content)
+
+    def test_platform_paper_read_workflow_matches_b2_summary_contract(self) -> None:
+        content = (
+            LAYOUT.plugin_package
+            / "platforms"
+            / "agent"
+            / "workflows"
+            / "paper-read.md"
+        ).read_text(encoding="utf-8")
+
+        for token in (
+            "literature/",
+            "retrieval_manifest.csv",
+            "literature/paper_reading_summary.md",
+            "literature/paper_reading_matrix.md",
+            "evidence_limit: abstract_only",
+            "Do not invent citations, page numbers, sample sizes, methods, results, effect sizes, datasets, author claims, or implications.",
+            "Source Anchors",
             "unsupported_gap",
         ):
             self.assertIn(token, content)

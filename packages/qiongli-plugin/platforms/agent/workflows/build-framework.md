@@ -38,11 +38,11 @@ Use the **theory-mapper** skill to analyze each relevant theory:
 For each theory, extract:
 
 #### Theory Profile
-- **Name**: 
+- **Name**:
 - **Origin**: (Author, Year, Seminal work)
-- **Domain**: 
-- **Core Proposition**: 
-- **Key Constructs**: 
+- **Domain**:
+- **Core Proposition**:
+- **Key Constructs**:
 
 #### Construct Analysis
 For each key construct:
@@ -87,19 +87,19 @@ graph TD
         A[Construct A]
         B[Construct B]
     end
-    
+
     subgraph Mediators
         C[Construct C]
     end
-    
+
     subgraph Dependent Variables
         D[Construct D]
     end
-    
+
     subgraph Moderators
         E[Construct E]
     end
-    
+
     A -->|H1: positive| C
     B -->|H2: positive| C
     C -->|H3: positive| D
@@ -140,10 +140,10 @@ Create framework document:
 ## Foundational Theories
 
 ### [Theory 1 Name]
-- **Origin**: 
-- **Core Proposition**: 
-- **Key Constructs**: 
-- **Application to This Research**: 
+- **Origin**:
+- **Core Proposition**:
+- **Key Constructs**:
+- **Application to This Research**:
 
 ### [Theory 2 Name]
 ...
@@ -168,10 +168,10 @@ Create framework document:
 ```
 
 ### Assumptions and Boundary Conditions
-- 
+-
 
 ### Theoretical Contribution
-- 
+-
 
 ## References
 ```
