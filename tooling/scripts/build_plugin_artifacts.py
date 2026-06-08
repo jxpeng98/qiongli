@@ -34,6 +34,8 @@ NEXT_PLUGIN_NAME = "qiongli-next"
 SKILL_DIR_NAME = "qiongli-workflow"
 DEFAULT_SKILL_NAME = "qiongli"
 NEXT_SKILL_NAME = "qiongli-next"
+DEFAULT_MCP_SERVER_NAME = "qiongli"
+NEXT_MCP_SERVER_NAME = "qiongli-next"
 DESKTOP_SKILL_FILE_BUDGET = 180
 FALLBACK_SUBJECT_LAYERS = {
     "core": ["core"],
@@ -400,10 +402,38 @@ def _copy_commands(root: Path, dest_plugin_root: Path, *, skill_name: str = DEFA
         _rewrite_command_invocation(commands_dest, skill_name)
 
 
-def _copy_codex_mcp_manifest(root: Path, dest_plugin_root: Path) -> None:
+def _mcp_server_name_for_plugin(plugin_name: str) -> str:
+    return NEXT_MCP_SERVER_NAME if plugin_name == NEXT_PLUGIN_NAME else DEFAULT_MCP_SERVER_NAME
+
+
+def _rewrite_mcp_server_name(container: dict[str, object], server_name: str) -> None:
+    mcp_servers = container.get("mcpServers")
+    if not isinstance(mcp_servers, dict):
+        return
+    if server_name == DEFAULT_MCP_SERVER_NAME:
+        return
+    if server_name not in mcp_servers:
+        server = mcp_servers.pop(DEFAULT_MCP_SERVER_NAME, None)
+        if server is None:
+            raise ValueError(f"bundled MCP manifest missing {DEFAULT_MCP_SERVER_NAME} server")
+        mcp_servers[server_name] = server
+    else:
+        mcp_servers.pop(DEFAULT_MCP_SERVER_NAME, None)
+
+
+def _copy_codex_mcp_manifest(
+    root: Path,
+    dest_plugin_root: Path,
+    *,
+    server_name: str = DEFAULT_MCP_SERVER_NAME,
+) -> None:
     mcp_manifest = RepoLayout(root).plugin_package / ".mcp.json"
     if mcp_manifest.is_file():
-        _copy_path(mcp_manifest, dest_plugin_root / ".mcp.json")
+        dest = dest_plugin_root / ".mcp.json"
+        _copy_path(mcp_manifest, dest)
+        manifest = json.loads(dest.read_text(encoding="utf-8"))
+        _rewrite_mcp_server_name(manifest, server_name)
+        dest.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 
 
 def _copy_literature_mcp_runtime(root: Path, dest_plugin_root: Path) -> None:
@@ -765,9 +795,11 @@ def _write_subject_manifest(
     display_name: str,
     package_goal: str,
     skill_name: str = DEFAULT_SKILL_NAME,
+    mcp_server_name: str = DEFAULT_MCP_SERVER_NAME,
 ) -> None:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["name"] = plugin_name
+    _rewrite_mcp_server_name(manifest, mcp_server_name)
     if plugin_name == NEXT_PLUGIN_NAME:
         manifest["description"] = (
             "Qiongli Next prerelease marketplace plugin. Installs the core/complete workflow "
@@ -842,9 +874,14 @@ def _build_marketplace_plugin(
         display_name=display_name,
         package_goal=package_goal,
         skill_name=skill_name,
+        mcp_server_name=_mcp_server_name_for_plugin(plugin_name),
     )
     if platform == "codex":
-        _copy_codex_mcp_manifest(root, plugin_dest)
+        _copy_codex_mcp_manifest(
+            root,
+            plugin_dest,
+            server_name=_mcp_server_name_for_plugin(plugin_name),
+        )
     _copy_literature_mcp_runtime(root, plugin_dest)
     _copy_commands(root, plugin_dest, skill_name=skill_name)
     _copy_subject_skill(root, plugin_dest, subject, skill_name=skill_name)

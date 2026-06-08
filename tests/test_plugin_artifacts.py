@@ -74,6 +74,12 @@ class PluginArtifactsTests(unittest.TestCase):
             self._assert_claude_manifest_mcp_server(
                 dist_dir / f"qiongli-next-claude-plugin-{current_tag}.tar.gz",
                 f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/.claude-plugin/plugin.json",
+                server_name="qiongli-next",
+            )
+            self._assert_codex_mcp_server(
+                dist_dir / f"qiongli-next-codex-plugin-{current_tag}.tar.gz",
+                f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/.mcp.json",
+                server_name="qiongli-next",
             )
             codex_manifest = self._read_tar_json(
                 dist_dir / f"qiongli-next-codex-plugin-{current_tag}.tar.gz",
@@ -168,17 +174,41 @@ class PluginArtifactsTests(unittest.TestCase):
             assert extracted is not None
             return extracted.read().decode("utf-8")
 
-    def _assert_claude_manifest_mcp_server(self, artifact: Path, member: str) -> None:
+    def _assert_claude_manifest_mcp_server(
+        self,
+        artifact: Path,
+        member: str,
+        *,
+        server_name: str = "qiongli",
+    ) -> None:
         manifest = self._read_tar_json(artifact, member)
         self.assertIn("mcpServers", manifest)
-        self.assertIn("qiongli", manifest["mcpServers"])
-        server = manifest["mcpServers"]["qiongli"]
+        self.assertIn(server_name, manifest["mcpServers"])
+        if server_name != "qiongli":
+            self.assertNotIn("qiongli", manifest["mcpServers"])
+        server = manifest["mcpServers"][server_name]
         self.assertEqual(server["command"], "node")
         self.assertEqual(
             server["args"],
             ["${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs"],
         )
         self.assertEqual(server["cwd"], "${CLAUDE_PLUGIN_ROOT}")
+
+    def _assert_codex_mcp_server(
+        self,
+        artifact: Path,
+        member: str,
+        *,
+        server_name: str = "qiongli",
+    ) -> None:
+        manifest = self._read_tar_json(artifact, member)
+        self.assertIn("mcpServers", manifest)
+        self.assertIn(server_name, manifest["mcpServers"])
+        if server_name != "qiongli":
+            self.assertNotIn("qiongli", manifest["mcpServers"])
+        server = manifest["mcpServers"][server_name]
+        self.assertEqual(server["command"], "node")
+        self.assertEqual(server["args"], ["./mcp/qiongli-literature-provider/index.mjs"])
 
     def _assert_zip_contains(self, artifact: Path, expected: list[str]) -> None:
         with zipfile.ZipFile(artifact) as archive:

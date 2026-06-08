@@ -28,6 +28,8 @@ NEXT_PLUGIN_NAME = "qiongli-next"
 SKILL_DIR_NAME = "qiongli-workflow"
 SKILL_NAME = "qiongli"
 NEXT_SKILL_NAME = "qiongli-next"
+MCP_SERVER_NAME = "qiongli"
+NEXT_MCP_SERVER_NAME = "qiongli-next"
 CLAUDE_DESKTOP_FILE_BUDGET = 180
 
 
@@ -69,6 +71,10 @@ def _read_json(path: Path) -> dict[str, object]:
     if not isinstance(data, dict):
         raise ValueError(f"{path} must contain a JSON object")
     return data
+
+
+def _mcp_server_name_for_plugin(plugin_name: str) -> str:
+    return NEXT_MCP_SERVER_NAME if plugin_name == NEXT_PLUGIN_NAME else MCP_SERVER_NAME
 
 
 def _extract_single_root(artifact: Path, dest: Path) -> Path:
@@ -371,7 +377,12 @@ def _assert_command_invocation(
             raise ValueError(f"{command_path} must load {skill_name} and reference {expected_reference}")
 
 
-def _assert_bundled_literature_mcp(plugin_root: Path, platform: str) -> None:
+def _assert_bundled_literature_mcp(
+    plugin_root: Path,
+    platform: str,
+    *,
+    mcp_server_name: str = MCP_SERVER_NAME,
+) -> None:
     provider_entrypoint = plugin_root / "mcp" / "qiongli-literature-provider" / "index.mjs"
     _assert_file(provider_entrypoint, "bundled literature MCP entrypoint")
 
@@ -397,13 +408,17 @@ def _assert_bundled_literature_mcp(plugin_root: Path, platform: str) -> None:
     mcp_servers = config.get("mcpServers")
     if not isinstance(mcp_servers, dict):
         raise ValueError(f"{config_path} missing mcpServers")
-    server = mcp_servers.get("qiongli")
+    if mcp_server_name != MCP_SERVER_NAME and MCP_SERVER_NAME in mcp_servers:
+        raise ValueError(f"{config_path} must not expose stable mcpServers.{MCP_SERVER_NAME}")
+    server = mcp_servers.get(mcp_server_name)
     if not isinstance(server, dict):
-        raise ValueError(f"{config_path} missing mcpServers.qiongli")
+        raise ValueError(f"{config_path} missing mcpServers.{mcp_server_name}")
     if server.get("command") != "node":
-        raise ValueError(f"{config_path} mcpServers.qiongli.command must be node")
+        raise ValueError(f"{config_path} mcpServers.{mcp_server_name}.command must be node")
     if server.get("args") != expected_args:
-        raise ValueError(f"{config_path} mcpServers.qiongli.args expected {expected_args}, found {server.get('args')}")
+        raise ValueError(
+            f"{config_path} mcpServers.{mcp_server_name}.args expected {expected_args}, found {server.get('args')}"
+        )
 
 
 def _assert_manifest(
@@ -471,7 +486,11 @@ def _validate_artifact(
         if spec.requires_commands:
             _assert_command_invocation(plugin_root, workflow_names, skill_name=skill_name)
         if spec.expects_bundled_mcp:
-            _assert_bundled_literature_mcp(plugin_root, spec.platform)
+            _assert_bundled_literature_mcp(
+                plugin_root,
+                spec.platform,
+                mcp_server_name=_mcp_server_name_for_plugin(plugin_name),
+            )
 
     label = subject_label or subject
     subject_suffix = f" ({label})" if label else ""
