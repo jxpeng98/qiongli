@@ -14,6 +14,7 @@ RELEASE_PREFLIGHT = LAYOUT.scripts / "release_preflight.sh"
 RELEASE_POSTFLIGHT = LAYOUT.scripts / "release_postflight.sh"
 PYPI_PREFLIGHT = LAYOUT.scripts / "pypi_preflight.sh"
 RELEASE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-automation.yml"
+INSTALL_CHECK_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "install-check.yml"
 PUBLISH_PYPI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-pypi.yml"
 PUBLISH_NPM_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-npm.yml"
 VERIFY_RELEASE_TAG = LAYOUT.scripts / "verify_release_tag_version.sh"
@@ -170,6 +171,20 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('"dist/qiongli-downloads-${TAG}.json"', content)
         self.assertIn('gh release upload "$TAG" --repo "$REPO_SLUG" --clobber "${PLUGIN_ARTIFACTS[@]}"', content)
         self.assertIn('release_args+=("${PLUGIN_ARTIFACTS[@]}")', content)
+
+    def test_checkout_install_check_runs_macos_only_for_pr_and_manual_events(self) -> None:
+        content = INSTALL_CHECK_WORKFLOW.read_text(encoding="utf-8")
+
+        self.assertIn("name: Checkout Install Check", content)
+        self.assertIn('branches: ["main", "master", "dev"]', content)
+        self.assertIn("pull_request:", content)
+        self.assertIn("workflow_dispatch:", content)
+        self.assertIn("os: [ubuntu-latest]", content)
+        self.assertNotIn("os: [ubuntu-latest, macos-latest]", content)
+        self.assertIn("macos-checkout-bootstrap:", content)
+        self.assertIn("name: Unix Bootstrap From Checkout (macos-latest)", content)
+        self.assertIn("if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}", content)
+        self.assertIn("runs-on: macos-latest", content)
 
     def test_release_postflight_supports_soft_ci_timeout_and_gh_api_fallback(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
