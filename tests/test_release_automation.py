@@ -14,6 +14,9 @@ RELEASE_PREFLIGHT = LAYOUT.scripts / "release_preflight.sh"
 RELEASE_POSTFLIGHT = LAYOUT.scripts / "release_postflight.sh"
 PYPI_PREFLIGHT = LAYOUT.scripts / "pypi_preflight.sh"
 RELEASE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-automation.yml"
+INSTALL_CHECK_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "install-check.yml"
+MACOS_INSTALL_CHECK_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "install-check-macos.yml"
+AUTO_RERUN_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "auto-rerun-failed-actions.yml"
 PUBLISH_PYPI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-pypi.yml"
 PUBLISH_NPM_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "publish-npm.yml"
 VERIFY_RELEASE_TAG = LAYOUT.scripts / "verify_release_tag_version.sh"
@@ -136,6 +139,10 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn("--prerelease", content)
         self.assertIn('scripts/build_plugin_artifacts.py --root "$POSTFLIGHT_STAGING_DIR" --tag "$TAG" --dist-dir dist', content)
         self.assertIn('PLUGIN_ARTIFACTS=(', content)
+        self.assertIn('if [[ "${TAG#v}" == *-* ]]; then', content)
+        self.assertIn('"dist/qiongli-next-codex-plugin-${TAG}.tar.gz"', content)
+        self.assertIn('"dist/qiongli-next-claude-plugin-${TAG}.tar.gz"', content)
+        self.assertIn('"dist/qiongli-next-claude-desktop-skill-core-${TAG}.zip"', content)
         self.assertIn('"dist/qiongli-core-codex-plugin-${TAG}.tar.gz"', content)
         self.assertIn('"dist/qiongli-economics-codex-plugin-${TAG}.tar.gz"', content)
         self.assertIn('"dist/qiongli-accounting-codex-plugin-${TAG}.tar.gz"', content)
@@ -166,6 +173,36 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('"dist/qiongli-downloads-${TAG}.json"', content)
         self.assertIn('gh release upload "$TAG" --repo "$REPO_SLUG" --clobber "${PLUGIN_ARTIFACTS[@]}"', content)
         self.assertIn('release_args+=("${PLUGIN_ARTIFACTS[@]}")', content)
+
+    def test_checkout_install_check_runs_all_platforms_on_push_and_pr(self) -> None:
+        main_content = INSTALL_CHECK_WORKFLOW.read_text(encoding="utf-8")
+
+        self.assertIn("name: Checkout Install Check", main_content)
+        self.assertIn("push:", main_content)
+        self.assertIn("pull_request:", main_content)
+        self.assertIn("workflow_dispatch:", main_content)
+        self.assertIn("os: [ubuntu-latest, macos-latest]", main_content)
+        self.assertIn("runs-on: windows-latest", main_content)
+
+        self.assertFalse(
+            MACOS_INSTALL_CHECK_WORKFLOW.exists(),
+            msg="macOS checkout checks should stay in the main workflow to avoid duplicate checks.",
+        )
+
+    def test_failed_ci_and_checkout_runs_are_rerun_once(self) -> None:
+        content = AUTO_RERUN_WORKFLOW.read_text(encoding="utf-8")
+
+        self.assertIn("name: Auto Rerun Failed Actions", content)
+        self.assertIn("workflow_run:", content)
+        self.assertIn("workflows:", content)
+        self.assertIn("- CI", content)
+        self.assertIn("- Checkout Install Check", content)
+        self.assertNotIn("- Release Automation", content)
+        self.assertNotIn("- Publish to PyPI", content)
+        self.assertIn("actions: write", content)
+        self.assertIn("github.event.workflow_run.conclusion == 'failure'", content)
+        self.assertIn("github.event.workflow_run.run_attempt < 2", content)
+        self.assertIn('gh run rerun "$RUN_ID" --repo "$REPO" --failed', content)
 
     def test_release_postflight_supports_soft_ci_timeout_and_gh_api_fallback(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")

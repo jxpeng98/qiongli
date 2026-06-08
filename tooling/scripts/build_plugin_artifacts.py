@@ -30,7 +30,10 @@ except ModuleNotFoundError as exc:
 
 
 PLUGIN_NAME = "qiongli"
+NEXT_PLUGIN_NAME = "qiongli-next"
 SKILL_DIR_NAME = "qiongli-workflow"
+DEFAULT_SKILL_NAME = "qiongli"
+NEXT_SKILL_NAME = "qiongli-next"
 DESKTOP_SKILL_FILE_BUDGET = 180
 FALLBACK_SUBJECT_LAYERS = {
     "core": ["core"],
@@ -256,6 +259,10 @@ def _normalize_tag(raw: str) -> tuple[str, str]:
     return repo_tag, skill_version
 
 
+def _is_prerelease_tag(repo_tag: str) -> bool:
+    return "-" in repo_tag.removeprefix("v")
+
+
 def _read_json(path: Path) -> object:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -305,6 +312,31 @@ def _copy_path_excluding(src: Path, dest: Path, excluded_names: set[str]) -> Non
         shutil.copy2(src, dest)
 
 
+def _rewrite_skill_entrypoint(skill_root: Path, skill_name: str) -> None:
+    if skill_name == DEFAULT_SKILL_NAME:
+        return
+    skill_path = skill_root / "SKILL.md"
+    text = skill_path.read_text(encoding="utf-8")
+    text = re.sub(r"(?m)^name:\s*qiongli\s*$", f"name: {skill_name}", text)
+    text = text.replace("$qiongli", f"${skill_name}")
+    if f"${skill_name}" not in text:
+        text = (
+            text.rstrip()
+            + "\n\n## Prerelease Invocation\n\n"
+            + f"Invoke this beta package as `${skill_name}` when testing the next Qiongli core workflow.\n"
+        )
+    skill_path.write_text(text, encoding="utf-8")
+
+
+def _rewrite_command_invocation(commands_root: Path, skill_name: str) -> None:
+    if skill_name == DEFAULT_SKILL_NAME or not commands_root.is_dir():
+        return
+    for command_path in sorted(commands_root.glob("*.md")):
+        text = command_path.read_text(encoding="utf-8")
+        text = text.replace("Load the `qiongli` skill", f"Load the `{skill_name}` skill")
+        command_path.write_text(text, encoding="utf-8")
+
+
 def _build_materialize_source(root: Path, work_dir: Path) -> Path:
     layout = RepoLayout(root)
     source = work_dir / "materialize-source"
@@ -341,27 +373,31 @@ def _copy_common_skill(root: Path, dest_plugin_root: Path) -> None:
     _copy_subject_skill(root, dest_plugin_root, "core")
 
 
-def _copy_subject_skill(root: Path, dest_plugin_root: Path, subject: str) -> None:
+def _copy_subject_skill(root: Path, dest_plugin_root: Path, subject: str, *, skill_name: str = DEFAULT_SKILL_NAME) -> None:
     if materialize_subject_package is None or MaterializeOptions is None:
         raise ValueError("PyYAML is required to build subject-specific marketplace plugin artifacts")
 
     with tempfile.TemporaryDirectory(prefix=f"qiongli-marketplace-{subject}-source-") as tmp:
         materialize_root = _build_materialize_source(root, Path(tmp))
+        skill_dest = dest_plugin_root / "skills" / SKILL_DIR_NAME
         materialize_subject_package(
             MaterializeOptions(
                 source=materialize_root,
-                out=dest_plugin_root / "skills" / SKILL_DIR_NAME,
+                out=skill_dest,
                 subject=subject,
                 flavor="full",
                 coverage="complete",
             )
         )
+        _rewrite_skill_entrypoint(skill_dest, skill_name)
 
 
-def _copy_commands(root: Path, dest_plugin_root: Path) -> None:
+def _copy_commands(root: Path, dest_plugin_root: Path, *, skill_name: str = DEFAULT_SKILL_NAME) -> None:
     commands = RepoLayout(root).plugin_package / "commands"
     if commands.is_dir():
-        _copy_path(commands, dest_plugin_root / "commands")
+        commands_dest = dest_plugin_root / "commands"
+        _copy_path(commands, commands_dest)
+        _rewrite_command_invocation(commands_dest, skill_name)
 
 
 def _copy_codex_mcp_manifest(root: Path, dest_plugin_root: Path) -> None:
@@ -394,7 +430,13 @@ def _make_zip(source_dir: Path, zip_path: Path) -> None:
                 archive.write(item, item.relative_to(source_dir.parent).as_posix())
 
 
-def _copy_claude_desktop_skill(root: Path, skill_dest: Path, subject: str) -> None:
+def _copy_claude_desktop_skill(
+    root: Path,
+    skill_dest: Path,
+    subject: str,
+    *,
+    skill_name: str = DEFAULT_SKILL_NAME,
+) -> None:
     with tempfile.TemporaryDirectory(prefix="qiongli-desktop-source-") as tmp:
         materialize_root = _build_materialize_source(root, Path(tmp))
         if materialize_subject_package is not None and MaterializeOptions is not None:
@@ -408,7 +450,8 @@ def _copy_claude_desktop_skill(root: Path, skill_dest: Path, subject: str) -> No
                 )
             )
         else:
-            _copy_claude_desktop_skill_without_pyyaml(materialize_root, skill_dest, subject)
+            _copy_claude_desktop_skill_without_pyyaml(materialize_root, skill_dest, subject, skill_name=skill_name)
+    _rewrite_skill_entrypoint(skill_dest, skill_name)
     file_count = sum(1 for item in skill_dest.rglob("*") if item.is_file())
     if file_count > DESKTOP_SKILL_FILE_BUDGET:
         raise ValueError(
@@ -417,7 +460,13 @@ def _copy_claude_desktop_skill(root: Path, skill_dest: Path, subject: str) -> No
         )
 
 
-def _copy_claude_desktop_skill_without_pyyaml(root: Path, skill_dest: Path, subject: str) -> None:
+def _copy_claude_desktop_skill_without_pyyaml(
+    root: Path,
+    skill_dest: Path,
+    subject: str,
+    *,
+    skill_name: str = DEFAULT_SKILL_NAME,
+) -> None:
     if subject not in FALLBACK_SUBJECT_LAYERS:
         raise ValueError("PyYAML is required to materialize unknown subject packages")
     source = root / "qiongli-workflow"
@@ -445,7 +494,12 @@ def _copy_claude_desktop_skill_without_pyyaml(root: Path, skill_dest: Path, subj
         encoding="utf-8",
     )
     if subject == "core":
-        _write_fallback_skill_md(skill_dest, "Qiongli Core", "General-purpose Qiongli academic workflow.")
+        _write_fallback_skill_md(
+            skill_dest,
+            "Qiongli Core",
+            "General-purpose Qiongli academic workflow.",
+            skill_name=skill_name,
+        )
         _copy_path(source / "templates", skill_dest / "templates")
         _copy_path(source / "venue-profiles", skill_dest / "venue-profiles")
         _copy_path(source / "skills" / "registry.yaml", skill_dest / "skills" / "registry.yaml")
@@ -457,30 +511,35 @@ def _copy_claude_desktop_skill_without_pyyaml(root: Path, skill_dest: Path, subj
             skill_dest,
             "Qiongli Business",
             "Business-focused management, strategy, organization, marketing, and operations workflow for doctoral-level journal manuscripts.",
+            skill_name=skill_name,
         )
     elif subject == "economics-accounting":
         _write_fallback_skill_md(
             skill_dest,
             "Qiongli Economics + Accounting",
             "Cross-disciplinary economics and accounting workflow for archival, causal, and reporting-setting research.",
+            skill_name=skill_name,
         )
     elif subject == "finance":
         _write_fallback_skill_md(
             skill_dest,
             "Qiongli Finance",
             "Finance-focused corporate finance, asset pricing, market microstructure, and risk workflow for doctoral-level journal manuscripts.",
+            skill_name=skill_name,
         )
     elif subject == "accounting":
         _write_fallback_skill_md(
             skill_dest,
             "Qiongli Accounting",
             "Accounting-focused archival, disclosure, audit, and measurement workflow.",
+            skill_name=skill_name,
         )
     else:
         _write_fallback_skill_md(
             skill_dest,
             "Qiongli Economics",
             "Economics-focused empirical, theory, and reproducibility workflow.",
+            skill_name=skill_name,
         )
     if subject == "accounting":
         template_refs = ACCOUNTING_TEMPLATES
@@ -568,11 +627,17 @@ def _copy_claude_desktop_skill_without_pyyaml(root: Path, skill_dest: Path, subj
     registry_path.write_text("\n".join(registry_lines) + "\n", encoding="utf-8")
 
 
-def _write_fallback_skill_md(skill_dest: Path, display_name: str, description: str) -> None:
+def _write_fallback_skill_md(
+    skill_dest: Path,
+    display_name: str,
+    description: str,
+    *,
+    skill_name: str = DEFAULT_SKILL_NAME,
+) -> None:
     text = "\n".join(
         [
             "---",
-            "name: qiongli",
+            f"name: {skill_name}",
             f"description: {description}",
             "---",
             "",
@@ -582,7 +647,7 @@ def _write_fallback_skill_md(skill_dest: Path, display_name: str, description: s
             "",
             f"## {display_name.removeprefix('Qiongli ')} Workflow Map",
             "",
-            "Use `workflows/`, `references/`, `templates/`, and `skills/registry.yaml` as the active subject contract.",
+            f"Use `${skill_name}`, `workflows/`, `references/`, `templates/`, and `skills/registry.yaml` as the active subject contract.",
             "",
             "## Literature Provider Configuration",
             "",
@@ -699,13 +764,20 @@ def _write_subject_manifest(
     subject: str,
     display_name: str,
     package_goal: str,
+    skill_name: str = DEFAULT_SKILL_NAME,
 ) -> None:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["name"] = plugin_name
-    manifest["description"] = _subject_description(display_name, package_goal, subject)
+    if plugin_name == NEXT_PLUGIN_NAME:
+        manifest["description"] = (
+            "Qiongli Next prerelease marketplace plugin. Installs the core/complete workflow "
+            "for beta testing without publishing subject-specific variants."
+        )
+    else:
+        manifest["description"] = _subject_description(display_name, package_goal, subject)
     keywords = manifest.get("keywords")
     if isinstance(keywords, list):
-        additions = ["qiongli-subject", subject]
+        additions = ["qiongli-next", "prerelease"] if plugin_name == NEXT_PLUGIN_NAME else ["qiongli-subject", subject]
         manifest["keywords"] = [*keywords, *[item for item in additions if item not in keywords]]
 
     if platform == "codex":
@@ -714,13 +786,22 @@ def _write_subject_manifest(
             interface = {}
             manifest["interface"] = interface
         interface["displayName"] = display_name
-        if subject == "core":
+        if plugin_name == NEXT_PLUGIN_NAME:
+            interface["shortDescription"] = "Prerelease core academic workflows for Codex."
+            interface["defaultPrompt"] = [
+                f"Use ${skill_name} to test the next Qiongli paper workflow.",
+                f"Use ${skill_name} to test a literature review workflow.",
+                f"Use ${skill_name} to test submission checks with the bundled literature MCP.",
+            ]
+            interface["longDescription"] = manifest["description"]
+        elif subject == "core":
             interface["shortDescription"] = "General academic paper workflows for Codex."
             interface["defaultPrompt"] = [
                 "Use $qiongli to plan my paper.",
                 "Use $qiongli to run a literature review for my research topic.",
                 "Use $qiongli to prepare a submission package for my manuscript.",
             ]
+            interface["longDescription"] = _subject_description(display_name, package_goal, subject)
         else:
             modifier = _subject_modifier(display_name)
             interface["shortDescription"] = f"{modifier}-specialized academic workflows for Codex."
@@ -729,7 +810,7 @@ def _write_subject_manifest(
                 f"Use $qiongli to run a {modifier.lower()} literature review.",
                 f"Use $qiongli to prepare {modifier.lower()} methods, diagnostics, and reporting checks.",
             ]
-        interface["longDescription"] = _subject_description(display_name, package_goal, subject)
+            interface["longDescription"] = _subject_description(display_name, package_goal, subject)
 
     manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
@@ -746,6 +827,7 @@ def _build_marketplace_plugin(
     artifact_name: str,
     display_name: str,
     package_goal: str,
+    skill_name: str = DEFAULT_SKILL_NAME,
 ) -> Path:
     bundle_name = f"{artifact_name}-{platform}-plugin-{tag}"
     bundle = work_dir / bundle_name
@@ -759,12 +841,13 @@ def _build_marketplace_plugin(
         subject=subject,
         display_name=display_name,
         package_goal=package_goal,
+        skill_name=skill_name,
     )
     if platform == "codex":
         _copy_codex_mcp_manifest(root, plugin_dest)
     _copy_literature_mcp_runtime(root, plugin_dest)
-    _copy_commands(root, plugin_dest)
-    _copy_subject_skill(root, plugin_dest, subject)
+    _copy_commands(root, plugin_dest, skill_name=skill_name)
+    _copy_subject_skill(root, plugin_dest, subject, skill_name=skill_name)
     artifact = dist_dir / f"{bundle_name}.tar.gz"
     _make_tarball(bundle, artifact)
     return artifact
@@ -827,6 +910,28 @@ def _build_subject_marketplace_plugins(root: Path, tag: str, dist_dir: Path, wor
     return artifacts
 
 
+def _build_next_marketplace_plugins(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> list[Path]:
+    _display_name, package_goal = _subject_definitions(root)["core"]
+    artifacts: list[Path] = []
+    for platform in ("codex", "claude"):
+        artifacts.append(
+            _build_marketplace_plugin(
+                root,
+                tag,
+                dist_dir,
+                work_dir,
+                platform=platform,
+                subject="core",
+                plugin_name=NEXT_PLUGIN_NAME,
+                artifact_name=NEXT_PLUGIN_NAME,
+                display_name="Qiongli Next",
+                package_goal=package_goal,
+                skill_name=NEXT_SKILL_NAME,
+            )
+        )
+    return artifacts
+
+
 def _build_gemini(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> Path:
     bundle_name = f"{PLUGIN_NAME}-gemini-extension-{tag}"
     bundle = work_dir / bundle_name
@@ -837,10 +942,19 @@ def _build_gemini(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> Path:
     return artifact
 
 
-def _build_claude_desktop_skill(root: Path, tag: str, dist_dir: Path, work_dir: Path, subject: str) -> Path:
-    bundle_name = f"{PLUGIN_NAME}-claude-desktop-skill-{subject}-{tag}"
-    skill_dest = work_dir / f"desktop-{subject}" / "qiongli"
-    _copy_claude_desktop_skill(root, skill_dest, subject)
+def _build_claude_desktop_skill(
+    root: Path,
+    tag: str,
+    dist_dir: Path,
+    work_dir: Path,
+    subject: str,
+    *,
+    artifact_prefix: str = PLUGIN_NAME,
+    skill_name: str = DEFAULT_SKILL_NAME,
+) -> Path:
+    bundle_name = f"{artifact_prefix}-claude-desktop-skill-{subject}-{tag}"
+    skill_dest = work_dir / f"desktop-{artifact_prefix}-{subject}" / skill_name
+    _copy_claude_desktop_skill(root, skill_dest, subject, skill_name=skill_name)
     artifact = dist_dir / f"{bundle_name}.zip"
     _make_zip(skill_dest, artifact)
     return artifact
@@ -874,6 +988,20 @@ def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
 
     with tempfile.TemporaryDirectory(prefix="qiongli-plugin-") as tmp:
         work_dir = Path(tmp)
+        if _is_prerelease_tag(repo_tag):
+            return [
+                *_build_next_marketplace_plugins(root, repo_tag, dist_dir, work_dir),
+                _build_claude_desktop_skill(
+                    root,
+                    repo_tag,
+                    dist_dir,
+                    work_dir,
+                    "core",
+                    artifact_prefix=NEXT_PLUGIN_NAME,
+                    skill_name=NEXT_SKILL_NAME,
+                ),
+            ]
+
         desktop_artifacts = [
             _build_claude_desktop_skill(root, repo_tag, dist_dir, work_dir, subject)
             for subject in _desktop_subjects(root)

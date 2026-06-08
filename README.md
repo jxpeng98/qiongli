@@ -55,6 +55,8 @@ Start with the smallest surface that matches the job. "Full workflow" means the 
 
 Claude Code marketplace status: yes, Claude Code can install the full Qiongli methodology through Skillsplace for core and subject `complete` packages. Codex and Claude Code both install the skill/command package plus the bundled zero-dependency Node literature MCP runtime for provider, search, and status tools. The full Python-backed orchestration MCP remains separate and still requires npm/pipx/bootstrap `full` plus `qiongli mcp serve --transport stdio`.
 
+Prerelease testing uses the separate `qiongli-next` marketplace entry. It installs only the core Qiongli workflow for Codex and Claude Code, keeps the bundled literature MCP runtime, and pairs with `qiongli-next-claude-desktop-skill-core-<tag>.zip` plus `qiongli-literature-provider-<version>.mcpb` for Claude Desktop. CLI prerelease testing uses `npx qiongli@next ...`.
+
 Detailed install instructions live in [docs/guide/install.md](docs/guide/install.md). The quickest route from nothing installed is [docs/quickstart.md](docs/quickstart.md).
 
 ## Install Snippets
@@ -70,6 +72,9 @@ codex plugin marketplace list
 claude plugin marketplace add jxpeng98/skillsplace@main
 claude plugin install qiongli@skillsplace
 claude plugin install qiongli-economics@skillsplace
+
+# Prerelease channel
+claude plugin install qiongli-next@skillsplace
 ```
 
 npm / npx installs:
@@ -83,7 +88,7 @@ qiongli install --subject economics-accounting --target all --project-dir "$PWD"
 qiongli install --subject economics --coverage focused --target all --project-dir "$PWD"
 
 # Prerelease testing
-npx qiongli@next install --subject economics --target all --project-dir "$PWD"
+npx qiongli@next install --target all --project-dir "$PWD"
 npx qiongli@next check --json
 ```
 

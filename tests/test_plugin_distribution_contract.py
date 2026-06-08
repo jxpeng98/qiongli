@@ -201,40 +201,21 @@ class PluginDistributionContractTests(unittest.TestCase):
             )
 
         self.assertEqual(result.returncode, 0, msg=result.stderr + result.stdout)
-        self.assertIn("[OK] codex marketplace artifact", result.stdout)
-        self.assertIn("[OK] codex marketplace artifact (economics)", result.stdout)
-        self.assertIn("[OK] codex marketplace artifact (business)", result.stdout)
-        self.assertIn("[OK] codex marketplace artifact (finance)", result.stdout)
         self.assertIn(
-            "[OK] codex marketplace artifact (political-economy): "
-            "qiongli invocation checked; bundled literature MCP checked",
+            "[OK] codex marketplace artifact (core-next): "
+            "qiongli-next invocation checked; bundled literature MCP checked",
             result.stdout,
         )
         self.assertIn(
-            "[OK] codex marketplace artifact (geoeconomics): "
-            "qiongli invocation checked; bundled literature MCP checked",
+            "[OK] claude marketplace artifact (core-next): "
+            "qiongli-next invocation checked; bundled literature MCP checked",
             result.stdout,
         )
-        self.assertIn("[OK] claude marketplace artifact", result.stdout)
-        self.assertIn("[OK] claude marketplace artifact (economics)", result.stdout)
-        self.assertIn("[OK] claude marketplace artifact (business)", result.stdout)
-        self.assertIn("[OK] claude marketplace artifact (finance)", result.stdout)
-        self.assertIn(
-            "[OK] claude marketplace artifact (political-economy): "
-            "qiongli invocation checked; bundled literature MCP checked",
-            result.stdout,
-        )
-        self.assertIn(
-            "[OK] claude marketplace artifact (geoeconomics): "
-            "qiongli invocation checked; bundled literature MCP checked",
-            result.stdout,
-        )
-        self.assertIn("[OK] claude-desktop skill artifact", result.stdout)
-        self.assertIn("[OK] claude-desktop skill artifact (political-economy)", result.stdout)
-        self.assertIn("[OK] claude-desktop skill artifact (geoeconomics)", result.stdout)
+        self.assertIn("[OK] claude-desktop skill artifact (core-next)", result.stdout)
         self.assertIn("under desktop file budget", result.stdout)
-        self.assertIn("[OK] gemini marketplace artifact", result.stdout)
-        self.assertIn("qiongli invocation", result.stdout)
+        self.assertNotIn("[OK] gemini marketplace artifact", result.stdout)
+        self.assertNotIn("artifact (economics)", result.stdout)
+        self.assertIn("qiongli-next invocation", result.stdout)
         self.assertIn("bundled literature MCP checked", result.stdout)
 
 

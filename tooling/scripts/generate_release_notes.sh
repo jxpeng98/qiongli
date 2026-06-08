@@ -132,6 +132,10 @@ if [[ -z "$STAGE" ]]; then
     STAGE="Stable"
   fi
 fi
+IS_NEXT=0
+if [[ "${TAG#v}" == *-* ]]; then
+  IS_NEXT=1
+fi
 
 VERSION_HINT="${TAG#v}"
 VERSION_HINT="${VERSION_HINT/-beta./b}"
@@ -227,11 +231,21 @@ mkdir -p "$(dirname "$OUTPUT")"
   echo
   echo "| You use | Recommended path |"
   echo "|---|---|"
-  echo "| Codex | Use \`codex plugin marketplace add jxpeng98/skillsplace --ref main\`; no manual tarball download required. |"
-  echo "| Claude Code | Use \`claude plugin marketplace add jxpeng98/skillsplace@main\`; no manual tarball download required. |"
-  echo "| Claude Desktop/Web skills | Download one \`qiongli-claude-desktop-skill-<subject>-${TAG}.zip\` asset. Start with \`qiongli-claude-desktop-skill-core-${TAG}.zip\` unless you need a subject package. |"
+  if [[ "$IS_NEXT" -eq 1 ]]; then
+    echo "| Qiongli CLI | Use \`npx qiongli@next install --target all --project-dir \"\$PWD\"\` for npm next-channel CLI testing. |"
+    echo "| Codex | Use \`codex plugin marketplace add jxpeng98/skillsplace --ref main\` and install \`qiongli-next\`; no manual tarball download required. |"
+    echo "| Claude Code | Use \`claude plugin marketplace add jxpeng98/skillsplace@main\` and install \`qiongli-next\`; no manual tarball download required. |"
+    echo "| Claude Desktop/Web skills | Download \`qiongli-next-claude-desktop-skill-core-${TAG}.zip\` for the prerelease core skill. |"
+  else
+    echo "| Qiongli CLI | Use \`npx qiongli@latest install --target all --project-dir \"\$PWD\"\` for npm latest-channel CLI installs. |"
+    echo "| Codex | Use \`codex plugin marketplace add jxpeng98/skillsplace --ref main\`; no manual tarball download required. |"
+    echo "| Claude Code | Use \`claude plugin marketplace add jxpeng98/skillsplace@main\`; no manual tarball download required. |"
+    echo "| Claude Desktop/Web skills | Download one \`qiongli-claude-desktop-skill-<subject>-${TAG}.zip\` asset. Start with \`qiongli-claude-desktop-skill-core-${TAG}.zip\` unless you need a subject package. |"
+  fi
   echo "| Claude Desktop literature tools | Download \`${MCPB_ASSET}\` and pair it with a Desktop skill ZIP when provider calls are required. |"
-  echo "| Gemini CLI | Download \`qiongli-gemini-extension-${TAG}.tar.gz\` only when installing from a release artifact. |"
+  if [[ "$IS_NEXT" -ne 1 ]]; then
+    echo "| Gemini CLI | Download \`qiongli-gemini-extension-${TAG}.tar.gz\` only when installing from a release artifact. |"
+  fi
   echo "| Maintainers | Use Codex/Claude plugin tarballs only for manual marketplace artifact checks. |"
   echo
   echo "The release also includes \`qiongli-downloads-${TAG}.md\` and \`qiongli-downloads-${TAG}.json\` to group the asset list by install surface."

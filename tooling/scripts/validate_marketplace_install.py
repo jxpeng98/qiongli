@@ -19,13 +19,15 @@ for import_root in (PYTHON_SOURCE_ROOT, REPO_ROOT):
     if str(import_root) not in sys.path:
         sys.path.insert(0, str(import_root))
 
-from build_plugin_artifacts import _desktop_subjects, _marketplace_subjects, build_artifacts
+from build_plugin_artifacts import _desktop_subjects, _is_prerelease_tag, _marketplace_subjects, build_artifacts
 from qiongli.source_layout import RepoLayout
 
 
 PLUGIN_NAME = "qiongli"
+NEXT_PLUGIN_NAME = "qiongli-next"
 SKILL_DIR_NAME = "qiongli-workflow"
 SKILL_NAME = "qiongli"
+NEXT_SKILL_NAME = "qiongli-next"
 CLAUDE_DESKTOP_FILE_BUDGET = 180
 
 
@@ -87,7 +89,7 @@ def _extract_single_zip_root(artifact: Path, dest: Path) -> Path:
     return roots[0]
 
 
-def _assert_claude_desktop_zip_budget(artifact: Path, subject: str) -> int:
+def _assert_claude_desktop_zip_budget(artifact: Path, subject: str, *, skill_name: str = SKILL_NAME) -> int:
     with zipfile.ZipFile(artifact) as archive:
         file_names = [name for name in archive.namelist() if not name.endswith("/")]
 
@@ -101,8 +103,8 @@ def _assert_claude_desktop_zip_budget(artifact: Path, subject: str) -> int:
         detailed_skill_specs = [
             name
             for name in file_names
-            if name.startswith(f"{SKILL_NAME}/skills/")
-            and name != f"{SKILL_NAME}/skills/registry.yaml"
+            if name.startswith(f"{skill_name}/skills/")
+            and name != f"{skill_name}/skills/registry.yaml"
             and name.endswith(".md")
         ]
         if detailed_skill_specs:
@@ -124,15 +126,20 @@ def _assert_dir(path: Path, label: str) -> None:
         raise ValueError(f"missing {label}: {path}")
 
 
-def _assert_skill_invocation(skill_root: Path, expected_repo_tag: str) -> list[str]:
+def _assert_skill_invocation(
+    skill_root: Path,
+    expected_repo_tag: str,
+    *,
+    skill_name: str = SKILL_NAME,
+) -> list[str]:
     _assert_file(skill_root / "SKILL.md", "skill entrypoint")
     _assert_file(skill_root / "VERSION", "skill version")
     _assert_file(skill_root / "skills" / "registry.yaml", "skill registry")
     _assert_dir(skill_root / "workflows", "workflow directory")
 
     skill_text = (skill_root / "SKILL.md").read_text(encoding="utf-8")
-    if f"name: {SKILL_NAME}" not in skill_text:
-        raise ValueError(f"{skill_root / 'SKILL.md'} must declare name: {SKILL_NAME}")
+    if f"name: {skill_name}" not in skill_text:
+        raise ValueError(f"{skill_root / 'SKILL.md'} must declare name: {skill_name}")
 
     actual_version = (skill_root / "VERSION").read_text(encoding="utf-8").strip()
     if actual_version != expected_repo_tag:
@@ -341,7 +348,12 @@ def _assert_finance_desktop_package(skill_root: Path) -> None:
         raise ValueError("finance package missing subject-specific skill")
 
 
-def _assert_command_invocation(plugin_root: Path, workflow_names: list[str]) -> None:
+def _assert_command_invocation(
+    plugin_root: Path,
+    workflow_names: list[str],
+    *,
+    skill_name: str = SKILL_NAME,
+) -> None:
     commands_dir = plugin_root / "commands"
     _assert_dir(commands_dir, "slash command directory")
 
@@ -355,8 +367,8 @@ def _assert_command_invocation(plugin_root: Path, workflow_names: list[str]) -> 
         command_path = commands_dir / command_name
         command_text = command_path.read_text(encoding="utf-8")
         expected_reference = f"skills/{SKILL_DIR_NAME}/workflows/{command_name}"
-        if SKILL_NAME not in command_text or expected_reference not in command_text:
-            raise ValueError(f"{command_path} must load {SKILL_NAME} and reference {expected_reference}")
+        if skill_name not in command_text or expected_reference not in command_text:
+            raise ValueError(f"{command_path} must load {skill_name} and reference {expected_reference}")
 
 
 def _assert_bundled_literature_mcp(plugin_root: Path, platform: str) -> None:
@@ -400,6 +412,7 @@ def _assert_manifest(
     expected_version: str,
     *,
     expected_plugin_name: str = PLUGIN_NAME,
+    expected_skill_name: str = SKILL_NAME,
 ) -> None:
     manifest = _read_json(manifest_path)
     for key in ("name", "version", "description"):
@@ -417,8 +430,8 @@ def _assert_manifest(
         if not isinstance(interface, dict):
             raise ValueError(f"{manifest_path} missing Codex interface metadata")
         prompts = interface.get("defaultPrompt")
-        if not isinstance(prompts, list) or not any(f"${SKILL_NAME}" in str(item) for item in prompts):
-            raise ValueError(f"{manifest_path} defaultPrompt must include ${SKILL_NAME}")
+        if not isinstance(prompts, list) or not any(f"${expected_skill_name}" in str(item) for item in prompts):
+            raise ValueError(f"{manifest_path} defaultPrompt must include ${expected_skill_name}")
 
 
 def _validate_artifact(
@@ -430,6 +443,8 @@ def _validate_artifact(
     plugin_name: str = PLUGIN_NAME,
     subject: str | None = None,
     coverage: str | None = None,
+    skill_name: str = SKILL_NAME,
+    subject_label: str | None = None,
 ) -> str:
     with tempfile.TemporaryDirectory(prefix=f"qiongli-{spec.platform}-artifact-") as tmp:
         bundle_root = _extract_single_root(artifact, Path(tmp))
@@ -442,30 +457,44 @@ def _validate_artifact(
             manifest_path = plugin_root / (".codex-plugin" if spec.platform == "codex" else ".claude-plugin") / "plugin.json"
             skill_root = plugin_root / "skills" / SKILL_DIR_NAME
 
-        _assert_manifest(spec.platform, manifest_path, expected_version, expected_plugin_name=plugin_name)
-        workflow_names = _assert_skill_invocation(skill_root, expected_repo_tag)
+        _assert_manifest(
+            spec.platform,
+            manifest_path,
+            expected_version,
+            expected_plugin_name=plugin_name,
+            expected_skill_name=skill_name,
+        )
+        workflow_names = _assert_skill_invocation(skill_root, expected_repo_tag, skill_name=skill_name)
         if subject is not None:
             _assert_subject_marker(skill_root, subject)
             _assert_subject_manifest(skill_root, subject, coverage or "complete")
         if spec.requires_commands:
-            _assert_command_invocation(plugin_root, workflow_names)
+            _assert_command_invocation(plugin_root, workflow_names, skill_name=skill_name)
         if spec.expects_bundled_mcp:
             _assert_bundled_literature_mcp(plugin_root, spec.platform)
 
-    subject_suffix = f" ({subject})" if subject else ""
-    checked = f"{SKILL_NAME} invocation checked"
+    label = subject_label or subject
+    subject_suffix = f" ({label})" if label else ""
+    checked = f"{skill_name} invocation checked"
     if spec.expects_bundled_mcp:
         checked += "; bundled literature MCP checked"
     return f"[OK] {spec.platform} marketplace artifact{subject_suffix}: {checked}"
 
 
-def _validate_claude_desktop_artifact(artifact: Path, expected_repo_tag: str, subject: str) -> str:
-    file_count = _assert_claude_desktop_zip_budget(artifact, subject)
+def _validate_claude_desktop_artifact(
+    artifact: Path,
+    expected_repo_tag: str,
+    subject: str,
+    *,
+    skill_name: str = SKILL_NAME,
+    subject_label: str | None = None,
+) -> str:
+    file_count = _assert_claude_desktop_zip_budget(artifact, subject, skill_name=skill_name)
     with tempfile.TemporaryDirectory(prefix=f"qiongli-claude-desktop-{subject}-artifact-") as tmp:
         skill_root = _extract_single_zip_root(artifact, Path(tmp))
-        if skill_root.name != SKILL_NAME:
-            raise ValueError(f"{artifact} must contain top-level {SKILL_NAME}/ directory")
-        _assert_skill_invocation(skill_root, expected_repo_tag)
+        if skill_root.name != skill_name:
+            raise ValueError(f"{artifact} must contain top-level {skill_name}/ directory")
+        _assert_skill_invocation(skill_root, expected_repo_tag, skill_name=skill_name)
         if subject == "economics":
             _assert_economics_desktop_package(skill_root)
         elif subject == "business":
@@ -485,8 +514,9 @@ def _validate_claude_desktop_artifact(artifact: Path, expected_repo_tag: str, su
         if (skill_root / "commands").exists():
             raise ValueError(f"{artifact} must not include Claude Code slash command wrappers")
 
+    label = subject_label or subject
     return (
-        f"[OK] claude-desktop skill artifact ({subject}): {SKILL_NAME} invocation checked; "
+        f"[OK] claude-desktop skill artifact ({label}): {skill_name} invocation checked; "
         f"{file_count}/{CLAUDE_DESKTOP_FILE_BUDGET} files under desktop file budget"
     )
 
@@ -550,6 +580,45 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
     artifacts = build_artifacts(root, expected_repo_tag, dist_dir)
     by_platform = {artifact.name: artifact for artifact in artifacts}
     messages: list[str] = []
+
+    if _is_prerelease_tag(expected_repo_tag):
+        for platform in ("codex", "claude"):
+            spec = ARTIFACT_SPECS[platform]
+            artifact_name = f"{NEXT_PLUGIN_NAME}-{platform}-plugin-{expected_repo_tag}.tar.gz"
+            artifact = by_platform.get(artifact_name)
+            if artifact is None:
+                raise ValueError(f"expected {platform} next marketplace artifact: {artifact_name}")
+            messages.append(
+                _validate_artifact(
+                    artifact,
+                    spec,
+                    expected_repo_tag,
+                    expected_version,
+                    plugin_name=NEXT_PLUGIN_NAME,
+                    subject="core",
+                    coverage="complete",
+                    skill_name=NEXT_SKILL_NAME,
+                    subject_label="core-next",
+                )
+            )
+
+        desktop_name = f"{NEXT_PLUGIN_NAME}-claude-desktop-skill-core-{expected_repo_tag}.zip"
+        desktop_artifact = by_platform.get(desktop_name)
+        if desktop_artifact is None:
+            raise ValueError(f"expected claude-desktop next core artifact: {desktop_name}")
+        messages.append(
+            _validate_claude_desktop_artifact(
+                desktop_artifact,
+                expected_repo_tag,
+                "core",
+                skill_name=NEXT_SKILL_NAME,
+                subject_label="core-next",
+            )
+        )
+
+        _validate_subject_specialization(root)
+        _validate_subject_eval_cases(root)
+        return messages
 
     for platform, spec in ARTIFACT_SPECS.items():
         artifact_name = f"{PLUGIN_NAME}-{platform}-plugin-{expected_repo_tag}.tar.gz"

@@ -38,41 +38,41 @@ class ClaudeDesktopSkillArtifactTests(unittest.TestCase):
             artifacts = self.build_module.build_artifacts(REPO_ROOT, tag, Path(tmp))
 
             desktop_artifacts = {artifact.name: artifact for artifact in artifacts if artifact.suffix == ".zip"}
-            self.assertIn(f"qiongli-claude-desktop-skill-{tag}.zip", desktop_artifacts)
-            self.assertIn(f"qiongli-claude-desktop-skill-business-{tag}.zip", desktop_artifacts)
-            self.assertIn(f"qiongli-claude-desktop-skill-core-{tag}.zip", desktop_artifacts)
-            self.assertIn(f"qiongli-claude-desktop-skill-economics-{tag}.zip", desktop_artifacts)
-            self.assertIn(f"qiongli-claude-desktop-skill-finance-{tag}.zip", desktop_artifacts)
+            self.assertEqual(
+                [f"qiongli-next-claude-desktop-skill-core-{tag}.zip"],
+                sorted(desktop_artifacts),
+            )
 
-            with zipfile.ZipFile(desktop_artifacts[f"qiongli-claude-desktop-skill-core-{tag}.zip"]) as archive:
+            with zipfile.ZipFile(desktop_artifacts[f"qiongli-next-claude-desktop-skill-core-{tag}.zip"]) as archive:
                 names = set(archive.namelist())
                 file_names = [name for name in names if not name.endswith("/")]
 
-                self.assertIn("qiongli/SKILL.md", names)
-                self.assertIn("qiongli/VERSION", names)
-                self.assertIn("qiongli/SUBJECT", names)
-                self.assertIn("qiongli/skills-core.md", names)
-                self.assertIn("qiongli/skills-summary.md", names)
-                self.assertIn("qiongli/skills/registry.yaml", names)
-                self.assertIn("qiongli/workflows/paper.md", names)
-                self.assertNotIn("qiongli/.claude-plugin/plugin.json", names)
-                self.assertFalse(any(name.startswith("qiongli/commands/") for name in names))
+                self.assertIn("qiongli-next/SKILL.md", names)
+                self.assertIn("qiongli-next/VERSION", names)
+                self.assertIn("qiongli-next/SUBJECT", names)
+                self.assertIn("qiongli-next/skills-core.md", names)
+                self.assertIn("qiongli-next/skills-summary.md", names)
+                self.assertIn("qiongli-next/skills/registry.yaml", names)
+                self.assertIn("qiongli-next/workflows/paper.md", names)
+                self.assertNotIn("qiongli-next/.claude-plugin/plugin.json", names)
+                self.assertFalse(any(name.startswith("qiongli-next/commands/") for name in names))
                 self.assertLessEqual(len(file_names), self.DESKTOP_FILE_BUDGET)
 
                 detailed_skill_specs = [
                     name
                     for name in file_names
-                    if name.startswith("qiongli/skills/")
-                    and name != "qiongli/skills/registry.yaml"
+                    if name.startswith("qiongli-next/skills/")
+                    and name != "qiongli-next/skills/registry.yaml"
                     and name.endswith(".md")
                 ]
                 self.assertEqual([], detailed_skill_specs)
 
-                skill_text = archive.read("qiongli/SKILL.md").decode("utf-8")
-                subject_text = archive.read("qiongli/SUBJECT").decode("utf-8").strip()
-                version_text = archive.read("qiongli/VERSION").decode("utf-8").strip()
+                skill_text = archive.read("qiongli-next/SKILL.md").decode("utf-8")
+                subject_text = archive.read("qiongli-next/SUBJECT").decode("utf-8").strip()
+                version_text = archive.read("qiongli-next/VERSION").decode("utf-8").strip()
 
-        self.assertIn("name: qiongli", skill_text)
+        self.assertIn("name: qiongli-next", skill_text)
+        self.assertIn("$qiongli-next", skill_text)
         self.assertIn("Core Workflow Map", skill_text)
         self.assertIn("provider_connected", skill_text)
         self.assertIn("strategy_only", skill_text)
@@ -95,9 +95,9 @@ class ClaudeDesktopSkillArtifactTests(unittest.TestCase):
         tag = (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(encoding="utf-8").strip()
 
         with tempfile.TemporaryDirectory() as tmp:
-            artifacts = self.build_module.build_artifacts(REPO_ROOT, tag, Path(tmp))
-            economics_artifact = next(
-                artifact for artifact in artifacts if artifact.name == f"qiongli-claude-desktop-skill-economics-{tag}.zip"
+            tmp_path = Path(tmp)
+            economics_artifact = self.build_module._build_claude_desktop_skill(
+                REPO_ROOT, tag, tmp_path, tmp_path / "work", "economics"
             )
 
             with zipfile.ZipFile(economics_artifact) as archive:
@@ -125,10 +125,15 @@ class ClaudeDesktopSkillArtifactTests(unittest.TestCase):
         tag = (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(encoding="utf-8").strip()
 
         with tempfile.TemporaryDirectory() as tmp:
-            artifacts = self.build_module.build_artifacts(REPO_ROOT, tag, Path(tmp))
-            desktop_artifacts = {artifact.name: artifact for artifact in artifacts if artifact.suffix == ".zip"}
+            tmp_path = Path(tmp)
+            business_artifact = self.build_module._build_claude_desktop_skill(
+                REPO_ROOT, tag, tmp_path, tmp_path / "business-work", "business"
+            )
+            finance_artifact = self.build_module._build_claude_desktop_skill(
+                REPO_ROOT, tag, tmp_path, tmp_path / "finance-work", "finance"
+            )
 
-            with zipfile.ZipFile(desktop_artifacts[f"qiongli-claude-desktop-skill-business-{tag}.zip"]) as archive:
+            with zipfile.ZipFile(business_artifact) as archive:
                 business_names = set(archive.namelist())
                 business_file_names = [name for name in business_names if not name.endswith("/")]
                 business_subject = archive.read("qiongli/SUBJECT").decode("utf-8").strip()
@@ -136,7 +141,7 @@ class ClaudeDesktopSkillArtifactTests(unittest.TestCase):
                     "qiongli/skills/C_design/business-journal-positioning-auditor.md"
                 ).decode("utf-8")
 
-            with zipfile.ZipFile(desktop_artifacts[f"qiongli-claude-desktop-skill-finance-{tag}.zip"]) as archive:
+            with zipfile.ZipFile(finance_artifact) as archive:
                 finance_names = set(archive.namelist())
                 finance_file_names = [name for name in finance_names if not name.endswith("/")]
                 finance_subject = archive.read("qiongli/SUBJECT").decode("utf-8").strip()

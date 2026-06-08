@@ -1,0 +1,40 @@
+name: Auto Rerun Failed Actions
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+      - Checkout Install Check
+    types:
+      - completed
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.id }}
+  cancel-in-progress: false
+
+jobs:
+  rerun-failed-jobs:
+    name: Rerun failed jobs once
+    if: >-
+      ${{
+        github.event.workflow_run.conclusion == 'failure' &&
+        github.event.workflow_run.run_attempt < 2
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Rerun failed jobs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          set -euo pipefail
+          echo "Rerunning failed jobs for ${WORKFLOW_NAME} run ${RUN_ID} attempt ${RUN_ATTEMPT}."
+          gh run rerun "$RUN_ID" --repo "$REPO" --failed
