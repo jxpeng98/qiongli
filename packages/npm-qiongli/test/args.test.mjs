@@ -26,6 +26,18 @@ test('parseArgv treats upgrade as install with overwrite', () => {
   assert.equal(parsed.options.overwrite, true);
 });
 
+test('parseArgv treats uninstall and delete as remove aliases', () => {
+  const uninstall = parseArgv(['uninstall', '--target', 'codex', '--parts', 'globals,project', '--dry-run']);
+  const del = parseArgv(['delete', '--target', 'claude']);
+
+  assert.equal(uninstall.command, 'remove');
+  assert.equal(uninstall.options.target, 'codex');
+  assert.equal(uninstall.options.parts, 'globals,project');
+  assert.equal(uninstall.options.dryRun, true);
+  assert.equal(del.command, 'remove');
+  assert.equal(del.options.target, 'claude');
+});
+
 test('parseArgv delegates bridge commands without consuming bridge flags', () => {
   const parsed = parseArgv(['task-run', '--task-id', 'B1', '--cwd', '/tmp/project']);
 

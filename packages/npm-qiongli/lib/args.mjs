@@ -9,7 +9,12 @@ export function parseArgv(argv) {
     return { command: rawCommand, options: {}, rest: restArgs };
   }
 
-  const command = rawCommand === 'upgrade' ? 'install' : rawCommand;
+  let command = rawCommand;
+  if (rawCommand === 'upgrade') {
+    command = 'install';
+  } else if (rawCommand === 'uninstall' || rawCommand === 'delete') {
+    command = 'remove';
+  }
   const options = {
     target: 'all',
     mode: 'copy',
@@ -20,6 +25,7 @@ export function parseArgv(argv) {
     globals: false,
     subject: 'core',
     coverage: 'complete',
+    parts: '',
   };
   const rest = [];
 
@@ -42,6 +48,9 @@ export function parseArgv(argv) {
       i += 1;
     } else if (arg === '--cwd') {
       options.cwd = requireValue(restArgs, i, arg);
+      i += 1;
+    } else if (arg === '--parts') {
+      options.parts = requireValue(restArgs, i, arg);
       i += 1;
     } else if (arg === '--overwrite') {
       options.overwrite = true;

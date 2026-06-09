@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 const TARGETS = ['codex', 'claude', 'gemini', 'antigravity'];
+const PARTS = ['globals', 'project', 'cli'];
 const LEGACY_SKILL_NAME = 'research-paper-workflow';
 
 export function resolveTargetPaths({ env = process.env } = {}) {
@@ -148,6 +149,54 @@ export function cleanAssets({ projectDir = '.', globals = false, dryRun = false,
   }
 
   return { removed };
+}
+
+export function removeAssets({
+  target = 'all',
+  projectDir = '.',
+  parts = '',
+  dryRun = false,
+  env = process.env,
+} = {}) {
+  validateTarget(target);
+  const selectedParts = normalizeParts(parts) || ['globals'];
+  const actions = [];
+
+  if (selectedParts.includes('globals')) {
+    const targetPaths = resolveTargetPaths({ env });
+    const selectedTargets = target === 'all' ? TARGETS : [target];
+    for (const item of selectedTargets) {
+      const skillDest = targetPaths[item];
+      actions.push(...removeWorkflowDiscovery({ target: item, skillDest, dryRun }));
+      const legacyPath = path.join(path.dirname(skillDest), LEGACY_SKILL_NAME);
+      if (fs.existsSync(legacyPath) && removeLegacySkillPath(legacyPath, LEGACY_SKILL_NAME, dryRun) !== 'kept') {
+        actions.push({ label: 'Legacy Skill', status: dryRun ? 'dry-run' : 'removed', path: legacyPath, detail: item });
+      }
+      if (!fs.existsSync(skillDest)) {
+        actions.push({ label: 'Skill', status: 'skip', path: skillDest, detail: 'not installed' });
+        continue;
+      }
+      if (!isQiongliSkillDir(skillDest)) {
+        actions.push({ label: 'Skill', status: 'skip', path: skillDest, detail: 'unmanaged qiongli-workflow directory' });
+        continue;
+      }
+      removePath(skillDest, dryRun);
+      actions.push({ label: 'Skill', status: dryRun ? 'dry-run' : 'removed', path: skillDest, detail: item });
+    }
+  }
+
+  if (selectedParts.includes('project')) {
+    const result = cleanAssets({ projectDir, globals: false, dryRun, env });
+    for (const item of result.removed) {
+      actions.push({ label: 'Project', status: dryRun ? 'dry-run' : 'removed', path: item, detail: 'stale asset' });
+    }
+  }
+
+  if (selectedParts.includes('cli')) {
+    actions.push({ label: 'CLI', status: 'skip', path: '<npm package>', detail: 'remove with npm uninstall -g qiongli' });
+  }
+
+  return { actions };
 }
 
 export function buildCheck({ packageRoot, subject = 'core', coverage = 'complete', env = process.env } = {}) {
@@ -329,6 +378,44 @@ function installWorkflowDiscovery({ target, skillDest, dryRun, platform }) {
   return actions;
 }
 
+function removeWorkflowDiscovery({ target, skillDest, dryRun }) {
+  if (target !== 'claude' && target !== 'gemini') {
+    return [];
+  }
+  const workflowsDir = path.join(skillDest, 'workflows');
+  const discoveryDir = discoveryDirectory(target, skillDest);
+  if (!fs.existsSync(discoveryDir)) {
+    return [];
+  }
+  const actions = [];
+  const handled = new Set();
+  const workflowNames = fs.existsSync(workflowsDir)
+    ? fs.readdirSync(workflowsDir).filter((item) => item.endsWith('.md'))
+    : [];
+  for (const name of workflowNames) {
+    const candidate = path.join(discoveryDir, name);
+    handled.add(candidate);
+    if (!pathExistsOrSymlink(candidate)) {
+      continue;
+    }
+    if (!isManagedDiscoveryFileForSource(candidate, path.join(workflowsDir, name))) {
+      actions.push({ label: 'Workflow', status: 'skip', path: candidate, detail: 'user-customized' });
+      continue;
+    }
+    removePath(candidate, dryRun);
+    actions.push({ label: 'Workflow', status: dryRun ? 'dry-run' : 'removed', path: candidate, detail: target });
+  }
+  for (const name of fs.readdirSync(discoveryDir).filter((item) => item.endsWith('.md'))) {
+    const candidate = path.join(discoveryDir, name);
+    if (handled.has(candidate) || !isManagedDiscoverySymlink(candidate)) {
+      continue;
+    }
+    removePath(candidate, dryRun);
+    actions.push({ label: 'Workflow', status: dryRun ? 'dry-run' : 'removed', path: candidate, detail: target });
+  }
+  return actions;
+}
+
 function discoveryDirectory(target, skillDest) {
   const clientHome = path.dirname(path.dirname(skillDest));
   return path.join(clientHome, target === 'claude' ? 'commands' : 'workflows');
@@ -366,7 +453,7 @@ function removeLegacySkillPath(legacyPath, legacyName, dryRun) {
 function isManagedDiscoveryFile(item) {
   try {
     if (fs.lstatSync(item).isSymbolicLink()) {
-      const target = fs.realpathSync(item);
+      const target = symlinkTarget(item);
       return target.includes('qiongli-workflow') || target.includes(LEGACY_SKILL_NAME);
     }
     const content = fs.readFileSync(item, 'utf-8');
@@ -374,6 +461,78 @@ function isManagedDiscoveryFile(item) {
   } catch {
     return false;
   }
+}
+
+function isManagedDiscoveryFileForSource(item, source) {
+  try {
+    if (fs.lstatSync(item).isSymbolicLink()) {
+      const target = symlinkTarget(item);
+      return target.includes('qiongli-workflow') || target.includes(LEGACY_SKILL_NAME);
+    }
+    if (fs.existsSync(source) && fs.readFileSync(item).equals(fs.readFileSync(source))) {
+      return true;
+    }
+    const content = fs.readFileSync(item, 'utf-8');
+    return content.includes('qiongli-workflow') || content.includes('Qiongli');
+  } catch {
+    return false;
+  }
+}
+
+function isManagedDiscoverySymlink(item) {
+  try {
+    if (!fs.lstatSync(item).isSymbolicLink()) {
+      return false;
+    }
+    const target = symlinkTarget(item);
+    return target.includes('qiongli-workflow') || target.includes(LEGACY_SKILL_NAME);
+  } catch {
+    return false;
+  }
+}
+
+function pathExistsOrSymlink(item) {
+  try {
+    fs.lstatSync(item);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function symlinkTarget(item) {
+  try {
+    return fs.realpathSync(item);
+  } catch {
+    return fs.readlinkSync(item);
+  }
+}
+
+function validateTarget(target) {
+  if (target === 'all' || TARGETS.includes(target)) {
+    return;
+  }
+  throw new Error(`Unsupported target: ${target}`);
+}
+
+function normalizeParts(parts) {
+  if (!parts) {
+    return null;
+  }
+  const parsed = String(parts)
+    .split(',')
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean)
+    .map((item) => (item === 'global' ? 'globals' : item));
+  if (parsed.includes('all') || parsed.includes('*')) {
+    return PARTS;
+  }
+  for (const item of parsed) {
+    if (!PARTS.includes(item)) {
+      throw new Error(`Unsupported install part: ${item}`);
+    }
+  }
+  return [...new Set(parsed)];
 }
 
 function removePath(target, dryRun) {

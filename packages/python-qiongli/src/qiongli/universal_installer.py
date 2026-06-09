@@ -45,6 +45,15 @@ class InstallOptions:
     parts: tuple[str, ...] | None = None
 
 
+@dataclass
+class RemoveOptions:
+    project_dir: Path
+    target: str = "all"
+    dry_run: bool = False
+    parts: tuple[str, ...] | None = None
+    cli_dir: Path | None = None
+
+
 def profile_defaults(profile: str) -> dict[str, bool]:
     if profile == "partial":
         return {"install_cli": False, "doctor": False}
@@ -580,6 +589,113 @@ def _install_shell_cli(options: InstallOptions) -> None:
         print(f"  [warn] CLI installed to {cli_dir} but this directory is not on PATH")
 
 
+def _is_managed_workflow_discovery_file(candidate: Path, source_workflow: Path) -> bool:
+    if candidate.is_symlink():
+        try:
+            target_path = str(candidate.resolve())
+        except OSError:
+            try:
+                target_path = os.readlink(candidate)
+            except OSError:
+                target_path = str(candidate)
+        return any(marker in target_path for marker in _WORKFLOW_LINK_PACKAGE_MARKERS)
+    if not candidate.is_file():
+        return False
+    if source_workflow.is_file() and _read_bytes(candidate) == _read_bytes(source_workflow):
+        return True
+    text = _read_text(candidate)
+    return "qiongli-workflow" in text or "Qiongli" in text
+
+
+def _is_managed_workflow_discovery_symlink(candidate: Path) -> bool:
+    if not candidate.is_symlink():
+        return False
+    try:
+        target_path = str(candidate.resolve())
+    except OSError:
+        try:
+            target_path = os.readlink(candidate)
+        except OSError:
+            target_path = str(candidate)
+    return any(marker in target_path for marker in _WORKFLOW_LINK_PACKAGE_MARKERS)
+
+
+def _remove_workflow_discovery_for_skill(target: str, skill_dest: Path, *, dry_run: bool) -> int:
+    if target not in _SYMLINK_TARGETS:
+        return 0
+    workflows_src = skill_dest / "workflows"
+
+    dir_name, _env_key = _SYMLINK_TARGETS[target]
+    discovery_dir = skill_dest.parent.parent / dir_name
+    if not discovery_dir.is_dir():
+        return 0
+
+    removed = 0
+    handled: set[Path] = set()
+    if workflows_src.is_dir():
+        for workflow in sorted(workflows_src.glob("*.md")):
+            candidate = discovery_dir / workflow.name
+            handled.add(candidate)
+            if not (candidate.exists() or candidate.is_symlink()):
+                continue
+            if not _is_managed_workflow_discovery_file(candidate, workflow):
+                _print_result("Workflow", f"{candidate} (user-customized)", "skip")
+                continue
+            _remove_path(candidate, dry_run)
+            suffix = "dry-run" if dry_run else "removed"
+            _print_result("Workflow", f"{target}: {candidate} ({suffix})", "ok")
+            removed += 1
+
+    for candidate in sorted(discovery_dir.glob("*.md")):
+        if candidate in handled:
+            continue
+        if _is_managed_workflow_discovery_symlink(candidate):
+            _remove_path(candidate, dry_run)
+            suffix = "dry-run" if dry_run else "removed"
+            _print_result("Workflow", f"{target}: {candidate} ({suffix})", "ok")
+            removed += 1
+    return removed
+
+
+def _remove_shell_cli(options: RemoveOptions) -> int:
+    cli_dir = _resolve(options.cli_dir or Path.home() / ".local" / "bin")
+    cli_dest = cli_dir / "qiongli"
+    bootstrap_dest = cli_dir / "qiongli-bootstrap"
+    cli_src = Path("qiongli_cli.sh")
+    bootstrap_src = Path("bootstrap_qiongli.sh")
+    removed = 0
+
+    _print_section("Shell CLI")
+    for alias in ("ql", "research-skills", "rsk", "rsw"):
+        alias_dest = cli_dir / alias
+        if not (alias_dest.exists() or alias_dest.is_symlink()):
+            continue
+        managed_alias = (
+            alias_dest.is_symlink()
+            and (_same_path(cli_dest, alias_dest) or str(alias_dest.resolve()).endswith("/qiongli"))
+        ) or _is_managed_copy(cli_src, alias_dest)
+        if not managed_alias:
+            _print_result("Alias", f"{alias_dest} (user-customized)", "skip")
+            continue
+        _remove_path(alias_dest, options.dry_run)
+        _print_result("Alias", f"{alias_dest} ({'dry-run' if options.dry_run else 'removed'})", "ok")
+        removed += 1
+
+    for label, src, dest in (("CLI", cli_src, cli_dest), ("Bootstrap", bootstrap_src, bootstrap_dest)):
+        if not (dest.exists() or dest.is_symlink()):
+            continue
+        if not (dest.is_symlink() or _is_managed_copy(src, dest)):
+            _print_result(label, f"{dest} (user-customized)", "skip")
+            continue
+        _remove_path(dest, options.dry_run)
+        _print_result(label, f"{dest} ({'dry-run' if options.dry_run else 'removed'})", "ok")
+        removed += 1
+
+    if not removed:
+        print(f"  [skip] Shell CLI    -> no managed qiongli CLI wrappers found in {cli_dir}")
+    return removed
+
+
 # Legacy project-local copy helpers removed — workflows are now bundled
 # inside the skill directory and installed globally with each dir-copy.
 
@@ -998,6 +1114,69 @@ def clean(project_dir: Path, *, dry_run: bool = False, repo_root: Path | None = 
         print(f"\n[done] Cleaned {removed} stale asset(s) from {project_dir}")
     else:
         print(f"\n[done] No stale assets found in {project_dir}")
+    return 0
+
+
+def remove(options: RemoveOptions) -> int:
+    options = RemoveOptions(
+        project_dir=_resolve(options.project_dir),
+        target=options.target,
+        dry_run=options.dry_run,
+        parts=options.parts,
+        cli_dir=_resolve(options.cli_dir or Path.home() / ".local" / "bin"),
+    )
+    if options.target not in TARGET_CHOICES:
+        raise ValueError(f"Unsupported target: {options.target}")
+    selected_parts = normalize_parts(options.parts) or ("globals",)
+    remove_globals = "globals" in selected_parts
+    remove_project = "project" in selected_parts
+    remove_cli = "cli" in selected_parts
+
+    print("\nQiongli Universal Remover")
+    print(f"  project: {options.project_dir}")
+    print(f"  target:  {options.target}")
+    print(f"  parts:   {', '.join(selected_parts)}")
+    if options.dry_run:
+        print("  mode:    dry-run")
+
+    removed = 0
+    if remove_globals:
+        target_paths = _global_skill_target_paths()
+        _print_section("Global Skills")
+        for target_name in _selected_target_names(options.target):
+            dest = target_paths[target_name]
+            removed += _remove_workflow_discovery_for_skill(target_name, dest, dry_run=options.dry_run)
+            if not (dest.exists() or dest.is_symlink()):
+                _print_result("Skill", f"{target_name}: {dest} (not installed)", "skip")
+                continue
+            if not (_is_qiongli_package_dir(dest) or dest.is_symlink()):
+                _print_result("Skill", f"{target_name}: {dest} (unmanaged qiongli-workflow path)", "skip")
+                continue
+            _remove_path(dest, options.dry_run)
+            _print_result("Skill", f"{target_name}: {dest} ({'dry-run' if options.dry_run else 'removed'})", "ok")
+            removed += 1
+        removed += _cleanup_legacy_global_skill_residues(
+            options.target,
+            target_paths,
+            dry_run=options.dry_run,
+        )
+
+    if remove_project:
+        removed_before = removed
+        clean(options.project_dir, dry_run=options.dry_run)
+        if removed == removed_before:
+            # `clean` prints its own summary; keep `removed` best-effort for final messaging.
+            removed = removed_before
+
+    if remove_cli:
+        removed += _remove_shell_cli(options)
+
+    if "doctor" in selected_parts:
+        _print_section("Doctor")
+        _print_result("Doctor", "no removable assets", "skip")
+
+    print("\n[done] Removal complete")
+    print("       Restart Codex / Claude Code / Gemini CLI to refresh discovery state")
     return 0
 
 

@@ -149,6 +149,15 @@ npx qiongli@latest check --json
 npx qiongli@next install --subject economics --target all --project-dir "$PWD"
 ```
 
+如果要完全切换到 marketplace plugin，先移除 CLI 安装产生的资产：
+
+```bash
+qiongli remove --target all --dry-run
+qiongli remove --target all
+```
+
+`qiongli remove` 只移除 CLI 安装的全局 workflow assets 和 discovery links。原生 marketplace plugin 仍由安装它的客户端/plugin manager 管理。
+
 ## 推荐的 CLI Setup Wizard
 
 通过 npm、pipx、pip 或 bootstrap script 安装 CLI 后，先运行交互式 setup wizard，再手写安装参数：
@@ -248,5 +257,5 @@ qiongli upgrade --subject core --target all
 如果你已经完全转向原生 plugin，不再需要旧的全局 skill 目录或 slash discovery，先 dry-run 清理：
 
 ```bash
-qiongli clean --globals --dry-run
+qiongli remove --target all --dry-run
 ```

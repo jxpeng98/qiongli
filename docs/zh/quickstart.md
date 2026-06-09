@@ -66,11 +66,14 @@ qiongli install --subject geoeconomics --target all
 qiongli install --subject economics-accounting --target all
 qiongli install --subject economics --coverage focused --target all
 qiongli upgrade --subject accounting --target all
+qiongli remove --target all --dry-run
 qiongli customize --subject economics --name my-econ-lab --out ./qiongli-custom/econ-lab
 qiongli check --json
 ```
 
 不确定怎么选时使用默认 complete：`qiongli install --target all` 表示 `core/complete`，`--subject economics`、`--subject business`、`--subject finance`、`--subject political-economy` 和 `--subject geoeconomics` 表示 complete 专精安装，`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。只有明确想要精简包或 Desktop/Web ZIP 形态时才使用 `--coverage focused`。`political-economy` 和 `geoeconomics` 是两个独立 subject，不是一个 composite。官方 composite subjects（例如 `economics-accounting`）是命名 subject，不是任意逗号分隔叠加。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新的参数。Custom overlays 只影响 generated output，不会改写 canonical source files；`qiongli customize` 加 `--custom-dir` materialization 面向 Python/source checkout 工作流，npm runtime installs 在这个阶段使用预生成 payloads。
+
+需要只保留 marketplace plugin 时，用 `qiongli remove` 移除 CLI 安装产生的全局资产。
 
 ## 3. 创建研究工作区
 

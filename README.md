@@ -90,6 +90,10 @@ qiongli install --subject economics --coverage focused --target all --project-di
 # Prerelease testing
 npx qiongli@next install --target all --project-dir "$PWD"
 npx qiongli@next check --json
+
+# Remove CLI-installed global assets before switching install channels
+qiongli remove --target all --dry-run
+qiongli remove --target all
 ```
 
 Bootstrap installs:
@@ -124,6 +128,10 @@ The wizard covers `install` and `upgrade`, runtime surface (`cli`, `codex`, `cla
 On npm installs, `qiongli setup` delegates to the bundled Python bridge and therefore requires Python 3.12+ plus `PyYAML`. If you only need Node-based asset installation, use explicit `qiongli install ...` commands.
 
 Provider keys entered through `qiongli setup` use the same provider config as `qiongli provider setup` and `qiongli provider doctor`. Secrets are stored in provider configuration outside generated research artifacts. Setup configures credentials and runs doctor/capability checks; it does not by itself guarantee external search results.
+
+## Remove CLI-installed Assets
+
+Use `qiongli remove` (aliases: `qiongli uninstall`, `qiongli delete`) to remove CLI-installed global workflow assets and discovery links. It does not uninstall marketplace plugins such as `qiongli` or `qiongli-next`; remove those through the Codex, Claude Code, or Claude Desktop plugin manager that installed them.
 
 ## Manual Desktop And MCP Boundaries
 

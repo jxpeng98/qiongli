@@ -91,6 +91,21 @@ class InstallerCliTests(unittest.TestCase):
         self.assertEqual(options.coverage, "focused")
         self.assertEqual(options.target, "codex")
 
+    def test_remove_command_passes_target_and_parts_to_remover(self) -> None:
+        with mock.patch.object(cli_module, "remove", return_value=0) as remove_mock:
+            with mock.patch.object(
+                cli_module.sys,
+                "argv",
+                ["qiongli", "remove", "--target", "codex", "--parts", "globals,cli", "--dry-run"],
+            ):
+                exit_code = cli_module.main()
+
+        self.assertEqual(exit_code, 0)
+        options = remove_mock.call_args.args[0]
+        self.assertEqual(options.target, "codex")
+        self.assertEqual(options.parts, ("globals", "cli"))
+        self.assertTrue(options.dry_run)
+
     def test_setup_command_dispatches_to_setup_wizard(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             with mock.patch("qiongli.setup_wizard.run_setup_wizard", return_value=object()) as setup_mock:

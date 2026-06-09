@@ -183,7 +183,38 @@ qiongli align [--repo <owner/repo|url>]
 qiongli init [--project-dir <path>] [--target all|codex|claude|gemini] [--dry-run]
 ```
 
-### 2.7 `qiongli clean`（清理过期资产）
+### 2.7 `qiongli remove`（移除 CLI 安装的资产）
+
+用途：移除 CLI 安装产生的资产，方便在 npm/PyPI/bootstrap 安装和原生 marketplace plugin 之间切换。
+
+```bash
+qiongli remove \
+  [--target codex|claude|gemini|antigravity|all] \
+  [--parts globals|project|cli] \
+  [--project-dir <path>] \
+  [--cli-dir <path>] \
+  [--dry-run]
+```
+
+示例：
+
+```bash
+qiongli remove --target all --dry-run
+qiongli remove --target codex
+qiongli remove --parts globals,project --project-dir "$PWD"
+qiongli remove --parts cli --cli-dir ~/.local/bin
+qiongli uninstall --target all
+qiongli delete --target claude
+```
+
+说明：
+- `remove` 默认等价于 `--parts globals`，会移除 CLI 安装的 `qiongli-workflow` skill 目录和生成的 workflow discovery links。
+- 如果某个 `qiongli-workflow` 目录不像 Qiongli package payload，会跳过，避免删除用户自建内容。
+- 它不会卸载 `qiongli` 或 `qiongli-next` 这类 marketplace plugin；这些需要在 Codex、Claude Code 或 Claude Desktop 的 plugin manager 中移除。
+- 需要同时清理旧项目本地文件时，使用 `--parts project`。
+- 只有通过 full CLI/bootstrap 安装过 shell wrapper 时，才需要使用 `--parts cli`。
+
+### 2.8 `qiongli clean`（清理过期资产）
 
 用途：移除旧版本安装留下的项目本地资产。
 
@@ -196,13 +227,13 @@ qiongli clean [--project-dir <path>] [--dry-run] [--globals]
 - `--globals`：同时移除全局工作流发现 symlink（`~/.claude/commands/` 和 `~/.gemini/workflows/`）。只移除指向 `qiongli-workflow` 的 symlink，用户自建的命令不受影响。
 - `--dry-run`：只显示将要移除的内容，不实际删除。
 
-### 2.8 `qiongli doctor`（环境预检）
+### 2.9 `qiongli doctor`（环境预检）
 
 ```bash
 qiongli doctor [--cwd <path>]
 ```
 
-### 2.9 `qiongli customize`（创建 custom subject overlay）
+### 2.10 `qiongli customize`（创建 custom subject overlay）
 
 用途：
 - 为 Python/source checkout materialization 工作流创建本地 custom overlay scaffold。

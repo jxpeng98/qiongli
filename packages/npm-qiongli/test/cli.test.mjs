@@ -27,6 +27,18 @@ test('help documents setup command and options', async () => {
   assert.match(output, /--no-doctor/);
 });
 
+test('help documents remove command', async () => {
+  let output = '';
+  const exitCode = await main(['help'], {
+    stdout: { write: (chunk) => { output += chunk; } },
+    stderr: { write: () => {} },
+  });
+
+  assert.equal(exitCode, 0);
+  assert.match(output, /qiongli remove \[--target all\]/);
+  assert.match(output, /qiongli uninstall/);
+});
+
 test('main dispatches setup to Python CLI runner and returns its code', async () => {
   const calls = [];
   const exitCode = await main(['setup', '--dry-run', '--project-dir', '/tmp/project', '--no-doctor'], {

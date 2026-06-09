@@ -21,10 +21,12 @@ from .subject_materializer import SubjectCatalogError, SubjectMaterializationErr
 from .universal_installer import (
     PART_CHOICES,
     InstallOptions,
+    RemoveOptions,
     clean,
     clean_global_legacy_skills,
     clean_workflow_symlinks,
     install,
+    remove,
 )
 from bridges.provider_config import (
     global_provider_config_path,
@@ -886,6 +888,22 @@ def cmd_clean(args: argparse.Namespace) -> int:
     return rc
 
 
+def cmd_remove(args: argparse.Namespace) -> int:
+    try:
+        return remove(
+            RemoveOptions(
+                project_dir=Path(args.project_dir).expanduser().resolve(),
+                target=args.target,
+                dry_run=args.dry_run,
+                parts=_parse_parts_arg(getattr(args, "parts", None)),
+                cli_dir=Path(args.cli_dir).expanduser().resolve() if getattr(args, "cli_dir", None) else None,
+            )
+        )
+    except ValueError as exc:
+        print(f"[error] {exc}", file=sys.stderr)
+        return 2
+
+
 def cmd_customize(args: argparse.Namespace) -> int:
     try:
         scaffold_custom_subject(Path(args.out), base_subject=args.subject, name=args.name, force=args.force)
@@ -1212,6 +1230,29 @@ def build_parser() -> argparse.ArgumentParser:
     clean_parser.add_argument("--dry-run", action="store_true", help="Show what would be removed without deleting")
     clean_parser.add_argument("--globals", action="store_true", help="Also remove workflow discovery symlinks from global dirs")
 
+    remove_parser = subparsers.add_parser(
+        "remove",
+        aliases=["uninstall", "delete"],
+        help="Remove qiongli assets installed by the CLI",
+    )
+    remove_parser.add_argument(
+        "--target",
+        default="all",
+        choices=["codex", "claude", "gemini", "antigravity", "all"],
+        help="Install target to remove from (default: all)",
+    )
+    remove_parser.add_argument(
+        "--project-dir",
+        default=str(Path.cwd()),
+        help="Project directory used when --parts includes project (default: current dir)",
+    )
+    remove_parser.add_argument(
+        "--parts",
+        help="Comma-separated install surfaces to remove (default: globals): globals, project, cli.",
+    )
+    remove_parser.add_argument("--cli-dir", help="Directory containing shell CLI wrappers")
+    remove_parser.add_argument("--dry-run", action="store_true", help="Show what would be removed without deleting")
+
     customize = subparsers.add_parser("customize", help="Create a local custom subject overlay directory")
     customize.add_argument("--subject", default="core", help="Base subject package to customize (default: core)")
     customize.add_argument("--name", required=True, help="Name for the local custom subject layer")
@@ -1249,6 +1290,8 @@ def main() -> int:
         return cmd_init(args)
     if args.cmd == "clean":
         return cmd_clean(args)
+    if args.cmd in {"remove", "uninstall", "delete"}:
+        return cmd_remove(args)
     if args.cmd == "customize":
         return cmd_customize(args)
     raise RuntimeError(f"Unhandled command: {args.cmd}")

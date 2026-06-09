@@ -11,6 +11,7 @@ import {
   readSkillCoverage,
   readSkillSubject,
   readSkillVersion,
+  removeAssets,
   resolveTargetPaths,
 } from '../lib/installer.mjs';
 
@@ -397,4 +398,52 @@ test('cleanAssets globals removes legacy skill directories', () => {
 
   assert.equal(fs.existsSync(legacyDir), false);
   assert.equal(result.removed.includes(legacyDir), true);
+});
+
+test('removeAssets removes managed skills and discovery while preserving user files', () => {
+  const { root } = makeTempPackage();
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-remove-home-'));
+  installSkills({ packageRoot: root, target: 'claude', env: { HOME: home }, platform: 'linux' });
+  const skillDir = path.join(home, '.claude', 'skills', 'qiongli-workflow');
+  const commandLink = path.join(home, '.claude', 'commands', 'paper.md');
+  const customCommand = path.join(home, '.claude', 'commands', 'custom.md');
+  fs.writeFileSync(customCommand, 'user command\n');
+
+  const result = removeAssets({ target: 'claude', env: { HOME: home }, platform: 'linux' });
+
+  assert.equal(fs.existsSync(skillDir), false);
+  assert.equal(fs.existsSync(commandLink), false);
+  assert.equal(fs.existsSync(customCommand), true);
+  assert.equal(result.actions.some((action) => action.label === 'Skill' && action.status === 'removed'), true);
+  assert.equal(result.actions.some((action) => action.label === 'Workflow' && action.status === 'removed'), true);
+});
+
+test('removeAssets skips unmanaged qiongli-workflow directories', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-remove-home-'));
+  const unmanaged = path.join(home, '.codex', 'skills', 'qiongli-workflow');
+  fs.mkdirSync(unmanaged, { recursive: true });
+  fs.writeFileSync(path.join(unmanaged, 'README.md'), 'user content\n');
+
+  const result = removeAssets({ target: 'codex', env: { HOME: home } });
+
+  assert.equal(fs.existsSync(unmanaged), true);
+  assert.equal(result.actions[0].status, 'skip');
+});
+
+test('removeAssets removes stale discovery symlinks without skill directory', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-remove-home-'));
+  const commandDir = path.join(home, '.claude', 'commands');
+  fs.mkdirSync(commandDir, { recursive: true });
+  const stale = path.join(commandDir, 'paper.md');
+  fs.symlinkSync(path.join(home, '.claude', 'skills', 'qiongli-workflow', 'workflows', 'paper.md'), stale);
+
+  const result = removeAssets({ target: 'claude', env: { HOME: home } });
+
+  assert.equal(fs.existsSync(stale), false);
+  assert.equal(result.actions.some((action) => action.label === 'Workflow' && action.status === 'removed'), true);
+});
+
+test('removeAssets rejects unsupported targets and parts', () => {
+  assert.throws(() => removeAssets({ target: 'unknown' }), /Unsupported target/);
+  assert.throws(() => removeAssets({ parts: 'globals,unknown' }), /Unsupported install part/);
 });

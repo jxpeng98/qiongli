@@ -217,7 +217,38 @@ Notes:
 - Only creates project-facing assets (`.env`). Does not touch global skill directories.
 - Safe to run multiple times; will not overwrite existing files unless `--overwrite` is passed.
 
-### 2.7 `qiongli clean` (Remove Stale Assets)
+### 2.7 `qiongli remove` (Remove CLI-installed assets)
+
+Use Case: Removes assets installed by the CLI so you can switch cleanly between npm/PyPI/bootstrap installs and native marketplace plugins.
+
+```bash
+qiongli remove \
+  [--target codex|claude|gemini|antigravity|all] \
+  [--parts globals|project|cli] \
+  [--project-dir <path>] \
+  [--cli-dir <path>] \
+  [--dry-run]
+```
+
+Examples:
+
+```bash
+qiongli remove --target all --dry-run
+qiongli remove --target codex
+qiongli remove --parts globals,project --project-dir "$PWD"
+qiongli remove --parts cli --cli-dir ~/.local/bin
+qiongli uninstall --target all
+qiongli delete --target claude
+```
+
+Notes:
+- `remove` defaults to `--parts globals` and deletes CLI-installed `qiongli-workflow` skill directories plus generated workflow discovery links.
+- It skips unmanaged `qiongli-workflow` directories that do not look like Qiongli package payloads.
+- It does not uninstall marketplace plugins such as `qiongli` or `qiongli-next`; remove those through the Codex, Claude Code, or Claude Desktop plugin manager.
+- Use `--parts project` when you also want the old project-local cleanup performed by `qiongli clean`.
+- Use `--parts cli` only when you installed shell wrappers through the full CLI/bootstrap path.
+
+### 2.8 `qiongli clean` (Remove Stale Assets)
 
 Use Case: Removes stale project-local assets left from older installations.
 
@@ -230,7 +261,7 @@ Flags:
 - `--globals`: Also remove workflow discovery symlinks from `~/.claude/commands/` and `~/.gemini/workflows/`. Only removes symlinks that point to `qiongli-workflow` — user-created commands are preserved.
 - `--dry-run`: Show what would be removed without deleting.
 
-### 2.8 `qiongli doctor` (Environment Preflight)
+### 2.9 `qiongli doctor` (Environment Preflight)
 
 Use Case: Runs orchestrator preflight checks (CLIs, API keys, MCP wiring).
 
@@ -238,7 +269,7 @@ Use Case: Runs orchestrator preflight checks (CLIs, API keys, MCP wiring).
 qiongli doctor [--cwd <path>]
 ```
 
-### 2.9 `qiongli customize` (Create a custom subject overlay)
+### 2.10 `qiongli customize` (Create a custom subject overlay)
 
 Use Case:
 - Creates a local custom overlay scaffold for the Python/source checkout materialization workflow.

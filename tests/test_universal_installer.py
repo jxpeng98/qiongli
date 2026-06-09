@@ -11,7 +11,7 @@ from pathlib import Path
 from qiongli.source_layout import RepoLayout
 from unittest import mock
 
-from qiongli.universal_installer import InstallOptions, clean, clean_global_legacy_skills, install
+from qiongli.universal_installer import InstallOptions, RemoveOptions, clean, clean_global_legacy_skills, install, remove
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -609,6 +609,116 @@ class CleanTests(unittest.TestCase):
 
             self.assertEqual(result, 0)
             self.assertFalse(legacy_skill.exists())
+
+    def test_remove_globals_removes_managed_skills_and_discovery(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir()
+            codex_home = temp_root / "codex-home"
+            claude_home = temp_root / "claude-home"
+            gemini_home = temp_root / "gemini-home"
+            antigravity_home = temp_root / "antigravity-home"
+
+            for home in (codex_home, claude_home, gemini_home):
+                skill_dir = home / "skills" / "qiongli-workflow"
+                workflow_dir = skill_dir / "workflows"
+                workflow_dir.mkdir(parents=True)
+                (skill_dir / "SKILL.md").write_text("---\nname: qiongli\n---\n", encoding="utf-8")
+                (skill_dir / "VERSION").write_text("v9.9.9\n", encoding="utf-8")
+                (workflow_dir / "paper.md").write_text("workflow", encoding="utf-8")
+
+            claude_commands = claude_home / "commands"
+            claude_commands.mkdir(parents=True)
+            claude_paper = claude_commands / "paper.md"
+            claude_paper.symlink_to(claude_home / "skills" / "qiongli-workflow" / "workflows" / "paper.md")
+            (claude_commands / "custom.md").write_text("user command", encoding="utf-8")
+
+            gemini_workflows = gemini_home / "workflows"
+            gemini_workflows.mkdir(parents=True)
+            gemini_paper = gemini_workflows / "paper.md"
+            gemini_paper.symlink_to(gemini_home / "skills" / "qiongli-workflow" / "workflows" / "paper.md")
+
+            unmanaged = antigravity_home / "skills" / "qiongli-workflow"
+            unmanaged.mkdir(parents=True)
+            (unmanaged / "README.md").write_text("user data", encoding="utf-8")
+
+            env = os.environ.copy()
+            env["CODEX_HOME"] = str(codex_home)
+            env["CLAUDE_CODE_HOME"] = str(claude_home)
+            env["GEMINI_HOME"] = str(gemini_home)
+            env["ANTIGRAVITY_HOME"] = str(antigravity_home)
+            stdout = io.StringIO()
+
+            with mock.patch.dict(os.environ, env, clear=True), contextlib.redirect_stdout(stdout):
+                result = remove(
+                    RemoveOptions(
+                        project_dir=project_dir,
+                        target="all",
+                        parts=("globals",),
+                    )
+                )
+
+            self.assertEqual(result, 0)
+            self.assertFalse((codex_home / "skills" / "qiongli-workflow").exists())
+            self.assertFalse((claude_home / "skills" / "qiongli-workflow").exists())
+            self.assertFalse((gemini_home / "skills" / "qiongli-workflow").exists())
+            self.assertFalse(claude_paper.exists())
+            self.assertFalse(gemini_paper.exists())
+            self.assertTrue((claude_commands / "custom.md").exists())
+            self.assertTrue(unmanaged.exists())
+            self.assertIn("unmanaged qiongli-workflow path", stdout.getvalue())
+
+    def test_remove_dry_run_keeps_managed_skill(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            codex_home = temp_root / "codex-home"
+            skill_dir = codex_home / "skills" / "qiongli-workflow"
+            skill_dir.mkdir(parents=True)
+            (skill_dir / "SKILL.md").write_text("---\nname: qiongli\n---\n", encoding="utf-8")
+
+            env = os.environ.copy()
+            env["CODEX_HOME"] = str(codex_home)
+            env["CLAUDE_CODE_HOME"] = str(temp_root / "claude-home")
+            env["GEMINI_HOME"] = str(temp_root / "gemini-home")
+            env["ANTIGRAVITY_HOME"] = str(temp_root / "antigravity-home")
+
+            stdout = io.StringIO()
+            with mock.patch.dict(os.environ, env, clear=True), contextlib.redirect_stdout(stdout):
+                result = remove(
+                    RemoveOptions(
+                        project_dir=temp_root / "project",
+                        target="codex",
+                        dry_run=True,
+                    )
+                )
+
+            self.assertEqual(result, 0)
+            self.assertTrue(skill_dir.exists())
+
+    def test_remove_globals_removes_stale_discovery_symlink_without_skill_dir(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            claude_home = temp_root / "claude-home"
+            command_dir = claude_home / "commands"
+            command_dir.mkdir(parents=True)
+            stale = command_dir / "paper.md"
+            stale.symlink_to(claude_home / "skills" / "qiongli-workflow" / "workflows" / "paper.md")
+
+            env = os.environ.copy()
+            env["CLAUDE_CODE_HOME"] = str(claude_home)
+            stdout = io.StringIO()
+            with mock.patch.dict(os.environ, env, clear=True), contextlib.redirect_stdout(stdout):
+                result = remove(
+                    RemoveOptions(
+                        project_dir=temp_root / "project",
+                        target="claude",
+                    )
+                )
+
+            self.assertEqual(result, 0)
+            self.assertFalse(stale.exists())
+            self.assertFalse(stale.is_symlink())
 
 
 class SymlinkAndSummaryTests(unittest.TestCase):

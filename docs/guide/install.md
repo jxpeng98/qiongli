@@ -162,6 +162,15 @@ Prerelease testing remains available through the `next` dist-tag:
 npx qiongli@next install --subject economics --target all --project-dir "$PWD"
 ```
 
+Remove CLI-installed assets before switching fully to marketplace plugins:
+
+```bash
+qiongli remove --target all --dry-run
+qiongli remove --target all
+```
+
+`qiongli remove` only removes CLI-installed global workflow assets and discovery links. Native marketplace plugins remain managed by the client/plugin manager that installed them.
+
 ## Recommended CLI Setup Wizard
 
 After installing the CLI with npm, pipx, pip, or the bootstrap script, run the interactive setup wizard before hand-writing install flags:
@@ -261,5 +270,5 @@ qiongli upgrade --subject core --target all
 If you move fully to native plugins and no longer need legacy global skill directories or slash discovery, inspect cleanup first:
 
 ```bash
-qiongli clean --globals --dry-run
+qiongli remove --target all --dry-run
 ```

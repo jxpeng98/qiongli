@@ -66,11 +66,14 @@ qiongli install --subject geoeconomics --target all
 qiongli install --subject economics-accounting --target all
 qiongli install --subject economics --coverage focused --target all
 qiongli upgrade --subject accounting --target all
+qiongli remove --target all --dry-run
 qiongli customize --subject economics --name my-econ-lab --out ./qiongli-custom/econ-lab
 qiongli check --json
 ```
 
 Use the default complete coverage when you are unsure: `qiongli install --target all` means `core/complete`, `--subject economics`, `--subject business`, `--subject finance`, `--subject political-economy`, and `--subject geoeconomics` mean complete specialized installs, and `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. Use `--coverage focused` only when you deliberately want the slimmer selected subject package and Desktop/Web ZIP shape. `political-economy` and `geoeconomics` are independent subjects, not a composite. Official composite subjects such as `economics-accounting` are named subjects, not arbitrary comma-separated stacking. Switch subjects or coverage by rerunning `install` or `upgrade` with new flags. Custom overlays affect generated output only and do not rewrite canonical source files; `qiongli customize` plus `--custom-dir` materialization is for the Python/source checkout workflow, while npm runtime installs pre-generated payloads in this phase.
+
+Use `qiongli remove` when you need to remove CLI-installed global assets before relying only on marketplace plugins.
 
 ## 3. Start A Research Workspace
 

@@ -1,6 +1,6 @@
 import { parseArgv } from './args.mjs';
 import { packageRoot } from './package-root.mjs';
-import { buildCheck, cleanAssets, installSkills } from './installer.mjs';
+import { buildCheck, cleanAssets, installSkills, removeAssets } from './installer.mjs';
 import {
   checkPythonRuntime,
   runBridgeCommand as defaultRunBridgeCommand,
@@ -47,6 +47,23 @@ export async function main(argv, {
       return 2;
     }
     printInstallResult(result, stdout);
+    return 0;
+  }
+
+  if (parsed.command === 'remove') {
+    let result;
+    try {
+      result = removeAssets({
+        target: parsed.options.target,
+        projectDir: parsed.options.projectDir,
+        parts: parsed.options.parts,
+        dryRun: parsed.options.dryRun,
+      });
+    } catch (error) {
+      stderr.write(`[qiongli] ${error.message}\n`);
+      return 2;
+    }
+    printRemoveResult(result, stdout);
     return 0;
   }
 
@@ -125,12 +142,22 @@ function printInstallResult(result, stdout) {
   stdout.write('Restart Codex / Claude Code / Gemini CLI to activate changes.\n');
 }
 
+function printRemoveResult(result, stdout) {
+  stdout.write('Qiongli npm remover\n');
+  for (const action of result.actions) {
+    stdout.write(`[${action.status}] ${action.label} -> ${action.path} (${action.detail})\n`);
+  }
+  stdout.write('Restart Codex / Claude Code / Gemini CLI to refresh discovery state.\n');
+}
+
 function helpText() {
   return `Qiongli npm installer
 
 Usage:
   qiongli install --subject core --target all
   qiongli upgrade --subject economics --coverage complete --target all
+  qiongli remove [--target all]
+  qiongli uninstall [--target codex]
   qiongli check [--json]
   qiongli clean --project-dir . [--globals]
   qiongli runtime doctor
