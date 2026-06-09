@@ -72,7 +72,7 @@ status_path_from_line() {
 is_expected_release_path() {
   local path="$1"
   case "$path" in
-    pyproject.toml|packages/python-qiongli/src/qiongli/__init__.py|content/workflow/VERSION|content/skills/registry.yaml|docs/reference/skills.md|docs/zh/reference/skills.md|package-lock.json|uv.lock|packages/qiongli-plugin/.codex-plugin/plugin.json|packages/qiongli-plugin/.claude-plugin/plugin.json|packages/qiongli-plugin/gemini-extension.json|packages/npm-qiongli/package.json|packages/npm-qiongli/README.md|packages/npm-qiongli/LICENSE|packages/npm-qiongli/bin/*|packages/npm-qiongli/lib/*|packages/npm-qiongli/test/*)
+    pyproject.toml|packages/python-qiongli/src/qiongli/__init__.py|content/workflow/VERSION|content/skills/registry.yaml|docs/reference/skills.md|docs/zh/reference/skills.md|package-lock.json|uv.lock|packages/qiongli-plugin/.codex-plugin/plugin.json|packages/qiongli-plugin/.claude-plugin/plugin.json|packages/qiongli-plugin/gemini-extension.json|packages/qiongli-next-plugin|packages/qiongli-next-plugin/*|packages/npm-qiongli/package.json|packages/npm-qiongli/README.md|packages/npm-qiongli/LICENSE|packages/npm-qiongli/bin/*|packages/npm-qiongli/lib/*|packages/npm-qiongli/test/*)
       return 0
       ;;
   esac
@@ -179,6 +179,8 @@ ensure_clean_worktree
 if [[ "$SKIP_BUMP" -eq 0 ]]; then
   echo "[release-ready] syncing release versions"
   ./scripts/bump-version.sh "$VERSION"
+  echo "[release-ready] syncing qiongli-next Git-backed plugin"
+  python3 scripts/materialize_distribution_payloads.py --target next-plugin --in-place
 else
   echo "[release-ready] version sync skipped"
 fi

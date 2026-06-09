@@ -890,6 +890,39 @@ def _build_marketplace_plugin(
     return artifact
 
 
+def materialize_next_codex_plugin(root: Path, dest_plugin_root: Path, *, force: bool = False) -> Path:
+    """Materialize the Git-backed qiongli-next Codex plugin source directory."""
+
+    root = root.resolve()
+    dest_plugin_root = dest_plugin_root.resolve()
+    if dest_plugin_root.exists():
+        if not force:
+            raise ValueError(f"{dest_plugin_root} already exists; pass force=True to replace it")
+        if dest_plugin_root.is_dir():
+            shutil.rmtree(dest_plugin_root)
+        else:
+            dest_plugin_root.unlink()
+
+    _display_name, package_goal = _subject_definitions(root)["core"]
+    manifest_dir = ".codex-plugin"
+    _copy_path(RepoLayout(root).plugin_package / manifest_dir, dest_plugin_root / manifest_dir)
+    _write_subject_manifest(
+        dest_plugin_root / manifest_dir / "plugin.json",
+        platform="codex",
+        plugin_name=NEXT_PLUGIN_NAME,
+        subject="core",
+        display_name="Qiongli Next",
+        package_goal=package_goal,
+        skill_name=NEXT_SKILL_NAME,
+        mcp_server_name=NEXT_MCP_SERVER_NAME,
+    )
+    _copy_codex_mcp_manifest(root, dest_plugin_root, server_name=NEXT_MCP_SERVER_NAME)
+    _copy_literature_mcp_runtime(root, dest_plugin_root)
+    _copy_commands(root, dest_plugin_root, skill_name=NEXT_SKILL_NAME)
+    _copy_subject_skill(root, dest_plugin_root, "core", skill_name=NEXT_SKILL_NAME)
+    return dest_plugin_root
+
+
 def _build_codex(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> Path:
     display_name, package_goal = _subject_definitions(root)["core"]
     return _build_marketplace_plugin(
@@ -1019,6 +1052,7 @@ def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
         layout.plugin_package / ".codex-plugin" / "plugin.json",
         layout.plugin_package / ".claude-plugin" / "plugin.json",
         layout.plugin_package / "gemini-extension.json",
+        layout.next_plugin_package / ".codex-plugin" / "plugin.json",
     ]
     for path in versioned_json:
         _assert_json_versions(path, skill_version)

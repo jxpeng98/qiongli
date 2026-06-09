@@ -262,7 +262,8 @@ case "$MODE" in
       packages/npm-qiongli \
       packages/qiongli-plugin/.codex-plugin/plugin.json \
       packages/qiongli-plugin/.claude-plugin/plugin.json \
-      packages/qiongli-plugin/gemini-extension.json
+      packages/qiongli-plugin/gemini-extension.json \
+      packages/qiongli-next-plugin
     if is_prerelease_tag "$repo_tag"; then
       git add "tooling/release/${repo_tag}.md"
     else

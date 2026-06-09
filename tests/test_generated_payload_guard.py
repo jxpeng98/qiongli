@@ -64,6 +64,9 @@ class GeneratedPayloadGuardTests(unittest.TestCase):
             "packages/qiongli-plugin/commands/paper.md",
             "packages/qiongli-plugin/platforms/agent/workflows/paper.md",
             "packages/qiongli-plugin/platforms/gemini/qiongli.md",
+            "packages/qiongli-next-plugin/.codex-plugin/plugin.json",
+            "packages/qiongli-next-plugin/skills/qiongli-workflow/SKILL.md",
+            "packages/qiongli-next-plugin/mcp/qiongli-literature-provider/index.mjs",
             "content/skills-core.md",
             "content/skills-summary.md",
         ]

@@ -1,0 +1,39 @@
+{
+  "name": "qiongli-next",
+  "version": "1.1.0-beta.5",
+  "description": "Qiongli Next prerelease marketplace plugin. Installs the core/complete workflow for beta testing without publishing subject-specific variants.",
+  "author": {
+    "name": "Jiaxin Peng",
+    "url": "https://github.com/jxpeng98"
+  },
+  "homepage": "https://github.com/jxpeng98/qiongli",
+  "repository": "https://github.com/jxpeng98/qiongli",
+  "license": "MIT",
+  "keywords": [
+    "research",
+    "academic-writing",
+    "literature-review",
+    "codex-skills",
+    "qiongli-next",
+    "prerelease"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Qiongli Next",
+    "shortDescription": "Prerelease core academic workflows for Codex.",
+    "longDescription": "Qiongli Next prerelease marketplace plugin. Installs the core/complete workflow for beta testing without publishing subject-specific variants.",
+    "developerName": "Jiaxin Peng",
+    "category": "Education",
+    "capabilities": [
+      "Write"
+    ],
+    "websiteURL": "https://github.com/jxpeng98/qiongli",
+    "defaultPrompt": [
+      "Use $qiongli-next to test the next Qiongli paper workflow.",
+      "Use $qiongli-next to test a literature review workflow.",
+      "Use $qiongli-next to test submission checks with the bundled literature MCP."
+    ],
+    "brandColor": "#2563EB"
+  }
+}

@@ -143,13 +143,14 @@ def sync_versions(root: Path, raw_version: str) -> list[Path]:
         root / "packages" / "npm-qiongli" / "payload" / "qiongli-workflow" / "skills" / "registry.yaml",
         root / "packages" / "npm-qiongli" / "python-runtime" / "skills" / "registry.yaml",
         root / "plugins" / "qiongli" / "skills" / "qiongli-workflow" / "skills" / "registry.yaml",
+        layout.next_plugin_package / "skills" / "qiongli-workflow" / "skills" / "registry.yaml",
     )
     for registry_file in registry_files:
         if not registry_file.exists():
             continue
         if replace_pattern(
             registry_file,
-            re.compile(r'^(\s*version: )"[^"]+"$', re.MULTILINE),
+            re.compile(r'^(\s*version:\s*)"?[^"\n]+"?$', re.MULTILINE),
             rf'\g<1>"{skill_version}"',
         ):
             changed.append(registry_file)
@@ -159,6 +160,7 @@ def sync_versions(root: Path, raw_version: str) -> list[Path]:
         root / "qiongli-workflow" / "VERSION",
         root / "packages" / "npm-qiongli" / "payload" / "qiongli-workflow" / "VERSION",
         root / "plugins" / "qiongli" / "skills" / "qiongli-workflow" / "VERSION",
+        layout.next_plugin_package / "skills" / "qiongli-workflow" / "VERSION",
     )
     for workflow_version_file in workflow_version_files:
         if not workflow_version_file.exists():
@@ -170,6 +172,7 @@ def sync_versions(root: Path, raw_version: str) -> list[Path]:
 
     plugin_roots = (
         layout.plugin_package,
+        layout.next_plugin_package,
         root / "plugins" / "qiongli",
     )
     json_version_files = []

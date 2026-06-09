@@ -131,6 +131,10 @@ class RepoLayout:
         return package_path if package_path.exists() else legacy_path
 
     @property
+    def next_plugin_package(self) -> Path:
+        return self.root / "packages" / "qiongli-next-plugin"
+
+    @property
     def plugin_artifact_package(self) -> Path:
         return self.root / "plugins" / "qiongli"
 

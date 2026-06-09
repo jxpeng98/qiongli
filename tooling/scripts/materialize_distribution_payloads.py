@@ -141,10 +141,29 @@ def materialize_plugin_payload(root: Path) -> None:
     print("[done] Skill package is self-contained.")
 
 
+def materialize_next_plugin_payload(root: Path) -> None:
+    python_source_root = root / "packages" / "python-qiongli" / "src"
+    for import_root in (python_source_root, root):
+        if str(import_root) not in sys.path:
+            sys.path.insert(0, str(import_root))
+    from qiongli.source_layout import RepoLayout
+    from scripts.build_plugin_artifacts import materialize_next_codex_plugin
+    from scripts.sync_npm_package_payload import fail_if_symlinks
+
+    layout = RepoLayout(root)
+    next_plugin_root = layout.next_plugin_package
+    print(f"Syncing Git-backed qiongli-next Codex plugin: {next_plugin_root}")
+    materialize_next_codex_plugin(root, next_plugin_root, force=True)
+    fail_if_symlinks(next_plugin_root)
+    print("  [ok] qiongli-next Codex plugin source")
+
+
 def materialize_in_place(root: Path, target: str) -> None:
     root = root.resolve()
     if target in {"plugin", "all"}:
         materialize_plugin_payload(root)
+    if target in {"plugin", "next-plugin", "all"}:
+        materialize_next_plugin_payload(root)
     if target == "python":
         materialize_python_payload(root)
     if target in {"npm", "all"}:
@@ -156,7 +175,7 @@ def materialize_in_place(root: Path, target: str) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Materialize Qiongli distribution payloads.")
     parser.add_argument("--root", type=Path, default=REPO_ROOT, help="Repository source root.")
-    parser.add_argument("--target", choices=("python", "npm", "plugin", "all"), default="all")
+    parser.add_argument("--target", choices=("python", "npm", "plugin", "next-plugin", "all"), default="all")
     parser.add_argument("--out", type=Path, help="Staging directory to create and materialize into.")
     parser.add_argument("--force", action="store_true", help="Replace an existing non-empty staging directory.")
     parser.add_argument(

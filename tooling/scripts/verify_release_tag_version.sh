@@ -85,7 +85,7 @@ import re
 from pathlib import Path
 
 content = Path("content/skills/registry.yaml").read_text(encoding="utf-8")
-versions = set(re.findall(r'^\s*version: "([^"]+)"$', content, re.MULTILINE))
+versions = set(re.findall(r'^\s*version:\s*"?([^"\n]+)"?$', content, re.MULTILINE))
 if not versions:
     raise SystemExit("missing version in content/skills/registry.yaml")
 if len(versions) != 1:
@@ -104,7 +104,7 @@ path = Path("packages/python-qiongli/src/qiongli/payload/qiongli-workflow/skills
 if not path.exists():
     raise SystemExit("missing packages/python-qiongli/src/qiongli/payload/qiongli-workflow/skills/registry.yaml")
 content = path.read_text(encoding="utf-8")
-versions = set(re.findall(r'^\s*version: "([^"]+)"$', content, re.MULTILINE))
+versions = set(re.findall(r'^\s*version:\s*"?([^"\n]+)"?$', content, re.MULTILINE))
 if not versions:
     raise SystemExit(f"missing version in {path}")
 if len(versions) != 1:
@@ -120,7 +120,7 @@ path = Path("packages/python-qiongli/src/qiongli/payload/skills/registry.yaml")
 if not path.exists():
     raise SystemExit("missing packages/python-qiongli/src/qiongli/payload/skills/registry.yaml")
 content = path.read_text(encoding="utf-8")
-versions = set(re.findall(r'^\s*version: "([^"]+)"$', content, re.MULTILINE))
+versions = set(re.findall(r'^\s*version:\s*"?([^"\n]+)"?$', content, re.MULTILINE))
 if not versions:
     raise SystemExit(f"missing version in {path}")
 if len(versions) != 1:
@@ -137,7 +137,7 @@ path = Path("packages/npm-qiongli/payload/qiongli-workflow/skills/registry.yaml"
 if not path.exists():
     raise SystemExit("missing packages/npm-qiongli/payload/qiongli-workflow/skills/registry.yaml")
 content = path.read_text(encoding="utf-8")
-versions = set(re.findall(r'^\s*version: "([^"]+)"$', content, re.MULTILINE))
+versions = set(re.findall(r'^\s*version:\s*"?([^"\n]+)"?$', content, re.MULTILINE))
 if not versions:
     raise SystemExit(f"missing version in {path}")
 if len(versions) != 1:
@@ -154,7 +154,24 @@ path = Path("plugins/qiongli/skills/qiongli-workflow/skills/registry.yaml")
 if not path.exists():
     raise SystemExit("missing plugins/qiongli/skills/qiongli-workflow/skills/registry.yaml")
 content = path.read_text(encoding="utf-8")
-versions = set(re.findall(r'^\s*version: "([^"]+)"$', content, re.MULTILINE))
+versions = set(re.findall(r'^\s*version:\s*"?([^"\n]+)"?$', content, re.MULTILINE))
+if not versions:
+    raise SystemExit(f"missing version in {path}")
+if len(versions) != 1:
+    raise SystemExit(f"mixed versions in {path}: {sorted(versions)}")
+print(versions.pop())
+PY
+)"
+actual_next_plugin_workflow_version="$(tr -d '\r\n' < packages/qiongli-next-plugin/skills/qiongli-workflow/VERSION)"
+actual_next_plugin_workflow_registry_version="$(python3 - <<'PY'
+import re
+from pathlib import Path
+
+path = Path("packages/qiongli-next-plugin/skills/qiongli-workflow/skills/registry.yaml")
+if not path.exists():
+    raise SystemExit("missing packages/qiongli-next-plugin/skills/qiongli-workflow/skills/registry.yaml")
+content = path.read_text(encoding="utf-8")
+versions = set(re.findall(r'^\s*version:\s*"?([^"\n]+)"?$', content, re.MULTILINE))
 if not versions:
     raise SystemExit(f"missing version in {path}")
 if len(versions) != 1:
@@ -212,7 +229,7 @@ path = Path("packages/npm-qiongli/python-runtime/skills/registry.yaml")
 if not path.exists():
     raise SystemExit("missing packages/npm-qiongli/python-runtime/skills/registry.yaml")
 content = path.read_text(encoding="utf-8")
-versions = set(re.findall(r'^\s*version: "([^"]+)"$', content, re.MULTILINE))
+versions = set(re.findall(r'^\s*version:\s*"?([^"\n]+)"?$', content, re.MULTILINE))
 if not versions:
     raise SystemExit("missing version in packages/npm-qiongli/python-runtime/skills/registry.yaml")
 if len(versions) != 1:
@@ -229,6 +246,7 @@ paths = [
     Path("packages/qiongli-plugin/.codex-plugin/plugin.json"),
     Path("packages/qiongli-plugin/.claude-plugin/plugin.json"),
     Path("packages/qiongli-plugin/gemini-extension.json"),
+    Path("packages/qiongli-next-plugin/.codex-plugin/plugin.json"),
 ]
 for path in paths:
     data = json.loads(path.read_text(encoding="utf-8"))
@@ -304,6 +322,16 @@ PY
 
 [[ "$actual_plugin_workflow_registry_version" == "$expected_skill_version" ]] || {
   echo "[verify-release-tag] plugins/qiongli/skills/qiongli-workflow/skills/registry.yaml mismatch: tag=$TAG expects $expected_skill_version, found $actual_plugin_workflow_registry_version" >&2
+  exit 1
+}
+
+[[ "$actual_next_plugin_workflow_version" == "$expected_repo_tag" ]] || {
+  echo "[verify-release-tag] packages/qiongli-next-plugin/skills/qiongli-workflow/VERSION mismatch: tag=$TAG expects $expected_repo_tag, found $actual_next_plugin_workflow_version" >&2
+  exit 1
+}
+
+[[ "$actual_next_plugin_workflow_registry_version" == "$expected_skill_version" ]] || {
+  echo "[verify-release-tag] packages/qiongli-next-plugin/skills/qiongli-workflow/skills/registry.yaml mismatch: tag=$TAG expects $expected_skill_version, found $actual_next_plugin_workflow_registry_version" >&2
   exit 1
 }
 

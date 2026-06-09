@@ -131,6 +131,30 @@ class SyncVersionsTests(unittest.TestCase):
                 '{\n  "name": "qiongli",\n  "version": "0.1.0"\n}\n',
                 encoding="utf-8",
             )
+            (root / "packages" / "qiongli-next-plugin" / ".codex-plugin").mkdir(parents=True)
+            (root / "packages" / "qiongli-next-plugin" / ".codex-plugin" / "plugin.json").write_text(
+                '{\n  "name": "qiongli-next",\n  "version": "0.1.0"\n}\n',
+                encoding="utf-8",
+            )
+            (root / "packages" / "qiongli-next-plugin" / "skills" / "qiongli-workflow" / "skills").mkdir(
+                parents=True
+            )
+            (root / "packages" / "qiongli-next-plugin" / "skills" / "qiongli-workflow" / "VERSION").write_text(
+                "v0.1.0\n",
+                encoding="utf-8",
+            )
+            (
+                root
+                / "packages"
+                / "qiongli-next-plugin"
+                / "skills"
+                / "qiongli-workflow"
+                / "skills"
+                / "registry.yaml"
+            ).write_text(
+                'skills:\n  - id: "demo"\n    version: "0.1.0"\n',
+                encoding="utf-8",
+            )
             (root / "plugins" / "qiongli" / "skills" / "qiongli-workflow" / "skills").mkdir(parents=True)
             (root / "plugins" / "qiongli" / "skills" / "qiongli-workflow" / "VERSION").write_text(
                 "v0.1.0\n",
@@ -209,6 +233,24 @@ class SyncVersionsTests(unittest.TestCase):
             )
             self.assertIn(
                 root / "packages" / "qiongli-plugin" / ".codex-plugin" / "plugin.json",
+                changed,
+            )
+            self.assertIn(
+                root / "packages" / "qiongli-next-plugin" / ".codex-plugin" / "plugin.json",
+                changed,
+            )
+            self.assertIn(
+                root / "packages" / "qiongli-next-plugin" / "skills" / "qiongli-workflow" / "VERSION",
+                changed,
+            )
+            self.assertIn(
+                root
+                / "packages"
+                / "qiongli-next-plugin"
+                / "skills"
+                / "qiongli-workflow"
+                / "skills"
+                / "registry.yaml",
                 changed,
             )
             self.assertIn(root / "plugins" / "qiongli" / "skills" / "qiongli-workflow" / "VERSION", changed)
@@ -297,6 +339,39 @@ class SyncVersionsTests(unittest.TestCase):
                     / "qiongli-plugin"
                     / ".codex-plugin"
                     / "plugin.json"
+                ).read_text(),
+            )
+            self.assertIn(
+                '"version": "0.2.0-beta.2"',
+                (
+                    root
+                    / "packages"
+                    / "qiongli-next-plugin"
+                    / ".codex-plugin"
+                    / "plugin.json"
+                ).read_text(),
+            )
+            self.assertEqual(
+                (
+                    root
+                    / "packages"
+                    / "qiongli-next-plugin"
+                    / "skills"
+                    / "qiongli-workflow"
+                    / "VERSION"
+                ).read_text().strip(),
+                "v0.2.0-beta.2",
+            )
+            self.assertIn(
+                'version: "0.2.0-beta.2"',
+                (
+                    root
+                    / "packages"
+                    / "qiongli-next-plugin"
+                    / "skills"
+                    / "qiongli-workflow"
+                    / "skills"
+                    / "registry.yaml"
                 ).read_text(),
             )
             self.assertEqual(

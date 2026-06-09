@@ -24,6 +24,15 @@
 
 Skillsplace catalog 应跟踪 `main` 和 release tag，而不是 `dev`。`dev` 用于本地 plugin packaging 测试和预发布验证，验证完成后再更新统一 marketplace 入口。本仓库不再携带 Codex 或 Claude marketplace catalog 文件，只负责 plugin manifest，并从 canonical source materialize release payload。
 
+预发布 tag 会发布 `qiongli-next` 测试通道，而不是完整的 stable marketplace matrix。Codex 侧的 beta marketplace 安装需要一个可由 Skillsplace 通过 Git 子目录安装的源目录：
+
+- Prerelease plugin subdirectory: `packages/qiongli-next-plugin`
+- Codex beta manifest: `packages/qiongli-next-plugin/.codex-plugin/plugin.json`
+- Required manifest name: `qiongli-next`
+- Required MCP server key: `qiongli-next`
+
+Release automation 会在版本准备阶段通过 `python3 scripts/materialize_distribution_payloads.py --target next-plugin --in-place` 从 canonical source 刷新这个受跟踪目录。该目录只包含 core Codex beta plugin 和 bundled literature MCP runtime，不发布 subject-specific plugin variants，也不替代 stable `packages/qiongli-plugin` 入口。`jxpeng98/skillsplace` 中的 `qiongli-next` 条目应指向这个目录的 beta tag。
+
 ## 开发流程
 
 1. 功能和 packaging 工作从 `dev` 开始。

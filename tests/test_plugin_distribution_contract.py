@@ -16,6 +16,7 @@ from qiongli.source_layout import RepoLayout
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LAYOUT = RepoLayout(REPO_ROOT)
 PLUGIN_ROOT = LAYOUT.plugin_package
+NEXT_PLUGIN_ROOT = LAYOUT.next_plugin_package
 WORKFLOW_ROOT = LAYOUT.workflow
 WORKFLOW_VERSION = (WORKFLOW_ROOT / "VERSION").read_text(encoding="utf-8").strip().lstrip("v")
 VALIDATOR_SCRIPT_PATH = LAYOUT.scripts / "validate_marketplace_install.py"
@@ -64,7 +65,7 @@ def find_usable_bash() -> str | None:
 
 
 class PluginDistributionContractTests(unittest.TestCase):
-    def materialize_plugin_payload(self, tmp_dir: str) -> Path:
+    def materialize_payload_root(self, tmp_dir: str) -> Path:
         out = Path(tmp_dir) / "dist-source"
         result = subprocess.run(
             [
@@ -82,7 +83,10 @@ class PluginDistributionContractTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(result.returncode, 0, msg=result.stderr + result.stdout)
-        return out / "plugins" / "qiongli"
+        return out
+
+    def materialize_plugin_payload(self, tmp_dir: str) -> Path:
+        return self.materialize_payload_root(tmp_dir) / "plugins" / "qiongli"
 
     def test_platform_manifests_share_workflow_version(self) -> None:
         codex = json.loads((PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
@@ -104,6 +108,42 @@ class PluginDistributionContractTests(unittest.TestCase):
             self.assertTrue(
                 (materialized_plugin / "mcp" / "qiongli-literature-provider" / "index.mjs").is_file()
             )
+
+    def test_git_backed_next_codex_plugin_source_is_installable(self) -> None:
+        manifest_path = NEXT_PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
+        validator._assert_manifest(
+            "codex",
+            manifest_path,
+            WORKFLOW_VERSION,
+            expected_plugin_name="qiongli-next",
+            expected_skill_name="qiongli-next",
+        )
+
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        self.assertEqual(manifest["name"], "qiongli-next")
+        self.assertEqual(manifest["skills"], "./skills/")
+        self.assertEqual(manifest["mcpServers"], "./.mcp.json")
+
+        mcp_manifest = json.loads((NEXT_PLUGIN_ROOT / ".mcp.json").read_text(encoding="utf-8"))
+        self.assertEqual(set(mcp_manifest["mcpServers"]), {"qiongli-next"})
+        validator._assert_bundled_literature_mcp(
+            NEXT_PLUGIN_ROOT,
+            "codex",
+            mcp_server_name="qiongli-next",
+        )
+
+        skill_root = NEXT_PLUGIN_ROOT / "skills" / "qiongli-workflow"
+        workflow_names = validator._assert_skill_invocation(
+            skill_root,
+            f"v{WORKFLOW_VERSION}",
+            skill_name="qiongli-next",
+        )
+        validator._assert_subject_marker(skill_root, "core")
+        validator._assert_subject_manifest(skill_root, "core", "complete")
+        validator._assert_command_invocation(NEXT_PLUGIN_ROOT, workflow_names, skill_name="qiongli-next")
+
+        self.assertFalse((NEXT_PLUGIN_ROOT / ".claude-plugin").exists())
+        self.assertFalse((NEXT_PLUGIN_ROOT / "gemini-extension.json").exists())
 
     def test_codex_plugin_materializes_bundled_mcp_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

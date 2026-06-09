@@ -44,6 +44,22 @@ class QiongliNamingTests(unittest.TestCase):
             self.assertEqual(manifest["name"], "qiongli")
             self.assertIn("Qiongli", manifest["description"])
 
+    def test_next_codex_plugin_uses_prerelease_identity(self) -> None:
+        manifest = json.loads((LAYOUT.next_plugin_package / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        skill_text = (
+            LAYOUT.next_plugin_package
+            / "skills"
+            / "qiongli-workflow"
+            / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        mcp_manifest = json.loads((LAYOUT.next_plugin_package / ".mcp.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(manifest["name"], "qiongli-next")
+        self.assertEqual(manifest["interface"]["displayName"], "Qiongli Next")
+        self.assertIn("$qiongli-next", "\n".join(manifest["interface"]["defaultPrompt"]))
+        self.assertIn("name: qiongli-next\n", skill_text)
+        self.assertEqual(set(mcp_manifest["mcpServers"]), {"qiongli-next"})
+
     def test_portable_skill_identity_is_visible_as_qiongli(self) -> None:
         skill_root = LAYOUT.workflow
         skill_text = (skill_root / "SKILL.md").read_text(encoding="utf-8")

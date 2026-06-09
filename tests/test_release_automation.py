@@ -54,6 +54,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('packages/qiongli-plugin/.codex-plugin/plugin.json', content)
         self.assertIn('packages/qiongli-plugin/.claude-plugin/plugin.json', content)
         self.assertIn('packages/qiongli-plugin/gemini-extension.json', content)
+        self.assertIn('packages/qiongli-next-plugin', content)
         self.assertIn('content/workflow/VERSION', content)
         self.assertIn('content/skills/registry.yaml', content)
         self.assertIn('docs/reference/skills.md', content)
@@ -241,6 +242,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('packages/qiongli-plugin/.codex-plugin/plugin.json', content)
         self.assertIn('packages/qiongli-plugin/.claude-plugin/plugin.json', content)
         self.assertIn('packages/qiongli-plugin/gemini-extension.json', content)
+        self.assertIn('packages/qiongli-next-plugin|packages/qiongli-next-plugin/*', content)
         self.assertIn('content/workflow/VERSION', content)
         self.assertIn('content/skills/registry.yaml', content)
         self.assertIn('packages/npm-qiongli/package.json', content)
@@ -258,6 +260,7 @@ class ReleaseAutomationTests(unittest.TestCase):
     def test_release_ready_runs_package_preflights_from_staging_root(self) -> None:
         content = RELEASE_READY.read_text(encoding="utf-8")
 
+        self.assertIn("python3 scripts/materialize_distribution_payloads.py --target next-plugin --in-place", content)
         preflight = './scripts/release_automation.sh pre "${PRE_ARGS[@]}" --materialize-out "$RELEASE_STAGING_DIR"'
         verify = 'bash ./scripts/verify_release_tag_version.sh --root "$RELEASE_STAGING_DIR" --tag "$REPO_TAG"'
         pypi = 'bash ./scripts/pypi_preflight.sh --root "$RELEASE_STAGING_DIR" "${PYPI_ARGS[@]}"'
@@ -551,6 +554,9 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('packages/qiongli-plugin/.codex-plugin/plugin.json', content)
         self.assertIn('plugins/qiongli/skills/qiongli-workflow/VERSION', content)
         self.assertIn('plugins/qiongli/skills/qiongli-workflow/skills/registry.yaml', content)
+        self.assertIn('packages/qiongli-next-plugin/.codex-plugin/plugin.json', content)
+        self.assertIn('packages/qiongli-next-plugin/skills/qiongli-workflow/VERSION', content)
+        self.assertIn('packages/qiongli-next-plugin/skills/qiongli-workflow/skills/registry.yaml', content)
         self.assertIn('packages/qiongli-plugin/.claude-plugin/plugin.json', content)
         self.assertIn('packages/qiongli-plugin/gemini-extension.json', content)
         self.assertIn('python3 scripts/audit_distribution_payloads.py --root "$ROOT_DIR"', content)
