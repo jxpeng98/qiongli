@@ -28,7 +28,16 @@ codex plugin marketplace list
 
 然后在 Codex plugin UI 中安装或启用 `qiongli`，这是默认 core package。也可以选择 `qiongli-economics`、`qiongli-accounting`、`qiongli-business`、`qiongli-finance`、`qiongli-political-economy`、`qiongli-geoeconomics`、`qiongli-economics-accounting` 这类 subject entry，它们会安装对应的 `subject/complete` package。
 
-Codex plugin 自带 `.mcp.json` 和 `mcp/qiongli-literature-provider/` 下的零依赖 Node literature-provider MCP runtime。只使用这些内置文献 provider 工具时，桌面用户不需要安装 `qiongli` CLI，也不需要手写 MCP config。Provider key 不写入 plugin manifest；可以通过内置 MCP 工具 `qiongli_save_provider_config` 保存，或者在已安装 CLI 时用 `qiongli mcp configure` / `qiongli provider setup` 配置。完整 Python-backed `qiongli mcp serve` 仍需要 npm、pipx/pip 或 `full` bootstrap runtime。
+Codex plugin 自带 `.mcp.json` 和 `mcp/qiongli-literature-provider/` 下的零依赖 Node literature-provider MCP runtime。只使用这些内置文献 provider 工具时，桌面用户不需要安装 `qiongli` CLI，也不需要手写 MCP config。Provider key 不写入 plugin manifest；可以通过平台无关的本地设置工具 `qiongli_configure_provider` 配置，也可以用 `qiongli_save_provider_config` 保存，或者在已安装 CLI 时用 `qiongli mcp configure` / `qiongli provider setup` 配置。完整 Python-backed `qiongli mcp serve` 仍需要 npm、pipx/pip 或 `full` bootstrap runtime。
+
+Codex 目前会把 plugin-bundled MCP server 当作 plugin asset：设置页可以启用 server 和管理 tool policy，但不适合作为这个内置 server 的 provider key 注入入口。Claude Desktop MCPB、Claude Code、Cursor 类客户端和其他本地 stdio MCP client 也应使用同一个 Qiongli provider setup contract。请改用 Qiongli provider config：
+
+1. 让 Codex 运行 `qiongli_config_status`，查看 redacted status 和 `config_path`。
+2. 让当前客户端运行 `qiongli_configure_provider`，然后打开返回的 `127.0.0.1` URL。
+3. 在本地浏览器页面里填写 OpenAlex email 和 Semantic Scholar API key。页面会写入共享 provider config，避免把密钥放进对话上下文。
+4. 再运行 `qiongli_config_status` 或 `qiongli_literature_status`；结果只应显示 `configured` / `missing`，不应打印完整密钥。
+
+不要把 provider key 写进 `.mcp.json`、`.codex-plugin/plugin.json`、release ZIP 或研究产物。Codex plugin MCP、Claude Code plugin MCP、Claude Desktop MCPB 和完整 CLI MCP server 读取的是同一个共享 provider config。
 
 Claude Code 使用同一个 Skillsplace catalog：
 

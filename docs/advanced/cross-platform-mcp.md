@@ -21,7 +21,7 @@ This mode does not require a remote server. The client launches the local proces
 
 The full CLI server exposes both provider/configuration tools and orchestrator tools:
 
-- `qiongli_config_status`, `qiongli_save_provider_config`, and `qiongli_collect_evidence` for MCP/provider readiness.
+- `qiongli_config_status`, `qiongli_configure_provider`, `qiongli_save_provider_config`, and `qiongli_collect_evidence` for MCP/provider readiness.
 - `qiongli_orchestrator_doctor` for local runtime preflight checks.
 - `qiongli_task_plan` for a no-agent task plan.
 - `qiongli_task_run` for a controlled task-run surface. It defaults to preview and does not launch local Codex, Claude, or Gemini processes unless the caller explicitly passes JSON boolean `run_agents: true`.
@@ -38,9 +38,20 @@ The bundled server entry is:
 node ./mcp/qiongli-literature-provider/index.mjs
 ```
 
-Provider keys are not embedded in the plugin manifest. Desktop users can configure keys with the bundled `qiongli_save_provider_config` MCP tool. CLI users can configure the same shared provider file with `qiongli mcp configure` or `qiongli provider setup`.
+Provider keys are not embedded in the plugin manifest. Desktop users can configure keys with the bundled `qiongli_configure_provider` MCP tool, or script explicit writes with `qiongli_save_provider_config`. CLI users can configure the same shared provider file with `qiongli mcp configure` or `qiongli provider setup`.
+
+Because Codex launches this MCP server from the installed plugin bundle, Codex's MCP settings page should be treated as an enable/disable and tool-policy surface for the bundled server, not as the credential configuration UI. The supported key setup loop is:
+
+1. Call `qiongli_config_status` to inspect the redacted status and shared `config_path`.
+2. Call `qiongli_configure_provider` and open the returned `127.0.0.1` URL.
+3. Enter the OpenAlex email and Semantic Scholar API key in the local browser form.
+4. Call `qiongli_literature_status` before claiming `provider_connected`.
+
+Keep provider secrets out of `.mcp.json`, `.codex-plugin/plugin.json`, marketplace metadata, and release artifacts. The bundled Node server reads the shared provider config at runtime.
 
 The bundled Codex runtime focuses on literature-provider tools. Use the full CLI stdio server when you need the Python-backed orchestration MCP tools.
+
+`qiongli_configure_provider` is the platform-neutral setup contract. Codex Desktop, Claude Desktop MCPB, Claude Code, Cursor-style clients, and any local stdio MCP client should prefer it for credentials because it opens a local `127.0.0.1` setup page and returns only redacted status. `qiongli_open_config_wizard` remains available as a compatibility alias for older clients and docs.
 
 ## Claude Code Bundled Plugin MCP
 
@@ -76,11 +87,13 @@ qiongli mcp doctor --json
 
 Desktop-only users can use the MCP tools exposed by the bundled Node server or full CLI server:
 
-- `qiongli_save_provider_config`: saves one provider field from the desktop client.
+- `qiongli_configure_provider`: starts a local browser form for provider key setup without putting API keys in chat.
+- `qiongli_open_config_wizard`: compatibility alias for `qiongli_configure_provider`.
+- `qiongli_save_provider_config`: saves one provider field from the desktop client; use it only for explicit scripted writes or when the user deliberately supplied the value in chat.
 - `qiongli_config_status`: reports redacted provider status.
 - `qiongli_literature_search`: searches OpenAlex and Semantic Scholar when provider access is configured.
 
-The full CLI server also exposes `qiongli_open_config_wizard` for a local browser form.
+The full CLI server exposes the same `qiongli_configure_provider` flow.
 
 Secrets are written to the same provider config used by `qiongli provider setup` and `qiongli provider doctor`. Tool results and doctor output report only configured/missing status, not raw key values.
 

@@ -37,6 +37,8 @@ claude plugin marketplace add jxpeng98/skillsplace@main
 claude plugin install qiongli@skillsplace
 ```
 
+内置 literature MCP 不通过客户端 MCP 设置页填写 provider key。让 Codex、Claude Desktop、Claude Code 或其他本地 MCP client 先运行 `qiongli_config_status`，再用 `qiongli_configure_provider` 打开本地设置页配置 `openalex.email` 或 `semantic_scholar.api_key`。这样密钥不会进入 plugin manifest、release artifact 或对话上下文。
+
 如果你需要跨客户端全局 workflow assets，使用 bootstrap 安装器。
 
 Linux / macOS：

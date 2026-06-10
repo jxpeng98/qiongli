@@ -112,7 +112,7 @@ Use `stdio` when the desktop client can launch a local command. Use HTTP only fo
 qiongli mcp serve --transport http --host 127.0.0.1 --port 8765
 ```
 
-Provider keys can be configured with `qiongli mcp configure ...`, `qiongli provider setup`, or the MCP tool `qiongli_open_config_wizard`. Status and tool output are redacted; raw key values are not printed.
+Provider keys can be configured with `qiongli mcp configure ...`, `qiongli provider setup`, or the MCP tool `qiongli_configure_provider`. Status and tool output are redacted; raw key values are not printed.
 
 Runtime `--custom-dir` customization is not supported by npm in this phase. Use the source checkout when you need local custom overlays, profiles, or skills:
 

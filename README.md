@@ -33,11 +33,13 @@ Qiongli now has four deliberately separate surfaces:
 | Surface | What it provides | Does it launch local agents? |
 |---|---|---|
 | Skill / plugin package | Agent instructions, workflow commands, templates, standards, subject overlays, and effective skill markdown | No |
-| Literature MCP runtime | Local literature/provider tools such as `qiongli_literature_search`, `qiongli_config_status`, and `qiongli_save_provider_config` | No |
+| Literature MCP runtime | Local literature/provider tools such as `qiongli_literature_search`, `qiongli_config_status`, `qiongli_configure_provider`, and `qiongli_save_provider_config` | No |
 | Full CLI MCP runtime | Python-backed MCP tools including `qiongli_orchestrator_doctor`, `qiongli_task_plan`, and `qiongli_task_run` | Only when explicitly enabled |
 | Shell / Python orchestrator | `doctor`, validators, `task-plan`, `task-run`, `team-run`, and code-build routes | Yes, when runtime auth is configured |
 
 This separation matters for Desktop users. A manual Skill ZIP install gives Claude Desktop/Web the Qiongli skill and subject overlays. A `.mcpb` install gives Desktop literature MCP calls. The full local agent runtime is a separate CLI/MCP surface.
+
+For Codex marketplace plugins, the bundled literature MCP is launched from the plugin bundle. Configure provider keys through `qiongli_config_status` and the local `qiongli_configure_provider`, not by putting secrets into `.mcp.json` or plugin manifests. The same setup tool is exposed by the Claude Desktop MCPB, Claude Code plugin runtime, and full CLI MCP server for other local MCP clients.
 
 ## Installation Decision Guide
 

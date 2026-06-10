@@ -2,7 +2,7 @@
 
 This package is the Claude Desktop MCPB for Qiongli literature provider access. It contains a zero-dependency Node stdio MCP server, so users do not need to install the `qiongli` CLI or run npm before installing the MCPB.
 
-Pair it with a manual Desktop skill ZIP when you are installing Qiongli without Claude Code or Codex plugin marketplaces. Upload a `qiongli-claude-desktop-skill-*.zip` skill first, then install this MCPB when the same Desktop workspace needs literature MCP tools such as `qiongli_literature_search`, `qiongli_config_status`, and `qiongli_save_provider_config`.
+Pair it with a manual Desktop skill ZIP when you are installing Qiongli without Claude Code or Codex plugin marketplaces. Upload a `qiongli-claude-desktop-skill-*.zip` skill first, then install this MCPB when the same Desktop workspace needs literature MCP tools such as `qiongli_literature_search`, `qiongli_config_status`, `qiongli_configure_provider`, and `qiongli_save_provider_config`.
 
 This MCPB does not launch orchestrator agents. If the Desktop or coding client also needs the full CLI MCP server, local agent runtime, or orchestration tools such as `qiongli_task_run`, install the Python or npm Qiongli CLI and configure the full CLI MCP server separately:
 
@@ -23,7 +23,7 @@ Build or package this directory as a Claude Desktop `.mcpb` extension, then inst
 - Semantic Scholar API key
 - Default result limit
 
-Claude Desktop injects these values into the local Node MCP server environment when the extension runs. The server can also save provider values through `qiongli_save_provider_config` into the shared local provider config. Do not store provider credentials in the Qiongli Desktop skill ZIP or commit local secrets into this package.
+Claude Desktop injects these values into the local Node MCP server environment when the extension runs. The server can also open a local setup page through `qiongli_configure_provider` or save explicit provider values through `qiongli_save_provider_config` into the shared local provider config. `qiongli_open_config_wizard` remains as a compatibility alias for older instructions. Do not store provider credentials in the Qiongli Desktop skill ZIP or commit local secrets into this package.
 
 ## Development
 

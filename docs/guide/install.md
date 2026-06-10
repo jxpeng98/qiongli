@@ -28,7 +28,16 @@ codex plugin marketplace list
 
 Then install or enable `qiongli` from the Codex plugin UI for the default core package. Subject entries such as `qiongli-economics`, `qiongli-accounting`, `qiongli-business`, `qiongli-finance`, `qiongli-political-economy`, `qiongli-geoeconomics`, and `qiongli-economics-accounting` install the corresponding `subject/complete` package from the same marketplace.
 
-The Codex plugin bundles its MCP registration through `.mcp.json` and includes a zero-dependency Node literature-provider server under `mcp/qiongli-literature-provider/`. Codex users do not need to hand-write a separate MCP config or install the `qiongli` CLI for those bundled literature tools. Provider keys remain outside the plugin and can be configured with the bundled MCP tool `qiongli_save_provider_config`, or with `qiongli mcp configure` / `qiongli provider setup` when the CLI is installed. The full Python-backed `qiongli mcp serve` server still requires the npm, pipx/pip, or `full` bootstrap runtime.
+The Codex plugin bundles its MCP registration through `.mcp.json` and includes a zero-dependency Node literature-provider server under `mcp/qiongli-literature-provider/`. Codex users do not need to hand-write a separate MCP config or install the `qiongli` CLI for those bundled literature tools. Provider keys remain outside the plugin and can be configured with the bundled local setup tool `qiongli_configure_provider`, with `qiongli_save_provider_config`, or with `qiongli mcp configure` / `qiongli provider setup` when the CLI is installed. The full Python-backed `qiongli mcp serve` server still requires the npm, pipx/pip, or `full` bootstrap runtime.
+
+Codex currently treats plugin-bundled MCP servers as plugin assets: the settings UI can enable the server and manage tool policy, but it is not the right place to add provider keys for this bundled server. Claude Desktop MCPB, Claude Code, Cursor-style clients, and other local stdio MCP clients should use the same Qiongli provider setup contract. Configure keys through the Qiongli provider config instead:
+
+1. Ask Codex to run `qiongli_config_status` and note the redacted status plus `config_path`.
+2. Ask the client to run `qiongli_configure_provider`, then open the returned `127.0.0.1` URL.
+3. Enter the OpenAlex email and Semantic Scholar API key in the local browser page. The page writes the shared provider config without putting secrets in the conversation.
+4. Re-run `qiongli_config_status` or `qiongli_literature_status`; credentials should be reported only as `configured` or `missing`, never printed in full.
+
+Do not put provider keys in `.mcp.json`, `.codex-plugin/plugin.json`, release ZIPs, or research artifacts. The same shared provider config is read by the Codex plugin MCP, the Claude Code plugin MCP, the Claude Desktop MCPB, and the full CLI MCP server.
 
 Claude Code uses the same Skillsplace catalog:
 

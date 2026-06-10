@@ -128,7 +128,7 @@ MCP tools exposed by the server:
 - `qiongli_collect_evidence`
 - `qiongli_list_provider_env`
 - `qiongli_test_provider`
-- `qiongli_open_config_wizard`
+- `qiongli_configure_provider`
 - `qiongli_orchestrator_doctor`
 - `qiongli_task_plan`
 - `qiongli_task_run`

@@ -38,6 +38,8 @@
 
 ## 当前能力地图
 
+Codex marketplace plugin 内置的 literature MCP 从 plugin bundle 启动。Provider key 优先通过 `qiongli_config_status` 和本地 `qiongli_configure_provider` 配置；脚本化写入仍可用 `qiongli_save_provider_config`。不要把 key 写进 `.mcp.json` 或 plugin manifest。Claude Desktop MCPB、Claude Code plugin runtime 和完整 CLI MCP server 也暴露同一个配置工具，供其他本地 MCP client 使用。
+
 | 领域 | 覆盖内容 |
 |---|---|
 | Framing | 问题精炼、贡献陈述、假设、理论图、gap 分析、venue fit |
