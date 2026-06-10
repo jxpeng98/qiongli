@@ -99,15 +99,15 @@ Use `release_ready.sh` when you want to prepare and verify locally without creat
 ./scripts/release_ready.sh --version 0.2.0b1 --from-tag v0.2.0
 ```
 
-`release_ready.sh` runs version sync, strict validator, repository unit tests, release-tier smoke, release note evidence updates, package build checks, `twine check`, and wheel install smoke. It does not tag or push. Publish mode owns commit, tag, push, branch CI wait, tag publish wait, GitHub Release creation, plugin artifact upload, and acceptance receipt generation.
+`release_ready.sh` runs version sync, strict validator, repository unit tests, release-tier smoke, release note evidence updates, package build checks, `twine check`, and wheel install smoke. It does not tag or push. Publish mode owns commit, branch push, the branch CI/check gate, tag push, tag publish wait, GitHub Release creation, plugin artifact upload, and acceptance receipt generation.
 
-For beta releases where GitHub Actions may exceed the local wait window, publish mode can use a bounded soft wait:
+For beta releases where GitHub Actions may exceed the default local wait window, extend the hard wait instead of using a soft publish gate:
 
 ```bash
-./scripts/release_automation.sh publish --version 0.15.0b2 --from-tag v0.15.0-beta.1 --ci-timeout-seconds 900 --ci-timeout-mode soft
+./scripts/release_automation.sh publish --version 0.15.0b2 --from-tag v0.15.0-beta.1 --ci-timeout-seconds 2700
 ```
 
-Soft mode still fails on completed workflow failures. It only continues when CI is pending or temporarily unqueryable, and records that status in the acceptance receipt. Stable releases should keep the default hard mode.
+Publish mode must verify `CI` and `Checkout Install Check` on the release-prep commit before it creates or pushes the release tag. Package registry publishing and GitHub Release creation happen only after the tag publish workflows pass. Soft CI mode remains available for manual `post` diagnostics, but not for routine publishing.
 
 If you need manual split phases, they still exist:
 

@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 MODE="${1:-}"
 DEV_PRERELEASE_BRANCH="dev"
+BRANCH_REQUIRED_WORKFLOWS=("CI" "Checkout Install Check")
 shift || true
 
 normalize_field() {
@@ -43,6 +44,168 @@ ensure_git_identity() {
   exit 1
 }
 
+derive_repo_slug() {
+  local remote_url
+  remote_url="$(git remote get-url origin 2>/dev/null || true)"
+  if [[ "$remote_url" =~ github\.com[:/]([^/]+)/([^/.]+)(\.git)?$ ]]; then
+    printf '%s/%s\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}"
+    return 0
+  fi
+  return 1
+}
+
+fetch_actions_runs() {
+  local repo_slug="$1"
+  local ref_name="$2"
+  local api_url ci_json
+  local -a curl_cmd
+
+  if command -v gh >/dev/null 2>&1; then
+    if ci_json="$(gh api "repos/${repo_slug}/actions/runs?branch=${ref_name}&per_page=20" 2>/dev/null)"; then
+      printf '%s' "$ci_json"
+      return 0
+    fi
+  fi
+
+  api_url="https://api.github.com/repos/${repo_slug}/actions/runs?branch=${ref_name}&per_page=20"
+  curl_cmd=(curl -fsSL "$api_url")
+  if [[ -n "${GH_TOKEN:-}" ]]; then
+    curl_cmd=(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" "$api_url")
+  fi
+
+  "${curl_cmd[@]}"
+}
+
+query_actions_status() {
+  local repo_slug="$1"
+  local ref_name="$2"
+  local commit="$3"
+  shift 3
+  local ci_json ci_json_file
+  local -a required_workflows=("$@")
+
+  if [[ -z "$repo_slug" ]]; then
+    printf 'skipped:no-repo-slug\n'
+    return 0
+  fi
+
+  if ! ci_json="$(fetch_actions_runs "$repo_slug" "$ref_name" 2>/dev/null)"; then
+    printf 'skipped:request-failed\n'
+    return 0
+  fi
+
+  ci_json_file="$(mktemp)"
+  printf '%s' "$ci_json" >"$ci_json_file"
+
+  set +e
+  python3 - "$ci_json_file" "$commit" "${required_workflows[@]}" <<'PY'
+import json
+import sys
+
+payload_path = sys.argv[1]
+commit = sys.argv[2]
+required = sys.argv[3:]
+with open(payload_path, "r", encoding="utf-8") as fh:
+    raw = fh.read().strip()
+if not raw:
+    print("skipped:empty-response")
+    raise SystemExit(0)
+
+try:
+    payload = json.loads(raw)
+except json.JSONDecodeError:
+    print("skipped:invalid-json")
+    raise SystemExit(0)
+
+runs = payload.get("workflow_runs", [])
+observed = sorted({r.get("name") or "unknown" for r in runs if r.get("head_sha") == commit})
+results = []
+pending = []
+failed = []
+missing = []
+
+for workflow_name in required:
+    matches = [r for r in runs if r.get("head_sha") == commit and r.get("name") == workflow_name]
+    if not matches:
+        missing.append(workflow_name)
+        continue
+    latest = sorted(matches, key=lambda r: r.get("created_at", ""), reverse=True)[0]
+    status = latest.get("status") or "unknown"
+    conclusion = latest.get("conclusion") or "unknown"
+    html_url = latest.get("html_url") or ""
+    results.append(f"{workflow_name}={status}/{conclusion}:{html_url}")
+    if conclusion == "success":
+        continue
+    if status != "completed":
+        pending.append(workflow_name)
+        continue
+    failed.append(workflow_name)
+
+if failed:
+    print("failed:" + "; ".join(results))
+    raise SystemExit(1)
+if pending or missing:
+    labels = []
+    if pending:
+        labels.append("pending=" + ",".join(sorted(pending)))
+    if missing:
+        labels.append("missing=" + ",".join(sorted(missing)))
+        labels.append("observed=" + ",".join(observed))
+    print("pending:" + "; ".join(labels + results))
+    raise SystemExit(0)
+print("success:" + "; ".join(results))
+raise SystemExit(0)
+PY
+  local status=$?
+  set -e
+  rm -f "$ci_json_file"
+  return "$status"
+}
+
+wait_for_required_workflows() {
+  local repo_slug="$1"
+  local ref_name="$2"
+  local commit="$3"
+  local timeout_seconds="$4"
+  local poll_interval_seconds="$5"
+  shift 5
+  local result status wait_deadline
+  local -a required_workflows=("$@")
+
+  if [[ -z "$repo_slug" ]]; then
+    echo "[release-automation] cannot derive GitHub repo slug; refusing to create release tag before branch checks pass" >&2
+    exit 1
+  fi
+
+  wait_deadline=$((SECONDS + timeout_seconds))
+  while true; do
+    set +e
+    result="$(query_actions_status "$repo_slug" "$ref_name" "$commit" "${required_workflows[@]}")"
+    status=$?
+    set -e
+
+    if [[ "$status" -ne 0 ]]; then
+      echo "[release-automation] branch checks failed before tag creation: $result" >&2
+      exit 1
+    fi
+    if [[ "$result" == success:* ]]; then
+      echo "[release-automation] branch checks passed before tag creation: $result"
+      return 0
+    fi
+    if [[ "$result" == skipped:* ]]; then
+      echo "[release-automation] unable to verify branch checks before tag creation: $result" >&2
+      exit 1
+    fi
+    if (( SECONDS >= wait_deadline )); then
+      echo "[release-automation] timed out waiting for branch checks before tag creation: $result" >&2
+      exit 1
+    fi
+
+    echo "[release-automation] waiting for branch checks before tag creation: $result"
+    sleep "$poll_interval_seconds"
+  done
+}
+
 usage() {
   cat <<'EOF'
 Usage:
@@ -61,8 +224,8 @@ Notes:
   - post -> runs scripts/release_postflight.sh
   - publish is the canonical release entrypoint. Use pre/post only for diagnostics or recovery.
   - pre supports pass-through flags such as --from-tag, --skip-note-gen, --note-overwrite, --skip-smoke, --maintainer-smoke, and --no-strict.
-  - publish -> runs release_ready with staged distribution checks (including pypi_preflight.sh and npm_preflight.sh), commits release-prep files, creates/pushes the tag, waits for branch CI and tag publish workflows, then runs postflight with release-page creation.
-  - publish supports --ci-timeout-mode hard|soft. Use soft for beta releases when CI may exceed the local wait window; keep hard for stable releases.
+  - publish -> runs release_ready with staged distribution checks (including pypi_preflight.sh and npm_preflight.sh), commits and pushes release-prep files, waits for branch CI/checks, creates/pushes the tag, waits for tag publish workflows, then runs postflight with release-page creation.
+  - publish always uses hard CI gates before tag creation and release-page creation; use post mode for diagnostic soft waits only.
   - publish stable releases from the primary branch; publish prerelease/beta tags from dev or the primary branch.
 EOF
 }
@@ -165,18 +328,16 @@ case "$MODE" in
           shift
           ;;
         --skip-ci-status)
-          skip_ci_status=1
-          wait_ci=0
-          post_args+=("$1")
-          shift
+          echo "[release-automation] publish mode cannot skip CI status checks before tag creation" >&2
+          exit 2
           ;;
         --wait-ci)
           wait_ci=1
           shift
           ;;
         --no-wait-ci)
-          wait_ci=0
-          shift
+          echo "[release-automation] publish mode cannot disable CI waiting before tag creation" >&2
+          exit 2
           ;;
         --ci-timeout-seconds)
           [[ $# -ge 2 ]] || { echo "[release-automation] missing value for --ci-timeout-seconds" >&2; exit 2; }
@@ -190,6 +351,10 @@ case "$MODE" in
             echo "[release-automation] --ci-timeout-mode must be hard or soft" >&2
             exit 2
           }
+          if [[ "$ci_timeout_mode" != "hard" ]]; then
+            echo "[release-automation] publish mode requires hard CI timeout mode before tag creation" >&2
+            exit 2
+          fi
           shift 2
           ;;
         --ci-poll-interval-seconds)
@@ -274,18 +439,25 @@ case "$MODE" in
     else
       echo "[release-automation] no staged release-prep changes to commit; continuing"
     fi
+    release_commit="$(git rev-parse HEAD)"
 
     if git rev-parse -q --verify "refs/tags/$repo_tag" >/dev/null; then
       echo "[release-automation] tag already exists locally: $repo_tag" >&2
       exit 1
     fi
-
-    git tag -a "$repo_tag" -m "$tag_message"
-    git push "$push_remote" "$push_branch" "$repo_tag"
-
-    if [[ "$wait_ci" -eq 1 ]]; then
-      post_args+=(--wait-ci --ci-timeout-seconds "$ci_timeout_seconds" --ci-timeout-mode "$ci_timeout_mode" --ci-poll-interval-seconds "$ci_poll_interval_seconds")
+    if git ls-remote --exit-code --tags "$push_remote" "$repo_tag" >/dev/null 2>&1 \
+      || git ls-remote --exit-code --tags "$push_remote" "${repo_tag}^{}" >/dev/null 2>&1; then
+      echo "[release-automation] tag already exists on remote $push_remote: $repo_tag" >&2
+      exit 1
     fi
+
+    repo_slug="$(derive_repo_slug || true)"
+    git push "$push_remote" "$push_branch"
+    wait_for_required_workflows "$repo_slug" "$push_branch" "$release_commit" "$ci_timeout_seconds" "$ci_poll_interval_seconds" "${BRANCH_REQUIRED_WORKFLOWS[@]}"
+    git tag -a "$repo_tag" -m "$tag_message"
+    git push "$push_remote" "$repo_tag"
+
+    post_args+=(--wait-ci --ci-timeout-seconds "$ci_timeout_seconds" --ci-timeout-mode hard --ci-poll-interval-seconds "$ci_poll_interval_seconds")
     if [[ "$create_release" -eq 1 ]]; then
       post_args+=(--create-release)
     fi

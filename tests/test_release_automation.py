@@ -45,7 +45,9 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn("git add CHANGELOG.md", content)
         self.assertIn('git add "tooling/release/${repo_tag}.md"', content)
         self.assertIn('git tag -a "$repo_tag"', content)
-        self.assertIn('git push "$push_remote" "$push_branch" "$repo_tag"', content)
+        self.assertIn('git push "$push_remote" "$push_branch"', content)
+        self.assertIn('git push "$push_remote" "$repo_tag"', content)
+        self.assertNotIn('git push "$push_remote" "$push_branch" "$repo_tag"', content)
         self.assertIn('acceptance_out="tooling/release/acceptance/${repo_tag}-receipt.md"', content)
         self.assertIn('./scripts/release_postflight.sh --tag "$repo_tag" --acceptance-out "$acceptance_out"', content)
         self.assertIn('git add "$acceptance_out"', content)
@@ -89,6 +91,8 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn("npm `latest` advances", docs)
         self.assertIn("npm `next` remains on the previous beta", docs)
         self.assertIn("不要为了移动 `next` 而机械发 beta", docs)
+        self.assertIn("before tag creation", docs)
+        self.assertIn("创建 tag 前", docs)
 
     def test_publish_mode_allows_beta_release_from_dev_only(self) -> None:
         content = RELEASE_AUTOMATION.read_text(encoding="utf-8")
@@ -112,6 +116,31 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn(release_ready, content)
         self.assertLess(content.index(release_ready), content.index(git_add))
         self.assertLess(content.index(release_ready), content.index(tag))
+
+    def test_publish_mode_gates_tag_publish_on_branch_checks(self) -> None:
+        content = RELEASE_AUTOMATION.read_text(encoding="utf-8")
+
+        branch_push = 'git push "$push_remote" "$push_branch"'
+        branch_gate = 'wait_for_required_workflows "$repo_slug" "$push_branch" "$release_commit" "$ci_timeout_seconds" "$ci_poll_interval_seconds" "${BRANCH_REQUIRED_WORKFLOWS[@]}"'
+        tag_create = 'git tag -a "$repo_tag" -m "$tag_message"'
+        tag_push = 'git push "$push_remote" "$repo_tag"'
+        postflight = './scripts/release_postflight.sh --tag "$repo_tag" --acceptance-out "$acceptance_out"'
+
+        self.assertIn('BRANCH_REQUIRED_WORKFLOWS=("CI" "Checkout Install Check")', content)
+        self.assertIn('release_commit="$(git rev-parse HEAD)"', content)
+        self.assertIn('repo_slug="$(derive_repo_slug || true)"', content)
+        self.assertIn(branch_push, content)
+        self.assertIn(branch_gate, content)
+        self.assertIn(tag_create, content)
+        self.assertIn(tag_push, content)
+        self.assertIn(postflight, content)
+        self.assertIn('publish mode cannot skip CI status checks before tag creation', content)
+        self.assertIn('publish mode cannot disable CI waiting before tag creation', content)
+        self.assertIn('publish mode requires hard CI timeout mode before tag creation', content)
+        self.assertLess(content.index(branch_push), content.index(branch_gate))
+        self.assertLess(content.index(branch_gate), content.index(tag_create))
+        self.assertLess(content.index(tag_create), content.index(tag_push))
+        self.assertLess(content.index(tag_push), content.index(postflight))
 
     def test_release_postflight_waits_for_branch_and_tag_workflows(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
@@ -223,7 +252,7 @@ class ReleaseAutomationTests(unittest.TestCase):
 
         self.assertIn('ci_timeout_mode="hard"', content)
         self.assertIn("--ci-timeout-mode", content)
-        self.assertIn('post_args+=(--wait-ci --ci-timeout-seconds "$ci_timeout_seconds" --ci-timeout-mode "$ci_timeout_mode" --ci-poll-interval-seconds "$ci_poll_interval_seconds")', content)
+        self.assertIn('post_args+=(--wait-ci --ci-timeout-seconds "$ci_timeout_seconds" --ci-timeout-mode hard --ci-poll-interval-seconds "$ci_poll_interval_seconds")', content)
 
     def test_release_postflight_accepts_beta_tags_reachable_from_dev(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")

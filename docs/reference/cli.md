@@ -477,7 +477,8 @@ Recommended:
 
 - use `publish` as the only routine release entrypoint
 - use `pre` / `post` only for diagnostics or recovery
-- let `publish` own commit, tag, push, branch CI wait, tag publish wait, GitHub Release, and acceptance receipt
+- let `publish` own commit, branch push, branch CI/check gate, tag push, tag publish wait, GitHub Release, and acceptance receipt
+- do not create or push the release tag until the release-prep commit has passed `CI` and `Checkout Install Check`
 - stable releases publish from the matching `CHANGELOG.md` section
 - beta / prerelease releases publish from `tooling/release/<tag>.md`
 
@@ -488,7 +489,7 @@ Also executable individually:
 ./scripts/release_postflight.sh --tag v0.1.0-beta.X [--skip-remote] [--skip-ci-status] [--wait-ci] [--ci-timeout-seconds 900] [--ci-timeout-mode soft] [--create-release]
 ```
 
-For beta releases, `--ci-timeout-mode soft` lets postflight wait for a bounded window and then record unresolved CI as `pending` in the acceptance receipt. Keep the default hard mode for stable releases.
+`publish` always uses hard CI gates before tag creation and before GitHub Release creation. For manual `post` diagnostics or recovery, `--ci-timeout-mode soft` can record unresolved CI as `pending` in the acceptance receipt, but it is not valid for routine publishing.
 
 ### 4.4 Beta smoke tests: `./scripts/run_beta_smoke.sh`
 

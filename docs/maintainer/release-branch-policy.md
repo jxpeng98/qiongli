@@ -71,10 +71,15 @@ For beta tags this command should produce only `qiongli-next` core artifacts; fo
 ./scripts/release_automation.sh publish --version 0.8.0b1 --skip-bump --from-tag v0.7.0-beta.2
 ```
 
+`publish` pushes the release-prep commit first and waits for the required branch checks (`CI` and
+`Checkout Install Check`) on that same commit before it creates or pushes the beta tag. The tag then
+triggers registry publish workflows, and the GitHub prerelease is created only after those tag
+publish workflows pass.
+
 6. Merge to `main` only after CI, install checks, and release preflight pass for a stable release candidate.
 
 ## Stable Release Rule
 
-Only `main` should create stable release tags and public plugin artifacts, and the shared Skillsplace entry should only be advanced after those release gates pass. The release automation enforces stable publish mode from the primary branch. Prerelease tags may publish from `dev`; postflight then checks that the beta tag commit is reachable from `dev` and queries CI on `dev`. Keep release-candidate work on `dev` until it is ready to become a stable release.
+Only `main` should create stable release tags and public plugin artifacts, and the shared Skillsplace entry should only be advanced after those release gates pass. The release automation enforces stable publish mode from the primary branch and waits for required branch checks before tag creation. Prerelease tags may publish from `dev`; publish mode first gates on `dev` CI/checks, then creates the beta tag, then waits for tag publish workflows. Keep release-candidate work on `dev` until it is ready to become a stable release.
 
 Beta is not mandatory for every stable release. Use beta when the release changes high-risk surfaces such as release automation, package payloads, installers, package metadata, CI, or publish workflows. Low-risk docs and small fixes may publish directly from `main` as stable. When stable ships without a matching beta, npm `latest` advances and npm `next` intentionally remains on the previous beta; `next` means latest prerelease validation build, not a channel that must always be newer than stable.

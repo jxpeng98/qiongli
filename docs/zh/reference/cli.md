@@ -441,7 +441,8 @@ mode 列表：
 
 - 日常发布只用 `publish`
 - 只有诊断或恢复时才用 `pre` / `post`
-- 让 `publish` 统一负责 commit、tag、push、等待 branch CI、等待 tag publish、GitHub Release 和 acceptance receipt
+- 让 `publish` 统一负责 commit、推送 branch、branch CI/check 门禁、推送 tag、等待 tag publish、GitHub Release 和 acceptance receipt
+- release-prep commit 通过 `CI` 和 `Checkout Install Check` 之前，不创建也不推送 release tag
 - stable 正式版从 `CHANGELOG.md` 对应章节发布
 - beta / prerelease 继续从 `tooling/release/<tag>.md` 发布
 
@@ -452,7 +453,7 @@ mode 列表：
 ./scripts/release_postflight.sh --tag v0.1.0-beta.X [--skip-remote] [--skip-ci-status] [--wait-ci] [--ci-timeout-seconds 900] [--ci-timeout-mode soft] [--create-release]
 ```
 
-对于 beta release，`--ci-timeout-mode soft` 会让 postflight 只等待指定窗口，之后把未完成的 CI 记录为 acceptance receipt 里的 `pending` 状态并继续。stable release 保持默认 hard 模式。
+`publish` 始终使用 hard CI 门禁：tag 创建前必须通过 branch checks，GitHub Release 创建前也必须确认 tag publish workflows 通过。`--ci-timeout-mode soft` 只用于手动 `post` 诊断或恢复，可把未完成 CI 记录为 acceptance receipt 里的 `pending`，不再用于日常 publish。
 
 ### 4.4 Beta smoke：`./scripts/run_beta_smoke.sh`
 

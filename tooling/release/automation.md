@@ -25,9 +25,10 @@ This mode runs:
 
 - `scripts/release_ready.sh`
 - release-prep commit creation
-- annotated tag creation
-- push of the release branch + tag
-- waiting for branch checks (`CI`, `Checkout Install Check`) and tag publish workflows (`Publish to PyPI`, `Publish to npm`)
+- push of the release branch
+- hard waiting for branch checks (`CI`, `Checkout Install Check`) on the release-prep commit
+- annotated tag creation and tag push only after branch checks pass
+- hard waiting for tag publish workflows (`Publish to PyPI`, `Publish to npm`)
 - `scripts/release_postflight.sh --create-release`
 - marketplace / extension artifact generation for Codex, Claude Code, and Gemini CLI
 
@@ -112,7 +113,10 @@ git switch dev
 ./scripts/release_automation.sh publish --tag v0.8.0-beta.1 --skip-bump --from-tag v0.7.0-beta.2
 ```
 
-The command above owns the release-prep commit, tag creation, branch/tag push, registry publish wait, GitHub Release, and acceptance receipt.
+The command above owns the release-prep commit, branch push, branch CI/check gate, tag creation,
+tag push, registry publish wait, GitHub Release, and acceptance receipt. It does not create the
+tag or publish package registries until the release-prep commit has passed the required branch
+checks.
 
 ## 5) Post-release checks
 
@@ -145,9 +149,11 @@ When `--create-release` is used, the generated Codex, Claude Code, and Gemini CL
 - `--allow-dirty`: let `release_ready.sh` continue on a dirty worktree.
 - `--commit-message <msg>`: override the release-prep commit message used by `publish`.
 - `--push-remote <name>` / `--push-branch <name>`: override the remote/branch used by `publish`.
-- `--wait-ci`: wait for required branch checks and tag publish workflows to succeed before release creation.
+- `--wait-ci`: accepted for compatibility; publish mode always waits for required branch checks
+  before tag creation and tag publish workflows before release creation.
 - `--ci-timeout-seconds <n>` / `--ci-poll-interval-seconds <n>`: control publish wait behavior.
-- `--ci-timeout-mode hard|soft`: `hard` fails if required workflows are unresolved after the wait window; `soft` records `pending` or query-unavailable CI status in the acceptance receipt and continues. Use `soft` for beta releases only when a bounded local wait is preferred.
+- `--ci-timeout-mode hard`: publish mode requires hard CI gates. `soft` is available only for
+  manual `post` diagnostics or recovery, not for routine publishing.
 - `--skip-remote`: skip remote ref checks in postflight.
 - `--skip-ci-status`: skip GitHub Actions status checks in postflight.
 - `--create-release`: if `gh auth` is available, create GitHub release page from the prerelease note file or the matching `CHANGELOG.md` section for stable tags.

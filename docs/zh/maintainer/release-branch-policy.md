@@ -55,10 +55,20 @@ python3 -m unittest discover -s tests -v
 python3 scripts/build_plugin_artifacts.py --tag v0.7.0-beta.2 --dist-dir dist
 ```
 
-5. 只有当 CI、install checks 和 release preflight 都通过后，才把变更合入 `main`。
+5. 从 `dev` 发布 beta：
+
+```bash
+./scripts/release_automation.sh publish --version 0.8.0b1 --skip-bump --from-tag v0.7.0-beta.2
+```
+
+`publish` 会先推送 release-prep commit，并等待同一个 commit 上的必需 branch checks（`CI` 和
+`Checkout Install Check`）通过；通过后才创建并推送 beta tag。tag 随后触发 registry publish
+workflows，GitHub prerelease 也只会在这些 tag publish workflows 通过后创建。
+
+6. 只有当 CI、install checks 和 release preflight 都通过后，才把变更合入 `main`。
 
 ## 稳定发布规则
 
-只有 `main` 应创建稳定 release tag 和公开 plugin artifacts；统一的 Skillsplace 条目也应在 release gates 通过后再推进。release automation 已要求 publish mode 必须从 primary branch 运行。beta 和 release-candidate 工作保留在 `dev`，直到它可以成为稳定发布。
+只有 `main` 应创建稳定 release tag 和公开 plugin artifacts；统一的 Skillsplace 条目也应在 release gates 通过后再推进。release automation 已要求 publish mode 必须从 primary branch 运行，并会在创建 tag 前等待必需 branch checks。beta tag 可从 `dev` 发布；publish mode 会先等待 `dev` 上的 CI/checks，再创建 beta tag，然后等待 tag publish workflows。beta 和 release-candidate 工作保留在 `dev`，直到它可以成为稳定发布。
 
 beta 不是每个 stable release 的必经步骤。只有当 release 改动发布自动化、package payload、installer、package metadata、CI 或 publish workflows 这类高风险面时，才需要先用 beta 验证。低风险文档、小修复和维护改动可以直接从 `main` 发 stable。若 stable 没有对应的新 beta，npm `latest` 会前进，npm `next` 会有意停在上一个 beta；`next` 表示最新预发布验证版，不是必须始终比 stable 更新的通道。
