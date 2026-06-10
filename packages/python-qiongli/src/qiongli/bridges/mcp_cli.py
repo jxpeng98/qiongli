@@ -151,17 +151,23 @@ def _cmd_config(args: argparse.Namespace) -> int:
 def _doctor_payload(cwd: Path) -> dict[str, Any]:
     config = resolve_provider_config(cwd=cwd)
     summary = provider_config_summary(config)
-    return {
+    missing = _missing_provider_fields(summary)
+    payload: dict[str, Any] = {
         "server": {"name": SERVER_NAME, "version": __version__},
         "config_path": str(global_provider_config_path()),
         "providers": summary,
         "capability_mode": provider_capability_mode(summary),
+        "missing": missing,
         "redacted_config": redact_provider_config(config),
         "provider_env_aliases": {
             provider: {field: list(aliases) for field, aliases in fields.items()}
             for provider, fields in PROVIDER_FIELDS.items()
         },
     }
+    next_action = _provider_setup_next_action(missing)
+    if next_action is not None:
+        payload["next_action"] = next_action
+    return payload
 
 
 def config_example(target: str) -> dict[str, Any]:
@@ -179,9 +185,10 @@ def config_example(target: str) -> dict[str, Any]:
         "server": server,
         "config": config,
         "configuration_tools": [
+            "qiongli_config_status",
+            "qiongli_configure_provider",
             "qiongli_open_config_wizard",
             "qiongli_save_provider_config",
-            "qiongli_config_status",
         ],
         "orchestration_tools": [
             "qiongli_orchestrator_doctor",
@@ -197,6 +204,26 @@ def config_example(target: str) -> dict[str, Any]:
 
 def _normalize_label(value: str) -> str:
     return value.strip().lower().replace("-", "_")
+
+
+def _missing_provider_fields(summary: dict[str, str]) -> list[str]:
+    missing: list[str] = []
+    if summary.get("semantic_scholar") != "configured":
+        missing.append("semantic_scholar.api_key")
+    return missing
+
+
+def _provider_setup_next_action(missing: list[str]) -> dict[str, Any] | None:
+    if "semantic_scholar.api_key" not in missing:
+        return None
+    return {
+        "tool": "qiongli_configure_provider",
+        "args": {"provider": "semantic_scholar"},
+        "message": (
+            "Run qiongli_configure_provider to open a local setup page. "
+            "Do not paste API keys in chat."
+        ),
+    }
 
 
 if __name__ == "__main__":

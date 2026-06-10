@@ -99,19 +99,27 @@ export function providerStatus(config) {
   };
   const openalexUsable = providers.openalex === "configured" || providers.openalex === "configured_without_email";
   const semanticScholarUsable = providers.semantic_scholar === "configured";
+  const missing = missingProviderFields(config);
+  const nextAction = providerSetupNextAction(missing);
 
-  return {
+  const status = {
     status: "ok",
     capability_mode: openalexUsable || semanticScholarUsable ? "provider_connected" : "strategy_only",
-    providers
+    providers,
+    missing
   };
+  if (nextAction) {
+    status.next_action = nextAction;
+  }
+  return status;
 }
 
 export function redactedProviderStatus(config) {
   const status = providerStatus(config);
-  return {
+  const redacted = {
     status: status.status,
     capability_mode: status.capability_mode,
+    missing: status.missing,
     providers: {
       openalex: {
         configured: status.providers.openalex === "configured" || status.providers.openalex === "configured_without_email",
@@ -138,6 +146,32 @@ export function redactedProviderStatus(config) {
         }
       }
     }
+  };
+  if (status.next_action) {
+    redacted.next_action = status.next_action;
+  }
+  return redacted;
+}
+
+function missingProviderFields(config) {
+  const missing = [];
+  if (!config.semanticScholarApiKey) {
+    missing.push("semantic_scholar.api_key");
+  }
+  return missing;
+}
+
+function providerSetupNextAction(missing) {
+  if (!missing.includes("semantic_scholar.api_key")) {
+    return undefined;
+  }
+
+  return {
+    tool: "qiongli_configure_provider",
+    args: {
+      provider: "semantic_scholar"
+    },
+    message: "Run qiongli_configure_provider to open a local setup page. Do not paste API keys in chat."
   };
 }
 

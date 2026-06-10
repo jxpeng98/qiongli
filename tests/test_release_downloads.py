@@ -44,7 +44,7 @@ class ReleaseDownloadsTests(unittest.TestCase):
         self.assertIn("npx qiongli@next install --target all", guide)
         self.assertIn("Use the marketplace command; do not download a plugin tarball", guide)
         self.assertIn("qiongli-next-claude-desktop-skill-core-v1.1.0-beta.2.zip", guide)
-        self.assertIn("qiongli-literature-provider-0.1.0.mcpb", guide)
+        self.assertIn("qiongli-literature-provider-0.1.4.mcpb", guide)
         self.assertIn("qiongli-downloads-v1.1.0-beta.2.json", guide)
 
         self.assertEqual(index["tag"], "v1.1.0-beta.2")
@@ -57,7 +57,7 @@ class ReleaseDownloadsTests(unittest.TestCase):
         self.assertEqual(index["recommended"]["claude_code"]["plugin"], "qiongli-next")
         self.assertEqual(
             index["recommended"]["claude_desktop_literature_mcpb"]["asset"],
-            "qiongli-literature-provider-0.1.0.mcpb",
+            "qiongli-literature-provider-0.1.4.mcpb",
         )
         self.assertIn(
             "qiongli-next-claude-desktop-skill-core-v1.1.0-beta.2.zip",
@@ -100,7 +100,7 @@ class ReleaseDownloadsTests(unittest.TestCase):
         self.assertIn("Most users should not download plugin tarballs manually", notes)
         self.assertIn("qiongli-downloads-v1.1.0-beta.2.md", notes)
         self.assertIn("qiongli-next-claude-desktop-skill-core-v1.1.0-beta.2.zip", notes)
-        self.assertIn("qiongli-literature-provider-0.1.0.mcpb", notes)
+        self.assertIn("qiongli-literature-provider-0.1.4.mcpb", notes)
 
 
 if __name__ == "__main__":

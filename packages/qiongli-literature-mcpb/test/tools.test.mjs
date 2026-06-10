@@ -5,7 +5,9 @@ import os from "node:os";
 import path from "node:path";
 import {
   TOOL_DECLARATIONS,
+  handleConfigStatus,
   handleExportEvidence,
+  handleOpenConfigWizard,
   handleSearch,
   handleSaveProviderConfig,
   handleStatus
@@ -17,11 +19,34 @@ test("tool declarations match manifest tool names", () => {
     [
       "qiongli_literature_status",
       "qiongli_config_status",
+      "qiongli_configure_provider",
       "qiongli_save_provider_config",
+      "qiongli_open_config_wizard",
       "qiongli_literature_search",
       "qiongli_literature_export_evidence"
     ]
   );
+});
+
+test("handleConfigStatus suggests the platform-neutral setup tool when provider secrets are missing", () => {
+  const status = handleConfigStatus({
+    env: {
+      QIONGLI_CONFIG_HOME: path.join(os.tmpdir(), "qiongli-missing-config")
+    }
+  });
+  const serialized = JSON.stringify(status);
+
+  assert.equal(status.providers.semantic_scholar.fields.api_key, "missing");
+  assert.deepEqual(status.missing, ["semantic_scholar.api_key"]);
+  assert.deepEqual(status.next_action, {
+    tool: "qiongli_configure_provider",
+    args: {
+      provider: "semantic_scholar"
+    },
+    message: "Run qiongli_configure_provider to open a local setup page. Do not paste API keys in chat."
+  });
+  assert.equal(serialized.includes("api_key"), true);
+  assert.equal(serialized.includes("secret-key"), false);
 });
 
 test("handleStatus redacts configured secrets", () => {
@@ -55,12 +80,53 @@ test("handleSaveProviderConfig writes shared provider config without echoing sec
     assert.equal(response.status, "saved");
     assert.equal(response.provider, "semantic_scholar");
     assert.equal(response.field, "api_key");
+    assert.equal(response.warning, "api_key was saved from chat input. Prefer qiongli_configure_provider so provider secrets do not enter chat history.");
     assert.equal(config.providers.semantic_scholar.enabled, true);
     assert.equal(config.providers.semantic_scholar.api_key, "secret-key");
     assert.equal(serialized.includes("secret-key"), false);
   } finally {
     await rm(configHome, { recursive: true, force: true });
   }
+});
+
+test("handleOpenConfigWizard returns local setup URL and saves provider config", async () => {
+  const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-wizard-"));
+  const wizard = await handleOpenConfigWizard({}, { env: { QIONGLI_CONFIG_HOME: configHome } });
+  try {
+    const response = await fetch(wizard.url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: new URLSearchParams({
+        "openalex.email": "person@example.com",
+        "semantic_scholar.api_key": "secret-key"
+      }),
+      redirect: "manual"
+    });
+
+    const configPath = path.join(configHome, "providers.json");
+    const config = JSON.parse(await readFile(configPath, "utf8"));
+    const serialized = JSON.stringify(wizard);
+
+    assert.equal(response.status, 303);
+    assert.equal(wizard.host, "127.0.0.1");
+    assert.equal(wizard.config_path, configPath);
+    assert.equal(config.providers.openalex.email, "person@example.com");
+    assert.equal(config.providers.semantic_scholar.api_key, "secret-key");
+    assert.equal(serialized.includes("person@example.com"), false);
+    assert.equal(serialized.includes("secret-key"), false);
+  } finally {
+    await wizard.stop();
+    await rm(configHome, { recursive: true, force: true });
+  }
+});
+
+test("handleOpenConfigWizard rejects non-local hosts", async () => {
+  await assert.rejects(
+    () => handleOpenConfigWizard({ host: "0.0.0.0" }),
+    /host must be 127\.0\.0\.1 or localhost/
+  );
 });
 
 test("handleSearch rejects blank query with sanitized error", async () => {

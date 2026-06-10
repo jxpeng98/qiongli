@@ -1,6 +1,6 @@
 {
   "name": "qiongli-literature-provider-mcpb",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "private": true,
   "type": "module",
   "description": "Claude Desktop MCPB for Qiongli academic literature provider search.",

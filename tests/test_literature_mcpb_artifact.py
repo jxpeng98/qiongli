@@ -41,7 +41,9 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
             {
                 "qiongli_literature_status",
                 "qiongli_config_status",
+                "qiongli_configure_provider",
                 "qiongli_save_provider_config",
+                "qiongli_open_config_wizard",
                 "qiongli_literature_search",
                 "qiongli_literature_export_evidence",
             },
@@ -104,6 +106,7 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
         self.assertIn("README.md", names)
         self.assertIn("server/index.mjs", names)
         self.assertIn("server/config.mjs", names)
+        self.assertIn("server/config-wizard.mjs", names)
         self.assertIn("server/stdio.mjs", names)
 
     def test_build_literature_mcpb_excludes_tests(self) -> None:

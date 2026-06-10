@@ -6,11 +6,15 @@ import {
   redactedProviderStatus,
   saveProviderValue
 } from "./config.mjs";
+import { fileURLToPath } from "node:url";
+import { realpathSync } from "node:fs";
+import path from "node:path";
 import { buildEvidence } from "./evidence.mjs";
 import { dedupeResults } from "./normalize.mjs";
 import { searchOpenAlex } from "./providers/openalex.mjs";
 import { searchSemanticScholar } from "./providers/semantic-scholar.mjs";
 import { startJsonRpcStdioServer } from "./stdio.mjs";
+import { startConfigWizard } from "./config-wizard.mjs";
 
 const MIN_LIMIT = 1;
 const MAX_LIMIT = 50;
@@ -35,8 +39,30 @@ export const TOOL_DECLARATIONS = [
     }
   },
   {
+    name: "qiongli_configure_provider",
+    description: "Open a local browser-based setup page for Qiongli provider credentials. Prefer this for API keys so secrets do not enter chat history.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        provider: {
+          type: "string",
+          enum: ["openalex", "semantic_scholar", "semantic-scholar", "crossref", "pubmed"]
+        },
+        host: {
+          type: "string",
+          default: "127.0.0.1"
+        },
+        port: {
+          type: "integer",
+          default: 0
+        }
+      }
+    }
+  },
+  {
     name: "qiongli_save_provider_config",
-    description: "Save a Qiongli provider email or API key into the shared local provider config.",
+    description: "Save explicit Qiongli provider config values from chat or scripts. Prefer qiongli_configure_provider for API keys.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -50,6 +76,28 @@ export const TOOL_DECLARATIONS = [
         },
         value: {
           type: "string"
+        }
+      }
+    }
+  },
+  {
+    name: "qiongli_open_config_wizard",
+    description: "Compatibility alias for qiongli_configure_provider. Starts a local browser-based provider configuration wizard.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        provider: {
+          type: "string",
+          enum: ["openalex", "semantic_scholar", "semantic-scholar", "crossref", "pubmed"]
+        },
+        host: {
+          type: "string",
+          default: "127.0.0.1"
+        },
+        port: {
+          type: "integer",
+          default: 0
         }
       }
     }
@@ -177,12 +225,26 @@ export async function handleSaveProviderConfig(input = {}, context = {}) {
     value: input.value,
     env
   });
-  return {
+  const response = {
     status: "saved",
     provider: result.provider,
     field: result.field,
     config_path: result.path
   };
+  if (result.field === "api_key") {
+    response.warning = "api_key was saved from chat input. Prefer qiongli_configure_provider so provider secrets do not enter chat history.";
+  }
+  return response;
+}
+
+export async function handleOpenConfigWizard(input = {}, context = {}) {
+  const env = context.env ?? process.env;
+  return startConfigWizard({
+    provider: input.provider,
+    host: input.host,
+    port: input.port,
+    env
+  });
 }
 
 export async function handleSearch(input = {}, context = {}) {
@@ -279,8 +341,16 @@ export async function handleToolCall(name, input = {}, context = {}) {
     return toolResult(handleConfigStatus(context));
   }
 
+  if (name === "qiongli_configure_provider") {
+    return toolResult(await handleOpenConfigWizard(input, context));
+  }
+
   if (name === "qiongli_save_provider_config") {
     return toolResult(await handleSaveProviderConfig(input, context));
+  }
+
+  if (name === "qiongli_open_config_wizard") {
+    return toolResult(await handleOpenConfigWizard(input, context));
   }
 
   if (name === "qiongli_literature_search") {
@@ -294,7 +364,7 @@ export async function startStdioServer() {
   await startJsonRpcStdioServer({
     serverInfo: {
       name: "qiongli-literature-provider",
-      version: "0.1.0"
+      version: "0.1.4"
     },
     listTools,
     handleToolCall
@@ -302,7 +372,10 @@ export async function startStdioServer() {
 }
 
 function isDirectRun() {
-  return import.meta.url === `file://${process.argv[1]}`;
+  if (!process.argv[1]) {
+    return false;
+  }
+  return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(path.resolve(process.argv[1]));
 }
 
 if (isDirectRun()) {

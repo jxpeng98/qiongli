@@ -30,7 +30,12 @@ class ConfigWizard:
         self.server.server_close()
 
 
-def start_config_wizard(host: str = "127.0.0.1", port: int = 0) -> ConfigWizard:
+def start_config_wizard(
+    host: str = "127.0.0.1",
+    port: int = 0,
+    provider: str | None = None,
+) -> ConfigWizard:
+    provider_id = _normalize_provider(provider)
     token = secrets.token_urlsafe(18)
     config_path = str(global_provider_config_path())
 
@@ -40,7 +45,14 @@ def start_config_wizard(host: str = "127.0.0.1", port: int = 0) -> ConfigWizard:
                 self._send_text("Forbidden", status=403)
                 return
             saved = "saved" in parse_qs(urlparse(self.path).query)
-            self._send_html(_render_form(token=token, config_path=config_path, saved=saved))
+            self._send_html(
+                _render_form(
+                    token=token,
+                    config_path=config_path,
+                    saved=saved,
+                    provider=provider_id,
+                )
+            )
 
         def do_POST(self) -> None:
             if not self._authorized():
@@ -49,7 +61,7 @@ def start_config_wizard(host: str = "127.0.0.1", port: int = 0) -> ConfigWizard:
             length = int(self.headers.get("Content-Length", "0") or "0")
             body = self.rfile.read(length).decode("utf-8")
             values = parse_qs(body)
-            for provider, fields in PROVIDER_FIELDS.items():
+            for provider, fields in _provider_entries(provider_id):
                 for field in fields:
                     value = values.get(f"{provider}.{field}", [""])[0].strip()
                     if value:
@@ -95,9 +107,26 @@ def start_config_wizard(host: str = "127.0.0.1", port: int = 0) -> ConfigWizard:
     )
 
 
-def _render_form(*, token: str, config_path: str, saved: bool) -> str:
+def _normalize_provider(provider: str | None) -> str | None:
+    if not provider:
+        return None
+    normalized = provider.strip().lower().replace("-", "_")
+    aliases = {"s2": "semantic_scholar", "semanticscholar": "semantic_scholar"}
+    provider_id = aliases.get(normalized, normalized)
+    if provider_id not in PROVIDER_FIELDS:
+        raise ValueError(f"unsupported provider: {provider}")
+    return provider_id
+
+
+def _provider_entries(provider: str | None) -> list[tuple[str, object]]:
+    if provider:
+        return [(provider, PROVIDER_FIELDS[provider])]
+    return list(PROVIDER_FIELDS.items())
+
+
+def _render_form(*, token: str, config_path: str, saved: bool, provider: str | None = None) -> str:
     fields = []
-    for provider, provider_fields in PROVIDER_FIELDS.items():
+    for provider, provider_fields in _provider_entries(provider):
         field_rows = []
         for field in provider_fields:
             input_name = f"{provider}.{field}"

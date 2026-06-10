@@ -22,6 +22,7 @@ class MCPToolHandlerTests(unittest.TestCase):
                 "qiongli_collect_evidence",
                 "qiongli_list_provider_env",
                 "qiongli_test_provider",
+                "qiongli_configure_provider",
                 "qiongli_open_config_wizard",
                 "qiongli_orchestrator_doctor",
                 "qiongli_task_plan",
@@ -48,6 +49,22 @@ class MCPToolHandlerTests(unittest.TestCase):
         self.assertEqual(result["structuredContent"]["capability_mode"], "provider_connected")
         self.assertNotIn("secret-demo-key", rendered)
 
+    def test_config_status_suggests_platform_neutral_configure_tool(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            with mock.patch.dict(
+                "os.environ",
+                {"QIONGLI_CONFIG_HOME": str(root / "config")},
+                clear=False,
+            ):
+                result = call_qiongli_tool("qiongli_config_status", {"cwd": str(root)})
+
+        payload = result["structuredContent"]
+        self.assertEqual(payload["providers"]["semantic_scholar"], "missing")
+        self.assertEqual(payload["missing"], ["semantic_scholar.api_key"])
+        self.assertEqual(payload["next_action"]["tool"], "qiongli_configure_provider")
+        self.assertEqual(payload["next_action"]["args"], {"provider": "semantic_scholar"})
+
     def test_save_provider_config_persists_to_shared_config(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
@@ -67,6 +84,25 @@ class MCPToolHandlerTests(unittest.TestCase):
         self.assertEqual(result["structuredContent"]["field"], "email")
         self.assertEqual(status["structuredContent"]["providers"]["openalex"], "configured")
         self.assertNotIn("user@example.com", rendered)
+
+    def test_save_provider_config_warns_for_chat_api_key_input(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            with mock.patch.dict(
+                "os.environ",
+                {"QIONGLI_CONFIG_HOME": str(root / "config")},
+                clear=False,
+            ):
+                result = call_qiongli_tool(
+                    "qiongli_save_provider_config",
+                    {"provider": "semantic-scholar", "field": "api-key", "value": "secret-demo-key"},
+                )
+
+        rendered = json.dumps(result, sort_keys=True)
+        self.assertEqual(result["structuredContent"]["provider"], "semantic_scholar")
+        self.assertEqual(result["structuredContent"]["field"], "api_key")
+        self.assertIn("Prefer qiongli_configure_provider", result["structuredContent"]["warning"])
+        self.assertNotIn("secret-demo-key", rendered)
 
     def test_collect_evidence_tool_uses_existing_connector(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -133,6 +169,31 @@ class MCPToolHandlerTests(unittest.TestCase):
             result["structuredContent"]["url"],
             "http://127.0.0.1:8765/?token=abc",
         )
+        self.assertEqual(result["structuredContent"]["config_path"], "/tmp/qiongli/providers.json")
+
+    def test_configure_provider_returns_local_wizard_url(self) -> None:
+        class StubWizard:
+            url = "http://127.0.0.1:8765/?token=abc"
+            host = "127.0.0.1"
+            port = 8765
+            token = "abc"
+            config_path = "/tmp/qiongli/providers.json"
+
+        with mock.patch.object(
+            tool_handlers,
+            "start_config_wizard",
+            lambda **_: StubWizard(),
+        ):
+            result = call_qiongli_tool(
+                "qiongli_configure_provider",
+                {"provider": "semantic_scholar", "host": "127.0.0.1", "port": 0},
+            )
+
+        self.assertEqual(
+            result["structuredContent"]["url"],
+            "http://127.0.0.1:8765/?token=abc",
+        )
+        self.assertEqual(result["structuredContent"]["provider"], "semantic_scholar")
         self.assertEqual(result["structuredContent"]["config_path"], "/tmp/qiongli/providers.json")
 
     def test_orchestrator_doctor_tool_returns_structured_result(self) -> None:

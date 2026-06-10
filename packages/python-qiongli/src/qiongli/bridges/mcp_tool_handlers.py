@@ -35,7 +35,10 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
     },
     {
         "name": "qiongli_save_provider_config",
-        "description": "Save a Qiongli provider key or email into the shared provider config.",
+        "description": (
+            "Save explicit Qiongli provider config values from chat or scripts. "
+            "Prefer qiongli_configure_provider for API keys."
+        ),
         "inputSchema": {
             "type": "object",
             "required": ["provider", "field", "value"],
@@ -43,6 +46,25 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
                 "provider": {"type": "string"},
                 "field": {"type": "string"},
                 "value": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "qiongli_configure_provider",
+        "description": (
+            "Open a local browser-based setup page for Qiongli provider credentials. "
+            "Prefer this for API keys so secrets do not enter chat history."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "provider": {
+                    "type": "string",
+                    "enum": ["openalex", "semantic_scholar", "semantic-scholar", "crossref", "pubmed"],
+                },
+                "host": {"type": "string", "default": "127.0.0.1"},
+                "port": {"type": "integer", "default": 0},
             },
             "additionalProperties": False,
         },
@@ -81,10 +103,17 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
     },
     {
         "name": "qiongli_open_config_wizard",
-        "description": "Start a local browser-based provider configuration wizard.",
+        "description": (
+            "Compatibility alias for qiongli_configure_provider. "
+            "Starts a local browser-based provider configuration wizard."
+        ),
         "inputSchema": {
             "type": "object",
             "properties": {
+                "provider": {
+                    "type": "string",
+                    "enum": ["openalex", "semantic_scholar", "semantic-scholar", "crossref", "pubmed"],
+                },
                 "host": {"type": "string", "default": "127.0.0.1"},
                 "port": {"type": "integer", "default": 0},
             },
@@ -160,6 +189,7 @@ def call_qiongli_tool(name: str, arguments: dict[str, Any] | None = None) -> dic
         "qiongli_collect_evidence": _tool_collect_evidence,
         "qiongli_list_provider_env": _tool_list_provider_env,
         "qiongli_test_provider": _tool_test_provider,
+        "qiongli_configure_provider": _tool_configure_provider,
         "qiongli_open_config_wizard": _tool_open_config_wizard,
         "qiongli_orchestrator_doctor": _tool_orchestrator_doctor,
         "qiongli_task_plan": _tool_task_plan,
@@ -178,13 +208,19 @@ def _tool_config_status(args: dict[str, Any]) -> dict[str, Any]:
     cwd = _cwd_from_args(args)
     config = resolve_provider_config(cwd=cwd)
     summary = provider_config_summary(config)
-    return {
+    missing = _missing_provider_fields(summary)
+    payload = {
         "server": {"name": SERVER_NAME},
         "config_path": str(global_provider_config_path()),
         "providers": summary,
         "capability_mode": provider_capability_mode(summary),
+        "missing": missing,
         "redacted_config": redact_provider_config(config),
     }
+    next_action = _provider_setup_next_action(missing)
+    if next_action is not None:
+        payload["next_action"] = next_action
+    return payload
 
 
 def _tool_save_provider_config(args: dict[str, Any]) -> dict[str, Any]:
@@ -192,12 +228,19 @@ def _tool_save_provider_config(args: dict[str, Any]) -> dict[str, Any]:
     field = _required_str(args, "field")
     value = _required_str(args, "value")
     path = set_provider_value(provider, field, value)
-    return {
+    field_id = _normalize_label(field)
+    payload = {
         "status": "saved",
         "provider": _normalize_label(provider),
-        "field": _normalize_label(field),
+        "field": field_id,
         "config_path": str(path),
     }
+    if field_id == "api_key":
+        payload["warning"] = (
+            "api_key was saved from chat input. Prefer qiongli_configure_provider "
+            "so provider secrets do not enter chat history."
+        )
+    return payload
 
 
 def _tool_collect_evidence(args: dict[str, Any]) -> dict[str, Any]:
@@ -234,15 +277,24 @@ def _tool_test_provider(args: dict[str, Any]) -> dict[str, Any]:
 
 
 def _tool_open_config_wizard(args: dict[str, Any]) -> dict[str, Any]:
+    return _tool_configure_provider(args)
+
+
+def _tool_configure_provider(args: dict[str, Any]) -> dict[str, Any]:
     host = str(args.get("host", "127.0.0.1") or "127.0.0.1")
     port = int(args.get("port", 0) or 0)
-    wizard = start_config_wizard(host=host, port=port)
-    return {
+    provider = str(args.get("provider", "") or "").strip()
+    provider_id = _normalize_provider(provider) if provider else None
+    wizard = start_config_wizard(host=host, port=port, provider=provider_id)
+    payload = {
         "url": wizard.url,
         "host": wizard.host,
         "port": wizard.port,
         "config_path": wizard.config_path,
     }
+    if provider_id:
+        payload["provider"] = provider_id
+    return payload
 
 
 def _tool_orchestrator_doctor(args: dict[str, Any]) -> dict[str, Any]:
@@ -420,6 +472,26 @@ def _serializable_task_run_arguments(task_run_kwargs: dict[str, Any]) -> dict[st
 def _cwd_from_args(args: dict[str, Any]) -> Path:
     raw = str(args.get("cwd", "") or "").strip()
     return Path(raw).expanduser().resolve() if raw else Path.cwd()
+
+
+def _missing_provider_fields(summary: dict[str, str]) -> list[str]:
+    missing: list[str] = []
+    if summary.get("semantic_scholar") != "configured":
+        missing.append("semantic_scholar.api_key")
+    return missing
+
+
+def _provider_setup_next_action(missing: list[str]) -> dict[str, Any] | None:
+    if "semantic_scholar.api_key" not in missing:
+        return None
+    return {
+        "tool": "qiongli_configure_provider",
+        "args": {"provider": "semantic_scholar"},
+        "message": (
+            "Run qiongli_configure_provider to open a local setup page. "
+            "Do not paste API keys in chat."
+        ),
+    }
 
 
 def _required_str(args: dict[str, Any], key: str) -> str:

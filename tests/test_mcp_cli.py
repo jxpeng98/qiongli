@@ -46,6 +46,7 @@ class MCPCLITests(unittest.TestCase):
         rendered = json.dumps(payload, sort_keys=True)
         self.assertEqual(payload["providers"]["openalex"], "configured")
         self.assertEqual(payload["capability_mode"], "provider_connected")
+        self.assertIn("qiongli_configure_provider", payload["next_action"]["tool"])
         self.assertNotIn("user@example.com", rendered)
 
     def test_mcp_cli_config_example_for_codex_json(self) -> None:
@@ -63,6 +64,8 @@ class MCPCLITests(unittest.TestCase):
         self.assertEqual(payload["server"]["args"], ["mcp", "serve", "--transport", "stdio"])
         self.assertIn("qiongli_task_run", payload["orchestration_tools"])
         self.assertIn("qiongli_task_plan", payload["orchestration_tools"])
+        self.assertIn("qiongli_configure_provider", payload["configuration_tools"])
+        self.assertIn("qiongli_open_config_wizard", payload["configuration_tools"])
         self.assertEqual(payload["safety"]["task_run_default"], "preview")
 
     def test_mcp_cli_config_example_accepts_claude_code_alias(self) -> None:

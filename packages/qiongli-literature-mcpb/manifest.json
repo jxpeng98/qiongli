@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "qiongli-literature-provider",
   "display_name": "Qiongli Literature Provider",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "description": "Local Claude Desktop MCP server for academic literature search through OpenAlex and Semantic Scholar.",
   "author": {
     "name": "Qiongli"
@@ -32,8 +32,16 @@
       "description": "Report shared Qiongli provider configuration status without exposing secrets."
     },
     {
+      "name": "qiongli_configure_provider",
+      "description": "Open a local browser-based setup page for Qiongli provider credentials without exposing secrets in chat."
+    },
+    {
       "name": "qiongli_save_provider_config",
-      "description": "Save a Qiongli provider email or API key into the shared local provider config."
+      "description": "Save explicit Qiongli provider config values from chat or scripts. Prefer qiongli_configure_provider for API keys."
+    },
+    {
+      "name": "qiongli_open_config_wizard",
+      "description": "Compatibility alias for qiongli_configure_provider. Starts a local browser-based provider configuration wizard."
     },
     {
       "name": "qiongli_literature_search",
