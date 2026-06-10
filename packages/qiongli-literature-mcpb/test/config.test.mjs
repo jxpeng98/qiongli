@@ -1,5 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { mkdtempSync, rmSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { readConfig, providerStatus } from "../server/config.mjs";
 
 test("provider status redacts configured secrets", () => {
@@ -33,8 +36,11 @@ test("readConfig defaults invalid and blank limits and clamps numeric limits", (
   assert.equal(readConfig({ QIONGLI_MCPB_DEFAULT_LIMIT: "12" }).defaultLimit, 12);
 });
 
-test("provider status reports OpenAlex usable without email", () => {
-  const status = providerStatus(readConfig({}));
+test("provider status reports OpenAlex usable without email", (t) => {
+  const configHome = mkdtempSync(path.join(os.tmpdir(), "qiongli-mcpb-empty-config-"));
+  t.after(() => rmSync(configHome, { recursive: true, force: true }));
+
+  const status = providerStatus(readConfig({ QIONGLI_CONFIG_HOME: configHome }));
 
   assert.equal(status.capability_mode, "provider_connected");
   assert.deepEqual(status.providers, {

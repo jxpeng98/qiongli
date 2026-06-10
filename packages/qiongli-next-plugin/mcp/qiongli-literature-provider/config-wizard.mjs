@@ -115,16 +115,37 @@ function renderForm({ token, configPath, saved, selectedProvider }) {
   const fields = providerEntries(selectedProvider).map(([provider, providerFields]) => {
     const rows = Object.keys(providerFields).map((field) => {
       const name = `${provider}.${field}`;
+      const id = `field-${provider}-${field}`;
+      const previewId = `preview-${provider}-${field}`;
       return [
-        "<label>",
-        `<span>${escapeHtml(provider)} / ${escapeHtml(field)}</span>`,
-        `<input name="${escapeHtml(name)}" type="password" autocomplete="off" />`,
-        "</label>"
+        "<div class=\"field-row\">",
+        "<div>",
+        `<label for="${escapeHtml(id)}">${escapeHtml(provider)} / ${escapeHtml(field)}</label>`,
+        `<p class="hint">${escapeHtml(fieldHelp(provider, field))}</p>`,
+        "</div>",
+        "<div>",
+        "<div class=\"input-row\">",
+        [
+          `<input id="${escapeHtml(id)}"`,
+          `name="${escapeHtml(name)}"`,
+          "type=\"password\"",
+          "autocomplete=\"off\"",
+          "spellcheck=\"false\"",
+          `aria-describedby="${escapeHtml(previewId)}"`,
+          `data-secret-input="${escapeHtml(name)}" />`
+        ].join(" "),
+        `<button type="button" data-toggle-for="${escapeHtml(name)}" aria-controls="${escapeHtml(id)}" aria-pressed="false">Show</button>`,
+        "</div>",
+        `<p class="preview" id="${escapeHtml(previewId)}">Preview: <code data-preview-for="${escapeHtml(name)}" class="is-empty">empty</code></p>`,
+        "</div>",
+        "</div>"
       ].join("");
     }).join("");
     return `<fieldset><legend>${escapeHtml(provider)}</legend>${rows}</fieldset>`;
   }).join("");
-  const savedMessage = saved ? "<p class=\"saved\">Saved.</p>" : "";
+  const savedMessage = saved
+    ? "<p class=\"saved\">Saved. Run <code>qiongli_config_status</code> to confirm redacted provider status.</p>"
+    : "";
 
   return [
     "<!doctype html>",
@@ -132,23 +153,102 @@ function renderForm({ token, configPath, saved, selectedProvider }) {
     "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />",
     "<title>Qiongli MCP Provider Configuration</title>",
     "<style>",
-    "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:32px;max-width:760px}",
+    "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:32px;max-width:860px;color:#24292f}",
+    "h1{font-size:28px;margin:0 0 8px}",
+    "h2{font-size:16px;margin:0 0 8px}",
+    "p{line-height:1.45}",
+    ".intro{color:#57606a;margin:0 0 20px}",
+    ".notice{background:#f6f8fa;border:1px solid #d0d7de;border-radius:8px;margin:20px 0;padding:16px}",
+    ".notice ul{margin:8px 0 0;padding-left:22px}",
+    ".notice li{margin:6px 0}",
     "fieldset{border:1px solid #d0d7de;border-radius:8px;margin:0 0 16px;padding:16px}",
-    "label{display:grid;grid-template-columns:220px 1fr;gap:12px;align-items:center;margin:10px 0}",
+    "legend{font-weight:700;padding:0 6px}",
+    ".field-row{display:grid;grid-template-columns:240px 1fr;gap:16px;align-items:start;margin:14px 0}",
+    "label{display:block;font-weight:600;margin:2px 0 4px}",
+    ".hint{color:#57606a;font-size:13px;margin:0}",
+    ".input-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}",
     "input{font:inherit;padding:8px;border:1px solid #8c959f;border-radius:6px}",
+    "input:focus{border-color:#0969da;box-shadow:0 0 0 3px rgba(9,105,218,.15);outline:none}",
     "button{font:inherit;padding:8px 12px;border:1px solid #57606a;border-radius:6px;background:#f6f8fa}",
+    "button[disabled]{color:#6e7781;border-color:#d0d7de}",
     ".saved{color:#116329;font-weight:600}",
     ".path{color:#57606a;font-size:13px}",
-    "@media(max-width:640px){label{grid-template-columns:1fr}}",
+    ".preview{color:#57606a;font-size:13px;margin:6px 0 0}",
+    ".preview code{background:#f6f8fa;border:1px solid #d0d7de;border-radius:6px;color:#24292f;padding:2px 6px;word-break:break-all}",
+    ".preview code.is-empty{color:#6e7781}",
+    "@media(max-width:680px){body{margin:20px}.field-row{grid-template-columns:1fr}.input-row{grid-template-columns:1fr}}",
     "</style></head><body>",
     "<h1>Qiongli MCP Provider Configuration</h1>",
+    "<p class=\"intro\">Use this local setup page for Qiongli provider credentials across Codex, Claude Desktop, and other MCP-capable clients.</p>",
+    "<section class=\"notice\" aria-label=\"Security notes\">",
+    "<h2>Before you save</h2>",
+    "<ul>",
+    "<li><strong>Keys stay on this machine.</strong> The MCP server writes only to the local shared Qiongli provider config.</li>",
+    "<li><strong>Do not paste API keys into chat.</strong> Configure them here so secrets do not enter the conversation transcript.</li>",
+    "<li>After saving, ask the client to run <code>qiongli_config_status</code>; it returns only redacted status.</li>",
+    "</ul>",
+    "</section>",
     `<p class="path">Config path: ${escapeHtml(configPath)}</p>`,
     savedMessage,
     `<form method="post" action="/save?token=${escapeHtml(token)}">`,
     fields,
     "<button type=\"submit\">Save</button>",
-    "</form></body></html>"
+    "</form>",
+    "<script>",
+    "(() => {",
+    "  const findByAttr = (selector, attr, value) => Array.from(document.querySelectorAll(selector)).find((node) => node.getAttribute(attr) === value);",
+    "  const mask = (value) => {",
+    "    if (!value) return 'empty';",
+    "    if (value.length <= 8) return '*'.repeat(value.length);",
+    "    return `${value.slice(0, 4)}...${value.slice(-4)}`;",
+    "  };",
+    "  document.querySelectorAll('[data-secret-input]').forEach((input) => {",
+    "    const name = input.getAttribute('data-secret-input');",
+    "    const preview = findByAttr('[data-preview-for]', 'data-preview-for', name);",
+    "    const toggle = findByAttr('[data-toggle-for]', 'data-toggle-for', name);",
+    "    let revealed = false;",
+    "    const syncPreview = () => {",
+    "      if (!preview) return;",
+    "      preview.textContent = revealed ? (input.value || 'empty') : mask(input.value);",
+    "      preview.classList.toggle('is-empty', !input.value);",
+    "    };",
+    "    input.addEventListener('input', syncPreview);",
+    "    toggle?.addEventListener('click', () => {",
+    "      revealed = !revealed;",
+    "      input.type = revealed ? 'text' : 'password';",
+    "      toggle.textContent = revealed ? 'Hide' : 'Show';",
+    "      toggle.setAttribute('aria-pressed', revealed ? 'true' : 'false');",
+    "      syncPreview();",
+    "      input.focus();",
+    "    });",
+    "    syncPreview();",
+    "  });",
+    "  document.querySelector('form')?.addEventListener('submit', (event) => {",
+    "    const form = event.currentTarget;",
+    "    const submit = form.querySelector('button[type=\"submit\"]');",
+    "    form.setAttribute('aria-busy', 'true');",
+    "    if (submit) {",
+    "      submit.textContent = 'Saving...';",
+    "      submit.disabled = true;",
+    "    }",
+    "  });",
+    "})();",
+    "</script>",
+    "</body></html>"
   ].join("");
+}
+
+function fieldHelp(provider, field) {
+  if (provider === "openalex" && field === "email") {
+    return "Optional polite-pool email for OpenAlex requests.";
+  }
+  if (provider === "semantic_scholar" && field === "api_key") {
+    return "Semantic Scholar API key used only by the local MCP server.";
+  }
+  if (field === "email") {
+    return "Provider contact email for rate limits or attribution.";
+  }
+  return "Provider credential used only by the local MCP server.";
 }
 
 function sendHtml(response, body) {

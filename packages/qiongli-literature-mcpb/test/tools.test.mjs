@@ -122,6 +122,30 @@ test("handleOpenConfigWizard returns local setup URL and saves provider config",
   }
 });
 
+test("handleOpenConfigWizard serves guidance, input preview, and saving state", async () => {
+  const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-wizard-ui-"));
+  const wizard = await handleOpenConfigWizard(
+    { provider: "semantic_scholar" },
+    { env: { QIONGLI_CONFIG_HOME: configHome } }
+  );
+  try {
+    const response = await fetch(wizard.url);
+    const html = await response.text();
+
+    assert.equal(response.status, 200);
+    assert.equal(html.includes("Keys stay on this machine"), true);
+    assert.equal(html.includes("Do not paste API keys into chat"), true);
+    assert.equal(html.includes("Saving..."), true);
+    assert.equal(html.includes("data-preview-for=\"semantic_scholar.api_key\""), true);
+    assert.equal(html.includes("type=\"button\" data-toggle-for=\"semantic_scholar.api_key\""), true);
+    assert.equal(html.includes("qiongli_config_status"), true);
+    assert.equal(html.includes("secret-key"), false);
+  } finally {
+    await wizard.stop();
+    await rm(configHome, { recursive: true, force: true });
+  }
+});
+
 test("handleOpenConfigWizard rejects non-local hosts", async () => {
   await assert.rejects(
     () => handleOpenConfigWizard({ host: "0.0.0.0" }),
