@@ -325,6 +325,8 @@ def _rewrite_skill_entrypoint(skill_root: Path, skill_name: str) -> None:
     skill_path = skill_root / "SKILL.md"
     text = skill_path.read_text(encoding="utf-8")
     text = re.sub(r"(?m)^name:\s*qiongli\s*$", f"name: {skill_name}", text)
+    if skill_name == NEXT_SKILL_NAME:
+        text = text.replace("description: Qiongli version:", "description: Qiongli Next version:")
     text = text.replace("$qiongli", f"${skill_name}")
     if f"${skill_name}" not in text:
         text = (
