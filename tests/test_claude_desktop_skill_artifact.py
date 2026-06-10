@@ -33,6 +33,10 @@ class ClaudeDesktopSkillArtifactTests(unittest.TestCase):
 
     def test_build_artifacts_creates_claude_desktop_skill_zip(self) -> None:
         tag = (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(encoding="utf-8").strip()
+        is_prerelease = self.build_module._is_prerelease_tag(tag)
+        skill_name = "qiongli-next" if is_prerelease else "qiongli"
+        artifact_prefix = "qiongli-next" if is_prerelease else "qiongli"
+        core_artifact_name = f"{artifact_prefix}-claude-desktop-skill-core-{tag}.zip"
 
         with tempfile.TemporaryDirectory() as tmp:
             artifacts = self.build_module.build_artifacts(REPO_ROOT, tag, Path(tmp))
@@ -42,41 +46,50 @@ class ClaudeDesktopSkillArtifactTests(unittest.TestCase):
                 for artifact in artifacts
                 if "claude-desktop-skill" in artifact.name and artifact.suffix == ".zip"
             }
+            if is_prerelease:
+                expected_desktop_artifacts = [core_artifact_name]
+            else:
+                expected_desktop_artifacts = [
+                    f"qiongli-claude-desktop-skill-{subject}-{tag}.zip"
+                    for subject in self.build_module._desktop_subjects(REPO_ROOT)
+                ]
+                expected_desktop_artifacts.append(f"qiongli-claude-desktop-skill-{tag}.zip")
             self.assertEqual(
-                [f"qiongli-next-claude-desktop-skill-core-{tag}.zip"],
+                sorted(expected_desktop_artifacts),
                 sorted(desktop_artifacts),
             )
 
-            with zipfile.ZipFile(desktop_artifacts[f"qiongli-next-claude-desktop-skill-core-{tag}.zip"]) as archive:
+            with zipfile.ZipFile(desktop_artifacts[core_artifact_name]) as archive:
                 names = set(archive.namelist())
                 file_names = [name for name in names if not name.endswith("/")]
 
-                self.assertIn("qiongli-next/SKILL.md", names)
-                self.assertIn("qiongli-next/VERSION", names)
-                self.assertIn("qiongli-next/SUBJECT", names)
-                self.assertIn("qiongli-next/skills-core.md", names)
-                self.assertIn("qiongli-next/skills-summary.md", names)
-                self.assertIn("qiongli-next/skills/registry.yaml", names)
-                self.assertIn("qiongli-next/workflows/paper.md", names)
-                self.assertNotIn("qiongli-next/.claude-plugin/plugin.json", names)
-                self.assertFalse(any(name.startswith("qiongli-next/commands/") for name in names))
+                self.assertIn(f"{skill_name}/SKILL.md", names)
+                self.assertIn(f"{skill_name}/VERSION", names)
+                self.assertIn(f"{skill_name}/SUBJECT", names)
+                self.assertIn(f"{skill_name}/skills-core.md", names)
+                self.assertIn(f"{skill_name}/skills-summary.md", names)
+                self.assertIn(f"{skill_name}/skills/registry.yaml", names)
+                self.assertIn(f"{skill_name}/workflows/paper.md", names)
+                self.assertNotIn(f"{skill_name}/.claude-plugin/plugin.json", names)
+                self.assertFalse(any(name.startswith(f"{skill_name}/commands/") for name in names))
                 self.assertLessEqual(len(file_names), self.DESKTOP_FILE_BUDGET)
 
                 detailed_skill_specs = [
                     name
                     for name in file_names
-                    if name.startswith("qiongli-next/skills/")
-                    and name != "qiongli-next/skills/registry.yaml"
+                    if name.startswith(f"{skill_name}/skills/")
+                    and name != f"{skill_name}/skills/registry.yaml"
                     and name.endswith(".md")
                 ]
                 self.assertEqual([], detailed_skill_specs)
 
-                skill_text = archive.read("qiongli-next/SKILL.md").decode("utf-8")
-                subject_text = archive.read("qiongli-next/SUBJECT").decode("utf-8").strip()
-                version_text = archive.read("qiongli-next/VERSION").decode("utf-8").strip()
+                skill_text = archive.read(f"{skill_name}/SKILL.md").decode("utf-8")
+                subject_text = archive.read(f"{skill_name}/SUBJECT").decode("utf-8").strip()
+                version_text = archive.read(f"{skill_name}/VERSION").decode("utf-8").strip()
 
-        self.assertIn("name: qiongli-next", skill_text)
-        self.assertIn("$qiongli-next", skill_text)
+        self.assertIn(f"name: {skill_name}", skill_text)
+        if is_prerelease:
+            self.assertIn(f"${skill_name}", skill_text)
         self.assertIn("Core Workflow Map", skill_text)
         self.assertIn("provider_connected", skill_text)
         self.assertIn("strategy_only", skill_text)

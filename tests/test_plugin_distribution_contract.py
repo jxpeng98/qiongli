@@ -241,26 +241,46 @@ class PluginDistributionContractTests(unittest.TestCase):
             )
 
         self.assertEqual(result.returncode, 0, msg=result.stderr + result.stdout)
-        self.assertIn(
-            "[OK] codex marketplace artifact (core-next): "
-            "qiongli-next invocation checked; bundled literature MCP checked",
-            result.stdout,
-        )
-        self.assertIn(
-            "[OK] claude marketplace artifact (core-next): "
-            "qiongli-next invocation checked; bundled literature MCP checked",
-            result.stdout,
-        )
-        self.assertIn(
-            "[OK] claude marketplace ZIP artifact (core-next): "
-            "qiongli-next invocation checked; bundled literature MCP checked",
-            result.stdout,
-        )
-        self.assertIn("[OK] claude-desktop skill artifact (core-next)", result.stdout)
+        current_tag = (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(encoding="utf-8").strip()
+        if "-" in current_tag.removeprefix("v"):
+            self.assertIn(
+                "[OK] codex marketplace artifact (core-next): "
+                "qiongli-next invocation checked; bundled literature MCP checked",
+                result.stdout,
+            )
+            self.assertIn(
+                "[OK] claude marketplace artifact (core-next): "
+                "qiongli-next invocation checked; bundled literature MCP checked",
+                result.stdout,
+            )
+            self.assertIn(
+                "[OK] claude marketplace ZIP artifact (core-next): "
+                "qiongli-next invocation checked; bundled literature MCP checked",
+                result.stdout,
+            )
+            self.assertIn("[OK] claude-desktop skill artifact (core-next)", result.stdout)
+            self.assertNotIn("[OK] gemini marketplace artifact", result.stdout)
+            self.assertNotIn("artifact (economics)", result.stdout)
+            self.assertIn("qiongli-next invocation", result.stdout)
+        else:
+            self.assertIn(
+                "[OK] codex marketplace artifact: qiongli invocation checked; bundled literature MCP checked",
+                result.stdout,
+            )
+            self.assertIn(
+                "[OK] claude marketplace artifact: qiongli invocation checked; bundled literature MCP checked",
+                result.stdout,
+            )
+            self.assertIn(
+                "[OK] claude marketplace ZIP artifact: qiongli invocation checked; bundled literature MCP checked",
+                result.stdout,
+            )
+            self.assertIn("[OK] gemini marketplace artifact: qiongli invocation checked", result.stdout)
+            self.assertIn("[OK] codex marketplace artifact (economics):", result.stdout)
+            self.assertIn("[OK] claude-desktop skill artifact (core)", result.stdout)
+            self.assertNotIn("core-next", result.stdout)
         self.assertIn("under desktop file budget", result.stdout)
-        self.assertNotIn("[OK] gemini marketplace artifact", result.stdout)
-        self.assertNotIn("artifact (economics)", result.stdout)
-        self.assertIn("qiongli-next invocation", result.stdout)
+        self.assertIn("invocation checked", result.stdout)
         self.assertIn("bundled literature MCP checked", result.stdout)
 
 

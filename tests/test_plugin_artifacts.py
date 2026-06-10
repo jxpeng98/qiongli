@@ -25,132 +25,241 @@ SPEC.loader.exec_module(module)
 
 
 class PluginArtifactsTests(unittest.TestCase):
-    def test_beta_release_builds_qiongli_next_core_artifacts(self) -> None:
+    def test_release_builds_expected_channel_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             dist_dir = Path(tmp_dir) / "dist"
             current_tag = (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(
                 encoding="utf-8"
             ).strip()
-            desktop_agent_support = [
-                "qiongli-next/agents/openai.yaml",
-                "qiongli-next/roles/pi.yaml",
-                "qiongli-next/templates/agent-run-packet.json",
-                "qiongli-next/templates/agent-review-packet.md",
-                "qiongli-next/templates/agent-handoff.md",
-            ]
 
             artifacts = module.build_artifacts(REPO_ROOT, current_tag, dist_dir)
-
-            self.assertEqual(
-                sorted(path.name for path in artifacts),
-                [
-                    f"qiongli-next-claude-desktop-skill-core-{current_tag}.zip",
-                    f"qiongli-next-claude-plugin-{current_tag}.tar.gz",
-                    f"qiongli-next-claude-plugin-{current_tag}.zip",
-                    f"qiongli-next-codex-plugin-{current_tag}.tar.gz",
-                ],
-            )
             for artifact in artifacts:
                 self.assertTrue(artifact.is_file(), msg=f"missing artifact: {artifact}")
 
-            self._assert_contains(
-                dist_dir / f"qiongli-next-codex-plugin-{current_tag}.tar.gz",
-                [
-                    f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/.codex-plugin/plugin.json",
-                    f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/.mcp.json",
-                    f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/mcp/qiongli-literature-provider/index.mjs",
-                    f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/commands/paper.md",
-                    f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/SKILL.md",
-                    f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/agents/openai.yaml",
-                    f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/roles/pi.yaml",
-                ],
-            )
-            self._assert_contains(
-                dist_dir / f"qiongli-next-claude-plugin-{current_tag}.tar.gz",
-                [
-                    f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/.claude-plugin/plugin.json",
-                    f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/mcp/qiongli-literature-provider/index.mjs",
-                    f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/commands/paper.md",
-                    f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/SKILL.md",
-                    f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/agents/openai.yaml",
-                    f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/roles/pi.yaml",
-                ],
-            )
-            self._assert_zip_contains(
-                dist_dir / f"qiongli-next-claude-plugin-{current_tag}.zip",
-                [
-                    f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/.claude-plugin/plugin.json",
-                    f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/mcp/qiongli-literature-provider/index.mjs",
-                    f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/commands/paper.md",
-                    f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/SKILL.md",
-                    f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/agents/openai.yaml",
-                    f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/roles/pi.yaml",
-                ],
-            )
-            self._assert_claude_manifest_mcp_server(
-                dist_dir / f"qiongli-next-claude-plugin-{current_tag}.tar.gz",
-                f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/.claude-plugin/plugin.json",
-                server_name="qiongli-next",
-            )
-            self._assert_claude_zip_manifest_mcp_server(
-                dist_dir / f"qiongli-next-claude-plugin-{current_tag}.zip",
-                f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/.claude-plugin/plugin.json",
-                server_name="qiongli-next",
-            )
-            self._assert_codex_mcp_server(
-                dist_dir / f"qiongli-next-codex-plugin-{current_tag}.tar.gz",
-                f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/.mcp.json",
-                server_name="qiongli-next",
-            )
-            codex_manifest = self._read_tar_json(
-                dist_dir / f"qiongli-next-codex-plugin-{current_tag}.tar.gz",
+            if module._is_prerelease_tag(current_tag):
+                self._assert_next_release_artifacts(dist_dir, current_tag, artifacts)
+            else:
+                self._assert_stable_release_artifacts(dist_dir, current_tag, artifacts)
+
+    def _assert_next_release_artifacts(self, dist_dir: Path, current_tag: str, artifacts: list[Path]) -> None:
+        desktop_agent_support = [
+            "qiongli-next/agents/openai.yaml",
+            "qiongli-next/roles/pi.yaml",
+            "qiongli-next/templates/agent-run-packet.json",
+            "qiongli-next/templates/agent-review-packet.md",
+            "qiongli-next/templates/agent-handoff.md",
+        ]
+        self.assertEqual(
+            sorted(path.name for path in artifacts),
+            [
+                f"qiongli-next-claude-desktop-skill-core-{current_tag}.zip",
+                f"qiongli-next-claude-plugin-{current_tag}.tar.gz",
+                f"qiongli-next-claude-plugin-{current_tag}.zip",
+                f"qiongli-next-codex-plugin-{current_tag}.tar.gz",
+            ],
+        )
+        self._assert_contains(
+            dist_dir / f"qiongli-next-codex-plugin-{current_tag}.tar.gz",
+            [
                 f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/.codex-plugin/plugin.json",
-            )
-            claude_manifest = self._read_tar_json(
-                dist_dir / f"qiongli-next-claude-plugin-{current_tag}.tar.gz",
-                f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/.claude-plugin/plugin.json",
-            )
-            self.assertEqual(codex_manifest["name"], "qiongli-next")
-            self.assertEqual(codex_manifest["author"], EXPECTED_AUTHOR)
-            self.assertEqual(codex_manifest["category"], EXPECTED_CATEGORY)
-            self.assertEqual(codex_manifest["repository"], EXPECTED_REPOSITORY)
-            self.assertEqual(codex_manifest["license"], EXPECTED_LICENSE)
-            self.assertEqual(codex_manifest["interface"]["displayName"], "Qiongli Next")
-            self.assertEqual(codex_manifest["interface"]["developerName"], EXPECTED_AUTHOR["name"])
-            self.assertEqual(codex_manifest["interface"]["category"], EXPECTED_CATEGORY)
-            self.assertIn("prerelease", codex_manifest["interface"]["longDescription"].lower())
-            self.assertEqual(claude_manifest["name"], "qiongli-next")
-            self.assertEqual(claude_manifest["author"], EXPECTED_AUTHOR)
-            self.assertEqual(claude_manifest["category"], EXPECTED_CATEGORY)
-            self.assertEqual(claude_manifest["repository"], EXPECTED_REPOSITORY)
-            self.assertEqual(claude_manifest["license"], EXPECTED_LICENSE)
-            skill_text = self._read_tar_text(
-                dist_dir / f"qiongli-next-codex-plugin-{current_tag}.tar.gz",
-                f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/SKILL.md",
-            )
-            command_text = self._read_tar_text(
-                dist_dir / f"qiongli-next-codex-plugin-{current_tag}.tar.gz",
+                f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/.mcp.json",
+                f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/mcp/qiongli-literature-provider/index.mjs",
                 f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/commands/paper.md",
-            )
-            self.assertIn("name: qiongli-next\n", skill_text)
-            self.assertIn("$qiongli-next", skill_text)
-            self.assertIn("Load the `qiongli-next` skill", command_text)
-            self.assertNotIn("Load the `qiongli` skill", command_text)
-            self._assert_zip_contains(
-                dist_dir / f"qiongli-next-claude-desktop-skill-core-{current_tag}.zip",
-                desktop_agent_support
-                + [
-                    "qiongli-next/SKILL.md",
-                    "qiongli-next/SUBJECT",
-                    "qiongli-next/skills/registry.yaml",
-                ],
-            )
-            desktop_skill_text = self._read_zip_text(
-                dist_dir / f"qiongli-next-claude-desktop-skill-core-{current_tag}.zip",
+                f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/SKILL.md",
+                f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/agents/openai.yaml",
+                f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/roles/pi.yaml",
+            ],
+        )
+        self._assert_contains(
+            dist_dir / f"qiongli-next-claude-plugin-{current_tag}.tar.gz",
+            [
+                f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/.claude-plugin/plugin.json",
+                f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/mcp/qiongli-literature-provider/index.mjs",
+                f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/commands/paper.md",
+                f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/SKILL.md",
+                f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/agents/openai.yaml",
+                f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/roles/pi.yaml",
+            ],
+        )
+        self._assert_zip_contains(
+            dist_dir / f"qiongli-next-claude-plugin-{current_tag}.zip",
+            [
+                f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/.claude-plugin/plugin.json",
+                f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/mcp/qiongli-literature-provider/index.mjs",
+                f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/commands/paper.md",
+                f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/SKILL.md",
+                f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/agents/openai.yaml",
+                f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/roles/pi.yaml",
+            ],
+        )
+        self._assert_claude_manifest_mcp_server(
+            dist_dir / f"qiongli-next-claude-plugin-{current_tag}.tar.gz",
+            f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/.claude-plugin/plugin.json",
+            server_name="qiongli-next",
+        )
+        self._assert_claude_zip_manifest_mcp_server(
+            dist_dir / f"qiongli-next-claude-plugin-{current_tag}.zip",
+            f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/.claude-plugin/plugin.json",
+            server_name="qiongli-next",
+        )
+        self._assert_codex_mcp_server(
+            dist_dir / f"qiongli-next-codex-plugin-{current_tag}.tar.gz",
+            f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/.mcp.json",
+            server_name="qiongli-next",
+        )
+        codex_manifest = self._read_tar_json(
+            dist_dir / f"qiongli-next-codex-plugin-{current_tag}.tar.gz",
+            f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/.codex-plugin/plugin.json",
+        )
+        claude_manifest = self._read_tar_json(
+            dist_dir / f"qiongli-next-claude-plugin-{current_tag}.tar.gz",
+            f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/.claude-plugin/plugin.json",
+        )
+        self.assertEqual(codex_manifest["name"], "qiongli-next")
+        self.assertEqual(codex_manifest["author"], EXPECTED_AUTHOR)
+        self.assertEqual(codex_manifest["category"], EXPECTED_CATEGORY)
+        self.assertEqual(codex_manifest["repository"], EXPECTED_REPOSITORY)
+        self.assertEqual(codex_manifest["license"], EXPECTED_LICENSE)
+        self.assertEqual(codex_manifest["interface"]["displayName"], "Qiongli Next")
+        self.assertEqual(codex_manifest["interface"]["developerName"], EXPECTED_AUTHOR["name"])
+        self.assertEqual(codex_manifest["interface"]["category"], EXPECTED_CATEGORY)
+        self.assertIn("prerelease", codex_manifest["interface"]["longDescription"].lower())
+        self.assertEqual(claude_manifest["name"], "qiongli-next")
+        self.assertEqual(claude_manifest["author"], EXPECTED_AUTHOR)
+        self.assertEqual(claude_manifest["category"], EXPECTED_CATEGORY)
+        self.assertEqual(claude_manifest["repository"], EXPECTED_REPOSITORY)
+        self.assertEqual(claude_manifest["license"], EXPECTED_LICENSE)
+        skill_text = self._read_tar_text(
+            dist_dir / f"qiongli-next-codex-plugin-{current_tag}.tar.gz",
+            f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/SKILL.md",
+        )
+        command_text = self._read_tar_text(
+            dist_dir / f"qiongli-next-codex-plugin-{current_tag}.tar.gz",
+            f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/commands/paper.md",
+        )
+        self.assertIn("name: qiongli-next\n", skill_text)
+        self.assertIn("$qiongli-next", skill_text)
+        self.assertIn("Load the `qiongli-next` skill", command_text)
+        self.assertNotIn("Load the `qiongli` skill", command_text)
+        self._assert_zip_contains(
+            dist_dir / f"qiongli-next-claude-desktop-skill-core-{current_tag}.zip",
+            desktop_agent_support
+            + [
                 "qiongli-next/SKILL.md",
+                "qiongli-next/SUBJECT",
+                "qiongli-next/skills/registry.yaml",
+            ],
+        )
+        desktop_skill_text = self._read_zip_text(
+            dist_dir / f"qiongli-next-claude-desktop-skill-core-{current_tag}.zip",
+            "qiongli-next/SKILL.md",
+        )
+        self.assertIn("name: qiongli-next\n", desktop_skill_text)
+        self.assertIn("$qiongli-next", desktop_skill_text)
+
+    def _assert_stable_release_artifacts(self, dist_dir: Path, current_tag: str, artifacts: list[Path]) -> None:
+        expected_names = [
+            f"qiongli-codex-plugin-{current_tag}.tar.gz",
+            f"qiongli-claude-plugin-{current_tag}.tar.gz",
+            f"qiongli-claude-plugin-{current_tag}.zip",
+            f"qiongli-gemini-extension-{current_tag}.tar.gz",
+        ]
+        for subject in module._marketplace_subjects(REPO_ROOT):
+            expected_names.extend(
+                [
+                    f"qiongli-{subject}-codex-plugin-{current_tag}.tar.gz",
+                    f"qiongli-{subject}-claude-plugin-{current_tag}.tar.gz",
+                    f"qiongli-{subject}-claude-plugin-{current_tag}.zip",
+                ]
             )
-            self.assertIn("name: qiongli-next\n", desktop_skill_text)
-            self.assertIn("$qiongli-next", desktop_skill_text)
+        expected_names.extend(
+            f"qiongli-claude-desktop-skill-{subject}-{current_tag}.zip"
+            for subject in module._desktop_subjects(REPO_ROOT)
+        )
+        expected_names.append(f"qiongli-claude-desktop-skill-{current_tag}.zip")
+        self.assertEqual(sorted(expected_names), sorted(path.name for path in artifacts))
+
+        self._assert_contains(
+            dist_dir / f"qiongli-codex-plugin-{current_tag}.tar.gz",
+            [
+                f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/.codex-plugin/plugin.json",
+                f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/.mcp.json",
+                f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/mcp/qiongli-literature-provider/index.mjs",
+                f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/commands/paper.md",
+                f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+            ],
+        )
+        self._assert_zip_contains(
+            dist_dir / f"qiongli-claude-plugin-{current_tag}.zip",
+            [
+                f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/.claude-plugin/plugin.json",
+                f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/mcp/qiongli-literature-provider/index.mjs",
+                f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/commands/paper.md",
+                f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+            ],
+        )
+        self._assert_claude_manifest_mcp_server(
+            dist_dir / f"qiongli-claude-plugin-{current_tag}.tar.gz",
+            f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/.claude-plugin/plugin.json",
+        )
+        self._assert_claude_zip_manifest_mcp_server(
+            dist_dir / f"qiongli-claude-plugin-{current_tag}.zip",
+            f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/.claude-plugin/plugin.json",
+        )
+        self._assert_codex_mcp_server(
+            dist_dir / f"qiongli-codex-plugin-{current_tag}.tar.gz",
+            f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/.mcp.json",
+        )
+        codex_manifest = self._read_tar_json(
+            dist_dir / f"qiongli-codex-plugin-{current_tag}.tar.gz",
+            f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/.codex-plugin/plugin.json",
+        )
+        claude_manifest = self._read_tar_json(
+            dist_dir / f"qiongli-claude-plugin-{current_tag}.tar.gz",
+            f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/.claude-plugin/plugin.json",
+        )
+        self.assertEqual(codex_manifest["name"], "qiongli")
+        self.assertEqual(codex_manifest["author"], EXPECTED_AUTHOR)
+        self.assertEqual(codex_manifest["category"], EXPECTED_CATEGORY)
+        self.assertEqual(codex_manifest["repository"], EXPECTED_REPOSITORY)
+        self.assertEqual(codex_manifest["license"], EXPECTED_LICENSE)
+        self.assertEqual(codex_manifest["interface"]["displayName"], "Qiongli")
+        self.assertEqual(codex_manifest["interface"]["developerName"], EXPECTED_AUTHOR["name"])
+        self.assertEqual(codex_manifest["interface"]["category"], EXPECTED_CATEGORY)
+        self.assertEqual(claude_manifest["name"], "qiongli")
+        self.assertEqual(claude_manifest["author"], EXPECTED_AUTHOR)
+        self.assertEqual(claude_manifest["category"], EXPECTED_CATEGORY)
+        self.assertEqual(claude_manifest["repository"], EXPECTED_REPOSITORY)
+        self.assertEqual(claude_manifest["license"], EXPECTED_LICENSE)
+        skill_text = self._read_tar_text(
+            dist_dir / f"qiongli-codex-plugin-{current_tag}.tar.gz",
+            f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+        )
+        command_text = self._read_tar_text(
+            dist_dir / f"qiongli-codex-plugin-{current_tag}.tar.gz",
+            f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/commands/paper.md",
+        )
+        self.assertIn("name: qiongli\n", skill_text)
+        self.assertIn("Load the `qiongli` skill", command_text)
+
+        self._assert_zip_contains(
+            dist_dir / f"qiongli-claude-desktop-skill-core-{current_tag}.zip",
+            [
+                "qiongli/agents/openai.yaml",
+                "qiongli/roles/pi.yaml",
+                "qiongli/templates/agent-run-packet.json",
+                "qiongli/templates/agent-review-packet.md",
+                "qiongli/templates/agent-handoff.md",
+                "qiongli/SKILL.md",
+                "qiongli/SUBJECT",
+                "qiongli/skills/registry.yaml",
+            ],
+        )
+        desktop_skill_text = self._read_zip_text(
+            dist_dir / f"qiongli-claude-desktop-skill-core-{current_tag}.zip",
+            "qiongli/SKILL.md",
+        )
+        self.assertIn("name: qiongli\n", desktop_skill_text)
 
     def test_fallback_economics_accounting_desktop_skill_includes_accounting_auditor(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
