@@ -116,6 +116,7 @@ class BootstrapQiongliTests(unittest.TestCase):
             env["CLAUDE_CODE_HOME"] = str(Path(temp_root) / "claude-home")
             env["GEMINI_HOME"] = str(Path(temp_root) / "gemini-home")
             env["ANTIGRAVITY_HOME"] = str(Path(temp_root) / "antigravity-home")
+            env["HERMES_HOME"] = str(Path(temp_root) / "hermes-home")
             project_dir = Path(temp_root) / "project"
             cli_dir = Path(temp_root) / "bin"
 

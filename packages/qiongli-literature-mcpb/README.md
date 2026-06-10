@@ -11,6 +11,7 @@ For Codex-style desktop clients, use the Codex plugin bundle when available. For
 ```bash
 qiongli mcp serve --transport stdio
 qiongli mcp config example --target codex --json
+qiongli mcp config example --target hermes --json
 ```
 
 The bundled MCPB server and the full CLI MCP server both read the shared provider config. The MCPB also accepts Claude Desktop user configuration values directly from the extension settings.

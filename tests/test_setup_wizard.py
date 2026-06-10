@@ -177,6 +177,17 @@ def test_codex_runtime_targets_codex_client(tmp_path: Path) -> None:
     assert plan.install_options.target == "codex"
 
 
+def test_hermes_runtime_targets_hermes_client(tmp_path: Path) -> None:
+    answers = SetupAnswers(runtime="hermes", project_dir=tmp_path)
+
+    plan = build_setup_plan(answers)
+
+    assert plan.client_target == "hermes"
+    assert "--target" in plan.install_command
+    assert plan.install_command[plan.install_command.index("--target") + 1] == "hermes"
+    assert plan.install_options.target == "hermes"
+
+
 def test_project_scope_uses_parts_without_invalid_project_target(tmp_path: Path) -> None:
     answers = SetupAnswers(runtime="multi-platform", scope="project", project_dir=tmp_path)
 
@@ -391,7 +402,7 @@ def test_invalid_numbered_choice_reprompts(tmp_path: Path) -> None:
     )
 
     assert answers.runtime == "cli"
-    assert "Please enter a number from 1 to 4." in output.getvalue()
+    assert "Please enter a number from 1 to 5." in output.getvalue()
 
 
 def test_run_setup_wizard_honors_args_dry_run_project_dir_and_no_doctor(tmp_path: Path) -> None:

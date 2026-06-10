@@ -115,7 +115,7 @@ wizard 选项：
 qiongli install \
   [--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting] \
   [--coverage complete|focused] \
-  [--target codex|claude|gemini|antigravity|all] \
+  [--target codex|claude|gemini|antigravity|hermes|all] \
   [--mode copy|link] \
   [--project-dir <path>] \
   [--overwrite] \
@@ -151,7 +151,7 @@ qiongli upgrade \
   [--ref-type tag|branch] \
   [--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting] \
   [--coverage complete|focused] \
-  [--target codex|claude|gemini|antigravity|all] \
+  [--target codex|claude|gemini|antigravity|hermes|all] \
   [--project-dir <path>] \
   [--no-overwrite] \
   [--doctor] \
@@ -189,7 +189,7 @@ qiongli init [--project-dir <path>] [--target all|codex|claude|gemini] [--dry-ru
 
 ```bash
 qiongli remove \
-  [--target codex|claude|gemini|antigravity|all] \
+  [--target codex|claude|gemini|antigravity|hermes|all] \
   [--parts globals|project|cli] \
   [--project-dir <path>] \
   [--cli-dir <path>] \

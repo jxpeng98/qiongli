@@ -177,6 +177,55 @@ class InstallQiongliTests(unittest.TestCase):
                 (antigravity_home / "skills" / "qiongli-workflow" / "SKILL.md").exists()
             )
 
+    def test_hermes_install_defaults_to_global_skill_only_when_cli_exists(self) -> None:
+        if not SYSTEM_BASH.exists():
+            self.skipTest("/bin/bash is not available")
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            hermes_home = temp_root / "hermes-home"
+            home_dir = temp_root / "home"
+            bin_dir = temp_root / "bin"
+            home_dir.mkdir()
+            bin_dir.mkdir()
+            hermes_cli = bin_dir / "hermes"
+            hermes_cli.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+            hermes_cli.chmod(0o755)
+
+            env = os.environ.copy()
+            env["HOME"] = str(home_dir)
+            env["HERMES_HOME"] = str(hermes_home)
+            env["PATH"] = f"{bin_dir}{os.pathsep}{env.get('PATH', '')}"
+            env["NO_COLOR"] = "1"
+
+            result = subprocess.run(
+                [
+                    str(SYSTEM_BASH),
+                    str(INSTALL_SCRIPT),
+                    "--target",
+                    "hermes",
+                    "--mode",
+                    "copy",
+                    "--project-dir",
+                    str(project_dir),
+                ],
+                cwd=str(REPO_ROOT),
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, msg=result.stdout + "\n" + result.stderr)
+            self.assertIn("CLI", result.stdout)
+            self.assertIn("hermes", result.stdout)
+            self.assertFalse((project_dir / ".agents" / "skills" / "qiongli-workflow" / "SKILL.md").exists())
+            self.assertFalse((project_dir / ".agent" / "skills" / "qiongli-workflow" / "SKILL.md").exists())
+            self.assertTrue((hermes_home / "skills" / "qiongli-workflow" / "SKILL.md").exists())
+
     def test_all_target_reports_install_hints_for_missing_clis(self) -> None:
         if not SYSTEM_BASH.exists():
             self.skipTest("/bin/bash is not available")
@@ -221,6 +270,8 @@ class InstallQiongliTests(unittest.TestCase):
             self.assertIn("npm install -g @google/gemini-cli", result.stdout)
             self.assertIn("antigravity CLI not found in PATH", result.stdout)
             self.assertIn("Install Antigravity and ensure the `antigravity` binary is on PATH", result.stdout)
+            self.assertIn("hermes CLI not found in PATH", result.stdout)
+            self.assertIn("Install Hermes Agent and ensure the `hermes` binary is on PATH", result.stdout)
 
     def test_parts_project_skips_global_skill_copy(self) -> None:
         if not SYSTEM_BASH.exists():

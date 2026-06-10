@@ -81,6 +81,8 @@ Global assets are written under client home directories such as:
 ~/.codex/skills/qiongli-workflow
 ~/.claude/skills/qiongli-workflow
 ~/.gemini/skills/qiongli-workflow
+~/.gemini/antigravity/skills/qiongli-workflow
+~/.hermes/skills/qiongli-workflow
 ```
 
 Advanced bridge commands such as `setup`, `doctor`, `task-run`, and `team-run` use the Python runtime bundled in the npm package and require Python 3.12+ with `PyYAML`.
@@ -96,6 +98,7 @@ qiongli mcp serve --transport stdio
 qiongli mcp doctor --json
 qiongli mcp config example --target codex --json
 qiongli mcp config example --target claude-code --json
+qiongli mcp config example --target hermes --json
 ```
 
 The full CLI MCP server exposes provider tools plus orchestrator tools:

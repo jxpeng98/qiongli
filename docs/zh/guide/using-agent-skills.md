@@ -7,7 +7,7 @@ Qiongli 安装的是一套 agent-facing skill 系统，但不同客户端暴露�
 | 名称 | 含义 | 出现位置 |
 |---|---|---|
 | `qiongli` | 公开 plugin、CLI 和用户可见 skill 名称 | Skillsplace、npm、PyPI、Codex `/skills`、shell 命令 |
-| `qiongli-workflow` | 便携 skill package 目录名 | `~/.codex/skills/`、`~/.claude/skills/`、`~/.gemini/skills/`、plugin payload |
+| `qiongli-workflow` | 便携 skill package 目录名 | `~/.codex/skills/`、`~/.claude/skills/`、`~/.gemini/skills/`、`~/.gemini/antigravity/skills/`、`~/.hermes/skills/`、plugin payload |
 | `skills/*/*.md` | 内部学术能力卡片 | 仓库源码和 orchestrator 自动注入 |
 
 大多数使用者应该找 `qiongli`，不要再找 `research-paper-workflow`。目录名 `qiongli-workflow` 仍然保留，是为了兼容已有 installer 和 release artifacts。

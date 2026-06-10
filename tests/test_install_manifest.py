@@ -85,6 +85,7 @@ class InstallManifestTests(unittest.TestCase):
             ("claude", "Skill"),
             ("gemini", "Skill"),
             ("antigravity", "Skill"),
+            ("hermes", "Skill"),
             ("project", "Env"),
         }
 
@@ -103,6 +104,7 @@ class InstallManifestTests(unittest.TestCase):
             "${CLAUDE_CODE_HOME}",
             "${GEMINI_HOME}",
             "${ANTIGRAVITY_HOME}",
+            "${HERMES_HOME}",
         }
 
         for entry in entries:
@@ -126,7 +128,7 @@ class InstallManifestTests(unittest.TestCase):
         """All global skill entries should use dir-copy with the qiongli-workflow source."""
         entries = _read_manifest()
         for entry in entries:
-            if entry["target"] in {"codex", "claude", "gemini", "antigravity"}:
+            if entry["target"] in {"codex", "claude", "gemini", "antigravity", "hermes"}:
                 self.assertEqual(entry["op"], "dir-copy", msg=f"expected dir-copy for {entry}")
                 self.assertEqual(entry["source"], "qiongli-workflow", msg=f"unexpected source for {entry}")
 
@@ -134,7 +136,7 @@ class InstallManifestTests(unittest.TestCase):
         """Global install entries must not reference PROJECT_DIR."""
         entries = _read_manifest()
         for entry in entries:
-            if entry["target"] in {"codex", "claude", "gemini", "antigravity"}:
+            if entry["target"] in {"codex", "claude", "gemini", "antigravity", "hermes"}:
                 self.assertNotIn("${PROJECT_DIR}", entry["destination"], msg=f"global entry references PROJECT_DIR: {entry}")
 
     def test_skill_source_contains_bundled_workflows(self) -> None:

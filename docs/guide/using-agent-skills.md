@@ -7,7 +7,7 @@ Qiongli installs one agent-facing skill system, but each client exposes it diffe
 | Name | Meaning | Where it appears |
 |---|---|---|
 | `qiongli` | Public plugin, CLI, and user-visible skill name | Skillsplace, npm, PyPI, Codex `/skills`, shell commands |
-| `qiongli-workflow` | Portable skill package directory | `~/.codex/skills/`, `~/.claude/skills/`, `~/.gemini/skills/`, plugin payloads |
+| `qiongli-workflow` | Portable skill package directory | `~/.codex/skills/`, `~/.claude/skills/`, `~/.gemini/skills/`, `~/.gemini/antigravity/skills/`, `~/.hermes/skills/`, plugin payloads |
 | `skills/*/*.md` | Internal academic capability cards | Repository source and orchestrator injection |
 
 Most users should look for `qiongli`, not `research-paper-workflow`. The directory name `qiongli-workflow` remains for compatibility with existing installers and release artifacts.

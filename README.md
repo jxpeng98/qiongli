@@ -159,6 +159,7 @@ The MCPB does not launch orchestrator agents. To expose the full Python-backed a
 qiongli mcp serve --transport stdio
 qiongli mcp config example --target codex --json
 qiongli mcp config example --target claude-code --json
+qiongli mcp config example --target hermes --json
 ```
 
 The full CLI MCP server exposes:

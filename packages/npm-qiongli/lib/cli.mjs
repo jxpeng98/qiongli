@@ -139,7 +139,7 @@ function printInstallResult(result, stdout) {
   for (const action of result.actions) {
     stdout.write(`[${action.status}] ${action.label} -> ${action.path} (${action.detail})\n`);
   }
-  stdout.write('Restart Codex / Claude Code / Gemini CLI to activate changes.\n');
+  stdout.write('Restart Codex / Claude Code / Gemini CLI / Antigravity / Hermes to activate changes.\n');
 }
 
 function printRemoveResult(result, stdout) {
@@ -147,7 +147,7 @@ function printRemoveResult(result, stdout) {
   for (const action of result.actions) {
     stdout.write(`[${action.status}] ${action.label} -> ${action.path} (${action.detail})\n`);
   }
-  stdout.write('Restart Codex / Claude Code / Gemini CLI to refresh discovery state.\n');
+  stdout.write('Restart Codex / Claude Code / Gemini CLI / Antigravity / Hermes to refresh discovery state.\n');
 }
 
 function helpText() {
@@ -169,7 +169,7 @@ Usage:
   qiongli team-run ...
 
 Options:
-  --target codex|claude|gemini|antigravity|all
+  --target codex|claude|gemini|antigravity|hermes|all
   --subject core|economics|accounting|business|finance|economics-accounting
   --coverage complete|focused
   --mode copy|link

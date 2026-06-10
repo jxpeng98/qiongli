@@ -47,11 +47,12 @@ qiongli init --project-dir /path/to/project
 
 这个项目只有一类“安装目标”：
 
-- **全局 skill 安装目录**（让 Codex / Claude Code / Gemini / Antigravity 原生识别并支持全局 Slash 命令）  
+- **全局 skill 安装目录**（让 Codex / Claude Code / Gemini / Antigravity / Hermes 原生识别并支持全局 Slash 命令）
   - Codex: `${CODEX_HOME:-~/.codex}/skills/qiongli-workflow`
   - Claude: `${CLAUDE_CODE_HOME:-~/.claude}/skills/qiongli-workflow`
   - Gemini: `${GEMINI_HOME:-~/.gemini}/skills/qiongli-workflow`
   - Antigravity（全局）: `${ANTIGRAVITY_HOME:-~/.gemini/antigravity}/skills/qiongli-workflow`
+  - Hermes: `${HERMES_HOME:-~/.hermes}/skills/qiongli-workflow`
 
 升级的本质就是：**把这些目标路径覆盖为新版本**。
 
@@ -134,7 +135,7 @@ python3 scripts/qiongli_update.py upgrade \
   - `--ref v0.1.0-beta.6 --ref-type tag`
   - `--ref main --ref-type branch`
 
-升级后建议重启客户端（Codex / Claude Code / Gemini CLI）。
+升级后建议重启客户端（Codex / Claude Code / Gemini CLI / Antigravity / Hermes）。
 
 ---
 

@@ -20,6 +20,7 @@ from .source_layout import RepoLayout, discover_repo_root
 from .subject_materializer import SubjectCatalogError, SubjectMaterializationError
 from .universal_installer import (
     PART_CHOICES,
+    TARGET_CHOICES,
     InstallOptions,
     RemoveOptions,
     clean,
@@ -286,10 +287,14 @@ def _installed_skill_dirs() -> dict[str, Path]:
     codex_home = Path(os.environ.get("CODEX_HOME", "~/.codex")).expanduser()
     claude_home = Path(os.environ.get("CLAUDE_CODE_HOME", "~/.claude")).expanduser()
     gemini_home = Path(os.environ.get("GEMINI_HOME", "~/.gemini")).expanduser()
+    antigravity_home = Path(os.environ.get("ANTIGRAVITY_HOME", "~/.gemini/antigravity")).expanduser()
+    hermes_home = Path(os.environ.get("HERMES_HOME", "~/.hermes")).expanduser()
     return {
         "codex": codex_home / "skills" / "qiongli-workflow",
         "claude": claude_home / "skills" / "qiongli-workflow",
         "gemini": gemini_home / "skills" / "qiongli-workflow",
+        "antigravity": antigravity_home / "skills" / "qiongli-workflow",
+        "hermes": hermes_home / "skills" / "qiongli-workflow",
     }
 
 
@@ -931,7 +936,7 @@ def cmd_align(args: argparse.Namespace) -> int:
     print("- CLI aliases: `qiongli`, `ql`, `research-skills`, `rsk`, `rsw` (same behavior).")
     print("")
     print(f"What `{prog} upgrade` modifies by default:")
-    print("- Global skills (with bundled workflows): ~/.codex|~/.claude|~/.gemini under `skills/qiongli-workflow/`")
+    print("- Global skills (with bundled workflows): ~/.codex|~/.claude|~/.gemini|~/.gemini/antigravity|~/.hermes under `skills/qiongli-workflow/`")
     print("- Workflows are bundled inside the skill directory (no project-local copies needed).")
     print("- Shell CLI wrappers when `--install-cli` is used")
     print("")
@@ -1021,7 +1026,7 @@ def _cmd_provider_setup(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Install/upgrade qiongli (Codex/Claude/Gemini) without requiring a git fork."
+        description="Install/upgrade qiongli client skills without requiring a git fork."
     )
     subparsers = parser.add_subparsers(dest="cmd", required=True)
 
@@ -1063,7 +1068,7 @@ def build_parser() -> argparse.ArgumentParser:
     upgrade.add_argument(
         "--target",
         default="all",
-        choices=["codex", "claude", "gemini", "all"],
+        choices=TARGET_CHOICES,
         help="Install target (default: all)",
     )
     upgrade.add_argument("--beta", action="store_true", help="Include beta/pre-release tags for upgrade")
@@ -1111,7 +1116,7 @@ def build_parser() -> argparse.ArgumentParser:
     install_parser.add_argument(
         "--target",
         default="all",
-        choices=["codex", "claude", "gemini", "antigravity", "all"],
+        choices=TARGET_CHOICES,
         help="Install target (default: all)",
     )
     install_parser.add_argument("--subject", default="core", help="Subject package to install (default: core)")
@@ -1200,7 +1205,7 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument(
         "--target",
         default="all",
-        choices=["codex", "claude", "gemini", "antigravity", "all"],
+        choices=TARGET_CHOICES,
         help="Project/client surface to initialize (default: all)",
     )
     init.add_argument(
@@ -1239,7 +1244,7 @@ def build_parser() -> argparse.ArgumentParser:
     remove_parser.add_argument(
         "--target",
         default="all",
-        choices=["codex", "claude", "gemini", "antigravity", "all"],
+        choices=TARGET_CHOICES,
         help="Install target to remove from (default: all)",
     )
     remove_parser.add_argument(

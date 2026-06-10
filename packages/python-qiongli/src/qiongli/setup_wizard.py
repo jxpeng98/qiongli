@@ -10,12 +10,13 @@ from .universal_installer import InstallOptions
 
 
 OPERATION_CHOICES = ("install", "upgrade")
-RUNTIME_CHOICES = ("multi-platform", "cli", "codex", "claude-code")
+RUNTIME_CHOICES = ("multi-platform", "cli", "codex", "claude-code", "hermes")
 CLIENT_TARGET_BY_RUNTIME = {
     "multi-platform": "all",
     "cli": "all",
     "codex": "codex",
     "claude-code": "claude",
+    "hermes": "hermes",
 }
 SUBJECT_CHOICES = (
     "core",

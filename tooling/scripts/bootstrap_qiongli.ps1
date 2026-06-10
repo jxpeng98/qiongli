@@ -1,7 +1,7 @@
 param(
     [string]$Profile = "",
 
-    [ValidateSet("codex", "claude", "gemini", "antigravity", "all")]
+    [ValidateSet("codex", "claude", "gemini", "antigravity", "hermes", "all")]
     [string]$Target = "all",
 
     [string]$ProjectDir = (Get-Location).Path,
@@ -631,7 +631,7 @@ function Test-LegacySkillPackagePath([string]$PathValue, [string]$LegacyName) {
 }
 
 function Remove-LegacyResidues([string]$InstallTarget, [hashtable]$ClientHomes) {
-    $targets = if ($InstallTarget -eq "all") { @("codex", "claude", "gemini", "antigravity") } else { @($InstallTarget) }
+    $targets = if ($InstallTarget -eq "all") { @("codex", "claude", "gemini", "antigravity", "hermes") } else { @($InstallTarget) }
     $found = $false
     foreach ($targetName in $targets) {
         $clientHome = [string]$ClientHomes[$targetName]
@@ -675,6 +675,7 @@ function Install-FromRepo([string]$RepoRoot, [string]$ProjectRoot, [string]$Inst
     $claudeHome = if ($env:CLAUDE_CODE_HOME) { $env:CLAUDE_CODE_HOME } else { Join-Path $env:USERPROFILE ".claude" }
     $geminiHome = if ($env:GEMINI_HOME) { $env:GEMINI_HOME } else { Join-Path $env:USERPROFILE ".gemini" }
     $antigravityHome = if ($env:ANTIGRAVITY_HOME) { $env:ANTIGRAVITY_HOME } else { Join-Path $env:USERPROFILE ".gemini\antigravity" }
+    $hermesHome = if ($env:HERMES_HOME) { $env:HERMES_HOME } else { Join-Path $env:USERPROFILE ".hermes" }
     $cliRoot = if ($CliDir) { $CliDir } else { Join-Path $env:USERPROFILE ".local\bin" }
     $manifest = Read-InstallManifest $RepoRoot
     $manifestValues = @{
@@ -683,12 +684,14 @@ function Install-FromRepo([string]$RepoRoot, [string]$ProjectRoot, [string]$Inst
         CLAUDE_CODE_HOME = $claudeHome
         GEMINI_HOME = $geminiHome
         ANTIGRAVITY_HOME = $antigravityHome
+        HERMES_HOME = $hermesHome
     }
     $clientHomes = @{
         codex = $codexHome
         claude = $claudeHome
         gemini = $geminiHome
         antigravity = $antigravityHome
+        hermes = $hermesHome
     }
 
     Write-Host ""
@@ -701,7 +704,7 @@ function Install-FromRepo([string]$RepoRoot, [string]$ProjectRoot, [string]$Inst
 
     Write-Host ""
     Write-Host "== CLI Checks =="
-    $targets = if ($InstallTarget -eq "all") { @("codex", "claude", "gemini", "antigravity") } else { @($InstallTarget) }
+    $targets = if ($InstallTarget -eq "all") { @("codex", "claude", "gemini", "antigravity", "hermes") } else { @($InstallTarget) }
     foreach ($item in $targets) {
         $resolved = Get-Command $item -ErrorAction SilentlyContinue
         if ($resolved) {
@@ -712,7 +715,7 @@ function Install-FromRepo([string]$RepoRoot, [string]$ProjectRoot, [string]$Inst
         }
     }
 
-    foreach ($sectionTarget in @("codex", "claude", "gemini", "antigravity")) {
+    foreach ($sectionTarget in @("codex", "claude", "gemini", "antigravity", "hermes")) {
         if ($InstallTarget -ne "all" -and $InstallTarget -ne $sectionTarget) {
             continue
         }
@@ -814,7 +817,7 @@ function Install-FromRepo([string]$RepoRoot, [string]$ProjectRoot, [string]$Inst
         Write-Host "       Copy/paste this command to add it now:"
         Write-Host "       $(Get-AddPathCommand $cliRoot)"
     }
-    Write-Host "       Restart Codex / Claude Code / Gemini CLI to activate changes."
+    Write-Host "       Restart Codex / Claude Code / Gemini CLI / Antigravity / Hermes to activate changes."
 }
 
 $Profile = Resolve-Profile $Profile

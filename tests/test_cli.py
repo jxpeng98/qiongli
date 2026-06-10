@@ -24,6 +24,7 @@ class InstallerCliTests(unittest.TestCase):
                 "codex": root / "codex",
                 "claude": root / "claude",
                 "gemini": root / "gemini",
+                "hermes": root / "hermes",
             }
             args = argparse.Namespace(
                 repo="owner/repo",
@@ -90,6 +91,20 @@ class InstallerCliTests(unittest.TestCase):
         self.assertEqual(options.subject, "economics")
         self.assertEqual(options.coverage, "focused")
         self.assertEqual(options.target, "codex")
+
+    def test_install_command_accepts_hermes_target(self) -> None:
+        with mock.patch.object(cli_module, "install", return_value=0) as install_mock:
+            with mock.patch.object(
+                cli_module.sys,
+                "argv",
+                ["qiongli", "install", "--target", "hermes", "--dry-run"],
+            ):
+                exit_code = cli_module.main()
+
+        self.assertEqual(exit_code, 0)
+        options = install_mock.call_args.args[0]
+        self.assertEqual(options.target, "hermes")
+        self.assertTrue(options.dry_run)
 
     def test_remove_command_passes_target_and_parts_to_remover(self) -> None:
         with mock.patch.object(cli_module, "remove", return_value=0) as remove_mock:
@@ -229,6 +244,7 @@ class InstallerCliTests(unittest.TestCase):
                 "codex": skill_dir,
                 "claude": root / "claude" / "skills" / "qiongli-workflow",
                 "gemini": root / "gemini" / "skills" / "qiongli-workflow",
+                "hermes": root / "hermes" / "skills" / "qiongli-workflow",
             }
 
             stdout = io.StringIO()

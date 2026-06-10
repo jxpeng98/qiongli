@@ -84,6 +84,22 @@ class MCPCLITests(unittest.TestCase):
         self.assertEqual(payload["server"]["args"], ["mcp", "serve", "--transport", "stdio"])
         self.assertIn("qiongli_task_run", payload["orchestration_tools"])
 
+    def test_mcp_cli_config_example_for_hermes_json(self) -> None:
+        result = subprocess.run(
+            [sys.executable, "-m", "bridges.mcp_cli", "config", "example", "--target", "hermes", "--json"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["target"], "hermes")
+        self.assertEqual(payload["server"]["command"], "qiongli")
+        self.assertEqual(payload["server"]["args"], ["mcp", "serve", "--transport", "stdio"])
+        self.assertIn("qiongli_configure_provider", payload["configuration_tools"])
+        self.assertIn("qiongli_task_run", payload["orchestration_tools"])
+
     def test_mcp_cli_wizard_exits_after_provider_values_are_saved(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)

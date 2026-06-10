@@ -22,7 +22,7 @@ from .subject_materializer import (
 )
 
 
-TARGET_CHOICES = ("codex", "claude", "gemini", "antigravity", "all")
+TARGET_CHOICES = ("codex", "claude", "gemini", "antigravity", "hermes", "all")
 PROFILE_CHOICES = ("partial", "full")
 PART_CHOICES = ("globals", "project", "cli", "doctor")
 LEGACY_MANIFEST_PATH = Path(__file__).resolve().parents[1] / "install" / "install_manifest.tsv"
@@ -118,6 +118,7 @@ def cli_name_for_target(target: str) -> str:
         "claude": "claude",
         "gemini": "gemini",
         "antigravity": "antigravity",
+        "hermes": "hermes",
     }
     return mapping[target]
 
@@ -128,6 +129,7 @@ def cli_install_hint(target: str) -> str:
         "claude": "Install Claude Code: npm install -g @anthropic-ai/claude-code",
         "gemini": "Install Gemini CLI: npm install -g @google/gemini-cli",
         "antigravity": "Install Antigravity and ensure `antigravity` is on PATH before relying on the global skill directory.",
+        "hermes": "Install Hermes Agent and ensure `hermes` is on PATH before relying on the global skill directory.",
     }
     return hints[target]
 
@@ -298,11 +300,13 @@ def _global_skill_target_paths() -> dict[str, Path]:
         / "skills"
         / "qiongli-workflow"
     )
+    hermes_dest = Path(os.environ.get("HERMES_HOME", str(Path.home() / ".hermes"))) / "skills" / "qiongli-workflow"
     return {
         "codex": codex_dest,
         "claude": claude_dest,
         "gemini": gemini_dest,
         "antigravity": antigravity_dest,
+        "hermes": hermes_dest,
     }
 
 
@@ -929,6 +933,7 @@ def install(options: InstallOptions) -> int:
     claude_dest = target_paths["claude"]
     gemini_dest = target_paths["gemini"]
     antigravity_dest = target_paths["antigravity"]
+    hermes_dest = target_paths["hermes"]
     source_version = _skill_package_version(skill_src)
     manifest_values = {
         "PROJECT_DIR": str(options.project_dir),
@@ -936,6 +941,7 @@ def install(options: InstallOptions) -> int:
         "CLAUDE_CODE_HOME": str(claude_dest.parent.parent),
         "GEMINI_HOME": str(gemini_dest.parent.parent),
         "ANTIGRAVITY_HOME": str(antigravity_dest.parent.parent),
+        "HERMES_HOME": str(hermes_dest.parent.parent),
     }
     manifest_entries = _parse_manifest()
 
@@ -985,7 +991,7 @@ def install(options: InstallOptions) -> int:
             _print_section("Subject Package")
             _print_result("Subject", f"{options.subject}/{options.coverage} -> {skill_src}", "ok")
 
-    section_targets = ("codex", "claude", "gemini", "antigravity")
+    section_targets = TARGET_CHOICES[:-1]
     try:
         for section_target in section_targets:
             if options.target not in {section_target, "all"}:
@@ -1045,7 +1051,7 @@ def install(options: InstallOptions) -> int:
     print("\n[done] Installation complete")
     if install_cli and options.cli_dir and not _on_path(options.cli_dir):
         print(f"       Add {options.cli_dir} to PATH to use qiongli / ql / research-skills / rsk / rsw")
-    print("       Restart Codex / Claude Code / Gemini CLI to activate changes")
+    print("       Restart Codex / Claude Code / Gemini CLI / Antigravity / Hermes to activate changes")
     return 0
 
 
@@ -1176,7 +1182,7 @@ def remove(options: RemoveOptions) -> int:
         _print_result("Doctor", "no removable assets", "skip")
 
     print("\n[done] Removal complete")
-    print("       Restart Codex / Claude Code / Gemini CLI to refresh discovery state")
+    print("       Restart Codex / Claude Code / Gemini CLI / Antigravity / Hermes to refresh discovery state")
     return 0
 
 

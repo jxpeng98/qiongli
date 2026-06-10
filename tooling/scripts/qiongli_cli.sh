@@ -311,7 +311,7 @@ cmd_align() {
   printf -- '- CLI aliases: `qiongli`, `ql`, `research-skills`, `rsk`, `rsw`.\n'
   printf -- '- A bundled bootstrap helper used by `upgrade`.\n\n'
   printf 'What `%s upgrade` modifies by default:\n' "$prog"
-  printf -- '- Global skills: ~/.codex|~/.claude|~/.gemini and ~/.gemini/antigravity under `skills/qiongli-workflow/`\n'
+  printf -- '- Global skills: ~/.codex|~/.claude|~/.gemini|~/.gemini/antigravity|~/.hermes under `skills/qiongli-workflow/`\n'
   printf -- '- Shell CLI files in `${QIONGLI_BIN_DIR:-~/.local/bin}` when installed via bootstrap\n\n'
   printf 'Project-facing assets are explicit:\n'
   printf -- '- Use `qiongli init --project-dir .` from the Python CLI when available\n'
@@ -335,8 +335,8 @@ cmd_upgrade() {
 cmd_check() {
   local repo_arg="" json=0 strict_network=0
   local repo repo_root="" local_version="" latest_tag="" latest_status="" update_available=0
-  local codex_dir claude_dir gemini_dir antigravity_dir
-  local codex_version="" claude_version="" gemini_version="" antigravity_version=""
+  local codex_dir claude_dir gemini_dir antigravity_dir hermes_dir
+  local codex_version="" claude_version="" gemini_version="" antigravity_version="" hermes_version=""
   local best_version="" best_key="" candidate key
 
   while [[ $# -gt 0 ]]; do
@@ -382,10 +382,12 @@ EOF
   claude_dir="${CLAUDE_CODE_HOME:-$HOME/.claude}/skills/qiongli-workflow"
   gemini_dir="${GEMINI_HOME:-$HOME/.gemini}/skills/qiongli-workflow"
   antigravity_dir="${ANTIGRAVITY_HOME:-$HOME/.gemini/antigravity}/skills/qiongli-workflow"
+  hermes_dir="${HERMES_HOME:-$HOME/.hermes}/skills/qiongli-workflow"
   codex_version="$(read_version_file "$codex_dir/VERSION" || true)"
   claude_version="$(read_version_file "$claude_dir/VERSION" || true)"
   gemini_version="$(read_version_file "$gemini_dir/VERSION" || true)"
   antigravity_version="$(read_version_file "$antigravity_dir/VERSION" || true)"
+  hermes_version="$(read_version_file "$hermes_dir/VERSION" || true)"
 
   if latest_tag="$(resolve_latest_tag "$repo" 2>/dev/null)"; then
     latest_status="ok"
@@ -397,7 +399,7 @@ EOF
     fi
   fi
 
-  for candidate in "$local_version" "$codex_version" "$claude_version" "$gemini_version" "$antigravity_version"; do
+  for candidate in "$local_version" "$codex_version" "$claude_version" "$gemini_version" "$antigravity_version" "$hermes_version"; do
     [[ -n "$candidate" ]] || continue
     if key="$(version_key "$candidate" 2>/dev/null)"; then
       if [[ -z "$best_key" || "$key" > "$best_key" ]]; then
@@ -443,6 +445,11 @@ EOF
       "path": "$(json_escape "$antigravity_dir")",
       "installed": $( [[ -d "$antigravity_dir" ]] && printf 'true' || printf 'false' ),
       "version": "$(json_escape "$antigravity_version")"
+    },
+    "hermes": {
+      "path": "$(json_escape "$hermes_dir")",
+      "installed": $( [[ -d "$hermes_dir" ]] && printf 'true' || printf 'false' ),
+      "version": "$(json_escape "$hermes_version")"
     }
   },
   "latest_release": "$(json_escape "$latest_tag")",
@@ -468,6 +475,7 @@ EOF
   printf '   - claude: version=%s, path=%s\n' "${claude_version:-<unknown>}" "$claude_dir"
   printf '   - gemini: version=%s, path=%s\n' "${gemini_version:-<unknown>}" "$gemini_dir"
   printf '   - antigravity: version=%s, path=%s\n' "${antigravity_version:-<unknown>}" "$antigravity_dir"
+  printf '   - hermes: version=%s, path=%s\n' "${hermes_version:-<unknown>}" "$hermes_dir"
   printf '\n3) Upstream Release\n'
   printf '   - Repo: %s\n' "$repo"
   if [[ -n "$latest_tag" ]]; then

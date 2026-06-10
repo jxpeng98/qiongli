@@ -119,6 +119,7 @@ qiongli mcp configure --provider openalex --field email --value you@example.com
 qiongli mcp doctor --json
 qiongli mcp config example --target codex --json
 qiongli mcp config example --target claude-code --json
+qiongli mcp config example --target hermes --json
 qiongli mcp wizard
 ```
 
@@ -145,7 +146,7 @@ Use Case:
 qiongli install \
   [--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting] \
   [--coverage complete|focused] \
-  [--target codex|claude|gemini|antigravity|all] \
+  [--target codex|claude|gemini|antigravity|hermes|all] \
   [--mode copy|link] \
   [--project-dir <path>] \
   [--overwrite] \
@@ -181,7 +182,7 @@ qiongli upgrade \
   [--ref-type tag|branch] \
   [--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting] \
   [--coverage complete|focused] \
-  [--target codex|claude|gemini|antigravity|all] \
+  [--target codex|claude|gemini|antigravity|hermes|all] \
   [--project-dir <path>] \
   [--no-overwrite] \
   [--doctor] \
@@ -210,7 +211,7 @@ qiongli align [--repo <owner/repo|url>]
 Use Case: Creates project-local `.env` configuration in your project directory.
 
 ```bash
-qiongli init [--project-dir <path>] [--target all|codex|claude|gemini] [--dry-run]
+qiongli init [--project-dir <path>] [--target all|codex|claude|gemini|antigravity|hermes] [--dry-run]
 ```
 
 Notes:
@@ -223,7 +224,7 @@ Use Case: Removes assets installed by the CLI so you can switch cleanly between 
 
 ```bash
 qiongli remove \
-  [--target codex|claude|gemini|antigravity|all] \
+  [--target codex|claude|gemini|antigravity|hermes|all] \
   [--parts globals|project|cli] \
   [--project-dir <path>] \
   [--cli-dir <path>] \

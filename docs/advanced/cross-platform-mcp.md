@@ -9,6 +9,7 @@ Use the full CLI server when the desktop or agent client can start a local `qion
 ```bash
 qiongli mcp config example --target codex --json
 qiongli mcp config example --target claude-code --json
+qiongli mcp config example --target hermes --json
 ```
 
 The server command is:

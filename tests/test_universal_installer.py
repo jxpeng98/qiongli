@@ -247,12 +247,14 @@ class UniversalInstallerTests(unittest.TestCase):
             claude_home = temp_root / "claude-home"
             gemini_home = temp_root / "gemini-home"
             antigravity_home = temp_root / "antigravity-home"
+            hermes_home = temp_root / "hermes-home"
 
             env = os.environ.copy()
             env["CODEX_HOME"] = str(codex_home)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             env["GEMINI_HOME"] = str(gemini_home)
             env["ANTIGRAVITY_HOME"] = str(antigravity_home)
+            env["HERMES_HOME"] = str(hermes_home)
             env["PATH"] = ""
 
             with mock.patch.dict(os.environ, env, clear=True):
@@ -285,12 +287,14 @@ class UniversalInstallerTests(unittest.TestCase):
             claude_home = temp_root / "claude-home"
             gemini_home = temp_root / "gemini-home"
             antigravity_home = temp_root / "antigravity-home"
+            hermes_home = temp_root / "hermes-home"
 
             env = os.environ.copy()
             env["CODEX_HOME"] = str(codex_home)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             env["GEMINI_HOME"] = str(gemini_home)
             env["ANTIGRAVITY_HOME"] = str(antigravity_home)
+            env["HERMES_HOME"] = str(hermes_home)
             env["PATH"] = ""
 
             with mock.patch.dict(os.environ, env, clear=True):
@@ -308,10 +312,12 @@ class UniversalInstallerTests(unittest.TestCase):
             self.assertTrue((claude_home / "skills" / "qiongli-workflow" / "SKILL.md").exists())
             self.assertTrue((gemini_home / "skills" / "qiongli-workflow" / "SKILL.md").exists())
             self.assertTrue((antigravity_home / "skills" / "qiongli-workflow" / "SKILL.md").exists())
+            self.assertTrue((hermes_home / "skills" / "qiongli-workflow" / "SKILL.md").exists())
             # Workflows bundled inside each global skill directory
             self.assertTrue((claude_home / "skills" / "qiongli-workflow" / "workflows" / "paper.md").exists())
             self.assertTrue((gemini_home / "skills" / "qiongli-workflow" / "workflows" / "lit-review.md").exists())
             self.assertTrue((antigravity_home / "skills" / "qiongli-workflow" / "workflows" / "paper.md").exists())
+            self.assertTrue((hermes_home / "skills" / "qiongli-workflow" / "workflows" / "paper.md").exists())
             # Synced bundled assets present in global skill directories
             self.assertTrue((claude_home / "skills" / "qiongli-workflow" / "skills-core.md").exists())
             self.assertTrue((claude_home / "skills" / "qiongli-workflow" / "skills" / "A_framing").is_dir())
@@ -435,11 +441,13 @@ class UniversalInstallerTests(unittest.TestCase):
             claude_home = temp_root / "claude-home"
             gemini_home = temp_root / "gemini-home"
             antigravity_home = temp_root / "antigravity-home"
+            hermes_home = temp_root / "hermes-home"
             env = os.environ.copy()
             env["CODEX_HOME"] = str(codex_home)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             env["GEMINI_HOME"] = str(gemini_home)
             env["ANTIGRAVITY_HOME"] = str(antigravity_home)
+            env["HERMES_HOME"] = str(hermes_home)
             env["PATH"] = ""
 
             cli_dir = temp_root / "bin"
@@ -619,6 +627,7 @@ class CleanTests(unittest.TestCase):
             claude_home = temp_root / "claude-home"
             gemini_home = temp_root / "gemini-home"
             antigravity_home = temp_root / "antigravity-home"
+            hermes_home = temp_root / "hermes-home"
 
             for home in (codex_home, claude_home, gemini_home):
                 skill_dir = home / "skills" / "qiongli-workflow"
@@ -648,6 +657,7 @@ class CleanTests(unittest.TestCase):
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             env["GEMINI_HOME"] = str(gemini_home)
             env["ANTIGRAVITY_HOME"] = str(antigravity_home)
+            env["HERMES_HOME"] = str(hermes_home)
             stdout = io.StringIO()
 
             with mock.patch.dict(os.environ, env, clear=True), contextlib.redirect_stdout(stdout):
@@ -734,11 +744,13 @@ class SymlinkAndSummaryTests(unittest.TestCase):
             gemini_home = temp_root / "gemini-home"
             codex_home = temp_root / "codex-home"
             antigravity_home = temp_root / "antigravity-home"
+            hermes_home = temp_root / "hermes-home"
             env = os.environ.copy()
             env["CODEX_HOME"] = str(codex_home)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             env["GEMINI_HOME"] = str(gemini_home)
             env["ANTIGRAVITY_HOME"] = str(antigravity_home)
+            env["HERMES_HOME"] = str(hermes_home)
             env["PATH"] = ""
 
             with mock.patch.dict(os.environ, env, clear=True):
@@ -784,11 +796,13 @@ class SymlinkAndSummaryTests(unittest.TestCase):
             codex_home = temp_root / "codex-home"
             gemini_home = temp_root / "gemini-home"
             antigravity_home = temp_root / "antigravity-home"
+            hermes_home = temp_root / "hermes-home"
             env = os.environ.copy()
             env["CODEX_HOME"] = str(codex_home)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             env["GEMINI_HOME"] = str(gemini_home)
             env["ANTIGRAVITY_HOME"] = str(antigravity_home)
+            env["HERMES_HOME"] = str(hermes_home)
             env["PATH"] = ""
 
             with mock.patch.dict(os.environ, env, clear=True):

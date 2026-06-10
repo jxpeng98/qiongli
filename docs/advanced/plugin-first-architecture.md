@@ -49,7 +49,7 @@ The thin command wrappers under `packages/qiongli-plugin/commands/` intentionall
 The plugin-first package does not replace the legacy global install in place. Native plugin installation and bootstrap / `rsk` installation use separate surfaces:
 
 - Plugin bundle: managed by the client plugin or extension system.
-- Global skill install: `~/.codex/skills/qiongli-workflow`, `~/.claude/skills/qiongli-workflow`, and `~/.gemini/skills/qiongli-workflow`, managed by `rsk` or bootstrap.
+- Global skill install: `~/.codex/skills/qiongli-workflow`, `~/.claude/skills/qiongli-workflow`, `~/.gemini/skills/qiongli-workflow`, `~/.gemini/antigravity/skills/qiongli-workflow`, and `~/.hermes/skills/qiongli-workflow`, managed by `rsk` or bootstrap.
 - Global slash discovery: `~/.claude/commands/*.md` and `~/.gemini/workflows/*.md`, managed by `rsk`.
 
 For ordinary skill-only client-native usage and Codex/Claude Code bundled literature-provider MCP usage, the plugin bundle is enough. For the full Python-backed MCP server, CLI commands, validators, `doctor`, release tooling, or `bridges.orchestrator`, users still need the local `qiongli` CLI/runtime and should keep the global install aligned with:

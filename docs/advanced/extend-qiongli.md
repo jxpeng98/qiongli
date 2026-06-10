@@ -19,7 +19,7 @@ Before editing anything, distinguish these layers clearly:
 - **Internal Skill Specs**: `skills/*/*.md`
   - Repo-internal reusable execution specifications. These are not automatically portable client skills.
 - **Portable Skill Package**: `qiongli-workflow/`
-  - Cross-client entry skill distributed to Codex / Claude / Gemini.
+  - Cross-client entry skill distributed to Codex / Claude / Gemini / Antigravity / Hermes.
 - **Functional Agents**: currently represented mainly by `roles/` and pipeline ownership patterns
   - This is the research responsibility layer: literature, methods, writing, compliance, etc.
 - **Runtime Agents**: `codex`, `claude`, `gemini`
@@ -120,7 +120,7 @@ Categorizing your changes will directly determine which file layer you should ed
 2. **Change "Who Owns This Task / How It is Coordinated"** (functional owner, three-client routing, MCP dependencies, required_skills): Edit `standards/mcp-agent-capability-map.yaml` and possibly `roles/`
 3. **Change "Definition of Done"** (DoD, granular steps, checklists): Edit `qiongli-workflow/references/stage-*.md`
 4. **Change "Specific Execution Specs / Output Formats"** (internal skill-spec descriptions, reusable structures): Edit `skills/*/*.md` and/or `templates/*`
-5. **Change "Portable Client Entry Skill"** (what Codex / Claude / Gemini users install as the cross-client entry package): Edit `qiongli-workflow/`
+5. **Change "Portable Client Entry Skill"** (what Codex / Claude / Gemini / Antigravity / Hermes users install as the cross-client entry package): Edit `qiongli-workflow/`
 6. **Change "Claude Code Menus / Routing Experience"** (command entry points / menu items): Edit `.agent/workflows/*.md`
 7. **Change "Orchestrator Behavior"** (task-run injection, concurrency strategies, external MCP command protocols): Edit `bridges/*.py`
 

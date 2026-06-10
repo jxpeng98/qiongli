@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-const TARGETS = ['codex', 'claude', 'gemini', 'antigravity'];
+const TARGETS = ['codex', 'claude', 'gemini', 'antigravity', 'hermes'];
 const PARTS = ['globals', 'project', 'cli'];
 const LEGACY_SKILL_NAME = 'research-paper-workflow';
 
@@ -12,11 +12,13 @@ export function resolveTargetPaths({ env = process.env } = {}) {
   const claudeHome = env.CLAUDE_CODE_HOME || path.join(home, '.claude');
   const geminiHome = env.GEMINI_HOME || path.join(home, '.gemini');
   const antigravityHome = env.ANTIGRAVITY_HOME || path.join(home, '.gemini', 'antigravity');
+  const hermesHome = env.HERMES_HOME || path.join(home, '.hermes');
   return {
     codex: path.join(codexHome, 'skills', 'qiongli-workflow'),
     claude: path.join(claudeHome, 'skills', 'qiongli-workflow'),
     gemini: path.join(geminiHome, 'skills', 'qiongli-workflow'),
     antigravity: path.join(antigravityHome, 'skills', 'qiongli-workflow'),
+    hermes: path.join(hermesHome, 'skills', 'qiongli-workflow'),
   };
 }
 

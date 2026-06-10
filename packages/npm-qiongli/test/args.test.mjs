@@ -26,6 +26,14 @@ test('parseArgv treats upgrade as install with overwrite', () => {
   assert.equal(parsed.options.overwrite, true);
 });
 
+test('parseArgv accepts hermes as an install target', () => {
+  const parsed = parseArgv(['install', '--target', 'hermes', '--dry-run']);
+
+  assert.equal(parsed.command, 'install');
+  assert.equal(parsed.options.target, 'hermes');
+  assert.equal(parsed.options.dryRun, true);
+});
+
 test('parseArgv treats uninstall and delete as remove aliases', () => {
   const uninstall = parseArgv(['uninstall', '--target', 'codex', '--parts', 'globals,project', '--dry-run']);
   const del = parseArgv(['delete', '--target', 'claude']);

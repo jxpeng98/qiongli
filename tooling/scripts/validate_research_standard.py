@@ -2441,11 +2441,12 @@ def validate_release_artifacts(root: Path, report: ValidationReport) -> None:
     installer_content = read_text(root, "scripts/install_qiongli.sh", report)
     if installer_content:
         for token in (
-            "--target <codex|claude|gemini|antigravity|all>",
+            "--target <codex|claude|gemini|antigravity|hermes|all>",
             "--project-dir",
             "--doctor",
             "qiongli-workflow",
             "ANTIGRAVITY_HOME",
+            "HERMES_HOME",
         ):
             report.check(
                 token in installer_content,

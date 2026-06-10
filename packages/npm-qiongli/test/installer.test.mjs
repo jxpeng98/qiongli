@@ -136,6 +136,7 @@ test('resolveTargetPaths uses client home environment overrides', () => {
       CLAUDE_CODE_HOME: '/x/claude',
       GEMINI_HOME: '/x/gemini',
       ANTIGRAVITY_HOME: '/x/ag',
+      HERMES_HOME: '/x/hermes',
     },
   });
 
@@ -143,6 +144,7 @@ test('resolveTargetPaths uses client home environment overrides', () => {
   assert.equal(paths.claude, path.join('/x/claude', 'skills', 'qiongli-workflow'));
   assert.equal(paths.gemini, path.join('/x/gemini', 'skills', 'qiongli-workflow'));
   assert.equal(paths.antigravity, path.join('/x/ag', 'skills', 'qiongli-workflow'));
+  assert.equal(paths.hermes, path.join('/x/hermes', 'skills', 'qiongli-workflow'));
 });
 
 test('installSkills copies managed payload and removes legacy residues', () => {
@@ -169,6 +171,27 @@ test('installSkills copies managed payload and removes legacy residues', () => {
   assert.equal(result.legacyResidues[0].legacyName, 'research-paper-workflow');
   assert.equal(result.legacyResidues[0].status, 'removed');
   assert.equal(fs.existsSync(legacyDir), false);
+});
+
+test('installSkills installs the payload into Hermes home', () => {
+  const { root } = makeTempPackage();
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-hermes-home-'));
+  const hermesHome = path.join(home, '.custom-hermes');
+
+  const result = installSkills({
+    packageRoot: root,
+    target: 'hermes',
+    mode: 'copy',
+    env: { HOME: home, HERMES_HOME: hermesHome },
+    platform: 'linux',
+  });
+
+  const dest = path.join(hermesHome, 'skills', 'qiongli-workflow');
+  assert.equal(readSkillVersion(dest), 'v9.9.9-beta.1');
+  assert.equal(readSkillSubject(dest), 'core');
+  assert.equal(readSkillCoverage(dest), 'complete');
+  assert.equal(fs.readFileSync(path.join(dest, 'workflows', 'paper.md'), 'utf-8'), 'core complete workflow\n');
+  assert.equal(result.targetPaths.hermes, dest);
 });
 
 test('installSkills installs selected economics complete subject payload', () => {
