@@ -46,6 +46,7 @@ class PluginArtifactsTests(unittest.TestCase):
                 [
                     f"qiongli-next-claude-desktop-skill-core-{current_tag}.zip",
                     f"qiongli-next-claude-plugin-{current_tag}.tar.gz",
+                    f"qiongli-next-claude-plugin-{current_tag}.zip",
                     f"qiongli-next-codex-plugin-{current_tag}.tar.gz",
                 ],
             )
@@ -75,8 +76,24 @@ class PluginArtifactsTests(unittest.TestCase):
                     f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/roles/pi.yaml",
                 ],
             )
+            self._assert_zip_contains(
+                dist_dir / f"qiongli-next-claude-plugin-{current_tag}.zip",
+                [
+                    f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/.claude-plugin/plugin.json",
+                    f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/mcp/qiongli-literature-provider/index.mjs",
+                    f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/commands/paper.md",
+                    f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/SKILL.md",
+                    f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/agents/openai.yaml",
+                    f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/roles/pi.yaml",
+                ],
+            )
             self._assert_claude_manifest_mcp_server(
                 dist_dir / f"qiongli-next-claude-plugin-{current_tag}.tar.gz",
+                f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/.claude-plugin/plugin.json",
+                server_name="qiongli-next",
+            )
+            self._assert_claude_zip_manifest_mcp_server(
+                dist_dir / f"qiongli-next-claude-plugin-{current_tag}.zip",
                 f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/.claude-plugin/plugin.json",
                 server_name="qiongli-next",
             )
@@ -238,6 +255,30 @@ class PluginArtifactsTests(unittest.TestCase):
     def _read_zip_text(self, artifact: Path, member: str) -> str:
         with zipfile.ZipFile(artifact) as archive:
             return archive.read(member).decode("utf-8")
+
+    def _read_zip_json(self, artifact: Path, member: str) -> dict[str, object]:
+        with zipfile.ZipFile(artifact) as archive:
+            return json.loads(archive.read(member).decode("utf-8"))
+
+    def _assert_claude_zip_manifest_mcp_server(
+        self,
+        artifact: Path,
+        member: str,
+        *,
+        server_name: str = "qiongli",
+    ) -> None:
+        manifest = self._read_zip_json(artifact, member)
+        self.assertIn("mcpServers", manifest)
+        self.assertIn(server_name, manifest["mcpServers"])
+        if server_name != "qiongli":
+            self.assertNotIn("qiongli", manifest["mcpServers"])
+        server = manifest["mcpServers"][server_name]
+        self.assertEqual(server["command"], "node")
+        self.assertEqual(
+            server["args"],
+            ["${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs"],
+        )
+        self.assertEqual(server["cwd"], "${CLAUDE_PLUGIN_ROOT}")
 
     def _make_fallback_root(self, root: Path) -> Path:
         shutil.copytree(RepoLayout(REPO_ROOT).workflow, root / "qiongli-workflow")

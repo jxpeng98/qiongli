@@ -251,6 +251,11 @@ class PluginDistributionContractTests(unittest.TestCase):
             "qiongli-next invocation checked; bundled literature MCP checked",
             result.stdout,
         )
+        self.assertIn(
+            "[OK] claude marketplace ZIP artifact (core-next): "
+            "qiongli-next invocation checked; bundled literature MCP checked",
+            result.stdout,
+        )
         self.assertIn("[OK] claude-desktop skill artifact (core-next)", result.stdout)
         self.assertIn("under desktop file budget", result.stdout)
         self.assertNotIn("[OK] gemini marketplace artifact", result.stdout)

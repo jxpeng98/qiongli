@@ -866,7 +866,7 @@ def _build_marketplace_plugin(
     display_name: str,
     package_goal: str,
     skill_name: str = DEFAULT_SKILL_NAME,
-) -> Path:
+) -> list[Path]:
     bundle_name = f"{artifact_name}-{platform}-plugin-{tag}"
     bundle = work_dir / bundle_name
     plugin_dest = bundle / "plugins" / plugin_name
@@ -891,9 +891,13 @@ def _build_marketplace_plugin(
     _copy_literature_mcp_runtime(root, plugin_dest)
     _copy_commands(root, plugin_dest, skill_name=skill_name)
     _copy_subject_skill(root, plugin_dest, subject, skill_name=skill_name)
-    artifact = dist_dir / f"{bundle_name}.tar.gz"
-    _make_tarball(bundle, artifact)
-    return artifact
+    artifacts = [dist_dir / f"{bundle_name}.tar.gz"]
+    _make_tarball(bundle, artifacts[0])
+    if platform == "claude":
+        zip_artifact = dist_dir / f"{bundle_name}.zip"
+        _make_zip(bundle, zip_artifact)
+        artifacts.append(zip_artifact)
+    return artifacts
 
 
 def materialize_next_codex_plugin(root: Path, dest_plugin_root: Path, *, force: bool = False) -> Path:
@@ -929,7 +933,7 @@ def materialize_next_codex_plugin(root: Path, dest_plugin_root: Path, *, force: 
     return dest_plugin_root
 
 
-def _build_codex(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> Path:
+def _build_codex(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> list[Path]:
     display_name, package_goal = _subject_definitions(root)["core"]
     return _build_marketplace_plugin(
         root,
@@ -945,7 +949,7 @@ def _build_codex(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> Path:
     )
 
 
-def _build_claude(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> Path:
+def _build_claude(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> list[Path]:
     display_name, package_goal = _subject_definitions(root)["core"]
     return _build_marketplace_plugin(
         root,
@@ -969,7 +973,7 @@ def _build_subject_marketplace_plugins(root: Path, tag: str, dist_dir: Path, wor
         plugin_name = _subject_plugin_name(subject)
         artifact_name = plugin_name
         for platform in ("codex", "claude"):
-            artifacts.append(
+            artifacts.extend(
                 _build_marketplace_plugin(
                     root,
                     tag,
@@ -990,7 +994,7 @@ def _build_next_marketplace_plugins(root: Path, tag: str, dist_dir: Path, work_d
     _display_name, package_goal = _subject_definitions(root)["core"]
     artifacts: list[Path] = []
     for platform in ("codex", "claude"):
-        artifacts.append(
+        artifacts.extend(
             _build_marketplace_plugin(
                 root,
                 tag,
@@ -1087,8 +1091,8 @@ def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
         shutil.copy2(dist_dir / f"{PLUGIN_NAME}-claude-desktop-skill-core-{repo_tag}.zip", legacy_desktop_artifact)
         subject_marketplace_artifacts = _build_subject_marketplace_plugins(root, repo_tag, dist_dir, work_dir)
         artifacts = [
-            _build_codex(root, repo_tag, dist_dir, work_dir),
-            _build_claude(root, repo_tag, dist_dir, work_dir),
+            *_build_codex(root, repo_tag, dist_dir, work_dir),
+            *_build_claude(root, repo_tag, dist_dir, work_dir),
             *subject_marketplace_artifacts,
             _build_gemini(root, repo_tag, dist_dir, work_dir),
             *desktop_artifacts,

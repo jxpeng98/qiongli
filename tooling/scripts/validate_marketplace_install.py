@@ -95,6 +95,12 @@ def _extract_single_zip_root(artifact: Path, dest: Path) -> Path:
     return roots[0]
 
 
+def _extract_marketplace_root(artifact: Path, dest: Path) -> Path:
+    if artifact.suffix == ".zip":
+        return _extract_single_zip_root(artifact, dest)
+    return _extract_single_root(artifact, dest)
+
+
 def _assert_claude_desktop_zip_budget(artifact: Path, subject: str, *, skill_name: str = SKILL_NAME) -> int:
     with zipfile.ZipFile(artifact) as archive:
         file_names = [name for name in archive.namelist() if not name.endswith("/")]
@@ -462,7 +468,7 @@ def _validate_artifact(
     subject_label: str | None = None,
 ) -> str:
     with tempfile.TemporaryDirectory(prefix=f"qiongli-{spec.platform}-artifact-") as tmp:
-        bundle_root = _extract_single_root(artifact, Path(tmp))
+        bundle_root = _extract_marketplace_root(artifact, Path(tmp))
         if spec.platform == "gemini":
             plugin_root = bundle_root.resolve()
             manifest_path = plugin_root / "gemini-extension.json"
@@ -497,7 +503,8 @@ def _validate_artifact(
     checked = f"{skill_name} invocation checked"
     if spec.expects_bundled_mcp:
         checked += "; bundled literature MCP checked"
-    return f"[OK] {spec.platform} marketplace artifact{subject_suffix}: {checked}"
+    archive_label = " ZIP" if artifact.suffix == ".zip" else ""
+    return f"[OK] {spec.platform} marketplace{archive_label} artifact{subject_suffix}: {checked}"
 
 
 def _validate_claude_desktop_artifact(
@@ -620,6 +627,24 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
                     subject_label="core-next",
                 )
             )
+            if platform == "claude":
+                zip_name = f"{NEXT_PLUGIN_NAME}-claude-plugin-{expected_repo_tag}.zip"
+                zip_artifact = by_platform.get(zip_name)
+                if zip_artifact is None:
+                    raise ValueError(f"expected claude next marketplace ZIP artifact: {zip_name}")
+                messages.append(
+                    _validate_artifact(
+                        zip_artifact,
+                        spec,
+                        expected_repo_tag,
+                        expected_version,
+                        plugin_name=NEXT_PLUGIN_NAME,
+                        subject="core",
+                        coverage="complete",
+                        skill_name=NEXT_SKILL_NAME,
+                        subject_label="core-next",
+                    )
+                )
 
         desktop_name = f"{NEXT_PLUGIN_NAME}-claude-desktop-skill-core-{expected_repo_tag}.zip"
         desktop_artifact = by_platform.get(desktop_name)
@@ -647,6 +672,12 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
         if artifact is None:
             raise ValueError(f"expected {platform} artifact: {artifact_name}")
         messages.append(_validate_artifact(artifact, spec, expected_repo_tag, expected_version))
+        if platform == "claude":
+            zip_name = f"{PLUGIN_NAME}-claude-plugin-{expected_repo_tag}.zip"
+            zip_artifact = by_platform.get(zip_name)
+            if zip_artifact is None:
+                raise ValueError(f"expected claude ZIP artifact: {zip_name}")
+            messages.append(_validate_artifact(zip_artifact, spec, expected_repo_tag, expected_version))
 
     for subject in _marketplace_subjects(root):
         plugin_name = f"{PLUGIN_NAME}-{subject}"
@@ -667,6 +698,22 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
                     coverage="complete",
                 )
             )
+            if platform == "claude":
+                zip_name = f"{plugin_name}-claude-plugin-{expected_repo_tag}.zip"
+                zip_artifact = by_platform.get(zip_name)
+                if zip_artifact is None:
+                    raise ValueError(f"expected claude marketplace {subject} ZIP artifact: {zip_name}")
+                messages.append(
+                    _validate_artifact(
+                        zip_artifact,
+                        spec,
+                        expected_repo_tag,
+                        expected_version,
+                        plugin_name=plugin_name,
+                        subject=subject,
+                        coverage="complete",
+                    )
+                )
 
     for subject in _desktop_subjects(root):
         desktop_name = f"{PLUGIN_NAME}-claude-desktop-skill-{subject}-{expected_repo_tag}.zip"

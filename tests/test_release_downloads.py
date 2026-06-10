@@ -45,6 +45,7 @@ class ReleaseDownloadsTests(unittest.TestCase):
         self.assertIn("Use the marketplace command; do not download a plugin tarball", guide)
         self.assertIn("qiongli-next-claude-desktop-skill-core-v1.1.0-beta.2.zip", guide)
         self.assertIn("qiongli-literature-provider-0.1.4.mcpb", guide)
+        self.assertIn("qiongli-next-claude-plugin-v1.1.0-beta.2.zip", guide)
         self.assertIn("qiongli-downloads-v1.1.0-beta.2.json", guide)
 
         self.assertEqual(index["tag"], "v1.1.0-beta.2")
@@ -67,9 +68,17 @@ class ReleaseDownloadsTests(unittest.TestCase):
             "qiongli-next-claude-plugin-v1.1.0-beta.2.tar.gz",
             index["assets"]["maintainer_plugin_tarballs"],
         )
+        self.assertIn(
+            "qiongli-next-claude-plugin-v1.1.0-beta.2.zip",
+            index["assets"]["maintainer_plugin_zips"],
+        )
         self.assertNotIn(
             "qiongli-economics-claude-plugin-v1.1.0-beta.2.tar.gz",
             index["assets"]["maintainer_plugin_tarballs"],
+        )
+        self.assertNotIn(
+            "qiongli-economics-claude-plugin-v1.1.0-beta.2.zip",
+            index["assets"]["maintainer_plugin_zips"],
         )
 
     def test_release_notes_include_download_guide_section(self) -> None:
@@ -101,6 +110,7 @@ class ReleaseDownloadsTests(unittest.TestCase):
         self.assertIn("qiongli-downloads-v1.1.0-beta.2.md", notes)
         self.assertIn("qiongli-next-claude-desktop-skill-core-v1.1.0-beta.2.zip", notes)
         self.assertIn("qiongli-literature-provider-0.1.4.mcpb", notes)
+        self.assertIn("Claude plugin ZIPs", notes)
 
 
 if __name__ == "__main__":

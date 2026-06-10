@@ -28,9 +28,10 @@ Prerelease tags publish the `qiongli-next` testing channel instead of the full s
 
 - `qiongli-next-codex-plugin-<tag>.tar.gz`
 - `qiongli-next-claude-plugin-<tag>.tar.gz`
+- `qiongli-next-claude-plugin-<tag>.zip`
 - `qiongli-next-claude-desktop-skill-core-<tag>.zip`
 
-The `qiongli-next` Codex and Claude Code plugin artifacts install only the `core/complete` skill package and keep the bundled zero-dependency Node literature MCP runtime. They do not publish subject plugin variants. Claude Desktop testing uses the focused core ZIP plus the separate `qiongli-literature-provider-<version>.mcpb` release asset. The Skillsplace catalog may expose a separate `qiongli-next` entry for beta testing while stable `qiongli` and subject entries continue to point at stable artifacts.
+The `qiongli-next` Codex and Claude Code plugin artifacts install only the `core/complete` skill package and keep the bundled zero-dependency Node literature MCP runtime. They do not publish subject plugin variants. The Claude plugin ZIP contains the same plugin payload as the Claude tarball for upload flows that reject `.tar.gz`. Claude Desktop testing uses the focused core ZIP plus the separate `qiongli-literature-provider-<version>.mcpb` release asset. The Skillsplace catalog may expose a separate `qiongli-next` entry for beta testing while stable `qiongli` and subject entries continue to point at stable artifacts.
 
 Codex beta marketplace installs also need a Git-backed plugin source directory, because Skillsplace can install plugins from repository subdirectories. Qiongli exposes that source at:
 

@@ -37,7 +37,11 @@ class ClaudeDesktopSkillArtifactTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             artifacts = self.build_module.build_artifacts(REPO_ROOT, tag, Path(tmp))
 
-            desktop_artifacts = {artifact.name: artifact for artifact in artifacts if artifact.suffix == ".zip"}
+            desktop_artifacts = {
+                artifact.name: artifact
+                for artifact in artifacts
+                if "claude-desktop-skill" in artifact.name and artifact.suffix == ".zip"
+            }
             self.assertEqual(
                 [f"qiongli-next-claude-desktop-skill-core-{tag}.zip"],
                 sorted(desktop_artifacts),

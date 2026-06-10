@@ -246,7 +246,7 @@ mkdir -p "$(dirname "$OUTPUT")"
   if [[ "$IS_NEXT" -ne 1 ]]; then
     echo "| Gemini CLI | Download \`qiongli-gemini-extension-${TAG}.tar.gz\` only when installing from a release artifact. |"
   fi
-  echo "| Maintainers | Use Codex/Claude plugin tarballs only for manual marketplace artifact checks. |"
+  echo "| Maintainers | Use Codex/Claude plugin tarballs and Claude plugin ZIPs only for manual marketplace artifact checks or direct Claude plugin upload tests. |"
   echo
   echo "The release also includes \`qiongli-downloads-${TAG}.md\` and \`qiongli-downloads-${TAG}.json\` to group the asset list by install surface."
   echo

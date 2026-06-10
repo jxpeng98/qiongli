@@ -45,6 +45,10 @@ def _mcpb_asset_name() -> str:
     return f"{name}-{version}.mcpb"
 
 
+def _claude_plugin_zip(plugin_name: str, tag: str) -> str:
+    return f"{plugin_name}-claude-plugin-{tag}.zip"
+
+
 def _release_assets(tag: str, root: Path) -> dict[str, list[str] | str]:
     if _is_prerelease_tag(tag):
         return {
@@ -60,6 +64,9 @@ def _release_assets(tag: str, root: Path) -> dict[str, list[str] | str]:
                 f"{NEXT_PLUGIN_NAME}-codex-plugin-{tag}.tar.gz",
                 f"{NEXT_PLUGIN_NAME}-claude-plugin-{tag}.tar.gz",
             ],
+            "maintainer_plugin_zips": [
+                _claude_plugin_zip(NEXT_PLUGIN_NAME, tag),
+            ],
         }
 
     marketplace_subjects = _marketplace_subjects(root)
@@ -68,12 +75,14 @@ def _release_assets(tag: str, root: Path) -> dict[str, list[str] | str]:
         f"{PLUGIN_NAME}-{platform}-plugin-{tag}.tar.gz"
         for platform in ("codex", "claude")
     ]
+    plugin_zips = [_claude_plugin_zip(PLUGIN_NAME, tag)]
     for subject in marketplace_subjects:
         plugin_name = f"{PLUGIN_NAME}-{subject}"
         plugin_tarballs.extend(
             f"{plugin_name}-{platform}-plugin-{tag}.tar.gz"
             for platform in ("codex", "claude")
         )
+        plugin_zips.append(_claude_plugin_zip(plugin_name, tag))
 
     return {
         "download_guide": f"qiongli-downloads-{tag}.md",
@@ -86,6 +95,7 @@ def _release_assets(tag: str, root: Path) -> dict[str, list[str] | str]:
         "claude_desktop_literature_mcpb": _mcpb_asset_name(),
         "gemini_extension": f"{PLUGIN_NAME}-gemini-extension-{tag}.tar.gz",
         "maintainer_plugin_tarballs": plugin_tarballs,
+        "maintainer_plugin_zips": plugin_zips,
     }
 
 
@@ -174,11 +184,13 @@ def render_markdown(index: dict[str, Any]) -> str:
     gemini_asset = str(assets["gemini_extension"])
     guide_asset = str(assets["download_guide"])
     index_asset = str(assets["download_index"])
+    plugin_zips = list(assets.get("maintainer_plugin_zips", []))
 
     desktop_rows = "\n".join(
         f"| `{_desktop_skill_label(asset, tag)}` | `{asset}` |"
         for asset in desktop_skills
     )
+    plugin_zip_rows = "\n".join(f"- `{asset}`" for asset in plugin_zips)
 
     lines = [
         f"# Qiongli {tag} Download Guide",
@@ -197,13 +209,17 @@ def render_markdown(index: dict[str, Any]) -> str:
         "| Claude Code | Use the marketplace command; do not download a plugin tarball. | Marketplace install keeps slash commands, skills, and bundled literature MCP together. |",
         "| Claude Desktop/Web skills | Download exactly one Desktop skill ZIP from the table below. | ZIPs are focused skill packages sized for Desktop/Web upload. |",
         f"| Claude Desktop literature tools | Download `{mcpb_asset}`. | MCPB adds local literature/provider tools and provider key configuration. |",
-        "| Maintainers | Use plugin tarballs only for manual marketplace artifact checks. | They are not the normal end-user install path. |",
+        "| Maintainers | Use plugin tarballs and Claude plugin ZIPs only for manual artifact checks or direct Claude plugin upload tests. | They are not the normal end-user install path. |",
         "",
         "## Claude Desktop/Web skill ZIPs",
         "",
         "| Subject | Asset |",
         "|---|---|",
         desktop_rows,
+        "",
+        "## Maintainer Claude plugin ZIPs",
+        "",
+        plugin_zip_rows or "- None",
         "",
         "## Machine-readable index",
         "",

@@ -26,12 +26,17 @@ Skillsplace catalog 应跟踪 `main` 和 release tag，而不是 `dev`。`dev` �
 
 预发布 tag 会发布 `qiongli-next` 测试通道，而不是完整的 stable marketplace matrix。Codex 侧的 beta marketplace 安装需要一个可由 Skillsplace 通过 Git 子目录安装的源目录：
 
+- `qiongli-next-codex-plugin-<tag>.tar.gz`
+- `qiongli-next-claude-plugin-<tag>.tar.gz`
+- `qiongli-next-claude-plugin-<tag>.zip`
+- `qiongli-next-claude-desktop-skill-core-<tag>.zip`
+
 - Prerelease plugin subdirectory: `packages/qiongli-next-plugin`
 - Codex beta manifest: `packages/qiongli-next-plugin/.codex-plugin/plugin.json`
 - Required manifest name: `qiongli-next`
 - Required MCP server key: `qiongli-next`
 
-Release automation 会在版本准备阶段通过 `python3 scripts/materialize_distribution_payloads.py --target next-plugin --in-place` 从 canonical source 刷新这个受跟踪目录。该目录只包含 core Codex beta plugin 和 bundled literature MCP runtime，不发布 subject-specific plugin variants，也不替代 stable `packages/qiongli-plugin` 入口。`jxpeng98/skillsplace` 中的 `qiongli-next` 条目应指向这个目录的 beta tag。
+Release automation 会在版本准备阶段通过 `python3 scripts/materialize_distribution_payloads.py --target next-plugin --in-place` 从 canonical source 刷新这个受跟踪目录。该目录只包含 core Codex beta plugin 和 bundled literature MCP runtime，不发布 subject-specific plugin variants，也不替代 stable `packages/qiongli-plugin` 入口。Claude plugin ZIP 与 Claude tarball 使用同一份 plugin payload，用于不接受 `.tar.gz` 的 Claude 上传路径。`jxpeng98/skillsplace` 中的 `qiongli-next` 条目应指向这个目录的 beta tag。
 
 ## 开发流程
 
