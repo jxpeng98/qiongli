@@ -1,6 +1,11 @@
 import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
-import { providerConfigPath, providerFieldAliases, saveProviderValue } from "./config.mjs";
+import {
+  providerAccessGuidance,
+  providerConfigPath,
+  providerFieldAliases,
+  saveProviderValue
+} from "./config.mjs";
 
 const DEFAULT_HOST = "127.0.0.1";
 const ALLOWED_HOSTS = new Set(["127.0.0.1", "localhost"]);
@@ -146,6 +151,7 @@ function renderForm({ token, configPath, saved, selectedProvider }) {
   const savedMessage = saved
     ? "<p class=\"saved\">Saved. Run <code>qiongli_config_status</code> to confirm redacted provider status.</p>"
     : "";
+  const guidance = renderAccessGuidance();
 
   return [
     "<!doctype html>",
@@ -161,6 +167,13 @@ function renderForm({ token, configPath, saved, selectedProvider }) {
     ".notice{background:#f6f8fa;border:1px solid #d0d7de;border-radius:8px;margin:20px 0;padding:16px}",
     ".notice ul{margin:8px 0 0;padding-left:22px}",
     ".notice li{margin:6px 0}",
+    ".guidance-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:20px 0}",
+    ".guidance-card{border:1px solid #d0d7de;border-radius:8px;padding:14px}",
+    ".guidance-card h3{font-size:15px;margin:0 0 6px}",
+    ".guidance-card p{font-size:13px;margin:6px 0}",
+    ".guidance-card ol{font-size:13px;margin:8px 0 0;padding-left:20px}",
+    ".guidance-card li{margin:5px 0}",
+    ".resource-links{display:flex;flex-wrap:wrap;gap:8px}",
     "fieldset{border:1px solid #d0d7de;border-radius:8px;margin:0 0 16px;padding:16px}",
     "legend{font-weight:700;padding:0 6px}",
     ".field-row{display:grid;grid-template-columns:240px 1fr;gap:16px;align-items:start;margin:14px 0}",
@@ -176,7 +189,7 @@ function renderForm({ token, configPath, saved, selectedProvider }) {
     ".preview{color:#57606a;font-size:13px;margin:6px 0 0}",
     ".preview code{background:#f6f8fa;border:1px solid #d0d7de;border-radius:6px;color:#24292f;padding:2px 6px;word-break:break-all}",
     ".preview code.is-empty{color:#6e7781}",
-    "@media(max-width:680px){body{margin:20px}.field-row{grid-template-columns:1fr}.input-row{grid-template-columns:1fr}}",
+    "@media(max-width:760px){body{margin:20px}.guidance-grid{grid-template-columns:1fr}.field-row{grid-template-columns:1fr}.input-row{grid-template-columns:1fr}}",
     "</style></head><body>",
     "<h1>Qiongli MCP Provider Configuration</h1>",
     "<p class=\"intro\">Use this local setup page for Qiongli provider credentials across Codex, Claude Desktop, and other MCP-capable clients.</p>",
@@ -188,6 +201,7 @@ function renderForm({ token, configPath, saved, selectedProvider }) {
     "<li>After saving, ask the client to run <code>qiongli_config_status</code>; it returns only redacted status.</li>",
     "</ul>",
     "</section>",
+    guidance,
     `<p class="path">Config path: ${escapeHtml(configPath)}</p>`,
     savedMessage,
     `<form method="post" action="/save?token=${escapeHtml(token)}">`,
@@ -238,12 +252,50 @@ function renderForm({ token, configPath, saved, selectedProvider }) {
   ].join("");
 }
 
+function renderAccessGuidance() {
+  const cards = Object.values(providerAccessGuidance()).map((entry) => {
+    const links = [
+      entry.apply_url
+        ? `<a href="${escapeHtml(entry.apply_url)}" target="_blank" rel="noreferrer">Apply or configure</a>`
+        : "",
+      entry.docs_url
+        ? `<a href="${escapeHtml(entry.docs_url)}" target="_blank" rel="noreferrer">Official docs</a>`
+        : ""
+    ].filter(Boolean).join("");
+    const steps = entry.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("");
+
+    return [
+      "<article class=\"guidance-card\">",
+      `<h3>${escapeHtml(entry.title)}</h3>`,
+      `<p>${escapeHtml(entry.summary)}</p>`,
+      `<p>Config field: <code>${escapeHtml(entry.config_field)}</code></p>`,
+      `<ol>${steps}</ol>`,
+      links ? `<p class="resource-links">${links}</p>` : "",
+      "</article>"
+    ].join("");
+  }).join("");
+
+  return [
+    "<section aria-label=\"Provider access guidance\">",
+    "<h2>How to get provider access</h2>",
+    "<p class=\"intro\">Use the links below to request or prepare provider credentials before saving them here.</p>",
+    `<div class="guidance-grid">${cards}</div>`,
+    "</section>"
+  ].join("");
+}
+
 function fieldHelp(provider, field) {
   if (provider === "openalex" && field === "email") {
-    return "Optional polite-pool email for OpenAlex requests.";
+    return "Optional contact email for OpenAlex requests. OpenAlex API-key setup is linked above.";
   }
   if (provider === "semantic_scholar" && field === "api_key") {
-    return "Semantic Scholar API key used only by the local MCP server.";
+    return "Semantic Scholar API key received by email and used only by the local MCP server.";
+  }
+  if (provider === "crossref" && field === "email") {
+    return "Email for Crossref polite access; no public API key is required.";
+  }
+  if (provider === "pubmed" && field === "api_key") {
+    return "NCBI API key generated from your NCBI account.";
   }
   if (field === "email") {
     return "Provider contact email for rate limits or attribution.";

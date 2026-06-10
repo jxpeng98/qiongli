@@ -24,6 +24,56 @@ const PROVIDER_FIELDS = {
     api_key: ["QIONGLI_NCBI_API_KEY", "NCBI_API_KEY", "PUBMED_API_KEY"]
   }
 };
+const PROVIDER_ACCESS_GUIDANCE = {
+  openalex: {
+    title: "OpenAlex API key",
+    config_field: "openalex.email",
+    apply_url: "https://openalex.org/settings/api",
+    docs_url: "https://developers.openalex.org/",
+    summary: "OpenAlex publishes free API key setup from its settings page. This MCP currently stores an optional contact email for OpenAlex requests, not the OpenAlex API key.",
+    steps: [
+      "Sign in to OpenAlex and open the API settings page.",
+      "Create a free API key if your OpenAlex account is eligible.",
+      "Use the email field below as the current Qiongli MCP contact identifier until OpenAlex API-key support is added."
+    ]
+  },
+  semantic_scholar: {
+    title: "Semantic Scholar API key",
+    config_field: "semantic_scholar.api_key",
+    apply_url: "https://www.semanticscholar.org/product/api",
+    docs_url: "https://api.semanticscholar.org/api-docs/",
+    summary: "Semantic Scholar sends private API keys by email and recommends using a key for supported requests.",
+    steps: [
+      "Open the Semantic Scholar API page.",
+      "Use the Request an API key section.",
+      "Paste only the private key you receive by email into this local setup page."
+    ]
+  },
+  crossref: {
+    title: "Crossref polite access",
+    config_field: "crossref.email",
+    apply_url: null,
+    docs_url: "https://www.crossref.org/documentation/retrieve-metadata/rest-api/access-and-authentication/",
+    summary: "Crossref public REST API access does not require signup; provide an email for polite access so Crossref can contact you about problematic traffic.",
+    steps: [
+      "No public API key application is required for polite access.",
+      "Use an email address you monitor.",
+      "Use Metadata Plus only if you separately subscribe to Crossref's premium API-key service."
+    ]
+  },
+  pubmed: {
+    title: "NCBI API key",
+    config_field: "pubmed.api_key",
+    apply_url: "https://support.nlm.nih.gov/kbArticle/?pn=KA-05317",
+    docs_url: "https://www.ncbi.nlm.nih.gov/books/NBK25501/",
+    summary: "NCBI API keys are generated from an NCBI account and can increase E-Utilities request limits.",
+    steps: [
+      "Sign in to NCBI.",
+      "Open Account settings from your username menu.",
+      "Create a key in the API Key Management section and paste it here."
+    ]
+  }
+};
 
 function readTrimmed(env, name) {
   return String(env[name] ?? "").trim();
@@ -66,6 +116,10 @@ export function providerConfigPath(env = process.env) {
 
 export function providerFieldAliases() {
   return PROVIDER_FIELDS;
+}
+
+export function providerAccessGuidance() {
+  return JSON.parse(JSON.stringify(PROVIDER_ACCESS_GUIDANCE));
 }
 
 export function saveProviderValue({ provider, field, value, env = process.env } = {}) {
@@ -145,7 +199,8 @@ export function redactedProviderStatus(config) {
           api_key: "missing"
         }
       }
-    }
+    },
+    provider_access_guidance: providerAccessGuidance()
   };
   if (status.next_action) {
     redacted.next_action = status.next_action;

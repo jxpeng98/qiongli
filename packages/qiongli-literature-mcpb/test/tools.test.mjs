@@ -38,6 +38,14 @@ test("handleConfigStatus suggests the platform-neutral setup tool when provider 
 
   assert.equal(status.providers.semantic_scholar.fields.api_key, "missing");
   assert.deepEqual(status.missing, ["semantic_scholar.api_key"]);
+  assert.equal(status.provider_access_guidance.semantic_scholar.config_field, "semantic_scholar.api_key");
+  assert.equal(status.provider_access_guidance.semantic_scholar.apply_url, "https://www.semanticscholar.org/product/api");
+  assert.equal(status.provider_access_guidance.openalex.apply_url, "https://openalex.org/settings/api");
+  assert.equal(status.provider_access_guidance.pubmed.apply_url, "https://support.nlm.nih.gov/kbArticle/?pn=KA-05317");
+  assert.equal(
+    status.provider_access_guidance.crossref.docs_url,
+    "https://www.crossref.org/documentation/retrieve-metadata/rest-api/access-and-authentication/"
+  );
   assert.deepEqual(status.next_action, {
     tool: "qiongli_configure_provider",
     args: {
@@ -135,6 +143,14 @@ test("handleOpenConfigWizard serves guidance, input preview, and saving state", 
     assert.equal(response.status, 200);
     assert.equal(html.includes("Keys stay on this machine"), true);
     assert.equal(html.includes("Do not paste API keys into chat"), true);
+    assert.equal(html.includes("How to get provider access"), true);
+    assert.equal(html.includes("Semantic Scholar API key"), true);
+    assert.equal(html.includes("https://www.semanticscholar.org/product/api"), true);
+    assert.equal(html.includes("OpenAlex API key"), true);
+    assert.equal(html.includes("https://openalex.org/settings/api"), true);
+    assert.equal(html.includes("NCBI API key"), true);
+    assert.equal(html.includes("https://support.nlm.nih.gov/kbArticle/?pn=KA-05317"), true);
+    assert.equal(html.includes("Crossref polite access"), true);
     assert.equal(html.includes("Saving..."), true);
     assert.equal(html.includes("data-preview-for=\"semantic_scholar.api_key\""), true);
     assert.equal(html.includes("type=\"button\" data-toggle-for=\"semantic_scholar.api_key\""), true);
