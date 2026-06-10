@@ -1,6 +1,6 @@
 ---
 name: qiongli
-description: Qiongli academic workflow for Codex, Claude Code, and Gemini. Use when a user needs to plan papers, run literature reviews, choose a paper type (empirical, qualitative, systematic review, methods, theory), select a workflow stage, and produce consistent artifacts under RESEARCH/[topic]/ with explicit task IDs, quality gates, and submission-ready outputs.
+description: Qiongli version: v1.1.0. Academic workflow for Codex, Claude Code, and Gemini. Use when a user needs to plan papers, run literature reviews, choose a paper type (empirical, qualitative, systematic review, methods, theory), select a workflow stage, and produce consistent artifacts under RESEARCH/[topic]/ with explicit task IDs, quality gates, and submission-ready outputs.
 ---
 
 # Qiongli Academic Workflow
@@ -8,6 +8,8 @@ description: Qiongli academic workflow for Codex, Claude Code, and Gemini. Use w
 Run a model-agnostic paper workflow using shared Task IDs and artifact contracts.
 
 This is a **self-contained skill package**. All assets needed for execution — workflows, skill specifications, output templates, standards, and agent roles — are bundled in subdirectories of this package. No external repo access is needed.
+
+Installed Qiongli workflow version: `v1.1.0`
 
 ## Quick Start
 

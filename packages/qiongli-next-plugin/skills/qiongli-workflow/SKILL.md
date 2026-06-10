@@ -1,11 +1,13 @@
 ---
 name: qiongli-next
-description: General-purpose Qiongli academic workflow across paper types and methods.
+description: Qiongli Next version: v1.1.0. General-purpose Qiongli academic workflow across paper types and methods.
 ---
 
 # Qiongli Core
 
 General-purpose Qiongli academic workflow across paper types and methods.
+
+Installed Qiongli workflow version: `v1.1.0`
 
 ## Core Workflow Map
 

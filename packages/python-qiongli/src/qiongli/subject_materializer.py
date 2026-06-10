@@ -578,7 +578,7 @@ def _write_subject_markers(
         + "\n",
         encoding="utf-8",
     )
-    (out / "SKILL.md").write_text(_render_skill_md(subject, flavor), encoding="utf-8")
+    (out / "SKILL.md").write_text(_render_skill_md(subject, flavor, version), encoding="utf-8")
 
 
 def _subject_layers(subject: SubjectDefinition, custom_layer: CustomSubjectLayer) -> list[str]:
@@ -595,17 +595,19 @@ def _subject_layers(subject: SubjectDefinition, custom_layer: CustomSubjectLayer
     return layers
 
 
-def _render_skill_md(subject: SubjectDefinition, flavor: str) -> str:
+def _render_skill_md(subject: SubjectDefinition, flavor: str, version: str) -> str:
     map_title = f"{subject.display_name.removeprefix('Qiongli ').strip() or subject.display_name} Workflow Map"
     lines = [
         "---",
         "name: qiongli",
-        f"description: {subject.package_goal}",
+        f"description: Qiongli version: {version}. {subject.package_goal}",
         "---",
         "",
         f"# {subject.display_name}",
         "",
         subject.package_goal,
+        "",
+        f"Installed Qiongli workflow version: `{version}`",
         "",
         f"## {map_title}",
         "",

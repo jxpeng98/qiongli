@@ -64,6 +64,17 @@ class SyncVersionsTests(unittest.TestCase):
                 "v0.1.0\n",
                 encoding="utf-8",
             )
+            (root / "qiongli-workflow" / "SKILL.md").write_text(
+                "---\n"
+                "name: qiongli\n"
+                "description: Qiongli version: v0.1.0. Demo workflow.\n"
+                "---\n"
+                "\n"
+                "# Qiongli Academic Workflow\n"
+                "\n"
+                "Installed Qiongli workflow version: `v0.1.0`\n",
+                encoding="utf-8",
+            )
             (root / "qiongli-workflow" / "skills" / "registry.yaml").write_text(
                 'skills:\n  - id: "demo"\n    version: "0.1.0"\n',
                 encoding="utf-8",
@@ -144,6 +155,19 @@ class SyncVersionsTests(unittest.TestCase):
                 encoding="utf-8",
             )
             (
+                root / "packages" / "qiongli-next-plugin" / "skills" / "qiongli-workflow" / "SKILL.md"
+            ).write_text(
+                "---\n"
+                "name: qiongli-next\n"
+                "description: Qiongli Next version: v0.1.0. Demo workflow.\n"
+                "---\n"
+                "\n"
+                "# Qiongli Core\n"
+                "\n"
+                "Installed Qiongli workflow version: `v0.1.0`\n",
+                encoding="utf-8",
+            )
+            (
                 root
                 / "packages"
                 / "qiongli-next-plugin"
@@ -201,6 +225,7 @@ class SyncVersionsTests(unittest.TestCase):
             self.assertIn(layout.python_package / "__init__.py", changed)
             self.assertIn(root / "skills" / "registry.yaml", changed)
             self.assertIn(root / "qiongli-workflow" / "VERSION", changed)
+            self.assertIn(root / "qiongli-workflow" / "SKILL.md", changed)
             self.assertIn(root / "qiongli-workflow" / "skills" / "registry.yaml", changed)
             self.assertIn(root / "packages" / "npm-qiongli" / "package.json", changed)
             self.assertIn(root / "package-lock.json", changed)
@@ -241,6 +266,10 @@ class SyncVersionsTests(unittest.TestCase):
             )
             self.assertIn(
                 root / "packages" / "qiongli-next-plugin" / "skills" / "qiongli-workflow" / "VERSION",
+                changed,
+            )
+            self.assertIn(
+                root / "packages" / "qiongli-next-plugin" / "skills" / "qiongli-workflow" / "SKILL.md",
                 changed,
             )
             self.assertIn(
@@ -286,6 +315,14 @@ class SyncVersionsTests(unittest.TestCase):
             self.assertEqual(
                 (root / "qiongli-workflow" / "VERSION").read_text().strip(),
                 "v0.2.0-beta.2",
+            )
+            self.assertIn(
+                "Qiongli version: v0.2.0-beta.2",
+                (root / "qiongli-workflow" / "SKILL.md").read_text(),
+            )
+            self.assertIn(
+                "Installed Qiongli workflow version: `v0.2.0-beta.2`",
+                (root / "qiongli-workflow" / "SKILL.md").read_text(),
             )
             self.assertIn(
                 'version: "0.2.0-beta.2"',
@@ -361,6 +398,17 @@ class SyncVersionsTests(unittest.TestCase):
                     / "VERSION"
                 ).read_text().strip(),
                 "v0.2.0-beta.2",
+            )
+            self.assertIn(
+                "Qiongli Next version: v0.2.0-beta.2",
+                (
+                    root
+                    / "packages"
+                    / "qiongli-next-plugin"
+                    / "skills"
+                    / "qiongli-workflow"
+                    / "SKILL.md"
+                ).read_text(),
             )
             self.assertIn(
                 'version: "0.2.0-beta.2"',

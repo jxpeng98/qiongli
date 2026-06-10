@@ -62,7 +62,12 @@ class SkillDocGenerationTests(unittest.TestCase):
         self.assertNotIn("`J`-level proofread and polishing entrypoints live at the workflow layer today", en_doc)
 
     def test_workflow_skill_overview_lists_current_stages_and_skills(self) -> None:
-        content = (RepoLayout(REPO_ROOT).workflow / "SKILL.md").read_text(encoding="utf-8")
+        workflow = RepoLayout(REPO_ROOT).workflow
+        content = (workflow / "SKILL.md").read_text(encoding="utf-8")
+        version = (workflow / "VERSION").read_text(encoding="utf-8").strip()
+
+        self.assertIn(f"Qiongli version: {version}", content)
+        self.assertIn(f"Installed Qiongli workflow version: `{version}`", content)
 
         for token in (
             "J_proofread/",

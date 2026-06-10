@@ -100,6 +100,45 @@ def replace_npm_lock_workspace_version(path: Path, version: str) -> bool:
     return True
 
 
+def replace_skill_entrypoint_version(path: Path, repo_version: str) -> bool:
+    original = path.read_text(encoding="utf-8")
+    label = "Qiongli Next" if re.search(r"(?m)^name:\s*qiongli-next\s*$", original) else "Qiongli"
+    updated = original
+    description_with_version = re.compile(
+        r"(?m)^(description:\s+)"
+        r"(?:Qiongli(?: Next)? version:\s*)"
+        r"v?\d+\.\d+\.\d+(?:-beta\.\d+)?(\.\s*)"
+    )
+    updated, description_count = description_with_version.subn(
+        rf"\g<1>{label} version: {repo_version}\g<2>",
+        updated,
+        count=1,
+    )
+    if description_count == 0:
+        description_without_version = re.compile(r"(?m)^(description:\s+)(.+)$")
+        updated, description_count = description_without_version.subn(
+            rf"\g<1>{label} version: {repo_version}. \g<2>",
+            updated,
+            count=1,
+        )
+        if description_count == 0:
+            raise ValueError(f"no matching description field found in {path}")
+
+    updated, body_count = re.subn(
+        r"Installed Qiongli workflow version: `[^`]+`",
+        f"Installed Qiongli workflow version: `{repo_version}`",
+        updated,
+        count=1,
+    )
+    if body_count == 0:
+        updated = updated.rstrip() + f"\n\nInstalled Qiongli workflow version: `{repo_version}`\n"
+
+    if updated != original:
+        path.write_text(updated, encoding="utf-8")
+        return True
+    return False
+
+
 def replace_uv_lock_editable_package_version(path: Path, package_name: str, version: str) -> bool:
     original = path.read_text(encoding="utf-8")
     package_block_pattern = re.compile(
@@ -169,6 +208,19 @@ def sync_versions(root: Path, raw_version: str) -> list[Path]:
         if original_repo_version != repo_version:
             workflow_version_file.write_text(repo_version + "\n", encoding="utf-8")
             changed.append(workflow_version_file)
+
+    skill_entrypoint_files = (
+        layout.workflow / "SKILL.md",
+        root / "qiongli-workflow" / "SKILL.md",
+        root / "packages" / "npm-qiongli" / "payload" / "qiongli-workflow" / "SKILL.md",
+        root / "plugins" / "qiongli" / "skills" / "qiongli-workflow" / "SKILL.md",
+        layout.next_plugin_package / "skills" / "qiongli-workflow" / "SKILL.md",
+    )
+    for skill_entrypoint in skill_entrypoint_files:
+        if not skill_entrypoint.exists():
+            continue
+        if replace_skill_entrypoint_version(skill_entrypoint, repo_version):
+            changed.append(skill_entrypoint)
 
     plugin_roots = (
         layout.plugin_package,

@@ -138,6 +138,9 @@ class PluginDistributionContractTests(unittest.TestCase):
             f"v{WORKFLOW_VERSION}",
             skill_name="qiongli-next",
         )
+        skill_text = (skill_root / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn(f"Qiongli Next version: v{WORKFLOW_VERSION}", skill_text)
+        self.assertIn(f"Installed Qiongli workflow version: `v{WORKFLOW_VERSION}`", skill_text)
         validator._assert_subject_marker(skill_root, "core")
         validator._assert_subject_manifest(skill_root, "core", "complete")
         validator._assert_command_invocation(NEXT_PLUGIN_ROOT, workflow_names, skill_name="qiongli-next")
