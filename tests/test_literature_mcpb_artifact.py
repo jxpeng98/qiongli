@@ -11,6 +11,9 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_ROOT = REPO_ROOT / "packages" / "qiongli-literature-mcpb"
+EXPECTED_AUTHOR = {"name": "Jiaxin Peng", "url": "https://github.com/jxpeng98"}
+EXPECTED_REPOSITORY = "https://github.com/jxpeng98/qiongli"
+EXPECTED_LICENSE = "MIT"
 
 
 class LiteratureMCPBArtifactTests(unittest.TestCase):
@@ -20,6 +23,9 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
         self.assertEqual(manifest["manifest_version"], "0.3")
         self.assertEqual(manifest["name"], "qiongli-literature-provider")
         self.assertEqual(manifest["display_name"], "Qiongli Literature Provider")
+        self.assertIn("Qiongli academic literature provider", manifest["description"])
+        self.assertEqual(manifest["author"], EXPECTED_AUTHOR)
+        self.assertEqual(manifest["license"], EXPECTED_LICENSE)
         self.assertEqual(manifest["server"]["type"], "node")
         self.assertEqual(manifest["server"]["entry_point"], "server/index.mjs")
         self.assertIs(manifest["user_config"]["semantic_scholar_api_key"]["sensitive"], True)
@@ -57,6 +63,11 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
         self.assertEqual(manifest["version"], package["version"])
         self.assertEqual(package["type"], "module")
         self.assertIs(package["private"], True)
+        self.assertIn("Qiongli academic literature provider", package["description"])
+        self.assertEqual(package["author"], EXPECTED_AUTHOR)
+        self.assertEqual(package["homepage"], EXPECTED_REPOSITORY)
+        self.assertEqual(package["repository"]["url"], f"git+{EXPECTED_REPOSITORY}.git")
+        self.assertEqual(package["license"], EXPECTED_LICENSE)
         self.assertEqual(package["scripts"]["start"], "node server/index.mjs")
         self.assertEqual(package.get("dependencies", {}), {})
 

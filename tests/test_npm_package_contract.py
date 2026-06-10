@@ -22,6 +22,14 @@ class NpmPackageContractTests(unittest.TestCase):
         package_json = json.loads((NPM_PACKAGE_ROOT / "package.json").read_text(encoding="utf-8"))
 
         self.assertEqual(package_json["name"], "qiongli")
+        self.assertEqual(
+            package_json["description"],
+            "Qiongli academic research workflow installer and optional Python bridge runtime.",
+        )
+        self.assertEqual(
+            package_json["author"],
+            {"name": "Jiaxin Peng", "url": "https://github.com/jxpeng98"},
+        )
         self.assertEqual(package_json["bin"], {"qiongli": "bin/qiongli.mjs"})
         self.assertEqual(package_json["engines"]["node"], ">=18")
         self.assertNotIn("postinstall", package_json.get("scripts", {}))

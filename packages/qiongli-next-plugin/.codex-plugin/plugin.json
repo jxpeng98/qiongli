@@ -1,11 +1,12 @@
 {
   "name": "qiongli-next",
   "version": "1.1.0-beta.6",
-  "description": "Qiongli Next prerelease marketplace plugin. Installs the core/complete workflow for beta testing without publishing subject-specific variants.",
+  "description": "Qiongli Next prerelease academic research workflow plugin for testing the upcoming core workflow with bundled literature MCP tools.",
   "author": {
     "name": "Jiaxin Peng",
     "url": "https://github.com/jxpeng98"
   },
+  "category": "Education",
   "homepage": "https://github.com/jxpeng98/qiongli",
   "repository": "https://github.com/jxpeng98/qiongli",
   "license": "MIT",
@@ -21,8 +22,8 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Qiongli Next",
-    "shortDescription": "Prerelease core academic workflows for Codex.",
-    "longDescription": "Qiongli Next prerelease marketplace plugin. Installs the core/complete workflow for beta testing without publishing subject-specific variants.",
+    "shortDescription": "Prerelease academic research workflows for Codex.",
+    "longDescription": "Qiongli Next prerelease academic research workflow plugin for testing the upcoming core workflow with bundled literature MCP tools.",
     "developerName": "Jiaxin Peng",
     "category": "Education",
     "capabilities": [

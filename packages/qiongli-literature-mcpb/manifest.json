@@ -3,9 +3,10 @@
   "name": "qiongli-literature-provider",
   "display_name": "Qiongli Literature Provider",
   "version": "0.1.4",
-  "description": "Local Claude Desktop MCP server for academic literature search through OpenAlex and Semantic Scholar.",
+  "description": "Qiongli academic literature provider MCPB for local OpenAlex and Semantic Scholar search, credential status, and secure setup.",
   "author": {
-    "name": "Qiongli"
+    "name": "Jiaxin Peng",
+    "url": "https://github.com/jxpeng98"
   },
   "server": {
     "type": "node",

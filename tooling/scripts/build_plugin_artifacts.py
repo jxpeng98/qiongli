@@ -36,6 +36,11 @@ DEFAULT_SKILL_NAME = "qiongli"
 NEXT_SKILL_NAME = "qiongli-next"
 DEFAULT_MCP_SERVER_NAME = "qiongli"
 NEXT_MCP_SERVER_NAME = "qiongli-next"
+DEFAULT_CATEGORY = "Education"
+NEXT_PLUGIN_DESCRIPTION = (
+    "Qiongli Next prerelease academic research workflow plugin for testing the upcoming core workflow "
+    "with bundled literature MCP tools."
+)
 DESKTOP_SKILL_FILE_BUDGET = 180
 FALLBACK_SUBJECT_LAYERS = {
     "core": ["core"],
@@ -779,10 +784,10 @@ def _subject_modifier(display_name: str) -> str:
 
 def _subject_description(display_name: str, package_goal: str, subject: str) -> str:
     if subject == "core":
-        return f"General-purpose Qiongli marketplace plugin. {package_goal}"
+        return f"Qiongli academic research workflow plugin. {package_goal}"
     modifier = _subject_modifier(display_name)
     return (
-        f"{modifier}-specialized Qiongli marketplace plugin. "
+        f"Qiongli {modifier} academic research workflow plugin. "
         f"Installs the {subject}/complete subject package with the full workflow plus subject overlays, "
         f"selected profiles, and subject-specific skills. {package_goal}"
     )
@@ -803,12 +808,10 @@ def _write_subject_manifest(
     manifest["name"] = plugin_name
     _rewrite_mcp_server_name(manifest, mcp_server_name)
     if plugin_name == NEXT_PLUGIN_NAME:
-        manifest["description"] = (
-            "Qiongli Next prerelease marketplace plugin. Installs the core/complete workflow "
-            "for beta testing without publishing subject-specific variants."
-        )
+        manifest["description"] = NEXT_PLUGIN_DESCRIPTION
     else:
         manifest["description"] = _subject_description(display_name, package_goal, subject)
+    manifest["category"] = DEFAULT_CATEGORY
     keywords = manifest.get("keywords")
     if isinstance(keywords, list):
         additions = ["qiongli-next", "prerelease"] if plugin_name == NEXT_PLUGIN_NAME else ["qiongli-subject", subject]
@@ -820,8 +823,9 @@ def _write_subject_manifest(
             interface = {}
             manifest["interface"] = interface
         interface["displayName"] = display_name
+        interface["category"] = DEFAULT_CATEGORY
         if plugin_name == NEXT_PLUGIN_NAME:
-            interface["shortDescription"] = "Prerelease core academic workflows for Codex."
+            interface["shortDescription"] = "Prerelease academic research workflows for Codex."
             interface["defaultPrompt"] = [
                 f"Use ${skill_name} to test the next Qiongli paper workflow.",
                 f"Use ${skill_name} to test a literature review workflow.",

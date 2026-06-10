@@ -14,6 +14,10 @@ from qiongli.source_layout import RepoLayout
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = RepoLayout(REPO_ROOT).scripts / "build_plugin_artifacts.py"
+EXPECTED_AUTHOR = {"name": "Jiaxin Peng", "url": "https://github.com/jxpeng98"}
+EXPECTED_CATEGORY = "Education"
+EXPECTED_REPOSITORY = "https://github.com/jxpeng98/qiongli"
+EXPECTED_LICENSE = "MIT"
 SPEC = importlib.util.spec_from_file_location("build_plugin_artifacts", SCRIPT_PATH)
 assert SPEC is not None and SPEC.loader is not None
 module = importlib.util.module_from_spec(SPEC)
@@ -85,9 +89,24 @@ class PluginArtifactsTests(unittest.TestCase):
                 dist_dir / f"qiongli-next-codex-plugin-{current_tag}.tar.gz",
                 f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/.codex-plugin/plugin.json",
             )
+            claude_manifest = self._read_tar_json(
+                dist_dir / f"qiongli-next-claude-plugin-{current_tag}.tar.gz",
+                f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/.claude-plugin/plugin.json",
+            )
             self.assertEqual(codex_manifest["name"], "qiongli-next")
+            self.assertEqual(codex_manifest["author"], EXPECTED_AUTHOR)
+            self.assertEqual(codex_manifest["category"], EXPECTED_CATEGORY)
+            self.assertEqual(codex_manifest["repository"], EXPECTED_REPOSITORY)
+            self.assertEqual(codex_manifest["license"], EXPECTED_LICENSE)
             self.assertEqual(codex_manifest["interface"]["displayName"], "Qiongli Next")
+            self.assertEqual(codex_manifest["interface"]["developerName"], EXPECTED_AUTHOR["name"])
+            self.assertEqual(codex_manifest["interface"]["category"], EXPECTED_CATEGORY)
             self.assertIn("prerelease", codex_manifest["interface"]["longDescription"].lower())
+            self.assertEqual(claude_manifest["name"], "qiongli-next")
+            self.assertEqual(claude_manifest["author"], EXPECTED_AUTHOR)
+            self.assertEqual(claude_manifest["category"], EXPECTED_CATEGORY)
+            self.assertEqual(claude_manifest["repository"], EXPECTED_REPOSITORY)
+            self.assertEqual(claude_manifest["license"], EXPECTED_LICENSE)
             skill_text = self._read_tar_text(
                 dist_dir / f"qiongli-next-codex-plugin-{current_tag}.tar.gz",
                 f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/SKILL.md",
