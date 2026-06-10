@@ -36,8 +36,10 @@ test("handleConfigStatus suggests the platform-neutral setup tool when provider 
   });
   const serialized = JSON.stringify(status);
 
+  assert.equal(status.providers.openalex.fields.api_key, "missing");
   assert.equal(status.providers.semantic_scholar.fields.api_key, "missing");
-  assert.deepEqual(status.missing, ["semantic_scholar.api_key"]);
+  assert.deepEqual(status.missing, ["openalex.api_key", "semantic_scholar.api_key"]);
+  assert.equal(status.provider_access_guidance.openalex.config_field, "openalex.api_key");
   assert.equal(status.provider_access_guidance.semantic_scholar.config_field, "semantic_scholar.api_key");
   assert.equal(status.provider_access_guidance.semantic_scholar.apply_url, "https://www.semanticscholar.org/product/api");
   assert.equal(status.provider_access_guidance.openalex.apply_url, "https://openalex.org/settings/api");
@@ -49,7 +51,7 @@ test("handleConfigStatus suggests the platform-neutral setup tool when provider 
   assert.deepEqual(status.next_action, {
     tool: "qiongli_configure_provider",
     args: {
-      provider: "semantic_scholar"
+      provider: "openalex"
     },
     message: "Run qiongli_configure_provider to open a local setup page. Do not paste API keys in chat."
   });
@@ -60,6 +62,7 @@ test("handleConfigStatus suggests the platform-neutral setup tool when provider 
 test("handleStatus redacts configured secrets", () => {
   const status = handleStatus({
     env: {
+      QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key",
       QIONGLI_MCPB_OPENALEX_EMAIL: "person@example.com",
       QIONGLI_MCPB_SEMANTIC_SCHOLAR_API_KEY: "secret-key"
     }
@@ -70,6 +73,7 @@ test("handleStatus redacts configured secrets", () => {
   assert.equal(status.capability_mode, "provider_connected");
   assert.equal(status.providers.openalex, "configured");
   assert.equal(status.providers.semantic_scholar, "configured");
+  assert.equal(serialized.includes("openalex-secret-key"), false);
   assert.equal(serialized.includes("person@example.com"), false);
   assert.equal(serialized.includes("secret-key"), false);
 });
@@ -107,11 +111,13 @@ test("handleOpenConfigWizard returns local setup URL and saves provider config",
         "Content-Type": "application/x-www-form-urlencoded"
       },
       body: new URLSearchParams({
+        "openalex.api_key": "openalex-secret-key",
         "openalex.email": "person@example.com",
         "semantic_scholar.api_key": "secret-key"
       }),
       redirect: "manual"
     });
+    await wizard.completed;
 
     const configPath = path.join(configHome, "providers.json");
     const config = JSON.parse(await readFile(configPath, "utf8"));
@@ -120,8 +126,10 @@ test("handleOpenConfigWizard returns local setup URL and saves provider config",
     assert.equal(response.status, 303);
     assert.equal(wizard.host, "127.0.0.1");
     assert.equal(wizard.config_path, configPath);
+    assert.equal(config.providers.openalex.api_key, "openalex-secret-key");
     assert.equal(config.providers.openalex.email, "person@example.com");
     assert.equal(config.providers.semantic_scholar.api_key, "secret-key");
+    assert.equal(serialized.includes("openalex-secret-key"), false);
     assert.equal(serialized.includes("person@example.com"), false);
     assert.equal(serialized.includes("secret-key"), false);
   } finally {
@@ -130,10 +138,10 @@ test("handleOpenConfigWizard returns local setup URL and saves provider config",
   }
 });
 
-test("handleOpenConfigWizard serves guidance, input preview, and saving state", async () => {
+test("handleOpenConfigWizard serves guidance, OpenAlex key input, and saving state", async () => {
   const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-wizard-ui-"));
   const wizard = await handleOpenConfigWizard(
-    { provider: "semantic_scholar" },
+    { provider: "openalex" },
     { env: { QIONGLI_CONFIG_HOME: configHome } }
   );
   try {
@@ -152,8 +160,8 @@ test("handleOpenConfigWizard serves guidance, input preview, and saving state", 
     assert.equal(html.includes("https://support.nlm.nih.gov/kbArticle/?pn=KA-05317"), true);
     assert.equal(html.includes("Crossref polite access"), true);
     assert.equal(html.includes("Saving..."), true);
-    assert.equal(html.includes("data-preview-for=\"semantic_scholar.api_key\""), true);
-    assert.equal(html.includes("type=\"button\" data-toggle-for=\"semantic_scholar.api_key\""), true);
+    assert.equal(html.includes("data-preview-for=\"openalex.api_key\""), true);
+    assert.equal(html.includes("type=\"button\" data-toggle-for=\"openalex.api_key\""), true);
     assert.equal(html.includes("qiongli_config_status"), true);
     assert.equal(html.includes("secret-key"), false);
   } finally {
@@ -225,6 +233,7 @@ test("handleSearch aggregates successful and failed providers with warnings", as
     { query: "literature review", limit: 500 },
     {
       env: {
+        QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key",
         QIONGLI_MCPB_OPENALEX_EMAIL: "person@example.com",
         QIONGLI_MCPB_SEMANTIC_SCHOLAR_API_KEY: "secret-key",
         QIONGLI_MCPB_DEFAULT_LIMIT: "3"
@@ -253,6 +262,7 @@ test("handleExportEvidence without query does not call fetch", async () => {
     {},
     {
       env: {
+        QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key",
         QIONGLI_MCPB_OPENALEX_EMAIL: "person@example.com",
         QIONGLI_MCPB_SEMANTIC_SCHOLAR_API_KEY: "secret-key"
       },

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import time
 from pathlib import Path
 from typing import Any
 
@@ -123,15 +122,15 @@ def _cmd_wizard(args: argparse.Namespace) -> int:
         "config_path": wizard.config_path,
     }
     if args.json:
-        print(json.dumps(payload, indent=2, sort_keys=True))
+        print(json.dumps(payload, indent=2, sort_keys=True), flush=True)
     else:
-        print(f"Qiongli MCP config wizard: {wizard.url}")
-        print(f"Config path: {wizard.config_path}")
+        print(f"Qiongli MCP config wizard: {wizard.url}", flush=True)
+        print(f"Config path: {wizard.config_path}", flush=True)
     if args.no_block:
         return 0
     try:
-        while True:
-            time.sleep(1)
+        wizard.completed.wait()
+        return 0
     except KeyboardInterrupt:
         wizard.stop()
         return 0
@@ -208,12 +207,23 @@ def _normalize_label(value: str) -> str:
 
 def _missing_provider_fields(summary: dict[str, str]) -> list[str]:
     missing: list[str] = []
+    if summary.get("openalex") != "configured":
+        missing.append("openalex.api_key")
     if summary.get("semantic_scholar") != "configured":
         missing.append("semantic_scholar.api_key")
     return missing
 
 
 def _provider_setup_next_action(missing: list[str]) -> dict[str, Any] | None:
+    if "openalex.api_key" in missing:
+        return {
+            "tool": "qiongli_configure_provider",
+            "args": {"provider": "openalex"},
+            "message": (
+                "Run qiongli_configure_provider to open a local setup page. "
+                "Do not paste API keys in chat."
+            ),
+        }
     if "semantic_scholar.api_key" not in missing:
         return None
     return {

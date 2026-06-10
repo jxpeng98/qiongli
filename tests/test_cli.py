@@ -290,7 +290,7 @@ class InstallerCliTests(unittest.TestCase):
             config_home = Path(tmp_dir) / "config"
             with mock.patch.dict(os.environ, {"QIONGLI_CONFIG_HOME": str(config_home)}, clear=False):
                 for provider, field, value in (
-                    ("openalex", "email", "user@example.com"),
+                    ("openalex", "api-key", "openalex-secret-key"),
                     ("semantic-scholar", "api-key", "cli-secret"),
                 ):
                     with mock.patch.object(

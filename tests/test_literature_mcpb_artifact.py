@@ -28,6 +28,7 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
         self.assertEqual(manifest["license"], EXPECTED_LICENSE)
         self.assertEqual(manifest["server"]["type"], "node")
         self.assertEqual(manifest["server"]["entry_point"], "server/index.mjs")
+        self.assertIs(manifest["user_config"]["openalex_api_key"]["sensitive"], True)
         self.assertIs(manifest["user_config"]["semantic_scholar_api_key"]["sensitive"], True)
         self.assertEqual(manifest["user_config"]["openalex_email"]["type"], "string")
         self.assertEqual(manifest["user_config"]["default_result_limit"]["default"], 10)
@@ -79,6 +80,10 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
         mcp_config = manifest["server"]["mcp_config"]
         serialized_manifest = json.dumps(manifest)
         self.assertEqual(mcp_config["command"], "node")
+        self.assertEqual(
+            mcp_config["env"]["QIONGLI_MCPB_OPENALEX_API_KEY"],
+            "${user_config.openalex_api_key}",
+        )
         self.assertNotIn("qiongli mcp", serialized_manifest)
         self.assertNotIn("qiongli", mcp_config["command"])
         self.assertEqual(package.get("dependencies", {}), {})

@@ -19,6 +19,7 @@ The bundled MCPB server and the full CLI MCP server both read the shared provide
 
 Build or package this directory as a Claude Desktop `.mcpb` extension, then install it through Claude Desktop's extension settings. The manifest declares user configuration fields for:
 
+- OpenAlex API key
 - OpenAlex email
 - Semantic Scholar API key
 - Default result limit

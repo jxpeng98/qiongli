@@ -1005,6 +1005,7 @@ def _cmd_provider_setup(args: argparse.Namespace) -> int:
     print("Qiongli Literature Search Setup")
     print("Press Enter to skip optional values.")
     prompts = (
+        ("openalex", "api-key", "OpenAlex API key"),
         ("openalex", "email", "OpenAlex email"),
         ("semantic-scholar", "api-key", "Semantic Scholar API key"),
         ("crossref", "email", "Crossref email"),

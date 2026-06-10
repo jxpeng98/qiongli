@@ -9,7 +9,12 @@ from typing import Mapping
 
 PROVIDER_FIELDS: dict[str, dict[str, tuple[str, ...]]] = {
     "openalex": {
-        "email": ("QIONGLI_OPENALEX_EMAIL", "OPENALEX_EMAIL"),
+        "api_key": (
+            "QIONGLI_OPENALEX_API_KEY",
+            "OPENALEX_API_KEY",
+            "QIONGLI_MCPB_OPENALEX_API_KEY",
+        ),
+        "email": ("QIONGLI_OPENALEX_EMAIL", "OPENALEX_EMAIL", "QIONGLI_MCPB_OPENALEX_EMAIL"),
     },
     "semantic_scholar": {
         "api_key": ("QIONGLI_SEMANTIC_SCHOLAR_API_KEY", "SEMANTIC_SCHOLAR_API_KEY", "S2_API_KEY"),
@@ -313,7 +318,11 @@ def _finalize_config(config: dict[str, object]) -> None:
         if not isinstance(raw, dict):
             raw = {}
             providers[provider] = raw
-        configured = any(str(raw.get(field, "")).strip() for field in fields)
+        configured = (
+            bool(str(raw.get("api_key", "")).strip())
+            if provider == "openalex"
+            else any(str(raw.get(field, "")).strip() for field in fields)
+        )
         raw["configured"] = configured
         raw["enabled"] = bool(raw.get("enabled", configured))
 

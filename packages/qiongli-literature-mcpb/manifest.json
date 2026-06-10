@@ -17,6 +17,7 @@
         "${__dirname}/server/index.mjs"
       ],
       "env": {
+        "QIONGLI_MCPB_OPENALEX_API_KEY": "${user_config.openalex_api_key}",
         "QIONGLI_MCPB_OPENALEX_EMAIL": "${user_config.openalex_email}",
         "QIONGLI_MCPB_SEMANTIC_SCHOLAR_API_KEY": "${user_config.semantic_scholar_api_key}",
         "QIONGLI_MCPB_DEFAULT_LIMIT": "${user_config.default_result_limit}"
@@ -64,10 +65,17 @@
     }
   },
   "user_config": {
+    "openalex_api_key": {
+      "type": "string",
+      "title": "OpenAlex API key",
+      "description": "OpenAlex API key from openalex.org/settings/api. Leave blank to skip OpenAlex provider calls.",
+      "sensitive": true,
+      "required": false
+    },
     "openalex_email": {
       "type": "string",
       "title": "OpenAlex email",
-      "description": "Email address included in OpenAlex requests for polite pool access.",
+      "description": "Optional email address included in OpenAlex requests as mailto contact metadata.",
       "sensitive": true,
       "required": false
     },

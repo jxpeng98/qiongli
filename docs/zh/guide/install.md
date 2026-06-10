@@ -34,7 +34,7 @@ Codex 目前会把 plugin-bundled MCP server 当作 plugin asset：设置页可�
 
 1. 让 Codex 运行 `qiongli_config_status`，查看 redacted status 和 `config_path`。
 2. 让当前客户端运行 `qiongli_configure_provider`，然后打开返回的 `127.0.0.1` URL。
-3. 在本地浏览器页面里填写 OpenAlex email 和 Semantic Scholar API key。页面会写入共享 provider config，避免把密钥放进对话上下文。
+3. 在本地浏览器页面里填写 OpenAlex API key、可选 OpenAlex email 和 Semantic Scholar API key。页面会写入共享 provider config，避免把密钥放进对话上下文。
 4. 再运行 `qiongli_config_status` 或 `qiongli_literature_status`；结果只应显示 `configured` / `missing`，不应打印完整密钥。
 
 不要把 provider key 写进 `.mcp.json`、`.codex-plugin/plugin.json`、release ZIP 或研究产物。Codex plugin MCP、Claude Code plugin MCP、Claude Desktop MCPB 和完整 CLI MCP server 读取的是同一个共享 provider config。
@@ -67,7 +67,7 @@ Claude Desktop 和 Claude.ai 不安装第三方 Claude Code plugin marketplace�
 
 Release ZIP 使用 `coverage=focused`，用于保持当前 180 文件上传预算。它是 subject 专精 Desktop/Web 包，不是降质删减版：保留可执行 workflows、prompts、templates、standards、所选 profiles、`skills-summary.md` 和 `skills-core.md`；专精 ZIP 还包含通过 layered overlays 生成的 selected effective skill markdown。这个 Desktop skill ZIP 是 skill-only asset：只包含 workflows/prompts/templates，不保存 secrets，也不执行 provider calls。完整 canonical source 可通过默认 `coverage=complete` 的 CLI/npm 安装、Codex / Claude Code / Gemini plugin 包和源码仓库获得。
 
-独立的 Qiongli Literature Provider `.mcpb`（`qiongli-literature-provider.mcpb`）才是 Claude Desktop 本地 provider asset。它在本地运行 Desktop literature search，支持 OpenAlex 和 Semantic Scholar，并通过 Desktop 配置 UI 填写 OpenAlex email 和 Semantic Scholar API key；敏感 key 交给 Claude Desktop sensitive-field handling，不写入 Desktop skill ZIP。这个 MCPB 自带零依赖 Node stdio server，所以 Desktop 用户不需要安装 `qiongli` CLI 或运行 npm install。CLI、Codex 和 Claude Code 用户仍然可以运行 `qiongli provider setup`，再用 `qiongli provider doctor` 检查当前是 `provider_connected` 还是 `strategy_only`。Desktop 用户需要 `qiongli-literature-provider` MCPB 或平台原生搜索能力，才能声称 `provider_connected`；如果没有 MCPB 或平台原生搜索能力，就把运行记录为 `strategy_only`，并把平台搜索或用户提供的 corpus 作为证据来源。
+独立的 Qiongli Literature Provider `.mcpb`（`qiongli-literature-provider.mcpb`）才是 Claude Desktop 本地 provider asset。它在本地运行 Desktop literature search，支持 OpenAlex 和 Semantic Scholar，并通过 Desktop 配置 UI 填写 OpenAlex API key、可选 OpenAlex email 和 Semantic Scholar API key；敏感 key 交给 Claude Desktop sensitive-field handling，不写入 Desktop skill ZIP。这个 MCPB 自带零依赖 Node stdio server，所以 Desktop 用户不需要安装 `qiongli` CLI 或运行 npm install。CLI、Codex 和 Claude Code 用户仍然可以运行 `qiongli provider setup`，再用 `qiongli provider doctor` 检查当前是 `provider_connected` 还是 `strategy_only`。Desktop 用户需要 `qiongli-literature-provider` MCPB 或平台原生搜索能力，才能声称 `provider_connected`；如果没有 MCPB 或平台原生搜索能力，就把运行记录为 `strategy_only`，并把平台搜索或用户提供的 corpus 作为证据来源。
 
 Gemini CLI 仍然直接安装本地 extension payload：
 

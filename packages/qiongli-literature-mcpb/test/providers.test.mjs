@@ -53,6 +53,7 @@ test("searchOpenAlex normalizes records and reconstructs inverted abstracts", as
     query: "test query",
     limit: 7,
     email: "person@example.com",
+    apiKey: "openalex-secret-key",
     fromYear: 2020,
     toYear: 2024,
     fetchImpl
@@ -65,6 +66,7 @@ test("searchOpenAlex normalizes records and reconstructs inverted abstracts", as
   assert.equal(requestedUrl.searchParams.get("search"), "test query");
   assert.equal(requestedUrl.searchParams.get("per-page"), "7");
   assert.equal(requestedUrl.searchParams.get("mailto"), "person@example.com");
+  assert.equal(requestedUrl.searchParams.get("api_key"), "openalex-secret-key");
   assert.equal(requestedUrl.searchParams.get("filter"), "from_publication_date:2020-01-01,to_publication_date:2024-12-31");
   assert.deepEqual(response.results, [
     {

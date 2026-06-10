@@ -6,6 +6,8 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import urllib.parse
+import urllib.request
 from pathlib import Path
 
 
@@ -23,9 +25,9 @@ class MCPCLITests(unittest.TestCase):
                     "--provider",
                     "openalex",
                     "--field",
-                    "email",
+                    "api-key",
                     "--value",
-                    "user@example.com",
+                    "openalex-secret-key",
                 ],
                 capture_output=True,
                 text=True,
@@ -47,7 +49,7 @@ class MCPCLITests(unittest.TestCase):
         self.assertEqual(payload["providers"]["openalex"], "configured")
         self.assertEqual(payload["capability_mode"], "provider_connected")
         self.assertIn("qiongli_configure_provider", payload["next_action"]["tool"])
-        self.assertNotIn("user@example.com", rendered)
+        self.assertNotIn("openalex-secret-key", rendered)
 
     def test_mcp_cli_config_example_for_codex_json(self) -> None:
         result = subprocess.run(
@@ -81,6 +83,53 @@ class MCPCLITests(unittest.TestCase):
         self.assertEqual(payload["target"], "claude-code")
         self.assertEqual(payload["server"]["args"], ["mcp", "serve", "--transport", "stdio"])
         self.assertIn("qiongli_task_run", payload["orchestration_tools"])
+
+    def test_mcp_cli_wizard_exits_after_provider_values_are_saved(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            proc = subprocess.Popen(
+                [
+                    sys.executable,
+                    "-u",
+                    "-m",
+                    "bridges.mcp_cli",
+                    "wizard",
+                    "--json",
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                env=self._env(root),
+            )
+            try:
+                assert proc.stdout is not None
+                lines = []
+                while True:
+                    lines.append(proc.stdout.readline())
+                    try:
+                        payload = json.loads("".join(lines))
+                        break
+                    except json.JSONDecodeError:
+                        continue
+                body = urllib.parse.urlencode({"openalex.api_key": "openalex-secret-key"}).encode(
+                    "utf-8"
+                )
+                request = urllib.request.Request(
+                    payload["url"].replace("/?token=", "/save?token="),
+                    data=body,
+                    method="POST",
+                )
+                response = urllib.request.urlopen(request, timeout=5)
+                html = response.read().decode("utf-8")
+                self.assertIn("You can close this page", html)
+
+                returncode = proc.wait(timeout=10)
+            finally:
+                if proc.poll() is None:
+                    proc.terminate()
+                    proc.wait(timeout=5)
+
+        self.assertEqual(returncode, 0, proc.stderr.read() if proc.stderr else "")
 
     def test_qiongli_cli_delegates_mcp_subcommand(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

@@ -38,15 +38,21 @@ class MCPToolHandlerTests(unittest.TestCase):
                 {"QIONGLI_CONFIG_HOME": str(root / "config")},
                 clear=False,
             ):
+                set_provider_value("openalex", "api-key", "openalex-secret-key")
                 set_provider_value("semantic-scholar", "api-key", "secret-demo-key")
                 result = call_qiongli_tool("qiongli_config_status", {"cwd": str(root)})
 
         rendered = json.dumps(result, sort_keys=True)
         self.assertEqual(
+            result["structuredContent"]["providers"]["openalex"],
+            "configured",
+        )
+        self.assertEqual(
             result["structuredContent"]["providers"]["semantic_scholar"],
             "configured",
         )
         self.assertEqual(result["structuredContent"]["capability_mode"], "provider_connected")
+        self.assertNotIn("openalex-secret-key", rendered)
         self.assertNotIn("secret-demo-key", rendered)
 
     def test_config_status_suggests_platform_neutral_configure_tool(self) -> None:
@@ -60,10 +66,11 @@ class MCPToolHandlerTests(unittest.TestCase):
                 result = call_qiongli_tool("qiongli_config_status", {"cwd": str(root)})
 
         payload = result["structuredContent"]
+        self.assertEqual(payload["providers"]["openalex"], "missing")
         self.assertEqual(payload["providers"]["semantic_scholar"], "missing")
-        self.assertEqual(payload["missing"], ["semantic_scholar.api_key"])
+        self.assertEqual(payload["missing"], ["openalex.api_key", "semantic_scholar.api_key"])
         self.assertEqual(payload["next_action"]["tool"], "qiongli_configure_provider")
-        self.assertEqual(payload["next_action"]["args"], {"provider": "semantic_scholar"})
+        self.assertEqual(payload["next_action"]["args"], {"provider": "openalex"})
 
     def test_save_provider_config_persists_to_shared_config(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -75,15 +82,15 @@ class MCPToolHandlerTests(unittest.TestCase):
             ):
                 result = call_qiongli_tool(
                     "qiongli_save_provider_config",
-                    {"provider": "openalex", "field": "email", "value": "user@example.com"},
+                    {"provider": "openalex", "field": "api-key", "value": "openalex-secret-key"},
                 )
                 status = call_qiongli_tool("qiongli_config_status", {"cwd": str(root)})
 
         rendered = json.dumps(result, sort_keys=True)
         self.assertEqual(result["structuredContent"]["provider"], "openalex")
-        self.assertEqual(result["structuredContent"]["field"], "email")
+        self.assertEqual(result["structuredContent"]["field"], "api_key")
         self.assertEqual(status["structuredContent"]["providers"]["openalex"], "configured")
-        self.assertNotIn("user@example.com", rendered)
+        self.assertNotIn("openalex-secret-key", rendered)
 
     def test_save_provider_config_warns_for_chat_api_key_input(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -142,6 +149,9 @@ class MCPToolHandlerTests(unittest.TestCase):
                 result = call_qiongli_tool("qiongli_list_provider_env", {})
 
         rendered = json.dumps(result, sort_keys=True)
+        aliases = result["structuredContent"]["providers"]["openalex"]["api_key"]
+        self.assertIn("QIONGLI_OPENALEX_API_KEY", aliases)
+        self.assertIn("OPENALEX_API_KEY", aliases)
         aliases = result["structuredContent"]["providers"]["semantic_scholar"]["api_key"]
         self.assertIn("QIONGLI_SEMANTIC_SCHOLAR_API_KEY", aliases)
         self.assertIn("S2_API_KEY", aliases)

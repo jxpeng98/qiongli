@@ -7,6 +7,11 @@ const MIN_LIMIT = 1;
 const MAX_LIMIT = 50;
 const PROVIDER_FIELDS = {
   openalex: {
+    api_key: [
+      "QIONGLI_OPENALEX_API_KEY",
+      "OPENALEX_API_KEY",
+      "QIONGLI_MCPB_OPENALEX_API_KEY"
+    ],
     email: ["QIONGLI_OPENALEX_EMAIL", "OPENALEX_EMAIL", "QIONGLI_MCPB_OPENALEX_EMAIL"]
   },
   semantic_scholar: {
@@ -27,14 +32,14 @@ const PROVIDER_FIELDS = {
 const PROVIDER_ACCESS_GUIDANCE = {
   openalex: {
     title: "OpenAlex API key",
-    config_field: "openalex.email",
+    config_field: "openalex.api_key",
     apply_url: "https://openalex.org/settings/api",
-    docs_url: "https://developers.openalex.org/",
-    summary: "OpenAlex publishes free API key setup from its settings page. This MCP currently stores an optional contact email for OpenAlex requests, not the OpenAlex API key.",
+    docs_url: "https://developers.openalex.org/api-reference/authentication",
+    summary: "OpenAlex requires a free API key for API calls at scale. Store the key locally here; email is optional contact metadata.",
     steps: [
       "Sign in to OpenAlex and open the API settings page.",
-      "Create a free API key if your OpenAlex account is eligible.",
-      "Use the email field below as the current Qiongli MCP contact identifier until OpenAlex API-key support is added."
+      "Copy the free API key from the OpenAlex settings page.",
+      "Paste the key into openalex.api_key below; optionally add openalex.email for contact attribution."
     ]
   },
   semantic_scholar: {
@@ -96,6 +101,10 @@ function readDefaultLimit(env) {
 export function readConfig(env = process.env) {
   const shared = readSharedProviderConfig(env);
   return {
+    openalexApiKey: firstConfigured([
+      readTrimmed(env, "QIONGLI_MCPB_OPENALEX_API_KEY"),
+      readSharedField(shared, "openalex", "api_key")
+    ]),
     openalexEmail: firstConfigured([
       readTrimmed(env, "QIONGLI_MCPB_OPENALEX_EMAIL"),
       readSharedField(shared, "openalex", "email")
@@ -146,12 +155,12 @@ export function saveProviderValue({ provider, field, value, env = process.env } 
 
 export function providerStatus(config) {
   const providers = {
-    openalex: config.openalexEmail ? "configured" : "configured_without_email",
+    openalex: config.openalexApiKey ? "configured" : "missing",
     semantic_scholar: config.semanticScholarApiKey ? "configured" : "missing",
     crossref: "not_implemented",
     pubmed: "not_implemented"
   };
-  const openalexUsable = providers.openalex === "configured" || providers.openalex === "configured_without_email";
+  const openalexUsable = providers.openalex === "configured";
   const semanticScholarUsable = providers.semantic_scholar === "configured";
   const missing = missingProviderFields(config);
   const nextAction = providerSetupNextAction(missing);
@@ -176,8 +185,9 @@ export function redactedProviderStatus(config) {
     missing: status.missing,
     providers: {
       openalex: {
-        configured: status.providers.openalex === "configured" || status.providers.openalex === "configured_without_email",
+        configured: status.providers.openalex === "configured",
         fields: {
+          api_key: config.openalexApiKey ? "configured" : "missing",
           email: config.openalexEmail ? "configured" : "missing"
         }
       },
@@ -210,6 +220,9 @@ export function redactedProviderStatus(config) {
 
 function missingProviderFields(config) {
   const missing = [];
+  if (!config.openalexApiKey) {
+    missing.push("openalex.api_key");
+  }
   if (!config.semanticScholarApiKey) {
     missing.push("semantic_scholar.api_key");
   }
@@ -217,6 +230,16 @@ function missingProviderFields(config) {
 }
 
 function providerSetupNextAction(missing) {
+  if (missing.includes("openalex.api_key")) {
+    return {
+      tool: "qiongli_configure_provider",
+      args: {
+        provider: "openalex"
+      },
+      message: "Run qiongli_configure_provider to open a local setup page. Do not paste API keys in chat."
+    };
+  }
+
   if (!missing.includes("semantic_scholar.api_key")) {
     return undefined;
   }

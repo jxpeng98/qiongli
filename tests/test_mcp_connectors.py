@@ -90,6 +90,7 @@ class MCPConnectorTests(unittest.TestCase):
             root = Path(tmp_dir)
             config_home = root / "config"
             with mock.patch.dict(os.environ, {"QIONGLI_CONFIG_HOME": str(config_home)}, clear=False):
+                set_provider_value("openalex", "api-key", "openalex-key")
                 set_provider_value("openalex", "email", "user@example.com")
                 evidence = self.connector.collect("scholarly-search", {}, root)
 
@@ -166,6 +167,7 @@ class MCPConnectorTests(unittest.TestCase):
                 "    'status': 'ok',\n"
                 "    'summary': 'provider env captured',\n"
                 "    'data': {\n"
+                "        'openalex_api_key': os.environ.get('OPENALEX_API_KEY'),\n"
                 "        'openalex_email': os.environ.get('OPENALEX_EMAIL'),\n"
                 "        's2_api_key': os.environ.get('S2_API_KEY'),\n"
                 "        'qiongli_s2_api_key': os.environ.get('QIONGLI_SEMANTIC_SCHOLAR_API_KEY'),\n"
@@ -176,6 +178,7 @@ class MCPConnectorTests(unittest.TestCase):
             )
 
             with mock.patch.dict(os.environ, {"QIONGLI_CONFIG_HOME": str(config_home)}, clear=False):
+                set_provider_value("openalex", "api-key", "openalex-key")
                 set_provider_value("openalex", "email", "user@example.com")
                 set_provider_value("semantic-scholar", "api-key", "stored-key")
 
@@ -190,6 +193,7 @@ class MCPConnectorTests(unittest.TestCase):
                 evidence = self.connector.collect("screening-tracker", {}, workspace)
 
         self.assertEqual(evidence.status, "ok")
+        self.assertEqual(evidence.data["openalex_api_key"], "openalex-key")
         self.assertEqual(evidence.data["openalex_email"], "user@example.com")
         self.assertEqual(evidence.data["s2_api_key"], "stored-key")
         self.assertEqual(evidence.data["qiongli_s2_api_key"], "stored-key")

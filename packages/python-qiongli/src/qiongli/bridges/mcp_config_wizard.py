@@ -20,14 +20,14 @@ class ConfigWizard:
     config_path: str
     server: ThreadingHTTPServer
     thread: threading.Thread
+    completed: threading.Event
 
     @property
     def url(self) -> str:
         return f"http://{self.host}:{self.port}/?token={self.token}"
 
     def stop(self) -> None:
-        self.server.shutdown()
-        self.server.server_close()
+        _shutdown_server_once(self.server, self.completed)
 
 
 def start_config_wizard(
@@ -38,11 +38,40 @@ def start_config_wizard(
     provider_id = _normalize_provider(provider)
     token = secrets.token_urlsafe(18)
     config_path = str(global_provider_config_path())
+    completed = threading.Event()
+    close_lock = threading.Lock()
+    close_started = False
+    close_timer: threading.Timer | None = None
+
+    def schedule_shutdown(delay: float) -> None:
+        nonlocal close_started, close_timer
+        with close_lock:
+            if close_started:
+                return
+            if close_timer is not None:
+                close_timer.cancel()
+
+        def shutdown() -> None:
+            nonlocal close_started
+            with close_lock:
+                if close_started:
+                    return
+                close_started = True
+            _shutdown_server_once(server, completed)
+
+        timer = threading.Timer(delay, shutdown)
+        timer.daemon = True
+        close_timer = timer
+        timer.start()
 
     class WizardHandler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:
             if not self._authorized():
                 self._send_text("Forbidden", status=403)
+                return
+            if urlparse(self.path).path == "/saved":
+                self._send_html(_render_saved_page(config_path=config_path))
+                schedule_shutdown(0.1)
                 return
             saved = "saved" in parse_qs(urlparse(self.path).query)
             self._send_html(
@@ -67,8 +96,9 @@ def start_config_wizard(
                     if value:
                         set_provider_value(provider, field, value)
             self.send_response(303)
-            self.send_header("Location", f"/?token={token}&saved=1")
+            self.send_header("Location", f"/saved?token={token}")
             self.end_headers()
+            schedule_shutdown(1.5)
 
         def log_message(self, _format: str, *_args: Any) -> None:
             return
@@ -104,6 +134,7 @@ def start_config_wizard(
         config_path=config_path,
         server=server,
         thread=thread,
+        completed=completed,
     )
 
 
@@ -166,3 +197,34 @@ def _render_form(*, token: str, config_path: str, saved: bool, provider: str | N
         + "<button type=\"submit\">Save</button>"
         "</form></body></html>"
     )
+
+
+def _render_saved_page(*, config_path: str) -> str:
+    return (
+        "<!doctype html>"
+        "<html><head><meta charset=\"utf-8\" />"
+        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />"
+        "<title>Qiongli MCP Provider Configuration Saved</title>"
+        "<style>"
+        "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:32px;max-width:720px}"
+        ".saved{color:#116329;font-weight:700}"
+        ".path{color:#57606a;font-size:13px}"
+        "code{background:#f6f8fa;border:1px solid #d0d7de;border-radius:6px;padding:2px 6px;word-break:break-all}"
+        "</style></head><body>"
+        "<h1>Saved</h1>"
+        "<p class=\"saved\">Provider configuration was saved locally.</p>"
+        "<p>You can close this page. If this was opened from the CLI, the waiting process will continue automatically.</p>"
+        f"<p class=\"path\">Config path: <code>{html.escape(str(Path(config_path)))}</code></p>"
+        "<script>setTimeout(function(){ try { window.close(); } catch (_) {} }, 1200);</script>"
+        "</body></html>"
+    )
+
+
+def _shutdown_server_once(server: ThreadingHTTPServer, completed: threading.Event) -> None:
+    if completed.is_set():
+        return
+    try:
+        server.shutdown()
+    finally:
+        server.server_close()
+        completed.set()

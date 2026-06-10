@@ -37,7 +37,7 @@ claude plugin marketplace add jxpeng98/skillsplace@main
 claude plugin install qiongli@skillsplace
 ```
 
-For bundled literature MCP installs, provider keys are configured through the MCP tools, not the client MCP settings UI. Ask Codex, Claude Desktop, Claude Code, or another local MCP client to run `qiongli_config_status`, then use `qiongli_configure_provider` to open a local setup page for `openalex.email` or `semantic_scholar.api_key`. This keeps secrets out of plugin manifests, release artifacts, and chat context.
+For bundled literature MCP installs, provider keys are configured through the MCP tools, not the client MCP settings UI. Ask Codex, Claude Desktop, Claude Code, or another local MCP client to run `qiongli_config_status`, then use `qiongli_configure_provider` to open a local setup page for `openalex.api_key`, optional `openalex.email`, or `semantic_scholar.api_key`. This keeps secrets out of plugin manifests, release artifacts, and chat context.
 
 For cross-client global workflow assets, use the bootstrap installer.
 

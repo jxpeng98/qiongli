@@ -44,7 +44,7 @@ Because Codex launches this MCP server from the installed plugin bundle, Codex's
 
 1. Call `qiongli_config_status` to inspect the redacted status and shared `config_path`.
 2. Call `qiongli_configure_provider` and open the returned `127.0.0.1` URL.
-3. Enter the OpenAlex email and Semantic Scholar API key in the local browser form.
+3. Enter the OpenAlex API key, optional OpenAlex email, and Semantic Scholar API key in the local browser form.
 4. Call `qiongli_literature_status` before claiming `provider_connected`.
 
 Keep provider secrets out of `.mcp.json`, `.codex-plugin/plugin.json`, marketplace metadata, and release artifacts. The bundled Node server reads the shared provider config at runtime.
@@ -67,7 +67,7 @@ This bundled runtime covers literature-provider tools such as provider configura
 
 ## Claude Desktop MCPB
 
-The Claude Desktop `qiongli-literature-provider.mcpb` also contains the zero-dependency Node literature-provider server. It exposes user configuration fields for OpenAlex email, Semantic Scholar API key, and default result limit, so a Desktop user can install the MCPB and configure provider keys without installing `qiongli` or running npm.
+The Claude Desktop `qiongli-literature-provider.mcpb` also contains the zero-dependency Node literature-provider server. It exposes user configuration fields for OpenAlex API key, optional OpenAlex email, Semantic Scholar API key, and default result limit, so a Desktop user can install the MCPB and configure provider keys without installing `qiongli` or running npm.
 
 For manual Claude Desktop installs, treat the Skill ZIP and MCPB as complementary assets:
 
@@ -111,6 +111,7 @@ For normal desktop use, this can still be local. You need a remote server only w
 
 The MCP server derives provider fields from the Qiongli provider registry. Current fields include:
 
+- `openalex.api_key`
 - `openalex.email`
 - `semantic_scholar.api_key`
 - `crossref.email`

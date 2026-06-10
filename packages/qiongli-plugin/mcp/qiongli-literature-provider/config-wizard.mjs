@@ -16,6 +16,11 @@ export async function startConfigWizard({ host = DEFAULT_HOST, port = 0, provide
   const selectedProvider = normalizeProvider(provider);
   const token = randomBytes(TOKEN_BYTES).toString("base64url");
   const configPath = providerConfigPath(env);
+  let closeTimer;
+  let completedResolve;
+  const completed = new Promise((resolve) => {
+    completedResolve = resolve;
+  });
 
   const server = createServer(async (request, response) => {
     try {
@@ -28,9 +33,16 @@ export async function startConfigWizard({ host = DEFAULT_HOST, port = 0, provide
       if (request.method === "POST") {
         await saveRequestValues(request, env, selectedProvider);
         response.writeHead(303, {
-          Location: `/?token=${encodeURIComponent(token)}&saved=1`
+          Location: `/saved?token=${encodeURIComponent(token)}`
         });
         response.end();
+        scheduleClose(1500);
+        return;
+      }
+
+      if (url.pathname === "/saved") {
+        sendHtml(response, renderSavedPage({ configPath }));
+        scheduleClose(100);
         return;
       }
 
@@ -53,15 +65,48 @@ export async function startConfigWizard({ host = DEFAULT_HOST, port = 0, provide
 
   const address = server.address();
   const actualPort = typeof address === "object" && address ? address.port : port;
+  let closeStarted = false;
+  const close = () => new Promise((resolve) => {
+    if (closeStarted) {
+      resolve();
+      return;
+    }
+    closeStarted = true;
+    if (closeTimer) {
+      clearTimeout(closeTimer);
+    }
+    server.close(() => {
+      completedResolve?.();
+      resolve();
+    });
+  });
 
-  return {
+  function scheduleClose(delayMs) {
+    if (closeStarted) {
+      return;
+    }
+    if (closeTimer) {
+      clearTimeout(closeTimer);
+    }
+    closeTimer = setTimeout(() => {
+      close();
+    }, delayMs);
+    closeTimer.unref?.();
+  }
+
+  const result = {
     url: `http://${normalizedHost}:${actualPort}/?token=${encodeURIComponent(token)}`,
     host: normalizedHost,
     port: actualPort,
     provider: selectedProvider,
     config_path: configPath,
-    stop: () => new Promise((resolve) => server.close(resolve))
+    stop: close
   };
+  Object.defineProperty(result, "completed", {
+    enumerable: false,
+    value: completed
+  });
+  return result;
 }
 
 function normalizeHost(host) {
@@ -252,6 +297,29 @@ function renderForm({ token, configPath, saved, selectedProvider }) {
   ].join("");
 }
 
+function renderSavedPage({ configPath }) {
+  return [
+    "<!doctype html>",
+    "<html><head><meta charset=\"utf-8\" />",
+    "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />",
+    "<title>Qiongli MCP Provider Configuration Saved</title>",
+    "<style>",
+    "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:32px;max-width:720px;color:#24292f}",
+    "h1{font-size:28px;margin:0 0 8px}",
+    "p{line-height:1.45}",
+    ".saved{color:#116329;font-weight:700}",
+    ".path{color:#57606a;font-size:13px}",
+    "code{background:#f6f8fa;border:1px solid #d0d7de;border-radius:6px;color:#24292f;padding:2px 6px;word-break:break-all}",
+    "</style></head><body>",
+    "<h1>Saved</h1>",
+    "<p class=\"saved\">Provider configuration was saved locally.</p>",
+    "<p>You can close this page. If this was opened from the CLI, the waiting process will continue automatically.</p>",
+    `<p class="path">Config path: <code>${escapeHtml(configPath)}</code></p>`,
+    "<script>setTimeout(() => { try { window.close(); } catch (_) {} }, 1200);</script>",
+    "</body></html>"
+  ].join("");
+}
+
 function renderAccessGuidance() {
   const cards = Object.values(providerAccessGuidance()).map((entry) => {
     const links = [
@@ -285,8 +353,11 @@ function renderAccessGuidance() {
 }
 
 function fieldHelp(provider, field) {
+  if (provider === "openalex" && field === "api_key") {
+    return "OpenAlex API key from openalex.org/settings/api. Stored only in the local Qiongli provider config.";
+  }
   if (provider === "openalex" && field === "email") {
-    return "Optional contact email for OpenAlex requests. OpenAlex API-key setup is linked above.";
+    return "Optional contact email included as mailto for OpenAlex requests.";
   }
   if (provider === "semantic_scholar" && field === "api_key") {
     return "Semantic Scholar API key received by email and used only by the local MCP server.";

@@ -26,7 +26,11 @@ def test_resolve_provider_config_uses_global_config(tmp_path: Path, monkeypatch)
             {
                 "version": 1,
                 "providers": {
-                    "openalex": {"enabled": True, "email": "global@example.com"},
+                    "openalex": {
+                        "enabled": True,
+                        "api_key": "global-openalex-key",
+                        "email": "global@example.com",
+                    },
                     "semantic_scholar": {"enabled": True, "api_key": "global-s2-key"},
                 },
             }
@@ -41,6 +45,7 @@ def test_resolve_provider_config_uses_global_config(tmp_path: Path, monkeypatch)
     resolved = resolve_provider_config(cwd=tmp_path, env={})
 
     assert resolved["providers"]["openalex"]["email"] == "global@example.com"
+    assert resolved["providers"]["openalex"]["api_key"] == "global-openalex-key"
     assert resolved["providers"]["openalex"]["configured"] is True
     assert resolved["providers"]["semantic_scholar"]["api_key"] == "global-s2-key"
     assert resolved["providers"]["semantic_scholar"]["configured"] is True
@@ -59,6 +64,7 @@ def test_project_env_overrides_global_config(tmp_path: Path, monkeypatch) -> Non
     project.mkdir()
     (project / ".env").write_text(
         "QIONGLI_SEMANTIC_SCHOLAR_API_KEY=project-key\n"
+        "QIONGLI_OPENALEX_API_KEY=project-openalex-key\n"
         "QIONGLI_OPENALEX_EMAIL=project@example.com\n",
         encoding="utf-8",
     )
@@ -67,6 +73,7 @@ def test_project_env_overrides_global_config(tmp_path: Path, monkeypatch) -> Non
     resolved = resolve_provider_config(cwd=project, env={})
 
     assert resolved["providers"]["semantic_scholar"]["api_key"] == "project-key"
+    assert resolved["providers"]["openalex"]["api_key"] == "project-openalex-key"
     assert resolved["providers"]["openalex"]["email"] == "project@example.com"
 
 
@@ -98,6 +105,7 @@ def test_redacted_config_never_exposes_secret_values(tmp_path: Path, monkeypatch
     resolved = resolve_provider_config(
         cwd=tmp_path,
         env={
+            "QIONGLI_OPENALEX_API_KEY": "openalex-secret-key",
             "QIONGLI_SEMANTIC_SCHOLAR_API_KEY": "secret-demo-key",
             "QIONGLI_OPENALEX_EMAIL": "user@example.com",
         },
@@ -106,10 +114,25 @@ def test_redacted_config_never_exposes_secret_values(tmp_path: Path, monkeypatch
     redacted = redact_provider_config(resolved)
     rendered = json.dumps(redacted, sort_keys=True)
 
+    assert "openalex-secret-key" not in rendered
     assert "secret-demo-key" not in rendered
     assert "user@example.com" not in rendered
     assert redacted["providers"]["semantic_scholar"]["fields"]["api_key"] == "configured"
+    assert redacted["providers"]["openalex"]["fields"]["api_key"] == "configured"
     assert redacted["providers"]["openalex"]["fields"]["email"] == "configured"
+
+
+def test_openalex_email_alone_does_not_mark_provider_configured(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("QIONGLI_CONFIG_HOME", str(tmp_path / "config"))
+    set_provider_value("openalex", "email", "user@example.com")
+
+    resolved = resolve_provider_config(cwd=tmp_path, env={})
+    redacted = redact_provider_config(resolved)
+
+    assert resolved["providers"]["openalex"]["configured"] is False
+    assert redacted["providers"]["openalex"]["configured"] is False
+    assert redacted["providers"]["openalex"]["fields"]["email"] == "configured"
+    assert redacted["providers"]["openalex"]["fields"]["api_key"] == "missing"
 
 
 def test_provider_capability_mode_reports_connected_only_when_configured() -> None:
@@ -124,7 +147,7 @@ def test_provider_capability_mode_reports_connected_only_when_configured() -> No
 
     assert provider_capability_mode(
         {
-            "openalex": "missing",
+            "openalex": "configured",
             "semantic_scholar": "configured",
             "crossref": "missing",
             "pubmed": "missing",
@@ -152,14 +175,19 @@ def test_provider_config_env_emits_primary_and_legacy_aliases_without_redaction(
     monkeypatch,
 ) -> None:
     monkeypatch.setenv("QIONGLI_CONFIG_HOME", str(tmp_path / "config"))
+    set_provider_value("openalex", "api-key", "openalex-secret-key")
     set_provider_value("openalex", "email", "user@example.com")
     set_provider_value("semantic-scholar", "api-key", "stored-key")
 
     config = resolve_provider_config(cwd=tmp_path, env={})
     env = provider_config_env(config)
 
+    assert env["QIONGLI_OPENALEX_API_KEY"] == "openalex-secret-key"
+    assert env["OPENALEX_API_KEY"] == "openalex-secret-key"
+    assert env["QIONGLI_MCPB_OPENALEX_API_KEY"] == "openalex-secret-key"
     assert env["QIONGLI_OPENALEX_EMAIL"] == "user@example.com"
     assert env["OPENALEX_EMAIL"] == "user@example.com"
+    assert env["QIONGLI_MCPB_OPENALEX_EMAIL"] == "user@example.com"
     assert env["QIONGLI_SEMANTIC_SCHOLAR_API_KEY"] == "stored-key"
     assert env["SEMANTIC_SCHOLAR_API_KEY"] == "stored-key"
     assert env["S2_API_KEY"] == "stored-key"
@@ -174,14 +202,19 @@ class ProviderConfigEnvTests(unittest.TestCase):
                 {"QIONGLI_CONFIG_HOME": str(root / "config")},
                 clear=False,
             ):
+                set_provider_value("openalex", "api-key", "openalex-secret-key")
                 set_provider_value("openalex", "email", "user@example.com")
                 set_provider_value("semantic-scholar", "api-key", "stored-key")
 
                 config = resolve_provider_config(cwd=root, env={})
                 env = provider_config_env(config)
 
+        self.assertEqual(env["QIONGLI_OPENALEX_API_KEY"], "openalex-secret-key")
+        self.assertEqual(env["OPENALEX_API_KEY"], "openalex-secret-key")
+        self.assertEqual(env["QIONGLI_MCPB_OPENALEX_API_KEY"], "openalex-secret-key")
         self.assertEqual(env["QIONGLI_OPENALEX_EMAIL"], "user@example.com")
         self.assertEqual(env["OPENALEX_EMAIL"], "user@example.com")
+        self.assertEqual(env["QIONGLI_MCPB_OPENALEX_EMAIL"], "user@example.com")
         self.assertEqual(env["QIONGLI_SEMANTIC_SCHOLAR_API_KEY"], "stored-key")
         self.assertEqual(env["SEMANTIC_SCHOLAR_API_KEY"], "stored-key")
         self.assertEqual(env["S2_API_KEY"], "stored-key")

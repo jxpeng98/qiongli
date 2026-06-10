@@ -7,6 +7,7 @@ import { readConfig, providerStatus } from "../server/config.mjs";
 
 test("provider status redacts configured secrets", () => {
   const config = readConfig({
+    QIONGLI_MCPB_OPENALEX_API_KEY: " openalex-secret-key ",
     QIONGLI_MCPB_OPENALEX_EMAIL: " person@example.com ",
     QIONGLI_MCPB_SEMANTIC_SCHOLAR_API_KEY: " secret-key ",
     QIONGLI_MCPB_DEFAULT_LIMIT: "12"
@@ -15,6 +16,7 @@ test("provider status redacts configured secrets", () => {
   const status = providerStatus(config);
   const serialized = JSON.stringify(status);
 
+  assert.equal(config.openalexApiKey, "openalex-secret-key");
   assert.equal(config.openalexEmail, "person@example.com");
   assert.equal(config.semanticScholarApiKey, "secret-key");
   assert.equal(config.defaultLimit, 12);
@@ -25,6 +27,7 @@ test("provider status redacts configured secrets", () => {
   assert.equal(status.providers.crossref, "not_implemented");
   assert.equal(status.providers.pubmed, "not_implemented");
   assert.equal(serialized.includes("secret-key"), false);
+  assert.equal(serialized.includes("openalex-secret-key"), false);
   assert.equal(serialized.includes("person@example.com"), false);
 });
 
@@ -36,15 +39,15 @@ test("readConfig defaults invalid and blank limits and clamps numeric limits", (
   assert.equal(readConfig({ QIONGLI_MCPB_DEFAULT_LIMIT: "12" }).defaultLimit, 12);
 });
 
-test("provider status reports OpenAlex usable without email", (t) => {
+test("provider status requires OpenAlex API key and reports optional email separately", (t) => {
   const configHome = mkdtempSync(path.join(os.tmpdir(), "qiongli-mcpb-empty-config-"));
   t.after(() => rmSync(configHome, { recursive: true, force: true }));
 
   const status = providerStatus(readConfig({ QIONGLI_CONFIG_HOME: configHome }));
 
-  assert.equal(status.capability_mode, "provider_connected");
+  assert.equal(status.capability_mode, "strategy_only");
   assert.deepEqual(status.providers, {
-    openalex: "configured_without_email",
+    openalex: "missing",
     semantic_scholar: "missing",
     crossref: "not_implemented",
     pubmed: "not_implemented"

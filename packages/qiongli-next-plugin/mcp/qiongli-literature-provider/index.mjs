@@ -170,7 +170,7 @@ function providersFor(config) {
   const status = providerStatus(config);
   const providers = [];
 
-  if (status.providers.openalex === "configured" || status.providers.openalex === "configured_without_email") {
+  if (status.providers.openalex === "configured") {
     providers.push("openalex");
   }
 
@@ -187,6 +187,7 @@ async function callProvider(provider, params) {
       query: params.query,
       limit: params.limit,
       email: params.config.openalexEmail,
+      apiKey: params.config.openalexApiKey,
       fromYear: params.fromYear,
       toYear: params.toYear,
       fetchImpl: params.fetchImpl

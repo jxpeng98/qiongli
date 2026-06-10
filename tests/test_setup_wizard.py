@@ -207,6 +207,7 @@ def test_provider_values_are_accepted_but_redacted_in_summary_output(tmp_path: P
             "",
             "",
             "1",
+            "openalex-secret-key",
             "openalex@example.com",
             "secret-s2-key",
             "",
@@ -225,14 +226,17 @@ def test_provider_values_are_accepted_but_redacted_in_summary_output(tmp_path: P
     execute_setup_plan(plan, dry_run=True, output=output)
 
     rendered = output.getvalue()
+    assert ProviderValue("openalex", "api_key", "openalex-secret-key") in answers.provider_values
     assert ProviderValue("openalex", "email", "openalex@example.com") in answers.provider_values
     assert ProviderValue("semantic_scholar", "api_key", "secret-s2-key") in answers.provider_values
     assert ProviderValue("pubmed", "api_key", "secret-pubmed-key") in answers.provider_values
+    assert "openalex-secret-key" not in rendered
     assert "openalex@example.com" not in rendered
     assert "secret-s2-key" not in rendered
     assert "secret-pubmed-key" not in rendered
     assert "secret-s2-key" not in repr(answers)
     assert "secret-s2-key" not in repr(execute_setup_plan(plan, dry_run=True, output=io.StringIO()))
+    assert "openalex api_key: configured" in rendered
     assert "openalex email: configured" in rendered
     assert "semantic_scholar api_key: configured" in rendered
     assert "crossref email: skipped" in rendered
@@ -253,6 +257,7 @@ def test_upgrade_collection_prints_notes_for_each_major_step(tmp_path: Path) -> 
             "3",
             "v0.15.0",
             "1",
+            "",
             "",
             "",
             "",
@@ -279,7 +284,8 @@ def test_upgrade_collection_prints_notes_for_each_major_step(tmp_path: Path) -> 
         "Leave empty to use QIONGLI_REPO",
         "Enter a tag such as v0.14.0",
         "Provider keys enable configured scholarly search clients",
-        "OpenAlex uses an email address",
+        "OpenAlex requires a free API key",
+        "OpenAlex email is optional",
         "Semantic Scholar works without a key",
         "Crossref uses an email address",
         "PubMed API keys are optional",

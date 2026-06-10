@@ -33,13 +33,15 @@ SCOPE_CHOICES = ("all", "globals", "project", "cli")
 REF_SOURCE_CHOICES = ("latest-stable", "latest-beta", "specific-tag", "branch")
 
 PROVIDER_PROMPTS = (
+    ("openalex", "api_key", "OpenAlex API key"),
     ("openalex", "email", "OpenAlex email"),
     ("semantic_scholar", "api_key", "Semantic Scholar API key"),
     ("crossref", "email", "Crossref email"),
     ("pubmed", "api_key", "PubMed API key"),
 )
 PROVIDER_FIELD_NOTES = {
-    ("openalex", "email"): "OpenAlex uses an email address for polite API usage; leave empty to skip.",
+    ("openalex", "api_key"): "OpenAlex requires a free API key from openalex.org/settings/api for local provider calls.",
+    ("openalex", "email"): "OpenAlex email is optional contact metadata included as mailto; leave empty to skip.",
     ("semantic_scholar", "api_key"): "Semantic Scholar works without a key, but a key improves reliability and rate limits.",
     ("crossref", "email"): "Crossref uses an email address for polite API usage; leave empty to skip.",
     ("pubmed", "api_key"): "PubMed API keys are optional and can be added later with qiongli provider setup.",

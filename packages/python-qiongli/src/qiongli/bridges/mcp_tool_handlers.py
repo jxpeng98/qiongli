@@ -476,12 +476,23 @@ def _cwd_from_args(args: dict[str, Any]) -> Path:
 
 def _missing_provider_fields(summary: dict[str, str]) -> list[str]:
     missing: list[str] = []
+    if summary.get("openalex") != "configured":
+        missing.append("openalex.api_key")
     if summary.get("semantic_scholar") != "configured":
         missing.append("semantic_scholar.api_key")
     return missing
 
 
 def _provider_setup_next_action(missing: list[str]) -> dict[str, Any] | None:
+    if "openalex.api_key" in missing:
+        return {
+            "tool": "qiongli_configure_provider",
+            "args": {"provider": "openalex"},
+            "message": (
+                "Run qiongli_configure_provider to open a local setup page. "
+                "Do not paste API keys in chat."
+            ),
+        }
     if "semantic_scholar.api_key" not in missing:
         return None
     return {

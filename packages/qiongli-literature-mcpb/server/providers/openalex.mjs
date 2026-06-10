@@ -85,7 +85,7 @@ function mapWork(work) {
   });
 }
 
-function buildUrl({ query, limit, email, fromYear, toYear }) {
+function buildUrl({ query, limit, email, apiKey, fromYear, toYear }) {
   const url = new URL(ENDPOINT);
   const params = new URLSearchParams();
   params.set("search", query);
@@ -107,6 +107,11 @@ function buildUrl({ query, limit, email, fromYear, toYear }) {
     params.set("mailto", trimmedEmail);
   }
 
+  const trimmedApiKey = String(apiKey ?? "").trim();
+  if (trimmedApiKey) {
+    params.set("api_key", trimmedApiKey);
+  }
+
   url.search = params.toString();
   return url;
 }
@@ -123,9 +128,9 @@ function errorMessage(response) {
   return `${PROVIDER} HTTP ${response.status}`;
 }
 
-export async function searchOpenAlex({ query, limit, email, fromYear, toYear, fetchImpl } = {}) {
+export async function searchOpenAlex({ query, limit, email, apiKey, fromYear, toYear, fetchImpl } = {}) {
   const fetcher = fetchImpl ?? fetch;
-  const url = buildUrl({ query, limit, email, fromYear, toYear });
+  const url = buildUrl({ query, limit, email, apiKey, fromYear, toYear });
 
   try {
     const response = await fetcher(url, fetchOptions(fetchImpl));
