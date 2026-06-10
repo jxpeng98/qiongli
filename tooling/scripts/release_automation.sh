@@ -420,6 +420,7 @@ case "$MODE" in
       docs/reference/skills.md \
       docs/zh/reference/skills.md \
       packages/python-qiongli/src/qiongli/__init__.py \
+      content/workflow/SKILL.md \
       content/workflow/VERSION \
       content/skills/registry.yaml \
       package-lock.json \

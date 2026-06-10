@@ -57,6 +57,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('packages/qiongli-plugin/.claude-plugin/plugin.json', content)
         self.assertIn('packages/qiongli-plugin/gemini-extension.json', content)
         self.assertIn('packages/qiongli-next-plugin', content)
+        self.assertIn('content/workflow/SKILL.md', content)
         self.assertIn('content/workflow/VERSION', content)
         self.assertIn('content/skills/registry.yaml', content)
         self.assertIn('docs/reference/skills.md', content)
