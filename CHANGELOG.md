@@ -6,6 +6,27 @@
 
 暂无未发布变更。
 
+## [1.1.0] - 2026-06-10
+
+### Added
+
+- 新增跨平台 Qiongli MCP runtime 和 CLI-free literature provider runtime，支持通过 MCPB、Codex plugin bundled MCP、Claude Code plugin bundled MCP 以及其他 MCP host 调用文献工具。
+- 新增本地 provider 配置向导：`qiongli_configure_provider` 可打开仅监听 localhost 的配置页，引导用户配置 Semantic Scholar、OpenAlex、Crossref 和 PubMed/NCBI，并避免 API key 进入对话上下文。
+- 新增 `qiongli-next` 预发布插件通道、Git-backed 插件源、Claude plugin ZIP 产物，以及按安装场景分组的 release download guide assets。
+- CLI 新增 installed assets remove 能力，并扩展 orchestrator runtime tools，支持 controller routing、task-run preview 与 runtime closure flow。
+
+### Changed
+
+- 统一已发布插件 package metadata，包括 category、description、author 和 platform-specific manifest 信息；Codex、Claude、Gemini 与 Claude Desktop/Web 的分发说明保持一致。
+- 发布流程现在要求 branch `CI` 和 `Checkout Install Check` 通过后才允许创建 release tag，并在 postflight 中等待 PyPI/npm tag publish workflows，降低 release 与 publish 脱节风险。
+- Subject overlays 与 packaged workflow payload 进一步加深，literature workflow 默认通过 provider route 执行，并增加路径漂移和 plugin mirror 回归测试。
+
+### Fixed
+
+- 修复 Claude Desktop MCPB / plugin-bundled MCP 的 stdio framing 兼容问题，解决 Desktop host 无法 attach 到 Qiongli Literature Provider 的连接失败。
+- 修复 `qiongli-next` MCP server id 隔离、plugin workflow source 同步、task-run preview / triad routing 以及 controller fallback routing 的一致性问题。
+- 修复重构后 release、CI、checkout install、npm bridge 和 packaged runtime standards 的路径解析问题。
+
 ## [0.13.0] - 2026-05-29
 
 ### Added
