@@ -6,6 +6,19 @@
 
 暂无未发布变更。
 
+## [1.2.0] - 2026-06-10
+
+### Added
+
+- 新增 Hermes Agent 作为一等安装目标，覆盖 Python CLI、npm/npx、shell installer、Windows bootstrap 与 `--target all` 安装路径，默认写入 `${HERMES_HOME:-~/.hermes}/skills/qiongli-workflow`。
+- `qiongli mcp config example` 新增 `--target hermes --json`，可生成 Hermes MCP 配置示例。
+- OpenAlex provider 配置引导新增 API key 说明与保存后的完成反馈，避免 CLI/桌面版引导页保存后继续阻塞 session。
+
+### Changed
+
+- Skills 与 CLI 状态输出现在展示 Qiongli workflow 版本信息，便于确认 Codex、Claude、Gemini、Antigravity 与 Hermes 使用的安装版本。
+- 安装文档、本地打包说明和 provider setup 文档补充 Hermes target、MCP 配置和本地 MCPB 打包/tag 流程。
+
 ## [1.1.0] - 2026-06-10
 
 ### Added
