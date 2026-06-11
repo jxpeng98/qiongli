@@ -6,6 +6,16 @@
 
 暂无未发布变更。
 
+## [1.2.1] - 2026-06-11
+
+### Added
+
+- `qiongli mcp upgrade` 新增 CLI 入口，可在 MCP 命令空间内升级 Qiongli runtime 与已安装资产，并支持 Hermes 等安装目标。
+
+### Changed
+
+- npm CLI help 增加 `qiongli mcp upgrade --target all [--dry-run]` 示例，避免用户配置 MCP 后无法从帮助中发现升级路径。
+
 ## [1.2.0] - 2026-06-10
 
 ### Added
