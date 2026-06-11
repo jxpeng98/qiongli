@@ -17,6 +17,7 @@ from bridges.provider_config import (
     set_provider_value,
 )
 from qiongli import __version__
+from qiongli.universal_installer import PART_CHOICES, TARGET_CHOICES
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -31,6 +32,68 @@ def build_parser() -> argparse.ArgumentParser:
     doctor = subparsers.add_parser("doctor", help="Check MCP provider configuration")
     doctor.add_argument("--cwd", default=str(Path.cwd()))
     doctor.add_argument("--json", action="store_true")
+
+    upgrade = subparsers.add_parser(
+        "upgrade",
+        help="Upgrade the Qiongli CLI runtime and installed assets used by the MCP server",
+    )
+    upgrade.add_argument(
+        "--repo",
+        help="Upstream repo in owner/repo form or Git URL. Defaults to configured Qiongli upstream.",
+    )
+    upgrade.add_argument("--ref", help="Tag or branch name. Defaults to the latest release tag.")
+    upgrade.add_argument(
+        "--ref-type",
+        choices=["tag", "branch"],
+        default="tag",
+        help="How to interpret --ref (default: tag; latest uses tag).",
+    )
+    upgrade.add_argument(
+        "--target",
+        default="all",
+        choices=TARGET_CHOICES,
+        help="Install target to refresh after upgrade (default: all).",
+    )
+    upgrade.add_argument("--beta", action="store_true", help="Include beta/pre-release tags for upgrade.")
+    upgrade.add_argument("--subject", default="core", help="Subject package to install (default: core).")
+    upgrade.add_argument(
+        "--coverage",
+        default="complete",
+        choices=["complete", "focused"],
+        help="Subject coverage to install (default: complete).",
+    )
+    upgrade.add_argument(
+        "--mode",
+        default="copy",
+        choices=["copy", "link"],
+        help="Install mode (default: copy).",
+    )
+    upgrade.add_argument(
+        "--project-dir",
+        default=str(Path.cwd()),
+        help="Project directory used when project surfaces are enabled (default: current dir).",
+    )
+    upgrade.add_argument("--install-cli", action="store_true", help="Install or refresh shell CLI wrappers.")
+    upgrade.add_argument("--no-cli", action="store_true", help="Skip shell CLI installation during upgrade.")
+    upgrade.add_argument("--cli-dir", help="Directory for shell CLI wrappers.")
+    upgrade.add_argument(
+        "--overwrite",
+        action="store_true",
+        default=True,
+        help="Overwrite existing installs (default: on).",
+    )
+    upgrade.add_argument(
+        "--no-overwrite",
+        action="store_false",
+        dest="overwrite",
+        help="Do not overwrite existing installs.",
+    )
+    upgrade.add_argument("--doctor", action="store_true", help="Run orchestrator doctor after install.")
+    upgrade.add_argument("--dry-run", action="store_true", help="Show install actions only.")
+    upgrade.add_argument(
+        "--parts",
+        help=f"Comma-separated install surfaces to apply: {', '.join(PART_CHOICES)}.",
+    )
 
     configure = subparsers.add_parser("configure", help="Save a provider config value")
     configure.add_argument("--provider", required=True)
@@ -64,6 +127,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_serve(args)
     if args.cmd == "doctor":
         return _cmd_doctor(args)
+    if args.cmd == "upgrade":
+        return _cmd_upgrade(args)
     if args.cmd == "configure":
         return _cmd_configure(args)
     if args.cmd == "wizard":
@@ -96,6 +161,12 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
         print(f"- {provider}: {status}")
     print(f"- capability_mode: {payload['capability_mode']}")
     return 0
+
+
+def _cmd_upgrade(args: argparse.Namespace) -> int:
+    from qiongli.cli import cmd_upgrade
+
+    return cmd_upgrade(args)
 
 
 def _cmd_configure(args: argparse.Namespace) -> int:

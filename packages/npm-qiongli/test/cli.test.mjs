@@ -27,6 +27,17 @@ test('help documents setup command and options', async () => {
   assert.match(output, /--no-doctor/);
 });
 
+test('help documents mcp upgrade command', async () => {
+  let output = '';
+  const exitCode = await main(['help'], {
+    stdout: { write: (chunk) => { output += chunk; } },
+    stderr: { write: () => {} },
+  });
+
+  assert.equal(exitCode, 0);
+  assert.match(output, /qiongli mcp upgrade --target all \[--dry-run\]/);
+});
+
 test('help documents remove command', async () => {
   let output = '';
   const exitCode = await main(['help'], {
@@ -70,6 +81,23 @@ test('main dispatches mcp to Python CLI runner and returns its code', async () =
   assert.equal(exitCode, 9);
   assert.deepEqual(calls, [
     ['mcp', 'serve', '--transport', 'stdio'],
+  ]);
+});
+
+test('main dispatches mcp upgrade to Python CLI runner', async () => {
+  const calls = [];
+  const exitCode = await main(['mcp', 'upgrade', '--target', 'hermes', '--dry-run'], {
+    stdout: { write: () => {} },
+    stderr: { write: () => {} },
+    runPythonCliCommand: ({ args }) => {
+      calls.push(args);
+      return 5;
+    },
+  });
+
+  assert.equal(exitCode, 5);
+  assert.deepEqual(calls, [
+    ['mcp', 'upgrade', '--target', 'hermes', '--dry-run'],
   ]);
 });
 

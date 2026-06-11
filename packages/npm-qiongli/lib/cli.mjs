@@ -164,6 +164,7 @@ Usage:
   qiongli setup [--dry-run] [--project-dir .] [--no-doctor]
   qiongli mcp serve --transport stdio
   qiongli mcp doctor --json
+  qiongli mcp upgrade --target all [--dry-run]
   qiongli doctor --cwd .
   qiongli task-run ...
   qiongli team-run ...

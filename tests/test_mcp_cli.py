@@ -9,6 +9,9 @@ import unittest
 import urllib.parse
 import urllib.request
 from pathlib import Path
+from unittest import mock
+
+from bridges import mcp_cli
 
 
 class MCPCLITests(unittest.TestCase):
@@ -99,6 +102,36 @@ class MCPCLITests(unittest.TestCase):
         self.assertEqual(payload["server"]["args"], ["mcp", "serve", "--transport", "stdio"])
         self.assertIn("qiongli_configure_provider", payload["configuration_tools"])
         self.assertIn("qiongli_task_run", payload["orchestration_tools"])
+
+    def test_mcp_cli_upgrade_delegates_to_qiongli_upgrade(self) -> None:
+        calls = []
+
+        with mock.patch("qiongli.cli.cmd_upgrade", side_effect=lambda args: calls.append(args) or 7):
+            exit_code = mcp_cli.main(
+                [
+                    "upgrade",
+                    "--repo",
+                    "owner/repo",
+                    "--ref",
+                    "v1.2.0",
+                    "--target",
+                    "hermes",
+                    "--project-dir",
+                    "/tmp/project",
+                    "--dry-run",
+                ]
+            )
+
+        self.assertEqual(exit_code, 7)
+        self.assertEqual(len(calls), 1)
+        args = calls[0]
+        self.assertEqual(args.repo, "owner/repo")
+        self.assertEqual(args.ref, "v1.2.0")
+        self.assertEqual(args.ref_type, "tag")
+        self.assertEqual(args.target, "hermes")
+        self.assertEqual(args.project_dir, "/tmp/project")
+        self.assertTrue(args.overwrite)
+        self.assertTrue(args.dry_run)
 
     def test_mcp_cli_wizard_exits_after_provider_values_are_saved(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
