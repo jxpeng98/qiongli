@@ -78,6 +78,76 @@ For Stage A idea-discovery, prefer questions that move from "interesting topic" 
 - What contribution type is primary, and which adjacent contribution is not being claimed?
 - Who would cite this work if it succeeds, and why would they care?
 
+## Stage-Aware Grill Contract
+
+Use stage-aware grill as Qiongli's cross-platform academic judgment layer. The
+same contract applies in Codex, Claude / Claude Code, Gemini, CLI, and portable
+skill installs.
+
+Run a light automatic grill when:
+
+- a stage starts with vague or underdefined academic scope
+- a stage handoff contains open risks, stale decisions, or unresolved reviewer
+  concerns
+- a central claim, method, evidence threshold, analysis decision, submission
+  promise, or presentation claim changes
+- the user expresses uncertainty or asks for judgment, for example "not sure",
+  "help me decide", "不知道怎么做", "不确定", or "帮我判断"
+
+Run a deep grill when the user explicitly asks to be grilled, stress-tested,
+challenged, reviewed like Reviewer 2, or checked for fatal flaws. Deep grill
+continues the one-question loop until the key decision is resolved, blocked on
+external information, or deliberately carried forward as an open issue.
+
+Every grill question must:
+
+- inspect existing artifacts before asking
+- ask one blocking academic question at a time
+- include a recommended answer with academic rationale
+- state the likely evidence basis, claim-strength implication, reviewer or venue
+  consequence, and confidence
+- record the decision or unresolved issue for downstream stages
+
+### Stage-Specific Grill Lenses
+
+- Stage A: scope, contribution, claim strength, audience, and venue fit
+- Stage B: search bias, classic-paper deference, synthesis logic, rival
+  literatures, and inclusion/exclusion risk
+- Stage C: identification, measurement validity, rival hypotheses, data
+  feasibility, and power or sensitivity logic
+- Stage D: participant risk, privacy, consent clarity, governance, and dual-use
+  risk
+- Stage E: heterogeneity, publication bias, pooling defensibility, null cases,
+  and contradictory evidence
+- Stage F: claim-evidence alignment, causal language, interpretation depth,
+  alternative explanations, and limitation specificity
+- Stage G: reporting completeness, logical transitions, tone calibration, and
+  checklist compliance
+- Stage J: AI-trace risk, human scholarly voice, citation originality, and final
+  proofread integrity
+- Stage H: reviewer empathy, response tone, impossible requests, contradictions
+  introduced by revisions, and fatal flaw exposure
+- Stage I: estimand-to-code traceability, data lineage, diagnostic coverage,
+  reproducibility, computational assumptions, and analysis artifact outputs
+- Stage K: audience fit, claim compression, visual evidence integrity, slide
+  narrative, and unsupported simplification
+
+## Cross-Stage Grill Memory
+
+Grill decisions and unresolved issues must survive stage boundaries. Use:
+
+- `RESEARCH/[topic]/context/boundary_review.md` for locked scholarly boundaries
+- `RESEARCH/[topic]/context/decision_log.md` for resolved grill decisions and
+  rejected alternatives
+- `RESEARCH/[topic]/context/stage_handoff.md` for open grill issues, assumptions
+  passed forward, and revisit triggers
+- `RESEARCH/[topic]/review/self_critique_log.md` for issue lineage across review
+  rounds
+
+Downstream stages must inspect these artifacts before asking a new grill
+question. If a prior issue remains open, the downstream stage must resolve it,
+carry it forward, or explicitly mark why it is no longer relevant.
+
 ## When to Use
 
 - Before high-risk framing, study design, writing, submission, research code, or handoff work when scope, claim strength, evidence threshold, validity risk, generalizability, or reviewer expectations remain unclear.
@@ -87,8 +157,7 @@ For Stage A idea-discovery, prefer questions that move from "interesting topic" 
 
 ## Related Task IDs
 
-- MVP trigger stages: `A`, `C`, `F`, `H`, `I`
-- Future trigger stages: `B`, `D`, `E`, `G`, `J`, `K`
+- Trigger stages: `A`, `B`, `C`, `D`, `E`, `F`, `G`, `J`, `H`, `I`, `K`
 
 ## Output (contract path)
 

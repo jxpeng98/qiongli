@@ -24,8 +24,18 @@ EXPECTED_CATEGORY = "Education"
 EXPECTED_REPOSITORY = "https://github.com/jxpeng98/qiongli"
 EXPECTED_LICENSE = "MIT"
 EXPECTED_WORKFLOW_DESCRIPTION = (
-    "Qiongli academic research workflow for paper planning, literature review, writing, "
-    "compliance, submission, presentation, and research code."
+    "Qiongli academic research workflow for literature, manuscripts, statistics, "
+    "analysis code, reproducibility, rebuttal, submission, presentation, and stage-aware grill."
+)
+EXPECTED_DISCOVERY_TERMS = (
+    "academic",
+    "research",
+    "literature",
+    "manuscript",
+    "analysis",
+    "statistics",
+    "reproducibility",
+    "rebuttal",
 )
 
 
@@ -67,12 +77,28 @@ class PluginManifestTests(unittest.TestCase):
         self.assertEqual(interface["developerName"], "Jiaxin Peng")
         self.assertEqual(interface["category"], EXPECTED_CATEGORY)
         self.assertIn("academic research workflow", interface["shortDescription"].lower())
-        self.assertIn("paper planning", interface["longDescription"].lower())
+        self.assertIn("manuscript", interface["longDescription"].lower())
+        self.assertIn("analysis code", interface["longDescription"].lower())
         self.assertLessEqual(len(interface["defaultPrompt"]), 3)
         for prompt in interface["defaultPrompt"]:
             self.assertLessEqual(len(prompt), 128)
             self.assertNotIn(" /", prompt)
         self.assertTrue(any("$qiongli" in prompt for prompt in interface["defaultPrompt"]))
+
+    def test_codex_plugin_manifest_exposes_academic_discovery_terms(self) -> None:
+        manifest = json.loads(CODEX_PLUGIN_MANIFEST.read_text(encoding="utf-8"))
+        searchable_text = " ".join(
+            [
+                manifest["description"],
+                " ".join(manifest["keywords"]),
+                manifest["interface"]["longDescription"],
+                " ".join(manifest["interface"]["defaultPrompt"]),
+            ]
+        ).lower()
+
+        for term in EXPECTED_DISCOVERY_TERMS:
+            with self.subTest(term=term):
+                self.assertIn(term, searchable_text)
 
     def test_codex_plugin_bundles_qiongli_mcp_server(self) -> None:
         manifest = json.loads(CODEX_PLUGIN_MANIFEST.read_text(encoding="utf-8"))
@@ -103,6 +129,14 @@ class PluginManifestTests(unittest.TestCase):
         self.assertEqual(manifest["category"], EXPECTED_CATEGORY)
         self.assertEqual(manifest["repository"], EXPECTED_REPOSITORY)
         self.assertEqual(manifest["license"], EXPECTED_LICENSE)
+
+    def test_claude_plugin_manifest_exposes_academic_discovery_terms(self) -> None:
+        manifest = json.loads(CLAUDE_PLUGIN_MANIFEST.read_text(encoding="utf-8"))
+        searchable_text = " ".join([manifest["description"], " ".join(manifest["keywords"])]).lower()
+
+        for term in EXPECTED_DISCOVERY_TERMS:
+            with self.subTest(term=term):
+                self.assertIn(term, searchable_text)
 
     def test_claude_plugin_bundles_qiongli_mcp_server(self) -> None:
         manifest = json.loads(CLAUDE_PLUGIN_MANIFEST.read_text(encoding="utf-8"))
@@ -135,6 +169,14 @@ class PluginManifestTests(unittest.TestCase):
         self.assertEqual(manifest["repository"], EXPECTED_REPOSITORY)
         self.assertEqual(manifest["license"], EXPECTED_LICENSE)
 
+    def test_gemini_extension_manifest_exposes_academic_discovery_terms(self) -> None:
+        manifest = json.loads(GEMINI_EXTENSION_MANIFEST.read_text(encoding="utf-8"))
+        searchable_text = " ".join([manifest["description"], " ".join(manifest["keywords"])]).lower()
+
+        for term in EXPECTED_DISCOVERY_TERMS:
+            with self.subTest(term=term):
+                self.assertIn(term, searchable_text)
+
     def test_next_codex_plugin_manifest_uses_release_metadata(self) -> None:
         manifest = json.loads(NEXT_CODEX_PLUGIN_MANIFEST.read_text(encoding="utf-8"))
 
@@ -147,6 +189,21 @@ class PluginManifestTests(unittest.TestCase):
         self.assertIn("prerelease academic research workflow", manifest["description"].lower())
         self.assertEqual(manifest["interface"]["developerName"], EXPECTED_AUTHOR["name"])
         self.assertEqual(manifest["interface"]["category"], EXPECTED_CATEGORY)
+
+    def test_next_codex_plugin_manifest_exposes_academic_discovery_terms(self) -> None:
+        manifest = json.loads(NEXT_CODEX_PLUGIN_MANIFEST.read_text(encoding="utf-8"))
+        searchable_text = " ".join(
+            [
+                manifest["description"],
+                " ".join(manifest["keywords"]),
+                manifest["interface"]["longDescription"],
+                " ".join(manifest["interface"]["defaultPrompt"]),
+            ]
+        ).lower()
+
+        for term in EXPECTED_DISCOVERY_TERMS:
+            with self.subTest(term=term):
+                self.assertIn(term, searchable_text)
 
     def test_plugin_contains_discoverable_research_paper_workflow_skill(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

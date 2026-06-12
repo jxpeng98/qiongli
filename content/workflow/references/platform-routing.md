@@ -1,6 +1,64 @@
 # Platform Routing
 
-Use this mapping to keep behavior consistent across tools.
+Use this mapping to keep behavior consistent across tools. Explicit workflow
+commands are helpful shortcuts, but Qiongli routing does not require explicit
+`$qiongli`, `/paper`, `/lit-review`, or slash-command invocation when the user is
+doing academic research lifecycle work.
+
+## Cross-Platform Trigger Contract
+
+Route to Qiongli when the user request involves academic research artifacts,
+judgment, or outputs:
+
+- topic framing, research question narrowing, hypothesis, contribution, theory, or
+  venue fit
+- paper/PDF/note reading, citation handling, bibliography work, literature search,
+  literature screening, extraction, synthesis, or gap mapping
+- study design, variable construction, instruments, data management, robustness
+  checks, preregistration, ethics, or IRB text
+- manuscript/proposal/abstract/table/figure/discussion/rebuttal/submission text
+- statistical interpretation, effect sizes, diagnostics, model output, robustness,
+  meta-analysis, or evidence synthesis
+- academic analysis code, notebooks, R/Stata/Python/Julia/MATLAB scripts, Quarto,
+  or replication packages when they affect data, models, tables, figures, results,
+  or reproducibility
+- proofread, de-AI rewriting, citation-risk checking, reviewer response,
+  peer-review simulation, fatal-flaw analysis, or academic presentations
+
+Do not route to Qiongli for generic software feature work, generic file cleanup,
+format conversion without scholarly interpretation, or prose edits with no claim,
+evidence, citation, venue, method, or reviewer-risk consequence.
+
+## Ambiguity Trigger
+
+When an academic request is vague or the user asks for judgment, run a light
+boundary/grill pass before producing a final artifact. Trigger phrases include:
+
+- English: "I don't know how to start", "not sure", "help me decide",
+  "which direction", "is this reasonable", "what should I do next"
+- Chinese: "帮我判断", "不知道怎么做", "不确定", "方向不清楚", "帮我想想",
+  "这样是否合理"
+
+The light pass must inspect available artifacts first, ask one blocking academic
+question, and include a recommended answer with rationale. Escalate to a deep
+stage-aware grill loop when the user explicitly asks to be grilled, stress-tested,
+challenged like Reviewer 2, or checked for fatal flaws.
+
+## Natural Request Routing Examples
+
+| User intent | Route |
+|---|---|
+| "Read this paper / PDF / DOI" | `B2` or `/paper-read` |
+| "Find gaps / I don't know where to start" | Stage A + ambiguity grill, then `A4` or `/find-gap` |
+| "Run a literature review" | `B1` or `/lit-review` |
+| "Improve related work" | `B4` or `/academic-write related-work` |
+| "Design the study / variables / robustness" | `C1`, `C3`, `C3_5`, or `/study-design` |
+| "Interpret these results" | `F3`, `F4`, `F5`, or `stats-engine` depending on artifact |
+| "Modify this analysis script / notebook" | Stage I, usually `I5 -> I6 -> I7 -> I8` for claim-supporting code |
+| "Proofread / make it less AI-like" | Stage J or `/proofread` |
+| "Prepare submission / cover letter" | `H1` or `/submission-prep` |
+| "Reply to reviewer comments" | `H2`, `H2_5`, or `/rebuttal` |
+| "Make slides" | Stage K or `/academic-present` |
 
 ## Claude Code
 
@@ -22,10 +80,14 @@ Use this mapping to keep behavior consistent across tools.
 - `I1–I8` -> `/code-build`
 - `J1–J4` -> `/proofread`
 - `K1–K4` -> `/academic-present`
+- Natural academic requests should route to the same task IDs even when the user
+  does not type the command wrapper.
+- If the request is ambiguous, use the Ambiguity Trigger before drafting.
 
 ## Codex
 
-- Use `$qiongli`
+- Use `$qiongli` when explicit invocation is available, but natural academic
+  requests should still route to Qiongli.
 - Provide: `paper_type`, `task_id`, `topic`, and optional `venue`
 - Follow artifact paths from workflow contract
 - For multi-agent execution, apply `standards/mcp-agent-capability-map.yaml`:
@@ -34,6 +96,8 @@ Use this mapping to keep behavior consistent across tools.
   - use `fallback_agent` when primary fails
 - For proofread tasks (`J1`–`J4`), recommend `--triad` mode for iterative de-AI
 - For presentation tasks (`K1`–`K4`), specify backend: `slidev`, `beamer`, or `pptx`
+- For academic code, prioritize estimand, data lineage, diagnostics, manuscript
+  tables/figures, and reproducibility over generic software scaffolding.
 
 ## Gemini
 
@@ -42,3 +106,20 @@ Use this mapping to keep behavior consistent across tools.
 - Keep task IDs and output file names unchanged
 - For proofread: `Execute Task J2 for paper_type {paper_type} in RESEARCH/{topic} using multi-agent collaboration to de-AI rewrite.`
 - For presentation: `Execute Task K1 for paper_type {paper_type} in RESEARCH/{topic} and prepare a conference talk using slidev backend.`
+- Gemini extension prompts should preserve the same Cross-Platform Trigger
+  Contract and Ambiguity Trigger when the user describes academic work naturally.
+
+## CLI / npm / Python
+
+- Slash-style commands and `qiongli task-run` remain the stable entry points.
+- Task packets from other platforms should preserve `paper_type`, `stage`,
+  `task_id`, `topic`, artifact paths, and open grill issues.
+- Orchestrator runs should carry boundary decisions and stage handoff risks into
+  downstream agents rather than resetting context.
+
+## Portable Skill Installs
+
+- `qiongli-workflow` portable packages must include this routing contract.
+- Desktop or web skill-only installs can route and write artifacts, but they
+  should not claim provider-connected literature search unless a provider MCPB or
+  platform-native search capability is available.

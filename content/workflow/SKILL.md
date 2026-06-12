@@ -1,6 +1,6 @@
 ---
 name: qiongli
-description: Qiongli version: v1.2.2. Academic workflow for Codex, Claude Code, and Gemini. Use when a user needs to plan papers, run literature reviews, choose a paper type (empirical, qualitative, systematic review, methods, theory), select a workflow stage, and produce consistent artifacts under RESEARCH/[topic]/ with explicit task IDs, quality gates, and submission-ready outputs.
+description: Qiongli version: v1.2.2. Cross-platform academic research workflow for Codex, Claude / Claude Code, Gemini, and CLI. Use for academic research lifecycle work: paper planning, literature review, paper reading, gap finding, study design, manuscript writing, statistics, analysis code, reproducibility, proofread, rebuttal, submission, presentation, and stage-aware grill / critique. Route natural academic requests even when the user does not explicitly invoke $qiongli or a slash command.
 ---
 
 # Qiongli Academic Workflow
@@ -20,9 +20,45 @@ Installed Qiongli workflow version: `v1.2.2`
 5. Apply quality gates before submission tasks (`H1`, `H2`).
 6. For orchestrator `task-run`, declare controller ownership when relevant with `--execution-mode`, `--controller`, `--primary`, `--reviewer`, `--verifier`, and `--solo-role-gates`.
 
+## Cross-Platform Trigger Contract
+
+Qiongli should be considered whenever a request belongs to the academic research lifecycle. This does not require explicit `$qiongli`, `/paper`, `/lit-review`, or slash-command invocation. Natural requests like "read this paper and summarize the contribution", "revise the methods section", "check whether this result supports the claim", "modify this analysis script", or "prepare a rebuttal" should route through the relevant Qiongli stage when the task has scholarly claim, evidence, method, venue, citation, reproducibility, or reviewer-risk consequences.
+
+Use Qiongli for:
+
+- framing a research topic, research question, hypothesis, contribution, theory, or venue fit
+- reading papers, PDFs, notes, citations, bibliographies, literature folders, or review matrices
+- searching, screening, mapping, extracting, or synthesizing literature
+- designing studies, variables, instruments, robustness checks, data plans, preregistration, or ethics materials
+- writing or revising proposals, manuscript sections, abstracts, tables, figures, claims maps, or discussion text
+- interpreting statistics, effect sizes, models, diagnostics, robustness checks, or analysis outputs
+- reading or editing academic analysis code, notebooks, Stata scripts, R scripts, Python scripts, Quarto files, or replication packages
+- checking PRISMA, reporting compliance, tone, citation support, originality, submission packages, rebuttals, peer review responses, or presentations
+
+Do not force Qiongli for:
+
+- generic software feature work unrelated to research analysis
+- generic prose editing without scholarly claim, evidence, venue, citation, or reviewer risk
+- file organization or format conversion without academic interpretation
+- project maintenance tasks for the Qiongli repository itself unless the user is changing research workflow behavior
+
+### Ambiguity Trigger
+
+When the user appears unsure, underspecified, or asks for judgment in an academic context, run a light boundary/grill step before producing a final artifact. Trigger phrases include: "I don't know how to start", "not sure", "help me decide", "which direction", "is this reasonable", "what should I do next", "帮我判断", "不知道怎么做", "不确定", "方向不清楚", "帮我想想", and "这样是否合理".
+
+The ambiguity response should inspect available artifacts first, then ask one blocking academic question with a recommended answer and rationale. Do not ask a broad questionnaire.
+
+### Platform Routing
+
+- Codex: skill or plugin discovery should route natural academic requests to Qiongli even without `$qiongli`; then load the relevant workflow or skill card.
+- Claude / Claude Code: skill package and plugin metadata should route natural academic requests to the matching task ID or workflow wrapper.
+- Gemini: extension and workflow prompts should preserve task IDs, artifact contracts, and stage-aware grill behavior.
+- CLI / npm / Python: command wrappers remain available, but the same routing contract applies to task packets and orchestrator runs.
+- Portable `qiongli-workflow`: synced skill packages must carry this trigger contract for non-plugin installs.
+
 ## Workflow Entry Points
 
-In Codex, invoke this skill with `/skills` or `$qiongli`, then ask for one of these workflows. Claude Code and Gemini surfaces may expose the same workflows as slash-style command wrappers:
+Explicit workflow commands are optional entry points. In Codex, users can invoke this skill with `/skills` or `$qiongli`, but natural academic requests should also route here. Claude Code and Gemini surfaces may expose the same workflows as slash-style command wrappers:
 
 ```
 /paper [topic] [venue]                # Master router — choose paper type + task ID

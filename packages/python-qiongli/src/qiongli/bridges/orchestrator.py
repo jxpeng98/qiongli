@@ -92,16 +92,6 @@ def _default_standards_dir(
             root_pairs.append(pair)
 
     candidates: list[Path] = []
-    for qiongli_package_root, runtime_root in root_pairs:
-        candidates.extend(
-            [
-                qiongli_package_root / "standards",
-                runtime_root / "standards",
-                qiongli_package_root / "payload" / "qiongli-workflow" / "standards",
-                runtime_root / "payload" / "qiongli-workflow" / "standards",
-            ]
-        )
-
     for start in (cwd, source_file):
         if start is None:
             continue
@@ -111,6 +101,16 @@ def _default_standards_dir(
             candidates.append(RepoLayout(discover_repo_root(start)).standards)
         except ValueError:
             continue
+
+    for qiongli_package_root, runtime_root in root_pairs:
+        candidates.extend(
+            [
+                qiongli_package_root / "standards",
+                runtime_root / "standards",
+                qiongli_package_root / "payload" / "qiongli-workflow" / "standards",
+                runtime_root / "payload" / "qiongli-workflow" / "standards",
+            ]
+        )
 
     for candidate in candidates:
         if (

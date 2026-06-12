@@ -64,6 +64,37 @@ Use `review/self_critique_log.md` as a compact register like:
 |---|---|---|---|---|---|---|---|
 | SC-01 | 0 | open | high | `manuscript/manuscript.md` / Discussion | Claim exceeds results evidence | Narrow causal language | Pending |
 
+## Stage-Aware Grill Contract
+
+When a task enters self-critique through a Qiongli grill request, use the same
+light automatic grill and deep grill distinction as `boundary-interviewer`.
+
+- Light automatic grill applies when the user is unsure, a stage starts with
+  vague scope, a handoff contains open risks, or a claim/method/evidence/code
+  decision changes.
+- Deep grill applies when the user explicitly asks to be grilled, stress-tested,
+  challenged like Reviewer 2, or checked for fatal flaws.
+- Every critique question must target the current stage lens, include a
+  recommended answer or required fix, and record whether the issue is open,
+  partial, resolved, or superseded.
+- A deep grill may reopen prior-stage issues only when it records the evidence or
+  user decision that triggered the revisit.
+
+## Cross-Stage Grill Memory
+
+Self-critique issues are part of the cross-stage grill memory. Before starting a
+new critique loop, inspect:
+
+- `context/boundary_review.md`
+- `context/decision_log.md`
+- `context/stage_handoff.md`
+- `review/self_critique_log.md`
+
+If a prior issue affects the current artifact, keep the same issue ID and update
+its status instead of creating a duplicate. Open issues that cannot be resolved in
+the current stage must be copied into `context/stage_handoff.md` under `Open
+Grill Issues` with a concrete `Revisit Trigger`.
+
 ## Stage-Specific Critique Questions
 
 ### Stage A: Framing & Positioning
@@ -133,6 +164,18 @@ Use `review/self_critique_log.md` as a compact register like:
 - *Q2:* "If 10% of the input data turns out to be NaN, will this data pipeline fail gracefully or silently produce incorrect aggregated results?"
 - *Q3:* "Are the computational environment dependencies explicitly pinned (e.g., requirements.txt, Dockerfile) to prevent 'works on my machine' syndrome?"
 - *Q4:* "Is there an unacknowledged O(N^2) or worse operation that will cause the code to hang if the dataset size scales 10x?"
+
+### Stage K: Academic Presentation
+- **Focus:** Audience fit, visual evidence integrity, and claim compression.
+- *Q1:* "Which claim is likely to be oversimplified on slides, and what evidence or caveat must stay visible?"
+- *Q2:* "Does every figure or table support the spoken argument, or is it decorative complexity?"
+- *Q3:* "What would a skeptical audience member challenge first, and is the answer already on a backup slide or speaker note?"
+
+### Stage J: Proofread & De-AI
+- **Focus:** Human scholarly voice, originality, and final integrity.
+- *Q1:* "Which sentences sound polished but empty, and what concrete claim or evidence should replace them?"
+- *Q2:* "Does the humanized text preserve citations, hedging, and claim strength from the source draft?"
+- *Q3:* "Could any rewrite change the meaning of methods, results, limitations, or author responsibility?"
 
 ## Usage
 

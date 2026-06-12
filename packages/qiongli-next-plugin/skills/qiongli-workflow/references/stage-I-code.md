@@ -29,6 +29,32 @@ Use a low-freedom sequence for reliability:
 4. **Independent review (`I8`)**: separate model reviews logic + stats validity + failure cases
 5. **Audit (`I4`)**: seeds, versions, determinism, data provenance, rerun instructions
 
+## Academic Analysis Code
+
+Stage I code is academic analysis code, not application architecture. Start from
+the estimand, hypothesis, analysis plan, or manuscript-facing table/figure that
+the code must support. Only add abstractions that make the research pipeline more
+auditable.
+
+Required analysis-code constraints:
+
+- Preserve dataset lineage: raw input, cleaning rules, exclusions, missingness,
+  joins, derived variables, and sample construction.
+- Treat model diagnostics and robustness checks as first-class outputs, not
+  optional plots added after the fact.
+- Write manuscript-facing tables, figures, and machine-readable result files to
+  predictable paths under `RESEARCH/[topic]/analysis/` or
+  `RESEARCH/[topic]/manuscript/`.
+- Record seeds, dependency notes, command logs, and rerun instructions.
+- Separate finding, interpretation, and implication in analysis reports.
+- Prefer scripts, notebooks, Quarto files, or small modules readable by
+  researchers over service layers, controllers, framework scaffolding, or
+  unnecessary classes.
+
+When exploratory analysis is requested, label outputs as exploratory and record
+assumptions. Do not let exploratory code silently become claim-supporting
+evidence without a Stage I specification, plan, execution record, and review.
+
 ## I8 — Academic Code Review
 
 **Definition of done**
@@ -45,6 +71,8 @@ Use a low-freedom sequence for reliability:
 - Contains runnable scripts/notebooks with clear entrypoints
 - Includes a minimal dataset stub or synthetic data generator for verification
 - Writes outputs to a predictable location (avoid hidden state)
+- Records dataset lineage, model diagnostics, robustness checks, and
+  manuscript-facing output paths
 
 ### `code/container_config/`
 - Optional but recommended when dependencies are fragile

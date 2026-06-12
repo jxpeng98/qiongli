@@ -1,7 +1,7 @@
 {
   "name": "qiongli",
   "version": "1.2.2",
-  "description": "Qiongli academic research workflow for paper planning, literature review, writing, compliance, submission, presentation, and research code.",
+  "description": "Qiongli academic research workflow for literature, manuscripts, statistics, analysis code, reproducibility, rebuttal, submission, presentation, and stage-aware grill.",
   "author": {
     "name": "Jiaxin Peng",
     "url": "https://github.com/jxpeng98"
@@ -14,6 +14,13 @@
     "research",
     "academic-writing",
     "literature-review",
+    "manuscript",
+    "analysis",
+    "statistics",
+    "reproducibility",
+    "rebuttal",
+    "academic-code",
+    "grill",
     "gemini-extension"
   ]
 }

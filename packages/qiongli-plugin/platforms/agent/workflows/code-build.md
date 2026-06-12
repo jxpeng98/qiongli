@@ -91,6 +91,13 @@ The boundary pass must ask one academic question at a time and must record which
 - Keep outputs aligned to `RESEARCH/[topic]/...` and the contract-defined `code/` artifacts.
 - Use the runtime-injected domain profile as a constraint source, not a suggestion.
 - Prefer reproducibility, diagnostics, and validation evidence over helper-file sprawl.
+- Treat Academic Analysis Code as the default style: start from the estimand,
+  hypothesis, analysis plan, or manuscript-facing output, then build only the
+  scripts/notebooks/modules required to produce auditable evidence.
+- Preserve dataset lineage, model diagnostics, robustness checks, manuscript-facing
+  tables/figures, seeds, dependency notes, command logs, and rerun instructions.
+- Avoid service layers, controllers, framework scaffolding, and unnecessary
+  classes unless the research method genuinely requires a reusable library.
 - `I4`, `I5`, `I6`, `I7`, and `I8` should emit YAML frontmatter plus JSON contract blocks and fixed section headings, so audit/spec/plan/execution/review artifacts are auditable and machine-scannable.
 - The orchestrator will parse those machine-readable blocks after each Stage-I run and surface actionable targets for later reruns or audits.
 - `--only-target` reuses those parsed actionable targets and loads the existing `RESEARCH/[topic]/code/*.md` artifact before rerunning the selected stage.
