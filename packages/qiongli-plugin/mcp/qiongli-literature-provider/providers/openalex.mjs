@@ -1,9 +1,10 @@
 import { normalizeResult } from "../normalize.mjs";
+import { normalizeDoi } from "../query.mjs";
 
 const PROVIDER = "openalex";
 const ENDPOINT = "https://api.openalex.org/works";
 const DEFAULT_LIMIT = 10;
-const MAX_LIMIT = 50;
+const MAX_LIMIT = 100;
 
 function normalizeLimit(limit) {
   if (!Number.isInteger(limit)) {
@@ -85,11 +86,24 @@ function mapWork(work) {
   });
 }
 
-function buildUrl({ query, limit, email, apiKey, fromYear, toYear }) {
+function applyAuthParams(params, { email, apiKey }) {
+  const trimmedEmail = String(email ?? "").trim();
+  if (trimmedEmail) {
+    params.set("mailto", trimmedEmail);
+  }
+
+  const trimmedApiKey = String(apiKey ?? "").trim();
+  if (trimmedApiKey) {
+    params.set("api_key", trimmedApiKey);
+  }
+}
+
+function buildSearchUrl({ query, limit, email, apiKey, fromYear, toYear }) {
   const url = new URL(ENDPOINT);
   const params = new URLSearchParams();
   params.set("search", query);
   params.set("per-page", String(normalizeLimit(limit)));
+  params.set("sort", "relevance_score:desc");
 
   const filters = [];
   if (Number.isInteger(fromYear)) {
@@ -102,16 +116,16 @@ function buildUrl({ query, limit, email, apiKey, fromYear, toYear }) {
     params.set("filter", filters.join(","));
   }
 
-  const trimmedEmail = String(email ?? "").trim();
-  if (trimmedEmail) {
-    params.set("mailto", trimmedEmail);
-  }
+  applyAuthParams(params, { email, apiKey });
 
-  const trimmedApiKey = String(apiKey ?? "").trim();
-  if (trimmedApiKey) {
-    params.set("api_key", trimmedApiKey);
-  }
+  url.search = params.toString();
+  return url;
+}
 
+function buildDoiUrl({ doi, email, apiKey }) {
+  const url = new URL(`${ENDPOINT}/${encodeURIComponent(`doi:${doi}`)}`);
+  const params = new URLSearchParams();
+  applyAuthParams(params, { email, apiKey });
   url.search = params.toString();
   return url;
 }
@@ -128,9 +142,12 @@ function errorMessage(response) {
   return `${PROVIDER} HTTP ${response.status}`;
 }
 
-export async function searchOpenAlex({ query, limit, email, apiKey, fromYear, toYear, fetchImpl } = {}) {
+export async function searchOpenAlex({ query, doi, limit, email, apiKey, fromYear, toYear, fetchImpl } = {}) {
   const fetcher = fetchImpl ?? fetch;
-  const url = buildUrl({ query, limit, email, apiKey, fromYear, toYear });
+  const resolvedDoi = typeof doi === "string" ? doi : normalizeDoi(query);
+  const url = resolvedDoi
+    ? buildDoiUrl({ doi: resolvedDoi, email, apiKey })
+    : buildSearchUrl({ query, limit, email, apiKey, fromYear, toYear });
 
   try {
     const response = await fetcher(url, fetchOptions(fetchImpl));
@@ -143,7 +160,8 @@ export async function searchOpenAlex({ query, limit, email, apiKey, fromYear, to
     }
 
     const body = await response.json();
-    const results = Array.isArray(body?.results) ? body.results.map(mapWork) : [];
+    const works = resolvedDoi ? [body] : Array.isArray(body?.results) ? body.results : [];
+    const results = works.map(mapWork);
     return {
       provider: PROVIDER,
       results,

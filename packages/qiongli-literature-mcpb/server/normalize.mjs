@@ -57,6 +57,69 @@ function compactTitle(value) {
     .replace(/\s+/g, " ");
 }
 
+function comparableTitle(value) {
+  return String(value ?? "")
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\p{Letter}\p{Number}]+/gu, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function titleTokens(value) {
+  return comparableTitle(value)
+    .split(" ")
+    .filter((token) => token.length > 0);
+}
+
+export function titleMatchScore(query, title) {
+  const queryTitle = comparableTitle(query);
+  const candidateTitle = comparableTitle(title);
+  if (!queryTitle || !candidateTitle) {
+    return 0;
+  }
+
+  if (queryTitle === candidateTitle) {
+    return 1;
+  }
+
+  if (candidateTitle.includes(queryTitle) || queryTitle.includes(candidateTitle)) {
+    return 0.9;
+  }
+
+  const queryTokens = new Set(titleTokens(queryTitle));
+  const candidateTokens = new Set(titleTokens(candidateTitle));
+  if (queryTokens.size === 0 || candidateTokens.size === 0) {
+    return 0;
+  }
+
+  let overlap = 0;
+  for (const token of queryTokens) {
+    if (candidateTokens.has(token)) {
+      overlap += 1;
+    }
+  }
+
+  return overlap / Math.max(queryTokens.size, candidateTokens.size);
+}
+
+export function rankResults(results, query, options = {}) {
+  const ranked = results.map((record, index) => ({
+    index,
+    result: normalizeResult(record),
+    score: titleMatchScore(query, record?.title)
+  }));
+
+  if (!options.exactTitle && !ranked.some((entry) => entry.score >= 0.9)) {
+    return ranked.map((entry) => entry.result);
+  }
+
+  return ranked
+    .sort((left, right) => right.score - left.score || left.index - right.index)
+    .map((entry) => entry.result);
+}
+
 function dedupeKey(record) {
   if (record.doi) {
     return `doi:${record.doi.toLowerCase()}`;

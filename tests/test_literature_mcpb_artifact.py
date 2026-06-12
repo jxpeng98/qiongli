@@ -123,6 +123,7 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
         self.assertIn("server/index.mjs", names)
         self.assertIn("server/config.mjs", names)
         self.assertIn("server/config-wizard.mjs", names)
+        self.assertIn("server/query.mjs", names)
         self.assertIn("server/stdio.mjs", names)
 
     def test_build_literature_mcpb_excludes_tests(self) -> None:

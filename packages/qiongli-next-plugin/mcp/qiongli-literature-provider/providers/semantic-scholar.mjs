@@ -1,7 +1,10 @@
 import { normalizeResult } from "../normalize.mjs";
+import { normalizeDoi } from "../query.mjs";
 
 const PROVIDER = "semantic_scholar";
 const ENDPOINT = "https://api.semanticscholar.org/graph/v1/paper/search";
+const MATCH_ENDPOINT = "https://api.semanticscholar.org/graph/v1/paper/search/match";
+const PAPER_ENDPOINT = "https://api.semanticscholar.org/graph/v1/paper";
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 100;
 const FIELDS = "paperId,title,year,authors,abstract,url,venue,externalIds";
@@ -42,6 +45,23 @@ function buildUrl({ query, limit, fromYear, toYear }) {
     params.set("year", year);
   }
 
+  url.search = params.toString();
+  return url;
+}
+
+function buildMatchUrl({ query }) {
+  const url = new URL(MATCH_ENDPOINT);
+  const params = new URLSearchParams();
+  params.set("query", query);
+  params.set("fields", FIELDS);
+  url.search = params.toString();
+  return url;
+}
+
+function buildDoiUrl({ doi }) {
+  const url = new URL(`${PAPER_ENDPOINT}/${encodeURIComponent(`DOI:${doi}`)}`);
+  const params = new URLSearchParams();
+  params.set("fields", FIELDS);
   url.search = params.toString();
   return url;
 }
@@ -97,29 +117,76 @@ function mapPaper(paper) {
   });
 }
 
+function papersFromBody(body) {
+  if (Array.isArray(body?.data)) {
+    return body.data;
+  }
+
+  if (body?.data && typeof body.data === "object") {
+    return [body.data];
+  }
+
+  if (body?.paperId || body?.title) {
+    return [body];
+  }
+
+  return [];
+}
+
 function errorMessage(response) {
   return `${PROVIDER} HTTP ${response.status}`;
 }
 
-export async function searchSemanticScholar({ query, limit, apiKey, fromYear, toYear, fetchImpl } = {}) {
+async function fetchPapers(fetcher, url, options) {
+  const response = await fetcher(url, options);
+  if (!response.ok) {
+    return {
+      results: [],
+      error: errorMessage(response)
+    };
+  }
+
+  const body = await response.json();
+  return {
+    results: papersFromBody(body).map(mapPaper),
+    error: null
+  };
+}
+
+export async function searchSemanticScholar({ query, doi, exactTitle, searchMode, limit, apiKey, fromYear, toYear, fetchImpl } = {}) {
   const fetcher = fetchImpl ?? fetch;
-  const url = buildUrl({ query, limit, fromYear, toYear });
+  const resolvedDoi = typeof doi === "string" ? doi : normalizeDoi(query);
+  const shouldMatchTitle = exactTitle === true || searchMode === "title";
+  const options = fetchOptions(fetchImpl, apiKey);
 
   try {
-    const response = await fetcher(url, fetchOptions(fetchImpl, apiKey));
-    if (!response.ok) {
+    if (resolvedDoi) {
+      const lookup = await fetchPapers(fetcher, buildDoiUrl({ doi: resolvedDoi }), options);
       return {
         provider: PROVIDER,
-        results: [],
-        error: errorMessage(response)
+        results: lookup.results,
+        error: lookup.error
       };
     }
 
-    const body = await response.json();
-    const papers = Array.isArray(body?.data) ? body.data : [];
+    const lookups = [];
+    if (shouldMatchTitle) {
+      lookups.push(await fetchPapers(fetcher, buildMatchUrl({ query }), options));
+    }
+    lookups.push(await fetchPapers(fetcher, buildUrl({ query, limit, fromYear, toYear }), options));
+
+    const successful = lookups.filter((lookup) => !lookup.error);
+    if (successful.length === 0) {
+      return {
+        provider: PROVIDER,
+        results: [],
+        error: lookups[0]?.error ?? `${PROVIDER} request failed: Error`
+      };
+    }
+
     return {
       provider: PROVIDER,
-      results: papers.map(mapPaper),
+      results: successful.flatMap((lookup) => lookup.results),
       error: null
     };
   } catch (error) {

@@ -108,6 +108,9 @@ class PluginDistributionContractTests(unittest.TestCase):
             self.assertTrue(
                 (materialized_plugin / "mcp" / "qiongli-literature-provider" / "index.mjs").is_file()
             )
+            self.assertTrue(
+                (materialized_plugin / "mcp" / "qiongli-literature-provider" / "query.mjs").is_file()
+            )
 
     def test_git_backed_next_codex_plugin_source_is_installable(self) -> None:
         manifest_path = NEXT_PLUGIN_ROOT / ".codex-plugin" / "plugin.json"

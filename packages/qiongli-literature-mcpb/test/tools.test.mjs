@@ -256,6 +256,161 @@ test("handleSearch aggregates successful and failed providers with warnings", as
   assert.equal(serialized.includes("secret-key"), false);
 });
 
+test("handleSearch uses review-mode default limit for literature reviews", async () => {
+  const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-review-default-"));
+  const calls = [];
+  const fetchImpl = async (url) => {
+    const requestedUrl = new URL(url);
+    calls.push(requestedUrl);
+
+    if (requestedUrl.hostname === "api.openalex.org") {
+      assert.equal(requestedUrl.searchParams.get("per-page"), "50");
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { results: [] };
+        }
+      };
+    }
+
+    assert.equal(requestedUrl.hostname, "api.semanticscholar.org");
+    assert.equal(requestedUrl.searchParams.get("limit"), "50");
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return { data: [] };
+      }
+    };
+  };
+
+  try {
+    const response = await handleSearch(
+      { query: "social media mental health", search_mode: "review" },
+      {
+        env: {
+          QIONGLI_CONFIG_HOME: configHome,
+          QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key",
+          QIONGLI_MCPB_SEMANTIC_SCHOLAR_API_KEY: "secret-key",
+          QIONGLI_MCPB_DEFAULT_LIMIT: "10"
+        },
+        fetchImpl
+      }
+    );
+
+    assert.equal(response.search_mode, "review");
+    assert.equal(calls.length, 2);
+  } finally {
+    await rm(configHome, { recursive: true, force: true });
+  }
+});
+
+test("handleSearch allows explicit systematic review limits up to 100", async () => {
+  const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-review-explicit-"));
+  const calls = [];
+  const fetchImpl = async (url) => {
+    const requestedUrl = new URL(url);
+    calls.push(requestedUrl);
+
+    if (requestedUrl.hostname === "api.openalex.org") {
+      assert.equal(requestedUrl.searchParams.get("per-page"), "100");
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { results: [] };
+        }
+      };
+    }
+
+    assert.equal(requestedUrl.hostname, "api.semanticscholar.org");
+    assert.equal(requestedUrl.searchParams.get("limit"), "100");
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return { data: [] };
+      }
+    };
+  };
+
+  try {
+    const response = await handleSearch(
+      { query: "social media mental health", search_mode: "systematic_review", limit: 120 },
+      {
+        env: {
+          QIONGLI_CONFIG_HOME: configHome,
+          QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key",
+          QIONGLI_MCPB_SEMANTIC_SCHOLAR_API_KEY: "secret-key"
+        },
+        fetchImpl
+      }
+    );
+
+    assert.equal(response.search_mode, "review");
+    assert.equal(calls.length, 2);
+  } finally {
+    await rm(configHome, { recursive: true, force: true });
+  }
+});
+
+test("handleSearch reranks exact title matches and limits title-mode output", async () => {
+  const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-title-search-"));
+  const calls = [];
+  const fetchImpl = async (url) => {
+    const requestedUrl = new URL(url);
+    calls.push(requestedUrl);
+
+    assert.equal(requestedUrl.hostname, "api.openalex.org");
+    assert.equal(requestedUrl.searchParams.get("per-page"), "10");
+
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return {
+          results: [
+            {
+              id: "https://openalex.org/W-near",
+              title: "Attention Mechanisms in Neural Translation",
+              publication_year: 2018
+            },
+            {
+              id: "https://openalex.org/W-exact",
+              title: "Attention Is All You Need",
+              publication_year: 2017,
+              doi: "https://doi.org/10.5555/exact-title"
+            }
+          ]
+        };
+      }
+    };
+  };
+
+  try {
+    const response = await handleSearch(
+      { query: "Attention Is All You Need", search_mode: "title", limit: 1 },
+      {
+        env: {
+          QIONGLI_CONFIG_HOME: configHome,
+          QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key"
+        },
+        fetchImpl
+      }
+    );
+
+    assert.equal(calls.length, 1);
+    assert.deepEqual(
+      response.results.map((result) => result.title),
+      ["Attention Is All You Need"]
+    );
+    assert.equal(response.results[0].doi, "10.5555/exact-title");
+  } finally {
+    await rm(configHome, { recursive: true, force: true });
+  }
+});
+
 test("handleExportEvidence without query does not call fetch", async () => {
   let fetchCalls = 0;
   const evidence = await handleExportEvidence(

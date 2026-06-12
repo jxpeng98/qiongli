@@ -10,14 +10,17 @@ import { fileURLToPath } from "node:url";
 import { realpathSync } from "node:fs";
 import path from "node:path";
 import { buildEvidence } from "./evidence.mjs";
-import { dedupeResults } from "./normalize.mjs";
+import { dedupeResults, rankResults } from "./normalize.mjs";
+import { buildSearchIntent, providerLimitFor } from "./query.mjs";
 import { searchOpenAlex } from "./providers/openalex.mjs";
 import { searchSemanticScholar } from "./providers/semantic-scholar.mjs";
 import { startJsonRpcStdioServer } from "./stdio.mjs";
 import { startConfigWizard } from "./config-wizard.mjs";
 
 const MIN_LIMIT = 1;
-const MAX_LIMIT = 50;
+const STANDARD_MAX_LIMIT = 50;
+const REVIEW_DEFAULT_LIMIT = 50;
+const REVIEW_MAX_LIMIT = 100;
 
 export const TOOL_DECLARATIONS = [
   {
@@ -114,6 +117,26 @@ export const TOOL_DECLARATIONS = [
         },
         limit: {
           type: "number"
+        },
+        search_mode: {
+          type: "string",
+          enum: ["auto", "topic", "title", "doi", "review", "systematic_review"]
+        },
+        searchMode: {
+          type: "string",
+          enum: ["auto", "topic", "title", "doi", "review", "systematic_review"]
+        },
+        exact_title: {
+          type: "boolean"
+        },
+        exactTitle: {
+          type: "boolean"
+        },
+        fromYear: {
+          type: ["integer", "string"]
+        },
+        toYear: {
+          type: ["integer", "string"]
         }
       }
     }
@@ -137,12 +160,25 @@ function resolveConfig(context = {}) {
   return context.config ?? readConfig(context.env);
 }
 
-function resolveLimit(input = {}, config) {
-  const rawLimit = input.limit ?? config.defaultLimit;
-  const numericLimit = typeof rawLimit === "number" ? rawLimit : Number(rawLimit);
-  const integerLimit = Number.isFinite(numericLimit) ? Math.trunc(numericLimit) : config.defaultLimit;
+function maxLimitForIntent(intent) {
+  return intent?.mode === "review" ? REVIEW_MAX_LIMIT : STANDARD_MAX_LIMIT;
+}
 
-  return Math.min(Math.max(integerLimit, MIN_LIMIT), MAX_LIMIT);
+function defaultLimitForIntent(input = {}, config, intent) {
+  if (input.limit === undefined && intent?.mode === "review") {
+    return REVIEW_DEFAULT_LIMIT;
+  }
+
+  return config.defaultLimit;
+}
+
+function resolveLimit(input = {}, config, intent) {
+  const rawLimit = input.limit ?? defaultLimitForIntent(input, config, intent);
+  const numericLimit = typeof rawLimit === "number" ? rawLimit : Number(rawLimit);
+  const fallbackLimit = defaultLimitForIntent(input, config, intent);
+  const integerLimit = Number.isFinite(numericLimit) ? Math.trunc(numericLimit) : fallbackLimit;
+
+  return Math.min(Math.max(integerLimit, MIN_LIMIT), maxLimitForIntent(intent));
 }
 
 function readOptionalYear(value) {
@@ -155,15 +191,6 @@ function readOptionalYear(value) {
   }
 
   return undefined;
-}
-
-function searchQuery(input = {}) {
-  const query = String(input.query ?? "").trim();
-  if (!query) {
-    throw new Error("query is required");
-  }
-
-  return query;
 }
 
 function providersFor(config) {
@@ -185,6 +212,7 @@ async function callProvider(provider, params) {
   if (provider === "openalex") {
     return searchOpenAlex({
       query: params.query,
+      doi: params.intent.doi,
       limit: params.limit,
       email: params.config.openalexEmail,
       apiKey: params.config.openalexApiKey,
@@ -196,6 +224,8 @@ async function callProvider(provider, params) {
 
   return searchSemanticScholar({
     query: params.query,
+    doi: params.intent.doi,
+    exactTitle: params.intent.exactTitle,
     limit: params.limit,
     apiKey: params.config.semanticScholarApiKey,
     fromYear: params.fromYear,
@@ -250,16 +280,18 @@ export async function handleOpenConfigWizard(input = {}, context = {}) {
 
 export async function handleSearch(input = {}, context = {}) {
   const config = resolveConfig(context);
-  const query = searchQuery(input);
-  const limit = resolveLimit(input, config);
+  const intent = buildSearchIntent(input);
+  const limit = resolveLimit(input, config, intent);
+  const providerLimit = providerLimitFor(limit, intent, maxLimitForIntent(intent));
   const fromYear = readOptionalYear(input.fromYear);
   const toYear = readOptionalYear(input.toYear);
   const attempted = providersFor(config);
   const responses = await Promise.all(
     attempted.map((provider) =>
       callProvider(provider, {
-        query,
-        limit,
+        query: intent.query,
+        intent,
+        limit: providerLimit,
         config,
         fromYear,
         toYear,
@@ -288,13 +320,17 @@ export async function handleSearch(input = {}, context = {}) {
     failedProviders: failed,
     resultCount: results.length
   });
+  const dedupedResults = dedupeResults(results);
+  const rankedResults = rankResults(dedupedResults, intent.query, { exactTitle: intent.exactTitle });
+  const outputResults = intent.exactTitle || intent.doi ? rankedResults.slice(0, limit) : rankedResults;
 
   return {
     status: "ok",
     capability_mode: evidence.capability_mode,
     providers: evidence.providers,
     warnings: evidence.warnings,
-    results: dedupeResults(results)
+    search_mode: intent.mode,
+    results: outputResults
   };
 }
 

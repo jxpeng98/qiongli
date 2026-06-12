@@ -83,6 +83,40 @@ test("searchOpenAlex normalizes records and reconstructs inverted abstracts", as
   ]);
 });
 
+test("searchOpenAlex resolves DOI queries through the singleton work endpoint", async () => {
+  let requestedUrl;
+  const fetchImpl = async (url) => {
+    requestedUrl = new URL(url);
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return {
+          id: "https://openalex.org/W999",
+          doi: "https://doi.org/10.5555/Exact",
+          title: "Exact DOI Paper",
+          publication_year: 2022
+        };
+      }
+    };
+  };
+
+  const response = await searchOpenAlex({
+    query: "https://doi.org/10.5555/Exact",
+    limit: 7,
+    apiKey: "openalex-secret-key",
+    fetchImpl
+  });
+
+  assert.equal(requestedUrl.origin, "https://api.openalex.org");
+  assert.equal(decodeURIComponent(requestedUrl.pathname), "/works/doi:10.5555/Exact");
+  assert.equal(requestedUrl.searchParams.has("search"), false);
+  assert.equal(requestedUrl.searchParams.has("per-page"), false);
+  assert.equal(requestedUrl.searchParams.get("api_key"), "openalex-secret-key");
+  assert.deepEqual(response.results.map((result) => result.title), ["Exact DOI Paper"]);
+  assert.equal(response.results[0].doi, "10.5555/Exact");
+});
+
 test("searchSemanticScholar sends optional API key header and normalizes results", async () => {
   const calls = [];
   const fetchImpl = async (url, options = {}) => {
@@ -142,6 +176,72 @@ test("searchSemanticScholar sends optional API key header and normalizes results
       source_id: "abc123"
     }
   ]);
+});
+
+test("searchSemanticScholar runs title-match before regular search in title mode", async () => {
+  const calls = [];
+  const fetchImpl = async (url, options = {}) => {
+    const requestedUrl = new URL(url);
+    calls.push({ url: requestedUrl, options });
+
+    if (requestedUrl.pathname.endsWith("/paper/search/match")) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            data: [
+              {
+                paperId: "exact123",
+                title: "Attention Is All You Need",
+                year: 2017,
+                authors: [{ name: "Ashish Vaswani" }],
+                externalIds: {
+                  DOI: "10.5555/title-match"
+                }
+              }
+            ]
+          };
+        }
+      };
+    }
+
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return {
+          data: [
+            {
+              paperId: "broad456",
+              title: "Attention Mechanisms for Search",
+              year: 2018,
+              authors: [{ name: "Example Author" }]
+            }
+          ]
+        };
+      }
+    };
+  };
+
+  const response = await searchSemanticScholar({
+    query: "Attention Is All You Need",
+    searchMode: "title",
+    limit: 2,
+    apiKey: "secret-api-key",
+    fetchImpl
+  });
+
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].url.pathname, "/graph/v1/paper/search/match");
+  assert.equal(calls[0].url.searchParams.get("query"), "Attention Is All You Need");
+  assert.equal(calls[0].url.searchParams.get("fields"), "paperId,title,year,authors,abstract,url,venue,externalIds");
+  assert.equal(calls[0].options.headers["x-api-key"], "secret-api-key");
+  assert.equal(calls[1].url.pathname, "/graph/v1/paper/search");
+  assert.deepEqual(
+    response.results.map((result) => result.title),
+    ["Attention Is All You Need", "Attention Mechanisms for Search"]
+  );
 });
 
 test("searchSemanticScholar omits blank API key header", async () => {

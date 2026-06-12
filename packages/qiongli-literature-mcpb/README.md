@@ -16,6 +16,20 @@ qiongli mcp config example --target hermes --json
 
 The bundled MCPB server and the full CLI MCP server both read the shared provider config. The MCPB also accepts Claude Desktop user configuration values directly from the extension settings.
 
+## Search Precision
+
+`qiongli_literature_search` defaults to broad topic search. For known-item lookup, pass a DOI directly or set `search_mode`:
+
+```json
+{ "query": "10.5555/example", "limit": 1 }
+{ "query": "Attention Is All You Need", "search_mode": "title", "limit": 1 }
+{ "query": "social media mental health", "search_mode": "review", "limit": 100 }
+```
+
+DOI queries use provider singleton lookup where available. Title mode asks Semantic Scholar for a title match before regular search, requests a wider provider page, then ranks merged results by title similarity before applying the final limit.
+
+For literature reviews, use `search_mode: "review"` or `search_mode: "systematic_review"`. Review mode defaults to 50 results per provider when `limit` is omitted and accepts explicit limits up to 100 per provider.
+
 ## Local Claude Desktop Install
 
 Build or package this directory as a Claude Desktop `.mcpb` extension, then install it through Claude Desktop's extension settings. The manifest declares user configuration fields for:

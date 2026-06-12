@@ -64,6 +64,7 @@ class PluginArtifactsTests(unittest.TestCase):
                 f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/.codex-plugin/plugin.json",
                 f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/.mcp.json",
                 f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/mcp/qiongli-literature-provider/index.mjs",
+                f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/mcp/qiongli-literature-provider/query.mjs",
                 f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/commands/paper.md",
                 f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/SKILL.md",
                 f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/agents/openai.yaml",
@@ -75,6 +76,7 @@ class PluginArtifactsTests(unittest.TestCase):
             [
                 f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/.claude-plugin/plugin.json",
                 f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/mcp/qiongli-literature-provider/index.mjs",
+                f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/mcp/qiongli-literature-provider/query.mjs",
                 f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/commands/paper.md",
                 f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/SKILL.md",
                 f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/agents/openai.yaml",
@@ -185,6 +187,7 @@ class PluginArtifactsTests(unittest.TestCase):
                 f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/.codex-plugin/plugin.json",
                 f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/.mcp.json",
                 f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/mcp/qiongli-literature-provider/index.mjs",
+                f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/mcp/qiongli-literature-provider/query.mjs",
                 f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/commands/paper.md",
                 f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
             ],
@@ -194,6 +197,7 @@ class PluginArtifactsTests(unittest.TestCase):
             [
                 f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/.claude-plugin/plugin.json",
                 f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/mcp/qiongli-literature-provider/index.mjs",
+                f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/mcp/qiongli-literature-provider/query.mjs",
                 f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/commands/paper.md",
                 f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
             ],

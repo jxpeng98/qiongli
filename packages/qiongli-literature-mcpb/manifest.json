@@ -89,7 +89,7 @@
     "default_result_limit": {
       "type": "number",
       "title": "Default result limit",
-      "description": "Maximum results per provider when a tool call does not specify a limit.",
+      "description": "Default results per provider for non-review searches when a tool call does not specify a limit. Review mode uses 50 by default and accepts explicit limits up to 100.",
       "default": 10,
       "min": 1,
       "max": 50,
