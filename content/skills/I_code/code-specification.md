@@ -54,11 +54,17 @@ Generate strict constraint sets and requirement specifications before coding, fo
 2. **Specify I/O contracts**:
    - input files/columns/shapes
    - output artifacts (paths + formats)
-3. **List invariants**: properties that must always hold (e.g., probability sums to 1).
-4. **Enumerate edge cases**: missing data, empty groups, small-k meta-analysis, non-convergence.
-5. **Allowed dependencies**: language + libraries + version constraints.
-6. **Determinism rules**: seeds, randomness sources, hardware nondeterminism notes.
-7. **Validation plan**:
+3. **Lock Academic Analysis Code context**:
+   - estimand or target claim
+   - analysis_plan_source
+   - dataset lineage and sample construction
+   - manuscript_outputs for tables, figures, and result files
+   - model diagnostics and robustness_checks
+4. **List invariants**: properties that must always hold (e.g., probability sums to 1).
+5. **Enumerate edge cases**: missing data, empty groups, small-k meta-analysis, non-convergence.
+6. **Allowed dependencies**: language + libraries + version constraints.
+7. **Determinism rules**: seeds, randomness sources, hardware nondeterminism notes.
+8. **Validation plan**:
    - synthetic data checks
    - unit tests for core functions
    - regression tests for known examples
@@ -82,12 +88,26 @@ primary_artifact: code/code_specification.md
   "topic": "<topic>",
   "method_or_pipeline": "<name>",
   "primary_artifact": "code/code_specification.md",
+  "estimand": "<estimand-or-target-claim>",
+  "analysis_plan_source": "<path-or-summary>",
   "inputs": [
     {"path": "...", "schema": "..."}
   ],
   "outputs": [
     {"path": "...", "format": "..."}
   ],
+  "dataset_lineage": {
+    "raw_inputs": ["..."],
+    "cleaning_rules": ["..."],
+    "exclusions": ["..."],
+    "derived_variables": ["..."],
+    "sample_construction": "..."
+  },
+  "manuscript_outputs": [
+    {"path": "manuscript/tables/...", "supports_claim": "..."}
+  ],
+  "diagnostics": ["..."],
+  "robustness_checks": ["..."],
   "dependencies": {
     "python": ["package>=version"]
   },
@@ -113,6 +133,15 @@ primary_artifact: code/code_specification.md
 
 ## Outputs (Paths)
 - ...
+
+## Academic Analysis Code
+- Estimand / target claim:
+- Analysis plan source:
+- Dataset lineage:
+- Manuscript-facing outputs:
+- Model diagnostics:
+- Robustness checks:
+- Disallowed engineering scaffolding: service layers, controllers, framework scaffolds, and unnecessary classes unless explicitly justified.
 
 ## Functional Requirements
 1. ...

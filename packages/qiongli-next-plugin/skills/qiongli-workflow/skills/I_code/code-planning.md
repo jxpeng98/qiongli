@@ -52,7 +52,8 @@ Transform code specifications into parallelizable, zero-decision execution plans
 2. **Order** tasks by dependencies and risk (do the riskiest first).
 3. **Define checkpoints** with concrete “pass/fail” criteria.
 4. **Plan artifacts**: where code, data, plots, and reports will be written.
-5. **Plan commands**: exact commands to run for each checkpoint.
+5. **Plan Academic Analysis Code evidence**: dataset lineage checks, model diagnostics, robustness checks, manuscript-facing tables/figures, and rerun evidence.
+6. **Plan commands**: exact commands to run for each checkpoint.
 
 ## Required plan format (`code/plan.md`)
 
@@ -83,7 +84,12 @@ primary_artifact: code/plan.md
       "checkpoint": "<observable pass/fail rule>",
       "rollback": "<recovery action>"
     }
-  ]
+  ],
+  "dataset_lineage_checks": ["..."],
+  "diagnostics": ["..."],
+  "robustness_checks": ["..."],
+  "manuscript_outputs": ["..."],
+  "rerun_evidence": ["..."]
 }
 ```
 
@@ -100,6 +106,14 @@ primary_artifact: code/plan.md
 | Step | Inputs | Output | Pass Condition | Failure Trigger |
 | --- | --- | --- | --- | --- |
 | ... | ... | ... | ... | ... |
+
+## Academic Analysis Code Evidence Plan
+- Dataset lineage checks:
+- Model diagnostics:
+- Robustness checks:
+- Manuscript-facing outputs:
+- Rerun evidence:
+- Anti-pattern guard: avoid service layers, controllers, framework scaffolding, and unnecessary classes unless the specification explicitly justifies them.
 
 ## Exact Run Commands
 - ...

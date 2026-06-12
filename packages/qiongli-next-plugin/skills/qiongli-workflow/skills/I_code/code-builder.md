@@ -30,6 +30,20 @@ Academic code generation with multi-discipline, multi-language, and 2-tier compl
 
 Systematic conversion of academic methodologies into executable code (Python/R/Stata/MATLAB/Julia).
 
+## Academic Analysis Code
+
+Generated code must follow an academic analysis pipeline rather than a generic
+software-engineering scaffold. Start from the estimand, hypothesis, analysis
+plan, or manuscript-facing output that the code supports. Preserve dataset
+lineage from raw input through cleaning, exclusions, missingness, joins, derived
+variables, and sample construction. Make model diagnostics, robustness checks,
+and manuscript-facing tables/figures first-class outputs.
+
+Prefer scripts, notebooks, Quarto files, or small reusable functions that a
+researcher can read during peer review. Avoid service layers, controllers,
+framework scaffolding, unnecessary classes, or backend-style abstractions unless
+the method itself requires a reusable package.
+
 ## Domain Profiles
 
 Discipline-specific libraries, method templates, diagnostics, and pitfalls are defined in **`skills/domain-profiles/*.yaml`**. When `--domain` is specified, the corresponding profile is injected to guide library selection, method checklists, and common pitfalls.
@@ -126,6 +140,9 @@ Do NOT use high-level wrappers; implement from first principles."
 4. **Validation**: Test case proving correctness
 5. **Domain Checklist**: Pass/fail status for each domain-profile checklist item
 6. **Visualization**: Key diagnostic/result plots per domain profile `visualization_templates`
+7. **Dataset Lineage**: raw input, cleaning, exclusions, missingness, joins, derived variables, and sample construction
+8. **Manuscript Outputs**: manuscript-facing tables, figures, and result files with stable paths
+9. **Rerun Evidence**: seeds, dependency notes, exact commands, and rerun instructions
 
 ## Output Contract
 
@@ -141,6 +158,7 @@ Do NOT use high-level wrappers; implement from first principles."
 - [ ] 随机种子已固定且有文档说明
 - [ ] 核心函数有 docstring 和至少一个 assertion/test
 - [ ] 输出与 analysis plan 中预期的 table/figure 一一对应
+- [ ] dataset lineage、model diagnostics、robustness checks 和 manuscript-facing outputs 已明确写入产物
 
 ## Common Pitfalls
 
