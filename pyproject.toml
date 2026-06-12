@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "qiongli"
-version = "1.2.1"
+version = "1.2.2"
 description = "Installer/upgrader CLI for qiongli (Codex / Claude Code / Gemini) without requiring a git fork."
 readme = "README_PYPI.md"
 requires-python = ">=3.12"
