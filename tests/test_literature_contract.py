@@ -8,7 +8,6 @@ from qiongli.source_layout import RepoLayout
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LAYOUT = RepoLayout(REPO_ROOT)
-PLATFORM_AGENT_WORKFLOWS = LAYOUT.plugin_package / "platforms" / "agent" / "workflows"
 
 
 class LiteratureContractTests(unittest.TestCase):
@@ -81,8 +80,6 @@ class LiteratureContractTests(unittest.TestCase):
         workflow_paths = (
             LAYOUT.workflow / "workflows" / "lit-review.md",
             LAYOUT.workflow / "workflows" / "paper-read.md",
-            PLATFORM_AGENT_WORKFLOWS / "lit-review.md",
-            PLATFORM_AGENT_WORKFLOWS / "paper-read.md",
         )
 
         required_tokens = (

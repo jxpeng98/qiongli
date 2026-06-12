@@ -1887,10 +1887,10 @@ def validate_docs(root: Path, report: ValidationReport) -> None:
 def validate_cross_platform_consistency(root: Path, report: ValidationReport) -> None:
     """Ensure workflow files stay consistent across Codex, Claude, and Gemini."""
     layout = RepoLayout(root)
-    workflow_dir = layout.agent_platform / "workflows"
+    workflow_dir = layout.resolve_source_path(".agent/workflows")
     if not workflow_dir.exists():
-        report.errors.append("Missing .agent/workflows/ directory")
-        print("[FAIL] Missing .agent/workflows/ directory")
+        report.errors.append("Missing workflow source directory")
+        print("[FAIL] Missing workflow source directory")
         return
 
     # Discover all workflow files
@@ -1899,7 +1899,7 @@ def validate_cross_platform_consistency(root: Path, report: ValidationReport) ->
     report.check(
         len(workflow_files) > 0,
         "Workflow directory contains .md files",
-        "No .md workflow files found in .agent/workflows/",
+        "No .md workflow files found in workflow source directory",
     )
 
     # --- Check 1: Workflow frontmatter must only have 'description' ---
@@ -1926,21 +1926,14 @@ def validate_cross_platform_consistency(root: Path, report: ValidationReport) ->
             f"{wf_path.name} frontmatter missing required 'description' field",
         )
 
-    # --- Check 2: .gemini/qiongli.md references all workflows ---
-    gemini_context = layout.gemini_platform / "qiongli.md"
-    if gemini_context.exists():
-        gemini_content = gemini_context.read_text(encoding="utf-8")
-        report.passed += 1
-        print("[PASS] .gemini/qiongli.md exists")
-        for wf_name in sorted(workflow_names):
-            report.warn(
-                f"/{wf_name}" in gemini_content,
-                f".gemini/qiongli.md lists /{wf_name}",
-                f".gemini/qiongli.md missing quick command /{wf_name}",
-            )
-    else:
-        report.warnings.append(".gemini/qiongli.md not found")
-        print("[WARN] .gemini/qiongli.md not found")
+    # --- Check 2: Gemini plugin metadata source exists ---
+    gemini_content = read_text(root, ".gemini/qiongli.md", report)
+    if gemini_content:
+        report.check(
+            "plugins:" in gemini_content,
+            "Gemini distribution metadata source exists",
+            "content/distribution/plugins.yaml missing plugin metadata",
+        )
 
     # --- Check 3: CLAUDE.md references all workflows ---
     claude_content = read_text(root, "CLAUDE.md", report)
@@ -1950,20 +1943,6 @@ def validate_cross_platform_consistency(root: Path, report: ValidationReport) ->
                 f"/{wf_name}" in claude_content,
                 f"CLAUDE.md lists /{wf_name}",
                 f"CLAUDE.md missing quick command /{wf_name}",
-            )
-
-    # --- Check 4: Gemini context references key architecture files ---
-    if gemini_context.exists():
-        gemini_content = gemini_context.read_text(encoding="utf-8")
-        for key_ref in (
-            "skills-core.md",
-            "workflow-contract.md",
-            "RESEARCH/[topic]/",
-        ):
-            report.warn(
-                key_ref in gemini_content,
-                f".gemini/qiongli.md references {key_ref}",
-                f".gemini/qiongli.md should reference {key_ref} for skill routing",
             )
 
 
@@ -2552,10 +2531,7 @@ def validate_skill_quality_contract(root: Path, report: ValidationReport) -> Non
 
 
 def validate_skill_package_resource_links(root: Path, report: ValidationReport) -> None:
-    for relative_package in (
-        "qiongli-workflow",
-        "plugins/qiongli/skills/qiongli-workflow",
-    ):
+    for relative_package in ("qiongli-workflow",):
         package_dir = root / relative_package
         report.check(
             package_dir.exists(),
@@ -2573,6 +2549,25 @@ def validate_skill_package_resource_links(root: Path, report: ValidationReport) 
                 + "; ".join(f"{item.source}->{item.target}" for item in missing[:10])
             ),
         )
+
+    generated_package = root / "plugins" / "qiongli" / "skills" / "qiongli-workflow"
+    if not generated_package.exists():
+        report.check(
+            True,
+            "Generated qiongli plugin package is materialized from canonical sources",
+            "Generated qiongli plugin package should not be required in source checkout",
+        )
+        return
+
+    missing = audit_package_resource_links(generated_package)
+    report.check(
+        not missing,
+        "plugins/qiongli/skills/qiongli-workflow internal resource links resolve",
+        (
+            "plugins/qiongli/skills/qiongli-workflow has missing resource links: "
+            + "; ".join(f"{item.source}->{item.target}" for item in missing[:10])
+        ),
+    )
 
 
 def validate_controller_mode_contracts(

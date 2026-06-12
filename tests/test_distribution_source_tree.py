@@ -37,6 +37,10 @@ def _git_ls_files(paths: tuple[str, ...]) -> list[str]:
 
 
 class DistributionSourceTreeTests(unittest.TestCase):
+    def test_plugin_package_mirrors_are_generated_outputs(self) -> None:
+        self.assertIn("packages/qiongli-plugin", GENERATED_OUTPUT_ROOTS)
+        self.assertIn("packages/qiongli-next-plugin", GENERATED_OUTPUT_ROOTS)
+
     def test_generated_distribution_outputs_are_not_tracked(self) -> None:
         tracked = _git_ls_files(GENERATED_OUTPUT_ROOTS)
 

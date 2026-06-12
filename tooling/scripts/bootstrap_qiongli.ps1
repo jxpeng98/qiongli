@@ -577,11 +577,11 @@ function Resolve-RepoSourcePath([string]$RepoRoot, [string]$Source) {
             break
         }
         ".agent\workflows" {
-            @("packages\qiongli-plugin\platforms\agent\workflows", ".agent\workflows")
+            @("content\workflow\workflows", ".agent\workflows")
             break
         }
         ".gemini" {
-            @("packages\qiongli-plugin\platforms\gemini", ".gemini")
+            @(".gemini")
             break
         }
         default {

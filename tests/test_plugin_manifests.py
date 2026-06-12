@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from qiongli.distribution_metadata import load_plugin_distribution
 from qiongli.source_layout import RepoLayout
 
 
@@ -39,8 +40,28 @@ EXPECTED_DISCOVERY_TERMS = (
 )
 
 
+class PluginDistributionMetadataTests(unittest.TestCase):
+    def test_canonical_distribution_metadata_defines_stable_and_next_plugins(self) -> None:
+        metadata = load_plugin_distribution(REPO_ROOT)
+
+        self.assertEqual(set(metadata.plugins), {"qiongli", "qiongli-next"})
+        self.assertEqual(metadata.plugins["qiongli"].skill_name, "qiongli")
+        self.assertEqual(metadata.plugins["qiongli-next"].skill_name, "qiongli-next")
+        self.assertEqual(metadata.plugins["qiongli"].mcp_server_name, "qiongli")
+        self.assertEqual(metadata.plugins["qiongli-next"].mcp_server_name, "qiongli-next")
+
+    def test_canonical_distribution_metadata_carries_discovery_terms(self) -> None:
+        metadata = load_plugin_distribution(REPO_ROOT)
+        stable = metadata.plugins["qiongli"]
+        searchable_text = " ".join([stable.description, *stable.keywords, *stable.default_prompts]).lower()
+
+        for term in EXPECTED_DISCOVERY_TERMS:
+            with self.subTest(term=term):
+                self.assertIn(term, searchable_text)
+
+
 class PluginManifestTests(unittest.TestCase):
-    def materialize_plugin_skill(self, tmp_dir: str) -> Path:
+    def materialize_plugin_root(self, tmp_dir: str) -> Path:
         out = Path(tmp_dir) / "dist-source"
         result = subprocess.run(
             [
@@ -58,10 +79,35 @@ class PluginManifestTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(result.returncode, 0, msg=result.stderr + result.stdout)
-        return out / "plugins" / "qiongli" / "skills" / "qiongli-workflow"
+        return out / "plugins" / "qiongli"
+
+    def materialize_next_plugin_root(self, tmp_dir: str) -> Path:
+        out = Path(tmp_dir) / "dist-source"
+        result = subprocess.run(
+            [
+                sys.executable,
+                "scripts/materialize_distribution_payloads.py",
+                "--target",
+                "next-plugin",
+                "--out",
+                str(out),
+                "--force",
+            ],
+            cwd=REPO_ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stderr + result.stdout)
+        return out / "plugins" / "qiongli-next"
+
+    def materialize_plugin_skill(self, tmp_dir: str) -> Path:
+        return self.materialize_plugin_root(tmp_dir) / "skills" / "qiongli-workflow"
 
     def test_plugin_manifest_exposes_workflow_skill(self) -> None:
-        manifest = json.loads(CODEX_PLUGIN_MANIFEST.read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            plugin_root = self.materialize_plugin_root(tmp_dir)
+            manifest = json.loads((plugin_root / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
 
         self.assertEqual(manifest["name"], "qiongli")
         self.assertEqual(manifest["version"], WORKFLOW_VERSION.read_text(encoding="utf-8").strip().lstrip("v"))
@@ -86,7 +132,9 @@ class PluginManifestTests(unittest.TestCase):
         self.assertTrue(any("$qiongli" in prompt for prompt in interface["defaultPrompt"]))
 
     def test_codex_plugin_manifest_exposes_academic_discovery_terms(self) -> None:
-        manifest = json.loads(CODEX_PLUGIN_MANIFEST.read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            plugin_root = self.materialize_plugin_root(tmp_dir)
+            manifest = json.loads((plugin_root / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
         searchable_text = " ".join(
             [
                 manifest["description"],
@@ -101,9 +149,12 @@ class PluginManifestTests(unittest.TestCase):
                 self.assertIn(term, searchable_text)
 
     def test_codex_plugin_bundles_qiongli_mcp_server(self) -> None:
-        manifest = json.loads(CODEX_PLUGIN_MANIFEST.read_text(encoding="utf-8"))
-        mcp_manifest_path = PLUGIN_ROOT / ".mcp.json"
-        mcp_manifest = json.loads(mcp_manifest_path.read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            plugin_root = self.materialize_plugin_root(tmp_dir)
+            manifest = json.loads((plugin_root / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
+            mcp_manifest = json.loads((plugin_root / ".mcp.json").read_text(encoding="utf-8"))
+            mcp_entrypoint_exists = (plugin_root / "mcp" / "qiongli-literature-provider" / "index.mjs").is_file()
+            mcp_query_exists = (plugin_root / "mcp" / "qiongli-literature-provider" / "query.mjs").is_file()
 
         self.assertEqual(manifest["mcpServers"], "./.mcp.json")
         server = mcp_manifest["mcpServers"]["qiongli"]
@@ -113,14 +164,18 @@ class PluginManifestTests(unittest.TestCase):
         self.assertEqual(server["startup_timeout_sec"], 20)
         self.assertEqual(server["tool_timeout_sec"], 60)
         self.assertNotIn("env", server)
-        self.assertTrue((PLUGIN_ROOT / "mcp" / "qiongli-literature-provider" / "index.mjs").is_file())
-        self.assertTrue((PLUGIN_ROOT / "mcp" / "qiongli-literature-provider" / "query.mjs").is_file())
+        self.assertTrue(mcp_entrypoint_exists)
+        self.assertTrue(mcp_query_exists)
         self.assertNotIn("QIONGLI_OPENALEX_EMAIL", json.dumps(mcp_manifest))
         self.assertNotIn("SEMANTIC_SCHOLAR_API_KEY", json.dumps(mcp_manifest))
         self.assertNotIn("qiongli mcp", json.dumps(mcp_manifest))
 
     def test_claude_plugin_manifest_exposes_workflow_skill(self) -> None:
-        manifest = json.loads(CLAUDE_PLUGIN_MANIFEST.read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            plugin_root = self.materialize_plugin_root(tmp_dir)
+            manifest = json.loads((plugin_root / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+            mcp_entrypoint_exists = (plugin_root / "mcp" / "qiongli-literature-provider" / "index.mjs").is_file()
+            mcp_query_exists = (plugin_root / "mcp" / "qiongli-literature-provider" / "query.mjs").is_file()
 
         self.assertEqual(manifest["name"], "qiongli")
         self.assertEqual(manifest["version"], WORKFLOW_VERSION.read_text(encoding="utf-8").strip().lstrip("v"))
@@ -131,7 +186,9 @@ class PluginManifestTests(unittest.TestCase):
         self.assertEqual(manifest["license"], EXPECTED_LICENSE)
 
     def test_claude_plugin_manifest_exposes_academic_discovery_terms(self) -> None:
-        manifest = json.loads(CLAUDE_PLUGIN_MANIFEST.read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            plugin_root = self.materialize_plugin_root(tmp_dir)
+            manifest = json.loads((plugin_root / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
         searchable_text = " ".join([manifest["description"], " ".join(manifest["keywords"])]).lower()
 
         for term in EXPECTED_DISCOVERY_TERMS:
@@ -139,7 +196,11 @@ class PluginManifestTests(unittest.TestCase):
                 self.assertIn(term, searchable_text)
 
     def test_claude_plugin_bundles_qiongli_mcp_server(self) -> None:
-        manifest = json.loads(CLAUDE_PLUGIN_MANIFEST.read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            plugin_root = self.materialize_plugin_root(tmp_dir)
+            manifest = json.loads((plugin_root / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+            mcp_entrypoint_exists = (plugin_root / "mcp" / "qiongli-literature-provider" / "index.mjs").is_file()
+            mcp_query_exists = (plugin_root / "mcp" / "qiongli-literature-provider" / "query.mjs").is_file()
 
         self.assertIn("mcpServers", manifest)
         self.assertIn("qiongli", manifest["mcpServers"])
@@ -151,15 +212,17 @@ class PluginManifestTests(unittest.TestCase):
         )
         self.assertEqual(server["cwd"], "${CLAUDE_PLUGIN_ROOT}")
         self.assertNotIn("env", server)
-        self.assertTrue((PLUGIN_ROOT / "mcp" / "qiongli-literature-provider" / "index.mjs").is_file())
-        self.assertTrue((PLUGIN_ROOT / "mcp" / "qiongli-literature-provider" / "query.mjs").is_file())
+        self.assertTrue(mcp_entrypoint_exists)
+        self.assertTrue(mcp_query_exists)
         manifest_text = json.dumps(manifest)
         self.assertNotIn("QIONGLI_OPENALEX_EMAIL", manifest_text)
         self.assertNotIn("SEMANTIC_SCHOLAR_API_KEY", manifest_text)
         self.assertNotIn("qiongli mcp", manifest_text)
 
     def test_gemini_extension_manifest_exposes_workflow_skill(self) -> None:
-        manifest = json.loads(GEMINI_EXTENSION_MANIFEST.read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            plugin_root = self.materialize_plugin_root(tmp_dir)
+            manifest = json.loads((plugin_root / "gemini-extension.json").read_text(encoding="utf-8"))
 
         self.assertEqual(manifest["name"], "qiongli")
         self.assertEqual(manifest["version"], WORKFLOW_VERSION.read_text(encoding="utf-8").strip().lstrip("v"))
@@ -170,7 +233,9 @@ class PluginManifestTests(unittest.TestCase):
         self.assertEqual(manifest["license"], EXPECTED_LICENSE)
 
     def test_gemini_extension_manifest_exposes_academic_discovery_terms(self) -> None:
-        manifest = json.loads(GEMINI_EXTENSION_MANIFEST.read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            plugin_root = self.materialize_plugin_root(tmp_dir)
+            manifest = json.loads((plugin_root / "gemini-extension.json").read_text(encoding="utf-8"))
         searchable_text = " ".join([manifest["description"], " ".join(manifest["keywords"])]).lower()
 
         for term in EXPECTED_DISCOVERY_TERMS:
@@ -178,7 +243,9 @@ class PluginManifestTests(unittest.TestCase):
                 self.assertIn(term, searchable_text)
 
     def test_next_codex_plugin_manifest_uses_release_metadata(self) -> None:
-        manifest = json.loads(NEXT_CODEX_PLUGIN_MANIFEST.read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            plugin_root = self.materialize_next_plugin_root(tmp_dir)
+            manifest = json.loads((plugin_root / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
 
         self.assertEqual(manifest["name"], "qiongli-next")
         self.assertEqual(manifest["version"], WORKFLOW_VERSION.read_text(encoding="utf-8").strip().lstrip("v"))
@@ -191,7 +258,9 @@ class PluginManifestTests(unittest.TestCase):
         self.assertEqual(manifest["interface"]["category"], EXPECTED_CATEGORY)
 
     def test_next_codex_plugin_manifest_exposes_academic_discovery_terms(self) -> None:
-        manifest = json.loads(NEXT_CODEX_PLUGIN_MANIFEST.read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            plugin_root = self.materialize_next_plugin_root(tmp_dir)
+            manifest = json.loads((plugin_root / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
         searchable_text = " ".join(
             [
                 manifest["description"],

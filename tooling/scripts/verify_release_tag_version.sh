@@ -162,14 +162,14 @@ if len(versions) != 1:
 print(versions.pop())
 PY
 )"
-actual_next_plugin_workflow_version="$(tr -d '\r\n' < packages/qiongli-next-plugin/skills/qiongli-workflow/VERSION)"
+actual_next_plugin_workflow_version="$(tr -d '\r\n' < plugins/qiongli-next/skills/qiongli-workflow/VERSION)"
 actual_next_plugin_workflow_registry_version="$(python3 - <<'PY'
 import re
 from pathlib import Path
 
-path = Path("packages/qiongli-next-plugin/skills/qiongli-workflow/skills/registry.yaml")
+path = Path("plugins/qiongli-next/skills/qiongli-workflow/skills/registry.yaml")
 if not path.exists():
-    raise SystemExit("missing packages/qiongli-next-plugin/skills/qiongli-workflow/skills/registry.yaml")
+    raise SystemExit("missing plugins/qiongli-next/skills/qiongli-workflow/skills/registry.yaml")
 content = path.read_text(encoding="utf-8")
 versions = set(re.findall(r'^\s*version:\s*"?([^"\n]+)"?$', content, re.MULTILINE))
 if not versions:
@@ -243,10 +243,10 @@ import json
 from pathlib import Path
 
 paths = [
-    Path("packages/qiongli-plugin/.codex-plugin/plugin.json"),
-    Path("packages/qiongli-plugin/.claude-plugin/plugin.json"),
-    Path("packages/qiongli-plugin/gemini-extension.json"),
-    Path("packages/qiongli-next-plugin/.codex-plugin/plugin.json"),
+    Path("plugins/qiongli/.codex-plugin/plugin.json"),
+    Path("plugins/qiongli/.claude-plugin/plugin.json"),
+    Path("plugins/qiongli/gemini-extension.json"),
+    Path("plugins/qiongli-next/.codex-plugin/plugin.json"),
 ]
 for path in paths:
     data = json.loads(path.read_text(encoding="utf-8"))
@@ -326,12 +326,12 @@ PY
 }
 
 [[ "$actual_next_plugin_workflow_version" == "$expected_repo_tag" ]] || {
-  echo "[verify-release-tag] packages/qiongli-next-plugin/skills/qiongli-workflow/VERSION mismatch: tag=$TAG expects $expected_repo_tag, found $actual_next_plugin_workflow_version" >&2
+  echo "[verify-release-tag] plugins/qiongli-next/skills/qiongli-workflow/VERSION mismatch: tag=$TAG expects $expected_repo_tag, found $actual_next_plugin_workflow_version" >&2
   exit 1
 }
 
 [[ "$actual_next_plugin_workflow_registry_version" == "$expected_skill_version" ]] || {
-  echo "[verify-release-tag] packages/qiongli-next-plugin/skills/qiongli-workflow/skills/registry.yaml mismatch: tag=$TAG expects $expected_skill_version, found $actual_next_plugin_workflow_registry_version" >&2
+  echo "[verify-release-tag] plugins/qiongli-next/skills/qiongli-workflow/skills/registry.yaml mismatch: tag=$TAG expects $expected_skill_version, found $actual_next_plugin_workflow_registry_version" >&2
   exit 1
 }
 

@@ -21,7 +21,7 @@
 1. `content/standards/`
 2. `content/roles/` 或 `content/skills/`
 3. `content/templates/`
-4. `tooling/pipelines/`、`content/workflow/workflows/` 或 `packages/qiongli-plugin/platforms/`
+4. `tooling/pipelines/`、`content/workflow/workflows/` 或 `content/distribution/plugins.yaml`
 5. `packages/python-qiongli/src/qiongli/`
 6. 只能通过 materialization 生成的 `qiongli-workflow/`
 

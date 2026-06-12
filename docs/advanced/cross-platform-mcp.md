@@ -31,7 +31,7 @@ Use the full CLI server when Codex, Claude Code, or another local client needs t
 
 ## Codex Bundled Plugin MCP
 
-The Codex plugin package includes `packages/qiongli-plugin/.mcp.json`, references it from `.codex-plugin/plugin.json`, and bundles a zero-dependency Node server under `packages/qiongli-plugin/mcp/qiongli-literature-provider/`. Codex plugin installs can therefore register and launch the literature-provider MCP server from the plugin bundle instead of requiring users to copy a separate `config.toml` snippet or install the `qiongli` CLI.
+The generated Codex plugin package includes `.mcp.json`, references it from `.codex-plugin/plugin.json`, and bundles a zero-dependency Node server under `mcp/qiongli-literature-provider/`. Codex plugin installs can therefore register and launch the literature-provider MCP server from the plugin bundle instead of requiring users to copy a separate `config.toml` snippet or install the `qiongli` CLI.
 
 The bundled server entry is:
 
@@ -56,7 +56,7 @@ The bundled Codex runtime focuses on literature-provider tools. Use the full CLI
 
 ## Claude Code Bundled Plugin MCP
 
-The Claude Code plugin package declares a bundled `qiongli` MCP server from `packages/qiongli-plugin/.claude-plugin/plugin.json`. It uses the same zero-dependency Node literature-provider runtime under `packages/qiongli-plugin/mcp/qiongli-literature-provider/` as the Codex plugin.
+The generated Claude Code plugin package declares a bundled `qiongli` MCP server from `.claude-plugin/plugin.json`. It uses the same zero-dependency Node literature-provider runtime under `mcp/qiongli-literature-provider/` as the Codex plugin.
 
 The bundled server entry is:
 

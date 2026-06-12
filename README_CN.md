@@ -102,19 +102,16 @@ Codex marketplace plugin 内置的 literature MCP 从 plugin bundle 启动。Pro
 - **Codex：** 添加统一的 [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace，然后在 Codex plugin UI 中安装或启用默认 `qiongli`，或选择 `qiongli-economics` 等 subject entry。Codex plugin 也内置本地 Node literature-provider MCP runtime，这部分 MCP 工具不需要 `qiongli` CLI。
 - **Claude Code：** 添加统一的 [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace，然后安装 `qiongli@skillsplace`；经济学专精可安装 `qiongli-economics@skillsplace`。
 - **Claude Desktop / Claude.ai：** 如果不想处理 code / CLI 环境，从 GitHub Release assets 下载 focused subject ZIP。默认通用包用 `qiongli-claude-desktop-skill-core-<tag>.zip`，经济学专精包用 `qiongli-claude-desktop-skill-economics-<tag>.zip`，political economy 专精包用 `qiongli-claude-desktop-skill-political-economy-<tag>.zip`，geoeconomics 专精包用 `qiongli-claude-desktop-skill-geoeconomics-<tag>.zip`，business 专精包用 `qiongli-claude-desktop-skill-business-<tag>.zip`，finance 专精包用 `qiongli-claude-desktop-skill-finance-<tag>.zip`，官方 economics/accounting 交叉学科包用 `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip`。然后拖拽到 Claude Desktop 的 Skills 上传/安装流程中，或在 `Customize > Skills > + > Create skill > Upload a skill` 中上传。旧名 `qiongli-claude-desktop-skill-<tag>.zip` 暂时保留为 core alias。
-- **Gemini CLI：** 从 `packages/qiongli-plugin` 本地安装 Gemini extension；发布为独立 extension 仓库或 gallery 条目后，也可以从远端安装。
+- **Gemini CLI：** 从 staged materialization 输出或 Release artifact 安装 Gemini extension；发布为独立 extension 仓库或 gallery 条目后，也可以从远端安装。
 
-公开的 Codex / Claude marketplace catalog 现在由 `jxpeng98/skillsplace` 统一维护。Release 构建会为 `core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics`、`economics-accounting` 生成独立 Codex / Claude Code plugin artifacts，让 marketplace 可以展示多个 subject 安装选项。本仓库保留这些生成 artifacts 的源 plugin payload 和平台 manifest：
+公开的 Codex / Claude marketplace catalog 现在由 `jxpeng98/skillsplace` 统一维护。Release 构建会为 `core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics`、`economics-accounting` 生成独立 Codex / Claude Code plugin artifacts，让 marketplace 可以展示多个 subject 安装选项。本仓库只维护生成这些 artifacts 的 canonical source：
 
 Beta / prerelease 测试使用单独的 `qiongli-next` entry。它只发布 core 版本，不生成 subject plugin variants；Codex 和 Claude Code 的 `qiongli-next` artifacts 仍然内置 Node literature-provider MCP runtime。Claude Desktop 测试使用 `qiongli-next-claude-desktop-skill-core-<tag>.zip`，并与单独的 `qiongli-literature-provider-<version>.mcpb` 配合使用。CLI prerelease 测试使用 `npx qiongli@next install --target all --project-dir "$PWD"`。
 
-- `packages/qiongli-plugin/.codex-plugin/plugin.json`
-- `packages/qiongli-plugin/.mcp.json`
-- `packages/qiongli-plugin/mcp/qiongli-literature-provider/`
-- `packages/qiongli-plugin/.claude-plugin/plugin.json`
-- `packages/qiongli-plugin/gemini-extension.json`
-- `packages/qiongli-plugin/platforms/`
-- `plugins/qiongli/skills/qiongli-workflow`（materialized artifact）
+- `content/workflow/`：`qiongli-workflow`、workflows、references、agents、standards 的源
+- `content/distribution/plugins.yaml`：Codex / Claude Code / Gemini plugin metadata 源
+- `packages/qiongli-literature-mcpb/server/`：生成 plugin 内置 Node literature-provider MCP runtime 的源
+- `tooling/scripts/build_plugin_artifacts.py`：从 canonical source 生成 `plugins/qiongli/`、`plugins/qiongli-next/`、`packages/qiongli-plugin/`、`packages/qiongli-next-plugin/` 等 payload 形状
 
 Claude Desktop 不走 Claude Code 的第三方 plugin marketplace 路径。Desktop 使用上面的 GitHub Release ZIP 手动上传；ZIP 内部顶层目录是 `qiongli/`，与 `SKILL.md` 里的 skill 名称一致。
 
