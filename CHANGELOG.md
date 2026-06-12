@@ -6,6 +6,16 @@
 
 暂无未发布变更。
 
+## [1.2.2] - 2026-06-12
+
+### Added
+
+- Qiongli Literature Provider MCP 新增 `review` / `systematic_review` 检索模式，综述检索默认返回 50 条结果，并允许显式 `limit` 提高到 100。
+
+### Changed
+
+- DOI 与精确题名检索现在走 known-item 查询路径，并在 provider 合并后按题名相似度重排，提升 OpenAlex 与 Semantic Scholar 精确文献查找稳定性。
+
 ## [1.2.1] - 2026-06-11
 
 ### Added
