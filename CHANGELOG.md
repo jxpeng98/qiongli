@@ -6,6 +6,19 @@
 
 暂无未发布变更。
 
+## [1.3.0] - 2026-06-12
+
+### Added
+
+- Qiongli workflow 新增跨平台触发契约，覆盖 Codex、Claude、Gemini、CLI 与 portable install 场景；自然语言中的 academic research、literature review、manuscript、rebuttal、reproducible analysis 等请求现在更容易路由到 Qiongli。
+- 新增全阶段 stage-aware grill 机制：边界访谈、自我批判与 stage handoff 现在可以记录 resolved grill decisions、open grill issues 和 revisit triggers，并在用户模糊、不确定或不知道如何推进时触发轻量 grill。
+- Stage I code workflow 新增 academic analysis code 约束，要求围绕 estimand、dataset lineage、diagnostics、robustness checks、manuscript-facing outputs 与 rerun evidence 组织分析代码。
+
+### Changed
+
+- Codex、Claude、Gemini 与 qiongli-next plugin metadata 扩展学术发现关键词和默认提示，提升多平台自动触发概率。
+- source checkout 下的 orchestrator standards resolution 现在优先使用仓库 `content/standards`，再回退到 packaged payload，避免开发仓库中的 generated payload 干扰本地测试。
+
 ## [1.2.2] - 2026-06-12
 
 ### Added
