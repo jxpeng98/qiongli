@@ -75,6 +75,18 @@ class CollaborationMode(Enum):
 RUNTIME_AGENT_CHOICES = ("codex", "claude", "gemini")
 CONTROLLER_EXECUTION_MODE_CHOICES = ("solo", "duo", "triad")
 SOLO_ROLE_GATE_CHOICES = ("strict", "standard", "off")
+WORKER_MODE_CHOICES = ("none", "auto", "delegated-workers", "review-swarm")
+WORKER_ADAPTER_CHOICES = ("auto", "generic-prompt", "codex-subagent", "claude-cowork")
+
+
+def _positive_int_arg(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be a positive integer") from exc
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("must be a positive integer")
+    return parsed
 
 
 def _default_standards_dir(
@@ -156,6 +168,27 @@ def _add_controller_agnostic_task_run_args(parser: argparse.ArgumentParser) -> N
         choices=SOLO_ROLE_GATE_CHOICES,
         default="standard",
         help="Solo-mode role gate strictness: strict, standard, or off.",
+    )
+
+
+def _add_worker_orchestration_task_run_args(parser: argparse.ArgumentParser) -> None:
+    """Add disabled-by-default worker orchestration flags for task-run."""
+    parser.add_argument(
+        "--worker-mode",
+        choices=WORKER_MODE_CHOICES,
+        default="none",
+        help="Worker orchestration mode metadata (execution is disabled in this release).",
+    )
+    parser.add_argument(
+        "--worker-adapter",
+        choices=WORKER_ADAPTER_CHOICES,
+        default="auto",
+        help="Worker adapter metadata for future delegated worker execution.",
+    )
+    parser.add_argument(
+        "--max-workers",
+        type=_positive_int_arg,
+        help="Maximum delegated workers metadata for future worker orchestration.",
     )
 
 
@@ -3594,6 +3627,72 @@ Stage-I structure checks:
             overrides["review_agent"] = reviewer
         return overrides
 
+    def _build_disabled_worker_orchestration(
+        self,
+        *,
+        worker_mode: str | None = "none",
+        worker_adapter: str | None = "auto",
+        max_workers: int | None = None,
+    ) -> dict[str, Any]:
+        requested_mode = self._normalize_worker_mode(worker_mode)
+        requested_adapter = self._normalize_worker_adapter(worker_adapter)
+        normalized_max_workers = self._normalize_max_workers(max_workers)
+        return {
+            "mode": "none",
+            "status": "disabled",
+            "adapter": "none",
+            "workers": [],
+            "notes": [
+                "worker orchestration disabled; no worker execution attempted.",
+            ],
+            "requested_mode": requested_mode,
+            "requested_adapter": requested_adapter,
+            "max_workers": normalized_max_workers,
+        }
+
+    @staticmethod
+    def _normalize_worker_mode(value: str | None) -> str:
+        return ModelOrchestrator._normalize_worker_choice(
+            value,
+            WORKER_MODE_CHOICES,
+            "worker_mode",
+            default="none",
+        )
+
+    @staticmethod
+    def _normalize_worker_adapter(value: str | None) -> str:
+        return ModelOrchestrator._normalize_worker_choice(
+            value,
+            WORKER_ADAPTER_CHOICES,
+            "worker_adapter",
+            default="auto",
+        )
+
+    @staticmethod
+    def _normalize_worker_choice(
+        value: str | None,
+        choices: tuple[str, ...],
+        field_name: str,
+        *,
+        default: str,
+    ) -> str:
+        raw = (value or default).strip().lower()
+        normalized = raw.replace("-", "_")
+        normalized_choices = tuple(choice.replace("-", "_") for choice in choices)
+        if normalized not in normalized_choices:
+            raise ValueError(
+                f"{field_name} must be one of: {', '.join(choices)}."
+            )
+        return normalized
+
+    @staticmethod
+    def _normalize_max_workers(value: int | None) -> int | None:
+        if value is None:
+            return None
+        if type(value) is not int or value <= 0:
+            raise ValueError("max_workers must be a positive int (> 0) or None.")
+        return value
+
     @staticmethod
     def _normalize_controller_choice(
         value: str | None,
@@ -5089,6 +5188,10 @@ Return sections:
         review_agent: str | None = None,
         verifier_agent: str | None = None,
         solo_role_gates: str | None = "standard",
+        *,
+        worker_mode: str = "none",
+        worker_adapter: str = "auto",
+        max_workers: int | None = None,
     ) -> CollaborationResult:
         """Run task-level orchestration using capability map and contract."""
         normalized_task = task_id.strip().upper()
@@ -5097,6 +5200,11 @@ Return sections:
         depth_mode = research_depth.strip().lower()
         if depth_mode not in {"standard", "deep"}:
             raise ValueError("research_depth must be 'standard' or 'deep'.")
+        worker_orchestration = self._build_disabled_worker_orchestration(
+            worker_mode=worker_mode,
+            worker_adapter=worker_adapter,
+            max_workers=max_workers,
+        )
         if skip_validation:
             mcp_strict = False
             skills_strict = False
@@ -5270,6 +5378,7 @@ Return sections:
                 "self_critique_loop": dict(self_critique_loop),
             }
         )
+        packet["worker_orchestration"] = worker_orchestration
         zh_ui = get_language() == "zh-CN"
         routing_notes.append(
             f"Functional owner resolved for {normalized_task}: "
@@ -6411,6 +6520,7 @@ def main():
         help="Append context/research_state.md and context/decision_log.md for supported stage-close tasks.",
     )
     _add_controller_agnostic_task_run_args(task_run)
+    _add_worker_orchestration_task_run_args(task_run)
 
     team_run_parser = subparsers.add_parser(
         "team-run",
@@ -6529,6 +6639,9 @@ def main():
             review_agent=getattr(args, "review_agent", None),
             verifier_agent=getattr(args, "verifier_agent", None),
             solo_role_gates=getattr(args, "solo_role_gates", "standard"),
+            worker_mode=getattr(args, "worker_mode", "none"),
+            worker_adapter=getattr(args, "worker_adapter", "auto"),
+            max_workers=getattr(args, "max_workers", None),
         )
     elif args.mode == "team-run":
         result = orchestrator.team_run(
