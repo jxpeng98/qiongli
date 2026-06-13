@@ -52,6 +52,12 @@ class WorkerCaptureOrchestrator(ModelOrchestrator):
                 "profile_directive": profile_directive or "",
             }
         )
+        if prompt.startswith("Final-review the merged worker output."):
+            return BridgeResponse(
+                success=True,
+                model=agent_name,
+                content="Verdict: PASS\nConfidence: 0.9",
+            )
         return BridgeResponse(success=True, model=agent_name, content=f"{agent_name} ok")
 
     def _collect_mcp_evidence(
@@ -201,8 +207,23 @@ class WorkerOrchestrationRuntimeTests(unittest.TestCase):
 
         packet = result.data["task_packet"]
         worker_state = packet["worker_orchestration"]
+        self.assertEqual("delegated_workers", worker_state["orchestration_mode"])
         self.assertEqual("delegated_workers", worker_state["mode"])
+        self.assertEqual(worker_state["orchestration_mode"], worker_state["mode"])
+        self.assertEqual("codex", worker_state["controller_runtime"])
+        self.assertEqual("generic_prompt", worker_state["platform_adapter"])
         self.assertEqual("generic_prompt", worker_state["adapter"])
+        self.assertEqual(worker_state["platform_adapter"], worker_state["adapter"])
+        self.assertEqual("B1", worker_state["task_id"])
+        self.assertEqual("systematic-review", worker_state["paper_type"])
+        self.assertEqual("worker-enabled", worker_state["topic"])
+        self.assertIsInstance(worker_state["merge"], dict)
+        self.assertIn("agent", worker_state["merge"])
+        self.assertIn("policy", worker_state["merge"])
+        self.assertIn("output_artifacts", worker_state["merge"])
+        self.assertIsInstance(worker_state["final_review"], dict)
+        self.assertIn("reviewer", worker_state["final_review"])
+        self.assertIn("gate", worker_state["final_review"])
         self.assertEqual("ok", worker_state["barrier_status"])
         self.assertEqual(2, len(worker_state["workers"]))
         self.assertIn("## Worker Orchestration", result.merged_analysis)
@@ -215,6 +236,87 @@ class WorkerOrchestrationRuntimeTests(unittest.TestCase):
         ]
         self.assertEqual(2, len(worker_prompts))
         self.assertIn("forbidden_artifacts", worker_prompts[0])
+
+    def test_task_run_worker_plan_paths_are_run_scoped(self) -> None:
+        orchestrator = WorkerCaptureOrchestrator()
+
+        result = orchestrator.task_run(
+            task_id="B1",
+            paper_type="systematic-review",
+            topic="worker-run-scoped",
+            cwd=REPO_ROOT,
+            skip_validation=True,
+            execution_mode="solo",
+            controller="codex",
+            primary_agent="codex",
+            worker_mode="delegated-workers",
+            worker_adapter="generic-prompt",
+            max_workers=2,
+        )
+
+        worker_state = result.data["task_packet"]["worker_orchestration"]
+        run_id = worker_state["run_id"]
+        self.assertTrue(run_id)
+        for worker in worker_state["workers"]:
+            expected_root = f"RESEARCH/worker-run-scoped/runs/{run_id}/workers/{worker['id']}/"
+            self.assertEqual(expected_root, worker["worker_root"])
+            self.assertEqual([expected_root], worker["allowed_artifacts"])
+            self.assertNotIn("//", worker["worker_root"])
+        self.assertEqual(
+            [f"RESEARCH/worker-run-scoped/runs/{run_id}/worker-merge-report.md"],
+            worker_state["merge"]["output_artifacts"],
+        )
+
+    def test_repeated_worker_runs_get_distinct_run_scoped_paths(self) -> None:
+        orchestrator = WorkerCaptureOrchestrator()
+        results = [
+            orchestrator.task_run(
+                task_id="B1",
+                paper_type="systematic-review",
+                topic="worker-retry",
+                cwd=REPO_ROOT,
+                skip_validation=True,
+                execution_mode="solo",
+                controller="codex",
+                primary_agent="codex",
+                worker_mode="delegated-workers",
+                worker_adapter="generic-prompt",
+                max_workers=2,
+            )
+            for _ in range(2)
+        ]
+
+        first_state = results[0].data["task_packet"]["worker_orchestration"]
+        second_state = results[1].data["task_packet"]["worker_orchestration"]
+        first_run_id = first_state["run_id"]
+        second_run_id = second_state["run_id"]
+
+        self.assertTrue(first_run_id)
+        self.assertTrue(second_run_id)
+        self.assertNotEqual(first_run_id, second_run_id)
+
+        first_worker_roots = [worker["worker_root"] for worker in first_state["workers"]]
+        second_worker_roots = [worker["worker_root"] for worker in second_state["workers"]]
+        first_allowed_artifacts = [
+            artifact
+            for worker in first_state["workers"]
+            for artifact in worker["allowed_artifacts"]
+        ]
+        second_allowed_artifacts = [
+            artifact
+            for worker in second_state["workers"]
+            for artifact in worker["allowed_artifacts"]
+        ]
+        first_merge_artifacts = first_state["merge"]["output_artifacts"]
+        second_merge_artifacts = second_state["merge"]["output_artifacts"]
+
+        self.assertNotEqual(first_worker_roots, second_worker_roots)
+        self.assertNotEqual(first_allowed_artifacts, second_allowed_artifacts)
+        self.assertNotEqual(first_merge_artifacts, second_merge_artifacts)
+        for path in first_worker_roots + first_allowed_artifacts + first_merge_artifacts:
+            self.assertIn(f"/runs/{first_run_id}/", path)
+        for path in second_worker_roots + second_allowed_artifacts + second_merge_artifacts:
+            self.assertIn(f"/runs/{second_run_id}/", path)
 
     def test_worker_execution_runs_merge_and_final_review(self) -> None:
         orchestrator = WorkerCaptureOrchestrator()
@@ -255,6 +357,225 @@ class WorkerOrchestrationRuntimeTests(unittest.TestCase):
         self.assertIn("merge_review_status", worker_state)
         self.assertEqual("passed", worker_state["merge_review_status"])
 
+    def test_worker_merge_runtime_failure_short_circuits_before_main_draft(self) -> None:
+        class FailingMergeOrchestrator(WorkerCaptureOrchestrator):
+            def _execute_runtime_agent(
+                self,
+                agent_name: str,
+                prompt: str,
+                cwd: Path,
+                runtime_options: dict[str, Any] | None = None,
+                profile_directive: str | None = None,
+            ) -> BridgeResponse:
+                self.runtime_calls.append(
+                    {
+                        "agent": agent_name,
+                        "prompt": prompt,
+                        "runtime_options": dict(runtime_options or {}),
+                        "profile_directive": profile_directive or "",
+                    }
+                )
+                if "Worker packet (JSON):" in prompt:
+                    return BridgeResponse(
+                        success=True,
+                        model=agent_name,
+                        content="worker ok",
+                    )
+                if prompt.startswith("Merge worker results for this Qiongli task."):
+                    return BridgeResponse.from_error(agent_name, "merge runtime failed")
+                return BridgeResponse(success=True, model=agent_name, content=f"{agent_name} ok")
+
+        orchestrator = FailingMergeOrchestrator()
+        result = orchestrator.task_run(
+            task_id="B1",
+            paper_type="systematic-review",
+            topic="worker-merge-failed",
+            cwd=REPO_ROOT,
+            skip_validation=True,
+            execution_mode="duo",
+            controller="codex",
+            primary_agent="codex",
+            review_agent="claude",
+            worker_mode="delegated-workers",
+            worker_adapter="generic-prompt",
+            max_workers=2,
+        )
+
+        worker_state = result.data["task_packet"]["worker_orchestration"]
+        self.assertEqual("failed", worker_state["merge_status"])
+        self.assertEqual("merge_failed", worker_state["merge_review_status"])
+        self.assertEqual("blocked", worker_state["status"])
+        self.assertEqual(0.0, result.confidence)
+        self.assertIn("Worker merge status: failed", result.merged_analysis)
+        self.assertIn("worker merge failed", result.merged_analysis)
+        self.assertTrue(result.data["validator_gate"]["skipped"])
+        self.assertEqual("worker merge failed", result.data["validator_gate"]["reason"])
+        self.assertEqual(
+            "worker merge failed",
+            result.data["review_loop_state"]["stopped_reason"],
+        )
+        self.assertEqual(3, len(orchestrator.runtime_calls))
+        for call in orchestrator.runtime_calls:
+            prompt = call["prompt"]
+            is_worker_prompt = "Worker packet (JSON):" in prompt
+            is_worker_merge = prompt.startswith("Merge worker results for this Qiongli task.")
+            if "Task packet (JSON):" in prompt:
+                self.assertTrue(is_worker_prompt or is_worker_merge)
+
+    def test_worker_final_review_runtime_failure_short_circuits_before_main_draft(self) -> None:
+        class FailingFinalReviewOrchestrator(WorkerCaptureOrchestrator):
+            def _execute_runtime_agent(
+                self,
+                agent_name: str,
+                prompt: str,
+                cwd: Path,
+                runtime_options: dict[str, Any] | None = None,
+                profile_directive: str | None = None,
+            ) -> BridgeResponse:
+                self.runtime_calls.append(
+                    {
+                        "agent": agent_name,
+                        "prompt": prompt,
+                        "runtime_options": dict(runtime_options or {}),
+                        "profile_directive": profile_directive or "",
+                    }
+                )
+                if "Worker packet (JSON):" in prompt:
+                    return BridgeResponse(
+                        success=True,
+                        model=agent_name,
+                        content="worker ok",
+                    )
+                if prompt.startswith("Merge worker results for this Qiongli task."):
+                    return BridgeResponse(
+                        success=True,
+                        model=agent_name,
+                        content="merged worker output",
+                    )
+                if prompt.startswith("Final-review the merged worker output."):
+                    return BridgeResponse.from_error(agent_name, "final review runtime failed")
+                return BridgeResponse(success=True, model=agent_name, content=f"{agent_name} ok")
+
+        orchestrator = FailingFinalReviewOrchestrator()
+        result = orchestrator.task_run(
+            task_id="B1",
+            paper_type="systematic-review",
+            topic="worker-final-review-failed",
+            cwd=REPO_ROOT,
+            skip_validation=True,
+            execution_mode="duo",
+            controller="codex",
+            primary_agent="codex",
+            review_agent="claude",
+            worker_mode="delegated-workers",
+            worker_adapter="generic-prompt",
+            max_workers=2,
+        )
+
+        worker_state = result.data["task_packet"]["worker_orchestration"]
+        self.assertEqual("passed", worker_state["merge_status"])
+        self.assertEqual("failed", worker_state["merge_review_status"])
+        self.assertEqual("blocked", worker_state["status"])
+        self.assertEqual(0.0, result.confidence)
+        self.assertIn("Worker final review status: failed", result.merged_analysis)
+        self.assertIn("worker final review failed", result.merged_analysis)
+        self.assertTrue(result.data["validator_gate"]["skipped"])
+        self.assertEqual("worker final review failed", result.data["validator_gate"]["reason"])
+        self.assertEqual(
+            "worker final review failed",
+            result.data["review_loop_state"]["stopped_reason"],
+        )
+        self.assertEqual(4, len(orchestrator.runtime_calls))
+        for call in orchestrator.runtime_calls:
+            prompt = call["prompt"]
+            is_worker_prompt = "Worker packet (JSON):" in prompt
+            is_worker_merge = prompt.startswith("Merge worker results for this Qiongli task.")
+            is_worker_review = prompt.startswith("Final-review the merged worker output.")
+            if "Task packet (JSON):" in prompt:
+                self.assertTrue(is_worker_prompt or is_worker_merge or is_worker_review)
+
+    def test_worker_final_review_block_short_circuits_before_main_draft(self) -> None:
+        class BlockingFinalReviewOrchestrator(WorkerCaptureOrchestrator):
+            def _execute_runtime_agent(
+                self,
+                agent_name: str,
+                prompt: str,
+                cwd: Path,
+                runtime_options: dict[str, Any] | None = None,
+                profile_directive: str | None = None,
+            ) -> BridgeResponse:
+                self.runtime_calls.append(
+                    {
+                        "agent": agent_name,
+                        "prompt": prompt,
+                        "runtime_options": dict(runtime_options or {}),
+                        "profile_directive": profile_directive or "",
+                    }
+                )
+                if "Worker packet (JSON):" in prompt:
+                    return BridgeResponse(
+                        success=True,
+                        model=agent_name,
+                        content="worker ok",
+                    )
+                if prompt.startswith("Merge worker results for this Qiongli task."):
+                    return BridgeResponse(
+                        success=True,
+                        model=agent_name,
+                        content="merged worker output",
+                    )
+                if prompt.startswith("Final-review the merged worker output."):
+                    return BridgeResponse(
+                        success=True,
+                        model=agent_name,
+                        content=(
+                            "Verdict: BLOCK\n"
+                            "Confidence: 0.2\n"
+                            "Blocking Issues\n"
+                            "- unsafe merge"
+                        ),
+                    )
+                return BridgeResponse(success=True, model=agent_name, content=f"{agent_name} ok")
+
+        orchestrator = BlockingFinalReviewOrchestrator()
+        result = orchestrator.task_run(
+            task_id="B1",
+            paper_type="systematic-review",
+            topic="worker-final-review-block",
+            cwd=REPO_ROOT,
+            skip_validation=True,
+            execution_mode="duo",
+            controller="codex",
+            primary_agent="codex",
+            review_agent="claude",
+            worker_mode="delegated-workers",
+            worker_adapter="generic-prompt",
+            max_workers=2,
+        )
+
+        worker_state = result.data["task_packet"]["worker_orchestration"]
+        self.assertEqual("BLOCK", worker_state["merge_review_verdict"])
+        self.assertEqual("blocked", worker_state["merge_review_status"])
+        self.assertEqual(0.2, worker_state["merge_review_confidence"])
+        self.assertEqual("blocked", worker_state["status"])
+        self.assertEqual(0.0, result.confidence)
+        self.assertIn("Worker final review status: blocked", result.merged_analysis)
+        self.assertIn("worker final review blocked", result.merged_analysis)
+        self.assertTrue(result.data["validator_gate"]["skipped"])
+        self.assertEqual("worker final review blocked", result.data["validator_gate"]["reason"])
+        self.assertEqual(
+            "worker final review blocked",
+            result.data["review_loop_state"]["stopped_reason"],
+        )
+        self.assertEqual(4, len(orchestrator.runtime_calls))
+        for call in orchestrator.runtime_calls:
+            prompt = call["prompt"]
+            is_worker_prompt = "Worker packet (JSON):" in prompt
+            is_worker_merge = prompt.startswith("Merge worker results for this Qiongli task.")
+            is_worker_review = prompt.startswith("Final-review the merged worker output.")
+            if "Task packet (JSON):" in prompt:
+                self.assertTrue(is_worker_prompt or is_worker_merge or is_worker_review)
+
     def test_worker_merge_and_final_review_prompts_are_bounded(self) -> None:
         large_worker_content = "worker-output-" + ("x" * 20000)
         large_merge_content = "merge-output-" + ("y" * 20000)
@@ -287,6 +608,12 @@ class WorkerOrchestrationRuntimeTests(unittest.TestCase):
                         success=True,
                         model=agent_name,
                         content=large_merge_content,
+                    )
+                if prompt.startswith("Final-review the merged worker output."):
+                    return BridgeResponse(
+                        success=True,
+                        model=agent_name,
+                        content="Verdict: PASS\nConfidence: 0.9",
                     )
                 return BridgeResponse(success=True, model=agent_name, content=f"{agent_name} ok")
 
@@ -365,6 +692,12 @@ class WorkerOrchestrationRuntimeTests(unittest.TestCase):
                 )
                 if "screening_worker" in prompt:
                     return BridgeResponse.from_error(agent_name, "worker failed")
+                if prompt.startswith("Final-review the merged worker output."):
+                    return BridgeResponse(
+                        success=True,
+                        model=agent_name,
+                        content="Verdict: PASS\nConfidence: 0.9",
+                    )
                 return BridgeResponse(success=True, model=agent_name, content=f"{agent_name} ok")
 
         orchestrator = OneWorkerFailsOrchestrator()

@@ -22,6 +22,7 @@ import os
 import re
 import shutil
 import sys
+import uuid
 import yaml
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
@@ -3767,6 +3768,13 @@ Stage-I structure checks:
         return artifact_root.rstrip("/")
 
     @staticmethod
+    def _join_artifact_path(*parts: str, trailing_slash: bool = False) -> str:
+        path = "/".join(str(part).strip("/") for part in parts if str(part).strip("/"))
+        if trailing_slash and path:
+            return f"{path}/"
+        return path
+
+    @staticmethod
     def _unique_strings(items: list[Any]) -> list[str]:
         seen: set[str] = set()
         result: list[str] = []
@@ -3813,9 +3821,26 @@ Stage-I structure checks:
             list(task_packet.get("required_outputs", []))
             + list(task_packet.get("contract_required_outputs", []))
         )
+        task_id = str(task_packet.get("task_id", "")).strip()
+        paper_type = str(task_packet.get("paper_type", "")).strip()
+        topic = str(task_packet.get("topic", "")).strip()
+        run_id_prefix = re.sub(r"[^A-Za-z0-9._-]+", "-", task_id).strip("-") or "worker"
+        run_id = f"{run_id_prefix}-{uuid.uuid4().hex[:8]}"
+        run_root = self._join_artifact_path(artifact_root, "runs", run_id)
+        merge_policy = str(worker_config.get("merge_policy", ""))
+        merge_artifact = self._join_artifact_path(run_root, "worker-merge-report.md")
+        runtime_plan = task_packet.get("runtime_plan", {})
+        final_reviewer = ""
+        if isinstance(runtime_plan, dict):
+            final_reviewer = str(runtime_plan.get("review_agent", "")).strip()
         workers: list[dict[str, Any]] = []
         for worker_id in worker_pool:
-            worker_root = f"{artifact_root}/workers/{worker_id}/" if artifact_root else f"workers/{worker_id}/"
+            worker_root = self._join_artifact_path(
+                run_root,
+                "workers",
+                worker_id,
+                trailing_slash=True,
+            )
             workers.append(
                 {
                     "id": worker_id,
@@ -3841,6 +3866,7 @@ Stage-I structure checks:
 
         return {
             "mode": mode,
+            "orchestration_mode": mode,
             "status": "planned",
             "adapter": adapter,
             "requested_mode": requested_mode,
@@ -3848,8 +3874,21 @@ Stage-I structure checks:
             "max_workers": normalized_max_workers,
             "controller_runtime": controller_runtime,
             "platform_adapter": adapter,
+            "task_id": task_id,
+            "paper_type": paper_type,
+            "topic": topic,
+            "run_id": run_id,
             "partition_strategy": str(worker_config.get("partition_strategy", "")),
-            "merge_policy": str(worker_config.get("merge_policy", "")),
+            "merge_policy": merge_policy,
+            "merge": {
+                "agent": controller_runtime,
+                "policy": merge_policy,
+                "output_artifacts": [merge_artifact],
+            },
+            "final_review": {
+                "reviewer": final_reviewer,
+                "gate": "worker_final_review",
+            },
             "barrier_rules": dict(worker_config.get("barrier_rules", {})),
             "barrier_status": "pending",
             "merge_status": "skipped",
@@ -4022,6 +4061,10 @@ Rules:
 
         view: dict[str, Any] = {
             "mode": worker_plan.get("mode", "none"),
+            "orchestration_mode": worker_plan.get(
+                "orchestration_mode",
+                worker_plan.get("mode", "none"),
+            ),
             "status": worker_plan.get("status", "unknown"),
             "adapter": worker_plan.get("adapter", "none"),
             "requested_mode": worker_plan.get("requested_mode", "none"),
@@ -4029,8 +4072,14 @@ Rules:
             "max_workers": worker_plan.get("max_workers"),
             "controller_runtime": worker_plan.get("controller_runtime", ""),
             "platform_adapter": worker_plan.get("platform_adapter", ""),
+            "task_id": worker_plan.get("task_id", ""),
+            "paper_type": worker_plan.get("paper_type", ""),
+            "topic": worker_plan.get("topic", ""),
+            "run_id": worker_plan.get("run_id", ""),
             "partition_strategy": worker_plan.get("partition_strategy", ""),
             "merge_policy": worker_plan.get("merge_policy", ""),
+            "merge": dict(worker_plan.get("merge", {})),
+            "final_review": dict(worker_plan.get("final_review", {})),
             "barrier_rules": dict(worker_plan.get("barrier_rules", {})),
             "barrier_status": worker_plan.get("barrier_status", "unknown"),
             "merge_status": worker_plan.get("merge_status", "skipped"),
@@ -4093,6 +4142,8 @@ Rules:
             "barrier_status": worker_plan.get("barrier_status", "unknown"),
             "merge_status": worker_plan.get("merge_status", "skipped"),
             "merge_review_status": worker_plan.get("merge_review_status", "skipped"),
+            "merge_review_verdict": worker_plan.get("merge_review_verdict", ""),
+            "merge_review_confidence": worker_plan.get("merge_review_confidence"),
             "worker_ids": [
                 worker.get("id", "")
                 for worker in worker_plan.get("workers", [])
@@ -4255,6 +4306,7 @@ Return sections:
         worker_state["merge_agent"] = controller_runtime
         worker_state["merge_status"] = "passed" if merge_resp.success else "failed"
         if not merge_resp.success:
+            worker_state["status"] = "blocked"
             worker_state["merge_review_status"] = "merge_failed"
             worker_state["notes"].append(
                 f"Worker merge failed ({controller_runtime}): {merge_resp.error or 'unknown'}"
@@ -4282,8 +4334,11 @@ Return sections:
             review_profile_directive,
         )
         worker_state["merge_review_agent"] = review_runtime
-        worker_state["merge_review_status"] = "passed" if review_resp.success else "failed"
         if review_resp.success:
+            verdict, review_confidence = self._parse_review_verdict(review_resp.content)
+            worker_state["merge_review_verdict"] = verdict
+            worker_state["merge_review_confidence"] = review_confidence
+            worker_state["merge_review_status"] = "passed" if verdict == "PASS" else "blocked"
             review_content, review_truncated, review_original_length = (
                 self._bounded_worker_prompt_text(review_resp.content, content_limit)
             )
@@ -4291,7 +4346,15 @@ Return sections:
             worker_state["merge_review_content_truncated"] = review_truncated
             worker_state["merge_review_content_original_length"] = review_original_length
             worker_state["merge_review_content_limit"] = content_limit
+            if verdict == "BLOCK":
+                worker_state["status"] = "blocked"
+                worker_state["notes"].append(
+                    "Worker final review BLOCKED: "
+                    f"verdict={verdict} confidence={review_confidence:.2f}."
+                )
         else:
+            worker_state["status"] = "blocked"
+            worker_state["merge_review_status"] = "failed"
             worker_state["notes"].append(
                 f"Worker final review failed ({review_runtime}): {review_resp.error or 'unknown'}"
             )
@@ -6388,19 +6451,48 @@ Return sections:
                 f"barrier={worker_orchestration.get('barrier_status', 'unknown')}, "
                 f"workers={len(worker_orchestration.get('workers', []))}."
             )
+        worker_block_reason = ""
+        worker_block_note = ""
+        worker_barrier_status = worker_orchestration.get("barrier_status")
+        worker_merge_status = worker_orchestration.get("merge_status")
+        worker_merge_review_status = worker_orchestration.get("merge_review_status")
+        worker_merge_review_active = worker_barrier_status in {"ok", "degraded"}
         if worker_orchestration.get("barrier_status") == "blocked":
+            worker_block_reason = "worker barrier blocked"
+            worker_block_note = (
+                "Worker barrier BLOCKED: main draft/review execution and validator gate skipped."
+            )
+        elif worker_merge_review_active and worker_merge_status != "passed":
+            worker_orchestration["status"] = "blocked"
+            worker_block_reason = "worker merge failed"
+            worker_block_note = (
+                "Worker merge FAILED: main draft/review execution and validator gate skipped "
+                f"(reason: {worker_block_reason})."
+            )
+        elif worker_merge_review_active and worker_merge_review_status == "blocked":
+            worker_block_reason = "worker final review blocked"
+            worker_block_note = (
+                "Worker final review BLOCKED: main draft/review execution and validator gate skipped "
+                f"(reason: {worker_block_reason})."
+            )
+        elif worker_merge_review_active and worker_merge_review_status != "passed":
+            worker_orchestration["status"] = "blocked"
+            worker_block_reason = "worker final review failed"
+            worker_block_note = (
+                "Worker final review FAILED: main draft/review execution and validator gate skipped "
+                f"(reason: {worker_block_reason})."
+            )
+        if worker_block_reason:
             validator_gate_result = {
                 "passed": False,
                 "skipped": True,
-                "reason": "worker barrier blocked",
+                "reason": worker_block_reason,
                 "found": [],
                 "missing": [],
                 "checked": len(required_outputs),
                 "expected_outputs": list(required_outputs),
             }
-            routing_notes.append(
-                "Worker barrier BLOCKED: main draft/review execution and validator gate skipped."
-            )
+            routing_notes.append(worker_block_note)
             review_loop_state = {
                 "enabled": bool(self_critique_loop.get("enabled")),
                 "status": "skipped",
@@ -6409,7 +6501,7 @@ Return sections:
                 "revisions_attempted": 0,
                 "min_review_rounds": self_critique_loop.get("min_review_rounds", 1),
                 "max_revision_rounds": effective_max_rounds,
-                "stopped_reason": "worker barrier blocked",
+                "stopped_reason": worker_block_reason,
             }
             merged_parts = [
                 plan_result.merged_analysis,
