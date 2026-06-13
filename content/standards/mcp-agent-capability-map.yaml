@@ -1901,3 +1901,42 @@ team_run_config:
       - "review_shard.md"
     canonical_outputs:
       - "revision/peer_review_simulation.md"
+
+# -- Worker Orchestration Configuration --------------------------------------
+# Worker orchestration describes how one controller runtime can split a Task ID
+# into scoped in-platform workers before merge/review. It is disabled by
+# default in task-run and only activates when worker-mode flags request it.
+worker_orchestration_config:
+  B1:
+    default_mode: delegated_workers
+    adapter_preference:
+      codex: codex_subagent
+      claude: claude_cowork
+      gemini: generic_prompt
+    partition_strategy: by_search_facet
+    max_workers: 4
+    worker_pool:
+      - literature_search_worker
+      - screening_worker
+      - extraction_worker
+    merge_policy: synthesize_with_conflict_matrix
+    barrier_rules:
+      min_success_ratio: 0.6
+      on_failure: degrade
+
+  H3:
+    default_mode: review_swarm
+    adapter_preference:
+      codex: codex_subagent
+      claude: claude_cowork
+      gemini: generic_prompt
+    partition_strategy: by_reviewer_persona
+    max_workers: 3
+    worker_pool:
+      - methodologist
+      - domain_expert
+      - reviewer_2
+    merge_policy: controller_adjudication
+    barrier_rules:
+      min_success_ratio: 1.0
+      on_failure: block
