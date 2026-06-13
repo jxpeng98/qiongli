@@ -3642,6 +3642,8 @@ Stage-I structure checks:
             "status": "disabled",
             "adapter": "none",
             "workers": [],
+            "merge_status": "skipped",
+            "merge_review_status": "skipped",
             "notes": [
                 "worker orchestration disabled; no worker execution attempted.",
             ],
@@ -3717,6 +3719,8 @@ Stage-I structure checks:
             "workers": [],
             "worker_results": [],
             "barrier_status": "skipped",
+            "merge_status": "skipped",
+            "merge_review_status": "skipped",
             "notes": [f"Worker orchestration skipped for {task_id}: {reason}."],
             "requested_mode": requested_mode,
             "requested_adapter": requested_adapter,
@@ -3848,6 +3852,8 @@ Stage-I structure checks:
             "merge_policy": str(worker_config.get("merge_policy", "")),
             "barrier_rules": dict(worker_config.get("barrier_rules", {})),
             "barrier_status": "pending",
+            "merge_status": "skipped",
+            "merge_review_status": "skipped",
             "workers": workers,
             "worker_results": [],
             "notes": adapter_notes,
@@ -3958,12 +3964,22 @@ Rules:
                 profile_directive,
             )
             status = "passed" if response.success else "failed"
+            content_limit = 4000
+            bounded_content, content_truncated, content_original_length = (
+                self._bounded_worker_prompt_text(
+                    response.content if response.success else "",
+                    content_limit,
+                )
+            )
             result = {
                 "worker_id": worker.get("id", ""),
                 "agent": controller_runtime,
                 "success": bool(response.success),
                 "status": status,
-                "content": response.content if response.success else "",
+                "content": bounded_content,
+                "content_truncated": content_truncated,
+                "content_original_length": content_original_length,
+                "content_limit": content_limit,
                 "error": response.error if not response.success else None,
                 "confidence": 0.8 if response.success else 0.0,
             }
@@ -3976,6 +3992,309 @@ Rules:
             )
             results.append(result)
         return results
+
+    @staticmethod
+    def _bounded_worker_prompt_text(value: Any, limit: int) -> tuple[str, bool, int]:
+        text = "" if value is None else str(value)
+        original_length = len(text)
+        if original_length <= limit:
+            return text, False, original_length
+        marker = f"\n[truncated: original_length={original_length} limit={limit}]"
+        return text[:limit] + marker, True, original_length
+
+    def _compact_worker_plan_view(self, worker_plan: dict[str, Any]) -> dict[str, Any]:
+        workers = []
+        for worker in worker_plan.get("workers", []):
+            workers.append(
+                {
+                    "id": worker.get("id", ""),
+                    "goal": worker.get("goal", ""),
+                    "functional_role": worker.get("functional_role", ""),
+                    "allowed_artifacts": list(worker.get("allowed_artifacts", [])),
+                    "forbidden_artifacts": list(worker.get("forbidden_artifacts", [])),
+                    "review_required": bool(worker.get("review_required", False)),
+                    "worker_root": worker.get("worker_root", ""),
+                    "agent": worker.get("agent", ""),
+                    "status": worker.get("status", ""),
+                    "confidence": worker.get("confidence", 0.0),
+                }
+            )
+
+        view: dict[str, Any] = {
+            "mode": worker_plan.get("mode", "none"),
+            "status": worker_plan.get("status", "unknown"),
+            "adapter": worker_plan.get("adapter", "none"),
+            "requested_mode": worker_plan.get("requested_mode", "none"),
+            "requested_adapter": worker_plan.get("requested_adapter", "auto"),
+            "max_workers": worker_plan.get("max_workers"),
+            "controller_runtime": worker_plan.get("controller_runtime", ""),
+            "platform_adapter": worker_plan.get("platform_adapter", ""),
+            "partition_strategy": worker_plan.get("partition_strategy", ""),
+            "merge_policy": worker_plan.get("merge_policy", ""),
+            "barrier_rules": dict(worker_plan.get("barrier_rules", {})),
+            "barrier_status": worker_plan.get("barrier_status", "unknown"),
+            "merge_status": worker_plan.get("merge_status", "skipped"),
+            "merge_review_status": worker_plan.get("merge_review_status", "skipped"),
+            "workers": workers,
+            "notes": list(worker_plan.get("notes", [])),
+        }
+        if worker_plan.get("merge_agent"):
+            view["merge_agent"] = worker_plan.get("merge_agent")
+        if worker_plan.get("merge_review_agent"):
+            view["merge_review_agent"] = worker_plan.get("merge_review_agent")
+        return view
+
+    def _compact_worker_task_packet_view(
+        self,
+        task_packet: dict[str, Any],
+        worker_plan: dict[str, Any],
+    ) -> dict[str, Any]:
+        keys = (
+            "task_id",
+            "paper_type",
+            "topic",
+            "venue",
+            "execution_mode",
+            "controller",
+            "primary_agent",
+            "review_agent",
+            "verifier_agent",
+            "controller_metadata",
+            "artifact_root",
+            "required_outputs",
+            "contract_required_outputs",
+            "deferred_outputs",
+            "required_mcp",
+            "required_skills",
+            "quality_gates",
+            "artifact_policy",
+            "research_depth",
+            "evidence_expansion_rounds",
+            "functional_owner",
+            "functional_role_id",
+            "functional_display_name",
+            "runtime_plan",
+            "self_critique_loop",
+        )
+        view = {key: task_packet[key] for key in keys if key in task_packet}
+        skill_cards = task_packet.get("required_skill_cards", [])
+        if skill_cards:
+            view["required_skill_cards"] = [
+                {
+                    "skill": card.get("skill", ""),
+                    "status": card.get("status", ""),
+                    "file": card.get("file", ""),
+                }
+                for card in skill_cards
+                if isinstance(card, dict)
+            ]
+        view["worker_summary"] = {
+            "status": worker_plan.get("status", "unknown"),
+            "barrier_status": worker_plan.get("barrier_status", "unknown"),
+            "merge_status": worker_plan.get("merge_status", "skipped"),
+            "merge_review_status": worker_plan.get("merge_review_status", "skipped"),
+            "worker_ids": [
+                worker.get("id", "")
+                for worker in worker_plan.get("workers", [])
+                if worker.get("id")
+            ],
+        }
+        return view
+
+    def _compact_worker_result_views(
+        self,
+        worker_results: list[dict[str, Any]],
+        *,
+        content_limit: int = 4000,
+    ) -> list[dict[str, Any]]:
+        result_views: list[dict[str, Any]] = []
+        for result in worker_results:
+            content, truncated, original_length = self._bounded_worker_prompt_text(
+                result.get("content", ""),
+                content_limit,
+            )
+            stored_original_length = result.get("content_original_length")
+            if type(stored_original_length) is not int:
+                stored_original_length = original_length
+            stored_content_limit = result.get("content_limit")
+            if type(stored_content_limit) is not int:
+                stored_content_limit = content_limit
+            stored_truncated = bool(result.get("content_truncated", False))
+            result_views.append(
+                {
+                    "worker_id": result.get("worker_id", ""),
+                    "agent": result.get("agent", ""),
+                    "success": bool(result.get("success")),
+                    "status": result.get("status", ""),
+                    "content": content,
+                    "content_original_length": stored_original_length,
+                    "content_limit": stored_content_limit,
+                    "prompt_content_limit": content_limit,
+                    "truncated": stored_truncated or truncated,
+                    "error": result.get("error"),
+                    "confidence": result.get("confidence", 0.0),
+                }
+            )
+        return result_views
+
+    def _build_worker_merge_prompt(
+        self,
+        worker_results: list[dict[str, Any]],
+        worker_plan: dict[str, Any],
+        task_packet: dict[str, Any],
+    ) -> str:
+        worker_plan_view = self._compact_worker_plan_view(worker_plan)
+        task_packet_view = self._compact_worker_task_packet_view(task_packet, worker_plan)
+        worker_result_views = self._compact_worker_result_views(worker_results)
+        return f"""Merge worker results for this Qiongli task.
+
+Worker plan (JSON):
+{json.dumps(worker_plan_view, ensure_ascii=False, indent=2)}
+
+Task packet (JSON):
+{json.dumps(task_packet_view, ensure_ascii=False, indent=2)}
+
+Worker results (JSON):
+{json.dumps(worker_result_views, ensure_ascii=False, indent=2)}
+
+Rules:
+1. Do not concatenate worker outputs.
+2. Preserve disagreements in Conflict Summary.
+3. Mark gaps that no worker covered.
+4. Do not claim canonical outputs were updated unless the worker plan permits it.
+
+Return sections:
+- Worker Status Table
+- Accepted Worker Outputs
+- Rejected Or Blocked Worker Outputs
+- Conflict Summary
+- Gap Summary
+- Controller Adjudication
+- Canonical Output Update Plan
+- Final Review Request
+"""
+
+    def _build_worker_final_review_prompt(
+        self,
+        merge_output: str,
+        worker_plan: dict[str, Any],
+        task_packet: dict[str, Any],
+    ) -> str:
+        worker_plan_view = self._compact_worker_plan_view(worker_plan)
+        task_packet_view = self._compact_worker_task_packet_view(task_packet, worker_plan)
+        bounded_merge_output, merge_truncated, merge_original_length = (
+            self._bounded_worker_prompt_text(merge_output, 10000)
+        )
+        return f"""Final-review the merged worker output.
+
+Worker plan (JSON):
+{json.dumps(worker_plan_view, ensure_ascii=False, indent=2)}
+
+Task packet (JSON):
+{json.dumps(task_packet_view, ensure_ascii=False, indent=2)}
+
+Merged worker output:
+{bounded_merge_output}
+
+Merged worker output metadata:
+- original_length: {merge_original_length}
+- limit: 10000
+- truncated: {str(merge_truncated).lower()}
+
+Review checklist:
+1. Worker outputs stayed within allowed_artifacts.
+2. Forbidden artifact writes were rejected or absent.
+3. Conflicts and gaps are explicit.
+4. Canonical output update plan is justified by worker evidence.
+
+IMPORTANT: include one verdict line:
+- Verdict: PASS
+- Verdict: BLOCK
+
+Return sections:
+- Verdict
+- Findings
+- Blocking Issues
+- Required Revisions
+- Verification Evidence
+- Confidence
+"""
+
+    def _run_worker_merge_review(
+        self,
+        *,
+        worker_state: dict[str, Any],
+        task_packet: dict[str, Any],
+        controller_runtime: str,
+        review_runtime: str,
+        cwd: Path,
+        merge_runtime_options: dict[str, Any],
+        review_runtime_options: dict[str, Any],
+        merge_profile_directive: str,
+        review_profile_directive: str,
+    ) -> None:
+        worker_results = list(worker_state.get("worker_results", []))
+        successful_results = [result for result in worker_results if result.get("success")]
+        if worker_state.get("barrier_status") not in {"ok", "degraded"} or not successful_results:
+            worker_state["merge_status"] = "skipped"
+            worker_state["merge_review_status"] = "skipped"
+            return
+
+        merge_prompt = self._build_worker_merge_prompt(
+            worker_results,
+            worker_state,
+            task_packet,
+        )
+        merge_resp = self._execute_runtime_agent(
+            controller_runtime,
+            merge_prompt,
+            cwd,
+            dict(merge_runtime_options),
+            merge_profile_directive,
+        )
+        worker_state["merge_agent"] = controller_runtime
+        worker_state["merge_status"] = "passed" if merge_resp.success else "failed"
+        if not merge_resp.success:
+            worker_state["merge_review_status"] = "merge_failed"
+            worker_state["notes"].append(
+                f"Worker merge failed ({controller_runtime}): {merge_resp.error or 'unknown'}"
+            )
+            return
+        content_limit = 12000
+        merge_content, merge_truncated, merge_original_length = (
+            self._bounded_worker_prompt_text(merge_resp.content, content_limit)
+        )
+        worker_state["merge_content"] = merge_content
+        worker_state["merge_content_truncated"] = merge_truncated
+        worker_state["merge_content_original_length"] = merge_original_length
+        worker_state["merge_content_limit"] = content_limit
+
+        final_review_prompt = self._build_worker_final_review_prompt(
+            merge_resp.content,
+            worker_state,
+            task_packet,
+        )
+        review_resp = self._execute_runtime_agent(
+            review_runtime,
+            final_review_prompt,
+            cwd,
+            dict(review_runtime_options),
+            review_profile_directive,
+        )
+        worker_state["merge_review_agent"] = review_runtime
+        worker_state["merge_review_status"] = "passed" if review_resp.success else "failed"
+        if review_resp.success:
+            review_content, review_truncated, review_original_length = (
+                self._bounded_worker_prompt_text(review_resp.content, content_limit)
+            )
+            worker_state["merge_review_content"] = review_content
+            worker_state["merge_review_content_truncated"] = review_truncated
+            worker_state["merge_review_content_original_length"] = review_original_length
+            worker_state["merge_review_content_limit"] = content_limit
+        else:
+            worker_state["notes"].append(
+                f"Worker final review failed ({review_runtime}): {review_resp.error or 'unknown'}"
+            )
 
     def _apply_worker_barrier(
         self,
@@ -4032,6 +4351,9 @@ Rules:
         cwd: Path,
         runtime_options: dict[str, Any],
         profile_directive: str,
+        merge_review_runtime: str,
+        merge_review_runtime_options: dict[str, Any],
+        merge_review_profile_directive: str,
     ) -> dict[str, Any]:
         requested_mode = self._normalize_worker_mode(worker_mode)
         if requested_mode == "none":
@@ -4081,6 +4403,17 @@ Rules:
         worker_state["barrier_status"] = barrier_status
         worker_state["status"] = "completed" if barrier_status in {"ok", "degraded"} else "blocked"
         worker_state["notes"].extend(barrier_notes)
+        self._run_worker_merge_review(
+            worker_state=worker_state,
+            task_packet=task_packet,
+            controller_runtime=controller_runtime,
+            review_runtime=merge_review_runtime,
+            cwd=cwd,
+            merge_runtime_options=runtime_options,
+            review_runtime_options=merge_review_runtime_options,
+            merge_profile_directive=profile_directive,
+            review_profile_directive=merge_review_profile_directive,
+        )
         return worker_state
 
     def _format_worker_orchestration_section(self, worker_state: dict[str, Any]) -> str:
@@ -4090,6 +4423,8 @@ Rules:
             f"- Worker mode: {worker_state.get('mode', 'none')}",
             f"- Worker adapter: {worker_state.get('adapter', 'none')}",
             f"- Worker barrier status: {worker_state.get('barrier_status', 'unknown')}",
+            f"- Worker merge status: {worker_state.get('merge_status', 'skipped')}",
+            f"- Worker final review status: {worker_state.get('merge_review_status', 'skipped')}",
             f"- Workers: {len(worker_state.get('workers', []))}",
         ]
         for note in worker_state.get("notes", []):
@@ -6033,6 +6368,16 @@ Return sections:
                 selected_profiles["draft"],
                 draft_profile_cfg,
                 stage="draft",
+            ),
+            merge_review_runtime=effective_runtime_plan["review_agent"],
+            merge_review_runtime_options=review_runtime_options.get(
+                effective_runtime_plan["review_agent"],
+                {},
+            ),
+            merge_review_profile_directive=self._build_profile_directive(
+                selected_profiles["review"],
+                review_profile_cfg,
+                stage="review",
             ),
         )
         packet["worker_orchestration"] = worker_orchestration

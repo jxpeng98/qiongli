@@ -216,6 +216,135 @@ class WorkerOrchestrationRuntimeTests(unittest.TestCase):
         self.assertEqual(2, len(worker_prompts))
         self.assertIn("forbidden_artifacts", worker_prompts[0])
 
+    def test_worker_execution_runs_merge_and_final_review(self) -> None:
+        orchestrator = WorkerCaptureOrchestrator()
+
+        result = orchestrator.task_run(
+            task_id="B1",
+            paper_type="systematic-review",
+            topic="worker-merge",
+            cwd=REPO_ROOT,
+            skip_validation=True,
+            execution_mode="duo",
+            controller="codex",
+            primary_agent="codex",
+            review_agent="claude",
+            worker_mode="delegated-workers",
+            worker_adapter="generic-prompt",
+            max_workers=2,
+        )
+
+        merge_calls = [
+            call
+            for call in orchestrator.runtime_calls
+            if call["prompt"].startswith("Merge worker results for this Qiongli task.")
+        ]
+        final_review_calls = [
+            call
+            for call in orchestrator.runtime_calls
+            if call["prompt"].startswith("Final-review the merged worker output.")
+        ]
+        prompts = "\n\n".join(call["prompt"] for call in orchestrator.runtime_calls)
+        self.assertIn("Merge worker results for this Qiongli task.", prompts)
+        self.assertIn("Final-review the merged worker output.", prompts)
+        self.assertEqual(1, len(merge_calls))
+        self.assertEqual("codex", merge_calls[0]["agent"])
+        self.assertEqual(1, len(final_review_calls))
+        self.assertEqual("claude", final_review_calls[0]["agent"])
+        worker_state = result.data["task_packet"]["worker_orchestration"]
+        self.assertIn("merge_review_status", worker_state)
+        self.assertEqual("passed", worker_state["merge_review_status"])
+
+    def test_worker_merge_and_final_review_prompts_are_bounded(self) -> None:
+        large_worker_content = "worker-output-" + ("x" * 20000)
+        large_merge_content = "merge-output-" + ("y" * 20000)
+
+        class LargeOutputOrchestrator(WorkerCaptureOrchestrator):
+            def _execute_runtime_agent(
+                self,
+                agent_name: str,
+                prompt: str,
+                cwd: Path,
+                runtime_options: dict[str, Any] | None = None,
+                profile_directive: str | None = None,
+            ) -> BridgeResponse:
+                self.runtime_calls.append(
+                    {
+                        "agent": agent_name,
+                        "prompt": prompt,
+                        "runtime_options": dict(runtime_options or {}),
+                        "profile_directive": profile_directive or "",
+                    }
+                )
+                if "Worker packet (JSON):" in prompt:
+                    return BridgeResponse(
+                        success=True,
+                        model=agent_name,
+                        content=large_worker_content,
+                    )
+                if prompt.startswith("Merge worker results for this Qiongli task."):
+                    return BridgeResponse(
+                        success=True,
+                        model=agent_name,
+                        content=large_merge_content,
+                    )
+                return BridgeResponse(success=True, model=agent_name, content=f"{agent_name} ok")
+
+        orchestrator = LargeOutputOrchestrator()
+        result = orchestrator.task_run(
+            task_id="B1",
+            paper_type="systematic-review",
+            topic="worker-large-prompts",
+            cwd=REPO_ROOT,
+            skip_validation=True,
+            execution_mode="duo",
+            controller="codex",
+            primary_agent="codex",
+            review_agent="claude",
+            worker_mode="delegated-workers",
+            worker_adapter="generic-prompt",
+            max_workers=2,
+        )
+
+        merge_prompt = next(
+            call["prompt"]
+            for call in orchestrator.runtime_calls
+            if call["prompt"].startswith("Merge worker results for this Qiongli task.")
+        )
+        final_review_prompt = next(
+            call["prompt"]
+            for call in orchestrator.runtime_calls
+            if call["prompt"].startswith("Final-review the merged worker output.")
+        )
+
+        self.assertNotIn(large_worker_content, merge_prompt)
+        self.assertIn("worker-output-" + ("x" * 100), merge_prompt)
+        self.assertIn("truncated", merge_prompt.lower())
+        self.assertIn(str(len(large_worker_content)), merge_prompt)
+        self.assertNotIn(large_merge_content, final_review_prompt)
+        self.assertIn("merge-output-" + ("y" * 100), final_review_prompt)
+        self.assertIn("truncated", final_review_prompt.lower())
+        for prompt in (merge_prompt, final_review_prompt):
+            self.assertNotIn('"merge_content"', prompt)
+            self.assertNotIn('"merge_review_content"', prompt)
+            self.assertNotIn('"worker_orchestration"', prompt)
+        self.assertNotIn(large_worker_content, result.merged_analysis)
+        self.assertNotIn(large_merge_content, result.merged_analysis)
+        self.assertIn("[truncated:", result.merged_analysis)
+
+        worker_state = result.data["task_packet"]["worker_orchestration"]
+        first_worker_result = worker_state["worker_results"][0]
+        self.assertTrue(first_worker_result["content_truncated"])
+        self.assertEqual(
+            len(large_worker_content),
+            first_worker_result["content_original_length"],
+        )
+        self.assertTrue(worker_state["merge_content_truncated"])
+        self.assertEqual(
+            len(large_merge_content),
+            worker_state["merge_content_original_length"],
+        )
+
     def test_worker_barrier_degrades_when_allowed(self) -> None:
         class OneWorkerFailsOrchestrator(WorkerCaptureOrchestrator):
             def _execute_runtime_agent(
