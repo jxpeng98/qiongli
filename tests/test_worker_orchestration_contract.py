@@ -286,6 +286,25 @@ class WorkerOrchestrationContractTests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertIn(marker, text)
 
+    def test_worker_orchestration_docs_describe_contract_and_fallbacks(self) -> None:
+        docs = {
+            "multi_agent": REPO_ROOT / "docs" / "guide" / "multi-agent.md",
+            "controller_modes": REPO_ROOT / "docs" / "advanced" / "controller-modes.md",
+            "collaboration": REPO_ROOT / "docs" / "advanced" / "agent-skill-collaboration.md",
+            "platform_routing": LAYOUT.workflow / "references" / "platform-routing.md",
+        }
+        required_terms = {
+            "worker_plan",
+            "generic_prompt",
+            "codex_subagent",
+            "claude_cowork",
+        }
+        for name, path in docs.items():
+            with self.subTest(name=name):
+                text = path.read_text(encoding="utf-8")
+                for term in required_terms:
+                    self.assertIn(term, text)
+
 
 if __name__ == "__main__":
     unittest.main()

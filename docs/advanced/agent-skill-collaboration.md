@@ -17,7 +17,13 @@ First, bind the capability to a standard Task ID (`A1`~`I8`):
 - **Submission & Rebuttal**: `H1`~`H4`
 - **Code & Replication**: `I1`~`I8` (Includes CCG strict-constraint code engine)
 
-Once the target task is determined, you can reuse the unified orchestration chain: `plan -> mcp-evidence -> primary-agent-draft -> review-agent-check -> validator-gate`.
+Once the target task is determined, use the matching orchestration chain:
+
+- Standard: `plan -> mcp-evidence -> primary-agent-draft -> review-agent-check -> validator-gate`
+- Worker-enabled: `plan -> mcp-evidence -> worker_plan -> worker-execute -> merge -> final-review -> validator-gate`
+
+`worker_plan` is platform-neutral: Codex maps it to `codex_subagent`, Claude
+maps it to `claude_cowork`, and any runtime can fall back to `generic_prompt`.
 
 ## 2) Division of Labor Principles (Fixed)
 

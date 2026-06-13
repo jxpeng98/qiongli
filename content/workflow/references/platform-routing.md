@@ -117,6 +117,19 @@ challenged like Reviewer 2, or checked for fatal flaws.
 - Orchestrator runs should carry boundary decisions and stage handoff risks into
   downstream agents rather than resetting context.
 
+## Worker Adapter Routing
+
+When `task-run` includes worker orchestration, use the canonical `worker_plan`.
+Adapters only change dispatch mechanics:
+
+- `generic_prompt`: portable packet for any runtime or manual dispatch.
+- `codex_subagent`: Codex native subagent dispatch when available.
+- `claude_cowork`: Claude native cowork dispatch when available.
+
+If native dispatch is unavailable, record the degradation and run the same packet
+through `generic_prompt`. Do not change Task IDs, outputs, quality gates,
+required skills, or MCP evidence when switching adapters.
+
 ## Portable Skill Installs
 
 - `qiongli-workflow` portable packages must include this routing contract.

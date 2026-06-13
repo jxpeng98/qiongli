@@ -219,6 +219,33 @@ python3 -m bridges.orchestrator task-run \
 
 In triad mode, Gemini is just one participant in the runtime plan. If Gemini transport resolves to broker, the orchestrator sends Gemini work to the broker while Codex and Claude continue to run directly.
 
+### Worker orchestration
+
+Worker orchestration sits below runtime collaboration. `--controller`,
+`--primary`, and `--reviewer` choose runtime accountability and the main draft
+and review agents. `--worker-mode`, `--worker-adapter`, and `--max-workers`
+decide whether the controller creates a `worker_plan` that splits a Task ID into
+scoped in-platform workers before merge and final review.
+
+```bash
+python3 -m bridges.orchestrator task-run \
+  --task-id B1 \
+  --paper-type systematic-review \
+  --topic my-topic \
+  --cwd . \
+  --execution-mode duo \
+  --controller codex \
+  --primary codex \
+  --reviewer claude \
+  --worker-mode delegated-workers \
+  --worker-adapter generic-prompt \
+  --max-workers 2
+```
+
+The canonical adapter names are `generic_prompt`, `codex_subagent`, and
+`claude_cowork`. If native dispatch is unavailable, the run degrades to
+`generic_prompt` and records a routing note before merge/final-review.
+
 ### `parallel`
 
 Use this when you want independent drafts or reviews from multiple agents. The orchestrator preflights each runtime before spending tokens on a large prompt. That means a broken Gemini direct path no longer needs to consume the full review prompt if broker routing is available.

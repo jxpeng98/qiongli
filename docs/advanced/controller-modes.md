@@ -27,6 +27,21 @@ Invalid values are rejected by the CLI parser. Use `--mcp-strict` and `--skills-
 
 Fallback behavior is explicit: if a declared runtime fails preflight, the result includes `Runtime agent '<agent>' unavailable` and `Runtime routed agent '<from>' to '<to>'`.
 
+## Worker Delegation Semantics
+
+Controller mode and worker orchestration are separate layers. Controller mode
+chooses runtime accountability for the task-run; worker orchestration decides
+whether that controller creates a limited `worker_plan` before merge and final
+review.
+
+Use `--worker-mode`, `--worker-adapter`, and `--max-workers` to create and limit
+the `worker_plan`. The canonical adapter names are `generic_prompt`,
+`codex_subagent`, and `claude_cowork`.
+
+Native Codex subagent or Claude cowork execution is an adapter detail. Task IDs,
+skills, MCP evidence, artifacts, and quality gates remain unchanged when the
+adapter changes or degrades.
+
 ## Codex-Primary Mode
 
 Use Codex-primary mode when implementation control, reproducibility, or diff inspection is the main risk.
