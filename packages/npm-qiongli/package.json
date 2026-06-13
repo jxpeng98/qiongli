@@ -1,6 +1,6 @@
 {
   "name": "qiongli",
-  "version": "1.3.0",
+  "version": "1.4.0-beta.1",
   "description": "Qiongli academic research workflow installer and optional Python bridge runtime.",
   "author": {
     "name": "Jiaxin Peng",
