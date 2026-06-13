@@ -13,30 +13,27 @@
 
 ## 官方 Plugin 接入
 
-公开的官方 marketplace 条目现在由 `jxpeng98/skillsplace` 统一维护，并指向稳定的 Qiongli plugin payload：
+公开的官方 marketplace 条目现在由 `jxpeng98/skillsplace` 统一维护，并指向稳定的、生成后的 Qiongli plugin payload：
 
 - Marketplace repository: `https://github.com/jxpeng98/skillsplace`
 - Qiongli repository: `https://github.com/jxpeng98/qiongli`
-- Plugin subdirectory: `packages/qiongli-plugin`
-- Codex manifest: `packages/qiongli-plugin/.codex-plugin/plugin.json`
-- Claude Code manifest: `packages/qiongli-plugin/.claude-plugin/plugin.json`
-- Gemini extension manifest: `packages/qiongli-plugin/gemini-extension.json`
+- Stable Codex artifact: `qiongli-core-codex-plugin-<tag>.tar.gz`
+- Stable Claude Code artifact: `qiongli-core-claude-plugin-<tag>.tar.gz` 或 `.zip`
+- Stable Gemini artifact: `qiongli-gemini-extension-<tag>.tar.gz`
+- Stable generated payload root: `plugins/qiongli/`
 
 Skillsplace catalog 应跟踪 `main` 和 release tag，而不是 `dev`。`dev` 用于本地 plugin packaging 测试和预发布验证，验证完成后再更新统一 marketplace 入口。本仓库不再携带 Codex 或 Claude marketplace catalog 文件，只负责 plugin manifest，并从 canonical source materialize release payload。
 
-预发布 tag 会发布 `qiongli-next` 测试通道，而不是完整的 stable marketplace matrix。Codex 侧的 beta marketplace 安装需要一个可由 Skillsplace 通过 Git 子目录安装的源目录：
+预发布 tag 会发布 `qiongli-next` 测试通道，而不是完整的 stable marketplace matrix。生成的 next artifacts 是：
 
 - `qiongli-next-codex-plugin-<tag>.tar.gz`
 - `qiongli-next-claude-plugin-<tag>.tar.gz`
 - `qiongli-next-claude-plugin-<tag>.zip`
 - `qiongli-next-claude-desktop-skill-core-<tag>.zip`
 
-- Prerelease plugin subdirectory: `packages/qiongli-next-plugin`
-- Codex beta manifest: `packages/qiongli-next-plugin/.codex-plugin/plugin.json`
-- Required manifest name: `qiongli-next`
-- Required MCP server key: `qiongli-next`
+`qiongli-next` Codex 和 Claude Code plugin artifacts 只安装 `core/complete` skill package，并保留 bundled zero-dependency Node literature MCP runtime；不发布 subject-specific plugin variants。Claude plugin ZIP 与 Claude tarball 使用同一份 plugin payload，用于不接受 `.tar.gz` 的 Claude 上传路径。
 
-Release automation 会在版本准备阶段通过 `python3 scripts/materialize_distribution_payloads.py --target next-plugin --in-place` 从 canonical source 刷新这个受跟踪目录。该目录只包含 core Codex beta plugin 和 bundled literature MCP runtime，不发布 subject-specific plugin variants，也不替代 stable `packages/qiongli-plugin` 入口。Claude plugin ZIP 与 Claude tarball 使用同一份 plugin payload，用于不接受 `.tar.gz` 的 Claude 上传路径。`jxpeng98/skillsplace` 中的 `qiongli-next` 条目应指向这个目录的 beta tag。
+本仓库不再跟踪 stable 或 beta plugin payload 目录。`plugins/qiongli/`、`plugins/qiongli-next/`、`packages/qiongli-plugin/`、`packages/qiongli-next-plugin/` 都是生成形状。修改 `content/workflow/`、`content/distribution/plugins.yaml` 或 `tooling/scripts/build_plugin_artifacts.py`，然后 materialize 到 staging 目录做验证。
 
 ## 开发流程
 

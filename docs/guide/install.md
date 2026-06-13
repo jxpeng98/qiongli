@@ -82,10 +82,12 @@ qiongli mcp serve --transport stdio
 
 `qiongli_task_run` defaults to preview mode. It launches local Codex, Claude, or Gemini processes only when the MCP caller explicitly sends JSON boolean `run_agents: true` and the local runtime passes `doctor`.
 
-Gemini CLI still installs the local extension payload directly:
+Gemini CLI still installs the local extension payload directly. Build it from
+the canonical sources into a staging directory first:
 
 ```bash
-gemini extensions install ./path/to/qiongli/packages/qiongli-plugin
+python3 scripts/materialize_distribution_payloads.py --target plugin --out /tmp/qiongli-plugin --force
+gemini extensions install /tmp/qiongli-plugin/plugins/qiongli
 ```
 
 This path does not install the shell CLI, Python bridge, or global slash-command symlinks. Use bootstrap or npm when you need those.

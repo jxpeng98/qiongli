@@ -6,6 +6,7 @@ This page is the current source-layout contract for maintainers.
 /
   content/                  canonical academic content source
     workflow/               source for generated qiongli-workflow package
+    distribution/           plugin metadata source for generated plugin payloads
     skills/                 internal skill specs
     templates/              reusable artifact templates
     standards/              contracts, capability maps, policies
@@ -17,7 +18,6 @@ This page is the current source-layout contract for maintainers.
   packages/
     python-qiongli/         Python package source and compatibility shims
     npm-qiongli/            npm wrapper package source
-    qiongli-plugin/         plugin manifests, commands, platform assets
     qiongli-literature-mcpb/ MCPB package source
 
   tooling/
@@ -39,11 +39,14 @@ canonical source:
 
 - `qiongli-workflow/`
 - `plugins/qiongli/`
+- `plugins/qiongli-next/`
 - `.agent/`
 - `.gemini/`
 - `packages/python-qiongli/src/qiongli/payload/`
 - `packages/npm-qiongli/payload/`
 - `packages/npm-qiongli/python-runtime/`
+- `packages/qiongli-plugin/`
+- `packages/qiongli-next-plugin/`
 
 Use staged materialization to produce them:
 
@@ -57,7 +60,10 @@ python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qio
   `tooling/scripts/` unless the wrapper contract itself changes.
 - `research_skills` remains as a deprecated Python compatibility shim under
   `packages/python-qiongli/src/research_skills/`.
-- Root `.agent/` and `.gemini/` are generated from
-  `packages/qiongli-plugin/platforms/`.
+- Root `.agent/` and `.gemini/` are generated from `content/workflow/` and
+  `content/distribution/plugins.yaml`.
 - Root `qiongli-workflow/` is generated from `content/workflow/` plus synced
   content mirrors.
+- `plugins/qiongli/`, `plugins/qiongli-next/`, `packages/qiongli-plugin/`,
+  and `packages/qiongli-next-plugin/` are generated plugin payload shapes, not
+  source directories.

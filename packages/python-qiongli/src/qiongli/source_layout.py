@@ -11,7 +11,10 @@ GENERATED_OUTPUT_ROOTS = (
     Path("packages/python-qiongli/src/qiongli/payload"),
     Path("packages/npm-qiongli/payload"),
     Path("packages/npm-qiongli/python-runtime"),
+    Path("packages/qiongli-plugin"),
+    Path("packages/qiongli-next-plugin"),
     Path("plugins/qiongli"),
+    Path("plugins/qiongli-next"),
     Path("qiongli-workflow"),
     Path("content/workflow/skills"),
     Path("content/workflow/templates"),
@@ -126,13 +129,11 @@ class RepoLayout:
 
     @property
     def plugin_package(self) -> Path:
-        package_path = self.root / "packages" / "qiongli-plugin"
-        legacy_path = self.root / "plugins" / "qiongli"
-        return package_path if package_path.exists() else legacy_path
+        return self.root / "plugins" / "qiongli"
 
     @property
     def next_plugin_package(self) -> Path:
-        return self.root / "packages" / "qiongli-next-plugin"
+        return self.root / "plugins" / "qiongli-next"
 
     @property
     def plugin_artifact_package(self) -> Path:
@@ -140,15 +141,11 @@ class RepoLayout:
 
     @property
     def agent_platform(self) -> Path:
-        path = self.plugin_package / "platforms" / "agent"
-        legacy_path = self.root / ".agent"
-        return path if path.exists() else legacy_path
+        return self.root / ".agent"
 
     @property
     def gemini_platform(self) -> Path:
-        path = self.plugin_package / "platforms" / "gemini"
-        legacy_path = self.root / ".gemini"
-        return path if path.exists() else legacy_path
+        return self.root / ".gemini"
 
     @property
     def agent_platform_artifact(self) -> Path:
@@ -232,9 +229,11 @@ class RepoLayout:
 
         first = parts[0]
         rest = Path(*parts[1:]) if len(parts) > 1 else Path()
+        if first == ".agent" and len(parts) >= 2 and parts[1] == "workflows":
+            return self.workflow / "workflows" / Path(*parts[2:])
+        if first == ".gemini" and rest == Path("qiongli.md"):
+            return self.content / "distribution" / "plugins.yaml"
         source_roots = {
-            ".agent": self.agent_platform,
-            ".gemini": self.gemini_platform,
             "qiongli-workflow": self.workflow,
             "skills": self.skills,
             "templates": self.templates,

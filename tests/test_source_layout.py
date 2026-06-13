@@ -42,9 +42,6 @@ class SourceLayoutTests(unittest.TestCase):
             layout.bridges_package,
             layout.bridges_compat_package,
             layout.npm_package,
-            layout.plugin_package,
-            layout.agent_platform,
-            layout.gemini_platform,
             layout.literature_mcpb_package,
             layout.tooling,
             layout.pipelines,
@@ -70,7 +67,10 @@ class SourceLayoutTests(unittest.TestCase):
         self.assertIn(Path(".gemini"), layout.generated_output_roots)
         self.assertIn(Path("packages/python-qiongli/src/qiongli/payload"), layout.generated_output_roots)
         self.assertIn(Path("packages/npm-qiongli/payload"), layout.generated_output_roots)
+        self.assertIn(Path("packages/qiongli-plugin"), layout.generated_output_roots)
+        self.assertIn(Path("packages/qiongli-next-plugin"), layout.generated_output_roots)
         self.assertIn(Path("plugins/qiongli"), layout.generated_output_roots)
+        self.assertIn(Path("plugins/qiongli-next"), layout.generated_output_roots)
         self.assertIn(Path("qiongli-workflow"), layout.generated_output_roots)
         self.assertIn(Path("content/workflow/skills"), layout.generated_output_roots)
         self.assertIn(Path("content/workflow/templates"), layout.generated_output_roots)
@@ -84,11 +84,15 @@ class SourceLayoutTests(unittest.TestCase):
             layout.resolve_source_path("qiongli-workflow/references/workflow-contract.md"),
         )
         self.assertEqual(
-            layout.agent_platform / "workflows" / "paper.md",
+            layout.workflow / "workflows" / "paper.md",
             layout.resolve_source_path(".agent/workflows/paper.md"),
         )
         self.assertEqual(
-            layout.gemini_platform / "qiongli.md",
+            layout.workflow / "workflows",
+            layout.resolve_source_path(".agent/workflows"),
+        )
+        self.assertEqual(
+            layout.content / "distribution" / "plugins.yaml",
             layout.resolve_source_path(".gemini/qiongli.md"),
         )
         self.assertEqual(

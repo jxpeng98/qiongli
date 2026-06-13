@@ -257,18 +257,18 @@ Source credit: [Matt Pocock's skills repository](https://github.com/mattpocock/s
 | Path | Role |
 |---|---|
 | `content/workflow/` | Portable skill package source: `SKILL.md`, workflows, references, agents, standards |
+| `content/distribution/` | Canonical plugin metadata for generated Codex/Claude Code/Gemini payloads |
 | `content/skills/` | Canonical academic capability cards and registry |
 | `content/subjects/` | Subject catalog, overlays, subject-specific skills, and materialization rules |
 | `content/templates/` | Research artifact templates |
 | `content/standards/` | Canonical contracts including `standards/research-workflow-contract.yaml`, `standards/mcp-agent-capability-map.yaml`, schemas, and quality gates |
 | `packages/python-qiongli/` | Python CLI/runtime package and bridge modules |
 | `packages/npm-qiongli/` | npm installer, bundled payload, and Python bridge entry |
-| `packages/qiongli-plugin/` | Codex/Claude Code/Gemini plugin source and bundled literature MCP runtime |
 | `packages/qiongli-literature-mcpb/` | Claude Desktop literature-provider MCPB package source |
 | `docs/` | User, advanced, reference, architecture, and maintainer documentation |
 | `tests/` | Contract, materialization, MCP, runtime, package, and orchestration tests |
 
-Generated outputs are intentionally not normal feature-review targets. Normal feature PRs should update canonical source, tests, and documentation only. Release automation performs staged materialization into temporary roots, and subject changes should keep staged materialization plus npm package contract tests up to date.
+Generated outputs are intentionally not normal feature-review targets. Normal feature PRs should update canonical source, tests, and documentation only. Release automation performs staged materialization into temporary roots, including `plugins/qiongli/`, `plugins/qiongli-next/`, `packages/qiongli-plugin/`, and `packages/qiongli-next-plugin/`.
 
 When adding or deepening a subject, update `content/subjects/catalog.yaml`, subject overlays, subject-specific registry/markdown, selected profiles, eval fixtures, specialization audit expected terms, materializer tests, npm package contract tests against staged materialization, and release validation if the subject has a Desktop/Web artifact.
 

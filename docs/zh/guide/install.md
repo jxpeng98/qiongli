@@ -69,10 +69,11 @@ Release ZIP 使用 `coverage=focused`，用于保持当前 180 文件上传预�
 
 独立的 Qiongli Literature Provider `.mcpb`（`qiongli-literature-provider.mcpb`）才是 Claude Desktop 本地 provider asset。它在本地运行 Desktop literature search，支持 OpenAlex 和 Semantic Scholar，并通过 Desktop 配置 UI 填写 OpenAlex API key、可选 OpenAlex email 和 Semantic Scholar API key；敏感 key 交给 Claude Desktop sensitive-field handling，不写入 Desktop skill ZIP。这个 MCPB 自带零依赖 Node stdio server，所以 Desktop 用户不需要安装 `qiongli` CLI 或运行 npm install。CLI、Codex 和 Claude Code 用户仍然可以运行 `qiongli provider setup`，再用 `qiongli provider doctor` 检查当前是 `provider_connected` 还是 `strategy_only`。Desktop 用户需要 `qiongli-literature-provider` MCPB 或平台原生搜索能力，才能声称 `provider_connected`；如果没有 MCPB 或平台原生搜索能力，就把运行记录为 `strategy_only`，并把平台搜索或用户提供的 corpus 作为证据来源。
 
-Gemini CLI 仍然直接安装本地 extension payload：
+Gemini CLI 仍然直接安装本地 extension payload。先从 canonical source materialize 到 staging 目录：
 
 ```bash
-gemini extensions install ./path/to/qiongli/packages/qiongli-plugin
+python3 scripts/materialize_distribution_payloads.py --target plugin --out /tmp/qiongli-plugin --force
+gemini extensions install /tmp/qiongli-plugin/plugins/qiongli
 ```
 
 这条路径不会安装 shell CLI、Python bridge 或全局 slash-command symlinks。需要这些能力时，用 bootstrap 或 npm。
