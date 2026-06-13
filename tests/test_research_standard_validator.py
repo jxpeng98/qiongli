@@ -24,6 +24,11 @@ class ResearchStandardValidatorTests(unittest.TestCase):
 
         joined = "\n".join(report.errors)
         self.assertIn("standards/agent-run-contract.yaml", joined)
+        self.assertIn("standards/worker-orchestration-contract.yaml", joined)
+        self.assertIn("templates/worker-run-packet.json", joined)
+        self.assertIn("templates/worker-review-packet.md", joined)
+        self.assertIn("templates/worker-merge-report.md", joined)
+        self.assertIn("tests/test_worker_orchestration_contract.py", joined)
         self.assertIn("scripts/audit_solo_role_gates.py", joined)
 
     def test_non_strict_controller_mode_contract_does_not_require_files(self) -> None:
@@ -189,6 +194,11 @@ class ResearchStandardValidatorTests(unittest.TestCase):
                 "templates/implementation-intent.md",
                 "templates/writing-claim-map.md",
                 "templates/quality-gate-report.md",
+                "templates/worker-run-packet.json",
+                "templates/worker-review-packet.md",
+                "templates/worker-merge-report.md",
+                "standards/worker-orchestration-contract.yaml",
+                "tests/test_worker_orchestration_contract.py",
                 "scripts/audit_solo_role_gates.py",
                 "scripts/audit_agent_handoffs.py",
             ):
