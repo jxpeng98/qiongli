@@ -177,7 +177,7 @@ def _add_worker_orchestration_task_run_args(parser: argparse.ArgumentParser) -> 
         "--worker-mode",
         choices=WORKER_MODE_CHOICES,
         default="none",
-        help="Worker orchestration mode metadata (execution is disabled in this release).",
+        help="Worker orchestration mode; defaults to disabled unless explicitly requested.",
     )
     parser.add_argument(
         "--worker-adapter",
@@ -3650,6 +3650,452 @@ Stage-I structure checks:
             "max_workers": normalized_max_workers,
         }
 
+    def _load_worker_orchestration_config(self, task_id: str) -> dict[str, Any]:
+        """Load worker_orchestration_config for a task from the capability map."""
+        capability_map = self._load_yaml("mcp-agent-capability-map.yaml")
+        worker_config = capability_map.get("worker_orchestration_config", {})
+        if not isinstance(worker_config, dict):
+            return {}
+
+        block = worker_config.get(task_id)
+        if not isinstance(block, dict):
+            return {}
+
+        worker_pool = [
+            str(worker).strip()
+            for worker in block.get("worker_pool", [])
+            if str(worker).strip()
+        ]
+        adapter_preference: dict[str, str] = {}
+        raw_adapter_preference = block.get("adapter_preference", {})
+        if isinstance(raw_adapter_preference, dict):
+            for runtime_agent in RUNTIME_AGENT_CHOICES:
+                adapter_preference[runtime_agent] = self._normalize_worker_adapter(
+                    str(raw_adapter_preference.get(runtime_agent, "generic_prompt"))
+                )
+
+        raw_barrier_rules = block.get("barrier_rules", {})
+        barrier_rules = raw_barrier_rules if isinstance(raw_barrier_rules, dict) else {}
+        raw_max_workers = block.get("max_workers", len(worker_pool) or 1)
+        config_max_workers = (
+            raw_max_workers
+            if type(raw_max_workers) is int and raw_max_workers > 0
+            else len(worker_pool) or 1
+        )
+
+        return {
+            "default_mode": self._normalize_worker_mode(
+                str(block.get("default_mode", "none"))
+            ),
+            "adapter_preference": adapter_preference,
+            "partition_strategy": str(block.get("partition_strategy", "")).strip(),
+            "max_workers": config_max_workers,
+            "worker_pool": worker_pool,
+            "merge_policy": str(block.get("merge_policy", "")).strip(),
+            "barrier_rules": {
+                "min_success_ratio": float(barrier_rules.get("min_success_ratio", 1.0)),
+                "on_failure": str(barrier_rules.get("on_failure", "block")).strip() or "block",
+            },
+        }
+
+    def _build_skipped_worker_orchestration(
+        self,
+        *,
+        task_id: str,
+        worker_mode: str | None,
+        worker_adapter: str | None,
+        max_workers: int | None,
+        reason: str,
+    ) -> dict[str, Any]:
+        requested_mode = self._normalize_worker_mode(worker_mode)
+        requested_adapter = self._normalize_worker_adapter(worker_adapter)
+        normalized_max_workers = self._normalize_max_workers(max_workers)
+        return {
+            "mode": requested_mode if requested_mode != "auto" else "none",
+            "status": "skipped",
+            "adapter": "none",
+            "workers": [],
+            "worker_results": [],
+            "barrier_status": "skipped",
+            "notes": [f"Worker orchestration skipped for {task_id}: {reason}."],
+            "requested_mode": requested_mode,
+            "requested_adapter": requested_adapter,
+            "max_workers": normalized_max_workers,
+        }
+
+    def _resolve_worker_orchestration_adapter(
+        self,
+        *,
+        requested_adapter: str,
+        controller_runtime: str,
+        worker_config: dict[str, Any],
+    ) -> tuple[str, list[str]]:
+        notes: list[str] = []
+        if requested_adapter == "auto":
+            adapter_preference = worker_config.get("adapter_preference", {})
+            preferred_adapter = "generic_prompt"
+            if isinstance(adapter_preference, dict):
+                preferred_adapter = str(
+                    adapter_preference.get(controller_runtime, "generic_prompt")
+                )
+            preferred_adapter = self._normalize_worker_adapter(preferred_adapter)
+            notes.append(
+                "Worker adapter auto resolved for controller "
+                f"{controller_runtime}: {preferred_adapter}."
+            )
+        else:
+            preferred_adapter = requested_adapter
+
+        if preferred_adapter in {"codex_subagent", "claude_cowork"}:
+            notes.append(
+                f"Worker adapter {preferred_adapter} is recognized, but native dispatch "
+                "is not implemented yet; routing workers through generic_prompt."
+            )
+            return "generic_prompt", notes
+
+        return "generic_prompt", notes
+
+    def _worker_artifact_root(self, task_packet: dict[str, Any]) -> str:
+        artifact_root = str(task_packet.get("artifact_root", "")).strip()
+        topic = str(task_packet.get("topic", "")).strip()
+        if topic:
+            artifact_root = artifact_root.replace("[topic]", topic)
+        return artifact_root.rstrip("/")
+
+    @staticmethod
+    def _unique_strings(items: list[Any]) -> list[str]:
+        seen: set[str] = set()
+        result: list[str] = []
+        for item in items:
+            value = str(item).strip()
+            if not value or value in seen:
+                continue
+            seen.add(value)
+            result.append(value)
+        return result
+
+    def _build_worker_orchestration_plan(
+        self,
+        *,
+        task_packet: dict[str, Any],
+        worker_config: dict[str, Any],
+        requested_mode: str,
+        requested_adapter: str,
+        max_workers: int | None,
+        controller_runtime: str,
+    ) -> dict[str, Any]:
+        mode = (
+            str(worker_config.get("default_mode", "none"))
+            if requested_mode == "auto"
+            else requested_mode
+        )
+        mode = self._normalize_worker_mode(mode)
+        adapter, adapter_notes = self._resolve_worker_orchestration_adapter(
+            requested_adapter=requested_adapter,
+            controller_runtime=controller_runtime,
+            worker_config=worker_config,
+        )
+        normalized_max_workers = self._normalize_max_workers(max_workers)
+        configured_limit = int(worker_config.get("max_workers", 1) or 1)
+        worker_limit = normalized_max_workers or configured_limit
+        worker_pool = [
+            str(worker).strip()
+            for worker in worker_config.get("worker_pool", [])
+            if str(worker).strip()
+        ][:worker_limit]
+
+        artifact_root = self._worker_artifact_root(task_packet)
+        forbidden_artifacts = self._unique_strings(
+            list(task_packet.get("required_outputs", []))
+            + list(task_packet.get("contract_required_outputs", []))
+        )
+        workers: list[dict[str, Any]] = []
+        for worker_id in worker_pool:
+            worker_root = f"{artifact_root}/workers/{worker_id}/" if artifact_root else f"workers/{worker_id}/"
+            workers.append(
+                {
+                    "id": worker_id,
+                    "goal": (
+                        f"Execute scoped {task_packet.get('task_id', '')} worker "
+                        f"analysis for {task_packet.get('topic', '')}."
+                    ),
+                    "functional_role": worker_id,
+                    "required_skills": list(task_packet.get("required_skills", [])),
+                    "required_mcp": list(task_packet.get("required_mcp", [])),
+                    "allowed_artifacts": [worker_root],
+                    "forbidden_artifacts": forbidden_artifacts,
+                    "review_required": True,
+                    "stop_conditions": [
+                        "Stop before writing any forbidden artifact directly.",
+                        "Stop if required MCP evidence is unavailable for the assigned scope.",
+                        "Stop if the worker scope cannot be completed without changing canonical outputs.",
+                    ],
+                    "worker_root": worker_root,
+                    "status": "planned",
+                }
+            )
+
+        return {
+            "mode": mode,
+            "status": "planned",
+            "adapter": adapter,
+            "requested_mode": requested_mode,
+            "requested_adapter": requested_adapter,
+            "max_workers": normalized_max_workers,
+            "controller_runtime": controller_runtime,
+            "platform_adapter": adapter,
+            "partition_strategy": str(worker_config.get("partition_strategy", "")),
+            "merge_policy": str(worker_config.get("merge_policy", "")),
+            "barrier_rules": dict(worker_config.get("barrier_rules", {})),
+            "barrier_status": "pending",
+            "workers": workers,
+            "worker_results": [],
+            "notes": adapter_notes,
+        }
+
+    def _build_worker_orchestration_prompt(
+        self,
+        *,
+        worker: dict[str, Any],
+        worker_state: dict[str, Any],
+        task_packet: dict[str, Any],
+        mcp_evidence: list[MCPEvidence],
+        skill_cards: list[dict[str, Any]],
+    ) -> str:
+        worker_packet = {
+            "run_id": worker_state.get(
+                "run_id",
+                f"{task_packet.get('task_id', 'task')}-{task_packet.get('topic', 'topic')}",
+            ),
+            "worker_id": worker["id"],
+            "controller_runtime": worker_state.get("controller_runtime", ""),
+            "platform_adapter": worker_state.get("adapter", "generic_prompt"),
+            "task_id": task_packet.get("task_id", ""),
+            "paper_type": task_packet.get("paper_type", ""),
+            "topic": task_packet.get("topic", ""),
+            "goal": worker.get("goal", ""),
+            "functional_role": worker.get("functional_role", ""),
+            "required_skills": list(worker.get("required_skills", [])),
+            "required_mcp": list(worker.get("required_mcp", [])),
+            "allowed_artifacts": list(worker.get("allowed_artifacts", [])),
+            "forbidden_artifacts": list(worker.get("forbidden_artifacts", [])),
+            "artifacts_read": [],
+            "artifacts_written": [],
+            "warnings": [],
+            "blocking_issues": [],
+            "status": "running",
+            "confidence": 0.0,
+        }
+        forbidden_lines = "\n".join(
+            f"  - {artifact}" for artifact in worker_packet["forbidden_artifacts"]
+        ) or "  - <none>"
+        allowed_lines = "\n".join(
+            f"  - {artifact}" for artifact in worker_packet["allowed_artifacts"]
+        ) or "  - <none>"
+        prompt_task_packet = dict(task_packet)
+        prompt_task_packet["worker_orchestration"] = {
+            key: value
+            for key, value in worker_state.items()
+            if key not in {"workers", "worker_results"}
+        }
+        prompt_task_packet["worker_orchestration"]["workers"] = [dict(worker)]
+
+        return f"""You are a scoped worker running under the task controller.
+Complete only the assigned worker packet and return findings to the controller.
+
+Worker packet (JSON):
+{json.dumps(worker_packet, ensure_ascii=False, indent=2)}
+
+Task packet (JSON):
+{json.dumps(prompt_task_packet, ensure_ascii=False, indent=2)}
+
+MCP evidence:
+{self._format_mcp_evidence(mcp_evidence)}
+
+Required skill cards:
+{self._format_skill_context(skill_cards)}
+
+Allowed artifacts:
+{allowed_lines}
+
+Forbidden artifacts:
+{forbidden_lines}
+
+Rules:
+1. Do not write directly to any path in forbidden_artifacts.
+2. If you write artifacts, write only under allowed_artifacts.
+3. Treat task packet required outputs as canonical controller-owned artifacts.
+4. Cite MCP evidence and skill-card constraints for any substantive finding.
+5. Return status, confidence, artifacts read/written, blocking issues, and concise content.
+"""
+
+    def _execute_generic_worker_plan(
+        self,
+        *,
+        worker_state: dict[str, Any],
+        task_packet: dict[str, Any],
+        mcp_evidence: list[MCPEvidence],
+        skill_cards: list[dict[str, Any]],
+        cwd: Path,
+        runtime_options: dict[str, Any],
+        profile_directive: str,
+    ) -> list[dict[str, Any]]:
+        controller_runtime = str(worker_state.get("controller_runtime", "codex")) or "codex"
+        results: list[dict[str, Any]] = []
+        for worker in worker_state.get("workers", []):
+            prompt = self._build_worker_orchestration_prompt(
+                worker=worker,
+                worker_state=worker_state,
+                task_packet=task_packet,
+                mcp_evidence=mcp_evidence,
+                skill_cards=skill_cards,
+            )
+            response = self._execute_runtime_agent(
+                controller_runtime,
+                prompt,
+                cwd,
+                dict(runtime_options),
+                profile_directive,
+            )
+            status = "passed" if response.success else "failed"
+            result = {
+                "worker_id": worker.get("id", ""),
+                "agent": controller_runtime,
+                "success": bool(response.success),
+                "status": status,
+                "content": response.content if response.success else "",
+                "error": response.error if not response.success else None,
+                "confidence": 0.8 if response.success else 0.0,
+            }
+            worker.update(
+                {
+                    "agent": controller_runtime,
+                    "status": status,
+                    "confidence": result["confidence"],
+                }
+            )
+            results.append(result)
+        return results
+
+    def _apply_worker_barrier(
+        self,
+        worker_results: list[dict[str, Any]],
+        barrier_rules: dict[str, Any],
+    ) -> tuple[str, list[str]]:
+        total = len(worker_results)
+        if not total:
+            return "blocked", ["No workers were dispatched."]
+
+        successes = [result for result in worker_results if result.get("success")]
+        failures = [result for result in worker_results if not result.get("success")]
+        notes = [
+            "Worker "
+            f"{result.get('worker_id', '<unknown>')} failed "
+            f"({result.get('agent', '?')}): {result.get('error') or 'unknown'}"
+            for result in failures
+        ]
+
+        if not failures:
+            return "ok", notes
+
+        on_failure = str(barrier_rules.get("on_failure", "block")).strip() or "block"
+        min_success_ratio = float(barrier_rules.get("min_success_ratio", 1.0))
+        if on_failure == "block":
+            notes.append("Worker barrier policy=block: halting because at least one worker failed.")
+            return "blocked", notes
+
+        success_ratio = len(successes) / total
+        if on_failure == "degrade" and success_ratio >= min_success_ratio:
+            notes.append(
+                f"Worker barrier policy=degrade: {len(successes)}/{total} workers "
+                f"succeeded (ratio={success_ratio:.2f} >= {min_success_ratio:.2f})."
+            )
+            return "degraded", notes
+
+        notes.append(
+            f"Worker barrier policy={on_failure}: {len(successes)}/{total} workers "
+            f"succeeded (ratio={success_ratio:.2f} < {min_success_ratio:.2f})."
+        )
+        return "blocked", notes
+
+    def _run_worker_orchestration(
+        self,
+        *,
+        task_id: str,
+        task_packet: dict[str, Any],
+        worker_mode: str | None,
+        worker_adapter: str | None,
+        max_workers: int | None,
+        controller_runtime: str,
+        mcp_evidence: list[MCPEvidence],
+        skill_cards: list[dict[str, Any]],
+        cwd: Path,
+        runtime_options: dict[str, Any],
+        profile_directive: str,
+    ) -> dict[str, Any]:
+        requested_mode = self._normalize_worker_mode(worker_mode)
+        if requested_mode == "none":
+            return self._build_disabled_worker_orchestration(
+                worker_mode=worker_mode,
+                worker_adapter=worker_adapter,
+                max_workers=max_workers,
+            )
+
+        requested_adapter = self._normalize_worker_adapter(worker_adapter)
+        worker_config = self._load_worker_orchestration_config(task_id)
+        if not worker_config:
+            return self._build_skipped_worker_orchestration(
+                task_id=task_id,
+                worker_mode=worker_mode,
+                worker_adapter=worker_adapter,
+                max_workers=max_workers,
+                reason="no worker_orchestration_config entry",
+            )
+
+        worker_state = self._build_worker_orchestration_plan(
+            task_packet=task_packet,
+            worker_config=worker_config,
+            requested_mode=requested_mode,
+            requested_adapter=requested_adapter,
+            max_workers=max_workers,
+            controller_runtime=controller_runtime,
+        )
+        task_packet["worker_orchestration"] = worker_state
+
+        if worker_state.get("adapter") == "generic_prompt":
+            worker_results = self._execute_generic_worker_plan(
+                worker_state=worker_state,
+                task_packet=task_packet,
+                mcp_evidence=mcp_evidence,
+                skill_cards=skill_cards,
+                cwd=cwd,
+                runtime_options=runtime_options,
+                profile_directive=profile_directive,
+            )
+            worker_state["worker_results"] = worker_results
+
+        barrier_status, barrier_notes = self._apply_worker_barrier(
+            list(worker_state.get("worker_results", [])),
+            dict(worker_state.get("barrier_rules", {})),
+        )
+        worker_state["barrier_status"] = barrier_status
+        worker_state["status"] = "completed" if barrier_status in {"ok", "degraded"} else "blocked"
+        worker_state["notes"].extend(barrier_notes)
+        return worker_state
+
+    def _format_worker_orchestration_section(self, worker_state: dict[str, Any]) -> str:
+        lines = [
+            "## Worker Orchestration",
+            f"- Worker status: {worker_state.get('status', 'unknown')}",
+            f"- Worker mode: {worker_state.get('mode', 'none')}",
+            f"- Worker adapter: {worker_state.get('adapter', 'none')}",
+            f"- Worker barrier status: {worker_state.get('barrier_status', 'unknown')}",
+            f"- Workers: {len(worker_state.get('workers', []))}",
+        ]
+        for note in worker_state.get("notes", []):
+            lines.append(f"- {note}")
+        return "\n".join(lines)
+
     @staticmethod
     def _normalize_worker_mode(value: str | None) -> str:
         return ModelOrchestrator._normalize_worker_choice(
@@ -5569,6 +6015,110 @@ Return sections:
             for agent in self.RUNTIME_AGENTS
         }
 
+        worker_orchestration = self._run_worker_orchestration(
+            task_id=normalized_task,
+            task_packet=packet,
+            worker_mode=worker_mode,
+            worker_adapter=worker_adapter,
+            max_workers=max_workers,
+            controller_runtime=controller_metadata.get("controller", "codex") or "codex",
+            mcp_evidence=mcp_evidence,
+            skill_cards=packet.get("required_skill_cards", []),
+            cwd=cwd,
+            runtime_options=draft_runtime_options.get(
+                controller_metadata.get("controller", "codex") or "codex",
+                {},
+            ),
+            profile_directive=self._build_profile_directive(
+                selected_profiles["draft"],
+                draft_profile_cfg,
+                stage="draft",
+            ),
+        )
+        packet["worker_orchestration"] = worker_orchestration
+        if worker_orchestration.get("status") != "disabled":
+            routing_notes.append(
+                "Worker orchestration: "
+                f"status={worker_orchestration.get('status', 'unknown')}, "
+                f"barrier={worker_orchestration.get('barrier_status', 'unknown')}, "
+                f"workers={len(worker_orchestration.get('workers', []))}."
+            )
+        if worker_orchestration.get("barrier_status") == "blocked":
+            validator_gate_result = {
+                "passed": False,
+                "skipped": True,
+                "reason": "worker barrier blocked",
+                "found": [],
+                "missing": [],
+                "checked": len(required_outputs),
+                "expected_outputs": list(required_outputs),
+            }
+            routing_notes.append(
+                "Worker barrier BLOCKED: main draft/review execution and validator gate skipped."
+            )
+            review_loop_state = {
+                "enabled": bool(self_critique_loop.get("enabled")),
+                "status": "skipped",
+                "final_verdict": "NOT_RUN",
+                "reviews_completed": 0,
+                "revisions_attempted": 0,
+                "min_review_rounds": self_critique_loop.get("min_review_rounds", 1),
+                "max_revision_rounds": effective_max_rounds,
+                "stopped_reason": "worker barrier blocked",
+            }
+            merged_parts = [
+                plan_result.merged_analysis,
+                "",
+                get_text("task_packet"),
+                json.dumps(packet, ensure_ascii=False, indent=2),
+                "",
+                get_text("mcp_evidence"),
+                self._format_mcp_evidence(mcp_evidence),
+                "",
+                get_text("skill_cards"),
+                self._format_skill_context(packet.get("required_skill_cards", [])),
+                "",
+                get_text("agent_profiles"),
+                "\n".join(
+                    [
+                        f"- base: {selected_profiles['base']}",
+                        f"- draft: {selected_profiles['draft']}",
+                        f"- review: {selected_profiles['review']}",
+                        f"- triad: {selected_profiles['triad']}",
+                    ]
+                ),
+                "",
+                get_text("routing"),
+                "\n".join(f"- {item}" for item in routing_notes),
+                "",
+                self._format_worker_orchestration_section(worker_orchestration),
+            ]
+            merged = "\n".join(merged_parts)
+            return CollaborationResult(
+                mode="task-run",
+                task_description=f"{normalized_task} {paper_type} {normalized_topic}"[:200],
+                merged_analysis=merged,
+                confidence=0.0,
+                recommendations=self._extract_recommendations(merged),
+                data={
+                    "task_packet": packet,
+                    "routing_notes": list(routing_notes),
+                    "revision_history": [],
+                    "structured_output": {},
+                    "targeted_follow_up": {
+                        "enabled": bool(targeted_follow_up_data),
+                        "selected_targets": list(packet.get("selected_actionable_targets", [])),
+                        "available_targets": list(packet.get("available_actionable_targets", [])),
+                        "source_artifact": str(packet.get("structured_source_artifact", "")).strip(),
+                        "source_path": str(packet.get("structured_source_path", "")).strip(),
+                    },
+                    "self_critique_loop": dict(self_critique_loop),
+                    "review_loop_state": dict(review_loop_state),
+                    "boundary_review": dict(boundary_review),
+                    "validator_gate": dict(validator_gate_result),
+                },
+            )
+
         primary_runtime, primary_notes = self._resolve_runtime_agent(
             preferred_agent=effective_runtime_plan["primary_agent"],
             fallback_chain=[effective_runtime_plan["fallback_agent"]],
@@ -5921,6 +6471,13 @@ Return sections:
             "\n".join(f"- {item}" for item in routing_notes) if routing_notes else "- Direct mapping used.",
             "",
         ]
+        if worker_orchestration.get("status") != "disabled":
+            merged_parts.extend(
+                [
+                    self._format_worker_orchestration_section(worker_orchestration),
+                    "",
+                ]
+            )
         if structured_output:
             merged_parts.extend(
                 [

@@ -130,7 +130,7 @@ class WorkerOrchestrationRuntimeTests(unittest.TestCase):
             topic="worker-requested",
             cwd=REPO_ROOT,
             skip_validation=True,
-            worker_mode="delegated-workers",
+            worker_mode="none",
             worker_adapter="generic-prompt",
             max_workers=2,
         )
@@ -141,10 +141,7 @@ class WorkerOrchestrationRuntimeTests(unittest.TestCase):
         self.assertEqual("none", packet["worker_orchestration"]["adapter"])
         self.assertEqual([], packet["worker_orchestration"]["workers"])
         self.assertEqual(DISABLED_WORKER_NOTES, packet["worker_orchestration"]["notes"])
-        self.assertEqual(
-            "delegated_workers",
-            packet["worker_orchestration"]["requested_mode"],
-        )
+        self.assertEqual("none", packet["worker_orchestration"]["requested_mode"])
         self.assertEqual(
             "generic_prompt",
             packet["worker_orchestration"]["requested_adapter"],
@@ -184,6 +181,131 @@ class WorkerOrchestrationRuntimeTests(unittest.TestCase):
                 skip_validation=True,
                 max_workers=True,
             )
+
+    def test_task_run_builds_and_executes_generic_worker_plan_when_enabled(self) -> None:
+        orchestrator = WorkerCaptureOrchestrator()
+
+        result = orchestrator.task_run(
+            task_id="B1",
+            paper_type="systematic-review",
+            topic="worker-enabled",
+            cwd=REPO_ROOT,
+            skip_validation=True,
+            execution_mode="solo",
+            controller="codex",
+            primary_agent="codex",
+            worker_mode="delegated-workers",
+            worker_adapter="generic-prompt",
+            max_workers=2,
+        )
+
+        packet = result.data["task_packet"]
+        worker_state = packet["worker_orchestration"]
+        self.assertEqual("delegated_workers", worker_state["mode"])
+        self.assertEqual("generic_prompt", worker_state["adapter"])
+        self.assertEqual("ok", worker_state["barrier_status"])
+        self.assertEqual(2, len(worker_state["workers"]))
+        self.assertIn("## Worker Orchestration", result.merged_analysis)
+        self.assertIn("Worker barrier status: ok", result.merged_analysis)
+
+        worker_prompts = [
+            call["prompt"]
+            for call in orchestrator.runtime_calls
+            if "Worker packet (JSON):" in call["prompt"]
+        ]
+        self.assertEqual(2, len(worker_prompts))
+        self.assertIn("forbidden_artifacts", worker_prompts[0])
+
+    def test_worker_barrier_degrades_when_allowed(self) -> None:
+        class OneWorkerFailsOrchestrator(WorkerCaptureOrchestrator):
+            def _execute_runtime_agent(
+                self,
+                agent_name: str,
+                prompt: str,
+                cwd: Path,
+                runtime_options: dict[str, Any] | None = None,
+                profile_directive: str | None = None,
+            ) -> BridgeResponse:
+                self.runtime_calls.append(
+                    {
+                        "agent": agent_name,
+                        "prompt": prompt,
+                        "runtime_options": dict(runtime_options or {}),
+                        "profile_directive": profile_directive or "",
+                    }
+                )
+                if "screening_worker" in prompt:
+                    return BridgeResponse.from_error(agent_name, "worker failed")
+                return BridgeResponse(success=True, model=agent_name, content=f"{agent_name} ok")
+
+        orchestrator = OneWorkerFailsOrchestrator()
+        result = orchestrator.task_run(
+            task_id="B1",
+            paper_type="systematic-review",
+            topic="worker-degraded",
+            cwd=REPO_ROOT,
+            skip_validation=True,
+            execution_mode="solo",
+            controller="codex",
+            primary_agent="codex",
+            worker_mode="delegated-workers",
+            worker_adapter="generic-prompt",
+            max_workers=3,
+        )
+
+        worker_state = result.data["task_packet"]["worker_orchestration"]
+        self.assertEqual("degraded", worker_state["barrier_status"])
+        self.assertIn("Worker screening_worker failed", "\n".join(worker_state["notes"]))
+        self.assertIn("Worker barrier status: degraded", result.merged_analysis)
+
+    def test_worker_barrier_block_short_circuits_before_main_draft(self) -> None:
+        class TwoWorkersFailOrchestrator(WorkerCaptureOrchestrator):
+            def _execute_runtime_agent(
+                self,
+                agent_name: str,
+                prompt: str,
+                cwd: Path,
+                runtime_options: dict[str, Any] | None = None,
+                profile_directive: str | None = None,
+            ) -> BridgeResponse:
+                self.runtime_calls.append(
+                    {
+                        "agent": agent_name,
+                        "prompt": prompt,
+                        "runtime_options": dict(runtime_options or {}),
+                        "profile_directive": profile_directive or "",
+                    }
+                )
+                if "screening_worker" in prompt or "extraction_worker" in prompt:
+                    return BridgeResponse.from_error(agent_name, "worker failed")
+                return BridgeResponse(success=True, model=agent_name, content=f"{agent_name} ok")
+
+        orchestrator = TwoWorkersFailOrchestrator()
+        result = orchestrator.task_run(
+            task_id="B1",
+            paper_type="systematic-review",
+            topic="worker-blocked",
+            cwd=REPO_ROOT,
+            skip_validation=True,
+            execution_mode="solo",
+            controller="codex",
+            primary_agent="codex",
+            worker_mode="delegated-workers",
+            worker_adapter="generic-prompt",
+            max_workers=3,
+        )
+
+        worker_state = result.data["task_packet"]["worker_orchestration"]
+        self.assertEqual("blocked", worker_state["barrier_status"])
+        self.assertEqual("blocked", worker_state["status"])
+        self.assertEqual(0.0, result.confidence)
+        self.assertIn("Worker barrier status: blocked", result.merged_analysis)
+        self.assertTrue(orchestrator.runtime_calls)
+        self.assertTrue(
+            all("Worker packet (JSON):" in call["prompt"] for call in orchestrator.runtime_calls)
+        )
+        self.assertTrue(result.data["validator_gate"]["skipped"])
+        self.assertEqual("worker barrier blocked", result.data["validator_gate"]["reason"])
 
 
 if __name__ == "__main__":
