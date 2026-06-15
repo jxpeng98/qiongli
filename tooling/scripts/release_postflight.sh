@@ -272,6 +272,26 @@ PY
   return "$status"
 }
 
+publish_codex_dist_ref() {
+  local tag="$1"
+  local codex_slug="qiongli"
+
+  if is_prerelease_tag "$tag"; then
+    codex_slug="qiongli-next"
+  fi
+
+  if [[ ! -d "$POSTFLIGHT_STAGING_DIR/plugins/$codex_slug" ]]; then
+    echo "[postflight] missing Codex dist payload: $POSTFLIGHT_STAGING_DIR/plugins/$codex_slug" >&2
+    exit 1
+  fi
+
+  echo "[postflight] publishing Codex dist ref: codex/${TAG}"
+  node scripts/publish-codex-dist-ref.mjs \
+    --version "${TAG#v}" \
+    --slug "$codex_slug" \
+    --source "$POSTFLIGHT_STAGING_DIR/plugins/$codex_slug"
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --tag)
@@ -553,6 +573,8 @@ else
     "dist/qiongli-downloads-${TAG}.json"
   )
 fi
+
+publish_codex_dist_ref "$TAG"
 
 if ! command -v gh >/dev/null 2>&1 || ! gh auth status >/dev/null 2>&1; then
   echo "[postflight] gh auth is required to verify or create the GitHub release page" >&2

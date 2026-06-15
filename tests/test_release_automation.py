@@ -216,6 +216,26 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('gh release upload "$TAG" --repo "$REPO_SLUG" --clobber "${PLUGIN_ARTIFACTS[@]}"', content)
         self.assertIn('release_args+=("${PLUGIN_ARTIFACTS[@]}")', content)
 
+    def test_release_postflight_publishes_codex_dist_refs(self) -> None:
+        content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
+
+        self.assertIn("publish_codex_dist_ref()", content)
+        self.assertIn('codex_slug="qiongli"', content)
+        self.assertIn('codex_slug="qiongli-next"', content)
+        self.assertIn('node scripts/publish-codex-dist-ref.mjs \\', content)
+        self.assertIn('--version "${TAG#v}" \\', content)
+        self.assertIn('--slug "$codex_slug" \\', content)
+        self.assertIn('--source "$POSTFLIGHT_STAGING_DIR/plugins/$codex_slug"', content)
+        self.assertIn('publish_codex_dist_ref "$TAG"', content)
+        self.assertLess(
+            content.index('python3 scripts/build_plugin_artifacts.py --root "$POSTFLIGHT_STAGING_DIR" --tag "$TAG" --dist-dir dist'),
+            content.index('publish_codex_dist_ref "$TAG"'),
+        )
+        self.assertLess(
+            content.index('publish_codex_dist_ref "$TAG"'),
+            content.index('gh release upload "$TAG" --repo "$REPO_SLUG" --clobber "${PLUGIN_ARTIFACTS[@]}"'),
+        )
+
     def test_checkout_install_check_runs_all_platforms_on_push_and_pr(self) -> None:
         main_content = INSTALL_CHECK_WORKFLOW.read_text(encoding="utf-8")
 
