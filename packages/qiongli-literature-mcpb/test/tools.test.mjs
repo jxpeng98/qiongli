@@ -46,7 +46,9 @@ test("literature search tool exposes extended search controls", () => {
     "document_types",
     "documentTypes",
     "venue_filter",
-    "venueFilter"
+    "venueFilter",
+    "query_variants",
+    "queryVariants"
   ]) {
     assert.ok(properties[property], `${property} schema is missing`);
   }
@@ -55,6 +57,8 @@ test("literature search tool exposes extended search controls", () => {
   assert.deepEqual(properties.searchDepth.enum, ["quick", "standard", "review", "deep"]);
   assert.equal(properties.document_types.items.type, "string");
   assert.equal(properties.documentTypes.items.type, "string");
+  assert.equal(properties.query_variants.items.type, "string");
+  assert.equal(properties.queryVariants.items.type, "string");
 });
 
 test("handleConfigStatus suggests the platform-neutral setup tool when provider secrets are missing", () => {
@@ -613,6 +617,176 @@ test("handleSearch separates per-provider and total result limits", async () => 
   }
 });
 
+test("handleSearch fans out explicit query variants with query diagnostics", async () => {
+  const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-query-variants-"));
+  const calls = [];
+  const fetchImpl = async (url) => {
+    const requestedUrl = new URL(url);
+    calls.push(requestedUrl);
+    assert.equal(requestedUrl.hostname, "api.openalex.org");
+    assert.equal(requestedUrl.searchParams.get("per-page"), "2");
+
+    return {
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      async json() {
+        return {
+          results: [
+            {
+              id: `https://openalex.org/W${calls.length}`,
+              title: `Result for ${requestedUrl.searchParams.get("search")}`
+            }
+          ]
+        };
+      }
+    };
+  };
+
+  try {
+    const response = await handleSearch(
+      {
+        query: "older adults conversational agents",
+        query_variants: [
+          "older people chatbots",
+          "home health conversational agents"
+        ],
+        per_provider_limit: 6
+      },
+      {
+        env: {
+          QIONGLI_CONFIG_HOME: configHome,
+          QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key"
+        },
+        fetchImpl
+      }
+    );
+
+    assert.deepEqual(
+      calls.map((url) => url.searchParams.get("search")),
+      [
+        "older adults conversational agents",
+        "older people chatbots",
+        "home health conversational agents"
+      ]
+    );
+    assert.equal(response.search_options.per_provider_limit, 6);
+    assert.equal(response.search_options.per_query_provider_limit, 2);
+    assert.equal(response.search_options.query_count, 3);
+    assert.deepEqual(response.search_plan.queries, [
+      {
+        query_id: "q1",
+        query: "older adults conversational agents",
+        source: "primary",
+        rationale: "primary query"
+      },
+      {
+        query_id: "q2",
+        query: "older people chatbots",
+        source: "explicit_variant",
+        rationale: "user supplied query variant"
+      },
+      {
+        query_id: "q3",
+        query: "home health conversational agents",
+        source: "explicit_variant",
+        rationale: "user supplied query variant"
+      }
+    ]);
+    assert.deepEqual(response.diagnostics.providers, [
+      {
+        provider: "openalex",
+        status: "success",
+        result_count: 3,
+        request_count: 3,
+        attempts: 3,
+        error: null
+      }
+    ]);
+    assert.deepEqual(
+      response.diagnostics.queries.map((entry) => ({
+        query_id: entry.query_id,
+        provider: entry.provider,
+        result_count: entry.result_count,
+        status: entry.status
+      })),
+      [
+        { query_id: "q1", provider: "openalex", result_count: 1, status: "success" },
+        { query_id: "q2", provider: "openalex", result_count: 1, status: "success" },
+        { query_id: "q3", provider: "openalex", result_count: 1, status: "success" }
+      ]
+    );
+    assert.equal(response.results.length, 3);
+  } finally {
+    await rm(configHome, { recursive: true, force: true });
+  }
+});
+
+test("handleSearch adds automatic query variants for deep searches", async () => {
+  const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-auto-query-variants-"));
+  const calls = [];
+  const fetchImpl = async (url) => {
+    const requestedUrl = new URL(url);
+    calls.push(requestedUrl);
+    const callIndex = calls.length;
+    assert.equal(requestedUrl.hostname, "api.openalex.org");
+    assert.equal(requestedUrl.searchParams.get("per-page"), "3");
+
+    return {
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      async json() {
+        return {
+          results: [
+            {
+              id: `https://openalex.org/A${callIndex}`,
+              title: `Auto Result ${callIndex}`
+            }
+          ]
+        };
+      }
+    };
+  };
+
+  try {
+    const response = await handleSearch(
+      {
+        query: "social media mental health",
+        search_depth: "deep",
+        per_provider_limit: 9
+      },
+      {
+        env: {
+          QIONGLI_CONFIG_HOME: configHome,
+          QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key"
+        },
+        fetchImpl
+      }
+    );
+
+    assert.deepEqual(
+      calls.map((url) => url.searchParams.get("search")),
+      [
+        "social media mental health",
+        "social media mental health review",
+        "social media mental health systematic review"
+      ]
+    );
+    assert.equal(response.search_plan.mode, "auto_deep");
+    assert.equal(response.search_options.per_query_provider_limit, 3);
+    assert.equal(response.search_options.query_count, 3);
+    assert.deepEqual(
+      response.search_plan.queries.map((query) => query.source),
+      ["primary", "auto_variant", "auto_variant"]
+    );
+    assert.equal(response.diagnostics.queries.length, 3);
+    assert.equal(response.results.length, 3);
+  } finally {
+    await rm(configHome, { recursive: true, force: true });
+  }
+});
+
 test("handleSearch returns structured diagnostics for deep paginated searches", async () => {
   const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-deep-diagnostics-"));
   const calls = [];
@@ -657,7 +831,8 @@ test("handleSearch returns structured diagnostics for deep paginated searches", 
       {
         query: "deep diagnostics",
         search_depth: "deep",
-        per_provider_limit: 150
+        per_provider_limit: 150,
+        query_variants: []
       },
       {
         env: {

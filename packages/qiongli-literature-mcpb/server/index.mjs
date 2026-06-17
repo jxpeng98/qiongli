@@ -12,7 +12,7 @@ import path from "node:path";
 import { providerCapabilities } from "./capabilities.mjs";
 import { buildEvidence } from "./evidence.mjs";
 import { dedupeResults, rankResults } from "./normalize.mjs";
-import { buildSearchIntent, providerLimitFor } from "./query.mjs";
+import { buildQueryPlan, buildSearchIntent, providerLimitFor } from "./query.mjs";
 import { searchCrossref } from "./providers/crossref.mjs";
 import { searchOpenAlex } from "./providers/openalex.mjs";
 import { searchPubMed } from "./providers/pubmed.mjs";
@@ -114,7 +114,7 @@ export const TOOL_DECLARATIONS = [
   },
   {
     name: "qiongli_literature_search",
-    description: "Search academic literature using configured OpenAlex, Semantic Scholar, Crossref, and PubMed providers.",
+    description: "Search academic literature using configured OpenAlex, Semantic Scholar, Crossref, and PubMed providers with query variants, deep-search planning, diagnostics, and metadata filters.",
     inputSchema: {
       type: "object",
       additionalProperties: true,
@@ -174,6 +174,18 @@ export const TOOL_DECLARATIONS = [
         },
         venueFilter: {
           type: "string"
+        },
+        query_variants: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        },
+        queryVariants: {
+          type: "array",
+          items: {
+            type: "string"
+          }
         },
         search_mode: {
           type: "string",
@@ -451,11 +463,13 @@ function filterResults(results, options) {
   );
 }
 
-function searchOptionsPayload(options) {
+function searchOptionsPayload(options, queryPlan, perQueryProviderLimit) {
   return {
     per_provider_limit: options.perProviderLimit,
+    per_query_provider_limit: perQueryProviderLimit,
     total_limit: options.totalLimit,
     search_depth: options.searchDepth,
+    query_count: queryPlan.query_count,
     include_citations: options.includeCitations,
     include_references: options.includeReferences,
     minimum_result_threshold: options.minimumResultThreshold,
@@ -484,13 +498,63 @@ function providerDiagnostic(response) {
   };
 }
 
+function queryDiagnostic(response) {
+  return {
+    query_id: response?.query_id ?? null,
+    query: response?.query ?? null,
+    ...providerDiagnostic(response)
+  };
+}
+
+function aggregateProviderDiagnostics(responses) {
+  const summaries = new Map();
+
+  for (const response of responses) {
+    const provider = response?.provider ?? "unknown";
+    if (!summaries.has(provider)) {
+      summaries.set(provider, {
+        provider,
+        result_count: 0,
+        request_count: 0,
+        attempts: 0,
+        success_count: 0,
+        failure_count: 0,
+        error: null
+      });
+    }
+
+    const summary = summaries.get(provider);
+    summary.result_count += Array.isArray(response?.results) ? response.results.length : 0;
+    const requestCount = numericStat(response?.request_count, 1);
+    summary.request_count += requestCount;
+    summary.attempts += numericStat(response?.attempts, requestCount);
+
+    if (response?.error) {
+      summary.failure_count += 1;
+      summary.error ??= response.error;
+    } else {
+      summary.success_count += 1;
+    }
+  }
+
+  return Array.from(summaries.values()).map((summary) => ({
+    provider: summary.provider,
+    status: summary.success_count > 0 ? "success" : "failed",
+    result_count: summary.result_count,
+    request_count: summary.request_count,
+    attempts: summary.attempts,
+    error: summary.success_count > 0 ? null : summary.error
+  }));
+}
+
 function searchDiagnostics({ responses, rawResults, dedupedResults, filteredResults, outputResults }) {
   return {
     raw_result_count: rawResults.length,
     deduped_result_count: dedupedResults.length,
     filtered_result_count: filteredResults.length,
     returned_result_count: outputResults.length,
-    providers: responses.map(providerDiagnostic)
+    providers: aggregateProviderDiagnostics(responses),
+    queries: responses.map(queryDiagnostic)
   };
 }
 
@@ -569,6 +633,27 @@ async function callProvider(provider, params) {
   });
 }
 
+function providerOutcomes(attempted, responses) {
+  const successful = [];
+  const failed = [];
+
+  for (const provider of attempted) {
+    const providerResponses = responses.filter((response) => response.provider === provider);
+    if (providerResponses.some((response) => !response.error)) {
+      successful.push(provider);
+      continue;
+    }
+
+    failed.push(provider);
+  }
+
+  return { successful, failed };
+}
+
+function perQueryProviderLimit(options, queryPlan) {
+  return Math.max(1, Math.ceil(options.perProviderLimit / queryPlan.query_count));
+}
+
 export function handleStatus(context = {}) {
   return {
     ...providerStatus(resolveConfig(context)),
@@ -621,37 +706,43 @@ export async function handleSearch(input = {}, context = {}) {
   const config = resolveConfig(context);
   const intent = buildSearchIntent(input);
   const options = resolveSearchOptions(input, config, intent);
+  const queryPlan = buildQueryPlan(input, intent, options);
+  const perQueryLimit = perQueryProviderLimit(options, queryPlan);
   const fromYear = readOptionalYear(input.fromYear);
   const toYear = readOptionalYear(input.toYear);
   const attempted = providersFor(config);
   const responses = await Promise.all(
-    attempted.map((provider) =>
-      callProvider(provider, {
-        query: intent.query,
-        intent,
-        limit: options.perProviderLimit,
-        config,
-        fromYear,
-        toYear,
-        documentTypes: options.filters.documentTypes,
-        includeCitations: options.includeCitations,
-        includeReferences: options.includeReferences,
-        fetchImpl: context.fetchImpl
+    queryPlan.queries.flatMap((plannedQuery) =>
+      attempted.map(async (provider) => {
+        const response = await callProvider(provider, {
+          query: plannedQuery.query,
+          intent,
+          limit: perQueryLimit,
+          config,
+          fromYear,
+          toYear,
+          documentTypes: options.filters.documentTypes,
+          includeCitations: options.includeCitations,
+          includeReferences: options.includeReferences,
+          fetchImpl: context.fetchImpl
+        });
+        return {
+          ...response,
+          query_id: plannedQuery.query_id,
+          query: plannedQuery.query
+        };
       })
     )
   );
 
-  const successful = [];
-  const failed = [];
+  const { successful, failed } = providerOutcomes(attempted, responses);
   const results = [];
 
   for (const response of responses) {
     if (response.error) {
-      failed.push(response.provider);
       continue;
     }
 
-    successful.push(response.provider);
     results.push(...response.results);
   }
 
@@ -674,7 +765,8 @@ export async function handleSearch(input = {}, context = {}) {
     provider_capabilities: providerCapabilities(),
     warnings: appendSearchWarnings(evidence.warnings, outputResults, options),
     search_mode: intent.mode,
-    search_options: searchOptionsPayload(options),
+    search_options: searchOptionsPayload(options, queryPlan, perQueryLimit),
+    search_plan: queryPlan,
     diagnostics: searchDiagnostics({
       responses,
       rawResults: results,

@@ -151,7 +151,7 @@ This Desktop skill ZIP is **skill-only**: it stores no secrets and does not exec
 qiongli-literature-provider.mcpb
 ```
 
-The MCPB runs a zero-dependency Node stdio server for OpenAlex and Semantic Scholar search, provider status, and provider key saving. It supports OpenAlex API key setup with optional OpenAlex email metadata. Desktop users need `qiongli-literature-provider` MCPB or platform-native search before claiming `provider_connected`; otherwise record the run as `strategy_only` and treat platform search or a user-supplied corpus as the evidence source.
+The MCPB runs a zero-dependency Node stdio server for OpenAlex, Semantic Scholar, Crossref, and PubMed search, provider status, and provider key saving. It supports provider setup through the local wizard, query variants, deep-search planning, pagination, retry diagnostics, and limited citation/reference metadata expansion. Desktop users need `qiongli-literature-provider` MCPB or platform-native search before claiming `provider_connected`; otherwise record the run as `strategy_only` and treat platform search or a user-supplied corpus as the evidence source.
 
 The MCPB does not launch orchestrator agents. To expose the full Python-backed agent runtime through MCP, install the npm, pipx/pip, or bootstrap `full` CLI runtime and configure:
 

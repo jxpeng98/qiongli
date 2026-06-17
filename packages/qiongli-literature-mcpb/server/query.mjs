@@ -1,4 +1,5 @@
 const DOI_PATTERN = /(?:doi:\s*|https?:\/\/(?:dx\.)?doi\.org\/)?(10\.\d{4,9}\/[^\s"'<>]+)/i;
+const MAX_QUERY_COUNT = 4;
 
 function cleanText(value) {
   return String(value ?? "").trim();
@@ -83,4 +84,97 @@ export function providerLimitFor(limit, intent, maxLimit) {
   }
 
   return Math.min(limit, maxLimit);
+}
+
+function readAlias(input, names) {
+  for (const name of names) {
+    if (input[name] !== undefined) {
+      return input[name];
+    }
+  }
+
+  return undefined;
+}
+
+function comparableQuery(value) {
+  return cleanText(value)
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function normalizeQueryVariants(value, primaryQuery) {
+  const values = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
+  const variants = [];
+  const seen = new Set([comparableQuery(primaryQuery)]);
+
+  for (const item of values) {
+    const variant = stripOuterQuotes(item);
+    const key = comparableQuery(variant);
+    if (!key || seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    variants.push(variant);
+  }
+
+  return variants;
+}
+
+function automaticDeepVariants(query) {
+  return normalizeQueryVariants([
+    `${query} review`,
+    `${query} systematic review`
+  ], query);
+}
+
+function variantSource(explicitVariantsProvided) {
+  return explicitVariantsProvided ? "explicit_variant" : "auto_variant";
+}
+
+function variantRationale(explicitVariantsProvided) {
+  return explicitVariantsProvided ? "user supplied query variant" : "automatic deep-search query variant";
+}
+
+export function buildQueryPlan(input = {}, intent, options = {}) {
+  const primaryQuery = intent?.query ?? cleanText(input.query);
+  const explicitValue = readAlias(input, ["query_variants", "queryVariants"]);
+  const explicitVariantsProvided = explicitValue !== undefined;
+  const variants = explicitVariantsProvided
+    ? normalizeQueryVariants(explicitValue, primaryQuery)
+    : options.searchDepth === "deep" && intent?.doi === null && intent?.exactTitle !== true
+      ? automaticDeepVariants(primaryQuery)
+      : [];
+
+  const queries = [
+    {
+      query_id: "q1",
+      query: primaryQuery,
+      source: "primary",
+      rationale: "primary query"
+    }
+  ];
+
+  if (intent?.doi || intent?.exactTitle) {
+    return {
+      mode: "single",
+      query_count: queries.length,
+      queries
+    };
+  }
+
+  for (const variant of variants.slice(0, MAX_QUERY_COUNT - 1)) {
+    queries.push({
+      query_id: `q${queries.length + 1}`,
+      query: variant,
+      source: variantSource(explicitVariantsProvided),
+      rationale: variantRationale(explicitVariantsProvided)
+    });
+  }
+
+  return {
+    mode: explicitVariantsProvided ? "explicit" : queries.length > 1 ? "auto_deep" : "single",
+    query_count: queries.length,
+    queries
+  };
 }
