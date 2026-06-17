@@ -24,11 +24,24 @@ The bundled MCPB server and the full CLI MCP server both read the shared provide
 { "query": "10.5555/example", "limit": 1 }
 { "query": "Attention Is All You Need", "search_mode": "title", "limit": 1 }
 { "query": "social media mental health", "search_mode": "review", "limit": 100 }
+{ "query": "climate governance", "per_provider_limit": 50, "total_limit": 75 }
+{ "query": "public health", "document_types": ["journal-article"], "venue_filter": "Lancet" }
 ```
 
 DOI queries use provider singleton lookup where available. Title mode asks Semantic Scholar for a title match before regular search, requests a wider provider page, then ranks merged results by title similarity before applying the final limit.
 
 For general topic searches, omitted limits default to 25 results per provider. For literature reviews, use `search_mode: "review"` or `search_mode: "systematic_review"`. Review mode defaults to 50 results per provider when `limit` is omitted and accepts explicit limits up to 100 per provider.
+
+`limit` remains the backward-compatible per-provider limit for topic and review searches. Use `per_provider_limit` when you want that intent to be explicit, and use `total_limit` to cap the merged, deduplicated result list returned to the MCP client. Both snake_case and camelCase aliases are accepted.
+
+Advanced controls include:
+
+- `search_depth`: `quick`, `standard`, `review`, or `deep`. Review and deep searches return `insufficient_review_results` when the merged result set is below the review threshold.
+- `document_types`: filters OpenAlex and Crossref at request time and filters merged provider results after normalization. Semantic Scholar publication types are normalized from `publicationTypes`, and PubMed publication types are normalized from ESummary.
+- `venue_filter`: filters merged results by venue text.
+- `include_citations` and `include_references`: request limited citation/reference metadata when providers expose it. The MCPB reports `citation_expansion_limited` or `reference_expansion_limited` because this is metadata expansion, not a full citation graph crawler.
+
+Search and status responses include `provider_capabilities`, which marks OpenAlex, Semantic Scholar, Crossref, and PubMed as implemented providers. Crossref needs `crossref.email` for polite access. PubMed needs `pubmed.api_key` to enable the bundled E-Utilities provider.
 
 ## Local Claude Desktop Install
 
@@ -37,6 +50,8 @@ Build or package this directory as a Claude Desktop `.mcpb` extension, then inst
 - OpenAlex API key
 - OpenAlex email
 - Semantic Scholar API key
+- Crossref polite access email
+- NCBI / PubMed API key
 - Default result limit
 
 Claude Desktop injects these values into the local Node MCP server environment when the extension runs. The server can also open a local setup page through `qiongli_configure_provider` or save explicit provider values through `qiongli_save_provider_config` into the shared local provider config. `qiongli_open_config_wizard` remains as a compatibility alias for older instructions. Do not store provider credentials in the Qiongli Desktop skill ZIP or commit local secrets into this package.

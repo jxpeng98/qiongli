@@ -7,7 +7,35 @@ const MATCH_ENDPOINT = "https://api.semanticscholar.org/graph/v1/paper/search/ma
 const PAPER_ENDPOINT = "https://api.semanticscholar.org/graph/v1/paper";
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 100;
-const FIELDS = "paperId,title,year,authors,abstract,url,venue,externalIds";
+const BASE_FIELDS = [
+  "paperId",
+  "title",
+  "year",
+  "authors",
+  "abstract",
+  "url",
+  "venue",
+  "publicationTypes",
+  "externalIds"
+];
+const CITATION_FIELDS = [
+  "citationCount",
+  "citations.paperId",
+  "citations.title",
+  "citations.year",
+  "citations.authors",
+  "citations.externalIds",
+  "citations.url"
+];
+const REFERENCE_FIELDS = [
+  "referenceCount",
+  "references.paperId",
+  "references.title",
+  "references.year",
+  "references.authors",
+  "references.externalIds",
+  "references.url"
+];
 
 function normalizeLimit(limit) {
   if (!Number.isInteger(limit)) {
@@ -33,12 +61,23 @@ function buildYearFilter(fromYear, toYear) {
   return null;
 }
 
-function buildUrl({ query, limit, fromYear, toYear }) {
+function fieldsFor({ includeCitations, includeReferences } = {}) {
+  const fields = [...BASE_FIELDS];
+  if (includeCitations) {
+    fields.push(...CITATION_FIELDS);
+  }
+  if (includeReferences) {
+    fields.push(...REFERENCE_FIELDS);
+  }
+  return fields.join(",");
+}
+
+function buildUrl({ query, limit, fromYear, toYear, includeCitations, includeReferences }) {
   const url = new URL(ENDPOINT);
   const params = new URLSearchParams();
   params.set("query", query);
   params.set("limit", String(normalizeLimit(limit)));
-  params.set("fields", FIELDS);
+  params.set("fields", fieldsFor({ includeCitations, includeReferences }));
 
   const year = buildYearFilter(fromYear, toYear);
   if (year) {
@@ -53,15 +92,15 @@ function buildMatchUrl({ query }) {
   const url = new URL(MATCH_ENDPOINT);
   const params = new URLSearchParams();
   params.set("query", query);
-  params.set("fields", FIELDS);
+  params.set("fields", fieldsFor());
   url.search = params.toString();
   return url;
 }
 
-function buildDoiUrl({ doi }) {
+function buildDoiUrl({ doi, includeCitations, includeReferences }) {
   const url = new URL(`${PAPER_ENDPOINT}/${encodeURIComponent(`DOI:${doi}`)}`);
   const params = new URLSearchParams();
-  params.set("fields", FIELDS);
+  params.set("fields", fieldsFor({ includeCitations, includeReferences }));
   url.search = params.toString();
   return url;
 }
@@ -103,6 +142,30 @@ function doiFor(paper) {
   return paper?.externalIds?.DOI ?? paper?.externalIds?.doi ?? null;
 }
 
+function linkedPapers(papers) {
+  if (!Array.isArray(papers)) {
+    return [];
+  }
+
+  return papers.map((paper) => ({
+    title: paper?.title,
+    authors: authorsFor(paper),
+    year: paper?.year,
+    doi: doiFor(paper),
+    url: paper?.url,
+    provider: PROVIDER,
+    source_id: paper?.paperId
+  }));
+}
+
+function publicationTypeFor(paper) {
+  if (!Array.isArray(paper?.publicationTypes)) {
+    return null;
+  }
+
+  return paper.publicationTypes.find((type) => typeof type === "string") ?? null;
+}
+
 function mapPaper(paper) {
   return normalizeResult({
     title: paper?.title,
@@ -112,6 +175,11 @@ function mapPaper(paper) {
     url: paper?.url,
     abstract: paper?.abstract,
     venue: paper?.venue,
+    document_type: publicationTypeFor(paper),
+    citation_count: paper?.citationCount,
+    reference_count: paper?.referenceCount,
+    citations: linkedPapers(paper?.citations),
+    references: linkedPapers(paper?.references),
     provider: PROVIDER,
     source_id: paper?.paperId
   });
@@ -153,7 +221,7 @@ async function fetchPapers(fetcher, url, options) {
   };
 }
 
-export async function searchSemanticScholar({ query, doi, exactTitle, searchMode, limit, apiKey, fromYear, toYear, fetchImpl } = {}) {
+export async function searchSemanticScholar({ query, doi, exactTitle, searchMode, limit, apiKey, fromYear, toYear, includeCitations, includeReferences, fetchImpl } = {}) {
   const fetcher = fetchImpl ?? fetch;
   const resolvedDoi = typeof doi === "string" ? doi : normalizeDoi(query);
   const shouldMatchTitle = exactTitle === true || searchMode === "title";
@@ -161,7 +229,7 @@ export async function searchSemanticScholar({ query, doi, exactTitle, searchMode
 
   try {
     if (resolvedDoi) {
-      const lookup = await fetchPapers(fetcher, buildDoiUrl({ doi: resolvedDoi }), options);
+      const lookup = await fetchPapers(fetcher, buildDoiUrl({ doi: resolvedDoi, includeCitations, includeReferences }), options);
       return {
         provider: PROVIDER,
         results: lookup.results,
@@ -173,7 +241,7 @@ export async function searchSemanticScholar({ query, doi, exactTitle, searchMode
     if (shouldMatchTitle) {
       lookups.push(await fetchPapers(fetcher, buildMatchUrl({ query }), options));
     }
-    lookups.push(await fetchPapers(fetcher, buildUrl({ query, limit, fromYear, toYear }), options));
+    lookups.push(await fetchPapers(fetcher, buildUrl({ query, limit, fromYear, toYear, includeCitations, includeReferences }), options));
 
     const successful = lookups.filter((lookup) => !lookup.error);
     if (successful.length === 0) {

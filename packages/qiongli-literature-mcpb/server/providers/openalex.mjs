@@ -72,6 +72,31 @@ function openAlexUrl(work) {
   );
 }
 
+function normalizeDocumentTypes(value) {
+  const values = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
+  return values
+    .map((type) => String(type ?? "").trim())
+    .filter((type) => type !== "");
+}
+
+function openAlexReferences(work) {
+  if (!Array.isArray(work?.referenced_works)) {
+    return [];
+  }
+
+  return work.referenced_works
+    .filter((id) => typeof id === "string" && id.trim() !== "")
+    .map((id) => ({
+      title: null,
+      authors: [],
+      year: null,
+      doi: null,
+      url: id,
+      provider: PROVIDER,
+      source_id: openAlexId(id)
+    }));
+}
+
 function mapWork(work) {
   return normalizeResult({
     title: work?.title ?? work?.display_name,
@@ -81,6 +106,11 @@ function mapWork(work) {
     url: openAlexUrl(work),
     abstract: abstractFromInvertedIndex(work?.abstract_inverted_index),
     venue: openAlexVenue(work),
+    document_type: work?.type,
+    citation_count: work?.cited_by_count,
+    reference_count: work?.referenced_works_count ?? work?.referenced_works?.length,
+    citations: [],
+    references: openAlexReferences(work),
     provider: PROVIDER,
     source_id: openAlexId(work?.id)
   });
@@ -98,7 +128,7 @@ function applyAuthParams(params, { email, apiKey }) {
   }
 }
 
-function buildSearchUrl({ query, limit, email, apiKey, fromYear, toYear }) {
+function buildSearchUrl({ query, limit, email, apiKey, fromYear, toYear, documentTypes }) {
   const url = new URL(ENDPOINT);
   const params = new URLSearchParams();
   params.set("search", query);
@@ -111,6 +141,10 @@ function buildSearchUrl({ query, limit, email, apiKey, fromYear, toYear }) {
   }
   if (Number.isInteger(toYear)) {
     filters.push(`to_publication_date:${toYear}-12-31`);
+  }
+  const typeFilters = normalizeDocumentTypes(documentTypes);
+  if (typeFilters.length > 0) {
+    filters.push(`type:${typeFilters.join("|")}`);
   }
   if (filters.length > 0) {
     params.set("filter", filters.join(","));
@@ -142,12 +176,12 @@ function errorMessage(response) {
   return `${PROVIDER} HTTP ${response.status}`;
 }
 
-export async function searchOpenAlex({ query, doi, limit, email, apiKey, fromYear, toYear, fetchImpl } = {}) {
+export async function searchOpenAlex({ query, doi, limit, email, apiKey, fromYear, toYear, documentTypes, fetchImpl } = {}) {
   const fetcher = fetchImpl ?? fetch;
   const resolvedDoi = typeof doi === "string" ? doi : normalizeDoi(query);
   const url = resolvedDoi
     ? buildDoiUrl({ doi: resolvedDoi, email, apiKey })
-    : buildSearchUrl({ query, limit, email, apiKey, fromYear, toYear });
+    : buildSearchUrl({ query, limit, email, apiKey, fromYear, toYear, documentTypes });
 
   try {
     const response = await fetcher(url, fetchOptions(fetchImpl));

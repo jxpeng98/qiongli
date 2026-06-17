@@ -28,6 +28,35 @@ test("tool declarations match manifest tool names", () => {
   );
 });
 
+test("literature search tool exposes extended search controls", () => {
+  const searchTool = TOOL_DECLARATIONS.find((tool) => tool.name === "qiongli_literature_search");
+  const properties = searchTool.inputSchema.properties;
+
+  for (const property of [
+    "per_provider_limit",
+    "perProviderLimit",
+    "total_limit",
+    "totalLimit",
+    "search_depth",
+    "searchDepth",
+    "include_citations",
+    "includeCitations",
+    "include_references",
+    "includeReferences",
+    "document_types",
+    "documentTypes",
+    "venue_filter",
+    "venueFilter"
+  ]) {
+    assert.ok(properties[property], `${property} schema is missing`);
+  }
+
+  assert.deepEqual(properties.search_depth.enum, ["quick", "standard", "review", "deep"]);
+  assert.deepEqual(properties.searchDepth.enum, ["quick", "standard", "review", "deep"]);
+  assert.equal(properties.document_types.items.type, "string");
+  assert.equal(properties.documentTypes.items.type, "string");
+});
+
 test("handleConfigStatus suggests the platform-neutral setup tool when provider secrets are missing", () => {
   const status = handleConfigStatus({
     env: {
@@ -38,7 +67,14 @@ test("handleConfigStatus suggests the platform-neutral setup tool when provider 
 
   assert.equal(status.providers.openalex.fields.api_key, "missing");
   assert.equal(status.providers.semantic_scholar.fields.api_key, "missing");
-  assert.deepEqual(status.missing, ["openalex.api_key", "semantic_scholar.api_key"]);
+  assert.equal(status.providers.crossref.fields.email, "missing");
+  assert.equal(status.providers.pubmed.fields.api_key, "missing");
+  assert.deepEqual(status.missing, [
+    "openalex.api_key",
+    "semantic_scholar.api_key",
+    "crossref.email",
+    "pubmed.api_key"
+  ]);
   assert.equal(status.provider_access_guidance.openalex.config_field, "openalex.api_key");
   assert.equal(status.provider_access_guidance.semantic_scholar.config_field, "semantic_scholar.api_key");
   assert.equal(status.provider_access_guidance.semantic_scholar.apply_url, "https://www.semanticscholar.org/product/api");
@@ -64,7 +100,9 @@ test("handleStatus redacts configured secrets", () => {
     env: {
       QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key",
       QIONGLI_MCPB_OPENALEX_EMAIL: "person@example.com",
-      QIONGLI_MCPB_SEMANTIC_SCHOLAR_API_KEY: "secret-key"
+      QIONGLI_MCPB_SEMANTIC_SCHOLAR_API_KEY: "secret-key",
+      QIONGLI_MCPB_CROSSREF_EMAIL: "crossref@example.com",
+      QIONGLI_MCPB_PUBMED_API_KEY: "pubmed-secret-key"
     }
   });
 
@@ -73,9 +111,31 @@ test("handleStatus redacts configured secrets", () => {
   assert.equal(status.capability_mode, "provider_connected");
   assert.equal(status.providers.openalex, "configured");
   assert.equal(status.providers.semantic_scholar, "configured");
+  assert.equal(status.providers.crossref, "configured");
+  assert.equal(status.providers.pubmed, "configured");
   assert.equal(serialized.includes("openalex-secret-key"), false);
   assert.equal(serialized.includes("person@example.com"), false);
   assert.equal(serialized.includes("secret-key"), false);
+  assert.equal(serialized.includes("crossref@example.com"), false);
+  assert.equal(serialized.includes("pubmed-secret-key"), false);
+});
+
+test("status responses include provider capability registry", () => {
+  const status = handleStatus({
+    env: {
+      QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key",
+      QIONGLI_MCPB_SEMANTIC_SCHOLAR_API_KEY: "secret-key"
+    }
+  });
+
+  assert.equal(status.provider_capabilities.openalex.status, "implemented");
+  assert.equal(status.provider_capabilities.semantic_scholar.status, "implemented");
+  assert.equal(status.provider_capabilities.crossref.status, "implemented");
+  assert.equal(status.provider_capabilities.pubmed.status, "implemented");
+  assert.equal(status.provider_capabilities.openalex.capabilities.includes("document_type_filter"), true);
+  assert.equal(status.provider_capabilities.semantic_scholar.capabilities.includes("publication_type_metadata"), true);
+  assert.equal(status.provider_capabilities.crossref.capabilities.includes("reference_metadata"), true);
+  assert.equal(status.provider_capabilities.pubmed.capabilities.includes("biomedical_topic_search"), true);
 });
 
 test("handleSaveProviderConfig writes shared provider config without echoing secrets", async () => {
@@ -256,6 +316,100 @@ test("handleSearch aggregates successful and failed providers with warnings", as
   assert.equal(serialized.includes("secret-key"), false);
 });
 
+test("handleSearch fans out to configured Crossref and PubMed providers", async () => {
+  const calls = [];
+  const fetchImpl = async (url) => {
+    const requestedUrl = new URL(url);
+    calls.push(requestedUrl);
+
+    if (requestedUrl.hostname === "api.openalex.org") {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { results: [{ id: "https://openalex.org/W1", title: "OpenAlex Result" }] };
+        }
+      };
+    }
+
+    if (requestedUrl.hostname === "api.semanticscholar.org") {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { data: [{ paperId: "S1", title: "Semantic Result" }] };
+        }
+      };
+    }
+
+    if (requestedUrl.hostname === "api.crossref.org") {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            message: {
+              items: [{ DOI: "10.5555/crossref", title: ["Crossref Result"] }]
+            }
+          };
+        }
+      };
+    }
+
+    assert.equal(requestedUrl.hostname, "eutils.ncbi.nlm.nih.gov");
+    if (requestedUrl.pathname.endsWith("/esearch.fcgi")) {
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { esearchresult: { idlist: ["123"] } };
+        }
+      };
+    }
+
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return {
+          result: {
+            uids: ["123"],
+            123: {
+              uid: "123",
+              title: "PubMed Result"
+            }
+          }
+        };
+      }
+    };
+  };
+
+  const response = await handleSearch(
+    { query: "provider fanout", per_provider_limit: 2 },
+    {
+      env: {
+        QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key",
+        QIONGLI_MCPB_SEMANTIC_SCHOLAR_API_KEY: "secret-key",
+        QIONGLI_MCPB_CROSSREF_EMAIL: "crossref@example.com",
+        QIONGLI_MCPB_PUBMED_API_KEY: "pubmed-secret-key"
+      },
+      fetchImpl
+    }
+  );
+
+  assert.deepEqual(response.providers.attempted, [
+    "openalex",
+    "semantic_scholar",
+    "crossref",
+    "pubmed"
+  ]);
+  assert.deepEqual(response.providers.failed, []);
+  assert.equal(calls.some((url) => url.hostname === "api.crossref.org"), true);
+  assert.equal(calls.some((url) => url.hostname === "eutils.ncbi.nlm.nih.gov"), true);
+  assert.equal(response.results.some((result) => result.provider === "crossref"), true);
+  assert.equal(response.results.some((result) => result.provider === "pubmed"), true);
+});
+
 test("handleSearch uses review-mode default limit for literature reviews", async () => {
   const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-review-default-"));
   const calls = [];
@@ -350,6 +504,236 @@ test("handleSearch allows explicit systematic review limits up to 100", async ()
 
     assert.equal(response.search_mode, "review");
     assert.equal(calls.length, 2);
+  } finally {
+    await rm(configHome, { recursive: true, force: true });
+  }
+});
+
+test("handleSearch separates per-provider and total result limits", async () => {
+  const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-advanced-limits-"));
+  const calls = [];
+  const fetchImpl = async (url) => {
+    const requestedUrl = new URL(url);
+    calls.push(requestedUrl);
+
+    if (requestedUrl.hostname === "api.openalex.org") {
+      assert.equal(requestedUrl.searchParams.get("per-page"), "3");
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            results: [
+              {
+                id: "https://openalex.org/W1",
+                title: "Governance One",
+                publication_year: 2024,
+                type: "journal-article"
+              },
+              {
+                id: "https://openalex.org/W2",
+                title: "Governance Two",
+                publication_year: 2023,
+                type: "book-chapter"
+              }
+            ]
+          };
+        }
+      };
+    }
+
+    assert.equal(requestedUrl.hostname, "api.semanticscholar.org");
+    assert.equal(requestedUrl.searchParams.get("limit"), "3");
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return {
+          data: [
+            {
+              paperId: "S1",
+              title: "Governance Three",
+              year: 2022,
+              publicationTypes: ["JournalArticle"]
+            },
+            {
+              paperId: "S2",
+              title: "Governance Four",
+              year: 2021,
+              publicationTypes: ["Review"]
+            }
+          ]
+        };
+      }
+    };
+  };
+
+  try {
+    const response = await handleSearch(
+      { query: "governance", per_provider_limit: 3, total_limit: 2 },
+      {
+        env: {
+          QIONGLI_CONFIG_HOME: configHome,
+          QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key",
+          QIONGLI_MCPB_SEMANTIC_SCHOLAR_API_KEY: "secret-key"
+        },
+        fetchImpl
+      }
+    );
+
+    assert.equal(calls.length, 2);
+    assert.equal(response.search_options.per_provider_limit, 3);
+    assert.equal(response.search_options.total_limit, 2);
+    assert.equal(response.results.length, 2);
+    assert.deepEqual(
+      response.results.map((result) => result.title),
+      ["Governance One", "Governance Two"]
+    );
+  } finally {
+    await rm(configHome, { recursive: true, force: true });
+  }
+});
+
+test("handleSearch applies venue and document type filters", async () => {
+  const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-search-filters-"));
+  const fetchImpl = async (url) => {
+    const requestedUrl = new URL(url);
+    assert.equal(requestedUrl.hostname, "api.openalex.org");
+    assert.equal(
+      requestedUrl.searchParams.get("filter"),
+      "type:journal-article"
+    );
+
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return {
+          results: [
+            {
+              id: "https://openalex.org/W-match",
+              title: "Matching Paper",
+              publication_year: 2024,
+              type: "journal-article",
+              primary_location: {
+                source: {
+                  display_name: "Journal of Tests"
+                }
+              }
+            },
+            {
+              id: "https://openalex.org/W-venue",
+              title: "Wrong Venue",
+              publication_year: 2024,
+              type: "journal-article",
+              primary_location: {
+                source: {
+                  display_name: "Conference of Tests"
+                }
+              }
+            }
+          ]
+        };
+      }
+    };
+  };
+
+  try {
+    const response = await handleSearch(
+      {
+        query: "filter test",
+        document_types: ["journal-article"],
+        venue_filter: "Journal of Tests",
+        total_limit: 10
+      },
+      {
+        env: {
+          QIONGLI_CONFIG_HOME: configHome,
+          QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key"
+        },
+        fetchImpl
+      }
+    );
+
+    assert.deepEqual(response.results.map((result) => result.title), ["Matching Paper"]);
+    assert.equal(response.results[0].document_type, "journal-article");
+    assert.deepEqual(response.search_options.filters.document_types, ["journal-article"]);
+    assert.equal(response.search_options.filters.venue_filter, "Journal of Tests");
+  } finally {
+    await rm(configHome, { recursive: true, force: true });
+  }
+});
+
+test("handleSearch warns when review-mode search returns too few results", async () => {
+  const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-review-threshold-"));
+  const fetchImpl = async () => ({
+    ok: true,
+    status: 200,
+    async json() {
+      return {
+        results: [
+          {
+            id: "https://openalex.org/W1",
+            title: "Sparse Review Result",
+            publication_year: 2024
+          }
+        ]
+      };
+    }
+  });
+
+  try {
+    const response = await handleSearch(
+      { query: "rare topic", search_mode: "review" },
+      {
+        env: {
+          QIONGLI_CONFIG_HOME: configHome,
+          QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key"
+        },
+        fetchImpl
+      }
+    );
+
+    assert.equal(response.search_options.search_depth, "review");
+    assert.equal(response.search_options.minimum_result_threshold, 25);
+    assert.equal(response.warnings.includes("insufficient_review_results"), true);
+  } finally {
+    await rm(configHome, { recursive: true, force: true });
+  }
+});
+
+test("handleSearch reports limited citation and reference expansion warnings", async () => {
+  const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-expansion-warnings-"));
+  const fetchImpl = async () => ({
+    ok: true,
+    status: 200,
+    async json() {
+      return { results: [] };
+    }
+  });
+
+  try {
+    const response = await handleSearch(
+      {
+        query: "citation graph topic",
+        include_citations: true,
+        include_references: true
+      },
+      {
+        env: {
+          QIONGLI_CONFIG_HOME: configHome,
+          QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key"
+        },
+        fetchImpl
+      }
+    );
+
+    assert.equal(response.search_options.include_citations, true);
+    assert.equal(response.search_options.include_references, true);
+    assert.equal(response.warnings.includes("citation_expansion_limited"), true);
+    assert.equal(response.warnings.includes("reference_expansion_limited"), true);
+    assert.equal(response.warnings.includes("citation_expansion_not_available"), false);
+    assert.equal(response.warnings.includes("reference_expansion_not_available"), false);
   } finally {
     await rm(configHome, { recursive: true, force: true });
   }
