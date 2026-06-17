@@ -32,8 +32,8 @@ test("provider status redacts configured secrets", () => {
 });
 
 test("readConfig defaults invalid and blank limits and clamps numeric limits", () => {
-  assert.equal(readConfig({ QIONGLI_MCPB_DEFAULT_LIMIT: "" }).defaultLimit, 10);
-  assert.equal(readConfig({ QIONGLI_MCPB_DEFAULT_LIMIT: "invalid" }).defaultLimit, 10);
+  assert.equal(readConfig({ QIONGLI_MCPB_DEFAULT_LIMIT: "" }).defaultLimit, 25);
+  assert.equal(readConfig({ QIONGLI_MCPB_DEFAULT_LIMIT: "invalid" }).defaultLimit, 25);
   assert.equal(readConfig({ QIONGLI_MCPB_DEFAULT_LIMIT: "0" }).defaultLimit, 1);
   assert.equal(readConfig({ QIONGLI_MCPB_DEFAULT_LIMIT: "51" }).defaultLimit, 50);
   assert.equal(readConfig({ QIONGLI_MCPB_DEFAULT_LIMIT: "12" }).defaultLimit, 12);

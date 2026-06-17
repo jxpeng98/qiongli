@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const DEFAULT_LIMIT = 10;
+const DEFAULT_LIMIT = 25;
 const MIN_LIMIT = 1;
 const MAX_LIMIT = 50;
 const PROVIDER_FIELDS = {

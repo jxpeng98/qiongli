@@ -28,7 +28,7 @@ The bundled MCPB server and the full CLI MCP server both read the shared provide
 
 DOI queries use provider singleton lookup where available. Title mode asks Semantic Scholar for a title match before regular search, requests a wider provider page, then ranks merged results by title similarity before applying the final limit.
 
-For literature reviews, use `search_mode: "review"` or `search_mode: "systematic_review"`. Review mode defaults to 50 results per provider when `limit` is omitted and accepts explicit limits up to 100 per provider.
+For general topic searches, omitted limits default to 25 results per provider. For literature reviews, use `search_mode: "review"` or `search_mode: "systematic_review"`. Review mode defaults to 50 results per provider when `limit` is omitted and accepts explicit limits up to 100 per provider.
 
 ## Local Claude Desktop Install
 

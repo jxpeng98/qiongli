@@ -271,7 +271,7 @@ Query parameters:
 - `search_query` - Search terms
 - `id_list` - Specific arXiv IDs
 - `start` - Starting index
-- `max_results` - Max results (default 10)
+- `max_results` - Max results (default 25 for exploratory searches; use 50+ for review-grade searches when provider limits allow)
 - `sortBy` - relevance, lastUpdatedDate, submittedDate
 - `sortOrder` - ascending, descending
 
