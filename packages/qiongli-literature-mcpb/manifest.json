@@ -105,7 +105,7 @@
     "default_result_limit": {
       "type": "number",
       "title": "Default result limit",
-      "description": "Default results per provider for non-review searches when a tool call does not specify limit or per_provider_limit. Non-review mode uses 25 by default; review mode uses 50 by default and accepts explicit per-provider limits up to 100.",
+      "description": "Default results per provider for non-review searches when a tool call does not specify limit or per_provider_limit. Non-review mode uses 25 by default; review mode uses 50 by default and accepts explicit per-provider limits up to 200.",
       "default": 25,
       "min": 1,
       "max": 50,

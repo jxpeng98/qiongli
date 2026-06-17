@@ -1,17 +1,27 @@
 import { normalizeResult } from "../normalize.mjs";
 import { normalizeDoi } from "../query.mjs";
+import { fetchJsonWithRetry } from "./http.mjs";
 
 const PROVIDER = "openalex";
 const ENDPOINT = "https://api.openalex.org/works";
 const DEFAULT_LIMIT = 10;
-const MAX_LIMIT = 100;
+const PAGE_LIMIT = 100;
+const MAX_TOTAL_LIMIT = 200;
 
-function normalizeLimit(limit) {
+function normalizeTotalLimit(limit) {
   if (!Number.isInteger(limit)) {
     return DEFAULT_LIMIT;
   }
 
-  return Math.min(Math.max(limit, 1), MAX_LIMIT);
+  return Math.min(Math.max(limit, 1), MAX_TOTAL_LIMIT);
+}
+
+function normalizePageLimit(limit) {
+  if (!Number.isInteger(limit)) {
+    return DEFAULT_LIMIT;
+  }
+
+  return Math.min(Math.max(limit, 1), PAGE_LIMIT);
 }
 
 function openAlexId(value) {
@@ -128,12 +138,15 @@ function applyAuthParams(params, { email, apiKey }) {
   }
 }
 
-function buildSearchUrl({ query, limit, email, apiKey, fromYear, toYear, documentTypes }) {
+function buildSearchUrl({ query, limit, cursor, email, apiKey, fromYear, toYear, documentTypes }) {
   const url = new URL(ENDPOINT);
   const params = new URLSearchParams();
   params.set("search", query);
-  params.set("per-page", String(normalizeLimit(limit)));
+  params.set("per-page", String(normalizePageLimit(limit)));
   params.set("sort", "relevance_score:desc");
+  if (cursor) {
+    params.set("cursor", cursor);
+  }
 
   const filters = [];
   if (Number.isInteger(fromYear)) {
@@ -164,48 +177,84 @@ function buildDoiUrl({ doi, email, apiKey }) {
   return url;
 }
 
-function fetchOptions(fetchImpl) {
-  if (fetchImpl) {
-    return {};
-  }
-
-  return { signal: AbortSignal.timeout(15000) };
-}
-
-function errorMessage(response) {
-  return `${PROVIDER} HTTP ${response.status}`;
-}
-
 export async function searchOpenAlex({ query, doi, limit, email, apiKey, fromYear, toYear, documentTypes, fetchImpl } = {}) {
-  const fetcher = fetchImpl ?? fetch;
   const resolvedDoi = typeof doi === "string" ? doi : normalizeDoi(query);
-  const url = resolvedDoi
-    ? buildDoiUrl({ doi: resolvedDoi, email, apiKey })
-    : buildSearchUrl({ query, limit, email, apiKey, fromYear, toYear, documentTypes });
 
   try {
-    const response = await fetcher(url, fetchOptions(fetchImpl));
-    if (!response.ok) {
+    if (resolvedDoi) {
+      const lookup = await fetchJsonWithRetry({
+        provider: PROVIDER,
+        url: buildDoiUrl({ doi: resolvedDoi, email, apiKey }),
+        fetchImpl
+      });
+      if (lookup.error) {
+        return {
+          provider: PROVIDER,
+          results: [],
+          error: lookup.error,
+          request_count: 1,
+          attempts: lookup.attempts
+        };
+      }
+
       return {
         provider: PROVIDER,
-        results: [],
-        error: errorMessage(response)
+        results: [lookup.body].filter(Boolean).map(mapWork),
+        error: null,
+        request_count: 1,
+        attempts: lookup.attempts
       };
     }
 
-    const body = await response.json();
-    const works = resolvedDoi ? [body] : Array.isArray(body?.results) ? body.results : [];
-    const results = works.map(mapWork);
+    const targetLimit = normalizeTotalLimit(limit);
+    const results = [];
+    let remaining = targetLimit;
+    let cursor = "*";
+    let requestCount = 0;
+    let attempts = 0;
+
+    while (remaining > 0) {
+      const pageLimit = Math.min(remaining, PAGE_LIMIT);
+      const page = await fetchJsonWithRetry({
+        provider: PROVIDER,
+        url: buildSearchUrl({ query, limit: pageLimit, cursor, email, apiKey, fromYear, toYear, documentTypes }),
+        fetchImpl
+      });
+      requestCount += 1;
+      attempts += page.attempts;
+      if (page.error) {
+        return {
+          provider: PROVIDER,
+          results: [],
+          error: page.error,
+          request_count: requestCount,
+          attempts
+        };
+      }
+
+      const works = Array.isArray(page.body?.results) ? page.body.results : [];
+      results.push(...works.map(mapWork));
+      remaining -= pageLimit;
+      cursor = page.body?.meta?.next_cursor;
+      if (!cursor || works.length === 0) {
+        break;
+      }
+    }
+
     return {
       provider: PROVIDER,
       results,
-      error: null
+      error: null,
+      request_count: requestCount,
+      attempts
     };
   } catch (error) {
     return {
       provider: PROVIDER,
       results: [],
-      error: `${PROVIDER} request failed: ${error?.name ?? "Error"}`
+      error: `${PROVIDER} request failed: ${error?.name ?? "Error"}`,
+      request_count: 0,
+      attempts: 0
     };
   }
 }

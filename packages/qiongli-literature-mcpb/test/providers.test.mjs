@@ -126,6 +126,51 @@ test("searchOpenAlex resolves DOI queries through the singleton work endpoint", 
   assert.equal(response.results[0].doi, "10.5555/Exact");
 });
 
+test("searchOpenAlex paginates with cursor when limit exceeds one page", async () => {
+  const calls = [];
+  const fetchImpl = async (url) => {
+    const requestedUrl = new URL(url);
+    calls.push(requestedUrl);
+
+    return {
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      async json() {
+        if (calls.length === 1) {
+          return {
+            meta: {
+              next_cursor: "next-openalex-cursor"
+            },
+            results: [{ id: "https://openalex.org/W1", title: "OpenAlex Page One" }]
+          };
+        }
+
+        return {
+          meta: {},
+          results: [{ id: "https://openalex.org/W2", title: "OpenAlex Page Two" }]
+        };
+      }
+    };
+  };
+
+  const response = await searchOpenAlex({
+    query: "pagination query",
+    limit: 150,
+    apiKey: "openalex-secret-key",
+    fetchImpl
+  });
+
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].searchParams.get("per-page"), "100");
+  assert.equal(calls[0].searchParams.get("cursor"), "*");
+  assert.equal(calls[1].searchParams.get("per-page"), "50");
+  assert.equal(calls[1].searchParams.get("cursor"), "next-openalex-cursor");
+  assert.deepEqual(response.results.map((result) => result.title), ["OpenAlex Page One", "OpenAlex Page Two"]);
+  assert.equal(response.request_count, 2);
+  assert.equal(response.attempts, 2);
+});
+
 test("searchSemanticScholar sends optional API key header and normalizes results", async () => {
   const calls = [];
   const fetchImpl = async (url, options = {}) => {
@@ -191,6 +236,44 @@ test("searchSemanticScholar sends optional API key header and normalizes results
       source_id: "abc123"
     }
   ]);
+});
+
+test("searchSemanticScholar paginates with offset when limit exceeds one page", async () => {
+  const calls = [];
+  const fetchImpl = async (url, options = {}) => {
+    calls.push({ url: new URL(url), options });
+    return {
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      async json() {
+        return {
+          data: [
+            {
+              paperId: `S${calls.length}`,
+              title: `Semantic Page ${calls.length}`
+            }
+          ]
+        };
+      }
+    };
+  };
+
+  const response = await searchSemanticScholar({
+    query: "semantic pagination",
+    limit: 150,
+    apiKey: "secret-api-key",
+    fetchImpl
+  });
+
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].url.searchParams.get("limit"), "100");
+  assert.equal(calls[0].url.searchParams.get("offset"), "0");
+  assert.equal(calls[1].url.searchParams.get("limit"), "50");
+  assert.equal(calls[1].url.searchParams.get("offset"), "100");
+  assert.deepEqual(response.results.map((result) => result.title), ["Semantic Page 1", "Semantic Page 2"]);
+  assert.equal(response.request_count, 2);
+  assert.equal(response.attempts, 2);
 });
 
 test("searchSemanticScholar runs title-match before regular search in title mode", async () => {
@@ -498,6 +581,51 @@ test("searchCrossref resolves DOI queries through singleton work endpoint", asyn
   assert.deepEqual(response.results.map((result) => result.title), ["Exact Crossref Paper"]);
 });
 
+test("searchCrossref paginates with cursor when limit exceeds one page", async () => {
+  const calls = [];
+  const fetchImpl = async (url) => {
+    const requestedUrl = new URL(url);
+    calls.push(requestedUrl);
+    return {
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      async json() {
+        if (calls.length === 1) {
+          return {
+            message: {
+              "next-cursor": "next-crossref-cursor",
+              items: [{ DOI: "10.7000/page-one", title: ["Crossref Page One"] }]
+            }
+          };
+        }
+
+        return {
+          message: {
+            items: [{ DOI: "10.7000/page-two", title: ["Crossref Page Two"] }]
+          }
+        };
+      }
+    };
+  };
+
+  const response = await searchCrossref({
+    query: "crossref pagination",
+    limit: 150,
+    email: "crossref@example.com",
+    fetchImpl
+  });
+
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].searchParams.get("rows"), "100");
+  assert.equal(calls[0].searchParams.get("cursor"), "*");
+  assert.equal(calls[1].searchParams.get("rows"), "50");
+  assert.equal(calls[1].searchParams.get("cursor"), "next-crossref-cursor");
+  assert.deepEqual(response.results.map((result) => result.title), ["Crossref Page One", "Crossref Page Two"]);
+  assert.equal(response.request_count, 2);
+  assert.equal(response.attempts, 2);
+});
+
 test("searchPubMed uses ESearch and ESummary and normalizes records", async () => {
   const calls = [];
   const fetchImpl = async (url) => {
@@ -618,6 +746,67 @@ test("searchPubMed translates DOI queries into PubMed DOI field terms", async ()
   assert.equal(requestedUrl.pathname, "/entrez/eutils/esearch.fcgi");
   assert.equal(requestedUrl.searchParams.get("term"), "10.5000/Exact[doi]");
   assert.deepEqual(response.results, []);
+});
+
+test("searchPubMed paginates ESearch with retstart when limit exceeds one page", async () => {
+  const searchCalls = [];
+  const summaryCalls = [];
+  const fetchImpl = async (url) => {
+    const requestedUrl = new URL(url);
+    if (requestedUrl.pathname.endsWith("/esearch.fcgi")) {
+      searchCalls.push(requestedUrl);
+      const page = searchCalls.length;
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        async json() {
+          return {
+            esearchresult: {
+              count: "150",
+              idlist: page === 1 ? ["1"] : ["101"]
+            }
+          };
+        }
+      };
+    }
+
+    summaryCalls.push(requestedUrl);
+    const id = requestedUrl.searchParams.get("id");
+    return {
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      async json() {
+        return {
+          result: {
+            uids: [id],
+            [id]: {
+              uid: id,
+              title: `PubMed Page ${summaryCalls.length}`
+            }
+          }
+        };
+      }
+    };
+  };
+
+  const response = await searchPubMed({
+    query: "pubmed pagination",
+    limit: 150,
+    apiKey: "pubmed-secret-key",
+    fetchImpl
+  });
+
+  assert.equal(searchCalls.length, 2);
+  assert.equal(searchCalls[0].searchParams.get("retmax"), "100");
+  assert.equal(searchCalls[0].searchParams.get("retstart"), "0");
+  assert.equal(searchCalls[1].searchParams.get("retmax"), "50");
+  assert.equal(searchCalls[1].searchParams.get("retstart"), "100");
+  assert.equal(summaryCalls.length, 2);
+  assert.deepEqual(response.results.map((result) => result.title), ["PubMed Page 1", "PubMed Page 2"]);
+  assert.equal(response.request_count, 4);
+  assert.equal(response.attempts, 4);
 });
 
 test("provider HTTP failures return sanitized error payloads", async () => {

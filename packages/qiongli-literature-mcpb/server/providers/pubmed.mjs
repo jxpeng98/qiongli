@@ -1,17 +1,27 @@
 import { normalizeResult } from "../normalize.mjs";
 import { normalizeDoi } from "../query.mjs";
+import { fetchJsonWithRetry } from "./http.mjs";
 
 const PROVIDER = "pubmed";
 const BASE_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils";
 const DEFAULT_LIMIT = 10;
-const MAX_LIMIT = 100;
+const PAGE_LIMIT = 100;
+const MAX_TOTAL_LIMIT = 200;
 
-function normalizeLimit(limit) {
+function normalizeTotalLimit(limit) {
   if (!Number.isInteger(limit)) {
     return DEFAULT_LIMIT;
   }
 
-  return Math.min(Math.max(limit, 1), MAX_LIMIT);
+  return Math.min(Math.max(limit, 1), MAX_TOTAL_LIMIT);
+}
+
+function normalizePageLimit(limit) {
+  if (!Number.isInteger(limit)) {
+    return DEFAULT_LIMIT;
+  }
+
+  return Math.min(Math.max(limit, 1), PAGE_LIMIT);
 }
 
 function applyApiKey(params, apiKey) {
@@ -30,14 +40,15 @@ function buildSearchTerm({ query, doi }) {
   return String(query ?? "").trim();
 }
 
-function buildSearchUrl({ query, doi, limit, apiKey, fromYear, toYear }) {
+function buildSearchUrl({ query, doi, limit, retstart, apiKey, fromYear, toYear }) {
   const url = new URL(`${BASE_URL}/esearch.fcgi`);
   const params = new URLSearchParams();
   params.set("db", "pubmed");
   params.set("retmode", "json");
   params.set("sort", "relevance");
   params.set("term", buildSearchTerm({ query, doi }));
-  params.set("retmax", String(normalizeLimit(limit)));
+  params.set("retmax", String(normalizePageLimit(limit)));
+  params.set("retstart", String(Number.isInteger(retstart) ? retstart : 0));
   if (Number.isInteger(fromYear)) {
     params.set("mindate", String(fromYear));
   }
@@ -61,14 +72,6 @@ function buildSummaryUrl({ ids, apiKey }) {
   applyApiKey(params, apiKey);
   url.search = params.toString();
   return url;
-}
-
-function fetchOptions(fetchImpl) {
-  if (fetchImpl) {
-    return {};
-  }
-
-  return { signal: AbortSignal.timeout(15000) };
 }
 
 function authorsFor(record) {
@@ -136,71 +139,83 @@ function summariesFromBody(body) {
     .filter((record) => record && typeof record === "object");
 }
 
-function errorMessage(response) {
-  return `${PROVIDER} HTTP ${response.status}`;
-}
-
-async function fetchJson(fetcher, url, options) {
-  const response = await fetcher(url, options);
-  if (!response.ok) {
-    return {
-      body: null,
-      error: errorMessage(response)
-    };
-  }
-
-  return {
-    body: await response.json(),
-    error: null
-  };
-}
-
 export async function searchPubMed({ query, doi, limit, apiKey, fromYear, toYear, fetchImpl } = {}) {
-  const fetcher = fetchImpl ?? fetch;
-  const options = fetchOptions(fetchImpl);
-
   try {
-    const search = await fetchJson(
-      fetcher,
-      buildSearchUrl({ query, doi, limit, apiKey, fromYear, toYear }),
-      options
-    );
-    if (search.error) {
-      return {
-        provider: PROVIDER,
-        results: [],
-        error: search.error
-      };
-    }
+    const targetLimit = normalizeTotalLimit(limit);
+    const results = [];
+    let remaining = targetLimit;
+    let retstart = 0;
+    let requestCount = 0;
+    let attempts = 0;
 
-    const ids = idsFromSearch(search.body);
-    if (ids.length === 0) {
-      return {
+    while (remaining > 0) {
+      const pageLimit = Math.min(remaining, PAGE_LIMIT);
+      const search = await fetchJsonWithRetry({
         provider: PROVIDER,
-        results: [],
-        error: null
-      };
-    }
+        url: buildSearchUrl({ query, doi, limit: pageLimit, retstart, apiKey, fromYear, toYear }),
+        fetchImpl
+      });
+      requestCount += 1;
+      attempts += search.attempts;
+      if (search.error) {
+        return {
+          provider: PROVIDER,
+          results: [],
+          error: search.error,
+          request_count: requestCount,
+          attempts
+        };
+      }
 
-    const summary = await fetchJson(fetcher, buildSummaryUrl({ ids, apiKey }), options);
-    if (summary.error) {
-      return {
+      const ids = idsFromSearch(search.body);
+      if (ids.length === 0) {
+        break;
+      }
+
+      const summary = await fetchJsonWithRetry({
         provider: PROVIDER,
-        results: [],
-        error: summary.error
-      };
+        url: buildSummaryUrl({ ids, apiKey }),
+        fetchImpl
+      });
+      requestCount += 1;
+      attempts += summary.attempts;
+      if (summary.error) {
+        return {
+          provider: PROVIDER,
+          results: [],
+          error: summary.error,
+          request_count: requestCount,
+          attempts
+        };
+      }
+
+      results.push(...summariesFromBody(summary.body).map(mapSummary));
+      remaining -= pageLimit;
+      retstart += pageLimit;
+
+      const totalAvailable = Number(search.body?.esearchresult?.count);
+      if (
+        (Number.isFinite(totalAvailable) && retstart >= Math.min(totalAvailable, targetLimit)) ||
+        (!Number.isFinite(totalAvailable) && ids.length < pageLimit)
+      ) {
+        break;
+      }
     }
 
     return {
       provider: PROVIDER,
-      results: summariesFromBody(summary.body).map(mapSummary),
-      error: null
+      results,
+      error: null,
+      request_count: requestCount,
+      attempts
     };
   } catch (error) {
     return {
       provider: PROVIDER,
       results: [],
-      error: `${PROVIDER} request failed: ${error?.name ?? "Error"}`
+      error: `${PROVIDER} request failed: ${error?.name ?? "Error"}`,
+      request_count: 0,
+      attempts: 0
     };
   }
 }

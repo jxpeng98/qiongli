@@ -1,7 +1,7 @@
 const CAPABILITIES = {
   openalex: {
     status: "implemented",
-    max_per_provider_limit: 100,
+    max_per_provider_limit: 200,
     capabilities: [
       "topic_search",
       "doi_lookup",
@@ -13,7 +13,7 @@ const CAPABILITIES = {
   },
   semantic_scholar: {
     status: "implemented",
-    max_per_provider_limit: 100,
+    max_per_provider_limit: 200,
     capabilities: [
       "topic_search",
       "title_lookup",
@@ -26,7 +26,7 @@ const CAPABILITIES = {
   },
   crossref: {
     status: "implemented",
-    max_per_provider_limit: 100,
+    max_per_provider_limit: 200,
     capabilities: [
       "topic_search",
       "doi_lookup",
@@ -39,7 +39,7 @@ const CAPABILITIES = {
   },
   pubmed: {
     status: "implemented",
-    max_per_provider_limit: 100,
+    max_per_provider_limit: 200,
     capabilities: [
       "topic_search",
       "doi_lookup",

@@ -1,17 +1,27 @@
 import { normalizeResult } from "../normalize.mjs";
 import { normalizeDoi } from "../query.mjs";
+import { fetchJsonWithRetry } from "./http.mjs";
 
 const PROVIDER = "crossref";
 const ENDPOINT = "https://api.crossref.org/works";
 const DEFAULT_LIMIT = 10;
-const MAX_LIMIT = 100;
+const PAGE_LIMIT = 100;
+const MAX_TOTAL_LIMIT = 200;
 
-function normalizeLimit(limit) {
+function normalizeTotalLimit(limit) {
   if (!Number.isInteger(limit)) {
     return DEFAULT_LIMIT;
   }
 
-  return Math.min(Math.max(limit, 1), MAX_LIMIT);
+  return Math.min(Math.max(limit, 1), MAX_TOTAL_LIMIT);
+}
+
+function normalizePageLimit(limit) {
+  if (!Number.isInteger(limit)) {
+    return DEFAULT_LIMIT;
+  }
+
+  return Math.min(Math.max(limit, 1), PAGE_LIMIT);
 }
 
 function firstString(value) {
@@ -109,13 +119,16 @@ function normalizeDocumentTypes(value) {
     .filter((type) => type !== "");
 }
 
-function buildSearchUrl({ query, limit, email, fromYear, toYear, documentTypes }) {
+function buildSearchUrl({ query, limit, cursor, email, fromYear, toYear, documentTypes }) {
   const url = new URL(ENDPOINT);
   const params = new URLSearchParams();
   params.set("query.bibliographic", query);
-  params.set("rows", String(normalizeLimit(limit)));
+  params.set("rows", String(normalizePageLimit(limit)));
   params.set("sort", "relevance");
   params.set("order", "desc");
+  if (cursor) {
+    params.set("cursor", cursor);
+  }
 
   const filters = [];
   if (Number.isInteger(fromYear)) {
@@ -145,49 +158,84 @@ function buildDoiUrl({ doi, email }) {
   return url;
 }
 
-function fetchOptions(fetchImpl) {
-  if (fetchImpl) {
-    return {};
-  }
-
-  return { signal: AbortSignal.timeout(15000) };
-}
-
-function errorMessage(response) {
-  return `${PROVIDER} HTTP ${response.status}`;
-}
-
 export async function searchCrossref({ query, doi, limit, email, fromYear, toYear, documentTypes, fetchImpl } = {}) {
-  const fetcher = fetchImpl ?? fetch;
   const resolvedDoi = typeof doi === "string" ? doi : normalizeDoi(query);
-  const url = resolvedDoi
-    ? buildDoiUrl({ doi: resolvedDoi, email })
-    : buildSearchUrl({ query, limit, email, fromYear, toYear, documentTypes });
 
   try {
-    const response = await fetcher(url, fetchOptions(fetchImpl));
-    if (!response.ok) {
+    if (resolvedDoi) {
+      const lookup = await fetchJsonWithRetry({
+        provider: PROVIDER,
+        url: buildDoiUrl({ doi: resolvedDoi, email }),
+        fetchImpl
+      });
+      if (lookup.error) {
+        return {
+          provider: PROVIDER,
+          results: [],
+          error: lookup.error,
+          request_count: 1,
+          attempts: lookup.attempts
+        };
+      }
+
       return {
         provider: PROVIDER,
-        results: [],
-        error: errorMessage(response)
+        results: [lookup.body?.message].filter(Boolean).map(mapWork),
+        error: null,
+        request_count: 1,
+        attempts: lookup.attempts
       };
     }
 
-    const body = await response.json();
-    const items = resolvedDoi
-      ? [body?.message]
-      : Array.isArray(body?.message?.items) ? body.message.items : [];
+    const targetLimit = normalizeTotalLimit(limit);
+    const results = [];
+    let remaining = targetLimit;
+    let cursor = "*";
+    let requestCount = 0;
+    let attempts = 0;
+
+    while (remaining > 0) {
+      const pageLimit = Math.min(remaining, PAGE_LIMIT);
+      const page = await fetchJsonWithRetry({
+        provider: PROVIDER,
+        url: buildSearchUrl({ query, limit: pageLimit, cursor, email, fromYear, toYear, documentTypes }),
+        fetchImpl
+      });
+      requestCount += 1;
+      attempts += page.attempts;
+      if (page.error) {
+        return {
+          provider: PROVIDER,
+          results: [],
+          error: page.error,
+          request_count: requestCount,
+          attempts
+        };
+      }
+
+      const items = Array.isArray(page.body?.message?.items) ? page.body.message.items : [];
+      results.push(...items.map(mapWork));
+      remaining -= pageLimit;
+      cursor = page.body?.message?.["next-cursor"];
+      if (!cursor || items.length === 0) {
+        break;
+      }
+    }
+
     return {
       provider: PROVIDER,
-      results: items.filter(Boolean).map(mapWork),
-      error: null
+      results,
+      error: null,
+      request_count: requestCount,
+      attempts
     };
   } catch (error) {
     return {
       provider: PROVIDER,
       results: [],
-      error: `${PROVIDER} request failed: ${error?.name ?? "Error"}`
+      error: `${PROVIDER} request failed: ${error?.name ?? "Error"}`,
+      request_count: 0,
+      attempts: 0
     };
   }
 }

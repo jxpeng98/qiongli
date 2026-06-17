@@ -1,12 +1,14 @@
 import { normalizeResult } from "../normalize.mjs";
 import { normalizeDoi } from "../query.mjs";
+import { fetchJsonWithRetry } from "./http.mjs";
 
 const PROVIDER = "semantic_scholar";
 const ENDPOINT = "https://api.semanticscholar.org/graph/v1/paper/search";
 const MATCH_ENDPOINT = "https://api.semanticscholar.org/graph/v1/paper/search/match";
 const PAPER_ENDPOINT = "https://api.semanticscholar.org/graph/v1/paper";
 const DEFAULT_LIMIT = 10;
-const MAX_LIMIT = 100;
+const PAGE_LIMIT = 100;
+const MAX_TOTAL_LIMIT = 200;
 const BASE_FIELDS = [
   "paperId",
   "title",
@@ -42,7 +44,15 @@ function normalizeLimit(limit) {
     return DEFAULT_LIMIT;
   }
 
-  return Math.min(Math.max(limit, 1), MAX_LIMIT);
+  return Math.min(Math.max(limit, 1), MAX_TOTAL_LIMIT);
+}
+
+function normalizePageLimit(limit) {
+  if (!Number.isInteger(limit)) {
+    return DEFAULT_LIMIT;
+  }
+
+  return Math.min(Math.max(limit, 1), PAGE_LIMIT);
 }
 
 function buildYearFilter(fromYear, toYear) {
@@ -72,11 +82,12 @@ function fieldsFor({ includeCitations, includeReferences } = {}) {
   return fields.join(",");
 }
 
-function buildUrl({ query, limit, fromYear, toYear, includeCitations, includeReferences }) {
+function buildUrl({ query, limit, offset, fromYear, toYear, includeCitations, includeReferences }) {
   const url = new URL(ENDPOINT);
   const params = new URLSearchParams();
   params.set("query", query);
-  params.set("limit", String(normalizeLimit(limit)));
+  params.set("limit", String(normalizePageLimit(limit)));
+  params.set("offset", String(Number.isInteger(offset) ? offset : 0));
   params.set("fields", fieldsFor({ includeCitations, includeReferences }));
 
   const year = buildYearFilter(fromYear, toYear);
@@ -206,18 +217,26 @@ function errorMessage(response) {
 }
 
 async function fetchPapers(fetcher, url, options) {
-  const response = await fetcher(url, options);
-  if (!response.ok) {
+  const fetched = await fetchJsonWithRetry({
+    provider: PROVIDER,
+    url,
+    fetchImpl: fetcher === fetch ? undefined : fetcher,
+    options
+  });
+  if (fetched.error) {
     return {
       results: [],
-      error: errorMessage(response)
+      error: fetched.error,
+      request_count: 1,
+      attempts: fetched.attempts
     };
   }
 
-  const body = await response.json();
   return {
-    results: papersFromBody(body).map(mapPaper),
-    error: null
+    results: papersFromBody(fetched.body).map(mapPaper),
+    error: null,
+    request_count: 1,
+    attempts: fetched.attempts
   };
 }
 
@@ -233,7 +252,9 @@ export async function searchSemanticScholar({ query, doi, exactTitle, searchMode
       return {
         provider: PROVIDER,
         results: lookup.results,
-        error: lookup.error
+        error: lookup.error,
+        request_count: lookup.request_count,
+        attempts: lookup.attempts
       };
     }
 
@@ -241,27 +262,51 @@ export async function searchSemanticScholar({ query, doi, exactTitle, searchMode
     if (shouldMatchTitle) {
       lookups.push(await fetchPapers(fetcher, buildMatchUrl({ query }), options));
     }
-    lookups.push(await fetchPapers(fetcher, buildUrl({ query, limit, fromYear, toYear, includeCitations, includeReferences }), options));
+    const targetLimit = normalizeLimit(limit);
+    let remaining = targetLimit;
+    let offset = 0;
+    while (remaining > 0) {
+      const pageLimit = Math.min(remaining, PAGE_LIMIT);
+      const lookup = await fetchPapers(
+        fetcher,
+        buildUrl({ query, limit: pageLimit, offset, fromYear, toYear, includeCitations, includeReferences }),
+        options
+      );
+      lookups.push(lookup);
+      if (lookup.error || lookup.results.length === 0) {
+        break;
+      }
+      remaining -= pageLimit;
+      offset += pageLimit;
+    }
 
     const successful = lookups.filter((lookup) => !lookup.error);
+    const requestCount = lookups.reduce((sum, lookup) => sum + (lookup.request_count ?? 0), 0);
+    const attempts = lookups.reduce((sum, lookup) => sum + (lookup.attempts ?? 0), 0);
     if (successful.length === 0) {
       return {
         provider: PROVIDER,
         results: [],
-        error: lookups[0]?.error ?? `${PROVIDER} request failed: Error`
+        error: lookups[0]?.error ?? `${PROVIDER} request failed: Error`,
+        request_count: requestCount,
+        attempts
       };
     }
 
     return {
       provider: PROVIDER,
       results: successful.flatMap((lookup) => lookup.results),
-      error: null
+      error: null,
+      request_count: requestCount,
+      attempts
     };
   } catch (error) {
     return {
       provider: PROVIDER,
       results: [],
-      error: `${PROVIDER} request failed: ${error?.name ?? "Error"}`
+      error: `${PROVIDER} request failed: ${error?.name ?? "Error"}`,
+      request_count: 0,
+      attempts: 0
     };
   }
 }

@@ -23,7 +23,7 @@ import { startConfigWizard } from "./config-wizard.mjs";
 const MIN_LIMIT = 1;
 const STANDARD_MAX_LIMIT = 50;
 const REVIEW_DEFAULT_LIMIT = 50;
-const REVIEW_MAX_LIMIT = 100;
+const REVIEW_MAX_LIMIT = 200;
 const TOTAL_MAX_LIMIT = 500;
 const REVIEW_MINIMUM_RESULTS = 25;
 const DEEP_MINIMUM_RESULTS = 50;
@@ -466,6 +466,34 @@ function searchOptionsPayload(options) {
   };
 }
 
+function numericStat(value, fallback = 0) {
+  return Number.isInteger(value) && value >= 0 ? value : fallback;
+}
+
+function providerDiagnostic(response) {
+  const resultCount = Array.isArray(response?.results) ? response.results.length : 0;
+  const requestCount = numericStat(response?.request_count, 1);
+
+  return {
+    provider: response?.provider ?? "unknown",
+    status: response?.error ? "failed" : "success",
+    result_count: resultCount,
+    request_count: requestCount,
+    attempts: numericStat(response?.attempts, requestCount),
+    error: response?.error ?? null
+  };
+}
+
+function searchDiagnostics({ responses, rawResults, dedupedResults, filteredResults, outputResults }) {
+  return {
+    raw_result_count: rawResults.length,
+    deduped_result_count: dedupedResults.length,
+    filtered_result_count: filteredResults.length,
+    returned_result_count: outputResults.length,
+    providers: responses.map(providerDiagnostic)
+  };
+}
+
 function appendSearchWarnings(warnings, outputResults, options) {
   const merged = [...warnings];
 
@@ -647,6 +675,13 @@ export async function handleSearch(input = {}, context = {}) {
     warnings: appendSearchWarnings(evidence.warnings, outputResults, options),
     search_mode: intent.mode,
     search_options: searchOptionsPayload(options),
+    diagnostics: searchDiagnostics({
+      responses,
+      rawResults: results,
+      dedupedResults,
+      filteredResults,
+      outputResults
+    }),
     results: outputResults
   };
 }

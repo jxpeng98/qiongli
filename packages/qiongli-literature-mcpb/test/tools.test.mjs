@@ -311,7 +311,25 @@ test("handleSearch aggregates successful and failed providers with warnings", as
   assert.deepEqual(response.warnings, ["single_successful_provider", "partial_provider_failure"]);
   assert.equal(response.results.length, 1);
   assert.equal(response.results[0].doi, "10.1234/dupe");
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 4);
+  assert.deepEqual(response.diagnostics.providers, [
+    {
+      provider: "openalex",
+      status: "success",
+      result_count: 1,
+      request_count: 1,
+      attempts: 1,
+      error: null
+    },
+    {
+      provider: "semantic_scholar",
+      status: "failed",
+      result_count: 0,
+      request_count: 1,
+      attempts: 3,
+      error: "semantic_scholar HTTP 429"
+    }
+  ]);
   assert.equal(serialized.includes("person@example.com"), false);
   assert.equal(serialized.includes("secret-key"), false);
 });
@@ -460,7 +478,7 @@ test("handleSearch uses review-mode default limit for literature reviews", async
   }
 });
 
-test("handleSearch allows explicit systematic review limits up to 100", async () => {
+test("handleSearch keeps provider pages capped for explicit review limits", async () => {
   const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-review-explicit-"));
   const calls = [];
   const fetchImpl = async (url) => {
@@ -503,6 +521,7 @@ test("handleSearch allows explicit systematic review limits up to 100", async ()
     );
 
     assert.equal(response.search_mode, "review");
+    assert.equal(response.search_options.per_provider_limit, 120);
     assert.equal(calls.length, 2);
   } finally {
     await rm(configHome, { recursive: true, force: true });
@@ -589,6 +608,82 @@ test("handleSearch separates per-provider and total result limits", async () => 
       response.results.map((result) => result.title),
       ["Governance One", "Governance Two"]
     );
+  } finally {
+    await rm(configHome, { recursive: true, force: true });
+  }
+});
+
+test("handleSearch returns structured diagnostics for deep paginated searches", async () => {
+  const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-deep-diagnostics-"));
+  const calls = [];
+  const fetchImpl = async (url) => {
+    const requestedUrl = new URL(url);
+    calls.push(requestedUrl);
+    assert.equal(requestedUrl.hostname, "api.openalex.org");
+    return {
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      async json() {
+        if (calls.length === 1) {
+          return {
+            meta: {
+              next_cursor: "next-deep-cursor"
+            },
+            results: [
+              {
+                id: "https://openalex.org/W1",
+                title: "Deep Result One"
+              }
+            ]
+          };
+        }
+
+        return {
+          meta: {},
+          results: [
+            {
+              id: "https://openalex.org/W2",
+              title: "Deep Result Two"
+            }
+          ]
+        };
+      }
+    };
+  };
+
+  try {
+    const response = await handleSearch(
+      {
+        query: "deep diagnostics",
+        search_depth: "deep",
+        per_provider_limit: 150
+      },
+      {
+        env: {
+          QIONGLI_CONFIG_HOME: configHome,
+          QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key"
+        },
+        fetchImpl
+      }
+    );
+
+    assert.equal(response.search_options.per_provider_limit, 150);
+    assert.equal(calls.length, 2);
+    assert.equal(response.diagnostics.raw_result_count, 2);
+    assert.equal(response.diagnostics.deduped_result_count, 2);
+    assert.equal(response.diagnostics.filtered_result_count, 2);
+    assert.equal(response.diagnostics.returned_result_count, 2);
+    assert.deepEqual(response.diagnostics.providers, [
+      {
+        provider: "openalex",
+        status: "success",
+        result_count: 2,
+        request_count: 2,
+        attempts: 2,
+        error: null
+      }
+    ]);
   } finally {
     await rm(configHome, { recursive: true, force: true });
   }
