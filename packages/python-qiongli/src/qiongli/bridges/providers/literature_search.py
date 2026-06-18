@@ -17,7 +17,8 @@ SearchFn = Callable[[str, int], dict[str, Any]]
 ProviderSearchFn = Callable[[dict[str, object], int], dict[str, object]]
 
 MAX_QUERY_VARIANTS = 4
-DEFAULT_PER_QUERY_LIMIT = 8
+DEFAULT_PER_QUERY_LIMIT = 20
+MAX_PER_QUERY_LIMIT = 50
 STOPWORDS = {
     "a",
     "an",
@@ -544,7 +545,7 @@ def _resolve_per_query_limit(task_packet: dict[str, Any]) -> int:
             parsed = int(str(value).strip())
         except (TypeError, ValueError):
             continue
-        return max(1, min(parsed, 25))
+        return max(1, min(parsed, MAX_PER_QUERY_LIMIT))
     return DEFAULT_PER_QUERY_LIMIT
 
 

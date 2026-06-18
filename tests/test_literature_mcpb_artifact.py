@@ -31,7 +31,7 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
         self.assertIs(manifest["user_config"]["openalex_api_key"]["sensitive"], True)
         self.assertIs(manifest["user_config"]["semantic_scholar_api_key"]["sensitive"], True)
         self.assertEqual(manifest["user_config"]["openalex_email"]["type"], "string")
-        self.assertEqual(manifest["user_config"]["default_result_limit"]["default"], 10)
+        self.assertEqual(manifest["user_config"]["default_result_limit"]["default"], 25)
         self.assertIn("qiongli_literature_search", {tool["name"] for tool in manifest["tools"]})
 
     def test_literature_mcpb_manifest_server_entry_exists(self) -> None:
@@ -123,8 +123,14 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
         self.assertIn("server/index.mjs", names)
         self.assertIn("server/config.mjs", names)
         self.assertIn("server/config-wizard.mjs", names)
+        self.assertIn("server/capabilities.mjs", names)
+        self.assertIn("server/diagnostics.mjs", names)
+        self.assertIn("server/domain-profiles.mjs", names)
         self.assertIn("server/query.mjs", names)
         self.assertIn("server/stdio.mjs", names)
+        self.assertIn("server/providers/http.mjs", names)
+        self.assertIn("server/providers/crossref.mjs", names)
+        self.assertIn("server/providers/pubmed.mjs", names)
 
     def test_build_literature_mcpb_excludes_tests(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

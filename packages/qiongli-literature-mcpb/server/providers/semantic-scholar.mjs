@@ -1,20 +1,58 @@
 import { normalizeResult } from "../normalize.mjs";
 import { normalizeDoi } from "../query.mjs";
+import { fetchJsonWithRetry } from "./http.mjs";
 
 const PROVIDER = "semantic_scholar";
 const ENDPOINT = "https://api.semanticscholar.org/graph/v1/paper/search";
 const MATCH_ENDPOINT = "https://api.semanticscholar.org/graph/v1/paper/search/match";
 const PAPER_ENDPOINT = "https://api.semanticscholar.org/graph/v1/paper";
 const DEFAULT_LIMIT = 10;
-const MAX_LIMIT = 100;
-const FIELDS = "paperId,title,year,authors,abstract,url,venue,externalIds";
+const PAGE_LIMIT = 100;
+const MAX_TOTAL_LIMIT = 200;
+const BASE_FIELDS = [
+  "paperId",
+  "title",
+  "year",
+  "authors",
+  "abstract",
+  "url",
+  "venue",
+  "publicationTypes",
+  "externalIds"
+];
+const CITATION_FIELDS = [
+  "citationCount",
+  "citations.paperId",
+  "citations.title",
+  "citations.year",
+  "citations.authors",
+  "citations.externalIds",
+  "citations.url"
+];
+const REFERENCE_FIELDS = [
+  "referenceCount",
+  "references.paperId",
+  "references.title",
+  "references.year",
+  "references.authors",
+  "references.externalIds",
+  "references.url"
+];
 
 function normalizeLimit(limit) {
   if (!Number.isInteger(limit)) {
     return DEFAULT_LIMIT;
   }
 
-  return Math.min(Math.max(limit, 1), MAX_LIMIT);
+  return Math.min(Math.max(limit, 1), MAX_TOTAL_LIMIT);
+}
+
+function normalizePageLimit(limit) {
+  if (!Number.isInteger(limit)) {
+    return DEFAULT_LIMIT;
+  }
+
+  return Math.min(Math.max(limit, 1), PAGE_LIMIT);
 }
 
 function buildYearFilter(fromYear, toYear) {
@@ -33,12 +71,24 @@ function buildYearFilter(fromYear, toYear) {
   return null;
 }
 
-function buildUrl({ query, limit, fromYear, toYear }) {
+function fieldsFor({ includeCitations, includeReferences } = {}) {
+  const fields = [...BASE_FIELDS];
+  if (includeCitations) {
+    fields.push(...CITATION_FIELDS);
+  }
+  if (includeReferences) {
+    fields.push(...REFERENCE_FIELDS);
+  }
+  return fields.join(",");
+}
+
+function buildUrl({ query, limit, offset, fromYear, toYear, includeCitations, includeReferences }) {
   const url = new URL(ENDPOINT);
   const params = new URLSearchParams();
   params.set("query", query);
-  params.set("limit", String(normalizeLimit(limit)));
-  params.set("fields", FIELDS);
+  params.set("limit", String(normalizePageLimit(limit)));
+  params.set("offset", String(Number.isInteger(offset) ? offset : 0));
+  params.set("fields", fieldsFor({ includeCitations, includeReferences }));
 
   const year = buildYearFilter(fromYear, toYear);
   if (year) {
@@ -53,15 +103,15 @@ function buildMatchUrl({ query }) {
   const url = new URL(MATCH_ENDPOINT);
   const params = new URLSearchParams();
   params.set("query", query);
-  params.set("fields", FIELDS);
+  params.set("fields", fieldsFor());
   url.search = params.toString();
   return url;
 }
 
-function buildDoiUrl({ doi }) {
+function buildDoiUrl({ doi, includeCitations, includeReferences }) {
   const url = new URL(`${PAPER_ENDPOINT}/${encodeURIComponent(`DOI:${doi}`)}`);
   const params = new URLSearchParams();
-  params.set("fields", FIELDS);
+  params.set("fields", fieldsFor({ includeCitations, includeReferences }));
   url.search = params.toString();
   return url;
 }
@@ -103,6 +153,30 @@ function doiFor(paper) {
   return paper?.externalIds?.DOI ?? paper?.externalIds?.doi ?? null;
 }
 
+function linkedPapers(papers) {
+  if (!Array.isArray(papers)) {
+    return [];
+  }
+
+  return papers.map((paper) => ({
+    title: paper?.title,
+    authors: authorsFor(paper),
+    year: paper?.year,
+    doi: doiFor(paper),
+    url: paper?.url,
+    provider: PROVIDER,
+    source_id: paper?.paperId
+  }));
+}
+
+function publicationTypeFor(paper) {
+  if (!Array.isArray(paper?.publicationTypes)) {
+    return null;
+  }
+
+  return paper.publicationTypes.find((type) => typeof type === "string") ?? null;
+}
+
 function mapPaper(paper) {
   return normalizeResult({
     title: paper?.title,
@@ -112,6 +186,11 @@ function mapPaper(paper) {
     url: paper?.url,
     abstract: paper?.abstract,
     venue: paper?.venue,
+    document_type: publicationTypeFor(paper),
+    citation_count: paper?.citationCount,
+    reference_count: paper?.referenceCount,
+    citations: linkedPapers(paper?.citations),
+    references: linkedPapers(paper?.references),
     provider: PROVIDER,
     source_id: paper?.paperId
   });
@@ -138,22 +217,30 @@ function errorMessage(response) {
 }
 
 async function fetchPapers(fetcher, url, options) {
-  const response = await fetcher(url, options);
-  if (!response.ok) {
+  const fetched = await fetchJsonWithRetry({
+    provider: PROVIDER,
+    url,
+    fetchImpl: fetcher === fetch ? undefined : fetcher,
+    options
+  });
+  if (fetched.error) {
     return {
       results: [],
-      error: errorMessage(response)
+      error: fetched.error,
+      request_count: 1,
+      attempts: fetched.attempts
     };
   }
 
-  const body = await response.json();
   return {
-    results: papersFromBody(body).map(mapPaper),
-    error: null
+    results: papersFromBody(fetched.body).map(mapPaper),
+    error: null,
+    request_count: 1,
+    attempts: fetched.attempts
   };
 }
 
-export async function searchSemanticScholar({ query, doi, exactTitle, searchMode, limit, apiKey, fromYear, toYear, fetchImpl } = {}) {
+export async function searchSemanticScholar({ query, doi, exactTitle, searchMode, limit, apiKey, fromYear, toYear, includeCitations, includeReferences, fetchImpl } = {}) {
   const fetcher = fetchImpl ?? fetch;
   const resolvedDoi = typeof doi === "string" ? doi : normalizeDoi(query);
   const shouldMatchTitle = exactTitle === true || searchMode === "title";
@@ -161,11 +248,13 @@ export async function searchSemanticScholar({ query, doi, exactTitle, searchMode
 
   try {
     if (resolvedDoi) {
-      const lookup = await fetchPapers(fetcher, buildDoiUrl({ doi: resolvedDoi }), options);
+      const lookup = await fetchPapers(fetcher, buildDoiUrl({ doi: resolvedDoi, includeCitations, includeReferences }), options);
       return {
         provider: PROVIDER,
         results: lookup.results,
-        error: lookup.error
+        error: lookup.error,
+        request_count: lookup.request_count,
+        attempts: lookup.attempts
       };
     }
 
@@ -173,27 +262,51 @@ export async function searchSemanticScholar({ query, doi, exactTitle, searchMode
     if (shouldMatchTitle) {
       lookups.push(await fetchPapers(fetcher, buildMatchUrl({ query }), options));
     }
-    lookups.push(await fetchPapers(fetcher, buildUrl({ query, limit, fromYear, toYear }), options));
+    const targetLimit = normalizeLimit(limit);
+    let remaining = targetLimit;
+    let offset = 0;
+    while (remaining > 0) {
+      const pageLimit = Math.min(remaining, PAGE_LIMIT);
+      const lookup = await fetchPapers(
+        fetcher,
+        buildUrl({ query, limit: pageLimit, offset, fromYear, toYear, includeCitations, includeReferences }),
+        options
+      );
+      lookups.push(lookup);
+      if (lookup.error || lookup.results.length === 0) {
+        break;
+      }
+      remaining -= pageLimit;
+      offset += pageLimit;
+    }
 
     const successful = lookups.filter((lookup) => !lookup.error);
+    const requestCount = lookups.reduce((sum, lookup) => sum + (lookup.request_count ?? 0), 0);
+    const attempts = lookups.reduce((sum, lookup) => sum + (lookup.attempts ?? 0), 0);
     if (successful.length === 0) {
       return {
         provider: PROVIDER,
         results: [],
-        error: lookups[0]?.error ?? `${PROVIDER} request failed: Error`
+        error: lookups[0]?.error ?? `${PROVIDER} request failed: Error`,
+        request_count: requestCount,
+        attempts
       };
     }
 
     return {
       provider: PROVIDER,
       results: successful.flatMap((lookup) => lookup.results),
-      error: null
+      error: null,
+      request_count: requestCount,
+      attempts
     };
   } catch (error) {
     return {
       provider: PROVIDER,
       results: [],
-      error: `${PROVIDER} request failed: ${error?.name ?? "Error"}`
+      error: `${PROVIDER} request failed: ${error?.name ?? "Error"}`,
+      request_count: 0,
+      attempts: 0
     };
   }
 }

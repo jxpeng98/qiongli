@@ -92,9 +92,11 @@ Desktop-only users can use the MCP tools exposed by the bundled Node server or f
 - `qiongli_open_config_wizard`: compatibility alias for `qiongli_configure_provider`.
 - `qiongli_save_provider_config`: saves one provider field from the desktop client; use it only for explicit scripted writes or when the user deliberately supplied the value in chat.
 - `qiongli_config_status`: reports redacted provider status.
-- `qiongli_literature_search`: searches OpenAlex and Semantic Scholar when provider access is configured.
+- `qiongli_literature_search`: searches configured OpenAlex, Semantic Scholar, Crossref, and PubMed providers with query variants, finance/economics deep-search routing, and sanitized diagnostics.
 
 The full CLI server exposes the same `qiongli_configure_provider` flow.
+
+Finance/economics data APIs such as FRED and SEC EDGAR should be exposed through a separate data MCP surface rather than the literature MCPB. See [Finance/Economics Data MCP Boundary](finance-econ-data-mcp.md).
 
 Secrets are written to the same provider config used by `qiongli provider setup` and `qiongli provider doctor`. Tool results and doctor output report only configured/missing status, not raw key values.
 

@@ -3,7 +3,7 @@
   "name": "qiongli-literature-provider",
   "display_name": "Qiongli Literature Provider",
   "version": "0.1.4",
-  "description": "Qiongli academic literature provider MCPB for local OpenAlex and Semantic Scholar search, credential status, and secure setup.",
+  "description": "Qiongli academic literature provider MCPB for local OpenAlex, Semantic Scholar, Crossref, and PubMed search, advanced result controls, credential status, and secure setup.",
   "author": {
     "name": "Jiaxin Peng",
     "url": "https://github.com/jxpeng98"
@@ -20,6 +20,8 @@
         "QIONGLI_MCPB_OPENALEX_API_KEY": "${user_config.openalex_api_key}",
         "QIONGLI_MCPB_OPENALEX_EMAIL": "${user_config.openalex_email}",
         "QIONGLI_MCPB_SEMANTIC_SCHOLAR_API_KEY": "${user_config.semantic_scholar_api_key}",
+        "QIONGLI_MCPB_CROSSREF_EMAIL": "${user_config.crossref_email}",
+        "QIONGLI_MCPB_PUBMED_API_KEY": "${user_config.pubmed_api_key}",
         "QIONGLI_MCPB_DEFAULT_LIMIT": "${user_config.default_result_limit}"
       }
     }
@@ -47,11 +49,11 @@
     },
     {
       "name": "qiongli_literature_search",
-      "description": "Search academic literature using configured OpenAlex and Semantic Scholar providers."
+      "description": "Search academic literature using configured OpenAlex, Semantic Scholar, Crossref, and PubMed providers with query variants, finance/economics deep-search routing, per-provider limits, total limits, metadata filters, diagnostics, and limited citation/reference expansion."
     },
     {
       "name": "qiongli_literature_export_evidence",
-      "description": "Export an auditable provider capability and search evidence snapshot."
+      "description": "Export an auditable provider capability, search plan, diagnostics, and result snapshot."
     }
   ],
   "compatibility": {
@@ -86,11 +88,25 @@
       "sensitive": true,
       "required": false
     },
+    "crossref_email": {
+      "type": "string",
+      "title": "Crossref polite access email",
+      "description": "Optional email address included in Crossref requests for polite access. Crossref does not require a public API key for standard REST API calls.",
+      "sensitive": true,
+      "required": false
+    },
+    "pubmed_api_key": {
+      "type": "string",
+      "title": "NCBI API key",
+      "description": "Optional NCBI API key for PubMed E-Utilities requests. Leave blank to skip the bundled PubMed provider.",
+      "sensitive": true,
+      "required": false
+    },
     "default_result_limit": {
       "type": "number",
       "title": "Default result limit",
-      "description": "Default results per provider for non-review searches when a tool call does not specify a limit. Review mode uses 50 by default and accepts explicit limits up to 100.",
-      "default": 10,
+      "description": "Default results per provider for non-review searches when a tool call does not specify limit or per_provider_limit. Non-review mode uses 25 by default; review mode uses 50 by default and accepts explicit per-provider limits up to 200.",
+      "default": 25,
       "min": 1,
       "max": 50,
       "required": false
@@ -101,11 +117,15 @@
     "literature",
     "openalex",
     "semantic-scholar",
+    "crossref",
+    "pubmed",
     "qiongli"
   ],
   "license": "MIT",
   "privacy_policies": [
     "https://openalex.org/privacy",
-    "https://www.semanticscholar.org/product/api/license"
+    "https://www.semanticscholar.org/product/api/license",
+    "https://www.crossref.org/privacy/",
+    "https://www.ncbi.nlm.nih.gov/home/about/policies/"
   ]
 }

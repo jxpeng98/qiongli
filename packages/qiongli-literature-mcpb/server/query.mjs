@@ -1,4 +1,13 @@
+import {
+  detectSearchDomain,
+  domainAutomaticVariants,
+  domainProfilePayload,
+  domainVariantRationale,
+  domainVariantSource
+} from "./domain-profiles.mjs";
+
 const DOI_PATTERN = /(?:doi:\s*|https?:\/\/(?:dx\.)?doi\.org\/)?(10\.\d{4,9}\/[^\s"'<>]+)/i;
+const MAX_QUERY_COUNT = 4;
 
 function cleanText(value) {
   return String(value ?? "").trim();
@@ -83,4 +92,113 @@ export function providerLimitFor(limit, intent, maxLimit) {
   }
 
   return Math.min(limit, maxLimit);
+}
+
+function readAlias(input, names) {
+  for (const name of names) {
+    if (input[name] !== undefined) {
+      return input[name];
+    }
+  }
+
+  return undefined;
+}
+
+function comparableQuery(value) {
+  return cleanText(value)
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function normalizeQueryVariants(value, primaryQuery) {
+  const values = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
+  const variants = [];
+  const seen = new Set([comparableQuery(primaryQuery)]);
+
+  for (const item of values) {
+    const variant = stripOuterQuotes(item);
+    const key = comparableQuery(variant);
+    if (!key || seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    variants.push(variant);
+  }
+
+  return variants;
+}
+
+function automaticDeepVariants(query) {
+  return normalizeQueryVariants([
+    `${query} review`,
+    `${query} systematic review`
+  ], query);
+}
+
+function automaticVariants(query, domain) {
+  const domainVariants = domainAutomaticVariants(query, domain);
+  if (domainVariants.length > 0) {
+    return normalizeQueryVariants(domainVariants, query);
+  }
+
+  return automaticDeepVariants(query);
+}
+
+function variantSource(explicitVariantsProvided) {
+  return explicitVariantsProvided ? "explicit_variant" : "auto_variant";
+}
+
+function variantRationale(explicitVariantsProvided) {
+  return explicitVariantsProvided ? "user supplied query variant" : "automatic deep-search query variant";
+}
+
+export function buildQueryPlan(input = {}, intent, options = {}) {
+  const primaryQuery = intent?.query ?? cleanText(input.query);
+  const domain = detectSearchDomain(primaryQuery);
+  const explicitValue = readAlias(input, ["query_variants", "queryVariants"]);
+  const explicitVariantsProvided = explicitValue !== undefined;
+  const variants = explicitVariantsProvided
+    ? normalizeQueryVariants(explicitValue, primaryQuery)
+    : options.searchDepth === "deep" && intent?.doi === null && intent?.exactTitle !== true
+      ? automaticVariants(primaryQuery, domain)
+      : [];
+
+  const queries = [
+    {
+      query_id: "q1",
+      query: primaryQuery,
+      source: "primary",
+      rationale: "primary query"
+    }
+  ];
+
+  if (intent?.doi || intent?.exactTitle) {
+    return {
+      mode: "single",
+      domain: domain.id,
+      domain_terms: domain.matched_terms,
+      domain_profile: domainProfilePayload(domain),
+      query_count: queries.length,
+      queries
+    };
+  }
+
+  for (const variant of variants.slice(0, MAX_QUERY_COUNT - 1)) {
+    queries.push({
+      query_id: `q${queries.length + 1}`,
+      query: variant,
+      source: explicitVariantsProvided ? variantSource(true) : domainVariantSource(domain),
+      rationale: explicitVariantsProvided ? variantRationale(true) : domainVariantRationale(domain)
+    });
+  }
+
+  return {
+    mode: explicitVariantsProvided ? "explicit" : queries.length > 1 ? "auto_deep" : "single",
+    domain: domain.id,
+    domain_terms: domain.matched_terms,
+    domain_profile: domainProfilePayload(domain),
+    query_count: queries.length,
+    queries
+  };
 }
