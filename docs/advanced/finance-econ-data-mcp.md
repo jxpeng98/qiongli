@@ -19,8 +19,9 @@ Initial sources:
 The literature MCPB supports finance/economics through domain routing, not data retrieval:
 
 - Deep finance/econ searches add working-paper, JEL, and review query variants.
-- Search diagnostics report `field_term_coverage`, `working_paper_coverage`, and `published_version_coverage`.
+- Search diagnostics report `field_term_coverage`, `working_paper_coverage`, and `published_version_coverage` from the filtered pre-limit result set, so `total_limit` does not hide advisory coverage.
 - Working-paper and published-version coverage are advisory diagnostics, not a full version-resolution database.
+- Discipline routing lives in reusable domain profiles rather than one-off MCP branching.
 
 ## RePEc And NBER Boundary
 
@@ -32,7 +33,7 @@ RePEc and NBER should start as metadata enrichment and version-linking surfaces,
 
 ## Community Expansion Pattern
 
-Future disciplines should add a discipline profile rather than forking MCP logic:
+Future disciplines should add a discipline profile rather than forking MCP logic. In the MCPB server this means extending the domain-profile layer and reusing the shared search fanout and diagnostics path:
 
 1. Domain detector terms and query variants.
 2. Domain diagnostics such as field-term coverage or source-type coverage.

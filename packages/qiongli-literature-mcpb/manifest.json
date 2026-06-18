@@ -53,7 +53,7 @@
     },
     {
       "name": "qiongli_literature_export_evidence",
-      "description": "Export an auditable provider capability and search evidence snapshot."
+      "description": "Export an auditable provider capability, search plan, diagnostics, and result snapshot."
     }
   ],
   "compatibility": {

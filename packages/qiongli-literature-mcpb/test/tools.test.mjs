@@ -893,6 +893,121 @@ test("handleSearch uses finance/econ routing for deep searches", async () => {
   }
 });
 
+test("handleSearch computes finance/econ coverage before total limit truncation", async () => {
+  const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-finance-coverage-"));
+  const fetchImpl = async () => ({
+    ok: true,
+    status: 200,
+    headers: new Headers(),
+    async json() {
+      return {
+        results: [
+          {
+            id: "https://openalex.org/W-published",
+            doi: "https://doi.org/10.1000/asset-pricing-published",
+            title: "Asset Pricing Study",
+            type: "journal-article",
+            primary_location: {
+              source: {
+                display_name: "Journal of Finance"
+              }
+            }
+          },
+          {
+            id: "https://openalex.org/W-working",
+            title: "Asset Pricing Working Paper",
+            type: "working-paper",
+            primary_location: {
+              source: {
+                display_name: "NBER Working Paper"
+              }
+            }
+          }
+        ]
+      };
+    }
+  });
+
+  try {
+    const response = await handleSearch(
+      {
+        query: "asset pricing",
+        search_depth: "deep",
+        query_variants: [],
+        per_provider_limit: 10,
+        total_limit: 1
+      },
+      {
+        env: {
+          QIONGLI_CONFIG_HOME: configHome,
+          QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key"
+        },
+        fetchImpl
+      }
+    );
+
+    assert.equal(response.results.length, 1);
+    assert.equal(response.diagnostics.filtered_result_count, 2);
+    assert.deepEqual(response.diagnostics.working_paper_coverage, {
+      covered: true,
+      result_count: 1
+    });
+    assert.deepEqual(response.diagnostics.published_version_coverage, {
+      covered: true,
+      result_count: 1
+    });
+    assert.equal(response.warnings.includes("missing_working_paper_coverage"), false);
+    assert.equal(response.warnings.includes("missing_published_version_coverage"), false);
+  } finally {
+    await rm(configHome, { recursive: true, force: true });
+  }
+});
+
+test("handleSearch warns when finance/econ deep search misses version coverage", async () => {
+  const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-finance-coverage-warnings-"));
+  const fetchImpl = async () => ({
+    ok: true,
+    status: 200,
+    headers: new Headers(),
+    async json() {
+      return {
+        results: [
+          {
+            id: "https://openalex.org/W-untyped",
+            title: "Asset Pricing Notes"
+          }
+        ]
+      };
+    }
+  });
+
+  try {
+    const response = await handleSearch(
+      {
+        query: "asset pricing",
+        search_depth: "deep",
+        query_variants: [],
+        per_provider_limit: 10
+      },
+      {
+        env: {
+          QIONGLI_CONFIG_HOME: configHome,
+          QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key"
+        },
+        fetchImpl
+      }
+    );
+
+    assert.equal(response.diagnostics.domain, "finance_economics");
+    assert.equal(response.diagnostics.working_paper_coverage.covered, false);
+    assert.equal(response.diagnostics.published_version_coverage.covered, false);
+    assert.equal(response.warnings.includes("missing_working_paper_coverage"), true);
+    assert.equal(response.warnings.includes("missing_published_version_coverage"), true);
+  } finally {
+    await rm(configHome, { recursive: true, force: true });
+  }
+});
+
 test("handleSearch returns structured diagnostics for deep paginated searches", async () => {
   const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-deep-diagnostics-"));
   const calls = [];
@@ -1194,4 +1309,57 @@ test("handleExportEvidence without query does not call fetch", async () => {
   assert.deepEqual(evidence.providers.openalex, "configured");
   assert.deepEqual(evidence.providers.semantic_scholar, "configured");
   assert.equal(evidence.result_count, 0);
+});
+
+test("handleExportEvidence with query returns an auditable search snapshot", async () => {
+  const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-export-evidence-"));
+  const fetchImpl = async () => ({
+    ok: true,
+    status: 200,
+    headers: new Headers(),
+    async json() {
+      return {
+        results: [
+          {
+            id: "https://openalex.org/W-export",
+            title: "Export Evidence Paper",
+            doi: "https://doi.org/10.1000/export-evidence",
+            publication_year: 2024
+          }
+        ]
+      };
+    }
+  });
+
+  try {
+    const evidence = await handleExportEvidence(
+      {
+        query: "export evidence",
+        search_depth: "deep",
+        query_variants: [],
+        total_limit: 1
+      },
+      {
+        env: {
+          QIONGLI_CONFIG_HOME: configHome,
+          QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key"
+        },
+        fetchImpl
+      }
+    );
+
+    assert.equal(evidence.status, "ok");
+    assert.equal(evidence.result_count, 1);
+    assert.equal(evidence.search_plan.mode, "explicit");
+    assert.equal(evidence.search_options.search_depth, "deep");
+    assert.equal(evidence.diagnostics.raw_result_count, 1);
+    assert.equal(evidence.provider_capabilities.openalex.status, "implemented");
+    assert.deepEqual(
+      evidence.results.map((result) => result.doi),
+      ["10.1000/export-evidence"]
+    );
+    assert.equal(JSON.stringify(evidence).includes("openalex-secret-key"), false);
+  } finally {
+    await rm(configHome, { recursive: true, force: true });
+  }
 });

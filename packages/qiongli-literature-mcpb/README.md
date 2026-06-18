@@ -39,13 +39,13 @@ Advanced controls include:
 
 - `search_depth`: `quick`, `standard`, `review`, or `deep`. Review and deep searches return `insufficient_review_results` when the merged result set is below the review threshold.
 - `search_depth: "deep"` defaults to 200 results per provider, uses provider pagination instead of stopping at the first provider page, and automatically searches the primary query plus conservative review and systematic-review variants.
-- Finance/economics deep searches use field-aware variants for working papers, JEL terms, and reviews. Search diagnostics include `field_term_coverage`, `working_paper_coverage`, and `published_version_coverage`.
+- Finance/economics deep searches use a domain profile for field-aware variants around working papers, JEL terms, and reviews. Search diagnostics include `field_term_coverage`, `working_paper_coverage`, and `published_version_coverage`; coverage is computed before `total_limit` truncates returned results.
 - `query_variants`: adds explicit alternate queries to the same call. The MCPB splits the per-provider budget across the primary query and variants, returns the auditable `search_plan`, and records each query/provider attempt in `diagnostics.queries`. Pass an empty array to disable automatic deep-search variants.
 - `document_types`: filters OpenAlex and Crossref at request time and filters merged provider results after normalization. Semantic Scholar publication types are normalized from `publicationTypes`, and PubMed publication types are normalized from ESummary.
 - `venue_filter`: filters merged results by venue text.
 - `include_citations` and `include_references`: request limited citation/reference metadata when providers expose it. The MCPB reports `citation_expansion_limited` or `reference_expansion_limited` because this is metadata expansion, not a full citation graph crawler.
 
-Search responses include `search_plan` and `diagnostics` with raw, deduplicated, filtered, and returned result counts plus per-provider and per-query status, result count, request count, retry attempts, and sanitized error messages. Search and status responses also include `provider_capabilities`, which marks OpenAlex, Semantic Scholar, Crossref, and PubMed as implemented providers. Crossref needs `crossref.email` for polite access. PubMed needs `pubmed.api_key` to enable the bundled E-Utilities provider.
+Search responses include `search_plan` and `diagnostics` with raw, deduplicated, filtered, coverage-basis, and returned result counts plus per-provider and per-query status, result count, request count, retry attempts, and sanitized error messages. Search and status responses also include `provider_capabilities`, which marks OpenAlex, Semantic Scholar, Crossref, and PubMed as implemented providers. `qiongli_literature_export_evidence` returns the same search plan, options, diagnostics, capabilities, warnings, result count, and normalized result snapshot for audit handoff. Crossref needs `crossref.email` for polite access. PubMed needs `pubmed.api_key` to enable the bundled E-Utilities provider.
 
 ## Local Claude Desktop Install
 
