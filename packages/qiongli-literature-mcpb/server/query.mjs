@@ -1,5 +1,32 @@
 const DOI_PATTERN = /(?:doi:\s*|https?:\/\/(?:dx\.)?doi\.org\/)?(10\.\d{4,9}\/[^\s"'<>]+)/i;
 const MAX_QUERY_COUNT = 4;
+const FINANCE_ECONOMICS_TERMS = [
+  "finance",
+  "financial economics",
+  "economics",
+  "asset pricing",
+  "corporate finance",
+  "economic policy",
+  "monetary policy",
+  "fiscal policy",
+  "macroeconomic",
+  "macroeconomics",
+  "microeconomic",
+  "microeconomics",
+  "econometrics",
+  "financial market",
+  "stock market",
+  "banking",
+  "bank",
+  "inflation",
+  "exchange rate",
+  "accounting",
+  "earnings",
+  "jel",
+  "nber",
+  "repec",
+  "ssrn"
+];
 
 function cleanText(value) {
   return String(value ?? "").trim();
@@ -102,6 +129,27 @@ function comparableQuery(value) {
     .replace(/\s+/g, " ");
 }
 
+function searchDomain(query) {
+  const comparable = comparableQuery(query);
+  let matchedTerms = FINANCE_ECONOMICS_TERMS.filter((term) => comparable.includes(term));
+  const specificTerms = matchedTerms.filter((term) => !["finance", "economics"].includes(term));
+  if (specificTerms.length > 0) {
+    matchedTerms = specificTerms;
+  }
+
+  if (matchedTerms.length > 0) {
+    return {
+      id: "finance_economics",
+      matched_terms: matchedTerms
+    };
+  }
+
+  return {
+    id: "general",
+    matched_terms: []
+  };
+}
+
 function normalizeQueryVariants(value, primaryQuery) {
   const values = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
   const variants = [];
@@ -128,6 +176,46 @@ function automaticDeepVariants(query) {
   ], query);
 }
 
+function financeEconomicsJelVariant(query, matchedTerms) {
+  if (matchedTerms.some((term) => ["asset pricing", "financial market", "stock market"].includes(term))) {
+    return `${query} JEL G12`;
+  }
+
+  if (matchedTerms.some((term) => ["corporate finance", "earnings"].includes(term))) {
+    return `${query} JEL G30`;
+  }
+
+  if (matchedTerms.some((term) => ["banking", "bank"].includes(term))) {
+    return `${query} JEL G21`;
+  }
+
+  if (matchedTerms.some((term) => ["monetary policy", "inflation", "exchange rate"].includes(term))) {
+    return `${query} JEL E52`;
+  }
+
+  if (matchedTerms.some((term) => ["accounting"].includes(term))) {
+    return `${query} JEL M41`;
+  }
+
+  return `${query} JEL G00`;
+}
+
+function financeEconomicsDeepVariants(query, domain) {
+  return normalizeQueryVariants([
+    `${query} working paper`,
+    financeEconomicsJelVariant(query, domain.matched_terms),
+    `${query} review`
+  ], query);
+}
+
+function automaticVariants(query, domain) {
+  if (domain.id === "finance_economics") {
+    return financeEconomicsDeepVariants(query, domain);
+  }
+
+  return automaticDeepVariants(query);
+}
+
 function variantSource(explicitVariantsProvided) {
   return explicitVariantsProvided ? "explicit_variant" : "auto_variant";
 }
@@ -136,14 +224,25 @@ function variantRationale(explicitVariantsProvided) {
   return explicitVariantsProvided ? "user supplied query variant" : "automatic deep-search query variant";
 }
 
+function automaticVariantSource(domain) {
+  return domain.id === "finance_economics" ? "domain_variant" : "auto_variant";
+}
+
+function automaticVariantRationale(domain) {
+  return domain.id === "finance_economics"
+    ? "finance/economics domain query variant"
+    : "automatic deep-search query variant";
+}
+
 export function buildQueryPlan(input = {}, intent, options = {}) {
   const primaryQuery = intent?.query ?? cleanText(input.query);
+  const domain = searchDomain(primaryQuery);
   const explicitValue = readAlias(input, ["query_variants", "queryVariants"]);
   const explicitVariantsProvided = explicitValue !== undefined;
   const variants = explicitVariantsProvided
     ? normalizeQueryVariants(explicitValue, primaryQuery)
     : options.searchDepth === "deep" && intent?.doi === null && intent?.exactTitle !== true
-      ? automaticDeepVariants(primaryQuery)
+      ? automaticVariants(primaryQuery, domain)
       : [];
 
   const queries = [
@@ -158,6 +257,8 @@ export function buildQueryPlan(input = {}, intent, options = {}) {
   if (intent?.doi || intent?.exactTitle) {
     return {
       mode: "single",
+      domain: domain.id,
+      domain_terms: domain.matched_terms,
       query_count: queries.length,
       queries
     };
@@ -167,13 +268,15 @@ export function buildQueryPlan(input = {}, intent, options = {}) {
     queries.push({
       query_id: `q${queries.length + 1}`,
       query: variant,
-      source: variantSource(explicitVariantsProvided),
-      rationale: variantRationale(explicitVariantsProvided)
+      source: explicitVariantsProvided ? variantSource(true) : automaticVariantSource(domain),
+      rationale: explicitVariantsProvided ? variantRationale(true) : automaticVariantRationale(domain)
     });
   }
 
   return {
     mode: explicitVariantsProvided ? "explicit" : queries.length > 1 ? "auto_deep" : "single",
+    domain: domain.id,
+    domain_terms: domain.matched_terms,
     query_count: queries.length,
     queries
   };

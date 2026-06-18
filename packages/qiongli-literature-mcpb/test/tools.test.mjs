@@ -787,6 +787,112 @@ test("handleSearch adds automatic query variants for deep searches", async () =>
   }
 });
 
+test("handleSearch uses finance/econ routing for deep searches", async () => {
+  const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-finance-routing-"));
+  const calls = [];
+  const fetchImpl = async (url) => {
+    const requestedUrl = new URL(url);
+    calls.push(requestedUrl);
+    const search = requestedUrl.searchParams.get("search");
+    assert.equal(requestedUrl.hostname, "api.openalex.org");
+    assert.equal(requestedUrl.searchParams.get("per-page"), "3");
+
+    return {
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      async json() {
+        if (search?.includes("working paper")) {
+          return {
+            results: [
+              {
+                id: "https://openalex.org/W-working",
+                title: "Corporate Finance Working Paper",
+                type: "working-paper",
+                primary_location: {
+                  source: {
+                    display_name: "NBER Working Paper"
+                  }
+                }
+              }
+            ]
+          };
+        }
+
+        if (search === "asset pricing corporate finance") {
+          return {
+            results: [
+              {
+                id: "https://openalex.org/W-published",
+                doi: "https://doi.org/10.1000/finance-published",
+                title: "Asset Pricing Corporate Finance Study",
+                type: "journal-article",
+                primary_location: {
+                  source: {
+                    display_name: "Journal of Finance"
+                  }
+                }
+              }
+            ]
+          };
+        }
+
+        return { results: [] };
+      }
+    };
+  };
+
+  try {
+    const response = await handleSearch(
+      {
+        query: "asset pricing corporate finance",
+        search_depth: "deep",
+        per_provider_limit: 12
+      },
+      {
+        env: {
+          QIONGLI_CONFIG_HOME: configHome,
+          QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key"
+        },
+        fetchImpl
+      }
+    );
+
+    assert.deepEqual(
+      calls.map((url) => url.searchParams.get("search")),
+      [
+        "asset pricing corporate finance",
+        "asset pricing corporate finance working paper",
+        "asset pricing corporate finance JEL G12",
+        "asset pricing corporate finance review"
+      ]
+    );
+    assert.equal(response.search_plan.domain, "finance_economics");
+    assert.deepEqual(response.search_plan.domain_terms, ["asset pricing", "corporate finance"]);
+    assert.equal(response.search_options.query_count, 4);
+    assert.equal(response.search_options.per_query_provider_limit, 3);
+    assert.deepEqual(
+      response.search_plan.queries.map((query) => query.source),
+      ["primary", "domain_variant", "domain_variant", "domain_variant"]
+    );
+    assert.equal(response.diagnostics.domain, "finance_economics");
+    assert.deepEqual(response.diagnostics.field_term_coverage, {
+      covered: true,
+      matched_terms: ["asset pricing", "corporate finance"]
+    });
+    assert.deepEqual(response.diagnostics.working_paper_coverage, {
+      covered: true,
+      result_count: 1
+    });
+    assert.deepEqual(response.diagnostics.published_version_coverage, {
+      covered: true,
+      result_count: 1
+    });
+  } finally {
+    await rm(configHome, { recursive: true, force: true });
+  }
+});
+
 test("handleSearch returns structured diagnostics for deep paginated searches", async () => {
   const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-deep-diagnostics-"));
   const calls = [];

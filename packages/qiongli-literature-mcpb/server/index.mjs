@@ -114,7 +114,7 @@ export const TOOL_DECLARATIONS = [
   },
   {
     name: "qiongli_literature_search",
-    description: "Search academic literature using configured OpenAlex, Semantic Scholar, Crossref, and PubMed providers with query variants, deep-search planning, diagnostics, and metadata filters.",
+    description: "Search academic literature using configured OpenAlex, Semantic Scholar, Crossref, and PubMed providers with query variants, finance/economics deep-search routing, diagnostics, and metadata filters.",
     inputSchema: {
       type: "object",
       additionalProperties: true,
@@ -547,12 +547,66 @@ function aggregateProviderDiagnostics(responses) {
   }));
 }
 
-function searchDiagnostics({ responses, rawResults, dedupedResults, filteredResults, outputResults }) {
+function resultSearchText(result) {
+  return [
+    result?.title,
+    result?.venue,
+    result?.document_type,
+    result?.abstract
+  ].map((value) => String(value ?? "").toLowerCase()).join(" ");
+}
+
+function isWorkingPaper(result) {
+  const text = resultSearchText(result);
+  return (
+    text.includes("working paper") ||
+    text.includes("working-paper") ||
+    text.includes("discussion paper") ||
+    text.includes("nber") ||
+    text.includes("ssrn") ||
+    text.includes("repec")
+  );
+}
+
+function isPublishedVersion(result) {
+  if (isWorkingPaper(result)) {
+    return false;
+  }
+
+  const type = String(result?.document_type ?? "").toLowerCase();
+  return Boolean(result?.doi) || type.includes("journal") || type === "article";
+}
+
+function domainDiagnostics(queryPlan, results) {
+  const domain = queryPlan?.domain ?? "general";
+  const matchedTerms = Array.isArray(queryPlan?.domain_terms) ? queryPlan.domain_terms : [];
+  const workingPaperCount = results.filter(isWorkingPaper).length;
+  const publishedVersionCount = results.filter(isPublishedVersion).length;
+
+  return {
+    domain,
+    field_term_coverage: {
+      covered: domain === "finance_economics" && matchedTerms.length > 0,
+      matched_terms: matchedTerms
+    },
+    working_paper_coverage: {
+      covered: workingPaperCount > 0,
+      result_count: workingPaperCount
+    },
+    published_version_coverage: {
+      covered: publishedVersionCount > 0,
+      result_count: publishedVersionCount
+    }
+  };
+}
+
+function searchDiagnostics({ responses, rawResults, dedupedResults, filteredResults, outputResults, queryPlan }) {
   return {
     raw_result_count: rawResults.length,
     deduped_result_count: dedupedResults.length,
     filtered_result_count: filteredResults.length,
     returned_result_count: outputResults.length,
+    ...domainDiagnostics(queryPlan, outputResults),
     providers: aggregateProviderDiagnostics(responses),
     queries: responses.map(queryDiagnostic)
   };
@@ -772,7 +826,8 @@ export async function handleSearch(input = {}, context = {}) {
       rawResults: results,
       dedupedResults,
       filteredResults,
-      outputResults
+      outputResults,
+      queryPlan
     }),
     results: outputResults
   };

@@ -49,7 +49,7 @@
     },
     {
       "name": "qiongli_literature_search",
-      "description": "Search academic literature using configured OpenAlex, Semantic Scholar, Crossref, and PubMed providers with query variants, deep-search planning, per-provider limits, total limits, metadata filters, diagnostics, and limited citation/reference expansion."
+      "description": "Search academic literature using configured OpenAlex, Semantic Scholar, Crossref, and PubMed providers with query variants, finance/economics deep-search routing, per-provider limits, total limits, metadata filters, diagnostics, and limited citation/reference expansion."
     },
     {
       "name": "qiongli_literature_export_evidence",
