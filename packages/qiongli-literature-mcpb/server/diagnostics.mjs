@@ -6,7 +6,7 @@ function providerDiagnostic(response) {
   const resultCount = Array.isArray(response?.results) ? response.results.length : 0;
   const requestCount = numericStat(response?.request_count, 1);
 
-  return {
+  const diagnostic = {
     provider: response?.provider ?? "unknown",
     status: response?.error ? "failed" : "success",
     result_count: resultCount,
@@ -14,6 +14,10 @@ function providerDiagnostic(response) {
     attempts: numericStat(response?.attempts, requestCount),
     error: response?.error ?? null
   };
+  if (response?.source_type) {
+    diagnostic.source_type = response.source_type;
+  }
+  return diagnostic;
 }
 
 function queryDiagnostic(response) {
@@ -37,7 +41,8 @@ function aggregateProviderDiagnostics(responses) {
         attempts: 0,
         success_count: 0,
         failure_count: 0,
-        error: null
+        error: null,
+        source_type: null
       });
     }
 
@@ -46,6 +51,7 @@ function aggregateProviderDiagnostics(responses) {
     const requestCount = numericStat(response?.request_count, 1);
     summary.request_count += requestCount;
     summary.attempts += numericStat(response?.attempts, requestCount);
+    summary.source_type ??= response?.source_type ?? null;
 
     if (response?.error) {
       summary.failure_count += 1;
@@ -55,14 +61,20 @@ function aggregateProviderDiagnostics(responses) {
     }
   }
 
-  return Array.from(summaries.values()).map((summary) => ({
-    provider: summary.provider,
-    status: summary.success_count > 0 ? "success" : "failed",
-    result_count: summary.result_count,
-    request_count: summary.request_count,
-    attempts: summary.attempts,
-    error: summary.success_count > 0 ? null : summary.error
-  }));
+  return Array.from(summaries.values()).map((summary) => {
+    const diagnostic = {
+      provider: summary.provider,
+      status: summary.success_count > 0 ? "success" : "failed",
+      result_count: summary.result_count,
+      request_count: summary.request_count,
+      attempts: summary.attempts,
+      error: summary.success_count > 0 ? null : summary.error
+    };
+    if (summary.source_type) {
+      diagnostic.source_type = summary.source_type;
+    }
+    return diagnostic;
+  });
 }
 
 function resultSearchText(result) {

@@ -336,6 +336,188 @@ test("handleSearch rejects blank query with sanitized error", async () => {
   );
 });
 
+test("handleSearch does not call Zotero source by default", async () => {
+  const urls = [];
+  const response = await handleSearch(
+    { query: "platform governance", per_provider_limit: 1 },
+    {
+      env: {
+        QIONGLI_CONFIG_HOME: path.join(os.tmpdir(), "qiongli-mcpb-zotero-source-tests"),
+        QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key"
+      },
+      fetchImpl: async (url) => {
+        urls.push(String(url));
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            results: [
+              {
+                id: "https://openalex.org/W1",
+                title: "Platform Governance",
+                publication_year: 2024,
+                doi: "https://doi.org/10.1000/platform"
+              }
+            ]
+          })
+        };
+      }
+    }
+  );
+
+  assert.equal(response.status, "ok");
+  assert.deepEqual(response.providers.attempted, ["openalex"]);
+  assert.equal(urls.some((url) => url.includes("/qiongli/search")), false);
+});
+
+test("handleSearch includes Zotero source only when requested", async () => {
+  const calls = [];
+  const response = await handleSearch(
+    { query: "platform governance", include_zotero: true, zotero_limit: 5, per_provider_limit: 1 },
+    {
+      env: {
+        QIONGLI_CONFIG_HOME: path.join(os.tmpdir(), "qiongli-mcpb-zotero-source-tests"),
+        QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key"
+      },
+      fetchImpl: async (url, options = {}) => {
+        calls.push({ url: String(url), body: options.body ? JSON.parse(options.body) : null });
+        if (String(url).endsWith("/qiongli/search")) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              status: "ok",
+              results: [
+                {
+                  item_key: "ZOT123",
+                  title: "Local Platform Governance",
+                  doi: "10.1000/local-platform",
+                  year: 2023,
+                  item_type: "journalArticle",
+                  select_uri: "zotero://select/library/items/ZOT123",
+                  tags: ["qiongli:verified"],
+                  collections: ["Qiongli/platform"]
+                }
+              ]
+            })
+          };
+        }
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            results: [
+              {
+                id: "https://openalex.org/W1",
+                title: "Platform Governance",
+                publication_year: 2024,
+                doi: "https://doi.org/10.1000/platform"
+              }
+            ]
+          })
+        };
+      }
+    }
+  );
+
+  assert.deepEqual(response.providers.attempted, ["openalex", "zotero"]);
+  assert.equal(response.providers.successful.includes("zotero"), true);
+  assert.equal(response.results.some((result) => result.provider === "zotero"), true);
+  assert.equal(response.results.find((result) => result.provider === "zotero").source_type, "local_reference_database");
+  assert.equal(response.diagnostics.providers.find((provider) => provider.provider === "zotero").source_type, "local_reference_database");
+  assert.equal(calls.find((call) => call.url.endsWith("/qiongli/search")).body.title, "platform governance");
+});
+
+test("handleSearch annotates external results that already exist in Zotero", async () => {
+  const response = await handleSearch(
+    { query: "platform governance", include_zotero: true, per_provider_limit: 1 },
+    {
+      env: {
+        QIONGLI_CONFIG_HOME: path.join(os.tmpdir(), "qiongli-mcpb-zotero-source-tests"),
+        QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key"
+      },
+      fetchImpl: async (url) => {
+        if (String(url).endsWith("/qiongli/search")) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              status: "ok",
+              results: [
+                {
+                  item_key: "ZOT123",
+                  title: "Platform Governance",
+                  doi: "10.1000/platform",
+                  year: 2024,
+                  select_uri: "zotero://select/library/items/ZOT123"
+                }
+              ]
+            })
+          };
+        }
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            results: [
+              {
+                id: "https://openalex.org/W1",
+                title: "Platform Governance",
+                publication_year: 2024,
+                doi: "https://doi.org/10.1000/platform"
+              }
+            ]
+          })
+        };
+      }
+    }
+  );
+
+  const openAlexResult = response.results.find((result) => result.provider === "openalex");
+  assert.equal(openAlexResult.local_zotero_match.item_key, "ZOT123");
+  assert.equal(openAlexResult.local_zotero_match.match_basis, "doi");
+});
+
+test("handleSearch keeps external results when requested Zotero source is unavailable", async () => {
+  const response = await handleSearch(
+    { query: "platform governance", include_zotero: true, per_provider_limit: 1 },
+    {
+      env: {
+        QIONGLI_CONFIG_HOME: path.join(os.tmpdir(), "qiongli-mcpb-zotero-source-tests"),
+        QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key"
+      },
+      fetchImpl: async (url) => {
+        if (String(url).endsWith("/qiongli/search")) {
+          return {
+            ok: false,
+            status: 404,
+            json: async () => ({})
+          };
+        }
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            results: [
+              {
+                id: "https://openalex.org/W1",
+                title: "Platform Governance",
+                publication_year: 2024,
+                doi: "https://doi.org/10.1000/platform"
+              }
+            ]
+          })
+        };
+      }
+    }
+  );
+
+  assert.equal(response.status, "ok");
+  assert.equal(response.results.some((result) => result.provider === "openalex"), true);
+  assert.equal(response.providers.failed.includes("zotero"), true);
+  assert.equal(response.warnings.includes("zotero_companion_missing"), true);
+});
+
 test("handleSearch aggregates successful and failed providers with warnings", async () => {
   const calls = [];
   const fetchImpl = async (url) => {

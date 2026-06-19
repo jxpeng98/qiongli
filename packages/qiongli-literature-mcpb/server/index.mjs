@@ -20,6 +20,13 @@ import { searchPubMed } from "./providers/pubmed.mjs";
 import { searchSemanticScholar } from "./providers/semantic-scholar.mjs";
 import { startJsonRpcStdioServer } from "./stdio.mjs";
 import { startConfigWizard } from "./config-wizard.mjs";
+import { resolveZoteroConfig } from "./zotero/config.mjs";
+import {
+  annotateLocalZoteroMatches,
+  resolveZoteroSourceOptions,
+  searchZoteroSource,
+  zoteroSourceWarning
+} from "./zotero/search-source.mjs";
 import {
   handleZoteroExportImportFiles,
   handleZoteroSearch,
@@ -770,6 +777,9 @@ export async function handleSearch(input = {}, context = {}) {
   const config = resolveConfig(context);
   const intent = buildSearchIntent(input);
   const options = resolveSearchOptions(input, config, intent);
+  const zoteroSourceOptions = resolveZoteroSourceOptions(input, {
+    perProviderLimit: options.perProviderLimit
+  });
   const queryPlan = buildQueryPlan(input, intent, options);
   const perQueryLimit = perQueryProviderLimit(options, queryPlan);
   const fromYear = readOptionalYear(input.fromYear);
@@ -798,20 +808,41 @@ export async function handleSearch(input = {}, context = {}) {
       })
     )
   );
+  const zoteroResponses = [];
+  if (zoteroSourceOptions.include) {
+    zoteroResponses.push(await searchZoteroSource({
+      config: resolveZoteroConfig({ env: context.env ?? process.env, input }),
+      intent,
+      input,
+      sourceOptions: zoteroSourceOptions,
+      context
+    }));
+  }
+  const allResponses = [...responses, ...zoteroResponses];
+  const attemptedWithZotero = zoteroSourceOptions.include ? [...attempted, "zotero"] : attempted;
 
-  const { successful, failed } = providerOutcomes(attempted, responses);
-  const results = [];
+  const { successful, failed } = providerOutcomes(attemptedWithZotero, allResponses);
+  const externalResults = [];
+  const zoteroResults = [];
 
-  for (const response of responses) {
+  for (const response of allResponses) {
     if (response.error) {
       continue;
     }
 
-    results.push(...response.results);
+    if (response.provider === "zotero") {
+      zoteroResults.push(...response.results);
+    } else {
+      externalResults.push(...response.results);
+    }
   }
+  const results = [
+    ...annotateLocalZoteroMatches({ externalResults, zoteroResults }),
+    ...zoteroResults
+  ];
 
   const evidence = buildEvidence({
-    attemptedProviders: attempted,
+    attemptedProviders: attemptedWithZotero,
     successfulProviders: successful,
     failedProviders: failed,
     resultCount: results.length
@@ -822,7 +853,7 @@ export async function handleSearch(input = {}, context = {}) {
   const finalLimit = intent.exactTitle || intent.doi ? options.totalLimit ?? options.legacyLimit : options.totalLimit;
   const outputResults = finalLimit === null ? rankedResults : rankedResults.slice(0, finalLimit);
   const diagnostics = searchDiagnostics({
-    responses,
+    responses: allResponses,
     rawResults: results,
     dedupedResults,
     filteredResults,
@@ -835,7 +866,12 @@ export async function handleSearch(input = {}, context = {}) {
     capability_mode: evidence.capability_mode,
     providers: evidence.providers,
     provider_capabilities: providerCapabilities(),
-    warnings: appendSearchWarnings(evidence.warnings, outputResults, options, diagnostics),
+    warnings: [
+      ...new Set([
+        ...appendSearchWarnings(evidence.warnings, outputResults, options, diagnostics),
+        ...zoteroResponses.map(zoteroSourceWarning).filter(Boolean)
+      ])
+    ],
     search_mode: intent.mode,
     search_options: searchOptionsPayload(options, queryPlan, perQueryLimit),
     search_plan: queryPlan,
