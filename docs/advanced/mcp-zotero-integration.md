@@ -20,6 +20,19 @@ If local Zotero is unavailable, Qiongli still generates import files:
 The companion lives in `packages/qiongli-zotero-companion/`. It is a companion
 plugin, not a standalone MCP server.
 
+Direct local writes require this Qiongli companion plugin to be installed in
+Zotero Desktop. No third-party Zotero plugin is required. Without the companion,
+Qiongli still works in import-file mode.
+
+Build the installable extension from the repository root:
+
+```bash
+python3 scripts/build_zotero_companion.py --dist-dir dist
+```
+
+Install the generated `qiongli-zotero-companion-*.xpi` in Zotero Desktop's
+add-on manager, then restart Zotero.
+
 ## Local Status Check
 
 Run:

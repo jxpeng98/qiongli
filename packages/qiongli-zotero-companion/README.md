@@ -18,5 +18,12 @@ dry-run writes through `qiongli_zotero_upsert_references`, and falls back to
 `references.json`, `references.ris`, and `bibliography.bib` when the companion is
 not installed or Zotero is not running.
 
-This package currently contains the endpoint contract and testable bridge helper
-logic. Packaging as a user-installable `.xpi` is a follow-up release step.
+Build the user-installable Zotero extension from the repository root:
+
+```bash
+python3 scripts/build_zotero_companion.py --dist-dir dist
+```
+
+The generated `qiongli-zotero-companion-*.xpi` can be installed through Zotero
+Desktop's add-on manager. Direct local writes require this companion extension;
+without it, Qiongli still generates import files that can be imported manually.

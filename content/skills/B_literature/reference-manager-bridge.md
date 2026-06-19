@@ -71,6 +71,11 @@ reference database that stores user-curated metadata, collections, tags, and
 notes. Do not route scholarly discovery through Zotero unless the user explicitly
 asks to search only their existing local library.
 
+Direct local writes require the Qiongli Zotero companion extension built from
+this repository with `python3 scripts/build_zotero_companion.py --dist-dir dist`.
+No third-party Zotero plugin is required. If the companion is not installed,
+fall back to generated import files.
+
 ## Inputs
 
 - `Bibliography`: Existing bibliography file

@@ -20,6 +20,19 @@ reference 通过 Qiongli Zotero companion 写入本地 Zotero Desktop。
 companion 位于 `packages/qiongli-zotero-companion/`。它不是独立 MCP server，
 而是 Qiongli MCPB 的本地 Zotero 桥。
 
+直接写入本地 Zotero 需要在 Zotero Desktop 里安装这个 Qiongli companion
+plugin。不需要额外安装第三方 Zotero 插件。没有 companion 时，Qiongli 仍可以
+生成可导入文件。
+
+在仓库根目录构建可安装扩展：
+
+```bash
+python3 scripts/build_zotero_companion.py --dist-dir dist
+```
+
+然后在 Zotero Desktop 的 add-on manager 中安装生成的
+`qiongli-zotero-companion-*.xpi`，并重启 Zotero。
+
 ## 检查本地状态
 
 运行：

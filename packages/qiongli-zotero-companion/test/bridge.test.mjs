@@ -49,7 +49,7 @@ test("toCompactItem returns no local file paths", () => {
     key: "ABC123",
     title: "Local Paper",
     DOI: "10.1000/local",
-    path: "/Users/person/Zotero/storage/file.pdf"
+    path: "Zotero/storage/file.pdf"
   });
 
   assert.equal(compact.item_key, "ABC123");
