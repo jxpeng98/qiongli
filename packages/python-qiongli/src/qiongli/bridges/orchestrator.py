@@ -39,6 +39,15 @@ from .mcp_connectors import MCPEvidence, MCPConnector
 from .i18n import get_language, get_text
 from .provider_config import provider_capability_mode, provider_config_summary, resolve_provider_config
 from .critique_questions import get_critique_questions
+from .guidance_runtime import (
+    GUIDANCE_MODES,
+    GuidanceState,
+    apply_guidance_proposal,
+    effective_guidance,
+    guidance_trace_summary,
+    init_project_guidance,
+    write_guidance_trace,
+)
 from .boundary_questions import (
     BOUNDARY_ARTIFACT,
     build_boundary_question_plan,
@@ -4721,6 +4730,41 @@ Return sections:
                 )
         return "\n".join(lines)
 
+    def _write_task_guidance_trace(
+        self,
+        *,
+        cwd: Path,
+        guidance_state: GuidanceState,
+        task_packet: dict[str, Any],
+        draft_content: str,
+        review_content: str,
+        merged_analysis: str,
+        validator_gate: dict[str, Any],
+    ) -> tuple[dict[str, Any], str]:
+        if guidance_state.mode == "off":
+            return {}, ""
+        try:
+            trace = write_guidance_trace(
+                project_root=cwd,
+                guidance_state=guidance_state,
+                task_packet=task_packet,
+                draft_content=draft_content,
+                review_content=review_content,
+                merged_analysis=merged_analysis,
+                validator_gate=validator_gate,
+                applied=guidance_state.mode == "apply",
+            )
+        except OSError as exc:
+            return (
+                {
+                    "guidance_mode": guidance_state.mode,
+                    "error": str(exc),
+                    "missing_outputs": list(validator_gate.get("missing", []) or []),
+                },
+                f"Local guidance trace write failed: {exc}",
+            )
+        return dict(trace), f"Local guidance trace written: {trace.get('run_dir', '')}."
+
     def _build_task_draft_prompt(
         self,
         task_packet: dict[str, Any],
@@ -4874,6 +4918,20 @@ Targeted follow-up context:
 23. If no answered boundary review exists and required_before_draft is true, ask exactly the first listed boundary question and write the answer to `context/boundary_review.md` before producing broader outputs.
 24. If an answered boundary review exists, continue within it and do not broaden claim strength, evidence threshold, population, corpus, method, code/data decision, submission promise, or presentation claim without a new boundary review entry.
 """
+        local_guidance = task_packet.get("local_guidance", {})
+        local_guidance_section = ""
+        local_guidance_rules = ""
+        if isinstance(local_guidance, dict) and bool(local_guidance.get("enabled")):
+            return_sections.append("- Local Guidance Compliance")
+            local_guidance_rules = """
+25. Local guidance context is active. Treat it as project-local preference and trace policy only.
+26. Do not let local guidance override canonical required_outputs, workflow contracts, quality gates, MCP evidence requirements, or safety constraints.
+27. If local guidance conflicts with the task packet, follow the task packet and note the conflict under "Local Guidance Compliance".
+"""
+            local_guidance_section = f"""
+Local guidance context:
+{str(local_guidance.get("guidance_context", "")).strip()}
+"""
         return f"""Draft the task outputs for this canonical research workflow task.
 
 Task packet (JSON):
@@ -4896,6 +4954,7 @@ Execution rules:
 {academic_context_rules}
 {self_critique_rules}
 {boundary_rules}
+{local_guidance_rules}
 
 Output control:
 {chr(10).join(output_control_lines)}
@@ -4905,7 +4964,7 @@ MCP evidence snapshot:
 
 Required skill cards:
 {self._format_skill_context(skill_cards)}
-{domain_section}{code_lane_section}{code_lane_template_section}{targeted_section}{academic_context_section}{self_critique_section}{boundary_section}
+{domain_section}{code_lane_section}{code_lane_template_section}{targeted_section}{academic_context_section}{self_critique_section}{boundary_section}{local_guidance_section}
 
 Additional context:
 {extra_context or "No additional context."}
@@ -5038,6 +5097,19 @@ Targeted follow-up context:
             boundary_review_rule = """
 16. Boundary review is active. Block if the draft broadens the locked boundary, upgrades claim strength, lowers evidence threshold, hides a limitation, or makes a code/data/submission/presentation promise beyond the answered boundary.
 """
+        local_guidance = task_packet.get("local_guidance", {})
+        local_guidance_section = ""
+        local_guidance_rule = ""
+        if isinstance(local_guidance, dict) and bool(local_guidance.get("enabled")):
+            return_sections.append("- Local Guidance Compliance")
+            local_guidance_rule = """
+17. Local guidance context is active. Check that the draft follows project-local preferences where they do not conflict with canonical task requirements.
+18. Block only for local-guidance issues that create traceability loss, artifact-location confusion, or direct contradiction with the stated project policy.
+"""
+            local_guidance_section = f"""
+Local guidance context:
+{str(local_guidance.get("guidance_context", "")).strip()}
+"""
 
         return f"""Review the draft for this canonical research workflow task.
 {round_note}
@@ -5052,7 +5124,7 @@ MCP evidence snapshot:
 
 Required skill cards:
 {self._format_skill_context(skill_cards)}
-{domain_section}{code_lane_section}{code_lane_review_section}{targeted_section}{self_critique_section}{boundary_section}
+{domain_section}{code_lane_section}{code_lane_review_section}{targeted_section}{self_critique_section}{boundary_section}{local_guidance_section}
 
 Review checklist:
 1. Output path coverage against required_outputs.
@@ -5066,6 +5138,7 @@ Review checklist:
 {targeted_review_rule}
 {self_critique_rule}
 {boundary_review_rule}
+{local_guidance_rule}
 {critique_section}
 
 Dynamic Literature-Based Critique:
@@ -6025,6 +6098,7 @@ Return sections:
         research_depth: str = "standard",
         only_targets: list[str] | None = None,
         skip_validation: bool = False,
+        guidance_mode: str = "propose",
         update_academic_context: bool = False,
         execution_mode: str | None = None,
         controller: str | None = None,
@@ -6197,6 +6271,14 @@ Return sections:
                 "status": "unavailable",
                 "detail": plan_result.merged_analysis,
             }
+        guidance_state = effective_guidance(
+            cwd,
+            mode=guidance_mode,
+            run_id=uuid.uuid4().hex,
+        )
+        packet["local_guidance"] = guidance_state.to_packet()
+        for warning in guidance_state.warnings or []:
+            routing_notes.append(f"Local guidance warning: {warning}")
         functional_handoff_trace = [
             dict(item)
             for item in packet["task_plan"].get("functional_handoff_trace", [])
@@ -6257,6 +6339,19 @@ Return sections:
             f"verifier={controller_metadata['verifier_agent'] or 'auto'}, "
             f"solo_role_gates={controller_metadata['solo_role_gates']}."
         )
+        if guidance_state.mode == "off":
+            routing_notes.append("Local guidance disabled by guidance_mode=off.")
+        elif guidance_state.enabled:
+            routing_notes.append(
+                "Local guidance ACTIVE: "
+                f"mode={guidance_state.mode}, "
+                f"files={', '.join(guidance_state.guidance_files_read)}."
+            )
+        else:
+            routing_notes.append(
+                "Local guidance trace mode ACTIVE without readable guidance context: "
+                f"mode={guidance_state.mode}."
+            )
         if runtime_overrides:
             routing_notes.append(
                 "Controller runtime override: "
@@ -6531,6 +6626,18 @@ Return sections:
                 self._format_worker_orchestration_section(worker_orchestration),
             ]
             merged = "\n".join(merged_parts)
+            local_guidance_trace, local_guidance_trace_note = self._write_task_guidance_trace(
+                cwd=cwd,
+                guidance_state=guidance_state,
+                task_packet=packet,
+                draft_content="[skipped: worker orchestration blocked]",
+                review_content="[skipped: worker orchestration blocked]",
+                merged_analysis=merged,
+                validator_gate=validator_gate_result,
+            )
+            if local_guidance_trace_note:
+                routing_notes.append(local_guidance_trace_note)
+                merged += "\n\n## Local Guidance Trace\n- " + local_guidance_trace_note
             return CollaborationResult(
                 mode="task-run",
                 task_description=f"{normalized_task} {paper_type} {normalized_topic}"[:200],
@@ -6553,6 +6660,7 @@ Return sections:
                     "review_loop_state": dict(review_loop_state),
                     "boundary_review": dict(boundary_review),
                     "validator_gate": dict(validator_gate_result),
+                    "local_guidance_trace": dict(local_guidance_trace),
                 },
             )
 
@@ -6977,6 +7085,22 @@ Return sections:
                 ]
             )
         merged = "\n".join(merged_parts)
+        local_guidance_trace, local_guidance_trace_note = self._write_task_guidance_trace(
+            cwd=cwd,
+            guidance_state=guidance_state,
+            task_packet=packet,
+            draft_content=draft_resp.content if draft_resp.success else f"[FAILED] {draft_resp.error}",
+            review_content=(
+                review_resp.content
+                if review_resp and review_resp.success
+                else (f"[FAILED] {review_resp.error}" if review_resp else "[no review produced]")
+            ),
+            merged_analysis=merged,
+            validator_gate=validator_gate_result,
+        )
+        if local_guidance_trace_note:
+            routing_notes.append(local_guidance_trace_note)
+            merged += "\n\n## Local Guidance Trace\n- " + local_guidance_trace_note
 
         if (
             draft_resp.success
@@ -7026,6 +7150,7 @@ Return sections:
                 "review_loop_state": dict(review_loop_state),
                 "boundary_review": dict(boundary_review),
                 "validator_gate": dict(validator_gate_result),
+                "local_guidance_trace": dict(local_guidance_trace),
             },
         )
 
@@ -7304,6 +7429,49 @@ CONTEXT:
                 gemini_task=f"{prompt}\n\nExplain the library usage and parameter choices."
             )
 
+def _run_guidance_command(args: argparse.Namespace) -> CollaborationResult:
+    project_dir = Path(getattr(args, "project_dir", Path.cwd())).expanduser().resolve()
+    action = str(getattr(args, "guidance_cmd", "") or "").strip()
+    if action == "init":
+        paths = init_project_guidance(project_dir)
+        data = {
+            "action": "init",
+            "project_dir": str(paths.project_root),
+            "project_guidance": str(paths.project_guidance),
+            "trace_root": str(paths.trace_root),
+            "trace_index": str(paths.trace_index),
+        }
+        merged = (
+            "Project-local guidance initialized.\n"
+            f"- guidance: {paths.project_guidance}\n"
+            f"- trace: {paths.trace_root}"
+        )
+    elif action == "show":
+        state = effective_guidance(project_dir, mode="read")
+        data = {"action": "show", "project_dir": str(project_dir), "guidance": state.to_packet()}
+        merged = state.guidance_context or "No local guidance configured."
+    elif action == "trace":
+        limit = int(getattr(args, "limit", 20) or 20)
+        summary = guidance_trace_summary(project_dir, limit=limit)
+        data = {"action": "trace", **summary}
+        merged = json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True)
+    elif action == "apply":
+        proposal = Path(getattr(args, "proposal", ""))
+        result = apply_guidance_proposal(project_dir, proposal)
+        data = {"action": "apply", "project_dir": str(project_dir), **result}
+        merged = json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True)
+    else:
+        raise ValueError(f"Unhandled guidance command: {action}")
+    return CollaborationResult(
+        mode="guidance",
+        task_description=f"guidance {action}".strip(),
+        merged_analysis=merged,
+        confidence=1.0,
+        recommendations=[],
+        data=data,
+    )
+
+
 def main():
     """CLI entry point."""
     configure_stdio()
@@ -7405,6 +7573,64 @@ def main():
         action="append",
         dest="only_targets",
         help="Target a specific actionable item. Repeat for multiple items. Use STAGE_ID:TARGET when --focus full.",
+    )
+
+    guidance = subparsers.add_parser(
+        "guidance",
+        help="Manage project-local Qiongli guidance and trace bundles",
+    )
+    guidance_subparsers = guidance.add_subparsers(dest="guidance_cmd", required=True)
+    guidance_init = guidance_subparsers.add_parser(
+        "init",
+        help="Create project-local guidance and trace directories",
+    )
+    guidance_init.add_argument(
+        "--project-dir",
+        default=Path.cwd(),
+        type=Path,
+        help="Project directory that owns .qiongli/ (default: current directory)",
+    )
+    guidance_show = guidance_subparsers.add_parser(
+        "show",
+        help="Show effective project-local guidance context",
+    )
+    guidance_show.add_argument(
+        "--project-dir",
+        default=Path.cwd(),
+        type=Path,
+        help="Project directory that owns .qiongli/ (default: current directory)",
+    )
+    guidance_trace = guidance_subparsers.add_parser(
+        "trace",
+        help="Summarize project-local guidance trace index",
+    )
+    guidance_trace.add_argument(
+        "--project-dir",
+        default=Path.cwd(),
+        type=Path,
+        help="Project directory that owns .qiongli/ (default: current directory)",
+    )
+    guidance_trace.add_argument(
+        "--limit",
+        default=20,
+        type=int,
+        help="Maximum number of recent trace records to show (default: 20)",
+    )
+    guidance_apply = guidance_subparsers.add_parser(
+        "apply",
+        help="Apply an explicit guidance update proposal to project-local guidance",
+    )
+    guidance_apply.add_argument(
+        "--project-dir",
+        default=Path.cwd(),
+        type=Path,
+        help="Project directory that owns .qiongli/ (default: current directory)",
+    )
+    guidance_apply.add_argument(
+        "--proposal",
+        required=True,
+        type=Path,
+        help="Path to .qiongli/trace/runs/<run_id>/guidance_update_proposal.md",
     )
 
     task_run = subparsers.add_parser(
@@ -7509,6 +7735,12 @@ def main():
         help="Skip strict validation protocols for rapid research iteration.",
     )
     task_run.add_argument(
+        "--guidance-mode",
+        choices=GUIDANCE_MODES,
+        default="propose",
+        help="Project-local guidance mode: off, read, propose, or apply (default: propose).",
+    )
+    task_run.add_argument(
         "--update-academic-context",
         action="store_true",
         help="Append context/research_state.md and context/decision_log.md for supported stage-close tasks.",
@@ -7587,7 +7819,9 @@ def main():
 
     orchestrator = ModelOrchestrator(interactive=getattr(args, "interactive", False))
 
-    if args.mode == "code-build":
+    if args.mode == "guidance":
+        result = _run_guidance_command(args)
+    elif args.mode == "code-build":
         result = orchestrator.code_build(
             method=args.method,
             cwd=args.cwd,
@@ -7626,6 +7860,7 @@ def main():
             research_depth=getattr(args, "research_depth", "standard"),
             only_targets=getattr(args, "only_targets", None),
             skip_validation=getattr(args, "skip_validation", False),
+            guidance_mode=getattr(args, "guidance_mode", "propose"),
             update_academic_context=getattr(args, "update_academic_context", False),
             execution_mode=getattr(args, "execution_mode", None),
             controller=getattr(args, "controller", None),

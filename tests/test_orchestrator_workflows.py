@@ -29,6 +29,10 @@ class MockOrchestrator(ModelOrchestrator):
         super().__init__(standards_dir=RepoLayout(REPO_ROOT).standards)
         self.runtime_calls: list[dict[str, Any]] = []
 
+    def task_run(self, *args: Any, **kwargs: Any) -> CollaborationResult:
+        kwargs.setdefault("guidance_mode", "off")
+        return super().task_run(*args, **kwargs)
+
     def _runtime_preflight_error(
         self,
         agent_name: str,
@@ -181,6 +185,8 @@ class OrchestratorWorkflowTests(unittest.TestCase):
                 "--reviewer",
                 "claude",
                 "--skip-validation",
+                "--guidance-mode",
+                "off",
             ]
 
             completed = subprocess.run(
@@ -200,6 +206,38 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         self.assertTrue(payload["claude"]["success"])
         self.assertIn("fake codex draft", payload["codex"]["content"])
         self.assertIn("fake claude review", payload["claude"]["content"])
+
+    def test_guidance_cli_init_creates_project_local_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            env = os.environ.copy()
+            env["RESEARCH_CLI_LANG"] = "en"
+            command = [
+                sys.executable,
+                "-m",
+                "bridges.orchestrator",
+                "guidance",
+                "init",
+                "--project-dir",
+                str(root),
+            ]
+
+            completed = subprocess.run(
+                command,
+                cwd=REPO_ROOT,
+                env=env,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+            )
+
+            self.assertEqual(completed.returncode, 0, completed.stdout)
+            payload = json.loads(completed.stdout)
+            self.assertEqual(payload["mode"], "guidance")
+            self.assertEqual(payload["data"]["action"], "init")
+            self.assertTrue((root / ".qiongli" / "local_guidance.md").is_file())
+            self.assertTrue((root / ".qiongli" / "trace").is_dir())
 
     def test_parallel_runs_with_mock_runtime(self) -> None:
         orchestrator = MockOrchestrator()
@@ -743,6 +781,100 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         self.assertIn("\"deferred_outputs\": [", result.merged_analysis)
         self.assertIn("manuscript/results_interpretation.md", result.merged_analysis)
         self.assertIn("Output control: policy=focused, active_outputs=2/6.", result.merged_analysis)
+
+    def test_task_run_injects_project_local_guidance_into_packet_and_prompt(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / ".qiongli").mkdir()
+            (root / ".qiongli" / "local_guidance.md").write_text(
+                "# Qiongli Local Guidance\n\n## Artifact Policy\n- Keep helper traces in .qiongli/trace.\n",
+                encoding="utf-8",
+            )
+            orchestrator = MockOrchestrator()
+
+            result = orchestrator.task_run(
+                task_id="F3",
+                paper_type="empirical",
+                topic="ai-writing",
+                cwd=root,
+                guidance_mode="read",
+                skip_validation=True,
+            )
+
+            packet = result.data["task_packet"]
+            self.assertEqual(packet["local_guidance"]["mode"], "read")
+            self.assertIn("Keep helper traces", packet["local_guidance"]["guidance_context"])
+            draft_prompt = next(call["prompt"] for call in orchestrator.runtime_calls if call["agent"])
+            self.assertIn("Local guidance context", draft_prompt)
+            self.assertIn("Keep helper traces", draft_prompt)
+
+    def test_task_run_guidance_off_does_not_read_local_guidance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / ".qiongli").mkdir()
+            (root / ".qiongli" / "local_guidance.md").write_text(
+                "# Qiongli Local Guidance\n\n## Active Guidance\n- This text must not appear.\n",
+                encoding="utf-8",
+            )
+            orchestrator = MockOrchestrator()
+
+            result = orchestrator.task_run(
+                task_id="F3",
+                paper_type="empirical",
+                topic="ai-writing",
+                cwd=root,
+                guidance_mode="off",
+                skip_validation=True,
+            )
+
+            self.assertFalse(result.data["task_packet"]["local_guidance"]["enabled"])
+            self.assertNotIn("This text must not appear", result.merged_analysis)
+
+    def test_task_run_writes_guidance_trace_when_formal_outputs_are_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            orchestrator = MockOrchestrator()
+
+            result = orchestrator.task_run(
+                task_id="F3",
+                paper_type="empirical",
+                topic="ai-writing",
+                cwd=root,
+                guidance_mode="propose",
+                focus_outputs=["manuscript/manuscript.md"],
+            )
+
+            trace = result.data["local_guidance_trace"]
+            self.assertEqual(
+                trace["missing_outputs"],
+                ["manuscript/manuscript.md", "context/boundary_review.md"],
+            )
+            run_dir = root / trace["run_dir"]
+            self.assertTrue((run_dir / "task_packet.json").is_file())
+            self.assertTrue((run_dir / "draft.md").is_file())
+            self.assertTrue((run_dir / "validator_gate.json").is_file())
+            self.assertTrue((root / ".qiongli" / "trace" / "index.jsonl").is_file())
+            self.assertIn("Local guidance trace written", result.merged_analysis)
+
+    def test_task_run_guidance_apply_updates_project_local_guidance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            orchestrator = MockOrchestrator()
+
+            result = orchestrator.task_run(
+                task_id="F3",
+                paper_type="empirical",
+                topic="ai-writing",
+                cwd=root,
+                guidance_mode="apply",
+                focus_outputs=["manuscript/manuscript.md"],
+            )
+
+            trace = result.data["local_guidance_trace"]
+            text = (root / ".qiongli" / "local_guidance.md").read_text(encoding="utf-8")
+            self.assertTrue(trace["applied_guidance_update"])
+            self.assertIn("Applied Proposal", text)
+            self.assertIn(trace["run_id"], text)
 
     def test_build_task_prompts_include_deep_research_constraints(self) -> None:
         orchestrator = MockOrchestrator()

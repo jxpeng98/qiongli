@@ -6,6 +6,7 @@ from typing import Any, Callable
 
 from bridges.mcp_config_wizard import start_config_wizard
 from bridges.mcp_connectors import MCPConnector
+from bridges.guidance_runtime import GUIDANCE_MODES
 from bridges.provider_config import (
     PROVIDER_FIELDS,
     global_provider_config_path,
@@ -173,6 +174,7 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
                 "profile": {"type": "string"},
                 "mcp_strict": {"type": "boolean"},
                 "skills_strict": {"type": "boolean"},
+                "guidance_mode": {"type": "string", "enum": list(GUIDANCE_MODES), "default": "propose"},
                 "run_agents": {"type": "boolean", "default": False},
             },
             "additionalProperties": False,
@@ -391,6 +393,11 @@ def _model_orchestrator() -> Any:
 def _task_run_kwargs(args: dict[str, Any]) -> dict[str, Any]:
     execution_mode = _optional_str(args, "execution_mode")
     triad_default = execution_mode == "triad"
+    guidance_mode = _optional_str(args, "guidance_mode", "propose") or "propose"
+    if guidance_mode not in GUIDANCE_MODES:
+        raise ValueError(
+            "guidance_mode must be one of: " + ", ".join(GUIDANCE_MODES)
+        )
     return {
         "task_id": _required_str(args, "task_id"),
         "paper_type": _required_str(args, "paper_type"),
@@ -401,6 +408,7 @@ def _task_run_kwargs(args: dict[str, Any]) -> dict[str, Any]:
         "context": _optional_str(args, "context"),
         "mcp_strict": _optional_bool(args, "mcp_strict", default=False),
         "skills_strict": _optional_bool(args, "skills_strict", default=False),
+        "guidance_mode": guidance_mode,
         "profile": _optional_str(args, "profile", "default") or "default",
         "execution_mode": execution_mode,
         "triad": _optional_bool(args, "triad", default=triad_default),
