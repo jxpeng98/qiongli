@@ -13,6 +13,12 @@ import {
   handleZoteroStatus,
   handleZoteroUpsertReferences
 } from "../server/zotero/tools.mjs";
+import {
+  annotateLocalZoteroMatches,
+  normalizeZoteroSourceResults,
+  resolveZoteroSourceOptions,
+  zoteroSourceSearchPayload
+} from "../server/zotero/search-source.mjs";
 
 test("resolveZoteroConfig defaults to local connector with explicit write policy", () => {
   const config = resolveZoteroConfig({ env: {} });
@@ -134,6 +140,73 @@ test("handleZoteroSearch forwards structured query to companion", async () => {
   assert.equal(result.results[0].zotero.item_key, "ABC123");
   assert.equal(requests[0].url, "http://127.0.0.1:23119/qiongli/search");
   assert.equal(requests[0].body.doi, "10.1000/example");
+});
+
+test("resolveZoteroSourceOptions keeps Zotero disabled unless explicitly requested", () => {
+  assert.equal(resolveZoteroSourceOptions({}).include, false);
+  assert.equal(resolveZoteroSourceOptions({ include_zotero: false }).include, false);
+  assert.equal(resolveZoteroSourceOptions({ include_zotero: true, zotero_limit: 7 }).include, true);
+  assert.equal(resolveZoteroSourceOptions({ include_zotero: true, zotero_limit: 7 }).limit, 7);
+});
+
+test("zoteroSourceSearchPayload maps DOI and topic intents conservatively", () => {
+  assert.deepEqual(
+    zoteroSourceSearchPayload({
+      intent: { doi: "10.1000/example", query: "10.1000/example", exactTitle: false },
+      input: {}
+    }),
+    { doi: "10.1000/example" }
+  );
+
+  assert.deepEqual(
+    zoteroSourceSearchPayload({
+      intent: { doi: null, query: "platform governance", exactTitle: false },
+      input: { zotero_tag: "project:platform", zotero_collection_path: "Qiongli/platform" }
+    }),
+    { title: "platform governance", tag: "project:platform", collection_path: "Qiongli/platform" }
+  );
+});
+
+test("normalizeZoteroSourceResults maps compact local items to provider results", () => {
+  const results = normalizeZoteroSourceResults([
+    {
+      item_key: "ABC123",
+      title: "Local Paper",
+      doi: "10.1000/local",
+      year: 2024,
+      item_type: "journalArticle",
+      select_uri: "zotero://select/library/items/ABC123",
+      tags: ["qiongli:verified"],
+      collections: ["Qiongli/topic"]
+    }
+  ]);
+
+  assert.equal(results[0].provider, "zotero");
+  assert.equal(results[0].source_type, "local_reference_database");
+  assert.equal(results[0].source_id, "ABC123");
+  assert.equal(results[0].zotero.item_key, "ABC123");
+});
+
+test("annotateLocalZoteroMatches marks external DOI matches without dropping results", () => {
+  const annotated = annotateLocalZoteroMatches({
+    externalResults: [
+      { title: "External Paper", doi: "10.1000/match", year: 2024, provider: "openalex" },
+      { title: "Other Paper", doi: "10.1000/other", year: 2024, provider: "openalex" }
+    ],
+    zoteroResults: [
+      {
+        title: "Local Paper",
+        doi: "10.1000/match",
+        year: 2024,
+        provider: "zotero",
+        zotero: { item_key: "ABC123", select_uri: "zotero://select/library/items/ABC123" }
+      }
+    ]
+  });
+
+  assert.equal(annotated[0].local_zotero_match.item_key, "ABC123");
+  assert.equal(annotated[0].local_zotero_match.match_basis, "doi");
+  assert.equal(annotated[1].local_zotero_match, undefined);
 });
 
 test("handleZoteroUpsertReferences defaults to dry run and sends mapped items", async () => {
