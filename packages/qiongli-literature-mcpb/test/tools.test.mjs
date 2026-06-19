@@ -72,6 +72,7 @@ test("handleToolCall routes qiongli_zotero_status to local Zotero status handler
 test("handleToolCall routes qiongli_zotero_upsert_references to local Zotero upsert handler", async () => {
   const calls = [];
   const response = await handleToolCall("qiongli_zotero_upsert_references", {
+    verify_crossref: false,
     records: [{ title: "Routed Paper", doi: "10.1000/routed" }]
   }, {
     fetchImpl: async (url, options = {}) => {

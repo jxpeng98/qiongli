@@ -33,7 +33,9 @@ export function normalizeReferenceRecord(record = {}) {
     provider: cleanString(record.provider),
     source_id: cleanString(record.source_id ?? record.sourceId),
     tags: normalizeStringList(record.tags),
-    citekey: cleanString(record.citekey ?? record.id)
+    citekey: cleanString(record.citekey ?? record.id),
+    verification: clonePlainObject(record.verification),
+    review_status: cleanString(record.review_status)
   };
   normalized.citekey = normalized.citekey || generateCitekey(normalized);
   return normalized;
@@ -82,7 +84,7 @@ export function mapRecordToZoteroItem(record = {}, options = {}) {
     publicationTitle: itemType === "journalArticle" ? normalized.venue : "",
     conferenceName: itemType === "conferencePaper" ? normalized.venue : "",
     extra: provenanceExtra(normalized),
-    tags: mapTags(normalized, options.tags)
+    tags: mapTags(normalized, options.tags, options)
   });
 
   return item;
@@ -151,10 +153,10 @@ function mapAuthor(author) {
   return { creatorType: "author", name: cleaned };
 }
 
-function mapTags(record, extraTags = []) {
+function mapTags(record, extraTags = [], options = {}) {
   const tags = normalizeStringList([
     ...record.tags,
-    record.provider ? `provider:${record.provider}` : "",
+    options.includeProviderTag === false || !record.provider ? "" : `provider:${record.provider}`,
     ...normalizeStringList(extraTags)
   ]);
   return tags.map((tag) => ({ tag }));
@@ -248,6 +250,13 @@ function compactObject(value) {
     compacted[key] = item;
   }
   return compacted;
+}
+
+function clonePlainObject(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  return JSON.parse(JSON.stringify(value));
 }
 
 function comparableTitle(value) {

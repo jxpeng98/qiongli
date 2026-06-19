@@ -132,6 +132,36 @@ test("upsertItems writes creates and updates through runtime when dry_run is fal
   assert.equal(result.results[1].item_key, "NEW1");
 });
 
+test("upsertItems preserves incoming Qiongli review tags on created items", async () => {
+  const calls = [];
+  const runtime = {
+    listItems: async () => [],
+    createItem: async (item) => {
+      calls.push(item);
+      return { key: "NEW1", ...item };
+    }
+  };
+
+  const result = await upsertItems({
+    dry_run: false,
+    items: [
+      {
+        title: "Tagged Paper",
+        tags: [
+          { tag: "qiongli:imported" },
+          { tag: "qiongli:needs-review" }
+        ]
+      }
+    ]
+  }, runtime);
+
+  assert.deepEqual(calls[0].tags, [
+    { tag: "qiongli:imported" },
+    { tag: "qiongli:needs-review" }
+  ]);
+  assert.equal(result.results[0].item.tags[0], "qiongli:imported");
+});
+
 test("companion package declares Zotero install metadata and qiongli endpoints", async () => {
   const manifest = JSON.parse(await readFile(path.join(PACKAGE_ROOT, "manifest.json"), "utf8"));
   const bootstrap = await readFile(path.join(PACKAGE_ROOT, "bootstrap.js"), "utf8");

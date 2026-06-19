@@ -1,7 +1,10 @@
+import { readConfig } from "../config.mjs";
 import { postCompanionJson, probeCompanion, probeConnector } from "./client.mjs";
 import { resolveZoteroConfig } from "./config.mjs";
+import { verifyRecordsWithCrossref } from "./crossref-verifier.mjs";
 import { exportImportFiles } from "./exporters.mjs";
 import { dedupeReferenceRecords, mapRecordToZoteroItem, normalizeReferenceInputs } from "./records.mjs";
+import { mergeReviewTags, resolveDefaultReviewTags, reviewStatusForVerification } from "./review-tags.mjs";
 
 export async function handleZoteroStatus(input = {}, context = {}) {
   const config = resolveZoteroConfig({
@@ -93,26 +96,72 @@ export async function handleZoteroUpsertReferences(input = {}, context = {}) {
     input
   });
   const { records } = normalizeReferenceInputs(input);
-  const deduped = dedupeReferenceRecords(records);
+  const providerConfig = context.config ?? readConfig(context.env ?? process.env);
+  const verifiedRecords = await verifyRecordsWithCrossref({
+    records,
+    config: providerConfig,
+    fetchImpl: context.fetchImpl,
+    enabled: input.verify_crossref !== false && config.crossref_verification_enabled,
+    enrichment: input.crossref_enrichment ?? "fill_blank"
+  });
+  const enrichedRecords = verifiedRecords.map((entry) => entry.record);
+  const deduped = dedupeReferenceRecords(enrichedRecords);
   const dryRun = resolveDryRun(input, config);
-  const tags = normalizeStringList(input.tags);
-  const collectionPath = input.collection_path ?? config.default_collection_path;
+  const inputTags = normalizeStringList(input.tags);
+  const collectionPath = input.collection_path
+    ?? input.review_collection_path
+    ?? config.default_review_collection_path
+    ?? config.default_collection_path;
+  const defaultReviewTags = resolveDefaultReviewTags(config, input);
+  const itemPayloadRecords = deduped.records.map((record) => {
+    const crossrefStatus = record.verification?.crossref?.status ?? "skipped";
+    const tags = mergeReviewTags({
+      baseTags: [...inputTags, ...record.tags],
+      provider: record.provider,
+      crossrefStatus,
+      defaultReviewTags
+    });
+    return {
+      record: {
+        ...record,
+        tags
+      },
+      tags
+    };
+  });
   const payload = {
     dry_run: dryRun,
     update_policy: input.update_policy ?? config.update_policy,
     collection_path: collectionPath,
-    tags,
-    records: deduped.records,
-    items: deduped.records.map((record) => mapRecordToZoteroItem(record, { tags }))
+    tags: inputTags,
+    records: itemPayloadRecords.map((entry) => entry.record),
+    items: itemPayloadRecords.map((entry) => mapRecordToZoteroItem(entry.record, {
+      tags: entry.tags,
+      includeProviderTag: false
+    }))
   };
 
   const response = await postCompanionJson(config, "/qiongli/upsertItems", payload, context);
+  const verification = itemPayloadRecords.map(
+    (entry) => entry.record.verification ?? { crossref: { status: "skipped", filled_fields: [], conflicts: [] } }
+  );
+  const responseResults = Array.isArray(response.results) ? response.results : [];
+  const results = responseResults.map((entry, index) => ({
+    ...entry,
+    review_status: reviewStatusForVerification({
+      writeStatus: entry.status,
+      crossrefStatus: verification[index]?.crossref?.status
+    }),
+    verification: verification[index]
+  }));
   if (response.status === "error") {
-    const fallback = exportImportFiles({ records: deduped.records });
+    const fallback = exportImportFiles({ records: itemPayloadRecords.map((entry) => entry.record) });
     return {
       ...response,
       dry_run: dryRun,
       dedup_log: deduped.dedup_log,
+      verification,
+      results,
       fallback_import_files: fallback.fallback_import_files,
       import_files: fallback.files
     };
@@ -122,7 +171,9 @@ export async function handleZoteroUpsertReferences(input = {}, context = {}) {
     ...response,
     status: response.status ?? "ok",
     dry_run: response.dry_run ?? dryRun,
-    dedup_log: deduped.dedup_log
+    dedup_log: deduped.dedup_log,
+    verification,
+    results
   };
 }
 

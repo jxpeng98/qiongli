@@ -10,6 +10,9 @@ export function resolveZoteroConfig({ env = process.env, input = {} } = {}) {
     local_enabled: readBoolean(input.local_enabled ?? env.QIONGLI_ZOTERO_LOCAL_ENABLED, true),
     connector_url: stripTrailingSlash(connectorUrl),
     default_collection_path: cleanString(input.collection_path ?? env.QIONGLI_ZOTERO_DEFAULT_COLLECTION_PATH),
+    default_review_tags: cleanString(input.review_tags ?? env.QIONGLI_ZOTERO_DEFAULT_REVIEW_TAGS),
+    default_review_collection_path: cleanString(input.review_collection_path ?? env.QIONGLI_ZOTERO_DEFAULT_REVIEW_COLLECTION_PATH),
+    crossref_verification_enabled: readBoolean(input.verify_crossref ?? env.QIONGLI_ZOTERO_CROSSREF_VERIFICATION_ENABLED, true),
     write_policy: normalizeEnum(input.write_policy ?? env.QIONGLI_ZOTERO_WRITE_POLICY, WRITE_POLICIES, "explicit"),
     update_policy: normalizeEnum(input.update_policy ?? env.QIONGLI_ZOTERO_UPDATE_POLICY, UPDATE_POLICIES, "fill_blank")
   };

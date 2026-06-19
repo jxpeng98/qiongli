@@ -20,6 +20,7 @@ import {
   zoteroSourceSearchPayload
 } from "../server/zotero/search-source.mjs";
 import { verifyRecordWithCrossref } from "../server/zotero/crossref-verifier.mjs";
+import { mergeReviewTags, reviewStatusForVerification } from "../server/zotero/review-tags.mjs";
 
 test("resolveZoteroConfig defaults to local connector with explicit write policy", () => {
   const config = resolveZoteroConfig({ env: {} });
@@ -297,9 +298,78 @@ test("verifyRecordWithCrossref skips records without DOI", async () => {
   assert.equal(result.record.title, "No DOI Paper");
 });
 
+test("mergeReviewTags adds imported needs-review source and crossref tags", () => {
+  const tags = mergeReviewTags({
+    baseTags: ["custom"],
+    provider: "openalex",
+    crossrefStatus: "verified",
+    defaultReviewTags: ["qiongli:imported", "qiongli:needs-review"]
+  });
+
+  assert.deepEqual(tags, [
+    "custom",
+    "qiongli:imported",
+    "qiongli:needs-review",
+    "qiongli:source:openalex",
+    "qiongli:crossref-verified"
+  ]);
+});
+
+test("reviewStatusForVerification keeps newly imported verified records in needs_review", () => {
+  assert.equal(reviewStatusForVerification({ writeStatus: "created", crossrefStatus: "verified" }), "needs_review");
+  assert.equal(reviewStatusForVerification({ writeStatus: "unchanged", crossrefStatus: "verified" }), "unchanged");
+  assert.equal(reviewStatusForVerification({ writeStatus: "skipped", crossrefStatus: "skipped" }), "skipped");
+});
+
+test("handleZoteroUpsertReferences verifies DOI records with Crossref and sends review tags", async () => {
+  const requests = [];
+  const result = await handleZoteroUpsertReferences({
+    dry_run: false,
+    records: [{ title: "Crossref Verified", doi: "10.1000/verified", provider: "openalex" }]
+  }, {
+    env: {},
+    fetchImpl: async (url, options = {}) => {
+      requests.push({ url: String(url), body: options.body ? JSON.parse(options.body) : null });
+      if (String(url).includes("api.crossref.org")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            message: {
+              title: ["Crossref Verified"],
+              DOI: "10.1000/verified",
+              issued: { "date-parts": [[2024]] },
+              "container-title": ["Journal of Tests"]
+            }
+          })
+        };
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          status: "ok",
+          dry_run: false,
+          results: [{ status: "created", item_key: "NEW1" }]
+        })
+      };
+    }
+  });
+
+  const upsertBody = requests.find((request) => request.url.endsWith("/qiongli/upsertItems")).body;
+  assert.equal(upsertBody.items[0].publicationTitle, "Journal of Tests");
+  assert.deepEqual(
+    upsertBody.items[0].tags.map((tag) => tag.tag),
+    ["qiongli:imported", "qiongli:needs-review", "qiongli:source:openalex", "qiongli:crossref-verified"]
+  );
+  assert.equal(result.results[0].review_status, "needs_review");
+  assert.equal(result.verification[0].crossref.status, "verified");
+});
+
 test("handleZoteroUpsertReferences defaults to dry run and sends mapped items", async () => {
   const requests = [];
   const result = await handleZoteroUpsertReferences({
+    verify_crossref: false,
     records: [{ title: "Dry Run Paper", authors: ["Smith, Alex"], year: 2024, doi: "10.1000/dry" }]
   }, {
     fetchImpl: async (url, options = {}) => {
