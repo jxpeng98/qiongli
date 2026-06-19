@@ -22,7 +22,12 @@
         "QIONGLI_MCPB_SEMANTIC_SCHOLAR_API_KEY": "${user_config.semantic_scholar_api_key}",
         "QIONGLI_MCPB_CROSSREF_EMAIL": "${user_config.crossref_email}",
         "QIONGLI_MCPB_PUBMED_API_KEY": "${user_config.pubmed_api_key}",
-        "QIONGLI_MCPB_DEFAULT_LIMIT": "${user_config.default_result_limit}"
+        "QIONGLI_MCPB_DEFAULT_LIMIT": "${user_config.default_result_limit}",
+        "QIONGLI_ZOTERO_LOCAL_ENABLED": "${user_config.zotero_local_enabled}",
+        "QIONGLI_ZOTERO_CONNECTOR_URL": "${user_config.zotero_connector_url}",
+        "QIONGLI_ZOTERO_DEFAULT_COLLECTION_PATH": "${user_config.zotero_default_collection_path}",
+        "QIONGLI_ZOTERO_WRITE_POLICY": "${user_config.zotero_write_policy}",
+        "QIONGLI_ZOTERO_UPDATE_POLICY": "${user_config.zotero_update_policy}"
       }
     }
   },
