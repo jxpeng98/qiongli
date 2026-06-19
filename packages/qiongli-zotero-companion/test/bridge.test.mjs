@@ -6,7 +6,9 @@ import {
   findDuplicateItem,
   planUpsert,
   qiongliPingResponse,
-  toCompactItem
+  searchLocalItems,
+  toCompactItem,
+  upsertItems
 } from "../chrome/content/qiongli-bridge.js";
 
 const PACKAGE_ROOT = path.resolve(import.meta.dirname, "..");
@@ -54,6 +56,82 @@ test("toCompactItem returns no local file paths", () => {
   assert.equal(Object.hasOwn(compact, "path"), false);
 });
 
+test("searchLocalItems filters runtime items by DOI and title", async () => {
+  const runtime = {
+    listItems: async () => [
+      { key: "A", title: "Platform Governance", DOI: "10.1000/platform", date: "2024" },
+      { key: "B", title: "Unrelated Paper", DOI: "10.1000/other", date: "2020" }
+    ]
+  };
+
+  const doiResults = await searchLocalItems({ doi: "https://doi.org/10.1000/platform" }, runtime);
+  const titleResults = await searchLocalItems({ title: "platform governance", year: 2024 }, runtime);
+
+  assert.equal(doiResults.results.length, 1);
+  assert.equal(doiResults.results[0].item_key, "A");
+  assert.equal(titleResults.results.length, 1);
+  assert.equal(titleResults.results[0].item_key, "A");
+});
+
+test("upsertItems dry run returns planned operations without mutating runtime", async () => {
+  const calls = [];
+  const runtime = {
+    listItems: async () => [{ key: "A", title: "User Title", DOI: "", abstractNote: "" }],
+    createItem: async (item) => {
+      calls.push(["create", item]);
+      return { key: "NEW", ...item };
+    },
+    updateItem: async (key, patch) => {
+      calls.push(["update", key, patch]);
+      return { key, ...patch };
+    }
+  };
+
+  const result = await upsertItems({
+    dry_run: true,
+    update_policy: "fill_blank",
+    items: [{ title: "User Title", DOI: "10.1000/user", abstractNote: "Abstract" }]
+  }, runtime);
+
+  assert.equal(result.status, "ok");
+  assert.equal(result.dry_run, true);
+  assert.equal(result.results[0].status, "updated");
+  assert.deepEqual(calls, []);
+});
+
+test("upsertItems writes creates and updates through runtime when dry_run is false", async () => {
+  const calls = [];
+  const runtime = {
+    listItems: async () => [{ key: "A", title: "Existing Paper", DOI: "", abstractNote: "" }],
+    createItem: async (item) => {
+      calls.push(["create", item.title]);
+      return { key: "NEW1", ...item };
+    },
+    updateItem: async (key, patch) => {
+      calls.push(["update", key, patch.DOI]);
+      return { key, ...patch };
+    }
+  };
+
+  const result = await upsertItems({
+    dry_run: false,
+    update_policy: "fill_blank",
+    items: [
+      { title: "Existing Paper", DOI: "10.1000/existing" },
+      { title: "Created Paper", DOI: "10.1000/created" }
+    ]
+  }, runtime);
+
+  assert.equal(result.status, "ok");
+  assert.equal(result.dry_run, false);
+  assert.deepEqual(calls, [
+    ["update", "A", "10.1000/existing"],
+    ["create", "Created Paper"]
+  ]);
+  assert.equal(result.results[0].item_key, "A");
+  assert.equal(result.results[1].item_key, "NEW1");
+});
+
 test("companion package declares Zotero install metadata and qiongli endpoints", async () => {
   const manifest = JSON.parse(await readFile(path.join(PACKAGE_ROOT, "manifest.json"), "utf8"));
   const bootstrap = await readFile(path.join(PACKAGE_ROOT, "bootstrap.js"), "utf8");
@@ -65,6 +143,7 @@ test("companion package declares Zotero install metadata and qiongli endpoints",
   for (const endpoint of ["/qiongli/ping", "/qiongli/search", "/qiongli/upsertItems", "/qiongli/collections"]) {
     assert.ok(bootstrap.includes(endpoint), `${endpoint} missing from bootstrap.js`);
   }
+  assert.equal(bootstrap.includes("not_implemented"), false);
   assert.match(readme, /Qiongli Zotero companion/);
   assert.match(readme, /local reference database/);
 });

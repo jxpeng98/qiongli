@@ -24,13 +24,88 @@ export function findDuplicateItem(incoming = {}, existingItems = []) {
 
   const incomingTitle = comparableTitle(incoming.title);
   const incomingYear = normalizeYear(incoming.date ?? incoming.year);
-  if (!incomingTitle || !incomingYear) {
+  if (!incomingTitle) {
     return null;
   }
 
   return existingItems.find((item) => {
-    return comparableTitle(item.title) === incomingTitle && normalizeYear(item.date ?? item.year) === incomingYear;
+    const titleMatches = comparableTitle(item.title) === incomingTitle;
+    if (!titleMatches) {
+      return false;
+    }
+    if (!incomingYear) {
+      return true;
+    }
+    return normalizeYear(item.date ?? item.year) === incomingYear;
   }) ?? null;
+}
+
+export async function searchLocalItems(query = {}, runtime = {}) {
+  const items = await listRuntimeItems(runtime);
+  const results = items
+    .filter((item) => itemMatchesQuery(item, query))
+    .map((item) => toCompactItem(item));
+  return {
+    status: "ok",
+    results
+  };
+}
+
+export async function upsertItems(payload = {}, runtime = {}) {
+  const dryRun = payload.dry_run !== false;
+  const updatePolicy = payload.update_policy ?? "fill_blank";
+  const incomingItems = Array.isArray(payload.items) ? payload.items : [];
+  const existingItems = await listRuntimeItems(runtime);
+  const results = [];
+
+  for (const incoming of incomingItems) {
+    const existing = findDuplicateItem(incoming, existingItems);
+    const plan = planUpsert({ incoming, existing, updatePolicy });
+
+    if (dryRun) {
+      results.push({
+        ...plan,
+        planned: true,
+        item_key: plan.item_key ?? existing?.key ?? null
+      });
+      continue;
+    }
+
+    if (!existing) {
+      const created = await runtime.createItem(incoming);
+      existingItems.push(created);
+      results.push({
+        status: "created",
+        item_key: created.key,
+        item: toCompactItem(created)
+      });
+      continue;
+    }
+
+    if (plan.status === "unchanged") {
+      results.push({
+        status: "unchanged",
+        item_key: existing.key,
+        item: toCompactItem(existing)
+      });
+      continue;
+    }
+
+    const updated = await runtime.updateItem(existing.key, plan.patch);
+    Object.assign(existing, updated);
+    results.push({
+      status: "updated",
+      item_key: existing.key,
+      patch: plan.patch,
+      item: toCompactItem(existing)
+    });
+  }
+
+  return {
+    status: "ok",
+    dry_run: dryRun,
+    results
+  };
 }
 
 export function planUpsert({ incoming = {}, existing = null, updatePolicy = "fill_blank" } = {}) {
@@ -77,6 +152,33 @@ export function toCompactItem(item = {}) {
 
 export function normalizeDoi(value) {
   return String(value ?? "").trim().replace(DOI_PREFIX_RE, "").toLowerCase();
+}
+
+async function listRuntimeItems(runtime) {
+  if (typeof runtime.listItems !== "function") {
+    return [];
+  }
+  const items = await runtime.listItems();
+  return Array.isArray(items) ? items : [];
+}
+
+function itemMatchesQuery(item, query) {
+  const queryDoi = normalizeDoi(query.doi ?? query.DOI);
+  if (queryDoi) {
+    return normalizeDoi(item.DOI ?? item.doi) === queryDoi;
+  }
+
+  const queryTitle = comparableTitle(query.title);
+  if (queryTitle && !comparableTitle(item.title).includes(queryTitle)) {
+    return false;
+  }
+
+  const queryYear = normalizeYear(query.year);
+  if (queryYear && normalizeYear(item.date ?? item.year) !== queryYear) {
+    return false;
+  }
+
+  return true;
 }
 
 function comparableTitle(value) {
