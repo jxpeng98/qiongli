@@ -61,7 +61,7 @@
 - Modify: `packages/qiongli-literature-mcpb/test/tools.test.mjs`
 - Modify: `tests/test_literature_mcpb_artifact.py`
 
-- [ ] **Step 1: Run baseline package tests before changing behavior**
+- [x] **Step 1: Run baseline package tests before changing behavior**
 
 Run:
 
@@ -72,7 +72,7 @@ python3 -m unittest tests.test_literature_mcpb_artifact
 
 Expected: existing tests pass before Zotero changes. If they fail, record the failure and fix only unrelated environment issues before continuing.
 
-- [ ] **Step 2: Write failing MCPB tool declaration test**
+- [x] **Step 2: Write failing MCPB tool declaration test**
 
 In `packages/qiongli-literature-mcpb/test/tools.test.mjs`, update the `tool declarations match manifest tool names` expected list to include:
 
@@ -100,7 +100,7 @@ test("zotero tool schemas expose dry-run and import fallback controls", () => {
 });
 ```
 
-- [ ] **Step 3: Run test to verify it fails**
+- [x] **Step 3: Run test to verify it fails**
 
 Run:
 
@@ -110,13 +110,13 @@ npm --prefix packages/qiongli-literature-mcpb test -- test/tools.test.mjs
 
 Expected: FAIL because Zotero tools are not declared yet.
 
-- [ ] **Step 4: Add minimal tool declarations and manifest entries**
+- [x] **Step 4: Add minimal tool declarations and manifest entries**
 
 Modify `packages/qiongli-literature-mcpb/server/index.mjs` and `packages/qiongli-literature-mcpb/manifest.json` to declare the four Zotero tools. The minimal declarations should not implement behavior yet; routing can return an unknown handler until later tasks.
 
 Use descriptions that identify Zotero as local storage/sync, not a literature search provider.
 
-- [ ] **Step 5: Verify declaration tests pass**
+- [x] **Step 5: Verify declaration tests pass**
 
 Run:
 
@@ -133,7 +133,7 @@ Expected: PASS for tool schema tests.
 - Modify: `packages/qiongli-literature-mcpb/server/config.mjs`
 - Create or modify: `packages/qiongli-literature-mcpb/test/zotero.test.mjs`
 
-- [ ] **Step 1: Write failing config tests**
+- [x] **Step 1: Write failing config tests**
 
 Add to `packages/qiongli-literature-mcpb/test/zotero.test.mjs`:
 
@@ -159,7 +159,7 @@ test("resolveZoteroConfig rejects non-loopback connector URLs", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -169,7 +169,7 @@ npm --prefix packages/qiongli-literature-mcpb test -- test/zotero.test.mjs
 
 Expected: FAIL because `server/zotero/config.mjs` does not exist.
 
-- [ ] **Step 3: Implement config helper**
+- [x] **Step 3: Implement config helper**
 
 Create `server/zotero/config.mjs` with:
 
@@ -212,7 +212,7 @@ function assertLoopbackUrl(value) {
 
 Add the remaining small helpers in the same file: `normalizeEnum`, `readBoolean`, `cleanString`, and `stripTrailingSlash`.
 
-- [ ] **Step 4: Verify config tests pass**
+- [x] **Step 4: Verify config tests pass**
 
 Run:
 
@@ -229,7 +229,7 @@ Expected: PASS for config tests.
 - Create: `packages/qiongli-literature-mcpb/server/zotero/exporters.mjs`
 - Modify: `packages/qiongli-literature-mcpb/test/zotero.test.mjs`
 
-- [ ] **Step 1: Write failing mapping and export tests**
+- [x] **Step 1: Write failing mapping and export tests**
 
 Add tests:
 
@@ -290,7 +290,7 @@ test("exportImportFiles returns CSL JSON RIS BibTeX and report", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -300,7 +300,7 @@ npm --prefix packages/qiongli-literature-mcpb test -- test/zotero.test.mjs
 
 Expected: FAIL because record and exporter helpers do not exist.
 
-- [ ] **Step 3: Implement records helper**
+- [x] **Step 3: Implement records helper**
 
 Implement `normalizeReferenceInputs`, `dedupeReferenceRecords`, and `mapRecordToZoteroItem`.
 
@@ -313,7 +313,7 @@ Rules:
 - Keep author parsing conservative: split only `Family, Given`; keep other strings as `name`.
 - Do not include empty strings in Zotero item fields.
 
-- [ ] **Step 4: Implement import exporters**
+- [x] **Step 4: Implement import exporters**
 
 Implement `exportImportFiles({ records, formats })` returning:
 
@@ -330,7 +330,7 @@ Implement `exportImportFiles({ records, formats })` returning:
 }
 ```
 
-- [ ] **Step 5: Verify mapping and export tests pass**
+- [x] **Step 5: Verify mapping and export tests pass**
 
 Run:
 
@@ -348,7 +348,7 @@ Expected: PASS.
 - Modify: `packages/qiongli-literature-mcpb/server/index.mjs`
 - Modify: `packages/qiongli-literature-mcpb/test/zotero.test.mjs`
 
-- [ ] **Step 1: Write failing status tests**
+- [x] **Step 1: Write failing status tests**
 
 Add tests:
 
@@ -394,7 +394,7 @@ test("handleZoteroStatus detects connector without Qiongli companion", async () 
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -404,7 +404,7 @@ npm --prefix packages/qiongli-literature-mcpb test -- test/zotero.test.mjs
 
 Expected: FAIL because status tool is missing.
 
-- [ ] **Step 3: Implement client probes and status handler**
+- [x] **Step 3: Implement client probes and status handler**
 
 Implement `probeConnector`, `probeCompanion`, and `handleZoteroStatus`.
 
@@ -415,7 +415,7 @@ Rules:
 - Return sanitized error codes; do not include stack traces.
 - Always include fallback import availability.
 
-- [ ] **Step 4: Wire status routing in `index.mjs`**
+- [x] **Step 4: Wire status routing in `index.mjs`**
 
 Import Zotero handlers and route:
 
@@ -425,7 +425,7 @@ if (name === "qiongli_zotero_status") {
 }
 ```
 
-- [ ] **Step 5: Verify status tests pass**
+- [x] **Step 5: Verify status tests pass**
 
 Run:
 
@@ -443,7 +443,7 @@ Expected: PASS.
 - Modify: `packages/qiongli-literature-mcpb/server/index.mjs`
 - Modify: `packages/qiongli-literature-mcpb/test/zotero.test.mjs`
 
-- [ ] **Step 1: Write failing tool handler tests**
+- [x] **Step 1: Write failing tool handler tests**
 
 Add tests:
 
@@ -511,7 +511,7 @@ test("handleZoteroExportImportFiles works without local Zotero", async () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run:
 
@@ -521,7 +521,7 @@ npm --prefix packages/qiongli-literature-mcpb test -- test/zotero.test.mjs
 
 Expected: FAIL because handlers are not implemented.
 
-- [ ] **Step 3: Implement search, upsert, and export handlers**
+- [x] **Step 3: Implement search, upsert, and export handlers**
 
 Rules:
 
@@ -531,11 +531,11 @@ Rules:
 - Failed companion writes include `fallback_import_files` generated from the same records.
 - `handleZoteroExportImportFiles` never contacts Zotero.
 
-- [ ] **Step 4: Wire routing in `index.mjs`**
+- [x] **Step 4: Wire routing in `index.mjs`**
 
 Route the remaining three tools to their handlers.
 
-- [ ] **Step 5: Verify handler tests pass**
+- [x] **Step 5: Verify handler tests pass**
 
 Run:
 
@@ -555,7 +555,7 @@ Expected: PASS.
 - Create: `packages/qiongli-zotero-companion/chrome/content/qiongli-bridge.js`
 - Create: `packages/qiongli-zotero-companion/test/bridge.test.mjs`
 
-- [ ] **Step 1: Write failing companion bridge tests**
+- [x] **Step 1: Write failing companion bridge tests**
 
 Create `test/bridge.test.mjs`:
 
@@ -613,7 +613,7 @@ test("toCompactItem returns no local file paths", () => {
 });
 ```
 
-- [ ] **Step 2: Run companion test to verify it fails**
+- [x] **Step 2: Run companion test to verify it fails**
 
 Run:
 
@@ -623,11 +623,11 @@ npm --prefix packages/qiongli-zotero-companion test
 
 Expected: FAIL because package files do not exist.
 
-- [ ] **Step 3: Implement companion helper module**
+- [x] **Step 3: Implement companion helper module**
 
 Create `chrome/content/qiongli-bridge.js` with exported pure helpers first. Keep Zotero runtime calls behind function parameters so tests can run in Node.
 
-- [ ] **Step 4: Implement bootstrap endpoint registration**
+- [x] **Step 4: Implement bootstrap endpoint registration**
 
 Create `bootstrap.js` that registers:
 
@@ -640,7 +640,7 @@ Zotero.Server.Endpoints["/qiongli/collections"]
 
 Each endpoint should parse JSON for POST requests, call bridge helpers, and return JSON. The first implementation can use conservative runtime adapters and clear `not_implemented` responses for APIs that need a live Zotero runtime, but `/qiongli/ping` must be fully functional and helper tests must pass.
 
-- [ ] **Step 5: Add package metadata and README**
+- [x] **Step 5: Add package metadata and README**
 
 `package.json` should include:
 
@@ -656,7 +656,7 @@ Each endpoint should parse JSON for POST requests, call bridge helpers, and retu
 }
 ```
 
-- [ ] **Step 6: Verify companion tests pass**
+- [x] **Step 6: Verify companion tests pass**
 
 Run:
 
@@ -674,7 +674,7 @@ Expected: PASS.
 - Modify: `content/skills/B_literature/reference-manager-bridge.md`
 - Modify: `packages/qiongli-literature-mcpb/README.md`
 
-- [ ] **Step 1: Write failing doc checks**
+- [x] **Step 1: Write failing doc checks**
 
 Add or update relevant tests if an existing doc test covers these files. If no existing doc test covers them, use `rg` verification in Step 4.
 
@@ -690,7 +690,7 @@ references.ris
 bibliography.bib
 ```
 
-- [ ] **Step 2: Update English docs**
+- [x] **Step 2: Update English docs**
 
 Rewrite `docs/advanced/mcp-zotero-integration.md` to describe:
 
@@ -699,7 +699,7 @@ Rewrite `docs/advanced/mcp-zotero-integration.md` to describe:
 - status, dry-run, explicit write, and import fallback examples
 - Web API as optional future/cloud mode, not default
 
-- [ ] **Step 3: Update Chinese docs and skill text**
+- [x] **Step 3: Update Chinese docs and skill text**
 
 Mirror the English docs in `docs/zh/advanced/mcp-zotero-integration.md`.
 
@@ -709,7 +709,7 @@ Update `content/skills/B_literature/reference-manager-bridge.md` to define:
 2. Import-file generation.
 3. Optional future Zotero Web API sync.
 
-- [ ] **Step 4: Verify docs include the required workflow terms**
+- [x] **Step 4: Verify docs include the required workflow terms**
 
 Run:
 
@@ -725,7 +725,7 @@ Expected: each required workflow term appears in the relevant docs.
 - Modify: `tests/test_literature_mcpb_artifact.py`
 - No generated artifacts committed.
 
-- [ ] **Step 1: Write failing packaging expectations**
+- [x] **Step 1: Write failing packaging expectations**
 
 Update `tests/test_literature_mcpb_artifact.py`:
 
@@ -738,7 +738,7 @@ Update `tests/test_literature_mcpb_artifact.py`:
   - `server/zotero/tools.mjs`
 - Package dependencies remain `{}`.
 
-- [ ] **Step 2: Run packaging test to verify it fails**
+- [x] **Step 2: Run packaging test to verify it fails**
 
 Run:
 
@@ -748,11 +748,11 @@ python3 -m unittest tests.test_literature_mcpb_artifact
 
 Expected: FAIL until manifest and files are fully wired.
 
-- [ ] **Step 3: Fix packaging behavior**
+- [x] **Step 3: Fix packaging behavior**
 
 The existing build script already includes all files under `server/`, so this should require only manifest and test expectation updates. Do not add runtime dependencies.
 
-- [ ] **Step 4: Run boundary review checks**
+- [x] **Step 4: Run boundary review checks**
 
 Run:
 
@@ -768,7 +768,7 @@ Expected: no secrets, no local absolute paths, no built `.xpi` or `.mcpb` artifa
 **Files:**
 - All touched implementation, docs, and tests.
 
-- [ ] **Step 1: Run MCPB tests**
+- [x] **Step 1: Run MCPB tests**
 
 Run:
 
@@ -778,7 +778,7 @@ npm --prefix packages/qiongli-literature-mcpb test
 
 Expected: PASS.
 
-- [ ] **Step 2: Run companion tests**
+- [x] **Step 2: Run companion tests**
 
 Run:
 
@@ -788,7 +788,7 @@ npm --prefix packages/qiongli-zotero-companion test
 
 Expected: PASS.
 
-- [ ] **Step 3: Run packaging tests**
+- [x] **Step 3: Run packaging tests**
 
 Run:
 
@@ -798,7 +798,7 @@ python3 -m unittest tests.test_literature_mcpb_artifact
 
 Expected: PASS.
 
-- [ ] **Step 4: Run targeted docs/skill checks**
+- [x] **Step 4: Run targeted docs/skill checks**
 
 Run:
 
@@ -808,7 +808,7 @@ python3 -m unittest tests.test_literature_contract tests.test_mcp_provider_docs
 
 Expected: PASS, or document unrelated pre-existing failures with exact output.
 
-- [ ] **Step 5: Final repository audit**
+- [x] **Step 5: Final repository audit**
 
 Run:
 
