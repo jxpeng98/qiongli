@@ -54,6 +54,26 @@ python3 scripts/build_zotero_companion.py --dist-dir dist
 - `fallback_only`：无法连接 Zotero Desktop；改用可导入文件。
 - `disabled`：本地 Zotero 模式被配置关闭。
 
+## 显式启用本地 Zotero 来源检索
+
+`qiongli_literature_search` 默认不会搜索 Zotero。只有当你明确传入
+`include_zotero: true` 时，Zotero 才会作为额外的本地 reference source：
+
+```json
+{
+  "tool": "qiongli_literature_search",
+  "arguments": {
+    "query": "platform governance",
+    "include_zotero": true,
+    "zotero_tag": "project:platform-governance"
+  }
+}
+```
+
+只存在于 Zotero 的本地条目会返回 `provider: "zotero"` 和
+`source_type: "local_reference_database"`。外部 provider 的结果如果 DOI 或
+title/year 已经存在于 Zotero，会带上 `local_zotero_match`，方便判断是否已经保存。
+
 ## 保存检索结果
 
 先检索：
@@ -97,6 +117,13 @@ python3 scripts/build_zotero_companion.py --dist-dir dist
 identifier、tags 和 collection membership，不覆盖用户已经在 Zotero 中手动维护的
 title、authors、date、publication title 或 abstract。
 
+带 DOI 的写入默认会先使用 Crossref registry metadata 做补全。Crossref
+verification 只填补空字段，不等于人工核查。新建或更新的候选条目仍会加上
+`qiongli:imported` 和 `qiongli:needs-review`。通过 Crossref 匹配的条目会加
+`qiongli:crossref-verified`；如果 incoming metadata 和 Crossref registry
+metadata 在 title 或 year 上存在实质冲突，会加 `qiongli:metadata-conflict`，
+并在 `verification.crossref.conflicts` 中返回冲突详情。
+
 ## 可导入文件 Fallback
 
 companion 不可用时，可以生成导入文件：
@@ -122,7 +149,7 @@ companion 不可用时，可以生成导入文件：
 - `references.json`：Zotero CSL-JSON 导入。
 - `references.ris`：Zotero、EndNote、Mendeley 通用。
 - `bibliography.bib`：BibTeX 工作流。
-- `zotero-import-report.md`：记录数量和 fallback 操作说明。
+- `zotero-import-report.md`：记录数量、Crossref verification 汇总和 fallback 操作说明。
 
 ## 配置
 
@@ -134,6 +161,8 @@ QIONGLI_ZOTERO_CONNECTOR_URL=http://127.0.0.1:23119
 QIONGLI_ZOTERO_WRITE_POLICY=explicit
 QIONGLI_ZOTERO_UPDATE_POLICY=fill_blank
 QIONGLI_ZOTERO_DEFAULT_COLLECTION_PATH="Qiongli/[topic]/To Screen"
+QIONGLI_ZOTERO_DEFAULT_REVIEW_TAGS="qiongli:imported,qiongli:needs-review"
+QIONGLI_ZOTERO_CROSSREF_VERIFICATION_ENABLED=true
 ```
 
 `QIONGLI_ZOTERO_CONNECTOR_URL` 必须指向 `127.0.0.1`、`localhost` 或 `::1`。

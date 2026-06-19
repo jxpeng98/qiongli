@@ -54,6 +54,27 @@ Possible states:
 - `fallback_only`: Zotero Desktop is not reachable; use generated import files.
 - `disabled`: local Zotero mode is disabled in config.
 
+## Opt-In Local Source Search
+
+`qiongli_literature_search` does not search Zotero by default. Add
+`include_zotero: true` when you want Zotero to act as an additional local
+reference source:
+
+```json
+{
+  "tool": "qiongli_literature_search",
+  "arguments": {
+    "query": "platform governance",
+    "include_zotero": true,
+    "zotero_tag": "project:platform-governance"
+  }
+}
+```
+
+Local-only Zotero records return `provider: "zotero"` and
+`source_type: "local_reference_database"`. External provider records can include
+`local_zotero_match` when the DOI or title/year already exists in Zotero.
+
 ## Saving Search Results
 
 Search first:
@@ -98,6 +119,14 @@ it fills blank Zotero fields, adds identifiers, tags, and collection membership,
 and avoids overwriting user-curated title, authors, date, publication title, or
 abstract.
 
+DOI-bearing writes use Crossref registry metadata by default before the Zotero
+payload is sent. Crossref verification fills blank fields only; it does not
+replace human review. New or updated candidates receive `qiongli:imported` and
+`qiongli:needs-review`. Records verified through Crossref receive
+`qiongli:crossref-verified`; material title or year conflicts receive
+`qiongli:metadata-conflict` and expose details under
+`verification.crossref.conflicts`.
+
 ## Import File Fallback
 
 When the companion is unavailable, generate files:
@@ -123,7 +152,8 @@ The output includes:
 - `references.json` for Zotero CSL-JSON import.
 - `references.ris` for Zotero, EndNote, and Mendeley.
 - `bibliography.bib` for BibTeX workflows.
-- `zotero-import-report.md` with counts and fallback instructions.
+- `zotero-import-report.md` with counts, Crossref verification summary, and
+  fallback instructions.
 
 ## Configuration
 
@@ -135,6 +165,8 @@ QIONGLI_ZOTERO_CONNECTOR_URL=http://127.0.0.1:23119
 QIONGLI_ZOTERO_WRITE_POLICY=explicit
 QIONGLI_ZOTERO_UPDATE_POLICY=fill_blank
 QIONGLI_ZOTERO_DEFAULT_COLLECTION_PATH="Qiongli/[topic]/To Screen"
+QIONGLI_ZOTERO_DEFAULT_REVIEW_TAGS="qiongli:imported,qiongli:needs-review"
+QIONGLI_ZOTERO_CROSSREF_VERIFICATION_ENABLED=true
 ```
 
 `QIONGLI_ZOTERO_CONNECTOR_URL` must point to `127.0.0.1`, `localhost`, or `::1`.

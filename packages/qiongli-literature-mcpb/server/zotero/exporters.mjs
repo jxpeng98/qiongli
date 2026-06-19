@@ -95,6 +95,7 @@ function toBibtex(record) {
 }
 
 function importReport(records, files) {
+  const counts = verificationCounts(records);
   const lines = [
     "# Zotero Import Report",
     "",
@@ -105,9 +106,42 @@ function importReport(records, files) {
     `- RIS: ${Object.hasOwn(files, "references.ris") ? "generated" : "not requested"}`,
     `- BibTeX: ${Object.hasOwn(files, "bibliography.bib") ? "generated" : "not requested"}`,
     "",
+    "## Verification Summary",
+    "",
+    `- Crossref verified: ${counts.verified}`,
+    `- Metadata conflicts: ${counts.conflict}`,
+    `- Unverified or no DOI: ${counts.unverified}`,
+    `- Verification unavailable: ${counts.unavailable}`,
+    "",
+    "Crossref verification uses DOI registry metadata and is not human verification.",
+    "",
     "Import these files into Zotero when the Qiongli Zotero companion is not available."
   ];
   return `${lines.join("\n")}\n`;
+}
+
+function verificationCounts(records) {
+  const counts = {
+    verified: 0,
+    conflict: 0,
+    unverified: 0,
+    unavailable: 0
+  };
+
+  for (const record of records) {
+    const status = record.verification?.crossref?.status ?? "skipped";
+    if (status === "verified") {
+      counts.verified += 1;
+    } else if (status === "conflict") {
+      counts.conflict += 1;
+    } else if (status === "unavailable") {
+      counts.unavailable += 1;
+    } else {
+      counts.unverified += 1;
+    }
+  }
+
+  return counts;
 }
 
 function toCslAuthor(author) {

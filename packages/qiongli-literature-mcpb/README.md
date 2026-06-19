@@ -68,6 +68,22 @@ Available tools:
   `references.ris`, `bibliography.bib`, and `zotero-import-report.md` without
   contacting Zotero.
 
+### Opt-in Zotero source search
+
+`qiongli_literature_search` does not search Zotero by default. Pass
+`include_zotero: true` to include the local Zotero library as an additional
+reference source. Local-only records return `provider: "zotero"` and external
+records can include `local_zotero_match` when the DOI or title/year already
+exists in Zotero.
+
+### Crossref verification before Zotero writes
+
+DOI-bearing imports use Crossref DOI registry metadata by default to fill blank
+fields before writing to Zotero. Crossref metadata is not human verification, so
+new or updated items still receive `qiongli:needs-review`. Conflicts between
+incoming metadata and Crossref registry metadata add `qiongli:metadata-conflict`
+and are returned in `verification.crossref.conflicts`.
+
 Local mode uses the loopback connector URL `http://127.0.0.1:23119` by default.
 Non-loopback connector URLs are rejected. If Zotero Desktop or the companion is
 not available, use the generated import files for manual Zotero import.

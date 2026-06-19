@@ -61,15 +61,18 @@ Enable seamless integration with popular reference managers:
 
 | Mode | Use When | Qiongli Path |
 |------|----------|--------------|
-| Local Zotero sync | Zotero Desktop should act as the local reference database | `qiongli_zotero_status` + `qiongli_zotero_upsert_references` through the Qiongli Zotero companion |
+| Local Zotero source search | Search inside the user's existing Zotero library only when explicitly requested | `qiongli_literature_search` with `include_zotero: true` |
+| Local Zotero sync | Write selected candidate references to Zotero with review tags | `qiongli_zotero_status` + `qiongli_zotero_upsert_references` through the Qiongli Zotero companion |
 | Import-file generation | Zotero is unavailable, the companion is missing, or the user wants manual import | `qiongli_zotero_export_import_files` generating `references.json`, `references.ris`, and `bibliography.bib` |
 | Zotero Web API sync | Future or optional cloud-sync workflow with a write-capable Zotero API key | Not the default local-first path |
 
 For local Zotero sync, Qiongli remains responsible for search, metadata
 enrichment, deduplication, and import fallback. Zotero Desktop remains the local
 reference database that stores user-curated metadata, collections, tags, and
-notes. Do not route scholarly discovery through Zotero unless the user explicitly
-asks to search only their existing local library.
+notes. Do not route scholarly discovery through Zotero by default. Use
+`include_zotero: true` only when the user explicitly wants the existing local
+Zotero library included as a source; external results may then include
+`local_zotero_match` when a DOI or title/year is already present locally.
 
 Direct local writes require the Qiongli Zotero companion extension built from
 this repository with `python3 scripts/build_zotero_companion.py --dist-dir dist`.
@@ -210,13 +213,19 @@ When the Qiongli Zotero companion is available, prefer local sync:
 4. Use DOI-first duplicate detection, then title/year fallback.
 5. Fill blank Zotero fields by default; do not overwrite user-curated fields
    unless the user selects `update_policy: "prefer_enriched"`.
+6. Leave `qiongli:imported` and `qiongli:needs-review` on new or updated
+   imports until a human checks the metadata.
+7. Treat Crossref verification as DOI registry metadata enrichment. It can fill
+   blank fields, add `qiongli:crossref-verified`, or flag
+   `qiongli:metadata-conflict`; it is not human verification.
 
 When local sync is unavailable, generate import files:
 
 - `references.json` for Zotero CSL-JSON import.
 - `references.ris` for Zotero, EndNote, and Mendeley.
 - `bibliography.bib` for BibTeX workflows.
-- `zotero-import-report.md` for counts and fallback instructions.
+- `zotero-import-report.md` for counts, Crossref verification summary, and
+  fallback instructions.
 
 **Collection Mapping:**
 ```
@@ -231,6 +240,9 @@ Zotero Collection Structure:
 **Zotero Tags:**
 - Use `#` prefix for auto-color: `#included`, `#excluded`
 - Use descriptive tags: `Theme: Privacy`, `Quality: A`
+- Preserve Qiongli review tags: `qiongli:imported`,
+  `qiongli:needs-review`, `qiongli:crossref-verified`, and
+  `qiongli:metadata-conflict`.
 
 **Zotero Notes:**
 - Can import paper notes as child notes

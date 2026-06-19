@@ -86,6 +86,33 @@ test("exportImportFiles returns CSL JSON RIS BibTeX and report", () => {
   assert.ok(output.files["zotero-import-report.md"].includes("Export Summary"));
 });
 
+test("exportImportFiles includes review tags and verification counts", () => {
+  const output = exportImportFiles({
+    records: [
+      {
+        title: "Verified Export",
+        year: 2024,
+        doi: "10.1000/export",
+        tags: ["qiongli:needs-review", "qiongli:crossref-verified"],
+        verification: { crossref: { status: "verified", filled_fields: [], conflicts: [] } }
+      },
+      {
+        title: "Conflict Export",
+        year: 2024,
+        doi: "10.1000/conflict",
+        tags: ["qiongli:metadata-conflict"],
+        verification: { crossref: { status: "conflict", filled_fields: [], conflicts: [{ field: "title" }] } }
+      }
+    ]
+  });
+
+  assert.ok(output.files["references.json"].includes("qiongli:needs-review"));
+  assert.ok(output.files["references.ris"].includes("KW  - qiongli:metadata-conflict"));
+  assert.ok(output.files["bibliography.bib"].includes("qiongli:crossref-verified"));
+  assert.ok(output.files["zotero-import-report.md"].includes("- Crossref verified: 1"));
+  assert.ok(output.files["zotero-import-report.md"].includes("- Metadata conflicts: 1"));
+});
+
 test("handleZoteroStatus reports fallback-only when Zotero connector is absent", async () => {
   const status = await handleZoteroStatus({}, {
     fetchImpl: async () => {
