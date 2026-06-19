@@ -23,9 +23,26 @@ test("tool declarations match manifest tool names", () => {
       "qiongli_save_provider_config",
       "qiongli_open_config_wizard",
       "qiongli_literature_search",
-      "qiongli_literature_export_evidence"
+      "qiongli_literature_export_evidence",
+      "qiongli_zotero_status",
+      "qiongli_zotero_search",
+      "qiongli_zotero_upsert_references",
+      "qiongli_zotero_export_import_files"
     ]
   );
+});
+
+test("zotero tool schemas expose dry-run and import fallback controls", () => {
+  const upsertTool = TOOL_DECLARATIONS.find((tool) => tool.name === "qiongli_zotero_upsert_references");
+  const exportTool = TOOL_DECLARATIONS.find((tool) => tool.name === "qiongli_zotero_export_import_files");
+
+  assert.ok(upsertTool.inputSchema.properties.records);
+  assert.ok(upsertTool.inputSchema.properties.dry_run);
+  assert.ok(upsertTool.inputSchema.properties.collection_path);
+  assert.ok(upsertTool.inputSchema.properties.update_policy);
+  assert.deepEqual(upsertTool.inputSchema.properties.update_policy.enum, ["fill_blank", "prefer_zotero", "prefer_enriched"]);
+  assert.ok(exportTool.inputSchema.properties.formats);
+  assert.ok(exportTool.inputSchema.properties.project_root);
 });
 
 test("literature search tool exposes extended search controls", () => {

@@ -219,6 +219,131 @@ export const TOOL_DECLARATIONS = [
       additionalProperties: true,
       properties: {}
     }
+  },
+  {
+    name: "qiongli_zotero_status",
+    description: "Report local Zotero Desktop connector, Qiongli companion, and import-file fallback availability.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        connector_url: {
+          type: "string"
+        }
+      }
+    }
+  },
+  {
+    name: "qiongli_zotero_search",
+    description: "Search the local Zotero Desktop library through the Qiongli Zotero companion extension.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        doi: {
+          type: "string"
+        },
+        title: {
+          type: "string"
+        },
+        citekey: {
+          type: "string"
+        },
+        creator: {
+          type: "string"
+        },
+        year: {
+          type: ["integer", "string"]
+        },
+        tag: {
+          type: "string"
+        },
+        collection_path: {
+          type: "string"
+        },
+        connector_url: {
+          type: "string"
+        }
+      }
+    }
+  },
+  {
+    name: "qiongli_zotero_upsert_references",
+    description: "Dry-run or explicitly write normalized Qiongli references to the local Zotero Desktop library.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: true,
+      properties: {
+        records: {
+          type: "array",
+          items: {
+            type: "object"
+          }
+        },
+        results: {
+          type: "array",
+          items: {
+            type: "object"
+          }
+        },
+        dry_run: {
+          type: "boolean",
+          default: true
+        },
+        collection_path: {
+          type: "string"
+        },
+        tags: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        },
+        update_policy: {
+          type: "string",
+          enum: ["fill_blank", "prefer_zotero", "prefer_enriched"]
+        },
+        write_policy: {
+          type: "string",
+          enum: ["dry_run", "explicit", "allow"]
+        },
+        connector_url: {
+          type: "string"
+        }
+      }
+    }
+  },
+  {
+    name: "qiongli_zotero_export_import_files",
+    description: "Generate Zotero-compatible CSL-JSON, RIS, BibTeX, and import-report files from Qiongli references.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: true,
+      properties: {
+        records: {
+          type: "array",
+          items: {
+            type: "object"
+          }
+        },
+        results: {
+          type: "array",
+          items: {
+            type: "object"
+          }
+        },
+        formats: {
+          type: "array",
+          items: {
+            type: "string",
+            enum: ["csl-json", "ris", "bibtex", "report"]
+          }
+        },
+        project_root: {
+          type: "string"
+        }
+      }
+    }
   }
 ];
 

@@ -54,6 +54,22 @@
     {
       "name": "qiongli_literature_export_evidence",
       "description": "Export an auditable provider capability, search plan, diagnostics, and result snapshot."
+    },
+    {
+      "name": "qiongli_zotero_status",
+      "description": "Report local Zotero Desktop connector, Qiongli companion, and import-file fallback availability."
+    },
+    {
+      "name": "qiongli_zotero_search",
+      "description": "Search the local Zotero Desktop library through the Qiongli Zotero companion extension."
+    },
+    {
+      "name": "qiongli_zotero_upsert_references",
+      "description": "Dry-run or explicitly write normalized Qiongli references to the local Zotero Desktop library."
+    },
+    {
+      "name": "qiongli_zotero_export_import_files",
+      "description": "Generate Zotero-compatible CSL-JSON, RIS, BibTeX, and import-report files from Qiongli references."
     }
   ],
   "compatibility": {
@@ -109,6 +125,40 @@
       "default": 25,
       "min": 1,
       "max": 50,
+      "required": false
+    },
+    "zotero_local_enabled": {
+      "type": "boolean",
+      "title": "Enable local Zotero bridge",
+      "description": "When enabled, Qiongli can probe the local Zotero Desktop connector and Qiongli Zotero companion extension on the loopback interface.",
+      "default": true,
+      "required": false
+    },
+    "zotero_connector_url": {
+      "type": "string",
+      "title": "Local Zotero connector URL",
+      "description": "Loopback URL for Zotero Desktop's local connector server. The default is http://127.0.0.1:23119.",
+      "default": "http://127.0.0.1:23119",
+      "required": false
+    },
+    "zotero_default_collection_path": {
+      "type": "string",
+      "title": "Default Zotero collection path",
+      "description": "Optional collection path used when writing references through the Qiongli Zotero companion.",
+      "required": false
+    },
+    "zotero_write_policy": {
+      "type": "string",
+      "title": "Local Zotero write policy",
+      "description": "Controls local Zotero writes. Use explicit to require tool-call intent before non-dry-run writes.",
+      "default": "explicit",
+      "required": false
+    },
+    "zotero_update_policy": {
+      "type": "string",
+      "title": "Local Zotero update policy",
+      "description": "Controls whether Qiongli only fills blank local Zotero fields or may prefer enriched metadata.",
+      "default": "fill_blank",
       "required": false
     }
   },
