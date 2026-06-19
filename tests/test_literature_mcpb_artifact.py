@@ -147,6 +147,9 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
         self.assertIn("server/zotero/exporters.mjs", names)
         self.assertIn("server/zotero/client.mjs", names)
         self.assertIn("server/zotero/tools.mjs", names)
+        self.assertIn("server/zotero/search-source.mjs", names)
+        self.assertIn("server/zotero/crossref-verifier.mjs", names)
+        self.assertIn("server/zotero/review-tags.mjs", names)
 
     def test_build_literature_mcpb_excludes_tests(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
