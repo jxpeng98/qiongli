@@ -1,0 +1,15 @@
+{
+  "manifest_version": 2,
+  "name": "qiongli-zotero-companion",
+  "version": "0.1.0",
+  "description": "Local Zotero Desktop companion for Qiongli reference database sync.",
+  "author": "Jiaxin Peng",
+  "homepage_url": "https://github.com/jxpeng98/qiongli",
+  "applications": {
+    "zotero": {
+      "id": "qiongli-zotero-companion@qiongli.local",
+      "strict_min_version": "7.0",
+      "strict_max_version": "7.*"
+    }
+  }
+}
