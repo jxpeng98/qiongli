@@ -7,7 +7,7 @@ import {
   runPythonCliCommand as defaultRunPythonCliCommand,
 } from './python-runtime.mjs';
 
-const BRIDGE_COMMANDS = new Set(['doctor', 'task-run', 'team-run', 'parallel', 'chain', 'role', 'single', 'code-build', 'task-plan']);
+const BRIDGE_COMMANDS = new Set(['doctor', 'guidance', 'task-run', 'team-run', 'parallel', 'chain', 'role', 'single', 'code-build', 'task-plan']);
 const PYTHON_CLI_COMMANDS = new Set(['setup', 'mcp']);
 
 export async function main(argv, {
@@ -166,6 +166,9 @@ Usage:
   qiongli mcp doctor --json
   qiongli mcp upgrade --target all [--dry-run]
   qiongli doctor --cwd .
+  qiongli guidance init [--project-dir .]
+  qiongli guidance show|trace [--project-dir .]
+  qiongli guidance apply --proposal .qiongli/trace/runs/<run_id>/guidance_update_proposal.md
   qiongli task-run ...
   qiongli team-run ...
 

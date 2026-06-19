@@ -731,6 +731,44 @@ def _run_orchestrator_doctor(cwd: Path) -> int:
     return result.returncode
 
 
+def _run_orchestrator_guidance(args: argparse.Namespace) -> int:
+    env = os.environ.copy()
+    repo_root = _find_repo_root(Path.cwd())
+    if repo_root is not None:
+        existing_pythonpath = env.get("PYTHONPATH", "")
+        layout = RepoLayout(repo_root)
+        import_roots = (layout.python_source_root, repo_root)
+        env["PYTHONPATH"] = os.pathsep.join(
+            [*(str(root) for root in import_roots), *([existing_pythonpath] if existing_pythonpath else [])]
+        )
+
+    command = [
+        sys.executable,
+        "-m",
+        "bridges.orchestrator",
+        "guidance",
+        str(args.guidance_cmd),
+        "--project-dir",
+        str(Path(args.project_dir).expanduser().resolve()),
+    ]
+    if args.guidance_cmd == "trace":
+        command.extend(["--limit", str(args.limit)])
+    if args.guidance_cmd == "apply":
+        command.extend(["--proposal", str(Path(args.proposal).expanduser())])
+
+    result = subprocess.run(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=False,
+        env=env,
+    )
+    if result.stdout:
+        print(result.stdout.rstrip())
+    return result.returncode
+
+
 def cmd_upgrade(args: argparse.Namespace) -> int:
     project_dir = Path(args.project_dir).expanduser().resolve()
 
@@ -862,6 +900,10 @@ def _run_installer(options: InstallOptions) -> int:
 
 def cmd_doctor(args: argparse.Namespace) -> int:
     return _run_orchestrator_doctor(Path(args.cwd).expanduser().resolve())
+
+
+def cmd_guidance(args: argparse.Namespace) -> int:
+    return _run_orchestrator_guidance(args)
 
 
 def cmd_init(args: argparse.Namespace) -> int:
@@ -1196,6 +1238,45 @@ def build_parser() -> argparse.ArgumentParser:
         help="Project directory to inspect (default: current dir)",
     )
 
+    guidance = subparsers.add_parser("guidance", help="Manage project-local guidance and trace bundles")
+    guidance_subparsers = guidance.add_subparsers(dest="guidance_cmd", required=True)
+    guidance_init = guidance_subparsers.add_parser(
+        "init",
+        help="Create project-local guidance and trace directories",
+    )
+    guidance_init.add_argument(
+        "--project-dir",
+        default=str(Path.cwd()),
+        help="Project directory that owns .qiongli/ (default: current dir)",
+    )
+    guidance_show = guidance_subparsers.add_parser("show", help="Show effective project-local guidance context")
+    guidance_show.add_argument(
+        "--project-dir",
+        default=str(Path.cwd()),
+        help="Project directory that owns .qiongli/ (default: current dir)",
+    )
+    guidance_trace = guidance_subparsers.add_parser("trace", help="Summarize project-local guidance trace index")
+    guidance_trace.add_argument(
+        "--project-dir",
+        default=str(Path.cwd()),
+        help="Project directory that owns .qiongli/ (default: current dir)",
+    )
+    guidance_trace.add_argument("--limit", default=20, type=int, help="Maximum trace records to show")
+    guidance_apply = guidance_subparsers.add_parser(
+        "apply",
+        help="Apply an explicit guidance update proposal to project-local guidance",
+    )
+    guidance_apply.add_argument(
+        "--project-dir",
+        default=str(Path.cwd()),
+        help="Project directory that owns .qiongli/ (default: current dir)",
+    )
+    guidance_apply.add_argument(
+        "--proposal",
+        required=True,
+        help="Path to .qiongli/trace/runs/<run_id>/guidance_update_proposal.md",
+    )
+
     init = subparsers.add_parser("init", help="Initialize project-facing qiongli assets from the installed package")
     init.add_argument(
         "--project-dir",
@@ -1292,6 +1373,8 @@ def main() -> int:
         return cmd_provider(args)
     if args.cmd == "doctor":
         return cmd_doctor(args)
+    if args.cmd == "guidance":
+        return cmd_guidance(args)
     if args.cmd == "init":
         return cmd_init(args)
     if args.cmd == "clean":

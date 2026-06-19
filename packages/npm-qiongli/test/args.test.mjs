@@ -66,3 +66,10 @@ test('parseArgv delegates mcp without consuming mcp flags', () => {
   assert.equal(parsed.command, 'mcp');
   assert.deepEqual(parsed.rest, ['serve', '--transport', 'stdio']);
 });
+
+test('parseArgv delegates guidance without consuming guidance flags', () => {
+  const parsed = parseArgv(['guidance', 'init', '--project-dir', '/tmp/project']);
+
+  assert.equal(parsed.command, 'guidance');
+  assert.deepEqual(parsed.rest, ['init', '--project-dir', '/tmp/project']);
+});

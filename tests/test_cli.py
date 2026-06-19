@@ -277,6 +277,31 @@ class InstallerCliTests(unittest.TestCase):
         self.assertEqual(command[:3], [cli_module.sys.executable, "-m", "bridges.orchestrator"])
         self.assertEqual(command[3:], ["doctor", "--cwd", str(Path(".").resolve())])
 
+    def test_guidance_command_runs_orchestrator_subprocess(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            project_dir = Path(tmp_dir) / "project"
+            completed = mock.Mock(returncode=0, stdout="guidance ok\n")
+            stdout = io.StringIO()
+
+            with mock.patch.object(cli_module.subprocess, "run", return_value=completed) as run_mock, contextlib.redirect_stdout(
+                stdout
+            ):
+                with mock.patch.object(
+                    cli_module.sys,
+                    "argv",
+                    ["qiongli", "guidance", "init", "--project-dir", str(project_dir)],
+                ):
+                    exit_code = cli_module.main()
+
+        self.assertEqual(exit_code, 0)
+        run_mock.assert_called_once()
+        command = run_mock.call_args.args[0]
+        self.assertEqual(command[:3], [cli_module.sys.executable, "-m", "bridges.orchestrator"])
+        self.assertEqual(
+            command[3:],
+            ["guidance", "init", "--project-dir", str(project_dir.resolve())],
+        )
+
     def test_provider_set_and_list_redacts_global_config(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             config_home = Path(tmp_dir) / "config"

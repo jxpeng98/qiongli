@@ -335,10 +335,10 @@ mode 列表：
   ```
 - `guidance`：管理项目本地 guidance 和 trace
   ```bash
-  python3 -m bridges.orchestrator guidance init --project-dir .
-  python3 -m bridges.orchestrator guidance show --project-dir .
-  python3 -m bridges.orchestrator guidance trace --project-dir .
-  python3 -m bridges.orchestrator guidance apply \
+  qiongli guidance init --project-dir .
+  qiongli guidance show --project-dir .
+  qiongli guidance trace --project-dir .
+  qiongli guidance apply \
     --project-dir . \
     --proposal .qiongli/trace/runs/<run_id>/guidance_update_proposal.md
   ```

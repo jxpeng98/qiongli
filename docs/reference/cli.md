@@ -372,10 +372,10 @@ Available modes:
   ```
 - `guidance`: Manage project-local guidance and trace bundles
   ```bash
-  python3 -m bridges.orchestrator guidance init --project-dir .
-  python3 -m bridges.orchestrator guidance show --project-dir .
-  python3 -m bridges.orchestrator guidance trace --project-dir .
-  python3 -m bridges.orchestrator guidance apply \
+  qiongli guidance init --project-dir .
+  qiongli guidance show --project-dir .
+  qiongli guidance trace --project-dir .
+  qiongli guidance apply \
     --project-dir . \
     --proposal .qiongli/trace/runs/<run_id>/guidance_update_proposal.md
   ```
