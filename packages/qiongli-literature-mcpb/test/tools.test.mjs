@@ -10,7 +10,8 @@ import {
   handleOpenConfigWizard,
   handleSearch,
   handleSaveProviderConfig,
-  handleStatus
+  handleStatus,
+  handleToolCall
 } from "../server/index.mjs";
 
 test("tool declarations match manifest tool names", () => {
@@ -43,6 +44,59 @@ test("zotero tool schemas expose dry-run and import fallback controls", () => {
   assert.deepEqual(upsertTool.inputSchema.properties.update_policy.enum, ["fill_blank", "prefer_zotero", "prefer_enriched"]);
   assert.ok(exportTool.inputSchema.properties.formats);
   assert.ok(exportTool.inputSchema.properties.project_root);
+});
+
+test("handleToolCall routes qiongli_zotero_status to local Zotero status handler", async () => {
+  const response = await handleToolCall("qiongli_zotero_status", {}, {
+    fetchImpl: async () => {
+      throw new Error("ECONNREFUSED");
+    },
+    env: {}
+  });
+  const payload = JSON.parse(response.content[0].text);
+
+  assert.equal(payload.status, "fallback_only");
+  assert.equal(payload.error_code, "zotero_not_running");
+  assert.equal(payload.fallback_import_files.available, true);
+});
+
+test("handleToolCall routes qiongli_zotero_upsert_references to local Zotero upsert handler", async () => {
+  const calls = [];
+  const response = await handleToolCall("qiongli_zotero_upsert_references", {
+    records: [{ title: "Routed Paper", doi: "10.1000/routed" }]
+  }, {
+    fetchImpl: async (url, options = {}) => {
+      calls.push({ url: String(url), body: JSON.parse(options.body) });
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ status: "ok", dry_run: true, results: [{ status: "created" }] })
+      };
+    },
+    env: {}
+  });
+  const payload = JSON.parse(response.content[0].text);
+
+  assert.equal(payload.status, "ok");
+  assert.equal(payload.dry_run, true);
+  assert.equal(calls[0].url, "http://127.0.0.1:23119/qiongli/upsertItems");
+  assert.equal(calls[0].body.items[0].DOI, "10.1000/routed");
+});
+
+test("handleToolCall routes qiongli_zotero_export_import_files without contacting Zotero", async () => {
+  const response = await handleToolCall("qiongli_zotero_export_import_files", {
+    records: [{ title: "Export Route", doi: "10.1000/export-route" }]
+  }, {
+    fetchImpl: async () => {
+      throw new Error("fetch should not be called");
+    },
+    env: {}
+  });
+  const payload = JSON.parse(response.content[0].text);
+
+  assert.equal(payload.status, "ok");
+  assert.ok(payload.files["references.json"].includes("Export Route"));
+  assert.equal(payload.fallback_import_files.available, true);
 });
 
 test("literature search tool exposes extended search controls", () => {

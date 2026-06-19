@@ -20,6 +20,12 @@ import { searchPubMed } from "./providers/pubmed.mjs";
 import { searchSemanticScholar } from "./providers/semantic-scholar.mjs";
 import { startJsonRpcStdioServer } from "./stdio.mjs";
 import { startConfigWizard } from "./config-wizard.mjs";
+import {
+  handleZoteroExportImportFiles,
+  handleZoteroSearch,
+  handleZoteroStatus,
+  handleZoteroUpsertReferences
+} from "./zotero/tools.mjs";
 
 const MIN_LIMIT = 1;
 const STANDARD_MAX_LIMIT = 50;
@@ -862,6 +868,22 @@ export async function handleToolCall(name, input = {}, context = {}) {
 
   if (name === "qiongli_literature_search") {
     return toolResult(await handleSearch(input, context));
+  }
+
+  if (name === "qiongli_zotero_status") {
+    return toolResult(await handleZoteroStatus(input, context));
+  }
+
+  if (name === "qiongli_zotero_search") {
+    return toolResult(await handleZoteroSearch(input, context));
+  }
+
+  if (name === "qiongli_zotero_upsert_references") {
+    return toolResult(await handleZoteroUpsertReferences(input, context));
+  }
+
+  if (name === "qiongli_zotero_export_import_files") {
+    return toolResult(await handleZoteroExportImportFiles(input, context));
   }
 
   return toolResult(await handleExportEvidence(input, context));

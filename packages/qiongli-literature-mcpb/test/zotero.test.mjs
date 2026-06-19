@@ -7,6 +7,12 @@ import {
   normalizeReferenceInputs
 } from "../server/zotero/records.mjs";
 import { exportImportFiles } from "../server/zotero/exporters.mjs";
+import {
+  handleZoteroExportImportFiles,
+  handleZoteroSearch,
+  handleZoteroStatus,
+  handleZoteroUpsertReferences
+} from "../server/zotero/tools.mjs";
 
 test("resolveZoteroConfig defaults to local connector with explicit write policy", () => {
   const config = resolveZoteroConfig({ env: {} });
@@ -70,4 +76,98 @@ test("exportImportFiles returns CSL JSON RIS BibTeX and report", () => {
   assert.ok(output.files["references.ris"].includes("TY  - JOUR"));
   assert.ok(output.files["bibliography.bib"].includes("@article{smith2024exported"));
   assert.ok(output.files["zotero-import-report.md"].includes("Export Summary"));
+});
+
+test("handleZoteroStatus reports fallback-only when Zotero connector is absent", async () => {
+  const status = await handleZoteroStatus({}, {
+    fetchImpl: async () => {
+      throw new Error("ECONNREFUSED");
+    },
+    env: {}
+  });
+
+  assert.equal(status.status, "fallback_only");
+  assert.equal(status.connector.available, false);
+  assert.equal(status.companion.available, false);
+  assert.equal(status.fallback_import_files.available, true);
+  assert.equal(status.error_code, "zotero_not_running");
+});
+
+test("handleZoteroStatus detects connector without Qiongli companion", async () => {
+  const calls = [];
+  const status = await handleZoteroStatus({}, {
+    fetchImpl: async (url) => {
+      calls.push(String(url));
+      if (String(url).endsWith("/connector/ping")) {
+        return { ok: true, status: 200, text: async () => "Zotero Connector Server is Available" };
+      }
+      return { ok: false, status: 404, text: async () => "not found" };
+    },
+    env: {}
+  });
+
+  assert.equal(status.status, "companion_missing");
+  assert.equal(status.connector.available, true);
+  assert.equal(status.companion.available, false);
+  assert.equal(status.error_code, "companion_missing");
+  assert.deepEqual(calls, [
+    "http://127.0.0.1:23119/connector/ping",
+    "http://127.0.0.1:23119/qiongli/ping"
+  ]);
+});
+
+test("handleZoteroSearch forwards structured query to companion", async () => {
+  const requests = [];
+  const result = await handleZoteroSearch({ doi: "10.1000/example" }, {
+    fetchImpl: async (url, options = {}) => {
+      requests.push({ url: String(url), body: JSON.parse(options.body) });
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ status: "ok", results: [{ title: "Local Paper", zotero: { item_key: "ABC123" } }] })
+      };
+    },
+    env: {}
+  });
+
+  assert.equal(result.status, "ok");
+  assert.equal(result.results[0].zotero.item_key, "ABC123");
+  assert.equal(requests[0].url, "http://127.0.0.1:23119/qiongli/search");
+  assert.equal(requests[0].body.doi, "10.1000/example");
+});
+
+test("handleZoteroUpsertReferences defaults to dry run and sends mapped items", async () => {
+  const requests = [];
+  const result = await handleZoteroUpsertReferences({
+    records: [{ title: "Dry Run Paper", authors: ["Smith, Alex"], year: 2024, doi: "10.1000/dry" }]
+  }, {
+    fetchImpl: async (url, options = {}) => {
+      requests.push({ url: String(url), body: JSON.parse(options.body) });
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          status: "ok",
+          dry_run: true,
+          results: [{ status: "created", planned: true, item: { title: "Dry Run Paper" } }]
+        })
+      };
+    },
+    env: {}
+  });
+
+  assert.equal(result.status, "ok");
+  assert.equal(result.dry_run, true);
+  assert.equal(requests[0].body.dry_run, true);
+  assert.equal(requests[0].body.items[0].DOI, "10.1000/dry");
+});
+
+test("handleZoteroExportImportFiles works without local Zotero", async () => {
+  const result = await handleZoteroExportImportFiles({
+    records: [{ title: "Fallback Paper", year: 2024, doi: "10.1000/fallback" }]
+  });
+
+  assert.equal(result.status, "ok");
+  assert.equal(result.fallback_import_files.available, true);
+  assert.ok(result.files["references.json"]);
 });
