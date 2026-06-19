@@ -19,6 +19,7 @@ import {
   resolveZoteroSourceOptions,
   zoteroSourceSearchPayload
 } from "../server/zotero/search-source.mjs";
+import { verifyRecordWithCrossref } from "../server/zotero/crossref-verifier.mjs";
 
 test("resolveZoteroConfig defaults to local connector with explicit write policy", () => {
   const config = resolveZoteroConfig({ env: {} });
@@ -207,6 +208,93 @@ test("annotateLocalZoteroMatches marks external DOI matches without dropping res
   assert.equal(annotated[0].local_zotero_match.item_key, "ABC123");
   assert.equal(annotated[0].local_zotero_match.match_basis, "doi");
   assert.equal(annotated[1].local_zotero_match, undefined);
+});
+
+test("verifyRecordWithCrossref fills blank fields from DOI metadata", async () => {
+  const result = await verifyRecordWithCrossref({
+    record: { title: "Incoming Title", doi: "10.1000/verified" },
+    config: { crossrefEmail: "person@example.com" },
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        message: {
+          title: ["Incoming Title"],
+          DOI: "10.1000/verified",
+          author: [{ given: "Alex", family: "Smith" }],
+          issued: { "date-parts": [[2024]] },
+          "container-title": ["Journal of Tests"],
+          type: "journal-article",
+          URL: "https://doi.org/10.1000/verified"
+        }
+      })
+    })
+  });
+
+  assert.equal(result.verification.crossref.status, "verified");
+  assert.equal(result.record.title, "Incoming Title");
+  assert.equal(result.record.year, 2024);
+  assert.equal(result.record.venue, "Journal of Tests");
+  assert.deepEqual(result.verification.crossref.filled_fields.sort(), ["authors", "document_type", "url", "venue", "year"].sort());
+});
+
+test("verifyRecordWithCrossref preserves non-empty incoming fields by default", async () => {
+  const result = await verifyRecordWithCrossref({
+    record: { title: "Incoming Title", authors: ["Original Author"], year: 2023, venue: "Original Venue", doi: "10.1000/preserve" },
+    config: {},
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        message: {
+          title: ["Incoming Title"],
+          DOI: "10.1000/preserve",
+          author: [{ given: "Alex", family: "Smith" }],
+          issued: { "date-parts": [[2024]] },
+          "container-title": ["Crossref Venue"]
+        }
+      })
+    })
+  });
+
+  assert.equal(result.record.authors[0], "Original Author");
+  assert.equal(result.record.year, 2023);
+  assert.equal(result.record.venue, "Original Venue");
+});
+
+test("verifyRecordWithCrossref reports material title conflicts", async () => {
+  const result = await verifyRecordWithCrossref({
+    record: { title: "Working Paper Title", year: 2024, doi: "10.1000/conflict" },
+    config: {},
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        message: {
+          title: ["Published Article Title"],
+          DOI: "10.1000/conflict",
+          issued: { "date-parts": [[2024]] }
+        }
+      })
+    })
+  });
+
+  assert.equal(result.verification.crossref.status, "conflict");
+  assert.equal(result.verification.crossref.conflicts[0].field, "title");
+  assert.equal(result.record.title, "Working Paper Title");
+});
+
+test("verifyRecordWithCrossref skips records without DOI", async () => {
+  const result = await verifyRecordWithCrossref({
+    record: { title: "No DOI Paper" },
+    config: {},
+    fetchImpl: async () => {
+      throw new Error("should not fetch");
+    }
+  });
+
+  assert.equal(result.verification.crossref.status, "skipped");
+  assert.equal(result.record.title, "No DOI Paper");
 });
 
 test("handleZoteroUpsertReferences defaults to dry run and sends mapped items", async () => {
