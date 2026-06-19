@@ -290,8 +290,11 @@ mode 列表：
   - `--research-depth standard|deep` + `--max-rounds <n>`：提高证据扩展强度，并把 review/revision loop 拉深
   - `--only-target <id>`（可重复）：针对结构化 Stage-I 任务 `I4`-`I8`，回读 `RESEARCH/[topic]/code/` 下的现有 artifact，并且只重跑指定 actionable target
   - `--skip-validation`：关闭严格的 MCP/skill 可用性校验，并跳过 artifact validator gate；运行结果会明确给出 warning，同时把 `validator_gate.skipped=true` 写进结果数据
+  - `--guidance-mode off|read|propose|apply`：控制项目本地 `.qiongli/` 指导层；默认 `propose` 会在存在指导文件时读取它，写入 trace bundle，并生成保守的 guidance update proposal
   - `--update-academic-context`：对支持的阶段收口任务（`A5`、`B6`、`C5`、`D3`、`E5`、`F6`、`H4`），把 `context/research_state.md` 和 `context/decision_log.md` 追加进本次 active outputs，并向 draft prompt 注入阶段化的 academic continuity 更新约束
   - 内置 profile 新增 `focused-delivery`、`deep-research`；原有 `default`、`rapid-draft`、`strict-review` 仍可用
+
+  正式研究产物仍然属于 `RESEARCH/[topic]/...`。orchestrator 会要求运行时 agent 创建这些 required files；如果 agent 只返回文本而没有真正写入文件，validator 会把它们标为 missing。`.qiongli/trace/runs/<run_id>/` 是独立追溯目录，即使正式产物不完整，也会记录 task packet、draft、review、validator gate 和 guidance proposal。
 
   示例：减少辅助文件，但保持更强的深度审查
   ```bash
@@ -330,6 +333,16 @@ mode 列表：
   ```bash
   python3 -m bridges.orchestrator task-plan --task-id F3 --paper-type empirical --topic your-topic --cwd .
   ```
+- `guidance`：管理项目本地 guidance 和 trace
+  ```bash
+  python3 -m bridges.orchestrator guidance init --project-dir .
+  python3 -m bridges.orchestrator guidance show --project-dir .
+  python3 -m bridges.orchestrator guidance trace --project-dir .
+  python3 -m bridges.orchestrator guidance apply \
+    --project-dir . \
+    --proposal .qiongli/trace/runs/<run_id>/guidance_update_proposal.md
+  ```
+  项目本地定制写在 `.qiongli/local_guidance.md`；运行追溯写在 `.qiongli/trace/index.jsonl` 和 `.qiongli/trace/runs/<run_id>/`。这些文件不会修改 canonical workflow contract、内置 skills 或 release payload。
 - `code-build`：学术代码工作流入口
   ```bash
   python3 -m bridges.orchestrator code-build \

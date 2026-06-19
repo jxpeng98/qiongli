@@ -25,7 +25,9 @@ The full CLI server exposes both provider/configuration tools and orchestrator t
 - `qiongli_config_status`, `qiongli_configure_provider`, `qiongli_save_provider_config`, and `qiongli_collect_evidence` for MCP/provider readiness.
 - `qiongli_orchestrator_doctor` for local runtime preflight checks.
 - `qiongli_task_plan` for a no-agent task plan.
-- `qiongli_task_run` for a controlled task-run surface. It defaults to preview and does not launch local Codex, Claude, or Gemini processes unless the caller explicitly passes JSON boolean `run_agents: true`.
+- `qiongli_task_run` for a controlled task-run surface. It defaults to preview and does not launch local Codex, Claude, or Gemini processes unless the caller explicitly passes JSON boolean `run_agents: true`. It accepts `guidance_mode` (`off`, `read`, `propose`, or `apply`) and echoes that mode in preview arguments.
+
+When task-run agents are launched, formal artifacts are still expected under `RESEARCH/[topic]/...`. The project-local guidance layer writes auditable run traces under `.qiongli/trace/`; this trace location is separate from formal research outputs and from installed skill assets.
 
 Use the full CLI server when Codex, Claude Code, or another local client needs to call the Qiongli orchestrator as a tool.
 

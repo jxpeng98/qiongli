@@ -134,7 +134,7 @@ MCP tools exposed by the server:
 - `qiongli_task_plan`
 - `qiongli_task_run`
 
-Default `stdio` mode is local and does not require a remote server. HTTP mode can also run locally; use a remote server only when the client cannot launch local MCP commands or when you need a managed shared endpoint. `qiongli_task_run` defaults to preview mode and launches local model CLIs only when the MCP caller explicitly sets JSON boolean `run_agents: true`.
+Default `stdio` mode is local and does not require a remote server. HTTP mode can also run locally; use a remote server only when the client cannot launch local MCP commands or when you need a managed shared endpoint. `qiongli_task_run` defaults to preview mode and launches local model CLIs only when the MCP caller explicitly sets JSON boolean `run_agents: true`. The tool accepts `guidance_mode: "off" | "read" | "propose" | "apply"`; preview responses echo the effective task-run arguments without launching agents.
 
 ### 2.3 `qiongli install` (Install bundled subject payload)
 
@@ -327,8 +327,11 @@ Available modes:
   - `--research-depth standard|deep` + `--max-rounds <n>`: increase evidence-expansion pressure and enforce a deeper review/revision loop
   - `--only-target <id>` (repeatable): for structured Stage-I tasks `I4`-`I8`, reload the existing artifact under `RESEARCH/[topic]/code/` and rerun only the named actionable targets
   - `--skip-validation`: disable strict MCP/skill availability checks and skip the artifact validator gate for fast iteration; the run will emit an explicit warning and mark `validator_gate.skipped=true`
+  - `--guidance-mode off|read|propose|apply`: control project-local guidance under `.qiongli/`; default `propose` reads guidance when present, writes a trace bundle, and produces a conservative update proposal
   - `--update-academic-context`: for supported stage-close tasks (`A5`, `B6`, `C5`, `D3`, `E5`, `F6`, `H4`), append `context/research_state.md` and `context/decision_log.md` to this run's active outputs and inject stage-specific academic continuity guidance into the draft prompt
   - Built-in profiles now include `focused-delivery` and `deep-research` in addition to `default`, `rapid-draft`, and `strict-review`
+
+  Formal research artifacts still belong under `RESEARCH/[topic]/...`. The orchestrator prompts runtime agents to create the required files; if an agent only returns text and does not write those files, the validator reports them as missing. Guidance trace bundles are written separately under `.qiongli/trace/runs/<run_id>/` so the run remains auditable even when formal outputs are incomplete.
 
   Example: reduce artifact sprawl but keep stronger review pressure
   ```bash
@@ -367,6 +370,16 @@ Available modes:
   ```bash
   python3 -m bridges.orchestrator task-plan --task-id F3 --paper-type empirical --topic your-topic --cwd .
   ```
+- `guidance`: Manage project-local guidance and trace bundles
+  ```bash
+  python3 -m bridges.orchestrator guidance init --project-dir .
+  python3 -m bridges.orchestrator guidance show --project-dir .
+  python3 -m bridges.orchestrator guidance trace --project-dir .
+  python3 -m bridges.orchestrator guidance apply \
+    --project-dir . \
+    --proposal .qiongli/trace/runs/<run_id>/guidance_update_proposal.md
+  ```
+  Project-local customization lives in `.qiongli/local_guidance.md`; run trace records live in `.qiongli/trace/index.jsonl` and `.qiongli/trace/runs/<run_id>/`. These files are intentionally separate from canonical workflow contracts, bundled skills, and release payloads.
 - `code-build`: Academic code workflow entry point
   ```bash
   python3 -m bridges.orchestrator code-build \

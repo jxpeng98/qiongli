@@ -107,7 +107,9 @@ The full CLI MCP server exposes provider tools plus orchestrator tools:
 - `qiongli_task_plan`
 - `qiongli_task_run`
 
-`qiongli_task_run` defaults to preview mode and launches local Codex, Claude, or Gemini processes only when the MCP caller explicitly sends JSON boolean `run_agents: true`.
+`qiongli_task_run` defaults to preview mode and launches local Codex, Claude, or Gemini processes only when the MCP caller explicitly sends JSON boolean `run_agents: true`. It accepts `guidance_mode` (`off`, `read`, `propose`, or `apply`) for the project-local `.qiongli/` guidance layer. Preview mode echoes the selected task-run arguments but does not create formal `RESEARCH/[topic]/...` artifacts.
+
+When agents are launched, formal task outputs still belong under `RESEARCH/[topic]/...`. Project-local guidance traces are written separately under `.qiongli/trace/` so missing formal outputs remain auditable without modifying bundled skills or workflow payloads.
 
 Use `stdio` when the desktop client can launch a local command. Use HTTP only for clients that require an endpoint:
 
