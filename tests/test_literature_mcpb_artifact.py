@@ -32,6 +32,9 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
         self.assertIs(manifest["user_config"]["semantic_scholar_api_key"]["sensitive"], True)
         self.assertEqual(manifest["user_config"]["openalex_email"]["type"], "string")
         self.assertEqual(manifest["user_config"]["default_result_limit"]["default"], 25)
+        self.assertIn("zotero_default_review_tags", manifest["user_config"])
+        self.assertIn("zotero_default_review_collection_path", manifest["user_config"])
+        self.assertIn("zotero_crossref_verification_enabled", manifest["user_config"])
         self.assertIn("qiongli_literature_search", {tool["name"] for tool in manifest["tools"]})
 
     def test_literature_mcpb_manifest_server_entry_exists(self) -> None:

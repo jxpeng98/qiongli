@@ -194,6 +194,19 @@ export const TOOL_DECLARATIONS = [
             type: "string"
           }
         },
+        include_zotero: {
+          type: "boolean",
+          default: false
+        },
+        zotero_limit: {
+          type: "number"
+        },
+        zotero_tag: {
+          type: "string"
+        },
+        zotero_collection_path: {
+          type: "string"
+        },
         search_mode: {
           type: "string",
           enum: ["auto", "topic", "title", "doi", "review", "systematic_review"]
@@ -308,6 +321,24 @@ export const TOOL_DECLARATIONS = [
         update_policy: {
           type: "string",
           enum: ["fill_blank", "prefer_zotero", "prefer_enriched"]
+        },
+        verify_crossref: {
+          type: "boolean",
+          default: true
+        },
+        crossref_enrichment: {
+          type: "string",
+          enum: ["fill_blank", "off"],
+          default: "fill_blank"
+        },
+        review_tags: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        },
+        review_collection_path: {
+          type: "string"
         },
         write_policy: {
           type: "string",

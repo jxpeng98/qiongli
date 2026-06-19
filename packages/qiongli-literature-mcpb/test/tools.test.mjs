@@ -34,14 +34,23 @@ test("tool declarations match manifest tool names", () => {
 });
 
 test("zotero tool schemas expose dry-run and import fallback controls", () => {
+  const searchTool = TOOL_DECLARATIONS.find((tool) => tool.name === "qiongli_literature_search");
   const upsertTool = TOOL_DECLARATIONS.find((tool) => tool.name === "qiongli_zotero_upsert_references");
   const exportTool = TOOL_DECLARATIONS.find((tool) => tool.name === "qiongli_zotero_export_import_files");
 
+  assert.equal(searchTool.inputSchema.properties.include_zotero.type, "boolean");
+  assert.equal(searchTool.inputSchema.properties.zotero_limit.type, "number");
+  assert.equal(searchTool.inputSchema.properties.zotero_tag.type, "string");
+  assert.equal(searchTool.inputSchema.properties.zotero_collection_path.type, "string");
   assert.ok(upsertTool.inputSchema.properties.records);
   assert.ok(upsertTool.inputSchema.properties.dry_run);
   assert.ok(upsertTool.inputSchema.properties.collection_path);
   assert.ok(upsertTool.inputSchema.properties.update_policy);
   assert.deepEqual(upsertTool.inputSchema.properties.update_policy.enum, ["fill_blank", "prefer_zotero", "prefer_enriched"]);
+  assert.equal(upsertTool.inputSchema.properties.verify_crossref.type, "boolean");
+  assert.deepEqual(upsertTool.inputSchema.properties.crossref_enrichment.enum, ["fill_blank", "off"]);
+  assert.ok(upsertTool.inputSchema.properties.review_tags);
+  assert.ok(upsertTool.inputSchema.properties.review_collection_path);
   assert.ok(exportTool.inputSchema.properties.formats);
   assert.ok(exportTool.inputSchema.properties.project_root);
 });

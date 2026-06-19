@@ -27,7 +27,10 @@
         "QIONGLI_ZOTERO_CONNECTOR_URL": "${user_config.zotero_connector_url}",
         "QIONGLI_ZOTERO_DEFAULT_COLLECTION_PATH": "${user_config.zotero_default_collection_path}",
         "QIONGLI_ZOTERO_WRITE_POLICY": "${user_config.zotero_write_policy}",
-        "QIONGLI_ZOTERO_UPDATE_POLICY": "${user_config.zotero_update_policy}"
+        "QIONGLI_ZOTERO_UPDATE_POLICY": "${user_config.zotero_update_policy}",
+        "QIONGLI_ZOTERO_DEFAULT_REVIEW_TAGS": "${user_config.zotero_default_review_tags}",
+        "QIONGLI_ZOTERO_DEFAULT_REVIEW_COLLECTION_PATH": "${user_config.zotero_default_review_collection_path}",
+        "QIONGLI_ZOTERO_CROSSREF_VERIFICATION_ENABLED": "${user_config.zotero_crossref_verification_enabled}"
       }
     }
   },
@@ -164,6 +167,27 @@
       "title": "Local Zotero update policy",
       "description": "Controls whether Qiongli only fills blank local Zotero fields or may prefer enriched metadata.",
       "default": "fill_blank",
+      "required": false
+    },
+    "zotero_default_review_tags": {
+      "type": "string",
+      "title": "Default Zotero review tags",
+      "description": "Comma-separated Qiongli tags added to Zotero imports that still need review.",
+      "default": "qiongli:imported,qiongli:needs-review",
+      "required": false
+    },
+    "zotero_default_review_collection_path": {
+      "type": "string",
+      "title": "Default Zotero review collection path",
+      "description": "Optional collection path for newly imported references that need review.",
+      "default": "",
+      "required": false
+    },
+    "zotero_crossref_verification_enabled": {
+      "type": "boolean",
+      "title": "Verify Zotero imports with Crossref DOI metadata",
+      "description": "When enabled, DOI-bearing Zotero imports use Crossref registry metadata to fill blank fields and report conflicts.",
+      "default": true,
       "required": false
     }
   },
