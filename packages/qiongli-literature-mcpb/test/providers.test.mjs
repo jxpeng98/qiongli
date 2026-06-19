@@ -87,7 +87,12 @@ test("searchOpenAlex normalizes records and reconstructs inverted abstracts", as
       citations: [],
       references: [],
       provider: "openalex",
-      source_id: "W123"
+      source_id: "W123",
+      source_type: null,
+      zotero: null,
+      local_zotero_match: null,
+      review_status: null,
+      verification: null
     }
   ]);
 });
@@ -233,7 +238,12 @@ test("searchSemanticScholar sends optional API key header and normalizes results
       citations: [],
       references: [],
       provider: "semantic_scholar",
-      source_id: "abc123"
+      source_id: "abc123",
+      source_type: null,
+      zotero: null,
+      local_zotero_match: null,
+      review_status: null,
+      verification: null
     }
   ]);
 });
@@ -541,7 +551,12 @@ test("searchCrossref sends polite email and normalizes bibliographic results", a
         }
       ],
       provider: "crossref",
-      source_id: "10.4000/Crossref"
+      source_id: "10.4000/Crossref",
+      source_type: null,
+      zotero: null,
+      local_zotero_match: null,
+      review_status: null,
+      verification: null
     }
   ]);
 });
@@ -711,7 +726,12 @@ test("searchPubMed uses ESearch and ESummary and normalizes records", async () =
       citations: [],
       references: [],
       provider: "pubmed",
-      source_id: "12345"
+      source_id: "12345",
+      source_type: null,
+      zotero: null,
+      local_zotero_match: null,
+      review_status: null,
+      verification: null
     }
   ]);
 });
@@ -860,9 +880,51 @@ test("normalizeResult normalizes DOI and preserves missing metadata as nulls and
       citations: [],
       references: [],
       provider: "test_provider",
-      source_id: "source-1"
+      source_id: "source-1",
+      source_type: null,
+      zotero: null,
+      local_zotero_match: null,
+      review_status: null,
+      verification: null
     }
   );
+});
+
+test("normalizeResult preserves local Zotero metadata and verification fields", () => {
+  const normalized = normalizeResult({
+    title: "Local Paper",
+    year: 2024,
+    doi: "https://doi.org/10.1000/local",
+    provider: "zotero",
+    source_id: "ABC123",
+    source_type: "local_reference_database",
+    zotero: {
+      item_key: "ABC123",
+      select_uri: "zotero://select/library/items/ABC123",
+      tags: ["qiongli:needs-review"],
+      collections: ["Qiongli/topic"]
+    },
+    local_zotero_match: {
+      item_key: "ABC123",
+      match_basis: "doi",
+      select_uri: "zotero://select/library/items/ABC123"
+    },
+    review_status: "needs_review",
+    verification: {
+      crossref: {
+        status: "verified",
+        doi: "10.1000/local",
+        filled_fields: ["venue"],
+        conflicts: []
+      }
+    }
+  });
+
+  assert.equal(normalized.source_type, "local_reference_database");
+  assert.equal(normalized.zotero.item_key, "ABC123");
+  assert.equal(normalized.local_zotero_match.match_basis, "doi");
+  assert.equal(normalized.review_status, "needs_review");
+  assert.equal(normalized.verification.crossref.status, "verified");
 });
 
 test("dedupeResults dedupes by DOI before falling back to provider source and title year", () => {
