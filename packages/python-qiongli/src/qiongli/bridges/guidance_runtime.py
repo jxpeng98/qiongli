@@ -66,6 +66,26 @@ def init_project_guidance(project_root: Path) -> GuidancePaths:
     return paths
 
 
+def guidance_bootstrap_status(project_root: Path, *, mode: str = "propose") -> dict[str, Any]:
+    normalized_mode = _normalize_mode(mode)
+    paths = resolve_guidance_paths(project_root)
+    enabled = normalized_mode != "off"
+    return {
+        "enabled": enabled,
+        "needed": bool(enabled and not paths.project_guidance.is_file()),
+        "mode": normalized_mode,
+        "project_guidance": _rel(paths.project_root, paths.project_guidance),
+        "trace_root": _rel(paths.project_root, paths.trace_root),
+        "trace_index": _rel(paths.project_root, paths.trace_index),
+    }
+
+
+def ensure_project_guidance(project_root: Path, *, mode: str = "propose") -> GuidancePaths | None:
+    if _normalize_mode(mode) == "off":
+        return None
+    return init_project_guidance(project_root)
+
+
 def effective_guidance(project_root: Path, *, mode: str = "propose", run_id: str = "") -> GuidanceState:
     normalized_mode = _normalize_mode(mode)
     paths = resolve_guidance_paths(project_root)

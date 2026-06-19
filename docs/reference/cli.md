@@ -134,7 +134,7 @@ MCP tools exposed by the server:
 - `qiongli_task_plan`
 - `qiongli_task_run`
 
-Default `stdio` mode is local and does not require a remote server. HTTP mode can also run locally; use a remote server only when the client cannot launch local MCP commands or when you need a managed shared endpoint. `qiongli_task_run` defaults to preview mode and launches local model CLIs only when the MCP caller explicitly sets JSON boolean `run_agents: true`. The tool accepts `guidance_mode: "off" | "read" | "propose" | "apply"`; preview responses echo the effective task-run arguments without launching agents.
+Default `stdio` mode is local and does not require a remote server. HTTP mode can also run locally; use a remote server only when the client cannot launch local MCP commands or when you need a managed shared endpoint. `qiongli_task_run` defaults to preview mode and launches local model CLIs only when the MCP caller explicitly sets JSON boolean `run_agents: true`. The tool accepts `guidance_mode: "off" | "read" | "propose" | "apply"`; preview responses echo the effective task-run arguments and report whether project guidance will be bootstrapped, but do not create files or launch agents.
 
 ### 2.3 `qiongli install` (Install bundled subject payload)
 
@@ -331,7 +331,7 @@ Available modes:
   - `--update-academic-context`: for supported stage-close tasks (`A5`, `B6`, `C5`, `D3`, `E5`, `F6`, `H4`), append `context/research_state.md` and `context/decision_log.md` to this run's active outputs and inject stage-specific academic continuity guidance into the draft prompt
   - Built-in profiles now include `focused-delivery` and `deep-research` in addition to `default`, `rapid-draft`, and `strict-review`
 
-  Formal research artifacts still belong under `RESEARCH/[topic]/...`. The orchestrator prompts runtime agents to create the required files; if an agent only returns text and does not write those files, the validator reports them as missing. Guidance trace bundles are written separately under `.qiongli/trace/runs/<run_id>/` so the run remains auditable even when formal outputs are incomplete.
+  Formal research artifacts still belong under `RESEARCH/[topic]/...`. The first non-`off` task run automatically initializes `.qiongli/local_guidance.md` and `.qiongli/trace/` when they are missing. The orchestrator prompts runtime agents to create the required files; if an agent only returns text and does not write those files, the validator reports them as missing. Guidance trace bundles are written separately under `.qiongli/trace/runs/<run_id>/` so the run remains auditable even when formal outputs are incomplete.
 
   Example: reduce artifact sprawl but keep stronger review pressure
   ```bash

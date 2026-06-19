@@ -9,6 +9,7 @@ from unittest import mock
 from bridges.guidance_runtime import (
     apply_guidance_proposal,
     effective_guidance,
+    guidance_bootstrap_status,
     guidance_trace_summary,
     init_project_guidance,
     write_guidance_trace,
@@ -63,6 +64,17 @@ class GuidanceRuntimeTests(unittest.TestCase):
             self.assertFalse(state.enabled)
             self.assertEqual(state.guidance_context, "")
             self.assertEqual(state.guidance_files_read, [])
+
+    def test_guidance_bootstrap_status_reports_missing_files_without_writing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+
+            status = guidance_bootstrap_status(root, mode="propose")
+
+            self.assertTrue(status["needed"])
+            self.assertFalse((root / ".qiongli").exists())
+            self.assertEqual(status["project_guidance"], ".qiongli/local_guidance.md")
+            self.assertEqual(status["trace_root"], ".qiongli/trace")
 
     def test_write_guidance_trace_creates_linked_bundle_and_index(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

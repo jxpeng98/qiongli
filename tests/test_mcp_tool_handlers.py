@@ -465,6 +465,63 @@ class MCPToolHandlerTests(unittest.TestCase):
         preview = result["structuredContent"]["data"]["task_run_preview"]
         self.assertEqual(preview["task_run_arguments"]["guidance_mode"], "read")
 
+    def test_task_run_preview_reports_guidance_bootstrap_without_writing(self) -> None:
+        class StubResult:
+            mode = "task-plan"
+            confidence = 0.8
+            merged_analysis = "preview"
+            recommendations: list[str] = []
+            data = {
+                "task_id": "F3",
+                "paper_type": "empirical",
+                "topic": "my-topic",
+                "artifact_root": "RESEARCH/[topic]/",
+                "runtime_plan": {
+                    "primary_agent": "codex",
+                    "review_agent": "claude",
+                    "fallback_agent": "gemini",
+                },
+            }
+
+        class StubOrchestrator:
+            def task_plan(self, **_kwargs: object) -> StubResult:
+                return StubResult()
+
+            def _build_controller_metadata(self, **_kwargs: object) -> dict[str, str]:
+                return {
+                    "execution_mode": "duo",
+                    "controller": "codex",
+                    "primary_agent": "",
+                    "review_agent": "",
+                    "verifier_agent": "",
+                    "solo_role_gates": "standard",
+                }
+
+            def _controller_runtime_overrides(self, _metadata: dict[str, str]) -> dict[str, str]:
+                return {}
+
+        stub = StubOrchestrator()
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            with mock.patch.object(tool_handlers, "ModelOrchestrator", return_value=stub):
+                result = call_qiongli_tool(
+                    "qiongli_task_run",
+                    {
+                        "task_id": "F3",
+                        "paper_type": "empirical",
+                        "topic": "my-topic",
+                        "cwd": str(root),
+                    },
+                )
+
+            preview = result["structuredContent"]["data"]["task_run_preview"]
+            self.assertTrue(preview["guidance_bootstrap"]["needed"])
+            self.assertEqual(
+                preview["guidance_bootstrap"]["project_guidance"],
+                ".qiongli/local_guidance.md",
+            )
+            self.assertFalse((root / ".qiongli").exists())
+
     def test_task_run_preview_maps_triad_execution_mode_to_metadata(self) -> None:
         class StubResult:
             mode = "task-plan"

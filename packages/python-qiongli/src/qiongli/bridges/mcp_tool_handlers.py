@@ -6,7 +6,7 @@ from typing import Any, Callable
 
 from bridges.mcp_config_wizard import start_config_wizard
 from bridges.mcp_connectors import MCPConnector
-from bridges.guidance_runtime import GUIDANCE_MODES
+from bridges.guidance_runtime import GUIDANCE_MODES, guidance_bootstrap_status
 from bridges.provider_config import (
     PROVIDER_FIELDS,
     global_provider_config_path,
@@ -442,6 +442,10 @@ def _task_run_preview(
         "enable_with": {"run_agents": True},
         "controller_metadata": controller_metadata,
         "effective_runtime_plan": effective_runtime_plan,
+        "guidance_bootstrap": guidance_bootstrap_status(
+            task_run_kwargs["cwd"],
+            mode=str(task_run_kwargs.get("guidance_mode", "propose")),
+        ),
         "task_run_arguments": _serializable_task_run_arguments(task_run_kwargs),
     }
 

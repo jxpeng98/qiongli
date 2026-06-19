@@ -43,6 +43,7 @@ from .guidance_runtime import (
     GUIDANCE_MODES,
     GuidanceState,
     apply_guidance_proposal,
+    ensure_project_guidance,
     effective_guidance,
     guidance_trace_summary,
     init_project_guidance,
@@ -6271,6 +6272,7 @@ Return sections:
                 "status": "unavailable",
                 "detail": plan_result.merged_analysis,
             }
+        ensure_project_guidance(cwd, mode=guidance_mode)
         guidance_state = effective_guidance(
             cwd,
             mode=guidance_mode,

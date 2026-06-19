@@ -169,7 +169,7 @@ The full CLI MCP server exposes:
 - `qiongli_task_plan`
 - `qiongli_task_run`
 
-`qiongli_task_run` defaults to preview mode. It launches local Codex, Claude, or Gemini processes only when the MCP caller explicitly sends JSON boolean `run_agents: true` and the local runtime passes `doctor`. Project-local guidance uses `.qiongli/local_guidance.md` and `.qiongli/trace/`; formal task outputs still belong under `RESEARCH/[topic]/...`.
+`qiongli_task_run` defaults to preview mode. It launches local Codex, Claude, or Gemini processes only when the MCP caller explicitly sends JSON boolean `run_agents: true` and the local runtime passes `doctor`. Project-local guidance uses `.qiongli/local_guidance.md` and `.qiongli/trace/`, which the first non-`off` task run initializes if missing; formal task outputs still belong under `RESEARCH/[topic]/...`.
 
 See [Cross-Platform MCP Server](docs/advanced/cross-platform-mcp.md) and [MCP Providers Setup](docs/advanced/mcp-providers-setup.md).
 

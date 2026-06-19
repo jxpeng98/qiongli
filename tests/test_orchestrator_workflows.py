@@ -808,6 +808,45 @@ class OrchestratorWorkflowTests(unittest.TestCase):
             self.assertIn("Local guidance context", draft_prompt)
             self.assertIn("Keep helper traces", draft_prompt)
 
+    def test_task_run_auto_initializes_guidance_when_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            orchestrator = MockOrchestrator()
+
+            result = orchestrator.task_run(
+                task_id="F3",
+                paper_type="empirical",
+                topic="ai-writing",
+                cwd=root,
+                guidance_mode="read",
+                skip_validation=True,
+            )
+
+            packet = result.data["task_packet"]
+            draft_prompt = next(call["prompt"] for call in orchestrator.runtime_calls if call["agent"])
+            self.assertTrue((root / ".qiongli" / "local_guidance.md").is_file())
+            self.assertTrue((root / ".qiongli" / "trace").is_dir())
+            self.assertTrue(packet["local_guidance"]["enabled"])
+            self.assertIn("# Qiongli Local Guidance", packet["local_guidance"]["guidance_context"])
+            self.assertIn("Local guidance context", draft_prompt)
+
+    def test_task_run_guidance_off_does_not_auto_initialize_guidance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            orchestrator = MockOrchestrator()
+
+            result = orchestrator.task_run(
+                task_id="F3",
+                paper_type="empirical",
+                topic="ai-writing",
+                cwd=root,
+                guidance_mode="off",
+                skip_validation=True,
+            )
+
+            self.assertFalse((root / ".qiongli").exists())
+            self.assertFalse(result.data["task_packet"]["local_guidance"]["enabled"])
+
     def test_task_run_guidance_off_does_not_read_local_guidance(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
