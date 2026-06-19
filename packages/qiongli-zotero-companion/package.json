@@ -1,0 +1,11 @@
+{
+  "name": "qiongli-zotero-companion",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "pack:xpi": "python3 ../../scripts/build_zotero_companion.py --dist-dir dist",
+    "test": "node --test test/*.test.mjs"
+  },
+  "license": "MIT"
+}

@@ -20,6 +20,19 @@ import { searchPubMed } from "./providers/pubmed.mjs";
 import { searchSemanticScholar } from "./providers/semantic-scholar.mjs";
 import { startJsonRpcStdioServer } from "./stdio.mjs";
 import { startConfigWizard } from "./config-wizard.mjs";
+import { resolveZoteroConfig } from "./zotero/config.mjs";
+import {
+  annotateLocalZoteroMatches,
+  resolveZoteroSourceOptions,
+  searchZoteroSource,
+  zoteroSourceWarning
+} from "./zotero/search-source.mjs";
+import {
+  handleZoteroExportImportFiles,
+  handleZoteroSearch,
+  handleZoteroStatus,
+  handleZoteroUpsertReferences
+} from "./zotero/tools.mjs";
 
 const MIN_LIMIT = 1;
 const STANDARD_MAX_LIMIT = 50;
@@ -188,6 +201,19 @@ export const TOOL_DECLARATIONS = [
             type: "string"
           }
         },
+        include_zotero: {
+          type: "boolean",
+          default: false
+        },
+        zotero_limit: {
+          type: "number"
+        },
+        zotero_tag: {
+          type: "string"
+        },
+        zotero_collection_path: {
+          type: "string"
+        },
         search_mode: {
           type: "string",
           enum: ["auto", "topic", "title", "doi", "review", "systematic_review"]
@@ -218,6 +244,149 @@ export const TOOL_DECLARATIONS = [
       type: "object",
       additionalProperties: true,
       properties: {}
+    }
+  },
+  {
+    name: "qiongli_zotero_status",
+    description: "Report local Zotero Desktop connector, Qiongli companion, and import-file fallback availability.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        connector_url: {
+          type: "string"
+        }
+      }
+    }
+  },
+  {
+    name: "qiongli_zotero_search",
+    description: "Search the local Zotero Desktop library through the Qiongli Zotero companion extension.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        doi: {
+          type: "string"
+        },
+        title: {
+          type: "string"
+        },
+        citekey: {
+          type: "string"
+        },
+        creator: {
+          type: "string"
+        },
+        year: {
+          type: ["integer", "string"]
+        },
+        tag: {
+          type: "string"
+        },
+        collection_path: {
+          type: "string"
+        },
+        connector_url: {
+          type: "string"
+        }
+      }
+    }
+  },
+  {
+    name: "qiongli_zotero_upsert_references",
+    description: "Dry-run or explicitly write normalized Qiongli references to the local Zotero Desktop library.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: true,
+      properties: {
+        records: {
+          type: "array",
+          items: {
+            type: "object"
+          }
+        },
+        results: {
+          type: "array",
+          items: {
+            type: "object"
+          }
+        },
+        dry_run: {
+          type: "boolean",
+          default: true
+        },
+        collection_path: {
+          type: "string"
+        },
+        tags: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        },
+        update_policy: {
+          type: "string",
+          enum: ["fill_blank", "prefer_zotero", "prefer_enriched"]
+        },
+        verify_crossref: {
+          type: "boolean",
+          default: true
+        },
+        crossref_enrichment: {
+          type: "string",
+          enum: ["fill_blank", "off"],
+          default: "fill_blank"
+        },
+        review_tags: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        },
+        review_collection_path: {
+          type: "string"
+        },
+        write_policy: {
+          type: "string",
+          enum: ["dry_run", "explicit", "allow"]
+        },
+        connector_url: {
+          type: "string"
+        }
+      }
+    }
+  },
+  {
+    name: "qiongli_zotero_export_import_files",
+    description: "Generate Zotero-compatible CSL-JSON, RIS, BibTeX, and import-report files from Qiongli references.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: true,
+      properties: {
+        records: {
+          type: "array",
+          items: {
+            type: "object"
+          }
+        },
+        results: {
+          type: "array",
+          items: {
+            type: "object"
+          }
+        },
+        formats: {
+          type: "array",
+          items: {
+            type: "string",
+            enum: ["csl-json", "ris", "bibtex", "report"]
+          }
+        },
+        project_root: {
+          type: "string"
+        }
+      }
     }
   }
 ];
@@ -608,6 +777,9 @@ export async function handleSearch(input = {}, context = {}) {
   const config = resolveConfig(context);
   const intent = buildSearchIntent(input);
   const options = resolveSearchOptions(input, config, intent);
+  const zoteroSourceOptions = resolveZoteroSourceOptions(input, {
+    perProviderLimit: options.perProviderLimit
+  });
   const queryPlan = buildQueryPlan(input, intent, options);
   const perQueryLimit = perQueryProviderLimit(options, queryPlan);
   const fromYear = readOptionalYear(input.fromYear);
@@ -636,20 +808,41 @@ export async function handleSearch(input = {}, context = {}) {
       })
     )
   );
+  const zoteroResponses = [];
+  if (zoteroSourceOptions.include) {
+    zoteroResponses.push(await searchZoteroSource({
+      config: resolveZoteroConfig({ env: context.env ?? process.env, input }),
+      intent,
+      input,
+      sourceOptions: zoteroSourceOptions,
+      context
+    }));
+  }
+  const allResponses = [...responses, ...zoteroResponses];
+  const attemptedWithZotero = zoteroSourceOptions.include ? [...attempted, "zotero"] : attempted;
 
-  const { successful, failed } = providerOutcomes(attempted, responses);
-  const results = [];
+  const { successful, failed } = providerOutcomes(attemptedWithZotero, allResponses);
+  const externalResults = [];
+  const zoteroResults = [];
 
-  for (const response of responses) {
+  for (const response of allResponses) {
     if (response.error) {
       continue;
     }
 
-    results.push(...response.results);
+    if (response.provider === "zotero") {
+      zoteroResults.push(...response.results);
+    } else {
+      externalResults.push(...response.results);
+    }
   }
+  const results = [
+    ...annotateLocalZoteroMatches({ externalResults, zoteroResults }),
+    ...zoteroResults
+  ];
 
   const evidence = buildEvidence({
-    attemptedProviders: attempted,
+    attemptedProviders: attemptedWithZotero,
     successfulProviders: successful,
     failedProviders: failed,
     resultCount: results.length
@@ -660,7 +853,7 @@ export async function handleSearch(input = {}, context = {}) {
   const finalLimit = intent.exactTitle || intent.doi ? options.totalLimit ?? options.legacyLimit : options.totalLimit;
   const outputResults = finalLimit === null ? rankedResults : rankedResults.slice(0, finalLimit);
   const diagnostics = searchDiagnostics({
-    responses,
+    responses: allResponses,
     rawResults: results,
     dedupedResults,
     filteredResults,
@@ -673,7 +866,12 @@ export async function handleSearch(input = {}, context = {}) {
     capability_mode: evidence.capability_mode,
     providers: evidence.providers,
     provider_capabilities: providerCapabilities(),
-    warnings: appendSearchWarnings(evidence.warnings, outputResults, options, diagnostics),
+    warnings: [
+      ...new Set([
+        ...appendSearchWarnings(evidence.warnings, outputResults, options, diagnostics),
+        ...zoteroResponses.map(zoteroSourceWarning).filter(Boolean)
+      ])
+    ],
     search_mode: intent.mode,
     search_options: searchOptionsPayload(options, queryPlan, perQueryLimit),
     search_plan: queryPlan,
@@ -737,6 +935,22 @@ export async function handleToolCall(name, input = {}, context = {}) {
 
   if (name === "qiongli_literature_search") {
     return toolResult(await handleSearch(input, context));
+  }
+
+  if (name === "qiongli_zotero_status") {
+    return toolResult(await handleZoteroStatus(input, context));
+  }
+
+  if (name === "qiongli_zotero_search") {
+    return toolResult(await handleZoteroSearch(input, context));
+  }
+
+  if (name === "qiongli_zotero_upsert_references") {
+    return toolResult(await handleZoteroUpsertReferences(input, context));
+  }
+
+  if (name === "qiongli_zotero_export_import_files") {
+    return toolResult(await handleZoteroExportImportFiles(input, context));
   }
 
   return toolResult(await handleExportEvidence(input, context));

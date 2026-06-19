@@ -22,7 +22,15 @@
         "QIONGLI_MCPB_SEMANTIC_SCHOLAR_API_KEY": "${user_config.semantic_scholar_api_key}",
         "QIONGLI_MCPB_CROSSREF_EMAIL": "${user_config.crossref_email}",
         "QIONGLI_MCPB_PUBMED_API_KEY": "${user_config.pubmed_api_key}",
-        "QIONGLI_MCPB_DEFAULT_LIMIT": "${user_config.default_result_limit}"
+        "QIONGLI_MCPB_DEFAULT_LIMIT": "${user_config.default_result_limit}",
+        "QIONGLI_ZOTERO_LOCAL_ENABLED": "${user_config.zotero_local_enabled}",
+        "QIONGLI_ZOTERO_CONNECTOR_URL": "${user_config.zotero_connector_url}",
+        "QIONGLI_ZOTERO_DEFAULT_COLLECTION_PATH": "${user_config.zotero_default_collection_path}",
+        "QIONGLI_ZOTERO_WRITE_POLICY": "${user_config.zotero_write_policy}",
+        "QIONGLI_ZOTERO_UPDATE_POLICY": "${user_config.zotero_update_policy}",
+        "QIONGLI_ZOTERO_DEFAULT_REVIEW_TAGS": "${user_config.zotero_default_review_tags}",
+        "QIONGLI_ZOTERO_DEFAULT_REVIEW_COLLECTION_PATH": "${user_config.zotero_default_review_collection_path}",
+        "QIONGLI_ZOTERO_CROSSREF_VERIFICATION_ENABLED": "${user_config.zotero_crossref_verification_enabled}"
       }
     }
   },
@@ -54,6 +62,22 @@
     {
       "name": "qiongli_literature_export_evidence",
       "description": "Export an auditable provider capability, search plan, diagnostics, and result snapshot."
+    },
+    {
+      "name": "qiongli_zotero_status",
+      "description": "Report local Zotero Desktop connector, Qiongli companion, and import-file fallback availability."
+    },
+    {
+      "name": "qiongli_zotero_search",
+      "description": "Search the local Zotero Desktop library through the Qiongli Zotero companion extension."
+    },
+    {
+      "name": "qiongli_zotero_upsert_references",
+      "description": "Dry-run or explicitly write normalized Qiongli references to the local Zotero Desktop library."
+    },
+    {
+      "name": "qiongli_zotero_export_import_files",
+      "description": "Generate Zotero-compatible CSL-JSON, RIS, BibTeX, and import-report files from Qiongli references."
     }
   ],
   "compatibility": {
@@ -109,6 +133,61 @@
       "default": 25,
       "min": 1,
       "max": 50,
+      "required": false
+    },
+    "zotero_local_enabled": {
+      "type": "boolean",
+      "title": "Enable local Zotero bridge",
+      "description": "When enabled, Qiongli can probe the local Zotero Desktop connector and Qiongli Zotero companion extension on the loopback interface.",
+      "default": true,
+      "required": false
+    },
+    "zotero_connector_url": {
+      "type": "string",
+      "title": "Local Zotero connector URL",
+      "description": "Loopback URL for Zotero Desktop's local connector server. The default is http://127.0.0.1:23119.",
+      "default": "http://127.0.0.1:23119",
+      "required": false
+    },
+    "zotero_default_collection_path": {
+      "type": "string",
+      "title": "Default Zotero collection path",
+      "description": "Optional collection path used when writing references through the Qiongli Zotero companion.",
+      "required": false
+    },
+    "zotero_write_policy": {
+      "type": "string",
+      "title": "Local Zotero write policy",
+      "description": "Controls local Zotero writes. Use explicit to require tool-call intent before non-dry-run writes.",
+      "default": "explicit",
+      "required": false
+    },
+    "zotero_update_policy": {
+      "type": "string",
+      "title": "Local Zotero update policy",
+      "description": "Controls whether Qiongli only fills blank local Zotero fields or may prefer enriched metadata.",
+      "default": "fill_blank",
+      "required": false
+    },
+    "zotero_default_review_tags": {
+      "type": "string",
+      "title": "Default Zotero review tags",
+      "description": "Comma-separated Qiongli tags added to Zotero imports that still need review.",
+      "default": "qiongli:imported,qiongli:needs-review",
+      "required": false
+    },
+    "zotero_default_review_collection_path": {
+      "type": "string",
+      "title": "Default Zotero review collection path",
+      "description": "Optional collection path for newly imported references that need review.",
+      "default": "",
+      "required": false
+    },
+    "zotero_crossref_verification_enabled": {
+      "type": "boolean",
+      "title": "Verify Zotero imports with Crossref DOI metadata",
+      "description": "When enabled, DOI-bearing Zotero imports use Crossref registry metadata to fill blank fields and report conflicts.",
+      "default": true,
       "required": false
     }
   },

@@ -47,6 +47,47 @@ Advanced controls include:
 
 Search responses include `search_plan` and `diagnostics` with raw, deduplicated, filtered, coverage-basis, and returned result counts plus per-provider and per-query status, result count, request count, retry attempts, and sanitized error messages. Search and status responses also include `provider_capabilities`, which marks OpenAlex, Semantic Scholar, Crossref, and PubMed as implemented providers. `qiongli_literature_export_evidence` returns the same search plan, options, diagnostics, capabilities, warnings, result count, and normalized result snapshot for audit handoff. Crossref needs `crossref.email` for polite access. PubMed needs `pubmed.api_key` to enable the bundled E-Utilities provider.
 
+## Local Zotero Reference Database
+
+The MCPB can use Zotero Desktop as a local reference database through the
+Qiongli Zotero companion extension in `packages/qiongli-zotero-companion/`. This
+does not replace OpenAlex, Semantic Scholar, Crossref, or PubMed as discovery
+providers. Qiongli still searches and enriches references, then selected records
+can be dry-run or written into local Zotero.
+
+Available tools:
+
+- `qiongli_zotero_status`: checks Zotero Desktop's local connector, the Qiongli
+  Zotero companion, and import-file fallback availability.
+- `qiongli_zotero_search`: searches the local Zotero library through the
+  companion by DOI, title, creator, year, tag, or collection path.
+- `qiongli_zotero_upsert_references`: maps normalized Qiongli references to
+  Zotero items, deduplicates by DOI or title/year, defaults to dry run, and
+  writes only when `dry_run: false` is explicit.
+- `qiongli_zotero_export_import_files`: generates `references.json`,
+  `references.ris`, `bibliography.bib`, and `zotero-import-report.md` without
+  contacting Zotero.
+
+### Opt-in Zotero source search
+
+`qiongli_literature_search` does not search Zotero by default. Pass
+`include_zotero: true` to include the local Zotero library as an additional
+reference source. Local-only records return `provider: "zotero"` and external
+records can include `local_zotero_match` when the DOI or title/year already
+exists in Zotero.
+
+### Crossref verification before Zotero writes
+
+DOI-bearing imports use Crossref DOI registry metadata by default to fill blank
+fields before writing to Zotero. Crossref metadata is not human verification, so
+new or updated items still receive `qiongli:needs-review`. Conflicts between
+incoming metadata and Crossref registry metadata add `qiongli:metadata-conflict`
+and are returned in `verification.crossref.conflicts`.
+
+Local mode uses the loopback connector URL `http://127.0.0.1:23119` by default.
+Non-loopback connector URLs are rejected. If Zotero Desktop or the companion is
+not available, use the generated import files for manual Zotero import.
+
 ## Local Claude Desktop Install
 
 Build or package this directory as a Claude Desktop `.mcpb` extension, then install it through Claude Desktop's extension settings. The manifest declares user configuration fields for:

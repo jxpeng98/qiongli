@@ -68,6 +68,14 @@ function normalizeLinkedRecords(value) {
   return value.map(normalizeLinkedRecord);
 }
 
+function clonePlainObject(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  return JSON.parse(JSON.stringify(value));
+}
+
 export function normalizeResult(record) {
   return {
     title: cleanString(record?.title),
@@ -83,7 +91,12 @@ export function normalizeResult(record) {
     citations: normalizeLinkedRecords(record?.citations),
     references: normalizeLinkedRecords(record?.references),
     provider: cleanString(record?.provider),
-    source_id: cleanString(record?.source_id)
+    source_id: cleanString(record?.source_id),
+    source_type: cleanString(record?.source_type),
+    zotero: clonePlainObject(record?.zotero),
+    local_zotero_match: clonePlainObject(record?.local_zotero_match),
+    review_status: cleanString(record?.review_status),
+    verification: clonePlainObject(record?.verification)
   };
 }
 
