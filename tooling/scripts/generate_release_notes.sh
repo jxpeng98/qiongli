@@ -148,6 +148,15 @@ print(manifest["version"])
 PY
 )"
 MCPB_ASSET="qiongli-literature-provider-${MCPB_VERSION}.mcpb"
+ZOTERO_COMPANION_VERSION="$(python3 - <<'PY'
+import json
+from pathlib import Path
+
+manifest = json.loads(Path("packages/qiongli-zotero-companion/manifest.json").read_text(encoding="utf-8"))
+print(manifest["version"])
+PY
+)"
+ZOTERO_COMPANION_ASSET="qiongli-zotero-companion-${ZOTERO_COMPANION_VERSION}.xpi"
 
 if [[ "$UPDATE_EXISTING" -eq 1 && -e "$OUTPUT" ]]; then
   python3 - "$OUTPUT" "$VALIDATOR_RESULT" "$UNITTEST_RESULT" "$SMOKE_RESULT" <<'PY'
@@ -243,6 +252,7 @@ mkdir -p "$(dirname "$OUTPUT")"
     echo "| Claude Desktop/Web skills | Download one \`qiongli-claude-desktop-skill-<subject>-${TAG}.zip\` asset. Start with \`qiongli-claude-desktop-skill-core-${TAG}.zip\` unless you need a subject package. |"
   fi
   echo "| Claude Desktop literature tools | Download \`${MCPB_ASSET}\` and pair it with a Desktop skill ZIP when provider calls are required. |"
+  echo "| Zotero Desktop local writes | Download \`${ZOTERO_COMPANION_ASSET}\` and install it from Zotero's add-on manager when local Zotero search/write support is required. |"
   if [[ "$IS_NEXT" -ne 1 ]]; then
     echo "| Gemini CLI | Download \`qiongli-gemini-extension-${TAG}.tar.gz\` only when installing from a release artifact. |"
   fi

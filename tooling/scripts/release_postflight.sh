@@ -519,6 +519,7 @@ fi
 
 python3 scripts/build_plugin_artifacts.py --root "$POSTFLIGHT_STAGING_DIR" --tag "$TAG" --dist-dir dist
 MCPB_ARTIFACT="$(python3 scripts/build_literature_mcpb.py --dist-dir dist | tail -n 1)"
+ZOTERO_COMPANION_ARTIFACT="$(python3 scripts/build_zotero_companion.py --dist-dir dist | tail -n 1)"
 python3 scripts/generate_release_downloads.py --tag "$TAG" --out-dir dist
 if [[ "${TAG#v}" == *-* ]]; then
   PLUGIN_ARTIFACTS=(
@@ -527,6 +528,7 @@ if [[ "${TAG#v}" == *-* ]]; then
     "dist/qiongli-next-claude-plugin-${TAG}.zip"
     "dist/qiongli-next-claude-desktop-skill-core-${TAG}.zip"
     "$MCPB_ARTIFACT"
+    "$ZOTERO_COMPANION_ARTIFACT"
     "dist/qiongli-downloads-${TAG}.md"
     "dist/qiongli-downloads-${TAG}.json"
   )
@@ -569,6 +571,7 @@ else
     "dist/qiongli-claude-desktop-skill-economics-accounting-${TAG}.zip"
     "dist/qiongli-claude-desktop-skill-${TAG}.zip"
     "$MCPB_ARTIFACT"
+    "$ZOTERO_COMPANION_ARTIFACT"
     "dist/qiongli-downloads-${TAG}.md"
     "dist/qiongli-downloads-${TAG}.json"
   )

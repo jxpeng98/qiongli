@@ -216,6 +216,16 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('gh release upload "$TAG" --repo "$REPO_SLUG" --clobber "${PLUGIN_ARTIFACTS[@]}"', content)
         self.assertIn('release_args+=("${PLUGIN_ARTIFACTS[@]}")', content)
 
+    def test_release_postflight_uploads_zotero_companion(self) -> None:
+        content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
+
+        self.assertIn('ZOTERO_COMPANION_ARTIFACT="$(python3 scripts/build_zotero_companion.py --dist-dir dist | tail -n 1)"', content)
+        self.assertIn('"$ZOTERO_COMPANION_ARTIFACT"', content)
+        self.assertLess(
+            content.index('ZOTERO_COMPANION_ARTIFACT="$(python3 scripts/build_zotero_companion.py --dist-dir dist | tail -n 1)"'),
+            content.index("python3 scripts/generate_release_downloads.py --tag \"$TAG\" --out-dir dist"),
+        )
+
     def test_release_postflight_publishes_codex_dist_refs(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
 

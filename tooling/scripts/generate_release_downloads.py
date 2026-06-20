@@ -21,6 +21,7 @@ DEFAULT_REPO_SLUG = "jxpeng98/qiongli"
 PLUGIN_NAME = "qiongli"
 NEXT_PLUGIN_NAME = "qiongli-next"
 MCPB_MANIFEST = REPO_ROOT / "packages" / "qiongli-literature-mcpb" / "manifest.json"
+ZOTERO_COMPANION_MANIFEST = REPO_ROOT / "packages" / "qiongli-zotero-companion" / "manifest.json"
 
 
 def _normalize_tag(raw: str) -> str:
@@ -45,6 +46,17 @@ def _mcpb_asset_name() -> str:
     return f"{name}-{version}.mcpb"
 
 
+def _zotero_companion_asset_name() -> str:
+    manifest = json.loads(ZOTERO_COMPANION_MANIFEST.read_text(encoding="utf-8"))
+    name = manifest.get("name")
+    version = manifest.get("version")
+    if not isinstance(name, str) or not name:
+        raise ValueError(f"{ZOTERO_COMPANION_MANIFEST} must define name")
+    if not isinstance(version, str) or not version:
+        raise ValueError(f"{ZOTERO_COMPANION_MANIFEST} must define version")
+    return f"{name}-{version}.xpi"
+
+
 def _claude_plugin_zip(plugin_name: str, tag: str) -> str:
     return f"{plugin_name}-claude-plugin-{tag}.zip"
 
@@ -59,6 +71,7 @@ def _release_assets(tag: str, root: Path) -> dict[str, list[str] | str]:
             ],
             "claude_desktop_legacy_core_skill": "",
             "claude_desktop_literature_mcpb": _mcpb_asset_name(),
+            "zotero_desktop_companion": _zotero_companion_asset_name(),
             "gemini_extension": "",
             "maintainer_plugin_tarballs": [
                 f"{NEXT_PLUGIN_NAME}-codex-plugin-{tag}.tar.gz",
@@ -93,6 +106,7 @@ def _release_assets(tag: str, root: Path) -> dict[str, list[str] | str]:
         ],
         "claude_desktop_legacy_core_skill": f"{PLUGIN_NAME}-claude-desktop-skill-{tag}.zip",
         "claude_desktop_literature_mcpb": _mcpb_asset_name(),
+        "zotero_desktop_companion": _zotero_companion_asset_name(),
         "gemini_extension": f"{PLUGIN_NAME}-gemini-extension-{tag}.tar.gz",
         "maintainer_plugin_tarballs": plugin_tarballs,
         "maintainer_plugin_zips": plugin_zips,
@@ -135,6 +149,10 @@ def build_index(tag: str, repo_slug: str = DEFAULT_REPO_SLUG, root: Path = REPO_
         "claude_desktop_literature_mcpb": {
             "install": "download_mcpb",
             "asset": assets["claude_desktop_literature_mcpb"],
+        },
+        "zotero_desktop_companion": {
+            "install": "download_xpi",
+            "asset": assets["zotero_desktop_companion"],
         },
     }
     if not is_next:
@@ -181,6 +199,7 @@ def render_markdown(index: dict[str, Any]) -> str:
     assets = index["assets"]
     desktop_skills = list(assets["claude_desktop_skills"])
     mcpb_asset = str(assets["claude_desktop_literature_mcpb"])
+    zotero_asset = str(assets["zotero_desktop_companion"])
     gemini_asset = str(assets["gemini_extension"])
     guide_asset = str(assets["download_guide"])
     index_asset = str(assets["download_index"])
@@ -209,6 +228,7 @@ def render_markdown(index: dict[str, Any]) -> str:
         "| Claude Code | Use the marketplace command; do not download a plugin tarball. | Marketplace install keeps slash commands, skills, and bundled literature MCP together. |",
         "| Claude Desktop/Web skills | Download exactly one Desktop skill ZIP from the table below. | ZIPs are focused skill packages sized for Desktop/Web upload. |",
         f"| Claude Desktop literature tools | Download `{mcpb_asset}`. | MCPB adds local literature/provider tools and provider key configuration. |",
+        f"| Zotero Desktop local writes | Download `{zotero_asset}` and install it from Zotero's add-on manager. | The companion enables Qiongli to search and write the local Zotero database through Zotero Desktop. |",
         "| Maintainers | Use plugin tarballs and Claude plugin ZIPs only for manual artifact checks or direct Claude plugin upload tests. | They are not the normal end-user install path. |",
         "",
         "## Claude Desktop/Web skill ZIPs",
