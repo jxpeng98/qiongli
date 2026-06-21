@@ -69,6 +69,23 @@ These depth rules apply across empirical, qualitative, mixed-methods, theory, an
 - Qualitative writing must interpret themes into analytic claims about mechanism, meaning, or scope. Do not stop at theme labels or illustrative quotes.
 - If the evidence cannot support a deeper inference, narrow the claim instead of simulating depth with abstract wording.
 
+## Writing Harness Contract
+
+Use this contract for direct skill use, role-prompted agent work, `/academic-write`, and `/paper-write`.
+
+Before writing prose:
+- inspect available boundary, decision, handoff, claim-map, and self-critique artifacts
+- define the **Story Spine**: central claim, argumentative mainline, section jobs, non-goals, and evidence threshold
+- ask the next blocking boundary/grill question when the Story Spine, claim strength, or evidence threshold is unclear
+
+During drafting:
+- work in section or paragraph-cluster chunks
+- for each chunk, run write -> review -> confirm
+- review for mainline drift, missing support, logic jumps, contradiction with locked decisions, and generic or vague claims
+- do not draft the whole artifact in one uninterrupted pass
+
+Each chunk must end with a checkpoint decision: continue, revise this chunk, or ask a boundary/grill question. Unsupported central claims become gap notes or narrowed claims, not polished prose.
+
 ## Inputs (Ask / Collect)
 
 1. Paper type: **empirical** / **qualitative** / **systematic review** / **theory** / **methods** (default: empirical)

@@ -23,6 +23,7 @@ This mode does not require a remote server. The client launches the local proces
 The full CLI server exposes both provider/configuration tools and orchestrator tools:
 
 - `qiongli_config_status`, `qiongli_configure_provider`, `qiongli_save_provider_config`, and `qiongli_collect_evidence` for MCP/provider readiness.
+- `qiongli_orchestrator_route` for deciding whether Codex, Claude Code, or another client should upgrade from skill-only workflow routing to full orchestrator tools.
 - `qiongli_orchestrator_doctor` for local runtime preflight checks.
 - `qiongli_task_plan` for a no-agent task plan.
 - `qiongli_task_run` for a controlled task-run surface. It defaults to preview and does not launch local Codex, Claude, or Gemini processes unless the caller explicitly passes JSON boolean `run_agents: true`. It accepts `guidance_mode` (`off`, `read`, `propose`, or `apply`) and echoes that mode in preview arguments. Preview reports whether `.qiongli/` guidance would be bootstrapped, but only actual task execution writes those files.
@@ -66,7 +67,7 @@ The bundled server entry is:
 node ${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs
 ```
 
-This bundled runtime covers literature-provider tools such as provider configuration, status, and search without requiring the `qiongli` CLI. Use the full CLI stdio server when Claude Code needs Python-backed orchestration tools such as `qiongli_orchestrator_doctor`, `qiongli_task_plan`, or `qiongli_task_run`.
+This bundled runtime covers literature-provider tools such as provider configuration, status, and search without requiring the `qiongli` CLI. Use the full CLI stdio server when Claude Code needs Python-backed orchestration tools such as `qiongli_orchestrator_route`, `qiongli_orchestrator_doctor`, `qiongli_task_plan`, or `qiongli_task_run`.
 
 ## Claude Desktop MCPB
 
@@ -76,7 +77,7 @@ For manual Claude Desktop installs, treat the Skill ZIP and MCPB as complementar
 
 - The `qiongli-claude-desktop-skill-*.zip` upload provides the agent instructions, workflows, templates, subject overlays, and skill guidance.
 - The `qiongli-literature-provider.mcpb` install provides literature MCP tools such as `qiongli_literature_search`.
-- The MCPB does not launch orchestrator agents. If the same Desktop or coding client needs `qiongli_task_run`, install the full CLI MCP server separately with `qiongli mcp serve --transport stdio`.
+- The MCPB does not launch orchestrator agents. If the same Desktop or coding client needs `qiongli_orchestrator_route` or `qiongli_task_run`, install the full CLI MCP server separately with `qiongli mcp serve --transport stdio`.
 
 ## Provider Keys
 

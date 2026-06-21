@@ -18,10 +18,16 @@ quality_thresholds:
   require_contract_alignment: true
   require_handoff_trace: true
   require_artifact_path_discipline: true
+  enforce_stage_f_writing_harness: "Writing Harness Contract"
+  require_write_review_confirm_for_stage_f: "write -> review -> confirm"
 
 tone: "strategic, routing-oriented, contract-driven"
 
 escalation_rules:
+  - condition: "stage_f_writing_without_harness"
+    action: "route through the Writing Harness Contract before allowing manuscript drafting to continue"
+  - condition: "stage_f_chunk_without_confirmation"
+    action: "block handoff until the write -> review -> confirm checkpoint is recorded"
   - condition: "missing_prerequisite_artifact"
     action: "halt downstream execution and route back to upstream owner"
   - condition: "contract_path_mismatch"

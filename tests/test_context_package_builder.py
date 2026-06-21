@@ -110,6 +110,35 @@ class ContextPackageBuilderTests(unittest.TestCase):
         self.assertIn("Claims are associative, not causal", package["agent_contexts"]["claude"])
         self.assertIn("Claims are associative, not causal", package["agent_contexts"]["gemini"])
 
+    def test_context_package_includes_writing_harness_for_all_agents(self) -> None:
+        task_packet = {
+            "task_id": "F3",
+            "paper_type": "empirical",
+            "topic": "ai-writing",
+            "writing_harness": {
+                "enabled": True,
+                "mode": "incremental-mainline",
+                "required_preflight": ["boundary", "story_spine", "non_goals"],
+                "loop": "write_review_confirm",
+                "chunk_unit": "section_or_paragraph_cluster",
+                "block_conditions": ["mainline_drift", "missing_support"],
+            },
+        }
+
+        package = build_context_package(
+            task_packet,
+            controller="codex",
+            agents=["codex", "claude", "gemini"],
+        )
+
+        for agent in ("codex", "claude", "gemini"):
+            with self.subTest(agent=agent):
+                context = package["agent_contexts"][agent]
+                self.assertIn("Writing Harness", context)
+                self.assertIn("incremental-mainline", context)
+                self.assertIn("story_spine", context)
+                self.assertIn("mainline_drift", context)
+
     def test_template_scaffold_declares_manifest_fields(self) -> None:
         self.assertTrue(TEMPLATE_PATH.exists(), f"Missing required artifact: {TEMPLATE_PATH}")
 

@@ -182,7 +182,25 @@ For each section type, request:
 - Limitations
 - Future directions
 
-### Step 3: Draft Writing
+### Step 3: Apply Writing Harness Contract
+
+Before writing prose, state the **Story Spine** for the requested section:
+- the section's role in the manuscript
+- the central claim or contribution move
+- the boundary conditions and non-goals
+- the concrete evidence, citation, data, example, or gap note that can support each claim
+
+If the section purpose, mainline, claim strength, or evidence threshold is unclear, ask the next blocking boundary/grill question before drafting.
+
+Write in paragraph-cluster chunks. For each chunk, run a write -> review -> confirm checkpoint:
+1. Explain the chunk's role in the Story Spine.
+2. Draft only the chunk.
+3. Review for mainline drift, logic, specificity, support, and fit with the section purpose.
+4. Confirm whether to continue, revise the chunk, or ask a boundary/grill question.
+
+Do not draft the whole artifact in one uninterrupted pass. Block or revise generic or vague claims, unsupported claims, evidence-free generalization, and paragraphs that summarize without interpretation.
+
+### Step 4: Draft Writing
 
 Apply academic writing best practices:
 
@@ -206,7 +224,7 @@ Apply academic writing best practices:
 - Avoid over-reliance on single sources
 - Balance recent and seminal sources
 
-### Step 4: Generate Output
+### Step 5: Generate Output
 
 Provide:
 1. Draft text for the requested section

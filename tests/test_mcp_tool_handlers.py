@@ -24,11 +24,67 @@ class MCPToolHandlerTests(unittest.TestCase):
                 "qiongli_test_provider",
                 "qiongli_configure_provider",
                 "qiongli_open_config_wizard",
+                "qiongli_orchestrator_route",
                 "qiongli_orchestrator_doctor",
                 "qiongli_task_plan",
                 "qiongli_task_run",
             }.issubset(names)
         )
+
+    def test_orchestrator_route_recommends_mcp_sequence_for_codex_claude_duo(self) -> None:
+        result = call_qiongli_tool(
+            "qiongli_orchestrator_route",
+            {
+                "request": "Use Codex and Claude Code to write and independently review the F3 discussion section.",
+                "platform": "codex",
+                "cwd": "/tmp/demo",
+                "task_id": "F3",
+                "paper_type": "empirical",
+                "topic": "ai-in-education",
+                "execution_mode": "duo",
+                "controller": "codex",
+                "primary": "codex",
+                "reviewer": "claude",
+            },
+        )
+
+        payload = result["structuredContent"]
+        self.assertFalse(result["isError"])
+        self.assertEqual(payload["route"], "orchestrator_mcp")
+        self.assertEqual(payload["recommended_tool"], "qiongli_task_run")
+        self.assertTrue(payload["requires_full_runtime"])
+        self.assertIn("Codex", payload["platform_note"])
+        self.assertIn("Claude Code", payload["platform_note"])
+        self.assertEqual(
+            [step["tool"] for step in payload["sequence"]],
+            [
+                "qiongli_orchestrator_doctor",
+                "qiongli_task_plan",
+                "qiongli_task_run",
+            ],
+        )
+        task_run_args = payload["sequence"][2]["args"]
+        self.assertEqual(task_run_args["task_id"], "F3")
+        self.assertEqual(task_run_args["execution_mode"], "duo")
+        self.assertEqual(task_run_args["controller"], "codex")
+        self.assertEqual(task_run_args["primary"], "codex")
+        self.assertEqual(task_run_args["reviewer"], "claude")
+        self.assertFalse(task_run_args["run_agents"])
+
+    def test_orchestrator_route_keeps_simple_request_on_skill_workflow(self) -> None:
+        result = call_qiongli_tool(
+            "qiongli_orchestrator_route",
+            {
+                "request": "Tighten one paragraph for clarity without launching agents.",
+                "platform": "claude_code",
+            },
+        )
+
+        payload = result["structuredContent"]
+        self.assertEqual(payload["route"], "skill_workflow")
+        self.assertEqual(payload["recommended_tool"], "qiongli_task_plan")
+        self.assertFalse(payload["requires_full_runtime"])
+        self.assertIn("skill", payload["why"][0])
 
     def test_config_status_redacts_saved_provider_values(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
