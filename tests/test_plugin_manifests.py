@@ -17,7 +17,6 @@ PLUGIN_ROOT = LAYOUT.plugin_package
 NEXT_PLUGIN_ROOT = LAYOUT.next_plugin_package
 CODEX_PLUGIN_MANIFEST = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
 CLAUDE_PLUGIN_MANIFEST = PLUGIN_ROOT / ".claude-plugin" / "plugin.json"
-GEMINI_EXTENSION_MANIFEST = PLUGIN_ROOT / "gemini-extension.json"
 NEXT_CODEX_PLUGIN_MANIFEST = NEXT_PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
 WORKFLOW_VERSION = LAYOUT.workflow / "VERSION"
 EXPECTED_AUTHOR = {"name": "Jiaxin Peng", "url": "https://github.com/jxpeng98"}
@@ -219,28 +218,11 @@ class PluginManifestTests(unittest.TestCase):
         self.assertNotIn("SEMANTIC_SCHOLAR_API_KEY", manifest_text)
         self.assertNotIn("qiongli mcp", manifest_text)
 
-    def test_gemini_extension_manifest_exposes_workflow_skill(self) -> None:
+    def test_plugin_package_does_not_generate_gemini_extension_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             plugin_root = self.materialize_plugin_root(tmp_dir)
-            manifest = json.loads((plugin_root / "gemini-extension.json").read_text(encoding="utf-8"))
 
-        self.assertEqual(manifest["name"], "qiongli")
-        self.assertEqual(manifest["version"], WORKFLOW_VERSION.read_text(encoding="utf-8").strip().lstrip("v"))
-        self.assertEqual(manifest["description"], EXPECTED_WORKFLOW_DESCRIPTION)
-        self.assertEqual(manifest["author"], EXPECTED_AUTHOR)
-        self.assertEqual(manifest["category"], EXPECTED_CATEGORY)
-        self.assertEqual(manifest["repository"], EXPECTED_REPOSITORY)
-        self.assertEqual(manifest["license"], EXPECTED_LICENSE)
-
-    def test_gemini_extension_manifest_exposes_academic_discovery_terms(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            plugin_root = self.materialize_plugin_root(tmp_dir)
-            manifest = json.loads((plugin_root / "gemini-extension.json").read_text(encoding="utf-8"))
-        searchable_text = " ".join([manifest["description"], " ".join(manifest["keywords"])]).lower()
-
-        for term in EXPECTED_DISCOVERY_TERMS:
-            with self.subTest(term=term):
-                self.assertIn(term, searchable_text)
+        self.assertFalse((plugin_root / "gemini-extension.json").exists())
 
     def test_next_codex_plugin_manifest_uses_release_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

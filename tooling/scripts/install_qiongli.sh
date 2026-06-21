@@ -65,7 +65,7 @@ Usage:
 
 Options:
   --profile <partial|full>             Install preset (partial: assets only, full: assets + shell CLI + doctor)
-  --target <codex|claude|gemini|antigravity|hermes|all> Install target (default: all)
+  --target <codex|claude|antigravity|hermes|all> Install target (default: all)
   --mode <copy|link>                   Install mode (default: copy)
   --project-dir <path>                 Project directory used when project surfaces are enabled (default: current dir)
   --install-cli                        Install shell CLI commands (`qiongli`, `ql`, `research-skills`, `rsk`, `rsw`)
@@ -82,7 +82,6 @@ Options:
 Environment overrides:
   CODEX_HOME        Default: $HOME/.codex
   CLAUDE_CODE_HOME  Default: $HOME/.claude
-  GEMINI_HOME       Default: $HOME/.gemini
   ANTIGRAVITY_HOME  Default: $HOME/.gemini/antigravity
   HERMES_HOME       Default: $HOME/.hermes
   QIONGLI_BIN_DIR Default: $HOME/.local/bin
@@ -256,7 +255,6 @@ cli_name_for_target() {
   case "$1" in
     codex) printf 'codex\n' ;;
     claude) printf 'claude\n' ;;
-    gemini) printf 'gemini\n' ;;
     antigravity) printf 'antigravity\n' ;;
     hermes) printf 'hermes\n' ;;
     *) return 1 ;;
@@ -270,9 +268,6 @@ cli_install_hint() {
       ;;
     claude)
       printf 'Install Claude Code: npm install -g @anthropic-ai/claude-code\n'
-      ;;
-    gemini)
-      printf 'Install Gemini CLI: npm install -g @google/gemini-cli\n'
       ;;
     antigravity)
       printf 'Install Antigravity and ensure the `antigravity` binary is on PATH before relying on the global skill directory.\n'
@@ -449,10 +444,6 @@ print_detected_versions() {
     detected="$(skill_package_state "$CLAUDE_SKILL_DEST")"
     info "claude:      $detected"
   fi
-  if [[ "$TARGET" == "gemini" || "$TARGET" == "all" ]]; then
-    detected="$(skill_package_state "$GEMINI_SKILL_DEST")"
-    info "gemini:      $detected"
-  fi
   if [[ "$TARGET" == "antigravity" || "$TARGET" == "all" ]]; then
     detected="$(skill_package_state "$ANTIGRAVITY_SKILL_DEST")"
     info "antigravity: $detected"
@@ -468,7 +459,6 @@ skill_dest_for_target() {
   case "$target" in
     codex) printf '%s\n' "$CODEX_SKILL_DEST" ;;
     claude) printf '%s\n' "$CLAUDE_SKILL_DEST" ;;
-    gemini) printf '%s\n' "$GEMINI_SKILL_DEST" ;;
     antigravity) printf '%s\n' "$ANTIGRAVITY_SKILL_DEST" ;;
     hermes) printf '%s\n' "$HERMES_SKILL_DEST" ;;
     *) return 1 ;;
@@ -478,7 +468,7 @@ skill_dest_for_target() {
 cleanup_legacy_residue_report() {
   local found=0
   local target dest skill_root legacy_name legacy_path
-  for target in codex claude gemini antigravity hermes; do
+  for target in codex claude antigravity hermes; do
     [[ "$TARGET" == "$target" || "$TARGET" == "all" ]] || continue
     dest="$(skill_dest_for_target "$target")"
     skill_root="$(dirname "$dest")"
@@ -651,7 +641,6 @@ expand_manifest_path() {
   value="${value//\$\{PROJECT_DIR\}/$PROJECT_DIR}"
   value="${value//\$\{CODEX_HOME\}/${CODEX_HOME:-$HOME/.codex}}"
   value="${value//\$\{CLAUDE_CODE_HOME\}/${CLAUDE_CODE_HOME:-$HOME/.claude}}"
-  value="${value//\$\{GEMINI_HOME\}/${GEMINI_HOME:-$HOME/.gemini}}"
   value="${value//\$\{ANTIGRAVITY_HOME\}/${ANTIGRAVITY_HOME:-$HOME/.gemini/antigravity}}"
   value="${value//\$\{HERMES_HOME\}/${HERMES_HOME:-$HOME/.hermes}}"
   printf '%s\n' "$value"
@@ -813,7 +802,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$TARGET" in
-  codex|claude|gemini|antigravity|hermes|all) ;;
+  codex|claude|antigravity|hermes|all) ;;
   *)
     echo "Unsupported target: $TARGET" >&2
     usage
@@ -843,7 +832,6 @@ fi
 
 CODEX_SKILL_DEST="${CODEX_HOME:-$HOME/.codex}/skills/qiongli-workflow"
 CLAUDE_SKILL_DEST="${CLAUDE_CODE_HOME:-$HOME/.claude}/skills/qiongli-workflow"
-GEMINI_SKILL_DEST="${GEMINI_HOME:-$HOME/.gemini}/skills/qiongli-workflow"
 ANTIGRAVITY_SKILL_DEST="${ANTIGRAVITY_HOME:-$HOME/.gemini/antigravity}/skills/qiongli-workflow"
 HERMES_SKILL_DEST="${HERMES_HOME:-$HOME/.hermes}/skills/qiongli-workflow"
 ANTIGRAVITY_CLI_FOUND=0
@@ -874,9 +862,6 @@ case "$TARGET" in
   claude)
     check_target_cli claude || true
     ;;
-  gemini)
-    check_target_cli gemini || true
-    ;;
   antigravity)
     if check_target_cli antigravity; then
       ANTIGRAVITY_CLI_FOUND=1
@@ -888,7 +873,6 @@ case "$TARGET" in
   all)
     check_target_cli codex || true
     check_target_cli claude || true
-    check_target_cli gemini || true
     if check_target_cli antigravity; then
       ANTIGRAVITY_CLI_FOUND=1
     fi
@@ -923,13 +907,6 @@ if [[ "$TARGET" == "claude" || "$TARGET" == "all" ]]; then
   if target_has_enabled_entries claude; then
     section "Claude"
     install_manifest_target claude
-  fi
-fi
-
-if [[ "$TARGET" == "gemini" || "$TARGET" == "all" ]]; then
-  if target_has_enabled_entries gemini; then
-    section "Gemini"
-    install_manifest_target gemini
   fi
 fi
 
@@ -976,9 +953,6 @@ if [[ "$INSTALL_GLOBALS" -eq 1 ]]; then
   }
   if [[ "$TARGET" == "claude" || "$TARGET" == "all" ]]; then
     create_workflow_symlinks "$CLAUDE_SKILL_DEST" "${CLAUDE_SKILL_DEST%/skills/qiongli-workflow}/commands"
-  fi
-  if [[ "$TARGET" == "gemini" || "$TARGET" == "all" ]]; then
-    create_workflow_symlinks "$GEMINI_SKILL_DEST" "${GEMINI_SKILL_DEST%/skills/qiongli-workflow}/workflows"
   fi
 fi
 
@@ -1082,11 +1056,11 @@ fi
 # ── Footer ───────────────────────────────────────────────────────────────────
 printf "\n${C_GREEN}${C_BOLD}✓ Installation complete${C_RESET}"
 case "$TARGET" in
-  all)  printf " ${C_DIM}(codex + claude + gemini + antigravity + hermes)${C_RESET}" ;;
+  all)  printf " ${C_DIM}(codex + claude + antigravity + hermes)${C_RESET}" ;;
   *)    printf " ${C_DIM}($TARGET)${C_RESET}" ;;
 esac
 printf "\n"
 if [[ "$INSTALL_CLI" -eq 1 ]] && ! path_contains_dir "$CLI_DIR"; then
   printf "  ${C_YELLOW}Add %s to PATH to use qiongli / ql / research-skills / rsk / rsw.${C_RESET}\n" "$CLI_DIR"
 fi
-printf "  ${C_DIM}Restart Codex / Claude Code / Gemini CLI / Antigravity / Hermes to activate.${C_RESET}\n\n"
+printf "  ${C_DIM}Restart Codex / Claude Code / Antigravity / Hermes to activate.${C_RESET}\n\n"

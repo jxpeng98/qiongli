@@ -12,7 +12,12 @@ def build_context_package(
     agents: list[str],
 ) -> dict[str, object]:
     normalized_controller = _normalize_agent_name(controller)
-    normalized_agents = [_normalize_agent_name(agent) for agent in agents]
+    supported_agents = {"codex", "claude"}
+    normalized_agents = [
+        normalized
+        for normalized in (_normalize_agent_name(agent) for agent in agents)
+        if normalized in supported_agents
+    ]
 
     manifest_without_hash = {
         "task_id": _string_value(task_packet, "task_id"),
@@ -28,11 +33,7 @@ def build_context_package(
 
     return {
         "context_manifest": manifest,
-        "agent_contexts": {
-            "codex": _build_codex_context(task_packet, manifest),
-            "claude": _build_claude_context(task_packet, manifest),
-            "gemini": _build_gemini_context(task_packet, manifest),
-        },
+        "agent_contexts": _build_agent_contexts(task_packet, manifest, normalized_agents),
     }
 
 
@@ -158,12 +159,14 @@ def _build_claude_context(task_packet: dict[str, object], manifest: dict[str, ob
     )
 
 
-def _build_gemini_context(task_packet: dict[str, object], manifest: dict[str, object]) -> str:
-    return "\n\n".join(
-        [
-            _build_header(manifest),
-            f"## Task Packet\n{json.dumps(task_packet, sort_keys=True, indent=2)}",
-            f"## Boundary Review\n{_boundary_review_text(task_packet)}",
-            f"## Writing Harness\n{_writing_harness_text(task_packet)}",
-        ]
-    )
+def _build_agent_contexts(
+    task_packet: dict[str, object],
+    manifest: dict[str, object],
+    agents: list[str],
+) -> dict[str, str]:
+    contexts: dict[str, str] = {}
+    if "codex" in agents:
+        contexts["codex"] = _build_codex_context(task_packet, manifest)
+    if "claude" in agents:
+        contexts["claude"] = _build_claude_context(task_packet, manifest)
+    return contexts

@@ -26,7 +26,7 @@ The full CLI server exposes both provider/configuration tools and orchestrator t
 - `qiongli_orchestrator_route` for deciding whether Codex, Claude Code, or another client should upgrade from skill-only workflow routing to full orchestrator tools.
 - `qiongli_orchestrator_doctor` for local runtime preflight checks.
 - `qiongli_task_plan` for a no-agent task plan.
-- `qiongli_task_run` for a controlled task-run surface. It defaults to preview and does not launch local Codex, Claude, or Gemini processes unless the caller explicitly passes JSON boolean `run_agents: true`. It accepts `guidance_mode` (`off`, `read`, `propose`, or `apply`) and echoes that mode in preview arguments. Preview reports whether `.qiongli/` guidance would be bootstrapped, but only actual task execution writes those files.
+- `qiongli_task_run` for a controlled task-run surface. It defaults to preview and does not launch local Codex or Claude processes unless the caller explicitly passes JSON boolean `run_agents: true`. It accepts `guidance_mode` (`off`, `read`, `propose`, or `apply`) and echoes that mode in preview arguments. Preview reports whether `.qiongli/` guidance would be bootstrapped, but only actual task execution writes those files.
 
 When task-run agents are launched, formal artifacts are still expected under `RESEARCH/[topic]/...`. The first non-`off` task run initializes `.qiongli/local_guidance.md` and `.qiongli/trace/` if they are missing. The project-local guidance layer writes auditable run traces under `.qiongli/trace/`; this trace location is separate from formal research outputs and from installed skill assets.
 

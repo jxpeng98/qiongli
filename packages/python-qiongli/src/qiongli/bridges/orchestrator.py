@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
 Multi-Model Orchestrator for qiongli.
-Single entry point for coordinating Codex, Claude, and Gemini collaboration.
+Single entry point for coordinating Codex and Claude collaboration.
 
 Usage:
     python orchestrator.py parallel --prompt "..." --cwd "/path" --summarizer claude
     python orchestrator.py chain --prompt "..." --cwd "/path" --generator claude
-    python orchestrator.py role --cwd "/path" --codex-task "..." --claude-task "..." --gemini-task "..."
+    python orchestrator.py role --cwd "/path" --codex-task "..." --claude-task "..."
     python orchestrator.py single --model claude --prompt "..." --cwd "/path"
     python orchestrator.py task-run --task-id F3 --paper-type empirical --topic ai-in-education --cwd "/path" --mcp-strict --skills-strict --triad
     python orchestrator.py doctor --cwd "/path"
@@ -34,7 +34,6 @@ from .base_bridge import BridgeResponse, CollaborationResult, configure_stdio
 from .claude_bridge import ClaudeBridge
 from .command_runtime import split_command
 from .codex_bridge import CodexBridge
-from .gemini_bridge import GeminiBridge
 from .mcp_connectors import MCPEvidence, MCPConnector
 from .i18n import get_language, get_text
 from .provider_config import provider_capability_mode, provider_config_summary, resolve_provider_config
@@ -53,16 +52,6 @@ from .boundary_questions import (
     BOUNDARY_ARTIFACT,
     build_boundary_question_plan,
     format_boundary_prompt_section,
-)
-from .providers.research_collab import (
-    DEFAULT_BROKER_TIMEOUT_SECONDS,
-    GEMINI_TRANSPORT_ENV,
-    bridge_response_from_broker_payload,
-    broker_client_from_env,
-    broker_status_from_env,
-    gemini_cached_auth_files,
-    gemini_noninteractive_auth_status,
-    resolve_gemini_transport,
 )
 from .errors import (
     ResearchError,
@@ -83,7 +72,7 @@ class CollaborationMode(Enum):
     SINGLE = "single"          # Single model execution
 
 
-RUNTIME_AGENT_CHOICES = ("codex", "claude", "gemini")
+RUNTIME_AGENT_CHOICES = ("codex", "claude")
 CONTROLLER_EXECUTION_MODE_CHOICES = ("solo", "duo", "triad")
 SOLO_ROLE_GATE_CHOICES = ("strict", "standard", "off")
 WORKER_MODE_CHOICES = ("none", "auto", "delegated-workers", "review-swarm")
@@ -231,13 +220,6 @@ class ModelOrchestrator:
         "performance optimization",
     ]
 
-    GEMINI_STRENGTHS = [
-        "code explanation",
-        "architecture analysis",
-        "documentation",
-        "design review",
-        "research context",
-    ]
     CLAUDE_STRENGTHS = [
         "long-form reasoning",
         "manuscript drafting",
@@ -255,7 +237,6 @@ class ModelOrchestrator:
             "runtime_options": {
                 "codex": {"sandbox": "read-only", "non_interactive": True},
                 "claude": {"permission_mode": "default", "non_interactive": True},
-                "gemini": {"sandbox": False, "non_interactive": True, "transport": "auto"},
             },
         },
         "strict-review": {
@@ -265,7 +246,6 @@ class ModelOrchestrator:
             "runtime_options": {
                 "codex": {"sandbox": "read-only", "non_interactive": True},
                 "claude": {"permission_mode": "default", "non_interactive": True},
-                "gemini": {"sandbox": True, "non_interactive": True, "transport": "auto"},
             },
         },
         "rapid-draft": {
@@ -275,7 +255,6 @@ class ModelOrchestrator:
             "runtime_options": {
                 "codex": {"sandbox": "workspace-write", "non_interactive": True},
                 "claude": {"permission_mode": "default", "non_interactive": True},
-                "gemini": {"sandbox": False, "non_interactive": True, "transport": "auto"},
             },
         },
         "focused-delivery": {
@@ -286,7 +265,6 @@ class ModelOrchestrator:
             "runtime_options": {
                 "codex": {"sandbox": "read-only", "non_interactive": True, "timeout_seconds": 240},
                 "claude": {"permission_mode": "default", "non_interactive": True, "timeout_seconds": 240},
-                "gemini": {"sandbox": False, "non_interactive": True, "transport": "auto", "timeout_seconds": 240},
             },
         },
         "deep-research": {
@@ -299,11 +277,10 @@ class ModelOrchestrator:
             "runtime_options": {
                 "codex": {"sandbox": "read-only", "non_interactive": True, "timeout_seconds": 480},
                 "claude": {"permission_mode": "default", "non_interactive": True, "timeout_seconds": 540},
-                "gemini": {"sandbox": True, "non_interactive": True, "transport": "auto", "timeout_seconds": 420},
             },
         },
     }
-    RUNTIME_AGENTS = {"codex", "claude", "gemini"}
+    RUNTIME_AGENTS = {"codex", "claude"}
     DOMAIN_PROFILE_ALIASES = {
         "business": "business-management",
         "business-management": "business-management",
@@ -470,7 +447,6 @@ class ModelOrchestrator:
         self,
         codex_sandbox: str = "read-only",
         claude_permission_mode: str | None = None,
-        gemini_sandbox: bool = False,
         standards_dir: Path | None = None,
         mcp_timeout_seconds: int = 20,
         interactive: bool = False,
@@ -478,7 +454,6 @@ class ModelOrchestrator:
         """Initialize orchestrator with bridges."""
         self.codex = CodexBridge(sandbox=codex_sandbox)
         self.claude = ClaudeBridge(permission_mode=claude_permission_mode)
-        self.gemini = GeminiBridge(sandbox=gemini_sandbox)
         self.standards_dir = standards_dir or _default_standards_dir(cwd=Path.cwd())
         self.mcp_connector = MCPConnector(timeout_seconds=mcp_timeout_seconds)
         self.interactive = interactive
@@ -643,7 +618,6 @@ class ModelOrchestrator:
         prompt: str | None = None,
         codex_task: str | None = None,
         claude_task: str | None = None,
-        gemini_task: str | None = None,
         generator: str = "codex",
         single_model: str = "codex",
         parallel_summarizer: str = "claude",
@@ -661,7 +635,6 @@ class ModelOrchestrator:
             prompt: Main prompt (for parallel/chain/single modes)
             codex_task: Codex-specific task (for role mode)
             claude_task: Claude-specific task (for role mode)
-            gemini_task: Gemini-specific task (for role mode)
             generator: Which model generates in chain mode
             single_model: Which model to use in single mode
             parallel_summarizer: Which model performs post-parallel synthesis
@@ -691,12 +664,11 @@ class ModelOrchestrator:
                     recommendations=[],
                     codex_response=error_resp if "codex" in str(exc).lower() else None,
                     claude_response=error_resp if "claude" in str(exc).lower() else None,
-                    gemini_response=error_resp if "gemini" in str(exc).lower() else None,
                 )
         elif mode == CollaborationMode.CHAIN:
             return self._chain_verify(prompt or "", cwd, generator)
         elif mode == CollaborationMode.ROLE_BASED:
-            return self._role_based(cwd, codex_task, claude_task, gemini_task)
+            return self._role_based(cwd, codex_task, claude_task)
         elif mode == CollaborationMode.SINGLE:
             return self._single_execute(
                 prompt or "", cwd, single_model, session_id
@@ -714,12 +686,12 @@ class ModelOrchestrator:
         summarizer_profile_name: str = "default",
     ) -> CollaborationResult:
         """
-        Parallel mode: 3-agent concurrent analysis (codex/claude/gemini),
+        Parallel mode: dual-agent concurrent analysis (codex/claude),
         then one summarizer agent performs cross-model synthesis.
 
-        If triad is unavailable, automatically degrade to dual/single.
+        If one runtime is unavailable, automatically degrade to single.
         """
-        requested_agents = ["codex", "claude", "gemini"]
+        requested_agents = ["codex", "claude"]
         responses: dict[str, BridgeResponse] = {}
         registry = profile_registry or self.DEFAULT_AGENT_PROFILES
         base_profile_cfg = self._resolve_profile_config(base_profile_name, registry)
@@ -778,9 +750,7 @@ class ModelOrchestrator:
             for agent in requested_agents
             if agent not in success_agents
         ]
-        if len(success_agents) >= 3:
-            execution_level = "triad"
-        elif len(success_agents) == 2:
+        if len(success_agents) == 2:
             execution_level = "dual"
         elif len(success_agents) == 1:
             execution_level = "single"
@@ -880,7 +850,6 @@ class ModelOrchestrator:
             task_description=prompt[:200],
             codex_response=responses.get("codex"),
             claude_response=responses.get("claude"),
-            gemini_response=responses.get("gemini"),
             merged_analysis=merged,
             confidence=confidence,
             recommendations=self._extract_recommendations(merged),
@@ -967,8 +936,7 @@ Produce sections:
         """
         verifier_by_generator = {
             "codex": "claude",
-            "claude": "gemini",
-            "gemini": "codex",
+            "claude": "codex",
         }
         verify_agent = verifier_by_generator.get(generator, "claude")
         gen_resp = self._execute_runtime_agent(generator, prompt, cwd)
@@ -997,9 +965,6 @@ Produce sections:
             claude_response=gen_resp if generator == "claude" else (
                 verify_resp if verify_agent == "claude" else None
             ),
-            gemini_response=gen_resp if generator == "gemini" else (
-                verify_resp if verify_agent == "gemini" else None
-            ),
             merged_analysis=merged,
             confidence=confidence,
             recommendations=self._extract_recommendations(merged),
@@ -1010,18 +975,15 @@ Produce sections:
         cwd: Path,
         codex_task: str | None,
         claude_task: str | None,
-        gemini_task: str | None,
     ) -> CollaborationResult:
         """
         Role-based mode: Divide tasks by model specialty.
 
         Codex: Code generation, implementation, fixing
         Claude: Structured drafting, critique, synthesis
-        Gemini: Explanation, documentation, analysis
         """
         codex_resp = None
         claude_resp = None
-        gemini_resp = None
 
         if codex_task:
             codex_resp = self._execute_runtime_agent("codex", codex_task, cwd)
@@ -1029,29 +991,23 @@ Produce sections:
         if claude_task:
             claude_resp = self._execute_runtime_agent("claude", claude_task, cwd)
 
-        if gemini_task:
-            gemini_resp = self._execute_runtime_agent("gemini", gemini_task, cwd)
-
         # Merge outputs
         parts = []
         if codex_resp and codex_resp.success:
             parts.append(f"## Codex Output\n\n{codex_resp.content}")
         if claude_resp and claude_resp.success:
             parts.append(f"## Claude Output\n\n{claude_resp.content}")
-        if gemini_resp and gemini_resp.success:
-            parts.append(f"## Gemini Output\n\n{gemini_resp.content}")
 
         merged = "\n\n---\n\n".join(parts) if parts else "No successful outputs."
 
         # Calculate confidence
         success_count = sum([
-            1 for r in [codex_resp, claude_resp, gemini_resp]
+            1 for r in [codex_resp, claude_resp]
             if r and r.success
         ])
         requested_count = sum([
             1 if codex_task else 0,
             1 if claude_task else 0,
-            1 if gemini_task else 0,
         ])
         confidence = (
             success_count / float(requested_count)
@@ -1060,8 +1016,7 @@ Produce sections:
 
         task_desc = (
             f"Codex: {codex_task or 'N/A'} | "
-            f"Claude: {claude_task or 'N/A'} | "
-            f"Gemini: {gemini_task or 'N/A'}"
+            f"Claude: {claude_task or 'N/A'}"
         )
 
         return CollaborationResult(
@@ -1069,7 +1024,6 @@ Produce sections:
             task_description=task_desc[:200],
             codex_response=codex_resp,
             claude_response=claude_resp,
-            gemini_response=gemini_resp,
             merged_analysis=merged,
             confidence=confidence,
             recommendations=[],
@@ -1101,14 +1055,6 @@ Produce sections:
                 merged_analysis=resp.content if resp.success else resp.error or "",
                 confidence=1.0 if resp.success else 0.0,
             )
-        if model == "gemini":
-            return CollaborationResult(
-                mode="single",
-                task_description=prompt[:200],
-                gemini_response=resp,
-                merged_analysis=resp.content if resp.success else resp.error or "",
-                confidence=1.0 if resp.success else 0.0,
-            )
         return CollaborationResult(
             mode="single",
             task_description=prompt[:200],
@@ -1117,7 +1063,7 @@ Produce sections:
             recommendations=[],
         )
 
-    def _merge_analyses(self, codex: str, gemini: str) -> str:
+    def _merge_analyses(self, codex: str, claude: str) -> str:
         """Merge two model outputs into unified analysis."""
         return f"""## Parallel Analysis Results
 
@@ -1126,8 +1072,8 @@ Produce sections:
 
 ---
 
-### Gemini Analysis
-{gemini}
+### Claude Analysis
+{claude}
 
 ---
 
@@ -2268,7 +2214,6 @@ Provide your verification assessment.
         runtime_registry = {
             "codex": ("OPENAI_API_KEY",),
             "claude": ("ANTHROPIC_API_KEY",),
-            "gemini": ("GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_APPLICATION_CREDENTIALS"),
         }
         for cli_name, api_envs in runtime_registry.items():
             cli_path = shutil.which(cli_name)
@@ -2281,45 +2226,6 @@ Provide your verification assessment.
                     f"{cli_name} not found in PATH.",
                     f"Install {cli_name} CLI or route tasks away from {cli_name}.",
                 )
-
-            if cli_name == "gemini":
-                transport, transport_source = self._gemini_transport()
-                broker_status = self._gemini_broker_status()
-                direct_ok, direct_detail = self._gemini_noninteractive_auth_status()
-                add_check(
-                    "Gemini transport",
-                    "ok",
-                    f"{transport} (source: {transport_source})",
-                )
-                broker_check_status, broker_detail, broker_recommendation = self._doctor_gemini_broker_check(
-                    transport=transport,
-                    broker_status=broker_status,
-                )
-                add_check(
-                    "Gemini broker",
-                    broker_check_status,
-                    broker_detail,
-                    broker_recommendation,
-                )
-                direct_check_status, direct_check_detail, direct_recommendation = self._doctor_gemini_direct_check(
-                    transport=transport,
-                    broker_status=broker_status,
-                    direct_ok=direct_ok,
-                    direct_detail=direct_detail,
-                )
-                add_check(
-                    "Gemini direct auth",
-                    direct_check_status,
-                    direct_check_detail,
-                    direct_recommendation,
-                )
-                for env_name in api_envs:
-                    if os.environ.get(env_name, "").strip():
-                        add_check(f"Env {env_name}", "ok", "configured")
-                transport_env = os.environ.get(GEMINI_TRANSPORT_ENV, "").strip()
-                if transport_env:
-                    add_check(f"Env {GEMINI_TRANSPORT_ENV}", "ok", transport_env)
-                continue
 
             configured_env = next(
                 (env_name for env_name in api_envs if os.environ.get(env_name, "").strip()),
@@ -2471,7 +2377,7 @@ Provide your verification assessment.
     ) -> tuple[str, list[str]]:
         notes: list[str] = []
         seen: set[str] = set()
-        candidates = [preferred_agent, *fallback_chain, "codex", "claude", "gemini"]
+        candidates = [preferred_agent, *fallback_chain, "codex", "claude"]
         for candidate in candidates:
             if not candidate or candidate in seen:
                 continue
@@ -2496,66 +2402,21 @@ Provide your verification assessment.
                         f"Runtime routed agent '{preferred_agent}' to '{candidate}'."
                     )
                 return candidate, notes
+        if exclude_agent and exclude_agent in self.RUNTIME_AGENTS and cwd is not None:
+            excluded_options = dict((runtime_options_by_agent or {}).get(exclude_agent, {}))
+            preflight_error = self._runtime_preflight_error(
+                exclude_agent,
+                cwd,
+                excluded_options,
+            )
+            if not preflight_error:
+                notes.append(
+                    f"No distinct runtime agent available for '{preferred_agent}'; "
+                    f"reusing '{exclude_agent}'."
+                )
+                return exclude_agent, notes
         raise ValueError(
             f"No runtime agent available for preferred={preferred_agent}, exclude={exclude_agent}"
-        )
-
-    def _gemini_cached_auth_files(self) -> list[Path]:
-        return gemini_cached_auth_files()
-
-    def _gemini_noninteractive_auth_status(self) -> tuple[bool, str]:
-        return gemini_noninteractive_auth_status()
-
-    def _gemini_transport(
-        self,
-        runtime_options: dict[str, Any] | None = None,
-    ) -> tuple[str, str]:
-        return resolve_gemini_transport(runtime_options)
-
-    def _gemini_broker_status(
-        self,
-        *,
-        timeout_seconds: float = DEFAULT_BROKER_TIMEOUT_SECONDS,
-    ) -> dict[str, Any]:
-        return broker_status_from_env(timeout_seconds=timeout_seconds)
-
-    def _doctor_gemini_broker_check(
-        self,
-        *,
-        transport: str,
-        broker_status: dict[str, Any],
-    ) -> tuple[str, str, str | None]:
-        detail = broker_status["detail"]
-        recommendation = "Start scripts/gemini_session_broker.py or unset RESEARCH_GEMINI_BROKER_URL."
-        if transport == "direct":
-            if broker_status["configured"]:
-                return "ok", f"configured but bypassed by transport=direct: {detail}", None
-            return "ok", "not selected (transport=direct)", None
-        if transport == "broker":
-            return ("ok" if broker_status["ok"] else "warning"), detail, recommendation
-        if broker_status["configured"]:
-            return ("ok" if broker_status["ok"] else "warning"), detail, recommendation
-        return "ok", "not configured; auto transport will use direct auth if available", None
-
-    def _doctor_gemini_direct_check(
-        self,
-        *,
-        transport: str,
-        broker_status: dict[str, Any],
-        direct_ok: bool,
-        direct_detail: str,
-    ) -> tuple[str, str, str | None]:
-        recommendation = "Prefer GEMINI_API_KEY or Vertex env auth for direct Gemini subprocess runs."
-        if transport == "broker":
-            if direct_ok:
-                return "ok", f"available but bypassed by transport=broker: {direct_detail}", None
-            return "ok", "not required for broker transport", None
-        if transport == "auto" and broker_status["configured"] and broker_status["ok"] and not direct_ok:
-            return "ok", "not required because auto transport resolves to broker", None
-        return (
-            "ok" if direct_ok else "warning",
-            direct_detail,
-            recommendation if not direct_ok else None,
         )
 
     def _runtime_preflight_error(
@@ -2574,40 +2435,6 @@ Provide your verification assessment.
             "codex": "OPENAI_API_KEY",
             "claude": "ANTHROPIC_API_KEY",
         }.get(agent_name)
-
-        # Gemini collaboration runs non-interactively in orchestrated flows, so
-        # browser-based login is not a stable dependency. Fail fast and reroute.
-        if agent_name == "gemini" and non_interactive:
-            transport, _transport_source = self._gemini_transport(options)
-            broker_status = self._gemini_broker_status()
-            direct_ok, direct_detail = self._gemini_noninteractive_auth_status()
-            cli_path = shutil.which(agent_name)
-            if transport == "broker":
-                if broker_status["configured"] and broker_status["ok"]:
-                    return None
-                if broker_status["configured"]:
-                    return f"Gemini broker unavailable: {broker_status['detail']}"
-                return "Gemini broker transport selected but RESEARCH_GEMINI_BROKER_URL is not configured."
-            if transport == "direct":
-                if not cli_path:
-                    return f"{agent_name} CLI not found in PATH. Please install it first."
-                if direct_ok:
-                    return None
-                return direct_detail
-            if broker_status["configured"] and broker_status["ok"]:
-                return None
-            if cli_path and direct_ok:
-                return None
-            if broker_status["configured"]:
-                if cli_path:
-                    return f"Gemini broker unavailable: {broker_status['detail']}; {direct_detail}"
-                return (
-                    f"Gemini broker unavailable: {broker_status['detail']}; "
-                    "gemini CLI not found in PATH."
-                )
-            if not cli_path:
-                return f"{agent_name} CLI not found in PATH. Please install it first."
-            return direct_detail
 
         cli_path = shutil.which(agent_name)
         if not cli_path:
@@ -2659,63 +2486,10 @@ Provide your verification assessment.
             return self.codex.execute(final_prompt, cwd, **options)
         if agent_name == "claude":
             return self.claude.execute(final_prompt, cwd, **options)
-        if agent_name == "gemini":
-            transport, _transport_source = self._gemini_transport(options)
-            if transport in {"broker", "auto"}:
-                broker_response = self._execute_gemini_via_broker(
-                    final_prompt,
-                    cwd,
-                    options,
-                )
-                if broker_response is not None:
-                    if broker_response.success:
-                        return broker_response
-                    direct_ok, _ = self._gemini_noninteractive_auth_status()
-                    if transport == "broker" or not direct_ok or not shutil.which("gemini"):
-                        return broker_response
-            if transport == "broker":
-                return BridgeResponse.from_error(
-                    "gemini",
-                    "Gemini broker transport selected but broker execution did not run.",
-                )
-            if transport == "direct" or transport == "auto":
-                return self.gemini.execute(final_prompt, cwd, **options)
-            return BridgeResponse.from_error(
-                "gemini",
-                f"Unsupported Gemini transport: {transport}",
-            )
         return BridgeResponse.from_error(
             agent_name,
             f"Unsupported runtime agent for this orchestrator: {agent_name}",
         )
-
-    def _execute_gemini_via_broker(
-        self,
-        prompt: str,
-        cwd: Path,
-        runtime_options: dict[str, Any] | None = None,
-    ) -> BridgeResponse | None:
-        options = dict(runtime_options or {})
-        timeout_seconds = options.get("timeout_seconds", DEFAULT_BROKER_TIMEOUT_SECONDS)
-        try:
-            timeout_value = float(timeout_seconds)
-        except (TypeError, ValueError):
-            timeout_value = DEFAULT_BROKER_TIMEOUT_SECONDS
-        client = broker_client_from_env(timeout_seconds=timeout_value)
-        if client is None:
-            return None
-        try:
-            payload = client.prompt(
-                prompt=prompt,
-                cwd=cwd,
-                runtime_options=options,
-            )
-        except Exception as exc:
-            return BridgeResponse.from_error(
-                "gemini",
-                f"Gemini broker request failed: {exc}",
-            )
-        return bridge_response_from_broker_payload(payload)
 
     def _normalize_topic(self, topic: str) -> str:
         normalized = re.sub(r"[^a-z0-9]+", "-", topic.strip().lower())
@@ -3110,7 +2884,6 @@ Stage-I structure checks:
             task_description=f"{method} {focus} {topic}"[:200],
             codex_response=result.codex_response,
             claude_response=result.claude_response,
-            gemini_response=result.gemini_response,
             merged_analysis=merged,
             confidence=result.confidence,
             recommendations=list(result.recommendations),
@@ -5612,8 +5385,8 @@ Return sections:
         }
 
         # Worker/Review pool
-        config["worker_pool"] = list(block.get("worker_pool", [])) or ["codex", "claude", "gemini"]
-        config["review_pool"] = list(block.get("review_pool", [])) or ["codex", "gemini"]
+        config["worker_pool"] = list(block.get("worker_pool", [])) or ["codex", "claude"]
+        config["review_pool"] = list(block.get("review_pool", [])) or ["codex", "claude"]
 
         # Shard / canonical outputs
         config["shard_outputs"] = list(block.get("shard_outputs", []) or [])
@@ -5665,7 +5438,7 @@ Return sections:
         planner_agent = team_config.get("planner_agent", "claude")
         planner_runtime, _ = self._resolve_runtime_agent(
             planner_agent,
-            ["claude", "gemini", "codex"],
+            ["claude", "codex"],
             cwd=cwd,
             runtime_options_by_agent={
                 agent: self._profile_runtime_options(profile_cfg, agent)
@@ -5817,7 +5590,7 @@ Return your shard deliverables as structured output.
         profile_name: str,
     ) -> list[dict[str, Any]]:
         """Execute work units in parallel using ThreadPoolExecutor."""
-        worker_pool = team_config.get("worker_pool", ["codex", "claude", "gemini"])
+        worker_pool = team_config.get("worker_pool", ["codex", "claude"])
         results: list[dict[str, Any]] = []
 
         def execute_worker(idx: int, unit: dict[str, Any]) -> dict[str, Any]:
@@ -6106,7 +5879,7 @@ Return sections:
             merge_agent = team_config.get("merge_agent", "claude")
             merge_runtime, merge_notes = self._resolve_runtime_agent(
                 merge_agent,
-                ["claude", "gemini", "codex"],
+                ["claude", "codex"],
                 cwd=cwd,
                 runtime_options_by_agent={
                     agent: self._profile_runtime_options(profile_cfg, agent)
@@ -6130,7 +5903,7 @@ Return sections:
         review_resp: BridgeResponse | None = None
         review_runtime: str | None = None
         if merge_resp and merge_resp.success:
-            review_pool = team_config.get("review_pool", ["codex", "gemini"])
+            review_pool = team_config.get("review_pool", ["codex", "claude"])
             preferred_reviewer = review_pool[0] if review_pool else "codex"
             review_runtime, review_notes = self._resolve_runtime_agent(
                 preferred_reviewer,
@@ -6157,7 +5930,6 @@ Return sections:
         # 9. Assemble result
         codex_resp = None
         claude_resp = None
-        gemini_resp = None
         for runtime_agent, response in (
             (merge_runtime, merge_resp),
             (review_runtime, review_resp),
@@ -6168,8 +5940,6 @@ Return sections:
                 codex_resp = response
             if runtime_agent == "claude" and claude_resp is None:
                 claude_resp = response
-            if runtime_agent == "gemini" and gemini_resp is None:
-                gemini_resp = response
 
         merged_parts = [
             f"## Team-Run: {normalized_task} (run_id={run_id})",
@@ -6236,7 +6006,6 @@ Return sections:
             task_description=f"{normalized_task} {paper_type} {normalized_topic}"[:200],
             codex_response=codex_resp,
             claude_response=claude_resp,
-            gemini_response=gemini_resp,
             merged_analysis=merged,
             confidence=confidence,
             recommendations=self._extract_recommendations(merged),
@@ -6641,7 +6410,6 @@ Return sections:
                 recommendations=[],
                 codex_response=error_resp if "codex" in str(exc).lower() else None,
                 claude_response=error_resp if "claude" in str(exc).lower() else None,
-                gemini_response=error_resp if "gemini" in str(exc).lower() else None,
             )
 
         try:
@@ -6661,7 +6429,6 @@ Return sections:
                 recommendations=[],
                 codex_response=error_resp if "codex" in str(exc).lower() else None,
                 claude_response=error_resp if "claude" in str(exc).lower() else None,
-                gemini_response=error_resp if "gemini" in str(exc).lower() else None,
             )
 
         draft_runtime_options = {
@@ -7052,7 +6819,7 @@ Return sections:
         triad_runtime: str | None = None
         if triad and draft_resp.success and review_resp and review_resp.success:
             third_candidates = [
-                agent for agent in ("codex", "claude", "gemini")
+                agent for agent in ("codex", "claude")
                 if agent not in {draft_runtime, review_runtime}
             ]
             for candidate in third_candidates:
@@ -7089,7 +6856,6 @@ Return sections:
 
         codex_resp = None
         claude_resp = None
-        gemini_resp = None
         for runtime_agent, response in (
             (draft_runtime, draft_resp),
             (review_runtime, review_resp),
@@ -7102,8 +6868,6 @@ Return sections:
                 codex_resp = response
             if runtime_agent == "claude" and claude_resp is None:
                 claude_resp = response
-            if runtime_agent == "gemini" and gemini_resp is None:
-                gemini_resp = response
 
         structured_output: dict[str, Any] = {}
         if draft_resp.success and normalized_task in self.STAGE_I_TEMPLATE_TYPE_BY_TASK:
@@ -7299,7 +7063,6 @@ Return sections:
             task_description=f"{normalized_task} {paper_type} {normalized_topic}"[:200],
             codex_response=codex_resp,
             claude_response=claude_resp,
-            gemini_response=gemini_resp,
             merged_analysis=merged,
             confidence=confidence,
             recommendations=self._extract_recommendations(merged),
@@ -7410,7 +7173,6 @@ Return sections:
             stage_results: list[tuple[str, CollaborationResult]] = []
             combined_codex: BridgeResponse | None = None
             combined_claude: BridgeResponse | None = None
-            combined_gemini: BridgeResponse | None = None
             structured_stage_outputs: dict[str, Any] = {}
             aggregated_actionable_targets: dict[str, list[str]] = {}
 
@@ -7465,8 +7227,6 @@ Return sections:
                     combined_codex = stage_result.codex_response
                 if combined_claude is None and stage_result.claude_response:
                     combined_claude = stage_result.claude_response
-                if combined_gemini is None and stage_result.gemini_response:
-                    combined_gemini = stage_result.gemini_response
 
                 if stage_result.confidence <= 0.0:
                     break
@@ -7518,7 +7278,6 @@ Return sections:
                 task_description=f"{method} {normalized_focus} {normalized_topic}"[:200],
                 codex_response=combined_codex,
                 claude_response=combined_claude,
-                gemini_response=combined_gemini,
                 merged_analysis="\n".join(merged_sections).strip(),
                 confidence=confidence,
                 recommendations=self._extract_recommendations("\n".join(merged_sections)),
@@ -7590,12 +7349,12 @@ REQUIREMENTS:
 CONTEXT:
 {request_context}
 """
-            # Use role-based for standard: Codex builds, Gemini explains usage
+            # Use role-based for standard: Codex builds, Claude explains usage.
             return self.execute(
                 mode=CollaborationMode.ROLE_BASED,
                 cwd=cwd,
                 codex_task=f"{prompt}\n\nGenerate the implementation code.",
-                gemini_task=f"{prompt}\n\nExplain the library usage and parameter choices."
+                claude_task=f"{prompt}\n\nExplain the library usage and parameter choices."
             )
 
 def _run_guidance_command(args: argparse.Namespace) -> CollaborationResult:
@@ -7664,7 +7423,7 @@ def main():
     parallel.add_argument("--cwd", required=True, type=Path, help="Working directory")
     parallel.add_argument(
         "--summarizer",
-        choices=["codex", "claude", "gemini"],
+        choices=RUNTIME_AGENT_CHOICES,
         default="claude",
         help="Model used for post-parallel synthesis",
     )
@@ -7692,7 +7451,7 @@ def main():
     chain = subparsers.add_parser("chain", help="One generates, other verifies")
     chain.add_argument("--prompt", required=True, help="Generation prompt")
     chain.add_argument("--cwd", required=True, type=Path, help="Working directory")
-    chain.add_argument("--generator", choices=["codex", "claude", "gemini"], default="codex")
+    chain.add_argument("--generator", choices=RUNTIME_AGENT_CHOICES, default="codex")
     chain.add_argument(
         "--role",
         type=str,
@@ -7704,13 +7463,12 @@ def main():
     role.add_argument("--cwd", required=True, type=Path, help="Working directory")
     role.add_argument("--codex-task", help="Task for Codex")
     role.add_argument("--claude-task", help="Task for Claude")
-    role.add_argument("--gemini-task", help="Task for Gemini")
 
     # Single mode
     single = subparsers.add_parser("single", help="Single model execution")
     single.add_argument("--prompt", required=True, help="Task prompt")
     single.add_argument("--cwd", required=True, type=Path, help="Working directory")
-    single.add_argument("--model", choices=["codex", "claude", "gemini"], default="codex")
+    single.add_argument("--model", choices=RUNTIME_AGENT_CHOICES, default="codex")
     single.add_argument("--session-id", help="Resume existing session")
 
     # NEW: Code Build mode
@@ -8077,7 +7835,6 @@ def main():
             prompt=getattr(args, "prompt", None),
             codex_task=getattr(args, "codex_task", None),
             claude_task=getattr(args, "claude_task", None),
-            gemini_task=getattr(args, "gemini_task", None),
             generator=getattr(args, "generator", "codex"),
             single_model=getattr(args, "model", "codex"),
             parallel_summarizer=getattr(args, "summarizer", "claude"),

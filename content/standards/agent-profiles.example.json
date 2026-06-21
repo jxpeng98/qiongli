@@ -17,12 +17,6 @@
           "permission_mode": "default",
           "non_interactive": true,
           "timeout_seconds": 300
-        },
-        "gemini": {
-          "sandbox": false,
-          "non_interactive": true,
-          "transport": "auto",
-          "timeout_seconds": 300
         }
       }
     },
@@ -41,12 +35,6 @@
           "permission_mode": "default",
           "non_interactive": true,
           "timeout_seconds": 360
-        },
-        "gemini": {
-          "sandbox": true,
-          "non_interactive": true,
-          "transport": "auto",
-          "timeout_seconds": 240
         }
       }
     },
@@ -64,12 +52,6 @@
           "permission_mode": "default",
           "non_interactive": true,
           "timeout_seconds": 240
-        },
-        "gemini": {
-          "sandbox": false,
-          "non_interactive": true,
-          "transport": "auto",
-          "timeout_seconds": 180
         }
       }
     },
@@ -87,12 +69,6 @@
         "claude": {
           "permission_mode": "default",
           "non_interactive": true,
-          "timeout_seconds": 240
-        },
-        "gemini": {
-          "sandbox": false,
-          "non_interactive": true,
-          "transport": "auto",
           "timeout_seconds": 240
         }
       }
@@ -114,12 +90,6 @@
           "permission_mode": "default",
           "non_interactive": true,
           "timeout_seconds": 540
-        },
-        "gemini": {
-          "sandbox": true,
-          "non_interactive": true,
-          "transport": "auto",
-          "timeout_seconds": 420
         }
       }
     },
@@ -138,12 +108,6 @@
           "permission_mode": "default",
           "non_interactive": true,
           "timeout_seconds": 420
-        },
-        "gemini": {
-          "sandbox": true,
-          "non_interactive": true,
-          "transport": "auto",
-          "timeout_seconds": 300
         }
       }
     },
@@ -161,12 +125,6 @@
         "claude": {
           "permission_mode": "default",
           "non_interactive": true,
-          "timeout_seconds": 300
-        },
-        "gemini": {
-          "sandbox": false,
-          "non_interactive": true,
-          "transport": "auto",
           "timeout_seconds": 300
         }
       }

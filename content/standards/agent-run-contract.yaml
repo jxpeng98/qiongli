@@ -2,13 +2,11 @@ contract_version: "1.0.0"
 execution_modes:
   - solo_codex
   - solo_claude
-  - solo_gemini
   - duo
   - triad
 runtime_agents:
   - codex
   - claude
-  - gemini
 verification_statuses:
   - passed
   - failed

@@ -8,7 +8,7 @@ Qiongli stable is distributed as one plugin package, not as dozens of separate a
 |-------|------|------|
 | Plugin metadata | `content/distribution/plugins.yaml` | Source names, descriptions, prompts, keywords, and platform enablement for stable and prerelease plugins. |
 | Plugin generator | `tooling/scripts/build_plugin_artifacts.py` | Generates manifests, command wrappers, bundled MCP manifests, and platform payloads. |
-| Portable skill package | `qiongli-workflow/` | The cross-client runtime skill loaded by Codex, Claude Code, and Gemini. |
+| Portable skill package | `qiongli-workflow/` | The cross-client runtime skill loaded by Codex, Claude Code, Antigravity, and Hermes. |
 | Source skill specs | `content/skills/` | Canonical academic capability specs maintained by this repository. |
 | Workflow commands | `content/workflow/workflows/` | User entrypoints such as `/paper`, `/lit-review`, and `/code-build`; plugin command files are generated from these workflows. |
 
@@ -38,7 +38,6 @@ The `qiongli-next` plugin is generated from the same canonical sources with prer
 |----------|----------|---------------|
 | Codex | generated `.codex-plugin/plugin.json` plus bundled `.mcp.json` in `plugins/qiongli/` or `plugins/qiongli-next/` | `skills/qiongli-workflow/`, visible as `qiongli` or `qiongli-next` in `/skills`, invoked as `$qiongli` or `$qiongli-next`; bundled Node literature-provider MCP runtime under `mcp/qiongli-literature-provider/` |
 | Claude Code | generated `.claude-plugin/plugin.json` in the plugin payload | `commands/*.md` plus `skills/qiongli-workflow/`; bundled Node literature-provider MCP runtime under `mcp/qiongli-literature-provider/` |
-| Gemini | generated `gemini-extension.json` in the stable plugin payload | `skills/qiongli-workflow/` |
 
 The shared Skillsplace repository is the public marketplace source of truth. This repository owns the generator inputs and release artifacts used by marketplace entries, not duplicate public marketplace catalog state.
 
@@ -49,8 +48,8 @@ Generated command wrappers intentionally contain no workflow logic. They only lo
 The plugin-first package does not replace the legacy global install in place. Native plugin installation and bootstrap / `rsk` installation use separate surfaces:
 
 - Plugin bundle: managed by the client plugin or extension system.
-- Global skill install: `~/.codex/skills/qiongli-workflow`, `~/.claude/skills/qiongli-workflow`, `~/.gemini/skills/qiongli-workflow`, `~/.gemini/antigravity/skills/qiongli-workflow`, and `~/.hermes/skills/qiongli-workflow`, managed by `rsk` or bootstrap.
-- Global slash discovery: `~/.claude/commands/*.md` and `~/.gemini/workflows/*.md`, managed by `rsk`.
+- Global skill install: `~/.codex/skills/qiongli-workflow`, `~/.claude/skills/qiongli-workflow`, `~/.gemini/antigravity/skills/qiongli-workflow`, and `~/.hermes/skills/qiongli-workflow`, managed by `rsk` or bootstrap.
+- Global slash discovery: `~/.claude/commands/*.md`, managed by `rsk`.
 
 For ordinary skill-only client-native usage and Codex/Claude Code bundled literature-provider MCP usage, the plugin bundle is enough. For the full Python-backed MCP server, CLI commands, validators, `doctor`, release tooling, or `bridges.orchestrator`, users still need the local `qiongli` CLI/runtime and should keep the global install aligned with:
 

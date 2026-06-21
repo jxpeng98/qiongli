@@ -96,11 +96,10 @@ class PluginDistributionContractTests(unittest.TestCase):
             materialized_plugin = self.materialize_plugin_payload(tmp_dir)
             codex = json.loads((materialized_plugin / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
             claude = json.loads((materialized_plugin / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
-            gemini = json.loads((materialized_plugin / "gemini-extension.json").read_text(encoding="utf-8"))
 
         self.assertEqual(codex["version"], WORKFLOW_VERSION)
         self.assertEqual(claude["version"], WORKFLOW_VERSION)
-        self.assertEqual(gemini["version"], WORKFLOW_VERSION)
+        self.assertFalse((materialized_plugin / "gemini-extension.json").exists())
 
     def test_codex_plugin_exposes_skill_directory(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -292,7 +291,7 @@ class PluginDistributionContractTests(unittest.TestCase):
                 "[OK] claude marketplace ZIP artifact: qiongli invocation checked; bundled literature MCP checked",
                 result.stdout,
             )
-            self.assertIn("[OK] gemini marketplace artifact: qiongli invocation checked", result.stdout)
+            self.assertNotIn("[OK] gemini marketplace artifact", result.stdout)
             self.assertIn("[OK] codex marketplace artifact (economics):", result.stdout)
             self.assertIn("[OK] claude-desktop skill artifact (core)", result.stdout)
             self.assertNotIn("core-next", result.stdout)

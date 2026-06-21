@@ -11,6 +11,7 @@ from bridges.base_bridge import BridgeResponse
 from bridges.mcp_connectors import MCPEvidence
 from bridges.orchestrator import (
     ModelOrchestrator,
+    RUNTIME_AGENT_CHOICES,
     _add_controller_agnostic_task_run_args,
 )
 
@@ -67,6 +68,9 @@ class MetadataCaptureOrchestrator(ModelOrchestrator):
 
 
 class ControllerAgnosticOrchestrationTests(unittest.TestCase):
+    def test_runtime_agent_choices_drop_gemini(self) -> None:
+        self.assertEqual(("codex", "claude"), RUNTIME_AGENT_CHOICES)
+
     def test_parser_accepts_controller_agnostic_task_run_metadata(self) -> None:
         parser = argparse.ArgumentParser()
         _add_controller_agnostic_task_run_args(parser)
@@ -94,6 +98,9 @@ class ControllerAgnosticOrchestrationTests(unittest.TestCase):
         self.assertEqual("codex", args.review_agent)
         self.assertEqual("codex", args.verifier_agent)
         self.assertEqual("strict", args.solo_role_gates)
+
+        with self.assertRaises(SystemExit):
+            parser.parse_args(["--controller", "gemini"])
 
     def test_task_run_uses_controller_runtime_overrides_for_draft_and_review(self) -> None:
         orchestrator = MetadataCaptureOrchestrator()
@@ -134,7 +141,7 @@ class ControllerAgnosticOrchestrationTests(unittest.TestCase):
             {
                 "primary_agent": "codex",
                 "review_agent": "claude",
-                "fallback_agent": "gemini",
+                "fallback_agent": "claude",
             },
             packet["runtime_plan"],
         )
@@ -187,7 +194,7 @@ class ControllerAgnosticOrchestrationTests(unittest.TestCase):
             {
                 "primary_agent": "codex",
                 "review_agent": "claude",
-                "fallback_agent": "gemini",
+                "fallback_agent": "claude",
             },
             packet["runtime_plan"],
         )
@@ -197,10 +204,10 @@ class ControllerAgnosticOrchestrationTests(unittest.TestCase):
             for call in orchestrator.runtime_calls
             if call["stage"] == "draft"
         ]
-        self.assertEqual(["gemini"], draft_agents)
+        self.assertEqual(["claude"], draft_agents)
         self.assertIn("Runtime agent 'codex' unavailable:", result.merged_analysis)
         self.assertIn(
-            "Runtime routed agent 'codex' to 'gemini'.",
+            "Runtime routed agent 'codex' to 'claude'.",
             result.merged_analysis,
         )
 

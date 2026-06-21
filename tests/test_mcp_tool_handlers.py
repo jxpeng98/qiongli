@@ -86,6 +86,16 @@ class MCPToolHandlerTests(unittest.TestCase):
         self.assertFalse(payload["requires_full_runtime"])
         self.assertIn("skill", payload["why"][0])
 
+    def test_tool_definitions_do_not_expose_gemini_runtime_agent(self) -> None:
+        for tool in MCP_TOOL_DEFINITIONS:
+            if tool["name"] != "qiongli_task_run":
+                continue
+            properties = tool["inputSchema"]["properties"]
+            for field in ("controller", "primary", "reviewer", "verifier"):
+                with self.subTest(tool=tool["name"], field=field):
+                    self.assertNotIn("gemini", properties[field]["enum"])
+                    self.assertEqual(["codex", "claude"], properties[field]["enum"])
+
     def test_config_status_redacts_saved_provider_values(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
@@ -417,9 +427,9 @@ class MCPToolHandlerTests(unittest.TestCase):
                 "topic": "my-topic",
                 "artifact_root": "RESEARCH/[topic]/",
                 "runtime_plan": {
-                    "primary_agent": "gemini",
-                    "review_agent": "gemini",
-                    "fallback_agent": "gemini",
+                    "primary_agent": "codex",
+                    "review_agent": "claude",
+                    "fallback_agent": "claude",
                 },
             }
 
@@ -484,7 +494,7 @@ class MCPToolHandlerTests(unittest.TestCase):
                 "runtime_plan": {
                     "primary_agent": "codex",
                     "review_agent": "claude",
-                    "fallback_agent": "gemini",
+                    "fallback_agent": "claude",
                 },
             }
 
@@ -535,7 +545,7 @@ class MCPToolHandlerTests(unittest.TestCase):
                 "runtime_plan": {
                     "primary_agent": "codex",
                     "review_agent": "claude",
-                    "fallback_agent": "gemini",
+                    "fallback_agent": "claude",
                 },
             }
 
@@ -592,7 +602,7 @@ class MCPToolHandlerTests(unittest.TestCase):
                 "runtime_plan": {
                     "primary_agent": "codex",
                     "review_agent": "claude",
-                    "fallback_agent": "gemini",
+                    "fallback_agent": "claude",
                 },
             }
 
@@ -628,7 +638,7 @@ class MCPToolHandlerTests(unittest.TestCase):
                     "controller": "codex",
                     "primary": "codex",
                     "reviewer": "claude",
-                    "verifier": "gemini",
+                    "verifier": "codex",
                 },
             )
 
@@ -651,7 +661,7 @@ class MCPToolHandlerTests(unittest.TestCase):
                 "runtime_plan": {
                     "primary_agent": "codex",
                     "review_agent": "claude",
-                    "fallback_agent": "gemini",
+                    "fallback_agent": "claude",
                 },
             }
 
@@ -721,7 +731,7 @@ class MCPToolHandlerTests(unittest.TestCase):
                 "runtime_plan": {
                     "primary_agent": "codex",
                     "review_agent": "claude",
-                    "fallback_agent": "gemini",
+                    "fallback_agent": "claude",
                 },
             }
 
@@ -842,7 +852,7 @@ class MCPToolHandlerTests(unittest.TestCase):
                         "controller": "codex",
                         "primary": "codex",
                         "reviewer": "claude",
-                        "verifier": "gemini",
+                        "verifier": "codex",
                         "run_agents": True,
                     },
                 )
@@ -879,7 +889,7 @@ class MCPToolHandlerTests(unittest.TestCase):
                         "controller": "codex",
                         "primary": "codex",
                         "reviewer": "claude",
-                        "verifier": "gemini",
+                        "verifier": "codex",
                         "run_agents": True,
                     },
                 )

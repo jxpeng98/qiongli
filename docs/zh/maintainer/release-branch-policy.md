@@ -19,7 +19,6 @@
 - Qiongli repository: `https://github.com/jxpeng98/qiongli`
 - Stable Codex artifact: `qiongli-core-codex-plugin-<tag>.tar.gz`
 - Stable Claude Code artifact: `qiongli-core-claude-plugin-<tag>.tar.gz` 或 `.zip`
-- Stable Gemini artifact: `qiongli-gemini-extension-<tag>.tar.gz`
 - Stable generated payload root: `plugins/qiongli/`
 
 Skillsplace catalog 应跟踪 `main` 和 release tag，而不是 `dev`。`dev` 用于本地 plugin packaging 测试和预发布验证，验证完成后再更新统一 marketplace 入口。本仓库不再携带 Codex 或 Claude marketplace catalog 文件，只负责 plugin manifest，并从 canonical source materialize release payload。

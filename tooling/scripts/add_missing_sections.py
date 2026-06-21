@@ -214,7 +214,7 @@ CONTENT = {
         "Common Pitfalls": "| Pitfall | Problem | Fix |\n|---------|---------|-----|\n| DOI 格式不统一 | 大小写或 URL scheme 不一 | 全部转 lowercase + https://doi.org/ |\n| 作者名字翻转 | 中文/东亚作者姓名反 | 检查 parsed name vs. original |\n| 年份混淆 | Online first vs. print year | 优先使用 published year |\n| Dedup 过激 | 不该合并的条目被合并 | 用 DOI + title + year 三重匹配 |\n| Citekey 漂移 | 同一论文每次 enrichment 换 key | 首次生成后锁定 citekey |"
     },
     "model-collaborator": {
-        "When to Use": "- 需要 Codex、Claude 和 Gemini 分工协作或交叉复核时\n- 复杂任务需要多模型独立执行后比较结论时\n- 需要 primary-review agent 配对验证代码/写作/分析时\n- team-run 模式需要分片并行执行时",
+        "When to Use": "- 需要 Codex 和 Claude 分工协作或交叉复核时\n- 复杂任务需要多模型独立执行后比较结论时\n- 需要 primary-review agent 配对验证代码/写作/分析时\n- team-run 模式需要分片并行执行时",
         "Quality Bar": "- [ ] 各 agent 的独立产出已记录\n- [ ] 分歧点已显式标注并解决\n- [ ] Collaboration trace 包含 handoff 日志\n- [ ] 最终合并结论的依据已记录\n- [ ] 任务拆分粒度使每个 agent 可独立完成其部分",
         "Common Pitfalls": "| Pitfall | Problem | Fix |\n|---------|---------|-----|\n| Agent 间信息泄漏 | 交叉审查前看到对方输出 | 强制独立执行后再 merge |\n| 任务拆分不当 | 一个 agent 负载过重 | 按 skill boundary 而非任意拆分 |\n| Merge 无规则 | 不知道以谁的结论为准 | 预定义 merge 策略（majority/primary） |\n| 只比较最终结果 | 忽视中间推理差异 | 记录 reasoning trace 而非只比较 output |\n| 未记录 handoff | 后续无法追踪协作路径 | collaboration trace 必须包含每步 |"
     },

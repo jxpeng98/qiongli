@@ -107,16 +107,6 @@ challenged like Reviewer 2, or checked for fatal flaws.
   call `qiongli_orchestrator_route` before running a skill-only workflow. Follow
   its returned `doctor -> task_plan -> task_run` sequence.
 
-## Gemini
-
-- Prompt pattern:
-  `Execute Task {ID} for paper_type {paper_type} in RESEARCH/{topic} and produce contract outputs.`
-- Keep task IDs and output file names unchanged
-- For proofread: `Execute Task J2 for paper_type {paper_type} in RESEARCH/{topic} using multi-agent collaboration to de-AI rewrite.`
-- For presentation: `Execute Task K1 for paper_type {paper_type} in RESEARCH/{topic} and prepare a conference talk using slidev backend.`
-- Gemini extension prompts should preserve the same Cross-Platform Trigger
-  Contract and Ambiguity Trigger when the user describes academic work naturally.
-
 ## CLI / npm / Python
 
 - Slash-style commands and `qiongli task-run` remain the stable entry points.
@@ -140,7 +130,7 @@ coordination:
   plan, writing harness, and required artifacts
 - call `qiongli_task_run` first in preview mode; only set JSON boolean
   `run_agents: true` after the doctor passes and the caller explicitly wants
-  local Codex, Claude, or Gemini processes launched
+  local Codex or Claude processes launched
 
 ## Worker Adapter Routing
 

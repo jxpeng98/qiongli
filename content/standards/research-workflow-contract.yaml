@@ -1270,8 +1270,6 @@ platform_mapping:
   codex:
     entry: "$qiongli"
     task_selector: "Use Task ID from task_catalog (for example F3 or G1)"
-  gemini:
-    prompt_pattern: "Task {ID} on RESEARCH/[topic] using outputs defined in contract_version 1.0.0"
 
 quality_gates:
   - id: "Q1"

@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import Any, Callable
 
 
-EXECUTION_MODES = {"solo", "solo_codex", "solo_claude", "solo_gemini", "duo", "triad"}
-RUNTIME_AGENTS = {"codex", "claude", "gemini"}
+EXECUTION_MODES = {"solo", "solo_codex", "solo_claude", "duo", "triad"}
+RUNTIME_AGENTS = {"codex", "claude"}
 WRITING_TASK_TYPES = {"writing", "drafting", "manuscript", "paper_write"}
 CODE_TASK_TYPES = {"code", "coding", "implementation", "software"}
 

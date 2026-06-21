@@ -9,10 +9,10 @@ Use these flags with `python3 -m bridges.orchestrator task-run`:
 | Flag | Values | Meaning |
 | --- | --- | --- |
 | `--execution-mode` | `solo`, `duo`, `triad` | Declares the collaboration shape. Defaults to `duo`, or `triad` when `--triad` is set. |
-| `--controller` | `codex`, `claude`, `gemini` | Declares the runtime agent accountable for orchestration metadata. Defaults to `codex`. |
-| `--primary` | `codex`, `claude`, `gemini` | Declares the primary runtime agent for the task packet. |
-| `--reviewer` | `codex`, `claude`, `gemini` | Declares the review runtime agent for the task packet. |
-| `--verifier` | `codex`, `claude`, `gemini` | Records the verification agent for audit metadata. |
+| `--controller` | `codex`, `claude` | Declares the runtime agent accountable for orchestration metadata. Defaults to `codex`. |
+| `--primary` | `codex`, `claude` | Declares the primary runtime agent for the task packet. |
+| `--reviewer` | `codex`, `claude` | Declares the review runtime agent for the task packet. |
+| `--verifier` | `codex`, `claude` | Records the verification agent for audit metadata. |
 | `--solo-role-gates` | `strict`, `standard`, `off` | Sets solo-mode gate strictness. Defaults to `standard`. |
 
 Invalid values are rejected by the CLI parser. Use `--mcp-strict` and `--skills-strict` when controller declarations must also fail fast on missing providers or skill specs.

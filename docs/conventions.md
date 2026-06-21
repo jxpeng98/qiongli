@@ -8,7 +8,7 @@
 - Root `scripts/` is a stable wrapper layer; edit implementations in
   `tooling/scripts/`.
 - Root `qiongli-workflow/`, `plugins/qiongli/`, `plugins/qiongli-next/`,
-  `.agent/`, and `.gemini/` are generated distribution shapes; edit their
+  and `.agent/` are generated distribution shapes; edit their
   sources in `content/` and `content/distribution/plugins.yaml`.
 
 ## Edit Order
@@ -73,7 +73,6 @@ Generated paths are ignored and guarded, including:
 - `plugins/qiongli/`
 - `plugins/qiongli-next/`
 - `.agent/`
-- `.gemini/`
 - `packages/python-qiongli/src/qiongli/payload/`
 - `packages/npm-qiongli/payload/`
 - `packages/npm-qiongli/python-runtime/`

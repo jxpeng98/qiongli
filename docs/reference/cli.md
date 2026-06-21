@@ -147,7 +147,7 @@ Use Case:
 qiongli install \
   [--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting] \
   [--coverage complete|focused] \
-  [--target codex|claude|gemini|antigravity|hermes|all] \
+  [--target codex|claude|antigravity|hermes|all] \
   [--mode copy|link] \
   [--project-dir <path>] \
   [--overwrite] \
@@ -183,7 +183,7 @@ qiongli upgrade \
   [--ref-type tag|branch] \
   [--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting] \
   [--coverage complete|focused] \
-  [--target codex|claude|gemini|antigravity|hermes|all] \
+  [--target codex|claude|antigravity|hermes|all] \
   [--project-dir <path>] \
   [--no-overwrite] \
   [--doctor] \
@@ -195,7 +195,7 @@ Notes:
 - Default `upgrade` now behaves as a global refresh. Use `qiongli init --project-dir .` for project bootstrap, or `qiongli upgrade --parts project ...` when you explicitly want project files rewritten.
 - `--subject` defaults to `core` and `--coverage` defaults to `complete`; use `--subject economics` for full Qiongli plus economics specialization, `--subject accounting` for full Qiongli plus accounting specialization, or add `--coverage focused` for the slim selected package.
 - Example: `qiongli upgrade --subject accounting --target all`.
-- After global install, `upgrade` creates workflow discovery symlinks: `~/.claude/commands/*.md` and `~/.gemini/workflows/*.md` → enables direct `/paper`, `/lit-review`, etc. invocation.
+- After global install, `upgrade` creates workflow discovery symlinks under `~/.claude/commands/*.md` → enables direct `/paper`, `/lit-review`, etc. invocation in Claude Code.
 - Shell CLI uses the bundled bootstrap helper and does not require Python.
 - The command exits with the error code returned by the underlying installer.
 
@@ -212,7 +212,7 @@ qiongli align [--repo <owner/repo|url>]
 Use Case: Creates project-local `.env` configuration in your project directory.
 
 ```bash
-qiongli init [--project-dir <path>] [--target all|codex|claude|gemini|antigravity|hermes] [--dry-run]
+qiongli init [--project-dir <path>] [--target all|codex|claude|antigravity|hermes] [--dry-run]
 ```
 
 Notes:
@@ -225,7 +225,7 @@ Use Case: Removes assets installed by the CLI so you can switch cleanly between 
 
 ```bash
 qiongli remove \
-  [--target codex|claude|gemini|antigravity|hermes|all] \
+  [--target codex|claude|antigravity|hermes|all] \
   [--parts globals|project|cli] \
   [--project-dir <path>] \
   [--cli-dir <path>] \
@@ -260,7 +260,7 @@ qiongli clean [--project-dir <path>] [--dry-run] [--globals]
 
 Flags:
 - `--project-dir`: Directory to clean (default: current dir). Removes `.agent/workflows/`, `.agents/skills/qiongli-workflow/`, `CLAUDE.qiongli.md`, `.gemini/qiongli.md`, and template-matching `CLAUDE.md`.
-- `--globals`: Also remove workflow discovery symlinks from `~/.claude/commands/` and `~/.gemini/workflows/`. Only removes symlinks that point to `qiongli-workflow` — user-created commands are preserved.
+- `--globals`: Also remove workflow discovery symlinks from `~/.claude/commands/`. Only removes symlinks that point to `qiongli-workflow` — user-created commands are preserved.
 - `--dry-run`: Show what would be removed without deleting.
 
 ### 2.9 `qiongli doctor` (Environment Preflight)
@@ -433,7 +433,7 @@ Available modes:
   ```
 - `role`: Execution split by specialized roles
   ```bash
-  python3 -m bridges.orchestrator role --cwd . --codex-task "..." --claude-task "..." --gemini-task "..."
+  python3 -m bridges.orchestrator role --cwd . --codex-task "..." --claude-task "..."
   ```
 
 ---

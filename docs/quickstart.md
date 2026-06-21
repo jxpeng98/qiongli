@@ -93,7 +93,7 @@ Codex:
 $qiongli plan an empirical paper on ai-in-education
 ```
 
-Claude Code or Gemini CLI:
+Claude Code:
 
 ```text
 /paper
@@ -102,7 +102,7 @@ Claude Code or Gemini CLI:
 /code-build
 ```
 
-Codex uses `/skills` for discovery and `$qiongli` for execution; it does not register a custom `/qiongli` slash command. Claude Code and Gemini expose slash workflow entries when command/workflow discovery is installed. These entries are UX wrappers. The canonical task definitions, expected outputs, quality gates, and role boundaries live in the Qiongli contracts.
+Codex uses `/skills` for discovery and `$qiongli` for execution; it does not register a custom `/qiongli` slash command. Claude Code exposes slash workflow entries when command discovery is installed. These entries are UX wrappers. The canonical task definitions, expected outputs, quality gates, and role boundaries live in the Qiongli contracts.
 
 See [Using Agent Skills](/guide/using-agent-skills) for the full client-by-client usage matrix.
 

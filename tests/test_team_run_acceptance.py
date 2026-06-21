@@ -29,7 +29,7 @@ class TeamRunAcceptanceTests(unittest.TestCase):
                 "- Profile: default\n\n"
                 "## Routing Notes\n"
                 "- Worker domain_expert failed (claude): claude CLI not found in PATH. Please install it first.\n"
-                "- Worker reviewer_2 failed (gemini): gemini CLI not found in PATH. Please install it first.\n"
+                "- Worker reviewer_2 failed (codex): codex CLI not found in PATH. Please install it first.\n"
                 "- Barrier policy=block: halting because not all workers succeeded.\n"
             ),
         }

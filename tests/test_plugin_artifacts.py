@@ -164,7 +164,6 @@ class PluginArtifactsTests(unittest.TestCase):
             f"qiongli-codex-plugin-{current_tag}.tar.gz",
             f"qiongli-claude-plugin-{current_tag}.tar.gz",
             f"qiongli-claude-plugin-{current_tag}.zip",
-            f"qiongli-gemini-extension-{current_tag}.tar.gz",
         ]
         for subject in module._marketplace_subjects(REPO_ROOT):
             expected_names.extend(

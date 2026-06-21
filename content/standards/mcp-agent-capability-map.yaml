@@ -141,7 +141,6 @@ literature_provider_contract:
 agent_registry:
   - "codex"
   - "claude"
-  - "gemini"
 
 # Runtime agent registry above is intentionally model-only.
 # Functional ownership is tracked separately below so we do not mix
@@ -1235,7 +1234,7 @@ task_execution:
       - "scholarly-search"
       - "metadata-registry"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q1"
@@ -1244,7 +1243,7 @@ task_execution:
     required_mcp:
       - "filesystem"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q1"
@@ -1253,7 +1252,7 @@ task_execution:
       - "filesystem"
       - "scholarly-search"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q1"
@@ -1265,7 +1264,7 @@ task_execution:
       - "citation-graph"
     primary_agent: "claude"
     review_agent: "codex"
-    fallback_agent: "gemini"
+    fallback_agent: "claude"
     quality_gates:
       - "Q1"
       - "Q2"
@@ -1275,7 +1274,7 @@ task_execution:
       - "scholarly-search"
       - "citation-graph"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q1"
@@ -1286,7 +1285,7 @@ task_execution:
       - "filesystem"
       - "scholarly-search"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q1"
@@ -1301,7 +1300,7 @@ task_execution:
       - "extraction-store"
     primary_agent: "claude"
     review_agent: "codex"
-    fallback_agent: "gemini"
+    fallback_agent: "claude"
     quality_gates:
       - "Q2"
       - "Q3"
@@ -1311,7 +1310,7 @@ task_execution:
       - "filesystem"
       - "scholarly-search"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q1"
@@ -1322,7 +1321,7 @@ task_execution:
       - "metadata-registry"
       - "extraction-store"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q2"
@@ -1334,7 +1333,7 @@ task_execution:
       - "metadata-registry"
     primary_agent: "codex"
     review_agent: "claude"
-    fallback_agent: "gemini"
+    fallback_agent: "claude"
     quality_gates:
       - "Q2"
       - "Q4"
@@ -1343,7 +1342,7 @@ task_execution:
       - "filesystem"
       - "metadata-registry"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q1"
@@ -1354,7 +1353,7 @@ task_execution:
       - "metadata-registry"
     primary_agent: "codex"
     review_agent: "claude"
-    fallback_agent: "gemini"
+    fallback_agent: "claude"
     quality_gates:
       - "Q2"
       - "Q4"
@@ -1363,7 +1362,7 @@ task_execution:
       - "filesystem"
       - "extraction-store"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q2"
@@ -1373,7 +1372,7 @@ task_execution:
       - "filesystem"
       - "metadata-registry"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q1"
@@ -1382,7 +1381,7 @@ task_execution:
     required_mcp:
       - "filesystem"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q1"
@@ -1391,7 +1390,7 @@ task_execution:
       - "filesystem"
     primary_agent: "claude"
     review_agent: "codex"
-    fallback_agent: "gemini"
+    fallback_agent: "claude"
     quality_gates:
       - "Q1"
       - "Q4"
@@ -1402,7 +1401,7 @@ task_execution:
       - "stats-engine"
     primary_agent: "codex"
     review_agent: "claude"
-    fallback_agent: "gemini"
+    fallback_agent: "claude"
     quality_gates:
       - "Q1"
       - "Q4"
@@ -1411,7 +1410,7 @@ task_execution:
       - "filesystem"
     primary_agent: "codex"
     review_agent: "claude"
-    fallback_agent: "gemini"
+    fallback_agent: "claude"
     quality_gates:
       - "Q1"
       - "Q4"
@@ -1421,7 +1420,7 @@ task_execution:
       - "scholarly-search"
       - "metadata-registry"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q4"
@@ -1431,7 +1430,7 @@ task_execution:
       - "metadata-registry"
     primary_agent: "claude"
     review_agent: "codex"
-    fallback_agent: "gemini"
+    fallback_agent: "claude"
     quality_gates:
       - "Q1"
       - "Q4"
@@ -1441,7 +1440,7 @@ task_execution:
       - "filesystem"
       - "metadata-registry"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q4"
@@ -1450,7 +1449,7 @@ task_execution:
       - "filesystem"
     primary_agent: "claude"
     review_agent: "codex"
-    fallback_agent: "gemini"
+    fallback_agent: "claude"
     quality_gates:
       - "Q3"
       - "Q4"
@@ -1458,7 +1457,7 @@ task_execution:
     required_mcp:
       - "filesystem"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q4"
@@ -1470,7 +1469,7 @@ task_execution:
       - "stats-engine"
     primary_agent: "codex"
     review_agent: "claude"
-    fallback_agent: "gemini"
+    fallback_agent: "claude"
     quality_gates:
       - "Q2"
       - "Q4"
@@ -1480,7 +1479,7 @@ task_execution:
       - "extraction-store"
       - "stats-engine"
     primary_agent: "codex"
-    review_agent: "gemini"
+    review_agent: "claude"
     fallback_agent: "claude"
     quality_gates:
       - "Q2"
@@ -1492,7 +1491,7 @@ task_execution:
       - "extraction-store"
     primary_agent: "codex"
     review_agent: "claude"
-    fallback_agent: "gemini"
+    fallback_agent: "claude"
     quality_gates:
       - "Q2"
       - "Q4"
@@ -1501,7 +1500,7 @@ task_execution:
       - "filesystem"
       - "stats-engine"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q2"
@@ -1511,7 +1510,7 @@ task_execution:
       - "extraction-store"
       - "reporting-guidelines"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q2"
@@ -1523,7 +1522,7 @@ task_execution:
       - "reporting-guidelines"
     primary_agent: "claude"
     review_agent: "codex"
-    fallback_agent: "gemini"
+    fallback_agent: "claude"
     quality_gates:
       - "Q2"
       - "Q3"
@@ -1533,7 +1532,7 @@ task_execution:
     required_mcp:
       - "filesystem"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q1"
@@ -1543,7 +1542,7 @@ task_execution:
       - "filesystem"
       - "metadata-registry"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q1"
@@ -1554,7 +1553,7 @@ task_execution:
       - "metadata-registry"
     primary_agent: "claude"
     review_agent: "codex"
-    fallback_agent: "gemini"
+    fallback_agent: "claude"
     quality_gates:
       - "Q1"
       - "Q2"
@@ -1565,7 +1564,7 @@ task_execution:
       - "metadata-registry"
     primary_agent: "codex"
     review_agent: "claude"
-    fallback_agent: "gemini"
+    fallback_agent: "claude"
     quality_gates:
       - "Q2"
       - "Q4"
@@ -1575,7 +1574,7 @@ task_execution:
       - "code-runtime"
     primary_agent: "codex"
     review_agent: "claude"
-    fallback_agent: "gemini"
+    fallback_agent: "claude"
     quality_gates:
       - "Q2"
       - "Q4"
@@ -1583,7 +1582,7 @@ task_execution:
     required_mcp:
       - "filesystem"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q2"
@@ -1594,7 +1593,7 @@ task_execution:
       - "reporting-guidelines"
     primary_agent: "claude"
     review_agent: "codex"
-    fallback_agent: "gemini"
+    fallback_agent: "claude"
     quality_gates:
       - "Q1"
       - "Q2"
@@ -1607,7 +1606,7 @@ task_execution:
       - "extraction-store"
     primary_agent: "claude"
     review_agent: "codex"
-    fallback_agent: "gemini"
+    fallback_agent: "claude"
     quality_gates:
       - "Q2"
       - "Q3"
@@ -1618,7 +1617,7 @@ task_execution:
       - "metadata-registry"
     primary_agent: "codex"
     review_agent: "claude"
-    fallback_agent: "gemini"
+    fallback_agent: "claude"
     quality_gates:
       - "Q1"
       - "Q2"
@@ -1628,7 +1627,7 @@ task_execution:
       - "filesystem"
     primary_agent: "claude"
     review_agent: "codex"
-    fallback_agent: "gemini"
+    fallback_agent: "claude"
     quality_gates:
       - "Q2"
 
@@ -1638,7 +1637,7 @@ task_execution:
       - "submission-kit"
       - "reporting-guidelines"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q3"
@@ -1649,7 +1648,7 @@ task_execution:
       - "metadata-registry"
     primary_agent: "claude"
     review_agent: "codex"
-    fallback_agent: "gemini"
+    fallback_agent: "claude"
     quality_gates:
       - "Q2"
       - "Q3"
@@ -1658,7 +1657,7 @@ task_execution:
     required_mcp:
       - "filesystem"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q2"
@@ -1666,7 +1665,7 @@ task_execution:
     required_mcp:
       - "filesystem"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q2"
@@ -1675,7 +1674,7 @@ task_execution:
     required_mcp:
       - "filesystem"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q1"
@@ -1686,7 +1685,7 @@ task_execution:
       - "filesystem"
       - "code-runtime"
     primary_agent: "codex"
-    review_agent: "gemini"
+    review_agent: "claude"
     fallback_agent: "claude"
     quality_gates:
       - "Q2"
@@ -1698,7 +1697,7 @@ task_execution:
       - "metadata-registry"
     primary_agent: "codex"
     review_agent: "claude"
-    fallback_agent: "gemini"
+    fallback_agent: "claude"
     quality_gates:
       - "Q2"
       - "Q4"
@@ -1709,7 +1708,7 @@ task_execution:
       - "extraction-store"
       - "metadata-registry"
     primary_agent: "codex"
-    review_agent: "gemini"
+    review_agent: "claude"
     fallback_agent: "claude"
     quality_gates:
       - "Q4"
@@ -1718,7 +1717,7 @@ task_execution:
       - "filesystem"
       - "code-runtime"
     primary_agent: "codex"
-    review_agent: "gemini"
+    review_agent: "claude"
     fallback_agent: "claude"
     quality_gates:
       - "Q4"
@@ -1726,7 +1725,7 @@ task_execution:
     required_mcp:
       - "filesystem"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q2"
@@ -1735,7 +1734,7 @@ task_execution:
     required_mcp:
       - "filesystem"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q4"
@@ -1744,7 +1743,7 @@ task_execution:
       - "filesystem"
       - "code-runtime"
     primary_agent: "codex"
-    review_agent: "gemini"
+    review_agent: "claude"
     fallback_agent: "claude"
     quality_gates:
       - "Q4"
@@ -1752,7 +1751,7 @@ task_execution:
     required_mcp:
       - "filesystem"
       - "code-runtime"
-    primary_agent: "gemini"
+    primary_agent: "codex"
     review_agent: "claude"
     fallback_agent: "codex"
     quality_gates:
@@ -1762,7 +1761,7 @@ task_execution:
     required_mcp:
       - "filesystem"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q2"
@@ -1771,7 +1770,7 @@ task_execution:
     required_mcp:
       - "filesystem"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q4"
@@ -1779,7 +1778,7 @@ task_execution:
     required_mcp:
       - "filesystem"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q4"
@@ -1787,7 +1786,7 @@ task_execution:
     required_mcp:
       - "filesystem"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q4"
@@ -1795,7 +1794,7 @@ task_execution:
     required_mcp:
       - "filesystem"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q4"
@@ -1803,7 +1802,7 @@ task_execution:
     required_mcp:
       - "filesystem"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q3"
@@ -1811,7 +1810,7 @@ task_execution:
     required_mcp:
       - "filesystem"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q3"
@@ -1820,7 +1819,7 @@ task_execution:
       - "filesystem"
       - "code-runtime"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q3"
@@ -1829,7 +1828,7 @@ task_execution:
       - "filesystem"
       - "code-runtime"
     primary_agent: "claude"
-    review_agent: "gemini"
+    review_agent: "codex"
     fallback_agent: "codex"
     quality_gates:
       - "Q3"
@@ -1854,11 +1853,9 @@ team_run_config:
     worker_pool:
       - codex
       - claude
-      - gemini
     merge_agent: claude
     review_pool:
       - codex
-      - gemini
     consensus_policy: majority_rules
     barrier_rules:
       min_success_ratio: 0.6
@@ -1881,11 +1878,9 @@ team_run_config:
     worker_pool:
       - codex
       - claude
-      - gemini
     merge_agent: claude
     review_pool:
       - codex
-      - gemini
     consensus_policy: union_with_priority
     barrier_rules:
       min_success_ratio: 1.0
@@ -1912,7 +1907,6 @@ worker_orchestration_config:
     adapter_preference:
       codex: codex_subagent
       claude: claude_cowork
-      gemini: generic_prompt
     partition_strategy: by_search_facet
     max_workers: 4
     worker_pool:
@@ -1929,7 +1923,6 @@ worker_orchestration_config:
     adapter_preference:
       codex: codex_subagent
       claude: claude_cowork
-      gemini: generic_prompt
     partition_strategy: by_reviewer_persona
     max_workers: 3
     worker_pool:

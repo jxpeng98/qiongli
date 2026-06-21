@@ -250,11 +250,11 @@ class OrchestratorWorkflowTests(unittest.TestCase):
 
         self.assertEqual(result.mode, "parallel")
         self.assertIn("## 并发执行分析", result.merged_analysis)
-        self.assertEqual(len(orchestrator.runtime_calls), 4)
+        self.assertEqual(len(orchestrator.runtime_calls), 3)
         called_agents = [call["agent"] for call in orchestrator.runtime_calls]
         self.assertIn("codex", called_agents)
         self.assertIn("claude", called_agents)
-        self.assertIn("gemini", called_agents)
+        self.assertNotIn("gemini", called_agents)
 
     def test_parallel_profile_file_parsing_applies_runtime_options(self) -> None:
         orchestrator = MockOrchestrator()
@@ -304,8 +304,8 @@ class OrchestratorWorkflowTests(unittest.TestCase):
                 runtime_options: dict[str, Any] | None = None,
                 profile_directive: str | None = None,
             ) -> BridgeResponse:
-                if agent_name == "gemini":
-                    return BridgeResponse.from_error("gemini", "forced failure")
+                if agent_name == "claude":
+                    return BridgeResponse.from_error("claude", "forced failure")
                 return super()._execute_runtime_agent(
                     agent_name,
                     prompt,
@@ -323,10 +323,10 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         )
 
         self.assertIn("## 并发执行分析 (双重/Dual)", result.merged_analysis)
-        self.assertIn("- 失败的 Agent: gemini", result.merged_analysis)
+        self.assertIn("- 失败的 Agent: claude", result.merged_analysis)
         self.assertIn("## 综合归纳 (Synthesis)", result.merged_analysis)
 
-    def test_parallel_skips_gemini_when_preflight_blocks_it(self) -> None:
+    def test_parallel_skips_claude_when_preflight_blocks_it(self) -> None:
         class PreflightFailOrchestrator(MockOrchestrator):
             def _runtime_preflight_error(
                 self,
@@ -334,8 +334,8 @@ class OrchestratorWorkflowTests(unittest.TestCase):
                 cwd: Path,
                 runtime_options: dict[str, Any] | None = None,
             ) -> str | None:
-                if agent_name == "gemini":
-                    return "cached Gemini OAuth credentials detected, but Gemini CLI cached login is unreliable in non-interactive Python subprocesses; prefer GEMINI_API_KEY or Vertex env auth."
+                if agent_name == "claude":
+                    return "claude CLI not found in PATH"
                 return None
 
         orchestrator = PreflightFailOrchestrator()
@@ -348,7 +348,8 @@ class OrchestratorWorkflowTests(unittest.TestCase):
 
         called_agents = [call["agent"] for call in orchestrator.runtime_calls]
         self.assertNotIn("gemini", called_agents)
-        self.assertIn("Parallel analyzer 'gemini' skipped:", result.merged_analysis)
+        self.assertNotIn("claude", called_agents)
+        self.assertIn("Parallel analyzer 'claude' skipped:", result.merged_analysis)
         self.assertIn("## 并发执行分析 (双重/Dual)", result.merged_analysis)
 
     def test_parallel_unknown_profile_returns_structured_error(self) -> None:
@@ -523,23 +524,12 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         self.assertTrue(any("(stage: draft)" in directive for directive in directives))
         self.assertTrue(any("(stage: review)" in directive for directive in directives))
 
-    def test_task_run_reroutes_gemini_review_when_preflight_blocks_it(self) -> None:
-        class ReviewPreflightOrchestrator(MockOrchestrator):
-            def _runtime_preflight_error(
-                self,
-                agent_name: str,
-                cwd: Path,
-                runtime_options: dict[str, Any] | None = None,
-            ) -> str | None:
-                if agent_name == "gemini":
-                    return "cached Gemini OAuth credentials detected, but Gemini CLI cached login is unreliable in non-interactive Python subprocesses; prefer GEMINI_API_KEY or Vertex env auth."
-                return None
-
-        orchestrator = ReviewPreflightOrchestrator()
+    def test_task_run_does_not_route_reviews_to_gemini(self) -> None:
+        orchestrator = MockOrchestrator()
         result = orchestrator.task_run(
             task_id="I7",
             paper_type="methods",
-            topic="reroute-review",
+            topic="codex-claude-review",
             cwd=REPO_ROOT,
         )
 
@@ -548,8 +538,9 @@ class OrchestratorWorkflowTests(unittest.TestCase):
             if "Review the draft" in call["prompt"]
         ]
         self.assertTrue(review_calls)
-        self.assertNotEqual(review_calls[0]["agent"], "gemini")
-        self.assertIn("Runtime agent 'gemini' unavailable:", result.merged_analysis)
+        self.assertIn(review_calls[0]["agent"], {"codex", "claude"})
+        self.assertNotIn("gemini", {call["agent"] for call in orchestrator.runtime_calls})
+        self.assertNotIn("Runtime agent 'gemini'", result.merged_analysis)
 
     def test_task_run_emits_functional_routing_trace(self) -> None:
         orchestrator = MockOrchestrator()
@@ -717,7 +708,6 @@ class OrchestratorWorkflowTests(unittest.TestCase):
                         "runtime_options": {
                             "codex": {"timeout_seconds": 11},
                             "claude": {"timeout_seconds": 11},
-                            "gemini": {"timeout_seconds": 11},
                         },
                         "draft_style": "Draft quickly",
                     },
@@ -725,7 +715,6 @@ class OrchestratorWorkflowTests(unittest.TestCase):
                         "runtime_options": {
                             "codex": {"timeout_seconds": 22},
                             "claude": {"timeout_seconds": 22},
-                            "gemini": {"timeout_seconds": 22},
                         },
                         "review_style": "Review strictly",
                     },
@@ -733,7 +722,6 @@ class OrchestratorWorkflowTests(unittest.TestCase):
                         "runtime_options": {
                             "codex": {"timeout_seconds": 33},
                             "claude": {"timeout_seconds": 33},
-                            "gemini": {"timeout_seconds": 33},
                         },
                         "triad_style": "Triad arbitration",
                     },

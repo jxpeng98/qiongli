@@ -1,13 +1,13 @@
 # 使用 Agent Skills
 
-Qiongli 安装的是一套 agent-facing skill 系统，但不同客户端暴露入口的方式不一样。安装之后，如果你不知道在 Codex、Claude Code、Gemini CLI 或 shell 里该输入什么，先看这一页。
+Qiongli 安装的是一套 agent-facing skill 系统，但不同客户端暴露入口的方式不一样。安装之后，如果你不知道在 Codex、Claude Code、Antigravity、Hermes 或 shell 里该输入什么，先看这一页。
 
 ## 名称模型
 
 | 名称 | 含义 | 出现位置 |
 |---|---|---|
 | `qiongli` | 公开 plugin、CLI 和用户可见 skill 名称 | Skillsplace、npm、PyPI、Codex `/skills`、shell 命令 |
-| `qiongli-workflow` | 便携 skill package 目录名 | `~/.codex/skills/`、`~/.claude/skills/`、`~/.gemini/skills/`、`~/.gemini/antigravity/skills/`、`~/.hermes/skills/`、plugin payload |
+| `qiongli-workflow` | 便携 skill package 目录名 | `~/.codex/skills/`、`~/.claude/skills/`、`~/.gemini/antigravity/skills/`、`~/.hermes/skills/`、plugin payload |
 | `skills/*/*.md` | 内部学术能力卡片 | 仓库源码和 orchestrator 自动注入 |
 
 大多数使用者应该找 `qiongli`，不要再找 `research-paper-workflow`。目录名 `qiongli-workflow` 仍然保留，是为了兼容已有 installer 和 release artifacts。
@@ -18,7 +18,6 @@ Qiongli 安装的是一套 agent-facing skill 系统，但不同客户端暴露�
 |---|---|---|---|
 | Codex | `/skills` | `$qiongli` | Codex 不暴露自定义 `/qiongli` slash command。安装或升级后需要重启 Codex。 |
 | Claude Code | Plugin UI 或 `/plugin` 命令 | `/paper`、`/lit-review`、`/paper-write`、`/code-build`，或自然语言要求使用 Qiongli | Plugin 会安装 command wrappers 和便携 skill package。 |
-| Gemini CLI | Extension 安装或全局 workflow discovery | `/paper`、`/lit-review`、`/paper-write`、`/code-build` | 全局安装会在 Gemini home 下创建 workflow discovery entries。 |
 | Shell | `qiongli check` | `qiongli doctor`、`qiongli upgrade`、`qiongli task-run`、`python3 -m bridges.orchestrator ...` | 需要 npm 或 Python CLI 入口。高级命令需要 Python 3.12+。 |
 
 ## Codex 用法
@@ -47,9 +46,9 @@ qiongli upgrade --target codex --overwrite
 
 当前 qiongli 安装器会在升级时删除确认过的 `research-paper-workflow` 旧全局 skill 目录。如果你想单独预览全局清理，先运行 `qiongli clean --globals --dry-run`。
 
-## Claude Code 和 Gemini 用法
+## Claude Code 用法
 
-Claude Code 和 Gemini 可以通过 workflow entry markdown 暴露 Qiongli。常用入口是：
+Claude Code 可以通过 workflow entry markdown 暴露 Qiongli。常用入口是：
 
 | 命令 | 适合场景 |
 |---|---|
@@ -96,7 +95,7 @@ python3 -m bridges.orchestrator task-run \
 1. 只在单个客户端里用时，通过 Skillsplace 安装；需要跨客户端全局使用时，运行 `qiongli upgrade --target all`。
 2. 重启目标客户端，让 skill registry 和 workflow discovery 刷新。
 3. 在 Codex 中，用 `/skills` 确认出现 `qiongli`，然后用 `$qiongli` 调用。
-4. 在 Claude Code 或 Gemini 中，用 `/paper`、`/lit-review`、`/paper-write` 或 `/code-build`。
+4. 在 Claude Code 中，用 `/paper`、`/lit-review`、`/paper-write` 或 `/code-build`。
 5. 需要可重复 task execution 时，用 `qiongli doctor` 和 `python3 -m bridges.orchestrator task-plan|task-run`。
 
 当 workflow 或 orchestrator task 产生持久产物时，Qiongli 会把研究产物写到 `RESEARCH/[topic]/` 下。只有在你明确运行 `qiongli init` 或选择 project install parts 时，才会写入项目本地集成文件。

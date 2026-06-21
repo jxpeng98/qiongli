@@ -83,13 +83,12 @@ evidence without a Stage I specification, plan, execution record, and review.
 
 ---
 
-## Multi-model collaboration (Codex / Claude / Gemini)
+## Multi-model collaboration (Codex / Claude)
 
 Use the orchestrator to split roles:
 
 - Codex: implementation + execution
 - Claude: narrative documentation + reasoning checks
-- Gemini: independent review and edge-case probing
 - Academic code reviewer role (I8): severity-ranked audit of method fidelity and reproducibility claims
 
 When triad is unavailable, fall back to:

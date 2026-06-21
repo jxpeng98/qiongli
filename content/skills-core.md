@@ -6,7 +6,7 @@ Consolidated skill reference for token-efficient workflow execution. Use this fi
 
 ## workflow-standard
 
-**Purpose:** Keep tasks and outputs consistent across Codex, Claude Code, and Gemini
+**Purpose:** Keep tasks and outputs consistent across Codex and Claude Code
 
 **Source of truth:** `standards/research-workflow-contract.yaml`
 
@@ -483,8 +483,8 @@ Consolidated skill reference for token-efficient workflow execution. Use this fi
 
 **Modes:**
 1. **parallel**: Both models analyze, merge high-confidence conclusions
-2. **chain**: One generates, other verifies (Codex → Gemini or reverse)
-3. **role**: Task division (Codex: code gen, Gemini: explanation)
+2. **chain**: One generates, other verifies (Codex -> Claude or reverse)
+3. **role**: Task division (Codex: code gen, Claude: review/synthesis)
 4. **single**: Single model execution
 
 **Invocation:**
@@ -494,7 +494,7 @@ python -m bridges.orchestrator [mode] --prompt "..." --cwd "/path"
 
 **Model Strengths:**
 - Codex: 算法实现, Bug 修复, 代码生成
-- Gemini: 代码解释, 架构分析, 文档生成
+- Claude: 结构化审阅, 长文本综合, 文档生成
 
 **Output:** Standardized JSON with confidence score
 

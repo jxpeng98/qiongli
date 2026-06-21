@@ -103,7 +103,6 @@ def materialize_plugin_payload(root: Path) -> None:
     from qiongli.source_layout import RepoLayout
     from scripts.build_plugin_artifacts import (
         materialize_agent_platform,
-        materialize_gemini_platform,
         materialize_plugin_package,
     )
     from scripts.sync_npm_package_payload import build_materialize_source, copy_path, fail_if_symlinks
@@ -130,11 +129,6 @@ def materialize_plugin_payload(root: Path) -> None:
         materialize_agent_platform(root, layout.agent_platform_artifact, force=True)
         fail_if_symlinks(layout.agent_platform_artifact)
         print("  [ok] agent platform files")
-
-        print(f"Syncing Gemini platform files: {layout.gemini_platform_artifact}")
-        materialize_gemini_platform(root, layout.gemini_platform_artifact, force=True)
-        fail_if_symlinks(layout.gemini_platform_artifact)
-        print("  [ok] Gemini platform files")
 
         print(f"Syncing skill package: {plugin_dest}")
         copy_path(portable_dest, plugin_dest, dry_run=False)

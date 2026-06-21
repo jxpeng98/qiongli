@@ -23,7 +23,7 @@ class InstallerCliTests(unittest.TestCase):
             skill_dirs = {
                 "codex": root / "codex",
                 "claude": root / "claude",
-                "gemini": root / "gemini",
+                "antigravity": root / "antigravity",
                 "hermes": root / "hermes",
             }
             args = argparse.Namespace(
@@ -243,7 +243,7 @@ class InstallerCliTests(unittest.TestCase):
             skill_dirs = {
                 "codex": skill_dir,
                 "claude": root / "claude" / "skills" / "qiongli-workflow",
-                "gemini": root / "gemini" / "skills" / "qiongli-workflow",
+                "antigravity": root / "antigravity" / "skills" / "qiongli-workflow",
                 "hermes": root / "hermes" / "skills" / "qiongli-workflow",
             }
 

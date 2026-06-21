@@ -184,9 +184,9 @@ class SoloRoleGateAuditTests(unittest.TestCase):
                 root / "runs" / "missing-status.json",
                 {
                     "run_id": "missing-status",
-                    "execution_mode": "solo_gemini",
-                    "controller": "gemini",
-                    "primary_agent": "gemini",
+                    "execution_mode": "solo_claude",
+                    "controller": "claude",
+                    "primary_agent": "claude",
                     "artifacts_written": [],
                 },
             )

@@ -57,8 +57,8 @@ REQUIRED_HANDOFF_FIELDS = {
     "next_actions",
 }
 
-EXECUTION_MODES = {"solo_codex", "solo_claude", "solo_gemini", "duo", "triad"}
-RUNTIME_AGENTS = {"codex", "claude", "gemini"}
+EXECUTION_MODES = {"solo_codex", "solo_claude", "duo", "triad"}
+RUNTIME_AGENTS = {"codex", "claude"}
 VERIFICATION_STATUSES = {"passed", "failed", "blocked"}
 
 REVIEW_FIELD_MARKERS = {

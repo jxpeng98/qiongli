@@ -253,9 +253,6 @@ mkdir -p "$(dirname "$OUTPUT")"
   fi
   echo "| Claude Desktop literature tools | Download \`${MCPB_ASSET}\` and pair it with a Desktop skill ZIP when provider calls are required. |"
   echo "| Zotero Desktop local writes | Download \`${ZOTERO_COMPANION_ASSET}\` and install it from Zotero's add-on manager when local Zotero search/write support is required. |"
-  if [[ "$IS_NEXT" -ne 1 ]]; then
-    echo "| Gemini CLI | Download \`qiongli-gemini-extension-${TAG}.tar.gz\` only when installing from a release artifact. |"
-  fi
   echo "| Maintainers | Use Codex/Claude plugin tarballs and Claude plugin ZIPs only for manual marketplace artifact checks or direct Claude plugin upload tests. |"
   echo
   echo "The release also includes \`qiongli-downloads-${TAG}.md\` and \`qiongli-downloads-${TAG}.json\` to group the asset list by install surface."

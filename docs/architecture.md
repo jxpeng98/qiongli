@@ -22,7 +22,7 @@ CI references stable there, but edit script implementations under
 `tooling/scripts/`.
 
 Root `qiongli-workflow/`, `plugins/qiongli/`, `plugins/qiongli-next/`,
-`.agent/`, and `.gemini/` are generated artifact shapes. Edit workflow content
+and `.agent/` are generated artifact shapes. Edit workflow content
 under `content/workflow/` and plugin metadata under
 `content/distribution/plugins.yaml`.
 
@@ -47,7 +47,7 @@ under `content/workflow/` and plugin metadata under
 | Script entrypoints | CI, release, local maintenance | `scripts/*.py`, `scripts/*.sh` wrappers |
 | Orchestrator CLI | Task planning, execution, validation | `python3 -m qiongli.bridges.orchestrator ...` |
 | Portable skill package | Cross-client distribution surface | generated `qiongli-workflow/` |
-| Plugin package | Codex/Claude/Gemini plugin distribution | generated `plugins/qiongli/` |
+| Plugin package | Codex/Claude plugin distribution | generated `plugins/qiongli/` |
 
 ## Dependency Direction
 

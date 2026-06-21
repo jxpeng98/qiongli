@@ -143,7 +143,7 @@ class DistributionMaterializerTests(unittest.TestCase):
             self.assertTrue((out / "plugins/qiongli-next/skills/qiongli-workflow/SKILL.md").is_file())
             self.assertTrue((out / "qiongli-workflow/skills/registry.yaml").is_file())
             self.assertTrue((out / ".agent/workflows/paper.md").is_file())
-            self.assertTrue((out / ".gemini/qiongli.md").is_file())
+            self.assertFalse((out / ".gemini/qiongli.md").exists())
 
     def test_plugin_materializer_does_not_depend_on_bash(self) -> None:
         source = MATERIALIZER_PATH.read_text(encoding="utf-8")

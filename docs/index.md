@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Qiongli
   text: Contract-bound research workflows for AI coding agents.
-  tagline: Install once, then use Codex, Claude Code, or Gemini to run academic workflows with explicit task IDs, quality gates, literature diagnostics, role handoffs, and auditable artifacts.
+  tagline: Install once, then use Codex or Claude Code to run academic workflows with explicit task IDs, quality gates, literature diagnostics, role handoffs, and auditable artifacts.
   actions:
     - theme: brand
       text: Start With Quickstart
@@ -32,9 +32,9 @@ features:
 | You want to... | Start here | Why |
 |---|---|---|
 | Try Qiongli in one client | [Install](/guide/install) | Native plugin / extension paths keep setup small. |
-| Know what to type after install | [Using Agent Skills](/guide/using-agent-skills) | Codex, Claude Code, Gemini, and shell expose Qiongli differently. |
+| Know what to type after install | [Using Agent Skills](/guide/using-agent-skills) | Codex, Claude Code, Antigravity, Hermes, and shell expose Qiongli differently. |
 | Install global workflows for several clients | [Quickstart](/quickstart) | Bootstrap `partial` installs workflow assets without requiring Python. |
-| Run validators, `doctor`, or orchestrated tasks | [Multi-Agent Runtime](/guide/multi-agent) | `full` runtime explains Python, model CLIs, auth, broker/direct Gemini modes, and verification. |
+| Run validators, `doctor`, or orchestrated tasks | [Multi-Agent Runtime](/guide/multi-agent) | `full` runtime explains Python, model CLIs, auth, runtime routing, and verification. |
 | Pick a paper workflow | [Task Recipes](/guide/task-recipes) | Maps real research goals to paper types, stages, Task IDs, and expected outputs. |
 | Automate installs or upgrades | [CLI Reference](/reference/cli) | Covers `qiongli`, `ql`, npm/npx, pipx, compatibility aliases, and JSON checks. |
 
@@ -47,7 +47,7 @@ Qiongli ships a single portable workflow package, `qiongli-workflow`, with stage
 - **Design and execute the study:** specify variables, datasets, robustness checks, preregistration, ethics artifacts, and data management.
 - **Write and audit the manuscript:** structure sections, maintain claim-evidence integrity, generate figures/tables, evaluate limitations, and prepare submission/rebuttal materials.
 - **Handle research code:** use the Stage-I specification -> planning -> execution -> review path for code-first or methods-heavy work.
-- **Coordinate models:** assign controller, primary, reviewer, and verifier roles across Codex, Claude Code, and Gemini while preserving handoffs and verification status.
+- **Coordinate models:** assign controller, primary, reviewer, and verifier roles across Codex and Claude Code while preserving handoffs and verification status.
 
 ## Documentation Map
 

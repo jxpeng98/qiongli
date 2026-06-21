@@ -16,7 +16,7 @@ Qiongli 现在采用 hybrid 仓库布局：学术内容、运行时代码、包�
 
 根目录 `scripts/` 是兼容 wrapper。用户命令和 CI 可以继续使用 `scripts/...`，但维护者应编辑 `tooling/scripts/`。
 
-根目录 `qiongli-workflow/`、`plugins/qiongli/`、`plugins/qiongli-next/`、`.agent/`、`.gemini/` 是生成后的 artifact 形状。workflow 内容改 `content/workflow/`，plugin metadata 改 `content/distribution/plugins.yaml`。
+根目录 `qiongli-workflow/`、`plugins/qiongli/`、`plugins/qiongli-next/` 和 `.agent/` 是生成后的 artifact 形状。workflow 内容改 `content/workflow/`，plugin metadata 改 `content/distribution/plugins.yaml`。
 
 ## 分层模型
 
@@ -39,7 +39,7 @@ Qiongli 现在采用 hybrid 仓库布局：学术内容、运行时代码、包�
 | Script entrypoints | CI、release、本地维护 | `scripts/*.py`、`scripts/*.sh` wrappers |
 | Orchestrator CLI | 任务规划、执行、校验 | `python3 -m qiongli.bridges.orchestrator ...` |
 | Portable skill package | 跨客户端分发 | 生成后的 `qiongli-workflow/` |
-| Plugin package | Codex/Claude/Gemini plugin 分发 | 生成后的 `plugins/qiongli/` |
+| Plugin package | Codex/Claude plugin 分发 | 生成后的 `plugins/qiongli/` |
 
 ## 依赖方向
 

@@ -24,9 +24,9 @@
 - [ ] GitHub Release page exists and notes are attached.
 - [ ] Rollback path validated (`tooling/release/rollback.md`).
 
-## Collaboration Validation (Codex / Claude / Gemini)
+## Collaboration Validation (Codex / Claude)
 
-- [ ] `parallel` triad path works or degrades safely to dual/single.
+- [ ] `parallel` Codex/Claude path works or records unavailable workers safely.
 - [ ] `task-run` stage routing works with capability map fallback.
 - [ ] Profile overrides (`--draft-profile` / `--review-profile` / `--triad-profile`) are effective.
 

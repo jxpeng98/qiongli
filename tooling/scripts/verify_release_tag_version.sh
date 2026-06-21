@@ -245,7 +245,6 @@ from pathlib import Path
 paths = [
     Path("plugins/qiongli/.codex-plugin/plugin.json"),
     Path("plugins/qiongli/.claude-plugin/plugin.json"),
-    Path("plugins/qiongli/gemini-extension.json"),
     Path("plugins/qiongli-next/.codex-plugin/plugin.json"),
 ]
 for path in paths:

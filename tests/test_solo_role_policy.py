@@ -17,7 +17,7 @@ IMPLEMENTATION_INTENT_PATH = RepoLayout(REPO_ROOT).templates / "implementation-i
 WRITING_CLAIM_MAP_PATH = RepoLayout(REPO_ROOT).templates / "writing-claim-map.md"
 QUALITY_GATE_REPORT_PATH = RepoLayout(REPO_ROOT).templates / "quality-gate-report.md"
 
-SOLO_ROLES = {"solo_codex", "solo_claude", "solo_gemini"}
+SOLO_ROLES = {"solo_codex", "solo_claude"}
 
 CODEX_WRITING_GATES = {
     "evidence_ledger_check",
@@ -101,20 +101,6 @@ class SoloRolePolicyTests(unittest.TestCase):
         self.assertEqual(
             CLAUDE_CODE_GATES,
             set(solo_claude.get("code_required_gates", [])),
-        )
-
-        solo_gemini = modes.get("solo_gemini", {})
-        self.assertEqual(
-            {"evidence_ledger_check", "claim_calibration_check", "source_integrity_check"},
-            set(solo_gemini.get("writing_required_gates", [])),
-        )
-        self.assertEqual(
-            {
-                "implementation_intent",
-                "verification_blocked_when_commands_unavailable",
-                "artifact_contract_check",
-            },
-            set(solo_gemini.get("code_required_gates", [])),
         )
 
     def test_required_solo_templates_exist_with_contract_headings(self) -> None:

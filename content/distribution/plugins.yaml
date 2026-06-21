@@ -31,8 +31,6 @@ plugins:
       brand_color: "#2563EB"
     claude:
       enabled: true
-    gemini:
-      enabled: true
   qiongli-next:
     display_name: Qiongli Next
     skill_name: qiongli-next
@@ -67,5 +65,3 @@ plugins:
       brand_color: "#2563EB"
     claude:
       enabled: true
-    gemini:
-      enabled: false

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-const TARGETS = ['codex', 'claude', 'gemini', 'antigravity', 'hermes'];
+const TARGETS = ['codex', 'claude', 'antigravity', 'hermes'];
 const PARTS = ['globals', 'project', 'cli'];
 const LEGACY_SKILL_NAME = 'research-paper-workflow';
 
@@ -10,13 +10,11 @@ export function resolveTargetPaths({ env = process.env } = {}) {
   const home = env.HOME || env.USERPROFILE || os.homedir();
   const codexHome = env.CODEX_HOME || path.join(home, '.codex');
   const claudeHome = env.CLAUDE_CODE_HOME || path.join(home, '.claude');
-  const geminiHome = env.GEMINI_HOME || path.join(home, '.gemini');
   const antigravityHome = env.ANTIGRAVITY_HOME || path.join(home, '.gemini', 'antigravity');
   const hermesHome = env.HERMES_HOME || path.join(home, '.hermes');
   return {
     codex: path.join(codexHome, 'skills', 'qiongli-workflow'),
     claude: path.join(claudeHome, 'skills', 'qiongli-workflow'),
-    gemini: path.join(geminiHome, 'skills', 'qiongli-workflow'),
     antigravity: path.join(antigravityHome, 'skills', 'qiongli-workflow'),
     hermes: path.join(hermesHome, 'skills', 'qiongli-workflow'),
   };
@@ -93,7 +91,7 @@ export function installSkills({
 
     actions.push(copySkill({ src: workflowSrc, dest, mode, overwrite, dryRun, sourceVersion, sourceSubject, sourceCoverage }));
 
-    if ((item === 'claude' || item === 'gemini') && actions.at(-1).status !== 'skip') {
+    if (item === 'claude' && actions.at(-1).status !== 'skip') {
       actions.push(...installWorkflowDiscovery({ target: item, skillDest: dest, dryRun, platform }));
     }
   }
@@ -133,7 +131,7 @@ export function cleanAssets({ projectDir = '.', globals = false, dryRun = false,
       }
     }
     for (const [target, skillDest] of Object.entries(targetPaths)) {
-      if (target !== 'claude' && target !== 'gemini') {
+      if (target !== 'claude') {
         continue;
       }
       const discoveryDir = discoveryDirectory(target, skillDest);
@@ -381,7 +379,7 @@ function installWorkflowDiscovery({ target, skillDest, dryRun, platform }) {
 }
 
 function removeWorkflowDiscovery({ target, skillDest, dryRun }) {
-  if (target !== 'claude' && target !== 'gemini') {
+  if (target !== 'claude') {
     return [];
   }
   const workflowsDir = path.join(skillDest, 'workflows');
@@ -420,7 +418,7 @@ function removeWorkflowDiscovery({ target, skillDest, dryRun }) {
 
 function discoveryDirectory(target, skillDest) {
   const clientHome = path.dirname(path.dirname(skillDest));
-  return path.join(clientHome, target === 'claude' ? 'commands' : 'workflows');
+  return path.join(clientHome, 'commands');
 }
 
 function isQiongliSkillDir(skillDir) {

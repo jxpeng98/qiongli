@@ -115,7 +115,7 @@ wizard 选项：
 qiongli install \
   [--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting] \
   [--coverage complete|focused] \
-  [--target codex|claude|gemini|antigravity|hermes|all] \
+  [--target codex|claude|antigravity|hermes|all] \
   [--mode copy|link] \
   [--project-dir <path>] \
   [--overwrite] \
@@ -151,7 +151,7 @@ qiongli upgrade \
   [--ref-type tag|branch] \
   [--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting] \
   [--coverage complete|focused] \
-  [--target codex|claude|gemini|antigravity|hermes|all] \
+  [--target codex|claude|antigravity|hermes|all] \
   [--project-dir <path>] \
   [--no-overwrite] \
   [--doctor] \
@@ -163,7 +163,7 @@ qiongli upgrade \
 - 现在默认的 `upgrade` 是全局刷新。项目接线建议走 `qiongli init --project-dir .`；如果确实要在升级时重写项目文件，再显式加 `--parts project`。
 - `--subject` 默认是 `core`，`--coverage` 默认是 `complete`；使用 `--subject economics` 会安装全量 Qiongli 加 economics 专精，使用 `--subject accounting` 会安装全量 Qiongli 加 accounting 专精，显式加 `--coverage focused` 时才安装精简 selected 包。
 - 示例：`qiongli upgrade --subject accounting --target all`。
-- 全局安装后，`upgrade` 会自动创建工作流发现 symlink：`~/.claude/commands/*.md` 和 `~/.gemini/workflows/*.md`，可直接使用 `/paper`、`/lit-review` 等 slash 命令。
+- 全局安装后，`upgrade` 会自动创建 Claude Code 工作流发现 symlink：`~/.claude/commands/*.md`，可直接使用 `/paper`、`/lit-review` 等 slash 命令。
 - Shell CLI 会通过随附的 bootstrap helper 执行升级，不依赖 Python。
 - 退出码为底层安装器返回码（若安装失败，沿用其错误码）。
 
@@ -180,7 +180,7 @@ qiongli align [--repo <owner/repo|url>]
 用途：在项目目录中创建 `.env` 等项目配置。
 
 ```bash
-qiongli init [--project-dir <path>] [--target all|codex|claude|gemini] [--dry-run]
+qiongli init [--project-dir <path>] [--target all|codex|claude|antigravity|hermes] [--dry-run]
 ```
 
 ### 2.7 `qiongli remove`（移除 CLI 安装的资产）
@@ -189,7 +189,7 @@ qiongli init [--project-dir <path>] [--target all|codex|claude|gemini] [--dry-ru
 
 ```bash
 qiongli remove \
-  [--target codex|claude|gemini|antigravity|hermes|all] \
+  [--target codex|claude|antigravity|hermes|all] \
   [--parts globals|project|cli] \
   [--project-dir <path>] \
   [--cli-dir <path>] \
@@ -224,7 +224,7 @@ qiongli clean [--project-dir <path>] [--dry-run] [--globals]
 
 参数说明：
 - `--project-dir`：要清理的目录（默认当前目录）。
-- `--globals`：同时移除全局工作流发现 symlink（`~/.claude/commands/` 和 `~/.gemini/workflows/`）。只移除指向 `qiongli-workflow` 的 symlink，用户自建的命令不受影响。
+- `--globals`：同时移除全局工作流发现 symlink（例如 `~/.claude/commands/`）。也会清理旧版本遗留的 Gemini workflow symlink；只移除指向 `qiongli-workflow` 的 symlink，用户自建的命令不受影响。
 - `--dry-run`：只显示将要移除的内容，不实际删除。
 
 ### 2.9 `qiongli doctor`（环境预检）
@@ -395,7 +395,7 @@ mode 列表：
   ```
 - `role`：按专长拆分任务
   ```bash
-  python3 -m bridges.orchestrator role --cwd . --codex-task "..." --claude-task "..." --gemini-task "..."
+  python3 -m bridges.orchestrator role --cwd . --codex-task "..." --claude-task "..."
   ```
 
 ---

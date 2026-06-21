@@ -1,4 +1,4 @@
-const TARGETS = new Set(['codex', 'claude', 'gemini', 'antigravity', 'hermes', 'all']);
+const TARGETS = new Set(['codex', 'claude', 'antigravity', 'hermes', 'all']);
 const MODES = new Set(['copy', 'link']);
 const BRIDGE_COMMANDS = new Set(['doctor', 'guidance', 'task-run', 'team-run', 'parallel', 'chain', 'role', 'single', 'code-build', 'task-plan']);
 const PYTHON_CLI_COMMANDS = new Set(['setup', 'mcp']);
