@@ -18,6 +18,7 @@ Consolidated skill reference for token-efficient workflow execution. Use this fi
 - Final writing, proofread, submission, rebuttal, and presentation-facing outputs should apply `references/citation-risk-policy.md`.
 - High-risk stage transitions should write `context/stage_handoff.md` using `references/stage-handoff-contract.md`.
 - Stage C design work should produce or consume `design/method-diagnostic-report.md` and `design/validity-threat-matrix.md`.
+- Writing Harness Contract applies to Stage F writing even when using only this core reference: lock the Story Spine before prose, then write in section or paragraph-cluster chunks with a write -> review -> confirm checkpoint. Do not draft the whole artifact in one uninterrupted pass; stop for the next blocking boundary/grill question when there is mainline drift, missing support, generic or vague claims, or an unsettled evidence threshold.
 
 ---
 
@@ -357,9 +358,11 @@ Consolidated skill reference for token-efficient workflow execution. Use this fi
 
 **Process:**
 1. Create manuscript workspace (`manuscript/outline.md`, `manuscript/manuscript.md`)
-2. Draft sections iteratively (Intro → Related work → Methods → Results → Discussion → Limitations → Conclusion)
-3. Run claim–evidence integrity pass + figures/tables pass
-4. Prepare for readiness checks (reporting/PRISMA) and submission packaging
+2. Establish the Story Spine: central claim, argumentative mainline, section jobs, non-goals, and evidence threshold
+3. Draft sections iteratively (Intro → Related work → Methods → Results → Discussion → Limitations → Conclusion)
+4. For each section or paragraph-cluster, run write -> review -> confirm and check for mainline drift, missing support, generic or vague claims, and logic jumps
+5. Run claim–evidence integrity pass + figures/tables pass
+6. Prepare for readiness checks (reporting/PRISMA) and submission packaging
 
 **Templates:** `templates/manuscript-outline.md`, `templates/manuscript-skeleton.md`, `templates/claim-evidence-map.md`, `templates/figures-tables-plan.md`
 

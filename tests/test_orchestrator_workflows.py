@@ -607,6 +607,8 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         orchestrator = MockOrchestrator()
         agent_plan = orchestrator._load_task_agent_plan("F3")
 
+        self.assertEqual(agent_plan["functional_role_id"], "academic-writer")
+        self.assertEqual(agent_plan["functional_display_name"], "Academic Writer")
         skill_cards = {
             card["skill"]: card
             for card in agent_plan["required_skill_cards"]
@@ -1057,6 +1059,143 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         self.assertIn("Academic boundary review", prompt)
         self.assertIn("Claims are associative, not causal", prompt)
         self.assertIn("must not broaden", prompt)
+
+    def test_writing_task_packet_enables_incremental_writing_harness(self) -> None:
+        orchestrator = MockOrchestrator()
+        packet = orchestrator._build_task_packet(
+            task_id="F3",
+            paper_type="empirical",
+            topic="ai-writing",
+            venue=None,
+            artifact_root="RESEARCH/[topic]/",
+            required_outputs=["manuscript/manuscript.md"],
+            contract_required_outputs=["manuscript/manuscript.md"],
+            deferred_outputs=[],
+            required_mcp=["filesystem"],
+            required_skills=["manuscript-architect", "self-critique"],
+            required_skill_cards=[],
+            quality_gates=["Q2"],
+            artifact_policy="contract",
+            research_depth="standard",
+            evidence_expansion_rounds=1,
+        )
+
+        harness = packet["writing_harness"]
+        self.assertTrue(harness["enabled"])
+        self.assertEqual(harness["stage"], "F")
+        self.assertIn("story_spine", harness["required_preflight"])
+        self.assertEqual(harness["loop"], "write_review_confirm")
+        self.assertIn("mainline_drift", harness["block_conditions"])
+        self.assertIn("evidence_free_generalization", harness["block_conditions"])
+        self.assertIn("context/boundary_review.md", harness["context_artifacts"])
+
+    def test_non_writing_task_packet_disables_writing_harness(self) -> None:
+        orchestrator = MockOrchestrator()
+        packet = orchestrator._build_task_packet(
+            task_id="B1",
+            paper_type="systematic-review",
+            topic="ai-literature",
+            venue=None,
+            artifact_root="RESEARCH/[topic]/",
+            required_outputs=["literature/search_strategy.md"],
+            contract_required_outputs=["literature/search_strategy.md"],
+            deferred_outputs=[],
+            required_mcp=["filesystem"],
+            required_skills=["literature-search-planner"],
+            required_skill_cards=[],
+            quality_gates=["Q2"],
+            artifact_policy="contract",
+            research_depth="standard",
+            evidence_expansion_rounds=1,
+        )
+
+        self.assertFalse(packet["writing_harness"]["enabled"])
+
+    def test_draft_prompt_requires_story_spine_and_write_review_confirm_loop(self) -> None:
+        orchestrator = MockOrchestrator()
+        packet = {
+            "task_id": "F3",
+            "required_outputs": ["manuscript/manuscript.md"],
+            "deferred_outputs": [],
+            "artifact_policy": "contract",
+            "research_depth": "standard",
+            "evidence_expansion_rounds": 1,
+            "required_skills": ["manuscript-architect", "self-critique"],
+            "quality_gates": ["Q2"],
+            "writing_harness": {
+                "enabled": True,
+                "stage": "F",
+                "mode": "incremental-mainline",
+                "required_preflight": ["boundary", "story_spine", "non_goals"],
+                "loop": "write_review_confirm",
+                "chunk_unit": "section_or_paragraph_cluster",
+                "block_conditions": [
+                    "mainline_drift",
+                    "missing_support",
+                    "generic_or_vague_claims",
+                    "evidence_free_generalization",
+                ],
+                "context_artifacts": [
+                    "context/boundary_review.md",
+                    "review/self_critique_log.md",
+                ],
+            },
+        }
+
+        prompt = orchestrator._build_task_draft_prompt(
+            task_packet=packet,
+            mcp_evidence=[],
+            skill_cards=[],
+            extra_context=None,
+        )
+
+        self.assertIn("Writing harness is active", prompt)
+        self.assertIn("Writing harness:", prompt)
+        self.assertIn("Story Spine", prompt)
+        self.assertIn("do not draft the whole artifact in one uninterrupted pass", prompt)
+        self.assertIn("write -> review -> confirm", prompt)
+        self.assertIn("Writing Harness Checkpoints", prompt)
+
+    def test_review_prompt_blocks_writing_harness_failures(self) -> None:
+        orchestrator = MockOrchestrator()
+        packet = {
+            "task_id": "F3",
+            "required_outputs": ["manuscript/manuscript.md"],
+            "deferred_outputs": [],
+            "research_depth": "standard",
+            "writing_harness": {
+                "enabled": True,
+                "stage": "F",
+                "mode": "incremental-mainline",
+                "required_preflight": ["boundary", "story_spine", "non_goals"],
+                "loop": "write_review_confirm",
+                "chunk_unit": "section_or_paragraph_cluster",
+                "block_conditions": [
+                    "mainline_drift",
+                    "missing_support",
+                    "generic_or_vague_claims",
+                    "evidence_free_generalization",
+                ],
+                "context_artifacts": [
+                    "context/boundary_review.md",
+                    "review/self_critique_log.md",
+                ],
+            },
+        }
+
+        prompt = orchestrator._build_task_review_prompt(
+            task_packet=packet,
+            mcp_evidence=[],
+            skill_cards=[],
+            draft_output="Draft text with broad unsupported claims.",
+        )
+
+        self.assertIn("Writing harness review is active", prompt)
+        self.assertIn("Writing harness:", prompt)
+        self.assertIn("Block if the draft lacks a Story Spine", prompt)
+        self.assertIn("Block if any chunk drifts from the mainline", prompt)
+        self.assertIn("generic claims without concrete support", prompt)
+        self.assertIn("Writing Harness Compliance", prompt)
 
     def test_review_prompt_blocks_boundary_broadening(self) -> None:
         orchestrator = MockOrchestrator()

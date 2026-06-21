@@ -213,7 +213,7 @@ functional_agents:
       - "I"
   writing-agent:
     file: "roles/science-writer.yaml"
-    mapped_role: "science-writer"
+    mapped_role: "academic-writer"
     focus: "Drafting, restructuring, deep interpretation, and claim presentation."
     owns_stages:
       - "F"

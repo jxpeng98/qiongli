@@ -18,7 +18,8 @@ Installed Qiongli workflow version: `v1.5.0-beta.6`
 3. If the user is brainstorming or starting from a vague topic, run the Academic Idea Funnel and write `context/idea_funnel.md` before Stage A outputs.
 4. Execute the task and write outputs to `RESEARCH/[topic]/` using the exact file paths.
 5. Apply quality gates before submission tasks (`H1`, `H2`).
-6. For orchestrator `task-run`, declare controller ownership when relevant with `--execution-mode`, `--controller`, `--primary`, `--reviewer`, `--verifier`, and `--solo-role-gates`.
+6. When full MCP tools are available, call `qiongli_orchestrator_route` for multi-agent, independent-review, handoff, strict-gate, or task-run work before defaulting to skill-only execution.
+7. For orchestrator `task-run`, declare controller ownership when relevant with `--execution-mode`, `--controller`, `--primary`, `--reviewer`, `--verifier`, and `--solo-role-gates`.
 
 ## Cross-Platform Trigger Contract
 
@@ -50,8 +51,8 @@ The ambiguity response should inspect available artifacts first, then ask one bl
 
 ### Platform Routing
 
-- Codex: skill or plugin discovery should route natural academic requests to Qiongli even without `$qiongli`; then load the relevant workflow or skill card.
-- Claude / Claude Code: skill package and plugin metadata should route natural academic requests to the matching task ID or workflow wrapper.
+- Codex: skill or plugin discovery should route natural academic requests to Qiongli even without `$qiongli`; then load the relevant workflow or skill card. If the full CLI MCP server exposes `qiongli_orchestrator_route`, call it before multi-agent or auditable task-run work so Codex can move from skill-only execution to `qiongli_task_plan` / `qiongli_task_run`.
+- Claude / Claude Code: skill package and plugin metadata should route natural academic requests to the matching task ID or workflow wrapper. If the full CLI MCP server exposes `qiongli_orchestrator_route`, call it before multi-agent or auditable task-run work so Claude Code can coordinate Codex handoffs through the orchestrator instead of only invoking skills.
 - Gemini: extension and workflow prompts should preserve task IDs, artifact contracts, and stage-aware grill behavior.
 - CLI / npm / Python: command wrappers remain available, but the same routing contract applies to task packets and orchestrator runs.
 - Portable `qiongli-workflow`: synced skill packages must carry this trigger contract for non-plugin installs.
@@ -134,6 +135,7 @@ RESEARCH/[topic]/
 - Before unresolved Stage A work, `/paper` routing, or `/find-gap` from a vague topic, run the Academic Idea Funnel and write `RESEARCH/[topic]/context/idea_funnel.md`; then hand off locked or unresolved scholarly boundaries into `RESEARCH/[topic]/context/boundary_review.md`.
 - Do not infer stage order alphabetically when the contract exposes explicit ordering metadata.
 - When `self-critique` is one of the required skills, preserve critique history across revision rounds, treat `review/self_critique_log.md` as the canonical issue register, require the configured minimum review passes before convergence, and never convert a `BLOCK` verdict into `PASS` because of high confidence alone.
+- Writing Harness Contract: when producing or revising Stage F writing through a workflow, skill card, role prompt, or direct agent instruction, first lock the boundary and Story Spine, then write in section or paragraph-cluster chunks. Use a write -> review -> confirm loop for each chunk; do not draft the whole artifact in one uninterrupted pass. Block or ask the next blocking boundary/grill question when there is mainline drift, missing support, generic or vague claims, evidence-free generalization, or a logic jump.
 - If a requested output is missing prerequisites, create a gap note and ask whether to:
   1. continue with placeholders, or
   2. run the prerequisite task first.
@@ -159,7 +161,7 @@ RESEARCH/[topic]/
 - Claude Desktop/Web focused ZIPs are skill-only packages kept within the 180-file upload budget. They contain workflows/prompts/templates, store no secrets, and cannot execute OpenAlex, Semantic Scholar, Crossref, or PubMed API calls by themselves.
 - For a manual Desktop install, upload the `qiongli-claude-desktop-skill-*.zip` first, then add a manual MCP install when provider calls or local orchestration are required. The skill ZIP supplies agent instructions, workflows/prompts/templates, and subject overlays; MCP supplies tool calls.
 - Desktop/Web users need the Qiongli Literature Provider `.mcpb` (`qiongli-literature-provider.mcpb`) or platform-native search capability before claiming `provider_connected` literature search. The MCPB is the separate local Claude Desktop provider for OpenAlex and Semantic Scholar configuration. If no MCPB or platform-native search is available, record the run as `strategy_only`.
-- The literature MCPB provides literature MCP tools only. It does not launch orchestrator agents. To expose the full agent runtime through MCP, manually install the full CLI MCP server with `qiongli mcp serve --transport stdio`; clients can then call tools such as `qiongli_task_run` after the local CLI runtime and model CLIs are configured.
+- The literature MCPB provides literature MCP tools only. It does not launch orchestrator agents. To expose the full agent runtime through MCP, manually install the full CLI MCP server with `qiongli mcp serve --transport stdio`; clients can then call `qiongli_orchestrator_route`, `qiongli_task_plan`, and `qiongli_task_run` after the local CLI runtime and model CLIs are configured. `qiongli_task_run` remains preview-first unless the caller sends JSON boolean `run_agents: true`.
 
 ## Skill Loading Strategy
 

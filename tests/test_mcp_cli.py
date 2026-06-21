@@ -67,6 +67,7 @@ class MCPCLITests(unittest.TestCase):
         self.assertEqual(payload["target"], "codex")
         self.assertEqual(payload["server"]["command"], "qiongli")
         self.assertEqual(payload["server"]["args"], ["mcp", "serve", "--transport", "stdio"])
+        self.assertIn("qiongli_orchestrator_route", payload["orchestration_tools"])
         self.assertIn("qiongli_task_run", payload["orchestration_tools"])
         self.assertIn("qiongli_task_plan", payload["orchestration_tools"])
         self.assertIn("qiongli_configure_provider", payload["configuration_tools"])
@@ -85,6 +86,7 @@ class MCPCLITests(unittest.TestCase):
         payload = json.loads(result.stdout)
         self.assertEqual(payload["target"], "claude-code")
         self.assertEqual(payload["server"]["args"], ["mcp", "serve", "--transport", "stdio"])
+        self.assertIn("qiongli_orchestrator_route", payload["orchestration_tools"])
         self.assertIn("qiongli_task_run", payload["orchestration_tools"])
 
     def test_mcp_cli_config_example_for_hermes_json(self) -> None:
@@ -101,6 +103,7 @@ class MCPCLITests(unittest.TestCase):
         self.assertEqual(payload["server"]["command"], "qiongli")
         self.assertEqual(payload["server"]["args"], ["mcp", "serve", "--transport", "stdio"])
         self.assertIn("qiongli_configure_provider", payload["configuration_tools"])
+        self.assertIn("qiongli_orchestrator_route", payload["orchestration_tools"])
         self.assertIn("qiongli_task_run", payload["orchestration_tools"])
 
     def test_mcp_cli_upgrade_delegates_to_qiongli_upgrade(self) -> None:

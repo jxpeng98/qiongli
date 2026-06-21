@@ -56,7 +56,7 @@ Inside an interactive Claude Code session, use:
 /plugin install qiongli-economics@skillsplace
 ```
 
-The Claude Code plugin also bundles the zero-dependency Node literature-provider MCP runtime under `mcp/qiongli-literature-provider/`, using the same provider, search, and status tools as the Codex plugin. It covers literature-provider MCP without installing the `qiongli` CLI. Full Python-backed orchestration tools such as `qiongli_task_plan`, `qiongli_task_run`, and `qiongli_orchestrator_doctor` still require the npm, pipx/pip, or bootstrap `full` CLI runtime and `qiongli mcp serve --transport stdio`.
+The Claude Code plugin also bundles the zero-dependency Node literature-provider MCP runtime under `mcp/qiongli-literature-provider/`, using the same provider, search, and status tools as the Codex plugin. It covers literature-provider MCP without installing the `qiongli` CLI. Full Python-backed orchestration tools such as `qiongli_orchestrator_route`, `qiongli_task_plan`, `qiongli_task_run`, and `qiongli_orchestrator_doctor` still require the npm, pipx/pip, or bootstrap `full` CLI runtime and `qiongli mcp serve --transport stdio`.
 
 Claude Desktop and Claude.ai do not install third-party Claude Code plugin marketplaces. If you use Desktop or the web app and are not familiar with a code/CLI environment, use the release ZIP path instead. It requires no terminal commands:
 
@@ -74,13 +74,13 @@ Manual Desktop installs can combine two local assets:
 - Skill ZIP: enables Qiongli agent instructions, workflows, subject overlays, and skill guidance inside Claude Desktop/Web.
 - Literature MCPB: enables local literature MCP calls and provider configuration.
 
-Those two assets do not by themselves expose the full Python-backed orchestrator. If a local client should call `qiongli_task_plan`, `qiongli_task_run`, or `qiongli_orchestrator_doctor` as MCP tools, install the npm, pipx/pip, or bootstrap `full` CLI runtime and configure:
+Those two assets do not by themselves expose the full Python-backed orchestrator. If a local client should call `qiongli_orchestrator_route`, `qiongli_task_plan`, `qiongli_task_run`, or `qiongli_orchestrator_doctor` as MCP tools, install the npm, pipx/pip, or bootstrap `full` CLI runtime and configure:
 
 ```bash
 qiongli mcp serve --transport stdio
 ```
 
-`qiongli_task_run` defaults to preview mode. It launches local Codex, Claude, or Gemini processes only when the MCP caller explicitly sends JSON boolean `run_agents: true` and the local runtime passes `doctor`.
+Use `qiongli_orchestrator_route` from Codex or Claude Code when deciding whether a request should move from skill-only execution to the full orchestrator. `qiongli_task_run` defaults to preview mode. It launches local Codex, Claude, or Gemini processes only when the MCP caller explicitly sends JSON boolean `run_agents: true` and the local runtime passes `doctor`.
 
 Gemini CLI still installs the local extension payload directly. Build it from
 the canonical sources into a staging directory first:

@@ -437,6 +437,20 @@ class ModelOrchestrator:
     ]
     SELF_CRITIQUE_SKILL = "self-critique"
     SELF_CRITIQUE_ARTIFACT = "review/self_critique_log.md"
+    WRITING_HARNESS_SKILLS = {
+        "manuscript-architect",
+        "proposal-writer",
+        "discussion-writer",
+        "analysis-interpreter",
+        "effect-size-interpreter",
+        "meta-optimizer",
+    }
+    WRITING_HARNESS_CONTEXT_ARTIFACTS = [
+        "context/boundary_review.md",
+        "context/decision_log.md",
+        "context/stage_handoff.md",
+        SELF_CRITIQUE_ARTIFACT,
+    ]
     STAGE_I_FRONTMATTER_KEYS = [
         "task_id",
         "template_type",
@@ -1337,6 +1351,104 @@ Provide your verification assessment.
         return format_boundary_prompt_section(
             plan,
             str(boundary_review.get("existing_review", "")),
+        )
+
+    def _build_writing_harness(
+        self,
+        task_id: str,
+        required_skills: list[str],
+        boundary_review: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        normalized_task = task_id.strip().upper()
+        normalized_skills = {
+            str(skill).strip()
+            for skill in required_skills
+            if str(skill).strip()
+        }
+        is_writing_task = normalized_task.startswith("F") or bool(
+            normalized_skills & self.WRITING_HARNESS_SKILLS
+        )
+        if not is_writing_task:
+            return {
+                "enabled": False,
+                "reason": "task is outside the Stage-F writing harness scope",
+            }
+
+        boundary = dict(boundary_review or {})
+        context_artifacts = list(self.WRITING_HARNESS_CONTEXT_ARTIFACTS)
+        boundary_artifact = str(boundary.get("artifact", "")).strip()
+        if boundary_artifact and boundary_artifact not in context_artifacts:
+            context_artifacts.insert(0, boundary_artifact)
+
+        return {
+            "enabled": True,
+            "stage": normalized_task[:1] or "F",
+            "mode": "incremental-mainline",
+            "required_preflight": [
+                "boundary",
+                "story_spine",
+                "non_goals",
+                "evidence_plan",
+            ],
+            "loop": "write_review_confirm",
+            "chunk_unit": "section_or_paragraph_cluster",
+            "context_artifacts": context_artifacts,
+            "checkpoint_sections": [
+                "preflight_boundary_and_story_spine",
+                "chunk_plan",
+                "chunk_draft",
+                "chunk_self_review",
+                "confirm_continue_or_revise",
+            ],
+            "block_conditions": [
+                "mainline_drift",
+                "missing_support",
+                "generic_or_vague_claims",
+                "evidence_free_generalization",
+                "logic_jump",
+                "unresolved_boundary_conflict",
+            ],
+            "convergence_conditions": [
+                "story_spine remains stable or changes are explicitly justified",
+                "each chunk has concrete claim-support notes",
+                "each review checkpoint is PASS or has a targeted revision",
+                "no unresolved blocker remains in required outputs",
+            ],
+            "confirmation_policy": (
+                "After each chunk, decide whether to continue, revise the chunk, "
+                "or ask the next blocking boundary/grill question."
+            ),
+        }
+
+    def _format_writing_harness_context(self, task_packet: dict[str, Any]) -> str:
+        harness = task_packet.get("writing_harness", {})
+        if not isinstance(harness, dict) or not harness.get("enabled"):
+            return ""
+
+        def _joined(key: str) -> str:
+            return ", ".join(
+                str(item)
+                for item in harness.get(key, [])
+                if str(item).strip()
+            ) or "-"
+
+        return "\n".join(
+            [
+                "Writing harness:",
+                f"- mode: {str(harness.get('mode', '')).strip() or 'incremental-mainline'}",
+                f"- stage: {str(harness.get('stage', '')).strip() or 'F'}",
+                f"- required_preflight: {_joined('required_preflight')}",
+                f"- loop: {str(harness.get('loop', '')).strip() or 'write_review_confirm'}",
+                f"- chunk_unit: {str(harness.get('chunk_unit', '')).strip() or 'section_or_paragraph_cluster'}",
+                f"- context_artifacts: {_joined('context_artifacts')}",
+                f"- block_conditions: {_joined('block_conditions')}",
+                f"- convergence_conditions: {_joined('convergence_conditions')}",
+                "- confirmation_policy: "
+                + (
+                    str(harness.get("confirmation_policy", "")).strip()
+                    or "continue only after checkpoint review passes"
+                ),
+            ]
         )
 
     def _build_academic_context_update(
@@ -3491,6 +3603,11 @@ Stage-I structure checks:
             deferred_outputs = [
                 output for output in deferred_outputs if output != boundary_artifact
             ]
+        writing_harness = self._build_writing_harness(
+            task_id,
+            required_skills,
+            boundary_review,
+        )
         return {
             "task_id": task_id,
             "paper_type": paper_type,
@@ -3516,6 +3633,7 @@ Stage-I structure checks:
             "evidence_expansion_rounds": evidence_expansion_rounds,
             "academic_context_update": dict(academic_context_update or {}),
             "boundary_review": boundary_review,
+            "writing_harness": writing_harness,
         }
 
     def _select_task_outputs(
@@ -4919,6 +5037,19 @@ Targeted follow-up context:
 23. If no answered boundary review exists and required_before_draft is true, ask exactly the first listed boundary question and write the answer to `context/boundary_review.md` before producing broader outputs.
 24. If an answered boundary review exists, continue within it and do not broaden claim strength, evidence threshold, population, corpus, method, code/data decision, submission promise, or presentation claim without a new boundary review entry.
 """
+        writing_harness_section = self._format_writing_harness_context(task_packet)
+        writing_harness_rules = ""
+        if writing_harness_section:
+            return_sections.append("- Writing Harness Checkpoints")
+            writing_harness_rules = """
+Writing harness is active.
+- Before drafting prose, establish the Story Spine: central claim, argumentative mainline, section jobs, non-goals, and evidence threshold.
+- If the boundary, mainline, or evidence threshold is unclear, ask the next blocking boundary/grill question before broad drafting.
+- Work in section or paragraph-cluster chunks; do not draft the whole artifact in one uninterrupted pass.
+- For each chunk, run a write -> review -> confirm checkpoint: state the chunk purpose, draft it, review for mainline drift, logic, specificity, and support, then decide continue/revise/ask.
+- Each substantive paragraph must name its claim, concrete support, logical move, and relation to the Story Spine.
+- Replace generic or vague claims with concrete claims tied to evidence, citations, data, examples, or an explicit gap note.
+"""
         local_guidance = task_packet.get("local_guidance", {})
         local_guidance_section = ""
         local_guidance_rules = ""
@@ -4955,6 +5086,7 @@ Execution rules:
 {academic_context_rules}
 {self_critique_rules}
 {boundary_rules}
+{writing_harness_rules}
 {local_guidance_rules}
 
 Output control:
@@ -4965,7 +5097,7 @@ MCP evidence snapshot:
 
 Required skill cards:
 {self._format_skill_context(skill_cards)}
-{domain_section}{code_lane_section}{code_lane_template_section}{targeted_section}{academic_context_section}{self_critique_section}{boundary_section}{local_guidance_section}
+{domain_section}{code_lane_section}{code_lane_template_section}{targeted_section}{academic_context_section}{self_critique_section}{boundary_section}{writing_harness_section}{local_guidance_section}
 
 Additional context:
 {extra_context or "No additional context."}
@@ -5098,6 +5230,18 @@ Targeted follow-up context:
             boundary_review_rule = """
 16. Boundary review is active. Block if the draft broadens the locked boundary, upgrades claim strength, lowers evidence threshold, hides a limitation, or makes a code/data/submission/presentation promise beyond the answered boundary.
 """
+        writing_harness_section = self._format_writing_harness_context(task_packet)
+        writing_harness_review_rule = ""
+        if writing_harness_section:
+            return_sections.append("- Writing Harness Compliance")
+            writing_harness_review_rule = """
+Writing harness review is active.
+- Block if the draft lacks a Story Spine before substantive prose.
+- Block if any chunk drifts from the mainline, changes the central claim without a boundary decision, or omits its confirmation decision.
+- Block generic claims without concrete support, citation/data/example anchors, or an explicit gap note.
+- Block paragraphs that summarize without a logical move: mechanism, tension, alternative explanation, boundary condition, or implication.
+- Treat missing chunk-level review notes as a process failure, not merely a style issue.
+"""
         local_guidance = task_packet.get("local_guidance", {})
         local_guidance_section = ""
         local_guidance_rule = ""
@@ -5125,7 +5269,7 @@ MCP evidence snapshot:
 
 Required skill cards:
 {self._format_skill_context(skill_cards)}
-{domain_section}{code_lane_section}{code_lane_review_section}{targeted_section}{self_critique_section}{boundary_section}{local_guidance_section}
+{domain_section}{code_lane_section}{code_lane_review_section}{targeted_section}{self_critique_section}{boundary_section}{writing_harness_section}{local_guidance_section}
 
 Review checklist:
 1. Output path coverage against required_outputs.
@@ -5139,6 +5283,7 @@ Review checklist:
 {targeted_review_rule}
 {self_critique_rule}
 {boundary_review_rule}
+{writing_harness_review_rule}
 {local_guidance_rule}
 {critique_section}
 
@@ -5217,6 +5362,14 @@ Targeted follow-up context:
             targeted_checks = """
 6. Decide whether the selected actionable targets are now resolved, still blocked, or incorrectly widened into unrelated scope.
 """
+        writing_harness_section = self._format_writing_harness_context(task_packet)
+        writing_harness_checks = ""
+        if writing_harness_section:
+            return_sections.append("- Writing Harness Compliance")
+            writing_harness_checks = """
+6. Verify the draft and review preserved the Story Spine and chunk-level write -> review -> confirm loop.
+7. Block if consensus ignores mainline drift, unsupported claims, generic prose, or missing checkpoint decisions.
+"""
         return f"""Perform a third independent audit for this canonical research task.
 
 Task packet (JSON):
@@ -5233,7 +5386,7 @@ MCP evidence snapshot:
 
 Required skill cards:
 {self._format_skill_context(skill_cards)}
-{domain_section}{code_lane_section}{code_lane_review_section}{targeted_section}
+{domain_section}{code_lane_section}{code_lane_review_section}{targeted_section}{writing_harness_section}
 
 Audit checklist:
 1. Identify unresolved disagreements between draft and review.
@@ -5242,6 +5395,7 @@ Audit checklist:
 4. Prioritize top 3 fixes by impact.
 5. Confirm the draft stays within the functional_owner scope and handoff chain.
 {targeted_checks}
+{writing_harness_checks}
 {extra_checks}
 
 Return sections:
@@ -5373,6 +5527,16 @@ Return sections:
                 "13. Do not broaden claim strength, evidence threshold, scope, method, code/data choices, submission promises, or presentation claims silently.\n"
             )
             boundary_return_sections = "- Boundary Compliance\n"
+        writing_harness_section = self._format_writing_harness_context(task_packet)
+        writing_harness_revision_rules = ""
+        writing_harness_return_sections = ""
+        if writing_harness_section:
+            writing_harness_revision_rules = (
+                "14. Writing harness is active. Revise the failing chunk instead of regenerating the entire artifact unless the Story Spine itself is blocked.\n"
+                "15. Preserve the Story Spine or explicitly mark why it changed, which boundary decision authorized the change, and which chunks must be rechecked.\n"
+                "16. For each revised chunk, include a write -> review -> confirm checkpoint with the remaining issue status.\n"
+            )
+            writing_harness_return_sections = "- Writing Harness Checkpoints\n"
         return (
             f"You are revising a research workflow task draft based on review feedback.\n"
             f"This is revision round {revision_round}.\n\n"
@@ -5387,6 +5551,7 @@ Return sections:
             f"{targeted_section}"
             f"{self_critique_section}"
             f"{boundary_section}\n\n"
+            f"{writing_harness_section}\n\n"
             "Revision rules:\n"
             "1. Address every Critical Issue raised in the review.\n"
             "2. Apply every Suggested Fix unless you can justify why it is not applicable.\n"
@@ -5397,11 +5562,13 @@ Return sections:
             f"{targeted_revision_rules}\n"
             f"{self_critique_rules}"
             f"{boundary_revision_rules}"
+            f"{writing_harness_revision_rules}"
             "Return sections:\n"
             "- Revision Summary (what changed and why)\n"
             f"{targeted_return_sections}"
             f"{self_critique_return_sections}"
             f"{boundary_return_sections}"
+            f"{writing_harness_return_sections}"
             "- Revised Draft Outputs (by file path)\n"
             "- Quality Gate Check\n"
             "- Unresolved Issues\n"

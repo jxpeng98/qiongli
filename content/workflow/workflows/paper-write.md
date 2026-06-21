@@ -64,20 +64,39 @@ Use **manuscript-architect** with `templates/manuscript-outline.md` to draft:
 **STOP & CONFIRM**:
 > "Outline is ready. Proceed to full draft? (Y/N)"
 
-### Step 4: Draft Manuscript
+### Step 4: Apply Writing Harness Contract
+
+Before drafting prose, establish and show the **Story Spine**:
+- central claim and claim strength
+- argumentative mainline
+- section jobs and non-goals
+- evidence threshold and known evidence gaps
+- boundary or grill decisions that constrain the draft
+
+If the boundary, mainline, or evidence threshold is unclear, ask the next blocking boundary/grill question before broad drafting.
+
+Draft in section or paragraph-cluster chunks. For each chunk, run a write -> review -> confirm checkpoint:
+1. State the chunk's job in the Story Spine.
+2. Draft only that chunk.
+3. Review for mainline drift, logic, specificity, support, and contradiction with prior decisions.
+4. Confirm whether to continue, revise the chunk, or ask a boundary/grill question.
+
+Do not draft the whole artifact in one uninterrupted pass. Block or revise when the text contains generic or vague claims, evidence-free generalization, missing support, or a logic jump.
+
+### Step 5: Draft Manuscript
 
 Use **manuscript-architect** with `templates/manuscript-skeleton.md` to produce:
 - `RESEARCH/[topic]/manuscript/manuscript.md`
 
 For single-section drafting, you can still use `/academic-write`.
 
-### Step 5: Integrity Passes
+### Step 6: Integrity Passes
 
 Use **manuscript-architect** to create:
 - Claim–evidence map → `RESEARCH/[topic]/manuscript/claims_evidence_map.md` (use `templates/claim-evidence-map.md`)
 - Figures/tables plan → `RESEARCH/[topic]/manuscript/figures_tables_plan.md` (use `templates/figures-tables-plan.md`)
 
-### Step 6: Readiness Checks
+### Step 7: Readiness Checks
 
 Run the appropriate checker:
 - Empirical: **reporting-checker** → `RESEARCH/[topic]/reporting_checklist.md`
