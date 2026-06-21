@@ -51,6 +51,9 @@ class ZoteroCompanionArtifactTests(unittest.TestCase):
         self.assertIn("bootstrap.js", names)
         self.assertIn("README.md", names)
         self.assertIn("chrome/content/qiongli-bridge.js", names)
+        manifest = json.loads(text_payloads["manifest.json"])
+        self.assertEqual(manifest["applications"]["zotero"]["strict_min_version"], "7.0")
+        self.assertEqual(manifest["applications"]["zotero"]["strict_max_version"], "9.*")
         self.assertFalse(any(name.startswith("test/") or name.startswith("tests/") for name in names))
         self.assertNotIn("package.json", names)
         for content in text_payloads.values():

@@ -168,8 +168,9 @@ test("companion package declares Zotero install metadata and qiongli endpoints",
   const readme = await readFile(path.join(PACKAGE_ROOT, "README.md"), "utf8");
 
   assert.equal(manifest.name, "qiongli-zotero-companion");
-  assert.equal(manifest.version, "0.1.0");
+  assert.equal(manifest.version, "0.1.1");
   assert.equal(manifest.applications.zotero.strict_min_version, "7.0");
+  assert.equal(manifest.applications.zotero.strict_max_version, "9.*");
   for (const endpoint of ["/qiongli/ping", "/qiongli/search", "/qiongli/upsertItems", "/qiongli/collections"]) {
     assert.ok(bootstrap.includes(endpoint), `${endpoint} missing from bootstrap.js`);
   }

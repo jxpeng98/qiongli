@@ -24,6 +24,8 @@ Build the user-installable Zotero extension from the repository root:
 python3 scripts/build_zotero_companion.py --dist-dir dist
 ```
 
-The generated `qiongli-zotero-companion-*.xpi` can be installed through Zotero
-Desktop's add-on manager. Direct local writes require this companion extension;
-without it, Qiongli still generates import files that can be imported manually.
+The generated `qiongli-zotero-companion-*.xpi` targets the bootstrapped Zotero
+Desktop plugin model used by Zotero 7 through Zotero 9 and can be installed
+through Zotero Desktop's add-on manager. Direct local writes require this
+companion extension; without it, Qiongli still generates import files that can
+be imported manually.
