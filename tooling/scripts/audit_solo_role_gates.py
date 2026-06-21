@@ -7,8 +7,15 @@ from pathlib import Path
 from typing import Any, Callable
 
 
-EXECUTION_MODES = {"solo", "solo_codex", "solo_claude", "duo", "triad"}
-RUNTIME_AGENTS = {"codex", "claude"}
+EXECUTION_MODES = {
+    "solo",
+    "solo_codex",
+    "solo_claude",
+    "solo_antigravity",
+    "duo",
+    "triad",
+}
+RUNTIME_AGENTS = {"codex", "claude", "antigravity"}
 WRITING_TASK_TYPES = {"writing", "drafting", "manuscript", "paper_write"}
 CODE_TASK_TYPES = {"code", "coding", "implementation", "software"}
 
@@ -82,10 +89,19 @@ def _audit_run_packet(
         if not _has_existing_artifact(artifact_paths, _is_claim_map_path):
             errors.append(f"{run_id}: solo Codex writing missing claim map artifact")
 
-    if execution_mode == "solo_claude" and _is_code_packet(packet, artifact_paths):
+    if execution_mode == "solo_antigravity" and _is_writing_packet(packet, artifact_paths):
+        if not _has_existing_artifact(artifact_paths, _is_story_spine_path):
+            errors.append(
+                f"{run_id}: solo Antigravity writing missing story spine artifact"
+            )
+
+    if execution_mode in {"solo_claude", "solo_antigravity"} and _is_code_packet(
+        packet,
+        artifact_paths,
+    ):
         if not _has_existing_artifact(artifact_paths, _is_implementation_intent_path):
             errors.append(
-                f"{run_id}: solo Claude code missing implementation intent artifact"
+                f"{run_id}: {execution_mode} code missing implementation intent artifact"
             )
 
     if execution_mode == "duo":
@@ -192,6 +208,11 @@ def _has_existing_artifact(
 def _is_claim_map_path(path: Path) -> bool:
     name = path.name.lower()
     return "claim" in name and "map" in name
+
+
+def _is_story_spine_path(path: Path) -> bool:
+    text = str(path).lower().replace("-", "_")
+    return "story_spine" in text
 
 
 def _is_implementation_intent_path(path: Path) -> bool:

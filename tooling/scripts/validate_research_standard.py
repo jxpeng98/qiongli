@@ -38,7 +38,7 @@ EXPECTED_TASK_IDS = {
     "K1", "K2", "K3", "K4",
 }
 EXPECTED_QUALITY_GATES = {"Q1", "Q2", "Q3", "Q4"}
-EXPECTED_AGENTS = {"codex", "claude"}
+EXPECTED_AGENTS = {"codex", "claude", "antigravity"}
 EXPECTED_FUNCTIONAL_AGENTS = {
     "research-orchestrator",
     "literature-agent",
@@ -2050,9 +2050,10 @@ def validate_orchestrator(root: Path, report: ValidationReport) -> None:
             f"orchestrator.py missing {token}",
         )
     report.check(
-        "RUNTIME_AGENTS = {\"codex\", \"claude\"}" in content,
-        "orchestrator.py runtime agents include codex/claude",
-        "orchestrator.py should include codex/claude in runtime agents",
+        'RUNTIME_AGENT_CHOICES = ("codex", "claude", "antigravity")' in content
+        or "RUNTIME_AGENTS = {\"codex\", \"claude\", \"antigravity\"}" in content,
+        "orchestrator.py runtime agents include codex/claude/antigravity",
+        "orchestrator.py should include codex/claude/antigravity in runtime agents",
     )
     report.check(
         "ThreadPoolExecutor" in content and "as_completed" in content,
