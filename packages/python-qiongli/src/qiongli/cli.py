@@ -500,7 +500,7 @@ def _check_system_env() -> dict[str, dict[str, str]]:
     results = {}
 
     # 1. CLIs
-    for cli in ("codex", "claude"):
+    for cli in ("codex", "claude", "antigravity"):
         path = shutil.which(cli)
         if not path:
             mise_shim = Path.home() / ".local" / "share" / "mise" / "shims" / cli
@@ -512,6 +512,7 @@ def _check_system_env() -> dict[str, dict[str, str]]:
         else:
             hints = {
                 "claude": "not found (install: npm i -g @anthropic-ai/claude-code)",
+                "antigravity": "not found (install Antigravity and ensure `antigravity` is on PATH)",
             }
             hint = hints.get(cli, "not found")
             results[f"{cli} CLI"] = {"status": "error", "detail": hint}
@@ -1189,7 +1190,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     setup = subparsers.add_parser(
         "setup",
-        help="Interactively configures Qiongli for CLI/Codex/Claude Code use",
+        help="Interactively configures Qiongli for CLI/Codex/Claude Code/Antigravity use",
     )
     setup.add_argument(
         "--project-dir",

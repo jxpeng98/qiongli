@@ -22,7 +22,7 @@ Before editing anything, distinguish these layers clearly:
   - Cross-client entry skill distributed to Codex / Claude / Antigravity / Hermes.
 - **Functional Agents**: currently represented mainly by `roles/` and pipeline ownership patterns
   - This is the research responsibility layer: literature, methods, writing, compliance, etc.
-- **Runtime Agents**: `codex`, `claude`
+- **Runtime Agents**: `codex`, `claude`, `antigravity`
   - These are model executors selected by the capability map and bridges.
 - **Pipelines**: `tooling/pipelines/`
   - Abstract DAG definitions and handoff plans.

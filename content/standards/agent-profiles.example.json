@@ -17,6 +17,11 @@
           "permission_mode": "default",
           "non_interactive": true,
           "timeout_seconds": 300
+        },
+        "antigravity": {
+          "sandbox": true,
+          "non_interactive": true,
+          "timeout_seconds": 300
         }
       }
     },
@@ -35,6 +40,11 @@
           "permission_mode": "default",
           "non_interactive": true,
           "timeout_seconds": 360
+        },
+        "antigravity": {
+          "sandbox": true,
+          "non_interactive": true,
+          "timeout_seconds": 300
         }
       }
     },
@@ -50,6 +60,11 @@
         },
         "claude": {
           "permission_mode": "default",
+          "non_interactive": true,
+          "timeout_seconds": 240
+        },
+        "antigravity": {
+          "sandbox": true,
           "non_interactive": true,
           "timeout_seconds": 240
         }
@@ -68,6 +83,11 @@
         },
         "claude": {
           "permission_mode": "default",
+          "non_interactive": true,
+          "timeout_seconds": 240
+        },
+        "antigravity": {
+          "sandbox": true,
           "non_interactive": true,
           "timeout_seconds": 240
         }
@@ -90,6 +110,11 @@
           "permission_mode": "default",
           "non_interactive": true,
           "timeout_seconds": 540
+        },
+        "antigravity": {
+          "sandbox": true,
+          "non_interactive": true,
+          "timeout_seconds": 480
         }
       }
     },
@@ -108,6 +133,11 @@
           "permission_mode": "default",
           "non_interactive": true,
           "timeout_seconds": 420
+        },
+        "antigravity": {
+          "sandbox": true,
+          "non_interactive": true,
+          "timeout_seconds": 360
         }
       }
     },
@@ -124,6 +154,11 @@
         },
         "claude": {
           "permission_mode": "default",
+          "non_interactive": true,
+          "timeout_seconds": 300
+        },
+        "antigravity": {
+          "sandbox": true,
           "non_interactive": true,
           "timeout_seconds": 300
         }

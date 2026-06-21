@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
 Multi-Model Orchestrator for qiongli.
-Single entry point for coordinating Codex and Claude collaboration.
+Single entry point for coordinating Codex, Claude, and Antigravity collaboration.
 
 Usage:
     python orchestrator.py parallel --prompt "..." --cwd "/path" --summarizer claude
     python orchestrator.py chain --prompt "..." --cwd "/path" --generator claude
-    python orchestrator.py role --cwd "/path" --codex-task "..." --claude-task "..."
-    python orchestrator.py single --model claude --prompt "..." --cwd "/path"
+    python orchestrator.py role --cwd "/path" --codex-task "..." --claude-task "..." --antigravity-task "..."
+    python orchestrator.py single --model antigravity --prompt "..." --cwd "/path"
     python orchestrator.py task-run --task-id F3 --paper-type empirical --topic ai-in-education --cwd "/path" --mcp-strict --skills-strict --triad
     python orchestrator.py doctor --cwd "/path"
 
@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import Any
 
 from .base_bridge import BridgeResponse, CollaborationResult, configure_stdio
+from .antigravity_bridge import AntigravityBridge
 from .claude_bridge import ClaudeBridge
 from .command_runtime import split_command
 from .codex_bridge import CodexBridge
@@ -72,7 +73,7 @@ class CollaborationMode(Enum):
     SINGLE = "single"          # Single model execution
 
 
-RUNTIME_AGENT_CHOICES = ("codex", "claude")
+RUNTIME_AGENT_CHOICES = ("codex", "claude", "antigravity")
 CONTROLLER_EXECUTION_MODE_CHOICES = ("solo", "duo", "triad")
 SOLO_ROLE_GATE_CHOICES = ("strict", "standard", "off")
 WORKER_MODE_CHOICES = ("none", "auto", "delegated-workers", "review-swarm")
@@ -237,6 +238,7 @@ class ModelOrchestrator:
             "runtime_options": {
                 "codex": {"sandbox": "read-only", "non_interactive": True},
                 "claude": {"permission_mode": "default", "non_interactive": True},
+                "antigravity": {"sandbox": True, "non_interactive": True},
             },
         },
         "strict-review": {
@@ -246,6 +248,7 @@ class ModelOrchestrator:
             "runtime_options": {
                 "codex": {"sandbox": "read-only", "non_interactive": True},
                 "claude": {"permission_mode": "default", "non_interactive": True},
+                "antigravity": {"sandbox": True, "non_interactive": True},
             },
         },
         "rapid-draft": {
@@ -255,6 +258,7 @@ class ModelOrchestrator:
             "runtime_options": {
                 "codex": {"sandbox": "workspace-write", "non_interactive": True},
                 "claude": {"permission_mode": "default", "non_interactive": True},
+                "antigravity": {"sandbox": True, "non_interactive": True},
             },
         },
         "focused-delivery": {
@@ -265,6 +269,7 @@ class ModelOrchestrator:
             "runtime_options": {
                 "codex": {"sandbox": "read-only", "non_interactive": True, "timeout_seconds": 240},
                 "claude": {"permission_mode": "default", "non_interactive": True, "timeout_seconds": 240},
+                "antigravity": {"sandbox": True, "non_interactive": True, "timeout_seconds": 240},
             },
         },
         "deep-research": {
@@ -277,10 +282,11 @@ class ModelOrchestrator:
             "runtime_options": {
                 "codex": {"sandbox": "read-only", "non_interactive": True, "timeout_seconds": 480},
                 "claude": {"permission_mode": "default", "non_interactive": True, "timeout_seconds": 540},
+                "antigravity": {"sandbox": True, "non_interactive": True, "timeout_seconds": 480},
             },
         },
     }
-    RUNTIME_AGENTS = {"codex", "claude"}
+    RUNTIME_AGENTS = set(RUNTIME_AGENT_CHOICES)
     DOMAIN_PROFILE_ALIASES = {
         "business": "business-management",
         "business-management": "business-management",
@@ -447,6 +453,7 @@ class ModelOrchestrator:
         self,
         codex_sandbox: str = "read-only",
         claude_permission_mode: str | None = None,
+        antigravity_sandbox: bool = True,
         standards_dir: Path | None = None,
         mcp_timeout_seconds: int = 20,
         interactive: bool = False,
@@ -454,6 +461,7 @@ class ModelOrchestrator:
         """Initialize orchestrator with bridges."""
         self.codex = CodexBridge(sandbox=codex_sandbox)
         self.claude = ClaudeBridge(permission_mode=claude_permission_mode)
+        self.antigravity = AntigravityBridge(sandbox=antigravity_sandbox)
         self.standards_dir = standards_dir or _default_standards_dir(cwd=Path.cwd())
         self.mcp_connector = MCPConnector(timeout_seconds=mcp_timeout_seconds)
         self.interactive = interactive
@@ -618,6 +626,7 @@ class ModelOrchestrator:
         prompt: str | None = None,
         codex_task: str | None = None,
         claude_task: str | None = None,
+        antigravity_task: str | None = None,
         generator: str = "codex",
         single_model: str = "codex",
         parallel_summarizer: str = "claude",
@@ -635,6 +644,7 @@ class ModelOrchestrator:
             prompt: Main prompt (for parallel/chain/single modes)
             codex_task: Codex-specific task (for role mode)
             claude_task: Claude-specific task (for role mode)
+            antigravity_task: Antigravity-specific task (for role mode)
             generator: Which model generates in chain mode
             single_model: Which model to use in single mode
             parallel_summarizer: Which model performs post-parallel synthesis
@@ -664,11 +674,12 @@ class ModelOrchestrator:
                     recommendations=[],
                     codex_response=error_resp if "codex" in str(exc).lower() else None,
                     claude_response=error_resp if "claude" in str(exc).lower() else None,
+                    antigravity_response=error_resp if "antigravity" in str(exc).lower() else None,
                 )
         elif mode == CollaborationMode.CHAIN:
             return self._chain_verify(prompt or "", cwd, generator)
         elif mode == CollaborationMode.ROLE_BASED:
-            return self._role_based(cwd, codex_task, claude_task)
+            return self._role_based(cwd, codex_task, claude_task, antigravity_task)
         elif mode == CollaborationMode.SINGLE:
             return self._single_execute(
                 prompt or "", cwd, single_model, session_id
@@ -686,12 +697,12 @@ class ModelOrchestrator:
         summarizer_profile_name: str = "default",
     ) -> CollaborationResult:
         """
-        Parallel mode: dual-agent concurrent analysis (codex/claude),
+        Parallel mode: triad concurrent analysis (codex/claude/antigravity),
         then one summarizer agent performs cross-model synthesis.
 
         If one runtime is unavailable, automatically degrade to single.
         """
-        requested_agents = ["codex", "claude"]
+        requested_agents = list(RUNTIME_AGENT_CHOICES)
         responses: dict[str, BridgeResponse] = {}
         registry = profile_registry or self.DEFAULT_AGENT_PROFILES
         base_profile_cfg = self._resolve_profile_config(base_profile_name, registry)
@@ -750,7 +761,9 @@ class ModelOrchestrator:
             for agent in requested_agents
             if agent not in success_agents
         ]
-        if len(success_agents) == 2:
+        if len(success_agents) >= 3:
+            execution_level = "triad"
+        elif len(success_agents) == 2:
             execution_level = "dual"
         elif len(success_agents) == 1:
             execution_level = "single"
@@ -850,6 +863,7 @@ class ModelOrchestrator:
             task_description=prompt[:200],
             codex_response=responses.get("codex"),
             claude_response=responses.get("claude"),
+            antigravity_response=responses.get("antigravity"),
             merged_analysis=merged,
             confidence=confidence,
             recommendations=self._extract_recommendations(merged),
@@ -937,6 +951,7 @@ Produce sections:
         verifier_by_generator = {
             "codex": "claude",
             "claude": "codex",
+            "antigravity": "claude",
         }
         verify_agent = verifier_by_generator.get(generator, "claude")
         gen_resp = self._execute_runtime_agent(generator, prompt, cwd)
@@ -965,6 +980,9 @@ Produce sections:
             claude_response=gen_resp if generator == "claude" else (
                 verify_resp if verify_agent == "claude" else None
             ),
+            antigravity_response=gen_resp if generator == "antigravity" else (
+                verify_resp if verify_agent == "antigravity" else None
+            ),
             merged_analysis=merged,
             confidence=confidence,
             recommendations=self._extract_recommendations(merged),
@@ -975,15 +993,18 @@ Produce sections:
         cwd: Path,
         codex_task: str | None,
         claude_task: str | None,
+        antigravity_task: str | None = None,
     ) -> CollaborationResult:
         """
         Role-based mode: Divide tasks by model specialty.
 
         Codex: Code generation, implementation, fixing
         Claude: Structured drafting, critique, synthesis
+        Antigravity: Independent audit, verification, fallback review
         """
         codex_resp = None
         claude_resp = None
+        antigravity_resp = None
 
         if codex_task:
             codex_resp = self._execute_runtime_agent("codex", codex_task, cwd)
@@ -991,23 +1012,33 @@ Produce sections:
         if claude_task:
             claude_resp = self._execute_runtime_agent("claude", claude_task, cwd)
 
+        if antigravity_task:
+            antigravity_resp = self._execute_runtime_agent(
+                "antigravity",
+                antigravity_task,
+                cwd,
+            )
+
         # Merge outputs
         parts = []
         if codex_resp and codex_resp.success:
             parts.append(f"## Codex Output\n\n{codex_resp.content}")
         if claude_resp and claude_resp.success:
             parts.append(f"## Claude Output\n\n{claude_resp.content}")
+        if antigravity_resp and antigravity_resp.success:
+            parts.append(f"## Antigravity Output\n\n{antigravity_resp.content}")
 
         merged = "\n\n---\n\n".join(parts) if parts else "No successful outputs."
 
         # Calculate confidence
         success_count = sum([
-            1 for r in [codex_resp, claude_resp]
+            1 for r in [codex_resp, claude_resp, antigravity_resp]
             if r and r.success
         ])
         requested_count = sum([
             1 if codex_task else 0,
             1 if claude_task else 0,
+            1 if antigravity_task else 0,
         ])
         confidence = (
             success_count / float(requested_count)
@@ -1016,7 +1047,8 @@ Produce sections:
 
         task_desc = (
             f"Codex: {codex_task or 'N/A'} | "
-            f"Claude: {claude_task or 'N/A'}"
+            f"Claude: {claude_task or 'N/A'} | "
+            f"Antigravity: {antigravity_task or 'N/A'}"
         )
 
         return CollaborationResult(
@@ -1024,6 +1056,7 @@ Produce sections:
             task_description=task_desc[:200],
             codex_response=codex_resp,
             claude_response=claude_resp,
+            antigravity_response=antigravity_resp,
             merged_analysis=merged,
             confidence=confidence,
             recommendations=[],
@@ -1052,6 +1085,14 @@ Produce sections:
                 mode="single",
                 task_description=prompt[:200],
                 claude_response=resp,
+                merged_analysis=resp.content if resp.success else resp.error or "",
+                confidence=1.0 if resp.success else 0.0,
+            )
+        if model == "antigravity":
+            return CollaborationResult(
+                mode="single",
+                task_description=prompt[:200],
+                antigravity_response=resp,
                 merged_analysis=resp.content if resp.success else resp.error or "",
                 confidence=1.0 if resp.success else 0.0,
             )
@@ -2214,6 +2255,7 @@ Provide your verification assessment.
         runtime_registry = {
             "codex": ("OPENAI_API_KEY",),
             "claude": ("ANTHROPIC_API_KEY",),
+            "antigravity": (),
         }
         for cli_name, api_envs in runtime_registry.items():
             cli_path = shutil.which(cli_name)
@@ -2226,6 +2268,14 @@ Provide your verification assessment.
                     f"{cli_name} not found in PATH.",
                     f"Install {cli_name} CLI or route tasks away from {cli_name}.",
                 )
+
+            if not api_envs:
+                add_check(
+                    f"Auth {cli_name}",
+                    "ok",
+                    "managed by the local CLI login/configuration",
+                )
+                continue
 
             configured_env = next(
                 (env_name for env_name in api_envs if os.environ.get(env_name, "").strip()),
@@ -2377,7 +2427,7 @@ Provide your verification assessment.
     ) -> tuple[str, list[str]]:
         notes: list[str] = []
         seen: set[str] = set()
-        candidates = [preferred_agent, *fallback_chain, "codex", "claude"]
+        candidates = [preferred_agent, *fallback_chain, *RUNTIME_AGENT_CHOICES]
         for candidate in candidates:
             if not candidate or candidate in seen:
                 continue
@@ -2434,6 +2484,7 @@ Provide your verification assessment.
         auth_env = {
             "codex": "OPENAI_API_KEY",
             "claude": "ANTHROPIC_API_KEY",
+            "antigravity": "",
         }.get(agent_name)
 
         cli_path = shutil.which(agent_name)
@@ -2486,6 +2537,8 @@ Provide your verification assessment.
             return self.codex.execute(final_prompt, cwd, **options)
         if agent_name == "claude":
             return self.claude.execute(final_prompt, cwd, **options)
+        if agent_name == "antigravity":
+            return self.antigravity.execute(final_prompt, cwd, **options)
         return BridgeResponse.from_error(
             agent_name,
             f"Unsupported runtime agent for this orchestrator: {agent_name}",
@@ -2884,6 +2937,7 @@ Stage-I structure checks:
             task_description=f"{method} {focus} {topic}"[:200],
             codex_response=result.codex_response,
             claude_response=result.claude_response,
+            antigravity_response=result.antigravity_response,
             merged_analysis=merged,
             confidence=result.confidence,
             recommendations=list(result.recommendations),
@@ -5385,8 +5439,8 @@ Return sections:
         }
 
         # Worker/Review pool
-        config["worker_pool"] = list(block.get("worker_pool", [])) or ["codex", "claude"]
-        config["review_pool"] = list(block.get("review_pool", [])) or ["codex", "claude"]
+        config["worker_pool"] = list(block.get("worker_pool", [])) or list(RUNTIME_AGENT_CHOICES)
+        config["review_pool"] = list(block.get("review_pool", [])) or list(RUNTIME_AGENT_CHOICES)
 
         # Shard / canonical outputs
         config["shard_outputs"] = list(block.get("shard_outputs", []) or [])
@@ -5438,7 +5492,7 @@ Return sections:
         planner_agent = team_config.get("planner_agent", "claude")
         planner_runtime, _ = self._resolve_runtime_agent(
             planner_agent,
-            ["claude", "codex"],
+            ["claude", "codex", "antigravity"],
             cwd=cwd,
             runtime_options_by_agent={
                 agent: self._profile_runtime_options(profile_cfg, agent)
@@ -5590,7 +5644,7 @@ Return your shard deliverables as structured output.
         profile_name: str,
     ) -> list[dict[str, Any]]:
         """Execute work units in parallel using ThreadPoolExecutor."""
-        worker_pool = team_config.get("worker_pool", ["codex", "claude"])
+        worker_pool = team_config.get("worker_pool", list(RUNTIME_AGENT_CHOICES))
         results: list[dict[str, Any]] = []
 
         def execute_worker(idx: int, unit: dict[str, Any]) -> dict[str, Any]:
@@ -5879,7 +5933,7 @@ Return sections:
             merge_agent = team_config.get("merge_agent", "claude")
             merge_runtime, merge_notes = self._resolve_runtime_agent(
                 merge_agent,
-                ["claude", "codex"],
+                ["claude", "codex", "antigravity"],
                 cwd=cwd,
                 runtime_options_by_agent={
                     agent: self._profile_runtime_options(profile_cfg, agent)
@@ -5903,7 +5957,7 @@ Return sections:
         review_resp: BridgeResponse | None = None
         review_runtime: str | None = None
         if merge_resp and merge_resp.success:
-            review_pool = team_config.get("review_pool", ["codex", "claude"])
+            review_pool = team_config.get("review_pool", list(RUNTIME_AGENT_CHOICES))
             preferred_reviewer = review_pool[0] if review_pool else "codex"
             review_runtime, review_notes = self._resolve_runtime_agent(
                 preferred_reviewer,
@@ -5930,6 +5984,7 @@ Return sections:
         # 9. Assemble result
         codex_resp = None
         claude_resp = None
+        antigravity_resp = None
         for runtime_agent, response in (
             (merge_runtime, merge_resp),
             (review_runtime, review_resp),
@@ -5940,6 +5995,8 @@ Return sections:
                 codex_resp = response
             if runtime_agent == "claude" and claude_resp is None:
                 claude_resp = response
+            if runtime_agent == "antigravity" and antigravity_resp is None:
+                antigravity_resp = response
 
         merged_parts = [
             f"## Team-Run: {normalized_task} (run_id={run_id})",
@@ -6006,6 +6063,7 @@ Return sections:
             task_description=f"{normalized_task} {paper_type} {normalized_topic}"[:200],
             codex_response=codex_resp,
             claude_response=claude_resp,
+            antigravity_response=antigravity_resp,
             merged_analysis=merged,
             confidence=confidence,
             recommendations=self._extract_recommendations(merged),
@@ -6818,14 +6876,51 @@ Return sections:
         triad_resp: BridgeResponse | None = None
         triad_runtime: str | None = None
         if triad and draft_resp.success and review_resp and review_resp.success:
-            third_candidates = [
-                agent for agent in ("codex", "claude")
-                if agent not in {draft_runtime, review_runtime}
-            ]
+            used_runtimes = {draft_runtime, review_runtime}
+            verifier_preference = str(controller_metadata.get("verifier_agent", "")).strip()
+            third_candidates: list[str] = []
+            if verifier_preference:
+                third_candidates.append(verifier_preference)
+            third_candidates.extend(
+                agent for agent in RUNTIME_AGENT_CHOICES if agent not in used_runtimes
+            )
+            third_candidates.extend(RUNTIME_AGENT_CHOICES)
+            seen_triad_candidates: set[str] = set()
+            reusable_candidate: str | None = None
+            reusable_error: str | None = None
             for candidate in third_candidates:
-                if candidate in self.RUNTIME_AGENTS:
-                    triad_runtime = candidate
-                    break
+                if not candidate or candidate in seen_triad_candidates:
+                    continue
+                seen_triad_candidates.add(candidate)
+                if candidate not in self.RUNTIME_AGENTS:
+                    continue
+                preflight_error = self._runtime_preflight_error(
+                    candidate,
+                    cwd,
+                    triad_runtime_options.get(candidate, {}),
+                )
+                if preflight_error:
+                    routing_notes.append(
+                        f"Triad runtime candidate '{candidate}' unavailable: {preflight_error}"
+                    )
+                    continue
+                if candidate in used_runtimes:
+                    if reusable_candidate is None:
+                        reusable_candidate = candidate
+                        reusable_error = (
+                            f"No distinct third runtime available; reusing '{candidate}'."
+                        )
+                    continue
+                triad_runtime = candidate
+                if verifier_preference and candidate != verifier_preference:
+                    routing_notes.append(
+                        f"Triad verifier '{verifier_preference}' routed to '{candidate}'."
+                    )
+                break
+            if triad_runtime is None and reusable_candidate:
+                triad_runtime = reusable_candidate
+                if reusable_error:
+                    routing_notes.append(reusable_error)
             if triad_runtime:
                 triad_prompt = self._build_task_triad_prompt(
                     packet,
@@ -6856,6 +6951,7 @@ Return sections:
 
         codex_resp = None
         claude_resp = None
+        antigravity_resp = None
         for runtime_agent, response in (
             (draft_runtime, draft_resp),
             (review_runtime, review_resp),
@@ -6868,6 +6964,8 @@ Return sections:
                 codex_resp = response
             if runtime_agent == "claude" and claude_resp is None:
                 claude_resp = response
+            if runtime_agent == "antigravity" and antigravity_resp is None:
+                antigravity_resp = response
 
         structured_output: dict[str, Any] = {}
         if draft_resp.success and normalized_task in self.STAGE_I_TEMPLATE_TYPE_BY_TASK:
@@ -7063,6 +7161,7 @@ Return sections:
             task_description=f"{normalized_task} {paper_type} {normalized_topic}"[:200],
             codex_response=codex_resp,
             claude_response=claude_resp,
+            antigravity_response=antigravity_resp,
             merged_analysis=merged,
             confidence=confidence,
             recommendations=self._extract_recommendations(merged),
@@ -7173,6 +7272,7 @@ Return sections:
             stage_results: list[tuple[str, CollaborationResult]] = []
             combined_codex: BridgeResponse | None = None
             combined_claude: BridgeResponse | None = None
+            combined_antigravity: BridgeResponse | None = None
             structured_stage_outputs: dict[str, Any] = {}
             aggregated_actionable_targets: dict[str, list[str]] = {}
 
@@ -7227,6 +7327,8 @@ Return sections:
                     combined_codex = stage_result.codex_response
                 if combined_claude is None and stage_result.claude_response:
                     combined_claude = stage_result.claude_response
+                if combined_antigravity is None and stage_result.antigravity_response:
+                    combined_antigravity = stage_result.antigravity_response
 
                 if stage_result.confidence <= 0.0:
                     break
@@ -7278,6 +7380,7 @@ Return sections:
                 task_description=f"{method} {normalized_focus} {normalized_topic}"[:200],
                 codex_response=combined_codex,
                 claude_response=combined_claude,
+                antigravity_response=combined_antigravity,
                 merged_analysis="\n".join(merged_sections).strip(),
                 confidence=confidence,
                 recommendations=self._extract_recommendations("\n".join(merged_sections)),
@@ -7463,6 +7566,7 @@ def main():
     role.add_argument("--cwd", required=True, type=Path, help="Working directory")
     role.add_argument("--codex-task", help="Task for Codex")
     role.add_argument("--claude-task", help="Task for Claude")
+    role.add_argument("--antigravity-task", help="Task for Antigravity")
 
     # Single mode
     single = subparsers.add_parser("single", help="Single model execution")
@@ -7835,6 +7939,7 @@ def main():
             prompt=getattr(args, "prompt", None),
             codex_task=getattr(args, "codex_task", None),
             claude_task=getattr(args, "claude_task", None),
+            antigravity_task=getattr(args, "antigravity_task", None),
             generator=getattr(args, "generator", "codex"),
             single_model=getattr(args, "model", "codex"),
             parallel_summarizer=getattr(args, "summarizer", "claude"),

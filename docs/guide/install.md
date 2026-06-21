@@ -80,7 +80,7 @@ Those two assets do not by themselves expose the full Python-backed orchestrator
 qiongli mcp serve --transport stdio
 ```
 
-Use `qiongli_orchestrator_route` from Codex or Claude Code when deciding whether a request should move from skill-only execution to the full orchestrator. `qiongli_task_run` defaults to preview mode. It launches local Codex or Claude processes only when the MCP caller explicitly sends JSON boolean `run_agents: true` and the local runtime passes `doctor`.
+Use `qiongli_orchestrator_route` from Codex, Claude Code, Antigravity, or another local MCP client when deciding whether a request should move from skill-only execution to the full orchestrator. `qiongli_task_run` defaults to preview mode. It launches local runtime agents only when the MCP caller explicitly sends JSON boolean `run_agents: true` and the local runtime passes `doctor`.
 
 ## Use After Install
 
@@ -181,10 +181,10 @@ qiongli setup --dry-run
 qiongli setup --project-dir "$PWD" --no-doctor
 ```
 
-The wizard guides CLI, Codex, and Claude Code users through:
+The wizard guides CLI, Codex, Claude Code, and Antigravity users through:
 
 - setup path: `install` for first-time bundled asset installation, or `upgrade` for an upstream refresh
-- runtime surface: CLI, Codex, Claude Code, or multi-platform
+- runtime surface: CLI, Codex, Claude Code, Antigravity, or multi-platform
 - subject choice
 - coverage choice: `complete` or `focused`
 - install mode: `--mode copy` for normal use, or `--mode link` for local checkout development

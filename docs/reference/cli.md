@@ -72,7 +72,7 @@ Exit Codes:
 
 Use Case:
 - Recommended first command after installing the CLI with npm, pipx, pip, or bootstrap.
-- Guides CLI, Codex, and Claude Code users through install vs upgrade, runtime surface, subject, coverage, install mode, install scope, overwrite policy, upgrade source, optional provider key setup, and doctor verification.
+- Guides CLI, Codex, Claude Code, and Antigravity users through install vs upgrade, runtime surface, subject, coverage, install mode, install scope, overwrite policy, upgrade source, optional provider key setup, and doctor verification.
 
 ```bash
 qiongli setup [--project-dir <path>] [--dry-run] [--no-doctor]
@@ -90,7 +90,7 @@ When invoked through the npm launcher, `qiongli setup` uses the bundled Python b
 
 Wizard choices:
 - Setup path: `install` or `upgrade`.
-- Runtime surface: `cli`, `codex`, `claude-code`, or `multi-platform`.
+- Runtime surface: `cli`, `codex`, `claude-code`, `antigravity`, or `multi-platform`.
 - Subject: `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, or `economics-accounting`.
 - Coverage: `complete` or `focused`.
 - Install mode: `--mode copy` for normal use, or `--mode link` for local development.
@@ -135,7 +135,7 @@ MCP tools exposed by the server:
 - `qiongli_task_plan`
 - `qiongli_task_run`
 
-Default `stdio` mode is local and does not require a remote server. HTTP mode can also run locally; use a remote server only when the client cannot launch local MCP commands or when you need a managed shared endpoint. Codex and Claude Code should call `qiongli_orchestrator_route` when deciding whether to upgrade from skill-only routing to full orchestrator tools. `qiongli_task_run` defaults to preview mode and launches local model CLIs only when the MCP caller explicitly sets JSON boolean `run_agents: true`. The tool accepts `guidance_mode: "off" | "read" | "propose" | "apply"`; preview responses echo the effective task-run arguments and report whether project guidance will be bootstrapped, but do not create files or launch agents.
+Default `stdio` mode is local and does not require a remote server. HTTP mode can also run locally; use a remote server only when the client cannot launch local MCP commands or when you need a managed shared endpoint. Codex, Claude Code, Antigravity, or another local MCP client should call `qiongli_orchestrator_route` when deciding whether to upgrade from skill-only routing to full orchestrator tools. `qiongli_task_run` defaults to preview mode and launches local model CLIs only when the MCP caller explicitly sets JSON boolean `run_agents: true`. The tool accepts `guidance_mode: "off" | "read" | "propose" | "apply"`; preview responses echo the effective task-run arguments and report whether project guidance will be bootstrapped, but do not create files or launch agents.
 
 ### 2.3 `qiongli install` (Install bundled subject payload)
 

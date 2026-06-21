@@ -90,6 +90,8 @@ def _write_fake_cli(bin_dir: Path, name: str, response_text: str) -> Path:
         "    print(json.dumps({'type': 'thread.started', 'thread_id': 'fake-codex'}))\n"
         f"    print(json.dumps({{'type': 'event', 'item': {{'type': 'agent_message', 'text': {response_text!r}}}}}))\n"
         "    print(json.dumps({'type': 'turn.completed'}))\n"
+        "elif name == 'antigravity':\n"
+        f"    print({response_text!r})\n"
         "else:\n"
         f"    print(json.dumps({{'type': 'assistant', 'session_id': 'fake-claude', 'content': {response_text!r}}}))\n",
         encoding="utf-8",
@@ -154,13 +156,14 @@ class OrchestratorWorkflowTests(unittest.TestCase):
 
         self.assertEqual(resolved, RepoLayout(REPO_ROOT).standards)
 
-    def test_task_run_invokes_fake_codex_and_claude_subprocesses(self) -> None:
+    def test_task_run_invokes_fake_codex_claude_and_antigravity_subprocesses(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             temp = Path(tmp_dir)
             bin_dir = temp / "bin"
             bin_dir.mkdir()
             _write_fake_cli(bin_dir, "codex", "fake codex draft PASS CONFIDENCE: 0.9")
             _write_fake_cli(bin_dir, "claude", "fake claude review PASS CONFIDENCE: 0.9")
+            _write_fake_cli(bin_dir, "antigravity", "fake antigravity triad PASS CONFIDENCE: 0.9")
 
             env = os.environ.copy()
             env["PATH"] = f"{bin_dir}{os.pathsep}{env.get('PATH', '')}"
@@ -184,6 +187,9 @@ class OrchestratorWorkflowTests(unittest.TestCase):
                 "codex",
                 "--reviewer",
                 "claude",
+                "--verifier",
+                "antigravity",
+                "--triad",
                 "--skip-validation",
                 "--guidance-mode",
                 "off",
@@ -204,8 +210,10 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         self.assertEqual(payload["mode"], "task-run")
         self.assertTrue(payload["codex"]["success"])
         self.assertTrue(payload["claude"]["success"])
+        self.assertTrue(payload["antigravity"]["success"])
         self.assertIn("fake codex draft", payload["codex"]["content"])
         self.assertIn("fake claude review", payload["claude"]["content"])
+        self.assertIn("fake antigravity triad", payload["antigravity"]["content"])
 
     def test_guidance_cli_init_creates_project_local_files(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -250,10 +258,11 @@ class OrchestratorWorkflowTests(unittest.TestCase):
 
         self.assertEqual(result.mode, "parallel")
         self.assertIn("## 并发执行分析", result.merged_analysis)
-        self.assertEqual(len(orchestrator.runtime_calls), 3)
+        self.assertEqual(len(orchestrator.runtime_calls), 4)
         called_agents = [call["agent"] for call in orchestrator.runtime_calls]
         self.assertIn("codex", called_agents)
         self.assertIn("claude", called_agents)
+        self.assertIn("antigravity", called_agents)
         self.assertNotIn("gemini", called_agents)
 
     def test_parallel_profile_file_parsing_applies_runtime_options(self) -> None:
@@ -349,6 +358,7 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         called_agents = [call["agent"] for call in orchestrator.runtime_calls]
         self.assertNotIn("gemini", called_agents)
         self.assertNotIn("claude", called_agents)
+        self.assertIn("antigravity", called_agents)
         self.assertIn("Parallel analyzer 'claude' skipped:", result.merged_analysis)
         self.assertIn("## 并发执行分析 (双重/Dual)", result.merged_analysis)
 
@@ -524,12 +534,12 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         self.assertTrue(any("(stage: draft)" in directive for directive in directives))
         self.assertTrue(any("(stage: review)" in directive for directive in directives))
 
-    def test_task_run_does_not_route_reviews_to_gemini(self) -> None:
+    def test_task_run_routes_previous_gemini_review_lanes_to_antigravity(self) -> None:
         orchestrator = MockOrchestrator()
         result = orchestrator.task_run(
             task_id="I7",
             paper_type="methods",
-            topic="codex-claude-review",
+            topic="codex-antigravity-review",
             cwd=REPO_ROOT,
         )
 
@@ -538,7 +548,7 @@ class OrchestratorWorkflowTests(unittest.TestCase):
             if "Review the draft" in call["prompt"]
         ]
         self.assertTrue(review_calls)
-        self.assertIn(review_calls[0]["agent"], {"codex", "claude"})
+        self.assertEqual("antigravity", review_calls[0]["agent"])
         self.assertNotIn("gemini", {call["agent"] for call in orchestrator.runtime_calls})
         self.assertNotIn("Runtime agent 'gemini'", result.merged_analysis)
 
@@ -708,6 +718,7 @@ class OrchestratorWorkflowTests(unittest.TestCase):
                         "runtime_options": {
                             "codex": {"timeout_seconds": 11},
                             "claude": {"timeout_seconds": 11},
+                            "antigravity": {"timeout_seconds": 11},
                         },
                         "draft_style": "Draft quickly",
                     },
@@ -715,6 +726,7 @@ class OrchestratorWorkflowTests(unittest.TestCase):
                         "runtime_options": {
                             "codex": {"timeout_seconds": 22},
                             "claude": {"timeout_seconds": 22},
+                            "antigravity": {"timeout_seconds": 22},
                         },
                         "review_style": "Review strictly",
                     },
@@ -722,6 +734,7 @@ class OrchestratorWorkflowTests(unittest.TestCase):
                         "runtime_options": {
                             "codex": {"timeout_seconds": 33},
                             "claude": {"timeout_seconds": 33},
+                            "antigravity": {"timeout_seconds": 33},
                         },
                         "triad_style": "Triad arbitration",
                     },

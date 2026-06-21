@@ -38,6 +38,7 @@ class SmokeReport:
     topic: str
     codex_required: bool
     claude_required: bool
+    antigravity_required: bool
     cases: list[SmokeCaseResult] = field(default_factory=list)
     environment: dict[str, Any] = field(default_factory=dict)
     outputs: dict[str, str] = field(default_factory=dict)
@@ -53,6 +54,7 @@ class SmokeReport:
             "topic": self.topic,
             "codex_required": self.codex_required,
             "claude_required": self.claude_required,
+            "antigravity_required": self.antigravity_required,
             "overall_status": self.overall_status,
             "environment": self.environment,
             "outputs": self.outputs,
@@ -62,7 +64,7 @@ class SmokeReport:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Run a local Codex/Claude multi-agent smoke harness.",
+        description="Run a local Codex/Claude/Antigravity multi-agent smoke harness.",
     )
     parser.add_argument("--cwd", default=str(REPO_ROOT), help="Target working directory.")
     parser.add_argument("--topic", default="multi-agent-smoke", help="Topic label stored in the report.")
@@ -70,17 +72,22 @@ def build_parser() -> argparse.ArgumentParser:
         "--timeout-seconds",
         type=float,
         default=DEFAULT_TIMEOUT_SECONDS,
-        help="Per-runtime timeout for Codex and Claude prompt probes.",
+        help="Per-runtime timeout for Codex, Claude, and Antigravity prompt probes.",
     )
     parser.add_argument(
         "--run-parallel",
         action="store_true",
-        help="Also run an orchestrator parallel smoke with Codex and Claude.",
+        help="Also run an orchestrator parallel smoke with Codex, Claude, and Antigravity.",
     )
     parser.add_argument(
         "--strict-claude",
         action="store_true",
         help="Fail the run when Claude is unavailable instead of recording a warning.",
+    )
+    parser.add_argument(
+        "--strict-antigravity",
+        action="store_true",
+        help="Fail the run when Antigravity is unavailable instead of recording a warning.",
     )
     parser.add_argument(
         "--json-report",
@@ -129,6 +136,9 @@ def render_report_markdown(report: SmokeReport) -> str:
         f"- Claude CLI in PATH: `{report.environment.get('claude_cli', False)}`",
         f"- Claude auth ready: `{report.environment.get('claude_auth_ready', False)}`",
         f"- Claude auth detail: `{report.environment.get('claude_auth_detail', '')}`",
+        f"- Antigravity CLI in PATH: `{report.environment.get('antigravity_cli', False)}`",
+        f"- Antigravity auth ready: `{report.environment.get('antigravity_auth_ready', False)}`",
+        f"- Antigravity auth detail: `{report.environment.get('antigravity_auth_detail', '')}`",
         f"- OPENAI_API_KEY set: `{report.environment.get('openai_api_key', False)}`",
         f"- ANTHROPIC_API_KEY set: `{report.environment.get('anthropic_api_key', False)}`",
         "",
@@ -174,13 +184,21 @@ def claude_auth_status() -> tuple[bool, str]:
     return True, "claude CLI found; API key status not checked by smoke harness"
 
 
+def antigravity_auth_status() -> tuple[bool, str]:
+    if not shutil.which("antigravity"):
+        return False, "antigravity CLI not found in PATH"
+    return True, "antigravity CLI found; local login/configuration is managed by Antigravity"
+
+
 def evaluate_doctor_output(
     merged_analysis: str,
     *,
     codex_required: bool,
     claude_required: bool,
+    antigravity_required: bool,
     codex_auth_ready: bool,
     claude_auth_ready: bool,
+    antigravity_auth_ready: bool,
 ) -> tuple[str, str]:
     text = merged_analysis
     missing: list[str] = []
@@ -196,6 +214,11 @@ def evaluate_doctor_output(
             missing.append("CLI claude not OK")
         if not claude_auth_ready and "[OK] Env ANTHROPIC_API_KEY: configured" not in text:
             missing.append("ANTHROPIC_API_KEY not configured")
+    if antigravity_required:
+        if "[OK] CLI antigravity:" not in text:
+            missing.append("CLI antigravity not OK")
+        if not antigravity_auth_ready and "[OK] Auth antigravity:" not in text:
+            missing.append("Antigravity local CLI auth/configuration not ready")
     if missing:
         return FAIL, "; ".join(missing)
     return PASS, "doctor output contained all expected readiness markers"
@@ -218,6 +241,7 @@ class MultiAgentSmokeRunner:
             topic=str(args.topic),
             codex_required=True,
             claude_required=True,
+            antigravity_required=bool(args.strict_antigravity),
             outputs={
                 "json_report": str(json_path),
                 "markdown_report": str(md_path),
@@ -230,8 +254,12 @@ class MultiAgentSmokeRunner:
             self._run_case("doctor", self._case_doctor)
             self._run_case("codex_runtime", self._case_codex_runtime)
             self._run_case("claude_runtime", self._case_claude_runtime)
+            self._run_case("antigravity_runtime", self._case_antigravity_runtime)
             if self.args.run_parallel:
-                self._run_case("parallel_codex_claude", self._case_parallel_codex_claude)
+                self._run_case(
+                    "parallel_codex_claude_antigravity",
+                    self._case_parallel_codex_claude_antigravity,
+                )
         finally:
             self._write_reports()
         return self.report
@@ -239,6 +267,7 @@ class MultiAgentSmokeRunner:
     def _snapshot_environment(self) -> None:
         codex_auth_ready, codex_auth_detail = codex_auth_status()
         claude_auth_ready, claude_auth_detail = claude_auth_status()
+        antigravity_auth_ready, antigravity_auth_detail = antigravity_auth_status()
         self.report.environment = {
             "codex_cli": bool(shutil.which("codex")),
             "codex_auth_ready": codex_auth_ready,
@@ -246,6 +275,9 @@ class MultiAgentSmokeRunner:
             "claude_cli": bool(shutil.which("claude")),
             "claude_auth_ready": claude_auth_ready,
             "claude_auth_detail": claude_auth_detail,
+            "antigravity_cli": bool(shutil.which("antigravity")),
+            "antigravity_auth_ready": antigravity_auth_ready,
+            "antigravity_auth_detail": antigravity_auth_detail,
             "openai_api_key": bool(os.environ.get("OPENAI_API_KEY", "").strip()),
             "anthropic_api_key": bool(os.environ.get("ANTHROPIC_API_KEY", "").strip()),
         }
@@ -276,8 +308,10 @@ class MultiAgentSmokeRunner:
             result.merged_analysis,
             codex_required=True,
             claude_required=True,
+            antigravity_required=bool(self.args.strict_antigravity),
             codex_auth_ready=bool(self.report.environment.get("codex_auth_ready")),
             claude_auth_ready=bool(self.report.environment.get("claude_auth_ready")),
+            antigravity_auth_ready=bool(self.report.environment.get("antigravity_auth_ready")),
         )
         return status, detail, {
             "confidence": result.confidence,
@@ -315,7 +349,25 @@ class MultiAgentSmokeRunner:
             "error": response.error,
         }
 
-    def _case_parallel_codex_claude(self) -> tuple[str, str, dict[str, Any]]:
+    def _case_antigravity_runtime(self) -> tuple[str, str, dict[str, Any]]:
+        orchestrator = self._make_orchestrator()
+        response = orchestrator._execute_runtime_agent(
+            "antigravity",
+            "Return only the token ANTIGRAVITY_SMOKE_OK.",
+            self.cwd,
+            {"non_interactive": True, "timeout_seconds": self.timeout_seconds},
+        )
+        if response.success and "ANTIGRAVITY_SMOKE_OK" in response.content:
+            return PASS, "Antigravity runtime returned the smoke token.", {
+                "content": response.content
+            }
+        status = FAIL if self.args.strict_antigravity else WARN
+        return status, response.error or "Antigravity runtime did not return the smoke token.", {
+            "content": response.content,
+            "error": response.error,
+        }
+
+    def _case_parallel_codex_claude_antigravity(self) -> tuple[str, str, dict[str, Any]]:
         from bridges.orchestrator import CollaborationMode
 
         orchestrator = self._make_orchestrator()
@@ -325,18 +377,35 @@ class MultiAgentSmokeRunner:
             prompt="Return one short analysis sentence mentioning the token PARALLEL_SMOKE_OK.",
             parallel_summarizer="codex",
             profile_file=self._smoke_profile_file(),
-            profile="smoke-codex-claude",
-            summarizer_profile="smoke-codex-claude",
+            profile="smoke-codex-claude-antigravity",
+            summarizer_profile="smoke-codex-claude-antigravity",
         )
         codex_ok = bool(result.codex_response and result.codex_response.success)
         claude_ok = bool(result.claude_response and result.claude_response.success)
-        if codex_ok and claude_ok:
-            return PASS, "Parallel mode succeeded with Codex and Claude participation.", {
+        antigravity_ok = bool(
+            result.antigravity_response and result.antigravity_response.success
+        )
+        if codex_ok and claude_ok and antigravity_ok:
+            detail = (
+                "Parallel mode succeeded with Codex, Claude, and Antigravity "
+                "participation."
+            )
+            return PASS, detail, {
                 "merged_analysis": result.merged_analysis,
             }
         if codex_ok and not claude_ok:
-            detail = "Parallel mode succeeded for Codex, but Claude did not participate successfully."
+            detail = (
+                "Parallel mode succeeded for Codex, but Claude did not participate "
+                "successfully."
+            )
             status = FAIL if self.args.strict_claude else WARN
+            return status, detail, {"merged_analysis": result.merged_analysis}
+        if codex_ok and claude_ok and not antigravity_ok:
+            detail = (
+                "Parallel mode succeeded for Codex and Claude, but Antigravity did not "
+                "participate successfully."
+            )
+            status = FAIL if self.args.strict_antigravity else WARN
             return status, detail, {"merged_analysis": result.merged_analysis}
         return FAIL, "Parallel mode did not complete with Codex as the primary execution path.", {
             "merged_analysis": result.merged_analysis,
@@ -353,8 +422,8 @@ class MultiAgentSmokeRunner:
         profile_path = out_dir / "multi_agent_smoke_profile.json"
         payload = {
             "profiles": {
-                "smoke-codex-claude": {
-                    "persona": "Smoke test profile for local Codex/Claude validation.",
+                "smoke-codex-claude-antigravity": {
+                    "persona": "Smoke test profile for local Codex/Claude/Antigravity validation.",
                     "analysis_style": "Return short direct answers for smoke validation.",
                     "summary_style": "Return short direct answers for smoke validation.",
                     "runtime_options": {
@@ -365,6 +434,11 @@ class MultiAgentSmokeRunner:
                         "claude": {
                             "non_interactive": True,
                             "timeout_seconds": self.timeout_seconds,
+                        },
+                        "antigravity": {
+                            "non_interactive": True,
+                            "timeout_seconds": self.timeout_seconds,
+                            "sandbox": True,
                         },
                     },
                 }

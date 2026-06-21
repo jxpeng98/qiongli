@@ -72,7 +72,7 @@ JSON 输出会包含每个 target 当前安装的 active subject 和 coverage。
 
 用途：
 - npm、pipx、pip 或 bootstrap 安装 CLI 后的推荐第一个命令。
-- 引导 CLI、Codex 和 Claude Code 用户选择 install/upgrade、runtime surface、subject、coverage、install mode、install scope、overwrite 策略、upgrade source、可选 provider key setup，并执行 doctor verification。
+- 引导 CLI、Codex、Claude Code 和 Antigravity 用户选择 install/upgrade、runtime surface、subject、coverage、install mode、install scope、overwrite 策略、upgrade source、可选 provider key setup，并执行 doctor verification。
 
 ```bash
 qiongli setup [--project-dir <path>] [--dry-run] [--no-doctor]

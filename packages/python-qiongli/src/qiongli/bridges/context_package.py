@@ -12,7 +12,7 @@ def build_context_package(
     agents: list[str],
 ) -> dict[str, object]:
     normalized_controller = _normalize_agent_name(controller)
-    supported_agents = {"codex", "claude"}
+    supported_agents = {"codex", "claude", "antigravity"}
     normalized_agents = [
         normalized
         for normalized in (_normalize_agent_name(agent) for agent in agents)
@@ -159,6 +159,24 @@ def _build_claude_context(task_packet: dict[str, object], manifest: dict[str, ob
     )
 
 
+def _build_antigravity_context(task_packet: dict[str, object], manifest: dict[str, object]) -> str:
+    return "\n\n".join(
+        [
+            _build_header(manifest),
+            "## Declared Write Set\n"
+            + _format_list(_list_value(task_packet, "declared_write_set")),
+            "## Verification Commands\n"
+            + _format_list(_list_value(task_packet, "verification_commands")),
+            f"## Research State\n{_string_value(task_packet, 'research_state') or 'Not provided'}",
+            f"## Evidence Ledger\n{_string_value(task_packet, 'evidence_ledger') or 'Not provided'}",
+            "## Writing/Review Standards\n"
+            + (_string_value(task_packet, "writing_review_standards") or "Not provided"),
+            f"## Boundary Review\n{_boundary_review_text(task_packet)}",
+            f"## Writing Harness\n{_writing_harness_text(task_packet)}",
+        ]
+    )
+
+
 def _build_agent_contexts(
     task_packet: dict[str, object],
     manifest: dict[str, object],
@@ -169,4 +187,6 @@ def _build_agent_contexts(
         contexts["codex"] = _build_codex_context(task_packet, manifest)
     if "claude" in agents:
         contexts["claude"] = _build_claude_context(task_packet, manifest)
+    if "antigravity" in agents:
+        contexts["antigravity"] = _build_antigravity_context(task_packet, manifest)
     return contexts

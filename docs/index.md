@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Qiongli
   text: Contract-bound research workflows for AI coding agents.
-  tagline: Install once, then use Codex or Claude Code to run academic workflows with explicit task IDs, quality gates, literature diagnostics, role handoffs, and auditable artifacts.
+  tagline: Install once, then use Codex, Claude Code, or Antigravity to run academic workflows with explicit task IDs, quality gates, literature diagnostics, role handoffs, and auditable artifacts.
   actions:
     - theme: brand
       text: Start With Quickstart
@@ -47,7 +47,7 @@ Qiongli ships a single portable workflow package, `qiongli-workflow`, with stage
 - **Design and execute the study:** specify variables, datasets, robustness checks, preregistration, ethics artifacts, and data management.
 - **Write and audit the manuscript:** structure sections, maintain claim-evidence integrity, generate figures/tables, evaluate limitations, and prepare submission/rebuttal materials.
 - **Handle research code:** use the Stage-I specification -> planning -> execution -> review path for code-first or methods-heavy work.
-- **Coordinate models:** assign controller, primary, reviewer, and verifier roles across Codex and Claude Code while preserving handoffs and verification status.
+- **Coordinate models:** assign controller, primary, reviewer, and verifier roles across Codex, Claude Code, and Antigravity while preserving handoffs and verification status.
 
 ## Documentation Map
 

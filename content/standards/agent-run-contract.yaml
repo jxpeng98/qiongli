@@ -2,11 +2,13 @@ contract_version: "1.0.0"
 execution_modes:
   - solo_codex
   - solo_claude
+  - solo_antigravity
   - duo
   - triad
 runtime_agents:
   - codex
   - claude
+  - antigravity
 verification_statuses:
   - passed
   - failed

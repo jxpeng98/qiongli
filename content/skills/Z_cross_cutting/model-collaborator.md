@@ -15,7 +15,7 @@ failure_modes:
   - "Agent unavailable for scheduled collaboration"
   - "Output format incompatible across agents"
 tools: [filesystem]
-tags: [cross-cutting, multi-agent, collaboration, Codex, Claude]
+tags: [cross-cutting, multi-agent, collaboration, Codex, Claude, Antigravity]
 domain_aware: false
 ---
 
@@ -25,7 +25,7 @@ Multi-model collaboration for academic research tasks, not only code work.
 
 ## Purpose
 
-Coordinate Codex and Claude for full-lifecycle research tasks:
+Coordinate Codex, Claude, and Antigravity for full-lifecycle research tasks:
 - 双盲文献筛选与冲突仲裁 (Double-blind screening consensus)
 - 多代理同行评审模拟 (Multi-agent peer review simulation)
 - 质性编码一致性校验 (Qualitative coding cross-check)
@@ -79,12 +79,14 @@ python -m bridges.orchestrator chain \
 |-----|-----|
 | Codex | 结构化执行、代码/统计验证、流程落地 |
 | Claude | 长文本评审、逻辑校准、叙事修订 |
+| Antigravity | 独立审计、verification、第三路 fallback review |
 
 ```bash
 python -m bridges.orchestrator role \
   --cwd "/path/to/project" \
   --codex-task "Check whether the reported model specification matches the analysis code and tables." \
-  --claude-task "Review the same results section for interpretation drift and missing caveats."
+  --claude-task "Review the same results section for interpretation drift and missing caveats." \
+  --antigravity-task "Audit unresolved disagreements and verify whether each claim has support."
 ```
 
 ### 4. Single (单模型)
@@ -118,6 +120,11 @@ python -m bridges.orchestrator single \
     "success": true,
     "session_id": "...",
     "content": "..."
+  },
+  "antigravity": {
+    "success": true,
+    "session_id": "...",
+    "content": "..."
   }
 }
 ```
@@ -133,7 +140,7 @@ python -m bridges.orchestrator single \
 ### Pattern B: 双盲文献筛选 (Double-blind Screening)
 
 1. 提供 `SearchQueryPlan` 和检索结果集
-2. 使用 **parallel** 模式：Codex 和 Claude 独立执行摘要筛选
+2. 使用 **parallel** 模式：Codex、Claude 和 Antigravity 独立执行摘要筛选
 3. 如果结果有冲突，交由 orchestrator 按预设 merge 策略解决
 
 ### Pattern C: 统计 / 代码实现与跨模型复核
@@ -161,6 +168,7 @@ python -m bridges.orchestrator single \
 # Install CLIs
 npm install -g @openai/codex
 npm install -g @anthropic-ai/claude-code
+# Install Antigravity CLI separately and ensure `antigravity` is on PATH
 
 # Set API keys
 export OPENAI_API_KEY="..."
@@ -203,7 +211,7 @@ This skill is called by:
 
 ## When to Use
 
-- 需要 Codex 和 Claude 分工协作或交叉复核时
+- 需要 Codex、Claude 和 Antigravity 分工协作或交叉复核时
 - 文献筛选、peer review、质性编码或 rebuttal 需要独立意见后再汇总时
 - 需要 primary-review agent 配对验证写作、分析、统计或代码时
 - `parallel` / `task-run` / `team-run` 需要显式记录 disagreement 和 synthesis trace 时

@@ -112,7 +112,7 @@ def build_parser() -> argparse.ArgumentParser:
     example = config_subparsers.add_parser("example", help="Print a client config fragment")
     example.add_argument(
         "--target",
-        choices=["codex", "claude", "claude-code", "cursor", "hermes"],
+        choices=["codex", "claude", "claude-code", "antigravity", "cursor", "hermes"],
         default="codex",
     )
     example.add_argument("--json", action="store_true")

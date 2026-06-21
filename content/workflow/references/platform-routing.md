@@ -130,7 +130,7 @@ coordination:
   plan, writing harness, and required artifacts
 - call `qiongli_task_run` first in preview mode; only set JSON boolean
   `run_agents: true` after the doctor passes and the caller explicitly wants
-  local Codex or Claude processes launched
+  local runtime agents launched
 
 ## Worker Adapter Routing
 

@@ -23,3 +23,13 @@ solo_modes:
       - failing_test_first
       - command_evidence
       - rollback_notes
+  solo_antigravity:
+    role: "Solo Antigravity research implementation operator"
+    writing_required_gates:
+      - story_spine_check
+      - claim_support_check
+      - reviewer_self_critique
+    code_required_gates:
+      - implementation_intent
+      - declared_write_set
+      - command_evidence

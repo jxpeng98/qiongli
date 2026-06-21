@@ -140,7 +140,7 @@ A profile can define:
 
 - **Multi-AI Triad Iteration**: Use triad mode to perform iterative de-AI. Drafter rewrites text, Reviewer checks for AI fingerprints, and Auditor ensures scientific accuracy.
 - Recommended skills: `proofread-editor`, `ai-detector`, `similarity-checker`
-- Agent combination: Primary `claude`, Review `codex`, Triad fallback through the available Codex/Claude runtime (via `task-run --triad`)
+- Agent combination: Primary `claude`, Review `codex`, Antigravity triad audit when `task-run --triad` is enabled
 
 ### F. Submission and Rebuttal (`H1`~`H4`)
 
@@ -213,7 +213,7 @@ python -m bridges.orchestrator task-run \
   -i  # (Optional) Interactive step-by-step
 ```
 
-`--triad` preserves the independent-audit contract after the primary draft and review. It no longer implies a third Gemini runtime; when only Codex and Claude are available, the orchestrator records the routing fallback and reuses an available runtime for the audit.
+`--triad` preserves the independent-audit contract after the primary draft and review. Antigravity replaces the previous Gemini lane as the preferred distinct third runtime; if it is unavailable, the orchestrator records the routing fallback and reuses an available runtime for the audit.
 
 Parallel Analysis Mode (Not restricted by Task ID):
 
@@ -225,7 +225,7 @@ python -m bridges.orchestrator parallel \
   -i
 ```
 
-This mode defaults to concurrent Codex/Claude execution followed by a synthesis analysis; it records skipped or unavailable workers instead of treating them as completed reviews.
+This mode defaults to concurrent Codex/Claude/Antigravity execution followed by a synthesis analysis; it records skipped or unavailable workers instead of treating them as completed reviews.
 
 ## 6) External Agents vs. Custom Agents?
 

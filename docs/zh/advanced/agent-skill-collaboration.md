@@ -132,7 +132,7 @@ profile 可定义：
 
 - **多 AI 协作迭代**：使用 `--triad` 模式进行循环去 AI 化。主执行负责重写，复核负责检查 AI 痕迹，三端负责查验科学准确性。
 - 推荐 skills：`proofread-editor`, `ai-detector`, `similarity-checker`
-- agent 组合：主执行 `claude`，复核 `codex`；`task-run --triad` 会在可用 Codex/Claude runtime 内记录并执行独立审计 fallback
+- agent 组合：主执行 `claude`，复核 `codex`；开启 `task-run --triad` 时优先由 Antigravity 执行第三路独立审计
 
 ### F. 投稿与返修（`H1`~`H4`）
 
@@ -200,7 +200,7 @@ python -m bridges.orchestrator task-run \
   --triad
 ```
 
-`--triad` 会保留主执行 + 复核之后的独立审计合同。它不再意味着第三个 Gemini runtime；只有 Codex/Claude 可用时，orchestrator 会记录 routing fallback，并复用可用 runtime 完成审计。
+`--triad` 会保留主执行 + 复核之后的独立审计合同。Antigravity 会替代之前的 Gemini 通道，作为优先的第三路 runtime；如果它不可用，orchestrator 会记录 routing fallback，并复用可用 runtime 完成审计。
 
 并发分析模式（不限定 Task ID）：
 
@@ -211,7 +211,7 @@ python -m bridges.orchestrator parallel \
   --summarizer claude
 ```
 
-该模式默认 Codex/Claude 并发，并在并发后执行总结分析；不可用 worker 会被记录为 skipped 或 failed，不能静默算作已完成 review。
+该模式默认 Codex/Claude/Antigravity 并发，并在并发后执行总结分析；不可用 worker 会被记录为 skipped 或 failed，不能静默算作已完成 review。
 
 ## 6) 引入外部 agent 还是自建 agent？
 

@@ -178,7 +178,7 @@ class WorkerOrchestrationContractTests(unittest.TestCase):
             "merge_policy",
             "barrier_rules",
         }
-        expected_adapter_keys = {"codex", "claude"}
+        expected_adapter_keys = {"codex", "claude", "antigravity"}
         expected_barrier_keys = {"min_success_ratio", "on_failure"}
         worker_id_pattern = re.compile(r"^[a-z][a-z0-9_-]*$")
 

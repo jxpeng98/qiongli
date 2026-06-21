@@ -28,7 +28,7 @@ class ContextPackageBuilderTests(unittest.TestCase):
         package = build_context_package(
             packet,
             controller=" Codex ",
-            agents=["Claude", " gemini ", "CODEX"],
+            agents=["Claude", " antigravity ", " gemini ", "CODEX"],
         )
 
         manifest = package["context_manifest"]
@@ -37,7 +37,7 @@ class ContextPackageBuilderTests(unittest.TestCase):
             "paper_type": "systematic_review",
             "topic": "AI assisted evidence synthesis",
             "controller": "codex",
-            "agents": ["claude", "codex"],
+            "agents": ["claude", "antigravity", "codex"],
         }
         expected_hash = hashlib.sha256(
             json.dumps(expected_manifest_without_hash, sort_keys=True).encode("utf-8")
@@ -67,10 +67,10 @@ class ContextPackageBuilderTests(unittest.TestCase):
         contexts = build_context_package(
             packet,
             controller="claude",
-            agents=["codex", "claude", "gemini"],
+            agents=["codex", "claude", "antigravity", "gemini"],
         )["agent_contexts"]
 
-        self.assertEqual({"codex", "claude"}, set(contexts))
+        self.assertEqual({"codex", "claude", "antigravity"}, set(contexts))
 
         codex_context = contexts["codex"]
         for required in ("Declared Write Set", "Verification Commands", "Artifact Paths"):
@@ -83,6 +83,12 @@ class ContextPackageBuilderTests(unittest.TestCase):
             with self.subTest(agent="claude", required=required):
                 self.assertIn(required, claude_context)
         self.assertIn("Draft context package contract.", claude_context)
+
+        antigravity_context = contexts["antigravity"]
+        for required in ("Declared Write Set", "Research State", "Writing/Review Standards"):
+            with self.subTest(agent="antigravity", required=required):
+                self.assertIn(required, antigravity_context)
+        self.assertIn("Draft context package contract.", antigravity_context)
 
     def test_context_package_includes_boundary_review_for_all_agents(self) -> None:
         task_packet = {
@@ -99,11 +105,12 @@ class ContextPackageBuilderTests(unittest.TestCase):
         package = build_context_package(
             task_packet,
             controller="codex",
-            agents=["codex", "claude", "gemini"],
+            agents=["codex", "claude", "antigravity", "gemini"],
         )
 
         self.assertIn("Claims are associative, not causal", package["agent_contexts"]["codex"])
         self.assertIn("Claims are associative, not causal", package["agent_contexts"]["claude"])
+        self.assertIn("Claims are associative, not causal", package["agent_contexts"]["antigravity"])
         self.assertNotIn("gemini", package["agent_contexts"])
 
     def test_context_package_includes_writing_harness_for_all_agents(self) -> None:
@@ -124,11 +131,11 @@ class ContextPackageBuilderTests(unittest.TestCase):
         package = build_context_package(
             task_packet,
             controller="codex",
-            agents=["codex", "claude", "gemini"],
+            agents=["codex", "claude", "antigravity", "gemini"],
         )
 
         self.assertNotIn("gemini", package["agent_contexts"])
-        for agent in ("codex", "claude"):
+        for agent in ("codex", "claude", "antigravity"):
             with self.subTest(agent=agent):
                 context = package["agent_contexts"][agent]
                 self.assertIn("Writing Harness", context)

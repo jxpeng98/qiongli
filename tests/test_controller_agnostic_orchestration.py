@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 
@@ -10,6 +12,7 @@ from typing import Any
 from bridges.base_bridge import BridgeResponse
 from bridges.mcp_connectors import MCPEvidence
 from bridges.orchestrator import (
+    CollaborationMode,
     ModelOrchestrator,
     RUNTIME_AGENT_CHOICES,
     _add_controller_agnostic_task_run_args,
@@ -45,6 +48,8 @@ class MetadataCaptureOrchestrator(ModelOrchestrator):
             stage = "draft"
         elif "Review the draft for this canonical research workflow task." in prompt:
             stage = "review"
+        elif "Perform a third independent audit for this canonical research task." in prompt:
+            stage = "triad"
         elif "You are revising a research workflow task draft based on review feedback." in prompt:
             stage = "revision"
         self.runtime_calls.append(
@@ -68,8 +73,8 @@ class MetadataCaptureOrchestrator(ModelOrchestrator):
 
 
 class ControllerAgnosticOrchestrationTests(unittest.TestCase):
-    def test_runtime_agent_choices_drop_gemini(self) -> None:
-        self.assertEqual(("codex", "claude"), RUNTIME_AGENT_CHOICES)
+    def test_runtime_agent_choices_replace_gemini_with_antigravity(self) -> None:
+        self.assertEqual(("codex", "claude", "antigravity"), RUNTIME_AGENT_CHOICES)
 
     def test_parser_accepts_controller_agnostic_task_run_metadata(self) -> None:
         parser = argparse.ArgumentParser()
@@ -86,7 +91,7 @@ class ControllerAgnosticOrchestrationTests(unittest.TestCase):
                 "--reviewer",
                 "codex",
                 "--verifier",
-                "codex",
+                "antigravity",
                 "--solo-role-gates",
                 "strict",
             ]
@@ -96,11 +101,72 @@ class ControllerAgnosticOrchestrationTests(unittest.TestCase):
         self.assertEqual("claude", args.controller)
         self.assertEqual("claude", args.primary_agent)
         self.assertEqual("codex", args.review_agent)
-        self.assertEqual("codex", args.verifier_agent)
+        self.assertEqual("antigravity", args.verifier_agent)
         self.assertEqual("strict", args.solo_role_gates)
 
         with self.assertRaises(SystemExit):
             parser.parse_args(["--controller", "gemini"])
+
+    def test_triad_uses_antigravity_as_distinct_third_runtime(self) -> None:
+        orchestrator = MetadataCaptureOrchestrator()
+
+        result = orchestrator.task_run(
+            task_id="F3",
+            paper_type="empirical",
+            topic="controller-triad",
+            cwd=REPO_ROOT,
+            execution_mode="triad",
+            controller="codex",
+            primary_agent="codex",
+            review_agent="claude",
+            skip_validation=True,
+            triad=True,
+            max_revision_rounds=0,
+        )
+
+        triad_agents = [
+            call["agent"]
+            for call in orchestrator.runtime_calls
+            if call["stage"] == "triad"
+        ]
+        self.assertEqual(["antigravity"], triad_agents)
+        self.assertIn("antigravity", result.merged_analysis)
+        self.assertNotIn("gemini", {call["agent"] for call in orchestrator.runtime_calls})
+
+    def test_role_mode_accepts_antigravity_task(self) -> None:
+        completed = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "bridges.orchestrator",
+                "role",
+                "--help",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertEqual(0, completed.returncode, completed.stderr)
+        self.assertIn("--antigravity-task", completed.stdout)
+
+    def test_role_mode_routes_antigravity_task(self) -> None:
+        orchestrator = MetadataCaptureOrchestrator()
+
+        result = orchestrator.execute(
+            mode=CollaborationMode.ROLE_BASED,
+            cwd=REPO_ROOT,
+            codex_task="Check code.",
+            claude_task="Check prose.",
+            antigravity_task="Run independent audit.",
+        )
+
+        self.assertEqual(
+            ["codex", "claude", "antigravity"],
+            [call["agent"] for call in orchestrator.runtime_calls],
+        )
+        self.assertIn("## Antigravity Output", result.merged_analysis)
+        self.assertTrue(result.antigravity_response and result.antigravity_response.success)
 
     def test_task_run_uses_controller_runtime_overrides_for_draft_and_review(self) -> None:
         orchestrator = MetadataCaptureOrchestrator()
@@ -141,7 +207,7 @@ class ControllerAgnosticOrchestrationTests(unittest.TestCase):
             {
                 "primary_agent": "codex",
                 "review_agent": "claude",
-                "fallback_agent": "claude",
+                "fallback_agent": "antigravity",
             },
             packet["runtime_plan"],
         )
@@ -194,7 +260,7 @@ class ControllerAgnosticOrchestrationTests(unittest.TestCase):
             {
                 "primary_agent": "codex",
                 "review_agent": "claude",
-                "fallback_agent": "claude",
+                "fallback_agent": "antigravity",
             },
             packet["runtime_plan"],
         )
@@ -204,10 +270,10 @@ class ControllerAgnosticOrchestrationTests(unittest.TestCase):
             for call in orchestrator.runtime_calls
             if call["stage"] == "draft"
         ]
-        self.assertEqual(["claude"], draft_agents)
+        self.assertEqual(["antigravity"], draft_agents)
         self.assertIn("Runtime agent 'codex' unavailable:", result.merged_analysis)
         self.assertIn(
-            "Runtime routed agent 'codex' to 'claude'.",
+            "Runtime routed agent 'codex' to 'antigravity'.",
             result.merged_analysis,
         )
 

@@ -146,7 +146,10 @@ class InstallerCliTests(unittest.TestCase):
         normalized_help = " ".join(help_text.split())
 
         self.assertIn("setup", help_text)
-        self.assertIn("Interactively configures Qiongli for CLI/Codex/Claude Code use", normalized_help)
+        self.assertIn(
+            "Interactively configures Qiongli for CLI/Codex/Claude Code/Antigravity use",
+            normalized_help,
+        )
 
     def test_install_unknown_subject_reports_available_subjects(self) -> None:
         stderr = io.StringIO()

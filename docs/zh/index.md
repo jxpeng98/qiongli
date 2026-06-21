@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Qiongli
   text: 面向 AI 编程代理的契约化学术工作流。
-  tagline: 一次安装后，在 Codex 或 Claude Code 中运行带 Task ID、质量门、文献诊断、角色交接和可审计产物的研究流程。
+  tagline: 一次安装后，在 Codex、Claude Code 或 Antigravity 中运行带 Task ID、质量门、文献诊断、角色交接和可审计产物的研究流程。
   actions:
     - theme: brand
       text: 快速开始
@@ -47,7 +47,7 @@ Qiongli 发布的是一个统一的便携 workflow 包：`qiongli-workflow`。�
 - **设计并执行研究：** 变量、数据集、robustness、preregistration、ethics artifact、data management。
 - **写作并审计论文：** 章节结构、claim-evidence integrity、图表、limitations、submission、rebuttal。
 - **处理研究代码：** 用 Stage-I specification -> planning -> execution -> review 路线处理 code-first 或 methods-heavy 工作。
-- **协调多模型：** 在 Codex 和 Claude Code 之间分配 controller、primary、reviewer、verifier，并保存交接与验证状态。
+- **协调多模型：** 在 Codex、Claude Code 和 Antigravity 之间分配 controller、primary、reviewer、verifier，并保存交接与验证状态。
 
 ## 文档地图
 

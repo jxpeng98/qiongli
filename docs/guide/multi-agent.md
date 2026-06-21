@@ -1,6 +1,6 @@
 # Multi-Agent Runtime
 
-Use this guide when you run `parallel`, `task-run`, `team-run`, or any workflow that coordinates Codex and Claude under the orchestrator.
+Use this guide when you run `parallel`, `task-run`, `team-run`, or any workflow that coordinates Codex, Claude, and Antigravity under the orchestrator.
 
 ## Supported Runtime Agents
 
@@ -8,8 +8,9 @@ Current runtime agents:
 
 - `codex`
 - `claude`
+- `antigravity`
 
-Gemini CLI is no longer a supported runtime target. Antigravity and Hermes remain install surfaces for the portable skill package, but the full orchestrator launches only Codex and Claude local agent processes.
+Gemini CLI is no longer a supported runtime target. Antigravity now replaces the previous Gemini collaboration lane for local CLI review, verification, triad audit, and fallback routing. Hermes remains an install surface for the portable skill package, but it is not a full orchestrator runtime.
 
 ## Safety Boundary
 
@@ -29,12 +30,14 @@ Full local execution needs:
 python3
 codex
 claude
+antigravity
 ```
 
 Authentication:
 
 - Codex: `OPENAI_API_KEY` or an existing supported Codex/ChatGPT login
 - Claude: `ANTHROPIC_API_KEY` or an existing supported Claude Code login
+- Antigravity: existing local Antigravity CLI login/configuration
 
 Run a health check before launching agents:
 
@@ -77,18 +80,18 @@ Use these fields when you need explicit ownership:
 
 ```bash
 --execution-mode solo|duo|triad
---controller codex|claude
---primary codex|claude
---reviewer codex|claude
---verifier codex|claude
+--controller codex|claude|antigravity
+--primary codex|claude|antigravity
+--reviewer codex|claude|antigravity
+--verifier codex|claude|antigravity
 --solo-role-gates strict|standard|off
 ```
 
-`triad` is retained as an execution-mode label for compatibility with existing task-run metadata, but it no longer implies a third Gemini runtime. When no distinct runtime remains available, the orchestrator records a routing note and reuses an available Codex or Claude runtime.
+`triad` now uses Antigravity as the preferred distinct third runtime when primary and reviewer are Codex/Claude. If no distinct runtime remains available, the orchestrator records a routing note and reuses an available runtime instead of silently dropping the audit.
 
 ## Parallel And Team Runs
 
-Use `parallel` when you want independent Codex/Claude analysis followed by synthesis:
+Use `parallel` when you want independent Codex/Claude/Antigravity analysis followed by synthesis:
 
 ```bash
 python3 -m bridges.orchestrator parallel \

@@ -1,6 +1,6 @@
 # 多 Agent 运行
 
-当你运行 `parallel`、`task-run`、`team-run`，或任何由 orchestrator 协调 Codex 和 Claude 的流程时，先看这一页。
+当你运行 `parallel`、`task-run`、`team-run`，或任何由 orchestrator 协调 Codex、Claude 和 Antigravity 的流程时，先看这一页。
 
 ## 支持的 Runtime Agent
 
@@ -8,8 +8,9 @@
 
 - `codex`
 - `claude`
+- `antigravity`
 
-Gemini CLI 不再是受支持的 runtime target。Antigravity 和 Hermes 仍然是便携 skill package 的安装面，但完整 orchestrator 只会启动本地 Codex 和 Claude agent 进程。
+Gemini CLI 不再是受支持的 runtime target。Antigravity 现在替代之前的 Gemini 协作通道，用于本地 CLI review、verification、triad audit 和 fallback routing。Hermes 仍然是便携 skill package 的安装面，但不是完整 orchestrator runtime。
 
 ## 安全边界
 
@@ -29,12 +30,14 @@ Gemini CLI 不再是受支持的 runtime target。Antigravity 和 Hermes 仍然�
 python3
 codex
 claude
+antigravity
 ```
 
 认证：
 
 - Codex：`OPENAI_API_KEY` 或已支持的 Codex/ChatGPT 登录态
 - Claude：`ANTHROPIC_API_KEY` 或已支持的 Claude Code 登录态
+- Antigravity：本地 Antigravity CLI 登录态/配置
 
 启动 agent 前先运行健康检查：
 
@@ -77,18 +80,18 @@ python3 -m bridges.orchestrator task-run \
 
 ```bash
 --execution-mode solo|duo|triad
---controller codex|claude
---primary codex|claude
---reviewer codex|claude
---verifier codex|claude
+--controller codex|claude|antigravity
+--primary codex|claude|antigravity
+--reviewer codex|claude|antigravity
+--verifier codex|claude|antigravity
 --solo-role-gates strict|standard|off
 ```
 
-`triad` 作为 execution-mode label 会保留，以兼容已有 task-run metadata，但它不再意味着第三个 Gemini runtime。没有可区分的第三 runtime 时，orchestrator 会记录 routing note，并复用可用的 Codex 或 Claude runtime。
+`triad` 现在会在 primary 和 reviewer 是 Codex/Claude 时优先使用 Antigravity 作为可区分的第三 runtime。没有可区分的第三 runtime 时，orchestrator 会记录 routing note，并复用可用 runtime，而不是静默跳过审计。
 
 ## Parallel And Team Runs
 
-需要 Codex/Claude 独立分析后再综合时，使用 `parallel`：
+需要 Codex/Claude/Antigravity 独立分析后再综合时，使用 `parallel`：
 
 ```bash
 python3 -m bridges.orchestrator parallel \

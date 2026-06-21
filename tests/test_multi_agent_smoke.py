@@ -67,8 +67,10 @@ class MultiAgentSmokeTests(unittest.TestCase):
             merged,
             codex_required=True,
             claude_required=True,
+            antigravity_required=False,
             codex_auth_ready=False,
             claude_auth_ready=False,
+            antigravity_auth_ready=False,
         )
         self.assertEqual(status, PASS)
         self.assertIn("expected readiness markers", detail)
@@ -86,8 +88,10 @@ class MultiAgentSmokeTests(unittest.TestCase):
             merged,
             codex_required=True,
             claude_required=True,
+            antigravity_required=False,
             codex_auth_ready=False,
             claude_auth_ready=False,
+            antigravity_auth_ready=False,
         )
         self.assertEqual(status, FAIL)
         self.assertIn("ANTHROPIC_API_KEY not configured", detail)
@@ -99,6 +103,7 @@ class MultiAgentSmokeTests(unittest.TestCase):
             topic="demo",
             codex_required=True,
             claude_required=True,
+            antigravity_required=False,
             environment={
                 "codex_cli": True,
                 "codex_auth_ready": True,
@@ -106,6 +111,9 @@ class MultiAgentSmokeTests(unittest.TestCase):
                 "claude_cli": True,
                 "claude_auth_ready": True,
                 "claude_auth_detail": "ANTHROPIC_API_KEY configured",
+                "antigravity_cli": False,
+                "antigravity_auth_ready": False,
+                "antigravity_auth_detail": "antigravity CLI not found in PATH",
                 "openai_api_key": True,
                 "anthropic_api_key": True,
             },

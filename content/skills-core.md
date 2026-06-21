@@ -6,7 +6,7 @@ Consolidated skill reference for token-efficient workflow execution. Use this fi
 
 ## workflow-standard
 
-**Purpose:** Keep tasks and outputs consistent across Codex and Claude Code
+**Purpose:** Keep tasks and outputs consistent across Codex, Claude Code, and Antigravity
 
 **Source of truth:** `standards/research-workflow-contract.yaml`
 

@@ -223,7 +223,7 @@
 | `metadata-enricher` | 元数据补全 | 当 DOI、作者、年份或 venue 元数据在不同产物之间不一致时使用。 | `Bibliography` |
 | `academic-context-maintainer` | 学术上下文维护 | 当你需要在长周期论文流程中持续保留研究问题边界、已锁定方法决策、稳定结论和未解决争议时使用。 | `ResearchStateSnapshot`, `ResearchDecisionLog` |
 | `boundary-interviewer` | 学术边界追问器 | 当研究问题、claim 强度、证据阈值、方法有效性、外推范围、投稿承诺或阶段交接仍不清楚时使用。 | `AcademicIdeaFunnel`, `BoundaryReview` |
-| `model-collaborator` | 多模型协作 | 当你需要 Codex 和 Claude 分工协作或交叉复核时使用。 | `CollaborationTrace` |
+| `model-collaborator` | 多模型协作 | 当你需要 Codex、Claude 和 Antigravity 分工协作或交叉复核时使用。 | `CollaborationTrace` |
 | `self-critique` | 自我批判 | 当你想主动提高 red-teaming 强度、压制浅层推理和过度主张时使用。 | `CritiqueLog` |
 
 ## 补充卡片与镜像目录

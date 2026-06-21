@@ -168,10 +168,10 @@ qiongli setup --dry-run
 qiongli setup --project-dir "$PWD" --no-doctor
 ```
 
-wizard 会引导 CLI、Codex 和 Claude Code 用户完成：
+wizard 会引导 CLI、Codex、Claude Code 和 Antigravity 用户完成：
 
 - setup path：`install` 用于首次安装内置 assets，`upgrade` 用于从上游刷新
-- runtime surface：CLI、Codex、Claude Code 或 multi-platform
+- runtime surface：CLI、Codex、Claude Code、Antigravity 或 multi-platform
 - subject 选择
 - coverage 选择：`complete` 或 `focused`
 - install mode：普通用户使用 `--mode copy`，本地 checkout 开发使用 `--mode link`
