@@ -1,0 +1,8 @@
+{
+  "coverage": "complete",
+  "flavor": "full",
+  "layers": [
+    "core"
+  ],
+  "subject": "core"
+}
