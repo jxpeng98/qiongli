@@ -1,6 +1,6 @@
 ---
 name: qiongli
-description: Qiongli version: v1.5.0-beta.6. Cross-platform academic research workflow for Codex, Claude / Claude Code, Gemini, and CLI. Use for academic research lifecycle work: paper planning, literature review, paper reading, gap finding, study design, manuscript writing, statistics, analysis code, reproducibility, proofread, rebuttal, submission, presentation, and stage-aware grill / critique. Route natural academic requests even when the user does not explicitly invoke $qiongli or a slash command.
+description: Qiongli version: v1.5.0-beta.6. Cross-platform academic research workflow for Codex, Claude / Claude Code, and CLI. Use for academic research lifecycle work: paper planning, literature review, paper reading, gap finding, study design, manuscript writing, statistics, analysis code, reproducibility, proofread, rebuttal, submission, presentation, and stage-aware grill / critique. Route natural academic requests even when the user does not explicitly invoke $qiongli or a slash command.
 ---
 
 # Qiongli Academic Workflow
@@ -53,13 +53,12 @@ The ambiguity response should inspect available artifacts first, then ask one bl
 
 - Codex: skill or plugin discovery should route natural academic requests to Qiongli even without `$qiongli`; then load the relevant workflow or skill card. If the full CLI MCP server exposes `qiongli_orchestrator_route`, call it before multi-agent or auditable task-run work so Codex can move from skill-only execution to `qiongli_task_plan` / `qiongli_task_run`.
 - Claude / Claude Code: skill package and plugin metadata should route natural academic requests to the matching task ID or workflow wrapper. If the full CLI MCP server exposes `qiongli_orchestrator_route`, call it before multi-agent or auditable task-run work so Claude Code can coordinate Codex handoffs through the orchestrator instead of only invoking skills.
-- Gemini: extension and workflow prompts should preserve task IDs, artifact contracts, and stage-aware grill behavior.
 - CLI / npm / Python: command wrappers remain available, but the same routing contract applies to task packets and orchestrator runs.
 - Portable `qiongli-workflow`: synced skill packages must carry this trigger contract for non-plugin installs.
 
 ## Workflow Entry Points
 
-Explicit workflow commands are optional entry points. In Codex, users can invoke this skill with `/skills` or `$qiongli`, but natural academic requests should also route here. Claude Code and Gemini surfaces may expose the same workflows as slash-style command wrappers:
+Explicit workflow commands are optional entry points. In Codex, users can invoke this skill with `/skills` or `$qiongli`, but natural academic requests should also route here. Claude Code surfaces may expose the same workflows as slash-style command wrappers:
 
 ```
 /paper [topic] [venue]                # Master router — choose paper type + task ID
@@ -147,7 +146,7 @@ RESEARCH/[topic]/
 - Apply `references/academic-output-rubric.md` whenever producing scholarly prose, synthesis, design, review, or submission artifacts.
 - Treat controller-mode metadata as audit-relevant: `task-run` accepts only `solo|duo|triad` for `--execution-mode`, only runtime agents for `--controller` / `--primary` / `--reviewer` / `--verifier`, and only `strict|standard|off` for `--solo-role-gates`.
 - Use `--mcp-strict` and `--skills-strict` for authoritative controller-aware runs; avoid `--skip-validation` for submission-facing, Stage-I code, or final manuscript outputs.
-- In solo mode, record role-specific gate intent: Codex-only writing should cover evidence ledger, citation risk, claim calibration, and scholarly voice checks; Claude-only engineering should cover implementation intent, declared write set, failing-test-first discipline, command evidence, and rollback notes. Current offline audits hard-block missing claim-map artifacts for Codex-only writing and missing implementation-intent artifacts for Claude-only code unless solo gates are `off`.
+- In solo mode, record role-specific gate intent: Codex-only writing should cover evidence ledger, citation risk, claim calibration, and scholarly voice checks; Claude-only engineering should cover implementation intent, declared write set, failing-test-first discipline, command evidence, and rollback notes; Antigravity-only writing should cover story spine, claim support, and reviewer self-critique checks. Current offline audits hard-block missing claim-map artifacts for Codex-only writing, missing story-spine artifacts for Antigravity-only writing, and missing implementation-intent artifacts for Claude/Antigravity-only code unless solo gates are `off`.
 - In Codex-Claude duo mode, record blocking disagreements with a disagreement matrix and resolve them by evidence, method risk, implementation validity, and downstream publication impact.
 - When a workflow references `templates/<name>.md`, load the template from the `templates/` subdirectory of this package.
 

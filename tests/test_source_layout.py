@@ -64,7 +64,7 @@ class SourceLayoutTests(unittest.TestCase):
         layout = RepoLayout(REPO_ROOT)
 
         self.assertIn(Path(".agent"), layout.generated_output_roots)
-        self.assertIn(Path(".gemini"), layout.generated_output_roots)
+        self.assertNotIn(Path(".gemini"), layout.generated_output_roots)
         self.assertIn(Path("packages/python-qiongli/src/qiongli/payload"), layout.generated_output_roots)
         self.assertIn(Path("packages/npm-qiongli/payload"), layout.generated_output_roots)
         self.assertIn(Path("packages/qiongli-plugin"), layout.generated_output_roots)
@@ -90,10 +90,6 @@ class SourceLayoutTests(unittest.TestCase):
         self.assertEqual(
             layout.workflow / "workflows",
             layout.resolve_source_path(".agent/workflows"),
-        )
-        self.assertEqual(
-            layout.content / "distribution" / "plugins.yaml",
-            layout.resolve_source_path(".gemini/qiongli.md"),
         )
         self.assertEqual(
             layout.scripts / "release_preflight.sh",

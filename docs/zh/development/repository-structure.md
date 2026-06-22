@@ -40,7 +40,6 @@
 - `plugins/qiongli/`
 - `plugins/qiongli-next/`
 - `.agent/`
-- `.gemini/`
 - `packages/python-qiongli/src/qiongli/payload/`
 - `packages/npm-qiongli/payload/`
 - `packages/npm-qiongli/python-runtime/`
@@ -57,6 +56,6 @@ python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qio
 
 - 根目录 `scripts/` 为 CI、文档和用户习惯保持稳定。除非 wrapper contract 本身变化，否则编辑 `tooling/scripts/`。
 - `research_skills` 作为 deprecated Python compatibility shim 保留在 `packages/python-qiongli/src/research_skills/`。
-- 根目录 `.agent/` 和 `.gemini/` 由 `content/workflow/` 与 `content/distribution/plugins.yaml` 生成。
+- 根目录 `.agent/` 由 `content/workflow/` 与 `content/distribution/plugins.yaml` 生成。
 - 根目录 `qiongli-workflow/` 由 `content/workflow/` 和同步后的 content mirrors 生成。
 - `plugins/qiongli/`、`plugins/qiongli-next/`、`packages/qiongli-plugin/`、`packages/qiongli-next-plugin/` 都是生成后的 plugin payload 形状，不是 source directory。

@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Qiongli
   text: 面向 AI 编程代理的契约化学术工作流。
-  tagline: 一次安装后，在 Codex、Claude Code 或 Gemini 中运行带 Task ID、质量门、文献诊断、角色交接和可审计产物的研究流程。
+  tagline: 一次安装后，在 Codex、Claude Code 或 Antigravity 中运行带 Task ID、质量门、文献诊断、角色交接和可审计产物的研究流程。
   actions:
     - theme: brand
       text: 快速开始
@@ -32,9 +32,9 @@ features:
 | 你想做什么 | 从这里开始 | 原因 |
 |---|---|---|
 | 只在一个客户端试用 Qiongli | [安装](/zh/guide/install) | 原生 plugin / extension 路径最轻。 |
-| 安装后不知道输入什么 | [使用 Agent Skills](/zh/guide/using-agent-skills) | Codex、Claude Code、Gemini 和 shell 暴露 Qiongli 的方式不同。 |
+| 安装后不知道输入什么 | [使用 Agent Skills](/zh/guide/using-agent-skills) | Codex、Claude Code、Antigravity、Hermes 和 shell 暴露 Qiongli 的方式不同。 |
 | 给多个客户端安装全局 workflow | [快速开始](/zh/quickstart) | Bootstrap `partial` 不要求 Python，只安装 workflow assets。 |
-| 使用 validator、`doctor` 或 orchestrated task | [多 Agent 运行](/zh/guide/multi-agent) | `full` runtime 说明 Python、模型 CLI、认证、Gemini broker/direct 和验证边界。 |
+| 使用 validator、`doctor` 或 orchestrated task | [多 Agent 运行](/zh/guide/multi-agent) | `full` runtime 说明 Python、模型 CLI、认证、runtime routing 和验证边界。 |
 | 选择论文工作流 | [任务场景](/zh/guide/task-recipes) | 将真实研究目标映射到 paper type、stage、Task ID 和产物。 |
 | 自动化安装或升级 | [CLI 参考](/zh/reference/cli) | 覆盖 `qiongli`、`ql`、npm/npx、pipx、兼容别名和 JSON 检查。 |
 
@@ -47,7 +47,7 @@ Qiongli 发布的是一个统一的便携 workflow 包：`qiongli-workflow`。�
 - **设计并执行研究：** 变量、数据集、robustness、preregistration、ethics artifact、data management。
 - **写作并审计论文：** 章节结构、claim-evidence integrity、图表、limitations、submission、rebuttal。
 - **处理研究代码：** 用 Stage-I specification -> planning -> execution -> review 路线处理 code-first 或 methods-heavy 工作。
-- **协调多模型：** 在 Codex、Claude Code、Gemini 之间分配 controller、primary、reviewer、verifier，并保存交接与验证状态。
+- **协调多模型：** 在 Codex、Claude Code 和 Antigravity 之间分配 controller、primary、reviewer、verifier，并保存交接与验证状态。
 
 ## 文档地图
 

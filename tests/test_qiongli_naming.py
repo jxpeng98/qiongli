@@ -57,11 +57,11 @@ class QiongliNamingTests(unittest.TestCase):
             plugin_root = out / "plugins" / "qiongli"
             codex_manifest = json.loads((plugin_root / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
             claude_manifest = json.loads((plugin_root / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
-            gemini_manifest = json.loads((plugin_root / "gemini-extension.json").read_text(encoding="utf-8"))
 
-        for manifest in (codex_manifest, claude_manifest, gemini_manifest):
+        for manifest in (codex_manifest, claude_manifest):
             self.assertEqual(manifest["name"], "qiongli")
             self.assertIn("Qiongli", manifest["description"])
+        self.assertFalse((plugin_root / "gemini-extension.json").exists())
 
     def test_next_codex_plugin_uses_prerelease_identity(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

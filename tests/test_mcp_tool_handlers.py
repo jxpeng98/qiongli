@@ -86,6 +86,16 @@ class MCPToolHandlerTests(unittest.TestCase):
         self.assertFalse(payload["requires_full_runtime"])
         self.assertIn("skill", payload["why"][0])
 
+    def test_tool_definitions_replace_gemini_runtime_with_antigravity(self) -> None:
+        for tool in MCP_TOOL_DEFINITIONS:
+            if tool["name"] not in {"qiongli_orchestrator_route", "qiongli_task_run"}:
+                continue
+            properties = tool["inputSchema"]["properties"]
+            for field in ("controller", "primary", "reviewer", "verifier"):
+                with self.subTest(tool=tool["name"], field=field):
+                    self.assertNotIn("gemini", properties[field]["enum"])
+                    self.assertEqual(["codex", "claude", "antigravity"], properties[field]["enum"])
+
     def test_config_status_redacts_saved_provider_values(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
@@ -417,9 +427,9 @@ class MCPToolHandlerTests(unittest.TestCase):
                 "topic": "my-topic",
                 "artifact_root": "RESEARCH/[topic]/",
                 "runtime_plan": {
-                    "primary_agent": "gemini",
-                    "review_agent": "gemini",
-                    "fallback_agent": "gemini",
+                    "primary_agent": "codex",
+                    "review_agent": "claude",
+                    "fallback_agent": "claude",
                 },
             }
 
@@ -484,7 +494,7 @@ class MCPToolHandlerTests(unittest.TestCase):
                 "runtime_plan": {
                     "primary_agent": "codex",
                     "review_agent": "claude",
-                    "fallback_agent": "gemini",
+                    "fallback_agent": "claude",
                 },
             }
 
@@ -535,7 +545,7 @@ class MCPToolHandlerTests(unittest.TestCase):
                 "runtime_plan": {
                     "primary_agent": "codex",
                     "review_agent": "claude",
-                    "fallback_agent": "gemini",
+                    "fallback_agent": "claude",
                 },
             }
 
@@ -592,7 +602,7 @@ class MCPToolHandlerTests(unittest.TestCase):
                 "runtime_plan": {
                     "primary_agent": "codex",
                     "review_agent": "claude",
-                    "fallback_agent": "gemini",
+                    "fallback_agent": "claude",
                 },
             }
 
@@ -628,7 +638,7 @@ class MCPToolHandlerTests(unittest.TestCase):
                     "controller": "codex",
                     "primary": "codex",
                     "reviewer": "claude",
-                    "verifier": "gemini",
+                    "verifier": "antigravity",
                 },
             )
 
@@ -636,6 +646,7 @@ class MCPToolHandlerTests(unittest.TestCase):
         preview = result["structuredContent"]["data"]["task_run_preview"]
         self.assertIs(stub.controller_kwargs["triad"], True)
         self.assertEqual(preview["controller_metadata"]["triad"], "True")
+        self.assertEqual(preview["task_run_arguments"]["verifier_agent"], "antigravity")
 
     def test_task_run_preview_includes_domain_context_in_task_packet(self) -> None:
         class StubResult:
@@ -651,7 +662,7 @@ class MCPToolHandlerTests(unittest.TestCase):
                 "runtime_plan": {
                     "primary_agent": "codex",
                     "review_agent": "claude",
-                    "fallback_agent": "gemini",
+                    "fallback_agent": "claude",
                 },
             }
 
@@ -721,7 +732,7 @@ class MCPToolHandlerTests(unittest.TestCase):
                 "runtime_plan": {
                     "primary_agent": "codex",
                     "review_agent": "claude",
-                    "fallback_agent": "gemini",
+                    "fallback_agent": "claude",
                 },
             }
 
@@ -842,13 +853,14 @@ class MCPToolHandlerTests(unittest.TestCase):
                         "controller": "codex",
                         "primary": "codex",
                         "reviewer": "claude",
-                        "verifier": "gemini",
+                        "verifier": "antigravity",
                         "run_agents": True,
                     },
                 )
 
         self.assertFalse(result["isError"])
         self.assertIs(stub.kwargs["triad"], True)
+        self.assertEqual(stub.kwargs["verifier_agent"], "antigravity")
 
     def test_task_run_tool_explicit_false_triad_overrides_triad_execution_mode(self) -> None:
         class StubResult:
@@ -879,13 +891,14 @@ class MCPToolHandlerTests(unittest.TestCase):
                         "controller": "codex",
                         "primary": "codex",
                         "reviewer": "claude",
-                        "verifier": "gemini",
+                        "verifier": "antigravity",
                         "run_agents": True,
                     },
                 )
 
         self.assertFalse(result["isError"])
         self.assertIs(stub.kwargs["triad"], False)
+        self.assertEqual(stub.kwargs["verifier_agent"], "antigravity")
 
 
 if __name__ == "__main__":

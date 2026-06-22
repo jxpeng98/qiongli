@@ -630,7 +630,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('plugins/qiongli-next/skills/qiongli-workflow/VERSION', content)
         self.assertIn('plugins/qiongli-next/skills/qiongli-workflow/skills/registry.yaml', content)
         self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)
-        self.assertIn('plugins/qiongli/gemini-extension.json', content)
+        self.assertNotIn('plugins/qiongli/gemini-extension.json', content)
         self.assertIn('python3 scripts/audit_distribution_payloads.py --root "$ROOT_DIR"', content)
 
 

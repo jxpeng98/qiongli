@@ -1,207 +1,69 @@
-# 多 Agent 运行指南
+# 多 Agent 运行
 
-当你要运行 `parallel`、`task-run`、`team-run`，或者任何由 orchestrator 同时协调 Codex、Claude、Gemini 的流程时，先看这一页。
+当你运行 `parallel`、`task-run`、`team-run`，或任何由 orchestrator 协调 Codex、Claude 和 Antigravity 的流程时，先看这一页。
 
-## 这份文档解决什么问题
+## 支持的 Runtime Agent
 
-这一页主要说明：
-
-- orchestrator 如何在多个 runtime 之间路由任务
-- Gemini 的 `broker`、`direct`、`auto` 分别代表什么
-- 每条路径各自接受什么认证方式
-- 只支持 Google 登录订阅时，怎样稳定地自动化使用 Gemini
-- 哪些场景适合桌面、本地、CI、纯无头服务器
-
-## Runtime 结构
-
-orchestrator 目前协调三个 runtime agent：
+当前 runtime agent：
 
 - `codex`
 - `claude`
-- `gemini`
+- `antigravity`
 
-其中 `codex` 和 `claude` 的路径比较直接：先做 preflight，再直接启动对应 CLI。
+Gemini CLI 不再是受支持的 runtime target。Antigravity 现在替代之前的 Gemini 协作通道，用于本地 CLI review、verification、triad audit 和 fallback routing。Hermes 仍然是便携 skill package 的安装面，但不是完整 orchestrator runtime。
 
-`gemini` 则拆成三种 transport：
+## 安全边界
 
-- `direct`：一次一进程地直接启动 Gemini CLI
-- `broker`：把请求发给本地常驻 broker
-- `auto`：优先 broker，broker 不可用时再尝试 direct
+`qiongli_task_run` 默认是 preview mode。只有同时满足以下条件时，才会启动本地 agent：
 
-当前内置 Gemini broker 的默认 backend 已经改成常驻的 `gemini --acp`。
+- MCP caller 发送 JSON boolean `run_agents: true`
+- 本地 runtime 的 `doctor` 通过
+- task packet 有明确的 `task_id`、`paper_type`、`topic` 和 artifact root
 
-## 为什么 Gemini 必须分成两条路
+普通 planning、review 或 routing 决策应先使用 preview mode。
 
-Gemini 自动化里真正有差异的是这两类认证：
+## 必需的本地 Runtime
 
-1. `API key` 或 `Vertex`
-   适合非交互子进程
-2. `Google 登录` 订阅
-   只有在 broker 持有一个常驻 Gemini 会话时才稳定
-
-真正要记住的是：
-
-- 终端里出现 `Signed in with Google /auth`，只说明你手工交互用 Gemini 没问题
-- 这不等于 orchestrator 的 `direct` 路径也稳定
-- 但对 `broker` 路径是成立的，因为 broker 维持的是一个长生命周期的 ACP Gemini 会话，不是每次重新拉起新的子进程
-
-## Gemini Transport 模式
-
-你可以全局设置：
+完整本地执行需要：
 
 ```bash
-export RESEARCH_GEMINI_TRANSPORT=auto
+python3
+codex
+claude
+antigravity
 ```
 
-也可以在 agent profile 里通过 `runtime_options.gemini.transport` 单独覆盖。
+认证：
 
-支持的值：
+- Codex：`OPENAI_API_KEY` 或已支持的 Codex/ChatGPT 登录态
+- Claude：`ANTHROPIC_API_KEY` 或已支持的 Claude Code 登录态
+- Antigravity：本地 Antigravity CLI 登录态/配置
 
-- `auto`
-- `broker`
-- `direct`
-
-### `auto`
-
-默认推荐。
-
-行为是：
-
-1. 先检查 broker 是否已配置且健康
-2. 如果健康，Gemini 任务走 broker
-3. 如果 broker 不可用，再检查 direct 路径的非交互认证是否可用
-
-这是最稳妥的默认值。
-
-### `broker`
-
-当你明确要让 Gemini 只走常驻 broker 时使用。
-
-行为是：
-
-- 需要配置 `RESEARCH_GEMINI_BROKER_URL`
-- 如果 broker 内部已经持有 Gemini 的认证态，orchestrator 端不要求 `GEMINI_API_KEY`
-- 这是 `Google 登录订阅` 最正确的模式
-
-### `direct`
-
-只有在你明确想保留一次一进程的 Gemini 子进程调用时才使用。
-
-行为是：
-
-- 即使 broker 在运行，也会被绕过
-- 必须有 direct 路径可用的非交互认证
-- 不应该依赖缓存的浏览器登录态
-
-## 认证矩阵
-
-| 认证方式 | `broker` | `direct` |
-|---|---|---|
-| `GEMINI_API_KEY` | 支持 | 支持 |
-| Vertex AI 环境变量 | 支持 | 支持 |
-| 缓存的 Google 登录态 | 通过常驻 ACP broker 支持 | 不可靠 |
-
-所以规则很简单：
-
-- 只有 Google 登录 => 用 `broker`
-- 有 API key 或 Vertex => `auto` 或 `direct` 都行，但仍然推荐 `auto`
-
-## 如何启动常驻 Gemini Broker
-
-### 标准桌面流程
-
-先在桌面会话里启动 broker：
-
-```bash
-python3 scripts/gemini_session_broker.py --backend acp --host 127.0.0.1 --port 8767
-```
-
-再告诉 orchestrator 去哪里找它：
-
-```bash
-export RESEARCH_GEMINI_BROKER_URL=http://127.0.0.1:8767
-export RESEARCH_GEMINI_TRANSPORT=broker
-```
-
-如果你希望 broker 掉线时还能回退到 direct：
-
-```bash
-export RESEARCH_GEMINI_TRANSPORT=auto
-```
-
-### 自定义 ACP 命令
-
-如果 Gemini 安装位置特殊，或者你想换启动参数：
-
-```bash
-export RESEARCH_GEMINI_ACP_CMD="gemini --acp"
-python3 scripts/gemini_session_broker.py --backend acp --host 127.0.0.1 --port 8767
-```
-
-### 旧的一次一进程 backend
-
-如果你明确要保留旧行为：
-
-```bash
-python3 scripts/gemini_session_broker.py --backend cli --host 127.0.0.1 --port 8767
-```
-
-但这一条不会保住常驻的 Google 登录会话，只适合 API key 风格的自动化。
-
-## 自动化 Smoke Harness
-
-如果你不想每次都手工跑完整 checklist，可以直接用仓库里的 Codex-first smoke harness：
-
-```bash
-python3 scripts/smoke_multi_agent.py \
-  --cwd . \
-  --transport broker \
-  --start-broker \
-  --run-parallel
-```
-
-它会做这些事：
-
-- 跑一次 `doctor`
-- 做一次真实 Codex runtime 探针
-- 按指定 transport 做一次真实 Gemini runtime 探针
-- 可选地跑一次由 Codex 负责综合的 `parallel` smoke
-- 在 `output/test_runtime/` 下写出 JSON 和 Markdown 报告
-
-本地常用变体：
-
-```bash
-# 桌面 Google 登录 Gemini
-python3 scripts/smoke_multi_agent.py --cwd . --transport broker --start-broker
-
-# 优先 broker，broker 挂掉后检查 auto 回退
-python3 scripts/smoke_multi_agent.py --cwd . --transport auto --start-broker --run-fallback-check
-
-# 只测 direct，用于 API key 或 Vertex
-python3 scripts/smoke_multi_agent.py --cwd . --transport direct --strict-gemini
-```
-
-## Multi-Agent 工作流里怎么用
-
-### 预检
-
-在跑大任务前先执行：
+启动 agent 前先运行健康检查：
 
 ```bash
 python3 -m bridges.orchestrator doctor --cwd .
 ```
 
-现在 `doctor` 会把 Gemini 拆成三行单独展示：
+## Preview-First 流程
 
-- `Gemini transport`
-- `Gemini broker`
-- `Gemini direct auth`
+先用 MCP route tool 或 task plan 检查任务包，再决定是否执行：
 
-这三项要分开理解。只要 transport 最终落到 broker，那么 direct auth 缺失并不等于配置错误。
+```bash
+python3 -m bridges.orchestrator task-plan \
+  --task-id F3 \
+  --paper-type empirical \
+  --topic ai-in-education \
+  --cwd .
 
-### `task-run`
+python3 -m bridges.orchestrator task-run \
+  --task-id F3 \
+  --paper-type empirical \
+  --topic ai-in-education \
+  --cwd .
+```
 
-典型命令：
+只有 preview 可接受后，再加执行参数：
 
 ```bash
 python3 -m bridges.orchestrator task-run \
@@ -209,120 +71,63 @@ python3 -m bridges.orchestrator task-run \
   --paper-type empirical \
   --topic ai-in-education \
   --cwd . \
-  --triad
+  --run-agents
 ```
 
-在 triad 模式里，Gemini 只是运行计划中的一个参与者。如果 Gemini transport 解析成 broker，那么只有 Gemini 任务会走常驻 broker，Codex 和 Claude 仍然是直接运行。
+## Runtime Routing
 
-### `parallel`
+需要明确分工时使用这些字段：
 
-适合要多个 agent 独立草稿或独立评审的场景。现在 orchestrator 会在真正发送大 prompt 之前先做 runtime 级 preflight，所以如果 Gemini direct 本来就不可用，但 broker 可用，就不会在错误路径上白白消耗那一整份 prompt token。
-
-### `team-run`
-
-`team-run` 用的也是同一套路由逻辑。这里最重要的是一致性：你要提前决定 Gemini 是必须在所有阶段都参与，还是允许在 fallback 策略下被跳过。
-
-## Profile 级控制
-
-可以在 profile 里固定 transport：
-
-```json
-{
-  "runtime_options": {
-    "gemini": {
-      "transport": "broker",
-      "approval_mode": "plan"
-    }
-  }
-}
+```bash
+--execution-mode solo|duo|triad
+--controller codex|claude|antigravity
+--primary codex|claude|antigravity
+--reviewer codex|claude|antigravity
+--verifier codex|claude|antigravity
+--solo-role-gates strict|standard|off
 ```
 
-适用场景：
+`triad` 现在会在 primary 和 reviewer 是 Codex/Claude 时优先使用 Antigravity 作为可区分的第三 runtime。没有可区分的第三 runtime 时，orchestrator 会记录 routing note，并复用可用 runtime，而不是静默跳过审计。
 
-- 某个项目必须固定走常驻 Google 登录 Gemini
-- 某个 CI profile 必须避免 broker 前提
-- 某个本地 review profile 希望 Gemini 永远只在只读 `plan` 模式运行
+## Parallel And Team Runs
 
-## 环境支持矩阵
+需要 Codex/Claude/Antigravity 独立分析后再综合时，使用 `parallel`：
 
-### 本地桌面
+```bash
+python3 -m bridges.orchestrator parallel \
+  --prompt "Review this methods section for causal overclaiming and missing robustness checks." \
+  --cwd . \
+  --summarizer claude
+```
 
-支持：
+fanout/fanin task packet 用 `team-run`：
 
-- `codex` direct
-- `claude` direct
-- `gemini` direct 配合 API key 或 Vertex
-- `gemini` broker 配合 resident ACP
-- `gemini` broker 配合缓存的 Google 登录
+```bash
+python3 -m bridges.orchestrator team-run \
+  --task-id H3 \
+  --paper-type empirical \
+  --topic acceptance-probe \
+  --cwd .
+```
 
-这是 Google 登录 Gemini 自动化的主场景。
+Team run 必须明确记录 skipped 或 failed workers，不能把缺失 runtime 静默当成已完成 review。
 
-### CI
+## Worker Adapter Routing
 
-支持：
+当 `task-run` 包含 `worker_plan` 时，adapter 名称描述的是 dispatch 机制，不代表任务质量：
 
-- `codex` direct
-- `claude` direct
-- `gemini` direct 配合 API key 或 Vertex
+- `generic_prompt`：适合任意受支持 runtime 或人工分发的便携 worker packet
+- `codex_subagent`：可用时走 Codex-native subagent dispatch
+- `claude_cowork`：可用时走 Claude-native coworker dispatch
 
-不推荐：
+adapter fallback 必须写入 routing notes，保证 reviewer handoff 和 merge decision 可审计。
 
-- 依赖 Google 登录的 resident Gemini broker
+## 故障排除
 
-原因很简单：CI 不应该依赖浏览器登录，也不应该依赖人工维持的桌面会话。
+如果 execution 被阻断：
 
-### 纯无头服务器
-
-支持：
-
-- `codex` direct
-- `claude` direct
-- `gemini` direct 配合 API key 或 Vertex
-- `gemini` broker，但前提是 broker 自己也使用非交互认证
-
-不推荐：
-
-- 没有稳定桌面驻留环境时，依赖缓存 Google 登录的 Gemini broker
-
-## 常见失败模式
-
-### Broker 已配置但不健康
-
-在 `broker` 模式下：
-
-- Gemini 直接不可用
-- orchestrator 会报告 broker transport 失败
-
-在 `auto` 模式下：
-
-- 只有在 direct auth 同时可用时，才会回退到 direct
-
-### Direct auth 缺失
-
-这只在 transport 最终走到 `direct` 时才构成问题。
-
-如果 transport 最终走的是 `broker`，那 direct auth 缺失本身不是错误。
-
-### Resident broker 中途丢失认证
-
-如果最近一次 prompt 失败看起来像 auth 问题，broker 会把 Gemini 标记为 `auth_lost`。这时要么 reset broker 状态，要么重新完成认证后重启 broker。
-
-## 推荐默认值
-
-除非你有明确反例，否则按下面配置：
-
-- 本地桌面，只有 Google 登录：
-  - 启动 ACP broker
-  - 设置 `RESEARCH_GEMINI_TRANSPORT=broker`
-- 本地桌面，有 API key：
-  - 设置 `RESEARCH_GEMINI_TRANSPORT=auto`
-- CI：
-  - 用 API key 或 Vertex
-  - 不要假设 Google 登录可用
-
-## 相关页面
-
-- [快速开始](/zh/quickstart)
-- [任务场景](/zh/guide/task-recipes)
-- [故障排除](/zh/guide/troubleshooting)
-- [系统架构](/zh/architecture)
+- 运行 `doctor --cwd .`
+- 确认 `codex` 和 `claude` 在 `PATH` 上
+- 确认对应 auth env 或登录态存在
+- 去掉 `--run-agents` 重新运行 `task-run`，先检查 preview packet
+- 查看 `.qiongli/trace/` 中的 local guidance 和 routing notes

@@ -49,10 +49,9 @@ qiongli init --project-dir /path/to/project
 
 This project has one type of "installation target":
 
-- **Local skill directories for the supported clients** (so Codex / Claude Code / Gemini / Antigravity / Hermes recognize the skill globally)
+- **Local skill directories for the supported clients** (so Codex / Claude Code / Antigravity / Hermes recognize the skill globally)
   - Codex: `${CODEX_HOME:-~/.codex}/skills/qiongli-workflow`
   - Claude: `${CLAUDE_CODE_HOME:-~/.claude}/skills/qiongli-workflow`
-  - Gemini: `${GEMINI_HOME:-~/.gemini}/skills/qiongli-workflow`
   - Antigravity (global): `${ANTIGRAVITY_HOME:-~/.gemini/antigravity}/skills/qiongli-workflow`
   - Hermes: `${HERMES_HOME:-~/.hermes}/skills/qiongli-workflow`
 
@@ -137,7 +136,7 @@ Key points:
   - `--ref v0.1.0-beta.6 --ref-type tag`
   - `--ref main --ref-type branch`
 
-It is recommended to restart your clients (Codex / Claude Code / Gemini CLI / Antigravity / Hermes) after upgrading.
+It is recommended to restart your clients (Codex / Claude Code / Antigravity / Hermes) after upgrading.
 
 ---
 

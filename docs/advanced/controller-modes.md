@@ -9,10 +9,10 @@ Use these flags with `python3 -m bridges.orchestrator task-run`:
 | Flag | Values | Meaning |
 | --- | --- | --- |
 | `--execution-mode` | `solo`, `duo`, `triad` | Declares the collaboration shape. Defaults to `duo`, or `triad` when `--triad` is set. |
-| `--controller` | `codex`, `claude`, `gemini` | Declares the runtime agent accountable for orchestration metadata. Defaults to `codex`. |
-| `--primary` | `codex`, `claude`, `gemini` | Declares the primary runtime agent for the task packet. |
-| `--reviewer` | `codex`, `claude`, `gemini` | Declares the review runtime agent for the task packet. |
-| `--verifier` | `codex`, `claude`, `gemini` | Records the verification agent for audit metadata. |
+| `--controller` | `codex`, `claude`, `antigravity` | Declares the runtime agent accountable for orchestration metadata. Defaults to `codex`. |
+| `--primary` | `codex`, `claude`, `antigravity` | Declares the primary runtime agent for the task packet. |
+| `--reviewer` | `codex`, `claude`, `antigravity` | Declares the review runtime agent for the task packet. |
+| `--verifier` | `codex`, `claude`, `antigravity` | Records the verification agent for audit metadata. |
 | `--solo-role-gates` | `strict`, `standard`, `off` | Sets solo-mode gate strictness. Defaults to `standard`. |
 
 Invalid values are rejected by the CLI parser. Use `--mcp-strict` and `--skills-strict` when controller declarations must also fail fast on missing providers or skill specs.
@@ -23,7 +23,7 @@ Invalid values are rejected by the CLI parser. Use `--mcp-strict` and `--skills-
 
 - `solo`: `--primary` controls the draft runtime; reviewer is not forced unless the task still requires an independent review gate.
 - `duo`: `--primary` controls draft and `--reviewer` controls review.
-- `triad`: `--primary` controls draft, `--reviewer` controls review, and `--verifier` is recorded for verification metadata. The third triad audit still chooses an available runtime outside draft/review unless a stricter verifier route is added later.
+- `triad`: `--primary` controls draft, `--reviewer` controls review, and `--verifier` records the preferred verification runtime. The third audit chooses a distinct available runtime outside draft/review when possible; with the default Codex/Claude duo, that distinct runtime is Antigravity.
 
 Fallback behavior is explicit: if a declared runtime fails preflight, the result includes `Runtime agent '<agent>' unavailable` and `Runtime routed agent '<from>' to '<to>'`.
 

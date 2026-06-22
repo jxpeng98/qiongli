@@ -11,13 +11,25 @@ from pathlib import Path
 from qiongli.source_layout import RepoLayout
 from unittest import mock
 
-from qiongli.universal_installer import InstallOptions, RemoveOptions, clean, clean_global_legacy_skills, install, remove
+from qiongli.universal_installer import (
+    InstallOptions,
+    RemoveOptions,
+    TARGET_CHOICES,
+    clean,
+    clean_global_legacy_skills,
+    install,
+    remove,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 class UniversalInstallerTests(unittest.TestCase):
+    def test_supported_install_targets_drop_gemini_cli(self) -> None:
+        self.assertNotIn("gemini", TARGET_CHOICES)
+        self.assertEqual(("codex", "claude", "antigravity", "hermes", "all"), TARGET_CHOICES)
+
     def test_same_version_install_reports_current_and_source_versions(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             temp_root = Path(tmp_dir)
@@ -310,12 +322,12 @@ class UniversalInstallerTests(unittest.TestCase):
             # Global skills installed for all clients
             self.assertTrue((codex_home / "skills" / "qiongli-workflow" / "SKILL.md").exists())
             self.assertTrue((claude_home / "skills" / "qiongli-workflow" / "SKILL.md").exists())
-            self.assertTrue((gemini_home / "skills" / "qiongli-workflow" / "SKILL.md").exists())
+            self.assertFalse((gemini_home / "skills" / "qiongli-workflow" / "SKILL.md").exists())
             self.assertTrue((antigravity_home / "skills" / "qiongli-workflow" / "SKILL.md").exists())
             self.assertTrue((hermes_home / "skills" / "qiongli-workflow" / "SKILL.md").exists())
             # Workflows bundled inside each global skill directory
             self.assertTrue((claude_home / "skills" / "qiongli-workflow" / "workflows" / "paper.md").exists())
-            self.assertTrue((gemini_home / "skills" / "qiongli-workflow" / "workflows" / "lit-review.md").exists())
+            self.assertFalse((gemini_home / "skills" / "qiongli-workflow" / "workflows" / "lit-review.md").exists())
             self.assertTrue((antigravity_home / "skills" / "qiongli-workflow" / "workflows" / "paper.md").exists())
             self.assertTrue((hermes_home / "skills" / "qiongli-workflow" / "workflows" / "paper.md").exists())
             # Synced bundled assets present in global skill directories
@@ -672,9 +684,9 @@ class CleanTests(unittest.TestCase):
             self.assertEqual(result, 0)
             self.assertFalse((codex_home / "skills" / "qiongli-workflow").exists())
             self.assertFalse((claude_home / "skills" / "qiongli-workflow").exists())
-            self.assertFalse((gemini_home / "skills" / "qiongli-workflow").exists())
+            self.assertTrue((gemini_home / "skills" / "qiongli-workflow").exists())
             self.assertFalse(claude_paper.exists())
-            self.assertFalse(gemini_paper.exists())
+            self.assertTrue(gemini_paper.exists())
             self.assertTrue((claude_commands / "custom.md").exists())
             self.assertTrue(unmanaged.exists())
             self.assertIn("unmanaged qiongli-workflow path", stdout.getvalue())
@@ -735,7 +747,7 @@ class SymlinkAndSummaryTests(unittest.TestCase):
     """Test workflow symlinks and skills-summary bundling."""
 
     def test_install_creates_workflow_symlinks(self) -> None:
-        """After install with target=all, Claude commands/ and Gemini workflows/ have symlinks."""
+        """After install with target=all, Claude commands/ has workflow symlinks."""
         with tempfile.TemporaryDirectory() as tmp_dir:
             temp_root = Path(tmp_dir)
             project_dir = temp_root / "project"
@@ -774,17 +786,12 @@ class SymlinkAndSummaryTests(unittest.TestCase):
             self.assertTrue(paper_link.resolve().exists(), "symlink target should exist")
             self.assertIn("qiongli-workflow", str(paper_link.resolve()))
 
-            # Gemini: symlinks in workflows/
             gemini_workflows = gemini_home / "workflows"
-            self.assertTrue(gemini_workflows.is_dir(), "Gemini workflows/ dir should exist")
-            lit_link = gemini_workflows / "lit-review.md"
-            self.assertTrue(lit_link.is_symlink(), "lit-review.md should be a symlink")
-            self.assertTrue(lit_link.resolve().exists(), "symlink target should exist")
+            self.assertFalse(gemini_workflows.exists(), "Gemini workflows/ dir should not be created")
 
-            # All 16 workflows should have symlinks
+            # All workflows should have Claude command symlinks.
             expected_count = len(list((claude_home / "skills" / "qiongli-workflow" / "workflows").glob("*.md")))
             self.assertEqual(len(list(claude_commands.glob("*.md"))), expected_count)
-            self.assertEqual(len(list(gemini_workflows.glob("*.md"))), expected_count)
 
     def test_skills_summary_bundled_in_package(self) -> None:
         """skills-summary.md should be synced into the skill package."""

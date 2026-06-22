@@ -34,7 +34,6 @@ class GeneratedPayloadGuardTests(unittest.TestCase):
     def test_classifies_generated_payload_paths(self) -> None:
         generated_paths = [
             ".agent/workflows/paper.md",
-            ".gemini/qiongli.md",
             "packages/python-qiongli/src/qiongli/payload/qiongli-workflow/SKILL.md",
             "packages/npm-qiongli/payload/qiongli-workflow/SKILL.md",
             "packages/npm-qiongli/python-runtime/qiongli/__init__.py",

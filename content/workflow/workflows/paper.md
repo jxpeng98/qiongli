@@ -216,7 +216,7 @@ Pick one:
 - I5 → use `code-specification`
 - I6 → use `code-planning`
 - I7 → use `code-execution` (Codex execution)
-- I8 → use `code-review` (Gemini review)
+- I8 → use `code-review` (secondary model review)
 - I9 → use `release-packager`
 - I4 → use `reproducibility-auditor`
 - I1–I3 → `/code-build` (use `model-collaborator` when verification is needed)

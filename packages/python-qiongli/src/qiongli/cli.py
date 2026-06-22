@@ -286,13 +286,11 @@ def _local_repo_version(root: Path) -> tuple[str, Version] | None:
 def _installed_skill_dirs() -> dict[str, Path]:
     codex_home = Path(os.environ.get("CODEX_HOME", "~/.codex")).expanduser()
     claude_home = Path(os.environ.get("CLAUDE_CODE_HOME", "~/.claude")).expanduser()
-    gemini_home = Path(os.environ.get("GEMINI_HOME", "~/.gemini")).expanduser()
     antigravity_home = Path(os.environ.get("ANTIGRAVITY_HOME", "~/.gemini/antigravity")).expanduser()
     hermes_home = Path(os.environ.get("HERMES_HOME", "~/.hermes")).expanduser()
     return {
         "codex": codex_home / "skills" / "qiongli-workflow",
         "claude": claude_home / "skills" / "qiongli-workflow",
-        "gemini": gemini_home / "skills" / "qiongli-workflow",
         "antigravity": antigravity_home / "skills" / "qiongli-workflow",
         "hermes": hermes_home / "skills" / "qiongli-workflow",
     }
@@ -502,7 +500,7 @@ def _check_system_env() -> dict[str, dict[str, str]]:
     results = {}
 
     # 1. CLIs
-    for cli in ("codex", "claude", "gemini"):
+    for cli in ("codex", "claude", "antigravity"):
         path = shutil.which(cli)
         if not path:
             mise_shim = Path.home() / ".local" / "share" / "mise" / "shims" / cli
@@ -514,13 +512,13 @@ def _check_system_env() -> dict[str, dict[str, str]]:
         else:
             hints = {
                 "claude": "not found (install: npm i -g @anthropic-ai/claude-code)",
-                "gemini": "not found (install: npm i -g @google/gemini-cli)"
+                "antigravity": "not found (install Antigravity and ensure `antigravity` is on PATH)",
             }
             hint = hints.get(cli, "not found")
             results[f"{cli} CLI"] = {"status": "error", "detail": hint}
 
     # 2. API Keys
-    for env in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY"):
+    for env in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY"):
         if os.environ.get(env, "").strip():
             results[env] = {"status": "ok", "detail": "configured"}
         else:
@@ -622,7 +620,7 @@ def cmd_check(args: argparse.Namespace) -> int:
         print(f"   - Detected repo root: {repo_root}")
     if local:
         print(f"   - Local repo version: {local[0]}")
-    for client in ("codex", "claude", "gemini"):
+    for client in ("codex", "claude", "antigravity", "hermes"):
         item = installed[client]
         status = "installed" if item["installed"] else "not-installed"
         version = item["version"] or "<unknown>"
@@ -978,7 +976,7 @@ def cmd_align(args: argparse.Namespace) -> int:
     print("- CLI aliases: `qiongli`, `ql`, `research-skills`, `rsk`, `rsw` (same behavior).")
     print("")
     print(f"What `{prog} upgrade` modifies by default:")
-    print("- Global skills (with bundled workflows): ~/.codex|~/.claude|~/.gemini|~/.gemini/antigravity|~/.hermes under `skills/qiongli-workflow/`")
+    print("- Global skills (with bundled workflows): ~/.codex|~/.claude|~/.gemini/antigravity|~/.hermes under `skills/qiongli-workflow/`")
     print("- Workflows are bundled inside the skill directory (no project-local copies needed).")
     print("- Shell CLI wrappers when `--install-cli` is used")
     print("")
@@ -1192,7 +1190,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     setup = subparsers.add_parser(
         "setup",
-        help="Interactively configures Qiongli for CLI/Codex/Claude Code use",
+        help="Interactively configures Qiongli for CLI/Codex/Claude Code/Antigravity use",
     )
     setup.add_argument(
         "--project-dir",

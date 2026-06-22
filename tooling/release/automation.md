@@ -30,7 +30,7 @@ This mode runs:
 - annotated tag creation and tag push only after branch checks pass
 - hard waiting for tag publish workflows (`Publish to PyPI`, `Publish to npm`)
 - `scripts/release_postflight.sh --create-release`
-- marketplace / extension artifact generation for Codex, Claude Code, and Gemini CLI
+- marketplace artifact generation for Codex and Claude Code
 
 Stable tags publish from the primary branch (`main` or `master`) and become normal GitHub Releases. Beta tags may publish from `dev` or the primary branch and become GitHub prereleases, so stable and beta releases can coexist without breaking `releases/latest`.
 
@@ -58,8 +58,6 @@ The release page receives these installable distribution artifacts:
 - `qiongli-geoeconomics-claude-plugin-<tag>.tar.gz`
 - `qiongli-economics-accounting-codex-plugin-<tag>.tar.gz`
 - `qiongli-economics-accounting-claude-plugin-<tag>.tar.gz`
-- `qiongli-gemini-extension-<tag>.tar.gz`
-
 Each Claude plugin tarball also has a parallel `.zip` sibling, for example
 `qiongli-claude-plugin-<tag>.zip` and
 `qiongli-economics-claude-plugin-<tag>.zip`, so Claude upload flows that reject
@@ -67,7 +65,7 @@ Each Claude plugin tarball also has a parallel `.zip` sibling, for example
 
 The release page also receives focused Claude Desktop ZIPs for `core`, `economics`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting`, plus the legacy core alias `qiongli-claude-desktop-skill-<tag>.zip`.
 
-The unqualified `qiongli-*plugin` artifacts remain the default core-compatible entries. The subject-qualified Codex and Claude Code artifacts let the shared Skillsplace marketplace expose separate install choices such as `qiongli-economics`, `qiongli-business`, `qiongli-finance`, `qiongli-political-economy`, `qiongli-geoeconomics`, or `qiongli-economics-accounting`, each with its own plugin manifest and materialized `subject/complete` skill package. These artifacts make the release consumable by the three client-native install surfaces. They do not bypass official directory review: Codex marketplace listing, Claude official plugin directory submission, and Gemini gallery publication still follow each platform's external submission process when applicable.
+The unqualified `qiongli-*plugin` artifacts remain the default core-compatible entries. The subject-qualified Codex and Claude Code artifacts let the shared Skillsplace marketplace expose separate install choices such as `qiongli-economics`, `qiongli-business`, `qiongli-finance`, `qiongli-political-economy`, `qiongli-geoeconomics`, or `qiongli-economics-accounting`, each with its own plugin manifest and materialized `subject/complete` skill package. These artifacts make the release consumable by the supported client-native install surfaces. They do not bypass official directory review: Codex marketplace listing and Claude official plugin directory submission still follow each platform's external submission process when applicable.
 
 ## 2) Prepare a publish-ready local state
 
@@ -139,7 +137,7 @@ It also runs:
 python3 scripts/build_marketplace_artifacts.py --tag <tag> --dist-dir dist
 ```
 
-When `--create-release` is used, the generated Codex, Claude Code, and Gemini CLI artifacts are attached to the GitHub Release alongside the Python package artifacts. If the GitHub Release already exists, postflight uploads those marketplace artifacts with `--clobber`.
+When `--create-release` is used, the generated Codex and Claude Code artifacts are attached to the GitHub Release alongside the Python package artifacts. If the GitHub Release already exists, postflight uploads those marketplace artifacts with `--clobber`.
 
 ## Optional flags
 

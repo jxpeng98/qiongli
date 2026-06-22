@@ -24,7 +24,7 @@ class ModelType(Enum):
     """Supported AI models."""
     CODEX = "codex"
     CLAUDE = "claude"
-    GEMINI = "gemini"
+    ANTIGRAVITY = "antigravity"
 
 
 @dataclass
@@ -54,7 +54,7 @@ class CollaborationResult:
     task_description: str
     codex_response: BridgeResponse | None = None
     claude_response: BridgeResponse | None = None
-    gemini_response: BridgeResponse | None = None
+    antigravity_response: BridgeResponse | None = None
     merged_analysis: str = ""
     confidence: float = 0.0
     recommendations: list[str] = field(default_factory=list)
@@ -75,8 +75,8 @@ class CollaborationResult:
             data["codex"] = asdict(self.codex_response)
         if self.claude_response:
             data["claude"] = asdict(self.claude_response)
-        if self.gemini_response:
-            data["gemini"] = asdict(self.gemini_response)
+        if self.antigravity_response:
+            data["antigravity"] = asdict(self.antigravity_response)
         return json.dumps(data, indent=2, ensure_ascii=False)
 
 
@@ -111,16 +111,11 @@ class BaseBridge(ABC):
     AUTH_ENV_BY_MODEL = {
         ModelType.CODEX: "OPENAI_API_KEY",
         ModelType.CLAUDE: "ANTHROPIC_API_KEY",
-        ModelType.GEMINI: "GOOGLE_API_KEY",
     }
     AUTH_ENV_CANDIDATES_BY_MODEL = {
         ModelType.CODEX: ("OPENAI_API_KEY",),
         ModelType.CLAUDE: ("ANTHROPIC_API_KEY",),
-        ModelType.GEMINI: (
-            "GEMINI_API_KEY",
-            "GOOGLE_API_KEY",
-            "GOOGLE_APPLICATION_CREDENTIALS",
-        ),
+        ModelType.ANTIGRAVITY: (),
     }
     model_type: ModelType
     

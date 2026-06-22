@@ -41,7 +41,6 @@ canonical source:
 - `plugins/qiongli/`
 - `plugins/qiongli-next/`
 - `.agent/`
-- `.gemini/`
 - `packages/python-qiongli/src/qiongli/payload/`
 - `packages/npm-qiongli/payload/`
 - `packages/npm-qiongli/python-runtime/`
@@ -60,7 +59,7 @@ python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qio
   `tooling/scripts/` unless the wrapper contract itself changes.
 - `research_skills` remains as a deprecated Python compatibility shim under
   `packages/python-qiongli/src/research_skills/`.
-- Root `.agent/` and `.gemini/` are generated from `content/workflow/` and
+- Root `.agent/` is generated from `content/workflow/` and
   `content/distribution/plugins.yaml`.
 - Root `qiongli-workflow/` is generated from `content/workflow/` plus synced
   content mirrors.

@@ -10,7 +10,7 @@ This page distills the operational guidance from `CLAUDE.md` into a maintainer-f
 - common runtime commands
 - architectural expectations
 - quality vocabulary
-- collaboration patterns across `codex`, `claude`, and `gemini`
+- collaboration patterns across `codex` and `claude`
 
 ## Maintainer Priorities
 

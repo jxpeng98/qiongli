@@ -27,7 +27,7 @@ Each skill should also make these behaviors explicit:
 | Insufficient input behavior | Write a gap note or ask for missing prerequisites; do not fabricate. |
 | Claim strength rules | Separate finding, interpretation, and implication. |
 | No hallucinated citations/data | Never invent sources, datasets, sample sizes, statistics, or results. |
-| Platform-neutral wording | Avoid hard-coding Codex, Claude Code, Gemini, or slash-command assumptions inside skill logic. |
+| Platform-neutral wording | Avoid hard-coding a specific client name or slash-command assumption inside skill logic. |
 
 ## Validation
 

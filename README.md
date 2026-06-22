@@ -1,6 +1,6 @@
 <div align="center">
   <h1>Qiongli (穷理)</h1>
-  <p><strong>Contract-driven academic workflows for Codex, Claude Code, Claude Desktop, and Gemini.</strong></p>
+  <p><strong>Contract-driven academic workflows for Codex, Claude Code, Claude Desktop, Antigravity, and Hermes.</strong></p>
   <p>Plan papers, run literature work, draft manuscripts, execute research code, and audit evidence through one canonical task contract.</p>
   <p>
     <a href="docs/quickstart.md">Quick Start</a> ·
@@ -22,7 +22,7 @@ Use it for:
 - **Literature rigor:** provider-aware search planning, search diagnostics, materialized search bundles, dedup logs, screening readiness, and snowball readiness.
 - **Writing integrity:** claim-evidence mapping, citation risk checks, figures/tables planning, limitations review, proofreading, and rebuttal preparation.
 - **Research code discipline:** strict Stage-I `I5 -> I6 -> I7 -> I8` specification, planning, execution, and review artifacts.
-- **Multi-agent review:** Codex, Claude, and Gemini orchestration with solo, duo, and triad modes, explicit handoffs, disagreement records, and verification status.
+- **Multi-agent review:** Codex, Claude, and Antigravity orchestration with solo, duo, and triad modes, explicit handoffs, disagreement records, and verification status.
 
 The public name is **Qiongli**, from the Chinese `穷理`: to pursue the underlying principle of a question until its logic, evidence, and limits are clear. The full methodology name is **Qiongli Zhengche** (`穷理证澈`): make evidence chains, citation risk, assumptions, and claim boundaries transparent enough to audit.
 
@@ -125,7 +125,7 @@ qiongli setup --project-dir "$PWD" --no-doctor
 qiongli install --target all --project-dir "$PWD"
 ```
 
-The wizard covers `install` and `upgrade`, runtime surface (`cli`, `codex`, `claude-code`, or `multi-platform`), subject, coverage, `--mode copy|link`, install scope, CLI directory / shell CLI location, `--overwrite` / `--no-overwrite`, optional provider config, and doctor verification unless `--no-doctor` is used.
+The wizard covers `install` and `upgrade`, runtime surface (`cli`, `codex`, `claude-code`, `antigravity`, or `multi-platform`), subject, coverage, `--mode copy|link`, install scope, CLI directory / shell CLI location, `--overwrite` / `--no-overwrite`, optional provider config, and doctor verification unless `--no-doctor` is used.
 
 On npm installs, `qiongli setup` delegates to the bundled Python bridge and therefore requires Python 3.12+ plus `PyYAML`. If you only need Node-based asset installation, use explicit `qiongli install ...` commands.
 
@@ -170,7 +170,7 @@ The full CLI MCP server exposes:
 - `qiongli_task_plan`
 - `qiongli_task_run`
 
-Use `qiongli_orchestrator_route` from Codex or Claude Code when a natural academic request might need multi-agent coordination, independent review, handoff, strict gates, or auditable task-run artifacts. It returns a preview-first `doctor -> task_plan -> task_run` sequence. `qiongli_task_run` defaults to preview mode. It launches local Codex, Claude, or Gemini processes only when the MCP caller explicitly sends JSON boolean `run_agents: true` and the local runtime passes `doctor`. Project-local guidance uses `.qiongli/local_guidance.md` and `.qiongli/trace/`, which the first non-`off` task run initializes if missing; formal task outputs still belong under `RESEARCH/[topic]/...`.
+Use `qiongli_orchestrator_route` from Codex, Claude Code, Antigravity, or another local MCP client when a natural academic request might need multi-agent coordination, independent review, handoff, strict gates, or auditable task-run artifacts. It returns a preview-first `doctor -> task_plan -> task_run` sequence. `qiongli_task_run` defaults to preview mode. It launches local runtime agents only when the MCP caller explicitly sends JSON boolean `run_agents: true` and the local runtime passes `doctor`. Project-local guidance uses `.qiongli/local_guidance.md` and `.qiongli/trace/`, which the first non-`off` task run initializes if missing; formal task outputs still belong under `RESEARCH/[topic]/...`.
 
 See [Cross-Platform MCP Server](docs/advanced/cross-platform-mcp.md) and [MCP Providers Setup](docs/advanced/mcp-providers-setup.md).
 
@@ -224,14 +224,14 @@ python3 -m bridges.orchestrator task-run --task-id F3 --paper-type empirical --t
 Useful controls:
 
 - `--execution-mode solo|duo|triad`
-- `--controller codex|claude|gemini`
+- `--controller codex|claude|antigravity`
 - `--primary`, `--reviewer`, and `--verifier`
 - `--solo-role-gates strict|standard|off`
 - `--mcp-strict` and `--skills-strict`
 - `--research-depth deep`
 - `--only-target <id>`
 
-Full functionality requires a real Python runtime plus model CLIs in `PATH`: `python3`, `codex`, `claude`, and `gemini`. You also need runtime authentication. `codex` can run with `OPENAI_API_KEY` or an existing ChatGPT/Codex login, `claude` uses `ANTHROPIC_API_KEY`, and Gemini direct mode requires non-interactive auth such as `GEMINI_API_KEY` or Vertex env auth. Google-login-only Gemini automation should use the resident broker path described in [docs/guide/multi-agent.md](docs/guide/multi-agent.md).
+Full functionality requires a real Python runtime plus model CLIs in `PATH`: `python3`, `codex`, `claude`, and `antigravity`. You also need runtime authentication. `codex` can run with `OPENAI_API_KEY` or an existing ChatGPT/Codex login, `claude` uses `ANTHROPIC_API_KEY` or an existing Claude Code login, and `antigravity` uses the local Antigravity CLI login/configuration.
 
 Without these runtime pieces, you can still install assets and use shell `qiongli check|upgrade|align`, but `doctor`, validators, tests, and full orchestrator execution will be partial or unavailable.
 
@@ -258,7 +258,7 @@ Source credit: [Matt Pocock's skills repository](https://github.com/mattpocock/s
 | Path | Role |
 |---|---|
 | `content/workflow/` | Portable skill package source: `SKILL.md`, workflows, references, agents, standards |
-| `content/distribution/` | Canonical plugin metadata for generated Codex/Claude Code/Gemini payloads |
+| `content/distribution/` | Canonical plugin metadata for generated Codex/Claude Code payloads |
 | `content/skills/` | Canonical academic capability cards and registry |
 | `content/subjects/` | Subject catalog, overlays, subject-specific skills, and materialization rules |
 | `content/templates/` | Research artifact templates |

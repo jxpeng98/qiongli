@@ -6,7 +6,7 @@
 - `packages/` 放所有可安装或可发布的包源。
 - `tooling/` 放维护自动化和运营资产。
 - 根目录 `scripts/` 是稳定 wrapper 层；真正实现编辑 `tooling/scripts/`。
-- 根目录 `qiongli-workflow/`、`plugins/qiongli/`、`plugins/qiongli-next/`、`.agent/`、`.gemini/` 是生成后的 distribution 形状；源文件在 `content/` 和 `content/distribution/plugins.yaml`。
+- 根目录 `qiongli-workflow/`、`plugins/qiongli/`、`plugins/qiongli-next/` 和 `.agent/` 是生成后的 distribution 形状；源文件在 `content/` 和 `content/distribution/plugins.yaml`。
 
 ## 编辑顺序
 
@@ -64,7 +64,6 @@ python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qio
 - `plugins/qiongli/`
 - `plugins/qiongli-next/`
 - `.agent/`
-- `.gemini/`
 - `packages/python-qiongli/src/qiongli/payload/`
 - `packages/npm-qiongli/payload/`
 - `packages/npm-qiongli/python-runtime/`

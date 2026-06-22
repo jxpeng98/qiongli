@@ -30,7 +30,6 @@ class CrossPlatformRoutingGrillContractTests(unittest.TestCase):
             "does not require explicit",
             "Codex",
             "Claude",
-            "Gemini",
             "CLI",
             "qiongli_orchestrator_route",
             "不知道怎么做",

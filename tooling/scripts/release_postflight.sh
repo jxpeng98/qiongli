@@ -561,7 +561,6 @@ else
     "dist/qiongli-economics-accounting-codex-plugin-${TAG}.tar.gz"
     "dist/qiongli-economics-accounting-claude-plugin-${TAG}.tar.gz"
     "dist/qiongli-economics-accounting-claude-plugin-${TAG}.zip"
-    "dist/qiongli-gemini-extension-${TAG}.tar.gz"
     "dist/qiongli-claude-desktop-skill-core-${TAG}.zip"
     "dist/qiongli-claude-desktop-skill-economics-${TAG}.zip"
     "dist/qiongli-claude-desktop-skill-business-${TAG}.zip"

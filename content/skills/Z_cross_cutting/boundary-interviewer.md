@@ -81,7 +81,7 @@ For Stage A idea-discovery, prefer questions that move from "interesting topic" 
 ## Stage-Aware Grill Contract
 
 Use stage-aware grill as Qiongli's cross-platform academic judgment layer. The
-same contract applies in Codex, Claude / Claude Code, Gemini, CLI, and portable
+same contract applies in Codex, Claude / Claude Code, CLI, and portable
 skill installs.
 
 Run a light automatic grill when:

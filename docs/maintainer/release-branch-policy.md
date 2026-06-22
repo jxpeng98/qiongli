@@ -19,7 +19,6 @@ The official public marketplace entry lives in `jxpeng98/skillsplace` and should
 - Qiongli repository: `https://github.com/jxpeng98/qiongli`
 - Stable Codex artifact: `qiongli-core-codex-plugin-<tag>.tar.gz`
 - Stable Claude Code artifact: `qiongli-core-claude-plugin-<tag>.tar.gz` or `.zip`
-- Stable Gemini artifact: `qiongli-gemini-extension-<tag>.tar.gz`
 - Stable generated payload root: `plugins/qiongli/`
 
 The stable Skillsplace catalog entries should track `main` and stable release tags, not `dev`. Use `dev` for local plugin packaging tests and prerelease validation before the shared marketplace entry is updated. This repository no longer carries Codex or Claude marketplace catalog files; it owns the plugin manifests and materializes the release payload from canonical source.
@@ -84,7 +83,7 @@ python3 -m unittest discover -s tests -v
 python3 scripts/build_plugin_artifacts.py --tag v0.7.0-beta.2 --dist-dir dist
 ```
 
-For beta tags this command should produce only `qiongli-next` core artifacts; for stable tags it should preserve the full `qiongli`, `qiongli-core`, subject, Desktop subject, and Gemini artifact structure.
+For beta tags this command should produce only `qiongli-next` core artifacts; for stable tags it should preserve the full `qiongli`, `qiongli-core`, subject, and Desktop subject artifact structure.
 
 5. Publish beta releases from `dev` when the release-prep commit and preflight evidence are ready:
 

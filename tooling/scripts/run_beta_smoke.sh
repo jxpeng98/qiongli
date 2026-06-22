@@ -100,11 +100,6 @@ cat >"$TMP_PROFILE" <<'JSON'
           "non_interactive": true,
           "require_api_key": true,
           "timeout_seconds": 5
-        },
-        "gemini": {
-          "non_interactive": true,
-          "require_api_key": true,
-          "timeout_seconds": 5
         }
       }
     }

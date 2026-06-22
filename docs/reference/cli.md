@@ -72,7 +72,7 @@ Exit Codes:
 
 Use Case:
 - Recommended first command after installing the CLI with npm, pipx, pip, or bootstrap.
-- Guides CLI, Codex, and Claude Code users through install vs upgrade, runtime surface, subject, coverage, install mode, install scope, overwrite policy, upgrade source, optional provider key setup, and doctor verification.
+- Guides CLI, Codex, Claude Code, and Antigravity users through install vs upgrade, runtime surface, subject, coverage, install mode, install scope, overwrite policy, upgrade source, optional provider key setup, and doctor verification.
 
 ```bash
 qiongli setup [--project-dir <path>] [--dry-run] [--no-doctor]
@@ -90,7 +90,7 @@ When invoked through the npm launcher, `qiongli setup` uses the bundled Python b
 
 Wizard choices:
 - Setup path: `install` or `upgrade`.
-- Runtime surface: `cli`, `codex`, `claude-code`, or `multi-platform`.
+- Runtime surface: `cli`, `codex`, `claude-code`, `antigravity`, or `multi-platform`.
 - Subject: `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, or `economics-accounting`.
 - Coverage: `complete` or `focused`.
 - Install mode: `--mode copy` for normal use, or `--mode link` for local development.
@@ -135,7 +135,7 @@ MCP tools exposed by the server:
 - `qiongli_task_plan`
 - `qiongli_task_run`
 
-Default `stdio` mode is local and does not require a remote server. HTTP mode can also run locally; use a remote server only when the client cannot launch local MCP commands or when you need a managed shared endpoint. Codex and Claude Code should call `qiongli_orchestrator_route` when deciding whether to upgrade from skill-only routing to full orchestrator tools. `qiongli_task_run` defaults to preview mode and launches local model CLIs only when the MCP caller explicitly sets JSON boolean `run_agents: true`. The tool accepts `guidance_mode: "off" | "read" | "propose" | "apply"`; preview responses echo the effective task-run arguments and report whether project guidance will be bootstrapped, but do not create files or launch agents.
+Default `stdio` mode is local and does not require a remote server. HTTP mode can also run locally; use a remote server only when the client cannot launch local MCP commands or when you need a managed shared endpoint. Codex, Claude Code, Antigravity, or another local MCP client should call `qiongli_orchestrator_route` when deciding whether to upgrade from skill-only routing to full orchestrator tools. `qiongli_task_run` defaults to preview mode and launches local model CLIs only when the MCP caller explicitly sets JSON boolean `run_agents: true`. The tool accepts `guidance_mode: "off" | "read" | "propose" | "apply"`; preview responses echo the effective task-run arguments and report whether project guidance will be bootstrapped, but do not create files or launch agents.
 
 ### 2.3 `qiongli install` (Install bundled subject payload)
 
@@ -147,7 +147,7 @@ Use Case:
 qiongli install \
   [--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting] \
   [--coverage complete|focused] \
-  [--target codex|claude|gemini|antigravity|hermes|all] \
+  [--target codex|claude|antigravity|hermes|all] \
   [--mode copy|link] \
   [--project-dir <path>] \
   [--overwrite] \
@@ -183,7 +183,7 @@ qiongli upgrade \
   [--ref-type tag|branch] \
   [--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting] \
   [--coverage complete|focused] \
-  [--target codex|claude|gemini|antigravity|hermes|all] \
+  [--target codex|claude|antigravity|hermes|all] \
   [--project-dir <path>] \
   [--no-overwrite] \
   [--doctor] \
@@ -195,7 +195,7 @@ Notes:
 - Default `upgrade` now behaves as a global refresh. Use `qiongli init --project-dir .` for project bootstrap, or `qiongli upgrade --parts project ...` when you explicitly want project files rewritten.
 - `--subject` defaults to `core` and `--coverage` defaults to `complete`; use `--subject economics` for full Qiongli plus economics specialization, `--subject accounting` for full Qiongli plus accounting specialization, or add `--coverage focused` for the slim selected package.
 - Example: `qiongli upgrade --subject accounting --target all`.
-- After global install, `upgrade` creates workflow discovery symlinks: `~/.claude/commands/*.md` and `~/.gemini/workflows/*.md` → enables direct `/paper`, `/lit-review`, etc. invocation.
+- After global install, `upgrade` creates workflow discovery symlinks under `~/.claude/commands/*.md` → enables direct `/paper`, `/lit-review`, etc. invocation in Claude Code.
 - Shell CLI uses the bundled bootstrap helper and does not require Python.
 - The command exits with the error code returned by the underlying installer.
 
@@ -212,7 +212,7 @@ qiongli align [--repo <owner/repo|url>]
 Use Case: Creates project-local `.env` configuration in your project directory.
 
 ```bash
-qiongli init [--project-dir <path>] [--target all|codex|claude|gemini|antigravity|hermes] [--dry-run]
+qiongli init [--project-dir <path>] [--target all|codex|claude|antigravity|hermes] [--dry-run]
 ```
 
 Notes:
@@ -225,7 +225,7 @@ Use Case: Removes assets installed by the CLI so you can switch cleanly between 
 
 ```bash
 qiongli remove \
-  [--target codex|claude|gemini|antigravity|hermes|all] \
+  [--target codex|claude|antigravity|hermes|all] \
   [--parts globals|project|cli] \
   [--project-dir <path>] \
   [--cli-dir <path>] \
@@ -260,7 +260,7 @@ qiongli clean [--project-dir <path>] [--dry-run] [--globals]
 
 Flags:
 - `--project-dir`: Directory to clean (default: current dir). Removes `.agent/workflows/`, `.agents/skills/qiongli-workflow/`, `CLAUDE.qiongli.md`, `.gemini/qiongli.md`, and template-matching `CLAUDE.md`.
-- `--globals`: Also remove workflow discovery symlinks from `~/.claude/commands/` and `~/.gemini/workflows/`. Only removes symlinks that point to `qiongli-workflow` — user-created commands are preserved.
+- `--globals`: Also remove workflow discovery symlinks from `~/.claude/commands/`. Only removes symlinks that point to `qiongli-workflow` — user-created commands are preserved.
 - `--dry-run`: Show what would be removed without deleting.
 
 ### 2.9 `qiongli doctor` (Environment Preflight)
@@ -433,7 +433,7 @@ Available modes:
   ```
 - `role`: Execution split by specialized roles
   ```bash
-  python3 -m bridges.orchestrator role --cwd . --codex-task "..." --claude-task "..." --gemini-task "..."
+  python3 -m bridges.orchestrator role --cwd . --codex-task "..." --claude-task "..."
   ```
 
 ---

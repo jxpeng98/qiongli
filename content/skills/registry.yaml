@@ -24,7 +24,7 @@ skills:
     outputs: [RQSet]
     tags: [framing, research-question, PICO, PEO, FINER]
     depends_on: []
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
   - id: contribution-crafter
@@ -42,7 +42,7 @@ skills:
     outputs: [ContributionStatement]
     tags: [contribution, novelty, framing, positioning]
     depends_on: [question-refiner, gap-analyzer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
@@ -61,7 +61,7 @@ skills:
     outputs: [HypothesisSet]
     tags: [framing, hypothesis, propositions, mechanisms]
     depends_on: [question-refiner]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -80,7 +80,7 @@ skills:
     outputs: [TheoreticalFramework]
     tags: [framing, theory, constructs, conceptual-model, mermaid]
     depends_on: [question-refiner, academic-searcher]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, scholarly-search]
     domain_aware: false
 
@@ -99,7 +99,7 @@ skills:
     outputs: [GapAnalysis]
     tags: [framing, gap-analysis, positioning, FINER]
     depends_on: [academic-searcher]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, scholarly-search]
     domain_aware: false
 
@@ -118,7 +118,7 @@ skills:
     outputs: [VenueAnalysis]
     tags: [framing, venue, journal-selection, formatting]
     depends_on: [question-refiner]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, scholarly-search]
     domain_aware: true
 
@@ -140,7 +140,7 @@ skills:
     outputs: [SearchQueryPlan, SearchResults, SearchLog]
     tags: [literature, search, databases, API, reproducibility]
     depends_on: [question-refiner]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, scholarly-search, fulltext-retrieval]
     domain_aware: false
 
@@ -159,7 +159,7 @@ skills:
     outputs: [ScreeningDecisionLog, PRISMAFlowData]
     tags: [literature, screening, PRISMA, inclusion-exclusion]
     depends_on: [academic-searcher]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, screening-tracker]
     domain_aware: false
 
@@ -178,7 +178,7 @@ skills:
     outputs: [ExtractionTable, PaperNotes]
     tags: [literature, extraction, data-collection, structured-notes]
     depends_on: [paper-screener]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, extraction-store]
     domain_aware: false
 
@@ -197,7 +197,7 @@ skills:
     outputs: [SnowballLog]
     tags: [literature, citations, snowballing, forward-backward]
     depends_on: [academic-searcher]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, scholarly-search, citation-graph]
     domain_aware: false
 
@@ -216,7 +216,7 @@ skills:
     outputs: [FullTextStatus]
     tags: [literature, fulltext, open-access, retrieval, PRISMA]
     depends_on: [paper-screener]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, fulltext-retrieval]
     domain_aware: false
 
@@ -235,7 +235,7 @@ skills:
     outputs: [Bibliography]
     tags: [literature, citations, BibTeX, APA, formatting]
     depends_on: [paper-extractor]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, metadata-registry]
     domain_aware: false
 
@@ -254,7 +254,7 @@ skills:
     outputs: [ConceptMap]
     tags: [literature, keywords, concepts, boolean-query, controlled-vocabulary]
     depends_on: [question-refiner]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, scholarly-search]
     domain_aware: true
 
@@ -273,7 +273,7 @@ skills:
     outputs: [LiteratureMap]
     tags: [literature, taxonomy, mapping, related-work, clustering]
     depends_on: [paper-extractor]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -292,7 +292,7 @@ skills:
     outputs: [Bibliography, RISExport, CSLJSONExport]
     tags: [literature, references, Zotero, Mendeley, EndNote, BibTeX, RIS]
     depends_on: [citation-formatter]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, metadata-registry]
     domain_aware: false
 
@@ -314,7 +314,7 @@ skills:
     outputs: [DesignSpec, AnalysisPlan, DataManagementPlan, Instruments, Preregistration]
     tags: [design, sampling, measures, analysis-plan, preregistration]
     depends_on: [question-refiner]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, metadata-registry]
     domain_aware: true
 
@@ -333,7 +333,7 @@ skills:
     outputs: [RivalHypotheses]
     tags: [design, rival-hypotheses, threats-to-validity, competing-theories]
     depends_on: [study-designer, hypothesis-generator]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -352,7 +352,7 @@ skills:
     outputs: [RobustnessPlan]
     tags: [design, robustness, sensitivity-analysis, endogeneity]
     depends_on: [study-designer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
@@ -371,7 +371,7 @@ skills:
     outputs: [DatasetPlan]
     tags: [design, data, datasets, provenance, feasibility]
     depends_on: [study-designer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, scholarly-search, metadata-registry]
     domain_aware: true
 
@@ -390,7 +390,7 @@ skills:
     outputs: [VariableSpec]
     tags: [design, variables, operationalization, coding, measures]
     depends_on: [study-designer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, metadata-registry]
     domain_aware: true
 
@@ -409,7 +409,7 @@ skills:
     outputs: [DataDictionary]
     tags: [design, data-dictionary, codebook, variables, metadata]
     depends_on: [study-designer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -428,7 +428,7 @@ skills:
     outputs: [DataManagementPlan]
     tags: [design, data-management, FAIR, storage, archival]
     depends_on: [study-designer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -447,7 +447,7 @@ skills:
     outputs: [Preregistration]
     tags: [design, preregistration, OSF, AsPredicted, transparency]
     depends_on: [study-designer, hypothesis-generator]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
@@ -466,7 +466,7 @@ skills:
     outputs: [OperationalizationMap]
     tags: [design, operationalization, constructs, measurement, validity]
     depends_on: [theory-mapper, study-designer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, scholarly-search]
     domain_aware: true
 
@@ -488,7 +488,7 @@ skills:
     outputs: [EthicsPackage]
     tags: [ethics, IRB, consent, privacy, GDPR, compliance]
     depends_on: [study-designer, dataset-finder, data-management-plan]
-    compatible_models: [claude, gpt, gemini]
+    compatible_models: [claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
@@ -507,7 +507,7 @@ skills:
     outputs: [Manuscript]
     tags: [ethics, statements, compliance, irb, data-availability]
     depends_on: [ethics-irb-helper, data-management-plan]
-    compatible_models: [claude, gpt, gemini]
+    compatible_models: [claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
@@ -526,7 +526,7 @@ skills:
     outputs: [DeidentificationPlan]
     tags: [ethics, privacy, deidentification, k-anonymity, differential-privacy]
     depends_on: [ethics-irb-helper]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -548,7 +548,7 @@ skills:
     outputs: [EffectSizeTable, AnalysisCode]
     tags: [meta-analysis, effect-size, statistics, synthesis]
     depends_on: [paper-extractor, variable-constructor]
-    compatible_models: [claude, gpt, gemini]
+    compatible_models: [claude, gpt]
     tooling_requirements: [filesystem, code-runtime]
     domain_aware: true
 
@@ -567,7 +567,7 @@ skills:
     outputs: [EvidenceTable, SynthesisMatrix]
     tags: [synthesis, meta-analysis, narrative, evidence-table, PRISMA]
     depends_on: [quality-assessor]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, stats-engine]
     domain_aware: false
 
@@ -586,7 +586,7 @@ skills:
     outputs: [QualityTable, GRADESummary]
     tags: [synthesis, quality, risk-of-bias, GRADE, RoB2, ROBINS-I]
     depends_on: [paper-extractor]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -605,7 +605,7 @@ skills:
     outputs: [PublicationBiasReport]
     tags: [synthesis, publication-bias, funnel-plot, fail-safe-N, trim-and-fill]
     depends_on: [evidence-synthesizer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, stats-engine]
     domain_aware: false
 
@@ -624,7 +624,7 @@ skills:
     outputs: [DataDictionary, ThematicCodebook]
     tags: [qualitative, thematic-analysis, grounded-theory, codebook, synthesis]
     depends_on: []
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
@@ -646,7 +646,7 @@ skills:
     outputs: [ManuscriptOutline, Manuscript, ClaimGraph, FiguresTablesPlan]
     tags: [writing, manuscript, outline, drafting, claim-evidence]
     depends_on: [evidence-synthesizer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
@@ -665,7 +665,7 @@ skills:
     outputs: [ResearchProposal]
     tags: [writing, proposal, opening-report, prospectus, study-plan, drafting]
     depends_on: [question-refiner, gap-analyzer, theory-mapper, contribution-crafter, study-designer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
@@ -684,7 +684,7 @@ skills:
     outputs: [ResultInterpretation]
     tags: [writing, results, interpretation, robustness, uncertainty]
     depends_on: [stats-engine]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
@@ -703,7 +703,7 @@ skills:
     outputs: [EffectInterpretation]
     tags: [writing, results, effect-size, magnitude, interpretation]
     depends_on: [stats-engine]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
@@ -722,7 +722,7 @@ skills:
     outputs: [FormattedTables]
     tags: [writing, tables, formatting, APA, publication-ready]
     depends_on: [stats-engine]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
@@ -741,7 +741,7 @@ skills:
     outputs: [FigureSpecs]
     tags: [writing, figures, visualization, accessibility, publication-ready]
     depends_on: [stats-engine]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, code-runtime]
     domain_aware: true
 
@@ -760,7 +760,7 @@ skills:
     outputs: [MetaOptimization]
     tags: [writing, abstract, title, SEO, indexing, keywords]
     depends_on: [manuscript-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
@@ -779,7 +779,7 @@ skills:
     outputs: [DiscussionDraft, StorySpine]
     tags: [writing, discussion, implications, story-spine, drafting]
     depends_on: [analysis-interpreter]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
@@ -801,7 +801,7 @@ skills:
     outputs: [PRISMAChecklist]
     tags: [compliance, PRISMA, systematic-review, checklist, reporting]
     depends_on: [manuscript-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, reporting-guidelines]
     domain_aware: false
 
@@ -820,7 +820,7 @@ skills:
     outputs: [ReportingChecklist]
     tags: [compliance, reporting, CONSORT, STROBE, COREQ, guidelines]
     depends_on: [manuscript-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, reporting-guidelines]
     domain_aware: true
 
@@ -839,7 +839,7 @@ skills:
     outputs: [ToneNormalization]
     tags: [compliance, tone, academic-writing, editing, conciseness]
     depends_on: [manuscript-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -861,7 +861,7 @@ skills:
     outputs: [SubmissionPackage]
     tags: [submission, cover-letter, checklist, disclosures, supplementary]
     depends_on: [manuscript-architect, tone-normalizer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, submission-kit]
     domain_aware: true
 
@@ -880,7 +880,7 @@ skills:
     outputs: [ResponseToReviewers, ResponseLetter]
     tags: [submission, rebuttal, revision, reviewer-response, point-by-point]
     depends_on: []
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -899,7 +899,7 @@ skills:
     outputs: [PeerReviewSimulation]
     tags: [submission, peer-review, simulation, multi-persona, red-team]
     depends_on: [manuscript-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -918,7 +918,7 @@ skills:
     outputs: [FatalFlawAnalysis]
     tags: [submission, fatal-flaw, desk-reject, quality-gate, pre-submission]
     depends_on: [manuscript-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
@@ -937,7 +937,7 @@ skills:
     outputs: [EmpathyCheck]
     tags: [submission, rebuttal, empathy, tone, reviewer-response]
     depends_on: [rebuttal-assistant]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -956,7 +956,7 @@ skills:
     outputs: [CRediTStatement]
     tags: [submission, CRediT, authorship, contributions, taxonomy, ICMJE]
     depends_on: [manuscript-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -975,7 +975,7 @@ skills:
     outputs: [LimitationSection, MitigationStrategy]
     tags: [submission, limitations, rigorous, self-critique, boundary-conditions]
     depends_on: [manuscript-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
@@ -997,7 +997,7 @@ skills:
     outputs: [AnalysisCode]
     tags: [code, implementation, multi-language, domain-profiles, reproducibility]
     depends_on: [study-designer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, code-runtime]
     domain_aware: true
 
@@ -1016,7 +1016,7 @@ skills:
     outputs: [CleaningPlan]
     tags: [code, data, cleaning, missingness, validation]
     depends_on: [dataset-finder, variable-constructor]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, code-runtime]
     domain_aware: true
 
@@ -1035,7 +1035,7 @@ skills:
     outputs: [MergePlan]
     tags: [code, data, merge, joins, provenance]
     depends_on: [dataset-finder, variable-constructor, data-cleaning-planner]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, code-runtime]
     domain_aware: true
 
@@ -1054,7 +1054,7 @@ skills:
     outputs: [CodeSpec]
     tags: [code, specification, requirements, OPSX, constraints]
     depends_on: []
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -1073,7 +1073,7 @@ skills:
     outputs: [CodePlan]
     tags: [code, planning, execution-plan, parallelization]
     depends_on: [code-specification]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -1092,7 +1092,7 @@ skills:
     outputs: [PerformanceProfile]
     tags: [code, execution, profiling, performance, optimization]
     depends_on: [code-planning]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, code-runtime]
     domain_aware: false
 
@@ -1111,7 +1111,7 @@ skills:
     outputs: [CodeReview]
     tags: [code, review, security, statistical-validity, domain-checklist]
     depends_on: [code-builder]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
@@ -1130,7 +1130,7 @@ skills:
     outputs: [ReproducibilityReport]
     tags: [code, reproducibility, audit, random-seeds, containerization]
     depends_on: [code-builder]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -1149,7 +1149,7 @@ skills:
     outputs: [ReleasePackage]
     tags: [code, release, packaging, Zenodo, reproducibility, README]
     depends_on: [code-builder, reproducibility-auditor]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, code-runtime]
     domain_aware: false
 
@@ -1168,7 +1168,7 @@ skills:
     outputs: [StatsReport]
     tags: [code, statistics, modeling, hypothesis-testing, diagnostics]
     depends_on: [study-designer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, stats-engine, code-runtime]
     domain_aware: true
 
@@ -1190,7 +1190,7 @@ skills:
     outputs: [PresentationPlan]
     tags: [presentation, planning, story-arc, audience, time-management]
     depends_on: [manuscript-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -1209,7 +1209,7 @@ skills:
     outputs: [SlideDeckSpec]
     tags: [presentation, slides, design, assertion-evidence, layout-mapping]
     depends_on: [presentation-planner]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -1228,7 +1228,7 @@ skills:
     outputs: [SlidevDeck, BibTeXFile]
     tags: [presentation, slidev, scholarly, markdown, citations, web]
     depends_on: [slide-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, code-runtime]
     domain_aware: false
 
@@ -1247,7 +1247,7 @@ skills:
     outputs: [BeamerDeck, BibTeXFile]
     tags: [presentation, beamer, latex, PDF, citations, math]
     depends_on: [slide-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, code-runtime]
     domain_aware: false
 
@@ -1269,7 +1269,7 @@ skills:
     outputs: [AIDetectionReport]
     tags: [proofread, ai-detection, fingerprint, writing-patterns]
     depends_on: [manuscript-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -1288,7 +1288,7 @@ skills:
     outputs: [HumanizedManuscript]
     tags: [proofread, humanization, rewriting, voice, style]
     depends_on: [ai-fingerprint-scanner]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -1307,7 +1307,7 @@ skills:
     outputs: [SimilarityReport]
     tags: [proofread, similarity, plagiarism, originality, paraphrase]
     depends_on: [human-voice-rewriter]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -1326,7 +1326,7 @@ skills:
     outputs: [ProofreadChecklist]
     tags: [proofread, grammar, formatting, consistency, final-polish]
     depends_on: [similarity-checker]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -1348,7 +1348,7 @@ skills:
     outputs: [Bibliography]
     tags: [cross-cutting, metadata, DOI, normalization, enrichment]
     depends_on: []
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, metadata-registry]
     domain_aware: false
 
@@ -1367,7 +1367,7 @@ skills:
     outputs: [ResearchStateSnapshot, ResearchDecisionLog]
     tags: [cross-cutting, context, continuity, state-tracking, decision-log, handoff]
     depends_on: []
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
@@ -1386,7 +1386,7 @@ skills:
     outputs: [AcademicIdeaFunnel, BoundaryReview]
     tags: [cross-cutting, boundary, grill-me, academic-judgment, claim-strength, evidence-threshold, validity, generalizability, venue-fit, handoff]
     depends_on: []
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
@@ -1400,12 +1400,12 @@ skills:
     when_to_use: "Use when literature screening, peer review simulation, rebuttal drafting, qualitative coding, or code/statistics validation benefits from independent multi-model passes before synthesis."
     summary_zh: "协调多模型运行时的协作执行与交叉复核。"
     display_name_zh: "多模型协作"
-    when_to_use_zh: "当你需要 Codex、Claude 和 Gemini 分工协作或交叉复核时使用。"
+    when_to_use_zh: "当你需要 Codex、Claude 和 Antigravity 分工协作或交叉复核时使用。"
     inputs: [TaskPacket]
     outputs: [CollaborationTrace]
-    tags: [cross-cutting, multi-agent, collaboration, Codex, Claude, Gemini]
+    tags: [cross-cutting, multi-agent, collaboration, Codex, Claude, Antigravity]
     depends_on: []
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, antigravity, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -1424,6 +1424,6 @@ skills:
     outputs: [CritiqueLog]
     tags: [cross-cutting, critique, red-team, quality-assurance, Socratic]
     depends_on: []
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false

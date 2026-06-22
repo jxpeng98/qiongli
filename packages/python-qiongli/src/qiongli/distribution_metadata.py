@@ -30,7 +30,6 @@ class PluginDefinition:
     codex_short_description: str
     brand_color: str
     claude_enabled: bool
-    gemini_enabled: bool
 
 
 @dataclass(frozen=True)
@@ -63,7 +62,6 @@ def load_plugin_distribution(root: Path | str) -> PluginDistribution:
 def _parse_plugin_definition(path: Path, plugin_id: str, raw_plugin: dict[str, Any]) -> PluginDefinition:
     codex = _required_mapping(path, plugin_id, raw_plugin, "codex")
     claude = _required_mapping(path, plugin_id, raw_plugin, "claude")
-    gemini = _required_mapping(path, plugin_id, raw_plugin, "gemini")
     author = _required_mapping(path, plugin_id, raw_plugin, "author")
 
     return PluginDefinition(
@@ -85,7 +83,6 @@ def _parse_plugin_definition(path: Path, plugin_id: str, raw_plugin: dict[str, A
         codex_short_description=_required_string(path, plugin_id, codex, "codex.short_description"),
         brand_color=_required_string(path, plugin_id, codex, "codex.brand_color"),
         claude_enabled=_required_bool(path, plugin_id, claude, "claude.enabled"),
-        gemini_enabled=_required_bool(path, plugin_id, gemini, "gemini.enabled"),
     )
 
 

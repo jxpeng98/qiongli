@@ -266,8 +266,6 @@ class InstallQiongliTests(unittest.TestCase):
             self.assertIn("Install the Codex CLI from the official OpenAI distribution", result.stdout)
             self.assertIn("claude CLI not found in PATH", result.stdout)
             self.assertIn("npm install -g @anthropic-ai/claude-code", result.stdout)
-            self.assertIn("gemini CLI not found in PATH", result.stdout)
-            self.assertIn("npm install -g @google/gemini-cli", result.stdout)
             self.assertIn("antigravity CLI not found in PATH", result.stdout)
             self.assertIn("Install Antigravity and ensure the `antigravity` binary is on PATH", result.stdout)
             self.assertIn("hermes CLI not found in PATH", result.stdout)

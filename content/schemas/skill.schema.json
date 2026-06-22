@@ -133,7 +133,6 @@
                 "enum": [
                     "codex",
                     "claude",
-                    "gemini",
                     "gpt"
                 ]
             },

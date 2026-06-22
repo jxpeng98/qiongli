@@ -38,7 +38,7 @@ EXPECTED_TASK_IDS = {
     "K1", "K2", "K3", "K4",
 }
 EXPECTED_QUALITY_GATES = {"Q1", "Q2", "Q3", "Q4"}
-EXPECTED_AGENTS = {"codex", "claude", "gemini"}
+EXPECTED_AGENTS = {"codex", "claude", "antigravity"}
 EXPECTED_FUNCTIONAL_AGENTS = {
     "research-orchestrator",
     "literature-agent",
@@ -1195,7 +1195,7 @@ def validate_mcp_agent_map(root: Path, report: ValidationReport) -> None:
     agent_registry = set(agent_list)
     report.check(
         agent_registry.issuperset(EXPECTED_AGENTS),
-        "Agent registry includes codex/claude/gemini",
+        "Agent registry includes codex/claude",
         (
             "Agent registry missing required agents: "
             f"{ids_to_text(EXPECTED_AGENTS - agent_registry) or 'none'}"
@@ -1635,7 +1635,6 @@ def validate_cross_file_consistency(root: Path, report: ValidationReport) -> Non
         for token in (
             "## Claude Code",
             "## Codex",
-            "## Gemini",
             "$qiongli",
             "Task {ID}",
         ):
@@ -1890,7 +1889,7 @@ def validate_docs(root: Path, report: ValidationReport) -> None:
 
 
 def validate_cross_platform_consistency(root: Path, report: ValidationReport) -> None:
-    """Ensure workflow files stay consistent across Codex, Claude, and Gemini."""
+    """Ensure workflow files stay consistent across Codex and Claude surfaces."""
     layout = RepoLayout(root)
     workflow_dir = layout.resolve_source_path(".agent/workflows")
     if not workflow_dir.exists():
@@ -1922,7 +1921,7 @@ def validate_cross_platform_consistency(root: Path, report: ValidationReport) ->
             (
                 f"{wf_path.name} frontmatter has non-standard keys: "
                 f"{', '.join(sorted(extra_keys))}. "
-                "Only 'description' is supported by Gemini/Antigravity"
+                "Only 'description' is supported by Antigravity"
             ),
         )
         report.check(
@@ -1931,16 +1930,7 @@ def validate_cross_platform_consistency(root: Path, report: ValidationReport) ->
             f"{wf_path.name} frontmatter missing required 'description' field",
         )
 
-    # --- Check 2: Gemini plugin metadata source exists ---
-    gemini_content = read_text(root, ".gemini/qiongli.md", report)
-    if gemini_content:
-        report.check(
-            "plugins:" in gemini_content,
-            "Gemini distribution metadata source exists",
-            "content/distribution/plugins.yaml missing plugin metadata",
-        )
-
-    # --- Check 3: CLAUDE.md references all workflows ---
+    # --- Check 2: CLAUDE.md references all workflows ---
     claude_content = read_text(root, "CLAUDE.md", report)
     if claude_content:
         for wf_name in sorted(workflow_names):
@@ -2060,9 +2050,10 @@ def validate_orchestrator(root: Path, report: ValidationReport) -> None:
             f"orchestrator.py missing {token}",
         )
     report.check(
-        "RUNTIME_AGENTS = {\"codex\", \"claude\", \"gemini\"}" in content,
-        "orchestrator.py runtime agents include codex/claude/gemini",
-        "orchestrator.py should include codex/claude/gemini in runtime agents",
+        'RUNTIME_AGENT_CHOICES = ("codex", "claude", "antigravity")' in content
+        or "RUNTIME_AGENTS = {\"codex\", \"claude\", \"antigravity\"}" in content,
+        "orchestrator.py runtime agents include codex/claude/antigravity",
+        "orchestrator.py should include codex/claude/antigravity in runtime agents",
     )
     report.check(
         "ThreadPoolExecutor" in content and "as_completed" in content,
@@ -2425,7 +2416,7 @@ def validate_release_artifacts(root: Path, report: ValidationReport) -> None:
     installer_content = read_text(root, "scripts/install_qiongli.sh", report)
     if installer_content:
         for token in (
-            "--target <codex|claude|gemini|antigravity|hermes|all>",
+            "--target <codex|claude|antigravity|hermes|all>",
             "--project-dir",
             "--doctor",
             "qiongli-workflow",

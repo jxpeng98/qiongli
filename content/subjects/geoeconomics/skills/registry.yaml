@@ -14,6 +14,6 @@ skills:
     outputs: [GeoeconomicStatecraftAudit]
     tags: [geoeconomics, statecraft, sanctions, supply-chain, strategic-competition]
     depends_on: [study-designer, venue-analyzer, contribution-crafter, manuscript-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true

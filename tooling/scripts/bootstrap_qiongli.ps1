@@ -1,7 +1,7 @@
 param(
     [string]$Profile = "",
 
-    [ValidateSet("codex", "claude", "gemini", "antigravity", "hermes", "all")]
+    [ValidateSet("codex", "claude", "antigravity", "hermes", "all")]
     [string]$Target = "all",
 
     [string]$ProjectDir = (Get-Location).Path,
@@ -522,14 +522,14 @@ function Install-ShellCliWindows([string]$RepoRoot, [string]$CliRoot, [string]$B
 
 function Write-QuickstartFallback([string]$QuickstartPath) {
     $content = @(
-        '# Qiongli for Gemini Runtime'
+        '# Qiongli Runtime'
         ''
-        'Use this project through orchestrator for Codex/Claude/Gemini collaboration:'
+        'Use this project through orchestrator for Codex/Claude collaboration:'
         ''
         '```bash'
         'python3 -m bridges.orchestrator doctor --cwd .'
-        'python3 -m bridges.orchestrator parallel --prompt "Analyze this study design" --cwd . --summarizer gemini'
-        'python3 -m bridges.orchestrator task-run --task-id F3 --paper-type empirical --topic your-topic --cwd . --triad'
+        'python3 -m bridges.orchestrator parallel --prompt "Analyze this study design" --cwd . --summarizer claude'
+        'python3 -m bridges.orchestrator task-run --task-id F3 --paper-type empirical --topic your-topic --cwd .'
         '```'
     ) -join "`r`n"
     if ($DryRun) {
@@ -580,10 +580,6 @@ function Resolve-RepoSourcePath([string]$RepoRoot, [string]$Source) {
             @("content\workflow\workflows", ".agent\workflows")
             break
         }
-        ".gemini" {
-            @(".gemini")
-            break
-        }
         default {
             @($Source)
             break
@@ -631,7 +627,7 @@ function Test-LegacySkillPackagePath([string]$PathValue, [string]$LegacyName) {
 }
 
 function Remove-LegacyResidues([string]$InstallTarget, [hashtable]$ClientHomes) {
-    $targets = if ($InstallTarget -eq "all") { @("codex", "claude", "gemini", "antigravity", "hermes") } else { @($InstallTarget) }
+    $targets = if ($InstallTarget -eq "all") { @("codex", "claude", "antigravity", "hermes") } else { @($InstallTarget) }
     $found = $false
     foreach ($targetName in $targets) {
         $clientHome = [string]$ClientHomes[$targetName]
@@ -673,7 +669,6 @@ function Install-FromRepo([string]$RepoRoot, [string]$ProjectRoot, [string]$Inst
 
     $codexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $env:USERPROFILE ".codex" }
     $claudeHome = if ($env:CLAUDE_CODE_HOME) { $env:CLAUDE_CODE_HOME } else { Join-Path $env:USERPROFILE ".claude" }
-    $geminiHome = if ($env:GEMINI_HOME) { $env:GEMINI_HOME } else { Join-Path $env:USERPROFILE ".gemini" }
     $antigravityHome = if ($env:ANTIGRAVITY_HOME) { $env:ANTIGRAVITY_HOME } else { Join-Path $env:USERPROFILE ".gemini\antigravity" }
     $hermesHome = if ($env:HERMES_HOME) { $env:HERMES_HOME } else { Join-Path $env:USERPROFILE ".hermes" }
     $cliRoot = if ($CliDir) { $CliDir } else { Join-Path $env:USERPROFILE ".local\bin" }
@@ -682,14 +677,12 @@ function Install-FromRepo([string]$RepoRoot, [string]$ProjectRoot, [string]$Inst
         PROJECT_DIR = $projectRoot
         CODEX_HOME = $codexHome
         CLAUDE_CODE_HOME = $claudeHome
-        GEMINI_HOME = $geminiHome
         ANTIGRAVITY_HOME = $antigravityHome
         HERMES_HOME = $hermesHome
     }
     $clientHomes = @{
         codex = $codexHome
         claude = $claudeHome
-        gemini = $geminiHome
         antigravity = $antigravityHome
         hermes = $hermesHome
     }
@@ -704,7 +697,7 @@ function Install-FromRepo([string]$RepoRoot, [string]$ProjectRoot, [string]$Inst
 
     Write-Host ""
     Write-Host "== CLI Checks =="
-    $targets = if ($InstallTarget -eq "all") { @("codex", "claude", "gemini", "antigravity", "hermes") } else { @($InstallTarget) }
+    $targets = if ($InstallTarget -eq "all") { @("codex", "claude", "antigravity", "hermes") } else { @($InstallTarget) }
     foreach ($item in $targets) {
         $resolved = Get-Command $item -ErrorAction SilentlyContinue
         if ($resolved) {
@@ -715,7 +708,7 @@ function Install-FromRepo([string]$RepoRoot, [string]$ProjectRoot, [string]$Inst
         }
     }
 
-    foreach ($sectionTarget in @("codex", "claude", "gemini", "antigravity", "hermes")) {
+    foreach ($sectionTarget in @("codex", "claude", "antigravity", "hermes")) {
         if ($InstallTarget -ne "all" -and $InstallTarget -ne $sectionTarget) {
             continue
         }
@@ -817,7 +810,7 @@ function Install-FromRepo([string]$RepoRoot, [string]$ProjectRoot, [string]$Inst
         Write-Host "       Copy/paste this command to add it now:"
         Write-Host "       $(Get-AddPathCommand $cliRoot)"
     }
-    Write-Host "       Restart Codex / Claude Code / Gemini CLI / Antigravity / Hermes to activate changes."
+    Write-Host "       Restart Codex / Claude Code / Antigravity / Hermes to activate changes."
 }
 
 $Profile = Resolve-Profile $Profile

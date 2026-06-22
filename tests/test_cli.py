@@ -23,7 +23,7 @@ class InstallerCliTests(unittest.TestCase):
             skill_dirs = {
                 "codex": root / "codex",
                 "claude": root / "claude",
-                "gemini": root / "gemini",
+                "antigravity": root / "antigravity",
                 "hermes": root / "hermes",
             }
             args = argparse.Namespace(
@@ -146,7 +146,10 @@ class InstallerCliTests(unittest.TestCase):
         normalized_help = " ".join(help_text.split())
 
         self.assertIn("setup", help_text)
-        self.assertIn("Interactively configures Qiongli for CLI/Codex/Claude Code use", normalized_help)
+        self.assertIn(
+            "Interactively configures Qiongli for CLI/Codex/Claude Code/Antigravity use",
+            normalized_help,
+        )
 
     def test_install_unknown_subject_reports_available_subjects(self) -> None:
         stderr = io.StringIO()
@@ -243,7 +246,7 @@ class InstallerCliTests(unittest.TestCase):
             skill_dirs = {
                 "codex": skill_dir,
                 "claude": root / "claude" / "skills" / "qiongli-workflow",
-                "gemini": root / "gemini" / "skills" / "qiongli-workflow",
+                "antigravity": root / "antigravity" / "skills" / "qiongli-workflow",
                 "hermes": root / "hermes" / "skills" / "qiongli-workflow",
             }
 

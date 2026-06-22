@@ -72,7 +72,6 @@ def _release_assets(tag: str, root: Path) -> dict[str, list[str] | str]:
             "claude_desktop_legacy_core_skill": "",
             "claude_desktop_literature_mcpb": _mcpb_asset_name(),
             "zotero_desktop_companion": _zotero_companion_asset_name(),
-            "gemini_extension": "",
             "maintainer_plugin_tarballs": [
                 f"{NEXT_PLUGIN_NAME}-codex-plugin-{tag}.tar.gz",
                 f"{NEXT_PLUGIN_NAME}-claude-plugin-{tag}.tar.gz",
@@ -107,7 +106,6 @@ def _release_assets(tag: str, root: Path) -> dict[str, list[str] | str]:
         "claude_desktop_legacy_core_skill": f"{PLUGIN_NAME}-claude-desktop-skill-{tag}.zip",
         "claude_desktop_literature_mcpb": _mcpb_asset_name(),
         "zotero_desktop_companion": _zotero_companion_asset_name(),
-        "gemini_extension": f"{PLUGIN_NAME}-gemini-extension-{tag}.tar.gz",
         "maintainer_plugin_tarballs": plugin_tarballs,
         "maintainer_plugin_zips": plugin_zips,
     }
@@ -155,12 +153,6 @@ def build_index(tag: str, repo_slug: str = DEFAULT_REPO_SLUG, root: Path = REPO_
             "asset": assets["zotero_desktop_companion"],
         },
     }
-    if not is_next:
-        recommended["gemini"] = {
-            "install": "download_tarball",
-            "asset": assets["gemini_extension"],
-        }
-
     return {
         "tag": tag,
         "channel": "next" if is_next else "stable",
@@ -200,7 +192,6 @@ def render_markdown(index: dict[str, Any]) -> str:
     desktop_skills = list(assets["claude_desktop_skills"])
     mcpb_asset = str(assets["claude_desktop_literature_mcpb"])
     zotero_asset = str(assets["zotero_desktop_companion"])
-    gemini_asset = str(assets["gemini_extension"])
     guide_asset = str(assets["download_guide"])
     index_asset = str(assets["download_index"])
     plugin_zips = list(assets.get("maintainer_plugin_zips", []))
@@ -249,11 +240,6 @@ def render_markdown(index: dict[str, Any]) -> str:
         "The JSON index groups assets by install surface so scripts do not need to parse GitHub's flat asset list.",
         "",
     ]
-    if gemini_asset:
-        lines.insert(
-            15,
-            f"| Gemini CLI | Download `{gemini_asset}` only when you need the release artifact directly. | Gemini uses the extension tarball. |",
-        )
     return "\n".join(lines)
 
 

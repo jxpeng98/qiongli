@@ -37,7 +37,7 @@ compatibility entrypoints:
   under `tooling/`,
 - root `scripts/` remains as a thin compatibility wrapper layer,
 - generated root shapes such as `qiongli-workflow/`, `plugins/qiongli/`,
-  `.agent/`, and `.gemini/` remain untracked materialized outputs.
+  and `.agent/` remain untracked materialized outputs.
 
 For the current maintainer-facing structure, use
 [`docs/development/repository-structure.md`](repository-structure.md).
@@ -84,8 +84,8 @@ The restructuring must preserve that source-only model.
 
 1. Do not rewrite Git history to remove old generated outputs.
 2. Do not remove legacy CLI aliases in this restructuring.
-3. Do not change the public install commands for PyPI, npm, Codex, Claude, or
-   Gemini packages.
+3. Do not change the public install commands for PyPI, npm, Codex, or Claude
+   packages.
 4. Do not convert staged materialization back to in-place release publishing.
 5. Do not merge `tests/` into package directories. Tests cover cross-package
    contracts and should stay top-level.
@@ -167,7 +167,7 @@ source and package mirrors as generated outputs.
 - `packages/python-qiongli/` owns Python runtime source for the `qiongli`
   package and compatibility shims.
 - `packages/npm-qiongli/` keeps the npm wrapper and package metadata.
-- `packages/qiongli-plugin/` owns Codex, Claude, Gemini, and agent plugin
+- `packages/qiongli-plugin/` owns Codex, Claude, and agent plugin
   manifests and command entrypoints.
 - `packages/qiongli-literature-mcpb/` keeps the MCPB package.
 
@@ -231,7 +231,6 @@ root `guides/` tree should merge into `docs/guide/`, `docs/advanced/`, or
 | `packages/qiongli-literature-mcpb/` | `packages/qiongli-literature-mcpb/` | Keep path stable. |
 | `plugins/qiongli/` | `packages/qiongli-plugin/` | Plugin package source moves under packages. |
 | `.agent/` | `packages/qiongli-plugin/platforms/agent/` | Move only after root discovery checks pass. |
-| `.gemini/` | `packages/qiongli-plugin/platforms/gemini/` | Move only after root discovery checks pass. |
 | `scripts/` | `tooling/scripts/` | Keep temporary root wrappers for CI and docs. |
 | `pipelines/` | `tooling/pipelines/` | Pipeline descriptors are maintainer tooling. |
 | `install/` | `tooling/install/` | Installer manifest is support data. |
@@ -335,7 +334,7 @@ Acceptance criteria:
 ### Phase 3: Move Plugin Sources Under `packages/qiongli-plugin/`
 
 Move `plugins/qiongli/` into `packages/qiongli-plugin/`. Move platform-specific
-agent and Gemini assets into that package only after root discovery checks pass.
+agent assets into that package only after root discovery checks pass.
 
 Update plugin materializers and tests to materialize the same release payload
 shape. The installed plugin may still contain `skills/qiongli-workflow`; that
@@ -343,7 +342,7 @@ is an artifact shape, not the source checkout shape.
 
 Acceptance criteria:
 
-- Codex, Claude, and Gemini plugin manifests pass version alignment tests,
+- Codex and Claude plugin manifests pass version alignment tests,
 - plugin package materialization produces a real portable skill copy,
 - marketplace artifact validation still passes.
 
@@ -443,5 +442,4 @@ Reviewers should focus on:
 - whether `bridges/` should move with Python runtime in Phase 2 or remain
   top-level until a separate provider-runtime cleanup,
 - whether root wrappers for moved scripts should be permanent or temporary,
-- whether `.agent/` and `.gemini/` can move without breaking local platform
-  discovery.
+- whether `.agent/` can move without breaking local platform discovery.

@@ -6,9 +6,9 @@ Use this section when you are operating Qiongli as a user or project owner. It s
 
 - [Quickstart](/quickstart): smallest install surface, first workspace, paper routes, and quality-gate context.
 - [Install](/guide/install): native plugin, bootstrap, npm, and pipx install surfaces.
-- [Using Agent Skills](/guide/using-agent-skills): what to type after install in Codex, Claude Code, Gemini CLI, and the shell.
+- [Using Agent Skills](/guide/using-agent-skills): what to type after install in Codex, Claude Code, Antigravity, Hermes, and the shell.
 - [Task Recipes](/guide/task-recipes): scenario-based routes for literature review, empirical design, writing, code, and rebuttal.
-- [Multi-Agent Runtime Guide](/guide/multi-agent): runtime routing, Gemini transport, broker setup, and auth rules.
+- [Multi-Agent Runtime Guide](/guide/multi-agent): runtime routing, local agent execution, and auth rules.
 - [Examples](/examples/): paper-type playbooks for systematic review, empirical, qualitative, methods, and theory workflows.
 - [Upgrade](/guide/upgrade): shell bootstrap, Python CLI, and long-lived clone upgrade paths.
 - [Troubleshooting](/guide/troubleshooting): unified error-code guide.

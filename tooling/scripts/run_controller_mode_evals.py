@@ -19,7 +19,7 @@ REQUIRED_DIMENSIONS = [
 ]
 
 EXECUTION_MODES = {"solo", "duo", "triad"}
-RUNTIME_AGENTS = {"codex", "claude", "gemini"}
+RUNTIME_AGENTS = {"codex", "claude", "antigravity"}
 VERIFICATION_STATUSES = {"passed", "failed", "blocked", "skipped"}
 RESOLUTION_STATUSES = {"resolved", "accepted", "deferred", "escalated"}
 

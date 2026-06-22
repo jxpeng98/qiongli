@@ -363,22 +363,6 @@ def _write_claude_manifest(path: Path, plugin: PluginDefinition, version: str) -
     path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
-def _write_gemini_manifest(path: Path, plugin: PluginDefinition, version: str) -> None:
-    manifest = {
-        "name": plugin.id,
-        "version": version,
-        "description": plugin.description,
-        "author": plugin.author,
-        "category": plugin.category,
-        "homepage": plugin.homepage,
-        "repository": plugin.repository,
-        "license": plugin.license,
-        "keywords": _keywords(plugin, "gemini-extension"),
-    }
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-
-
 def _write_platform_manifest(root: Path, platform: str, plugin_name: str, manifest_path: Path) -> None:
     plugin = _plugin_definition(root, plugin_name)
     version = _skill_version(root)
@@ -387,9 +371,6 @@ def _write_platform_manifest(root: Path, platform: str, plugin_name: str, manife
         return
     if platform == "claude":
         _write_claude_manifest(manifest_path, plugin, version)
-        return
-    if platform == "gemini":
-        _write_gemini_manifest(manifest_path, plugin, version)
         return
     raise ValueError(f"unsupported plugin manifest platform: {platform}")
 
@@ -1107,8 +1088,6 @@ def materialize_plugin_package(root: Path, dest_plugin_root: Path, *, force: boo
             PLUGIN_NAME,
             dest_plugin_root / ".claude-plugin" / "plugin.json",
         )
-    if plugin.gemini_enabled:
-        _write_platform_manifest(root, "gemini", PLUGIN_NAME, dest_plugin_root / "gemini-extension.json")
     _copy_codex_mcp_manifest(root, dest_plugin_root, server_name=DEFAULT_MCP_SERVER_NAME)
     _copy_literature_mcp_runtime(root, dest_plugin_root)
     _copy_commands(root, dest_plugin_root, skill_name=DEFAULT_SKILL_NAME)
@@ -1129,35 +1108,6 @@ def materialize_agent_platform(root: Path, dest_platform_root: Path, *, force: b
         else:
             dest_platform_root.unlink()
     _copy_path(RepoLayout(root).workflow / "workflows", dest_platform_root / "workflows")
-    return dest_platform_root
-
-
-def materialize_gemini_platform(root: Path, dest_platform_root: Path, *, force: bool = False) -> Path:
-    """Materialize a Gemini extension context from canonical Qiongli sources."""
-
-    root = root.resolve()
-    dest_platform_root = dest_platform_root.resolve()
-    if dest_platform_root.exists():
-        if not force:
-            raise ValueError(f"{dest_platform_root} already exists; pass force=True to replace it")
-        if dest_platform_root.is_dir():
-            shutil.rmtree(dest_platform_root)
-        else:
-            dest_platform_root.unlink()
-    dest_platform_root.mkdir(parents=True, exist_ok=True)
-    plugin = _plugin_definition(root, PLUGIN_NAME)
-    text = "\n".join(
-        [
-            f"# {plugin.display_name} Academic Research Workflow",
-            "",
-            plugin.description,
-            "",
-            "Use the canonical `qiongli-workflow` skill package, its `workflows/`, "
-            "`references/`, and `skills/registry.yaml` as the active research contract.",
-            "",
-        ]
-    )
-    (dest_platform_root / "qiongli.md").write_text(text, encoding="utf-8")
     return dest_platform_root
 
 
@@ -1240,16 +1190,6 @@ def _build_next_marketplace_plugins(root: Path, tag: str, dist_dir: Path, work_d
     return artifacts
 
 
-def _build_gemini(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> Path:
-    bundle_name = f"{PLUGIN_NAME}-gemini-extension-{tag}"
-    bundle = work_dir / bundle_name
-    _write_platform_manifest(root, "gemini", PLUGIN_NAME, bundle / "gemini-extension.json")
-    _copy_common_skill(root, bundle)
-    artifact = dist_dir / f"{bundle_name}.tar.gz"
-    _make_tarball(bundle, artifact)
-    return artifact
-
-
 def _build_claude_desktop_skill(
     root: Path,
     tag: str,
@@ -1286,11 +1226,6 @@ def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
     if workflow_version != repo_tag:
         raise ValueError(f"version mismatch in qiongli-workflow/VERSION: expected {repo_tag}, found {workflow_version}")
 
-    for plugin_name in (PLUGIN_NAME, NEXT_PLUGIN_NAME):
-        plugin = _plugin_definition(root, plugin_name)
-        if plugin_name == NEXT_PLUGIN_NAME and plugin.gemini_enabled:
-            raise ValueError("qiongli-next must not enable Gemini artifacts")
-
     with tempfile.TemporaryDirectory(prefix="qiongli-plugin-") as tmp:
         work_dir = Path(tmp)
         if _is_prerelease_tag(repo_tag):
@@ -1318,7 +1253,6 @@ def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
             *_build_codex(root, repo_tag, dist_dir, work_dir),
             *_build_claude(root, repo_tag, dist_dir, work_dir),
             *subject_marketplace_artifacts,
-            _build_gemini(root, repo_tag, dist_dir, work_dir),
             *desktop_artifacts,
             legacy_desktop_artifact,
         ]
@@ -1326,7 +1260,7 @@ def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Build Codex, Claude Code, and Gemini plugin/extension artifacts.")
+    parser = argparse.ArgumentParser(description="Build Codex and Claude Code plugin artifacts.")
     parser.add_argument("--tag", required=True, help="Release tag, for example v0.5.0-beta.3")
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[2], help="Repository root")
     parser.add_argument("--dist-dir", type=Path, default=Path("dist"), help="Output directory")

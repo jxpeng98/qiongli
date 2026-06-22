@@ -102,6 +102,50 @@ class SoloRoleGateAuditTests(unittest.TestCase):
         self.assertIn("task-run-claude-code", joined)
         self.assertIn("implementation intent", joined)
 
+    def test_solo_antigravity_writing_without_story_spine_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            write_json(
+                root / "runs" / "antigravity-writing.json",
+                {
+                    "run_id": "antigravity-writing",
+                    "execution_mode": "solo_antigravity",
+                    "controller": "antigravity",
+                    "primary_agent": "antigravity",
+                    "task_type": "writing",
+                    "verification_status": "passed",
+                    "artifacts_written": ["manuscript/draft.md"],
+                },
+            )
+
+            errors = audit_solo_role_gates(root)
+
+        joined = "\n".join(errors).lower()
+        self.assertIn("antigravity-writing", joined)
+        self.assertIn("story spine", joined)
+
+    def test_solo_antigravity_code_without_implementation_intent_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            write_json(
+                root / "runs" / "antigravity-code.json",
+                {
+                    "run_id": "antigravity-code",
+                    "execution_mode": "solo_antigravity",
+                    "controller": "antigravity",
+                    "primary_agent": "antigravity",
+                    "task_type": "code",
+                    "verification_status": "passed",
+                    "artifacts_written": ["code/change.patch"],
+                },
+            )
+
+            errors = audit_solo_role_gates(root)
+
+        joined = "\n".join(errors).lower()
+        self.assertIn("antigravity-code", joined)
+        self.assertIn("implementation intent", joined)
+
     def test_solo_role_gates_off_skips_role_specific_artifact_gates(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
@@ -184,9 +228,9 @@ class SoloRoleGateAuditTests(unittest.TestCase):
                 root / "runs" / "missing-status.json",
                 {
                     "run_id": "missing-status",
-                    "execution_mode": "solo_gemini",
-                    "controller": "gemini",
-                    "primary_agent": "gemini",
+                    "execution_mode": "solo_claude",
+                    "controller": "claude",
+                    "primary_agent": "claude",
                     "artifacts_written": [],
                 },
             )
@@ -298,6 +342,23 @@ class SoloRoleGateAuditTests(unittest.TestCase):
             (root / "handoffs").mkdir()
             (root / "handoffs" / "agent-handoff.md").write_text(
                 "# Agent Handoff\n",
+                encoding="utf-8",
+            )
+            write_json(
+                root / "runs" / "antigravity-writing.json",
+                {
+                    "run_id": "antigravity-writing",
+                    "execution_mode": "solo_antigravity",
+                    "controller": "antigravity",
+                    "primary_agent": "antigravity",
+                    "task_type": "writing",
+                    "verification_status": "passed",
+                    "artifacts_written": ["manuscript/discussion_story_spine.md"],
+                },
+            )
+            (root / "manuscript").mkdir()
+            (root / "manuscript" / "discussion_story_spine.md").write_text(
+                "# Story Spine\n",
                 encoding="utf-8",
             )
 

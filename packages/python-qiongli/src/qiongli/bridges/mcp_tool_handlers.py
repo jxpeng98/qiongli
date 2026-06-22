@@ -20,6 +20,7 @@ from bridges.provider_config import (
 
 SERVER_NAME = "qiongli-mcp"
 ModelOrchestrator: Any | None = None
+RUNTIME_AGENT_ENUM = ["codex", "claude", "antigravity"]
 
 
 MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
@@ -137,7 +138,7 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
                 },
                 "platform": {
                     "type": "string",
-                    "enum": ["codex", "claude_code", "claude", "cli", "unknown"],
+                    "enum": ["codex", "claude_code", "claude", "antigravity", "cli", "unknown"],
                     "default": "unknown",
                 },
                 "cwd": {"type": "string"},
@@ -145,10 +146,10 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
                 "paper_type": {"type": "string"},
                 "topic": {"type": "string"},
                 "execution_mode": {"type": "string", "enum": ["solo", "duo", "triad"]},
-                "controller": {"type": "string", "enum": ["codex", "claude"]},
-                "primary": {"type": "string", "enum": ["codex", "claude"]},
-                "reviewer": {"type": "string", "enum": ["codex", "claude"]},
-                "verifier": {"type": "string", "enum": ["codex", "claude"]},
+                "controller": {"type": "string", "enum": RUNTIME_AGENT_ENUM},
+                "primary": {"type": "string", "enum": RUNTIME_AGENT_ENUM},
+                "reviewer": {"type": "string", "enum": RUNTIME_AGENT_ENUM},
+                "verifier": {"type": "string", "enum": RUNTIME_AGENT_ENUM},
                 "solo_role_gates": {"type": "string", "enum": ["strict", "standard", "off"]},
             },
             "additionalProperties": False,
@@ -199,10 +200,10 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
                 "context": {"type": "string"},
                 "execution_mode": {"type": "string", "enum": ["solo", "duo", "triad"]},
                 "triad": {"type": "boolean"},
-                "controller": {"type": "string", "enum": ["codex", "claude", "gemini"]},
-                "primary": {"type": "string", "enum": ["codex", "claude", "gemini"]},
-                "reviewer": {"type": "string", "enum": ["codex", "claude", "gemini"]},
-                "verifier": {"type": "string", "enum": ["codex", "claude", "gemini"]},
+                "controller": {"type": "string", "enum": RUNTIME_AGENT_ENUM},
+                "primary": {"type": "string", "enum": RUNTIME_AGENT_ENUM},
+                "reviewer": {"type": "string", "enum": RUNTIME_AGENT_ENUM},
+                "verifier": {"type": "string", "enum": RUNTIME_AGENT_ENUM},
                 "solo_role_gates": {"type": "string", "enum": ["strict", "standard", "off"]},
                 "profile": {"type": "string"},
                 "mcp_strict": {"type": "boolean"},
@@ -642,9 +643,11 @@ def _normalize_platform(value: str) -> str:
         "claude-code": "claude_code",
         "claude_code": "claude_code",
         "claude": "claude_code",
+        "antigravity": "antigravity",
+        "ag": "antigravity",
     }
     platform = aliases.get(normalized, normalized)
-    return platform if platform in {"codex", "claude_code", "cli"} else "unknown"
+    return platform if platform in {"codex", "claude_code", "antigravity", "cli"} else "unknown"
 
 
 def _orchestrator_platform_note(platform: str) -> str:
@@ -659,6 +662,12 @@ def _orchestrator_platform_note(platform: str) -> str:
             "Claude Code can use slash workflows and skills directly; use the full "
             "MCP orchestrator when Claude Code should coordinate with Codex or "
             "auditable task-run gates."
+        )
+    if platform == "antigravity":
+        return (
+            "Antigravity can use Qiongli skills directly for light work; use the full "
+            "MCP orchestrator when Antigravity should coordinate with Codex, Claude "
+            "Code, or auditable task-run gates."
         )
     if platform == "cli":
         return "CLI users can call qiongli task-plan/task-run directly or through this MCP server."
@@ -682,6 +691,9 @@ def _orchestrator_route_signals(
         "multi model": "request asks for multi-model work",
         "codex and claude": "request names Codex and Claude Code together",
         "claude and codex": "request names Claude Code and Codex together",
+        "antigravity": "request names Antigravity runtime collaboration",
+        "codex and antigravity": "request names Codex and Antigravity together",
+        "claude and antigravity": "request names Claude Code and Antigravity together",
         "triad": "request asks for triad execution",
         "duo": "request asks for duo execution",
         "handoff": "request needs agent handoff",
