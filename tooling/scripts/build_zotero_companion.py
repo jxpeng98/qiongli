@@ -9,6 +9,12 @@ from pathlib import Path
 
 
 PACKAGE_RELATIVE = Path("packages/qiongli-zotero-companion")
+COMPANION_DISPLAY_NAME = "Qiongli Zotero Companion"
+COMPANION_ARTIFACT_SLUG = "qiongli-zotero-companion"
+ZOTERO_UPDATE_URL = (
+    "https://github.com/jxpeng98/qiongli/releases/latest/download/"
+    "qiongli-zotero-companion-updates.json"
+)
 REQUIRED_FILES = (
     Path("manifest.json"),
     Path("bootstrap.js"),
@@ -42,8 +48,11 @@ def read_manifest(root: Path) -> dict[str, object]:
 
 
 def validate_manifest(manifest: dict[str, object]) -> None:
-    if manifest.get("name") != "qiongli-zotero-companion":
-        raise ValueError("manifest.json must name the companion extension")
+    if manifest.get("name") != COMPANION_DISPLAY_NAME:
+        raise ValueError("manifest.json must use the Qiongli Zotero Companion display name")
+    description = manifest.get("description")
+    if not isinstance(description, str) or "Zotero 9.0.4" not in description:
+        raise ValueError("manifest.json description must mention Zotero 9.0.4 testing")
     if not isinstance(manifest.get("version"), str) or not manifest["version"]:
         raise ValueError("manifest.json must define a string version")
 
@@ -51,6 +60,12 @@ def validate_manifest(manifest: dict[str, object]) -> None:
     zotero = applications.get("zotero") if isinstance(applications, dict) else None
     if not isinstance(zotero, dict) or not zotero.get("id"):
         raise ValueError("manifest.json must define applications.zotero.id")
+    if zotero.get("update_url") != ZOTERO_UPDATE_URL:
+        raise ValueError("manifest.json must define applications.zotero.update_url")
+    if zotero.get("strict_min_version") != "8.0":
+        raise ValueError("manifest.json must set applications.zotero.strict_min_version to 8.0")
+    if zotero.get("strict_max_version") != "9.0.*":
+        raise ValueError("manifest.json must set applications.zotero.strict_max_version to 9.0.*")
 
 
 def validate_required_files(root: Path) -> None:
@@ -83,9 +98,8 @@ def validate_text_payloads(root: Path, files: list[Path]) -> None:
 
 
 def artifact_path(dist_dir: Path, manifest: dict[str, object]) -> Path:
-    name = manifest["name"]
     version = manifest["version"]
-    return dist_dir / f"{name}-{version}.xpi"
+    return dist_dir / f"{COMPANION_ARTIFACT_SLUG}-{version}.xpi"
 
 
 def build(root: Path, dist_dir: Path) -> Path:

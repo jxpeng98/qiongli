@@ -16,7 +16,7 @@ var QiongliZoteroCompanion = {
       sendJson(sendResponse, 200, {
         status: "ok",
         companion: "qiongli-zotero-companion",
-        version: "0.1.1",
+        version: "0.2.2",
         endpoint_version: 1,
         zotero_version: Zotero.version ?? "",
         endpoints: this.endpoints
@@ -40,11 +40,12 @@ var QiongliZoteroCompanion = {
       sendJson(sendResponse, 200, result);
     });
 
-    registerEndpoint(Zotero, "/qiongli/collections", ["GET"], (_postData, sendResponse) => {
+    registerEndpoint(Zotero, "/qiongli/collections", ["GET"], async (_postData, sendResponse) => {
       const runtime = createRuntime(Zotero);
+      const collections = await runtime.listCollections();
       sendJson(sendResponse, 200, {
         status: "ok",
-        collections: runtime.listCollections()
+        collections
       });
     });
   },
@@ -95,7 +96,16 @@ function sendJson(sendResponseCallback, status, payload) {
 }
 
 function getZotero() {
+  if (typeof Zotero !== "undefined" && Zotero?.Server?.Endpoints) {
+    return Zotero;
+  }
+  if (typeof globalThis !== "undefined" && globalThis.Zotero?.Server?.Endpoints) {
+    return globalThis.Zotero;
+  }
   try {
+    if (typeof Components === "undefined") {
+      return null;
+    }
     return Components.classes["@zotero.org/Zotero;1"]
       .getService(Components.interfaces.nsISupports)
       .wrappedJSObject;
@@ -108,8 +118,8 @@ function createRuntime(Zotero) {
   return {
     async listItems() {
       const libraryID = Zotero.Libraries?.userLibraryID;
-      const rawItems = typeof Zotero.Items?.getAll === "function" ? Zotero.Items.getAll(libraryID) : [];
-      return rawItems
+      const rawItems = typeof Zotero.Items?.getAll === "function" ? await Zotero.Items.getAll(libraryID) : [];
+      return asArray(rawItems)
         .filter((item) => typeof item.isRegularItem !== "function" || item.isRegularItem())
         .map((item) => itemToPlainObject(item));
     },
@@ -128,12 +138,12 @@ function createRuntime(Zotero) {
       return itemToPlainObject(item);
     },
 
-    listCollections() {
+    async listCollections() {
       const libraryID = Zotero.Libraries?.userLibraryID;
       const collections = typeof Zotero.Collections?.getByLibrary === "function"
-        ? Zotero.Collections.getByLibrary(libraryID)
+        ? await Zotero.Collections.getByLibrary(libraryID)
         : [];
-      return collections.map((collection) => ({
+      return asArray(collections).map((collection) => ({
         key: collection.key,
         name: collection.name,
         path: collection.name
@@ -146,8 +156,8 @@ async function getItemByKey(Zotero, key) {
   if (typeof Zotero.Items?.getByLibraryAndKeyAsync === "function") {
     return Zotero.Items.getByLibraryAndKeyAsync(Zotero.Libraries.userLibraryID, key);
   }
-  const items = typeof Zotero.Items?.getAll === "function" ? Zotero.Items.getAll(Zotero.Libraries.userLibraryID) : [];
-  const item = items.find((candidate) => candidate.key === key);
+  const items = typeof Zotero.Items?.getAll === "function" ? await Zotero.Items.getAll(Zotero.Libraries.userLibraryID) : [];
+  const item = asArray(items).find((candidate) => candidate.key === key);
   if (!item) {
     throw new Error(`Zotero item not found: ${key}`);
   }
@@ -285,7 +295,23 @@ function parseJson(postData) {
   if (!postData) {
     return {};
   }
+  if (typeof postData === "object") {
+    return postData;
+  }
   return JSON.parse(postData);
+}
+
+function asArray(value) {
+  if (Array.isArray(value)) {
+    return value;
+  }
+  if (!value) {
+    return [];
+  }
+  if (typeof value[Symbol.iterator] === "function") {
+    return Array.from(value);
+  }
+  return [];
 }
 
 function getField(item, field) {

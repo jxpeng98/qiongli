@@ -22,6 +22,7 @@ PLUGIN_NAME = "qiongli"
 NEXT_PLUGIN_NAME = "qiongli-next"
 MCPB_MANIFEST = REPO_ROOT / "packages" / "qiongli-literature-mcpb" / "manifest.json"
 ZOTERO_COMPANION_MANIFEST = REPO_ROOT / "packages" / "qiongli-zotero-companion" / "manifest.json"
+ZOTERO_COMPANION_ASSET_SLUG = "qiongli-zotero-companion"
 
 
 def _normalize_tag(raw: str) -> str:
@@ -48,13 +49,10 @@ def _mcpb_asset_name() -> str:
 
 def _zotero_companion_asset_name() -> str:
     manifest = json.loads(ZOTERO_COMPANION_MANIFEST.read_text(encoding="utf-8"))
-    name = manifest.get("name")
     version = manifest.get("version")
-    if not isinstance(name, str) or not name:
-        raise ValueError(f"{ZOTERO_COMPANION_MANIFEST} must define name")
     if not isinstance(version, str) or not version:
         raise ValueError(f"{ZOTERO_COMPANION_MANIFEST} must define version")
-    return f"{name}-{version}.xpi"
+    return f"{ZOTERO_COMPANION_ASSET_SLUG}-{version}.xpi"
 
 
 def _claude_plugin_zip(plugin_name: str, tag: str) -> str:

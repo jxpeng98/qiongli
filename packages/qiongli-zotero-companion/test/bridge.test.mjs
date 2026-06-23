@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import vm from "node:vm";
 import {
   findDuplicateItem,
   planUpsert,
@@ -12,6 +13,7 @@ import {
 } from "../chrome/content/qiongli-bridge.js";
 
 const PACKAGE_ROOT = path.resolve(import.meta.dirname, "..");
+const ZOTERO_UPDATE_URL = "https://github.com/jxpeng98/qiongli/releases/latest/download/qiongli-zotero-companion-updates.json";
 
 test("qiongliPingResponse exposes endpoint contract version", () => {
   const response = qiongliPingResponse({ zoteroVersion: "7.0.0" });
@@ -167,14 +169,83 @@ test("companion package declares Zotero install metadata and qiongli endpoints",
   const bootstrap = await readFile(path.join(PACKAGE_ROOT, "bootstrap.js"), "utf8");
   const readme = await readFile(path.join(PACKAGE_ROOT, "README.md"), "utf8");
 
-  assert.equal(manifest.name, "qiongli-zotero-companion");
-  assert.equal(manifest.version, "0.1.1");
-  assert.equal(manifest.applications.zotero.strict_min_version, "7.0");
-  assert.equal(manifest.applications.zotero.strict_max_version, "9.*");
+  assert.equal(manifest.name, "Qiongli Zotero Companion");
+  assert.match(manifest.description, /Zotero 9\.0\.4/);
+  assert.equal(manifest.version, "0.2.2");
+  assert.equal(manifest.applications.zotero.update_url, ZOTERO_UPDATE_URL);
+  assert.equal(manifest.applications.zotero.strict_min_version, "8.0");
+  assert.equal(manifest.applications.zotero.strict_max_version, "9.0.*");
+  assert.equal(Object.hasOwn(manifest, "browser_specific_settings"), false);
   for (const endpoint of ["/qiongli/ping", "/qiongli/search", "/qiongli/upsertItems", "/qiongli/collections"]) {
     assert.ok(bootstrap.includes(endpoint), `${endpoint} missing from bootstrap.js`);
   }
   assert.equal(bootstrap.includes("not_implemented"), false);
-  assert.match(readme, /Qiongli Zotero companion/);
+  assert.match(readme, /Qiongli Zotero Companion/);
+  assert.match(readme, /Zotero 9\.0\.4/);
   assert.match(readme, /local reference database/);
+});
+
+test("bootstrap startup registers endpoints from Zotero 8 and 9 global object", async () => {
+  const bootstrap = await readFile(path.join(PACKAGE_ROOT, "bootstrap.js"), "utf8");
+  const libraryItem = {
+    key: "ABC123",
+    itemType: "journalArticle",
+    isRegularItem: () => true,
+    getField: (field) => ({
+      title: "Platform Governance",
+      DOI: "10.1000/platform",
+      date: "2024"
+    })[field] ?? "",
+    getTags: () => [{ tag: "qiongli:imported" }],
+    getCollections: () => ["COLL1"]
+  };
+  const Zotero = {
+    version: "9.0.4",
+    Server: { Endpoints: {} },
+    Libraries: { userLibraryID: 1 },
+    Items: { getAll: async () => [libraryItem] },
+    Collections: { getByLibrary: async () => [{ key: "COLL1", name: "Qiongli" }] }
+  };
+  const context = vm.createContext({
+    Zotero,
+    globalThis: { Zotero }
+  });
+
+  vm.runInContext(bootstrap, context);
+  context.startup({}, 3);
+
+  assert.deepEqual(Object.keys(Zotero.Server.Endpoints).sort(), [
+    "/qiongli/collections",
+    "/qiongli/ping",
+    "/qiongli/search",
+    "/qiongli/upsertItems"
+  ]);
+
+  let response;
+  await Zotero.Server.Endpoints["/qiongli/ping"].prototype.init("", (status, contentType, body) => {
+    response = { status, contentType, body: JSON.parse(body) };
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.contentType, "application/json");
+  assert.equal(response.body.status, "ok");
+  assert.equal(response.body.version, "0.2.2");
+  assert.equal(response.body.zotero_version, "9.0.4");
+
+  await Zotero.Server.Endpoints["/qiongli/search"].prototype.init({ title: "platform" }, (status, contentType, body) => {
+    response = { status, contentType, body: JSON.parse(body) };
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.contentType, "application/json");
+  assert.equal(response.body.status, "ok");
+  assert.equal(response.body.results.length, 1);
+  assert.equal(response.body.results[0].item_key, "ABC123");
+
+  await Zotero.Server.Endpoints["/qiongli/collections"].prototype.init("", (status, contentType, body) => {
+    response = { status, contentType, body: JSON.parse(body) };
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.collections[0].key, "COLL1");
 });

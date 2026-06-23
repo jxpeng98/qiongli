@@ -8,9 +8,16 @@ import unittest
 import zipfile
 from pathlib import Path
 
+import scripts.build_zotero_companion as zotero_builder
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_ROOT = REPO_ROOT / "packages" / "qiongli-zotero-companion"
+ZOTERO_UPDATE_URL = (
+    "https://github.com/jxpeng98/qiongli/releases/latest/download/"
+    "qiongli-zotero-companion-updates.json"
+)
+COMPANION_DISPLAY_NAME = "Qiongli Zotero Companion"
 
 
 class ZoteroCompanionArtifactTests(unittest.TestCase):
@@ -52,14 +59,37 @@ class ZoteroCompanionArtifactTests(unittest.TestCase):
         self.assertIn("README.md", names)
         self.assertIn("chrome/content/qiongli-bridge.js", names)
         manifest = json.loads(text_payloads["manifest.json"])
-        self.assertEqual(manifest["applications"]["zotero"]["strict_min_version"], "7.0")
-        self.assertEqual(manifest["applications"]["zotero"]["strict_max_version"], "9.*")
+        self.assertNotIn("browser_specific_settings", manifest)
+        self.assertEqual(manifest["manifest_version"], 2)
+        self.assertEqual(manifest["name"], COMPANION_DISPLAY_NAME)
+        self.assertIn("Zotero 9.0.4", manifest["description"])
+        self.assertEqual(manifest["version"], "0.2.2")
+        self.assertEqual(manifest["applications"]["zotero"]["update_url"], ZOTERO_UPDATE_URL)
+        self.assertEqual(manifest["applications"]["zotero"]["strict_min_version"], "8.0")
+        self.assertEqual(manifest["applications"]["zotero"]["strict_max_version"], "9.0.*")
         self.assertFalse(any(name.startswith("test/") or name.startswith("tests/") for name in names))
         self.assertNotIn("package.json", names)
         for content in text_payloads.values():
             self.assertNotIn("/Users/", content)
             self.assertNotIn("/private/tmp", content)
             self.assertNotIn("secret-key", content)
+
+    def test_manifest_validation_requires_zotero_8_9_update_metadata(self) -> None:
+        manifest = {
+            "name": COMPANION_DISPLAY_NAME,
+            "version": "0.2.2",
+            "description": "Tested with Zotero 9.0.4.",
+            "applications": {
+                "zotero": {
+                    "id": "qiongli-zotero-companion@qiongli.local",
+                    "strict_min_version": "8.0",
+                    "strict_max_version": "9.0.*",
+                }
+            },
+        }
+
+        with self.assertRaisesRegex(ValueError, "applications.zotero.update_url"):
+            zotero_builder.validate_manifest(manifest)
 
 
 if __name__ == "__main__":

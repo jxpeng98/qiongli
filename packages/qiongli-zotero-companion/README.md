@@ -1,6 +1,6 @@
 # Qiongli Zotero Companion
 
-The Qiongli Zotero companion is a thin Zotero Desktop extension that lets
+The Qiongli Zotero Companion is a thin Zotero Desktop extension that lets
 Qiongli treat Zotero as a local reference database. It is not a standalone MCP
 server and it does not replace OpenAlex, Semantic Scholar, Crossref, or PubMed
 discovery.
@@ -25,7 +25,8 @@ python3 scripts/build_zotero_companion.py --dist-dir dist
 ```
 
 The generated `qiongli-zotero-companion-*.xpi` targets the bootstrapped Zotero
-Desktop plugin model used by Zotero 7 through Zotero 9 and can be installed
-through Zotero Desktop's add-on manager. Direct local writes require this
-companion extension; without it, Qiongli still generates import files that can
-be imported manually.
+Desktop plugin model used by Zotero 8 through Zotero 9.0.x and has been tested
+with Zotero 9.0.4. It can be installed through Zotero Desktop's add-on manager.
+The manifest includes the Zotero `update_url` metadata required by Zotero's
+add-on manager. Direct local writes require this companion extension; without
+it, Qiongli still generates import files that can be imported manually.
