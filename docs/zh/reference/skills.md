@@ -78,15 +78,15 @@
 
 | Skill | 中文名 | 适用场景 | 产出类型 |
 |---|---|---|---|
-| `academic-searcher` | 学术检索 | 当你需要可复现的检索式、数据库搜索和 search log 时使用。 | `SearchQueryPlan`, `SearchResults`, `SearchLog` |
-| `paper-screener` | 文献筛选 | 当你需要按纳入排除标准筛选文献并留下决策记录时使用。 | `ScreeningDecisionLog`, `PRISMAFlowData` |
+| `academic-searcher` | 学术检索 | 当你需要可复现的检索式、数据库搜索和 search log 时使用。 | `SearchQueryPlan`, `SearchResults`, `SearchLog`, `DedupLog`, `SearchDiagnostics` |
+| `paper-screener` | 文献筛选 | 当你需要按纳入排除标准筛选文献并留下决策记录时使用。 | `ScreeningDecisionLog`, `FullTextScreening`, `PRISMAFlowData` |
 | `paper-extractor` | 论文提取 | 当你需要把入选论文转成结构化笔记和 extraction table 时使用。 | `ExtractionTable`, `PaperNotes` |
-| `citation-snowballer` | 引文滚雪球 | 当已有种子文献但覆盖还不够时使用。 | `SnowballLog` |
-| `fulltext-fetcher` | 全文获取 | 当你已找到候选论文但缺少全文时使用。 | `FullTextStatus` |
+| `citation-snowballer` | 引文滚雪球 | 当已有种子文献但覆盖还不够时使用。 | `SnowballLog`, `SearchResults`, `DedupLog` |
+| `fulltext-fetcher` | 全文获取 | 当你已找到候选论文但缺少全文时使用。 | `FullTextStatus`, `RetrievalManifest` |
 | `citation-formatter` | 引文格式化 | 当写作前需要统一 bibliography、citekey 和引文格式时使用。 | `Bibliography` |
 | `concept-extractor` | 检索概念提取 | 当检索概念不稳定，需要补 controlled vocabulary 和 Boolean 术语时使用。 | `ConceptMap` |
 | `literature-mapper` | 文献地图 | 当你需要重组文献流派、机制簇和开放问题时使用。 | `LiteratureMap` |
-| `reference-manager-bridge` | 文献管理器桥接 | 当你需要与 Zotero、Mendeley 或 EndNote 双向交换文献时使用。 | `Bibliography`, `RISExport`, `CSLJSONExport` |
+| `reference-manager-bridge` | 文献管理器桥接 | 当你需要与 Zotero、Mendeley 或 EndNote 双向交换文献时使用。 | `Bibliography`, `RISExport`, `CSLJSONExport`, `ZoteroImportReport` |
 
 ### C. Design
 
