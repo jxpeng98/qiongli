@@ -52,9 +52,12 @@ bibliography normalization, citation snowballing, or screening decisions.
 
 ## Provider Ownership Boundary
 
-Treat `scholarly-search` as the execution owner for discovery. The skill should
-describe what must be sent to the MCP/provider layer and what artifacts must be
-recorded after it returns.
+Treat `scholarly-search` as the primary discovery layer and execution owner for
+discovery. The skill should describe what must be sent through the MCP/provider
+layer, which configured scholarly provider overlay is active, and what artifacts
+must be recorded after it returns.
+
+The canonical execution path in this repo is the MCP/provider stack.
 
 | Layer | Owner | Stage B artifact responsibility |
 | --- | --- | --- |
