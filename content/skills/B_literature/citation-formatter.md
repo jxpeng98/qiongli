@@ -1,300 +1,155 @@
 ---
 id: citation-formatter
 stage: B_literature
-description: "Format citations and references in APA, MLA, Chicago, IEEE, Harvard, Vancouver, or BibTeX with consistent citekey generation."
+description: "Normalize bibliography metadata, citekeys, DOI fields, and export-ready citation files without inventing missing reference data."
 inputs:
   - type: PaperNotes
     description: "Extracted paper metadata"
+  - type: Bibliography
+    description: "Existing bibliography file"
+    required: false
 outputs:
   - type: Bibliography
     artifact: "bibliography.bib"
 constraints:
-  - "Must generate valid BibTeX entries"
-  - "Must follow target style guide precisely"
+  - "Must keep bibliography.bib as the canonical export target"
+  - "Must normalize DOI, venue, year, author, and citekey fields"
+  - "Must flag missing required metadata instead of inventing it"
 failure_modes:
-  - "Incomplete metadata for proper citation"
-  - "Style ambiguity for edge cases"
+  - "Duplicate citekeys for same author-year"
+  - "Incomplete metadata prevents valid BibTeX or CSL output"
+  - "Style requirements conflict with available metadata"
 tools: [filesystem, metadata-registry]
-tags: [literature, citations, BibTeX, APA, formatting]
+tags: [literature, citations, BibTeX, APA, metadata-integrity]
 domain_aware: false
 ---
 
 # Citation Formatter Skill
 
-Format citations and references according to academic style guidelines.
-
 ## Purpose
 
-Generate properly formatted:
-- In-text citations
-- Reference list entries
-- BibTeX entries
-- Convert between citation formats
+Prepare citation metadata for writing and export. This skill normalizes
+`bibliography.bib`, citekeys, DOI fields, and required reference metadata. It is
+not a full citation style manual and does not replace `reference-manager-bridge`
+for Zotero, RIS, or CSL-JSON exchange.
+
+## Related Task IDs
+
+- `B5` citation management and reference exports
+- Supports `B1`, `B2`, `F` writing, and submission preparation.
 
 ## Inputs
 
-- `PaperNotes`: Extracted paper metadata
-- If a required input is missing or insufficient, write a gap note under `RESEARCH/[topic]/context/gap_notes.md` and ask for the missing artifact instead of inventing content.
-- Treat literature, data, citations, and project files as evidence sources; keep unsupported assumptions visibly marked.
+- Paper notes: `RESEARCH/[topic]/notes/*.md`.
+- Existing bibliography: `RESEARCH/[topic]/bibliography.bib`.
+- Optional search or extraction metadata:
+  `RESEARCH/[topic]/search_results.csv`,
+  `RESEARCH/[topic]/extraction_table.md`,
+  `RESEARCH/[topic]/references.json`.
+- If inputs are missing or insufficient, write
+  `RESEARCH/[topic]/context/gap_notes.md` or bibliography comments identifying
+  missing required metadata. Do not invent authors, titles, venues, years, DOIs,
+  page ranges, issue numbers, or publishers.
+- Treat notes, provider metadata, DOI registry data, and user-curated
+  bibliography entries as evidence sources with different authority.
 
 ## Process
 
-| Style | Disciplines | In-text Format |
-|-------|-------------|----------------|
-| APA 7th | Psychology, Social Sciences | (Author, Year) |
-| MLA 9th | Humanities, Literature | (Author Page) |
-| Chicago Author-Date | Sciences, Social Sciences | (Author Year) |
-| Chicago Notes | History, Arts | Footnotes |
-| IEEE | Engineering, CS | [1], [2], [3] |
-| Harvard | Business, Sciences | (Author Year) |
-| Vancouver | Medicine, Health | (1), (2), (3) |
-| BibTeX | LaTeX documents | Various |
+### 1. Select canonical bibliography target
 
-## Reference Type Templates
+Use `RESEARCH/[topic]/bibliography.bib` as the canonical export target inside
+Qiongli. Other formats are produced by `reference-manager-bridge`.
 
-### Journal Article
+### 2. Normalize required fields
 
-**APA 7th:**
-```
-Author, A. A., & Author, B. B. (Year). Title of article. Title of Periodical, Volume(Issue), Page–Page. https://doi.org/xxxxx
-```
+Normalize these fields before style-specific formatting:
 
-**BibTeX:**
-```bibtex
-@article{citekey,
-  author = {Last, First and Last, First},
-  title = {Title of Article},
-  journal = {Journal Name},
-  year = {2024},
-  volume = {10},
-  number = {2},
-  pages = {100--120},
-  doi = {10.xxxx/xxxxx}
-}
-```
+| Field | Rule |
+| --- | --- |
+| citekey | `firstauthorYEARkeyword`, with suffix `a`, `b`, `c` for duplicates |
+| DOI | lowercase DOI only; remove `https://doi.org/` and trailing punctuation |
+| authors | preserve order; use `and` separator for BibTeX |
+| year | four-digit year or `missing_year` conflict note |
+| venue | use `journal` for articles and `booktitle` for proceedings |
+| title | preserve original title; protect required capitalization only when needed |
 
-### Conference Paper
+### 3. Resolve duplicate citekeys
 
-**APA 7th:**
-```
-Author, A. A. (Year). Title of paper. In E. E. Editor (Ed.), Proceedings of the Conference Name (pp. xx–xx). Publisher. https://doi.org/xxxxx
-```
+Duplicate handling:
 
-**BibTeX:**
-```bibtex
-@inproceedings{citekey,
-  author = {Last, First and Last, First},
-  title = {Title of Paper},
-  booktitle = {Proceedings of Conference Name},
-  year = {2024},
-  pages = {100--110},
-  publisher = {Publisher},
-  doi = {10.xxxx/xxxxx}
-}
-```
+1. Same DOI or same normalized title/year: merge metadata and keep one citekey.
+2. Same citekey but different DOI/title: append suffix and write conflict note.
+3. Missing DOI and ambiguous title/year: keep separate and mark
+   `metadata_conflict`.
 
-### Book
+### 4. Flag missing required metadata
 
-**APA 7th:**
-```
-Author, A. A. (Year). Title of work: Capital letter also for subtitle. Publisher. https://doi.org/xxxxx
-```
+Every entry must report missing required metadata. Minimum required fields:
 
-**BibTeX:**
-```bibtex
-@book{citekey,
-  author = {Last, First},
-  title = {Title of Book},
-  year = {2024},
-  publisher = {Publisher Name},
-  address = {City},
-  isbn = {xxx-x-xxx-xxxxx-x}
-}
-```
+- `author`
+- `title`
+- `year`
+- `journal` or `booktitle` for article/proceeding entries
+- `doi` or `url` when available from source metadata
 
-### Book Chapter
+Use comments or a report section rather than fabricated values.
 
-**APA 7th:**
-```
-Author, A. A. (Year). Title of chapter. In E. E. Editor (Ed.), Title of book (pp. xx–xx). Publisher. https://doi.org/xxxxx
-```
+### 5. Apply target style lightly
 
-**BibTeX:**
-```bibtex
-@incollection{citekey,
-  author = {Last, First},
-  title = {Title of Chapter},
-  booktitle = {Title of Book},
-  editor = {Editor Last, First},
-  year = {2024},
-  pages = {100--120},
-  publisher = {Publisher}
-}
-```
+For writing-facing checks, verify the selected style family only at the level
+needed for consistency:
 
-### Preprint/arXiv
+- author-date vs numeric citation mode
+- bibliography sort order
+- whether DOI URLs or bare DOI values are expected in final prose
+- whether preprints need archive identifiers
 
-**APA 7th:**
-```
-Author, A. A. (Year). Title of preprint. arXiv. https://arxiv.org/abs/xxxx.xxxxx
-```
-
-**BibTeX:**
-```bibtex
-@misc{citekey,
-  author = {Last, First and Last, First},
-  title = {Title of Preprint},
-  year = {2024},
-  eprint = {2401.12345},
-  archivePrefix = {arXiv},
-  primaryClass = {cs.CL}
-}
-```
-
-### Website/Online Source
-
-**APA 7th:**
-```
-Author, A. A. (Year, Month Day). Title of page. Site Name. https://www.example.com/page
-```
-
-**BibTeX:**
-```bibtex
-@online{citekey,
-  author = {Last, First},
-  title = {Title of Page},
-  year = {2024},
-  url = {https://www.example.com},
-  urldate = {2024-12-27}
-}
-```
-
-## BibTeX Entry Generator
-
-Input paper metadata and generate proper BibTeX:
-
-```markdown
-## Input
-
-- Title: [Paper Title]
-- Authors: [Author 1, Author 2, ...]
-- Year: [Year]
-- Journal/Conference: [Venue]
-- Volume: [Vol]
-- Issue: [Issue]
-- Pages: [Start-End]
-- DOI: [DOI]
-- URL: [URL]
-- Type: [article/inproceedings/book/incollection/misc]
-
-## Output
-
-```bibtex
-@article{author2024keyword,
-  author = {Author, First and Author, Second},
-  title = {Paper Title},
-  journal = {Journal Name},
-  year = {2024},
-  volume = {10},
-  number = {2},
-  pages = {100--120},
-  doi = {10.xxxx/xxxxx}
-}
-```
-```
-
-## Citekey Generation Rules
-
-Standard format: `lastname[year]keyword`
-
-Examples:
-- Single author: `smith2024machine`
-- Two authors: `smithjones2024deep`
-- 3+ authors: `smith2024learning` (use first author)
-
-## In-Text Citation Formats
-
-### APA 7th
-
-| Situation | Format |
-|-----------|--------|
-| One author | (Smith, 2024) |
-| Two authors | (Smith & Jones, 2024) |
-| Three+ authors | (Smith et al., 2024) |
-| Direct quote | (Smith, 2024, p. 15) |
-| Narrative | Smith (2024) argued that... |
-| Multiple sources | (Jones, 2023; Smith, 2024) |
-
-### Narrative vs Parenthetical
-
-**Parenthetical:**
-> Research shows that AI improves learning outcomes (Smith, 2024).
-
-**Narrative:**
-> Smith (2024) found that AI improves learning outcomes.
-
-## Bibliography Generation
-
-Generate complete bibliography from paper notes:
-
-```markdown
-## Bibliography Generator
-
-### Input
-Provide list of citekeys or paper notes directory.
-
-### Output Format
-- [ ] APA 7th
-- [ ] BibTeX
-- [ ] Both
-
-### Sorting
-- [ ] Alphabetical by author
-- [ ] Chronological
-- [ ] Citation order
-```
-
-## Usage
-
-This skill is called by:
-- `/lit-review` - Generate bibliography
-- `/paper-read` - Create BibTeX entry
-- `/academic-write` - Format in-text citations
+Detailed journal-specific formatting belongs in submission or venue guidance.
 
 ## Output Contract
 
 - `Bibliography`: write `RESEARCH/[topic]/bibliography.bib`.
-- Separate finding, interpretation, and implication in the final artifact.
-- Do not invent citations, data, sample sizes, statistical results, or reviewer comments.
-- Apply `references/academic-output-rubric.md` before finalizing scholarly prose or review artifacts.
+- Optional metadata issue notes may be written to
+  `RESEARCH/[topic]/bibliography_metadata_issues.md`.
+- Separate finding, interpretation, and implication when citation metadata is
+  used in narrative review notes.
+- Do not invent citations, authors, titles, venues, years, DOIs, page ranges,
+  publishers, datasets, sample sizes, statistical results, or reviewer comments.
+- Apply `references/academic-output-rubric.md` before finalizing scholarly prose
+  or review artifacts.
 
 ### Evidence Ledger and Source Integrity
 
-- Update `RESEARCH/[topic]/evidence/claim-evidence-ledger.csv` when producing, revising, or validating central scholarly claims.
-- Follow `references/evidence-ledger-contract.md`: supported claims need source pointers; unsupported central claims become `gap_note` rows and `RESEARCH/[topic]/context/gap_notes.md` entries.
-- For final writing, proofread, submission, rebuttal, citation, or presentation-facing outputs, apply `references/citation-risk-policy.md` and write or update `RESEARCH/[topic]/proofread/citation-risk-report.md` when citation risk is material.
+- Update `RESEARCH/[topic]/evidence/claim-evidence-ledger.csv` when a reference
+  metadata decision supports a central scholarly claim.
+- Follow `references/evidence-ledger-contract.md`: supported claims need source
+  pointers; unsupported central claims become `gap_note` rows and
+  `RESEARCH/[topic]/context/gap_notes.md` entries.
+- Preserve source anchors for DOI registry, provider metadata, note files, or
+  user-curated bibliography entries.
 
 ## Quality Bar
 
-- [ ] 所有 citekey 遵循统一命名规则 (author_year 格式)
-- [ ] 每条引文的必填字段完整（author, title, year, journal/booktitle）
-- [ ] BibTeX 文件可被 LaTeX/Pandoc 编译无错误
-- [ ] 引文格式与目标期刊 author guidelines 一致
-- [ ] 重复条目已合并
+- [ ] `bibliography.bib` has unique citekeys.
+- [ ] DOI values are normalized and duplicate DOI entries are merged.
+- [ ] Missing required metadata is flagged, not invented.
+- [ ] Author, title, year, venue, DOI/URL, and entry type are consistent.
+- [ ] Style-specific decisions are recorded without turning this skill into a
+      full style manual.
 
 ## Common Pitfalls
 
 | Pitfall | Problem | Fix |
-|---------|---------|-----|
-| Citekey 重复 | 同一作者同年多篇冲突 | 用 author_year_a/b 后缀 |
-| 字段缺失 | 编译时报 warning | 检查 required fields per entry type |
-| 编码错误 | 特殊字符（ü, ñ）乱码 | 使用 UTF-8 + LaTeX escape |
-| 引文样式混用 | 同一文档出现两种格式 | 锁定一种 CSL/BST 文件 |
-| DOI 格式不一 | 有的带 https 有的不带 | 统一为 doi.org URL 格式 |
+| --- | --- | --- |
+| Inventing missing fields | Bibliography looks clean but is false | Flag missing required metadata |
+| DOI URL inconsistency | Dedup and exports fail | Normalize DOI values |
+| Duplicate citekeys | LaTeX/Pandoc collisions | Merge or suffix with conflict notes |
+| Over-formatting too early | Submission target may change | Keep canonical metadata clean |
+| Treating style examples as source data | Citation content becomes fabricated | Use only source-backed metadata |
 
 ## When to Use
 
-- 写作前需要统一 bibliography 和 citekey 规范时
-- 需要在 APA/MLA/Chicago/IEEE 等格式间转换时
-- 需要从 extraction notes 生成可用的 .bib 文件时
-- 投稿前需要核查引文格式与目标期刊一致时
+- Use when B5 needs citekey cleanup, DOI normalization, duplicate bibliography
+  handling, or export-ready `bibliography.bib`.
+- Do not use for local Zotero writes or import files; use
+  `reference-manager-bridge`.

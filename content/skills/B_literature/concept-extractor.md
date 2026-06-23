@@ -1,24 +1,24 @@
 ---
 id: concept-extractor
 stage: B_literature
-description: "Expand search concepts with controlled vocabulary, synonym mapping, and Boolean query drafting to reduce confirmation bias in literature search."
+description: "Extract searchable concept buckets, controlled vocabulary, near misses, and seed recall checks before provider-backed literature search."
 inputs:
   - type: RQSet
-    description: "Research questions defining the conceptual scope"
+    description: "Research question, scope, population/context, and outcome or phenomenon terms"
   - type: PaperNotes
-    description: "Notes from seed papers"
+    description: "Optional seed papers or notes used to test query recall"
     required: false
 outputs:
   - type: ConceptMap
     artifact: "literature/concept_extraction.md"
 constraints:
-  - "Must group concepts into 2–5 concept buckets"
-  - "Must include controlled vocabulary candidates (MeSH, ACM CCS, JEL, etc.)"
-  - "Must produce a Boolean query draft linked to search_strategy.md"
+  - "Must produce 2-5 concept buckets before B1 search execution"
+  - "Must record excluded ambiguous terms and near misses"
+  - "Must run or specify seed recall checks when seed papers exist"
 failure_modes:
-  - "Concept buckets overlap significantly (concepts not orthogonal)"
-  - "Controlled vocabulary missed relevant descriptor terms"
-  - "Boolean query too narrow (high precision, low recall)"
+  - "Concept buckets are too broad to produce useful provider queries"
+  - "Seed papers are not recalled by any draft query"
+  - "Controlled vocabulary differs across domains"
 tools: [filesystem, scholarly-search]
 tags: [literature, keywords, concepts, boolean-query, controlled-vocabulary]
 domain_aware: true
@@ -26,200 +26,133 @@ domain_aware: true
 
 # Concept Extractor Skill
 
-Systematically expand your search concepts beyond the initial keywords to ensure comprehensive retrieval and reduce confirmation bias.
-
 ## Purpose
 
-Expand search concepts with controlled vocabulary, synonym mapping, and Boolean query drafting to reduce confirmation bias in literature search.
+Prepare B1_5 concept extraction for reproducible search. This skill turns a
+research question into concept buckets, synonyms, controlled vocabulary
+candidates, near misses, excluded ambiguous terms, and seed recall checks that
+can be copied into `search_strategy.md`.
 
 ## Related Task IDs
 
-- `B1_5` (concept/keyword extraction)
+- `B1_5` concept and keyword extraction
+- Supports `B1` provider-backed search and `B3` snowballing seed rationale.
 
 ## Output (contract path)
 
 - `RESEARCH/[topic]/literature/concept_extraction.md`
 
-## When to Use
-
-- After research questions (A1) are drafted but before search execution (B1)
-- When initial searches return too few or too many results
-- When working across disciplines where terminology differs
-
 ## Inputs
 
-- `RQSet`: Research questions defining the conceptual scope
-- `PaperNotes`: Notes from seed papers
-- If a required input is missing or insufficient, write a gap note under `RESEARCH/[topic]/context/gap_notes.md` and ask for the missing artifact instead of inventing content.
-- Treat literature, data, citations, and project files as evidence sources; keep unsupported assumptions visibly marked.
+- `RQSet`: research question, population/context, exposure/intervention or
+  phenomenon, comparator if relevant, outcome, time range, and domain.
+- Optional seed papers: `RESEARCH/[topic]/notes/*.md`,
+  `RESEARCH/[topic]/bibliography.bib`, or user-supplied DOI/title list.
+- If inputs are missing or insufficient, write
+  `RESEARCH/[topic]/context/gap_notes.md` and ask for the missing scope,
+  domain, or seed decision instead of inventing terms.
+- Treat seed papers, controlled vocabularies, user-provided terms, and provider
+  metadata as evidence sources. Keep unsupported assumptions visibly marked.
 
 ## Process
 
-### Step 1: Decompose the RQ into Concept Buckets
+### 1. Decompose the research question
 
-Break each research question into 2–5 independent concept groups. Each bucket represents one "facet" of the search — they will be combined with AND in the Boolean query.
+Create 2-5 concept buckets. Each bucket must have one job in the Boolean query.
 
-**Example**: RQ = "How does remote work affect productivity and well-being among software engineers?"
+| Bucket field | Requirement |
+| --- | --- |
+| label | short mechanism, construct, population, method, or context label |
+| required | whether the block must appear in every query |
+| core terms | exact terms from the RQ or protocol |
+| synonyms | alternate phrases and spelling variants |
+| controlled vocabulary | MeSH, JEL, ACM CCS, PsycINFO, or domain vocabulary when relevant |
+| near misses | adjacent terms to test but not trust without review |
+| excluded ambiguous terms | terms likely to retrieve wrong literatures |
 
-| Bucket | Core Concept | Role in Query |
-|--------|-------------|---------------|
-| A | Remote work | Exposure / IV |
-| B | Productivity | Outcome 1 |
-| C | Well-being | Outcome 2 |
-| D | Software engineers | Population |
+### 2. Draft Boolean blocks
 
-> **Rule**: If your query has >5 buckets, it is likely too narrow. Try merging related concepts or using a broader population bucket.
+Write provider-neutral blocks first:
 
-### Step 2: Expand Each Bucket with Synonyms and Related Terms
-
-For each bucket, generate:
-
-| Layer | What to Include | Sources |
-|-------|----------------|---------|
-| **Core terms** | The primary term(s) | Your RQ |
-| **Synonyms** | Different words for same concept | Thesaurus, seed papers |
-| **Narrower terms** | More specific instances | Controlled vocabularies |
-| **Broader terms** | Parent concepts (for recall) | Controlled vocabularies |
-| **Related terms** | Adjacent concepts that would catch relevant papers | Seed paper keywords, citation context |
-| **Spelling variants** | British/American, hyphenation, abbreviations | Domain knowledge |
-
-**Example for Bucket A (Remote Work)**:
-
-```
-Core:      remote work
-Synonyms:  telecommuting, telework, work from home, WFH, distributed work
-Narrower:  hybrid work, fully remote, home office
-Broader:   flexible work arrangements, new ways of working
-Related:   virtual teams, asynchronous collaboration
-Variants:  tele-work, tele-commuting, work-from-home
-```
-
-### Step 3: Map to Controlled Vocabularies
-
-Check whether your domain has a standard classification system:
-
-| Discipline | Vocabulary | Where to Check |
-|-----------|------------|----------------|
-| Medicine / Health | MeSH (Medical Subject Headings) | PubMed MeSH Browser |
-| Psychology | APA Thesaurus | PsycINFO |
-| Computer Science | ACM Computing Classification System (CCS) | ACM Digital Library |
-| Economics | JEL Classification | Journal of Economic Literature |
-| Education | ERIC Thesaurus | eric.ed.gov |
-| Sociology | Sociological Abstracts Thesaurus | ProQuest |
-| Business / Management | Business Source Subject Headings | EBSCO |
-| Multidisciplinary | Library of Congress Subject Headings (LCSH) | Library of Congress |
-
-For each controlled vocabulary term found:
-- Record the exact descriptor and code
-- Note whether to "explode" (include narrower terms) or use exact match
-- Document hierarchical position (broader/narrower terms in the tree)
-
-### Step 4: Draft Boolean Query
-
-Combine buckets using Boolean logic:
-
-```
-(Bucket A terms joined with OR)
+```text
+(core_term OR synonym OR controlled_vocab_term)
 AND
-(Bucket B terms joined with OR)
+(context_term OR setting_term)
 AND
-(Bucket C terms joined with OR)
-[AND (Bucket D terms) — optional, may be too restrictive]
+(outcome_or_mechanism_term)
 ```
 
-**Example**:
+Then note provider-specific translation needs without hard-coding provider API
+calls. `academic-searcher` owns provider execution.
 
-```
-("remote work" OR telecommut* OR telework* OR "work from home" OR WFH
- OR "distributed work" OR "hybrid work" OR "flexible work arrangement*")
-AND
-(productiv* OR performance OR output OR efficiency)
-AND
-(well-being OR wellbeing OR "mental health" OR "job satisfaction"
- OR burnout OR "work-life balance")
-```
+### 3. Run or specify seed recall test
 
-**Query optimization tips**:
-- Use truncation (*) for word stems: `productiv*` catches productivity, productive, productiveness
-- Use phrase search ("") for multi-word concepts
-- Use proximity operators (NEAR/n, W/n) when available
-- Test query in one database first, then adapt syntax per database
+When seed papers exist, each draft query must state whether it should recall the
+seed. Record results in the concept artifact.
 
-### Step 5: Validate Coverage
+| Seed | Expected bucket match | Recalled? | Action |
+| --- | --- | --- | --- |
+| DOI/title/citekey | bucket names | yes/no/not tested | keep, revise term, or record query gap |
 
-Run a seed-paper test:
-1. Collect 5–10 known relevant papers
-2. Run the Boolean query
-3. Check: how many seed papers are retrieved?
-4. If recall < 80%: examine why missed papers were not caught → add missing terms
-5. If too many irrelevant results: tighten with additional facets or narrower terms
+If a known seed is missing, record a `query gap`. Do not broaden the query
+silently. Either revise the relevant concept bucket or mark the seed as outside
+scope with a reason.
+
+### 4. Produce search-ready handoff
+
+End with a handoff block for `academic-searcher`:
+
+- final concept buckets
+- Boolean draft
+- required filters
+- seed recall status
+- unresolved query gaps
+- terms excluded on purpose
 
 ## Output Contract
 
-- `ConceptMap`: write `RESEARCH/[topic]/literature/concept_extraction.md`.
-- Separate finding, interpretation, and implication in the final artifact.
-- Do not invent citations, data, sample sizes, statistical results, or reviewer comments.
-- Apply `references/academic-output-rubric.md` before finalizing scholarly prose or review artifacts.
+- `ConceptMap`: write
+  `RESEARCH/[topic]/literature/concept_extraction.md`.
+- The final section must be directly reusable in
+  `RESEARCH/[topic]/search_strategy.md`.
+- Separate finding, interpretation, and implication in any narrative notes.
+- Do not invent citations, seed papers, controlled vocabulary membership,
+  datasets, sample sizes, statistics, or provider results.
+- Apply `references/academic-output-rubric.md` before finalizing scholarly prose
+  or review artifacts.
 
 ### Evidence Ledger and Source Integrity
 
-- Update `RESEARCH/[topic]/evidence/claim-evidence-ledger.csv` when producing, revising, or validating central scholarly claims.
-- Follow `references/evidence-ledger-contract.md`: supported claims need source pointers; unsupported central claims become `gap_note` rows and `RESEARCH/[topic]/context/gap_notes.md` entries.
-- For final writing, proofread, submission, rebuttal, citation, or presentation-facing outputs, apply `references/citation-risk-policy.md` and write or update `RESEARCH/[topic]/proofread/citation-risk-report.md` when citation risk is material.
+- Update `RESEARCH/[topic]/evidence/claim-evidence-ledger.csv` only when a
+  concept choice supports a central scholarly claim.
+- Follow `references/evidence-ledger-contract.md`: supported claims need source
+  pointers; unsupported central claims become `gap_note` rows and
+  `RESEARCH/[topic]/context/gap_notes.md` entries.
+- Mark vocabulary evidence as `source_anchor` values such as seed citekey,
+  controlled vocabulary name, protocol field, or user-provided term.
 
 ## Quality Bar
 
-The concept extraction is **ready** when:
-
-- [ ] 2–5 concept buckets identified and labeled
-- [ ] Each bucket has ≥5 terms across core/synonym/narrower/broader/related layers
-- [ ] Controlled vocabulary checked for at least one discipline-relevant system
-- [ ] Boolean query drafted with correct syntax
-- [ ] Seed-paper retrieval test shows ≥80% recall
-- [ ] Near-misses documented (why certain papers were almost missed)
-
-## Minimal Output Format
-
-```markdown
-# Concept & Keyword Extraction
-
-## Research Question
-[RQ text]
-
-## Concept Buckets
-
-### Bucket A: [label]
-- Core: ...
-- Synonyms: ...
-- Narrower: ...
-- Broader: ...
-- Related: ...
-- Variants: ...
-- Controlled vocabulary: [MeSH/ACM CCS/JEL term + code]
-
-### Bucket B: [label]
-...
-
-## Boolean Query (draft)
-
-```
-(A1 OR A2 OR A3 ...) AND (B1 OR B2 ...) AND (C1 OR C2 ...)
-```
-
-## Seed Paper Retrieval Test
-| Paper | Retrieved? | If missed, why |
-|-------|-----------|----------------|
-
-## Revised Query (after seed test)
-...
-```
+- [ ] 2-5 concept buckets exist and every bucket has a label.
+- [ ] Each bucket records core terms, synonyms, controlled vocabulary candidates,
+      near misses, and excluded ambiguous terms.
+- [ ] Boolean blocks preserve the intended AND/OR logic.
+- [ ] Seed recall test is recorded when seed papers exist.
+- [ ] Missing seed recall becomes a visible query gap.
+- [ ] Final handoff is ready for `academic-searcher`.
 
 ## Common Pitfalls
 
 | Pitfall | Problem | Fix |
-|---------|---------|-----|
-| Confirmation bias | 只扩展已有概念 | 强制检索 controlled vocabulary 中的替代术语 |
-| 过度扩展 | 概念外延过大导致不相关文献涌入 | 用 PCC 框架约束 scope |
-| 遗漏跨学科术语 | 不同学科用不同术语描述同一现象 | 咨询 thesaurus 和 MeSH cross-references |
-| Boolean 逻辑错误 | AND/OR 混淆改变搜索含义 | 逐步构建并测试每个 block |
-| 未记录扩展来源 | 术语来源不可追踪 | 每个新增术语标注来源 |
+| --- | --- | --- |
+| One giant keyword list | Provider queries become noisy | Split into concept buckets |
+| No excluded terms | Ambiguous vocabulary pollutes results | Record excluded ambiguous terms |
+| Ignoring seed recall | Known papers disappear from search | Test seeds and record query gaps |
+| Silent query broadening | Scope becomes unauditable | Update buckets and explain the change |
+| Domain vocabulary skipped | Search misses indexed records | Add controlled vocab candidates |
+
+## When to Use
+
+- Use after Stage A framing and before B1 search when vocabulary, controlled
+  terms, or seed recall are uncertain.
+- Do not use to execute provider searches; use `academic-searcher`.
