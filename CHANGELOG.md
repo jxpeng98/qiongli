@@ -1,10 +1,43 @@
 # Changelog
 
-本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-05-28）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
+本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-06-23）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
 
 ## [Unreleased]
 
 暂无未发布变更。
+
+## [1.5.0] - 2026-06-23
+
+### Added
+
+- 新增 worker orchestration 执行模型：`task-run` 现在可以生成 worker plan、执行通用 worker、合并 worker outputs，并通过 barrier / final review gate 阻断未验证或冲突的主输出。
+- 新增 controller-aware 多智能体协作契约，覆盖 Codex primary、Claude primary、duo review、solo fallback、agent handoff、worker merge report、worker review packet 与 run-scoped artifact path，提升 multiagent 执行的可审计性。
+- 新增 project-local guidance layer 和 `qiongli guidance` CLI 入口，可在本地项目中自动 bootstrap guidance、读取项目边界，并把本地 trace boundary 纳入 orchestrator task run。
+- Stage B literature skills 完成精细化升级：academic search、screening、snowballing、mapping、fulltext、paper extraction、citation formatting 与 reference manager bridge 现在都有更明确的输入、输出、证据限制、失败条件和 artifact handoff。
+- Qiongli Literature Provider MCP 扩展为更完整的 scholarly provider stack，新增 Crossref、PubMed、query-plan variants、paginated search、finance/economics routing、provider diagnostics 和更高默认检索上限。
+- 新增 Zotero local bridge 与 Zotero Companion extension：支持本地 Zotero source search、record export、Crossref verification、verified import candidate tagging，以及作为 release asset 发布的 companion XPI。
+- 新增 B literature precision audit 和对应 release validator 覆盖，保证 Stage B skill 文案不再停留在 descriptive 层，而是包含可检查的 artifact、tooling、routing 和 evidence contract。
+- 新增 Codex distribution refs 发布能力，正式 release / prerelease 可以同步生成并发布 `codex/<tag>` 分发引用，便于 marketplace 和 plugin 安装使用稳定 payload。
+
+### Changed
+
+- 插件分发改为 single-source materialization：`qiongli`、`qiongli-next`、Codex plugin、Claude plugin、Desktop skill ZIP 与 npm/PyPI payload 都从 canonical source 生成，减少手工镜像和路径漂移。
+- Orchestrator runtime 移除旧 research-collab implementation，收敛到 controller-aware orchestrator、agent routing policy、worker contract 和 source layout resolution。
+- 写作 workflow 新增 staged writing harness，`academic-write` 与 `paper-write` 更明确地区分 plan、claim map、draft、verification 和 manuscript-facing outputs。
+- Stage B 文献工作流默认强调 provider-backed search diagnostics、dedup / screening readiness、known-item recall、coverage gap 和 retrieval manifest，而不是只输出泛化的搜索描述。
+- 发布自动化进一步强化：release prep 会同步 generated distribution payloads，tag 前等待 branch CI / checkout install，tag 后等待 PyPI/npm publish workflows，并在 acceptance receipt 中记录结果。
+- 文档和安装指南更新为 plugin-first / marketplace-first 分发模型，并同步 Codex、Claude Code、Claude Desktop、Antigravity、Hermes 与 CLI 安装说明。
+
+### Fixed
+
+- 修复 Zotero companion 新版本安装、metadata 展示、release asset 打包和 source verification 相关问题，确保本地 Zotero 桥接可以作为 opt-in source 正常交付。
+- 修复 release gates 对 Antigravity、Codex dist refs、Zotero companion assets、generated payloads 和 npm/PyPI package metadata 的识别与校验缺口。
+- 修复 Stage B artifact catalog 缺失 `DedupLog`、`SearchDiagnostics`、`FullTextScreening`、`RetrievalManifest`、`ZoteroImportReport` 等输出类型导致 strict validator 阻断的问题。
+- 修复 literature provider contract wording 与 MCP/provider stack 路由不一致的问题，避免文献搜索 skill 回退到含糊的非 provider 执行路径。
+
+### Removed
+
+- 移除 Gemini CLI / Gemini plugin lane，官方跨平台目标改为 Codex、Claude、Antigravity、Hermes、CLI/npm/PyPI 与本地 MCP provider 组合。
 
 ## [1.3.0] - 2026-06-12
 
