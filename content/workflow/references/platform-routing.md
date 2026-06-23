@@ -83,6 +83,10 @@ challenged like Reviewer 2, or checked for fatal flaws.
 - Natural academic requests should route to the same task IDs even when the user
   does not type the command wrapper.
 - If the request is ambiguous, use the Ambiguity Trigger before drafting.
+- If full Qiongli MCP tools are installed and the request involves multi-agent
+  coordination, independent review, handoff, strict gates, or task-run artifacts,
+  call `qiongli_orchestrator_route` before running a skill-only workflow. Follow
+  its returned `doctor -> task_plan -> task_run` sequence.
 
 ## Codex
 
@@ -98,24 +102,48 @@ challenged like Reviewer 2, or checked for fatal flaws.
 - For presentation tasks (`K1`–`K4`), specify backend: `slidev`, `beamer`, or `pptx`
 - For academic code, prioritize estimand, data lineage, diagnostics, manuscript
   tables/figures, and reproducibility over generic software scaffolding.
-
-## Gemini
-
-- Prompt pattern:
-  `Execute Task {ID} for paper_type {paper_type} in RESEARCH/{topic} and produce contract outputs.`
-- Keep task IDs and output file names unchanged
-- For proofread: `Execute Task J2 for paper_type {paper_type} in RESEARCH/{topic} using multi-agent collaboration to de-AI rewrite.`
-- For presentation: `Execute Task K1 for paper_type {paper_type} in RESEARCH/{topic} and prepare a conference talk using slidev backend.`
-- Gemini extension prompts should preserve the same Cross-Platform Trigger
-  Contract and Ambiguity Trigger when the user describes academic work naturally.
+- If full Qiongli MCP tools are installed and the request involves multi-agent
+  coordination, independent review, handoff, strict gates, or task-run artifacts,
+  call `qiongli_orchestrator_route` before running a skill-only workflow. Follow
+  its returned `doctor -> task_plan -> task_run` sequence.
 
 ## CLI / npm / Python
 
 - Slash-style commands and `qiongli task-run` remain the stable entry points.
+- Generic task prompt pattern: `Task {ID} on RESEARCH/[topic] using outputs defined in the active contract.`
 - Task packets from other platforms should preserve `paper_type`, `stage`,
   `task_id`, `topic`, artifact paths, and open grill issues.
 - Orchestrator runs should carry boundary decisions and stage handoff risks into
   downstream agents rather than resetting context.
+
+## Orchestrator MCP Escalation
+
+Use skill-only execution for small single-agent drafting, reading, or local
+editing tasks. Escalate through full MCP when the task needs runtime
+coordination:
+
+- call `qiongli_orchestrator_route` with the user's request, platform, and any
+  known `task_id`, `paper_type`, `topic`, controller, primary, reviewer, or
+  verifier choices
+- run `qiongli_orchestrator_doctor` before launching agents
+- run `qiongli_task_plan` to inspect the task packet, quality gates, runtime
+  plan, writing harness, and required artifacts
+- call `qiongli_task_run` first in preview mode; only set JSON boolean
+  `run_agents: true` after the doctor passes and the caller explicitly wants
+  local runtime agents launched
+
+## Worker Adapter Routing
+
+When `task-run` includes worker orchestration, use the canonical `worker_plan`.
+Adapters only change dispatch mechanics:
+
+- `generic_prompt`: portable packet for any runtime or manual dispatch.
+- `codex_subagent`: Codex native subagent dispatch when available.
+- `claude_cowork`: Claude native cowork dispatch when available.
+
+If native dispatch is unavailable, record the degradation and run the same packet
+through `generic_prompt`. Do not change Task IDs, outputs, quality gates,
+required skills, or MCP evidence when switching adapters.
 
 ## Portable Skill Installs
 

@@ -13,9 +13,9 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 POLICY_PATH = RepoLayout(REPO_ROOT).standards / "agent-routing-policy.yaml"
 
 STAGE_DEFAULTS = {
-    "B_literature": {"primary": "claude", "reviewer": "codex", "verifier": "codex"},
-    "F_writing": {"primary": "claude", "reviewer": "codex", "verifier": "codex"},
-    "I_code": {"primary": "codex", "reviewer": "claude", "verifier": "codex"},
+    "B_literature": {"primary": "claude", "reviewer": "codex", "verifier": "antigravity"},
+    "F_writing": {"primary": "claude", "reviewer": "codex", "verifier": "antigravity"},
+    "I_code": {"primary": "codex", "reviewer": "claude", "verifier": "antigravity"},
 }
 
 SOLO_GATE_MAPPINGS = {
@@ -40,6 +40,18 @@ SOLO_GATE_MAPPINGS = {
             "failing_test_first",
             "command_evidence",
             "rollback_notes",
+        ],
+    },
+    "solo_antigravity": {
+        "writing_gates": [
+            "story_spine_check",
+            "claim_support_check",
+            "reviewer_self_critique",
+        ],
+        "code_gates": [
+            "implementation_intent",
+            "declared_write_set",
+            "command_evidence",
         ],
     },
 }

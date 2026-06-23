@@ -1,12 +1,12 @@
 ---
 id: paper-screener
 stage: B_literature
-description: "Apply two-stage systematic screening (title/abstract then full-text) with PRISMA-compliant decision logging."
+description: "Apply two-stage literature screening with diagnostic-aware PRISMA decision logs."
 inputs:
   - type: SearchResults
-    description: "Search results to screen"
+    description: "Deduplicated or dedup-ready search results to screen"
   - type: RQSet
-    description: "Inclusion/exclusion criteria from research questions"
+    description: "Inclusion and exclusion criteria from the research question or protocol"
   - type: SearchDiagnostics
     description: "Optional search_diagnostics.md with search readiness flags and coverage gaps"
     required: false
@@ -18,275 +18,170 @@ outputs:
   - type: PRISMAFlowData
     artifact: "screening/prisma_flow.md"
 constraints:
-  - "Must document exclusion reason for every excluded paper"
-  - "Must follow PRISMA flow reporting"
+  - "Must preserve search provenance and diagnostic flags in every screening row"
+  - "Must document one specific exclusion reason for every excluded record"
+  - "Must not claim review-grade screening when search diagnostics are unresolved"
 failure_modes:
-  - "Ambiguous inclusion criteria leading to inconsistent decisions"
-  - "Full text unavailable for borderline cases"
+  - "Ambiguous eligibility criteria cause inconsistent decisions"
+  - "Search diagnostics show unresolved coverage gaps"
+  - "Full text is unavailable for a borderline record"
 tools: [filesystem, screening-tracker]
-tags: [literature, screening, PRISMA, inclusion-exclusion]
+tags: [literature, screening, PRISMA, inclusion-exclusion, diagnostics]
 domain_aware: false
 ---
 
 # Paper Screener Skill
 
-Apply systematic screening criteria to filter papers for inclusion in a literature review.
-
 ## Purpose
 
-Implement a two-stage screening process:
-1. Title/Abstract screening
-2. Full-text screening
-
-Following PRISMA guidelines for transparent, reproducible screening.
+Screen candidate literature for B1 using a two-stage, PRISMA-compatible decision
+log. This skill owns screening decisions and PRISMA flow counts. It does not own
+search execution, full-text retrieval, or extraction.
 
 ## Related Task IDs
 
-- `B1` (systematic review pipeline)
-
-## Outputs (contract paths)
-
-- `RESEARCH/[topic]/screening/title_abstract.md`
-- `RESEARCH/[topic]/screening/full_text.md`
-- `RESEARCH/[topic]/screening/prisma_flow.md`
+- `B1` systematic review pipeline
+- Supports `B2` when targeted reading needs explicit include/exclude decisions.
 
 ## Inputs
 
-- `SearchResults`: Search results to screen
-- `RQSet`: Inclusion/exclusion criteria from research questions
-- `SearchDiagnostics`: `RESEARCH/[topic]/search_diagnostics.md` when produced by `academic-searcher`
-- If a required input is missing or insufficient, write a gap note under `RESEARCH/[topic]/context/gap_notes.md` and ask for the missing artifact instead of inventing content.
-- Treat literature, data, citations, and project files as evidence sources; keep unsupported assumptions visibly marked.
-
-Before screening, inspect `search_diagnostics.md` if it exists. If it contains `known_item_missing`, `query_too_narrow`, `provider_undercoverage`, or `weak_screening_readiness`, screening may continue for triage, but it cannot be described as review-grade until the gap is resolved or a protocol-visible limitation is recorded.
+- `SearchResults`: `RESEARCH/[topic]/search_results.csv`.
+- `RQSet` or protocol criteria: inclusion and exclusion rules.
+- `SearchDiagnostics`: `RESEARCH/[topic]/search_diagnostics.md` when produced
+  by `academic-searcher`.
+- If inputs are missing or insufficient, write
+  `RESEARCH/[topic]/context/gap_notes.md` and ask for the missing criteria,
+  diagnostics, or candidate records instead of inventing criteria.
+- Treat titles, abstracts, full-text evidence, metadata, and diagnostic flags as
+  evidence sources. Keep unsupported assumptions visibly marked.
 
 ## Process
 
-### Stage 1: Title/Abstract Screening
+### 1. Check search readiness before screening
 
-For each paper, evaluate against inclusion/exclusion criteria based on title and abstract only.
+Inspect `search_diagnostics.md` when present.
 
-Carry forward search provenance in each screening row:
-- `record_id`
-- `query_id`
-- `source`
-- `relevance_reason`
-- `diagnostic_flags`
+| Diagnostic state | Screening behavior |
+| --- | --- |
+| no unresolved flags | proceed with review-grade screening |
+| `known_item_missing` | triage may continue; review-grade claim blocks |
+| `query_too_narrow` | triage may continue; copy limitation into screening notes |
+| `provider_undercoverage` | triage may continue; do not claim exhaustive coverage |
+| `weak screening readiness` | block review-grade screening until resolved or protocol-visible limitation is written |
 
-#### Screening Checklist
+If diagnostics are missing for a systematic-review or review-grade task, block
+and request `search_diagnostics.md`. For targeted reading, continue only with a
+visible limitation.
 
-```markdown
-Paper: [Title]
+### 2. Title/abstract screening
 
-## Inclusion Criteria Check
-- [ ] Criterion 1: [Description] → Met/Not Met/Unclear
-- [ ] Criterion 2: [Description] → Met/Not Met/Unclear
-- [ ] Criterion 3: [Description] → Met/Not Met/Unclear
+Write `RESEARCH/[topic]/screening/title_abstract.md`.
 
-## Exclusion Criteria Check
-- [ ] Exclusion 1: [Description] → Yes/No/Unclear
-- [ ] Exclusion 2: [Description] → Yes/No/Unclear
-
-## Decision
-- [ ] INCLUDE - Proceed to full-text
-- [ ] EXCLUDE - Reason: [...]
-- [ ] UNCERTAIN - Need full-text to decide
-```
-
-#### Common Inclusion Criteria
-
-| Criterion | Description |
-|-----------|-------------|
-| Topic Relevance | Addresses the research question |
-| Population | Correct population/context |
-| Study Type | Matches required study types |
-| Language | Published in target language |
-| Date Range | Within specified time period |
-| Peer Review | Published in peer-reviewed venue |
-
-#### Common Exclusion Criteria
-
-| Criterion | Description |
-|-----------|-------------|
-| Off-topic | Does not address research question |
-| Wrong population | Different population/context |
-| Study type | Reviews, editorials, opinion pieces |
-| Duplicate | Same study reported elsewhere |
-| No access | Full text unavailable |
-| Language | Not in accessible language |
-
-### Stage 2: Full-Text Screening
-
-For papers passing Stage 1, retrieve and review full text.
-
-#### Full-Text Screening Checklist
+Each row must preserve:
 
 ```markdown
-Paper: [Title]
-Full-text source: [URL/DOI]
-
-## Detailed Criteria Assessment
-
-### Inclusion Criteria
-1. [Criterion 1]:
-   - Evidence from text: "[quote]"
-   - Assessment: Met/Not Met
-
-2. [Criterion 2]:
-   - Evidence from text: "[quote]"
-   - Assessment: Met/Not Met
-
-### Exclusion Criteria
-1. [Exclusion 1]:
-   - Evidence from text: "[quote]"
-   - Assessment: Applies/Does not apply
-
-## Final Decision
-- [ ] INCLUDE - All criteria met
-- [ ] EXCLUDE - Reason: [specific criterion failed]
-
-## Notes
-[Any relevant observations]
+| record_id | query_id | source | title | year | relevance_reason | diagnostic_flags | decision | exclusion_reason | notes |
+|---|---|---|---|---|---|---|---|---|---|
 ```
 
-### Output Files (Standardized)
+Allowed decisions:
 
-Split outputs so later PRISMA and synthesis steps can reconcile counts deterministically.
+- `include`
+- `exclude`
+- `uncertain`
 
-#### 1) Title/Abstract decisions → `screening/title_abstract.md`
+Every `exclude` row requires one specific exclusion reason tied to the protocol.
+Do not use vague reasons such as "not relevant" when a criterion-specific reason
+is available.
+
+### 3. Full-text screening
+
+Write `RESEARCH/[topic]/screening/full_text.md` after retrieval attempts.
 
 ```markdown
-# Title/Abstract Screening
-
-## Screening Criteria
-
-### Inclusion Criteria
-1. [IC1]
-2. [IC2]
-3. [IC3]
-
-### Exclusion Criteria
-1. [EC1]
-2. [EC2]
-
-## Stage 1: Title/Abstract Screening
-
-| record_id | query_id | source | Title | Year | relevance_reason | diagnostic_flags | Include | Exclude Reason |
-|----|----|----|-------|------|------|------|---------|----------------|
-| 1 | q1 | semantic_scholar | [Title] | 2023 | concept match |  | yes | |
-| 2 | q1 | openalex | [Title] | 2022 | weak match | provider_undercoverage | no | Off-topic |
-| 3 | q2 | semantic_scholar | [Title] | 2023 | abstract match | known_item_missing | uncertain | Need full-text |
-
-**Summary:**
-- Total screened: N
-- Included: X
-- Excluded: Y
-- Uncertain: Z
-
-## Stage 2: Full-Text Screening
-
-| ID | Title | Year | Include | Exclude Reason |
-|----|-------|------|---------|----------------|
-| 1 | [Title] | 2023 | ✓ | |
-| 3 | [Title] | 2023 | ✗ | Wrong population |
-
-**Summary:**
-- Total assessed: N
-- Included: X
-- Excluded: Y (with reasons)
-
-## Exclusion Reasons Summary
-
-| Reason | Count |
-|--------|-------|
-| Off-topic | X |
-| Wrong population | Y |
-| Wrong study type | Z |
-| Duplicate | W |
+| record_id | query_id | source | decision | exclusion_reason | fulltext_status | diagnostic_flags | evidence_anchor | notes |
+|---|---|---|---|---|---|---|---|---|
 ```
 
-#### 2) Full-text decisions → `screening/full_text.md`
+Use controlled `fulltext_status` values:
 
-Include retrieval status and explicit exclusion reasons.
+- `retrieved_oa`
+- `retrieved_preprint`
+- `abstract_only`
+- `not_retrieved:paywall`
+- `not_retrieved:embargo`
+- `not_retrieved:broken_link`
+- `not_retrieved:not_found`
+- `not_retrieved:access_restricted`
+- `not_retrieved:needs_provider`
 
-```markdown
-# Full-text Screening
+Borderline records with `abstract_only` or `not_retrieved:*` must remain
+visible in PRISMA counts and cannot be silently converted into included studies.
 
-| record_id | query_id | source | decision (include/exclude) | exclusion_reason | fulltext_status | diagnostic_flags | notes |
-|---|---|---|---|---|---|---|---|
-```
+### 4. PRISMA flow data
 
-Use a controlled `fulltext_status` set:
-- `retrieved_oa` / `retrieved_preprint` / `abstract_only` / `not_retrieved:<reason>`
+Write `RESEARCH/[topic]/screening/prisma_flow.md` with counts that reconcile
+against `search_results.csv`, `dedup_log.csv`, `title_abstract.md`, and
+`full_text.md`.
 
-#### 3) PRISMA flow data → `screening/prisma_flow.md`
+Minimum fields:
 
-After screening, generate data for PRISMA flowchart:
-
-```markdown
-## PRISMA Flow Data
-
-Records identified: [N]
-- Semantic Scholar: [X]
-- arXiv: [Y]
-- Other sources: [Z]
-
-Records after deduplication: [N1]
-Records screened: [N1]
-Records excluded (title/abstract): [N2]
-Reports sought for retrieval: [N3]
-Reports not retrieved: [N4]
-Reports assessed for eligibility: [N5]
-Reports excluded (full-text): [N6]
-  - Reason 1: [count]
-  - Reason 2: [count]
-Studies included in review: [N7]
-```
-
-## Usage
-
-This skill is called by:
-- `/lit-review` - During screening phase
+- records identified by source
+- records after deduplication
+- records screened
+- records excluded at title/abstract stage
+- reports sought for retrieval
+- reports not retrieved
+- reports assessed for eligibility
+- reports excluded at full-text stage with reasons
+- studies included
 
 ## Output Contract
 
-- `ScreeningDecisionLog`: write `RESEARCH/[topic]/screening/title_abstract.md`.
+- `ScreeningDecisionLog`: write
+  `RESEARCH/[topic]/screening/title_abstract.md`.
 - `FullTextScreening`: write `RESEARCH/[topic]/screening/full_text.md`.
 - `PRISMAFlowData`: write `RESEARCH/[topic]/screening/prisma_flow.md`.
-- Consume `RESEARCH/[topic]/search_diagnostics.md`; unresolved diagnostic flags must remain visible in screening outputs.
-- Separate finding, interpretation, and implication in the final artifact.
-- Do not invent citations, data, sample sizes, statistical results, or reviewer comments.
-- Apply `references/academic-output-rubric.md` before finalizing scholarly prose or review artifacts.
+- Consume `RESEARCH/[topic]/search_diagnostics.md`; unresolved diagnostic flags
+  must remain visible in screening outputs.
+- Separate finding, interpretation, and implication in narrative notes.
+- Do not invent citations, data, sample sizes, statistical results, eligibility
+  evidence, or reviewer comments.
+- Apply `references/academic-output-rubric.md` before finalizing scholarly prose
+  or review artifacts.
 
 ### Evidence Ledger and Source Integrity
 
-- Update `RESEARCH/[topic]/evidence/claim-evidence-ledger.csv` when producing, revising, or validating central scholarly claims.
-- Follow `references/evidence-ledger-contract.md`: supported claims need source pointers; unsupported central claims become `gap_note` rows and `RESEARCH/[topic]/context/gap_notes.md` entries.
-- For final writing, proofread, submission, rebuttal, citation, or presentation-facing outputs, apply `references/citation-risk-policy.md` and write or update `RESEARCH/[topic]/proofread/citation-risk-report.md` when citation risk is material.
+- Update `RESEARCH/[topic]/evidence/claim-evidence-ledger.csv` only when a
+  screening decision supports a central scholarly claim.
+- Follow `references/evidence-ledger-contract.md`: supported claims need source
+  pointers; unsupported central claims become `gap_note` rows and
+  `RESEARCH/[topic]/context/gap_notes.md` entries.
+- Preserve `record_id`, `query_id`, `source`, `relevance_reason`, and
+  `diagnostic_flags` from search through screening.
 
 ## Quality Bar
 
-- [ ] Inclusion/exclusion criteria 已前置定义且无歧义
-- [ ] Title-abstract 和 full-text screening 分阶段记录
-- [ ] 每条排除决策附带排除理由
-- [ ] 每条 screening row 保留 record_id、query_id、source、relevance_reason、diagnostic_flags
-- [ ] 若 search_diagnostics.md 有 unresolved flags，不宣称 review-grade screening readiness
-- [ ] PRISMA flow 数据可直接生成 flow diagram
-- [ ] 存在 inter-rater reliability 描述（或标注为单筛）
+- [ ] Screening criteria are explicit before decisions start.
+- [ ] Every row keeps `record_id`, `query_id`, `source`,
+      `relevance_reason`, and `diagnostic_flags`.
+- [ ] Every exclusion has a criterion-specific reason.
+- [ ] Full-text status uses the controlled vocabulary above.
+- [ ] PRISMA counts reconcile with search and dedup artifacts.
+- [ ] Review-grade claims are blocked when diagnostics are unresolved.
 
 ## Common Pitfalls
 
 | Pitfall | Problem | Fix |
-|---------|---------|-----|
-| 标准模糊 | 同一篇文献不同标准得出不同结论 | 操作化每条 criteria 的判断规则 |
-| 无排除理由 | 无法复现筛选过程 | 每条记录附 exclusion reason code |
-| Full-text 获取失败未记录 | PRISMA flow 不完整 | 在 flow 中标注 unable to retrieve |
-| 一次筛完 | 跳过 title-abstract 阶段 | 强制两阶段分开 |
-| 无冲突解决机制 | 双筛不一致时无规则 | 预定义 consensus / third reviewer 规则 |
+| --- | --- | --- |
+| Screening before diagnostics | Coverage gaps get hidden | Inspect `search_diagnostics.md` first |
+| Vague exclusion reasons | PRISMA audit fails | Tie each exclusion to a criterion |
+| Dropping uncertain records | Borderline cases disappear | Carry `uncertain` to full-text stage |
+| Ignoring full-text status | Retrieval limits are invisible | Use controlled `fulltext_status` values |
+| Recomputing counts manually | PRISMA numbers drift | Reconcile against source artifacts |
 
 ## When to Use
 
-- 检索完成后需要按纳入排除标准筛选文献时
-- 需要 PRISMA-compliant 的双阶段筛选记录时
-- 大量文献（> 100 篇）需要系统筛选时
-- 需要生成 screening decision log 和 PRISMA flow 数据时
+- Use when B1 or targeted reading needs transparent include/exclude decisions.
+- Do not use to retrieve PDFs or enrich bibliography metadata; use
+  `fulltext-fetcher` and `reference-manager-bridge`.

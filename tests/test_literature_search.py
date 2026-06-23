@@ -160,6 +160,46 @@ class LiteratureSearchBaselineTests(unittest.TestCase):
         self.assertEqual(data["search_log"][0]["translated_query"], "qualitative governance")
         self.assertEqual(data["search_log"][0]["filters"], {})
 
+    def test_run_scholarly_search_uses_wider_default_per_query_limit(self) -> None:
+        seen_limits: list[int] = []
+
+        def fake_search(query: str, limit: int) -> dict[str, object]:
+            seen_limits.append(limit)
+            return {"data": [{"paperId": query, "title": query, "year": 2024}]}
+
+        result = run_scholarly_search(
+            {
+                "topic": "qualitative governance",
+                "keywords": ["governance", "firms"],
+            },
+            fake_search,
+            retrieved_at="2026-03-25T12:00:00+00:00",
+        )
+
+        self.assertEqual(result["data"]["per_query_limit"], 20)
+        self.assertTrue(seen_limits)
+        self.assertTrue(all(limit == 20 for limit in seen_limits))
+
+    def test_run_scholarly_search_clamps_explicit_limit_to_expanded_maximum(self) -> None:
+        seen_limits: list[int] = []
+
+        def fake_search(query: str, limit: int) -> dict[str, object]:
+            seen_limits.append(limit)
+            return {"data": [{"paperId": query, "title": query, "year": 2024}]}
+
+        result = run_scholarly_search(
+            {
+                "topic": "qualitative governance",
+                "per_query_limit": 80,
+            },
+            fake_search,
+            retrieved_at="2026-03-25T12:00:00+00:00",
+        )
+
+        self.assertEqual(result["data"]["per_query_limit"], 50)
+        self.assertTrue(seen_limits)
+        self.assertTrue(all(limit == 50 for limit in seen_limits))
+
     def test_run_scholarly_search_with_provider_fns_reports_partial_failure_diagnostics(self) -> None:
         provider_calls: list[tuple[str, dict[str, object], int]] = []
 

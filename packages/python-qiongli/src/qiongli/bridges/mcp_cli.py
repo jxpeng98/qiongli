@@ -112,7 +112,7 @@ def build_parser() -> argparse.ArgumentParser:
     example = config_subparsers.add_parser("example", help="Print a client config fragment")
     example.add_argument(
         "--target",
-        choices=["codex", "claude", "claude-code", "cursor", "gemini", "hermes"],
+        choices=["codex", "claude", "claude-code", "antigravity", "cursor", "hermes"],
         default="codex",
     )
     example.add_argument("--json", action="store_true")
@@ -258,9 +258,10 @@ def config_example(target: str) -> dict[str, Any]:
             "qiongli_config_status",
             "qiongli_configure_provider",
             "qiongli_open_config_wizard",
-            "qiongli_save_provider_config",
+        "qiongli_save_provider_config",
         ],
         "orchestration_tools": [
+            "qiongli_orchestrator_route",
             "qiongli_orchestrator_doctor",
             "qiongli_task_plan",
             "qiongli_task_run",

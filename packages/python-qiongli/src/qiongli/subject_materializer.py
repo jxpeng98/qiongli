@@ -26,6 +26,12 @@ AGENT_PACKET_TEMPLATES = (
     "agent-review-packet.md",
     "agent-run-packet.json",
 )
+WORKER_PACKET_TEMPLATES = (
+    "worker-merge-report.md",
+    "worker-review-packet.md",
+    "worker-run-packet.json",
+)
+DEFAULT_PACKET_TEMPLATES = AGENT_PACKET_TEMPLATES + WORKER_PACKET_TEMPLATES
 
 
 @dataclass(frozen=True)
@@ -303,7 +309,7 @@ def _materialize_templates(package_root: Path, out: Path, subject: SubjectDefini
         _copy_path(src_root, dest_root)
         return
     template_refs = list(subject.template_refs)
-    for rel in AGENT_PACKET_TEMPLATES:
+    for rel in DEFAULT_PACKET_TEMPLATES:
         if rel not in template_refs:
             template_refs.append(rel)
     for rel in template_refs:

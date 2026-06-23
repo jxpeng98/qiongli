@@ -72,7 +72,7 @@ JSON 输出会包含每个 target 当前安装的 active subject 和 coverage。
 
 用途：
 - npm、pipx、pip 或 bootstrap 安装 CLI 后的推荐第一个命令。
-- 引导 CLI、Codex 和 Claude Code 用户选择 install/upgrade、runtime surface、subject、coverage、install mode、install scope、overwrite 策略、upgrade source、可选 provider key setup，并执行 doctor verification。
+- 引导 CLI、Codex、Claude Code 和 Antigravity 用户选择 install/upgrade、runtime surface、subject、coverage、install mode、install scope、overwrite 策略、upgrade source、可选 provider key setup，并执行 doctor verification。
 
 ```bash
 qiongli setup [--project-dir <path>] [--dry-run] [--no-doctor]
@@ -115,7 +115,7 @@ wizard 选项：
 qiongli install \
   [--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting] \
   [--coverage complete|focused] \
-  [--target codex|claude|gemini|antigravity|hermes|all] \
+  [--target codex|claude|antigravity|hermes|all] \
   [--mode copy|link] \
   [--project-dir <path>] \
   [--overwrite] \
@@ -151,7 +151,7 @@ qiongli upgrade \
   [--ref-type tag|branch] \
   [--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting] \
   [--coverage complete|focused] \
-  [--target codex|claude|gemini|antigravity|hermes|all] \
+  [--target codex|claude|antigravity|hermes|all] \
   [--project-dir <path>] \
   [--no-overwrite] \
   [--doctor] \
@@ -163,7 +163,7 @@ qiongli upgrade \
 - 现在默认的 `upgrade` 是全局刷新。项目接线建议走 `qiongli init --project-dir .`；如果确实要在升级时重写项目文件，再显式加 `--parts project`。
 - `--subject` 默认是 `core`，`--coverage` 默认是 `complete`；使用 `--subject economics` 会安装全量 Qiongli 加 economics 专精，使用 `--subject accounting` 会安装全量 Qiongli 加 accounting 专精，显式加 `--coverage focused` 时才安装精简 selected 包。
 - 示例：`qiongli upgrade --subject accounting --target all`。
-- 全局安装后，`upgrade` 会自动创建工作流发现 symlink：`~/.claude/commands/*.md` 和 `~/.gemini/workflows/*.md`，可直接使用 `/paper`、`/lit-review` 等 slash 命令。
+- 全局安装后，`upgrade` 会自动创建 Claude Code 工作流发现 symlink：`~/.claude/commands/*.md`，可直接使用 `/paper`、`/lit-review` 等 slash 命令。
 - Shell CLI 会通过随附的 bootstrap helper 执行升级，不依赖 Python。
 - 退出码为底层安装器返回码（若安装失败，沿用其错误码）。
 
@@ -180,7 +180,7 @@ qiongli align [--repo <owner/repo|url>]
 用途：在项目目录中创建 `.env` 等项目配置。
 
 ```bash
-qiongli init [--project-dir <path>] [--target all|codex|claude|gemini] [--dry-run]
+qiongli init [--project-dir <path>] [--target all|codex|claude|antigravity|hermes] [--dry-run]
 ```
 
 ### 2.7 `qiongli remove`（移除 CLI 安装的资产）
@@ -189,7 +189,7 @@ qiongli init [--project-dir <path>] [--target all|codex|claude|gemini] [--dry-ru
 
 ```bash
 qiongli remove \
-  [--target codex|claude|gemini|antigravity|hermes|all] \
+  [--target codex|claude|antigravity|hermes|all] \
   [--parts globals|project|cli] \
   [--project-dir <path>] \
   [--cli-dir <path>] \
@@ -224,7 +224,7 @@ qiongli clean [--project-dir <path>] [--dry-run] [--globals]
 
 参数说明：
 - `--project-dir`：要清理的目录（默认当前目录）。
-- `--globals`：同时移除全局工作流发现 symlink（`~/.claude/commands/` 和 `~/.gemini/workflows/`）。只移除指向 `qiongli-workflow` 的 symlink，用户自建的命令不受影响。
+- `--globals`：同时移除全局工作流发现 symlink（例如 `~/.claude/commands/`）。也会清理旧版本遗留的 Gemini workflow symlink；只移除指向 `qiongli-workflow` 的 symlink，用户自建的命令不受影响。
 - `--dry-run`：只显示将要移除的内容，不实际删除。
 
 ### 2.9 `qiongli doctor`（环境预检）
@@ -290,8 +290,11 @@ mode 列表：
   - `--research-depth standard|deep` + `--max-rounds <n>`：提高证据扩展强度，并把 review/revision loop 拉深
   - `--only-target <id>`（可重复）：针对结构化 Stage-I 任务 `I4`-`I8`，回读 `RESEARCH/[topic]/code/` 下的现有 artifact，并且只重跑指定 actionable target
   - `--skip-validation`：关闭严格的 MCP/skill 可用性校验，并跳过 artifact validator gate；运行结果会明确给出 warning，同时把 `validator_gate.skipped=true` 写进结果数据
+  - `--guidance-mode off|read|propose|apply`：控制项目本地 `.qiongli/` 指导层；默认 `propose` 会在存在指导文件时读取它，写入 trace bundle，并生成保守的 guidance update proposal
   - `--update-academic-context`：对支持的阶段收口任务（`A5`、`B6`、`C5`、`D3`、`E5`、`F6`、`H4`），把 `context/research_state.md` 和 `context/decision_log.md` 追加进本次 active outputs，并向 draft prompt 注入阶段化的 academic continuity 更新约束
   - 内置 profile 新增 `focused-delivery`、`deep-research`；原有 `default`、`rapid-draft`、`strict-review` 仍可用
+
+  正式研究产物仍然属于 `RESEARCH/[topic]/...`。第一次非 `off` 的 task-run 会在缺失时自动初始化 `.qiongli/local_guidance.md` 和 `.qiongli/trace/`。orchestrator 会要求运行时 agent 创建这些 required files；如果 agent 只返回文本而没有真正写入文件，validator 会把它们标为 missing。`.qiongli/trace/runs/<run_id>/` 是独立追溯目录，即使正式产物不完整，也会记录 task packet、draft、review、validator gate 和 guidance proposal。
 
   示例：减少辅助文件，但保持更强的深度审查
   ```bash
@@ -330,6 +333,16 @@ mode 列表：
   ```bash
   python3 -m bridges.orchestrator task-plan --task-id F3 --paper-type empirical --topic your-topic --cwd .
   ```
+- `guidance`：管理项目本地 guidance 和 trace
+  ```bash
+  qiongli guidance init --project-dir .
+  qiongli guidance show --project-dir .
+  qiongli guidance trace --project-dir .
+  qiongli guidance apply \
+    --project-dir . \
+    --proposal .qiongli/trace/runs/<run_id>/guidance_update_proposal.md
+  ```
+  项目本地定制写在 `.qiongli/local_guidance.md`；运行追溯写在 `.qiongli/trace/index.jsonl` 和 `.qiongli/trace/runs/<run_id>/`。这些文件不会修改 canonical workflow contract、内置 skills 或 release payload。
 - `code-build`：学术代码工作流入口
   ```bash
   python3 -m bridges.orchestrator code-build \
@@ -382,7 +395,7 @@ mode 列表：
   ```
 - `role`：按专长拆分任务
   ```bash
-  python3 -m bridges.orchestrator role --cwd . --codex-task "..." --claude-task "..." --gemini-task "..."
+  python3 -m bridges.orchestrator role --cwd . --codex-task "..." --claude-task "..."
   ```
 
 ---

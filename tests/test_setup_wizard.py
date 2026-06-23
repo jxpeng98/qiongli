@@ -188,6 +188,17 @@ def test_hermes_runtime_targets_hermes_client(tmp_path: Path) -> None:
     assert plan.install_options.target == "hermes"
 
 
+def test_antigravity_runtime_targets_antigravity_client(tmp_path: Path) -> None:
+    answers = SetupAnswers(runtime="antigravity", project_dir=tmp_path)
+
+    plan = build_setup_plan(answers)
+
+    assert plan.client_target == "antigravity"
+    assert "--target" in plan.install_command
+    assert plan.install_command[plan.install_command.index("--target") + 1] == "antigravity"
+    assert plan.install_options.target == "antigravity"
+
+
 def test_project_scope_uses_parts_without_invalid_project_target(tmp_path: Path) -> None:
     answers = SetupAnswers(runtime="multi-platform", scope="project", project_dir=tmp_path)
 

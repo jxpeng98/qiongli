@@ -19,12 +19,12 @@
   - 如果 `/skills` 只看到 `research-paper-workflow`，运行 `qiongli upgrade --target codex --overwrite` 刷新当前包，重启 Codex 后再检查。
 - **说明**：安装目录仍然可能叫 `qiongli-workflow`，这是正常的。用户可见的 skill 名称应该是 `qiongli`。
 
-### Claude Code 或 Gemini 看不到 `/paper`、`/lit-review`。
+### Claude Code 看不到 `/paper`、`/lit-review`。
 
 - **原因**：workflow command discovery 文件未安装、客户端尚未重启，或你只安装了 Codex-facing skill package。
 - **修复**：
   - 需要跨客户端全局使用时，运行 `qiongli upgrade --target all --overwrite`。
-  - 重启 Claude Code 或 Gemini CLI。
+  - 重启 Claude Code。
   - 如果只安装了原生 plugin，确认该 plugin 已在客户端启用。
 
 ---
@@ -38,13 +38,6 @@
 - **修复**：检查你的 `.env` 文件或直接在终端中导出密钥。
   - Claude: `export ANTHROPIC_API_KEY="sk-ant-..."`
   - Codex: `export OPENAI_API_KEY="sk-proj-..."`
-  - Gemini: `export GEMINI_API_KEY="..."`（headless 首选）
-  - Gemini / Vertex AI: `export GOOGLE_GENAI_USE_VERTEXAI=true`，再配合 `GOOGLE_API_KEY` 或 `GOOGLE_APPLICATION_CREDENTIALS`，以及 `GOOGLE_CLOUD_PROJECT`、`GOOGLE_CLOUD_LOCATION`
-  - Gemini / Google 登录订阅：先在桌面会话里启动 `python3 scripts/gemini_session_broker.py --backend acp --host 127.0.0.1 --port 8767`，再导出 `RESEARCH_GEMINI_BROKER_URL=http://127.0.0.1:8767`
-- **transport 控制**：可以设置 `RESEARCH_GEMINI_TRANSPORT=auto|broker|direct` 来全局选择 Gemini 执行路径，或在 agent profile 的 `runtime_options.gemini.transport` 里按 profile 覆盖。
-- **补充说明**：在 `parallel`、`task-run`、`team-run` 这类非交互协作链路里，不要把 `direct` 路径上的“浏览器已登录”当成稳定前提。Gemini CLI 的缓存 OAuth 登录态在非交互 Python 子进程里可能不会被可靠复用；因此直连子进程模式应优先使用 `GEMINI_API_KEY` 或 Vertex 环境变量。
-- **broker 说明**：当 `RESEARCH_GEMINI_TRANSPORT=auto` 时，编排器会先探测 broker，再决定是否回退到直连 Gemini CLI。现在内置 broker 默认改成常驻的 `gemini --acp` backend，因此缓存的 Google 登录态在 broker 路径上可用；但在 `direct` 直连子进程路径上仍然不可靠。
-- **ACP 自定义**：可以用 `RESEARCH_GEMINI_ACP_CMD="..."` 覆盖常驻 ACP 命令。只有在你明确要保留旧的一次一进程 `gemini -p` 行为时才使用 `--backend cli`；如果需要完全外置的 backend，再使用 `RESEARCH_GEMINI_BROKER_BACKEND_CMD="..."`。
 
 ### `[ERR-RS-ENV-002]` 未安装所需的 CLI 工具或未将其添加到 PATH 中。
 - **原因**：尚未安装包含目标模型的 Node.js 二进制包装器。

@@ -66,7 +66,7 @@
 
 | 功能层 | 是否必须 | 什么时候该配 | 对应环境变量 | 推荐实现 |
 |---|---|---|---|---|
-| 模型调用 | 必须，至少配你实际使用的一个 | 只要你直接跑 orchestrator / bridge / CLI agent | `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` | 按你实际使用的模型提供商填写 |
+| 模型调用 | 必须，至少配你实际使用的一个 | 只要你直接跑 orchestrator / bridge / CLI agent | `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | 按你实际使用的模型提供商填写 |
 | CLI 语言 | 可选 | 你希望 CLI 输出固定为中文或英文时 | `RESEARCH_CLI_LANG` | `zh-CN` 或 `en` |
 | 文献发现检索 | 非必须，但强烈建议 | 你要做 related work、gap analysis、literature review 时 | `SEMANTIC_SCHOLAR_API_KEY`；可选 `RESEARCH_MCP_SCHOLARLY_SEARCH_CMD` | 内置 Semantic Scholar；更严格时换成多源 scholarly MCP |
 | 引文扩展 | 可选 | 你要做 backward / forward snowballing 时 | 可选 `RESEARCH_MCP_CITATION_GRAPH_CMD` | 默认内置 graph；更严格时换成自定义 graph MCP |

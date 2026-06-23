@@ -58,68 +58,74 @@ class MultiAgentSmokeTests(unittest.TestCase):
             [
                 "- [OK] Working directory: /tmp/repo",
                 "- [OK] CLI codex: /tmp/codex",
+                "- [OK] CLI claude: /tmp/claude",
                 "- [OK] Env OPENAI_API_KEY: configured",
-                "- [OK] Gemini transport: broker (source: env)",
-                "- [OK] Gemini broker: broker ready",
+                "- [OK] Env ANTHROPIC_API_KEY: configured",
             ]
         )
         status, detail = evaluate_doctor_output(
             merged,
-            transport="broker",
             codex_required=True,
-            gemini_required=True,
+            claude_required=True,
+            antigravity_required=False,
             codex_auth_ready=False,
+            claude_auth_ready=False,
+            antigravity_auth_ready=False,
         )
         self.assertEqual(status, PASS)
         self.assertIn("expected readiness markers", detail)
 
-    def test_evaluate_doctor_output_reports_missing_direct_auth(self) -> None:
+    def test_evaluate_doctor_output_reports_missing_claude_auth(self) -> None:
         merged = "\n".join(
             [
                 "- [OK] Working directory: /tmp/repo",
                 "- [OK] CLI codex: /tmp/codex",
+                "- [OK] CLI claude: /tmp/claude",
                 "- [OK] Env OPENAI_API_KEY: configured",
-                "- [OK] Gemini transport: direct (source: env)",
             ]
         )
         status, detail = evaluate_doctor_output(
             merged,
-            transport="direct",
             codex_required=True,
-            gemini_required=True,
+            claude_required=True,
+            antigravity_required=False,
             codex_auth_ready=False,
+            claude_auth_ready=False,
+            antigravity_auth_ready=False,
         )
         self.assertEqual(status, FAIL)
-        self.assertIn("Gemini direct auth not OK", detail)
+        self.assertIn("ANTHROPIC_API_KEY not configured", detail)
 
     def test_render_report_markdown_includes_case_lines(self) -> None:
         report = SmokeReport(
             generated_at="2026-04-11T12:00:00+00:00",
             cwd="/tmp/repo",
             topic="demo",
-            transport="auto",
             codex_required=True,
-            gemini_required=True,
-            started_broker=False,
-            broker_url="http://127.0.0.1:8767",
+            claude_required=True,
+            antigravity_required=False,
             environment={
                 "codex_cli": True,
                 "codex_auth_ready": True,
                 "codex_auth_detail": "Logged in using ChatGPT",
-                "gemini_cli": True,
+                "claude_cli": True,
+                "claude_auth_ready": True,
+                "claude_auth_detail": "ANTHROPIC_API_KEY configured",
+                "antigravity_cli": False,
+                "antigravity_auth_ready": False,
+                "antigravity_auth_detail": "antigravity CLI not found in PATH",
                 "openai_api_key": True,
-                "gemini_direct_auth_ready": False,
-                "gemini_direct_auth_detail": "no direct auth",
+                "anthropic_api_key": True,
             },
             cases=[
                 SmokeCaseResult("doctor", PASS, "doctor ok", 0.1),
-                SmokeCaseResult("gemini_runtime", WARN, "gemini warn", 0.2),
+                SmokeCaseResult("claude_runtime", WARN, "claude warn", 0.2),
             ],
         )
         markdown = render_report_markdown(report)
         self.assertIn("# Multi-Agent Smoke Report", markdown)
         self.assertIn("`PASS` doctor: doctor ok", markdown)
-        self.assertIn("`WARN` gemini_runtime: gemini warn", markdown)
+        self.assertIn("`WARN` claude_runtime: claude warn", markdown)
 
 
 if __name__ == "__main__":

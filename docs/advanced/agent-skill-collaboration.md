@@ -17,7 +17,13 @@ First, bind the capability to a standard Task ID (`A1`~`I8`):
 - **Submission & Rebuttal**: `H1`~`H4`
 - **Code & Replication**: `I1`~`I8` (Includes CCG strict-constraint code engine)
 
-Once the target task is determined, you can reuse the unified orchestration chain: `plan -> mcp-evidence -> primary-agent-draft -> review-agent-check -> validator-gate`.
+Once the target task is determined, use the matching orchestration chain:
+
+- Standard: `plan -> mcp-evidence -> primary-agent-draft -> review-agent-check -> validator-gate`
+- Worker-enabled: `plan -> mcp-evidence -> worker_plan -> worker-execute -> merge -> final-review -> validator-gate`
+
+`worker_plan` is platform-neutral: Codex maps it to `codex_subagent`, Claude
+maps it to `claude_cowork`, and any runtime can fall back to `generic_prompt`.
 
 ## 2) Division of Labor Principles (Fixed)
 
@@ -99,7 +105,7 @@ A profile can define:
 
 - `persona`
 - `analysis_style` / `draft_style` / `review_style` / `summary_style` / `triad_style`
-- `runtime_options` (Agent-specific tool permissions, e.g., Codex sandbox, Claude permission mode, Gemini sandbox)
+- `runtime_options` (Agent-specific tool permissions, e.g., Codex sandbox and Claude permission mode)
   - Recommended settings: `non_interactive: true`, `timeout_seconds`
   - Optional strict auth: `require_api_key: true` (Fails fast if key is missing, avoiding getting stuck in login flows)
 
@@ -110,7 +116,7 @@ A profile can define:
 - **CCG Strict Execution Constraint (I5-I8)**: Drawing from `ccg-workflow`, the code phase is strictly split into Constraint Extraction (I5) -> Decision-free Planning (I6) -> Primary Execution (I7) -> Side-channel Validation (I8).
 - Recommended skills: `code-specification`, `code-planning`, `code-execution`, `code-review`
 - Recommended MCPs: `code-runtime`, `filesystem`
-- Agent combination: Primary `codex` (Executes I7), Review `gemini` (Validates I8)
+- Agent combination: Primary `codex` (executes I7), Review `claude` (validates I8)
 
 ### B. Systematic Review Capabilities (`B1`)
 
@@ -134,14 +140,14 @@ A profile can define:
 
 - **Multi-AI Triad Iteration**: Use triad mode to perform iterative de-AI. Drafter rewrites text, Reviewer checks for AI fingerprints, and Auditor ensures scientific accuracy.
 - Recommended skills: `proofread-editor`, `ai-detector`, `similarity-checker`
-- Agent combination: Primary `claude`, Review `gemini`, Triad `codex` (via `task-run --triad`)
+- Agent combination: Primary `claude`, Review `codex`, Antigravity triad audit when `task-run --triad` is enabled
 
 ### F. Submission and Rebuttal (`H1`~`H4`)
 
 - **Multi-Role Expert Cross-Review (H3-H4)**: Before final submission, use parallel invocations to simulate harsh reviewers (Methodologist, Domain Expert) across a cross-review (H3) and execute a Fatal Flaw Desktop-reject scan (H4).
 - Recommended skills: `submission-packager`, `rebuttal-assistant`, `peer-review-simulation`, `fatal-flaw-detector`, `model-collaborator`
 - Recommended MCPs: `submission-kit`, `metadata-registry`, `reporting-guidelines`
-- Agent combination: Primary `claude`, Review `gemini/codex`
+- Agent combination: Primary `claude`, Review `codex`
 
 ## 4.1) `team-run` Acceptance Workflow (`B1`, `H3`)
 
@@ -178,7 +184,7 @@ Interpretation rules:
 Current local receipts in this repo show two concrete block classes:
 
 - `B1`: outbound scholarly-search resolution failed and optional external MCP overlays were not configured.
-- `H3`: `claude` / `gemini` CLIs were absent from `PATH`, and the Codex worker produced no consumable agent message.
+- `H3`: the review runtime was absent from `PATH`, and the Codex worker produced no consumable agent message.
 
 ## 5) Execution Entry Points (Unified)
 
@@ -207,7 +213,7 @@ python -m bridges.orchestrator task-run \
   -i  # (Optional) Interactive step-by-step
 ```
 
-`--triad` automatically invokes a third runtime agent for an independent audit after the primary draft and review, maintaining a three-end collaboration even during the non-code `A`~`H` phases.
+`--triad` preserves the independent-audit contract after the primary draft and review. Antigravity replaces the previous Gemini lane as the preferred distinct third runtime; if it is unavailable, the orchestrator records the routing fallback and reuses an available runtime for the audit.
 
 Parallel Analysis Mode (Not restricted by Task ID):
 
@@ -219,7 +225,7 @@ python -m bridges.orchestrator parallel \
   -i
 ```
 
-This mode defaults to concurrent multi-agent execution (Codex/Claude/Gemini) followed by a synthesis analysis; it auto-downgrades to dual or single agents if three are not available.
+This mode defaults to concurrent Codex/Claude/Antigravity execution followed by a synthesis analysis; it records skipped or unavailable workers instead of treating them as completed reviews.
 
 ## 6) External Agents vs. Custom Agents?
 

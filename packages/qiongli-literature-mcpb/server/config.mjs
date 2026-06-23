@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const DEFAULT_LIMIT = 10;
+const DEFAULT_LIMIT = 25;
 const MIN_LIMIT = 1;
 const MAX_LIMIT = 50;
 const PROVIDER_FIELDS = {
@@ -23,10 +23,10 @@ const PROVIDER_FIELDS = {
     ]
   },
   crossref: {
-    email: ["QIONGLI_CROSSREF_EMAIL", "CROSSREF_EMAIL"]
+    email: ["QIONGLI_CROSSREF_EMAIL", "CROSSREF_EMAIL", "QIONGLI_MCPB_CROSSREF_EMAIL"]
   },
   pubmed: {
-    api_key: ["QIONGLI_NCBI_API_KEY", "NCBI_API_KEY", "PUBMED_API_KEY"]
+    api_key: ["QIONGLI_NCBI_API_KEY", "NCBI_API_KEY", "PUBMED_API_KEY", "QIONGLI_MCPB_PUBMED_API_KEY"]
   }
 };
 const PROVIDER_ACCESS_GUIDANCE = {
@@ -113,6 +113,14 @@ export function readConfig(env = process.env) {
       readTrimmed(env, "QIONGLI_MCPB_SEMANTIC_SCHOLAR_API_KEY"),
       readSharedField(shared, "semantic_scholar", "api_key")
     ]),
+    crossrefEmail: firstConfigured([
+      readTrimmed(env, "QIONGLI_MCPB_CROSSREF_EMAIL"),
+      readSharedField(shared, "crossref", "email")
+    ]),
+    pubmedApiKey: firstConfigured([
+      readTrimmed(env, "QIONGLI_MCPB_PUBMED_API_KEY"),
+      readSharedField(shared, "pubmed", "api_key")
+    ]),
     defaultLimit: readDefaultLimit(env)
   };
 }
@@ -157,17 +165,21 @@ export function providerStatus(config) {
   const providers = {
     openalex: config.openalexApiKey ? "configured" : "missing",
     semantic_scholar: config.semanticScholarApiKey ? "configured" : "missing",
-    crossref: "not_implemented",
-    pubmed: "not_implemented"
+    crossref: config.crossrefEmail ? "configured" : "missing",
+    pubmed: config.pubmedApiKey ? "configured" : "missing"
   };
   const openalexUsable = providers.openalex === "configured";
   const semanticScholarUsable = providers.semantic_scholar === "configured";
+  const crossrefUsable = providers.crossref === "configured";
+  const pubmedUsable = providers.pubmed === "configured";
   const missing = missingProviderFields(config);
   const nextAction = providerSetupNextAction(missing);
 
   const status = {
     status: "ok",
-    capability_mode: openalexUsable || semanticScholarUsable ? "provider_connected" : "strategy_only",
+    capability_mode: openalexUsable || semanticScholarUsable || crossrefUsable || pubmedUsable
+      ? "provider_connected"
+      : "strategy_only",
     providers,
     missing
   };
@@ -198,15 +210,15 @@ export function redactedProviderStatus(config) {
         }
       },
       crossref: {
-        configured: false,
+        configured: status.providers.crossref === "configured",
         fields: {
-          email: "missing"
+          email: config.crossrefEmail ? "configured" : "missing"
         }
       },
       pubmed: {
-        configured: false,
+        configured: status.providers.pubmed === "configured",
         fields: {
-          api_key: "missing"
+          api_key: config.pubmedApiKey ? "configured" : "missing"
         }
       }
     },
@@ -226,6 +238,12 @@ function missingProviderFields(config) {
   if (!config.semanticScholarApiKey) {
     missing.push("semantic_scholar.api_key");
   }
+  if (!config.crossrefEmail) {
+    missing.push("crossref.email");
+  }
+  if (!config.pubmedApiKey) {
+    missing.push("pubmed.api_key");
+  }
   return missing;
 }
 
@@ -241,6 +259,26 @@ function providerSetupNextAction(missing) {
   }
 
   if (!missing.includes("semantic_scholar.api_key")) {
+    if (missing.includes("crossref.email")) {
+      return {
+        tool: "qiongli_configure_provider",
+        args: {
+          provider: "crossref"
+        },
+        message: "Run qiongli_configure_provider to open a local setup page. Do not paste API keys in chat."
+      };
+    }
+
+    if (missing.includes("pubmed.api_key")) {
+      return {
+        tool: "qiongli_configure_provider",
+        args: {
+          provider: "pubmed"
+        },
+        message: "Run qiongli_configure_provider to open a local setup page. Do not paste API keys in chat."
+      };
+    }
+
     return undefined;
   }
 

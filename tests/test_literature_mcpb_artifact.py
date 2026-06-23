@@ -31,7 +31,10 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
         self.assertIs(manifest["user_config"]["openalex_api_key"]["sensitive"], True)
         self.assertIs(manifest["user_config"]["semantic_scholar_api_key"]["sensitive"], True)
         self.assertEqual(manifest["user_config"]["openalex_email"]["type"], "string")
-        self.assertEqual(manifest["user_config"]["default_result_limit"]["default"], 10)
+        self.assertEqual(manifest["user_config"]["default_result_limit"]["default"], 25)
+        self.assertIn("zotero_default_review_tags", manifest["user_config"])
+        self.assertIn("zotero_default_review_collection_path", manifest["user_config"])
+        self.assertIn("zotero_crossref_verification_enabled", manifest["user_config"])
         self.assertIn("qiongli_literature_search", {tool["name"] for tool in manifest["tools"]})
 
     def test_literature_mcpb_manifest_server_entry_exists(self) -> None:
@@ -53,6 +56,10 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
                 "qiongli_open_config_wizard",
                 "qiongli_literature_search",
                 "qiongli_literature_export_evidence",
+                "qiongli_zotero_status",
+                "qiongli_zotero_search",
+                "qiongli_zotero_upsert_references",
+                "qiongli_zotero_export_import_files",
             },
         )
 
@@ -83,6 +90,10 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
         self.assertEqual(
             mcp_config["env"]["QIONGLI_MCPB_OPENALEX_API_KEY"],
             "${user_config.openalex_api_key}",
+        )
+        self.assertEqual(
+            mcp_config["env"]["QIONGLI_ZOTERO_CONNECTOR_URL"],
+            "${user_config.zotero_connector_url}",
         )
         self.assertNotIn("qiongli mcp", serialized_manifest)
         self.assertNotIn("qiongli", mcp_config["command"])
@@ -123,8 +134,22 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
         self.assertIn("server/index.mjs", names)
         self.assertIn("server/config.mjs", names)
         self.assertIn("server/config-wizard.mjs", names)
+        self.assertIn("server/capabilities.mjs", names)
+        self.assertIn("server/diagnostics.mjs", names)
+        self.assertIn("server/domain-profiles.mjs", names)
         self.assertIn("server/query.mjs", names)
         self.assertIn("server/stdio.mjs", names)
+        self.assertIn("server/providers/http.mjs", names)
+        self.assertIn("server/providers/crossref.mjs", names)
+        self.assertIn("server/providers/pubmed.mjs", names)
+        self.assertIn("server/zotero/config.mjs", names)
+        self.assertIn("server/zotero/records.mjs", names)
+        self.assertIn("server/zotero/exporters.mjs", names)
+        self.assertIn("server/zotero/client.mjs", names)
+        self.assertIn("server/zotero/tools.mjs", names)
+        self.assertIn("server/zotero/search-source.mjs", names)
+        self.assertIn("server/zotero/crossref-verifier.mjs", names)
+        self.assertIn("server/zotero/review-tags.mjs", names)
 
     def test_build_literature_mcpb_excludes_tests(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

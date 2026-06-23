@@ -59,11 +59,29 @@ artifact_types:
     produced_by: [academic-searcher]
     consumed_by: [prisma-checker]
 
+  - name: DedupLog
+    description: "Audit log of literature record merge, duplicate, and keep-separate decisions"
+    format: csv
+    produced_by: [academic-searcher, citation-snowballer]
+    consumed_by: [paper-screener, prisma-checker]
+
+  - name: SearchDiagnostics
+    description: "Search coverage diagnostics for provider coverage, concept coverage, known-item recall, dedup ratio, and screening readiness"
+    format: markdown
+    produced_by: [academic-searcher]
+    consumed_by: [paper-screener, citation-snowballer, prisma-checker]
+
   - name: ScreeningDecisionLog
     description: "Two-stage screening decisions with inclusion/exclusion reasons"
     format: markdown
     produced_by: [paper-screener]
     consumed_by: [paper-extractor, fulltext-fetcher, evidence-synthesizer]
+
+  - name: FullTextScreening
+    description: "Full-text eligibility screening record with retrieval limits and eligibility decisions"
+    format: markdown
+    produced_by: [paper-screener]
+    consumed_by: [paper-extractor, fulltext-fetcher, prisma-checker]
 
   - name: PRISMAFlowData
     description: "Counts and flow data for PRISMA 2020 flow diagram"
@@ -88,6 +106,12 @@ artifact_types:
     format: markdown
     produced_by: [citation-snowballer]
     consumed_by: [paper-screener]
+
+  - name: RetrievalManifest
+    description: "Full-text retrieval manifest with resolver provenance, locator, status, timestamp, and failure reason"
+    format: csv
+    produced_by: [fulltext-fetcher]
+    consumed_by: [paper-extractor, prisma-checker]
 
   - name: ConceptMap
     description: "Structured search concepts with controlled vocabulary candidates"
@@ -541,6 +565,12 @@ artifact_types:
     format: json
     produced_by: [reference-manager-bridge]
     consumed_by: []
+
+  - name: ZoteroImportReport
+    description: "Reference-manager import or local Zotero sync report with dry-run, match, update, and fallback-file decisions"
+    format: markdown
+    produced_by: [reference-manager-bridge]
+    consumed_by: [citation-formatter, academic-context-maintainer]
 
   - name: ReviewComments
     description: "Reviewer or editor comments requiring structured response"

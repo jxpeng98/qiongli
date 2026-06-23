@@ -10,6 +10,7 @@ from scripts.validate_research_standard import (
     validate_controller_mode_contracts,
     validate_domain_method_pack_contracts,
     validate_literature_first_contracts,
+    validate_profile_bundle_template,
     validate_quality_gate_contracts,
 )
 
@@ -24,6 +25,11 @@ class ResearchStandardValidatorTests(unittest.TestCase):
 
         joined = "\n".join(report.errors)
         self.assertIn("standards/agent-run-contract.yaml", joined)
+        self.assertIn("standards/worker-orchestration-contract.yaml", joined)
+        self.assertIn("templates/worker-run-packet.json", joined)
+        self.assertIn("templates/worker-review-packet.md", joined)
+        self.assertIn("templates/worker-merge-report.md", joined)
+        self.assertIn("tests/test_worker_orchestration_contract.py", joined)
         self.assertIn("scripts/audit_solo_role_gates.py", joined)
 
     def test_non_strict_controller_mode_contract_does_not_require_files(self) -> None:
@@ -189,6 +195,11 @@ class ResearchStandardValidatorTests(unittest.TestCase):
                 "templates/implementation-intent.md",
                 "templates/writing-claim-map.md",
                 "templates/quality-gate-report.md",
+                "templates/worker-run-packet.json",
+                "templates/worker-review-packet.md",
+                "templates/worker-merge-report.md",
+                "standards/worker-orchestration-contract.yaml",
+                "tests/test_worker_orchestration_contract.py",
                 "scripts/audit_solo_role_gates.py",
                 "scripts/audit_agent_handoffs.py",
             ):
@@ -208,6 +219,33 @@ class ResearchStandardValidatorTests(unittest.TestCase):
         joined = "\n".join(report.errors)
         self.assertIn("bad-run", joined)
         self.assertIn("verification_status", joined)
+
+    def test_profile_bundle_accepts_antigravity_runtime_options(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            profile_path = root / "standards" / "agent-profiles.example.json"
+            profile_path.parent.mkdir(parents=True, exist_ok=True)
+            profile_path.write_text(
+                """
+{
+  "profiles": {
+    "default": {
+      "runtime_options": {
+        "codex": {"timeout_seconds": 300},
+        "claude": {"timeout_seconds": 300},
+        "antigravity": {"timeout_seconds": 300}
+      }
+    }
+  }
+}
+""".strip(),
+                encoding="utf-8",
+            )
+            report = ValidationReport()
+
+            validate_profile_bundle_template(root, report)
+
+        self.assertEqual([], report.errors)
 
 
 if __name__ == "__main__":

@@ -101,6 +101,10 @@ def materialize_plugin_payload(root: Path) -> None:
         if str(import_root) not in sys.path:
             sys.path.insert(0, str(import_root))
     from qiongli.source_layout import RepoLayout
+    from scripts.build_plugin_artifacts import (
+        materialize_agent_platform,
+        materialize_plugin_package,
+    )
     from scripts.sync_npm_package_payload import build_materialize_source, copy_path, fail_if_symlinks
 
     layout = RepoLayout(root)
@@ -117,21 +121,14 @@ def materialize_plugin_payload(root: Path) -> None:
         print("  [ok] portable package")
 
         print(f"Syncing plugin package source: {plugin_root}")
-        copy_path(layout.plugin_package, plugin_root, dry_run=False)
+        materialize_plugin_package(root, plugin_root, force=True)
         fail_if_symlinks(plugin_root)
         print("  [ok] plugin package source")
 
-        if layout.agent_platform.exists():
-            print(f"Syncing agent platform files: {layout.agent_platform_artifact}")
-            copy_path(layout.agent_platform, layout.agent_platform_artifact, dry_run=False)
-            fail_if_symlinks(layout.agent_platform_artifact)
-            print("  [ok] agent platform files")
-
-        if layout.gemini_platform.exists():
-            print(f"Syncing Gemini platform files: {layout.gemini_platform_artifact}")
-            copy_path(layout.gemini_platform, layout.gemini_platform_artifact, dry_run=False)
-            fail_if_symlinks(layout.gemini_platform_artifact)
-            print("  [ok] Gemini platform files")
+        print(f"Syncing agent platform files: {layout.agent_platform_artifact}")
+        materialize_agent_platform(root, layout.agent_platform_artifact, force=True)
+        fail_if_symlinks(layout.agent_platform_artifact)
+        print("  [ok] agent platform files")
 
         print(f"Syncing skill package: {plugin_dest}")
         copy_path(portable_dest, plugin_dest, dry_run=False)
@@ -152,10 +149,10 @@ def materialize_next_plugin_payload(root: Path) -> None:
 
     layout = RepoLayout(root)
     next_plugin_root = layout.next_plugin_package
-    print(f"Syncing Git-backed qiongli-next Codex plugin: {next_plugin_root}")
+    print(f"Syncing generated qiongli-next plugin payload: {next_plugin_root}")
     materialize_next_codex_plugin(root, next_plugin_root, force=True)
     fail_if_symlinks(next_plugin_root)
-    print("  [ok] qiongli-next Codex plugin source")
+    print("  [ok] qiongli-next plugin payload")
 
 
 def materialize_in_place(root: Path, target: str) -> None:

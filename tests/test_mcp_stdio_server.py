@@ -37,6 +37,7 @@ class MCPStdioServerTests(unittest.TestCase):
         tool_names = {tool["name"] for tool in responses[1]["result"]["tools"]}
         self.assertIn("qiongli_config_status", tool_names)
         self.assertIn("qiongli_configure_provider", tool_names)
+        self.assertIn("qiongli_orchestrator_route", tool_names)
         self.assertIn("qiongli_orchestrator_doctor", tool_names)
         self.assertIn("qiongli_task_plan", tool_names)
         self.assertIn("qiongli_task_run", tool_names)

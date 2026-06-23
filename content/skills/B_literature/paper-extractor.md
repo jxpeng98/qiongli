@@ -1,304 +1,186 @@
 ---
 id: paper-extractor
 stage: B_literature
-description: "Extract structured information from papers including bibliographic metadata, methodology, findings, and contributions."
+description: "Extract source-anchored paper notes and rollup tables while preserving evidence limits for metadata, abstract-only, and full-text records."
 inputs:
   - type: ScreeningDecisionLog
     description: "Papers that passed screening"
   - type: FullTextAccess
-    description: "Full-text PDFs or URLs"
+    description: "Full-text PDFs, URLs, or retrieval manifest rows"
 outputs:
   - type: ExtractionTable
     artifact: "extraction_table.md"
   - type: PaperNotes
     artifact: "notes/"
 constraints:
-  - "Must extract all 7 framework categories (bibliographic, context, theory, methodology, findings, discussion, contributions)"
-  - "Must generate one note per paper under notes/"
+  - "Must generate one note per included paper"
+  - "Must preserve source_anchor and evidence_limit for extracted claims"
+  - "Must mark unsupported fields as unsupported_gap"
 failure_modes:
-  - "Inconsistent reporting across papers"
-  - "Missing methodology details in source papers"
+  - "Only metadata or abstract is available"
+  - "Source paper does not report required method or result details"
+  - "Extraction fields are inconsistent across papers"
 tools: [filesystem, extraction-store]
-tags: [literature, extraction, data-collection, structured-notes]
+tags: [literature, extraction, source-anchor, evidence-limit, structured-notes]
 domain_aware: false
 ---
 
 # Paper Extractor Skill
 
-Extract structured information from academic papers for analysis and synthesis.
-
 ## Purpose
 
-Systematically extract key information from papers including:
-- Bibliographic metadata
-- Research design elements
-- Findings and contributions
-- Methodological details
-
-## Granularity Boundary
-
-The following are structured extraction slots inside `paper-extractor`, not separate top-level skills:
-
-- Methodology extraction
-- Dataset / data-source extraction
-- Theory extraction
-- Limitation extraction
-
-If a new requirement only changes one slot, extend `templates/paper-note.md` or `templates/extraction-table.md` rather than adding another extractor skill.
+Extract included papers into source-anchored notes and a rollup table. This skill
+separates what the source directly reports from what the project infers, and it
+preserves evidence limits when only metadata, abstracts, or partial full text are
+available.
 
 ## Related Task IDs
 
-- `B2` (targeted paper reading)
-- `B1` (systematic review pipeline)
-- Supports synthesis: `E2` (effect size table), `E5` (integrated synthesis)
+- `B2` targeted key paper reading
+- `B1` systematic review pipeline
+- Supports `E1`-`E5` synthesis and `F` writing tasks.
 
 ## Outputs (contract paths)
 
-- Paper notes → `RESEARCH/[topic]/notes/`
-- Extraction rollup → `RESEARCH/[topic]/extraction_table.md`
-- (If pooling) effect inputs → `RESEARCH/[topic]/effect_size_table.md`
-
-Template references:
-- `templates/paper-note.md`
-- `templates/extraction-table.md`
-- `templates/effect-size-extraction-table.md` (when pooling)
+- `RESEARCH/[topic]/notes/{citekey}.md`
+- `RESEARCH/[topic]/extraction_table.md`
+- Optional `RESEARCH/[topic]/effect_size_table.md` when pooling is planned.
 
 ## Inputs
 
-- `ScreeningDecisionLog`: Papers that passed screening
-- `FullTextAccess`: Full-text PDFs or URLs
-- If a required input is missing or insufficient, write a gap note under `RESEARCH/[topic]/context/gap_notes.md` and ask for the missing artifact instead of inventing content.
-- Treat literature, data, citations, and project files as evidence sources; keep unsupported assumptions visibly marked.
+- Included records from `RESEARCH/[topic]/screening/full_text.md`.
+- Retrieval status from `RESEARCH/[topic]/retrieval_manifest.csv`.
+- Bibliography metadata from `RESEARCH/[topic]/bibliography.bib`,
+  `references.json`, or `search_results.csv`.
+- If inputs are missing or insufficient, write
+  `RESEARCH/[topic]/context/gap_notes.md` and ask for the missing full text,
+  metadata, or screening decision instead of inventing extraction content.
+- Treat full text, abstracts, metadata, tables, figures, and notes as evidence
+  sources with different limits.
 
 ## Process
 
-### 1. Bibliographic Information
+### 1. Assign evidence limit before extracting
 
-| Field | Example |
-|-------|---------|
-| Title | |
-| Authors | (Last, First; Last, First; ...) |
-| Year | |
-| Venue | Journal/Conference name |
-| Volume/Issue | |
-| Pages | |
-| DOI | |
-| URL | |
+Every note and rollup row must include `evidence_limit`.
 
-### 2. Research Context
+Allowed values:
 
-| Field | Extraction Prompt |
-|-------|------------------|
-| Research Problem | What problem does this paper address? |
-| Motivation | Why is this problem important? |
-| Research Gap | What gap in knowledge does this fill? |
-| Objectives | What are the stated objectives? |
-| Research Questions | What RQs or hypotheses are presented? |
+- `full_text`
+- `abstract_only`
+- `metadata_only`
+- `unavailable`
 
-### 3. Theoretical Elements
+Extraction from `abstract_only` or `metadata_only` records must not infer sample
+size, methods, findings, limitations, effect sizes, datasets, or theoretical
+claims not visible in the available source.
 
-| Field | Extraction Prompt |
-|-------|------------------|
-| Theoretical Framework | What theories guide the research? |
-| Key Concepts | What are the main constructs/concepts? |
-| Conceptual Model | Is there a conceptual/research model? |
-| Hypotheses | What hypotheses are tested? |
+### 2. Extract with source anchors
 
-### 4. Methodology
+Every project-level extraction claim must include `source_anchor`.
 
-| Field | Extraction Prompt |
-|-------|------------------|
-| Research Design | Qualitative/Quantitative/Mixed? Experimental? |
-| Population | Who/what is studied? |
-| Sampling | How was sample selected? Size? |
-| Data Collection | What instruments/methods? |
-| Data Sources | Primary/Secondary? What sources? |
-| Variables | IVs, DVs, Controls, Moderators, Mediators? |
-| Analysis Methods | What analytical techniques? |
-| Validity/Reliability | What measures of rigor? |
+Valid anchors:
 
-### 4.5 Dataset / Data Source Slot
+- citekey plus page, section, table, figure, appendix, or quote ID
+- abstract sentence or metadata field
+- DOI/provider metadata field
+- retrieval manifest row
 
-| Field | Extraction Prompt |
-|-------|------------------|
-| Data Source | What dataset, archive, platform, or field setting is used? |
-| Access Type | Public / restricted / proprietary / collected by authors? |
-| Time Window | What observation period is covered? |
-| Unit of Analysis | Individual / firm / country / document / etc. |
-| Merge / Linkage | Are multiple sources combined? How? |
+Use `unsupported_gap` when the desired field is not available in the source.
 
-### 5. Findings
+### 3. Write one paper note per included study
 
-| Field | Extraction Prompt |
-|-------|------------------|
-| Key Findings | What are the main results? |
-| Hypothesis Support | Which hypotheses supported/rejected? |
-| Effect Sizes | What are the reported effect sizes? |
-| Statistical Results | Key statistics (p-values, R², etc.) |
-| Themes | (For qualitative) What themes emerged? |
+Use `RESEARCH/[topic]/notes/{citekey}.md`.
 
-### 6. Discussion Elements
-
-| Field | Extraction Prompt |
-|-------|------------------|
-| Interpretation | How do authors interpret findings? |
-| Theory Engagement | How do findings relate to theory? |
-| Literature Dialogue | How do findings compare to prior work? |
-| Implications | Theoretical and practical implications? |
-
-### 7. Contributions & Limitations
-
-| Field | Extraction Prompt |
-|-------|------------------|
-| Theoretical Contribution | What new theoretical knowledge? |
-| Methodological Contribution | Any methodological innovations? |
-| Practical Contribution | What practical applications? |
-| Limitations | What limitations acknowledged? |
-| Future Research | What future work suggested? |
-
-These slots should be reflected both in the per-paper note and in the rollup extraction table.
-
-## Extraction Output Template
-
-Write one note per paper under `notes/{citekey}.md`, and then roll up key fields into `extraction_table.md`.
-Use the paper note template as the canonical note structure instead of creating separate slot-specific note files.
+Minimum note fields:
 
 ```markdown
-# Paper Extraction: [Short Citation]
+---
+citekey:
+evidence_limit: full_text | abstract_only | metadata_only | unavailable
+source_anchor:
+---
 
-## Bibliographic Information
-| Field | Value |
-|-------|-------|
-| Title | |
-| Authors | |
-| Year | |
-| Venue | |
-| DOI | |
+# Paper Note
 
+## Bibliographic Metadata
 ## Research Context
-**Problem Statement:**
-[Text]
-
-**Research Gap:**
-[Text]
-
-**Research Questions:**
-1. RQ1:
-2. RQ2:
-
-## Theoretical Framework
-**Theories Used:**
-- Theory 1: [Brief description]
-- Theory 2: [Brief description]
-
-**Key Concepts:**
-| Concept | Definition |
-|---------|------------|
-| | |
-
-## Methodology
-| Aspect | Description |
-|--------|-------------|
-| Design | |
-| Population | |
-| Sample | N = |
-| Data Collection | |
-| Analysis | |
-| Validity | |
-
-## Key Findings
-1. Finding 1: [Description + Evidence]
-2. Finding 2: [Description + Evidence]
-3. Finding 3: [Description + Evidence]
-
-## Statistical Results (if quantitative)
-| Hypothesis | Result | Effect Size | p-value |
-|------------|--------|-------------|---------|
-| H1 | Supported/Rejected | | |
-
-## Contributions
-**Theoretical:**
--
-
-**Practical:**
--
-
+## Theory And Constructs
+## Method Or Identification
+## Dataset Or Source
+## Findings
 ## Limitations
-1.
-2.
-
-## Future Research Suggestions
-1.
-2.
-
-## Relevance to My Research
-[Personal notes on how this relates to your work]
-
-## Key Quotes
-> "[Important quote 1]" (p. X)
-
-> "[Important quote 2]" (p. Y)
+## Project Relevance
+## Unsupported Gaps
 ```
 
-## Batch Extraction Table
+Each substantive field should distinguish:
 
-For multiple papers, create summary extraction table:
+- `finding`: what the paper reports
+- `interpretation`: what the authors or project infer
+- `implication`: what this means for the current project
 
-```markdown
-| ID | Authors | Year | RQs | Theory | Method | Sample | Key Findings | Quality |
-|----|---------|------|-----|--------|--------|--------|--------------|---------|
-| 1 | | | | | | | | A-E |
-| 2 | | | | | | | | A-E |
-```
+### 4. Write extraction rollup
 
-At minimum, the rollup should preserve:
-- Theory / framework slot
-- Method / identification slot
-- Dataset / source slot
-- Main findings slot
-- Limitations slot
+`RESEARCH/[topic]/extraction_table.md` must preserve:
 
-## Usage
-
-This skill is called by:
-- `/lit-review` - During extraction phase
-- `/paper-read` - For deep reading
+- citekey
+- evidence_limit
+- source_anchor
+- theory/framework
+- method or identification
+- dataset/source
+- sample or unit of analysis when available
+- main finding
+- effect size or qualitative theme when available
+- limitations
+- unsupported_gap fields
 
 ## Output Contract
 
+- `PaperNotes`: write one note per included paper under
+  `RESEARCH/[topic]/notes/`.
 - `ExtractionTable`: write `RESEARCH/[topic]/extraction_table.md`.
-- `PaperNotes`: write `RESEARCH/[topic]/notes/`.
-- Separate finding, interpretation, and implication in the final artifact.
-- Do not invent citations, data, sample sizes, statistical results, or reviewer comments.
-- Apply `references/academic-output-rubric.md` before finalizing scholarly prose or review artifacts.
+- `EffectSizeInputs`: write `RESEARCH/[topic]/effect_size_table.md` only when
+  pooling is planned and the source reports extractable effect data.
+- Separate finding, interpretation, and implication in notes and rollups.
+- Do not invent citations, source anchors, datasets, sample sizes, methods,
+  results, effect sizes, limitations, or reviewer comments.
+- Apply `references/academic-output-rubric.md` before finalizing scholarly prose
+  or review artifacts.
 
 ### Evidence Ledger and Source Integrity
 
-- Update `RESEARCH/[topic]/evidence/claim-evidence-ledger.csv` when producing, revising, or validating central scholarly claims.
-- Follow `references/evidence-ledger-contract.md`: supported claims need source pointers; unsupported central claims become `gap_note` rows and `RESEARCH/[topic]/context/gap_notes.md` entries.
-- For final writing, proofread, submission, rebuttal, citation, or presentation-facing outputs, apply `references/citation-risk-policy.md` and write or update `RESEARCH/[topic]/proofread/citation-risk-report.md` when citation risk is material.
+- Update `RESEARCH/[topic]/evidence/claim-evidence-ledger.csv` when extracted
+  evidence supports a central scholarly claim.
+- Follow `references/evidence-ledger-contract.md`: supported claims need source
+  pointers; unsupported central claims become `gap_note` rows and
+  `RESEARCH/[topic]/context/gap_notes.md` entries.
+- Every rollup claim needs `source_anchor` and `evidence_limit`.
 
 ## Quality Bar
 
-- [ ] 每篇论文的提取字段完整覆盖预定义的 extraction schema
-- [ ] Extraction table 格式标准化且可直接用于综合分析
-- [ ] 每篇 paper note 包含该论文对 RQ 的直接 relevance 说明
-- [ ] 数值数据提取附带精度和单位
-- [ ] 存在 inter-rater reliability 描述（或标注为单提取）
+- [ ] Every included paper has one note under `notes/`.
+- [ ] Every note and rollup row has `evidence_limit`.
+- [ ] Every substantive extracted claim has `source_anchor`.
+- [ ] Abstract-only and metadata-only records do not contain inferred full-text
+      details.
+- [ ] Missing fields are marked `unsupported_gap`.
+- [ ] Rollup fields are consistent enough for synthesis.
 
 ## Common Pitfalls
 
 | Pitfall | Problem | Fix |
-|---------|---------|-----|
-| 提取字段不一致 | 不同论文提取了不同字段 | 先定义 extraction form 再统一填充 |
-| 数值精度丢失 | 四舍五入导致后续计算偏差 | 保留原始精度 |
-| 定性与定量混合 | Extraction table 字段设计不合理 | 分开定性 slot 和定量 slot |
-| 缺少 context | 只提取数字不提取研究条件 | 每个 finding 附带 study context |
-| 遗漏 supplementary data | 补充材料中有关键数据 | 明确标注是否包含 supplement |
+| --- | --- | --- |
+| Treating abstracts as full text | Extraction overclaims source support | Mark `abstract_only` and narrow fields |
+| Missing source anchors | Later synthesis cannot verify claims | Add page, section, table, quote, or metadata field |
+| Filling blanks from memory | Hallucinated methods or results | Use `unsupported_gap` |
+| Mixed rollup schemas | Synthesis cannot compare papers | Use consistent columns |
+| Author claim vs project inference blurred | Writing overstates evidence | Separate finding, interpretation, implication |
 
 ## When to Use
 
-- 筛选完成后需要从入选论文中提取结构化数据时
-- 需要生成 extraction table 和 paper notes 时
-- 系统综述需要标准化的数据提取格式时
-- 需要提取 theory/method/data/finding/limitation 等多维度信息时
+- Use after screening and retrieval when included papers need structured notes or
+  an extraction table.
+- Do not use for quality appraisal or synthesis; use `quality-assessor` and
+  `evidence-synthesizer`.

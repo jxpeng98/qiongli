@@ -7,9 +7,9 @@
 - `tooling/` contains maintainer automation and operational assets.
 - Root `scripts/` is a stable wrapper layer; edit implementations in
   `tooling/scripts/`.
-- Root `qiongli-workflow/`, `plugins/qiongli/`, `.agent/`, and `.gemini/`
-  are generated distribution shapes; edit their sources in `content/` or
-  `packages/qiongli-plugin/`.
+- Root `qiongli-workflow/`, `plugins/qiongli/`, `plugins/qiongli-next/`,
+  and `.agent/` are generated distribution shapes; edit their
+  sources in `content/` and `content/distribution/plugins.yaml`.
 
 ## Edit Order
 
@@ -20,7 +20,8 @@ When a change spans multiple layers, apply it in this order:
    behavior.
 3. `content/templates/` for stable structured outputs.
 4. `tooling/pipelines/`, `content/workflow/workflows/`, and
-   `packages/qiongli-plugin/platforms/` for sequencing or entry UX.
+   `content/distribution/plugins.yaml` for sequencing, entry UX, or plugin
+   metadata.
 5. `packages/python-qiongli/src/qiongli/` only if runtime execution must
    change.
 6. Generated payloads only through staged materialization.
@@ -40,8 +41,8 @@ When a change spans multiple layers, apply it in this order:
 | Maintainer automation | `tooling/scripts/` |
 | Public script entrypoint compatibility | root `scripts/` wrapper, only when compatibility changes |
 | Python runtime, CLI, installer, bridges | `packages/python-qiongli/src/qiongli/` |
-| Plugin manifests or command sources | `packages/qiongli-plugin/` |
-| Agent/Gemini platform command source | `packages/qiongli-plugin/platforms/` |
+| Plugin manifests, prompts, keywords, or platform enablement | `content/distribution/plugins.yaml` |
+| Plugin command wrappers, MCP bundle manifest, or platform entry files | `tooling/scripts/build_plugin_artifacts.py` |
 | npm package wrapper | `packages/npm-qiongli/` |
 | Evaluation cases, rubrics, runners | `evals/` |
 
@@ -70,11 +71,13 @@ Generated paths are ignored and guarded, including:
 
 - `qiongli-workflow/`
 - `plugins/qiongli/`
+- `plugins/qiongli-next/`
 - `.agent/`
-- `.gemini/`
 - `packages/python-qiongli/src/qiongli/payload/`
 - `packages/npm-qiongli/payload/`
 - `packages/npm-qiongli/python-runtime/`
+- `packages/qiongli-plugin/`
+- `packages/qiongli-next-plugin/`
 
 ## `research_skills`
 

@@ -29,6 +29,10 @@ class MockOrchestrator(ModelOrchestrator):
         super().__init__(standards_dir=RepoLayout(REPO_ROOT).standards)
         self.runtime_calls: list[dict[str, Any]] = []
 
+    def task_run(self, *args: Any, **kwargs: Any) -> CollaborationResult:
+        kwargs.setdefault("guidance_mode", "off")
+        return super().task_run(*args, **kwargs)
+
     def _runtime_preflight_error(
         self,
         agent_name: str,
@@ -86,6 +90,8 @@ def _write_fake_cli(bin_dir: Path, name: str, response_text: str) -> Path:
         "    print(json.dumps({'type': 'thread.started', 'thread_id': 'fake-codex'}))\n"
         f"    print(json.dumps({{'type': 'event', 'item': {{'type': 'agent_message', 'text': {response_text!r}}}}}))\n"
         "    print(json.dumps({'type': 'turn.completed'}))\n"
+        "elif name == 'antigravity':\n"
+        f"    print({response_text!r})\n"
         "else:\n"
         f"    print(json.dumps({{'type': 'assistant', 'session_id': 'fake-claude', 'content': {response_text!r}}}))\n",
         encoding="utf-8",
@@ -150,13 +156,14 @@ class OrchestratorWorkflowTests(unittest.TestCase):
 
         self.assertEqual(resolved, RepoLayout(REPO_ROOT).standards)
 
-    def test_task_run_invokes_fake_codex_and_claude_subprocesses(self) -> None:
+    def test_task_run_invokes_fake_codex_claude_and_antigravity_subprocesses(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             temp = Path(tmp_dir)
             bin_dir = temp / "bin"
             bin_dir.mkdir()
             _write_fake_cli(bin_dir, "codex", "fake codex draft PASS CONFIDENCE: 0.9")
             _write_fake_cli(bin_dir, "claude", "fake claude review PASS CONFIDENCE: 0.9")
+            _write_fake_cli(bin_dir, "antigravity", "fake antigravity triad PASS CONFIDENCE: 0.9")
 
             env = os.environ.copy()
             env["PATH"] = f"{bin_dir}{os.pathsep}{env.get('PATH', '')}"
@@ -180,7 +187,12 @@ class OrchestratorWorkflowTests(unittest.TestCase):
                 "codex",
                 "--reviewer",
                 "claude",
+                "--verifier",
+                "antigravity",
+                "--triad",
                 "--skip-validation",
+                "--guidance-mode",
+                "off",
             ]
 
             completed = subprocess.run(
@@ -198,8 +210,42 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         self.assertEqual(payload["mode"], "task-run")
         self.assertTrue(payload["codex"]["success"])
         self.assertTrue(payload["claude"]["success"])
+        self.assertTrue(payload["antigravity"]["success"])
         self.assertIn("fake codex draft", payload["codex"]["content"])
         self.assertIn("fake claude review", payload["claude"]["content"])
+        self.assertIn("fake antigravity triad", payload["antigravity"]["content"])
+
+    def test_guidance_cli_init_creates_project_local_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            env = os.environ.copy()
+            env["RESEARCH_CLI_LANG"] = "en"
+            command = [
+                sys.executable,
+                "-m",
+                "bridges.orchestrator",
+                "guidance",
+                "init",
+                "--project-dir",
+                str(root),
+            ]
+
+            completed = subprocess.run(
+                command,
+                cwd=REPO_ROOT,
+                env=env,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+            )
+
+            self.assertEqual(completed.returncode, 0, completed.stdout)
+            payload = json.loads(completed.stdout)
+            self.assertEqual(payload["mode"], "guidance")
+            self.assertEqual(payload["data"]["action"], "init")
+            self.assertTrue((root / ".qiongli" / "local_guidance.md").is_file())
+            self.assertTrue((root / ".qiongli" / "trace").is_dir())
 
     def test_parallel_runs_with_mock_runtime(self) -> None:
         orchestrator = MockOrchestrator()
@@ -216,7 +262,8 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         called_agents = [call["agent"] for call in orchestrator.runtime_calls]
         self.assertIn("codex", called_agents)
         self.assertIn("claude", called_agents)
-        self.assertIn("gemini", called_agents)
+        self.assertIn("antigravity", called_agents)
+        self.assertNotIn("gemini", called_agents)
 
     def test_parallel_profile_file_parsing_applies_runtime_options(self) -> None:
         orchestrator = MockOrchestrator()
@@ -266,8 +313,8 @@ class OrchestratorWorkflowTests(unittest.TestCase):
                 runtime_options: dict[str, Any] | None = None,
                 profile_directive: str | None = None,
             ) -> BridgeResponse:
-                if agent_name == "gemini":
-                    return BridgeResponse.from_error("gemini", "forced failure")
+                if agent_name == "claude":
+                    return BridgeResponse.from_error("claude", "forced failure")
                 return super()._execute_runtime_agent(
                     agent_name,
                     prompt,
@@ -285,10 +332,10 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         )
 
         self.assertIn("## 并发执行分析 (双重/Dual)", result.merged_analysis)
-        self.assertIn("- 失败的 Agent: gemini", result.merged_analysis)
+        self.assertIn("- 失败的 Agent: claude", result.merged_analysis)
         self.assertIn("## 综合归纳 (Synthesis)", result.merged_analysis)
 
-    def test_parallel_skips_gemini_when_preflight_blocks_it(self) -> None:
+    def test_parallel_skips_claude_when_preflight_blocks_it(self) -> None:
         class PreflightFailOrchestrator(MockOrchestrator):
             def _runtime_preflight_error(
                 self,
@@ -296,8 +343,8 @@ class OrchestratorWorkflowTests(unittest.TestCase):
                 cwd: Path,
                 runtime_options: dict[str, Any] | None = None,
             ) -> str | None:
-                if agent_name == "gemini":
-                    return "cached Gemini OAuth credentials detected, but Gemini CLI cached login is unreliable in non-interactive Python subprocesses; prefer GEMINI_API_KEY or Vertex env auth."
+                if agent_name == "claude":
+                    return "claude CLI not found in PATH"
                 return None
 
         orchestrator = PreflightFailOrchestrator()
@@ -310,7 +357,9 @@ class OrchestratorWorkflowTests(unittest.TestCase):
 
         called_agents = [call["agent"] for call in orchestrator.runtime_calls]
         self.assertNotIn("gemini", called_agents)
-        self.assertIn("Parallel analyzer 'gemini' skipped:", result.merged_analysis)
+        self.assertNotIn("claude", called_agents)
+        self.assertIn("antigravity", called_agents)
+        self.assertIn("Parallel analyzer 'claude' skipped:", result.merged_analysis)
         self.assertIn("## 并发执行分析 (双重/Dual)", result.merged_analysis)
 
     def test_parallel_unknown_profile_returns_structured_error(self) -> None:
@@ -485,23 +534,12 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         self.assertTrue(any("(stage: draft)" in directive for directive in directives))
         self.assertTrue(any("(stage: review)" in directive for directive in directives))
 
-    def test_task_run_reroutes_gemini_review_when_preflight_blocks_it(self) -> None:
-        class ReviewPreflightOrchestrator(MockOrchestrator):
-            def _runtime_preflight_error(
-                self,
-                agent_name: str,
-                cwd: Path,
-                runtime_options: dict[str, Any] | None = None,
-            ) -> str | None:
-                if agent_name == "gemini":
-                    return "cached Gemini OAuth credentials detected, but Gemini CLI cached login is unreliable in non-interactive Python subprocesses; prefer GEMINI_API_KEY or Vertex env auth."
-                return None
-
-        orchestrator = ReviewPreflightOrchestrator()
+    def test_task_run_routes_previous_gemini_review_lanes_to_antigravity(self) -> None:
+        orchestrator = MockOrchestrator()
         result = orchestrator.task_run(
             task_id="I7",
             paper_type="methods",
-            topic="reroute-review",
+            topic="codex-antigravity-review",
             cwd=REPO_ROOT,
         )
 
@@ -510,8 +548,9 @@ class OrchestratorWorkflowTests(unittest.TestCase):
             if "Review the draft" in call["prompt"]
         ]
         self.assertTrue(review_calls)
-        self.assertNotEqual(review_calls[0]["agent"], "gemini")
-        self.assertIn("Runtime agent 'gemini' unavailable:", result.merged_analysis)
+        self.assertEqual("antigravity", review_calls[0]["agent"])
+        self.assertNotIn("gemini", {call["agent"] for call in orchestrator.runtime_calls})
+        self.assertNotIn("Runtime agent 'gemini'", result.merged_analysis)
 
     def test_task_run_emits_functional_routing_trace(self) -> None:
         orchestrator = MockOrchestrator()
@@ -569,6 +608,8 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         orchestrator = MockOrchestrator()
         agent_plan = orchestrator._load_task_agent_plan("F3")
 
+        self.assertEqual(agent_plan["functional_role_id"], "academic-writer")
+        self.assertEqual(agent_plan["functional_display_name"], "Academic Writer")
         skill_cards = {
             card["skill"]: card
             for card in agent_plan["required_skill_cards"]
@@ -677,7 +718,7 @@ class OrchestratorWorkflowTests(unittest.TestCase):
                         "runtime_options": {
                             "codex": {"timeout_seconds": 11},
                             "claude": {"timeout_seconds": 11},
-                            "gemini": {"timeout_seconds": 11},
+                            "antigravity": {"timeout_seconds": 11},
                         },
                         "draft_style": "Draft quickly",
                     },
@@ -685,7 +726,7 @@ class OrchestratorWorkflowTests(unittest.TestCase):
                         "runtime_options": {
                             "codex": {"timeout_seconds": 22},
                             "claude": {"timeout_seconds": 22},
-                            "gemini": {"timeout_seconds": 22},
+                            "antigravity": {"timeout_seconds": 22},
                         },
                         "review_style": "Review strictly",
                     },
@@ -693,7 +734,7 @@ class OrchestratorWorkflowTests(unittest.TestCase):
                         "runtime_options": {
                             "codex": {"timeout_seconds": 33},
                             "claude": {"timeout_seconds": 33},
-                            "gemini": {"timeout_seconds": 33},
+                            "antigravity": {"timeout_seconds": 33},
                         },
                         "triad_style": "Triad arbitration",
                     },
@@ -743,6 +784,139 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         self.assertIn("\"deferred_outputs\": [", result.merged_analysis)
         self.assertIn("manuscript/results_interpretation.md", result.merged_analysis)
         self.assertIn("Output control: policy=focused, active_outputs=2/6.", result.merged_analysis)
+
+    def test_task_run_injects_project_local_guidance_into_packet_and_prompt(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / ".qiongli").mkdir()
+            (root / ".qiongli" / "local_guidance.md").write_text(
+                "# Qiongli Local Guidance\n\n## Artifact Policy\n- Keep helper traces in .qiongli/trace.\n",
+                encoding="utf-8",
+            )
+            orchestrator = MockOrchestrator()
+
+            result = orchestrator.task_run(
+                task_id="F3",
+                paper_type="empirical",
+                topic="ai-writing",
+                cwd=root,
+                guidance_mode="read",
+                skip_validation=True,
+            )
+
+            packet = result.data["task_packet"]
+            self.assertEqual(packet["local_guidance"]["mode"], "read")
+            self.assertIn("Keep helper traces", packet["local_guidance"]["guidance_context"])
+            draft_prompt = next(call["prompt"] for call in orchestrator.runtime_calls if call["agent"])
+            self.assertIn("Local guidance context", draft_prompt)
+            self.assertIn("Keep helper traces", draft_prompt)
+
+    def test_task_run_auto_initializes_guidance_when_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            orchestrator = MockOrchestrator()
+
+            result = orchestrator.task_run(
+                task_id="F3",
+                paper_type="empirical",
+                topic="ai-writing",
+                cwd=root,
+                guidance_mode="read",
+                skip_validation=True,
+            )
+
+            packet = result.data["task_packet"]
+            draft_prompt = next(call["prompt"] for call in orchestrator.runtime_calls if call["agent"])
+            self.assertTrue((root / ".qiongli" / "local_guidance.md").is_file())
+            self.assertTrue((root / ".qiongli" / "trace").is_dir())
+            self.assertTrue(packet["local_guidance"]["enabled"])
+            self.assertIn("# Qiongli Local Guidance", packet["local_guidance"]["guidance_context"])
+            self.assertIn("Local guidance context", draft_prompt)
+
+    def test_task_run_guidance_off_does_not_auto_initialize_guidance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            orchestrator = MockOrchestrator()
+
+            result = orchestrator.task_run(
+                task_id="F3",
+                paper_type="empirical",
+                topic="ai-writing",
+                cwd=root,
+                guidance_mode="off",
+                skip_validation=True,
+            )
+
+            self.assertFalse((root / ".qiongli").exists())
+            self.assertFalse(result.data["task_packet"]["local_guidance"]["enabled"])
+
+    def test_task_run_guidance_off_does_not_read_local_guidance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / ".qiongli").mkdir()
+            (root / ".qiongli" / "local_guidance.md").write_text(
+                "# Qiongli Local Guidance\n\n## Active Guidance\n- This text must not appear.\n",
+                encoding="utf-8",
+            )
+            orchestrator = MockOrchestrator()
+
+            result = orchestrator.task_run(
+                task_id="F3",
+                paper_type="empirical",
+                topic="ai-writing",
+                cwd=root,
+                guidance_mode="off",
+                skip_validation=True,
+            )
+
+            self.assertFalse(result.data["task_packet"]["local_guidance"]["enabled"])
+            self.assertNotIn("This text must not appear", result.merged_analysis)
+
+    def test_task_run_writes_guidance_trace_when_formal_outputs_are_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            orchestrator = MockOrchestrator()
+
+            result = orchestrator.task_run(
+                task_id="F3",
+                paper_type="empirical",
+                topic="ai-writing",
+                cwd=root,
+                guidance_mode="propose",
+                focus_outputs=["manuscript/manuscript.md"],
+            )
+
+            trace = result.data["local_guidance_trace"]
+            self.assertEqual(
+                trace["missing_outputs"],
+                ["manuscript/manuscript.md", "context/boundary_review.md"],
+            )
+            run_dir = root / trace["run_dir"]
+            self.assertTrue((run_dir / "task_packet.json").is_file())
+            self.assertTrue((run_dir / "draft.md").is_file())
+            self.assertTrue((run_dir / "validator_gate.json").is_file())
+            self.assertTrue((root / ".qiongli" / "trace" / "index.jsonl").is_file())
+            self.assertIn("Local guidance trace written", result.merged_analysis)
+
+    def test_task_run_guidance_apply_updates_project_local_guidance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            orchestrator = MockOrchestrator()
+
+            result = orchestrator.task_run(
+                task_id="F3",
+                paper_type="empirical",
+                topic="ai-writing",
+                cwd=root,
+                guidance_mode="apply",
+                focus_outputs=["manuscript/manuscript.md"],
+            )
+
+            trace = result.data["local_guidance_trace"]
+            text = (root / ".qiongli" / "local_guidance.md").read_text(encoding="utf-8")
+            self.assertTrue(trace["applied_guidance_update"])
+            self.assertIn("Applied Proposal", text)
+            self.assertIn(trace["run_id"], text)
 
     def test_build_task_prompts_include_deep_research_constraints(self) -> None:
         orchestrator = MockOrchestrator()
@@ -886,6 +1060,143 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         self.assertIn("Academic boundary review", prompt)
         self.assertIn("Claims are associative, not causal", prompt)
         self.assertIn("must not broaden", prompt)
+
+    def test_writing_task_packet_enables_incremental_writing_harness(self) -> None:
+        orchestrator = MockOrchestrator()
+        packet = orchestrator._build_task_packet(
+            task_id="F3",
+            paper_type="empirical",
+            topic="ai-writing",
+            venue=None,
+            artifact_root="RESEARCH/[topic]/",
+            required_outputs=["manuscript/manuscript.md"],
+            contract_required_outputs=["manuscript/manuscript.md"],
+            deferred_outputs=[],
+            required_mcp=["filesystem"],
+            required_skills=["manuscript-architect", "self-critique"],
+            required_skill_cards=[],
+            quality_gates=["Q2"],
+            artifact_policy="contract",
+            research_depth="standard",
+            evidence_expansion_rounds=1,
+        )
+
+        harness = packet["writing_harness"]
+        self.assertTrue(harness["enabled"])
+        self.assertEqual(harness["stage"], "F")
+        self.assertIn("story_spine", harness["required_preflight"])
+        self.assertEqual(harness["loop"], "write_review_confirm")
+        self.assertIn("mainline_drift", harness["block_conditions"])
+        self.assertIn("evidence_free_generalization", harness["block_conditions"])
+        self.assertIn("context/boundary_review.md", harness["context_artifacts"])
+
+    def test_non_writing_task_packet_disables_writing_harness(self) -> None:
+        orchestrator = MockOrchestrator()
+        packet = orchestrator._build_task_packet(
+            task_id="B1",
+            paper_type="systematic-review",
+            topic="ai-literature",
+            venue=None,
+            artifact_root="RESEARCH/[topic]/",
+            required_outputs=["literature/search_strategy.md"],
+            contract_required_outputs=["literature/search_strategy.md"],
+            deferred_outputs=[],
+            required_mcp=["filesystem"],
+            required_skills=["literature-search-planner"],
+            required_skill_cards=[],
+            quality_gates=["Q2"],
+            artifact_policy="contract",
+            research_depth="standard",
+            evidence_expansion_rounds=1,
+        )
+
+        self.assertFalse(packet["writing_harness"]["enabled"])
+
+    def test_draft_prompt_requires_story_spine_and_write_review_confirm_loop(self) -> None:
+        orchestrator = MockOrchestrator()
+        packet = {
+            "task_id": "F3",
+            "required_outputs": ["manuscript/manuscript.md"],
+            "deferred_outputs": [],
+            "artifact_policy": "contract",
+            "research_depth": "standard",
+            "evidence_expansion_rounds": 1,
+            "required_skills": ["manuscript-architect", "self-critique"],
+            "quality_gates": ["Q2"],
+            "writing_harness": {
+                "enabled": True,
+                "stage": "F",
+                "mode": "incremental-mainline",
+                "required_preflight": ["boundary", "story_spine", "non_goals"],
+                "loop": "write_review_confirm",
+                "chunk_unit": "section_or_paragraph_cluster",
+                "block_conditions": [
+                    "mainline_drift",
+                    "missing_support",
+                    "generic_or_vague_claims",
+                    "evidence_free_generalization",
+                ],
+                "context_artifacts": [
+                    "context/boundary_review.md",
+                    "review/self_critique_log.md",
+                ],
+            },
+        }
+
+        prompt = orchestrator._build_task_draft_prompt(
+            task_packet=packet,
+            mcp_evidence=[],
+            skill_cards=[],
+            extra_context=None,
+        )
+
+        self.assertIn("Writing harness is active", prompt)
+        self.assertIn("Writing harness:", prompt)
+        self.assertIn("Story Spine", prompt)
+        self.assertIn("do not draft the whole artifact in one uninterrupted pass", prompt)
+        self.assertIn("write -> review -> confirm", prompt)
+        self.assertIn("Writing Harness Checkpoints", prompt)
+
+    def test_review_prompt_blocks_writing_harness_failures(self) -> None:
+        orchestrator = MockOrchestrator()
+        packet = {
+            "task_id": "F3",
+            "required_outputs": ["manuscript/manuscript.md"],
+            "deferred_outputs": [],
+            "research_depth": "standard",
+            "writing_harness": {
+                "enabled": True,
+                "stage": "F",
+                "mode": "incremental-mainline",
+                "required_preflight": ["boundary", "story_spine", "non_goals"],
+                "loop": "write_review_confirm",
+                "chunk_unit": "section_or_paragraph_cluster",
+                "block_conditions": [
+                    "mainline_drift",
+                    "missing_support",
+                    "generic_or_vague_claims",
+                    "evidence_free_generalization",
+                ],
+                "context_artifacts": [
+                    "context/boundary_review.md",
+                    "review/self_critique_log.md",
+                ],
+            },
+        }
+
+        prompt = orchestrator._build_task_review_prompt(
+            task_packet=packet,
+            mcp_evidence=[],
+            skill_cards=[],
+            draft_output="Draft text with broad unsupported claims.",
+        )
+
+        self.assertIn("Writing harness review is active", prompt)
+        self.assertIn("Writing harness:", prompt)
+        self.assertIn("Block if the draft lacks a Story Spine", prompt)
+        self.assertIn("Block if any chunk drifts from the mainline", prompt)
+        self.assertIn("generic claims without concrete support", prompt)
+        self.assertIn("Writing Harness Compliance", prompt)
 
     def test_review_prompt_blocks_boundary_broadening(self) -> None:
         orchestrator = MockOrchestrator()

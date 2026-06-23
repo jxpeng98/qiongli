@@ -18,6 +18,7 @@ for import_root in (PYTHON_SOURCE_ROOT, REPO_ROOT):
         sys.path.insert(0, str(import_root))
 
 from qiongli.source_layout import RepoLayout
+from qiongli.distribution_metadata import PluginDefinition, load_plugin_distribution
 
 try:
     from qiongli.subject_materializer import MaterializeOptions, materialize_subject_package, validate_subject_catalog
@@ -298,6 +299,130 @@ def _assert_json_versions(path: Path, expected_version: str) -> None:
             raise ValueError(f"version mismatch in {path}: expected {expected_version}, found {version}")
 
 
+def _skill_version(root: Path) -> str:
+    return (RepoLayout(root).workflow / "VERSION").read_text(encoding="utf-8").strip().lstrip("v")
+
+
+def _plugin_definition(root: Path, plugin_name: str) -> PluginDefinition:
+    return load_plugin_distribution(root).plugins[plugin_name]
+
+
+def _keywords(plugin: PluginDefinition, platform_keyword: str) -> list[str]:
+    return [*plugin.keywords, *[item for item in (platform_keyword,) if item not in plugin.keywords]]
+
+
+def _write_codex_manifest(path: Path, plugin: PluginDefinition, version: str) -> None:
+    manifest = {
+        "name": plugin.id,
+        "version": version,
+        "description": plugin.description,
+        "author": plugin.author,
+        "category": plugin.category,
+        "homepage": plugin.homepage,
+        "repository": plugin.repository,
+        "license": plugin.license,
+        "keywords": _keywords(plugin, "codex-skills"),
+        "skills": "./skills/",
+        "mcpServers": "./.mcp.json",
+        "interface": {
+            "displayName": plugin.display_name,
+            "shortDescription": plugin.codex_short_description,
+            "longDescription": plugin.description,
+            "developerName": plugin.author["name"],
+            "category": plugin.category,
+            "capabilities": ["Write"],
+            "websiteURL": plugin.repository,
+            "defaultPrompt": list(plugin.default_prompts),
+            "brandColor": plugin.brand_color,
+        },
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def _write_claude_manifest(path: Path, plugin: PluginDefinition, version: str) -> None:
+    manifest = {
+        "name": plugin.id,
+        "description": plugin.description,
+        "version": version,
+        "author": plugin.author,
+        "category": plugin.category,
+        "homepage": plugin.homepage,
+        "repository": plugin.repository,
+        "license": plugin.license,
+        "keywords": _keywords(plugin, "claude-code-plugins"),
+        "mcpServers": {
+            plugin.mcp_server_name: {
+                "command": "node",
+                "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs"],
+                "cwd": "${CLAUDE_PLUGIN_ROOT}",
+            }
+        },
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def _write_platform_manifest(root: Path, platform: str, plugin_name: str, manifest_path: Path) -> None:
+    plugin = _plugin_definition(root, plugin_name)
+    version = _skill_version(root)
+    if platform == "codex":
+        _write_codex_manifest(manifest_path, plugin, version)
+        return
+    if platform == "claude":
+        _write_claude_manifest(manifest_path, plugin, version)
+        return
+    raise ValueError(f"unsupported plugin manifest platform: {platform}")
+
+
+def _write_codex_mcp_manifest(root: Path, dest_plugin_root: Path, *, server_name: str) -> None:
+    manifest = {
+        "mcpServers": {
+            server_name: {
+                "command": "node",
+                "args": ["./mcp/qiongli-literature-provider/index.mjs"],
+                "cwd": ".",
+                "startup_timeout_sec": 20,
+                "tool_timeout_sec": 60,
+            }
+        }
+    }
+    dest = dest_plugin_root / ".mcp.json"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
+
+def _workflow_description(workflow_path: Path) -> str:
+    text = workflow_path.read_text(encoding="utf-8")
+    match = re.search(r"(?ms)^---\n(.*?)\n---", text)
+    if not match:
+        return f"Run the {workflow_path.stem} research workflow."
+    desc = re.search(r"(?m)^description:\s*(.+)$", match.group(1))
+    return desc.group(1).strip() if desc else f"Run the {workflow_path.stem} research workflow."
+
+
+def _generate_commands(root: Path, commands_root: Path, skill_name: str) -> None:
+    workflow_root = RepoLayout(root).workflow / "workflows"
+    commands_root.mkdir(parents=True, exist_ok=True)
+    for workflow_path in sorted(workflow_root.glob("*.md")):
+        text = "\n".join(
+            [
+                "---",
+                f"description: {_workflow_description(workflow_path)}",
+                "---",
+                "",
+                (
+                    f"Load the `{skill_name}` skill from this plugin, then follow "
+                    f"`skills/{SKILL_DIR_NAME}/workflows/{workflow_path.name}`."
+                ),
+                "",
+                "Use that workflow as the source of truth for task order, artifacts, and quality gates.",
+                "",
+            ]
+        )
+        (commands_root / workflow_path.name).write_text(text, encoding="utf-8")
+
+
 def _copy_path(src: Path, dest: Path) -> None:
     if src.is_dir():
         shutil.copytree(src, dest)
@@ -402,11 +527,7 @@ def _copy_subject_skill(root: Path, dest_plugin_root: Path, subject: str, *, ski
 
 
 def _copy_commands(root: Path, dest_plugin_root: Path, *, skill_name: str = DEFAULT_SKILL_NAME) -> None:
-    commands = RepoLayout(root).plugin_package / "commands"
-    if commands.is_dir():
-        commands_dest = dest_plugin_root / "commands"
-        _copy_path(commands, commands_dest)
-        _rewrite_command_invocation(commands_dest, skill_name)
+    _generate_commands(root, dest_plugin_root / "commands", skill_name)
 
 
 def _mcp_server_name_for_plugin(plugin_name: str) -> str:
@@ -434,19 +555,13 @@ def _copy_codex_mcp_manifest(
     *,
     server_name: str = DEFAULT_MCP_SERVER_NAME,
 ) -> None:
-    mcp_manifest = RepoLayout(root).plugin_package / ".mcp.json"
-    if mcp_manifest.is_file():
-        dest = dest_plugin_root / ".mcp.json"
-        _copy_path(mcp_manifest, dest)
-        manifest = json.loads(dest.read_text(encoding="utf-8"))
-        _rewrite_mcp_server_name(manifest, server_name)
-        dest.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    _write_codex_mcp_manifest(root, dest_plugin_root, server_name=server_name)
 
 
 def _copy_literature_mcp_runtime(root: Path, dest_plugin_root: Path) -> None:
-    mcp_runtime = RepoLayout(root).plugin_package / "mcp"
+    mcp_runtime = RepoLayout(root).literature_mcpb_package / "server"
     if mcp_runtime.is_dir():
-        _copy_path(mcp_runtime, dest_plugin_root / "mcp")
+        _copy_path(mcp_runtime, dest_plugin_root / "mcp" / "qiongli-literature-provider")
 
 
 def _make_tarball(source_dir: Path, tar_path: Path) -> None:
@@ -873,7 +988,13 @@ def _build_marketplace_plugin(
     bundle = work_dir / bundle_name
     plugin_dest = bundle / "plugins" / plugin_name
     manifest_dir = ".codex-plugin" if platform == "codex" else ".claude-plugin"
-    _copy_path(RepoLayout(root).plugin_package / manifest_dir, plugin_dest / manifest_dir)
+    base_plugin_name = NEXT_PLUGIN_NAME if plugin_name == NEXT_PLUGIN_NAME else PLUGIN_NAME
+    _write_platform_manifest(
+        root,
+        platform,
+        base_plugin_name,
+        plugin_dest / manifest_dir / "plugin.json",
+    )
     _write_subject_manifest(
         plugin_dest / manifest_dir / "plugin.json",
         platform=platform,
@@ -903,7 +1024,7 @@ def _build_marketplace_plugin(
 
 
 def materialize_next_codex_plugin(root: Path, dest_plugin_root: Path, *, force: bool = False) -> Path:
-    """Materialize the Git-backed qiongli-next Codex plugin source directory."""
+    """Materialize the generated qiongli-next plugin payload."""
 
     root = root.resolve()
     dest_plugin_root = dest_plugin_root.resolve()
@@ -917,7 +1038,12 @@ def materialize_next_codex_plugin(root: Path, dest_plugin_root: Path, *, force: 
 
     _display_name, package_goal = _subject_definitions(root)["core"]
     manifest_dir = ".codex-plugin"
-    _copy_path(RepoLayout(root).plugin_package / manifest_dir, dest_plugin_root / manifest_dir)
+    _write_platform_manifest(
+        root,
+        "codex",
+        NEXT_PLUGIN_NAME,
+        dest_plugin_root / manifest_dir / "plugin.json",
+    )
     _write_subject_manifest(
         dest_plugin_root / manifest_dir / "plugin.json",
         platform="codex",
@@ -933,6 +1059,56 @@ def materialize_next_codex_plugin(root: Path, dest_plugin_root: Path, *, force: 
     _copy_commands(root, dest_plugin_root, skill_name=NEXT_SKILL_NAME)
     _copy_subject_skill(root, dest_plugin_root, "core", skill_name=NEXT_SKILL_NAME)
     return dest_plugin_root
+
+
+def materialize_plugin_package(root: Path, dest_plugin_root: Path, *, force: bool = False) -> Path:
+    """Materialize the stable Qiongli plugin package from canonical sources."""
+
+    root = root.resolve()
+    dest_plugin_root = dest_plugin_root.resolve()
+    if dest_plugin_root.exists():
+        if not force:
+            raise ValueError(f"{dest_plugin_root} already exists; pass force=True to replace it")
+        if dest_plugin_root.is_dir():
+            shutil.rmtree(dest_plugin_root)
+        else:
+            dest_plugin_root.unlink()
+
+    plugin = _plugin_definition(root, PLUGIN_NAME)
+    _write_platform_manifest(
+        root,
+        "codex",
+        PLUGIN_NAME,
+        dest_plugin_root / ".codex-plugin" / "plugin.json",
+    )
+    if plugin.claude_enabled:
+        _write_platform_manifest(
+            root,
+            "claude",
+            PLUGIN_NAME,
+            dest_plugin_root / ".claude-plugin" / "plugin.json",
+        )
+    _copy_codex_mcp_manifest(root, dest_plugin_root, server_name=DEFAULT_MCP_SERVER_NAME)
+    _copy_literature_mcp_runtime(root, dest_plugin_root)
+    _copy_commands(root, dest_plugin_root, skill_name=DEFAULT_SKILL_NAME)
+    _copy_subject_skill(root, dest_plugin_root, "core", skill_name=DEFAULT_SKILL_NAME)
+    return dest_plugin_root
+
+
+def materialize_agent_platform(root: Path, dest_platform_root: Path, *, force: bool = False) -> Path:
+    """Materialize agent workflow entrypoints from canonical workflows."""
+
+    root = root.resolve()
+    dest_platform_root = dest_platform_root.resolve()
+    if dest_platform_root.exists():
+        if not force:
+            raise ValueError(f"{dest_platform_root} already exists; pass force=True to replace it")
+        if dest_platform_root.is_dir():
+            shutil.rmtree(dest_platform_root)
+        else:
+            dest_platform_root.unlink()
+    _copy_path(RepoLayout(root).workflow / "workflows", dest_platform_root / "workflows")
+    return dest_platform_root
 
 
 def _build_codex(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> list[Path]:
@@ -1014,16 +1190,6 @@ def _build_next_marketplace_plugins(root: Path, tag: str, dist_dir: Path, work_d
     return artifacts
 
 
-def _build_gemini(root: Path, tag: str, dist_dir: Path, work_dir: Path) -> Path:
-    bundle_name = f"{PLUGIN_NAME}-gemini-extension-{tag}"
-    bundle = work_dir / bundle_name
-    _copy_path(RepoLayout(root).plugin_package / "gemini-extension.json", bundle / "gemini-extension.json")
-    _copy_common_skill(root, bundle)
-    artifact = dist_dir / f"{bundle_name}.tar.gz"
-    _make_tarball(bundle, artifact)
-    return artifact
-
-
 def _build_claude_desktop_skill(
     root: Path,
     tag: str,
@@ -1060,15 +1226,6 @@ def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
     if workflow_version != repo_tag:
         raise ValueError(f"version mismatch in qiongli-workflow/VERSION: expected {repo_tag}, found {workflow_version}")
 
-    versioned_json = [
-        layout.plugin_package / ".codex-plugin" / "plugin.json",
-        layout.plugin_package / ".claude-plugin" / "plugin.json",
-        layout.plugin_package / "gemini-extension.json",
-        layout.next_plugin_package / ".codex-plugin" / "plugin.json",
-    ]
-    for path in versioned_json:
-        _assert_json_versions(path, skill_version)
-
     with tempfile.TemporaryDirectory(prefix="qiongli-plugin-") as tmp:
         work_dir = Path(tmp)
         if _is_prerelease_tag(repo_tag):
@@ -1096,7 +1253,6 @@ def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
             *_build_codex(root, repo_tag, dist_dir, work_dir),
             *_build_claude(root, repo_tag, dist_dir, work_dir),
             *subject_marketplace_artifacts,
-            _build_gemini(root, repo_tag, dist_dir, work_dir),
             *desktop_artifacts,
             legacy_desktop_artifact,
         ]
@@ -1104,7 +1260,7 @@ def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Build Codex, Claude Code, and Gemini plugin/extension artifacts.")
+    parser = argparse.ArgumentParser(description="Build Codex and Claude Code plugin artifacts.")
     parser.add_argument("--tag", required=True, help="Release tag, for example v0.5.0-beta.3")
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[2], help="Repository root")
     parser.add_argument("--dist-dir", type=Path, default=Path("dist"), help="Output directory")

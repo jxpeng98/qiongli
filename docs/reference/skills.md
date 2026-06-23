@@ -78,15 +78,15 @@ Use Stage B when you are building or maintaining the literature base for a topic
 
 | Skill | Display Name | When to use | Produces |
 |---|---|---|---|
-| `academic-searcher` | Academic Searcher | Use when you need to own query design, provider-backed retrieval, and deduplicated search outputs as one top-level search skill. | `SearchQueryPlan`, `SearchResults`, `SearchLog` |
-| `paper-screener` | Paper Screener | Use when you need to two-stage prisma-compliant systematic screening with decision logging. | `ScreeningDecisionLog`, `PRISMAFlowData` |
-| `paper-extractor` | Paper Extractor | Use when you need to extract structured theory, method, data, findings, and limitation slots into notes and rollups. | `ExtractionTable`, `PaperNotes` |
-| `citation-snowballer` | Citation Snowballer | Use when you need to forward/backward citation tracing to expand corpus and find seminal works. | `SnowballLog` |
-| `fulltext-fetcher` | Full-text Fetcher | Use when you need to retrieve full-text pdfs via oa channels with prisma-compliant status tracking. | `FullTextStatus` |
-| `citation-formatter` | Citation Formatter | Use when you need to format citations in apa/mla/chicago/ieee/bibtex with consistent citekeys. | `Bibliography` |
-| `concept-extractor` | Concept Extractor | After research questions (A1) are drafted but before search execution (B1) | `ConceptMap` |
-| `literature-mapper` | Literature Mapper | After paper extraction (B2) when you have ≥15 papers with structured notes | `LiteratureMap` |
-| `reference-manager-bridge` | Reference Manager Bridge | Use when you need to export/import references between research system and zotero/mendeley/endnote. | `Bibliography`, `RISExport`, `CSLJSONExport` |
+| `academic-searcher` | Academic Searcher | Use when a B1 search needs reproducible provider execution, search_diagnostics.md, dedup logs, or review-grade coverage checks. | `SearchQueryPlan`, `SearchResults`, `SearchLog`, `DedupLog`, `SearchDiagnostics` |
+| `paper-screener` | Paper Screener | Use when candidate records need include/exclude decisions, diagnostic flags preserved, or PRISMA flow counts. | `ScreeningDecisionLog`, `FullTextScreening`, `PRISMAFlowData` |
+| `paper-extractor` | Paper Extractor | Use when included papers need notes or extraction_table.md without overclaiming metadata-only or abstract-only evidence. | `ExtractionTable`, `PaperNotes` |
+| `citation-snowballer` | Citation Snowballer | Use when B3 needs forward/backward citation expansion, known-item follow-up, or coverage repair after search diagnostics. | `SnowballLog`, `SearchResults`, `DedupLog` |
+| `fulltext-fetcher` | Full-text Fetcher | Use when reports need retrieval_manifest.csv, controlled full-text statuses, or Zotero/OA resolver handoff. | `FullTextStatus`, `RetrievalManifest` |
+| `citation-formatter` | Citation Formatter | Use when B5 needs citekey cleanup, DOI normalization, duplicate handling, or export-ready bibliography.bib. | `Bibliography` |
+| `concept-extractor` | Concept Extractor | Use after Stage A when B1 search terms, controlled vocabulary, excluded ambiguous terms, or seed recall are unsettled. | `ConceptMap` |
+| `literature-mapper` | Literature Mapper | Use when extracted papers need a defensible non-chronological map for related work or novelty positioning. | `LiteratureMap` |
+| `reference-manager-bridge` | Reference Manager Bridge | Use when B5 needs Zotero local sync, import-file fallback, RIS/CSL-JSON export, or bibliography exchange. | `Bibliography`, `RISExport`, `CSLJSONExport`, `ZoteroImportReport` |
 
 ### C. Design
 

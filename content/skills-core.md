@@ -6,7 +6,7 @@ Consolidated skill reference for token-efficient workflow execution. Use this fi
 
 ## workflow-standard
 
-**Purpose:** Keep tasks and outputs consistent across Codex, Claude Code, and Gemini
+**Purpose:** Keep tasks and outputs consistent across Codex, Claude Code, and Antigravity
 
 **Source of truth:** `standards/research-workflow-contract.yaml`
 
@@ -18,6 +18,7 @@ Consolidated skill reference for token-efficient workflow execution. Use this fi
 - Final writing, proofread, submission, rebuttal, and presentation-facing outputs should apply `references/citation-risk-policy.md`.
 - High-risk stage transitions should write `context/stage_handoff.md` using `references/stage-handoff-contract.md`.
 - Stage C design work should produce or consume `design/method-diagnostic-report.md` and `design/validity-threat-matrix.md`.
+- Writing Harness Contract applies to Stage F writing even when using only this core reference: lock the Story Spine before prose, then write in section or paragraph-cluster chunks with a write -> review -> confirm checkpoint. Do not draft the whole artifact in one uninterrupted pass; stop for the next blocking boundary/grill question when there is mainline drift, missing support, generic or vague claims, or an unsettled evidence threshold.
 
 ---
 
@@ -146,43 +147,53 @@ Consolidated skill reference for token-efficient workflow execution. Use this fi
 
 ## academic-searcher
 
-**Purpose:** Multi-database academic literature search
+**Purpose:** Provider-backed literature search with reproducible diagnostics
 
 **Process:**
-1. Build Boolean queries: `(concept1 OR synonym) AND (concept2 OR synonym)`
-2. Search databases in priority:
-   - Semantic Scholar API: `https://api.semanticscholar.org/graph/v1/paper/search`
-   - arXiv API: `http://export.arxiv.org/api/query`
-   - OpenAlex API: `https://api.openalex.org/works`
-   - Web search for Google Scholar
-3. Deduplicate by DOI → Title+Year+Author
-4. Document results per database
+1. Build `search_strategy.md` from RQ scope, concept blocks, translated
+   provider queries, seed recall expectations, and dedup policy
+2. Execute each query through `scholarly-search` or a compatible MCP/provider
+   adapter; keep provider names, filters, timestamps, counts, and failures in
+   `search_log.md`
+3. Normalize retained rows into `search_results.csv` and append every merge,
+   duplicate, or keep-separate decision to `dedup_log.csv`
+4. Write `search_diagnostics.md` with provider coverage, concept coverage,
+   known-item recall, dedup ratio, coverage gaps, and screening readiness
+5. Block review-grade/systematic-review claims when diagnostics are missing,
+   fewer than two productive providers are recorded, a known item remains
+   missing, a required concept block has zero usable hits, or
+   `weak screening readiness` is unresolved
 
-**Fallback:** S2 → OpenAlex → Google Scholar
-
-**Outputs (contract-aligned):** `SearchQueryPlan`, `SearchLog`, `SearchResults`
+**Outputs (contract-aligned):** `SearchQueryPlan`, `SearchResults`,
+`SearchLog`, `DedupLog`, `SearchDiagnostics`
 
 ---
 
 ## paper-screener
 
-**Purpose:** Apply inclusion/exclusion criteria systematically
+**Purpose:** Diagnostics-aware title/abstract and full-text screening
 
 **Process:**
-1. **Stage 1 (Title/Abstract):** Quick filter based on criteria
-2. **Stage 2 (Full-text):** Detailed eligibility verification
-3. Document decision + reason for each paper
-4. Generate PRISMA flow data
+1. Ingest `search_results.csv`, `search_diagnostics.md`, RQ scope, and
+   inclusion/exclusion criteria
+2. **Stage 1 (Title/Abstract):** record `INCLUDE`, `EXCLUDE`, or `UNCERTAIN`
+   with reason codes and source anchors
+3. **Stage 2 (Full-text):** verify eligibility only when retrieval status makes
+   full text available; preserve `abstract_only` and `metadata_only` limits
+4. Carry search diagnostic flags into screening notes instead of silently
+   treating weak search coverage as eligible evidence
+5. Generate PRISMA-ready counts that reconcile with search, dedup, retrieval,
+   and screening logs
 
 **Decisions:** INCLUDE / EXCLUDE (+ reason) / UNCERTAIN
 
-**Outputs:** `ScreeningDecisionLog`, `PRISMAFlowData`
+**Outputs:** `ScreeningDecisionLog`, `FullTextScreening`, `PRISMAFlowData`
 
 ---
 
 ## paper-extractor
 
-**Purpose:** Extract structured data from papers
+**Purpose:** Source-anchored extraction from included papers
 
 **Extraction Framework:**
 - Bibliographic: Title, Authors, Year, Venue, DOI
@@ -192,6 +203,14 @@ Consolidated skill reference for token-efficient workflow execution. Use this fi
 - Findings: Key Results, Effect Sizes, Themes
 - Discussion: Interpretation, Implications
 - Meta: Limitations, Future Research, Contributions
+
+**Process:**
+1. Use only included papers and their available source level
+   (`full_text`, `abstract_only`, `metadata_only`, or `unavailable`)
+2. Add `source_anchor` and `evidence_limit` to every extracted claim
+3. Mark unavailable fields as `unsupported_gap`; do not infer methods,
+   findings, samples, or limitations from metadata-only records
+4. Keep per-paper notes and rollup rows synchronized
 
 **Outputs:** `ExtractionTable`, `PaperNotes`
 
@@ -275,34 +294,38 @@ Consolidated skill reference for token-efficient workflow execution. Use this fi
 
 ## citation-snowballer
 
-**Purpose:** Trace citations forward and backward
+**Purpose:** Expand the corpus through citation-graph tracing
 
 **Process:**
-1. Select seed papers (high citations, seminal, recent reviews)
-2. **Forward:** Who cites these? (S2 `/citations` endpoint)
-3. **Backward:** What do these cite? (S2 `/references` endpoint)
-4. Deduplicate against existing corpus
-5. Score relevance and add high-value papers
+1. Select seed papers with explicit rationale and source anchors
+2. Trace forward and backward citation edges through `citation-graph`,
+   `scholarly-search`, or a compatible MCP/provider adapter
+3. Record provider, seed ID, edge direction, retrieval time, hit counts,
+   relevance rationale, and saturation status in `snowball_log.md`
+4. Deduplicate additions against the current corpus and append merge/drop/keep
+   decisions to `dedup_log.csv`
+5. Feed accepted records back into `search_results.csv` with provenance
 
-**APIs:** Semantic Scholar, OpenAlex, Crossref
-
-**Output:** `SnowballLog`
+**Outputs:** `SnowballLog`, `SearchResults`, `DedupLog`
 
 ---
 
 ## fulltext-fetcher
 
-**Purpose:** Retrieve OA full-text PDFs
+**Purpose:** Retrieve and log full-text availability through resolver tools
 
-**Resolution Priority:**
-1. arXiv / PubMed Central (direct)
-2. Unpaywall API: `https://api.unpaywall.org/v2/{doi}`
-3. Semantic Scholar `openAccessPdf`
-4. CORE API
+**Process:**
+1. Route lookup through `fulltext-retrieval` or a compatible resolver boundary
+2. Write one `retrieval_manifest.csv` row for every sought record, including
+   resolver, locator, status, timestamp, and failure reason
+3. Update screening full-text status without changing inclusion decisions
+4. Keep inaccessible, abstract-only, and user-access-required cases visible for
+   PRISMA and extraction evidence limits
 
-**Status Codes:** RETRIEVED_OA | RETRIEVED_PREPRINT | ABSTRACT_ONLY | NOT_RETRIEVED (reason)
+**Status Codes:** `RETRIEVED_OA` | `RETRIEVED_PREPRINT` | `ABSTRACT_ONLY` |
+`NOT_RETRIEVED` | `NEEDS_USER_ACCESS`
 
-**Output:** Retrieval log with PRISMA-compliant "not retrieved" reasons
+**Outputs:** `RetrievalManifest`, `FullTextStatus`
 
 ---
 
@@ -312,11 +335,10 @@ Consolidated skill reference for token-efficient workflow execution. Use this fi
 
 **Process:**
 1. Normalize DOI: `10.xxxx/example` (canonical)
-2. Query Crossref/OpenAlex for missing fields
+2. Route provider checks through the metadata registry boundary and preserve
+   provider provenance
 3. Generate citekey: `lastname[year]keyword`
 4. Create dedup keys for matching
-
-**APIs:** Crossref (bibliographic), OpenAlex (OA + bibliometrics)
 
 **Output:** `Bibliography`
 
@@ -324,7 +346,7 @@ Consolidated skill reference for token-efficient workflow execution. Use this fi
 
 ## citation-formatter
 
-**Purpose:** Format citations in academic styles
+**Purpose:** Normalize bibliography metadata and citekeys for export
 
 **Styles:** APA 7th, MLA 9th, Chicago, IEEE, Harvard, BibTeX
 
@@ -332,13 +354,16 @@ Consolidated skill reference for token-efficient workflow execution. Use this fi
 
 **Citekey Format:** `lastname[year]keyword` (e.g., `smith2024machine`)
 
-**Output:** Formatted citations, BibTeX entries, reference list
+**Process:** normalize DOI values, resolve duplicate citekeys, flag missing
+required fields, and write export-ready `bibliography.bib`
+
+**Output:** `Bibliography`
 
 ---
 
 ## reference-manager-bridge
 
-**Purpose:** Export/import with Zotero, Mendeley, EndNote
+**Purpose:** Exchange references with Zotero and import-file formats safely
 
 **Formats:**
 - BibTeX (.bib) - Zotero, Mendeley, JabRef
@@ -347,7 +372,16 @@ Consolidated skill reference for token-efficient workflow execution. Use this fi
 
 **Tag Schema:** `project:[topic]`, `status:included|excluded`, `quality:A-E`
 
-**Output:** Export files in multiple formats + import instructions
+**Process:**
+1. Do not route scholarly discovery through Zotero by default
+2. Use local Zotero sync only when explicitly requested, after status check and
+   dry-run; write only after explicit `dry_run: false`
+3. Fall back to `.bib`, `.ris`, or CSL-JSON import files when local sync is not
+   available
+4. Preserve provider source, local match status, user-curated fields, and import
+   action in `zotero-import-report.md`
+
+**Outputs:** `Bibliography`, `RISExport`, `CSLJSONExport`, `ZoteroImportReport`
 
 ---
 
@@ -357,9 +391,11 @@ Consolidated skill reference for token-efficient workflow execution. Use this fi
 
 **Process:**
 1. Create manuscript workspace (`manuscript/outline.md`, `manuscript/manuscript.md`)
-2. Draft sections iteratively (Intro → Related work → Methods → Results → Discussion → Limitations → Conclusion)
-3. Run claim–evidence integrity pass + figures/tables pass
-4. Prepare for readiness checks (reporting/PRISMA) and submission packaging
+2. Establish the Story Spine: central claim, argumentative mainline, section jobs, non-goals, and evidence threshold
+3. Draft sections iteratively (Intro → Related work → Methods → Results → Discussion → Limitations → Conclusion)
+4. For each section or paragraph-cluster, run write -> review -> confirm and check for mainline drift, missing support, generic or vague claims, and logic jumps
+5. Run claim–evidence integrity pass + figures/tables pass
+6. Prepare for readiness checks (reporting/PRISMA) and submission packaging
 
 **Templates:** `templates/manuscript-outline.md`, `templates/manuscript-skeleton.md`, `templates/claim-evidence-map.md`, `templates/figures-tables-plan.md`
 
@@ -480,8 +516,8 @@ Consolidated skill reference for token-efficient workflow execution. Use this fi
 
 **Modes:**
 1. **parallel**: Both models analyze, merge high-confidence conclusions
-2. **chain**: One generates, other verifies (Codex → Gemini or reverse)
-3. **role**: Task division (Codex: code gen, Gemini: explanation)
+2. **chain**: One generates, other verifies (Codex -> Claude or reverse)
+3. **role**: Task division (Codex: code gen, Claude: review/synthesis)
 4. **single**: Single model execution
 
 **Invocation:**
@@ -491,7 +527,7 @@ python -m bridges.orchestrator [mode] --prompt "..." --cwd "/path"
 
 **Model Strengths:**
 - Codex: 算法实现, Bug 修复, 代码生成
-- Gemini: 代码解释, 架构分析, 文档生成
+- Claude: 结构化审阅, 长文本综合, 文档生成
 
 **Output:** Standardized JSON with confidence score
 

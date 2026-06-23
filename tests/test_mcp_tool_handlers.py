@@ -24,11 +24,77 @@ class MCPToolHandlerTests(unittest.TestCase):
                 "qiongli_test_provider",
                 "qiongli_configure_provider",
                 "qiongli_open_config_wizard",
+                "qiongli_orchestrator_route",
                 "qiongli_orchestrator_doctor",
                 "qiongli_task_plan",
                 "qiongli_task_run",
             }.issubset(names)
         )
+
+    def test_orchestrator_route_recommends_mcp_sequence_for_codex_claude_duo(self) -> None:
+        result = call_qiongli_tool(
+            "qiongli_orchestrator_route",
+            {
+                "request": "Use Codex and Claude Code to write and independently review the F3 discussion section.",
+                "platform": "codex",
+                "cwd": "/tmp/demo",
+                "task_id": "F3",
+                "paper_type": "empirical",
+                "topic": "ai-in-education",
+                "execution_mode": "duo",
+                "controller": "codex",
+                "primary": "codex",
+                "reviewer": "claude",
+            },
+        )
+
+        payload = result["structuredContent"]
+        self.assertFalse(result["isError"])
+        self.assertEqual(payload["route"], "orchestrator_mcp")
+        self.assertEqual(payload["recommended_tool"], "qiongli_task_run")
+        self.assertTrue(payload["requires_full_runtime"])
+        self.assertIn("Codex", payload["platform_note"])
+        self.assertIn("Claude Code", payload["platform_note"])
+        self.assertEqual(
+            [step["tool"] for step in payload["sequence"]],
+            [
+                "qiongli_orchestrator_doctor",
+                "qiongli_task_plan",
+                "qiongli_task_run",
+            ],
+        )
+        task_run_args = payload["sequence"][2]["args"]
+        self.assertEqual(task_run_args["task_id"], "F3")
+        self.assertEqual(task_run_args["execution_mode"], "duo")
+        self.assertEqual(task_run_args["controller"], "codex")
+        self.assertEqual(task_run_args["primary"], "codex")
+        self.assertEqual(task_run_args["reviewer"], "claude")
+        self.assertFalse(task_run_args["run_agents"])
+
+    def test_orchestrator_route_keeps_simple_request_on_skill_workflow(self) -> None:
+        result = call_qiongli_tool(
+            "qiongli_orchestrator_route",
+            {
+                "request": "Tighten one paragraph for clarity without launching agents.",
+                "platform": "claude_code",
+            },
+        )
+
+        payload = result["structuredContent"]
+        self.assertEqual(payload["route"], "skill_workflow")
+        self.assertEqual(payload["recommended_tool"], "qiongli_task_plan")
+        self.assertFalse(payload["requires_full_runtime"])
+        self.assertIn("skill", payload["why"][0])
+
+    def test_tool_definitions_replace_gemini_runtime_with_antigravity(self) -> None:
+        for tool in MCP_TOOL_DEFINITIONS:
+            if tool["name"] not in {"qiongli_orchestrator_route", "qiongli_task_run"}:
+                continue
+            properties = tool["inputSchema"]["properties"]
+            for field in ("controller", "primary", "reviewer", "verifier"):
+                with self.subTest(tool=tool["name"], field=field):
+                    self.assertNotIn("gemini", properties[field]["enum"])
+                    self.assertEqual(["codex", "claude", "antigravity"], properties[field]["enum"])
 
     def test_config_status_redacts_saved_provider_values(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -361,9 +427,9 @@ class MCPToolHandlerTests(unittest.TestCase):
                 "topic": "my-topic",
                 "artifact_root": "RESEARCH/[topic]/",
                 "runtime_plan": {
-                    "primary_agent": "gemini",
-                    "review_agent": "gemini",
-                    "fallback_agent": "gemini",
+                    "primary_agent": "codex",
+                    "review_agent": "claude",
+                    "fallback_agent": "claude",
                 },
             }
 
@@ -414,6 +480,114 @@ class MCPToolHandlerTests(unittest.TestCase):
         self.assertEqual(preview["task_run_arguments"]["review_agent"], "claude")
         self.assertFalse(preview["will_launch_agents"])
 
+    def test_task_run_preview_accepts_guidance_mode(self) -> None:
+        class StubResult:
+            mode = "task-plan"
+            confidence = 0.8
+            merged_analysis = "preview"
+            recommendations: list[str] = []
+            data = {
+                "task_id": "F3",
+                "paper_type": "empirical",
+                "topic": "my-topic",
+                "artifact_root": "RESEARCH/[topic]/",
+                "runtime_plan": {
+                    "primary_agent": "codex",
+                    "review_agent": "claude",
+                    "fallback_agent": "claude",
+                },
+            }
+
+        class StubOrchestrator:
+            def task_plan(self, **_kwargs: object) -> StubResult:
+                return StubResult()
+
+            def _build_controller_metadata(self, **_kwargs: object) -> dict[str, str]:
+                return {
+                    "execution_mode": "duo",
+                    "controller": "codex",
+                    "primary_agent": "",
+                    "review_agent": "",
+                    "verifier_agent": "",
+                    "solo_role_gates": "standard",
+                }
+
+            def _controller_runtime_overrides(self, _metadata: dict[str, str]) -> dict[str, str]:
+                return {}
+
+        stub = StubOrchestrator()
+        with mock.patch.object(tool_handlers, "ModelOrchestrator", return_value=stub):
+            result = call_qiongli_tool(
+                "qiongli_task_run",
+                {
+                    "task_id": "F3",
+                    "paper_type": "empirical",
+                    "topic": "my-topic",
+                    "cwd": ".",
+                    "guidance_mode": "read",
+                },
+            )
+
+        preview = result["structuredContent"]["data"]["task_run_preview"]
+        self.assertEqual(preview["task_run_arguments"]["guidance_mode"], "read")
+
+    def test_task_run_preview_reports_guidance_bootstrap_without_writing(self) -> None:
+        class StubResult:
+            mode = "task-plan"
+            confidence = 0.8
+            merged_analysis = "preview"
+            recommendations: list[str] = []
+            data = {
+                "task_id": "F3",
+                "paper_type": "empirical",
+                "topic": "my-topic",
+                "artifact_root": "RESEARCH/[topic]/",
+                "runtime_plan": {
+                    "primary_agent": "codex",
+                    "review_agent": "claude",
+                    "fallback_agent": "claude",
+                },
+            }
+
+        class StubOrchestrator:
+            def task_plan(self, **_kwargs: object) -> StubResult:
+                return StubResult()
+
+            def _build_controller_metadata(self, **_kwargs: object) -> dict[str, str]:
+                return {
+                    "execution_mode": "duo",
+                    "controller": "codex",
+                    "primary_agent": "",
+                    "review_agent": "",
+                    "verifier_agent": "",
+                    "solo_role_gates": "standard",
+                }
+
+            def _controller_runtime_overrides(self, _metadata: dict[str, str]) -> dict[str, str]:
+                return {}
+
+        stub = StubOrchestrator()
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            with mock.patch.object(tool_handlers, "ModelOrchestrator", return_value=stub):
+                result = call_qiongli_tool(
+                    "qiongli_task_run",
+                    {
+                        "task_id": "F3",
+                        "paper_type": "empirical",
+                        "topic": "my-topic",
+                        "cwd": str(root),
+                    },
+                )
+
+            preview = result["structuredContent"]["data"]["task_run_preview"]
+            self.assertTrue(preview["guidance_bootstrap"]["needed"])
+            self.assertEqual(
+                preview["guidance_bootstrap"]["project_guidance"],
+                ".qiongli/local_guidance.md",
+            )
+            self.assertFalse((root / ".qiongli").exists())
+
     def test_task_run_preview_maps_triad_execution_mode_to_metadata(self) -> None:
         class StubResult:
             mode = "task-plan"
@@ -428,7 +602,7 @@ class MCPToolHandlerTests(unittest.TestCase):
                 "runtime_plan": {
                     "primary_agent": "codex",
                     "review_agent": "claude",
-                    "fallback_agent": "gemini",
+                    "fallback_agent": "claude",
                 },
             }
 
@@ -464,7 +638,7 @@ class MCPToolHandlerTests(unittest.TestCase):
                     "controller": "codex",
                     "primary": "codex",
                     "reviewer": "claude",
-                    "verifier": "gemini",
+                    "verifier": "antigravity",
                 },
             )
 
@@ -472,6 +646,7 @@ class MCPToolHandlerTests(unittest.TestCase):
         preview = result["structuredContent"]["data"]["task_run_preview"]
         self.assertIs(stub.controller_kwargs["triad"], True)
         self.assertEqual(preview["controller_metadata"]["triad"], "True")
+        self.assertEqual(preview["task_run_arguments"]["verifier_agent"], "antigravity")
 
     def test_task_run_preview_includes_domain_context_in_task_packet(self) -> None:
         class StubResult:
@@ -487,7 +662,7 @@ class MCPToolHandlerTests(unittest.TestCase):
                 "runtime_plan": {
                     "primary_agent": "codex",
                     "review_agent": "claude",
-                    "fallback_agent": "gemini",
+                    "fallback_agent": "claude",
                 },
             }
 
@@ -557,7 +732,7 @@ class MCPToolHandlerTests(unittest.TestCase):
                 "runtime_plan": {
                     "primary_agent": "codex",
                     "review_agent": "claude",
-                    "fallback_agent": "gemini",
+                    "fallback_agent": "claude",
                 },
             }
 
@@ -678,13 +853,14 @@ class MCPToolHandlerTests(unittest.TestCase):
                         "controller": "codex",
                         "primary": "codex",
                         "reviewer": "claude",
-                        "verifier": "gemini",
+                        "verifier": "antigravity",
                         "run_agents": True,
                     },
                 )
 
         self.assertFalse(result["isError"])
         self.assertIs(stub.kwargs["triad"], True)
+        self.assertEqual(stub.kwargs["verifier_agent"], "antigravity")
 
     def test_task_run_tool_explicit_false_triad_overrides_triad_execution_mode(self) -> None:
         class StubResult:
@@ -715,13 +891,14 @@ class MCPToolHandlerTests(unittest.TestCase):
                         "controller": "codex",
                         "primary": "codex",
                         "reviewer": "claude",
-                        "verifier": "gemini",
+                        "verifier": "antigravity",
                         "run_agents": True,
                     },
                 )
 
         self.assertFalse(result["isError"])
         self.assertIs(stub.kwargs["triad"], False)
+        self.assertEqual(stub.kwargs["verifier_agent"], "antigravity")
 
 
 if __name__ == "__main__":

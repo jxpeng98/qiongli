@@ -181,8 +181,6 @@ def sync_versions(root: Path, raw_version: str) -> list[Path]:
         root / "qiongli-workflow" / "skills" / "registry.yaml",
         root / "packages" / "npm-qiongli" / "payload" / "qiongli-workflow" / "skills" / "registry.yaml",
         root / "packages" / "npm-qiongli" / "python-runtime" / "skills" / "registry.yaml",
-        root / "plugins" / "qiongli" / "skills" / "qiongli-workflow" / "skills" / "registry.yaml",
-        layout.next_plugin_package / "skills" / "qiongli-workflow" / "skills" / "registry.yaml",
     )
     for registry_file in registry_files:
         if not registry_file.exists():
@@ -198,8 +196,6 @@ def sync_versions(root: Path, raw_version: str) -> list[Path]:
         layout.workflow / "VERSION",
         root / "qiongli-workflow" / "VERSION",
         root / "packages" / "npm-qiongli" / "payload" / "qiongli-workflow" / "VERSION",
-        root / "plugins" / "qiongli" / "skills" / "qiongli-workflow" / "VERSION",
-        layout.next_plugin_package / "skills" / "qiongli-workflow" / "VERSION",
     )
     for workflow_version_file in workflow_version_files:
         if not workflow_version_file.exists():
@@ -213,37 +209,12 @@ def sync_versions(root: Path, raw_version: str) -> list[Path]:
         layout.workflow / "SKILL.md",
         root / "qiongli-workflow" / "SKILL.md",
         root / "packages" / "npm-qiongli" / "payload" / "qiongli-workflow" / "SKILL.md",
-        root / "plugins" / "qiongli" / "skills" / "qiongli-workflow" / "SKILL.md",
-        layout.next_plugin_package / "skills" / "qiongli-workflow" / "SKILL.md",
     )
     for skill_entrypoint in skill_entrypoint_files:
         if not skill_entrypoint.exists():
             continue
         if replace_skill_entrypoint_version(skill_entrypoint, repo_version):
             changed.append(skill_entrypoint)
-
-    plugin_roots = (
-        layout.plugin_package,
-        layout.next_plugin_package,
-        root / "plugins" / "qiongli",
-    )
-    json_version_files = []
-    seen_json_version_files: set[Path] = set()
-    for plugin_root in plugin_roots:
-        for relative_path in (
-            Path(".codex-plugin") / "plugin.json",
-            Path(".claude-plugin") / "plugin.json",
-            Path("gemini-extension.json"),
-        ):
-            candidate = plugin_root / relative_path
-            if candidate not in seen_json_version_files:
-                json_version_files.append(candidate)
-                seen_json_version_files.add(candidate)
-    for plugin_manifest in json_version_files:
-        if not plugin_manifest.exists():
-            continue
-        if replace_json_versions(plugin_manifest, skill_version):
-            changed.append(plugin_manifest)
 
     npm_manifest = root / "packages" / "npm-qiongli" / "package.json"
     if npm_manifest.exists():

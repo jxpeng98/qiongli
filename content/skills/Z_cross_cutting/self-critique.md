@@ -180,7 +180,7 @@ Grill Issues` with a concrete `Revisit Trigger`.
 ## Usage
 
 This skill is injected into tasks by the `mcp-agent-capability-map.yaml` and should be called:
-- By the **Reviewer Agent** (e.g., Gemini) during the `review-agent-check` phase of orchestrator runs.
+- By the **Reviewer Agent** during the `review-agent-check` phase of orchestrator runs.
 - Via role-play instructions in `/paper-write`, `/study-design`, and other generative commands.
 
 ## Output Contract

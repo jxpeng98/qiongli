@@ -11,7 +11,7 @@ skills:
   # ══════════════════════════════════════════════════════════
   - id: question-refiner
     stage: A_framing
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/A_framing/question-refiner.md
     canonical: true
     summary: "Transform vague topics into structured RQs via PICO/PEO + FINER evaluation."
@@ -24,12 +24,12 @@ skills:
     outputs: [RQSet]
     tags: [framing, research-question, PICO, PEO, FINER]
     depends_on: []
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
   - id: contribution-crafter
     stage: A_framing
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/A_framing/contribution-crafter.md
     canonical: true
     summary: "Draft a compelling contribution statement highlighting theoretical, methodological, and empirical novelty."
@@ -42,13 +42,13 @@ skills:
     outputs: [ContributionStatement]
     tags: [contribution, novelty, framing, positioning]
     depends_on: [question-refiner, gap-analyzer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
   - id: hypothesis-generator
     stage: A_framing
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/A_framing/hypothesis-generator.md
     canonical: true
     summary: "Translate RQs into testable hypotheses with mechanisms and boundary conditions."
@@ -61,13 +61,13 @@ skills:
     outputs: [HypothesisSet]
     tags: [framing, hypothesis, propositions, mechanisms]
     depends_on: [question-refiner]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
   - id: theory-mapper
     stage: A_framing
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/A_framing/theory-mapper.md
     canonical: true
     summary: "Map theoretical concepts, relationships, and frameworks with Mermaid diagrams."
@@ -80,13 +80,13 @@ skills:
     outputs: [TheoreticalFramework]
     tags: [framing, theory, constructs, conceptual-model, mermaid]
     depends_on: [question-refiner, academic-searcher]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, scholarly-search]
     domain_aware: false
 
   - id: gap-analyzer
     stage: A_framing
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/A_framing/gap-analyzer.md
     canonical: true
     summary: "Identify and categorize research gaps using 5-type taxonomy with FINER prioritization."
@@ -99,13 +99,13 @@ skills:
     outputs: [GapAnalysis]
     tags: [framing, gap-analysis, positioning, FINER]
     depends_on: [academic-searcher]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, scholarly-search]
     domain_aware: false
 
   - id: venue-analyzer
     stage: A_framing
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/A_framing/venue-analyzer.md
     canonical: true
     summary: "Analyze venue fit, formatting constraints, and reviewer expectations."
@@ -118,7 +118,7 @@ skills:
     outputs: [VenueAnalysis]
     tags: [framing, venue, journal-selection, formatting]
     depends_on: [question-refiner]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, scholarly-search]
     domain_aware: true
 
@@ -127,50 +127,50 @@ skills:
   # ══════════════════════════════════════════════════════════
   - id: academic-searcher
     stage: B_literature
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/B_literature/academic-searcher.md
     canonical: true
-    summary: "Own query design, provider-backed retrieval, and deduplicated search outputs as one top-level search skill."
+    summary: "Plan and execute provider-backed searches with diagnostics, dedup logs, and review-grade blockers."
     display_name: "Academic Searcher"
-    when_to_use: "Use when you need to own query design, provider-backed retrieval, and deduplicated search outputs as one top-level search skill."
+    when_to_use: "Use when a B1 search needs reproducible provider execution, search_diagnostics.md, dedup logs, or review-grade coverage checks."
     summary_zh: "统一负责检索式设计、数据库检索和去重后的搜索产物。"
     display_name_zh: "学术检索"
     when_to_use_zh: "当你需要可复现的检索式、数据库搜索和 search log 时使用。"
     inputs: [RQSet, SearchQueryPlan]
-    outputs: [SearchQueryPlan, SearchResults, SearchLog]
+    outputs: [SearchQueryPlan, SearchResults, SearchLog, DedupLog, SearchDiagnostics]
     tags: [literature, search, databases, API, reproducibility]
     depends_on: [question-refiner]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, scholarly-search, fulltext-retrieval]
     domain_aware: false
 
   - id: paper-screener
     stage: B_literature
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/B_literature/paper-screener.md
     canonical: true
-    summary: "Two-stage PRISMA-compliant systematic screening with decision logging."
+    summary: "Run diagnostics-aware title/abstract and full-text screening with PRISMA-ready decision logs."
     display_name: "Paper Screener"
-    when_to_use: "Use when you need to two-stage prisma-compliant systematic screening with decision logging."
+    when_to_use: "Use when candidate records need include/exclude decisions, diagnostic flags preserved, or PRISMA flow counts."
     summary_zh: "按 PRISMA 做两阶段系统筛选，并记录每一步决策依据。"
     display_name_zh: "文献筛选"
     when_to_use_zh: "当你需要按纳入排除标准筛选文献并留下决策记录时使用。"
     inputs: [SearchResults, RQSet]
-    outputs: [ScreeningDecisionLog, PRISMAFlowData]
+    outputs: [ScreeningDecisionLog, FullTextScreening, PRISMAFlowData]
     tags: [literature, screening, PRISMA, inclusion-exclusion]
     depends_on: [academic-searcher]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, screening-tracker]
     domain_aware: false
 
   - id: paper-extractor
     stage: B_literature
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/B_literature/paper-extractor.md
     canonical: true
-    summary: "Extract structured theory, method, data, findings, and limitation slots into notes and rollups."
+    summary: "Extract source-anchored paper notes and rollups with evidence_limit and unsupported_gap fields."
     display_name: "Paper Extractor"
-    when_to_use: "Use when you need to extract structured theory, method, data, findings, and limitation slots into notes and rollups."
+    when_to_use: "Use when included papers need notes or extraction_table.md without overclaiming metadata-only or abstract-only evidence."
     summary_zh: "将论文中的理论、方法、数据、发现和局限提取为结构化笔记与汇总。"
     display_name_zh: "论文提取"
     when_to_use_zh: "当你需要把入选论文转成结构化笔记和 extraction table 时使用。"
@@ -178,56 +178,56 @@ skills:
     outputs: [ExtractionTable, PaperNotes]
     tags: [literature, extraction, data-collection, structured-notes]
     depends_on: [paper-screener]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, extraction-store]
     domain_aware: false
 
   - id: citation-snowballer
     stage: B_literature
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/B_literature/citation-snowballer.md
     canonical: true
-    summary: "Forward/backward citation tracing to expand corpus and find seminal works."
+    summary: "Expand corpora through citation-graph tracing with seed rationale, saturation status, and dedup appends."
     display_name: "Citation Snowballer"
-    when_to_use: "Use when you need to forward/backward citation tracing to expand corpus and find seminal works."
+    when_to_use: "Use when B3 needs forward/backward citation expansion, known-item follow-up, or coverage repair after search diagnostics."
     summary_zh: "通过前向与后向引文追踪扩展语料，并发现奠基性文献。"
     display_name_zh: "引文滚雪球"
     when_to_use_zh: "当已有种子文献但覆盖还不够时使用。"
     inputs: [SearchResults]
-    outputs: [SnowballLog]
+    outputs: [SnowballLog, SearchResults, DedupLog]
     tags: [literature, citations, snowballing, forward-backward]
     depends_on: [academic-searcher]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, scholarly-search, citation-graph]
     domain_aware: false
 
   - id: fulltext-fetcher
     stage: B_literature
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/B_literature/fulltext-fetcher.md
     canonical: true
-    summary: "Retrieve full-text PDFs via OA channels with PRISMA-compliant status tracking."
+    summary: "Record full-text retrieval status and resolver provenance through the fulltext-retrieval boundary."
     display_name: "Full-text Fetcher"
-    when_to_use: "Use when you need to retrieve full-text pdfs via oa channels with prisma-compliant status tracking."
+    when_to_use: "Use when reports need retrieval_manifest.csv, controlled full-text statuses, or Zotero/OA resolver handoff."
     summary_zh: "通过开放获取渠道获取全文 PDF，并记录符合 PRISMA 的状态轨迹。"
     display_name_zh: "全文获取"
     when_to_use_zh: "当你已找到候选论文但缺少全文时使用。"
     inputs: [ScreeningDecisionLog]
-    outputs: [FullTextStatus]
+    outputs: [FullTextStatus, RetrievalManifest]
     tags: [literature, fulltext, open-access, retrieval, PRISMA]
     depends_on: [paper-screener]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, fulltext-retrieval]
     domain_aware: false
 
   - id: citation-formatter
     stage: B_literature
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/B_literature/citation-formatter.md
     canonical: true
-    summary: "Format citations in APA/MLA/Chicago/IEEE/BibTeX with consistent citekeys."
+    summary: "Normalize bibliography.bib metadata, DOI values, citekeys, and missing-reference flags."
     display_name: "Citation Formatter"
-    when_to_use: "Use when you need to format citations in apa/mla/chicago/ieee/bibtex with consistent citekeys."
+    when_to_use: "Use when B5 needs citekey cleanup, DOI normalization, duplicate handling, or export-ready bibliography.bib."
     summary_zh: "用统一 citekey 生成 APA、MLA、Chicago、IEEE 与 BibTeX 引文。"
     display_name_zh: "引文格式化"
     when_to_use_zh: "当写作前需要统一 bibliography、citekey 和引文格式时使用。"
@@ -235,18 +235,18 @@ skills:
     outputs: [Bibliography]
     tags: [literature, citations, BibTeX, APA, formatting]
     depends_on: [paper-extractor]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, metadata-registry]
     domain_aware: false
 
   - id: concept-extractor
     stage: B_literature
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/B_literature/concept-extractor.md
     canonical: true
-    summary: "Expand search concepts with controlled vocabulary and Boolean query drafting."
+    summary: "Prepare search concept buckets, controlled vocabulary, near misses, and seed recall checks."
     display_name: "Concept Extractor"
-    when_to_use: "After research questions (A1) are drafted but before search execution (B1)"
+    when_to_use: "Use after Stage A when B1 search terms, controlled vocabulary, excluded ambiguous terms, or seed recall are unsettled."
     summary_zh: "借助 controlled vocabulary 扩展检索概念，并起草 Boolean 检索式。"
     display_name_zh: "检索概念提取"
     when_to_use_zh: "当检索概念不稳定，需要补 controlled vocabulary 和 Boolean 术语时使用。"
@@ -254,18 +254,18 @@ skills:
     outputs: [ConceptMap]
     tags: [literature, keywords, concepts, boolean-query, controlled-vocabulary]
     depends_on: [question-refiner]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, scholarly-search]
     domain_aware: true
 
   - id: literature-mapper
     stage: B_literature
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/B_literature/literature-mapper.md
     canonical: true
-    summary: "Build literature taxonomy with mechanism-based cluster labels and open problems."
+    summary: "Build source-anchored literature taxonomies with representative papers, evidence limits, and open problems."
     display_name: "Literature Mapper"
-    when_to_use: "After paper extraction (B2) when you have ≥15 papers with structured notes"
+    when_to_use: "Use when extracted papers need a defensible non-chronological map for related work or novelty positioning."
     summary_zh: "用机制导向的簇标签和开放问题构建文献地图。"
     display_name_zh: "文献地图"
     when_to_use_zh: "当你需要重组文献流派、机制簇和开放问题时使用。"
@@ -273,26 +273,26 @@ skills:
     outputs: [LiteratureMap]
     tags: [literature, taxonomy, mapping, related-work, clustering]
     depends_on: [paper-extractor]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
   - id: reference-manager-bridge
     stage: B_literature
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/B_literature/reference-manager-bridge.md
     canonical: true
-    summary: "Export/import references between research system and Zotero/Mendeley/EndNote."
+    summary: "Exchange references with Zotero and import formats using dry-run local sync and fallback files."
     display_name: "Reference Manager Bridge"
-    when_to_use: "Use when you need to export/import references between research system and zotero/mendeley/endnote."
+    when_to_use: "Use when B5 needs Zotero local sync, import-file fallback, RIS/CSL-JSON export, or bibliography exchange."
     summary_zh: "在研究系统与 Zotero、Mendeley、EndNote 之间导入导出文献。"
     display_name_zh: "文献管理器桥接"
     when_to_use_zh: "当你需要与 Zotero、Mendeley 或 EndNote 双向交换文献时使用。"
     inputs: [Bibliography, PaperNotes]
-    outputs: [Bibliography, RISExport, CSLJSONExport]
+    outputs: [Bibliography, RISExport, CSLJSONExport, ZoteroImportReport]
     tags: [literature, references, Zotero, Mendeley, EndNote, BibTeX, RIS]
     depends_on: [citation-formatter]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, metadata-registry]
     domain_aware: false
 
@@ -301,7 +301,7 @@ skills:
   # ══════════════════════════════════════════════════════════
   - id: study-designer
     stage: C_design
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/C_design/study-designer.md
     canonical: true
     summary: "Own study design rationale, measures, analysis summary, and design handoff artifacts in one package."
@@ -314,13 +314,13 @@ skills:
     outputs: [DesignSpec, AnalysisPlan, DataManagementPlan, Instruments, Preregistration]
     tags: [design, sampling, measures, analysis-plan, preregistration]
     depends_on: [question-refiner]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, metadata-registry]
     domain_aware: true
 
   - id: rival-hypothesis-designer
     stage: C_design
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/C_design/rival-hypothesis-designer.md
     canonical: true
     summary: "Construct competing theories and rival explanations to strengthen design."
@@ -333,13 +333,13 @@ skills:
     outputs: [RivalHypotheses]
     tags: [design, rival-hypotheses, threats-to-validity, competing-theories]
     depends_on: [study-designer, hypothesis-generator]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
   - id: robustness-planner
     stage: C_design
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/C_design/robustness-planner.md
     canonical: true
     summary: "Pre-specify robustness checks, sensitivity analysis, and bounds scaling."
@@ -352,13 +352,13 @@ skills:
     outputs: [RobustnessPlan]
     tags: [design, robustness, sensitivity-analysis, endogeneity]
     depends_on: [study-designer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
   - id: dataset-finder
     stage: C_design
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/C_design/dataset-finder.md
     canonical: true
     summary: "Identify feasible datasets, access routes, and coverage risks before implementation."
@@ -371,13 +371,13 @@ skills:
     outputs: [DatasetPlan]
     tags: [design, data, datasets, provenance, feasibility]
     depends_on: [study-designer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, scholarly-search, metadata-registry]
     domain_aware: true
 
   - id: variable-constructor
     stage: C_design
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/C_design/variable-constructor.md
     canonical: true
     summary: "Operationalize constructs into auditable variables, coding rules, and transformations."
@@ -390,13 +390,13 @@ skills:
     outputs: [VariableSpec]
     tags: [design, variables, operationalization, coding, measures]
     depends_on: [study-designer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, metadata-registry]
     domain_aware: true
 
   - id: data-dictionary-builder
     stage: C_design
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/C_design/data-dictionary-builder.md
     canonical: true
     summary: "Create structured data dictionaries defining every variable's name, type, range, coding, and source."
@@ -409,13 +409,13 @@ skills:
     outputs: [DataDictionary]
     tags: [design, data-dictionary, codebook, variables, metadata]
     depends_on: [study-designer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
   - id: data-management-plan
     stage: C_design
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/C_design/data-management-plan.md
     canonical: true
     summary: "Generate FAIR-compliant data management plans specifying storage, backup, retention, sharing, and archival."
@@ -428,13 +428,13 @@ skills:
     outputs: [DataManagementPlan]
     tags: [design, data-management, FAIR, storage, archival]
     depends_on: [study-designer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
   - id: prereg-writer
     stage: C_design
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/C_design/prereg-writer.md
     canonical: true
     summary: "Generate preregistration documents for OSF/AsPredicted/ClinicalTrials.gov from study design and analysis plan."
@@ -447,13 +447,13 @@ skills:
     outputs: [Preregistration]
     tags: [design, preregistration, OSF, AsPredicted, transparency]
     depends_on: [study-designer, hypothesis-generator]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
   - id: variable-operationalizer
     stage: C_design
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/C_design/variable-operationalizer.md
     canonical: true
     summary: "Map abstract constructs to concrete, measurable variables with validity/reliability justification."
@@ -466,7 +466,7 @@ skills:
     outputs: [OperationalizationMap]
     tags: [design, operationalization, constructs, measurement, validity]
     depends_on: [theory-mapper, study-designer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, scholarly-search]
     domain_aware: true
 
@@ -475,7 +475,7 @@ skills:
   # ══════════════════════════════════════════════════════════
   - id: ethics-irb-helper
     stage: D_ethics
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/D_ethics/ethics-irb-helper.md
     canonical: true
     summary: "Prepare IRB-ready materials: risk assessment, consent, recruitment, data governance."
@@ -488,13 +488,13 @@ skills:
     outputs: [EthicsPackage]
     tags: [ethics, IRB, consent, privacy, GDPR, compliance]
     depends_on: [study-designer, dataset-finder, data-management-plan]
-    compatible_models: [claude, gpt, gemini]
+    compatible_models: [claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
   - id: statement-generator
     stage: D_ethics
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/D_ethics/statement-generator.md
     canonical: true
     summary: "Generate standardized ethics, data availability, and COI statements for manuscript inclusion."
@@ -507,13 +507,13 @@ skills:
     outputs: [Manuscript]
     tags: [ethics, statements, compliance, irb, data-availability]
     depends_on: [ethics-irb-helper, data-management-plan]
-    compatible_models: [claude, gpt, gemini]
+    compatible_models: [claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
   - id: deidentification-planner
     stage: D_ethics
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/D_ethics/deidentification-planner.md
     canonical: true
     summary: "Design technical privacy measures via k-anonymity or differential privacy."
@@ -526,7 +526,7 @@ skills:
     outputs: [DeidentificationPlan]
     tags: [ethics, privacy, deidentification, k-anonymity, differential-privacy]
     depends_on: [ethics-irb-helper]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -535,7 +535,7 @@ skills:
   # ══════════════════════════════════════════════════════════
   - id: effect-size-calculator
     stage: E_synthesis
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/E_synthesis/effect-size-calculator.md
     canonical: true
     summary: "Calculate standard effect sizes from raw statistics to enable meta-analysis."
@@ -548,13 +548,13 @@ skills:
     outputs: [EffectSizeTable, AnalysisCode]
     tags: [meta-analysis, effect-size, statistics, synthesis]
     depends_on: [paper-extractor, variable-constructor]
-    compatible_models: [claude, gpt, gemini]
+    compatible_models: [claude, gpt]
     tooling_requirements: [filesystem, code-runtime]
     domain_aware: true
 
   - id: evidence-synthesizer
     stage: E_synthesis
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/E_synthesis/evidence-synthesizer.md
     canonical: true
     summary: "Synthesize evidence narratively or quantitatively with PRISMA-aligned reporting."
@@ -567,13 +567,13 @@ skills:
     outputs: [EvidenceTable, SynthesisMatrix]
     tags: [synthesis, meta-analysis, narrative, evidence-table, PRISMA]
     depends_on: [quality-assessor]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, stats-engine]
     domain_aware: false
 
   - id: quality-assessor
     stage: E_synthesis
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/E_synthesis/quality-assessor.md
     canonical: true
     summary: "Assess risk of bias and certainty via RoB 2, ROBINS-I, GRADE."
@@ -586,13 +586,13 @@ skills:
     outputs: [QualityTable, GRADESummary]
     tags: [synthesis, quality, risk-of-bias, GRADE, RoB2, ROBINS-I]
     depends_on: [paper-extractor]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
   - id: publication-bias-checker
     stage: E_synthesis
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/E_synthesis/publication-bias-checker.md
     canonical: true
     summary: "Evaluate publication bias via funnel plots, Egger's test, trim-and-fill."
@@ -605,13 +605,13 @@ skills:
     outputs: [PublicationBiasReport]
     tags: [synthesis, publication-bias, funnel-plot, fail-safe-N, trim-and-fill]
     depends_on: [evidence-synthesizer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, stats-engine]
     domain_aware: false
 
   - id: qualitative-coding
     stage: E_synthesis
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/E_synthesis/qualitative-coding.md
     canonical: true
     summary: "Extract phenomena, perform thematic/grounded theory coding, and build a codebook from qualitative transcripts or extracted text."
@@ -624,7 +624,7 @@ skills:
     outputs: [DataDictionary, ThematicCodebook]
     tags: [qualitative, thematic-analysis, grounded-theory, codebook, synthesis]
     depends_on: []
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
@@ -633,7 +633,7 @@ skills:
   # ══════════════════════════════════════════════════════════
   - id: manuscript-architect
     stage: F_writing
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/F_writing/manuscript-architect.md
     canonical: true
     summary: "Own story spine, section drafting, and deep analytical framing as one manuscript package."
@@ -646,13 +646,13 @@ skills:
     outputs: [ManuscriptOutline, Manuscript, ClaimGraph, FiguresTablesPlan]
     tags: [writing, manuscript, outline, drafting, claim-evidence]
     depends_on: [evidence-synthesizer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
   - id: proposal-writer
     stage: F_writing
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/F_writing/proposal-writer.md
     canonical: true
     summary: "Draft research proposals, opening reports, prospectuses, and study plans from framing and design artifacts."
@@ -665,13 +665,13 @@ skills:
     outputs: [ResearchProposal]
     tags: [writing, proposal, opening-report, prospectus, study-plan, drafting]
     depends_on: [question-refiner, gap-analyzer, theory-mapper, contribution-crafter, study-designer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
   - id: analysis-interpreter
     stage: F_writing
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/F_writing/analysis-interpreter.md
     canonical: true
     summary: "Translate findings into analytical prose with uncertainty, mechanisms, rivals, and boundary conditions."
@@ -684,13 +684,13 @@ skills:
     outputs: [ResultInterpretation]
     tags: [writing, results, interpretation, robustness, uncertainty]
     depends_on: [stats-engine]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
   - id: effect-size-interpreter
     stage: F_writing
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/F_writing/effect-size-interpreter.md
     canonical: true
     summary: "Explain the substantive magnitude of estimates in interpretable units."
@@ -703,13 +703,13 @@ skills:
     outputs: [EffectInterpretation]
     tags: [writing, results, effect-size, magnitude, interpretation]
     depends_on: [stats-engine]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
   - id: table-generator
     stage: F_writing
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/F_writing/table-generator.md
     canonical: true
     summary: "Generate publication-ready tables from statistical output with venue-aware formatting."
@@ -722,13 +722,13 @@ skills:
     outputs: [FormattedTables]
     tags: [writing, tables, formatting, APA, publication-ready]
     depends_on: [stats-engine]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
   - id: figure-specifier
     stage: F_writing
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/F_writing/figure-specifier.md
     canonical: true
     summary: "Specify publication-quality figures with reproducible code and accessibility guidance."
@@ -741,13 +741,13 @@ skills:
     outputs: [FigureSpecs]
     tags: [writing, figures, visualization, accessibility, publication-ready]
     depends_on: [stats-engine]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, code-runtime]
     domain_aware: true
 
   - id: meta-optimizer
     stage: F_writing
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/F_writing/meta-optimizer.md
     canonical: true
     summary: "Optimize abstract, title, keywords for indexing and discoverability."
@@ -760,13 +760,13 @@ skills:
     outputs: [MetaOptimization]
     tags: [writing, abstract, title, SEO, indexing, keywords]
     depends_on: [manuscript-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
   - id: discussion-writer
     stage: F_writing
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/F_writing/discussion-writer.md
     canonical: true
     summary: "Drafts the Discussion section using a structured story spine, separating factual findings from theoretical implications."
@@ -779,7 +779,7 @@ skills:
     outputs: [DiscussionDraft, StorySpine]
     tags: [writing, discussion, implications, story-spine, drafting]
     depends_on: [analysis-interpreter]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
@@ -788,7 +788,7 @@ skills:
   # ══════════════════════════════════════════════════════════
   - id: prisma-checker
     stage: G_compliance
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/G_compliance/prisma-checker.md
     canonical: true
     summary: "Verify PRISMA 2020 flow diagram and all 27 checklist items."
@@ -801,13 +801,13 @@ skills:
     outputs: [PRISMAChecklist]
     tags: [compliance, PRISMA, systematic-review, checklist, reporting]
     depends_on: [manuscript-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, reporting-guidelines]
     domain_aware: false
 
   - id: reporting-checker
     stage: G_compliance
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/G_compliance/reporting-checker.md
     canonical: true
     summary: "Validate CONSORT/STROBE/COREQ/SRQR/TRIPOD reporting completeness."
@@ -820,13 +820,13 @@ skills:
     outputs: [ReportingChecklist]
     tags: [compliance, reporting, CONSORT, STROBE, COREQ, guidelines]
     depends_on: [manuscript-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, reporting-guidelines]
     domain_aware: true
 
   - id: tone-normalizer
     stage: G_compliance
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/G_compliance/tone-normalizer.md
     canonical: true
     summary: "Cut fluff, hedge words, and absolute claims for concise academic tone."
@@ -839,7 +839,7 @@ skills:
     outputs: [ToneNormalization]
     tags: [compliance, tone, academic-writing, editing, conciseness]
     depends_on: [manuscript-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -848,7 +848,7 @@ skills:
   # ══════════════════════════════════════════════════════════
   - id: submission-packager
     stage: H_submission
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/H_submission/submission-packager.md
     canonical: true
     summary: "Assemble submission package: cover letter, disclosures, supplementary materials."
@@ -861,13 +861,13 @@ skills:
     outputs: [SubmissionPackage]
     tags: [submission, cover-letter, checklist, disclosures, supplementary]
     depends_on: [manuscript-architect, tone-normalizer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, submission-kit]
     domain_aware: true
 
   - id: rebuttal-assistant
     stage: H_submission
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/H_submission/rebuttal-assistant.md
     canonical: true
     summary: "Generate point-by-point response matrix from reviewer comments."
@@ -880,13 +880,13 @@ skills:
     outputs: [ResponseToReviewers, ResponseLetter]
     tags: [submission, rebuttal, revision, reviewer-response, point-by-point]
     depends_on: []
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
   - id: peer-review-simulation
     stage: H_submission
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/H_submission/peer-review-simulation.md
     canonical: true
     summary: "Simulate parallel multi-persona cross-reviews (Methodologist, Expert, Reviewer 2)."
@@ -899,13 +899,13 @@ skills:
     outputs: [PeerReviewSimulation]
     tags: [submission, peer-review, simulation, multi-persona, red-team]
     depends_on: [manuscript-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
   - id: fatal-flaw-detector
     stage: H_submission
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/H_submission/fatal-flaw-detector.md
     canonical: true
     summary: "Desk-reject analysis identifying critical flaws blocking publication."
@@ -918,13 +918,13 @@ skills:
     outputs: [FatalFlawAnalysis]
     tags: [submission, fatal-flaw, desk-reject, quality-gate, pre-submission]
     depends_on: [manuscript-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
   - id: reviewer-empathy-checker
     stage: H_submission
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/H_submission/reviewer-empathy-checker.md
     canonical: true
     summary: "Neutralize defensiveness in reviewer responses and verify exact addressing."
@@ -937,13 +937,13 @@ skills:
     outputs: [EmpathyCheck]
     tags: [submission, rebuttal, empathy, tone, reviewer-response]
     depends_on: [rebuttal-assistant]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
   - id: credit-taxonomy-helper
     stage: H_submission
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/H_submission/credit-taxonomy-helper.md
     canonical: true
     summary: "Generate CRediT author contribution statements with ICMJE cross-check and authorship ethics guidance."
@@ -956,13 +956,13 @@ skills:
     outputs: [CRediTStatement]
     tags: [submission, CRediT, authorship, contributions, taxonomy, ICMJE]
     depends_on: [manuscript-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
   - id: limitation-auditor
     stage: H_submission
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/H_submission/limitation-auditor.md
     canonical: true
     summary: "Identifies and structures study constraints, ensuring rigorous self-critique without undermining the manuscript's core contribution."
@@ -975,7 +975,7 @@ skills:
     outputs: [LimitationSection, MitigationStrategy]
     tags: [submission, limitations, rigorous, self-critique, boundary-conditions]
     depends_on: [manuscript-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
@@ -984,7 +984,7 @@ skills:
   # ══════════════════════════════════════════════════════════
   - id: code-builder
     stage: I_code
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/I_code/code-builder.md
     canonical: true
     summary: "Convert academic methods into executable code with domain-profile library selection."
@@ -997,13 +997,13 @@ skills:
     outputs: [AnalysisCode]
     tags: [code, implementation, multi-language, domain-profiles, reproducibility]
     depends_on: [study-designer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, code-runtime]
     domain_aware: true
 
   - id: data-cleaning-planner
     stage: I_code
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/I_code/data-cleaning-planner.md
     canonical: true
     summary: "Define reproducible cleaning rules for validation, missingness, and harmonization."
@@ -1016,13 +1016,13 @@ skills:
     outputs: [CleaningPlan]
     tags: [code, data, cleaning, missingness, validation]
     depends_on: [dataset-finder, variable-constructor]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, code-runtime]
     domain_aware: true
 
   - id: data-merge-planner
     stage: I_code
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/I_code/data-merge-planner.md
     canonical: true
     summary: "Define join logic, key validation, and provenance controls for multi-source data."
@@ -1035,13 +1035,13 @@ skills:
     outputs: [MergePlan]
     tags: [code, data, merge, joins, provenance]
     depends_on: [dataset-finder, variable-constructor, data-cleaning-planner]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, code-runtime]
     domain_aware: true
 
   - id: code-specification
     stage: I_code
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/I_code/code-specification.md
     canonical: true
     summary: "Generate strict OPSX-style constraint sets before coding."
@@ -1054,13 +1054,13 @@ skills:
     outputs: [CodeSpec]
     tags: [code, specification, requirements, OPSX, constraints]
     depends_on: []
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
   - id: code-planning
     stage: I_code
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/I_code/code-planning.md
     canonical: true
     summary: "Transform specs into parallelizable, zero-decision execution plans."
@@ -1073,13 +1073,13 @@ skills:
     outputs: [CodePlan]
     tags: [code, planning, execution-plan, parallelization]
     depends_on: [code-specification]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
   - id: code-execution
     stage: I_code
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/I_code/code-execution.md
     canonical: true
     summary: "Execute code plans with cProfile performance profiling and optimization."
@@ -1092,13 +1092,13 @@ skills:
     outputs: [PerformanceProfile]
     tags: [code, execution, profiling, performance, optimization]
     depends_on: [code-planning]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, code-runtime]
     domain_aware: false
 
   - id: code-review
     stage: I_code
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/I_code/code-review.md
     canonical: true
     summary: "Secondary model reviews code logic, security, and statistical validity."
@@ -1111,13 +1111,13 @@ skills:
     outputs: [CodeReview]
     tags: [code, review, security, statistical-validity, domain-checklist]
     depends_on: [code-builder]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
   - id: reproducibility-auditor
     stage: I_code
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/I_code/reproducibility-auditor.md
     canonical: true
     summary: "Verify seeds, containerization, and fail-graceful contingencies."
@@ -1130,13 +1130,13 @@ skills:
     outputs: [ReproducibilityReport]
     tags: [code, reproducibility, audit, random-seeds, containerization]
     depends_on: [code-builder]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
   - id: release-packager
     stage: I_code
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/I_code/release-packager.md
     canonical: true
     summary: "Package code, data, environment, and documentation for reproducible release (Zenodo, GitHub, Dataverse)."
@@ -1149,13 +1149,13 @@ skills:
     outputs: [ReleasePackage]
     tags: [code, release, packaging, Zenodo, reproducibility, README]
     depends_on: [code-builder, reproducibility-auditor]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, code-runtime]
     domain_aware: false
 
   - id: stats-engine
     stage: I_code
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/I_code/stats-engine.md
     canonical: true
     summary: "Statistical modeling and hypothesis testing with domain-driven diagnostics."
@@ -1168,7 +1168,7 @@ skills:
     outputs: [StatsReport]
     tags: [code, statistics, modeling, hypothesis-testing, diagnostics]
     depends_on: [study-designer]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, stats-engine, code-runtime]
     domain_aware: true
 
@@ -1177,7 +1177,7 @@ skills:
   # ══════════════════════════════════════════════════════════
   - id: presentation-planner
     stage: K_presentation
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/K_presentation/presentation-planner.md
     canonical: true
     summary: "Design story arc, content budget, and audience calibration for academic talks."
@@ -1190,13 +1190,13 @@ skills:
     outputs: [PresentationPlan]
     tags: [presentation, planning, story-arc, audience, time-management]
     depends_on: [manuscript-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
   - id: slide-architect
     stage: K_presentation
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/K_presentation/slide-architect.md
     canonical: true
     summary: "Design slide content specs with assertion-evidence format and multi-backend layout mapping."
@@ -1209,13 +1209,13 @@ skills:
     outputs: [SlideDeckSpec]
     tags: [presentation, slides, design, assertion-evidence, layout-mapping]
     depends_on: [presentation-planner]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
   - id: slidev-scholarly-builder
     stage: K_presentation
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/K_presentation/slidev-scholarly-builder.md
     canonical: true
     summary: "Generate Slidev deck with slidev-theme-scholarly layouts, BibTeX citations, and visual presets."
@@ -1228,13 +1228,13 @@ skills:
     outputs: [SlidevDeck, BibTeXFile]
     tags: [presentation, slidev, scholarly, markdown, citations, web]
     depends_on: [slide-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, code-runtime]
     domain_aware: false
 
   - id: beamer-builder
     stage: K_presentation
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/K_presentation/beamer-builder.md
     canonical: true
     summary: "Generate LaTeX Beamer presentation with theme selection, BibLaTeX citations, and math support."
@@ -1247,7 +1247,7 @@ skills:
     outputs: [BeamerDeck, BibTeXFile]
     tags: [presentation, beamer, latex, PDF, citations, math]
     depends_on: [slide-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, code-runtime]
     domain_aware: false
 
@@ -1256,7 +1256,7 @@ skills:
   # ══════════════════════════════════════════════════════════
   - id: ai-fingerprint-scanner
     stage: J_proofread
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/J_proofread/ai-fingerprint-scanner.md
     canonical: true
     summary: "Scan manuscript for AI-generation fingerprints including formulaic transitions, uniform rhythm, and generic hedging."
@@ -1269,13 +1269,13 @@ skills:
     outputs: [AIDetectionReport]
     tags: [proofread, ai-detection, fingerprint, writing-patterns]
     depends_on: [manuscript-architect]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
   - id: human-voice-rewriter
     stage: J_proofread
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/J_proofread/human-voice-rewriter.md
     canonical: true
     summary: "Rewrite AI-flagged passages to sound authentically human-authored while preserving scientific accuracy."
@@ -1288,13 +1288,13 @@ skills:
     outputs: [HumanizedManuscript]
     tags: [proofread, humanization, rewriting, voice, style]
     depends_on: [ai-fingerprint-scanner]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
   - id: similarity-checker
     stage: J_proofread
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/J_proofread/similarity-checker.md
     canonical: true
     summary: "Identify text overlap including self-plagiarism, close paraphrasing, and boilerplate passages."
@@ -1307,13 +1307,13 @@ skills:
     outputs: [SimilarityReport]
     tags: [proofread, similarity, plagiarism, originality, paraphrase]
     depends_on: [human-voice-rewriter]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
   - id: final-proofreader
     stage: J_proofread
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/J_proofread/final-proofreader.md
     canonical: true
     summary: "Language-level polish covering grammar, tense, acronyms, cross-references, and venue-specific formatting."
@@ -1326,7 +1326,7 @@ skills:
     outputs: [ProofreadChecklist]
     tags: [proofread, grammar, formatting, consistency, final-polish]
     depends_on: [similarity-checker]
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
@@ -1335,7 +1335,7 @@ skills:
   # ══════════════════════════════════════════════════════════
   - id: metadata-enricher
     stage: Z_cross_cutting
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/Z_cross_cutting/metadata-enricher.md
     canonical: true
     summary: "Normalize and enrich DOI, venue, year, author metadata across artifacts."
@@ -1348,13 +1348,13 @@ skills:
     outputs: [Bibliography]
     tags: [cross-cutting, metadata, DOI, normalization, enrichment]
     depends_on: []
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem, metadata-registry]
     domain_aware: false
 
   - id: academic-context-maintainer
     stage: Z_cross_cutting
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/Z_cross_cutting/academic-context-maintainer.md
     canonical: true
     summary: "Maintain project-level academic continuity by updating research state, locked decisions, disputes, and next-stage priorities across major workflow transitions."
@@ -1367,13 +1367,13 @@ skills:
     outputs: [ResearchStateSnapshot, ResearchDecisionLog]
     tags: [cross-cutting, context, continuity, state-tracking, decision-log, handoff]
     depends_on: []
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
   - id: boundary-interviewer
     stage: Z_cross_cutting
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/Z_cross_cutting/boundary-interviewer.md
     canonical: true
     summary: "Run academic idea-discovery and boundary critique one question at a time before high-risk Qiongli work proceeds."
@@ -1386,13 +1386,13 @@ skills:
     outputs: [AcademicIdeaFunnel, BoundaryReview]
     tags: [cross-cutting, boundary, grill-me, academic-judgment, claim-strength, evidence-threshold, validity, generalizability, venue-fit, handoff]
     depends_on: []
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: true
 
   - id: model-collaborator
     stage: Z_cross_cutting
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/Z_cross_cutting/model-collaborator.md
     canonical: true
     summary: "Coordinate independent multi-agent execution, disagreement tracking, and synthesis across literature, writing, review, and code tasks."
@@ -1400,18 +1400,18 @@ skills:
     when_to_use: "Use when literature screening, peer review simulation, rebuttal drafting, qualitative coding, or code/statistics validation benefits from independent multi-model passes before synthesis."
     summary_zh: "协调多模型运行时的协作执行与交叉复核。"
     display_name_zh: "多模型协作"
-    when_to_use_zh: "当你需要 Codex、Claude 和 Gemini 分工协作或交叉复核时使用。"
+    when_to_use_zh: "当你需要 Codex、Claude 和 Antigravity 分工协作或交叉复核时使用。"
     inputs: [TaskPacket]
     outputs: [CollaborationTrace]
-    tags: [cross-cutting, multi-agent, collaboration, Codex, Claude, Gemini]
+    tags: [cross-cutting, multi-agent, collaboration, Codex, Claude, Antigravity]
     depends_on: []
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, antigravity, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false
 
   - id: self-critique
     stage: Z_cross_cutting
-    version: "1.3.0"
+    version: "1.5.0-beta.8"
     file: skills/Z_cross_cutting/self-critique.md
     canonical: true
     summary: "Iterative red teaming against superficial reasoning, contradictions, and overclaiming."
@@ -1424,6 +1424,6 @@ skills:
     outputs: [CritiqueLog]
     tags: [cross-cutting, critique, red-team, quality-assurance, Socratic]
     depends_on: []
-    compatible_models: [codex, claude, gemini, gpt]
+    compatible_models: [codex, claude, gpt]
     tooling_requirements: [filesystem]
     domain_aware: false

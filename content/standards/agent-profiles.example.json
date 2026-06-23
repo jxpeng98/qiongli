@@ -18,10 +18,9 @@
           "non_interactive": true,
           "timeout_seconds": 300
         },
-        "gemini": {
-          "sandbox": false,
+        "antigravity": {
+          "sandbox": true,
           "non_interactive": true,
-          "transport": "auto",
           "timeout_seconds": 300
         }
       }
@@ -42,11 +41,10 @@
           "non_interactive": true,
           "timeout_seconds": 360
         },
-        "gemini": {
+        "antigravity": {
           "sandbox": true,
           "non_interactive": true,
-          "transport": "auto",
-          "timeout_seconds": 240
+          "timeout_seconds": 300
         }
       }
     },
@@ -65,11 +63,10 @@
           "non_interactive": true,
           "timeout_seconds": 240
         },
-        "gemini": {
-          "sandbox": false,
+        "antigravity": {
+          "sandbox": true,
           "non_interactive": true,
-          "transport": "auto",
-          "timeout_seconds": 180
+          "timeout_seconds": 240
         }
       }
     },
@@ -89,10 +86,9 @@
           "non_interactive": true,
           "timeout_seconds": 240
         },
-        "gemini": {
-          "sandbox": false,
+        "antigravity": {
+          "sandbox": true,
           "non_interactive": true,
-          "transport": "auto",
           "timeout_seconds": 240
         }
       }
@@ -115,11 +111,10 @@
           "non_interactive": true,
           "timeout_seconds": 540
         },
-        "gemini": {
+        "antigravity": {
           "sandbox": true,
           "non_interactive": true,
-          "transport": "auto",
-          "timeout_seconds": 420
+          "timeout_seconds": 480
         }
       }
     },
@@ -139,11 +134,10 @@
           "non_interactive": true,
           "timeout_seconds": 420
         },
-        "gemini": {
+        "antigravity": {
           "sandbox": true,
           "non_interactive": true,
-          "transport": "auto",
-          "timeout_seconds": 300
+          "timeout_seconds": 360
         }
       }
     },
@@ -163,10 +157,9 @@
           "non_interactive": true,
           "timeout_seconds": 300
         },
-        "gemini": {
-          "sandbox": false,
+        "antigravity": {
+          "sandbox": true,
           "non_interactive": true,
-          "transport": "auto",
           "timeout_seconds": 300
         }
       }

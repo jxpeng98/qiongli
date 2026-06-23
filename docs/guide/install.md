@@ -56,7 +56,7 @@ Inside an interactive Claude Code session, use:
 /plugin install qiongli-economics@skillsplace
 ```
 
-The Claude Code plugin also bundles the zero-dependency Node literature-provider MCP runtime under `mcp/qiongli-literature-provider/`, using the same provider, search, and status tools as the Codex plugin. It covers literature-provider MCP without installing the `qiongli` CLI. Full Python-backed orchestration tools such as `qiongli_task_plan`, `qiongli_task_run`, and `qiongli_orchestrator_doctor` still require the npm, pipx/pip, or bootstrap `full` CLI runtime and `qiongli mcp serve --transport stdio`.
+The Claude Code plugin also bundles the zero-dependency Node literature-provider MCP runtime under `mcp/qiongli-literature-provider/`, using the same provider, search, and status tools as the Codex plugin. It covers literature-provider MCP without installing the `qiongli` CLI. Full Python-backed orchestration tools such as `qiongli_orchestrator_route`, `qiongli_task_plan`, `qiongli_task_run`, and `qiongli_orchestrator_doctor` still require the npm, pipx/pip, or bootstrap `full` CLI runtime and `qiongli mcp serve --transport stdio`.
 
 Claude Desktop and Claude.ai do not install third-party Claude Code plugin marketplaces. If you use Desktop or the web app and are not familiar with a code/CLI environment, use the release ZIP path instead. It requires no terminal commands:
 
@@ -65,30 +65,22 @@ Claude Desktop and Claude.ai do not install third-party Claude Code plugin marke
 3. In Claude.ai, use the same `Customize > Skills` upload flow and select the same ZIP.
 4. Enable the uploaded `qiongli` skill.
 
-The release ZIP uses `coverage=focused` to stay under the current 180-file upload budget. It is a subject-specialized Desktop/Web package, not a reduced-quality cut. It preserves executable workflows, prompts, templates, standards, selected profiles, `skills-summary.md`, and `skills-core.md`; specialized ZIPs also include selected effective skill markdown generated with layered overlays. This Desktop skill ZIP is skill-only: it contains workflows/prompts/templates, stores no secrets, and does not execute provider calls. Detailed canonical source remains available through CLI/npm `coverage=complete`, the Codex / Claude Code / Gemini plugin packages, and the source repository.
+The release ZIP uses `coverage=focused` to stay under the current 180-file upload budget. It is a subject-specialized Desktop/Web package, not a reduced-quality cut. It preserves executable workflows, prompts, templates, standards, selected profiles, `skills-summary.md`, and `skills-core.md`; specialized ZIPs also include selected effective skill markdown generated with layered overlays. This Desktop skill ZIP is skill-only: it contains workflows/prompts/templates, stores no secrets, and does not execute provider calls. Detailed canonical source remains available through CLI/npm `coverage=complete`, the Codex / Claude Code plugin packages, and the source repository.
 
-The Qiongli Literature Provider `.mcpb` (`qiongli-literature-provider.mcpb`) is a separate Claude Desktop local provider asset. It runs Desktop literature search through OpenAlex and Semantic Scholar, exposes a Desktop configuration UI for OpenAlex API key, optional OpenAlex email, and Semantic Scholar API key values, and uses Claude Desktop sensitive-field handling instead of putting keys in the skill ZIP. It contains its own zero-dependency Node stdio server, so Desktop users do not need the `qiongli` CLI or an npm install to use this MCPB. CLI, Codex, and Claude Code users can still run `qiongli provider setup`, then verify `provider_connected` or `strategy_only` with `qiongli provider doctor`. Desktop users need the `qiongli-literature-provider` MCPB or platform-native search before claiming `provider_connected`; if no MCPB or platform-native search is available, record the run as `strategy_only` and treat platform search or user-supplied corpus as the evidence source.
+The Qiongli Literature Provider `.mcpb` (`qiongli-literature-provider.mcpb`) is a separate Claude Desktop local provider asset. It runs Desktop literature search through OpenAlex, Semantic Scholar, Crossref, and PubMed, exposes a Desktop configuration UI for provider credentials, and uses Claude Desktop sensitive-field handling instead of putting keys in the skill ZIP. It supports query variants, finance/economics deep-search routing, pagination, retry diagnostics, and limited citation/reference metadata expansion. It contains its own zero-dependency Node stdio server, so Desktop users do not need the `qiongli` CLI or an npm install to use this MCPB. CLI, Codex, and Claude Code users can still run `qiongli provider setup`, then verify `provider_connected` or `strategy_only` with `qiongli provider doctor`. Desktop users need the `qiongli-literature-provider` MCPB or platform-native search before claiming `provider_connected`; if no MCPB or platform-native search is available, record the run as `strategy_only` and treat platform search or user-supplied corpus as the evidence source. Finance/economics data APIs such as FRED and SEC EDGAR belong in a separate data MCP surface, documented in [Finance/Economics Data MCP Boundary](../advanced/finance-econ-data-mcp.md).
 
 Manual Desktop installs can combine two local assets:
 
 - Skill ZIP: enables Qiongli agent instructions, workflows, subject overlays, and skill guidance inside Claude Desktop/Web.
 - Literature MCPB: enables local literature MCP calls and provider configuration.
 
-Those two assets do not by themselves expose the full Python-backed orchestrator. If a local client should call `qiongli_task_plan`, `qiongli_task_run`, or `qiongli_orchestrator_doctor` as MCP tools, install the npm, pipx/pip, or bootstrap `full` CLI runtime and configure:
+Those two assets do not by themselves expose the full Python-backed orchestrator. If a local client should call `qiongli_orchestrator_route`, `qiongli_task_plan`, `qiongli_task_run`, or `qiongli_orchestrator_doctor` as MCP tools, install the npm, pipx/pip, or bootstrap `full` CLI runtime and configure:
 
 ```bash
 qiongli mcp serve --transport stdio
 ```
 
-`qiongli_task_run` defaults to preview mode. It launches local Codex, Claude, or Gemini processes only when the MCP caller explicitly sends JSON boolean `run_agents: true` and the local runtime passes `doctor`.
-
-Gemini CLI still installs the local extension payload directly:
-
-```bash
-gemini extensions install ./path/to/qiongli/packages/qiongli-plugin
-```
-
-This path does not install the shell CLI, Python bridge, or global slash-command symlinks. Use bootstrap or npm when you need those.
+Use `qiongli_orchestrator_route` from Codex, Claude Code, Antigravity, or another local MCP client when deciding whether a request should move from skill-only execution to the full orchestrator. `qiongli_task_run` defaults to preview mode. It launches local runtime agents only when the MCP caller explicitly sends JSON boolean `run_agents: true` and the local runtime passes `doctor`.
 
 ## Use After Install
 
@@ -98,7 +90,6 @@ Restart the target client after installing or upgrading. Then use the entrypoint
 |---|---|---|
 | Codex | `/skills` should list `qiongli` | `$qiongli <research task>` |
 | Claude Code | Plugin UI, `/plugin`, or global command discovery | `/paper`, `/lit-review`, `/paper-write`, `/code-build` |
-| Gemini CLI | Extension list or global workflow discovery | `/paper`, `/lit-review`, `/paper-write`, `/code-build` |
 | Shell | `qiongli check` | `qiongli doctor`, `qiongli upgrade`, `python3 -m bridges.orchestrator ...` |
 
 Codex does not expose a custom `/qiongli` slash command. Use `/skills` to confirm the skill exists, then invoke `$qiongli`.
@@ -190,10 +181,10 @@ qiongli setup --dry-run
 qiongli setup --project-dir "$PWD" --no-doctor
 ```
 
-The wizard guides CLI, Codex, and Claude Code users through:
+The wizard guides CLI, Codex, Claude Code, and Antigravity users through:
 
 - setup path: `install` for first-time bundled asset installation, or `upgrade` for an upstream refresh
-- runtime surface: CLI, Codex, Claude Code, or multi-platform
+- runtime surface: CLI, Codex, Claude Code, Antigravity, or multi-platform
 - subject choice
 - coverage choice: `complete` or `focused`
 - install mode: `--mode copy` for normal use, or `--mode link` for local checkout development

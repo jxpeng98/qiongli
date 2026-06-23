@@ -10,7 +10,7 @@ This page distills the operational guidance from `CLAUDE.md` into a maintainer-f
 - common runtime commands
 - architectural expectations
 - quality vocabulary
-- collaboration patterns across `codex`, `claude`, and `gemini`
+- collaboration patterns across `codex` and `claude`
 
 ## Maintainer Priorities
 
@@ -21,7 +21,7 @@ When behavior changes, maintainers should prefer fixing:
 1. `content/standards/`
 2. `content/roles/` or `content/skills/`
 3. `content/templates/`
-4. `tooling/pipelines/`, `content/workflow/workflows/`, or `packages/qiongli-plugin/platforms/`
+4. `tooling/pipelines/`, `content/workflow/workflows/`, or `content/distribution/plugins.yaml`
 5. `packages/python-qiongli/src/qiongli/`
 6. generated `qiongli-workflow/` only through materialization
 

@@ -3,15 +3,15 @@ stage_defaults:
   B_literature:
     primary: claude
     reviewer: codex
-    verifier: codex
+    verifier: antigravity
   F_writing:
     primary: claude
     reviewer: codex
-    verifier: codex
+    verifier: antigravity
   I_code:
     primary: codex
     reviewer: claude
-    verifier: codex
+    verifier: antigravity
 solo_gate_mappings:
   solo_codex:
     writing_gates:
@@ -34,3 +34,12 @@ solo_gate_mappings:
       - failing_test_first
       - command_evidence
       - rollback_notes
+  solo_antigravity:
+    writing_gates:
+      - story_spine_check
+      - claim_support_check
+      - reviewer_self_critique
+    code_gates:
+      - implementation_intent
+      - declared_write_set
+      - command_evidence

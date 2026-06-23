@@ -38,6 +38,17 @@ test('help documents mcp upgrade command', async () => {
   assert.match(output, /qiongli mcp upgrade --target all \[--dry-run\]/);
 });
 
+test('help documents guidance command', async () => {
+  let output = '';
+  const exitCode = await main(['help'], {
+    stdout: { write: (chunk) => { output += chunk; } },
+    stderr: { write: () => {} },
+  });
+
+  assert.equal(exitCode, 0);
+  assert.match(output, /qiongli guidance init \[--project-dir \.\]/);
+});
+
 test('help documents remove command', async () => {
   let output = '';
   const exitCode = await main(['help'], {
@@ -82,6 +93,24 @@ test('main dispatches mcp to Python CLI runner and returns its code', async () =
   assert.deepEqual(calls, [
     ['mcp', 'serve', '--transport', 'stdio'],
   ]);
+});
+
+test('main dispatches guidance to Python bridge runner and preserves args', async () => {
+  const calls = [];
+  const exitCode = await main(['guidance', 'init', '--project-dir', '/tmp/project'], {
+    stdout: { write: () => {} },
+    stderr: { write: () => {} },
+    runBridgeCommand: ({ command, args }) => {
+      calls.push({ command, args });
+      return 8;
+    },
+  });
+
+  assert.equal(exitCode, 8);
+  assert.deepEqual(calls, [{
+    command: 'guidance',
+    args: ['init', '--project-dir', '/tmp/project'],
+  }]);
 });
 
 test('main dispatches mcp upgrade to Python CLI runner', async () => {

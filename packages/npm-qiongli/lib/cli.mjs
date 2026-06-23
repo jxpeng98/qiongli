@@ -7,7 +7,7 @@ import {
   runPythonCliCommand as defaultRunPythonCliCommand,
 } from './python-runtime.mjs';
 
-const BRIDGE_COMMANDS = new Set(['doctor', 'task-run', 'team-run', 'parallel', 'chain', 'role', 'single', 'code-build', 'task-plan']);
+const BRIDGE_COMMANDS = new Set(['doctor', 'guidance', 'task-run', 'team-run', 'parallel', 'chain', 'role', 'single', 'code-build', 'task-plan']);
 const PYTHON_CLI_COMMANDS = new Set(['setup', 'mcp']);
 
 export async function main(argv, {
@@ -139,7 +139,7 @@ function printInstallResult(result, stdout) {
   for (const action of result.actions) {
     stdout.write(`[${action.status}] ${action.label} -> ${action.path} (${action.detail})\n`);
   }
-  stdout.write('Restart Codex / Claude Code / Gemini CLI / Antigravity / Hermes to activate changes.\n');
+  stdout.write('Restart Codex / Claude Code / Antigravity / Hermes to activate changes.\n');
 }
 
 function printRemoveResult(result, stdout) {
@@ -147,7 +147,7 @@ function printRemoveResult(result, stdout) {
   for (const action of result.actions) {
     stdout.write(`[${action.status}] ${action.label} -> ${action.path} (${action.detail})\n`);
   }
-  stdout.write('Restart Codex / Claude Code / Gemini CLI / Antigravity / Hermes to refresh discovery state.\n');
+  stdout.write('Restart Codex / Claude Code / Antigravity / Hermes to refresh discovery state.\n');
 }
 
 function helpText() {
@@ -166,11 +166,14 @@ Usage:
   qiongli mcp doctor --json
   qiongli mcp upgrade --target all [--dry-run]
   qiongli doctor --cwd .
+  qiongli guidance init [--project-dir .]
+  qiongli guidance show|trace [--project-dir .]
+  qiongli guidance apply --proposal .qiongli/trace/runs/<run_id>/guidance_update_proposal.md
   qiongli task-run ...
   qiongli team-run ...
 
 Options:
-  --target codex|claude|gemini|antigravity|hermes|all
+  --target codex|claude|antigravity|hermes|all
   --subject core|economics|accounting|business|finance|economics-accounting
   --coverage complete|focused
   --mode copy|link

@@ -78,12 +78,12 @@ class MCPConnectorTests(unittest.TestCase):
         self.assertEqual(resolution.source, "builtin")
         self.assertTrue((resolution.native_script or "").endswith("mcp_fulltext_retrieval.py"))
 
-    def test_resolve_provider_detects_builtin_research_collab(self) -> None:
+    def test_resolve_provider_no_longer_exposes_builtin_research_collab(self) -> None:
         with mock.patch.dict(os.environ, {}, clear=False):
             resolution = self.connector.resolve_provider("research-collab")
 
-        self.assertEqual(resolution.source, "builtin")
-        self.assertTrue((resolution.native_script or "").endswith("mcp_research_collab.py"))
+        self.assertEqual(resolution.source, "external_slot")
+        self.assertIsNone(resolution.native_script)
 
     def test_builtin_scholarly_search_reports_provider_config(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
 Multi-Model Orchestrator for qiongli.
-Single entry point for coordinating Codex, Claude, and Gemini collaboration.
+Single entry point for coordinating Codex, Claude, and Antigravity collaboration.
 
 Usage:
     python orchestrator.py parallel --prompt "..." --cwd "/path" --summarizer claude
     python orchestrator.py chain --prompt "..." --cwd "/path" --generator claude
-    python orchestrator.py role --cwd "/path" --codex-task "..." --claude-task "..." --gemini-task "..."
-    python orchestrator.py single --model claude --prompt "..." --cwd "/path"
+    python orchestrator.py role --cwd "/path" --codex-task "..." --claude-task "..." --antigravity-task "..."
+    python orchestrator.py single --model antigravity --prompt "..." --cwd "/path"
     python orchestrator.py task-run --task-id F3 --paper-type empirical --topic ai-in-education --cwd "/path" --mcp-strict --skills-strict --triad
     python orchestrator.py doctor --cwd "/path"
 
@@ -22,6 +22,7 @@ import os
 import re
 import shutil
 import sys
+import uuid
 import yaml
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
@@ -30,28 +31,28 @@ from pathlib import Path
 from typing import Any
 
 from .base_bridge import BridgeResponse, CollaborationResult, configure_stdio
+from .antigravity_bridge import AntigravityBridge
 from .claude_bridge import ClaudeBridge
 from .command_runtime import split_command
 from .codex_bridge import CodexBridge
-from .gemini_bridge import GeminiBridge
 from .mcp_connectors import MCPEvidence, MCPConnector
 from .i18n import get_language, get_text
 from .provider_config import provider_capability_mode, provider_config_summary, resolve_provider_config
 from .critique_questions import get_critique_questions
+from .guidance_runtime import (
+    GUIDANCE_MODES,
+    GuidanceState,
+    apply_guidance_proposal,
+    ensure_project_guidance,
+    effective_guidance,
+    guidance_trace_summary,
+    init_project_guidance,
+    write_guidance_trace,
+)
 from .boundary_questions import (
     BOUNDARY_ARTIFACT,
     build_boundary_question_plan,
     format_boundary_prompt_section,
-)
-from .providers.research_collab import (
-    DEFAULT_BROKER_TIMEOUT_SECONDS,
-    GEMINI_TRANSPORT_ENV,
-    bridge_response_from_broker_payload,
-    broker_client_from_env,
-    broker_status_from_env,
-    gemini_cached_auth_files,
-    gemini_noninteractive_auth_status,
-    resolve_gemini_transport,
 )
 from .errors import (
     ResearchError,
@@ -72,9 +73,21 @@ class CollaborationMode(Enum):
     SINGLE = "single"          # Single model execution
 
 
-RUNTIME_AGENT_CHOICES = ("codex", "claude", "gemini")
+RUNTIME_AGENT_CHOICES = ("codex", "claude", "antigravity")
 CONTROLLER_EXECUTION_MODE_CHOICES = ("solo", "duo", "triad")
 SOLO_ROLE_GATE_CHOICES = ("strict", "standard", "off")
+WORKER_MODE_CHOICES = ("none", "auto", "delegated-workers", "review-swarm")
+WORKER_ADAPTER_CHOICES = ("auto", "generic-prompt", "codex-subagent", "claude-cowork")
+
+
+def _positive_int_arg(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be a positive integer") from exc
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("must be a positive integer")
+    return parsed
 
 
 def _default_standards_dir(
@@ -159,6 +172,27 @@ def _add_controller_agnostic_task_run_args(parser: argparse.ArgumentParser) -> N
     )
 
 
+def _add_worker_orchestration_task_run_args(parser: argparse.ArgumentParser) -> None:
+    """Add disabled-by-default worker orchestration flags for task-run."""
+    parser.add_argument(
+        "--worker-mode",
+        choices=WORKER_MODE_CHOICES,
+        default="none",
+        help="Worker orchestration mode; defaults to disabled unless explicitly requested.",
+    )
+    parser.add_argument(
+        "--worker-adapter",
+        choices=WORKER_ADAPTER_CHOICES,
+        default="auto",
+        help="Worker adapter metadata for future delegated worker execution.",
+    )
+    parser.add_argument(
+        "--max-workers",
+        type=_positive_int_arg,
+        help="Maximum delegated workers metadata for future worker orchestration.",
+    )
+
+
 class AcademicTaskType(Enum):
     """Academic research task types for intelligent routing."""
     ALGORITHM_IMPL = "algorithm"       # Implement algorithm from paper
@@ -187,13 +221,6 @@ class ModelOrchestrator:
         "performance optimization",
     ]
 
-    GEMINI_STRENGTHS = [
-        "code explanation",
-        "architecture analysis",
-        "documentation",
-        "design review",
-        "research context",
-    ]
     CLAUDE_STRENGTHS = [
         "long-form reasoning",
         "manuscript drafting",
@@ -211,7 +238,7 @@ class ModelOrchestrator:
             "runtime_options": {
                 "codex": {"sandbox": "read-only", "non_interactive": True},
                 "claude": {"permission_mode": "default", "non_interactive": True},
-                "gemini": {"sandbox": False, "non_interactive": True, "transport": "auto"},
+                "antigravity": {"sandbox": True, "non_interactive": True},
             },
         },
         "strict-review": {
@@ -221,7 +248,7 @@ class ModelOrchestrator:
             "runtime_options": {
                 "codex": {"sandbox": "read-only", "non_interactive": True},
                 "claude": {"permission_mode": "default", "non_interactive": True},
-                "gemini": {"sandbox": True, "non_interactive": True, "transport": "auto"},
+                "antigravity": {"sandbox": True, "non_interactive": True},
             },
         },
         "rapid-draft": {
@@ -231,7 +258,7 @@ class ModelOrchestrator:
             "runtime_options": {
                 "codex": {"sandbox": "workspace-write", "non_interactive": True},
                 "claude": {"permission_mode": "default", "non_interactive": True},
-                "gemini": {"sandbox": False, "non_interactive": True, "transport": "auto"},
+                "antigravity": {"sandbox": True, "non_interactive": True},
             },
         },
         "focused-delivery": {
@@ -242,7 +269,7 @@ class ModelOrchestrator:
             "runtime_options": {
                 "codex": {"sandbox": "read-only", "non_interactive": True, "timeout_seconds": 240},
                 "claude": {"permission_mode": "default", "non_interactive": True, "timeout_seconds": 240},
-                "gemini": {"sandbox": False, "non_interactive": True, "transport": "auto", "timeout_seconds": 240},
+                "antigravity": {"sandbox": True, "non_interactive": True, "timeout_seconds": 240},
             },
         },
         "deep-research": {
@@ -255,11 +282,11 @@ class ModelOrchestrator:
             "runtime_options": {
                 "codex": {"sandbox": "read-only", "non_interactive": True, "timeout_seconds": 480},
                 "claude": {"permission_mode": "default", "non_interactive": True, "timeout_seconds": 540},
-                "gemini": {"sandbox": True, "non_interactive": True, "transport": "auto", "timeout_seconds": 420},
+                "antigravity": {"sandbox": True, "non_interactive": True, "timeout_seconds": 480},
             },
         },
     }
-    RUNTIME_AGENTS = {"codex", "claude", "gemini"}
+    RUNTIME_AGENTS = set(RUNTIME_AGENT_CHOICES)
     DOMAIN_PROFILE_ALIASES = {
         "business": "business-management",
         "business-management": "business-management",
@@ -393,6 +420,20 @@ class ModelOrchestrator:
     ]
     SELF_CRITIQUE_SKILL = "self-critique"
     SELF_CRITIQUE_ARTIFACT = "review/self_critique_log.md"
+    WRITING_HARNESS_SKILLS = {
+        "manuscript-architect",
+        "proposal-writer",
+        "discussion-writer",
+        "analysis-interpreter",
+        "effect-size-interpreter",
+        "meta-optimizer",
+    }
+    WRITING_HARNESS_CONTEXT_ARTIFACTS = [
+        "context/boundary_review.md",
+        "context/decision_log.md",
+        "context/stage_handoff.md",
+        SELF_CRITIQUE_ARTIFACT,
+    ]
     STAGE_I_FRONTMATTER_KEYS = [
         "task_id",
         "template_type",
@@ -412,7 +453,7 @@ class ModelOrchestrator:
         self,
         codex_sandbox: str = "read-only",
         claude_permission_mode: str | None = None,
-        gemini_sandbox: bool = False,
+        antigravity_sandbox: bool = True,
         standards_dir: Path | None = None,
         mcp_timeout_seconds: int = 20,
         interactive: bool = False,
@@ -420,7 +461,7 @@ class ModelOrchestrator:
         """Initialize orchestrator with bridges."""
         self.codex = CodexBridge(sandbox=codex_sandbox)
         self.claude = ClaudeBridge(permission_mode=claude_permission_mode)
-        self.gemini = GeminiBridge(sandbox=gemini_sandbox)
+        self.antigravity = AntigravityBridge(sandbox=antigravity_sandbox)
         self.standards_dir = standards_dir or _default_standards_dir(cwd=Path.cwd())
         self.mcp_connector = MCPConnector(timeout_seconds=mcp_timeout_seconds)
         self.interactive = interactive
@@ -585,7 +626,7 @@ class ModelOrchestrator:
         prompt: str | None = None,
         codex_task: str | None = None,
         claude_task: str | None = None,
-        gemini_task: str | None = None,
+        antigravity_task: str | None = None,
         generator: str = "codex",
         single_model: str = "codex",
         parallel_summarizer: str = "claude",
@@ -603,7 +644,7 @@ class ModelOrchestrator:
             prompt: Main prompt (for parallel/chain/single modes)
             codex_task: Codex-specific task (for role mode)
             claude_task: Claude-specific task (for role mode)
-            gemini_task: Gemini-specific task (for role mode)
+            antigravity_task: Antigravity-specific task (for role mode)
             generator: Which model generates in chain mode
             single_model: Which model to use in single mode
             parallel_summarizer: Which model performs post-parallel synthesis
@@ -633,12 +674,12 @@ class ModelOrchestrator:
                     recommendations=[],
                     codex_response=error_resp if "codex" in str(exc).lower() else None,
                     claude_response=error_resp if "claude" in str(exc).lower() else None,
-                    gemini_response=error_resp if "gemini" in str(exc).lower() else None,
+                    antigravity_response=error_resp if "antigravity" in str(exc).lower() else None,
                 )
         elif mode == CollaborationMode.CHAIN:
             return self._chain_verify(prompt or "", cwd, generator)
         elif mode == CollaborationMode.ROLE_BASED:
-            return self._role_based(cwd, codex_task, claude_task, gemini_task)
+            return self._role_based(cwd, codex_task, claude_task, antigravity_task)
         elif mode == CollaborationMode.SINGLE:
             return self._single_execute(
                 prompt or "", cwd, single_model, session_id
@@ -656,12 +697,12 @@ class ModelOrchestrator:
         summarizer_profile_name: str = "default",
     ) -> CollaborationResult:
         """
-        Parallel mode: 3-agent concurrent analysis (codex/claude/gemini),
+        Parallel mode: triad concurrent analysis (codex/claude/antigravity),
         then one summarizer agent performs cross-model synthesis.
 
-        If triad is unavailable, automatically degrade to dual/single.
+        If one runtime is unavailable, automatically degrade to single.
         """
-        requested_agents = ["codex", "claude", "gemini"]
+        requested_agents = list(RUNTIME_AGENT_CHOICES)
         responses: dict[str, BridgeResponse] = {}
         registry = profile_registry or self.DEFAULT_AGENT_PROFILES
         base_profile_cfg = self._resolve_profile_config(base_profile_name, registry)
@@ -822,7 +863,7 @@ class ModelOrchestrator:
             task_description=prompt[:200],
             codex_response=responses.get("codex"),
             claude_response=responses.get("claude"),
-            gemini_response=responses.get("gemini"),
+            antigravity_response=responses.get("antigravity"),
             merged_analysis=merged,
             confidence=confidence,
             recommendations=self._extract_recommendations(merged),
@@ -909,8 +950,8 @@ Produce sections:
         """
         verifier_by_generator = {
             "codex": "claude",
-            "claude": "gemini",
-            "gemini": "codex",
+            "claude": "codex",
+            "antigravity": "claude",
         }
         verify_agent = verifier_by_generator.get(generator, "claude")
         gen_resp = self._execute_runtime_agent(generator, prompt, cwd)
@@ -939,8 +980,8 @@ Produce sections:
             claude_response=gen_resp if generator == "claude" else (
                 verify_resp if verify_agent == "claude" else None
             ),
-            gemini_response=gen_resp if generator == "gemini" else (
-                verify_resp if verify_agent == "gemini" else None
+            antigravity_response=gen_resp if generator == "antigravity" else (
+                verify_resp if verify_agent == "antigravity" else None
             ),
             merged_analysis=merged,
             confidence=confidence,
@@ -952,18 +993,18 @@ Produce sections:
         cwd: Path,
         codex_task: str | None,
         claude_task: str | None,
-        gemini_task: str | None,
+        antigravity_task: str | None = None,
     ) -> CollaborationResult:
         """
         Role-based mode: Divide tasks by model specialty.
 
         Codex: Code generation, implementation, fixing
         Claude: Structured drafting, critique, synthesis
-        Gemini: Explanation, documentation, analysis
+        Antigravity: Independent audit, verification, fallback review
         """
         codex_resp = None
         claude_resp = None
-        gemini_resp = None
+        antigravity_resp = None
 
         if codex_task:
             codex_resp = self._execute_runtime_agent("codex", codex_task, cwd)
@@ -971,8 +1012,12 @@ Produce sections:
         if claude_task:
             claude_resp = self._execute_runtime_agent("claude", claude_task, cwd)
 
-        if gemini_task:
-            gemini_resp = self._execute_runtime_agent("gemini", gemini_task, cwd)
+        if antigravity_task:
+            antigravity_resp = self._execute_runtime_agent(
+                "antigravity",
+                antigravity_task,
+                cwd,
+            )
 
         # Merge outputs
         parts = []
@@ -980,20 +1025,20 @@ Produce sections:
             parts.append(f"## Codex Output\n\n{codex_resp.content}")
         if claude_resp and claude_resp.success:
             parts.append(f"## Claude Output\n\n{claude_resp.content}")
-        if gemini_resp and gemini_resp.success:
-            parts.append(f"## Gemini Output\n\n{gemini_resp.content}")
+        if antigravity_resp and antigravity_resp.success:
+            parts.append(f"## Antigravity Output\n\n{antigravity_resp.content}")
 
         merged = "\n\n---\n\n".join(parts) if parts else "No successful outputs."
 
         # Calculate confidence
         success_count = sum([
-            1 for r in [codex_resp, claude_resp, gemini_resp]
+            1 for r in [codex_resp, claude_resp, antigravity_resp]
             if r and r.success
         ])
         requested_count = sum([
             1 if codex_task else 0,
             1 if claude_task else 0,
-            1 if gemini_task else 0,
+            1 if antigravity_task else 0,
         ])
         confidence = (
             success_count / float(requested_count)
@@ -1003,7 +1048,7 @@ Produce sections:
         task_desc = (
             f"Codex: {codex_task or 'N/A'} | "
             f"Claude: {claude_task or 'N/A'} | "
-            f"Gemini: {gemini_task or 'N/A'}"
+            f"Antigravity: {antigravity_task or 'N/A'}"
         )
 
         return CollaborationResult(
@@ -1011,7 +1056,7 @@ Produce sections:
             task_description=task_desc[:200],
             codex_response=codex_resp,
             claude_response=claude_resp,
-            gemini_response=gemini_resp,
+            antigravity_response=antigravity_resp,
             merged_analysis=merged,
             confidence=confidence,
             recommendations=[],
@@ -1043,11 +1088,11 @@ Produce sections:
                 merged_analysis=resp.content if resp.success else resp.error or "",
                 confidence=1.0 if resp.success else 0.0,
             )
-        if model == "gemini":
+        if model == "antigravity":
             return CollaborationResult(
                 mode="single",
                 task_description=prompt[:200],
-                gemini_response=resp,
+                antigravity_response=resp,
                 merged_analysis=resp.content if resp.success else resp.error or "",
                 confidence=1.0 if resp.success else 0.0,
             )
@@ -1059,7 +1104,7 @@ Produce sections:
             recommendations=[],
         )
 
-    def _merge_analyses(self, codex: str, gemini: str) -> str:
+    def _merge_analyses(self, codex: str, claude: str) -> str:
         """Merge two model outputs into unified analysis."""
         return f"""## Parallel Analysis Results
 
@@ -1068,8 +1113,8 @@ Produce sections:
 
 ---
 
-### Gemini Analysis
-{gemini}
+### Claude Analysis
+{claude}
 
 ---
 
@@ -1293,6 +1338,104 @@ Provide your verification assessment.
         return format_boundary_prompt_section(
             plan,
             str(boundary_review.get("existing_review", "")),
+        )
+
+    def _build_writing_harness(
+        self,
+        task_id: str,
+        required_skills: list[str],
+        boundary_review: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        normalized_task = task_id.strip().upper()
+        normalized_skills = {
+            str(skill).strip()
+            for skill in required_skills
+            if str(skill).strip()
+        }
+        is_writing_task = normalized_task.startswith("F") or bool(
+            normalized_skills & self.WRITING_HARNESS_SKILLS
+        )
+        if not is_writing_task:
+            return {
+                "enabled": False,
+                "reason": "task is outside the Stage-F writing harness scope",
+            }
+
+        boundary = dict(boundary_review or {})
+        context_artifacts = list(self.WRITING_HARNESS_CONTEXT_ARTIFACTS)
+        boundary_artifact = str(boundary.get("artifact", "")).strip()
+        if boundary_artifact and boundary_artifact not in context_artifacts:
+            context_artifacts.insert(0, boundary_artifact)
+
+        return {
+            "enabled": True,
+            "stage": normalized_task[:1] or "F",
+            "mode": "incremental-mainline",
+            "required_preflight": [
+                "boundary",
+                "story_spine",
+                "non_goals",
+                "evidence_plan",
+            ],
+            "loop": "write_review_confirm",
+            "chunk_unit": "section_or_paragraph_cluster",
+            "context_artifacts": context_artifacts,
+            "checkpoint_sections": [
+                "preflight_boundary_and_story_spine",
+                "chunk_plan",
+                "chunk_draft",
+                "chunk_self_review",
+                "confirm_continue_or_revise",
+            ],
+            "block_conditions": [
+                "mainline_drift",
+                "missing_support",
+                "generic_or_vague_claims",
+                "evidence_free_generalization",
+                "logic_jump",
+                "unresolved_boundary_conflict",
+            ],
+            "convergence_conditions": [
+                "story_spine remains stable or changes are explicitly justified",
+                "each chunk has concrete claim-support notes",
+                "each review checkpoint is PASS or has a targeted revision",
+                "no unresolved blocker remains in required outputs",
+            ],
+            "confirmation_policy": (
+                "After each chunk, decide whether to continue, revise the chunk, "
+                "or ask the next blocking boundary/grill question."
+            ),
+        }
+
+    def _format_writing_harness_context(self, task_packet: dict[str, Any]) -> str:
+        harness = task_packet.get("writing_harness", {})
+        if not isinstance(harness, dict) or not harness.get("enabled"):
+            return ""
+
+        def _joined(key: str) -> str:
+            return ", ".join(
+                str(item)
+                for item in harness.get(key, [])
+                if str(item).strip()
+            ) or "-"
+
+        return "\n".join(
+            [
+                "Writing harness:",
+                f"- mode: {str(harness.get('mode', '')).strip() or 'incremental-mainline'}",
+                f"- stage: {str(harness.get('stage', '')).strip() or 'F'}",
+                f"- required_preflight: {_joined('required_preflight')}",
+                f"- loop: {str(harness.get('loop', '')).strip() or 'write_review_confirm'}",
+                f"- chunk_unit: {str(harness.get('chunk_unit', '')).strip() or 'section_or_paragraph_cluster'}",
+                f"- context_artifacts: {_joined('context_artifacts')}",
+                f"- block_conditions: {_joined('block_conditions')}",
+                f"- convergence_conditions: {_joined('convergence_conditions')}",
+                "- confirmation_policy: "
+                + (
+                    str(harness.get("confirmation_policy", "")).strip()
+                    or "continue only after checkpoint review passes"
+                ),
+            ]
         )
 
     def _build_academic_context_update(
@@ -2112,7 +2255,7 @@ Provide your verification assessment.
         runtime_registry = {
             "codex": ("OPENAI_API_KEY",),
             "claude": ("ANTHROPIC_API_KEY",),
-            "gemini": ("GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_APPLICATION_CREDENTIALS"),
+            "antigravity": (),
         }
         for cli_name, api_envs in runtime_registry.items():
             cli_path = shutil.which(cli_name)
@@ -2126,43 +2269,12 @@ Provide your verification assessment.
                     f"Install {cli_name} CLI or route tasks away from {cli_name}.",
                 )
 
-            if cli_name == "gemini":
-                transport, transport_source = self._gemini_transport()
-                broker_status = self._gemini_broker_status()
-                direct_ok, direct_detail = self._gemini_noninteractive_auth_status()
+            if not api_envs:
                 add_check(
-                    "Gemini transport",
+                    f"Auth {cli_name}",
                     "ok",
-                    f"{transport} (source: {transport_source})",
+                    "managed by the local CLI login/configuration",
                 )
-                broker_check_status, broker_detail, broker_recommendation = self._doctor_gemini_broker_check(
-                    transport=transport,
-                    broker_status=broker_status,
-                )
-                add_check(
-                    "Gemini broker",
-                    broker_check_status,
-                    broker_detail,
-                    broker_recommendation,
-                )
-                direct_check_status, direct_check_detail, direct_recommendation = self._doctor_gemini_direct_check(
-                    transport=transport,
-                    broker_status=broker_status,
-                    direct_ok=direct_ok,
-                    direct_detail=direct_detail,
-                )
-                add_check(
-                    "Gemini direct auth",
-                    direct_check_status,
-                    direct_check_detail,
-                    direct_recommendation,
-                )
-                for env_name in api_envs:
-                    if os.environ.get(env_name, "").strip():
-                        add_check(f"Env {env_name}", "ok", "configured")
-                transport_env = os.environ.get(GEMINI_TRANSPORT_ENV, "").strip()
-                if transport_env:
-                    add_check(f"Env {GEMINI_TRANSPORT_ENV}", "ok", transport_env)
                 continue
 
             configured_env = next(
@@ -2315,7 +2427,7 @@ Provide your verification assessment.
     ) -> tuple[str, list[str]]:
         notes: list[str] = []
         seen: set[str] = set()
-        candidates = [preferred_agent, *fallback_chain, "codex", "claude", "gemini"]
+        candidates = [preferred_agent, *fallback_chain, *RUNTIME_AGENT_CHOICES]
         for candidate in candidates:
             if not candidate or candidate in seen:
                 continue
@@ -2340,66 +2452,21 @@ Provide your verification assessment.
                         f"Runtime routed agent '{preferred_agent}' to '{candidate}'."
                     )
                 return candidate, notes
+        if exclude_agent and exclude_agent in self.RUNTIME_AGENTS and cwd is not None:
+            excluded_options = dict((runtime_options_by_agent or {}).get(exclude_agent, {}))
+            preflight_error = self._runtime_preflight_error(
+                exclude_agent,
+                cwd,
+                excluded_options,
+            )
+            if not preflight_error:
+                notes.append(
+                    f"No distinct runtime agent available for '{preferred_agent}'; "
+                    f"reusing '{exclude_agent}'."
+                )
+                return exclude_agent, notes
         raise ValueError(
             f"No runtime agent available for preferred={preferred_agent}, exclude={exclude_agent}"
-        )
-
-    def _gemini_cached_auth_files(self) -> list[Path]:
-        return gemini_cached_auth_files()
-
-    def _gemini_noninteractive_auth_status(self) -> tuple[bool, str]:
-        return gemini_noninteractive_auth_status()
-
-    def _gemini_transport(
-        self,
-        runtime_options: dict[str, Any] | None = None,
-    ) -> tuple[str, str]:
-        return resolve_gemini_transport(runtime_options)
-
-    def _gemini_broker_status(
-        self,
-        *,
-        timeout_seconds: float = DEFAULT_BROKER_TIMEOUT_SECONDS,
-    ) -> dict[str, Any]:
-        return broker_status_from_env(timeout_seconds=timeout_seconds)
-
-    def _doctor_gemini_broker_check(
-        self,
-        *,
-        transport: str,
-        broker_status: dict[str, Any],
-    ) -> tuple[str, str, str | None]:
-        detail = broker_status["detail"]
-        recommendation = "Start scripts/gemini_session_broker.py or unset RESEARCH_GEMINI_BROKER_URL."
-        if transport == "direct":
-            if broker_status["configured"]:
-                return "ok", f"configured but bypassed by transport=direct: {detail}", None
-            return "ok", "not selected (transport=direct)", None
-        if transport == "broker":
-            return ("ok" if broker_status["ok"] else "warning"), detail, recommendation
-        if broker_status["configured"]:
-            return ("ok" if broker_status["ok"] else "warning"), detail, recommendation
-        return "ok", "not configured; auto transport will use direct auth if available", None
-
-    def _doctor_gemini_direct_check(
-        self,
-        *,
-        transport: str,
-        broker_status: dict[str, Any],
-        direct_ok: bool,
-        direct_detail: str,
-    ) -> tuple[str, str, str | None]:
-        recommendation = "Prefer GEMINI_API_KEY or Vertex env auth for direct Gemini subprocess runs."
-        if transport == "broker":
-            if direct_ok:
-                return "ok", f"available but bypassed by transport=broker: {direct_detail}", None
-            return "ok", "not required for broker transport", None
-        if transport == "auto" and broker_status["configured"] and broker_status["ok"] and not direct_ok:
-            return "ok", "not required because auto transport resolves to broker", None
-        return (
-            "ok" if direct_ok else "warning",
-            direct_detail,
-            recommendation if not direct_ok else None,
         )
 
     def _runtime_preflight_error(
@@ -2417,41 +2484,8 @@ Provide your verification assessment.
         auth_env = {
             "codex": "OPENAI_API_KEY",
             "claude": "ANTHROPIC_API_KEY",
+            "antigravity": "",
         }.get(agent_name)
-
-        # Gemini collaboration runs non-interactively in orchestrated flows, so
-        # browser-based login is not a stable dependency. Fail fast and reroute.
-        if agent_name == "gemini" and non_interactive:
-            transport, _transport_source = self._gemini_transport(options)
-            broker_status = self._gemini_broker_status()
-            direct_ok, direct_detail = self._gemini_noninteractive_auth_status()
-            cli_path = shutil.which(agent_name)
-            if transport == "broker":
-                if broker_status["configured"] and broker_status["ok"]:
-                    return None
-                if broker_status["configured"]:
-                    return f"Gemini broker unavailable: {broker_status['detail']}"
-                return "Gemini broker transport selected but RESEARCH_GEMINI_BROKER_URL is not configured."
-            if transport == "direct":
-                if not cli_path:
-                    return f"{agent_name} CLI not found in PATH. Please install it first."
-                if direct_ok:
-                    return None
-                return direct_detail
-            if broker_status["configured"] and broker_status["ok"]:
-                return None
-            if cli_path and direct_ok:
-                return None
-            if broker_status["configured"]:
-                if cli_path:
-                    return f"Gemini broker unavailable: {broker_status['detail']}; {direct_detail}"
-                return (
-                    f"Gemini broker unavailable: {broker_status['detail']}; "
-                    "gemini CLI not found in PATH."
-                )
-            if not cli_path:
-                return f"{agent_name} CLI not found in PATH. Please install it first."
-            return direct_detail
 
         cli_path = shutil.which(agent_name)
         if not cli_path:
@@ -2503,63 +2537,12 @@ Provide your verification assessment.
             return self.codex.execute(final_prompt, cwd, **options)
         if agent_name == "claude":
             return self.claude.execute(final_prompt, cwd, **options)
-        if agent_name == "gemini":
-            transport, _transport_source = self._gemini_transport(options)
-            if transport in {"broker", "auto"}:
-                broker_response = self._execute_gemini_via_broker(
-                    final_prompt,
-                    cwd,
-                    options,
-                )
-                if broker_response is not None:
-                    if broker_response.success:
-                        return broker_response
-                    direct_ok, _ = self._gemini_noninteractive_auth_status()
-                    if transport == "broker" or not direct_ok or not shutil.which("gemini"):
-                        return broker_response
-            if transport == "broker":
-                return BridgeResponse.from_error(
-                    "gemini",
-                    "Gemini broker transport selected but broker execution did not run.",
-                )
-            if transport == "direct" or transport == "auto":
-                return self.gemini.execute(final_prompt, cwd, **options)
-            return BridgeResponse.from_error(
-                "gemini",
-                f"Unsupported Gemini transport: {transport}",
-            )
+        if agent_name == "antigravity":
+            return self.antigravity.execute(final_prompt, cwd, **options)
         return BridgeResponse.from_error(
             agent_name,
             f"Unsupported runtime agent for this orchestrator: {agent_name}",
         )
-
-    def _execute_gemini_via_broker(
-        self,
-        prompt: str,
-        cwd: Path,
-        runtime_options: dict[str, Any] | None = None,
-    ) -> BridgeResponse | None:
-        options = dict(runtime_options or {})
-        timeout_seconds = options.get("timeout_seconds", DEFAULT_BROKER_TIMEOUT_SECONDS)
-        try:
-            timeout_value = float(timeout_seconds)
-        except (TypeError, ValueError):
-            timeout_value = DEFAULT_BROKER_TIMEOUT_SECONDS
-        client = broker_client_from_env(timeout_seconds=timeout_value)
-        if client is None:
-            return None
-        try:
-            payload = client.prompt(
-                prompt=prompt,
-                cwd=cwd,
-                runtime_options=options,
-            )
-        except Exception as exc:
-            return BridgeResponse.from_error(
-                "gemini",
-                f"Gemini broker request failed: {exc}",
-            )
-        return bridge_response_from_broker_payload(payload)
 
     def _normalize_topic(self, topic: str) -> str:
         normalized = re.sub(r"[^a-z0-9]+", "-", topic.strip().lower())
@@ -2954,7 +2937,7 @@ Stage-I structure checks:
             task_description=f"{method} {focus} {topic}"[:200],
             codex_response=result.codex_response,
             claude_response=result.claude_response,
-            gemini_response=result.gemini_response,
+            antigravity_response=result.antigravity_response,
             merged_analysis=merged,
             confidence=result.confidence,
             recommendations=list(result.recommendations),
@@ -3447,6 +3430,11 @@ Stage-I structure checks:
             deferred_outputs = [
                 output for output in deferred_outputs if output != boundary_artifact
             ]
+        writing_harness = self._build_writing_harness(
+            task_id,
+            required_skills,
+            boundary_review,
+        )
         return {
             "task_id": task_id,
             "paper_type": paper_type,
@@ -3472,6 +3460,7 @@ Stage-I structure checks:
             "evidence_expansion_rounds": evidence_expansion_rounds,
             "academic_context_update": dict(academic_context_update or {}),
             "boundary_review": boundary_review,
+            "writing_harness": writing_harness,
         }
 
     def _select_task_outputs(
@@ -3593,6 +3582,915 @@ Stage-I structure checks:
         if reviewer and execution_mode in {"duo", "triad"}:
             overrides["review_agent"] = reviewer
         return overrides
+
+    def _build_disabled_worker_orchestration(
+        self,
+        *,
+        worker_mode: str | None = "none",
+        worker_adapter: str | None = "auto",
+        max_workers: int | None = None,
+    ) -> dict[str, Any]:
+        requested_mode = self._normalize_worker_mode(worker_mode)
+        requested_adapter = self._normalize_worker_adapter(worker_adapter)
+        normalized_max_workers = self._normalize_max_workers(max_workers)
+        return {
+            "mode": "none",
+            "status": "disabled",
+            "adapter": "none",
+            "workers": [],
+            "merge_status": "skipped",
+            "merge_review_status": "skipped",
+            "notes": [
+                "worker orchestration disabled; no worker execution attempted.",
+            ],
+            "requested_mode": requested_mode,
+            "requested_adapter": requested_adapter,
+            "max_workers": normalized_max_workers,
+        }
+
+    def _load_worker_orchestration_config(self, task_id: str) -> dict[str, Any]:
+        """Load worker_orchestration_config for a task from the capability map."""
+        capability_map = self._load_yaml("mcp-agent-capability-map.yaml")
+        worker_config = capability_map.get("worker_orchestration_config", {})
+        if not isinstance(worker_config, dict):
+            return {}
+
+        block = worker_config.get(task_id)
+        if not isinstance(block, dict):
+            return {}
+
+        worker_pool = [
+            str(worker).strip()
+            for worker in block.get("worker_pool", [])
+            if str(worker).strip()
+        ]
+        adapter_preference: dict[str, str] = {}
+        raw_adapter_preference = block.get("adapter_preference", {})
+        if isinstance(raw_adapter_preference, dict):
+            for runtime_agent in RUNTIME_AGENT_CHOICES:
+                adapter_preference[runtime_agent] = self._normalize_worker_adapter(
+                    str(raw_adapter_preference.get(runtime_agent, "generic_prompt"))
+                )
+
+        raw_barrier_rules = block.get("barrier_rules", {})
+        barrier_rules = raw_barrier_rules if isinstance(raw_barrier_rules, dict) else {}
+        raw_max_workers = block.get("max_workers", len(worker_pool) or 1)
+        config_max_workers = (
+            raw_max_workers
+            if type(raw_max_workers) is int and raw_max_workers > 0
+            else len(worker_pool) or 1
+        )
+
+        return {
+            "default_mode": self._normalize_worker_mode(
+                str(block.get("default_mode", "none"))
+            ),
+            "adapter_preference": adapter_preference,
+            "partition_strategy": str(block.get("partition_strategy", "")).strip(),
+            "max_workers": config_max_workers,
+            "worker_pool": worker_pool,
+            "merge_policy": str(block.get("merge_policy", "")).strip(),
+            "barrier_rules": {
+                "min_success_ratio": float(barrier_rules.get("min_success_ratio", 1.0)),
+                "on_failure": str(barrier_rules.get("on_failure", "block")).strip() or "block",
+            },
+        }
+
+    def _build_skipped_worker_orchestration(
+        self,
+        *,
+        task_id: str,
+        worker_mode: str | None,
+        worker_adapter: str | None,
+        max_workers: int | None,
+        reason: str,
+    ) -> dict[str, Any]:
+        requested_mode = self._normalize_worker_mode(worker_mode)
+        requested_adapter = self._normalize_worker_adapter(worker_adapter)
+        normalized_max_workers = self._normalize_max_workers(max_workers)
+        return {
+            "mode": requested_mode if requested_mode != "auto" else "none",
+            "status": "skipped",
+            "adapter": "none",
+            "workers": [],
+            "worker_results": [],
+            "barrier_status": "skipped",
+            "merge_status": "skipped",
+            "merge_review_status": "skipped",
+            "notes": [f"Worker orchestration skipped for {task_id}: {reason}."],
+            "requested_mode": requested_mode,
+            "requested_adapter": requested_adapter,
+            "max_workers": normalized_max_workers,
+        }
+
+    def _resolve_worker_orchestration_adapter(
+        self,
+        *,
+        requested_adapter: str,
+        controller_runtime: str,
+        worker_config: dict[str, Any],
+    ) -> tuple[str, list[str]]:
+        notes: list[str] = []
+        if requested_adapter == "auto":
+            adapter_preference = worker_config.get("adapter_preference", {})
+            preferred_adapter = "generic_prompt"
+            if isinstance(adapter_preference, dict):
+                preferred_adapter = str(
+                    adapter_preference.get(controller_runtime, "generic_prompt")
+                )
+            preferred_adapter = self._normalize_worker_adapter(preferred_adapter)
+            notes.append(
+                "Worker adapter auto resolved for controller "
+                f"{controller_runtime}: {preferred_adapter}."
+            )
+        else:
+            preferred_adapter = requested_adapter
+
+        if preferred_adapter in {"codex_subagent", "claude_cowork"}:
+            notes.append(
+                f"Worker adapter {preferred_adapter} is recognized, but native dispatch "
+                "is not implemented yet; routing workers through generic_prompt."
+            )
+            return "generic_prompt", notes
+
+        return "generic_prompt", notes
+
+    def _worker_artifact_root(self, task_packet: dict[str, Any]) -> str:
+        artifact_root = str(task_packet.get("artifact_root", "")).strip()
+        topic = str(task_packet.get("topic", "")).strip()
+        if topic:
+            artifact_root = artifact_root.replace("[topic]", topic)
+        return artifact_root.rstrip("/")
+
+    @staticmethod
+    def _join_artifact_path(*parts: str, trailing_slash: bool = False) -> str:
+        path = "/".join(str(part).strip("/") for part in parts if str(part).strip("/"))
+        if trailing_slash and path:
+            return f"{path}/"
+        return path
+
+    @staticmethod
+    def _unique_strings(items: list[Any]) -> list[str]:
+        seen: set[str] = set()
+        result: list[str] = []
+        for item in items:
+            value = str(item).strip()
+            if not value or value in seen:
+                continue
+            seen.add(value)
+            result.append(value)
+        return result
+
+    def _build_worker_orchestration_plan(
+        self,
+        *,
+        task_packet: dict[str, Any],
+        worker_config: dict[str, Any],
+        requested_mode: str,
+        requested_adapter: str,
+        max_workers: int | None,
+        controller_runtime: str,
+    ) -> dict[str, Any]:
+        mode = (
+            str(worker_config.get("default_mode", "none"))
+            if requested_mode == "auto"
+            else requested_mode
+        )
+        mode = self._normalize_worker_mode(mode)
+        adapter, adapter_notes = self._resolve_worker_orchestration_adapter(
+            requested_adapter=requested_adapter,
+            controller_runtime=controller_runtime,
+            worker_config=worker_config,
+        )
+        normalized_max_workers = self._normalize_max_workers(max_workers)
+        configured_limit = int(worker_config.get("max_workers", 1) or 1)
+        worker_limit = normalized_max_workers or configured_limit
+        worker_pool = [
+            str(worker).strip()
+            for worker in worker_config.get("worker_pool", [])
+            if str(worker).strip()
+        ][:worker_limit]
+
+        artifact_root = self._worker_artifact_root(task_packet)
+        forbidden_artifacts = self._unique_strings(
+            list(task_packet.get("required_outputs", []))
+            + list(task_packet.get("contract_required_outputs", []))
+        )
+        task_id = str(task_packet.get("task_id", "")).strip()
+        paper_type = str(task_packet.get("paper_type", "")).strip()
+        topic = str(task_packet.get("topic", "")).strip()
+        run_id_prefix = re.sub(r"[^A-Za-z0-9._-]+", "-", task_id).strip("-") or "worker"
+        run_id = f"{run_id_prefix}-{uuid.uuid4().hex[:8]}"
+        run_root = self._join_artifact_path(artifact_root, "runs", run_id)
+        merge_policy = str(worker_config.get("merge_policy", ""))
+        merge_artifact = self._join_artifact_path(run_root, "worker-merge-report.md")
+        runtime_plan = task_packet.get("runtime_plan", {})
+        final_reviewer = ""
+        if isinstance(runtime_plan, dict):
+            final_reviewer = str(runtime_plan.get("review_agent", "")).strip()
+        workers: list[dict[str, Any]] = []
+        for worker_id in worker_pool:
+            worker_root = self._join_artifact_path(
+                run_root,
+                "workers",
+                worker_id,
+                trailing_slash=True,
+            )
+            workers.append(
+                {
+                    "id": worker_id,
+                    "goal": (
+                        f"Execute scoped {task_packet.get('task_id', '')} worker "
+                        f"analysis for {task_packet.get('topic', '')}."
+                    ),
+                    "functional_role": worker_id,
+                    "required_skills": list(task_packet.get("required_skills", [])),
+                    "required_mcp": list(task_packet.get("required_mcp", [])),
+                    "allowed_artifacts": [worker_root],
+                    "forbidden_artifacts": forbidden_artifacts,
+                    "review_required": True,
+                    "stop_conditions": [
+                        "Stop before writing any forbidden artifact directly.",
+                        "Stop if required MCP evidence is unavailable for the assigned scope.",
+                        "Stop if the worker scope cannot be completed without changing canonical outputs.",
+                    ],
+                    "worker_root": worker_root,
+                    "status": "planned",
+                }
+            )
+
+        return {
+            "mode": mode,
+            "orchestration_mode": mode,
+            "status": "planned",
+            "adapter": adapter,
+            "requested_mode": requested_mode,
+            "requested_adapter": requested_adapter,
+            "max_workers": normalized_max_workers,
+            "controller_runtime": controller_runtime,
+            "platform_adapter": adapter,
+            "task_id": task_id,
+            "paper_type": paper_type,
+            "topic": topic,
+            "run_id": run_id,
+            "partition_strategy": str(worker_config.get("partition_strategy", "")),
+            "merge_policy": merge_policy,
+            "merge": {
+                "agent": controller_runtime,
+                "policy": merge_policy,
+                "output_artifacts": [merge_artifact],
+            },
+            "final_review": {
+                "reviewer": final_reviewer,
+                "gate": "worker_final_review",
+            },
+            "barrier_rules": dict(worker_config.get("barrier_rules", {})),
+            "barrier_status": "pending",
+            "merge_status": "skipped",
+            "merge_review_status": "skipped",
+            "workers": workers,
+            "worker_results": [],
+            "notes": adapter_notes,
+        }
+
+    def _build_worker_orchestration_prompt(
+        self,
+        *,
+        worker: dict[str, Any],
+        worker_state: dict[str, Any],
+        task_packet: dict[str, Any],
+        mcp_evidence: list[MCPEvidence],
+        skill_cards: list[dict[str, Any]],
+    ) -> str:
+        worker_packet = {
+            "run_id": worker_state.get(
+                "run_id",
+                f"{task_packet.get('task_id', 'task')}-{task_packet.get('topic', 'topic')}",
+            ),
+            "worker_id": worker["id"],
+            "controller_runtime": worker_state.get("controller_runtime", ""),
+            "platform_adapter": worker_state.get("adapter", "generic_prompt"),
+            "task_id": task_packet.get("task_id", ""),
+            "paper_type": task_packet.get("paper_type", ""),
+            "topic": task_packet.get("topic", ""),
+            "goal": worker.get("goal", ""),
+            "functional_role": worker.get("functional_role", ""),
+            "required_skills": list(worker.get("required_skills", [])),
+            "required_mcp": list(worker.get("required_mcp", [])),
+            "allowed_artifacts": list(worker.get("allowed_artifacts", [])),
+            "forbidden_artifacts": list(worker.get("forbidden_artifacts", [])),
+            "artifacts_read": [],
+            "artifacts_written": [],
+            "warnings": [],
+            "blocking_issues": [],
+            "status": "running",
+            "confidence": 0.0,
+        }
+        forbidden_lines = "\n".join(
+            f"  - {artifact}" for artifact in worker_packet["forbidden_artifacts"]
+        ) or "  - <none>"
+        allowed_lines = "\n".join(
+            f"  - {artifact}" for artifact in worker_packet["allowed_artifacts"]
+        ) or "  - <none>"
+        prompt_task_packet = dict(task_packet)
+        prompt_task_packet["worker_orchestration"] = {
+            key: value
+            for key, value in worker_state.items()
+            if key not in {"workers", "worker_results"}
+        }
+        prompt_task_packet["worker_orchestration"]["workers"] = [dict(worker)]
+
+        return f"""You are a scoped worker running under the task controller.
+Complete only the assigned worker packet and return findings to the controller.
+
+Worker packet (JSON):
+{json.dumps(worker_packet, ensure_ascii=False, indent=2)}
+
+Task packet (JSON):
+{json.dumps(prompt_task_packet, ensure_ascii=False, indent=2)}
+
+MCP evidence:
+{self._format_mcp_evidence(mcp_evidence)}
+
+Required skill cards:
+{self._format_skill_context(skill_cards)}
+
+Allowed artifacts:
+{allowed_lines}
+
+Forbidden artifacts:
+{forbidden_lines}
+
+Rules:
+1. Do not write directly to any path in forbidden_artifacts.
+2. If you write artifacts, write only under allowed_artifacts.
+3. Treat task packet required outputs as canonical controller-owned artifacts.
+4. Cite MCP evidence and skill-card constraints for any substantive finding.
+5. Return status, confidence, artifacts read/written, blocking issues, and concise content.
+"""
+
+    def _execute_generic_worker_plan(
+        self,
+        *,
+        worker_state: dict[str, Any],
+        task_packet: dict[str, Any],
+        mcp_evidence: list[MCPEvidence],
+        skill_cards: list[dict[str, Any]],
+        cwd: Path,
+        runtime_options: dict[str, Any],
+        profile_directive: str,
+    ) -> list[dict[str, Any]]:
+        controller_runtime = str(worker_state.get("controller_runtime", "codex")) or "codex"
+        results: list[dict[str, Any]] = []
+        for worker in worker_state.get("workers", []):
+            prompt = self._build_worker_orchestration_prompt(
+                worker=worker,
+                worker_state=worker_state,
+                task_packet=task_packet,
+                mcp_evidence=mcp_evidence,
+                skill_cards=skill_cards,
+            )
+            response = self._execute_runtime_agent(
+                controller_runtime,
+                prompt,
+                cwd,
+                dict(runtime_options),
+                profile_directive,
+            )
+            status = "passed" if response.success else "failed"
+            content_limit = 4000
+            bounded_content, content_truncated, content_original_length = (
+                self._bounded_worker_prompt_text(
+                    response.content if response.success else "",
+                    content_limit,
+                )
+            )
+            result = {
+                "worker_id": worker.get("id", ""),
+                "agent": controller_runtime,
+                "success": bool(response.success),
+                "status": status,
+                "content": bounded_content,
+                "content_truncated": content_truncated,
+                "content_original_length": content_original_length,
+                "content_limit": content_limit,
+                "error": response.error if not response.success else None,
+                "confidence": 0.8 if response.success else 0.0,
+            }
+            worker.update(
+                {
+                    "agent": controller_runtime,
+                    "status": status,
+                    "confidence": result["confidence"],
+                }
+            )
+            results.append(result)
+        return results
+
+    @staticmethod
+    def _bounded_worker_prompt_text(value: Any, limit: int) -> tuple[str, bool, int]:
+        text = "" if value is None else str(value)
+        original_length = len(text)
+        if original_length <= limit:
+            return text, False, original_length
+        marker = f"\n[truncated: original_length={original_length} limit={limit}]"
+        return text[:limit] + marker, True, original_length
+
+    def _compact_worker_plan_view(self, worker_plan: dict[str, Any]) -> dict[str, Any]:
+        workers = []
+        for worker in worker_plan.get("workers", []):
+            workers.append(
+                {
+                    "id": worker.get("id", ""),
+                    "goal": worker.get("goal", ""),
+                    "functional_role": worker.get("functional_role", ""),
+                    "allowed_artifacts": list(worker.get("allowed_artifacts", [])),
+                    "forbidden_artifacts": list(worker.get("forbidden_artifacts", [])),
+                    "review_required": bool(worker.get("review_required", False)),
+                    "worker_root": worker.get("worker_root", ""),
+                    "agent": worker.get("agent", ""),
+                    "status": worker.get("status", ""),
+                    "confidence": worker.get("confidence", 0.0),
+                }
+            )
+
+        view: dict[str, Any] = {
+            "mode": worker_plan.get("mode", "none"),
+            "orchestration_mode": worker_plan.get(
+                "orchestration_mode",
+                worker_plan.get("mode", "none"),
+            ),
+            "status": worker_plan.get("status", "unknown"),
+            "adapter": worker_plan.get("adapter", "none"),
+            "requested_mode": worker_plan.get("requested_mode", "none"),
+            "requested_adapter": worker_plan.get("requested_adapter", "auto"),
+            "max_workers": worker_plan.get("max_workers"),
+            "controller_runtime": worker_plan.get("controller_runtime", ""),
+            "platform_adapter": worker_plan.get("platform_adapter", ""),
+            "task_id": worker_plan.get("task_id", ""),
+            "paper_type": worker_plan.get("paper_type", ""),
+            "topic": worker_plan.get("topic", ""),
+            "run_id": worker_plan.get("run_id", ""),
+            "partition_strategy": worker_plan.get("partition_strategy", ""),
+            "merge_policy": worker_plan.get("merge_policy", ""),
+            "merge": dict(worker_plan.get("merge", {})),
+            "final_review": dict(worker_plan.get("final_review", {})),
+            "barrier_rules": dict(worker_plan.get("barrier_rules", {})),
+            "barrier_status": worker_plan.get("barrier_status", "unknown"),
+            "merge_status": worker_plan.get("merge_status", "skipped"),
+            "merge_review_status": worker_plan.get("merge_review_status", "skipped"),
+            "workers": workers,
+            "notes": list(worker_plan.get("notes", [])),
+        }
+        if worker_plan.get("merge_agent"):
+            view["merge_agent"] = worker_plan.get("merge_agent")
+        if worker_plan.get("merge_review_agent"):
+            view["merge_review_agent"] = worker_plan.get("merge_review_agent")
+        return view
+
+    def _compact_worker_task_packet_view(
+        self,
+        task_packet: dict[str, Any],
+        worker_plan: dict[str, Any],
+    ) -> dict[str, Any]:
+        keys = (
+            "task_id",
+            "paper_type",
+            "topic",
+            "venue",
+            "execution_mode",
+            "controller",
+            "primary_agent",
+            "review_agent",
+            "verifier_agent",
+            "controller_metadata",
+            "artifact_root",
+            "required_outputs",
+            "contract_required_outputs",
+            "deferred_outputs",
+            "required_mcp",
+            "required_skills",
+            "quality_gates",
+            "artifact_policy",
+            "research_depth",
+            "evidence_expansion_rounds",
+            "functional_owner",
+            "functional_role_id",
+            "functional_display_name",
+            "runtime_plan",
+            "self_critique_loop",
+        )
+        view = {key: task_packet[key] for key in keys if key in task_packet}
+        skill_cards = task_packet.get("required_skill_cards", [])
+        if skill_cards:
+            view["required_skill_cards"] = [
+                {
+                    "skill": card.get("skill", ""),
+                    "status": card.get("status", ""),
+                    "file": card.get("file", ""),
+                }
+                for card in skill_cards
+                if isinstance(card, dict)
+            ]
+        view["worker_summary"] = {
+            "status": worker_plan.get("status", "unknown"),
+            "barrier_status": worker_plan.get("barrier_status", "unknown"),
+            "merge_status": worker_plan.get("merge_status", "skipped"),
+            "merge_review_status": worker_plan.get("merge_review_status", "skipped"),
+            "merge_review_verdict": worker_plan.get("merge_review_verdict", ""),
+            "merge_review_confidence": worker_plan.get("merge_review_confidence"),
+            "worker_ids": [
+                worker.get("id", "")
+                for worker in worker_plan.get("workers", [])
+                if worker.get("id")
+            ],
+        }
+        return view
+
+    def _compact_worker_result_views(
+        self,
+        worker_results: list[dict[str, Any]],
+        *,
+        content_limit: int = 4000,
+    ) -> list[dict[str, Any]]:
+        result_views: list[dict[str, Any]] = []
+        for result in worker_results:
+            content, truncated, original_length = self._bounded_worker_prompt_text(
+                result.get("content", ""),
+                content_limit,
+            )
+            stored_original_length = result.get("content_original_length")
+            if type(stored_original_length) is not int:
+                stored_original_length = original_length
+            stored_content_limit = result.get("content_limit")
+            if type(stored_content_limit) is not int:
+                stored_content_limit = content_limit
+            stored_truncated = bool(result.get("content_truncated", False))
+            result_views.append(
+                {
+                    "worker_id": result.get("worker_id", ""),
+                    "agent": result.get("agent", ""),
+                    "success": bool(result.get("success")),
+                    "status": result.get("status", ""),
+                    "content": content,
+                    "content_original_length": stored_original_length,
+                    "content_limit": stored_content_limit,
+                    "prompt_content_limit": content_limit,
+                    "truncated": stored_truncated or truncated,
+                    "error": result.get("error"),
+                    "confidence": result.get("confidence", 0.0),
+                }
+            )
+        return result_views
+
+    def _build_worker_merge_prompt(
+        self,
+        worker_results: list[dict[str, Any]],
+        worker_plan: dict[str, Any],
+        task_packet: dict[str, Any],
+    ) -> str:
+        worker_plan_view = self._compact_worker_plan_view(worker_plan)
+        task_packet_view = self._compact_worker_task_packet_view(task_packet, worker_plan)
+        worker_result_views = self._compact_worker_result_views(worker_results)
+        return f"""Merge worker results for this Qiongli task.
+
+Worker plan (JSON):
+{json.dumps(worker_plan_view, ensure_ascii=False, indent=2)}
+
+Task packet (JSON):
+{json.dumps(task_packet_view, ensure_ascii=False, indent=2)}
+
+Worker results (JSON):
+{json.dumps(worker_result_views, ensure_ascii=False, indent=2)}
+
+Rules:
+1. Do not concatenate worker outputs.
+2. Preserve disagreements in Conflict Summary.
+3. Mark gaps that no worker covered.
+4. Do not claim canonical outputs were updated unless the worker plan permits it.
+
+Return sections:
+- Worker Status Table
+- Accepted Worker Outputs
+- Rejected Or Blocked Worker Outputs
+- Conflict Summary
+- Gap Summary
+- Controller Adjudication
+- Canonical Output Update Plan
+- Final Review Request
+"""
+
+    def _build_worker_final_review_prompt(
+        self,
+        merge_output: str,
+        worker_plan: dict[str, Any],
+        task_packet: dict[str, Any],
+    ) -> str:
+        worker_plan_view = self._compact_worker_plan_view(worker_plan)
+        task_packet_view = self._compact_worker_task_packet_view(task_packet, worker_plan)
+        bounded_merge_output, merge_truncated, merge_original_length = (
+            self._bounded_worker_prompt_text(merge_output, 10000)
+        )
+        return f"""Final-review the merged worker output.
+
+Worker plan (JSON):
+{json.dumps(worker_plan_view, ensure_ascii=False, indent=2)}
+
+Task packet (JSON):
+{json.dumps(task_packet_view, ensure_ascii=False, indent=2)}
+
+Merged worker output:
+{bounded_merge_output}
+
+Merged worker output metadata:
+- original_length: {merge_original_length}
+- limit: 10000
+- truncated: {str(merge_truncated).lower()}
+
+Review checklist:
+1. Worker outputs stayed within allowed_artifacts.
+2. Forbidden artifact writes were rejected or absent.
+3. Conflicts and gaps are explicit.
+4. Canonical output update plan is justified by worker evidence.
+
+IMPORTANT: include one verdict line:
+- Verdict: PASS
+- Verdict: BLOCK
+
+Return sections:
+- Verdict
+- Findings
+- Blocking Issues
+- Required Revisions
+- Verification Evidence
+- Confidence
+"""
+
+    def _run_worker_merge_review(
+        self,
+        *,
+        worker_state: dict[str, Any],
+        task_packet: dict[str, Any],
+        controller_runtime: str,
+        review_runtime: str,
+        cwd: Path,
+        merge_runtime_options: dict[str, Any],
+        review_runtime_options: dict[str, Any],
+        merge_profile_directive: str,
+        review_profile_directive: str,
+    ) -> None:
+        worker_results = list(worker_state.get("worker_results", []))
+        successful_results = [result for result in worker_results if result.get("success")]
+        if worker_state.get("barrier_status") not in {"ok", "degraded"} or not successful_results:
+            worker_state["merge_status"] = "skipped"
+            worker_state["merge_review_status"] = "skipped"
+            return
+
+        merge_prompt = self._build_worker_merge_prompt(
+            worker_results,
+            worker_state,
+            task_packet,
+        )
+        merge_resp = self._execute_runtime_agent(
+            controller_runtime,
+            merge_prompt,
+            cwd,
+            dict(merge_runtime_options),
+            merge_profile_directive,
+        )
+        worker_state["merge_agent"] = controller_runtime
+        worker_state["merge_status"] = "passed" if merge_resp.success else "failed"
+        if not merge_resp.success:
+            worker_state["status"] = "blocked"
+            worker_state["merge_review_status"] = "merge_failed"
+            worker_state["notes"].append(
+                f"Worker merge failed ({controller_runtime}): {merge_resp.error or 'unknown'}"
+            )
+            return
+        content_limit = 12000
+        merge_content, merge_truncated, merge_original_length = (
+            self._bounded_worker_prompt_text(merge_resp.content, content_limit)
+        )
+        worker_state["merge_content"] = merge_content
+        worker_state["merge_content_truncated"] = merge_truncated
+        worker_state["merge_content_original_length"] = merge_original_length
+        worker_state["merge_content_limit"] = content_limit
+
+        final_review_prompt = self._build_worker_final_review_prompt(
+            merge_resp.content,
+            worker_state,
+            task_packet,
+        )
+        review_resp = self._execute_runtime_agent(
+            review_runtime,
+            final_review_prompt,
+            cwd,
+            dict(review_runtime_options),
+            review_profile_directive,
+        )
+        worker_state["merge_review_agent"] = review_runtime
+        if review_resp.success:
+            verdict, review_confidence = self._parse_review_verdict(review_resp.content)
+            worker_state["merge_review_verdict"] = verdict
+            worker_state["merge_review_confidence"] = review_confidence
+            worker_state["merge_review_status"] = "passed" if verdict == "PASS" else "blocked"
+            review_content, review_truncated, review_original_length = (
+                self._bounded_worker_prompt_text(review_resp.content, content_limit)
+            )
+            worker_state["merge_review_content"] = review_content
+            worker_state["merge_review_content_truncated"] = review_truncated
+            worker_state["merge_review_content_original_length"] = review_original_length
+            worker_state["merge_review_content_limit"] = content_limit
+            if verdict == "BLOCK":
+                worker_state["status"] = "blocked"
+                worker_state["notes"].append(
+                    "Worker final review BLOCKED: "
+                    f"verdict={verdict} confidence={review_confidence:.2f}."
+                )
+        else:
+            worker_state["status"] = "blocked"
+            worker_state["merge_review_status"] = "failed"
+            worker_state["notes"].append(
+                f"Worker final review failed ({review_runtime}): {review_resp.error or 'unknown'}"
+            )
+
+    def _apply_worker_barrier(
+        self,
+        worker_results: list[dict[str, Any]],
+        barrier_rules: dict[str, Any],
+    ) -> tuple[str, list[str]]:
+        total = len(worker_results)
+        if not total:
+            return "blocked", ["No workers were dispatched."]
+
+        successes = [result for result in worker_results if result.get("success")]
+        failures = [result for result in worker_results if not result.get("success")]
+        notes = [
+            "Worker "
+            f"{result.get('worker_id', '<unknown>')} failed "
+            f"({result.get('agent', '?')}): {result.get('error') or 'unknown'}"
+            for result in failures
+        ]
+
+        if not failures:
+            return "ok", notes
+
+        on_failure = str(barrier_rules.get("on_failure", "block")).strip() or "block"
+        min_success_ratio = float(barrier_rules.get("min_success_ratio", 1.0))
+        if on_failure == "block":
+            notes.append("Worker barrier policy=block: halting because at least one worker failed.")
+            return "blocked", notes
+
+        success_ratio = len(successes) / total
+        if on_failure == "degrade" and success_ratio >= min_success_ratio:
+            notes.append(
+                f"Worker barrier policy=degrade: {len(successes)}/{total} workers "
+                f"succeeded (ratio={success_ratio:.2f} >= {min_success_ratio:.2f})."
+            )
+            return "degraded", notes
+
+        notes.append(
+            f"Worker barrier policy={on_failure}: {len(successes)}/{total} workers "
+            f"succeeded (ratio={success_ratio:.2f} < {min_success_ratio:.2f})."
+        )
+        return "blocked", notes
+
+    def _run_worker_orchestration(
+        self,
+        *,
+        task_id: str,
+        task_packet: dict[str, Any],
+        worker_mode: str | None,
+        worker_adapter: str | None,
+        max_workers: int | None,
+        controller_runtime: str,
+        mcp_evidence: list[MCPEvidence],
+        skill_cards: list[dict[str, Any]],
+        cwd: Path,
+        runtime_options: dict[str, Any],
+        profile_directive: str,
+        merge_review_runtime: str,
+        merge_review_runtime_options: dict[str, Any],
+        merge_review_profile_directive: str,
+    ) -> dict[str, Any]:
+        requested_mode = self._normalize_worker_mode(worker_mode)
+        if requested_mode == "none":
+            return self._build_disabled_worker_orchestration(
+                worker_mode=worker_mode,
+                worker_adapter=worker_adapter,
+                max_workers=max_workers,
+            )
+
+        requested_adapter = self._normalize_worker_adapter(worker_adapter)
+        worker_config = self._load_worker_orchestration_config(task_id)
+        if not worker_config:
+            return self._build_skipped_worker_orchestration(
+                task_id=task_id,
+                worker_mode=worker_mode,
+                worker_adapter=worker_adapter,
+                max_workers=max_workers,
+                reason="no worker_orchestration_config entry",
+            )
+
+        worker_state = self._build_worker_orchestration_plan(
+            task_packet=task_packet,
+            worker_config=worker_config,
+            requested_mode=requested_mode,
+            requested_adapter=requested_adapter,
+            max_workers=max_workers,
+            controller_runtime=controller_runtime,
+        )
+        task_packet["worker_orchestration"] = worker_state
+
+        if worker_state.get("adapter") == "generic_prompt":
+            worker_results = self._execute_generic_worker_plan(
+                worker_state=worker_state,
+                task_packet=task_packet,
+                mcp_evidence=mcp_evidence,
+                skill_cards=skill_cards,
+                cwd=cwd,
+                runtime_options=runtime_options,
+                profile_directive=profile_directive,
+            )
+            worker_state["worker_results"] = worker_results
+
+        barrier_status, barrier_notes = self._apply_worker_barrier(
+            list(worker_state.get("worker_results", [])),
+            dict(worker_state.get("barrier_rules", {})),
+        )
+        worker_state["barrier_status"] = barrier_status
+        worker_state["status"] = "completed" if barrier_status in {"ok", "degraded"} else "blocked"
+        worker_state["notes"].extend(barrier_notes)
+        self._run_worker_merge_review(
+            worker_state=worker_state,
+            task_packet=task_packet,
+            controller_runtime=controller_runtime,
+            review_runtime=merge_review_runtime,
+            cwd=cwd,
+            merge_runtime_options=runtime_options,
+            review_runtime_options=merge_review_runtime_options,
+            merge_profile_directive=profile_directive,
+            review_profile_directive=merge_review_profile_directive,
+        )
+        return worker_state
+
+    def _format_worker_orchestration_section(self, worker_state: dict[str, Any]) -> str:
+        lines = [
+            "## Worker Orchestration",
+            f"- Worker status: {worker_state.get('status', 'unknown')}",
+            f"- Worker mode: {worker_state.get('mode', 'none')}",
+            f"- Worker adapter: {worker_state.get('adapter', 'none')}",
+            f"- Worker barrier status: {worker_state.get('barrier_status', 'unknown')}",
+            f"- Worker merge status: {worker_state.get('merge_status', 'skipped')}",
+            f"- Worker final review status: {worker_state.get('merge_review_status', 'skipped')}",
+            f"- Workers: {len(worker_state.get('workers', []))}",
+        ]
+        for note in worker_state.get("notes", []):
+            lines.append(f"- {note}")
+        return "\n".join(lines)
+
+    @staticmethod
+    def _normalize_worker_mode(value: str | None) -> str:
+        return ModelOrchestrator._normalize_worker_choice(
+            value,
+            WORKER_MODE_CHOICES,
+            "worker_mode",
+            default="none",
+        )
+
+    @staticmethod
+    def _normalize_worker_adapter(value: str | None) -> str:
+        return ModelOrchestrator._normalize_worker_choice(
+            value,
+            WORKER_ADAPTER_CHOICES,
+            "worker_adapter",
+            default="auto",
+        )
+
+    @staticmethod
+    def _normalize_worker_choice(
+        value: str | None,
+        choices: tuple[str, ...],
+        field_name: str,
+        *,
+        default: str,
+    ) -> str:
+        raw = (value or default).strip().lower()
+        normalized = raw.replace("-", "_")
+        normalized_choices = tuple(choice.replace("-", "_") for choice in choices)
+        if normalized not in normalized_choices:
+            raise ValueError(
+                f"{field_name} must be one of: {', '.join(choices)}."
+            )
+        return normalized
+
+    @staticmethod
+    def _normalize_max_workers(value: int | None) -> int | None:
+        if value is None:
+            return None
+        if type(value) is not int or value <= 0:
+            raise ValueError("max_workers must be a positive int (> 0) or None.")
+        return value
 
     @staticmethod
     def _normalize_controller_choice(
@@ -3778,6 +4676,41 @@ Stage-I structure checks:
                 )
         return "\n".join(lines)
 
+    def _write_task_guidance_trace(
+        self,
+        *,
+        cwd: Path,
+        guidance_state: GuidanceState,
+        task_packet: dict[str, Any],
+        draft_content: str,
+        review_content: str,
+        merged_analysis: str,
+        validator_gate: dict[str, Any],
+    ) -> tuple[dict[str, Any], str]:
+        if guidance_state.mode == "off":
+            return {}, ""
+        try:
+            trace = write_guidance_trace(
+                project_root=cwd,
+                guidance_state=guidance_state,
+                task_packet=task_packet,
+                draft_content=draft_content,
+                review_content=review_content,
+                merged_analysis=merged_analysis,
+                validator_gate=validator_gate,
+                applied=guidance_state.mode == "apply",
+            )
+        except OSError as exc:
+            return (
+                {
+                    "guidance_mode": guidance_state.mode,
+                    "error": str(exc),
+                    "missing_outputs": list(validator_gate.get("missing", []) or []),
+                },
+                f"Local guidance trace write failed: {exc}",
+            )
+        return dict(trace), f"Local guidance trace written: {trace.get('run_dir', '')}."
+
     def _build_task_draft_prompt(
         self,
         task_packet: dict[str, Any],
@@ -3931,6 +4864,33 @@ Targeted follow-up context:
 23. If no answered boundary review exists and required_before_draft is true, ask exactly the first listed boundary question and write the answer to `context/boundary_review.md` before producing broader outputs.
 24. If an answered boundary review exists, continue within it and do not broaden claim strength, evidence threshold, population, corpus, method, code/data decision, submission promise, or presentation claim without a new boundary review entry.
 """
+        writing_harness_section = self._format_writing_harness_context(task_packet)
+        writing_harness_rules = ""
+        if writing_harness_section:
+            return_sections.append("- Writing Harness Checkpoints")
+            writing_harness_rules = """
+Writing harness is active.
+- Before drafting prose, establish the Story Spine: central claim, argumentative mainline, section jobs, non-goals, and evidence threshold.
+- If the boundary, mainline, or evidence threshold is unclear, ask the next blocking boundary/grill question before broad drafting.
+- Work in section or paragraph-cluster chunks; do not draft the whole artifact in one uninterrupted pass.
+- For each chunk, run a write -> review -> confirm checkpoint: state the chunk purpose, draft it, review for mainline drift, logic, specificity, and support, then decide continue/revise/ask.
+- Each substantive paragraph must name its claim, concrete support, logical move, and relation to the Story Spine.
+- Replace generic or vague claims with concrete claims tied to evidence, citations, data, examples, or an explicit gap note.
+"""
+        local_guidance = task_packet.get("local_guidance", {})
+        local_guidance_section = ""
+        local_guidance_rules = ""
+        if isinstance(local_guidance, dict) and bool(local_guidance.get("enabled")):
+            return_sections.append("- Local Guidance Compliance")
+            local_guidance_rules = """
+25. Local guidance context is active. Treat it as project-local preference and trace policy only.
+26. Do not let local guidance override canonical required_outputs, workflow contracts, quality gates, MCP evidence requirements, or safety constraints.
+27. If local guidance conflicts with the task packet, follow the task packet and note the conflict under "Local Guidance Compliance".
+"""
+            local_guidance_section = f"""
+Local guidance context:
+{str(local_guidance.get("guidance_context", "")).strip()}
+"""
         return f"""Draft the task outputs for this canonical research workflow task.
 
 Task packet (JSON):
@@ -3953,6 +4913,8 @@ Execution rules:
 {academic_context_rules}
 {self_critique_rules}
 {boundary_rules}
+{writing_harness_rules}
+{local_guidance_rules}
 
 Output control:
 {chr(10).join(output_control_lines)}
@@ -3962,7 +4924,7 @@ MCP evidence snapshot:
 
 Required skill cards:
 {self._format_skill_context(skill_cards)}
-{domain_section}{code_lane_section}{code_lane_template_section}{targeted_section}{academic_context_section}{self_critique_section}{boundary_section}
+{domain_section}{code_lane_section}{code_lane_template_section}{targeted_section}{academic_context_section}{self_critique_section}{boundary_section}{writing_harness_section}{local_guidance_section}
 
 Additional context:
 {extra_context or "No additional context."}
@@ -4095,6 +5057,31 @@ Targeted follow-up context:
             boundary_review_rule = """
 16. Boundary review is active. Block if the draft broadens the locked boundary, upgrades claim strength, lowers evidence threshold, hides a limitation, or makes a code/data/submission/presentation promise beyond the answered boundary.
 """
+        writing_harness_section = self._format_writing_harness_context(task_packet)
+        writing_harness_review_rule = ""
+        if writing_harness_section:
+            return_sections.append("- Writing Harness Compliance")
+            writing_harness_review_rule = """
+Writing harness review is active.
+- Block if the draft lacks a Story Spine before substantive prose.
+- Block if any chunk drifts from the mainline, changes the central claim without a boundary decision, or omits its confirmation decision.
+- Block generic claims without concrete support, citation/data/example anchors, or an explicit gap note.
+- Block paragraphs that summarize without a logical move: mechanism, tension, alternative explanation, boundary condition, or implication.
+- Treat missing chunk-level review notes as a process failure, not merely a style issue.
+"""
+        local_guidance = task_packet.get("local_guidance", {})
+        local_guidance_section = ""
+        local_guidance_rule = ""
+        if isinstance(local_guidance, dict) and bool(local_guidance.get("enabled")):
+            return_sections.append("- Local Guidance Compliance")
+            local_guidance_rule = """
+17. Local guidance context is active. Check that the draft follows project-local preferences where they do not conflict with canonical task requirements.
+18. Block only for local-guidance issues that create traceability loss, artifact-location confusion, or direct contradiction with the stated project policy.
+"""
+            local_guidance_section = f"""
+Local guidance context:
+{str(local_guidance.get("guidance_context", "")).strip()}
+"""
 
         return f"""Review the draft for this canonical research workflow task.
 {round_note}
@@ -4109,7 +5096,7 @@ MCP evidence snapshot:
 
 Required skill cards:
 {self._format_skill_context(skill_cards)}
-{domain_section}{code_lane_section}{code_lane_review_section}{targeted_section}{self_critique_section}{boundary_section}
+{domain_section}{code_lane_section}{code_lane_review_section}{targeted_section}{self_critique_section}{boundary_section}{writing_harness_section}{local_guidance_section}
 
 Review checklist:
 1. Output path coverage against required_outputs.
@@ -4123,6 +5110,8 @@ Review checklist:
 {targeted_review_rule}
 {self_critique_rule}
 {boundary_review_rule}
+{writing_harness_review_rule}
+{local_guidance_rule}
 {critique_section}
 
 Dynamic Literature-Based Critique:
@@ -4200,6 +5189,14 @@ Targeted follow-up context:
             targeted_checks = """
 6. Decide whether the selected actionable targets are now resolved, still blocked, or incorrectly widened into unrelated scope.
 """
+        writing_harness_section = self._format_writing_harness_context(task_packet)
+        writing_harness_checks = ""
+        if writing_harness_section:
+            return_sections.append("- Writing Harness Compliance")
+            writing_harness_checks = """
+6. Verify the draft and review preserved the Story Spine and chunk-level write -> review -> confirm loop.
+7. Block if consensus ignores mainline drift, unsupported claims, generic prose, or missing checkpoint decisions.
+"""
         return f"""Perform a third independent audit for this canonical research task.
 
 Task packet (JSON):
@@ -4216,7 +5213,7 @@ MCP evidence snapshot:
 
 Required skill cards:
 {self._format_skill_context(skill_cards)}
-{domain_section}{code_lane_section}{code_lane_review_section}{targeted_section}
+{domain_section}{code_lane_section}{code_lane_review_section}{targeted_section}{writing_harness_section}
 
 Audit checklist:
 1. Identify unresolved disagreements between draft and review.
@@ -4225,6 +5222,7 @@ Audit checklist:
 4. Prioritize top 3 fixes by impact.
 5. Confirm the draft stays within the functional_owner scope and handoff chain.
 {targeted_checks}
+{writing_harness_checks}
 {extra_checks}
 
 Return sections:
@@ -4356,6 +5354,16 @@ Return sections:
                 "13. Do not broaden claim strength, evidence threshold, scope, method, code/data choices, submission promises, or presentation claims silently.\n"
             )
             boundary_return_sections = "- Boundary Compliance\n"
+        writing_harness_section = self._format_writing_harness_context(task_packet)
+        writing_harness_revision_rules = ""
+        writing_harness_return_sections = ""
+        if writing_harness_section:
+            writing_harness_revision_rules = (
+                "14. Writing harness is active. Revise the failing chunk instead of regenerating the entire artifact unless the Story Spine itself is blocked.\n"
+                "15. Preserve the Story Spine or explicitly mark why it changed, which boundary decision authorized the change, and which chunks must be rechecked.\n"
+                "16. For each revised chunk, include a write -> review -> confirm checkpoint with the remaining issue status.\n"
+            )
+            writing_harness_return_sections = "- Writing Harness Checkpoints\n"
         return (
             f"You are revising a research workflow task draft based on review feedback.\n"
             f"This is revision round {revision_round}.\n\n"
@@ -4370,6 +5378,7 @@ Return sections:
             f"{targeted_section}"
             f"{self_critique_section}"
             f"{boundary_section}\n\n"
+            f"{writing_harness_section}\n\n"
             "Revision rules:\n"
             "1. Address every Critical Issue raised in the review.\n"
             "2. Apply every Suggested Fix unless you can justify why it is not applicable.\n"
@@ -4380,11 +5389,13 @@ Return sections:
             f"{targeted_revision_rules}\n"
             f"{self_critique_rules}"
             f"{boundary_revision_rules}"
+            f"{writing_harness_revision_rules}"
             "Return sections:\n"
             "- Revision Summary (what changed and why)\n"
             f"{targeted_return_sections}"
             f"{self_critique_return_sections}"
             f"{boundary_return_sections}"
+            f"{writing_harness_return_sections}"
             "- Revised Draft Outputs (by file path)\n"
             "- Quality Gate Check\n"
             "- Unresolved Issues\n"
@@ -4428,8 +5439,8 @@ Return sections:
         }
 
         # Worker/Review pool
-        config["worker_pool"] = list(block.get("worker_pool", [])) or ["codex", "claude", "gemini"]
-        config["review_pool"] = list(block.get("review_pool", [])) or ["codex", "gemini"]
+        config["worker_pool"] = list(block.get("worker_pool", [])) or list(RUNTIME_AGENT_CHOICES)
+        config["review_pool"] = list(block.get("review_pool", [])) or list(RUNTIME_AGENT_CHOICES)
 
         # Shard / canonical outputs
         config["shard_outputs"] = list(block.get("shard_outputs", []) or [])
@@ -4481,7 +5492,7 @@ Return sections:
         planner_agent = team_config.get("planner_agent", "claude")
         planner_runtime, _ = self._resolve_runtime_agent(
             planner_agent,
-            ["claude", "gemini", "codex"],
+            ["claude", "codex", "antigravity"],
             cwd=cwd,
             runtime_options_by_agent={
                 agent: self._profile_runtime_options(profile_cfg, agent)
@@ -4633,7 +5644,7 @@ Return your shard deliverables as structured output.
         profile_name: str,
     ) -> list[dict[str, Any]]:
         """Execute work units in parallel using ThreadPoolExecutor."""
-        worker_pool = team_config.get("worker_pool", ["codex", "claude", "gemini"])
+        worker_pool = team_config.get("worker_pool", list(RUNTIME_AGENT_CHOICES))
         results: list[dict[str, Any]] = []
 
         def execute_worker(idx: int, unit: dict[str, Any]) -> dict[str, Any]:
@@ -4922,7 +5933,7 @@ Return sections:
             merge_agent = team_config.get("merge_agent", "claude")
             merge_runtime, merge_notes = self._resolve_runtime_agent(
                 merge_agent,
-                ["claude", "gemini", "codex"],
+                ["claude", "codex", "antigravity"],
                 cwd=cwd,
                 runtime_options_by_agent={
                     agent: self._profile_runtime_options(profile_cfg, agent)
@@ -4946,7 +5957,7 @@ Return sections:
         review_resp: BridgeResponse | None = None
         review_runtime: str | None = None
         if merge_resp and merge_resp.success:
-            review_pool = team_config.get("review_pool", ["codex", "gemini"])
+            review_pool = team_config.get("review_pool", list(RUNTIME_AGENT_CHOICES))
             preferred_reviewer = review_pool[0] if review_pool else "codex"
             review_runtime, review_notes = self._resolve_runtime_agent(
                 preferred_reviewer,
@@ -4973,7 +5984,7 @@ Return sections:
         # 9. Assemble result
         codex_resp = None
         claude_resp = None
-        gemini_resp = None
+        antigravity_resp = None
         for runtime_agent, response in (
             (merge_runtime, merge_resp),
             (review_runtime, review_resp),
@@ -4984,8 +5995,8 @@ Return sections:
                 codex_resp = response
             if runtime_agent == "claude" and claude_resp is None:
                 claude_resp = response
-            if runtime_agent == "gemini" and gemini_resp is None:
-                gemini_resp = response
+            if runtime_agent == "antigravity" and antigravity_resp is None:
+                antigravity_resp = response
 
         merged_parts = [
             f"## Team-Run: {normalized_task} (run_id={run_id})",
@@ -5052,7 +6063,7 @@ Return sections:
             task_description=f"{normalized_task} {paper_type} {normalized_topic}"[:200],
             codex_response=codex_resp,
             claude_response=claude_resp,
-            gemini_response=gemini_resp,
+            antigravity_response=antigravity_resp,
             merged_analysis=merged,
             confidence=confidence,
             recommendations=self._extract_recommendations(merged),
@@ -5082,6 +6093,7 @@ Return sections:
         research_depth: str = "standard",
         only_targets: list[str] | None = None,
         skip_validation: bool = False,
+        guidance_mode: str = "propose",
         update_academic_context: bool = False,
         execution_mode: str | None = None,
         controller: str | None = None,
@@ -5089,6 +6101,10 @@ Return sections:
         review_agent: str | None = None,
         verifier_agent: str | None = None,
         solo_role_gates: str | None = "standard",
+        *,
+        worker_mode: str = "none",
+        worker_adapter: str = "auto",
+        max_workers: int | None = None,
     ) -> CollaborationResult:
         """Run task-level orchestration using capability map and contract."""
         normalized_task = task_id.strip().upper()
@@ -5097,6 +6113,11 @@ Return sections:
         depth_mode = research_depth.strip().lower()
         if depth_mode not in {"standard", "deep"}:
             raise ValueError("research_depth must be 'standard' or 'deep'.")
+        worker_orchestration = self._build_disabled_worker_orchestration(
+            worker_mode=worker_mode,
+            worker_adapter=worker_adapter,
+            max_workers=max_workers,
+        )
         if skip_validation:
             mcp_strict = False
             skills_strict = False
@@ -5245,6 +6266,15 @@ Return sections:
                 "status": "unavailable",
                 "detail": plan_result.merged_analysis,
             }
+        ensure_project_guidance(cwd, mode=guidance_mode)
+        guidance_state = effective_guidance(
+            cwd,
+            mode=guidance_mode,
+            run_id=uuid.uuid4().hex,
+        )
+        packet["local_guidance"] = guidance_state.to_packet()
+        for warning in guidance_state.warnings or []:
+            routing_notes.append(f"Local guidance warning: {warning}")
         functional_handoff_trace = [
             dict(item)
             for item in packet["task_plan"].get("functional_handoff_trace", [])
@@ -5270,6 +6300,7 @@ Return sections:
                 "self_critique_loop": dict(self_critique_loop),
             }
         )
+        packet["worker_orchestration"] = worker_orchestration
         zh_ui = get_language() == "zh-CN"
         routing_notes.append(
             f"Functional owner resolved for {normalized_task}: "
@@ -5304,6 +6335,19 @@ Return sections:
             f"verifier={controller_metadata['verifier_agent'] or 'auto'}, "
             f"solo_role_gates={controller_metadata['solo_role_gates']}."
         )
+        if guidance_state.mode == "off":
+            routing_notes.append("Local guidance disabled by guidance_mode=off.")
+        elif guidance_state.enabled:
+            routing_notes.append(
+                "Local guidance ACTIVE: "
+                f"mode={guidance_state.mode}, "
+                f"files={', '.join(guidance_state.guidance_files_read)}."
+            )
+        else:
+            routing_notes.append(
+                "Local guidance trace mode ACTIVE without readable guidance context: "
+                f"mode={guidance_state.mode}."
+            )
         if runtime_overrides:
             routing_notes.append(
                 "Controller runtime override: "
@@ -5424,7 +6468,6 @@ Return sections:
                 recommendations=[],
                 codex_response=error_resp if "codex" in str(exc).lower() else None,
                 claude_response=error_resp if "claude" in str(exc).lower() else None,
-                gemini_response=error_resp if "gemini" in str(exc).lower() else None,
             )
 
         try:
@@ -5444,7 +6487,6 @@ Return sections:
                 recommendations=[],
                 codex_response=error_resp if "codex" in str(exc).lower() else None,
                 claude_response=error_resp if "claude" in str(exc).lower() else None,
-                gemini_response=error_resp if "gemini" in str(exc).lower() else None,
             )
 
         draft_runtime_options = {
@@ -5459,6 +6501,162 @@ Return sections:
             agent: self._profile_runtime_options(triad_profile_cfg, agent)
             for agent in self.RUNTIME_AGENTS
         }
+
+        worker_orchestration = self._run_worker_orchestration(
+            task_id=normalized_task,
+            task_packet=packet,
+            worker_mode=worker_mode,
+            worker_adapter=worker_adapter,
+            max_workers=max_workers,
+            controller_runtime=controller_metadata.get("controller", "codex") or "codex",
+            mcp_evidence=mcp_evidence,
+            skill_cards=packet.get("required_skill_cards", []),
+            cwd=cwd,
+            runtime_options=draft_runtime_options.get(
+                controller_metadata.get("controller", "codex") or "codex",
+                {},
+            ),
+            profile_directive=self._build_profile_directive(
+                selected_profiles["draft"],
+                draft_profile_cfg,
+                stage="draft",
+            ),
+            merge_review_runtime=effective_runtime_plan["review_agent"],
+            merge_review_runtime_options=review_runtime_options.get(
+                effective_runtime_plan["review_agent"],
+                {},
+            ),
+            merge_review_profile_directive=self._build_profile_directive(
+                selected_profiles["review"],
+                review_profile_cfg,
+                stage="review",
+            ),
+        )
+        packet["worker_orchestration"] = worker_orchestration
+        if worker_orchestration.get("status") != "disabled":
+            routing_notes.append(
+                "Worker orchestration: "
+                f"status={worker_orchestration.get('status', 'unknown')}, "
+                f"barrier={worker_orchestration.get('barrier_status', 'unknown')}, "
+                f"workers={len(worker_orchestration.get('workers', []))}."
+            )
+        worker_block_reason = ""
+        worker_block_note = ""
+        worker_barrier_status = worker_orchestration.get("barrier_status")
+        worker_merge_status = worker_orchestration.get("merge_status")
+        worker_merge_review_status = worker_orchestration.get("merge_review_status")
+        worker_merge_review_active = worker_barrier_status in {"ok", "degraded"}
+        if worker_orchestration.get("barrier_status") == "blocked":
+            worker_block_reason = "worker barrier blocked"
+            worker_block_note = (
+                "Worker barrier BLOCKED: main draft/review execution and validator gate skipped."
+            )
+        elif worker_merge_review_active and worker_merge_status != "passed":
+            worker_orchestration["status"] = "blocked"
+            worker_block_reason = "worker merge failed"
+            worker_block_note = (
+                "Worker merge FAILED: main draft/review execution and validator gate skipped "
+                f"(reason: {worker_block_reason})."
+            )
+        elif worker_merge_review_active and worker_merge_review_status == "blocked":
+            worker_block_reason = "worker final review blocked"
+            worker_block_note = (
+                "Worker final review BLOCKED: main draft/review execution and validator gate skipped "
+                f"(reason: {worker_block_reason})."
+            )
+        elif worker_merge_review_active and worker_merge_review_status != "passed":
+            worker_orchestration["status"] = "blocked"
+            worker_block_reason = "worker final review failed"
+            worker_block_note = (
+                "Worker final review FAILED: main draft/review execution and validator gate skipped "
+                f"(reason: {worker_block_reason})."
+            )
+        if worker_block_reason:
+            validator_gate_result = {
+                "passed": False,
+                "skipped": True,
+                "reason": worker_block_reason,
+                "found": [],
+                "missing": [],
+                "checked": len(required_outputs),
+                "expected_outputs": list(required_outputs),
+            }
+            routing_notes.append(worker_block_note)
+            review_loop_state = {
+                "enabled": bool(self_critique_loop.get("enabled")),
+                "status": "skipped",
+                "final_verdict": "NOT_RUN",
+                "reviews_completed": 0,
+                "revisions_attempted": 0,
+                "min_review_rounds": self_critique_loop.get("min_review_rounds", 1),
+                "max_revision_rounds": effective_max_rounds,
+                "stopped_reason": worker_block_reason,
+            }
+            merged_parts = [
+                plan_result.merged_analysis,
+                "",
+                get_text("task_packet"),
+                json.dumps(packet, ensure_ascii=False, indent=2),
+                "",
+                get_text("mcp_evidence"),
+                self._format_mcp_evidence(mcp_evidence),
+                "",
+                get_text("skill_cards"),
+                self._format_skill_context(packet.get("required_skill_cards", [])),
+                "",
+                get_text("agent_profiles"),
+                "\n".join(
+                    [
+                        f"- base: {selected_profiles['base']}",
+                        f"- draft: {selected_profiles['draft']}",
+                        f"- review: {selected_profiles['review']}",
+                        f"- triad: {selected_profiles['triad']}",
+                    ]
+                ),
+                "",
+                get_text("routing"),
+                "\n".join(f"- {item}" for item in routing_notes),
+                "",
+                self._format_worker_orchestration_section(worker_orchestration),
+            ]
+            merged = "\n".join(merged_parts)
+            local_guidance_trace, local_guidance_trace_note = self._write_task_guidance_trace(
+                cwd=cwd,
+                guidance_state=guidance_state,
+                task_packet=packet,
+                draft_content="[skipped: worker orchestration blocked]",
+                review_content="[skipped: worker orchestration blocked]",
+                merged_analysis=merged,
+                validator_gate=validator_gate_result,
+            )
+            if local_guidance_trace_note:
+                routing_notes.append(local_guidance_trace_note)
+                merged += "\n\n## Local Guidance Trace\n- " + local_guidance_trace_note
+            return CollaborationResult(
+                mode="task-run",
+                task_description=f"{normalized_task} {paper_type} {normalized_topic}"[:200],
+                merged_analysis=merged,
+                confidence=0.0,
+                recommendations=self._extract_recommendations(merged),
+                data={
+                    "task_packet": packet,
+                    "routing_notes": list(routing_notes),
+                    "revision_history": [],
+                    "structured_output": {},
+                    "targeted_follow_up": {
+                        "enabled": bool(targeted_follow_up_data),
+                        "selected_targets": list(packet.get("selected_actionable_targets", [])),
+                        "available_targets": list(packet.get("available_actionable_targets", [])),
+                        "source_artifact": str(packet.get("structured_source_artifact", "")).strip(),
+                        "source_path": str(packet.get("structured_source_path", "")).strip(),
+                    },
+                    "self_critique_loop": dict(self_critique_loop),
+                    "review_loop_state": dict(review_loop_state),
+                    "boundary_review": dict(boundary_review),
+                    "validator_gate": dict(validator_gate_result),
+                    "local_guidance_trace": dict(local_guidance_trace),
+                },
+            )
 
         primary_runtime, primary_notes = self._resolve_runtime_agent(
             preferred_agent=effective_runtime_plan["primary_agent"],
@@ -5678,14 +6876,51 @@ Return sections:
         triad_resp: BridgeResponse | None = None
         triad_runtime: str | None = None
         if triad and draft_resp.success and review_resp and review_resp.success:
-            third_candidates = [
-                agent for agent in ("codex", "claude", "gemini")
-                if agent not in {draft_runtime, review_runtime}
-            ]
+            used_runtimes = {draft_runtime, review_runtime}
+            verifier_preference = str(controller_metadata.get("verifier_agent", "")).strip()
+            third_candidates: list[str] = []
+            if verifier_preference:
+                third_candidates.append(verifier_preference)
+            third_candidates.extend(
+                agent for agent in RUNTIME_AGENT_CHOICES if agent not in used_runtimes
+            )
+            third_candidates.extend(RUNTIME_AGENT_CHOICES)
+            seen_triad_candidates: set[str] = set()
+            reusable_candidate: str | None = None
+            reusable_error: str | None = None
             for candidate in third_candidates:
-                if candidate in self.RUNTIME_AGENTS:
-                    triad_runtime = candidate
-                    break
+                if not candidate or candidate in seen_triad_candidates:
+                    continue
+                seen_triad_candidates.add(candidate)
+                if candidate not in self.RUNTIME_AGENTS:
+                    continue
+                preflight_error = self._runtime_preflight_error(
+                    candidate,
+                    cwd,
+                    triad_runtime_options.get(candidate, {}),
+                )
+                if preflight_error:
+                    routing_notes.append(
+                        f"Triad runtime candidate '{candidate}' unavailable: {preflight_error}"
+                    )
+                    continue
+                if candidate in used_runtimes:
+                    if reusable_candidate is None:
+                        reusable_candidate = candidate
+                        reusable_error = (
+                            f"No distinct third runtime available; reusing '{candidate}'."
+                        )
+                    continue
+                triad_runtime = candidate
+                if verifier_preference and candidate != verifier_preference:
+                    routing_notes.append(
+                        f"Triad verifier '{verifier_preference}' routed to '{candidate}'."
+                    )
+                break
+            if triad_runtime is None and reusable_candidate:
+                triad_runtime = reusable_candidate
+                if reusable_error:
+                    routing_notes.append(reusable_error)
             if triad_runtime:
                 triad_prompt = self._build_task_triad_prompt(
                     packet,
@@ -5716,7 +6951,7 @@ Return sections:
 
         codex_resp = None
         claude_resp = None
-        gemini_resp = None
+        antigravity_resp = None
         for runtime_agent, response in (
             (draft_runtime, draft_resp),
             (review_runtime, review_resp),
@@ -5729,8 +6964,8 @@ Return sections:
                 codex_resp = response
             if runtime_agent == "claude" and claude_resp is None:
                 claude_resp = response
-            if runtime_agent == "gemini" and gemini_resp is None:
-                gemini_resp = response
+            if runtime_agent == "antigravity" and antigravity_resp is None:
+                antigravity_resp = response
 
         structured_output: dict[str, Any] = {}
         if draft_resp.success and normalized_task in self.STAGE_I_TEMPLATE_TYPE_BY_TASK:
@@ -5812,6 +7047,13 @@ Return sections:
             "\n".join(f"- {item}" for item in routing_notes) if routing_notes else "- Direct mapping used.",
             "",
         ]
+        if worker_orchestration.get("status") != "disabled":
+            merged_parts.extend(
+                [
+                    self._format_worker_orchestration_section(worker_orchestration),
+                    "",
+                ]
+            )
         if structured_output:
             merged_parts.extend(
                 [
@@ -5874,6 +7116,22 @@ Return sections:
                 ]
             )
         merged = "\n".join(merged_parts)
+        local_guidance_trace, local_guidance_trace_note = self._write_task_guidance_trace(
+            cwd=cwd,
+            guidance_state=guidance_state,
+            task_packet=packet,
+            draft_content=draft_resp.content if draft_resp.success else f"[FAILED] {draft_resp.error}",
+            review_content=(
+                review_resp.content
+                if review_resp and review_resp.success
+                else (f"[FAILED] {review_resp.error}" if review_resp else "[no review produced]")
+            ),
+            merged_analysis=merged,
+            validator_gate=validator_gate_result,
+        )
+        if local_guidance_trace_note:
+            routing_notes.append(local_guidance_trace_note)
+            merged += "\n\n## Local Guidance Trace\n- " + local_guidance_trace_note
 
         if (
             draft_resp.success
@@ -5903,7 +7161,7 @@ Return sections:
             task_description=f"{normalized_task} {paper_type} {normalized_topic}"[:200],
             codex_response=codex_resp,
             claude_response=claude_resp,
-            gemini_response=gemini_resp,
+            antigravity_response=antigravity_resp,
             merged_analysis=merged,
             confidence=confidence,
             recommendations=self._extract_recommendations(merged),
@@ -5923,6 +7181,7 @@ Return sections:
                 "review_loop_state": dict(review_loop_state),
                 "boundary_review": dict(boundary_review),
                 "validator_gate": dict(validator_gate_result),
+                "local_guidance_trace": dict(local_guidance_trace),
             },
         )
 
@@ -6013,7 +7272,7 @@ Return sections:
             stage_results: list[tuple[str, CollaborationResult]] = []
             combined_codex: BridgeResponse | None = None
             combined_claude: BridgeResponse | None = None
-            combined_gemini: BridgeResponse | None = None
+            combined_antigravity: BridgeResponse | None = None
             structured_stage_outputs: dict[str, Any] = {}
             aggregated_actionable_targets: dict[str, list[str]] = {}
 
@@ -6068,8 +7327,8 @@ Return sections:
                     combined_codex = stage_result.codex_response
                 if combined_claude is None and stage_result.claude_response:
                     combined_claude = stage_result.claude_response
-                if combined_gemini is None and stage_result.gemini_response:
-                    combined_gemini = stage_result.gemini_response
+                if combined_antigravity is None and stage_result.antigravity_response:
+                    combined_antigravity = stage_result.antigravity_response
 
                 if stage_result.confidence <= 0.0:
                     break
@@ -6121,7 +7380,7 @@ Return sections:
                 task_description=f"{method} {normalized_focus} {normalized_topic}"[:200],
                 codex_response=combined_codex,
                 claude_response=combined_claude,
-                gemini_response=combined_gemini,
+                antigravity_response=combined_antigravity,
                 merged_analysis="\n".join(merged_sections).strip(),
                 confidence=confidence,
                 recommendations=self._extract_recommendations("\n".join(merged_sections)),
@@ -6193,13 +7452,56 @@ REQUIREMENTS:
 CONTEXT:
 {request_context}
 """
-            # Use role-based for standard: Codex builds, Gemini explains usage
+            # Use role-based for standard: Codex builds, Claude explains usage.
             return self.execute(
                 mode=CollaborationMode.ROLE_BASED,
                 cwd=cwd,
                 codex_task=f"{prompt}\n\nGenerate the implementation code.",
-                gemini_task=f"{prompt}\n\nExplain the library usage and parameter choices."
+                claude_task=f"{prompt}\n\nExplain the library usage and parameter choices."
             )
+
+def _run_guidance_command(args: argparse.Namespace) -> CollaborationResult:
+    project_dir = Path(getattr(args, "project_dir", Path.cwd())).expanduser().resolve()
+    action = str(getattr(args, "guidance_cmd", "") or "").strip()
+    if action == "init":
+        paths = init_project_guidance(project_dir)
+        data = {
+            "action": "init",
+            "project_dir": str(paths.project_root),
+            "project_guidance": str(paths.project_guidance),
+            "trace_root": str(paths.trace_root),
+            "trace_index": str(paths.trace_index),
+        }
+        merged = (
+            "Project-local guidance initialized.\n"
+            f"- guidance: {paths.project_guidance}\n"
+            f"- trace: {paths.trace_root}"
+        )
+    elif action == "show":
+        state = effective_guidance(project_dir, mode="read")
+        data = {"action": "show", "project_dir": str(project_dir), "guidance": state.to_packet()}
+        merged = state.guidance_context or "No local guidance configured."
+    elif action == "trace":
+        limit = int(getattr(args, "limit", 20) or 20)
+        summary = guidance_trace_summary(project_dir, limit=limit)
+        data = {"action": "trace", **summary}
+        merged = json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True)
+    elif action == "apply":
+        proposal = Path(getattr(args, "proposal", ""))
+        result = apply_guidance_proposal(project_dir, proposal)
+        data = {"action": "apply", "project_dir": str(project_dir), **result}
+        merged = json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True)
+    else:
+        raise ValueError(f"Unhandled guidance command: {action}")
+    return CollaborationResult(
+        mode="guidance",
+        task_description=f"guidance {action}".strip(),
+        merged_analysis=merged,
+        confidence=1.0,
+        recommendations=[],
+        data=data,
+    )
+
 
 def main():
     """CLI entry point."""
@@ -6224,7 +7526,7 @@ def main():
     parallel.add_argument("--cwd", required=True, type=Path, help="Working directory")
     parallel.add_argument(
         "--summarizer",
-        choices=["codex", "claude", "gemini"],
+        choices=RUNTIME_AGENT_CHOICES,
         default="claude",
         help="Model used for post-parallel synthesis",
     )
@@ -6252,7 +7554,7 @@ def main():
     chain = subparsers.add_parser("chain", help="One generates, other verifies")
     chain.add_argument("--prompt", required=True, help="Generation prompt")
     chain.add_argument("--cwd", required=True, type=Path, help="Working directory")
-    chain.add_argument("--generator", choices=["codex", "claude", "gemini"], default="codex")
+    chain.add_argument("--generator", choices=RUNTIME_AGENT_CHOICES, default="codex")
     chain.add_argument(
         "--role",
         type=str,
@@ -6264,13 +7566,13 @@ def main():
     role.add_argument("--cwd", required=True, type=Path, help="Working directory")
     role.add_argument("--codex-task", help="Task for Codex")
     role.add_argument("--claude-task", help="Task for Claude")
-    role.add_argument("--gemini-task", help="Task for Gemini")
+    role.add_argument("--antigravity-task", help="Task for Antigravity")
 
     # Single mode
     single = subparsers.add_parser("single", help="Single model execution")
     single.add_argument("--prompt", required=True, help="Task prompt")
     single.add_argument("--cwd", required=True, type=Path, help="Working directory")
-    single.add_argument("--model", choices=["codex", "claude", "gemini"], default="codex")
+    single.add_argument("--model", choices=RUNTIME_AGENT_CHOICES, default="codex")
     single.add_argument("--session-id", help="Resume existing session")
 
     # NEW: Code Build mode
@@ -6302,6 +7604,64 @@ def main():
         action="append",
         dest="only_targets",
         help="Target a specific actionable item. Repeat for multiple items. Use STAGE_ID:TARGET when --focus full.",
+    )
+
+    guidance = subparsers.add_parser(
+        "guidance",
+        help="Manage project-local Qiongli guidance and trace bundles",
+    )
+    guidance_subparsers = guidance.add_subparsers(dest="guidance_cmd", required=True)
+    guidance_init = guidance_subparsers.add_parser(
+        "init",
+        help="Create project-local guidance and trace directories",
+    )
+    guidance_init.add_argument(
+        "--project-dir",
+        default=Path.cwd(),
+        type=Path,
+        help="Project directory that owns .qiongli/ (default: current directory)",
+    )
+    guidance_show = guidance_subparsers.add_parser(
+        "show",
+        help="Show effective project-local guidance context",
+    )
+    guidance_show.add_argument(
+        "--project-dir",
+        default=Path.cwd(),
+        type=Path,
+        help="Project directory that owns .qiongli/ (default: current directory)",
+    )
+    guidance_trace = guidance_subparsers.add_parser(
+        "trace",
+        help="Summarize project-local guidance trace index",
+    )
+    guidance_trace.add_argument(
+        "--project-dir",
+        default=Path.cwd(),
+        type=Path,
+        help="Project directory that owns .qiongli/ (default: current directory)",
+    )
+    guidance_trace.add_argument(
+        "--limit",
+        default=20,
+        type=int,
+        help="Maximum number of recent trace records to show (default: 20)",
+    )
+    guidance_apply = guidance_subparsers.add_parser(
+        "apply",
+        help="Apply an explicit guidance update proposal to project-local guidance",
+    )
+    guidance_apply.add_argument(
+        "--project-dir",
+        default=Path.cwd(),
+        type=Path,
+        help="Project directory that owns .qiongli/ (default: current directory)",
+    )
+    guidance_apply.add_argument(
+        "--proposal",
+        required=True,
+        type=Path,
+        help="Path to .qiongli/trace/runs/<run_id>/guidance_update_proposal.md",
     )
 
     task_run = subparsers.add_parser(
@@ -6406,11 +7766,18 @@ def main():
         help="Skip strict validation protocols for rapid research iteration.",
     )
     task_run.add_argument(
+        "--guidance-mode",
+        choices=GUIDANCE_MODES,
+        default="propose",
+        help="Project-local guidance mode: off, read, propose, or apply (default: propose).",
+    )
+    task_run.add_argument(
         "--update-academic-context",
         action="store_true",
         help="Append context/research_state.md and context/decision_log.md for supported stage-close tasks.",
     )
     _add_controller_agnostic_task_run_args(task_run)
+    _add_worker_orchestration_task_run_args(task_run)
 
     team_run_parser = subparsers.add_parser(
         "team-run",
@@ -6483,7 +7850,9 @@ def main():
 
     orchestrator = ModelOrchestrator(interactive=getattr(args, "interactive", False))
 
-    if args.mode == "code-build":
+    if args.mode == "guidance":
+        result = _run_guidance_command(args)
+    elif args.mode == "code-build":
         result = orchestrator.code_build(
             method=args.method,
             cwd=args.cwd,
@@ -6522,6 +7891,7 @@ def main():
             research_depth=getattr(args, "research_depth", "standard"),
             only_targets=getattr(args, "only_targets", None),
             skip_validation=getattr(args, "skip_validation", False),
+            guidance_mode=getattr(args, "guidance_mode", "propose"),
             update_academic_context=getattr(args, "update_academic_context", False),
             execution_mode=getattr(args, "execution_mode", None),
             controller=getattr(args, "controller", None),
@@ -6529,6 +7899,9 @@ def main():
             review_agent=getattr(args, "review_agent", None),
             verifier_agent=getattr(args, "verifier_agent", None),
             solo_role_gates=getattr(args, "solo_role_gates", "standard"),
+            worker_mode=getattr(args, "worker_mode", "none"),
+            worker_adapter=getattr(args, "worker_adapter", "auto"),
+            max_workers=getattr(args, "max_workers", None),
         )
     elif args.mode == "team-run":
         result = orchestrator.team_run(
@@ -6566,7 +7939,7 @@ def main():
             prompt=getattr(args, "prompt", None),
             codex_task=getattr(args, "codex_task", None),
             claude_task=getattr(args, "claude_task", None),
-            gemini_task=getattr(args, "gemini_task", None),
+            antigravity_task=getattr(args, "antigravity_task", None),
             generator=getattr(args, "generator", "codex"),
             single_model=getattr(args, "model", "codex"),
             parallel_summarizer=getattr(args, "summarizer", "claude"),

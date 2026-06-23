@@ -36,23 +36,56 @@ class QiongliNamingTests(unittest.TestCase):
         self.assertNotIn("pipx upgrade qiongli-installer", cli_source)
 
     def test_plugin_manifests_use_qiongli_public_identity(self) -> None:
-        codex_manifest = json.loads((LAYOUT.plugin_package / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        claude_manifest = json.loads((LAYOUT.plugin_package / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        gemini_manifest = json.loads((LAYOUT.plugin_package / "gemini-extension.json").read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out = Path(tmp_dir) / "dist-source"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "scripts/materialize_distribution_payloads.py",
+                    "--target",
+                    "plugin",
+                    "--out",
+                    str(out),
+                    "--force",
+                ],
+                cwd=REPO_ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, msg=result.stderr + result.stdout)
+            plugin_root = out / "plugins" / "qiongli"
+            codex_manifest = json.loads((plugin_root / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
+            claude_manifest = json.loads((plugin_root / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
 
-        for manifest in (codex_manifest, claude_manifest, gemini_manifest):
+        for manifest in (codex_manifest, claude_manifest):
             self.assertEqual(manifest["name"], "qiongli")
             self.assertIn("Qiongli", manifest["description"])
+        self.assertFalse((plugin_root / "gemini-extension.json").exists())
 
     def test_next_codex_plugin_uses_prerelease_identity(self) -> None:
-        manifest = json.loads((LAYOUT.next_plugin_package / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
-        skill_text = (
-            LAYOUT.next_plugin_package
-            / "skills"
-            / "qiongli-workflow"
-            / "SKILL.md"
-        ).read_text(encoding="utf-8")
-        mcp_manifest = json.loads((LAYOUT.next_plugin_package / ".mcp.json").read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out = Path(tmp_dir) / "dist-source"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "scripts/materialize_distribution_payloads.py",
+                    "--target",
+                    "next-plugin",
+                    "--out",
+                    str(out),
+                    "--force",
+                ],
+                cwd=REPO_ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, msg=result.stderr + result.stdout)
+            plugin_root = out / "plugins" / "qiongli-next"
+            manifest = json.loads((plugin_root / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
+            skill_text = (plugin_root / "skills" / "qiongli-workflow" / "SKILL.md").read_text(encoding="utf-8")
+            mcp_manifest = json.loads((plugin_root / ".mcp.json").read_text(encoding="utf-8"))
 
         self.assertEqual(manifest["name"], "qiongli-next")
         self.assertEqual(manifest["interface"]["displayName"], "Qiongli Next")

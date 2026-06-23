@@ -19,10 +19,10 @@ Before editing anything, distinguish these layers clearly:
 - **Internal Skill Specs**: `skills/*/*.md`
   - Repo-internal reusable execution specifications. These are not automatically portable client skills.
 - **Portable Skill Package**: `qiongli-workflow/`
-  - Cross-client entry skill distributed to Codex / Claude / Gemini / Antigravity / Hermes.
+  - Cross-client entry skill distributed to Codex / Claude / Antigravity / Hermes.
 - **Functional Agents**: currently represented mainly by `roles/` and pipeline ownership patterns
   - This is the research responsibility layer: literature, methods, writing, compliance, etc.
-- **Runtime Agents**: `codex`, `claude`, `gemini`
+- **Runtime Agents**: `codex`, `claude`, `antigravity`
   - These are model executors selected by the capability map and bridges.
 - **Pipelines**: `tooling/pipelines/`
   - Abstract DAG definitions and handoff plans.
@@ -44,7 +44,7 @@ If you worked on an earlier version of the repo, use this map first:
 | Old mental model | Current structure | Edit first |
 |---|---|---|
 | "The skill package is the system" | `qiongli-workflow/` is only the portable distribution surface | `standards/` or `skills/`, not the portable package |
-| "Agent means Claude/Codex/Gemini" | Split into `functional agents` (`roles/`) and `runtime agents` (`standards/` + `bridges/`) | `roles/` for ownership, `capability map` for runtime routing |
+| "Agent means Claude/Codex" | Split into `functional agents` (`roles/`) and `runtime agents` (`standards/` + `bridges/`) | `roles/` for ownership, `capability map` for runtime routing |
 | "Slash command = workflow truth" | `.agent/workflows/` is only the entry layer; `tooling/pipelines/` is the DAG layer | `tooling/pipelines/` first, then `.agent/workflows/` |
 | "A new micro-step needs a new skill file" | Many changes belong in templates, parent skill fields, or MCP/provider logic | `templates/`, parent skill markdown, or MCP/bridge layer |
 | "Bridges can patch missing standards" | `bridges/` should execute standards, not replace them | Fix `standards/` first |
@@ -120,7 +120,7 @@ Categorizing your changes will directly determine which file layer you should ed
 2. **Change "Who Owns This Task / How It is Coordinated"** (functional owner, three-client routing, MCP dependencies, required_skills): Edit `standards/mcp-agent-capability-map.yaml` and possibly `roles/`
 3. **Change "Definition of Done"** (DoD, granular steps, checklists): Edit `qiongli-workflow/references/stage-*.md`
 4. **Change "Specific Execution Specs / Output Formats"** (internal skill-spec descriptions, reusable structures): Edit `skills/*/*.md` and/or `templates/*`
-5. **Change "Portable Client Entry Skill"** (what Codex / Claude / Gemini / Antigravity / Hermes users install as the cross-client entry package): Edit `qiongli-workflow/`
+5. **Change "Portable Client Entry Skill"** (what Codex / Claude / Antigravity / Hermes users install as the cross-client entry package): Edit `qiongli-workflow/`
 6. **Change "Claude Code Menus / Routing Experience"** (command entry points / menu items): Edit `.agent/workflows/*.md`
 7. **Change "Orchestrator Behavior"** (task-run injection, concurrency strategies, external MCP command protocols): Edit `bridges/*.py`
 

@@ -6,7 +6,7 @@
 - `packages/` 放所有可安装或可发布的包源。
 - `tooling/` 放维护自动化和运营资产。
 - 根目录 `scripts/` 是稳定 wrapper 层；真正实现编辑 `tooling/scripts/`。
-- 根目录 `qiongli-workflow/`、`plugins/qiongli/`、`.agent/`、`.gemini/` 是生成后的 distribution 形状；源文件在 `content/` 或 `packages/qiongli-plugin/`。
+- 根目录 `qiongli-workflow/`、`plugins/qiongli/`、`plugins/qiongli-next/` 和 `.agent/` 是生成后的 distribution 形状；源文件在 `content/` 和 `content/distribution/plugins.yaml`。
 
 ## 编辑顺序
 
@@ -15,7 +15,7 @@
 1. `content/standards/`：contract 或 routing 真源。
 2. `content/roles/` 与 `content/skills/`：责任归属或执行行为。
 3. `content/templates/`：稳定结构化输出。
-4. `tooling/pipelines/`、`content/workflow/workflows/`、`packages/qiongli-plugin/platforms/`：编排或入口 UX。
+4. `tooling/pipelines/`、`content/workflow/workflows/`、`content/distribution/plugins.yaml`：编排、入口 UX 或 plugin metadata。
 5. `packages/python-qiongli/src/qiongli/`：只有运行时执行逻辑需要变化时才改。
 6. generated payloads：只能通过 staged materialization 生成。
 
@@ -34,8 +34,8 @@
 | 维护自动化 | `tooling/scripts/` |
 | public script 入口兼容 | 根目录 `scripts/` wrapper，仅在兼容层变化时 |
 | Python runtime、CLI、installer、bridges | `packages/python-qiongli/src/qiongli/` |
-| plugin manifest 或 command source | `packages/qiongli-plugin/` |
-| Agent/Gemini platform command source | `packages/qiongli-plugin/platforms/` |
+| plugin manifest、prompt、keywords 或平台开关 | `content/distribution/plugins.yaml` |
+| plugin command wrapper、MCP bundle manifest 或平台入口文件结构 | `tooling/scripts/build_plugin_artifacts.py` |
 | npm package wrapper | `packages/npm-qiongli/` |
 | eval cases、rubrics、runners | `evals/` |
 
@@ -62,11 +62,13 @@ python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qio
 
 - `qiongli-workflow/`
 - `plugins/qiongli/`
+- `plugins/qiongli-next/`
 - `.agent/`
-- `.gemini/`
 - `packages/python-qiongli/src/qiongli/payload/`
 - `packages/npm-qiongli/payload/`
 - `packages/npm-qiongli/python-runtime/`
+- `packages/qiongli-plugin/`
+- `packages/qiongli-next-plugin/`
 
 ## `research_skills`
 

@@ -39,7 +39,6 @@ jobs:
           mkdir -p "$HOME"
           export CODEX_HOME="$RUNNER_TEMP/codex-home-partial"
           export CLAUDE_CODE_HOME="$RUNNER_TEMP/claude-home-partial"
-          export GEMINI_HOME="$RUNNER_TEMP/gemini-home-partial"
           export ANTIGRAVITY_HOME="$RUNNER_TEMP/antigravity-home-partial"
           project_dir="$RUNNER_TEMP/project-partial"
           cli_dir="$RUNNER_TEMP/bin-partial"
@@ -53,9 +52,7 @@ jobs:
 
           test -f "$CODEX_HOME/skills/qiongli-workflow/SKILL.md"
           test -f "$CLAUDE_CODE_HOME/skills/qiongli-workflow/SKILL.md"
-          test -f "$GEMINI_HOME/skills/qiongli-workflow/SKILL.md"
           test -f "$CLAUDE_CODE_HOME/skills/qiongli-workflow/workflows/proofread.md"
-          test -f "$GEMINI_HOME/skills/qiongli-workflow/workflows/paper.md"
           test ! -e "$cli_dir/qiongli"
           test ! -e "$project_dir/.agent"
           test ! -e "$project_dir/.gemini"
@@ -74,7 +71,6 @@ jobs:
           fi
           export CODEX_HOME="$RUNNER_TEMP/codex-home-full"
           export CLAUDE_CODE_HOME="$RUNNER_TEMP/claude-home-full"
-          export GEMINI_HOME="$RUNNER_TEMP/gemini-home-full"
           export ANTIGRAVITY_HOME="$RUNNER_TEMP/antigravity-home-full"
           project_dir="$RUNNER_TEMP/project-full"
           cli_dir="$RUNNER_TEMP/bin-full"
@@ -89,7 +85,6 @@ jobs:
 
           test -f "$CODEX_HOME/skills/qiongli-workflow/SKILL.md"
           test -f "$CLAUDE_CODE_HOME/skills/qiongli-workflow/workflows/proofread.md"
-          test -f "$GEMINI_HOME/skills/qiongli-workflow/workflows/paper.md"
           test -f "$cli_dir/qiongli"
           test -x "$cli_dir/qiongli"
           if [[ ! -L "$cli_dir/rsk" && ! -f "$cli_dir/rsk" ]]; then
@@ -126,7 +121,6 @@ jobs:
         run: |
           $env:CODEX_HOME = Join-Path $env:RUNNER_TEMP "codex-home-partial"
           $env:CLAUDE_CODE_HOME = Join-Path $env:RUNNER_TEMP "claude-home-partial"
-          $env:GEMINI_HOME = Join-Path $env:RUNNER_TEMP "gemini-home-partial"
           $env:ANTIGRAVITY_HOME = Join-Path $env:RUNNER_TEMP "antigravity-home-partial"
           $projectDir = Join-Path $env:RUNNER_TEMP "project-partial"
           $cliDir = Join-Path $env:RUNNER_TEMP "bin-partial"
@@ -141,9 +135,7 @@ jobs:
           $checks = @(
             (Join-Path $env:CODEX_HOME "skills\qiongli-workflow\SKILL.md"),
             (Join-Path $env:CLAUDE_CODE_HOME "skills\qiongli-workflow\SKILL.md"),
-            (Join-Path $env:GEMINI_HOME "skills\qiongli-workflow\SKILL.md"),
-            (Join-Path $env:CLAUDE_CODE_HOME "skills\qiongli-workflow\workflows\proofread.md"),
-            (Join-Path $env:GEMINI_HOME "skills\qiongli-workflow\workflows\paper.md")
+            (Join-Path $env:CLAUDE_CODE_HOME "skills\qiongli-workflow\workflows\proofread.md")
           )
           foreach ($path in $checks) {
             if (-not (Test-Path $path)) {
@@ -169,7 +161,6 @@ jobs:
         run: |
           $env:CODEX_HOME = Join-Path $env:RUNNER_TEMP "codex-home-full"
           $env:CLAUDE_CODE_HOME = Join-Path $env:RUNNER_TEMP "claude-home-full"
-          $env:GEMINI_HOME = Join-Path $env:RUNNER_TEMP "gemini-home-full"
           $env:ANTIGRAVITY_HOME = Join-Path $env:RUNNER_TEMP "antigravity-home-full"
           $projectDir = Join-Path $env:RUNNER_TEMP "project-full"
           $cliDir = Join-Path $env:RUNNER_TEMP "bin-full"
@@ -185,7 +176,6 @@ jobs:
           $checks = @(
             (Join-Path $env:CODEX_HOME "skills\qiongli-workflow\SKILL.md"),
             (Join-Path $env:CLAUDE_CODE_HOME "skills\qiongli-workflow\workflows\proofread.md"),
-            (Join-Path $env:GEMINI_HOME "skills\qiongli-workflow\workflows\paper.md"),
             (Join-Path $cliDir "qiongli.cmd"),
             (Join-Path $cliDir "rsk.cmd"),
             (Join-Path $cliDir "rsw.cmd")

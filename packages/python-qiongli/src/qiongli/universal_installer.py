@@ -22,7 +22,7 @@ from .subject_materializer import (
 )
 
 
-TARGET_CHOICES = ("codex", "claude", "gemini", "antigravity", "hermes", "all")
+TARGET_CHOICES = ("codex", "claude", "antigravity", "hermes", "all")
 PROFILE_CHOICES = ("partial", "full")
 PART_CHOICES = ("globals", "project", "cli", "doctor")
 LEGACY_MANIFEST_PATH = Path(__file__).resolve().parents[1] / "install" / "install_manifest.tsv"
@@ -116,7 +116,6 @@ def cli_name_for_target(target: str) -> str:
     mapping = {
         "codex": "codex",
         "claude": "claude",
-        "gemini": "gemini",
         "antigravity": "antigravity",
         "hermes": "hermes",
     }
@@ -127,7 +126,6 @@ def cli_install_hint(target: str) -> str:
     hints = {
         "codex": "Install the Codex CLI from the official OpenAI distribution and ensure `codex` is on PATH.",
         "claude": "Install Claude Code: npm install -g @anthropic-ai/claude-code",
-        "gemini": "Install Gemini CLI: npm install -g @google/gemini-cli",
         "antigravity": "Install Antigravity and ensure `antigravity` is on PATH before relying on the global skill directory.",
         "hermes": "Install Hermes Agent and ensure `hermes` is on PATH before relying on the global skill directory.",
     }
@@ -294,7 +292,6 @@ def _cleanup_legacy_global_skill_residues(target: str, target_paths: dict[str, P
 def _global_skill_target_paths() -> dict[str, Path]:
     codex_dest = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex"))) / "skills" / "qiongli-workflow"
     claude_dest = Path(os.environ.get("CLAUDE_CODE_HOME", str(Path.home() / ".claude"))) / "skills" / "qiongli-workflow"
-    gemini_dest = Path(os.environ.get("GEMINI_HOME", str(Path.home() / ".gemini"))) / "skills" / "qiongli-workflow"
     antigravity_dest = (
         Path(os.environ.get("ANTIGRAVITY_HOME", str(Path.home() / ".gemini" / "antigravity")))
         / "skills"
@@ -304,7 +301,6 @@ def _global_skill_target_paths() -> dict[str, Path]:
     return {
         "codex": codex_dest,
         "claude": claude_dest,
-        "gemini": gemini_dest,
         "antigravity": antigravity_dest,
         "hermes": hermes_dest,
     }
@@ -768,10 +764,8 @@ def _sync_skill_package(repo_root: Path, *, dry_run: bool = False) -> None:
 
 # Maps target → (discovery_dir_name, skill_dest_env_var_key)
 # Claude: ~/.claude/commands/<name>.md  (slash command discovery)
-# Gemini: ~/.gemini/workflows/<name>.md (workflow discovery)
 _SYMLINK_TARGETS: dict[str, tuple[str, str]] = {
     "claude": ("commands", "CLAUDE_CODE_HOME"),
-    "gemini": ("workflows", "GEMINI_HOME"),
 }
 
 
@@ -784,8 +778,6 @@ def _create_workflow_symlinks(
     """Create symlinks from canonical workflow discovery paths to bundled workflows.
 
     For Claude Code:  ~/.claude/commands/<name>.md → ~/.claude/skills/.../workflows/<name>.md
-    For Gemini CLI:   ~/.gemini/workflows/<name>.md → ~/.gemini/skills/.../workflows/<name>.md
-
     This enables direct /slash-command invocation (e.g. /paper, /lit-review).
     """
     if target not in _SYMLINK_TARGETS:
@@ -799,7 +791,7 @@ def _create_workflow_symlinks(
     # Discovery dir is sibling to skills/ under the client home
     # skill_dest = ~/.claude/skills/qiongli-workflow
     # discovery_dir = ~/.claude/commands/
-    client_home = skill_dest.parent.parent  # ~/.claude or ~/.gemini
+    client_home = skill_dest.parent.parent
     discovery_dir = client_home / dir_name
     discovery_dir.mkdir(parents=True, exist_ok=True)
 
@@ -854,7 +846,7 @@ def _print_full_readiness(options: InstallOptions) -> None:
             "your OS package manager, pyenv, mise, winget install -e --id Python.Python.3.12, "
             "or another method you prefer"
         )
-    for env_var in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY"):
+    for env_var in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY"):
         value = os.environ.get(env_var, "").strip()
         _print_result(env_var, "configured" if value else "missing", "ok" if value else "skip")
     if os.name == "nt":
@@ -931,7 +923,6 @@ def install(options: InstallOptions) -> int:
     target_paths = _global_skill_target_paths()
     codex_dest = target_paths["codex"]
     claude_dest = target_paths["claude"]
-    gemini_dest = target_paths["gemini"]
     antigravity_dest = target_paths["antigravity"]
     hermes_dest = target_paths["hermes"]
     source_version = _skill_package_version(skill_src)
@@ -939,7 +930,6 @@ def install(options: InstallOptions) -> int:
         "PROJECT_DIR": str(options.project_dir),
         "CODEX_HOME": str(codex_dest.parent.parent),
         "CLAUDE_CODE_HOME": str(claude_dest.parent.parent),
-        "GEMINI_HOME": str(gemini_dest.parent.parent),
         "ANTIGRAVITY_HOME": str(antigravity_dest.parent.parent),
         "HERMES_HOME": str(hermes_dest.parent.parent),
     }
@@ -1024,12 +1014,11 @@ def install(options: InstallOptions) -> int:
         if materialized_tmp is not None:
             materialized_tmp.cleanup()
 
-    # Create workflow discovery symlinks (Claude: commands/, Gemini: workflows/)
+    # Create workflow discovery symlinks (Claude: commands/)
     if install_globals and not options.dry_run:
         _print_section("Workflow Discovery")
         target_dest_map = {
             "claude": claude_dest,
-            "gemini": gemini_dest,
         }
         for sym_target, sym_dest in target_dest_map.items():
             if options.target in {sym_target, "all"}:
@@ -1051,7 +1040,7 @@ def install(options: InstallOptions) -> int:
     print("\n[done] Installation complete")
     if install_cli and options.cli_dir and not _on_path(options.cli_dir):
         print(f"       Add {options.cli_dir} to PATH to use qiongli / ql / research-skills / rsk / rsw")
-    print("       Restart Codex / Claude Code / Gemini CLI / Antigravity / Hermes to activate changes")
+    print("       Restart Codex / Claude Code / Antigravity / Hermes to activate changes")
     return 0
 
 
@@ -1182,14 +1171,14 @@ def remove(options: RemoveOptions) -> int:
         _print_result("Doctor", "no removable assets", "skip")
 
     print("\n[done] Removal complete")
-    print("       Restart Codex / Claude Code / Gemini CLI / Antigravity / Hermes to refresh discovery state")
+    print("       Restart Codex / Claude Code / Antigravity / Hermes to refresh discovery state")
     return 0
 
 
 def clean_workflow_symlinks(*, dry_run: bool = False) -> int:
     """Remove workflow discovery symlinks created by the installer.
 
-    Cleans: ~/.claude/commands/<name>.md and ~/.gemini/workflows/<name>.md
+    Cleans: ~/.claude/commands/<name>.md
     Only removes symlinks that point into a qiongli-workflow directory.
     """
     removed = 0

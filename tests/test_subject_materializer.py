@@ -541,6 +541,9 @@ class SubjectMaterializerTests(unittest.TestCase):
             self.assertTrue((out / "templates" / "agent-run-packet.json").exists())
             self.assertTrue((out / "templates" / "agent-review-packet.md").exists())
             self.assertTrue((out / "templates" / "agent-handoff.md").exists())
+            self.assertTrue((out / "templates" / "worker-run-packet.json").exists())
+            self.assertTrue((out / "templates" / "worker-review-packet.md").exists())
+            self.assertTrue((out / "templates" / "worker-merge-report.md").exists())
             for template_name in (
                 "paper-note.md",
                 "paper-reading-summary.md",

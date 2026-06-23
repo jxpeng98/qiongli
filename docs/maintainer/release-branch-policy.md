@@ -13,14 +13,13 @@ Open normal pull requests against `dev`. Beta releases may publish from `dev` af
 
 ## Official Plugin Linkage
 
-The official public marketplace entry lives in `jxpeng98/skillsplace` and should point at the stable Qiongli plugin payload:
+The official public marketplace entry lives in `jxpeng98/skillsplace` and should point at the stable generated Qiongli plugin payload:
 
 - Marketplace repository: `https://github.com/jxpeng98/skillsplace`
 - Qiongli repository: `https://github.com/jxpeng98/qiongli`
-- Plugin subdirectory: `packages/qiongli-plugin`
-- Codex manifest: `packages/qiongli-plugin/.codex-plugin/plugin.json`
-- Claude Code manifest: `packages/qiongli-plugin/.claude-plugin/plugin.json`
-- Gemini extension manifest: `packages/qiongli-plugin/gemini-extension.json`
+- Stable Codex artifact: `qiongli-core-codex-plugin-<tag>.tar.gz`
+- Stable Claude Code artifact: `qiongli-core-claude-plugin-<tag>.tar.gz` or `.zip`
+- Stable generated payload root: `plugins/qiongli/`
 
 The stable Skillsplace catalog entries should track `main` and stable release tags, not `dev`. Use `dev` for local plugin packaging tests and prerelease validation before the shared marketplace entry is updated. This repository no longer carries Codex or Claude marketplace catalog files; it owns the plugin manifests and materializes the release payload from canonical source.
 
@@ -33,14 +32,34 @@ Prerelease tags publish the `qiongli-next` testing channel instead of the full s
 
 The `qiongli-next` Codex and Claude Code plugin artifacts install only the `core/complete` skill package and keep the bundled zero-dependency Node literature MCP runtime. They do not publish subject plugin variants. The Claude plugin ZIP contains the same plugin payload as the Claude tarball for upload flows that reject `.tar.gz`. Claude Desktop testing uses the focused core ZIP plus the separate `qiongli-literature-provider-<version>.mcpb` release asset. The Skillsplace catalog may expose a separate `qiongli-next` entry for beta testing while stable `qiongli` and subject entries continue to point at stable artifacts.
 
-Codex beta marketplace installs also need a Git-backed plugin source directory, because Skillsplace can install plugins from repository subdirectories. Qiongli exposes that source at:
+This repository does not track stable or beta plugin payload directories. `plugins/qiongli/`, `plugins/qiongli-next/`, `packages/qiongli-plugin/`, and `packages/qiongli-next-plugin/` are generated shapes. Change `content/workflow/`, `content/distribution/plugins.yaml`, or `tooling/scripts/build_plugin_artifacts.py`, then materialize into a staging directory for validation.
 
-- Prerelease plugin subdirectory: `packages/qiongli-next-plugin`
-- Codex beta manifest: `packages/qiongli-next-plugin/.codex-plugin/plugin.json`
-- Required manifest name: `qiongli-next`
-- Required MCP server key: `qiongli-next`
+## Codex dist refs
 
-Release automation refreshes this tracked directory from canonical source with `python3 scripts/materialize_distribution_payloads.py --target next-plugin --in-place` during version prep. The directory contains only the core Codex beta plugin and should be pointed at a beta tag from `jxpeng98/skillsplace`; it is not a replacement for the stable `packages/qiongli-plugin` entry.
+Codex marketplace installs from `jxpeng98/skillsplace` use Git subdirectory sources because Codex cannot install the release `.tar.gz` archive URL as a plugin source. Keep the existing release tag, GitHub Release, PyPI, npm, and Claude artifact flow unchanged, and publish an additional orphan branch ref for Codex:
+
+```text
+refs/heads/codex/v<version>
+```
+
+Each Codex dist ref must contain only the generated plugin payload tree needed by the marketplace entry:
+
+```text
+plugins/qiongli/.codex-plugin/plugin.json
+plugins/qiongli-next/.codex-plugin/plugin.json
+```
+
+The release postflight automatically publishes the Codex dist ref after it materializes the release staging payload and builds the existing plugin artifacts. Stable marketplace installs publish `plugins/qiongli` to `codex/v<stable-version>`; prerelease installs publish `plugins/qiongli-next` to `codex/v<prerelease-version>`.
+
+Use `scripts/publish-codex-dist-ref.mjs` manually only when backfilling an existing release or intentionally repairing a dist ref from a verified staging directory:
+
+```bash
+python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qiongli-dist --force
+node scripts/publish-codex-dist-ref.mjs --version 1.3.0 --slug qiongli --source /tmp/qiongli-dist/plugins/qiongli
+node scripts/publish-codex-dist-ref.mjs --version 1.5.0-beta.1 --slug qiongli-next --source /tmp/qiongli-dist/plugins/qiongli-next
+```
+
+The publisher validates the Codex manifest, bundled MCP entrypoint, portable skill package, and version fields before it writes the orphan ref. Re-run with `--force` only when intentionally replacing an existing `codex/v<version>` payload.
 
 ## Development Flow
 
@@ -64,7 +83,7 @@ python3 -m unittest discover -s tests -v
 python3 scripts/build_plugin_artifacts.py --tag v0.7.0-beta.2 --dist-dir dist
 ```
 
-For beta tags this command should produce only `qiongli-next` core artifacts; for stable tags it should preserve the full `qiongli`, `qiongli-core`, subject, Desktop subject, and Gemini artifact structure.
+For beta tags this command should produce only `qiongli-next` core artifacts; for stable tags it should preserve the full `qiongli`, `qiongli-core`, subject, and Desktop subject artifact structure.
 
 5. Publish beta releases from `dev` when the release-prep commit and preflight evidence are ready:
 

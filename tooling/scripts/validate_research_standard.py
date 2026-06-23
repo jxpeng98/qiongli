@@ -38,7 +38,7 @@ EXPECTED_TASK_IDS = {
     "K1", "K2", "K3", "K4",
 }
 EXPECTED_QUALITY_GATES = {"Q1", "Q2", "Q3", "Q4"}
-EXPECTED_AGENTS = {"codex", "claude", "gemini"}
+EXPECTED_AGENTS = {"codex", "claude", "antigravity"}
 EXPECTED_FUNCTIONAL_AGENTS = {
     "research-orchestrator",
     "literature-agent",
@@ -135,6 +135,11 @@ CONTROLLER_MODE_REQUIRED_FILES = (
     "templates/agent-run-packet.json",
     "templates/agent-review-packet.md",
     "templates/agent-handoff.md",
+    "standards/worker-orchestration-contract.yaml",
+    "templates/worker-run-packet.json",
+    "templates/worker-review-packet.md",
+    "templates/worker-merge-report.md",
+    "tests/test_worker_orchestration_contract.py",
     "templates/solo-task-packet.md",
     "templates/solo-self-review.md",
     "templates/implementation-intent.md",
@@ -1190,7 +1195,7 @@ def validate_mcp_agent_map(root: Path, report: ValidationReport) -> None:
     agent_registry = set(agent_list)
     report.check(
         agent_registry.issuperset(EXPECTED_AGENTS),
-        "Agent registry includes codex/claude/gemini",
+        "Agent registry includes codex/claude",
         (
             "Agent registry missing required agents: "
             f"{ids_to_text(EXPECTED_AGENTS - agent_registry) or 'none'}"
@@ -1630,7 +1635,6 @@ def validate_cross_file_consistency(root: Path, report: ValidationReport) -> Non
         for token in (
             "## Claude Code",
             "## Codex",
-            "## Gemini",
             "$qiongli",
             "Task {ID}",
         ):
@@ -1885,12 +1889,12 @@ def validate_docs(root: Path, report: ValidationReport) -> None:
 
 
 def validate_cross_platform_consistency(root: Path, report: ValidationReport) -> None:
-    """Ensure workflow files stay consistent across Codex, Claude, and Gemini."""
+    """Ensure workflow files stay consistent across Codex and Claude surfaces."""
     layout = RepoLayout(root)
-    workflow_dir = layout.agent_platform / "workflows"
+    workflow_dir = layout.resolve_source_path(".agent/workflows")
     if not workflow_dir.exists():
-        report.errors.append("Missing .agent/workflows/ directory")
-        print("[FAIL] Missing .agent/workflows/ directory")
+        report.errors.append("Missing workflow source directory")
+        print("[FAIL] Missing workflow source directory")
         return
 
     # Discover all workflow files
@@ -1899,7 +1903,7 @@ def validate_cross_platform_consistency(root: Path, report: ValidationReport) ->
     report.check(
         len(workflow_files) > 0,
         "Workflow directory contains .md files",
-        "No .md workflow files found in .agent/workflows/",
+        "No .md workflow files found in workflow source directory",
     )
 
     # --- Check 1: Workflow frontmatter must only have 'description' ---
@@ -1917,7 +1921,7 @@ def validate_cross_platform_consistency(root: Path, report: ValidationReport) ->
             (
                 f"{wf_path.name} frontmatter has non-standard keys: "
                 f"{', '.join(sorted(extra_keys))}. "
-                "Only 'description' is supported by Gemini/Antigravity"
+                "Only 'description' is supported by Antigravity"
             ),
         )
         report.check(
@@ -1926,23 +1930,7 @@ def validate_cross_platform_consistency(root: Path, report: ValidationReport) ->
             f"{wf_path.name} frontmatter missing required 'description' field",
         )
 
-    # --- Check 2: .gemini/qiongli.md references all workflows ---
-    gemini_context = layout.gemini_platform / "qiongli.md"
-    if gemini_context.exists():
-        gemini_content = gemini_context.read_text(encoding="utf-8")
-        report.passed += 1
-        print("[PASS] .gemini/qiongli.md exists")
-        for wf_name in sorted(workflow_names):
-            report.warn(
-                f"/{wf_name}" in gemini_content,
-                f".gemini/qiongli.md lists /{wf_name}",
-                f".gemini/qiongli.md missing quick command /{wf_name}",
-            )
-    else:
-        report.warnings.append(".gemini/qiongli.md not found")
-        print("[WARN] .gemini/qiongli.md not found")
-
-    # --- Check 3: CLAUDE.md references all workflows ---
+    # --- Check 2: CLAUDE.md references all workflows ---
     claude_content = read_text(root, "CLAUDE.md", report)
     if claude_content:
         for wf_name in sorted(workflow_names):
@@ -1950,20 +1938,6 @@ def validate_cross_platform_consistency(root: Path, report: ValidationReport) ->
                 f"/{wf_name}" in claude_content,
                 f"CLAUDE.md lists /{wf_name}",
                 f"CLAUDE.md missing quick command /{wf_name}",
-            )
-
-    # --- Check 4: Gemini context references key architecture files ---
-    if gemini_context.exists():
-        gemini_content = gemini_context.read_text(encoding="utf-8")
-        for key_ref in (
-            "skills-core.md",
-            "workflow-contract.md",
-            "RESEARCH/[topic]/",
-        ):
-            report.warn(
-                key_ref in gemini_content,
-                f".gemini/qiongli.md references {key_ref}",
-                f".gemini/qiongli.md should reference {key_ref} for skill routing",
             )
 
 
@@ -2076,9 +2050,10 @@ def validate_orchestrator(root: Path, report: ValidationReport) -> None:
             f"orchestrator.py missing {token}",
         )
     report.check(
-        "RUNTIME_AGENTS = {\"codex\", \"claude\", \"gemini\"}" in content,
-        "orchestrator.py runtime agents include codex/claude/gemini",
-        "orchestrator.py should include codex/claude/gemini in runtime agents",
+        'RUNTIME_AGENT_CHOICES = ("codex", "claude", "antigravity")' in content
+        or "RUNTIME_AGENTS = {\"codex\", \"claude\", \"antigravity\"}" in content,
+        "orchestrator.py runtime agents include codex/claude/antigravity",
+        "orchestrator.py should include codex/claude/antigravity in runtime agents",
     )
     report.check(
         "ThreadPoolExecutor" in content and "as_completed" in content,
@@ -2441,7 +2416,7 @@ def validate_release_artifacts(root: Path, report: ValidationReport) -> None:
     installer_content = read_text(root, "scripts/install_qiongli.sh", report)
     if installer_content:
         for token in (
-            "--target <codex|claude|gemini|antigravity|hermes|all>",
+            "--target <codex|claude|antigravity|hermes|all>",
             "--project-dir",
             "--doctor",
             "qiongli-workflow",
@@ -2552,10 +2527,7 @@ def validate_skill_quality_contract(root: Path, report: ValidationReport) -> Non
 
 
 def validate_skill_package_resource_links(root: Path, report: ValidationReport) -> None:
-    for relative_package in (
-        "qiongli-workflow",
-        "plugins/qiongli/skills/qiongli-workflow",
-    ):
+    for relative_package in ("qiongli-workflow",):
         package_dir = root / relative_package
         report.check(
             package_dir.exists(),
@@ -2573,6 +2545,25 @@ def validate_skill_package_resource_links(root: Path, report: ValidationReport) 
                 + "; ".join(f"{item.source}->{item.target}" for item in missing[:10])
             ),
         )
+
+    generated_package = root / "plugins" / "qiongli" / "skills" / "qiongli-workflow"
+    if not generated_package.exists():
+        report.check(
+            True,
+            "Generated qiongli plugin package is materialized from canonical sources",
+            "Generated qiongli plugin package should not be required in source checkout",
+        )
+        return
+
+    missing = audit_package_resource_links(generated_package)
+    report.check(
+        not missing,
+        "plugins/qiongli/skills/qiongli-workflow internal resource links resolve",
+        (
+            "plugins/qiongli/skills/qiongli-workflow has missing resource links: "
+            + "; ".join(f"{item.source}->{item.target}" for item in missing[:10])
+        ),
+    )
 
 
 def validate_controller_mode_contracts(

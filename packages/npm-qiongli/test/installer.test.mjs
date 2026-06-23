@@ -142,7 +142,7 @@ test('resolveTargetPaths uses client home environment overrides', () => {
 
   assert.equal(paths.codex, path.join('/x/codex', 'skills', 'qiongli-workflow'));
   assert.equal(paths.claude, path.join('/x/claude', 'skills', 'qiongli-workflow'));
-  assert.equal(paths.gemini, path.join('/x/gemini', 'skills', 'qiongli-workflow'));
+  assert.equal(Object.hasOwn(paths, 'gemini'), false);
   assert.equal(paths.antigravity, path.join('/x/ag', 'skills', 'qiongli-workflow'));
   assert.equal(paths.hermes, path.join('/x/hermes', 'skills', 'qiongli-workflow'));
 });
@@ -385,8 +385,8 @@ test('installSkills creates symlink discovery on POSIX and managed copies on Win
   assert.equal(fs.lstatSync(posixLink).isSymbolicLink(), true);
 
   const winHome = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-win-'));
-  installSkills({ packageRoot: root, target: 'gemini', env: { HOME: winHome }, platform: 'win32' });
-  const winCopy = path.join(winHome, '.gemini', 'workflows', 'paper.md');
+  installSkills({ packageRoot: root, target: 'claude', env: { HOME: winHome }, platform: 'win32' });
+  const winCopy = path.join(winHome, '.claude', 'commands', 'paper.md');
   assert.equal(fs.lstatSync(winCopy).isFile(), true);
   assert.equal(fs.readFileSync(winCopy, 'utf-8'), 'core complete workflow\n');
 });

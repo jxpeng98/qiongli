@@ -97,7 +97,7 @@ profile 可定义：
 
 - `persona`
 - `analysis_style` / `draft_style` / `review_style` / `summary_style` / `triad_style`
-- `runtime_options`（按 agent 注入工具权限，如 Codex sandbox、Claude permission mode、Gemini sandbox）
+- `runtime_options`（按 agent 注入工具权限，如 Codex sandbox、Claude permission mode）
   - 推荐设置：`non_interactive: true`、`timeout_seconds`
   - 可选严格认证：`require_api_key: true`（缺失 key 时直接快速失败，避免卡在登录流程）
 
@@ -108,7 +108,7 @@ profile 可定义：
 - **CCG 强约束执行 (I5-I8)**：借鉴 `ccg-workflow`，将代码阶段严格拆分为约束集提取(I5)->无决策规划(I6)->主端执行(I7)->侧端验收(I8)。
 - 推荐 skills：`code-specification`, `code-planning`, `code-execution`, `code-review`
 - 推荐 MCP：`code-runtime`, `filesystem`
-- agent 组合：主执行 `codex` (执行I7)，复核 `gemini` (验收I8)
+- agent 组合：主执行 `codex` (执行I7)，复核 `claude` (验收I8)
 
 ### B. 系统综述能力（`B1`）
 
@@ -132,14 +132,14 @@ profile 可定义：
 
 - **多 AI 协作迭代**：使用 `--triad` 模式进行循环去 AI 化。主执行负责重写，复核负责检查 AI 痕迹，三端负责查验科学准确性。
 - 推荐 skills：`proofread-editor`, `ai-detector`, `similarity-checker`
-- agent 组合：主执行 `claude`，复核 `gemini`，三端 `codex` (通过 `task-run --triad`)
+- agent 组合：主执行 `claude`，复核 `codex`；开启 `task-run --triad` 时优先由 Antigravity 执行第三路独立审计
 
 ### F. 投稿与返修（`H1`~`H4`）
 
 - **多角色专家互审 (H3-H4)**：在正式投稿前，通过平行调用模拟 Methodologist、Domain Expert 等苛刻审稿人进行交叉审查（H3），并执行 Desktop-reject 致命缺陷排查（H4）。
 - 推荐 skills：`submission-packager`, `rebuttal-assistant`, `peer-review-simulation`, `fatal-flaw-detector`, `model-collaborator`
 - 推荐 MCP：`submission-kit`, `metadata-registry`, `reporting-guidelines`
-- agent 组合：主执行 `claude`，复核 `gemini/codex`
+- agent 组合：主执行 `claude`，复核 `codex`
 
 ## 4.1) `team-run` 验收流程（`B1`, `H3`）
 
@@ -176,7 +176,7 @@ python3 scripts/capture_team_run_acceptance.py \
 当前仓库内的本地 receipt 已记录两类真实阻塞：
 
 - `B1`：scholarly-search 的外网解析失败，且外部 MCP overlay 未配置。
-- `H3`：`claude` / `gemini` CLI 不在 `PATH` 中，同时 Codex worker 没有产出可消费的 agent message。
+- `H3`：review runtime 不在 `PATH` 中，同时 Codex worker 没有产出可消费的 agent message。
 
 ## 5) 运行入口（统一）
 
@@ -200,7 +200,7 @@ python -m bridges.orchestrator task-run \
   --triad
 ```
 
-`--triad` 会在主执行 + 复核之后，自动调用第三个 runtime agent 做独立审查，从而在 `A`~`H` 非代码阶段也保持三端协同。
+`--triad` 会保留主执行 + 复核之后的独立审计合同。Antigravity 会替代之前的 Gemini 通道，作为优先的第三路 runtime；如果它不可用，orchestrator 会记录 routing fallback，并复用可用 runtime 完成审计。
 
 并发分析模式（不限定 Task ID）：
 
@@ -211,7 +211,7 @@ python -m bridges.orchestrator parallel \
   --summarizer claude
 ```
 
-该模式默认三端并发（Codex/Claude/Gemini），并在并发后执行总结分析；若三端不可用，会自动降级为双端或单端。
+该模式默认 Codex/Claude/Antigravity 并发，并在并发后执行总结分析；不可用 worker 会被记录为 skipped 或 failed，不能静默算作已完成 review。
 
 ## 6) 引入外部 agent 还是自建 agent？
 

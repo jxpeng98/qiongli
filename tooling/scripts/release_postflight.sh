@@ -272,6 +272,26 @@ PY
   return "$status"
 }
 
+publish_codex_dist_ref() {
+  local tag="$1"
+  local codex_slug="qiongli"
+
+  if is_prerelease_tag "$tag"; then
+    codex_slug="qiongli-next"
+  fi
+
+  if [[ ! -d "$POSTFLIGHT_STAGING_DIR/plugins/$codex_slug" ]]; then
+    echo "[postflight] missing Codex dist payload: $POSTFLIGHT_STAGING_DIR/plugins/$codex_slug" >&2
+    exit 1
+  fi
+
+  echo "[postflight] publishing Codex dist ref: codex/${TAG}"
+  node scripts/publish-codex-dist-ref.mjs \
+    --version "${TAG#v}" \
+    --slug "$codex_slug" \
+    --source "$POSTFLIGHT_STAGING_DIR/plugins/$codex_slug"
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --tag)
@@ -499,6 +519,7 @@ fi
 
 python3 scripts/build_plugin_artifacts.py --root "$POSTFLIGHT_STAGING_DIR" --tag "$TAG" --dist-dir dist
 MCPB_ARTIFACT="$(python3 scripts/build_literature_mcpb.py --dist-dir dist | tail -n 1)"
+ZOTERO_COMPANION_ARTIFACT="$(python3 scripts/build_zotero_companion.py --dist-dir dist | tail -n 1)"
 python3 scripts/generate_release_downloads.py --tag "$TAG" --out-dir dist
 if [[ "${TAG#v}" == *-* ]]; then
   PLUGIN_ARTIFACTS=(
@@ -507,6 +528,7 @@ if [[ "${TAG#v}" == *-* ]]; then
     "dist/qiongli-next-claude-plugin-${TAG}.zip"
     "dist/qiongli-next-claude-desktop-skill-core-${TAG}.zip"
     "$MCPB_ARTIFACT"
+    "$ZOTERO_COMPANION_ARTIFACT"
     "dist/qiongli-downloads-${TAG}.md"
     "dist/qiongli-downloads-${TAG}.json"
   )
@@ -539,7 +561,6 @@ else
     "dist/qiongli-economics-accounting-codex-plugin-${TAG}.tar.gz"
     "dist/qiongli-economics-accounting-claude-plugin-${TAG}.tar.gz"
     "dist/qiongli-economics-accounting-claude-plugin-${TAG}.zip"
-    "dist/qiongli-gemini-extension-${TAG}.tar.gz"
     "dist/qiongli-claude-desktop-skill-core-${TAG}.zip"
     "dist/qiongli-claude-desktop-skill-economics-${TAG}.zip"
     "dist/qiongli-claude-desktop-skill-business-${TAG}.zip"
@@ -549,10 +570,13 @@ else
     "dist/qiongli-claude-desktop-skill-economics-accounting-${TAG}.zip"
     "dist/qiongli-claude-desktop-skill-${TAG}.zip"
     "$MCPB_ARTIFACT"
+    "$ZOTERO_COMPANION_ARTIFACT"
     "dist/qiongli-downloads-${TAG}.md"
     "dist/qiongli-downloads-${TAG}.json"
   )
 fi
+
+publish_codex_dist_ref "$TAG"
 
 if ! command -v gh >/dev/null 2>&1 || ! gh auth status >/dev/null 2>&1; then
   echo "[postflight] gh auth is required to verify or create the GitHub release page" >&2

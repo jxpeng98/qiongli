@@ -164,7 +164,6 @@ class PluginArtifactsTests(unittest.TestCase):
             f"qiongli-codex-plugin-{current_tag}.tar.gz",
             f"qiongli-claude-plugin-{current_tag}.tar.gz",
             f"qiongli-claude-plugin-{current_tag}.zip",
-            f"qiongli-gemini-extension-{current_tag}.tar.gz",
         ]
         for subject in module._marketplace_subjects(REPO_ROOT):
             expected_names.extend(
@@ -293,12 +292,7 @@ class PluginArtifactsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
             (root / "qiongli-workflow").mkdir(parents=True)
-            (root / "qiongli-workflow" / "VERSION").write_text("v0.5.0-beta.3\n", encoding="utf-8")
-            (root / "plugins" / "qiongli" / ".codex-plugin").mkdir(parents=True)
-            (root / "plugins" / "qiongli" / ".codex-plugin" / "plugin.json").write_text(
-                json.dumps({"version": "0.5.0-beta.2"}),
-                encoding="utf-8",
-            )
+            (root / "qiongli-workflow" / "VERSION").write_text("v0.5.0-beta.2\n", encoding="utf-8")
 
             with self.assertRaisesRegex(ValueError, "version mismatch"):
                 module.build_artifacts(root, "v0.5.0-beta.3", root / "dist")

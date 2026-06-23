@@ -42,13 +42,7 @@ class PaperReadingSummaryContractTests(unittest.TestCase):
             self.assertIn(token, content)
 
     def test_platform_paper_read_workflow_matches_b2_summary_contract(self) -> None:
-        content = (
-            LAYOUT.plugin_package
-            / "platforms"
-            / "agent"
-            / "workflows"
-            / "paper-read.md"
-        ).read_text(encoding="utf-8")
+        content = (LAYOUT.workflow / "workflows" / "paper-read.md").read_text(encoding="utf-8")
 
         for token in (
             "literature/",

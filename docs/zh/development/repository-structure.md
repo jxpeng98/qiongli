@@ -6,6 +6,7 @@
 /
   content/                  学术内容 canonical source
     workflow/               生成 qiongli-workflow package 的源
+    distribution/           生成 plugin payload 的 metadata 源
     skills/                 internal skill specs
     templates/              可复用 artifact templates
     standards/              contracts、capability maps、policies
@@ -17,7 +18,6 @@
   packages/
     python-qiongli/         Python package source 与兼容 shim
     npm-qiongli/            npm wrapper package source
-    qiongli-plugin/         plugin manifests、commands、platform assets
     qiongli-literature-mcpb/ MCPB package source
 
   tooling/
@@ -38,11 +38,13 @@
 
 - `qiongli-workflow/`
 - `plugins/qiongli/`
+- `plugins/qiongli-next/`
 - `.agent/`
-- `.gemini/`
 - `packages/python-qiongli/src/qiongli/payload/`
 - `packages/npm-qiongli/payload/`
 - `packages/npm-qiongli/python-runtime/`
+- `packages/qiongli-plugin/`
+- `packages/qiongli-next-plugin/`
 
 使用 staged materialization 生成：
 
@@ -54,5 +56,6 @@ python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qio
 
 - 根目录 `scripts/` 为 CI、文档和用户习惯保持稳定。除非 wrapper contract 本身变化，否则编辑 `tooling/scripts/`。
 - `research_skills` 作为 deprecated Python compatibility shim 保留在 `packages/python-qiongli/src/research_skills/`。
-- 根目录 `.agent/` 和 `.gemini/` 由 `packages/qiongli-plugin/platforms/` 生成。
+- 根目录 `.agent/` 由 `content/workflow/` 与 `content/distribution/plugins.yaml` 生成。
 - 根目录 `qiongli-workflow/` 由 `content/workflow/` 和同步后的 content mirrors 生成。
+- `plugins/qiongli/`、`plugins/qiongli-next/`、`packages/qiongli-plugin/`、`packages/qiongli-next-plugin/` 都是生成后的 plugin payload 形状，不是 source directory。

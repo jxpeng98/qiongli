@@ -54,7 +54,7 @@ Options:
   --ref-type <tag|branch>              How to interpret --ref (default: tag)
   --beta                               Install the latest beta/prerelease tag when --ref is omitted
   --source-repo <path>                 Use a local checkout instead of downloading from GitHub
-  --target <codex|claude|gemini|antigravity|hermes|all> Install target (default: all)
+  --target <codex|claude|antigravity|hermes|all> Install target (default: all)
   --mode <copy>                        Install mode for remote bootstrap (default: copy)
   --project-dir <path>                 Project directory used when project surfaces are enabled (default: current dir)
   --install-cli                        Install shell CLI commands into the bin dir (default: on)
@@ -564,7 +564,7 @@ if [[ -z "$PROFILE" ]]; then
 fi
 
 case "$TARGET" in
-  codex|claude|gemini|antigravity|hermes|all) ;;
+  codex|claude|antigravity|hermes|all) ;;
   *)
     err "Unsupported target: $TARGET"
     exit 2

@@ -23,15 +23,18 @@ This mode does not require a remote server. The client launches the local proces
 The full CLI server exposes both provider/configuration tools and orchestrator tools:
 
 - `qiongli_config_status`, `qiongli_configure_provider`, `qiongli_save_provider_config`, and `qiongli_collect_evidence` for MCP/provider readiness.
+- `qiongli_orchestrator_route` for deciding whether Codex, Claude Code, Antigravity, or another client should upgrade from skill-only workflow routing to full orchestrator tools.
 - `qiongli_orchestrator_doctor` for local runtime preflight checks.
 - `qiongli_task_plan` for a no-agent task plan.
-- `qiongli_task_run` for a controlled task-run surface. It defaults to preview and does not launch local Codex, Claude, or Gemini processes unless the caller explicitly passes JSON boolean `run_agents: true`.
+- `qiongli_task_run` for a controlled task-run surface. It defaults to preview and does not launch local runtime agents unless the caller explicitly passes JSON boolean `run_agents: true`. It accepts `guidance_mode` (`off`, `read`, `propose`, or `apply`) and echoes that mode in preview arguments. Preview reports whether `.qiongli/` guidance would be bootstrapped, but only actual task execution writes those files.
 
-Use the full CLI server when Codex, Claude Code, or another local client needs to call the Qiongli orchestrator as a tool.
+When task-run agents are launched, formal artifacts are still expected under `RESEARCH/[topic]/...`. The first non-`off` task run initializes `.qiongli/local_guidance.md` and `.qiongli/trace/` if they are missing. The project-local guidance layer writes auditable run traces under `.qiongli/trace/`; this trace location is separate from formal research outputs and from installed skill assets.
+
+Use the full CLI server when Codex, Claude Code, Antigravity, or another local client needs to call the Qiongli orchestrator as a tool.
 
 ## Codex Bundled Plugin MCP
 
-The Codex plugin package includes `packages/qiongli-plugin/.mcp.json`, references it from `.codex-plugin/plugin.json`, and bundles a zero-dependency Node server under `packages/qiongli-plugin/mcp/qiongli-literature-provider/`. Codex plugin installs can therefore register and launch the literature-provider MCP server from the plugin bundle instead of requiring users to copy a separate `config.toml` snippet or install the `qiongli` CLI.
+The generated Codex plugin package includes `.mcp.json`, references it from `.codex-plugin/plugin.json`, and bundles a zero-dependency Node server under `mcp/qiongli-literature-provider/`. Codex plugin installs can therefore register and launch the literature-provider MCP server from the plugin bundle instead of requiring users to copy a separate `config.toml` snippet or install the `qiongli` CLI.
 
 The bundled server entry is:
 
@@ -56,7 +59,7 @@ The bundled Codex runtime focuses on literature-provider tools. Use the full CLI
 
 ## Claude Code Bundled Plugin MCP
 
-The Claude Code plugin package declares a bundled `qiongli` MCP server from `packages/qiongli-plugin/.claude-plugin/plugin.json`. It uses the same zero-dependency Node literature-provider runtime under `packages/qiongli-plugin/mcp/qiongli-literature-provider/` as the Codex plugin.
+The generated Claude Code plugin package declares a bundled `qiongli` MCP server from `.claude-plugin/plugin.json`. It uses the same zero-dependency Node literature-provider runtime under `mcp/qiongli-literature-provider/` as the Codex plugin.
 
 The bundled server entry is:
 
@@ -64,7 +67,7 @@ The bundled server entry is:
 node ${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs
 ```
 
-This bundled runtime covers literature-provider tools such as provider configuration, status, and search without requiring the `qiongli` CLI. Use the full CLI stdio server when Claude Code needs Python-backed orchestration tools such as `qiongli_orchestrator_doctor`, `qiongli_task_plan`, or `qiongli_task_run`.
+This bundled runtime covers literature-provider tools such as provider configuration, status, and search without requiring the `qiongli` CLI. Use the full CLI stdio server when Claude Code needs Python-backed orchestration tools such as `qiongli_orchestrator_route`, `qiongli_orchestrator_doctor`, `qiongli_task_plan`, or `qiongli_task_run`.
 
 ## Claude Desktop MCPB
 
@@ -74,7 +77,7 @@ For manual Claude Desktop installs, treat the Skill ZIP and MCPB as complementar
 
 - The `qiongli-claude-desktop-skill-*.zip` upload provides the agent instructions, workflows, templates, subject overlays, and skill guidance.
 - The `qiongli-literature-provider.mcpb` install provides literature MCP tools such as `qiongli_literature_search`.
-- The MCPB does not launch orchestrator agents. If the same Desktop or coding client needs `qiongli_task_run`, install the full CLI MCP server separately with `qiongli mcp serve --transport stdio`.
+- The MCPB does not launch orchestrator agents. If the same Desktop or coding client needs `qiongli_orchestrator_route` or `qiongli_task_run`, install the full CLI MCP server separately with `qiongli mcp serve --transport stdio`.
 
 ## Provider Keys
 
@@ -92,9 +95,11 @@ Desktop-only users can use the MCP tools exposed by the bundled Node server or f
 - `qiongli_open_config_wizard`: compatibility alias for `qiongli_configure_provider`.
 - `qiongli_save_provider_config`: saves one provider field from the desktop client; use it only for explicit scripted writes or when the user deliberately supplied the value in chat.
 - `qiongli_config_status`: reports redacted provider status.
-- `qiongli_literature_search`: searches OpenAlex and Semantic Scholar when provider access is configured.
+- `qiongli_literature_search`: searches configured OpenAlex, Semantic Scholar, Crossref, and PubMed providers with query variants, finance/economics deep-search routing, and sanitized diagnostics.
 
 The full CLI server exposes the same `qiongli_configure_provider` flow.
+
+Finance/economics data APIs such as FRED and SEC EDGAR should be exposed through a separate data MCP surface rather than the literature MCPB. See [Finance/Economics Data MCP Boundary](finance-econ-data-mcp.md).
 
 Secrets are written to the same provider config used by `qiongli provider setup` and `qiongli provider doctor`. Tool results and doctor output report only configured/missing status, not raw key values.
 

@@ -6,6 +6,7 @@ from typing import Any, Callable
 
 from bridges.mcp_config_wizard import start_config_wizard
 from bridges.mcp_connectors import MCPConnector
+from bridges.guidance_runtime import GUIDANCE_MODES, guidance_bootstrap_status
 from bridges.provider_config import (
     PROVIDER_FIELDS,
     global_provider_config_path,
@@ -19,6 +20,7 @@ from bridges.provider_config import (
 
 SERVER_NAME = "qiongli-mcp"
 ModelOrchestrator: Any | None = None
+RUNTIME_AGENT_ENUM = ["codex", "claude", "antigravity"]
 
 
 MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
@@ -121,6 +123,39 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
         },
     },
     {
+        "name": "qiongli_orchestrator_route",
+        "description": (
+            "Decide whether a Codex, Claude Code, or other MCP client should use "
+            "the full Qiongli orchestrator instead of skill-only workflow routing."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "required": ["request"],
+            "properties": {
+                "request": {
+                    "type": "string",
+                    "description": "Natural-language user request or current task summary.",
+                },
+                "platform": {
+                    "type": "string",
+                    "enum": ["codex", "claude_code", "claude", "antigravity", "cli", "unknown"],
+                    "default": "unknown",
+                },
+                "cwd": {"type": "string"},
+                "task_id": {"type": "string"},
+                "paper_type": {"type": "string"},
+                "topic": {"type": "string"},
+                "execution_mode": {"type": "string", "enum": ["solo", "duo", "triad"]},
+                "controller": {"type": "string", "enum": RUNTIME_AGENT_ENUM},
+                "primary": {"type": "string", "enum": RUNTIME_AGENT_ENUM},
+                "reviewer": {"type": "string", "enum": RUNTIME_AGENT_ENUM},
+                "verifier": {"type": "string", "enum": RUNTIME_AGENT_ENUM},
+                "solo_role_gates": {"type": "string", "enum": ["strict", "standard", "off"]},
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
         "name": "qiongli_orchestrator_doctor",
         "description": "Run Qiongli orchestrator preflight checks for a project directory.",
         "inputSchema": {
@@ -165,14 +200,15 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
                 "context": {"type": "string"},
                 "execution_mode": {"type": "string", "enum": ["solo", "duo", "triad"]},
                 "triad": {"type": "boolean"},
-                "controller": {"type": "string", "enum": ["codex", "claude", "gemini"]},
-                "primary": {"type": "string", "enum": ["codex", "claude", "gemini"]},
-                "reviewer": {"type": "string", "enum": ["codex", "claude", "gemini"]},
-                "verifier": {"type": "string", "enum": ["codex", "claude", "gemini"]},
+                "controller": {"type": "string", "enum": RUNTIME_AGENT_ENUM},
+                "primary": {"type": "string", "enum": RUNTIME_AGENT_ENUM},
+                "reviewer": {"type": "string", "enum": RUNTIME_AGENT_ENUM},
+                "verifier": {"type": "string", "enum": RUNTIME_AGENT_ENUM},
                 "solo_role_gates": {"type": "string", "enum": ["strict", "standard", "off"]},
                 "profile": {"type": "string"},
                 "mcp_strict": {"type": "boolean"},
                 "skills_strict": {"type": "boolean"},
+                "guidance_mode": {"type": "string", "enum": list(GUIDANCE_MODES), "default": "propose"},
                 "run_agents": {"type": "boolean", "default": False},
             },
             "additionalProperties": False,
@@ -191,6 +227,7 @@ def call_qiongli_tool(name: str, arguments: dict[str, Any] | None = None) -> dic
         "qiongli_test_provider": _tool_test_provider,
         "qiongli_configure_provider": _tool_configure_provider,
         "qiongli_open_config_wizard": _tool_open_config_wizard,
+        "qiongli_orchestrator_route": _tool_orchestrator_route,
         "qiongli_orchestrator_doctor": _tool_orchestrator_doctor,
         "qiongli_task_plan": _tool_task_plan,
         "qiongli_task_run": _tool_task_run,
@@ -297,6 +334,90 @@ def _tool_configure_provider(args: dict[str, Any]) -> dict[str, Any]:
     return payload
 
 
+def _tool_orchestrator_route(args: dict[str, Any]) -> dict[str, Any]:
+    request = _required_str(args, "request")
+    platform = _normalize_platform(str(args.get("platform", "unknown") or "unknown"))
+    task_id = _optional_str(args, "task_id")
+    paper_type = _optional_str(args, "paper_type")
+    topic = _optional_str(args, "topic")
+    execution_mode = _optional_str(args, "execution_mode")
+    controller = _optional_str(args, "controller")
+    primary = _optional_str(args, "primary")
+    reviewer = _optional_str(args, "reviewer")
+    verifier = _optional_str(args, "verifier")
+    solo_role_gates = _optional_str(args, "solo_role_gates", "standard") or "standard"
+    cwd = str(_cwd_from_args(args))
+
+    signals = _orchestrator_route_signals(request, task_id=task_id, execution_mode=execution_mode)
+    use_orchestrator = bool(task_id and paper_type and topic and signals["orchestrator_recommended"])
+    base_args = {
+        "cwd": cwd,
+        "task_id": task_id or "<task_id>",
+        "paper_type": paper_type or "<paper_type>",
+        "topic": topic or "<topic>",
+    }
+    task_run_args: dict[str, Any] = dict(base_args)
+    if execution_mode:
+        task_run_args["execution_mode"] = execution_mode
+    if controller:
+        task_run_args["controller"] = controller
+    if primary:
+        task_run_args["primary"] = primary
+    if reviewer:
+        task_run_args["reviewer"] = reviewer
+    if verifier:
+        task_run_args["verifier"] = verifier
+    if solo_role_gates:
+        task_run_args["solo_role_gates"] = solo_role_gates
+    task_run_args["run_agents"] = False
+
+    missing = [
+        key
+        for key, value in (
+            ("task_id", task_id),
+            ("paper_type", paper_type),
+            ("topic", topic),
+        )
+        if not value
+    ]
+    if use_orchestrator:
+        route = "orchestrator_mcp"
+        recommended_tool = "qiongli_task_run"
+        requires_full_runtime = True
+        sequence = [
+            {"tool": "qiongli_orchestrator_doctor", "args": {"cwd": cwd}},
+            {"tool": "qiongli_task_plan", "args": base_args},
+            {"tool": "qiongli_task_run", "args": task_run_args},
+        ]
+        why = signals["why"]
+    else:
+        route = "skill_workflow"
+        recommended_tool = "qiongli_task_plan"
+        requires_full_runtime = False
+        sequence = [{"tool": "qiongli_task_plan", "args": base_args}]
+        why = [
+            "skill workflow is enough unless the task needs runtime agent handoff, independent review, strict gates, or auditable task-run artifacts"
+        ]
+        if missing:
+            why.append("missing canonical task fields: " + ", ".join(missing))
+
+    return {
+        "route": route,
+        "recommended_tool": recommended_tool,
+        "requires_full_runtime": requires_full_runtime,
+        "platform": platform,
+        "platform_note": _orchestrator_platform_note(platform),
+        "why": why,
+        "sequence": sequence,
+        "missing": missing,
+        "safety": (
+            "qiongli_task_run is preview-first through MCP. It launches local "
+            "runtime processes only when run_agents is the JSON boolean true "
+            "and qiongli_orchestrator_doctor passes."
+        ),
+    }
+
+
 def _tool_orchestrator_doctor(args: dict[str, Any]) -> dict[str, Any]:
     result = _model_orchestrator().doctor(_cwd_from_args(args))
     return _collaboration_payload(result)
@@ -391,6 +512,11 @@ def _model_orchestrator() -> Any:
 def _task_run_kwargs(args: dict[str, Any]) -> dict[str, Any]:
     execution_mode = _optional_str(args, "execution_mode")
     triad_default = execution_mode == "triad"
+    guidance_mode = _optional_str(args, "guidance_mode", "propose") or "propose"
+    if guidance_mode not in GUIDANCE_MODES:
+        raise ValueError(
+            "guidance_mode must be one of: " + ", ".join(GUIDANCE_MODES)
+        )
     return {
         "task_id": _required_str(args, "task_id"),
         "paper_type": _required_str(args, "paper_type"),
@@ -401,6 +527,7 @@ def _task_run_kwargs(args: dict[str, Any]) -> dict[str, Any]:
         "context": _optional_str(args, "context"),
         "mcp_strict": _optional_bool(args, "mcp_strict", default=False),
         "skills_strict": _optional_bool(args, "skills_strict", default=False),
+        "guidance_mode": guidance_mode,
         "profile": _optional_str(args, "profile", "default") or "default",
         "execution_mode": execution_mode,
         "triad": _optional_bool(args, "triad", default=triad_default),
@@ -434,6 +561,10 @@ def _task_run_preview(
         "enable_with": {"run_agents": True},
         "controller_metadata": controller_metadata,
         "effective_runtime_plan": effective_runtime_plan,
+        "guidance_bootstrap": guidance_bootstrap_status(
+            task_run_kwargs["cwd"],
+            mode=str(task_run_kwargs.get("guidance_mode", "propose")),
+        ),
         "task_run_arguments": _serializable_task_run_arguments(task_run_kwargs),
     }
 
@@ -502,6 +633,83 @@ def _provider_setup_next_action(missing: list[str]) -> dict[str, Any] | None:
             "Run qiongli_configure_provider to open a local setup page. "
             "Do not paste API keys in chat."
         ),
+    }
+
+
+def _normalize_platform(value: str) -> str:
+    normalized = _normalize_label(value)
+    aliases = {
+        "claudecode": "claude_code",
+        "claude-code": "claude_code",
+        "claude_code": "claude_code",
+        "claude": "claude_code",
+        "antigravity": "antigravity",
+        "ag": "antigravity",
+    }
+    platform = aliases.get(normalized, normalized)
+    return platform if platform in {"codex", "claude_code", "antigravity", "cli"} else "unknown"
+
+
+def _orchestrator_platform_note(platform: str) -> str:
+    if platform == "codex":
+        return (
+            "Codex can use Qiongli skills directly for light work; use the full MCP "
+            "orchestrator when Codex should coordinate with Claude Code or auditable "
+            "task-run gates."
+        )
+    if platform == "claude_code":
+        return (
+            "Claude Code can use slash workflows and skills directly; use the full "
+            "MCP orchestrator when Claude Code should coordinate with Codex or "
+            "auditable task-run gates."
+        )
+    if platform == "antigravity":
+        return (
+            "Antigravity can use Qiongli skills directly for light work; use the full "
+            "MCP orchestrator when Antigravity should coordinate with Codex, Claude "
+            "Code, or auditable task-run gates."
+        )
+    if platform == "cli":
+        return "CLI users can call qiongli task-plan/task-run directly or through this MCP server."
+    return (
+        "Skill-only routing is fine for simple work. Use the full MCP orchestrator "
+        "for multi-agent handoff, independent review, strict gates, or task-run artifacts."
+    )
+
+
+def _orchestrator_route_signals(
+    request: str,
+    *,
+    task_id: str | None,
+    execution_mode: str | None,
+) -> dict[str, Any]:
+    normalized = request.lower()
+    strong_terms = {
+        "orchestrator": "request names the orchestrator",
+        "task-run": "request names task-run",
+        "multi-agent": "request asks for multi-agent work",
+        "multi model": "request asks for multi-model work",
+        "codex and claude": "request names Codex and Claude Code together",
+        "claude and codex": "request names Claude Code and Codex together",
+        "antigravity": "request names Antigravity runtime collaboration",
+        "codex and antigravity": "request names Codex and Antigravity together",
+        "claude and antigravity": "request names Claude Code and Antigravity together",
+        "triad": "request asks for triad execution",
+        "duo": "request asks for duo execution",
+        "handoff": "request needs agent handoff",
+        "independent review": "request needs independent review",
+        "quality gate": "request needs quality gates",
+        "audit": "request needs auditability",
+        "reviewer": "request includes reviewer-style checking",
+    }
+    why = [reason for term, reason in strong_terms.items() if term in normalized]
+    if execution_mode in {"duo", "triad"}:
+        why.append(f"execution_mode={execution_mode} requires orchestrated runtime routing")
+    if task_id:
+        why.append("canonical task_id is available for task-run")
+    return {
+        "orchestrator_recommended": bool(why and (execution_mode in {"duo", "triad"} or len(why) >= 2)),
+        "why": why or ["no orchestrator-specific signal found"],
     }
 
 

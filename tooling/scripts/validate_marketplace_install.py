@@ -57,12 +57,6 @@ ARTIFACT_SPECS = {
         requires_commands=True,
         expects_bundled_mcp=True,
     ),
-    "gemini": ArtifactSpec(
-        platform="gemini",
-        manifest=Path("gemini-extension.json"),
-        plugin_root=Path("."),
-        requires_commands=False,
-    ),
 }
 
 
@@ -469,14 +463,9 @@ def _validate_artifact(
 ) -> str:
     with tempfile.TemporaryDirectory(prefix=f"qiongli-{spec.platform}-artifact-") as tmp:
         bundle_root = _extract_marketplace_root(artifact, Path(tmp))
-        if spec.platform == "gemini":
-            plugin_root = bundle_root.resolve()
-            manifest_path = plugin_root / "gemini-extension.json"
-            skill_root = plugin_root / "skills" / SKILL_DIR_NAME
-        else:
-            plugin_root = (bundle_root / "plugins" / plugin_name).resolve()
-            manifest_path = plugin_root / (".codex-plugin" if spec.platform == "codex" else ".claude-plugin") / "plugin.json"
-            skill_root = plugin_root / "skills" / SKILL_DIR_NAME
+        plugin_root = (bundle_root / "plugins" / plugin_name).resolve()
+        manifest_path = plugin_root / (".codex-plugin" if spec.platform == "codex" else ".claude-plugin") / "plugin.json"
+        skill_root = plugin_root / "skills" / SKILL_DIR_NAME
 
         _assert_manifest(
             spec.platform,
@@ -666,8 +655,6 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
 
     for platform, spec in ARTIFACT_SPECS.items():
         artifact_name = f"{PLUGIN_NAME}-{platform}-plugin-{expected_repo_tag}.tar.gz"
-        if platform == "gemini":
-            artifact_name = f"{PLUGIN_NAME}-gemini-extension-{expected_repo_tag}.tar.gz"
         artifact = by_platform.get(artifact_name)
         if artifact is None:
             raise ValueError(f"expected {platform} artifact: {artifact_name}")

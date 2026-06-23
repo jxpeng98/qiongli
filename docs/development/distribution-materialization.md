@@ -11,6 +11,8 @@ Edit these files when changing the academic workflow:
 
 - `content/workflow/` for the package shell, `SKILL.md`, `VERSION`,
   workflows, references, and agents.
+- `content/distribution/plugins.yaml` for plugin names, prompts, keywords,
+  platform enablement, and stable/prerelease metadata.
 - `content/skills/` for reusable academic skills.
 - `content/templates/` for output templates and task packet templates.
 - `content/standards/` for machine-readable contracts and policies.
@@ -54,6 +56,9 @@ source during local checks, CI, release staging, and package publishing.
 - `packages/npm-qiongli/payload/`
 - `packages/npm-qiongli/python-runtime/`
 - `plugins/qiongli/`
+- `plugins/qiongli-next/`
+- `packages/qiongli-plugin/`
+- `packages/qiongli-next-plugin/`
 
 In-place materialization can also create ignored package mirror paths under
 `qiongli-workflow/`, including `qiongli-workflow/skills/`,
@@ -110,7 +115,8 @@ Use the `content/skills/` tree as the source of truth.
 
 Do not edit materialized copies under `packages/python-qiongli/src/qiongli/payload/`,
 `packages/npm-qiongli/payload/`, `packages/npm-qiongli/python-runtime/`,
-`plugins/qiongli/`, or mirrored directories under
+`plugins/qiongli/`, `plugins/qiongli-next/`, `packages/qiongli-plugin/`,
+`packages/qiongli-next-plugin/`, or mirrored directories under
 `qiongli-workflow/`.
 
 ## Adding or extending a subject package

@@ -23,7 +23,7 @@ class InstallerCliTests(unittest.TestCase):
             skill_dirs = {
                 "codex": root / "codex",
                 "claude": root / "claude",
-                "gemini": root / "gemini",
+                "antigravity": root / "antigravity",
                 "hermes": root / "hermes",
             }
             args = argparse.Namespace(
@@ -146,7 +146,10 @@ class InstallerCliTests(unittest.TestCase):
         normalized_help = " ".join(help_text.split())
 
         self.assertIn("setup", help_text)
-        self.assertIn("Interactively configures Qiongli for CLI/Codex/Claude Code use", normalized_help)
+        self.assertIn(
+            "Interactively configures Qiongli for CLI/Codex/Claude Code/Antigravity use",
+            normalized_help,
+        )
 
     def test_install_unknown_subject_reports_available_subjects(self) -> None:
         stderr = io.StringIO()
@@ -243,7 +246,7 @@ class InstallerCliTests(unittest.TestCase):
             skill_dirs = {
                 "codex": skill_dir,
                 "claude": root / "claude" / "skills" / "qiongli-workflow",
-                "gemini": root / "gemini" / "skills" / "qiongli-workflow",
+                "antigravity": root / "antigravity" / "skills" / "qiongli-workflow",
                 "hermes": root / "hermes" / "skills" / "qiongli-workflow",
             }
 
@@ -276,6 +279,31 @@ class InstallerCliTests(unittest.TestCase):
         command = run_mock.call_args.args[0]
         self.assertEqual(command[:3], [cli_module.sys.executable, "-m", "bridges.orchestrator"])
         self.assertEqual(command[3:], ["doctor", "--cwd", str(Path(".").resolve())])
+
+    def test_guidance_command_runs_orchestrator_subprocess(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            project_dir = Path(tmp_dir) / "project"
+            completed = mock.Mock(returncode=0, stdout="guidance ok\n")
+            stdout = io.StringIO()
+
+            with mock.patch.object(cli_module.subprocess, "run", return_value=completed) as run_mock, contextlib.redirect_stdout(
+                stdout
+            ):
+                with mock.patch.object(
+                    cli_module.sys,
+                    "argv",
+                    ["qiongli", "guidance", "init", "--project-dir", str(project_dir)],
+                ):
+                    exit_code = cli_module.main()
+
+        self.assertEqual(exit_code, 0)
+        run_mock.assert_called_once()
+        command = run_mock.call_args.args[0]
+        self.assertEqual(command[:3], [cli_module.sys.executable, "-m", "bridges.orchestrator"])
+        self.assertEqual(
+            command[3:],
+            ["guidance", "init", "--project-dir", str(project_dir.resolve())],
+        )
 
     def test_provider_set_and_list_redacts_global_config(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

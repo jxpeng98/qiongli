@@ -10,8 +10,9 @@ outputs.
 | Boundary | Editable source | Responsibility |
 |---|---|---|
 | Academic content | `content/` | Workflow package source, internal skills, templates, standards, roles, subjects, schemas, and venue profiles |
+| Plugin distribution metadata | `content/distribution/plugins.yaml` | Stable and prerelease plugin names, descriptions, prompts, keywords, and platform enablement |
 | Python runtime | `packages/python-qiongli/src/` | `qiongli`, deprecated `research_skills` shim, bridge adapters, CLI/runtime code |
-| Package shells | `packages/npm-qiongli/`, `packages/qiongli-plugin/`, `packages/qiongli-literature-mcpb/` | Publishable npm, plugin, and MCPB package sources |
+| Package shells | `packages/npm-qiongli/`, `packages/qiongli-literature-mcpb/` | Publishable npm and MCPB package sources |
 | Maintainer tooling | `tooling/scripts/`, `tooling/pipelines/`, `tooling/install/`, `tooling/release/` | Automation, pipeline descriptors, installer manifests, release assets |
 | Quality assets | `evals/`, `tests/` | Evaluation cases/runners and cross-package regression tests |
 | Documentation | `docs/` | VitePress docs and maintainer guidance |
@@ -20,9 +21,10 @@ Root `scripts/` files are compatibility wrappers. Keep user-facing commands and
 CI references stable there, but edit script implementations under
 `tooling/scripts/`.
 
-Root `qiongli-workflow/`, `plugins/qiongli/`, `.agent/`, and `.gemini/` are
-generated artifact shapes. Edit their sources under `content/workflow/` or
-`packages/qiongli-plugin/`.
+Root `qiongli-workflow/`, `plugins/qiongli/`, `plugins/qiongli-next/`,
+and `.agent/` are generated artifact shapes. Edit workflow content
+under `content/workflow/` and plugin metadata under
+`content/distribution/plugins.yaml`.
 
 ## Layer Model
 
@@ -33,7 +35,7 @@ generated artifact shapes. Edit their sources under `content/workflow/` or
 | Functional Agents | `content/roles/` | Ownership, quality thresholds, tone |
 | Internal Skill Specs | `content/skills/` | Reusable execution behavior |
 | Pipelines | `tooling/pipelines/` | Step sequencing and handoffs |
-| Client entry UX | `content/workflow/workflows/`, `packages/qiongli-plugin/platforms/` | Portable workflows and platform command surfaces |
+| Client entry UX | `content/workflow/workflows/`, `content/distribution/plugins.yaml` | Portable workflows and generated platform command surfaces |
 | Runtime | `packages/python-qiongli/src/qiongli/` | CLI, installers, orchestration, providers |
 | Distribution | materialized staging tree | `qiongli-workflow/`, plugin payloads, npm payload, Python payload |
 
@@ -45,7 +47,7 @@ generated artifact shapes. Edit their sources under `content/workflow/` or
 | Script entrypoints | CI, release, local maintenance | `scripts/*.py`, `scripts/*.sh` wrappers |
 | Orchestrator CLI | Task planning, execution, validation | `python3 -m qiongli.bridges.orchestrator ...` |
 | Portable skill package | Cross-client distribution surface | generated `qiongli-workflow/` |
-| Plugin package | Codex/Claude/Gemini plugin distribution | generated `plugins/qiongli/` |
+| Plugin package | Codex/Claude plugin distribution | generated `plugins/qiongli/` |
 
 ## Dependency Direction
 
@@ -54,13 +56,13 @@ Treat the system as a one-way graph:
 1. `content/standards/`
 2. `content/roles/` and `content/skills/`
 3. `content/templates/`
-4. `tooling/pipelines/` and platform command sources
+4. `tooling/pipelines/`, `content/workflow/workflows/`, and plugin metadata
 5. `packages/python-qiongli/src/qiongli/`
 6. materialized distribution payloads
 
 Generated payloads must not become hidden sources of truth. If a generated
-directory disagrees with `content/` or `packages/`, fix the source and
-materialize again.
+plugin directory disagrees with `content/`, `content/distribution/plugins.yaml`,
+or the MCPB runtime package, fix the source and materialize again.
 
 For exact directory responsibilities, see
 [Repository Structure](/development/repository-structure).

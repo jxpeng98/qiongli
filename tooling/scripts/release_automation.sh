@@ -423,13 +423,12 @@ case "$MODE" in
       content/workflow/SKILL.md \
       content/workflow/VERSION \
       content/skills/registry.yaml \
+      content/distribution/plugins.yaml \
       package-lock.json \
       uv.lock \
       packages/npm-qiongli \
-      packages/qiongli-plugin/.codex-plugin/plugin.json \
-      packages/qiongli-plugin/.claude-plugin/plugin.json \
-      packages/qiongli-plugin/gemini-extension.json \
-      packages/qiongli-next-plugin
+      tooling/scripts/build_plugin_artifacts.py \
+      tooling/scripts/materialize_distribution_payloads.py
     if is_prerelease_tag "$repo_tag"; then
       git add "tooling/release/${repo_tag}.md"
     else

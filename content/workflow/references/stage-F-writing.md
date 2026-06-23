@@ -24,6 +24,23 @@ This stage turns artifacts into a publishable narrative: outline → draft → c
 - If evidence only supports a narrow descriptive claim, write the narrow claim plainly; do not fake depth with abstract language.
 - Related work and discussion should be organized around arguments, tensions, or explanatory structures rather than paper-by-paper listing.
 
+## Writing Harness Contract
+
+This contract applies whenever Stage F writing is produced through a workflow, skill card, role prompt, or direct agent instruction.
+
+Before drafting prose:
+- inspect `context/boundary_review.md`, `context/decision_log.md`, `context/stage_handoff.md`, and `review/self_critique_log.md` when present
+- state the **Story Spine**: central claim, claim strength, argumentative mainline, section jobs, non-goals, and evidence threshold
+- ask the next blocking boundary/grill question when the boundary, mainline, claim strength, or evidence threshold is not settled
+
+During drafting:
+- write in section or paragraph-cluster chunks
+- use a write -> review -> confirm checkpoint for each chunk
+- review each chunk for mainline drift, logic jumps, missing support, contradiction with locked decisions, and generic or vague claims
+- do not draft the whole artifact in one uninterrupted pass
+
+Convergence requires every chunk to have concrete claim-support notes, resolved or carried-forward review issues, and a continue/revise/ask decision.
+
 ---
 
 ## Proposal / Opening Report — Research Proposal Writing

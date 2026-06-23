@@ -286,13 +286,11 @@ def _local_repo_version(root: Path) -> tuple[str, Version] | None:
 def _installed_skill_dirs() -> dict[str, Path]:
     codex_home = Path(os.environ.get("CODEX_HOME", "~/.codex")).expanduser()
     claude_home = Path(os.environ.get("CLAUDE_CODE_HOME", "~/.claude")).expanduser()
-    gemini_home = Path(os.environ.get("GEMINI_HOME", "~/.gemini")).expanduser()
     antigravity_home = Path(os.environ.get("ANTIGRAVITY_HOME", "~/.gemini/antigravity")).expanduser()
     hermes_home = Path(os.environ.get("HERMES_HOME", "~/.hermes")).expanduser()
     return {
         "codex": codex_home / "skills" / "qiongli-workflow",
         "claude": claude_home / "skills" / "qiongli-workflow",
-        "gemini": gemini_home / "skills" / "qiongli-workflow",
         "antigravity": antigravity_home / "skills" / "qiongli-workflow",
         "hermes": hermes_home / "skills" / "qiongli-workflow",
     }
@@ -502,7 +500,7 @@ def _check_system_env() -> dict[str, dict[str, str]]:
     results = {}
 
     # 1. CLIs
-    for cli in ("codex", "claude", "gemini"):
+    for cli in ("codex", "claude", "antigravity"):
         path = shutil.which(cli)
         if not path:
             mise_shim = Path.home() / ".local" / "share" / "mise" / "shims" / cli
@@ -514,13 +512,13 @@ def _check_system_env() -> dict[str, dict[str, str]]:
         else:
             hints = {
                 "claude": "not found (install: npm i -g @anthropic-ai/claude-code)",
-                "gemini": "not found (install: npm i -g @google/gemini-cli)"
+                "antigravity": "not found (install Antigravity and ensure `antigravity` is on PATH)",
             }
             hint = hints.get(cli, "not found")
             results[f"{cli} CLI"] = {"status": "error", "detail": hint}
 
     # 2. API Keys
-    for env in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY"):
+    for env in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY"):
         if os.environ.get(env, "").strip():
             results[env] = {"status": "ok", "detail": "configured"}
         else:
@@ -622,7 +620,7 @@ def cmd_check(args: argparse.Namespace) -> int:
         print(f"   - Detected repo root: {repo_root}")
     if local:
         print(f"   - Local repo version: {local[0]}")
-    for client in ("codex", "claude", "gemini"):
+    for client in ("codex", "claude", "antigravity", "hermes"):
         item = installed[client]
         status = "installed" if item["installed"] else "not-installed"
         version = item["version"] or "<unknown>"
@@ -720,6 +718,44 @@ def _run_orchestrator_doctor(cwd: Path) -> int:
         )
     result = subprocess.run(
         [sys.executable, "-m", "bridges.orchestrator", "doctor", "--cwd", str(cwd)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=False,
+        env=env,
+    )
+    if result.stdout:
+        print(result.stdout.rstrip())
+    return result.returncode
+
+
+def _run_orchestrator_guidance(args: argparse.Namespace) -> int:
+    env = os.environ.copy()
+    repo_root = _find_repo_root(Path.cwd())
+    if repo_root is not None:
+        existing_pythonpath = env.get("PYTHONPATH", "")
+        layout = RepoLayout(repo_root)
+        import_roots = (layout.python_source_root, repo_root)
+        env["PYTHONPATH"] = os.pathsep.join(
+            [*(str(root) for root in import_roots), *([existing_pythonpath] if existing_pythonpath else [])]
+        )
+
+    command = [
+        sys.executable,
+        "-m",
+        "bridges.orchestrator",
+        "guidance",
+        str(args.guidance_cmd),
+        "--project-dir",
+        str(Path(args.project_dir).expanduser().resolve()),
+    ]
+    if args.guidance_cmd == "trace":
+        command.extend(["--limit", str(args.limit)])
+    if args.guidance_cmd == "apply":
+        command.extend(["--proposal", str(Path(args.proposal).expanduser())])
+
+    result = subprocess.run(
+        command,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -864,6 +900,10 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     return _run_orchestrator_doctor(Path(args.cwd).expanduser().resolve())
 
 
+def cmd_guidance(args: argparse.Namespace) -> int:
+    return _run_orchestrator_guidance(args)
+
+
 def cmd_init(args: argparse.Namespace) -> int:
     project_dir = Path(args.project_dir).expanduser().resolve()
     repo_root = _packaged_payload_root()
@@ -936,7 +976,7 @@ def cmd_align(args: argparse.Namespace) -> int:
     print("- CLI aliases: `qiongli`, `ql`, `research-skills`, `rsk`, `rsw` (same behavior).")
     print("")
     print(f"What `{prog} upgrade` modifies by default:")
-    print("- Global skills (with bundled workflows): ~/.codex|~/.claude|~/.gemini|~/.gemini/antigravity|~/.hermes under `skills/qiongli-workflow/`")
+    print("- Global skills (with bundled workflows): ~/.codex|~/.claude|~/.gemini/antigravity|~/.hermes under `skills/qiongli-workflow/`")
     print("- Workflows are bundled inside the skill directory (no project-local copies needed).")
     print("- Shell CLI wrappers when `--install-cli` is used")
     print("")
@@ -1150,7 +1190,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     setup = subparsers.add_parser(
         "setup",
-        help="Interactively configures Qiongli for CLI/Codex/Claude Code use",
+        help="Interactively configures Qiongli for CLI/Codex/Claude Code/Antigravity use",
     )
     setup.add_argument(
         "--project-dir",
@@ -1194,6 +1234,45 @@ def build_parser() -> argparse.ArgumentParser:
         "--cwd",
         default=str(Path.cwd()),
         help="Project directory to inspect (default: current dir)",
+    )
+
+    guidance = subparsers.add_parser("guidance", help="Manage project-local guidance and trace bundles")
+    guidance_subparsers = guidance.add_subparsers(dest="guidance_cmd", required=True)
+    guidance_init = guidance_subparsers.add_parser(
+        "init",
+        help="Create project-local guidance and trace directories",
+    )
+    guidance_init.add_argument(
+        "--project-dir",
+        default=str(Path.cwd()),
+        help="Project directory that owns .qiongli/ (default: current dir)",
+    )
+    guidance_show = guidance_subparsers.add_parser("show", help="Show effective project-local guidance context")
+    guidance_show.add_argument(
+        "--project-dir",
+        default=str(Path.cwd()),
+        help="Project directory that owns .qiongli/ (default: current dir)",
+    )
+    guidance_trace = guidance_subparsers.add_parser("trace", help="Summarize project-local guidance trace index")
+    guidance_trace.add_argument(
+        "--project-dir",
+        default=str(Path.cwd()),
+        help="Project directory that owns .qiongli/ (default: current dir)",
+    )
+    guidance_trace.add_argument("--limit", default=20, type=int, help="Maximum trace records to show")
+    guidance_apply = guidance_subparsers.add_parser(
+        "apply",
+        help="Apply an explicit guidance update proposal to project-local guidance",
+    )
+    guidance_apply.add_argument(
+        "--project-dir",
+        default=str(Path.cwd()),
+        help="Project directory that owns .qiongli/ (default: current dir)",
+    )
+    guidance_apply.add_argument(
+        "--proposal",
+        required=True,
+        help="Path to .qiongli/trace/runs/<run_id>/guidance_update_proposal.md",
     )
 
     init = subparsers.add_parser("init", help="Initialize project-facing qiongli assets from the installed package")
@@ -1292,6 +1371,8 @@ def main() -> int:
         return cmd_provider(args)
     if args.cmd == "doctor":
         return cmd_doctor(args)
+    if args.cmd == "guidance":
+        return cmd_guidance(args)
     if args.cmd == "init":
         return cmd_init(args)
     if args.cmd == "clean":

@@ -19,6 +19,18 @@ function normalizeYear(value) {
   return null;
 }
 
+function normalizeInteger(value) {
+  if (Number.isInteger(value)) {
+    return value;
+  }
+
+  if (typeof value === "string" && /^\d+$/.test(value.trim())) {
+    return Number(value.trim());
+  }
+
+  return null;
+}
+
 function normalizeAuthors(value) {
   if (!Array.isArray(value)) {
     return [];
@@ -36,6 +48,34 @@ export function normalizeDoi(value) {
   return cleaned.replace(/^https?:\/\/(?:dx\.)?doi\.org\//i, "");
 }
 
+function normalizeLinkedRecord(record) {
+  return {
+    title: cleanString(record?.title),
+    authors: normalizeAuthors(record?.authors),
+    year: normalizeYear(record?.year),
+    doi: normalizeDoi(record?.doi),
+    url: cleanString(record?.url),
+    provider: cleanString(record?.provider),
+    source_id: cleanString(record?.source_id)
+  };
+}
+
+function normalizeLinkedRecords(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.map(normalizeLinkedRecord);
+}
+
+function clonePlainObject(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  return JSON.parse(JSON.stringify(value));
+}
+
 export function normalizeResult(record) {
   return {
     title: cleanString(record?.title),
@@ -45,8 +85,18 @@ export function normalizeResult(record) {
     url: cleanString(record?.url),
     abstract: cleanString(record?.abstract),
     venue: cleanString(record?.venue),
+    document_type: cleanString(record?.document_type),
+    citation_count: normalizeInteger(record?.citation_count),
+    reference_count: normalizeInteger(record?.reference_count),
+    citations: normalizeLinkedRecords(record?.citations),
+    references: normalizeLinkedRecords(record?.references),
     provider: cleanString(record?.provider),
-    source_id: cleanString(record?.source_id)
+    source_id: cleanString(record?.source_id),
+    source_type: cleanString(record?.source_type),
+    zotero: clonePlainObject(record?.zotero),
+    local_zotero_match: clonePlainObject(record?.local_zotero_match),
+    review_status: cleanString(record?.review_status),
+    verification: clonePlainObject(record?.verification)
   };
 }
 
