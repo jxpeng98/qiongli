@@ -1,12 +1,15 @@
 ---
 id: reference-manager-bridge
 stage: B_literature
-description: "Export and import references between the research system and Zotero, Mendeley, or EndNote in BibTeX, RIS, or CSL-JSON formats."
+description: "Exchange normalized references with Zotero, Mendeley, or EndNote while preserving local Zotero write safety and import-file fallback."
 inputs:
   - type: Bibliography
     description: "Existing bibliography file"
   - type: PaperNotes
     description: "Paper notes with metadata"
+  - type: SearchResults
+    description: "Optional normalized candidate references"
+    required: false
 outputs:
   - type: Bibliography
     artifact: "bibliography.bib"
@@ -14,384 +17,179 @@ outputs:
     artifact: "references.ris"
   - type: CSLJSONExport
     artifact: "references.json"
+  - type: ZoteroImportReport
+    artifact: "zotero-import-report.md"
 constraints:
-  - "Must normalize metadata across all entries"
-  - "Must generate consistent tags for organization"
+  - "Must not route scholarly discovery through Zotero by default"
+  - "Must dry-run local Zotero writes before explicit dry_run: false"
+  - "Must preserve user-curated Zotero fields unless the user selects a stronger update policy"
 failure_modes:
-  - "Citekey conflicts during bidirectional sync"
-  - "Metadata loss during format conversion"
-tools: [filesystem, metadata-registry]
-tags: [literature, references, Zotero, Mendeley, EndNote, BibTeX, RIS]
+  - "Qiongli Zotero companion is unavailable"
+  - "Citekey or DOI conflicts during sync"
+  - "Metadata conflicts after Crossref verification"
+tools: [filesystem, metadata-registry, zotero]
+tags: [literature, references, Zotero, Mendeley, EndNote, BibTeX, RIS, CSL-JSON]
 domain_aware: false
 ---
 
 # Reference Manager Bridge Skill
 
-Export and import references between the research system and reference management software.
-
 ## Purpose
 
-Enable seamless integration with popular reference managers:
-- Sync selected references to local Zotero through the Qiongli Zotero companion
-- Export in multiple formats (BibTeX, RIS, CSL-JSON)
-- Generate Zotero/Mendeley compatible tags
-- Maintain consistent citekeys across systems
-- Support bidirectional sync workflows
+Move normalized references between Qiongli artifacts and reference managers
+without breaking provenance or user-curated metadata. Zotero is treated as a
+local reference database, not as the default scholarly discovery layer.
 
-## Supported Formats
+## Related Task IDs
 
-| Format | Extension | Best For | Notes |
-|--------|-----------|----------|-------|
-| BibTeX | .bib | LaTeX users, Overleaf | Native format, full support |
-| RIS | .ris | EndNote, Mendeley | Widely compatible |
-| CSL-JSON | .json | Zotero, citation.js | Modern, structured |
-| EndNote XML | .xml | EndNote | Full metadata |
+- `B5` citation management and reference exports
+- Supports `B1`, `B2`, and manuscript writing when normalized references are
+  needed.
 
-## Supported Reference Managers
+## Zotero Boundary
 
-| Manager | Import Format | Export Format | Notes |
-|---------|---------------|---------------|-------|
-| Zotero | BibTeX, RIS, CSL-JSON | BibTeX, CSL-JSON | Best with CSL-JSON |
-| Mendeley | BibTeX, RIS | BibTeX | Prefers BibTeX |
-| EndNote | RIS, EndNote XML | RIS | Use RIS for compatibility |
-| Papers | BibTeX, RIS | BibTeX | |
-| JabRef | BibTeX | BibTeX | Native BibTeX |
+Do not route scholarly discovery through Zotero by default. Use OpenAlex,
+Semantic Scholar, Crossref, PubMed, or other configured literature providers for
+discovery and enrichment. Search local Zotero only when the user explicitly asks
+to include their existing library, for example by requesting local Zotero search
+or setting `include_zotero: true`.
 
-## Zotero Integration Modes
+No third-party Zotero plugin is required. Direct local writes require the
+Qiongli Zotero companion from this repository. If the companion is unavailable,
+generate import files instead of attempting an unsafe write.
 
-| Mode | Use When | Qiongli Path |
-|------|----------|--------------|
-| Local Zotero source search | Search inside the user's existing Zotero library only when explicitly requested | `qiongli_literature_search` with `include_zotero: true` |
-| Local Zotero sync | Write selected candidate references to Zotero with review tags | `qiongli_zotero_status` + `qiongli_zotero_upsert_references` through the Qiongli Zotero companion |
-| Import-file generation | Zotero is unavailable, the companion is missing, or the user wants manual import | `qiongli_zotero_export_import_files` generating `references.json`, `references.ris`, and `bibliography.bib` |
-| Zotero Web API sync | Future or optional cloud-sync workflow with a write-capable Zotero API key | Not the default local-first path |
+## Integration Modes
 
-For local Zotero sync, Qiongli remains responsible for search, metadata
-enrichment, deduplication, and import fallback. Zotero Desktop remains the local
-reference database that stores user-curated metadata, collections, tags, and
-notes. Do not route scholarly discovery through Zotero by default. Use
-`include_zotero: true` only when the user explicitly wants the existing local
-Zotero library included as a source; external results may then include
-`local_zotero_match` when a DOI or title/year is already present locally.
-
-Direct local writes require the Qiongli Zotero companion extension built from
-this repository with `python3 scripts/build_zotero_companion.py --dist-dir dist`.
-No third-party Zotero plugin is required. If the companion is not installed,
-fall back to generated import files.
+| Mode | Trigger | Required behavior |
+| --- | --- | --- |
+| Local Zotero source search | User explicitly requests existing Zotero library | call literature search with `include_zotero: true`; mark Zotero as `source_type: local_reference_database` |
+| Local Zotero sync | User wants selected records written to Zotero Desktop | status check, dry-run upsert, then explicit `dry_run: false` |
+| Import-file fallback | Companion unavailable or user wants manual import | generate `references.json`, `references.ris`, `bibliography.bib`, and `zotero-import-report.md` |
+| Cloud/Web API sync | Future explicit workflow | not the default local-first path |
 
 ## Inputs
 
-- `Bibliography`: Existing bibliography file
-- `PaperNotes`: Paper notes with metadata
-- If a required input is missing or insufficient, write a gap note under `RESEARCH/[topic]/context/gap_notes.md` and ask for the missing artifact instead of inventing content.
-- Treat literature, data, citations, and project files as evidence sources; keep unsupported assumptions visibly marked.
+- `Bibliography`: `RESEARCH/[topic]/bibliography.bib`.
+- `PaperNotes`: `RESEARCH/[topic]/notes/*.md`.
+- `SearchResults`: optional `RESEARCH/[topic]/search_results.csv`.
+- `references.json` and `references.ris` when already present.
+- If inputs are missing or insufficient, write
+  `RESEARCH/[topic]/context/gap_notes.md` or `zotero-import-report.md` conflict
+  notes. Do not invent titles, authors, years, venues, DOIs, abstracts, or
+  citekeys.
+- Treat bibliography entries, provider metadata, local Zotero records, Crossref
+  verification, and notes as evidence sources with different authority levels.
 
 ## Process
 
-### Step 1: Collect References
+### 1. Collect and normalize references
 
-Gather all papers from the review:
+Collect references from:
 
-```
-Source files:
-- RESEARCH/[topic]/bibliography.bib (existing BibTeX)
-- RESEARCH/[topic]/references.json (existing CSL-JSON, optional)
-- RESEARCH/[topic]/references.ris (existing RIS, optional)
-- RESEARCH/[topic]/search_results.csv (search-derived candidate metadata)
-- RESEARCH/[topic]/notes/*.md (paper notes with metadata)
-- RESEARCH/[topic]/extraction_table.md (extracted metadata)
+- `RESEARCH/[topic]/bibliography.bib`
+- `RESEARCH/[topic]/references.json`
+- `RESEARCH/[topic]/references.ris`
+- `RESEARCH/[topic]/search_results.csv`
+- `RESEARCH/[topic]/notes/*.md`
+- `RESEARCH/[topic]/extraction_table.md`
 
-`bibliography.bib` remains the canonical export target in this repo, but it does not have to be the user's primary working format.
-```
+Normalize each record into fields: `citekey`, `title`, `authors`, `year`,
+`venue`, `doi`, `url`, `abstract`, `provider`, `source_id`, `status`, and
+`tags`.
 
-### Step 2: Normalize Metadata
+### 2. Resolve duplicates and conflicts
 
-Ensure consistent fields across all entries:
+Deduplicate in this order:
 
-**Required Fields:**
-| Field | BibTeX | RIS | CSL-JSON |
-|-------|--------|-----|----------|
-| Authors | author | AU | author |
-| Title | title | TI | title |
-| Year | year | PY | issued.date-parts |
-| DOI | doi | DO | DOI |
-| Type | @article/@inproceedings | TY | type |
+1. DOI
+2. PMID, PMCID, arXiv ID, or provider stable ID
+3. exact normalized title plus year
+4. title/year/first-author fallback with manual conflict note
 
-**Recommended Fields:**
-| Field | BibTeX | RIS | CSL-JSON |
-|-------|--------|-----|----------|
-| Journal | journal | JO/T2 | container-title |
-| Volume | volume | VL | volume |
-| Issue | number | IS | issue |
-| Pages | pages | SP-EP | page |
-| Abstract | abstract | AB | abstract |
-| Keywords | keywords | KW | keyword |
-| URL | url | UR | URL |
+Conflicts are written to `zotero-import-report.md` and, when relevant,
+`RESEARCH/[topic]/dedup_log.csv`. Crossref verification may enrich blank fields
+or flag `qiongli:metadata-conflict`; it is not human verification.
 
-### Step 3: Generate Tags
+### 3. Generate export files
 
-Create consistent tags for reference manager organization:
+Always keep `bibliography.bib` as the canonical Qiongli export target. Generate
+interoperability files when requested or when Zotero companion write is
+unavailable:
 
-**Tag Schema:**
-| Tag Category | Format | Example |
-|--------------|--------|---------|
-| Project | `project:[topic]` | project:ai-ethics |
-| Status | `status:[screening|included|excluded]` | status:included |
-| Quality | `quality:[A-E]` | quality:B |
-| Theme | `theme:[theme-name]` | theme:privacy |
-| Read Status | `read:[unread|reading|complete]` | read:complete |
-| Priority | `priority:[high|medium|low]` | priority:high |
+- `RESEARCH/[topic]/bibliography.bib`
+- `RESEARCH/[topic]/references.ris`
+- `RESEARCH/[topic]/references.json`
+- `RESEARCH/[topic]/zotero-import-report.md`
 
-### Step 4: Export Formats
+### 4. Write to local Zotero only after explicit confirmation
 
-#### BibTeX Export
-```bibtex
-@article{smith2024machine,
-  author = {Smith, John and Jones, Jane},
-  title = {Machine Learning for Healthcare},
-  journal = {Nature Medicine},
-  year = {2024},
-  volume = {30},
-  number = {1},
-  pages = {100--115},
-  doi = {10.1038/s41591-024-00001-1},
-  abstract = {This paper presents...},
-  keywords = {machine learning, healthcare, AI},
-  note = {project:ai-health, status:included, quality:A}
-}
-```
-
-#### RIS Export
-```
-TY  - JOUR
-AU  - Smith, John
-AU  - Jones, Jane
-TI  - Machine Learning for Healthcare
-JO  - Nature Medicine
-PY  - 2024
-VL  - 30
-IS  - 1
-SP  - 100
-EP  - 115
-DO  - 10.1038/s41591-024-00001-1
-AB  - This paper presents...
-KW  - machine learning
-KW  - healthcare
-KW  - project:ai-health
-KW  - status:included
-ER  -
-```
-
-#### CSL-JSON Export
-```json
-{
-  "id": "smith2024machine",
-  "type": "article-journal",
-  "author": [
-    {"family": "Smith", "given": "John"},
-    {"family": "Jones", "given": "Jane"}
-  ],
-  "title": "Machine Learning for Healthcare",
-  "container-title": "Nature Medicine",
-  "issued": {"date-parts": [[2024]]},
-  "volume": "30",
-  "issue": "1",
-  "page": "100-115",
-  "DOI": "10.1038/s41591-024-00001-1",
-  "abstract": "This paper presents...",
-  "keyword": "machine learning, healthcare, project:ai-health, status:included"
-}
-```
-
-### Step 5: Zotero-Specific Features
-
-When the Qiongli Zotero companion is available, prefer local sync:
+Local Zotero sync sequence:
 
 1. Run `qiongli_zotero_status`.
-2. Dry-run `qiongli_zotero_upsert_references` with selected normalized records.
-3. Write only after the user explicitly requests `dry_run: false`.
-4. Use DOI-first duplicate detection, then title/year fallback.
-5. Fill blank Zotero fields by default; do not overwrite user-curated fields
-   unless the user selects `update_policy: "prefer_enriched"`.
-6. Leave `qiongli:imported` and `qiongli:needs-review` on new or updated
-   imports until a human checks the metadata.
-7. Treat Crossref verification as DOI registry metadata enrichment. It can fill
-   blank fields, add `qiongli:crossref-verified`, or flag
-   `qiongli:metadata-conflict`; it is not human verification.
+2. If status is `ok`, run `qiongli_zotero_upsert_references` as a dry-run.
+3. Review created, updated, unchanged, skipped, conflict, and failed counts.
+4. Write only when the user explicitly requests `dry_run: false`.
+5. Use DOI-first duplicate detection, then stable identifiers, then title/year.
+6. Fill blank Zotero fields by default.
+7. Preserve user-curated title, authors, date, publication title, abstract,
+   collections, and notes unless the user selects `update_policy:
+   "prefer_enriched"`.
+8. Add Qiongli review tags such as `qiongli:imported`,
+   `qiongli:needs-review`, `qiongli:crossref-verified`, and
+   `qiongli:metadata-conflict`.
 
-When local sync is unavailable, generate import files:
+### 5. Fall back safely
 
-- `references.json` for Zotero CSL-JSON import.
-- `references.ris` for Zotero, EndNote, and Mendeley.
-- `bibliography.bib` for BibTeX workflows.
-- `zotero-import-report.md` for counts, Crossref verification summary, and
-  fallback instructions.
-
-**Collection Mapping:**
-```
-Zotero Collection Structure:
-└── Research Projects
-    └── [Topic Name]
-        ├── Included
-        ├── Excluded
-        └── To Screen
-```
-
-**Zotero Tags:**
-- Use `#` prefix for auto-color: `#included`, `#excluded`
-- Use descriptive tags: `Theme: Privacy`, `Quality: A`
-- Preserve Qiongli review tags: `qiongli:imported`,
-  `qiongli:needs-review`, `qiongli:crossref-verified`, and
-  `qiongli:metadata-conflict`.
-
-**Zotero Notes:**
-- Can import paper notes as child notes
-- Link to `RESEARCH/[topic]/notes/[citekey].md`
-
-### Step 6: Mendeley-Specific Features
-
-**Folder Mapping:**
-```
-Mendeley Folders:
-└── [Topic Name]
-    ├── Screening
-    ├── Included
-    └── Excluded
-```
-
-**Mendeley Tags:**
-- Flat tag structure (no hierarchy)
-- Use consistent prefixes: `project:`, `status:`, `quality:`
-
-## Output Format
-
-```markdown
-# Reference Manager Export Report
-
-## Review: [Topic]
-## Date: [Date]
-
----
-
-## Export Summary
-
-| Format | File | Entries | Size |
-|--------|------|---------|------|
-| BibTeX | bibliography.bib | 45 | 128 KB |
-| RIS | references.ris | 45 | 95 KB |
-| CSL-JSON | references.json | 45 | 156 KB |
-
----
-
-## Generated Files
-
-### BibTeX
-Path: `RESEARCH/[topic]/bibliography.bib`
-Compatible with: Zotero, Mendeley, JabRef, Overleaf
-
-### RIS
-Path: `RESEARCH/[topic]/references.ris`
-Compatible with: EndNote, Mendeley, Zotero
-
-### CSL-JSON
-Path: `RESEARCH/[topic]/references.json`
-Compatible with: Zotero, citation.js
-
----
-
-## Tag Summary
-
-| Tag | Count |
-|-----|-------|
-| project:[topic] | 45 |
-| status:included | 30 |
-| status:excluded | 15 |
-| quality:A | 5 |
-| quality:B | 15 |
-| quality:C | 10 |
-
----
-
-## Import Instructions
-
-### Zotero
-1. File → Import → Select `bibliography.bib` or `references.json`
-2. Choose destination collection
-3. Tags will be automatically imported
-
-### Mendeley
-1. File → Import → Select `bibliography.bib`
-2. Move to appropriate folder
-3. Tags appear under document details
-
-### EndNote
-1. File → Import → Select `references.ris`
-2. Choose import filter: "Reference Manager (RIS)"
-3. Select destination group
-
----
-
-*Export completed: [Date]*
-*Total references: [N]*
-```
-
-## Bidirectional Sync
-
-For ongoing projects, maintain sync:
-
-**From Reference Manager → Research System:**
-1. Export updated BibTeX from Zotero/Mendeley
-2. Parse and update `bibliography.bib`
-3. Sync citekeys with `notes/` files
-
-**From Research System → Reference Manager:**
-1. Generate export files
-2. Import to reference manager
-3. Merge duplicates (by DOI)
-
-## Usage
-
-This skill is called by:
-- `/lit-review` Phase 8 - Bibliography generation
-- `/paper-read` - Adding new papers to library
-- Manual export requests
+If Zotero Desktop is unreachable, the Qiongli companion is missing, local mode is
+disabled, or an upsert fails, generate import files with
+`qiongli_zotero_export_import_files`. The report must include counts, conflict
+summary, Crossref verification summary, and manual import instructions.
 
 ## Output Contract
 
 - `Bibliography`: write `RESEARCH/[topic]/bibliography.bib`.
 - `RISExport`: write `RESEARCH/[topic]/references.ris`.
 - `CSLJSONExport`: write `RESEARCH/[topic]/references.json`.
-- Separate finding, interpretation, and implication in the final artifact.
-- Do not invent citations, data, sample sizes, statistical results, or reviewer comments.
-- Apply `references/academic-output-rubric.md` before finalizing scholarly prose or review artifacts.
+- `ZoteroImportReport`: write `RESEARCH/[topic]/zotero-import-report.md`.
+- Separate finding, interpretation, and implication in any narrative report.
+- Do not invent citations, metadata, sample sizes, statistical results, DOI
+  registry claims, or reviewer comments.
+- Apply `references/academic-output-rubric.md` before finalizing scholarly prose
+  or review artifacts.
 
 ### Evidence Ledger and Source Integrity
 
-- Update `RESEARCH/[topic]/evidence/claim-evidence-ledger.csv` when producing, revising, or validating central scholarly claims.
-- Follow `references/evidence-ledger-contract.md`: supported claims need source pointers; unsupported central claims become `gap_note` rows and `RESEARCH/[topic]/context/gap_notes.md` entries.
-- For final writing, proofread, submission, rebuttal, citation, or presentation-facing outputs, apply `references/citation-risk-policy.md` and write or update `RESEARCH/[topic]/proofread/citation-risk-report.md` when citation risk is material.
+- Update `RESEARCH/[topic]/evidence/claim-evidence-ledger.csv` when reference
+  metadata supports a central scholarly claim.
+- Follow `references/evidence-ledger-contract.md`: supported claims need source
+  pointers; unsupported central claims become `gap_note` rows and
+  `RESEARCH/[topic]/context/gap_notes.md` entries.
+- Keep provider source, Crossref verification status, local Zotero match, and
+  update policy visible in `zotero-import-report.md`.
 
 ## Quality Bar
 
-- [ ] 导入/导出后文献条数一致（无丢失）
-- [ ] Citekey 在双向同步后保持稳定
-- [ ] 格式转换（BibTeX ↔ RIS ↔ CSL-JSON）无信息丢失
-- [ ] 附件（PDF）关联关系在同步后保持完整
-- [ ] 冲突条目已标记并手动解决
+- [ ] `bibliography.bib` has unique citekeys.
+- [ ] DOI values are normalized and conflicts are reported.
+- [ ] Required metadata gaps are flagged, not invented.
+- [ ] Local Zotero writes are dry-run first and require explicit
+      `dry_run: false`.
+- [ ] User-curated Zotero fields are preserved under the default fill-blank
+      policy.
+- [ ] Import-file fallback produces JSON, RIS, BibTeX, and report artifacts.
 
 ## Common Pitfalls
 
 | Pitfall | Problem | Fix |
-|---------|---------|-----|
-| Citekey 重写 | Zotero 自动生成 citekey 覆盖 | 使用 Better BibTeX 插件锁定 |
-| 编码丢失 | 特殊字符在 RIS 中丢失 | 优先使用 BibTeX 或 CSL-JSON |
-| 附件断链 | PDF 路径在同步后失效 | 使用相对路径或 linked file 模式 |
-| 条目格式分类错误 | Article 被识别为 InProceedings | 手动检查 entry type 映射 |
-| 无增量同步 | 全量覆盖导致手动编辑丢失 | 使用 merge 模式而非 overwrite |
+| --- | --- | --- |
+| Searching Zotero by default | Local library biases discovery | Use Zotero only when explicitly requested |
+| Skipping dry-run | User library may be changed unexpectedly | Run status and dry-run before `dry_run: false` |
+| Overwriting curated fields | Human metadata edits are lost | Fill blank fields unless user chooses stronger policy |
+| Treating Crossref as human review | Registry metadata can still conflict | Add verification tags and conflict notes |
+| No fallback files | Companion outage blocks the workflow | Generate import files and report |
 
 ## When to Use
 
-- 需要将研究系统的 bibliography 导入 Zotero/Mendeley/EndNote 时
-- 需要从外部工具导入文献到研究系统时
-- 团队协作需要共享统一的文献库时
-- 切换写作工具（LaTeX ↔ Word）需要转换引文格式时
+- Use when B5 needs bibliography cleanup, reference export, local Zotero sync, or
+  import files for Zotero, Mendeley, EndNote, BibTeX, RIS, or CSL-JSON.
+- Do not use for default literature discovery; use `academic-searcher`.

@@ -120,14 +120,15 @@ def _skill_id(path: Path) -> str:
 
 
 def _skill_checks(skill_id: str, text: str) -> dict[str, bool]:
+    normalized = _normalize(text)
     checks = {
-        "task-stage relation": _has_task_stage_relation(text),
+        "task-stage relation": _has_task_stage_relation(normalized),
         "canonical artifact paths": bool(re.search(r"RESEARCH/\[topic\]/[A-Za-z0-9_./-]+", text)),
     }
     if skill_id in PROVIDER_FACING_SKILLS:
         checks["compact provider references"] = _has_compact_provider_references(text)
 
-    checks.update(_specific_skill_checks(skill_id, text))
+    checks.update(_specific_skill_checks(skill_id, normalized))
     return checks
 
 
@@ -225,7 +226,7 @@ def _skills_core_checks(root: Path) -> dict[str, bool]:
     path = RepoLayout(root).skills_core
     if not path.is_file():
         return {"skills-core direct API defaults": False}
-    text = path.read_text(encoding="utf-8").lower()
+    text = _normalize(path.read_text(encoding="utf-8")).lower()
     b_core = _extract_b_core(text)
     direct_default_patterns = (
         "semantic scholar api",
@@ -249,7 +250,7 @@ def _extract_b_core(text: str) -> str:
 
 
 def _has_task_stage_relation(text: str) -> bool:
-    return bool(re.search(r"\bB[0-9](?:_[0-9])?\b", text) or re.search(r"^stage:\s*B_literature", text, re.M))
+    return bool(re.search(r"\bB[0-9](?:_[0-9])?\b", text) or "stage: b_literature" in text.lower())
 
 
 def _has_compact_provider_references(text: str) -> bool:
@@ -259,6 +260,10 @@ def _has_compact_provider_references(text: str) -> bool:
 
 def _has_all(text: str, terms: list[str]) -> bool:
     return all(term in text for term in terms)
+
+
+def _normalize(text: str) -> str:
+    return re.sub(r"\s+", " ", text)
 
 
 def main(argv: list[str] | None = None) -> int:
