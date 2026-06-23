@@ -16,6 +16,7 @@ constraints:
   - "Must inspect available academic artifacts before asking the user"
   - "Must ask only one scholarly boundary question at a time"
   - "Must provide a recommended answer with academic rationale and downstream impact"
+  - "Must treat missing or insufficient inputs as boundary gaps instead of inventing scholarly context"
 failure_modes:
   - "Treating the process as generic software requirements gathering"
   - "Asking broad questionnaires instead of the next blocking scholarly question"
@@ -81,8 +82,7 @@ For Stage A idea-discovery, prefer questions that move from "interesting topic" 
 ## Stage-Aware Grill Contract
 
 Use stage-aware grill as Qiongli's cross-platform academic judgment layer. The
-same contract applies in Codex, Claude / Claude Code, CLI, and portable
-skill installs.
+same contract applies across chat, IDE, CLI, and portable skill installs.
 
 Run a light automatic grill when:
 
@@ -181,7 +181,10 @@ carry it forward, or explicitly mark why it is no longer relevant.
   - `manuscript/claims_evidence_map.md`
   - `revision/response_matrix.md`
   - `code/code_specification.md`
-- If a required input is missing, record the missing artifact and ask only the next blocking academic question. Do not invent citations, findings, sample sizes, reviewer expectations, or institutional requirements.
+- If inputs are missing or insufficient, record the missing artifact as a
+  boundary gap and ask only the next blocking academic question. Do not invent
+  citations, findings, sample sizes, reviewer expectations, or institutional
+  requirements.
 
 ## Process
 
