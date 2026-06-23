@@ -118,13 +118,9 @@ class BLiteratureSkillPrecisionTests(unittest.TestCase):
         self.assertIn("evidence limits", report)
         self.assertIn("skills-core direct API defaults", report)
 
-    def test_canonical_repository_reports_remaining_core_gap(self) -> None:
+    def test_canonical_repository_passes_stage_b_precision_audit(self) -> None:
         result = audit_b_literature_skill_precision(REPO_ROOT)
-        paths = {item.path.as_posix() for item in result.skill_results if item.issue_count}
-
-        self.assertTrue(result.has_gaps)
-        self.assertEqual(set(), paths)
-        self.assertEqual(["skills-core direct API defaults"], result.global_results[0].missing_checks)
+        self.assertFalse(result.has_gaps, render_markdown_report(result))
 
 
 if __name__ == "__main__":

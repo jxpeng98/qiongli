@@ -130,14 +130,14 @@ skills:
     version: "1.5.0-beta.7"
     file: skills/B_literature/academic-searcher.md
     canonical: true
-    summary: "Own query design, provider-backed retrieval, and deduplicated search outputs as one top-level search skill."
+    summary: "Plan and execute provider-backed searches with diagnostics, dedup logs, and review-grade blockers."
     display_name: "Academic Searcher"
-    when_to_use: "Use when you need to own query design, provider-backed retrieval, and deduplicated search outputs as one top-level search skill."
+    when_to_use: "Use when a B1 search needs reproducible provider execution, search_diagnostics.md, dedup logs, or review-grade coverage checks."
     summary_zh: "统一负责检索式设计、数据库检索和去重后的搜索产物。"
     display_name_zh: "学术检索"
     when_to_use_zh: "当你需要可复现的检索式、数据库搜索和 search log 时使用。"
     inputs: [RQSet, SearchQueryPlan]
-    outputs: [SearchQueryPlan, SearchResults, SearchLog]
+    outputs: [SearchQueryPlan, SearchResults, SearchLog, DedupLog, SearchDiagnostics]
     tags: [literature, search, databases, API, reproducibility]
     depends_on: [question-refiner]
     compatible_models: [codex, claude, gpt]
@@ -149,14 +149,14 @@ skills:
     version: "1.5.0-beta.7"
     file: skills/B_literature/paper-screener.md
     canonical: true
-    summary: "Two-stage PRISMA-compliant systematic screening with decision logging."
+    summary: "Run diagnostics-aware title/abstract and full-text screening with PRISMA-ready decision logs."
     display_name: "Paper Screener"
-    when_to_use: "Use when you need to two-stage prisma-compliant systematic screening with decision logging."
+    when_to_use: "Use when candidate records need include/exclude decisions, diagnostic flags preserved, or PRISMA flow counts."
     summary_zh: "按 PRISMA 做两阶段系统筛选，并记录每一步决策依据。"
     display_name_zh: "文献筛选"
     when_to_use_zh: "当你需要按纳入排除标准筛选文献并留下决策记录时使用。"
     inputs: [SearchResults, RQSet]
-    outputs: [ScreeningDecisionLog, PRISMAFlowData]
+    outputs: [ScreeningDecisionLog, FullTextScreening, PRISMAFlowData]
     tags: [literature, screening, PRISMA, inclusion-exclusion]
     depends_on: [academic-searcher]
     compatible_models: [codex, claude, gpt]
@@ -168,9 +168,9 @@ skills:
     version: "1.5.0-beta.7"
     file: skills/B_literature/paper-extractor.md
     canonical: true
-    summary: "Extract structured theory, method, data, findings, and limitation slots into notes and rollups."
+    summary: "Extract source-anchored paper notes and rollups with evidence_limit and unsupported_gap fields."
     display_name: "Paper Extractor"
-    when_to_use: "Use when you need to extract structured theory, method, data, findings, and limitation slots into notes and rollups."
+    when_to_use: "Use when included papers need notes or extraction_table.md without overclaiming metadata-only or abstract-only evidence."
     summary_zh: "将论文中的理论、方法、数据、发现和局限提取为结构化笔记与汇总。"
     display_name_zh: "论文提取"
     when_to_use_zh: "当你需要把入选论文转成结构化笔记和 extraction table 时使用。"
@@ -187,14 +187,14 @@ skills:
     version: "1.5.0-beta.7"
     file: skills/B_literature/citation-snowballer.md
     canonical: true
-    summary: "Forward/backward citation tracing to expand corpus and find seminal works."
+    summary: "Expand corpora through citation-graph tracing with seed rationale, saturation status, and dedup appends."
     display_name: "Citation Snowballer"
-    when_to_use: "Use when you need to forward/backward citation tracing to expand corpus and find seminal works."
+    when_to_use: "Use when B3 needs forward/backward citation expansion, known-item follow-up, or coverage repair after search diagnostics."
     summary_zh: "通过前向与后向引文追踪扩展语料，并发现奠基性文献。"
     display_name_zh: "引文滚雪球"
     when_to_use_zh: "当已有种子文献但覆盖还不够时使用。"
     inputs: [SearchResults]
-    outputs: [SnowballLog]
+    outputs: [SnowballLog, SearchResults, DedupLog]
     tags: [literature, citations, snowballing, forward-backward]
     depends_on: [academic-searcher]
     compatible_models: [codex, claude, gpt]
@@ -206,14 +206,14 @@ skills:
     version: "1.5.0-beta.7"
     file: skills/B_literature/fulltext-fetcher.md
     canonical: true
-    summary: "Retrieve full-text PDFs via OA channels with PRISMA-compliant status tracking."
+    summary: "Record full-text retrieval status and resolver provenance through the fulltext-retrieval boundary."
     display_name: "Full-text Fetcher"
-    when_to_use: "Use when you need to retrieve full-text pdfs via oa channels with prisma-compliant status tracking."
+    when_to_use: "Use when reports need retrieval_manifest.csv, controlled full-text statuses, or Zotero/OA resolver handoff."
     summary_zh: "通过开放获取渠道获取全文 PDF，并记录符合 PRISMA 的状态轨迹。"
     display_name_zh: "全文获取"
     when_to_use_zh: "当你已找到候选论文但缺少全文时使用。"
     inputs: [ScreeningDecisionLog]
-    outputs: [FullTextStatus]
+    outputs: [FullTextStatus, RetrievalManifest]
     tags: [literature, fulltext, open-access, retrieval, PRISMA]
     depends_on: [paper-screener]
     compatible_models: [codex, claude, gpt]
@@ -225,9 +225,9 @@ skills:
     version: "1.5.0-beta.7"
     file: skills/B_literature/citation-formatter.md
     canonical: true
-    summary: "Format citations in APA/MLA/Chicago/IEEE/BibTeX with consistent citekeys."
+    summary: "Normalize bibliography.bib metadata, DOI values, citekeys, and missing-reference flags."
     display_name: "Citation Formatter"
-    when_to_use: "Use when you need to format citations in apa/mla/chicago/ieee/bibtex with consistent citekeys."
+    when_to_use: "Use when B5 needs citekey cleanup, DOI normalization, duplicate handling, or export-ready bibliography.bib."
     summary_zh: "用统一 citekey 生成 APA、MLA、Chicago、IEEE 与 BibTeX 引文。"
     display_name_zh: "引文格式化"
     when_to_use_zh: "当写作前需要统一 bibliography、citekey 和引文格式时使用。"
@@ -244,9 +244,9 @@ skills:
     version: "1.5.0-beta.7"
     file: skills/B_literature/concept-extractor.md
     canonical: true
-    summary: "Expand search concepts with controlled vocabulary and Boolean query drafting."
+    summary: "Prepare search concept buckets, controlled vocabulary, near misses, and seed recall checks."
     display_name: "Concept Extractor"
-    when_to_use: "After research questions (A1) are drafted but before search execution (B1)"
+    when_to_use: "Use after Stage A when B1 search terms, controlled vocabulary, excluded ambiguous terms, or seed recall are unsettled."
     summary_zh: "借助 controlled vocabulary 扩展检索概念，并起草 Boolean 检索式。"
     display_name_zh: "检索概念提取"
     when_to_use_zh: "当检索概念不稳定，需要补 controlled vocabulary 和 Boolean 术语时使用。"
@@ -263,9 +263,9 @@ skills:
     version: "1.5.0-beta.7"
     file: skills/B_literature/literature-mapper.md
     canonical: true
-    summary: "Build literature taxonomy with mechanism-based cluster labels and open problems."
+    summary: "Build source-anchored literature taxonomies with representative papers, evidence limits, and open problems."
     display_name: "Literature Mapper"
-    when_to_use: "After paper extraction (B2) when you have ≥15 papers with structured notes"
+    when_to_use: "Use when extracted papers need a defensible non-chronological map for related work or novelty positioning."
     summary_zh: "用机制导向的簇标签和开放问题构建文献地图。"
     display_name_zh: "文献地图"
     when_to_use_zh: "当你需要重组文献流派、机制簇和开放问题时使用。"
@@ -282,14 +282,14 @@ skills:
     version: "1.5.0-beta.7"
     file: skills/B_literature/reference-manager-bridge.md
     canonical: true
-    summary: "Export/import references between research system and Zotero/Mendeley/EndNote."
+    summary: "Exchange references with Zotero and import formats using dry-run local sync and fallback files."
     display_name: "Reference Manager Bridge"
-    when_to_use: "Use when you need to export/import references between research system and zotero/mendeley/endnote."
+    when_to_use: "Use when B5 needs Zotero local sync, import-file fallback, RIS/CSL-JSON export, or bibliography exchange."
     summary_zh: "在研究系统与 Zotero、Mendeley、EndNote 之间导入导出文献。"
     display_name_zh: "文献管理器桥接"
     when_to_use_zh: "当你需要与 Zotero、Mendeley 或 EndNote 双向交换文献时使用。"
     inputs: [Bibliography, PaperNotes]
-    outputs: [Bibliography, RISExport, CSLJSONExport]
+    outputs: [Bibliography, RISExport, CSLJSONExport, ZoteroImportReport]
     tags: [literature, references, Zotero, Mendeley, EndNote, BibTeX, RIS]
     depends_on: [citation-formatter]
     compatible_models: [codex, claude, gpt]
