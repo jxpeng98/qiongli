@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: Qiongli
-  text: Contract-bound research workflows for AI coding agents.
-  tagline: Install once, then use Codex, Claude Code, or Antigravity to run academic workflows with explicit task IDs, quality gates, literature diagnostics, role handoffs, and auditable artifacts.
+  text: "Research workflows that leave an audit trail."
+  tagline: "Turn broad academic requests into task IDs, quality gates, literature diagnostics, role handoffs, and artifacts your team can inspect later."
   actions:
     - theme: brand
       text: Start With Quickstart
@@ -17,35 +17,35 @@ hero:
       link: /guide/install
 
 features:
-  - title: Install Without Guesswork
-    details: Choose native plugin, bootstrap partial/full, npm, or pipx based on what runtime surface you actually need.
-  - title: Research Routes
-    details: Start from systematic review, empirical, qualitative, RCT, theory, or code-first methods workflows.
-  - title: Evidence Contracts
-    details: Keep claims, citations, search logs, diagnostics, methods, code, and review status traceable under standard artifact paths.
-  - title: Multi-Agent Control
-    details: Use solo, duo, and triad execution modes with explicit handoffs, disagreement records, and verification outcomes.
+  - title: "Choose The Right Install"
+    details: "Start with the smallest surface that fits your work: native plugin, bootstrap partial/full, npm, or pipx."
+  - title: "Move From Topic To Workflow"
+    details: "Route systematic reviews, empirical studies, qualitative work, RCTs, theory papers, and code-first methods papers."
+  - title: "Keep Evidence Traceable"
+    details: "Store claims, citations, search logs, diagnostics, methods, code, and review status under predictable artifact paths."
+  - title: "Coordinate Agent Review"
+    details: "Use solo, duo, or triad runs with explicit handoffs, disagreement records, and verification outcomes."
 ---
 
 ## Choose Your Entry Point
 
 | You want to... | Start here | Why |
 |---|---|---|
-| Try Qiongli in one client | [Install](/guide/install) | Native plugin / extension paths keep setup small. |
-| Know what to type after install | [Using Agent Skills](/guide/using-agent-skills) | Codex, Claude Code, Antigravity, Hermes, and shell expose Qiongli differently. |
-| Install global workflows for several clients | [Quickstart](/quickstart) | Bootstrap `partial` installs workflow assets without requiring Python. |
+| Try Qiongli in one client | [Install](/guide/install) | Native plugin and extension paths keep setup small. |
+| Figure out what to type after install | [Using Agent Skills](/guide/using-agent-skills) | Codex, Claude Code, Antigravity, Hermes, and shell each expose Qiongli differently. |
+| Install workflows for several clients | [Quickstart](/quickstart) | Bootstrap `partial` installs workflow assets without requiring Python. |
 | Run validators, `doctor`, or orchestrated tasks | [Multi-Agent Runtime](/guide/multi-agent) | `full` runtime explains Python, model CLIs, auth, runtime routing, and verification. |
-| Pick a paper workflow | [Task Recipes](/guide/task-recipes) | Maps real research goals to paper types, stages, Task IDs, and expected outputs. |
+| Choose a paper workflow | [Task Recipes](/guide/task-recipes) | Map your research goal to a paper type, stage, Task ID, and expected output. |
 | Automate installs or upgrades | [CLI Reference](/reference/cli) | Covers `qiongli`, `ql`, npm/npx, pipx, compatibility aliases, and JSON checks. |
 
 ## What The Current System Covers
 
-Qiongli ships a single portable workflow package, `qiongli-workflow`, with staged research skills and a shared task contract. The current documentation is organized around what a researcher or project owner needs to do:
+Qiongli ships a portable workflow package, `qiongli-workflow`, plus optional local runtimes for literature search and orchestration. The docs are organized around the work a researcher or project owner actually needs to finish:
 
-- **Frame the work:** refine questions, identify gaps, map theory, choose venues, and define contribution claims.
+- **Frame the work:** refine the question, identify gaps, map theory, choose venues, and define the contribution.
 - **Build the literature base:** plan provider-aware searches, materialize search bundles, run diagnostics, deduplicate results, screen papers, extract evidence, and snowball citations.
 - **Design and execute the study:** specify variables, datasets, robustness checks, preregistration, ethics artifacts, and data management.
-- **Write and audit the manuscript:** structure sections, maintain claim-evidence integrity, generate figures/tables, evaluate limitations, and prepare submission/rebuttal materials.
+- **Write and audit the manuscript:** structure sections, keep claims tied to evidence, plan figures and tables, evaluate limitations, and prepare submission or rebuttal materials.
 - **Handle research code:** use the Stage-I specification -> planning -> execution -> review path for code-first or methods-heavy work.
 - **Coordinate models:** assign controller, primary, reviewer, and verifier roles across Codex, Claude Code, and Antigravity while preserving handoffs and verification status.
 
@@ -62,4 +62,8 @@ Qiongli ships a single portable workflow package, `qiongli-workflow`, with stage
 
 ## Runtime Boundary
 
-Asset installation and workflow discovery are intentionally lighter than full orchestration. You can install `qiongli-workflow` without Python, but `doctor`, validators, tests, and model-orchestrated task execution require Python 3.12+, the relevant model CLIs, and matching authentication.
+Installing workflow assets is intentionally lighter than running full orchestration. You can use `qiongli-workflow` without Python. You only need Python 3.12+, the relevant model CLIs, and matching authentication when you run `doctor`, validators, tests, or model-orchestrated task execution.
+
+## Community Credit
+
+Thanks to the [linux.do](https://linux.do/) community for being an open Chinese-language space for practical AI tooling, developer workflow, and local-first productivity discussions. Qiongli will be shared there as the workflow matures, both to reach more users and to collect direct feedback.

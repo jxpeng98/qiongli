@@ -168,7 +168,7 @@ const commonHead = [
 /** @type {import('vitepress').UserConfig} */
 export default {
   title: 'Qiongli',
-  description: 'Contract-driven academic research workflows for Codex, Claude Code, and Gemini.',
+  description: 'Reviewable academic research workflows for AI coding agents.',
   cleanUrls: true,
   lastUpdated: true,
   head: commonHead,
