@@ -317,6 +317,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('tooling/scripts/materialize_distribution_payloads.py', content)
         self.assertNotIn('packages/qiongli-plugin/.codex-plugin/plugin.json', content)
         self.assertNotIn('packages/qiongli-next-plugin|packages/qiongli-next-plugin/*', content)
+        self.assertIn('content/workflow/SKILL.md', content)
         self.assertIn('content/workflow/VERSION', content)
         self.assertIn('content/skills/registry.yaml', content)
         self.assertIn('packages/npm-qiongli/package.json', content)

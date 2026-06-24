@@ -72,7 +72,7 @@ status_path_from_line() {
 is_expected_release_path() {
   local path="$1"
   case "$path" in
-    pyproject.toml|packages/python-qiongli/src/qiongli/__init__.py|content/workflow/VERSION|content/skills/registry.yaml|content/distribution/plugins.yaml|docs/reference/skills.md|docs/zh/reference/skills.md|package-lock.json|uv.lock|tooling/scripts/build_plugin_artifacts.py|tooling/scripts/materialize_distribution_payloads.py|packages/npm-qiongli/package.json|packages/npm-qiongli/README.md|packages/npm-qiongli/LICENSE|packages/npm-qiongli/bin/*|packages/npm-qiongli/lib/*|packages/npm-qiongli/test/*)
+    pyproject.toml|packages/python-qiongli/src/qiongli/__init__.py|content/workflow/SKILL.md|content/workflow/VERSION|content/skills/registry.yaml|content/distribution/plugins.yaml|docs/reference/skills.md|docs/zh/reference/skills.md|package-lock.json|uv.lock|tooling/scripts/build_plugin_artifacts.py|tooling/scripts/materialize_distribution_payloads.py|packages/npm-qiongli/package.json|packages/npm-qiongli/README.md|packages/npm-qiongli/LICENSE|packages/npm-qiongli/bin/*|packages/npm-qiongli/lib/*|packages/npm-qiongli/test/*)
       return 0
       ;;
   esac
