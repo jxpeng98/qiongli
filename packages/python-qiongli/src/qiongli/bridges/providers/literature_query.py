@@ -5,7 +5,7 @@ from typing import Any
 
 
 MAX_QUERY_VARIANTS = 4
-SUPPORTED_PROVIDERS = {"semantic_scholar", "openalex", "crossref", "arxiv"}
+SUPPORTED_PROVIDERS = {"semantic_scholar", "openalex", "crossref", "pubmed", "arxiv"}
 STOPWORDS = {
     "a",
     "an",
@@ -165,6 +165,8 @@ def translate_query_for_provider(plan: dict[str, Any], provider: str) -> dict[st
         return _with_openalex_payload(base_translation, filters)
     if normalized_provider == "crossref":
         return _with_crossref_payload(base_translation, filters)
+    if normalized_provider == "pubmed":
+        return _with_pubmed_payload(base_translation, filters)
     if normalized_provider == "arxiv":
         return _with_arxiv_payload(base_translation, plan, filters)
 
@@ -211,6 +213,25 @@ def _with_crossref_payload(
         "query.bibliographic": translation["translated_query"],
         "filter": crossref_filters,
     }
+    return translation
+
+
+def _with_pubmed_payload(
+    base_translation: dict[str, Any],
+    filters: dict[str, Any],
+) -> dict[str, Any]:
+    translation = dict(base_translation)
+    payload: dict[str, Any] = {"term": translation["translated_query"]}
+    year_start = _normalize_year(filters.get("year_start"))
+    year_end = _normalize_year(filters.get("year_end"))
+    if year_start:
+        payload["mindate"] = year_start
+    if year_end:
+        payload["maxdate"] = year_end
+    if year_start or year_end:
+        payload["datetype"] = "pdat"
+
+    translation["payload"] = payload
     return translation
 
 
@@ -300,6 +321,7 @@ def _translation_rationale(provider: str) -> str:
         ),
         "openalex": "OpenAlex search query with date/type filters and relevance sorting.",
         "crossref": "Crossref bibliographic query with supported date and work-type filters.",
+        "pubmed": "PubMed keyword query with publication-date filters for biomedical coverage.",
         "arxiv": "arXiv fielded query using all, title, and abstract clauses for technical topics.",
     }
     return rationales[provider]

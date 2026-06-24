@@ -63,6 +63,55 @@ class MCPLiteratureToolTests(unittest.TestCase):
         self.assertEqual(payload["data"]["search_results"][0]["title"], "A Test Paper")
         search.assert_called_once()
 
+    def test_literature_search_uses_configured_provider_clients(self) -> None:
+        provider_calls: list[tuple[str, dict[str, object], int]] = []
+
+        def openalex_search(translation: dict[str, object], limit: int) -> dict[str, object]:
+            provider_calls.append(("openalex", translation, limit))
+            return {
+                "data": [
+                    {
+                        "paperId": "openalex-1",
+                        "title": "OpenAlex Provider Paper",
+                        "year": 2024,
+                    }
+                ]
+            }
+
+        def crossref_search(translation: dict[str, object], limit: int) -> dict[str, object]:
+            provider_calls.append(("crossref", translation, limit))
+            return {"data": []}
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            with mock.patch.dict("os.environ", {"QIONGLI_CONFIG_HOME": str(root / "config")}, clear=True):
+                set_provider_value("openalex", "api-key", "openalex-secret-key")
+                set_provider_value("crossref", "email", "maintainer@example.com")
+                with (
+                    mock.patch("bridges.literature_mcp_tools.openalex_client.search", openalex_search),
+                    mock.patch("bridges.literature_mcp_tools.crossref_client.search", crossref_search),
+                ):
+                    result = call_qiongli_tool(
+                        "qiongli_literature_search",
+                        {
+                            "query": "AI feedback in education",
+                            "fromYear": 2020,
+                            "per_provider_limit": 4,
+                        },
+                    )
+
+        payload = result["structuredContent"]
+        self.assertFalse(result["isError"])
+        self.assertEqual(payload["data"]["provider_mode"], "provider_translations")
+        self.assertEqual([call[0] for call in provider_calls], ["openalex", "crossref"])
+        self.assertTrue(all(call[2] == 4 for call in provider_calls))
+        self.assertEqual(
+            payload["data"]["search_diagnostics"]["attempted_providers"],
+            ["openalex", "crossref"],
+        )
+        self.assertEqual(payload["data"]["search_results"][0]["source"], "openalex")
+        self.assertEqual(provider_calls[0][1]["filters"]["year_start"], "2020")
+
     def test_literature_export_evidence_wraps_supplied_snapshot(self) -> None:
         result = call_qiongli_tool(
             "qiongli_literature_export_evidence",

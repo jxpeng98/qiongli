@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -10,6 +11,8 @@ from bridges.provider_config import (
     redact_provider_config,
     resolve_provider_config,
 )
+from bridges.providers import crossref_client, openalex_client, pubmed_client
+from bridges.providers.s2_client import search_paper
 
 
 LITERATURE_PROVIDER_CAPABILITIES: dict[str, dict[str, Any]] = {
@@ -92,6 +95,9 @@ LITERATURE_TOOL_DEFINITIONS: list[dict[str, Any]] = [
     },
 ]
 
+ProviderSearchFn = Callable[[dict[str, object], int], dict[str, object]]
+PROVIDER_SEARCH_ORDER = ("semantic_scholar", "openalex", "crossref", "pubmed")
+
 
 def handle_literature_status(args: dict[str, Any]) -> dict[str, Any]:
     cwd = _cwd_from_args(args)
@@ -127,9 +133,11 @@ def handle_literature_export_evidence(args: dict[str, Any]) -> dict[str, Any]:
 
 def run_literature_search(args: dict[str, Any]) -> dict[str, Any]:
     from bridges.providers.literature_search import run_scholarly_search
-    from bridges.providers.s2_client import search_paper
 
     task_packet = _task_packet_from_search_args(args)
+    provider_fns = _configured_provider_fns(args)
+    if provider_fns:
+        return run_scholarly_search(task_packet, search_paper, provider_fns=provider_fns)
     return run_scholarly_search(task_packet, search_paper)
 
 
@@ -139,6 +147,7 @@ def _task_packet_from_search_args(args: dict[str, Any]) -> dict[str, Any]:
     keywords = [query] if query else []
     if isinstance(variants, list):
         keywords.extend(str(item).strip() for item in variants if str(item).strip())
+    per_provider_limit = args.get("per_provider_limit", args.get("perProviderLimit"))
     return {
         "topic": query or "literature-search",
         "research_question": query,
@@ -151,7 +160,51 @@ def _task_packet_from_search_args(args: dict[str, Any]) -> dict[str, Any]:
         "publication_type": _first_document_type(args.get("document_types", args.get("documentTypes"))),
         "limit": args.get("limit"),
         "per_provider_limit": args.get("per_provider_limit", args.get("perProviderLimit")),
+        "per_query_limit": per_provider_limit or args.get("limit"),
     }
+
+
+def _configured_provider_fns(args: dict[str, Any]) -> dict[str, ProviderSearchFn]:
+    config = resolve_provider_config(cwd=_cwd_from_args(args))
+    providers = config.get("providers", {})
+    providers = providers if isinstance(providers, Mapping) else {}
+    provider_fns: dict[str, ProviderSearchFn] = {}
+
+    for provider_name in PROVIDER_SEARCH_ORDER:
+        raw_provider = providers.get(provider_name, {})
+        if not isinstance(raw_provider, Mapping):
+            continue
+        if not raw_provider.get("enabled") or not raw_provider.get("configured"):
+            continue
+        provider_fn = _provider_search_fn(provider_name)
+        if provider_fn is not None:
+            provider_fns[provider_name] = provider_fn
+    return provider_fns
+
+
+def _provider_search_fn(provider_name: str) -> ProviderSearchFn | None:
+    if provider_name == "semantic_scholar":
+        return _s2_provider_search
+    if provider_name == "openalex":
+        return openalex_client.search
+    if provider_name == "crossref":
+        return crossref_client.search
+    if provider_name == "pubmed":
+        return pubmed_client.search
+    return None
+
+
+def _s2_provider_search(translation: dict[str, object], limit: int) -> dict[str, object]:
+    filters = translation.get("filters", {})
+    filters = filters if isinstance(filters, Mapping) else {}
+    return search_paper(
+        str(translation.get("translated_query", "") or ""),
+        limit,
+        year_start=filters.get("year_start"),
+        year_end=filters.get("year_end"),
+        publication_type=str(filters.get("publication_type", "") or "") or None,
+        venue=str(filters.get("venue", "") or "") or None,
+    )
 
 
 def _paper_type_from_search_mode(search_mode: Any) -> str:

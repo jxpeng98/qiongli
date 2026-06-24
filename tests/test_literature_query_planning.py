@@ -240,6 +240,16 @@ class LiteratureQueryTranslationTests(unittest.TestCase):
         self.assertEqual(payload["filter"]["until-pub-date"], "2025-12-31")
         self.assertEqual(payload["filter"]["type"], "journal-article")
 
+    def test_pubmed_translation_includes_term_and_date_payload(self):
+        translation = translate_query_for_provider(self._plan(), "pubmed")
+
+        self.assert_common_translation_fields(translation, "pubmed")
+        payload = translation["payload"]
+        self.assertEqual(payload["term"], translation["translated_query"])
+        self.assertEqual(payload["mindate"], "2020")
+        self.assertEqual(payload["maxdate"], "2025")
+        self.assertEqual(payload["datetype"], "pdat")
+
     def test_arxiv_translation_uses_fielded_clauses_for_cs_math_stat_topics(self):
         translation = translate_query_for_provider(self._plan(), "arxiv")
 
