@@ -12,6 +12,7 @@ from importlib import resources
 from dataclasses import dataclass
 from pathlib import Path
 
+from .bridges.mcp_client_config import install_mcp_config, remove_mcp_config
 from .source_layout import RepoLayout
 from .subject_materializer import (
     COVERAGE_CHOICES,
@@ -24,7 +25,7 @@ from .subject_materializer import (
 
 TARGET_CHOICES = ("codex", "claude", "antigravity", "hermes", "all")
 PROFILE_CHOICES = ("partial", "full")
-PART_CHOICES = ("globals", "project", "cli", "doctor")
+PART_CHOICES = ("globals", "project", "cli", "mcp", "doctor")
 LEGACY_MANIFEST_PATH = Path(__file__).resolve().parents[1] / "install" / "install_manifest.tsv"
 
 
@@ -39,6 +40,7 @@ class InstallOptions:
     overwrite: bool = False
     install_cli: bool | None = None
     cli_dir: Path | None = None
+    install_mcp: bool | None = None
     doctor: bool | None = None
     dry_run: bool = False
     profile: str | None = None
@@ -56,9 +58,9 @@ class RemoveOptions:
 
 def profile_defaults(profile: str) -> dict[str, bool]:
     if profile == "partial":
-        return {"install_cli": False, "doctor": False}
+        return {"install_cli": False, "install_mcp": False, "doctor": False}
     if profile == "full":
-        return {"install_cli": True, "doctor": True}
+        return {"install_cli": True, "install_mcp": True, "doctor": True}
     raise ValueError(f"Unsupported profile: {profile}")
 
 
@@ -76,6 +78,7 @@ def apply_profile(options: InstallOptions) -> InstallOptions:
         overwrite=options.overwrite,
         install_cli=defaults["install_cli"] if options.install_cli is None else options.install_cli,
         cli_dir=options.cli_dir,
+        install_mcp=defaults["install_mcp"] if options.install_mcp is None else options.install_mcp,
         doctor=defaults["doctor"] if options.doctor is None else options.doctor,
         dry_run=options.dry_run,
         profile=options.profile,
@@ -878,6 +881,32 @@ def _run_doctor(project_dir: Path, dry_run: bool) -> None:
         print(f"  [warn] doctor exited with code {result.returncode}")
 
 
+def _print_mcp_config_result(label: str, status: str, path: Path, detail: str = "") -> None:
+    display_status = "skip" if status == "skipped" else "ok"
+    _print_result(label, f"{path} ({status})", display_status)
+    if detail and status == "skipped":
+        print(f"          {detail}")
+
+
+def _install_mcp_client_config(options: InstallOptions) -> None:
+    _print_section("MCP Client Config")
+    if options.target not in {"codex", "all"}:
+        _print_result("Codex MCP", f"target {options.target} (not applicable)", "skip")
+        return
+    result = install_mcp_config(target="codex", dry_run=options.dry_run)
+    _print_mcp_config_result("Codex MCP", result.status, result.path, result.detail)
+
+
+def _remove_mcp_client_config(options: RemoveOptions) -> int:
+    _print_section("MCP Client Config")
+    if options.target not in {"codex", "all"}:
+        _print_result("Codex MCP", f"target {options.target} (not applicable)", "skip")
+        return 0
+    result = remove_mcp_config(target="codex", dry_run=options.dry_run)
+    _print_mcp_config_result("Codex MCP", result.status, result.path, result.detail)
+    return 1 if result.changed else 0
+
+
 def install(options: InstallOptions) -> int:
     options = apply_profile(
         InstallOptions(
@@ -890,6 +919,7 @@ def install(options: InstallOptions) -> int:
             overwrite=options.overwrite,
             install_cli=options.install_cli,
             cli_dir=_resolve(options.cli_dir or Path.home() / ".local" / "bin"),
+            install_mcp=options.install_mcp,
             doctor=options.doctor,
             dry_run=options.dry_run,
             profile=options.profile,
@@ -908,6 +938,7 @@ def install(options: InstallOptions) -> int:
     install_globals = True if selected_parts is None else "globals" in selected_parts
     install_project = False if selected_parts is None else "project" in selected_parts
     install_cli = bool(options.install_cli) if selected_parts is None else "cli" in selected_parts
+    install_mcp = bool(options.install_mcp) if selected_parts is None else "mcp" in selected_parts
     doctor = bool(options.doctor) if selected_parts is None else "doctor" in selected_parts
 
     repo_root = options.repo_root
@@ -1027,6 +1058,9 @@ def install(options: InstallOptions) -> int:
     if install_cli:
         _install_shell_cli(options)
 
+    if install_mcp:
+        _install_mcp_client_config(options)
+
     if install_project:
         _print_section("Project Env")
         for entry in manifest_entries:
@@ -1126,6 +1160,7 @@ def remove(options: RemoveOptions) -> int:
     remove_globals = "globals" in selected_parts
     remove_project = "project" in selected_parts
     remove_cli = "cli" in selected_parts
+    remove_mcp = "mcp" in selected_parts
 
     print("\nQiongli Universal Remover")
     print(f"  project: {options.project_dir}")
@@ -1165,6 +1200,9 @@ def remove(options: RemoveOptions) -> int:
 
     if remove_cli:
         removed += _remove_shell_cli(options)
+
+    if remove_mcp:
+        removed += _remove_mcp_client_config(options)
 
     if "doctor" in selected_parts:
         _print_section("Doctor")

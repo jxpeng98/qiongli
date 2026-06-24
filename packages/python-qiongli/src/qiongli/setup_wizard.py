@@ -616,7 +616,7 @@ def _scope_includes_cli(scope: str) -> bool:
 
 def _parts_for_scope(scope: str, run_doctor: bool) -> tuple[str, ...]:
     if scope == "all":
-        parts = ["globals", "project", "cli"]
+        parts = ["globals", "project", "cli", "mcp"]
     elif scope in SCOPE_CHOICES:
         parts = [scope]
     else:

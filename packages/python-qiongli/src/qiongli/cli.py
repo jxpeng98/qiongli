@@ -1354,7 +1354,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     remove_parser.add_argument(
         "--parts",
-        help="Comma-separated install surfaces to remove (default: globals): globals, project, cli.",
+        help="Comma-separated install surfaces to remove (default: globals): globals, project, cli, mcp.",
     )
     remove_parser.add_argument("--cli-dir", help="Directory containing shell CLI wrappers")
     remove_parser.add_argument("--dry-run", action="store_true", help="Show what would be removed without deleting")

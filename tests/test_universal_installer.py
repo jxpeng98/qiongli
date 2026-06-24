@@ -478,6 +478,95 @@ class UniversalInstallerTests(unittest.TestCase):
             self.assertEqual(result, 0)
             self.assertFalse((cli_dir / "qiongli").exists())
 
+    def test_full_profile_registers_codex_mcp_config(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            codex_home = temp_root / "codex-home"
+            claude_home = temp_root / "claude-home"
+            antigravity_home = temp_root / "antigravity-home"
+            hermes_home = temp_root / "hermes-home"
+            env = os.environ.copy()
+            env["CODEX_HOME"] = str(codex_home)
+            env["CLAUDE_CODE_HOME"] = str(claude_home)
+            env["ANTIGRAVITY_HOME"] = str(antigravity_home)
+            env["HERMES_HOME"] = str(hermes_home)
+            env["PATH"] = ""
+
+            with mock.patch.dict(os.environ, env, clear=True):
+                result = install(
+                    InstallOptions(
+                        repo_root=REPO_ROOT,
+                        project_dir=project_dir,
+                        target="codex",
+                        profile="full",
+                        install_cli=False,
+                        doctor=False,
+                    )
+                )
+
+            self.assertEqual(result, 0)
+            rendered = (codex_home / "config.toml").read_text(encoding="utf-8")
+            self.assertIn("# BEGIN QIONGLI MANAGED MCP", rendered)
+            self.assertIn("[mcp_servers.qiongli]", rendered)
+            self.assertIn('command = "qiongli"', rendered)
+
+    def test_mcp_part_only_registers_codex_mcp_without_global_skill(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            codex_home = temp_root / "codex-home"
+            env = os.environ.copy()
+            env["CODEX_HOME"] = str(codex_home)
+            env["PATH"] = ""
+
+            with mock.patch.dict(os.environ, env, clear=True):
+                result = install(
+                    InstallOptions(
+                        repo_root=REPO_ROOT,
+                        project_dir=project_dir,
+                        target="codex",
+                        parts=("mcp",),
+                    )
+                )
+
+            self.assertEqual(result, 0)
+            self.assertTrue((codex_home / "config.toml").exists())
+            self.assertFalse((codex_home / "skills" / "qiongli-workflow" / "SKILL.md").exists())
+
+    def test_remove_mcp_part_removes_managed_codex_mcp_config(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            codex_home = temp_root / "codex-home"
+            codex_home.mkdir(parents=True)
+            config_path = codex_home / "config.toml"
+            config_path.write_text(
+                "# BEGIN QIONGLI MANAGED MCP\n"
+                "[mcp_servers.qiongli]\n"
+                'command = "qiongli"\n'
+                'args = ["mcp", "serve", "--transport", "stdio"]\n'
+                "# END QIONGLI MANAGED MCP\n",
+                encoding="utf-8",
+            )
+            env = os.environ.copy()
+            env["CODEX_HOME"] = str(codex_home)
+
+            with mock.patch.dict(os.environ, env, clear=True):
+                result = remove(
+                    RemoveOptions(
+                        project_dir=project_dir,
+                        target="codex",
+                        parts=("mcp",),
+                    )
+                )
+
+            self.assertEqual(result, 0)
+            self.assertNotIn("QIONGLI MANAGED MCP", config_path.read_text(encoding="utf-8"))
+
 
 class CleanTests(unittest.TestCase):
     def test_clean_removes_stale_project_assets(self) -> None:

@@ -33,7 +33,7 @@ def test_defaults_create_core_complete_all_plan_and_doctor_enabled(tmp_path: Pat
         "--project-dir",
         str(tmp_path),
         "--parts",
-        "globals,project,cli,doctor",
+        "globals,project,cli,mcp,doctor",
     )
     assert plan.operation == "install"
     assert plan.doctor is True
@@ -41,11 +41,11 @@ def test_defaults_create_core_complete_all_plan_and_doctor_enabled(tmp_path: Pat
     assert plan.overwrite is False
     assert plan.client_target == "all"
     assert plan.scope == "all"
-    assert plan.parts == ("globals", "project", "cli", "doctor")
+    assert plan.parts == ("globals", "project", "cli", "mcp", "doctor")
     assert plan.install_options.mode == "copy"
     assert plan.install_options.overwrite is False
     assert plan.install_options.target == "all"
-    assert plan.install_options.parts == ("globals", "project", "cli", "doctor")
+    assert plan.install_options.parts == ("globals", "project", "cli", "mcp", "doctor")
     assert plan.provider_actions == ()
 
 
@@ -78,7 +78,7 @@ def test_install_plan_includes_mode_overwrite_and_cli_dir(tmp_path: Path) -> Non
         "--project-dir",
         str(tmp_path),
         "--parts",
-        "globals,project,cli,doctor",
+        "globals,project,cli,mcp,doctor",
         "--overwrite",
         "--cli-dir",
         str(cli_dir),
