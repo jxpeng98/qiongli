@@ -1,10 +1,24 @@
 # Changelog
 
-本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-06-23）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
+本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-06-24）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
 
 ## [Unreleased]
 
 暂无未发布变更。
+
+## [1.6.0] - 2026-06-24
+
+### Added
+
+- 新增 project-local guidance stack：除 `.qiongli/local_guidance.md` 外，项目可以通过 `.qiongli/guidance.d/*.md` 维护多个本地约束或扩展片段；运行时会按稳定顺序合成 guidance，并保留 source order metadata。
+- `qiongli guidance` CLI 新增 `add`、`list`、`lint` 子命令，用于创建本地 guidance fragment、列出实际生效来源、检查削弱 canonical contract / evidence gate / quality gate 的高风险表述。
+- Task-run trace、routing note、MCP preview 和 proposal 输出新增 guidance source metadata、fragment count、source order、conflict notes 与 proposal target/conflict check，让本地 guidance 的影响路径可审计。
+
+### Changed
+
+- Skill-only Qiongli workflow 现在会在项目存在 `.qiongli/local_guidance.md` 或 `.qiongli/guidance.d/*.md` 时读取本地 guidance，但本地规则仍只能作为 advisory layer，不能覆盖 canonical workflow contract、必需产物、证据门、质量门或安全边界。
+- Guidance proposal 默认定位为 project-local；`qiongli guidance apply` 只写入 `.qiongli/local_guidance.md`，提升到 user-global preferences 或 canonical source 需要显式后续命令或常规 repository PR。
+- README、文档首页和安装/发布文档更新为更完整的入口说明，覆盖 skill/plugin/CLI/MCP/Zotero 路由、稳定版下载方式和本地运行边界。
 
 ## [1.5.0] - 2026-06-23
 
