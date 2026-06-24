@@ -48,6 +48,19 @@
 | 要更新 Python CLI 分发 | `pipx install qiongli` 或 `pipx upgrade qiongli` | 参考 [升级指南](docs/zh/guide/upgrade.md) |
 | 还在选择论文路线 | 从 [任务场景](docs/zh/guide/task-recipes.md) 开始 | 按研究目标反推 paper type、stage 和产物 |
 
+## 最新稳定版下载
+
+当前稳定版是 [v1.5.0](https://github.com/jxpeng98/qiongli/releases/tag/v1.5.0)。下面是最常用的直达入口；完整 release 页面仍保留各 subject 的 Desktop ZIP 和维护者检查用 artifacts。
+
+| 需求 | 链接或命令 |
+|---|---|
+| npm CLI | [`qiongli@1.5.0`](https://www.npmjs.com/package/qiongli/v/1.5.0)：`npm install -g qiongli@latest` |
+| PyPI CLI | [`qiongli 1.5.0`](https://pypi.org/project/qiongli/1.5.0/)：`pipx install qiongli` |
+| Claude Desktop/Web core skill | [`qiongli-claude-desktop-skill-core-v1.5.0.zip`](https://github.com/jxpeng98/qiongli/releases/download/v1.5.0/qiongli-claude-desktop-skill-core-v1.5.0.zip) |
+| Claude Desktop literature MCPB | [`qiongli-literature-provider-0.1.4.mcpb`](https://github.com/jxpeng98/qiongli/releases/download/v1.5.0/qiongli-literature-provider-0.1.4.mcpb) |
+| Zotero Desktop companion | [`qiongli-zotero-companion-0.2.2.xpi`](https://github.com/jxpeng98/qiongli/releases/download/v1.5.0/qiongli-zotero-companion-0.2.2.xpi) |
+| 全部 release assets | [下载指南](https://github.com/jxpeng98/qiongli/releases/download/v1.5.0/qiongli-downloads-v1.5.0.md) 和 [GitHub Release](https://github.com/jxpeng98/qiongli/releases/tag/v1.5.0) |
+
 ## 工作原理
 
 ```mermaid

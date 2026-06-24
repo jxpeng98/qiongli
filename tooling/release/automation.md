@@ -137,7 +137,7 @@ It also runs:
 python3 scripts/build_marketplace_artifacts.py --tag <tag> --dist-dir dist
 ```
 
-When `--create-release` is used, the generated Codex and Claude Code artifacts are attached to the GitHub Release alongside the Python package artifacts. If the GitHub Release already exists, postflight uploads those marketplace artifacts with `--clobber`.
+When `--create-release` is used, the generated Codex and Claude Code artifacts are attached to the GitHub Release alongside the Python package artifacts. Stable release pages are created from a generated notes file that combines the matching `CHANGELOG.md` section with a release-category summary and a download guide. If the GitHub Release already exists, postflight uploads those marketplace artifacts with `--clobber`.
 
 ## Optional flags
 
@@ -159,7 +159,7 @@ When `--create-release` is used, the generated Codex and Claude Code artifacts a
   manual `post` diagnostics or recovery, not for routine publishing.
 - `--skip-remote`: skip remote ref checks in postflight.
 - `--skip-ci-status`: skip GitHub Actions status checks in postflight.
-- `--create-release`: if `gh auth` is available, create GitHub release page from the prerelease note file or the matching `CHANGELOG.md` section for stable tags.
+- `--create-release`: if `gh auth` is available, create the GitHub release page from the prerelease note file, or from generated stable notes that combine the matching `CHANGELOG.md` section with release-category and download guidance.
 
 ## GitHub workflow entrypoint
 

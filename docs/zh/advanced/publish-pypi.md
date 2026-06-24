@@ -80,7 +80,7 @@
 
 当前 release 文档策略：
 
-- stable 正式版统一维护在 `CHANGELOG.md`
+- stable 正式版统一维护在 `CHANGELOG.md`；postflight 会把对应 changelog 段落拼成包含 release 分类说明和下载指南的 GitHub Release notes
 - beta / prerelease 继续使用 `tooling/release/<tag>.md`
 
 Beta 通道策略：

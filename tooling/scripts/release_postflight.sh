@@ -38,7 +38,8 @@ Usage:
 Description:
   Run standardized post-release checks:
     1) verify local/remote tag consistency
-    2) verify release docs (stable uses CHANGELOG.md, prerelease uses tooling/release/<tag>.md) + rollback docs
+    2) verify release docs (stable uses CHANGELOG.md plus generated download guidance,
+       prerelease uses tooling/release/<tag>.md) + rollback docs
     3) optionally check branch CI and tag publish status on GitHub Actions
     4) generate release acceptance receipt from template
 
@@ -159,9 +160,12 @@ prepare_release_notes_file() {
   }
 
   TEMP_RELEASE_NOTES="$(mktemp -t qiongli-release-notes.XXXXXX.md)"
-  python3 scripts/changelog_section.py --version "$version" --output "$TEMP_RELEASE_NOTES"
+  python3 scripts/generate_stable_release_notes.py \
+    --tag "$tag" \
+    --repo "${REPO_SLUG:-jxpeng98/qiongli}" \
+    --output "$TEMP_RELEASE_NOTES"
   RELEASE_NOTES_FILE="$TEMP_RELEASE_NOTES"
-  RELEASE_NOTES_LABEL="CHANGELOG.md [${version}]"
+  RELEASE_NOTES_LABEL="stable notes: CHANGELOG.md [${version}] + download guide"
 }
 
 fetch_actions_runs() {
@@ -393,6 +397,9 @@ TEMPLATE_PATH="tooling/release/templates/beta-acceptance-template.md"
 
 [[ -f "$ROLLBACK_PATH" ]] || { echo "[postflight] missing rollback doc: $ROLLBACK_PATH" >&2; exit 1; }
 [[ -f "$TEMPLATE_PATH" ]] || { echo "[postflight] missing acceptance template: $TEMPLATE_PATH" >&2; exit 1; }
+if [[ -z "$REPO_SLUG" ]]; then
+  REPO_SLUG="$(derive_repo_slug || true)"
+fi
 prepare_release_notes_file "$TAG"
 echo "[postflight] release docs present: $RELEASE_NOTES_LABEL"
 

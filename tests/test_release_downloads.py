@@ -40,7 +40,9 @@ class ReleaseDownloadsTests(unittest.TestCase):
             index = json.loads(index_path.read_text(encoding="utf-8"))
 
         self.assertIn("# Qiongli v1.1.0-beta.2 Download Guide", guide)
+        self.assertIn("## Direct downloads", guide)
         self.assertIn("Start here", guide)
+        self.assertIn("https://github.com/jxpeng98/qiongli/releases/download/v1.1.0-beta.2/qiongli-next-claude-desktop-skill-core-v1.1.0-beta.2.zip", guide)
         self.assertIn("npx qiongli@next install --target all", guide)
         self.assertIn("Use the marketplace command; do not download a plugin tarball", guide)
         self.assertIn("qiongli-next-claude-desktop-skill-core-v1.1.0-beta.2.zip", guide)
@@ -121,6 +123,38 @@ class ReleaseDownloadsTests(unittest.TestCase):
         self.assertIn("qiongli-literature-provider-0.1.4.mcpb", notes)
         self.assertIn("qiongli-zotero-companion-0.2.2.xpi", notes)
         self.assertIn("Claude plugin ZIPs", notes)
+
+    def test_stable_release_notes_include_category_downloads_and_changelog(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            note_path = Path(tmp_dir) / "stable-notes.md"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "scripts/generate_stable_release_notes.py",
+                    "--tag",
+                    "v1.5.0",
+                    "--output",
+                    str(note_path),
+                ],
+                cwd=REPO_ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            notes = note_path.read_text(encoding="utf-8")
+
+        self.assertIn("## Release Category", notes)
+        self.assertIn("## Download Guide", notes)
+        self.assertIn("npm install -g qiongli@latest", notes)
+        self.assertIn("pipx install qiongli", notes)
+        self.assertIn("qiongli-claude-desktop-skill-core-v1.5.0.zip", notes)
+        self.assertIn("qiongli-literature-provider-0.1.4.mcpb", notes)
+        self.assertIn("qiongli-zotero-companion-0.2.2.xpi", notes)
+        self.assertIn("qiongli-downloads-v1.5.0.md", notes)
+        self.assertIn("## Changelog", notes)
+        self.assertIn("### [1.5.0] - 2026-06-23", notes)
 
 
 if __name__ == "__main__":

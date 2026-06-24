@@ -38,6 +38,19 @@ features:
 | 选择论文工作流 | [任务场景](/zh/guide/task-recipes) | 将真实研究目标映射到 paper type、stage、Task ID 和产物。 |
 | 自动化安装或升级 | [CLI 参考](/zh/reference/cli) | 覆盖 `qiongli`、`ql`、npm/npx、pipx、兼容别名和 JSON 检查。 |
 
+## 最新稳定版下载
+
+当前稳定版是 [v1.5.0](https://github.com/jxpeng98/qiongli/releases/tag/v1.5.0)。常用入口可以直接从这里拿；如果需要某个 subject 的 Desktop ZIP，再打开下载指南。
+
+| 需求 | 链接或命令 |
+|---|---|
+| npm CLI | [`qiongli@1.5.0`](https://www.npmjs.com/package/qiongli/v/1.5.0)：`npm install -g qiongli@latest` |
+| PyPI CLI | [`qiongli 1.5.0`](https://pypi.org/project/qiongli/1.5.0/)：`pipx install qiongli` |
+| Claude Desktop/Web core skill | [`qiongli-claude-desktop-skill-core-v1.5.0.zip`](https://github.com/jxpeng98/qiongli/releases/download/v1.5.0/qiongli-claude-desktop-skill-core-v1.5.0.zip) |
+| Claude Desktop literature MCPB | [`qiongli-literature-provider-0.1.4.mcpb`](https://github.com/jxpeng98/qiongli/releases/download/v1.5.0/qiongli-literature-provider-0.1.4.mcpb) |
+| Zotero Desktop companion | [`qiongli-zotero-companion-0.2.2.xpi`](https://github.com/jxpeng98/qiongli/releases/download/v1.5.0/qiongli-zotero-companion-0.2.2.xpi) |
+| 全部 release assets | [下载指南](https://github.com/jxpeng98/qiongli/releases/download/v1.5.0/qiongli-downloads-v1.5.0.md) 和 [GitHub Release](https://github.com/jxpeng98/qiongli/releases/tag/v1.5.0) |
+
 ## 当前系统覆盖什么
 
 Qiongli 提供便携的 `qiongli-workflow` 包，也提供可选的本地 literature search 和 orchestration 运行时。文档按研究者和项目维护者真正要完成的动作来组织：

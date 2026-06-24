@@ -181,24 +181,58 @@ def _desktop_skill_label(asset: str, tag: str) -> str:
     return asset
 
 
+def _markdown_link(label: str, url: str) -> str:
+    return f"[`{label}`]({url})"
+
+
 def render_markdown(index: dict[str, Any]) -> str:
     tag = str(index["tag"])
     channel = str(index["channel"])
     release_url = str(index["release_url"])
     recommended = index["recommended"]
     assets = index["assets"]
+    asset_urls = index["asset_urls"]
     desktop_skills = list(assets["claude_desktop_skills"])
     mcpb_asset = str(assets["claude_desktop_literature_mcpb"])
     zotero_asset = str(assets["zotero_desktop_companion"])
     guide_asset = str(assets["download_guide"])
     index_asset = str(assets["download_index"])
     plugin_zips = list(assets.get("maintainer_plugin_zips", []))
+    desktop_core_asset = (
+        f"{NEXT_PLUGIN_NAME}-claude-desktop-skill-core-{tag}.zip"
+        if channel == "next"
+        else f"{PLUGIN_NAME}-claude-desktop-skill-core-{tag}.zip"
+    )
+    if desktop_core_asset not in desktop_skills and desktop_skills:
+        desktop_core_asset = desktop_skills[0]
+
+    desktop_urls = asset_urls.get("claude_desktop_skills")
+    desktop_url_by_asset = (
+        dict(zip(desktop_skills, desktop_urls))
+        if isinstance(desktop_urls, list)
+        else {}
+    )
+    desktop_core_url = desktop_url_by_asset.get(desktop_core_asset, release_url)
+    if isinstance(desktop_urls, list) and desktop_core_asset in desktop_skills:
+        desktop_core_url = desktop_urls[desktop_skills.index(desktop_core_asset)]
+    mcpb_url = str(asset_urls["claude_desktop_literature_mcpb"])
+    zotero_url = str(asset_urls["zotero_desktop_companion"])
+    guide_url = str(asset_urls["download_guide"])
+    index_url = str(asset_urls["download_index"])
 
     desktop_rows = "\n".join(
-        f"| `{_desktop_skill_label(asset, tag)}` | `{asset}` |"
+        f"| `{_desktop_skill_label(asset, tag)}` | {_markdown_link(asset, desktop_url_by_asset.get(asset, release_url))} |"
         for asset in desktop_skills
     )
     plugin_zip_rows = "\n".join(f"- `{asset}`" for asset in plugin_zips)
+    cli_channel_label = "npm `next`" if recommended["qiongli_cli"]["install"] == "npm_next" else "npm `latest`"
+    channel_description = (
+        "Stable releases are for everyday installs and upgrades. npm `latest`, PyPI stable, "
+        "the `qiongli` marketplace entry, and the Desktop/MCP assets should all point at this tag."
+        if channel == "stable"
+        else "Next releases are prerelease validation builds. Use them to test `qiongli-next`, "
+        "npm `next`, and the beta Desktop/MCP assets before the next stable release."
+    )
 
     lines = [
         f"# Qiongli {tag} Download Guide",
@@ -206,13 +240,26 @@ def render_markdown(index: dict[str, Any]) -> str:
         "Start here before using GitHub's asset list. Most users should not download plugin tarballs manually.",
         f"Channel: {channel}",
         "",
+        channel_description,
+        "",
         f"Release page: {release_url}",
+        "",
+        "## Direct downloads",
+        "",
+        "| Need | Link |",
+        "|---|---|",
+        f"| Release page and all assets | [Qiongli {tag}]({release_url}) |",
+        f"| Default Claude Desktop/Web skill ZIP | {_markdown_link(desktop_core_asset, desktop_core_url)} |",
+        f"| Claude Desktop literature MCPB | {_markdown_link(mcpb_asset, mcpb_url)} |",
+        f"| Zotero Desktop companion XPI | {_markdown_link(zotero_asset, zotero_url)} |",
+        f"| Human download guide | {_markdown_link(guide_asset, guide_url)} |",
+        f"| Machine-readable download index | {_markdown_link(index_asset, index_url)} |",
         "",
         "## Start here",
         "",
         "| You use | Download or install | Why |",
         "|---|---|---|",
-        f"| Qiongli CLI | `{recommended['qiongli_cli']['command']}` | Exercises the npm `{recommended['qiongli_cli']['install']}` channel and bundled CLI payload. |",
+        f"| Qiongli CLI | `{recommended['qiongli_cli']['command']}` | Uses the {cli_channel_label} channel and bundled CLI payload. |",
         "| Codex | Use the marketplace command; do not download a plugin tarball. | Marketplace install keeps skills and bundled literature MCP registration together. |",
         "| Claude Code | Use the marketplace command; do not download a plugin tarball. | Marketplace install keeps slash commands, skills, and bundled literature MCP together. |",
         "| Claude Desktop/Web skills | Download exactly one Desktop skill ZIP from the table below. | ZIPs are focused skill packages sized for Desktop/Web upload. |",

@@ -80,7 +80,7 @@ The default release smoke tier is intentionally conservative: builtin literature
 
 Release doc policy:
 
-- stable releases must be summarized in `CHANGELOG.md`
+- stable releases must be summarized in `CHANGELOG.md`; postflight turns that changelog section into GitHub Release notes with a release-category summary and download guide
 - beta / prerelease releases continue to use `tooling/release/<tag>.md`
 
 Beta channel policy:
