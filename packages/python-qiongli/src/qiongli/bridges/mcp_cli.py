@@ -20,6 +20,19 @@ from qiongli import __version__
 from qiongli.universal_installer import PART_CHOICES, TARGET_CHOICES
 
 
+LITERATURE_TOOLS = [
+    "qiongli_literature_status",
+    "qiongli_literature_search",
+    "qiongli_literature_export_evidence",
+]
+ORCHESTRATOR_TOOLS = [
+    "qiongli_orchestrator_route",
+    "qiongli_orchestrator_doctor",
+    "qiongli_task_plan",
+    "qiongli_task_run",
+]
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run and configure the Qiongli cross-platform MCP server.")
     subparsers = parser.add_subparsers(dest="cmd", required=True)
@@ -160,6 +173,8 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
     for provider, status in payload["providers"].items():
         print(f"- {provider}: {status}")
     print(f"- capability_mode: {payload['capability_mode']}")
+    print(f"- literature_tools_available: {payload['literature_tools_available']}")
+    print(f"- orchestrator_tools_available: {payload['orchestrator_tools_available']}")
     return 0
 
 
@@ -227,6 +242,10 @@ def _doctor_payload(cwd: Path) -> dict[str, Any]:
         "config_path": str(global_provider_config_path()),
         "providers": summary,
         "capability_mode": provider_capability_mode(summary),
+        "literature_tools_available": True,
+        "orchestrator_tools_available": True,
+        "literature_tools": LITERATURE_TOOLS,
+        "orchestrator_tools": ORCHESTRATOR_TOOLS,
         "missing": missing,
         "redacted_config": redact_provider_config(config),
         "provider_env_aliases": {
@@ -258,14 +277,11 @@ def config_example(target: str) -> dict[str, Any]:
             "qiongli_config_status",
             "qiongli_configure_provider",
             "qiongli_open_config_wizard",
-        "qiongli_save_provider_config",
+            "qiongli_save_provider_config",
         ],
-        "orchestration_tools": [
-            "qiongli_orchestrator_route",
-            "qiongli_orchestrator_doctor",
-            "qiongli_task_plan",
-            "qiongli_task_run",
-        ],
+        "literature_tools": LITERATURE_TOOLS,
+        "orchestrator_tools": ORCHESTRATOR_TOOLS,
+        "orchestration_tools": ORCHESTRATOR_TOOLS,
         "safety": {
             "task_run_default": "preview",
             "run_agents_required": True,
