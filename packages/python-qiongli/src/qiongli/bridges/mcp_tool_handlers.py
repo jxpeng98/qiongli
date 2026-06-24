@@ -7,6 +7,12 @@ from typing import Any, Callable
 from bridges.mcp_config_wizard import start_config_wizard
 from bridges.mcp_connectors import MCPConnector
 from bridges.guidance_runtime import GUIDANCE_MODES, guidance_bootstrap_status
+from bridges.literature_mcp_tools import (
+    LITERATURE_TOOL_DEFINITIONS,
+    handle_literature_export_evidence,
+    handle_literature_search,
+    handle_literature_status,
+)
 from bridges.provider_config import (
     PROVIDER_FIELDS,
     global_provider_config_path,
@@ -216,10 +222,15 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
     },
 ]
 
+MCP_TOOL_DEFINITIONS = [*LITERATURE_TOOL_DEFINITIONS, *MCP_TOOL_DEFINITIONS]
+
 
 def call_qiongli_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
     args = arguments or {}
     handlers: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
+        "qiongli_literature_status": handle_literature_status,
+        "qiongli_literature_search": handle_literature_search,
+        "qiongli_literature_export_evidence": handle_literature_export_evidence,
         "qiongli_config_status": _tool_config_status,
         "qiongli_save_provider_config": _tool_save_provider_config,
         "qiongli_collect_evidence": _tool_collect_evidence,

@@ -17,6 +17,9 @@ class MCPToolHandlerTests(unittest.TestCase):
 
         self.assertTrue(
             {
+                "qiongli_literature_status",
+                "qiongli_literature_search",
+                "qiongli_literature_export_evidence",
                 "qiongli_config_status",
                 "qiongli_save_provider_config",
                 "qiongli_collect_evidence",

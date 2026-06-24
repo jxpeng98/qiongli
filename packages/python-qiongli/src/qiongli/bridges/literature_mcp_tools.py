@@ -1,0 +1,169 @@
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+from bridges.provider_config import (
+    provider_capability_mode,
+    provider_config_summary,
+    redact_provider_config,
+    resolve_provider_config,
+)
+
+
+LITERATURE_PROVIDER_CAPABILITIES: dict[str, dict[str, Any]] = {
+    "openalex": {
+        "status": "implemented",
+        "capabilities": [
+            "topic_search",
+            "doi_lookup",
+            "year_filter",
+            "document_type_filter",
+            "venue_metadata",
+        ],
+    },
+    "semantic_scholar": {
+        "status": "implemented",
+        "capabilities": [
+            "topic_search",
+            "title_lookup",
+            "doi_lookup",
+            "year_filter",
+            "venue_metadata",
+        ],
+    },
+    "crossref": {
+        "status": "implemented",
+        "capabilities": [
+            "topic_search",
+            "doi_lookup",
+            "year_filter",
+            "document_type_filter",
+            "reference_metadata",
+        ],
+    },
+    "pubmed": {
+        "status": "implemented",
+        "capabilities": [
+            "topic_search",
+            "doi_lookup",
+            "biomedical_topic_search",
+            "year_filter",
+        ],
+    },
+}
+
+
+LITERATURE_TOOL_DEFINITIONS: list[dict[str, Any]] = [
+    {
+        "name": "qiongli_literature_status",
+        "description": "Report configured literature providers and capability mode without exposing secrets.",
+        "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
+    },
+    {
+        "name": "qiongli_literature_search",
+        "description": "Search academic literature using the full Qiongli CLI MCP provider stack.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string"},
+                "limit": {"type": "number"},
+                "per_provider_limit": {"type": "number"},
+                "total_limit": {"type": "number"},
+                "search_mode": {
+                    "type": "string",
+                    "enum": ["auto", "topic", "title", "doi", "review", "systematic_review"],
+                },
+                "exact_title": {"type": "boolean"},
+                "fromYear": {"type": ["integer", "string"]},
+                "toYear": {"type": ["integer", "string"]},
+                "venue_filter": {"type": "string"},
+                "document_types": {"type": "array", "items": {"type": "string"}},
+                "query_variants": {"type": "array", "items": {"type": "string"}},
+            },
+            "additionalProperties": True,
+        },
+    },
+    {
+        "name": "qiongli_literature_export_evidence",
+        "description": "Export an auditable provider capability and search evidence snapshot.",
+        "inputSchema": {"type": "object", "properties": {}, "additionalProperties": True},
+    },
+]
+
+
+def handle_literature_status(args: dict[str, Any]) -> dict[str, Any]:
+    cwd = _cwd_from_args(args)
+    config = resolve_provider_config(cwd=cwd)
+    summary = provider_config_summary(config)
+    return {
+        "providers": summary,
+        "capability_mode": provider_capability_mode(summary),
+        "capabilities": LITERATURE_PROVIDER_CAPABILITIES,
+        "redacted_config": redact_provider_config(config),
+    }
+
+
+def handle_literature_search(args: dict[str, Any]) -> dict[str, Any]:
+    return run_literature_search(args)
+
+
+def handle_literature_export_evidence(args: dict[str, Any]) -> dict[str, Any]:
+    results = args.get("results", args.get("search_results", []))
+    if not isinstance(results, list):
+        results = []
+    return {
+        "artifact_type": "qiongli_literature_evidence_snapshot",
+        "exported_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "query": str(args.get("query", "") or "").strip(),
+        "provider_status": args.get("provider_status", {}),
+        "search_plan": args.get("search_plan", args.get("query_plan", {})),
+        "diagnostics": args.get("diagnostics", args.get("search_diagnostics", {})),
+        "result_count": len(results),
+        "results": results,
+    }
+
+
+def run_literature_search(args: dict[str, Any]) -> dict[str, Any]:
+    from bridges.providers.literature_search import run_scholarly_search
+    from bridges.providers.s2_client import search_paper
+
+    task_packet = _task_packet_from_search_args(args)
+    return run_scholarly_search(task_packet, search_paper)
+
+
+def _task_packet_from_search_args(args: dict[str, Any]) -> dict[str, Any]:
+    query = str(args.get("query", "") or "").strip()
+    variants = args.get("query_variants", args.get("queryVariants", []))
+    keywords = [query] if query else []
+    if isinstance(variants, list):
+        keywords.extend(str(item).strip() for item in variants if str(item).strip())
+    return {
+        "topic": query or "literature-search",
+        "research_question": query,
+        "keywords": keywords,
+        "paper_type": _paper_type_from_search_mode(args.get("search_mode", args.get("searchMode"))),
+        "search_mode": args.get("search_mode", args.get("searchMode", "auto")),
+        "year_start": args.get("fromYear"),
+        "year_end": args.get("toYear"),
+        "venue_profile": args.get("venue_filter", args.get("venueFilter", "")),
+        "publication_type": _first_document_type(args.get("document_types", args.get("documentTypes"))),
+        "limit": args.get("limit"),
+        "per_provider_limit": args.get("per_provider_limit", args.get("perProviderLimit")),
+    }
+
+
+def _paper_type_from_search_mode(search_mode: Any) -> str:
+    return "systematic-review" if str(search_mode).strip() == "systematic_review" else "empirical"
+
+
+def _first_document_type(raw: Any) -> str:
+    if isinstance(raw, list) and raw:
+        return str(raw[0])
+    return str(raw or "")
+
+
+def _cwd_from_args(args: dict[str, Any]) -> Path:
+    raw = str(args.get("cwd", "") or "").strip()
+    return Path(raw).expanduser().resolve() if raw else Path.cwd()
