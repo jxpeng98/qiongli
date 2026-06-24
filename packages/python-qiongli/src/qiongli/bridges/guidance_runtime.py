@@ -216,6 +216,9 @@ def write_guidance_trace(
         "found_outputs": list(validator_gate.get("found", []) or []),
         "missing_outputs": list(validator_gate.get("missing", []) or []),
         "guidance_files_read": list(guidance_state.guidance_files_read),
+        "guidance_sources": list(guidance_state.guidance_sources),
+        "source_order": list(guidance_state.source_order),
+        "guidance_conflicts": list(guidance_state.conflicts),
         "guidance_proposal": _rel(paths.project_root, run_dir / "guidance_update_proposal.md"),
         "applied_guidance_update": bool(apply_result.get("applied")) if applied else False,
     }

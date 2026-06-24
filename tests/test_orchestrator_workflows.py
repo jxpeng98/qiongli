@@ -811,6 +811,35 @@ class OrchestratorWorkflowTests(unittest.TestCase):
             self.assertIn("Local guidance context", draft_prompt)
             self.assertIn("Keep helper traces", draft_prompt)
 
+    def test_task_run_injects_guidance_fragments_into_packet_and_prompt(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / ".qiongli" / "guidance.d").mkdir(parents=True)
+            (root / ".qiongli" / "local_guidance.md").write_text(
+                "# Qiongli Local Guidance\n\n## Active Guidance\n- Use local summary rules.\n",
+                encoding="utf-8",
+            )
+            (root / ".qiongli" / "guidance.d" / "writing-style.md").write_text(
+                "# Writing Style\n\n- Prefer claim-first paragraphs.\n",
+                encoding="utf-8",
+            )
+            orchestrator = MockOrchestrator()
+
+            result = orchestrator.task_run(
+                task_id="F3",
+                paper_type="empirical",
+                topic="ai-writing",
+                cwd=root,
+                guidance_mode="read",
+                skip_validation=True,
+            )
+
+            packet = result.data["task_packet"]
+            self.assertIn(".qiongli/guidance.d/writing-style.md", packet["local_guidance"]["guidance_files_read"])
+            draft_prompt = next(call["prompt"] for call in orchestrator.runtime_calls if call["agent"])
+            self.assertIn("Prefer claim-first paragraphs", draft_prompt)
+            self.assertIn("Local guidance ACTIVE", result.merged_analysis)
+
     def test_task_run_auto_initializes_guidance_when_missing(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
@@ -895,6 +924,8 @@ class OrchestratorWorkflowTests(unittest.TestCase):
             self.assertTrue((run_dir / "task_packet.json").is_file())
             self.assertTrue((run_dir / "draft.md").is_file())
             self.assertTrue((run_dir / "validator_gate.json").is_file())
+            self.assertIn("guidance_sources", trace)
+            self.assertIn("source_order", trace)
             self.assertTrue((root / ".qiongli" / "trace" / "index.jsonl").is_file())
             self.assertIn("Local guidance trace written", result.merged_analysis)
 

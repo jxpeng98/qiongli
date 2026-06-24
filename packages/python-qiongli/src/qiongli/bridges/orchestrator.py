@@ -6344,8 +6344,13 @@ Return sections:
             routing_notes.append(
                 "Local guidance ACTIVE: "
                 f"mode={guidance_state.mode}, "
-                f"files={', '.join(guidance_state.guidance_files_read)}."
+                f"files={', '.join(guidance_state.guidance_files_read)}; "
+                f"sources={len(guidance_state.guidance_sources)}."
             )
+            if guidance_state.conflicts:
+                routing_notes.append(
+                    "Local guidance conflicts detected: " + "; ".join(guidance_state.conflicts) + "."
+                )
         else:
             routing_notes.append(
                 "Local guidance trace mode ACTIVE without readable guidance context: "
