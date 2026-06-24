@@ -1,27 +1,38 @@
 <div align="center">
   <h1>穷理（Qiongli）</h1>
-  <p><strong>面向 Codex、Claude Code 与 Gemini 的契约驱动学术工作流系统。</strong></p>
-  <p>用同一套 Task ID、质量门、角色交接和标准产物路径，串联文献、写作、研究代码、审稿与可复查证据链。</p>
+  <p><strong>让 AI 辅助研究留下可复查证据链的学术工作流系统。</strong></p>
+  <p>先把研究拆成任务，再处理文献、写作、代码和审阅；每一步都落到统一的 Task ID、质量门、交接记录和产物路径里。</p>
   <p>
+    <a href="https://www.npmjs.com/package/qiongli"><img alt="npm latest version" src="https://img.shields.io/npm/v/qiongli/latest?style=flat-square&amp;logo=npm&amp;label=npm%20latest"></a>
+    <a href="https://www.npmjs.com/package/qiongli?activeTab=versions"><img alt="npm next version" src="https://img.shields.io/npm/v/qiongli/next?style=flat-square&amp;logo=npm&amp;label=npm%20next&amp;color=cb3837"></a>
+    <a href="https://pypi.org/project/qiongli/"><img alt="PyPI latest version" src="https://img.shields.io/pypi/v/qiongli?style=flat-square&amp;logo=pypi&amp;label=PyPI%20latest"></a>
+    <a href="https://pypi.org/project/qiongli/1.5.0b8/"><img alt="PyPI beta version" src="https://img.shields.io/badge/PyPI%20beta-1.5.0b8-3775A9?style=flat-square&amp;logo=pypi&amp;logoColor=white"></a>
+  </p>
+  <p>
+    <a href="packages/qiongli-literature-mcpb/README.md"><img alt="Qiongli Literature Provider MCPB version" src="https://img.shields.io/github/package-json/v/jxpeng98/qiongli?filename=packages/qiongli-literature-mcpb/package.json&amp;style=flat-square&amp;label=MCPB%20literature&amp;color=0f766e"></a>
+    <a href="packages/qiongli-zotero-companion/README.md"><img alt="Qiongli Zotero Companion version" src="https://img.shields.io/github/package-json/v/jxpeng98/qiongli?filename=packages/qiongli-zotero-companion/package.json&amp;style=flat-square&amp;label=Zotero%20companion&amp;color=cc2936"></a>
+  </p>
+  <p>
+    <a href="README.md">English README</a> ·
+    <a href="docs/zh/index.md">VitePress 中文文档</a> ·
+    <a href="docs/index.md">English Docs</a> ·
     <a href="docs/zh/quickstart.md">快速开始</a> ·
     <a href="docs/zh/guide/install.md">安装</a> ·
-    <a href="docs/zh/guide/task-recipes.md">任务场景</a> ·
-    <a href="docs/zh/reference/cli.md">CLI</a> ·
-    <a href="docs/zh/architecture.md">架构</a>
+    <a href="docs/zh/reference/cli.md">CLI</a>
   </p>
 </div>
 
 ## 穷理现在能做什么
 
-穷理把学术工作拆成可执行、可审计的任务链。它不是让模型一次性即兴生成整篇论文，而是把每一步绑定到 Task ID、质量门、角色交接和 `RESEARCH/[topic]/` 下的标准产物。
+穷理适合那些不能只靠一次 prompt 完成的研究任务。它会把一个宽泛的学术请求拆成可执行、可复查的任务链，并把每一步绑定到 Task ID、质量门、角色交接和 `RESEARCH/[topic]/` 下的标准产物。这样后续修改论文、追溯引用、复查方法或审阅代码时，都能找到对应依据。
 
-适合用于：
+你可以用它来：
 
-- **研究工作流：** systematic review、empirical study、qualitative study、RCT preregistration、theory paper、code-first methods paper。
-- **文献严谨性：** provider-aware search planning、search diagnostics、search bundle、dedup log、screening readiness、snowball readiness。
-- **写作完整性：** claim-evidence map、citation risk、图表规划、limitations review、proofreading、rebuttal。
-- **研究代码纪律：** 严格 Stage-I `I5 -> I6 -> I7 -> I8`，覆盖 specification、planning、execution、review。
-- **多 agent 审阅：** Codex / Claude / Gemini 的 solo、duo、triad 模式，显式 handoff、disagreement record 和 verification status。
+- **选择论文路线：** systematic review、empirical study、qualitative study、RCT preregistration、theory paper、code-first methods paper。
+- **把文献工作做扎实：** 规划 provider-aware search，记录 search diagnostics，生成 search bundle、dedup log，并准备 screening 或 snowballing。
+- **让写作回到证据上：** 维护 claim-evidence map，检查 citation risk，规划图表，审阅 limitations，处理 proofreading 和 rebuttal。
+- **把研究代码当成研究证据：** 按 Stage-I `I5 -> I6 -> I7 -> I8` 跑 specification、planning、execution、review。
+- **组织多 agent 审阅：** 在 Codex、Claude、Antigravity 等工具之间使用 solo、duo、triad 模式，保存 handoff、disagreement record 和 verification status。
 
 ## 从哪里开始
 
@@ -29,12 +40,30 @@
 
 | 目标 | 推荐入口 | 说明 |
 |---|---|---|
-| 只在一个 AI 客户端里使用 | 原生 plugin / extension | [安装指南](docs/zh/guide/install.md) |
-| 给多个客户端安装 workflow assets | Bootstrap `partial` profile | [快速开始](docs/zh/quickstart.md) |
-| 使用 `qiongli doctor`、validator 或 orchestrator | Bootstrap `full` profile，要求 Python 3.12+ | [多 Agent 指南](docs/zh/guide/multi-agent.md) |
-| 通过 npm 做脚本化安装 | `npm install -g qiongli` 或 `npx qiongli@latest` | [CLI 参考](docs/zh/reference/cli.md) |
-| 更新 Python CLI 分发 | `pipx install qiongli` 或 `pipx upgrade qiongli` | [升级指南](docs/zh/guide/upgrade.md) |
-| 选择论文路线 | 从任务场景开始 | [任务场景](docs/zh/guide/task-recipes.md) |
+| 想浏览完整文档站 | 打开 [VitePress 中文文档](docs/zh/index.md)，或本地运行 `npm run docs:dev` | 文档站包含 guide、reference、advanced、maintainer 等导航 |
+| 只想先在一个 AI 客户端里用起来 | 原生 plugin / extension | 走 [安装指南](docs/zh/guide/install.md) 最稳 |
+| 想给多个客户端安装 workflow assets | Bootstrap `partial` profile | 从 [快速开始](docs/zh/quickstart.md) 走，不要求 Python |
+| 需要 `qiongli doctor`、validator 或 orchestrator | Bootstrap `full` profile，要求 Python 3.12+ | 看 [多 Agent 指南](docs/zh/guide/multi-agent.md) |
+| 想脚本化安装或升级 | `npm install -g qiongli` 或 `npx qiongli@latest` | 细节在 [CLI 参考](docs/zh/reference/cli.md) |
+| 要更新 Python CLI 分发 | `pipx install qiongli` 或 `pipx upgrade qiongli` | 参考 [升级指南](docs/zh/guide/upgrade.md) |
+| 还在选择论文路线 | 从 [任务场景](docs/zh/guide/task-recipes.md) 开始 | 按研究目标反推 paper type、stage 和产物 |
+
+## 工作原理
+
+```mermaid
+flowchart TD
+    A["研究请求"] --> B["Qiongli skill / workflow 路由"]
+    B --> C["任务合同：Task ID、paper type、topic、产物路径"]
+    C --> D{"选择刚好够用的运行时入口"}
+    D --> E["skill-only 指导"]
+    D --> F["Literature MCP 工具"]
+    D --> G["完整 CLI / orchestrator runtime"]
+    E --> H["RESEARCH/[topic]/ 下的阶段产物"]
+    F --> H
+    G --> I["角色交接、质量门和 verification"]
+    I --> H
+    H --> J["可审计证据、草稿、代码、评审和发布产物"]
+```
 
 ## 当前能力地图
 
@@ -990,3 +1019,9 @@ qiongli/
 ```
 
 许可协议: MIT
+
+---
+
+## 社区致谢
+
+感谢 [linux.do](https://linux.do/) 社区提供开放、务实的中文技术讨论场域。Qiongli 后续会在 linux.do 做项目曝光、收集反馈，也欢迎从 linux.do 看到这个项目的朋友提出使用建议和真实批评。

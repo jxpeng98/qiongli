@@ -337,12 +337,16 @@ mode 列表：
   ```bash
   qiongli guidance init --project-dir .
   qiongli guidance show --project-dir .
+  qiongli guidance add --project-dir . --name writing-style
+  qiongli guidance list --project-dir .
+  qiongli guidance lint --project-dir .
   qiongli guidance trace --project-dir .
   qiongli guidance apply \
     --project-dir . \
     --proposal .qiongli/trace/runs/<run_id>/guidance_update_proposal.md
   ```
   项目本地定制写在 `.qiongli/local_guidance.md`；运行追溯写在 `.qiongli/trace/index.jsonl` 和 `.qiongli/trace/runs/<run_id>/`。这些文件不会修改 canonical workflow contract、内置 skills 或 release payload。
+  Guidance proposal 默认是 project-local。proposal 可以建议 `user-global` 或 `canonical-candidate`，但 `qiongli guidance apply` 只会写 `.qiongli/local_guidance.md`。将规则提升到 `~/.qiongli/preferences.md` 或 canonical source，需要显式的后续命令或正常 repository PR。
 - `code-build`：学术代码工作流入口
   ```bash
   python3 -m bridges.orchestrator code-build \

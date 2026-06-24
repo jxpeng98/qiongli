@@ -586,6 +586,8 @@ class MCPToolHandlerTests(unittest.TestCase):
                 preview["guidance_bootstrap"]["project_guidance"],
                 ".qiongli/local_guidance.md",
             )
+            self.assertEqual(preview["guidance_bootstrap"]["guidance_dir"], ".qiongli/guidance.d")
+            self.assertEqual(preview["guidance_bootstrap"]["guidance_fragment_count"], 0)
             self.assertFalse((root / ".qiongli").exists())
 
     def test_task_run_preview_maps_triad_execution_mode_to_metadata(self) -> None:
