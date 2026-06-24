@@ -751,6 +751,8 @@ def _run_orchestrator_guidance(args: argparse.Namespace) -> int:
     ]
     if args.guidance_cmd == "trace":
         command.extend(["--limit", str(args.limit)])
+    if args.guidance_cmd == "add":
+        command.extend(["--name", str(args.name)])
     if args.guidance_cmd == "apply":
         command.extend(["--proposal", str(Path(args.proposal).expanduser())])
 
@@ -1260,6 +1262,25 @@ def build_parser() -> argparse.ArgumentParser:
         help="Project directory that owns .qiongli/ (default: current dir)",
     )
     guidance_trace.add_argument("--limit", default=20, type=int, help="Maximum trace records to show")
+    guidance_list = guidance_subparsers.add_parser("list", help="List effective project guidance sources")
+    guidance_list.add_argument(
+        "--project-dir",
+        default=str(Path.cwd()),
+        help="Project directory that owns .qiongli/ (default: current dir)",
+    )
+    guidance_add = guidance_subparsers.add_parser("add", help="Create a project guidance fragment")
+    guidance_add.add_argument(
+        "--project-dir",
+        default=str(Path.cwd()),
+        help="Project directory that owns .qiongli/ (default: current dir)",
+    )
+    guidance_add.add_argument("--name", required=True, help="Guidance fragment name, e.g. writing-style")
+    guidance_lint = guidance_subparsers.add_parser("lint", help="Check project guidance for unsafe override language")
+    guidance_lint.add_argument(
+        "--project-dir",
+        default=str(Path.cwd()),
+        help="Project directory that owns .qiongli/ (default: current dir)",
+    )
     guidance_apply = guidance_subparsers.add_parser(
         "apply",
         help="Apply an explicit guidance update proposal to project-local guidance",

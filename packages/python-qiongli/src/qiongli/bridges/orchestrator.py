@@ -43,10 +43,13 @@ from .guidance_runtime import (
     GUIDANCE_MODES,
     GuidanceState,
     apply_guidance_proposal,
+    create_guidance_fragment,
     ensure_project_guidance,
     effective_guidance,
     guidance_trace_summary,
     init_project_guidance,
+    list_project_guidance_sources,
+    lint_project_guidance,
     write_guidance_trace,
 )
 from .boundary_questions import (
@@ -7486,6 +7489,17 @@ def _run_guidance_command(args: argparse.Namespace) -> CollaborationResult:
         summary = guidance_trace_summary(project_dir, limit=limit)
         data = {"action": "trace", **summary}
         merged = json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True)
+    elif action == "list":
+        data = {"action": "list", **list_project_guidance_sources(project_dir)}
+        merged = json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True)
+    elif action == "add":
+        result = create_guidance_fragment(project_dir, str(getattr(args, "name", "")))
+        data = {"action": "add", "project_dir": str(project_dir), **result}
+        merged = json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True)
+    elif action == "lint":
+        result = lint_project_guidance(project_dir)
+        data = {"action": "lint", "project_dir": str(project_dir), **result}
+        merged = json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True)
     elif action == "apply":
         proposal = Path(getattr(args, "proposal", ""))
         result = apply_guidance_proposal(project_dir, proposal)
@@ -7646,6 +7660,41 @@ def main():
         default=20,
         type=int,
         help="Maximum number of recent trace records to show (default: 20)",
+    )
+    guidance_list = guidance_subparsers.add_parser(
+        "list",
+        help="List effective project guidance sources",
+    )
+    guidance_list.add_argument(
+        "--project-dir",
+        default=Path.cwd(),
+        type=Path,
+        help="Project directory that owns .qiongli/ (default: current directory)",
+    )
+    guidance_add = guidance_subparsers.add_parser(
+        "add",
+        help="Create a project guidance fragment",
+    )
+    guidance_add.add_argument(
+        "--project-dir",
+        default=Path.cwd(),
+        type=Path,
+        help="Project directory that owns .qiongli/ (default: current directory)",
+    )
+    guidance_add.add_argument(
+        "--name",
+        required=True,
+        help="Guidance fragment name, e.g. writing-style",
+    )
+    guidance_lint = guidance_subparsers.add_parser(
+        "lint",
+        help="Check project guidance for unsafe override language",
+    )
+    guidance_lint.add_argument(
+        "--project-dir",
+        default=Path.cwd(),
+        type=Path,
+        help="Project directory that owns .qiongli/ (default: current directory)",
     )
     guidance_apply = guidance_subparsers.add_parser(
         "apply",

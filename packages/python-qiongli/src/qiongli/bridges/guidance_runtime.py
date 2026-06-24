@@ -290,6 +290,74 @@ def apply_guidance_proposal(project_root: Path, proposal: Path) -> dict[str, Any
     }
 
 
+def create_guidance_fragment(project_root: Path, name: str) -> dict[str, Any]:
+    paths = init_project_guidance(project_root)
+    slug = _slugify_guidance_name(name)
+    if not slug:
+        raise ValueError("Guidance fragment name must contain letters or numbers.")
+    path = paths.project_guidance_dir / f"{slug}.md"
+    if path.exists():
+        raise FileExistsError(f"Guidance fragment already exists: {_rel(paths.project_root, path)}")
+    path.write_text(
+        "\n".join(
+            [
+                f"# {slug.replace('-', ' ').title()}",
+                "",
+                "## Scope",
+                "",
+                "- Describe when this project guidance applies.",
+                "",
+                "## Guidance",
+                "",
+                "- Add one stable project rule.",
+                "",
+                "## Evidence",
+                "",
+                "- Link to trace runs, project artifacts, or explicit user decisions.",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return {"created": True, "path": _rel(paths.project_root, path)}
+
+
+def list_project_guidance_sources(project_root: Path) -> dict[str, Any]:
+    state = effective_guidance(project_root, mode="read")
+    return {
+        "project_dir": str(Path(project_root).expanduser().resolve()),
+        "sources": list(state.guidance_sources),
+        "files_read": list(state.guidance_files_read),
+    }
+
+
+def lint_project_guidance(project_root: Path) -> dict[str, Any]:
+    root = Path(project_root).expanduser().resolve()
+    state = effective_guidance(root, mode="read")
+    forbidden_patterns = [
+        ("required outputs", re.compile(r"\b(ignore|skip|override)\b.{0,80}\brequired outputs?\b", re.I)),
+        ("evidence gates", re.compile(r"\b(ignore|skip|override)\b.{0,80}\bevidence gates?\b", re.I)),
+        ("quality gates", re.compile(r"\b(ignore|skip|override)\b.{0,80}\bquality gates?\b", re.I)),
+        ("safety checks", re.compile(r"\b(ignore|skip|override)\b.{0,80}\bsafety checks?\b", re.I)),
+    ]
+    findings: list[dict[str, str]] = []
+    for source in state.guidance_sources:
+        path_text = source["path"]
+        path = Path(path_text)
+        full_path = path if path.is_absolute() else root / path
+        text = full_path.read_text(encoding="utf-8") if full_path.is_file() else ""
+        for label, pattern in forbidden_patterns:
+            if pattern.search(text):
+                findings.append(
+                    {
+                        "path": path_text,
+                        "severity": "error",
+                        "message": f"Guidance appears to weaken {label}.",
+                    }
+                )
+    return {"ok": not findings, "findings": findings}
+
+
 def _default_local_guidance() -> str:
     return "\n".join(
         [
@@ -341,6 +409,11 @@ def _iter_project_guidance_fragments(paths: GuidancePaths) -> list[Path]:
         for path in paths.project_guidance_dir.glob("*.md")
         if path.is_file() and not path.name.startswith(".")
     )
+
+
+def _slugify_guidance_name(name: str) -> str:
+    normalized = re.sub(r"[^a-z0-9]+", "-", str(name).strip().lower())
+    return normalized.strip("-")
 
 
 def _rel(root: Path, path: Path) -> str:

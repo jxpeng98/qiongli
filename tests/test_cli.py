@@ -305,6 +305,22 @@ class InstallerCliTests(unittest.TestCase):
             ["guidance", "init", "--project-dir", str(project_dir.resolve())],
         )
 
+    def test_guidance_add_command_runs_orchestrator_subprocess(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            project_dir = Path(tmp_dir)
+            completed = mock.Mock(returncode=0, stdout="guidance add ok\n")
+            args = argparse.Namespace(guidance_cmd="add", project_dir=str(project_dir), name="writing-style")
+
+            with mock.patch.object(cli_module.subprocess, "run", return_value=completed) as run_mock:
+                exit_code = cli_module.cmd_guidance(args)
+
+        self.assertEqual(exit_code, 0)
+        command = run_mock.call_args.args[0]
+        self.assertIn("guidance", command)
+        self.assertIn("add", command)
+        self.assertIn("--name", command)
+        self.assertIn("writing-style", command)
+
     def test_provider_set_and_list_redacts_global_config(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             config_home = Path(tmp_dir) / "config"
