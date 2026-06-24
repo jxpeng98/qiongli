@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 const TARGETS = ['codex', 'claude', 'antigravity', 'hermes'];
-const PARTS = ['globals', 'project', 'cli'];
+const PARTS = ['globals', 'project', 'cli', 'mcp'];
 const LEGACY_SKILL_NAME = 'research-paper-workflow';
 
 export function resolveTargetPaths({ env = process.env } = {}) {
@@ -65,6 +65,7 @@ export function installSkills({
   dryRun = false,
   subject = 'core',
   coverage = 'complete',
+  parts = '',
   env = process.env,
   platform = process.platform,
 } = {}) {
@@ -80,20 +81,29 @@ export function installSkills({
   const sourceCoverage = readSkillCoverage(workflowSrc) || coverage;
   const actions = [];
   const legacyResidues = [];
+  const selectedParts = normalizeParts(parts);
+  const installGlobals = !selectedParts || selectedParts.includes('globals');
+  const installMcp = selectedParts?.includes('mcp') || false;
 
-  for (const item of selectedTargets) {
-    const dest = targetPaths[item];
-    const legacyPath = path.join(path.dirname(dest), LEGACY_SKILL_NAME);
-    if (fs.existsSync(legacyPath)) {
-      const status = removeLegacySkillPath(legacyPath, LEGACY_SKILL_NAME, dryRun);
-      legacyResidues.push({ target: item, legacyName: LEGACY_SKILL_NAME, path: legacyPath, status });
+  if (installGlobals) {
+    for (const item of selectedTargets) {
+      const dest = targetPaths[item];
+      const legacyPath = path.join(path.dirname(dest), LEGACY_SKILL_NAME);
+      if (fs.existsSync(legacyPath)) {
+        const status = removeLegacySkillPath(legacyPath, LEGACY_SKILL_NAME, dryRun);
+        legacyResidues.push({ target: item, legacyName: LEGACY_SKILL_NAME, path: legacyPath, status });
+      }
+
+      actions.push(copySkill({ src: workflowSrc, dest, mode, overwrite, dryRun, sourceVersion, sourceSubject, sourceCoverage }));
+
+      if (item === 'claude' && actions.at(-1).status !== 'skip') {
+        actions.push(...installWorkflowDiscovery({ target: item, skillDest: dest, dryRun, platform }));
+      }
     }
+  }
 
-    actions.push(copySkill({ src: workflowSrc, dest, mode, overwrite, dryRun, sourceVersion, sourceSubject, sourceCoverage }));
-
-    if (item === 'claude' && actions.at(-1).status !== 'skip') {
-      actions.push(...installWorkflowDiscovery({ target: item, skillDest: dest, dryRun, platform }));
-    }
+  if (installMcp) {
+    actions.push(mcpGuidanceAction({ dryRun }));
   }
 
   return { sourceVersion, sourceSubject, sourceCoverage, actions, legacyResidues, targetPaths };
@@ -194,6 +204,15 @@ export function removeAssets({
 
   if (selectedParts.includes('cli')) {
     actions.push({ label: 'CLI', status: 'skip', path: '<npm package>', detail: 'remove with npm uninstall -g qiongli' });
+  }
+
+  if (selectedParts.includes('mcp')) {
+    actions.push({
+      label: 'MCP',
+      status: 'manual',
+      path: '<client config>',
+      detail: 'Use qiongli remove --parts mcp through the Python CLI to remove managed MCP config',
+    });
   }
 
   return { actions };
@@ -376,6 +395,15 @@ function installWorkflowDiscovery({ target, skillDest, dryRun, platform }) {
     actions.push({ label: 'Workflow', status: 'ok', path: dest, detail: platform === 'win32' ? 'copied' : 'linked' });
   }
   return actions;
+}
+
+function mcpGuidanceAction({ dryRun }) {
+  return {
+    label: 'MCP',
+    status: dryRun ? 'dry-run' : 'manual',
+    path: '<client config>',
+    detail: 'Use qiongli mcp serve --transport stdio as the unified full MCP server',
+  };
 }
 
 function removeWorkflowDiscovery({ target, skillDest, dryRun }) {

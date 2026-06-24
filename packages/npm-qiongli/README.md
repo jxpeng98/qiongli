@@ -88,7 +88,9 @@ Advanced bridge commands such as `setup`, `doctor`, `task-run`, and `team-run` u
 
 ## MCP server
 
-Native Codex and Claude Code plugins can bundle the zero-dependency Node literature-provider MCP runtime for provider, status, and search tools. npm, pipx/pip, or bootstrap `full` remains the path for the Python-backed full CLI MCP server and orchestration tools.
+`qiongli mcp serve --transport stdio` is the unified full CLI MCP server. It exposes literature provider tools plus orchestrator and task-run tools from one server. The zero-dependency Node literature-provider MCP bundled by plugins remains a marketplace/MCPB fallback for environments that cannot run the full CLI.
+
+The Python CLI path (`qiongli install --profile full --target codex`) performs managed Codex MCP registration for the unified server. The npm asset installer stays conservative: explicit npm installs can report MCP guidance with `qiongli install --parts globals,mcp --dry-run`, but they do not rewrite client MCP config.
 
 The npm launcher also delegates MCP commands to the bundled Python bridge:
 
@@ -100,9 +102,13 @@ qiongli mcp config example --target claude-code --json
 qiongli mcp config example --target hermes --json
 ```
 
-The full CLI MCP server exposes provider tools plus orchestrator tools:
+The full CLI MCP server exposes literature tools plus orchestrator tools:
 
+- `qiongli_literature_status`
+- `qiongli_literature_search`
+- `qiongli_literature_export_evidence`
 - `qiongli_orchestrator_doctor`
+- `qiongli_orchestrator_route`
 - `qiongli_task_plan`
 - `qiongli_task_run`
 

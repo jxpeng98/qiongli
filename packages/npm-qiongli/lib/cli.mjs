@@ -41,6 +41,7 @@ export async function main(argv, {
         dryRun: parsed.options.dryRun,
         subject: parsed.options.subject,
         coverage: parsed.options.coverage,
+        parts: parsed.options.parts,
       });
     } catch (error) {
       stderr.write(`[qiongli] ${error.message}\n`);
@@ -177,6 +178,7 @@ Options:
   --subject core|economics|accounting|business|finance|economics-accounting
   --coverage complete|focused
   --mode copy|link
+  --parts globals,project,cli,mcp
   --overwrite
   --dry-run
   --no-doctor

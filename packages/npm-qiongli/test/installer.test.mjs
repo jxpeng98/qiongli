@@ -311,6 +311,23 @@ test('installSkills installs selected finance focused subject payload', () => {
   assert.equal(fs.readFileSync(path.join(dest, 'workflows', 'paper.md'), 'utf-8'), 'finance focused workflow\n');
 });
 
+test('full install parts include unified MCP guidance', () => {
+  const { root } = makeTempPackage();
+
+  const result = installSkills({
+    packageRoot: root,
+    target: 'codex',
+    parts: 'globals,mcp',
+    dryRun: true,
+    env: { HOME: root },
+    platform: 'linux',
+  });
+
+  const mcpAction = result.actions.find((action) => action.label === 'MCP');
+  assert.ok(mcpAction);
+  assert.match(mcpAction.detail, /qiongli mcp serve --transport stdio/);
+});
+
 test('installSkills reports available subjects for unknown subject', () => {
   const { root } = makeTempPackage();
 
