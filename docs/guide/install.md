@@ -19,10 +19,11 @@ Current stable release: [v1.6.0](https://github.com/jxpeng98/qiongli/releases/ta
 
 | Surface | Best for | Installs | Python required |
 |---|---|---|---|
-| Native plugin / extension | One client, least setup | Client plugin plus `qiongli-workflow`; Codex and Claude Code include bundled literature MCP runtime where applicable | No for skill use or bundled literature MCP; Python/CLI only for full runtime |
+| Marketplace plugin / extension | One client, least setup, or no local CLI environment | Client plugin plus `qiongli-workflow`; Codex and Claude Code include the bundled Node literature MCP as a lite/no-CLI fallback | No for skill use or bundled literature MCP; Python/CLI only for full local Qiongli |
 | Claude Desktop Skill ZIP | Claude Desktop or Claude.ai, especially when you do not want to use a code/CLI environment | Personal `qiongli` Skill upload | No |
+| `qiongli install --profile full` | Full local Qiongli in Codex or another local client | Skills, shell CLI, provider config flow, doctor checks, and the unified full MCP server | Yes, Python 3.12+ |
 | Bootstrap `partial` | Global workflow assets across clients | Skills and workflow discovery where supported | No |
-| Bootstrap `full` | Runtime checks and orchestration | `partial` plus shell CLI and `doctor` support | Yes, Python 3.12+ |
+| Bootstrap `full` | Runtime checks and orchestration from release scripts | `partial` plus shell CLI, MCP registration part, and `doctor` support | Yes, Python 3.12+ |
 | npm / npx | Node-based automation | npm CLI plus bundled workflow payload | Only for advanced bridge commands |
 | pipx / pip | Python updater CLI | Python CLI distribution | Yes |
 
@@ -41,7 +42,7 @@ codex plugin marketplace list
 
 Then install or enable `qiongli` from the Codex plugin UI for the default core package. Subject entries such as `qiongli-economics`, `qiongli-accounting`, `qiongli-business`, `qiongli-finance`, `qiongli-political-economy`, `qiongli-geoeconomics`, and `qiongli-economics-accounting` install the corresponding `subject/complete` package from the same marketplace.
 
-The Codex plugin bundles its MCP registration through `.mcp.json` and includes a zero-dependency Node literature-provider server under `mcp/qiongli-literature-provider/`. Codex users do not need to hand-write a separate MCP config or install the `qiongli` CLI for those bundled literature tools. Provider keys remain outside the plugin and can be configured with the bundled local setup tool `qiongli_configure_provider`, with `qiongli_save_provider_config`, or with `qiongli mcp configure` / `qiongli provider setup` when the CLI is installed. The full Python-backed `qiongli mcp serve` server still requires the npm, pipx/pip, or `full` bootstrap runtime.
+The Codex plugin bundles its MCP registration through `.mcp.json` and includes a zero-dependency Node literature-provider server under `mcp/qiongli-literature-provider/`. Codex users do not need to hand-write a separate MCP config or install the `qiongli` CLI for those bundled literature tools. Provider keys remain outside the plugin and can be configured with the bundled local setup tool `qiongli_configure_provider`, with `qiongli_save_provider_config`, or with `qiongli mcp configure` / `qiongli provider setup` when the CLI is installed. For full local Qiongli, the CLI full profile is canonical: it registers the Python-backed MCP server that exposes literature plus orchestrator tools from one `qiongli mcp serve --transport stdio` process.
 
 Codex currently treats plugin-bundled MCP servers as plugin assets: the settings UI can enable the server and manage tool policy, but it is not the right place to add provider keys for this bundled server. Claude Desktop MCPB, Claude Code, Cursor-style clients, and other local stdio MCP clients should use the same Qiongli provider setup contract. Configure keys through the Qiongli provider config instead:
 
@@ -69,7 +70,7 @@ Inside an interactive Claude Code session, use:
 /plugin install qiongli-economics@skillsplace
 ```
 
-The Claude Code plugin also bundles the zero-dependency Node literature-provider MCP runtime under `mcp/qiongli-literature-provider/`, using the same provider, search, and status tools as the Codex plugin. It covers literature-provider MCP without installing the `qiongli` CLI. Full Python-backed orchestration tools such as `qiongli_orchestrator_route`, `qiongli_task_plan`, `qiongli_task_run`, and `qiongli_orchestrator_doctor` still require the npm, pipx/pip, or bootstrap `full` CLI runtime and `qiongli mcp serve --transport stdio`.
+The Claude Code plugin also bundles the zero-dependency Node literature-provider MCP runtime under `mcp/qiongli-literature-provider/`, using the same provider, search, and status tools as the Codex plugin. It covers literature-provider MCP without installing the `qiongli` CLI. Full Python-backed tools, including `qiongli_literature_search`, `qiongli_orchestrator_route`, `qiongli_task_plan`, `qiongli_task_run`, and `qiongli_orchestrator_doctor`, require the npm, pipx/pip, or bootstrap `full` CLI runtime and `qiongli mcp serve --transport stdio`.
 
 Claude Desktop and Claude.ai do not install third-party Claude Code plugin marketplaces. If you use Desktop or the web app and are not familiar with a code/CLI environment, use the release ZIP path instead. It requires no terminal commands:
 
@@ -90,7 +91,9 @@ Manual Desktop installs can combine two local assets:
 Those two assets do not by themselves expose the full Python-backed orchestrator. If a local client should call `qiongli_orchestrator_route`, `qiongli_task_plan`, `qiongli_task_run`, or `qiongli_orchestrator_doctor` as MCP tools, install the npm, pipx/pip, or bootstrap `full` CLI runtime and configure:
 
 ```bash
+qiongli install --profile full --target codex
 qiongli mcp serve --transport stdio
+qiongli mcp doctor --json
 ```
 
 Use `qiongli_orchestrator_route` from Codex, Claude Code, Antigravity, or another local MCP client when deciding whether a request should move from skill-only execution to the full orchestrator. `qiongli_task_run` defaults to preview mode. It launches local runtime agents only when the MCP caller explicitly sends JSON boolean `run_agents: true` and the local runtime passes `doctor`.
@@ -146,6 +149,7 @@ After `full`, check a workspace:
 ```bash
 qiongli doctor --project-dir .
 python3 -m bridges.orchestrator doctor --cwd .
+qiongli mcp doctor --json
 ```
 
 ## npm / npx

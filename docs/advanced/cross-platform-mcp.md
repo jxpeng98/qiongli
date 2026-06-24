@@ -1,6 +1,6 @@
 # Cross-Platform MCP Server
 
-Qiongli ships multiple local MCP entrypoints. Desktop users can use bundled local Node MCP runtimes for literature-provider search without installing the `qiongli` CLI. CLI users and advanced workflows can use the full Python-backed `qiongli mcp` server.
+Qiongli ships one canonical full local MCP server: `qiongli mcp serve --transport stdio`. It exposes literature-provider tools plus orchestrator and task-run tools from one Python-backed CLI process. The bundled Node literature MCP runtimes in marketplace plugins and MCPB packages remain lite/no-CLI fallbacks for environments that cannot run the full CLI.
 
 ## Full CLI Stdio Mode
 
@@ -20,9 +20,10 @@ qiongli mcp serve --transport stdio
 
 This mode does not require a remote server. The client launches the local process, and Qiongli reads provider credentials from the shared provider configuration. It requires the npm, pipx/pip, or `full` bootstrap runtime so that `qiongli` is on `PATH`.
 
-The full CLI server exposes both provider/configuration tools and orchestrator tools:
+The full CLI server exposes literature, provider/configuration, and orchestrator tools:
 
 - `qiongli_config_status`, `qiongli_configure_provider`, `qiongli_save_provider_config`, and `qiongli_collect_evidence` for MCP/provider readiness.
+- `qiongli_literature_status`, `qiongli_literature_search`, and `qiongli_literature_export_evidence` for full CLI literature search and auditable evidence snapshots.
 - `qiongli_orchestrator_route` for deciding whether Codex, Claude Code, Antigravity, or another client should upgrade from skill-only workflow routing to full orchestrator tools.
 - `qiongli_orchestrator_doctor` for local runtime preflight checks.
 - `qiongli_task_plan` for a no-agent task plan.
@@ -32,11 +33,11 @@ When task-run agents are launched, formal artifacts are still expected under `RE
 
 Skill-only Qiongli usage also checks `.qiongli/local_guidance.md` and `.qiongli/guidance.d/*.md` when they are present in the current project. Full orchestrator task-runs remain the stronger path because they write trace bundles, guidance proposals, validator output, and source metadata.
 
-Use the full CLI server when Codex, Claude Code, Antigravity, or another local client needs to call the Qiongli orchestrator as a tool.
+Use the full CLI server when Codex, Claude Code, Antigravity, or another local client needs the complete local product surface: literature tools, provider configuration, routing, planning, doctor checks, or task-run as MCP tools.
 
 ## Codex Bundled Plugin MCP
 
-The generated Codex plugin package includes `.mcp.json`, references it from `.codex-plugin/plugin.json`, and bundles a zero-dependency Node server under `mcp/qiongli-literature-provider/`. Codex plugin installs can therefore register and launch the literature-provider MCP server from the plugin bundle instead of requiring users to copy a separate `config.toml` snippet or install the `qiongli` CLI.
+The generated Codex plugin package includes `.mcp.json`, references it from `.codex-plugin/plugin.json`, and bundles a zero-dependency Node server under `mcp/qiongli-literature-provider/`. Codex plugin installs can therefore register and launch the literature-provider MCP server from the plugin bundle instead of requiring users to copy a separate `config.toml` snippet or install the `qiongli` CLI. This bundled server is the marketplace lite/no-CLI fallback, not the full local MCP.
 
 The bundled server entry is:
 
@@ -55,7 +56,7 @@ Because Codex launches this MCP server from the installed plugin bundle, Codex's
 
 Keep provider secrets out of `.mcp.json`, `.codex-plugin/plugin.json`, marketplace metadata, and release artifacts. The bundled Node server reads the shared provider config at runtime.
 
-The bundled Codex runtime focuses on literature-provider tools. Use the full CLI stdio server when you need the Python-backed orchestration MCP tools.
+The bundled Codex runtime focuses on literature-provider tools. Use the full CLI stdio server when you need the unified full MCP surface with both literature and Python-backed orchestration tools.
 
 `qiongli_configure_provider` is the platform-neutral setup contract. Codex Desktop, Claude Desktop MCPB, Claude Code, Cursor-style clients, and any local stdio MCP client should prefer it for credentials because it opens a local `127.0.0.1` setup page and returns only redacted status. `qiongli_open_config_wizard` remains available as a compatibility alias for older clients and docs.
 
@@ -69,7 +70,7 @@ The bundled server entry is:
 node ${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs
 ```
 
-This bundled runtime covers literature-provider tools such as provider configuration, status, and search without requiring the `qiongli` CLI. Use the full CLI stdio server when Claude Code needs Python-backed orchestration tools such as `qiongli_orchestrator_route`, `qiongli_orchestrator_doctor`, `qiongli_task_plan`, or `qiongli_task_run`.
+This bundled runtime covers literature-provider tools such as provider configuration, status, and search without requiring the `qiongli` CLI. Use the full CLI stdio server when Claude Code needs the unified full MCP surface, including `qiongli_literature_search`, `qiongli_orchestrator_route`, `qiongli_orchestrator_doctor`, `qiongli_task_plan`, or `qiongli_task_run`.
 
 ## Claude Desktop MCPB
 

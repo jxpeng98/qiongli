@@ -19,10 +19,11 @@ Qiongli 有多个安装入口，是因为不同用户需要的运行时能力不
 
 | 入口 | 适合场景 | 安装内容 | 是否要求 Python |
 |---|---|---|---|
-| 原生 plugin / extension | 单个客户端，最少配置 | 客户端 plugin 和 `qiongli-workflow`；Codex 和 Claude Code 在适用平台内置 literature MCP runtime | skill 使用和内置 literature MCP 不要求；完整 runtime 需要 Python/CLI |
+| Marketplace plugin / extension | 单个客户端、最少配置，或没有本地 CLI 环境 | 客户端 plugin 和 `qiongli-workflow`；Codex 和 Claude Code 内置 Node literature MCP，作为 lite/no-CLI fallback | skill 使用和内置 literature MCP 不要求；完整本地 Qiongli 需要 Python/CLI |
 | Claude Desktop Skill ZIP | Claude Desktop 或 Claude.ai，尤其适合不熟悉 code / CLI 环境的用户 | 个人上传的 `qiongli` Skill | 否 |
+| `qiongli install --profile full` | 在 Codex 或其他本地客户端中使用完整本地 Qiongli | skills、shell CLI、provider config flow、doctor checks，以及统一 full MCP server | 是，Python 3.12+ |
 | Bootstrap `partial` | 多客户端全局 workflow assets | skills 和客户端支持的 workflow discovery | 否 |
-| Bootstrap `full` | runtime check 和 orchestrator | `partial` 加 shell CLI 与 `doctor` 支持 | 是，Python 3.12+ |
+| Bootstrap `full` | 通过 release scripts 安装 runtime check 和 orchestrator | `partial` 加 shell CLI、MCP registration part 和 `doctor` 支持 | 是，Python 3.12+ |
 | npm / npx | Node 自动化安装 | npm CLI 和内置 workflow payload | 只有高级 bridge 命令需要 |
 | pipx / pip | Python updater CLI | Python CLI 分发 | 是 |
 
@@ -41,7 +42,7 @@ codex plugin marketplace list
 
 然后在 Codex plugin UI 中安装或启用 `qiongli`，这是默认 core package。也可以选择 `qiongli-economics`、`qiongli-accounting`、`qiongli-business`、`qiongli-finance`、`qiongli-political-economy`、`qiongli-geoeconomics`、`qiongli-economics-accounting` 这类 subject entry，它们会安装对应的 `subject/complete` package。
 
-Codex plugin 自带 `.mcp.json` 和 `mcp/qiongli-literature-provider/` 下的零依赖 Node literature-provider MCP runtime。只使用这些内置文献 provider 工具时，桌面用户不需要安装 `qiongli` CLI，也不需要手写 MCP config。Provider key 不写入 plugin manifest；可以通过平台无关的本地设置工具 `qiongli_configure_provider` 配置，也可以用 `qiongli_save_provider_config` 保存，或者在已安装 CLI 时用 `qiongli mcp configure` / `qiongli provider setup` 配置。完整 Python-backed `qiongli mcp serve` 仍需要 npm、pipx/pip 或 `full` bootstrap runtime。
+Codex plugin 自带 `.mcp.json` 和 `mcp/qiongli-literature-provider/` 下的零依赖 Node literature-provider MCP runtime。只使用这些内置文献 provider 工具时，桌面用户不需要安装 `qiongli` CLI，也不需要手写 MCP config。Provider key 不写入 plugin manifest；可以通过平台无关的本地设置工具 `qiongli_configure_provider` 配置，也可以用 `qiongli_save_provider_config` 保存，或者在已安装 CLI 时用 `qiongli mcp configure` / `qiongli provider setup` 配置。完整本地 Qiongli 以 CLI full profile 为 canonical 路径：它会注册 Python-backed MCP server，由一个 `qiongli mcp serve --transport stdio` 进程同时暴露 literature 和 orchestrator tools。
 
 Codex 目前会把 plugin-bundled MCP server 当作 plugin asset：设置页可以启用 server 和管理 tool policy，但不适合作为这个内置 server 的 provider key 注入入口。Claude Desktop MCPB、Claude Code、Cursor 类客户端和其他本地 stdio MCP client 也应使用同一个 Qiongli provider setup contract。请改用 Qiongli provider config：
 
@@ -69,7 +70,7 @@ claude plugin install qiongli-economics@skillsplace
 /plugin install qiongli-economics@skillsplace
 ```
 
-Claude Code marketplace plugin 也内置 `mcp/qiongli-literature-provider/` 下的零依赖 Node literature-provider MCP runtime，提供与 Codex plugin 相同的文献 provider、search 和 status 工具。只使用这些内置 literature/provider 工具时，不需要安装 `qiongli` CLI。完整 Python-backed orchestration MCP 仍然是独立 CLI runtime：如果需要 `qiongli_task_plan`、`qiongli_task_run` 或 `qiongli_orchestrator_doctor` 等工具，需要 npm、pipx/pip 或 `full` bootstrap，并运行 `qiongli mcp serve --transport stdio`。
+Claude Code marketplace plugin 也内置 `mcp/qiongli-literature-provider/` 下的零依赖 Node literature-provider MCP runtime，提供与 Codex plugin 相同的文献 provider、search 和 status 工具。只使用这些内置 literature/provider 工具时，不需要安装 `qiongli` CLI。完整 Python-backed full MCP 仍然是 CLI runtime：如果需要 `qiongli_literature_search`、`qiongli_task_plan`、`qiongli_task_run` 或 `qiongli_orchestrator_doctor` 等完整工具，需要 npm、pipx/pip 或 `full` bootstrap，并运行 `qiongli mcp serve --transport stdio`。
 
 Claude Desktop 和 Claude.ai 不安装第三方 Claude Code plugin marketplace。如果你使用 Desktop 或网页版，并且不熟悉 code / CLI 环境，优先使用 release ZIP 路径，不需要任何终端命令：
 
@@ -126,13 +127,19 @@ Windows PowerShell 7+：
 pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile full -ProjectDir "$PWD" -Target all
 ```
 
-`full` 要求 Python 3.12+ 已经在 `PATH` 上。安装器不会安装 Python 或 `mise`。
+`full` 要求 Python 3.12+ 已经在 `PATH` 上。安装器不会安装 Python 或 `mise`。Codex 的完整本地安装入口也可以直接使用：
+
+```bash
+qiongli install --profile full --target codex
+qiongli mcp doctor --json
+```
 
 安装后检查工作区：
 
 ```bash
 qiongli doctor --project-dir .
 python3 -m bridges.orchestrator doctor --cwd .
+qiongli mcp doctor --json
 ```
 
 ## npm / npx

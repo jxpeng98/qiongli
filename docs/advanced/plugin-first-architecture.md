@@ -2,6 +2,8 @@
 
 Qiongli stable is distributed as one plugin package, not as dozens of separate academic-skill plugins.
 
+Plugin-first describes the marketplace distribution architecture. It is not the full-product architecture. For full local Qiongli, the CLI full profile is canonical. Marketplace plugins remain client-native lite installs, with bundled Node literature MCP fallback where supported.
+
 ## Definitions
 
 | Layer | Path | Role |
@@ -51,10 +53,11 @@ The plugin-first package does not replace the legacy global install in place. Na
 - Global skill install: `~/.codex/skills/qiongli-workflow`, `~/.claude/skills/qiongli-workflow`, `~/.gemini/antigravity/skills/qiongli-workflow`, and `~/.hermes/skills/qiongli-workflow`, managed by `rsk` or bootstrap.
 - Global slash discovery: `~/.claude/commands/*.md`, managed by `rsk`.
 
-For ordinary skill-only client-native usage and Codex/Claude Code bundled literature-provider MCP usage, the plugin bundle is enough. For the full Python-backed MCP server, CLI commands, validators, `doctor`, release tooling, or `bridges.orchestrator`, users still need the local `qiongli` CLI/runtime and should keep the global install aligned with:
+For ordinary skill-only client-native usage and Codex/Claude Code bundled literature-provider MCP usage, the plugin bundle is enough. For full local Qiongli, including the unified Python-backed MCP server with literature plus orchestrator tools, CLI commands, validators, `doctor`, release tooling, or `bridges.orchestrator`, users still need the local `qiongli` CLI/runtime and should keep the global install aligned with:
 
 ```bash
-qiongli upgrade --target all --doctor
+qiongli install --profile full --target codex
+qiongli mcp doctor --json
 ```
 
 When migrating fully to the plugin and removing old global skill directories or slash discovery, preview cleanup first:
