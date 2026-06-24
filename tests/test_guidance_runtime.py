@@ -203,6 +203,34 @@ class GuidanceRuntimeTests(unittest.TestCase):
             self.assertIn("Prefer project-local trace bundles", text)
             self.assertIn("run-1", text)
 
+    def test_guidance_trace_proposal_records_target_and_conflict_check(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            init_project_guidance(root)
+            state = effective_guidance(root, mode="propose", run_id="proposal-run")
+
+            write_guidance_trace(
+                project_root=root,
+                guidance_state=state,
+                task_packet={"task_id": "F3", "paper_type": "empirical", "topic": "ai-writing"},
+                draft_content="draft",
+                review_content="review",
+                merged_analysis="merged",
+                validator_gate={
+                    "passed": False,
+                    "found": [],
+                    "missing": ["manuscript/manuscript.md"],
+                    "checked": 1,
+                },
+                applied=False,
+            )
+
+            proposal = root / ".qiongli" / "trace" / "runs" / "proposal-run" / "guidance_update_proposal.md"
+            text = proposal.read_text(encoding="utf-8")
+            self.assertIn("## Suggested Target", text)
+            self.assertIn("project-local", text)
+            self.assertIn("## Conflict Check", text)
+
     def test_guidance_trace_summary_returns_recent_index_rows(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)

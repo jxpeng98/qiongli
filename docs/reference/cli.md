@@ -375,12 +375,16 @@ Available modes:
   ```bash
   qiongli guidance init --project-dir .
   qiongli guidance show --project-dir .
+  qiongli guidance add --project-dir . --name writing-style
+  qiongli guidance list --project-dir .
+  qiongli guidance lint --project-dir .
   qiongli guidance trace --project-dir .
   qiongli guidance apply \
     --project-dir . \
     --proposal .qiongli/trace/runs/<run_id>/guidance_update_proposal.md
   ```
   Project-local customization lives in `.qiongli/local_guidance.md`; run trace records live in `.qiongli/trace/index.jsonl` and `.qiongli/trace/runs/<run_id>/`. These files are intentionally separate from canonical workflow contracts, bundled skills, and release payloads.
+  Guidance proposals are project-local by default. A proposal may suggest `user-global` or `canonical-candidate`, but `qiongli guidance apply` only writes `.qiongli/local_guidance.md`. Promoting a rule to `~/.qiongli/preferences.md` or canonical source requires an explicit future command or normal repository PR.
 - `code-build`: Academic code workflow entry point
   ```bash
   python3 -m bridges.orchestrator code-build \
