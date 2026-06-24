@@ -30,6 +30,8 @@ The full CLI server exposes both provider/configuration tools and orchestrator t
 
 When task-run agents are launched, formal artifacts are still expected under `RESEARCH/[topic]/...`. The first non-`off` task run initializes `.qiongli/local_guidance.md` and `.qiongli/trace/` if they are missing. The project-local guidance layer writes auditable run traces under `.qiongli/trace/`; this trace location is separate from formal research outputs and from installed skill assets.
 
+Skill-only Qiongli usage also checks `.qiongli/local_guidance.md` and `.qiongli/guidance.d/*.md` when they are present in the current project. Full orchestrator task-runs remain the stronger path because they write trace bundles, guidance proposals, validator output, and source metadata.
+
 Use the full CLI server when Codex, Claude Code, Antigravity, or another local client needs to call the Qiongli orchestrator as a tool.
 
 ## Codex Bundled Plugin MCP

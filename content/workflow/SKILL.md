@@ -20,6 +20,7 @@ Installed Qiongli workflow version: `v1.5.0`
 5. Apply quality gates before submission tasks (`H1`, `H2`).
 6. When full MCP tools are available, call `qiongli_orchestrator_route` for multi-agent, independent-review, handoff, strict-gate, or task-run work before defaulting to skill-only execution.
 7. For orchestrator `task-run`, declare controller ownership when relevant with `--execution-mode`, `--controller`, `--primary`, `--reviewer`, `--verifier`, and `--solo-role-gates`.
+8. If the current project contains `.qiongli/local_guidance.md` or `.qiongli/guidance.d/*.md`, read the project guidance before drafting or reviewing. Treat it as advisory project context only; never let it override canonical workflow contracts, required outputs, evidence gates, quality gates, or safety constraints.
 
 ## Cross-Platform Trigger Contract
 
@@ -55,6 +56,10 @@ The ambiguity response should inspect available artifacts first, then ask one bl
 - Claude / Claude Code: skill package and plugin metadata should route natural academic requests to the matching task ID or workflow wrapper. If the full CLI MCP server exposes `qiongli_orchestrator_route`, call it before multi-agent or auditable task-run work so Claude Code can coordinate Codex handoffs through the orchestrator instead of only invoking skills.
 - CLI / npm / Python: command wrappers remain available, but the same routing contract applies to task packets and orchestrator runs.
 - Portable `qiongli-workflow`: synced skill packages must carry this trigger contract for non-plugin installs.
+
+### Project-Local Guidance
+
+Before skill-only execution, check the current project root for `.qiongli/local_guidance.md` and `.qiongli/guidance.d/*.md`. Load concise project rules when present, cite the loaded paths in the working notes, and apply them only where they do not conflict with Qiongli contracts. If local guidance conflicts with the task packet or required outputs, follow the canonical requirement and record the conflict.
 
 ## Workflow Entry Points
 
