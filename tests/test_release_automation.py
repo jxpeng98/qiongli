@@ -44,6 +44,12 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn("--maintainer-smoke", content)
         self.assertIn("git add CHANGELOG.md", content)
         self.assertIn('git add "tooling/release/${repo_tag}.md"', content)
+        self.assertIn("README.md", content)
+        self.assertIn("README_CN.md", content)
+        self.assertIn("docs/index.md", content)
+        self.assertIn("docs/zh/index.md", content)
+        self.assertIn("docs/guide/install.md", content)
+        self.assertIn("docs/zh/guide/install.md", content)
         self.assertIn('git tag -a "$repo_tag"', content)
         self.assertIn('git push "$push_remote" "$push_branch"', content)
         self.assertIn('git push "$push_remote" "$repo_tag"', content)
@@ -312,6 +318,12 @@ class ReleaseAutomationTests(unittest.TestCase):
     def test_release_ready_includes_plugin_distribution_versions(self) -> None:
         content = RELEASE_READY.read_text(encoding="utf-8")
 
+        self.assertIn("README.md", content)
+        self.assertIn("README_CN.md", content)
+        self.assertIn("docs/index.md", content)
+        self.assertIn("docs/zh/index.md", content)
+        self.assertIn("docs/guide/install.md", content)
+        self.assertIn("docs/zh/guide/install.md", content)
         self.assertIn('content/distribution/plugins.yaml', content)
         self.assertIn('tooling/scripts/build_plugin_artifacts.py', content)
         self.assertIn('tooling/scripts/materialize_distribution_payloads.py', content)
@@ -331,6 +343,18 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertNotIn('packages/python-qiongli/src/qiongli/payload|packages/python-qiongli/src/qiongli/payload/*', content)
         self.assertNotIn('plugins/qiongli/skills/qiongli-workflow|plugins/qiongli/skills/qiongli-workflow/*', content)
         self.assertNotIn('qiongli-workflow/skills/registry.yaml', content)
+
+    def test_release_ready_updates_stable_download_sections_before_preflight(self) -> None:
+        content = RELEASE_READY.read_text(encoding="utf-8")
+
+        stable_guard = 'if ! is_prerelease_tag "$REPO_TAG"; then'
+        updater = 'python3 scripts/update_stable_download_sections.py --tag "$REPO_TAG" --root "$ROOT_DIR"'
+        preflight = './scripts/release_automation.sh pre "${PRE_ARGS[@]}" --materialize-out "$RELEASE_STAGING_DIR"'
+
+        self.assertIn(stable_guard, content)
+        self.assertIn(updater, content)
+        self.assertIn(preflight, content)
+        self.assertLess(content.index(updater), content.index(preflight))
 
     def test_release_ready_runs_package_preflights_from_staging_root(self) -> None:
         content = RELEASE_READY.read_text(encoding="utf-8")

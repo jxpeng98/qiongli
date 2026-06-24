@@ -80,6 +80,11 @@ is_expected_release_path() {
     [[ "$path" == "tooling/release/${REPO_TAG}.md" ]] && return 0
   else
     [[ "$path" == "CHANGELOG.md" ]] && return 0
+    case "$path" in
+      README.md|README_CN.md|docs/index.md|docs/zh/index.md|docs/guide/install.md|docs/zh/guide/install.md)
+        return 0
+        ;;
+    esac
   fi
   return 1
 }
@@ -181,6 +186,11 @@ if [[ "$SKIP_BUMP" -eq 0 ]]; then
   ./scripts/bump-version.sh "$VERSION"
 else
   echo "[release-ready] version sync skipped"
+fi
+
+if ! is_prerelease_tag "$REPO_TAG"; then
+  echo "[release-ready] update stable download sections"
+  python3 scripts/update_stable_download_sections.py --tag "$REPO_TAG" --root "$ROOT_DIR"
 fi
 
 PRE_ARGS+=(--tag "$REPO_TAG")

@@ -12,6 +12,83 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 class ReleaseDownloadsTests(unittest.TestCase):
+    def test_stable_download_section_updater_rewrites_docs(self) -> None:
+        targets = {
+            "README.md": "## Latest Stable Downloads",
+            "README_CN.md": "## 最新稳定版下载",
+            "docs/index.md": "## Latest Stable Downloads",
+            "docs/zh/index.md": "## 最新稳定版下载",
+            "docs/guide/install.md": "## Latest Stable Downloads",
+            "docs/zh/guide/install.md": "## 最新稳定版下载",
+        }
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            docs_root = Path(tmp_dir)
+            for relative_path, heading in targets.items():
+                path = docs_root / relative_path
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(
+                    "\n".join(
+                        [
+                            f"# Fixture for {relative_path}",
+                            "",
+                            heading,
+                            "",
+                            "Current stable release: [v1.5.0](https://github.com/jxpeng98/qiongli/releases/tag/v1.5.0).",
+                            "",
+                            "| Need | Link or command |",
+                            "|---|---|",
+                            "| npm CLI | stale v1.5.0 link |",
+                            "",
+                            "## After",
+                            "",
+                            "Keep this trailing section.",
+                            "",
+                        ]
+                    ),
+                    encoding="utf-8",
+                )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "scripts/update_stable_download_sections.py",
+                    "--tag",
+                    "v1.6.0",
+                    "--root",
+                    str(docs_root),
+                    "--asset-root",
+                    str(REPO_ROOT),
+                ],
+                cwd=REPO_ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            self.assertIn("updated stable download sections: 6 files", result.stdout)
+
+            for relative_path, heading in targets.items():
+                content = (docs_root / relative_path).read_text(encoding="utf-8")
+                self.assertIn(f"# Fixture for {relative_path}", content)
+                self.assertIn(heading, content)
+                self.assertIn("## After", content)
+                self.assertIn("Keep this trailing section.", content)
+                self.assertNotIn("v1.5.0", content)
+                self.assertIn("[v1.6.0](https://github.com/jxpeng98/qiongli/releases/tag/v1.6.0)", content)
+                self.assertIn("qiongli-claude-desktop-skill-core-v1.6.0.zip", content)
+                self.assertIn("qiongli-literature-provider-0.1.4.mcpb", content)
+                self.assertIn("qiongli-zotero-companion-0.2.2.xpi", content)
+                self.assertIn("qiongli-downloads-v1.6.0.md", content)
+
+            english = (docs_root / "README.md").read_text(encoding="utf-8")
+            chinese = (docs_root / "README_CN.md").read_text(encoding="utf-8")
+            self.assertIn("Current stable release:", english)
+            self.assertIn("| All release assets |", english)
+            self.assertIn("当前稳定版是", chinese)
+            self.assertIn("| 全部 release assets |", chinese)
+
     def test_generates_human_and_machine_download_guides(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             out_dir = Path(tmp_dir)

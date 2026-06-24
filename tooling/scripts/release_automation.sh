@@ -424,6 +424,12 @@ case "$MODE" in
       content/workflow/VERSION \
       content/skills/registry.yaml \
       content/distribution/plugins.yaml \
+      README.md \
+      README_CN.md \
+      docs/index.md \
+      docs/zh/index.md \
+      docs/guide/install.md \
+      docs/zh/guide/install.md \
       package-lock.json \
       uv.lock \
       packages/npm-qiongli \
