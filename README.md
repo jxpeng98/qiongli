@@ -51,17 +51,29 @@ The public name is **Qiongli**, from the Chinese `穷理`: to keep asking what p
 
 ```mermaid
 flowchart TD
-    A["Research request"] --> B["Qiongli skill / workflow route"]
-    B --> C["Task contract: Task ID, paper type, topic, output paths"]
-    C --> D{"Choose the smallest runtime that fits"}
-    D --> E["Skill-only guidance"]
-    D --> F["Literature MCP tools"]
-    D --> G["Full CLI / orchestrator runtime"]
-    E --> H["Stage outputs under RESEARCH/[topic]/"]
-    F --> H
-    G --> I["Role handoffs, quality gates, and verification"]
-    I --> H
-    H --> J["Auditable evidence, drafts, code, reviews, and release artifacts"]
+    A["Research request<br/>topic, paper type, client, constraints"] --> B["Qiongli entrypoint<br/>skill, plugin command, CLI, or MCP tool"]
+    B --> C["Task contract<br/>Task ID, stage, role, expected outputs, evidence rules"]
+    C --> D{"Smallest runtime<br/>that fits the job"}
+
+    D --> E["Skill / plugin only<br/>workflow guidance, prompts, templates, subject overlays"]
+    D --> F["Literature MCP<br/>OpenAlex, Semantic Scholar, Crossref, PubMed"]
+    D --> G["Zotero companion<br/>local library search, import files, reference review tags"]
+    D --> H["Full CLI / orchestrator<br/>doctor, task-plan, preview task-run, optional agent run"]
+
+    E --> I["Route the stage<br/>A framing, B literature, C design, F writing, I code, H rebuttal..."]
+    F --> J["Collect search evidence<br/>queries, provider status, diagnostics, dedup and screening readiness"]
+    G --> K["Sync reference context<br/>local Zotero results, CSL/RIS/BibTeX exports, review queues"]
+    H --> L["Run controlled execution<br/>controller, primary, reviewer, verifier, solo/duo/triad mode"]
+
+    I --> M["Quality gates<br/>claim boundary, citation risk, method fit, code review, verification status"]
+    J --> M
+    K --> M
+    L --> M
+
+    M --> N["Write artifacts<br/>RESEARCH/[topic]/ context, search logs, plans, drafts, code, reviews"]
+    N --> O{"Human or agent review"}
+    O -->|revise| C
+    O -->|accepted| P["Auditable package<br/>evidence trail, decisions, outputs, and release/submission materials"]
 ```
 
 ## Current Structure

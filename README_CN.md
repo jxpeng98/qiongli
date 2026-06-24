@@ -52,17 +52,29 @@
 
 ```mermaid
 flowchart TD
-    A["研究请求"] --> B["Qiongli skill / workflow 路由"]
-    B --> C["任务合同：Task ID、paper type、topic、产物路径"]
-    C --> D{"选择刚好够用的运行时入口"}
-    D --> E["skill-only 指导"]
-    D --> F["Literature MCP 工具"]
-    D --> G["完整 CLI / orchestrator runtime"]
-    E --> H["RESEARCH/[topic]/ 下的阶段产物"]
-    F --> H
-    G --> I["角色交接、质量门和 verification"]
-    I --> H
-    H --> J["可审计证据、草稿、代码、评审和发布产物"]
+    A["研究请求<br/>topic、paper type、客户端、约束"] --> B["Qiongli 入口<br/>skill、plugin command、CLI 或 MCP tool"]
+    B --> C["任务合同<br/>Task ID、stage、role、预期产物、证据规则"]
+    C --> D{"选择刚好够用的<br/>运行时入口"}
+
+    D --> E["Skill / plugin only<br/>workflow 指导、prompts、templates、subject overlays"]
+    D --> F["Literature MCP<br/>OpenAlex、Semantic Scholar、Crossref、PubMed"]
+    D --> G["Zotero companion<br/>本地文献库搜索、导入文件、reference review tags"]
+    D --> H["完整 CLI / orchestrator<br/>doctor、task-plan、preview task-run、可选 agent run"]
+
+    E --> I["进入对应 stage<br/>A framing、B literature、C design、F writing、I code、H rebuttal..."]
+    F --> J["收集检索证据<br/>queries、provider status、diagnostics、dedup 和 screening readiness"]
+    G --> K["同步 reference context<br/>本地 Zotero 结果、CSL/RIS/BibTeX exports、review queues"]
+    H --> L["受控执行<br/>controller、primary、reviewer、verifier、solo/duo/triad mode"]
+
+    I --> M["质量门<br/>claim boundary、citation risk、method fit、code review、verification status"]
+    J --> M
+    K --> M
+    L --> M
+
+    M --> N["写入产物<br/>RESEARCH/[topic]/ context、search logs、plans、drafts、code、reviews"]
+    N --> O{"人工或 agent 审阅"}
+    O -->|修订| C
+    O -->|接受| P["可审计包<br/>证据链、决策记录、产物、release/submission materials"]
 ```
 
 ## 当前能力地图
