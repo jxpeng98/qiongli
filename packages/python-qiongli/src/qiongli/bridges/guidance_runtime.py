@@ -12,6 +12,8 @@ from typing import Any
 
 GUIDANCE_MODES = ("off", "read", "propose", "apply")
 LOCAL_GUIDANCE_REL = Path(".qiongli") / "local_guidance.md"
+GUIDANCE_DIR_REL = Path(".qiongli") / "guidance.d"
+GUIDANCE_MANIFEST_REL = Path(".qiongli") / "guidance_manifest.yaml"
 TRACE_REL = Path(".qiongli") / "trace"
 TRACE_INDEX_REL = TRACE_REL / "index.jsonl"
 
@@ -20,6 +22,8 @@ TRACE_INDEX_REL = TRACE_REL / "index.jsonl"
 class GuidancePaths:
     project_root: Path
     project_guidance: Path
+    project_guidance_dir: Path
+    project_guidance_manifest: Path
     trace_root: Path
     trace_index: Path
     global_preferences: Path
@@ -35,6 +39,9 @@ class GuidanceState:
     summary: str
     guidance_context: str
     guidance_files_read: list[str]
+    guidance_sources: list[dict[str, str]]
+    source_order: list[str]
+    conflicts: list[str]
     run_id: str = ""
     warnings: list[str] | None = None
 
@@ -51,6 +58,8 @@ def resolve_guidance_paths(project_root: Path) -> GuidancePaths:
     return GuidancePaths(
         project_root=root,
         project_guidance=root / LOCAL_GUIDANCE_REL,
+        project_guidance_dir=root / GUIDANCE_DIR_REL,
+        project_guidance_manifest=root / GUIDANCE_MANIFEST_REL,
         trace_root=root / TRACE_REL,
         trace_index=root / TRACE_INDEX_REL,
         global_preferences=global_root / "preferences.md",
@@ -60,6 +69,7 @@ def resolve_guidance_paths(project_root: Path) -> GuidancePaths:
 def init_project_guidance(project_root: Path) -> GuidancePaths:
     paths = resolve_guidance_paths(project_root)
     paths.trace_root.mkdir(parents=True, exist_ok=True)
+    paths.project_guidance_dir.mkdir(parents=True, exist_ok=True)
     if not paths.project_guidance.exists():
         paths.project_guidance.parent.mkdir(parents=True, exist_ok=True)
         paths.project_guidance.write_text(_default_local_guidance(), encoding="utf-8")
@@ -75,6 +85,8 @@ def guidance_bootstrap_status(project_root: Path, *, mode: str = "propose") -> d
         "needed": bool(enabled and not paths.project_guidance.is_file()),
         "mode": normalized_mode,
         "project_guidance": _rel(paths.project_root, paths.project_guidance),
+        "guidance_dir": _rel(paths.project_root, paths.project_guidance_dir),
+        "guidance_fragment_count": len(_iter_project_guidance_fragments(paths)),
         "trace_root": _rel(paths.project_root, paths.trace_root),
         "trace_index": _rel(paths.project_root, paths.trace_index),
     }
@@ -99,17 +111,27 @@ def effective_guidance(project_root: Path, *, mode: str = "propose", run_id: str
             summary="Local guidance disabled for this run.",
             guidance_context="",
             guidance_files_read=[],
+            guidance_sources=[],
+            source_order=[],
+            conflicts=[],
             run_id=run_id,
             warnings=[],
         )
 
     sections: list[str] = []
     files_read: list[str] = []
+    guidance_sources: list[dict[str, str]] = []
+    source_order: list[str] = []
     warnings: list[str] = []
-    for label, path in (
-        ("Global Preferences", paths.global_preferences),
-        ("Project Local Guidance", paths.project_guidance),
-    ):
+    source_specs: list[tuple[str, str, Path]] = [
+        ("global-preferences", "Global Preferences", paths.global_preferences),
+        ("project-local", "Project Local Guidance", paths.project_guidance),
+    ]
+    source_specs.extend(
+        ("project-fragment", f"Project Guidance Fragment: {path.name}", path)
+        for path in _iter_project_guidance_fragments(paths)
+    )
+    for kind, label, path in source_specs:
         if not path.is_file():
             continue
         try:
@@ -120,7 +142,9 @@ def effective_guidance(project_root: Path, *, mode: str = "propose", run_id: str
         if not text:
             continue
         sections.append(f"## {label}\n\n{text}")
-        files_read.append(str(path) if label == "Global Preferences" else _rel(paths.project_root, path))
+        files_read.append(str(path) if kind == "global-preferences" else _rel(paths.project_root, path))
+        guidance_sources.append({"kind": kind, "path": files_read[-1], "label": label})
+        source_order.append(kind)
 
     context = "\n\n".join(sections)
     return GuidanceState(
@@ -132,6 +156,9 @@ def effective_guidance(project_root: Path, *, mode: str = "propose", run_id: str
         summary=_summarize_guidance(context, files_read),
         guidance_context=context,
         guidance_files_read=files_read,
+        guidance_sources=guidance_sources,
+        source_order=source_order,
+        conflicts=[],
         run_id=run_id,
         warnings=warnings,
     )
@@ -304,6 +331,16 @@ def _normalize_mode(mode: str) -> str:
         available = ", ".join(GUIDANCE_MODES)
         raise ValueError(f"Unsupported guidance mode: {mode}. Available: {available}")
     return normalized
+
+
+def _iter_project_guidance_fragments(paths: GuidancePaths) -> list[Path]:
+    if not paths.project_guidance_dir.is_dir():
+        return []
+    return sorted(
+        path
+        for path in paths.project_guidance_dir.glob("*.md")
+        if path.is_file() and not path.name.startswith(".")
+    )
 
 
 def _rel(root: Path, path: Path) -> str:

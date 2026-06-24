@@ -54,6 +54,37 @@ class GuidanceRuntimeTests(unittest.TestCase):
             self.assertEqual(state.project_guidance_file, ".qiongli/local_guidance.md")
             self.assertEqual(state.trace_dir, "")
 
+    def test_effective_guidance_reads_project_guidance_fragments_in_stable_order(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            init_project_guidance(root)
+            guidance_dir = root / ".qiongli" / "guidance.d"
+            guidance_dir.mkdir(parents=True, exist_ok=True)
+            (guidance_dir / "writing-style.md").write_text(
+                "# Writing Style\n\n- Prefer claim-first paragraphs.\n",
+                encoding="utf-8",
+            )
+            (guidance_dir / "artifact-policy.md").write_text(
+                "# Artifact Policy Extension\n\n- Keep scratch notes outside formal outputs.\n",
+                encoding="utf-8",
+            )
+
+            state = effective_guidance(root, mode="read")
+
+            self.assertTrue(state.enabled)
+            self.assertEqual(
+                state.guidance_files_read,
+                [
+                    ".qiongli/local_guidance.md",
+                    ".qiongli/guidance.d/artifact-policy.md",
+                    ".qiongli/guidance.d/writing-style.md",
+                ],
+            )
+            self.assertIn("Keep scratch notes outside formal outputs", state.guidance_context)
+            self.assertIn("Prefer claim-first paragraphs", state.guidance_context)
+            self.assertEqual(state.source_order[-2:], ["project-fragment", "project-fragment"])
+            self.assertEqual(state.guidance_sources[-1]["path"], ".qiongli/guidance.d/writing-style.md")
+
     def test_effective_guidance_off_mode_skips_guidance_reads(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
