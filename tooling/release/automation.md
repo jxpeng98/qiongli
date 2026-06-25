@@ -121,6 +121,22 @@ tag push, registry publish wait, GitHub Release, and acceptance receipt. It does
 tag or publish package registries until the release-prep commit has passed the required branch
 checks.
 
+## 4.1) Resume after release-ready failures
+
+If `publish` has already completed `release_ready.sh` and created the release-prep commit, but
+then fails during branch push, branch CI wait, local tag creation, tag push, tag workflow wait, or
+postflight, resume with:
+
+```bash
+./scripts/release_automation.sh publish --tag v0.1.0 --resume-after-ready
+```
+
+This recovery path skips `release_ready.sh` and skips the release-prep commit step. It requires a
+clean working tree, treats local and remote tags as resumable when they already point at the
+release-prep commit, still waits for the required branch checks before tag publication, and then
+continues through postflight and the acceptance receipt. Do not manually assemble the remaining
+`git push`, `git tag`, and `post` commands for this state.
+
 ## 5) Post-release checks
 
 ```bash
@@ -150,6 +166,9 @@ When `--create-release` is used, the generated Codex and Claude Code artifacts a
 - `--from-tag <tag>`: choose baseline tag used for prerelease draft highlights.
 - `--skip-bump`: start `release_ready.sh` from preflight/package checks only.
 - `--allow-dirty`: let `release_ready.sh` continue on a dirty worktree.
+- `--resume-after-ready`: resume `publish` after a completed `release_ready.sh` and release-prep
+  commit; this skips repeated preflight/package checks and continues branch push, branch CI gate,
+  tag publication, postflight, and acceptance receipt generation.
 - `--commit-message <msg>`: override the release-prep commit message used by `publish`.
 - `--push-remote <name>` / `--push-branch <name>`: override the remote/branch used by `publish`.
 - `--wait-ci`: accepted for compatibility; publish mode always waits for required branch checks

@@ -101,6 +101,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn("不要为了移动 `next` 而机械发 beta", docs)
         self.assertIn("before tag creation", docs)
         self.assertIn("创建 tag 前", docs)
+        self.assertIn("--resume-after-ready", docs)
 
     def test_publish_mode_allows_beta_release_from_dev_only(self) -> None:
         content = RELEASE_AUTOMATION.read_text(encoding="utf-8")
@@ -149,6 +150,29 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertLess(content.index(branch_gate), content.index(tag_create))
         self.assertLess(content.index(tag_create), content.index(tag_push))
         self.assertLess(content.index(tag_push), content.index(postflight))
+
+    def test_publish_mode_can_resume_after_release_ready(self) -> None:
+        content = RELEASE_AUTOMATION.read_text(encoding="utf-8")
+
+        release_ready = './scripts/release_ready.sh "${release_ready_args[@]}"'
+        release_commit = 'release_commit="$(git rev-parse HEAD)"'
+        branch_push = 'git push "$push_remote" "$push_branch"'
+        tag_create = 'git tag -a "$repo_tag" -m "$tag_message"'
+        postflight = './scripts/release_postflight.sh --tag "$repo_tag" --acceptance-out "$acceptance_out"'
+
+        self.assertIn("--resume-after-ready", content)
+        self.assertIn("resume_after_ready=0", content)
+        self.assertIn('if [[ "$resume_after_ready" -eq 0 ]]; then', content)
+        self.assertIn("ensure_clean_resume_worktree", content)
+        self.assertIn('echo "[release-automation] resuming after release_ready; skipping preflight and release-prep commit"', content)
+        self.assertIn('ensure_tag_matches_release_commit "$repo_tag" "$release_commit" "$push_remote"', content)
+        self.assertIn('local_tag_target="$(resolve_local_tag_target "$repo_tag")"', content)
+        self.assertIn('remote_tag_target="$(resolve_remote_tag_target "$push_remote" "$repo_tag")"', content)
+        self.assertIn('echo "[release-automation] tag already exists remotely at release commit; skipping tag push"', content)
+        self.assertLess(content.index(release_ready), content.index(release_commit))
+        self.assertLess(content.index(release_commit), content.index(branch_push))
+        self.assertLess(content.index(branch_push), content.index(tag_create))
+        self.assertLess(content.index(tag_create), content.index(postflight))
 
     def test_release_postflight_waits_for_branch_and_tag_workflows(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")

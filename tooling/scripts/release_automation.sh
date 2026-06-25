@@ -44,6 +44,13 @@ ensure_git_identity() {
   exit 1
 }
 
+ensure_clean_resume_worktree() {
+  if ! git diff --quiet || ! git diff --cached --quiet; then
+    echo "[release-automation] --resume-after-ready requires a clean working tree; commit or discard release-prep changes first" >&2
+    exit 1
+  fi
+}
+
 derive_repo_slug() {
   local remote_url
   remote_url="$(git remote get-url origin 2>/dev/null || true)"
@@ -52,6 +59,42 @@ derive_repo_slug() {
     return 0
   fi
   return 1
+}
+
+resolve_local_tag_target() {
+  local tag="$1"
+  git rev-parse -q --verify "refs/tags/${tag}^{}" 2>/dev/null || true
+}
+
+resolve_remote_tag_target() {
+  local remote="$1"
+  local tag="$2"
+  local target
+
+  target="$(git ls-remote --exit-code --tags "$remote" "${tag}^{}" 2>/dev/null | awk 'NR == 1 { print $1 }' || true)"
+  if [[ -z "$target" ]]; then
+    target="$(git ls-remote --exit-code --tags "$remote" "$tag" 2>/dev/null | awk 'NR == 1 { print $1 }' || true)"
+  fi
+  printf '%s\n' "$target"
+}
+
+ensure_tag_matches_release_commit() {
+  local repo_tag="$1"
+  local release_commit="$2"
+  local push_remote="$3"
+  local local_tag_target remote_tag_target
+
+  local_tag_target="$(resolve_local_tag_target "$repo_tag")"
+  if [[ -n "$local_tag_target" && "$local_tag_target" != "$release_commit" ]]; then
+    echo "[release-automation] local tag $repo_tag points at $local_tag_target, expected $release_commit" >&2
+    exit 1
+  fi
+
+  remote_tag_target="$(resolve_remote_tag_target "$push_remote" "$repo_tag")"
+  if [[ -n "$remote_tag_target" && "$remote_tag_target" != "$release_commit" ]]; then
+    echo "[release-automation] remote tag $repo_tag on $push_remote points at $remote_tag_target, expected $release_commit" >&2
+    exit 1
+  fi
 }
 
 fetch_actions_runs() {
@@ -218,6 +261,7 @@ Examples:
   ./scripts/release_automation.sh post --tag v0.1.0 --create-release
   ./scripts/release_automation.sh publish --version 0.1.0 --from-tag v0.1.0-beta.6
   ./scripts/release_automation.sh publish --tag v0.1.0 --from-tag v0.1.0-beta.6
+  ./scripts/release_automation.sh publish --tag v0.1.0 --resume-after-ready
 
 Notes:
   - pre  -> runs scripts/release_preflight.sh
@@ -225,6 +269,7 @@ Notes:
   - publish is the canonical release entrypoint. Use pre/post only for diagnostics or recovery.
   - pre supports pass-through flags such as --from-tag, --skip-note-gen, --note-overwrite, --skip-smoke, --maintainer-smoke, and --no-strict.
   - publish -> runs release_ready with staged distribution checks (including pypi_preflight.sh and npm_preflight.sh), commits and pushes release-prep files, waits for branch CI/checks, creates/pushes the tag, waits for tag publish workflows, then runs postflight with release-page creation.
+  - publish --resume-after-ready starts after a completed release_ready/release-prep commit and continues branch push, branch CI gate, tag push, postflight, and acceptance receipt.
   - publish always uses hard CI gates before tag creation and release-page creation; use post mode for diagnostic soft waits only.
   - publish stable releases from the primary branch; publish prerelease/beta tags from dev or the primary branch.
 EOF
@@ -258,6 +303,7 @@ case "$MODE" in
     ci_timeout_seconds=1800
     ci_timeout_mode="hard"
     ci_poll_interval_seconds=30
+    resume_after_ready=0
     ready_args=()
     post_args=()
 
@@ -287,6 +333,10 @@ case "$MODE" in
         --allow-dirty)
           allow_dirty=1
           ready_args+=("$1")
+          shift
+          ;;
+        --resume-after-ready)
+          resume_after_ready=1
           shift
           ;;
         --skip-smoke|--maintainer-smoke|--no-strict|--skip-note-gen|--note-overwrite|--no-build|--no-install-smoke|--keep-dist)
@@ -409,59 +459,65 @@ case "$MODE" in
       commit_message="chore: prepare release ${package_version}"
     fi
 
-    release_ready_args=(--version "$version_input")
-    release_ready_args+=("${ready_args[@]}")
-    ./scripts/release_ready.sh "${release_ready_args[@]}"
-
     ensure_git_identity
 
-    git add \
-      pyproject.toml \
-      docs/reference/skills.md \
-      docs/zh/reference/skills.md \
-      packages/python-qiongli/src/qiongli/__init__.py \
-      content/workflow/SKILL.md \
-      content/workflow/VERSION \
-      content/skills/registry.yaml \
-      content/distribution/plugins.yaml \
-      README.md \
-      README_CN.md \
-      docs/index.md \
-      docs/zh/index.md \
-      docs/guide/install.md \
-      docs/zh/guide/install.md \
-      package-lock.json \
-      uv.lock \
-      packages/npm-qiongli \
-      tooling/scripts/build_plugin_artifacts.py \
-      tooling/scripts/materialize_distribution_payloads.py
-    if is_prerelease_tag "$repo_tag"; then
-      git add "tooling/release/${repo_tag}.md"
+    if [[ "$resume_after_ready" -eq 0 ]]; then
+      release_ready_args=(--version "$version_input")
+      release_ready_args+=("${ready_args[@]}")
+      ./scripts/release_ready.sh "${release_ready_args[@]}"
+
+      git add \
+        pyproject.toml \
+        docs/reference/skills.md \
+        docs/zh/reference/skills.md \
+        packages/python-qiongli/src/qiongli/__init__.py \
+        content/workflow/SKILL.md \
+        content/workflow/VERSION \
+        content/skills/registry.yaml \
+        content/distribution/plugins.yaml \
+        README.md \
+        README_CN.md \
+        docs/index.md \
+        docs/zh/index.md \
+        docs/guide/install.md \
+        docs/zh/guide/install.md \
+        package-lock.json \
+        uv.lock \
+        packages/npm-qiongli \
+        tooling/scripts/build_plugin_artifacts.py \
+        tooling/scripts/materialize_distribution_payloads.py
+      if is_prerelease_tag "$repo_tag"; then
+        git add "tooling/release/${repo_tag}.md"
+      else
+        git add CHANGELOG.md
+      fi
+      if ! git diff --cached --quiet; then
+        git commit -m "$commit_message"
+      else
+        echo "[release-automation] no staged release-prep changes to commit; continuing"
+      fi
     else
-      git add CHANGELOG.md
-    fi
-    if ! git diff --cached --quiet; then
-      git commit -m "$commit_message"
-    else
-      echo "[release-automation] no staged release-prep changes to commit; continuing"
+      echo "[release-automation] resuming after release_ready; skipping preflight and release-prep commit"
+      ensure_clean_resume_worktree
     fi
     release_commit="$(git rev-parse HEAD)"
-
-    if git rev-parse -q --verify "refs/tags/$repo_tag" >/dev/null; then
-      echo "[release-automation] tag already exists locally: $repo_tag" >&2
-      exit 1
-    fi
-    if git ls-remote --exit-code --tags "$push_remote" "$repo_tag" >/dev/null 2>&1 \
-      || git ls-remote --exit-code --tags "$push_remote" "${repo_tag}^{}" >/dev/null 2>&1; then
-      echo "[release-automation] tag already exists on remote $push_remote: $repo_tag" >&2
-      exit 1
-    fi
+    ensure_tag_matches_release_commit "$repo_tag" "$release_commit" "$push_remote"
 
     repo_slug="$(derive_repo_slug || true)"
     git push "$push_remote" "$push_branch"
     wait_for_required_workflows "$repo_slug" "$push_branch" "$release_commit" "$ci_timeout_seconds" "$ci_poll_interval_seconds" "${BRANCH_REQUIRED_WORKFLOWS[@]}"
-    git tag -a "$repo_tag" -m "$tag_message"
-    git push "$push_remote" "$repo_tag"
+
+    local_tag_target="$(resolve_local_tag_target "$repo_tag")"
+    if [[ -z "$local_tag_target" ]]; then
+      git tag -a "$repo_tag" -m "$tag_message"
+    fi
+
+    remote_tag_target="$(resolve_remote_tag_target "$push_remote" "$repo_tag")"
+    if [[ -z "$remote_tag_target" ]]; then
+      git push "$push_remote" "$repo_tag"
+    else
+      echo "[release-automation] tag already exists remotely at release commit; skipping tag push"
+    fi
 
     post_args+=(--wait-ci --ci-timeout-seconds "$ci_timeout_seconds" --ci-timeout-mode hard --ci-poll-interval-seconds "$ci_poll_interval_seconds")
     if [[ "$create_release" -eq 1 ]]; then

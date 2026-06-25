@@ -6,6 +6,13 @@
 
 暂无未发布变更。
 
+## [1.9.1] - 2026-06-25
+
+### Fixed
+
+- `release_automation.sh publish` 新增 `--resume-after-ready` 恢复路径：当 `release_ready.sh` 和 release-prep commit 已完成，但后续 branch push、tag push、postflight 或 acceptance receipt 阶段失败时，可以跳过重复 preflight 并由 publish 模式继续接管。
+- 发布 tag 处理改为幂等校验：本地或远端 tag 已存在且指向同一个 release-prep commit 时会继续发布；只有 tag 指向不同 commit 时才阻断，避免认证或网络中断后被迫手动拼接发布命令。
+
 ## [1.9.0] - 2026-06-25
 
 ### Changed
