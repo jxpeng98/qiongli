@@ -124,10 +124,11 @@ def remove_local_plugin(
     removed = 0
     if "codex" in targets:
         codex_paths = resolve_codex_plugin_paths(marketplace_path=codex_marketplace_path)
-        if _remove_managed_root(codex_paths.plugin_root, dry_run=dry_run):
+        removed_codex_root = _remove_managed_root(codex_paths.plugin_root, dry_run=dry_run)
+        if removed_codex_root:
             removed += 1
-        if not dry_run:
-            _remove_codex_marketplace_entry(codex_paths.marketplace_path)
+        if removed_codex_root and not dry_run:
+            _remove_codex_marketplace_entry(codex_paths)
 
     if "claude" in targets:
         claude_root = _claude_plugin_root(claude_plugin_parent)
@@ -376,15 +377,15 @@ def _write_codex_marketplace_entry(paths: CodexPluginPaths, plugin: PluginDefini
     _write_json(paths.marketplace_path, marketplace)
 
 
-def _remove_codex_marketplace_entry(marketplace_path: Path) -> None:
-    if not marketplace_path.is_file():
+def _remove_codex_marketplace_entry(paths: CodexPluginPaths) -> None:
+    if not paths.marketplace_path.is_file():
         return
-    marketplace = _read_marketplace(marketplace_path)
+    marketplace = _read_marketplace(paths.marketplace_path)
     plugins = _marketplace_plugins_list(marketplace)
     marketplace["plugins"] = [
-        entry for entry in plugins if not (isinstance(entry, dict) and entry.get("name") == PLUGIN_ID)
+        entry for entry in plugins if not _is_managed_codex_marketplace_entry(entry, paths.marketplace_source_path)
     ]
-    _write_json(marketplace_path, marketplace)
+    _write_json(paths.marketplace_path, marketplace)
 
 
 def _read_marketplace(path: Path) -> dict[str, Any]:
@@ -430,6 +431,15 @@ def _upsert_marketplace_plugin(plugins: list[Any], entry: dict[str, Any]) -> Non
             plugins[index] = entry
             return
     plugins.append(entry)
+
+
+def _is_managed_codex_marketplace_entry(entry: object, marketplace_source_path: str) -> bool:
+    if not isinstance(entry, dict) or entry.get("name") != PLUGIN_ID:
+        return False
+    source = entry.get("source")
+    if not isinstance(source, dict):
+        return False
+    return source.get("source") == "local" and source.get("path") == marketplace_source_path
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
