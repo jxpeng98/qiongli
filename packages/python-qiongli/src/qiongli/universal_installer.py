@@ -25,7 +25,8 @@ from .subject_materializer import (
 
 TARGET_CHOICES = ("codex", "claude", "antigravity", "hermes", "all")
 PROFILE_CHOICES = ("partial", "full")
-PART_CHOICES = ("globals", "project", "cli", "mcp", "doctor")
+SURFACE_CHOICES = ("skills", "plugin", "both")
+PART_CHOICES = ("globals", "plugin", "project", "cli", "mcp", "doctor")
 LEGACY_MANIFEST_PATH = Path(__file__).resolve().parents[1] / "install" / "install_manifest.tsv"
 
 
@@ -44,6 +45,7 @@ class InstallOptions:
     doctor: bool | None = None
     dry_run: bool = False
     profile: str | None = None
+    surface: str = "skills"
     parts: tuple[str, ...] | None = None
 
 
@@ -52,6 +54,7 @@ class RemoveOptions:
     project_dir: Path
     target: str = "all"
     dry_run: bool = False
+    surface: str = "skills"
     parts: tuple[str, ...] | None = None
     cli_dir: Path | None = None
 
@@ -82,6 +85,7 @@ def apply_profile(options: InstallOptions) -> InstallOptions:
         doctor=defaults["doctor"] if options.doctor is None else options.doctor,
         dry_run=options.dry_run,
         profile=options.profile,
+        surface=options.surface,
         parts=options.parts,
     )
 
@@ -949,6 +953,7 @@ def install(options: InstallOptions) -> int:
             doctor=options.doctor,
             dry_run=options.dry_run,
             profile=options.profile,
+            surface=options.surface,
             parts=options.parts,
         )
     )
@@ -1177,6 +1182,7 @@ def remove(options: RemoveOptions) -> int:
         project_dir=_resolve(options.project_dir),
         target=options.target,
         dry_run=options.dry_run,
+        surface=options.surface,
         parts=options.parts,
         cli_dir=_resolve(options.cli_dir or Path.home() / ".local" / "bin"),
     )
