@@ -14,6 +14,7 @@ import { appendSearchWarnings, searchDiagnostics } from "./diagnostics.mjs";
 import { buildEvidence } from "./evidence.mjs";
 import { dedupeResults, rankResults } from "./normalize.mjs";
 import { buildQueryPlan, buildSearchIntent, providerLimitFor } from "./query.mjs";
+import { searchArxiv } from "./providers/arxiv.mjs";
 import { searchCrossref } from "./providers/crossref.mjs";
 import { searchOpenAlex } from "./providers/openalex.mjs";
 import { searchPubMed } from "./providers/pubmed.mjs";
@@ -128,7 +129,7 @@ export const TOOL_DECLARATIONS = [
   },
   {
     name: "qiongli_literature_search",
-    description: "Search academic literature using configured OpenAlex, Semantic Scholar, Crossref, and PubMed providers with query variants, finance/economics deep-search routing, diagnostics, and metadata filters.",
+    description: "Search academic literature using configured OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv providers with query variants, finance/economics deep-search routing, diagnostics, and metadata filters.",
     inputSchema: {
       type: "object",
       additionalProperties: true,
@@ -591,6 +592,10 @@ function providersFor(config) {
     providers.push("pubmed");
   }
 
+  if (status.providers.arxiv === "configured") {
+    providers.push("arxiv");
+  }
+
   return providers;
 }
 
@@ -693,11 +698,22 @@ async function callProvider(provider, params) {
     });
   }
 
-  return searchPubMed({
+  if (provider === "pubmed") {
+    return searchPubMed({
+      query: params.query,
+      doi: params.intent.doi,
+      limit: params.limit,
+      apiKey: params.config.pubmedApiKey,
+      fromYear: params.fromYear,
+      toYear: params.toYear,
+      fetchImpl: params.fetchImpl
+    });
+  }
+
+  return searchArxiv({
     query: params.query,
     doi: params.intent.doi,
     limit: params.limit,
-    apiKey: params.config.pubmedApiKey,
     fromYear: params.fromYear,
     toYear: params.toYear,
     fetchImpl: params.fetchImpl

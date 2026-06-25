@@ -9,6 +9,7 @@ from unittest import mock
 from bridges.provider_config import (
     global_provider_config_path,
     provider_config_env,
+    provider_config_summary,
     provider_capability_mode,
     redact_provider_config,
     resolve_provider_config,
@@ -135,6 +136,20 @@ def test_openalex_email_alone_does_not_mark_provider_configured(tmp_path: Path, 
     assert redacted["providers"]["openalex"]["fields"]["api_key"] == "missing"
 
 
+def test_arxiv_is_available_without_provider_credentials(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("QIONGLI_CONFIG_HOME", str(tmp_path / "config"))
+
+    resolved = resolve_provider_config(cwd=tmp_path, env={})
+    redacted = redact_provider_config(resolved)
+
+    assert resolved["providers"]["arxiv"]["enabled"] is True
+    assert resolved["providers"]["arxiv"]["configured"] is True
+    assert redacted["providers"]["arxiv"]["configured"] is True
+    assert redacted["providers"]["arxiv"]["fields"] == {}
+    assert provider_config_summary(resolved)["arxiv"] == "configured"
+    assert provider_capability_mode(provider_config_summary(resolved)) == "provider_connected"
+
+
 def test_provider_capability_mode_reports_connected_only_when_configured() -> None:
     assert provider_capability_mode(
         {
@@ -142,6 +157,7 @@ def test_provider_capability_mode_reports_connected_only_when_configured() -> No
             "semantic_scholar": "missing",
             "crossref": "missing",
             "pubmed": "missing",
+            "arxiv": "missing",
         }
     ) == "strategy_only"
 
@@ -151,6 +167,17 @@ def test_provider_capability_mode_reports_connected_only_when_configured() -> No
             "semantic_scholar": "configured",
             "crossref": "missing",
             "pubmed": "missing",
+            "arxiv": "missing",
+        }
+    ) == "provider_connected"
+
+    assert provider_capability_mode(
+        {
+            "openalex": "missing",
+            "semantic_scholar": "missing",
+            "crossref": "missing",
+            "pubmed": "missing",
+            "arxiv": "configured",
         }
     ) == "provider_connected"
 
@@ -194,6 +221,24 @@ def test_provider_config_env_emits_primary_and_legacy_aliases_without_redaction(
 
 
 class ProviderConfigEnvTests(unittest.TestCase):
+    def test_arxiv_is_available_without_provider_credentials(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            with mock.patch.dict(
+                "os.environ",
+                {"QIONGLI_CONFIG_HOME": str(root / "config")},
+                clear=False,
+            ):
+                resolved = resolve_provider_config(cwd=root, env={})
+                redacted = redact_provider_config(resolved)
+
+        self.assertIs(resolved["providers"]["arxiv"]["enabled"], True)
+        self.assertIs(resolved["providers"]["arxiv"]["configured"], True)
+        self.assertIs(redacted["providers"]["arxiv"]["configured"], True)
+        self.assertEqual(redacted["providers"]["arxiv"]["fields"], {})
+        self.assertEqual(provider_config_summary(resolved)["arxiv"], "configured")
+        self.assertEqual(provider_capability_mode(provider_config_summary(resolved)), "provider_connected")
+
     def test_provider_config_env_emits_primary_and_legacy_aliases_without_redaction(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)

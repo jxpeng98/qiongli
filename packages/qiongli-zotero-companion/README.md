@@ -2,7 +2,7 @@
 
 The Qiongli Zotero Companion is a thin Zotero Desktop extension that lets
 Qiongli treat Zotero as a local reference database. It is not a standalone MCP
-server and it does not replace OpenAlex, Semantic Scholar, Crossref, or PubMed
+server and it does not replace OpenAlex, Semantic Scholar, Crossref, PubMed, or arXiv
 discovery.
 
 The companion registers Qiongli-specific endpoints on Zotero Desktop's local

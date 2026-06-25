@@ -70,7 +70,7 @@ flowchart TD
     C --> D{"选择刚好够用的<br/>运行时入口"}
 
     D --> E["Skill / plugin only<br/>workflow 指导、prompts、templates、subject overlays"]
-    D --> F["Literature MCP<br/>OpenAlex、Semantic Scholar、Crossref、PubMed"]
+    D --> F["Literature MCP<br/>OpenAlex、Semantic Scholar、Crossref、PubMed、arXiv"]
     D --> G["Zotero companion<br/>本地文献库搜索、导入文件、reference review tags"]
     D --> H["完整 CLI / orchestrator<br/>doctor、task-plan、preview task-run、可选 agent run"]
 
@@ -171,7 +171,7 @@ Claude Desktop 不走 Claude Code 的第三方 plugin marketplace 路径。Deskt
 
 Desktop/Web ZIP 使用 `coverage=focused`，用于保持当前 180 文件上传预算。它是 subject 专精安装包，不是降质删减版：保留统一 workflows、prompts、templates、standards、所选 profiles、`skills-summary.md` 和 `skills-core.md`；专精 ZIP 还包含经过 layered overlays 生成的 selected effective skill markdown。这个 Desktop skill ZIP 是 skill-only asset：只包含 workflows/prompts/templates，不保存 secrets，也不执行 provider calls。需要全量 canonical 源码细节时，使用默认 `coverage=complete` 的 CLI/npm 安装、Codex / Claude Code / Gemini plugin 包或源码仓库。
 
-独立的 Qiongli Literature Provider `.mcpb`（`qiongli-literature-provider.mcpb`）才是 Claude Desktop 本地 provider asset。它在本地运行 Desktop literature search，支持 OpenAlex 和 Semantic Scholar，并通过 Desktop 配置 UI 填写 OpenAlex API key、可选 OpenAlex email 和 Semantic Scholar API key；敏感 key 交给 Claude Desktop sensitive-field handling，不写入 Desktop skill ZIP。这个 MCPB 自带零依赖 Node stdio server，所以 Desktop 用户不需要安装 `qiongli` CLI 或运行 npm install。CLI、Codex 和 Claude Code 用户仍然可以运行 `qiongli provider setup`，再用 `qiongli provider doctor` 检查当前是 `provider_connected` 还是 `strategy_only`。Desktop 用户需要 `qiongli-literature-provider` MCPB 或平台原生搜索能力，才能声称 `provider_connected`；如果没有 MCPB 或平台原生搜索能力，就把运行记录为 `strategy_only`，并把平台搜索或用户提供的 corpus 作为证据来源。
+独立的 Qiongli Literature Provider `.mcpb`（`qiongli-literature-provider.mcpb`）才是 Claude Desktop 本地 provider asset。它在本地运行 Desktop literature search，支持 OpenAlex、Semantic Scholar、Crossref、PubMed 和 arXiv，并通过 Desktop 配置 UI 填写需要凭据的 provider；arXiv 默认可用，不需要凭据。敏感 key 交给 Claude Desktop sensitive-field handling，不写入 Desktop skill ZIP。这个 MCPB 自带零依赖 Node stdio server，所以 Desktop 用户不需要安装 `qiongli` CLI 或运行 npm install。CLI、Codex、Claude Code、Antigravity 和 Hermes 用户仍然可以运行 `qiongli provider setup`，再用 `qiongli provider doctor` 检查当前是 `provider_connected` 还是 `strategy_only`。Desktop 用户需要 `qiongli-literature-provider` MCPB 或平台原生搜索能力，才能声称 `provider_connected`；如果没有 MCPB 或平台原生搜索能力，就把运行记录为 `strategy_only`，并把平台搜索或用户提供的 corpus 作为证据来源。
 
 ### Subject 专精安装
 
@@ -299,7 +299,7 @@ qiongli setup --dry-run
 qiongli setup --project-dir "$PWD" --no-doctor
 ```
 
-setup wizard 面向 CLI、Codex 和 Claude Code 用户，会交互式引导选择 install 或 upgrade、runtime surface（`cli`、`codex`、`claude-code` 或 `multi-platform`）、subject、coverage（`complete` 或 `focused`）、`--mode copy|link`、install scope（`all`、`globals`、`project` 或 `cli`）、CLI 目录、`--overwrite` / `--no-overwrite`、upgrade source（`--repo`、`--ref`、`--ref-type` 或 beta）、可选 literature provider keys，并在最后执行 doctor verification，除非使用 `--no-doctor`。每一步 prompt 都会显示简短的 `Tip:` 注释，解释这个选择会改变什么。
+setup wizard 面向 CLI、Codex、Claude Code、Antigravity 和 Hermes 用户，会交互式引导选择 install 或 upgrade、runtime surface（`cli`、`codex`、`claude-code`、`antigravity`、`hermes` 或 `multi-platform`）、subject、coverage（`complete` 或 `focused`）、`--mode copy|link`、install scope（`all`、`globals`、`project` 或 `cli`）、CLI 目录、`--overwrite` / `--no-overwrite`、upgrade source（`--repo`、`--ref`、`--ref-type` 或 beta）、可选 literature provider keys，并在最后执行 doctor verification，除非使用 `--no-doctor`。每一步 prompt 都会显示简短的 `Tip:` 注释，解释这个选择会改变什么。
 
 在 npm 安装中，`qiongli setup` 会委托到 npm 包内置的 Python bridge，因此要求本机已有 Python 3.12+ 和 `PyYAML`。如果只需要 Node-based asset installation，继续使用显式 `qiongli install ...` 命令。
 
@@ -593,7 +593,7 @@ qiongli setup --dry-run
 qiongli setup --project-dir "$PWD" --no-doctor
 ```
 
-wizard 会引导 CLI、Codex 和 Claude Code 安装选择 install 或 upgrade、runtime surface（`cli`、`codex`、`claude-code` 或 `multi-platform`）、subject、coverage（`complete` 或 `focused`）、`--mode copy|link`、install scope（`all`、`globals`、`project` 或 `cli`）、CLI 目录、`--overwrite` / `--no-overwrite`、可选 upgrade source、literature provider key setup，以及 doctor verification。每一步 prompt 都会显示简短的 `Tip:` 注释，解释这个选择会改变什么。
+wizard 会引导 CLI、Codex、Claude Code、Antigravity 和 Hermes 安装选择 install 或 upgrade、runtime surface（`cli`、`codex`、`claude-code`、`antigravity`、`hermes` 或 `multi-platform`）、subject、coverage（`complete` 或 `focused`）、`--mode copy|link`、install scope（`all`、`globals`、`project` 或 `cli`）、CLI 目录、`--overwrite` / `--no-overwrite`、可选 upgrade source、literature provider key setup，以及 doctor verification。每一步 prompt 都会显示简短的 `Tip:` 注释，解释这个选择会改变什么。
 
 在 npm 安装中，`qiongli setup` 会委托到 npm 包内置的 Python bridge，因此要求本机已有 Python 3.12+ 和 `PyYAML`。如果只需要 Node-only installer path，继续使用显式 `qiongli install ...` 命令。
 

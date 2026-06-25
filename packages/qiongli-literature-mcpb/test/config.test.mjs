@@ -30,6 +30,7 @@ test("provider status redacts configured secrets", () => {
   assert.equal(status.providers.semantic_scholar, "configured");
   assert.equal(status.providers.crossref, "configured");
   assert.equal(status.providers.pubmed, "configured");
+  assert.equal(status.providers.arxiv, "configured");
   assert.equal(serialized.includes("secret-key"), false);
   assert.equal(serialized.includes("pubmed-secret-key"), false);
   assert.equal(serialized.includes("openalex-secret-key"), false);
@@ -45,19 +46,26 @@ test("readConfig defaults invalid and blank limits and clamps numeric limits", (
   assert.equal(readConfig({ QIONGLI_MCPB_DEFAULT_LIMIT: "12" }).defaultLimit, 12);
 });
 
-test("provider status requires OpenAlex API key and reports optional email separately", (t) => {
+test("provider status keeps arXiv available without provider credentials", (t) => {
   const configHome = mkdtempSync(path.join(os.tmpdir(), "qiongli-mcpb-empty-config-"));
   t.after(() => rmSync(configHome, { recursive: true, force: true }));
 
   const status = providerStatus(readConfig({ QIONGLI_CONFIG_HOME: configHome }));
 
-  assert.equal(status.capability_mode, "strategy_only");
+  assert.equal(status.capability_mode, "provider_connected");
   assert.deepEqual(status.providers, {
     openalex: "missing",
     semantic_scholar: "missing",
     crossref: "missing",
-    pubmed: "missing"
+    pubmed: "missing",
+    arxiv: "configured"
   });
+  assert.deepEqual(status.missing, [
+    "openalex.api_key",
+    "semantic_scholar.api_key",
+    "crossref.email",
+    "pubmed.api_key"
+  ]);
 });
 
 test("readConfig reads Crossref and PubMed values from shared config", (t) => {

@@ -14,6 +14,24 @@ import {
   handleToolCall
 } from "../server/index.mjs";
 
+function emptyArxivResponse() {
+  return {
+    ok: true,
+    status: 200,
+    async text() {
+      return `<?xml version="1.0" encoding="UTF-8"?><feed xmlns="http://www.w3.org/2005/Atom"></feed>`;
+    }
+  };
+}
+
+function isArxivUrl(url) {
+  return new URL(url).hostname === "export.arxiv.org";
+}
+
+function nonArxivCalls(calls) {
+  return calls.filter((url) => url.hostname !== "export.arxiv.org");
+}
+
 test("tool declarations match manifest tool names", () => {
   assert.deepEqual(
     TOOL_DECLARATIONS.map((tool) => tool.name),
@@ -154,6 +172,8 @@ test("handleConfigStatus suggests the platform-neutral setup tool when provider 
   assert.equal(status.providers.semantic_scholar.fields.api_key, "missing");
   assert.equal(status.providers.crossref.fields.email, "missing");
   assert.equal(status.providers.pubmed.fields.api_key, "missing");
+  assert.equal(status.providers.arxiv.configured, true);
+  assert.deepEqual(status.providers.arxiv.fields, {});
   assert.deepEqual(status.missing, [
     "openalex.api_key",
     "semantic_scholar.api_key",
@@ -198,6 +218,7 @@ test("handleStatus redacts configured secrets", () => {
   assert.equal(status.providers.semantic_scholar, "configured");
   assert.equal(status.providers.crossref, "configured");
   assert.equal(status.providers.pubmed, "configured");
+  assert.equal(status.providers.arxiv, "configured");
   assert.equal(serialized.includes("openalex-secret-key"), false);
   assert.equal(serialized.includes("person@example.com"), false);
   assert.equal(serialized.includes("secret-key"), false);
@@ -217,10 +238,12 @@ test("status responses include provider capability registry", () => {
   assert.equal(status.provider_capabilities.semantic_scholar.status, "implemented");
   assert.equal(status.provider_capabilities.crossref.status, "implemented");
   assert.equal(status.provider_capabilities.pubmed.status, "implemented");
+  assert.equal(status.provider_capabilities.arxiv.status, "implemented");
   assert.equal(status.provider_capabilities.openalex.capabilities.includes("document_type_filter"), true);
   assert.equal(status.provider_capabilities.semantic_scholar.capabilities.includes("publication_type_metadata"), true);
   assert.equal(status.provider_capabilities.crossref.capabilities.includes("reference_metadata"), true);
   assert.equal(status.provider_capabilities.pubmed.capabilities.includes("biomedical_topic_search"), true);
+  assert.equal(status.provider_capabilities.arxiv.capabilities.includes("preprint_search"), true);
 });
 
 test("handleSaveProviderConfig writes shared provider config without echoing secrets", async () => {
@@ -367,7 +390,7 @@ test("handleSearch does not call Zotero source by default", async () => {
   );
 
   assert.equal(response.status, "ok");
-  assert.deepEqual(response.providers.attempted, ["openalex"]);
+  assert.deepEqual(response.providers.attempted, ["openalex", "arxiv"]);
   assert.equal(urls.some((url) => url.includes("/qiongli/search")), false);
 });
 
@@ -421,7 +444,7 @@ test("handleSearch includes Zotero source only when requested", async () => {
     }
   );
 
-  assert.deepEqual(response.providers.attempted, ["openalex", "zotero"]);
+  assert.deepEqual(response.providers.attempted, ["openalex", "arxiv", "zotero"]);
   assert.equal(response.providers.successful.includes("zotero"), true);
   assert.equal(response.results.some((result) => result.provider === "zotero"), true);
   assert.equal(response.results.find((result) => result.provider === "zotero").source_type, "local_reference_database");
@@ -545,6 +568,10 @@ test("handleSearch aggregates successful and failed providers with warnings", as
       };
     }
 
+    if (requestedUrl.hostname === "export.arxiv.org") {
+      return emptyArxivResponse();
+    }
+
     assert.equal(requestedUrl.hostname, "api.semanticscholar.org");
     assert.equal(requestedUrl.searchParams.get("limit"), "50");
     return {
@@ -572,13 +599,13 @@ test("handleSearch aggregates successful and failed providers with warnings", as
   const serialized = JSON.stringify(response);
   assert.equal(response.status, "ok");
   assert.equal(response.capability_mode, "provider_connected");
-  assert.deepEqual(response.providers.attempted, ["openalex", "semantic_scholar"]);
-  assert.deepEqual(response.providers.successful, ["openalex"]);
+  assert.deepEqual(response.providers.attempted, ["openalex", "semantic_scholar", "arxiv"]);
+  assert.deepEqual(response.providers.successful, ["openalex", "arxiv"]);
   assert.deepEqual(response.providers.failed, ["semantic_scholar"]);
-  assert.deepEqual(response.warnings, ["single_successful_provider", "partial_provider_failure"]);
+  assert.deepEqual(response.warnings, ["partial_provider_failure"]);
   assert.equal(response.results.length, 1);
   assert.equal(response.results[0].doi, "10.1234/dupe");
-  assert.equal(calls.length, 4);
+  assert.equal(calls.length, 5);
   assert.deepEqual(response.diagnostics.providers, [
     {
       provider: "openalex",
@@ -595,13 +622,21 @@ test("handleSearch aggregates successful and failed providers with warnings", as
       request_count: 1,
       attempts: 3,
       error: "semantic_scholar HTTP 429"
+    },
+    {
+      provider: "arxiv",
+      status: "success",
+      result_count: 0,
+      request_count: 1,
+      attempts: 1,
+      error: null
     }
   ]);
   assert.equal(serialized.includes("person@example.com"), false);
   assert.equal(serialized.includes("secret-key"), false);
 });
 
-test("handleSearch fans out to configured Crossref and PubMed providers", async () => {
+test("handleSearch fans out to configured Crossref, PubMed, and arXiv providers", async () => {
   const calls = [];
   const fetchImpl = async (url) => {
     const requestedUrl = new URL(url);
@@ -639,6 +674,10 @@ test("handleSearch fans out to configured Crossref and PubMed providers", async 
           };
         }
       };
+    }
+
+    if (requestedUrl.hostname === "export.arxiv.org") {
+      return emptyArxivResponse();
     }
 
     assert.equal(requestedUrl.hostname, "eutils.ncbi.nlm.nih.gov");
@@ -686,7 +725,8 @@ test("handleSearch fans out to configured Crossref and PubMed providers", async 
     "openalex",
     "semantic_scholar",
     "crossref",
-    "pubmed"
+    "pubmed",
+    "arxiv"
   ]);
   assert.deepEqual(response.providers.failed, []);
   assert.equal(calls.some((url) => url.hostname === "api.crossref.org"), true);
@@ -711,6 +751,10 @@ test("handleSearch uses review-mode default limit for literature reviews", async
           return { results: [] };
         }
       };
+    }
+
+    if (requestedUrl.hostname === "export.arxiv.org") {
+      return emptyArxivResponse();
     }
 
     assert.equal(requestedUrl.hostname, "api.semanticscholar.org");
@@ -739,7 +783,7 @@ test("handleSearch uses review-mode default limit for literature reviews", async
     );
 
     assert.equal(response.search_mode, "review");
-    assert.equal(calls.length, 2);
+    assert.equal(nonArxivCalls(calls).length, 2);
   } finally {
     await rm(configHome, { recursive: true, force: true });
   }
@@ -761,6 +805,10 @@ test("handleSearch keeps provider pages capped for explicit review limits", asyn
           return { results: [] };
         }
       };
+    }
+
+    if (requestedUrl.hostname === "export.arxiv.org") {
+      return emptyArxivResponse();
     }
 
     assert.equal(requestedUrl.hostname, "api.semanticscholar.org");
@@ -789,7 +837,7 @@ test("handleSearch keeps provider pages capped for explicit review limits", asyn
 
     assert.equal(response.search_mode, "review");
     assert.equal(response.search_options.per_provider_limit, 120);
-    assert.equal(calls.length, 2);
+    assert.equal(nonArxivCalls(calls).length, 2);
   } finally {
     await rm(configHome, { recursive: true, force: true });
   }
@@ -826,6 +874,10 @@ test("handleSearch separates per-provider and total result limits", async () => 
           };
         }
       };
+    }
+
+    if (requestedUrl.hostname === "export.arxiv.org") {
+      return emptyArxivResponse();
     }
 
     assert.equal(requestedUrl.hostname, "api.semanticscholar.org");
@@ -867,7 +919,7 @@ test("handleSearch separates per-provider and total result limits", async () => 
       }
     );
 
-    assert.equal(calls.length, 2);
+    assert.equal(nonArxivCalls(calls).length, 2);
     assert.equal(response.search_options.per_provider_limit, 3);
     assert.equal(response.search_options.total_limit, 2);
     assert.equal(response.results.length, 2);
@@ -886,6 +938,9 @@ test("handleSearch fans out explicit query variants with query diagnostics", asy
   const fetchImpl = async (url) => {
     const requestedUrl = new URL(url);
     calls.push(requestedUrl);
+    if (requestedUrl.hostname === "export.arxiv.org") {
+      return emptyArxivResponse();
+    }
     assert.equal(requestedUrl.hostname, "api.openalex.org");
     assert.equal(requestedUrl.searchParams.get("per-page"), "2");
 
@@ -926,7 +981,7 @@ test("handleSearch fans out explicit query variants with query diagnostics", asy
     );
 
     assert.deepEqual(
-      calls.map((url) => url.searchParams.get("search")),
+      nonArxivCalls(calls).map((url) => url.searchParams.get("search")),
       [
         "older adults conversational agents",
         "older people chatbots",
@@ -964,6 +1019,14 @@ test("handleSearch fans out explicit query variants with query diagnostics", asy
         request_count: 3,
         attempts: 3,
         error: null
+      },
+      {
+        provider: "arxiv",
+        status: "success",
+        result_count: 0,
+        request_count: 3,
+        attempts: 3,
+        error: null
       }
     ]);
     assert.deepEqual(
@@ -975,8 +1038,11 @@ test("handleSearch fans out explicit query variants with query diagnostics", asy
       })),
       [
         { query_id: "q1", provider: "openalex", result_count: 1, status: "success" },
+        { query_id: "q1", provider: "arxiv", result_count: 0, status: "success" },
         { query_id: "q2", provider: "openalex", result_count: 1, status: "success" },
-        { query_id: "q3", provider: "openalex", result_count: 1, status: "success" }
+        { query_id: "q2", provider: "arxiv", result_count: 0, status: "success" },
+        { query_id: "q3", provider: "openalex", result_count: 1, status: "success" },
+        { query_id: "q3", provider: "arxiv", result_count: 0, status: "success" }
       ]
     );
     assert.equal(response.results.length, 3);
@@ -992,6 +1058,9 @@ test("handleSearch adds automatic query variants for deep searches", async () =>
     const requestedUrl = new URL(url);
     calls.push(requestedUrl);
     const callIndex = calls.length;
+    if (requestedUrl.hostname === "export.arxiv.org") {
+      return emptyArxivResponse();
+    }
     assert.equal(requestedUrl.hostname, "api.openalex.org");
     assert.equal(requestedUrl.searchParams.get("per-page"), "3");
 
@@ -1029,7 +1098,7 @@ test("handleSearch adds automatic query variants for deep searches", async () =>
     );
 
     assert.deepEqual(
-      calls.map((url) => url.searchParams.get("search")),
+      nonArxivCalls(calls).map((url) => url.searchParams.get("search")),
       [
         "social media mental health",
         "social media mental health review",
@@ -1043,7 +1112,7 @@ test("handleSearch adds automatic query variants for deep searches", async () =>
       response.search_plan.queries.map((query) => query.source),
       ["primary", "auto_variant", "auto_variant"]
     );
-    assert.equal(response.diagnostics.queries.length, 3);
+    assert.equal(response.diagnostics.queries.length, 6);
     assert.equal(response.results.length, 3);
   } finally {
     await rm(configHome, { recursive: true, force: true });
@@ -1057,6 +1126,9 @@ test("handleSearch uses finance/econ routing for deep searches", async () => {
     const requestedUrl = new URL(url);
     calls.push(requestedUrl);
     const search = requestedUrl.searchParams.get("search");
+    if (requestedUrl.hostname === "export.arxiv.org") {
+      return emptyArxivResponse();
+    }
     assert.equal(requestedUrl.hostname, "api.openalex.org");
     assert.equal(requestedUrl.searchParams.get("per-page"), "3");
 
@@ -1122,7 +1194,7 @@ test("handleSearch uses finance/econ routing for deep searches", async () => {
     );
 
     assert.deepEqual(
-      calls.map((url) => url.searchParams.get("search")),
+      nonArxivCalls(calls).map((url) => url.searchParams.get("search")),
       [
         "asset pricing corporate finance",
         "asset pricing corporate finance working paper",
@@ -1274,16 +1346,22 @@ test("handleSearch warns when finance/econ deep search misses version coverage",
 test("handleSearch returns structured diagnostics for deep paginated searches", async () => {
   const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-deep-diagnostics-"));
   const calls = [];
+  let openAlexRequestCount = 0;
   const fetchImpl = async (url) => {
     const requestedUrl = new URL(url);
     calls.push(requestedUrl);
+    if (requestedUrl.hostname === "export.arxiv.org") {
+      return emptyArxivResponse();
+    }
     assert.equal(requestedUrl.hostname, "api.openalex.org");
+    openAlexRequestCount += 1;
+    const requestIndex = openAlexRequestCount;
     return {
       ok: true,
       status: 200,
       headers: new Headers(),
       async json() {
-        if (calls.length === 1) {
+        if (requestIndex === 1) {
           return {
             meta: {
               next_cursor: "next-deep-cursor"
@@ -1328,7 +1406,7 @@ test("handleSearch returns structured diagnostics for deep paginated searches", 
     );
 
     assert.equal(response.search_options.per_provider_limit, 150);
-    assert.equal(calls.length, 2);
+    assert.equal(nonArxivCalls(calls).length, 2);
     assert.equal(response.diagnostics.raw_result_count, 2);
     assert.equal(response.diagnostics.deduped_result_count, 2);
     assert.equal(response.diagnostics.filtered_result_count, 2);
@@ -1340,6 +1418,14 @@ test("handleSearch returns structured diagnostics for deep paginated searches", 
         result_count: 2,
         request_count: 2,
         attempts: 2,
+        error: null
+      },
+      {
+        provider: "arxiv",
+        status: "success",
+        result_count: 0,
+        request_count: 1,
+        attempts: 1,
         error: null
       }
     ]);
@@ -1500,6 +1586,10 @@ test("handleSearch reranks exact title matches and limits title-mode output", as
     const requestedUrl = new URL(url);
     calls.push(requestedUrl);
 
+    if (requestedUrl.hostname === "export.arxiv.org") {
+      return emptyArxivResponse();
+    }
+
     assert.equal(requestedUrl.hostname, "api.openalex.org");
     assert.equal(requestedUrl.searchParams.get("per-page"), "10");
 
@@ -1538,7 +1628,7 @@ test("handleSearch reranks exact title matches and limits title-mode output", as
       }
     );
 
-    assert.equal(calls.length, 1);
+    assert.equal(nonArxivCalls(calls).length, 1);
     assert.deepEqual(
       response.results.map((result) => result.title),
       ["Attention Is All You Need"]

@@ -128,7 +128,8 @@ function normalizeProvider(provider) {
     semanticscholar: "semantic_scholar"
   };
   const providerId = aliases[normalized] ?? normalized;
-  if (!providerFieldAliases()[providerId]) {
+  const fields = providerFieldAliases()[providerId];
+  if (!fields || Object.keys(fields).length === 0) {
     throw new Error(`unsupported provider: ${provider}`);
   }
   return providerId;
@@ -158,7 +159,8 @@ function readBody(request) {
 
 function providerEntries(selectedProvider) {
   const aliases = providerFieldAliases();
-  return selectedProvider ? [[selectedProvider, aliases[selectedProvider]]] : Object.entries(aliases);
+  const entries = selectedProvider ? [[selectedProvider, aliases[selectedProvider]]] : Object.entries(aliases);
+  return entries.filter(([_provider, fields]) => Object.keys(fields).length > 0);
 }
 
 function renderForm({ token, configPath, saved, selectedProvider }) {

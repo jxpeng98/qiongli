@@ -1,7 +1,7 @@
 # Zotero 集成：本地 Reference Database
 
 Qiongli 会把 Zotero 当成本地 reference database 使用，而不是把 Zotero
-替换成 OpenAlex、Semantic Scholar、Crossref 或 PubMed 这类发现型 provider。
+替换成 OpenAlex、Semantic Scholar、Crossref、PubMed 或 arXiv 这类发现型 provider。
 推荐流程是：先用 Qiongli 的文献 provider 检索和补全 metadata，再把选中的
 reference 通过 Qiongli Zotero companion 写入本地 Zotero Desktop。
 

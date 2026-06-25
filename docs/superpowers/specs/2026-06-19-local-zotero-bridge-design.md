@@ -10,7 +10,7 @@ produce Zotero-compatible import files.
 
 ## Non-Goals
 
-- Do not make Zotero replace OpenAlex, Semantic Scholar, Crossref, or PubMed as
+- Do not make Zotero replace OpenAlex, Semantic Scholar, Crossref, PubMed, or arXiv as
   Qiongli's discovery layer.
 - Do not require Zotero cloud sync or Zotero Web API write access for the default
   flow.

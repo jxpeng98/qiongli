@@ -9,6 +9,7 @@ Use the full CLI server when the desktop or agent client can start a local `qion
 ```bash
 qiongli mcp config example --target codex --json
 qiongli mcp config example --target claude-code --json
+qiongli mcp config example --target antigravity --json
 qiongli mcp config example --target hermes --json
 ```
 
@@ -20,7 +21,7 @@ qiongli mcp serve --transport stdio
 
 This mode does not require a remote server. The client launches the local process, and Qiongli reads provider credentials from the shared provider configuration. It requires the npm, pipx/pip, or `full` bootstrap runtime so that `qiongli` is on `PATH`.
 
-For Codex and Claude Code, `qiongli install --profile full` can register this stdio server automatically. Use `--target codex` to write the managed Codex `config.toml` block, `--target claude` to write the managed Claude Code `~/.claude.json` `mcpServers.qiongli` entry, or `--target all` to write both. Existing unmanaged `qiongli` server entries are preserved and reported as skipped.
+For Codex, Claude Code, Antigravity, and Hermes, `qiongli install --profile full` can register this stdio server automatically. Use `--target codex` to write the managed Codex `config.toml` block, `--target claude` to write the managed Claude Code `~/.claude.json` `mcpServers.qiongli` entry, `--target antigravity` to write `${ANTIGRAVITY_HOME:-~/.gemini/antigravity}/settings.json`, `--target hermes` to write `${HERMES_HOME:-~/.hermes}/settings.json`, or `--target all` to write all managed client configs. Set `ANTIGRAVITY_CONFIG_PATH` or `HERMES_CONFIG_PATH` when those clients use a different MCP config file. Existing unmanaged `qiongli` server entries are preserved and reported as skipped.
 
 The full CLI server exposes literature, provider/configuration, and orchestrator tools:
 
@@ -72,7 +73,7 @@ The bundled server entry is:
 node ${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs
 ```
 
-This bundled runtime covers literature-provider tools such as provider configuration, status, and search without requiring the `qiongli` CLI. Use `qiongli install --profile full --target claude` when Claude Code needs the unified full MCP surface, including `qiongli_literature_search`, `qiongli_orchestrator_route`, `qiongli_orchestrator_doctor`, `qiongli_task_plan`, or `qiongli_task_run`.
+This bundled runtime covers literature-provider tools such as provider configuration, status, and search without requiring the `qiongli` CLI. Use `qiongli install --profile full --target claude` when Claude Code needs the unified full MCP surface, including `qiongli_literature_search`, `qiongli_orchestrator_route`, `qiongli_orchestrator_doctor`, `qiongli_task_plan`, or `qiongli_task_run`. Use the same full CLI path with `--target antigravity`, `--target hermes`, or `--target all` for local clients that should load the full MCP server instead of a bundled lite provider runtime.
 
 ## Claude Desktop MCPB
 
@@ -100,7 +101,7 @@ Desktop-only users can use the MCP tools exposed by the bundled Node server or f
 - `qiongli_open_config_wizard`: compatibility alias for `qiongli_configure_provider`.
 - `qiongli_save_provider_config`: saves one provider field from the desktop client; use it only for explicit scripted writes or when the user deliberately supplied the value in chat.
 - `qiongli_config_status`: reports redacted provider status.
-- `qiongli_literature_search`: searches configured OpenAlex, Semantic Scholar, Crossref, and PubMed providers with query variants, finance/economics deep-search routing, and sanitized diagnostics.
+- `qiongli_literature_search`: searches configured OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv providers with query variants, finance/economics deep-search routing, and sanitized diagnostics. arXiv is enabled without credentials.
 
 The full CLI server exposes the same `qiongli_configure_provider` flow.
 

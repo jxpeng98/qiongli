@@ -1,10 +1,77 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { searchArxiv } from "../server/providers/arxiv.mjs";
 import { searchCrossref } from "../server/providers/crossref.mjs";
 import { searchOpenAlex } from "../server/providers/openalex.mjs";
 import { searchPubMed } from "../server/providers/pubmed.mjs";
 import { searchSemanticScholar } from "../server/providers/semantic-scholar.mjs";
 import { dedupeResults, normalizeResult } from "../server/normalize.mjs";
+
+test("searchArxiv queries the Atom endpoint and normalizes preprint results", async () => {
+  let requestedUrl;
+  const fetchImpl = async (url) => {
+    requestedUrl = new URL(url);
+    return {
+      ok: true,
+      status: 200,
+      async text() {
+        return `<?xml version="1.0" encoding="UTF-8"?>
+          <feed xmlns="http://www.w3.org/2005/Atom" xmlns:arxiv="http://arxiv.org/schemas/atom">
+            <entry>
+              <id>http://arxiv.org/abs/2401.01234v2</id>
+              <published>2024-01-02T00:00:00Z</published>
+              <title> arXiv Test   Paper </title>
+              <summary>Results are normalized from Atom XML.</summary>
+              <author><name>Ada Lovelace</name></author>
+              <author><name>Grace Hopper</name></author>
+              <link href="http://arxiv.org/abs/2401.01234v2" rel="alternate" type="text/html" />
+              <link title="pdf" href="http://arxiv.org/pdf/2401.01234v2" rel="related" type="application/pdf" />
+              <arxiv:doi>10.48550/arXiv.2401.01234</arxiv:doi>
+              <category term="cs.AI" />
+            </entry>
+          </feed>`;
+      }
+    };
+  };
+
+  const response = await searchArxiv({
+    query: "machine learning",
+    limit: 3,
+    fromYear: 2020,
+    toYear: 2024,
+    fetchImpl
+  });
+
+  assert.equal(response.provider, "arxiv");
+  assert.equal(response.error, null);
+  assert.equal(requestedUrl.origin, "http://export.arxiv.org");
+  assert.equal(requestedUrl.pathname, "/api/query");
+  assert.equal(requestedUrl.searchParams.get("search_query"), 'all:"machine learning" AND submittedDate:[202001010000 TO 202412312359]');
+  assert.equal(requestedUrl.searchParams.get("max_results"), "3");
+  assert.deepEqual(response.results, [
+    {
+      title: "arXiv Test Paper",
+      authors: ["Ada Lovelace", "Grace Hopper"],
+      year: 2024,
+      doi: "10.48550/arXiv.2401.01234",
+      url: "http://arxiv.org/abs/2401.01234v2",
+      abstract: "Results are normalized from Atom XML.",
+      venue: "arXiv",
+      document_type: "cs.AI",
+      citation_count: null,
+      reference_count: null,
+      citations: [],
+      references: [],
+      provider: "arxiv",
+      source_id: "2401.01234v2",
+      source_type: "preprint",
+      zotero: null,
+      local_zotero_match: null,
+      review_status: null,
+      verification: null
+    }
+  ]);
+});
 
 test("searchOpenAlex normalizes records and reconstructs inverted abstracts", async () => {
   let requestedUrl;

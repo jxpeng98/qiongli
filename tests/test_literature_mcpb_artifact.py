@@ -140,6 +140,7 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
         self.assertIn("server/query.mjs", names)
         self.assertIn("server/stdio.mjs", names)
         self.assertIn("server/providers/http.mjs", names)
+        self.assertIn("server/providers/arxiv.mjs", names)
         self.assertIn("server/providers/crossref.mjs", names)
         self.assertIn("server/providers/pubmed.mjs", names)
         self.assertIn("server/zotero/config.mjs", names)

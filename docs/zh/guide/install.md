@@ -42,7 +42,7 @@ codex plugin marketplace list
 
 然后在 Codex plugin UI 中安装或启用 `qiongli`，这是默认 core package。也可以选择 `qiongli-economics`、`qiongli-accounting`、`qiongli-business`、`qiongli-finance`、`qiongli-political-economy`、`qiongli-geoeconomics`、`qiongli-economics-accounting` 这类 subject entry，它们会安装对应的 `subject/complete` package。
 
-Codex plugin 自带 `.mcp.json` 和 `mcp/qiongli-literature-provider/` 下的零依赖 Node literature-provider MCP runtime。只使用这些内置文献 provider 工具时，桌面用户不需要安装 `qiongli` CLI，也不需要手写 MCP config。Provider key 不写入 plugin manifest；可以通过平台无关的本地设置工具 `qiongli_configure_provider` 配置，也可以用 `qiongli_save_provider_config` 保存，或者在已安装 CLI 时用 `qiongli mcp configure` / `qiongli provider setup` 配置。完整本地 Qiongli 以 CLI full profile 为 canonical 路径：它会为 Codex 和 Claude Code 注册 Python-backed MCP server，由一个 `qiongli mcp serve --transport stdio` 进程同时暴露 literature 和 orchestrator tools。
+Codex plugin 自带 `.mcp.json` 和 `mcp/qiongli-literature-provider/` 下的零依赖 Node literature-provider MCP runtime。只使用这些内置文献 provider 工具时，桌面用户不需要安装 `qiongli` CLI，也不需要手写 MCP config。Provider key 不写入 plugin manifest；可以通过平台无关的本地设置工具 `qiongli_configure_provider` 配置，也可以用 `qiongli_save_provider_config` 保存，或者在已安装 CLI 时用 `qiongli mcp configure` / `qiongli provider setup` 配置。完整本地 Qiongli 以 CLI full profile 为 canonical 路径：它会为 Codex、Claude Code、Antigravity 和 Hermes 注册 Python-backed MCP server，由一个 `qiongli mcp serve --transport stdio` 进程同时暴露 literature 和 orchestrator tools。
 
 Codex 目前会把 plugin-bundled MCP server 当作 plugin asset：设置页可以启用 server 和管理 tool policy，但不适合作为这个内置 server 的 provider key 注入入口。Claude Desktop MCPB、Claude Code、Cursor 类客户端和其他本地 stdio MCP client 也应使用同一个 Qiongli provider setup contract。请改用 Qiongli provider config：
 
@@ -70,7 +70,7 @@ claude plugin install qiongli-economics@skillsplace
 /plugin install qiongli-economics@skillsplace
 ```
 
-Claude Code marketplace plugin 也内置 `mcp/qiongli-literature-provider/` 下的零依赖 Node literature-provider MCP runtime，提供与 Codex plugin 相同的文献 provider、search 和 status 工具。只使用这些内置 literature/provider 工具时，不需要安装 `qiongli` CLI。完整 Python-backed full MCP 仍然是 CLI runtime：如果需要 `qiongli_literature_search`、`qiongli_task_plan`、`qiongli_task_run` 或 `qiongli_orchestrator_doctor` 等完整工具，需要 npm、pipx/pip 或 `full` bootstrap。运行 `qiongli install --profile full --target claude` 会安装 Claude Code skills/workflows，并把统一的 `qiongli mcp serve --transport stdio` server 注册到 Claude Code 用户级 MCP 配置。
+Claude Code marketplace plugin 也内置 `mcp/qiongli-literature-provider/` 下的零依赖 Node literature-provider MCP runtime，提供与 Codex plugin 相同的文献 provider、search 和 status 工具。只使用这些内置 literature/provider 工具时，不需要安装 `qiongli` CLI。完整 Python-backed full MCP 仍然是 CLI runtime：如果需要 `qiongli_literature_search`、`qiongli_task_plan`、`qiongli_task_run` 或 `qiongli_orchestrator_doctor` 等完整工具，需要 npm、pipx/pip 或 `full` bootstrap。运行 `qiongli install --profile full --target claude` 会安装 Claude Code skills/workflows，并把统一的 `qiongli mcp serve --transport stdio` server 注册到 Claude Code 用户级 MCP 配置。Antigravity 和 Hermes 分别使用 `--target antigravity`、`--target hermes`；`--target all` 会注册所有受管理的 full MCP client 配置。
 
 Claude Desktop 和 Claude.ai 不安装第三方 Claude Code plugin marketplace。如果你使用 Desktop 或网页版，并且不熟悉 code / CLI 环境，优先使用 release ZIP 路径，不需要任何终端命令：
 
@@ -81,7 +81,7 @@ Claude Desktop 和 Claude.ai 不安装第三方 Claude Code plugin marketplace�
 
 Release ZIP 使用 `coverage=focused`，用于保持当前 180 文件上传预算。它是 subject 专精 Desktop/Web 包，不是降质删减版：保留可执行 workflows、prompts、templates、standards、所选 profiles、`skills-summary.md` 和 `skills-core.md`；专精 ZIP 还包含通过 layered overlays 生成的 selected effective skill markdown。这个 Desktop skill ZIP 是 skill-only asset：只包含 workflows/prompts/templates，不保存 secrets，也不执行 provider calls。完整 canonical source 可通过默认 `coverage=complete` 的 CLI/npm 安装、Codex / Claude Code plugin 包和源码仓库获得。
 
-独立的 Qiongli Literature Provider `.mcpb`（`qiongli-literature-provider.mcpb`）才是 Claude Desktop 本地 provider asset。它在本地运行 Desktop literature search，支持 OpenAlex 和 Semantic Scholar，并通过 Desktop 配置 UI 填写 OpenAlex API key、可选 OpenAlex email 和 Semantic Scholar API key；敏感 key 交给 Claude Desktop sensitive-field handling，不写入 Desktop skill ZIP。这个 MCPB 自带零依赖 Node stdio server，所以 Desktop 用户不需要安装 `qiongli` CLI 或运行 npm install。CLI、Codex 和 Claude Code 用户仍然可以运行 `qiongli provider setup`，再用 `qiongli provider doctor` 检查当前是 `provider_connected` 还是 `strategy_only`。Desktop 用户需要 `qiongli-literature-provider` MCPB 或平台原生搜索能力，才能声称 `provider_connected`；如果没有 MCPB 或平台原生搜索能力，就把运行记录为 `strategy_only`，并把平台搜索或用户提供的 corpus 作为证据来源。
+独立的 Qiongli Literature Provider `.mcpb`（`qiongli-literature-provider.mcpb`）才是 Claude Desktop 本地 provider asset。它在本地运行 Desktop literature search，支持 OpenAlex、Semantic Scholar、Crossref、PubMed 和 arXiv，并通过 Desktop 配置 UI 填写需要凭据的 provider；arXiv 默认可用，不需要凭据。敏感 key 交给 Claude Desktop sensitive-field handling，不写入 Desktop skill ZIP。这个 MCPB 自带零依赖 Node stdio server，所以 Desktop 用户不需要安装 `qiongli` CLI 或运行 npm install。CLI、Codex、Claude Code、Antigravity 和 Hermes 用户仍然可以运行 `qiongli provider setup`，再用 `qiongli provider doctor` 检查当前是 `provider_connected` 还是 `strategy_only`。Desktop 用户需要 `qiongli-literature-provider` MCPB 或平台原生搜索能力，才能声称 `provider_connected`；如果没有 MCPB 或平台原生搜索能力，就把运行记录为 `strategy_only`，并把平台搜索或用户提供的 corpus 作为证据来源。
 
 ## 安装后如何使用
 

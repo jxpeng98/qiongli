@@ -1,7 +1,7 @@
 # Zotero Integration: Local Reference Database
 
 Qiongli treats Zotero as a local reference database, not as a replacement for
-OpenAlex, Semantic Scholar, Crossref, or PubMed discovery. The normal workflow is
+OpenAlex, Semantic Scholar, Crossref, PubMed, or arXiv discovery. The normal workflow is
 to search and enrich references through Qiongli providers, then save selected
 records into Zotero Desktop through the Qiongli Zotero companion.
 

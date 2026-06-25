@@ -11,7 +11,7 @@ from bridges.provider_config import (
     redact_provider_config,
     resolve_provider_config,
 )
-from bridges.providers import crossref_client, openalex_client, pubmed_client
+from bridges.providers import arxiv_client, crossref_client, openalex_client, pubmed_client
 from bridges.providers.s2_client import search_paper
 
 
@@ -55,6 +55,16 @@ LITERATURE_PROVIDER_CAPABILITIES: dict[str, dict[str, Any]] = {
             "year_filter",
         ],
     },
+    "arxiv": {
+        "status": "implemented",
+        "capabilities": [
+            "topic_search",
+            "preprint_search",
+            "arxiv_id_lookup",
+            "year_filter",
+            "category_filter",
+        ],
+    },
 }
 
 
@@ -96,7 +106,7 @@ LITERATURE_TOOL_DEFINITIONS: list[dict[str, Any]] = [
 ]
 
 ProviderSearchFn = Callable[[dict[str, object], int], dict[str, object]]
-PROVIDER_SEARCH_ORDER = ("semantic_scholar", "openalex", "crossref", "pubmed")
+PROVIDER_SEARCH_ORDER = ("semantic_scholar", "openalex", "crossref", "pubmed", "arxiv")
 
 
 def handle_literature_status(args: dict[str, Any]) -> dict[str, Any]:
@@ -191,6 +201,8 @@ def _provider_search_fn(provider_name: str) -> ProviderSearchFn | None:
         return crossref_client.search
     if provider_name == "pubmed":
         return pubmed_client.search
+    if provider_name == "arxiv":
+        return arxiv_client.search
     return None
 
 

@@ -27,7 +27,8 @@ const PROVIDER_FIELDS = {
   },
   pubmed: {
     api_key: ["QIONGLI_NCBI_API_KEY", "NCBI_API_KEY", "PUBMED_API_KEY", "QIONGLI_MCPB_PUBMED_API_KEY"]
-  }
+  },
+  arxiv: {}
 };
 const PROVIDER_ACCESS_GUIDANCE = {
   openalex: {
@@ -166,18 +167,20 @@ export function providerStatus(config) {
     openalex: config.openalexApiKey ? "configured" : "missing",
     semantic_scholar: config.semanticScholarApiKey ? "configured" : "missing",
     crossref: config.crossrefEmail ? "configured" : "missing",
-    pubmed: config.pubmedApiKey ? "configured" : "missing"
+    pubmed: config.pubmedApiKey ? "configured" : "missing",
+    arxiv: "configured"
   };
   const openalexUsable = providers.openalex === "configured";
   const semanticScholarUsable = providers.semantic_scholar === "configured";
   const crossrefUsable = providers.crossref === "configured";
   const pubmedUsable = providers.pubmed === "configured";
+  const arxivUsable = providers.arxiv === "configured";
   const missing = missingProviderFields(config);
   const nextAction = providerSetupNextAction(missing);
 
   const status = {
     status: "ok",
-    capability_mode: openalexUsable || semanticScholarUsable || crossrefUsable || pubmedUsable
+    capability_mode: openalexUsable || semanticScholarUsable || crossrefUsable || pubmedUsable || arxivUsable
       ? "provider_connected"
       : "strategy_only",
     providers,
@@ -220,6 +223,10 @@ export function redactedProviderStatus(config) {
         fields: {
           api_key: config.pubmedApiKey ? "configured" : "missing"
         }
+      },
+      arxiv: {
+        configured: true,
+        fields: {}
       }
     },
     provider_access_guidance: providerAccessGuidance()

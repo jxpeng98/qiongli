@@ -30,6 +30,8 @@ class MCPLiteratureToolTests(unittest.TestCase):
         self.assertIn("semantic_scholar", payload["capabilities"])
         self.assertIn("crossref", payload["capabilities"])
         self.assertIn("pubmed", payload["capabilities"])
+        self.assertIn("arxiv", payload["capabilities"])
+        self.assertEqual(payload["providers"]["arxiv"], "configured")
         self.assertNotIn("openalex-secret-key", rendered)
 
     def test_literature_search_returns_search_plan_diagnostics_and_results(self) -> None:
@@ -82,6 +84,10 @@ class MCPLiteratureToolTests(unittest.TestCase):
             provider_calls.append(("crossref", translation, limit))
             return {"data": []}
 
+        def arxiv_search(translation: dict[str, object], limit: int) -> dict[str, object]:
+            provider_calls.append(("arxiv", translation, limit))
+            return {"data": []}
+
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
             with mock.patch.dict("os.environ", {"QIONGLI_CONFIG_HOME": str(root / "config")}, clear=True):
@@ -90,6 +96,7 @@ class MCPLiteratureToolTests(unittest.TestCase):
                 with (
                     mock.patch("bridges.literature_mcp_tools.openalex_client.search", openalex_search),
                     mock.patch("bridges.literature_mcp_tools.crossref_client.search", crossref_search),
+                    mock.patch("bridges.literature_mcp_tools.arxiv_client.search", arxiv_search),
                 ):
                     result = call_qiongli_tool(
                         "qiongli_literature_search",
@@ -103,11 +110,11 @@ class MCPLiteratureToolTests(unittest.TestCase):
         payload = result["structuredContent"]
         self.assertFalse(result["isError"])
         self.assertEqual(payload["data"]["provider_mode"], "provider_translations")
-        self.assertEqual([call[0] for call in provider_calls], ["openalex", "crossref"])
+        self.assertEqual([call[0] for call in provider_calls], ["openalex", "crossref", "arxiv"])
         self.assertTrue(all(call[2] == 4 for call in provider_calls))
         self.assertEqual(
             payload["data"]["search_diagnostics"]["attempted_providers"],
-            ["openalex", "crossref"],
+            ["openalex", "crossref", "arxiv"],
         )
         self.assertEqual(payload["data"]["search_results"][0]["source"], "openalex")
         self.assertEqual(provider_calls[0][1]["filters"]["year_start"], "2020")

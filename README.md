@@ -69,7 +69,7 @@ flowchart TD
     C --> D{"Smallest runtime<br/>that fits the job"}
 
     D --> E["Skill / plugin only<br/>workflow guidance, prompts, templates, subject overlays"]
-    D --> F["Literature MCP<br/>OpenAlex, Semantic Scholar, Crossref, PubMed"]
+    D --> F["Literature MCP<br/>OpenAlex, Semantic Scholar, Crossref, PubMed, arXiv"]
     D --> G["Zotero companion<br/>local library search, import files, reference review tags"]
     D --> H["Full CLI / orchestrator<br/>doctor, task-plan, preview task-run, optional agent run"]
 
@@ -214,7 +214,7 @@ This Desktop skill ZIP is **skill-only**: it stores no secrets and does not exec
 qiongli-literature-provider.mcpb
 ```
 
-The MCPB runs a zero-dependency Node stdio server for OpenAlex, Semantic Scholar, Crossref, and PubMed search, provider status, and provider key saving. It supports provider setup through the local wizard, query variants, finance/economics deep-search routing, pagination, retry diagnostics, and limited citation/reference metadata expansion. Desktop users need `qiongli-literature-provider` MCPB or platform-native search before claiming `provider_connected`; otherwise record the run as `strategy_only` and treat platform search or a user-supplied corpus as the evidence source. Finance/economics data APIs such as FRED and SEC EDGAR belong in a separate data MCP surface; see [Finance/Economics Data MCP Boundary](docs/advanced/finance-econ-data-mcp.md).
+The MCPB runs a zero-dependency Node stdio server for OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv search, provider status, and provider key saving. arXiv is enabled without credentials. It supports provider setup through the local wizard, query variants, finance/economics deep-search routing, pagination, retry diagnostics, and limited citation/reference metadata expansion. Desktop users need `qiongli-literature-provider` MCPB or platform-native search before claiming `provider_connected`; otherwise record the run as `strategy_only` and treat platform search or a user-supplied corpus as the evidence source. Finance/economics data APIs such as FRED and SEC EDGAR belong in a separate data MCP surface; see [Finance/Economics Data MCP Boundary](docs/advanced/finance-econ-data-mcp.md).
 
 The MCPB does not launch orchestrator agents. To expose the full Python-backed local product through MCP, install the npm, pipx/pip, or bootstrap `full` CLI runtime and configure:
 
@@ -224,6 +224,7 @@ qiongli mcp serve --transport stdio
 qiongli mcp doctor --json
 qiongli mcp config example --target codex --json
 qiongli mcp config example --target claude-code --json
+qiongli mcp config example --target antigravity --json
 qiongli mcp config example --target hermes --json
 ```
 

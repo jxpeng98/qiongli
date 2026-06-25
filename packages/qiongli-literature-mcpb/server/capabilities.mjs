@@ -48,6 +48,18 @@ const CAPABILITIES = {
       "medical_subject_headings",
       "metadata_enrichment"
     ]
+  },
+  arxiv: {
+    status: "implemented",
+    max_per_provider_limit: 200,
+    capabilities: [
+      "topic_search",
+      "preprint_search",
+      "arxiv_id_lookup",
+      "year_filter",
+      "category_metadata",
+      "metadata_enrichment"
+    ]
   }
 };
 

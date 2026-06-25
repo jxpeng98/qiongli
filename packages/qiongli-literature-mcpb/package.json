@@ -1,9 +1,9 @@
 {
   "name": "qiongli-literature-provider-mcpb",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": true,
   "type": "module",
-  "description": "Qiongli academic literature provider MCPB for local OpenAlex, Semantic Scholar, Crossref, and PubMed search, credential status, and secure setup.",
+  "description": "Qiongli academic literature provider MCPB for local OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv search, credential status, and secure setup.",
   "author": {
     "name": "Jiaxin Peng",
     "url": "https://github.com/jxpeng98"

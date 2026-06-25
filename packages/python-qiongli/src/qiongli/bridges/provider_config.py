@@ -25,6 +25,7 @@ PROVIDER_FIELDS: dict[str, dict[str, tuple[str, ...]]] = {
     "pubmed": {
         "api_key": ("QIONGLI_NCBI_API_KEY", "NCBI_API_KEY", "PUBMED_API_KEY"),
     },
+    "arxiv": {},
 }
 
 PROJECT_ENV_FILES = (".env",)
@@ -109,7 +110,7 @@ def provider_config_env(config: Mapping[str, object]) -> dict[str, str]:
 
 
 def provider_capability_mode(summary: Mapping[str, str]) -> str:
-    academic_providers = ("openalex", "semantic_scholar", "crossref", "pubmed")
+    academic_providers = ("openalex", "semantic_scholar", "crossref", "pubmed", "arxiv")
     if any(summary.get(provider) == "configured" for provider in academic_providers):
         return "provider_connected"
     return "strategy_only"
@@ -318,13 +319,14 @@ def _finalize_config(config: dict[str, object]) -> None:
         if not isinstance(raw, dict):
             raw = {}
             providers[provider] = raw
-        configured = (
-            bool(str(raw.get("api_key", "")).strip())
-            if provider == "openalex"
-            else any(str(raw.get(field, "")).strip() for field in fields)
-        )
+        if provider == "openalex":
+            configured = bool(str(raw.get("api_key", "")).strip())
+        elif not fields:
+            configured = True
+        else:
+            configured = any(str(raw.get(field, "")).strip() for field in fields)
         raw["configured"] = configured
-        raw["enabled"] = bool(raw.get("enabled", configured))
+        raw["enabled"] = True if not fields else bool(raw.get("enabled", configured))
 
 
 def _normalize_provider(value: str) -> str:

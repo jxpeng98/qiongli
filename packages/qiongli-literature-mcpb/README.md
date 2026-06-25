@@ -45,13 +45,13 @@ Advanced controls include:
 - `venue_filter`: filters merged results by venue text.
 - `include_citations` and `include_references`: request limited citation/reference metadata when providers expose it. The MCPB reports `citation_expansion_limited` or `reference_expansion_limited` because this is metadata expansion, not a full citation graph crawler.
 
-Search responses include `search_plan` and `diagnostics` with raw, deduplicated, filtered, coverage-basis, and returned result counts plus per-provider and per-query status, result count, request count, retry attempts, and sanitized error messages. Search and status responses also include `provider_capabilities`, which marks OpenAlex, Semantic Scholar, Crossref, and PubMed as implemented providers. `qiongli_literature_export_evidence` returns the same search plan, options, diagnostics, capabilities, warnings, result count, and normalized result snapshot for audit handoff. Crossref needs `crossref.email` for polite access. PubMed needs `pubmed.api_key` to enable the bundled E-Utilities provider.
+Search responses include `search_plan` and `diagnostics` with raw, deduplicated, filtered, coverage-basis, and returned result counts plus per-provider and per-query status, result count, request count, retry attempts, and sanitized error messages. Search and status responses also include `provider_capabilities`, which marks OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv as implemented providers. `qiongli_literature_export_evidence` returns the same search plan, options, diagnostics, capabilities, warnings, result count, and normalized result snapshot for audit handoff. Crossref needs `crossref.email` for polite access. PubMed needs `pubmed.api_key` to enable the bundled E-Utilities provider. arXiv is enabled without credentials.
 
 ## Local Zotero Reference Database
 
 The MCPB can use Zotero Desktop as a local reference database through the
 Qiongli Zotero companion extension in `packages/qiongli-zotero-companion/`. This
-does not replace OpenAlex, Semantic Scholar, Crossref, or PubMed as discovery
+does not replace OpenAlex, Semantic Scholar, Crossref, PubMed, or arXiv as discovery
 providers. Qiongli still searches and enriches references, then selected records
 can be dry-run or written into local Zotero.
 

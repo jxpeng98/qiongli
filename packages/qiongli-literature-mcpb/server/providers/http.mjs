@@ -107,3 +107,60 @@ export async function fetchJsonWithRetry({ provider, url, fetchImpl, options: re
     attempts: maxAttempts
   };
 }
+
+export async function fetchTextWithRetry({ provider, url, fetchImpl, options: requestOptions = {}, maxAttempts = DEFAULT_MAX_ATTEMPTS } = {}) {
+  const fetcher = fetchImpl ?? fetch;
+  const resolvedUrl = url instanceof URL ? url : new URL(String(url));
+  let lastErrorName = "Error";
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    let response;
+    try {
+      response = await fetcher(resolvedUrl, fetchOptions(fetchImpl, requestOptions));
+    } catch (error) {
+      lastErrorName = error?.name ?? "Error";
+      if (attempt >= maxAttempts) {
+        return {
+          body: null,
+          error: `${provider} request failed: ${lastErrorName}`,
+          status: null,
+          attempts: attempt
+        };
+      }
+
+      if (!fetchImpl) {
+        await wait(backoffMs(attempt));
+      }
+      continue;
+    }
+
+    if (response.ok) {
+      return {
+        body: typeof response.text === "function" ? await response.text() : "",
+        error: null,
+        status: response.status,
+        attempts: attempt
+      };
+    }
+
+    if (!shouldRetry(response, attempt, maxAttempts)) {
+      return {
+        body: null,
+        error: `${provider} HTTP ${response.status}`,
+        status: response.status,
+        attempts: attempt
+      };
+    }
+
+    if (!fetchImpl) {
+      await wait(backoffMs(attempt, response));
+    }
+  }
+
+  return {
+    body: null,
+    error: `${provider} request failed: ${lastErrorName}`,
+    status: null,
+    attempts: maxAttempts
+  };
+}

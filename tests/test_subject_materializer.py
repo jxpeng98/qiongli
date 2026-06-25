@@ -37,6 +37,8 @@ class SubjectMaterializerTests(unittest.TestCase):
             self.assertIn("## Economics Workflow Map", skill_text)
             self.assertIn("### 1. Research Framing", skill_text)
             self.assertIn("### 3. Identification and Study Design", skill_text)
+            self.assertIn("OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv", skill_text)
+            self.assertNotIn("provider for OpenAlex and Semantic Scholar configuration", skill_text)
 
             registry = yaml.safe_load((out / "skills" / "registry.yaml").read_text(encoding="utf-8"))
             registry_ids = {entry["id"] for entry in registry["skills"]}
