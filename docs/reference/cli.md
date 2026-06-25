@@ -119,6 +119,7 @@ qiongli mcp configure --provider openalex --field email --value you@example.com
 qiongli mcp doctor --json
 qiongli mcp config example --target codex --json
 qiongli mcp config example --target claude-code --json
+qiongli mcp config example --target antigravity --json
 qiongli mcp config example --target hermes --json
 qiongli mcp wizard
 ```

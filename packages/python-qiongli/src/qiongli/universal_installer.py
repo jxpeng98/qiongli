@@ -919,8 +919,17 @@ def _mcp_config_targets(target: str) -> list[tuple[str, str]]:
         return [("codex", "Codex MCP")]
     if target == "claude":
         return [("claude-code", "Claude Code MCP")]
+    if target == "antigravity":
+        return [("antigravity", "Antigravity MCP")]
+    if target == "hermes":
+        return [("hermes", "Hermes MCP")]
     if target == "all":
-        return [("codex", "Codex MCP"), ("claude-code", "Claude Code MCP")]
+        return [
+            ("codex", "Codex MCP"),
+            ("claude-code", "Claude Code MCP"),
+            ("antigravity", "Antigravity MCP"),
+            ("hermes", "Hermes MCP"),
+        ]
     return []
 
 

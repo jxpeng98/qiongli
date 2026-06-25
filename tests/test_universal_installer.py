@@ -545,6 +545,52 @@ class UniversalInstallerTests(unittest.TestCase):
             )
             self.assertFalse((temp_root / ".codex" / "config.toml").exists())
 
+    def test_full_profile_all_target_registers_antigravity_and_hermes_mcp_configs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            codex_home = temp_root / "codex-home"
+            claude_home = temp_root / ".claude"
+            antigravity_home = temp_root / "antigravity-home"
+            hermes_home = temp_root / "hermes-home"
+            env = os.environ.copy()
+            env["HOME"] = str(temp_root)
+            env["CODEX_HOME"] = str(codex_home)
+            env["CLAUDE_CODE_HOME"] = str(claude_home)
+            env["ANTIGRAVITY_HOME"] = str(antigravity_home)
+            env["HERMES_HOME"] = str(hermes_home)
+            env["PATH"] = ""
+
+            with mock.patch.dict(os.environ, env, clear=True):
+                result = install(
+                    InstallOptions(
+                        repo_root=REPO_ROOT,
+                        project_dir=project_dir,
+                        target="all",
+                        profile="full",
+                        install_cli=False,
+                        doctor=False,
+                    )
+                )
+
+            antigravity_config = json.loads((antigravity_home / "settings.json").read_text(encoding="utf-8"))
+            hermes_config = json.loads((hermes_home / "settings.json").read_text(encoding="utf-8"))
+
+            self.assertEqual(result, 0)
+            self.assertTrue((codex_home / "config.toml").exists())
+            self.assertTrue((temp_root / ".claude.json").exists())
+            self.assertEqual(antigravity_config["mcpServers"]["qiongli"]["command"], "qiongli")
+            self.assertEqual(hermes_config["mcpServers"]["qiongli"]["command"], "qiongli")
+            self.assertEqual(
+                antigravity_config["mcpServers"]["qiongli"]["args"],
+                ["mcp", "serve", "--transport", "stdio"],
+            )
+            self.assertEqual(
+                hermes_config["mcpServers"]["qiongli"]["args"],
+                ["mcp", "serve", "--transport", "stdio"],
+            )
+
     def test_mcp_part_only_registers_codex_mcp_without_global_skill(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             temp_root = Path(tmp_dir)

@@ -104,6 +104,48 @@ class MCPClientConfigTests(unittest.TestCase):
         self.assertEqual(result.path, config_path)
         self.assertEqual(result.status, "installed")
 
+    def test_install_antigravity_mcp_config_defaults_to_antigravity_home(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            env = os.environ.copy()
+            env["ANTIGRAVITY_HOME"] = str(temp_root / "antigravity-home")
+            env["HOME"] = str(temp_root / "unused-home")
+
+            with mock.patch.dict(os.environ, env, clear=True):
+                result = install_mcp_config(target="antigravity")
+
+            config_path = temp_root / "antigravity-home" / "settings.json"
+            rendered = json.loads(config_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(result.path, config_path)
+        self.assertEqual(result.status, "installed")
+        self.assertEqual(rendered["mcpServers"]["qiongli"]["command"], "qiongli")
+        self.assertEqual(
+            rendered["mcpServers"]["qiongli"]["args"],
+            ["mcp", "serve", "--transport", "stdio"],
+        )
+
+    def test_install_hermes_mcp_config_defaults_to_hermes_home(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            env = os.environ.copy()
+            env["HERMES_HOME"] = str(temp_root / "hermes-home")
+            env["HOME"] = str(temp_root / "unused-home")
+
+            with mock.patch.dict(os.environ, env, clear=True):
+                result = install_mcp_config(target="hermes")
+
+            config_path = temp_root / "hermes-home" / "settings.json"
+            rendered = json.loads(config_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(result.path, config_path)
+        self.assertEqual(result.status, "installed")
+        self.assertEqual(rendered["mcpServers"]["qiongli"]["command"], "qiongli")
+        self.assertEqual(
+            rendered["mcpServers"]["qiongli"]["args"],
+            ["mcp", "serve", "--transport", "stdio"],
+        )
+
     def test_install_claude_code_mcp_config_skips_unmanaged_existing_server(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             config_path = Path(tmp_dir) / ".claude.json"

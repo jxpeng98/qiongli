@@ -110,6 +110,23 @@ class MCPCLITests(unittest.TestCase):
         self.assertIn("qiongli_orchestrator_route", payload["orchestration_tools"])
         self.assertIn("qiongli_task_run", payload["orchestration_tools"])
 
+    def test_mcp_cli_config_example_for_antigravity_json(self) -> None:
+        result = subprocess.run(
+            [sys.executable, "-m", "bridges.mcp_cli", "config", "example", "--target", "antigravity", "--json"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["target"], "antigravity")
+        self.assertEqual(payload["server"]["command"], "qiongli")
+        self.assertEqual(payload["server"]["args"], ["mcp", "serve", "--transport", "stdio"])
+        self.assertIn("qiongli_literature_search", payload["literature_tools"])
+        self.assertIn("qiongli_orchestrator_route", payload["orchestration_tools"])
+        self.assertIn("qiongli_task_run", payload["orchestration_tools"])
+
     def test_mcp_cli_upgrade_delegates_to_qiongli_upgrade(self) -> None:
         calls = []
 
