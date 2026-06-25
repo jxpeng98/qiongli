@@ -124,11 +124,17 @@ def remove_local_plugin(
     removed = 0
     if "codex" in targets:
         codex_paths = resolve_codex_plugin_paths(marketplace_path=codex_marketplace_path)
+        codex_root_exists = codex_paths.plugin_root.exists() or codex_paths.plugin_root.is_symlink()
         removed_codex_root = _remove_managed_root(codex_paths.plugin_root, dry_run=dry_run)
+        removed_codex_marketplace = (
+            _remove_codex_marketplace_entry(codex_paths, dry_run=dry_run)
+            if removed_codex_root or not codex_root_exists
+            else False
+        )
         if removed_codex_root:
             removed += 1
-        if removed_codex_root and not dry_run:
-            _remove_codex_marketplace_entry(codex_paths)
+        elif removed_codex_marketplace:
+            removed += 1
 
     if "claude" in targets:
         claude_root = _claude_plugin_root(claude_plugin_parent)
@@ -377,15 +383,20 @@ def _write_codex_marketplace_entry(paths: CodexPluginPaths, plugin: PluginDefini
     _write_json(paths.marketplace_path, marketplace)
 
 
-def _remove_codex_marketplace_entry(paths: CodexPluginPaths) -> None:
+def _remove_codex_marketplace_entry(paths: CodexPluginPaths, *, dry_run: bool = False) -> bool:
     if not paths.marketplace_path.is_file():
-        return
+        return False
     marketplace = _read_marketplace(paths.marketplace_path)
     plugins = _marketplace_plugins_list(marketplace)
-    marketplace["plugins"] = [
+    filtered_plugins = [
         entry for entry in plugins if not _is_managed_codex_marketplace_entry(entry, paths.marketplace_source_path)
     ]
-    _write_json(paths.marketplace_path, marketplace)
+    if len(filtered_plugins) == len(plugins):
+        return False
+    if not dry_run:
+        marketplace["plugins"] = filtered_plugins
+        _write_json(paths.marketplace_path, marketplace)
+    return True
 
 
 def _read_marketplace(path: Path) -> dict[str, Any]:

@@ -347,6 +347,24 @@ class LocalPluginInstallerTests(unittest.TestCase):
             self.assertFalse(plugin_root.exists())
             self.assertEqual(self._read_json(marketplace)["plugins"], [non_local_entry])
 
+    def test_remove_stale_marketplace_only_managed_entry(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            marketplace = root / "agents" / "marketplace.json"
+            entry = {
+                "name": "qiongli",
+                "source": {"source": "local", "path": "./plugins/qiongli"},
+                "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+                "category": "Education",
+            }
+            self._write_marketplace(marketplace, [entry])
+
+            removed = remove_local_plugin(target="codex", codex_marketplace_path=marketplace)
+
+            self.assertEqual(removed, 1)
+            self.assertFalse((marketplace.parent / "plugins" / "qiongli").exists())
+            self.assertEqual(self._read_json(marketplace)["plugins"], [])
+
     def test_install_refuses_unmanaged_existing_plugin_root_without_overwrite(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

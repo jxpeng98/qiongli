@@ -744,6 +744,48 @@ class UniversalInstallerTests(unittest.TestCase):
             self.assertTrue((global_skill / "SKILL.md").exists())
             self.assertNotIn("qiongli", [entry.get("name") for entry in marketplace_manifest["plugins"]])
 
+    def test_remove_plugin_surface_clears_stale_codex_marketplace_entry(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            marketplace = temp_root / "agents" / "marketplace.json"
+            marketplace.parent.mkdir(parents=True)
+            marketplace.write_text(
+                json.dumps(
+                    {
+                        "name": "personal",
+                        "interface": {"displayName": "Personal"},
+                        "plugins": [
+                            {
+                                "name": "qiongli",
+                                "source": {"source": "local", "path": "./plugins/qiongli"},
+                                "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+                                "category": "Education",
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            env = os.environ.copy()
+            env["CODEX_HOME"] = str(temp_root / "codex-home")
+            env["QIONGLI_CODEX_MARKETPLACE_PATH"] = str(marketplace)
+            env["PATH"] = ""
+
+            with mock.patch.dict(os.environ, env, clear=True):
+                result = remove(
+                    RemoveOptions(
+                        project_dir=project_dir,
+                        target="codex",
+                        surface="plugin",
+                    )
+                )
+
+            marketplace_manifest = json.loads(marketplace.read_text(encoding="utf-8"))
+            self.assertEqual(result, 0)
+            self.assertEqual(marketplace_manifest["plugins"], [])
+
     def test_plugin_part_installs_codex_plugin_without_global_skill(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             temp_root = Path(tmp_dir)
