@@ -762,6 +762,7 @@ class UniversalInstallerTests(unittest.TestCase):
                                 "source": {"source": "local", "path": "./plugins/qiongli"},
                                 "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
                                 "category": "Education",
+                                "metadata": {"managedBy": "qiongli-cli", "surface": "plugin"},
                             }
                         ],
                     }

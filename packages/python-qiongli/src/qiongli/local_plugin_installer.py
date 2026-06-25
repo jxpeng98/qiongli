@@ -18,6 +18,7 @@ PLUGIN_ID = "qiongli"
 SKILL_DIR_NAME = "qiongli-workflow"
 DEFAULT_CODEX_MARKETPLACE_PATH = Path("~/.agents/plugins/marketplace.json")
 DEFAULT_CLAUDE_PLUGIN_PARENT = Path("~/.qiongli/plugins/claude-code")
+MANAGED_MARKER_NAME = ".qiongli-managed.json"
 
 
 @dataclass(frozen=True)
@@ -181,6 +182,7 @@ def _materialize_plugin_root(
     else:
         raise ValueError(f"unsupported local plugin platform: {platform}")
 
+    _write_json(plugin_root / MANAGED_MARKER_NAME, _managed_marker(platform=platform, version=version))
     _generate_commands(repo_root, plugin_root / "commands", plugin.skill_name)
     _materialize_skill(repo_root, plugin_root / "skills" / SKILL_DIR_NAME, subject=subject, coverage=coverage)
 
@@ -335,24 +337,34 @@ def _prepare_destination(plugin_root: Path, overwrite: bool) -> None:
 def _is_managed_plugin_root(plugin_root: Path) -> bool:
     if not plugin_root.exists() or not plugin_root.is_dir():
         return False
-    for manifest_path in (
-        plugin_root / ".codex-plugin" / "plugin.json",
-        plugin_root / ".claude-plugin" / "plugin.json",
-    ):
-        if _manifest_name(manifest_path) == PLUGIN_ID:
-            return True
-    return False
-
-
-def _manifest_name(manifest_path: Path) -> str | None:
-    if not manifest_path.is_file():
-        return None
+    marker_path = plugin_root / MANAGED_MARKER_NAME
+    if not marker_path.is_file():
+        return False
     try:
-        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+        marker = json.loads(marker_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
-        return None
-    name = payload.get("name") if isinstance(payload, dict) else None
-    return name if isinstance(name, str) else None
+        return False
+    if not isinstance(marker, dict):
+        return False
+    return (
+        marker.get("managed_by") == "qiongli-cli"
+        and marker.get("plugin") == PLUGIN_ID
+        and marker.get("surface") == "plugin"
+    )
+
+
+def _managed_marker(*, platform: str, version: str) -> dict[str, Any]:
+    return {
+        "managed_by": "qiongli-cli",
+        "plugin": PLUGIN_ID,
+        "surface": "plugin",
+        "platform": platform,
+        "version": version,
+        "mcp": {
+            "command": "qiongli",
+            "args": ["mcp", "serve", "--transport", "stdio"],
+        },
+    }
 
 
 def _remove_managed_root(plugin_root: Path, *, dry_run: bool) -> bool:
@@ -377,6 +389,10 @@ def _write_codex_marketplace_entry(paths: CodexPluginPaths, plugin: PluginDefini
             "authentication": "ON_INSTALL",
         },
         "category": plugin.category,
+        "metadata": {
+            "managedBy": "qiongli-cli",
+            "surface": "plugin",
+        },
     }
     _upsert_marketplace_plugin(plugins, entry)
     marketplace["plugins"] = plugins
@@ -450,7 +466,15 @@ def _is_managed_codex_marketplace_entry(entry: object, marketplace_source_path: 
     source = entry.get("source")
     if not isinstance(source, dict):
         return False
-    return source.get("source") == "local" and source.get("path") == marketplace_source_path
+    metadata = entry.get("metadata")
+    if not isinstance(metadata, dict):
+        return False
+    return (
+        source.get("source") == "local"
+        and source.get("path") == marketplace_source_path
+        and metadata.get("managedBy") == "qiongli-cli"
+        and metadata.get("surface") == "plugin"
+    )
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:

@@ -57,6 +57,7 @@ class LocalPluginInstallerTests(unittest.TestCase):
             self.assertEqual(result.installed_roots, {"codex": plugin_root})
             self.assertTrue((plugin_root / ".codex-plugin" / "plugin.json").is_file())
             self.assertTrue((plugin_root / ".mcp.json").is_file())
+            self.assertTrue((plugin_root / ".qiongli-managed.json").is_file())
             self.assertTrue((plugin_root / "skills" / "qiongli-workflow" / "SKILL.md").is_file())
             self.assertTrue((plugin_root / "commands" / "paper.md").is_file())
 
@@ -83,6 +84,12 @@ class LocalPluginInstallerTests(unittest.TestCase):
             )
             self.assertNotIn("env", mcp_manifest["mcpServers"]["qiongli"])
             self.assertNotIn("qiongli-literature-provider", json.dumps(mcp_manifest))
+            marker = self._read_json(plugin_root / ".qiongli-managed.json")
+            self.assertEqual(marker["managed_by"], "qiongli-cli")
+            self.assertEqual(marker["plugin"], "qiongli")
+            self.assertEqual(marker["surface"], "plugin")
+            self.assertEqual(marker["platform"], "codex")
+            self.assertEqual(marker["mcp"]["command"], "qiongli")
 
             command_text = (plugin_root / "commands" / "paper.md").read_text(encoding="utf-8")
             self.assertIn("Load the `qiongli` skill", command_text)
@@ -98,6 +105,7 @@ class LocalPluginInstallerTests(unittest.TestCase):
             self.assertEqual(qiongli_entry["policy"]["installation"], "AVAILABLE")
             self.assertEqual(qiongli_entry["policy"]["authentication"], "ON_INSTALL")
             self.assertEqual(qiongli_entry["category"], "Education")
+            self.assertEqual(qiongli_entry["metadata"], {"managedBy": "qiongli-cli", "surface": "plugin"})
 
     def test_install_codex_plugin_preserves_existing_marketplace_name_and_interface(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -156,6 +164,12 @@ class LocalPluginInstallerTests(unittest.TestCase):
             )
             self.assertNotIn("env", manifest["mcpServers"]["qiongli"])
             self.assertNotIn("qiongli-literature-provider", json.dumps(manifest))
+            marker = self._read_json(plugin_root / ".qiongli-managed.json")
+            self.assertEqual(marker["managed_by"], "qiongli-cli")
+            self.assertEqual(marker["plugin"], "qiongli")
+            self.assertEqual(marker["surface"], "plugin")
+            self.assertEqual(marker["platform"], "claude")
+            self.assertEqual(marker["mcp"]["command"], "qiongli")
 
             command_text = (plugin_root / "commands" / "paper.md").read_text(encoding="utf-8")
             self.assertIn("Load the `qiongli` skill", command_text)
@@ -321,6 +335,43 @@ class LocalPluginInstallerTests(unittest.TestCase):
             self.assertTrue(plugin_root.exists())
             self.assertEqual(self._read_json(marketplace)["plugins"], [entry])
 
+    def test_remove_preserves_marketplace_lite_plugin_root(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            marketplace = root / "agents" / "marketplace.json"
+            plugin_root = marketplace.parent / "plugins" / "qiongli"
+            (plugin_root / ".codex-plugin").mkdir(parents=True)
+            (plugin_root / ".codex-plugin" / "plugin.json").write_text(
+                json.dumps({"name": "qiongli", "mcpServers": "./.mcp.json"}),
+                encoding="utf-8",
+            )
+            (plugin_root / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "qiongli": {
+                                "command": "node",
+                                "args": ["./mcp/qiongli-literature-provider/index.mjs"],
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            entry = {
+                "name": "qiongli",
+                "source": {"source": "local", "path": "./plugins/qiongli"},
+                "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+                "category": "Education",
+            }
+            self._write_marketplace(marketplace, [entry])
+
+            removed = remove_local_plugin(target="codex", codex_marketplace_path=marketplace)
+
+            self.assertEqual(removed, 0)
+            self.assertTrue(plugin_root.exists())
+            self.assertEqual(self._read_json(marketplace)["plugins"], [entry])
+
     def test_remove_managed_root_preserves_non_local_qiongli_marketplace_entry(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -356,6 +407,7 @@ class LocalPluginInstallerTests(unittest.TestCase):
                 "source": {"source": "local", "path": "./plugins/qiongli"},
                 "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
                 "category": "Education",
+                "metadata": {"managedBy": "qiongli-cli", "surface": "plugin"},
             }
             self._write_marketplace(marketplace, [entry])
 

@@ -192,6 +192,7 @@ qiongli upgrade \
   [--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting] \
   [--coverage complete|focused] \
   [--target codex|claude|antigravity|hermes|all] \
+  [--surface skills|plugin|both] \
   [--project-dir <path>] \
   [--no-overwrite] \
   [--doctor] \
@@ -203,6 +204,7 @@ Notes:
 - Default `upgrade` now behaves as a global refresh. Use `qiongli init --project-dir .` for project bootstrap, or `qiongli upgrade --parts project ...` when you explicitly want project files rewritten.
 - `--subject` defaults to `core` and `--coverage` defaults to `complete`; use `--subject economics` for full Qiongli plus economics specialization, `--subject accounting` for full Qiongli plus accounting specialization, or add `--coverage focused` for the slim selected package.
 - Example: `qiongli upgrade --subject accounting --target all`.
+- Example: `qiongli upgrade --profile full --target all --surface plugin` refreshes the source/next-release local full plugin surface without switching to the marketplace lite plugin.
 - After global install, `upgrade` creates workflow discovery symlinks under `~/.claude/commands/*.md` → enables direct `/paper`, `/lit-review`, etc. invocation in Claude Code.
 - Shell CLI uses the bundled bootstrap helper and does not require Python.
 - The command exits with the error code returned by the underlying installer.
@@ -235,7 +237,7 @@ Use Case: Removes assets installed by the CLI so you can switch cleanly between 
 qiongli remove \
   [--target codex|claude|antigravity|hermes|all] \
   [--surface skills|plugin|both] \
-  [--parts globals|project|cli] \
+  [--parts globals|project|cli|mcp|plugin] \
   [--project-dir <path>] \
   [--cli-dir <path>] \
   [--dry-run]
@@ -247,6 +249,7 @@ Examples:
 qiongli remove --target all --dry-run
 qiongli remove --target codex
 qiongli remove --target codex --surface plugin
+qiongli remove --parts plugin --target codex
 qiongli remove --parts globals,project --project-dir "$PWD"
 qiongli remove --parts cli --cli-dir ~/.local/bin
 qiongli uninstall --target all
