@@ -21,6 +21,7 @@ Current stable release: [v1.7.0](https://github.com/jxpeng98/qiongli/releases/ta
 |---|---|---|---|
 | Marketplace plugin / extension | One client, least setup, or no local CLI environment | Client plugin plus `qiongli-workflow`; Codex and Claude Code include the bundled Node literature MCP as a lite/no-CLI fallback | No for skill use or bundled literature MCP; Python/CLI only for full local Qiongli |
 | Claude Desktop Skill ZIP | Claude Desktop or Claude.ai, especially when you do not want to use a code/CLI environment | Personal `qiongli` Skill upload | No |
+| Full local plugin: `qiongli install --profile full --target all --surface plugin` | Full local Qiongli inside a client-native plugin container | Local plugin bundle plus the unified full MCP server | Yes, Python 3.12+ |
 | `qiongli install --profile full` | Full local Qiongli in Codex or another local client | Skills, shell CLI, provider config flow, doctor checks, and the unified full MCP server | Yes, Python 3.12+ |
 | Bootstrap `partial` | Global workflow assets across clients | Skills and workflow discovery where supported | No |
 | Bootstrap `full` | Runtime checks and orchestration from release scripts | `partial` plus shell CLI, MCP registration part, and `doctor` support | Yes, Python 3.12+ |

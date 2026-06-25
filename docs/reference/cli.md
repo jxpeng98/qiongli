@@ -146,9 +146,11 @@ Use Case:
 
 ```bash
 qiongli install \
+  [--profile partial|full] \
   [--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting] \
   [--coverage complete|focused] \
   [--target codex|claude|antigravity|hermes|all] \
+  [--surface skills|plugin|both] \
   [--mode copy|link] \
   [--project-dir <path>] \
   [--overwrite] \
@@ -166,9 +168,14 @@ qiongli install --subject political-economy --target all
 qiongli install --subject geoeconomics --target all
 qiongli install --subject economics-accounting --target all
 qiongli install --subject economics --coverage focused --target all
+qiongli install --profile full --target codex --surface plugin
+qiongli install --profile full --target all --surface plugin
+qiongli install --profile full --target all --surface both
 ```
 
 Subject packages are specialized installs, not reduced-quality cuts. Default install is `core/complete`. `--subject economics`, `--subject business`, `--subject finance`, `--subject political-economy`, and `--subject geoeconomics` mean complete specialized installs, not reduced packages. `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. Focused coverage selects the subject profile set and active effective skills for deliberate slim installs and Desktop/Web ZIPs. Current official subjects are `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and the named composite `economics-accounting`; `political-economy` and `geoeconomics` are independent subject choices, not a composite. Official composites are not arbitrary comma-separated stacking. Public Desktop ZIP subjects are `core`, `economics`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting`, with no standalone accounting Desktop ZIP in this phase. Switch subjects or coverage by rerunning `install` or `upgrade` with new flags.
+
+`--surface plugin` installs a local client-native plugin bundle backed by the full Python MCP server. For Codex, the CLI writes a personal marketplace entry and plugin `.mcp.json` that launches `qiongli mcp serve --transport stdio`. Marketplace-installed plugins stay on the lite no-Python path with the bundled Node literature provider.
 
 ### 2.4 `qiongli upgrade` (Download release & execute installers)
 
@@ -227,6 +234,7 @@ Use Case: Removes assets installed by the CLI so you can switch cleanly between 
 ```bash
 qiongli remove \
   [--target codex|claude|antigravity|hermes|all] \
+  [--surface skills|plugin|both] \
   [--parts globals|project|cli] \
   [--project-dir <path>] \
   [--cli-dir <path>] \
@@ -238,6 +246,7 @@ Examples:
 ```bash
 qiongli remove --target all --dry-run
 qiongli remove --target codex
+qiongli remove --target codex --surface plugin
 qiongli remove --parts globals,project --project-dir "$PWD"
 qiongli remove --parts cli --cli-dir ~/.local/bin
 qiongli uninstall --target all

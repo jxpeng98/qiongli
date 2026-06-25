@@ -2,7 +2,7 @@
 
 Qiongli stable is distributed as one plugin package, not as dozens of separate academic-skill plugins.
 
-Plugin-first describes the marketplace distribution architecture. It is not the full-product architecture. For full local Qiongli, the CLI full profile is canonical. Marketplace plugins remain client-native lite installs, with bundled Node literature MCP fallback where supported.
+Plugin-first describes the marketplace distribution architecture. It is not the full-product architecture. For full local Qiongli, the CLI full profile can generate a client-native local plugin bundle. Marketplace plugins remain client-native lite installs, with bundled Node literature MCP fallback where supported.
 
 ## Definitions
 
@@ -53,10 +53,10 @@ The plugin-first package does not replace the legacy global install in place. Na
 - Global skill install: `~/.codex/skills/qiongli-workflow`, `~/.claude/skills/qiongli-workflow`, `~/.gemini/antigravity/skills/qiongli-workflow`, and `~/.hermes/skills/qiongli-workflow`, managed by `rsk` or bootstrap.
 - Global slash discovery: `~/.claude/commands/*.md`, managed by `rsk`.
 
-For ordinary skill-only client-native usage and Codex/Claude Code bundled literature-provider MCP usage, the plugin bundle is enough. For full local Qiongli, including the unified Python-backed MCP server with literature plus orchestrator tools, CLI commands, validators, `doctor`, release tooling, or `bridges.orchestrator`, users still need the local `qiongli` CLI/runtime and should keep the global install aligned with:
+For ordinary skill-only client-native usage and Codex/Claude Code bundled literature-provider MCP usage, the marketplace plugin bundle is enough. Those marketplace artifacts keep the bundled Node literature MCP. For full local Qiongli, including literature plus orchestrator tools, CLI commands, validators, `doctor`, release tooling, or `bridges.orchestrator`, the CLI can install a client-native local plugin bundle backed by the full Python MCP:
 
 ```bash
-qiongli install --profile full --target codex
+qiongli install --profile full --target all --surface plugin
 qiongli mcp doctor --json
 ```
 
