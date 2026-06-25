@@ -1,10 +1,26 @@
 # Changelog
 
-本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-06-24）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
+本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-06-25）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
 
 ## [Unreleased]
 
 暂无未发布变更。
+
+## [1.7.0] - 2026-06-25
+
+### Added
+
+- 新增统一 full CLI MCP server 路径：`qiongli mcp serve --transport stdio` 现在可以在同一个 Python-backed MCP 进程里暴露 literature tools、provider/config tools、orchestrator doctor/route、task plan 和 task run preview。
+- `qiongli install --profile full` 新增受管理的 MCP client config 写入能力，覆盖 Codex、Claude Code、Antigravity 和 Hermes；`--target all` 会同时注册四个本地客户端的 full MCP 配置。
+- Python full MCP literature stack 新增 OpenAlex、Crossref、PubMed provider clients，并通过共享 provider config 与 MCP tool handlers 统一路由，避免 full CLI 和 lite MCPB 文献能力割裂。
+- Literature MCP 新增 arXiv provider。arXiv 在 Python full MCP 和 Claude Desktop MCPB 中均默认可用，不需要 API key，并支持 preprint/topic search、arXiv ID metadata、year/category metadata 和 provider diagnostics。
+- Claude Desktop literature MCPB 升级到 `0.1.5`，打包 arXiv provider runtime，并继续保留零依赖 Node stdio server、provider setup wizard、query variants、deep-search routing 和 Zotero bridge tools。
+
+### Changed
+
+- 安装和跨平台 MCP 文档明确区分 marketplace/plugin bundled lite MCP 与 CLI full MCP：marketplace 仍适合无 CLI 环境的 literature-provider fallback，full CLI 是完整 Qiongli/orchestrator MCP 的 canonical 路径。
+- npm 安装文档更新为 CLI bridge 定位，说明 npm 可以作为入口委托到 Python-backed full runtime，但完整 MCP/orchestrator 能力最终由 full CLI server 承载。
+- Claude Desktop/Web skill ZIP、Codex plugin、Claude Code plugin、Antigravity、Hermes 和 CLI 安装说明同步更新 provider 边界，强调 secrets 留在共享 provider config，不写入 plugin manifests 或 release ZIP。
 
 ## [1.6.0] - 2026-06-24
 
