@@ -890,21 +890,38 @@ def _print_mcp_config_result(label: str, status: str, path: Path, detail: str = 
 
 def _install_mcp_client_config(options: InstallOptions) -> None:
     _print_section("MCP Client Config")
-    if options.target not in {"codex", "all"}:
-        _print_result("Codex MCP", f"target {options.target} (not applicable)", "skip")
+    targets = _mcp_config_targets(options.target)
+    if not targets:
+        _print_result("MCP", f"target {options.target} (not applicable)", "skip")
         return
-    result = install_mcp_config(target="codex", dry_run=options.dry_run)
-    _print_mcp_config_result("Codex MCP", result.status, result.path, result.detail)
+    for target, label in targets:
+        result = install_mcp_config(target=target, dry_run=options.dry_run)
+        _print_mcp_config_result(label, result.status, result.path, result.detail)
 
 
 def _remove_mcp_client_config(options: RemoveOptions) -> int:
     _print_section("MCP Client Config")
-    if options.target not in {"codex", "all"}:
-        _print_result("Codex MCP", f"target {options.target} (not applicable)", "skip")
+    targets = _mcp_config_targets(options.target)
+    if not targets:
+        _print_result("MCP", f"target {options.target} (not applicable)", "skip")
         return 0
-    result = remove_mcp_config(target="codex", dry_run=options.dry_run)
-    _print_mcp_config_result("Codex MCP", result.status, result.path, result.detail)
-    return 1 if result.changed else 0
+    removed = 0
+    for target, label in targets:
+        result = remove_mcp_config(target=target, dry_run=options.dry_run)
+        _print_mcp_config_result(label, result.status, result.path, result.detail)
+        if result.changed:
+            removed += 1
+    return removed
+
+
+def _mcp_config_targets(target: str) -> list[tuple[str, str]]:
+    if target == "codex":
+        return [("codex", "Codex MCP")]
+    if target == "claude":
+        return [("claude-code", "Claude Code MCP")]
+    if target == "all":
+        return [("codex", "Codex MCP"), ("claude-code", "Claude Code MCP")]
+    return []
 
 
 def install(options: InstallOptions) -> int:

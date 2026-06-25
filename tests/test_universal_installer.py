@@ -512,6 +512,39 @@ class UniversalInstallerTests(unittest.TestCase):
             self.assertIn("[mcp_servers.qiongli]", rendered)
             self.assertIn('command = "qiongli"', rendered)
 
+    def test_full_profile_registers_claude_code_mcp_config(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            claude_home = temp_root / ".claude"
+            env = os.environ.copy()
+            env["HOME"] = str(temp_root)
+            env["CLAUDE_CODE_HOME"] = str(claude_home)
+            env["PATH"] = ""
+
+            with mock.patch.dict(os.environ, env, clear=True):
+                result = install(
+                    InstallOptions(
+                        repo_root=REPO_ROOT,
+                        project_dir=project_dir,
+                        target="claude",
+                        profile="full",
+                        install_cli=False,
+                        doctor=False,
+                    )
+                )
+
+            self.assertEqual(result, 0)
+            rendered = json.loads((temp_root / ".claude.json").read_text(encoding="utf-8"))
+            self.assertEqual(rendered["mcpServers"]["qiongli"]["type"], "stdio")
+            self.assertEqual(rendered["mcpServers"]["qiongli"]["command"], "qiongli")
+            self.assertEqual(
+                rendered["mcpServers"]["qiongli"]["args"],
+                ["mcp", "serve", "--transport", "stdio"],
+            )
+            self.assertFalse((temp_root / ".codex" / "config.toml").exists())
+
     def test_mcp_part_only_registers_codex_mcp_without_global_skill(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             temp_root = Path(tmp_dir)
@@ -535,6 +568,31 @@ class UniversalInstallerTests(unittest.TestCase):
             self.assertEqual(result, 0)
             self.assertTrue((codex_home / "config.toml").exists())
             self.assertFalse((codex_home / "skills" / "qiongli-workflow" / "SKILL.md").exists())
+
+    def test_mcp_part_only_registers_claude_code_mcp_without_global_skill(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            claude_home = temp_root / ".claude"
+            env = os.environ.copy()
+            env["HOME"] = str(temp_root)
+            env["CLAUDE_CODE_HOME"] = str(claude_home)
+            env["PATH"] = ""
+
+            with mock.patch.dict(os.environ, env, clear=True):
+                result = install(
+                    InstallOptions(
+                        repo_root=REPO_ROOT,
+                        project_dir=project_dir,
+                        target="claude",
+                        parts=("mcp",),
+                    )
+                )
+
+            self.assertEqual(result, 0)
+            self.assertTrue((temp_root / ".claude.json").exists())
+            self.assertFalse((claude_home / "skills" / "qiongli-workflow" / "SKILL.md").exists())
 
     def test_remove_mcp_part_removes_managed_codex_mcp_config(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -566,6 +624,45 @@ class UniversalInstallerTests(unittest.TestCase):
 
             self.assertEqual(result, 0)
             self.assertNotIn("QIONGLI MANAGED MCP", config_path.read_text(encoding="utf-8"))
+
+    def test_remove_mcp_part_removes_managed_claude_code_mcp_config(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            claude_home = temp_root / ".claude"
+            config_path = temp_root / ".claude.json"
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "qiongli": {
+                                "type": "stdio",
+                                "command": "qiongli",
+                                "args": ["mcp", "serve", "--transport", "stdio"],
+                            }
+                        }
+                    },
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            env = os.environ.copy()
+            env["HOME"] = str(temp_root)
+            env["CLAUDE_CODE_HOME"] = str(claude_home)
+
+            with mock.patch.dict(os.environ, env, clear=True):
+                result = remove(
+                    RemoveOptions(
+                        project_dir=project_dir,
+                        target="claude",
+                        parts=("mcp",),
+                    )
+                )
+
+            self.assertEqual(result, 0)
+            self.assertNotIn("qiongli", json.loads(config_path.read_text(encoding="utf-8"))["mcpServers"])
 
 
 class CleanTests(unittest.TestCase):

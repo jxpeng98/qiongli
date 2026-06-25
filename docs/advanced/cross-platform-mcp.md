@@ -20,6 +20,8 @@ qiongli mcp serve --transport stdio
 
 This mode does not require a remote server. The client launches the local process, and Qiongli reads provider credentials from the shared provider configuration. It requires the npm, pipx/pip, or `full` bootstrap runtime so that `qiongli` is on `PATH`.
 
+For Codex and Claude Code, `qiongli install --profile full` can register this stdio server automatically. Use `--target codex` to write the managed Codex `config.toml` block, `--target claude` to write the managed Claude Code `~/.claude.json` `mcpServers.qiongli` entry, or `--target all` to write both. Existing unmanaged `qiongli` server entries are preserved and reported as skipped.
+
 The full CLI server exposes literature, provider/configuration, and orchestrator tools:
 
 - `qiongli_config_status`, `qiongli_configure_provider`, `qiongli_save_provider_config`, and `qiongli_collect_evidence` for MCP/provider readiness.
@@ -70,7 +72,7 @@ The bundled server entry is:
 node ${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs
 ```
 
-This bundled runtime covers literature-provider tools such as provider configuration, status, and search without requiring the `qiongli` CLI. Use the full CLI stdio server when Claude Code needs the unified full MCP surface, including `qiongli_literature_search`, `qiongli_orchestrator_route`, `qiongli_orchestrator_doctor`, `qiongli_task_plan`, or `qiongli_task_run`.
+This bundled runtime covers literature-provider tools such as provider configuration, status, and search without requiring the `qiongli` CLI. Use `qiongli install --profile full --target claude` when Claude Code needs the unified full MCP surface, including `qiongli_literature_search`, `qiongli_orchestrator_route`, `qiongli_orchestrator_doctor`, `qiongli_task_plan`, or `qiongli_task_run`.
 
 ## Claude Desktop MCPB
 
