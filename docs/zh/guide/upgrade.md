@@ -128,7 +128,9 @@ python3 scripts/qiongli_update.py upgrade \
 - 这个方式**不依赖 git**，也不要求你把仓库 clone 到本地。
 - shell bootstrap 路径**不依赖 Python**。
 - shell CLI 本身也可以在无 Python 环境下执行 `check`、`upgrade`、`align`。
-- 默认 upgrade 现在是 global-first；只有显式加 `--parts project` 时，才会刷新项目内 workflow 资产。
+- 从 v1.9.0 开始，默认 upgrade 是 plugin-first：先安装完整本地 plugin surface，再在新安装成功后清理旧 global skills 和 Codex/Claude 独立 MCP config。
+- 如果明确要保留旧版 skills-only 升级路径，使用 `--surface skills --profile partial`。
+- 只有显式加 `--parts project` 时，才会刷新项目内 workflow 资产。
 - 私有仓库或遇到 API 限流时，建议设置：`GITHUB_TOKEN` 或 `GH_TOKEN`。
 - 默认使用“最新 release tag”；shell bootstrap 和 `qiongli upgrade` 也都支持显式指定版本：
   - `--ref v0.1.0-beta.6 --ref-type tag`

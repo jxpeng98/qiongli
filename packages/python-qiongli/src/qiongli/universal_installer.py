@@ -638,7 +638,7 @@ def _is_managed_workflow_discovery_symlink(candidate: Path) -> bool:
     return any(marker in target_path for marker in _WORKFLOW_LINK_PACKAGE_MARKERS)
 
 
-def _remove_workflow_discovery_for_skill(target: str, skill_dest: Path, *, dry_run: bool) -> int:
+def _remove_workflow_discovery_for_skill(target: str, skill_dest: Path, *, dry_run: bool, verbose: bool = True) -> int:
     if target not in _SYMLINK_TARGETS:
         return 0
     workflows_src = skill_dest / "workflows"
@@ -657,11 +657,13 @@ def _remove_workflow_discovery_for_skill(target: str, skill_dest: Path, *, dry_r
             if not (candidate.exists() or candidate.is_symlink()):
                 continue
             if not _is_managed_workflow_discovery_file(candidate, workflow):
-                _print_result("Workflow", f"{candidate} (user-customized)", "skip")
+                if verbose:
+                    _print_result("Workflow", f"{candidate} (user-customized)", "skip")
                 continue
             _remove_path(candidate, dry_run)
             suffix = "dry-run" if dry_run else "removed"
-            _print_result("Workflow", f"{target}: {candidate} ({suffix})", "ok")
+            if verbose:
+                _print_result("Workflow", f"{target}: {candidate} ({suffix})", "ok")
             removed += 1
 
     for candidate in sorted(discovery_dir.glob("*.md")):
@@ -670,7 +672,8 @@ def _remove_workflow_discovery_for_skill(target: str, skill_dest: Path, *, dry_r
         if _is_managed_workflow_discovery_symlink(candidate):
             _remove_path(candidate, dry_run)
             suffix = "dry-run" if dry_run else "removed"
-            _print_result("Workflow", f"{target}: {candidate} ({suffix})", "ok")
+            if verbose:
+                _print_result("Workflow", f"{target}: {candidate} ({suffix})", "ok")
             removed += 1
     return removed
 
@@ -926,6 +929,70 @@ def _remove_mcp_client_config(options: RemoveOptions) -> int:
         _print_mcp_config_result(label, result.status, result.path, result.detail)
         if result.changed:
             removed += 1
+    return removed
+
+
+def cleanup_legacy_surfaces_after_plugin_upgrade(options: RemoveOptions) -> int:
+    options = RemoveOptions(
+        project_dir=_resolve(options.project_dir),
+        target=options.target,
+        dry_run=options.dry_run,
+        surface=options.surface,
+        parts=options.parts,
+        cli_dir=_resolve(options.cli_dir or Path.home() / ".local" / "bin"),
+    )
+    if options.target not in TARGET_CHOICES:
+        raise ValueError(f"Unsupported target: {options.target}")
+
+    _print_section("Upgrade Migration")
+    removed = 0
+
+    target_paths = _global_skill_target_paths()
+    for target_name in _selected_target_names(options.target):
+        dest = target_paths[target_name]
+        workflow_removed = _remove_workflow_discovery_for_skill(
+            target_name,
+            dest,
+            dry_run=options.dry_run,
+            verbose=False,
+        )
+        if workflow_removed:
+            suffix = "dry-run" if options.dry_run else "removed"
+            _print_result("Legacy Workflow", f"{target_name}: {workflow_removed} discovery link(s) ({suffix})", "ok")
+            removed += workflow_removed
+        if not (dest.exists() or dest.is_symlink()):
+            _print_result("Legacy Skill", f"{target_name}: {dest} (not installed)", "skip")
+            continue
+        if not (_is_qiongli_package_dir(dest) or dest.is_symlink()):
+            _print_result("Legacy Skill", f"{target_name}: {dest} (unmanaged qiongli-workflow path)", "skip")
+            continue
+        _remove_path(dest, options.dry_run)
+        _print_result("Legacy Skill", f"{target_name}: {dest} ({'dry-run' if options.dry_run else 'removed'})", "ok")
+        removed += 1
+
+    removed += _cleanup_legacy_global_skill_residues(
+        options.target,
+        target_paths,
+        dry_run=options.dry_run,
+    )
+
+    plugin_managed_mcp_targets = _plugin_managed_mcp_targets(options.target)
+    if plugin_managed_mcp_targets:
+        for target, label in _mcp_config_targets(options.target):
+            if target not in plugin_managed_mcp_targets:
+                continue
+            result = remove_mcp_config(target=target, dry_run=options.dry_run)
+            _print_mcp_config_result(f"Legacy {label}", result.status, result.path, result.detail)
+            if result.changed:
+                removed += 1
+    else:
+        _print_result("Legacy MCP", f"target {options.target} (plugin does not manage this target)", "skip")
+
+    if removed:
+        action = "would clean" if options.dry_run else "cleaned"
+        print(f"\n[done] Upgrade migration {action} {removed} legacy asset(s)")
+    else:
+        print("\n[done] Upgrade migration found no legacy assets")
     return removed
 
 

@@ -6,6 +6,19 @@
 
 暂无未发布变更。
 
+## [1.9.0] - 2026-06-25
+
+### Changed
+
+- `qiongli install` 和 `qiongli upgrade` 默认切换为 full local plugin surface：等价于 `--profile full --surface plugin`，让 Codex / Claude Code 通过 CLI-managed local plugin 接入完整 Python MCP，同时继续给 Antigravity / Hermes 写入受管理 MCP config。
+- `qiongli upgrade` 新增 plugin-first 迁移清理：只有在新 plugin 安装成功后，才清理旧版 global skills、Claude Code workflow discovery links、以及 Codex / Claude standalone MCP config。
+- CLI reference、安装指南、升级指南、README 和 plugin-first 架构文档同步更新默认行为、`--surface` / `--parts` 交互、显式 legacy skills-only 路径，以及 `install` 与 `upgrade` 的清理边界。
+
+### Fixed
+
+- 保留 Antigravity / Hermes MCP config 作为 plugin-first 架构下的 canonical 接入方式，避免升级迁移误删非 plugin-managed MCP 配置。
+- 明确 `qiongli remove --surface plugin` 只删除 CLI-managed local plugin，不会隐式删除 MCP client config；需要删除 MCP config 时必须显式使用 `--parts mcp`。
+
 ## [1.8.0] - 2026-06-25
 
 ### Added

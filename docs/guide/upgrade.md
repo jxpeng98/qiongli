@@ -130,7 +130,9 @@ Key points:
 - This method **does not rely on git** and does not require you to clone the repository locally.
 - The shell bootstrap path **does not rely on Python**.
 - The shell CLI itself can run `check`, `upgrade`, and `align` without Python.
-- Default upgrade is now global-first. Add `--parts project` when you explicitly want to refresh project-local workflow assets.
+- Default upgrade is plugin-first from v1.9.0 onward: it installs the full local plugin surface, then cleans old global skills and Codex/Claude standalone MCP configs after the new install succeeds.
+- Add `--surface skills --profile partial` when you explicitly want the old skills-only upgrade path.
+- Add `--parts project` when you explicitly want to refresh project-local workflow assets.
 - For private repositories or if you hit API rate limits, it is recommended to set: `GITHUB_TOKEN` or `GH_TOKEN`.
 - It defaults to using the "latest release tag", but both shell bootstrap and `qiongli upgrade` accept explicit refs:
   - `--ref v0.1.0-beta.6 --ref-type tag`
@@ -157,7 +159,7 @@ python3 -m qiongli.cli init --project-dir /path/to/project --target all --overwr
 git pull
 ```
 
-Because the installation targets are symlinks, updating the repository contents automatically syncs the skill and workflows to the latest version across all 3 clients.
+Because the installation targets are symlinks, updating the repository contents automatically syncs the skill and workflows to the latest version across selected clients.
 
 ---
 

@@ -43,12 +43,12 @@ The public name is **Qiongli**, from the Chinese `穷理`: to keep asking what p
 | You want the full docs experience | Open the [VitePress docs](docs/index.md), or run `npm run docs:dev` locally |
 | You prefer Chinese docs | Start with [中文 README](README_CN.md) or [中文文档](docs/zh/index.md) |
 | You want Qiongli in one client | Use the [Install Guide](docs/guide/install.md) |
-| You need full local Qiongli in client-native form | Use `qiongli install --profile full --target all --surface plugin` from the next release or a source checkout |
+| You need full local Qiongli in client-native form | Use `qiongli install --target all`; this defaults to the full local plugin surface |
 | You are choosing a paper workflow | Use [Task Recipes](docs/guide/task-recipes.md) |
 | You need scriptable installs or upgrades | Use the [CLI Reference](docs/reference/cli.md) |
 | You want to understand the architecture | Read [Architecture](docs/architecture.md) |
 
-`--surface plugin` is the full local entry from the next release or a source checkout from this branch. Current stable v1.7.0 users can keep using marketplace plugins for the lite no-Python path, or the existing full CLI profile for Python-backed MCP.
+From v1.9.0 onward, `qiongli install` and `qiongli upgrade` default to `--profile full --surface plugin`. Codex and Claude Code receive CLI-managed local plugins backed by the full Python MCP server; Antigravity and Hermes receive managed MCP client configs. Use `--surface skills --profile partial` only when you deliberately want the legacy skills-only surface.
 
 ## Latest Stable Downloads
 
@@ -117,7 +117,7 @@ Start with the smallest surface that matches the job. In Qiongli, "full workflow
 | **Claude Code marketplace plugin**: `claude plugin marketplace add jxpeng98/skillsplace@main` | You use Claude Code and want the Qiongli workflow from the marketplace. | Installs the full `subject/complete` workflow package for `qiongli` and subject entries such as `qiongli-economics@skillsplace`; includes slash workflow commands like `/paper`, `/lit-review`, and `/code-build`, plus the same zero-dependency Node literature MCP runtime as Codex for provider, search, and status tools. | Marketplace stays lite/no-Python. Full Python-backed tools use the CLI-generated local plugin: `qiongli install --profile full --target claude --surface plugin`. |
 | **Claude Desktop/Web Skill ZIP** | You want Qiongli in Claude Desktop or Claude.ai without a code environment. | No terminal required. Good for skill-guided paper planning, writing, review, and focused subject packages. | Focused package kept under Desktop upload limits; skill-only, no secrets, no provider calls, no local agent execution. |
 | **Claude Desktop Literature MCPB**: `qiongli-literature-provider.mcpb` | Desktop needs local OpenAlex/Semantic Scholar search and provider key configuration. | No Python or npm install; pairs cleanly with the Desktop Skill ZIP. | Literature/provider tools only. It does not install Qiongli skills and does not launch orchestrator agents. |
-| **Full local plugin**: `qiongli install --profile full --target all --surface plugin` | You want one full local Qiongli surface across Codex, Claude Code, Antigravity, and Hermes. | Generates client-native local plugin bundles for Codex/Claude Code that launch `qiongli mcp serve --transport stdio`; Antigravity/Hermes receive managed full MCP client configs. | Requires Python 3.12+ and is next-release/source-checkout behavior until published. Marketplace plugin installs remain separate. |
+| **Full local plugin**: `qiongli install --target all` | You want one full local Qiongli surface across Codex, Claude Code, Antigravity, and Hermes. | Generates client-native local plugin bundles for Codex/Claude Code that launch `qiongli mcp serve --transport stdio`; Antigravity/Hermes receive managed full MCP client configs. | Requires Python 3.12+. Marketplace plugin installs remain separate. |
 | **npm / npx**: `npm install -g qiongli` or `npx qiongli@latest ...` | You want scriptable installs, upgrades, and prebuilt complete/focused subject payloads through Node. | Good default for cross-client asset installation; no PyPI dependency for skill payloads. | Advanced bridge commands such as `setup`, `doctor`, `task-run`, and `mcp` need Python 3.12+ with `PyYAML`. |
 | **Bootstrap `partial`** | You want portable workflow assets and command discovery across clients without Python. | Simple shell/PowerShell path for skills and workflow discovery links. | No runtime validation, no Python bridge, no local orchestrator execution. |
 | **Bootstrap `full` / pipx / pip Python CLI** | You need the CLI runtime directly: `doctor`, validators, local `task-plan`, `task-run`, `team-run`, or `qiongli mcp serve`. | Most complete runtime surface; enables local checks, provider config, literature search, and Python-backed orchestration. | Requires Python 3.12+, model CLIs in `PATH`, and runtime auth for actual agent execution. For Codex/Claude Code, prefer `--surface plugin` when you want the client to own a plugin container. |
@@ -156,8 +156,8 @@ qiongli install --subject accounting --target all --project-dir "$PWD"
 qiongli install --subject economics-accounting --target all --project-dir "$PWD"
 qiongli install --subject economics --coverage focused --target all --project-dir "$PWD"
 
-# Full local plugin surface, next release or source checkout
-qiongli install --profile full --target all --surface plugin
+# Explicit legacy skills-only surface
+qiongli install --surface skills --profile partial --target all --project-dir "$PWD"
 
 # Prerelease testing
 npx qiongli@next install --target all --project-dir "$PWD"
@@ -203,7 +203,7 @@ Provider keys entered through `qiongli setup` use the same provider config as `q
 
 ## Remove CLI-installed Assets
 
-Use `qiongli remove` (aliases: `qiongli uninstall`, `qiongli delete`) to remove CLI-installed global workflow assets, discovery links, or CLI-managed local full plugins. It does not uninstall marketplace plugins such as `qiongli` or `qiongli-next`; remove those through the Codex, Claude Code, or Claude Desktop plugin manager that installed them.
+Use `qiongli remove` (aliases: `qiongli uninstall`, `qiongli delete`) to remove CLI-installed global workflow assets, discovery links, or CLI-managed local full plugins. Default `qiongli upgrade` already migrates old skills/MCP surfaces to the plugin-first layout after the new install succeeds, so manual removal is mainly for channel switches or cleanup. It does not uninstall marketplace plugins such as `qiongli` or `qiongli-next`; remove those through the Codex, Claude Code, or Claude Desktop plugin manager that installed them.
 
 ```bash
 qiongli remove --target all --dry-run

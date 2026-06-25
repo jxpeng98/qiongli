@@ -53,14 +53,14 @@ The plugin-first package does not replace the legacy global install in place. Na
 - Global skill install: `~/.codex/skills/qiongli-workflow`, `~/.claude/skills/qiongli-workflow`, `~/.gemini/antigravity/skills/qiongli-workflow`, and `~/.hermes/skills/qiongli-workflow`, managed by `rsk` or bootstrap.
 - Global slash discovery: `~/.claude/commands/*.md`, managed by `rsk`.
 
-For ordinary skill-only client-native usage and Codex/Claude Code bundled literature-provider MCP usage, the marketplace plugin bundle is enough. Those marketplace artifacts keep the bundled Node literature MCP. From the next release or a source checkout from this branch, full local Qiongli can install a client-native local plugin bundle backed by the full Python MCP:
+For ordinary skill-only client-native usage and Codex/Claude Code bundled literature-provider MCP usage, the marketplace plugin bundle is enough. Those marketplace artifacts keep the bundled Node literature MCP. From v1.9.0 onward, the default full local Qiongli path installs a client-native local plugin bundle backed by the full Python MCP:
 
 ```bash
-qiongli install --profile full --target all --surface plugin
+qiongli install --target all
 qiongli mcp doctor --json
 ```
 
-When migrating fully to the plugin and removing old global skill directories or slash discovery, preview cleanup first:
+`qiongli upgrade` also defaults to this plugin-first path. After the new plugin install succeeds, it cleans legacy global skill directories, Claude Code slash discovery links, and Codex/Claude standalone MCP config. If you are manually cleaning older installs, preview cleanup first:
 
 ```bash
 qiongli clean --globals --dry-run

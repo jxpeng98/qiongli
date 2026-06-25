@@ -28,6 +28,7 @@ from .universal_installer import (
     clean,
     clean_global_legacy_skills,
     clean_workflow_symlinks,
+    cleanup_legacy_surfaces_after_plugin_upgrade,
     install,
     remove,
 )
@@ -44,6 +45,8 @@ from bridges.provider_config import (
 TAG_PATTERN = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:-beta\.(\d+)|b(\d+))?$")
 RELEASE_NOTE_PATTERN = re.compile(r"^v(\d+)\.(\d+)\.(\d+)-beta\.(\d+)\.md$")
 OWNER_REPO_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+DEFAULT_CLI_PROFILE = "full"
+DEFAULT_CLI_SURFACE = "plugin"
 
 
 @dataclass(frozen=True)
@@ -708,6 +711,35 @@ def _parse_parts_arg(raw: str | None) -> tuple[str, ...] | None:
     return tuple(part.strip() for part in str(raw).split(",") if part.strip()) or None
 
 
+def _effective_cli_surface(args: argparse.Namespace) -> str:
+    return getattr(args, "surface", None) or DEFAULT_CLI_SURFACE
+
+
+def _effective_cli_profile(args: argparse.Namespace) -> str:
+    profile = getattr(args, "profile", None)
+    if profile:
+        return profile
+    if getattr(args, "surface", None) == "skills":
+        return "partial"
+    return DEFAULT_CLI_PROFILE
+
+
+def _part_tokens(parts: tuple[str, ...] | None) -> set[str]:
+    if not parts:
+        return set()
+    normalized = {part.strip().lower() for part in parts if part.strip()}
+    if "all" in normalized or "*" in normalized:
+        return set(PART_CHOICES)
+    return normalized
+
+
+def _upgrade_should_migrate_to_plugin(options: InstallOptions) -> bool:
+    if options.surface != "plugin":
+        return False
+    parts = _part_tokens(options.parts)
+    return not parts or "plugin" in parts
+
+
 def _run_orchestrator_doctor(cwd: Path) -> int:
     env = os.environ.copy()
     repo_root = _find_repo_root(Path.cwd())
@@ -833,24 +865,33 @@ def cmd_upgrade(args: argparse.Namespace) -> int:
         if not install_script.exists():
             print(f"[error] Python install script not found in archive: {install_script}", file=sys.stderr)
             return 1
-        return _run_installer(
-            InstallOptions(
-                    repo_root=extracted_root,
-                    project_dir=project_dir,
-                    subject=args.subject,
-                    coverage=getattr(args, "coverage", "complete"),
-                    profile=getattr(args, "profile", None),
-                    target=args.target,
-                    mode=args.mode,
-                    overwrite=args.overwrite,
-                    install_cli=install_cli,
-                    cli_dir=Path(args.cli_dir).expanduser().resolve() if getattr(args, "cli_dir", None) else None,
-                    doctor=args.doctor,
-                    dry_run=args.dry_run,
-                    surface=getattr(args, "surface", "skills"),
-                    parts=_parse_parts_arg(getattr(args, "parts", None)),
-                )
+        install_options = InstallOptions(
+            repo_root=extracted_root,
+            project_dir=project_dir,
+            subject=args.subject,
+            coverage=getattr(args, "coverage", "complete"),
+            profile=_effective_cli_profile(args),
+            target=args.target,
+            mode=args.mode,
+            overwrite=args.overwrite,
+            install_cli=install_cli,
+            cli_dir=Path(args.cli_dir).expanduser().resolve() if getattr(args, "cli_dir", None) else None,
+            doctor=args.doctor,
+            dry_run=args.dry_run,
+            surface=_effective_cli_surface(args),
+            parts=_parse_parts_arg(getattr(args, "parts", None)),
         )
+        result = _run_installer(install_options)
+        if result == 0 and _upgrade_should_migrate_to_plugin(install_options):
+            cleanup_legacy_surfaces_after_plugin_upgrade(
+                RemoveOptions(
+                    project_dir=install_options.project_dir,
+                    target=install_options.target,
+                    dry_run=install_options.dry_run,
+                    cli_dir=install_options.cli_dir,
+                )
+            )
+        return result
 
 
 def _packaged_payload_root() -> Path:
@@ -882,7 +923,7 @@ def cmd_install(args: argparse.Namespace) -> int:
             project_dir=project_dir,
             subject=args.subject,
             coverage=args.coverage,
-            profile=getattr(args, "profile", None),
+            profile=_effective_cli_profile(args),
             target=args.target,
             mode=args.mode,
             overwrite=args.overwrite,
@@ -890,7 +931,7 @@ def cmd_install(args: argparse.Namespace) -> int:
             cli_dir=Path(args.cli_dir).expanduser().resolve() if getattr(args, "cli_dir", None) else None,
             doctor=args.doctor,
             dry_run=args.dry_run,
-            surface=getattr(args, "surface", "skills"),
+            surface=_effective_cli_surface(args),
             parts=_parse_parts_arg(getattr(args, "parts", None)),
         )
     )
@@ -986,9 +1027,10 @@ def cmd_align(args: argparse.Namespace) -> int:
     print("- CLI aliases: `qiongli`, `ql`, `research-skills`, `rsk`, `rsw` (same behavior).")
     print("")
     print(f"What `{prog} upgrade` modifies by default:")
-    print("- Global skills (with bundled workflows): ~/.codex|~/.claude|~/.gemini/antigravity|~/.hermes under `skills/qiongli-workflow/`")
-    print("- Workflows are bundled inside the skill directory (no project-local copies needed).")
-    print("- Shell CLI wrappers when `--install-cli` is used")
+    print("- Full local plugin surface: Codex/Claude Code get CLI-managed local plugins.")
+    print("- Full MCP surface: Antigravity/Hermes get managed `qiongli mcp serve` client configs.")
+    print("- Legacy global skills and Codex/Claude standalone MCP configs are cleaned after plugin install succeeds.")
+    print("- Use `--surface skills --profile partial` to keep the old skills-only upgrade behavior.")
     print("")
     print("Project-facing assets are opt-in:")
     print("- Use `qiongli init --project-dir .` to create project config + .env")
@@ -1002,7 +1044,8 @@ def cmd_align(args: argparse.Namespace) -> int:
     print(f"5) Doctor:  {prog} doctor --cwd .")
     print("")
     print("Tip:")
-    print(f"- `{prog} upgrade` only touches global skill directories. No project-local files.")
+    print(f"- `{prog} install` and `{prog} upgrade` default to `--profile full --surface plugin`.")
+    print(f"- `{prog} upgrade` migrates old skills/MCP surfaces only after the new plugin install succeeds.")
     print(f"- `{prog} clean` removes stale workflow copies / CLAUDE.md / .gemini quickstart.")
     print("- Set `QIONGLI_REPO=owner/repo` to avoid passing `--repo` every time.")
     return 0
@@ -1124,13 +1167,13 @@ def build_parser() -> argparse.ArgumentParser:
     upgrade.add_argument(
         "--profile",
         choices=PROFILE_CHOICES,
-        help="Install profile to apply: partial or full.",
+        help="Install profile to apply: partial or full (default: full unless --surface skills is explicit).",
     )
     upgrade.add_argument(
         "--surface",
         choices=SURFACE_CHOICES,
-        default="skills",
-        help="Install output surface to prepare: skills, plugin, or both (default: skills).",
+        default=None,
+        help="Install output surface to prepare: skills, plugin, or both (default: plugin).",
     )
     upgrade.add_argument("--beta", action="store_true", help="Include beta/pre-release tags for upgrade")
     upgrade.add_argument("--subject", default="core", help="Subject package to install (default: core)")
@@ -1183,13 +1226,13 @@ def build_parser() -> argparse.ArgumentParser:
     install_parser.add_argument(
         "--profile",
         choices=PROFILE_CHOICES,
-        help="Install profile to apply: partial or full.",
+        help="Install profile to apply: partial or full (default: full unless --surface skills is explicit).",
     )
     install_parser.add_argument(
         "--surface",
         choices=SURFACE_CHOICES,
-        default="skills",
-        help="Install output surface to prepare: skills, plugin, or both (default: skills).",
+        default=None,
+        help="Install output surface to prepare: skills, plugin, or both (default: plugin).",
     )
     install_parser.add_argument("--subject", default="core", help="Subject package to install (default: core)")
     install_parser.add_argument(

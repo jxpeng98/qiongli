@@ -92,6 +92,17 @@ class InstallerCliTests(unittest.TestCase):
         self.assertEqual(options.coverage, "focused")
         self.assertEqual(options.target, "codex")
 
+    def test_install_defaults_to_full_plugin_surface(self) -> None:
+        with mock.patch.object(cli_module, "install", return_value=0) as install_mock:
+            with mock.patch.object(cli_module.sys, "argv", ["qiongli", "install", "--dry-run"]):
+                exit_code = cli_module.main()
+
+        self.assertEqual(exit_code, 0)
+        options = install_mock.call_args.args[0]
+        self.assertEqual(options.profile, "full")
+        self.assertEqual(options.surface, "plugin")
+        self.assertTrue(options.dry_run)
+
     def test_install_command_passes_profile_to_installer(self) -> None:
         with mock.patch.object(cli_module, "install", return_value=0) as install_mock:
             with mock.patch.object(
@@ -208,7 +219,7 @@ class InstallerCliTests(unittest.TestCase):
 
         self.assertEqual(payload_root, REPO_ROOT)
 
-    def test_align_describes_global_first_upgrade_and_project_init(self) -> None:
+    def test_align_describes_plugin_first_upgrade_migration_and_project_init(self) -> None:
         args = argparse.Namespace(repo="owner/repo")
 
         with mock.patch("builtins.print") as print_mock:
@@ -219,6 +230,8 @@ class InstallerCliTests(unittest.TestCase):
         joined = "\n".join(lines)
         self.assertIn("What `", joined)
         self.assertIn("upgrade` modifies by default", joined)
+        self.assertIn("Full local plugin surface", joined)
+        self.assertIn("migrates old skills/MCP surfaces", joined)
         self.assertIn("Use `qiongli init --project-dir .` to create project config", joined)
         self.assertIn("qiongli init", joined)
 
@@ -271,7 +284,9 @@ class InstallerCliTests(unittest.TestCase):
                 cli_module, "_download"
             ), mock.patch.object(cli_module, "_extract_tarball", return_value=extracted_root), mock.patch.object(
                 cli_module, "install", return_value=0
-            ) as install_mock:
+            ) as install_mock, mock.patch.object(
+                cli_module, "cleanup_legacy_surfaces_after_plugin_upgrade", return_value=0
+            ):
                 with mock.patch.object(
                     cli_module.sys,
                     "argv",
@@ -285,6 +300,104 @@ class InstallerCliTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         options = install_mock.call_args.args[0]
         self.assertEqual(options.surface, "plugin")
+
+    def test_upgrade_defaults_to_full_plugin_surface_and_migrates_old_surfaces(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            extracted_root = temp_root / "archive-root"
+            scripts_dir = extracted_root / "scripts"
+            scripts_dir.mkdir(parents=True)
+            (scripts_dir / "bootstrap_qiongli.py").write_text("# stub\n", encoding="utf-8")
+
+            with mock.patch.object(cli_module, "_resolve_upstream_repo", return_value=("owner/repo", "test")), mock.patch.object(
+                cli_module, "_download"
+            ), mock.patch.object(cli_module, "_extract_tarball", return_value=extracted_root), mock.patch.object(
+                cli_module, "install", return_value=0
+            ) as install_mock, mock.patch.object(
+                cli_module, "cleanup_legacy_surfaces_after_plugin_upgrade", return_value=0
+            ) as cleanup_mock:
+                with mock.patch.object(
+                    cli_module.sys,
+                    "argv",
+                    ["qiongli", "upgrade", "--ref", "v1.8.0", "--target", "all", "--dry-run"],
+                ):
+                    exit_code = cli_module.main()
+
+        self.assertEqual(exit_code, 0)
+        install_options = install_mock.call_args.args[0]
+        self.assertEqual(install_options.profile, "full")
+        self.assertEqual(install_options.surface, "plugin")
+        self.assertEqual(install_options.target, "all")
+        self.assertTrue(install_options.dry_run)
+        cleanup_mock.assert_called_once()
+        cleanup_options = cleanup_mock.call_args.args[0]
+        self.assertEqual(cleanup_options.target, "all")
+        self.assertTrue(cleanup_options.dry_run)
+
+    def test_upgrade_explicit_skills_surface_skips_plugin_migration(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            extracted_root = temp_root / "archive-root"
+            scripts_dir = extracted_root / "scripts"
+            scripts_dir.mkdir(parents=True)
+            (scripts_dir / "bootstrap_qiongli.py").write_text("# stub\n", encoding="utf-8")
+
+            with mock.patch.object(cli_module, "_resolve_upstream_repo", return_value=("owner/repo", "test")), mock.patch.object(
+                cli_module, "_download"
+            ), mock.patch.object(cli_module, "_extract_tarball", return_value=extracted_root), mock.patch.object(
+                cli_module, "install", return_value=0
+            ) as install_mock, mock.patch.object(
+                cli_module, "cleanup_legacy_surfaces_after_plugin_upgrade", return_value=0
+            ) as cleanup_mock:
+                with mock.patch.object(
+                    cli_module.sys,
+                    "argv",
+                    [
+                        "qiongli",
+                        "upgrade",
+                        "--ref",
+                        "v1.8.0",
+                        "--target",
+                        "all",
+                        "--profile",
+                        "partial",
+                        "--surface",
+                        "skills",
+                        "--dry-run",
+                    ],
+                ):
+                    exit_code = cli_module.main()
+
+        self.assertEqual(exit_code, 0)
+        install_options = install_mock.call_args.args[0]
+        self.assertEqual(install_options.profile, "partial")
+        self.assertEqual(install_options.surface, "skills")
+        cleanup_mock.assert_not_called()
+
+    def test_upgrade_failed_install_does_not_remove_old_surfaces(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            extracted_root = temp_root / "archive-root"
+            scripts_dir = extracted_root / "scripts"
+            scripts_dir.mkdir(parents=True)
+            (scripts_dir / "bootstrap_qiongli.py").write_text("# stub\n", encoding="utf-8")
+
+            with mock.patch.object(cli_module, "_resolve_upstream_repo", return_value=("owner/repo", "test")), mock.patch.object(
+                cli_module, "_download"
+            ), mock.patch.object(cli_module, "_extract_tarball", return_value=extracted_root), mock.patch.object(
+                cli_module, "install", return_value=1
+            ), mock.patch.object(
+                cli_module, "cleanup_legacy_surfaces_after_plugin_upgrade", return_value=0
+            ) as cleanup_mock:
+                with mock.patch.object(
+                    cli_module.sys,
+                    "argv",
+                    ["qiongli", "upgrade", "--ref", "v1.8.0", "--target", "all", "--dry-run"],
+                ):
+                    exit_code = cli_module.main()
+
+        self.assertEqual(exit_code, 1)
+        cleanup_mock.assert_not_called()
 
     def test_check_json_reports_installed_subject(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

@@ -21,8 +21,8 @@ Current stable release: [v1.8.0](https://github.com/jxpeng98/qiongli/releases/ta
 |---|---|---|---|
 | Marketplace plugin / extension | One client, least setup, or no local CLI environment | Client plugin plus `qiongli-workflow`; Codex and Claude Code include the bundled Node literature MCP as a lite/no-CLI fallback | No for skill use or bundled literature MCP; Python/CLI only for full local Qiongli |
 | Claude Desktop Skill ZIP | Claude Desktop or Claude.ai, especially when you do not want to use a code/CLI environment | Personal `qiongli` Skill upload | No |
-| Full local plugin: `qiongli install --profile full --target all --surface plugin` | Full local Qiongli inside a client-native plugin container | Local plugin bundle plus the unified full MCP server; next release or source checkout behavior | Yes, Python 3.12+ |
-| `qiongli install --profile full` | Direct full CLI runtime for local scripts or clients that load a managed MCP config | Skills, shell CLI, provider config flow, doctor checks, and the unified full MCP server | Yes, Python 3.12+ |
+| Full local plugin: `qiongli install --target all` | Full local Qiongli inside a client-native plugin container | Local plugin bundle plus the unified full MCP server | Yes, Python 3.12+ |
+| Legacy skills-only: `qiongli install --surface skills --profile partial` | Explicit compatibility path for users who still want global skill directories | Skills and workflow discovery where supported | No |
 | Bootstrap `partial` | Global workflow assets across clients | Skills and workflow discovery where supported | No |
 | Bootstrap `full` | Runtime checks and orchestration from release scripts | `partial` plus shell CLI, MCP registration part, and `doctor` support | Yes, Python 3.12+ |
 | npm / npx | Node-based automation | npm CLI plus bundled workflow payload | Only for advanced bridge commands |
@@ -30,7 +30,7 @@ Current stable release: [v1.8.0](https://github.com/jxpeng98/qiongli/releases/ta
 
 The user-visible skill name is `qiongli`. The installed directory is still `qiongli-workflow` for compatibility with existing clients and release artifacts. `core` is the default subject, so the default install is `core/complete`. Specialized CLI/npm installs default to `coverage=complete`, meaning full Qiongli plus the requested subject specialization.
 
-The full local plugin surface is available from the next release or a source checkout from this branch. Current stable v1.7.0 users can keep using marketplace plugins for the lite no-Python path or the existing full CLI profile for local Python-backed MCP.
+From v1.9.0 onward, `qiongli install` defaults to `--profile full --surface plugin`. Codex and Claude Code receive CLI-managed local plugin bundles backed by `qiongli mcp serve --transport stdio`; Antigravity and Hermes receive managed full MCP client configs. Use `--surface skills --profile partial` only when you deliberately want the old skills-only layout.
 
 ## Native Plugin And Extension
 

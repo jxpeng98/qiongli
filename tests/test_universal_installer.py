@@ -17,6 +17,7 @@ from qiongli.universal_installer import (
     TARGET_CHOICES,
     clean,
     clean_global_legacy_skills,
+    cleanup_legacy_surfaces_after_plugin_upgrade,
     install,
     remove,
 )
@@ -697,6 +698,53 @@ class UniversalInstallerTests(unittest.TestCase):
             self.assertTrue((claude_plugin_root / ".claude-plugin" / "plugin.json").is_file())
             self.assertFalse((codex_home / "config.toml").exists())
             self.assertFalse((temp_root / ".claude.json").exists())
+            self.assertEqual(antigravity_config["mcpServers"]["qiongli"]["command"], "qiongli")
+            self.assertEqual(hermes_config["mcpServers"]["qiongli"]["command"], "qiongli")
+
+    def test_plugin_upgrade_cleanup_removes_legacy_skills_and_plugin_managed_mcp_only(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            codex_home = temp_root / "codex-home"
+            claude_home = temp_root / ".claude"
+            antigravity_home = temp_root / "antigravity-home"
+            hermes_home = temp_root / "hermes-home"
+            env = os.environ.copy()
+            env["HOME"] = str(temp_root)
+            env["CODEX_HOME"] = str(codex_home)
+            env["CLAUDE_CODE_HOME"] = str(claude_home)
+            env["ANTIGRAVITY_HOME"] = str(antigravity_home)
+            env["HERMES_HOME"] = str(hermes_home)
+            env["PATH"] = ""
+
+            with mock.patch.dict(os.environ, env, clear=True):
+                install(
+                    InstallOptions(
+                        repo_root=REPO_ROOT,
+                        project_dir=project_dir,
+                        target="all",
+                        profile="full",
+                        surface="skills",
+                        install_cli=False,
+                        doctor=False,
+                    )
+                )
+                result = cleanup_legacy_surfaces_after_plugin_upgrade(
+                    RemoveOptions(project_dir=project_dir, target="all")
+                )
+
+            self.assertGreaterEqual(result, 6)
+            self.assertFalse((codex_home / "skills" / "qiongli-workflow").exists())
+            self.assertFalse((claude_home / "skills" / "qiongli-workflow").exists())
+            self.assertFalse((antigravity_home / "skills" / "qiongli-workflow").exists())
+            self.assertFalse((hermes_home / "skills" / "qiongli-workflow").exists())
+            self.assertFalse(any((claude_home / "commands").glob("*.md")))
+            self.assertNotIn("qiongli", (codex_home / "config.toml").read_text(encoding="utf-8"))
+            claude_config = json.loads((temp_root / ".claude.json").read_text(encoding="utf-8"))
+            self.assertNotIn("qiongli", claude_config.get("mcpServers", {}))
+            antigravity_config = json.loads((antigravity_home / "settings.json").read_text(encoding="utf-8"))
+            hermes_config = json.loads((hermes_home / "settings.json").read_text(encoding="utf-8"))
             self.assertEqual(antigravity_config["mcpServers"]["qiongli"]["command"], "qiongli")
             self.assertEqual(hermes_config["mcpServers"]["qiongli"]["command"], "qiongli")
 
