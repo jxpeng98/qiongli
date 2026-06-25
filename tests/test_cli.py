@@ -92,6 +92,21 @@ class InstallerCliTests(unittest.TestCase):
         self.assertEqual(options.coverage, "focused")
         self.assertEqual(options.target, "codex")
 
+    def test_install_command_passes_profile_to_installer(self) -> None:
+        with mock.patch.object(cli_module, "install", return_value=0) as install_mock:
+            with mock.patch.object(
+                cli_module.sys,
+                "argv",
+                ["qiongli", "install", "--profile", "full", "--target", "codex", "--dry-run"],
+            ):
+                exit_code = cli_module.main()
+
+        self.assertEqual(exit_code, 0)
+        options = install_mock.call_args.args[0]
+        self.assertEqual(options.profile, "full")
+        self.assertEqual(options.target, "codex")
+        self.assertTrue(options.dry_run)
+
     def test_install_command_accepts_hermes_target(self) -> None:
         with mock.patch.object(cli_module, "install", return_value=0) as install_mock:
             with mock.patch.object(

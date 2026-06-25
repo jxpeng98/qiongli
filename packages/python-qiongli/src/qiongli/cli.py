@@ -20,6 +20,7 @@ from .source_layout import RepoLayout, discover_repo_root
 from .subject_materializer import SubjectCatalogError, SubjectMaterializationError
 from .universal_installer import (
     PART_CHOICES,
+    PROFILE_CHOICES,
     TARGET_CHOICES,
     InstallOptions,
     RemoveOptions,
@@ -837,6 +838,7 @@ def cmd_upgrade(args: argparse.Namespace) -> int:
                     project_dir=project_dir,
                     subject=args.subject,
                     coverage=getattr(args, "coverage", "complete"),
+                    profile=getattr(args, "profile", None),
                     target=args.target,
                     mode=args.mode,
                     overwrite=args.overwrite,
@@ -878,6 +880,7 @@ def cmd_install(args: argparse.Namespace) -> int:
             project_dir=project_dir,
             subject=args.subject,
             coverage=args.coverage,
+            profile=getattr(args, "profile", None),
             target=args.target,
             mode=args.mode,
             overwrite=args.overwrite,
@@ -1113,6 +1116,11 @@ def build_parser() -> argparse.ArgumentParser:
         choices=TARGET_CHOICES,
         help="Install target (default: all)",
     )
+    upgrade.add_argument(
+        "--profile",
+        choices=PROFILE_CHOICES,
+        help="Install profile to apply: partial or full.",
+    )
     upgrade.add_argument("--beta", action="store_true", help="Include beta/pre-release tags for upgrade")
     upgrade.add_argument("--subject", default="core", help="Subject package to install (default: core)")
     upgrade.add_argument(
@@ -1160,6 +1168,11 @@ def build_parser() -> argparse.ArgumentParser:
         default="all",
         choices=TARGET_CHOICES,
         help="Install target (default: all)",
+    )
+    install_parser.add_argument(
+        "--profile",
+        choices=PROFILE_CHOICES,
+        help="Install profile to apply: partial or full.",
     )
     install_parser.add_argument("--subject", default="core", help="Subject package to install (default: core)")
     install_parser.add_argument(
