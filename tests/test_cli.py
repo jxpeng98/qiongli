@@ -107,6 +107,23 @@ class InstallerCliTests(unittest.TestCase):
         self.assertEqual(options.target, "codex")
         self.assertTrue(options.dry_run)
 
+    def test_install_command_passes_surface_to_installer(self) -> None:
+        stderr = io.StringIO()
+        with mock.patch.object(cli_module, "install", return_value=0) as install_mock:
+            with mock.patch.object(
+                cli_module.sys,
+                "argv",
+                ["qiongli", "install", "--profile", "full", "--target", "codex", "--surface", "plugin", "--dry-run"],
+            ), contextlib.redirect_stderr(stderr):
+                try:
+                    exit_code = cli_module.main()
+                except SystemExit as exc:
+                    self.fail(f"--surface should be accepted by install parser: {exc}")
+
+        self.assertEqual(exit_code, 0)
+        options = install_mock.call_args.args[0]
+        self.assertEqual(options.surface, "plugin")
+
     def test_install_command_accepts_hermes_target(self) -> None:
         with mock.patch.object(cli_module, "install", return_value=0) as install_mock:
             with mock.patch.object(
@@ -240,6 +257,34 @@ class InstallerCliTests(unittest.TestCase):
         self.assertEqual(options.parts, ("project", "cli"))
         self.assertEqual(options.subject, "economics")
         self.assertEqual(options.coverage, "focused")
+
+    def test_upgrade_command_passes_surface_to_installer(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            extracted_root = temp_root / "archive-root"
+            scripts_dir = extracted_root / "scripts"
+            scripts_dir.mkdir(parents=True)
+            (scripts_dir / "bootstrap_qiongli.py").write_text("# stub\n", encoding="utf-8")
+
+            stderr = io.StringIO()
+            with mock.patch.object(cli_module, "_resolve_upstream_repo", return_value=("owner/repo", "test")), mock.patch.object(
+                cli_module, "_download"
+            ), mock.patch.object(cli_module, "_extract_tarball", return_value=extracted_root), mock.patch.object(
+                cli_module, "install", return_value=0
+            ) as install_mock:
+                with mock.patch.object(
+                    cli_module.sys,
+                    "argv",
+                    ["qiongli", "upgrade", "--ref", "v1.7.0", "--target", "codex", "--surface", "plugin", "--dry-run"],
+                ), contextlib.redirect_stderr(stderr):
+                    try:
+                        exit_code = cli_module.main()
+                    except SystemExit as exc:
+                        self.fail(f"--surface should be accepted by upgrade parser: {exc}")
+
+        self.assertEqual(exit_code, 0)
+        options = install_mock.call_args.args[0]
+        self.assertEqual(options.surface, "plugin")
 
     def test_check_json_reports_installed_subject(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

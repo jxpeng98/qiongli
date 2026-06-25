@@ -21,6 +21,7 @@ from .subject_materializer import SubjectCatalogError, SubjectMaterializationErr
 from .universal_installer import (
     PART_CHOICES,
     PROFILE_CHOICES,
+    SURFACE_CHOICES,
     TARGET_CHOICES,
     InstallOptions,
     RemoveOptions,
@@ -846,6 +847,7 @@ def cmd_upgrade(args: argparse.Namespace) -> int:
                     cli_dir=Path(args.cli_dir).expanduser().resolve() if getattr(args, "cli_dir", None) else None,
                     doctor=args.doctor,
                     dry_run=args.dry_run,
+                    surface=getattr(args, "surface", "skills"),
                     parts=_parse_parts_arg(getattr(args, "parts", None)),
                 )
         )
@@ -888,6 +890,7 @@ def cmd_install(args: argparse.Namespace) -> int:
             cli_dir=Path(args.cli_dir).expanduser().resolve() if getattr(args, "cli_dir", None) else None,
             doctor=args.doctor,
             dry_run=args.dry_run,
+            surface=getattr(args, "surface", "skills"),
             parts=_parse_parts_arg(getattr(args, "parts", None)),
         )
     )
@@ -923,6 +926,7 @@ def cmd_init(args: argparse.Namespace) -> int:
             install_cli=False,
             doctor=args.doctor,
             dry_run=args.dry_run,
+            surface=getattr(args, "surface", "skills"),
             parts=parts,
         )
     )
@@ -945,6 +949,7 @@ def cmd_remove(args: argparse.Namespace) -> int:
                 project_dir=Path(args.project_dir).expanduser().resolve(),
                 target=args.target,
                 dry_run=args.dry_run,
+                surface=getattr(args, "surface", "skills"),
                 parts=_parse_parts_arg(getattr(args, "parts", None)),
                 cli_dir=Path(args.cli_dir).expanduser().resolve() if getattr(args, "cli_dir", None) else None,
             )
@@ -1121,6 +1126,12 @@ def build_parser() -> argparse.ArgumentParser:
         choices=PROFILE_CHOICES,
         help="Install profile to apply: partial or full.",
     )
+    upgrade.add_argument(
+        "--surface",
+        choices=SURFACE_CHOICES,
+        default="skills",
+        help="Install output surface to prepare: skills, plugin, or both (default: skills).",
+    )
     upgrade.add_argument("--beta", action="store_true", help="Include beta/pre-release tags for upgrade")
     upgrade.add_argument("--subject", default="core", help="Subject package to install (default: core)")
     upgrade.add_argument(
@@ -1173,6 +1184,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--profile",
         choices=PROFILE_CHOICES,
         help="Install profile to apply: partial or full.",
+    )
+    install_parser.add_argument(
+        "--surface",
+        choices=SURFACE_CHOICES,
+        default="skills",
+        help="Install output surface to prepare: skills, plugin, or both (default: skills).",
     )
     install_parser.add_argument("--subject", default="core", help="Subject package to install (default: core)")
     install_parser.add_argument(
@@ -1367,7 +1384,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     remove_parser.add_argument(
         "--parts",
-        help="Comma-separated install surfaces to remove (default: globals): globals, project, cli, mcp.",
+        help=f"Comma-separated install surfaces to remove (default: globals): {', '.join(PART_CHOICES)}.",
+    )
+    remove_parser.add_argument(
+        "--surface",
+        choices=SURFACE_CHOICES,
+        default="skills",
+        help="Installed output surface to remove: skills, plugin, or both (default: skills).",
     )
     remove_parser.add_argument("--cli-dir", help="Directory containing shell CLI wrappers")
     remove_parser.add_argument("--dry-run", action="store_true", help="Show what would be removed without deleting")

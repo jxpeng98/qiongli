@@ -13,6 +13,7 @@
 |---|---|---|
 | Claude Desktop/Web 且不想用 CLI | focused subject Desktop ZIP，例如 `qiongli-claude-desktop-skill-economics-<tag>.zip` | 否 |
 | 只在一个客户端里用 | 原生 plugin / extension | 否 |
+| 在 Codex/Claude Code plugin 形态中使用完整本地 Qiongli | `qiongli install --profile full --target all --surface plugin` | 是，Python 3.12+ |
 | 多个客户端需要全局 workflow assets | Bootstrap `partial` | 否 |
 | 需要 `doctor`、validator 或 orchestrator task execution | Bootstrap `full` | 是，Python 3.12+ |
 | 偏向 npm 自动化 | `npm install -g qiongli` 或 `npx qiongli@latest` | 只有高级 bridge 命令需要 |
@@ -67,13 +68,14 @@ qiongli install --subject political-economy --target all
 qiongli install --subject geoeconomics --target all
 qiongli install --subject economics-accounting --target all
 qiongli install --subject economics --coverage focused --target all
+qiongli install --profile full --target all --surface plugin
 qiongli upgrade --subject accounting --target all
 qiongli remove --target all --dry-run
 qiongli customize --subject economics --name my-econ-lab --out ./qiongli-custom/econ-lab
 qiongli check --json
 ```
 
-不确定怎么选时使用默认 complete：`qiongli install --target all` 表示 `core/complete`，`--subject economics`、`--subject business`、`--subject finance`、`--subject political-economy` 和 `--subject geoeconomics` 表示 complete 专精安装，`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。只有明确想要精简包或 Desktop/Web ZIP 形态时才使用 `--coverage focused`。`political-economy` 和 `geoeconomics` 是两个独立 subject，不是一个 composite。官方 composite subjects（例如 `economics-accounting`）是命名 subject，不是任意逗号分隔叠加。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新的参数。Custom overlays 只影响 generated output，不会改写 canonical source files；`qiongli customize` 加 `--custom-dir` materialization 面向 Python/source checkout 工作流，npm runtime installs 在这个阶段使用预生成 payloads。
+不确定怎么选时使用默认 complete：`qiongli install --target all` 表示 `core/complete`，`--subject economics`、`--subject business`、`--subject finance`、`--subject political-economy` 和 `--subject geoeconomics` 表示 complete 专精安装，`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。当 Codex/Claude Code 需要本地 plugin 持有完整 Python MCP 时，使用 `--profile full --surface plugin`；配合 `--target all` 时，Antigravity 和 Hermes 会写入受管理的 full MCP client 配置。只有明确想要精简包或 Desktop/Web ZIP 形态时才使用 `--coverage focused`。`political-economy` 和 `geoeconomics` 是两个独立 subject，不是一个 composite。官方 composite subjects（例如 `economics-accounting`）是命名 subject，不是任意逗号分隔叠加。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新的参数。Custom overlays 只影响 generated output，不会改写 canonical source files；`qiongli customize` 加 `--custom-dir` materialization 面向 Python/source checkout 工作流，npm runtime installs 在这个阶段使用预生成 payloads。
 
 需要只保留 marketplace plugin 时，用 `qiongli remove` 移除 CLI 安装产生的全局资产。
 

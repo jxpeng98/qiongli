@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .bridges.mcp_client_config import install_mcp_config, remove_mcp_config
+from .local_plugin_installer import LocalPluginOptions, install_local_plugin, remove_local_plugin
 from .source_layout import RepoLayout
 from .subject_materializer import (
     COVERAGE_CHOICES,
@@ -25,7 +26,8 @@ from .subject_materializer import (
 
 TARGET_CHOICES = ("codex", "claude", "antigravity", "hermes", "all")
 PROFILE_CHOICES = ("partial", "full")
-PART_CHOICES = ("globals", "project", "cli", "mcp", "doctor")
+SURFACE_CHOICES = ("skills", "plugin", "both")
+PART_CHOICES = ("globals", "plugin", "project", "cli", "mcp", "doctor")
 LEGACY_MANIFEST_PATH = Path(__file__).resolve().parents[1] / "install" / "install_manifest.tsv"
 
 
@@ -44,6 +46,7 @@ class InstallOptions:
     doctor: bool | None = None
     dry_run: bool = False
     profile: str | None = None
+    surface: str = "skills"
     parts: tuple[str, ...] | None = None
 
 
@@ -52,6 +55,7 @@ class RemoveOptions:
     project_dir: Path
     target: str = "all"
     dry_run: bool = False
+    surface: str = "skills"
     parts: tuple[str, ...] | None = None
     cli_dir: Path | None = None
 
@@ -82,6 +86,7 @@ def apply_profile(options: InstallOptions) -> InstallOptions:
         doctor=defaults["doctor"] if options.doctor is None else options.doctor,
         dry_run=options.dry_run,
         profile=options.profile,
+        surface=options.surface,
         parts=options.parts,
     )
 
@@ -113,6 +118,16 @@ def normalize_parts(parts: tuple[str, ...] | list[str] | str | None) -> tuple[st
         if token not in normalized:
             normalized.append(token)
     return tuple(normalized)
+
+
+def _surface_parts(surface: str) -> tuple[bool, bool]:
+    if surface == "skills":
+        return True, False
+    if surface == "plugin":
+        return False, True
+    if surface == "both":
+        return True, True
+    raise ValueError(f"Unsupported surface: {surface}")
 
 
 def cli_name_for_target(target: str) -> str:
@@ -888,9 +903,9 @@ def _print_mcp_config_result(label: str, status: str, path: Path, detail: str = 
         print(f"          {detail}")
 
 
-def _install_mcp_client_config(options: InstallOptions) -> None:
+def _install_mcp_client_config(options: InstallOptions, *, skip_targets: set[str] | None = None) -> None:
     _print_section("MCP Client Config")
-    targets = _mcp_config_targets(options.target)
+    targets = _mcp_config_targets(options.target, skip_targets=skip_targets)
     if not targets:
         _print_result("MCP", f"target {options.target} (not applicable)", "skip")
         return
@@ -914,23 +929,69 @@ def _remove_mcp_client_config(options: RemoveOptions) -> int:
     return removed
 
 
-def _mcp_config_targets(target: str) -> list[tuple[str, str]]:
+def _mcp_config_targets(target: str, *, skip_targets: set[str] | None = None) -> list[tuple[str, str]]:
+    skip_targets = skip_targets or set()
     if target == "codex":
-        return [("codex", "Codex MCP")]
-    if target == "claude":
-        return [("claude-code", "Claude Code MCP")]
-    if target == "antigravity":
-        return [("antigravity", "Antigravity MCP")]
-    if target == "hermes":
-        return [("hermes", "Hermes MCP")]
-    if target == "all":
-        return [
+        targets = [("codex", "Codex MCP")]
+    elif target == "claude":
+        targets = [("claude-code", "Claude Code MCP")]
+    elif target == "antigravity":
+        targets = [("antigravity", "Antigravity MCP")]
+    elif target == "hermes":
+        targets = [("hermes", "Hermes MCP")]
+    elif target == "all":
+        targets = [
             ("codex", "Codex MCP"),
             ("claude-code", "Claude Code MCP"),
             ("antigravity", "Antigravity MCP"),
             ("hermes", "Hermes MCP"),
         ]
-    return []
+    else:
+        targets = []
+    return [(target_name, label) for target_name, label in targets if target_name not in skip_targets]
+
+
+def _plugin_managed_mcp_targets(target: str) -> set[str]:
+    if target == "codex":
+        return {"codex"}
+    if target == "claude":
+        return {"claude-code"}
+    if target == "all":
+        return {"codex", "claude-code"}
+    return set()
+
+
+def _install_local_plugin_surface(options: InstallOptions) -> set[str]:
+    _print_section("Local Plugin")
+    result = install_local_plugin(
+        LocalPluginOptions(
+            repo_root=options.repo_root,
+            subject=options.subject,
+            coverage=options.coverage,
+            target=options.target,
+            mode=options.mode,
+            overwrite=options.overwrite,
+            dry_run=options.dry_run,
+        )
+    )
+    if not result.installed_roots:
+        _print_result("Plugin", f"target {options.target} (not applicable)", "skip")
+        return set()
+    for target_name, plugin_root in result.installed_roots.items():
+        suffix = "dry-run" if options.dry_run else "installed"
+        _print_result("Plugin", f"{target_name}: {plugin_root} ({suffix})", "ok")
+    return set(result.installed_roots)
+
+
+def _remove_local_plugin_surface(options: RemoveOptions) -> int:
+    _print_section("Local Plugin")
+    removed = remove_local_plugin(target=options.target, dry_run=options.dry_run)
+    if removed:
+        action = "dry-run" if options.dry_run else "removed"
+        _print_result("Plugin", f"target {options.target} ({action} {removed})", "ok")
+    else:
+        _print_result("Plugin", f"target {options.target} (not installed)", "skip")
+    return removed
 
 
 def install(options: InstallOptions) -> int:
@@ -949,6 +1010,7 @@ def install(options: InstallOptions) -> int:
             doctor=options.doctor,
             dry_run=options.dry_run,
             profile=options.profile,
+            surface=options.surface,
             parts=options.parts,
         )
     )
@@ -957,11 +1019,13 @@ def install(options: InstallOptions) -> int:
         raise ValueError(f"Unsupported target: {options.target}")
     if options.mode not in {"copy", "link"}:
         raise ValueError(f"Unsupported mode: {options.mode}")
+    surface_globals, surface_plugin = _surface_parts(options.surface)
     if options.coverage not in COVERAGE_CHOICES:
         available = ", ".join(sorted(COVERAGE_CHOICES))
         raise SubjectMaterializationError(f"unsupported coverage: {options.coverage}. Available coverage: {available}")
     selected_parts = normalize_parts(options.parts)
-    install_globals = True if selected_parts is None else "globals" in selected_parts
+    install_globals = surface_globals if selected_parts is None else "globals" in selected_parts
+    install_plugin = surface_plugin if selected_parts is None else "plugin" in selected_parts
     install_project = False if selected_parts is None else "project" in selected_parts
     install_cli = bool(options.install_cli) if selected_parts is None else "cli" in selected_parts
     install_mcp = bool(options.install_mcp) if selected_parts is None else "mcp" in selected_parts
@@ -1002,6 +1066,8 @@ def install(options: InstallOptions) -> int:
         print(f"  profile: {options.profile}")
     if selected_parts is not None:
         print(f"  parts:   {', '.join(selected_parts)}")
+    else:
+        print(f"  surface: {options.surface}")
     if install_cli:
         print(f"  cli:     install -> {options.cli_dir}")
 
@@ -1081,11 +1147,16 @@ def install(options: InstallOptions) -> int:
             if options.target in {sym_target, "all"}:
                 _create_workflow_symlinks(sym_target, sym_dest, dry_run=options.dry_run)
 
+    plugin_installed_targets: set[str] = set()
+    if install_plugin:
+        plugin_installed_targets = _install_local_plugin_surface(options)
+
     if install_cli:
         _install_shell_cli(options)
 
     if install_mcp:
-        _install_mcp_client_config(options)
+        skip_mcp_targets = _plugin_managed_mcp_targets(options.target) if plugin_installed_targets else set()
+        _install_mcp_client_config(options, skip_targets=skip_mcp_targets)
 
     if install_project:
         _print_section("Project Env")
@@ -1177,13 +1248,25 @@ def remove(options: RemoveOptions) -> int:
         project_dir=_resolve(options.project_dir),
         target=options.target,
         dry_run=options.dry_run,
+        surface=options.surface,
         parts=options.parts,
         cli_dir=_resolve(options.cli_dir or Path.home() / ".local" / "bin"),
     )
     if options.target not in TARGET_CHOICES:
         raise ValueError(f"Unsupported target: {options.target}")
-    selected_parts = normalize_parts(options.parts) or ("globals",)
+    surface_globals, surface_plugin = _surface_parts(options.surface)
+    selected_parts = normalize_parts(options.parts)
+    if selected_parts is None:
+        selected_parts = tuple(
+            part
+            for part, enabled in (
+                ("globals", surface_globals),
+                ("plugin", surface_plugin),
+            )
+            if enabled
+        )
     remove_globals = "globals" in selected_parts
+    remove_plugin = "plugin" in selected_parts
     remove_project = "project" in selected_parts
     remove_cli = "cli" in selected_parts
     remove_mcp = "mcp" in selected_parts
@@ -1216,6 +1299,9 @@ def remove(options: RemoveOptions) -> int:
             target_paths,
             dry_run=options.dry_run,
         )
+
+    if remove_plugin:
+        removed += _remove_local_plugin_surface(options)
 
     if remove_project:
         removed_before = removed

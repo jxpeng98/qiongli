@@ -6,6 +6,25 @@
 
 暂无未发布变更。
 
+## [1.8.0] - 2026-06-25
+
+### Added
+
+- 新增本地 full plugin surface：`qiongli install --profile full --target all --surface plugin` 现在可以生成客户端原生 plugin，并让 Codex / Claude Code 的 plugin-owned MCP 启动完整 Python-backed `qiongli mcp serve --transport stdio`。
+- Codex 本地 full plugin 会写入受管理的 personal marketplace entry、`.codex-plugin/plugin.json`、plugin `.mcp.json`、workflow skill、commands 和 `.qiongli-managed.json`；Claude Code 本地 full plugin 使用同一套 full MCP server。
+- `--target all --surface plugin` 现在把 Codex / Claude Code 接到本地 full plugin，同时继续给 Antigravity / Hermes 写入受管理的 full MCP client config。
+- `qiongli remove --surface plugin` / `--parts plugin` 新增受管 marker 语义，只删除 CLI 创建的本地 full plugin root 和 CLI-managed Codex marketplace entry。
+
+### Changed
+
+- 安装架构文档更新为 marketplace lite 与 CLI full plugin 的分层模型：marketplace plugin 继续作为 no CLI / no Python fallback，完整本地 Qiongli 由 CLI 生成的本地 plugin 包装 full MCP。
+- README、中文 README、install guide、quickstart、CLI reference 和 cross-platform MCP 文档同步说明 Codex / Claude Code plugin-owned MCP、Antigravity / Hermes client config，以及本地 plugin 删除边界。
+
+### Fixed
+
+- 修复 CLI-managed 本地 plugin 删除逻辑，避免误删 marketplace 安装的 lite plugin 或用户自建 plugin root。
+- 修复 stale Codex marketplace entry 清理边界，只清理带 `metadata.managedBy = "qiongli-cli"` 的本地 full plugin entry。
+
 ## [1.7.0] - 2026-06-25
 
 ### Added

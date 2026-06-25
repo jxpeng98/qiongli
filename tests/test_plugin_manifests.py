@@ -159,6 +159,8 @@ class PluginManifestTests(unittest.TestCase):
         server = mcp_manifest["mcpServers"]["qiongli"]
         self.assertEqual(server["command"], "node")
         self.assertEqual(server["args"], ["./mcp/qiongli-literature-provider/index.mjs"])
+        self.assertNotEqual(server["command"], "qiongli")
+        self.assertNotIn("mcp serve", json.dumps(server))
         self.assertEqual(server["cwd"], ".")
         self.assertEqual(server["startup_timeout_sec"], 20)
         self.assertEqual(server["tool_timeout_sec"], 60)
@@ -209,6 +211,8 @@ class PluginManifestTests(unittest.TestCase):
             server["args"],
             ["${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs"],
         )
+        self.assertNotEqual(server["command"], "qiongli")
+        self.assertNotIn("mcp serve", json.dumps(server))
         self.assertEqual(server["cwd"], "${CLAUDE_PLUGIN_ROOT}")
         self.assertNotIn("env", server)
         self.assertTrue(mcp_entrypoint_exists)

@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Qiongli CLI Plugin Structure</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --muted: #5d677a;
+      --line: #d7deea;
+      --page: #f6f8fb;
+      --panel: #ffffff;
+      --soft: #eef3f8;
+      --green: #0f766e;
+      --blue: #2563eb;
+      --red: #b42318;
+      --gold: #9a6700;
+      --violet: #6d28d9;
+      --shadow: 0 18px 50px rgba(23, 32, 51, 0.10);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, #fbfcfe 0%, var(--page) 42%, #eef2f7 100%);
+      font-family: var(--sans);
+      letter-spacing: 0;
+    }
+
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 40px 0 56px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(300px, 0.6fr);
+      gap: 28px;
+      align-items: stretch;
+      margin-bottom: 28px;
+    }
+
+    h1, h2, h3, p {
+      margin: 0;
+    }
+
+    h1 {
+      max-width: 860px;
+      font-size: clamp(32px, 5vw, 64px);
+      line-height: 1.02;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      font-size: 24px;
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+
+    h3 {
+      font-size: 15px;
+      line-height: 1.25;
+      margin-bottom: 8px;
+    }
+
+    p {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    code {
+      font-family: var(--mono);
+      font-size: 0.94em;
+    }
+
+    .hero-copy {
+      padding: 6px 0 0;
+    }
+
+    .hero-copy p {
+      max-width: 780px;
+      margin-top: 18px;
+      font-size: 17px;
+    }
+
+    .status-card,
+    .section,
+    .node,
+    .mode,
+    .tree,
+    .tool {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .status-card {
+      padding: 20px;
+      align-self: end;
+    }
+
+    .status-card .label,
+    .tag,
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 26px;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .status-card .label {
+      color: #0b4d47;
+      background: #e4f4f1;
+      margin-bottom: 14px;
+    }
+
+    .command {
+      display: block;
+      margin-top: 16px;
+      padding: 14px;
+      color: #dbeafe;
+      background: #182235;
+      border-radius: 8px;
+      overflow-x: auto;
+      line-height: 1.6;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+    }
+
+    .section {
+      padding: 24px;
+      margin-top: 22px;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: 1fr 42px 1fr 42px 1fr;
+      gap: 0;
+      align-items: center;
+      margin-top: 18px;
+    }
+
+    .node {
+      min-height: 220px;
+      padding: 18px;
+      box-shadow: none;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .node::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 4px;
+      background: var(--blue);
+    }
+
+    .node.source::before { background: var(--green); }
+    .node.bundle::before { background: var(--blue); }
+    .node.runtime::before { background: var(--violet); }
+
+    .arrow {
+      color: var(--muted);
+      font-size: 28px;
+      text-align: center;
+      font-weight: 800;
+    }
+
+    .node ul,
+    .mode ul,
+    .tool ul {
+      list-style: none;
+      margin: 14px 0 0;
+      padding: 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    .node li,
+    .mode li,
+    .tool li {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+      padding-left: 18px;
+      position: relative;
+    }
+
+    .node li::before,
+    .mode li::before,
+    .tool li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.68em;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--line);
+    }
+
+    .tag.green { color: #0b4d47; background: #e4f4f1; }
+    .tag.blue { color: #1d4ed8; background: #e8efff; }
+    .tag.violet { color: #5b21b6; background: #f1eaff; }
+    .tag.gold { color: #7a4d00; background: #fff3d6; }
+    .tag.red { color: #8a1f15; background: #ffe8e5; }
+
+    .tree-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .tree {
+      padding: 16px;
+      box-shadow: none;
+      overflow-x: auto;
+    }
+
+    .tree-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    pre {
+      margin: 0;
+      color: #243049;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre;
+    }
+
+    .modes {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .mode {
+      padding: 18px;
+      box-shadow: none;
+      min-height: 210px;
+    }
+
+    .mode.recommended {
+      border-color: rgba(15, 118, 110, 0.55);
+      background: linear-gradient(180deg, #ffffff 0%, #f0faf7 100%);
+    }
+
+    .call-chain {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .step {
+      min-height: 110px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfe;
+    }
+
+    .step .num {
+      display: inline-grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      color: white;
+      background: #172033;
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .step p {
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .tools {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .tool {
+      padding: 18px;
+      box-shadow: none;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .footer-note {
+      margin-top: 22px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 900px) {
+      main {
+        width: min(100% - 24px, 760px);
+        padding-top: 28px;
+      }
+
+      header,
+      .split,
+      .tree-grid,
+      .modes,
+      .tools {
+        grid-template-columns: 1fr;
+      }
+
+      .flow {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .arrow {
+        transform: rotate(90deg);
+      }
+
+      .call-chain {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 560px) {
+      .call-chain {
+        grid-template-columns: 1fr;
+      }
+
+      .section,
+      .status-card {
+        padding: 18px;
+      }
+
+      h1 {
+        font-size: 34px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="hero-copy">
+        <h1>Qiongli 统一安装后的目标结构</h1>
+        <p>
+          如果 CLI 安装路径升级为“生成并注册本地 plugin”，Qiongli 会从两套入口收敛为一个主入口：
+          canonical source 生成本地 plugin，plugin 负责 skill/workflow 暴露，统一 full MCP 负责 literature、orchestrator、doctor 和 task run。
+        </p>
+      </div>
+      <aside class="status-card" aria-label="recommended command">
+        <span class="label">推荐目标形态</span>
+        <h2>Full CLI 生成本地 Plugin</h2>
+        <p>完整安装不再只写入全局 skills 目录，而是生成客户端可管理的 plugin bundle，并把 MCP 指向 Python-backed full MCP server。</p>
+        <code class="command">qiongli install --profile full --target all --surface plugin</code>
+      </aside>
+    </header>
+
+    <section class="section" aria-labelledby="main-flow">
+      <h2 id="main-flow">一条主链路</h2>
+      <p>核心变化是把 marketplace plugin 的容器形态和 CLI full runtime 的能力合并：plugin 成为客户端入口，full MCP 成为本地能力总线。</p>
+
+      <div class="flow">
+        <article class="node source">
+          <span class="tag green">Source of truth</span>
+          <h3>仓库中的 canonical source</h3>
+          <ul>
+            <li><code>content/workflow/</code> 定义 portable skill、workflow、templates、references。</li>
+            <li><code>content/distribution/plugins.yaml</code> 定义 plugin metadata。</li>
+            <li><code>packages/python-qiongli/</code> 提供 CLI、full MCP、orchestrator。</li>
+          </ul>
+        </article>
+        <div class="arrow" aria-hidden="true">→</div>
+        <article class="node bundle">
+          <span class="tag blue">Install output</span>
+          <h3>CLI 生成本地 plugin bundle</h3>
+          <ul>
+            <li>包含平台 manifest：<code>.codex-plugin</code>、<code>.claude-plugin</code> 等。</li>
+            <li>内置 <code>skills/qiongli-workflow</code> 和命令 wrappers。</li>
+            <li>写入 MCP 配置，但不保存 provider secrets。</li>
+          </ul>
+        </article>
+        <div class="arrow" aria-hidden="true">→</div>
+        <article class="node runtime">
+          <span class="tag violet">Runtime</span>
+          <h3>统一 full MCP server</h3>
+          <ul>
+            <li>启动 <code>qiongli mcp serve --transport stdio</code>。</li>
+            <li>提供 literature provider、orchestrator route、task plan/run、doctor。</li>
+            <li>arXiv 默认可用；其他 provider 使用共享本地配置。</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="trees">
+      <h2 id="trees">结构会变成什么样</h2>
+      <p>源码结构继续保持单一事实源；安装结果变成客户端 plugin bundle，而不是散落的 skill 目录加独立 MCP 配置。</p>
+
+      <div class="tree-grid">
+        <article class="tree">
+          <div class="tree-title">
+            <h3>仓库内：维护者看到的结构</h3>
+            <span class="tag green">canonical</span>
+          </div>
+<pre>qiongli/
+├── content/
+│   ├── workflow/
+│   │   ├── SKILL.md
+│   │   ├── workflows/
+│   │   ├── templates/
+│   │   └── references/
+│   ├── skills/
+│   └── distribution/
+│       └── plugins.yaml
+├── packages/
+│   ├── python-qiongli/
+│   │   └── src/qiongli/
+│   │       ├── cli.py
+│   │       ├── universal_installer.py
+│   │       └── bridges/
+│   │           ├── mcp_server_stdio.py
+│   │           └── mcp_tool_handlers.py
+│   └── qiongli-literature-mcpb/
+├── tooling/scripts/
+│   └── build_plugin_artifacts.py
+└── scripts/
+    └── materialize_distribution_payloads.py</pre>
+        </article>
+
+        <article class="tree">
+          <div class="tree-title">
+            <h3>本机内：用户安装后的结构</h3>
+            <span class="tag blue">generated</span>
+          </div>
+<pre>client-managed-plugin-dir/
+└── qiongli/
+    ├── .codex-plugin/
+    │   └── plugin.json
+    ├── .claude-plugin/
+    │   └── plugin.json
+    ├── skills/
+    │   └── qiongli-workflow/
+    │       ├── SKILL.md
+    │       ├── workflows/
+    │       ├── templates/
+    │       └── references/
+    ├── commands/
+    │   ├── paper.md
+    │   ├── lit-review.md
+    │   └── code-build.md
+    └── .mcp.json
+
+~/.config/qiongli/
+└── providers.json</pre>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="modes">
+      <h2 id="modes">安装 surface 的新边界</h2>
+      <p>这样设计后，marketplace、full CLI、legacy skills install 都还能存在，但职责更清楚。</p>
+
+      <div class="modes">
+        <article class="mode">
+          <span class="tag gold">Marketplace</span>
+          <h3>轻量 plugin</h3>
+          <ul>
+            <li>面向没有本地 CLI runtime 的用户。</li>
+            <li>内置 skill workflow 和 lite literature MCP fallback。</li>
+            <li>适合快速启用一个客户端。</li>
+          </ul>
+        </article>
+
+        <article class="mode recommended">
+          <span class="tag green">Full CLI</span>
+          <h3>完整本地 plugin</h3>
+          <ul>
+            <li>由 <code>qiongli install</code> 生成本地 plugin。</li>
+            <li>skill workflow、commands、full MCP 一起注册。</li>
+            <li>默认承载完整 Qiongli 能力。</li>
+          </ul>
+        </article>
+
+        <article class="mode">
+          <span class="tag red">Compatibility</span>
+          <h3>legacy skills 直装</h3>
+          <ul>
+            <li>继续支持 <code>~/.codex/skills/qiongli-workflow</code>。</li>
+            <li>作为迁移和旧客户端兼容路径。</li>
+            <li>不再作为 full profile 的理想主路径。</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="call-chain">
+      <h2 id="call-chain">Codex 中的调用链</h2>
+      <p>用户在 Codex 中看到的是 plugin 和 MCP tools；背后由本地 CLI runtime 执行 full MCP。</p>
+
+      <div class="call-chain">
+        <div class="step">
+          <span class="num">1</span>
+          <h3>用户请求</h3>
+          <p>例如 literature review、paper plan、robustness check。</p>
+        </div>
+        <div class="step">
+          <span class="num">2</span>
+          <h3>Codex Plugin</h3>
+          <p>加载 <code>qiongli</code> skill 和 command wrapper。</p>
+        </div>
+        <div class="step">
+          <span class="num">3</span>
+          <h3>Workflow Skill</h3>
+          <p>决定任务阶段、输出契约、质量检查。</p>
+        </div>
+        <div class="step">
+          <span class="num">4</span>
+          <h3>Full MCP</h3>
+          <p>暴露 literature、doctor、route、task plan/run。</p>
+        </div>
+        <div class="step">
+          <span class="num">5</span>
+          <h3>Providers</h3>
+          <p>OpenAlex、Semantic Scholar、Crossref、PubMed、arXiv。</p>
+        </div>
+        <div class="step">
+          <span class="num">6</span>
+          <h3>Research Output</h3>
+          <p>生成可审计的计划、证据、稿件或代码工件。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="mcp-tools">
+      <h2 id="mcp-tools">统一 MCP 里包含什么</h2>
+      <p>CLI-generated plugin 不再绑定 marketplace 的 lite Node provider；它应当把 MCP 指向 full Python-backed server。</p>
+
+      <div class="tools">
+        <article class="tool">
+          <span class="tag blue">Literature</span>
+          <h3>文献检索与 provider 配置</h3>
+          <ul>
+            <li><code>qiongli_config_status</code></li>
+            <li><code>qiongli_configure_provider</code></li>
+            <li><code>qiongli_collect_evidence</code></li>
+            <li><code>qiongli_test_provider</code></li>
+          </ul>
+        </article>
+        <article class="tool">
+          <span class="tag violet">Orchestrator</span>
+          <h3>完整研究任务路由</h3>
+          <ul>
+            <li><code>qiongli_orchestrator_route</code></li>
+            <li><code>qiongli_orchestrator_doctor</code></li>
+            <li><code>qiongli_task_plan</code></li>
+            <li><code>qiongli_task_run</code></li>
+          </ul>
+        </article>
+      </div>
+
+      <div class="legend" aria-label="legend">
+        <span class="pill tag green">主入口：CLI full plugin</span>
+        <span class="pill tag blue">客户端入口：plugin bundle</span>
+        <span class="pill tag violet">能力入口：full MCP</span>
+        <span class="pill tag gold">轻量入口：marketplace</span>
+        <span class="pill tag red">兼容入口：legacy skills</span>
+      </div>
+
+      <p class="footer-note">
+        这张图描述的是下一版 / 源码 checkout 的 CLI full plugin surface 结构：CLI 生成的本地 plugin 使用 Python-backed full MCP；
+        marketplace plugin 继续保留 lite literature MCP 路径。
+      </p>
+    </section>
+  </main>
+</body>
+</html>

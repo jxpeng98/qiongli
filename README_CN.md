@@ -43,10 +43,12 @@
 | 想浏览完整文档站 | 打开 [VitePress 中文文档](docs/zh/index.md)，或本地运行 `npm run docs:dev` | 文档站包含 guide、reference、advanced、maintainer 等导航 |
 | 只想先在一个 AI 客户端里用起来 | 原生 plugin / extension | 走 [安装指南](docs/zh/guide/install.md) 最稳 |
 | 想给多个客户端安装 workflow assets | Bootstrap `partial` profile | 从 [快速开始](docs/zh/quickstart.md) 走，不要求 Python |
-| 需要 `qiongli doctor`、validator 或 orchestrator | Bootstrap `full` profile，要求 Python 3.12+ | 看 [多 Agent 指南](docs/zh/guide/multi-agent.md) |
+| 需要 `qiongli doctor`、validator 或 orchestrator | `qiongli install --profile full --target all --surface plugin`，要求 Python 3.12+ | 生成本地客户端 plugin，并接入统一 full MCP；下一版或当前分支源码 checkout 可用 |
 | 想脚本化安装或升级 | `npm install -g qiongli` 或 `npx qiongli@latest` | 细节在 [CLI 参考](docs/zh/reference/cli.md) |
 | 要更新 Python CLI 分发 | `pipx install qiongli` 或 `pipx upgrade qiongli` | 参考 [升级指南](docs/zh/guide/upgrade.md) |
 | 还在选择论文路线 | 从 [任务场景](docs/zh/guide/task-recipes.md) 开始 | 按研究目标反推 paper type、stage 和产物 |
+
+`--surface plugin` 是下一版 / 当前分支源码 checkout 的完整本地入口；当前稳定版 v1.7.0 不包含这个 flag。Marketplace plugin 仍是 no CLI / no Python 的轻量入口。
 
 ## 最新稳定版下载
 
@@ -181,7 +183,7 @@ Subject packaging 需要同时区分两个视角：用户选择安装形态，�
 
 | 需求 | 安装形态 | 命令 |
 |---|---|---|
-| 不知道选什么 | `core / complete` | `qiongli install --target all` |
+| 不知道选完整本地 Qiongli | 本地 full plugin（下一版 / 源码 checkout） | `qiongli install --profile full --target all --surface plugin` |
 | 全量框架 + economics 专精 | `economics / complete` | `qiongli install --subject economics --target all` |
 | 全量框架 + accounting 专精 | `accounting / complete` | `qiongli install --subject accounting --target all` |
 | 全量框架 + business 专精 | `business / complete` | `qiongli install --subject business --target all` |
@@ -191,6 +193,10 @@ Subject packaging 需要同时区分两个视角：用户选择安装形态，�
 | 轻量 economics 包 | `economics / focused` | `qiongli install --subject economics --coverage focused --target all` |
 | 官方 economics/accounting 交叉学科包 | `economics-accounting / complete` | `qiongli install --subject economics-accounting --target all` |
 | 更新 CLI 后刷新 accounting | `accounting / complete` | `qiongli upgrade --subject accounting --target all` |
+
+Marketplace plugin 仍是 no CLI / no Python 的轻量入口，使用内置 Node literature MCP。下一版或当前分支源码 checkout 中，需要完整本地 Qiongli 时，可用 CLI 生成本地 plugin，并让 MCP 指向 full Python-backed server。
+
+CLI 生成的本地 full plugin 和 marketplace plugin 分开管理。`qiongli remove --parts plugin --target codex` 或 `qiongli remove --surface plugin --target claude` 只会删除带 `.qiongli-managed.json` 的 CLI-managed plugin root，以及带 `metadata.managedBy = "qiongli-cli"` 的 Codex marketplace entry；原生 marketplace lite plugin 仍由 Codex / Claude Code plugin manager 卸载。
 
 对开发者来说，`core` 负责共享 workflow contracts、generic skills、templates、standards 和 quality gates。specialized subject 通过 selected profiles、append overlays、声明式 section replacements 和少量 subject-specific skills 增加学科深度。generic skills 源文件不会复制成学科版本；effective package 由 `skill_refs`、subject overlays、分层 section overrides 和可选本地 custom overlays 生成。
 
@@ -280,6 +286,7 @@ qiongli install --subject accounting --target all --project-dir "$PWD"
 qiongli install --subject political-economy --target all --project-dir "$PWD"
 qiongli install --subject geoeconomics --target all --project-dir "$PWD"
 qiongli install --subject economics-accounting --target all --project-dir "$PWD"
+qiongli install --profile full --target all --surface plugin
 ```
 
 如果只是测试 prerelease，不想全局安装：
@@ -568,6 +575,7 @@ qiongli install --target all --project-dir "$PWD"
 qiongli install --subject economics --target all --project-dir "$PWD"
 qiongli install --subject accounting --target all --project-dir "$PWD"
 qiongli install --subject economics --coverage focused --target all --project-dir "$PWD"
+qiongli install --profile full --target all --surface plugin
 ```
 
 prerelease 测试：

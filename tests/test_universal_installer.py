@@ -591,6 +591,250 @@ class UniversalInstallerTests(unittest.TestCase):
                 ["mcp", "serve", "--transport", "stdio"],
             )
 
+    def test_plugin_surface_installs_codex_plugin_without_global_skill_or_codex_mcp_config(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            codex_home = temp_root / "codex-home"
+            marketplace = temp_root / "agents" / "marketplace.json"
+            env = os.environ.copy()
+            env["CODEX_HOME"] = str(codex_home)
+            env["QIONGLI_CODEX_MARKETPLACE_PATH"] = str(marketplace)
+            env["PATH"] = ""
+
+            stdout = io.StringIO()
+            with mock.patch.dict(os.environ, env, clear=True), contextlib.redirect_stdout(stdout):
+                result = install(
+                    InstallOptions(
+                        repo_root=REPO_ROOT,
+                        project_dir=project_dir,
+                        target="codex",
+                        profile="full",
+                        surface="plugin",
+                        install_cli=False,
+                        doctor=False,
+                    )
+                )
+
+            plugin_root = marketplace.parent / "plugins" / "qiongli"
+            self.assertEqual(result, 0)
+            self.assertIn("== Local Plugin ==", stdout.getvalue())
+            self.assertTrue((plugin_root / ".codex-plugin" / "plugin.json").is_file())
+            self.assertTrue((plugin_root / ".mcp.json").is_file())
+            self.assertFalse((codex_home / "skills" / "qiongli-workflow" / "SKILL.md").exists())
+            self.assertFalse((codex_home / "config.toml").exists())
+
+    def test_both_surface_installs_codex_plugin_and_global_skill(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            codex_home = temp_root / "codex-home"
+            marketplace = temp_root / "agents" / "marketplace.json"
+            env = os.environ.copy()
+            env["CODEX_HOME"] = str(codex_home)
+            env["QIONGLI_CODEX_MARKETPLACE_PATH"] = str(marketplace)
+            env["PATH"] = ""
+
+            with mock.patch.dict(os.environ, env, clear=True):
+                result = install(
+                    InstallOptions(
+                        repo_root=REPO_ROOT,
+                        project_dir=project_dir,
+                        target="codex",
+                        profile="partial",
+                        surface="both",
+                    )
+                )
+
+            plugin_root = marketplace.parent / "plugins" / "qiongli"
+            self.assertEqual(result, 0)
+            self.assertTrue((plugin_root / ".codex-plugin" / "plugin.json").is_file())
+            self.assertTrue((codex_home / "skills" / "qiongli-workflow" / "SKILL.md").is_file())
+
+    def test_plugin_surface_target_all_installs_plugins_and_keeps_non_plugin_mcp_configs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            codex_home = temp_root / "codex-home"
+            claude_home = temp_root / ".claude"
+            antigravity_home = temp_root / "antigravity-home"
+            hermes_home = temp_root / "hermes-home"
+            marketplace = temp_root / "agents" / "marketplace.json"
+            claude_plugin_parent = temp_root / "claude-plugins"
+            env = os.environ.copy()
+            env["HOME"] = str(temp_root)
+            env["CODEX_HOME"] = str(codex_home)
+            env["CLAUDE_CODE_HOME"] = str(claude_home)
+            env["ANTIGRAVITY_HOME"] = str(antigravity_home)
+            env["HERMES_HOME"] = str(hermes_home)
+            env["QIONGLI_CODEX_MARKETPLACE_PATH"] = str(marketplace)
+            env["QIONGLI_CLAUDE_PLUGIN_PARENT"] = str(claude_plugin_parent)
+            env["PATH"] = ""
+
+            with mock.patch.dict(os.environ, env, clear=True):
+                result = install(
+                    InstallOptions(
+                        repo_root=REPO_ROOT,
+                        project_dir=project_dir,
+                        target="all",
+                        profile="full",
+                        surface="plugin",
+                        install_cli=False,
+                        doctor=False,
+                    )
+                )
+
+            codex_plugin_root = marketplace.parent / "plugins" / "qiongli"
+            claude_plugin_root = claude_plugin_parent / "qiongli"
+            antigravity_config = json.loads((antigravity_home / "settings.json").read_text(encoding="utf-8"))
+            hermes_config = json.loads((hermes_home / "settings.json").read_text(encoding="utf-8"))
+
+            self.assertEqual(result, 0)
+            self.assertTrue((codex_plugin_root / ".codex-plugin" / "plugin.json").is_file())
+            self.assertTrue((claude_plugin_root / ".claude-plugin" / "plugin.json").is_file())
+            self.assertFalse((codex_home / "config.toml").exists())
+            self.assertFalse((temp_root / ".claude.json").exists())
+            self.assertEqual(antigravity_config["mcpServers"]["qiongli"]["command"], "qiongli")
+            self.assertEqual(hermes_config["mcpServers"]["qiongli"]["command"], "qiongli")
+
+    def test_remove_plugin_surface_removes_local_plugin_without_global_skill(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            codex_home = temp_root / "codex-home"
+            global_skill = codex_home / "skills" / "qiongli-workflow"
+            global_skill.mkdir(parents=True)
+            (global_skill / "SKILL.md").write_text(
+                "---\nname: qiongli-workflow\ndescription: existing\n---\n",
+                encoding="utf-8",
+            )
+            marketplace = temp_root / "agents" / "marketplace.json"
+            env = os.environ.copy()
+            env["CODEX_HOME"] = str(codex_home)
+            env["QIONGLI_CODEX_MARKETPLACE_PATH"] = str(marketplace)
+            env["PATH"] = ""
+
+            with mock.patch.dict(os.environ, env, clear=True):
+                install(
+                    InstallOptions(
+                        repo_root=REPO_ROOT,
+                        project_dir=project_dir,
+                        target="codex",
+                        profile="partial",
+                        surface="plugin",
+                    )
+                )
+                result = remove(
+                    RemoveOptions(
+                        project_dir=project_dir,
+                        target="codex",
+                        surface="plugin",
+                    )
+                )
+
+            plugin_root = marketplace.parent / "plugins" / "qiongli"
+            self.assertEqual(result, 0)
+            self.assertTrue(marketplace.exists())
+            marketplace_manifest = json.loads(marketplace.read_text(encoding="utf-8"))
+            self.assertFalse(plugin_root.exists())
+            self.assertTrue((global_skill / "SKILL.md").exists())
+            self.assertNotIn("qiongli", [entry.get("name") for entry in marketplace_manifest["plugins"]])
+
+    def test_remove_plugin_surface_clears_stale_codex_marketplace_entry(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            marketplace = temp_root / "agents" / "marketplace.json"
+            marketplace.parent.mkdir(parents=True)
+            marketplace.write_text(
+                json.dumps(
+                    {
+                        "name": "personal",
+                        "interface": {"displayName": "Personal"},
+                        "plugins": [
+                            {
+                                "name": "qiongli",
+                                "source": {"source": "local", "path": "./plugins/qiongli"},
+                                "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+                                "category": "Education",
+                                "metadata": {"managedBy": "qiongli-cli", "surface": "plugin"},
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            env = os.environ.copy()
+            env["CODEX_HOME"] = str(temp_root / "codex-home")
+            env["QIONGLI_CODEX_MARKETPLACE_PATH"] = str(marketplace)
+            env["PATH"] = ""
+
+            with mock.patch.dict(os.environ, env, clear=True):
+                result = remove(
+                    RemoveOptions(
+                        project_dir=project_dir,
+                        target="codex",
+                        surface="plugin",
+                    )
+                )
+
+            marketplace_manifest = json.loads(marketplace.read_text(encoding="utf-8"))
+            self.assertEqual(result, 0)
+            self.assertEqual(marketplace_manifest["plugins"], [])
+
+    def test_plugin_part_installs_codex_plugin_without_global_skill(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            codex_home = temp_root / "codex-home"
+            marketplace = temp_root / "agents" / "marketplace.json"
+            env = os.environ.copy()
+            env["CODEX_HOME"] = str(codex_home)
+            env["QIONGLI_CODEX_MARKETPLACE_PATH"] = str(marketplace)
+            env["PATH"] = ""
+
+            with mock.patch.dict(os.environ, env, clear=True):
+                result = install(
+                    InstallOptions(
+                        repo_root=REPO_ROOT,
+                        project_dir=project_dir,
+                        target="codex",
+                        parts=("plugin",),
+                    )
+                )
+
+            plugin_root = marketplace.parent / "plugins" / "qiongli"
+            self.assertEqual(result, 0)
+            self.assertTrue((plugin_root / ".codex-plugin" / "plugin.json").is_file())
+            self.assertFalse((codex_home / "skills" / "qiongli-workflow" / "SKILL.md").exists())
+
+    def test_invalid_surface_raises_value_error(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            env = os.environ.copy()
+            env["CODEX_HOME"] = str(temp_root / "codex-home")
+            env["QIONGLI_CODEX_MARKETPLACE_PATH"] = str(temp_root / "agents" / "marketplace.json")
+            env["PATH"] = ""
+
+            with mock.patch.dict(os.environ, env, clear=True):
+                with self.assertRaises(ValueError):
+                    install(
+                        InstallOptions(
+                            repo_root=REPO_ROOT,
+                            project_dir=project_dir,
+                            target="codex",
+                            surface="invalid",
+                        )
+                    )
+
     def test_mcp_part_only_registers_codex_mcp_without_global_skill(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             temp_root = Path(tmp_dir)
