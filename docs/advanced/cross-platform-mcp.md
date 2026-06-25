@@ -21,7 +21,29 @@ qiongli mcp serve --transport stdio
 
 This mode does not require a remote server. The client launches the local process, and Qiongli reads provider credentials from the shared provider configuration. It requires the npm, pipx/pip, or `full` bootstrap runtime so that `qiongli` is on `PATH`.
 
-For Codex, Claude Code, Antigravity, and Hermes, `qiongli install --profile full` can register this stdio server automatically. Use `--target codex` to write the managed Codex `config.toml` block, `--target claude` to write the managed Claude Code `~/.claude.json` `mcpServers.qiongli` entry, `--target antigravity` to write `${ANTIGRAVITY_HOME:-~/.gemini/antigravity}/settings.json`, `--target hermes` to write `${HERMES_HOME:-~/.hermes}/settings.json`, or `--target all` to write all managed client configs. Set `ANTIGRAVITY_CONFIG_PATH` or `HERMES_CONFIG_PATH` when those clients use a different MCP config file. Existing unmanaged `qiongli` server entries are preserved and reported as skipped.
+For Codex and Claude Code, the preferred full local shape is a CLI-generated local plugin bundle:
+
+```bash
+qiongli install --profile full --target codex --surface plugin
+qiongli install --profile full --target claude --surface plugin
+```
+
+Those local plugins are different from the public marketplace lite plugins. They include a plugin-owned `.mcp.json` or plugin manifest entry that launches the full Python-backed `qiongli mcp serve --transport stdio` command.
+
+For Antigravity and Hermes, Qiongli still writes managed client-level MCP configs:
+
+```bash
+qiongli install --profile full --target antigravity
+qiongli install --profile full --target hermes
+```
+
+Use the combined install when you want the full local surface everywhere:
+
+```bash
+qiongli install --profile full --target all --surface plugin
+```
+
+With `--target all --surface plugin`, Codex and Claude Code get CLI-managed local plugin bundles, while Antigravity and Hermes receive managed MCP config entries. Set `ANTIGRAVITY_CONFIG_PATH` or `HERMES_CONFIG_PATH` when those clients use a different MCP config file. Existing unmanaged `qiongli` server entries are preserved and reported as skipped.
 
 The full CLI server exposes literature, provider/configuration, and orchestrator tools:
 
@@ -59,7 +81,7 @@ Because Codex launches this MCP server from the installed plugin bundle, Codex's
 
 Keep provider secrets out of `.mcp.json`, `.codex-plugin/plugin.json`, marketplace metadata, and release artifacts. The bundled Node server reads the shared provider config at runtime.
 
-The bundled Codex runtime focuses on literature-provider tools. Use the full CLI stdio server when you need the unified full MCP surface with both literature and Python-backed orchestration tools.
+The bundled Codex runtime focuses on literature-provider tools. Use `qiongli install --profile full --target codex --surface plugin` when you need a Codex-native plugin container backed by the unified full MCP surface with both literature and Python-backed orchestration tools.
 
 `qiongli_configure_provider` is the platform-neutral setup contract. Codex Desktop, Claude Desktop MCPB, Claude Code, Cursor-style clients, and any local stdio MCP client should prefer it for credentials because it opens a local `127.0.0.1` setup page and returns only redacted status. `qiongli_open_config_wizard` remains available as a compatibility alias for older clients and docs.
 
@@ -73,7 +95,7 @@ The bundled server entry is:
 node ${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs
 ```
 
-This bundled runtime covers literature-provider tools such as provider configuration, status, and search without requiring the `qiongli` CLI. Use `qiongli install --profile full --target claude` when Claude Code needs the unified full MCP surface, including `qiongli_literature_search`, `qiongli_orchestrator_route`, `qiongli_orchestrator_doctor`, `qiongli_task_plan`, or `qiongli_task_run`. Use the same full CLI path with `--target antigravity`, `--target hermes`, or `--target all` for local clients that should load the full MCP server instead of a bundled lite provider runtime.
+This bundled runtime covers literature-provider tools such as provider configuration, status, and search without requiring the `qiongli` CLI. Use `qiongli install --profile full --target claude --surface plugin` when Claude Code needs the unified full MCP surface, including `qiongli_literature_search`, `qiongli_orchestrator_route`, `qiongli_orchestrator_doctor`, `qiongli_task_plan`, or `qiongli_task_run`. Use `--target antigravity`, `--target hermes`, or `--target all --surface plugin` for local clients that should load the full MCP server instead of a bundled lite provider runtime.
 
 ## Claude Desktop MCPB
 
@@ -83,7 +105,7 @@ For manual Claude Desktop installs, treat the Skill ZIP and MCPB as complementar
 
 - The `qiongli-claude-desktop-skill-*.zip` upload provides the agent instructions, workflows, templates, subject overlays, and skill guidance.
 - The `qiongli-literature-provider.mcpb` install provides literature MCP tools such as `qiongli_literature_search`.
-- The MCPB does not launch orchestrator agents. If the same Desktop or coding client needs `qiongli_orchestrator_route` or `qiongli_task_run`, install the full CLI MCP server separately with `qiongli mcp serve --transport stdio`.
+- The MCPB does not launch orchestrator agents. If the same Desktop or coding client needs `qiongli_orchestrator_route` or `qiongli_task_run`, install the full CLI MCP server separately. For Codex/Claude Code use `qiongli install --profile full --target all --surface plugin`; for a direct stdio integration use `qiongli mcp serve --transport stdio`.
 
 ## Provider Keys
 

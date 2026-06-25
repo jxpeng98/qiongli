@@ -72,7 +72,7 @@ JSON 输出会包含每个 target 当前安装的 active subject 和 coverage。
 
 用途：
 - npm、pipx、pip 或 bootstrap 安装 CLI 后的推荐第一个命令。
-- 引导 CLI、Codex、Claude Code 和 Antigravity 用户选择 install/upgrade、runtime surface、subject、coverage、install mode、install scope、overwrite 策略、upgrade source、可选 provider key setup，并执行 doctor verification。
+- 引导 CLI、Codex、Claude Code、Antigravity 和 Hermes 用户选择 install/upgrade、runtime surface、subject、coverage、install mode、install scope、overwrite 策略、upgrade source、可选 provider key setup，并执行 doctor verification。
 
 ```bash
 qiongli setup [--project-dir <path>] [--dry-run] [--no-doctor]
@@ -90,7 +90,7 @@ qiongli setup --project-dir "$PWD" --no-doctor
 
 wizard 选项：
 - Setup path：`install` 或 `upgrade`。
-- Runtime surface：`cli`、`codex`、`claude-code` 或 `multi-platform`。
+- Runtime surface：`cli`、`codex`、`claude-code`、`antigravity`、`hermes` 或 `multi-platform`。
 - Subject：`core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics` 或 `economics-accounting`。
 - Coverage：`complete` 或 `focused`。
 - Install mode：普通用户用 `--mode copy`，本地开发 checkout 用 `--mode link`。
@@ -105,6 +105,29 @@ wizard 选项：
 
 通过 setup 输入的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。密钥保存在生成的研究 artifacts 之外。setup 会配置凭据并执行 doctor/capability 检查；它不承诺一定会运行外部 literature search。
 
+### 2.2.1 `qiongli mcp`（跨平台 MCP server）
+
+用途：
+- 为支持 MCP 的桌面或 agent 客户端启动本地 Qiongli MCP server。
+- 让 CLI 用户和 Desktop-only 用户配置同一套 provider key。
+- 生成不包含 secret 的客户端配置示例。
+
+```bash
+qiongli mcp serve --transport stdio
+qiongli mcp serve --transport http --host 127.0.0.1 --port 8765
+qiongli mcp configure --provider openalex --field email --value you@example.com
+qiongli mcp doctor --json
+qiongli mcp config example --target codex --json
+qiongli mcp config example --target claude-code --json
+qiongli mcp config example --target antigravity --json
+qiongli mcp config example --target hermes --json
+qiongli mcp wizard
+```
+
+server 暴露的 MCP tools 包括 `qiongli_config_status`、`qiongli_save_provider_config`、`qiongli_collect_evidence`、`qiongli_list_provider_env`、`qiongli_test_provider`、`qiongli_configure_provider`、`qiongli_orchestrator_route`、`qiongli_orchestrator_doctor`、`qiongli_task_plan` 和 `qiongli_task_run`。
+
+默认 `stdio` 模式是本地进程，不需要远端 server。Codex、Claude Code、Antigravity 或其他本地 MCP client 可以先调用 `qiongli_orchestrator_route`，决定是否从 skill-only routing 升级到 full orchestrator tools。`qiongli_task_run` 默认是 preview mode；只有 MCP caller 显式传入 JSON boolean `run_agents: true` 时，才会启动本地模型 CLI。
+
 ### 2.3 `qiongli install`（安装包内 subject payload）
 
 用途：
@@ -113,9 +136,11 @@ wizard 选项：
 
 ```bash
 qiongli install \
+  [--profile partial|full] \
   [--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting] \
   [--coverage complete|focused] \
   [--target codex|claude|antigravity|hermes|all] \
+  [--surface skills|plugin|both] \
   [--mode copy|link] \
   [--project-dir <path>] \
   [--overwrite] \
@@ -133,9 +158,14 @@ qiongli install --subject political-economy --target all
 qiongli install --subject geoeconomics --target all
 qiongli install --subject economics-accounting --target all
 qiongli install --subject economics --coverage focused --target all
+qiongli install --profile full --target codex --surface plugin
+qiongli install --profile full --target all --surface plugin
+qiongli install --profile full --target all --surface both
 ```
 
 Subject package 是专精安装包，不是降质删减版。默认安装是 `core/complete`。`--subject economics`、`--subject business`、`--subject finance`、`--subject political-economy` 和 `--subject geoeconomics` 表示 complete 专精安装，不是缩水包；`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。`focused` coverage 只选择该 subject 的 profiles 和 active effective skills，用于有意选择的精简安装和 Desktop/Web ZIP。当前官方 subjects 是 `core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics` 和命名 composite subject `economics-accounting`；`political-economy` 和 `geoeconomics` 是两个独立 subject 选择，不是一个 composite。官方 composite subjects 不是任意逗号分隔叠加。本阶段公开 Desktop ZIP subjects 是 `core`、`economics`、`business`、`finance`、`political-economy`、`geoeconomics` 和 `economics-accounting`，还没有 standalone accounting Desktop ZIP。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新参数。
+
+`--surface plugin` 会安装由完整 Python MCP server 支撑的本地客户端原生 plugin bundle。这是下一版或源码 checkout 行为；当前稳定版 v1.7.0 不包含这个 flag。Codex 会写入 personal marketplace entry 和启动 `qiongli mcp serve --transport stdio` 的 plugin `.mcp.json`；Claude Code 会写入本地 plugin manifest 并启动同一个 full MCP server。`--target all --surface plugin` 会让 Codex/Claude Code 使用本地 plugin，同时给 Antigravity/Hermes 写入受管理的 full MCP client 配置。Marketplace 安装的 plugin 仍然保持 lite/no-Python 路径，使用内置 Node literature provider。
 
 ### 2.4 `qiongli upgrade`（下载 release 并执行三端安装脚本）
 
@@ -149,9 +179,11 @@ qiongli upgrade \
   [--repo <owner/repo|url>] \
   [--ref <tag-or-branch>] \
   [--ref-type tag|branch] \
+  [--profile partial|full] \
   [--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting] \
   [--coverage complete|focused] \
   [--target codex|claude|antigravity|hermes|all] \
+  [--surface skills|plugin|both] \
   [--project-dir <path>] \
   [--no-overwrite] \
   [--doctor] \
@@ -163,6 +195,7 @@ qiongli upgrade \
 - 现在默认的 `upgrade` 是全局刷新。项目接线建议走 `qiongli init --project-dir .`；如果确实要在升级时重写项目文件，再显式加 `--parts project`。
 - `--subject` 默认是 `core`，`--coverage` 默认是 `complete`；使用 `--subject economics` 会安装全量 Qiongli 加 economics 专精，使用 `--subject accounting` 会安装全量 Qiongli 加 accounting 专精，显式加 `--coverage focused` 时才安装精简 selected 包。
 - 示例：`qiongli upgrade --subject accounting --target all`。
+- 示例：`qiongli upgrade --profile full --target all --surface plugin` 会刷新 source/next-release 的本地 full plugin surface，不会切换到 marketplace lite plugin。
 - 全局安装后，`upgrade` 会自动创建 Claude Code 工作流发现 symlink：`~/.claude/commands/*.md`，可直接使用 `/paper`、`/lit-review` 等 slash 命令。
 - Shell CLI 会通过随附的 bootstrap helper 执行升级，不依赖 Python。
 - 退出码为底层安装器返回码（若安装失败，沿用其错误码）。
@@ -190,7 +223,8 @@ qiongli init [--project-dir <path>] [--target all|codex|claude|antigravity|herme
 ```bash
 qiongli remove \
   [--target codex|claude|antigravity|hermes|all] \
-  [--parts globals|project|cli] \
+  [--surface skills|plugin|both] \
+  [--parts globals|project|cli|mcp|plugin] \
   [--project-dir <path>] \
   [--cli-dir <path>] \
   [--dry-run]
@@ -201,6 +235,8 @@ qiongli remove \
 ```bash
 qiongli remove --target all --dry-run
 qiongli remove --target codex
+qiongli remove --target codex --surface plugin
+qiongli remove --parts plugin --target codex
 qiongli remove --parts globals,project --project-dir "$PWD"
 qiongli remove --parts cli --cli-dir ~/.local/bin
 qiongli uninstall --target all
@@ -210,6 +246,7 @@ qiongli delete --target claude
 说明：
 - `remove` 默认等价于 `--parts globals`，会移除 CLI 安装的 `qiongli-workflow` skill 目录和生成的 workflow discovery links。
 - 如果某个 `qiongli-workflow` 目录不像 Qiongli package payload，会跳过，避免删除用户自建内容。
+- Plugin removal 只删除带 `.qiongli-managed.json` 的 CLI-managed 本地 full plugin root，以及带 `metadata.managedBy = "qiongli-cli"` 的 Codex marketplace entry。
 - 它不会卸载 `qiongli` 或 `qiongli-next` 这类 marketplace plugin；这些需要在 Codex、Claude Code 或 Claude Desktop 的 plugin manager 中移除。
 - 需要同时清理旧项目本地文件时，使用 `--parts project`。
 - 只有通过 full CLI/bootstrap 安装过 shell wrapper 时，才需要使用 `--parts cli`。

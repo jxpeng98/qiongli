@@ -196,6 +196,8 @@ Subject packaging 需要同时区分两个视角：用户选择安装形态，�
 
 Marketplace plugin 仍是 no CLI / no Python 的轻量入口，使用内置 Node literature MCP。下一版或当前分支源码 checkout 中，需要完整本地 Qiongli 时，可用 CLI 生成本地 plugin，并让 MCP 指向 full Python-backed server。
 
+CLI 生成的本地 full plugin 和 marketplace plugin 分开管理。`qiongli remove --parts plugin --target codex` 或 `qiongli remove --surface plugin --target claude` 只会删除带 `.qiongli-managed.json` 的 CLI-managed plugin root，以及带 `metadata.managedBy = "qiongli-cli"` 的 Codex marketplace entry；原生 marketplace lite plugin 仍由 Codex / Claude Code plugin manager 卸载。
+
 对开发者来说，`core` 负责共享 workflow contracts、generic skills、templates、standards 和 quality gates。specialized subject 通过 selected profiles、append overlays、声明式 section replacements 和少量 subject-specific skills 增加学科深度。generic skills 源文件不会复制成学科版本；effective package 由 `skill_refs`、subject overlays、分层 section overrides 和可选本地 custom overlays 生成。
 
 当前官方 subjects 包括 `core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics` 和官方组合 subject `economics-accounting`。默认安装是 `core/complete`。`--subject economics`、`--subject business`、`--subject finance`、`--subject political-economy` 和 `--subject geoeconomics` 表示 complete 专精安装，不是缩水包；`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。`--coverage focused` 是有意选择的精简路径，也是 Desktop/Web ZIP 路径。本阶段公开 Desktop ZIP subjects 是 `core`、`economics`、`business`、`finance`、`political-economy`、`geoeconomics` 和 `economics-accounting`；还没有 standalone accounting Desktop ZIP。`political-economy` 和 `geoeconomics` 是两个独立 subject，不是彼此叠加的交叉学科包。官方 composite subjects 是命名 subject，不是任意逗号分隔叠加。切换 subject 或 coverage 时，重新运行 install 或 upgrade；同一客户端一次只有一个 active `qiongli-workflow` package。
@@ -284,6 +286,7 @@ qiongli install --subject accounting --target all --project-dir "$PWD"
 qiongli install --subject political-economy --target all --project-dir "$PWD"
 qiongli install --subject geoeconomics --target all --project-dir "$PWD"
 qiongli install --subject economics-accounting --target all --project-dir "$PWD"
+qiongli install --profile full --target all --surface plugin
 ```
 
 如果只是测试 prerelease，不想全局安装：
@@ -572,6 +575,7 @@ qiongli install --target all --project-dir "$PWD"
 qiongli install --subject economics --target all --project-dir "$PWD"
 qiongli install --subject accounting --target all --project-dir "$PWD"
 qiongli install --subject economics --coverage focused --target all --project-dir "$PWD"
+qiongli install --profile full --target all --surface plugin
 ```
 
 prerelease 测试：

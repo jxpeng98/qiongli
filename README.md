@@ -43,9 +43,12 @@ The public name is **Qiongli**, from the Chinese `穷理`: to keep asking what p
 | You want the full docs experience | Open the [VitePress docs](docs/index.md), or run `npm run docs:dev` locally |
 | You prefer Chinese docs | Start with [中文 README](README_CN.md) or [中文文档](docs/zh/index.md) |
 | You want Qiongli in one client | Use the [Install Guide](docs/guide/install.md) |
+| You need full local Qiongli in client-native form | Use `qiongli install --profile full --target all --surface plugin` from the next release or a source checkout |
 | You are choosing a paper workflow | Use [Task Recipes](docs/guide/task-recipes.md) |
 | You need scriptable installs or upgrades | Use the [CLI Reference](docs/reference/cli.md) |
 | You want to understand the architecture | Read [Architecture](docs/architecture.md) |
+
+`--surface plugin` is the full local entry from the next release or a source checkout from this branch. Current stable v1.7.0 users can keep using marketplace plugins for the lite no-Python path, or the existing full CLI profile for Python-backed MCP.
 
 ## Latest Stable Downloads
 
@@ -110,15 +113,16 @@ Start with the smallest surface that matches the job. In Qiongli, "full workflow
 
 | Install path | Use it when | Advantages | Trade-offs |
 |---|---|---|---|
-| **Codex marketplace plugin**: `codex plugin marketplace add jxpeng98/skillsplace --ref main` | You use Codex and want Qiongli as a native skill/plugin without local CLI setup. | Installs the Qiongli skill, subject packages such as `qiongli-economics`, and the bundled zero-dependency literature MCP registration/runtime as a lite/no-CLI fallback. | Full local Qiongli is `qiongli install --profile full --target codex`; it registers the unified Python-backed MCP with literature plus orchestrator tools. |
-| **Claude Code marketplace plugin**: `claude plugin marketplace add jxpeng98/skillsplace@main` | You use Claude Code and want the Qiongli workflow from the marketplace. | Installs the full `subject/complete` workflow package for `qiongli` and subject entries such as `qiongli-economics@skillsplace`; includes slash workflow commands like `/paper`, `/lit-review`, and `/code-build`, plus the same zero-dependency Node literature MCP runtime as Codex for provider, search, and status tools. | Full Python-backed tools such as `qiongli_literature_search`, `qiongli_orchestrator_route`, and `qiongli_task_run` require npm/pipx/bootstrap `full` plus `qiongli mcp serve --transport stdio`. |
+| **Codex marketplace plugin**: `codex plugin marketplace add jxpeng98/skillsplace --ref main` | You use Codex and want Qiongli as a native skill/plugin without local CLI setup. | Installs the Qiongli skill, subject packages such as `qiongli-economics`, and the bundled zero-dependency literature MCP registration/runtime as a lite/no-CLI fallback. | Marketplace stays lite/no-Python. Full local Qiongli is the CLI-generated local plugin: `qiongli install --profile full --target codex --surface plugin`. |
+| **Claude Code marketplace plugin**: `claude plugin marketplace add jxpeng98/skillsplace@main` | You use Claude Code and want the Qiongli workflow from the marketplace. | Installs the full `subject/complete` workflow package for `qiongli` and subject entries such as `qiongli-economics@skillsplace`; includes slash workflow commands like `/paper`, `/lit-review`, and `/code-build`, plus the same zero-dependency Node literature MCP runtime as Codex for provider, search, and status tools. | Marketplace stays lite/no-Python. Full Python-backed tools use the CLI-generated local plugin: `qiongli install --profile full --target claude --surface plugin`. |
 | **Claude Desktop/Web Skill ZIP** | You want Qiongli in Claude Desktop or Claude.ai without a code environment. | No terminal required. Good for skill-guided paper planning, writing, review, and focused subject packages. | Focused package kept under Desktop upload limits; skill-only, no secrets, no provider calls, no local agent execution. |
 | **Claude Desktop Literature MCPB**: `qiongli-literature-provider.mcpb` | Desktop needs local OpenAlex/Semantic Scholar search and provider key configuration. | No Python or npm install; pairs cleanly with the Desktop Skill ZIP. | Literature/provider tools only. It does not install Qiongli skills and does not launch orchestrator agents. |
+| **Full local plugin**: `qiongli install --profile full --target all --surface plugin` | You want one full local Qiongli surface across Codex, Claude Code, Antigravity, and Hermes. | Generates client-native local plugin bundles for Codex/Claude Code that launch `qiongli mcp serve --transport stdio`; Antigravity/Hermes receive managed full MCP client configs. | Requires Python 3.12+ and is next-release/source-checkout behavior until published. Marketplace plugin installs remain separate. |
 | **npm / npx**: `npm install -g qiongli` or `npx qiongli@latest ...` | You want scriptable installs, upgrades, and prebuilt complete/focused subject payloads through Node. | Good default for cross-client asset installation; no PyPI dependency for skill payloads. | Advanced bridge commands such as `setup`, `doctor`, `task-run`, and `mcp` need Python 3.12+ with `PyYAML`. |
 | **Bootstrap `partial`** | You want portable workflow assets and command discovery across clients without Python. | Simple shell/PowerShell path for skills and workflow discovery links. | No runtime validation, no Python bridge, no local orchestrator execution. |
-| **Bootstrap `full` / pipx / pip Python CLI** | You need full local Qiongli: literature MCP, `doctor`, validators, local `task-plan`, `task-run`, `team-run`, or unified full CLI MCP. | Most complete runtime surface; enables local checks, provider config, managed Codex MCP registration, literature search, and Python-backed orchestration. | Requires Python 3.12+, model CLIs in `PATH`, and runtime auth for actual agent execution. |
+| **Bootstrap `full` / pipx / pip Python CLI** | You need the CLI runtime directly: `doctor`, validators, local `task-plan`, `task-run`, `team-run`, or `qiongli mcp serve`. | Most complete runtime surface; enables local checks, provider config, literature search, and Python-backed orchestration. | Requires Python 3.12+, model CLIs in `PATH`, and runtime auth for actual agent execution. For Codex/Claude Code, prefer `--surface plugin` when you want the client to own a plugin container. |
 
-Claude Code marketplace status: yes, Claude Code can install the Qiongli methodology through Skillsplace for core and subject `complete` packages. Codex and Claude Code both install the skill/command package plus the bundled zero-dependency Node literature MCP runtime for provider, search, and status tools. The full local product path is the CLI full profile and `qiongli mcp serve --transport stdio`.
+Claude Code marketplace status: yes, Claude Code can install the Qiongli methodology through Skillsplace for core and subject `complete` packages. Codex and Claude Code marketplace plugins install the skill/command package plus the bundled zero-dependency Node literature MCP runtime for provider, search, and status tools. The full local product path is the CLI full profile; for Codex and Claude Code, the preferred shape is a CLI-generated local plugin whose `.mcp.json` launches `qiongli mcp serve --transport stdio`.
 
 Prerelease testing uses the separate `qiongli-next` marketplace entry. It installs only the core Qiongli workflow for Codex and Claude Code, keeps the bundled literature MCP runtime, and pairs with `qiongli-next-claude-desktop-skill-core-<tag>.zip` plus `qiongli-literature-provider-<version>.mcpb` for Claude Desktop. CLI prerelease testing uses `npx qiongli@next ...`.
 
@@ -151,6 +155,9 @@ qiongli install --subject economics --target all --project-dir "$PWD"
 qiongli install --subject accounting --target all --project-dir "$PWD"
 qiongli install --subject economics-accounting --target all --project-dir "$PWD"
 qiongli install --subject economics --coverage focused --target all --project-dir "$PWD"
+
+# Full local plugin surface, next release or source checkout
+qiongli install --profile full --target all --surface plugin
 
 # Prerelease testing
 npx qiongli@next install --target all --project-dir "$PWD"
@@ -196,7 +203,15 @@ Provider keys entered through `qiongli setup` use the same provider config as `q
 
 ## Remove CLI-installed Assets
 
-Use `qiongli remove` (aliases: `qiongli uninstall`, `qiongli delete`) to remove CLI-installed global workflow assets and discovery links. It does not uninstall marketplace plugins such as `qiongli` or `qiongli-next`; remove those through the Codex, Claude Code, or Claude Desktop plugin manager that installed them.
+Use `qiongli remove` (aliases: `qiongli uninstall`, `qiongli delete`) to remove CLI-installed global workflow assets, discovery links, or CLI-managed local full plugins. It does not uninstall marketplace plugins such as `qiongli` or `qiongli-next`; remove those through the Codex, Claude Code, or Claude Desktop plugin manager that installed them.
+
+```bash
+qiongli remove --target all --dry-run
+qiongli remove --parts plugin --target codex
+qiongli remove --surface plugin --target claude
+```
+
+Plugin removal only deletes CLI-managed local full plugin roots marked with `.qiongli-managed.json`, and Codex marketplace entries marked with `metadata.managedBy = "qiongli-cli"`. Unmanaged roots and marketplace lite plugins are preserved.
 
 ## Manual Desktop And MCP Boundaries
 
@@ -216,10 +231,17 @@ qiongli-literature-provider.mcpb
 
 The MCPB runs a zero-dependency Node stdio server for OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv search, provider status, and provider key saving. arXiv is enabled without credentials. It supports provider setup through the local wizard, query variants, finance/economics deep-search routing, pagination, retry diagnostics, and limited citation/reference metadata expansion. Desktop users need `qiongli-literature-provider` MCPB or platform-native search before claiming `provider_connected`; otherwise record the run as `strategy_only` and treat platform search or a user-supplied corpus as the evidence source. Finance/economics data APIs such as FRED and SEC EDGAR belong in a separate data MCP surface; see [Finance/Economics Data MCP Boundary](docs/advanced/finance-econ-data-mcp.md).
 
-The MCPB does not launch orchestrator agents. To expose the full Python-backed local product through MCP, install the npm, pipx/pip, or bootstrap `full` CLI runtime and configure:
+The MCPB does not launch orchestrator agents. To expose the full Python-backed local product through MCP, install the npm, pipx/pip, or bootstrap `full` CLI runtime. For Codex and Claude Code, prefer the CLI-generated local plugin surface:
 
 ```bash
-qiongli install --profile full --target codex
+qiongli install --profile full --target codex --surface plugin
+qiongli install --profile full --target claude --surface plugin
+qiongli install --profile full --target all --surface plugin
+```
+
+In that mode the local plugin owns the MCP launch for Codex/Claude Code. Antigravity and Hermes receive managed client-level MCP config when included by `--target all`. The direct MCP command remains the same:
+
+```bash
 qiongli mcp serve --transport stdio
 qiongli mcp doctor --json
 qiongli mcp config example --target codex --json
