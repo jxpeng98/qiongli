@@ -53,7 +53,7 @@ The plugin-first package does not replace the legacy global install in place. Na
 - Global skill install: `~/.codex/skills/qiongli-workflow`, `~/.claude/skills/qiongli-workflow`, `~/.gemini/antigravity/skills/qiongli-workflow`, and `~/.hermes/skills/qiongli-workflow`, managed by `rsk` or bootstrap.
 - Global slash discovery: `~/.claude/commands/*.md`, managed by `rsk`.
 
-For ordinary skill-only client-native usage and Codex/Claude Code bundled literature-provider MCP usage, the marketplace plugin bundle is enough. Those marketplace artifacts keep the bundled Node literature MCP. For full local Qiongli, including literature plus orchestrator tools, CLI commands, validators, `doctor`, release tooling, or `bridges.orchestrator`, the CLI can install a client-native local plugin bundle backed by the full Python MCP:
+For ordinary skill-only client-native usage and Codex/Claude Code bundled literature-provider MCP usage, the marketplace plugin bundle is enough. Those marketplace artifacts keep the bundled Node literature MCP. From the next release or a source checkout from this branch, full local Qiongli can install a client-native local plugin bundle backed by the full Python MCP:
 
 ```bash
 qiongli install --profile full --target all --surface plugin

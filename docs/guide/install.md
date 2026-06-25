@@ -21,7 +21,7 @@ Current stable release: [v1.7.0](https://github.com/jxpeng98/qiongli/releases/ta
 |---|---|---|---|
 | Marketplace plugin / extension | One client, least setup, or no local CLI environment | Client plugin plus `qiongli-workflow`; Codex and Claude Code include the bundled Node literature MCP as a lite/no-CLI fallback | No for skill use or bundled literature MCP; Python/CLI only for full local Qiongli |
 | Claude Desktop Skill ZIP | Claude Desktop or Claude.ai, especially when you do not want to use a code/CLI environment | Personal `qiongli` Skill upload | No |
-| Full local plugin: `qiongli install --profile full --target all --surface plugin` | Full local Qiongli inside a client-native plugin container | Local plugin bundle plus the unified full MCP server | Yes, Python 3.12+ |
+| Full local plugin: `qiongli install --profile full --target all --surface plugin` | Full local Qiongli inside a client-native plugin container | Local plugin bundle plus the unified full MCP server; next release or source checkout behavior | Yes, Python 3.12+ |
 | `qiongli install --profile full` | Full local Qiongli in Codex or another local client | Skills, shell CLI, provider config flow, doctor checks, and the unified full MCP server | Yes, Python 3.12+ |
 | Bootstrap `partial` | Global workflow assets across clients | Skills and workflow discovery where supported | No |
 | Bootstrap `full` | Runtime checks and orchestration from release scripts | `partial` plus shell CLI, MCP registration part, and `doctor` support | Yes, Python 3.12+ |
@@ -29,6 +29,8 @@ Current stable release: [v1.7.0](https://github.com/jxpeng98/qiongli/releases/ta
 | pipx / pip | Python updater CLI | Python CLI distribution | Yes |
 
 The user-visible skill name is `qiongli`. The installed directory is still `qiongli-workflow` for compatibility with existing clients and release artifacts. `core` is the default subject, so the default install is `core/complete`. Specialized CLI/npm installs default to `coverage=complete`, meaning full Qiongli plus the requested subject specialization.
+
+The full local plugin surface is available from the next release or a source checkout from this branch. Current stable v1.7.0 users can keep using marketplace plugins for the lite no-Python path or the existing full CLI profile for local Python-backed MCP.
 
 ## Native Plugin And Extension
 

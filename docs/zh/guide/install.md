@@ -21,7 +21,7 @@ Qiongli 有多个安装入口，是因为不同用户需要的运行时能力不
 |---|---|---|---|
 | Marketplace plugin / extension | 单个客户端、最少配置，或没有本地 CLI 环境 | 客户端 plugin 和 `qiongli-workflow`；Codex 和 Claude Code 内置 Node literature MCP，作为 lite/no-CLI fallback | skill 使用和内置 literature MCP 不要求；完整本地 Qiongli 需要 Python/CLI |
 | Claude Desktop Skill ZIP | Claude Desktop 或 Claude.ai，尤其适合不熟悉 code / CLI 环境的用户 | 个人上传的 `qiongli` Skill | 否 |
-| 本地 full plugin：`qiongli install --profile full --target all --surface plugin` | 在客户端原生 plugin 容器中使用完整本地 Qiongli | 让 CLI 生成客户端 plugin，并接入统一 full MCP | 是，Python 3.12+ |
+| 本地 full plugin：`qiongli install --profile full --target all --surface plugin` | 在客户端原生 plugin 容器中使用完整本地 Qiongli | 让 CLI 生成客户端 plugin，并接入统一 full MCP；下一版或源码 checkout 可用 | 是，Python 3.12+ |
 | `qiongli install --profile full` | 在 Codex 或其他本地客户端中使用完整本地 Qiongli | skills、shell CLI、provider config flow、doctor checks，以及统一 full MCP server | 是，Python 3.12+ |
 | Bootstrap `partial` | 多客户端全局 workflow assets | skills 和客户端支持的 workflow discovery | 否 |
 | Bootstrap `full` | 通过 release scripts 安装 runtime check 和 orchestrator | `partial` 加 shell CLI、MCP registration part 和 `doctor` 支持 | 是，Python 3.12+ |
@@ -29,6 +29,8 @@ Qiongli 有多个安装入口，是因为不同用户需要的运行时能力不
 | pipx / pip | Python updater CLI | Python CLI 分发 | 是 |
 
 用户可见的 skill 名称是 `qiongli`。安装目录仍然是 `qiongli-workflow`，这是为了兼容已有客户端和 release artifacts。`core` 是默认 subject，所以默认安装是 `core/complete`。CLI/npm 专精安装默认使用 `coverage=complete`，也就是全量 Qiongli 框架加指定 subject 专精。
+
+本地 full plugin surface 从下一版或当前分支源码 checkout 可用。当前稳定版 v1.7.0 用户仍可使用 marketplace plugin 作为 lite/no-Python 路径，或使用现有 full CLI profile 接入本地 Python-backed MCP。
 
 ## 原生 Plugin 和 Extension
 
