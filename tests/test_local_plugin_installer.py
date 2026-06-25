@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from qiongli.local_plugin_installer import (
     LocalPluginOptions,
@@ -25,6 +27,17 @@ class LocalPluginInstallerTests(unittest.TestCase):
         self.assertEqual(paths.marketplace_path, marketplace)
         self.assertEqual(paths.plugin_root, marketplace.parent / "plugins" / "qiongli")
         self.assertEqual(paths.marketplace_source_path, "./plugins/qiongli")
+
+    def test_resolve_codex_plugin_paths_honors_env_marketplace_override(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            marketplace = Path(tmp) / "codex" / "marketplace.json"
+
+            with mock.patch.dict(os.environ, {"QIONGLI_CODEX_MARKETPLACE_PATH": str(marketplace)}):
+                paths = resolve_codex_plugin_paths()
+
+            self.assertEqual(paths.marketplace_path, marketplace)
+            self.assertEqual(paths.plugin_root, marketplace.parent / "plugins" / "qiongli")
+            self.assertEqual(paths.marketplace_source_path, "./plugins/qiongli")
 
     def test_install_codex_plugin_writes_full_mcp_payload_and_marketplace_entry(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -76,12 +89,44 @@ class LocalPluginInstallerTests(unittest.TestCase):
             self.assertIn("skills/qiongli-workflow/workflows/paper.md", command_text)
 
             marketplace_manifest = self._read_json(marketplace)
-            qiongli_entry = marketplace_manifest["plugins"]["qiongli"]
+            self.assertEqual(marketplace_manifest["name"], "personal")
+            self.assertEqual(marketplace_manifest["interface"], {"displayName": "Personal"})
+            self.assertIsInstance(marketplace_manifest["plugins"], list)
+            qiongli_entry = self._marketplace_entry(marketplace_manifest)
             self.assertEqual(qiongli_entry["name"], "qiongli")
-            self.assertEqual(qiongli_entry["source"], {"type": "local", "path": "./plugins/qiongli"})
+            self.assertEqual(qiongli_entry["source"], {"source": "local", "path": "./plugins/qiongli"})
             self.assertEqual(qiongli_entry["policy"]["installation"], "AVAILABLE")
             self.assertEqual(qiongli_entry["policy"]["authentication"], "ON_INSTALL")
             self.assertEqual(qiongli_entry["category"], "Education")
+
+    def test_install_codex_plugin_preserves_existing_marketplace_name_and_interface(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            marketplace = root / "agents" / "marketplace.json"
+            marketplace.parent.mkdir(parents=True)
+            marketplace.write_text(
+                json.dumps(
+                    {
+                        "name": "mine",
+                        "interface": {"displayName": "Mine"},
+                        "plugins": [{"name": "other", "source": {"source": "local", "path": "./plugins/other"}}],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            install_local_plugin(
+                LocalPluginOptions(
+                    repo_root=REPO_ROOT,
+                    target="codex",
+                    codex_marketplace_path=marketplace,
+                )
+            )
+
+            marketplace_manifest = self._read_json(marketplace)
+            self.assertEqual(marketplace_manifest["name"], "mine")
+            self.assertEqual(marketplace_manifest["interface"], {"displayName": "Mine"})
+            self.assertEqual([entry["name"] for entry in marketplace_manifest["plugins"]], ["other", "qiongli"])
 
     def test_install_claude_plugin_writes_full_mcp_manifest_and_skill(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -112,6 +157,108 @@ class LocalPluginInstallerTests(unittest.TestCase):
             self.assertNotIn("env", manifest["mcpServers"]["qiongli"])
             self.assertNotIn("qiongli-literature-provider", json.dumps(manifest))
 
+            command_text = (plugin_root / "commands" / "paper.md").read_text(encoding="utf-8")
+            self.assertIn("Load the `qiongli` skill", command_text)
+            self.assertIn("skills/qiongli-workflow/workflows/paper.md", command_text)
+
+    def test_target_all_installs_codex_and_claude_only(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            marketplace = root / "agents" / "marketplace.json"
+            claude_parent = root / "claude-code"
+
+            result = install_local_plugin(
+                LocalPluginOptions(
+                    repo_root=REPO_ROOT,
+                    target="all",
+                    codex_marketplace_path=marketplace,
+                    claude_plugin_parent=claude_parent,
+                )
+            )
+
+            self.assertTrue(result.changed)
+            self.assertEqual(
+                result.installed_roots,
+                {
+                    "codex": marketplace.parent / "plugins" / "qiongli",
+                    "claude": claude_parent / "qiongli",
+                },
+            )
+            self.assertTrue((result.installed_roots["codex"] / ".codex-plugin" / "plugin.json").is_file())
+            self.assertTrue((result.installed_roots["claude"] / ".claude-plugin" / "plugin.json").is_file())
+            self.assertEqual(set(result.installed_roots), {"codex", "claude"})
+
+    def test_non_plugin_target_returns_empty_unchanged_result(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+
+            result = install_local_plugin(
+                LocalPluginOptions(
+                    repo_root=REPO_ROOT,
+                    target="antigravity",
+                    codex_marketplace_path=root / "agents" / "marketplace.json",
+                    claude_plugin_parent=root / "claude-code",
+                )
+            )
+
+            self.assertFalse(result.changed)
+            self.assertEqual(result.installed_roots, {})
+            self.assertEqual(list(root.rglob("*")), [])
+
+    def test_dry_run_returns_planned_roots_without_writing_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            marketplace = root / "agents" / "marketplace.json"
+            claude_parent = root / "claude-code"
+
+            result = install_local_plugin(
+                LocalPluginOptions(
+                    repo_root=REPO_ROOT,
+                    target="all",
+                    dry_run=True,
+                    codex_marketplace_path=marketplace,
+                    claude_plugin_parent=claude_parent,
+                )
+            )
+
+            self.assertFalse(result.changed)
+            self.assertEqual(
+                result.installed_roots,
+                {
+                    "codex": marketplace.parent / "plugins" / "qiongli",
+                    "claude": claude_parent / "qiongli",
+                },
+            )
+            self.assertFalse(marketplace.exists())
+            self.assertFalse(result.installed_roots["codex"].exists())
+            self.assertFalse(result.installed_roots["claude"].exists())
+
+    def test_managed_overwrite_replaces_existing_managed_root(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            marketplace = root / "agents" / "marketplace.json"
+            options = LocalPluginOptions(
+                repo_root=REPO_ROOT,
+                target="codex",
+                codex_marketplace_path=marketplace,
+            )
+            install_local_plugin(options)
+            plugin_root = marketplace.parent / "plugins" / "qiongli"
+            stale = plugin_root / "stale.txt"
+            stale.write_text("remove me", encoding="utf-8")
+
+            install_local_plugin(
+                LocalPluginOptions(
+                    repo_root=REPO_ROOT,
+                    target="codex",
+                    overwrite=True,
+                    codex_marketplace_path=marketplace,
+                )
+            )
+
+            self.assertFalse(stale.exists())
+            self.assertTrue((plugin_root / ".codex-plugin" / "plugin.json").is_file())
+
     def test_remove_local_plugin_removes_managed_codex_root_and_marketplace_entry(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -129,7 +276,29 @@ class LocalPluginInstallerTests(unittest.TestCase):
 
             self.assertEqual(removed, 1)
             self.assertFalse(plugin_root.exists())
-            self.assertEqual(self._read_json(marketplace), {"plugins": {}})
+            marketplace_manifest = self._read_json(marketplace)
+            self.assertEqual(marketplace_manifest["name"], "personal")
+            self.assertEqual(marketplace_manifest["interface"], {"displayName": "Personal"})
+            self.assertEqual(marketplace_manifest["plugins"], [])
+
+    def test_dry_run_remove_does_not_delete_managed_root_or_marketplace_entry(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            marketplace = root / "agents" / "marketplace.json"
+            install_local_plugin(
+                LocalPluginOptions(
+                    repo_root=REPO_ROOT,
+                    target="codex",
+                    codex_marketplace_path=marketplace,
+                )
+            )
+            plugin_root = marketplace.parent / "plugins" / "qiongli"
+
+            removed = remove_local_plugin(target="codex", dry_run=True, codex_marketplace_path=marketplace)
+
+            self.assertEqual(removed, 1)
+            self.assertTrue(plugin_root.exists())
+            self.assertEqual(self._marketplace_entry(self._read_json(marketplace))["name"], "qiongli")
 
     def test_install_refuses_unmanaged_existing_plugin_root_without_overwrite(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -152,6 +321,14 @@ class LocalPluginInstallerTests(unittest.TestCase):
 
     def _read_json(self, path: Path) -> object:
         return json.loads(path.read_text(encoding="utf-8"))
+
+    def _marketplace_entry(self, marketplace_manifest: object) -> dict[str, object]:
+        self.assertIsInstance(marketplace_manifest, dict)
+        plugins = marketplace_manifest["plugins"]  # type: ignore[index]
+        self.assertIsInstance(plugins, list)
+        matches = [entry for entry in plugins if isinstance(entry, dict) and entry.get("name") == "qiongli"]
+        self.assertEqual(len(matches), 1)
+        return matches[0]
 
 
 if __name__ == "__main__":

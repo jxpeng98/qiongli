@@ -47,7 +47,11 @@ class LocalPluginResult:
 
 
 def resolve_codex_plugin_paths(plugin_id: str = PLUGIN_ID, marketplace_path: Path | None = None) -> CodexPluginPaths:
-    marketplace = Path(marketplace_path) if marketplace_path is not None else DEFAULT_CODEX_MARKETPLACE_PATH.expanduser()
+    marketplace = (
+        Path(marketplace_path)
+        if marketplace_path is not None
+        else Path(os.environ.get("QIONGLI_CODEX_MARKETPLACE_PATH", DEFAULT_CODEX_MARKETPLACE_PATH)).expanduser()
+    )
     return CodexPluginPaths(
         marketplace_path=marketplace,
         plugin_root=marketplace.parent / "plugins" / plugin_id,
@@ -354,23 +358,21 @@ def _remove_managed_root(plugin_root: Path, *, dry_run: bool) -> bool:
 
 def _write_codex_marketplace_entry(paths: CodexPluginPaths, plugin: PluginDefinition) -> None:
     marketplace = _read_marketplace(paths.marketplace_path)
-    plugins = marketplace.setdefault("plugins", {})
-    if not isinstance(plugins, dict):
-        raise ValueError(f"{paths.marketplace_path} plugins must be an object")
-    plugins[PLUGIN_ID] = {
+    plugins = _marketplace_plugins_list(marketplace)
+    entry = {
         "name": PLUGIN_ID,
-        "displayName": plugin.display_name,
-        "description": plugin.description,
-        "category": plugin.category,
         "source": {
-            "type": "local",
+            "source": "local",
             "path": paths.marketplace_source_path,
         },
         "policy": {
             "installation": "AVAILABLE",
             "authentication": "ON_INSTALL",
         },
+        "category": plugin.category,
     }
+    _upsert_marketplace_plugin(plugins, entry)
+    marketplace["plugins"] = plugins
     _write_json(paths.marketplace_path, marketplace)
 
 
@@ -378,22 +380,56 @@ def _remove_codex_marketplace_entry(marketplace_path: Path) -> None:
     if not marketplace_path.is_file():
         return
     marketplace = _read_marketplace(marketplace_path)
-    plugins = marketplace.get("plugins")
-    if isinstance(plugins, dict):
-        plugins.pop(PLUGIN_ID, None)
+    plugins = _marketplace_plugins_list(marketplace)
+    marketplace["plugins"] = [
+        entry for entry in plugins if not (isinstance(entry, dict) and entry.get("name") == PLUGIN_ID)
+    ]
     _write_json(marketplace_path, marketplace)
 
 
 def _read_marketplace(path: Path) -> dict[str, Any]:
     if not path.is_file():
-        return {"plugins": {}}
+        return _default_marketplace()
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise ValueError(f"malformed Codex marketplace JSON: {path}") from exc
     if not isinstance(payload, dict):
         raise ValueError(f"{path} must contain a JSON object")
+    payload.setdefault("name", "personal")
+    payload.setdefault("interface", {"displayName": "Personal"})
+    if "plugins" not in payload:
+        payload["plugins"] = []
     return payload
+
+
+def _default_marketplace() -> dict[str, Any]:
+    return {
+        "name": "personal",
+        "interface": {"displayName": "Personal"},
+        "plugins": [],
+    }
+
+
+def _marketplace_plugins_list(marketplace: dict[str, Any]) -> list[Any]:
+    plugins = marketplace.get("plugins")
+    if isinstance(plugins, list):
+        return list(plugins)
+    if isinstance(plugins, dict):
+        normalized: list[Any] = []
+        for name, entry in plugins.items():
+            if isinstance(entry, dict):
+                normalized.append({**entry, "name": name})
+        return normalized
+    raise ValueError("Codex marketplace plugins must be a list or object")
+
+
+def _upsert_marketplace_plugin(plugins: list[Any], entry: dict[str, Any]) -> None:
+    for index, candidate in enumerate(plugins):
+        if isinstance(candidate, dict) and candidate.get("name") == PLUGIN_ID:
+            plugins[index] = entry
+            return
+    plugins.append(entry)
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
