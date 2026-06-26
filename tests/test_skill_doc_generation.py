@@ -3,6 +3,8 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+import yaml
+
 from qiongli.source_layout import RepoLayout
 
 from qiongli.skill_docs import generate_skill_reference_docs
@@ -65,7 +67,11 @@ class SkillDocGenerationTests(unittest.TestCase):
         workflow = RepoLayout(REPO_ROOT).workflow
         content = (workflow / "SKILL.md").read_text(encoding="utf-8")
         version = (workflow / "VERSION").read_text(encoding="utf-8").strip()
+        frontmatter = content.split("---", 2)[1]
+        metadata = yaml.safe_load(frontmatter)
 
+        self.assertEqual(metadata["name"], "qiongli")
+        self.assertIn(f"Qiongli version: {version}", metadata["description"])
         self.assertIn(f"Qiongli version: {version}", content)
         self.assertIn(f"Installed Qiongli workflow version: `{version}`", content)
 

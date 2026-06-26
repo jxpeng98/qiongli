@@ -66,6 +66,10 @@ qiongli mcp doctor --json
 qiongli clean --globals --dry-run
 ```
 
+`qiongli check` discovers the current surface before reporting versions. Codex, Claude Code, and Antigravity local full installs are reported as `surface=plugin`; Hermes managed MCP config is reported as `surface=mcp`; old global skill directories remain visible as `surface=legacy_skill`. `qiongli doctor --cwd .` keeps its runtime/orchestrator role and appends a non-fatal client integration summary from the same discovery layer.
+
+For Codex personal marketplace troubleshooting, remember that the plugin list and plugin detail read are separate steps. A `qiongli` entry can appear as available if `~/.agents/plugins/marketplace.json` is valid, while the details page can still fail if the referenced local plugin has an invalid `.codex-plugin/plugin.json`, invalid `skills/qiongli-workflow/SKILL.md` YAML frontmatter, or a missing plugin directory.
+
 ## Quality Contract
 
 Every canonical skill should pass:

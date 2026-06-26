@@ -65,9 +65,7 @@ def default_antigravity_config_path() -> Path:
     explicit = os.environ.get("ANTIGRAVITY_CONFIG_PATH", "").strip()
     if explicit:
         return Path(explicit).expanduser()
-    antigravity_home = os.environ.get("ANTIGRAVITY_HOME", "").strip()
-    root = Path(antigravity_home).expanduser() if antigravity_home else Path.home() / ".gemini" / "antigravity"
-    return root / "settings.json"
+    return Path.home() / ".gemini" / "config" / "mcp_config.json"
 
 
 def default_hermes_config_path() -> Path:

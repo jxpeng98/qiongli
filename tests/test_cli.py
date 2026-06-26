@@ -20,12 +20,6 @@ class InstallerCliTests(unittest.TestCase):
     def test_check_prints_latest_stable_and_prerelease(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            skill_dirs = {
-                "codex": root / "codex",
-                "claude": root / "claude",
-                "antigravity": root / "antigravity",
-                "hermes": root / "hermes",
-            }
             args = argparse.Namespace(
                 repo="owner/repo",
                 json=False,
@@ -47,7 +41,20 @@ class InstallerCliTests(unittest.TestCase):
             with mock.patch.object(cli_module, "_find_repo_root", return_value=None), mock.patch.object(
                 cli_module, "_check_pip_version", return_value=("1.0.0", "up-to-date")
             ), mock.patch.object(cli_module, "_check_system_env", return_value={}), mock.patch.object(
-                cli_module, "_installed_skill_dirs", return_value=skill_dirs
+                cli_module.os,
+                "environ",
+                {
+                    **os.environ,
+                    "QIONGLI_CODEX_MARKETPLACE_PATH": str(root / "agents" / "plugins" / "marketplace.json"),
+                    "QIONGLI_CLAUDE_PLUGIN_PARENT": str(root / "claude-plugins"),
+                    "CLAUDE_CODE_CONFIG_PATH": str(root / "claude.json"),
+                    "ANTIGRAVITY_CONFIG_PATH": str(root / "antigravity-settings.json"),
+                    "HERMES_CONFIG_PATH": str(root / "hermes-settings.json"),
+                    "CODEX_HOME": str(root / "codex-home"),
+                    "CLAUDE_CODE_HOME": str(root / "claude-home"),
+                    "ANTIGRAVITY_HOME": str(root / "antigravity-home"),
+                    "HERMES_HOME": str(root / "hermes-home"),
+                },
             ), mock.patch.object(cli_module, "_http_get_json", side_effect=fake_http_get_json), contextlib.redirect_stdout(
                 stdout
             ):
@@ -57,6 +64,7 @@ class InstallerCliTests(unittest.TestCase):
         output = stdout.getvalue()
         self.assertIn("   - Latest: v1.0.0", output)
         self.assertIn("   - Pre-release: v1.1.0-beta.1", output)
+        self.assertIn("3) Installed Client Surfaces", output)
 
     def test_init_defaults_to_project_part(self) -> None:
         args = argparse.Namespace(
@@ -402,7 +410,7 @@ class InstallerCliTests(unittest.TestCase):
     def test_check_json_reports_installed_subject(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
-            skill_dir = root / "codex" / "skills" / "qiongli-workflow"
+            skill_dir = root / "codex-home" / "skills" / "qiongli-workflow"
             skill_dir.mkdir(parents=True)
             (skill_dir / "VERSION").write_text("v9.9.9\n", encoding="utf-8")
             (skill_dir / "SUBJECT").write_text("economics\n", encoding="utf-8")
@@ -416,18 +424,24 @@ class InstallerCliTests(unittest.TestCase):
                 strict_network=False,
                 beta=False,
             )
-            skill_dirs = {
-                "codex": skill_dir,
-                "claude": root / "claude" / "skills" / "qiongli-workflow",
-                "antigravity": root / "antigravity" / "skills" / "qiongli-workflow",
-                "hermes": root / "hermes" / "skills" / "qiongli-workflow",
-            }
-
             stdout = io.StringIO()
             with mock.patch.object(cli_module, "_find_repo_root", return_value=None), mock.patch.object(
                 cli_module, "_check_pip_version", return_value=("9.9.9", "up-to-date")
             ), mock.patch.object(cli_module, "_check_system_env", return_value={}), mock.patch.object(
-                cli_module, "_installed_skill_dirs", return_value=skill_dirs
+                cli_module.os,
+                "environ",
+                {
+                    **os.environ,
+                    "QIONGLI_CODEX_MARKETPLACE_PATH": str(root / "agents" / "plugins" / "marketplace.json"),
+                    "QIONGLI_CLAUDE_PLUGIN_PARENT": str(root / "claude-plugins"),
+                    "CLAUDE_CODE_CONFIG_PATH": str(root / "claude.json"),
+                    "ANTIGRAVITY_CONFIG_PATH": str(root / "antigravity-settings.json"),
+                    "HERMES_CONFIG_PATH": str(root / "hermes-settings.json"),
+                    "CODEX_HOME": str(root / "codex-home"),
+                    "CLAUDE_CODE_HOME": str(root / "claude-home"),
+                    "ANTIGRAVITY_HOME": str(root / "antigravity-home"),
+                    "HERMES_HOME": str(root / "hermes-home"),
+                },
             ), mock.patch.object(
                 cli_module, "_resolve_upstream_repo", return_value=(None, "")
             ), contextlib.redirect_stdout(stdout):
@@ -435,19 +449,352 @@ class InstallerCliTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
         payload = json.loads(stdout.getvalue())
+        self.assertEqual(payload["installed"]["codex"]["surface"], "legacy_skill")
+        self.assertTrue(payload["installed"]["codex"]["skill"]["installed"])
         self.assertEqual(payload["installed"]["codex"]["subject"], "economics")
         self.assertEqual(payload["installed"]["codex"]["coverage"], "focused")
         self.assertEqual(payload["installed"]["claude"]["subject"], None)
         self.assertEqual(payload["installed"]["claude"]["coverage"], None)
 
+    def test_check_offline_skips_network_version_queries(self) -> None:
+        args = argparse.Namespace(
+            repo="owner/repo",
+            json=True,
+            strict_network=True,
+            beta=False,
+            offline=True,
+        )
+        stdout = io.StringIO()
+        installed = {
+            client: {"installed": False, "surface": "none"}
+            for client in ("codex", "claude", "antigravity", "hermes")
+        }
+
+        with mock.patch.object(cli_module, "_find_repo_root", return_value=None), mock.patch.object(
+            cli_module, "_check_pip_version"
+        ) as pip_mock, mock.patch.object(cli_module, "_resolve_upstream_repo") as upstream_mock, mock.patch.object(
+            cli_module, "_check_system_env", return_value={}
+        ), mock.patch.object(
+            cli_module, "discover_install_surfaces", return_value=installed
+        ), contextlib.redirect_stdout(stdout):
+            exit_code = cli_module.cmd_check(args)
+
+        self.assertEqual(exit_code, 0)
+        pip_mock.assert_not_called()
+        upstream_mock.assert_not_called()
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual(payload["cli_package"]["status"], "skipped (offline)")
+        self.assertEqual(payload["repo_source"], "offline")
+        self.assertEqual(payload["latest_release"], "")
+
+    def test_check_json_reports_codex_plugin_surface(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            marketplace = root / "agents" / "plugins" / "marketplace.json"
+            plugin_root = marketplace.parent / "plugins" / "qiongli"
+            skill_dir = plugin_root / "skills" / "qiongli-workflow"
+            (plugin_root / ".codex-plugin").mkdir(parents=True)
+            skill_dir.mkdir(parents=True)
+            (plugin_root / ".codex-plugin" / "plugin.json").write_text(
+                json.dumps({"name": "qiongli", "version": "9.9.9", "mcpServers": "./.mcp.json"}),
+                encoding="utf-8",
+            )
+            (plugin_root / ".qiongli-managed.json").write_text(
+                json.dumps(
+                    {
+                        "managed_by": "qiongli-cli",
+                        "plugin": "qiongli",
+                        "surface": "plugin",
+                        "version": "9.9.9",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (skill_dir / "VERSION").write_text("v9.9.9\n", encoding="utf-8")
+            (skill_dir / "SUBJECT_MANIFEST.json").write_text(
+                json.dumps({"subject": "economics", "coverage": "focused", "flavor": "full"}),
+                encoding="utf-8",
+            )
+            args = argparse.Namespace(repo="", json=True, strict_network=False, beta=False)
+
+            stdout = io.StringIO()
+            with mock.patch.object(cli_module, "_find_repo_root", return_value=None), mock.patch.object(
+                cli_module, "_check_pip_version", return_value=("9.9.9", "up-to-date")
+            ), mock.patch.object(cli_module, "_check_system_env", return_value={}), mock.patch.object(
+                cli_module, "_resolve_upstream_repo", return_value=(None, "")
+            ), mock.patch.object(
+                cli_module.os,
+                "environ",
+                {
+                    **os.environ,
+                    "QIONGLI_CODEX_MARKETPLACE_PATH": str(marketplace),
+                    "QIONGLI_CLAUDE_PLUGIN_PARENT": str(root / "claude-plugins"),
+                    "CLAUDE_CODE_CONFIG_PATH": str(root / "claude.json"),
+                    "ANTIGRAVITY_CONFIG_PATH": str(root / "antigravity-settings.json"),
+                    "HERMES_CONFIG_PATH": str(root / "hermes-settings.json"),
+                    "CODEX_HOME": str(root / "codex-home"),
+                    "CLAUDE_CODE_HOME": str(root / "claude-home"),
+                    "ANTIGRAVITY_HOME": str(root / "antigravity-home"),
+                    "HERMES_HOME": str(root / "hermes-home"),
+                },
+            ), contextlib.redirect_stdout(stdout):
+                exit_code = cli_module.cmd_check(args)
+
+        self.assertEqual(exit_code, 0)
+        payload = json.loads(stdout.getvalue())
+        codex = payload["installed"]["codex"]
+        self.assertEqual(codex["surface"], "plugin")
+        self.assertTrue(codex["installed"])
+        self.assertEqual(codex["version"], "v9.9.9")
+        self.assertEqual(codex["subject"], "economics")
+        self.assertEqual(codex["coverage"], "focused")
+        self.assertTrue(codex["plugin"]["installed"])
+        self.assertEqual(codex["plugin"]["path"], str(plugin_root))
+
+    def test_check_json_reports_codex_plugin_activation_status(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            marketplace = root / ".agents" / "plugins" / "marketplace.json"
+            plugin_root = root / "plugins" / "qiongli"
+            skill_dir = plugin_root / "skills" / "qiongli-workflow"
+            (plugin_root / ".codex-plugin").mkdir(parents=True)
+            skill_dir.mkdir(parents=True)
+            marketplace.parent.mkdir(parents=True)
+            marketplace.write_text(
+                json.dumps({"name": "personal", "plugins": [{"name": "qiongli"}]}),
+                encoding="utf-8",
+            )
+            (plugin_root / ".codex-plugin" / "plugin.json").write_text(
+                json.dumps({"name": "qiongli", "version": "9.9.9", "mcpServers": "./.mcp.json"}),
+                encoding="utf-8",
+            )
+            (plugin_root / ".qiongli-managed.json").write_text(
+                json.dumps(
+                    {
+                        "managed_by": "qiongli-cli",
+                        "plugin": "qiongli",
+                        "surface": "plugin",
+                        "version": "9.9.9",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (skill_dir / "VERSION").write_text("v9.9.9\n", encoding="utf-8")
+            args = argparse.Namespace(repo="", json=True, strict_network=False, beta=False, offline=True)
+            codex_list_output = (
+                "WARNING: proceeding, even though aliases could not be created\n"
+                + json.dumps(
+                    {
+                        "installed": [
+                            {
+                                "pluginId": "qiongli@personal",
+                                "name": "qiongli",
+                                "marketplaceName": "personal",
+                                "installed": True,
+                                "enabled": True,
+                            }
+                        ]
+                    }
+                )
+            )
+            completed = mock.Mock(returncode=0, stdout=codex_list_output)
+
+            stdout = io.StringIO()
+            with mock.patch.object(cli_module, "_find_repo_root", return_value=None), mock.patch.object(
+                cli_module, "_check_system_env", return_value={}
+            ), mock.patch.object(
+                cli_module.os,
+                "environ",
+                {
+                    **os.environ,
+                    "HOME": str(root),
+                    "CODEX_HOME": str(root / "codex-home"),
+                    "CLAUDE_CODE_HOME": str(root / "claude-home"),
+                    "ANTIGRAVITY_HOME": str(root / "antigravity-home"),
+                    "HERMES_HOME": str(root / "hermes-home"),
+                    "CLAUDE_CODE_CONFIG_PATH": str(root / "claude.json"),
+                    "ANTIGRAVITY_CONFIG_PATH": str(root / "antigravity-settings.json"),
+                    "HERMES_CONFIG_PATH": str(root / "hermes-settings.json"),
+                },
+            ), mock.patch(
+                "qiongli.install_discovery.shutil.which", return_value="/usr/local/bin/codex"
+            ), mock.patch(
+                "qiongli.install_discovery.subprocess.run", return_value=completed
+            ) as run_mock, contextlib.redirect_stdout(
+                stdout
+            ):
+                exit_code = cli_module.cmd_check(args)
+
+        self.assertEqual(exit_code, 0)
+        payload = json.loads(stdout.getvalue())
+        codex = payload["installed"]["codex"]
+        self.assertEqual(codex["surface"], "plugin")
+        self.assertTrue(codex["plugin"]["active"])
+        self.assertTrue(codex["plugin"]["enabled"])
+        self.assertEqual(codex["plugin"]["plugin_id"], "qiongli@personal")
+        run_mock.assert_called_once()
+
+    def test_check_json_reports_claude_plugin_activation_status(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            plugin_root = root / ".qiongli" / "plugins" / "claude-code" / "plugins" / "qiongli"
+            skill_dir = plugin_root / "skills" / "qiongli-workflow"
+            (plugin_root / ".claude-plugin").mkdir(parents=True)
+            skill_dir.mkdir(parents=True)
+            (plugin_root / ".claude-plugin" / "plugin.json").write_text(
+                json.dumps({"name": "qiongli", "version": "9.9.9"}),
+                encoding="utf-8",
+            )
+            (plugin_root / ".qiongli-managed.json").write_text(
+                json.dumps(
+                    {
+                        "managed_by": "qiongli-cli",
+                        "plugin": "qiongli",
+                        "surface": "plugin",
+                        "version": "9.9.9",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (skill_dir / "VERSION").write_text("v9.9.9\n", encoding="utf-8")
+            args = argparse.Namespace(repo="", json=True, strict_network=False, beta=False, offline=True)
+            completed = mock.Mock(
+                returncode=0,
+                stdout=json.dumps(
+                    [
+                        {
+                            "id": "qiongli@qiongli-local",
+                            "version": "9.9.9",
+                            "enabled": True,
+                            "installPath": str(plugin_root),
+                        }
+                    ]
+                ),
+            )
+
+            stdout = io.StringIO()
+            with mock.patch.object(cli_module, "_find_repo_root", return_value=None), mock.patch.object(
+                cli_module, "_check_system_env", return_value={}
+            ), mock.patch.object(
+                cli_module.os,
+                "environ",
+                {
+                    **os.environ,
+                    "HOME": str(root),
+                    "CODEX_HOME": str(root / "codex-home"),
+                    "CLAUDE_CODE_HOME": str(root / ".claude"),
+                    "ANTIGRAVITY_HOME": str(root / "antigravity-home"),
+                    "HERMES_HOME": str(root / "hermes-home"),
+                    "CLAUDE_CODE_CONFIG_PATH": str(root / "claude.json"),
+                    "ANTIGRAVITY_CONFIG_PATH": str(root / "antigravity-settings.json"),
+                    "HERMES_CONFIG_PATH": str(root / "hermes-settings.json"),
+                },
+            ), mock.patch(
+                "qiongli.install_discovery.shutil.which", return_value="/usr/local/bin/claude"
+            ), mock.patch(
+                "qiongli.install_discovery.subprocess.run", return_value=completed
+            ), contextlib.redirect_stdout(
+                stdout
+            ):
+                exit_code = cli_module.cmd_check(args)
+
+        self.assertEqual(exit_code, 0)
+        payload = json.loads(stdout.getvalue())
+        claude = payload["installed"]["claude"]
+        self.assertEqual(claude["surface"], "plugin")
+        self.assertTrue(claude["plugin"]["active"])
+        self.assertTrue(claude["plugin"]["enabled"])
+        self.assertEqual(claude["plugin"]["plugin_id"], "qiongli@qiongli-local")
+
+    def test_check_json_reports_antigravity_plugin_and_real_mcp_config(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            plugin_root = root / ".qiongli" / "plugins" / "antigravity" / "qiongli"
+            skill_dir = plugin_root / "skills" / "qiongli-workflow"
+            skill_dir.mkdir(parents=True)
+            (plugin_root / "plugin.json").write_text(
+                json.dumps({"name": "qiongli", "version": "9.9.9"}),
+                encoding="utf-8",
+            )
+            (plugin_root / "mcp_config.json").write_text(
+                json.dumps({"mcpServers": {"qiongli": {"command": "qiongli", "args": ["mcp", "serve", "--transport", "stdio"]}}}),
+                encoding="utf-8",
+            )
+            (plugin_root / ".qiongli-managed.json").write_text(
+                json.dumps(
+                    {
+                        "managed_by": "qiongli-cli",
+                        "plugin": "qiongli",
+                        "surface": "plugin",
+                        "version": "9.9.9",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (skill_dir / "VERSION").write_text("v9.9.9\n", encoding="utf-8")
+            mcp_config = root / ".gemini" / "config" / "mcp_config.json"
+            mcp_config.parent.mkdir(parents=True)
+            mcp_config.write_text(
+                json.dumps({"mcpServers": {"qiongli": {"command": "qiongli", "args": ["mcp", "serve", "--transport", "stdio"]}}}),
+                encoding="utf-8",
+            )
+            args = argparse.Namespace(repo="", json=True, strict_network=False, beta=False, offline=True)
+            completed = mock.Mock(returncode=0, stdout="qiongli enabled\n")
+
+            stdout = io.StringIO()
+            with mock.patch.object(cli_module, "_find_repo_root", return_value=None), mock.patch.object(
+                cli_module, "_check_system_env", return_value={}
+            ), mock.patch.object(
+                cli_module.os,
+                "environ",
+                {
+                    **os.environ,
+                    "HOME": str(root),
+                    "CODEX_HOME": str(root / "codex-home"),
+                    "CLAUDE_CODE_HOME": str(root / ".claude"),
+                    "HERMES_HOME": str(root / "hermes-home"),
+                    "CLAUDE_CODE_CONFIG_PATH": str(root / "claude.json"),
+                    "HERMES_CONFIG_PATH": str(root / "hermes-settings.json"),
+                },
+            ), mock.patch(
+                "qiongli.install_discovery.shutil.which", return_value="/usr/local/bin/antigravity"
+            ), mock.patch(
+                "qiongli.install_discovery.subprocess.run", return_value=completed
+            ), contextlib.redirect_stdout(
+                stdout
+            ):
+                exit_code = cli_module.cmd_check(args)
+
+        self.assertEqual(exit_code, 0)
+        payload = json.loads(stdout.getvalue())
+        antigravity = payload["installed"]["antigravity"]
+        self.assertEqual(antigravity["surface"], "plugin")
+        self.assertTrue(antigravity["plugin"]["active"])
+        self.assertTrue(antigravity["mcp"]["installed"])
+        self.assertEqual(antigravity["mcp"]["path"], str(plugin_root / "mcp_config.json"))
+        self.assertEqual(antigravity["mcp"]["source"], "plugin")
+
     def test_doctor_runs_orchestrator_subprocess(self) -> None:
         args = argparse.Namespace(cwd=".")
         completed = mock.Mock(returncode=0, stdout="doctor ok\n")
+        installed = {
+            client: {
+                "installed": False,
+                "surface": "none",
+                "version": None,
+                "path": f"/tmp/{client}/qiongli-workflow",
+            }
+            for client in ("codex", "claude", "antigravity", "hermes")
+        }
+        stdout = io.StringIO()
 
-        with mock.patch.object(cli_module.subprocess, "run", return_value=completed) as run_mock:
+        with mock.patch.object(cli_module.subprocess, "run", return_value=completed) as run_mock, mock.patch.object(
+            cli_module, "discover_install_surfaces", return_value=installed
+        ), contextlib.redirect_stdout(stdout):
             exit_code = cli_module.cmd_doctor(args)
 
         self.assertEqual(exit_code, 0)
+        self.assertIn("Client Integration", stdout.getvalue())
         run_mock.assert_called_once()
         command = run_mock.call_args.args[0]
         self.assertEqual(command[:3], [cli_module.sys.executable, "-m", "bridges.orchestrator"])

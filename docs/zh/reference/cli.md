@@ -74,7 +74,7 @@ qiongli upgrade
 
 | Surface | 安装内容 |
 |---|---|
-| `plugin` | Codex / Claude Code 的 CLI-managed local plugin；target 包含 Antigravity/Hermes 时写入受管理 MCP config |
+| `plugin` | Codex / Claude Code / Antigravity 的 CLI-managed local plugin；Antigravity plugin 包含 root `mcp_config.json`；target 包含 Hermes 时写入受管理 MCP config |
 | `skills` | 旧版全局 `qiongli-workflow` skill 目录，以及客户端支持的 workflow discovery |
 | `both` | 同时安装旧版全局 skills 和本地 plugin surface |
 
@@ -83,19 +83,26 @@ qiongli upgrade
 ### 2.1 `qiongli check`（检查版本/是否有更新）
 
 用途：
-- 输出 CLI 版本、本地 repo 版本（若在仓库内运行）、受支持客户端的已安装版本
+- 输出 CLI 版本、本地 repo 版本（若在仓库内运行）、受支持客户端安装 surface 的已安装版本
 - 可选：查询上游最新 release tag，并判断是否需要升级
 
 ```bash
-qiongli check [--repo <owner/repo|url>] [--json] [--strict-network]
+qiongli check [--repo <owner/repo|url>] [--json] [--strict-network] [--offline]
 ```
 
 关键参数：
 - `--repo`：指定上游（可省略，见“上游解析”）
 - `--json`：只输出 JSON（便于 CI/脚本）
 - `--strict-network`：如果上游查询失败则返回失败（默认仅提示并继续）
+- `--offline`：跳过 PyPI 和上游 release 查询，只检查本地安装 surface
 
-JSON 输出会包含每个 target 当前安装的 active subject 和 coverage。旧 managed install 如果没有 `SUBJECT_MANIFEST.json` 或 `SUBJECT` marker，会按 legacy `core` / `complete` 处理。
+`qiongli check` 现在会识别 plugin-first 安装形态：Codex / Claude Code / Antigravity 的 CLI-managed local plugin 会显示 `surface=plugin`，Hermes 或只安装 MCP 的受管理 config 会显示 `surface=mcp`，旧版全局 skill 目录会显示 `surface=legacy_skill`，未发现时显示 `surface=none`。JSON 仍保留兼容字段 `installed`、`version`、`subject`、`coverage` 和 `path`，同时增加 `plugin`、`skill`、`mcp` 三个诊断对象。可通过客户端 CLI 查询时，plugin 诊断还会包含 `active`、`enabled`、`plugin_id` 和 `activation_detail`，用于区分“文件已安装”和“客户端已启用 plugin”。旧 managed install 如果没有 `SUBJECT_MANIFEST.json` 或 `SUBJECT` marker，会按 legacy `core` / `complete` 处理。
+
+如果 Codex Personal marketplace 里能看到 `qiongli`，但打开详情时显示 `Plugin detail unavailable`，说明 marketplace entry 被发现了，但 Codex 无法读取本地 plugin payload。先看 `qiongli check --json` 输出的本地 plugin root；常见原因是 `.codex-plugin/plugin.json` 不符合当前 schema、`skills/qiongli-workflow/SKILL.md` frontmatter 不是合法 YAML，或本地路径缺失。刷新 CLI 管理的 Codex plugin：
+
+```bash
+qiongli install --target codex --surface plugin --overwrite
+```
 
 退出码约定：
 - `0`：无更新/或跳过上游检查
@@ -139,7 +146,19 @@ wizard 选项：
 
 通过 setup 输入的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。密钥保存在生成的研究 artifacts 之外。setup 会配置凭据并执行 doctor/capability 检查；它不承诺一定会运行外部 literature search。
 
-### 2.2.1 `qiongli mcp`（跨平台 MCP server）
+### 2.2.1 `qiongli doctor`（运行时和客户端集成健康检查）
+
+用途：
+- 对指定项目目录运行 Python orchestrator doctor。
+- 使用与 `qiongli check` 相同的 plugin/MCP/legacy skill discovery，追加一个非致命的 client integration 摘要。
+
+```bash
+qiongli doctor --cwd .
+```
+
+`doctor` 检查 project 文件、provider/orchestrator readiness、本地模型 CLI 等运行时条件。它不会安装或删除 plugin。缺少可选客户端集成只会出现在摘要里，不会单独让 `doctor` 失败；退出码仍然来自 orchestrator doctor。
+
+### 2.2.2 `qiongli mcp`（跨平台 MCP server）
 
 用途：
 - 为支持 MCP 的桌面或 agent 客户端启动本地 Qiongli MCP server。
@@ -166,7 +185,7 @@ server 暴露的 MCP tools 包括 `qiongli_config_status`、`qiongli_save_provid
 
 用途：
 - 把 PyPI/npm/source checkout 内携带的 subject payload 安装成当前本地 Qiongli surface。
-- 默认是完整 plugin surface：Codex / Claude Code 本地 plugin、Antigravity / Hermes 受管理 MCP config，并刷新 shell CLI wrapper，除非显式传 `--no-cli`。
+- 默认是完整 plugin surface：Codex / Claude Code / Antigravity 本地 plugin、Antigravity plugin 内置 MCP config、Hermes 受管理 MCP config，并刷新 shell CLI wrapper，除非显式传 `--no-cli`。
 - 默认不会迁移或删除旧版 global skills；自动迁移走 `qiongli upgrade`，显式清理走 `qiongli remove`。
 
 ```bash
@@ -205,10 +224,10 @@ qiongli install --parts mcp --target hermes
 
 Subject package 是专精安装包，不是降质删减版。默认安装是 `core/complete`。`--subject economics`、`--subject business`、`--subject finance`、`--subject political-economy` 和 `--subject geoeconomics` 表示 complete 专精安装，不是缩水包；`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。`focused` coverage 只选择该 subject 的 profiles 和 active effective skills，用于有意选择的精简安装和 Desktop/Web ZIP。当前官方 subjects 是 `core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics` 和命名 composite subject `economics-accounting`；`political-economy` 和 `geoeconomics` 是两个独立 subject 选择，不是一个 composite。官方 composite subjects 不是任意逗号分隔叠加。本阶段公开 Desktop ZIP subjects 是 `core`、`economics`、`business`、`finance`、`political-economy`、`geoeconomics` 和 `economics-accounting`，还没有 standalone accounting Desktop ZIP。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新参数。
 
-从 v1.9.0 开始，`qiongli install` 默认等价于 `--profile full --surface plugin`。Codex 会写入 personal marketplace entry 和启动 `qiongli mcp serve --transport stdio` 的 plugin `.mcp.json`；Claude Code 会写入本地 plugin manifest 并启动同一个 full MCP server。`--target all` 会让 Codex/Claude Code 使用本地 plugin，同时给 Antigravity/Hermes 写入受管理的 full MCP client 配置。Marketplace 安装的 plugin 仍然保持 lite/no-Python 路径，使用内置 Node literature provider。需要旧版 skills-only 布局时，使用 `--surface skills --profile partial`。
+从 v1.9.0 开始，`qiongli install` 默认等价于 `--profile full --surface plugin`。Codex 会写入 personal marketplace entry，把 plugin payload 放到 `~/plugins/qiongli`，写入启动 `qiongli mcp serve --transport stdio` 的 plugin `.mcp.json`，并在 Codex CLI 可用时执行 `codex plugin add qiongli@personal`。Claude Code 会在 `~/.qiongli/plugins/claude-code` 写入本地 marketplace，把 plugin payload 放到 `plugins/qiongli`，并在 Claude CLI 可用时执行 `claude plugin marketplace add ...` 和 `claude plugin install qiongli@qiongli-local --scope user`。Antigravity 会在 `~/.qiongli/plugins/antigravity/qiongli` 写入带 root `plugin.json` 的 plugin bundle，并在 plugin 根目录写入 full MCP server 配置 `mcp_config.json`，在 CLI 可用时执行 `antigravity plugin install <path>`。`--target all` 会让 Codex / Claude Code / Antigravity 使用本地 plugin，同时给 Hermes 写入受管理的 full MCP client 配置。Marketplace 安装的 plugin 仍然保持 lite/no-Python 路径，使用内置 Node literature provider。需要旧版 skills-only 布局时，使用 `--surface skills --profile partial`。
 
 安装行为细节：
-- `--surface plugin --target all` 会给 Codex / Claude Code 安装 plugin-owned MCP，并给 Antigravity / Hermes 写入 client-level MCP config。
+- `--surface plugin --target all` 会给 Codex / Claude Code / Antigravity 安装 CLI-managed local plugin；Antigravity plugin 会包含 root `mcp_config.json`，Hermes 会写入受管理的 client-level MCP config。
 - `--surface skills --profile partial` 只安装旧版 skill 目录和 workflow discovery；除非使用 `--parts cli` 或 `--parts mcp`，否则不会安装 shell wrapper 或 MCP config。
 - `--surface both` 会保留旧版 global skills，同时安装本地 plugin；只有明确需要两个发现路径同时存在时才使用。
 - `--parts` 优先于 `--surface`。例如 `--parts mcp --target antigravity` 只写 Antigravity MCP config，`--parts project` 只写项目侧文件。
@@ -242,11 +261,11 @@ qiongli upgrade \
 
 说明：
 - `--project-dir` 主要在你显式请求项目侧安装面时生效，例如 `--parts project`。
-- 现在默认的 `upgrade` 等价于 `--profile full --surface plugin`：刷新 Codex / Claude Code 本地 plugin，给 Antigravity / Hermes 写入受管理 MCP config，并在安装成功后清理旧 global skills 和 Codex/Claude 独立 MCP config。
+- 现在默认的 `upgrade` 等价于 `--profile full --surface plugin`：刷新 Codex / Claude Code / Antigravity 本地 plugin，把 Antigravity MCP config 打包进 plugin，给 Hermes 写入受管理 MCP config，并在安装成功后清理旧 global skills 和 Codex/Claude/Antigravity 独立 MCP config。
 - 如果要保留旧版 skills-only 升级路径，使用 `qiongli upgrade --surface skills --profile partial ...`。
 - 如果明确想让旧版 global skills 和 plugin surface 并存，使用 `qiongli upgrade --surface both ...`；这个路径不会执行 plugin migration cleanup。
 - migration cleanup 只会在 effective `--surface plugin` 升级成功后运行，并且 selected parts 为空或包含 `plugin`。安装失败时绝不会删除旧资产。
-- migration cleanup 会删除旧版全局 `qiongli-workflow` skill 目录、Claude Code workflow discovery links，以及 Codex/Claude 独立 MCP config。Antigravity/Hermes MCP config 会保留，因为 plugin-first 架构下它们仍然通过受管理 MCP config 接入。
+- migration cleanup 会删除旧版全局 `qiongli-workflow` skill 目录、Claude Code workflow discovery links，以及 Codex/Claude/Antigravity 独立 MCP config。Hermes MCP config 会保留，因为 Hermes 仍然使用 client-level 受管理 MCP config。
 - 项目接线建议走 `qiongli init --project-dir .`；如果确实要在升级时重写项目文件，再显式加 `--parts project`。
 - `--subject` 默认是 `core`，`--coverage` 默认是 `complete`；使用 `--subject economics` 会安装全量 Qiongli 加 economics 专精，使用 `--subject accounting` 会安装全量 Qiongli 加 accounting 专精，显式加 `--coverage focused` 时才安装精简 selected 包。
 - 示例：`qiongli upgrade --subject accounting --target all`。

@@ -152,6 +152,33 @@ class DistributionMaterializerTests(unittest.TestCase):
         self.assertNotIn('["bash"', source)
         self.assertIn("def materialize_plugin_payload", source)
 
+    def test_python_payload_contains_plugin_distribution_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "staging"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(MATERIALIZER_PATH),
+                    "--target",
+                    "python",
+                    "--out",
+                    str(out),
+                    "--force",
+                ],
+                cwd=REPO_ROOT,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+
+            self.assertEqual(0, result.returncode, result.stderr)
+            source_metadata = out / "content" / "distribution" / "plugins.yaml"
+            payload_metadata = out / "packages" / "python-qiongli" / "src" / "qiongli" / "payload" / "content" / "distribution" / "plugins.yaml"
+            self.assertTrue(payload_metadata.is_file())
+            self.assertEqual(source_metadata.read_text(encoding="utf-8"), payload_metadata.read_text(encoding="utf-8"))
+
     def test_legacy_sync_helpers_are_marked_internal(self) -> None:
         sync_skill = SYNC_SKILL_PACKAGE.read_text(encoding="utf-8")
         sync_npm = SYNC_NPM_PAYLOAD.read_text(encoding="utf-8")

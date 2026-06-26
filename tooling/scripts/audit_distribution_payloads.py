@@ -342,6 +342,13 @@ def audit(root: Path) -> list[AuditIssue]:
                 extra_excluded_names=PYTHON_PAYLOAD_EXTRA_EXCLUDES.get(dir_name),
             )
         )
+    issues.extend(
+        _compare_files(
+            layout.content / "distribution" / "plugins.yaml",
+            python_payload / "content" / "distribution" / "plugins.yaml",
+            "python payload plugin distribution metadata vs source",
+        )
+    )
 
     issues.extend(_audit_subject_payloads(root, npm_payload_subjects, "npm subject payload coverage"))
     if python_payload.exists():

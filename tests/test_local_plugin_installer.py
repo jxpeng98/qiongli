@@ -7,10 +7,16 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+import yaml
+
+from qiongli import __version__ as QIONGLI_VERSION
 from qiongli.local_plugin_installer import (
     LocalPluginOptions,
+    _build_materialize_source,
     install_local_plugin,
     remove_local_plugin,
+    resolve_antigravity_plugin_root,
+    resolve_claude_plugin_paths,
     resolve_codex_plugin_paths,
 )
 
@@ -26,6 +32,15 @@ class LocalPluginInstallerTests(unittest.TestCase):
 
         self.assertEqual(paths.marketplace_path, marketplace)
         self.assertEqual(paths.plugin_root, marketplace.parent / "plugins" / "qiongli")
+        self.assertEqual(paths.marketplace_source_path, "./plugins/qiongli")
+
+    def test_resolve_codex_plugin_paths_uses_codex_personal_marketplace_root(self) -> None:
+        marketplace = Path("/tmp/qiongli-home/.agents/plugins/marketplace.json")
+
+        paths = resolve_codex_plugin_paths(marketplace_path=marketplace)
+
+        self.assertEqual(paths.marketplace_path, marketplace)
+        self.assertEqual(paths.plugin_root, Path("/tmp/qiongli-home/plugins/qiongli"))
         self.assertEqual(paths.marketplace_source_path, "./plugins/qiongli")
 
     def test_resolve_codex_plugin_paths_honors_env_marketplace_override(self) -> None:
@@ -63,10 +78,16 @@ class LocalPluginInstallerTests(unittest.TestCase):
 
             codex_manifest = self._read_json(plugin_root / ".codex-plugin" / "plugin.json")
             self.assertEqual(codex_manifest["name"], "qiongli")
+            self.assertNotIn("category", codex_manifest)
             self.assertEqual(codex_manifest["skills"], "./skills/")
             self.assertEqual(codex_manifest["mcpServers"], "./.mcp.json")
             self.assertEqual(codex_manifest["interface"]["displayName"], "Qiongli")
             self.assertEqual(codex_manifest["interface"]["category"], "Education")
+            skill_text = (plugin_root / "skills" / "qiongli-workflow" / "SKILL.md").read_text(encoding="utf-8")
+            frontmatter = skill_text.split("---", 2)[1]
+            skill_metadata = yaml.safe_load(frontmatter)
+            self.assertEqual(skill_metadata["name"], "qiongli")
+            self.assertIn("Qiongli version:", skill_metadata["description"])
 
             mcp_manifest = self._read_json(plugin_root / ".mcp.json")
             self.assertEqual(
@@ -139,17 +160,17 @@ class LocalPluginInstallerTests(unittest.TestCase):
     def test_install_claude_plugin_writes_full_mcp_manifest_and_skill(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            claude_parent = root / "claude-code"
+            claude_marketplace = root / "claude-code"
 
             result = install_local_plugin(
                 LocalPluginOptions(
                     repo_root=REPO_ROOT,
                     target="claude",
-                    claude_plugin_parent=claude_parent,
+                    claude_plugin_parent=claude_marketplace,
                 )
             )
 
-            plugin_root = claude_parent / "qiongli"
+            plugin_root = claude_marketplace / "plugins" / "qiongli"
             self.assertTrue(result.changed)
             self.assertEqual(result.installed_roots, {"claude": plugin_root})
             self.assertTrue((plugin_root / "skills" / "qiongli-workflow" / "SKILL.md").is_file())
@@ -175,11 +196,62 @@ class LocalPluginInstallerTests(unittest.TestCase):
             self.assertIn("Load the `qiongli` skill", command_text)
             self.assertIn("skills/qiongli-workflow/workflows/paper.md", command_text)
 
+            marketplace = self._read_json(claude_marketplace / ".claude-plugin" / "marketplace.json")
+            self.assertEqual(marketplace["name"], "qiongli-local")
+            self.assertEqual(marketplace["plugins"][0]["name"], "qiongli")
+            self.assertEqual(marketplace["plugins"][0]["source"], "./plugins/qiongli")
+            self.assertEqual(marketplace["plugins"][0]["category"], "Education")
+
+    def test_resolve_claude_plugin_paths_uses_marketplace_plugins_root(self) -> None:
+        marketplace_root = Path("/tmp/qiongli-claude-marketplace")
+
+        paths = resolve_claude_plugin_paths(marketplace_root=marketplace_root)
+
+        self.assertEqual(paths.marketplace_root, marketplace_root)
+        self.assertEqual(paths.marketplace_path, marketplace_root / ".claude-plugin" / "marketplace.json")
+        self.assertEqual(paths.plugin_root, marketplace_root / "plugins" / "qiongli")
+        self.assertEqual(paths.marketplace_name, "qiongli-local")
+
+    def test_install_antigravity_plugin_writes_root_plugin_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            antigravity_parent = root / "antigravity"
+
+            result = install_local_plugin(
+                LocalPluginOptions(
+                    repo_root=REPO_ROOT,
+                    target="antigravity",
+                    antigravity_plugin_parent=antigravity_parent,
+                )
+            )
+
+            plugin_root = antigravity_parent / "qiongli"
+            self.assertTrue(result.changed)
+            self.assertEqual(result.installed_roots, {"antigravity": plugin_root})
+            manifest = self._read_json(plugin_root / "plugin.json")
+            self.assertEqual(manifest["name"], "qiongli")
+            self.assertEqual(manifest["version"], QIONGLI_VERSION)
+            mcp_manifest = self._read_json(plugin_root / "mcp_config.json")
+            self.assertEqual(
+                mcp_manifest,
+                {
+                    "mcpServers": {
+                        "qiongli": {
+                            "command": "qiongli",
+                            "args": ["mcp", "serve", "--transport", "stdio"],
+                        }
+                    }
+                },
+            )
+            self.assertTrue((plugin_root / "skills" / "qiongli-workflow" / "SKILL.md").is_file())
+            self.assertTrue((plugin_root / "commands" / "paper.md").is_file())
+
     def test_target_all_installs_codex_and_claude_only(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             marketplace = root / "agents" / "marketplace.json"
             claude_parent = root / "claude-code"
+            antigravity_parent = root / "antigravity-plugins"
 
             result = install_local_plugin(
                 LocalPluginOptions(
@@ -187,6 +259,7 @@ class LocalPluginInstallerTests(unittest.TestCase):
                     target="all",
                     codex_marketplace_path=marketplace,
                     claude_plugin_parent=claude_parent,
+                    antigravity_plugin_parent=antigravity_parent,
                 )
             )
 
@@ -195,12 +268,34 @@ class LocalPluginInstallerTests(unittest.TestCase):
                 result.installed_roots,
                 {
                     "codex": marketplace.parent / "plugins" / "qiongli",
-                    "claude": claude_parent / "qiongli",
+                    "claude": claude_parent / "plugins" / "qiongli",
+                    "antigravity": resolve_antigravity_plugin_root(antigravity_parent),
                 },
             )
             self.assertTrue((result.installed_roots["codex"] / ".codex-plugin" / "plugin.json").is_file())
             self.assertTrue((result.installed_roots["claude"] / ".claude-plugin" / "plugin.json").is_file())
-            self.assertEqual(set(result.installed_roots), {"codex", "claude"})
+            self.assertTrue((result.installed_roots["antigravity"] / "plugin.json").is_file())
+            self.assertTrue((result.installed_roots["antigravity"] / "mcp_config.json").is_file())
+            self.assertEqual(set(result.installed_roots), {"codex", "claude", "antigravity"})
+
+    def test_materialize_source_accepts_self_contained_payload_workflow(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            payload = root / "payload"
+            (payload / "qiongli-workflow" / "skills").mkdir(parents=True)
+            (payload / "qiongli-workflow" / "skills" / "registry.yaml").write_text("workflow\n", encoding="utf-8")
+            (payload / "skills").mkdir(parents=True)
+            (payload / "skills" / "registry.yaml").write_text("payload\n", encoding="utf-8")
+            (payload / "subjects").mkdir(parents=True)
+            (payload / "subjects" / "catalog.yaml").write_text("subjects: {}\n", encoding="utf-8")
+
+            materialized = _build_materialize_source(payload, root / "work")
+
+            self.assertEqual(
+                "workflow",
+                (materialized / "qiongli-workflow" / "skills" / "registry.yaml").read_text(encoding="utf-8").strip(),
+            )
+            self.assertEqual("payload", (materialized / "skills" / "registry.yaml").read_text(encoding="utf-8").strip())
 
     def test_non_plugin_target_returns_empty_unchanged_result(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -209,7 +304,7 @@ class LocalPluginInstallerTests(unittest.TestCase):
             result = install_local_plugin(
                 LocalPluginOptions(
                     repo_root=REPO_ROOT,
-                    target="antigravity",
+                    target="hermes",
                     codex_marketplace_path=root / "agents" / "marketplace.json",
                     claude_plugin_parent=root / "claude-code",
                 )
@@ -224,6 +319,7 @@ class LocalPluginInstallerTests(unittest.TestCase):
             root = Path(tmp)
             marketplace = root / "agents" / "marketplace.json"
             claude_parent = root / "claude-code"
+            antigravity_parent = root / "antigravity-plugins"
 
             result = install_local_plugin(
                 LocalPluginOptions(
@@ -232,6 +328,7 @@ class LocalPluginInstallerTests(unittest.TestCase):
                     dry_run=True,
                     codex_marketplace_path=marketplace,
                     claude_plugin_parent=claude_parent,
+                    antigravity_plugin_parent=antigravity_parent,
                 )
             )
 
@@ -240,12 +337,14 @@ class LocalPluginInstallerTests(unittest.TestCase):
                 result.installed_roots,
                 {
                     "codex": marketplace.parent / "plugins" / "qiongli",
-                    "claude": claude_parent / "qiongli",
+                    "claude": claude_parent / "plugins" / "qiongli",
+                    "antigravity": antigravity_parent / "qiongli",
                 },
             )
             self.assertFalse(marketplace.exists())
             self.assertFalse(result.installed_roots["codex"].exists())
             self.assertFalse(result.installed_roots["claude"].exists())
+            self.assertFalse(result.installed_roots["antigravity"].exists())
 
     def test_managed_overwrite_replaces_existing_managed_root(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

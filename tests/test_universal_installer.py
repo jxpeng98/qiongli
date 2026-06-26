@@ -575,7 +575,9 @@ class UniversalInstallerTests(unittest.TestCase):
                     )
                 )
 
-            antigravity_config = json.loads((antigravity_home / "settings.json").read_text(encoding="utf-8"))
+            antigravity_config = json.loads(
+                (temp_root / ".gemini" / "config" / "mcp_config.json").read_text(encoding="utf-8")
+            )
             hermes_config = json.loads((hermes_home / "settings.json").read_text(encoding="utf-8"))
 
             self.assertEqual(result, 0)
@@ -625,6 +627,135 @@ class UniversalInstallerTests(unittest.TestCase):
             self.assertTrue((plugin_root / ".mcp.json").is_file())
             self.assertFalse((codex_home / "skills" / "qiongli-workflow" / "SKILL.md").exists())
             self.assertFalse((codex_home / "config.toml").exists())
+
+    def test_plugin_surface_activates_codex_personal_plugin_when_cli_is_available(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            codex_home = temp_root / "codex-home"
+            env = os.environ.copy()
+            env["HOME"] = str(temp_root)
+            env["CODEX_HOME"] = str(codex_home)
+
+            completed = mock.Mock(returncode=0, stdout='{"status":"installed"}\n')
+            with (
+                mock.patch.dict(os.environ, env, clear=True),
+                mock.patch("qiongli.universal_installer.shutil.which", return_value="/usr/local/bin/codex"),
+                mock.patch("qiongli.universal_installer.subprocess.run", return_value=completed) as run_mock,
+            ):
+                result = install(
+                    InstallOptions(
+                        repo_root=REPO_ROOT,
+                        project_dir=project_dir,
+                        target="codex",
+                        profile="full",
+                        surface="plugin",
+                        install_cli=False,
+                        doctor=False,
+                    )
+                )
+
+            plugin_root = temp_root / "plugins" / "qiongli"
+            marketplace = temp_root / ".agents" / "plugins" / "marketplace.json"
+            self.assertEqual(result, 0)
+            self.assertTrue((plugin_root / ".codex-plugin" / "plugin.json").is_file())
+            self.assertEqual(
+                json.loads(marketplace.read_text(encoding="utf-8"))["plugins"][0]["source"],
+                {"source": "local", "path": "./plugins/qiongli"},
+            )
+            run_mock.assert_called_once_with(
+                ["/usr/local/bin/codex", "plugin", "add", "qiongli@personal", "--json"],
+                stdout=-1,
+                stderr=-2,
+                text=True,
+                check=False,
+            )
+
+    def test_plugin_surface_activates_claude_plugin_when_cli_is_available(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            env = os.environ.copy()
+            env["HOME"] = str(temp_root)
+            env["CLAUDE_CODE_HOME"] = str(temp_root / ".claude")
+
+            completed = mock.Mock(returncode=0, stdout="ok\n")
+
+            def fake_which(name: str) -> str | None:
+                return "/usr/local/bin/claude" if name == "claude" else None
+
+            with (
+                mock.patch.dict(os.environ, env, clear=True),
+                mock.patch("qiongli.universal_installer.shutil.which", side_effect=fake_which),
+                mock.patch("qiongli.universal_installer.subprocess.run", return_value=completed) as run_mock,
+            ):
+                result = install(
+                    InstallOptions(
+                        repo_root=REPO_ROOT,
+                        project_dir=project_dir,
+                        target="claude",
+                        profile="full",
+                        surface="plugin",
+                        install_cli=False,
+                        doctor=False,
+                    )
+                )
+
+            marketplace_root = temp_root / ".qiongli" / "plugins" / "claude-code"
+            plugin_root = marketplace_root / "plugins" / "qiongli"
+            self.assertEqual(result, 0)
+            self.assertTrue((plugin_root / ".claude-plugin" / "plugin.json").is_file())
+            commands = [call.args[0] for call in run_mock.call_args_list]
+            self.assertIn(
+                ["/usr/local/bin/claude", "plugin", "marketplace", "add", str(marketplace_root), "--scope", "user"],
+                commands,
+            )
+            self.assertIn(
+                ["/usr/local/bin/claude", "plugin", "install", "qiongli@qiongli-local", "--scope", "user"],
+                commands,
+            )
+
+    def test_plugin_surface_activates_antigravity_plugin_when_cli_is_available(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            env = os.environ.copy()
+            env["HOME"] = str(temp_root)
+
+            completed = mock.Mock(returncode=0, stdout="installed\n")
+
+            def fake_which(name: str) -> str | None:
+                return "/usr/local/bin/antigravity" if name == "antigravity" else None
+
+            with (
+                mock.patch.dict(os.environ, env, clear=True),
+                mock.patch("qiongli.universal_installer.shutil.which", side_effect=fake_which),
+                mock.patch("qiongli.universal_installer.subprocess.run", return_value=completed) as run_mock,
+            ):
+                result = install(
+                    InstallOptions(
+                        repo_root=REPO_ROOT,
+                        project_dir=project_dir,
+                        target="antigravity",
+                        parts=("plugin",),
+                        install_cli=False,
+                        doctor=False,
+                    )
+                )
+
+            plugin_root = temp_root / ".qiongli" / "plugins" / "antigravity" / "qiongli"
+            self.assertEqual(result, 0)
+            self.assertTrue((plugin_root / "plugin.json").is_file())
+            run_mock.assert_called_once_with(
+                ["/usr/local/bin/antigravity", "plugin", "install", str(plugin_root)],
+                stdout=-1,
+                stderr=-2,
+                text=True,
+                check=False,
+            )
 
     def test_both_surface_installs_codex_plugin_and_global_skill(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -689,16 +820,21 @@ class UniversalInstallerTests(unittest.TestCase):
                 )
 
             codex_plugin_root = marketplace.parent / "plugins" / "qiongli"
-            claude_plugin_root = claude_plugin_parent / "qiongli"
-            antigravity_config = json.loads((antigravity_home / "settings.json").read_text(encoding="utf-8"))
+            claude_plugin_root = claude_plugin_parent / "plugins" / "qiongli"
+            antigravity_plugin_root = temp_root / ".qiongli" / "plugins" / "antigravity" / "qiongli"
+            antigravity_plugin_config = json.loads(
+                (antigravity_plugin_root / "mcp_config.json").read_text(encoding="utf-8")
+            )
             hermes_config = json.loads((hermes_home / "settings.json").read_text(encoding="utf-8"))
 
             self.assertEqual(result, 0)
             self.assertTrue((codex_plugin_root / ".codex-plugin" / "plugin.json").is_file())
             self.assertTrue((claude_plugin_root / ".claude-plugin" / "plugin.json").is_file())
+            self.assertTrue((antigravity_plugin_root / "plugin.json").is_file())
             self.assertFalse((codex_home / "config.toml").exists())
             self.assertFalse((temp_root / ".claude.json").exists())
-            self.assertEqual(antigravity_config["mcpServers"]["qiongli"]["command"], "qiongli")
+            self.assertFalse((temp_root / ".gemini" / "config" / "mcp_config.json").exists())
+            self.assertEqual(antigravity_plugin_config["mcpServers"]["qiongli"]["command"], "qiongli")
             self.assertEqual(hermes_config["mcpServers"]["qiongli"]["command"], "qiongli")
 
     def test_plugin_upgrade_cleanup_removes_legacy_skills_and_plugin_managed_mcp_only(self) -> None:
@@ -743,9 +879,11 @@ class UniversalInstallerTests(unittest.TestCase):
             self.assertNotIn("qiongli", (codex_home / "config.toml").read_text(encoding="utf-8"))
             claude_config = json.loads((temp_root / ".claude.json").read_text(encoding="utf-8"))
             self.assertNotIn("qiongli", claude_config.get("mcpServers", {}))
-            antigravity_config = json.loads((antigravity_home / "settings.json").read_text(encoding="utf-8"))
+            antigravity_config = json.loads(
+                (temp_root / ".gemini" / "config" / "mcp_config.json").read_text(encoding="utf-8")
+            )
             hermes_config = json.loads((hermes_home / "settings.json").read_text(encoding="utf-8"))
-            self.assertEqual(antigravity_config["mcpServers"]["qiongli"]["command"], "qiongli")
+            self.assertNotIn("qiongli", antigravity_config.get("mcpServers", {}))
             self.assertEqual(hermes_config["mcpServers"]["qiongli"]["command"], "qiongli")
 
     def test_remove_plugin_surface_removes_local_plugin_without_global_skill(self) -> None:

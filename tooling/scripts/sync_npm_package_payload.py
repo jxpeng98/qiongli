@@ -148,6 +148,7 @@ def sync_python_payload(root: Path, materialize_source: Path, *, dry_run: bool) 
         "qiongli-workflow": materialize_source / "qiongli-workflow",
         "skills": layout.skills,
         "subjects": layout.subjects,
+        "content/distribution": layout.content / "distribution",
     }
     for item, src in payload_sources.items():
         copy_path(src, payload_root / item, dry_run=dry_run)

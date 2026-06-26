@@ -48,7 +48,7 @@ The public name is **Qiongli**, from the Chinese `穷理`: to keep asking what p
 | You need scriptable installs or upgrades | Use the [CLI Reference](docs/reference/cli.md) |
 | You want to understand the architecture | Read [Architecture](docs/architecture.md) |
 
-From v1.9.0 onward, `qiongli install` and `qiongli upgrade` default to `--profile full --surface plugin`. Codex and Claude Code receive CLI-managed local plugins backed by the full Python MCP server; Antigravity and Hermes receive managed MCP client configs. Use `--surface skills --profile partial` only when you deliberately want the legacy skills-only surface.
+From v1.9.0 onward, `qiongli install` and `qiongli upgrade` default to `--profile full --surface plugin`. Codex, Claude Code, and Antigravity receive CLI-managed local plugins backed by the full Python MCP server. Antigravity bundles that MCP server in the plugin root `mcp_config.json`; Hermes receives a managed MCP client config. Use `--surface skills --profile partial` only when you deliberately want the legacy skills-only surface.
 
 ## Latest Stable Downloads
 
@@ -117,7 +117,7 @@ Start with the smallest surface that matches the job. In Qiongli, "full workflow
 | **Claude Code marketplace plugin**: `claude plugin marketplace add jxpeng98/skillsplace@main` | You use Claude Code and want the Qiongli workflow from the marketplace. | Installs the full `subject/complete` workflow package for `qiongli` and subject entries such as `qiongli-economics@skillsplace`; includes slash workflow commands like `/paper`, `/lit-review`, and `/code-build`, plus the same zero-dependency Node literature MCP runtime as Codex for provider, search, and status tools. | Marketplace stays lite/no-Python. Full Python-backed tools use the CLI-generated local plugin: `qiongli install --profile full --target claude --surface plugin`. |
 | **Claude Desktop/Web Skill ZIP** | You want Qiongli in Claude Desktop or Claude.ai without a code environment. | No terminal required. Good for skill-guided paper planning, writing, review, and focused subject packages. | Focused package kept under Desktop upload limits; skill-only, no secrets, no provider calls, no local agent execution. |
 | **Claude Desktop Literature MCPB**: `qiongli-literature-provider.mcpb` | Desktop needs local OpenAlex/Semantic Scholar search and provider key configuration. | No Python or npm install; pairs cleanly with the Desktop Skill ZIP. | Literature/provider tools only. It does not install Qiongli skills and does not launch orchestrator agents. |
-| **Full local plugin**: `qiongli install --target all` | You want one full local Qiongli surface across Codex, Claude Code, Antigravity, and Hermes. | Generates client-native local plugin bundles for Codex/Claude Code that launch `qiongli mcp serve --transport stdio`; Antigravity/Hermes receive managed full MCP client configs. | Requires Python 3.12+. Marketplace plugin installs remain separate. |
+| **Full local plugin**: `qiongli install --target all` | You want one full local Qiongli surface across Codex, Claude Code, Antigravity, and Hermes. | Generates client-native local plugin bundles for Codex/Claude Code/Antigravity that launch `qiongli mcp serve --transport stdio`; Antigravity bundles root `mcp_config.json`, and Hermes receives managed full MCP client config. | Requires Python 3.12+. Marketplace plugin installs remain separate. |
 | **npm / npx**: `npm install -g qiongli` or `npx qiongli@latest ...` | You want scriptable installs, upgrades, and prebuilt complete/focused subject payloads through Node. | Good default for cross-client asset installation; no PyPI dependency for skill payloads. | Advanced bridge commands such as `setup`, `doctor`, `task-run`, and `mcp` need Python 3.12+ with `PyYAML`. |
 | **Bootstrap `partial`** | You want portable workflow assets and command discovery across clients without Python. | Simple shell/PowerShell path for skills and workflow discovery links. | No runtime validation, no Python bridge, no local orchestrator execution. |
 | **Bootstrap `full` / pipx / pip Python CLI** | You need the CLI runtime directly: `doctor`, validators, local `task-plan`, `task-run`, `team-run`, or `qiongli mcp serve`. | Most complete runtime surface; enables local checks, provider config, literature search, and Python-backed orchestration. | Requires Python 3.12+, model CLIs in `PATH`, and runtime auth for actual agent execution. For Codex/Claude Code, prefer `--surface plugin` when you want the client to own a plugin container. |
@@ -184,6 +184,14 @@ pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile full -Projec
 
 Use `partial` for skills and workflow discovery. Use `full` when you also need the shell CLI, `doctor`, validators, or local orchestrator execution.
 
+## Check And Doctor
+
+Use `qiongli check` to inspect package/version state and client installation surfaces. In plugin-first installs it reports `surface=plugin` for Codex/Claude Code/Antigravity local plugins, `surface=mcp` for Hermes or MCP-only managed configs, and `surface=legacy_skill` for old global skill installs. The JSON payload keeps the backward-compatible `installed`, `version`, `subject`, `coverage`, and `path` fields and also includes nested `plugin`, `skill`, and `mcp` details. Plugin diagnostics include `active`, `enabled`, `plugin_id`, and `activation_detail` where the client CLI can be queried, so file installation can be distinguished from an enabled client plugin. Use `qiongli check --offline --json` in local release or CI gates that must avoid PyPI/GitHub calls.
+
+Use `qiongli doctor --cwd .` for runtime/orchestrator health. It runs the orchestrator doctor and then prints a non-fatal `Client Integration` summary from the same install-surface discovery logic.
+
+If Codex shows `qiongli` in Personal plugins but opens with `Plugin detail unavailable`, the marketplace entry was discovered but the local plugin payload could not be read. The common causes are an invalid `.codex-plugin/plugin.json`, an invalid `skills/qiongli-workflow/SKILL.md` YAML frontmatter block, or a missing local plugin path. Regenerate the CLI-managed local plugin with `qiongli install --target codex --surface plugin --overwrite`, then restart Codex.
+
 ## Recommended CLI Setup Wizard
 
 After npm, pipx, pip, or bootstrap installs, use the setup wizard when you want help choosing an install or upgrade path:
@@ -239,7 +247,7 @@ qiongli install --profile full --target claude --surface plugin
 qiongli install --profile full --target all --surface plugin
 ```
 
-In that mode the local plugin owns the MCP launch for Codex/Claude Code. Antigravity and Hermes receive managed client-level MCP config when included by `--target all`. The direct MCP command remains the same:
+In that mode the local plugin owns the MCP launch for Codex, Claude Code, and Antigravity. Antigravity follows the official plugin layout by placing the server definition in the plugin root `mcp_config.json`; `--parts mcp --target antigravity` remains available for the older client-level config path at `~/.gemini/config/mcp_config.json`. Hermes receives managed client-level MCP config. The direct MCP command remains the same:
 
 ```bash
 qiongli mcp serve --transport stdio

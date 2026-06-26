@@ -603,10 +603,11 @@ def _subject_layers(subject: SubjectDefinition, custom_layer: CustomSubjectLayer
 
 def _render_skill_md(subject: SubjectDefinition, flavor: str, version: str) -> str:
     map_title = f"{subject.display_name.removeprefix('Qiongli ').strip() or subject.display_name} Workflow Map"
+    description = f"Qiongli version: {version}. {subject.package_goal}"
     lines = [
         "---",
         "name: qiongli",
-        f"description: Qiongli version: {version}. {subject.package_goal}",
+        f"description: {_yaml_string(description)}",
         "---",
         "",
         f"# {subject.display_name}",
@@ -667,6 +668,10 @@ def _render_skill_md(subject: SubjectDefinition, flavor: str, version: str) -> s
             ]
         )
     return "\n".join(lines)
+
+
+def _yaml_string(value: str) -> str:
+    return json.dumps(value, ensure_ascii=False)
 
 
 def _load_registry_entries(path: Path) -> list[dict[str, Any]]:

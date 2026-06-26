@@ -30,7 +30,7 @@ Current stable release: [v1.9.1](https://github.com/jxpeng98/qiongli/releases/ta
 
 The user-visible skill name is `qiongli`. The installed directory is still `qiongli-workflow` for compatibility with existing clients and release artifacts. `core` is the default subject, so the default install is `core/complete`. Specialized CLI/npm installs default to `coverage=complete`, meaning full Qiongli plus the requested subject specialization.
 
-From v1.9.0 onward, `qiongli install` defaults to `--profile full --surface plugin`. Codex and Claude Code receive CLI-managed local plugin bundles backed by `qiongli mcp serve --transport stdio`; Antigravity and Hermes receive managed full MCP client configs. Use `--surface skills --profile partial` only when you deliberately want the old skills-only layout.
+From v1.9.0 onward, `qiongli install` defaults to `--profile full --surface plugin`. Codex, Claude Code, and Antigravity receive CLI-managed local plugin bundles backed by `qiongli mcp serve --transport stdio`; Antigravity bundles that server in the plugin root `mcp_config.json`, and Hermes receives managed full MCP client config. Use `--surface skills --profile partial` only when you deliberately want the old skills-only layout.
 
 ## Native Plugin And Extension
 
@@ -73,7 +73,7 @@ Inside an interactive Claude Code session, use:
 /plugin install qiongli-economics@skillsplace
 ```
 
-The Claude Code plugin also bundles the zero-dependency Node literature-provider MCP runtime under `mcp/qiongli-literature-provider/`, using the same provider, search, and status tools as the Codex plugin. It covers literature-provider MCP without installing the `qiongli` CLI. Full Python-backed tools, including `qiongli_literature_search`, `qiongli_orchestrator_route`, `qiongli_task_plan`, `qiongli_task_run`, and `qiongli_orchestrator_doctor`, require the npm, pipx/pip, or bootstrap `full` CLI runtime. Run `qiongli install --profile full --target claude --surface plugin` to generate a local Claude Code plugin that launches the unified `qiongli mcp serve --transport stdio` server. Use `--target antigravity` or `--target hermes` for those clients, or `--target all --surface plugin` when Codex/Claude Code should use local plugins and Antigravity/Hermes should receive managed full MCP client configs.
+The Claude Code plugin also bundles the zero-dependency Node literature-provider MCP runtime under `mcp/qiongli-literature-provider/`, using the same provider, search, and status tools as the Codex plugin. It covers literature-provider MCP without installing the `qiongli` CLI. Full Python-backed tools, including `qiongli_literature_search`, `qiongli_orchestrator_route`, `qiongli_task_plan`, `qiongli_task_run`, and `qiongli_orchestrator_doctor`, require the npm, pipx/pip, or bootstrap `full` CLI runtime. Run `qiongli install --profile full --target claude --surface plugin` to generate a local Claude Code plugin that launches the unified `qiongli mcp serve --transport stdio` server. Use `--target antigravity` to generate the Antigravity plugin with its root `mcp_config.json`, `--target hermes` for Hermes MCP config, or `--target all --surface plugin` when Codex/Claude Code/Antigravity should use local plugins and Hermes should receive managed full MCP config.
 
 Claude Desktop and Claude.ai do not install third-party Claude Code plugin marketplaces. If you use Desktop or the web app and are not familiar with a code/CLI environment, use the release ZIP path instead. It requires no terminal commands:
 
@@ -101,7 +101,7 @@ qiongli mcp serve --transport stdio
 qiongli mcp doctor --json
 ```
 
-In `--surface plugin` mode, Codex and Claude Code get local plugin bundles that own the MCP launch. Antigravity and Hermes receive managed client-level MCP config when included by `--target all`.
+In `--surface plugin` mode, Codex, Claude Code, and Antigravity get local plugin bundles. Antigravity stores its MCP server definition in the plugin root `mcp_config.json`; `--parts mcp --target antigravity` remains available for the older client-level config path at `~/.gemini/config/mcp_config.json`. Hermes receives managed client-level MCP config when included by `--target all`.
 
 Use `qiongli_orchestrator_route` from Codex, Claude Code, Antigravity, or another local MCP client when deciding whether a request should move from skill-only execution to the full orchestrator. `qiongli_task_run` defaults to preview mode. It launches local runtime agents only when the MCP caller explicitly sends JSON boolean `run_agents: true` and the local runtime passes `doctor`.
 
@@ -116,6 +116,14 @@ Restart the target client after installing or upgrading. Then use the entrypoint
 | Shell | `qiongli check` | `qiongli doctor`, `qiongli upgrade`, `python3 -m bridges.orchestrator ...` |
 
 Codex does not expose a custom `/qiongli` slash command. Use `/skills` to confirm the skill exists, then invoke `$qiongli`.
+
+Use `qiongli check --json` when the client UI and filesystem state disagree. It reports the active install surface for each client: `plugin`, `mcp`, `legacy_skill`, or `none`. Use `qiongli doctor --cwd .` for runtime/orchestrator health; it also prints a non-fatal `Client Integration` summary.
+
+If Codex shows `qiongli` under Personal plugins but opening it says `Plugin detail unavailable`, Codex found the marketplace entry but could not read the local plugin payload. The usual causes are invalid `.codex-plugin/plugin.json`, invalid YAML frontmatter in `skills/qiongli-workflow/SKILL.md`, or a missing plugin path. Refresh the CLI-managed local plugin with:
+
+```bash
+qiongli install --target codex --surface plugin --overwrite
+```
 
 ## Bootstrap Partial
 
@@ -154,7 +162,7 @@ pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile full -Projec
 After `full`, check a workspace:
 
 ```bash
-qiongli doctor --project-dir .
+qiongli doctor --cwd .
 python3 -m bridges.orchestrator doctor --cwd .
 qiongli mcp doctor --json
 ```

@@ -30,7 +30,7 @@ qiongli install --profile full --target claude --surface plugin
 
 Those local plugins are different from the public marketplace lite plugins. They include a plugin-owned `.mcp.json` or plugin manifest entry that launches the full Python-backed `qiongli mcp serve --transport stdio` command.
 
-For Antigravity and Hermes, Qiongli still writes managed client-level MCP configs:
+For Antigravity, Qiongli generates an Antigravity plugin bundle with root `mcp_config.json`. Hermes still receives a managed client-level MCP config:
 
 ```bash
 qiongli install --profile full --target antigravity
@@ -43,7 +43,7 @@ Use the combined install when you want the full local surface everywhere:
 qiongli install --profile full --target all --surface plugin
 ```
 
-With `--target all --surface plugin`, Codex and Claude Code get CLI-managed local plugin bundles, while Antigravity and Hermes receive managed MCP config entries. Set `ANTIGRAVITY_CONFIG_PATH` or `HERMES_CONFIG_PATH` when those clients use a different MCP config file. Existing unmanaged `qiongli` server entries are preserved and reported as skipped.
+With `--target all --surface plugin`, Codex, Claude Code, and Antigravity get CLI-managed local plugin bundles. Antigravity follows the official plugin layout by bundling `mcp_config.json` at the plugin root, while Hermes receives its managed MCP config entry. Set `ANTIGRAVITY_CONFIG_PATH` for legacy or explicit `--parts mcp --target antigravity` installs, and set `HERMES_CONFIG_PATH` when Hermes uses a different MCP config file. Existing unmanaged `qiongli` server entries are preserved and reported as skipped.
 
 The full CLI server exposes literature, provider/configuration, and orchestrator tools:
 

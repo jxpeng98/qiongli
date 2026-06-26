@@ -7,6 +7,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import yaml
+
 from qiongli.source_layout import RepoLayout
 
 
@@ -64,7 +66,7 @@ class SyncVersionsTests(unittest.TestCase):
             (root / "qiongli-workflow" / "SKILL.md").write_text(
                 "---\n"
                 "name: qiongli\n"
-                "description: Qiongli version: v0.1.0. Demo workflow.\n"
+                'description: "Qiongli version: v0.1.0. Demo workflow."\n'
                 "---\n"
                 "\n"
                 "# Qiongli Academic Workflow\n"
@@ -155,10 +157,13 @@ class SyncVersionsTests(unittest.TestCase):
             self.assertIn('__version__ = "0.2.0b2"', (layout.python_package / "__init__.py").read_text())
             self.assertIn('version: "0.2.0-beta.2"', (root / "skills" / "registry.yaml").read_text())
             self.assertEqual((root / "qiongli-workflow" / "VERSION").read_text().strip(), "v0.2.0-beta.2")
-            self.assertIn("Qiongli version: v0.2.0-beta.2", (root / "qiongli-workflow" / "SKILL.md").read_text())
+            updated_skill = (root / "qiongli-workflow" / "SKILL.md").read_text()
+            self.assertIn("Qiongli version: v0.2.0-beta.2", updated_skill)
+            metadata = yaml.safe_load(updated_skill.split("---", 2)[1])
+            self.assertEqual(metadata["description"], "Qiongli version: v0.2.0-beta.2. Demo workflow.")
             self.assertIn(
                 "Installed Qiongli workflow version: `v0.2.0-beta.2`",
-                (root / "qiongli-workflow" / "SKILL.md").read_text(),
+                updated_skill,
             )
             self.assertIn(
                 'version: "0.2.0-beta.2"',

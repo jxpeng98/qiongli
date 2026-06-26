@@ -74,7 +74,7 @@ expand to the full local plugin surface:
 
 | Surface | What it installs |
 |---|---|
-| `plugin` | CLI-managed local plugins for Codex/Claude Code; managed MCP configs for Antigravity/Hermes when included by target |
+| `plugin` | CLI-managed local plugins for Codex/Claude Code/Antigravity; Antigravity bundles root `mcp_config.json`; Hermes receives managed MCP config when included by target |
 | `skills` | Legacy global `qiongli-workflow` skill directories and workflow discovery where supported |
 | `both` | Both legacy global skills and the local plugin surface |
 
@@ -83,19 +83,26 @@ expand to the full local plugin surface:
 ### 2.1 `qiongli check` (Check versions/Available updates)
 
 Use Case:
-- Outputs the CLI version, local repo version (if run from a clone), and installed versions across supported client directories.
+- Outputs the CLI version, local repo version (if run from a clone), and installed versions across supported client surfaces.
 - Optional: Queries the upstream latest release tag and determines if an upgrade is needed.
 
 ```bash
-qiongli check [--repo <owner/repo|url>] [--json] [--strict-network]
+qiongli check [--repo <owner/repo|url>] [--json] [--strict-network] [--offline]
 ```
 
 Key Flags:
 - `--repo`: Specify upstream (can be omitted, see "Upstream" section).
 - `--json`: Output JSON only (useful for CI/Scripts).
 - `--strict-network`: Return a failure code if upstream polling fails (defaults to warning and continuing).
+- `--offline`: Skip PyPI and upstream release checks; inspect local install surfaces only.
 
-JSON output includes the active installed subject and coverage for each target. Older managed installs that do not have a `SUBJECT_MANIFEST.json` or `SUBJECT` marker are reported as legacy `core` / `complete`.
+`qiongli check` is plugin-aware. It reports `surface=plugin` for CLI-managed Codex/Claude Code/Antigravity local plugins, `surface=mcp` for Hermes or MCP-only managed configs, `surface=legacy_skill` for old global skill directories, and `surface=none` when no Qiongli surface is found. JSON output keeps the compatibility fields `installed`, `version`, `subject`, `coverage`, and `path`, and adds nested `plugin`, `skill`, and `mcp` objects for diagnostics. Plugin diagnostics include `active`, `enabled`, `plugin_id`, and `activation_detail` where the client CLI can be queried, so file installation can be distinguished from an enabled client plugin. Older managed installs that do not have a `SUBJECT_MANIFEST.json` or `SUBJECT` marker are reported as legacy `core` / `complete`.
+
+If Codex lists `qiongli` in the Personal marketplace but the details page says `Plugin detail unavailable`, the marketplace entry was found but Codex could not read the local plugin payload. Check the local plugin root named by `qiongli check --json`; common causes are an invalid `.codex-plugin/plugin.json`, invalid YAML frontmatter in `skills/qiongli-workflow/SKILL.md`, or a missing local path. Reinstall CLI-managed Codex plugin payloads with:
+
+```bash
+qiongli install --target codex --surface plugin --overwrite
+```
 
 Exit Codes:
 - `0`: No updates available / upstream check bypassed.
@@ -139,7 +146,19 @@ Every prompt includes a short `Tip:` comment that explains why the choice matter
 
 Provider keys entered through setup use the same provider config as `qiongli provider setup` and `qiongli provider doctor`. Secrets are stored outside generated research artifacts. Setup configures credentials and runs doctor/capability checks; it does not promise that an external literature search will run.
 
-### 2.2.1 `qiongli mcp` (Cross-platform MCP server)
+### 2.2.1 `qiongli doctor` (Runtime and client integration health)
+
+Use Case:
+- Runs the Python orchestrator doctor for the selected project directory.
+- Prints a non-fatal client integration summary using the same plugin/MCP/legacy skill discovery as `qiongli check`.
+
+```bash
+qiongli doctor --cwd .
+```
+
+`doctor` validates runtime pieces such as project files, provider/orchestrator readiness, and local model CLI availability. It does not install or remove plugins. Missing optional client integrations are reported in the summary but do not by themselves make `doctor` fail; the exit code remains the orchestrator doctor exit code.
+
+### 2.2.2 `qiongli mcp` (Cross-platform MCP server)
 
 Use Case:
 - Runs the local Qiongli MCP server for desktop or agent clients that support MCP.
@@ -176,7 +195,7 @@ Default `stdio` mode is local and does not require a remote server. HTTP mode ca
 
 Use Case:
 - Installs the subject payload bundled inside the PyPI/npm/source checkout as the current local Qiongli surface.
-- Defaults to the full plugin surface: local plugins for Codex/Claude Code, managed MCP configs for Antigravity/Hermes, and a refreshed shell CLI wrapper unless `--no-cli` is set.
+- Defaults to the full plugin surface: local plugins for Codex/Claude Code/Antigravity, bundled Antigravity plugin MCP, managed Hermes MCP config, and a refreshed shell CLI wrapper unless `--no-cli` is set.
 - Does not migrate or remove old global skills by default; use `qiongli upgrade` for automatic migration or `qiongli remove` for explicit cleanup.
 
 ```bash
@@ -215,10 +234,10 @@ qiongli install --parts mcp --target hermes
 
 Subject packages are specialized installs, not reduced-quality cuts. Default install is `core/complete`. `--subject economics`, `--subject business`, `--subject finance`, `--subject political-economy`, and `--subject geoeconomics` mean complete specialized installs, not reduced packages. `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. Focused coverage selects the subject profile set and active effective skills for deliberate slim installs and Desktop/Web ZIPs. Current official subjects are `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and the named composite `economics-accounting`; `political-economy` and `geoeconomics` are independent subject choices, not a composite. Official composites are not arbitrary comma-separated stacking. Public Desktop ZIP subjects are `core`, `economics`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting`, with no standalone accounting Desktop ZIP in this phase. Switch subjects or coverage by rerunning `install` or `upgrade` with new flags.
 
-`qiongli install` defaults to `--profile full --surface plugin` from v1.9.0 onward. For Codex, the CLI writes a personal marketplace entry and plugin `.mcp.json` that launches `qiongli mcp serve --transport stdio`. For Claude Code, it writes a local plugin manifest that launches the same full MCP server. With `--target all`, Codex/Claude Code use local plugins while Antigravity/Hermes receive managed full MCP client configs. Marketplace-installed plugins stay on the lite no-Python path with the bundled Node literature provider. Use `--surface skills --profile partial` for the old skills-only layout.
+`qiongli install` defaults to `--profile full --surface plugin` from v1.9.0 onward. For Codex, the CLI writes a personal marketplace entry, places the plugin payload at `~/plugins/qiongli`, writes plugin `.mcp.json` that launches `qiongli mcp serve --transport stdio`, and runs `codex plugin add qiongli@personal` when the Codex CLI is available. For Claude Code, it writes a local marketplace under `~/.qiongli/plugins/claude-code`, places the plugin payload at `plugins/qiongli`, and runs `claude plugin marketplace add ...` plus `claude plugin install qiongli@qiongli-local --scope user` when the Claude CLI is available. For Antigravity, it writes a root `plugin.json` plugin bundle under `~/.qiongli/plugins/antigravity/qiongli`, writes the full MCP server config to the plugin root `mcp_config.json`, and runs `antigravity plugin install <path>` when available. With `--target all`, Codex/Claude Code/Antigravity use local plugins while Hermes receives managed full MCP client config. Marketplace-installed plugins stay on the lite no-Python path with the bundled Node literature provider. Use `--surface skills --profile partial` for the old skills-only layout.
 
 Install behavior details:
-- `--surface plugin --target all` installs plugin-owned MCP for Codex/Claude Code and managed client-level MCP config for Antigravity/Hermes.
+- `--surface plugin --target all` installs CLI-managed local plugins for Codex, Claude Code, and Antigravity; Antigravity's plugin includes root `mcp_config.json`, while Hermes receives managed client-level MCP config.
 - `--surface skills --profile partial` installs only legacy skill directories and workflow discovery; it does not install the shell wrapper or MCP config unless `--parts cli` or `--parts mcp` is used.
 - `--surface both` keeps legacy global skills available while also installing local plugins; use this only when you intentionally want both discovery paths.
 - `--parts` wins over `--surface`. For example, `--parts mcp --target antigravity` writes only the Antigravity MCP config, and `--parts project` writes only project-facing files.
@@ -252,11 +271,11 @@ qiongli upgrade \
 
 Notes:
 - `--project-dir` matters when you also request project-facing surfaces, such as `--parts project`.
-- Default `upgrade` behaves like `--profile full --surface plugin`: it installs/refreshes local plugins for Codex and Claude Code, writes managed MCP configs for Antigravity/Hermes, then removes legacy global skills and Codex/Claude standalone MCP configs only after installation succeeds.
+- Default `upgrade` behaves like `--profile full --surface plugin`: it installs/refreshes local plugins for Codex, Claude Code, and Antigravity, bundles the Antigravity MCP config in the plugin, writes managed Hermes MCP config, then removes legacy global skills and standalone Codex/Claude/Antigravity MCP configs only after installation succeeds.
 - Use `qiongli upgrade --surface skills --profile partial ...` when you explicitly want to keep the old skills-only upgrade path.
 - Use `qiongli upgrade --surface both ...` when you intentionally want to keep legacy global skills alongside the plugin surface; this does not run the plugin migration cleanup.
 - Migration cleanup runs only after a successful effective `--surface plugin` upgrade when the selected parts are omitted or include `plugin`. Failed installs never remove old assets.
-- Migration cleanup removes legacy global `qiongli-workflow` skill directories, Claude Code workflow discovery links, and standalone Codex/Claude MCP config. It leaves Antigravity/Hermes MCP config in place because those clients still use managed MCP config in the plugin-first architecture.
+- Migration cleanup removes legacy global `qiongli-workflow` skill directories, Claude Code workflow discovery links, and standalone Codex/Claude/Antigravity MCP config. It leaves Hermes MCP config in place because Hermes still uses client-level managed MCP config.
 - Use `qiongli init --project-dir .` for project bootstrap, or `qiongli upgrade --parts project ...` when you explicitly want project files rewritten.
 - `--subject` defaults to `core` and `--coverage` defaults to `complete`; use `--subject economics` for full Qiongli plus economics specialization, `--subject accounting` for full Qiongli plus accounting specialization, or add `--coverage focused` for the slim selected package.
 - Example: `qiongli upgrade --subject accounting --target all`.

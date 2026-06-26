@@ -16,6 +16,7 @@ from pathlib import Path
 
 from . import __version__
 from .custom_subject import scaffold_custom_subject
+from .install_discovery import discover_install_surfaces, legacy_skill_dirs
 from .source_layout import RepoLayout, discover_repo_root
 from .subject_materializer import SubjectCatalogError, SubjectMaterializationError
 from .universal_installer import (
@@ -289,16 +290,7 @@ def _local_repo_version(root: Path) -> tuple[str, Version] | None:
 
 
 def _installed_skill_dirs() -> dict[str, Path]:
-    codex_home = Path(os.environ.get("CODEX_HOME", "~/.codex")).expanduser()
-    claude_home = Path(os.environ.get("CLAUDE_CODE_HOME", "~/.claude")).expanduser()
-    antigravity_home = Path(os.environ.get("ANTIGRAVITY_HOME", "~/.gemini/antigravity")).expanduser()
-    hermes_home = Path(os.environ.get("HERMES_HOME", "~/.hermes")).expanduser()
-    return {
-        "codex": codex_home / "skills" / "qiongli-workflow",
-        "claude": claude_home / "skills" / "qiongli-workflow",
-        "antigravity": antigravity_home / "skills" / "qiongli-workflow",
-        "hermes": hermes_home / "skills" / "qiongli-workflow",
-    }
+    return legacy_skill_dirs()
 
 
 def _read_installed_subject(skill_dir: Path) -> str | None:
@@ -535,29 +527,25 @@ def _check_system_env() -> dict[str, dict[str, str]]:
 def cmd_check(args: argparse.Namespace) -> int:
     repo_root = _find_repo_root(Path.cwd())
     local = _local_repo_version(repo_root) if repo_root else None
+    offline = bool(getattr(args, "offline", False))
 
     # 1. Check PIP version
-    pip_latest, pip_status = _check_pip_version()
+    if offline:
+        pip_latest, pip_status = "", "skipped (offline)"
+    else:
+        pip_latest, pip_status = _check_pip_version()
 
     # 2. Check System Env
     sys_env = _check_system_env()
 
-    # 3. Check Installed Skills
-    installed: dict[str, dict[str, object]] = {}
-    for client, path in _installed_skill_dirs().items():
-        installed[client] = {
-            "path": str(path),
-            "installed": path.exists(),
-            "version": None,
-            "subject": _read_installed_subject(path),
-            "coverage": _read_installed_coverage(path),
-        }
-        found = _read_installed_version(path)
-        if found:
-            installed[client]["version"] = found[0]
+    # 3. Check installed client surfaces.
+    installed = discover_install_surfaces()
 
     # 4. Check Upstream Release
-    resolved_repo, resolved_source = _resolve_upstream_repo(getattr(args, "repo", None), repo_root)
+    if offline:
+        resolved_repo, resolved_source = "", "offline"
+    else:
+        resolved_repo, resolved_source = _resolve_upstream_repo(getattr(args, "repo", None), repo_root)
 
     latest_tag = ""
     prerelease_tag = ""
@@ -620,7 +608,7 @@ def cmd_check(args: argparse.Namespace) -> int:
         print(f"   - {k}: {icon} {v['detail']}")
 
     print("")
-    print("3) Installed Workflow Skills (Payload)")
+    print("3) Installed Client Surfaces")
     if repo_root:
         print(f"   - Detected repo root: {repo_root}")
     if local:
@@ -629,11 +617,26 @@ def cmd_check(args: argparse.Namespace) -> int:
         item = installed[client]
         status = "installed" if item["installed"] else "not-installed"
         version = item["version"] or "<unknown>"
-        print(f"   - {client}: {status}, version={version}, path={item['path']}")
+        suffix = ""
+        plugin = item.get("plugin")
+        if client == "codex" and isinstance(plugin, dict) and item["surface"] == "plugin":
+            active = plugin.get("active")
+            if active is True:
+                suffix = ", codex_active=yes"
+            elif active is False:
+                suffix = ", codex_active=no"
+            else:
+                suffix = ", codex_active=unknown"
+            detail = plugin.get("activation_detail")
+            if isinstance(detail, str) and detail:
+                suffix = f"{suffix} ({detail})"
+        print(f"   - {client}: {status}, surface={item['surface']}, version={version}, path={item['path']}{suffix}")
 
     print("")
     print("4) Upstream Release")
-    if resolved_repo:
+    if offline:
+        print("   - Latest: <skipped (offline)>")
+    elif resolved_repo:
         suffix = f" (from {resolved_source})" if resolved_source else ""
         print(f"   - Repo: {resolved_repo}{suffix}")
         print(f"   - Latest: {latest_tag}")
@@ -946,7 +949,20 @@ def _run_installer(options: InstallOptions) -> int:
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
-    return _run_orchestrator_doctor(Path(args.cwd).expanduser().resolve())
+    rc = _run_orchestrator_doctor(Path(args.cwd).expanduser().resolve())
+    _print_client_integration_summary(discover_install_surfaces())
+    return rc
+
+
+def _print_client_integration_summary(installed: dict[str, dict[str, object]]) -> None:
+    print("")
+    print("Client Integration")
+    print("==================")
+    for client in ("codex", "claude", "antigravity", "hermes"):
+        item = installed[client]
+        status = "installed" if item["installed"] else "not-installed"
+        version = item["version"] or "<unknown>"
+        print(f"- {client}: {status}, surface={item['surface']}, version={version}, path={item['path']}")
 
 
 def cmd_guidance(args: argparse.Namespace) -> int:
@@ -1136,6 +1152,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--strict-network",
         action="store_true",
         help="Fail if upstream version check fails (default: warn and continue)",
+    )
+    check.add_argument(
+        "--offline",
+        action="store_true",
+        help="Skip PyPI and upstream release checks; inspect local install surfaces only",
     )
     check.add_argument(
         "--beta",

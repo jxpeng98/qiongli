@@ -7,6 +7,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import yaml
+
 from qiongli.distribution_metadata import load_plugin_distribution
 from qiongli.source_layout import RepoLayout
 
@@ -115,7 +117,7 @@ class PluginManifestTests(unittest.TestCase):
         self.assertEqual(manifest["license"], "MIT")
         self.assertEqual(manifest["description"], EXPECTED_WORKFLOW_DESCRIPTION)
         self.assertEqual(manifest["author"], EXPECTED_AUTHOR)
-        self.assertEqual(manifest["category"], EXPECTED_CATEGORY)
+        self.assertNotIn("category", manifest)
 
         interface = manifest["interface"]
         self.assertEqual(interface["displayName"], "Qiongli")
@@ -236,7 +238,7 @@ class PluginManifestTests(unittest.TestCase):
         self.assertEqual(manifest["name"], "qiongli-next")
         self.assertEqual(manifest["version"], WORKFLOW_VERSION.read_text(encoding="utf-8").strip().lstrip("v"))
         self.assertEqual(manifest["author"], EXPECTED_AUTHOR)
-        self.assertEqual(manifest["category"], EXPECTED_CATEGORY)
+        self.assertNotIn("category", manifest)
         self.assertEqual(manifest["repository"], EXPECTED_REPOSITORY)
         self.assertEqual(manifest["license"], EXPECTED_LICENSE)
         self.assertIn("prerelease academic research workflow", manifest["description"].lower())
@@ -267,6 +269,10 @@ class PluginManifestTests(unittest.TestCase):
             self.assertTrue((plugin_skill / "SKILL.md").is_file())
             skill_text = (plugin_skill / "SKILL.md").read_text(encoding="utf-8")
             self.assertIn("name: qiongli\n", skill_text)
+            frontmatter = skill_text.split("---", 2)[1]
+            skill_metadata = yaml.safe_load(frontmatter)
+            self.assertEqual(skill_metadata["name"], "qiongli")
+            self.assertIn("Qiongli version:", skill_metadata["description"])
             self.assertIn("# Qiongli Academic Workflow", skill_text)
             self.assertTrue((plugin_skill / "workflows" / "paper.md").is_file())
             self.assertTrue((plugin_skill / "references" / "workflow-contract.md").is_file())

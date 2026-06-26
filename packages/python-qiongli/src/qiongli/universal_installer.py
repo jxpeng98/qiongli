@@ -13,7 +13,14 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .bridges.mcp_client_config import install_mcp_config, remove_mcp_config
-from .local_plugin_installer import LocalPluginOptions, install_local_plugin, remove_local_plugin
+from .local_plugin_installer import (
+    PLUGIN_ID,
+    LocalPluginOptions,
+    install_local_plugin,
+    remove_local_plugin,
+    resolve_claude_plugin_paths,
+    resolve_codex_plugin_paths,
+)
 from .source_layout import RepoLayout
 from .subject_materializer import (
     COVERAGE_CHOICES,
@@ -1023,8 +1030,10 @@ def _plugin_managed_mcp_targets(target: str) -> set[str]:
         return {"codex"}
     if target == "claude":
         return {"claude-code"}
+    if target == "antigravity":
+        return {"antigravity"}
     if target == "all":
-        return {"codex", "claude-code"}
+        return {"codex", "claude-code", "antigravity"}
     return set()
 
 
@@ -1047,7 +1056,137 @@ def _install_local_plugin_surface(options: InstallOptions) -> set[str]:
     for target_name, plugin_root in result.installed_roots.items():
         suffix = "dry-run" if options.dry_run else "installed"
         _print_result("Plugin", f"{target_name}: {plugin_root} ({suffix})", "ok")
+    if "codex" in result.installed_roots:
+        _activate_codex_plugin(options.dry_run)
+    if "claude" in result.installed_roots:
+        _activate_claude_plugin(options.dry_run)
+    if "antigravity" in result.installed_roots:
+        _activate_antigravity_plugin(result.installed_roots["antigravity"], options.dry_run)
     return set(result.installed_roots)
+
+
+def _activate_codex_plugin(dry_run: bool) -> None:
+    paths = resolve_codex_plugin_paths()
+    marketplace_name = _codex_marketplace_name(paths.marketplace_path)
+    selector = f"{PLUGIN_ID}@{marketplace_name}"
+    if dry_run:
+        _print_result("Activation", f"{selector} (dry-run)", "skip")
+        return
+
+    codex = shutil.which("codex")
+    if not codex:
+        _print_result("Activation", f"{selector} (codex CLI missing; run `codex plugin add {selector}`)", "skip")
+        return
+
+    result = subprocess.run(
+        [codex, "plugin", "add", selector, "--json"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=False,
+    )
+    output = (result.stdout or "").strip()
+    if result.returncode == 0:
+        _print_result("Activation", f"{selector} (codex plugin add)", "ok")
+        return
+
+    _print_result("Activation", f"{selector} (codex plugin add failed)", "skip")
+    if output:
+        for line in output.splitlines():
+            print(f"          {line}")
+
+
+def _codex_marketplace_name(marketplace_path: Path) -> str:
+    try:
+        payload = json.loads(marketplace_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return "personal"
+    if not isinstance(payload, dict):
+        return "personal"
+    name = payload.get("name")
+    if isinstance(name, str) and name.strip():
+        return name.strip()
+    return "personal"
+
+
+def _activate_claude_plugin(dry_run: bool) -> None:
+    paths = resolve_claude_plugin_paths()
+    selector = f"{PLUGIN_ID}@{paths.marketplace_name}"
+    if dry_run:
+        _print_result("Activation", f"{selector} (dry-run)", "skip")
+        return
+
+    claude = shutil.which("claude")
+    if not claude:
+        _print_result(
+            "Activation",
+            f"{selector} (claude CLI missing; run `claude plugin install {selector}`)",
+            "skip",
+        )
+        return
+
+    add_result = subprocess.run(
+        [claude, "plugin", "marketplace", "add", str(paths.marketplace_root), "--scope", "user"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=False,
+    )
+    if add_result.returncode != 0 and "already" not in (add_result.stdout or "").lower():
+        _print_result("Activation", f"{paths.marketplace_name} (claude marketplace add failed)", "skip")
+        _print_subprocess_output(add_result.stdout)
+        return
+
+    install_result = subprocess.run(
+        [claude, "plugin", "install", selector, "--scope", "user"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=False,
+    )
+    if install_result.returncode == 0:
+        _print_result("Activation", f"{selector} (claude plugin install)", "ok")
+        return
+
+    _print_result("Activation", f"{selector} (claude plugin install failed)", "skip")
+    _print_subprocess_output(install_result.stdout)
+
+
+def _activate_antigravity_plugin(plugin_root: Path, dry_run: bool) -> None:
+    if dry_run:
+        _print_result("Activation", f"antigravity:{PLUGIN_ID} (dry-run)", "skip")
+        return
+
+    antigravity = shutil.which("antigravity")
+    if not antigravity:
+        _print_result(
+            "Activation",
+            f"antigravity:{PLUGIN_ID} (antigravity CLI missing; run `antigravity plugin install {plugin_root}`)",
+            "skip",
+        )
+        return
+
+    result = subprocess.run(
+        [antigravity, "plugin", "install", str(plugin_root)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=False,
+    )
+    if result.returncode == 0:
+        _print_result("Activation", f"antigravity:{PLUGIN_ID} (antigravity plugin install)", "ok")
+        return
+
+    _print_result("Activation", f"antigravity:{PLUGIN_ID} (antigravity plugin install failed)", "skip")
+    _print_subprocess_output(result.stdout)
+
+
+def _print_subprocess_output(output: str | None) -> None:
+    text = (output or "").strip()
+    if not text:
+        return
+    for line in text.splitlines():
+        print(f"          {line}")
 
 
 def _remove_local_plugin_surface(options: RemoveOptions) -> int:

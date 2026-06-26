@@ -12,6 +12,7 @@ RELEASE_AUTOMATION = LAYOUT.scripts / "release_automation.sh"
 RELEASE_READY = LAYOUT.scripts / "release_ready.sh"
 RELEASE_PREFLIGHT = LAYOUT.scripts / "release_preflight.sh"
 RELEASE_POSTFLIGHT = LAYOUT.scripts / "release_postflight.sh"
+RELEASE_LOCAL_INSTALL_CHECK = LAYOUT.scripts / "release_local_install_check.py"
 PYPI_PREFLIGHT = LAYOUT.scripts / "pypi_preflight.sh"
 RELEASE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-automation.yml"
 INSTALL_CHECK_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "install-check.yml"
@@ -386,6 +387,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertNotIn("python3 scripts/materialize_distribution_payloads.py --target next-plugin --in-place", content)
         preflight = './scripts/release_automation.sh pre "${PRE_ARGS[@]}" --materialize-out "$RELEASE_STAGING_DIR"'
         verify = 'bash ./scripts/verify_release_tag_version.sh --root "$RELEASE_STAGING_DIR" --tag "$REPO_TAG"'
+        local_install = 'python3 scripts/release_local_install_check.py --root "$RELEASE_STAGING_DIR"'
         pypi = 'bash ./scripts/pypi_preflight.sh --root "$RELEASE_STAGING_DIR" "${PYPI_ARGS[@]}"'
         npm = 'bash ./scripts/npm_preflight.sh --root "$RELEASE_STAGING_DIR"'
 
@@ -394,10 +396,13 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('mktemp -d "${TMPDIR:-/tmp}/qiongli-release-ready.XXXXXX"', content)
         self.assertIn(preflight, content)
         self.assertIn(verify, content)
+        self.assertIn(local_install, content)
         self.assertIn(pypi, content)
         self.assertIn(npm, content)
+        self.assertTrue(RELEASE_LOCAL_INSTALL_CHECK.is_file())
         self.assertLess(content.index(preflight), content.index(verify))
-        self.assertLess(content.index(verify), content.index(pypi))
+        self.assertLess(content.index(verify), content.index(local_install))
+        self.assertLess(content.index(local_install), content.index(pypi))
         self.assertLess(content.index(pypi), content.index(npm))
 
     def test_release_ready_does_not_print_manual_publish_steps(self) -> None:

@@ -1,10 +1,18 @@
 # Changelog
 
-本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-06-25）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
+本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-06-26）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
 
 ## [Unreleased]
 
 暂无未发布变更。
+
+## [1.9.2] - 2026-06-26
+
+### Fixed
+
+- CLI-managed local plugins now package the full `qiongli mcp serve --transport stdio` entrypoint consistently across Codex, Claude Code, and Antigravity, including Antigravity's plugin-root `mcp_config.json` layout.
+- `qiongli check` / install discovery now reports plugin-managed MCP sources for Codex, Claude Code, and Antigravity, while Hermes remains a managed client-level MCP target.
+- Release readiness now includes an isolated local install acceptance check so plugin/MCP discovery regressions are caught before publishing.
 
 ## [1.9.1] - 2026-06-25
 

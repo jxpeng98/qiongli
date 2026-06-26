@@ -35,7 +35,8 @@ Description:
   Prepare a local publish-ready release state by chaining:
     1) version bump + metadata sync
     2) release preflight (validator + tests + smoke + beta note draft or stable changelog check)
-    3) package preflight (build + twine + install smoke)
+    3) local plugin install acceptance in an isolated sandbox
+    4) package preflight (build + twine + install smoke)
 
 Options:
   --version <v>        Required version input (for example 0.2.0, 0.2.0b1, or v0.2.0-beta.1).
@@ -211,6 +212,9 @@ echo "[release-ready] release preflight"
 
 echo "[release-ready] verify staged release tag version"
 bash ./scripts/verify_release_tag_version.sh --root "$RELEASE_STAGING_DIR" --tag "$REPO_TAG"
+
+echo "[release-ready] local plugin install acceptance"
+python3 scripts/release_local_install_check.py --root "$RELEASE_STAGING_DIR"
 
 echo "[release-ready] package preflight"
 bash ./scripts/pypi_preflight.sh --root "$RELEASE_STAGING_DIR" "${PYPI_ARGS[@]}"

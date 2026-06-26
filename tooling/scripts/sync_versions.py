@@ -104,25 +104,21 @@ def replace_skill_entrypoint_version(path: Path, repo_version: str) -> bool:
     original = path.read_text(encoding="utf-8")
     label = "Qiongli Next" if re.search(r"(?m)^name:\s*qiongli-next\s*$", original) else "Qiongli"
     updated = original
-    description_with_version = re.compile(
-        r"(?m)^(description:\s+)"
-        r"(?:Qiongli(?: Next)? version:\s*)"
-        r"v?\d+\.\d+\.\d+(?:-beta\.\d+)?(\.\s*)"
-    )
-    updated, description_count = description_with_version.subn(
-        rf"\g<1>{label} version: {repo_version}\g<2>",
-        updated,
-        count=1,
-    )
-    if description_count == 0:
-        description_without_version = re.compile(r"(?m)^(description:\s+)(.+)$")
-        updated, description_count = description_without_version.subn(
-            rf"\g<1>{label} version: {repo_version}. \g<2>",
-            updated,
-            count=1,
+    description_line = re.compile(r"(?m)^(description:\s*)(.+)$")
+
+    def replace_description(match: re.Match[str]) -> str:
+        current = _unquote_yaml_like_string(match.group(2).strip())
+        prefix = re.compile(
+            r"^(?:Qiongli(?: Next)? version:\s*)"
+            r"v?\d+\.\d+\.\d+(?:-beta\.\d+)?\.\s*"
         )
-        if description_count == 0:
-            raise ValueError(f"no matching description field found in {path}")
+        body = prefix.sub("", current, count=1)
+        description = f"{label} version: {repo_version}. {body}"
+        return f"{match.group(1)}{json.dumps(description, ensure_ascii=False)}"
+
+    updated, description_count = description_line.subn(replace_description, updated, count=1)
+    if description_count == 0:
+        raise ValueError(f"no matching description field found in {path}")
 
     updated, body_count = re.subn(
         r"Installed Qiongli workflow version: `[^`]+`",
@@ -137,6 +133,18 @@ def replace_skill_entrypoint_version(path: Path, repo_version: str) -> bool:
         path.write_text(updated, encoding="utf-8")
         return True
     return False
+
+
+def _unquote_yaml_like_string(value: str) -> str:
+    if len(value) >= 2 and value[0] == value[-1] == '"':
+        try:
+            decoded = json.loads(value)
+        except json.JSONDecodeError:
+            return value[1:-1]
+        return decoded if isinstance(decoded, str) else value
+    if len(value) >= 2 and value[0] == value[-1] == "'":
+        return value[1:-1].replace("''", "'")
+    return value
 
 
 def replace_uv_lock_editable_package_version(path: Path, package_name: str, version: str) -> bool:

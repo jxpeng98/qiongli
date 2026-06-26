@@ -30,7 +30,7 @@ Qiongli 有多个安装入口，是因为不同用户需要的运行时能力不
 
 用户可见的 skill 名称是 `qiongli`。安装目录仍然是 `qiongli-workflow`，这是为了兼容已有客户端和 release artifacts。`core` 是默认 subject，所以默认安装是 `core/complete`。CLI/npm 专精安装默认使用 `coverage=complete`，也就是全量 Qiongli 框架加指定 subject 专精。
 
-从 v1.9.0 开始，`qiongli install` 默认等价于 `--profile full --surface plugin`。Codex / Claude Code 会得到 CLI 管理的本地 plugin，并由 `qiongli mcp serve --transport stdio` 支撑；Antigravity / Hermes 会写入受管理的 full MCP client config。只有明确想保留旧版 skills-only 布局时，才使用 `--surface skills --profile partial`。
+从 v1.9.0 开始，`qiongli install` 默认等价于 `--profile full --surface plugin`。Codex / Claude Code / Antigravity 会得到 CLI 管理的本地 plugin，并由 `qiongli mcp serve --transport stdio` 支撑；Antigravity 会按官方 plugin 结构在 plugin 根目录写入 `mcp_config.json`，Hermes 会写入受管理的 full MCP client config。只有明确想保留旧版 skills-only 布局时，才使用 `--surface skills --profile partial`。
 
 ## 原生 Plugin 和 Extension
 
@@ -73,7 +73,7 @@ claude plugin install qiongli-economics@skillsplace
 /plugin install qiongli-economics@skillsplace
 ```
 
-Claude Code marketplace plugin 也内置 `mcp/qiongli-literature-provider/` 下的零依赖 Node literature-provider MCP runtime，提供与 Codex plugin 相同的文献 provider、search 和 status 工具。只使用这些内置 literature/provider 工具时，不需要安装 `qiongli` CLI。完整 Python-backed full MCP 仍然是 CLI runtime：如果需要 `qiongli_literature_search`、`qiongli_task_plan`、`qiongli_task_run` 或 `qiongli_orchestrator_doctor` 等完整工具，需要 npm、pipx/pip 或 `full` bootstrap。运行 `qiongli install --profile full --target claude --surface plugin` 会生成本地 Claude Code plugin，并由这个 plugin 启动统一的 `qiongli mcp serve --transport stdio` server。Antigravity 和 Hermes 分别使用 `--target antigravity`、`--target hermes`；`--target all --surface plugin` 会让 Codex/Claude Code 使用本地 plugin，同时给 Antigravity/Hermes 写入受管理的 full MCP client 配置。
+Claude Code marketplace plugin 也内置 `mcp/qiongli-literature-provider/` 下的零依赖 Node literature-provider MCP runtime，提供与 Codex plugin 相同的文献 provider、search 和 status 工具。只使用这些内置 literature/provider 工具时，不需要安装 `qiongli` CLI。完整 Python-backed full MCP 仍然是 CLI runtime：如果需要 `qiongli_literature_search`、`qiongli_task_plan`、`qiongli_task_run` 或 `qiongli_orchestrator_doctor` 等完整工具，需要 npm、pipx/pip 或 `full` bootstrap。运行 `qiongli install --profile full --target claude --surface plugin` 会生成本地 Claude Code plugin，并由这个 plugin 启动统一的 `qiongli mcp serve --transport stdio` server。`--target antigravity` 会生成带 root `mcp_config.json` 的 Antigravity plugin，`--target hermes` 写入 Hermes MCP config；`--target all --surface plugin` 会让 Codex / Claude Code / Antigravity 使用本地 plugin，同时给 Hermes 写入受管理的 full MCP client 配置。
 
 Claude Desktop 和 Claude.ai 不安装第三方 Claude Code plugin marketplace。如果你使用 Desktop 或网页版，并且不熟悉 code / CLI 环境，优先使用 release ZIP 路径，不需要任何终端命令：
 
@@ -97,6 +97,14 @@ Release ZIP 使用 `coverage=focused`，用于保持当前 180 文件上传预�
 | Shell | `qiongli check` | `qiongli doctor`、`qiongli upgrade`、`python3 -m bridges.orchestrator ...` |
 
 Codex 不暴露自定义 `/qiongli` slash command。先用 `/skills` 确认 skill 存在，再用 `$qiongli` 调用。
+
+当客户端 UI 和文件系统状态看起来不一致时，先运行 `qiongli check --json`。它会为每个客户端报告当前安装 surface：`plugin`、`mcp`、`legacy_skill` 或 `none`。运行时/orchestrator 健康检查使用 `qiongli doctor --cwd .`；它也会追加一个非致命的 `Client Integration` 摘要。
+
+如果 Codex 在 Personal plugins 里显示 `qiongli`，但打开详情时显示 `Plugin detail unavailable`，说明 Codex 找到了 marketplace entry，但无法读取本地 plugin payload。常见原因是 `.codex-plugin/plugin.json` 不符合 schema、`skills/qiongli-workflow/SKILL.md` frontmatter 不是合法 YAML，或 plugin 路径缺失。刷新 CLI 管理的本地 plugin：
+
+```bash
+qiongli install --target codex --surface plugin --overwrite
+```
 
 ## Bootstrap Partial
 
@@ -140,7 +148,7 @@ qiongli mcp doctor --json
 安装后检查工作区：
 
 ```bash
-qiongli doctor --project-dir .
+qiongli doctor --cwd .
 python3 -m bridges.orchestrator doctor --cwd .
 qiongli mcp doctor --json
 ```

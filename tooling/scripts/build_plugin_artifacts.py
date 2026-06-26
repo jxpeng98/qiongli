@@ -317,7 +317,6 @@ def _write_codex_manifest(path: Path, plugin: PluginDefinition, version: str) ->
         "version": version,
         "description": plugin.description,
         "author": plugin.author,
-        "category": plugin.category,
         "homepage": plugin.homepage,
         "repository": plugin.repository,
         "license": plugin.license,
@@ -451,7 +450,7 @@ def _rewrite_skill_entrypoint(skill_root: Path, skill_name: str) -> None:
     text = skill_path.read_text(encoding="utf-8")
     text = re.sub(r"(?m)^name:\s*qiongli\s*$", f"name: {skill_name}", text)
     if skill_name == NEXT_SKILL_NAME:
-        text = text.replace("description: Qiongli version:", "description: Qiongli Next version:")
+        text = text.replace("Qiongli version:", "Qiongli Next version:", 1)
     text = text.replace("$qiongli", f"${skill_name}")
     if f"${skill_name}" not in text:
         text = (
@@ -928,7 +927,10 @@ def _write_subject_manifest(
         manifest["description"] = NEXT_PLUGIN_DESCRIPTION
     else:
         manifest["description"] = _subject_description(display_name, package_goal, subject)
-    manifest["category"] = DEFAULT_CATEGORY
+    if platform == "codex":
+        manifest.pop("category", None)
+    else:
+        manifest["category"] = DEFAULT_CATEGORY
     keywords = manifest.get("keywords")
     if isinstance(keywords, list):
         additions = ["qiongli-next", "prerelease"] if plugin_name == NEXT_PLUGIN_NAME else ["qiongli-subject", subject]

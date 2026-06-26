@@ -77,11 +77,15 @@ This is the recommended local entrypoint. It chains:
 
 - `scripts/bump-version.sh`
 - `scripts/release_automation.sh pre`
+- `scripts/verify_release_tag_version.sh`
+- `scripts/release_local_install_check.py`
 - `scripts/pypi_preflight.sh`
+- `scripts/npm_preflight.sh`
 
-When it succeeds, the repository is in a publish-ready state with synchronized version files, validated release docs, and built package artifacts.
+When it succeeds, the repository is in a publish-ready state with synchronized version files, validated release docs, an isolated local plugin install acceptance run, and built package artifacts.
 
 The synchronized version files include package metadata, the portable workflow version, and skill registry metadata. Client-native plugin manifests are generated from `content/distribution/plugins.yaml` during staged materialization instead of being edited in the source checkout.
+The local install acceptance runs `qiongli install --surface plugin --parts plugin,mcp` against the staged release root inside a temporary HOME, then validates Codex/Claude local plugin payloads, Antigravity/Hermes MCP configs, and `qiongli check --offline --json` discovery.
 
 ## 3) Manual pre-release gates (optional)
 

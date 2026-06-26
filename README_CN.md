@@ -48,7 +48,7 @@
 | 要更新 Python CLI 分发 | `pipx install qiongli` 或 `pipx upgrade qiongli` | 参考 [升级指南](docs/zh/guide/upgrade.md) |
 | 还在选择论文路线 | 从 [任务场景](docs/zh/guide/task-recipes.md) 开始 | 按研究目标反推 paper type、stage 和产物 |
 
-从 v1.9.0 开始，`qiongli install` 和 `qiongli upgrade` 默认等价于 `--profile full --surface plugin`。Codex / Claude Code 会得到 CLI 管理的本地 plugin，并由完整 Python MCP server 支撑；Antigravity / Hermes 会写入受管理的 MCP client config。只有明确想保留旧的 skills-only 形态时，才使用 `--surface skills --profile partial`。
+从 v1.9.0 开始，`qiongli install` 和 `qiongli upgrade` 默认等价于 `--profile full --surface plugin`。Codex / Claude Code / Antigravity 会得到 CLI 管理的本地 plugin，并由完整 Python MCP server 支撑；Antigravity 会按官方 plugin 结构在 plugin 根目录写入 `mcp_config.json`，Hermes 会写入受管理的 MCP client config。只有明确想保留旧的 skills-only 形态时，才使用 `--surface skills --profile partial`。
 
 ## 最新稳定版下载
 
@@ -742,7 +742,7 @@ shell CLI 和 Python CLI 都有这些入口名：
 #### `qiongli check`
 
 用途：
-- 查看本地已安装 skill 版本
+- 查看本地已安装 plugin / MCP / skill surface 和版本
 - 查看上游最新 release
 - 判断是否有可升级版本
 
@@ -753,6 +753,7 @@ shell CLI 和 Python CLI 都有这些入口名：
 | `--repo <owner/repo|url>` | 指定上游仓库 |
 | `--json` | 输出 JSON，便于脚本或 CI 使用 |
 | `--strict-network` | 若上游查询失败则返回失败 |
+| `--offline` | 跳过 PyPI/GitHub 查询，只检查本地安装 surface |
 
 示例：
 
@@ -760,6 +761,7 @@ shell CLI 和 Python CLI 都有这些入口名：
 qiongli check
 qiongli check --repo jxpeng98/qiongli
 qiongli check --json
+qiongli check --offline --json
 ```
 
 #### `qiongli upgrade`
@@ -854,12 +856,15 @@ qiongli align --repo jxpeng98/qiongli
 |----------|------|
 | `QIONGLI_REPO` | 默认上游仓库，省去每次传 `--repo` |
 | `QIONGLI_BIN_DIR` | shell CLI 默认安装目录 |
+| `QIONGLI_CLAUDE_MARKETPLACE_ROOT` | Claude Code 本地 marketplace 根目录，默认 `~/.qiongli/plugins/claude-code` |
+| `QIONGLI_ANTIGRAVITY_PLUGIN_PARENT` | Antigravity 本地 plugin 父目录，默认 `~/.qiongli/plugins/antigravity` |
 | `RESEARCH_SKILLS_REPO` | `QIONGLI_REPO` 的旧兼容 fallback |
 | `RESEARCH_SKILLS_BIN_DIR` | `QIONGLI_BIN_DIR` 的旧兼容 fallback |
 | `CODEX_HOME` | Codex skill 安装根目录 |
 | `CLAUDE_CODE_HOME` | Claude Code skill 安装根目录 |
 | `GEMINI_HOME` | Gemini skill 安装根目录 |
 | `ANTIGRAVITY_HOME` | Antigravity 全局 skill 安装根目录 |
+| `ANTIGRAVITY_CONFIG_PATH` | Antigravity client-level MCP config 路径，默认 `~/.gemini/config/mcp_config.json`；默认 plugin surface 会优先使用 plugin 根目录的 `mcp_config.json` |
 | `HERMES_HOME` | Hermes 全局 skill 安装根目录 |
 | `GITHUB_TOKEN` / `GH_TOKEN` | 私有仓库或 GitHub API 限流时的认证令牌 |
 
