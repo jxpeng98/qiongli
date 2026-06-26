@@ -492,9 +492,6 @@ class UniversalInstallerTests(unittest.TestCase):
             env["CODEX_HOME"] = str(codex_home)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             env["ANTIGRAVITY_HOME"] = str(antigravity_home)
-            env["ANTIGRAVITY_CONFIG_PATH"] = str(
-                temp_root / ".gemini" / "config" / "mcp_config.json"
-            )
             env["HERMES_HOME"] = str(hermes_home)
             env["PATH"] = ""
 
@@ -563,6 +560,9 @@ class UniversalInstallerTests(unittest.TestCase):
             env["CODEX_HOME"] = str(codex_home)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             env["ANTIGRAVITY_HOME"] = str(antigravity_home)
+            env["ANTIGRAVITY_CONFIG_PATH"] = str(
+                temp_root / ".gemini" / "config" / "mcp_config.json"
+            )
             env["HERMES_HOME"] = str(hermes_home)
             env["PATH"] = ""
 
