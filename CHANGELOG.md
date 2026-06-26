@@ -6,6 +6,24 @@
 
 暂无未发布变更。
 
+## [1.10.0] - 2026-06-26
+
+### Added
+
+- 新增 `qiongli self-update` / `qiongli update`：可根据安装渠道委托 npm、pipx 或 pip 更新 CLI package，并在更新后刷新 full local plugin / MCP 安装面。
+- npm launcher 新增 self-update 转发路径，并显式标记 npm 安装渠道，避免更新计划误判为 pip/source checkout。
+- `qiongli setup` 和 `qiongli provider setup` 新增本地 provider 配置页面，一次配置 OpenAlex、Semantic Scholar、Crossref、PubMed，并展示 arXiv 无需 API key 的使用说明。
+
+### Changed
+
+- 文档更新 `self-update` 与 `upgrade` 的边界：`self-update` 先更新 package 再从本地 payload 执行 `install --overwrite`，`upgrade` 保持为 GitHub release archive refresh 路径。
+- 安装和检查测试进一步隔离 Codex、Claude Code、Antigravity、Hermes 的本地配置路径，降低 release/local install 检查污染用户现有环境的风险。
+
+### Fixed
+
+- Provider setup 不再逐项阻塞式读取终端输入，避免一次配置多个 key 时反复启动或误写密钥。
+- npm runtime contract 增加 `qiongli.self_update` 覆盖，确保发布 staging 会携带自更新模块。
+
 ## [1.9.2] - 2026-06-26
 
 ### Fixed
