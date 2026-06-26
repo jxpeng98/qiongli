@@ -808,6 +808,46 @@ def _run_orchestrator_guidance(args: argparse.Namespace) -> int:
     return result.returncode
 
 
+def _run_orchestrator_project(args: argparse.Namespace) -> int:
+    env = os.environ.copy()
+    repo_root = _find_repo_root(Path.cwd())
+    if repo_root is not None:
+        existing_pythonpath = env.get("PYTHONPATH", "")
+        layout = RepoLayout(repo_root)
+        import_roots = (layout.python_source_root, repo_root)
+        env["PYTHONPATH"] = os.pathsep.join(
+            [*(str(root) for root in import_roots), *([existing_pythonpath] if existing_pythonpath else [])]
+        )
+
+    command = [
+        sys.executable,
+        "-m",
+        "bridges.orchestrator",
+        "project",
+        str(args.project_cmd),
+        "--project-dir",
+        str(Path(args.project_dir).expanduser().resolve()),
+    ]
+    if args.project_cmd == "set-subject" and getattr(args, "subject", None) is not None:
+        command.extend(["--subject", str(args.subject)])
+    if args.project_cmd == "set-venue" and getattr(args, "venue", None) is not None:
+        command.extend(["--venue", str(args.venue)])
+    if args.project_cmd == "set-method-lens" and getattr(args, "method_lens", None) is not None:
+        command.extend(["--method-lens", str(args.method_lens)])
+
+    result = subprocess.run(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=False,
+        env=env,
+    )
+    if result.stdout:
+        print(result.stdout.rstrip())
+    return result.returncode
+
+
 def cmd_upgrade(args: argparse.Namespace) -> int:
     project_dir = Path(args.project_dir).expanduser().resolve()
 
@@ -969,6 +1009,10 @@ def _print_client_integration_summary(installed: dict[str, dict[str, object]]) -
 
 def cmd_guidance(args: argparse.Namespace) -> int:
     return _run_orchestrator_guidance(args)
+
+
+def cmd_project(args: argparse.Namespace) -> int:
+    return _run_orchestrator_project(args)
 
 
 def cmd_init(args: argparse.Namespace) -> int:
@@ -1459,6 +1503,57 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to .qiongli/trace/runs/<run_id>/guidance_update_proposal.md",
     )
 
+    project = subparsers.add_parser("project", help="Manage project subject guidance settings")
+    project_subparsers = project.add_subparsers(dest="project_cmd", required=True)
+    project_init = project_subparsers.add_parser("init", help="Initialize project guidance settings")
+    project_init.add_argument(
+        "--project-dir",
+        default=str(Path.cwd()),
+        help="Project directory that owns .qiongli/ (default: current dir)",
+    )
+    project_status = project_subparsers.add_parser("status", help="Show project guidance settings")
+    project_status.add_argument(
+        "--project-dir",
+        default=str(Path.cwd()),
+        help="Project directory that owns .qiongli/ (default: current dir)",
+    )
+    project_set_subject = project_subparsers.add_parser("set-subject", help="Set active project subject")
+    project_set_subject.add_argument("subject", nargs="?", help="Subject ID, e.g. finance")
+    project_set_subject.add_argument(
+        "--subject",
+        dest="subject_flag",
+        help="Subject ID, e.g. finance",
+    )
+    project_set_subject.add_argument(
+        "--project-dir",
+        default=str(Path.cwd()),
+        help="Project directory that owns .qiongli/ (default: current dir)",
+    )
+    project_set_venue = project_subparsers.add_parser("set-venue", help="Set active venue profile")
+    project_set_venue.add_argument("venue", nargs="?", help="Venue profile path/name")
+    project_set_venue.add_argument(
+        "--venue",
+        dest="venue_flag",
+        help="Venue profile path/name",
+    )
+    project_set_venue.add_argument(
+        "--project-dir",
+        default=str(Path.cwd()),
+        help="Project directory that owns .qiongli/ (default: current dir)",
+    )
+    project_set_method_lens = project_subparsers.add_parser("set-method-lens", help="Set active method lens")
+    project_set_method_lens.add_argument("method_lens", nargs="?", help="Method lens path/name")
+    project_set_method_lens.add_argument(
+        "--method-lens",
+        dest="method_lens_flag",
+        help="Method lens path/name",
+    )
+    project_set_method_lens.add_argument(
+        "--project-dir",
+        default=str(Path.cwd()),
+        help="Project directory that owns .qiongli/ (default: current dir)",
+    )
+
     init = subparsers.add_parser("init", help="Initialize project-facing qiongli assets from the installed package")
     init.add_argument(
         "--project-dir",
@@ -1565,6 +1660,14 @@ def main() -> int:
         return cmd_doctor(args)
     if args.cmd == "guidance":
         return cmd_guidance(args)
+    if args.cmd == "project":
+        if getattr(args, "subject", None) is None:
+            args.subject = getattr(args, "subject_flag", None)
+        if getattr(args, "venue", None) is None:
+            args.venue = getattr(args, "venue_flag", None)
+        if getattr(args, "method_lens", None) is None:
+            args.method_lens = getattr(args, "method_lens_flag", None)
+        return cmd_project(args)
     if args.cmd == "init":
         return cmd_init(args)
     if args.cmd == "clean":

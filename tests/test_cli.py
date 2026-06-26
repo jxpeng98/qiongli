@@ -890,6 +890,34 @@ class InstallerCliTests(unittest.TestCase):
         self.assertIn("--name", command)
         self.assertIn("writing-style", command)
 
+    def test_project_set_subject_delegates_to_orchestrator(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            project_dir = Path(tmp_dir) / "project"
+            completed = mock.Mock(returncode=0, stdout="project set-subject ok\n")
+            args = argparse.Namespace(project_cmd="set-subject", project_dir=str(project_dir), subject="finance")
+
+            with mock.patch("subprocess.run", return_value=completed) as run:
+                exit_code = cli_module.cmd_project(args)
+
+        self.assertEqual(exit_code, 0)
+        command = run.call_args.args[0]
+        self.assertEqual(
+            command[-5:],
+            ["set-subject", "--project-dir", str(project_dir.resolve()), "--subject", "finance"],
+        )
+
+    def test_project_status_delegates_to_orchestrator(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            completed = mock.Mock(returncode=0, stdout="project status ok\n")
+            args = argparse.Namespace(project_cmd="status", project_dir=tmp_dir)
+
+            with mock.patch("subprocess.run", return_value=completed) as run:
+                exit_code = cli_module.cmd_project(args)
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("project", run.call_args.args[0])
+        self.assertIn("status", run.call_args.args[0])
+
     def test_provider_set_and_list_redacts_global_config(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)

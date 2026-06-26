@@ -52,6 +52,11 @@ from .guidance_runtime import (
     lint_project_guidance,
     write_guidance_trace,
 )
+from .project_manifest import (
+    init_project_manifest,
+    load_project_manifest,
+    update_project_manifest,
+)
 from .boundary_questions import (
     BOUNDARY_ARTIFACT,
     build_boundary_question_plan,
@@ -7522,6 +7527,77 @@ def _run_guidance_command(args: argparse.Namespace) -> CollaborationResult:
     )
 
 
+def _project_value(args: argparse.Namespace, name: str) -> str | None:
+    value = getattr(args, name, None)
+    if value is not None:
+        return str(value)
+    flag_value = getattr(args, f"{name}_flag", None)
+    if flag_value is not None:
+        return str(flag_value)
+    return None
+
+
+def _run_project_command(args: argparse.Namespace) -> CollaborationResult:
+    project_dir = Path(getattr(args, "project_dir", Path.cwd())).expanduser().resolve()
+    action = str(getattr(args, "project_cmd", "") or "").strip()
+    if action == "init":
+        init_project_guidance(project_dir)
+        manifest_state = init_project_manifest(project_dir)
+        data = {
+            "action": "init",
+            "project_dir": str(manifest_state.project_root),
+            "project_manifest": manifest_state.to_packet(),
+        }
+    elif action == "status":
+        guidance_state = effective_guidance(project_dir, mode="read")
+        data = {
+            "action": "status",
+            "project_dir": str(project_dir),
+            "project_manifest": guidance_state.project_manifest or load_project_manifest(project_dir).to_packet(),
+            "guidance_files": list(guidance_state.guidance_files_read),
+        }
+    elif action == "set-subject":
+        subject = _project_value(args, "subject")
+        if subject is None:
+            raise ValueError("project set-subject requires a subject")
+        manifest_state = update_project_manifest(project_dir, active_subject=subject)
+        data = {
+            "action": "set-subject",
+            "project_dir": str(manifest_state.project_root),
+            "project_manifest": manifest_state.to_packet(),
+        }
+    elif action == "set-venue":
+        venue = _project_value(args, "venue")
+        if venue is None:
+            raise ValueError("project set-venue requires a venue")
+        manifest_state = update_project_manifest(project_dir, venue_profiles=[venue])
+        data = {
+            "action": "set-venue",
+            "project_dir": str(manifest_state.project_root),
+            "project_manifest": manifest_state.to_packet(),
+        }
+    elif action == "set-method-lens":
+        method_lens = _project_value(args, "method_lens")
+        if method_lens is None:
+            raise ValueError("project set-method-lens requires a method lens")
+        manifest_state = update_project_manifest(project_dir, method_lenses=[method_lens])
+        data = {
+            "action": "set-method-lens",
+            "project_dir": str(manifest_state.project_root),
+            "project_manifest": manifest_state.to_packet(),
+        }
+    else:
+        raise ValueError(f"Unhandled project command: {action}")
+    return CollaborationResult(
+        mode="project",
+        task_description=f"project {action}".strip(),
+        merged_analysis=json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True),
+        confidence=1.0,
+        recommendations=[],
+        data=data,
+    )
+
+
 def main():
     """CLI entry point."""
     configure_stdio()
@@ -7718,6 +7794,80 @@ def main():
         help="Path to .qiongli/trace/runs/<run_id>/guidance_update_proposal.md",
     )
 
+    project = subparsers.add_parser(
+        "project",
+        help="Manage project subject guidance settings",
+    )
+    project_subparsers = project.add_subparsers(dest="project_cmd", required=True)
+    project_init = project_subparsers.add_parser(
+        "init",
+        help="Initialize project guidance settings",
+    )
+    project_init.add_argument(
+        "--project-dir",
+        default=Path.cwd(),
+        type=Path,
+        help="Project directory that owns .qiongli/ (default: current directory)",
+    )
+    project_status = project_subparsers.add_parser(
+        "status",
+        help="Show project guidance settings",
+    )
+    project_status.add_argument(
+        "--project-dir",
+        default=Path.cwd(),
+        type=Path,
+        help="Project directory that owns .qiongli/ (default: current directory)",
+    )
+    project_set_subject = project_subparsers.add_parser(
+        "set-subject",
+        help="Set active project subject",
+    )
+    project_set_subject.add_argument("subject", nargs="?", help="Subject ID, e.g. finance")
+    project_set_subject.add_argument(
+        "--subject",
+        dest="subject_flag",
+        help="Subject ID, e.g. finance",
+    )
+    project_set_subject.add_argument(
+        "--project-dir",
+        default=Path.cwd(),
+        type=Path,
+        help="Project directory that owns .qiongli/ (default: current directory)",
+    )
+    project_set_venue = project_subparsers.add_parser(
+        "set-venue",
+        help="Set active venue profile",
+    )
+    project_set_venue.add_argument("venue", nargs="?", help="Venue profile path/name")
+    project_set_venue.add_argument(
+        "--venue",
+        dest="venue_flag",
+        help="Venue profile path/name",
+    )
+    project_set_venue.add_argument(
+        "--project-dir",
+        default=Path.cwd(),
+        type=Path,
+        help="Project directory that owns .qiongli/ (default: current directory)",
+    )
+    project_set_method_lens = project_subparsers.add_parser(
+        "set-method-lens",
+        help="Set active method lens",
+    )
+    project_set_method_lens.add_argument("method_lens", nargs="?", help="Method lens path/name")
+    project_set_method_lens.add_argument(
+        "--method-lens",
+        dest="method_lens_flag",
+        help="Method lens path/name",
+    )
+    project_set_method_lens.add_argument(
+        "--project-dir",
+        default=Path.cwd(),
+        type=Path,
+        help="Project directory that owns .qiongli/ (default: current directory)",
+    )
+
     task_run = subparsers.add_parser(
         "task-run",
         help="Run standardized Task-ID workflow with capability-map agent routing",
@@ -7906,6 +8056,8 @@ def main():
 
     if args.mode == "guidance":
         result = _run_guidance_command(args)
+    elif args.mode == "project":
+        result = _run_project_command(args)
     elif args.mode == "code-build":
         result = orchestrator.code_build(
             method=args.method,
