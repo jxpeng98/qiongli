@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -12,6 +13,53 @@ from qiongli.setup_wizard import (
     execute_setup_plan,
     run_setup_wizard,
 )
+
+
+class SetupWizardPageProviderTests(unittest.TestCase):
+    def test_collect_setup_answers_uses_provider_page_without_key_prompts(self) -> None:
+        inputs = iter(["", "", "", "", "", "", "", "", "", "1", "2"])
+        output = io.StringIO()
+
+        answers = collect_setup_answers(
+            input_fn=lambda _prompt: next(inputs),
+            output=output,
+            default_project_dir=Path("/tmp/qiongli-project"),
+            provider_mode="page",
+        )
+
+        self.assertTrue(answers.configure_providers)
+        self.assertEqual(answers.provider_mode, "page")
+        self.assertEqual(answers.provider_values, ())
+        rendered = output.getvalue()
+        self.assertIn("opens one local browser page", rendered)
+        self.assertNotIn("OpenAlex API key:", rendered)
+
+    def test_execute_setup_plan_opens_provider_page_once_before_doctor(self) -> None:
+        project_dir = Path("/tmp/qiongli-project").resolve()
+        calls: list[object] = []
+        answers = SetupAnswers(
+            project_dir=project_dir,
+            configure_providers=True,
+            provider_mode="page",
+            run_doctor=True,
+        )
+        plan = build_setup_plan(answers)
+
+        result = execute_setup_plan(
+            plan,
+            dry_run=False,
+            install_fn=lambda options: calls.append(("install", options)) or 0,
+            provider_set_fn=lambda provider, field, value: calls.append(("provider-set", provider, field, value)),
+            provider_page_fn=lambda: calls.append(("provider-page",)) or "saved",
+            doctor_fn=lambda project_dir: calls.append(("doctor", project_dir)) or 0,
+            output=io.StringIO(),
+        )
+
+        self.assertTrue(result.executed)
+        self.assertEqual(calls[0][0], "install")
+        self.assertEqual(calls[1], ("provider-page",))
+        self.assertEqual(calls[2], ("doctor", project_dir))
+        self.assertFalse(any(call[0] == "provider-set" for call in calls))
 
 
 def test_defaults_create_core_complete_all_plan_and_doctor_enabled(tmp_path: Path) -> None:
@@ -148,6 +196,7 @@ def test_numbered_choice_collection_uses_empty_defaults(tmp_path: Path) -> None:
         input_fn=lambda _prompt: next(inputs),
         output=output,
         default_project_dir=tmp_path,
+        provider_mode="prompt",
     )
 
     assert answers.operation == "install"
@@ -243,6 +292,7 @@ def test_provider_values_are_accepted_but_redacted_in_summary_output(tmp_path: P
         input_fn=lambda _prompt: next(inputs),
         output=output,
         default_project_dir=tmp_path,
+        provider_mode="prompt",
     )
     plan = build_setup_plan(answers)
     execute_setup_plan(plan, dry_run=True, output=output)

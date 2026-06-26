@@ -95,6 +95,38 @@ test('main dispatches mcp to Python CLI runner and returns its code', async () =
   ]);
 });
 
+test('main dispatches self-update to Python CLI runner with npm channel marker', async () => {
+  const calls = [];
+  const exitCode = await main(['self-update', '--channel', 'next', '--dry-run', '--yes'], {
+    stdout: { write: () => {} },
+    stderr: { write: () => {} },
+    runPythonCliCommand: ({ args, env }) => {
+      calls.push({ args, env });
+      return 6;
+    },
+  });
+
+  assert.equal(exitCode, 6);
+  assert.deepEqual(calls[0].args, ['self-update', '--channel', 'next', '--dry-run', '--yes']);
+  assert.equal(calls[0].env.QIONGLI_INSTALL_CHANNEL, 'npm');
+});
+
+test('main dispatches update alias to Python CLI runner', async () => {
+  const calls = [];
+  const exitCode = await main(['update', '--dry-run'], {
+    stdout: { write: () => {} },
+    stderr: { write: () => {} },
+    runPythonCliCommand: ({ args, env }) => {
+      calls.push({ args, env });
+      return 4;
+    },
+  });
+
+  assert.equal(exitCode, 4);
+  assert.deepEqual(calls[0].args, ['update', '--dry-run']);
+  assert.equal(calls[0].env.QIONGLI_INSTALL_CHANNEL, 'npm');
+});
+
 test('main dispatches guidance to Python bridge runner and preserves args', async () => {
   const calls = [];
   const exitCode = await main(['guidance', 'init', '--project-dir', '/tmp/project'], {

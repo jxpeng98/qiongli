@@ -21,6 +21,7 @@ from .local_plugin_installer import (
     resolve_claude_plugin_paths,
     resolve_codex_plugin_paths,
 )
+from .install_discovery import discover_install_surfaces
 from .source_layout import RepoLayout
 from .subject_materializer import (
     COVERAGE_CHOICES,
@@ -535,10 +536,28 @@ def _print_section(title: str) -> None:
 def _print_detected_versions(target: str, source_version: str, target_paths: dict[str, Path]) -> None:
     _print_section("Detected Versions")
     print(f"  source:      {source_version or 'unknown'}")
+    installed = discover_install_surfaces(check_activation=False)
     section_targets = TARGET_CHOICES[:-1] if target == "all" else (target,)
     for item in section_targets:
-        state = _skill_package_state(target_paths[item])
+        state = _detected_version_state(target_paths[item], installed.get(item, {}))
         print(f"  {item:<11} {state}")
+
+
+def _detected_version_state(skill_path: Path, installed: dict[str, object]) -> str:
+    surface = installed.get("surface")
+    if surface == "plugin":
+        return f"plugin {_display_version(installed.get('version'))}"
+    if surface == "mcp":
+        return f"mcp {_display_version(installed.get('version'))}"
+    if surface == "legacy_skill":
+        return _display_version(installed.get("version"))
+    return _skill_package_state(skill_path)
+
+
+def _display_version(value: object) -> str:
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return "unknown"
 
 
 def _copy_display(src: Path, dest: Path, label: str, options: InstallOptions) -> None:

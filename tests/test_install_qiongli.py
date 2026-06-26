@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -14,6 +15,30 @@ LAYOUT = RepoLayout(REPO_ROOT)
 INSTALL_SCRIPT = REPO_ROOT / "scripts" / "install_qiongli.sh"
 INSTALL_SCRIPT_SOURCE = LAYOUT.scripts / "install_qiongli.sh"
 SYSTEM_BASH = Path("/bin/bash")
+
+
+def _isolated_qiongli_env(root: Path, *, path: str | None = None) -> dict[str, str]:
+    home = root / "home"
+    runtime_path = path
+    if runtime_path is None:
+        runtime_path = os.pathsep.join((str(Path(sys.executable).parent), "/usr/bin", "/bin"))
+    return {
+        "HOME": str(home),
+        "USERPROFILE": str(home),
+        "CODEX_HOME": str(root / "codex-home"),
+        "CLAUDE_CODE_HOME": str(root / "claude-home"),
+        "ANTIGRAVITY_HOME": str(root / "antigravity-home"),
+        "HERMES_HOME": str(root / "hermes-home"),
+        "QIONGLI_CODEX_MARKETPLACE_PATH": str(root / ".agents" / "plugins" / "marketplace.json"),
+        "QIONGLI_CLAUDE_PLUGIN_PARENT": str(root / ".qiongli" / "plugins" / "claude-code"),
+        "QIONGLI_ANTIGRAVITY_PLUGIN_PARENT": str(root / ".qiongli" / "plugins" / "antigravity"),
+        "CLAUDE_CODE_CONFIG_PATH": str(root / ".claude.json"),
+        "ANTIGRAVITY_CONFIG_PATH": str(root / ".gemini" / "config" / "mcp_config.json"),
+        "HERMES_CONFIG_PATH": str(root / "hermes-home" / "settings.json"),
+        "QIONGLI_CONFIG_HOME": str(root / ".qiongli-config"),
+        "NO_COLOR": "1",
+        "PATH": runtime_path,
+    }
 
 
 class InstallQiongliTests(unittest.TestCase):
@@ -37,7 +62,7 @@ class InstallQiongliTests(unittest.TestCase):
             )
             (existing_skill / "VERSION").write_text(f"{source_version}\n", encoding="utf-8")
 
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["HOME"] = str(home_dir)
             env["CODEX_HOME"] = str(codex_home)
             env["NO_COLOR"] = "1"
@@ -94,7 +119,7 @@ class InstallQiongliTests(unittest.TestCase):
             home_dir = temp_root / "home"
             home_dir.mkdir()
 
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["HOME"] = str(home_dir)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             env["NO_COLOR"] = "1"
@@ -143,7 +168,7 @@ class InstallQiongliTests(unittest.TestCase):
             antigravity_cli.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
             antigravity_cli.chmod(0o755)
 
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["HOME"] = str(home_dir)
             env["ANTIGRAVITY_HOME"] = str(antigravity_home)
             env["PATH"] = f"{bin_dir}{os.pathsep}{env.get('PATH', '')}"
@@ -194,7 +219,7 @@ class InstallQiongliTests(unittest.TestCase):
             hermes_cli.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
             hermes_cli.chmod(0o755)
 
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["HOME"] = str(home_dir)
             env["HERMES_HOME"] = str(hermes_home)
             env["PATH"] = f"{bin_dir}{os.pathsep}{env.get('PATH', '')}"
@@ -237,7 +262,7 @@ class InstallQiongliTests(unittest.TestCase):
             home_dir = temp_root / "home"
             home_dir.mkdir()
 
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["HOME"] = str(home_dir)
             env["PATH"] = "/usr/bin:/bin"
             env["NO_COLOR"] = "1"
@@ -283,7 +308,7 @@ class InstallQiongliTests(unittest.TestCase):
             home_dir = temp_root / "home"
             home_dir.mkdir()
 
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["HOME"] = str(home_dir)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             env["NO_COLOR"] = "1"
@@ -351,7 +376,7 @@ class InstallQiongliTests(unittest.TestCase):
             (cli_dir / "rsk").symlink_to(cli_dir / "qiongli")
             (cli_dir / "rsw").symlink_to(cli_dir / "qiongli")
 
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["HOME"] = str(home_dir)
             env["CODEX_HOME"] = str(codex_home)
             env["RESEARCH_SKILLS_BIN_DIR"] = str(cli_dir)
@@ -409,7 +434,7 @@ class InstallQiongliTests(unittest.TestCase):
             )
             (existing_skill / "legacy.txt").write_text("old", encoding="utf-8")
 
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["HOME"] = str(home_dir)
             env["CODEX_HOME"] = str(codex_home)
             env["NO_COLOR"] = "1"
@@ -462,7 +487,7 @@ class InstallQiongliTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["HOME"] = str(home_dir)
             env["CODEX_HOME"] = str(codex_home)
             env["NO_COLOR"] = "1"

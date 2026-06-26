@@ -167,6 +167,15 @@ qiongli install --subject economics --coverage focused --target all --project-di
 qiongli install --profile full --target all --surface plugin
 ```
 
+更新全局 package 并刷新 full local plugin/MCP 安装面：
+
+```bash
+qiongli self-update --dry-run
+qiongli self-update --yes
+```
+
+在 npm 安装中，`self-update` 会委托给 `npm install -g qiongli@latest`，然后用刷新后的 package 执行 `qiongli install --target all --surface plugin --profile full --overwrite`。原生 marketplace plugin 仍由客户端 plugin manager 管理。
+
 一次性运行：
 
 ```bash
@@ -207,6 +216,7 @@ qiongli remove --surface plugin --target claude
 qiongli setup
 qiongli setup --dry-run
 qiongli setup --project-dir "$PWD" --no-doctor
+qiongli setup --provider-mode prompt --no-browser
 ```
 
 wizard 会引导 CLI、Codex、Claude Code 和 Antigravity 用户完成：
@@ -220,12 +230,12 @@ wizard 会引导 CLI、Codex、Claude Code 和 Antigravity 用户完成：
 - 启用 CLI wrapper 时的 CLI 目录
 - overwrite 策略：需要替换已管理安装时使用 `--overwrite`；升级但保留现有 managed files 时使用 `--no-overwrite`
 - upgrade source：latest stable、latest beta、显式 `--ref` tag、显式 `--ref-type branch`，以及可选 `--repo`
-- 可选 literature provider key setup
+- 可选 literature provider setup。默认会打开一个本地浏览器页面，一次配置 OpenAlex、Semantic Scholar、Crossref、PubMed，并展示 arXiv 不需要 API key；远程终端可用 `--no-browser` 只打印 URL，也可以用 `--provider-mode prompt` 回到终端逐项录入，或用 `--provider-mode skip` 跳过 provider setup
 - doctor verification，除非设置 `--no-doctor`
 
 每一步 prompt 都会打印简短的 `Tip:` 注释，解释这个选择会改变什么；不熟悉完整 CLI 参数的用户也可以按引导完成安装或升级。
 
-通过 setup 输入的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。密钥会保存在生成的研究 artifacts 之外。provider 步骤用于配置凭据并执行 doctor/capability 检查；它不保证一定产生外部检索结果。
+通过 setup 保存的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。本地页面包含各 provider 获取 key 的链接和步骤；arXiv 标注为无需 API key。密钥会保存在生成的研究 artifacts 之外。provider 步骤用于配置凭据并执行 doctor/capability 检查；它不保证一定产生外部检索结果。
 
 在 npm 安装中，`qiongli setup` 会委托到 npm 包内置的 Python bridge，因此要求本机已有 Python 3.12+ 和 `PyYAML`。如果只需要 Node-only asset installer，继续使用显式 `qiongli install ...` 命令。
 
@@ -248,9 +258,11 @@ qiongli install --subject economics-accounting --target all
 升级：
 
 ```bash
-pipx upgrade qiongli
-qiongli upgrade --subject accounting --target all --doctor --project-dir /path/to/project
+qiongli self-update --dry-run
+qiongli self-update --yes
 ```
+
+手动 package-manager 更新仍然可用：运行 `pipx upgrade qiongli` 或 `python -m pip install --upgrade qiongli`，然后用 `qiongli install --target all --surface plugin --profile full --overwrite` 刷新客户端安装面。`qiongli upgrade` 仍是你明确想下载上游 GitHub release 时使用的 release archive refresh 路径。
 
 `--subject` 默认是 `core`，`--coverage` 默认是 `complete`。不确定怎么选时使用 complete：`--subject economics`、`--subject business`、`--subject finance`、`--subject political-economy` 和 `--subject geoeconomics` 表示 complete 专精安装，不是缩水包；`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。只有明确需要精简包或 Desktop/Web 等价包时才使用 `--coverage focused`。当前官方 subjects 是 `core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics` 和命名 composite subject `economics-accounting`；`political-economy` 和 `geoeconomics` 是两个独立 subject 选择，不是一个 composite。官方 composite subjects 不是任意逗号分隔叠加。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新参数。`qiongli check --json` 会输出每个 target 当前安装的 subject 和 coverage；旧安装缺少 `SUBJECT_MANIFEST.json` 或 `SUBJECT` 文件时按 legacy `core` / `complete` 处理。
 
@@ -292,7 +304,8 @@ python3 scripts/materialize_subject_package.py \
 
 ```bash
 qiongli check
-qiongli upgrade --subject core --target all
+qiongli self-update --dry-run
+qiongli self-update --yes
 ```
 
 如果你已经完全转向原生 plugin，不再需要旧的全局 skill 目录或 slash discovery，先 dry-run 清理：

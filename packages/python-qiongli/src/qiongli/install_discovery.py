@@ -43,24 +43,24 @@ def legacy_skill_dirs() -> dict[str, Path]:
     }
 
 
-def discover_install_surfaces() -> dict[str, dict[str, object]]:
+def discover_install_surfaces(*, check_activation: bool = True) -> dict[str, dict[str, object]]:
     skill_dirs = legacy_skill_dirs()
     return {
         "codex": _combine_surface(
             client="codex",
-            plugin=_codex_plugin_status(),
+            plugin=_codex_plugin_status(check_activation=check_activation),
             skill=_skill_status(skill_dirs["codex"]),
             mcp=_codex_mcp_status(),
         ),
         "claude": _combine_surface(
             client="claude",
-            plugin=_claude_plugin_status(),
+            plugin=_claude_plugin_status(check_activation=check_activation),
             skill=_skill_status(skill_dirs["claude"]),
             mcp=_json_mcp_status(default_claude_code_config_path()),
         ),
         "antigravity": _combine_surface(
             client="antigravity",
-            plugin=_antigravity_plugin_status(),
+            plugin=_antigravity_plugin_status(check_activation=check_activation),
             skill=_skill_status(skill_dirs["antigravity"]),
             mcp=_antigravity_mcp_status(),
         ),
@@ -119,40 +119,48 @@ def _combine_surface(
     }
 
 
-def _codex_plugin_status() -> dict[str, object]:
+def _codex_plugin_status(*, check_activation: bool = True) -> dict[str, object]:
     paths = resolve_codex_plugin_paths()
     status = _plugin_status(
         plugin_root=paths.plugin_root,
         manifest_path=paths.plugin_root / ".codex-plugin" / "plugin.json",
     )
-    if status["installed"]:
+    plugin_id = f"{PLUGIN_ID}@{_codex_marketplace_name(paths.marketplace_path)}"
+    if status["installed"] and check_activation:
         status.update(_codex_plugin_activation_status(paths.marketplace_path))
+    elif status["installed"]:
+        status.update(_unchecked_activation_status(plugin_id, "activation not checked"))
     else:
-        status.update(_unchecked_activation_status(f"{PLUGIN_ID}@{_codex_marketplace_name(paths.marketplace_path)}"))
+        status.update(_unchecked_activation_status(plugin_id))
     return status
 
 
-def _claude_plugin_status() -> dict[str, object]:
+def _claude_plugin_status(*, check_activation: bool = True) -> dict[str, object]:
     paths = resolve_claude_plugin_paths()
     status = _plugin_status(
         plugin_root=paths.plugin_root,
         manifest_path=paths.plugin_root / ".claude-plugin" / "plugin.json",
     )
-    if status["installed"]:
+    plugin_id = f"{PLUGIN_ID}@{paths.marketplace_name}"
+    if status["installed"] and check_activation:
         status.update(_claude_plugin_activation_status(paths))
+    elif status["installed"]:
+        status.update(_unchecked_activation_status(plugin_id, "activation not checked"))
     else:
-        status.update(_unchecked_activation_status(f"{PLUGIN_ID}@{paths.marketplace_name}"))
+        status.update(_unchecked_activation_status(plugin_id))
     return status
 
 
-def _antigravity_plugin_status() -> dict[str, object]:
+def _antigravity_plugin_status(*, check_activation: bool = True) -> dict[str, object]:
     plugin_root = resolve_antigravity_plugin_root()
     status = _plugin_status(
         plugin_root=plugin_root,
         manifest_path=plugin_root / "plugin.json",
     )
-    if status["installed"]:
+    if status["installed"] and check_activation:
         status.update(_antigravity_plugin_activation_status(plugin_root))
+    elif status["installed"]:
+        status.update(_unchecked_activation_status(PLUGIN_ID, "activation not checked"))
     else:
         status.update(_unchecked_activation_status(PLUGIN_ID))
     return status
@@ -187,12 +195,12 @@ def _empty_plugin_status(client: str) -> dict[str, object]:
     }
 
 
-def _unchecked_activation_status(plugin_id: str) -> dict[str, object]:
+def _unchecked_activation_status(plugin_id: str, detail: str = "plugin payload not installed") -> dict[str, object]:
     return {
         "active": None,
         "enabled": None,
         "plugin_id": plugin_id,
-        "activation_detail": "plugin payload not installed",
+        "activation_detail": detail,
     }
 
 

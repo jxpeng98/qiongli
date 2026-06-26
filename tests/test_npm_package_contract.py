@@ -125,6 +125,7 @@ class NpmPackageContractTests(unittest.TestCase):
         self.assertTrue((runtime_root / "qiongli" / "bridges" / "mcp_cli.py").is_file())
         self.assertTrue((runtime_root / "qiongli" / "bridges" / "mcp_server_stdio.py").is_file())
         self.assertTrue((runtime_root / "qiongli" / "bridges" / "providers" / "literature_search.py").is_file())
+        self.assertTrue((runtime_root / "qiongli" / "self_update.py").is_file())
         self.assertTrue((runtime_root / "scripts" / "validate_project_artifacts.py").is_file())
         self.assertTrue((runtime_root / "qiongli" / "workflow_contract_doc.py").is_file())
         self.assertTrue((runtime_root / "standards" / "research-workflow-contract.yaml").is_file())

@@ -42,9 +42,10 @@ repo = "owner/repo"   # 或 url = "https://github.com/owner/repo.git"
 
 ## 2) `qiongli`（安装/升级器 CLI）
 
-这个 CLI 现在有两种分发方式：
+这个 CLI 现在有三种分发方式：
 - Python CLI：通过 `pip`/`pipx` 安装
 - Shell CLI：由 `bootstrap_qiongli.sh` 默认安装到 `${QIONGLI_BIN_DIR:-${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}}`
+- npm launcher：通过 `npm install -g qiongli` 安装；Node-only `install` 仍可直接使用，`setup`、`mcp` 和 `self-update` 会委托到内置 Python bridge
 
 ### 2.0 默认安装模型
 
@@ -116,7 +117,7 @@ qiongli install --target codex --surface plugin --overwrite
 - 引导 CLI、Codex、Claude Code、Antigravity 和 Hermes 用户选择 install/upgrade、runtime surface、subject、coverage、install mode、install scope、overwrite 策略、upgrade source、可选 provider key setup，并执行 doctor verification。
 
 ```bash
-qiongli setup [--project-dir <path>] [--dry-run] [--no-doctor]
+qiongli setup [--project-dir <path>] [--dry-run] [--no-doctor] [--provider-mode page|prompt|skip] [--no-browser]
 ```
 
 示例：
@@ -125,6 +126,7 @@ qiongli setup [--project-dir <path>] [--dry-run] [--no-doctor]
 qiongli setup
 qiongli setup --dry-run
 qiongli setup --project-dir "$PWD" --no-doctor
+qiongli setup --provider-mode prompt --no-browser
 ```
 
 通过 npm launcher 调用时，`qiongli setup` 使用 npm 包内置的 Python bridge，因此要求 Python 3.12+ 和 `PyYAML`。显式 `qiongli install ...` npm 命令仍可用于 Node-only asset installation。
@@ -139,14 +141,36 @@ wizard 选项：
 - 所选 scope 包含 CLI wrapper 时的 CLI 目录。
 - Overwrite 策略：install refresh 使用 `--overwrite`；升级但不替换 managed files 时使用 `--no-overwrite`。
 - Upgrade source：latest stable、latest beta、可选 `--repo`、显式 `--ref`，以及 `--ref-type tag|branch`。
-- 可选 literature provider credentials。
+- 可选 literature provider setup。默认 `page` 模式会打开一个本地浏览器页面，一次配置 OpenAlex、Semantic Scholar、Crossref、PubMed，并显示 arXiv 不需要 API key；远程终端可用 `--no-browser` 只打印本地 URL，也可以用 `--provider-mode prompt` 回到终端逐项录入，或用 `--provider-mode skip` 跳过 provider setup。
 - Doctor verification，除非设置 `--no-doctor`。
 
 每一步 prompt 都包含简短的 `Tip:` 注释，解释这个选择为什么重要，以及会改变哪种安装或升级行为。
 
-通过 setup 输入的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。密钥保存在生成的研究 artifacts 之外。setup 会配置凭据并执行 doctor/capability 检查；它不承诺一定会运行外部 literature search。
+通过 setup 保存的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。本地设置页包含各 provider 获取 key 的链接和步骤；arXiv 标注为无需 API key。密钥保存在生成的研究 artifacts 之外。setup 会配置凭据并执行 doctor/capability 检查；它不承诺一定会运行外部 literature search。
 
-### 2.2.1 `qiongli doctor`（运行时和客户端集成健康检查）
+### 2.2.1 `qiongli self-update` / `qiongli update`（更新 package 并刷新安装面）
+
+用途：
+- 通过最初安装它的 package manager 更新 CLI package。
+- package 更新成功后，用新 package 内置 payload 刷新本地 full plugin / MCP 安装面。
+- 不管理原生 marketplace plugin；Codex、Claude Code 或对应客户端安装的 marketplace plugin 仍由客户端 plugin manager 管理。
+
+```bash
+qiongli self-update [--channel stable|next] [--target codex|claude|antigravity|hermes|all] [--surface skills|plugin|both] [--profile partial|full] [--dry-run] [--yes]
+qiongli update --dry-run
+```
+
+默认行为：
+- `--channel stable` 会根据检测到的安装渠道委托给 `npm install -g qiongli@latest`、`pipx upgrade qiongli` 或 `python -m pip install --upgrade qiongli`。
+- `--channel next` 会使用 `npm install -g qiongli@next`，或在 Python 包管理器路径上启用 prerelease `--pre`。
+- 刷新安装面默认执行 `qiongli install --target all --surface plugin --profile full --overwrite`。这是有意设计：package manager 已经更新了 CLI package，本地 payload 已经是新的，不需要再下载 release archive。
+- `--dry-run` 只打印检测到的渠道和将要执行的命令。
+- 不传 `--yes` 时，只打印计划并退出，不改动本机。
+- `--no-refresh` 跳过安装面刷新，`--skip-check` 跳过最后的 `qiongli check --offline`。
+
+源码 checkout 不会自我修改。检测到 source mode 时，先用 `git pull` 更新源码，再运行 `qiongli install --overwrite` 刷新需要的安装面。
+
+### 2.2.2 `qiongli doctor`（运行时和客户端集成健康检查）
 
 用途：
 - 对指定项目目录运行 Python orchestrator doctor。
@@ -158,7 +182,7 @@ qiongli doctor --cwd .
 
 `doctor` 检查 project 文件、provider/orchestrator readiness、本地模型 CLI 等运行时条件。它不会安装或删除 plugin。缺少可选客户端集成只会出现在摘要里，不会单独让 `doctor` 失败；退出码仍然来自 orchestrator doctor。
 
-### 2.2.2 `qiongli mcp`（跨平台 MCP server）
+### 2.2.3 `qiongli mcp`（跨平台 MCP server）
 
 用途：
 - 为支持 MCP 的桌面或 agent 客户端启动本地 Qiongli MCP server。
@@ -260,6 +284,7 @@ qiongli upgrade \
 ```
 
 说明：
+- `qiongli upgrade` 是 release archive refresh 命令。需要先更新 npm/pipx/pip package 时，用 `qiongli self-update --yes`；它会先更新 package，再运行 `qiongli install --overwrite`，从新的本地 package payload 刷新客户端安装面。
 - `--project-dir` 主要在你显式请求项目侧安装面时生效，例如 `--parts project`。
 - 现在默认的 `upgrade` 等价于 `--profile full --surface plugin`：刷新 Codex / Claude Code / Antigravity 本地 plugin，把 Antigravity MCP config 打包进 plugin，给 Hermes 写入受管理 MCP config，并在安装成功后清理旧 global skills 和 Codex/Claude/Antigravity 独立 MCP config。
 - 如果要保留旧版 skills-only 升级路径，使用 `qiongli upgrade --surface skills --profile partial ...`。

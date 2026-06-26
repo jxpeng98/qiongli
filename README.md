@@ -159,6 +159,10 @@ qiongli install --subject economics --coverage focused --target all --project-di
 # Explicit legacy skills-only surface
 qiongli install --surface skills --profile partial --target all --project-dir "$PWD"
 
+# Update the CLI package and refresh the full local plugin/MCP surface
+qiongli self-update --dry-run
+qiongli self-update --yes
+
 # Prerelease testing
 npx qiongli@next install --target all --project-dir "$PWD"
 npx qiongli@next check --json
@@ -200,14 +204,17 @@ After npm, pipx, pip, or bootstrap installs, use the setup wizard when you want 
 qiongli setup
 qiongli setup --dry-run
 qiongli setup --project-dir "$PWD" --no-doctor
+qiongli setup --provider-mode prompt --no-browser
 qiongli install --target all --project-dir "$PWD"
 ```
 
-The wizard covers `install` and `upgrade`, runtime surface (`cli`, `codex`, `claude-code`, `antigravity`, or `multi-platform`), subject, coverage, `--mode copy|link`, install scope, CLI directory / shell CLI location, `--overwrite` / `--no-overwrite`, optional provider config, and doctor verification unless `--no-doctor` is used.
+The wizard covers `install` and `upgrade`, runtime surface (`cli`, `codex`, `claude-code`, `antigravity`, or `multi-platform`), subject, coverage, `--mode copy|link`, install scope, CLI directory / shell CLI location, `--overwrite` / `--no-overwrite`, optional provider config, and doctor verification unless `--no-doctor` is used. Provider setup defaults to one local browser page for OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv guidance; use `--no-browser` to print the URL only, `--provider-mode prompt` for terminal-only entry, or `--provider-mode skip` to bypass provider setup.
 
 On npm installs, `qiongli setup` delegates to the bundled Python bridge and therefore requires Python 3.12+ plus `PyYAML`. If you only need Node-based asset installation, use explicit `qiongli install ...` commands.
 
-Provider keys entered through `qiongli setup` use the same provider config as `qiongli provider setup` and `qiongli provider doctor`. Secrets are stored in provider configuration outside generated research artifacts. Setup configures credentials and runs doctor/capability checks; it does not by itself guarantee external search results.
+Provider keys saved through `qiongli setup` use the same provider config as `qiongli provider setup` and `qiongli provider doctor`. The local page includes links and short steps for getting each provider credential; arXiv is marked as available without an API key. Secrets are stored in provider configuration outside generated research artifacts. Setup configures credentials and runs doctor/capability checks; it does not by itself guarantee external search results.
+
+Use `qiongli self-update --dry-run` to preview the detected package-manager update command. `qiongli self-update --yes` updates npm/pipx/pip first, then runs `qiongli install --target all --surface plugin --profile full --overwrite` and `qiongli check --offline` from the refreshed package. Source checkouts should use `git pull` plus an explicit `qiongli install --overwrite`.
 
 ## Remove CLI-installed Assets
 

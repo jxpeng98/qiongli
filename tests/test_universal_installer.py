@@ -26,7 +26,53 @@ from qiongli.universal_installer import (
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
+def _isolated_qiongli_env(root: Path, *, path: str = "") -> dict[str, str]:
+    home = root / "home"
+    return {
+        "HOME": str(home),
+        "USERPROFILE": str(home),
+        "CODEX_HOME": str(root / "codex-home"),
+        "CLAUDE_CODE_HOME": str(root / "claude-home"),
+        "ANTIGRAVITY_HOME": str(root / "antigravity-home"),
+        "HERMES_HOME": str(root / "hermes-home"),
+        "QIONGLI_CODEX_MARKETPLACE_PATH": str(root / ".agents" / "plugins" / "marketplace.json"),
+        "QIONGLI_CLAUDE_PLUGIN_PARENT": str(root / ".qiongli" / "plugins" / "claude-code"),
+        "QIONGLI_ANTIGRAVITY_PLUGIN_PARENT": str(root / ".qiongli" / "plugins" / "antigravity"),
+        "CLAUDE_CODE_CONFIG_PATH": str(root / ".claude.json"),
+        "ANTIGRAVITY_CONFIG_PATH": str(root / ".gemini" / "config" / "mcp_config.json"),
+        "HERMES_CONFIG_PATH": str(root / "hermes-home" / "settings.json"),
+        "QIONGLI_CONFIG_HOME": str(root / ".qiongli-config"),
+        "PATH": path,
+    }
+
+
 class UniversalInstallerTests(unittest.TestCase):
+    def test_isolated_env_routes_install_surfaces_to_sandbox(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            env = _isolated_qiongli_env(temp_root)
+
+        host_home = str(Path.home())
+        install_keys = [
+            "HOME",
+            "CODEX_HOME",
+            "CLAUDE_CODE_HOME",
+            "ANTIGRAVITY_HOME",
+            "HERMES_HOME",
+            "QIONGLI_CODEX_MARKETPLACE_PATH",
+            "QIONGLI_CLAUDE_PLUGIN_PARENT",
+            "QIONGLI_ANTIGRAVITY_PLUGIN_PARENT",
+            "CLAUDE_CODE_CONFIG_PATH",
+            "ANTIGRAVITY_CONFIG_PATH",
+            "HERMES_CONFIG_PATH",
+            "QIONGLI_CONFIG_HOME",
+        ]
+        for key in install_keys:
+            self.assertTrue(env[key].startswith(str(temp_root)), key)
+            self.assertFalse(env[key].startswith(host_home), key)
+        self.assertNotIn("OPENAI_API_KEY", env)
+        self.assertNotIn("ANTHROPIC_API_KEY", env)
+
     def test_supported_install_targets_drop_gemini_cli(self) -> None:
         self.assertNotIn("gemini", TARGET_CHOICES)
         self.assertEqual(("codex", "claude", "antigravity", "hermes", "all"), TARGET_CHOICES)
@@ -46,13 +92,20 @@ class UniversalInstallerTests(unittest.TestCase):
             )
             (existing_skill / "VERSION").write_text(f"{source_version}\n", encoding="utf-8")
 
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(codex_home)
+            env["QIONGLI_CODEX_MARKETPLACE_PATH"] = str(temp_root / ".agents" / "plugins" / "marketplace.json")
             env["PATH"] = ""
 
             stdout = io.StringIO()
             with mock.patch.dict(os.environ, env, clear=True):
-                with contextlib.redirect_stdout(stdout):
+                with mock.patch(
+                    "qiongli.install_discovery.shutil.which",
+                    return_value="/usr/local/bin/codex",
+                ), mock.patch(
+                    "qiongli.install_discovery.subprocess.run",
+                    side_effect=AssertionError("activation should not be checked during install version detection"),
+                ), contextlib.redirect_stdout(stdout):
                     result = install(
                         InstallOptions(
                             repo_root=REPO_ROOT,
@@ -69,6 +122,58 @@ class UniversalInstallerTests(unittest.TestCase):
             self.assertIn(f"codex       {source_version}", rendered)
             self.assertIn(f"current {source_version}; source {source_version}; already installed", rendered)
 
+    def test_detected_versions_reports_existing_plugin_surface_version(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            codex_home = temp_root / "codex-home"
+            marketplace = temp_root / ".agents" / "plugins" / "marketplace.json"
+            plugin_root = temp_root / "plugins" / "qiongli"
+            (plugin_root / ".codex-plugin").mkdir(parents=True)
+            (plugin_root / ".codex-plugin" / "plugin.json").write_text(
+                json.dumps({"name": "qiongli", "version": "9.9.9"}),
+                encoding="utf-8",
+            )
+            (plugin_root / ".qiongli-managed.json").write_text(
+                json.dumps(
+                    {
+                        "managed_by": "qiongli-cli",
+                        "plugin": "qiongli",
+                        "surface": "plugin",
+                        "version": "9.9.9",
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            env = _isolated_qiongli_env(temp_root)
+            env["CODEX_HOME"] = str(codex_home)
+            env["QIONGLI_CODEX_MARKETPLACE_PATH"] = str(marketplace)
+            env["PATH"] = ""
+
+            stdout = io.StringIO()
+            with mock.patch.dict(os.environ, env, clear=True):
+                with contextlib.redirect_stdout(stdout):
+                    result = install(
+                        InstallOptions(
+                            repo_root=REPO_ROOT,
+                            project_dir=project_dir,
+                            target="codex",
+                            profile="full",
+                            surface="plugin",
+                            install_cli=False,
+                            doctor=False,
+                            dry_run=True,
+                        )
+                    )
+
+            self.assertEqual(result, 0)
+            rendered = stdout.getvalue()
+            self.assertIn("== Detected Versions ==", rendered)
+            self.assertIn("codex       plugin 9.9.9", rendered)
+            self.assertNotIn("codex       not installed", rendered)
+
     def test_existing_managed_skill_auto_updates_without_overwrite(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             temp_root = Path(tmp_dir)
@@ -84,7 +189,7 @@ class UniversalInstallerTests(unittest.TestCase):
             (existing_skill / "VERSION").write_text("v0.4.0-beta.14\n", encoding="utf-8")
             (existing_skill / "legacy.txt").write_text("old", encoding="utf-8")
 
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["PATH"] = ""
 
@@ -121,7 +226,7 @@ class UniversalInstallerTests(unittest.TestCase):
             )
             (existing_skill / "legacy.txt").write_text("old", encoding="utf-8")
 
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["PATH"] = ""
 
@@ -162,7 +267,7 @@ class UniversalInstallerTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["PATH"] = ""
 
@@ -195,7 +300,7 @@ class UniversalInstallerTests(unittest.TestCase):
             legacy_named_dir.mkdir(parents=True)
             (legacy_named_dir / "notes.txt").write_text("user data", encoding="utf-8")
 
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["PATH"] = ""
 
@@ -229,7 +334,7 @@ class UniversalInstallerTests(unittest.TestCase):
             gemini_home = temp_root / "gemini-home"
             antigravity_home = temp_root / "antigravity-home"
 
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             env["GEMINI_HOME"] = str(gemini_home)
@@ -262,7 +367,7 @@ class UniversalInstallerTests(unittest.TestCase):
             antigravity_home = temp_root / "antigravity-home"
             hermes_home = temp_root / "hermes-home"
 
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             env["GEMINI_HOME"] = str(gemini_home)
@@ -302,7 +407,7 @@ class UniversalInstallerTests(unittest.TestCase):
             antigravity_home = temp_root / "antigravity-home"
             hermes_home = temp_root / "hermes-home"
 
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             env["GEMINI_HOME"] = str(gemini_home)
@@ -350,7 +455,7 @@ class UniversalInstallerTests(unittest.TestCase):
             project_dir = temp_root / "project"
             project_dir.mkdir(parents=True)
             codex_home = temp_root / "codex-home"
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["PATH"] = ""
 
@@ -384,7 +489,7 @@ class UniversalInstallerTests(unittest.TestCase):
             project_dir = temp_root / "project"
             project_dir.mkdir(parents=True)
             codex_home = temp_root / "codex-home"
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["PATH"] = ""
 
@@ -426,7 +531,7 @@ class UniversalInstallerTests(unittest.TestCase):
                 json.dumps({"subject": "economics", "coverage": "focused", "flavor": "full", "layers": ["core", "economics"]}),
                 encoding="utf-8",
             )
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["PATH"] = ""
             stdout = io.StringIO()
@@ -455,7 +560,7 @@ class UniversalInstallerTests(unittest.TestCase):
             gemini_home = temp_root / "gemini-home"
             antigravity_home = temp_root / "antigravity-home"
             hermes_home = temp_root / "hermes-home"
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             env["GEMINI_HOME"] = str(gemini_home)
@@ -488,7 +593,7 @@ class UniversalInstallerTests(unittest.TestCase):
             claude_home = temp_root / "claude-home"
             antigravity_home = temp_root / "antigravity-home"
             hermes_home = temp_root / "hermes-home"
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             env["ANTIGRAVITY_HOME"] = str(antigravity_home)
@@ -519,7 +624,7 @@ class UniversalInstallerTests(unittest.TestCase):
             project_dir = temp_root / "project"
             project_dir.mkdir(parents=True)
             claude_home = temp_root / ".claude"
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["HOME"] = str(temp_root)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             env["PATH"] = ""
@@ -555,7 +660,7 @@ class UniversalInstallerTests(unittest.TestCase):
             claude_home = temp_root / ".claude"
             antigravity_home = temp_root / "antigravity-home"
             hermes_home = temp_root / "hermes-home"
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["HOME"] = str(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
@@ -604,7 +709,7 @@ class UniversalInstallerTests(unittest.TestCase):
             project_dir.mkdir(parents=True)
             codex_home = temp_root / "codex-home"
             marketplace = temp_root / "agents" / "marketplace.json"
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["QIONGLI_CODEX_MARKETPLACE_PATH"] = str(marketplace)
             env["PATH"] = ""
@@ -638,7 +743,7 @@ class UniversalInstallerTests(unittest.TestCase):
             project_dir.mkdir(parents=True)
             codex_home = temp_root / "codex-home"
             marketplace = temp_root / ".agents" / "plugins" / "marketplace.json"
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["HOME"] = str(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["QIONGLI_CODEX_MARKETPLACE_PATH"] = str(marketplace)
@@ -682,7 +787,7 @@ class UniversalInstallerTests(unittest.TestCase):
             project_dir = temp_root / "project"
             project_dir.mkdir(parents=True)
             marketplace_root = temp_root / ".qiongli" / "plugins" / "claude-code"
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["HOME"] = str(temp_root)
             env["CLAUDE_CODE_HOME"] = str(temp_root / ".claude")
             env["QIONGLI_CLAUDE_PLUGIN_PARENT"] = str(marketplace_root)
@@ -728,7 +833,7 @@ class UniversalInstallerTests(unittest.TestCase):
             project_dir = temp_root / "project"
             project_dir.mkdir(parents=True)
             antigravity_plugin_parent = temp_root / ".qiongli" / "plugins" / "antigravity"
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["HOME"] = str(temp_root)
             env["QIONGLI_ANTIGRAVITY_PLUGIN_PARENT"] = str(antigravity_plugin_parent)
 
@@ -771,7 +876,7 @@ class UniversalInstallerTests(unittest.TestCase):
             project_dir.mkdir(parents=True)
             codex_home = temp_root / "codex-home"
             marketplace = temp_root / "agents" / "marketplace.json"
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["QIONGLI_CODEX_MARKETPLACE_PATH"] = str(marketplace)
             env["PATH"] = ""
@@ -804,7 +909,7 @@ class UniversalInstallerTests(unittest.TestCase):
             marketplace = temp_root / "agents" / "marketplace.json"
             claude_plugin_parent = temp_root / "claude-plugins"
             antigravity_plugin_parent = temp_root / "antigravity-plugins"
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["HOME"] = str(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
@@ -855,7 +960,7 @@ class UniversalInstallerTests(unittest.TestCase):
             claude_home = temp_root / ".claude"
             antigravity_home = temp_root / "antigravity-home"
             hermes_home = temp_root / "hermes-home"
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["HOME"] = str(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
@@ -911,7 +1016,7 @@ class UniversalInstallerTests(unittest.TestCase):
                 encoding="utf-8",
             )
             marketplace = temp_root / "agents" / "marketplace.json"
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["QIONGLI_CODEX_MARKETPLACE_PATH"] = str(marketplace)
             env["PATH"] = ""
@@ -967,7 +1072,7 @@ class UniversalInstallerTests(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(temp_root / "codex-home")
             env["QIONGLI_CODEX_MARKETPLACE_PATH"] = str(marketplace)
             env["PATH"] = ""
@@ -992,7 +1097,7 @@ class UniversalInstallerTests(unittest.TestCase):
             project_dir.mkdir(parents=True)
             codex_home = temp_root / "codex-home"
             marketplace = temp_root / "agents" / "marketplace.json"
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["QIONGLI_CODEX_MARKETPLACE_PATH"] = str(marketplace)
             env["PATH"] = ""
@@ -1017,7 +1122,7 @@ class UniversalInstallerTests(unittest.TestCase):
             temp_root = Path(tmp_dir)
             project_dir = temp_root / "project"
             project_dir.mkdir(parents=True)
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(temp_root / "codex-home")
             env["QIONGLI_CODEX_MARKETPLACE_PATH"] = str(temp_root / "agents" / "marketplace.json")
             env["PATH"] = ""
@@ -1039,7 +1144,7 @@ class UniversalInstallerTests(unittest.TestCase):
             project_dir = temp_root / "project"
             project_dir.mkdir(parents=True)
             codex_home = temp_root / "codex-home"
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["PATH"] = ""
 
@@ -1063,7 +1168,7 @@ class UniversalInstallerTests(unittest.TestCase):
             project_dir = temp_root / "project"
             project_dir.mkdir(parents=True)
             claude_home = temp_root / ".claude"
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["HOME"] = str(temp_root)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             env["PATH"] = ""
@@ -1098,7 +1203,7 @@ class UniversalInstallerTests(unittest.TestCase):
                 "# END QIONGLI MANAGED MCP\n",
                 encoding="utf-8",
             )
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(codex_home)
 
             with mock.patch.dict(os.environ, env, clear=True):
@@ -1136,7 +1241,7 @@ class UniversalInstallerTests(unittest.TestCase):
                 + "\n",
                 encoding="utf-8",
             )
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["HOME"] = str(temp_root)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
 
@@ -1244,7 +1349,7 @@ class CleanTests(unittest.TestCase):
             other_link = commands_dir / "deploy.md"
             other_link.symlink_to(other_target)
 
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             env["GEMINI_HOME"] = str(temp_root / "gemini-home")
             with mock.patch.dict(os.environ, env, clear=True):
@@ -1271,7 +1376,7 @@ class CleanTests(unittest.TestCase):
             legacy_link = commands_dir / "paper.md"
             legacy_link.symlink_to(legacy_wf / "paper.md")
 
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             env["GEMINI_HOME"] = str(temp_root / "gemini-home")
             with mock.patch.dict(os.environ, env, clear=True):
@@ -1293,7 +1398,7 @@ class CleanTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["CLAUDE_CODE_HOME"] = str(temp_root / "claude-home")
             env["GEMINI_HOME"] = str(temp_root / "gemini-home")
@@ -1338,7 +1443,7 @@ class CleanTests(unittest.TestCase):
             unmanaged.mkdir(parents=True)
             (unmanaged / "README.md").write_text("user data", encoding="utf-8")
 
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             env["GEMINI_HOME"] = str(gemini_home)
@@ -1373,7 +1478,7 @@ class CleanTests(unittest.TestCase):
             skill_dir.mkdir(parents=True)
             (skill_dir / "SKILL.md").write_text("---\nname: qiongli\n---\n", encoding="utf-8")
 
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["CLAUDE_CODE_HOME"] = str(temp_root / "claude-home")
             env["GEMINI_HOME"] = str(temp_root / "gemini-home")
@@ -1401,7 +1506,7 @@ class CleanTests(unittest.TestCase):
             stale = command_dir / "paper.md"
             stale.symlink_to(claude_home / "skills" / "qiongli-workflow" / "workflows" / "paper.md")
 
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             stdout = io.StringIO()
             with mock.patch.dict(os.environ, env, clear=True), contextlib.redirect_stdout(stdout):
@@ -1431,7 +1536,7 @@ class SymlinkAndSummaryTests(unittest.TestCase):
             codex_home = temp_root / "codex-home"
             antigravity_home = temp_root / "antigravity-home"
             hermes_home = temp_root / "hermes-home"
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             env["GEMINI_HOME"] = str(gemini_home)
@@ -1478,7 +1583,7 @@ class SymlinkAndSummaryTests(unittest.TestCase):
             gemini_home = temp_root / "gemini-home"
             antigravity_home = temp_root / "antigravity-home"
             hermes_home = temp_root / "hermes-home"
-            env = os.environ.copy()
+            env = _isolated_qiongli_env(temp_root)
             env["CODEX_HOME"] = str(codex_home)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             env["GEMINI_HOME"] = str(gemini_home)

@@ -19,6 +19,7 @@ from .custom_subject import scaffold_custom_subject
 from .install_discovery import discover_install_surfaces, legacy_skill_dirs
 from .source_layout import RepoLayout, discover_repo_root
 from .subject_materializer import SubjectCatalogError, SubjectMaterializationError
+from .self_update import CHANNEL_CHOICES, SelfUpdateOptions, execute_self_update
 from .universal_installer import (
     PART_CHOICES,
     PROFILE_CHOICES,
@@ -42,6 +43,7 @@ from bridges.provider_config import (
     set_provider_value,
     unset_provider_value,
 )
+from bridges.mcp_config_wizard import run_config_wizard
 
 TAG_PATTERN = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:-beta\.(\d+)|b(\d+))?$")
 RELEASE_NOTE_PATTERN = re.compile(r"^v(\d+)\.(\d+)\.(\d+)-beta\.(\d+)\.md$")
@@ -1114,22 +1116,29 @@ def cmd_provider(args: argparse.Namespace) -> int:
     raise RuntimeError(f"Unhandled provider command: {action}")
 
 
-def _cmd_provider_setup(args: argparse.Namespace) -> int:
-    del args
-    print("Qiongli Literature Search Setup")
-    print("Press Enter to skip optional values.")
-    prompts = (
-        ("openalex", "api-key", "OpenAlex API key"),
-        ("openalex", "email", "OpenAlex email"),
-        ("semantic-scholar", "api-key", "Semantic Scholar API key"),
-        ("crossref", "email", "Crossref email"),
-        ("pubmed", "api-key", "PubMed/NCBI API key"),
+def cmd_self_update(args: argparse.Namespace) -> int:
+    return execute_self_update(
+        SelfUpdateOptions(
+            channel=args.channel,
+            target=args.target,
+            surface=args.surface,
+            profile=args.profile,
+            refresh=args.refresh,
+            check=args.check,
+            dry_run=args.dry_run,
+            yes=args.yes,
+        )
     )
-    for provider, field, label in prompts:
-        value = input(f"{label}: ").strip()
-        if value:
-            set_provider_value(provider, field, value)
-    print(f"Provider configuration saved to {global_provider_config_path()}")
+
+
+def _cmd_provider_setup(args: argparse.Namespace) -> int:
+    run_config_wizard(
+        host=str(getattr(args, "host", "127.0.0.1") or "127.0.0.1"),
+        port=int(getattr(args, "port", 0) or 0),
+        provider=getattr(args, "provider", None),
+        open_browser=not bool(getattr(args, "no_browser", False)),
+        output=sys.stdout,
+    )
     return 0
 
 
@@ -1237,6 +1246,40 @@ def build_parser() -> argparse.ArgumentParser:
         help=f"Comma-separated install surfaces to apply: {', '.join(PART_CHOICES)}.",
     )
 
+    self_update = subparsers.add_parser(
+        "self-update",
+        aliases=["update"],
+        help="Update the qiongli CLI package, then refresh installed plugin/MCP surfaces",
+    )
+    self_update.add_argument(
+        "--channel",
+        choices=CHANNEL_CHOICES,
+        default="stable",
+        help="Package release channel to install: stable or next (default: stable)",
+    )
+    self_update.add_argument(
+        "--target",
+        default="all",
+        choices=TARGET_CHOICES,
+        help="Installed client target to refresh after updating (default: all)",
+    )
+    self_update.add_argument(
+        "--surface",
+        choices=SURFACE_CHOICES,
+        default=DEFAULT_CLI_SURFACE,
+        help="Installed output surface to refresh after updating (default: plugin)",
+    )
+    self_update.add_argument(
+        "--profile",
+        choices=PROFILE_CHOICES,
+        default=DEFAULT_CLI_PROFILE,
+        help="Install profile to refresh after updating (default: full)",
+    )
+    self_update.add_argument("--no-refresh", action="store_false", dest="refresh", help="Skip installed surface refresh")
+    self_update.add_argument("--skip-check", action="store_false", dest="check", help="Skip post-update offline check")
+    self_update.add_argument("--dry-run", action="store_true", help="Print the update plan without running commands")
+    self_update.add_argument("--yes", action="store_true", help="Run the update plan without an extra confirmation prompt")
+
     install_parser = subparsers.add_parser("install", help="Install bundled qiongli workflow assets")
     install_parser.add_argument(
         "--target",
@@ -1300,6 +1343,24 @@ def build_parser() -> argparse.ArgumentParser:
         default=False,
         help="Skip doctor after setup",
     )
+    setup.add_argument(
+        "--provider-mode",
+        choices=["page", "prompt", "skip"],
+        default="page",
+        help="Provider setup mode when setup asks for literature keys (default: page)",
+    )
+    setup.add_argument(
+        "--provider-host",
+        default="127.0.0.1",
+        help="Host for the local provider setup page (default: 127.0.0.1)",
+    )
+    setup.add_argument(
+        "--provider-port",
+        type=int,
+        default=0,
+        help="Port for the local provider setup page; 0 picks a free port",
+    )
+    setup.add_argument("--no-browser", action="store_true", help="Print the provider setup URL without opening a browser")
 
     align = subparsers.add_parser("align", help="Print a short usage alignment (what installs where)")
     align.add_argument("--repo", help="Optional upstream repo in owner/repo form (used in examples)")
@@ -1312,6 +1373,14 @@ def build_parser() -> argparse.ArgumentParser:
     provider_setup = provider_subparsers.add_parser("setup", help="Interactively configure literature providers")
     provider_setup.add_argument("--global", dest="global_config", action="store_true", help="Write global config")
     provider_setup.add_argument("--project", action="store_true", help="Reserved for future project-local writes")
+    provider_setup.add_argument(
+        "--provider",
+        choices=["openalex", "semantic-scholar", "semantic_scholar", "crossref", "pubmed"],
+        help="Limit the local setup page to one provider",
+    )
+    provider_setup.add_argument("--host", default="127.0.0.1", help="Host for the local setup page")
+    provider_setup.add_argument("--port", type=int, default=0, help="Port for the local setup page; 0 picks a free port")
+    provider_setup.add_argument("--no-browser", action="store_true", help="Print the setup URL without opening a browser")
     provider_set = provider_subparsers.add_parser("set", help="Set a provider config value")
     provider_set.add_argument("provider", help="Provider name, e.g. openalex or semantic-scholar")
     provider_set.add_argument("field", help="Field name, e.g. email or api-key")
@@ -1477,6 +1546,8 @@ def main() -> int:
         return cmd_install(args)
     if args.cmd == "upgrade":
         return cmd_upgrade(args)
+    if args.cmd in {"self-update", "update"}:
+        return cmd_self_update(args)
     if args.cmd == "setup":
         from qiongli.setup_wizard import run_setup_wizard
 

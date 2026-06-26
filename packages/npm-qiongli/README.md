@@ -24,9 +24,11 @@ Use explicit `qiongli install ...` commands when you only need Node-based asset 
 Update an existing global install with:
 
 ```bash
-npm install -g qiongli@latest
-qiongli upgrade --subject accounting --target all
+qiongli self-update --dry-run
+qiongli self-update --yes
 ```
+
+`qiongli self-update` delegates to `npm install -g qiongli@latest`, then refreshes the full local plugin/MCP surface with `qiongli install --target all --surface plugin --profile full --overwrite`. Use `--channel next` for the prerelease dist-tag. Marketplace plugins remain managed by the client plugin manager.
 
 Or run without a global install:
 
@@ -53,13 +55,14 @@ qiongli uninstall --target codex
 
 The npm package contains pre-materialized `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting` `qiongli-workflow` subject payloads in both `complete` and `focused` coverage. It does not depend on PyPI for skill installation and does not run `postinstall`.
 
-`qiongli setup` is the interactive guided path for choosing install or upgrade, runtime surface, subject, coverage, `--mode copy|link`, install scope, CLI directory, `--overwrite` / `--no-overwrite`, optional upgrade source, literature provider keys, and doctor verification. Each prompt includes a short `Tip:` comment. It delegates to the bundled Python bridge, so it requires Python 3.12+ with `PyYAML`. If you only need Node-based asset installation, use explicit `qiongli install ...` commands.
+`qiongli setup` is the interactive guided path for choosing install or upgrade, runtime surface, subject, coverage, `--mode copy|link`, install scope, CLI directory, `--overwrite` / `--no-overwrite`, optional upgrade source, literature provider setup, and doctor verification. Provider setup defaults to one local browser page with key-access guidance for OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv; use `--provider-mode prompt` for terminal-only entry or `--provider-mode skip` to bypass it. Each prompt includes a short `Tip:` comment. It delegates to the bundled Python bridge, so it requires Python 3.12+ with `PyYAML`. If you only need Node-based asset installation, use explicit `qiongli install ...` commands.
 
 ## Global-first update model
 
 The npm package and the installed workflow assets are separate surfaces:
 
 - `npm install -g qiongli@latest` updates the npm CLI and bundled payload in npm's global package location.
+- `qiongli self-update --yes` performs that npm package update and then refreshes installed full local plugin/MCP surfaces from the new bundled payload.
 - `qiongli install --target all` installs the default `core/complete` package into global AI client skill directories.
 - `qiongli install --subject economics --target all` installs the full framework plus economics specialization.
 - `qiongli install --subject accounting --target all` installs the full framework plus accounting specialization.
@@ -69,7 +72,7 @@ The npm package and the installed workflow assets are separate surfaces:
 - `qiongli install --subject geoeconomics --target all` installs the full framework plus geoeconomics specialization.
 - `qiongli install --subject economics --coverage focused --target all` installs the slimmer economics-focused package.
 - `qiongli install --subject economics-accounting --target all` installs the official economics/accounting composite.
-- `qiongli upgrade --subject accounting --target all` is the same install flow with overwrite enabled, and is the normal command after updating the npm package.
+- `qiongli upgrade --subject accounting --target all` is the release-archive refresh path with overwrite enabled. Use it when you intentionally want to download an upstream GitHub release rather than updating the npm package first.
 - `qiongli remove --target all` removes CLI-installed global workflow assets and generated discovery links while preserving marketplace plugins and unmanaged user files.
 - Project directories are not required for normal install or upgrade. Use project paths only for commands that inspect or clean a specific project, such as `qiongli doctor --cwd .` or `qiongli clean --project-dir .`.
 
@@ -122,7 +125,7 @@ Use `stdio` when the desktop client can launch a local command. Use HTTP only fo
 qiongli mcp serve --transport http --host 127.0.0.1 --port 8765
 ```
 
-Provider keys can be configured with `qiongli mcp configure ...`, `qiongli provider setup`, or the MCP tool `qiongli_configure_provider`. Status and tool output are redacted; raw key values are not printed.
+Provider keys can be configured with `qiongli mcp configure ...`, `qiongli provider setup`, or the MCP tool `qiongli_configure_provider`. The setup page includes links and short steps for getting each supported key, and marks arXiv as available without an API key. Status and tool output are redacted; raw key values are not printed.
 
 Runtime `--custom-dir` customization is not supported by npm in this phase. Use the source checkout when you need local custom overlays, profiles, or skills:
 

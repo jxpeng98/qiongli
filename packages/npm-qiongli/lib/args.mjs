@@ -1,7 +1,7 @@
 const TARGETS = new Set(['codex', 'claude', 'antigravity', 'hermes', 'all']);
 const MODES = new Set(['copy', 'link']);
 const BRIDGE_COMMANDS = new Set(['doctor', 'guidance', 'task-run', 'team-run', 'parallel', 'chain', 'role', 'single', 'code-build', 'task-plan']);
-const PYTHON_CLI_COMMANDS = new Set(['setup', 'mcp']);
+const PYTHON_CLI_COMMANDS = new Set(['setup', 'mcp', 'self-update', 'update']);
 
 export function parseArgv(argv) {
   const [rawCommand = 'help', ...restArgs] = argv;

@@ -78,6 +78,17 @@ const PROVIDER_ACCESS_GUIDANCE = {
       "Open Account settings from your username menu.",
       "Create a key in the API Key Management section and paste it here."
     ]
+  },
+  arxiv: {
+    title: "arXiv",
+    config_field: "arxiv",
+    apply_url: null,
+    docs_url: "https://info.arxiv.org/help/api/index.html",
+    summary: "arXiv does not require an API key for the public API used by Qiongli.",
+    steps: [
+      "No credential setup is needed.",
+      "Qiongli can use arXiv search after the literature MCP runtime is installed."
+    ]
   }
 };
 

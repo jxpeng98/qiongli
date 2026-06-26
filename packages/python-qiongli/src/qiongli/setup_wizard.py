@@ -40,6 +40,7 @@ COVERAGE_CHOICES = ("complete", "focused")
 MODE_CHOICES = ("copy", "link")
 SCOPE_CHOICES = ("all", "globals", "project", "cli")
 REF_SOURCE_CHOICES = ("latest-stable", "latest-beta", "specific-tag", "branch")
+PROVIDER_MODE_CHOICES = ("page", "prompt", "skip")
 
 PROVIDER_PROMPTS = (
     ("openalex", "api_key", "OpenAlex API key"),
@@ -61,6 +62,7 @@ InputFn = Callable[[str], str]
 InstallFn = Callable[[object], int | None]
 UpgradeFn = Callable[[object], int | None]
 ProviderSetFn = Callable[[str, str, str], object]
+ProviderPageFn = Callable[[], object]
 DoctorFn = Callable[[Path], int | None]
 
 
@@ -91,6 +93,10 @@ class SetupAnswers:
     ref_type: str = "tag"
     beta: bool = False
     configure_providers: bool = False
+    provider_mode: str = "page"
+    provider_open_browser: bool = True
+    provider_host: str = "127.0.0.1"
+    provider_port: int = 0
     provider_values: tuple[ProviderValue, ...] = ()
     run_doctor: bool = True
 
@@ -113,6 +119,11 @@ class SetupPlan:
     ref_type: str
     beta: bool
     doctor: bool
+    configure_providers: bool
+    provider_mode: str
+    provider_open_browser: bool
+    provider_host: str
+    provider_port: int
     install_command: tuple[str, ...]
     install_options: object
     upgrade_options: object
@@ -137,8 +148,13 @@ def collect_setup_answers(
     output: TextIO = sys.stdout,
     default_project_dir: Path | str | None = None,
     force_no_doctor: bool = False,
+    provider_mode: str = "page",
+    provider_open_browser: bool = True,
+    provider_host: str = "127.0.0.1",
+    provider_port: int = 0,
 ) -> SetupAnswers:
     project_default = Path(default_project_dir).expanduser().resolve() if default_project_dir else Path.cwd()
+    provider_mode = _normalize_provider_mode(provider_mode)
 
     print("Qiongli setup", file=output)
     operation = _choose(
@@ -245,14 +261,23 @@ def collect_setup_answers(
                 output=output,
                 note="Use this for testing a branch archive instead of a release tag.",
             )
-    configure_providers = _choose_yes_no(
-        "Configure literature provider keys now?",
-        default=False,
-        input_fn=input_fn,
-        output=output,
-        note="Provider keys enable configured scholarly search clients without storing secrets in research artifacts.",
-    )
-    provider_values = _collect_provider_values(input_fn=input_fn, output=output) if configure_providers else ()
+    configure_providers = False
+    provider_values: tuple[ProviderValue, ...] = ()
+    if provider_mode != "skip":
+        configure_providers = _choose_yes_no(
+            "Configure literature provider keys now?",
+            default=False,
+            input_fn=input_fn,
+            output=output,
+            note="Provider keys enable configured scholarly search clients without storing secrets in research artifacts.",
+        )
+        if configure_providers and provider_mode == "prompt":
+            provider_values = _collect_provider_values(input_fn=input_fn, output=output)
+        elif configure_providers:
+            _explain(
+                "Provider setup opens one local browser page for all keys, with links for getting each provider key.",
+                output=output,
+            )
     run_doctor = False if force_no_doctor else _choose_yes_no(
         "Run doctor after setup?",
         default=True,
@@ -276,6 +301,10 @@ def collect_setup_answers(
         ref_type=ref_type,
         beta=beta,
         configure_providers=configure_providers,
+        provider_mode=provider_mode,
+        provider_open_browser=provider_open_browser,
+        provider_host=provider_host,
+        provider_port=provider_port,
         provider_values=provider_values,
         run_doctor=run_doctor,
     )
@@ -383,6 +412,11 @@ def build_setup_plan(answers: SetupAnswers) -> SetupPlan:
         ref_type=answers.ref_type,
         beta=answers.beta,
         doctor=answers.run_doctor,
+        configure_providers=answers.configure_providers,
+        provider_mode=answers.provider_mode,
+        provider_open_browser=answers.provider_open_browser,
+        provider_host=answers.provider_host,
+        provider_port=answers.provider_port,
         install_command=command,
         install_options=install_options,
         upgrade_options=upgrade_options,
@@ -398,6 +432,7 @@ def execute_setup_plan(
     install_fn: InstallFn | None = None,
     upgrade_fn: UpgradeFn | None = None,
     provider_set_fn: ProviderSetFn | None = None,
+    provider_page_fn: ProviderPageFn | None = None,
     doctor_fn: DoctorFn | None = None,
     output: TextIO = sys.stdout,
 ) -> SetupResult:
@@ -416,6 +451,14 @@ def execute_setup_plan(
         )
 
     actual_provider_set_fn = provider_set_fn or _default_provider_set
+    actual_provider_page_fn = provider_page_fn or (
+        lambda: _default_provider_page(
+            host=plan.provider_host,
+            port=plan.provider_port,
+            open_browser=plan.provider_open_browser,
+            output=output,
+        )
+    )
     if plan.operation == "upgrade":
         actual_upgrade_fn = upgrade_fn or _default_upgrade
         command_options = Namespace(**vars(plan.upgrade_options))
@@ -428,8 +471,11 @@ def execute_setup_plan(
     if install_code not in (None, 0):
         raise RuntimeError(f"{plan.operation.capitalize()} failed with exit code {install_code}")
 
-    for value in plan.provider_actions:
-        actual_provider_set_fn(value.provider, value.field, value.value)
+    if plan.configure_providers and plan.provider_mode == "page":
+        actual_provider_page_fn()
+    else:
+        for value in plan.provider_actions:
+            actual_provider_set_fn(value.provider, value.field, value.value)
 
     doctor_status = "skipped"
     if plan.doctor:
@@ -463,11 +509,19 @@ def run_setup_wizard(
     dry_run = bool(getattr(args, "dry_run", False))
     project_dir = getattr(args, "project_dir", None)
     no_doctor = bool(getattr(args, "no_doctor", False))
+    provider_mode = str(getattr(args, "provider_mode", "page") or "page")
+    provider_open_browser = not bool(getattr(args, "no_browser", False))
+    provider_host = str(getattr(args, "provider_host", "127.0.0.1") or "127.0.0.1")
+    provider_port = int(getattr(args, "provider_port", 0) or 0)
     answers = collect_setup_answers(
         input_fn=input_fn,
         output=output,
         default_project_dir=project_dir,
         force_no_doctor=no_doctor,
+        provider_mode=provider_mode,
+        provider_open_browser=provider_open_browser,
+        provider_host=provider_host,
+        provider_port=provider_port,
     )
     plan = build_setup_plan(answers)
     return execute_setup_plan(
@@ -476,6 +530,7 @@ def run_setup_wizard(
         install_fn=install_fn,
         upgrade_fn=upgrade_fn,
         provider_set_fn=provider_set_fn,
+        provider_page_fn=None,
         doctor_fn=doctor_fn,
         output=output,
     )
@@ -571,6 +626,8 @@ def _print_answer_summary(answers: SetupAnswers, *, output: TextIO) -> None:
     statuses = _provider_status(answers.provider_values)
     for provider, field, _label in PROVIDER_PROMPTS:
         print(f"  {provider} {field}: {statuses[f'{provider}.{field}']}", file=output)
+    if answers.configure_providers and answers.provider_mode == "page":
+        print("  provider setup: local page", file=output)
     print(f"  doctor: {'run' if answers.run_doctor else 'skip'}", file=output)
 
 
@@ -585,6 +642,8 @@ def _print_plan_summary(
     print(f"  command: {' '.join(plan.install_command)}", file=output)
     for provider, field, _label in PROVIDER_PROMPTS:
         print(f"  {provider} {field}: {provider_status[f'{provider}.{field}']}", file=output)
+    if plan.configure_providers and plan.provider_mode == "page":
+        print("  provider setup: local page", file=output)
     print(f"  doctor: {'run' if plan.doctor else 'skip'}", file=output)
     if dry_run:
         print("  mode: dry-run", file=output)
@@ -612,6 +671,14 @@ def _append_optional(command: tuple[str, ...], flag: str, value: str) -> tuple[s
 
 def _scope_includes_cli(scope: str) -> bool:
     return scope in {"all", "cli"}
+
+
+def _normalize_provider_mode(mode: str) -> str:
+    normalized = str(mode or "page").strip().lower()
+    if normalized not in PROVIDER_MODE_CHOICES:
+        available = ", ".join(PROVIDER_MODE_CHOICES)
+        raise ValueError(f"Unsupported provider mode: {mode}. Available modes: {available}")
+    return normalized
 
 
 def _parts_for_scope(scope: str, run_doctor: bool) -> tuple[str, ...]:
@@ -657,3 +724,9 @@ def _default_provider_set(provider: str, field: str, value: str) -> object:
     from bridges.provider_config import set_provider_value
 
     return set_provider_value(provider, field, value)
+
+
+def _default_provider_page(*, host: str, port: int, open_browser: bool, output: TextIO) -> object:
+    from bridges.mcp_config_wizard import run_config_wizard
+
+    return run_config_wizard(host=host, port=port, open_browser=open_browser, output=output)

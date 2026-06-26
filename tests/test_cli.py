@@ -8,12 +8,34 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 from qiongli import cli as cli_module
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _isolated_qiongli_env(root: Path, **overrides: str) -> dict[str, str]:
+    env = {
+        "HOME": str(root / "home"),
+        "USERPROFILE": str(root / "home"),
+        "CODEX_HOME": str(root / "codex-home"),
+        "CLAUDE_CODE_HOME": str(root / "claude-home"),
+        "ANTIGRAVITY_HOME": str(root / "antigravity-home"),
+        "HERMES_HOME": str(root / "hermes-home"),
+        "QIONGLI_CODEX_MARKETPLACE_PATH": str(root / ".agents" / "plugins" / "marketplace.json"),
+        "QIONGLI_CLAUDE_PLUGIN_PARENT": str(root / ".qiongli" / "plugins" / "claude-code"),
+        "QIONGLI_ANTIGRAVITY_PLUGIN_PARENT": str(root / ".qiongli" / "plugins" / "antigravity"),
+        "CLAUDE_CODE_CONFIG_PATH": str(root / ".claude.json"),
+        "ANTIGRAVITY_CONFIG_PATH": str(root / ".gemini" / "config" / "mcp_config.json"),
+        "HERMES_CONFIG_PATH": str(root / "hermes-home" / "settings.json"),
+        "QIONGLI_CONFIG_HOME": str(root / ".qiongli-config"),
+        "PATH": "",
+    }
+    env.update(overrides)
+    return env
 
 
 class InstallerCliTests(unittest.TestCase):
@@ -43,18 +65,14 @@ class InstallerCliTests(unittest.TestCase):
             ), mock.patch.object(cli_module, "_check_system_env", return_value={}), mock.patch.object(
                 cli_module.os,
                 "environ",
-                {
-                    **os.environ,
-                    "QIONGLI_CODEX_MARKETPLACE_PATH": str(root / "agents" / "plugins" / "marketplace.json"),
-                    "QIONGLI_CLAUDE_PLUGIN_PARENT": str(root / "claude-plugins"),
-                    "CLAUDE_CODE_CONFIG_PATH": str(root / "claude.json"),
-                    "ANTIGRAVITY_CONFIG_PATH": str(root / "antigravity-settings.json"),
-                    "HERMES_CONFIG_PATH": str(root / "hermes-settings.json"),
-                    "CODEX_HOME": str(root / "codex-home"),
-                    "CLAUDE_CODE_HOME": str(root / "claude-home"),
-                    "ANTIGRAVITY_HOME": str(root / "antigravity-home"),
-                    "HERMES_HOME": str(root / "hermes-home"),
-                },
+                _isolated_qiongli_env(
+                    root,
+                    QIONGLI_CODEX_MARKETPLACE_PATH=str(root / "agents" / "plugins" / "marketplace.json"),
+                    QIONGLI_CLAUDE_PLUGIN_PARENT=str(root / "claude-plugins"),
+                    CLAUDE_CODE_CONFIG_PATH=str(root / "claude.json"),
+                    ANTIGRAVITY_CONFIG_PATH=str(root / "antigravity-settings.json"),
+                    HERMES_CONFIG_PATH=str(root / "hermes-settings.json"),
+                ),
             ), mock.patch.object(cli_module, "_http_get_json", side_effect=fake_http_get_json), contextlib.redirect_stdout(
                 stdout
             ):
@@ -201,6 +219,73 @@ class InstallerCliTests(unittest.TestCase):
             "Interactively configures Qiongli for CLI/Codex/Claude Code/Antigravity use",
             normalized_help,
         )
+
+    def test_self_update_dispatches_to_update_runner(self) -> None:
+        with mock.patch.object(cli_module, "execute_self_update", return_value=0) as update_mock:
+            with mock.patch.object(
+                cli_module.sys,
+                "argv",
+                [
+                    "qiongli",
+                    "self-update",
+                    "--channel",
+                    "next",
+                    "--target",
+                    "claude",
+                    "--surface",
+                    "both",
+                    "--profile",
+                    "full",
+                    "--no-refresh",
+                    "--skip-check",
+                    "--dry-run",
+                    "--yes",
+                ],
+            ):
+                exit_code = cli_module.main()
+
+        self.assertEqual(exit_code, 0)
+        update_mock.assert_called_once()
+        options = update_mock.call_args.args[0]
+        self.assertEqual(options.channel, "next")
+        self.assertEqual(options.target, "claude")
+        self.assertEqual(options.surface, "both")
+        self.assertEqual(options.profile, "full")
+        self.assertTrue(options.dry_run)
+        self.assertTrue(options.yes)
+        self.assertFalse(options.refresh)
+        self.assertFalse(options.check)
+
+    def test_update_alias_dispatches_to_self_update_runner(self) -> None:
+        with mock.patch.object(cli_module, "execute_self_update", return_value=0) as update_mock:
+            with mock.patch.object(cli_module.sys, "argv", ["qiongli", "update", "--dry-run"]):
+                exit_code = cli_module.main()
+
+        self.assertEqual(exit_code, 0)
+        options = update_mock.call_args.args[0]
+        self.assertEqual(options.channel, "stable")
+        self.assertTrue(options.dry_run)
+
+    def test_provider_setup_opens_config_page_without_prompting_for_keys(self) -> None:
+        args = argparse.Namespace(
+            provider_cmd="setup",
+            global_config=True,
+            project=False,
+            provider=None,
+            host="127.0.0.1",
+            port=0,
+            no_browser=True,
+        )
+        page_result = SimpleNamespace(status="saved", url="http://127.0.0.1:8765/?token=abc")
+
+        with mock.patch.object(cli_module, "run_config_wizard", return_value=page_result) as wizard_mock:
+            with mock.patch("builtins.input", side_effect=AssertionError("provider setup should use the page")):
+                exit_code = cli_module.cmd_provider(args)
+
+        self.assertEqual(exit_code, 0)
+        wizard_mock.assert_called_once()
+        self.assertEqual(wizard_mock.call_args.kwargs["provider"], None)
+        self.assertFalse(wizard_mock.call_args.kwargs["open_browser"])
 
     def test_install_unknown_subject_reports_available_subjects(self) -> None:
         stderr = io.StringIO()
@@ -430,18 +515,14 @@ class InstallerCliTests(unittest.TestCase):
             ), mock.patch.object(cli_module, "_check_system_env", return_value={}), mock.patch.object(
                 cli_module.os,
                 "environ",
-                {
-                    **os.environ,
-                    "QIONGLI_CODEX_MARKETPLACE_PATH": str(root / "agents" / "plugins" / "marketplace.json"),
-                    "QIONGLI_CLAUDE_PLUGIN_PARENT": str(root / "claude-plugins"),
-                    "CLAUDE_CODE_CONFIG_PATH": str(root / "claude.json"),
-                    "ANTIGRAVITY_CONFIG_PATH": str(root / "antigravity-settings.json"),
-                    "HERMES_CONFIG_PATH": str(root / "hermes-settings.json"),
-                    "CODEX_HOME": str(root / "codex-home"),
-                    "CLAUDE_CODE_HOME": str(root / "claude-home"),
-                    "ANTIGRAVITY_HOME": str(root / "antigravity-home"),
-                    "HERMES_HOME": str(root / "hermes-home"),
-                },
+                _isolated_qiongli_env(
+                    root,
+                    QIONGLI_CODEX_MARKETPLACE_PATH=str(root / "agents" / "plugins" / "marketplace.json"),
+                    QIONGLI_CLAUDE_PLUGIN_PARENT=str(root / "claude-plugins"),
+                    CLAUDE_CODE_CONFIG_PATH=str(root / "claude.json"),
+                    ANTIGRAVITY_CONFIG_PATH=str(root / "antigravity-settings.json"),
+                    HERMES_CONFIG_PATH=str(root / "hermes-settings.json"),
+                ),
             ), mock.patch.object(
                 cli_module, "_resolve_upstream_repo", return_value=(None, "")
             ), contextlib.redirect_stdout(stdout):
@@ -525,18 +606,14 @@ class InstallerCliTests(unittest.TestCase):
             ), mock.patch.object(
                 cli_module.os,
                 "environ",
-                {
-                    **os.environ,
-                    "QIONGLI_CODEX_MARKETPLACE_PATH": str(marketplace),
-                    "QIONGLI_CLAUDE_PLUGIN_PARENT": str(root / "claude-plugins"),
-                    "CLAUDE_CODE_CONFIG_PATH": str(root / "claude.json"),
-                    "ANTIGRAVITY_CONFIG_PATH": str(root / "antigravity-settings.json"),
-                    "HERMES_CONFIG_PATH": str(root / "hermes-settings.json"),
-                    "CODEX_HOME": str(root / "codex-home"),
-                    "CLAUDE_CODE_HOME": str(root / "claude-home"),
-                    "ANTIGRAVITY_HOME": str(root / "antigravity-home"),
-                    "HERMES_HOME": str(root / "hermes-home"),
-                },
+                _isolated_qiongli_env(
+                    root,
+                    QIONGLI_CODEX_MARKETPLACE_PATH=str(marketplace),
+                    QIONGLI_CLAUDE_PLUGIN_PARENT=str(root / "claude-plugins"),
+                    CLAUDE_CODE_CONFIG_PATH=str(root / "claude.json"),
+                    ANTIGRAVITY_CONFIG_PATH=str(root / "antigravity-settings.json"),
+                    HERMES_CONFIG_PATH=str(root / "hermes-settings.json"),
+                ),
             ), contextlib.redirect_stdout(stdout):
                 exit_code = cli_module.cmd_check(args)
 
@@ -605,17 +682,7 @@ class InstallerCliTests(unittest.TestCase):
             ), mock.patch.object(
                 cli_module.os,
                 "environ",
-                {
-                    **os.environ,
-                    "HOME": str(root),
-                    "CODEX_HOME": str(root / "codex-home"),
-                    "CLAUDE_CODE_HOME": str(root / "claude-home"),
-                    "ANTIGRAVITY_HOME": str(root / "antigravity-home"),
-                    "HERMES_HOME": str(root / "hermes-home"),
-                    "CLAUDE_CODE_CONFIG_PATH": str(root / "claude.json"),
-                    "ANTIGRAVITY_CONFIG_PATH": str(root / "antigravity-settings.json"),
-                    "HERMES_CONFIG_PATH": str(root / "hermes-settings.json"),
-                },
+                _isolated_qiongli_env(root, HOME=str(root), USERPROFILE=str(root)),
             ), mock.patch(
                 "qiongli.install_discovery.shutil.which", return_value="/usr/local/bin/codex"
             ), mock.patch(
@@ -678,17 +745,7 @@ class InstallerCliTests(unittest.TestCase):
             ), mock.patch.object(
                 cli_module.os,
                 "environ",
-                {
-                    **os.environ,
-                    "HOME": str(root),
-                    "CODEX_HOME": str(root / "codex-home"),
-                    "CLAUDE_CODE_HOME": str(root / ".claude"),
-                    "ANTIGRAVITY_HOME": str(root / "antigravity-home"),
-                    "HERMES_HOME": str(root / "hermes-home"),
-                    "CLAUDE_CODE_CONFIG_PATH": str(root / "claude.json"),
-                    "ANTIGRAVITY_CONFIG_PATH": str(root / "antigravity-settings.json"),
-                    "HERMES_CONFIG_PATH": str(root / "hermes-settings.json"),
-                },
+                _isolated_qiongli_env(root, CLAUDE_CODE_HOME=str(root / ".claude")),
             ), mock.patch(
                 "qiongli.install_discovery.shutil.which", return_value="/usr/local/bin/claude"
             ), mock.patch(
@@ -747,15 +804,7 @@ class InstallerCliTests(unittest.TestCase):
             ), mock.patch.object(
                 cli_module.os,
                 "environ",
-                {
-                    **os.environ,
-                    "HOME": str(root),
-                    "CODEX_HOME": str(root / "codex-home"),
-                    "CLAUDE_CODE_HOME": str(root / ".claude"),
-                    "HERMES_HOME": str(root / "hermes-home"),
-                    "CLAUDE_CODE_CONFIG_PATH": str(root / "claude.json"),
-                    "HERMES_CONFIG_PATH": str(root / "hermes-settings.json"),
-                },
+                _isolated_qiongli_env(root, CLAUDE_CODE_HOME=str(root / ".claude")),
             ), mock.patch(
                 "qiongli.install_discovery.shutil.which", return_value="/usr/local/bin/antigravity"
             ), mock.patch(
@@ -843,8 +892,10 @@ class InstallerCliTests(unittest.TestCase):
 
     def test_provider_set_and_list_redacts_global_config(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
-            config_home = Path(tmp_dir) / "config"
-            with mock.patch.dict(os.environ, {"QIONGLI_CONFIG_HOME": str(config_home)}, clear=False):
+            root = Path(tmp_dir)
+            config_home = root / "config"
+            env = _isolated_qiongli_env(root, QIONGLI_CONFIG_HOME=str(config_home))
+            with mock.patch.dict(os.environ, env, clear=True):
                 with mock.patch.object(
                     cli_module.sys,
                     "argv",
@@ -867,8 +918,10 @@ class InstallerCliTests(unittest.TestCase):
 
     def test_provider_doctor_json_reports_provider_connected_mode(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
-            config_home = Path(tmp_dir) / "config"
-            with mock.patch.dict(os.environ, {"QIONGLI_CONFIG_HOME": str(config_home)}, clear=False):
+            root = Path(tmp_dir)
+            config_home = root / "config"
+            env = _isolated_qiongli_env(root, QIONGLI_CONFIG_HOME=str(config_home))
+            with mock.patch.dict(os.environ, env, clear=True):
                 for provider, field, value in (
                     ("openalex", "api-key", "openalex-secret-key"),
                     ("semantic-scholar", "api-key", "cli-secret"),

@@ -78,6 +78,41 @@ class MCPConfigWizardTests(unittest.TestCase):
                 finally:
                     wizard.stop()
 
+    def test_wizard_page_includes_provider_access_guidance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            with mock.patch.dict(
+                os.environ,
+                {"QIONGLI_CONFIG_HOME": str(root / "config")},
+                clear=False,
+            ):
+                try:
+                    wizard = start_config_wizard(port=0)
+                except PermissionError as exc:
+                    self.skipTest(f"local port binding unavailable: {exc}")
+                try:
+                    response = urllib.request.urlopen(wizard.url, timeout=5)
+                    rendered = response.read().decode("utf-8")
+                finally:
+                    wizard.stop()
+
+        self.assertIn("How to get provider access", rendered)
+        self.assertIn("OpenAlex API key", rendered)
+        self.assertIn("https://openalex.org/settings/api", rendered)
+        self.assertIn("Semantic Scholar API key", rendered)
+        self.assertIn("https://www.semanticscholar.org/product/api", rendered)
+        self.assertIn("Crossref polite access", rendered)
+        self.assertIn("https://www.crossref.org/documentation/retrieve-metadata/rest-api/access-and-authentication/", rendered)
+        self.assertIn("NCBI API key", rendered)
+        self.assertIn("https://support.nlm.nih.gov/kbArticle/?pn=KA-05317", rendered)
+        self.assertIn("arXiv does not require an API key", rendered)
+        self.assertIn("Do not paste API keys into chat", rendered)
+        self.assertIn("data-preview-for=\"openalex.api_key\"", rendered)
+
+    def test_wizard_rejects_non_local_hosts(self) -> None:
+        with self.assertRaisesRegex(ValueError, "host must be 127.0.0.1 or localhost"):
+            start_config_wizard(host="0.0.0.0", port=0)
+
 
 class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: ANN001

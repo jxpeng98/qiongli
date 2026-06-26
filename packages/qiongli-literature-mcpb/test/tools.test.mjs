@@ -327,6 +327,7 @@ test("handleOpenConfigWizard serves guidance, OpenAlex key input, and saving sta
     assert.equal(html.includes("NCBI API key"), true);
     assert.equal(html.includes("https://support.nlm.nih.gov/kbArticle/?pn=KA-05317"), true);
     assert.equal(html.includes("Crossref polite access"), true);
+    assert.equal(html.includes("arXiv does not require an API key"), true);
     assert.equal(html.includes("Saving..."), true);
     assert.equal(html.includes("data-preview-for=\"openalex.api_key\""), true);
     assert.equal(html.includes("type=\"button\" data-toggle-for=\"openalex.api_key\""), true);

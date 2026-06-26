@@ -60,6 +60,16 @@ test('parseArgv delegates setup without consuming setup flags', () => {
   assert.deepEqual(parsed.rest, ['--dry-run', '--project-dir', '/tmp/project', '--no-doctor']);
 });
 
+test('parseArgv delegates self-update aliases without consuming update flags', () => {
+  const selfUpdate = parseArgv(['self-update', '--channel', 'next', '--dry-run', '--yes']);
+  const update = parseArgv(['update', '--dry-run']);
+
+  assert.equal(selfUpdate.command, 'self-update');
+  assert.deepEqual(selfUpdate.rest, ['--channel', 'next', '--dry-run', '--yes']);
+  assert.equal(update.command, 'update');
+  assert.deepEqual(update.rest, ['--dry-run']);
+});
+
 test('parseArgv delegates mcp without consuming mcp flags', () => {
   const parsed = parseArgv(['mcp', 'serve', '--transport', 'stdio']);
 

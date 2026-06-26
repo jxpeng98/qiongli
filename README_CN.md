@@ -287,6 +287,10 @@ qiongli install --subject political-economy --target all --project-dir "$PWD"
 qiongli install --subject geoeconomics --target all --project-dir "$PWD"
 qiongli install --subject economics-accounting --target all --project-dir "$PWD"
 qiongli install --profile full --target all --surface plugin
+
+# 更新 CLI package，并刷新 full local plugin/MCP 安装面
+qiongli self-update --dry-run
+qiongli self-update --yes
 ```
 
 如果只是测试 prerelease，不想全局安装：
@@ -304,13 +308,16 @@ npm、pipx、pip 或 bootstrap 安装 CLI 后，推荐第一个运行：
 qiongli setup
 qiongli setup --dry-run
 qiongli setup --project-dir "$PWD" --no-doctor
+qiongli setup --provider-mode prompt --no-browser
 ```
 
-setup wizard 面向 CLI、Codex、Claude Code、Antigravity 和 Hermes 用户，会交互式引导选择 install 或 upgrade、runtime surface（`cli`、`codex`、`claude-code`、`antigravity`、`hermes` 或 `multi-platform`）、subject、coverage（`complete` 或 `focused`）、`--mode copy|link`、install scope（`all`、`globals`、`project` 或 `cli`）、CLI 目录、`--overwrite` / `--no-overwrite`、upgrade source（`--repo`、`--ref`、`--ref-type` 或 beta）、可选 literature provider keys，并在最后执行 doctor verification，除非使用 `--no-doctor`。每一步 prompt 都会显示简短的 `Tip:` 注释，解释这个选择会改变什么。
+setup wizard 面向 CLI、Codex、Claude Code、Antigravity 和 Hermes 用户，会交互式引导选择 install 或 upgrade、runtime surface（`cli`、`codex`、`claude-code`、`antigravity`、`hermes` 或 `multi-platform`）、subject、coverage（`complete` 或 `focused`）、`--mode copy|link`、install scope（`all`、`globals`、`project` 或 `cli`）、CLI 目录、`--overwrite` / `--no-overwrite`、upgrade source（`--repo`、`--ref`、`--ref-type` 或 beta）、可选 literature provider setup，并在最后执行 doctor verification，除非使用 `--no-doctor`。provider setup 默认打开一个本地浏览器页面，一次配置 OpenAlex、Semantic Scholar、Crossref、PubMed，并显示 arXiv 不需要 API key；远程终端可用 `--no-browser` 只打印 URL，也可以用 `--provider-mode prompt` 回到终端逐项录入，或用 `--provider-mode skip` 跳过。每一步 prompt 都会显示简短的 `Tip:` 注释，解释这个选择会改变什么。
 
 在 npm 安装中，`qiongli setup` 会委托到 npm 包内置的 Python bridge，因此要求本机已有 Python 3.12+ 和 `PyYAML`。如果只需要 Node-based asset installation，继续使用显式 `qiongli install ...` 命令。
 
-通过 `qiongli setup` 输入的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。密钥会保存在生成的研究 artifacts 之外。setup 只负责配置凭据并执行 doctor/capability 检查，不承诺一定能运行外部检索。
+通过 `qiongli setup` 保存的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。本地页面会给出各 provider 获取 key 的链接和步骤；arXiv 会标注为无需 API key。密钥会保存在生成的研究 artifacts 之外。setup 只负责配置凭据并执行 doctor/capability 检查，不承诺一定能运行外部检索。
+
+使用 `qiongli self-update --dry-run` 预览检测到的 package-manager 更新命令。`qiongli self-update --yes` 会先更新 npm/pipx/pip package，然后用新的本地 package payload 执行 `qiongli install --target all --surface plugin --profile full --overwrite` 和 `qiongli check --offline`。源码 checkout 使用 `git pull` 加显式 `qiongli install --overwrite`。
 
 ### 3. 为 `full` 准备 Python
 
@@ -599,13 +606,14 @@ npm 包没有 `postinstall` hook。安装 npm 包本身不会修改用户 skill 
 qiongli setup
 qiongli setup --dry-run
 qiongli setup --project-dir "$PWD" --no-doctor
+qiongli setup --provider-mode prompt --no-browser
 ```
 
-wizard 会引导 CLI、Codex、Claude Code、Antigravity 和 Hermes 安装选择 install 或 upgrade、runtime surface（`cli`、`codex`、`claude-code`、`antigravity`、`hermes` 或 `multi-platform`）、subject、coverage（`complete` 或 `focused`）、`--mode copy|link`、install scope（`all`、`globals`、`project` 或 `cli`）、CLI 目录、`--overwrite` / `--no-overwrite`、可选 upgrade source、literature provider key setup，以及 doctor verification。每一步 prompt 都会显示简短的 `Tip:` 注释，解释这个选择会改变什么。
+wizard 会引导 CLI、Codex、Claude Code、Antigravity 和 Hermes 安装选择 install 或 upgrade、runtime surface（`cli`、`codex`、`claude-code`、`antigravity`、`hermes` 或 `multi-platform`）、subject、coverage（`complete` 或 `focused`）、`--mode copy|link`、install scope（`all`、`globals`、`project` 或 `cli`）、CLI 目录、`--overwrite` / `--no-overwrite`、可选 upgrade source、literature provider setup，以及 doctor verification。provider setup 默认打开一个本地页面，一次配置需要密钥的 provider 并展示每个 key 的获取指南；`--provider-mode prompt` 保留终端逐项录入 fallback。每一步 prompt 都会显示简短的 `Tip:` 注释，解释这个选择会改变什么。
 
 在 npm 安装中，`qiongli setup` 会委托到 npm 包内置的 Python bridge，因此要求本机已有 Python 3.12+ 和 `PyYAML`。如果只需要 Node-only installer path，继续使用显式 `qiongli install ...` 命令。
 
-通过 setup 输入的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。密钥保存在生成的研究 artifacts 之外。provider 步骤会配置凭据并检查 capability，不应被描述成一定会执行外部 literature search。
+通过 setup 保存的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。本地页面包含各 provider 获取 key 的指南，arXiv 标注为无需 API key。密钥保存在生成的研究 artifacts 之外。provider 步骤会配置凭据并检查 capability，不应被描述成一定会执行外部 literature search。
 
 #### 方案 C：通过 `pipx` 安装 Python CLI
 

@@ -181,6 +181,15 @@ qiongli install --subject economics --coverage focused --target all --project-di
 qiongli install --profile full --target all --surface plugin
 ```
 
+Update the global package and refresh the full local plugin/MCP surface with:
+
+```bash
+qiongli self-update --dry-run
+qiongli self-update --yes
+```
+
+For npm installs, `self-update` delegates to `npm install -g qiongli@latest`, then runs `qiongli install --target all --surface plugin --profile full --overwrite` from the refreshed package. Native marketplace plugins remain managed by the client plugin manager.
+
 For one-off runs:
 
 ```bash
@@ -221,6 +230,7 @@ After installing the CLI with npm, pipx, pip, or the bootstrap script, run the i
 qiongli setup
 qiongli setup --dry-run
 qiongli setup --project-dir "$PWD" --no-doctor
+qiongli setup --provider-mode prompt --no-browser
 ```
 
 The wizard guides CLI, Codex, Claude Code, and Antigravity users through:
@@ -234,12 +244,12 @@ The wizard guides CLI, Codex, Claude Code, and Antigravity users through:
 - shell CLI directory when CLI wrappers are enabled
 - overwrite policy: `--overwrite` for replacing managed installs, or `--no-overwrite` on upgrade when you want to preserve existing managed files
 - upgrade source: latest stable, latest beta, an explicit `--ref` tag, an explicit `--ref-type branch`, and optional `--repo`
-- optional literature provider key setup
+- optional literature provider setup. By default this opens one local browser page with fields and key-access guidance for OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv. Use `--no-browser` to print the URL only, `--provider-mode prompt` for terminal-only entry, or `--provider-mode skip` to bypass provider setup.
 - doctor verification, unless `--no-doctor` is set
 
 Every prompt prints a short `Tip:` comment explaining what the choice changes, so new users can follow the install or upgrade path without knowing the full CLI flag set first.
 
-Provider keys entered through setup use the same provider config as `qiongli provider setup` and `qiongli provider doctor`. Secrets are stored outside generated research artifacts. The provider step configures credentials and runs doctor/capability checks; it does not guarantee external search results.
+Provider keys saved through setup use the same provider config as `qiongli provider setup` and `qiongli provider doctor`. The local page includes links and short steps for getting each supported credential; arXiv is marked as available without an API key. Secrets are stored outside generated research artifacts. The provider step configures credentials and runs doctor/capability checks; it does not guarantee external search results.
 
 On npm installs, `qiongli setup` delegates to the bundled Python bridge and therefore requires Python 3.12+ plus `PyYAML`. Use explicit `qiongli install ...` commands when you want the Node-only asset installer.
 
@@ -262,9 +272,11 @@ qiongli install --subject economics-accounting --target all
 Upgrade it with:
 
 ```bash
-pipx upgrade qiongli
-qiongli upgrade --subject accounting --target all --doctor --project-dir /path/to/project
+qiongli self-update --dry-run
+qiongli self-update --yes
 ```
+
+Manual package-manager updates are still valid: run `pipx upgrade qiongli` or `python -m pip install --upgrade qiongli`, then refresh client surfaces with `qiongli install --target all --surface plugin --profile full --overwrite`. `qiongli upgrade` remains the release-archive refresh path when you intentionally want to download an upstream GitHub release.
 
 `--subject` defaults to `core`, and `--coverage` defaults to `complete`. Use complete when you are unsure: `--subject economics`, `--subject business`, `--subject finance`, `--subject political-economy`, and `--subject geoeconomics` mean complete specialized installs, not reduced packages, and `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. Use `--coverage focused` for deliberate slim installs and Desktop/Web-equivalent packages. Current official subjects are `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and the named composite `economics-accounting`; `political-economy` and `geoeconomics` are independent subject choices, not a composite. Official composite subjects are not arbitrary comma-separated stacking. To switch a client from one subject or coverage to another, rerun `install` or `upgrade` with new flags. `qiongli check --json` reports the active installed subject and coverage per target; legacy installs without a `SUBJECT_MANIFEST.json` or `SUBJECT` file are treated as `core` / `complete`.
 
@@ -306,7 +318,8 @@ If you use multiple surfaces, keep plugin, global skill assets, npm payload, and
 
 ```bash
 qiongli check
-qiongli upgrade --subject core --target all
+qiongli self-update --dry-run
+qiongli self-update --yes
 ```
 
 If you move fully to native plugins and no longer need legacy global skill directories or slash discovery, inspect cleanup first:

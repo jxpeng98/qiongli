@@ -8,11 +8,13 @@ import {
 } from './python-runtime.mjs';
 
 const BRIDGE_COMMANDS = new Set(['doctor', 'guidance', 'task-run', 'team-run', 'parallel', 'chain', 'role', 'single', 'code-build', 'task-plan']);
-const PYTHON_CLI_COMMANDS = new Set(['setup', 'mcp']);
+const PYTHON_CLI_COMMANDS = new Set(['setup', 'mcp', 'self-update', 'update']);
+const SELF_UPDATE_COMMANDS = new Set(['self-update', 'update']);
 
 export async function main(argv, {
   stdout = process.stdout,
   stderr = process.stderr,
+  env = process.env,
   runBridgeCommand = defaultRunBridgeCommand,
   runPythonCliCommand = defaultRunPythonCliCommand,
 } = {}) {
@@ -115,7 +117,10 @@ export async function main(argv, {
   }
 
   if (PYTHON_CLI_COMMANDS.has(parsed.command)) {
-    return runPythonCliCommand({ packageRoot: root, args: [parsed.command, ...parsed.rest] });
+    const childEnv = SELF_UPDATE_COMMANDS.has(parsed.command)
+      ? { ...env, QIONGLI_INSTALL_CHANNEL: 'npm' }
+      : env;
+    return runPythonCliCommand({ packageRoot: root, args: [parsed.command, ...parsed.rest], env: childEnv });
   }
 
   if (BRIDGE_COMMANDS.has(parsed.command)) {
@@ -162,6 +167,8 @@ Usage:
   qiongli check [--json]
   qiongli clean --project-dir . [--globals]
   qiongli runtime doctor
+  qiongli self-update [--channel stable|next] [--yes]
+  qiongli update [--dry-run]
   qiongli setup [--dry-run] [--project-dir .] [--no-doctor]
   qiongli mcp serve --transport stdio
   qiongli mcp doctor --json
