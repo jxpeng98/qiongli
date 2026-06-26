@@ -20,6 +20,13 @@ OFFICIAL_SUBJECTS = (
 )
 STRICTNESS_CHOICES = ("standard", "high")
 MANIFEST_REL = Path(".qiongli") / "guidance_manifest.yaml"
+KNOWN_FIELDS = {
+    "active_subject",
+    "secondary_subjects",
+    "venue_profiles",
+    "method_lenses",
+    "strictness",
+}
 
 
 class ProjectManifestError(ValueError):
@@ -68,7 +75,7 @@ class ProjectManifestState:
     def to_packet(self) -> dict[str, Any]:
         return {
             "exists": self.exists,
-            "path": str(self.path),
+            "path": _rel(self.project_root, self.path),
             "manifest": self.manifest.to_dict(),
             "warnings": list(self.warnings or []),
         }
@@ -86,14 +93,7 @@ def load_project_manifest(project_root: Path) -> ProjectManifestState:
             warnings=[],
         )
 
-    try:
-        loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except yaml.YAMLError as exc:
-        raise ProjectManifestError(f"Malformed project manifest: {exc}") from exc
-
-    if not isinstance(loaded, Mapping):
-        raise ProjectManifestError("Project manifest must be a YAML object")
-
+    loaded = _read_manifest_mapping(path)
     manifest, warnings = _manifest_from_mapping(loaded)
     return ProjectManifestState(
         exists=True,
@@ -150,7 +150,10 @@ def update_project_manifest(
         ),
         strictness=strictness if strictness is not None else current.manifest.strictness,
     ).normalized()
-    _write_manifest(current.path, manifest)
+    existing = _read_manifest_mapping(current.path) if current.exists else {}
+    payload = {key: value for key, value in existing.items() if str(key) not in KNOWN_FIELDS}
+    payload.update(manifest.to_dict())
+    _write_manifest_mapping(current.path, payload)
     return ProjectManifestState(
         exists=True,
         path=current.path,
@@ -180,16 +183,9 @@ def manifest_to_guidance_section(state: ProjectManifestState) -> str:
 
 
 def _manifest_from_mapping(payload: Mapping[Any, Any]) -> tuple[ProjectManifest, list[str]]:
-    allowed = {
-        "active_subject",
-        "secondary_subjects",
-        "venue_profiles",
-        "method_lenses",
-        "strictness",
-    }
     warnings = [
         f"Ignored unsupported manifest field: {key}"
-        for key in sorted(str(key) for key in payload.keys() if str(key) not in allowed)
+        for key in sorted(str(key) for key in payload.keys() if str(key) not in KNOWN_FIELDS)
     ]
     manifest = ProjectManifest(
         active_subject=payload.get("active_subject", "auto"),
@@ -201,10 +197,25 @@ def _manifest_from_mapping(payload: Mapping[Any, Any]) -> tuple[ProjectManifest,
     return manifest, warnings
 
 
+def _read_manifest_mapping(path: Path) -> dict[Any, Any]:
+    try:
+        loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        raise ProjectManifestError(f"Malformed project manifest: {exc}") from exc
+
+    if not isinstance(loaded, Mapping):
+        raise ProjectManifestError("Project manifest must be a YAML object")
+    return dict(loaded)
+
+
 def _write_manifest(path: Path, manifest: ProjectManifest) -> None:
+    _write_manifest_mapping(path, manifest.to_dict())
+
+
+def _write_manifest_mapping(path: Path, payload: Mapping[Any, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
-        yaml.safe_dump(manifest.to_dict(), sort_keys=False, allow_unicode=True),
+        yaml.safe_dump(dict(payload), sort_keys=False, allow_unicode=True),
         encoding="utf-8",
     )
 
@@ -271,7 +282,9 @@ def _display_list(values: list[str] | None) -> str:
 
 
 def _rel(root: Path, path: Path) -> str:
+    resolved_root = Path(root).expanduser().resolve()
+    resolved_path = Path(path).expanduser().resolve()
     try:
-        return str(path.relative_to(root))
+        return resolved_path.relative_to(resolved_root).as_posix()
     except ValueError:
-        return str(path)
+        return resolved_path.as_posix()
