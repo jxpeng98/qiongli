@@ -492,6 +492,9 @@ class UniversalInstallerTests(unittest.TestCase):
             env["CODEX_HOME"] = str(codex_home)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             env["ANTIGRAVITY_HOME"] = str(antigravity_home)
+            env["ANTIGRAVITY_CONFIG_PATH"] = str(
+                temp_root / ".gemini" / "config" / "mcp_config.json"
+            )
             env["HERMES_HOME"] = str(hermes_home)
             env["PATH"] = ""
 
@@ -634,9 +637,11 @@ class UniversalInstallerTests(unittest.TestCase):
             project_dir = temp_root / "project"
             project_dir.mkdir(parents=True)
             codex_home = temp_root / "codex-home"
+            marketplace = temp_root / ".agents" / "plugins" / "marketplace.json"
             env = os.environ.copy()
             env["HOME"] = str(temp_root)
             env["CODEX_HOME"] = str(codex_home)
+            env["QIONGLI_CODEX_MARKETPLACE_PATH"] = str(marketplace)
 
             completed = mock.Mock(returncode=0, stdout='{"status":"installed"}\n')
             with (
@@ -657,7 +662,6 @@ class UniversalInstallerTests(unittest.TestCase):
                 )
 
             plugin_root = temp_root / "plugins" / "qiongli"
-            marketplace = temp_root / ".agents" / "plugins" / "marketplace.json"
             self.assertEqual(result, 0)
             self.assertTrue((plugin_root / ".codex-plugin" / "plugin.json").is_file())
             self.assertEqual(
@@ -677,9 +681,11 @@ class UniversalInstallerTests(unittest.TestCase):
             temp_root = Path(tmp_dir)
             project_dir = temp_root / "project"
             project_dir.mkdir(parents=True)
+            marketplace_root = temp_root / ".qiongli" / "plugins" / "claude-code"
             env = os.environ.copy()
             env["HOME"] = str(temp_root)
             env["CLAUDE_CODE_HOME"] = str(temp_root / ".claude")
+            env["QIONGLI_CLAUDE_PLUGIN_PARENT"] = str(marketplace_root)
 
             completed = mock.Mock(returncode=0, stdout="ok\n")
 
@@ -703,7 +709,6 @@ class UniversalInstallerTests(unittest.TestCase):
                     )
                 )
 
-            marketplace_root = temp_root / ".qiongli" / "plugins" / "claude-code"
             plugin_root = marketplace_root / "plugins" / "qiongli"
             self.assertEqual(result, 0)
             self.assertTrue((plugin_root / ".claude-plugin" / "plugin.json").is_file())
@@ -722,8 +727,10 @@ class UniversalInstallerTests(unittest.TestCase):
             temp_root = Path(tmp_dir)
             project_dir = temp_root / "project"
             project_dir.mkdir(parents=True)
+            antigravity_plugin_parent = temp_root / ".qiongli" / "plugins" / "antigravity"
             env = os.environ.copy()
             env["HOME"] = str(temp_root)
+            env["QIONGLI_ANTIGRAVITY_PLUGIN_PARENT"] = str(antigravity_plugin_parent)
 
             completed = mock.Mock(returncode=0, stdout="installed\n")
 
@@ -746,7 +753,7 @@ class UniversalInstallerTests(unittest.TestCase):
                     )
                 )
 
-            plugin_root = temp_root / ".qiongli" / "plugins" / "antigravity" / "qiongli"
+            plugin_root = antigravity_plugin_parent / "qiongli"
             self.assertEqual(result, 0)
             self.assertTrue((plugin_root / "plugin.json").is_file())
             run_mock.assert_called_once_with(
@@ -796,6 +803,7 @@ class UniversalInstallerTests(unittest.TestCase):
             hermes_home = temp_root / "hermes-home"
             marketplace = temp_root / "agents" / "marketplace.json"
             claude_plugin_parent = temp_root / "claude-plugins"
+            antigravity_plugin_parent = temp_root / "antigravity-plugins"
             env = os.environ.copy()
             env["HOME"] = str(temp_root)
             env["CODEX_HOME"] = str(codex_home)
@@ -804,6 +812,7 @@ class UniversalInstallerTests(unittest.TestCase):
             env["HERMES_HOME"] = str(hermes_home)
             env["QIONGLI_CODEX_MARKETPLACE_PATH"] = str(marketplace)
             env["QIONGLI_CLAUDE_PLUGIN_PARENT"] = str(claude_plugin_parent)
+            env["QIONGLI_ANTIGRAVITY_PLUGIN_PARENT"] = str(antigravity_plugin_parent)
             env["PATH"] = ""
 
             with mock.patch.dict(os.environ, env, clear=True):
@@ -821,7 +830,7 @@ class UniversalInstallerTests(unittest.TestCase):
 
             codex_plugin_root = marketplace.parent / "plugins" / "qiongli"
             claude_plugin_root = claude_plugin_parent / "plugins" / "qiongli"
-            antigravity_plugin_root = temp_root / ".qiongli" / "plugins" / "antigravity" / "qiongli"
+            antigravity_plugin_root = antigravity_plugin_parent / "qiongli"
             antigravity_plugin_config = json.loads(
                 (antigravity_plugin_root / "mcp_config.json").read_text(encoding="utf-8")
             )
@@ -851,6 +860,9 @@ class UniversalInstallerTests(unittest.TestCase):
             env["CODEX_HOME"] = str(codex_home)
             env["CLAUDE_CODE_HOME"] = str(claude_home)
             env["ANTIGRAVITY_HOME"] = str(antigravity_home)
+            env["ANTIGRAVITY_CONFIG_PATH"] = str(
+                temp_root / ".gemini" / "config" / "mcp_config.json"
+            )
             env["HERMES_HOME"] = str(hermes_home)
             env["PATH"] = ""
 
