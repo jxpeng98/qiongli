@@ -224,6 +224,30 @@ class GuidanceRuntimeTests(unittest.TestCase):
             self.assertEqual(trace["project_manifest"]["manifest"]["active_subject"], "auto")
             self.assertTrue((root / ".qiongli" / "trace" / "runs" / "manifest-run" / "project_manifest.json").is_file())
 
+    def test_write_guidance_trace_does_not_materialize_implicit_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            state = effective_guidance(root, mode="propose", run_id="implicit-run")
+
+            self.assertFalse(state.project_manifest["exists"])
+
+            trace = write_guidance_trace(
+                project_root=root,
+                guidance_state=state,
+                task_packet={"task_id": "F3", "paper_type": "empirical", "topic": "ai-writing"},
+                draft_content="draft",
+                review_content="review",
+                merged_analysis="merged",
+                validator_gate={"passed": True, "found": [], "missing": [], "checked": 0},
+                applied=False,
+            )
+
+            self.assertTrue(
+                (root / ".qiongli" / "trace" / "runs" / "implicit-run" / "project_manifest.json").is_file()
+            )
+            self.assertFalse((root / ".qiongli" / "guidance_manifest.yaml").exists())
+            self.assertFalse(trace["project_manifest"]["exists"])
+
     def test_apply_guidance_proposal_appends_revision_history_only_to_project_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)

@@ -201,7 +201,7 @@ def write_guidance_trace(
     validator_gate: dict[str, Any],
     applied: bool,
 ) -> dict[str, Any]:
-    paths = init_project_guidance(project_root)
+    paths = resolve_guidance_paths(project_root)
     run_id = guidance_state.run_id or uuid.uuid4().hex
     run_dir = paths.trace_root / "runs" / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
