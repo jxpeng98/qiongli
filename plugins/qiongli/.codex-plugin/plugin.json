@@ -1,0 +1,44 @@
+{
+  "name": "qiongli",
+  "version": "1.9.2",
+  "description": "Qiongli academic research workflow for literature, manuscripts, statistics, analysis code, reproducibility, rebuttal, submission, presentation, and stage-aware grill.",
+  "author": {
+    "name": "Jiaxin Peng",
+    "url": "https://github.com/jxpeng98"
+  },
+  "homepage": "https://github.com/jxpeng98/qiongli",
+  "repository": "https://github.com/jxpeng98/qiongli",
+  "license": "MIT",
+  "keywords": [
+    "research",
+    "academic-writing",
+    "literature-review",
+    "manuscript",
+    "analysis",
+    "statistics",
+    "reproducibility",
+    "rebuttal",
+    "academic-code",
+    "grill",
+    "codex-skills"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Qiongli",
+    "shortDescription": "Academic research workflows for Codex.",
+    "longDescription": "Qiongli academic research workflow for literature, manuscripts, statistics, analysis code, reproducibility, rebuttal, submission, presentation, and stage-aware grill.",
+    "developerName": "Jiaxin Peng",
+    "category": "Education",
+    "capabilities": [
+      "Write"
+    ],
+    "websiteURL": "https://github.com/jxpeng98/qiongli",
+    "defaultPrompt": [
+      "Use $qiongli to plan or narrow an academic research project.",
+      "Use $qiongli to revise a manuscript with claim-evidence checks.",
+      "Use $qiongli to review statistics, analysis code, or rebuttal risks."
+    ],
+    "brandColor": "#2563EB"
+  }
+}
