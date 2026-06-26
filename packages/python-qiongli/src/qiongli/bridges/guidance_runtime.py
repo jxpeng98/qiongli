@@ -9,6 +9,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .project_manifest import (
+    init_project_manifest,
+    load_project_manifest,
+    manifest_to_guidance_section,
+)
+
 
 GUIDANCE_MODES = ("off", "read", "propose", "apply")
 LOCAL_GUIDANCE_REL = Path(".qiongli") / "local_guidance.md"
@@ -44,10 +50,12 @@ class GuidanceState:
     conflicts: list[str]
     run_id: str = ""
     warnings: list[str] | None = None
+    project_manifest: dict[str, Any] | None = None
 
     def to_packet(self) -> dict[str, Any]:
         payload = asdict(self)
         payload["warnings"] = list(self.warnings or [])
+        payload["project_manifest"] = dict(self.project_manifest or {})
         return payload
 
 
@@ -70,6 +78,7 @@ def init_project_guidance(project_root: Path) -> GuidancePaths:
     paths = resolve_guidance_paths(project_root)
     paths.trace_root.mkdir(parents=True, exist_ok=True)
     paths.project_guidance_dir.mkdir(parents=True, exist_ok=True)
+    init_project_manifest(paths.project_root)
     if not paths.project_guidance.exists():
         paths.project_guidance.parent.mkdir(parents=True, exist_ok=True)
         paths.project_guidance.write_text(_default_local_guidance(), encoding="utf-8")
@@ -116,6 +125,7 @@ def effective_guidance(project_root: Path, *, mode: str = "propose", run_id: str
             conflicts=[],
             run_id=run_id,
             warnings=[],
+            project_manifest={},
         )
 
     sections: list[str] = []
@@ -123,6 +133,21 @@ def effective_guidance(project_root: Path, *, mode: str = "propose", run_id: str
     guidance_sources: list[dict[str, str]] = []
     source_order: list[str] = []
     warnings: list[str] = []
+    manifest_state = load_project_manifest(paths.project_root)
+    sections.append("## Project Manifest\n\n" + manifest_to_guidance_section(manifest_state))
+    files_read.append(
+        _rel(paths.project_root, manifest_state.path)
+        if manifest_state.exists
+        else "<implicit-project-manifest>"
+    )
+    guidance_sources.append(
+        {
+            "kind": "project-manifest",
+            "path": files_read[-1],
+            "label": "Project Manifest",
+        }
+    )
+    source_order.append("project-manifest")
     source_specs: list[tuple[str, str, Path]] = [
         ("global-preferences", "Global Preferences", paths.global_preferences),
         ("project-local", "Project Local Guidance", paths.project_guidance),
@@ -161,6 +186,7 @@ def effective_guidance(project_root: Path, *, mode: str = "propose", run_id: str
         conflicts=[],
         run_id=run_id,
         warnings=warnings,
+        project_manifest=manifest_state.to_packet(),
     )
 
 
@@ -181,6 +207,7 @@ def write_guidance_trace(
     run_dir.mkdir(parents=True, exist_ok=True)
 
     _write_json(run_dir / "task_packet.json", task_packet)
+    _write_json(run_dir / "project_manifest.json", guidance_state.project_manifest or {})
     (run_dir / "guidance_context.md").write_text(
         guidance_state.guidance_context or "Local guidance disabled or empty.\n",
         encoding="utf-8",
@@ -219,6 +246,7 @@ def write_guidance_trace(
         "guidance_sources": list(guidance_state.guidance_sources),
         "source_order": list(guidance_state.source_order),
         "guidance_conflicts": list(guidance_state.conflicts),
+        "project_manifest": dict(guidance_state.project_manifest or {}),
         "guidance_proposal": _rel(paths.project_root, run_dir / "guidance_update_proposal.md"),
         "applied_guidance_update": bool(apply_result.get("applied")) if applied else False,
     }

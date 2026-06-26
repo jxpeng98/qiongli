@@ -30,6 +30,25 @@ class GuidanceRuntimeTests(unittest.TestCase):
             self.assertTrue((root / ".qiongli" / "trace").is_dir())
             self.assertIn("# Qiongli Local Guidance", paths.project_guidance.read_text(encoding="utf-8"))
 
+    def test_effective_guidance_includes_implicit_project_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+
+            state = effective_guidance(root, mode="read")
+
+            self.assertEqual(state.project_manifest["manifest"]["active_subject"], "auto")
+            self.assertFalse(state.project_manifest["exists"])
+            self.assertIn("Project Manifest", state.guidance_context)
+
+    def test_init_project_guidance_creates_manifest_with_auto_subject(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+
+            paths = init_project_guidance(root)
+
+            self.assertTrue(paths.project_guidance_manifest.is_file())
+            self.assertIn("active_subject: auto", paths.project_guidance_manifest.read_text(encoding="utf-8"))
+
     def test_effective_guidance_project_overrides_global_preferences(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir) / "project"
@@ -77,6 +96,7 @@ class GuidanceRuntimeTests(unittest.TestCase):
             self.assertEqual(
                 state.guidance_files_read,
                 [
+                    ".qiongli/guidance_manifest.yaml",
                     ".qiongli/local_guidance.md",
                     ".qiongli/guidance.d/artifact-policy.md",
                     ".qiongli/guidance.d/writing-style.md",
@@ -184,6 +204,25 @@ class GuidanceRuntimeTests(unittest.TestCase):
             ]
             self.assertEqual(index_rows[0]["run_id"], "run-123")
             self.assertEqual(index_rows[0]["missing_outputs"], ["manuscript/manuscript.md"])
+
+    def test_guidance_trace_records_project_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            state = effective_guidance(root, mode="propose", run_id="manifest-run")
+
+            trace = write_guidance_trace(
+                project_root=root,
+                guidance_state=state,
+                task_packet={"task_id": "F3", "paper_type": "empirical", "topic": "ai-writing"},
+                draft_content="draft",
+                review_content="review",
+                merged_analysis="merged",
+                validator_gate={"passed": True, "found": [], "missing": [], "checked": 0},
+                applied=False,
+            )
+
+            self.assertEqual(trace["project_manifest"]["manifest"]["active_subject"], "auto")
+            self.assertTrue((root / ".qiongli" / "trace" / "runs" / "manifest-run" / "project_manifest.json").is_file())
 
     def test_apply_guidance_proposal_appends_revision_history_only_to_project_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
