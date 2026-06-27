@@ -67,31 +67,60 @@ Current stable release: [v1.10.0](https://github.com/jxpeng98/qiongli/releases/t
 ## How It Works
 
 ```mermaid
-flowchart TD
-    A["Research request<br/>topic, paper type, client, constraints"] --> B["Qiongli entrypoint<br/>skill, plugin command, CLI, or MCP tool"]
-    B --> C["Task contract<br/>Task ID, stage, role, expected outputs, evidence rules"]
-    C --> D{"Smallest runtime<br/>that fits the job"}
+flowchart TB
+    subgraph Project["Project usage state"]
+        A["Open a research project<br/>with or without .qiongli/"]
+        A --> B{"Project manifest exists?<br/>.qiongli/guidance_manifest.yaml"}
+        B -->|no| C["Implicit default<br/>active_subject: auto"]
+        B -->|yes| D["Configured project state<br/>active_subject, venue_profiles,<br/>method_lenses, strictness"]
+        C --> E["Optional human guidance<br/>.qiongli/local_guidance.md<br/>.qiongli/guidance.d/*.md"]
+        D --> E
+    end
 
-    D --> E["Skill / plugin only<br/>workflow guidance, prompts, templates, subject overlays"]
-    D --> F["Literature MCP<br/>OpenAlex, Semantic Scholar, Crossref, PubMed, arXiv"]
-    D --> G["Zotero companion<br/>local library search, import files, reference review tags"]
-    D --> H["Full CLI / orchestrator<br/>doctor, task-plan, preview task-run, optional agent run"]
+    subgraph Request["Task routing"]
+        F["Academic request<br/>topic, paper type, client, constraints"]
+        F --> G["Qiongli entrypoint<br/>skill, plugin command, CLI, or MCP tool"]
+        G --> H["Task contract<br/>Task ID, stage, required outputs,<br/>evidence rules, quality gates"]
+        H --> I["Resolve subject context<br/>explicit --domain for this run<br/>&gt; project manifest<br/>&gt; temporary inference<br/>&gt; auto/core"]
+    end
 
-    E --> I["Route the stage<br/>A framing, B literature, C design, F writing, I code, H rebuttal..."]
-    F --> J["Collect search evidence<br/>queries, provider status, diagnostics, dedup and screening readiness"]
-    G --> K["Sync reference context<br/>local Zotero results, CSL/RIS/BibTeX exports, review queues"]
-    H --> L["Run controlled execution<br/>controller, primary, reviewer, verifier, solo/duo/triad mode"]
+    A --> F
+    E --> I
 
-    I --> M["Quality gates<br/>claim boundary, citation risk, method fit, code review, verification status"]
-    J --> M
-    K --> M
-    L --> M
+    subgraph Runtime["Runtime surface"]
+        I --> J{"Smallest runtime<br/>that fits the job"}
+        J --> K["Skill / plugin only<br/>read project guidance,<br/>draft or review artifacts"]
+        J --> L["Literature MCP / Zotero<br/>provider search, local library,<br/>exports and review queues"]
+        J --> M["Full CLI / MCP orchestrator<br/>doctor, task-plan,<br/>preview task-run"]
+        M --> N{"run_agents == true?"}
+        N -->|no| O["Preview only<br/>returns project_manifest,<br/>project_subject, runtime plan"]
+        N -->|yes| P["Controlled agent run<br/>controller, primary, reviewer,<br/>verifier, solo/duo/triad"]
+    end
 
-    M --> N["Write artifacts<br/>RESEARCH/[topic]/ context, search logs, plans, drafts, code, reviews"]
-    N --> O{"Human or agent review"}
-    O -->|revise| C
-    O -->|accepted| P["Auditable package<br/>evidence trail, decisions, outputs, and release/submission materials"]
+    subgraph Outputs["Artifacts and learning loop"]
+        K --> Q["Formal outputs<br/>RESEARCH/[topic]/..."]
+        L --> Q
+        O --> R["No runtime side effects<br/>safe MCP/client preview"]
+        P --> Q
+        P --> S["Trace bundle<br/>.qiongli/trace/runs/&lt;run_id&gt;/"]
+        S --> T["Guidance proposal<br/>local guidance changes plus<br/>structured manifest YAML"]
+        T --> U{"guidance_mode"}
+        U -->|propose| V["Keep auditable proposal<br/>no persistent subject switch"]
+        U -->|apply| W["Apply accepted update<br/>manifest + local_guidance.md"]
+        W --> B
+        V --> B
+        Q --> X{"Human or agent review"}
+        X -->|revise| H
+        X -->|accepted| Y["Auditable research package<br/>outputs, evidence, decisions,<br/>trace, and submission materials"]
+    end
 ```
+
+Read the flow from normal project use:
+
+- Project state: a missing manifest is valid and means `active_subject: auto`; `qiongli project ...` commands make subject, venue, method, and strictness choices explicit.
+- Runtime routing: MCP previews are safe and side-effect free; actual agent execution only starts when explicitly enabled.
+- Learning loop: task evidence can produce `guidance_update_proposal.md`; persistent project changes happen only through explicit project commands or accepted `guidance_mode=apply` proposals.
+- Contract priority stays fixed: canonical workflow requirements and current user instructions override project guidance or inferred subject context.
 
 ## Current Structure
 

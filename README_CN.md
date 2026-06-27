@@ -66,35 +66,75 @@
 ## 工作原理
 
 ```mermaid
-flowchart TD
-    A["研究请求<br/>topic、paper type、客户端、约束"] --> B["Qiongli 入口<br/>skill、plugin command、CLI 或 MCP tool"]
-    B --> C["任务合同<br/>Task ID、stage、role、预期产物、证据规则"]
-    C --> D{"选择刚好够用的<br/>运行时入口"}
+flowchart TB
+    subgraph Project["项目使用状态"]
+        A["打开一个研究项目<br/>可以已有或没有 .qiongli/"]
+        A --> B{"项目 manifest 是否存在?<br/>.qiongli/guidance_manifest.yaml"}
+        B -->|不存在| C["隐式默认<br/>active_subject: auto"]
+        B -->|存在| D["已配置项目状态<br/>active_subject、venue_profiles、<br/>method_lenses、strictness"]
+        C --> E["可选人工 guidance<br/>.qiongli/local_guidance.md<br/>.qiongli/guidance.d/*.md"]
+        D --> E
+    end
 
-    D --> E["Skill / plugin only<br/>workflow 指导、prompts、templates、subject overlays"]
-    D --> F["Literature MCP<br/>OpenAlex、Semantic Scholar、Crossref、PubMed、arXiv"]
-    D --> G["Zotero companion<br/>本地文献库搜索、导入文件、reference review tags"]
-    D --> H["完整 CLI / orchestrator<br/>doctor、task-plan、preview task-run、可选 agent run"]
+    subgraph Request["任务路由"]
+        F["学术请求<br/>topic、paper type、客户端、约束"]
+        F --> G["Qiongli 入口<br/>skill、plugin command、CLI 或 MCP tool"]
+        G --> H["任务合同<br/>Task ID、stage、required outputs、<br/>evidence rules、quality gates"]
+        H --> I["解析 subject context<br/>本次 --domain<br/>&gt; project manifest<br/>&gt; temporary inference<br/>&gt; auto/core"]
+    end
 
-    E --> I["进入对应 stage<br/>A framing、B literature、C design、F writing、I code、H rebuttal..."]
-    F --> J["收集检索证据<br/>queries、provider status、diagnostics、dedup 和 screening readiness"]
-    G --> K["同步 reference context<br/>本地 Zotero 结果、CSL/RIS/BibTeX exports、review queues"]
-    H --> L["受控执行<br/>controller、primary、reviewer、verifier、solo/duo/triad mode"]
+    A --> F
+    E --> I
 
-    I --> M["质量门<br/>claim boundary、citation risk、method fit、code review、verification status"]
-    J --> M
-    K --> M
-    L --> M
+    subgraph Runtime["运行时表面"]
+        I --> J{"选择刚好够用的<br/>运行时入口"}
+        J --> K["Skill / plugin only<br/>读取项目 guidance，<br/>起草或审阅 artifacts"]
+        J --> L["Literature MCP / Zotero<br/>provider search、本地文献库、<br/>exports 和 review queues"]
+        J --> M["完整 CLI / MCP orchestrator<br/>doctor、task-plan、<br/>preview task-run"]
+        M --> N{"run_agents == true?"}
+        N -->|否| O["只预览<br/>返回 project_manifest、<br/>project_subject、runtime plan"]
+        N -->|是| P["受控 agent run<br/>controller、primary、reviewer、<br/>verifier、solo/duo/triad"]
+    end
 
-    M --> N["写入产物<br/>RESEARCH/[topic]/ context、search logs、plans、drafts、code、reviews"]
-    N --> O{"人工或 agent 审阅"}
-    O -->|修订| C
-    O -->|接受| P["可审计包<br/>证据链、决策记录、产物、release/submission materials"]
+    subgraph Outputs["产物与学习闭环"]
+        K --> Q["正式产物<br/>RESEARCH/[topic]/..."]
+        L --> Q
+        O --> R["无运行时副作用<br/>安全 MCP/client preview"]
+        P --> Q
+        P --> S["Trace bundle<br/>.qiongli/trace/runs/&lt;run_id&gt;/"]
+        S --> T["Guidance proposal<br/>local guidance changes<br/>+ structured manifest YAML"]
+        T --> U{"guidance_mode"}
+        U -->|propose| V["保留可审计 proposal<br/>不持久切换 subject"]
+        U -->|apply| W["应用已接受更新<br/>manifest + local_guidance.md"]
+        W --> B
+        V --> B
+        Q --> X{"人工或 agent 审阅"}
+        X -->|修订| H
+        X -->|接受| Y["可审计研究包<br/>产物、证据、决策、trace、<br/>submission materials"]
+    end
 ```
 
-## 当前能力地图
+这个流程从正常项目使用开始读：
+
+- 项目状态：缺少 manifest 是合法状态，等价于 `active_subject: auto`；`qiongli project ...` 命令把 subject、venue、method lens 和 strictness 显式写入项目。
+- 运行时路由：MCP preview 默认安全且无副作用；只有显式开启 agent run 时才进入本地模型执行。
+- 学习闭环：task evidence 可以生成 `guidance_update_proposal.md`；持久项目变更只来自显式 project 命令或已接受的 `guidance_mode=apply` proposal。
+- 优先级不变：canonical workflow requirements 和当前用户指令始终高于 project guidance 或临时推断出来的 subject context。
+
+## 当前结构
+
+Qiongli 拆成四个 surface，这样你可以只启用当前任务真正需要的部分：
+
+| Surface | 提供什么 | 是否启动本地 agents |
+|---|---|---|
+| Skill / plugin package | Agent instructions、workflow commands、templates、standards、subject overlays 和 effective skill markdown | 否 |
+| Literature MCP runtime | 本地 literature/provider 工具，例如 `qiongli_literature_search`、`qiongli_config_status`、`qiongli_configure_provider`、`qiongli_save_provider_config` | 否 |
+| Full CLI MCP runtime | Python-backed MCP tools，包括 literature search、provider config、`qiongli_orchestrator_route`、`qiongli_orchestrator_doctor`、`qiongli_task_plan`、`qiongli_task_run` | 只有显式启用时 |
+| Shell / Python orchestrator | `doctor`、validators、`task-plan`、`task-run`、`team-run` 和 code-build routes | 配置 runtime auth 后才会启动 |
 
 Codex marketplace plugin 内置的 literature MCP 从 plugin bundle 启动。Provider key 优先通过 `qiongli_config_status` 和本地 `qiongli_configure_provider` 配置；脚本化写入仍可用 `qiongli_save_provider_config`。不要把 key 写进 `.mcp.json` 或 plugin manifest。Claude Desktop MCPB、Claude Code plugin runtime 和完整 CLI MCP server 也暴露同一个配置工具，供其他本地 MCP client 使用。
+
+## 能力覆盖
 
 | 领域 | 覆盖内容 |
 |---|---|
@@ -111,7 +151,8 @@ Codex marketplace plugin 内置的 literature MCP 从 plugin bundle 启动。Pro
 
 > [!WARNING]
 > 如果你要使用“完整功能集”，需要真实安装并配置：
-> `python3`、`codex`、`claude`、`gemini` 四个运行时入口，以及对应的 `OPENAI_API_KEY`、`ANTHROPIC_API_KEY`、`GOOGLE_API_KEY`。
+> `python3`、`codex`、`claude`、`antigravity` 四个运行时入口，以及对应的本地登录或运行时认证。
+> `codex` 可使用 `OPENAI_API_KEY` 或已有 ChatGPT/Codex 登录，`claude` 可使用 `ANTHROPIC_API_KEY` 或已有 Claude Code 登录，`antigravity` 使用本地 Antigravity CLI 登录/配置。
 > 如果缺少这些依赖，你仍然可以完成 shell 安装和 `qiongli check|upgrade|align`，但 `doctor`、validator、tests 和完整 orchestrator 多模型执行链会受限或不可用。
 
 ## 为什么叫“穷理”
@@ -131,7 +172,7 @@ Codex marketplace plugin 内置的 literature MCP 从 plugin bundle 启动。Pro
   - 也借鉴了“通过流程约束减少模型即兴发挥”的思路，而不是把整个任务塞进一个大 prompt。
   - 但两者目标不同：CCG 更偏工程开发协作；本仓库把这些思想本地化成学术场景里的 `I5 -> I6 -> I7 -> I8` Stage-I 任务，以及 `RESEARCH/[topic]/` 下的合同化产物。
 - [GuDaStudio/skills](https://github.com/GuDaStudio/skills)
-  - 这个项目对 Claude-oriented skill 打包方式，以及 Codex / Gemini 协作能力的可安装化，提供了很好的参考。
+  - 这个项目对 Claude-oriented skill 打包方式，以及可复用协作 skill packaging，提供了很好的参考。
   - 但本仓库的重点不同：`GuDaStudio/skills` 更像通用协作 skill 集合，而 `qiongli` 更强调“单一研究合同 + 单一任务目录 + 单一产物树”的学术工作流。
 - [Matt Pocock 的 `grill-me` skill](https://github.com/mattpocock/skills/blob/main/skills/productivity/grill-me/SKILL.md)
   - 本项目 credit 它“一次只追问一个问题、同时给推荐答案”的交互模式。
@@ -158,20 +199,19 @@ Codex marketplace plugin 内置的 literature MCP 从 plugin bundle 启动。Pro
 - **Codex：** 添加统一的 [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace，然后在 Codex plugin UI 中安装或启用默认 `qiongli`，或选择 `qiongli-economics` 等 subject entry。Codex plugin 也内置本地 Node literature-provider MCP runtime，这部分 MCP 工具不需要 `qiongli` CLI。
 - **Claude Code：** 添加统一的 [Skillsplace](https://github.com/jxpeng98/skillsplace) marketplace，然后安装 `qiongli@skillsplace`；经济学专精可安装 `qiongli-economics@skillsplace`。
 - **Claude Desktop / Claude.ai：** 如果不想处理 code / CLI 环境，从 GitHub Release assets 下载 focused subject ZIP。默认通用包用 `qiongli-claude-desktop-skill-core-<tag>.zip`，经济学专精包用 `qiongli-claude-desktop-skill-economics-<tag>.zip`，political economy 专精包用 `qiongli-claude-desktop-skill-political-economy-<tag>.zip`，geoeconomics 专精包用 `qiongli-claude-desktop-skill-geoeconomics-<tag>.zip`，business 专精包用 `qiongli-claude-desktop-skill-business-<tag>.zip`，finance 专精包用 `qiongli-claude-desktop-skill-finance-<tag>.zip`，官方 economics/accounting 交叉学科包用 `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip`。然后拖拽到 Claude Desktop 的 Skills 上传/安装流程中，或在 `Customize > Skills > + > Create skill > Upload a skill` 中上传。旧名 `qiongli-claude-desktop-skill-<tag>.zip` 暂时保留为 core alias。
-- **Gemini CLI：** 从 staged materialization 输出或 Release artifact 安装 Gemini extension；发布为独立 extension 仓库或 gallery 条目后，也可以从远端安装。
 
 公开的 Codex / Claude marketplace catalog 现在由 `jxpeng98/skillsplace` 统一维护。Release 构建会为 `core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics`、`economics-accounting` 生成独立 Codex / Claude Code plugin artifacts，让 marketplace 可以展示多个 subject 安装选项。本仓库只维护生成这些 artifacts 的 canonical source：
 
 Beta / prerelease 测试使用单独的 `qiongli-next` entry。它只发布 core 版本，不生成 subject plugin variants；Codex 和 Claude Code 的 `qiongli-next` artifacts 仍然内置 Node literature-provider MCP runtime。Claude Desktop 测试使用 `qiongli-next-claude-desktop-skill-core-<tag>.zip`，并与单独的 `qiongli-literature-provider-<version>.mcpb` 配合使用。CLI prerelease 测试使用 `npx qiongli@next install --target all --project-dir "$PWD"`。
 
 - `content/workflow/`：`qiongli-workflow`、workflows、references、agents、standards 的源
-- `content/distribution/plugins.yaml`：Codex / Claude Code / Gemini plugin metadata 源
+- `content/distribution/plugins.yaml`：Codex / Claude Code plugin metadata 源
 - `packages/qiongli-literature-mcpb/server/`：生成 plugin 内置 Node literature-provider MCP runtime 的源
 - `tooling/scripts/build_plugin_artifacts.py`：从 canonical source 生成 `plugins/qiongli/`、`plugins/qiongli-next/`、`packages/qiongli-plugin/`、`packages/qiongli-next-plugin/` 等 payload 形状
 
 Claude Desktop 不走 Claude Code 的第三方 plugin marketplace 路径。Desktop 使用上面的 GitHub Release ZIP 手动上传；ZIP 内部顶层目录是 `qiongli/`，与 `SKILL.md` 里的 skill 名称一致。
 
-Desktop/Web ZIP 使用 `coverage=focused`，用于保持当前 180 文件上传预算。它是 subject 专精安装包，不是降质删减版：保留统一 workflows、prompts、templates、standards、所选 profiles、`skills-summary.md` 和 `skills-core.md`；专精 ZIP 还包含经过 layered overlays 生成的 selected effective skill markdown。这个 Desktop skill ZIP 是 skill-only asset：只包含 workflows/prompts/templates，不保存 secrets，也不执行 provider calls。需要全量 canonical 源码细节时，使用默认 `coverage=complete` 的 CLI/npm 安装、Codex / Claude Code / Gemini plugin 包或源码仓库。
+Desktop/Web ZIP 使用 `coverage=focused`，用于保持当前 180 文件上传预算。它是 subject 专精安装包，不是降质删减版：保留统一 workflows、prompts、templates、standards、所选 profiles、`skills-summary.md` 和 `skills-core.md`；专精 ZIP 还包含经过 layered overlays 生成的 selected effective skill markdown。这个 Desktop skill ZIP 是 skill-only asset：只包含 workflows/prompts/templates，不保存 secrets，也不执行 provider calls。需要全量 canonical 源码细节时，使用默认 `coverage=complete` 的 CLI/npm 安装、Codex / Claude Code plugin 包或源码仓库。
 
 独立的 Qiongli Literature Provider `.mcpb`（`qiongli-literature-provider.mcpb`）才是 Claude Desktop 本地 provider asset。它在本地运行 Desktop literature search，支持 OpenAlex、Semantic Scholar、Crossref、PubMed 和 arXiv，并通过 Desktop 配置 UI 填写需要凭据的 provider；arXiv 默认可用，不需要凭据。敏感 key 交给 Claude Desktop sensitive-field handling，不写入 Desktop skill ZIP。这个 MCPB 自带零依赖 Node stdio server，所以 Desktop 用户不需要安装 `qiongli` CLI 或运行 npm install。CLI、Codex、Claude Code、Antigravity 和 Hermes 用户仍然可以运行 `qiongli provider setup`，再用 `qiongli provider doctor` 检查当前是 `provider_connected` 还是 `strategy_only`。Desktop 用户需要 `qiongli-literature-provider` MCPB 或平台原生搜索能力，才能声称 `provider_connected`；如果没有 MCPB 或平台原生搜索能力，就把运行记录为 `strategy_only`，并把平台搜索或用户提供的 corpus 作为证据来源。
 
@@ -268,8 +308,8 @@ pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Beta -Profile full -
 
 这一步会安装：
 
-- Codex / Claude Code / Gemini 的 workflow 资产
-- 项目集成文件，例如 `.agent/workflows/`、`CLAUDE.md`、`.gemini/`，仅在执行 `qiongli init` 或 `--parts project` 时写入
+- Codex / Claude Code / Antigravity / Hermes 的 workflow、plugin 或 MCP 资产
+- 项目集成文件，例如 `.agent/workflows/`、`CLAUDE.md`，仅在执行 `qiongli init` 或 `--parts project` 时写入
 - `full` 模式下的 shell CLI：`qiongli`、`ql`，以及兼容别名 `research-skills`、`rsk`、`rsw`
 
 ### npm / npx 替代入口
@@ -554,7 +594,7 @@ curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/boots
 效果：
 - 安装 shell CLI：`qiongli`、`ql`，以及兼容别名 `research-skills`、`rsk`、`rsw`
 - 安装 `qiongli-workflow` skill 到对应客户端目录
-- 项目集成文件只在执行 `qiongli init` 或 `--parts project` 时写入，例如 `.agent/workflows/`、`CLAUDE.md`、`.gemini/`
+- 项目集成文件只在执行 `qiongli init` 或 `--parts project` 时写入，例如 `.agent/workflows/`、`CLAUDE.md`
 
 默认 CLI 目录：
 - `${QIONGLI_BIN_DIR:-${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}}`
@@ -662,7 +702,7 @@ qiongli setup
 | `--ref <tag-or-branch>` | 指定安装的版本或分支 | 默认自动解析 latest release |
 | `--ref-type <tag|branch>` | 指定 `--ref` 是 tag 还是 branch | 默认 `tag` |
 | `--beta` | 在未传 `--ref` 时安装最新 beta / prerelease tag | 默认关闭，默认仍解析稳定版 latest release |
-| `--target <codex|claude|gemini|antigravity|hermes|all>` | 指定写入哪些客户端目录 | 默认 `all` |
+| `--target <codex|claude|antigravity|hermes|all>` | 指定写入哪些客户端目录 | 默认 `all` |
 | `--project-dir <path>` | 在启用项目侧安装面时，指定项目集成文件的写入目录 | 默认当前目录 |
 | `--install-cli` | 安装 shell CLI | 默认开启 |
 | `--no-cli` | 跳过 shell CLI 安装，只装 workflow 资产 | 与 `--install-cli` 相反 |
@@ -712,7 +752,7 @@ curl -fsSL https://raw.githubusercontent.com/jxpeng98/qiongli/main/scripts/boots
 
 | 参数 | 作用 | 默认值 / 说明 |
 |------|------|---------------|
-| `--target <codex|claude|gemini|antigravity|hermes|all>` | 指定写入哪些客户端目录 | 默认 `all` |
+| `--target <codex|claude|antigravity|hermes|all>` | 指定写入哪些客户端目录 | 默认 `all` |
 | `--mode <copy|link>` | 复制文件或创建软链接 | 默认 `copy` |
 | `--project-dir <path>` | 在启用项目侧安装面时，指定项目集成文件写入目录 | 默认当前目录 |
 | `--install-cli` | 安装 shell CLI | 默认关闭 |
@@ -784,7 +824,7 @@ qiongli check --offline --json
 | `--repo <owner/repo|url>` | 指定上游仓库 |
 | `--ref <tag-or-branch>` | 指定版本或分支 |
 | `--ref-type <tag|branch>` | 指定 ref 类型 |
-| `--target <codex|claude|gemini|antigravity|hermes|all>` | 指定安装目标 |
+| `--target <codex|claude|antigravity|hermes|all>` | 指定安装目标 |
 | `--project-dir <path>` | 指定项目路径 |
 | `--install-cli` | 安装或刷新 shell CLI 包装命令 |
 | `--no-cli` | 升级时不刷新 shell CLI |
@@ -825,7 +865,7 @@ qiongli doctor --cwd .
 | 参数 | 作用 |
 |------|------|
 | `--project-dir <path>` | 指定项目路径 |
-| `--target <codex|claude|gemini|antigravity|hermes|all>` | 指定客户端/项目侧表面 |
+| `--target <codex|claude|antigravity|hermes|all>` | 指定客户端/项目侧表面 |
 | `--parts <globals,project,cli,doctor>` | 选择安装面（默认 `project`） |
 | `--overwrite` | 覆盖已有项目资产 |
 | `--doctor` | init 后执行 doctor |
@@ -868,9 +908,8 @@ qiongli align --repo jxpeng98/qiongli
 | `RESEARCH_SKILLS_BIN_DIR` | `QIONGLI_BIN_DIR` 的旧兼容 fallback |
 | `CODEX_HOME` | Codex skill 安装根目录 |
 | `CLAUDE_CODE_HOME` | Claude Code skill 安装根目录 |
-| `GEMINI_HOME` | Gemini skill 安装根目录 |
 | `ANTIGRAVITY_HOME` | Antigravity 全局 skill 安装根目录 |
-| `ANTIGRAVITY_CONFIG_PATH` | Antigravity client-level MCP config 路径，默认 `~/.gemini/config/mcp_config.json`；默认 plugin surface 会优先使用 plugin 根目录的 `mcp_config.json` |
+| `ANTIGRAVITY_CONFIG_PATH` | Antigravity legacy client-level MCP config 路径，默认 `~/.gemini/config/mcp_config.json`；默认 plugin surface 会优先使用 plugin 根目录的 `mcp_config.json` |
 | `HERMES_HOME` | Hermes 全局 skill 安装根目录 |
 | `GITHUB_TOKEN` / `GH_TOKEN` | 私有仓库或 GitHub API 限流时的认证令牌 |
 
@@ -899,7 +938,7 @@ Qiongli 现在支持项目级 subject guidance 和 subject-specialized installs�
 ---
 
 ## 🏗 标准化层与跨模型契约
-为了让 Codex、Claude、Gemini 输出可相互继承的中间件，系统使用严苛的“契约”驱动运转。
+为了让 Codex、Claude 和 Antigravity 输出可相互继承的中间件，系统使用严苛的“契约”驱动运转。
 
 - **工作流契约**: `content/standards/research-workflow-contract.yaml` (所有 Task ID，必需前置条件与质量门规范)
 - **能力映射路由**: `content/standards/mcp-agent-capability-map.yaml` (所有 MCP 工具代理，自动 fallback 以及检查清单）
@@ -944,7 +983,7 @@ MCP 证据采集                  Agent 运行时路由
 ## 多模型并发审查 (`orchestrator`)
 
 支持通过 Orchestrator 网桥，联动本地不同接口服务执行复合流。
-*(需预先在环境变量配置了 `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`)*
+*(需预先完成 Codex、Claude Code 和 Antigravity 的本地运行时认证，或配置对应 CLI 所需的 API key / 登录状态。)*
 
 ```bash
 # 先看任务前置、产物和路由

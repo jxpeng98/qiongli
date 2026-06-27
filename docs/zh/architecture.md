@@ -31,6 +31,45 @@ Qiongli 现在采用 hybrid 仓库布局：学术内容、运行时代码、包�
 | Runtime | `packages/python-qiongli/src/qiongli/` | CLI、installer、orchestration、providers |
 | Distribution | materialized staging tree | `qiongli-workflow/`、plugin payload、npm payload、Python payload |
 
+## 项目级 Guidance Runtime
+
+Qiongli 的项目使用态由 canonical workflow 和项目本地状态共同决定。核心合同仍然来自 `content/standards/`，但每个研究项目可以在 `.qiongli/` 下保存自己的 subject、venue、method lens、strictness 和人工 guidance。
+
+```mermaid
+flowchart TB
+    A["研究项目目录"] --> B{"是否存在<br/>.qiongli/guidance_manifest.yaml"}
+    B -->|否| C["隐式项目 manifest<br/>active_subject: auto"]
+    B -->|是| D["结构化项目 manifest<br/>subject / venue / methods / strictness"]
+    C --> E["读取可选 local guidance<br/>.qiongli/local_guidance.md<br/>.qiongli/guidance.d/*.md"]
+    D --> E
+    E --> F["构造 task packet<br/>project_manifest + project_subject"]
+    F --> G{"调用方式"}
+    G -->|MCP preview| H["返回 preview<br/>不写项目文件、不启动 agents"]
+    G -->|task-run| I["执行 draft/review/verify<br/>写 RESEARCH/[topic]/ 产物"]
+    I --> J["写 trace bundle<br/>.qiongli/trace/runs/&lt;run_id&gt;/"]
+    J --> K["生成 guidance_update_proposal.md<br/>包含 local guidance 建议和 manifest YAML"]
+    K --> L{"guidance_mode"}
+    L -->|propose| M["只保留 proposal<br/>不持久改项目状态"]
+    L -->|apply| N["更新 manifest<br/>追加 local_guidance.md"]
+    N --> B
+    M --> B
+```
+
+这层 runtime 的职责边界是：
+
+| 文件或模块 | 职责 |
+|---|---|
+| `.qiongli/guidance_manifest.yaml` | 机器可读的项目 subject 状态；缺失时等价于 `active_subject: auto` |
+| `.qiongli/local_guidance.md`、`.qiongli/guidance.d/*.md` | 人工可读的项目规则，只能作为 advisory context |
+| `.qiongli/trace/` | task packet、guidance context、draft/review、validator gate 和 proposal 的审计记录 |
+| `bridges.project_manifest` | manifest 读取、初始化、校验、更新和 serialization |
+| `bridges.subject_runtime` | 把项目 subject 解析成当前 task 的 effective subject/domain context |
+| `bridges.project_inference` | 从 task evidence 保守推断临时 subject/method 建议 |
+| `bridges.guidance_runtime` | 汇总 guidance、写 trace、生成 proposal、应用已接受的 manifest/local guidance 更新 |
+| `bridges.mcp_tool_handlers` | 在 `qiongli_task_run` preview 中暴露 `project_manifest` 和 `project_subject`，并保持 preview 无副作用 |
+
+项目级 guidance 不能覆盖 canonical contract、required outputs、evidence gates、quality gates、MCP evidence requirements 或安全约束。`guidance_mode=off` 会跳过项目 manifest 和 local guidance 的读取；即使项目里有格式错误的 manifest，也不会阻断本次显式关闭 guidance 的运行。
+
 ## 稳定入口
 
 | 入口方式 | 适用场景 | 稳定入口 |
