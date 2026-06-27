@@ -1,6 +1,6 @@
 # Guide
 
-Use this section when you are operating Qiongli as a user or project owner. It starts from installation and workflow selection, then moves into runtime checks and troubleshooting.
+Use this section when you are operating Qiongli as a user or project owner. It keeps the path short: install the smallest useful surface, learn what to type, choose a research route, then add runtime checks only when needed.
 
 ## Start Here
 
@@ -10,7 +10,7 @@ Use this section when you are operating Qiongli as a user or project owner. It s
 - [Task Recipes](/guide/task-recipes): scenario-based routes for literature review, empirical design, writing, code, and rebuttal.
 - [Multi-Agent Runtime Guide](/guide/multi-agent): runtime routing, local agent execution, and auth rules.
 - [Examples](/examples/): paper-type playbooks for systematic review, empirical, qualitative, methods, and theory workflows.
-- [Upgrade](/guide/upgrade): shell bootstrap, Python CLI, and long-lived clone upgrade paths.
+- [Upgrade](/guide/upgrade): package updates, content refreshes, shell bootstrap, Python CLI, and long-lived clone paths.
 - [Troubleshooting](/guide/troubleshooting): unified error-code guide.
 
 ## Recommended Reading Order
@@ -22,6 +22,12 @@ Use this section when you are operating Qiongli as a user or project owner. It s
 5. [Multi-Agent Runtime Guide](/guide/multi-agent)
 6. [CLI Reference](/reference/cli)
 7. [Troubleshooting](/guide/troubleshooting)
+
+## Update Boundary
+
+- Use `qiongli update` when the installed npm, pipx, or pip package should move to a newer release.
+- Use `qiongli update --no-refresh` when you want the package update only.
+- Use `qiongli upgrade` when you only want to refresh installed local content/assets from a package or release archive.
 
 ## When To Leave This Section
 
