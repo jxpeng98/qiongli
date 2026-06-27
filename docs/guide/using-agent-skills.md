@@ -20,6 +20,79 @@ Most users should look for `qiongli`, not `research-paper-workflow`. The directo
 | Claude Code | Plugin UI or `/plugin` commands | `/paper`, `/lit-review`, `/paper-write`, `/code-build`, or natural language asking for Qiongli | Plugin installs command wrappers plus the portable skill package. |
 | Shell | `qiongli check` | npm: `qiongli install`, `qiongli update`, `qiongli project ...`; full runtime: `qiongli doctor`, `qiongli task-run`, `python3 -m bridges.orchestrator ...` | npm/npx is Python-free asset management. Full runtime commands require `pipx install qiongli` and Python 3.12+. |
 
+## Runtime Architecture Flow
+
+This is the end-to-end path from a user request to runtime choice, preview, execution, and durable outputs.
+
+```mermaid
+flowchart TB
+    subgraph Entrypoints["Entry surfaces"]
+        Request["Academic request<br/>topic, paper type, constraints"]
+        Client["Client skill/plugin<br/>Codex, Claude Code,<br/>Claude Desktop/Web"]
+        Npm["npm/npx asset manager<br/>install, setup, update,<br/>refresh, upgrade, check"]
+        RuntimeCli["Full runtime CLI/MCP<br/>pipx, pip, bootstrap full"]
+        Request --> Client
+        Request --> Npm
+        Request --> RuntimeCli
+    end
+
+    subgraph ProjectState["Project usage state"]
+        Manifest{"Project manifest exists?<br/>.qiongli/guidance_manifest.yaml"}
+        Auto["Implicit project state<br/>active_subject: auto"]
+        Configured["Configured project state<br/>subject, venue profiles,<br/>method lenses, strictness"]
+        LocalGuidance["Human guidance<br/>.qiongli/local_guidance.md<br/>.qiongli/guidance.d/*.md"]
+        Npm --> Manifest
+        RuntimeCli --> Manifest
+        Manifest -->|no| Auto
+        Manifest -->|yes| Configured
+        Auto --> LocalGuidance
+        Configured --> LocalGuidance
+    end
+
+    subgraph Routing["Task routing"]
+        Contract["Task contract<br/>Task ID, stage, outputs,<br/>evidence rules, quality gates"]
+        Subject["Resolve subject context<br/>explicit domain > project state<br/>> temporary inference > core"]
+        Runtime{"Smallest runtime<br/>that fits the job"}
+        Client --> Contract
+        RuntimeCli --> Contract
+        LocalGuidance --> Subject
+        Contract --> Subject
+        Subject --> Runtime
+    end
+
+    subgraph RuntimeChoice["Runtime choices"]
+        SkillOnly["Skill/plugin only<br/>read guidance,<br/>draft or review artifacts"]
+        Provider["Literature provider<br/>MCPB or bundled Node MCP<br/>status, search, evidence export"]
+        Preview["Full runtime preview<br/>doctor, task-plan,<br/>task-run without agents"]
+        Execute{"run_agents == true<br/>and doctor passes?"}
+        Agents["Controlled agent run<br/>controller, primary,<br/>reviewer, verifier"]
+        Runtime --> SkillOnly
+        Runtime --> Provider
+        Runtime --> Preview
+        Preview --> Execute
+        Execute -->|no| PreviewResult["Preview result<br/>safe plan and runtime notes"]
+        Execute -->|yes| Agents
+    end
+
+    subgraph Outputs["Outputs and learning loop"]
+        Formal["Formal outputs<br/>RESEARCH/[topic]/..."]
+        Trace["Trace bundle<br/>.qiongli/trace/runs/&lt;run_id&gt;/"]
+        Proposal["Guidance proposal<br/>manifest patch plus local notes"]
+        Apply{"guidance_mode"}
+        SkillOnly --> Formal
+        Provider --> Formal
+        PreviewResult --> Trace
+        Agents --> Formal
+        Agents --> Trace
+        Trace --> Proposal
+        Proposal --> Apply
+        Apply -->|propose| LocalGuidance
+        Apply -->|apply| Manifest
+    end
+```
+
+The important boundary is that installation does not imply execution. npm/npx installs and refreshes client assets, while the full runtime has to be installed and called explicitly before `doctor`, MCP orchestration, provider setup, or agent execution can run.
+
 ## Codex Usage
 
 After installing from Skillsplace, npm, PyPI, or `qiongli upgrade --target codex`, restart Codex and check:

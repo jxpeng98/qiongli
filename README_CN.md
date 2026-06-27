@@ -91,6 +91,50 @@ qiongli project status --project-dir "$PWD"
 | pipx / pip 完整运行时 | Python CLI 和受管理 full local runtime | Python CLI、setup wizard、完整 plugin install、统一 MCP server、provider setup、doctor、task/orchestrator commands | 本地验证、provider 配置、MCP/orchestrator 工具、package self-update | 需要 Python 3.12+；真实 agent execution 还需要对应本地模型 CLI |
 | Bootstrap partial/full | release script 安装路径 | `partial`：全局 skills/discovery；`full`：partial 加 shell CLI/MCP/doctor 支持 | 不走 package manager、直接从 release script 安装的机器 | `full` 仍要求机器已有 Python 3.12+ |
 
+## 运行架构流程
+
+```mermaid
+flowchart TB
+    Request["学术请求<br/>topic, paper type, constraints"]
+    Entry{"入口"}
+    Client["客户端 skill/plugin<br/>Codex, Claude Code,<br/>Claude Desktop/Web"]
+    Npm["npm/npx 资产管理器<br/>install, update, check,<br/>project guidance"]
+    Full["完整运行时<br/>pipx/pip/bootstrap full"]
+    Project["项目 guidance<br/>.qiongli/guidance_manifest.yaml<br/>或 active_subject: auto"]
+    Contract["任务合同<br/>Task ID, stage, outputs,<br/>evidence rules, gates"]
+    Runtime{"选择能完成任务的<br/>最小运行时"}
+    SkillOnly["Skill/plugin only<br/>draft, review, route"]
+    Provider["Literature provider<br/>MCPB 或内置 Node MCP"]
+    Preview["完整运行时 preview<br/>doctor, task-plan,<br/>不启动 agents 的 task-run"]
+    Execute{"run_agents true?"}
+    Agents["受控 agent run<br/>solo, duo, triad"]
+    Outputs["正式产物<br/>RESEARCH/[topic]/..."]
+    Trace["Trace 和 guidance proposal<br/>.qiongli/trace/"]
+
+    Request --> Entry
+    Entry --> Client
+    Entry --> Npm
+    Entry --> Full
+    Npm --> Project
+    Client --> Contract
+    Full --> Contract
+    Project --> Contract
+    Contract --> Runtime
+    Runtime --> SkillOnly
+    Runtime --> Provider
+    Runtime --> Preview
+    SkillOnly --> Outputs
+    Provider --> Outputs
+    Preview --> Execute
+    Execute -->|no| Trace
+    Execute -->|yes| Agents
+    Agents --> Outputs
+    Agents --> Trace
+    Trace --> Project
+```
+
+npm 路径只负责资产管理和项目 guidance。完整运行时命令是显式、preview-first 的；只有 `run_agents: true` 且运行时检查通过后，才会启动真实 agent execution。
+
 ## 推荐的 CLI Setup Wizard
 
 当你希望 CLI 帮你选择安装和升级路径时，使用完整运行时的 setup wizard：

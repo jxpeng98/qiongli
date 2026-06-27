@@ -89,6 +89,50 @@ For plugin-lite or full runtime paths, use the install guide. It covers Codex an
 | pipx / pip full runtime | Python CLI and managed full local runtime | Python CLI, setup wizard, full plugin install, unified MCP server, provider setup, doctor checks, task/orchestrator commands | Local validation, provider configuration, MCP/orchestrator tools, package self-update | Requires Python 3.12+ and the relevant local CLIs for agent execution |
 | Bootstrap partial/full | Release-script install path | `partial`: global skills/discovery; `full`: partial plus shell CLI/MCP/doctor support | Machines that should install from release scripts instead of package managers | `full` still requires Python 3.12+ already available |
 
+## Runtime Flow
+
+```mermaid
+flowchart TB
+    Request["Academic request<br/>topic, paper type, constraints"]
+    Entry{"Entry point"}
+    Client["Client skill/plugin<br/>Codex, Claude Code,<br/>Claude Desktop/Web"]
+    Npm["npm/npx asset manager<br/>install, update, check,<br/>project guidance"]
+    Full["Full runtime<br/>pipx/pip/bootstrap full"]
+    Project["Project guidance<br/>.qiongli/guidance_manifest.yaml<br/>or active_subject: auto"]
+    Contract["Task contract<br/>Task ID, stage, outputs,<br/>evidence rules, gates"]
+    Runtime{"Smallest runtime<br/>that fits the job"}
+    SkillOnly["Skill/plugin only<br/>draft, review, route"]
+    Provider["Literature provider<br/>MCPB or bundled Node MCP"]
+    Preview["Full runtime preview<br/>doctor, task-plan,<br/>task-run without agents"]
+    Execute{"run_agents true?"}
+    Agents["Controlled agent run<br/>solo, duo, triad"]
+    Outputs["Formal outputs<br/>RESEARCH/[topic]/..."]
+    Trace["Trace and guidance proposal<br/>.qiongli/trace/"]
+
+    Request --> Entry
+    Entry --> Client
+    Entry --> Npm
+    Entry --> Full
+    Npm --> Project
+    Client --> Contract
+    Full --> Contract
+    Project --> Contract
+    Contract --> Runtime
+    Runtime --> SkillOnly
+    Runtime --> Provider
+    Runtime --> Preview
+    SkillOnly --> Outputs
+    Provider --> Outputs
+    Preview --> Execute
+    Execute -->|no| Trace
+    Execute -->|yes| Agents
+    Agents --> Outputs
+    Agents --> Trace
+    Trace --> Project
+```
+
+The npm path stops at asset management and project guidance. Full runtime commands are explicit, preview-first, and start real agent execution only after `run_agents: true` plus passing runtime checks.
+
 ## Recommended CLI Setup Wizard
 
 Use the full runtime wizard when you want the CLI to help choose an install and upgrade path:

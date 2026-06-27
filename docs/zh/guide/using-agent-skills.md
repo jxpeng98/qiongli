@@ -20,6 +20,79 @@ Qiongli 安装的是一套 agent-facing skill 系统，但不同客户端暴露�
 | Claude Code | Plugin UI 或 `/plugin` 命令 | `/paper`、`/lit-review`、`/paper-write`、`/code-build`，或自然语言要求使用 Qiongli | Plugin 会安装 command wrappers 和便携 skill package。 |
 | Shell | `qiongli check` | npm：`qiongli install`、`qiongli update`、`qiongli project ...`；完整运行时：`qiongli doctor`、`qiongli task-run`、`python3 -m bridges.orchestrator ...` | npm/npx 是免 Python 资产管理器。完整运行时命令需要先 `pipx install qiongli`，并使用 Python 3.12+。 |
 
+## 运行架构流程
+
+这张图展示从用户请求到运行时选择、preview、执行和持久产物的完整路径。
+
+```mermaid
+flowchart TB
+    subgraph Entrypoints["入口面"]
+        Request["学术请求<br/>topic, paper type, constraints"]
+        Client["客户端 skill/plugin<br/>Codex, Claude Code,<br/>Claude Desktop/Web"]
+        Npm["npm/npx 资产管理器<br/>install, setup, update,<br/>refresh, upgrade, check"]
+        RuntimeCli["完整运行时 CLI/MCP<br/>pipx, pip, bootstrap full"]
+        Request --> Client
+        Request --> Npm
+        Request --> RuntimeCli
+    end
+
+    subgraph ProjectState["项目使用状态"]
+        Manifest{"项目 manifest 存在?<br/>.qiongli/guidance_manifest.yaml"}
+        Auto["隐式项目状态<br/>active_subject: auto"]
+        Configured["已配置项目状态<br/>subject, venue profiles,<br/>method lenses, strictness"]
+        LocalGuidance["人工 guidance<br/>.qiongli/local_guidance.md<br/>.qiongli/guidance.d/*.md"]
+        Npm --> Manifest
+        RuntimeCli --> Manifest
+        Manifest -->|no| Auto
+        Manifest -->|yes| Configured
+        Auto --> LocalGuidance
+        Configured --> LocalGuidance
+    end
+
+    subgraph Routing["任务路由"]
+        Contract["任务合同<br/>Task ID, stage, outputs,<br/>evidence rules, quality gates"]
+        Subject["解析 subject context<br/>explicit domain > project state<br/>> temporary inference > core"]
+        Runtime{"选择能完成任务的<br/>最小运行时"}
+        Client --> Contract
+        RuntimeCli --> Contract
+        LocalGuidance --> Subject
+        Contract --> Subject
+        Subject --> Runtime
+    end
+
+    subgraph RuntimeChoice["运行时选择"]
+        SkillOnly["Skill/plugin only<br/>读取 guidance,<br/>draft 或 review artifacts"]
+        Provider["Literature provider<br/>MCPB 或内置 Node MCP<br/>status, search, evidence export"]
+        Preview["完整运行时 preview<br/>doctor, task-plan,<br/>不启动 agents 的 task-run"]
+        Execute{"run_agents == true<br/>且 doctor 通过?"}
+        Agents["受控 agent run<br/>controller, primary,<br/>reviewer, verifier"]
+        Runtime --> SkillOnly
+        Runtime --> Provider
+        Runtime --> Preview
+        Preview --> Execute
+        Execute -->|no| PreviewResult["Preview result<br/>safe plan 和 runtime notes"]
+        Execute -->|yes| Agents
+    end
+
+    subgraph Outputs["产物与学习回路"]
+        Formal["正式产物<br/>RESEARCH/[topic]/..."]
+        Trace["Trace bundle<br/>.qiongli/trace/runs/&lt;run_id&gt;/"]
+        Proposal["Guidance proposal<br/>manifest patch 和 local notes"]
+        Apply{"guidance_mode"}
+        SkillOnly --> Formal
+        Provider --> Formal
+        PreviewResult --> Trace
+        Agents --> Formal
+        Agents --> Trace
+        Trace --> Proposal
+        Proposal --> Apply
+        Apply -->|propose| LocalGuidance
+        Apply -->|apply| Manifest
+    end
+```
+
+关键边界是：安装不等于执行。npm/npx 只安装和刷新客户端资产；只有显式安装并调用完整运行时后，`doctor`、MCP 编排、provider setup 或 agent execution 才会运行。
+
 ## Codex 用法
 
 通过 Skillsplace、npm、PyPI 或 `qiongli upgrade --target codex` 安装后，重启 Codex，然后检查：
