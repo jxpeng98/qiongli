@@ -4,16 +4,21 @@ import json
 import os
 import re
 import uuid
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 from .project_inference import infer_project_manifest_suggestion
 from .project_manifest import (
+    ProjectManifestError,
     init_project_manifest,
     load_project_manifest,
     manifest_to_guidance_section,
+    update_project_manifest,
 )
 
 
@@ -23,6 +28,13 @@ GUIDANCE_DIR_REL = Path(".qiongli") / "guidance.d"
 GUIDANCE_MANIFEST_REL = Path(".qiongli") / "guidance_manifest.yaml"
 TRACE_REL = Path(".qiongli") / "trace"
 TRACE_INDEX_REL = TRACE_REL / "index.jsonl"
+MANIFEST_PROPOSAL_FIELDS = {
+    "active_subject",
+    "secondary_subjects",
+    "venue_profiles",
+    "method_lenses",
+    "strictness",
+}
 
 
 @dataclass(frozen=True)
@@ -296,11 +308,13 @@ def apply_guidance_proposal(project_root: Path, proposal: Path) -> dict[str, Any
 
     proposal_text = proposal_path.read_text(encoding="utf-8")
     proposed_changes = _extract_proposed_changes(proposal_text)
+    manifest_update = _apply_manifest_proposal(paths.project_root, proposal_text)
     if not proposed_changes:
         return {
-            "applied": False,
+            "applied": bool(manifest_update.get("applied")),
             "reason": "proposal contains no proposed changes",
             "proposal": str(proposal_path),
+            "manifest_update": manifest_update,
         }
 
     guidance_text = paths.project_guidance.read_text(encoding="utf-8")
@@ -325,6 +339,7 @@ def apply_guidance_proposal(project_root: Path, proposal: Path) -> dict[str, Any
         "proposal": _rel(paths.project_root, proposal_path),
         "project_guidance": _rel(paths.project_root, paths.project_guidance),
         "run_id": run_id,
+        "manifest_update": manifest_update,
     }
 
 
@@ -583,6 +598,87 @@ def _extract_proposed_changes(proposal_text: str) -> str:
     if not match:
         return ""
     return match.group("body").strip()
+
+
+def _apply_manifest_proposal(project_root: Path, proposal_text: str) -> dict[str, Any]:
+    current = load_project_manifest(project_root)
+    path = _rel(current.project_root, current.path)
+    yaml_text = _extract_manifest_proposal_yaml(proposal_text)
+    if yaml_text is None:
+        return {
+            "applied": False,
+            "reason": "no structured manifest change proposed",
+            "path": path,
+            "manifest": current.to_packet(),
+        }
+
+    try:
+        loaded = yaml.safe_load(yaml_text)
+    except yaml.YAMLError as exc:
+        return {
+            "applied": False,
+            "reason": f"manifest_update error: malformed YAML: {exc}",
+            "path": path,
+            "manifest": current.to_packet(),
+        }
+    if not isinstance(loaded, Mapping):
+        return {
+            "applied": False,
+            "reason": "manifest_update error: YAML payload must be a mapping",
+            "path": path,
+            "manifest": current.to_packet(),
+        }
+
+    fields = {
+        str(key): value
+        for key, value in loaded.items()
+        if str(key) in MANIFEST_PROPOSAL_FIELDS
+    }
+    if not fields:
+        return {
+            "applied": False,
+            "reason": "no supported manifest fields proposed",
+            "path": path,
+            "manifest": current.to_packet(),
+        }
+
+    try:
+        updated = update_project_manifest(current.project_root, **fields)
+    except ProjectManifestError as exc:
+        return {
+            "applied": False,
+            "reason": f"manifest_update error: {exc}",
+            "path": path,
+            "fields": sorted(fields),
+            "manifest": current.to_packet(),
+        }
+    return {
+        "applied": True,
+        "path": _rel(updated.project_root, updated.path),
+        "fields": sorted(fields),
+        "manifest": updated.to_packet(),
+    }
+
+
+def _extract_manifest_proposal_yaml(proposal_text: str) -> str | None:
+    match = re.search(
+        r"^## Proposed Manifest Changes\s*\n(?P<body>.*?)(?=^## |\Z)",
+        proposal_text,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    if not match:
+        return None
+    body = match.group("body")
+    if re.search(r"No structured manifest change proposed\.", body, flags=re.IGNORECASE):
+        return None
+    code_match = re.match(
+        r"\s*```ya?ml[ \t]*\n(?P<yaml>.*?)(?:\n```[ \t]*)(?:\s*)\Z",
+        body,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if not code_match:
+        return None
+    return code_match.group("yaml")
 
 
 def _run_id_from_proposal_path(project_root: Path, proposal_path: Path) -> str:

@@ -17,6 +17,7 @@ from bridges.guidance_runtime import (
     lint_project_guidance,
     write_guidance_trace,
 )
+from bridges.project_manifest import load_project_manifest
 
 
 class GuidanceRuntimeTests(unittest.TestCase):
@@ -266,6 +267,125 @@ class GuidanceRuntimeTests(unittest.TestCase):
             self.assertTrue(result["applied"])
             self.assertIn("Prefer project-local trace bundles", text)
             self.assertIn("run-1", text)
+
+    def test_apply_guidance_proposal_updates_structured_manifest_and_appends_guidance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            init_project_guidance(root)
+            proposal = root / ".qiongli" / "trace" / "runs" / "run-manifest" / "guidance_update_proposal.md"
+            proposal.parent.mkdir(parents=True)
+            proposal.write_text(
+                "\n".join(
+                    [
+                        "# Guidance Update Proposal",
+                        "",
+                        "## Proposed Changes",
+                        "",
+                        "- Prefer event-study language for finance papers.",
+                        "",
+                        "## Proposed Manifest Changes",
+                        "",
+                        "```yaml",
+                        "active_subject: finance",
+                        "method_lenses:",
+                        "  - event-study",
+                        "strictness: high",
+                        "unsupported_future_key: ignored",
+                        "```",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = apply_guidance_proposal(root, proposal)
+
+            manifest = load_project_manifest(root).to_packet()
+            guidance_text = (root / ".qiongli" / "local_guidance.md").read_text(encoding="utf-8")
+            self.assertTrue(result["applied"])
+            self.assertEqual(result["manifest_update"]["applied"], True)
+            self.assertEqual(result["manifest_update"]["path"], ".qiongli/guidance_manifest.yaml")
+            self.assertEqual(
+                result["manifest_update"]["fields"],
+                ["active_subject", "method_lenses", "strictness"],
+            )
+            self.assertEqual(manifest["manifest"]["active_subject"], "finance")
+            self.assertEqual(manifest["manifest"]["method_lenses"], ["event-study"])
+            self.assertEqual(manifest["manifest"]["strictness"], "high")
+            self.assertIn("Prefer event-study language for finance papers", guidance_text)
+
+    def test_apply_guidance_proposal_no_structured_manifest_change_keeps_manifest_auto(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            init_project_guidance(root)
+            proposal = root / ".qiongli" / "trace" / "runs" / "run-no-manifest" / "guidance_update_proposal.md"
+            proposal.parent.mkdir(parents=True)
+            proposal.write_text(
+                "\n".join(
+                    [
+                        "# Guidance Update Proposal",
+                        "",
+                        "## Proposed Changes",
+                        "",
+                        "- Keep future runs aware that no structured inference was strong enough.",
+                        "",
+                        "## Proposed Manifest Changes",
+                        "",
+                        "No structured manifest change proposed.",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = apply_guidance_proposal(root, proposal)
+
+            manifest = load_project_manifest(root).to_packet()
+            guidance_text = (root / ".qiongli" / "local_guidance.md").read_text(encoding="utf-8")
+            self.assertTrue(result["applied"])
+            self.assertEqual(result["manifest_update"]["applied"], False)
+            self.assertEqual(
+                result["manifest_update"]["reason"],
+                "no structured manifest change proposed",
+            )
+            self.assertEqual(manifest["manifest"]["active_subject"], "auto")
+            self.assertIn("no structured inference was strong enough", guidance_text)
+
+    def test_apply_guidance_proposal_malformed_manifest_yaml_reports_error_and_appends_guidance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            init_project_guidance(root)
+            proposal = root / ".qiongli" / "trace" / "runs" / "run-bad-yaml" / "guidance_update_proposal.md"
+            proposal.parent.mkdir(parents=True)
+            proposal.write_text(
+                "\n".join(
+                    [
+                        "# Guidance Update Proposal",
+                        "",
+                        "## Proposed Changes",
+                        "",
+                        "- Preserve valid local guidance even when manifest YAML is invalid.",
+                        "",
+                        "## Proposed Manifest Changes",
+                        "",
+                        "```yaml",
+                        "active_subject: [finance",
+                        "```",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = apply_guidance_proposal(root, proposal)
+
+            manifest = load_project_manifest(root).to_packet()
+            guidance_text = (root / ".qiongli" / "local_guidance.md").read_text(encoding="utf-8")
+            self.assertTrue(result["applied"])
+            self.assertEqual(result["manifest_update"]["applied"], False)
+            self.assertIn("malformed YAML", result["manifest_update"]["reason"])
+            self.assertEqual(manifest["manifest"]["active_subject"], "auto")
+            self.assertIn("manifest YAML is invalid", guidance_text)
 
     def test_guidance_trace_proposal_records_target_and_conflict_check(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
