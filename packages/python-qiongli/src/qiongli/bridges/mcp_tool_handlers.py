@@ -577,13 +577,18 @@ def _task_run_preview(
     runtime_plan = plan_data.get("runtime_plan", {})
     effective_runtime_plan = dict(runtime_plan) if isinstance(runtime_plan, dict) else {}
     effective_runtime_plan.update(orchestrator._controller_runtime_overrides(controller_metadata))
-    project_subject = _task_run_preview_project_subject(task_run_kwargs)
+    project_manifest_state = _task_run_preview_project_manifest_state(task_run_kwargs)
+    project_subject = _task_run_preview_project_subject(
+        task_run_kwargs,
+        manifest_state=project_manifest_state,
+    )
     effective_domain = _task_run_preview_effective_domain(task_run_kwargs, project_subject)
     return {
         "will_launch_agents": False,
         "enable_with": {"run_agents": True},
         "controller_metadata": controller_metadata,
         "effective_runtime_plan": effective_runtime_plan,
+        "project_manifest": project_manifest_state.to_packet(),
         "project_subject": project_subject,
         "effective_domain": effective_domain,
         "guidance_bootstrap": guidance_bootstrap_status(
@@ -623,14 +628,22 @@ def _task_run_preview_domain_fields(
     return fields
 
 
-def _task_run_preview_project_subject(task_run_kwargs: dict[str, Any]) -> dict[str, Any]:
+def _task_run_preview_project_manifest_state(task_run_kwargs: dict[str, Any]) -> Any:
     cwd = task_run_kwargs["cwd"]
     guidance_mode = str(task_run_kwargs.get("guidance_mode", "propose") or "propose")
-    manifest_state = (
+    return (
         implicit_project_manifest_state(cwd)
         if guidance_mode == "off"
         else load_project_manifest(cwd)
     )
+
+
+def _task_run_preview_project_subject(
+    task_run_kwargs: dict[str, Any],
+    *,
+    manifest_state: Any | None = None,
+) -> dict[str, Any]:
+    manifest_state = manifest_state or _task_run_preview_project_manifest_state(task_run_kwargs)
     return resolve_project_subject(
         manifest_state,
         requested_domain=task_run_kwargs.get("domain"),

@@ -792,6 +792,124 @@ class MCPToolHandlerTests(unittest.TestCase):
         self.assertIn("domain_profile_status", task_packet)
         self.assertIn("domain_profile_display_name", task_packet)
 
+    def test_task_run_preview_reports_project_manifest_state(self) -> None:
+        class StubResult:
+            mode = "task-plan"
+            confidence = 0.8
+            merged_analysis = "preview"
+            recommendations: list[str] = []
+            data = {
+                "task_id": "F3",
+                "paper_type": "empirical",
+                "topic": "my-topic",
+                "artifact_root": "RESEARCH/[topic]/",
+                "runtime_plan": {
+                    "primary_agent": "codex",
+                    "review_agent": "claude",
+                    "fallback_agent": "claude",
+                },
+            }
+
+        class StubOrchestrator:
+            def task_plan(self, **_kwargs: object) -> StubResult:
+                return StubResult()
+
+            def _build_controller_metadata(self, **_kwargs: object) -> dict[str, str]:
+                return {
+                    "execution_mode": "duo",
+                    "controller": "codex",
+                    "primary_agent": "",
+                    "review_agent": "",
+                    "verifier_agent": "",
+                    "solo_role_gates": "standard",
+                }
+
+            def _controller_runtime_overrides(self, _metadata: dict[str, str]) -> dict[str, str]:
+                return {}
+
+        stub = StubOrchestrator()
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / ".qiongli").mkdir()
+            (root / ".qiongli" / "guidance_manifest.yaml").write_text(
+                "active_subject: finance\n",
+                encoding="utf-8",
+            )
+            with mock.patch.object(tool_handlers, "ModelOrchestrator", return_value=stub):
+                result = call_qiongli_tool(
+                    "qiongli_task_run",
+                    {
+                        "task_id": "F3",
+                        "paper_type": "empirical",
+                        "topic": "my-topic",
+                        "cwd": str(root),
+                    },
+                )
+
+        preview = result["structuredContent"]["data"]["task_run_preview"]
+        self.assertEqual(preview["project_manifest"]["manifest"]["active_subject"], "finance")
+
+    def test_task_run_preview_guidance_off_uses_implicit_project_manifest(self) -> None:
+        class StubResult:
+            mode = "task-plan"
+            confidence = 0.8
+            merged_analysis = "preview"
+            recommendations: list[str] = []
+            data = {
+                "task_id": "F3",
+                "paper_type": "empirical",
+                "topic": "my-topic",
+                "artifact_root": "RESEARCH/[topic]/",
+                "runtime_plan": {
+                    "primary_agent": "codex",
+                    "review_agent": "claude",
+                    "fallback_agent": "claude",
+                },
+            }
+
+        class StubOrchestrator:
+            def task_plan(self, **_kwargs: object) -> StubResult:
+                return StubResult()
+
+            def _build_controller_metadata(self, **_kwargs: object) -> dict[str, str]:
+                return {
+                    "execution_mode": "duo",
+                    "controller": "codex",
+                    "primary_agent": "",
+                    "review_agent": "",
+                    "verifier_agent": "",
+                    "solo_role_gates": "standard",
+                }
+
+            def _controller_runtime_overrides(self, _metadata: dict[str, str]) -> dict[str, str]:
+                return {}
+
+        stub = StubOrchestrator()
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / ".qiongli").mkdir()
+            (root / ".qiongli" / "guidance_manifest.yaml").write_text(
+                "active_subject: [finance\n",
+                encoding="utf-8",
+            )
+            with mock.patch.object(tool_handlers, "ModelOrchestrator", return_value=stub):
+                result = call_qiongli_tool(
+                    "qiongli_task_run",
+                    {
+                        "task_id": "F3",
+                        "paper_type": "empirical",
+                        "topic": "my-topic",
+                        "cwd": str(root),
+                        "guidance_mode": "off",
+                    },
+                )
+
+        preview = result["structuredContent"]["data"]["task_run_preview"]
+        self.assertEqual(preview["project_subject"]["effective_subject"], "auto")
+        self.assertEqual(preview["project_subject"]["domain"], "auto")
+        self.assertFalse(preview["project_manifest"]["exists"])
+        self.assertEqual(preview["project_manifest"]["manifest"]["active_subject"], "auto")
+
     def test_task_run_preview_uses_project_manifest_subject_for_auto_domain(self) -> None:
         class StubResult:
             mode = "task-plan"
