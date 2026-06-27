@@ -57,6 +57,7 @@ from .project_manifest import (
     load_project_manifest,
     update_project_manifest,
 )
+from .subject_runtime import resolve_project_subject
 from .boundary_questions import (
     BOUNDARY_ARTIFACT,
     build_boundary_question_plan,
@@ -4783,6 +4784,14 @@ Return sections:
 Domain profile guidance:
 {self._format_domain_context(task_packet)}
 """
+        project_subject = task_packet.get("project_subject", {})
+        project_subject_section = ""
+        if isinstance(project_subject, dict) and project_subject:
+            project_subject_section = (
+                "\nProject subject context:\n"
+                + str(project_subject.get("summary", "")).strip()
+                + "\n"
+            )
         code_lane_rules = self._build_code_lane_rules(task_packet, "draft")
         code_lane_section = ""
         if code_lane_rules:
@@ -4932,7 +4941,7 @@ MCP evidence snapshot:
 
 Required skill cards:
 {self._format_skill_context(skill_cards)}
-{domain_section}{code_lane_section}{code_lane_template_section}{targeted_section}{academic_context_section}{self_critique_section}{boundary_section}{writing_harness_section}{local_guidance_section}
+{domain_section}{code_lane_section}{code_lane_template_section}{targeted_section}{academic_context_section}{self_critique_section}{boundary_section}{writing_harness_section}{project_subject_section}{local_guidance_section}
 
 Additional context:
 {extra_context or "No additional context."}
@@ -5034,6 +5043,14 @@ Self-critique loop context:
 Domain profile guidance:
 {self._format_domain_context(task_packet)}
 """
+        project_subject = task_packet.get("project_subject", {})
+        project_subject_section = ""
+        if isinstance(project_subject, dict) and project_subject:
+            project_subject_section = (
+                "\nProject subject context:\n"
+                + str(project_subject.get("summary", "")).strip()
+                + "\n"
+            )
         code_lane_rules = self._build_code_lane_rules(task_packet, "review")
         code_lane_section = ""
         if code_lane_rules:
@@ -5104,7 +5121,7 @@ MCP evidence snapshot:
 
 Required skill cards:
 {self._format_skill_context(skill_cards)}
-{domain_section}{code_lane_section}{code_lane_review_section}{targeted_section}{self_critique_section}{boundary_section}{writing_harness_section}{local_guidance_section}
+{domain_section}{code_lane_section}{code_lane_review_section}{targeted_section}{self_critique_section}{boundary_section}{writing_harness_section}{project_subject_section}{local_guidance_section}
 
 Review checklist:
 1. Output path coverage against required_outputs.
@@ -6132,7 +6149,6 @@ Return sections:
             routing_notes.append(
                 "Validation warning: --skip-validation disabled strict MCP/skill checks and skipped the artifact validator gate for this task-run."
             )
-        domain_context = self._load_domain_profile_context(domain)
 
         try:
             agent_plan = self._load_task_agent_plan(normalized_task)
@@ -6266,7 +6282,6 @@ Return sections:
             academic_context_update=academic_context_update,
             boundary_review=boundary_review,
         )
-        packet.update(self._build_domain_packet_fields(domain_context))
         if plan_result.data:
             packet["task_plan"] = dict(plan_result.data)
         else:
@@ -6280,7 +6295,22 @@ Return sections:
             mode=guidance_mode,
             run_id=uuid.uuid4().hex,
         )
+        manifest_state = load_project_manifest(cwd)
+        project_subject = resolve_project_subject(manifest_state, requested_domain=domain)
+        effective_domain = (
+            project_subject.domain
+            if str(domain or "auto").strip().lower() == "auto"
+            else domain
+        )
+        domain_context = self._load_domain_profile_context(effective_domain)
         packet["local_guidance"] = guidance_state.to_packet()
+        packet.update(self._build_domain_packet_fields(domain_context))
+        packet["project_subject"] = project_subject.to_packet()
+        packet["domain"] = (
+            str(domain_context.get("domain", effective_domain or "auto")).strip()
+            or "auto"
+        )
+        routing_notes.append(project_subject.summary)
         for warning in guidance_state.warnings or []:
             routing_notes.append(f"Local guidance warning: {warning}")
         functional_handoff_trace = [

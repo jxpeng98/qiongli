@@ -534,6 +534,59 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         self.assertTrue(any("(stage: draft)" in directive for directive in directives))
         self.assertTrue(any("(stage: review)" in directive for directive in directives))
 
+    def test_task_run_uses_project_manifest_subject_when_domain_is_auto(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / ".qiongli").mkdir()
+            (root / ".qiongli" / "guidance_manifest.yaml").write_text(
+                "active_subject: finance\nmethod_lenses:\n  - event-study\nstrictness: high\n",
+                encoding="utf-8",
+            )
+            orchestrator = MockOrchestrator()
+
+            result = orchestrator.task_run(
+                task_id="F3",
+                paper_type="empirical",
+                topic="earnings-announcement",
+                cwd=root,
+                guidance_mode="read",
+                domain="auto",
+                skip_validation=True,
+            )
+
+            packet = result.data["task_packet"]
+            self.assertEqual(packet["project_subject"]["effective_subject"], "finance")
+            self.assertEqual(packet["domain"], "finance")
+            self.assertIn("event-study", packet["project_subject"]["method_lenses"])
+            draft_prompt = next(call["prompt"] for call in orchestrator.runtime_calls if call["agent"])
+            self.assertIn("Project subject context", draft_prompt)
+            self.assertIn("finance", draft_prompt)
+
+    def test_task_run_domain_argument_overrides_project_subject_for_current_run(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / ".qiongli").mkdir()
+            (root / ".qiongli" / "guidance_manifest.yaml").write_text(
+                "active_subject: finance\n",
+                encoding="utf-8",
+            )
+            orchestrator = MockOrchestrator()
+
+            result = orchestrator.task_run(
+                task_id="F3",
+                paper_type="empirical",
+                topic="minimum-wage",
+                cwd=root,
+                guidance_mode="read",
+                domain="economics",
+                skip_validation=True,
+            )
+
+            packet = result.data["task_packet"]
+            self.assertEqual(packet["project_subject"]["effective_subject"], "finance")
+            self.assertEqual(packet["domain"], "economics")
+            self.assertEqual(packet["project_subject"]["domain_source"], "task-argument")
+
     def test_task_run_routes_previous_gemini_review_lanes_to_antigravity(self) -> None:
         orchestrator = MockOrchestrator()
         result = orchestrator.task_run(
