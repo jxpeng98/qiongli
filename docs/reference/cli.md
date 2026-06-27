@@ -243,12 +243,6 @@ Examples:
 
 ```bash
 qiongli install --target all
-qiongli install --subject economics --target all
-qiongli install --subject accounting --target all
-qiongli install --subject political-economy --target all
-qiongli install --subject geoeconomics --target all
-qiongli install --subject economics-accounting --target all
-qiongli install --subject economics --coverage focused --target all
 qiongli install --surface skills --profile partial --target all
 qiongli install --profile full --target codex --surface plugin
 qiongli install --profile full --target all --surface plugin
@@ -256,7 +250,9 @@ qiongli install --profile full --target all --surface both
 qiongli install --parts mcp --target hermes
 ```
 
-Subject packages are specialized installs, not reduced-quality cuts. Default install is `core/complete`. `--subject economics`, `--subject business`, `--subject finance`, `--subject political-economy`, and `--subject geoeconomics` mean complete specialized installs, not reduced packages. `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. Focused coverage selects the subject profile set and active effective skills for deliberate slim installs and Desktop/Web ZIPs. Current official subjects are `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and the named composite `economics-accounting`; `political-economy` and `geoeconomics` are independent subject choices, not a composite. Official composites are not arbitrary comma-separated stacking. Public Desktop ZIP subjects are `core`, `economics`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting`, with no standalone accounting Desktop ZIP in this phase. Switch subjects or coverage by rerunning `install` or `upgrade` with new flags.
+For normal CLI/local plugin use, install Qiongli once and set subject behavior per project with `qiongli project ...`. Subject install flags are retained for legacy and advanced compatibility cases: focused Claude Desktop/Web ZIPs, deliberately narrow packages, release payloads, and install-surface testing.
+
+Subject packages are specialized installs, not reduced-quality cuts. Default install is `core/complete`. `--subject economics`, `--subject business`, `--subject finance`, `--subject political-economy`, and `--subject geoeconomics` mean complete specialized installs, not reduced packages. `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. Focused coverage selects the subject profile set and active effective skills for deliberate slim installs and Desktop/Web ZIPs. Current official subjects are `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and the named composite `economics-accounting`; `political-economy` and `geoeconomics` are independent subject choices, not a composite. Official composites are not arbitrary comma-separated stacking. Public Desktop ZIP subjects are `core`, `economics`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting`, with no standalone accounting Desktop ZIP in this phase. Change ordinary project subject behavior with `qiongli project set-subject`; switch installed subject or coverage only when you are intentionally refreshing a specialized package.
 
 `qiongli install` defaults to `--profile full --surface plugin` from v1.9.0 onward. For Codex, the CLI writes a personal marketplace entry, places the plugin payload at `~/plugins/qiongli`, writes plugin `.mcp.json` that launches `qiongli mcp serve --transport stdio`, and runs `codex plugin add qiongli@personal` when the Codex CLI is available. For Claude Code, it writes a local marketplace under `~/.qiongli/plugins/claude-code`, places the plugin payload at `plugins/qiongli`, and runs `claude plugin marketplace add ...` plus `claude plugin install qiongli@qiongli-local --scope user` when the Claude CLI is available. For Antigravity, it writes a root `plugin.json` plugin bundle under `~/.qiongli/plugins/antigravity/qiongli`, writes the full MCP server config to the plugin root `mcp_config.json`, and runs `antigravity plugin install <path>` when available. With `--target all`, Codex/Claude Code/Antigravity use local plugins while Hermes receives managed full MCP client config. Marketplace-installed plugins stay on the lite no-Python path with the bundled Node literature provider. Use `--surface skills --profile partial` for the old skills-only layout.
 
@@ -302,7 +298,7 @@ Notes:
 - Migration cleanup runs only after a successful effective `--surface plugin` upgrade when the selected parts are omitted or include `plugin`. Failed installs never remove old assets.
 - Migration cleanup removes legacy global `qiongli-workflow` skill directories, Claude Code workflow discovery links, and standalone Codex/Claude/Antigravity MCP config. It leaves Hermes MCP config in place because Hermes still uses client-level managed MCP config.
 - Use `qiongli init --project-dir .` for project bootstrap, or `qiongli upgrade --parts project ...` when you explicitly want project files rewritten.
-- `--subject` defaults to `core` and `--coverage` defaults to `complete`; use `--subject economics` for full Qiongli plus economics specialization, `--subject accounting` for full Qiongli plus accounting specialization, or add `--coverage focused` for the slim selected package.
+- `--subject` defaults to `core` and `--coverage` defaults to `complete`; use subject install flags for specialized package refreshes, focused Desktop/Web ZIP payloads, or compatibility testing. For ordinary per-project subject selection, use `qiongli project set-subject`.
 - Example: `qiongli upgrade --subject accounting --target all`.
 - Example: `qiongli upgrade --target all` refreshes the full local plugin surface without switching to the marketplace lite plugin.
 - Legacy skills-only upgrades create workflow discovery symlinks under `~/.claude/commands/*.md` for direct `/paper`, `/lit-review`, etc. invocation in Claude Code.
@@ -494,6 +490,23 @@ Available modes:
   ```bash
   python3 -m bridges.orchestrator task-plan --task-id F3 --paper-type empirical --topic your-topic --cwd .
   ```
+
+### Project subject guidance: `qiongli project`
+
+Use `qiongli project` to keep subject, venue, method-lens, and strictness context in the project instead of reinstalling Qiongli for every paper.
+
+```bash
+qiongli project init --project-dir .
+qiongli project set-subject finance --project-dir .
+qiongli project set-venue journal-of-finance --project-dir .
+qiongli project set-method-lens event-study --project-dir .
+qiongli project status --project-dir .
+```
+
+These commands read and write `.qiongli/guidance_manifest.yaml`. The manifest can include `active_subject`, `secondary_subjects`, `venue_profiles`, `method_lenses`, and `strictness`. If the file is missing, the effective default is `active_subject: auto`: Qiongli remains usable without setup, uses core guidance, and may infer temporary subject or method lenses from the current task.
+
+Qiongli does not silently persist a subject switch. Persistent project changes come only from explicit `qiongli project ...` commands or from accepted guidance proposals. Task runs may propose manifest or local-guidance updates for audit, but unaccepted proposals do not change project-local state.
+
 - `guidance`: Manage project-local guidance and trace bundles
   ```bash
   qiongli guidance init --project-dir .

@@ -233,12 +233,6 @@ qiongli install \
 
 ```bash
 qiongli install --target all
-qiongli install --subject economics --target all
-qiongli install --subject accounting --target all
-qiongli install --subject political-economy --target all
-qiongli install --subject geoeconomics --target all
-qiongli install --subject economics-accounting --target all
-qiongli install --subject economics --coverage focused --target all
 qiongli install --surface skills --profile partial --target all
 qiongli install --profile full --target codex --surface plugin
 qiongli install --profile full --target all --surface plugin
@@ -246,7 +240,9 @@ qiongli install --profile full --target all --surface both
 qiongli install --parts mcp --target hermes
 ```
 
-Subject package 是专精安装包，不是降质删减版。默认安装是 `core/complete`。`--subject economics`、`--subject business`、`--subject finance`、`--subject political-economy` 和 `--subject geoeconomics` 表示 complete 专精安装，不是缩水包；`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。`focused` coverage 只选择该 subject 的 profiles 和 active effective skills，用于有意选择的精简安装和 Desktop/Web ZIP。当前官方 subjects 是 `core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics` 和命名 composite subject `economics-accounting`；`political-economy` 和 `geoeconomics` 是两个独立 subject 选择，不是一个 composite。官方 composite subjects 不是任意逗号分隔叠加。本阶段公开 Desktop ZIP subjects 是 `core`、`economics`、`business`、`finance`、`political-economy`、`geoeconomics` 和 `economics-accounting`，还没有 standalone accounting Desktop ZIP。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新参数。
+日常 CLI / local plugin 使用中，先安装一次 Qiongli，再用 `qiongli project ...` 在每个项目里设置 subject 行为。`--subject` 安装参数保留给 legacy 和 advanced compatibility 场景：focused Claude Desktop/Web ZIP、有意选择的窄包、release payload，以及安装面兼容性测试。
+
+Subject package 是专精安装包，不是降质删减版。默认安装是 `core/complete`。`--subject economics`、`--subject business`、`--subject finance`、`--subject political-economy` 和 `--subject geoeconomics` 表示 complete 专精安装，不是缩水包；`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。`focused` coverage 只选择该 subject 的 profiles 和 active effective skills，用于有意选择的精简安装和 Desktop/Web ZIP。当前官方 subjects 是 `core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics` 和命名 composite subject `economics-accounting`；`political-economy` 和 `geoeconomics` 是两个独立 subject 选择，不是一个 composite。官方 composite subjects 不是任意逗号分隔叠加。本阶段公开 Desktop ZIP subjects 是 `core`、`economics`、`business`、`finance`、`political-economy`、`geoeconomics` 和 `economics-accounting`，还没有 standalone accounting Desktop ZIP。普通项目的 subject 行为用 `qiongli project set-subject` 修改；只有在明确刷新专精安装包时，才通过 `install` 或 `upgrade` 切换 installed subject 或 coverage。
 
 从 v1.9.0 开始，`qiongli install` 默认等价于 `--profile full --surface plugin`。Codex 会写入 personal marketplace entry，把 plugin payload 放到 `~/plugins/qiongli`，写入启动 `qiongli mcp serve --transport stdio` 的 plugin `.mcp.json`，并在 Codex CLI 可用时执行 `codex plugin add qiongli@personal`。Claude Code 会在 `~/.qiongli/plugins/claude-code` 写入本地 marketplace，把 plugin payload 放到 `plugins/qiongli`，并在 Claude CLI 可用时执行 `claude plugin marketplace add ...` 和 `claude plugin install qiongli@qiongli-local --scope user`。Antigravity 会在 `~/.qiongli/plugins/antigravity/qiongli` 写入带 root `plugin.json` 的 plugin bundle，并在 plugin 根目录写入 full MCP server 配置 `mcp_config.json`，在 CLI 可用时执行 `antigravity plugin install <path>`。`--target all` 会让 Codex / Claude Code / Antigravity 使用本地 plugin，同时给 Hermes 写入受管理的 full MCP client 配置。Marketplace 安装的 plugin 仍然保持 lite/no-Python 路径，使用内置 Node literature provider。需要旧版 skills-only 布局时，使用 `--surface skills --profile partial`。
 
@@ -292,7 +288,7 @@ qiongli upgrade \
 - migration cleanup 只会在 effective `--surface plugin` 升级成功后运行，并且 selected parts 为空或包含 `plugin`。安装失败时绝不会删除旧资产。
 - migration cleanup 会删除旧版全局 `qiongli-workflow` skill 目录、Claude Code workflow discovery links，以及 Codex/Claude/Antigravity 独立 MCP config。Hermes MCP config 会保留，因为 Hermes 仍然使用 client-level 受管理 MCP config。
 - 项目接线建议走 `qiongli init --project-dir .`；如果确实要在升级时重写项目文件，再显式加 `--parts project`。
-- `--subject` 默认是 `core`，`--coverage` 默认是 `complete`；使用 `--subject economics` 会安装全量 Qiongli 加 economics 专精，使用 `--subject accounting` 会安装全量 Qiongli 加 accounting 专精，显式加 `--coverage focused` 时才安装精简 selected 包。
+- `--subject` 默认是 `core`，`--coverage` 默认是 `complete`；subject 安装参数主要用于刷新专精安装包、focused Desktop/Web ZIP payload 或兼容性测试。普通项目级 subject 选择请使用 `qiongli project set-subject`。
 - 示例：`qiongli upgrade --subject accounting --target all`。
 - 示例：`qiongli upgrade --target all` 会刷新本地 full plugin surface，不会切换到 marketplace lite plugin。
 - 只有 legacy skills-only 升级路径会创建 Claude Code 工作流发现 symlink：`~/.claude/commands/*.md`，可直接使用 `/paper`、`/lit-review` 等 slash 命令。
@@ -482,6 +478,23 @@ mode 列表：
   ```bash
   python3 -m bridges.orchestrator task-plan --task-id F3 --paper-type empirical --topic your-topic --cwd .
   ```
+
+### 项目级 subject guidance：`qiongli project`
+
+用 `qiongli project` 把 subject、venue、method lens 和 strictness 上下文保存在项目里，而不是为了每篇论文重新安装 Qiongli。
+
+```bash
+qiongli project init --project-dir .
+qiongli project set-subject finance --project-dir .
+qiongli project set-venue journal-of-finance --project-dir .
+qiongli project set-method-lens event-study --project-dir .
+qiongli project status --project-dir .
+```
+
+这些命令读取和写入 `.qiongli/guidance_manifest.yaml`。manifest 可以包含 `active_subject`、`secondary_subjects`、`venue_profiles`、`method_lenses` 和 `strictness`。如果文件不存在，有效默认值是 `active_subject: auto`：Qiongli 不需要 setup 也能运行，会使用 core guidance，并且可以根据当前任务临时推断 subject 或 method lens。
+
+Qiongli 不会静默持久切换 subject。持久的项目变更只来自显式的 `qiongli project ...` 命令，或已接受的 guidance proposal。Task run 可以生成 manifest 或 local guidance 更新 proposal 供审计；未接受的 proposal 不会改变项目本地状态。
+
 - `guidance`：管理项目本地 guidance 和 trace
   ```bash
   qiongli guidance init --project-dir .

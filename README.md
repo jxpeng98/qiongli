@@ -44,6 +44,7 @@ The public name is **Qiongli**, from the Chinese `穷理`: to keep asking what p
 | You prefer Chinese docs | Start with [中文 README](README_CN.md) or [中文文档](docs/zh/index.md) |
 | You want Qiongli in one client | Use the [Install Guide](docs/guide/install.md) |
 | You need full local Qiongli in client-native form | Use `qiongli install --target all`; this defaults to the full local plugin surface |
+| You want project-specific subject guidance | Install once, then use `qiongli project ...` inside each project |
 | You are choosing a paper workflow | Use [Task Recipes](docs/guide/task-recipes.md) |
 | You need scriptable installs or upgrades | Use the [CLI Reference](docs/reference/cli.md) |
 | You want to understand the architecture | Read [Architecture](docs/architecture.md) |
@@ -151,10 +152,11 @@ npm / npx installs:
 ```bash
 npm install -g qiongli
 qiongli install --target all --project-dir "$PWD"
-qiongli install --subject economics --target all --project-dir "$PWD"
-qiongli install --subject accounting --target all --project-dir "$PWD"
-qiongli install --subject economics-accounting --target all --project-dir "$PWD"
-qiongli install --subject economics --coverage focused --target all --project-dir "$PWD"
+
+# Per-project subject guidance
+qiongli project init --project-dir "$PWD"
+qiongli project set-subject finance --project-dir "$PWD"
+qiongli project status --project-dir "$PWD"
 
 # Explicit legacy skills-only surface
 qiongli install --surface skills --profile partial --target all --project-dir "$PWD"
@@ -171,6 +173,10 @@ npx qiongli@next check --json
 qiongli remove --target all --dry-run
 qiongli remove --target all
 ```
+
+For normal CLI/local plugin use, install Qiongli once with `qiongli install --target all`. Each project can then keep its own `.qiongli/guidance_manifest.yaml` via `qiongli project init`, `qiongli project set-subject ...`, and `qiongli project status`. If no project subject is configured, Qiongli runs with implicit `active_subject: auto`: it uses core guidance, infers temporary subject and method lenses from the current task, and writes auditable proposals before changing project-local state.
+
+`qiongli install --subject ...` remains available for legacy and advanced compatibility work: focused Claude Desktop/Web ZIPs, deliberately narrow packages, release payload checks, and install-surface testing. It is not the everyday way to switch the subject for each project.
 
 Bootstrap installs:
 

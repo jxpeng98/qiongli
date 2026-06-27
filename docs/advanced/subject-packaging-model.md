@@ -1,20 +1,38 @@
 # Subject Packaging Model
 
-Qiongli uses one canonical workflow and several installable subject packages. This page explains the difference between `core`, specialized subjects, coverage modes, composites, and local customization from both the user and developer perspectives.
+Qiongli uses one canonical workflow, a stable full local runtime, and several installable subject packages for compatibility and release artifacts. This page explains the difference between project-level subject guidance, `core`, specialized packages, coverage modes, composites, and local customization from both the user and developer perspectives.
 
 ## User Model
 
-The installed skill directory is always `qiongli-workflow`, and each client has one active package at a time. Changing the subject or coverage means rerunning `install` or `upgrade` with new flags.
+For normal CLI/local plugin use, the installed package should remain a stable core/full runtime:
 
-| Situation | Install | Meaning |
+```bash
+qiongli install --target all
+```
+
+Per-project subject behavior lives in `.qiongli/guidance_manifest.yaml`, not in a different client install. Use:
+
+```bash
+qiongli project init --project-dir .
+qiongli project set-subject finance --project-dir .
+qiongli project set-venue journal-of-finance --project-dir .
+qiongli project set-method-lens event-study --project-dir .
+qiongli project status --project-dir .
+```
+
+If the manifest is missing, Qiongli runs with implicit `active_subject: auto`: it uses core guidance, infers temporary subject and method lenses from the current task, and writes auditable proposals before changing project-local state. Persistent subject changes come from explicit project commands or accepted guidance proposals.
+
+The installed skill directory is still `qiongli-workflow`, and each client install has one active package at a time. Subject-specific installs remain important for Desktop ZIPs, focused packages, compatibility testing, and release payloads.
+
+| Situation | Command | Meaning |
 |---|---|---|
-| You are unsure what to choose | `qiongli install --target all` | Default `core / complete`: full general Qiongli framework |
-| You know the work is economics | `qiongli install --subject economics --target all` | Full framework plus economics specialization |
-| You know the work is political economy | `qiongli install --subject political-economy --target all` | Full framework plus institutions, distributional conflict, and policy mechanism specialization |
-| You know the work is geoeconomics | `qiongli install --subject geoeconomics --target all` | Full framework plus strategic economic statecraft specialization |
-| You want a slim economics package | `qiongli install --subject economics --coverage focused --target all` | Economics-selected profiles, overlays, and active effective skills |
-| You need an official cross-disciplinary package | `qiongli install --subject economics-accounting --target all` | Full framework plus the economics/accounting composite layer |
-| You want local custom rules | `python3 scripts/materialize_subject_package.py --custom-dir <path> ...` | One generated package with local overlays, profiles, or skills |
+| Normal CLI/local plugin use | `qiongli install --target all` | Stable full runtime shared across projects |
+| A project should use finance guidance | `qiongli project set-subject finance --project-dir .` | Writes project-local subject context |
+| No project subject is configured | No command required | Implicit `active_subject: auto` with core guidance and temporary inference |
+| Focused Desktop/Web ZIP | `qiongli install --subject economics --coverage focused --target all` | Deliberately slim package under upload limits |
+| Compatibility or release payload testing | `qiongli install --subject economics --target all` | Full framework plus economics specialization as an installed package |
+| Official cross-disciplinary ZIP/package | `qiongli install --subject economics-accounting --target all` | Full framework plus the economics/accounting composite layer |
+| Local generated package rules | `python3 scripts/materialize_subject_package.py --custom-dir <path> ...` | One generated package with local overlays, profiles, or skills |
 
 ### Core
 
@@ -27,7 +45,7 @@ It provides:
 - canonical generic skills
 - broad domain and venue profile availability in `complete` coverage
 
-Use `core` when the project is general, exploratory, or not yet clearly tied to one discipline.
+Use `core` when the project is general, exploratory, or not yet clearly tied to one discipline. In normal CLI/local plugin use, this is also the stable installed runtime used with project-level guidance.
 
 ### Specialized Subjects
 
@@ -48,6 +66,8 @@ qiongli install --subject economics
 ```
 
 It is not a reduced package unless you explicitly choose `--coverage focused`.
+
+For everyday project work, prefer `qiongli project set-subject <subject>` over reinstalling a specialized package. Use `qiongli install --subject ...` when you are preparing a Desktop ZIP, deliberately testing a focused or complete package, validating release payloads, or maintaining compatibility with an install surface that needs one active subject package.
 
 ### Coverage Modes
 
@@ -95,6 +115,8 @@ A custom directory may include:
 - `venue-profiles/*.yaml`
 
 Customizations only affect the generated output. They do not write back to the canonical repository.
+
+For ordinary project-local guidance, prefer `.qiongli/guidance_manifest.yaml`, `.qiongli/local_guidance.md`, and `.qiongli/guidance.d/*.md`. The materializer path is for generated packages and release-style payloads.
 
 ## Developer Model
 

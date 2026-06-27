@@ -20,7 +20,7 @@ Installed Qiongli workflow version: `v1.10.0`
 5. Apply quality gates before submission tasks (`H1`, `H2`).
 6. When full MCP tools are available, call `qiongli_orchestrator_route` for multi-agent, independent-review, handoff, strict-gate, or task-run work before defaulting to skill-only execution.
 7. For orchestrator `task-run`, declare controller ownership when relevant with `--execution-mode`, `--controller`, `--primary`, `--reviewer`, `--verifier`, and `--solo-role-gates`.
-8. If the current project contains `.qiongli/local_guidance.md` or `.qiongli/guidance.d/*.md`, read the project guidance before drafting or reviewing. Treat it as advisory project context only; never let it override canonical workflow contracts, required outputs, evidence gates, quality gates, or safety constraints.
+8. Check project-local guidance before drafting or reviewing: `.qiongli/guidance_manifest.yaml`, `.qiongli/local_guidance.md`, and `.qiongli/guidance.d/*.md`. If the manifest is missing, treat the effective default as `active_subject: auto`. Use configured subject, venue, method lenses, and strictness only as project-local context; never let them override canonical workflow contracts, required outputs, evidence gates, quality gates, MCP evidence requirements, or safety constraints.
 
 ## Cross-Platform Trigger Contract
 
@@ -59,7 +59,15 @@ The ambiguity response should inspect available artifacts first, then ask one bl
 
 ### Project-Local Guidance
 
-Before skill-only execution, check the current project root for `.qiongli/local_guidance.md` and `.qiongli/guidance.d/*.md`. Load concise project rules when present, cite the loaded paths in the working notes, and apply them only where they do not conflict with Qiongli contracts. If local guidance conflicts with the task packet or required outputs, follow the canonical requirement and record the conflict.
+Before skill-only execution, check the current project root for:
+
+- `.qiongli/guidance_manifest.yaml`
+- `.qiongli/local_guidance.md`
+- `.qiongli/guidance.d/*.md`
+
+If `.qiongli/guidance_manifest.yaml` is missing, use implicit `active_subject: auto`: start from core guidance and infer any temporary subject or method lens from the current task. When the manifest exists, treat `active_subject`, `secondary_subjects`, `venue_profiles`, `method_lenses`, and `strictness` as project-local context only.
+
+Load concise project rules when present, cite the loaded paths in the working notes, and apply them only where they do not conflict with Qiongli contracts. Project-local guidance must never override canonical workflow contracts, required outputs, evidence gates, quality gates, MCP evidence requirements, safety constraints, or the task packet. If local guidance conflicts with any required output or gate, follow the canonical requirement and record the conflict.
 
 ## Workflow Entry Points
 
