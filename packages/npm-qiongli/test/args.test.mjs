@@ -16,7 +16,7 @@ test('parseArgv parses install options and defaults', () => {
   assert.deepEqual(parsed.rest, []);
 });
 
-test('parseArgv treats upgrade as install with overwrite', () => {
+test('parseArgv treats upgrade as content-only install refresh with overwrite', () => {
   const parsed = parseArgv(['upgrade', '--target', 'codex', '--subject', 'economics', '--coverage', 'focused']);
 
   assert.equal(parsed.command, 'install');

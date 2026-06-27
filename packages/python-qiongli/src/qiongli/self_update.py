@@ -5,6 +5,8 @@ import shlex
 import shutil
 import subprocess
 import sys
+import json
+import urllib.request
 from dataclasses import dataclass
 from importlib import metadata
 from pathlib import Path
@@ -43,10 +45,21 @@ class SelfUpdatePlan:
     package_command: tuple[str, ...]
     refresh_command: tuple[str, ...]
     check_command: tuple[str, ...]
+    installed_version_hint: str = ""
     guidance: str = ""
 
 
+@dataclass(frozen=True)
+class PackageUpdateStatus:
+    installed_version: str
+    latest_version: str
+    update_available: bool | None
+    detail: str = ""
+
+
 CommandRunner = Callable[[Sequence[str]], int | subprocess.CompletedProcess[object]]
+ConfirmFn = Callable[[str, bool], bool]
+UpdateChecker = Callable[[SelfUpdatePlan], PackageUpdateStatus]
 
 
 def build_self_update_plan(
@@ -64,6 +77,9 @@ def build_self_update_plan(
 
     package_command = _package_update_command(channel, options.channel, python)
     guidance = _manual_guidance(channel, options.channel)
+    installed_version_hint = ""
+    if channel == "npm":
+        installed_version_hint = effective_env.get("QIONGLI_NPM_PACKAGE_VERSION", "").strip()
     refresh_command: tuple[str, ...] = ()
     check_command: tuple[str, ...] = ()
 
@@ -80,7 +96,7 @@ def build_self_update_plan(
             "--overwrite",
         )
 
-    if options.check:
+    if options.check and options.refresh:
         check_command = (qiongli_executable, "check", "--offline")
 
     return SelfUpdatePlan(
@@ -89,6 +105,7 @@ def build_self_update_plan(
         package_command=package_command,
         refresh_command=refresh_command,
         check_command=check_command,
+        installed_version_hint=installed_version_hint,
         guidance=guidance,
     )
 
@@ -98,12 +115,16 @@ def execute_self_update(
     *,
     env: Mapping[str, str] | None = None,
     executable: str | None = None,
+    python_executable: str | None = None,
     runner: CommandRunner | None = None,
+    confirmer: ConfirmFn | None = None,
+    update_checker: UpdateChecker | None = None,
     output: TextIO | None = None,
 ) -> int:
     out = output or sys.stdout
-    plan = build_self_update_plan(options, env=env, executable=executable)
+    plan = build_self_update_plan(options, env=env, executable=executable, python_executable=python_executable)
     command_runner = runner or _default_runner
+    confirm = confirmer or _confirm
 
     _print_plan(plan, out)
 
@@ -115,15 +136,40 @@ def execute_self_update(
         print(f"[error] {plan.guidance}", file=out)
         return 2
 
-    if not options.yes:
-        print("Rerun with --yes to execute these update commands.", file=out)
+    status = (update_checker or _default_update_checker)(plan)
+    _print_update_status(status, out)
+
+    if status.update_available is False:
+        print("qiongli CLI/package is already up to date.", file=out)
         return 0
 
-    for command in _commands_to_run(plan):
-        print(f"[run] {_format_command(command)}", file=out)
-        exit_code = _runner_exit_code(command_runner(command))
+    if not options.yes:
+        if status.update_available is True:
+            prompt = "Upgrade qiongli CLI/package?"
+        else:
+            prompt = "Unable to confirm qiongli CLI/package update status. Upgrade anyway?"
+        if not confirm(prompt, False):
+            print("Package update skipped.", file=out)
+            return 0
+
+    exit_code = _run_command(plan.package_command, command_runner, out)
+    if exit_code != 0:
+        return exit_code
+
+    refresh_accepted = False
+    if plan.refresh_command:
+        refresh_accepted = options.yes or confirm("Refresh installed local plugins/assets from the new package?", True)
+        if refresh_accepted:
+            exit_code = _run_command(plan.refresh_command, command_runner, out)
+            if exit_code != 0:
+                return exit_code
+        else:
+            print("Installed local plugins/assets refresh skipped.", file=out)
+
+    should_check = bool(plan.check_command) and bool(plan.refresh_command) and (options.yes or refresh_accepted)
+    if should_check:
+        exit_code = _run_command(plan.check_command, command_runner, out)
         if exit_code != 0:
-            print(f"[error] command failed with exit code {exit_code}: {_format_command(command)}", file=out)
             return exit_code
 
     print("[ok] qiongli self-update completed.", file=out)
@@ -206,6 +252,14 @@ def _commands_to_run(plan: SelfUpdatePlan) -> tuple[tuple[str, ...], ...]:
     return tuple(command for command in (plan.package_command, plan.refresh_command, plan.check_command) if command)
 
 
+def _run_command(command: Sequence[str], command_runner: CommandRunner, output: TextIO) -> int:
+    print(f"[run] {_format_command(command)}", file=output)
+    exit_code = _runner_exit_code(command_runner(command))
+    if exit_code != 0:
+        print(f"[error] command failed with exit code {exit_code}: {_format_command(command)}", file=output)
+    return exit_code
+
+
 def _print_plan(plan: SelfUpdatePlan, output: TextIO) -> None:
     print("Qiongli self-update", file=output)
     print(f"- channel: {plan.channel}", file=output)
@@ -238,3 +292,188 @@ def _runner_exit_code(result: int | subprocess.CompletedProcess[object]) -> int:
     if isinstance(result, int):
         return result
     return int(result.returncode)
+
+
+def _confirm(prompt: str, default: bool) -> bool:
+    suffix = "[Y/n]" if default else "[y/N]"
+    try:
+        answer = input(f"{prompt} {suffix} ").strip().lower()
+    except EOFError:
+        return default
+    if not answer:
+        return default
+    return answer in {"y", "yes"}
+
+
+def _print_update_status(status: PackageUpdateStatus, output: TextIO) -> None:
+    if status.installed_version:
+        print(f"- installed package version: {status.installed_version}", file=output)
+    if status.latest_version:
+        print(f"- latest package version: {status.latest_version}", file=output)
+    if status.update_available is True:
+        print("- package update status: update available", file=output)
+    elif status.update_available is False:
+        print("- package update status: current", file=output)
+    else:
+        print("- package update status: unknown", file=output)
+    if status.detail:
+        print(f"- package update detail: {status.detail}", file=output)
+
+
+def _default_update_checker(plan: SelfUpdatePlan) -> PackageUpdateStatus:
+    if not plan.package_command:
+        return PackageUpdateStatus(
+            installed_version="",
+            latest_version="",
+            update_available=None,
+            detail=plan.guidance or "Package update command is unavailable.",
+        )
+
+    try:
+        installed_version = plan.installed_version_hint or _installed_package_version()
+        if plan.install_channel == "npm":
+            latest_version = _npm_latest_version(plan.channel)
+        elif plan.install_channel in {"pip", "pipx"}:
+            latest_version = _pypi_latest_version(plan.channel)
+        else:
+            return PackageUpdateStatus(
+                installed_version=installed_version,
+                latest_version="",
+                update_available=None,
+                detail=plan.guidance or f"Cannot check latest version for install channel {plan.install_channel}.",
+            )
+    except Exception as exc:
+        return PackageUpdateStatus(
+            installed_version="",
+            latest_version="",
+            update_available=None,
+            detail=f"Unable to check latest package version: {exc}",
+        )
+
+    installed_tuple = _parse_version_tuple(installed_version)
+    latest_tuple = _parse_version_tuple(latest_version)
+    if installed_tuple and latest_tuple:
+        update_available: bool | None = installed_tuple < latest_tuple
+    else:
+        update_available = None
+
+    return PackageUpdateStatus(
+        installed_version=installed_version,
+        latest_version=latest_version,
+        update_available=update_available,
+        detail=f"{installed_version} -> {latest_version}" if update_available else "",
+    )
+
+
+def _installed_package_version() -> str:
+    return metadata.version("qiongli")
+
+
+def _npm_latest_version(channel: str) -> str:
+    tag = "next" if channel == "next" else "latest"
+    result = subprocess.run(
+        ["npm", "view", "qiongli", f"dist-tags.{tag}", "--json"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    raw = result.stdout.strip()
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        parsed = raw
+    return str(parsed).strip()
+
+
+def _pypi_latest_version(channel: str) -> str:
+    with urllib.request.urlopen("https://pypi.org/pypi/qiongli/json", timeout=10) as response:
+        payload = json.load(response)
+
+    info_version = str(payload["info"]["version"])
+    if channel != "next":
+        return info_version
+
+    candidate_versions = [
+        str(version)
+        for version in (info_version, *payload.get("releases", {}))
+        if _parse_version_tuple(str(version))
+        and (str(version) == info_version or _is_prerelease_version(str(version)))
+    ]
+    if not candidate_versions:
+        return info_version
+    return max(candidate_versions, key=_parse_version_tuple)
+
+
+def _is_prerelease_version(version: str) -> bool:
+    raw = version.strip().lower()
+    if raw.startswith("v"):
+        raw = raw[1:]
+
+    _, separator, suffix = raw.partition("-")
+    if not separator:
+        suffix = ""
+        for part in raw.split("."):
+            digits = ""
+            for char in part:
+                if not char.isdigit():
+                    suffix = part[len(digits) :]
+                    break
+                digits += char
+            if suffix:
+                break
+
+    suffix = suffix.lstrip(".-_")
+    return suffix.startswith(("a", "alpha", "rc", "b", "beta"))
+
+
+def _parse_version_tuple(version: str) -> tuple[int, ...]:
+    raw = version.strip().lower()
+    if raw.startswith("v"):
+        raw = raw[1:]
+    raw = raw.split("+", 1)[0]
+    if not raw:
+        return ()
+
+    numeric_text, separator, prerelease_text = raw.partition("-")
+    numeric_parts: list[int] = []
+    inline_suffix = ""
+
+    for part in numeric_text.split("."):
+        digits = ""
+        for char in part:
+            if not char.isdigit():
+                inline_suffix = part[len(digits) :]
+                break
+            digits += char
+        if not digits:
+            return ()
+        numeric_parts.append(int(digits))
+        if inline_suffix:
+            break
+
+    if len(numeric_parts) > 3:
+        return ()
+
+    major, minor, patch = (*numeric_parts, 0, 0)[:3]
+    suffix = prerelease_text if separator else inline_suffix
+    if not suffix:
+        return (major, minor, patch, 3, 0)
+
+    suffix = suffix.lstrip(".-_")
+    prerelease_rank = {
+        "a": 0,
+        "alpha": 0,
+        "b": 1,
+        "beta": 1,
+        "rc": 2,
+    }
+    for label, rank in prerelease_rank.items():
+        if suffix == label:
+            return (major, minor, patch, rank, 0)
+        for separator in ("", ".", "-", "_"):
+            prefix = f"{label}{separator}"
+            if suffix.startswith(prefix):
+                number_text = suffix[len(prefix) :]
+                if number_text.isdigit():
+                    return (major, minor, patch, rank, int(number_text))
+    return ()

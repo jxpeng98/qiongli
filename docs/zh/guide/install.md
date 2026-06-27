@@ -173,11 +173,12 @@ qiongli install --profile full --target all --surface plugin
 更新全局 package 并刷新 full local plugin/MCP 安装面：
 
 ```bash
-qiongli self-update --dry-run
-qiongli self-update --yes
+qiongli update
+qiongli update --dry-run
+qiongli update --yes
 ```
 
-在 npm 安装中，`self-update` 会委托给 `npm install -g qiongli@latest`，然后用刷新后的 package 执行 `qiongli install --target all --surface plugin --profile full --overwrite`。原生 marketplace plugin 仍由客户端 plugin manager 管理。
+普通升级使用 `qiongli update`。它会先检查当前安装的 qiongli CLI/package 是否有新版本；如有，会询问是否升级。CLI/package 升级成功后，它会再询问是否用新 package 内的 payload 刷新本地 plugin/assets。脚本或 CI 使用 `qiongli update --yes`，它会把两个确认都视为 yes。只想升级 CLI/package、不刷新本地内容时使用 `qiongli update --no-refresh`。
 
 一次性运行：
 
@@ -272,8 +273,9 @@ qiongli project status --project-dir .
 升级：
 
 ```bash
-qiongli self-update --dry-run
-qiongli self-update --yes
+qiongli update
+qiongli update --dry-run
+qiongli update --yes
 ```
 
 手动 package-manager 更新仍然可用：运行 `pipx upgrade qiongli` 或 `python -m pip install --upgrade qiongli`，然后用 `qiongli install --target all --surface plugin --profile full --overwrite` 刷新客户端安装面。`qiongli upgrade` 仍是你明确想下载上游 GitHub release 时使用的 release archive refresh 路径。
@@ -318,8 +320,9 @@ python3 scripts/materialize_subject_package.py \
 
 ```bash
 qiongli check
-qiongli self-update --dry-run
-qiongli self-update --yes
+qiongli update
+qiongli update --dry-run
+qiongli update --yes
 ```
 
 如果你已经完全转向原生 plugin，不再需要旧的全局 skill 目录或 slash discovery，先 dry-run 清理：

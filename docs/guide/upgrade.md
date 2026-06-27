@@ -43,7 +43,9 @@ qiongli upgrade --repo <owner>/<repo> --target all --doctor
 qiongli init --project-dir /path/to/project
 ```
 
-> Note: pip installs/upgrades the "updater CLI." The actual refresh of global client skill directories is still performed by `qiongli upgrade` (or `qiongli upgrade`). Project-local files are explicit: use `qiongli init` or `qiongli upgrade --parts project ...` when you want them rewritten.
+> Note: pip installs/upgrades the qiongli CLI package. The actual refresh of global client skill directories is still performed by `qiongli upgrade`. Project-local files are explicit: use `qiongli init` or `qiongli upgrade --parts project ...` when you want them rewritten.
+
+`qiongli upgrade` is a content/assets refresh command. It does not update the installed npm, pipx, or pip qiongli CLI package. Use it when you intentionally want to refresh local installed assets from the current package or from a selected upstream release archive. For normal package updates, use `qiongli update`.
 
 ## 1) What exactly are you upgrading?
 

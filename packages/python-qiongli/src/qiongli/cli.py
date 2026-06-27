@@ -729,6 +729,25 @@ def _effective_cli_profile(args: argparse.Namespace) -> str:
     return DEFAULT_CLI_PROFILE
 
 
+def _warn_deprecated_self_update_install_options(args: argparse.Namespace) -> None:
+    if getattr(args, "cmd", "") not in {"self-update", "update"}:
+        return
+    changed = []
+    if getattr(args, "target", "all") != "all":
+        changed.append("--target")
+    if getattr(args, "surface", DEFAULT_CLI_SURFACE) != DEFAULT_CLI_SURFACE:
+        changed.append("--surface")
+    if getattr(args, "profile", DEFAULT_CLI_PROFILE) != DEFAULT_CLI_PROFILE:
+        changed.append("--profile")
+    if changed:
+        print(
+            "[warn] "
+            + ", ".join(changed)
+            + " on qiongli update/self-update is deprecated; run `qiongli update --no-refresh`, then `qiongli install ...` for custom refresh options.",
+            file=sys.stderr,
+        )
+
+
 def _part_tokens(parts: tuple[str, ...] | None) -> set[str]:
     if not parts:
         return set()
@@ -1217,7 +1236,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Use beta/pre-release tags for update status; output always shows stable and pre-release separately",
     )
 
-    upgrade = subparsers.add_parser("upgrade", help="Download release archive and run installer with overwrite")
+    upgrade_help = "Refresh local assets from a release archive without updating the CLI package"
+    upgrade = subparsers.add_parser(
+        "upgrade",
+        help=upgrade_help,
+        description=upgrade_help,
+    )
     upgrade.add_argument(
         "--repo",
         help=(
@@ -1293,7 +1317,7 @@ def build_parser() -> argparse.ArgumentParser:
     self_update = subparsers.add_parser(
         "self-update",
         aliases=["update"],
-        help="Update the qiongli CLI package, then refresh installed plugin/MCP surfaces",
+        help="Interactively update the qiongli CLI package, then optionally refresh installed local assets",
     )
     self_update.add_argument(
         "--channel",
@@ -1305,19 +1329,19 @@ def build_parser() -> argparse.ArgumentParser:
         "--target",
         default="all",
         choices=TARGET_CHOICES,
-        help="Installed client target to refresh after updating (default: all)",
+        help=argparse.SUPPRESS,
     )
     self_update.add_argument(
         "--surface",
         choices=SURFACE_CHOICES,
         default=DEFAULT_CLI_SURFACE,
-        help="Installed output surface to refresh after updating (default: plugin)",
+        help=argparse.SUPPRESS,
     )
     self_update.add_argument(
         "--profile",
         choices=PROFILE_CHOICES,
         default=DEFAULT_CLI_PROFILE,
-        help="Install profile to refresh after updating (default: full)",
+        help=argparse.SUPPRESS,
     )
     self_update.add_argument("--no-refresh", action="store_false", dest="refresh", help="Skip installed surface refresh")
     self_update.add_argument("--skip-check", action="store_false", dest="check", help="Skip post-update offline check")
@@ -1642,6 +1666,7 @@ def main() -> int:
     if args.cmd == "upgrade":
         return cmd_upgrade(args)
     if args.cmd in {"self-update", "update"}:
+        _warn_deprecated_self_update_install_options(args)
         return cmd_self_update(args)
     if args.cmd == "setup":
         from qiongli.setup_wizard import run_setup_wizard

@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
@@ -161,6 +163,42 @@ test('main dispatches mcp upgrade to Python CLI runner', async () => {
     ['mcp', 'upgrade', '--target', 'hermes', '--dry-run'],
   ]);
 });
+
+test('main treats npm upgrade as content-only install refresh', async (t) => {
+  const packageRoot = createMinimalPackageRoot(t);
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-home-'));
+  t.after(() => fs.rmSync(home, { recursive: true, force: true }));
+  const pythonCalls = [];
+  const exitCode = await main(['upgrade', '--target', 'codex', '--dry-run'], {
+    stdout: { write: () => {} },
+    stderr: { write: () => {} },
+    env: {
+      HOME: home,
+      CODEX_HOME: path.join(home, '.codex'),
+    },
+    packageRoot,
+    runPythonCliCommand: ({ args }) => {
+      pythonCalls.push(args);
+      return 9;
+    },
+  });
+
+  assert.equal(exitCode, 0);
+  assert.deepEqual(pythonCalls, []);
+});
+
+function createMinimalPackageRoot(t) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-package-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+
+  const workflow = path.join(root, 'payload', 'qiongli-workflow');
+  fs.mkdirSync(workflow, { recursive: true });
+  fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify({ name: 'qiongli', version: '0.0.0-test' }));
+  fs.writeFileSync(path.join(workflow, 'SKILL.md'), '---\nname: qiongli-workflow\n---\n');
+  fs.writeFileSync(path.join(workflow, 'VERSION'), '0.0.0-test\n');
+  fs.writeFileSync(path.join(workflow, 'SUBJECT'), 'core\n');
+  return root;
+}
 
 test('main dispatches task-run to Python bridge runner and preserves args', async () => {
   const calls = [];

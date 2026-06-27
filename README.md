@@ -191,8 +191,9 @@ qiongli project status --project-dir "$PWD"
 qiongli install --surface skills --profile partial --target all --project-dir "$PWD"
 
 # Update the CLI package and refresh the full local plugin/MCP surface
-qiongli self-update --dry-run
-qiongli self-update --yes
+qiongli update
+qiongli update --dry-run
+qiongli update --yes
 
 # Prerelease testing
 npx qiongli@next install --target all --project-dir "$PWD"
@@ -251,7 +252,7 @@ On npm installs, `qiongli setup` delegates to the bundled Python bridge and ther
 
 Provider keys saved through `qiongli setup` use the same provider config as `qiongli provider setup` and `qiongli provider doctor`. The local page includes links and short steps for getting each provider credential; arXiv is marked as available without an API key. Secrets are stored in provider configuration outside generated research artifacts. Setup configures credentials and runs doctor/capability checks; it does not by itself guarantee external search results.
 
-Use `qiongli self-update --dry-run` to preview the detected package-manager update command. `qiongli self-update --yes` updates npm/pipx/pip first, then runs `qiongli install --target all --surface plugin --profile full --overwrite` and `qiongli check --offline` from the refreshed package. Source checkouts should use `git pull` plus an explicit `qiongli install --overwrite`.
+Use `qiongli update` for the normal interactive update flow. It checks whether the installed qiongli CLI/package has a newer release, asks before running the package-manager update, then asks whether to refresh installed local plugins/assets from the new package. Use `qiongli update --yes` for CI or scripts; it answers both prompts as yes. Use `qiongli update --no-refresh` when you only want the CLI/package update and plan to run `qiongli install ...` yourself. Source checkouts should use `git pull` plus an explicit `qiongli install --overwrite`.
 
 ## Remove CLI-installed Assets
 

@@ -15,10 +15,11 @@ export async function main(argv, {
   stdout = process.stdout,
   stderr = process.stderr,
   env = process.env,
+  packageRoot: packageRootOverride,
   runBridgeCommand = defaultRunBridgeCommand,
   runPythonCliCommand = defaultRunPythonCliCommand,
 } = {}) {
-  const root = packageRoot();
+  const root = packageRootOverride || packageRoot();
   let parsed;
   try {
     parsed = parseArgv(argv);
@@ -44,6 +45,7 @@ export async function main(argv, {
         subject: parsed.options.subject,
         coverage: parsed.options.coverage,
         parts: parsed.options.parts,
+        env,
       });
     } catch (error) {
       stderr.write(`[qiongli] ${error.message}\n`);
@@ -61,6 +63,7 @@ export async function main(argv, {
         projectDir: parsed.options.projectDir,
         parts: parsed.options.parts,
         dryRun: parsed.options.dryRun,
+        env,
       });
     } catch (error) {
       stderr.write(`[qiongli] ${error.message}\n`);
@@ -74,7 +77,7 @@ export async function main(argv, {
     let payload;
     try {
       payload = {
-        ...buildCheck({ packageRoot: root, subject: parsed.options.subject, coverage: parsed.options.coverage }),
+        ...buildCheck({ packageRoot: root, subject: parsed.options.subject, coverage: parsed.options.coverage, env }),
         python_bridge: checkPythonRuntime(),
       };
     } catch (error) {
@@ -98,6 +101,7 @@ export async function main(argv, {
       projectDir: parsed.options.projectDir,
       globals: parsed.options.globals,
       dryRun: parsed.options.dryRun,
+      env,
     });
     stdout.write(`[qiongli] removed ${result.removed.length} stale asset(s)\n`);
     return 0;

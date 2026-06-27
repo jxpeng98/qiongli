@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
@@ -87,4 +89,72 @@ test('runPythonCliCommand invokes qiongli.cli with packaged PYTHONPATH', () => {
   assert.equal(calls[0].options.cwd, '/repo');
   assert.equal(calls[0].options.stdio, 'pipe');
   assert.equal(calls[0].options.env.PYTHONPATH, `/pkg/python-runtime${path.delimiter}/existing`);
+});
+
+test('runPythonCliCommand exposes npm package version from packageRoot package.json', () => {
+  const packageRoot = mkdtempSync(path.join(tmpdir(), 'qiongli-npm-runtime-'));
+  writeFileSync(path.join(packageRoot, 'package.json'), JSON.stringify({ version: '1.10.0' }), 'utf-8');
+
+  try {
+    const calls = [];
+    const exitCode = runPythonCliCommand({
+      packageRoot,
+      args: ['self-update'],
+      cwd: '/repo',
+      env: {},
+      stdio: 'pipe',
+      checkRuntime: () => ({
+        ok: true,
+        python: 'python3',
+        version: '3.12.9',
+        message: 'ready',
+        hint: '',
+      }),
+      spawnSync: (cmd, args, options) => {
+        calls.push({ cmd, args, options });
+        return { status: 0 };
+      },
+    });
+
+    assert.equal(exitCode, 0);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].options.env.QIONGLI_NPM_PACKAGE_VERSION, '1.10.0');
+  } finally {
+    rmSync(packageRoot, { recursive: true, force: true });
+  }
+});
+
+test('runPythonCliCommand ignores invalid npm package versions from packageRoot package.json', () => {
+  for (const version of ['not-a-version', '1.2']) {
+    const packageRoot = mkdtempSync(path.join(tmpdir(), 'qiongli-npm-runtime-'));
+    writeFileSync(path.join(packageRoot, 'package.json'), JSON.stringify({ version }), 'utf-8');
+
+    try {
+      const calls = [];
+      const exitCode = runPythonCliCommand({
+        packageRoot,
+        args: ['self-update'],
+        cwd: '/repo',
+        env: { QIONGLI_NPM_PACKAGE_VERSION: 'stale-parent-version' },
+        stdio: 'pipe',
+        checkRuntime: () => ({
+          ok: true,
+          python: 'python3',
+          version: '3.12.9',
+          message: 'ready',
+          hint: '',
+        }),
+        spawnSync: (cmd, args, options) => {
+          calls.push({ cmd, args, options });
+          return { status: 0 };
+        },
+      });
+
+      assert.equal(exitCode, 0);
+      assert.equal(calls.length, 1);
+      assert.equal(Object.hasOwn(calls[0].options.env, 'QIONGLI_NPM_PACKAGE_VERSION'), false);
+    } finally {
+      rmSync(packageRoot, { recursive: true, force: true });
+    }
+  }
 });

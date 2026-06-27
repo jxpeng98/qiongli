@@ -41,7 +41,9 @@ qiongli upgrade --repo <owner>/<repo> --target all --doctor
 qiongli init --project-dir /path/to/project
 ```
 
-> 注意：pip 安装/升级的是“升级器 CLI”；真正刷新三端全局 skill 目录的动作，仍由 `qiongli upgrade`（等价于 `qiongli upgrade`）来执行。项目内文件现在改为显式更新：需要时使用 `qiongli init` 或 `qiongli upgrade --parts project ...`。
+> 注意：pip 安装/升级的是 qiongli CLI package；真正刷新三端全局 skill 目录的动作，仍由 `qiongli upgrade` 来执行。项目内文件现在改为显式更新：需要时使用 `qiongli init` 或 `qiongli upgrade --parts project ...`。
+
+`qiongli upgrade` 是内容/assets 刷新命令，不会升级 npm、pipx 或 pip 中安装的 qiongli CLI package。需要只刷新本地安装内容，或从指定上游 release archive 刷新内容时使用它。普通 package 升级使用 `qiongli update`。
 
 ## 1) 你需要升级的到底是什么？
 
