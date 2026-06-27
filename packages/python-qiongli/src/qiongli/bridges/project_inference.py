@@ -5,11 +5,18 @@ from typing import Any
 
 
 FINANCE_PATTERNS = {
-    "asset-pricing": re.compile(r"\b(asset pricing|factor model|factor exposure|portfolio|returns?)\b", re.I),
+    "asset-pricing": re.compile(
+        r"\b(asset pricing|factor model|factor exposure|portfolio|"
+        r"stock returns?|asset returns?|portfolio returns?|market returns?|"
+        r"abnormal returns?|expected returns?|return predictability)\b",
+        re.I,
+    ),
     "event-study": re.compile(r"\b(event study|event window|abnormal returns?|leakage)\b", re.I),
 }
 ECONOMICS_PATTERNS = {
-    "did": re.compile(r"\b(did|difference[- ]in[- ]differences|parallel trends?|pre[- ]trends?)\b", re.I),
+    "did": re.compile(
+        r"\b(DID|(?i:difference[- ]in[- ]differences|parallel trends?|pre[- ]trends?))\b"
+    ),
     "causal-identification": re.compile(
         r"\b(causal identification|instrumental variable|regression discontinuity|identification)\b",
         re.I,

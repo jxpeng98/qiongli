@@ -43,6 +43,34 @@ class ProjectInferenceTests(unittest.TestCase):
         self.assertEqual(suggestion["active_subject"], "auto")
         self.assertEqual(suggestion["confidence"], 0.0)
 
+    def test_ordinary_past_tense_did_does_not_trigger_economics(self) -> None:
+        suggestion = infer_project_manifest_suggestion(
+            {
+                "topic": "revise literature review",
+                "context": "The previous draft did not connect the paragraphs clearly.",
+            },
+            draft_content="We did the introduction first and then tightened the framing.",
+            review_content="",
+            merged_analysis="",
+        )
+
+        self.assertEqual(suggestion["active_subject"], "auto")
+        self.assertEqual(suggestion["confidence"], 0.0)
+
+    def test_ordinary_return_does_not_trigger_finance(self) -> None:
+        suggestion = infer_project_manifest_suggestion(
+            {
+                "topic": "revise conclusion",
+                "context": "Return to the main claim in the final paragraph.",
+            },
+            draft_content="The author should return later to the motivation.",
+            review_content="",
+            merged_analysis="",
+        )
+
+        self.assertEqual(suggestion["active_subject"], "auto")
+        self.assertEqual(suggestion["confidence"], 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()
