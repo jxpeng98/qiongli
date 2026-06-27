@@ -26,6 +26,7 @@ from qiongli.subject_materializer import MaterializeOptions, materialize_subject
 
 EXCLUDE_DIRS = {"__pycache__", ".pytest_cache", ".mypy_cache", "node_modules", "dist", "build"}
 EXCLUDE_SUFFIXES = {".pyc", ".pyo"}
+SHELL_CLI_SOURCE_FILES = ("qiongli_cli.sh", "bootstrap_qiongli.sh")
 
 
 def ignore_patterns(_src: str, names: list[str], extra_exclude_dirs: set[str] | None = None) -> set[str]:
@@ -63,6 +64,24 @@ def fail_if_symlinks(path: Path) -> None:
             raise RuntimeError(f"generated npm package path contains symlink: {item}")
 
 
+def sync_shell_cli_sources(layout: RepoLayout, payload_scripts: Path, *, dry_run: bool) -> None:
+    if dry_run:
+        for file_name in SHELL_CLI_SOURCE_FILES:
+            print(f"[npm-sync] would sync {layout.scripts / file_name} -> {payload_scripts / file_name}")
+        return
+    if payload_scripts.exists():
+        if payload_scripts.is_dir():
+            shutil.rmtree(payload_scripts)
+        else:
+            payload_scripts.unlink()
+    payload_scripts.mkdir(parents=True, exist_ok=True)
+    for file_name in SHELL_CLI_SOURCE_FILES:
+        src = layout.scripts / file_name
+        if not src.is_file():
+            raise FileNotFoundError(f"missing shell CLI source: {src}")
+        shutil.copy2(src, payload_scripts / file_name)
+
+
 def sync_npm_payload(root: Path, *, dry_run: bool = False) -> None:
     layout = RepoLayout(root)
     npm_root = root / "packages" / "npm-qiongli"
@@ -75,6 +94,7 @@ def sync_npm_payload(root: Path, *, dry_run: bool = False) -> None:
         sync_python_payload(root, materialize_source, dry_run=dry_run)
 
         copy_path(materialize_source / "qiongli-workflow", payload_root / "qiongli-workflow", dry_run=dry_run)
+        sync_shell_cli_sources(layout, payload_root / "scripts", dry_run=dry_run)
         sync_subject_payloads(root, payload_root, dry_run=dry_run, materialize_source=materialize_source)
 
     runtime_dirs = {
@@ -152,6 +172,7 @@ def sync_python_payload(root: Path, materialize_source: Path, *, dry_run: bool) 
     }
     for item, src in payload_sources.items():
         copy_path(src, payload_root / item, dry_run=dry_run)
+    sync_shell_cli_sources(layout, payload_root / "scripts", dry_run=dry_run)
     sync_subject_payloads(root, payload_root, dry_run=dry_run, materialize_source=payload_root, clear_subjects_root=False)
     if not dry_run:
         fail_if_symlinks(payload_root)
