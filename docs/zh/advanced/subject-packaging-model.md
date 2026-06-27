@@ -1,20 +1,38 @@
 # Subject Packaging Model
 
-Qiongli 使用一套 canonical workflow，再通过不同 subject package 生成可安装的专精包。本页从用户和开发者两个视角说明 `core`、specialized subject、coverage、composite 和 local customization 的区别。
+Qiongli 使用一套 canonical workflow、稳定的 full local runtime，以及用于 compatibility 和 release artifacts 的可安装 subject packages。本页从用户和开发者两个视角说明项目级 subject guidance、`core`、specialized subject、coverage、composite 和 local customization 的区别。
 
 ## 用户视角
 
-安装后的 skill 目录始终是 `qiongli-workflow`。同一客户端一次只有一个 active package。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新参数。
+普通 CLI / local plugin 使用中，installed package 应该保持为稳定的 core/full runtime：
 
-| 场景 | 安装方式 | 含义 |
+```bash
+qiongli install --target all
+```
+
+每个项目的 subject 行为保存在 `.qiongli/guidance_manifest.yaml`，而不是靠重新安装不同 client package。使用：
+
+```bash
+qiongli project init --project-dir .
+qiongli project set-subject finance --project-dir .
+qiongli project set-venue journal-of-finance --project-dir .
+qiongli project set-method-lens event-study --project-dir .
+qiongli project status --project-dir .
+```
+
+如果 manifest 不存在，Qiongli 使用隐式 `active_subject: auto`：先使用 core guidance，再根据当前任务临时推断 subject 和 method lens，并在改变项目本地状态前写出可审计 proposal。持久 subject 变更只来自显式 project 命令或已接受的 guidance proposal。
+
+安装后的 skill 目录仍然是 `qiongli-workflow`。同一客户端安装一次只有一个 active package。Subject-specific installs 仍然用于 Desktop ZIP、focused packages、compatibility testing 和 release payloads。
+
+| 场景 | 命令 | 含义 |
 |---|---|---|
-| 不知道该选什么 | `qiongli install --target all` | 默认 `core / complete`：全量通用 Qiongli 框架 |
-| 明确做经济学 | `qiongli install --subject economics --target all` | 全量框架 + economics 专精 |
-| 明确做 political economy | `qiongli install --subject political-economy --target all` | 全量框架 + institutions、distributional conflict 和 policy mechanism 专精 |
-| 明确做 geoeconomics | `qiongli install --subject geoeconomics --target all` | 全量框架 + strategic economic statecraft 专精 |
-| 想要轻量 economics 包 | `qiongli install --subject economics --coverage focused --target all` | economics selected profiles、overlays 和 active effective skills |
-| 需要官方交叉学科 | `qiongli install --subject economics-accounting --target all` | 全量框架 + economics/accounting composite layer |
-| 想加入本地规则 | `python3 scripts/materialize_subject_package.py --custom-dir <path> ...` | 生成一次带本地 overlays、profiles 或 skills 的 package |
+| 普通 CLI / local plugin 使用 | `qiongli install --target all` | 多项目共享的稳定 full runtime |
+| 当前项目使用 finance guidance | `qiongli project set-subject finance --project-dir .` | 写入项目本地 subject context |
+| 没有配置项目 subject | 无需命令 | 隐式 `active_subject: auto`，使用 core guidance 和临时推断 |
+| Focused Desktop/Web ZIP | `qiongli install --subject economics --coverage focused --target all` | 有意控制体积的上传包 |
+| Compatibility 或 release payload testing | `qiongli install --subject economics --target all` | 作为 installed package 的全量框架 + economics 专精 |
+| 官方交叉学科 ZIP/package | `qiongli install --subject economics-accounting --target all` | 全量框架 + economics/accounting composite layer |
+| 本地生成 package 规则 | `python3 scripts/materialize_subject_package.py --custom-dir <path> ...` | 生成一次带本地 overlays、profiles 或 skills 的 package |
 
 ### Core
 
@@ -27,7 +45,7 @@ Qiongli 使用一套 canonical workflow，再通过不同 subject package 生成
 - canonical generic skills
 - `complete` coverage 下的广泛 domain 和 venue profile 可用性
 
-当项目还处于探索阶段、跨领域但没有明确专精方向，或者用户只是想要完整通用框架时，使用 `core`。
+当项目还处于探索阶段、跨领域但没有明确专精方向，或者用户只是想要完整通用框架时，使用 `core`。普通 CLI / local plugin 使用中，它也是配合项目级 guidance 的稳定 installed runtime。
 
 ### Specialized Subjects
 
@@ -48,6 +66,8 @@ qiongli install --subject economics
 ```
 
 这不是删减包。只有显式使用 `--coverage focused` 时，才会生成精简 subject package。
+
+日常项目工作中，优先使用 `qiongli project set-subject <subject>`，不要为了切换项目 subject 重新安装专精 package。只有在准备 Desktop ZIP、专门测试 focused 或 complete package、验证 release payload，或维护需要单个 active subject package 的兼容安装面时，才使用 `qiongli install --subject ...`。
 
 ### Coverage Modes
 
@@ -95,6 +115,8 @@ custom directory 可以包含：
 - `venue-profiles/*.yaml`
 
 customization 只影响本次生成输出，不会写回 canonical repository。
+
+普通项目本地 guidance 优先使用 `.qiongli/guidance_manifest.yaml`、`.qiongli/local_guidance.md` 和 `.qiongli/guidance.d/*.md`。materializer 路径用于 generated packages 和 release-style payloads。
 
 ## 开发者视角
 

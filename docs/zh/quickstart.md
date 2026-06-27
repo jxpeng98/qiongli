@@ -58,24 +58,33 @@ pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile partial -Pro
 
 如果机器已经有 Python 3.12+，并且你需要 runtime check、validator 或 orchestrated task，把 `--profile partial` 改成 `--profile full`。
 
-npm 或 pipx 安装中，`--subject` 默认是 `core`，`--coverage` 默认是 `complete`：
+npm 或 pipx 安装中，先安装一次本地 runtime，再在每个项目里配置 subject guidance：
+
+```bash
+qiongli install --target all
+qiongli project init --project-dir .
+qiongli project set-subject finance --project-dir .
+qiongli project status --project-dir .
+qiongli install --profile full --target all --surface plugin
+qiongli remove --target all --dry-run
+qiongli check --json
+```
+
+如果 `.qiongli/guidance_manifest.yaml` 不存在，Qiongli 使用隐式 `active_subject: auto`：先使用 core guidance，再根据当前任务临时推断 subject 和 method lens，并且在改变项目本地状态前写出可审计 proposal。当 Codex / Claude Code / Antigravity 需要本地 plugin 持有完整 Python MCP 时，使用 `--profile full --surface plugin`；配合 `--target all` 时，Antigravity plugin 会内置 root `mcp_config.json`，Hermes 会写入受管理的 full MCP client 配置。
+
+Advanced compatibility、Desktop ZIP、focused package、release payload 和 install-surface testing 示例：
 
 ```bash
 qiongli install --subject economics --target all
 qiongli install --subject accounting --target all
 npx qiongli@latest install --subject economics --target all
-qiongli install --subject political-economy --target all
-qiongli install --subject geoeconomics --target all
 qiongli install --subject economics-accounting --target all
 qiongli install --subject economics --coverage focused --target all
-qiongli install --profile full --target all --surface plugin
 qiongli upgrade --subject accounting --target all
-qiongli remove --target all --dry-run
 qiongli customize --subject economics --name my-econ-lab --out ./qiongli-custom/econ-lab
-qiongli check --json
 ```
 
-不确定怎么选时使用默认 complete：`qiongli install --target all` 表示 `core/complete`，`--subject economics`、`--subject business`、`--subject finance`、`--subject political-economy` 和 `--subject geoeconomics` 表示 complete 专精安装，`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。当 Codex / Claude Code / Antigravity 需要本地 plugin 持有完整 Python MCP 时，使用 `--profile full --surface plugin`；配合 `--target all` 时，Antigravity plugin 会内置 root `mcp_config.json`，Hermes 会写入受管理的 full MCP client 配置。只有明确想要精简包或 Desktop/Web ZIP 形态时才使用 `--coverage focused`。`political-economy` 和 `geoeconomics` 是两个独立 subject，不是一个 composite。官方 composite subjects（例如 `economics-accounting`）是命名 subject，不是任意逗号分隔叠加。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新的参数。Custom overlays 只影响 generated output，不会改写 canonical source files；`qiongli customize` 加 `--custom-dir` materialization 面向 Python/source checkout 工作流，npm runtime installs 在这个阶段使用预生成 payloads。
+`--subject` package install 是专精 package refresh，不是日常切换项目 subject 的方式。普通项目 subject 行为用 `qiongli project set-subject` 修改；installed subject 或 coverage 只在有意刷新专精安装包时改变。`political-economy` 和 `geoeconomics` 是两个独立 subject，不是一个 composite。官方 composite subjects（例如 `economics-accounting`）是命名 subject，不是任意逗号分隔叠加。Custom overlays 只影响 generated output，不会改写 canonical source files；`qiongli customize` 加 `--custom-dir` materialization 面向 Python/source checkout 工作流，npm runtime installs 在这个阶段使用预生成 payloads。
 
 需要只保留 marketplace plugin 时，用 `qiongli remove` 移除 CLI 安装产生的全局资产。
 

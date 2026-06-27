@@ -28,7 +28,7 @@ Qiongli 有多个安装入口，是因为不同用户需要的运行时能力不
 | npm / npx | Node 自动化安装 | npm CLI 和内置 workflow payload | 只有高级 bridge 命令需要 |
 | pipx / pip | Python updater CLI | Python CLI 分发 | 是 |
 
-用户可见的 skill 名称是 `qiongli`。安装目录仍然是 `qiongli-workflow`，这是为了兼容已有客户端和 release artifacts。`core` 是默认 subject，所以默认安装是 `core/complete`。CLI/npm 专精安装默认使用 `coverage=complete`，也就是全量 Qiongli 框架加指定 subject 专精。
+用户可见的 skill 名称是 `qiongli`。安装目录仍然是 `qiongli-workflow`，这是为了兼容已有客户端和 release artifacts。普通 CLI / local plugin 使用中，先安装稳定的 `core/complete` runtime，并把日常 subject 行为保存在 `.qiongli/guidance_manifest.yaml`。CLI/npm 专精安装默认使用 `coverage=complete`，但它们是 Desktop ZIP、focused package、release payload 和 install-surface testing 等 advanced compatibility 路径。
 
 从 v1.9.0 开始，`qiongli install` 默认等价于 `--profile full --surface plugin`。Codex / Claude Code / Antigravity 会得到 CLI 管理的本地 plugin，并由 `qiongli mcp serve --transport stdio` 支撑；Antigravity 会按官方 plugin 结构在 plugin 根目录写入 `mcp_config.json`，Hermes 会写入受管理的 full MCP client config。只有明确想保留旧版 skills-only 布局时，才使用 `--surface skills --profile partial`。
 
@@ -159,13 +159,16 @@ qiongli mcp doctor --json
 
 ```bash
 npm install -g qiongli
-qiongli install --subject core --target all --project-dir "$PWD"
-qiongli install --subject economics --target all --project-dir "$PWD"
-qiongli install --subject accounting --target all --project-dir "$PWD"
-qiongli install --subject economics-accounting --target all --project-dir "$PWD"
-qiongli install --subject economics --coverage focused --target all --project-dir "$PWD"
+qiongli install --target all
+qiongli project init --project-dir .
+qiongli project set-subject finance --project-dir .
+qiongli project status --project-dir .
 qiongli install --profile full --target all --surface plugin
 ```
+
+脚本兼容写法 `qiongli install --target all --project-dir "$PWD"` 对安装面等价；普通项目 subject 行为仍然交给 `qiongli project ...`。
+
+日常 CLI / local plugin 使用中，保持这个 installed runtime 稳定，把 subject 行为保存在 `.qiongli/guidance_manifest.yaml`。如果 manifest 不存在，Qiongli 使用隐式 `active_subject: auto`：先使用 core guidance，再根据当前任务临时推断 subject 或 method lens，并在改变项目本地状态前写出可审计 proposal。
 
 更新全局 package 并刷新 full local plugin/MCP 安装面：
 
@@ -179,14 +182,26 @@ qiongli self-update --yes
 一次性运行：
 
 ```bash
-npx qiongli@latest install --subject economics --target all --project-dir "$PWD"
-npx qiongli@latest install --subject economics --coverage focused --target all --project-dir "$PWD"
+npx qiongli@latest install --target all
+npx qiongli@latest project status --project-dir .
 npx qiongli@latest check --json
 ```
 
 测试 prerelease 时仍可使用 `next` dist-tag：
 
 ```bash
+npx qiongli@next install --target all
+```
+
+Advanced compatibility、Desktop ZIP、focused package、release payload 和 install-surface testing 示例：
+
+```bash
+qiongli install --subject core --target all --project-dir "$PWD"
+qiongli install --subject economics --target all --project-dir "$PWD"
+qiongli install --subject accounting --target all --project-dir "$PWD"
+qiongli install --subject economics-accounting --target all --project-dir "$PWD"
+qiongli install --subject economics --coverage focused --target all --project-dir "$PWD"
+npx qiongli@latest install --subject economics --target all --project-dir "$PWD"
 npx qiongli@next install --subject economics --target all --project-dir "$PWD"
 ```
 
@@ -246,14 +261,13 @@ wizard 会引导 CLI、Codex、Claude Code 和 Antigravity 用户完成：
 ```bash
 pipx install qiongli
 qiongli setup
-qiongli install --subject economics --target all
-qiongli install --subject accounting --target all
-qiongli install --subject political-economy --target all
-qiongli install --subject geoeconomics --target all
-qiongli install --subject economics-accounting --target all
+qiongli install --target all
+qiongli project init --project-dir .
+qiongli project set-subject finance --project-dir .
+qiongli project status --project-dir .
 ```
 
-`qiongli setup` 可以交互式引导同一组选项。脚本化安装仍可使用这里展示的 `qiongli upgrade` 或显式 `qiongli install ...` 命令。
+`qiongli setup` 可以交互式引导安装。脚本化安装使用 `qiongli install --target all`；项目 subject 行为用 `qiongli project set-subject` 修改。
 
 升级：
 
@@ -264,7 +278,7 @@ qiongli self-update --yes
 
 手动 package-manager 更新仍然可用：运行 `pipx upgrade qiongli` 或 `python -m pip install --upgrade qiongli`，然后用 `qiongli install --target all --surface plugin --profile full --overwrite` 刷新客户端安装面。`qiongli upgrade` 仍是你明确想下载上游 GitHub release 时使用的 release archive refresh 路径。
 
-`--subject` 默认是 `core`，`--coverage` 默认是 `complete`。不确定怎么选时使用 complete：`--subject economics`、`--subject business`、`--subject finance`、`--subject political-economy` 和 `--subject geoeconomics` 表示 complete 专精安装，不是缩水包；`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。只有明确需要精简包或 Desktop/Web 等价包时才使用 `--coverage focused`。当前官方 subjects 是 `core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics` 和命名 composite subject `economics-accounting`；`political-economy` 和 `geoeconomics` 是两个独立 subject 选择，不是一个 composite。官方 composite subjects 不是任意逗号分隔叠加。切换 subject 或 coverage 时，重新运行 `install` 或 `upgrade` 并指定新参数。`qiongli check --json` 会输出每个 target 当前安装的 subject 和 coverage；旧安装缺少 `SUBJECT_MANIFEST.json` 或 `SUBJECT` 文件时按 legacy `core` / `complete` 处理。
+`--subject` 默认是 `core`，`--coverage` 默认是 `complete`，但 subject 安装参数是 advanced compatibility 控制项。它们用于有意选择的精简安装、Desktop/Web 等价包、release payload validation 和 install-surface testing。当前官方 subjects 是 `core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics` 和命名 composite subject `economics-accounting`；`political-economy` 和 `geoeconomics` 是两个独立 subject 选择，不是一个 composite。官方 composite subjects 不是任意逗号分隔叠加。普通项目 subject 行为用 `qiongli project set-subject` 修改；installed subject 或 coverage 只在有意刷新专精安装包时改变。`qiongli check --json` 会输出每个 target 当前安装的 subject 和 coverage；旧安装缺少 `SUBJECT_MANIFEST.json` 或 `SUBJECT` 文件时按 legacy `core` / `complete` 处理。
 
 先创建 custom scaffold，再 materialize 本地 overlays：
 

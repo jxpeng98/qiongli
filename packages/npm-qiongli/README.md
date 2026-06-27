@@ -8,18 +8,13 @@
 npm install -g qiongli
 qiongli setup
 qiongli install --target all
-qiongli install --subject economics --target all
-qiongli install --subject accounting --target all
-qiongli install --subject business --target all
-qiongli install --subject finance --target all
-qiongli install --subject political-economy --target all
-qiongli install --subject geoeconomics --target all
-qiongli install --subject economics-accounting --target all
-qiongli install --subject economics --coverage focused --target all
+qiongli project init --project-dir .
+qiongli project set-subject finance --project-dir .
+qiongli project status --project-dir .
 ```
 
 `qiongli setup` uses the bundled Python bridge and requires Python 3.12+ with `PyYAML`.
-Use explicit `qiongli install ...` commands when you only need Node-based asset installation.
+Use explicit `qiongli install ...` commands when you only need Node-based asset installation. For normal CLI/local plugin use, install once and keep per-project subject behavior in `.qiongli/guidance_manifest.yaml`.
 
 Update an existing global install with:
 
@@ -33,14 +28,14 @@ qiongli self-update --yes
 Or run without a global install:
 
 ```bash
-npx qiongli@latest install --subject economics --target all
-npx qiongli@latest install --subject economics --coverage focused --target all
+npx qiongli@latest install --target all
+npx qiongli@latest project status --project-dir .
 ```
 
 For prerelease testing:
 
 ```bash
-npx qiongli@next upgrade --subject economics --target all
+npx qiongli@next install --target all
 ```
 
 Remove CLI-installed workflow assets before switching install channels:
@@ -63,20 +58,28 @@ The npm package and the installed workflow assets are separate surfaces:
 
 - `npm install -g qiongli@latest` updates the npm CLI and bundled payload in npm's global package location.
 - `qiongli self-update --yes` performs that npm package update and then refreshes installed full local plugin/MCP surfaces from the new bundled payload.
-- `qiongli install --target all` installs the default `core/complete` package into global AI client skill directories.
-- `qiongli install --subject economics --target all` installs the full framework plus economics specialization.
-- `qiongli install --subject accounting --target all` installs the full framework plus accounting specialization.
-- `qiongli install --subject business --target all` installs the full framework plus business/management specialization.
-- `qiongli install --subject finance --target all` installs the full framework plus finance specialization.
-- `qiongli install --subject political-economy --target all` installs the full framework plus political economy specialization.
-- `qiongli install --subject geoeconomics --target all` installs the full framework plus geoeconomics specialization.
-- `qiongli install --subject economics --coverage focused --target all` installs the slimmer economics-focused package.
-- `qiongli install --subject economics-accounting --target all` installs the official economics/accounting composite.
-- `qiongli upgrade --subject accounting --target all` is the release-archive refresh path with overwrite enabled. Use it when you intentionally want to download an upstream GitHub release rather than updating the npm package first.
+- `qiongli install --target all` installs the stable full local runtime used across projects.
+- `qiongli project init --project-dir .` creates `.qiongli/guidance_manifest.yaml` for a project.
+- `qiongli project set-subject finance --project-dir .` changes ordinary project subject behavior without reinstalling a package.
+- Missing `.qiongli/guidance_manifest.yaml` means implicit `active_subject: auto`: Qiongli uses core guidance, infers temporary subject or method lenses from the task, and writes auditable proposals before changing project-local state.
 - `qiongli remove --target all` removes CLI-installed global workflow assets and generated discovery links while preserving marketplace plugins and unmanaged user files.
 - Project directories are not required for normal install or upgrade. Use project paths only for commands that inspect or clean a specific project, such as `qiongli doctor --cwd .` or `qiongli clean --project-dir .`.
 
-`--subject` defaults to `core`, and `--coverage` defaults to `complete`; the default install is `core/complete`. `--subject economics`, `--subject business`, `--subject finance`, `--subject political-economy`, and `--subject geoeconomics` mean complete specialized installs, not reduced packages. `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. Use `--coverage focused` only when you deliberately want the slim selected subject package and the Desktop/Web ZIP shape. Current official subjects are `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and the named composite `economics-accounting`; composites are not arbitrary comma-separated stacking. Public Desktop ZIP subjects are `core`, `economics`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting`, with no standalone accounting Desktop ZIP in this phase. Subject packages are specialized installs, not reduced-quality cuts. Switch subjects or coverage by rerunning `install` or `upgrade` with new flags. `qiongli check --json` reports the bundled payload subject/coverage and installed target subject/coverage.
+Advanced compatibility, Desktop ZIP, focused package, release payload, and install-surface testing examples:
+
+```bash
+qiongli install --subject economics --target all
+qiongli install --subject accounting --target all
+qiongli install --subject business --target all
+qiongli install --subject finance --target all
+qiongli install --subject political-economy --target all
+qiongli install --subject geoeconomics --target all
+qiongli install --subject economics --coverage focused --target all
+qiongli install --subject economics-accounting --target all
+qiongli upgrade --subject accounting --target all
+```
+
+`--subject` defaults to `core`, and `--coverage` defaults to `complete`, but subject install flags are advanced compatibility controls. `--subject economics`, `--subject business`, `--subject finance`, `--subject political-economy`, and `--subject geoeconomics` mean complete specialized installs, not reduced packages. `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. Use `--coverage focused` only when you deliberately want the slim selected subject package and the Desktop/Web ZIP shape. Current official subjects are `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and the named composite `economics-accounting`; composites are not arbitrary comma-separated stacking. Public Desktop ZIP subjects are `core`, `economics`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting`, with no standalone accounting Desktop ZIP in this phase. Subject packages are specialized installs, not reduced-quality cuts. Ordinary project subject behavior changes with `qiongli project set-subject`; installed subject or coverage changes are only intentional specialized package refreshes. `qiongli check --json` reports the bundled payload subject/coverage and installed target subject/coverage.
 
 Global assets are written under client home directories such as:
 
@@ -117,7 +120,7 @@ The full CLI MCP server exposes literature tools plus orchestrator tools:
 
 `qiongli_task_run` defaults to preview mode and launches local Codex or Claude processes only when the MCP caller explicitly sends JSON boolean `run_agents: true`. It accepts `guidance_mode` (`off`, `read`, `propose`, or `apply`) for the project-local `.qiongli/` guidance layer. Preview mode echoes the selected task-run arguments and bootstrap status, but does not create formal `RESEARCH/[topic]/...` artifacts or `.qiongli/` files.
 
-When agents are launched, the first non-`off` task run initializes `.qiongli/local_guidance.md` and `.qiongli/trace/` if needed. Formal task outputs still belong under `RESEARCH/[topic]/...`. Project-local guidance traces are written separately under `.qiongli/trace/` so missing formal outputs remain auditable without modifying bundled skills or workflow payloads.
+When agents are launched, project subject context comes from `.qiongli/guidance_manifest.yaml`; if it is missing, the effective subject is `active_subject: auto`. The first non-`off` task run initializes `.qiongli/local_guidance.md` and `.qiongli/trace/` if needed. Formal task outputs still belong under `RESEARCH/[topic]/...`. Project-local guidance traces are written separately under `.qiongli/trace/` so missing formal outputs remain auditable without modifying bundled skills or workflow payloads.
 
 Use `stdio` when the desktop client can launch a local command. Use HTTP only for clients that require an endpoint:
 

@@ -451,7 +451,7 @@ Available modes:
   - `--update-academic-context`: for supported stage-close tasks (`A5`, `B6`, `C5`, `D3`, `E5`, `F6`, `H4`), append `context/research_state.md` and `context/decision_log.md` to this run's active outputs and inject stage-specific academic continuity guidance into the draft prompt
   - Built-in profiles now include `focused-delivery` and `deep-research` in addition to `default`, `rapid-draft`, and `strict-review`
 
-  Formal research artifacts still belong under `RESEARCH/[topic]/...`. The first non-`off` task run automatically initializes `.qiongli/local_guidance.md` and `.qiongli/trace/` when they are missing. The orchestrator prompts runtime agents to create the required files; if an agent only returns text and does not write those files, the validator reports them as missing. Guidance trace bundles are written separately under `.qiongli/trace/runs/<run_id>/` so the run remains auditable even when formal outputs are incomplete.
+  Formal research artifacts still belong under `RESEARCH/[topic]/...`. Project subject context comes from `.qiongli/guidance_manifest.yaml`; when it is missing, the effective subject is `active_subject: auto`. The first non-`off` task run automatically initializes `.qiongli/local_guidance.md` and `.qiongli/trace/` when they are missing. The orchestrator prompts runtime agents to create the required files; if an agent only returns text and does not write those files, the validator reports them as missing. Guidance trace bundles are written separately under `.qiongli/trace/runs/<run_id>/` so the run remains auditable even when formal outputs are incomplete.
 
   Example: reduce artifact sprawl but keep stronger review pressure
   ```bash
@@ -519,7 +519,7 @@ Qiongli does not silently persist a subject switch. Persistent project changes c
     --project-dir . \
     --proposal .qiongli/trace/runs/<run_id>/guidance_update_proposal.md
   ```
-  Project-local customization lives in `.qiongli/local_guidance.md`; run trace records live in `.qiongli/trace/index.jsonl` and `.qiongli/trace/runs/<run_id>/`. These files are intentionally separate from canonical workflow contracts, bundled skills, and release payloads.
+  Project-local subject context lives in `.qiongli/guidance_manifest.yaml`; project-local customization lives in `.qiongli/local_guidance.md`; run trace records live in `.qiongli/trace/index.jsonl` and `.qiongli/trace/runs/<run_id>/`. These files are intentionally separate from canonical workflow contracts, bundled skills, and release payloads.
   Guidance proposals are project-local by default. A proposal may suggest `user-global` or `canonical-candidate`, but `qiongli guidance apply` only writes `.qiongli/local_guidance.md`. Promoting a rule to `~/.qiongli/preferences.md` or canonical source requires an explicit future command or normal repository PR.
 - `code-build`: Academic code workflow entry point
   ```bash

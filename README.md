@@ -151,7 +151,7 @@ npm / npx installs:
 
 ```bash
 npm install -g qiongli
-qiongli install --target all --project-dir "$PWD"
+qiongli install --target all
 
 # Per-project subject guidance
 qiongli project init --project-dir "$PWD"
@@ -173,6 +173,8 @@ npx qiongli@next check --json
 qiongli remove --target all --dry-run
 qiongli remove --target all
 ```
+
+For scripted compatibility, `qiongli install --target all --project-dir "$PWD"` is equivalent for the install surface; ordinary subject behavior still belongs to `qiongli project ...`.
 
 For normal CLI/local plugin use, install Qiongli once with `qiongli install --target all`. Each project can then keep its own `.qiongli/guidance_manifest.yaml` via `qiongli project init`, `qiongli project set-subject ...`, and `qiongli project status`. If no project subject is configured, Qiongli runs with implicit `active_subject: auto`: it uses core guidance, infers temporary subject and method lenses from the current task, and writes auditable proposals before changing project-local state.
 
@@ -211,7 +213,7 @@ qiongli setup
 qiongli setup --dry-run
 qiongli setup --project-dir "$PWD" --no-doctor
 qiongli setup --provider-mode prompt --no-browser
-qiongli install --target all --project-dir "$PWD"
+qiongli install --target all
 ```
 
 The wizard covers `install` and `upgrade`, runtime surface (`cli`, `codex`, `claude-code`, `antigravity`, or `multi-platform`), subject, coverage, `--mode copy|link`, install scope, CLI directory / shell CLI location, `--overwrite` / `--no-overwrite`, optional provider config, and doctor verification unless `--no-doctor` is used. Provider setup defaults to one local browser page for OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv guidance; use `--no-browser` to print the URL only, `--provider-mode prompt` for terminal-only entry, or `--provider-mode skip` to bypass provider setup.
@@ -282,7 +284,7 @@ The full CLI MCP server exposes:
 - `qiongli_task_plan`
 - `qiongli_task_run`
 
-Use `qiongli_orchestrator_route` from Codex, Claude Code, Antigravity, or another local MCP client when a natural academic request might need multi-agent coordination, independent review, handoff, strict gates, or auditable task-run artifacts. It returns a preview-first `doctor -> task_plan -> task_run` sequence. `qiongli_task_run` defaults to preview mode. It launches local runtime agents only when the MCP caller explicitly sends JSON boolean `run_agents: true` and the local runtime passes `doctor`. Project-local guidance uses `.qiongli/local_guidance.md` and `.qiongli/trace/`, which the first non-`off` task run initializes if missing; formal task outputs still belong under `RESEARCH/[topic]/...`.
+Use `qiongli_orchestrator_route` from Codex, Claude Code, Antigravity, or another local MCP client when a natural academic request might need multi-agent coordination, independent review, handoff, strict gates, or auditable task-run artifacts. It returns a preview-first `doctor -> task_plan -> task_run` sequence. `qiongli_task_run` defaults to preview mode. It launches local runtime agents only when the MCP caller explicitly sends JSON boolean `run_agents: true` and the local runtime passes `doctor`. Project-local guidance uses `.qiongli/guidance_manifest.yaml`, `.qiongli/local_guidance.md`, `.qiongli/guidance.d/*.md`, and `.qiongli/trace/`; formal task outputs still belong under `RESEARCH/[topic]/...`.
 
 See [Cross-Platform MCP Server](docs/advanced/cross-platform-mcp.md) and [MCP Providers Setup](docs/advanced/mcp-providers-setup.md).
 

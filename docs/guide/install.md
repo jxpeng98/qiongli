@@ -28,7 +28,7 @@ Current stable release: [v1.10.0](https://github.com/jxpeng98/qiongli/releases/t
 | npm / npx | Node-based automation | npm CLI plus bundled workflow payload | Only for advanced bridge commands |
 | pipx / pip | Python updater CLI | Python CLI distribution | Yes |
 
-The user-visible skill name is `qiongli`. The installed directory is still `qiongli-workflow` for compatibility with existing clients and release artifacts. `core` is the default subject, so the default install is `core/complete`. Specialized CLI/npm installs default to `coverage=complete`, meaning full Qiongli plus the requested subject specialization.
+The user-visible skill name is `qiongli`. The installed directory is still `qiongli-workflow` for compatibility with existing clients and release artifacts. For normal CLI/local plugin use, install the stable `core/complete` runtime once and store everyday subject behavior in `.qiongli/guidance_manifest.yaml`. Specialized CLI/npm installs default to `coverage=complete`, but they are advanced compatibility paths for Desktop ZIPs, focused packages, release payloads, and install-surface testing.
 
 From v1.9.0 onward, `qiongli install` defaults to `--profile full --surface plugin`. Codex, Claude Code, and Antigravity receive CLI-managed local plugin bundles backed by `qiongli mcp serve --transport stdio`; Antigravity bundles that server in the plugin root `mcp_config.json`, and Hermes receives managed full MCP client config. Use `--surface skills --profile partial` only when you deliberately want the old skills-only layout.
 
@@ -173,13 +173,16 @@ Use npm when you want a Node-distributed installer with the workflow payload bun
 
 ```bash
 npm install -g qiongli
-qiongli install --subject core --target all --project-dir "$PWD"
-qiongli install --subject economics --target all --project-dir "$PWD"
-qiongli install --subject accounting --target all --project-dir "$PWD"
-qiongli install --subject economics-accounting --target all --project-dir "$PWD"
-qiongli install --subject economics --coverage focused --target all --project-dir "$PWD"
+qiongli install --target all
+qiongli project init --project-dir .
+qiongli project set-subject finance --project-dir .
+qiongli project status --project-dir .
 qiongli install --profile full --target all --surface plugin
 ```
+
+For scripted compatibility, `qiongli install --target all --project-dir "$PWD"` is equivalent for the install surface; ordinary subject behavior still belongs to `qiongli project ...`.
+
+For normal CLI/local plugin use, keep this installed runtime stable and store subject behavior in `.qiongli/guidance_manifest.yaml`. If no manifest exists, Qiongli uses implicit `active_subject: auto`, starts from core guidance, infers temporary subject or method lenses from the task, and writes auditable proposals before changing project-local state.
 
 Update the global package and refresh the full local plugin/MCP surface with:
 
@@ -193,14 +196,26 @@ For npm installs, `self-update` delegates to `npm install -g qiongli@latest`, th
 For one-off runs:
 
 ```bash
-npx qiongli@latest install --subject economics --target all --project-dir "$PWD"
-npx qiongli@latest install --subject economics --coverage focused --target all --project-dir "$PWD"
+npx qiongli@latest install --target all
+npx qiongli@latest project status --project-dir .
 npx qiongli@latest check --json
 ```
 
 Prerelease testing remains available through the `next` dist-tag:
 
 ```bash
+npx qiongli@next install --target all
+```
+
+Advanced compatibility, Desktop ZIP, focused package, release payload, and install-surface testing examples:
+
+```bash
+qiongli install --subject core --target all --project-dir "$PWD"
+qiongli install --subject economics --target all --project-dir "$PWD"
+qiongli install --subject accounting --target all --project-dir "$PWD"
+qiongli install --subject economics-accounting --target all --project-dir "$PWD"
+qiongli install --subject economics --coverage focused --target all --project-dir "$PWD"
+npx qiongli@latest install --subject economics --target all --project-dir "$PWD"
 npx qiongli@next install --subject economics --target all --project-dir "$PWD"
 ```
 
@@ -260,14 +275,13 @@ Use pipx when you specifically want the Python-distributed updater CLI:
 ```bash
 pipx install qiongli
 qiongli setup
-qiongli install --subject economics --target all
-qiongli install --subject accounting --target all
-qiongli install --subject political-economy --target all
-qiongli install --subject geoeconomics --target all
-qiongli install --subject economics-accounting --target all
+qiongli install --target all
+qiongli project init --project-dir .
+qiongli project set-subject finance --project-dir .
+qiongli project status --project-dir .
 ```
 
-`qiongli setup` can guide the same choices interactively. Scriptable installs can still use `qiongli upgrade` or explicit `qiongli install ...` commands as shown here.
+`qiongli setup` can guide installation interactively. Scriptable installs should use `qiongli install --target all`; project subject behavior changes with `qiongli project set-subject`.
 
 Upgrade it with:
 
@@ -278,7 +292,7 @@ qiongli self-update --yes
 
 Manual package-manager updates are still valid: run `pipx upgrade qiongli` or `python -m pip install --upgrade qiongli`, then refresh client surfaces with `qiongli install --target all --surface plugin --profile full --overwrite`. `qiongli upgrade` remains the release-archive refresh path when you intentionally want to download an upstream GitHub release.
 
-`--subject` defaults to `core`, and `--coverage` defaults to `complete`. Use complete when you are unsure: `--subject economics`, `--subject business`, `--subject finance`, `--subject political-economy`, and `--subject geoeconomics` mean complete specialized installs, not reduced packages, and `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. Use `--coverage focused` for deliberate slim installs and Desktop/Web-equivalent packages. Current official subjects are `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and the named composite `economics-accounting`; `political-economy` and `geoeconomics` are independent subject choices, not a composite. Official composite subjects are not arbitrary comma-separated stacking. To switch a client from one subject or coverage to another, rerun `install` or `upgrade` with new flags. `qiongli check --json` reports the active installed subject and coverage per target; legacy installs without a `SUBJECT_MANIFEST.json` or `SUBJECT` file are treated as `core` / `complete`.
+`--subject` defaults to `core`, and `--coverage` defaults to `complete`, but subject install flags are advanced compatibility controls. Use them for deliberate slim installs, Desktop/Web-equivalent packages, release payload validation, and install-surface testing. Current official subjects are `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and the named composite `economics-accounting`; `political-economy` and `geoeconomics` are independent subject choices, not a composite. Official composite subjects are not arbitrary comma-separated stacking. Ordinary project subject behavior changes with `qiongli project set-subject`; installed subject or coverage changes are only intentional specialized package refreshes. `qiongli check --json` reports the active installed subject and coverage per target; legacy installs without a `SUBJECT_MANIFEST.json` or `SUBJECT` file are treated as `core` / `complete`.
 
 Create a custom scaffold before materializing local overlays:
 

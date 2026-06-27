@@ -439,7 +439,7 @@ mode 列表：
   - `--update-academic-context`：对支持的阶段收口任务（`A5`、`B6`、`C5`、`D3`、`E5`、`F6`、`H4`），把 `context/research_state.md` 和 `context/decision_log.md` 追加进本次 active outputs，并向 draft prompt 注入阶段化的 academic continuity 更新约束
   - 内置 profile 新增 `focused-delivery`、`deep-research`；原有 `default`、`rapid-draft`、`strict-review` 仍可用
 
-  正式研究产物仍然属于 `RESEARCH/[topic]/...`。第一次非 `off` 的 task-run 会在缺失时自动初始化 `.qiongli/local_guidance.md` 和 `.qiongli/trace/`。orchestrator 会要求运行时 agent 创建这些 required files；如果 agent 只返回文本而没有真正写入文件，validator 会把它们标为 missing。`.qiongli/trace/runs/<run_id>/` 是独立追溯目录，即使正式产物不完整，也会记录 task packet、draft、review、validator gate 和 guidance proposal。
+  正式研究产物仍然属于 `RESEARCH/[topic]/...`。项目 subject context 来自 `.qiongli/guidance_manifest.yaml`；缺失时有效 subject 是 `active_subject: auto`。第一次非 `off` 的 task-run 会在缺失时自动初始化 `.qiongli/local_guidance.md` 和 `.qiongli/trace/`。orchestrator 会要求运行时 agent 创建这些 required files；如果 agent 只返回文本而没有真正写入文件，validator 会把它们标为 missing。`.qiongli/trace/runs/<run_id>/` 是独立追溯目录，即使正式产物不完整，也会记录 task packet、draft、review、validator gate 和 guidance proposal。
 
   示例：减少辅助文件，但保持更强的深度审查
   ```bash
@@ -507,7 +507,7 @@ Qiongli 不会静默持久切换 subject。持久的项目变更只来自显式�
     --project-dir . \
     --proposal .qiongli/trace/runs/<run_id>/guidance_update_proposal.md
   ```
-  项目本地定制写在 `.qiongli/local_guidance.md`；运行追溯写在 `.qiongli/trace/index.jsonl` 和 `.qiongli/trace/runs/<run_id>/`。这些文件不会修改 canonical workflow contract、内置 skills 或 release payload。
+  项目 subject context 写在 `.qiongli/guidance_manifest.yaml`；项目本地定制写在 `.qiongli/local_guidance.md`；运行追溯写在 `.qiongli/trace/index.jsonl` 和 `.qiongli/trace/runs/<run_id>/`。这些文件不会修改 canonical workflow contract、内置 skills 或 release payload。
   Guidance proposal 默认是 project-local。proposal 可以建议 `user-global` 或 `canonical-candidate`，但 `qiongli guidance apply` 只会写 `.qiongli/local_guidance.md`。将规则提升到 `~/.qiongli/preferences.md` 或 canonical source，需要显式的后续命令或正常 repository PR。
 - `code-build`：学术代码工作流入口
   ```bash

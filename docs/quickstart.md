@@ -58,24 +58,33 @@ pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile partial -Pro
 
 Use `--profile full` instead of `partial` when Python 3.12+ is already installed and you want runtime checks, validators, or orchestrated tasks.
 
-For npm or pipx installs, `--subject` defaults to `core` and `--coverage` defaults to `complete`:
+For npm or pipx installs, install the local runtime once, then configure subject guidance inside each project:
+
+```bash
+qiongli install --target all
+qiongli project init --project-dir .
+qiongli project set-subject finance --project-dir .
+qiongli project status --project-dir .
+qiongli install --profile full --target all --surface plugin
+qiongli remove --target all --dry-run
+qiongli check --json
+```
+
+If `.qiongli/guidance_manifest.yaml` is missing, Qiongli runs with implicit `active_subject: auto`: it uses core guidance, infers temporary subject and method lenses from the task, and writes auditable proposals before changing project-local state. Use `--profile full --surface plugin` when Codex/Claude Code should get a local plugin whose MCP launches the full Python server; with `--target all`, Antigravity and Hermes receive managed full MCP client configs.
+
+Advanced compatibility, Desktop ZIP, focused package, release payload, and install-surface testing examples:
 
 ```bash
 qiongli install --subject economics --target all
 qiongli install --subject accounting --target all
 npx qiongli@latest install --subject economics --target all
-qiongli install --subject political-economy --target all
-qiongli install --subject geoeconomics --target all
 qiongli install --subject economics-accounting --target all
 qiongli install --subject economics --coverage focused --target all
-qiongli install --profile full --target all --surface plugin
 qiongli upgrade --subject accounting --target all
-qiongli remove --target all --dry-run
 qiongli customize --subject economics --name my-econ-lab --out ./qiongli-custom/econ-lab
-qiongli check --json
 ```
 
-Use the default complete coverage when you are unsure: `qiongli install --target all` means `core/complete`, `--subject economics`, `--subject business`, `--subject finance`, `--subject political-economy`, and `--subject geoeconomics` mean complete specialized installs, and `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. Use `--profile full --surface plugin` when Codex/Claude Code should get a local plugin whose MCP launches the full Python server; with `--target all`, Antigravity and Hermes receive managed full MCP client configs. Use `--coverage focused` only when you deliberately want the slimmer selected subject package and Desktop/Web ZIP shape. `political-economy` and `geoeconomics` are independent subjects, not a composite. Official composite subjects such as `economics-accounting` are named subjects, not arbitrary comma-separated stacking. Switch subjects or coverage by rerunning `install` or `upgrade` with new flags. Custom overlays affect generated output only and do not rewrite canonical source files; `qiongli customize` plus `--custom-dir` materialization is for the Python/source checkout workflow, while npm runtime installs pre-generated payloads in this phase.
+`--subject` package installs remain specialized package refreshes, not the everyday way to change a project's subject. Ordinary project subject behavior changes with `qiongli project set-subject`; installed subject or coverage changes are only intentional specialized package refreshes. `political-economy` and `geoeconomics` are independent subjects, not a composite. Official composite subjects such as `economics-accounting` are named subjects, not arbitrary comma-separated stacking. Custom overlays affect generated output only and do not rewrite canonical source files; `qiongli customize` plus `--custom-dir` materialization is for the Python/source checkout workflow, while npm runtime installs pre-generated payloads in this phase.
 
 Use `qiongli remove` when you need to remove CLI-installed global assets before relying only on marketplace plugins.
 
