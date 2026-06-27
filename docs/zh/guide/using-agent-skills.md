@@ -18,7 +18,7 @@ Qiongli 安装的是一套 agent-facing skill 系统，但不同客户端暴露�
 |---|---|---|---|
 | Codex | `/skills` | `$qiongli` | Codex 不暴露自定义 `/qiongli` slash command。安装或升级后需要重启 Codex。 |
 | Claude Code | Plugin UI 或 `/plugin` 命令 | `/paper`、`/lit-review`、`/paper-write`、`/code-build`，或自然语言要求使用 Qiongli | Plugin 会安装 command wrappers 和便携 skill package。 |
-| Shell | `qiongli check` | `qiongli doctor`、`qiongli upgrade`、`qiongli task-run`、`python3 -m bridges.orchestrator ...` | 需要 npm 或 Python CLI 入口。高级命令需要 Python 3.12+。 |
+| Shell | `qiongli check` | npm：`qiongli install`、`qiongli update`、`qiongli project ...`；完整运行时：`qiongli doctor`、`qiongli task-run`、`python3 -m bridges.orchestrator ...` | npm/npx 是免 Python 资产管理器。完整运行时命令需要先 `pipx install qiongli`，并使用 Python 3.12+。 |
 
 ## Codex 用法
 

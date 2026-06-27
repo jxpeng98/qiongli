@@ -45,18 +45,13 @@ These errors occur when the Orchestrator cannot locate a required CLI binary (li
   - `npm install -g @anthropic-ai/claude-code`
   - Install the Codex CLI from the official OpenAI distribution, then ensure `codex` is on `PATH`.
 
-### `qiongli doctor` from npm reports PyYAML missing.
-- **Cause**: The npm wrapper found a Python 3.12+ executable, but that Python environment does not have `PyYAML`.
-- **Fix**:
-
-```bash
-python3 -m pip install PyYAML
-```
-
-or install the Python CLI through pipx:
+### `qiongli doctor` from npm exits with full-runtime guidance.
+- **Cause**: The npm CLI is a Python-free asset manager. It does not run `doctor`, provider setup, orchestrator, or the unified MCP server.
+- **Fix**: Install the full runtime through pipx, then rerun the command:
 
 ```bash
 pipx install qiongli
+qiongli doctor
 ```
 
 ### `[ERR-RS-ENV-003]` `curl: (60) SSL certificate problem: certificate is not yet valid`.

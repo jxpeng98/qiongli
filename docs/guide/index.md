@@ -10,7 +10,7 @@ Use this section when you are operating Qiongli as a user or project owner. It k
 - [Task Recipes](/guide/task-recipes): scenario-based routes for literature review, empirical design, writing, code, and rebuttal.
 - [Multi-Agent Runtime Guide](/guide/multi-agent): runtime routing, local agent execution, and auth rules.
 - [Examples](/examples/): paper-type playbooks for systematic review, empirical, qualitative, methods, and theory workflows.
-- [Upgrade](/guide/upgrade): package updates, content refreshes, shell bootstrap, Python CLI, and long-lived clone paths.
+- [Upgrade](/guide/upgrade): npm asset refreshes, full-runtime package updates, shell bootstrap, Python CLI, and long-lived clone paths.
 - [Troubleshooting](/guide/troubleshooting): unified error-code guide.
 
 ## Recommended Reading Order
@@ -25,9 +25,9 @@ Use this section when you are operating Qiongli as a user or project owner. It k
 
 ## Update Boundary
 
-- Use `qiongli update` when the installed npm, pipx, or pip package should move to a newer release.
-- Use `qiongli update --no-refresh` when you want the package update only.
-- Use `qiongli upgrade` when you only want to refresh installed local content/assets from a package or release archive.
+- On npm/npx, use `qiongli update` or `qiongli refresh` to reapply assets from the current package.
+- On npm/npx, use `qiongli upgrade` for an overwrite asset refresh from the current package.
+- Full runtime package self-update, including `qiongli self-update`, requires the Python runtime first: `pipx install qiongli`.
 
 ## When To Leave This Section
 

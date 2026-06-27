@@ -94,6 +94,7 @@ def sync_npm_payload(root: Path, *, dry_run: bool = False) -> None:
         sync_python_payload(root, materialize_source, dry_run=dry_run)
 
         copy_path(materialize_source / "qiongli-workflow", payload_root / "qiongli-workflow", dry_run=dry_run)
+        sync_plugin_lite_payloads(root, payload_root, dry_run=dry_run)
         sync_shell_cli_sources(layout, payload_root / "scripts", dry_run=dry_run)
         sync_subject_payloads(root, payload_root, dry_run=dry_run, materialize_source=materialize_source)
 
@@ -130,6 +131,33 @@ def sync_npm_payload(root: Path, *, dry_run: bool = False) -> None:
     if not dry_run:
         fail_if_symlinks(payload_root)
         fail_if_symlinks(runtime_root)
+
+
+def sync_plugin_lite_payloads(root: Path, payload_root: Path, *, dry_run: bool) -> None:
+    plugins_root = payload_root / "plugins"
+    target_roots = {
+        "fallback": plugins_root / "qiongli",
+        "codex": plugins_root / "codex" / "qiongli",
+        "claude": plugins_root / "claude" / "qiongli",
+    }
+
+    if dry_run:
+        for target, dest in target_roots.items():
+            print(f"[npm-sync] would materialize plugin-lite payload {target} -> {dest}")
+        return
+
+    if plugins_root.exists():
+        shutil.rmtree(plugins_root)
+
+    from scripts.build_plugin_artifacts import materialize_plugin_package
+
+    with tempfile.TemporaryDirectory(prefix="qiongli-plugin-lite-payload-") as tmp:
+        materialized_plugin_root = Path(tmp) / "qiongli"
+        materialize_plugin_package(root, materialized_plugin_root, force=True)
+        for dest in target_roots.values():
+            copy_path(materialized_plugin_root, dest, dry_run=False)
+
+    fail_if_symlinks(plugins_root)
 
 
 def build_materialize_source(root: Path, tmp_root: Path, *, dry_run: bool) -> Path:

@@ -55,11 +55,11 @@ Current stable release: [v1.12.0](https://github.com/jxpeng98/qiongli/releases/t
 
 ## Install Fast
 
-The default CLI install now prepares the full local plugin surface for supported clients:
+The npm CLI is a Python-free asset manager. It installs the skills surface by default:
 
 ```bash
 npm install -g qiongli
-qiongli install --target all
+qiongli install --target all --surface skills
 qiongli check --offline
 ```
 
@@ -77,34 +77,44 @@ qiongli project set-subject finance --project-dir "$PWD"
 qiongli project status --project-dir "$PWD"
 ```
 
-For skill-only or no-Python paths, use the install guide. It covers Codex and Claude Code marketplace plugins, Claude Desktop Skill ZIPs, the literature MCPB, bootstrap partial/full, npm/npx, pipx, and pip.
+For plugin-lite or full runtime paths, use the install guide. It covers Codex and Claude Code marketplace plugins, Claude Desktop Skill ZIPs, the literature MCPB, bootstrap partial/full, npm/npx, pipx, and pip. npm plugin-lite output is opt-in with `--surface plugin` or `--surface both` where bundled and supported.
+
+## Install Entry Comparison
+
+| Entry | Positioning | Includes | Use it for | Boundary |
+|---|---|---|---|---|
+| Marketplace plugin / extension | Client-native, lowest setup | Qiongli skill/plugin package, workflows, prompts, templates; Codex/Claude Code also bundle the Node literature MCP | Work inside one client without managing a CLI | No full orchestrator or Python runtime unless you install the full runtime separately |
+| Claude Desktop Skill ZIP + Literature MCPB | Desktop/Web no-code path | Uploaded `qiongli` Skill ZIP plus optional `qiongli-literature-provider.mcpb` | Claude Desktop/Web skill use and local literature provider tools | Skill ZIP is skill-only; MCPB is provider-only; neither runs the Python orchestrator |
+| npm / npx | Python-free asset manager | npm CLI, pre-materialized skills by default, optional plugin-lite assets with `--surface plugin|both`, Node project commands | Scripted installs, dotfiles, CI, current-package asset refresh, project subject guidance | Does not self-update packages or run `doctor`, `mcp serve`, provider setup, or task orchestration |
+| pipx / pip full runtime | Python CLI and managed full local runtime | Python CLI, setup wizard, full plugin install, unified MCP server, provider setup, doctor checks, task/orchestrator commands | Local validation, provider configuration, MCP/orchestrator tools, package self-update | Requires Python 3.12+ and the relevant local CLIs for agent execution |
+| Bootstrap partial/full | Release-script install path | `partial`: global skills/discovery; `full`: partial plus shell CLI/MCP/doctor support | Machines that should install from release scripts instead of package managers | `full` still requires Python 3.12+ already available |
 
 ## Recommended CLI Setup Wizard
 
-Use the wizard when you want the CLI to help choose an install and upgrade path:
+Use the full runtime wizard when you want the CLI to help choose an install and upgrade path:
 
 ```bash
+pipx install qiongli
 qiongli setup
 qiongli setup --dry-run
 qiongli setup --project-dir "$PWD" --no-doctor
 ```
 
-It covers runtime surface, subject, coverage, `--mode copy|link`, shell CLI / CLI directory choices, `--overwrite` / `--no-overwrite`, optional provider config, and doctor verification. On npm installs, `qiongli setup` delegates through the bundled Python bridge and requires Python 3.12+ plus `PyYAML`. If you only need scriptable asset installation, run `qiongli install ...` directly.
+The full runtime wizard covers runtime surface, subject, coverage, `--mode copy|link`, shell CLI / CLI directory choices, `--overwrite` / `--no-overwrite`, optional provider config, and doctor verification. On npm/npx, `qiongli setup` is the Python-free asset manager shortcut for client assets; full runtime commands such as `doctor`, `mcp serve`, `provider setup`, or `customize` require `pipx install qiongli`. If you only need scriptable asset installation, run `qiongli install ...` directly.
 
 ## Update Or Refresh
 
-`qiongli update` updates the installed CLI package first, then asks whether to refresh installed local plugins/assets from the new package:
+On npm/npx, `qiongli update` and `qiongli refresh` stay on the Python-free asset path:
 
 ```bash
 qiongli update
-qiongli update --yes
-qiongli update --no-refresh
+qiongli refresh
 ```
 
-`qiongli upgrade` is different: it refreshes local content/assets from the current package or a selected release archive. It does not upgrade the npm, pipx, or pip package.
+On npm/npx, `qiongli upgrade` is an alias for an overwrite asset refresh from the currently installed npm package; it does not update the npm package or the full Python CLI. Selected release archives, package self-update, and `qiongli self-update` belong to the full Python runtime: `pipx install qiongli`.
 
 ```bash
-qiongli upgrade --ref v1.11.0 --target all
+qiongli upgrade --target all
 ```
 
 ## Runtime Boundary
@@ -113,9 +123,9 @@ Installing Qiongli assets is intentionally lighter than running full orchestrati
 
 | Surface | Use it for | Needs Python/model CLIs? |
 |---|---|---|
-| Skill or plugin package | prompts, task routes, templates, standards, subject overlays | No |
+| skill-only or plugin package | prompts, task routes, templates, standards, subject overlays | No |
 | Literature MCPB / bundled literature MCP | provider status, local search, evidence export | No Python |
-| Full local plugin or CLI MCP | `doctor`, provider config, `task-plan`, `task-run`, orchestrator tools | Yes |
+| Full local plugin or CLI MCP | full runtime commands: `doctor`, provider config, `task-plan`, `task-run`, `mcp serve` | Yes |
 | Shell/Python CLI | validators, release checks, local orchestration, package maintenance | Yes |
 
 Actual agent execution starts only when the runtime is configured and an execution command explicitly enables it. Previews and checks are designed to be inspectable before side effects.

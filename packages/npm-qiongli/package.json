@@ -1,7 +1,7 @@
 {
   "name": "qiongli",
   "version": "1.12.0",
-  "description": "Qiongli academic research workflow installer and optional Python bridge runtime.",
+  "description": "Qiongli Python-free academic workflow asset manager.",
   "author": {
     "name": "Jiaxin Peng",
     "url": "https://github.com/jxpeng98"

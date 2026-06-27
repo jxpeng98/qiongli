@@ -1,25 +1,24 @@
 import { parseArgv } from './args.mjs';
 import { packageRoot } from './package-root.mjs';
 import { buildCheck, cleanAssets, installSkills, removeAssets } from './installer.mjs';
+import { initProject, projectStatus, renderProjectResult, setProjectSubject } from './project.mjs';
 import {
-  checkPythonRuntime,
-  runBridgeCommand as defaultRunBridgeCommand,
-  runPythonCliCommand as defaultRunPythonCliCommand,
-} from './python-runtime.mjs';
+  FULL_RUNTIME_COMMANDS,
+  hasLegacyUpdateFlags,
+  writeFullRuntimeRequired,
+  writeLegacyUpdateFlagGuidance,
+} from './runtime-message.mjs';
 
-const BRIDGE_COMMANDS = new Set(['doctor', 'guidance', 'task-run', 'team-run', 'parallel', 'chain', 'role', 'single', 'code-build', 'task-plan']);
-const PYTHON_CLI_COMMANDS = new Set(['setup', 'mcp', 'self-update', 'update']);
-const SELF_UPDATE_COMMANDS = new Set(['self-update', 'update']);
+const INSTALL_COMMANDS = new Set(['install', 'setup']);
 
 export async function main(argv, {
   stdout = process.stdout,
   stderr = process.stderr,
   env = process.env,
   packageRoot: packageRootOverride,
-  runBridgeCommand = defaultRunBridgeCommand,
-  runPythonCliCommand = defaultRunPythonCliCommand,
 } = {}) {
   const root = packageRootOverride || packageRoot();
+  const [rawCommand = 'help'] = argv;
   let parsed;
   try {
     parsed = parseArgv(argv);
@@ -33,13 +32,23 @@ export async function main(argv, {
     return 0;
   }
 
-  if (parsed.command === 'install') {
+  if (rawCommand === 'update' && hasLegacyUpdateFlags(parsed.rest)) {
+    writeLegacyUpdateFlagGuidance(stderr);
+    return 1;
+  }
+
+  if (INSTALL_COMMANDS.has(parsed.command)) {
+    if (parsed.rest.length) {
+      writeUnsupportedAssetArguments(parsed.rest, stderr);
+      return 2;
+    }
     let result;
     try {
       result = installSkills({
         packageRoot: root,
         target: parsed.options.target,
         mode: parsed.options.mode,
+        surface: parsed.options.surface,
         overwrite: parsed.options.overwrite,
         dryRun: parsed.options.dryRun,
         subject: parsed.options.subject,
@@ -61,6 +70,7 @@ export async function main(argv, {
       result = removeAssets({
         target: parsed.options.target,
         projectDir: parsed.options.projectDir,
+        surface: parsed.options.surface,
         parts: parsed.options.parts,
         dryRun: parsed.options.dryRun,
         env,
@@ -78,7 +88,8 @@ export async function main(argv, {
     try {
       payload = {
         ...buildCheck({ packageRoot: root, subject: parsed.options.subject, coverage: parsed.options.coverage, env }),
-        python_bridge: checkPythonRuntime(),
+        python_bridge: pythonBridgeStatus(),
+        npm_cli: npmCliStatus(),
       };
     } catch (error) {
       stderr.write(`[qiongli] ${error.message}\n`);
@@ -91,7 +102,8 @@ export async function main(argv, {
       stdout.write(`Payload version: ${payload.payload.version || '<unknown>'}\n`);
       stdout.write(`Payload subject: ${payload.payload.subject || '<unknown>'}\n`);
       stdout.write(`Payload coverage: ${payload.payload.coverage || '<unknown>'}\n`);
-      stdout.write(`Python bridge: ${payload.python_bridge.ok ? 'ok' : 'warn'} - ${payload.python_bridge.message}\n`);
+      stdout.write(`Npm CLI: ${payload.npm_cli.role} (${payload.npm_cli.python_free ? 'Python-free' : 'Python required'})\n`);
+      stdout.write(`Full runtime: ${payload.npm_cli.full_runtime_install}\n`);
     }
     return 0;
   }
@@ -112,26 +124,52 @@ export async function main(argv, {
       stderr.write('[qiongli] runtime supports only: doctor\n');
       return 2;
     }
-    const result = checkPythonRuntime();
-    stdout.write(`${result.ok ? '[ok]' : '[warn]'} ${result.message}\n`);
-    if (result.hint) {
-      stdout.write(`Hint: ${result.hint}\n`);
+    stdout.write('[ok] Qiongli npm asset manager is installed.\n');
+    stdout.write('Full runtime: pipx install qiongli\n');
+    return 0;
+  }
+
+  if (parsed.command === 'project') {
+    let result;
+    try {
+      if (parsed.options.projectCommand === 'init') {
+        result = initProject({
+          projectDir: parsed.options.projectDir,
+          dryRun: parsed.options.dryRun,
+        });
+      } else if (parsed.options.projectCommand === 'status') {
+        result = {
+          action: 'status',
+          changed: false,
+          dry_run: false,
+          state: projectStatus({ projectDir: parsed.options.projectDir }),
+          actions: [],
+        };
+      } else if (parsed.options.projectCommand === 'set-subject') {
+        if (!parsed.options.projectSubject) {
+          stderr.write('[qiongli] project set-subject requires a subject\n');
+          return 2;
+        }
+        result = setProjectSubject({
+          projectDir: parsed.options.projectDir,
+          subject: parsed.options.projectSubject,
+          dryRun: parsed.options.dryRun,
+        });
+      } else {
+        stderr.write('[qiongli] project supports: init, status, set-subject\n');
+        return 2;
+      }
+    } catch (error) {
+      stderr.write(`[qiongli] ${error.message}\n`);
+      return 2;
     }
-    return result.ok ? 0 : 1;
+    stdout.write(renderProjectResult(result, { json: parsed.options.json }));
+    return 0;
   }
 
-  if (PYTHON_CLI_COMMANDS.has(parsed.command)) {
-    const childEnv = SELF_UPDATE_COMMANDS.has(parsed.command)
-      ? { ...env, QIONGLI_INSTALL_CHANNEL: 'npm' }
-      : env;
-    return runPythonCliCommand({ packageRoot: root, args: [parsed.command, ...parsed.rest], env: childEnv });
-  }
-
-  if (BRIDGE_COMMANDS.has(parsed.command)) {
-    const args = parsed.command === 'doctor' && !parsed.rest.includes('--cwd')
-      ? ['--cwd', parsed.options.cwd || '.', ...parsed.rest]
-      : parsed.rest;
-    return runBridgeCommand({ packageRoot: root, command: parsed.command, args });
+  if (FULL_RUNTIME_COMMANDS.has(parsed.command)) {
+    writeFullRuntimeRequired(parsed.command, stderr);
+    return 1;
   }
 
   stderr.write(`[qiongli] unknown command: ${parsed.command}\n`);
@@ -139,7 +177,7 @@ export async function main(argv, {
 }
 
 function printInstallResult(result, stdout) {
-  stdout.write('Qiongli npm installer\n');
+  stdout.write('Qiongli npm asset manager\n');
   stdout.write(`source version: ${result.sourceVersion || '<unknown>'}\n`);
   stdout.write(`source subject: ${result.sourceSubject || '<unknown>'}\n`);
   stdout.write(`source coverage: ${result.sourceCoverage || '<unknown>'}\n`);
@@ -161,37 +199,56 @@ function printRemoveResult(result, stdout) {
 }
 
 function helpText() {
-  return `Qiongli npm installer
+  return `Qiongli npm asset manager
 
 Usage:
-  qiongli install --subject core --target all
+  qiongli install --subject core --target all [--surface skills]
+  qiongli setup --target codex [--surface skills] [--dry-run]
+  qiongli update --target all [--dry-run]
+  qiongli refresh --target all [--dry-run]
   qiongli upgrade --subject economics --coverage complete --target all
   qiongli remove [--target all]
   qiongli uninstall [--target codex]
   qiongli check [--json]
   qiongli clean --project-dir . [--globals]
+  qiongli project init --project-dir . [--dry-run] [--json]
+  qiongli project status --project-dir . [--json]
+  qiongli project set-subject <subject> --project-dir . [--dry-run] [--json]
   qiongli runtime doctor
-  qiongli self-update [--channel stable|next] [--yes]
-  qiongli update [--dry-run]
-  qiongli setup [--dry-run] [--project-dir .] [--no-doctor]
-  qiongli mcp serve --transport stdio
-  qiongli mcp doctor --json
-  qiongli mcp upgrade --target all [--dry-run]
-  qiongli doctor --cwd .
-  qiongli guidance init [--project-dir .]
-  qiongli guidance show|trace [--project-dir .]
-  qiongli guidance apply --proposal .qiongli/trace/runs/<run_id>/guidance_update_proposal.md
-  qiongli task-run ...
-  qiongli team-run ...
+
+Full runtime commands require \`pipx install qiongli\`:
+  doctor|task-run|team-run|parallel|chain|role|single|code-build|task-plan|mcp|provider|guidance|customize|init|align
 
 Options:
   --target codex|claude|antigravity|hermes|all
-  --subject core|economics|accounting|business|finance|economics-accounting
+  --surface skills|plugin|both
+  --subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting
   --coverage complete|focused
   --mode copy|link
   --parts globals,project,cli,mcp
   --overwrite
   --dry-run
-  --no-doctor
 `;
+}
+
+function npmCliStatus() {
+  return {
+    role: 'asset-manager',
+    python_free: true,
+    full_runtime_install: 'pipx install qiongli',
+  };
+}
+
+function pythonBridgeStatus() {
+  return {
+    deprecated: true,
+    bundled: false,
+    managed_by_npm: false,
+    message: 'Not bundled or managed by this npm asset-manager path.',
+  };
+}
+
+function writeUnsupportedAssetArguments(args, stderr) {
+  stderr.write(`[qiongli] unsupported npm asset-manager argument: ${args[0]}\n`);
+  stderr.write('[qiongli] Full runtime setup/update/archive options require: pipx install qiongli\n');
 }

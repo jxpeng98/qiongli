@@ -1,16 +1,13 @@
 const TARGETS = new Set(['codex', 'claude', 'antigravity', 'hermes', 'all']);
 const MODES = new Set(['copy', 'link']);
-const BRIDGE_COMMANDS = new Set(['doctor', 'guidance', 'task-run', 'team-run', 'parallel', 'chain', 'role', 'single', 'code-build', 'task-plan']);
-const PYTHON_CLI_COMMANDS = new Set(['setup', 'mcp', 'self-update', 'update']);
+const SURFACES = new Set(['skills', 'plugin', 'both']);
+const REFRESH_COMMANDS = new Set(['upgrade', 'refresh', 'update']);
 
 export function parseArgv(argv) {
   const [rawCommand = 'help', ...restArgs] = argv;
-  if (BRIDGE_COMMANDS.has(rawCommand) || PYTHON_CLI_COMMANDS.has(rawCommand)) {
-    return { command: rawCommand, options: {}, rest: restArgs };
-  }
 
   let command = rawCommand;
-  if (rawCommand === 'upgrade') {
+  if (REFRESH_COMMANDS.has(rawCommand)) {
     command = 'install';
   } else if (rawCommand === 'uninstall' || rawCommand === 'delete') {
     command = 'remove';
@@ -19,17 +16,34 @@ export function parseArgv(argv) {
     target: 'all',
     mode: 'copy',
     projectDir: '.',
-    overwrite: rawCommand === 'upgrade',
+    surface: 'skills',
+    overwrite: REFRESH_COMMANDS.has(rawCommand),
     dryRun: false,
     json: false,
     globals: false,
     subject: 'core',
     coverage: 'complete',
     parts: '',
+    projectCommand: '',
+    projectSubject: '',
   };
   const rest = [];
+  let i = 0;
 
-  for (let i = 0; i < restArgs.length; i += 1) {
+  if (command === 'project' && restArgs[0] && !restArgs[0].startsWith('--')) {
+    options.projectCommand = restArgs[0];
+    i = 1;
+    if (
+      options.projectCommand === 'set-subject'
+      && restArgs[i]
+      && !restArgs[i].startsWith('--')
+    ) {
+      options.projectSubject = restArgs[i];
+      i += 1;
+    }
+  }
+
+  for (; i < restArgs.length; i += 1) {
     const arg = restArgs[i];
     if (arg === '--target') {
       options.target = requireValue(restArgs, i, arg);
@@ -37,11 +51,19 @@ export function parseArgv(argv) {
     } else if (arg === '--mode') {
       options.mode = requireValue(restArgs, i, arg);
       i += 1;
+    } else if (arg === '--surface') {
+      options.surface = requireValue(restArgs, i, arg);
+      i += 1;
     } else if (arg === '--project-dir') {
       options.projectDir = requireValue(restArgs, i, arg);
       i += 1;
     } else if (arg === '--subject') {
-      options.subject = requireValue(restArgs, i, arg);
+      const value = requireValue(restArgs, i, arg);
+      if (command === 'project' && options.projectCommand === 'set-subject') {
+        options.projectSubject = value;
+      } else {
+        options.subject = value;
+      }
       i += 1;
     } else if (arg === '--coverage') {
       options.coverage = requireValue(restArgs, i, arg);
@@ -72,6 +94,9 @@ export function parseArgv(argv) {
   }
   if (options.mode && !MODES.has(options.mode)) {
     throw new Error(`Unsupported mode: ${options.mode}`);
+  }
+  if (options.surface && !SURFACES.has(options.surface)) {
+    throw new Error(`Unsupported surface: ${options.surface}`);
   }
   return { command, options, rest };
 }

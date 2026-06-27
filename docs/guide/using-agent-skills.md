@@ -18,7 +18,7 @@ Most users should look for `qiongli`, not `research-paper-workflow`. The directo
 |---|---|---|---|
 | Codex | `/skills` | `$qiongli` | Codex does not expose a custom `/qiongli` slash command. Restart Codex after installing or upgrading. |
 | Claude Code | Plugin UI or `/plugin` commands | `/paper`, `/lit-review`, `/paper-write`, `/code-build`, or natural language asking for Qiongli | Plugin installs command wrappers plus the portable skill package. |
-| Shell | `qiongli check` | `qiongli doctor`, `qiongli upgrade`, `qiongli task-run`, `python3 -m bridges.orchestrator ...` | Requires the npm or Python CLI surface. Advanced commands require Python 3.12+. |
+| Shell | `qiongli check` | npm: `qiongli install`, `qiongli update`, `qiongli project ...`; full runtime: `qiongli doctor`, `qiongli task-run`, `python3 -m bridges.orchestrator ...` | npm/npx is Python-free asset management. Full runtime commands require `pipx install qiongli` and Python 3.12+. |
 
 ## Codex Usage
 

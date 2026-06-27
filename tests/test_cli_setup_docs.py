@@ -53,7 +53,7 @@ class CLISetupDocsTests(unittest.TestCase):
                 self.assertIn("qiongli setup", content)
                 self.assertIn(guide_core_install, content)
 
-    def test_cli_setup_docs_disclose_npm_python_bridge_requirement(self) -> None:
+    def test_cli_setup_docs_disclose_npm_full_runtime_boundary(self) -> None:
         for path in (
             Path("README.md"),
             Path("README_CN.md"),
@@ -66,10 +66,19 @@ class CLISetupDocsTests(unittest.TestCase):
             content = (REPO_ROOT / path).read_text(encoding="utf-8")
             setup_snippet = self._extract_setup_snippet(content)
             with self.subTest(path=str(path)):
-                self.assertIn("Python 3.12+", setup_snippet)
-                self.assertIn("PyYAML", setup_snippet)
-                self.assertRegex(setup_snippet, re.compile(r"Python bridge|Python 桥|Python bridge"))
+                self.assertRegex(
+                    setup_snippet,
+                    re.compile(r"Python-free asset manager|免 Python 资产管理器|无 Python 资产管理器"),
+                )
+                self.assertIn("pipx install qiongli", setup_snippet)
+                self.assertRegex(
+                    setup_snippet,
+                    re.compile(r"full runtime commands|完整运行时命令|full runtime"),
+                )
                 self.assertIn("qiongli install", setup_snippet)
+                self.assertNotIn("Python 3.12+", setup_snippet)
+                self.assertNotIn("PyYAML", setup_snippet)
+                self.assertNotRegex(setup_snippet, re.compile(r"Python bridge|Python 桥"))
 
     def test_cli_setup_reference_documents_provider_boundaries(self) -> None:
         expectations = {
