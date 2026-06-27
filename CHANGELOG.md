@@ -1,10 +1,30 @@
 # Changelog
 
-本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-06-26）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
+本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-06-27）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
 
 ## [Unreleased]
 
 暂无未发布变更。
+
+## [1.11.0] - 2026-06-27
+
+### Added
+
+- 新增项目级 subject guidance runtime：项目可以通过 `.qiongli/guidance_manifest.yaml` 保存 `active_subject`、venue profiles、method lenses、strictness 和结构化 subject 状态；缺失 manifest 时仍可按 `active_subject: auto` 使用。
+- `qiongli project` 命令新增项目 guidance/manifest 管理入口，让用户可以在项目层显式设置或检查 subject、venue、method 和 strictness，而不需要重新安装 subject-specific CLI package。
+- Task packet、guidance state、trace bundle 和 MCP `qiongli_task_run` preview 现在会暴露 `project_manifest` 与 `project_subject`，让客户端在不启动 agent 的情况下预览本次项目 subject 路由。
+- Task evidence 现在可以生成结构化 manifest proposal，并在 `guidance_mode=apply` 时把已接受的 project guidance 更新写回 manifest 和 local guidance。
+
+### Changed
+
+- Orchestrator subject routing 改为优先读取本次显式 `--domain`，再读取项目 manifest，之后才使用保守临时推断或 core/auto fallback，避免用户必须通过安装包选择学科。
+- README、中文 README 和中文架构文档更新项目使用流程图，直接从使用态说明 project manifest、local guidance、MCP preview、agent run 和 guidance learning loop。
+- 中文 README 与英文 README 对齐，移除已删除的 Gemini runtime 支持表述，并保留 Antigravity legacy config path 的迁移说明。
+
+### Fixed
+
+- 修复 project manifest packet update、trace manifest snapshot 和 guidance-mode subject routing 的一致性问题，避免预览、执行和 trace 中的项目状态不一致。
+- 收紧 subject 推断触发条件，减少弱证据导致的 finance/economics 等 subject 误切换。
 
 ## [1.10.0] - 2026-06-26
 

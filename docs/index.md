@@ -40,16 +40,16 @@ features:
 
 ## Latest Stable Downloads
 
-Current stable release: [v1.10.0](https://github.com/jxpeng98/qiongli/releases/tag/v1.10.0). These direct links cover the common install paths; use the download guide for subject-specific Desktop ZIPs and maintainer artifacts.
+Current stable release: [v1.11.0](https://github.com/jxpeng98/qiongli/releases/tag/v1.11.0). These direct links cover the common install paths; use the download guide for subject-specific Desktop ZIPs and maintainer artifacts.
 
 | Need | Link or command |
 |---|---|
-| npm CLI | [`qiongli@1.10.0`](https://www.npmjs.com/package/qiongli/v/1.10.0): `npm install -g qiongli@latest` |
-| PyPI CLI | [`qiongli 1.10.0`](https://pypi.org/project/qiongli/1.10.0/): `pipx install qiongli` |
-| Claude Desktop/Web core skill | [`qiongli-claude-desktop-skill-core-v1.10.0.zip`](https://github.com/jxpeng98/qiongli/releases/download/v1.10.0/qiongli-claude-desktop-skill-core-v1.10.0.zip) |
-| Claude Desktop literature MCPB | [`qiongli-literature-provider-0.1.5.mcpb`](https://github.com/jxpeng98/qiongli/releases/download/v1.10.0/qiongli-literature-provider-0.1.5.mcpb) |
-| Zotero Desktop companion | [`qiongli-zotero-companion-0.2.2.xpi`](https://github.com/jxpeng98/qiongli/releases/download/v1.10.0/qiongli-zotero-companion-0.2.2.xpi) |
-| All release assets | [Download guide](https://github.com/jxpeng98/qiongli/releases/download/v1.10.0/qiongli-downloads-v1.10.0.md) and [GitHub Release](https://github.com/jxpeng98/qiongli/releases/tag/v1.10.0) |
+| npm CLI | [`qiongli@1.11.0`](https://www.npmjs.com/package/qiongli/v/1.11.0): `npm install -g qiongli@latest` |
+| PyPI CLI | [`qiongli 1.11.0`](https://pypi.org/project/qiongli/1.11.0/): `pipx install qiongli` |
+| Claude Desktop/Web core skill | [`qiongli-claude-desktop-skill-core-v1.11.0.zip`](https://github.com/jxpeng98/qiongli/releases/download/v1.11.0/qiongli-claude-desktop-skill-core-v1.11.0.zip) |
+| Claude Desktop literature MCPB | [`qiongli-literature-provider-0.1.5.mcpb`](https://github.com/jxpeng98/qiongli/releases/download/v1.11.0/qiongli-literature-provider-0.1.5.mcpb) |
+| Zotero Desktop companion | [`qiongli-zotero-companion-0.2.2.xpi`](https://github.com/jxpeng98/qiongli/releases/download/v1.11.0/qiongli-zotero-companion-0.2.2.xpi) |
+| All release assets | [Download guide](https://github.com/jxpeng98/qiongli/releases/download/v1.11.0/qiongli-downloads-v1.11.0.md) and [GitHub Release](https://github.com/jxpeng98/qiongli/releases/tag/v1.11.0) |
 
 ## What The Current System Covers
 
