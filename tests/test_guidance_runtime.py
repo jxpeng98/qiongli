@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest import mock
 
 from bridges.guidance_runtime import (
+    _proposal_text,
     apply_guidance_proposal,
     create_guidance_fragment,
     effective_guidance,
@@ -293,6 +294,78 @@ class GuidanceRuntimeTests(unittest.TestCase):
             self.assertIn("## Suggested Target", text)
             self.assertIn("project-local", text)
             self.assertIn("## Conflict Check", text)
+
+    def test_guidance_trace_proposal_includes_finance_manifest_suggestion(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            init_project_guidance(root)
+            state = effective_guidance(root, mode="propose", run_id="finance-run")
+
+            write_guidance_trace(
+                project_root=root,
+                guidance_state=state,
+                task_packet={
+                    "task_id": "C1",
+                    "paper_type": "empirical",
+                    "topic": "earnings announcement event study",
+                    "context": "check leakage around disclosure timing",
+                },
+                draft_content="Use an event window before estimating the market reaction.",
+                review_content="",
+                merged_analysis="",
+                validator_gate={"passed": True, "found": [], "missing": [], "checked": 0},
+                applied=False,
+            )
+
+            proposal = root / ".qiongli" / "trace" / "runs" / "finance-run" / "guidance_update_proposal.md"
+            text = proposal.read_text(encoding="utf-8")
+            self.assertIn("## Proposed Manifest Changes", text)
+            self.assertIn("```yaml\nactive_subject: finance\nmethod_lenses:\n  - event-study\n```", text)
+            self.assertIn("## Manifest Evidence", text)
+            self.assertIn("- confidence: 0.7", text)
+            self.assertIn("- evidence: earnings announcement event study", text)
+
+    def test_guidance_trace_proposal_skips_structured_manifest_when_evidence_is_weak(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            init_project_guidance(root)
+            state = effective_guidance(root, mode="propose", run_id="weak-run")
+
+            write_guidance_trace(
+                project_root=root,
+                guidance_state=state,
+                task_packet={
+                    "task_id": "F1",
+                    "paper_type": "theory",
+                    "topic": "writing introduction",
+                    "context": "revise paragraph",
+                },
+                draft_content="",
+                review_content="",
+                merged_analysis="",
+                validator_gate={"passed": True, "found": [], "missing": [], "checked": 0},
+                applied=False,
+            )
+
+            proposal = root / ".qiongli" / "trace" / "runs" / "weak-run" / "guidance_update_proposal.md"
+            text = proposal.read_text(encoding="utf-8")
+            self.assertIn("## Proposed Manifest Changes", text)
+            self.assertIn("No structured manifest change proposed.", text)
+
+    def test_manifest_proposal_yaml_omits_unsupported_optional_fields(self) -> None:
+        text = _proposal_text(
+            {"task_id": "C1", "topic": "portfolio returns"},
+            {"passed": True, "found": [], "missing": [], "checked": 0},
+            False,
+            {
+                "active_subject": "finance",
+                "confidence": 0.7,
+                "evidence": ["portfolio returns"],
+            },
+        )
+
+        self.assertIn("```yaml\nactive_subject: finance\n```", text)
+        self.assertNotIn("method_lenses:", text)
 
     def test_guidance_trace_summary_returns_recent_index_rows(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

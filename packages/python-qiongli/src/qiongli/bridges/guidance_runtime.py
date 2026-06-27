@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .project_inference import infer_project_manifest_suggestion
 from .project_manifest import (
     init_project_manifest,
     load_project_manifest,
@@ -219,8 +220,14 @@ def write_guidance_trace(
         encoding="utf-8",
     )
     _write_json(run_dir / "validator_gate.json", validator_gate)
+    suggestion = infer_project_manifest_suggestion(
+        task_packet,
+        draft_content=draft_content,
+        review_content=review_content,
+        merged_analysis=merged_analysis,
+    )
     (run_dir / "guidance_update_proposal.md").write_text(
-        _proposal_text(task_packet, validator_gate, applied),
+        _proposal_text(task_packet, validator_gate, applied, suggestion),
         encoding="utf-8",
     )
     apply_result: dict[str, Any] = {}
@@ -464,7 +471,12 @@ def _write_json(path: Path, payload: Any) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def _proposal_text(task_packet: dict[str, Any], validator_gate: dict[str, Any], applied: bool) -> str:
+def _proposal_text(
+    task_packet: dict[str, Any],
+    validator_gate: dict[str, Any],
+    applied: bool,
+    manifest_suggestion: dict[str, Any],
+) -> str:
     missing = list(validator_gate.get("missing", []) or [])
     lines = [
         "# Guidance Update Proposal",
@@ -495,6 +507,7 @@ def _proposal_text(task_packet: dict[str, Any], validator_gate: dict[str, Any], 
                 f"- topic: `{task_packet.get('topic', '')}`",
             ]
         )
+    lines.extend(_manifest_proposal_section(manifest_suggestion))
     lines.extend(
         [
             "",
@@ -521,6 +534,44 @@ def _proposal_text(task_packet: dict[str, Any], validator_gate: dict[str, Any], 
         ]
     )
     return "\n".join(lines)
+
+
+def _manifest_proposal_section(manifest_suggestion: dict[str, Any]) -> list[str]:
+    active_subject = str(manifest_suggestion.get("active_subject", "auto"))
+    method_lenses = [str(item) for item in list(manifest_suggestion.get("method_lenses", []) or [])]
+    confidence = float(manifest_suggestion.get("confidence", 0.0) or 0.0)
+    evidence = [str(item) for item in list(manifest_suggestion.get("evidence", []) or [])]
+    lines = [
+        "",
+        "## Proposed Manifest Changes",
+        "",
+    ]
+    if active_subject == "auto" or confidence < 0.6:
+        lines.append("No structured manifest change proposed.")
+    else:
+        lines.extend(
+            [
+                "```yaml",
+                f"active_subject: {active_subject}",
+            ]
+        )
+        if method_lenses:
+            lines.append("method_lenses:")
+            lines.extend(f"  - {method}" for method in method_lenses)
+        lines.append("```")
+    lines.extend(
+        [
+            "",
+            "## Manifest Evidence",
+            "",
+            f"- confidence: {confidence:g}",
+        ]
+    )
+    if evidence:
+        lines.extend(f"- evidence: {item}" for item in evidence)
+    else:
+        lines.append("- evidence: none")
+    return lines
 
 
 def _extract_proposed_changes(proposal_text: str) -> str:
