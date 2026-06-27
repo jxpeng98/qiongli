@@ -15,22 +15,23 @@ Current stable release: [v1.12.0](https://github.com/jxpeng98/qiongli/releases/t
 | Zotero Desktop companion | [`qiongli-zotero-companion-0.2.2.xpi`](https://github.com/jxpeng98/qiongli/releases/download/v1.12.0/qiongli-zotero-companion-0.2.2.xpi) |
 | All release assets | [Download guide](https://github.com/jxpeng98/qiongli/releases/download/v1.12.0/qiongli-downloads-v1.12.0.md) and [GitHub Release](https://github.com/jxpeng98/qiongli/releases/tag/v1.12.0) |
 
-## Install Surfaces
+## Install Entry Comparison
 
-| Surface | Best for | Installs | Python required |
-|---|---|---|---|
-| Marketplace plugin / extension | One client, least setup, or no local CLI environment | Client plugin plus `qiongli-workflow`; Codex and Claude Code include the bundled Node literature MCP as a lite/no-CLI fallback | No for skill use or bundled literature MCP; Python/CLI only for full local Qiongli |
-| Claude Desktop Skill ZIP | Claude Desktop or Claude.ai, especially when you do not want to use a code/CLI environment | Personal `qiongli` Skill upload | No |
-| Full local plugin: `qiongli install --target all` | Full local Qiongli inside a client-native plugin container | Local plugin bundle plus the unified full MCP server | Yes, Python 3.12+ |
-| Legacy skills-only: `qiongli install --surface skills --profile partial` | Explicit compatibility path for users who still want global skill directories | Skills and workflow discovery where supported | No |
-| Bootstrap `partial` | Global workflow assets across clients | Skills and workflow discovery where supported | No |
-| Bootstrap `full` | Runtime checks and orchestration from release scripts | `partial` plus shell CLI, MCP registration part, and `doctor` support | Yes, Python 3.12+ |
-| npm / npx | Node-based automation | npm CLI plus bundled workflow payload | Only for advanced bridge commands |
-| pipx / pip | Python updater CLI | Python CLI distribution | Yes |
+| Entry | Positioning | Includes | Can do | Boundary | Python required |
+|---|---|---|---|---|---|
+| Marketplace plugin / extension | Client-native, lowest setup | Client plugin plus `qiongli-workflow`; Codex and Claude Code include the bundled Node literature MCP | Skill workflows, prompts, subject packages, and bundled literature-provider tools inside one client | Does not expose the full Python orchestrator or package self-update | No for skill use or bundled literature MCP |
+| Claude Desktop Skill ZIP | Desktop/Web skill-only path | Personal `qiongli` Skill upload, usually paired with optional literature MCPB | Claude Desktop/Web workflows without a terminal or code environment | Skill ZIP stores no secrets and does not execute provider or orchestrator calls | No |
+| Claude Desktop Literature MCPB | Desktop local provider path | `qiongli-literature-provider.mcpb` zero-dependency Node stdio server | Provider config/status, local literature search, evidence export | Provider-only; does not install Qiongli workflows or the Python orchestrator | No |
+| npm / npx | Python-free asset manager | npm CLI, pre-materialized skills by default, optional plugin-lite assets with `--surface plugin|both`, Node project commands | Scripted installs, CI/dotfiles, current-package asset refresh, `project init/status/set-subject`, plugin-lite where bundled | Does not update npm/Python packages and does not run `doctor`, `mcp serve`, provider setup, or task orchestration | No |
+| pipx / pip full runtime | Python CLI and managed full local runtime | Python CLI, setup wizard, full plugin surface, unified MCP server, provider setup, doctor, task/orchestrator commands | Full local validation, provider configuration, MCP/orchestrator tools, package self-update, release-archive refresh | Requires local Python and relevant client/model CLIs before real agent execution | Yes, Python 3.12+ |
+| Bootstrap `partial` | Release-script skills install | Global skills and workflow discovery across clients | No-package-manager install of portable workflow assets | No full runtime validation or orchestration | No |
+| Bootstrap `full` | Release-script full runtime install | `partial` plus shell CLI, MCP registration part, and `doctor` support | Full runtime setup from release scripts | Does not install Python; the machine must already have Python 3.12+ | Yes, Python 3.12+ |
 
-The user-visible skill name is `qiongli`. The installed directory is still `qiongli-workflow` for compatibility with existing clients and release artifacts. For normal CLI/local plugin use, install the stable `core/complete` runtime once and store everyday subject behavior in `.qiongli/guidance_manifest.yaml`. Specialized CLI/npm installs default to `coverage=complete`, but they are advanced compatibility paths for Desktop ZIPs, focused packages, release payloads, and install-surface testing.
+The user-visible skill name is `qiongli`. The installed directory is still `qiongli-workflow` for compatibility with existing clients and release artifacts. For normal full-runtime CLI/local plugin use, install the stable `core/complete` runtime once and store everyday subject behavior in `.qiongli/guidance_manifest.yaml`. npm installs the skills surface by default; use `--surface plugin` or `--surface both` only when you deliberately want the bundled plugin-lite output where supported. Specialized CLI/npm installs default to `coverage=complete`, but they are advanced compatibility paths for Desktop ZIPs, focused packages, release payloads, and install-surface testing.
 
-From v1.9.0 onward, `qiongli install` defaults to `--profile full --surface plugin`. Codex, Claude Code, and Antigravity receive CLI-managed local plugin bundles backed by `qiongli mcp serve --transport stdio`; Antigravity bundles that server in the plugin root `mcp_config.json`, and Hermes receives managed full MCP client config. Use `--surface skills --profile partial` only when you deliberately want the old skills-only layout.
+In the full Python runtime, `qiongli install` defaults to `--profile full --surface plugin` from v1.9.0 onward. Codex, Claude Code, and Antigravity receive CLI-managed local plugin bundles backed by `qiongli mcp serve --transport stdio`; Antigravity bundles that server in the plugin root `mcp_config.json`, and Hermes receives managed full MCP client config. npm/npx remains Python-free and defaults to `--surface skills`.
+
+npm/npx is the Python-free asset manager surface. Install the full runtime with `pipx install qiongli` when you need full runtime commands such as `doctor`, `mcp serve`, `provider setup`, `task-plan`, `task-run`, or `customize`.
 
 ## Native Plugin And Extension
 
@@ -73,7 +74,7 @@ Inside an interactive Claude Code session, use:
 /plugin install qiongli-economics@skillsplace
 ```
 
-The Claude Code plugin also bundles the zero-dependency Node literature-provider MCP runtime under `mcp/qiongli-literature-provider/`, using the same provider, search, and status tools as the Codex plugin. It covers literature-provider MCP without installing the `qiongli` CLI. Full Python-backed tools, including `qiongli_literature_search`, `qiongli_orchestrator_route`, `qiongli_task_plan`, `qiongli_task_run`, and `qiongli_orchestrator_doctor`, require the npm, pipx/pip, or bootstrap `full` CLI runtime. Run `qiongli install --profile full --target claude --surface plugin` to generate a local Claude Code plugin that launches the unified `qiongli mcp serve --transport stdio` server. Use `--target antigravity` to generate the Antigravity plugin with its root `mcp_config.json`, `--target hermes` for Hermes MCP config, or `--target all --surface plugin` when Codex/Claude Code/Antigravity should use local plugins and Hermes should receive managed full MCP config.
+The Claude Code plugin also bundles the zero-dependency Node literature-provider MCP runtime under `mcp/qiongli-literature-provider/`, using the same provider, search, and status tools as the Codex plugin. It covers literature-provider MCP without installing the `qiongli` CLI. Full runtime commands, including `qiongli_literature_search`, `qiongli_orchestrator_route`, `qiongli_task_plan`, `qiongli_task_run`, and `qiongli_orchestrator_doctor`, require the full runtime: `pipx install qiongli`. Then run `qiongli install --profile full --target claude --surface plugin` to generate a local Claude Code plugin that launches the unified `qiongli mcp serve --transport stdio` server. Use `--target antigravity` to generate the Antigravity plugin with its root `mcp_config.json`, `--target hermes` for Hermes MCP config, or `--target all --surface plugin` when Codex/Claude Code/Antigravity should use local plugins and Hermes should receive managed full MCP config.
 
 Claude Desktop and Claude.ai do not install third-party Claude Code plugin marketplaces. If you use Desktop or the web app and are not familiar with a code/CLI environment, use the release ZIP path instead. It requires no terminal commands:
 
@@ -91,9 +92,10 @@ Manual Desktop installs can combine two local assets:
 - Skill ZIP: enables Qiongli agent instructions, workflows, subject overlays, and skill guidance inside Claude Desktop/Web.
 - Literature MCPB: enables local literature MCP calls and provider configuration.
 
-Those two assets do not by themselves expose the full Python-backed orchestrator. If a local client should call `qiongli_orchestrator_route`, `qiongli_task_plan`, `qiongli_task_run`, or `qiongli_orchestrator_doctor` as MCP tools, install the npm, pipx/pip, or bootstrap `full` CLI runtime and configure:
+Those two assets do not by themselves expose the full Python-backed orchestrator. If a local client should call `qiongli_orchestrator_route`, `qiongli_task_plan`, `qiongli_task_run`, or `qiongli_orchestrator_doctor` as MCP tools, install the full runtime first:
 
 ```bash
+pipx install qiongli
 qiongli install --profile full --target codex --surface plugin
 qiongli install --profile full --target claude --surface plugin
 qiongli install --profile full --target all --surface plugin
@@ -173,31 +175,31 @@ Use npm when you want a Node-distributed installer with the workflow payload bun
 
 ```bash
 npm install -g qiongli
-qiongli install --target all
+qiongli install --target all --surface skills
 qiongli project init --project-dir .
 qiongli project set-subject finance --project-dir .
 qiongli project status --project-dir .
-qiongli install --profile full --target all --surface plugin
 ```
 
-For scripted compatibility, `qiongli install --target all --project-dir "$PWD"` is equivalent for the install surface; ordinary subject behavior still belongs to `qiongli project ...`.
+For scripted compatibility, `qiongli install --target all --surface skills --project-dir "$PWD"` is equivalent for the default install surface; ordinary subject behavior still belongs to `qiongli project ...`. Plugin-lite output is opt-in with `--surface plugin` or `--surface both` where bundled and supported.
 
-For normal CLI/local plugin use, keep this installed runtime stable and store subject behavior in `.qiongli/guidance_manifest.yaml`. If no manifest exists, Qiongli uses implicit `active_subject: auto`, starts from core guidance, infers temporary subject or method lenses from the task, and writes auditable proposals before changing project-local state.
+For normal npm asset/project use, keep the installed npm package stable and store subject behavior in `.qiongli/guidance_manifest.yaml`. If no manifest exists, Qiongli uses implicit `active_subject: auto`, starts from core guidance, infers temporary subject or method lenses from the task, and writes auditable proposals before changing project-local state.
 
-Update the global package and refresh the full local plugin/MCP surface with:
+Use npm for Python-free asset refresh and project operations:
 
 ```bash
 qiongli update
-qiongli update --dry-run
-qiongli update --yes
+qiongli refresh
+qiongli upgrade --target all
+qiongli project status --project-dir .
 ```
 
-Use `qiongli update` for the normal interactive update flow. It checks whether the installed qiongli CLI/package has a newer release, asks before running the package-manager update, then asks whether to refresh installed local plugins/assets from the new package. Use `qiongli update --yes` for CI or scripts; it answers both prompts as yes. Use `qiongli update --no-refresh` when you only want the CLI/package update and plan to run `qiongli install ...` yourself.
+`qiongli update`, `qiongli refresh`, and `qiongli upgrade` reapply bundled assets from the currently installed npm package. `upgrade` is an overwrite refresh alias. They do not update the npm package or the full Python CLI.
 
 For one-off runs:
 
 ```bash
-npx qiongli@latest install --target all
+npx qiongli@latest install --target all --surface skills
 npx qiongli@latest project status --project-dir .
 npx qiongli@latest check --json
 ```
@@ -205,19 +207,20 @@ npx qiongli@latest check --json
 Prerelease testing remains available through the `next` dist-tag:
 
 ```bash
-npx qiongli@next install --target all
+npx qiongli@next install --target all --surface skills
 ```
 
 Advanced compatibility, Desktop ZIP, focused package, release payload, and install-surface testing examples:
 
 ```bash
 qiongli install --subject core --target all --project-dir "$PWD"
-qiongli install --subject economics --target all --project-dir "$PWD"
-qiongli install --subject accounting --target all --project-dir "$PWD"
-qiongli install --subject economics-accounting --target all --project-dir "$PWD"
-qiongli install --subject economics --coverage focused --target all --project-dir "$PWD"
-npx qiongli@latest install --subject economics --target all --project-dir "$PWD"
-npx qiongli@next install --subject economics --target all --project-dir "$PWD"
+qiongli install --subject core --target all --surface skills --project-dir "$PWD"
+qiongli install --subject economics --target all --surface skills --project-dir "$PWD"
+qiongli install --subject accounting --target all --surface skills --project-dir "$PWD"
+qiongli install --subject economics-accounting --target all --surface skills --project-dir "$PWD"
+qiongli install --subject economics --coverage focused --target all --surface skills --project-dir "$PWD"
+npx qiongli@latest install --subject economics --target all --surface skills --project-dir "$PWD"
+npx qiongli@next install --subject economics --target all --surface skills --project-dir "$PWD"
 ```
 
 Remove CLI-installed assets before switching fully to marketplace plugins:
@@ -229,20 +232,20 @@ qiongli remove --target all
 
 `qiongli remove` only removes CLI-installed global workflow assets and discovery links by default. Native marketplace plugins remain managed by the client/plugin manager that installed them.
 
-For the local full plugin surface, remove only CLI-managed plugin roots:
+For npm plugin-lite roots, remove only npm-managed plugin assets:
 
 ```bash
-qiongli remove --parts plugin --target codex
 qiongli remove --surface plugin --target claude
 ```
 
-The installer marks owned plugin roots with `.qiongli-managed.json` and Codex marketplace entries with `metadata.managedBy = "qiongli-cli"`. `remove` preserves unmanaged plugin directories and marketplace lite plugins.
+npm marks owned plugin-lite roots with `.qiongli-npm-lite.json` (or a sidecar marker for linked installs). Full-runtime local plugin roots use `.qiongli-managed.json` and Codex marketplace entries marked with `metadata.managedBy = "qiongli-cli"`. `remove` preserves unmanaged plugin directories and marketplace lite plugins.
 
 ## Recommended CLI Setup Wizard
 
-After installing the CLI with npm, pipx, pip, or the bootstrap script, run the interactive setup wizard before hand-writing install flags:
+After installing the full runtime with pipx, pip, or the bootstrap `full` profile, run the interactive setup wizard before hand-writing install flags:
 
 ```bash
+pipx install qiongli
 qiongli setup
 qiongli setup --dry-run
 qiongli setup --project-dir "$PWD" --no-doctor
@@ -267,7 +270,7 @@ Every prompt prints a short `Tip:` comment explaining what the choice changes, s
 
 Provider keys saved through setup use the same provider config as `qiongli provider setup` and `qiongli provider doctor`. The local page includes links and short steps for getting each supported credential; arXiv is marked as available without an API key. Secrets are stored outside generated research artifacts. The provider step configures credentials and runs doctor/capability checks; it does not guarantee external search results.
 
-On npm installs, `qiongli setup` delegates to the bundled Python bridge and therefore requires Python 3.12+ plus `PyYAML`. Use explicit `qiongli install ...` commands when you want the Node-only asset installer.
+On npm/npx, `qiongli setup` is client-asset setup, not the full interactive wizard. It stays on the Python-free asset manager path for client assets. For full runtime commands, install the full runtime first: `pipx install qiongli`. Use explicit `qiongli install ...` commands when you want the Node-only asset installer.
 
 ## pipx / pip
 
@@ -284,7 +287,7 @@ qiongli project status --project-dir .
 
 `qiongli setup` can guide installation interactively. Scriptable installs should use `qiongli install --target all`; project subject behavior changes with `qiongli project set-subject`.
 
-Upgrade it with:
+Upgrade the full runtime with:
 
 ```bash
 qiongli update
@@ -330,7 +333,7 @@ For invocation details, see [Using Agent Skills](/guide/using-agent-skills).
 
 ## Keep Versions Aligned
 
-If you use multiple surfaces, keep plugin, global skill assets, npm payload, and Python CLI aligned:
+If you use multiple surfaces, keep plugin, global skill assets, npm payload, and Python CLI aligned. For the Python full runtime:
 
 ```bash
 qiongli check
@@ -338,6 +341,8 @@ qiongli update
 qiongli update --dry-run
 qiongli update --yes
 ```
+
+On npm/npx, omit the full-runtime flags and refresh current-package assets with `qiongli update`, `qiongli refresh`, or `qiongli upgrade --target all`.
 
 If you move fully to native plugins and no longer need legacy global skill directories or slash discovery, inspect cleanup first:
 

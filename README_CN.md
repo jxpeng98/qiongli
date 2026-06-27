@@ -57,11 +57,11 @@
 
 ## 快速安装
 
-默认 CLI 安装会准备支持客户端的 full local plugin surface：
+npm CLI 是免 Python 资产管理器，默认安装 skills surface：
 
 ```bash
 npm install -g qiongli
-qiongli install --target all
+qiongli install --target all --surface skills
 qiongli check --offline
 ```
 
@@ -79,34 +79,88 @@ qiongli project set-subject finance --project-dir "$PWD"
 qiongli project status --project-dir "$PWD"
 ```
 
-如果只需要 skill-only 或无 Python 安装路径，请看安装指南。里面分别说明 Codex / Claude Code marketplace plugin、Claude Desktop Skill ZIP、literature MCPB、bootstrap partial/full、npm/npx、pipx 和 pip。
+如果需要 plugin-lite 或完整运行时路径，请看安装指南。里面分别说明 Codex / Claude Code marketplace plugin、Claude Desktop Skill ZIP、literature MCPB、bootstrap partial/full、npm/npx、pipx 和 pip。npm 的 plugin-lite 输出只在 bundled/supported 的位置通过 `--surface plugin` 或 `--surface both` 显式启用。
+
+## 安装入口对比
+
+| 入口 | 定位 | 包含内容 | 适合做什么 | 边界 |
+|---|---|---|---|---|
+| Marketplace plugin / extension | 客户端原生、最少配置 | Qiongli skill/plugin package、workflows、prompts、templates；Codex / Claude Code 还内置 Node literature MCP | 不想管理 CLI，只在一个客户端里使用 Qiongli | 不包含完整 orchestrator 或 Python runtime；需要时单独安装完整运行时 |
+| Claude Desktop Skill ZIP + Literature MCPB | Desktop/Web 的无代码路径 | 上传式 `qiongli` Skill ZIP，加可选 `qiongli-literature-provider.mcpb` | Claude Desktop/Web 的 skill 使用和本地 literature provider 工具 | Skill ZIP 是 skill-only；MCPB 是 provider-only；二者都不运行 Python orchestrator |
+| npm / npx | 免 Python 资产管理器 | npm CLI、默认预生成 skills；通过 `--surface plugin|both` 可显式安装 plugin-lite assets；Node project commands | 脚本化安装、dotfiles、CI、当前 package asset refresh、项目 subject guidance | 不升级 package，不运行 `doctor`、`mcp serve`、provider setup 或 task orchestration |
+| pipx / pip 完整运行时 | Python CLI 和受管理 full local runtime | Python CLI、setup wizard、完整 plugin install、统一 MCP server、provider setup、doctor、task/orchestrator commands | 本地验证、provider 配置、MCP/orchestrator 工具、package self-update | 需要 Python 3.12+；真实 agent execution 还需要对应本地模型 CLI |
+| Bootstrap partial/full | release script 安装路径 | `partial`：全局 skills/discovery；`full`：partial 加 shell CLI/MCP/doctor 支持 | 不走 package manager、直接从 release script 安装的机器 | `full` 仍要求机器已有 Python 3.12+ |
+
+## 运行架构流程
+
+```mermaid
+flowchart TB
+    Request["学术请求<br/>topic, paper type, constraints"]
+    Entry{"入口"}
+    Client["客户端 skill/plugin<br/>Codex, Claude Code,<br/>Claude Desktop/Web"]
+    Npm["npm/npx 资产管理器<br/>install, update, check,<br/>project guidance"]
+    Full["完整运行时<br/>pipx/pip/bootstrap full"]
+    Project["项目 guidance<br/>.qiongli/guidance_manifest.yaml<br/>或 active_subject: auto"]
+    Contract["任务合同<br/>Task ID, stage, outputs,<br/>evidence rules, gates"]
+    Runtime{"选择能完成任务的<br/>最小运行时"}
+    SkillOnly["Skill/plugin only<br/>draft, review, route"]
+    Provider["Literature provider<br/>MCPB 或内置 Node MCP"]
+    Preview["完整运行时 preview<br/>doctor, task-plan,<br/>不启动 agents 的 task-run"]
+    Execute{"run_agents true?"}
+    Agents["受控 agent run<br/>solo, duo, triad"]
+    Outputs["正式产物<br/>RESEARCH/[topic]/..."]
+    Trace["Trace 和 guidance proposal<br/>.qiongli/trace/"]
+
+    Request --> Entry
+    Entry --> Client
+    Entry --> Npm
+    Entry --> Full
+    Npm --> Project
+    Client --> Contract
+    Full --> Contract
+    Project --> Contract
+    Contract --> Runtime
+    Runtime --> SkillOnly
+    Runtime --> Provider
+    Runtime --> Preview
+    SkillOnly --> Outputs
+    Provider --> Outputs
+    Preview --> Execute
+    Execute -->|no| Trace
+    Execute -->|yes| Agents
+    Agents --> Outputs
+    Agents --> Trace
+    Trace --> Project
+```
+
+npm 路径只负责资产管理和项目 guidance。完整运行时命令是显式、preview-first 的；只有 `run_agents: true` 且运行时检查通过后，才会启动真实 agent execution。
 
 ## 推荐的 CLI Setup Wizard
 
-当你希望 CLI 帮你选择安装和升级路径时，使用 setup wizard：
+当你希望 CLI 帮你选择安装和升级路径时，使用完整运行时的 setup wizard：
 
 ```bash
+pipx install qiongli
 qiongli setup
 qiongli setup --dry-run
 qiongli setup --project-dir "$PWD" --no-doctor
 ```
 
-它会覆盖 runtime surface、subject、coverage、`--mode copy|link`、shell CLI / CLI 目录、`--overwrite` / `--no-overwrite`、可选 provider config，以及 doctor 验证。npm 安装下，`qiongli setup` 会通过内置 Python bridge 委托执行，因此需要 Python 3.12+ 和 `PyYAML`。如果只需要脚本化安装 assets，直接运行 `qiongli install ...` 即可。
+完整运行时 wizard 会覆盖 runtime surface、subject、coverage、`--mode copy|link`、shell CLI / CLI 目录、`--overwrite` / `--no-overwrite`、可选 provider config，以及 doctor 验证。在 npm/npx 下，`qiongli setup` 是面向客户端资产的免 Python 资产管理器快捷入口；`doctor`、`mcp serve`、`provider setup` 或 `customize` 这类完整运行时命令需要 `pipx install qiongli`。如果只需要脚本化安装 assets，直接运行 `qiongli install ...` 即可。
 
 ## 更新还是刷新
 
-`qiongli update` 会先更新已安装的 CLI package，然后询问是否用新 package 的 payload 刷新本地 plugins/assets：
+在 npm/npx 下，`qiongli update` 和 `qiongli refresh` 都属于免 Python 资产路径：
 
 ```bash
 qiongli update
-qiongli update --yes
-qiongli update --no-refresh
+qiongli refresh
 ```
 
-`qiongli upgrade` 是另一件事：它只刷新本地 content/assets，可以来自当前 package，也可以来自指定 release archive。它不会升级 npm、pipx 或 pip 中安装的 qiongli package。
+在 npm/npx 下，`qiongli upgrade` 是覆盖式 asset refresh 的别名，只会从当前已安装 npm package 重新应用 assets；它不会升级 npm package，也不会升级完整 Python CLI。指定 release archive、package self-update 和 `qiongli self-update` 属于 Python 完整运行时：`pipx install qiongli`。
 
 ```bash
-qiongli upgrade --ref v1.11.0 --target all
+qiongli upgrade --target all
 ```
 
 ## 运行时边界
@@ -117,7 +171,7 @@ qiongli upgrade --ref v1.11.0 --target all
 |---|---|---|
 | Skill 或 plugin package | prompts、task routes、templates、standards、subject overlays | 否 |
 | Literature MCPB / bundled literature MCP | provider status、本地检索、evidence export | 不需要 Python |
-| Full local plugin 或 CLI MCP | `doctor`、provider config、`task-plan`、`task-run`、orchestrator tools | 需要 |
+| Full local plugin 或 CLI MCP | 完整运行时命令：`doctor`、provider config、`task-plan`、`task-run`、`mcp serve` | 需要 |
 | Shell/Python CLI | validators、release checks、本地编排、package 维护 | 需要 |
 
 只有在运行时配置完成并且执行命令明确启用时，才会启动真实 agent execution。Preview 和 check 设计上都应先可检查，再产生副作用。

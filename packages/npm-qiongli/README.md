@@ -1,30 +1,36 @@
 # qiongli
 
-`qiongli` is the npm/npx installer for the Qiongli academic workflow skills.
+`qiongli` on npm is the Python-free asset manager for Qiongli client assets.
 
 ## Install
 
 ```bash
 npm install -g qiongli
 qiongli setup
-qiongli install --target all
+qiongli install --target all --surface skills
+qiongli check --json
 qiongli project init --project-dir .
 qiongli project set-subject finance --project-dir .
 qiongli project status --project-dir .
 ```
 
-`qiongli setup` uses the bundled Python bridge and requires Python 3.12+ with `PyYAML`.
-Use explicit `qiongli install ...` commands when you only need Node-based asset installation. For normal CLI/local plugin use, install once and keep per-project subject behavior in `.qiongli/guidance_manifest.yaml`.
+`qiongli setup` is npm asset setup. It stays on the Python-free asset manager path and installs client assets only. For full runtime commands such as `doctor`, `mcp serve`, `provider setup`, `task-run`, or `customize`, install the full runtime first:
+
+```bash
+pipx install qiongli
+```
+
+Use explicit `qiongli install ...` commands when you only need scripted asset installation. For normal asset/project use, install once and keep per-project subject behavior in `.qiongli/guidance_manifest.yaml`.
 
 Update an existing global install with:
 
 ```bash
 qiongli update
-qiongli update --dry-run
-qiongli update --yes
+qiongli refresh
+qiongli upgrade --target all
 ```
 
-Use `qiongli update` for the normal interactive update flow. It checks whether the installed qiongli CLI/package has a newer release, asks before running the package-manager update, then asks whether to refresh installed local plugins/assets from the new package. Use `qiongli update --yes` for CI or scripts; it answers both prompts as yes. Use `qiongli update --no-refresh` when you only want the CLI/package update and plan to run `qiongli install ...` yourself.
+`qiongli update`, `qiongli refresh`, and `qiongli upgrade` all reapply bundled assets from the currently installed npm package. `upgrade` is treated as an overwrite refresh. They do not update the npm package or the full Python CLI. Selected release archives, package self-update, and `qiongli self-update` require the full runtime: `pipx install qiongli`.
 
 Or run without a global install:
 
@@ -51,15 +57,15 @@ qiongli uninstall --target codex
 
 The npm package contains pre-materialized `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting` `qiongli-workflow` subject payloads in both `complete` and `focused` coverage. It does not depend on PyPI for skill installation and does not run `postinstall`.
 
-`qiongli setup` is the interactive guided path for choosing install or upgrade, runtime surface, subject, coverage, `--mode copy|link`, install scope, CLI directory, `--overwrite` / `--no-overwrite`, optional upgrade source, literature provider setup, and doctor verification. Provider setup defaults to one local browser page with key-access guidance for OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv; use `--provider-mode prompt` for terminal-only entry or `--provider-mode skip` to bypass it. Each prompt includes a short `Tip:` comment. It delegates to the bundled Python bridge, so it requires Python 3.12+ with `PyYAML`. If you only need Node-based asset installation, use explicit `qiongli install ...` commands.
+`qiongli setup` in the npm package is client-asset setup only. It uses the same Python-free asset path as `qiongli install`, `qiongli update`, `qiongli refresh`, and `qiongli project ...`. The interactive setup wizard, provider setup, doctor checks, and full MCP/orchestrator commands require the full runtime: `pipx install qiongli`.
 
 ## Global-first update model
 
 The npm package and the installed workflow assets are separate surfaces:
 
 - `npm install -g qiongli@latest` updates the npm CLI and bundled payload in npm's global package location.
-- `qiongli update --yes` performs that npm package update and then refreshes installed full local plugin/MCP surfaces from the new bundled payload.
-- `qiongli install --target all` installs the stable full local runtime used across projects.
+- `qiongli update`, `qiongli refresh`, and `qiongli upgrade` reapply bundled assets from the current npm package; they do not update the npm package.
+- `qiongli install --target all` installs the stable skills surface used across projects. Plugin-lite output is opt-in with `--surface plugin` or `--surface both` where bundled and supported.
 - `qiongli project init --project-dir .` creates `.qiongli/guidance_manifest.yaml` for a project.
 - `qiongli project set-subject finance --project-dir .` changes ordinary project subject behavior without reinstalling a package.
 - Missing `.qiongli/guidance_manifest.yaml` means implicit `active_subject: auto`: Qiongli uses core guidance, infers temporary subject or method lenses from the task, and writes auditable proposals before changing project-local state.
@@ -91,17 +97,18 @@ Global assets are written under client home directories such as:
 ~/.hermes/skills/qiongli-workflow
 ```
 
-Advanced bridge commands such as `setup`, `doctor`, `task-run`, and `team-run` use the Python runtime bundled in the npm package and require Python 3.12+ with `PyYAML`.
+Transitional `python-runtime/` files still ship in the npm package for compatibility checks, but npm CLI dispatch stays on the Python-free asset path. Full runtime commands such as `doctor`, `task-run`, `team-run`, `mcp serve`, `provider setup`, and `customize` require `pipx install qiongli`.
 
 ## MCP server
 
-`qiongli mcp serve --transport stdio` is the unified full CLI MCP server. It exposes literature provider tools plus orchestrator and task-run tools from one server. The zero-dependency Node literature-provider MCP bundled by plugins remains a marketplace/MCPB fallback for environments that cannot run the full CLI.
+`qiongli mcp serve --transport stdio` is the unified full CLI MCP server. It exposes literature provider tools plus orchestrator and task-run tools from one server. The zero-dependency Node literature-provider MCP bundled by plugins remains a marketplace/MCPB fallback for environments that do not need the full runtime.
 
-The Python CLI path (`qiongli install --profile full --target codex`) performs managed Codex MCP registration for the unified server. The npm asset installer stays conservative: explicit npm installs can report MCP guidance with `qiongli install --parts globals,mcp --dry-run`, but they do not rewrite client MCP config.
+The full runtime path (`pipx install qiongli`, then `qiongli install --profile full --target codex`) performs managed Codex MCP registration for the unified server. The npm asset installer stays conservative: explicit npm installs can report MCP guidance with `qiongli install --parts globals,mcp --dry-run`, but they do not run the full server or rewrite client MCP config.
 
-The npm launcher also delegates MCP commands to the bundled Python bridge:
+Install the full runtime before running MCP commands:
 
 ```bash
+pipx install qiongli
 qiongli mcp serve --transport stdio
 qiongli mcp doctor --json
 qiongli mcp config example --target codex --json

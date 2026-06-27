@@ -20,7 +20,7 @@
 - [任务场景](/zh/guide/task-recipes)：按“我要做什么”来选 stages、Task IDs 和 skills。
 - [多 Agent 运行指南](/zh/guide/multi-agent)：解释 runtime routing、本地 agent execution 和认证规则。
 - [示例](/zh/examples/)：按 systematic-review、empirical、qualitative、methods、theory 查看标准推荐路线。
-- [升级](/zh/guide/upgrade)：package update、content refresh、无 Python 升级、Python CLI 升级、长期 clone 维护。
+- [升级](/zh/guide/upgrade)：npm asset refresh、完整运行时 package update、无 Python bootstrap、Python CLI 升级、长期 clone 维护。
 - [故障排除](/zh/guide/troubleshooting)：统一错误码与定位建议。
 
 ## 什么时候离开这一部分
@@ -31,6 +31,6 @@
 
 ## 更新边界
 
-- 用 `qiongli update` 升级 npm、pipx 或 pip 中安装的 package。
-- 用 `qiongli update --no-refresh` 只升级 package，不刷新本地 assets。
-- 用 `qiongli upgrade` 只刷新本地 content/assets，可以来自当前 package 或指定 release archive。
+- 在 npm/npx 下，用 `qiongli update` 或 `qiongli refresh` 从当前 package 重新应用 assets。
+- 在 npm/npx 下，用 `qiongli upgrade` 从当前 package 执行覆盖式 asset refresh。
+- 完整运行时的 package self-update，包括 `qiongli self-update`，需要先安装 Python 完整运行时：`pipx install qiongli`。

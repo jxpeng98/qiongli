@@ -24,7 +24,7 @@ class NpmPackageContractTests(unittest.TestCase):
         self.assertEqual(package_json["name"], "qiongli")
         self.assertEqual(
             package_json["description"],
-            "Qiongli academic research workflow installer and optional Python bridge runtime.",
+            "Qiongli Python-free academic workflow asset manager.",
         )
         self.assertEqual(
             package_json["author"],
@@ -80,7 +80,7 @@ class NpmPackageContractTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.strip(), "0.8.0-beta.1")
 
-    def test_npm_payload_and_python_runtime_are_bundled(self) -> None:
+    def test_npm_payload_bundles_plugin_lite_assets_and_transitional_python_runtime(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             materialized_root = Path(tmp) / "qiongli-dist"
             subprocess.run(
@@ -101,11 +101,18 @@ class NpmPackageContractTests(unittest.TestCase):
             )
             package_root = materialized_root / "packages" / "npm-qiongli"
             workflow_root = package_root / "payload" / "qiongli-workflow"
+            plugin_payload_root = package_root / "payload" / "plugins"
             runtime_root = package_root / "python-runtime"
 
-            self._assert_npm_payload_and_runtime(package_root, workflow_root, runtime_root)
+            self._assert_npm_payload_and_runtime(package_root, workflow_root, plugin_payload_root, runtime_root)
 
-    def _assert_npm_payload_and_runtime(self, package_root: Path, workflow_root: Path, runtime_root: Path) -> None:
+    def _assert_npm_payload_and_runtime(
+        self,
+        package_root: Path,
+        workflow_root: Path,
+        plugin_payload_root: Path,
+        runtime_root: Path,
+    ) -> None:
         package_json = json.loads((package_root / "package.json").read_text(encoding="utf-8"))
 
         self.assertTrue((workflow_root / "SKILL.md").is_file())
@@ -125,6 +132,7 @@ class NpmPackageContractTests(unittest.TestCase):
         self.assertIn("qiongli <command>", cli_source)
         self.assertIn('DEFAULT_REPO="jxpeng98/qiongli"', bootstrap_source)
         self.assertIn("--profile <partial|full>", bootstrap_source)
+        self._assert_plugin_lite_payload(plugin_payload_root)
 
         self.assertTrue((runtime_root / "bridges" / "__init__.py").is_file())
         self.assertTrue((runtime_root / "qiongli" / "bridges" / "orchestrator.py").is_file())
@@ -145,7 +153,41 @@ class NpmPackageContractTests(unittest.TestCase):
             (runtime_root / "skills" / "registry.yaml").read_text(encoding="utf-8"),
         )
 
-    def test_npm_runtime_setup_wizard_resolves_npm_payload_root(self) -> None:
+    def _assert_plugin_lite_payload(self, plugin_payload_root: Path) -> None:
+        fallback_plugin_root = plugin_payload_root / "qiongli"
+        codex_plugin_root = plugin_payload_root / "codex" / "qiongli"
+        claude_plugin_root = plugin_payload_root / "claude" / "qiongli"
+
+        self.assertTrue(
+            fallback_plugin_root.is_dir(),
+            msg=f"expected shared plugin-lite fallback at {fallback_plugin_root}",
+        )
+        self.assertTrue(
+            (fallback_plugin_root / "skills" / "qiongli-workflow" / "SKILL.md").is_file(),
+            msg="expected bundled plugin-lite skill entrypoint in npm payload",
+        )
+        self.assertTrue(
+            (fallback_plugin_root / "mcp" / "qiongli-literature-provider").is_dir(),
+            msg="expected bundled plugin-lite literature MCP provider in npm payload",
+        )
+        self.assertTrue(
+            (fallback_plugin_root / ".codex-plugin" / "plugin.json").is_file()
+            or (fallback_plugin_root / ".claude-plugin" / "plugin.json").is_file()
+            or (fallback_plugin_root / "plugin.json").is_file(),
+            msg="expected at least one recognized qiongli plugin manifest in npm plugin-lite payload",
+        )
+        for target_root in (codex_plugin_root, claude_plugin_root):
+            if target_root.exists():
+                self.assertTrue(
+                    (target_root / "skills" / "qiongli-workflow" / "SKILL.md").is_file(),
+                    msg=f"expected plugin-lite skill entrypoint in target payload {target_root}",
+                )
+                self.assertTrue(
+                    (target_root / "mcp" / "qiongli-literature-provider").is_dir(),
+                    msg=f"expected bundled Node MCP provider in target payload {target_root}",
+                )
+
+    def test_transitional_python_runtime_packaging_resolves_payload_root(self) -> None:
         env = os.environ.copy()
         with tempfile.TemporaryDirectory() as temp_dir:
             materialized_root = Path(temp_dir) / "qiongli-dist"
@@ -167,7 +209,12 @@ class NpmPackageContractTests(unittest.TestCase):
             )
             package_root = materialized_root / "packages" / "npm-qiongli"
             expected_payload_root = (package_root / "payload").resolve()
-            env["PYTHONPATH"] = str(package_root / "python-runtime")
+            runtime_root = package_root / "python-runtime"
+            self.assertTrue(
+                runtime_root.is_dir(),
+                msg="expected transitional python-runtime packaging to remain available in the npm payload",
+            )
+            env["PYTHONPATH"] = str(runtime_root)
             result = subprocess.run(
                 [
                     sys.executable,

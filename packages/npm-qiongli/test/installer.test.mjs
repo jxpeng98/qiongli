@@ -15,11 +15,31 @@ import {
   resolveTargetPaths,
 } from '../lib/installer.mjs';
 
+const NPM_PLUGIN_MARKER = '.qiongli-npm-lite.json';
+
+function npmPluginMarker(pluginDir) {
+  return path.join(pluginDir, NPM_PLUGIN_MARKER);
+}
+
+function npmPluginSidecarMarker(pluginDir) {
+  return `${pluginDir}${NPM_PLUGIN_MARKER}`;
+}
+
 function makeTempPackage() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-npm-test-'));
   fs.writeFileSync(
     path.join(root, 'package.json'),
     JSON.stringify({ name: 'qiongli', version: '9.9.9-beta.1' }),
+  );
+  const sharedPlugin = createPluginPayload(
+    root,
+    path.join('payload', 'plugins', 'qiongli'),
+    'shared plugin payload\n',
+  );
+  const codexPlugin = createPluginPayload(
+    root,
+    path.join('payload', 'plugins', 'codex', 'qiongli'),
+    'codex plugin payload\n',
   );
   const legacyWorkflow = createWorkflow(
     root,
@@ -100,6 +120,8 @@ function makeTempPackage() {
   );
   return {
     root,
+    sharedPlugin,
+    codexPlugin,
     legacyWorkflow,
     coreWorkflow,
     coreFocusedWorkflow,
@@ -112,6 +134,17 @@ function makeTempPackage() {
     financeWorkflow,
     financeFocusedWorkflow,
   };
+}
+
+function createPluginPayload(root, rel, payloadText) {
+  const plugin = path.join(root, rel);
+  fs.mkdirSync(plugin, { recursive: true });
+  fs.mkdirSync(path.join(plugin, '.codex-plugin'), { recursive: true });
+  fs.mkdirSync(path.join(plugin, '.claude-plugin'), { recursive: true });
+  fs.writeFileSync(path.join(plugin, '.codex-plugin', 'plugin.json'), `${JSON.stringify({ name: 'qiongli', runtime: 'node-lite' })}\n`);
+  fs.writeFileSync(path.join(plugin, '.claude-plugin', 'plugin.json'), `${JSON.stringify({ name: 'qiongli', runtime: 'node-lite' })}\n`);
+  fs.writeFileSync(path.join(plugin, 'payload.txt'), payloadText);
+  return plugin;
 }
 
 function createWorkflow(root, rel, subject, coverage, workflowText) {
@@ -171,6 +204,134 @@ test('installSkills copies managed payload and removes legacy residues', () => {
   assert.equal(result.legacyResidues[0].legacyName, 'research-paper-workflow');
   assert.equal(result.legacyResidues[0].status, 'removed');
   assert.equal(fs.existsSync(legacyDir), false);
+});
+
+test('installSkills installs plugin-only surface from target-specific plugin payload', () => {
+  const { root } = makeTempPackage();
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-plugin-home-'));
+
+  const result = installSkills({
+    packageRoot: root,
+    target: 'codex',
+    surface: 'plugin',
+    env: { HOME: home },
+    platform: 'linux',
+  });
+
+  const pluginDest = path.join(home, 'plugins', 'qiongli');
+  const skillDest = path.join(home, '.codex', 'skills', 'qiongli-workflow');
+  assert.equal(fs.readFileSync(path.join(pluginDest, 'payload.txt'), 'utf-8'), 'codex plugin payload\n');
+  assert.deepEqual(JSON.parse(fs.readFileSync(npmPluginMarker(pluginDest), 'utf-8')), {
+    managed_by: 'qiongli-npm',
+    surface: 'plugin-lite',
+    target: 'codex',
+    version: '9.9.9-beta.1',
+  });
+  assert.equal(fs.existsSync(skillDest), false);
+  assert.deepEqual(
+    result.actions.map((action) => ({ label: action.label, path: action.path })),
+    [{ label: 'Plugin', path: pluginDest }],
+  );
+});
+
+test('installSkills does not overwrite unmarked qiongli plugin directories', () => {
+  const { root } = makeTempPackage();
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-plugin-collision-home-'));
+  const pluginDest = path.join(home, 'plugins', 'qiongli');
+  fs.mkdirSync(path.join(pluginDest, '.codex-plugin'), { recursive: true });
+  fs.writeFileSync(path.join(pluginDest, '.codex-plugin', 'plugin.json'), `${JSON.stringify({ name: 'qiongli' })}\n`);
+  fs.writeFileSync(path.join(pluginDest, 'payload.txt'), 'user full plugin\n');
+
+  const result = installSkills({
+    packageRoot: root,
+    target: 'codex',
+    surface: 'plugin',
+    overwrite: true,
+    env: { HOME: home },
+    platform: 'linux',
+  });
+
+  assert.equal(fs.readFileSync(path.join(pluginDest, 'payload.txt'), 'utf-8'), 'user full plugin\n');
+  assert.deepEqual(
+    result.actions.map((action) => ({ label: action.label, status: action.status, path: action.path, detail: action.detail })),
+    [{ label: 'Plugin', status: 'skip', path: pluginDest, detail: 'unmanaged qiongli plugin directory' }],
+  );
+});
+
+test('installSkills installs both skill and plugin surfaces', () => {
+  const { root } = makeTempPackage();
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-both-home-'));
+
+  const result = installSkills({
+    packageRoot: root,
+    target: 'codex',
+    surface: 'both',
+    env: { HOME: home },
+    platform: 'linux',
+  });
+
+  const pluginDest = path.join(home, 'plugins', 'qiongli');
+  const skillDest = path.join(home, '.codex', 'skills', 'qiongli-workflow');
+  assert.equal(fs.existsSync(skillDest), true);
+  assert.equal(fs.readFileSync(path.join(pluginDest, 'payload.txt'), 'utf-8'), 'codex plugin payload\n');
+  assert.equal(result.actions.some((action) => action.label === 'Skill' && action.path === skillDest), true);
+  assert.equal(result.actions.some((action) => action.label === 'Plugin' && action.path === pluginDest), true);
+});
+
+test('installSkills falls back to shared plugin payload when target-specific payload is absent', () => {
+  const { root } = makeTempPackage();
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-shared-plugin-home-'));
+
+  installSkills({
+    packageRoot: root,
+    target: 'claude',
+    surface: 'plugin',
+    env: { HOME: home },
+    platform: 'linux',
+  });
+
+  const pluginDest = path.join(home, '.claude', 'plugins', 'qiongli');
+  assert.equal(fs.readFileSync(path.join(pluginDest, 'payload.txt'), 'utf-8'), 'shared plugin payload\n');
+});
+
+test('installSkills skips plugin surface when payload lacks target manifest', () => {
+  const { root } = makeTempPackage();
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-unsupported-plugin-home-'));
+
+  const result = installSkills({
+    packageRoot: root,
+    target: 'antigravity',
+    surface: 'plugin',
+    env: { HOME: home },
+    platform: 'linux',
+  });
+
+  const pluginDest = path.join(home, '.gemini', 'antigravity', 'plugins', 'qiongli');
+  assert.equal(fs.existsSync(pluginDest), false);
+  assert.deepEqual(
+    result.actions.map((action) => ({ label: action.label, status: action.status, path: action.path, detail: action.detail })),
+    [{ label: 'Plugin', status: 'skip', path: pluginDest, detail: 'plugin payload not bundled for antigravity' }],
+  );
+});
+
+test('installSkills skips Hermes plugin surface because Hermes has no plugin-lite target', () => {
+  const { root } = makeTempPackage();
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-hermes-plugin-home-'));
+
+  const result = installSkills({
+    packageRoot: root,
+    target: 'hermes',
+    surface: 'plugin',
+    env: { HOME: home },
+    platform: 'linux',
+  });
+
+  const pluginDest = path.join(home, '.hermes', 'plugins', 'qiongli');
+  assert.equal(fs.existsSync(pluginDest), false);
+  assert.deepEqual(
+    result.actions.map((action) => ({ label: action.label, status: action.status, path: action.path, detail: action.detail })),
+    [{ label: 'Plugin', status: 'skip', path: pluginDest, detail: 'Hermes has no npm plugin-lite surface' }],
+  );
 });
 
 test('installSkills installs the payload into Hermes home', () => {
@@ -426,6 +587,27 @@ test('buildCheck reports payload and installed subjects', () => {
   assert.equal(result.installed.codex.subject, 'economics');
   assert.equal(result.installed.codex.coverage, 'complete');
   assert.equal(result.installed.codex.version, 'v9.9.9-beta.1');
+  assert.equal(result.installed.codex.surface, 'skills');
+  assert.equal(result.installed.codex.skill.installed, true);
+  assert.equal(result.installed.codex.plugin.installed, false);
+});
+
+test('buildCheck reports plugin-only installs', () => {
+  const { root } = makeTempPackage();
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-plugin-check-home-'));
+  installSkills({ packageRoot: root, target: 'codex', surface: 'plugin', env: { HOME: home }, platform: 'linux' });
+
+  const result = buildCheck({ packageRoot: root, env: { HOME: home } });
+
+  assert.equal(result.installed.codex.installed, true);
+  assert.equal(result.installed.codex.surface, 'plugin');
+  assert.equal(result.installed.codex.version, '9.9.9-beta.1');
+  assert.equal(result.installed.codex.skill.installed, false);
+  assert.equal(result.installed.codex.skill.version, null);
+  assert.equal(result.installed.codex.plugin.installed, true);
+  assert.equal(result.installed.codex.plugin.managed, true);
+  assert.equal(result.installed.codex.plugin.version, '9.9.9-beta.1');
+  assert.equal(result.installed.codex.plugin.target, 'codex');
 });
 
 test('cleanAssets globals removes legacy skill directories', () => {
@@ -456,6 +638,120 @@ test('removeAssets removes managed skills and discovery while preserving user fi
   assert.equal(fs.existsSync(customCommand), true);
   assert.equal(result.actions.some((action) => action.label === 'Skill' && action.status === 'removed'), true);
   assert.equal(result.actions.some((action) => action.label === 'Workflow' && action.status === 'removed'), true);
+});
+
+test('removeAssets removes plugin-only surface with default globals part', () => {
+  const { root } = makeTempPackage();
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-remove-plugin-home-'));
+  installSkills({ packageRoot: root, target: 'codex', surface: 'plugin', env: { HOME: home }, platform: 'linux' });
+
+  const pluginDest = path.join(home, 'plugins', 'qiongli');
+  const result = removeAssets({ target: 'codex', surface: 'plugin', env: { HOME: home } });
+
+  assert.equal(fs.existsSync(pluginDest), false);
+  assert.deepEqual(
+    result.actions.map((action) => ({ label: action.label, status: action.status, path: action.path })),
+    [{ label: 'Plugin', status: 'removed', path: pluginDest }],
+  );
+});
+
+test('removeAssets removes broken link-mode plugin-only installs', () => {
+  const { root } = makeTempPackage();
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-remove-plugin-link-home-'));
+  installSkills({
+    packageRoot: root,
+    target: 'codex',
+    surface: 'plugin',
+    mode: 'link',
+    env: { HOME: home },
+    platform: 'linux',
+  });
+
+  const pluginDest = path.join(home, 'plugins', 'qiongli');
+  const sidecarMarker = npmPluginSidecarMarker(pluginDest);
+  assert.equal(fs.lstatSync(pluginDest).isSymbolicLink(), true);
+  assert.equal(fs.existsSync(sidecarMarker), true);
+  fs.rmSync(root, { recursive: true, force: true });
+  assert.equal(fs.existsSync(pluginDest), false);
+  assert.equal(fs.lstatSync(pluginDest).isSymbolicLink(), true);
+
+  const result = removeAssets({ target: 'codex', surface: 'plugin', env: { HOME: home } });
+
+  assert.throws(() => fs.lstatSync(pluginDest), /ENOENT/);
+  assert.equal(fs.existsSync(sidecarMarker), false);
+  assert.deepEqual(
+    result.actions.map((action) => ({ label: action.label, status: action.status, path: action.path })),
+    [{ label: 'Plugin', status: 'removed', path: pluginDest }],
+  );
+});
+
+test('installSkills overwrites broken link-mode plugin-only installs', () => {
+  const firstPackage = makeTempPackage();
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-overwrite-plugin-link-home-'));
+  installSkills({
+    packageRoot: firstPackage.root,
+    target: 'codex',
+    surface: 'plugin',
+    mode: 'link',
+    env: { HOME: home },
+    platform: 'linux',
+  });
+
+  const pluginDest = path.join(home, 'plugins', 'qiongli');
+  fs.rmSync(firstPackage.root, { recursive: true, force: true });
+  assert.equal(fs.existsSync(pluginDest), false);
+  assert.equal(fs.lstatSync(pluginDest).isSymbolicLink(), true);
+
+  const secondPackage = makeTempPackage();
+  const result = installSkills({
+    packageRoot: secondPackage.root,
+    target: 'codex',
+    surface: 'plugin',
+    mode: 'link',
+    overwrite: true,
+    env: { HOME: home },
+    platform: 'linux',
+  });
+
+  assert.equal(fs.lstatSync(pluginDest).isSymbolicLink(), true);
+  assert.equal(fs.readFileSync(path.join(pluginDest, 'payload.txt'), 'utf-8'), 'codex plugin payload\n');
+  assert.equal(fs.existsSync(npmPluginSidecarMarker(pluginDest)), true);
+  assert.deepEqual(
+    result.actions.map((action) => ({ label: action.label, status: action.status, path: action.path })),
+    [{ label: 'Plugin', status: 'ok', path: pluginDest }],
+  );
+});
+
+test('removeAssets skips unmarked qiongli plugin directories', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-remove-plugin-collision-home-'));
+  const pluginDest = path.join(home, 'plugins', 'qiongli');
+  fs.mkdirSync(path.join(pluginDest, '.codex-plugin'), { recursive: true });
+  fs.writeFileSync(path.join(pluginDest, '.codex-plugin', 'plugin.json'), `${JSON.stringify({ name: 'qiongli' })}\n`);
+  fs.writeFileSync(path.join(pluginDest, 'payload.txt'), 'user full plugin\n');
+
+  const result = removeAssets({ target: 'codex', surface: 'plugin', env: { HOME: home } });
+
+  assert.equal(fs.existsSync(pluginDest), true);
+  assert.equal(fs.readFileSync(path.join(pluginDest, 'payload.txt'), 'utf-8'), 'user full plugin\n');
+  assert.deepEqual(
+    result.actions.map((action) => ({ label: action.label, status: action.status, path: action.path, detail: action.detail })),
+    [{ label: 'Plugin', status: 'skip', path: pluginDest, detail: 'unmanaged qiongli plugin directory' }],
+  );
+});
+
+test('removeAssets removes both surfaces when requested', () => {
+  const { root } = makeTempPackage();
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-remove-both-home-'));
+  installSkills({ packageRoot: root, target: 'claude', surface: 'both', env: { HOME: home }, platform: 'linux' });
+
+  const pluginDest = path.join(home, '.claude', 'plugins', 'qiongli');
+  const skillDest = path.join(home, '.claude', 'skills', 'qiongli-workflow');
+  const result = removeAssets({ target: 'claude', surface: 'both', env: { HOME: home } });
+
+  assert.equal(fs.existsSync(pluginDest), false);
+  assert.equal(fs.existsSync(skillDest), false);
+  assert.equal(result.actions.some((action) => action.label === 'Plugin' && action.status === 'removed' && action.path === pluginDest), true);
+  assert.equal(result.actions.some((action) => action.label === 'Skill' && action.status === 'removed' && action.path === skillDest), true);
 });
 
 test('removeAssets skips unmanaged qiongli-workflow directories', () => {

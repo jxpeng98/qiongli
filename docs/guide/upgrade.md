@@ -45,7 +45,7 @@ qiongli init --project-dir /path/to/project
 
 > Note: pip installs/upgrades the qiongli CLI package. The actual refresh of global client skill directories is still performed by `qiongli upgrade`. Project-local files are explicit: use `qiongli init` or `qiongli upgrade --parts project ...` when you want them rewritten.
 
-`qiongli upgrade` is a content/assets refresh command. It does not update the installed npm, pipx, or pip qiongli CLI package. Use it when you intentionally want to refresh local installed assets from the current package or from a selected upstream release archive. For normal package updates, use `qiongli update`.
+`qiongli upgrade` is a content/assets refresh command. It does not update the installed qiongli CLI package. On npm/npx, `update`, `refresh`, and `upgrade` all reapply assets from the currently installed npm package; `upgrade` is an overwrite refresh alias. Selected upstream release archives, channel/package self-update, and `qiongli self-update` belong to the full runtime path: `pipx install qiongli`.
 
 ## 1) What exactly are you upgrading?
 
@@ -132,8 +132,9 @@ Key points:
 - This method **does not rely on git** and does not require you to clone the repository locally.
 - The shell bootstrap path **does not rely on Python**.
 - The shell CLI itself can run `check`, `upgrade`, and `align` without Python.
-- Default upgrade is plugin-first from v1.9.0 onward: it installs the full local plugin surface, then cleans old global skills and Codex/Claude standalone MCP configs after the new install succeeds.
-- Add `--surface skills --profile partial` when you explicitly want the old skills-only upgrade path.
+- Full-runtime upgrade is plugin-first from v1.9.0 onward: it installs the full local plugin surface, then cleans old global skills and Codex/Claude standalone MCP configs after the new install succeeds.
+- npm/npx upgrade stays on the Python-free asset path and refreshes the skills surface by default; plugin-lite output is opt-in with `--surface plugin` or `--surface both` where bundled and supported.
+- Add `--surface skills --profile partial` in the full runtime when you explicitly want the old skills-only upgrade path.
 - Add `--parts project` when you explicitly want to refresh project-local workflow assets.
 - For private repositories or if you hit API rate limits, it is recommended to set: `GITHUB_TOKEN` or `GH_TOKEN`.
 - It defaults to using the "latest release tag", but both shell bootstrap and `qiongli upgrade` accept explicit refs:

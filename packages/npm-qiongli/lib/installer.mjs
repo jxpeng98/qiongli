@@ -5,6 +5,7 @@ import path from 'node:path';
 const TARGETS = ['codex', 'claude', 'antigravity', 'hermes'];
 const PARTS = ['globals', 'project', 'cli', 'mcp'];
 const LEGACY_SKILL_NAME = 'research-paper-workflow';
+const NPM_PLUGIN_MARKER = '.qiongli-npm-lite.json';
 
 export function resolveTargetPaths({ env = process.env } = {}) {
   const home = env.HOME || env.USERPROFILE || os.homedir();
@@ -17,6 +18,19 @@ export function resolveTargetPaths({ env = process.env } = {}) {
     claude: path.join(claudeHome, 'skills', 'qiongli-workflow'),
     antigravity: path.join(antigravityHome, 'skills', 'qiongli-workflow'),
     hermes: path.join(hermesHome, 'skills', 'qiongli-workflow'),
+  };
+}
+
+function resolvePluginTargetPaths({ env = process.env } = {}) {
+  const home = env.HOME || env.USERPROFILE || os.homedir();
+  const claudeHome = env.CLAUDE_CODE_HOME || path.join(home, '.claude');
+  const antigravityHome = env.ANTIGRAVITY_HOME || path.join(home, '.gemini', 'antigravity');
+  const hermesHome = env.HERMES_HOME || path.join(home, '.hermes');
+  return {
+    codex: env.CODEX_PLUGIN_HOME || path.join(home, 'plugins', 'qiongli'),
+    claude: env.CLAUDE_CODE_PLUGIN_HOME || path.join(claudeHome, 'plugins', 'qiongli'),
+    antigravity: env.ANTIGRAVITY_PLUGIN_HOME || path.join(antigravityHome, 'plugins', 'qiongli'),
+    hermes: env.HERMES_PLUGIN_HOME || path.join(hermesHome, 'plugins', 'qiongli'),
   };
 }
 
@@ -61,6 +75,7 @@ export function installSkills({
   packageRoot,
   target = 'all',
   mode = 'copy',
+  surface = 'skills',
   overwrite = false,
   dryRun = false,
   subject = 'core',
@@ -69,35 +84,59 @@ export function installSkills({
   env = process.env,
   platform = process.platform,
 } = {}) {
-  const workflowSrc = resolveSubjectPayload({ packageRoot, subject, coverage });
-  if (!fs.existsSync(path.join(workflowSrc, 'SKILL.md'))) {
-    throw new Error(`Missing qiongli-workflow payload: ${workflowSrc}`);
-  }
-
+  const selectedSurface = normalizeSurface(surface);
+  const installSkillSurface = selectedSurface === 'skills' || selectedSurface === 'both';
+  const installPluginSurface = selectedSurface === 'plugin' || selectedSurface === 'both';
   const targetPaths = resolveTargetPaths({ env });
+  const pluginTargetPaths = resolvePluginTargetPaths({ env });
   const selectedTargets = target === 'all' ? TARGETS : [target];
-  const sourceVersion = readSkillVersion(workflowSrc);
-  const sourceSubject = readSkillSubject(workflowSrc) || subject;
-  const sourceCoverage = readSkillCoverage(workflowSrc) || coverage;
+  let sourceVersion = readPackageVersion(packageRoot);
+  let sourceSubject = subject;
+  let sourceCoverage = coverage;
   const actions = [];
   const legacyResidues = [];
   const selectedParts = normalizeParts(parts);
   const installGlobals = !selectedParts || selectedParts.includes('globals');
   const installMcp = selectedParts?.includes('mcp') || false;
 
+  let workflowSrc;
+  if (installSkillSurface) {
+    workflowSrc = resolveSubjectPayload({ packageRoot, subject, coverage });
+    if (!fs.existsSync(path.join(workflowSrc, 'SKILL.md'))) {
+      throw new Error(`Missing qiongli-workflow payload: ${workflowSrc}`);
+    }
+    sourceVersion = readSkillVersion(workflowSrc) || sourceVersion;
+    sourceSubject = readSkillSubject(workflowSrc) || sourceSubject;
+    sourceCoverage = readSkillCoverage(workflowSrc) || sourceCoverage;
+  }
+
   if (installGlobals) {
-    for (const item of selectedTargets) {
-      const dest = targetPaths[item];
-      const legacyPath = path.join(path.dirname(dest), LEGACY_SKILL_NAME);
-      if (fs.existsSync(legacyPath)) {
-        const status = removeLegacySkillPath(legacyPath, LEGACY_SKILL_NAME, dryRun);
-        legacyResidues.push({ target: item, legacyName: LEGACY_SKILL_NAME, path: legacyPath, status });
+    if (installSkillSurface) {
+      for (const item of selectedTargets) {
+        const dest = targetPaths[item];
+        const legacyPath = path.join(path.dirname(dest), LEGACY_SKILL_NAME);
+        if (fs.existsSync(legacyPath)) {
+          const status = removeLegacySkillPath(legacyPath, LEGACY_SKILL_NAME, dryRun);
+          legacyResidues.push({ target: item, legacyName: LEGACY_SKILL_NAME, path: legacyPath, status });
+        }
+
+        actions.push(copySkill({ src: workflowSrc, dest, mode, overwrite, dryRun, sourceVersion, sourceSubject, sourceCoverage }));
+
+        if (item === 'claude' && actions.at(-1).status !== 'skip') {
+          actions.push(...installWorkflowDiscovery({ target: item, skillDest: dest, dryRun, platform }));
+        }
       }
+    }
 
-      actions.push(copySkill({ src: workflowSrc, dest, mode, overwrite, dryRun, sourceVersion, sourceSubject, sourceCoverage }));
-
-      if (item === 'claude' && actions.at(-1).status !== 'skip') {
-        actions.push(...installWorkflowDiscovery({ target: item, skillDest: dest, dryRun, platform }));
+    if (installPluginSurface) {
+      for (const item of selectedTargets) {
+        const pluginSrc = resolvePluginPayload({ packageRoot, target: item });
+        const dest = pluginTargetPaths[item];
+        if (!pluginSrc) {
+          actions.push(pluginUnavailableAction({ target: item, path: dest }));
+          continue;
+        }
+        actions.push(copyPlugin({ src: pluginSrc, dest, mode, overwrite, dryRun, detail: item, platform, sourceVersion }));
       }
     }
   }
@@ -106,7 +145,7 @@ export function installSkills({
     actions.push(mcpGuidanceAction({ dryRun }));
   }
 
-  return { sourceVersion, sourceSubject, sourceCoverage, actions, legacyResidues, targetPaths };
+  return { sourceVersion, sourceSubject, sourceCoverage, actions, legacyResidues, targetPaths, pluginTargetPaths };
 }
 
 export function cleanAssets({ projectDir = '.', globals = false, dryRun = false, env = process.env } = {}) {
@@ -164,34 +203,52 @@ export function cleanAssets({ projectDir = '.', globals = false, dryRun = false,
 export function removeAssets({
   target = 'all',
   projectDir = '.',
+  surface = 'skills',
   parts = '',
   dryRun = false,
   env = process.env,
 } = {}) {
   validateTarget(target);
+  const selectedSurface = normalizeSurface(surface);
+  const removeSkillSurface = selectedSurface === 'skills' || selectedSurface === 'both';
+  const removePluginSurface = selectedSurface === 'plugin' || selectedSurface === 'both';
   const selectedParts = normalizeParts(parts) || ['globals'];
   const actions = [];
 
   if (selectedParts.includes('globals')) {
     const targetPaths = resolveTargetPaths({ env });
+    const pluginTargetPaths = resolvePluginTargetPaths({ env });
     const selectedTargets = target === 'all' ? TARGETS : [target];
     for (const item of selectedTargets) {
-      const skillDest = targetPaths[item];
-      actions.push(...removeWorkflowDiscovery({ target: item, skillDest, dryRun }));
-      const legacyPath = path.join(path.dirname(skillDest), LEGACY_SKILL_NAME);
-      if (fs.existsSync(legacyPath) && removeLegacySkillPath(legacyPath, LEGACY_SKILL_NAME, dryRun) !== 'kept') {
-        actions.push({ label: 'Legacy Skill', status: dryRun ? 'dry-run' : 'removed', path: legacyPath, detail: item });
+      if (removeSkillSurface) {
+        const skillDest = targetPaths[item];
+        actions.push(...removeWorkflowDiscovery({ target: item, skillDest, dryRun }));
+        const legacyPath = path.join(path.dirname(skillDest), LEGACY_SKILL_NAME);
+        if (fs.existsSync(legacyPath) && removeLegacySkillPath(legacyPath, LEGACY_SKILL_NAME, dryRun) !== 'kept') {
+          actions.push({ label: 'Legacy Skill', status: dryRun ? 'dry-run' : 'removed', path: legacyPath, detail: item });
+        }
+        if (!fs.existsSync(skillDest)) {
+          actions.push({ label: 'Skill', status: 'skip', path: skillDest, detail: 'not installed' });
+        } else if (!isQiongliSkillDir(skillDest)) {
+          actions.push({ label: 'Skill', status: 'skip', path: skillDest, detail: 'unmanaged qiongli-workflow directory' });
+        } else {
+          removePath(skillDest, dryRun);
+          actions.push({ label: 'Skill', status: dryRun ? 'dry-run' : 'removed', path: skillDest, detail: item });
+        }
       }
-      if (!fs.existsSync(skillDest)) {
-        actions.push({ label: 'Skill', status: 'skip', path: skillDest, detail: 'not installed' });
-        continue;
+
+      if (removePluginSurface) {
+        const pluginDest = pluginTargetPaths[item];
+        if (!pathExistsOrSymlink(pluginDest)) {
+          actions.push({ label: 'Plugin', status: 'skip', path: pluginDest, detail: 'not installed' });
+        } else if (!isNpmManagedPluginDir(pluginDest)) {
+          actions.push({ label: 'Plugin', status: 'skip', path: pluginDest, detail: 'unmanaged qiongli plugin directory' });
+        } else {
+          removeNpmPluginMarker(pluginDest, dryRun);
+          removePath(pluginDest, dryRun);
+          actions.push({ label: 'Plugin', status: dryRun ? 'dry-run' : 'removed', path: pluginDest, detail: item });
+        }
       }
-      if (!isQiongliSkillDir(skillDest)) {
-        actions.push({ label: 'Skill', status: 'skip', path: skillDest, detail: 'unmanaged qiongli-workflow directory' });
-        continue;
-      }
-      removePath(skillDest, dryRun);
-      actions.push({ label: 'Skill', status: dryRun ? 'dry-run' : 'removed', path: skillDest, detail: item });
     }
   }
 
@@ -222,14 +279,39 @@ export function buildCheck({ packageRoot, subject = 'core', coverage = 'complete
   const packageJson = JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf-8'));
   const payload = resolveSubjectPayload({ packageRoot, subject, coverage });
   const targetPaths = resolveTargetPaths({ env });
+  const pluginTargetPaths = resolvePluginTargetPaths({ env });
   const installed = {};
   for (const [target, skillDir] of Object.entries(targetPaths)) {
+    const skillInstalled = isQiongliSkillDir(skillDir);
+    const pluginDir = pluginTargetPaths[target];
+    const pluginMarker = readNpmPluginMarker(pluginDir);
+    const pluginInstalled = isQiongliPluginDir(pluginDir) && Boolean(pluginMarker);
+    const pluginVersion = pluginMarker?.version || null;
+    const skillVersion = readSkillVersion(skillDir) || null;
+    const version = skillVersion || pluginVersion;
+    const installedSubject = readSkillSubject(skillDir) || null;
+    const installedCoverage = readSkillCoverage(skillDir) || null;
     installed[target] = {
       path: skillDir,
-      installed: isQiongliSkillDir(skillDir),
-      version: readSkillVersion(skillDir) || null,
-      subject: readSkillSubject(skillDir) || null,
-      coverage: readSkillCoverage(skillDir) || null,
+      installed: skillInstalled || pluginInstalled,
+      surface: pluginInstalled ? (skillInstalled ? 'both' : 'plugin') : skillInstalled ? 'skills' : 'none',
+      version,
+      subject: installedSubject,
+      coverage: installedCoverage,
+      skill: {
+        path: skillDir,
+        installed: skillInstalled,
+        version: skillVersion,
+        subject: installedSubject,
+        coverage: installedCoverage,
+      },
+      plugin: {
+        path: pluginDir,
+        installed: pluginInstalled,
+        managed: pluginInstalled,
+        version: pluginVersion,
+        target: pluginMarker?.target || target,
+      },
     };
   }
   return {
@@ -283,6 +365,31 @@ function copySkill({ src, dest, mode, overwrite, dryRun, sourceVersion, sourceSu
   return { label: 'Skill', status: 'ok', path: dest, detail: `installed ${sourceVersion} (${sourceSubject}/${sourceCoverage})` };
 }
 
+function copyPlugin({ src, dest, mode, overwrite, dryRun, detail, platform, sourceVersion }) {
+  if (pathExistsOrSymlink(dest)) {
+    if (!isNpmManagedPluginDir(dest)) {
+      return { label: 'Plugin', status: 'skip', path: dest, detail: 'unmanaged qiongli plugin directory' };
+    }
+    if (!overwrite) {
+      return { label: 'Plugin', status: 'skip', path: dest, detail: `already current ${detail}` };
+    }
+    removeNpmPluginMarker(dest, dryRun);
+    removePath(dest, dryRun);
+  }
+
+  if (!dryRun) {
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    if (mode === 'link') {
+      fs.symlinkSync(src, dest, platform === 'win32' ? 'junction' : 'dir');
+    } else {
+      fs.cpSync(src, dest, { recursive: true, force: true });
+    }
+    writeNpmPluginMarker(dest, { target: detail, sourceVersion });
+  }
+
+  return { label: 'Plugin', status: 'ok', path: dest, detail: `installed ${detail}` };
+}
+
 function resolveSubjectPayload({ packageRoot, subject, coverage = 'complete' }) {
   const requested = subject || 'core';
   const requestedCoverage = coverage || 'complete';
@@ -306,6 +413,38 @@ function resolveSubjectPayload({ packageRoot, subject, coverage = 'complete' }) 
   throw new Error(
     `Unknown coverage '${requestedCoverage}' for subject '${requested}'. Available coverage: ${coverageOptions.join(', ') || 'complete'}`,
   );
+}
+
+function resolvePluginPayload({ packageRoot, target }) {
+  if (target === 'hermes') {
+    return '';
+  }
+  const targetPayload = path.join(packageRoot, 'payload', 'plugins', target, 'qiongli');
+  if (isPluginPayloadDir(targetPayload, target)) {
+    return targetPayload;
+  }
+  const sharedPayload = path.join(packageRoot, 'payload', 'plugins', 'qiongli');
+  if (isPluginPayloadDir(sharedPayload, target)) {
+    return sharedPayload;
+  }
+  return '';
+}
+
+function pluginUnavailableAction({ target, path: pluginPath }) {
+  if (target === 'hermes') {
+    return {
+      label: 'Plugin',
+      status: 'skip',
+      path: pluginPath,
+      detail: 'Hermes has no npm plugin-lite surface',
+    };
+  }
+  return {
+    label: 'Plugin',
+    status: 'skip',
+    path: pluginPath,
+    detail: `plugin payload not bundled for ${target}`,
+  };
 }
 
 function availableSubjects(packageRoot) {
@@ -458,6 +597,111 @@ function isQiongliSkillDir(skillDir) {
   }
 }
 
+function isQiongliPluginDir(pluginDir) {
+  for (const rel of [
+    'manifest.json',
+    'plugin.json',
+    path.join('.codex-plugin', 'plugin.json'),
+    path.join('.claude-plugin', 'plugin.json'),
+  ]) {
+    try {
+      const payload = JSON.parse(fs.readFileSync(path.join(pluginDir, rel), 'utf-8'));
+      if (payload && typeof payload === 'object' && payload.name === 'qiongli') {
+        return true;
+      }
+    } catch {
+      continue;
+    }
+  }
+  return false;
+}
+
+function isNpmManagedPluginDir(pluginDir) {
+  const marker = readNpmPluginMarker(pluginDir);
+  if (!marker) {
+    return false;
+  }
+  if (pathExistsOrSymlink(pluginDir) && fs.lstatSync(pluginDir).isSymbolicLink()) {
+    return true;
+  }
+  return isQiongliPluginDir(pluginDir);
+}
+
+function readNpmPluginMarker(pluginDir) {
+  for (const markerPath of [pluginMarkerPath(pluginDir), pluginSidecarMarkerPath(pluginDir)]) {
+    try {
+      const marker = JSON.parse(fs.readFileSync(markerPath, 'utf-8'));
+      if (
+        marker
+        && typeof marker === 'object'
+        && marker.managed_by === 'qiongli-npm'
+        && marker.surface === 'plugin-lite'
+      ) {
+        return marker;
+      }
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+function writeNpmPluginMarker(pluginDir, { target, sourceVersion } = {}) {
+  const marker = {
+    managed_by: 'qiongli-npm',
+    surface: 'plugin-lite',
+    target,
+    version: sourceVersion || '',
+  };
+  const markerPath = fs.lstatSync(pluginDir).isSymbolicLink()
+    ? pluginSidecarMarkerPath(pluginDir)
+    : pluginMarkerPath(pluginDir);
+  fs.writeFileSync(markerPath, `${JSON.stringify(marker, null, 2)}\n`);
+}
+
+function removeNpmPluginMarker(pluginDir, dryRun) {
+  if (dryRun) {
+    return;
+  }
+  for (const markerPath of [pluginMarkerPath(pluginDir), pluginSidecarMarkerPath(pluginDir)]) {
+    fs.rmSync(markerPath, { force: true });
+  }
+}
+
+function pluginMarkerPath(pluginDir) {
+  return path.join(pluginDir, NPM_PLUGIN_MARKER);
+}
+
+function pluginSidecarMarkerPath(pluginDir) {
+  return `${pluginDir}${NPM_PLUGIN_MARKER}`;
+}
+
+function isPluginPayloadDir(pluginDir, target) {
+  if (!fs.existsSync(pluginDir)) {
+    return false;
+  }
+  return pluginManifestForTarget(pluginDir, target);
+}
+
+function pluginManifestForTarget(pluginDir, target) {
+  const manifestsByTarget = {
+    codex: [path.join('.codex-plugin', 'plugin.json'), 'manifest.json'],
+    claude: [path.join('.claude-plugin', 'plugin.json'), 'manifest.json'],
+    antigravity: ['plugin.json'],
+  };
+  for (const rel of manifestsByTarget[target] || []) {
+    try {
+      const payload = JSON.parse(fs.readFileSync(path.join(pluginDir, rel), 'utf-8'));
+      if (payload && typeof payload === 'object' && payload.name === 'qiongli') {
+        return true;
+      }
+    } catch {
+      continue;
+    }
+  }
+  return false;
+}
+
 function isLegacySkillPath(skillDir, legacyName) {
   try {
     if (fs.lstatSync(skillDir).isSymbolicLink()) {
@@ -543,6 +787,14 @@ function validateTarget(target) {
   throw new Error(`Unsupported target: ${target}`);
 }
 
+function normalizeSurface(surface) {
+  const normalized = surface || 'skills';
+  if (normalized === 'skills' || normalized === 'plugin' || normalized === 'both') {
+    return normalized;
+  }
+  throw new Error(`Unsupported surface: ${normalized}`);
+}
+
 function normalizeParts(parts) {
   if (!parts) {
     return null;
@@ -568,6 +820,15 @@ function removePath(target, dryRun) {
     return;
   }
   fs.rmSync(target, { recursive: true, force: true });
+}
+
+function readPackageVersion(packageRoot) {
+  try {
+    const packageJson = JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf-8'));
+    return typeof packageJson.version === 'string' ? packageJson.version : '';
+  } catch {
+    return '';
+  }
 }
 
 function escapeRegExp(value) {

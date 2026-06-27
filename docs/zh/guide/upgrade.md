@@ -43,7 +43,7 @@ qiongli init --project-dir /path/to/project
 
 > 注意：pip 安装/升级的是 qiongli CLI package；真正刷新三端全局 skill 目录的动作，仍由 `qiongli upgrade` 来执行。项目内文件现在改为显式更新：需要时使用 `qiongli init` 或 `qiongli upgrade --parts project ...`。
 
-`qiongli upgrade` 是内容/assets 刷新命令，不会升级 npm、pipx 或 pip 中安装的 qiongli CLI package。需要只刷新本地安装内容，或从指定上游 release archive 刷新内容时使用它。普通 package 升级使用 `qiongli update`。
+`qiongli upgrade` 是内容/assets 刷新命令，不会升级已安装的 qiongli CLI package。在 npm/npx 下，`update`、`refresh` 和 `upgrade` 都只会从当前已安装 npm package 重新应用 assets；`upgrade` 是覆盖式刷新别名。指定上游 release archive、channel/package self-update 和 `qiongli self-update` 属于完整运行时路径：先 `pipx install qiongli`。
 
 ## 1) 你需要升级的到底是什么？
 
@@ -130,8 +130,9 @@ python3 scripts/qiongli_update.py upgrade \
 - 这个方式**不依赖 git**，也不要求你把仓库 clone 到本地。
 - shell bootstrap 路径**不依赖 Python**。
 - shell CLI 本身也可以在无 Python 环境下执行 `check`、`upgrade`、`align`。
-- 从 v1.9.0 开始，默认 upgrade 是 plugin-first：先安装完整本地 plugin surface，再在新安装成功后清理旧 global skills 和 Codex/Claude 独立 MCP config。
-- 如果明确要保留旧版 skills-only 升级路径，使用 `--surface skills --profile partial`。
+- 从 v1.9.0 开始，完整运行时默认 upgrade 是 plugin-first：先安装完整本地 plugin surface，再在新安装成功后清理旧 global skills 和 Codex/Claude 独立 MCP config。
+- npm/npx upgrade 仍属于免 Python asset 路径，默认刷新 skills surface；只有 bundled/supported 的 plugin-lite 输出需要用 `--surface plugin` 或 `--surface both` 显式启用。
+- 如果在完整运行时里明确要保留旧版 skills-only 升级路径，使用 `--surface skills --profile partial`。
 - 只有显式加 `--parts project` 时，才会刷新项目内 workflow 资产。
 - 私有仓库或遇到 API 限流时，建议设置：`GITHUB_TOKEN` 或 `GH_TOKEN`。
 - 默认使用“最新 release tag”；shell bootstrap 和 `qiongli upgrade` 也都支持显式指定版本：
