@@ -42,16 +42,16 @@ The name comes from `穷理`: keep asking what principle, evidence, and limit si
 
 ## Latest Stable Downloads
 
-Current stable release: [v1.11.0](https://github.com/jxpeng98/qiongli/releases/tag/v1.11.0). These direct links cover the common install paths; use the download guide for subject-specific Desktop ZIPs and maintainer artifacts.
+Current stable release: [v1.12.0](https://github.com/jxpeng98/qiongli/releases/tag/v1.12.0). These direct links cover the common install paths; use the download guide for subject-specific Desktop ZIPs and maintainer artifacts.
 
 | Need | Link or command |
 |---|---|
-| npm CLI | [`qiongli@1.11.0`](https://www.npmjs.com/package/qiongli/v/1.11.0): `npm install -g qiongli@latest` |
-| PyPI CLI | [`qiongli 1.11.0`](https://pypi.org/project/qiongli/1.11.0/): `pipx install qiongli` |
-| Claude Desktop/Web core skill | [`qiongli-claude-desktop-skill-core-v1.11.0.zip`](https://github.com/jxpeng98/qiongli/releases/download/v1.11.0/qiongli-claude-desktop-skill-core-v1.11.0.zip) |
-| Claude Desktop literature MCPB | [`qiongli-literature-provider-0.1.5.mcpb`](https://github.com/jxpeng98/qiongli/releases/download/v1.11.0/qiongli-literature-provider-0.1.5.mcpb) |
-| Zotero Desktop companion | [`qiongli-zotero-companion-0.2.2.xpi`](https://github.com/jxpeng98/qiongli/releases/download/v1.11.0/qiongli-zotero-companion-0.2.2.xpi) |
-| All release assets | [Download guide](https://github.com/jxpeng98/qiongli/releases/download/v1.11.0/qiongli-downloads-v1.11.0.md) and [GitHub Release](https://github.com/jxpeng98/qiongli/releases/tag/v1.11.0) |
+| npm CLI | [`qiongli@1.12.0`](https://www.npmjs.com/package/qiongli/v/1.12.0): `npm install -g qiongli@latest` |
+| PyPI CLI | [`qiongli 1.12.0`](https://pypi.org/project/qiongli/1.12.0/): `pipx install qiongli` |
+| Claude Desktop/Web core skill | [`qiongli-claude-desktop-skill-core-v1.12.0.zip`](https://github.com/jxpeng98/qiongli/releases/download/v1.12.0/qiongli-claude-desktop-skill-core-v1.12.0.zip) |
+| Claude Desktop literature MCPB | [`qiongli-literature-provider-0.1.5.mcpb`](https://github.com/jxpeng98/qiongli/releases/download/v1.12.0/qiongli-literature-provider-0.1.5.mcpb) |
+| Zotero Desktop companion | [`qiongli-zotero-companion-0.2.2.xpi`](https://github.com/jxpeng98/qiongli/releases/download/v1.12.0/qiongli-zotero-companion-0.2.2.xpi) |
+| All release assets | [Download guide](https://github.com/jxpeng98/qiongli/releases/download/v1.12.0/qiongli-downloads-v1.12.0.md) and [GitHub Release](https://github.com/jxpeng98/qiongli/releases/tag/v1.12.0) |
 
 ## Install Fast
 
@@ -120,6 +120,12 @@ Installing Qiongli assets is intentionally lighter than running full orchestrati
 
 Actual agent execution starts only when the runtime is configured and an execution command explicitly enables it. Previews and checks are designed to be inspectable before side effects.
 
+## Research Boundaries
+
+Qiongli includes the Academic Idea Funnel and Academic Grill Loop as an academic adaptation of Matt Pocock's `grill-me` idea-discovery pattern. It is tuned for academic idea-discovery, so it asks about evidence, rival explanations, feasibility, venue fit, and boundary review before drafting.
+
+Provider credentials stay in provider config, not generated skill bundles. Use `qiongli provider setup` for OpenAlex and Semantic Scholar, then `qiongli provider doctor` to verify. The `qiongli-literature-provider` `.mcpb` exposes `qiongli_config_status`, `qiongli_configure_provider`, and `qiongli_save_provider_config` for Codex/Desktop flows; statuses include `provider_connected` and `strategy_only`. Skill-only installs can still use strategy fallback, and runtime checks keep a 180-second ceiling for external provider probes.
+
 ## Documentation Map
 
 - [Guide](docs/guide/index.md): install, usage, upgrade, troubleshooting, and runtime choices.
@@ -141,6 +147,14 @@ npm --prefix packages/npm-qiongli test
 npm run docs:build
 git diff --check
 ```
+
+Maintainer contract anchors:
+
+- The canonical contract lives with the workflow standards; packaged installs expose `standards/research-workflow-contract.yaml` and `standards/mcp-agent-capability-map.yaml`.
+- Run `python3 scripts/validate_research_standard.py --strict` before release-facing changes.
+- Subject package changes must pass staged materialization and npm package contract tests, including `tests.test_materialize_distribution_payloads` and `tests.test_npm_package_contract`.
+- Agent routing details live in [Agent-Skill Collaboration](docs/advanced/agent-skill-collaboration.md).
+- The legacy shell installer remains at `scripts/install_qiongli.sh`; most users should prefer the install guide or `qiongli install`.
 
 Routine releases go through:
 

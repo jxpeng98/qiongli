@@ -44,16 +44,16 @@
 
 ## 最新稳定版下载
 
-当前稳定版是 [v1.11.0](https://github.com/jxpeng98/qiongli/releases/tag/v1.11.0)。下面这些直达链接覆盖常见安装路径；需要 subject 专精 Desktop ZIP 或维护者 artifacts 时，再打开下载指南。
+当前稳定版是 [v1.12.0](https://github.com/jxpeng98/qiongli/releases/tag/v1.12.0)。下面这些直达链接覆盖常见安装路径；需要 subject 专精 Desktop ZIP 或维护者 artifacts 时，再打开下载指南。
 
 | 需求 | 链接或命令 |
 |---|---|
-| npm CLI | [`qiongli@1.11.0`](https://www.npmjs.com/package/qiongli/v/1.11.0)：`npm install -g qiongli@latest` |
-| PyPI CLI | [`qiongli 1.11.0`](https://pypi.org/project/qiongli/1.11.0/)：`pipx install qiongli` |
-| Claude Desktop/Web core skill | [`qiongli-claude-desktop-skill-core-v1.11.0.zip`](https://github.com/jxpeng98/qiongli/releases/download/v1.11.0/qiongli-claude-desktop-skill-core-v1.11.0.zip) |
-| Claude Desktop literature MCPB | [`qiongli-literature-provider-0.1.5.mcpb`](https://github.com/jxpeng98/qiongli/releases/download/v1.11.0/qiongli-literature-provider-0.1.5.mcpb) |
-| Zotero Desktop companion | [`qiongli-zotero-companion-0.2.2.xpi`](https://github.com/jxpeng98/qiongli/releases/download/v1.11.0/qiongli-zotero-companion-0.2.2.xpi) |
-| 全部 release assets | [下载指南](https://github.com/jxpeng98/qiongli/releases/download/v1.11.0/qiongli-downloads-v1.11.0.md) 和 [GitHub Release](https://github.com/jxpeng98/qiongli/releases/tag/v1.11.0) |
+| npm CLI | [`qiongli@1.12.0`](https://www.npmjs.com/package/qiongli/v/1.12.0)：`npm install -g qiongli@latest` |
+| PyPI CLI | [`qiongli 1.12.0`](https://pypi.org/project/qiongli/1.12.0/)：`pipx install qiongli` |
+| Claude Desktop/Web core skill | [`qiongli-claude-desktop-skill-core-v1.12.0.zip`](https://github.com/jxpeng98/qiongli/releases/download/v1.12.0/qiongli-claude-desktop-skill-core-v1.12.0.zip) |
+| Claude Desktop literature MCPB | [`qiongli-literature-provider-0.1.5.mcpb`](https://github.com/jxpeng98/qiongli/releases/download/v1.12.0/qiongli-literature-provider-0.1.5.mcpb) |
+| Zotero Desktop companion | [`qiongli-zotero-companion-0.2.2.xpi`](https://github.com/jxpeng98/qiongli/releases/download/v1.12.0/qiongli-zotero-companion-0.2.2.xpi) |
+| 全部 release assets | [下载指南](https://github.com/jxpeng98/qiongli/releases/download/v1.12.0/qiongli-downloads-v1.12.0.md) 和 [GitHub Release](https://github.com/jxpeng98/qiongli/releases/tag/v1.12.0) |
 
 ## 快速安装
 
@@ -122,6 +122,12 @@ qiongli upgrade --ref v1.11.0 --target all
 
 只有在运行时配置完成并且执行命令明确启用时，才会启动真实 agent execution。Preview 和 check 设计上都应先可检查，再产生副作用。
 
+## 研究边界
+
+Qiongli 包含 Academic Idea Funnel 和 Academic Grill Loop；这是对 Matt Pocock 的 `grill-me` idea-discovery pattern 的 academic adaptation，并面向 academic idea-discovery 调整。它会在起草前追问证据强度、替代解释、可行性、venue fit 和 boundary review。
+
+Provider 凭据保存在 provider config，不写进生成的 skill bundle。使用 `qiongli provider setup` 配置 OpenAlex 和 Semantic Scholar，再用 `qiongli provider doctor` 验证。`qiongli-literature-provider` `.mcpb` 为 Codex/Desktop 流程暴露 `qiongli_config_status`、`qiongli_configure_provider` 和 `qiongli_save_provider_config`；状态包括 `provider_connected` 和 `strategy_only`。skill-only 安装仍可使用 strategy fallback，外部 provider probe 保持 180 秒上限。
+
 ## 文档地图
 
 - [入门](docs/zh/guide/index.md)：安装、使用、升级、故障排除和 runtime 选择。
@@ -143,6 +149,14 @@ npm --prefix packages/npm-qiongli test
 npm run docs:build
 git diff --check
 ```
+
+维护者契约锚点：
+
+- canonical contract 位于 workflow standards；打包安装中会暴露 `standards/research-workflow-contract.yaml` 和 `standards/mcp-agent-capability-map.yaml`。
+- 面向发版的变更先运行 `python3 scripts/validate_research_standard.py --strict`。
+- Subject package 变更需要通过 staged materialization 和 npm package contract tests，包括 `tests.test_materialize_distribution_payloads` 和 `tests.test_npm_package_contract`。
+- Agent routing 细节见 [Agent-Skill Collaboration](docs/advanced/agent-skill-collaboration.md)。
+- legacy shell installer 仍保留在 `scripts/install_qiongli.sh`；多数用户应优先使用安装指南或 `qiongli install`。
 
 常规发版入口：
 

@@ -6,6 +6,23 @@
 
 暂无未发布变更。
 
+## [1.12.0] - 2026-06-27
+
+### Added
+
+- `qiongli update` / `qiongli self-update` 现在会先检查已安装 package 与最新 release 的版本状态；发现可升级或无法确认状态时，会交互式询问是否升级 CLI/package。
+- npm launcher 会把自身 package version 传给 Python self-update bridge，避免 npm 安装路径误用 Python package metadata 判断当前版本。
+
+### Changed
+
+- `qiongli update` 成为默认交互式升级入口：package 升级成功后再询问是否刷新本地 plugins/assets；`--yes` 会自动确认 package update 和本地 assets refresh，`--no-refresh` 只升级 package。
+- `qiongli upgrade` 明确收敛为 content/assets refresh 命令，不再被文档描述为 CLI package 升级入口。
+- README、中文 README 和 VitePress 首页/Guide 入口大幅精简，保留安装、更新、runtime 边界和文档地图，把长篇细节交给对应 guide/reference 页面。
+
+### Fixed
+
+- Python 与 npm distribution payload 现在会携带 `payload/scripts/qiongli_cli.sh` 和 `bootstrap_qiongli.sh`，修复 release archive refresh 时 shell CLI payload 缺失导致的 `FileNotFoundError`。
+
 ## [1.11.0] - 2026-06-27
 
 ### Added
