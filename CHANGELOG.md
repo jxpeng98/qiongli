@@ -1,10 +1,31 @@
 # Changelog
 
-本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-06-27）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
+本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-06-28）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
 
 ## [Unreleased]
 
 暂无未发布变更。
+
+## [1.13.0] - 2026-06-28
+
+### Added
+
+- npm/npx `qiongli` 现在定位为免 Python 的资产管理器：`install`、`setup`、`update`、`refresh`、`upgrade`、`remove`、`check` 和 `project ...` 默认留在 Node 路径，不再依赖 Python bridge。
+- npm CLI 新增 Node-only `qiongli project init/status/set-subject`，可在没有 Python runtime 的情况下创建和读取 `.qiongli/guidance_manifest.yaml`，并在修改 subject 时保留未知顶层 manifest blocks。
+- npm package 新增 plugin-lite payload 安装面：`--surface plugin|both` 可显式安装 bundled plugin-lite assets，并通过 `.qiongli-npm-lite.json` 或 link-mode sidecar marker 区分 npm 管理的 plugin root。
+- README、中文 README 和使用指南重新加入 Mermaid 运行架构图，展示安装入口、project guidance、task routing、preview、agent execution、trace 和正式产物的关系。
+
+### Changed
+
+- npm `update`、`refresh` 和 `upgrade` 统一为“从当前 npm package 重新应用 assets”的刷新语义；它们不会升级 npm package，也不会升级完整 Python CLI。
+- `qiongli self-update`、`doctor`、`mcp serve`、provider setup、`task-run`、`customize` 等完整运行时命令在 npm 路径下改为明确提示安装 full runtime（例如 `pipx install qiongli`）。
+- README、VitePress 中英文文档和 npm README 增加安装入口对比表，明确 marketplace plugin、Desktop ZIP/MCPB、npm/npx、pipx/pip full runtime 和 bootstrap 的包含内容与边界。
+
+### Fixed
+
+- npm plugin-lite 安装和删除现在只覆盖/移除带 npm ownership marker 的 plugin root，避免误删 full-runtime local plugin 或用户自建同名 plugin。
+- `qiongli check --json` 现在能识别 npm plugin-only installs，并保留旧的顶层兼容字段，同时增加 nested `skill` / `plugin` diagnostics。
+- 修复 link-mode plugin-lite source 丢失后的断链删除和 overwrite reinstall 行为，避免断链被误判为未安装或 reinstall 时触发 `EEXIST`。
 
 ## [1.12.0] - 2026-06-27
 
