@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
-from .project_manifest import ProjectManifestState
+from .project_manifest import MANIFEST_REL, ProjectManifest, ProjectManifestState
 
 
 SUBJECT_TO_DOMAIN = {
@@ -39,6 +40,17 @@ class ProjectSubjectState:
             "strictness": self.strictness,
             "summary": self.summary,
         }
+
+
+def implicit_project_manifest_state(project_root: Path) -> ProjectManifestState:
+    root = Path(project_root).expanduser().resolve()
+    return ProjectManifestState(
+        exists=False,
+        path=root / MANIFEST_REL,
+        project_root=root,
+        manifest=ProjectManifest().normalized(),
+        warnings=[],
+    )
 
 
 def resolve_project_subject(

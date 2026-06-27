@@ -954,6 +954,35 @@ class OrchestratorWorkflowTests(unittest.TestCase):
             self.assertFalse(result.data["task_packet"]["local_guidance"]["enabled"])
             self.assertNotIn("This text must not appear", result.merged_analysis)
 
+    def test_task_run_guidance_off_ignores_invalid_project_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / ".qiongli").mkdir()
+            (root / ".qiongli" / "guidance_manifest.yaml").write_text(
+                "active_subject: unsupported-subject\n",
+                encoding="utf-8",
+            )
+            orchestrator = MockOrchestrator()
+
+            try:
+                result = orchestrator.task_run(
+                    task_id="F3",
+                    paper_type="empirical",
+                    topic="ai-writing",
+                    cwd=root,
+                    guidance_mode="off",
+                    domain="auto",
+                    skip_validation=True,
+                )
+            except Exception as exc:  # noqa: BLE001 - assert guidance-off shields bad manifest.
+                self.fail(f"guidance_mode=off should ignore invalid project manifest: {exc}")
+
+            packet = result.data["task_packet"]
+            self.assertFalse(packet["local_guidance"]["enabled"])
+            self.assertEqual(packet["project_subject"]["effective_subject"], "auto")
+            self.assertEqual(packet["project_subject"]["domain"], "auto")
+            self.assertEqual(packet["domain"], "auto")
+
     def test_task_run_writes_guidance_trace_when_formal_outputs_are_missing(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)

@@ -792,6 +792,88 @@ class MCPToolHandlerTests(unittest.TestCase):
         self.assertIn("domain_profile_status", task_packet)
         self.assertIn("domain_profile_display_name", task_packet)
 
+    def test_task_run_preview_uses_project_manifest_subject_for_auto_domain(self) -> None:
+        class StubResult:
+            mode = "task-plan"
+            confidence = 0.8
+            merged_analysis = "preview"
+            recommendations: list[str] = []
+            data = {
+                "task_id": "F3",
+                "paper_type": "empirical",
+                "topic": "my-topic",
+                "artifact_root": "RESEARCH/[topic]/",
+                "runtime_plan": {
+                    "primary_agent": "codex",
+                    "review_agent": "claude",
+                    "fallback_agent": "claude",
+                },
+            }
+
+        class StubOrchestrator:
+            def __init__(self) -> None:
+                self.loaded_domain = ""
+
+            def task_plan(self, **_kwargs: object) -> StubResult:
+                return StubResult()
+
+            def _build_controller_metadata(self, **_kwargs: object) -> dict[str, str]:
+                return {
+                    "execution_mode": "duo",
+                    "controller": "codex",
+                    "primary_agent": "",
+                    "review_agent": "",
+                    "verifier_agent": "",
+                    "solo_role_gates": "standard",
+                }
+
+            def _controller_runtime_overrides(self, _metadata: dict[str, str]) -> dict[str, str]:
+                return {}
+
+            def _load_domain_profile_context(self, domain: str) -> dict[str, str]:
+                self.loaded_domain = domain
+                return {
+                    "requested_domain": domain,
+                    "domain": domain,
+                    "status": "loaded",
+                    "display_name": domain.title(),
+                }
+
+            def _build_domain_packet_fields(self, domain_context: dict[str, str]) -> dict[str, str]:
+                return {
+                    "domain": domain_context["domain"],
+                    "requested_domain": domain_context["requested_domain"],
+                    "domain_profile_status": domain_context["status"],
+                    "domain_profile_display_name": domain_context["display_name"],
+                }
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / ".qiongli").mkdir()
+            (root / ".qiongli" / "guidance_manifest.yaml").write_text(
+                "active_subject: finance\n",
+                encoding="utf-8",
+            )
+            stub = StubOrchestrator()
+            with mock.patch.object(tool_handlers, "ModelOrchestrator", return_value=stub):
+                result = call_qiongli_tool(
+                    "qiongli_task_run",
+                    {
+                        "task_id": "F3",
+                        "paper_type": "empirical",
+                        "topic": "my-topic",
+                        "cwd": str(root),
+                    },
+                )
+
+        preview = result["structuredContent"]["data"]["task_run_preview"]
+        task_packet = result["structuredContent"]["data"]["task_packet"]
+        self.assertEqual(task_packet["project_subject"]["effective_subject"], "finance")
+        self.assertEqual(task_packet["project_subject"]["domain"], "finance")
+        self.assertEqual(task_packet["domain"], "finance")
+        self.assertEqual(preview["effective_domain"], "finance")
+        self.assertEqual(stub.loaded_domain, "finance")
+
     def test_task_run_tool_can_launch_agents_when_explicitly_enabled(self) -> None:
         class StubResult:
             mode = "task-run"

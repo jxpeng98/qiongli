@@ -57,7 +57,7 @@ from .project_manifest import (
     load_project_manifest,
     update_project_manifest,
 )
-from .subject_runtime import resolve_project_subject
+from .subject_runtime import implicit_project_manifest_state, resolve_project_subject
 from .boundary_questions import (
     BOUNDARY_ARTIFACT,
     build_boundary_question_plan,
@@ -6295,7 +6295,11 @@ Return sections:
             mode=guidance_mode,
             run_id=uuid.uuid4().hex,
         )
-        manifest_state = load_project_manifest(cwd)
+        manifest_state = (
+            implicit_project_manifest_state(cwd)
+            if guidance_state.mode == "off"
+            else load_project_manifest(cwd)
+        )
         project_subject = resolve_project_subject(manifest_state, requested_domain=domain)
         effective_domain = (
             project_subject.domain

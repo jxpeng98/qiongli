@@ -7,6 +7,8 @@ from typing import Any, Callable
 from bridges.mcp_config_wizard import start_config_wizard
 from bridges.mcp_connectors import MCPConnector
 from bridges.guidance_runtime import GUIDANCE_MODES, guidance_bootstrap_status
+from bridges.project_manifest import load_project_manifest
+from bridges.subject_runtime import implicit_project_manifest_state, resolve_project_subject
 from bridges.literature_mcp_tools import (
     LITERATURE_TOOL_DEFINITIONS,
     handle_literature_export_evidence,
@@ -474,7 +476,15 @@ def _tool_task_run(args: dict[str, Any]) -> dict[str, Any]:
             task_packet.setdefault("paper_type", data.get("paper_type", task_run_kwargs["paper_type"]))
             task_packet.setdefault("topic", data.get("topic", task_run_kwargs["topic"]))
             task_packet.setdefault("artifact_root", data.get("artifact_root"))
-            task_packet.update(_task_run_preview_domain_fields(orchestrator, task_run_kwargs))
+            project_subject = preview["project_subject"]
+            task_packet.update(
+                _task_run_preview_domain_fields(
+                    orchestrator,
+                    task_run_kwargs,
+                    project_subject=project_subject,
+                )
+            )
+            task_packet["project_subject"] = project_subject
             task_packet["runtime_plan"] = preview["effective_runtime_plan"]
         return payload
 
@@ -567,11 +577,15 @@ def _task_run_preview(
     runtime_plan = plan_data.get("runtime_plan", {})
     effective_runtime_plan = dict(runtime_plan) if isinstance(runtime_plan, dict) else {}
     effective_runtime_plan.update(orchestrator._controller_runtime_overrides(controller_metadata))
+    project_subject = _task_run_preview_project_subject(task_run_kwargs)
+    effective_domain = _task_run_preview_effective_domain(task_run_kwargs, project_subject)
     return {
         "will_launch_agents": False,
         "enable_with": {"run_agents": True},
         "controller_metadata": controller_metadata,
         "effective_runtime_plan": effective_runtime_plan,
+        "project_subject": project_subject,
+        "effective_domain": effective_domain,
         "guidance_bootstrap": guidance_bootstrap_status(
             task_run_kwargs["cwd"],
             mode=str(task_run_kwargs.get("guidance_mode", "propose")),
@@ -583,23 +597,58 @@ def _task_run_preview(
 def _task_run_preview_domain_fields(
     orchestrator: Any,
     task_run_kwargs: dict[str, Any],
-) -> dict[str, str]:
+    *,
+    project_subject: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     requested_domain = str(task_run_kwargs.get("domain") or "auto").strip() or "auto"
+    effective_domain = (
+        _task_run_preview_effective_domain(task_run_kwargs, project_subject)
+        if project_subject
+        else requested_domain
+    )
     load_context = getattr(orchestrator, "_load_domain_profile_context", None)
     build_fields = getattr(orchestrator, "_build_domain_packet_fields", None)
     if not callable(load_context) or not callable(build_fields):
-        return {"domain": requested_domain, "requested_domain": requested_domain}
+        return {"domain": effective_domain, "requested_domain": requested_domain}
 
-    domain_context = load_context(requested_domain)
+    domain_context = load_context(effective_domain)
     raw_fields = build_fields(domain_context)
     fields = dict(raw_fields) if isinstance(raw_fields, dict) else {}
     if not fields.get("domain"):
         context_domain = domain_context.get("domain") if isinstance(domain_context, dict) else None
-        fields["domain"] = str(context_domain or requested_domain).strip() or requested_domain
+        fields["domain"] = str(context_domain or effective_domain).strip() or effective_domain
     if not fields.get("requested_domain"):
         context_requested = domain_context.get("requested_domain") if isinstance(domain_context, dict) else None
         fields["requested_domain"] = str(context_requested or requested_domain).strip() or requested_domain
     return fields
+
+
+def _task_run_preview_project_subject(task_run_kwargs: dict[str, Any]) -> dict[str, Any]:
+    cwd = task_run_kwargs["cwd"]
+    guidance_mode = str(task_run_kwargs.get("guidance_mode", "propose") or "propose")
+    manifest_state = (
+        implicit_project_manifest_state(cwd)
+        if guidance_mode == "off"
+        else load_project_manifest(cwd)
+    )
+    return resolve_project_subject(
+        manifest_state,
+        requested_domain=task_run_kwargs.get("domain"),
+    ).to_packet()
+
+
+def _task_run_preview_effective_domain(
+    task_run_kwargs: dict[str, Any],
+    project_subject: dict[str, Any] | None,
+) -> str:
+    requested_domain = str(task_run_kwargs.get("domain") or "auto").strip() or "auto"
+    if requested_domain.lower() != "auto":
+        return requested_domain
+    if isinstance(project_subject, dict):
+        subject_domain = str(project_subject.get("domain", "")).strip()
+        if subject_domain:
+            return subject_domain
+    return "auto"
 
 
 def _serializable_task_run_arguments(task_run_kwargs: dict[str, Any]) -> dict[str, Any]:
