@@ -325,8 +325,9 @@ qiongli project status --project-dir .
 qiongli install --profile full --target all --surface plugin
 
 # 更新 CLI package，并刷新 full local plugin/MCP 安装面
-qiongli self-update --dry-run
-qiongli self-update --yes
+qiongli update
+qiongli update --dry-run
+qiongli update --yes
 ```
 
 脚本兼容写法 `qiongli install --target all --project-dir "$PWD"` 对安装面等价；普通项目 subject 行为仍然交给 `qiongli project ...`。
@@ -355,7 +356,7 @@ setup wizard 面向 CLI、Codex、Claude Code、Antigravity 和 Hermes 用户，
 
 通过 `qiongli setup` 保存的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。本地页面会给出各 provider 获取 key 的链接和步骤；arXiv 会标注为无需 API key。密钥会保存在生成的研究 artifacts 之外。setup 只负责配置凭据并执行 doctor/capability 检查，不承诺一定能运行外部检索。
 
-使用 `qiongli self-update --dry-run` 预览检测到的 package-manager 更新命令。`qiongli self-update --yes` 会先更新 npm/pipx/pip package，然后用新的本地 package payload 执行 `qiongli install --target all --surface plugin --profile full --overwrite` 和 `qiongli check --offline`。源码 checkout 使用 `git pull` 加显式 `qiongli install --overwrite`。
+普通升级使用 `qiongli update`。它会先检查当前安装的 qiongli CLI/package 是否有新版本；如有，会询问是否升级。CLI/package 升级成功后，它会再询问是否用新 package 内的 payload 刷新本地 plugin/assets。脚本或 CI 使用 `qiongli update --yes`，它会把两个确认都视为 yes。只想升级 CLI/package、不刷新本地内容时使用 `qiongli update --no-refresh`。源码 checkout 使用 `git pull` 加显式 `qiongli install --overwrite`。
 
 ### 3. 为 `full` 准备 Python
 
@@ -634,7 +635,7 @@ npx qiongli@next install --target all --project-dir "$PWD"
 - 安装 `qiongli-workflow` skill 到对应客户端目录
 - npm 包内置 Python bridge 源码，供 `doctor`、`task-run`、`team-run` 等高级命令委托使用
 
-npm 包没有 `postinstall` hook。安装 npm 包本身不会修改用户 skill 目录；只有执行 `qiongli install` 或 `qiongli upgrade` 时才会写入资产。
+npm 包没有 `postinstall` hook。安装 npm 包本身不会修改用户 skill 目录；资产只会在显式执行 `qiongli install`、通过 `qiongli upgrade` 刷新内容，或在 `qiongli update` 的可选本地资产刷新步骤中写入。
 
 #### 推荐的 CLI Setup Wizard
 
@@ -813,8 +814,8 @@ qiongli check --offline --json
 #### `qiongli upgrade`
 
 用途：
-- 下载上游 release/branch 压缩包
-- 默认刷新全局 skill 安装，必要时再刷新 shell CLI
+- `qiongli upgrade` 是内容/assets 刷新命令，不会升级 npm、pipx 或 pip 中安装的 qiongli CLI package。需要只刷新本地安装内容，或从指定上游 release archive 刷新内容时使用它。普通 package 升级使用 `qiongli update`。
+- 从上游 release/branch 压缩包刷新本地内容
 - 项目集成文件改为通过 `qiongli init` 或 `--parts project` 显式更新
 
 常用参数：
@@ -826,8 +827,8 @@ qiongli check --offline --json
 | `--ref-type <tag|branch>` | 指定 ref 类型 |
 | `--target <codex|claude|antigravity|hermes|all>` | 指定安装目标 |
 | `--project-dir <path>` | 指定项目路径 |
-| `--install-cli` | 安装或刷新 shell CLI 包装命令 |
-| `--no-cli` | 升级时不刷新 shell CLI |
+| `--install-cli` | 安装或刷新本地 shell 包装命令，不升级 qiongli CLI package |
+| `--no-cli` | 不刷新本地 shell 包装命令 |
 | `--cli-dir <path>` | 指定 shell CLI 目录 |
 | `--parts <globals,project,cli,doctor>` | 只执行指定安装面 |
 | `--overwrite` | 覆盖已有目标 |

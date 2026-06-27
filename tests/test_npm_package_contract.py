@@ -119,6 +119,12 @@ class NpmPackageContractTests(unittest.TestCase):
             (LAYOUT.skills / "registry.yaml").read_text(encoding="utf-8"),
             (workflow_root / "skills" / "registry.yaml").read_text(encoding="utf-8"),
         )
+        cli_source = (package_root / "payload" / "scripts" / "qiongli_cli.sh").read_text(encoding="utf-8")
+        bootstrap_source = (package_root / "payload" / "scripts" / "bootstrap_qiongli.sh").read_text(encoding="utf-8")
+        self.assertIn('CLI_FLAVOR="shell-bootstrap"', cli_source)
+        self.assertIn("qiongli <command>", cli_source)
+        self.assertIn('DEFAULT_REPO="jxpeng98/qiongli"', bootstrap_source)
+        self.assertIn("--profile <partial|full>", bootstrap_source)
 
         self.assertTrue((runtime_root / "bridges" / "__init__.py").is_file())
         self.assertTrue((runtime_root / "qiongli" / "bridges" / "orchestrator.py").is_file())

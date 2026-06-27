@@ -187,11 +187,12 @@ For normal CLI/local plugin use, keep this installed runtime stable and store su
 Update the global package and refresh the full local plugin/MCP surface with:
 
 ```bash
-qiongli self-update --dry-run
-qiongli self-update --yes
+qiongli update
+qiongli update --dry-run
+qiongli update --yes
 ```
 
-For npm installs, `self-update` delegates to `npm install -g qiongli@latest`, then runs `qiongli install --target all --surface plugin --profile full --overwrite` from the refreshed package. Native marketplace plugins remain managed by the client plugin manager.
+Use `qiongli update` for the normal interactive update flow. It checks whether the installed qiongli CLI/package has a newer release, asks before running the package-manager update, then asks whether to refresh installed local plugins/assets from the new package. Use `qiongli update --yes` for CI or scripts; it answers both prompts as yes. Use `qiongli update --no-refresh` when you only want the CLI/package update and plan to run `qiongli install ...` yourself.
 
 For one-off runs:
 
@@ -286,8 +287,9 @@ qiongli project status --project-dir .
 Upgrade it with:
 
 ```bash
-qiongli self-update --dry-run
-qiongli self-update --yes
+qiongli update
+qiongli update --dry-run
+qiongli update --yes
 ```
 
 Manual package-manager updates are still valid: run `pipx upgrade qiongli` or `python -m pip install --upgrade qiongli`, then refresh client surfaces with `qiongli install --target all --surface plugin --profile full --overwrite`. `qiongli upgrade` remains the release-archive refresh path when you intentionally want to download an upstream GitHub release.
@@ -332,8 +334,9 @@ If you use multiple surfaces, keep plugin, global skill assets, npm payload, and
 
 ```bash
 qiongli check
-qiongli self-update --dry-run
-qiongli self-update --yes
+qiongli update
+qiongli update --dry-run
+qiongli update --yes
 ```
 
 If you move fully to native plugins and no longer need legacy global skill directories or slash discovery, inspect cleanup first:

@@ -1,4 +1,5 @@
 import { spawnSync as nodeSpawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 export function checkPythonRuntime({
@@ -108,8 +109,29 @@ export function runPythonCliCommand({
 
 function buildPythonRuntimeEnv({ packageRoot, env }) {
   const pythonPath = path.join(packageRoot, 'python-runtime');
-  return {
+  const childEnv = {
     ...env,
     PYTHONPATH: env.PYTHONPATH ? `${pythonPath}${path.delimiter}${env.PYTHONPATH}` : pythonPath,
   };
+  delete childEnv.QIONGLI_NPM_PACKAGE_VERSION;
+  const npmPackageVersion = readNpmPackageVersion(packageRoot);
+  if (npmPackageVersion) {
+    childEnv.QIONGLI_NPM_PACKAGE_VERSION = npmPackageVersion;
+  }
+  return childEnv;
+}
+
+function readNpmPackageVersion(packageRoot) {
+  try {
+    const raw = readFileSync(path.join(packageRoot, 'package.json'), 'utf-8');
+    const packageJson = JSON.parse(raw);
+    const version = typeof packageJson.version === 'string' ? packageJson.version.trim() : '';
+    return isNpmSemverLikeVersion(version) ? version : '';
+  } catch {
+    return '';
+  }
+}
+
+function isNpmSemverLikeVersion(version) {
+  return /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.test(version);
 }

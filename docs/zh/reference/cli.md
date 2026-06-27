@@ -45,7 +45,7 @@ repo = "owner/repo"   # 或 url = "https://github.com/owner/repo.git"
 这个 CLI 现在有三种分发方式：
 - Python CLI：通过 `pip`/`pipx` 安装
 - Shell CLI：由 `bootstrap_qiongli.sh` 默认安装到 `${QIONGLI_BIN_DIR:-${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}}`
-- npm launcher：通过 `npm install -g qiongli` 安装；Node-only `install` 仍可直接使用，`setup`、`mcp` 和 `self-update` 会委托到内置 Python bridge
+- npm launcher：通过 `npm install -g qiongli` 安装；Node-only `install` 仍可直接使用，`setup`、`mcp` 和 `update` / `self-update` 会委托到内置 Python bridge
 
 ### 2.0 默认安装模型
 
@@ -148,16 +148,18 @@ wizard 选项：
 
 通过 setup 保存的 provider 密钥使用与 `qiongli provider setup` 和 `qiongli provider doctor` 相同的 provider 配置。本地设置页包含各 provider 获取 key 的链接和步骤；arXiv 标注为无需 API key。密钥保存在生成的研究 artifacts 之外。setup 会配置凭据并执行 doctor/capability 检查；它不承诺一定会运行外部 literature search。
 
-### 2.2.1 `qiongli self-update` / `qiongli update`（更新 package 并刷新安装面）
+### 2.2.1 `qiongli update` / `qiongli self-update`（更新 package 并刷新安装面）
 
 用途：
 - 通过最初安装它的 package manager 更新 CLI package。
 - package 更新成功后，用新 package 内置 payload 刷新本地 full plugin / MCP 安装面。
 - 不管理原生 marketplace plugin；Codex、Claude Code 或对应客户端安装的 marketplace plugin 仍由客户端 plugin manager 管理。
 
+普通升级使用 `qiongli update`。它会先检查当前安装的 qiongli CLI/package 是否有新版本；如有，会询问是否升级。CLI/package 升级成功后，它会再询问是否用新 package 内的 payload 刷新本地 plugin/assets。脚本或 CI 使用 `qiongli update --yes`，它会把两个确认都视为 yes。只想升级 CLI/package、不刷新本地内容时使用 `qiongli update --no-refresh`。
+
 ```bash
-qiongli self-update [--channel stable|next] [--target codex|claude|antigravity|hermes|all] [--surface skills|plugin|both] [--profile partial|full] [--dry-run] [--yes]
-qiongli update --dry-run
+qiongli update [--channel stable|next] [--dry-run] [--yes] [--no-refresh] [--skip-check]
+qiongli self-update [--channel stable|next] [--dry-run] [--yes] [--no-refresh] [--skip-check]
 ```
 
 默认行为：
@@ -165,7 +167,7 @@ qiongli update --dry-run
 - `--channel next` 会使用 `npm install -g qiongli@next`，或在 Python 包管理器路径上启用 prerelease `--pre`。
 - 刷新安装面默认执行 `qiongli install --target all --surface plugin --profile full --overwrite`。这是有意设计：package manager 已经更新了 CLI package，本地 payload 已经是新的，不需要再下载 release archive。
 - `--dry-run` 只打印检测到的渠道和将要执行的命令。
-- 不传 `--yes` 时，只打印计划并退出，不改动本机。
+- 不传 `--yes` 时，会先询问是否执行 package-manager 更新；CLI/package 升级成功后，再询问是否刷新本地 plugin/assets。
 - `--no-refresh` 跳过安装面刷新，`--skip-check` 跳过最后的 `qiongli check --offline`。
 
 源码 checkout 不会自我修改。检测到 source mode 时，先用 `git pull` 更新源码，再运行 `qiongli install --overwrite` 刷新需要的安装面。
@@ -280,7 +282,7 @@ qiongli upgrade \
 ```
 
 说明：
-- `qiongli upgrade` 是 release archive refresh 命令。需要先更新 npm/pipx/pip package 时，用 `qiongli self-update --yes`；它会先更新 package，再运行 `qiongli install --overwrite`，从新的本地 package payload 刷新客户端安装面。
+- `qiongli upgrade` 是内容/assets 刷新命令，不会升级 npm、pipx 或 pip 中安装的 qiongli CLI package。需要只刷新本地安装内容，或从指定上游 release archive 刷新内容时使用它。普通 package 升级使用 `qiongli update`。
 - `--project-dir` 主要在你显式请求项目侧安装面时生效，例如 `--parts project`。
 - 现在默认的 `upgrade` 等价于 `--profile full --surface plugin`：刷新 Codex / Claude Code / Antigravity 本地 plugin，把 Antigravity MCP config 打包进 plugin，给 Hermes 写入受管理 MCP config，并在安装成功后清理旧 global skills 和 Codex/Claude/Antigravity 独立 MCP config。
 - 如果要保留旧版 skills-only 升级路径，使用 `qiongli upgrade --surface skills --profile partial ...`。

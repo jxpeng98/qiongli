@@ -221,6 +221,7 @@ class InstallerCliTests(unittest.TestCase):
         )
 
     def test_self_update_dispatches_to_update_runner(self) -> None:
+        stderr = io.StringIO()
         with mock.patch.object(cli_module, "execute_self_update", return_value=0) as update_mock:
             with mock.patch.object(
                 cli_module.sys,
@@ -241,7 +242,7 @@ class InstallerCliTests(unittest.TestCase):
                     "--dry-run",
                     "--yes",
                 ],
-            ):
+            ), contextlib.redirect_stderr(stderr):
                 exit_code = cli_module.main()
 
         self.assertEqual(exit_code, 0)
@@ -255,6 +256,34 @@ class InstallerCliTests(unittest.TestCase):
         self.assertTrue(options.yes)
         self.assertFalse(options.refresh)
         self.assertFalse(options.check)
+        self.assertIn("deprecated", stderr.getvalue())
+
+    def test_self_update_help_hides_install_shape_options(self) -> None:
+        stdout = io.StringIO()
+        with mock.patch.object(cli_module.sys, "argv", ["qiongli", "self-update", "--help"]):
+            with contextlib.redirect_stdout(stdout):
+                with self.assertRaises(SystemExit) as cm:
+                    cli_module.main()
+
+        self.assertEqual(cm.exception.code, 0)
+        help_text = stdout.getvalue()
+        self.assertIn("--yes", help_text)
+        self.assertIn("--no-refresh", help_text)
+        self.assertNotIn("--target", help_text)
+        self.assertNotIn("--surface", help_text)
+        self.assertNotIn("--profile", help_text)
+
+    def test_upgrade_help_describes_content_only_refresh(self) -> None:
+        stdout = io.StringIO()
+        with mock.patch.object(cli_module.sys, "argv", ["qiongli", "upgrade", "--help"]):
+            with contextlib.redirect_stdout(stdout):
+                with self.assertRaises(SystemExit) as cm:
+                    cli_module.main()
+
+        self.assertEqual(cm.exception.code, 0)
+        help_text = stdout.getvalue()
+        self.assertIn("Refresh local assets", help_text)
+        self.assertIn("without updating the CLI package", help_text)
 
     def test_update_alias_dispatches_to_self_update_runner(self) -> None:
         with mock.patch.object(cli_module, "execute_self_update", return_value=0) as update_mock:
@@ -426,6 +455,34 @@ class InstallerCliTests(unittest.TestCase):
         cleanup_options = cleanup_mock.call_args.args[0]
         self.assertEqual(cleanup_options.target, "all")
         self.assertTrue(cleanup_options.dry_run)
+
+    def test_upgrade_refreshes_assets_without_self_update_runner(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            extracted_root = temp_root / "archive-root"
+            scripts_dir = extracted_root / "scripts"
+            scripts_dir.mkdir(parents=True)
+            (scripts_dir / "bootstrap_qiongli.py").write_text("# stub\n", encoding="utf-8")
+
+            with mock.patch.object(cli_module, "_resolve_upstream_repo", return_value=("owner/repo", "test")), mock.patch.object(
+                cli_module, "_download"
+            ), mock.patch.object(cli_module, "_extract_tarball", return_value=extracted_root), mock.patch.object(
+                cli_module, "install", return_value=0
+            ) as install_mock, mock.patch.object(
+                cli_module, "execute_self_update", side_effect=AssertionError("upgrade must not update CLI package")
+            ):
+                with mock.patch.object(
+                    cli_module.sys,
+                    "argv",
+                    ["qiongli", "upgrade", "--ref", "v1.11.0", "--target", "all", "--dry-run"],
+                ):
+                    exit_code = cli_module.main()
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(install_mock.call_count, 1)
+        install_options = install_mock.call_args.args[0]
+        self.assertEqual(install_options.target, "all")
+        self.assertTrue(install_options.dry_run)
 
     def test_upgrade_explicit_skills_surface_skips_plugin_migration(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

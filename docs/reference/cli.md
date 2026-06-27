@@ -45,7 +45,7 @@ repo = "owner/repo"   # Or url = "https://github.com/owner/repo.git"
 There are two distributions of this CLI:
 - Python CLI: installed via `pip`/`pipx`
 - Shell CLI: installed by `bootstrap_qiongli.sh` into `${QIONGLI_BIN_DIR:-${RESEARCH_SKILLS_BIN_DIR:-~/.local/bin}}` by default
-- npm launcher: installed via `npm install -g qiongli`; Node-only `install` remains available, while `setup`, `mcp`, and `self-update` delegate to the bundled Python bridge
+- npm launcher: installed via `npm install -g qiongli`; Node-only `install` remains available, while `setup`, `mcp`, and `update` / `self-update` delegate to the bundled Python bridge
 
 ### 2.0 Default install model
 
@@ -148,7 +148,7 @@ Every prompt includes a short `Tip:` comment that explains why the choice matter
 
 Provider keys saved through setup use the same provider config as `qiongli provider setup` and `qiongli provider doctor`. The local setup page includes links and short steps for obtaining each supported credential; arXiv is marked as available without an API key. Secrets are stored outside generated research artifacts. Setup configures credentials and runs doctor/capability checks; it does not promise that an external literature search will run.
 
-### 2.2.1 `qiongli self-update` / `qiongli update` (Update package and refresh surfaces)
+### 2.2.1 `qiongli update` / `qiongli self-update` (Update package and refresh surfaces)
 
 Use Case:
 - Updates the CLI package through the package manager that installed it.
@@ -156,8 +156,8 @@ Use Case:
 - Keeps native marketplace plugins separate; they remain managed by Codex, Claude Code, or the relevant client plugin manager.
 
 ```bash
-qiongli self-update [--channel stable|next] [--target codex|claude|antigravity|hermes|all] [--surface skills|plugin|both] [--profile partial|full] [--dry-run] [--yes]
-qiongli update --dry-run
+qiongli update [--channel stable|next] [--dry-run] [--yes] [--no-refresh] [--skip-check]
+qiongli self-update [--channel stable|next] [--dry-run] [--yes] [--no-refresh] [--skip-check]
 ```
 
 Default behavior:
@@ -165,7 +165,7 @@ Default behavior:
 - `--channel next` delegates to `npm install -g qiongli@next` or enables Python prerelease upgrades with `--pre`.
 - Refresh defaults to `qiongli install --target all --surface plugin --profile full --overwrite`. This is intentional: after the package manager updates the CLI package, the bundled payload is already local, so the refresh should not download another release archive.
 - `--dry-run` prints the detected channel and exact commands without executing them.
-- Without `--yes`, the command prints the plan and exits without making changes.
+- Without `--yes`, the command asks before running the package-manager update, then asks whether to refresh installed local plugins/assets from the new package.
 - `--no-refresh` skips the installed surface refresh, and `--skip-check` skips the final `qiongli check --offline`.
 
 Source checkouts do not self-modify. When source mode is detected, update with `git pull`, then run `qiongli install --overwrite` for the surfaces you want to refresh.
@@ -290,7 +290,7 @@ qiongli upgrade \
 ```
 
 Notes:
-- `qiongli upgrade` is a release-archive refresh command. To update the installed npm/pipx/pip package first, use `qiongli self-update --yes`; it updates the package, then runs `qiongli install --overwrite` to refresh client surfaces from the new local package payload.
+- `qiongli upgrade` is a content/assets refresh command. It does not update the installed npm, pipx, or pip qiongli CLI package. Use it when you intentionally want to refresh local installed assets from the current package or from a selected upstream release archive. For normal package updates, use `qiongli update`.
 - `--project-dir` matters when you also request project-facing surfaces, such as `--parts project`.
 - Default `upgrade` behaves like `--profile full --surface plugin`: it installs/refreshes local plugins for Codex, Claude Code, and Antigravity, bundles the Antigravity MCP config in the plugin, writes managed Hermes MCP config, then removes legacy global skills and standalone Codex/Claude/Antigravity MCP configs only after installation succeeds.
 - Use `qiongli upgrade --surface skills --profile partial ...` when you explicitly want to keep the old skills-only upgrade path.

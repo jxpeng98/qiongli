@@ -19,11 +19,12 @@ Use explicit `qiongli install ...` commands when you only need Node-based asset 
 Update an existing global install with:
 
 ```bash
-qiongli self-update --dry-run
-qiongli self-update --yes
+qiongli update
+qiongli update --dry-run
+qiongli update --yes
 ```
 
-`qiongli self-update` delegates to `npm install -g qiongli@latest`, then refreshes the full local plugin/MCP surface with `qiongli install --target all --surface plugin --profile full --overwrite`. Use `--channel next` for the prerelease dist-tag. Marketplace plugins remain managed by the client plugin manager.
+Use `qiongli update` for the normal interactive update flow. It checks whether the installed qiongli CLI/package has a newer release, asks before running the package-manager update, then asks whether to refresh installed local plugins/assets from the new package. Use `qiongli update --yes` for CI or scripts; it answers both prompts as yes. Use `qiongli update --no-refresh` when you only want the CLI/package update and plan to run `qiongli install ...` yourself.
 
 Or run without a global install:
 
@@ -57,7 +58,7 @@ The npm package contains pre-materialized `core`, `economics`, `accounting`, `bu
 The npm package and the installed workflow assets are separate surfaces:
 
 - `npm install -g qiongli@latest` updates the npm CLI and bundled payload in npm's global package location.
-- `qiongli self-update --yes` performs that npm package update and then refreshes installed full local plugin/MCP surfaces from the new bundled payload.
+- `qiongli update --yes` performs that npm package update and then refreshes installed full local plugin/MCP surfaces from the new bundled payload.
 - `qiongli install --target all` installs the stable full local runtime used across projects.
 - `qiongli project init --project-dir .` creates `.qiongli/guidance_manifest.yaml` for a project.
 - `qiongli project set-subject finance --project-dir .` changes ordinary project subject behavior without reinstalling a package.

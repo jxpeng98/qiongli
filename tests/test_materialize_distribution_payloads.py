@@ -179,6 +179,36 @@ class DistributionMaterializerTests(unittest.TestCase):
             self.assertTrue(payload_metadata.is_file())
             self.assertEqual(source_metadata.read_text(encoding="utf-8"), payload_metadata.read_text(encoding="utf-8"))
 
+    def test_python_payload_contains_shell_cli_sources(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "staging"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(MATERIALIZER_PATH),
+                    "--target",
+                    "python",
+                    "--out",
+                    str(out),
+                    "--force",
+                ],
+                cwd=REPO_ROOT,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+
+            self.assertEqual(0, result.returncode, result.stderr)
+            payload_scripts = out / "packages" / "python-qiongli" / "src" / "qiongli" / "payload" / "scripts"
+            cli_source = (payload_scripts / "qiongli_cli.sh").read_text(encoding="utf-8")
+            bootstrap_source = (payload_scripts / "bootstrap_qiongli.sh").read_text(encoding="utf-8")
+            self.assertIn('CLI_FLAVOR="shell-bootstrap"', cli_source)
+            self.assertIn("qiongli <command>", cli_source)
+            self.assertIn('DEFAULT_REPO="jxpeng98/qiongli"', bootstrap_source)
+            self.assertIn("--profile <partial|full>", bootstrap_source)
+
     def test_legacy_sync_helpers_are_marked_internal(self) -> None:
         sync_skill = SYNC_SKILL_PACKAGE.read_text(encoding="utf-8")
         sync_npm = SYNC_NPM_PAYLOAD.read_text(encoding="utf-8")
