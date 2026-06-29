@@ -1,10 +1,29 @@
 # Changelog
 
-本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-06-28）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
+本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-06-29）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
 
 ## [Unreleased]
 
 暂无未发布变更。
+
+## [1.14.0] - 2026-06-29
+
+### Added
+
+- Codex full plugin 现在会生成轻量 wrapper skills，对齐 Claude Code `/lit-review`、`/academic-write`、`/paper-read`、`/find-gap`、`/study-design`、`/synthesize` 等工作流入口，让自然语言触发和 slash-command 风格需求都能路由到同一套 canonical workflow。
+- Python full MCP 与 Claude Desktop literature MCPB 新增混合搜索规划工具 `qiongli_search_plan`，用于区分 provider search、agent-native search、user corpus 和 strategy-only review，并在计划中保留 provenance。
+- Literature workflow 增加 provider/native 协作说明，明确 OpenAlex、Semantic Scholar、Crossref、PubMed、arXiv、客户端联网搜索和用户文献库各自的使用边界。
+
+### Changed
+
+- Codex plugin 安装诊断现在区分 plugin、skill 和 MCP 状态，避免用户看到 plugin 已激活但误以为 standalone MCP 必须写入 Codex config。
+- `lit-review` 和 `paper-read` workflow 改为优先用搜索计划说明路由策略，再决定是否调用 provider MCP、客户端原生联网搜索或用户提供材料。
+- 跨平台文档更新 Codex、Claude Code、Antigravity 的 wrapper skill、plugin-owned MCP 与 standalone MCP 边界，保持多平台入口一致。
+
+### Fixed
+
+- 修复 Codex 本地 full plugin 没有独立 workflow wrapper 时只能激活总入口、难以被动触发细分学术需求的问题。
+- 修复 provider 可用性提示过于绝对的问题：没有 provider-connected MCP 时不再把任务锁死为 strategy-only，而是显式允许与客户端原生搜索协作。
 
 ## [1.13.0] - 2026-06-28
 
