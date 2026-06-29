@@ -48,6 +48,8 @@ codex plugin marketplace list
 
 Codex plugin 自带 `.mcp.json` 和 `mcp/qiongli-literature-provider/` 下的零依赖 Node literature-provider MCP runtime。只使用这些内置文献 provider 工具时，桌面用户不需要安装 `qiongli` CLI，也不需要手写 MCP config。Provider key 不写入 plugin manifest；可以通过平台无关的本地设置工具 `qiongli_configure_provider` 配置，也可以用 `qiongli_save_provider_config` 保存，或者在已安装 CLI 时用 `qiongli mcp configure` / `qiongli provider setup` 配置。完整本地 Qiongli 使用 CLI 生成的本地 plugin：`qiongli install --profile full --target codex --surface plugin`。这个本地 plugin 保留 Codex 原生 plugin 容器，但它的 `.mcp.json` 会启动完整 Python-backed `qiongli mcp serve --transport stdio` server。
 
+Codex 插件安装默认使用插件内置 MCP。安装器会把 `.mcp.json` 写在 Qiongli 插件目录内，并由插件 manifest 指向它；插件路径不会写入 `~/.codex/config.toml`。只有在需要 standalone MCP fallback 时，才运行 `qiongli install --target codex --parts mcp`。
+
 Codex 目前会把 plugin-bundled MCP server 当作 plugin asset：设置页可以启用 server 和管理 tool policy，但不适合作为这个内置 server 的 provider key 注入入口。Claude Desktop MCPB、Claude Code、Cursor 类客户端和其他本地 stdio MCP client 也应使用同一个 Qiongli provider setup contract。请改用 Qiongli provider config：
 
 1. 让 Codex 运行 `qiongli_config_status`，查看 redacted status 和 `config_path`。
@@ -93,11 +95,11 @@ Release ZIP 使用 `coverage=focused`，用于保持当前 180 文件上传预�
 
 | 客户端 | 发现方式 | 调用方式 |
 |---|---|---|
-| Codex | `/skills` 应该能列出 `qiongli` | `$qiongli <research task>` |
+| Codex | `/skills` 应该能列出 `qiongli`，以及 `qiongli-lit-review` 这类 plugin workflow wrappers | `$qiongli <research task>` 或 `$qiongli-lit-review <topic>` |
 | Claude Code | Plugin UI、`/plugin` 或全局 command discovery | `/paper`、`/lit-review`、`/paper-write`、`/code-build` |
 | Shell | `qiongli check` | `qiongli doctor`、`qiongli upgrade`、`python3 -m bridges.orchestrator ...` |
 
-Codex 不暴露自定义 `/qiongli` slash command。先用 `/skills` 确认 skill 存在，再用 `$qiongli` 调用。
+Codex 不暴露自定义 `/qiongli` 或 `/lit-review` slash command。先用 `/skills` 确认主 skill 和生成的 wrapper skills 存在，再用 `$qiongli` 或 `$qiongli-lit-review` 这类 wrapper 调用。每个 wrapper 都会路由到 Claude Code slash command 使用的同一个 canonical workflow 文件。
 
 当客户端 UI 和文件系统状态看起来不一致时，先运行 `qiongli check --json`。它会为每个客户端报告当前安装 surface：`plugin`、`mcp`、`legacy_skill` 或 `none`。运行时/orchestrator 健康检查使用 `qiongli doctor --cwd .`；它也会追加一个非致命的 `Client Integration` 摘要。
 

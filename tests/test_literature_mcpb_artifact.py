@@ -35,7 +35,9 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
         self.assertIn("zotero_default_review_tags", manifest["user_config"])
         self.assertIn("zotero_default_review_collection_path", manifest["user_config"])
         self.assertIn("zotero_crossref_verification_enabled", manifest["user_config"])
-        self.assertIn("qiongli_literature_search", {tool["name"] for tool in manifest["tools"]})
+        declared_tools = {tool["name"] for tool in manifest["tools"]}
+        self.assertIn("qiongli_literature_search", declared_tools)
+        self.assertIn("qiongli_search_plan", declared_tools)
 
     def test_literature_mcpb_manifest_server_entry_exists(self) -> None:
         manifest = json.loads((PACKAGE_ROOT / "manifest.json").read_text(encoding="utf-8"))
@@ -45,11 +47,13 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
 
     def test_literature_mcpb_manifest_declares_expected_tools(self) -> None:
         manifest = json.loads((PACKAGE_ROOT / "manifest.json").read_text(encoding="utf-8"))
+        tool_names = [tool["name"] for tool in manifest["tools"]]
 
         self.assertEqual(
-            {tool["name"] for tool in manifest["tools"]},
-            {
+            tool_names,
+            [
                 "qiongli_literature_status",
+                "qiongli_search_plan",
                 "qiongli_config_status",
                 "qiongli_configure_provider",
                 "qiongli_save_provider_config",
@@ -60,7 +64,11 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
                 "qiongli_zotero_search",
                 "qiongli_zotero_upsert_references",
                 "qiongli_zotero_export_import_files",
-            },
+            ],
+        )
+        self.assertEqual(
+            tool_names.index("qiongli_search_plan"),
+            tool_names.index("qiongli_literature_status") + 1,
         )
 
     def test_literature_mcpb_manifest_package_structure_is_consistent(self) -> None:
@@ -78,6 +86,12 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
         self.assertEqual(package["license"], EXPECTED_LICENSE)
         self.assertEqual(package["scripts"]["start"], "node server/index.mjs")
         self.assertEqual(package.get("dependencies", {}), {})
+
+    def test_literature_mcpb_server_info_version_matches_manifest(self) -> None:
+        manifest = json.loads((PACKAGE_ROOT / "manifest.json").read_text(encoding="utf-8"))
+        server_index = (PACKAGE_ROOT / "server" / "index.mjs").read_text(encoding="utf-8")
+
+        self.assertIn(f'version: "{manifest["version"]}"', server_index)
 
     def test_literature_mcpb_runs_without_qiongli_cli_or_npm_install(self) -> None:
         manifest = json.loads((PACKAGE_ROOT / "manifest.json").read_text(encoding="utf-8"))
@@ -138,6 +152,7 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
         self.assertIn("server/diagnostics.mjs", names)
         self.assertIn("server/domain-profiles.mjs", names)
         self.assertIn("server/query.mjs", names)
+        self.assertIn("server/search-plan.mjs", names)
         self.assertIn("server/stdio.mjs", names)
         self.assertIn("server/providers/http.mjs", names)
         self.assertIn("server/providers/arxiv.mjs", names)

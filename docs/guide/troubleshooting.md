@@ -15,9 +15,32 @@ This document lists all standard `ERR-RS-*` error codes you might encounter whil
 - **Fix**:
   - Restart Codex after installing or upgrading.
   - Run `/skills` and confirm that `qiongli` is listed.
-  - Invoke the skill with `$qiongli`, for example `$qiongli plan a literature review on ai-in-education`.
+  - Invoke the main skill with `$qiongli`, for example `$qiongli plan a literature review on ai-in-education`.
+  - For plugin-first installs, you can also invoke generated workflow wrappers such as `$qiongli-lit-review ai-in-education`.
   - If `/skills` only shows `research-paper-workflow`, refresh the current package with `qiongli upgrade --target codex --overwrite`, restart Codex, and check again.
 - **Note**: The install directory may still be named `qiongli-workflow`; that is expected. The user-visible skill name should be `qiongli`.
+
+### Codex does not show `/lit-review`, `/academic-write`, or other workflow commands.
+
+- **Cause**: CLI-managed Codex plugin installs bundle workflow wrappers under `commands/`, but current Codex plugin discovery does not show them as separate `/lit-review` slash entries. Codex uses skill entries instead, so Qiongli generates `qiongli-*` wrapper skills for plugin installs.
+- **Fix**:
+  - Use `$qiongli-lit-review <topic>` when the wrapper is visible in `/skills`.
+  - Use `$qiongli plan a literature review on <topic>` or `$qiongli run lit-review on <topic>` for the main skill.
+  - You can also write the natural request directly, for example "Use Qiongli to run a literature review on <topic>"; the skill entrypoint is expected to route it to Stage B / `lit-review`.
+  - After upgrading to a build that includes Codex wrapper skills, reinstall the local Codex plugin with `qiongli install --target codex --surface plugin --overwrite` and restart Codex.
+- **Note**: Codex still will not show `/lit-review` as a slash command. It should show `qiongli-lit-review` as a skill wrapper for plugin installs; skills-only installs can continue using `$qiongli run lit-review on <topic>`.
+
+### Codex literature tasks say `strategy_only` even though Qiongli is installed.
+
+- **Cause**: The active Codex session may not have loaded Qiongli MCP tools, or the workflow skipped the literature capability preflight.
+- **Fix**:
+  - Run `qiongli check --json` and confirm `installed.codex.plugin_mcp.installed` is true.
+  - In the Codex session, ask Qiongli to call `qiongli_literature_status`; `capability_mode: provider_connected` means provider-backed literature workflow is available.
+  - Ask the workflow to write `qiongli_search_plan` before search execution. If provider MCP is unavailable but Codex native search is available, use `search_execution_mode: native_only`; if both provider MCP and native search are available, use `search_execution_mode: hybrid_search`.
+  - Keep `provider_capability_mode` separate from `search_execution_mode`: provider capability can be `strategy_only` while execution is still `native_only` or `hybrid_search`.
+  - MCP servers must not call Codex or Claude native search directly. The active agent executes `native_search_queries`, and logs native search as `native:codex_web_search` or `native:claude_web_search`.
+  - If `qiongli_literature_status` is not visible, restart Codex and check again.
+  - If plugin MCP remains invisible after restart, install the explicit standalone fallback with `qiongli install --target codex --parts mcp`.
 
 ### Claude Code does not show `/paper` or `/lit-review`.
 

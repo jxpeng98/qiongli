@@ -26,6 +26,54 @@ class MCPProviderDocsTests(unittest.TestCase):
         ):
             self.assertIn(token, content)
 
+    def test_cross_platform_mcp_docs_include_literature_search_plan(self) -> None:
+        content = (REPO_ROOT / "docs" / "advanced" / "cross-platform-mcp.md").read_text(
+            encoding="utf-8"
+        )
+
+        for token in (
+            "qiongli_search_plan",
+            "hybrid_search",
+            "provider_connected",
+            "native_only",
+            "strategy_only",
+            "provider_capability_mode",
+            "MCP servers must not call Codex or Claude native search directly",
+            "native:codex_web_search",
+            "native:claude_web_search",
+            "mcp:openalex",
+            "mcp:semantic_scholar",
+            "user_corpus",
+        ):
+            self.assertIn(token, content)
+
+    def test_provider_setup_docs_explain_hybrid_search_router(self) -> None:
+        docs = {
+            "docs/advanced/mcp-providers-setup.md": (
+                REPO_ROOT / "docs" / "advanced" / "mcp-providers-setup.md"
+            ).read_text(encoding="utf-8"),
+            "docs/zh/advanced/mcp-providers-setup.md": (
+                REPO_ROOT / "docs" / "zh" / "advanced" / "mcp-providers-setup.md"
+            ).read_text(encoding="utf-8"),
+        }
+
+        for label, content in docs.items():
+            with self.subTest(label=label):
+                for token in (
+                    "Hybrid Search Router",
+                    "qiongli_search_plan",
+                    "hybrid_search",
+                    "provider_connected",
+                    "native_only",
+                    "strategy_only",
+                    "provider_capability_mode",
+                    "MCP servers",
+                    "native search",
+                    "active agent",
+                    "native_search_queries",
+                ):
+                    self.assertIn(token, content)
+
     def test_install_docs_document_desktop_provider_boundary(self) -> None:
         docs = {
             "README.md": (REPO_ROOT / "README.md").read_text(encoding="utf-8"),
@@ -82,6 +130,15 @@ class MCPProviderDocsTests(unittest.TestCase):
             "| `submission-kit` | 没有 builtin MCP，但 `submission-packager` skill 已经提供强 fallback。 |",
         ):
             self.assertIn(token, content)
+
+    def test_qiongli_workflow_requires_codex_literature_status_preflight(self) -> None:
+        content = (REPO_ROOT / "content" / "workflow" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("qiongli_literature_status", content)
+        self.assertIn("Codex", content)
+        self.assertIn("before declaring `strategy_only`", content)
+        self.assertIn("provider_connected", content)
 
 
 if __name__ == "__main__":

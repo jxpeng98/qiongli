@@ -12,6 +12,7 @@ from typing import Any
 from qiongli.distribution_metadata import PluginDefinition, load_plugin_distribution
 from qiongli.source_layout import RepoLayout
 from qiongli.subject_materializer import MaterializeOptions, materialize_subject_package
+from qiongli.workflow_wrapper_skills import write_codex_workflow_wrapper_skills
 
 
 PLUGIN_ID = "qiongli"
@@ -271,6 +272,8 @@ def _materialize_plugin_root(
     _write_json(plugin_root / MANAGED_MARKER_NAME, _managed_marker(platform=platform, version=version))
     _generate_commands(repo_root, plugin_root / "commands", plugin.skill_name)
     _materialize_skill(repo_root, plugin_root / "skills" / SKILL_DIR_NAME, subject=subject, coverage=coverage)
+    if platform == "codex":
+        _generate_codex_workflow_wrapper_skills(repo_root, plugin_root / "skills", plugin.skill_name)
 
 
 def _codex_manifest(plugin: PluginDefinition, version: str) -> dict[str, Any]:
@@ -384,6 +387,15 @@ def _generate_commands(repo_root: Path, commands_root: Path, skill_name: str) ->
             ]
         )
         (commands_root / workflow_path.name).write_text(text, encoding="utf-8")
+
+
+def _generate_codex_workflow_wrapper_skills(repo_root: Path, skills_root: Path, skill_name: str) -> None:
+    write_codex_workflow_wrapper_skills(
+        RepoLayout(repo_root).workflow / "workflows",
+        skills_root,
+        skill_name=skill_name,
+        canonical_skill_dir=SKILL_DIR_NAME,
+    )
 
 
 def _materialize_skill(repo_root: Path, skill_dest: Path, *, subject: str, coverage: str) -> None:

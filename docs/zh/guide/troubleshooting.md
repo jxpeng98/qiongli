@@ -15,9 +15,32 @@
 - **修复**：
   - 安装或升级后重启 Codex。
   - 运行 `/skills`，确认列表里有 `qiongli`。
-  - 使用 `$qiongli` 调用，例如 `$qiongli plan a literature review on ai-in-education`。
+  - 使用 `$qiongli` 调用主 skill，例如 `$qiongli plan a literature review on ai-in-education`。
+  - 对 plugin-first 安装，也可以调用生成的 workflow wrapper，例如 `$qiongli-lit-review ai-in-education`。
   - 如果 `/skills` 只看到 `research-paper-workflow`，运行 `qiongli upgrade --target codex --overwrite` 刷新当前包，重启 Codex 后再检查。
 - **说明**：安装目录仍然可能叫 `qiongli-workflow`，这是正常的。用户可见的 skill 名称应该是 `qiongli`。
+
+### Codex 看不到 `/lit-review`、`/academic-write` 或其他 workflow 命令。
+
+- **原因**：CLI 管理的 Codex plugin 会把 workflow wrappers 打包到 `commands/`，但当前 Codex plugin 发现面不会把它们显示成独立的 `/lit-review` slash 项。Codex 使用 skill entries，所以 Qiongli 会为 plugin 安装生成 `qiongli-*` wrapper skills。
+- **修复**：
+  - 如果 `/skills` 里能看到 wrapper，使用 `$qiongli-lit-review <topic>`。
+  - 使用主 skill 时，可写 `$qiongli plan a literature review on <topic>` 或 `$qiongli run lit-review on <topic>`。
+  - 也可以直接写自然语言请求，例如 “Use Qiongli to run a literature review on <topic>”；skill 入口应该把它路由到 Stage B / `lit-review`。
+  - 升级到包含 Codex wrapper skills 的版本后，运行 `qiongli install --target codex --surface plugin --overwrite` 重新安装本地 Codex plugin，然后重启 Codex。
+- **说明**：Codex 仍然不会显示 `/lit-review` 这种 slash command。plugin 安装应显示 `qiongli-lit-review` 这类 skill wrapper；skills-only 安装可以继续使用 `$qiongli run lit-review on <topic>`。
+
+### Codex 文献任务在已安装 Qiongli 时仍提示 `strategy_only`。
+
+- **原因**：当前 Codex 会话可能尚未加载 Qiongli MCP tools，或者 workflow 跳过了文献能力 preflight。
+- **修复**：
+  - 运行 `qiongli check --json`，确认 `installed.codex.plugin_mcp.installed` 为 true。
+  - 在 Codex 会话中要求 Qiongli 调用 `qiongli_literature_status`；如果返回 `capability_mode: provider_connected`，就可以使用 provider-backed literature workflow。
+  - 要求 workflow 在检索执行前写入 `qiongli_search_plan`。如果 provider MCP 不可用但 Codex 的 `native search` 可用，应使用 `search_execution_mode: native_only`；如果 provider MCP 和 `native search` 都可用，应使用 `search_execution_mode: hybrid_search`。
+  - 将 `provider_capability_mode` 和 `search_execution_mode` 分开记录：provider capability 可以是 `strategy_only`，但整次执行仍可能是 `native_only` 或 `hybrid_search`。
+  - MCP servers must not call Codex or Claude native search directly. Active agent 执行 `native_search_queries`，并把 native search 记录为 `native:codex_web_search` 或 `native:claude_web_search`。
+  - 如果看不到 `qiongli_literature_status`，重启 Codex 后再检查。
+  - 如果重启后插件 MCP 仍不可见，再使用显式 standalone fallback：`qiongli install --target codex --parts mcp`。
 
 ### Claude Code 看不到 `/paper`、`/lit-review`。
 

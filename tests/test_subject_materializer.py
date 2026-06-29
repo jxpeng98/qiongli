@@ -18,6 +18,31 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 class SubjectMaterializerTests(unittest.TestCase):
+    def test_core_skill_entrypoint_keeps_codex_discovery_keywords_and_workflows(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out = Path(tmp_dir) / "qiongli-workflow"
+
+            materialize_subject_package(
+                MaterializeOptions(
+                    source=REPO_ROOT,
+                    out=out,
+                    subject="core",
+                    flavor="full",
+                    coverage="complete",
+                )
+            )
+
+            skill_text = (out / "SKILL.md").read_text(encoding="utf-8")
+            frontmatter = skill_text.split("---", 2)[1]
+            skill_metadata = yaml.safe_load(frontmatter)
+
+            self.assertIn("literature review", skill_metadata["description"])
+            self.assertIn("manuscript writing", skill_metadata["description"])
+            self.assertIn("Cross-Platform Trigger Contract", skill_text)
+            self.assertIn("Workflow Entry Points", skill_text)
+            self.assertIn("/lit-review", skill_text)
+            self.assertIn("/academic-write", skill_text)
+
     def test_materializes_economics_full_package_with_overlays(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             out = Path(tmp_dir) / "qiongli-workflow"

@@ -11,6 +11,7 @@ from bridges.provider_config import (
     redact_provider_config,
     resolve_provider_config,
 )
+from bridges.hybrid_search_router import build_hybrid_search_plan
 from bridges.providers import arxiv_client, crossref_client, openalex_client, pubmed_client
 from bridges.providers.s2_client import search_paper
 
@@ -75,6 +76,40 @@ LITERATURE_TOOL_DEFINITIONS: list[dict[str, Any]] = [
         "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
     },
     {
+        "name": "qiongli_search_plan",
+        "description": "Plan provider MCP and platform-native literature search routing without executing search.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string"},
+                "platform": {"type": "string"},
+                "native_search_available": {"type": "boolean"},
+                "nativeSearchAvailable": {"type": "boolean"},
+                "native_search_tools": {"type": "array", "items": {"type": "string"}},
+                "nativeSearchTools": {"type": "array", "items": {"type": "string"}},
+                "query_variants": {"type": "array", "items": {"type": "string"}},
+                "queryVariants": {"type": "array", "items": {"type": "string"}},
+                "include_working_papers": {"type": "boolean"},
+                "includeWorkingPapers": {"type": "boolean"},
+                "fromYear": {"type": ["integer", "string"]},
+                "toYear": {"type": ["integer", "string"]},
+                "search_mode": {
+                    "type": "string",
+                    "enum": ["auto", "topic", "title", "doi", "review", "systematic_review"],
+                },
+                "searchMode": {
+                    "type": "string",
+                    "enum": ["auto", "topic", "title", "doi", "review", "systematic_review"],
+                },
+                "venue_filter": {"type": "string"},
+                "venueFilter": {"type": "string"},
+                "document_types": {"type": "array", "items": {"type": "string"}},
+                "documentTypes": {"type": "array", "items": {"type": "string"}},
+            },
+            "additionalProperties": True,
+        },
+    },
+    {
         "name": "qiongli_literature_search",
         "description": "Search academic literature using the full Qiongli CLI MCP provider stack.",
         "inputSchema": {
@@ -119,6 +154,17 @@ def handle_literature_status(args: dict[str, Any]) -> dict[str, Any]:
         "capabilities": LITERATURE_PROVIDER_CAPABILITIES,
         "redacted_config": redact_provider_config(config),
     }
+
+
+def handle_search_plan(args: dict[str, Any]) -> dict[str, Any]:
+    status = handle_literature_status(args)
+    capability_mode = str(status.get("capability_mode", "strategy_only") or "strategy_only")
+    provider_status = status.get("providers")
+    return build_hybrid_search_plan(
+        args,
+        provider_capability_mode=capability_mode,
+        provider_status=provider_status if isinstance(provider_status, Mapping) else None,
+    )
 
 
 def handle_literature_search(args: dict[str, Any]) -> dict[str, Any]:

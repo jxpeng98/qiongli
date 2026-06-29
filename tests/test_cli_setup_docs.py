@@ -108,6 +108,56 @@ class CLISetupDocsTests(unittest.TestCase):
             with self.subTest(path=str(path)):
                 self.assertNotRegex(setup_snippet, re.compile(r"\bDesktop\b|MCPB|provider companion"))
 
+    def test_codex_plugin_install_documents_plugin_bundled_mcp(self) -> None:
+        install = (REPO_ROOT / "docs" / "guide" / "install.md").read_text(encoding="utf-8")
+        cli = (REPO_ROOT / "docs" / "reference" / "cli.md").read_text(encoding="utf-8")
+        troubleshooting = (REPO_ROOT / "docs" / "guide" / "troubleshooting.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("plugin-bundled MCP", install)
+        self.assertIn("does not write `~/.codex/config.toml`", install)
+        self.assertIn("standalone MCP fallback", cli)
+        self.assertIn("plugin_mcp", cli)
+        self.assertIn("standalone_mcp", cli)
+        self.assertIn("qiongli_literature_status", troubleshooting)
+
+    def test_zh_codex_plugin_install_documents_plugin_bundled_mcp(self) -> None:
+        install = (REPO_ROOT / "docs" / "zh" / "guide" / "install.md").read_text(encoding="utf-8")
+        cli = (REPO_ROOT / "docs" / "zh" / "reference" / "cli.md").read_text(encoding="utf-8")
+        troubleshooting = (
+            REPO_ROOT / "docs" / "zh" / "guide" / "troubleshooting.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("插件内置 MCP", install)
+        self.assertIn("不会写入 `~/.codex/config.toml`", install)
+        self.assertIn("standalone MCP fallback", cli)
+        self.assertIn("plugin_mcp", cli)
+        self.assertIn("standalone_mcp", cli)
+        self.assertIn("qiongli_literature_status", troubleshooting)
+
+    def test_troubleshooting_docs_route_native_search_before_strategy_only(self) -> None:
+        docs = {
+            "docs/guide/troubleshooting.md": (
+                REPO_ROOT / "docs" / "guide" / "troubleshooting.md"
+            ).read_text(encoding="utf-8"),
+            "docs/zh/guide/troubleshooting.md": (
+                REPO_ROOT / "docs" / "zh" / "guide" / "troubleshooting.md"
+            ).read_text(encoding="utf-8"),
+        }
+
+        for label, content in docs.items():
+            with self.subTest(label=label):
+                for token in (
+                    "strategy_only",
+                    "native_only",
+                    "hybrid_search",
+                    "qiongli_search_plan",
+                    "MCP servers",
+                    "native search",
+                ):
+                    self.assertIn(token, content)
+
     def _extract_setup_section(self, content: str) -> str:
         match = re.search(
             r"### 2\.2 `qiongli setup`.*?(?=\n### 2\.3 `qiongli install`)",

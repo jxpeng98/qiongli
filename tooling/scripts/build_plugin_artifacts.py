@@ -19,6 +19,7 @@ for import_root in (PYTHON_SOURCE_ROOT, REPO_ROOT):
 
 from qiongli.source_layout import RepoLayout
 from qiongli.distribution_metadata import PluginDefinition, load_plugin_distribution
+from qiongli.workflow_wrapper_skills import write_codex_workflow_wrapper_skills
 
 try:
     from qiongli.subject_materializer import MaterializeOptions, materialize_subject_package, validate_subject_catalog
@@ -529,6 +530,20 @@ def _copy_commands(root: Path, dest_plugin_root: Path, *, skill_name: str = DEFA
     _generate_commands(root, dest_plugin_root / "commands", skill_name)
 
 
+def _copy_codex_workflow_wrapper_skills(
+    root: Path,
+    dest_plugin_root: Path,
+    *,
+    skill_name: str = DEFAULT_SKILL_NAME,
+) -> None:
+    write_codex_workflow_wrapper_skills(
+        RepoLayout(root).workflow / "workflows",
+        dest_plugin_root / "skills",
+        skill_name=skill_name,
+        canonical_skill_dir=SKILL_DIR_NAME,
+    )
+
+
 def _mcp_server_name_for_plugin(plugin_name: str) -> str:
     return NEXT_MCP_SERVER_NAME if plugin_name == NEXT_PLUGIN_NAME else DEFAULT_MCP_SERVER_NAME
 
@@ -1016,6 +1031,8 @@ def _build_marketplace_plugin(
     _copy_literature_mcp_runtime(root, plugin_dest)
     _copy_commands(root, plugin_dest, skill_name=skill_name)
     _copy_subject_skill(root, plugin_dest, subject, skill_name=skill_name)
+    if platform == "codex":
+        _copy_codex_workflow_wrapper_skills(root, plugin_dest, skill_name=skill_name)
     artifacts = [dist_dir / f"{bundle_name}.tar.gz"]
     _make_tarball(bundle, artifacts[0])
     if platform == "claude":
@@ -1060,6 +1077,7 @@ def materialize_next_codex_plugin(root: Path, dest_plugin_root: Path, *, force: 
     _copy_literature_mcp_runtime(root, dest_plugin_root)
     _copy_commands(root, dest_plugin_root, skill_name=NEXT_SKILL_NAME)
     _copy_subject_skill(root, dest_plugin_root, "core", skill_name=NEXT_SKILL_NAME)
+    _copy_codex_workflow_wrapper_skills(root, dest_plugin_root, skill_name=NEXT_SKILL_NAME)
     return dest_plugin_root
 
 
@@ -1094,6 +1112,7 @@ def materialize_plugin_package(root: Path, dest_plugin_root: Path, *, force: boo
     _copy_literature_mcp_runtime(root, dest_plugin_root)
     _copy_commands(root, dest_plugin_root, skill_name=DEFAULT_SKILL_NAME)
     _copy_subject_skill(root, dest_plugin_root, "core", skill_name=DEFAULT_SKILL_NAME)
+    _copy_codex_workflow_wrapper_skills(root, dest_plugin_root, skill_name=DEFAULT_SKILL_NAME)
     return dest_plugin_root
 
 

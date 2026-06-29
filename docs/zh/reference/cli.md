@@ -101,11 +101,15 @@ qiongli check [--repo <owner/repo|url>] [--json] [--strict-network] [--offline]
 
 `qiongli check` 现在会识别 plugin-first 安装形态：Codex / Claude Code / Antigravity 的 CLI-managed local plugin 会显示 `surface=plugin`，Hermes 或只安装 MCP 的受管理 config 会显示 `surface=mcp`，旧版全局 skill 目录会显示 `surface=legacy_skill`，未发现时显示 `surface=none`。JSON 仍保留兼容字段 `installed`、`version`、`subject`、`coverage` 和 `path`，同时增加 `plugin`、`skill`、`mcp` 三个诊断对象。可通过客户端 CLI 查询时，plugin 诊断还会包含 `active`、`enabled`、`plugin_id` 和 `activation_detail`，用于区分“文件已安装”和“客户端已启用 plugin”。旧 managed install 如果没有 `SUBJECT_MANIFEST.json` 或 `SUBJECT` marker，会按 legacy `core` / `complete` 处理。
 
+对于 Codex 插件安装，`mcp` 表示当前有效 MCP 来源。`plugin_mcp` 表示插件本地 `.mcp.json`，`standalone_mcp` 表示 `~/.codex/config.toml`。当 `plugin_mcp.installed` 为 true 时，`standalone_mcp.installed` 为 false 是预期状态。只有在重启 Codex 后仍看不到插件内置 MCP 时，才使用 standalone MCP fallback。
+
 如果 Codex Personal marketplace 里能看到 `qiongli`，但打开详情时显示 `Plugin detail unavailable`，说明 marketplace entry 被发现了，但 Codex 无法读取本地 plugin payload。先看 `qiongli check --json` 输出的本地 plugin root；常见原因是 `.codex-plugin/plugin.json` 不符合当前 schema、`skills/qiongli-workflow/SKILL.md` frontmatter 不是合法 YAML，或本地路径缺失。刷新 CLI 管理的 Codex plugin：
 
 ```bash
 qiongli install --target codex --surface plugin --overwrite
 ```
+
+Codex plugin-first 安装会把 Qiongli 暴露成名为 `qiongli` 的主 `/skills` 入口，并生成 `qiongli-lit-review`、`qiongli-academic-write`、`qiongli-paper-read` 等 workflow wrapper skills。打包进去的 `commands/*.md` 文件仍用于跨客户端一致性，但当前 Codex 不会把它们显示成独立的 `/lit-review`、`/academic-write` 或 `/paper` slash command。请使用 `$qiongli-lit-review <topic>`、`$qiongli run lit-review on <topic>`，或直接输入自然语言学术请求。
 
 退出码约定：
 - `0`：无更新/或跳过上游检查

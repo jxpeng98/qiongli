@@ -637,6 +637,19 @@ class InstallerCliTests(unittest.TestCase):
                 json.dumps({"name": "qiongli", "version": "9.9.9", "mcpServers": "./.mcp.json"}),
                 encoding="utf-8",
             )
+            (plugin_root / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "qiongli": {
+                                "command": "qiongli",
+                                "args": ["mcp", "serve", "--transport", "stdio"],
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
             (plugin_root / ".qiongli-managed.json").write_text(
                 json.dumps(
                     {
@@ -665,6 +678,7 @@ class InstallerCliTests(unittest.TestCase):
                 "environ",
                 _isolated_qiongli_env(
                     root,
+                    CODEX_HOME=str(root / "codex-home"),
                     QIONGLI_CODEX_MARKETPLACE_PATH=str(marketplace),
                     QIONGLI_CLAUDE_PLUGIN_PARENT=str(root / "claude-plugins"),
                     CLAUDE_CODE_CONFIG_PATH=str(root / "claude.json"),
@@ -684,6 +698,55 @@ class InstallerCliTests(unittest.TestCase):
         self.assertEqual(codex["coverage"], "focused")
         self.assertTrue(codex["plugin"]["installed"])
         self.assertEqual(codex["plugin"]["path"], str(plugin_root))
+        self.assertTrue(codex["mcp"]["installed"])
+        self.assertEqual(codex["mcp"]["source"], "plugin")
+        self.assertEqual(codex["mcp"]["path"], str(plugin_root / ".mcp.json"))
+        self.assertEqual(codex["mcp"]["server"], "qiongli")
+        self.assertFalse(codex["standalone_mcp"]["installed"])
+        self.assertEqual(codex["standalone_mcp"]["source"], "standalone")
+        self.assertEqual(codex["standalone_mcp"]["path"], str(root / "codex-home" / "config.toml"))
+        self.assertTrue(codex["plugin_mcp"]["installed"])
+        self.assertEqual(codex["plugin_mcp"]["source"], "plugin")
+
+    def test_check_json_reports_codex_standalone_mcp_when_no_plugin_mcp(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            codex_home = root / "codex-home"
+            config_path = codex_home / "config.toml"
+            config_path.parent.mkdir(parents=True)
+            config_path.write_text(
+                "\n".join(
+                    [
+                        "# >>> qiongli managed mcp >>>",
+                        "[mcp_servers.qiongli]",
+                        'command = "qiongli"',
+                        'args = ["mcp", "serve", "--transport", "stdio"]',
+                        "# <<< qiongli managed mcp <<<",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            args = argparse.Namespace(repo="", json=True, strict_network=False, beta=False, offline=True)
+            stdout = io.StringIO()
+
+            with mock.patch.object(cli_module, "_find_repo_root", return_value=None), mock.patch.object(
+                cli_module, "_check_system_env", return_value={}
+            ), mock.patch.object(
+                cli_module.os,
+                "environ",
+                _isolated_qiongli_env(root, CODEX_HOME=str(codex_home)),
+            ), contextlib.redirect_stdout(stdout):
+                exit_code = cli_module.cmd_check(args)
+
+        self.assertEqual(exit_code, 0)
+        payload = json.loads(stdout.getvalue())
+        codex = payload["installed"]["codex"]
+        self.assertEqual(codex["surface"], "mcp")
+        self.assertTrue(codex["mcp"]["installed"])
+        self.assertEqual(codex["mcp"]["source"], "standalone")
+        self.assertFalse(codex["plugin_mcp"]["installed"])
+        self.assertTrue(codex["standalone_mcp"]["installed"])
 
     def test_check_json_reports_codex_plugin_activation_status(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -879,6 +942,43 @@ class InstallerCliTests(unittest.TestCase):
         self.assertTrue(antigravity["mcp"]["installed"])
         self.assertEqual(antigravity["mcp"]["path"], str(plugin_root / "mcp_config.json"))
         self.assertEqual(antigravity["mcp"]["source"], "plugin")
+
+    def test_doctor_summary_reports_codex_plugin_mcp_source(self) -> None:
+        args = argparse.Namespace(cwd=".")
+        completed = mock.Mock(returncode=0, stdout="doctor ok\n")
+        installed = {
+            client: {
+                "installed": False,
+                "surface": "none",
+                "version": None,
+                "path": f"/tmp/{client}/qiongli-workflow",
+                "mcp": {"installed": False, "source": "standalone", "path": "", "server": ""},
+            }
+            for client in ("codex", "claude", "antigravity", "hermes")
+        }
+        installed["codex"] = {
+            "installed": True,
+            "surface": "plugin",
+            "version": "v9.9.9",
+            "path": "/tmp/plugins/qiongli",
+            "mcp": {
+                "installed": True,
+                "source": "plugin",
+                "path": "/tmp/plugins/qiongli/.mcp.json",
+                "server": "qiongli",
+            },
+        }
+        stdout = io.StringIO()
+
+        with mock.patch.object(cli_module.subprocess, "run", return_value=completed), mock.patch.object(
+            cli_module, "discover_install_surfaces", return_value=installed
+        ), contextlib.redirect_stdout(stdout):
+            exit_code = cli_module.cmd_doctor(args)
+
+        self.assertEqual(exit_code, 0)
+        output = stdout.getvalue()
+        self.assertIn("- codex: installed, surface=plugin", output)
+        self.assertIn("mcp=plugin:qiongli", output)
 
     def test_doctor_runs_orchestrator_subprocess(self) -> None:
         args = argparse.Namespace(cwd=".")

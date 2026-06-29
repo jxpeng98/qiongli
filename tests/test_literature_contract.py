@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import unittest
 from pathlib import Path
 
@@ -107,6 +108,119 @@ class LiteratureContractTests(unittest.TestCase):
                     self.assertIn(token, content)
                 for token in forbidden_tokens:
                     self.assertNotIn(token, content)
+
+    def test_literature_workflows_define_search_plan_execution_modes_and_provenance(self) -> None:
+        workflow_paths = (
+            LAYOUT.workflow / "SKILL.md",
+            LAYOUT.workflow / "workflows" / "lit-review.md",
+            LAYOUT.workflow / "workflows" / "paper-read.md",
+        )
+
+        required_tokens = (
+            "qiongli_search_plan",
+            "hybrid_search",
+            "provider_connected",
+            "native_only",
+            "strategy_only",
+            "provider_capability_mode",
+            "MCP servers must not call Codex or Claude native search directly",
+            "native_search_queries",
+            "mcp:openalex",
+            "mcp:semantic_scholar",
+            "mcp:crossref",
+            "mcp:pubmed",
+            "mcp:arxiv",
+            "native:codex_web_search",
+            "native:claude_web_search",
+            "user_corpus",
+        )
+
+        for path in workflow_paths:
+            with self.subTest(workflow=str(path.relative_to(REPO_ROOT))):
+                content = path.read_text(encoding="utf-8")
+                for token in required_tokens:
+                    self.assertIn(token, content)
+
+    def test_academic_searcher_documents_hybrid_search_layer_ownership(self) -> None:
+        content = (LAYOUT.skills / "B_literature" / "academic-searcher.md").read_text(
+            encoding="utf-8"
+        )
+
+        for token in (
+            "Hybrid search coordination belongs to the workflow/router layer",
+            "Provider layer owns provider calls",
+            "active agent owns platform-native search",
+            "skill owns logging, normalization, dedupe, and diagnostics",
+            "MCP servers must not call Codex or Claude native search directly",
+            "qiongli_search_plan",
+            "hybrid_search",
+            "native_only",
+            "provider_connected",
+            "strategy_only",
+            "native:codex_web_search",
+            "native:claude_web_search",
+            "user_corpus",
+        ):
+            self.assertIn(token, content)
+
+    def test_workflow_search_modes_do_not_downgrade_native_search_to_strategy_only(self) -> None:
+        content = (LAYOUT.workflow / "SKILL.md").read_text(encoding="utf-8")
+
+        self.assertIn(
+            "`strategy_only` only when neither provider MCP nor platform-native search is available",
+            content,
+        )
+        self.assertIn(
+            "If provider preflight is unavailable or non-provider-connected but platform-native search is usable, write `qiongli_search_plan` with `search_execution_mode: native_only`.",
+            content,
+        )
+        self.assertNotIn(
+            "Treat `strategy_only` as a constrained mode: use platform search",
+            content,
+        )
+        self.assertNotIn(
+            "or platform-native search capability before claiming `provider_connected`",
+            content,
+        )
+        self.assertNotRegex(
+            content,
+            re.compile(
+                r"provider_connected[^.\n]*platform-native search capability|"
+                r"platform-native search capability[^.\n]*provider_connected"
+            ),
+        )
+
+    def test_workflow_strategy_only_is_not_bound_to_evidence_limits(self) -> None:
+        workflow_paths = (
+            LAYOUT.workflow / "workflows" / "lit-review.md",
+            LAYOUT.workflow / "workflows" / "paper-read.md",
+        )
+        evidence_limit_terms = (
+            r"abstract[-_ ]only",
+            r"metadata[-_ ]only",
+            r"manually supplied",
+        )
+        forbidden_strategy_only_binding = re.compile(
+            rf"`?strategy_only`?[^.\n]*(?:{'|'.join(evidence_limit_terms)})|"
+            rf"(?:{'|'.join(evidence_limit_terms)})[^.\n]*`?strategy_only`?",
+            re.IGNORECASE,
+        )
+
+        for path in workflow_paths:
+            with self.subTest(workflow=str(path.relative_to(REPO_ROOT))):
+                content = path.read_text(encoding="utf-8")
+                self.assertNotRegex(content, forbidden_strategy_only_binding)
+
+    def test_academic_searcher_does_not_own_search_plan_creation(self) -> None:
+        content = (LAYOUT.skills / "B_literature" / "academic-searcher.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertNotRegex(content, re.compile(r"This\s+skill owns the search plan"))
+        self.assertIn(
+            "workflow/router owns `qiongli_search_plan` creation and `search_execution_mode` selection",
+            content,
+        )
 
 
 if __name__ == "__main__":

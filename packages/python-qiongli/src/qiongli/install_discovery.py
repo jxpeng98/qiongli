@@ -45,12 +45,20 @@ def legacy_skill_dirs() -> dict[str, Path]:
 
 def discover_install_surfaces(*, check_activation: bool = True) -> dict[str, dict[str, object]]:
     skill_dirs = legacy_skill_dirs()
+    codex_plugin = _codex_plugin_status(check_activation=check_activation)
+    codex_plugin_mcp = _codex_plugin_mcp_status(codex_plugin)
+    codex_standalone_mcp = _codex_standalone_mcp_status()
+    codex_effective_mcp = codex_plugin_mcp if codex_plugin_mcp["installed"] else codex_standalone_mcp
     return {
         "codex": _combine_surface(
             client="codex",
-            plugin=_codex_plugin_status(check_activation=check_activation),
+            plugin=codex_plugin,
             skill=_skill_status(skill_dirs["codex"]),
-            mcp=_codex_mcp_status(),
+            mcp=codex_effective_mcp,
+            extra={
+                "plugin_mcp": codex_plugin_mcp,
+                "standalone_mcp": codex_standalone_mcp,
+            },
         ),
         "claude": _combine_surface(
             client="claude",
@@ -79,6 +87,7 @@ def _combine_surface(
     plugin: dict[str, object],
     skill: dict[str, object],
     mcp: dict[str, object],
+    extra: dict[str, object] | None = None,
 ) -> dict[str, object]:
     surface = "none"
     selected_path = str(skill["path"])
@@ -105,7 +114,7 @@ def _combine_surface(
         subject = skill.get("subject")
         coverage = skill.get("coverage")
 
-    return {
+    result = {
         "client": client,
         "surface": surface,
         "installed": surface != "none",
@@ -117,6 +126,9 @@ def _combine_surface(
         "skill": skill,
         "mcp": mcp,
     }
+    if extra:
+        result.update(extra)
+    return result
 
 
 def _codex_plugin_status(*, check_activation: bool = True) -> dict[str, object]:
@@ -542,7 +554,56 @@ def _skill_status(skill_dir: Path) -> dict[str, object]:
     }
 
 
-def _codex_mcp_status() -> dict[str, object]:
+def _empty_mcp_status(path: Path, *, source: str) -> dict[str, object]:
+    return {
+        "installed": False,
+        "managed": False,
+        "path": str(path),
+        "server": "",
+        "source": source,
+    }
+
+
+def _codex_plugin_mcp_status(plugin: dict[str, object]) -> dict[str, object]:
+    if not plugin.get("installed"):
+        path_text = str(plugin.get("path") or "")
+        plugin_root = Path(path_text) if path_text else resolve_codex_plugin_paths().plugin_root
+        return _empty_mcp_status(plugin_root / ".mcp.json", source="plugin")
+
+    plugin_root = Path(str(plugin["path"]))
+    manifest = _read_json_object(plugin_root / ".codex-plugin" / "plugin.json")
+    mcp_ref = manifest.get("mcpServers")
+    if not isinstance(mcp_ref, str) or not mcp_ref.strip():
+        return _empty_mcp_status(plugin_root / ".mcp.json", source="plugin")
+
+    mcp_path = plugin_root / mcp_ref
+    status = _json_plugin_mcp_status(mcp_path)
+    return {
+        **status,
+        "source": "plugin",
+    }
+
+
+def _json_plugin_mcp_status(path: Path) -> dict[str, object]:
+    config = _read_json_object(path)
+    mcp_servers = config.get("mcpServers")
+    server_name = ""
+    managed = False
+    if isinstance(mcp_servers, dict):
+        for candidate in (PLUGIN_ID, "qiongli-next"):
+            if isinstance(mcp_servers.get(candidate), dict):
+                server_name = candidate
+                managed = True
+                break
+    return {
+        "installed": bool(server_name),
+        "managed": managed,
+        "path": str(path),
+        "server": server_name,
+    }
+
+
+def _codex_standalone_mcp_status() -> dict[str, object]:
     path = default_codex_config_path()
     text = _read_text(path)
     installed = BEGIN_MARKER in text or (
@@ -553,6 +614,7 @@ def _codex_mcp_status() -> dict[str, object]:
         "managed": BEGIN_MARKER in text,
         "path": str(path),
         "server": "qiongli" if installed else "",
+        "source": "standalone",
     }
 
 

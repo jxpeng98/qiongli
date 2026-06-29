@@ -14,6 +14,7 @@ import { appendSearchWarnings, searchDiagnostics } from "./diagnostics.mjs";
 import { buildEvidence } from "./evidence.mjs";
 import { dedupeResults, rankResults } from "./normalize.mjs";
 import { buildQueryPlan, buildSearchIntent, providerLimitFor } from "./query.mjs";
+import { buildHybridSearchPlan } from "./search-plan.mjs";
 import { searchArxiv } from "./providers/arxiv.mjs";
 import { searchCrossref } from "./providers/crossref.mjs";
 import { searchOpenAlex } from "./providers/openalex.mjs";
@@ -52,6 +53,89 @@ export const TOOL_DECLARATIONS = [
       type: "object",
       additionalProperties: false,
       properties: {}
+    }
+  },
+  {
+    name: "qiongli_search_plan",
+    description: "Plan provider MCP and platform-native literature search routing without executing platform-native search.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: true,
+      properties: {
+        query: {
+          type: "string"
+        },
+        platform: {
+          type: "string",
+          description: "Host platform used to choose the default native search tool, for example codex, claude, or antigravity."
+        },
+        native_search_available: {
+          type: "boolean"
+        },
+        nativeSearchAvailable: {
+          type: "boolean"
+        },
+        native_search_tools: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        },
+        nativeSearchTools: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        },
+        query_variants: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        },
+        queryVariants: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        },
+        include_working_papers: {
+          type: "boolean"
+        },
+        includeWorkingPapers: {
+          type: "boolean"
+        },
+        fromYear: {
+          type: ["integer", "string"]
+        },
+        toYear: {
+          type: ["integer", "string"]
+        },
+        search_mode: {
+          type: "string"
+        },
+        searchMode: {
+          type: "string"
+        },
+        venue_filter: {
+          type: "string"
+        },
+        venueFilter: {
+          type: "string"
+        },
+        document_types: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        },
+        documentTypes: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        }
+      }
     }
   },
   {
@@ -748,6 +832,11 @@ export function handleStatus(context = {}) {
   };
 }
 
+export function handleSearchPlan(input = {}, context = {}) {
+  const status = handleStatus(context);
+  return buildHybridSearchPlan(input, status.capability_mode, status.providers);
+}
+
 export function handleConfigStatus(context = {}) {
   const env = context.env ?? process.env;
   const config = resolveConfig(context);
@@ -933,6 +1022,10 @@ export async function handleToolCall(name, input = {}, context = {}) {
     return toolResult(handleStatus(context));
   }
 
+  if (name === "qiongli_search_plan") {
+    return toolResult(handleSearchPlan(input, context));
+  }
+
   if (name === "qiongli_config_status") {
     return toolResult(handleConfigStatus(context));
   }
@@ -976,7 +1069,7 @@ export async function startStdioServer() {
   await startJsonRpcStdioServer({
     serverInfo: {
       name: "qiongli-literature-provider",
-      version: "0.1.4"
+      version: "0.1.5"
     },
     listTools,
     handleToolCall

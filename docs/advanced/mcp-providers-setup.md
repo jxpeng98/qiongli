@@ -52,6 +52,32 @@ Use this table first. It tells you whether each MCP already has a meaningful bui
 - Choose **full external override** only when your external MCP owns the slot better than the builtin implementation and you are comfortable replacing the default behavior.
 - Choose a **thin local stub** when you only want to silence warnings or satisfy orchestration contracts for a capability you are not actively using yet.
 
+## Hybrid Search Router
+
+Stage B literature workflows use `qiongli_search_plan` as the routing contract
+between workflow instructions, MCP providers, and the active agent. The plan
+records two separate fields:
+
+- `search_execution_mode`: one of `hybrid_search`, `provider_connected`,
+  `native_only`, or `strategy_only`.
+- `provider_capability_mode`: one of `provider_connected` or `strategy_only`.
+  This field only records whether configured academic provider credentials are
+  available to the MCP/provider layer.
+
+Use `hybrid_search` when provider calls and platform native search are both
+available. Use `provider_connected` when provider calls are sufficient. Use
+`native_only` when the active agent can run native search but no
+provider-connected MCP is available. Use `strategy_only` only when the workflow
+can only draft a search strategy or use supplied corpus.
+
+MCP servers must not call Codex or Claude native search directly. The active
+agent executes `native_search_queries` from `qiongli_search_plan`; MCP servers
+perform provider calls such as OpenAlex, Semantic Scholar, Crossref, PubMed, or
+arXiv. Keep provenance labels distinct in logs and exported records:
+`mcp:openalex`, `mcp:semantic_scholar`, `mcp:crossref`, `mcp:pubmed`,
+`mcp:arxiv`, `native:codex_web_search`, `native:claude_web_search`, and
+`user_corpus`.
+
 ---
 
 ## Provider Reference

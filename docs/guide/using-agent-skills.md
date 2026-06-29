@@ -16,7 +16,7 @@ Most users should look for `qiongli`, not `research-paper-workflow`. The directo
 
 | Client | Discover | Invoke | Notes |
 |---|---|---|---|
-| Codex | `/skills` | `$qiongli` | Codex does not expose a custom `/qiongli` slash command. Restart Codex after installing or upgrading. |
+| Codex | `/skills` | `$qiongli`, `$qiongli-lit-review`, `$qiongli-academic-write`, or another generated Qiongli workflow wrapper | Codex does not expose Qiongli workflows as custom slash commands. Plugin installs generate thin wrapper skills that route to the same canonical workflows as Claude slash commands. Restart Codex after installing or upgrading. |
 | Claude Code | Plugin UI or `/plugin` commands | `/paper`, `/lit-review`, `/paper-write`, `/code-build`, or natural language asking for Qiongli | Plugin installs command wrappers plus the portable skill package. |
 | Shell | `qiongli check` | npm: `qiongli install`, `qiongli update`, `qiongli project ...`; full runtime: `qiongli doctor`, `qiongli task-run`, `python3 -m bridges.orchestrator ...` | npm/npx is Python-free asset management. Full runtime commands require `pipx install qiongli` and Python 3.12+. |
 
@@ -101,15 +101,17 @@ After installing from Skillsplace, npm, PyPI, or `qiongli upgrade --target codex
 /skills
 ```
 
-You should see `qiongli`. Invoke it with `$qiongli` and a concrete research task:
+You should see `qiongli`. Plugin-first installs also generate thin workflow wrapper skills such as `qiongli-lit-review`, `qiongli-academic-write`, `qiongli-paper-read`, and `qiongli-proofread`. Invoke the main skill or a wrapper with a concrete research task:
 
 ```text
 $qiongli plan a systematic review on retrieval augmented generation in education
+$qiongli-lit-review retrieval augmented generation in education
+$qiongli-academic-write related work for my CHI paper
 $qiongli design an empirical study about ai writing support in universities
 $qiongli prepare a submission checklist for my CHI paper
 ```
 
-Do not expect `/qiongli` to work in Codex. Slash commands are reserved for Codex built-ins and installed slash surfaces that Codex itself exposes. Qiongli's Codex-facing entry is the skill invocation form.
+Do not expect `/qiongli` or `/lit-review` to work in Codex. Slash commands are reserved for Codex built-ins and installed slash surfaces that Codex itself exposes. Qiongli's Codex-facing entries are skill invocation forms. The generated wrappers are intentionally thin: `$qiongli-lit-review` routes to the same `workflows/lit-review.md` source used by Claude Code `/lit-review`.
 
 If `/skills` only shows `research-paper-workflow`, you are seeing an older global install. Run the current installer or upgrade path, restart Codex, and check again:
 

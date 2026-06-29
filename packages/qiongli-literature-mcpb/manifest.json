@@ -40,6 +40,10 @@
       "description": "Report configured literature providers and capability mode without exposing secrets."
     },
     {
+      "name": "qiongli_search_plan",
+      "description": "Plan provider MCP and platform-native literature search routing without executing platform-native search."
+    },
+    {
       "name": "qiongli_config_status",
       "description": "Report shared Qiongli provider configuration status without exposing secrets."
     },

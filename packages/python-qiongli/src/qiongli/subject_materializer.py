@@ -603,7 +603,15 @@ def _subject_layers(subject: SubjectDefinition, custom_layer: CustomSubjectLayer
 
 def _render_skill_md(subject: SubjectDefinition, flavor: str, version: str) -> str:
     map_title = f"{subject.display_name.removeprefix('Qiongli ').strip() or subject.display_name} Workflow Map"
-    description = f"Qiongli version: {version}. {subject.package_goal}"
+    discovery_scope = (
+        "Cross-platform academic research workflow for Codex, Claude / Claude Code, and CLI. "
+        "Use for academic research lifecycle work: paper planning, literature review, paper reading, "
+        "gap finding, study design, manuscript writing, statistics, analysis code, reproducibility, "
+        "proofread, rebuttal, submission, presentation, and stage-aware grill / critique. "
+        "Route natural academic requests even when the user does not explicitly invoke $qiongli "
+        "or a slash command."
+    )
+    description = f"Qiongli version: {version}. {discovery_scope}"
     lines = [
         "---",
         "name: qiongli",
@@ -615,6 +623,55 @@ def _render_skill_md(subject: SubjectDefinition, flavor: str, version: str) -> s
         subject.package_goal,
         "",
         f"Installed Qiongli workflow version: `{version}`",
+        "",
+        "## Cross-Platform Trigger Contract",
+        "",
+        (
+            "Qiongli should be considered whenever a request belongs to the academic research lifecycle. "
+            "This does not require explicit `$qiongli`, `/paper`, `/lit-review`, or slash-command invocation."
+        ),
+        "",
+        "Use Qiongli for:",
+        "",
+        "- framing a research topic, research question, hypothesis, contribution, theory, or venue fit",
+        "- reading papers, PDFs, notes, citations, bibliographies, literature folders, or review matrices",
+        "- searching, screening, mapping, extracting, or synthesizing literature",
+        "- designing studies, variables, instruments, robustness checks, data plans, preregistration, or ethics materials",
+        "- writing or revising proposals, manuscript sections, abstracts, tables, figures, claims maps, or discussion text",
+        "- interpreting statistics, effect sizes, models, diagnostics, robustness checks, or analysis outputs",
+        "- reading or editing academic analysis code, notebooks, Stata scripts, R scripts, Python scripts, Quarto files, or replication packages",
+        "- checking PRISMA, reporting compliance, tone, citation support, originality, submission packages, rebuttals, peer review responses, or presentations",
+        "",
+        "## Workflow Entry Points",
+        "",
+        (
+            "Explicit workflow commands are optional entry points. In Codex, users can invoke this skill with "
+            "`/skills` or `$qiongli`, but natural academic requests should also route here. Claude Code "
+            "surfaces may expose the same workflows as slash-style command wrappers:"
+        ),
+        "",
+        "```",
+        "/paper [topic] [venue]                # Master router - choose paper type + task ID",
+        "/lit-review [topic] [year range]     # Systematic literature review (PRISMA)",
+        "/paper-read [URL or DOI]             # Deep paper analysis",
+        "/find-gap [research area]            # Identify research gaps",
+        "/build-framework [theory/concept]    # Build theoretical framework",
+        "/academic-write [section] [topic]    # Academic writing assistance",
+        "/synthesize [topic] [outcome_id]     # Evidence synthesis / meta-analysis",
+        "/paper-write [topic] [type] [venue]  # Full manuscript drafting",
+        "/study-design [topic]                # Empirical study design",
+        "/ethics-check [topic]                # Ethics / IRB pack",
+        "/submission-prep [topic] [venue]     # Submission package",
+        "/rebuttal [topic]                    # Rebuttal / response to reviewers",
+        "/code-build [method] --domain ...    # Build academic research code",
+        "/proofread [topic]                   # AI de-trace / final proofreading",
+        "/academic-present [topic]            # Academic presentation preparation",
+        "```",
+        "",
+        (
+            "Full workflow definitions are included in `workflows/`. When a user names a workflow above, "
+            "read `workflows/<command-name>.md` for the complete execution instructions."
+        ),
         "",
         f"## {map_title}",
         "",

@@ -49,10 +49,20 @@ The full CLI server exposes literature, provider/configuration, and orchestrator
 
 - `qiongli_config_status`, `qiongli_configure_provider`, `qiongli_save_provider_config`, and `qiongli_collect_evidence` for MCP/provider readiness.
 - `qiongli_literature_status`, `qiongli_literature_search`, and `qiongli_literature_export_evidence` for full CLI literature search and auditable evidence snapshots.
+- `qiongli_search_plan` is the workflow-level literature routing contract used by `lit-review`, `paper-read`, and related Stage B skills. It records `search_execution_mode` as `hybrid_search`, `provider_connected`, `native_only`, or `strategy_only`, and records `provider_capability_mode` separately as `provider_connected` or `strategy_only`.
 - `qiongli_orchestrator_route` for deciding whether Codex, Claude Code, Antigravity, or another client should upgrade from skill-only workflow routing to full orchestrator tools.
 - `qiongli_orchestrator_doctor` for local runtime preflight checks.
 - `qiongli_task_plan` for a no-agent task plan.
 - `qiongli_task_run` for a controlled task-run surface. It defaults to preview and does not launch local runtime agents unless the caller explicitly passes JSON boolean `run_agents: true`. It accepts `guidance_mode` (`off`, `read`, `propose`, or `apply`) and echoes that mode in preview arguments. Preview reports whether `.qiongli/` guidance would be bootstrapped, but only actual task execution writes those files.
+
+Literature search routing has a strict MCP boundary:
+
+- `hybrid_search` means provider MCP calls plus platform native search.
+- `provider_connected` means provider MCP calls only.
+- `native_only` means the active agent has platform native search, but the provider layer is not connected.
+- `strategy_only` means neither provider-connected MCP nor usable platform native search is available.
+
+MCP servers must not call Codex or Claude native search directly. The active agent executes `native_search_queries` from `qiongli_search_plan`; the MCP provider layer performs only provider calls. Search evidence must preserve distinct provenance labels, including `mcp:openalex`, `mcp:semantic_scholar`, `mcp:crossref`, `mcp:pubmed`, `mcp:arxiv`, `native:codex_web_search`, `native:claude_web_search`, and `user_corpus`.
 
 When task-run agents are launched, formal artifacts are still expected under `RESEARCH/[topic]/...`. The first non-`off` task run initializes `.qiongli/local_guidance.md` and `.qiongli/trace/` if they are missing. The project-local guidance layer writes auditable run traces under `.qiongli/trace/`; this trace location is separate from formal research outputs and from installed skill assets.
 

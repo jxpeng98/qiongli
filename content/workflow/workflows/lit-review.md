@@ -80,11 +80,32 @@ Output: Updated protocol with registration section → `RESEARCH/[topic]/protoco
 Develop comprehensive search strategy:
 1. Identify key concepts and synonyms
 2. Build Boolean search queries
-3. Select appropriate MCP/provider overlays:
-   - `scholarly-search` for discovery providers such as Semantic Scholar, OpenAlex, arXiv, PubMed, SSRN, or platform-native search
+3. Call `qiongli_literature_status` before choosing the execution path. Record
+   the returned provider status as `provider_capability_mode` with one of:
+   `provider_connected` or `strategy_only`.
+4. Create or update `qiongli_search_plan` with `search_execution_mode` set to
+   exactly one of:
+   - `hybrid_search`: use MCP/provider calls plus platform-native search.
+   - `provider_connected`: use MCP/provider calls only.
+   - `native_only`: use platform-native search only because no
+     provider-connected MCP is available.
+   - `strategy_only`: draft strategy or use supplied corpus only because
+     neither provider-connected MCP nor platform-native search is available.
+5. Keep `provider_capability_mode` separate from `search_execution_mode`.
+   `provider_capability_mode` only records whether the provider layer is
+   `provider_connected` or `strategy_only`.
+6. Select appropriate MCP/provider overlays:
+   - `scholarly-search` for discovery providers such as Semantic Scholar, OpenAlex, arXiv, PubMed, SSRN, or other MCP/provider sources
    - `metadata-registry` for DOI, title, author, venue, and year normalization
    - `fulltext-retrieval` for OA, preprint, repository, or user-supplied full-text planning
-4. Record whether each selected provider is available as `provider_connected` or limited to `strategy_only`
+7. Record whether each selected provider is available as `provider_connected` or limited to `strategy_only`
+8. Add `native_search_queries` only when `search_execution_mode` is
+   `hybrid_search` or `native_only`. MCP servers must not call Codex or Claude native search directly; the current active agent executes those native
+   searches and logs them separately.
+9. Preserve provenance labels in the plan and downstream logs:
+   `mcp:openalex`, `mcp:semantic_scholar`, `mcp:crossref`, `mcp:pubmed`,
+   `mcp:arxiv`, `native:codex_web_search`, `native:claude_web_search`, and
+   `user_corpus`.
 
 Output: Search strategy document → `RESEARCH/[topic]/search_strategy.md`
 
@@ -97,12 +118,20 @@ Wait for explicit user approval before proceeding to Phase 3.
 
 Use the **academic-searcher** skill to:
 1. Execute provider translations through the `scholarly-search` MCP/provider adapter.
-2. Record provider capability mode as `provider_connected` or `strategy_only` in `search_log.md` and `search_diagnostics.md`.
+2. Record `qiongli_search_plan`, `search_execution_mode`, and
+   `provider_capability_mode` in `search_log.md` and `search_diagnostics.md`.
 3. Use configured provider overlays for Semantic Scholar, OpenAlex, arXiv, PubMed, SSRN, or other sources when available.
-4. Log any platform-native or manual supplementary search as supplemental evidence instead of treating it as the reproducible provider pipeline.
-5. Normalize bibliography metadata through the `metadata-registry` MCP/provider adapter before final BibTeX generation.
-6. Remove duplicates (DOI-first, then title+year+author) and append decisions to `dedup_log.csv`.
-7. Document normalized search results per provider.
+4. When `search_execution_mode` is `hybrid_search` or `native_only`, the active
+   agent executes `native_search_queries`; MCP servers must not call Codex or Claude native search directly.
+5. Log provider, native, and user-corpus evidence with distinct provenance
+   labels instead of merging source types:
+   - provider labels: `mcp:openalex`, `mcp:semantic_scholar`, `mcp:crossref`,
+     `mcp:pubmed`, `mcp:arxiv`
+   - native labels: `native:codex_web_search`, `native:claude_web_search`
+   - supplied corpus label: `user_corpus`
+6. Normalize bibliography metadata through the `metadata-registry` MCP/provider adapter before final BibTeX generation.
+7. Remove duplicates (DOI-first, then title+year+author) and append decisions to `dedup_log.csv`.
+8. Document normalized search results per provider and per native search source.
 
 **Document all searches** → `RESEARCH/[topic]/search_log.md`
 **Save dedup-ready record table** → `RESEARCH/[topic]/search_results.csv`

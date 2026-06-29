@@ -67,6 +67,7 @@ class PluginArtifactsTests(unittest.TestCase):
                 f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/mcp/qiongli-literature-provider/query.mjs",
                 f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/commands/paper.md",
                 f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/SKILL.md",
+                f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-next-lit-review/SKILL.md",
                 f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/agents/openai.yaml",
                 f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/roles/pi.yaml",
             ],
@@ -143,6 +144,14 @@ class PluginArtifactsTests(unittest.TestCase):
         self.assertIn("$qiongli-next", skill_text)
         self.assertIn("Load the `qiongli-next` skill", command_text)
         self.assertNotIn("Load the `qiongli` skill", command_text)
+        wrapper_text = self._read_tar_text(
+            dist_dir / f"qiongli-next-codex-plugin-{current_tag}.tar.gz",
+            f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-next-lit-review/SKILL.md",
+        )
+        self.assertIn("name: qiongli-next-lit-review\n", wrapper_text)
+        self.assertIn("$qiongli-next", wrapper_text)
+        self.assertIn("../qiongli-workflow/workflows/lit-review.md", wrapper_text)
+        self.assertIn("Claude Code `/lit-review`", wrapper_text)
         self._assert_zip_contains(
             dist_dir / f"qiongli-next-claude-desktop-skill-core-{current_tag}.zip",
             desktop_agent_support
@@ -189,6 +198,7 @@ class PluginArtifactsTests(unittest.TestCase):
                 f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/mcp/qiongli-literature-provider/query.mjs",
                 f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/commands/paper.md",
                 f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
+                f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/skills/qiongli-lit-review/SKILL.md",
             ],
         )
         self._assert_zip_contains(
@@ -244,6 +254,14 @@ class PluginArtifactsTests(unittest.TestCase):
         )
         self.assertIn("name: qiongli\n", skill_text)
         self.assertIn("Load the `qiongli` skill", command_text)
+        wrapper_text = self._read_tar_text(
+            dist_dir / f"qiongli-codex-plugin-{current_tag}.tar.gz",
+            f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/skills/qiongli-lit-review/SKILL.md",
+        )
+        self.assertIn("name: qiongli-lit-review\n", wrapper_text)
+        self.assertIn("$qiongli", wrapper_text)
+        self.assertIn("../qiongli-workflow/workflows/lit-review.md", wrapper_text)
+        self.assertIn("Claude Code `/lit-review`", wrapper_text)
 
         self._assert_zip_contains(
             dist_dir / f"qiongli-claude-desktop-skill-core-{current_tag}.zip",

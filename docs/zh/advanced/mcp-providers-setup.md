@@ -52,6 +52,17 @@
 - 只有当外部 MCP 明显比 builtin 更适合完全接管该 slot 时，才选 **full external override**。
 - 如果你只是想消除 warning，或者先满足 orchestration contract，但暂时并不真正使用这项能力，就选 **thin local stub**。
 
+## Hybrid Search Router
+
+Stage B 文献 workflow 使用 `qiongli_search_plan` 作为 workflow 指令、MCP provider 与 active agent 之间的路由合同。这个 plan 必须分开记录两个字段：
+
+- `search_execution_mode`：只能是 `hybrid_search`、`provider_connected`、`native_only` 或 `strategy_only`。
+- `provider_capability_mode`：只能是 `provider_connected` 或 `strategy_only`。它只表示 MCP/provider 层是否拿到了已配置的 academic provider credentials，不代表整次检索的执行方式。
+
+当 provider calls 和平台 `native search` 都可用时，使用 `hybrid_search`。当 provider calls 已经足够时，使用 `provider_connected`。当 active agent 可以执行 `native search`、但没有 provider-connected MCP 时，使用 `native_only`。只有在既没有 provider-connected MCP，也没有可用平台 `native search`，只能写检索策略或使用用户提供语料时，才使用 `strategy_only`。
+
+MCP servers must not call Codex or Claude native search directly. Active agent 执行 `qiongli_search_plan` 中的 `native_search_queries`；MCP servers 只执行 OpenAlex、Semantic Scholar、Crossref、PubMed 或 arXiv 这类 provider calls。日志和导出记录必须保留不同 provenance labels：`mcp:openalex`、`mcp:semantic_scholar`、`mcp:crossref`、`mcp:pubmed`、`mcp:arxiv`、`native:codex_web_search`、`native:claude_web_search`、`user_corpus`。
+
 ---
 
 ## 各 MCP Provider 说明与接入方式

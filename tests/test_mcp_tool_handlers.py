@@ -13,11 +13,13 @@ from bridges.provider_config import set_provider_value
 
 class MCPToolHandlerTests(unittest.TestCase):
     def test_tool_definitions_include_config_and_evidence_tools(self) -> None:
-        names = {tool["name"] for tool in MCP_TOOL_DEFINITIONS}
+        ordered_names = [tool["name"] for tool in MCP_TOOL_DEFINITIONS]
+        names = set(ordered_names)
 
         self.assertTrue(
             {
                 "qiongli_literature_status",
+                "qiongli_search_plan",
                 "qiongli_literature_search",
                 "qiongli_literature_export_evidence",
                 "qiongli_config_status",
@@ -33,6 +35,23 @@ class MCPToolHandlerTests(unittest.TestCase):
                 "qiongli_task_run",
             }.issubset(names)
         )
+        status_index = ordered_names.index("qiongli_literature_status")
+        self.assertEqual(ordered_names[status_index + 1], "qiongli_search_plan")
+        search_plan_schema = next(
+            tool["inputSchema"]["properties"]
+            for tool in MCP_TOOL_DEFINITIONS
+            if tool["name"] == "qiongli_search_plan"
+        )
+        for alias in (
+            "nativeSearchAvailable",
+            "nativeSearchTools",
+            "includeWorkingPapers",
+            "searchMode",
+            "venueFilter",
+            "documentTypes",
+            "queryVariants",
+        ):
+            self.assertIn(alias, search_plan_schema)
 
     def test_orchestrator_route_recommends_mcp_sequence_for_codex_claude_duo(self) -> None:
         result = call_qiongli_tool(
@@ -225,6 +244,39 @@ class MCPToolHandlerTests(unittest.TestCase):
         self.assertIn("QIONGLI_SEMANTIC_SCHOLAR_API_KEY", aliases)
         self.assertIn("S2_API_KEY", aliases)
         self.assertNotIn("secret-demo-key", rendered)
+
+    def test_search_plan_tool_uses_status_capability_without_leaking_secrets(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            with mock.patch.dict(
+                "os.environ",
+                {"QIONGLI_CONFIG_HOME": str(root / "config")},
+                clear=False,
+            ):
+                set_provider_value("openalex", "api-key", "openalex-secret-key")
+                result = call_qiongli_tool(
+                    "qiongli_search_plan",
+                    {
+                        "cwd": str(root),
+                        "query": "AI feedback in education",
+                        "platform": "codex",
+                        "native_search_available": True,
+                    },
+                )
+
+        payload = result["structuredContent"]
+        rendered = json.dumps(result, sort_keys=True)
+        self.assertFalse(result["isError"])
+        self.assertEqual(payload["artifact_type"], "qiongli_hybrid_search_plan")
+        self.assertEqual(payload["search_execution_mode"], "hybrid_search")
+        self.assertEqual(payload["provider_capability_mode"], "provider_connected")
+        self.assertEqual(payload["native_search_tools"], ["codex_web_search"])
+        self.assertEqual(
+            [query["provider"] for query in payload["provider_queries"]],
+            ["openalex", "arxiv"],
+        )
+        self.assertEqual(payload["provenance_labels"]["provider"], ["mcp:openalex", "mcp:arxiv"])
+        self.assertNotIn("openalex-secret-key", rendered)
 
     def test_open_config_wizard_returns_local_url(self) -> None:
         class StubWizard:

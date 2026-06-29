@@ -1023,7 +1023,19 @@ def _print_client_integration_summary(installed: dict[str, dict[str, object]]) -
         item = installed[client]
         status = "installed" if item["installed"] else "not-installed"
         version = item["version"] or "<unknown>"
-        print(f"- {client}: {status}, surface={item['surface']}, version={version}, path={item['path']}")
+        print(
+            f"- {client}: {status}, surface={item['surface']}, "
+            f"version={version}, {_client_mcp_summary(item)}, path={item['path']}"
+        )
+
+
+def _client_mcp_summary(item: dict[str, object]) -> str:
+    mcp = item.get("mcp")
+    if not isinstance(mcp, dict) or not mcp.get("installed"):
+        return "mcp=none"
+    source = str(mcp.get("source") or "standalone")
+    server = str(mcp.get("server") or "qiongli")
+    return f"mcp={source}:{server}"
 
 
 def cmd_guidance(args: argparse.Namespace) -> int:

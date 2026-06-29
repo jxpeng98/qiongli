@@ -14,6 +14,7 @@ from bridges.literature_mcp_tools import (
     handle_literature_export_evidence,
     handle_literature_search,
     handle_literature_status,
+    handle_search_plan,
 )
 from bridges.provider_config import (
     PROVIDER_FIELDS,
@@ -231,6 +232,7 @@ def call_qiongli_tool(name: str, arguments: dict[str, Any] | None = None) -> dic
     args = arguments or {}
     handlers: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
         "qiongli_literature_status": handle_literature_status,
+        "qiongli_search_plan": handle_search_plan,
         "qiongli_literature_search": handle_literature_search,
         "qiongli_literature_export_evidence": handle_literature_export_evidence,
         "qiongli_config_status": _tool_config_status,

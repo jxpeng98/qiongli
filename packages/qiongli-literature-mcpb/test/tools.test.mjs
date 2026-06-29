@@ -9,10 +9,27 @@ import {
   handleExportEvidence,
   handleOpenConfigWizard,
   handleSearch,
+  handleSearchPlan,
   handleSaveProviderConfig,
   handleStatus,
   handleToolCall
 } from "../server/index.mjs";
+import { buildHybridSearchPlan } from "../server/search-plan.mjs";
+
+const PROVIDER_PROVENANCE_LABELS = [
+  "mcp:semantic_scholar",
+  "mcp:openalex",
+  "mcp:crossref",
+  "mcp:pubmed",
+  "mcp:arxiv"
+];
+
+const AGENT_INSTRUCTIONS = [
+  "MCP servers must not call Codex or Claude native search directly.",
+  "The active agent executes native_search_queries only when the platform exposes native search.",
+  "Do not treat native-search results as provider-reproducible records.",
+  "Write provider, native, and user-corpus records with distinct provenance labels."
+];
 
 function emptyArxivResponse() {
   return {
@@ -37,6 +54,7 @@ test("tool declarations match manifest tool names", () => {
     TOOL_DECLARATIONS.map((tool) => tool.name),
     [
       "qiongli_literature_status",
+      "qiongli_search_plan",
       "qiongli_config_status",
       "qiongli_configure_provider",
       "qiongli_save_provider_config",
@@ -49,6 +67,279 @@ test("tool declarations match manifest tool names", () => {
       "qiongli_zotero_export_import_files"
     ]
   );
+});
+
+test("handleSearchPlan returns hybrid plan without exposing provider secrets", async () => {
+  const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-search-plan-"));
+  try {
+    const plan = handleSearchPlan(
+      {
+        query: "AI feedback in education",
+        platform: "codex",
+        native_search_available: true,
+        include_working_papers: true,
+        fromYear: 2020,
+        toYear: 2025,
+        search_mode: "review",
+        venue_filter: "AER",
+        document_types: ["journal-article", "preprint"]
+      },
+      {
+        env: {
+          QIONGLI_CONFIG_HOME: configHome,
+          QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key"
+        }
+      }
+    );
+    const serialized = JSON.stringify(plan);
+
+    assert.equal(plan.artifact_type, "qiongli_hybrid_search_plan");
+    assert.equal(plan.search_execution_mode, "hybrid_search");
+    assert.equal(plan.provider_capability_mode, "provider_connected");
+    assert.equal(plan.native_search_available, true);
+    assert.deepEqual(plan.native_search_tools, ["codex_web_search"]);
+    assert.deepEqual(plan.provider_queries.map((query) => query.provider), ["openalex", "arxiv"]);
+    assert.deepEqual(plan.provenance_labels, {
+      provider: ["mcp:openalex", "mcp:arxiv"],
+      native: ["native:codex_web_search"],
+      user_corpus: ["user_corpus"]
+    });
+    assert.deepEqual(plan.agent_instructions, AGENT_INSTRUCTIONS);
+    assert.deepEqual(plan.provider_queries[0].filters, {
+      include_working_papers: true,
+      fromYear: 2020,
+      toYear: 2025,
+      search_mode: "review",
+      venue_filter: "AER",
+      document_types: ["journal-article", "preprint"]
+    });
+    assert.equal(serialized.includes("openalex-secret-key"), false);
+  } finally {
+    await rm(configHome, { recursive: true, force: true });
+  }
+});
+
+test("handleSearchPlan ignores caller capability overrides when provider status is connected", async () => {
+  const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-search-plan-"));
+  try {
+    const context = {
+      capability_mode: "strategy_only",
+      env: {
+        QIONGLI_CONFIG_HOME: configHome,
+        QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key"
+      }
+    };
+    const status = handleStatus(context);
+    const plan = handleSearchPlan(
+      {
+        query: "AI feedback in education",
+        platform: "codex",
+        native_search_available: true,
+        capability_mode: "strategy_only",
+        provider_capability_mode: "strategy_only"
+      },
+      context
+    );
+
+    assert.equal(status.capability_mode, "provider_connected");
+    assert.equal(plan.provider_capability_mode, "provider_connected");
+    assert.equal(plan.search_execution_mode, "hybrid_search");
+    assert.equal(plan.native_search_available, true);
+    assert.deepEqual(plan.provider_queries.map((query) => query.provider), ["openalex", "arxiv"]);
+  } finally {
+    await rm(configHome, { recursive: true, force: true });
+  }
+});
+
+test("qiongli_search_plan schema exposes native routing filters", () => {
+  const searchPlanTool = TOOL_DECLARATIONS.find((tool) => tool.name === "qiongli_search_plan");
+  const properties = searchPlanTool.inputSchema.properties;
+
+  for (const property of [
+    "include_working_papers",
+    "fromYear",
+    "toYear",
+    "search_mode",
+    "venue_filter",
+    "venueFilter",
+    "document_types",
+    "documentTypes",
+    "query_variants",
+    "queryVariants"
+  ]) {
+    assert.ok(properties[property], `${property} schema is missing`);
+  }
+
+  assert.equal(properties.include_working_papers.type, "boolean");
+  assert.deepEqual(properties.fromYear.type, ["integer", "string"]);
+  assert.deepEqual(properties.toYear.type, ["integer", "string"]);
+  assert.equal(properties.search_mode.type, "string");
+  assert.equal(properties.venue_filter.type, "string");
+  assert.equal(properties.document_types.items.type, "string");
+  assert.equal(properties.venueFilter.type, "string");
+  assert.equal(properties.documentTypes.items.type, "string");
+  assert.equal(properties.query_variants.items.type, "string");
+  assert.equal(properties.queryVariants.items.type, "string");
+});
+
+test("buildHybridSearchPlan filters provider queries and expands query variants", () => {
+  const plan = buildHybridSearchPlan(
+    {
+      query: "AI feedback in education",
+      queryVariants: ["algorithmic feedback in classrooms"],
+      platform: "codex",
+      nativeSearchAvailable: true,
+      includeWorkingPapers: true,
+      searchMode: "review",
+      venueFilter: "learning analytics",
+      documentTypes: ["journal-article"]
+    },
+    "provider_connected",
+    {
+      openalex: "configured",
+      semantic_scholar: "missing",
+      crossref: "missing",
+      pubmed: "missing",
+      arxiv: "configured"
+    }
+  );
+
+  assert.equal(plan.search_execution_mode, "hybrid_search");
+  assert.deepEqual(plan.provenance_labels.provider, ["mcp:openalex", "mcp:arxiv"]);
+  assert.deepEqual(
+    plan.provider_queries.map((query) => [query.provider, query.query_id, query.query]),
+    [
+      ["openalex", "Q1", "AI feedback in education"],
+      ["openalex", "Q2", "algorithmic feedback in classrooms"],
+      ["arxiv", "Q1", "AI feedback in education"],
+      ["arxiv", "Q2", "algorithmic feedback in classrooms"]
+    ]
+  );
+  assert.deepEqual(
+    plan.native_search_queries.map((query) => [query.query_id, query.query]),
+    [
+      ["Q1", "AI feedback in education"],
+      ["Q2", "algorithmic feedback in classrooms"]
+    ]
+  );
+  assert.deepEqual(plan.native_search_queries[0].filters, {
+    include_working_papers: true,
+    search_mode: "review",
+    venue_filter: "learning analytics",
+    document_types: ["journal-article"]
+  });
+});
+
+test("buildHybridSearchPlan returns native_only with claude_code default tool", () => {
+  const plan = buildHybridSearchPlan(
+    {
+      query: "AI feedback in education",
+      platform: "claude_code",
+      native_search_available: true
+    },
+    "strategy_only"
+  );
+
+  assert.equal(plan.search_execution_mode, "native_only");
+  assert.equal(plan.provider_capability_mode, "strategy_only");
+  assert.deepEqual(plan.native_search_tools, ["claude_web_search"]);
+  assert.equal(plan.provider_queries.length, 0);
+  assert.equal(plan.native_search_queries.length, 1);
+  assert.equal(plan.native_search_queries[0].platform, "claude_code");
+  assert.ok(
+    plan.limitations.includes("Provider MCP search is unavailable; native results require explicit provenance labels.")
+  );
+});
+
+test("buildHybridSearchPlan returns strategy_only when no search route is available", () => {
+  const plan = buildHybridSearchPlan(
+    {
+      query: "AI feedback in education",
+      platform: "codex"
+    },
+    "strategy_only"
+  );
+
+  assert.equal(plan.search_execution_mode, "strategy_only");
+  assert.equal(plan.provider_capability_mode, "strategy_only");
+  assert.deepEqual(plan.provider_queries, []);
+  assert.deepEqual(plan.native_search_queries, []);
+  assert.ok(plan.limitations.includes("No provider MCP search or platform-native search is available."));
+});
+
+test("buildHybridSearchPlan returns strategy_only for empty query", () => {
+  const plan = buildHybridSearchPlan(
+    {
+      query: "  ",
+      platform: "codex",
+      native_search_available: true
+    },
+    "provider_connected"
+  );
+
+  assert.equal(plan.search_execution_mode, "strategy_only");
+  assert.equal(plan.provider_capability_mode, "provider_connected");
+  assert.deepEqual(plan.provider_queries, []);
+  assert.deepEqual(plan.native_search_queries, []);
+  assert.ok(plan.limitations.includes("Search query is empty."));
+});
+
+test("buildHybridSearchPlan normalizes unknown provider mode", () => {
+  const plan = buildHybridSearchPlan(
+    {
+      query: "AI feedback in education",
+      native_search_available: true
+    },
+    "providerish"
+  );
+
+  assert.equal(plan.provider_capability_mode, "strategy_only");
+  assert.equal(plan.search_execution_mode, "native_only");
+});
+
+test("buildHybridSearchPlan uses actor action execution sequence", () => {
+  const plan = buildHybridSearchPlan(
+    {
+      query: "AI feedback in education",
+      native_search_available: true
+    },
+    "provider_connected"
+  );
+
+  assert.deepEqual(
+    plan.execution_sequence.map((step) => [step.actor, step.action, step.tool ?? null]),
+    [
+      ["agent", "call qiongli_literature_status", "qiongli_literature_status"],
+      ["agent", "call qiongli_search_plan", "qiongli_search_plan"],
+      ["agent", "call qiongli_literature_search", "qiongli_literature_search"],
+      ["agent", "execute platform-native search", null],
+      ["agent", "merge/dedupe/search_log", null]
+    ]
+  );
+});
+
+test("handleToolCall routes qiongli_search_plan without executing search", async () => {
+  const response = await handleToolCall(
+    "qiongli_search_plan",
+    {
+      query: "AI feedback in education",
+      platform: "antigravity",
+      native_search_available: true
+    },
+    {
+      env: {
+        QIONGLI_MCPB_OPENALEX_API_KEY: "openalex-secret-key"
+      },
+      fetchImpl: async () => {
+        throw new Error("fetch should not be called");
+      }
+    }
+  );
+  const payload = JSON.parse(response.content[0].text);
+
+  assert.equal(payload.search_execution_mode, "hybrid_search");
+  assert.deepEqual(payload.native_search_tools, ["antigravity_search"]);
+  assert.equal(payload.native_search_queries[0].provenance_label, "native:antigravity_search");
 });
 
 test("zotero tool schemas expose dry-run and import fallback controls", () => {

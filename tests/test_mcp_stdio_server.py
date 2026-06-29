@@ -34,16 +34,20 @@ class MCPStdioServerTests(unittest.TestCase):
         self.assertEqual(responses[0]["id"], 1)
         self.assertEqual(responses[0]["result"]["serverInfo"]["name"], "qiongli-mcp")
         self.assertEqual(responses[1]["id"], 2)
-        tool_names = {tool["name"] for tool in responses[1]["result"]["tools"]}
+        ordered_tool_names = [tool["name"] for tool in responses[1]["result"]["tools"]]
+        tool_names = set(ordered_tool_names)
         self.assertIn("qiongli_config_status", tool_names)
         self.assertIn("qiongli_configure_provider", tool_names)
         self.assertIn("qiongli_literature_status", tool_names)
+        self.assertIn("qiongli_search_plan", tool_names)
         self.assertIn("qiongli_literature_search", tool_names)
         self.assertIn("qiongli_literature_export_evidence", tool_names)
         self.assertIn("qiongli_orchestrator_route", tool_names)
         self.assertIn("qiongli_orchestrator_doctor", tool_names)
         self.assertIn("qiongli_task_plan", tool_names)
         self.assertIn("qiongli_task_run", tool_names)
+        status_index = ordered_tool_names.index("qiongli_literature_status")
+        self.assertEqual(ordered_tool_names[status_index + 1], "qiongli_search_plan")
 
     def test_stdio_server_calls_tool_without_leaking_saved_secret(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

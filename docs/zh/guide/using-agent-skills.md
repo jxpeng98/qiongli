@@ -16,7 +16,7 @@ Qiongli 安装的是一套 agent-facing skill 系统，但不同客户端暴露�
 
 | 客户端 | 发现方式 | 调用方式 | 说明 |
 |---|---|---|---|
-| Codex | `/skills` | `$qiongli` | Codex 不暴露自定义 `/qiongli` slash command。安装或升级后需要重启 Codex。 |
+| Codex | `/skills` | `$qiongli`、`$qiongli-lit-review`、`$qiongli-academic-write`，或其他生成的 Qiongli workflow wrapper | Codex 不会把 Qiongli workflows 暴露成自定义 slash command。Plugin 安装会生成很薄的 wrapper skills，路由到和 Claude slash commands 相同的 canonical workflows。安装或升级后需要重启 Codex。 |
 | Claude Code | Plugin UI 或 `/plugin` 命令 | `/paper`、`/lit-review`、`/paper-write`、`/code-build`，或自然语言要求使用 Qiongli | Plugin 会安装 command wrappers 和便携 skill package。 |
 | Shell | `qiongli check` | npm：`qiongli install`、`qiongli update`、`qiongli project ...`；完整运行时：`qiongli doctor`、`qiongli task-run`、`python3 -m bridges.orchestrator ...` | npm/npx 是免 Python 资产管理器。完整运行时命令需要先 `pipx install qiongli`，并使用 Python 3.12+。 |
 
@@ -101,15 +101,17 @@ flowchart TB
 /skills
 ```
 
-你应该能看到 `qiongli`。调用时使用 `$qiongli`，并带上具体研究任务：
+你应该能看到 `qiongli`。plugin-first 安装还会生成很薄的 workflow wrapper skills，例如 `qiongli-lit-review`、`qiongli-academic-write`、`qiongli-paper-read` 和 `qiongli-proofread`。调用主 skill 或 wrapper 时，都带上具体研究任务：
 
 ```text
 $qiongli plan a systematic review on retrieval augmented generation in education
+$qiongli-lit-review retrieval augmented generation in education
+$qiongli-academic-write related work for my CHI paper
 $qiongli design an empirical study about ai writing support in universities
 $qiongli prepare a submission checklist for my CHI paper
 ```
 
-不要期待 `/qiongli` 在 Codex 里可用。Codex 的 slash commands 是客户端内建或客户端自己暴露的入口；Qiongli 在 Codex 中的入口是 skill invocation，也就是 `$qiongli`。
+不要期待 `/qiongli` 或 `/lit-review` 在 Codex 里可用。Codex 的 slash commands 是客户端内建或客户端自己暴露的入口；Qiongli 在 Codex 中的入口是 skill invocation。生成的 wrappers 是刻意保持很薄的适配层：`$qiongli-lit-review` 会路由到 Claude Code `/lit-review` 使用的同一个 `workflows/lit-review.md` source。
 
 如果 `/skills` 只看到 `research-paper-workflow`，说明当前机器上还有旧的全局安装。先运行当前升级路径，重启 Codex，再检查：
 

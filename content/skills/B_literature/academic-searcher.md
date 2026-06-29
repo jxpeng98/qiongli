@@ -40,9 +40,7 @@ domain_aware: false
 ## Purpose
 
 Execute B1 literature discovery as a reproducible MCP/provider workflow. This
-skill owns the search plan, provider execution trace, dedup-ready candidate
-records, and search diagnostics. It does not own full-text retrieval,
-bibliography normalization, citation snowballing, or screening decisions.
+workflow/router owns `qiongli_search_plan` creation and `search_execution_mode` selection. This skill validates and records `search_strategy.md`, provider execution trace, dedup-ready candidate records, search logging, normalization, dedupe, and diagnostics. It does not own full-text retrieval, bibliography normalization, citation snowballing, or screening decisions.
 
 ## Related Task IDs
 
@@ -58,10 +56,13 @@ layer, which configured scholarly provider overlay is active, and what artifacts
 must be recorded after it returns.
 
 The canonical execution path in this repo is the MCP/provider stack.
+Hybrid search coordination belongs to the workflow/router layer. Provider layer owns provider calls, active agent owns platform-native search, and this skill owns logging, normalization, dedupe, and diagnostics. MCP servers must not call Codex or Claude native search directly.
 
 | Layer | Owner | Stage B artifact responsibility |
 | --- | --- | --- |
+| Hybrid router | workflow/router layer | create `qiongli_search_plan`, choose `search_execution_mode`, and declare `native_search_queries` |
 | Query execution | `scholarly-search` or compatible MCP/provider | provider calls and raw hit capture |
+| Platform-native search | active agent | execute `native_search_queries` for `hybrid_search` or `native_only` and return separately labeled records |
 | Record normalization | `scholarly-search` plus local materializer | `search_results.csv` rows |
 | Dedup decisions | search materializer / controller | append `dedup_log.csv` |
 | Metadata enrichment | `metadata-registry` | final `bibliography.bib`, not this skill |
@@ -71,6 +72,15 @@ Do not make direct web or API calls the default execution path inside this
 skill. Provider mechanics belong in the MCP/provider layer. Manual web checks,
 including Google Scholar checks, are supplemental and logged; they are not the
 default reproducible pipeline.
+
+The `qiongli_search_plan` contract uses four execution modes:
+`hybrid_search`, `provider_connected`, `native_only`, and `strategy_only`.
+Record `provider_capability_mode` separately as `provider_connected` or
+`strategy_only`; it describes provider availability, not the whole search
+execution path. Preserve provenance labels across all outputs:
+`mcp:openalex`, `mcp:semantic_scholar`, `mcp:crossref`, `mcp:pubmed`,
+`mcp:arxiv`, `native:codex_web_search`, `native:claude_web_search`, and
+`user_corpus`.
 
 ## Inputs
 
@@ -88,13 +98,15 @@ default reproducible pipeline.
 
 ### 1. Build or validate `search_strategy.md`
 
-Write `RESEARCH/[topic]/search_strategy.md` before execution. Minimum content:
+Write `RESEARCH/[topic]/search_strategy.md` and validate `qiongli_search_plan`
+before execution. Minimum content:
 
 | Field | Requirement |
 | --- | --- |
 | Research scope | RQ, paper type, date range, language, publication type |
 | Concept blocks | 2-5 blocks with synonyms and excluded ambiguous terms |
 | Provider plan | provider names, query IDs, translated query strings, filters |
+| Search execution | `search_execution_mode`, `provider_capability_mode`, and any `native_search_queries` |
 | Seed recall | seed DOI/title list and expected query match when seeds exist |
 | Dedup policy | DOI first, then provider ID, then title-year-author |
 | Review mode | `systematic_review` or `targeted_search` |
@@ -125,6 +137,12 @@ candidate_record_id,canonical_record_id,decision,match_basis,resolver,notes
 
 5. Preserve provider failures and rate limits in `search_log.md`; do not erase
    failed providers from the search trace.
+
+When the plan uses `hybrid_search` or `native_only`, ingest native search
+records only after the active agent has executed `native_search_queries`. Keep
+those records separate from MCP/provider records with
+`native:codex_web_search` or `native:claude_web_search` labels. User-supplied
+files, bibliographies, pasted citations, or local notes use `user_corpus`.
 
 ### 3. Write `search_diagnostics.md`
 

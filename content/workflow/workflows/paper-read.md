@@ -38,13 +38,42 @@ RESEARCH/[topic]/
 
 ### Step 1: Paper Retrieval
 
-Attempt to access the paper through the MCP/provider stack:
-1. Direct URL or user-supplied local file when provided.
-2. `metadata-registry` DOI/title metadata lookup using configured Crossref/OpenAlex overlays when available.
-3. `scholarly-search` title/identifier lookup using configured Semantic Scholar, OpenAlex, arXiv, or platform-native provider paths.
-4. `fulltext-retrieval` retrieval planning for OA PDF, preprint, or abstract-only access.
+Create or update `qiongli_search_plan` before retrieval execution:
+1. Call `qiongli_literature_status` when the tool is visible and record
+   `provider_capability_mode` separately as `provider_connected` or
+   `strategy_only`.
+2. Set `search_execution_mode` to exactly one of `hybrid_search`,
+   `provider_connected`, `native_only`, or `strategy_only`.
+3. Use `hybrid_search` when provider lookup and platform-native search are both
+   needed, `provider_connected` when provider lookup is enough, `native_only`
+   when the active agent has native search but no provider-connected MCP.
+   Only the workflow/router may choose `strategy_only`, and only when neither
+   provider MCP nor platform-native search is available.
+4. Add `native_search_queries` only for `hybrid_search` or `native_only`.
+   MCP servers must not call Codex or Claude native search directly; the active
+   agent executes native search and records it outside the MCP provider layer.
 
-Record provider capability mode as `provider_connected` or `strategy_only`. If no MCP/provider or platform-native search is available, use user-supplied metadata only and keep that evidence boundary visible.
+Attempt to access the paper through the plan:
+1. Direct URL or user-supplied local file when provided; label this provenance
+   as `user_corpus`.
+2. `metadata-registry` DOI/title metadata lookup using configured
+   Crossref/OpenAlex overlays when available; preserve provider labels such as
+   `mcp:crossref` and `mcp:openalex`.
+3. `scholarly-search` title/identifier lookup using configured Semantic
+   Scholar, OpenAlex, arXiv, PubMed, or other provider paths; preserve labels
+   such as `mcp:semantic_scholar`, `mcp:openalex`, `mcp:arxiv`, and
+   `mcp:pubmed`.
+4. Active-agent platform-native lookup from `native_search_queries` when
+   `search_execution_mode` is `hybrid_search` or `native_only`; label records
+   as `native:codex_web_search` or `native:claude_web_search`.
+5. `fulltext-retrieval` retrieval planning for OA PDF, preprint, or
+   abstract-only access.
+
+Record `qiongli_search_plan`, `search_execution_mode`, and
+`provider_capability_mode` in the note or retrieval log. If no MCP/provider or
+platform-native search is available, the workflow/router may choose
+`search_execution_mode: strategy_only`. Record any user-supplied metadata
+boundary separately as `evidence_limit: manual`.
 
 If full text unavailable, work with abstract and metadata only. Mark the note and project-level summary entry with `evidence_limit: abstract_only` or `evidence_limit: metadata_only`.
 
@@ -130,7 +159,9 @@ Create structured note using `templates/paper-note.md` → Save to `RESEARCH/[to
 Use the **metadata-enricher** skill to:
 1. Normalize DOI and metadata through `metadata-registry` using Crossref/OpenAlex overlays when configured.
 2. Generate a consistent citekey from normalized metadata or clearly marked user-supplied metadata.
-3. Record `strategy_only` when metadata is abstract-only, metadata-only, or manually supplied.
+3. Record evidence boundaries with `evidence_limit: abstract_only`, `evidence_limit: metadata_only`, or `evidence_limit: manual`.
+4. Do not modify `qiongli_search_plan.search_execution_mode` from this evidence-limit field.
+5. Do not choose `strategy_only` here; that choice belongs to the workflow/router under Step 1.
 
 Use the **fulltext-fetcher** skill to:
 1. Route full-text planning through `fulltext-retrieval`.

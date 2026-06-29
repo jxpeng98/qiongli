@@ -48,6 +48,8 @@ Then install or enable `qiongli` from the Codex plugin UI for the default core p
 
 The Codex plugin bundles its MCP registration through `.mcp.json` and includes a zero-dependency Node literature-provider server under `mcp/qiongli-literature-provider/`. Codex users do not need to hand-write a separate MCP config or install the `qiongli` CLI for those bundled literature tools. Provider keys remain outside the plugin and can be configured with the bundled local setup tool `qiongli_configure_provider`, with `qiongli_save_provider_config`, or with `qiongli mcp configure` / `qiongli provider setup` when the CLI is installed. For full local Qiongli, use the CLI-generated local plugin: `qiongli install --profile full --target codex --surface plugin`. That local plugin keeps the Codex-native plugin container, but its `.mcp.json` launches the full Python-backed `qiongli mcp serve --transport stdio` server.
 
+Codex plugin installs use plugin-bundled MCP by default. The installer writes `.mcp.json` inside the Qiongli plugin and the plugin manifest points to it; it does not write `~/.codex/config.toml` on the plugin path. Use `qiongli install --target codex --parts mcp` only when you need the standalone MCP fallback.
+
 Codex currently treats plugin-bundled MCP servers as plugin assets: the settings UI can enable the server and manage tool policy, but it is not the right place to add provider keys for this bundled server. Claude Desktop MCPB, Claude Code, Cursor-style clients, and other local stdio MCP clients should use the same Qiongli provider setup contract. Configure keys through the Qiongli provider config instead:
 
 1. Ask Codex to run `qiongli_config_status` and note the redacted status plus `config_path`.
@@ -113,11 +115,11 @@ Restart the target client after installing or upgrading. Then use the entrypoint
 
 | Client | Discovery | Invocation |
 |---|---|---|
-| Codex | `/skills` should list `qiongli` | `$qiongli <research task>` |
+| Codex | `/skills` should list `qiongli` and plugin workflow wrappers such as `qiongli-lit-review` | `$qiongli <research task>` or `$qiongli-lit-review <topic>` |
 | Claude Code | Plugin UI, `/plugin`, or global command discovery | `/paper`, `/lit-review`, `/paper-write`, `/code-build` |
 | Shell | `qiongli check` | `qiongli doctor`, `qiongli upgrade`, `python3 -m bridges.orchestrator ...` |
 
-Codex does not expose a custom `/qiongli` slash command. Use `/skills` to confirm the skill exists, then invoke `$qiongli`.
+Codex does not expose custom `/qiongli` or `/lit-review` slash commands. Use `/skills` to confirm the main skill and generated wrapper skills exist, then invoke `$qiongli` or a wrapper such as `$qiongli-lit-review`. Each wrapper routes to the same canonical workflow file used by Claude Code slash commands.
 
 Use `qiongli check --json` when the client UI and filesystem state disagree. It reports the active install surface for each client: `plugin`, `mcp`, `legacy_skill`, or `none`. Use `qiongli doctor --cwd .` for runtime/orchestrator health; it also prints a non-fatal `Client Integration` summary.
 

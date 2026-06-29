@@ -88,6 +88,18 @@ class LocalPluginInstallerTests(unittest.TestCase):
             skill_metadata = yaml.safe_load(frontmatter)
             self.assertEqual(skill_metadata["name"], "qiongli")
             self.assertIn("Qiongli version:", skill_metadata["description"])
+            lit_review_wrapper = plugin_root / "skills" / "qiongli-lit-review" / "SKILL.md"
+            academic_write_wrapper = plugin_root / "skills" / "qiongli-academic-write" / "SKILL.md"
+            self.assertTrue(lit_review_wrapper.is_file())
+            self.assertTrue(academic_write_wrapper.is_file())
+            wrapper_text = lit_review_wrapper.read_text(encoding="utf-8")
+            wrapper_metadata = yaml.safe_load(wrapper_text.split("---", 2)[1])
+            self.assertEqual(wrapper_metadata["name"], "qiongli-lit-review")
+            self.assertIn("literature review", wrapper_metadata["description"].lower())
+            self.assertIn("/lit-review", wrapper_text)
+            self.assertIn("$qiongli", wrapper_text)
+            self.assertIn("../qiongli-workflow/workflows/lit-review.md", wrapper_text)
+            self.assertNotIn("Phase 0: Project Scaffolding", wrapper_text)
 
             mcp_manifest = self._read_json(plugin_root / ".mcp.json")
             self.assertEqual(

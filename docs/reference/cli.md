@@ -101,11 +101,15 @@ Key Flags:
 
 `qiongli check` is plugin-aware. It reports `surface=plugin` for CLI-managed Codex/Claude Code/Antigravity local plugins, `surface=mcp` for Hermes or MCP-only managed configs, `surface=legacy_skill` for old global skill directories, and `surface=none` when no Qiongli surface is found. JSON output keeps the compatibility fields `installed`, `version`, `subject`, `coverage`, and `path`, and adds nested `plugin`, `skill`, and `mcp` objects for diagnostics. Plugin diagnostics include `active`, `enabled`, `plugin_id`, and `activation_detail` where the client CLI can be queried, so file installation can be distinguished from an enabled client plugin. Older managed installs that do not have a `SUBJECT_MANIFEST.json` or `SUBJECT` marker are reported as legacy `core` / `complete`.
 
+For Codex plugin installs, `mcp` reports the effective MCP source. `plugin_mcp` reports the plugin-local `.mcp.json`, and `standalone_mcp` reports `~/.codex/config.toml`. A false `standalone_mcp.installed` value is expected when `plugin_mcp.installed` is true. Use the standalone MCP fallback only when plugin-bundled MCP is not visible in Codex after restart.
+
 If Codex lists `qiongli` in the Personal marketplace but the details page says `Plugin detail unavailable`, the marketplace entry was found but Codex could not read the local plugin payload. Check the local plugin root named by `qiongli check --json`; common causes are an invalid `.codex-plugin/plugin.json`, invalid YAML frontmatter in `skills/qiongli-workflow/SKILL.md`, or a missing local path. Reinstall CLI-managed Codex plugin payloads with:
 
 ```bash
 qiongli install --target codex --surface plugin --overwrite
 ```
+
+Codex plugin-first installs expose the main `/skills` entry named `qiongli` plus generated workflow wrapper skills such as `qiongli-lit-review`, `qiongli-academic-write`, and `qiongli-paper-read`. The bundled `commands/*.md` files remain for cross-client parity, but Codex currently does not show them as separate `/lit-review`, `/academic-write`, or `/paper` slash commands. Use `$qiongli-lit-review <topic>`, `$qiongli run lit-review on <topic>`, or a natural academic request.
 
 Exit Codes:
 - `0`: No updates available / upstream check bypassed.
