@@ -62,7 +62,7 @@ npm CLI 是免 Python 资产管理器，默认安装 skills surface：
 ```bash
 npm install -g qiongli
 qiongli install --target all --surface skills
-qiongli check --offline
+qiongli check
 ```
 
 脚本化安装时建议显式传入项目目录：

@@ -41,7 +41,7 @@ class SelfUpdateTests(unittest.TestCase):
                 "--overwrite",
             ),
         )
-        self.assertEqual(plan.check_command, ("qiongli-bin", "check", "--offline"))
+        self.assertEqual(plan.check_command, ("qiongli-bin", "check"))
 
     def test_next_channel_allows_prerelease_for_python_package_managers(self) -> None:
         options = SelfUpdateOptions(channel="next")
@@ -182,7 +182,7 @@ class SelfUpdateTests(unittest.TestCase):
                     "full",
                     "--overwrite",
                 ),
-                ("qiongli-bin", "check", "--offline"),
+                ("qiongli-bin", "check"),
             ],
         )
 
@@ -283,7 +283,7 @@ class SelfUpdateTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertIn("- refresh installed surfaces: skipped", output.getvalue())
         self.assertIn("- post-update check: skipped", output.getvalue())
-        self.assertNotIn("qiongli-bin check --offline", output.getvalue())
+        self.assertNotIn("qiongli-bin check", output.getvalue())
 
     def test_default_update_checker_detects_prerelease_to_final_update(self) -> None:
         plan = build_self_update_plan(

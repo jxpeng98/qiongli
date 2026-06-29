@@ -1240,7 +1240,7 @@ def build_parser() -> argparse.ArgumentParser:
     check.add_argument(
         "--offline",
         action="store_true",
-        help="Skip PyPI and upstream release checks; inspect local install surfaces only",
+        help=argparse.SUPPRESS,
     )
     check.add_argument(
         "--beta",
@@ -1356,7 +1356,7 @@ def build_parser() -> argparse.ArgumentParser:
         help=argparse.SUPPRESS,
     )
     self_update.add_argument("--no-refresh", action="store_false", dest="refresh", help="Skip installed surface refresh")
-    self_update.add_argument("--skip-check", action="store_false", dest="check", help="Skip post-update offline check")
+    self_update.add_argument("--skip-check", action="store_false", dest="check", help="Skip post-update check")
     self_update.add_argument("--dry-run", action="store_true", help="Print the update plan without running commands")
     self_update.add_argument("--yes", action="store_true", help="Run the update plan without an extra confirmation prompt")
 

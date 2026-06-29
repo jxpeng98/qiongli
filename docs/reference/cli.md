@@ -90,14 +90,13 @@ Use Case:
 - Optional: Queries the upstream latest release tag and determines if an upgrade is needed.
 
 ```bash
-qiongli check [--repo <owner/repo|url>] [--json] [--strict-network] [--offline]
+qiongli check [--repo <owner/repo|url>] [--json] [--strict-network]
 ```
 
 Key Flags:
 - `--repo`: Specify upstream (can be omitted, see "Upstream" section).
 - `--json`: Output JSON only (useful for CI/Scripts).
 - `--strict-network`: Return a failure code if upstream polling fails (defaults to warning and continuing).
-- `--offline`: Skip PyPI and upstream release checks; inspect local install surfaces only.
 
 `qiongli check` is plugin-aware. It reports `surface=plugin` for CLI-managed Codex/Claude Code/Antigravity local plugins, `surface=mcp` for Hermes or MCP-only managed configs, `surface=legacy_skill` for old global skill directories, and `surface=none` when no Qiongli surface is found. JSON output keeps the compatibility fields `installed`, `version`, `subject`, `coverage`, and `path`, and adds nested `plugin`, `skill`, and `mcp` objects for diagnostics. Plugin diagnostics include `active`, `enabled`, `plugin_id`, and `activation_detail` where the client CLI can be queried, so file installation can be distinguished from an enabled client plugin. Older managed installs that do not have a `SUBJECT_MANIFEST.json` or `SUBJECT` marker are reported as legacy `core` / `complete`.
 
@@ -175,7 +174,7 @@ Default behavior:
 - Refresh defaults to `qiongli install --target all --surface plugin --profile full --overwrite`. This is intentional: after the package manager updates the CLI package, the bundled payload is already local, so the refresh should not download another release archive.
 - `--dry-run` prints the detected channel and exact commands without executing them.
 - Without `--yes`, the command asks before running the package-manager update, then asks whether to refresh installed local plugins/assets from the new package.
-- `--no-refresh` skips the installed surface refresh, and `--skip-check` skips the final `qiongli check --offline`.
+- `--no-refresh` skips the installed surface refresh, and `--skip-check` skips the final `qiongli check`.
 
 Source checkouts do not self-modify. When source mode is detected, update with `git pull`, then run `qiongli install --overwrite` for the surfaces you want to refresh.
 

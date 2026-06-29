@@ -90,14 +90,13 @@ npm/npx 不同：它是免 Python 资产管理器，默认 `--surface skills`；
 - 可选：查询上游最新 release tag，并判断是否需要升级
 
 ```bash
-qiongli check [--repo <owner/repo|url>] [--json] [--strict-network] [--offline]
+qiongli check [--repo <owner/repo|url>] [--json] [--strict-network]
 ```
 
 关键参数：
 - `--repo`：指定上游（可省略，见“上游解析”）
 - `--json`：只输出 JSON（便于 CI/脚本）
 - `--strict-network`：如果上游查询失败则返回失败（默认仅提示并继续）
-- `--offline`：跳过 PyPI 和上游 release 查询，只检查本地安装 surface
 
 `qiongli check` 现在会识别 plugin-first 安装形态：Codex / Claude Code / Antigravity 的 CLI-managed local plugin 会显示 `surface=plugin`，Hermes 或只安装 MCP 的受管理 config 会显示 `surface=mcp`，旧版全局 skill 目录会显示 `surface=legacy_skill`，未发现时显示 `surface=none`。JSON 仍保留兼容字段 `installed`、`version`、`subject`、`coverage` 和 `path`，同时增加 `plugin`、`skill`、`mcp` 三个诊断对象。可通过客户端 CLI 查询时，plugin 诊断还会包含 `active`、`enabled`、`plugin_id` 和 `activation_detail`，用于区分“文件已安装”和“客户端已启用 plugin”。旧 managed install 如果没有 `SUBJECT_MANIFEST.json` 或 `SUBJECT` marker，会按 legacy `core` / `complete` 处理。
 
@@ -177,7 +176,7 @@ qiongli self-update [--channel stable|next] [--dry-run] [--yes] [--no-refresh] [
 - 刷新安装面默认执行 `qiongli install --target all --surface plugin --profile full --overwrite`。这是有意设计：package manager 已经更新了 CLI package，本地 payload 已经是新的，不需要再下载 release archive。
 - `--dry-run` 只打印检测到的渠道和将要执行的命令。
 - 不传 `--yes` 时，会先询问是否执行 package-manager 更新；CLI/package 升级成功后，再询问是否刷新本地 plugin/assets。
-- `--no-refresh` 跳过安装面刷新，`--skip-check` 跳过最后的 `qiongli check --offline`。
+- `--no-refresh` 跳过安装面刷新，`--skip-check` 跳过最后的 `qiongli check`。
 
 源码 checkout 不会自我修改。检测到 source mode 时，先用 `git pull` 更新源码，再运行 `qiongli install --overwrite` 刷新需要的安装面。
 
