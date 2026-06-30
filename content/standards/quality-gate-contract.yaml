@@ -10,6 +10,26 @@ severity_values:
   - minor
   - major
   - critical
+evidence_ref_schema:
+  required_fields:
+    - artifact
+    - anchor
+    - supports
+  optional_fields:
+    - claim_id
+    - diagnostic_id
+    - section
+    - line
+    - notes
+  artifact_rules:
+    - "artifact is a repository- or project-relative path such as RESEARCH/[topic]/study_design.md."
+    - "anchor names the section, table, row, claim id, diagnostic id, or line span used as evidence."
+    - "supports states exactly what the referenced artifact proves for the semantic check."
+status_rollup_rules:
+  - "A gate cannot be PASS unless every semantic check is PASS and blocking_issues is empty."
+  - "A gate cannot be WARN when any semantic check is FAIL or BLOCKED."
+  - "A gate cannot be FAIL when any semantic check is BLOCKED."
+  - "A gate with non-empty blocking_issues must be FAIL or BLOCKED."
 gates:
   Q1:
     name: "question-to-method alignment"

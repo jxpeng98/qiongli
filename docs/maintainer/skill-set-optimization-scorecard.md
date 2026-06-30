@@ -43,6 +43,34 @@ This moves the baseline from status-only reporting to evidence-anchored checks:
 The next bar is task-run evidence: real Stage C/F/G/I runs should write gate
 reports whose evidence anchors resolve to project artifacts.
 
+## Real-Agent Smoke Roadmap
+
+Real-agent smoke should stay a maintainer-only opt-in acceptance check; it is
+not a default CI gate. Its purpose is to prove that local Codex, Claude Code, and
+Antigravity task-run paths can produce auditable Q1-Q4 gate reports without
+polluting the maintainer's normal installation.
+
+The smoke design should isolate the runtime environment before launching local
+agents:
+
+- Create a temporary project workspace and an isolated HOME.
+- Set isolated `CODEX_HOME`, `CLAUDE_CODE_HOME`, `ANTIGRAVITY_HOME`, and
+  related cache/config paths.
+- Materialize the current checkout package into that isolated environment.
+- Run Stage C/F/G/I owner tasks against a small fixture topic.
+- Audit the generated `quality-gate-report.md` with
+  `scripts/audit_quality_gates.py --strict`.
+- Leave the check opt-in through an explicit maintainer command or environment
+  variable, because local agent availability, login state, and model behavior
+  are not deterministic enough for routine CI.
+
+## Recommended Next Optimization
+
+The next implementation pass should focus on economics and finance method
+packs. The Q1-Q4 gate layer now defines how evidence quality is judged; method
+packs should define what evidence and diagnostics each domain-specific method
+must produce before a gate owner can mark a semantic check as pass or warn.
+
 ## Measurement Commands
 
 Current baseline commands:
