@@ -8,6 +8,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import yaml
+
 from qiongli.source_layout import RepoLayout
 from unittest import mock
 
@@ -477,11 +479,57 @@ class UniversalInstallerTests(unittest.TestCase):
             self.assertEqual(manifest["coverage"], "complete")
             self.assertTrue((skill_dir / "skills" / "domain-profiles" / "economics.yaml").exists())
             self.assertTrue((skill_dir / "skills" / "domain-profiles" / "cs-ai.yaml").exists())
+            economics_profile = yaml.safe_load(
+                (skill_dir / "skills" / "domain-profiles" / "economics.yaml").read_text(encoding="utf-8")
+            )
+            did = economics_profile["method_templates"][0]
+            self.assertIn("canonical_references", did)
+            self.assertIn("gate_relevance", did)
+            self.assertIn("diagnostic_artifacts", did)
+            self.assertIn("failure_triggers", did)
             self.assertTrue((skill_dir / "skills" / "F_writing" / "manuscript-architect.md").exists())
             self.assertIn(
                 "Economics Overlay",
                 (skill_dir / "skills" / "F_writing" / "manuscript-architect.md").read_text(encoding="utf-8"),
             )
+
+    def test_install_materializes_finance_subject_with_enhanced_method_pack(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            codex_home = temp_root / "codex-home"
+            env = _isolated_qiongli_env(temp_root)
+            env["CODEX_HOME"] = str(codex_home)
+            env["PATH"] = ""
+
+            with mock.patch.dict(os.environ, env, clear=True):
+                result = install(
+                    InstallOptions(
+                        repo_root=REPO_ROOT,
+                        project_dir=project_dir,
+                        target="codex",
+                        profile="partial",
+                        subject="finance",
+                        coverage="focused",
+                    )
+                )
+
+            self.assertEqual(result, 0)
+            skill_dir = codex_home / "skills" / "qiongli-workflow"
+            manifest = json.loads((skill_dir / "SUBJECT_MANIFEST.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["subject"], "finance")
+            self.assertEqual(manifest["coverage"], "focused")
+            finance_profile = yaml.safe_load(
+                (skill_dir / "skills" / "domain-profiles" / "finance.yaml").read_text(encoding="utf-8")
+            )
+            event_study = next(
+                item for item in finance_profile["method_templates"] if item["name"] == "Event Study"
+            )
+            self.assertIn("canonical_references", event_study)
+            self.assertIn("gate_relevance", event_study)
+            self.assertIn("diagnostic_artifacts", event_study)
+            self.assertIn("failure_triggers", event_study)
 
     def test_install_can_materialize_focused_subject_coverage(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

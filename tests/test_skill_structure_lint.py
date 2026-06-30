@@ -379,6 +379,16 @@ class SkillStructureLintTests(unittest.TestCase):
 
         self.assertEqual(failures, [])
 
+    def test_workflow_skill_documents_subject_installed_domain_pack_contract(self) -> None:
+        text = (RepoLayout(Path(__file__).resolve().parents[1]).workflow / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("subject-installed domain profile", text)
+        self.assertIn("canonical_references", text)
+        self.assertIn("diagnostic_artifacts", text)
+        self.assertIn("failure_triggers", text)
+
 
 if __name__ == "__main__":
     unittest.main()

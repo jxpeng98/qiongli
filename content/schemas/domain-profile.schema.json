@@ -114,6 +114,65 @@
                         "items": {
                             "type": "string"
                         }
+                    },
+                    "canonical_references": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "required": [
+                                "citation_key",
+                                "role"
+                            ],
+                            "properties": {
+                                "citation_key": {
+                                    "type": "string"
+                                },
+                                "role": {
+                                    "type": "string"
+                                },
+                                "source_url": {
+                                    "type": "string"
+                                }
+                            },
+                            "additionalProperties": true
+                        }
+                    },
+                    "gate_relevance": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "Q1",
+                                "Q2",
+                                "Q3",
+                                "Q4"
+                            ]
+                        }
+                    },
+                    "diagnostic_artifacts": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "required": [
+                                "artifact",
+                                "required_for"
+                            ],
+                            "properties": {
+                                "artifact": {
+                                    "type": "string"
+                                },
+                                "required_for": {
+                                    "type": "string"
+                                }
+                            },
+                            "additionalProperties": true
+                        }
+                    },
+                    "failure_triggers": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     }
                 }
             },

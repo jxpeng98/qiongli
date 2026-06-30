@@ -57,6 +57,29 @@ method_templates:
     minimum_report_fields:
       - "Treatment definition, timing, unit, and comparison group."
       - "Estimator, fixed effects, clustering level, and identifying assumption."
+    gate_relevance: [Q1, Q2, Q4]
+    canonical_references:
+      - citation_key: "callaway_santanna_2021_did"
+        role: "Group-time treatment effects estimator for staggered adoption designs."
+        source_url: "https://arxiv.org/abs/1803.09015"
+      - citation_key: "sun_abraham_2021_eventstudy"
+        role: "Event-study contamination warning for heterogeneous treatment effects."
+        source_url: "https://doi.org/10.1016/j.jeconom.2020.09.006"
+      - citation_key: "roth_santanna_bilinski_poe_2023_did"
+        role: "Modern practice guide for DID design, estimation, and sensitivity."
+        source_url: "https://arxiv.org/abs/2201.01194"
+      - citation_key: "baker_callaway_cunningham_goodmanbacon_santanna_2025_did"
+        role: "Recent practitioner guide for choosing among DID designs and estimators."
+        source_url: "https://arxiv.org/abs/2503.13323"
+    diagnostic_artifacts:
+      - artifact: "RESEARCH/[topic]/analysis/did_event_study.md"
+        required_for: "pre-trend, anticipation, and dynamic treatment-effect claims"
+      - artifact: "RESEARCH/[topic]/analysis/did_cohort_support.md"
+        required_for: "staggered-adoption and heterogeneous-effect claims"
+    failure_triggers:
+      - "No credible untreated or not-yet-treated comparison group for the treated units."
+      - "Pre-treatment event-study coefficients show material divergence without a design response."
+      - "A strong causal claim relies only on naive TWFE under staggered adoption with heterogeneous effects."
 
   - name: "Regression Discontinuity (RD)"
     tier: standard
@@ -82,6 +105,26 @@ method_templates:
     minimum_report_fields:
       - "Running variable, cutoff, treatment rule, bandwidth, and kernel."
       - "Local estimate, robust confidence interval, and effective sample size."
+    gate_relevance: [Q1, Q2, Q4]
+    canonical_references:
+      - citation_key: "imbens_kalyanaraman_2012_rd_bandwidth"
+        role: "Bandwidth selection anchor for sharp RD designs."
+        source_url: "https://doi.org/10.1093/restud/rdr043"
+      - citation_key: "calonico_cattaneo_titiunik_2014_rdrobust"
+        role: "Robust bias-corrected RD inference anchor."
+        source_url: "https://doi.org/10.3982/ECTA11757"
+      - citation_key: "cattaneo_idrobo_titiunik_2020_rd_practical"
+        role: "Practical RD design, diagnostics, and reporting guide."
+        source_url: "https://rdpackages.github.io/references/Cattaneo-Idrobo-Titiunik_2020_CUP.pdf"
+    diagnostic_artifacts:
+      - artifact: "RESEARCH/[topic]/analysis/rd_density_manipulation.md"
+        required_for: "claims that units cannot precisely sort around the cutoff"
+      - artifact: "RESEARCH/[topic]/analysis/rd_bandwidth_sensitivity.md"
+        required_for: "local treatment-effect and bandwidth robustness claims"
+    failure_triggers:
+      - "Manipulation or heaping around the cutoff undermines local random assignment."
+      - "The bandwidth or polynomial order is selected after inspecting favorable estimates."
+      - "Global polynomial evidence is treated as the primary RD identification result."
 
   - name: "Instrumental Variables (2SLS)"
     tier: standard
@@ -107,6 +150,26 @@ method_templates:
     minimum_report_fields:
       - "Endogenous regressor, instrument set, first-stage coefficient, and F-statistic."
       - "Estimator, controls, fixed effects, clustering, and local effect interpretation."
+    gate_relevance: [Q1, Q2, Q4]
+    canonical_references:
+      - citation_key: "angrist_imbens_rubin_1996_iv"
+        role: "Local average treatment effect and monotonicity anchor."
+        source_url: "https://doi.org/10.1080/01621459.1996.10476902"
+      - citation_key: "stock_yogo_2005_weak_instruments"
+        role: "Weak-instrument diagnostics and critical values anchor."
+        source_url: "https://www.nber.org/papers/t0284"
+      - citation_key: "andrews_stock_sun_2019_weak_iv"
+        role: "Recent weak-instrument inference review."
+        source_url: "https://doi.org/10.1146/annurev-economics-080218-025643"
+    diagnostic_artifacts:
+      - artifact: "RESEARCH/[topic]/analysis/iv_first_stage_weak_instrument.md"
+        required_for: "instrument relevance and weak-instrument risk claims"
+      - artifact: "RESEARCH/[topic]/analysis/iv_exclusion_overidentification.md"
+        required_for: "exclusion-restriction and overidentification claims"
+    failure_triggers:
+      - "First-stage evidence is weak or not reported for the endogenous regressor."
+      - "The exclusion restriction depends on an unaddressed direct path to the outcome."
+      - "The paper interprets a LATE estimate as an average treatment effect without scope limits."
 
   - name: "Synthetic Control"
     tier: advanced
@@ -130,6 +193,26 @@ method_templates:
     minimum_report_fields:
       - "Treated unit, intervention date, donor pool, predictors, and optimization window."
       - "Fit metrics, placebo rank, and post-treatment effect summary."
+    gate_relevance: [Q1, Q2, Q4]
+    canonical_references:
+      - citation_key: "abadie_gardeazabal_2003_synthetic_control"
+        role: "Foundational synthetic control policy evaluation anchor."
+        source_url: "https://doi.org/10.1257/000282803321455188"
+      - citation_key: "abadie_diamond_hainmueller_2010_synthetic_control"
+        role: "JASA synthetic control estimator and placebo inference anchor."
+        source_url: "https://doi.org/10.1198/jasa.2009.ap08746"
+      - citation_key: "abadie_2021_using_synthetic_controls"
+        role: "Modern synthetic control practice and reporting guide."
+        source_url: "https://doi.org/10.1257/jel.20191450"
+    diagnostic_artifacts:
+      - artifact: "RESEARCH/[topic]/analysis/synthetic_control_prefit.md"
+        required_for: "counterfactual credibility and predictor balance claims"
+      - artifact: "RESEARCH/[topic]/analysis/synthetic_control_placebos.md"
+        required_for: "in-space or in-time placebo inference claims"
+    failure_triggers:
+      - "Poor pre-treatment fit makes the synthetic counterfactual non-credible."
+      - "Donor units are exposed to treatment spillovers or selected using post-treatment outcomes."
+      - "Placebo rankings or RMSPE ratios are omitted while making strong effect claims."
 
   - name: "BLP Demand Estimation"
     tier: advanced
@@ -153,6 +236,26 @@ method_templates:
     minimum_report_fields:
       - "Market definition, products, shares, outside option, and price endogeneity treatment."
       - "Random coefficients, instruments, GMM settings, elasticities, and markups."
+    gate_relevance: [Q1, Q2, Q4]
+    canonical_references:
+      - citation_key: "berry_levinsohn_pakes_1995_blp"
+        role: "Random-coefficients demand and supply equilibrium anchor."
+        source_url: "https://doi.org/10.2307/2171802"
+      - citation_key: "nevo_2001_cereal_demand"
+        role: "Applied random-coefficients demand estimation anchor."
+        source_url: "https://doi.org/10.1111/1468-0262.00194"
+      - citation_key: "conlon_gortmaker_2020_pyblp"
+        role: "Modern computational best-practice anchor for BLP-style estimation."
+        source_url: "https://doi.org/10.1111/1756-2171.12352"
+    diagnostic_artifacts:
+      - artifact: "RESEARCH/[topic]/analysis/blp_gmm_convergence.md"
+        required_for: "GMM convergence and numerical reliability claims"
+      - artifact: "RESEARCH/[topic]/analysis/blp_instruments_elasticities.md"
+        required_for: "instrument validity, substitution, elasticity, and markup claims"
+    failure_triggers:
+      - "Price endogeneity is not addressed with credible excluded instruments."
+      - "The GMM routine fails to converge or reports unstable objective and gradient diagnostics."
+      - "Elasticities, diversion ratios, or markups are economically implausible without sensitivity analysis."
 
 stats_diagnostics:
   - "Parallel trends: event study coefficients + joint F-test on pre-periods"

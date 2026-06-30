@@ -69,6 +69,12 @@ If `.qiongli/guidance_manifest.yaml` is missing, use implicit `active_subject: a
 
 Load concise project rules when present, cite the loaded paths in the working notes, and apply them only where they do not conflict with Qiongli contracts. Project-local guidance must never override canonical workflow contracts, required outputs, evidence gates, quality gates, MCP evidence requirements, safety constraints, or the task packet. If local guidance conflicts with any required output or gate, follow the canonical requirement and record the conflict.
 
+### Subject Domain Packs
+
+When Qiongli is installed through the CLI with a subject package, treat the subject-installed domain profile as the specialization layer for the canonical workflow. If `SUBJECT_MANIFEST.json` names `economics`, load `skills/domain-profiles/economics.yaml`; if it names `finance`, load `skills/domain-profiles/finance.yaml`. If project guidance is `active_subject: auto`, infer a temporary economics or finance domain from the task context, then apply the same profile rules.
+
+Domain profiles refine canonical contracts; they do not replace them. For each matched method, apply `canonical_references` as method anchors, `gate_relevance` as Q1-Q4 routing hints, `diagnostic_artifacts` as required local evidence, and `failure_triggers` as blocker language for unsupported claims.
+
 ## Workflow Entry Points
 
 Explicit workflow commands are optional entry points. In Codex, users can invoke this skill with `/skills` or `$qiongli`, but natural academic requests should also route here. Claude Code surfaces may expose the same workflows as slash-style command wrappers:

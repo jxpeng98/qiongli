@@ -50,6 +50,26 @@ method_templates:
     minimum_report_fields:
       - "Return frequency, sample window, mean equation, variance equation, and innovation distribution."
       - "Parameter estimates, persistence, diagnostics, and forecast horizon."
+    gate_relevance: [Q1, Q2, Q4]
+    canonical_references:
+      - citation_key: "engle_1982_arch"
+        role: "Foundational ARCH volatility model anchor."
+        source_url: "https://doi.org/10.2307/1912773"
+      - citation_key: "bollerslev_1986_garch"
+        role: "GARCH variance dynamics anchor."
+        source_url: "https://doi.org/10.1016/0304-4076(86)90063-1"
+      - citation_key: "hansen_lunde_2005_volatility_models"
+        role: "Comparative volatility forecast evaluation anchor."
+        source_url: "https://doi.org/10.1002/jae.800"
+    diagnostic_artifacts:
+      - artifact: "RESEARCH/[topic]/analysis/garch_residual_diagnostics.md"
+        required_for: "conditional heteroskedasticity and residual adequacy claims"
+      - artifact: "RESEARCH/[topic]/analysis/garch_forecast_backtest.md"
+        required_for: "volatility forecast and risk-measure claims"
+    failure_triggers:
+      - "ARCH effects or volatility clustering are not present or are not tested before model fitting."
+      - "Variance persistence is nonstationary or near-integrated without a regime or model response."
+      - "Standardized residuals fail serial-correlation or distribution diagnostics while forecasts are treated as reliable."
 
   - name: "Event Study"
     tier: standard
@@ -74,6 +94,26 @@ method_templates:
     minimum_report_fields:
       - "Event definition, event date source, estimation window, event windows, and benchmark model."
       - "AAR, CAR, test statistics, sample exclusions, and clustering treatment."
+    gate_relevance: [Q1, Q2, Q4]
+    canonical_references:
+      - citation_key: "mackinlay_1997_event_studies"
+        role: "Canonical finance event-study design and expected-return model anchor."
+        source_url: "https://doi.org/10.1257/jel.35.1.13"
+      - citation_key: "kothari_warner_2007_event_studies"
+        role: "Event-study econometrics and inference review anchor."
+        source_url: "https://doi.org/10.1016/B978-0-444-53265-7.50015-9"
+      - citation_key: "kolari_pynnonen_2010_event_study_dependence"
+        role: "Cross-sectional correlation adjustment anchor for event-study tests."
+        source_url: "https://doi.org/10.1093/rfs/hhq072"
+    diagnostic_artifacts:
+      - artifact: "RESEARCH/[topic]/analysis/event_window_design.md"
+        required_for: "event timing, leakage, and confounding-event claims"
+      - artifact: "RESEARCH/[topic]/analysis/event_study_car_tests.md"
+        required_for: "AAR, CAR, abnormal-return, and test-statistic claims"
+    failure_triggers:
+      - "Event dates are anticipated, leaked, or contaminated by nearby confounding announcements."
+      - "Overlapping or clustered events are tested as independent observations."
+      - "Abnormal returns are interpreted without a justified expected-return benchmark."
 
   - name: "Portfolio Optimization (MVO)"
     tier: standard
@@ -97,6 +137,26 @@ method_templates:
     minimum_report_fields:
       - "Asset universe, sample period, return estimator, covariance estimator, and constraints."
       - "Weights, expected return, volatility, Sharpe ratio, and sensitivity results."
+    gate_relevance: [Q1, Q2, Q4]
+    canonical_references:
+      - citation_key: "markowitz_1952_portfolio_selection"
+        role: "Mean-variance portfolio selection anchor."
+        source_url: "https://doi.org/10.2307/2975974"
+      - citation_key: "ledoit_wolf_2004_covariance_shrinkage"
+        role: "Covariance shrinkage anchor for unstable high-dimensional inputs."
+        source_url: "https://doi.org/10.3905/jpm.2004.110"
+      - citation_key: "demiguel_garlappi_uppal_2009_naive_diversification"
+        role: "Estimation-error and naive-diversification benchmark anchor."
+        source_url: "https://doi.org/10.1093/rfs/hhm075"
+    diagnostic_artifacts:
+      - artifact: "RESEARCH/[topic]/analysis/portfolio_input_sensitivity.md"
+        required_for: "expected-return, covariance, and Sharpe-ratio claims"
+      - artifact: "RESEARCH/[topic]/analysis/portfolio_constraints_turnover.md"
+        required_for: "implementability, concentration, turnover, and cost claims"
+    failure_triggers:
+      - "Optimal weights are driven by fragile return estimates without sensitivity or benchmark comparison."
+      - "The portfolio is highly concentrated or infeasible under stated liquidity and short-sale constraints."
+      - "Transaction costs, turnover, or rebalancing rules are ignored while reporting implementable performance."
 
   - name: "Fama-French / Factor Models"
     tier: standard
@@ -121,6 +181,29 @@ method_templates:
     minimum_report_fields:
       - "Factor set, test assets, return frequency, sample period, and estimation method."
       - "Alphas, betas, t-statistics, R-squared, and standard-error correction."
+    gate_relevance: [Q1, Q2, Q4]
+    canonical_references:
+      - citation_key: "fama_macbeth_1973_cross_section"
+        role: "Cross-sectional asset-pricing regression and inference anchor."
+        source_url: "https://doi.org/10.1086/260061"
+      - citation_key: "fama_french_1993_common_risk_factors"
+        role: "Common equity and bond risk factor model anchor."
+        source_url: "https://doi.org/10.1016/0304-405X(93)90023-5"
+      - citation_key: "harvey_liu_zhu_2016_factor_zoo"
+        role: "Multiple-testing and factor-zoo warning for expected-return claims."
+        source_url: "https://doi.org/10.1093/rfs/hhv059"
+      - citation_key: "chen_zimmermann_2022_asset_pricing_publication_bias"
+        role: "Recent publication-bias and cross-sectional return predictability synthesis."
+        source_url: "https://arxiv.org/abs/2209.13623"
+    diagnostic_artifacts:
+      - artifact: "RESEARCH/[topic]/analysis/factor_model_sensitivity.md"
+        required_for: "alpha, beta, benchmark, and factor-spanning claims"
+      - artifact: "RESEARCH/[topic]/analysis/factor_inference_diagnostics.md"
+        required_for: "cross-sectional pricing, standard-error, and multiple-testing claims"
+    failure_triggers:
+      - "An alpha or anomaly claim is made without benchmark sensitivity across plausible factor sets."
+      - "Factor discovery or portfolio sorts ignore multiple testing and data-snooping risk."
+      - "Fama-MacBeth or panel inference is used without matching dependence and overlapping-return structure."
 
   - name: "Options Pricing / Derivatives"
     tier: advanced
@@ -144,6 +227,26 @@ method_templates:
     minimum_report_fields:
       - "Payoff, underlying, maturity, exercise style, market conventions, curve, and volatility input."
       - "Model, calibration source, price, Greeks, and validation benchmark."
+    gate_relevance: [Q1, Q2, Q4]
+    canonical_references:
+      - citation_key: "black_scholes_1973_options"
+        role: "Closed-form option pricing benchmark anchor."
+        source_url: "https://doi.org/10.1086/260062"
+      - citation_key: "merton_1973_rational_option_pricing"
+        role: "Continuous-time option pricing extension and arbitrage anchor."
+        source_url: "https://doi.org/10.2307/3003143"
+      - citation_key: "heston_1993_stochastic_volatility"
+        role: "Stochastic-volatility option pricing anchor for volatility-smile risk."
+        source_url: "https://doi.org/10.1093/rfs/6.2.327"
+    diagnostic_artifacts:
+      - artifact: "RESEARCH/[topic]/analysis/options_calibration_error.md"
+        required_for: "pricing accuracy and implied-volatility calibration claims"
+      - artifact: "RESEARCH/[topic]/analysis/options_greeks_sensitivity.md"
+        required_for: "hedging, Greeks, and stress-sensitivity claims"
+    failure_triggers:
+      - "Market conventions, exercise style, dividends, settlement, or day count do not match the contract."
+      - "Black-Scholes assumptions are used for stochastic-volatility, early-exercise, or path-dependent claims without validation."
+      - "Prices or Greeks are reported without calibration error, volatility sensitivity, or benchmark comparison."
 
 stats_diagnostics:
   - "Stationarity: ADF / KPSS tests before time-series modeling"
