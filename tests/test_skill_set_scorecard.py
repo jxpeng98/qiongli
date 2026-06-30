@@ -21,6 +21,9 @@ class SkillSetScorecardTests(unittest.TestCase):
 
         self.assertIn(f"Canonical registered skills: {skill_count}", scorecard)
         self.assertIn("Executable Q1-Q4 semantic gates", scorecard)
+        self.assertIn("Q1-Q4 semantic gate report", scorecard)
+        self.assertIn("semantic_checks", scorecard)
+        self.assertIn("quality-gate-report.md", scorecard)
         self.assertIn("Economics and finance method packs", scorecard)
         self.assertIn("Offline eval expansion", scorecard)
 

@@ -55,6 +55,8 @@ Validate reporting guideline completeness for target study type (CONSORT, STROBE
 
 ## Process
 
+Create or update `RESEARCH/[topic]/quality-gate-report.md` with a Q3 `semantic_checks` entry using `q3_reporting_completeness`. Evidence must point to `RESEARCH/[topic]/reporting_checklist.md`, relevant submission statements, and any explicit waiver for non-applicable items. If a required reporting item is absent or contradicts methods, ethics, data availability, or analysis artifacts, set Q3 to `BLOCKED` or `FAIL` and record the required action.
+
 ### Step 1: Determine Study Design and Select Guideline
 
 Pick the closest match and confirm with the target venue's instructions:

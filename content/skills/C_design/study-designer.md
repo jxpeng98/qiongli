@@ -77,6 +77,8 @@ Do not split these into separate top-level skills unless a new artifact path and
 
 When a domain profile is available, load `skills/domain-profiles/[domain].yaml` and use each selected method template's `assumptions`, `required_diagnostics`, `required_artifacts`, `failure_modes`, and `minimum_report_fields` as constraints. Before finalizing `RESEARCH/[topic]/study_design.md`, check Q1 from `standards/quality-gate-contract.yaml`: every RQ or hypothesis must map to a method, data source, measurement plan, and analysis strategy. Record unresolved validity threats in `RESEARCH/[topic]/design/validity-threat-matrix.md`.
 
+Before finalizing the design package, create or update `RESEARCH/[topic]/quality-gate-report.md` with a Q1 `semantic_checks` entry using `q1_rq_method_alignment`. The evidence must include an `RQ-method-outcome matrix` anchor from `RESEARCH/[topic]/study_design.md` or `RESEARCH/[topic]/analysis_plan.md`. If any RQ lacks a method, data source, outcome, measurement plan, estimand, or analysis strategy, set Q1 to `BLOCKED` and add a blocking issue with a concrete required action instead of drafting around the gap.
+
 ### Step 1: Choose Study Type (Fit-to-Question)
 
 Pick the simplest design that can answer the RQ credibly. Use this decision matrix:

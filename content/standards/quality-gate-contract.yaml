@@ -22,7 +22,14 @@ gates:
     report_fields:
       - status
       - evidence
+      - semantic_checks
       - blocking_issues
+    semantic_checks:
+      - check_id: "q1_rq_method_alignment"
+        description: "Every central research question or hypothesis maps to data, measurement, method, outcome, and analysis strategy."
+        blocking_when:
+          - "A research question has no method, data source, outcome, or analysis strategy."
+          - "The method can only support a weaker claim than the stated research question requires."
   Q2:
     name: "claim-evidence traceability"
     required_evidence:
@@ -34,7 +41,14 @@ gates:
     report_fields:
       - status
       - evidence
+      - semantic_checks
       - blocking_issues
+    semantic_checks:
+      - check_id: "q2_claim_evidence_traceability"
+        description: "Every central claim maps to source evidence, analysis output, citation anchor, or an explicit gap note."
+        blocking_when:
+          - "A central claim has no evidence anchor."
+          - "A strong causal, predictive, or normative claim is supported only by descriptive evidence."
   Q3:
     name: "reporting completeness"
     required_evidence:
@@ -46,7 +60,14 @@ gates:
     report_fields:
       - status
       - evidence
+      - semantic_checks
       - blocking_issues
+    semantic_checks:
+      - check_id: "q3_reporting_completeness"
+        description: "Required sections, checklists, disclosures, and waivers are present for the paper type and venue."
+        blocking_when:
+          - "A required reporting item is missing without an explicit waiver."
+          - "Submission-facing statements contradict methods, data, ethics, or availability artifacts."
   Q4:
     name: "reproducibility baseline"
     required_evidence:
@@ -58,4 +79,11 @@ gates:
     report_fields:
       - status
       - evidence
+      - semantic_checks
       - blocking_issues
+    semantic_checks:
+      - check_id: "q4_reproducibility_baseline"
+        description: "Inputs, code, environment, analysis decisions, and rerun limits are documented with artifact anchors."
+        blocking_when:
+          - "Core data, code, environment, or rerun instructions are missing."
+          - "A reported result cannot be traced to an input, script, command, or output artifact."

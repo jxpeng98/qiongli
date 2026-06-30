@@ -29,6 +29,33 @@ class WorkflowContractDocTests(unittest.TestCase):
         self.assertIn("| `K4` | K | Beamer build | `presentation/beamer/`, `presentation/slides.bib` |", generated)
         self.assertIn("`references/stage-K-presentation.md`", generated)
 
+    def test_stage_playbooks_surface_semantic_quality_gate_ids(self) -> None:
+        required_tokens = {
+            "content/workflow/references/stage-C-design.md": [
+                "q1_rq_method_alignment",
+                "quality-gate-report.md",
+            ],
+            "content/workflow/references/stage-F-writing.md": [
+                "q2_claim_evidence_traceability",
+                "quality-gate-report.md",
+            ],
+            "content/workflow/references/stage-G-compliance.md": [
+                "q3_reporting_completeness",
+                "quality-gate-report.md",
+            ],
+            "content/workflow/references/stage-I-code.md": [
+                "q4_reproducibility_baseline",
+                "quality-gate-report.md",
+            ],
+        }
+
+        missing: list[str] = []
+        for relative_path, tokens in required_tokens.items():
+            text = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
+            missing.extend(f"{relative_path}: {token}" for token in tokens if token not in text)
+
+        self.assertEqual([], missing)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -57,12 +57,13 @@ def audit_gate_report(path: Path, contract: dict[str, object]) -> GateAuditResul
         errors.append("Report missing gates")
 
     for gate_id, gate_contract in gates.items():
+        gate_contract = _as_mapping(gate_contract)
         gate_report = _as_mapping(report_gates.get(gate_id))
         if not gate_report:
             errors.append(f"{gate_id} missing from report gates")
             continue
 
-        report_fields = [str(field) for field in _as_list(_as_mapping(gate_contract).get("report_fields"))]
+        report_fields = [str(field) for field in _as_list(gate_contract.get("report_fields"))]
         for field_name in report_fields:
             if field_name not in gate_report:
                 errors.append(f"{gate_id} missing report field: {field_name}")
@@ -70,6 +71,10 @@ def audit_gate_report(path: Path, contract: dict[str, object]) -> GateAuditResul
         status = str(gate_report.get("status", "")).strip()
         if status not in status_values:
             errors.append(f"{gate_id} status {status or '<missing>'} not in contract status_values")
+
+        _validate_semantic_checks(gate_id, gate_report, gate_contract, status_values, errors)
+        _validate_structured_evidence(gate_id, gate_report, errors)
+        _validate_structured_blocking_issues(gate_id, gate_report, errors)
 
         if status in {"PASS", "WARN"} and not _has_non_empty_items(gate_report.get("evidence")):
             errors.append(f"{gate_id} status {status} requires non-empty evidence")
@@ -112,6 +117,103 @@ def _has_non_empty_items(value: Any) -> bool:
     if isinstance(value, list):
         return any(str(item).strip() for item in value)
     return bool(str(value or "").strip())
+
+
+def _validate_semantic_checks(
+    gate_id: str,
+    gate_report: dict[str, Any],
+    gate_contract: dict[str, Any],
+    status_values: set[str],
+    errors: list[str],
+) -> None:
+    semantic_checks = gate_report.get("semantic_checks")
+    if not isinstance(semantic_checks, list) or not semantic_checks:
+        if "semantic_checks" in gate_report:
+            errors.append(f"{gate_id} semantic_checks must be a non-empty list")
+        return
+
+    expected_ids = {
+        str(item.get("check_id")).strip()
+        for item in _as_list(gate_contract.get("semantic_checks"))
+        if isinstance(item, dict) and str(item.get("check_id", "")).strip()
+    }
+    found_ids: set[str] = set()
+    required_fields = ("check_id", "status", "finding", "evidence_refs")
+
+    for index, check in enumerate(semantic_checks, start=1):
+        if not isinstance(check, dict):
+            errors.append(f"{gate_id} semantic_checks[{index}] must be an object")
+            continue
+
+        for field_name in required_fields:
+            if field_name not in check:
+                errors.append(
+                    f"{gate_id} semantic_checks[{index}] missing required field: {field_name}"
+                )
+
+        check_id = str(check.get("check_id", "")).strip()
+        if check_id:
+            found_ids.add(check_id)
+
+        status = str(check.get("status", "")).strip()
+        if status not in status_values:
+            errors.append(
+                f"{gate_id} semantic_checks[{index}] status {status or '<missing>'} "
+                "not in contract status_values"
+            )
+
+        finding = str(check.get("finding", "")).strip()
+        if not finding:
+            errors.append(f"{gate_id} semantic_checks[{index}] finding is empty")
+
+        evidence_refs = check.get("evidence_refs")
+        if not isinstance(evidence_refs, list):
+            errors.append(f"{gate_id} semantic_checks[{index}] evidence_refs must be a list")
+
+    for check_id in sorted(expected_ids - found_ids):
+        errors.append(f"{gate_id} missing semantic check id: {check_id}")
+
+
+def _validate_structured_evidence(
+    gate_id: str,
+    gate_report: dict[str, Any],
+    errors: list[str],
+) -> None:
+    evidence = gate_report.get("evidence")
+    if "evidence" in gate_report and not isinstance(evidence, list):
+        errors.append(f"{gate_id} evidence must be a list")
+        return
+
+    for index, item in enumerate(_as_list(evidence), start=1):
+        if isinstance(item, str):
+            continue
+        if not isinstance(item, dict):
+            errors.append(f"{gate_id} evidence[{index}] must be a string or object")
+            continue
+        for field_name in ("artifact", "anchor", "supports"):
+            if not str(item.get(field_name, "")).strip():
+                errors.append(f"{gate_id} evidence[{index}] missing field: {field_name}")
+
+
+def _validate_structured_blocking_issues(
+    gate_id: str,
+    gate_report: dict[str, Any],
+    errors: list[str],
+) -> None:
+    blocking_issues = gate_report.get("blocking_issues")
+    if "blocking_issues" in gate_report and not isinstance(blocking_issues, list):
+        errors.append(f"{gate_id} blocking_issues must be a list")
+        return
+
+    for index, item in enumerate(_as_list(blocking_issues), start=1):
+        if isinstance(item, str):
+            continue
+        if not isinstance(item, dict):
+            errors.append(f"{gate_id} blocking_issues[{index}] must be a string or object")
+            continue
+        for field_name in ("issue", "required_action"):
+            if not str(item.get(field_name, "")).strip():
+                errors.append(f"{gate_id} blocking_issues[{index}] missing field: {field_name}")
 
 
 def main() -> int:

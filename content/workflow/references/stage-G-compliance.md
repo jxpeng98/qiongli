@@ -13,6 +13,7 @@ This stage is “submission hardening”: reporting completeness, PRISMA checks,
 
 - `Q2` (claim-evidence traceability): enforced via `G3`.
 - `Q3` (reporting completeness): enforced via `G1` and `G2`.
+- Semantic gate report: update `quality-gate-report.md` with `q3_reporting_completeness`; evidence must anchor required checklist items, disclosures, submission statements, and explicit waivers.
 
 ---
 

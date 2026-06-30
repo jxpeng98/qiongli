@@ -285,6 +285,41 @@ class SkillStructureLintTests(unittest.TestCase):
 
         self.assertEqual(missing_tokens, [])
 
+    def test_core_gate_owner_skills_reference_semantic_gate_report_requirements(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        required_tokens = {
+            "skills/C_design/study-designer.md": [
+                "semantic_checks",
+                "q1_rq_method_alignment",
+                "RQ-method-outcome matrix",
+            ],
+            "skills/F_writing/manuscript-architect.md": [
+                "semantic_checks",
+                "q2_claim_evidence_traceability",
+                "claim-evidence ledger",
+            ],
+            "skills/G_compliance/reporting-checker.md": [
+                "semantic_checks",
+                "q3_reporting_completeness",
+                "reporting checklist",
+            ],
+            "skills/I_code/reproducibility-auditor.md": [
+                "semantic_checks",
+                "q4_reproducibility_baseline",
+                "reproducibility baseline",
+            ],
+        }
+
+        missing_tokens: list[str] = []
+        layout = RepoLayout(root)
+        for relative_path, tokens in required_tokens.items():
+            text = layout.resolve_source_path(relative_path).read_text(encoding="utf-8")
+            missing_tokens.extend(
+                f"{relative_path}: {token}" for token in tokens if token not in text
+            )
+
+        self.assertEqual([], missing_tokens)
+
     def test_method_pack_consumers_do_not_duplicate_domain_specific_rules(self) -> None:
         root = Path(__file__).resolve().parents[1]
         forbidden_tokens = {
