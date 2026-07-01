@@ -65,12 +65,18 @@ def _write_manifest(project_root: Path, manifest: dict[str, Any] | None) -> None
 
 def _isolated_env(project_root: Path) -> dict[str, str]:
     base = project_root / ".smoke-home"
-    return {
+    env = {
         "QIONGLI_GUIDANCE_HOME": str(base / "qiongli-guidance"),
         "QIONGLI_CONFIG_HOME": str(base / "qiongli-config"),
         "CODEX_HOME": str(base / "codex"),
         "XDG_CONFIG_HOME": str(base / "xdg-config"),
+        "HOME": str(base / "home"),
+        "RESEARCH_CLI_LANG": "en",
     }
+    for key, value in env.items():
+        if key != "RESEARCH_CLI_LANG":
+            Path(value).mkdir(parents=True, exist_ok=True)
+    return env
 
 
 def run_smoke_case(case: SmokeCase, workspace_root: Path, mode: str) -> dict[str, Any]:
@@ -87,8 +93,6 @@ def run_smoke_case(case: SmokeCase, workspace_root: Path, mode: str) -> dict[str
     args["run_agents"] = mode == "local-agent"
 
     env_updates = _isolated_env(project_root)
-    for value in env_updates.values():
-        Path(value).mkdir(parents=True, exist_ok=True)
 
     old_env = {key: os.environ.get(key) for key in env_updates}
     old_cwd = Path.cwd()

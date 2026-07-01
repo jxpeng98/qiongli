@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -33,6 +34,8 @@ class SubjectRuntimeSmokeTests(unittest.TestCase):
         self.assertTrue(all(isinstance(case, SmokeCase) for case in cases))
 
     def test_preview_suite_passes_and_writes_inside_isolated_project(self) -> None:
+        real_home = os.environ.get("HOME")
+        real_lang = os.environ.get("RESEARCH_CLI_LANG")
         with tempfile.TemporaryDirectory() as tmp_dir:
             workspace_root = Path(tmp_dir).resolve()
             report = run_smoke_suite(
@@ -50,8 +53,23 @@ class SubjectRuntimeSmokeTests(unittest.TestCase):
                 self.assertTrue(project_root.is_relative_to(workspace_root))
                 self.assertFalse(case["result"]["run_agents"])
                 self.assertEqual(case["status"], "passed")
-                for path in case["environment"].values():
-                    self.assertTrue(Path(path).resolve().is_relative_to(project_root))
+                case_env = case["environment"]
+                self.assertEqual(case_env["RESEARCH_CLI_LANG"], "en")
+                self.assertEqual(
+                    Path(case_env["HOME"]).resolve(),
+                    project_root / ".smoke-home" / "home",
+                )
+                for key in {
+                    "QIONGLI_GUIDANCE_HOME",
+                    "QIONGLI_CONFIG_HOME",
+                    "CODEX_HOME",
+                    "XDG_CONFIG_HOME",
+                    "HOME",
+                }:
+                    self.assertTrue(Path(case_env[key]).resolve().is_relative_to(project_root))
+
+            self.assertEqual(os.environ.get("HOME"), real_home)
+            self.assertEqual(os.environ.get("RESEARCH_CLI_LANG"), real_lang)
 
             created_names = {path.name for path in workspace_root.iterdir()}
             self.assertEqual(
