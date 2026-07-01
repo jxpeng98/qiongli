@@ -1132,6 +1132,25 @@ class InstallerCliTests(unittest.TestCase):
         self.assertEqual(payload["manifest"]["active_subject"], "finance")
         self.assertEqual(payload["manifest"]["subject_mode"], "confirmed")
 
+    def test_subject_confirm_json_reports_materialized_guidance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            stdout = io.StringIO()
+
+            with mock.patch.object(
+                cli_module.sys,
+                "argv",
+                ["qiongli", "subject", "confirm", "finance", "--cwd", str(root), "--json"],
+            ), contextlib.redirect_stdout(stdout):
+                exit_code = cli_module.main()
+
+            payload = json.loads(stdout.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertTrue(payload["subject_guidance"]["exists"])
+        self.assertEqual(payload["subject_guidance"]["managed_block"], "active")
+        self.assertEqual(payload["subject_guidance"]["active_subject"], "finance")
+
     def test_subject_dismiss_json_records_cli_source_without_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
@@ -1214,6 +1233,30 @@ class InstallerCliTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertIn("active_subject:", stdout.getvalue())
         self.assertIn("subject_mode:", stdout.getvalue())
+
+    def test_subject_status_human_output_includes_subject_guidance_line(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            with mock.patch.object(
+                cli_module.sys,
+                "argv",
+                ["qiongli", "subject", "confirm", "finance", "--cwd", str(root)],
+            ), contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(cli_module.main(), 0)
+
+            stdout = io.StringIO()
+            with mock.patch.object(
+                cli_module.sys,
+                "argv",
+                ["qiongli", "subject", "status", "--cwd", str(root)],
+            ), contextlib.redirect_stdout(stdout):
+                exit_code = cli_module.main()
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn(
+            "subject guidance: active (.qiongli/guidance.d/subject-runtime.md)",
+            stdout.getvalue(),
+        )
 
     def test_subject_status_reports_invalid_manifest_as_cli_error(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

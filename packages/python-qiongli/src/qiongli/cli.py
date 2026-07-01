@@ -1080,6 +1080,15 @@ def _print_subject_result(payload: dict[str, object], as_json: bool) -> None:
     print(f"subject_mode: {manifest.get('subject_mode', 'auto')}")
     print(f"manifest_exists: {str(bool(payload.get('manifest_exists'))).lower()}")
 
+    guidance = payload.get("subject_guidance", {})
+    if isinstance(guidance, dict):
+        block = str(guidance.get("managed_block") or "missing")
+        path = str(guidance.get("path") or ".qiongli/guidance.d/subject-runtime.md")
+        print(f"subject guidance: {block} ({path})")
+        warnings = guidance.get("warnings", [])
+        if isinstance(warnings, list) and warnings:
+            print("subject guidance warnings: " + "; ".join(str(item) for item in warnings))
+
     state = payload.get("state", {})
     dismissed = state.get("dismissed_subjects", {}) if isinstance(state, dict) else {}
     if isinstance(dismissed, dict) and dismissed:

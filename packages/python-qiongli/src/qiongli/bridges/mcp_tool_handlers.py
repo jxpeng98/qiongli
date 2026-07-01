@@ -124,7 +124,10 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
     },
     {
         "name": "qiongli_subject_status",
-        "description": "Inspect adaptive subject state and local guidance manifest for a project.",
+        "description": (
+            "Inspect adaptive subject state, project manifest, evidence memory, "
+            "and managed subject guidance for a project."
+        ),
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -135,7 +138,10 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
     },
     {
         "name": "qiongli_subject_update",
-        "description": "Confirm, dismiss, reset, lock, or unlock adaptive subject guidance for a project.",
+        "description": (
+            "Confirm, dismiss, reset, lock, or unlock adaptive subject guidance "
+            "and managed project subject guidance."
+        ),
         "inputSchema": {
             "type": "object",
             "required": ["action"],

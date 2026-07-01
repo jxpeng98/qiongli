@@ -211,6 +211,38 @@ class MCPToolHandlerTests(unittest.TestCase):
             self.assertEqual(payload["manifest"]["subject_mode"], "confirmed")
             self.assertTrue((root / ".qiongli" / "guidance_manifest.yaml").exists())
 
+    def test_subject_update_returns_materialized_guidance_status(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+
+            result = call_qiongli_tool(
+                "qiongli_subject_update",
+                {"cwd": str(root), "action": "confirm", "subject": "finance"},
+            )
+
+            payload = result["structuredContent"]
+            guidance = payload["subject_guidance"]
+            self.assertFalse(result["isError"])
+            self.assertTrue(guidance["exists"])
+            self.assertEqual(guidance["managed_block"], "active")
+            self.assertEqual(guidance["active_subject"], "finance")
+
+    def test_subject_status_returns_materialized_guidance_status(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            call_qiongli_tool(
+                "qiongli_subject_update",
+                {"cwd": str(root), "action": "lock", "subject": "economics"},
+            )
+
+            result = call_qiongli_tool("qiongli_subject_status", {"cwd": str(root)})
+
+            payload = result["structuredContent"]
+            guidance = payload["subject_guidance"]
+            self.assertFalse(result["isError"])
+            self.assertEqual(guidance["active_subject"], "economics")
+            self.assertEqual(guidance["subject_mode"], "locked")
+
     def test_subject_update_lock_finance_writes_locked_manifest_with_run_id(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
