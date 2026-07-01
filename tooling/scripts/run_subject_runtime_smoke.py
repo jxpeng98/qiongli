@@ -229,6 +229,8 @@ def run_smoke_suite(
         missing = sorted(selected - found)
         if missing:
             raise ValueError("unknown smoke case(s): " + ", ".join(missing))
+    if not cases:
+        raise ValueError("no subject runtime smoke cases selected or loaded")
 
     with tempfile.TemporaryDirectory(prefix="qiongli-smoke-") as tmp_dir:
         root = Path(workspace_root).resolve() if workspace_root else Path(tmp_dir).resolve()

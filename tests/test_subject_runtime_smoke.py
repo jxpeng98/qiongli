@@ -78,6 +78,30 @@ class SubjectRuntimeSmokeTests(unittest.TestCase):
         self.assertEqual(decoded["summary"]["failed"], 0)
         self.assertEqual(decoded["cases"][0]["name"], "suggest_finance_subject")
 
+    def test_empty_fixture_dir_raises_instead_of_green_zero_case_report(self) -> None:
+        with tempfile.TemporaryDirectory() as fixture_dir:
+            with tempfile.TemporaryDirectory() as workspace_dir:
+                with self.assertRaises(ValueError) as raised:
+                    run_smoke_suite(
+                        fixture_dir=Path(fixture_dir),
+                        workspace_root=Path(workspace_dir),
+                        mode="preview",
+                    )
+
+        self.assertIn("no subject runtime smoke cases", str(raised.exception))
+
+    def test_unknown_selected_case_still_raises_clear_error(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            with self.assertRaises(ValueError) as raised:
+                run_smoke_suite(
+                    fixture_dir=FIXTURE_DIR,
+                    workspace_root=Path(tmp_dir),
+                    mode="preview",
+                    selected_cases=["missing_case"],
+                )
+
+        self.assertIn("unknown smoke case(s): missing_case", str(raised.exception))
+
     def test_local_agent_mode_requires_environment_opt_in(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             with mock.patch.dict("os.environ", {}, clear=True):
