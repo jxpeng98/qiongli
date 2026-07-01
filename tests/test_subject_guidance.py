@@ -110,11 +110,16 @@ class SubjectGuidanceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
             path = root / SUBJECT_GUIDANCE_REL
-            path.parent.mkdir(parents=True)
+            write_subject_guidance(
+                root,
+                active_subject="economics",
+                subject_mode="locked",
+                lifecycle_action="lock",
+                source="cli",
+            )
+            valid_managed_text = path.read_text(encoding="utf-8")
             path.write_text(
-                "user prefix\n"
-                f"{START_MARKER}\nold block\n{END_MARKER}\n"
-                "user suffix\n",
+                f"user prefix\n{valid_managed_text}user suffix\n",
                 encoding="utf-8",
             )
 
@@ -129,7 +134,7 @@ class SubjectGuidanceTests(unittest.TestCase):
             text = path.read_text(encoding="utf-8")
             self.assertTrue(text.startswith("user prefix\n"))
             self.assertTrue(text.rstrip().endswith("user suffix"))
-            self.assertNotIn("old block", text)
+            self.assertNotIn("active_subject: economics", text)
             self.assertEqual(text.count(START_MARKER), 1)
             self.assertEqual(text.count(END_MARKER), 1)
 
@@ -216,3 +221,105 @@ class SubjectGuidanceTests(unittest.TestCase):
             self.assertIsNone(status["subject_mode"])
             self.assertIsNone(status["updated_at"])
             self.assertTrue(status["warnings"])
+
+    def test_malformed_managed_block_metadata_fails_closed_for_writes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            path = root / SUBJECT_GUIDANCE_REL
+            path.parent.mkdir(parents=True)
+            path.write_text(f"{START_MARKER}\nold block\n{END_MARKER}\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(SubjectGuidanceError, "invalid managed metadata"):
+                write_subject_guidance(
+                    root,
+                    active_subject="finance",
+                    subject_mode="confirmed",
+                    lifecycle_action="confirm",
+                    source="cli",
+                )
+            with self.assertRaisesRegex(SubjectGuidanceError, "invalid managed metadata"):
+                disable_subject_guidance(root, lifecycle_action="reset", source="cli")
+
+            self.assertEqual(
+                path.read_text(encoding="utf-8"),
+                f"{START_MARKER}\nold block\n{END_MARKER}\n",
+            )
+
+    def test_write_rejects_symlinked_qiongli_dir_without_creating_outside_target(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            base = Path(tmp_dir)
+            root = base / "project"
+            root.mkdir()
+            outside_qiongli = base / "outside-qiongli"
+            outside_qiongli.mkdir()
+            self._symlink_or_skip(
+                outside_qiongli,
+                root / ".qiongli",
+                target_is_directory=True,
+            )
+
+            with self.assertRaisesRegex(SubjectGuidanceError, "symlink.*\\.qiongli"):
+                write_subject_guidance(
+                    root,
+                    active_subject="finance",
+                    subject_mode="confirmed",
+                    lifecycle_action="confirm",
+                    source="cli",
+                )
+
+            self.assertFalse((outside_qiongli / "guidance.d" / "subject-runtime.md").exists())
+
+    def test_disable_rejects_symlinked_guidance_dir_without_mutating_target(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            base = Path(tmp_dir)
+            root = base / "project"
+            root.mkdir()
+            (root / ".qiongli").mkdir()
+            outside_guidance_dir = base / "outside-guidance"
+            outside_guidance_dir.mkdir()
+            outside_file = outside_guidance_dir / "subject-runtime.md"
+            outside_file.write_text("outside original\n", encoding="utf-8")
+            self._symlink_or_skip(
+                outside_guidance_dir,
+                root / ".qiongli" / "guidance.d",
+                target_is_directory=True,
+            )
+
+            with self.assertRaisesRegex(SubjectGuidanceError, "symlink.*guidance\\.d"):
+                disable_subject_guidance(root, lifecycle_action="reset", source="cli")
+
+            self.assertEqual(outside_file.read_text(encoding="utf-8"), "outside original\n")
+
+    def test_write_rejects_symlinked_guidance_file_without_mutating_target(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            base = Path(tmp_dir)
+            root = base / "project"
+            root.mkdir()
+            path = root / SUBJECT_GUIDANCE_REL
+            path.parent.mkdir(parents=True)
+            outside_file = base / "outside-runtime.md"
+            outside_file.write_text("outside original\n", encoding="utf-8")
+            self._symlink_or_skip(outside_file, path)
+
+            with self.assertRaisesRegex(SubjectGuidanceError, "symlink.*subject-runtime\\.md"):
+                write_subject_guidance(
+                    root,
+                    active_subject="finance",
+                    subject_mode="confirmed",
+                    lifecycle_action="confirm",
+                    source="cli",
+                )
+
+            self.assertEqual(outside_file.read_text(encoding="utf-8"), "outside original\n")
+
+    def _symlink_or_skip(
+        self,
+        target: Path,
+        link: Path,
+        *,
+        target_is_directory: bool = False,
+    ) -> None:
+        try:
+            link.symlink_to(target, target_is_directory=target_is_directory)
+        except OSError as exc:
+            self.skipTest(f"symlink unavailable: {exc}")

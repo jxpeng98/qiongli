@@ -167,6 +167,7 @@ class _ManagedBlock:
 
 def _write_managed_block(project_root: Path, block: str) -> str:
     path = project_root / SUBJECT_GUIDANCE_REL
+    _reject_symlinked_guidance_path(project_root)
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(_default_document(block), encoding="utf-8")
@@ -182,6 +183,9 @@ def _write_managed_block(project_root: Path, block: str) -> str:
 
     assert existing.start is not None
     assert existing.end is not None
+    metadata_warning = _metadata_warning(_parse_metadata(text[existing.start : existing.end]))
+    if metadata_warning:
+        raise SubjectGuidanceError(metadata_warning)
     path.write_text(text[: existing.start] + block + text[existing.end :], encoding="utf-8")
     return "active"
 
@@ -358,7 +362,20 @@ def _metadata_warning(metadata: Mapping[str, str]) -> str:
     missing = [key for key in required if not metadata.get(key)]
     if not missing:
         return ""
-    return "Invalid managed subject guidance metadata: missing " + ", ".join(missing)
+    return "invalid managed metadata: missing " + ", ".join(missing)
+
+
+def _reject_symlinked_guidance_path(project_root: Path) -> None:
+    for relative_path in (
+        Path(".qiongli"),
+        Path(".qiongli") / "guidance.d",
+        SUBJECT_GUIDANCE_REL,
+    ):
+        path = project_root / relative_path
+        if path.is_symlink():
+            raise SubjectGuidanceError(
+                f"Unsafe subject guidance path: symlink at {relative_path.as_posix()}"
+            )
 
 
 def _status_packet(
