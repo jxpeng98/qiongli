@@ -12,7 +12,6 @@ from typing import Any
 
 import yaml
 
-from .project_inference import infer_project_manifest_suggestion
 from .project_manifest import (
     ProjectManifestError,
     init_project_manifest,
@@ -20,6 +19,7 @@ from .project_manifest import (
     manifest_to_guidance_section,
     update_project_manifest,
 )
+from .subject_refinement import infer_subject_refinement
 
 
 GUIDANCE_MODES = ("off", "read", "propose", "apply")
@@ -30,6 +30,7 @@ TRACE_REL = Path(".qiongli") / "trace"
 TRACE_INDEX_REL = TRACE_REL / "index.jsonl"
 MANIFEST_PROPOSAL_FIELDS = {
     "active_subject",
+    "subject_mode",
     "secondary_subjects",
     "venue_profiles",
     "method_lenses",
@@ -218,9 +219,11 @@ def write_guidance_trace(
     run_id = guidance_state.run_id or uuid.uuid4().hex
     run_dir = paths.trace_root / "runs" / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
+    manifest_state = load_project_manifest(paths.project_root)
+    project_manifest_packet = manifest_state.to_packet()
 
     _write_json(run_dir / "task_packet.json", task_packet)
-    _write_json(run_dir / "project_manifest.json", guidance_state.project_manifest or {})
+    _write_json(run_dir / "project_manifest.json", project_manifest_packet)
     (run_dir / "guidance_context.md").write_text(
         guidance_state.guidance_context or "Local guidance disabled or empty.\n",
         encoding="utf-8",
@@ -232,14 +235,17 @@ def write_guidance_trace(
         encoding="utf-8",
     )
     _write_json(run_dir / "validator_gate.json", validator_gate)
-    suggestion = infer_project_manifest_suggestion(
+    subject_refinement = infer_subject_refinement(
         task_packet,
+        manifest_state=manifest_state,
         draft_content=draft_content,
         review_content=review_content,
         merged_analysis=merged_analysis,
     )
+    subject_refinement_packet = subject_refinement.to_packet()
+    _write_json(run_dir / "subject_refinement.json", subject_refinement_packet)
     (run_dir / "guidance_update_proposal.md").write_text(
-        _proposal_text(task_packet, validator_gate, applied, suggestion),
+        _proposal_text(task_packet, validator_gate, applied, subject_refinement_packet),
         encoding="utf-8",
     )
     apply_result: dict[str, Any] = {}
@@ -265,7 +271,8 @@ def write_guidance_trace(
         "guidance_sources": list(guidance_state.guidance_sources),
         "source_order": list(guidance_state.source_order),
         "guidance_conflicts": list(guidance_state.conflicts),
-        "project_manifest": dict(guidance_state.project_manifest or {}),
+        "project_manifest": project_manifest_packet,
+        "subject_refinement": subject_refinement_packet,
         "guidance_proposal": _rel(paths.project_root, run_dir / "guidance_update_proposal.md"),
         "applied_guidance_update": bool(apply_result.get("applied")) if applied else False,
     }
@@ -490,7 +497,7 @@ def _proposal_text(
     task_packet: dict[str, Any],
     validator_gate: dict[str, Any],
     applied: bool,
-    manifest_suggestion: dict[str, Any],
+    subject_refinement: dict[str, Any],
 ) -> str:
     missing = list(validator_gate.get("missing", []) or [])
     lines = [
@@ -522,7 +529,8 @@ def _proposal_text(
                 f"- topic: `{task_packet.get('topic', '')}`",
             ]
         )
-    lines.extend(_manifest_proposal_section(manifest_suggestion))
+    lines.extend(_subject_refinement_decision_section(subject_refinement))
+    lines.extend(_manifest_proposal_section(subject_refinement))
     lines.extend(
         [
             "",
@@ -551,23 +559,52 @@ def _proposal_text(
     return "\n".join(lines)
 
 
-def _manifest_proposal_section(manifest_suggestion: dict[str, Any]) -> list[str]:
-    active_subject = str(manifest_suggestion.get("active_subject", "auto"))
-    method_lenses = [str(item) for item in list(manifest_suggestion.get("method_lenses", []) or [])]
-    confidence = float(manifest_suggestion.get("confidence", 0.0) or 0.0)
-    evidence = [str(item) for item in list(manifest_suggestion.get("evidence", []) or [])]
+def _subject_refinement_decision_section(subject_refinement: dict[str, Any]) -> list[str]:
+    borrowed_lenses = [
+        lens
+        for lens in list(subject_refinement.get("borrowed_lenses", []) or [])
+        if isinstance(lens, Mapping)
+    ]
+    lines = [
+        "",
+        "## Subject Refinement Decision",
+        "",
+        f"- decision: `{subject_refinement.get('decision', '')}`",
+        f"- mode: `{subject_refinement.get('mode', '')}`",
+        f"- active_subject: `{subject_refinement.get('active_subject', '')}`",
+        f"- primary_subject: `{subject_refinement.get('primary_subject', '')}`",
+        f"- summary: {subject_refinement.get('summary', '') or 'none'}",
+    ]
+    if borrowed_lenses:
+        lines.extend(["", "### Borrowed Lenses", ""])
+        for lens in borrowed_lenses:
+            source_subject = str(lens.get("source_subject", ""))
+            method_lens = str(lens.get("lens", ""))
+            resource_level = str(lens.get("resource_level", ""))
+            reason = str(lens.get("reason", ""))
+            lines.append(f"- `{source_subject}/{method_lens}` ({resource_level}): {reason}")
+    return lines
+
+
+def _manifest_proposal_section(subject_refinement: dict[str, Any]) -> list[str]:
+    decision = str(subject_refinement.get("decision", ""))
+    primary_subject = str(subject_refinement.get("primary_subject", "auto"))
+    method_lenses = [str(item) for item in list(subject_refinement.get("method_lenses", []) or [])]
+    confidence = float(subject_refinement.get("confidence", 0.0) or 0.0)
+    evidence = [str(item) for item in list(subject_refinement.get("evidence", []) or [])]
     lines = [
         "",
         "## Proposed Manifest Changes",
         "",
     ]
-    if active_subject == "auto" or confidence < 0.6:
+    if decision != "suggest_subject" or primary_subject in {"auto", "core", ""} or confidence < 0.6:
         lines.append("No structured manifest change proposed.")
     else:
         lines.extend(
             [
                 "```yaml",
-                f"active_subject: {active_subject}",
+                f"active_subject: {primary_subject}",
+                "subject_mode: suggested",
             ]
         )
         if method_lenses:
@@ -597,7 +634,10 @@ def _extract_proposed_changes(proposal_text: str) -> str:
     )
     if not match:
         return ""
-    return match.group("body").strip()
+    body = match.group("body").strip()
+    if re.fullmatch(r"-\s*No guidance changes proposed from this run\.", body):
+        return ""
+    return body
 
 
 def _apply_manifest_proposal(project_root: Path, proposal_text: str) -> dict[str, Any]:

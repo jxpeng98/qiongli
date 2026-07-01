@@ -11,7 +11,77 @@ from bridges.mcp_tool_handlers import MCP_TOOL_DEFINITIONS, call_qiongli_tool
 from bridges.provider_config import set_provider_value
 
 
+class _PreviewStubResult:
+    mode = "task-plan"
+    confidence = 0.8
+    merged_analysis = "preview"
+    recommendations: list[str] = []
+
+    def __init__(self) -> None:
+        self.data = {
+            "task_id": "F3",
+            "paper_type": "empirical",
+            "topic": "my-topic",
+            "artifact_root": "RESEARCH/[topic]/",
+            "runtime_plan": {
+                "primary_agent": "codex",
+                "review_agent": "claude",
+                "fallback_agent": "claude",
+            },
+        }
+
+
+class _PreviewStubOrchestrator:
+    def __init__(self) -> None:
+        self.loaded_domain = ""
+
+    def task_plan(self, **_kwargs: object) -> _PreviewStubResult:
+        return _PreviewStubResult()
+
+    def _build_controller_metadata(self, **_kwargs: object) -> dict[str, str]:
+        return {
+            "execution_mode": "duo",
+            "controller": "codex",
+            "primary_agent": "",
+            "review_agent": "",
+            "verifier_agent": "",
+            "solo_role_gates": "standard",
+        }
+
+    def _controller_runtime_overrides(self, _metadata: dict[str, str]) -> dict[str, str]:
+        return {}
+
+    def _load_domain_profile_context(self, domain: str) -> dict[str, str]:
+        self.loaded_domain = domain
+        return {
+            "requested_domain": domain,
+            "domain": domain,
+            "status": "loaded" if domain != "auto" else "auto",
+            "display_name": domain.title() if domain != "auto" else "Auto-detect",
+        }
+
+    def _build_domain_packet_fields(self, domain_context: dict[str, str]) -> dict[str, str]:
+        return {
+            "domain": domain_context["domain"],
+            "requested_domain": domain_context["requested_domain"],
+            "domain_profile_status": domain_context["status"],
+            "domain_profile_display_name": domain_context["display_name"],
+        }
+
+
 class MCPToolHandlerTests(unittest.TestCase):
+    def _call_task_run_preview(
+        self,
+        args: dict[str, object],
+        *,
+        stub: _PreviewStubOrchestrator | None = None,
+    ) -> tuple[dict[str, object], _PreviewStubOrchestrator]:
+        preview_stub = stub or _PreviewStubOrchestrator()
+        with mock.patch.object(tool_handlers, "ModelOrchestrator", return_value=preview_stub):
+            result = call_qiongli_tool("qiongli_task_run", args)
+        self.assertFalse(result["isError"])
+        return result, preview_stub
+
     def test_tool_definitions_include_config_and_evidence_tools(self) -> None:
         ordered_names = [tool["name"] for tool in MCP_TOOL_DEFINITIONS]
         names = set(ordered_names)
@@ -844,6 +914,86 @@ class MCPToolHandlerTests(unittest.TestCase):
         self.assertIn("domain_profile_status", task_packet)
         self.assertIn("domain_profile_display_name", task_packet)
 
+    def test_task_run_preview_exposes_borrowed_subject_refinement_without_domain_switch(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            result, stub = self._call_task_run_preview(
+                {
+                    "task_id": "F3",
+                    "paper_type": "empirical",
+                    "topic": "management disclosure around announcements",
+                    "cwd": tmp_dir,
+                    "context": "Use an event study design for the disclosure event.",
+                },
+            )
+
+        payload = result["structuredContent"]
+        preview = payload["data"]["task_run_preview"]
+        task_packet = payload["data"]["task_packet"]
+        refinement = preview["subject_refinement"]
+        self.assertEqual(refinement["decision"], "borrow_lens")
+        self.assertEqual(refinement["primary_subject"], "auto")
+        self.assertEqual(refinement["domain"], "auto")
+        self.assertEqual(refinement["borrowed_lenses"][0]["source_subject"], "finance")
+        self.assertEqual(refinement["borrowed_lenses"][0]["lens"], "event-study")
+        self.assertEqual(preview["effective_domain"], "auto")
+        self.assertEqual(task_packet["domain"], "auto")
+        self.assertEqual(task_packet["requested_domain"], "auto")
+        self.assertEqual(task_packet["subject_refinement"], refinement)
+        self.assertEqual(stub.loaded_domain, "auto")
+
+    def test_task_run_preview_uses_suggested_subject_for_temporary_finance_domain_context(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            result, stub = self._call_task_run_preview(
+                {
+                    "task_id": "F3",
+                    "paper_type": "empirical",
+                    "topic": "CRSP abnormal returns event study",
+                    "cwd": tmp_dir,
+                    "venue": "Journal of Finance",
+                    "context": "Estimate abnormal returns using CRSP data.",
+                },
+            )
+
+        payload = result["structuredContent"]
+        preview = payload["data"]["task_run_preview"]
+        task_packet = payload["data"]["task_packet"]
+        refinement = preview["subject_refinement"]
+        self.assertEqual(refinement["decision"], "suggest_subject")
+        self.assertEqual(refinement["primary_subject"], "finance")
+        self.assertEqual(refinement["domain"], "finance")
+        self.assertEqual(preview["effective_domain"], "finance")
+        self.assertEqual(task_packet["domain"], "finance")
+        self.assertEqual(task_packet["requested_domain"], "auto")
+        self.assertEqual(task_packet["subject_refinement"], refinement)
+        self.assertEqual(stub.loaded_domain, "finance")
+
+    def test_task_run_preview_explicit_domain_overrides_finance_subject_refinement(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            result, stub = self._call_task_run_preview(
+                {
+                    "task_id": "F3",
+                    "paper_type": "empirical",
+                    "topic": "CRSP abnormal returns event study",
+                    "cwd": tmp_dir,
+                    "domain": "economics",
+                    "venue": "Journal of Finance",
+                    "context": "Estimate abnormal returns using CRSP data.",
+                },
+            )
+
+        payload = result["structuredContent"]
+        preview = payload["data"]["task_run_preview"]
+        task_packet = payload["data"]["task_packet"]
+        refinement = preview["subject_refinement"]
+        self.assertEqual(refinement["decision"], "suggest_subject")
+        self.assertEqual(refinement["primary_subject"], "finance")
+        self.assertEqual(refinement["domain"], "finance")
+        self.assertEqual(preview["effective_domain"], "economics")
+        self.assertEqual(task_packet["domain"], "economics")
+        self.assertEqual(task_packet["requested_domain"], "economics")
+        self.assertEqual(task_packet["subject_refinement"], refinement)
+        self.assertEqual(stub.loaded_domain, "economics")
+
     def test_task_run_preview_reports_project_manifest_state(self) -> None:
         class StubResult:
             mode = "task-plan"
@@ -900,6 +1050,36 @@ class MCPToolHandlerTests(unittest.TestCase):
 
         preview = result["structuredContent"]["data"]["task_run_preview"]
         self.assertEqual(preview["project_manifest"]["manifest"]["active_subject"], "finance")
+
+    def test_task_run_preview_default_guidance_malformed_manifest_falls_back_to_implicit_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / ".qiongli").mkdir()
+            (root / ".qiongli" / "guidance_manifest.yaml").write_text(
+                "active_subject: [finance\n",
+                encoding="utf-8",
+            )
+            result, _stub = self._call_task_run_preview(
+                {
+                    "task_id": "F3",
+                    "paper_type": "empirical",
+                    "topic": "my-topic",
+                    "cwd": str(root),
+                },
+            )
+
+        preview = result["structuredContent"]["data"]["task_run_preview"]
+        self.assertEqual(preview["project_subject"]["effective_subject"], "auto")
+        self.assertEqual(preview["project_subject"]["domain"], "auto")
+        self.assertFalse(preview["project_manifest"]["exists"])
+        self.assertEqual(preview["project_manifest"]["manifest"]["active_subject"], "auto")
+        self.assertIn(
+            "Malformed project manifest",
+            " ".join(preview["project_manifest"]["warnings"]),
+        )
+        self.assertEqual(preview["subject_refinement"]["decision"], "no_subject")
+        task_packet = result["structuredContent"]["data"]["task_packet"]
+        self.assertEqual(task_packet["subject_refinement"], preview["subject_refinement"])
 
     def test_task_run_preview_guidance_off_uses_implicit_project_manifest(self) -> None:
         class StubResult:
@@ -961,6 +1141,9 @@ class MCPToolHandlerTests(unittest.TestCase):
         self.assertEqual(preview["project_subject"]["domain"], "auto")
         self.assertFalse(preview["project_manifest"]["exists"])
         self.assertEqual(preview["project_manifest"]["manifest"]["active_subject"], "auto")
+        self.assertEqual(preview["subject_refinement"]["decision"], "no_subject")
+        task_packet = result["structuredContent"]["data"]["task_packet"]
+        self.assertEqual(task_packet["subject_refinement"], preview["subject_refinement"])
 
     def test_task_run_preview_uses_project_manifest_subject_for_auto_domain(self) -> None:
         class StubResult:
