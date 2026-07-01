@@ -1,0 +1,21 @@
+{
+  "name": "suggest_finance_subject",
+  "manifest": null,
+  "args": {
+    "task_id": "C1",
+    "paper_type": "empirical",
+    "topic": "earnings announcement stock market reaction",
+    "context": "Estimate CRSP abnormal returns using an event study for Journal of Finance framing.",
+    "domain": "auto",
+    "guidance_mode": "propose",
+    "run_agents": false
+  },
+  "expected": {
+    "decision": "suggest_subject",
+    "primary_subject": "finance",
+    "effective_domain": "finance",
+    "method_lens": "event-study",
+    "resource_levels": ["subject_overlay", "subject_skill", "method_pack"],
+    "run_agents": false
+  }
+}
