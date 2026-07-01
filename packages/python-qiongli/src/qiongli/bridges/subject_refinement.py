@@ -51,7 +51,8 @@ FINANCE_METHOD_PATTERNS = {
         re.I,
     ),
     "asset-pricing": re.compile(
-        r"\b(asset pricing|factor models?|factor exposures?)\b",
+        r"\b(asset pricing|factor models?|factor exposures?|portfolio sorts?|"
+        r"factor regressions?|Fama[- ]MacBeth)\b",
         re.I,
     ),
 }
@@ -59,7 +60,8 @@ FINANCE_DATA_OUTCOME_PATTERNS = (
     re.compile(r"\b(CRSP|Compustat)\b", re.I),
     re.compile(
         r"\b(abnormal returns?|stock returns?|market returns?|portfolio returns?|"
-        r"asset returns?|factor returns?|return predictability)\b",
+        r"asset returns?|factor returns?|return predictability|corporate bond spreads?|"
+        r"bond spread reactions?)\b",
         re.I,
     ),
 )
@@ -78,6 +80,8 @@ FINANCE_DATA_OUTCOME_SIGNAL_PATTERNS = {
     "asset-returns": re.compile(r"\basset returns?\b", re.I),
     "factor-returns": re.compile(r"\bfactor returns?\b", re.I),
     "return-predictability": re.compile(r"\breturn predictability\b", re.I),
+    "corporate-bond-spreads": re.compile(r"\bcorporate bond spreads?\b", re.I),
+    "bond-spread-reactions": re.compile(r"\bbond spread reactions?\b", re.I),
 }
 FINANCE_VENUE_SIGNAL_PATTERNS = {
     "journal-of-finance": FINANCE_VENUE_PATTERNS[0],
@@ -92,7 +96,9 @@ ECONOMICS_METHOD_PATTERNS = {
     ),
     "causal-identification": re.compile(
         r"\b(causal identification|instrumental variables?|"
-        r"regression discontinuity|identification strategy)\b",
+        r"regression discontinuity|identification strategy|"
+        r"quasi[- ]experimental identification|local projections?|"
+        r"policy[- ]shock identification|policy shocks?)\b",
         re.I,
     ),
 }
@@ -144,7 +150,6 @@ class SubjectSignals:
         return bool(
             self.finance_method_lenses
             and self.finance_data_outcomes
-            and self.finance_venues
         )
 
     @property
@@ -301,6 +306,7 @@ def infer_subject_refinement(
 
     if signals.has_strong_finance:
         method_lenses = _unique(signals.finance_method_lenses)
+        borrowed_lenses = _borrowed_lenses("finance", signals)
         return _packet(
             decision="suggest_subject",
             mode="suggested",
@@ -309,12 +315,13 @@ def infer_subject_refinement(
             secondary_subjects=list(manifest.secondary_subjects or []),
             candidate_subjects=_candidate_subjects(signals, preferred="finance"),
             method_lenses=method_lenses,
-            borrowed_lenses=[],
+            borrowed_lenses=borrowed_lenses,
             loaded_resources=_loaded_resources(
-                ["subject_overlay", "subject_skill", "method_pack"],
+                ["subject_overlay", "subject_skill", "method_pack"]
+                + (["method_pack_only"] if borrowed_lenses else []),
                 primary_subject="finance",
                 method_lenses=method_lenses,
-                borrowed_lenses=[],
+                borrowed_lenses=borrowed_lenses,
                 contract=contract,
                 contract_warnings=contract_result.warnings,
             ),
@@ -328,6 +335,7 @@ def infer_subject_refinement(
 
     if signals.has_economics_subject_signal:
         method_lenses = _unique(signals.economics_method_lenses)
+        borrowed_lenses = _borrowed_lenses("economics", signals)
         return _packet(
             decision="suggest_subject",
             mode="suggested",
@@ -336,12 +344,13 @@ def infer_subject_refinement(
             secondary_subjects=list(manifest.secondary_subjects or []),
             candidate_subjects=_candidate_subjects(signals, preferred="economics"),
             method_lenses=method_lenses,
-            borrowed_lenses=[],
+            borrowed_lenses=borrowed_lenses,
             loaded_resources=_loaded_resources(
-                ["subject_overlay", "subject_skill", "method_pack"],
+                ["subject_overlay", "subject_skill", "method_pack"]
+                + (["method_pack_only"] if borrowed_lenses else []),
                 primary_subject="economics",
                 method_lenses=method_lenses,
-                borrowed_lenses=[],
+                borrowed_lenses=borrowed_lenses,
                 contract=contract,
                 contract_warnings=contract_result.warnings,
             ),

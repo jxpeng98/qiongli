@@ -107,6 +107,20 @@ class SubjectRefinementTests(unittest.TestCase):
         self.assertEqual(event_study["source"], "task_text")
         self.assertIn("event study", event_study["snippet"])
 
+    def test_asset_pricing_method_phrase_without_outcome_does_not_suggest_finance(self) -> None:
+        packet = infer_subject_refinement(
+            {
+                "topic": "portfolio sorts",
+                "context": "Plan portfolio sorts and factor regressions for the appendix.",
+            },
+            manifest_state=ProjectManifest(),
+        ).to_packet()
+
+        self.assertNotEqual(packet["decision"], "suggest_subject")
+        self.assertNotEqual(packet["primary_subject"], "finance")
+        self.assertEqual(packet["decision"], "borrow_lens")
+        self.assertEqual(packet["borrowed_lenses"][0]["lens"], "asset-pricing")
+
     def test_locked_economics_manifest_prevents_switch_but_can_borrow_finance_lens(self) -> None:
         packet = infer_subject_refinement(
             {
