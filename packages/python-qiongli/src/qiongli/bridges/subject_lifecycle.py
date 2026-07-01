@@ -11,6 +11,8 @@ from .project_manifest import (
     update_project_manifest,
 )
 from .subject_guidance import (
+    END_MARKER,
+    START_MARKER,
     SubjectGuidanceError,
     disable_subject_guidance,
     inspect_subject_guidance,
@@ -21,6 +23,7 @@ from .subject_guidance import (
 ACTIONS = {"confirm", "dismiss", "reset", "lock", "unlock"}
 STATE_REL = Path(".qiongli") / "trace" / "subject_evidence.json"
 GUIDANCE_WRITE_ACTIONS = {"confirm", "lock", "unlock", "reset"}
+ACTIVE_GUIDANCE_WRITE_ACTIONS = {"confirm", "lock"}
 LIFECYCLE_WRITE_RELS = (
     Path(".qiongli"),
     Path(".qiongli") / "guidance_manifest.yaml",
@@ -57,6 +60,10 @@ def apply_subject_action(
     state = _load_state(root)
     manifest_state = load_project_manifest(root)
     _preflight_subject_guidance_write(root, action=normalized_action)
+    _preflight_active_subject_guidance_render(
+        manifest_state,
+        action=normalized_action,
+    )
 
     if normalized_action == "confirm":
         manifest_state = update_project_manifest(
@@ -163,6 +170,24 @@ def _preflight_subject_guidance_write(project_root: Path, *, action: str) -> Non
     if not reason:
         reason = "invalid subject guidance"
     raise SubjectLifecycleError(f"Failed to update subject guidance: {reason}")
+
+
+def _preflight_active_subject_guidance_render(manifest_state: Any, *, action: str) -> None:
+    if action not in ACTIVE_GUIDANCE_WRITE_ACTIONS and not (
+        action == "unlock" and _has_concrete_active_subject(manifest_state)
+    ):
+        return
+    for lens in manifest_state.manifest.method_lenses or []:
+        if START_MARKER in lens or END_MARKER in lens:
+            raise SubjectLifecycleError(
+                "Failed to update subject guidance: managed marker is not allowed "
+                "in subject guidance values"
+            )
+
+
+def _has_concrete_active_subject(manifest_state: Any) -> bool:
+    manifest = manifest_state.manifest
+    return manifest.active_subject not in {"auto", "core"} and manifest.subject_mode != "auto"
 
 
 def _update_subject_guidance(

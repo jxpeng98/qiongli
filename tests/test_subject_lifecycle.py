@@ -389,6 +389,30 @@ class SubjectLifecycleTests(unittest.TestCase):
 
             self.assertFalse(self._state_path(root).exists())
 
+    def test_marker_method_lens_fails_before_manifest_or_evidence_writes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._manifest_path(root).parent.mkdir(parents=True)
+            original_manifest = (
+                "active_subject: auto\n"
+                "subject_mode: auto\n"
+                "method_lenses:\n"
+                f"- {START_MARKER}\n"
+            )
+            self._manifest_path(root).write_text(original_manifest, encoding="utf-8")
+
+            with self.assertRaisesRegex(
+                SubjectLifecycleError,
+                "^Failed to update subject guidance:.*managed marker",
+            ):
+                apply_subject_action(root, "confirm", "finance", source="cli")
+
+            self.assertEqual(
+                self._manifest_path(root).read_text(encoding="utf-8"),
+                original_manifest,
+            )
+            self.assertFalse(self._state_path(root).exists())
+
     def test_invalid_existing_guidance_fails_before_manifest_or_evidence_writes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
