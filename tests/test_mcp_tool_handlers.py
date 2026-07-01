@@ -941,6 +941,42 @@ class MCPToolHandlerTests(unittest.TestCase):
             self.assertEqual(preview["guidance_bootstrap"]["guidance_fragment_count"], 0)
             self.assertFalse((root / ".qiongli").exists())
 
+    def test_task_run_preview_packet_includes_materialized_subject_guidance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            update_result = call_qiongli_tool(
+                "qiongli_subject_update",
+                {
+                    "cwd": str(root),
+                    "action": "confirm",
+                    "subject": "finance",
+                    "run_id": "setup-confirm-finance",
+                },
+            )
+            self.assertFalse(update_result["isError"])
+
+            result, _stub = self._call_task_run_preview(
+                {
+                    "task_id": "C1",
+                    "paper_type": "empirical",
+                    "topic": "earnings announcement stock market reaction",
+                    "context": (
+                        "Use event-study evidence and Journal of Finance standards "
+                        "for this empirical paper."
+                    ),
+                    "domain": "auto",
+                    "guidance_mode": "propose",
+                    "cwd": str(root),
+                },
+            )
+
+        task_packet = result["structuredContent"]["data"]["task_packet"]
+        guidance = task_packet["local_guidance"]
+        self.assertIn(
+            ".qiongli/guidance.d/subject-runtime.md",
+            guidance["guidance_files_read"],
+        )
+
     def test_task_run_preview_maps_triad_execution_mode_to_metadata(self) -> None:
         class StubResult:
             mode = "task-plan"

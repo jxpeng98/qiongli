@@ -19,7 +19,6 @@ PYTHON_SRC = REPO_ROOT / "packages" / "python-qiongli" / "src"
 if str(PYTHON_SRC) not in sys.path:
     sys.path.insert(0, str(PYTHON_SRC))
 
-from bridges.guidance_runtime import effective_guidance  # noqa: E402
 from bridges.mcp_tool_handlers import call_qiongli_tool  # noqa: E402
 
 
@@ -121,12 +120,6 @@ def run_smoke_case(case: SmokeCase, workspace_root: Path, mode: str) -> dict[str
         args["cwd"] = str(project_root)
         args["run_agents"] = mode == "local-agent"
         result = call_qiongli_tool("qiongli_task_run", args)
-        if case.expected.get("guidance_source") is not None:
-            _attach_local_guidance(
-                result,
-                project_root,
-                mode=str(args.get("guidance_mode", "propose") or "propose"),
-            )
     finally:
         os.chdir(old_cwd)
         for key, value in old_env.items():
@@ -146,22 +139,6 @@ def run_smoke_case(case: SmokeCase, workspace_root: Path, mode: str) -> dict[str
         "environment": env_updates,
         "result": payload,
     }
-
-
-def _attach_local_guidance(result: dict[str, Any], project_root: Path, *, mode: str) -> None:
-    payload = result.get("structuredContent", result)
-    if not isinstance(payload, dict):
-        return
-    data = payload.get("data")
-    if not isinstance(data, dict):
-        return
-    task_packet = data.get("task_packet")
-    if not isinstance(task_packet, dict):
-        return
-    task_packet.setdefault(
-        "local_guidance",
-        effective_guidance(project_root, mode=mode).to_packet(),
-    )
 
 
 def _assert_case(case: SmokeCase, result: dict[str, Any]) -> list[str]:

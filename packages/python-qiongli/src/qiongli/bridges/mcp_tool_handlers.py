@@ -7,7 +7,7 @@ from typing import Any, Callable
 
 from bridges.mcp_config_wizard import start_config_wizard
 from bridges.mcp_connectors import MCPConnector
-from bridges.guidance_runtime import GUIDANCE_MODES, guidance_bootstrap_status
+from bridges.guidance_runtime import GUIDANCE_MODES, effective_guidance, guidance_bootstrap_status
 from bridges.project_manifest import OFFICIAL_SUBJECTS, ProjectManifestError, load_project_manifest
 from bridges.subject_lifecycle import ACTIONS, apply_subject_action, subject_status
 from bridges.subject_refinement import infer_subject_refinement
@@ -552,6 +552,7 @@ def _tool_task_run(args: dict[str, Any]) -> dict[str, Any]:
             task_packet["project_subject"] = project_subject
             task_packet["subject_refinement"] = subject_refinement
             task_packet["runtime_plan"] = preview["effective_runtime_plan"]
+            task_packet["local_guidance"] = _task_run_preview_local_guidance(task_run_kwargs)
         return payload
 
     result = orchestrator.task_run(**task_run_kwargs)
@@ -673,6 +674,20 @@ def _task_run_preview(
         ),
         "task_run_arguments": _serializable_task_run_arguments(task_run_kwargs),
     }
+
+
+def _task_run_preview_local_guidance(task_run_kwargs: dict[str, Any]) -> dict[str, Any]:
+    cwd = task_run_kwargs["cwd"]
+    guidance_mode = str(task_run_kwargs.get("guidance_mode", "propose") or "propose")
+    try:
+        return effective_guidance(cwd, mode=guidance_mode).to_packet()
+    except ProjectManifestError as exc:
+        packet = effective_guidance(cwd, mode="off").to_packet()
+        packet["warnings"] = [
+            *list(packet.get("warnings", []) or []),
+            f"Project guidance ignored: {exc}",
+        ]
+        return packet
 
 
 def _task_run_preview_domain_fields(
