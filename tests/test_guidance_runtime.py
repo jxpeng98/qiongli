@@ -580,6 +580,54 @@ class GuidanceRuntimeTests(unittest.TestCase):
             manifest = load_project_manifest(root).to_packet()
             self.assertNotEqual(manifest["manifest"]["active_subject"], "finance")
 
+    def test_malformed_subject_evidence_count_does_not_abort_trace_write(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            init_project_guidance(root)
+            memory_path = root / ".qiongli" / "trace" / "subject_evidence.json"
+            memory_path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "1.0",
+                        "subjects": {
+                            "finance": {
+                                "suggestion_count": "not-an-int",
+                                "last_decision": "suggest_subject",
+                            }
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            state = effective_guidance(root, mode="propose", run_id="malformed-memory")
+
+            trace = write_guidance_trace(
+                project_root=root,
+                guidance_state=state,
+                task_packet={
+                    "task_id": "C1",
+                    "paper_type": "empirical",
+                    "topic": "earnings announcement returns",
+                    "context": "event study abnormal returns from CRSP for Journal of Finance",
+                },
+                draft_content="Use an event window before estimating the market reaction.",
+                review_content="",
+                merged_analysis="",
+                validator_gate={"passed": True, "found": [], "missing": [], "checked": 0},
+                applied=False,
+            )
+
+            run_dir = root / ".qiongli" / "trace" / "runs" / "malformed-memory"
+            self.assertEqual(trace["run_id"], "malformed-memory")
+            self.assertTrue((run_dir / "subject_refinement.json").is_file())
+            self.assertTrue((root / ".qiongli" / "trace" / "index.jsonl").is_file())
+            memory = json.loads(memory_path.read_text(encoding="utf-8"))
+            self.assertEqual(memory["subjects"]["finance"]["suggestion_count"], 1)
+            self.assertIsInstance(memory["subjects"]["finance"]["suggestion_count"], int)
+            self.assertTrue(
+                any("suggestion_count" in warning for warning in memory.get("warnings", []))
+            )
+
     def test_guidance_trace_proposal_skips_structured_manifest_when_evidence_is_weak(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)

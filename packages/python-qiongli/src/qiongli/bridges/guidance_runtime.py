@@ -538,12 +538,31 @@ def _load_subject_evidence(paths: GuidancePaths) -> dict[str, Any]:
             ],
         }
     memory = {"schema_version": "1.0", "subjects": {}}
+    loaded_warnings = loaded.get("warnings")
+    memory_warnings = (
+        [item.strip() for item in loaded_warnings if isinstance(item, str) and item.strip()]
+        if isinstance(loaded_warnings, list)
+        else []
+    )
     for subject, record in subjects.items():
-        if isinstance(subject, str) and isinstance(record, Mapping):
-            memory["subjects"][subject] = dict(record)
-    warnings = loaded.get("warnings")
-    if isinstance(warnings, list):
-        memory["warnings"] = [str(item) for item in warnings if str(item).strip()]
+        if not isinstance(subject, str):
+            memory_warnings.append("Invalid subject evidence memory record: subject key must be a string")
+            continue
+        if not isinstance(record, Mapping):
+            memory_warnings.append(
+                f"Invalid subject evidence memory for {subject}: expected object"
+            )
+            memory["subjects"][subject] = {"suggestion_count": 0}
+            continue
+        current = dict(record)
+        current["suggestion_count"] = _safe_non_negative_int(
+            current.get("suggestion_count", 0),
+            warnings=memory_warnings,
+            label=f"{subject}.suggestion_count",
+        )
+        memory["subjects"][subject] = current
+    if memory_warnings:
+        memory["warnings"] = _unique_strings(memory_warnings)
     return memory
 
 
@@ -563,12 +582,21 @@ def _update_subject_evidence(
     if decision == "suggest_subject" and primary_subject not in {"auto", "core", ""}:
         current = subjects.get(primary_subject)
         current_record = dict(current) if isinstance(current, Mapping) else {}
-        suggestion_count = int(current_record.get("suggestion_count", 0) or 0) + 1
+        warnings = _memory_warnings(memory)
+        if current is not None and not isinstance(current, Mapping):
+            warnings.append(
+                f"Invalid subject evidence memory for {primary_subject}: expected object"
+            )
+        suggestion_count = _safe_non_negative_int(
+            current_record.get("suggestion_count", 0),
+            warnings=warnings,
+            label=f"{primary_subject}.suggestion_count",
+        ) + 1
         subjects[primary_subject] = {
             **current_record,
             "suggestion_count": suggestion_count,
             "last_decision": decision,
-            "last_confidence": float(subject_refinement.get("confidence", 0.0) or 0.0),
+            "last_confidence": _safe_float(subject_refinement.get("confidence", 0.0)),
             "last_run_id": run_id,
             "signals": [
                 dict(signal)
@@ -576,6 +604,8 @@ def _update_subject_evidence(
                 if isinstance(signal, Mapping)
             ],
         }
+        if warnings:
+            memory["warnings"] = _unique_strings(warnings)
 
     path = _subject_evidence_path(paths)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -589,13 +619,14 @@ def _subject_promotion_recommendation(
 ) -> dict[str, Any]:
     decision = str(subject_refinement.get("decision", ""))
     primary_subject = str(subject_refinement.get("primary_subject", "auto") or "auto")
-    confidence = float(subject_refinement.get("confidence", 0.0) or 0.0)
+    confidence = _safe_float(subject_refinement.get("confidence", 0.0))
     subjects = memory.get("subjects", {})
     subject_memory = subjects.get(primary_subject, {}) if isinstance(subjects, Mapping) else {}
-    suggestion_count = (
-        int(subject_memory.get("suggestion_count", 0) or 0)
+    suggestion_count = _safe_non_negative_int(
+        subject_memory.get("suggestion_count", 0)
         if isinstance(subject_memory, Mapping)
-        else 0
+        else 0,
+        label=f"{primary_subject}.suggestion_count",
     )
     if (
         decision == "suggest_subject"
@@ -614,6 +645,54 @@ def _subject_promotion_recommendation(
             "minimum_confidence": 0.75,
         }
     return {"status": "none", "write_manifest": False}
+
+
+def _memory_warnings(memory: dict[str, Any]) -> list[str]:
+    existing = memory.get("warnings")
+    if not isinstance(existing, list):
+        return []
+    return [item for item in existing if isinstance(item, str) and item.strip()]
+
+
+def _safe_non_negative_int(
+    value: Any,
+    *,
+    warnings: list[str] | None = None,
+    label: str = "suggestion_count",
+) -> int:
+    try:
+        if isinstance(value, bool):
+            raise TypeError("boolean is not a valid count")
+        parsed = int(value)
+    except (TypeError, ValueError, OverflowError):
+        if warnings is not None:
+            warnings.append(f"Invalid subject evidence memory value for {label}; treating as 0")
+        return 0
+    if parsed < 0:
+        if warnings is not None:
+            warnings.append(f"Invalid subject evidence memory value for {label}; treating as 0")
+        return 0
+    return parsed
+
+
+def _safe_float(value: Any, *, default: float = 0.0) -> float:
+    try:
+        if isinstance(value, bool):
+            raise TypeError("boolean is not a valid float")
+        return float(value)
+    except (TypeError, ValueError, OverflowError):
+        return default
+
+
+def _unique_strings(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    unique: list[str] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        unique.append(value)
+    return unique
 
 
 def _proposal_text(

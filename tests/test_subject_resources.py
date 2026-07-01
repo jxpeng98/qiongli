@@ -102,6 +102,38 @@ class SubjectResourceActivationTests(unittest.TestCase):
         )
         self.assertFalse(plan["persistence_recommendation"]["write_manifest"])
 
+    def test_malformed_loaded_resource_values_are_ignored(self) -> None:
+        plan = build_resource_activation_plan(
+            decision="suggest_subject",
+            active_subject="auto",
+            primary_subject="finance",
+            loaded_resources={
+                "levels": ["subject_overlay", None, {"bad": "level"}, "", "method_pack"],
+                "overlays": ["overlays/finance.yaml", None, {"bad": "path"}],
+                "subject_skills": ["skills/finance/SKILL.md", None, {"bad": "path"}],
+                "method_packs": ["method-packs/finance/event-study.yaml", None, {"bad": "path"}],
+                "standards": ["subject-refinement-contract.yaml", None, {"bad": "standard"}],
+                "contract_warnings": ["known warning", None, {"bad": "warning"}],
+            },
+            method_lenses=["event-study"],
+            borrowed_lenses=[],
+            persistence={"status": "proposed"},
+        )
+
+        rendered = repr(plan)
+        self.assertEqual(plan["levels"], ["core", "subject_overlay", "method_pack"])
+        self.assertEqual(plan["contract_warnings"], ["known warning"])
+        self.assertNotIn("None", rendered)
+        self.assertNotIn("{'bad'", rendered)
+        self.assertEqual(
+            [resource["path"] for resource in plan["resources"]],
+            [
+                "overlays/finance.yaml",
+                "skills/finance/SKILL.md",
+                "method-packs/finance/event-study.yaml",
+            ],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

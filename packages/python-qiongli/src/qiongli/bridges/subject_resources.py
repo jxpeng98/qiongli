@@ -132,7 +132,7 @@ def _path_for_lens(lens: str, paths: list[str], index: int) -> str:
 def _string_list(value: Any) -> list[str]:
     if not isinstance(value, list):
         return []
-    return [str(item) for item in value if str(item).strip()]
+    return [item.strip() for item in value if isinstance(item, str) and item.strip()]
 
 
 def _unique_resource_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
