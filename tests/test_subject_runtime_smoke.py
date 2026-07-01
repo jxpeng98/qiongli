@@ -28,10 +28,26 @@ class SubjectRuntimeSmokeTests(unittest.TestCase):
                 "borrow_finance_lens",
                 "suggest_finance_subject",
                 "locked_economics_borrow_finance",
+                "confirmed_finance_guidance_loaded",
             },
         )
         self.assertEqual([case.name for case in cases], sorted(names))
         self.assertTrue(all(isinstance(case, SmokeCase) for case in cases))
+
+    def test_confirmed_fixture_declares_setup_subject_action(self) -> None:
+        cases = load_smoke_cases(FIXTURE_DIR)
+        case = next(
+            item for item in cases if item.name == "confirmed_finance_guidance_loaded"
+        )
+
+        self.assertEqual(
+            case.setup_subject_action,
+            {
+                "action": "confirm",
+                "subject": "finance",
+                "run_id": "setup-confirm-finance",
+            },
+        )
 
     def test_preview_suite_passes_and_writes_inside_isolated_project(self) -> None:
         real_home = os.environ.get("HOME")
@@ -46,7 +62,7 @@ class SubjectRuntimeSmokeTests(unittest.TestCase):
             )
 
             self.assertEqual(report["summary"]["failed"], 0)
-            self.assertEqual(report["summary"]["passed"], 4)
+            self.assertEqual(report["summary"]["passed"], 5)
             self.assertEqual(report["mode"], "preview")
             for case in report["cases"]:
                 project_root = Path(case["project_root"]).resolve()
@@ -79,6 +95,7 @@ class SubjectRuntimeSmokeTests(unittest.TestCase):
                     "borrow_finance_lens",
                     "suggest_finance_subject",
                     "locked_economics_borrow_finance",
+                    "confirmed_finance_guidance_loaded",
                 },
             )
 
@@ -183,6 +200,23 @@ class SubjectRuntimeSmokeTests(unittest.TestCase):
         ]
         self.assertTrue(refinement["signals"])
         self.assertEqual(refinement["resource_activation_plan"]["primary_subject"], "finance")
+
+    def test_confirmed_finance_case_loads_materialized_subject_guidance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            report = run_smoke_suite(
+                fixture_dir=FIXTURE_DIR,
+                workspace_root=Path(tmp_dir),
+                mode="preview",
+                selected_cases=["confirmed_finance_guidance_loaded"],
+            )
+
+        case = report["cases"][0]
+        self.assertEqual(case["status"], "passed", case["failures"])
+        guidance = case["result"]["data"]["task_packet"]["local_guidance"]
+        self.assertIn(
+            ".qiongli/guidance.d/subject-runtime.md",
+            guidance["guidance_files_read"],
+        )
 
 
 if __name__ == "__main__":

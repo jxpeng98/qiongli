@@ -1,0 +1,26 @@
+{
+  "name": "confirmed_finance_guidance_loaded",
+  "manifest": null,
+  "setup_subject_action": {
+    "action": "confirm",
+    "subject": "finance",
+    "run_id": "setup-confirm-finance"
+  },
+  "args": {
+    "task_id": "C1",
+    "paper_type": "empirical",
+    "topic": "earnings announcement stock market reaction",
+    "context": "Use event-study evidence and Journal of Finance standards for this empirical paper.",
+    "domain": "auto",
+    "guidance_mode": "propose",
+    "run_agents": false
+  },
+  "expected": {
+    "decision": "confirm_subject",
+    "primary_subject": "finance",
+    "effective_domain": "finance",
+    "guidance_source": ".qiongli/guidance.d/subject-runtime.md",
+    "resource_levels": ["subject_overlay", "subject_skill"],
+    "run_agents": false
+  }
+}

@@ -19,6 +19,7 @@ PYTHON_SRC = REPO_ROOT / "packages" / "python-qiongli" / "src"
 if str(PYTHON_SRC) not in sys.path:
     sys.path.insert(0, str(PYTHON_SRC))
 
+from bridges.guidance_runtime import effective_guidance  # noqa: E402
 from bridges.mcp_tool_handlers import call_qiongli_tool  # noqa: E402
 
 
@@ -34,6 +35,7 @@ class SmokeCase:
     args: dict[str, Any]
     expected: dict[str, Any]
     source: Path
+    setup_subject_action: dict[str, Any] | None = None
 
 
 def load_smoke_cases(fixture_dir: Path = FIXTURE_DIR) -> list[SmokeCase]:
@@ -47,6 +49,11 @@ def load_smoke_cases(fixture_dir: Path = FIXTURE_DIR) -> list[SmokeCase]:
                 args=dict(payload["args"]),
                 expected=dict(payload["expected"]),
                 source=path,
+                setup_subject_action=(
+                    dict(payload["setup_subject_action"])
+                    if isinstance(payload.get("setup_subject_action"), dict)
+                    else None
+                ),
             )
         )
     return sorted(cases, key=lambda case: case.name)
@@ -88,10 +95,6 @@ def run_smoke_case(case: SmokeCase, workspace_root: Path, mode: str) -> dict[str
     project_root.mkdir(parents=True, exist_ok=True)
     _write_manifest(project_root, case.manifest)
 
-    args = dict(case.args)
-    args["cwd"] = str(project_root)
-    args["run_agents"] = mode == "local-agent"
-
     env_updates = _isolated_env(project_root)
 
     old_env = {key: os.environ.get(key) for key in env_updates}
@@ -99,7 +102,31 @@ def run_smoke_case(case: SmokeCase, workspace_root: Path, mode: str) -> dict[str
     try:
         os.environ.update(env_updates)
         os.chdir(project_root)
+        if case.setup_subject_action:
+            setup_args = dict(case.setup_subject_action)
+            setup_args["cwd"] = str(project_root)
+            setup_result = call_qiongli_tool("qiongli_subject_update", setup_args)
+            if setup_result.get("isError"):
+                return {
+                    "name": case.name,
+                    "source": _repo_relative(case.source),
+                    "project_root": str(project_root),
+                    "status": "failed",
+                    "failures": [f"setup_subject_action failed: {setup_result}"],
+                    "environment": env_updates,
+                    "result": setup_result,
+                }
+
+        args = dict(case.args)
+        args["cwd"] = str(project_root)
+        args["run_agents"] = mode == "local-agent"
         result = call_qiongli_tool("qiongli_task_run", args)
+        if case.expected.get("guidance_source") is not None:
+            _attach_local_guidance(
+                result,
+                project_root,
+                mode=str(args.get("guidance_mode", "propose") or "propose"),
+            )
     finally:
         os.chdir(old_cwd)
         for key, value in old_env.items():
@@ -119,6 +146,22 @@ def run_smoke_case(case: SmokeCase, workspace_root: Path, mode: str) -> dict[str
         "environment": env_updates,
         "result": payload,
     }
+
+
+def _attach_local_guidance(result: dict[str, Any], project_root: Path, *, mode: str) -> None:
+    payload = result.get("structuredContent", result)
+    if not isinstance(payload, dict):
+        return
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        return
+    task_packet = data.get("task_packet")
+    if not isinstance(task_packet, dict):
+        return
+    task_packet.setdefault(
+        "local_guidance",
+        effective_guidance(project_root, mode=mode).to_packet(),
+    )
 
 
 def _assert_case(case: SmokeCase, result: dict[str, Any]) -> list[str]:
@@ -144,11 +187,20 @@ def _assert_case(case: SmokeCase, result: dict[str, Any]) -> list[str]:
     if not isinstance(task_packet, dict):
         task_packet = {}
 
+    expected = case.expected
+    guidance_source = expected.get("guidance_source")
+    if guidance_source is not None:
+        local_guidance = task_packet.get("local_guidance", {})
+        if not isinstance(local_guidance, dict):
+            local_guidance = {}
+        files_read = list(local_guidance.get("guidance_files_read", []) or [])
+        if guidance_source not in files_read:
+            failures.append(f"missing guidance source {guidance_source!r}")
+
     refinement = preview.get("subject_refinement") or task_packet.get("subject_refinement") or {}
     if not isinstance(refinement, dict):
         refinement = {}
 
-    expected = case.expected
     _expect_equal(failures, "run_agents", payload.get("run_agents"), expected.get("run_agents"))
     _expect_equal(failures, "decision", refinement.get("decision"), expected.get("decision"))
     _expect_equal(
