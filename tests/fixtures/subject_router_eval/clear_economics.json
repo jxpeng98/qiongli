@@ -1,0 +1,20 @@
+{
+  "id": "clear_economics",
+  "description": "Labor economics request with identification and policy evaluation signals.",
+  "request": "Help design a difference-in-differences study on minimum wage increases, employment effects, spillovers across commuting zones, pre-trends, and heterogeneous treatment effects.",
+  "manifest": {
+    "active_subject": "auto",
+    "subject_mode": "auto",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "recommend",
+    "primary_subject": "economics",
+    "suggest_subjects": ["economics"],
+    "forbidden_subjects": ["finance"],
+    "method_lenses": ["did"]
+  }
+}
