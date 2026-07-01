@@ -68,14 +68,20 @@ class OrchestratorSubjectRefinementTests(unittest.TestCase):
         packet = result.data["task_packet"]
         self.assertEqual(packet["subject_refinement"]["decision"], "suggest_subject")
         self.assertEqual(packet["subject_refinement"]["primary_subject"], "finance")
+        self.assertIn("resource_activation_plan", packet["subject_refinement"])
+        self.assertIn("signals", packet["subject_refinement"])
         self.assertEqual(packet["domain"], "finance")
         self.assertEqual(packet["requested_domain"], "auto")
         draft_prompt = execute.call_args_list[0].args[1]
         review_prompt = execute.call_args_list[1].args[1]
         self.assertIn("Runtime subject refinement:", draft_prompt)
         self.assertIn("Decision: suggest_subject", draft_prompt)
+        self.assertIn("resource_activation_plan", draft_prompt)
+        self.assertIn("signals", draft_prompt)
         self.assertIn("Runtime subject refinement:", review_prompt)
         self.assertIn("Decision: suggest_subject", review_prompt)
+        self.assertIn("resource_activation_plan", review_prompt)
+        self.assertIn("signals", review_prompt)
 
     def test_explicit_domain_override_is_preserved_when_subject_is_suggested(self) -> None:
         result, _execute = self._run_c1_task(

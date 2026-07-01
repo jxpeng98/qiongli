@@ -43,6 +43,30 @@ loading_levels:
   method_pack:
     description: "Load a method pack as part of a suggested or applied subject."
 
+signal_dimensions:
+  method:
+    description: "Method or identification lens cue from the task text."
+  data_or_outcome:
+    description: "Dataset, observable, or outcome cue that narrows the subject."
+  venue:
+    description: "Journal or venue cue that narrows the subject."
+
+signal_weights:
+  finance:
+    method: 0.35
+    data_or_outcome: 0.30
+    venue: 0.20
+  economics:
+    method: 0.40
+    venue: 0.20
+
+subject_evidence_memory:
+  path: ".qiongli/trace/subject_evidence.json"
+  minimum_repeated_suggestions: 2
+  minimum_confidence: 0.75
+  write_manifest_automatically: false
+  recommendation_subject_mode: "suggested"
+
 overlays:
   economics: "overlays/economics.yaml"
   finance: "overlays/finance.yaml"

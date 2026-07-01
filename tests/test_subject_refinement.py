@@ -67,6 +67,45 @@ class SubjectRefinementTests(unittest.TestCase):
         self.assertEqual(packet["persistence"]["status"], "proposed")
         self.assertIn("overlays/finance.yaml", packet["loaded_resources"]["overlays"])
         self.assertIn("skills/finance/SKILL.md", packet["loaded_resources"]["subject_skills"])
+        self.assertEqual(packet["resource_activation_plan"]["primary_subject"], "finance")
+        self.assertEqual(
+            packet["resource_activation_plan"]["levels"],
+            ["core", "subject_overlay", "subject_skill", "method_pack"],
+        )
+        self.assertIn(
+            {
+                "kind": "method_pack",
+                "subject": "finance",
+                "lens": "event-study",
+                "path": "method-packs/finance/event-study.yaml",
+                "activation": "proposed",
+            },
+            packet["resource_activation_plan"]["resources"],
+        )
+
+    def test_finance_suggestion_includes_structured_signal_records(self) -> None:
+        packet = infer_subject_refinement(
+            {
+                "topic": "earnings announcement returns",
+                "context": "Estimate abnormal returns using CRSP data for Journal of Finance.",
+            },
+            manifest_state=ProjectManifest(),
+            draft_content="Use an event study with event windows around earnings announcements.",
+        ).to_packet()
+
+        signals = packet["signals"]
+        signal_ids = {signal["id"] for signal in signals}
+        signal_dimensions = {signal["dimension"] for signal in signals}
+        self.assertIn("finance.method.event-study", signal_ids)
+        self.assertIn("data_or_outcome", signal_dimensions)
+        self.assertIn("venue", signal_dimensions)
+        event_study = next(
+            signal for signal in signals if signal["id"] == "finance.method.event-study"
+        )
+        self.assertEqual(event_study["subject"], "finance")
+        self.assertEqual(event_study["weight"], 0.35)
+        self.assertEqual(event_study["source"], "task_text")
+        self.assertIn("event study", event_study["snippet"])
 
     def test_locked_economics_manifest_prevents_switch_but_can_borrow_finance_lens(self) -> None:
         packet = infer_subject_refinement(
@@ -157,6 +196,8 @@ class SubjectRefinementTests(unittest.TestCase):
         self.assertEqual(packet["primary_subject"], "auto")
         self.assertEqual(packet["loaded_resources"]["levels"], ["core_only"])
         self.assertEqual(packet["persistence"]["status"], "none")
+        self.assertEqual(packet["signals"], [])
+        self.assertEqual(packet["evidence"], [])
 
 
 if __name__ == "__main__":

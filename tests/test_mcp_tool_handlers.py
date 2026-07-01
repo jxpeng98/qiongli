@@ -961,6 +961,13 @@ class MCPToolHandlerTests(unittest.TestCase):
         self.assertEqual(refinement["decision"], "suggest_subject")
         self.assertEqual(refinement["primary_subject"], "finance")
         self.assertEqual(refinement["domain"], "finance")
+        self.assertIn("resource_activation_plan", refinement)
+        self.assertEqual(refinement["resource_activation_plan"]["primary_subject"], "finance")
+        self.assertIn("signals", refinement)
+        self.assertIn(
+            "finance.method.event-study",
+            {signal["id"] for signal in refinement["signals"]},
+        )
         self.assertEqual(preview["effective_domain"], "finance")
         self.assertEqual(task_packet["domain"], "finance")
         self.assertEqual(task_packet["requested_domain"], "auto")
