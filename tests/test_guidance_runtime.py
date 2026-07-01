@@ -7,7 +7,9 @@ from pathlib import Path
 from unittest import mock
 
 from bridges.guidance_runtime import (
+    _load_subject_evidence,
     _proposal_text,
+    _subject_promotion_recommendation,
     apply_guidance_proposal,
     create_guidance_fragment,
     effective_guidance,
@@ -579,6 +581,142 @@ class GuidanceRuntimeTests(unittest.TestCase):
             self.assertIn("confirm finance", proposal_text)
             manifest = load_project_manifest(root).to_packet()
             self.assertNotEqual(manifest["manifest"]["active_subject"], "finance")
+
+    def test_guidance_trace_preserves_subject_lifecycle_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            init_project_guidance(root)
+            memory_path = root / ".qiongli" / "trace" / "subject_evidence.json"
+            memory_path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "1.0",
+                        "subjects": {
+                            "finance": {
+                                "suggestion_count": 1,
+                                "last_decision": "suggest_subject",
+                            }
+                        },
+                        "dismissed_subjects": {
+                            "finance": {
+                                "source": "cli",
+                                "run_id": "dismiss-run",
+                                "created_at": "2026-07-01T00:00:00+00:00",
+                                "last_suggestion_count": 1,
+                            }
+                        },
+                        "lifecycle_events": [
+                            {
+                                "action": "dismiss",
+                                "subject": "finance",
+                                "source": "cli",
+                                "run_id": "dismiss-run",
+                                "created_at": "2026-07-01T00:00:00+00:00",
+                            }
+                        ],
+                        "future_field": {"keep": True},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            state = effective_guidance(root, mode="propose", run_id="finance-lifecycle")
+
+            write_guidance_trace(
+                project_root=root,
+                guidance_state=state,
+                task_packet={
+                    "task_id": "C1",
+                    "paper_type": "empirical",
+                    "topic": "earnings announcement returns",
+                    "context": "event study abnormal returns from CRSP for Journal of Finance",
+                },
+                draft_content="Use an event window before estimating the market reaction.",
+                review_content="",
+                merged_analysis="",
+                validator_gate={"passed": True, "found": [], "missing": [], "checked": 0},
+                applied=False,
+            )
+
+            memory = json.loads(memory_path.read_text(encoding="utf-8"))
+            self.assertEqual(memory["subjects"]["finance"]["suggestion_count"], 2)
+            self.assertEqual(memory["dismissed_subjects"]["finance"]["last_suggestion_count"], 1)
+            self.assertEqual(memory["lifecycle_events"][0]["action"], "dismiss")
+            self.assertEqual(memory["future_field"], {"keep": True})
+
+    def test_dismissed_subject_recommendation_is_suppressed_until_new_evidence(self) -> None:
+        recommendation = _subject_promotion_recommendation(
+            {
+                "subjects": {"finance": {"suggestion_count": 2}},
+                "dismissed_subjects": {
+                    "finance": {
+                        "source": "cli",
+                        "run_id": "run-123",
+                        "created_at": "2026-07-01T00:00:00+00:00",
+                        "last_suggestion_count": 2,
+                    }
+                },
+            },
+            {
+                "decision": "suggest_subject",
+                "primary_subject": "finance",
+                "confidence": 0.85,
+            },
+        )
+
+        self.assertEqual(recommendation["status"], "dismissed")
+        self.assertEqual(recommendation["subject"], "finance")
+        self.assertEqual(recommendation["active_subject"], "finance")
+        self.assertFalse(recommendation["write_manifest"])
+        self.assertEqual(recommendation["dismissed_at"], "2026-07-01T00:00:00+00:00")
+        self.assertEqual(recommendation["dismissed_run_id"], "run-123")
+
+    def test_dismissed_subject_recommendation_reopens_after_new_evidence(self) -> None:
+        recommendation = _subject_promotion_recommendation(
+            {
+                "subjects": {"finance": {"suggestion_count": 3}},
+                "dismissed_subjects": {
+                    "finance": {
+                        "source": "cli",
+                        "run_id": "run-123",
+                        "created_at": "2026-07-01T00:00:00+00:00",
+                        "last_suggestion_count": 2,
+                    }
+                },
+            },
+            {
+                "decision": "suggest_subject",
+                "primary_subject": "finance",
+                "confidence": 0.85,
+            },
+        )
+
+        self.assertEqual(recommendation["status"], "recommend_confirmation")
+        self.assertEqual(recommendation["subject"], "finance")
+
+    def test_invalid_lifecycle_state_shapes_warn_and_normalize(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            paths = init_project_guidance(root)
+            memory_path = root / ".qiongli" / "trace" / "subject_evidence.json"
+            memory_path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "1.0",
+                        "subjects": {},
+                        "dismissed_subjects": ["finance"],
+                        "lifecycle_events": {"action": "dismiss"},
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            memory = _load_subject_evidence(paths)
+
+            self.assertEqual(memory["dismissed_subjects"], {})
+            self.assertEqual(memory["lifecycle_events"], [])
+            warnings = memory.get("warnings", [])
+            self.assertTrue(any("dismissed_subjects" in warning for warning in warnings))
+            self.assertTrue(any("lifecycle_events" in warning for warning in warnings))
 
     def test_malformed_subject_evidence_count_does_not_abort_trace_write(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

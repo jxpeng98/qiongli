@@ -1,0 +1,21 @@
+{
+  "id": "locked_subject_neighbor_lens",
+  "description": "Locked economics project may borrow a finance lens without changing primary subject.",
+  "request": "Within my economics project, add financial market event-study evidence around bank regulation announcements, but keep the core framing in policy evaluation and identification.",
+  "manifest": {
+    "active_subject": "economics",
+    "subject_mode": "locked",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": ["causal-identification"],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "keep_locked",
+    "primary_subject": "economics",
+    "suggest_subjects": ["finance"],
+    "allowed_neighbor_subjects": ["finance"],
+    "forbidden_subjects": [],
+    "method_lenses": ["causal-identification", "event-study"]
+  }
+}
