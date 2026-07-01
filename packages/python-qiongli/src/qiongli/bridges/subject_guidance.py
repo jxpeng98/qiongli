@@ -65,6 +65,17 @@ def inspect_subject_guidance(project_root: Path) -> dict[str, Any]:
         )
 
     metadata = _parse_metadata(text[block.start : block.end])
+    metadata_warning = _metadata_warning(metadata)
+    if metadata_warning:
+        return _status_packet(
+            root,
+            exists=True,
+            managed_block="invalid",
+            active_subject=None,
+            subject_mode=None,
+            updated_at=None,
+            warnings=[metadata_warning],
+        )
     managed_block = "disabled" if metadata.get("status") == "disabled" else "active"
     return _status_packet(
         root,
@@ -340,6 +351,14 @@ def _parse_metadata(block: str) -> dict[str, str]:
         if key:
             metadata[key] = value
     return metadata
+
+
+def _metadata_warning(metadata: Mapping[str, str]) -> str:
+    required = ("active_subject", "subject_mode", "updated_at")
+    missing = [key for key in required if not metadata.get(key)]
+    if not missing:
+        return ""
+    return "Invalid managed subject guidance metadata: missing " + ", ".join(missing)
 
 
 def _status_packet(

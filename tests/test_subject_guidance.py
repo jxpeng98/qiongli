@@ -200,3 +200,19 @@ class SubjectGuidanceTests(unittest.TestCase):
                 )
             with self.assertRaisesRegex(SubjectGuidanceError, "invalid marker order"):
                 disable_subject_guidance(root, lifecycle_action="reset", source="cli")
+
+    def test_malformed_managed_block_metadata_inspects_as_invalid(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            path = root / SUBJECT_GUIDANCE_REL
+            path.parent.mkdir(parents=True)
+            path.write_text(f"{START_MARKER}\nold block\n{END_MARKER}\n", encoding="utf-8")
+
+            status = inspect_subject_guidance(root)
+
+            self.assertTrue(status["exists"])
+            self.assertEqual(status["managed_block"], "invalid")
+            self.assertIsNone(status["active_subject"])
+            self.assertIsNone(status["subject_mode"])
+            self.assertIsNone(status["updated_at"])
+            self.assertTrue(status["warnings"])
