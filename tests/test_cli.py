@@ -1091,6 +1091,164 @@ class InstallerCliTests(unittest.TestCase):
         self.assertIn("project", run.call_args.args[0])
         self.assertIn("status", run.call_args.args[0])
 
+    def test_subject_status_json_reports_auto_without_creating_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            stdout = io.StringIO()
+
+            with mock.patch.object(
+                cli_module.sys,
+                "argv",
+                ["qiongli", "subject", "status", "--cwd", str(root), "--json"],
+            ), contextlib.redirect_stdout(stdout):
+                exit_code = cli_module.main()
+
+            payload = json.loads(stdout.getvalue())
+            manifest_exists = (root / ".qiongli" / "guidance_manifest.yaml").exists()
+
+        self.assertEqual(exit_code, 0)
+        self.assertFalse(manifest_exists)
+        self.assertFalse(payload["manifest_exists"])
+        self.assertEqual(payload["manifest"]["active_subject"], "auto")
+        self.assertEqual(payload["manifest"]["subject_mode"], "auto")
+
+    def test_subject_confirm_json_updates_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            stdout = io.StringIO()
+
+            with mock.patch.object(
+                cli_module.sys,
+                "argv",
+                ["qiongli", "subject", "confirm", "finance", "--cwd", str(root), "--json"],
+            ), contextlib.redirect_stdout(stdout):
+                exit_code = cli_module.main()
+
+            payload = json.loads(stdout.getvalue())
+            manifest_exists = (root / ".qiongli" / "guidance_manifest.yaml").is_file()
+
+        self.assertEqual(exit_code, 0)
+        self.assertTrue(manifest_exists)
+        self.assertEqual(payload["manifest"]["active_subject"], "finance")
+        self.assertEqual(payload["manifest"]["subject_mode"], "confirmed")
+
+    def test_subject_dismiss_json_records_cli_source_without_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            stdout = io.StringIO()
+
+            with mock.patch.object(
+                cli_module.sys,
+                "argv",
+                ["qiongli", "subject", "dismiss", "economics", "--cwd", str(root), "--json"],
+            ), contextlib.redirect_stdout(stdout):
+                exit_code = cli_module.main()
+
+            payload = json.loads(stdout.getvalue())
+            manifest_exists = (root / ".qiongli" / "guidance_manifest.yaml").exists()
+
+        self.assertEqual(exit_code, 0)
+        self.assertFalse(manifest_exists)
+        self.assertFalse(payload["manifest_exists"])
+        self.assertEqual(payload["state"]["dismissed_subjects"]["economics"]["source"], "cli")
+
+    def test_subject_reset_json_returns_confirmed_subject_to_auto(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            with mock.patch.object(
+                cli_module.sys,
+                "argv",
+                ["qiongli", "subject", "confirm", "finance", "--cwd", str(root), "--json"],
+            ), contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(cli_module.main(), 0)
+
+            stdout = io.StringIO()
+            with mock.patch.object(
+                cli_module.sys,
+                "argv",
+                ["qiongli", "subject", "reset", "--cwd", str(root), "--json"],
+            ), contextlib.redirect_stdout(stdout):
+                exit_code = cli_module.main()
+
+            payload = json.loads(stdout.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["manifest"]["active_subject"], "auto")
+        self.assertEqual(payload["manifest"]["subject_mode"], "auto")
+
+    def test_subject_lock_then_unlock_json_returns_confirmed_subject(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            with mock.patch.object(
+                cli_module.sys,
+                "argv",
+                ["qiongli", "subject", "lock", "economics", "--cwd", str(root), "--json"],
+            ), contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(cli_module.main(), 0)
+
+            stdout = io.StringIO()
+            with mock.patch.object(
+                cli_module.sys,
+                "argv",
+                ["qiongli", "subject", "unlock", "--cwd", str(root), "--json"],
+            ), contextlib.redirect_stdout(stdout):
+                exit_code = cli_module.main()
+
+            payload = json.loads(stdout.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["manifest"]["active_subject"], "economics")
+        self.assertEqual(payload["manifest"]["subject_mode"], "confirmed")
+
+    def test_subject_status_human_output_includes_subject_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            stdout = io.StringIO()
+
+            with mock.patch.object(
+                cli_module.sys,
+                "argv",
+                ["qiongli", "subject", "status", "--cwd", tmp_dir],
+            ), contextlib.redirect_stdout(stdout):
+                exit_code = cli_module.main()
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("active_subject:", stdout.getvalue())
+        self.assertIn("subject_mode:", stdout.getvalue())
+
+    def test_subject_status_reports_invalid_manifest_as_cli_error(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            manifest = root / ".qiongli" / "guidance_manifest.yaml"
+            manifest.parent.mkdir(parents=True)
+            manifest.write_text(
+                "active_subject: unknown\nsubject_mode: confirmed\n",
+                encoding="utf-8",
+            )
+            stderr = io.StringIO()
+
+            with mock.patch.object(
+                cli_module.sys,
+                "argv",
+                ["qiongli", "subject", "status", "--cwd", str(root)],
+            ), contextlib.redirect_stderr(stderr):
+                exit_code = cli_module.main()
+
+        self.assertEqual(exit_code, 2)
+        self.assertIn("qiongli subject:", stderr.getvalue())
+        self.assertIn("Unsupported active_subject: unknown", stderr.getvalue())
+
+    def test_subject_confirm_requires_subject_argument(self) -> None:
+        stderr = io.StringIO()
+        with mock.patch.object(
+            cli_module.sys,
+            "argv",
+            ["qiongli", "subject", "confirm"],
+        ), contextlib.redirect_stderr(stderr):
+            with self.assertRaises(SystemExit) as raised:
+                cli_module.main()
+
+        self.assertEqual(raised.exception.code, 2)
+
     def test_provider_set_and_list_redacts_global_config(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
