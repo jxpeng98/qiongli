@@ -1,0 +1,115 @@
+from __future__ import annotations
+
+import json
+import tempfile
+import unittest
+from pathlib import Path
+from unittest import mock
+
+from tooling.scripts.run_subject_runtime_smoke import (
+    FIXTURE_DIR,
+    SmokeCase,
+    load_smoke_cases,
+    run_smoke_suite,
+)
+
+
+class SubjectRuntimeSmokeTests(unittest.TestCase):
+    def test_load_smoke_cases_reads_all_fixtures(self) -> None:
+        cases = load_smoke_cases(FIXTURE_DIR)
+
+        names = {case.name for case in cases}
+        self.assertEqual(
+            names,
+            {
+                "no_subject_core_only",
+                "borrow_finance_lens",
+                "suggest_finance_subject",
+                "locked_economics_borrow_finance",
+            },
+        )
+        self.assertEqual([case.name for case in cases], sorted(names))
+        self.assertTrue(all(isinstance(case, SmokeCase) for case in cases))
+
+    def test_preview_suite_passes_and_writes_inside_isolated_project(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            workspace_root = Path(tmp_dir).resolve()
+            report = run_smoke_suite(
+                fixture_dir=FIXTURE_DIR,
+                workspace_root=workspace_root,
+                mode="preview",
+                selected_cases=[],
+            )
+
+            self.assertEqual(report["summary"]["failed"], 0)
+            self.assertEqual(report["summary"]["passed"], 4)
+            self.assertEqual(report["mode"], "preview")
+            for case in report["cases"]:
+                project_root = Path(case["project_root"]).resolve()
+                self.assertTrue(project_root.is_relative_to(workspace_root))
+                self.assertFalse(case["result"]["run_agents"])
+                self.assertEqual(case["status"], "passed")
+                for path in case["environment"].values():
+                    self.assertTrue(Path(path).resolve().is_relative_to(project_root))
+
+            created_names = {path.name for path in workspace_root.iterdir()}
+            self.assertEqual(
+                created_names,
+                {
+                    "no_subject_core_only",
+                    "borrow_finance_lens",
+                    "suggest_finance_subject",
+                    "locked_economics_borrow_finance",
+                },
+            )
+
+    def test_report_is_json_serializable_and_selected_cases_work(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            report = run_smoke_suite(
+                fixture_dir=FIXTURE_DIR,
+                workspace_root=Path(tmp_dir),
+                mode="preview",
+                selected_cases=["suggest_finance_subject"],
+            )
+
+        encoded = json.dumps(report, sort_keys=True)
+        decoded = json.loads(encoded)
+        self.assertEqual(decoded["summary"]["total"], 1)
+        self.assertEqual(decoded["summary"]["failed"], 0)
+        self.assertEqual(decoded["cases"][0]["name"], "suggest_finance_subject")
+
+    def test_local_agent_mode_requires_environment_opt_in(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            with mock.patch.dict("os.environ", {}, clear=True):
+                with self.assertRaises(RuntimeError) as raised:
+                    run_smoke_suite(
+                        fixture_dir=FIXTURE_DIR,
+                        workspace_root=Path(tmp_dir),
+                        mode="local-agent",
+                        selected_cases=["suggest_finance_subject"],
+                    )
+
+        self.assertIn("QIONGLI_SMOKE_RUN_AGENTS=1", str(raised.exception))
+
+    def test_suggest_finance_case_exposes_packet_v2_fields_when_available(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            report = run_smoke_suite(
+                fixture_dir=FIXTURE_DIR,
+                workspace_root=Path(tmp_dir),
+                mode="preview",
+                selected_cases=["suggest_finance_subject"],
+            )
+
+        preview = report["cases"][0]["result"]["data"]["task_run_preview"]
+        refinement = preview["subject_refinement"]
+        if "signals" not in refinement and "resource_activation_plan" not in refinement:
+            self.skipTest("subject refinement packet v2 fields are not present on this branch")
+
+        self.assertIn("signals", refinement)
+        self.assertIsInstance(refinement["signals"], list)
+        self.assertIn("resource_activation_plan", refinement)
+        self.assertIsInstance(refinement["resource_activation_plan"], dict)
+
+
+if __name__ == "__main__":
+    unittest.main()
