@@ -1,0 +1,782 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from importlib import resources as importlib_resources
+from pathlib import Path
+import re
+from typing import Any, Mapping
+
+import yaml
+
+from .project_manifest import ProjectManifest, ProjectManifestState
+
+
+CONTRACT_FILE = "subject-refinement-contract.yaml"
+
+SUBJECT_TO_DOMAIN = {
+    "auto": "auto",
+    "core": "auto",
+    "economics": "economics",
+    "accounting": "accounting",
+    "business": "business-management",
+    "finance": "finance",
+    "political-economy": "political-economy",
+    "geoeconomics": "geoeconomics",
+    "economics-accounting": "economics",
+}
+
+DEFAULT_OVERLAYS = {
+    "economics": "overlays/economics.yaml",
+    "finance": "overlays/finance.yaml",
+}
+DEFAULT_SUBJECT_SKILLS = {
+    "economics": "skills/economics/SKILL.md",
+    "finance": "skills/finance/SKILL.md",
+}
+DEFAULT_METHOD_PACKS = {
+    "economics": {
+        "did": "method-packs/economics/did.yaml",
+        "causal-identification": "method-packs/economics/causal-identification.yaml",
+    },
+    "finance": {
+        "event-study": "method-packs/finance/event-study.yaml",
+        "asset-pricing": "method-packs/finance/asset-pricing.yaml",
+    },
+}
+
+FINANCE_METHOD_PATTERNS = {
+    "event-study": re.compile(
+        r"\b(event[- ]study|event windows?|announcement windows?)\b",
+        re.I,
+    ),
+    "asset-pricing": re.compile(
+        r"\b(asset pricing|factor models?|factor exposures?)\b",
+        re.I,
+    ),
+}
+FINANCE_DATA_OUTCOME_PATTERNS = (
+    re.compile(r"\b(CRSP|Compustat)\b", re.I),
+    re.compile(
+        r"\b(abnormal returns?|stock returns?|market returns?|portfolio returns?|"
+        r"asset returns?|factor returns?|return predictability)\b",
+        re.I,
+    ),
+)
+FINANCE_VENUE_PATTERNS = (
+    re.compile(r"\b(Journal of Finance|JF)\b", re.I),
+    re.compile(r"\b(Journal of Financial Economics|JFE)\b", re.I),
+    re.compile(r"\b(Review of Financial Studies|RFS)\b", re.I),
+)
+
+ECONOMICS_METHOD_PATTERNS = {
+    "did": re.compile(
+        r"\bDID\b|(?i:\bdifference[- ]in[- ]differences\b|"
+        r"\bparallel trends?\b|\bpre[- ]trends?\b)"
+    ),
+    "causal-identification": re.compile(
+        r"\b(causal identification|instrumental variables?|"
+        r"regression discontinuity|identification strategy)\b",
+        re.I,
+    ),
+}
+ECONOMICS_VENUE_PATTERNS = (
+    re.compile(r"\b(American Economic Review|AER)\b", re.I),
+    re.compile(r"\b(Quarterly Journal of Economics|QJE)\b", re.I),
+    re.compile(r"\b(Journal of Political Economy|JPE)\b", re.I),
+)
+
+
+@dataclass(frozen=True)
+class SubjectSignals:
+    finance_method_lenses: list[str]
+    finance_data_outcomes: list[str]
+    finance_venues: list[str]
+    economics_method_lenses: list[str]
+    economics_venues: list[str]
+    evidence: list[str]
+
+    @property
+    def has_any(self) -> bool:
+        return bool(
+            self.finance_method_lenses
+            or self.finance_data_outcomes
+            or self.finance_venues
+            or self.economics_method_lenses
+            or self.economics_venues
+        )
+
+    @property
+    def has_strong_finance(self) -> bool:
+        return bool(
+            self.finance_method_lenses
+            and self.finance_data_outcomes
+            and self.finance_venues
+        )
+
+    @property
+    def has_economics_subject_signal(self) -> bool:
+        return bool(self.economics_method_lenses)
+
+
+@dataclass(frozen=True)
+class ContractLoadResult:
+    contract: Mapping[str, Any]
+    warnings: list[str]
+
+
+@dataclass(frozen=True)
+class SubjectRefinementPacket:
+    decision: str
+    mode: str
+    active_subject: str
+    primary_subject: str
+    secondary_subjects: list[str]
+    candidate_subjects: list[dict[str, Any]]
+    method_lenses: list[str]
+    borrowed_lenses: list[dict[str, Any]]
+    loaded_resources: dict[str, Any]
+    persistence: dict[str, Any]
+    summary: str
+    domain: str
+    confidence: float = 0.0
+    evidence: list[str] | None = None
+
+    def to_packet(self) -> dict[str, Any]:
+        return {
+            "decision": self.decision,
+            "mode": self.mode,
+            "active_subject": self.active_subject,
+            "primary_subject": self.primary_subject,
+            "secondary_subjects": list(self.secondary_subjects),
+            "candidate_subjects": [
+                _copy_record(candidate)
+                for candidate in self.candidate_subjects
+            ],
+            "method_lenses": list(self.method_lenses),
+            "borrowed_lenses": [_copy_record(lens) for lens in self.borrowed_lenses],
+            "loaded_resources": {
+                key: list(value) if isinstance(value, list) else value
+                for key, value in self.loaded_resources.items()
+            },
+            "persistence": dict(self.persistence),
+            "summary": self.summary,
+            "domain": self.domain,
+            "confidence": self.confidence,
+            "evidence": list(self.evidence or []),
+        }
+
+
+def infer_subject_refinement(
+    task_packet: Mapping[str, Any],
+    *,
+    manifest_state: ProjectManifestState | ProjectManifest | Mapping[str, Any],
+    draft_content: str = "",
+    review_content: str = "",
+    merged_analysis: str = "",
+    standards_dir: str | Path | None = None,
+) -> SubjectRefinementPacket:
+    manifest = _coerce_manifest(manifest_state)
+    text = _collect_text(task_packet, draft_content, review_content, merged_analysis)
+    signals = _detect_signals(text)
+    contract_result = _load_contract(standards_dir)
+    contract = contract_result.contract
+
+    if manifest.subject_mode == "locked":
+        borrowed_lenses = _borrowed_lenses(manifest.active_subject, signals)
+        method_lenses = list(manifest.method_lenses or [])
+        return SubjectRefinementPacket(
+            decision="lock_subject",
+            mode="locked",
+            active_subject=manifest.active_subject,
+            primary_subject=manifest.active_subject,
+            secondary_subjects=list(manifest.secondary_subjects or []),
+            candidate_subjects=_candidate_subjects(signals),
+            method_lenses=method_lenses,
+            borrowed_lenses=borrowed_lenses,
+            loaded_resources=_loaded_resources(
+                ["subject_overlay", "subject_skill"]
+                + (["method_pack_only"] if borrowed_lenses else []),
+                primary_subject=manifest.active_subject,
+                method_lenses=method_lenses,
+                borrowed_lenses=borrowed_lenses,
+                contract=contract,
+                contract_warnings=contract_result.warnings,
+            ),
+            persistence={"status": "locked"},
+            summary=_summary(
+                "Locked project subject remains active.",
+                manifest.active_subject,
+                borrowed_lenses,
+            ),
+            domain=_domain_for_subject(manifest.active_subject),
+            confidence=1.0,
+            evidence=signals.evidence,
+        )
+
+    if manifest.subject_mode == "confirmed":
+        method_lenses = _unique(list(manifest.method_lenses or []))
+        return SubjectRefinementPacket(
+            decision="confirm_subject",
+            mode="confirmed",
+            active_subject=manifest.active_subject,
+            primary_subject=manifest.active_subject,
+            secondary_subjects=list(manifest.secondary_subjects or []),
+            candidate_subjects=_candidate_subjects(signals),
+            method_lenses=method_lenses,
+            borrowed_lenses=[],
+            loaded_resources=_loaded_resources(
+                ["subject_overlay", "subject_skill"],
+                primary_subject=manifest.active_subject,
+                method_lenses=method_lenses,
+                borrowed_lenses=[],
+                contract=contract,
+                contract_warnings=contract_result.warnings,
+            ),
+            persistence={"status": "applied"},
+            summary=f"Confirmed project subject '{manifest.active_subject}' controls this task.",
+            domain=_domain_for_subject(manifest.active_subject),
+            confidence=1.0,
+            evidence=signals.evidence,
+        )
+
+    if signals.has_strong_finance:
+        method_lenses = _unique(signals.finance_method_lenses)
+        return SubjectRefinementPacket(
+            decision="suggest_subject",
+            mode="suggested",
+            active_subject=manifest.active_subject,
+            primary_subject="finance",
+            secondary_subjects=list(manifest.secondary_subjects or []),
+            candidate_subjects=_candidate_subjects(signals, preferred="finance"),
+            method_lenses=method_lenses,
+            borrowed_lenses=[],
+            loaded_resources=_loaded_resources(
+                ["subject_overlay", "subject_skill", "method_pack"],
+                primary_subject="finance",
+                method_lenses=method_lenses,
+                borrowed_lenses=[],
+                contract=contract,
+                contract_warnings=contract_result.warnings,
+            ),
+            persistence={"status": "proposed"},
+            summary="Finance subject suggested from method, data/outcome, and venue signals.",
+            domain="finance",
+            confidence=0.85,
+            evidence=signals.evidence,
+        )
+
+    if signals.has_economics_subject_signal:
+        method_lenses = _unique(signals.economics_method_lenses)
+        return SubjectRefinementPacket(
+            decision="suggest_subject",
+            mode="suggested",
+            active_subject=manifest.active_subject,
+            primary_subject="economics",
+            secondary_subjects=list(manifest.secondary_subjects or []),
+            candidate_subjects=_candidate_subjects(signals, preferred="economics"),
+            method_lenses=method_lenses,
+            borrowed_lenses=[],
+            loaded_resources=_loaded_resources(
+                ["subject_overlay", "subject_skill", "method_pack"],
+                primary_subject="economics",
+                method_lenses=method_lenses,
+                borrowed_lenses=[],
+                contract=contract,
+                contract_warnings=contract_result.warnings,
+            ),
+            persistence={"status": "proposed"},
+            summary="Economics subject suggested from causal-method signals.",
+            domain="economics",
+            confidence=0.7,
+            evidence=signals.evidence,
+        )
+
+    if signals.finance_method_lenses and manifest.active_subject != "finance":
+        borrowed_lenses = _borrowed_lenses(manifest.active_subject, signals)
+        return SubjectRefinementPacket(
+            decision="borrow_lens",
+            mode="auto",
+            active_subject=manifest.active_subject,
+            primary_subject=manifest.active_subject,
+            secondary_subjects=list(manifest.secondary_subjects or []),
+            candidate_subjects=_candidate_subjects(signals, preferred="finance"),
+            method_lenses=_unique(list(manifest.method_lenses or [])),
+            borrowed_lenses=borrowed_lenses,
+            loaded_resources=_loaded_resources(
+                ["method_pack_only"],
+                primary_subject=manifest.active_subject,
+                method_lenses=[],
+                borrowed_lenses=borrowed_lenses,
+                contract=contract,
+                contract_warnings=contract_result.warnings,
+            ),
+            persistence={"status": "temporary"},
+            summary=_summary(
+                "Borrowing finance method lens without changing the project subject.",
+                manifest.active_subject,
+                borrowed_lenses,
+            ),
+            domain=_domain_for_subject(manifest.active_subject),
+            confidence=0.45,
+            evidence=signals.evidence,
+        )
+
+    return SubjectRefinementPacket(
+        decision="no_subject",
+        mode="auto",
+        active_subject="auto",
+        primary_subject="auto",
+        secondary_subjects=[],
+        candidate_subjects=[],
+        method_lenses=[],
+        borrowed_lenses=[],
+        loaded_resources=_loaded_resources(
+            ["core_only"],
+            primary_subject="auto",
+            method_lenses=[],
+            borrowed_lenses=[],
+            contract=contract,
+            contract_warnings=contract_result.warnings,
+        ),
+        persistence={"status": "none"},
+        summary="No subject-specific signal detected; using core guidance only.",
+        domain="auto",
+        confidence=0.0,
+        evidence=[],
+    )
+
+
+def _coerce_manifest(
+    manifest_state: ProjectManifestState | ProjectManifest | Mapping[str, Any],
+) -> ProjectManifest:
+    if isinstance(manifest_state, ProjectManifest):
+        return manifest_state.normalized()
+    if isinstance(manifest_state, ProjectManifestState):
+        return manifest_state.manifest.normalized()
+    if isinstance(manifest_state, Mapping):
+        payload = manifest_state.get("manifest", manifest_state)
+        if isinstance(payload, Mapping):
+            active_subject = payload.get("active_subject", "auto")
+            subject_mode = payload.get("subject_mode")
+            if subject_mode is None:
+                subject_mode = "confirmed" if active_subject != "auto" else "auto"
+            return ProjectManifest(
+                active_subject=active_subject,
+                subject_mode=subject_mode,
+                secondary_subjects=payload.get("secondary_subjects"),
+                venue_profiles=payload.get("venue_profiles"),
+                method_lenses=payload.get("method_lenses"),
+                strictness=payload.get("strictness", "standard"),
+            ).normalized()
+    return ProjectManifest().normalized()
+
+
+def _collect_text(
+    task_packet: Mapping[str, Any],
+    draft_content: str,
+    review_content: str,
+    merged_analysis: str,
+) -> str:
+    parts = [_stringify_task_value(value) for value in task_packet.values()]
+    parts.extend([draft_content or "", review_content or "", merged_analysis or ""])
+    return " ".join(part for part in parts if part)
+
+
+def _stringify_task_value(value: Any) -> str:
+    if isinstance(value, str):
+        return value
+    if isinstance(value, Mapping):
+        return " ".join(_stringify_task_value(item) for item in value.values())
+    if isinstance(value, list | tuple | set):
+        return " ".join(_stringify_task_value(item) for item in value)
+    return ""
+
+
+def _detect_signals(text: str) -> SubjectSignals:
+    finance_method_lenses = _hits(FINANCE_METHOD_PATTERNS, text)
+    economics_method_lenses = _hits(ECONOMICS_METHOD_PATTERNS, text)
+    finance_data_outcomes = _pattern_labels(
+        {
+            "finance-data": FINANCE_DATA_OUTCOME_PATTERNS[0],
+            "finance-outcome": FINANCE_DATA_OUTCOME_PATTERNS[1],
+        },
+        text,
+    )
+    finance_venues = _pattern_labels(
+        {
+            "journal-of-finance": FINANCE_VENUE_PATTERNS[0],
+            "journal-of-financial-economics": FINANCE_VENUE_PATTERNS[1],
+            "review-of-financial-studies": FINANCE_VENUE_PATTERNS[2],
+        },
+        text,
+    )
+    economics_venues = _pattern_labels(
+        {
+            "american-economic-review": ECONOMICS_VENUE_PATTERNS[0],
+            "quarterly-journal-of-economics": ECONOMICS_VENUE_PATTERNS[1],
+            "journal-of-political-economy": ECONOMICS_VENUE_PATTERNS[2],
+        },
+        text,
+    )
+    return SubjectSignals(
+        finance_method_lenses=finance_method_lenses,
+        finance_data_outcomes=finance_data_outcomes,
+        finance_venues=finance_venues,
+        economics_method_lenses=economics_method_lenses,
+        economics_venues=economics_venues,
+        evidence=_evidence(text),
+    )
+
+
+def _hits(patterns: Mapping[str, re.Pattern[str]], text: str) -> list[str]:
+    return [name for name, pattern in patterns.items() if pattern.search(text)]
+
+
+def _pattern_labels(patterns: Mapping[str, re.Pattern[str]], text: str) -> list[str]:
+    return [name for name, pattern in patterns.items() if pattern.search(text)]
+
+
+def _evidence(text: str) -> list[str]:
+    patterns = [
+        *FINANCE_METHOD_PATTERNS.values(),
+        *FINANCE_DATA_OUTCOME_PATTERNS,
+        *FINANCE_VENUE_PATTERNS,
+        *ECONOMICS_METHOD_PATTERNS.values(),
+        *ECONOMICS_VENUE_PATTERNS,
+    ]
+    snippets: list[str] = []
+    for pattern in patterns:
+        match = pattern.search(text)
+        if not match:
+            continue
+        start = max(0, match.start() - 40)
+        end = min(len(text), match.end() + 40)
+        snippet = " ".join(text[start:end].split())
+        if snippet not in snippets:
+            snippets.append(snippet)
+    return snippets[:5]
+
+
+def _candidate_subjects(
+    signals: SubjectSignals,
+    *,
+    preferred: str | None = None,
+) -> list[dict[str, Any]]:
+    subjects: list[str] = []
+    if preferred:
+        subjects.append(preferred)
+    if (
+        signals.finance_method_lenses
+        or signals.finance_data_outcomes
+        or signals.finance_venues
+    ):
+        subjects.append("finance")
+    if signals.economics_method_lenses or signals.economics_venues:
+        subjects.append("economics")
+    return [
+        _candidate_subject_record(subject, signals)
+        for subject in _unique(subjects)
+    ]
+
+
+def _candidate_subject_record(subject: str, signals: SubjectSignals) -> dict[str, Any]:
+    if subject == "finance":
+        matched_dimensions: list[str] = []
+        if signals.finance_method_lenses:
+            matched_dimensions.append("method")
+        if signals.finance_data_outcomes:
+            matched_dimensions.append("data_or_outcome")
+        if signals.finance_venues:
+            matched_dimensions.append("venue")
+        return {
+            "subject": "finance",
+            "confidence": _candidate_confidence("finance", matched_dimensions),
+            "evidence": list(signals.evidence),
+            "matched_dimensions": matched_dimensions,
+            "method_lenses": list(signals.finance_method_lenses),
+        }
+    if subject == "economics":
+        matched_dimensions = []
+        if signals.economics_method_lenses:
+            matched_dimensions.append("method")
+        if signals.economics_venues:
+            matched_dimensions.append("venue")
+        return {
+            "subject": "economics",
+            "confidence": _candidate_confidence("economics", matched_dimensions),
+            "evidence": list(signals.evidence),
+            "matched_dimensions": matched_dimensions,
+            "method_lenses": list(signals.economics_method_lenses),
+        }
+    return {
+        "subject": subject,
+        "confidence": 0.0,
+        "evidence": [],
+        "matched_dimensions": [],
+        "method_lenses": [],
+    }
+
+
+def _candidate_confidence(subject: str, matched_dimensions: list[str]) -> float:
+    if subject == "finance":
+        if matched_dimensions == ["method", "data_or_outcome", "venue"]:
+            return 0.85
+        if "method" in matched_dimensions:
+            return 0.45 + 0.1 * (len(matched_dimensions) - 1)
+        return 0.25
+    if subject == "economics":
+        if "method" in matched_dimensions:
+            return 0.7
+        return 0.35
+    return 0.0
+
+
+def _borrowed_lenses(active_subject: str, signals: SubjectSignals) -> list[dict[str, Any]]:
+    lenses: list[dict[str, Any]] = []
+    if active_subject != "finance":
+        lenses.extend(
+            _borrowed_lens_record(
+                "finance",
+                lens,
+                reason=(
+                    "finance method-only signal; keep active subject"
+                    if not signals.has_strong_finance
+                    else "locked subject; borrow neighboring finance lens without replacing active subject"
+                ),
+            )
+            for lens in signals.finance_method_lenses
+        )
+    if active_subject != "economics":
+        lenses.extend(
+            _borrowed_lens_record(
+                "economics",
+                lens,
+                reason="borrow neighboring economics method lens without replacing active subject",
+            )
+            for lens in signals.economics_method_lenses
+        )
+    return _unique_records(lenses, key="lens")
+
+
+def _borrowed_lens_record(source_subject: str, lens: str, *, reason: str) -> dict[str, Any]:
+    return {
+        "source_subject": source_subject,
+        "lens": lens,
+        "resource_level": "method_pack_only",
+        "reason": reason,
+    }
+
+
+def _loaded_resources(
+    levels: list[str],
+    *,
+    primary_subject: str,
+    method_lenses: list[str],
+    borrowed_lenses: list[dict[str, Any]],
+    contract: Mapping[str, Any],
+    contract_warnings: list[str],
+) -> dict[str, Any]:
+    overlays = _subject_resource_map(contract, "overlays", DEFAULT_OVERLAYS)
+    subject_skills = _subject_resource_map(
+        contract,
+        "subject_skills",
+        DEFAULT_SUBJECT_SKILLS,
+    )
+    method_packs = _method_pack_map(contract)
+    method_pack_resources = _method_pack_resources(
+        method_lenses + _borrowed_lens_names(borrowed_lenses),
+        method_packs,
+    )
+    loaded_levels = list(levels)
+    if method_lenses and method_pack_resources and "method_pack" not in loaded_levels:
+        loaded_levels.append("method_pack")
+
+    loaded_overlays: list[str] = []
+    loaded_subject_skills: list[str] = []
+    if primary_subject not in {"auto", "core"} and (
+        "subject_overlay" in levels or "subject_skill" in levels
+    ):
+        overlay = overlays.get(primary_subject)
+        skill = subject_skills.get(primary_subject)
+        if overlay:
+            loaded_overlays.append(overlay)
+        if skill:
+            loaded_subject_skills.append(skill)
+
+    return {
+        "levels": loaded_levels,
+        "overlays": loaded_overlays,
+        "subject_skills": loaded_subject_skills,
+        "method_packs": method_pack_resources,
+        "standards": [CONTRACT_FILE] if contract else [],
+        "contract_warnings": list(contract_warnings),
+    }
+
+
+def _load_contract(standards_dir: str | Path | None) -> ContractLoadResult:
+    warnings: list[str] = []
+    candidates = _contract_candidates(standards_dir)
+    explicit_candidate = candidates[0] if standards_dir is not None and candidates else None
+
+    for candidate in candidates:
+        if not candidate.is_file():
+            if explicit_candidate is not None and candidate == explicit_candidate:
+                warnings.append(f"Missing subject refinement contract: {candidate}")
+            continue
+        try:
+            loaded = yaml.safe_load(candidate.read_text(encoding="utf-8")) or {}
+        except yaml.YAMLError as exc:
+            warnings.append(f"Malformed subject refinement contract at {candidate}: {exc}")
+            continue
+        if not isinstance(loaded, Mapping):
+            warnings.append(
+                f"Malformed subject refinement contract at {candidate}: expected YAML object"
+            )
+            continue
+        return ContractLoadResult(contract=loaded, warnings=warnings)
+
+    checked = ", ".join(str(candidate) for candidate in candidates)
+    if checked:
+        warnings.append(f"Missing subject refinement contract; checked: {checked}")
+    else:
+        warnings.append("Missing subject refinement contract; no lookup candidates were available")
+    return ContractLoadResult(contract={}, warnings=warnings)
+
+
+def _contract_candidates(standards_dir: str | Path | None) -> list[Any]:
+    candidates: list[Any] = []
+    if standards_dir is not None:
+        explicit = Path(standards_dir).expanduser()
+        candidates.append(explicit if explicit.name == CONTRACT_FILE else explicit / CONTRACT_FILE)
+
+    runtime_file = Path(__file__).resolve()
+    for parent in runtime_file.parents:
+        candidates.append(parent / "content" / "standards" / CONTRACT_FILE)
+
+    try:
+        package_root = importlib_resources.files("qiongli")
+    except ModuleNotFoundError:
+        package_root = None
+    if package_root is not None:
+        candidates.append(package_root / "payload" / "qiongli-workflow" / "standards" / CONTRACT_FILE)
+
+    for parent in runtime_file.parents:
+        candidates.append(parent / "payload" / "qiongli-workflow" / "standards" / CONTRACT_FILE)
+
+    return _unique_candidates(candidates)
+
+
+def _subject_resource_map(
+    contract: Mapping[str, Any],
+    key: str,
+    fallback: Mapping[str, str],
+) -> dict[str, str]:
+    values = contract.get(key)
+    if not isinstance(values, Mapping):
+        return dict(fallback)
+    resources = dict(fallback)
+    for subject, resource in values.items():
+        if isinstance(subject, str) and isinstance(resource, str):
+            resources[subject] = resource
+    return resources
+
+
+def _method_pack_map(contract: Mapping[str, Any]) -> dict[str, dict[str, str]]:
+    resources = {subject: dict(lenses) for subject, lenses in DEFAULT_METHOD_PACKS.items()}
+    configured = contract.get("method_lenses")
+    if not isinstance(configured, Mapping):
+        return resources
+    for subject, lenses in configured.items():
+        if not isinstance(subject, str) or not isinstance(lenses, Mapping):
+            continue
+        subject_resources = resources.setdefault(subject, {})
+        for lens, details in lenses.items():
+            if not isinstance(lens, str) or not isinstance(details, Mapping):
+                continue
+            resource = details.get("resource")
+            if isinstance(resource, str):
+                subject_resources[lens] = resource
+    return resources
+
+
+def _method_pack_resources(
+    lenses: list[str],
+    method_packs: Mapping[str, Mapping[str, str]],
+) -> list[str]:
+    resources: list[str] = []
+    for lens in lenses:
+        for subject_packs in method_packs.values():
+            resource = subject_packs.get(lens)
+            if resource:
+                resources.append(resource)
+                break
+    return _unique(resources)
+
+
+def _summary(prefix: str, active_subject: str, borrowed_lenses: list[dict[str, Any]]) -> str:
+    lens_names = _borrowed_lens_names(borrowed_lenses)
+    if lens_names:
+        return (
+            f"{prefix} active_subject={active_subject}; "
+            f"borrowed_lenses={', '.join(lens_names)}."
+        )
+    return f"{prefix} active_subject={active_subject}."
+
+
+def _domain_for_subject(subject: str) -> str:
+    return SUBJECT_TO_DOMAIN.get(subject, "auto")
+
+
+def _unique(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    unique_values: list[str] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        unique_values.append(value)
+    return unique_values
+
+
+def _unique_records(records: list[dict[str, Any]], *, key: str) -> list[dict[str, Any]]:
+    seen: set[Any] = set()
+    unique_values: list[dict[str, Any]] = []
+    for record in records:
+        value = record.get(key)
+        if value in seen:
+            continue
+        seen.add(value)
+        unique_values.append(record)
+    return unique_values
+
+
+def _borrowed_lens_names(borrowed_lenses: list[dict[str, Any]]) -> list[str]:
+    return [
+        str(record["lens"])
+        for record in borrowed_lenses
+        if isinstance(record, Mapping) and isinstance(record.get("lens"), str)
+    ]
+
+
+def _copy_record(record: Mapping[str, Any]) -> dict[str, Any]:
+    copied: dict[str, Any] = {}
+    for key, value in record.items():
+        if isinstance(value, list):
+            copied[key] = list(value)
+        elif isinstance(value, Mapping):
+            copied[key] = dict(value)
+        else:
+            copied[key] = value
+    return copied
+
+
+def _unique_candidates(candidates: list[Any]) -> list[Any]:
+    seen: set[str] = set()
+    unique_values: list[Any] = []
+    for candidate in candidates:
+        marker = str(candidate)
+        if marker in seen:
+            continue
+        seen.add(marker)
+        unique_values.append(candidate)
+    return unique_values

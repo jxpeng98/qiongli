@@ -1,27 +1,9 @@
 from __future__ import annotations
 
-import re
 from typing import Any
 
-
-FINANCE_PATTERNS = {
-    "asset-pricing": re.compile(
-        r"\b(asset pricing|factor model|factor exposure|portfolio|"
-        r"stock returns?|asset returns?|portfolio returns?|market returns?|"
-        r"abnormal returns?|expected returns?|return predictability)\b",
-        re.I,
-    ),
-    "event-study": re.compile(r"\b(event study|event window|abnormal returns?|leakage)\b", re.I),
-}
-ECONOMICS_PATTERNS = {
-    "did": re.compile(
-        r"\b(DID|(?i:difference[- ]in[- ]differences|parallel trends?|pre[- ]trends?))\b"
-    ),
-    "causal-identification": re.compile(
-        r"\b(causal identification|instrumental variable|regression discontinuity|identification)\b",
-        re.I,
-    ),
-}
+from .project_manifest import ProjectManifest
+from .subject_refinement import infer_subject_refinement
 
 
 def infer_project_manifest_suggestion(
@@ -31,46 +13,46 @@ def infer_project_manifest_suggestion(
     review_content: str,
     merged_analysis: str,
 ) -> dict[str, Any]:
-    text = " ".join(
-        [
-            str(task_packet.get("topic", "")),
-            str(task_packet.get("context", "")),
-            draft_content or "",
-            review_content or "",
-            merged_analysis or "",
-        ]
+    refinement = infer_subject_refinement(
+        task_packet,
+        manifest_state=ProjectManifest(),
+        draft_content=draft_content,
+        review_content=review_content,
+        merged_analysis=merged_analysis,
     )
-    finance_hits = _hits(FINANCE_PATTERNS, text)
-    economics_hits = _hits(ECONOMICS_PATTERNS, text)
-    if len(finance_hits) > len(economics_hits) and finance_hits:
-        return {
-            "active_subject": "finance",
-            "method_lenses": finance_hits,
-            "confidence": min(0.95, 0.55 + 0.15 * len(finance_hits)),
-            "evidence": _evidence(text, FINANCE_PATTERNS),
-        }
-    if len(economics_hits) >= len(finance_hits) and economics_hits:
-        return {
-            "active_subject": "economics",
-            "method_lenses": economics_hits,
-            "confidence": min(0.95, 0.55 + 0.15 * len(economics_hits)),
-            "evidence": _evidence(text, ECONOMICS_PATTERNS),
-        }
-    return {"active_subject": "auto", "method_lenses": [], "confidence": 0.0, "evidence": []}
+    packet = refinement.to_packet()
+    active_subject = packet["active_subject"]
+    subject_mode = packet["mode"]
+    if packet["decision"] == "suggest_subject":
+        active_subject = packet["primary_subject"]
+        subject_mode = "suggested"
+
+    return {
+        "active_subject": active_subject,
+        "subject_mode": subject_mode,
+        "method_lenses": _unique(
+            packet["method_lenses"] + _borrowed_lens_names(packet["borrowed_lenses"])
+        ),
+        "confidence": refinement.confidence,
+        "evidence": list(refinement.evidence or []),
+        "subject_refinement": packet,
+    }
 
 
-def _hits(patterns: dict[str, re.Pattern[str]], text: str) -> list[str]:
-    return [name for name, pattern in patterns.items() if pattern.search(text)]
+def _unique(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    unique_values: list[str] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        unique_values.append(value)
+    return unique_values
 
 
-def _evidence(text: str, patterns: dict[str, re.Pattern[str]]) -> list[str]:
-    snippets: list[str] = []
-    for pattern in patterns.values():
-        match = pattern.search(text)
-        if match:
-            start = max(0, match.start() - 40)
-            end = min(len(text), match.end() + 40)
-            snippet = " ".join(text[start:end].split())
-            if snippet not in snippets:
-                snippets.append(snippet)
-    return snippets[:3]
+def _borrowed_lens_names(borrowed_lenses: list[dict[str, Any]]) -> list[str]:
+    return [
+        str(record["lens"])
+        for record in borrowed_lenses
+        if isinstance(record, dict) and isinstance(record.get("lens"), str)
+    ]
