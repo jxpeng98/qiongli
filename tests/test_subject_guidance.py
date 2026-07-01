@@ -312,6 +312,52 @@ class SubjectGuidanceTests(unittest.TestCase):
 
             self.assertEqual(outside_file.read_text(encoding="utf-8"), "outside original\n")
 
+    def test_write_rejects_managed_marker_in_method_lenses_without_creating_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+
+            with self.assertRaisesRegex(SubjectGuidanceError, "managed marker"):
+                write_subject_guidance(
+                    root,
+                    active_subject="finance",
+                    subject_mode="confirmed",
+                    lifecycle_action="confirm",
+                    source="cli",
+                    method_lenses=[START_MARKER],
+                )
+
+            self.assertFalse((root / SUBJECT_GUIDANCE_REL).exists())
+
+    def test_write_rejects_managed_marker_in_resource_levels_without_mutation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            write_subject_guidance(
+                root,
+                active_subject="finance",
+                subject_mode="confirmed",
+                lifecycle_action="confirm",
+                source="cli",
+            )
+            path = root / SUBJECT_GUIDANCE_REL
+            original_text = path.read_text(encoding="utf-8")
+
+            with self.assertRaisesRegex(SubjectGuidanceError, "managed marker"):
+                write_subject_guidance(
+                    root,
+                    active_subject="finance",
+                    subject_mode="confirmed",
+                    lifecycle_action="confirm",
+                    source="cli",
+                    resource_activation_plan={
+                        "levels": {
+                            f"subject_overlay {END_MARKER}": "confirmed",
+                            "method_pack": START_MARKER,
+                        }
+                    },
+                )
+
+            self.assertEqual(path.read_text(encoding="utf-8"), original_text)
+
     def _symlink_or_skip(
         self,
         target: Path,

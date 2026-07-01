@@ -412,7 +412,10 @@ def _append_document(text: str, block: str) -> str:
 
 
 def _clean_scalar(value: str) -> str:
-    return value.strip().replace("\n", " ")
+    cleaned = value.strip().replace("\n", " ")
+    if START_MARKER in cleaned or END_MARKER in cleaned:
+        raise SubjectGuidanceError("managed marker is not allowed in subject guidance values")
+    return cleaned
 
 
 def _timestamp() -> str:
