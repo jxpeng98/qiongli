@@ -218,12 +218,13 @@ def _render_active_block(
     method_lenses: Sequence[str] | None,
     resource_activation_plan: Mapping[str, Any] | None,
 ) -> str:
+    clean_subject_mode = _clean_scalar(subject_mode)
     lines = [
         START_MARKER,
         "schema_version: 1.0",
         "managed_by: qiongli",
         f"active_subject: {_clean_scalar(active_subject)}",
-        f"subject_mode: {_clean_scalar(subject_mode)}",
+        f"subject_mode: {clean_subject_mode}",
         f"updated_at: {updated_at}",
         f"updated_by: {_clean_scalar(source)}",
         f"lifecycle_action: {_clean_scalar(lifecycle_action)}",
@@ -246,7 +247,7 @@ def _render_active_block(
             ),
         ]
     )
-    if subject_mode == "locked":
+    if clean_subject_mode == "locked":
         lines.append("- Do not automatically replace the active subject.")
     lines.extend(
         [
@@ -257,7 +258,10 @@ def _render_active_block(
             "",
             "## Resource Activation",
             "",
-            *_render_resource_activation(resource_activation_plan, subject_mode=subject_mode),
+            *_render_resource_activation(
+                resource_activation_plan,
+                subject_mode=clean_subject_mode,
+            ),
             "",
             "## Evidence And Trace Anchors",
             "",

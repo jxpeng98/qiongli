@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from bridges import subject_guidance as subject_guidance_module
 from bridges.subject_guidance import (
     END_MARKER,
     START_MARKER,
@@ -357,6 +358,29 @@ class SubjectGuidanceTests(unittest.TestCase):
                 )
 
             self.assertEqual(path.read_text(encoding="utf-8"), original_text)
+
+    def test_write_rejects_managed_marker_in_subject_mode_without_creating_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+
+            with self.assertRaisesRegex(SubjectGuidanceError, "managed marker"):
+                write_subject_guidance(
+                    root,
+                    active_subject="finance",
+                    subject_mode=START_MARKER,
+                    lifecycle_action="confirm",
+                    source="cli",
+                    resource_activation_plan={"levels": ["subject_overlay"]},
+                )
+
+            self.assertFalse((root / SUBJECT_GUIDANCE_REL).exists())
+
+    def test_resource_activation_rejects_managed_marker_in_subject_mode(self) -> None:
+        with self.assertRaisesRegex(SubjectGuidanceError, "managed marker"):
+            subject_guidance_module._render_resource_activation(  # noqa: SLF001
+                {"levels": ["subject_overlay"]},
+                subject_mode=START_MARKER,
+            )
 
     def _symlink_or_skip(
         self,
