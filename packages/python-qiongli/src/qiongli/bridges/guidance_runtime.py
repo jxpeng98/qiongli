@@ -529,40 +529,60 @@ def _load_subject_evidence(paths: GuidancePaths) -> dict[str, Any]:
                 f"Invalid subject evidence memory at {_rel(paths.project_root, path)}: expected object"
             ],
         }
-    subjects = loaded.get("subjects")
-    if not isinstance(subjects, Mapping):
-        return {
-            **empty,
-            "warnings": [
-                f"Invalid subject evidence memory at {_rel(paths.project_root, path)}: expected subjects object"
-            ],
-        }
-    memory = {"schema_version": "1.0", "subjects": {}}
+    memory = dict(loaded)
+    memory["schema_version"] = "1.0"
+    memory["subjects"] = {}
     loaded_warnings = loaded.get("warnings")
     memory_warnings = (
         [item.strip() for item in loaded_warnings if isinstance(item, str) and item.strip()]
         if isinstance(loaded_warnings, list)
         else []
     )
-    for subject, record in subjects.items():
-        if not isinstance(subject, str):
-            memory_warnings.append("Invalid subject evidence memory record: subject key must be a string")
-            continue
-        if not isinstance(record, Mapping):
-            memory_warnings.append(
-                f"Invalid subject evidence memory for {subject}: expected object"
-            )
-            memory["subjects"][subject] = {"suggestion_count": 0}
-            continue
-        current = dict(record)
-        current["suggestion_count"] = _safe_non_negative_int(
-            current.get("suggestion_count", 0),
-            warnings=memory_warnings,
-            label=f"{subject}.suggestion_count",
+    subjects = loaded.get("subjects")
+    if not isinstance(subjects, Mapping):
+        memory_warnings.append(
+            f"Invalid subject evidence memory at {_rel(paths.project_root, path)}: expected subjects object"
         )
-        memory["subjects"][subject] = current
+    else:
+        for subject, record in subjects.items():
+            if not isinstance(subject, str):
+                memory_warnings.append("Invalid subject evidence memory record: subject key must be a string")
+                continue
+            if not isinstance(record, Mapping):
+                memory_warnings.append(
+                    f"Invalid subject evidence memory for {subject}: expected object"
+                )
+                memory["subjects"][subject] = {"suggestion_count": 0}
+                continue
+            current = dict(record)
+            current["suggestion_count"] = _safe_non_negative_int(
+                current.get("suggestion_count", 0),
+                warnings=memory_warnings,
+                label=f"{subject}.suggestion_count",
+            )
+            memory["subjects"][subject] = current
+    dismissed_subjects = loaded.get("dismissed_subjects")
+    if dismissed_subjects is not None:
+        if isinstance(dismissed_subjects, Mapping):
+            memory["dismissed_subjects"] = dict(dismissed_subjects)
+        else:
+            memory["dismissed_subjects"] = {}
+            memory_warnings.append(
+                "Invalid subject evidence memory: expected dismissed_subjects object"
+            )
+    lifecycle_events = loaded.get("lifecycle_events")
+    if lifecycle_events is not None:
+        if isinstance(lifecycle_events, list):
+            memory["lifecycle_events"] = list(lifecycle_events)
+        else:
+            memory["lifecycle_events"] = []
+            memory_warnings.append(
+                "Invalid subject evidence memory: expected lifecycle_events list"
+            )
     if memory_warnings:
         memory["warnings"] = _unique_strings(memory_warnings)
+    elif "warnings" in memory:
+        memory.pop("warnings")
     return memory
 
 
@@ -634,6 +654,28 @@ def _subject_promotion_recommendation(
         and suggestion_count >= 2
         and confidence >= 0.75
     ):
+        dismissed_subjects = memory.get("dismissed_subjects", {})
+        dismissed_record = (
+            dismissed_subjects.get(primary_subject)
+            if isinstance(dismissed_subjects, Mapping)
+            else None
+        )
+        if isinstance(dismissed_record, Mapping):
+            last_suggestion_count = _safe_non_negative_int(
+                dismissed_record.get("last_suggestion_count", 0),
+                label=f"{primary_subject}.dismissed_subjects.last_suggestion_count",
+            )
+            if suggestion_count <= last_suggestion_count:
+                return {
+                    "status": "dismissed",
+                    "subject": primary_subject,
+                    "active_subject": primary_subject,
+                    "subject_mode": "suggested",
+                    "write_manifest": False,
+                    "suggestion_count": suggestion_count,
+                    "dismissed_at": str(dismissed_record.get("created_at", "") or ""),
+                    "dismissed_run_id": str(dismissed_record.get("run_id", "") or ""),
+                }
         return {
             "status": "recommend_confirmation",
             "subject": primary_subject,
