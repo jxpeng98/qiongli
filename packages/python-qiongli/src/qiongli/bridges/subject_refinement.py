@@ -9,6 +9,7 @@ from typing import Any, Mapping
 import yaml
 
 from .project_manifest import ProjectManifest, ProjectManifestState
+from .subject_resources import build_resource_activation_plan
 
 
 CONTRACT_FILE = "subject-refinement-contract.yaml"
@@ -174,6 +175,7 @@ class SubjectRefinementPacket:
     confidence: float = 0.0
     evidence: list[str] | None = None
     signals: list[dict[str, Any]] | None = None
+    resource_activation_plan: dict[str, Any] | None = None
 
     def to_packet(self) -> dict[str, Any]:
         return {
@@ -198,7 +200,28 @@ class SubjectRefinementPacket:
             "confidence": self.confidence,
             "evidence": list(self.evidence or []),
             "signals": [_copy_record(signal) for signal in self.signals or []],
+            "resource_activation_plan": _copy_value(self.resource_activation_plan or {}),
         }
+
+
+def _packet(**kwargs: Any) -> SubjectRefinementPacket:
+    resource_activation_plan = build_resource_activation_plan(
+        decision=str(kwargs["decision"]),
+        active_subject=str(kwargs["active_subject"]),
+        primary_subject=str(kwargs["primary_subject"]),
+        loaded_resources=dict(kwargs["loaded_resources"]),
+        method_lenses=list(kwargs["method_lenses"]),
+        borrowed_lenses=[
+            _copy_record(lens)
+            for lens in list(kwargs.get("borrowed_lenses", []) or [])
+            if isinstance(lens, Mapping)
+        ],
+        persistence=dict(kwargs["persistence"]),
+    )
+    return SubjectRefinementPacket(
+        **kwargs,
+        resource_activation_plan=resource_activation_plan,
+    )
 
 
 def infer_subject_refinement(
@@ -219,7 +242,7 @@ def infer_subject_refinement(
     if manifest.subject_mode == "locked":
         borrowed_lenses = _borrowed_lenses(manifest.active_subject, signals)
         method_lenses = list(manifest.method_lenses or [])
-        return SubjectRefinementPacket(
+        return _packet(
             decision="lock_subject",
             mode="locked",
             active_subject=manifest.active_subject,
@@ -251,7 +274,7 @@ def infer_subject_refinement(
 
     if manifest.subject_mode == "confirmed":
         method_lenses = _unique(list(manifest.method_lenses or []))
-        return SubjectRefinementPacket(
+        return _packet(
             decision="confirm_subject",
             mode="confirmed",
             active_subject=manifest.active_subject,
@@ -278,7 +301,7 @@ def infer_subject_refinement(
 
     if signals.has_strong_finance:
         method_lenses = _unique(signals.finance_method_lenses)
-        return SubjectRefinementPacket(
+        return _packet(
             decision="suggest_subject",
             mode="suggested",
             active_subject=manifest.active_subject,
@@ -305,7 +328,7 @@ def infer_subject_refinement(
 
     if signals.has_economics_subject_signal:
         method_lenses = _unique(signals.economics_method_lenses)
-        return SubjectRefinementPacket(
+        return _packet(
             decision="suggest_subject",
             mode="suggested",
             active_subject=manifest.active_subject,
@@ -332,7 +355,7 @@ def infer_subject_refinement(
 
     if signals.finance_method_lenses and manifest.active_subject != "finance":
         borrowed_lenses = _borrowed_lenses(manifest.active_subject, signals)
-        return SubjectRefinementPacket(
+        return _packet(
             decision="borrow_lens",
             mode="auto",
             active_subject=manifest.active_subject,
@@ -361,7 +384,7 @@ def infer_subject_refinement(
             signals=signals.signals,
         )
 
-    return SubjectRefinementPacket(
+    return _packet(
         decision="no_subject",
         mode="auto",
         active_subject="auto",
@@ -849,13 +872,16 @@ def _borrowed_lens_names(borrowed_lenses: list[dict[str, Any]]) -> list[str]:
 def _copy_record(record: Mapping[str, Any]) -> dict[str, Any]:
     copied: dict[str, Any] = {}
     for key, value in record.items():
-        if isinstance(value, list):
-            copied[key] = list(value)
-        elif isinstance(value, Mapping):
-            copied[key] = dict(value)
-        else:
-            copied[key] = value
+        copied[key] = _copy_value(value)
     return copied
+
+
+def _copy_value(value: Any) -> Any:
+    if isinstance(value, list):
+        return [_copy_value(item) for item in value]
+    if isinstance(value, Mapping):
+        return {key: _copy_value(item) for key, item in value.items()}
+    return value
 
 
 def _unique_candidates(candidates: list[Any]) -> list[Any]:

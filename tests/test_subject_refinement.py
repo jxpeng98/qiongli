@@ -67,6 +67,21 @@ class SubjectRefinementTests(unittest.TestCase):
         self.assertEqual(packet["persistence"]["status"], "proposed")
         self.assertIn("overlays/finance.yaml", packet["loaded_resources"]["overlays"])
         self.assertIn("skills/finance/SKILL.md", packet["loaded_resources"]["subject_skills"])
+        self.assertEqual(packet["resource_activation_plan"]["primary_subject"], "finance")
+        self.assertEqual(
+            packet["resource_activation_plan"]["levels"],
+            ["core", "subject_overlay", "subject_skill", "method_pack"],
+        )
+        self.assertIn(
+            {
+                "kind": "method_pack",
+                "subject": "finance",
+                "lens": "event-study",
+                "path": "method-packs/finance/event-study.yaml",
+                "activation": "proposed",
+            },
+            packet["resource_activation_plan"]["resources"],
+        )
 
     def test_finance_suggestion_includes_structured_signal_records(self) -> None:
         packet = infer_subject_refinement(

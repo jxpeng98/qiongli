@@ -4804,6 +4804,10 @@ Domain profile guidance:
                 + str(subject_refinement.get("decision", ""))
                 + "; loaded_resources: "
                 + str(subject_refinement.get("loaded_resources", {}))
+                + "; resource_activation_plan: "
+                + str(subject_refinement.get("resource_activation_plan", {}))
+                + "; signals: "
+                + str(subject_refinement.get("signals", []))
                 + "\n"
             )
         code_lane_rules = self._build_code_lane_rules(task_packet, "draft")
@@ -5076,6 +5080,10 @@ Domain profile guidance:
                 + str(subject_refinement.get("decision", ""))
                 + "; loaded_resources: "
                 + str(subject_refinement.get("loaded_resources", {}))
+                + "; resource_activation_plan: "
+                + str(subject_refinement.get("resource_activation_plan", {}))
+                + "; signals: "
+                + str(subject_refinement.get("signals", []))
                 + "\n"
             )
         code_lane_rules = self._build_code_lane_rules(task_packet, "review")
