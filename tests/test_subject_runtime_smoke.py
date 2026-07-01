@@ -9,6 +9,7 @@ from unittest import mock
 from tooling.scripts.run_subject_runtime_smoke import (
     FIXTURE_DIR,
     SmokeCase,
+    _assert_case,
     load_smoke_cases,
     run_smoke_suite,
 )
@@ -115,7 +116,42 @@ class SubjectRuntimeSmokeTests(unittest.TestCase):
 
         self.assertIn("QIONGLI_SMOKE_RUN_AGENTS=1", str(raised.exception))
 
-    def test_suggest_finance_case_exposes_packet_v2_fields_when_available(self) -> None:
+    def test_non_no_subject_refinement_requires_packet_v2_fields(self) -> None:
+        case = SmokeCase(
+            name="suggest_finance_subject",
+            manifest=None,
+            args={},
+            expected={
+                "run_agents": False,
+                "decision": "suggest_subject",
+                "primary_subject": "finance",
+                "effective_domain": "finance",
+                "resource_levels": [],
+            },
+            source=Path("suggest_finance_subject.json"),
+        )
+        result = {
+            "structuredContent": {
+                "run_agents": False,
+                "data": {
+                    "task_run_preview": {
+                        "effective_domain": "finance",
+                        "subject_refinement": {
+                            "decision": "suggest_subject",
+                            "primary_subject": "finance",
+                            "loaded_resources": {"levels": []},
+                        },
+                    }
+                },
+            }
+        }
+
+        failures = _assert_case(case, result)
+
+        self.assertIn("missing signals ledger", failures)
+        self.assertIn("missing resource_activation_plan", failures)
+
+    def test_suggest_finance_case_exposes_packet_v2_fields(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             report = run_smoke_suite(
                 fixture_dir=FIXTURE_DIR,
@@ -124,15 +160,11 @@ class SubjectRuntimeSmokeTests(unittest.TestCase):
                 selected_cases=["suggest_finance_subject"],
             )
 
-        preview = report["cases"][0]["result"]["data"]["task_run_preview"]
-        refinement = preview["subject_refinement"]
-        if "signals" not in refinement and "resource_activation_plan" not in refinement:
-            self.skipTest("subject refinement packet v2 fields are not present on this branch")
-
-        self.assertIn("signals", refinement)
-        self.assertIsInstance(refinement["signals"], list)
-        self.assertIn("resource_activation_plan", refinement)
-        self.assertIsInstance(refinement["resource_activation_plan"], dict)
+        refinement = report["cases"][0]["result"]["data"]["task_run_preview"][
+            "subject_refinement"
+        ]
+        self.assertTrue(refinement["signals"])
+        self.assertEqual(refinement["resource_activation_plan"]["primary_subject"], "finance")
 
 
 if __name__ == "__main__":

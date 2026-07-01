@@ -153,6 +153,12 @@ def _assert_case(case: SmokeCase, result: dict[str, Any]) -> list[str]:
         refinement.get("primary_subject"),
         expected.get("primary_subject"),
     )
+    if refinement.get("decision") != "no_subject":
+        if "signals" not in refinement:
+            failures.append("missing signals ledger")
+        if "resource_activation_plan" not in refinement:
+            failures.append("missing resource_activation_plan")
+
     effective_domain = preview.get("effective_domain") or task_packet.get("domain")
     _expect_equal(
         failures,
