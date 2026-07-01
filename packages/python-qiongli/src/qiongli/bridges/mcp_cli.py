@@ -68,7 +68,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Install target to refresh after upgrade (default: all).",
     )
     upgrade.add_argument("--beta", action="store_true", help="Include beta/pre-release tags for upgrade.")
-    upgrade.add_argument("--subject", default="core", help="Subject package to install (default: core).")
+    upgrade.add_argument(
+        "--subject",
+        default="core",
+        help=(
+            "Advanced override for pre-materialized subject packages. "
+            "Default core keeps runtime subject refinement adaptive."
+        ),
+    )
     upgrade.add_argument(
         "--coverage",
         default="complete",

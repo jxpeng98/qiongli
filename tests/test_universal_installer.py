@@ -493,6 +493,31 @@ class UniversalInstallerTests(unittest.TestCase):
                 (skill_dir / "skills" / "F_writing" / "manuscript-architect.md").read_text(encoding="utf-8"),
             )
 
+    def test_default_install_describes_adaptive_core_subject(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            env = _isolated_qiongli_env(temp_root)
+            env["PATH"] = ""
+
+            stdout = io.StringIO()
+            with mock.patch.dict(os.environ, env, clear=True):
+                with contextlib.redirect_stdout(stdout):
+                    result = install(
+                        InstallOptions(
+                            repo_root=REPO_ROOT,
+                            project_dir=project_dir,
+                            target="codex",
+                            profile="partial",
+                            dry_run=True,
+                        )
+                    )
+
+        self.assertEqual(result, 0)
+        rendered = stdout.getvalue()
+        self.assertIn("subject: core (adaptive; active_subject defaults to auto)", rendered)
+
     def test_install_materializes_finance_subject_with_enhanced_method_pack(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             temp_root = Path(tmp_dir)

@@ -273,6 +273,19 @@ class InstallerCliTests(unittest.TestCase):
         self.assertNotIn("--surface", help_text)
         self.assertNotIn("--profile", help_text)
 
+    def test_install_help_describes_adaptive_core_subject_semantics(self) -> None:
+        stdout = io.StringIO()
+        with mock.patch.object(cli_module.sys, "argv", ["qiongli", "install", "--help"]):
+            with contextlib.redirect_stdout(stdout):
+                with self.assertRaises(SystemExit) as cm:
+                    cli_module.main()
+
+        self.assertEqual(cm.exception.code, 0)
+        help_text = stdout.getvalue()
+        normalized_help = " ".join(help_text.split())
+        self.assertIn("Advanced override for pre-materialized subject packages", normalized_help)
+        self.assertIn("Default core installs adaptive runtime subject refinement", normalized_help)
+
     def test_upgrade_help_describes_content_only_refresh(self) -> None:
         stdout = io.StringIO()
         with mock.patch.object(cli_module.sys, "argv", ["qiongli", "upgrade", "--help"]):
@@ -282,8 +295,11 @@ class InstallerCliTests(unittest.TestCase):
 
         self.assertEqual(cm.exception.code, 0)
         help_text = stdout.getvalue()
+        normalized_help = " ".join(help_text.split())
         self.assertIn("Refresh local assets", help_text)
         self.assertIn("without updating the CLI package", help_text)
+        self.assertIn("Advanced override for pre-materialized subject packages", normalized_help)
+        self.assertIn("Default core keeps runtime subject refinement adaptive", normalized_help)
 
     def test_update_alias_dispatches_to_self_update_runner(self) -> None:
         with mock.patch.object(cli_module, "execute_self_update", return_value=0) as update_mock:

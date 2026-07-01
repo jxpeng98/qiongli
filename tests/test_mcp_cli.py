@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import os
 import subprocess
@@ -156,6 +158,18 @@ class MCPCLITests(unittest.TestCase):
         self.assertEqual(args.project_dir, "/tmp/project")
         self.assertTrue(args.overwrite)
         self.assertTrue(args.dry_run)
+
+    def test_mcp_cli_upgrade_help_describes_adaptive_core_subject_semantics(self) -> None:
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            with self.assertRaises(SystemExit) as cm:
+                mcp_cli.main(["upgrade", "--help"])
+
+        self.assertEqual(cm.exception.code, 0)
+        help_text = stdout.getvalue()
+        normalized_help = " ".join(help_text.split())
+        self.assertIn("Advanced override for pre-materialized subject packages", normalized_help)
+        self.assertIn("Default core keeps runtime subject refinement adaptive", normalized_help)
 
     def test_mcp_cli_wizard_exits_after_provider_values_are_saved(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

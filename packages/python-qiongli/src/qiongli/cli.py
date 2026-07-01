@@ -1286,7 +1286,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Install output surface to prepare: skills, plugin, or both (default: plugin).",
     )
     upgrade.add_argument("--beta", action="store_true", help="Include beta/pre-release tags for upgrade")
-    upgrade.add_argument("--subject", default="core", help="Subject package to install (default: core)")
+    upgrade.add_argument(
+        "--subject",
+        default="core",
+        help=(
+            "Advanced override for pre-materialized subject packages. "
+            "Default core keeps runtime subject refinement adaptive."
+        ),
+    )
     upgrade.add_argument(
         "--coverage",
         default="complete",
@@ -1378,7 +1385,14 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Install output surface to prepare: skills, plugin, or both (default: plugin).",
     )
-    install_parser.add_argument("--subject", default="core", help="Subject package to install (default: core)")
+    install_parser.add_argument(
+        "--subject",
+        default="core",
+        help=(
+            "Advanced override for pre-materialized subject packages. "
+            "Default core installs adaptive runtime subject refinement."
+        ),
+    )
     install_parser.add_argument(
         "--coverage",
         default="complete",
