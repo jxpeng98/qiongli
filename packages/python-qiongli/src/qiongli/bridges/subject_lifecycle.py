@@ -10,6 +10,12 @@ from .project_manifest import (
     load_project_manifest,
     update_project_manifest,
 )
+from .subject_guidance import (
+    SubjectGuidanceError,
+    disable_subject_guidance,
+    inspect_subject_guidance,
+    write_subject_guidance,
+)
 
 
 ACTIONS = {"confirm", "dismiss", "reset", "lock", "unlock"}
@@ -47,11 +53,25 @@ def apply_subject_action(
             active_subject=normalized_subject,
             subject_mode="confirmed",
         )
+        _update_subject_guidance(
+            root,
+            manifest_state=manifest_state,
+            action=normalized_action,
+            source=source,
+            run_id=run_id,
+        )
     elif normalized_action == "lock":
         manifest_state = update_project_manifest(
             root,
             active_subject=normalized_subject,
             subject_mode="locked",
+        )
+        _update_subject_guidance(
+            root,
+            manifest_state=manifest_state,
+            action=normalized_action,
+            source=source,
+            run_id=run_id,
         )
     elif normalized_action == "unlock":
         active_subject = manifest_state.manifest.active_subject
@@ -63,6 +83,13 @@ def apply_subject_action(
             )
         else:
             manifest_state = update_project_manifest(root, subject_mode="confirmed")
+        _update_subject_guidance(
+            root,
+            manifest_state=manifest_state,
+            action=normalized_action,
+            source=source,
+            run_id=run_id,
+        )
     elif normalized_action == "dismiss":
         _dismiss_subject(
             state,
@@ -83,6 +110,12 @@ def apply_subject_action(
         )
         state["subjects"] = {}
         state["dismissed_subjects"] = {}
+        _disable_subject_guidance(
+            root,
+            action=normalized_action,
+            source=source,
+            run_id=run_id,
+        )
 
     _append_event(
         state,
@@ -93,6 +126,55 @@ def apply_subject_action(
     )
     _write_state(root, state)
     return _status_packet(root, manifest_state=manifest_state, state=state)
+
+
+def _update_subject_guidance(
+    project_root: Path,
+    *,
+    manifest_state: Any,
+    action: str,
+    source: str,
+    run_id: str | None,
+) -> None:
+    manifest = manifest_state.manifest
+    if manifest.active_subject in {"auto", "core"} or manifest.subject_mode == "auto":
+        _disable_subject_guidance(
+            project_root,
+            action=action,
+            source=source,
+            run_id=run_id,
+        )
+        return
+    try:
+        write_subject_guidance(
+            project_root,
+            active_subject=manifest.active_subject,
+            subject_mode=manifest.subject_mode,
+            lifecycle_action=action,
+            source=source,
+            run_id=run_id,
+            method_lenses=manifest.method_lenses or [],
+        )
+    except SubjectGuidanceError as exc:
+        raise SubjectLifecycleError(f"Failed to update subject guidance: {exc}") from exc
+
+
+def _disable_subject_guidance(
+    project_root: Path,
+    *,
+    action: str,
+    source: str,
+    run_id: str | None,
+) -> None:
+    try:
+        disable_subject_guidance(
+            project_root,
+            lifecycle_action=action,
+            source=source,
+            run_id=run_id,
+        )
+    except SubjectGuidanceError as exc:
+        raise SubjectLifecycleError(f"Failed to update subject guidance: {exc}") from exc
 
 
 def _status_packet(
@@ -106,6 +188,7 @@ def _status_packet(
         "project_root": str(project_root.resolve()),
         "manifest": packet["manifest"],
         "manifest_exists": manifest_state.exists,
+        "subject_guidance": inspect_subject_guidance(project_root),
         "state": state,
     }
 

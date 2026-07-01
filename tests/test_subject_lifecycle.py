@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from bridges.subject_guidance import END_MARKER, START_MARKER, SUBJECT_GUIDANCE_REL
 from bridges.subject_lifecycle import (
     SubjectLifecycleError,
     apply_subject_action,
@@ -29,6 +30,17 @@ class SubjectLifecycleTests(unittest.TestCase):
             self.assertEqual(result["state"]["lifecycle_events"], [])
             self.assertFalse(self._manifest_path(root).exists())
             self.assertFalse(self._state_path(root).exists())
+
+    def test_status_reports_missing_subject_guidance_without_creating_qiongli(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+
+            result = subject_status(root)
+
+            self.assertEqual(result["subject_guidance"]["path"], SUBJECT_GUIDANCE_REL.as_posix())
+            self.assertFalse(result["subject_guidance"]["exists"])
+            self.assertEqual(result["subject_guidance"]["managed_block"], "missing")
+            self.assertFalse((root / ".qiongli").exists())
 
     def test_confirm_updates_manifest_and_records_event(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -55,6 +67,34 @@ class SubjectLifecycleTests(unittest.TestCase):
             self.assertEqual(event["run_id"], "run-1")
             self.assertTrue(event["created_at"].endswith("+00:00"))
 
+    def test_confirm_materializes_active_subject_guidance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._manifest_path(root).parent.mkdir(parents=True)
+            self._manifest_path(root).write_text(
+                "method_lenses:\n- event-study\n- asset-pricing\n",
+                encoding="utf-8",
+            )
+
+            result = apply_subject_action(
+                root,
+                "confirm",
+                "finance",
+                source="cli",
+                run_id="run-1",
+            )
+
+            text = self._guidance_path(root).read_text(encoding="utf-8")
+            self.assertEqual(result["subject_guidance"]["managed_block"], "active")
+            self.assertEqual(result["subject_guidance"]["active_subject"], "finance")
+            self.assertEqual(result["subject_guidance"]["subject_mode"], "confirmed")
+            self.assertIn("active_subject: finance", text)
+            self.assertIn("subject_mode: confirmed", text)
+            self.assertIn("updated_by: cli", text)
+            self.assertIn("run_id: run-1", text)
+            self.assertIn("- event-study", text)
+            self.assertIn("- asset-pricing", text)
+
     def test_dismiss_writes_only_state_file_without_creating_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
@@ -75,6 +115,24 @@ class SubjectLifecycleTests(unittest.TestCase):
                 0,
             )
             self.assertEqual(result["state"]["lifecycle_events"][0]["action"], "dismiss")
+
+    def test_dismiss_does_not_create_or_modify_subject_guidance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+
+            apply_subject_action(root, "dismiss", "finance", source="mcp")
+
+            self.assertFalse(self._guidance_path(root).exists())
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            apply_subject_action(root, "confirm", "finance", source="cli")
+            before = self._guidance_path(root).read_text(encoding="utf-8")
+
+            apply_subject_action(root, "dismiss", "economics", source="mcp")
+
+            after = self._guidance_path(root).read_text(encoding="utf-8")
+            self.assertEqual(after, before)
 
     def test_dismiss_stores_last_suggestion_count_from_existing_record(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -130,6 +188,35 @@ class SubjectLifecycleTests(unittest.TestCase):
             self.assertEqual(unlocked["state"]["lifecycle_events"][-1]["action"], "unlock")
             self.assertIsNone(unlocked["state"]["lifecycle_events"][-1]["subject"])
 
+    def test_lock_materializes_locked_guidance_with_locked_text(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+
+            result = apply_subject_action(root, "lock", "finance", source="cli")
+
+            text = self._guidance_path(root).read_text(encoding="utf-8")
+            self.assertEqual(result["subject_guidance"]["managed_block"], "active")
+            self.assertEqual(result["subject_guidance"]["subject_mode"], "locked")
+            self.assertIn("subject_mode: locked", text)
+            self.assertIn("Do not automatically replace the active subject.", text)
+
+    def test_unlock_rewrites_locked_guidance_to_confirmed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            apply_subject_action(root, "lock", "finance", source="cli")
+
+            result = apply_subject_action(root, "unlock", source="cli", run_id="unlock-1")
+
+            text = self._guidance_path(root).read_text(encoding="utf-8")
+            self.assertEqual(result["subject_guidance"]["managed_block"], "active")
+            self.assertEqual(result["subject_guidance"]["active_subject"], "finance")
+            self.assertEqual(result["subject_guidance"]["subject_mode"], "confirmed")
+            self.assertIn("active_subject: finance", text)
+            self.assertIn("subject_mode: confirmed", text)
+            self.assertNotIn("subject_mode: locked", text)
+            self.assertNotIn("Do not automatically replace the active subject.", text)
+            self.assertIn("run_id: unlock-1", text)
+
     def test_unlock_core_locked_manifest_returns_to_auto(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
@@ -143,6 +230,39 @@ class SubjectLifecycleTests(unittest.TestCase):
 
             self.assertEqual(result["manifest"]["active_subject"], "auto")
             self.assertEqual(result["manifest"]["subject_mode"], "auto")
+
+    def test_unlock_auto_or_core_disables_subject_guidance(self) -> None:
+        for active_subject in ("auto", "core"):
+            with self.subTest(active_subject=active_subject):
+                with tempfile.TemporaryDirectory() as tmp_dir:
+                    root = Path(tmp_dir)
+                    self._guidance_path(root).parent.mkdir(parents=True)
+                    self._guidance_path(root).write_text(
+                        f"# Qiongli Subject Runtime Guidance\n\n{START_MARKER}\n"
+                        "schema_version: 1.0\n"
+                        "managed_by: qiongli\n"
+                        "active_subject: finance\n"
+                        "subject_mode: locked\n"
+                        "updated_at: 2026-07-01T12:00:00+00:00\n"
+                        f"{END_MARKER}\n",
+                        encoding="utf-8",
+                    )
+                    self._manifest_path(root).write_text(
+                        "active_subject: "
+                        f"{active_subject}\n"
+                        "subject_mode: "
+                        f"{'auto' if active_subject == 'auto' else 'locked'}\n",
+                        encoding="utf-8",
+                    )
+
+                    result = apply_subject_action(root, "unlock", source="cli")
+
+                    text = self._guidance_path(root).read_text(encoding="utf-8")
+                    self.assertEqual(result["manifest"]["active_subject"], "auto")
+                    self.assertEqual(result["manifest"]["subject_mode"], "auto")
+                    self.assertEqual(result["subject_guidance"]["managed_block"], "disabled")
+                    self.assertIn("status: disabled", text)
+                    self.assertIn("lifecycle_action: unlock", text)
 
     def test_unlock_rejects_non_empty_subject(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -180,6 +300,21 @@ class SubjectLifecycleTests(unittest.TestCase):
             self.assertEqual(result["state"]["dismissed_subjects"], {})
             self.assertEqual(result["state"]["warnings"], ["keep this warning"])
             self.assertEqual(result["state"]["lifecycle_events"][-1]["action"], "reset")
+
+    def test_reset_disables_subject_guidance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            apply_subject_action(root, "confirm", "finance", source="cli")
+
+            result = apply_subject_action(root, "reset", source="cli", run_id="reset-1")
+
+            text = self._guidance_path(root).read_text(encoding="utf-8")
+            self.assertEqual(result["subject_guidance"]["managed_block"], "disabled")
+            self.assertEqual(result["subject_guidance"]["active_subject"], "auto")
+            self.assertEqual(result["subject_guidance"]["subject_mode"], "auto")
+            self.assertIn("status: disabled", text)
+            self.assertIn("lifecycle_action: reset", text)
+            self.assertIn("run_id: reset-1", text)
 
     def test_reset_rejects_non_empty_subject(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -236,6 +371,24 @@ class SubjectLifecycleTests(unittest.TestCase):
             self.assertIn("finance", result["state"]["dismissed_subjects"])
             self.assertIn("finance", stored["dismissed_subjects"])
 
+    def test_guidance_write_error_is_converted_to_lifecycle_error(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._manifest_path(root).parent.mkdir(parents=True)
+            self._manifest_path(root).write_text(
+                "method_lenses:\n"
+                f"- {START_MARKER}\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                SubjectLifecycleError,
+                "^Failed to update subject guidance:",
+            ):
+                apply_subject_action(root, "confirm", "finance", source="cli")
+
+            self.assertFalse(self._state_path(root).exists())
+
     @staticmethod
     def _manifest_path(root: Path) -> Path:
         return root / ".qiongli" / "guidance_manifest.yaml"
@@ -243,6 +396,10 @@ class SubjectLifecycleTests(unittest.TestCase):
     @staticmethod
     def _state_path(root: Path) -> Path:
         return root / ".qiongli" / "trace" / "subject_evidence.json"
+
+    @staticmethod
+    def _guidance_path(root: Path) -> Path:
+        return root / SUBJECT_GUIDANCE_REL
 
 
 if __name__ == "__main__":
