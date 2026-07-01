@@ -8,7 +8,8 @@ from typing import Any, Callable
 from bridges.mcp_config_wizard import start_config_wizard
 from bridges.mcp_connectors import MCPConnector
 from bridges.guidance_runtime import GUIDANCE_MODES, guidance_bootstrap_status
-from bridges.project_manifest import ProjectManifestError, load_project_manifest
+from bridges.project_manifest import OFFICIAL_SUBJECTS, ProjectManifestError, load_project_manifest
+from bridges.subject_lifecycle import ACTIONS, apply_subject_action, subject_status
 from bridges.subject_refinement import infer_subject_refinement
 from bridges.subject_runtime import implicit_project_manifest_state, resolve_project_subject
 from bridges.literature_mcp_tools import (
@@ -32,6 +33,13 @@ from bridges.provider_config import (
 SERVER_NAME = "qiongli-mcp"
 ModelOrchestrator: Any | None = None
 RUNTIME_AGENT_ENUM = ["codex", "claude", "antigravity"]
+SUBJECT_LIFECYCLE_ACTION_ORDER = ("confirm", "dismiss", "reset", "lock", "unlock")
+SUBJECT_LIFECYCLE_ACTION_ENUM = [
+    action for action in SUBJECT_LIFECYCLE_ACTION_ORDER if action in ACTIONS
+]
+SUBJECT_LIFECYCLE_SUBJECT_ENUM = [
+    subject for subject in OFFICIAL_SUBJECTS if subject not in {"auto", "core"}
+]
 
 
 MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
@@ -110,6 +118,32 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "properties": {
                 "provider": {"type": "string"},
                 "cwd": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "qiongli_subject_status",
+        "description": "Inspect adaptive subject state and local guidance manifest for a project.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "cwd": {"type": "string", "description": "Project directory to inspect."},
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "qiongli_subject_update",
+        "description": "Confirm, dismiss, reset, lock, or unlock adaptive subject guidance for a project.",
+        "inputSchema": {
+            "type": "object",
+            "required": ["action"],
+            "properties": {
+                "cwd": {"type": "string", "description": "Project directory to update."},
+                "action": {"type": "string", "enum": SUBJECT_LIFECYCLE_ACTION_ENUM},
+                "subject": {"type": "string", "enum": SUBJECT_LIFECYCLE_SUBJECT_ENUM},
+                "run_id": {"type": "string"},
             },
             "additionalProperties": False,
         },
@@ -242,6 +276,8 @@ def call_qiongli_tool(name: str, arguments: dict[str, Any] | None = None) -> dic
         "qiongli_collect_evidence": _tool_collect_evidence,
         "qiongli_list_provider_env": _tool_list_provider_env,
         "qiongli_test_provider": _tool_test_provider,
+        "qiongli_subject_status": _tool_subject_status,
+        "qiongli_subject_update": _tool_subject_update,
         "qiongli_configure_provider": _tool_configure_provider,
         "qiongli_open_config_wizard": _tool_open_config_wizard,
         "qiongli_orchestrator_route": _tool_orchestrator_route,
@@ -328,6 +364,23 @@ def _tool_test_provider(args: dict[str, Any]) -> dict[str, Any]:
         "configured": configured,
         "fields": raw.get("fields", {}) if isinstance(raw, dict) else {},
     }
+
+
+def _tool_subject_status(args: dict[str, Any]) -> dict[str, Any]:
+    return subject_status(_cwd_from_args(args))
+
+
+def _tool_subject_update(args: dict[str, Any]) -> dict[str, Any]:
+    action = _required_str(args, "action")
+    subject = args.get("subject")
+    run_id = args.get("run_id")
+    return apply_subject_action(
+        _cwd_from_args(args),
+        action,
+        str(subject) if subject else None,
+        source="mcp",
+        run_id=str(run_id) if run_id else None,
+    )
 
 
 def _tool_open_config_wizard(args: dict[str, Any]) -> dict[str, Any]:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import json
 import tempfile
 import unittest
@@ -7,6 +8,7 @@ from pathlib import Path
 from unittest import mock
 
 import bridges.mcp_tool_handlers as tool_handlers
+from bridges import project_manifest, subject_lifecycle
 from bridges.mcp_tool_handlers import MCP_TOOL_DEFINITIONS, call_qiongli_tool
 from bridges.provider_config import set_provider_value
 
@@ -103,6 +105,8 @@ class MCPToolHandlerTests(unittest.TestCase):
                 "qiongli_orchestrator_doctor",
                 "qiongli_task_plan",
                 "qiongli_task_run",
+                "qiongli_subject_status",
+                "qiongli_subject_update",
             }.issubset(names)
         )
         status_index = ordered_names.index("qiongli_literature_status")
@@ -122,6 +126,196 @@ class MCPToolHandlerTests(unittest.TestCase):
             "queryVariants",
         ):
             self.assertIn(alias, search_plan_schema)
+
+    def test_tool_definitions_include_subject_lifecycle_tools(self) -> None:
+        definitions = {tool["name"]: tool for tool in MCP_TOOL_DEFINITIONS}
+        expected_actions = [
+            action
+            for action in tool_handlers.SUBJECT_LIFECYCLE_ACTION_ORDER
+            if action in subject_lifecycle.ACTIONS
+        ]
+        expected_subjects = [
+            subject for subject in project_manifest.OFFICIAL_SUBJECTS if subject not in {"auto", "core"}
+        ]
+
+        self.assertIn("qiongli_subject_status", definitions)
+        self.assertIn("qiongli_subject_update", definitions)
+        update_schema = definitions["qiongli_subject_update"]["inputSchema"]
+        self.assertEqual(update_schema["required"], ["action"])
+        self.assertEqual(
+            update_schema["properties"]["action"]["enum"],
+            expected_actions,
+        )
+        self.assertEqual(
+            update_schema["properties"]["subject"]["enum"],
+            expected_subjects,
+        )
+
+    def test_subject_lifecycle_schema_derives_enums_from_shared_constants(self) -> None:
+        original_module = tool_handlers
+        patched_subjects = ("auto", "core", "economics", "finance", "new-official-subject")
+        try:
+            with (
+                mock.patch.object(subject_lifecycle, "ACTIONS", {"unlock", "confirm", "reset"}),
+                mock.patch.object(project_manifest, "OFFICIAL_SUBJECTS", patched_subjects),
+            ):
+                reloaded = importlib.reload(tool_handlers)
+                definitions = {tool["name"]: tool for tool in reloaded.MCP_TOOL_DEFINITIONS}
+                update_schema = definitions["qiongli_subject_update"]["inputSchema"]
+                expected_actions = [
+                    action
+                    for action in reloaded.SUBJECT_LIFECYCLE_ACTION_ORDER
+                    if action in subject_lifecycle.ACTIONS
+                ]
+                expected_subjects = [
+                    subject for subject in patched_subjects if subject not in {"auto", "core"}
+                ]
+
+                self.assertEqual(
+                    update_schema["properties"]["action"]["enum"],
+                    expected_actions,
+                )
+                self.assertEqual(
+                    update_schema["properties"]["subject"]["enum"],
+                    expected_subjects,
+                )
+        finally:
+            importlib.reload(original_module)
+
+    def test_subject_status_reports_auto_state_without_creating_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            manifest_path = root / ".qiongli" / "guidance_manifest.yaml"
+
+            result = call_qiongli_tool("qiongli_subject_status", {"cwd": str(root)})
+
+            payload = result["structuredContent"]
+            self.assertFalse(result["isError"])
+            self.assertEqual(payload["manifest"]["active_subject"], "auto")
+            self.assertEqual(payload["manifest"]["subject_mode"], "auto")
+            self.assertIn("state", payload)
+            self.assertFalse(manifest_path.exists())
+
+    def test_subject_update_confirm_finance_writes_confirmed_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+
+            result = call_qiongli_tool(
+                "qiongli_subject_update",
+                {"cwd": str(root), "action": "confirm", "subject": "finance"},
+            )
+
+            payload = result["structuredContent"]
+            self.assertFalse(result["isError"])
+            self.assertEqual(payload["manifest"]["active_subject"], "finance")
+            self.assertEqual(payload["manifest"]["subject_mode"], "confirmed")
+            self.assertTrue((root / ".qiongli" / "guidance_manifest.yaml").exists())
+
+    def test_subject_update_lock_finance_writes_locked_manifest_with_run_id(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+
+            result = call_qiongli_tool(
+                "qiongli_subject_update",
+                {
+                    "cwd": str(root),
+                    "action": "lock",
+                    "subject": "finance",
+                    "run_id": 123,
+                },
+            )
+
+            payload = result["structuredContent"]
+            self.assertFalse(result["isError"])
+            self.assertEqual(payload["manifest"]["active_subject"], "finance")
+            self.assertEqual(payload["manifest"]["subject_mode"], "locked")
+            self.assertEqual(payload["state"]["lifecycle_events"][-1]["source"], "mcp")
+            self.assertEqual(payload["state"]["lifecycle_events"][-1]["run_id"], "123")
+
+    def test_subject_update_unlock_after_lock_returns_confirmed_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            call_qiongli_tool(
+                "qiongli_subject_update",
+                {"cwd": str(root), "action": "lock", "subject": "finance"},
+            )
+
+            result = call_qiongli_tool(
+                "qiongli_subject_update",
+                {"cwd": str(root), "action": "unlock", "run_id": "unlock-1"},
+            )
+
+            payload = result["structuredContent"]
+            self.assertFalse(result["isError"])
+            self.assertEqual(payload["manifest"]["active_subject"], "finance")
+            self.assertEqual(payload["manifest"]["subject_mode"], "confirmed")
+            self.assertEqual(payload["state"]["lifecycle_events"][-1]["action"], "unlock")
+            self.assertEqual(payload["state"]["lifecycle_events"][-1]["source"], "mcp")
+            self.assertEqual(payload["state"]["lifecycle_events"][-1]["run_id"], "unlock-1")
+
+    def test_subject_update_dismiss_economics_records_mcp_source_without_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+
+            result = call_qiongli_tool(
+                "qiongli_subject_update",
+                {"cwd": str(root), "action": "dismiss", "subject": "economics"},
+            )
+
+            payload = result["structuredContent"]
+            self.assertFalse(result["isError"])
+            self.assertEqual(
+                payload["state"]["dismissed_subjects"]["economics"]["source"],
+                "mcp",
+            )
+            self.assertFalse((root / ".qiongli" / "guidance_manifest.yaml").exists())
+
+    def test_subject_update_reset_after_confirm_restores_auto_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            call_qiongli_tool(
+                "qiongli_subject_update",
+                {"cwd": str(root), "action": "confirm", "subject": "finance"},
+            )
+
+            result = call_qiongli_tool(
+                "qiongli_subject_update",
+                {"cwd": str(root), "action": "reset"},
+            )
+
+            payload = result["structuredContent"]
+            self.assertFalse(result["isError"])
+            self.assertEqual(payload["manifest"]["active_subject"], "auto")
+            self.assertEqual(payload["manifest"]["subject_mode"], "auto")
+
+    def test_subject_update_invalid_action_returns_tool_error(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            result = call_qiongli_tool(
+                "qiongli_subject_update",
+                {"cwd": tmp_dir, "action": "archive", "subject": "finance"},
+            )
+
+        self.assertTrue(result["isError"])
+        self.assertIn("Unsupported subject lifecycle action", result["structuredContent"]["error"])
+
+    def test_subject_update_confirm_rejects_auto_or_missing_subject(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            auto_result = call_qiongli_tool(
+                "qiongli_subject_update",
+                {"cwd": tmp_dir, "action": "confirm", "subject": "auto"},
+            )
+            missing_result = call_qiongli_tool(
+                "qiongli_subject_update",
+                {"cwd": tmp_dir, "action": "confirm"},
+            )
+
+        self.assertTrue(auto_result["isError"])
+        self.assertIn(
+            "confirm requires a concrete official subject",
+            auto_result["structuredContent"]["error"],
+        )
+        self.assertTrue(missing_result["isError"])
+        self.assertIn("confirm requires a subject", missing_result["structuredContent"]["error"])
 
     def test_orchestrator_route_recommends_mcp_sequence_for_codex_claude_duo(self) -> None:
         result = call_qiongli_tool(
