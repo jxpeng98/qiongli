@@ -389,6 +389,70 @@ class SubjectLifecycleTests(unittest.TestCase):
 
             self.assertFalse(self._state_path(root).exists())
 
+    def test_invalid_existing_guidance_fails_before_manifest_or_evidence_writes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._guidance_path(root).parent.mkdir(parents=True)
+            original_guidance = f"{END_MARKER}\n{START_MARKER}\n"
+            self._guidance_path(root).write_text(original_guidance, encoding="utf-8")
+
+            with self.assertRaisesRegex(
+                SubjectLifecycleError,
+                "^Failed to update subject guidance:",
+            ):
+                apply_subject_action(root, "confirm", "finance", source="cli")
+
+            self.assertFalse(self._manifest_path(root).exists())
+            self.assertFalse(self._state_path(root).exists())
+            self.assertEqual(
+                self._guidance_path(root).read_text(encoding="utf-8"),
+                original_guidance,
+            )
+
+    def test_symlinked_manifest_path_fails_before_lifecycle_writes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            outside_manifest = root / "outside-manifest.yaml"
+            original_manifest = "active_subject: auto\nsubject_mode: auto\n"
+            outside_manifest.write_text(original_manifest, encoding="utf-8")
+            self._manifest_path(root).parent.mkdir(parents=True)
+            try:
+                self._manifest_path(root).symlink_to(outside_manifest)
+            except OSError as exc:
+                self.skipTest(f"symlink creation unavailable: {exc}")
+
+            with self.assertRaisesRegex(
+                SubjectLifecycleError,
+                r"symlink.*\.qiongli/guidance_manifest\.yaml",
+            ):
+                apply_subject_action(root, "confirm", "finance", source="cli")
+
+            self.assertEqual(outside_manifest.read_text(encoding="utf-8"), original_manifest)
+            self.assertFalse(self._state_path(root).exists())
+            self.assertFalse(self._guidance_path(root).exists())
+
+    def test_symlinked_evidence_path_fails_before_lifecycle_writes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            outside_state = root / "outside-subject-evidence.json"
+            original_state = json.dumps({"schema_version": "1.0", "subjects": {}})
+            outside_state.write_text(original_state, encoding="utf-8")
+            self._state_path(root).parent.mkdir(parents=True)
+            try:
+                self._state_path(root).symlink_to(outside_state)
+            except OSError as exc:
+                self.skipTest(f"symlink creation unavailable: {exc}")
+
+            with self.assertRaisesRegex(
+                SubjectLifecycleError,
+                r"symlink.*\.qiongli/trace/subject_evidence\.json",
+            ):
+                apply_subject_action(root, "dismiss", "finance", source="cli")
+
+            self.assertEqual(outside_state.read_text(encoding="utf-8"), original_state)
+            self.assertFalse(self._manifest_path(root).exists())
+            self.assertFalse(self._guidance_path(root).exists())
+
     @staticmethod
     def _manifest_path(root: Path) -> Path:
         return root / ".qiongli" / "guidance_manifest.yaml"

@@ -20,6 +20,15 @@ from .subject_guidance import (
 
 ACTIONS = {"confirm", "dismiss", "reset", "lock", "unlock"}
 STATE_REL = Path(".qiongli") / "trace" / "subject_evidence.json"
+GUIDANCE_WRITE_ACTIONS = {"confirm", "lock", "unlock", "reset"}
+LIFECYCLE_WRITE_RELS = (
+    Path(".qiongli"),
+    Path(".qiongli") / "guidance_manifest.yaml",
+    Path(".qiongli") / "trace",
+    STATE_REL,
+    Path(".qiongli") / "guidance.d",
+    Path(".qiongli") / "guidance.d" / "subject-runtime.md",
+)
 CONCRETE_OFFICIAL_SUBJECTS = set(OFFICIAL_SUBJECTS) - {"auto", "core"}
 
 
@@ -44,8 +53,10 @@ def apply_subject_action(
     root = _normalize_project_root(project_root)
     normalized_action = _validate_action(action)
     normalized_subject = _validate_subject_for_action(normalized_action, subject)
+    _preflight_lifecycle_symlinks(root)
     state = _load_state(root)
     manifest_state = load_project_manifest(root)
+    _preflight_subject_guidance_write(root, action=normalized_action)
 
     if normalized_action == "confirm":
         manifest_state = update_project_manifest(
@@ -126,6 +137,32 @@ def apply_subject_action(
     )
     _write_state(root, state)
     return _status_packet(root, manifest_state=manifest_state, state=state)
+
+
+def _preflight_lifecycle_symlinks(project_root: Path) -> None:
+    for relative_path in LIFECYCLE_WRITE_RELS:
+        if (project_root / relative_path).is_symlink():
+            raise SubjectLifecycleError(
+                f"Refusing lifecycle write through symlink at {relative_path.as_posix()}"
+            )
+
+
+def _preflight_subject_guidance_write(project_root: Path, *, action: str) -> None:
+    if action not in GUIDANCE_WRITE_ACTIONS:
+        return
+    guidance_status = inspect_subject_guidance(project_root)
+    if guidance_status.get("managed_block") != "invalid":
+        return
+    warnings = guidance_status.get("warnings")
+    if isinstance(warnings, list):
+        reason = "; ".join(
+            warning.strip() for warning in warnings if isinstance(warning, str) and warning.strip()
+        )
+    else:
+        reason = ""
+    if not reason:
+        reason = "invalid subject guidance"
+    raise SubjectLifecycleError(f"Failed to update subject guidance: {reason}")
 
 
 def _update_subject_guidance(
