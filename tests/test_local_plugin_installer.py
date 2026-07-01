@@ -140,6 +140,26 @@ class LocalPluginInstallerTests(unittest.TestCase):
             self.assertEqual(qiongli_entry["category"], "Education")
             self.assertEqual(qiongli_entry["metadata"], {"managedBy": "qiongli-cli", "surface": "plugin"})
 
+    def test_install_codex_plugin_contains_adaptive_subject_resources(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            marketplace = root / "agents" / "marketplace.json"
+
+            install_local_plugin(
+                LocalPluginOptions(
+                    repo_root=REPO_ROOT,
+                    target="codex",
+                    codex_marketplace_path=marketplace,
+                )
+            )
+
+            skill_root = marketplace.parent / "plugins" / "qiongli" / "skills" / "qiongli-workflow"
+            manifest = self._read_json(skill_root / "SUBJECT_MANIFEST.json")
+            self.assertIn("adaptive_subject_refinement", manifest)
+            self.assertTrue(manifest["adaptive_subject_refinement"]["enabled"])
+            self.assertTrue((skill_root / "standards" / "subject-refinement-contract.yaml").exists())
+            self.assertTrue((skill_root / "subjects" / "catalog.yaml").exists())
+
     def test_install_codex_plugin_preserves_existing_marketplace_name_and_interface(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

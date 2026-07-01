@@ -205,6 +205,7 @@ def materialize_subject_package(options: MaterializeOptions) -> None:
         coverage=options.coverage,
         include_detailed_skills=options.flavor == "full" or subject.id != "core",
     )
+    _materialize_refinement_resources(source=source, out=out, subject=subject, flavor=options.flavor)
     _write_registry(out, selected_entries)
     _write_subject_markers(package_root, out, subject, options.flavor, options.coverage, custom_layer)
     _assert_no_symlinks(out)
@@ -494,6 +495,62 @@ def _materialize_skills(
         dest.write_text(text, encoding="utf-8")
 
 
+def _materialize_refinement_resources(
+    *,
+    source: Path,
+    out: Path,
+    subject: SubjectDefinition,
+    flavor: str,
+) -> None:
+    if subject.id != "core":
+        return
+    subjects_root = RepoLayout(source).subjects
+    if not subjects_root.exists():
+        return
+    dest_root = out / "subjects"
+    if flavor == "desktop":
+        dest_root.mkdir(parents=True, exist_ok=True)
+        _write_compact_refinement_index(subjects_root, dest_root / "refinement-index.yaml")
+        return
+    _copy_refinement_resource_tree(subjects_root, dest_root)
+
+
+def _write_compact_refinement_index(subjects_root: Path, dest: Path) -> None:
+    catalog_path = subjects_root / "catalog.yaml"
+    payload = yaml.safe_load(catalog_path.read_text(encoding="utf-8")) if catalog_path.is_file() else {}
+    subjects = payload.get("subjects", {}) if isinstance(payload, dict) else {}
+    index: dict[str, Any] = {"subjects": {}}
+    if isinstance(subjects, dict):
+        for subject_id, raw_subject in subjects.items():
+            if not isinstance(raw_subject, dict):
+                continue
+            index["subjects"][subject_id] = {
+                "display_name": raw_subject.get("display_name", subject_id),
+                "domain_profiles": raw_subject.get("domain_profiles", []),
+                "venue_profiles": raw_subject.get("venue_profiles", []),
+                "subject_specific_skill_refs": raw_subject.get("subject_specific_skill_refs", []),
+                "skill_overrides": raw_subject.get("skill_overrides", []),
+            }
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(yaml.safe_dump(index, sort_keys=True, allow_unicode=True), encoding="utf-8")
+
+
+def _copy_refinement_resource_tree(subjects_root: Path, dest_root: Path) -> None:
+    if subjects_root.is_symlink():
+        raise SubjectMaterializationError(f"refusing to copy symlink: {subjects_root}")
+
+    def ignore_generated_subject_payloads(src: str, names: list[str]) -> set[str]:
+        ignored = _ignore_generated(src, names)
+        current = Path(src)
+        for name in names:
+            candidate = current / name
+            if name in COVERAGE_CHOICES and (candidate / "qiongli-workflow").exists():
+                ignored.add(name)
+        return ignored
+
+    shutil.copytree(subjects_root, dest_root, ignore=ignore_generated_subject_payloads)
+
+
 def _apply_overlay(
     overlay_root: Path,
     skill_id: str,
@@ -577,6 +634,7 @@ def _write_subject_markers(
                 "coverage": coverage,
                 "flavor": flavor,
                 "layers": _subject_layers(subject, custom_layer),
+                "adaptive_subject_refinement": _adaptive_subject_refinement_marker(subject, flavor),
             },
             indent=2,
             sort_keys=True,
@@ -585,6 +643,17 @@ def _write_subject_markers(
         encoding="utf-8",
     )
     (out / "SKILL.md").write_text(_render_skill_md(subject, flavor, version), encoding="utf-8")
+
+
+def _adaptive_subject_refinement_marker(subject: SubjectDefinition, flavor: str) -> dict[str, Any]:
+    if subject.id != "core":
+        return {"enabled": False}
+    return {
+        "enabled": True,
+        "default_mode": "auto",
+        "contract": "standards/subject-refinement-contract.yaml",
+        "resource_index": "subjects/refinement-index.yaml" if flavor == "desktop" else "subjects/catalog.yaml",
+    }
 
 
 def _subject_layers(subject: SubjectDefinition, custom_layer: CustomSubjectLayer) -> list[str]:
@@ -704,6 +773,14 @@ def _render_skill_md(subject: SubjectDefinition, flavor: str, version: str) -> s
             "- For a manual Desktop install, upload the `qiongli-claude-desktop-skill-*.zip` first, then add a manual MCP install when provider calls or local orchestration are required. The skill ZIP supplies agent instructions, workflows/prompts/templates, and subject overlays; MCP supplies tool calls.",
             "- Desktop/Web users need the Qiongli Literature Provider `.mcpb` (`qiongli-literature-provider.mcpb`) or platform-native search capability before claiming `provider_connected` literature search. The MCPB is the separate local Claude Desktop provider for OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv configuration/search. arXiv is enabled without credentials. If no MCPB or platform-native search is available, record the run as `strategy_only`.",
             "- The literature MCPB provides literature MCP tools only. It does not launch orchestrator agents. To expose the full agent runtime through MCP, manually install the full CLI MCP server with `qiongli mcp serve --transport stdio`; clients can then call tools such as `qiongli_task_run` after the local CLI runtime and model CLIs are configured.",
+            "",
+            "## Runtime Subject Refinement",
+            "",
+            "- Qiongli installs as an adaptive core workflow with `active_subject: auto` unless project guidance says otherwise.",
+            "- Use `standards/subject-refinement-contract.yaml` to classify no-subject, borrowed-lens, suggested, confirmed, and locked subject states.",
+            "- Treat a borrowed method lens as temporary method guidance. Do not switch the whole project subject from a single method signal.",
+            "- Use `subject_refinement.primary_subject` as the temporary subject only for `suggest_subject`, `confirm_subject`, or `lock_subject` decisions.",
+            "- Persist subject changes only through project-local guidance proposals, `subject_mode: confirmed`, or `subject_mode: locked`.",
             "",
             "## Skill Loading Strategy",
             "",

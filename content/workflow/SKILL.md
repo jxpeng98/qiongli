@@ -69,6 +69,24 @@ If `.qiongli/guidance_manifest.yaml` is missing, use implicit `active_subject: a
 
 Load concise project rules when present, cite the loaded paths in the working notes, and apply them only where they do not conflict with Qiongli contracts. Project-local guidance must never override canonical workflow contracts, required outputs, evidence gates, quality gates, MCP evidence requirements, safety constraints, or the task packet. If local guidance conflicts with any required output or gate, follow the canonical requirement and record the conflict.
 
+### Runtime Subject Refinement
+
+Qiongli installs as an adaptive core workflow. Start from `active_subject: auto`
+unless `.qiongli/guidance_manifest.yaml` says otherwise. During a task, infer
+whether the request needs core-only guidance, a borrowed method lens, a suggested
+subject, a confirmed subject, or a locked subject.
+
+Do not switch the whole project subject from a single method signal. A management
+paper that uses an event study borrows finance event-study diagnostics; it is not
+automatically a finance paper. A political science paper that uses DID borrows
+economics identification diagnostics; it is not automatically an economics paper.
+
+Use `subject_refinement.borrowed_lenses` as temporary method guidance. Use
+`subject_refinement.primary_subject` as the temporary subject only when the
+decision is `suggest_subject`, `confirm_subject`, or `lock_subject`. Persist
+changes only through project-local guidance proposals or an explicit
+`subject_mode: confirmed` or `subject_mode: locked` manifest.
+
 ### Subject Domain Packs
 
 When Qiongli is installed through the CLI with a subject package, treat the subject-installed domain profile as the specialization layer for the canonical workflow. If `SUBJECT_MANIFEST.json` names `economics`, load `skills/domain-profiles/economics.yaml`; if it names `finance`, load `skills/domain-profiles/finance.yaml`. If project guidance is `active_subject: auto`, infer a temporary economics or finance domain from the task context, then apply the same profile rules.
