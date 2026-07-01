@@ -60,6 +60,13 @@ signal_weights:
     method: 0.40
     venue: 0.20
 
+subject_evidence_memory:
+  path: ".qiongli/trace/subject_evidence.json"
+  minimum_repeated_suggestions: 2
+  minimum_confidence: 0.75
+  write_manifest_automatically: false
+  recommendation_subject_mode: "suggested"
+
 overlays:
   economics: "overlays/economics.yaml"
   finance: "overlays/finance.yaml"

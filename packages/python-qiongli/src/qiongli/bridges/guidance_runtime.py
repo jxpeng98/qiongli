@@ -28,6 +28,7 @@ GUIDANCE_DIR_REL = Path(".qiongli") / "guidance.d"
 GUIDANCE_MANIFEST_REL = Path(".qiongli") / "guidance_manifest.yaml"
 TRACE_REL = Path(".qiongli") / "trace"
 TRACE_INDEX_REL = TRACE_REL / "index.jsonl"
+SUBJECT_EVIDENCE_REL = TRACE_REL / "subject_evidence.json"
 MANIFEST_PROPOSAL_FIELDS = {
     "active_subject",
     "subject_mode",
@@ -243,6 +244,18 @@ def write_guidance_trace(
         merged_analysis=merged_analysis,
     )
     subject_refinement_packet = subject_refinement.to_packet()
+    subject_evidence_memory = _update_subject_evidence(
+        paths,
+        run_id,
+        subject_refinement_packet,
+    )
+    subject_refinement_packet["subject_evidence_memory"] = subject_evidence_memory
+    subject_refinement_packet["promotion_recommendation"] = (
+        _subject_promotion_recommendation(
+            subject_evidence_memory,
+            subject_refinement_packet,
+        )
+    )
     _write_json(run_dir / "subject_refinement.json", subject_refinement_packet)
     (run_dir / "guidance_update_proposal.md").write_text(
         _proposal_text(task_packet, validator_gate, applied, subject_refinement_packet),
@@ -493,6 +506,116 @@ def _write_json(path: Path, payload: Any) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def _subject_evidence_path(paths: GuidancePaths) -> Path:
+    return paths.project_root / SUBJECT_EVIDENCE_REL
+
+
+def _load_subject_evidence(paths: GuidancePaths) -> dict[str, Any]:
+    path = _subject_evidence_path(paths)
+    empty = {"schema_version": "1.0", "subjects": {}}
+    if not path.is_file():
+        return empty
+    try:
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {
+            **empty,
+            "warnings": [f"Invalid subject evidence memory at {_rel(paths.project_root, path)}: {exc}"],
+        }
+    if not isinstance(loaded, Mapping):
+        return {
+            **empty,
+            "warnings": [
+                f"Invalid subject evidence memory at {_rel(paths.project_root, path)}: expected object"
+            ],
+        }
+    subjects = loaded.get("subjects")
+    if not isinstance(subjects, Mapping):
+        return {
+            **empty,
+            "warnings": [
+                f"Invalid subject evidence memory at {_rel(paths.project_root, path)}: expected subjects object"
+            ],
+        }
+    memory = {"schema_version": "1.0", "subjects": {}}
+    for subject, record in subjects.items():
+        if isinstance(subject, str) and isinstance(record, Mapping):
+            memory["subjects"][subject] = dict(record)
+    warnings = loaded.get("warnings")
+    if isinstance(warnings, list):
+        memory["warnings"] = [str(item) for item in warnings if str(item).strip()]
+    return memory
+
+
+def _update_subject_evidence(
+    paths: GuidancePaths,
+    run_id: str,
+    subject_refinement: Mapping[str, Any],
+) -> dict[str, Any]:
+    memory = _load_subject_evidence(paths)
+    subjects = memory.setdefault("subjects", {})
+    if not isinstance(subjects, dict):
+        subjects = {}
+        memory["subjects"] = subjects
+
+    decision = str(subject_refinement.get("decision", ""))
+    primary_subject = str(subject_refinement.get("primary_subject", "auto") or "auto")
+    if decision == "suggest_subject" and primary_subject not in {"auto", "core", ""}:
+        current = subjects.get(primary_subject)
+        current_record = dict(current) if isinstance(current, Mapping) else {}
+        suggestion_count = int(current_record.get("suggestion_count", 0) or 0) + 1
+        subjects[primary_subject] = {
+            **current_record,
+            "suggestion_count": suggestion_count,
+            "last_decision": decision,
+            "last_confidence": float(subject_refinement.get("confidence", 0.0) or 0.0),
+            "last_run_id": run_id,
+            "signals": [
+                dict(signal)
+                for signal in list(subject_refinement.get("signals", []) or [])
+                if isinstance(signal, Mapping)
+            ],
+        }
+
+    path = _subject_evidence_path(paths)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    _write_json(path, memory)
+    return memory
+
+
+def _subject_promotion_recommendation(
+    memory: Mapping[str, Any],
+    subject_refinement: Mapping[str, Any],
+) -> dict[str, Any]:
+    decision = str(subject_refinement.get("decision", ""))
+    primary_subject = str(subject_refinement.get("primary_subject", "auto") or "auto")
+    confidence = float(subject_refinement.get("confidence", 0.0) or 0.0)
+    subjects = memory.get("subjects", {})
+    subject_memory = subjects.get(primary_subject, {}) if isinstance(subjects, Mapping) else {}
+    suggestion_count = (
+        int(subject_memory.get("suggestion_count", 0) or 0)
+        if isinstance(subject_memory, Mapping)
+        else 0
+    )
+    if (
+        decision == "suggest_subject"
+        and primary_subject not in {"auto", "core", ""}
+        and suggestion_count >= 2
+        and confidence >= 0.75
+    ):
+        return {
+            "status": "recommend_confirmation",
+            "subject": primary_subject,
+            "active_subject": primary_subject,
+            "subject_mode": "suggested",
+            "write_manifest": False,
+            "suggestion_count": suggestion_count,
+            "minimum_repeated_suggestions": 2,
+            "minimum_confidence": 0.75,
+        }
+    return {"status": "none", "write_manifest": False}
+
+
 def _proposal_text(
     task_packet: dict[str, Any],
     validator_gate: dict[str, Any],
@@ -530,6 +653,7 @@ def _proposal_text(
             ]
         )
     lines.extend(_subject_refinement_decision_section(subject_refinement))
+    lines.extend(_subject_confirmation_proposal_section(subject_refinement))
     lines.extend(_manifest_proposal_section(subject_refinement))
     lines.extend(
         [
@@ -586,6 +710,27 @@ def _subject_refinement_decision_section(subject_refinement: dict[str, Any]) -> 
     return lines
 
 
+def _subject_confirmation_proposal_section(subject_refinement: dict[str, Any]) -> list[str]:
+    recommendation = subject_refinement.get("promotion_recommendation", {})
+    if not isinstance(recommendation, Mapping):
+        return []
+    if recommendation.get("status") != "recommend_confirmation":
+        return []
+    active_subject = str(recommendation.get("active_subject", "") or "")
+    subject_mode = str(recommendation.get("subject_mode", "suggested") or "suggested")
+    suggestion_count = int(recommendation.get("suggestion_count", 0) or 0)
+    return [
+        "",
+        "## Subject Confirmation Proposal",
+        "",
+        f"- active_subject: {active_subject}",
+        f"- subject_mode: {subject_mode}",
+        "- write_manifest: false",
+        f"- repeated_suggestions: {suggestion_count}",
+        f"- Ask the user to confirm {active_subject} before writing the manifest.",
+    ]
+
+
 def _manifest_proposal_section(subject_refinement: dict[str, Any]) -> list[str]:
     decision = str(subject_refinement.get("decision", ""))
     primary_subject = str(subject_refinement.get("primary_subject", "auto"))
@@ -597,7 +742,12 @@ def _manifest_proposal_section(subject_refinement: dict[str, Any]) -> list[str]:
         "## Proposed Manifest Changes",
         "",
     ]
-    if decision != "suggest_subject" or primary_subject in {"auto", "core", ""} or confidence < 0.6:
+    if (
+        _has_subject_confirmation_recommendation(subject_refinement)
+        or decision != "suggest_subject"
+        or primary_subject in {"auto", "core", ""}
+        or confidence < 0.6
+    ):
         lines.append("No structured manifest change proposed.")
     else:
         lines.extend(
@@ -624,6 +774,14 @@ def _manifest_proposal_section(subject_refinement: dict[str, Any]) -> list[str]:
     else:
         lines.append("- evidence: none")
     return lines
+
+
+def _has_subject_confirmation_recommendation(subject_refinement: Mapping[str, Any]) -> bool:
+    recommendation = subject_refinement.get("promotion_recommendation", {})
+    return (
+        isinstance(recommendation, Mapping)
+        and recommendation.get("status") == "recommend_confirmation"
+    )
 
 
 def _extract_proposed_changes(proposal_text: str) -> str:
