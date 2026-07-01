@@ -135,7 +135,8 @@ def _load_state(project_root: Path) -> dict[str, Any]:
 
 
 def _normalize_state(loaded: Mapping[Any, Any]) -> dict[str, Any]:
-    state: dict[str, Any] = {"schema_version": "1.0"}
+    state: dict[str, Any] = dict(loaded)
+    state["schema_version"] = "1.0"
 
     subjects = loaded.get("subjects")
     state["subjects"] = dict(subjects) if isinstance(subjects, Mapping) else {}
@@ -151,6 +152,8 @@ def _normalize_state(loaded: Mapping[Any, Any]) -> dict[str, Any]:
     warnings = _string_list(loaded.get("warnings"))
     if warnings:
         state["warnings"] = warnings
+    else:
+        state.pop("warnings", None)
     if subjects is not None and not isinstance(subjects, Mapping):
         _state_warnings(state).append(
             "Invalid subject evidence memory: expected subjects object"

@@ -96,6 +96,27 @@ class SubjectLifecycleTests(unittest.TestCase):
             self.assertEqual(dismissed["last_suggestion_count"], 3)
             self.assertEqual(dismissed["run_id"], "run-2")
 
+    def test_dismiss_preserves_unknown_top_level_state_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._state_path(root).parent.mkdir(parents=True)
+            self._state_path(root).write_text(
+                json.dumps(
+                    {
+                        "schema_version": "1.0",
+                        "subjects": {"finance": {"suggestion_count": 1}},
+                        "future_field": {"keep": True},
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            apply_subject_action(root, "dismiss", "finance")
+            stored = json.loads(self._state_path(root).read_text(encoding="utf-8"))
+
+            self.assertIn("future_field", stored)
+            self.assertEqual(stored["future_field"], {"keep": True})
+
     def test_lock_then_unlock_transitions_concrete_subject_to_confirmed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
