@@ -67,6 +67,22 @@ FINANCE_VENUE_PATTERNS = (
     re.compile(r"\b(Journal of Financial Economics|JFE)\b", re.I),
     re.compile(r"\b(Review of Financial Studies|RFS)\b", re.I),
 )
+FINANCE_DATA_OUTCOME_SIGNAL_PATTERNS = {
+    "crsp": re.compile(r"\bCRSP\b", re.I),
+    "compustat": re.compile(r"\bCompustat\b", re.I),
+    "abnormal-returns": re.compile(r"\babnormal returns?\b", re.I),
+    "stock-returns": re.compile(r"\bstock returns?\b", re.I),
+    "market-returns": re.compile(r"\bmarket returns?\b", re.I),
+    "portfolio-returns": re.compile(r"\bportfolio returns?\b", re.I),
+    "asset-returns": re.compile(r"\basset returns?\b", re.I),
+    "factor-returns": re.compile(r"\bfactor returns?\b", re.I),
+    "return-predictability": re.compile(r"\breturn predictability\b", re.I),
+}
+FINANCE_VENUE_SIGNAL_PATTERNS = {
+    "journal-of-finance": FINANCE_VENUE_PATTERNS[0],
+    "journal-of-financial-economics": FINANCE_VENUE_PATTERNS[1],
+    "review-of-financial-studies": FINANCE_VENUE_PATTERNS[2],
+}
 
 ECONOMICS_METHOD_PATTERNS = {
     "did": re.compile(
@@ -84,6 +100,22 @@ ECONOMICS_VENUE_PATTERNS = (
     re.compile(r"\b(Quarterly Journal of Economics|QJE)\b", re.I),
     re.compile(r"\b(Journal of Political Economy|JPE)\b", re.I),
 )
+ECONOMICS_VENUE_SIGNAL_PATTERNS = {
+    "american-economic-review": ECONOMICS_VENUE_PATTERNS[0],
+    "quarterly-journal-of-economics": ECONOMICS_VENUE_PATTERNS[1],
+    "journal-of-political-economy": ECONOMICS_VENUE_PATTERNS[2],
+}
+SIGNAL_WEIGHTS = {
+    "finance": {
+        "method": 0.35,
+        "data_or_outcome": 0.30,
+        "venue": 0.20,
+    },
+    "economics": {
+        "method": 0.40,
+        "venue": 0.20,
+    },
+}
 
 
 @dataclass(frozen=True)
@@ -94,6 +126,7 @@ class SubjectSignals:
     economics_method_lenses: list[str]
     economics_venues: list[str]
     evidence: list[str]
+    signals: list[dict[str, Any]]
 
     @property
     def has_any(self) -> bool:
@@ -140,6 +173,7 @@ class SubjectRefinementPacket:
     domain: str
     confidence: float = 0.0
     evidence: list[str] | None = None
+    signals: list[dict[str, Any]] | None = None
 
     def to_packet(self) -> dict[str, Any]:
         return {
@@ -163,6 +197,7 @@ class SubjectRefinementPacket:
             "domain": self.domain,
             "confidence": self.confidence,
             "evidence": list(self.evidence or []),
+            "signals": [_copy_record(signal) for signal in self.signals or []],
         }
 
 
@@ -211,6 +246,7 @@ def infer_subject_refinement(
             domain=_domain_for_subject(manifest.active_subject),
             confidence=1.0,
             evidence=signals.evidence,
+            signals=signals.signals,
         )
 
     if manifest.subject_mode == "confirmed":
@@ -237,6 +273,7 @@ def infer_subject_refinement(
             domain=_domain_for_subject(manifest.active_subject),
             confidence=1.0,
             evidence=signals.evidence,
+            signals=signals.signals,
         )
 
     if signals.has_strong_finance:
@@ -263,6 +300,7 @@ def infer_subject_refinement(
             domain="finance",
             confidence=0.85,
             evidence=signals.evidence,
+            signals=signals.signals,
         )
 
     if signals.has_economics_subject_signal:
@@ -289,6 +327,7 @@ def infer_subject_refinement(
             domain="economics",
             confidence=0.7,
             evidence=signals.evidence,
+            signals=signals.signals,
         )
 
     if signals.finance_method_lenses and manifest.active_subject != "finance":
@@ -319,6 +358,7 @@ def infer_subject_refinement(
             domain=_domain_for_subject(manifest.active_subject),
             confidence=0.45,
             evidence=signals.evidence,
+            signals=signals.signals,
         )
 
     return SubjectRefinementPacket(
@@ -343,6 +383,7 @@ def infer_subject_refinement(
         domain="auto",
         confidence=0.0,
         evidence=[],
+        signals=signals.signals,
     )
 
 
@@ -425,7 +466,50 @@ def _detect_signals(text: str) -> SubjectSignals:
         economics_method_lenses=economics_method_lenses,
         economics_venues=economics_venues,
         evidence=_evidence(text),
+        signals=_detect_signal_records(text),
     )
+
+
+def _detect_signal_records(text: str) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    records.extend(_signal_records_for_patterns("finance", "method", FINANCE_METHOD_PATTERNS, text))
+    records.extend(
+        _signal_records_for_patterns(
+            "finance",
+            "data_or_outcome",
+            FINANCE_DATA_OUTCOME_SIGNAL_PATTERNS,
+            text,
+        )
+    )
+    records.extend(_signal_records_for_patterns("finance", "venue", FINANCE_VENUE_SIGNAL_PATTERNS, text))
+    records.extend(_signal_records_for_patterns("economics", "method", ECONOMICS_METHOD_PATTERNS, text))
+    records.extend(_signal_records_for_patterns("economics", "venue", ECONOMICS_VENUE_SIGNAL_PATTERNS, text))
+    return _unique_records(records, key="id")
+
+
+def _signal_records_for_patterns(
+    subject: str,
+    dimension: str,
+    patterns: Mapping[str, re.Pattern[str]],
+    text: str,
+) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    for value, pattern in patterns.items():
+        match = pattern.search(text)
+        if not match:
+            continue
+        records.append(
+            {
+                "id": f"{subject}.{dimension}.{value}",
+                "subject": subject,
+                "dimension": dimension,
+                "value": value,
+                "weight": SIGNAL_WEIGHTS.get(subject, {}).get(dimension, 0.0),
+                "source": "task_text",
+                "snippet": _snippet_for_match(text, match),
+            }
+        )
+    return records
 
 
 def _hits(patterns: Mapping[str, re.Pattern[str]], text: str) -> list[str]:
@@ -449,12 +533,16 @@ def _evidence(text: str) -> list[str]:
         match = pattern.search(text)
         if not match:
             continue
-        start = max(0, match.start() - 40)
-        end = min(len(text), match.end() + 40)
-        snippet = " ".join(text[start:end].split())
+        snippet = _snippet_for_match(text, match)
         if snippet not in snippets:
             snippets.append(snippet)
     return snippets[:5]
+
+
+def _snippet_for_match(text: str, match: re.Match[str]) -> str:
+    start = max(0, match.start() - 40)
+    end = min(len(text), match.end() + 40)
+    return " ".join(text[start:end].split())
 
 
 def _candidate_subjects(
