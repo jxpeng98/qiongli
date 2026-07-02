@@ -13,7 +13,7 @@ can ship with tests, local verification, and clear rollback behavior.
 
 ## Current Baseline
 
-Completed on `dev` as of July 1, 2026:
+Completed on `dev` as of July 2, 2026:
 
 - Runtime subject refinement packet with `decision`, `signals`,
   `resource_activation_plan`, `borrowed_lenses`, and backward-compatible fields.
@@ -25,18 +25,30 @@ Completed on `dev` as of July 1, 2026:
 - Isolated smoke environment including `HOME`, `CODEX_HOME`,
   `QIONGLI_CONFIG_HOME`, `QIONGLI_GUIDANCE_HOME`, `XDG_CONFIG_HOME`, and
   `RESEARCH_CLI_LANG=en`.
+- Curated subject router evaluation fixtures and a thresholded evaluation
+  runner for clear, mixed, borrowed-lens, near-miss, and core-only cases.
+- Project-local subject lifecycle controls through CLI and MCP: `status`,
+  `confirm`, `dismiss`, `reset`, `lock`, and `unlock`.
+- Managed subject guidance materialization at
+  `.qiongli/guidance.d/subject-runtime.md` after explicit confirmation or lock.
+- Runtime preview packets that expose loaded local guidance, including the
+  managed subject guidance fragment.
 
 Remaining product gaps:
 
-- Router quality is not yet measured with a curated corpus.
-- Users cannot directly confirm, dismiss, reset, lock, or inspect subject state
-  through CLI or MCP tools.
-- Confirmed subject state does not yet create lightweight local guidance
-  materialization.
-- Expansion to additional subjects lacks a quality gate that prevents
-  accidental over-activation.
-- Real local-agent smoke remains opt-in roadmap work rather than a standard
-  release gate.
+- Real local-agent smoke remains opt-in roadmap work rather than a release
+  confidence gate.
+- The runtime hardening layer does not yet prove that a real local agent
+  consumes materialized subject guidance without writing outside an isolated
+  root.
+- Expansion to additional subjects still needs a formal onboarding contract
+  that requires evaluation fixtures, near-miss guards, and regression
+  thresholds before activation.
+- Feedback from lifecycle actions is recorded, but router explainability does
+  not yet clearly separate task-text, manifest, trace-memory, and user-action
+  evidence in every output path.
+- Marketplace, plugin, and read-only client behavior needs a release-ready
+  fallback contract for proposed actions when `.qiongli` writes are unavailable.
 
 ## Roadmap Principles
 
@@ -51,7 +63,7 @@ Remaining product gaps:
 
 ## Stage 1: Router Evaluation And Lifecycle Controls
 
-Status: next recommended implementation.
+Status: completed on `dev`.
 
 Primary outcome:
 
@@ -88,6 +100,8 @@ First formal spec:
 
 ## Stage 2: Lightweight Local Guidance Materialization
 
+Status: completed on `dev`.
+
 Primary outcome:
 
 - Confirmed subject state influences future agent runs through project-local
@@ -112,7 +126,47 @@ Success criteria:
   user guidance fragments.
 - Manual user edits are detected and not overwritten silently.
 
-## Stage 3: Subject Expansion With Evaluation Gates
+First formal spec:
+
+- `docs/superpowers/specs/2026-07-01-subject-guidance-materialization-design.md`
+
+## Stage 3: Real Local-Agent Smoke And Runtime Hardening
+
+Status: next recommended implementation.
+
+Primary outcome:
+
+- Qiongli can verify a minimal end-to-end local-agent run in an isolated
+  environment and prove that materialized subject guidance is consumed by the
+  real runtime, not only the preview packet.
+
+Scope:
+
+- Add a separate opt-in smoke path that requires both a command flag and an
+  environment variable.
+- Use temporary `HOME`, client config roots, project root, and trace root.
+- Run one small task through the local runtime with bounded output and no
+  external literature or provider-network requirement beyond the selected local
+  agent runtime's own model access.
+- Verify trace bundle completeness, subject refinement packet persistence,
+  local guidance loading, and no writes outside the isolated root.
+- Add runtime hardening checks for local guidance load errors, write boundary
+  reporting, and stable smoke diagnostics.
+
+Success criteria:
+
+- Preview smoke remains the default release gate.
+- Local-agent smoke is available for maintainers and release candidates.
+- Failed local-agent smoke reports the exact command, isolated root, and trace
+  path for diagnosis.
+- Confirmed subject guidance appears in the local-agent run trace as a loaded
+  project guidance source.
+
+First formal spec:
+
+- `docs/superpowers/specs/2026-07-02-real-local-agent-smoke-runtime-hardening-design.md`
+
+## Stage 4: Subject Expansion With Evaluation Gates
 
 Primary outcome:
 
@@ -139,30 +193,6 @@ Success criteria:
   fixtures.
 - Existing economics and finance metrics do not regress.
 - Subject expansion does not increase false positives in core-only cases.
-
-## Stage 4: Real Local-Agent Smoke
-
-Primary outcome:
-
-- Qiongli can verify a minimal end-to-end local-agent run in an isolated
-  environment.
-
-Scope:
-
-- Add a separate opt-in smoke path that requires both a command flag and an
-  environment variable.
-- Use temporary `HOME`, client config roots, project root, and trace root.
-- Run one small task through the local runtime with bounded output and no
-  external network requirement.
-- Verify trace bundle completeness, subject refinement packet persistence, and
-  no writes outside the isolated root.
-
-Success criteria:
-
-- Preview smoke remains the default release gate.
-- Local-agent smoke is available for maintainers and release candidates.
-- Failed local-agent smoke reports the exact command, isolated root, and trace
-  path for diagnosis.
 
 ## Stage 5: Feedback-Aware Subject Refinement
 
@@ -224,18 +254,21 @@ Success criteria:
 
 ## Recommended Immediate Plan
 
-Implement Stage 1 first:
+Implement Stage 3 first:
 
-1. Build the evaluation fixture schema and runner.
-2. Add lifecycle state helpers and tests.
-3. Add CLI and MCP lifecycle operations.
-4. Connect dismissal and confirmation to evidence memory.
-5. Run targeted tests, preview smoke, full Python tests, npm tests, and
-   whitespace checks.
+1. Add the real local-agent smoke design and implementation plan.
+2. Extend the smoke runner with an opt-in local-agent mode guarded by both a
+   CLI flag and `QIONGLI_SMOKE_RUN_AGENTS=1`.
+3. Run the confirmed-subject fixture through the real local runtime in an
+   isolated root.
+4. Assert local guidance consumption, trace bundle completeness, and no writes
+   outside the isolated root.
+5. Add release-readiness reporting for preview smoke, optional local-agent
+   smoke, subject router eval, and guidance materialization checks.
 
-After Stage 1 ships, decide whether Stage 2 or Stage 4 should come next:
+After Stage 3 ships, move to Stage 4 subject expansion:
 
-- Choose Stage 2 if the priority is better day-to-day agent behavior after
-  subject confirmation.
-- Choose Stage 4 if the priority is release confidence in the full local-agent
-  runtime.
+- Require an evaluation fixture pack before enabling each new subject.
+- Start with one adjacent subject pack before expanding the full catalog.
+- Keep feedback-aware routing and marketplace/read-only fallback work scoped as
+  separate follow-up specs unless Stage 4 exposes a blocking dependency.
