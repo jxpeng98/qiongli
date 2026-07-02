@@ -1,7 +1,7 @@
 <div align="center">
   <h1>Qiongli (穷理)</h1>
-  <p><strong>Reviewable academic workflows for Codex, Claude Code, Claude Desktop, Antigravity, and Hermes.</strong></p>
-  <p>Turn broad research requests into task IDs, quality gates, evidence trails, role handoffs, and durable outputs under <code>RESEARCH/[topic]/</code>.</p>
+  <p><strong>Use AI agents for academic research without losing the evidence trail.</strong></p>
+  <p>Qiongli turns a research goal into a paper route, task IDs, literature and citation evidence, quality gates, agent handoffs, and stable files under <code>RESEARCH/[topic]/</code>.</p>
   <p>
     <a href="https://www.npmjs.com/package/qiongli"><img alt="npm latest version" src="https://img.shields.io/npm/v/qiongli/latest?style=flat-square&amp;logo=npm&amp;label=npm%20latest"></a>
     <a href="https://www.npmjs.com/package/qiongli?activeTab=versions"><img alt="npm next version" src="https://img.shields.io/npm/v/qiongli/next?style=flat-square&amp;logo=npm&amp;label=npm%20next&amp;color=cb3837"></a>
@@ -19,12 +19,14 @@
 
 ## What It Is
 
-Qiongli is a portable academic workflow package plus optional local runtimes. It helps research teams:
+Qiongli is an academic workflow system for researchers who use Codex, Claude Code, Claude Desktop, Antigravity, Hermes, or similar AI agents. Use it when a research task is too important for a one-off prompt and needs visible evidence, repeatable steps, and reviewable outputs.
 
-- choose the right paper route for empirical, qualitative, systematic review, RCT, theory, and code-first methods work;
-- keep literature search, citation risk, methods, writing, and review steps tied to explicit evidence;
-- run solo, duo, or triad agent workflows with auditable handoffs and verification status;
-- keep full local orchestration separate from lightweight skill/plugin installs.
+You can use Qiongli to:
+
+- choose a paper route for empirical, qualitative, systematic review, RCT, theory, and code-first methods projects;
+- structure literature search, citation checking, study design, writing, code, review, submission, and rebuttal work;
+- keep claims, sources, methods decisions, review notes, and generated artifacts in predictable project paths;
+- run lightweight skill/plugin workflows first, then add the full local orchestrator only when you need controlled solo, duo, or triad agent execution.
 
 The name comes from `穷理`: keep asking what principle, evidence, and limit sits underneath a claim.
 

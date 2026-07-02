@@ -168,7 +168,7 @@ const commonHead = [
 /** @type {import('vitepress').UserConfig} */
 export default {
   title: 'Qiongli',
-  description: 'Reviewable academic research workflows for AI coding agents.',
+  description: 'Use AI agents for academic research without losing the evidence trail.',
   cleanUrls: true,
   lastUpdated: true,
   head: commonHead,

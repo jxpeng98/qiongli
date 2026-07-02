@@ -1,7 +1,7 @@
 <div align="center">
   <h1>穷理（Qiongli）</h1>
-  <p><strong>让 AI 辅助研究留下可复查证据链的学术工作流系统。</strong></p>
-  <p>把宽泛研究请求拆成 Task ID、质量门、证据链、角色交接和 <code>RESEARCH/[topic]/</code> 下的稳定产物。</p>
+  <p><strong>用 AI agent 做学术研究，同时保留可复查证据链。</strong></p>
+  <p>穷理把一个研究目标拆成论文路线、Task ID、文献和引用证据、质量门、agent 交接，以及 <code>RESEARCH/[topic]/</code> 下的稳定文件。</p>
   <p>
     <a href="https://www.npmjs.com/package/qiongli"><img alt="npm latest version" src="https://img.shields.io/npm/v/qiongli/latest?style=flat-square&amp;logo=npm&amp;label=npm%20latest"></a>
     <a href="https://www.npmjs.com/package/qiongli?activeTab=versions"><img alt="npm next version" src="https://img.shields.io/npm/v/qiongli/next?style=flat-square&amp;logo=npm&amp;label=npm%20next&amp;color=cb3837"></a>
@@ -19,14 +19,14 @@
 
 ## 它是什么
 
-穷理是一套便携的学术 workflow package，也可以按需接入本地运行时。它适合不能只靠一次 prompt 完成、后续还需要复查证据和过程的研究任务。
+穷理是面向学术研究的 AI agent 工作流系统，适合正在使用 Codex、Claude Code、Claude Desktop、Antigravity、Hermes 或类似工具的研究者。它适合那些不能只靠一次 prompt 完成、后续还需要复查证据、步骤和产物的研究任务。
 
 你可以用它来：
 
-- 为 empirical、qualitative、systematic review、RCT、theory、code-first methods 等任务选择论文路线；
-- 把 literature search、citation risk、methods、writing 和 review 绑定到明确证据；
-- 用 solo、duo、triad 模式组织多 agent 协作，并保留 handoff 与 verification status；
-- 把轻量 skill/plugin 使用和完整本地 orchestrator 运行分开管理。
+- 为 empirical、qualitative、systematic review、RCT、theory、code-first methods 等项目选择论文路线；
+- 组织 literature search、citation checking、study design、writing、code、review、submission 和 rebuttal；
+- 把 claim、source、method decision、review note 和生成产物放到稳定项目路径里；
+- 先用轻量 skill/plugin 工作流，需要受控 solo、duo、triad agent execution 时再接入完整本地 orchestrator。
 
 “穷理”表示持续追问一个 claim 背后的 principle、evidence 和 limit。
 

@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: Qiongli
-  text: "让 AI 辅助研究留下可复查证据链。"
-  tagline: "先选论文路线，再选刚好够用的安装面，并把文献、写作、代码和审阅依据留在可检查的路径里。"
+  text: "用 AI agent 做学术研究，同时保留可复查证据链。"
+  tagline: "把一个研究主题拆成论文路线、Task ID、质量门、文献和引用证据、写作与代码产物，以及可追踪的审阅交接。"
   actions:
     - theme: brand
       text: 快速开始
