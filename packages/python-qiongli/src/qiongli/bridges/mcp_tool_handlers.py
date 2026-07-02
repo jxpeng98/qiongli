@@ -261,6 +261,9 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
                 "skills_strict": {"type": "boolean"},
                 "guidance_mode": {"type": "string", "enum": list(GUIDANCE_MODES), "default": "propose"},
                 "run_agents": {"type": "boolean", "default": False},
+                "max_revision_rounds": {"type": "integer", "minimum": 0},
+                "output_budget": {"type": "integer", "minimum": 1},
+                "skip_validation": {"type": "boolean"},
             },
             "additionalProperties": False,
         },
@@ -624,6 +627,9 @@ def _task_run_kwargs(args: dict[str, Any]) -> dict[str, Any]:
         "review_agent": _optional_str(args, "reviewer"),
         "verifier_agent": _optional_str(args, "verifier"),
         "solo_role_gates": _optional_str(args, "solo_role_gates", "standard"),
+        "max_revision_rounds": _optional_int(args, "max_revision_rounds", 2, minimum=0),
+        "output_budget": _optional_int(args, "output_budget", None, minimum=1),
+        "skip_validation": _optional_bool(args, "skip_validation", default=False),
     }
 
 
@@ -961,6 +967,23 @@ def _optional_bool(args: dict[str, Any], key: str, *, default: bool) -> bool:
         if normalized in {"0", "false", "no", "off"}:
             return False
     raise ValueError(f"{key} must be a boolean.")
+
+
+def _optional_int(
+    args: dict[str, Any],
+    key: str,
+    default: int | None = None,
+    *,
+    minimum: int | None = None,
+) -> int | None:
+    if key not in args or args[key] is None:
+        return default
+    raw = args[key]
+    if isinstance(raw, bool) or not isinstance(raw, int):
+        raise ValueError(f"{key} must be an integer")
+    if minimum is not None and raw < minimum:
+        raise ValueError(f"{key} must be >= {minimum}")
+    return raw
 
 
 def _run_agents_enabled(args: dict[str, Any]) -> bool:

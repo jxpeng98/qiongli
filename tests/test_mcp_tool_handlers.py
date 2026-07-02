@@ -1534,6 +1534,42 @@ class MCPToolHandlerTests(unittest.TestCase):
         self.assertEqual(stub.kwargs["execution_mode"], "duo")
         self.assertEqual(stub.kwargs["controller"], "codex")
 
+    def test_task_run_tool_passes_bounded_runtime_options(self) -> None:
+        class StubResult:
+            mode = "task-run"
+            confidence = 0.95
+            merged_analysis = "run ok"
+            recommendations: list[str] = []
+            data = {"runtime_plan": {"draft": "codex", "review": "codex"}}
+
+        class StubOrchestrator:
+            def task_run(self, **kwargs: object) -> StubResult:
+                self.kwargs = kwargs
+                return StubResult()
+
+        stub = StubOrchestrator()
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            with mock.patch.object(tool_handlers, "ModelOrchestrator", return_value=stub):
+                result = call_qiongli_tool(
+                    "qiongli_task_run",
+                    {
+                        "cwd": str(root),
+                        "task_id": "C1",
+                        "paper_type": "empirical",
+                        "topic": "smoke topic",
+                        "run_agents": True,
+                        "max_revision_rounds": 0,
+                        "output_budget": 1,
+                        "skip_validation": True,
+                    },
+                )
+
+        self.assertFalse(result["isError"])
+        self.assertEqual(stub.kwargs["max_revision_rounds"], 0)
+        self.assertEqual(stub.kwargs["output_budget"], 1)
+        self.assertIs(stub.kwargs["skip_validation"], True)
+
     def test_task_run_tool_maps_triad_execution_mode_to_triad_flag(self) -> None:
         class StubResult:
             mode = "task-run"
