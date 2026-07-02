@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from bridges import subject_guidance as subject_guidance_module
 from bridges.subject_guidance import (
@@ -159,6 +160,23 @@ class SubjectGuidanceTests(unittest.TestCase):
             self.assertIn("# User Subject Notes", text)
             self.assertIn("- Keep this note.", text)
             self.assertIn(START_MARKER, text)
+
+    def test_write_converts_oserror_to_subject_guidance_error(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+
+            with mock.patch.object(Path, "write_text", side_effect=OSError("disk full")):
+                with self.assertRaisesRegex(
+                    SubjectGuidanceError,
+                    r"\.qiongli/guidance\.d/subject-runtime\.md.*disk full",
+                ):
+                    write_subject_guidance(
+                        root,
+                        active_subject="finance",
+                        subject_mode="confirmed",
+                        lifecycle_action="confirm",
+                        source="cli",
+                    )
 
     def test_multiple_managed_blocks_fail_closed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

@@ -65,85 +65,102 @@ def apply_subject_action(
         action=normalized_action,
     )
 
-    if normalized_action == "confirm":
-        manifest_state = update_project_manifest(
-            root,
-            active_subject=normalized_subject,
-            subject_mode="confirmed",
-        )
-        _update_subject_guidance(
-            root,
-            manifest_state=manifest_state,
-            action=normalized_action,
-            source=source,
-            run_id=run_id,
-        )
-    elif normalized_action == "lock":
-        manifest_state = update_project_manifest(
-            root,
-            active_subject=normalized_subject,
-            subject_mode="locked",
-        )
-        _update_subject_guidance(
-            root,
-            manifest_state=manifest_state,
-            action=normalized_action,
-            source=source,
-            run_id=run_id,
-        )
-    elif normalized_action == "unlock":
-        active_subject = manifest_state.manifest.active_subject
-        if active_subject in {"auto", "core"}:
+    snapshot = _snapshot_lifecycle_files(root)
+    subject_guidance_status: dict[str, Any] | None = None
+    try:
+        if normalized_action == "confirm":
+            manifest_state = update_project_manifest(
+                root,
+                active_subject=normalized_subject,
+                subject_mode="confirmed",
+            )
+            subject_guidance_status = _update_subject_guidance(
+                root,
+                manifest_state=manifest_state,
+                action=normalized_action,
+                source=source,
+                run_id=run_id,
+            )
+        elif normalized_action == "lock":
+            manifest_state = update_project_manifest(
+                root,
+                active_subject=normalized_subject,
+                subject_mode="locked",
+            )
+            subject_guidance_status = _update_subject_guidance(
+                root,
+                manifest_state=manifest_state,
+                action=normalized_action,
+                source=source,
+                run_id=run_id,
+            )
+        elif normalized_action == "unlock":
+            active_subject = manifest_state.manifest.active_subject
+            if active_subject in {"auto", "core"}:
+                manifest_state = update_project_manifest(
+                    root,
+                    active_subject="auto",
+                    subject_mode="auto",
+                )
+            else:
+                manifest_state = update_project_manifest(root, subject_mode="confirmed")
+            subject_guidance_status = _update_subject_guidance(
+                root,
+                manifest_state=manifest_state,
+                action=normalized_action,
+                source=source,
+                run_id=run_id,
+            )
+        elif normalized_action == "dismiss":
+            _dismiss_subject(
+                state,
+                subject=normalized_subject,
+                source=source,
+                run_id=run_id,
+                created_at=_timestamp(),
+            )
+        elif normalized_action == "reset":
             manifest_state = update_project_manifest(
                 root,
                 active_subject="auto",
                 subject_mode="auto",
+                secondary_subjects=[],
+                venue_profiles=[],
+                method_lenses=[],
+                strictness="standard",
             )
-        else:
-            manifest_state = update_project_manifest(root, subject_mode="confirmed")
-        _update_subject_guidance(
-            root,
-            manifest_state=manifest_state,
-            action=normalized_action,
-            source=source,
-            run_id=run_id,
-        )
-    elif normalized_action == "dismiss":
-        _dismiss_subject(
+            state["subjects"] = {}
+            state["dismissed_subjects"] = {}
+            subject_guidance_status = _disable_subject_guidance(
+                root,
+                action=normalized_action,
+                source=source,
+                run_id=run_id,
+            )
+
+        _append_event(
             state,
+            action=normalized_action,
             subject=normalized_subject,
             source=source,
             run_id=run_id,
-            created_at=_timestamp(),
         )
-    elif normalized_action == "reset":
-        manifest_state = update_project_manifest(
-            root,
-            active_subject="auto",
-            subject_mode="auto",
-            secondary_subjects=[],
-            venue_profiles=[],
-            method_lenses=[],
-            strictness="standard",
+        _write_state(root, state)
+    except SubjectLifecycleError as exc:
+        _restore_lifecycle_files(root, snapshot, original_error=exc)
+        raise
+    except OSError as exc:
+        lifecycle_error = SubjectLifecycleError(
+            f"Failed to update subject lifecycle files: {exc}"
         )
-        state["subjects"] = {}
-        state["dismissed_subjects"] = {}
-        _disable_subject_guidance(
-            root,
-            action=normalized_action,
-            source=source,
-            run_id=run_id,
-        )
-
-    _append_event(
-        state,
-        action=normalized_action,
-        subject=normalized_subject,
-        source=source,
-        run_id=run_id,
+        _restore_lifecycle_files(root, snapshot, original_error=lifecycle_error)
+        raise lifecycle_error from exc
+    return _status_packet(
+        root,
+        manifest_state=manifest_state,
+        state=state,
+        subject_guidance=subject_guidance_status,
     )
-    _write_state(root, state)
-    return _status_packet(root, manifest_state=manifest_state, state=state)
 
 
 def _preflight_lifecycle_symlinks(project_root: Path) -> None:
@@ -197,18 +214,17 @@ def _update_subject_guidance(
     action: str,
     source: str,
     run_id: str | None,
-) -> None:
+) -> dict[str, Any]:
     manifest = manifest_state.manifest
     if manifest.active_subject in {"auto", "core"} or manifest.subject_mode == "auto":
-        _disable_subject_guidance(
+        return _disable_subject_guidance(
             project_root,
             action=action,
             source=source,
             run_id=run_id,
         )
-        return
     try:
-        write_subject_guidance(
+        return write_subject_guidance(
             project_root,
             active_subject=manifest.active_subject,
             subject_mode=manifest.subject_mode,
@@ -217,7 +233,7 @@ def _update_subject_guidance(
             run_id=run_id,
             method_lenses=manifest.method_lenses or [],
         )
-    except SubjectGuidanceError as exc:
+    except (SubjectGuidanceError, OSError) as exc:
         raise SubjectLifecycleError(f"Failed to update subject guidance: {exc}") from exc
 
 
@@ -227,15 +243,15 @@ def _disable_subject_guidance(
     action: str,
     source: str,
     run_id: str | None,
-) -> None:
+) -> dict[str, Any]:
     try:
-        disable_subject_guidance(
+        return disable_subject_guidance(
             project_root,
             lifecycle_action=action,
             source=source,
             run_id=run_id,
         )
-    except SubjectGuidanceError as exc:
+    except (SubjectGuidanceError, OSError) as exc:
         raise SubjectLifecycleError(f"Failed to update subject guidance: {exc}") from exc
 
 
@@ -244,15 +260,58 @@ def _status_packet(
     *,
     manifest_state: Any,
     state: dict[str, Any],
+    subject_guidance: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     packet = manifest_state.to_packet()
     return {
         "project_root": str(project_root.resolve()),
         "manifest": packet["manifest"],
         "manifest_exists": manifest_state.exists,
-        "subject_guidance": inspect_subject_guidance(project_root),
+        "subject_guidance": (
+            subject_guidance
+            if subject_guidance is not None
+            else inspect_subject_guidance(project_root)
+        ),
         "state": state,
     }
+
+
+def _snapshot_lifecycle_files(project_root: Path) -> dict[Path, bytes | None]:
+    return {
+        relative_path: _read_snapshot_file(project_root / relative_path)
+        for relative_path in (
+            Path(".qiongli") / "guidance_manifest.yaml",
+            STATE_REL,
+            Path(".qiongli") / "guidance.d" / "subject-runtime.md",
+        )
+    }
+
+
+def _read_snapshot_file(path: Path) -> bytes | None:
+    if not path.exists():
+        return None
+    return path.read_bytes()
+
+
+def _restore_lifecycle_files(
+    project_root: Path,
+    snapshot: Mapping[Path, bytes | None],
+    *,
+    original_error: SubjectLifecycleError,
+) -> None:
+    try:
+        for relative_path, content in snapshot.items():
+            path = project_root / relative_path
+            if content is None:
+                if path.exists():
+                    path.unlink()
+                continue
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(content)
+    except OSError as exc:
+        raise SubjectLifecycleError(
+            f"{original_error}; rollback failed: {exc}"
+        ) from original_error
 
 
 def _load_state(project_root: Path) -> dict[str, Any]:

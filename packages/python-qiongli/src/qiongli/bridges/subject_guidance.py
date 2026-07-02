@@ -167,27 +167,34 @@ class _ManagedBlock:
 
 def _write_managed_block(project_root: Path, block: str) -> str:
     path = project_root / SUBJECT_GUIDANCE_REL
-    _reject_symlinked_guidance_path(project_root)
-    if not path.exists():
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(_default_document(block), encoding="utf-8")
+    try:
+        _reject_symlinked_guidance_path(project_root)
+        if not path.exists():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(_default_document(block), encoding="utf-8")
+            return "active"
+
+        text = path.read_text(encoding="utf-8")
+        existing = _find_managed_block(text)
+        if existing.status == "invalid":
+            raise SubjectGuidanceError(existing.reason)
+        if existing.status == "absent":
+            path.write_text(_append_document(text, block), encoding="utf-8")
+            return "appended"
+
+        assert existing.start is not None
+        assert existing.end is not None
+        metadata_warning = _metadata_warning(_parse_metadata(text[existing.start : existing.end]))
+        if metadata_warning:
+            raise SubjectGuidanceError(metadata_warning)
+        path.write_text(text[: existing.start] + block + text[existing.end :], encoding="utf-8")
         return "active"
-
-    text = path.read_text(encoding="utf-8")
-    existing = _find_managed_block(text)
-    if existing.status == "invalid":
-        raise SubjectGuidanceError(existing.reason)
-    if existing.status == "absent":
-        path.write_text(_append_document(text, block), encoding="utf-8")
-        return "appended"
-
-    assert existing.start is not None
-    assert existing.end is not None
-    metadata_warning = _metadata_warning(_parse_metadata(text[existing.start : existing.end]))
-    if metadata_warning:
-        raise SubjectGuidanceError(metadata_warning)
-    path.write_text(text[: existing.start] + block + text[existing.end :], encoding="utf-8")
-    return "active"
+    except SubjectGuidanceError:
+        raise
+    except OSError as exc:
+        raise SubjectGuidanceError(
+            f"Failed to update {_rel(project_root, path)}: {exc}"
+        ) from exc
 
 
 def _find_managed_block(text: str) -> _ManagedBlock:

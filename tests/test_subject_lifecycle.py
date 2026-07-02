@@ -4,8 +4,14 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
-from bridges.subject_guidance import END_MARKER, START_MARKER, SUBJECT_GUIDANCE_REL
+from bridges.subject_guidance import (
+    END_MARKER,
+    START_MARKER,
+    SUBJECT_GUIDANCE_REL,
+    SubjectGuidanceError,
+)
 from bridges.subject_lifecycle import (
     SubjectLifecycleError,
     apply_subject_action,
@@ -94,6 +100,23 @@ class SubjectLifecycleTests(unittest.TestCase):
             self.assertIn("run_id: run-1", text)
             self.assertIn("- event-study", text)
             self.assertIn("- asset-pricing", text)
+
+    def test_confirm_reports_appended_guidance_for_action_result(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._guidance_path(root).parent.mkdir(parents=True)
+            self._guidance_path(root).write_text(
+                "# User Subject Notes\n\n- Keep this note.\n",
+                encoding="utf-8",
+            )
+
+            result = apply_subject_action(root, "confirm", "finance", source="cli")
+
+            self.assertEqual(result["subject_guidance"]["managed_block"], "appended")
+            self.assertEqual(
+                subject_status(root)["subject_guidance"]["managed_block"],
+                "active",
+            )
 
     def test_dismiss_writes_only_state_file_without_creating_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -388,6 +411,66 @@ class SubjectLifecycleTests(unittest.TestCase):
                 apply_subject_action(root, "confirm", "finance", source="cli")
 
             self.assertFalse(self._state_path(root).exists())
+
+    def test_confirm_rolls_back_manifest_state_and_guidance_on_oserror(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._manifest_path(root).parent.mkdir(parents=True)
+            original_manifest = "active_subject: auto\nsubject_mode: auto\n"
+            self._manifest_path(root).write_text(original_manifest, encoding="utf-8")
+            self._guidance_path(root).parent.mkdir(parents=True)
+            original_guidance = "# User Subject Notes\n\n- Keep this note.\n"
+            self._guidance_path(root).write_text(original_guidance, encoding="utf-8")
+
+            with mock.patch(
+                "bridges.subject_lifecycle.write_subject_guidance",
+                side_effect=OSError("disk full"),
+            ):
+                with self.assertRaisesRegex(
+                    SubjectLifecycleError,
+                    r"^Failed to update subject guidance:.*disk full",
+                ):
+                    apply_subject_action(root, "confirm", "finance", source="cli")
+
+            self.assertEqual(
+                self._manifest_path(root).read_text(encoding="utf-8"),
+                original_manifest,
+            )
+            self.assertFalse(self._state_path(root).exists())
+            self.assertEqual(
+                self._guidance_path(root).read_text(encoding="utf-8"),
+                original_guidance,
+            )
+
+    def test_reset_rolls_back_manifest_state_and_guidance_on_guidance_error(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            apply_subject_action(root, "confirm", "finance", source="cli")
+            original_manifest = self._manifest_path(root).read_text(encoding="utf-8")
+            original_state = self._state_path(root).read_text(encoding="utf-8")
+            original_guidance = self._guidance_path(root).read_text(encoding="utf-8")
+
+            with mock.patch(
+                "bridges.subject_lifecycle.disable_subject_guidance",
+                side_effect=SubjectGuidanceError(
+                    ".qiongli/guidance.d/subject-runtime.md: disk full"
+                ),
+            ):
+                with self.assertRaisesRegex(
+                    SubjectLifecycleError,
+                    r"^Failed to update subject guidance:.*subject-runtime\.md.*disk full",
+                ):
+                    apply_subject_action(root, "reset", source="cli")
+
+            self.assertEqual(
+                self._manifest_path(root).read_text(encoding="utf-8"),
+                original_manifest,
+            )
+            self.assertEqual(self._state_path(root).read_text(encoding="utf-8"), original_state)
+            self.assertEqual(
+                self._guidance_path(root).read_text(encoding="utf-8"),
+                original_guidance,
+            )
 
     def test_marker_method_lens_fails_before_manifest_or_evidence_writes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
