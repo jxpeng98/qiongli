@@ -211,6 +211,38 @@ class MCPToolHandlerTests(unittest.TestCase):
             self.assertEqual(payload["manifest"]["subject_mode"], "confirmed")
             self.assertTrue((root / ".qiongli" / "guidance_manifest.yaml").exists())
 
+    def test_subject_update_returns_materialized_guidance_status(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+
+            result = call_qiongli_tool(
+                "qiongli_subject_update",
+                {"cwd": str(root), "action": "confirm", "subject": "finance"},
+            )
+
+            payload = result["structuredContent"]
+            guidance = payload["subject_guidance"]
+            self.assertFalse(result["isError"])
+            self.assertTrue(guidance["exists"])
+            self.assertEqual(guidance["managed_block"], "active")
+            self.assertEqual(guidance["active_subject"], "finance")
+
+    def test_subject_status_returns_materialized_guidance_status(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            call_qiongli_tool(
+                "qiongli_subject_update",
+                {"cwd": str(root), "action": "lock", "subject": "economics"},
+            )
+
+            result = call_qiongli_tool("qiongli_subject_status", {"cwd": str(root)})
+
+            payload = result["structuredContent"]
+            guidance = payload["subject_guidance"]
+            self.assertFalse(result["isError"])
+            self.assertEqual(guidance["active_subject"], "economics")
+            self.assertEqual(guidance["subject_mode"], "locked")
+
     def test_subject_update_lock_finance_writes_locked_manifest_with_run_id(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
@@ -908,6 +940,42 @@ class MCPToolHandlerTests(unittest.TestCase):
             self.assertEqual(preview["guidance_bootstrap"]["guidance_dir"], ".qiongli/guidance.d")
             self.assertEqual(preview["guidance_bootstrap"]["guidance_fragment_count"], 0)
             self.assertFalse((root / ".qiongli").exists())
+
+    def test_task_run_preview_packet_includes_materialized_subject_guidance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            update_result = call_qiongli_tool(
+                "qiongli_subject_update",
+                {
+                    "cwd": str(root),
+                    "action": "confirm",
+                    "subject": "finance",
+                    "run_id": "setup-confirm-finance",
+                },
+            )
+            self.assertFalse(update_result["isError"])
+
+            result, _stub = self._call_task_run_preview(
+                {
+                    "task_id": "C1",
+                    "paper_type": "empirical",
+                    "topic": "earnings announcement stock market reaction",
+                    "context": (
+                        "Use event-study evidence and Journal of Finance standards "
+                        "for this empirical paper."
+                    ),
+                    "domain": "auto",
+                    "guidance_mode": "propose",
+                    "cwd": str(root),
+                },
+            )
+
+        task_packet = result["structuredContent"]["data"]["task_packet"]
+        guidance = task_packet["local_guidance"]
+        self.assertIn(
+            ".qiongli/guidance.d/subject-runtime.md",
+            guidance["guidance_files_read"],
+        )
 
     def test_task_run_preview_maps_triad_execution_mode_to_metadata(self) -> None:
         class StubResult:

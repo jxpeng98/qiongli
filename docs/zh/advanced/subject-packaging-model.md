@@ -22,6 +22,11 @@ qiongli project status --project-dir .
 
 如果 manifest 不存在，Qiongli 使用隐式 `active_subject: auto`：先使用 core guidance，再根据当前任务临时推断 subject 和 method lens，并在改变项目本地状态前写出可审计 proposal。持久 subject 变更只来自显式 project 命令或已接受的 guidance proposal。
 
+当用户或客户端确认、锁定某个运行时学科后，Qiongli 会在
+`.qiongli/guidance.d/subject-runtime.md` 写入一个受管理的项目级片段。之后的任务运行会通过
+local guidance 读取这个片段，因此安装好的 adaptive core 工作流仍然以 core 为基础，同时为当前项目叠加已确认的学科层。
+执行 `qiongli subject reset --cwd .` 会禁用这个受管理片段，并让项目回到 adaptive core 推断模式。
+
 安装后的 skill 目录仍然是 `qiongli-workflow`。同一客户端安装一次只有一个 active package。Subject-specific installs 仍然用于 Desktop ZIP、focused packages、compatibility testing 和 release payloads。
 
 | 场景 | 命令 | 含义 |

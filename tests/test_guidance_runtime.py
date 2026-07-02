@@ -20,6 +20,7 @@ from bridges.guidance_runtime import (
     write_guidance_trace,
 )
 from bridges.project_manifest import load_project_manifest
+from bridges.subject_guidance import write_subject_guidance
 
 
 class GuidanceRuntimeTests(unittest.TestCase):
@@ -110,6 +111,35 @@ class GuidanceRuntimeTests(unittest.TestCase):
             self.assertIn("Prefer claim-first paragraphs", state.guidance_context)
             self.assertEqual(state.source_order[-2:], ["project-fragment", "project-fragment"])
             self.assertEqual(state.guidance_sources[-1]["path"], ".qiongli/guidance.d/writing-style.md")
+
+    def test_effective_guidance_reads_materialized_subject_runtime_fragment(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            init_project_guidance(root)
+            write_subject_guidance(
+                root,
+                active_subject="finance",
+                subject_mode="confirmed",
+                lifecycle_action="confirm",
+                source="test",
+                run_id="subject-run",
+                method_lenses=["event-study"],
+                resource_activation_plan={
+                    "levels": ["core", "subject_overlay", "subject_skill", "method_pack"]
+                },
+            )
+
+            state = effective_guidance(root, mode="read")
+
+            self.assertIn(".qiongli/guidance.d/subject-runtime.md", state.guidance_files_read)
+            subject_sources = [
+                source
+                for source in state.guidance_sources
+                if source["path"] == ".qiongli/guidance.d/subject-runtime.md"
+            ]
+            self.assertEqual(len(subject_sources), 1)
+            self.assertEqual(subject_sources[0]["kind"], "project-fragment")
+            self.assertIn("active_subject: finance", state.guidance_context)
 
     def test_effective_guidance_off_mode_skips_guidance_reads(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -213,6 +243,55 @@ class GuidanceRuntimeTests(unittest.TestCase):
             self.assertEqual(index_rows[0]["run_id"], "run-123")
             self.assertEqual(index_rows[0]["missing_outputs"], ["manuscript/manuscript.md"])
             self.assertEqual(index_rows[0]["subject_refinement"], subject_refinement)
+
+    def test_guidance_trace_records_materialized_subject_runtime_fragment(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            init_project_guidance(root)
+            write_subject_guidance(
+                root,
+                active_subject="finance",
+                subject_mode="confirmed",
+                lifecycle_action="confirm",
+                source="test",
+                run_id="subject-run",
+                method_lenses=["event-study"],
+                resource_activation_plan={
+                    "levels": ["core", "subject_overlay", "subject_skill", "method_pack"]
+                },
+            )
+            state = effective_guidance(root, mode="propose", run_id="subject-trace")
+
+            trace = write_guidance_trace(
+                project_root=root,
+                guidance_state=state,
+                task_packet={
+                    "task_id": "C1",
+                    "paper_type": "empirical",
+                    "topic": "earnings announcement returns",
+                },
+                draft_content="Use an event-study design.",
+                review_content="",
+                merged_analysis="",
+                validator_gate={"passed": True, "found": [], "missing": [], "checked": 0},
+                applied=False,
+            )
+
+            subject_source = {
+                "kind": "project-fragment",
+                "path": ".qiongli/guidance.d/subject-runtime.md",
+                "label": "Project Guidance Fragment: subject-runtime.md",
+            }
+            self.assertIn(".qiongli/guidance.d/subject-runtime.md", trace["guidance_files_read"])
+            self.assertIn(subject_source, trace["guidance_sources"])
+            index_rows = [
+                json.loads(line)
+                for line in (root / ".qiongli" / "trace" / "index.jsonl")
+                .read_text(encoding="utf-8")
+                .splitlines()
+            ]
+            self.assertIn(".qiongli/guidance.d/subject-runtime.md", index_rows[0]["guidance_files_read"])
+            self.assertIn(subject_source, index_rows[0]["guidance_sources"])
 
     def test_guidance_trace_records_project_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
