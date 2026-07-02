@@ -78,6 +78,29 @@ Package version format follows [PEP 440](https://peps.python.org/pep-0440/), whi
 
 The default release smoke tier is intentionally conservative: builtin literature smoke + `doctor`. If you also want the heavier `parallel` / `task-run` profile-path checks before publishing, add `--maintainer-smoke`.
 
+### Optional subject runtime local-agent smoke
+
+The default release smoke remains preview-first and does not launch local
+agents. Before a release candidate, maintainers can additionally verify the
+adaptive subject runtime with the deterministic checks and, when local runtime
+validation is desired, an opt-in real local-agent run:
+
+```bash
+uv run python tooling/scripts/run_subject_runtime_smoke.py --json
+uv run python tooling/scripts/evaluate_subject_router.py --json
+QIONGLI_SMOKE_RUN_AGENTS=1 \
+uv run python tooling/scripts/run_subject_runtime_smoke.py \
+  --mode local-agent \
+  --case confirmed_finance_guidance_loaded \
+  --json
+```
+
+The local-agent command is opt-in because it launches local runtime agents. Run
+it only in an isolated environment before release when local runtime validation
+is desired. It verifies that confirmed subject guidance is loaded through
+`.qiongli/guidance.d/subject-runtime.md`, that a local guidance trace is
+written, and that Qiongli-visible paths remain inside the isolated smoke root.
+
 Release doc policy:
 
 - stable releases must be summarized in `CHANGELOG.md`; postflight turns that changelog section into GitHub Release notes with a release-category summary and download guide
