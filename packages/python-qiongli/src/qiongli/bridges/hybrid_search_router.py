@@ -18,6 +18,8 @@ AGENT_INSTRUCTIONS = [
     "The active agent executes native_search_queries only when the platform exposes native search.",
     "Do not treat native-search results as provider-reproducible records.",
     "Write provider, native, and user-corpus records with distinct provenance labels.",
+    "Use native_fulltext_queries only to discover candidate URLs; do not mark full text as retrieved from search snippets.",
+    "Write native_fulltext_candidates with candidate_only status until retrieval_manifest.csv verifies readable text.",
 ]
 
 
@@ -58,6 +60,11 @@ def build_hybrid_search_plan(
         if search_execution_mode in {"hybrid_search", "native_only"}
         else []
     )
+    native_fulltext_queries = (
+        _native_fulltext_queries(query_entries, platform, native_search_tools, filters)
+        if search_execution_mode in {"hybrid_search", "native_only"}
+        else []
+    )
 
     return {
         "artifact_type": "qiongli_hybrid_search_plan",
@@ -69,17 +76,20 @@ def build_hybrid_search_plan(
         "native_search_tools": native_search_tools,
         "provider_queries": provider_queries,
         "native_search_queries": native_search_queries,
+        "native_fulltext_queries": native_fulltext_queries,
+        "native_fulltext_candidate_schema": _native_fulltext_candidate_schema(),
         "provenance_labels": {
             "provider": [f"mcp:{provider}" for provider in provider_names] if provider_available else [],
             "native": [f"native:{tool}" for tool in native_search_tools],
             "user_corpus": ["user_corpus"],
         },
-        "execution_sequence": _execution_sequence(provider_queries, native_search_queries),
+        "execution_sequence": _execution_sequence(provider_queries, native_search_queries, native_fulltext_queries),
         "agent_instructions": list(AGENT_INSTRUCTIONS),
         "merge_policy": {
             "dedupe_keys": ["doi", "title", "year", "provider_record_id", "native_url"],
             "provider_records": "Prefer provider MCP metadata for reproducible bibliographic fields.",
             "native_records": "Keep native-search records only with native provenance labels and source URLs.",
+            "fulltext_candidate_records": "Keep native full-text search outputs as candidate_only until retrieval_manifest.csv verifies readable text.",
             "user_corpus_records": "Keep user-corpus records separate from provider and native search records.",
             "search_log": "Record provider and native query execution separately before merge and dedupe.",
         },
@@ -152,9 +162,58 @@ def _native_search_queries(
     ]
 
 
+def _native_fulltext_queries(
+    query_entries: list[dict[str, str]],
+    platform: str,
+    native_search_tools: list[str],
+    filters: dict[str, Any],
+) -> list[dict[str, Any]]:
+    return [
+        {
+            "tool": tool,
+            "platform": platform,
+            "query_id": entry["query_id"],
+            "query": _fulltext_candidate_query(entry["query"]),
+            "source": entry["source"],
+            "purpose": "fulltext_candidate_discovery",
+            "candidate_status": "candidate_only",
+            "filters": dict(filters),
+            "expected_candidate_fields": [
+                "query_id",
+                "source_agent",
+                "url",
+                "title",
+                "doi",
+                "access_type",
+                "snippet",
+                "candidate_status",
+                "retrieved_at",
+            ],
+            "provenance_label": f"native:{tool}",
+        }
+        for tool in native_search_tools
+        for entry in query_entries
+    ]
+
+
+def _fulltext_candidate_query(query: str) -> str:
+    return f'{query} (PDF OR "full text" OR preprint OR "author manuscript" OR repository OR PMC OR arXiv)'
+
+
+def _native_fulltext_candidate_schema() -> dict[str, Any]:
+    return {
+        "artifact_type": "qiongli_native_fulltext_candidate_schema",
+        "required": ["query_id", "source_agent", "url", "title", "candidate_status", "retrieved_at"],
+        "optional": ["doi", "access_type", "snippet", "license", "version_label"],
+        "status_values": ["candidate_only"],
+        "evidence_rule": "Search snippets and URLs do not prove retrieved full text. Upgrade only through retrieval_manifest.csv.",
+    }
+
+
 def _execution_sequence(
     provider_queries: list[dict[str, Any]],
     native_search_queries: list[dict[str, Any]],
+    native_fulltext_queries: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     sequence = [
         {
@@ -185,11 +244,19 @@ def _execution_sequence(
                 "queries": "native_search_queries",
             }
         )
+    if native_fulltext_queries:
+        sequence.append(
+            {
+                "actor": "agent",
+                "action": "execute platform-native full-text candidate search",
+                "queries": "native_fulltext_queries",
+            }
+        )
     sequence.append(
         {
             "actor": "agent",
             "action": "merge/dedupe/search_log",
-            "inputs": ["provider_queries", "native_search_queries", "user_corpus"],
+            "inputs": ["provider_queries", "native_search_queries", "native_fulltext_candidates", "user_corpus"],
         }
     )
     return sequence

@@ -10,7 +10,9 @@ const AGENT_INSTRUCTIONS = Object.freeze([
   "MCP servers must not call Codex or Claude native search directly.",
   "The active agent executes native_search_queries only when the platform exposes native search.",
   "Do not treat native-search results as provider-reproducible records.",
-  "Write provider, native, and user-corpus records with distinct provenance labels."
+  "Write provider, native, and user-corpus records with distinct provenance labels.",
+  "Use native_fulltext_queries only to discover candidate URLs; do not mark full text as retrieved from search snippets.",
+  "Write native_fulltext_candidates with candidate_only status until retrieval_manifest.csv verifies readable text."
 ]);
 
 const DEFAULT_NATIVE_TOOLS = Object.freeze({
@@ -231,7 +233,52 @@ function buildNativeQueries(entries, platform, nativeTools, filters, nativeEnabl
   );
 }
 
-function executionSequence(providerQueries, nativeQueries) {
+function buildNativeFulltextQueries(entries, platform, nativeTools, filters, nativeEnabled) {
+  if (!nativeEnabled || entries.length === 0) {
+    return [];
+  }
+
+  return nativeTools.flatMap((tool) =>
+    entries.map((entry) => ({
+      tool,
+      platform,
+      query_id: entry.query_id,
+      query: fulltextCandidateQuery(entry.query),
+      source: entry.source,
+      purpose: "fulltext_candidate_discovery",
+      candidate_status: "candidate_only",
+      filters: { ...filters },
+      expected_candidate_fields: [
+        "query_id",
+        "source_agent",
+        "url",
+        "title",
+        "doi",
+        "access_type",
+        "snippet",
+        "candidate_status",
+        "retrieved_at"
+      ],
+      provenance_label: `native:${tool}`
+    }))
+  );
+}
+
+function fulltextCandidateQuery(query) {
+  return `${query} (PDF OR "full text" OR preprint OR "author manuscript" OR repository OR PMC OR arXiv)`;
+}
+
+function nativeFulltextCandidateSchema() {
+  return {
+    artifact_type: "qiongli_native_fulltext_candidate_schema",
+    required: ["query_id", "source_agent", "url", "title", "candidate_status", "retrieved_at"],
+    optional: ["doi", "access_type", "snippet", "license", "version_label"],
+    status_values: ["candidate_only"],
+    evidence_rule: "Search snippets and URLs do not prove retrieved full text. Upgrade only through retrieval_manifest.csv."
+  };
+}
+
+function executionSequence(providerQueries, nativeQueries, nativeFulltextQueries) {
   const sequence = [
     {
       actor: "agent",
@@ -262,10 +309,18 @@ function executionSequence(providerQueries, nativeQueries) {
     });
   }
 
+  if (nativeFulltextQueries.length > 0) {
+    sequence.push({
+      actor: "agent",
+      action: "execute platform-native full-text candidate search",
+      queries: "native_fulltext_queries"
+    });
+  }
+
   sequence.push({
     actor: "agent",
     action: "merge/dedupe/search_log",
-    inputs: ["provider_queries", "native_search_queries", "user_corpus"]
+    inputs: ["provider_queries", "native_search_queries", "native_fulltext_candidates", "user_corpus"]
   });
   return sequence;
 }
@@ -275,6 +330,7 @@ function mergePolicy() {
     dedupe_keys: ["doi", "title", "year", "provider_record_id", "native_url"],
     provider_records: "Prefer provider MCP metadata for reproducible bibliographic fields.",
     native_records: "Keep native-search records only with native provenance labels and source URLs.",
+    fulltext_candidate_records: "Keep native full-text search outputs as candidate_only until retrieval_manifest.csv verifies readable text.",
     user_corpus_records: "Keep user-corpus records separate from provider and native search records.",
     search_log: "Record provider and native query execution separately before merge and dedupe."
   };
@@ -330,6 +386,13 @@ export function buildHybridSearchPlan(input = {}, providerCapabilityMode = "stra
   const entries = queryEntries(input, query);
   const providerQueries = buildProviderQueries(entries, filters, names, ["hybrid_search", "provider_connected"].includes(mode));
   const nativeQueries = buildNativeQueries(entries, platform, tools, filters, ["hybrid_search", "native_only"].includes(mode));
+  const nativeFulltextQueries = buildNativeFulltextQueries(
+    entries,
+    platform,
+    tools,
+    filters,
+    ["hybrid_search", "native_only"].includes(mode)
+  );
 
   return {
     artifact_type: "qiongli_hybrid_search_plan",
@@ -341,12 +404,14 @@ export function buildHybridSearchPlan(input = {}, providerCapabilityMode = "stra
     native_search_tools: tools,
     provider_queries: providerQueries,
     native_search_queries: nativeQueries,
+    native_fulltext_queries: nativeFulltextQueries,
+    native_fulltext_candidate_schema: nativeFulltextCandidateSchema(),
     provenance_labels: {
       provider: providerConnected ? names.map((provider) => `mcp:${provider}`) : [],
       native: tools.map((tool) => `native:${tool}`),
       user_corpus: ["user_corpus"]
     },
-    execution_sequence: executionSequence(providerQueries, nativeQueries),
+    execution_sequence: executionSequence(providerQueries, nativeQueries, nativeFulltextQueries),
     agent_instructions: [...AGENT_INSTRUCTIONS],
     merge_policy: mergePolicy(),
     limitations: planLimitations({
