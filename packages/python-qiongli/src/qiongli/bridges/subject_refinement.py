@@ -9,6 +9,7 @@ from typing import Any, Mapping
 import yaml
 
 from .project_manifest import ProjectManifest, ProjectManifestState
+from .subject_contracts import subject_activation_status
 from .subject_resources import build_resource_activation_plan
 
 
@@ -243,6 +244,8 @@ def infer_subject_refinement(
     signals = _detect_signals(text)
     contract_result = _load_contract(standards_dir)
     contract = contract_result.contract
+    finance_runtime_enabled = _subject_can_be_suggested("finance")
+    economics_runtime_enabled = _subject_can_be_suggested("economics")
 
     if manifest.subject_mode == "locked":
         borrowed_lenses = _borrowed_lenses(manifest.active_subject, signals)
@@ -304,7 +307,7 @@ def infer_subject_refinement(
             signals=signals.signals,
         )
 
-    if signals.has_strong_finance:
+    if signals.has_strong_finance and finance_runtime_enabled:
         method_lenses = _unique(signals.finance_method_lenses)
         borrowed_lenses = _borrowed_lenses("finance", signals)
         return _packet(
@@ -333,7 +336,7 @@ def infer_subject_refinement(
             signals=signals.signals,
         )
 
-    if signals.has_economics_subject_signal:
+    if signals.has_economics_subject_signal and economics_runtime_enabled:
         method_lenses = _unique(signals.economics_method_lenses)
         borrowed_lenses = _borrowed_lenses("economics", signals)
         return _packet(
@@ -384,6 +387,37 @@ def infer_subject_refinement(
             persistence={"status": "temporary"},
             summary=_summary(
                 "Borrowing finance method lens without changing the project subject.",
+                manifest.active_subject,
+                borrowed_lenses,
+            ),
+            domain=_domain_for_subject(manifest.active_subject),
+            confidence=0.45,
+            evidence=signals.evidence,
+            signals=signals.signals,
+        )
+
+    if signals.economics_method_lenses and manifest.active_subject != "economics":
+        borrowed_lenses = _borrowed_lenses(manifest.active_subject, signals)
+        return _packet(
+            decision="borrow_lens",
+            mode="auto",
+            active_subject=manifest.active_subject,
+            primary_subject=manifest.active_subject,
+            secondary_subjects=list(manifest.secondary_subjects or []),
+            candidate_subjects=_candidate_subjects(signals, preferred="economics"),
+            method_lenses=_unique(list(manifest.method_lenses or [])),
+            borrowed_lenses=borrowed_lenses,
+            loaded_resources=_loaded_resources(
+                ["method_pack_only"],
+                primary_subject=manifest.active_subject,
+                method_lenses=[],
+                borrowed_lenses=borrowed_lenses,
+                contract=contract,
+                contract_warnings=contract_result.warnings,
+            ),
+            persistence={"status": "temporary"},
+            summary=_summary(
+                "Borrowing economics method lens without changing the project subject.",
                 manifest.active_subject,
                 borrowed_lenses,
             ),
@@ -596,6 +630,7 @@ def _candidate_subjects(
     return [
         _candidate_subject_record(subject, signals)
         for subject in _unique(subjects)
+        if _subject_can_be_suggested(subject)
     ]
 
 
@@ -707,13 +742,21 @@ def _loaded_resources(
         method_lenses + _borrowed_lens_names(borrowed_lenses),
         method_packs,
     )
+    activation_enabled, activation_warnings = _subject_level_resources_enabled(primary_subject)
+    warnings = list(contract_warnings) + activation_warnings
     loaded_levels = list(levels)
+    if not activation_enabled:
+        loaded_levels = [
+            level
+            for level in loaded_levels
+            if level not in {"subject_overlay", "subject_skill"}
+        ]
     if method_lenses and method_pack_resources and "method_pack" not in loaded_levels:
         loaded_levels.append("method_pack")
 
     loaded_overlays: list[str] = []
     loaded_subject_skills: list[str] = []
-    if primary_subject not in {"auto", "core"} and (
+    if activation_enabled and primary_subject not in {"auto", "core"} and (
         "subject_overlay" in levels or "subject_skill" in levels
     ):
         overlay = overlays.get(primary_subject)
@@ -729,8 +772,23 @@ def _loaded_resources(
         "subject_skills": loaded_subject_skills,
         "method_packs": method_pack_resources,
         "standards": [CONTRACT_FILE] if contract else [],
-        "contract_warnings": list(contract_warnings),
+        "contract_warnings": warnings,
     }
+
+
+def _subject_level_resources_enabled(subject: str) -> tuple[bool, list[str]]:
+    if subject in {"auto", "core"}:
+        return True, []
+    status = subject_activation_status(subject)
+    if status == "runtime_enabled":
+        return True, []
+    return False, [
+        f"Subject {subject} activation_status={status}; subject resources withheld",
+    ]
+
+
+def _subject_can_be_suggested(subject: str) -> bool:
+    return subject_activation_status(subject) == "runtime_enabled"
 
 
 def _load_contract(standards_dir: str | Path | None) -> ContractLoadResult:

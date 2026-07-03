@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import yaml
 
@@ -83,6 +84,57 @@ class SubjectRefinementTests(unittest.TestCase):
             packet["resource_activation_plan"]["resources"],
         )
 
+    def test_candidate_finance_signals_borrow_lens_without_subject_suggestion(self) -> None:
+        with patch(
+            "bridges.subject_refinement.subject_activation_status",
+            return_value="candidate",
+        ):
+            packet = infer_subject_refinement(
+                {
+                    "topic": "earnings announcement returns",
+                    "context": "Estimate abnormal returns using CRSP data for Journal of Finance.",
+                },
+                manifest_state=ProjectManifest(),
+                draft_content="Use an event study with event windows around earnings announcements.",
+            ).to_packet()
+
+        self.assertEqual(packet["decision"], "borrow_lens")
+        self.assertEqual(packet["mode"], "auto")
+        self.assertEqual(packet["active_subject"], "auto")
+        self.assertEqual(packet["primary_subject"], "auto")
+        self.assertNotIn(
+            "finance",
+            [candidate["subject"] for candidate in packet["candidate_subjects"]],
+        )
+        self.assertEqual(packet["borrowed_lenses"][0]["source_subject"], "finance")
+        self.assertEqual(packet["borrowed_lenses"][0]["lens"], "event-study")
+
+    def test_candidate_economics_signals_borrow_lens_without_subject_suggestion(self) -> None:
+        with patch(
+            "bridges.subject_refinement.subject_activation_status",
+            side_effect=lambda subject: (
+                "candidate" if subject == "economics" else "runtime_enabled"
+            ),
+        ):
+            packet = infer_subject_refinement(
+                {
+                    "topic": "parallel trends identification",
+                    "context": "Use DID and parallel trends diagnostics for the policy shock.",
+                },
+                manifest_state=ProjectManifest(),
+            ).to_packet()
+
+        self.assertEqual(packet["decision"], "borrow_lens")
+        self.assertEqual(packet["mode"], "auto")
+        self.assertEqual(packet["active_subject"], "auto")
+        self.assertEqual(packet["primary_subject"], "auto")
+        self.assertNotIn(
+            "economics",
+            [candidate["subject"] for candidate in packet["candidate_subjects"]],
+        )
+        self.assertEqual(packet["borrowed_lenses"][0]["source_subject"], "economics")
+        self.assertEqual(packet["borrowed_lenses"][0]["lens"], "did")
+
     def test_finance_suggestion_includes_structured_signal_records(self) -> None:
         packet = infer_subject_refinement(
             {
@@ -149,6 +201,42 @@ class SubjectRefinementTests(unittest.TestCase):
         self.assertEqual(packet["active_subject"], "finance")
         self.assertEqual(packet["primary_subject"], "finance")
         self.assertEqual(packet["persistence"]["status"], "applied")
+
+    def test_candidate_confirmed_subject_withholds_subject_level_resources(self) -> None:
+        packet = infer_subject_refinement(
+            {"topic": "earnings management", "context": "Tighten the framing."},
+            manifest_state=ProjectManifest(
+                active_subject="accounting",
+                subject_mode="confirmed",
+            ),
+        ).to_packet()
+
+        self.assertEqual(packet["decision"], "confirm_subject")
+        self.assertEqual(packet["primary_subject"], "accounting")
+        self.assertEqual(packet["loaded_resources"]["overlays"], [])
+        self.assertEqual(packet["loaded_resources"]["subject_skills"], [])
+        self.assertNotIn("subject_overlay", packet["loaded_resources"]["levels"])
+        self.assertNotIn("subject_skill", packet["loaded_resources"]["levels"])
+        self.assertNotIn("subject_overlay", packet["resource_activation_plan"]["levels"])
+        self.assertNotIn("subject_skill", packet["resource_activation_plan"]["levels"])
+        self.assertTrue(packet["loaded_resources"]["contract_warnings"])
+        self.assertIn(
+            "activation_status=candidate",
+            packet["loaded_resources"]["contract_warnings"][0],
+        )
+
+    def test_runtime_enabled_finance_still_loads_subject_resources(self) -> None:
+        packet = infer_subject_refinement(
+            {"topic": "revise introduction", "context": "Tighten the framing."},
+            manifest_state=ProjectManifest(
+                active_subject="finance",
+                subject_mode="confirmed",
+            ),
+        ).to_packet()
+
+        self.assertIn("overlays/finance.yaml", packet["loaded_resources"]["overlays"])
+        self.assertIn("skills/finance/SKILL.md", packet["loaded_resources"]["subject_skills"])
+        self.assertEqual(packet["loaded_resources"]["contract_warnings"], [])
 
     def test_confirmed_manifest_method_lenses_include_method_pack_level(self) -> None:
         packet = infer_subject_refinement(
