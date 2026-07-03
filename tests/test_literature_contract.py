@@ -108,6 +108,22 @@ class LiteratureContractTests(unittest.TestCase):
         self.assertTrue((LAYOUT.templates / "dedup-log.csv").exists())
         self.assertTrue((LAYOUT.templates / "retrieval-manifest.csv").exists())
 
+    def test_search_diagnostics_template_locks_coverage_semantics_fields(self) -> None:
+        content = (LAYOUT.templates / "search-diagnostics.md").read_text(encoding="utf-8")
+
+        for token in (
+            "## Coverage Semantics",
+            "discovery_coverage_basis",
+            "native_fulltext_candidate_coverage",
+            "zotero_attachment_coverage",
+            "known_item_recall",
+            "duplicate_saturation",
+            "full_text_access_coverage",
+            "evidence_limit_distribution",
+            "cannot_claim_absolute_completeness: true",
+        ):
+            self.assertIn(token, content)
+
     def test_literature_workflows_route_through_provider_adapters(self) -> None:
         workflow_paths = (
             LAYOUT.workflow / "workflows" / "lit-review.md",
