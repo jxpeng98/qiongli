@@ -176,9 +176,59 @@ class LiteratureSearchBaselineTests(unittest.TestCase):
             retrieved_at="2026-03-25T12:00:00+00:00",
         )
 
-        self.assertEqual(result["data"]["per_query_limit"], 20)
+        self.assertEqual(result["data"]["per_query_limit"], 25)
         self.assertTrue(seen_limits)
-        self.assertTrue(all(limit == 20 for limit in seen_limits))
+        self.assertTrue(all(limit == 25 for limit in seen_limits))
+
+    def test_run_scholarly_search_review_mode_defaults_to_fifty_per_provider(self) -> None:
+        provider_calls: list[tuple[str, int]] = []
+
+        def semantic_scholar_provider(
+            translation: dict[str, object],
+            limit: int,
+        ) -> dict[str, object]:
+            provider_calls.append(("semantic_scholar", limit))
+            return {
+                "data": [
+                    {
+                        "paperId": "s2-review-hit",
+                        "title": "Semantic Scholar Review Result",
+                        "year": 2024,
+                    }
+                ]
+            }
+
+        def openalex_provider(
+            translation: dict[str, object],
+            limit: int,
+        ) -> dict[str, object]:
+            provider_calls.append(("openalex", limit))
+            return {
+                "data": [
+                    {
+                        "paperId": "openalex-review-hit",
+                        "title": "OpenAlex Review Result",
+                        "year": 2024,
+                    }
+                ]
+            }
+
+        result = run_scholarly_search(
+            {
+                "topic": "AI feedback systematic review",
+                "search_mode": "review",
+            },
+            lambda query, limit: {"error": "legacy path should not run", "data": []},
+            retrieved_at="2026-03-25T12:00:00+00:00",
+            provider_fns={
+                "semantic_scholar": semantic_scholar_provider,
+                "openalex": openalex_provider,
+            },
+        )
+
+        self.assertEqual(result["data"]["per_query_limit"], 50)
+        self.assertEqual([call[1] for call in provider_calls], [50, 50])
+        self.assertTrue(all(limit == 50 for _, limit in provider_calls))
 
     def test_run_scholarly_search_clamps_explicit_limit_to_expanded_maximum(self) -> None:
         seen_limits: list[int] = []
@@ -190,15 +240,15 @@ class LiteratureSearchBaselineTests(unittest.TestCase):
         result = run_scholarly_search(
             {
                 "topic": "qualitative governance",
-                "per_query_limit": 80,
+                "per_query_limit": 250,
             },
             fake_search,
             retrieved_at="2026-03-25T12:00:00+00:00",
         )
 
-        self.assertEqual(result["data"]["per_query_limit"], 50)
+        self.assertEqual(result["data"]["per_query_limit"], 200)
         self.assertTrue(seen_limits)
-        self.assertTrue(all(limit == 50 for limit in seen_limits))
+        self.assertTrue(all(limit == 200 for limit in seen_limits))
 
     def test_run_scholarly_search_with_provider_fns_reports_partial_failure_diagnostics(self) -> None:
         provider_calls: list[tuple[str, dict[str, object], int]] = []

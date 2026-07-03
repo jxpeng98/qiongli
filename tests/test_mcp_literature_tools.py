@@ -119,6 +119,41 @@ class MCPLiteratureToolTests(unittest.TestCase):
         self.assertEqual(payload["data"]["search_results"][0]["source"], "openalex")
         self.assertEqual(provider_calls[0][1]["filters"]["year_start"], "2020")
 
+    def test_literature_search_review_mode_defaults_to_fifty_per_provider(self) -> None:
+        provider_calls: list[int] = []
+
+        def openalex_search(translation: dict[str, object], limit: int) -> dict[str, object]:
+            provider_calls.append(limit)
+            return {
+                "data": [
+                    {
+                        "paperId": "openalex-review-1",
+                        "title": "OpenAlex Review Paper",
+                        "year": 2024,
+                    }
+                ]
+            }
+
+        config = {
+            "providers": {
+                "openalex": {"enabled": True, "configured": True},
+            },
+        }
+
+        with (
+            mock.patch("bridges.literature_mcp_tools.resolve_provider_config", return_value=config),
+            mock.patch("bridges.literature_mcp_tools.openalex_client.search", openalex_search),
+        ):
+            result = call_qiongli_tool(
+                "qiongli_literature_search",
+                {"query": "AI feedback systematic review", "search_mode": "review"},
+            )
+
+        payload = result["structuredContent"]
+        self.assertFalse(result["isError"])
+        self.assertEqual(provider_calls, [50])
+        self.assertEqual(payload["data"]["per_query_limit"], 50)
+
     def test_literature_export_evidence_wraps_supplied_snapshot(self) -> None:
         result = call_qiongli_tool(
             "qiongli_literature_export_evidence",
