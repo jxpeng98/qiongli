@@ -73,6 +73,27 @@ test("searchArxiv queries the Atom endpoint and normalizes preprint results", as
   ]);
 });
 
+test("searchArxiv defaults max_results to 25 when no limit is provided", async () => {
+  let requestedUrl;
+  const fetchImpl = async (url) => {
+    requestedUrl = new URL(url);
+    return {
+      ok: true,
+      status: 200,
+      async text() {
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?><feed></feed>";
+      }
+    };
+  };
+
+  await searchArxiv({
+    query: "machine learning",
+    fetchImpl
+  });
+
+  assert.equal(requestedUrl.searchParams.get("max_results"), "25");
+});
+
 test("searchOpenAlex normalizes records and reconstructs inverted abstracts", async () => {
   let requestedUrl;
   const fetchImpl = async (url) => {
@@ -162,6 +183,27 @@ test("searchOpenAlex normalizes records and reconstructs inverted abstracts", as
       verification: null
     }
   ]);
+});
+
+test("searchOpenAlex defaults per-page to 25 when no limit is provided", async () => {
+  let requestedUrl;
+  const fetchImpl = async (url) => {
+    requestedUrl = new URL(url);
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return { results: [] };
+      }
+    };
+  };
+
+  await searchOpenAlex({
+    query: "test query",
+    fetchImpl
+  });
+
+  assert.equal(requestedUrl.searchParams.get("per-page"), "25");
 });
 
 test("searchOpenAlex resolves DOI queries through the singleton work endpoint", async () => {
@@ -313,6 +355,27 @@ test("searchSemanticScholar sends optional API key header and normalizes results
       verification: null
     }
   ]);
+});
+
+test("searchSemanticScholar defaults limit to 25 when no limit is provided", async () => {
+  const calls = [];
+  const fetchImpl = async (url, options = {}) => {
+    calls.push({ url: new URL(url), options });
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return { data: [] };
+      }
+    };
+  };
+
+  await searchSemanticScholar({
+    query: "semantic query",
+    fetchImpl
+  });
+
+  assert.equal(calls[0].url.searchParams.get("limit"), "25");
 });
 
 test("searchSemanticScholar paginates with offset when limit exceeds one page", async () => {
@@ -628,6 +691,27 @@ test("searchCrossref sends polite email and normalizes bibliographic results", a
   ]);
 });
 
+test("searchCrossref defaults rows to 25 when no limit is provided", async () => {
+  let requestedUrl;
+  const fetchImpl = async (url) => {
+    requestedUrl = new URL(url);
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return { message: { items: [] } };
+      }
+    };
+  };
+
+  await searchCrossref({
+    query: "crossref query",
+    fetchImpl
+  });
+
+  assert.equal(requestedUrl.searchParams.get("rows"), "25");
+});
+
 test("searchCrossref resolves DOI queries through singleton work endpoint", async () => {
   let requestedUrl;
   const fetchImpl = async (url) => {
@@ -801,6 +885,32 @@ test("searchPubMed uses ESearch and ESummary and normalizes records", async () =
       verification: null
     }
   ]);
+});
+
+test("searchPubMed defaults retmax to 25 when no limit is provided", async () => {
+  const calls = [];
+  const fetchImpl = async (url) => {
+    const requestedUrl = new URL(url);
+    calls.push(requestedUrl);
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return {
+          esearchresult: {
+            idlist: []
+          }
+        };
+      }
+    };
+  };
+
+  await searchPubMed({
+    query: "pubmed query",
+    fetchImpl
+  });
+
+  assert.equal(calls[0].searchParams.get("retmax"), "25");
 });
 
 test("searchPubMed translates DOI queries into PubMed DOI field terms", async () => {

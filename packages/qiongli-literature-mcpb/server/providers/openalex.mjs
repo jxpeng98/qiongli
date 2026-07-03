@@ -4,7 +4,7 @@ import { fetchJsonWithRetry } from "./http.mjs";
 
 const PROVIDER = "openalex";
 const ENDPOINT = "https://api.openalex.org/works";
-const DEFAULT_LIMIT = 10;
+const DEFAULT_LIMIT = 25;
 const PAGE_LIMIT = 100;
 const MAX_TOTAL_LIMIT = 200;
 

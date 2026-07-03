@@ -3,7 +3,7 @@ import { fetchTextWithRetry } from "./http.mjs";
 
 const PROVIDER = "arxiv";
 const ENDPOINT = "http://export.arxiv.org/api/query";
-const DEFAULT_LIMIT = 10;
+const DEFAULT_LIMIT = 25;
 const MAX_TOTAL_LIMIT = 200;
 const ARXIV_ID_PATTERN = /(?:arxiv:\s*|arxiv\.org\/abs\/)?([a-z.-]+\/\d{7}(?:v\d+)?|\d{4}\.\d{4,5}(?:v\d+)?)/i;
 

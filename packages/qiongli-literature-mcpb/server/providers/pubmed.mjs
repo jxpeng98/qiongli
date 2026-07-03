@@ -4,7 +4,7 @@ import { fetchJsonWithRetry } from "./http.mjs";
 
 const PROVIDER = "pubmed";
 const BASE_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils";
-const DEFAULT_LIMIT = 10;
+const DEFAULT_LIMIT = 25;
 const PAGE_LIMIT = 100;
 const MAX_TOTAL_LIMIT = 200;
 
