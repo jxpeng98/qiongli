@@ -209,6 +209,21 @@ class LiteratureContractTests(unittest.TestCase):
             ),
         )
 
+    def test_platform_routing_keeps_provider_connected_separate_from_native_search(self) -> None:
+        content = (LAYOUT.workflow / "references" / "platform-routing.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("Platform-native search alone is `native_only`", content)
+        self.assertNotIn("provider MCPB or platform-native search capability", content)
+        self.assertNotRegex(
+            content,
+            re.compile(
+                r"provider_connected[^.\n]*platform-native search capability|"
+                r"platform-native search capability[^.\n]*provider_connected"
+            ),
+        )
+
     def test_workflow_strategy_only_is_not_bound_to_evidence_limits(self) -> None:
         workflow_paths = (
             LAYOUT.workflow / "workflows" / "lit-review.md",
