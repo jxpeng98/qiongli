@@ -14,6 +14,7 @@ from qiongli.source_layout import RepoLayout
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LAYOUT = RepoLayout(REPO_ROOT)
 AUDIT_PATH = LAYOUT.scripts / "audit_distribution_payloads.py"
+EVALUATE_ROUTER_PATH = LAYOUT.scripts / "evaluate_subject_router.py"
 MATERIALIZER_PATH = LAYOUT.scripts / "materialize_distribution_payloads.py"
 
 
@@ -27,10 +28,21 @@ def _load_audit_module():
     return module
 
 
+def _load_evaluate_router_module():
+    spec = importlib.util.spec_from_file_location("evaluate_subject_router", EVALUATE_ROUTER_PATH)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Unable to load {EVALUATE_ROUTER_PATH}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 class DistributionPayloadTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.audit_module = _load_audit_module()
+        cls.evaluate_router_module = _load_evaluate_router_module()
         cls._materialized_tmp = tempfile.TemporaryDirectory()
         cls.materialized_root = Path(cls._materialized_tmp.name) / "qiongli-dist"
         subprocess.run(
@@ -83,6 +95,22 @@ class DistributionPayloadTests(unittest.TestCase):
                             / "SUBJECT_MANIFEST.json"
                         ).exists()
                     )
+
+    def test_runtime_enabled_subject_payload_resources_validate(self) -> None:
+        from qiongli.bridges.subject_contracts import load_runtime_subject_contracts
+
+        payload_roots = (
+            RepoLayout(self.materialized_root).python_package / "payload" / "subjects",
+            self.materialized_root / "packages" / "npm-qiongli" / "python-runtime" / "subjects",
+        )
+        for payload_root in payload_roots:
+            contracts = load_runtime_subject_contracts(payload_root, recursive=False)
+            for subject in ("economics", "finance"):
+                with self.subTest(payload_root=payload_root, subject=subject):
+                    failures = self.evaluate_router_module._missing_resource_failures(
+                        contracts[subject]
+                    )
+                    self.assertEqual([], failures)
 
     def test_audit_detects_stale_npm_payload(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -139,6 +167,27 @@ class DistributionPayloadTests(unittest.TestCase):
                 self.assertIn("subject payload", joined)
                 self.assertIn("economics-accounting/focused", joined)
                 self.assertIn("registry.yaml", joined)
+
+    def test_audit_detects_stale_runtime_subject_resource(self) -> None:
+        for resource_path in (
+            "packages/python-qiongli/src/qiongli/payload/overlays/finance.yaml",
+            "packages/npm-qiongli/python-runtime/method-packs/finance/event-study.yaml",
+        ):
+            with self.subTest(resource_path=resource_path), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                self._copy_distribution_tree(root)
+
+                stale_file = root / resource_path
+                stale_file.write_text(
+                    stale_file.read_text(encoding="utf-8")
+                    + "\n# stale runtime subject resource marker\n",
+                    encoding="utf-8",
+                )
+
+                issues = self.audit_module.audit(root)
+                joined = "\n".join(f"{issue.label}: {issue.detail}" for issue in issues)
+                self.assertIn("runtime subject resource", joined)
+                self.assertIn(stale_file.name, joined)
 
     def _copy_distribution_tree(self, root: Path) -> None:
         shutil.copytree(self.materialized_root, root, symlinks=False, dirs_exist_ok=True)

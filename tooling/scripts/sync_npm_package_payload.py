@@ -22,11 +22,18 @@ for import_root in (PYTHON_SOURCE_ROOT, REPO_ROOT):
 
 from qiongli.source_layout import RepoLayout
 from qiongli.subject_materializer import MaterializeOptions, materialize_subject_package, validate_subject_catalog
+from qiongli.bridges.subject_contracts import load_runtime_subject_contracts
 
 
 EXCLUDE_DIRS = {"__pycache__", ".pytest_cache", ".mypy_cache", "node_modules", "dist", "build"}
 EXCLUDE_SUFFIXES = {".pyc", ".pyo"}
 SHELL_CLI_SOURCE_FILES = ("qiongli_cli.sh", "bootstrap_qiongli.sh")
+RUNTIME_RESOURCE_PATH_FIELDS = (
+    "domain_profile",
+    "overlay",
+    "subject_skill",
+    "evaluation_pack",
+)
 
 
 def ignore_patterns(_src: str, names: list[str], extra_exclude_dirs: set[str] | None = None) -> set[str]:
@@ -128,6 +135,8 @@ def sync_npm_payload(root: Path, *, dry_run: bool = False) -> None:
             if item == "LICENSE":
                 copy_path(src, npm_root / "LICENSE", dry_run=dry_run)
 
+    sync_runtime_subject_resources(root, runtime_root, dry_run=dry_run)
+
     if not dry_run:
         fail_if_symlinks(payload_root)
         fail_if_symlinks(runtime_root)
@@ -202,6 +211,7 @@ def sync_python_payload(root: Path, materialize_source: Path, *, dry_run: bool) 
         copy_path(src, payload_root / item, dry_run=dry_run)
     sync_shell_cli_sources(layout, payload_root / "scripts", dry_run=dry_run)
     sync_subject_payloads(root, payload_root, dry_run=dry_run, materialize_source=payload_root, clear_subjects_root=False)
+    sync_runtime_subject_resources(root, payload_root, dry_run=dry_run)
     if not dry_run:
         fail_if_symlinks(payload_root)
 
@@ -237,6 +247,34 @@ def sync_subject_payloads(
                     coverage=coverage,
                 )
             )
+
+
+def runtime_subject_resource_paths(root: Path) -> list[Path]:
+    contracts = load_runtime_subject_contracts(
+        RepoLayout(root).subjects,
+        recursive=False,
+    )
+    resources: set[Path] = set()
+    for contract in contracts.values():
+        if contract.activation_status != "runtime_enabled":
+            continue
+        for field in RUNTIME_RESOURCE_PATH_FIELDS:
+            resource = getattr(contract, field, "")
+            if resource:
+                resources.add(Path(resource))
+        for config in contract.method_lenses.values():
+            resource = config.get("resource")
+            if isinstance(resource, str) and resource:
+                resources.add(Path(resource))
+    return sorted(resources)
+
+
+def sync_runtime_subject_resources(root: Path, target_root: Path, *, dry_run: bool) -> None:
+    for rel_path in runtime_subject_resource_paths(root):
+        src = root / rel_path
+        if not src.exists():
+            raise FileNotFoundError(f"missing runtime subject resource: {src}")
+        copy_path(src, target_root / rel_path, dry_run=dry_run)
 
 
 def main(argv: list[str] | None = None) -> int:
