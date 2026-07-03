@@ -86,8 +86,15 @@ function openAlexPdfUrl(work) {
   return (
     work?.best_oa_location?.pdf_url ??
     work?.primary_location?.pdf_url ??
-    work?.open_access?.oa_url ??
     null
+  );
+}
+
+function openAlexAccessUrl(work, pdfUrl) {
+  return (
+    pdfUrl ??
+    work?.open_access?.oa_url ??
+    openAlexUrl(work)
   );
 }
 
@@ -119,6 +126,7 @@ function openAlexReferences(work) {
 function mapWork(work) {
   const abstract = abstractFromInvertedIndex(work?.abstract_inverted_index);
   const pdfUrl = openAlexPdfUrl(work);
+  const accessUrl = openAlexAccessUrl(work, pdfUrl);
   return normalizeResult({
     title: work?.title ?? work?.display_name,
     authors: openAlexAuthors(work),
@@ -127,8 +135,8 @@ function mapWork(work) {
     url: openAlexUrl(work),
     abstract,
     open_access_pdf_url: pdfUrl,
-    access_url: pdfUrl ?? openAlexUrl(work),
-    fulltext_status: pdfUrl ? "not_retrieved:oa_candidate" : "metadata_only",
+    access_url: accessUrl,
+    fulltext_status: pdfUrl || accessUrl ? "not_retrieved:oa_candidate" : "metadata_only",
     evidence_limit: abstract ? "abstract_only" : "metadata_only",
     license: work?.best_oa_location?.license ?? work?.primary_location?.license,
     venue: openAlexVenue(work),

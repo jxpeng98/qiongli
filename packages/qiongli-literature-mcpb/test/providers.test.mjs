@@ -220,6 +220,49 @@ test("searchOpenAlex defaults per-page to 25 when no limit is provided", async (
   assert.equal(requestedUrl.searchParams.get("per-page"), "25");
 });
 
+test("searchOpenAlex keeps OA landing URLs out of open_access_pdf_url", async () => {
+  const fetchImpl = async () => ({
+    ok: true,
+    status: 200,
+    async json() {
+      return {
+        results: [
+          {
+            id: "https://openalex.org/W124",
+            title: "OpenAlex OA Landing Paper",
+            publication_year: 2024,
+            primary_location: {
+              landing_page_url: "https://publisher.example.org/article"
+            },
+            best_oa_location: {
+              landing_page_url: "https://repository.example.org/item",
+              license: "cc-by"
+            },
+            open_access: {
+              oa_url: "https://repository.example.org/item"
+            },
+            abstract_inverted_index: {
+              Useful: [0],
+              abstract: [1]
+            }
+          }
+        ]
+      };
+    }
+  });
+
+  const response = await searchOpenAlex({
+    query: "oa landing query",
+    fetchImpl
+  });
+  const [result] = response.results;
+
+  assert.equal(result.open_access_pdf_url, null);
+  assert.equal(result.access_url, "https://repository.example.org/item");
+  assert.equal(result.fulltext_status, "not_retrieved:oa_candidate");
+  assert.equal(result.evidence_limit, "abstract_only");
+});
+
 test("searchOpenAlex resolves DOI queries through the singleton work endpoint", async () => {
   let requestedUrl;
   const fetchImpl = async (url) => {
