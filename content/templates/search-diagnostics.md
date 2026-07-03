@@ -65,6 +65,17 @@ List benchmark papers, seed DOIs, or known seminal items declared in `search_str
 | duplicate decisions |  | `dedup_log.csv` |
 | dedup ratio |  | duplicate decisions / raw records |
 
+## Coverage Semantics
+
+- discovery_coverage_basis:
+- native_fulltext_candidate_coverage:
+- zotero_attachment_coverage:
+- known_item_recall:
+- duplicate_saturation:
+- full_text_access_coverage:
+- evidence_limit_distribution:
+- cannot_claim_absolute_completeness: true
+
 ## Coverage Gaps
 
 Use controlled diagnostic flags where possible:

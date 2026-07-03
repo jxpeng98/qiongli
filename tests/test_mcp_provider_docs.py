@@ -26,6 +26,22 @@ class MCPProviderDocsTests(unittest.TestCase):
         ):
             self.assertIn(token, content)
 
+    def test_rigorous_search_docs_define_non_exhaustive_coverage_metrics(self) -> None:
+        content = (REPO_ROOT / "docs" / "advanced" / "rigorous-literature-search.md").read_text(
+            encoding="utf-8"
+        )
+
+        for phrase in (
+            "No provider can prove absolute completeness",
+            "known-item recall",
+            "duplicate saturation",
+            "full-text access coverage",
+            "native_fulltext_queries",
+            "Zotero attachment verification",
+            "evidence_limit",
+        ):
+            self.assertIn(phrase, content)
+
     def test_cross_platform_mcp_docs_include_literature_search_plan(self) -> None:
         content = (REPO_ROOT / "docs" / "advanced" / "cross-platform-mcp.md").read_text(
             encoding="utf-8"

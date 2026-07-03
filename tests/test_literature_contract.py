@@ -76,6 +76,18 @@ class LiteratureContractTests(unittest.TestCase):
         ):
             self.assertIn(token, content)
 
+    def test_stage_b_distinguishes_discovery_coverage_from_fulltext_access(self) -> None:
+        content = (
+            LAYOUT.workflow / "references" / "stage-B-literature.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("discovery coverage", content)
+        self.assertIn("full-text access coverage", content)
+        self.assertIn("retrieval_manifest.csv", content)
+        self.assertIn("native_fulltext_queries", content)
+        self.assertIn("Zotero attachment", content)
+        self.assertIn("metadata_only", content)
+
     def test_academic_searcher_uses_provider_layer_language(self) -> None:
         content = (LAYOUT.skills / "B_literature" / "academic-searcher.md").read_text(
             encoding="utf-8"
