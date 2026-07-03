@@ -263,6 +263,8 @@ class LiteratureContractTests(unittest.TestCase):
 
         self.assertIn(COLLECT_EVIDENCE_BOUNDARY_BULLET, text)
         self.assertIn(DESKTOP_MCPB_PROVIDER_BULLET, text)
+        self.assertNotIn("use platform search or user-supplied corpus", text)
+        self.assertIn("do not claim review-grade external provider or native-search coverage", text)
 
 
 if __name__ == "__main__":
