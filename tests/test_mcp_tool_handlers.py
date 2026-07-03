@@ -534,7 +534,10 @@ class MCPToolHandlerTests(unittest.TestCase):
             root = Path(tmp_dir)
             with mock.patch.dict(
                 "os.environ",
-                {"QIONGLI_CONFIG_HOME": str(root / "config")},
+                {
+                    "QIONGLI_CONFIG_HOME": str(root / "config"),
+                    "RESEARCH_MCP_OPENALEX_CMD": "",
+                },
                 clear=False,
             ):
                 set_provider_value("openalex", "api-key", "openalex-secret-key")
