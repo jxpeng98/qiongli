@@ -136,6 +136,26 @@ class CLISetupDocsTests(unittest.TestCase):
         self.assertIn("standalone_mcp", cli)
         self.assertIn("qiongli_literature_status", troubleshooting)
 
+    def test_install_docs_do_not_mark_literature_search_full_runtime_only(self) -> None:
+        content = (REPO_ROOT / "docs" / "guide" / "install.md").read_text(encoding="utf-8")
+
+        self.assertIn("bundled runtime covers literature-provider tools", content)
+        self.assertNotIn(
+            "Full runtime commands, including `qiongli_literature_search`",
+            content,
+        )
+        self.assertIn("Python-backed orchestration tools", content)
+
+    def test_zh_install_docs_do_not_mark_literature_search_full_runtime_only(self) -> None:
+        content = (REPO_ROOT / "docs" / "zh" / "guide" / "install.md").read_text(encoding="utf-8")
+
+        self.assertIn("内置 literature-provider tools", content)
+        self.assertNotIn(
+            "需要 `qiongli_literature_search`、`qiongli_task_plan`",
+            content,
+        )
+        self.assertIn("Python-backed orchestration tools", content)
+
     def test_troubleshooting_docs_route_native_search_before_strategy_only(self) -> None:
         docs = {
             "docs/guide/troubleshooting.md": (
