@@ -44,7 +44,7 @@ export async function searchLocalItems(query = {}, runtime = {}) {
   const items = await listRuntimeItems(runtime);
   const results = items
     .filter((item) => itemMatchesQuery(item, query))
-    .map((item) => toCompactItem(item));
+    .map((item) => toCompactItem(item, query));
   return {
     status: "ok",
     results
@@ -137,7 +137,7 @@ export function planUpsert({ incoming = {}, existing = null, updatePolicy = "fil
   };
 }
 
-export function toCompactItem(item = {}) {
+export function toCompactItem(item = {}, options = {}) {
   return {
     item_key: item.key ?? "",
     title: item.title ?? "",
@@ -146,8 +146,45 @@ export function toCompactItem(item = {}) {
     item_type: item.itemType ?? "",
     select_uri: item.key ? `zotero://select/library/items/${item.key}` : "",
     tags: Array.isArray(item.tags) ? item.tags.map((tag) => tag.tag ?? tag).filter(Boolean) : [],
-    collections: Array.isArray(item.collections) ? item.collections : []
+    collections: Array.isArray(item.collections) ? item.collections : [],
+    attachments: normalizeAttachments(item.attachments, options)
   };
+}
+
+export function normalizeAttachments(value = [], options = {}) {
+  const includePaths = options.include_attachment_paths === true || options.includeAttachmentPaths === true;
+  const attachments = Array.isArray(value) ? value : [];
+
+  return attachments
+    .map((attachment) => {
+      if (!attachment || typeof attachment !== "object" || Array.isArray(attachment)) {
+        return null;
+      }
+
+      const attachmentKey = attachmentString(attachment.attachment_key ?? attachment.key ?? attachment.item_key);
+      if (!attachmentKey) {
+        return null;
+      }
+
+      const path = attachmentString(attachment.path);
+      const normalized = {
+        attachment_key: attachmentKey,
+        title: attachmentString(attachment.title),
+        filename: attachmentString(attachment.filename ?? attachment.attachmentFilename),
+        mime_type: attachmentString(attachment.mime_type ?? attachment.contentType ?? attachment.mimeType ?? attachment.attachmentContentType),
+        link_mode: attachmentString(attachment.link_mode ?? attachment.linkMode ?? attachment.attachmentLinkMode),
+        url: attachmentString(attachment.url ?? attachment.URL),
+        select_uri: attachmentString(attachment.select_uri) || `zotero://select/library/items/${attachmentKey}`,
+        local_file_available: Boolean(attachment.local_file_available ?? attachment.localFileAvailable ?? path)
+      };
+
+      if (includePaths && path) {
+        normalized.path = path;
+      }
+
+      return normalized;
+    })
+    .filter(Boolean);
 }
 
 export function normalizeDoi(value) {
@@ -197,6 +234,10 @@ function normalizeYear(value) {
   }
   const match = String(value ?? "").match(/\b(\d{4})\b/);
   return match ? Number(match[1]) : null;
+}
+
+function attachmentString(value) {
+  return String(value ?? "").trim();
 }
 
 function isBlank(value) {

@@ -5,6 +5,7 @@ import path from "node:path";
 import vm from "node:vm";
 import {
   findDuplicateItem,
+  normalizeAttachments,
   planUpsert,
   qiongliPingResponse,
   searchLocalItems,
@@ -56,6 +57,83 @@ test("toCompactItem returns no local file paths", () => {
 
   assert.equal(compact.item_key, "ABC123");
   assert.equal(Object.hasOwn(compact, "path"), false);
+});
+
+test("toCompactItem exposes attachment summaries without local paths by default", () => {
+  const compact = toCompactItem({
+    key: "ABC123",
+    title: "Local Paper",
+    attachments: [
+      {
+        attachment_key: "ATT123",
+        title: "Local Paper PDF",
+        filename: "local-paper.pdf",
+        mime_type: "application/pdf",
+        link_mode: "imported_file",
+        url: "https://example.test/local-paper.pdf",
+        select_uri: "zotero://select/library/items/ATT123",
+        local_file_available: true,
+        path: "/zotero-fixture/storage/ATT123/local-paper.pdf"
+      }
+    ]
+  });
+
+  assert.equal(compact.attachments.length, 1);
+  assert.equal(compact.attachments[0].attachment_key, "ATT123");
+  assert.equal(compact.attachments[0].filename, "local-paper.pdf");
+  assert.equal(compact.attachments[0].mime_type, "application/pdf");
+  assert.equal(compact.attachments[0].local_file_available, true);
+  assert.equal(compact.attachments[0].select_uri, "zotero://select/library/items/ATT123");
+  assert.equal(Object.hasOwn(compact.attachments[0], "path"), false);
+});
+
+test("toCompactItem exposes attachment paths only when explicitly requested", () => {
+  const compact = toCompactItem({
+    key: "ABC123",
+    title: "Local Paper",
+    attachments: [
+      {
+        attachment_key: "ATT123",
+        filename: "local-paper.pdf",
+        path: "/zotero-fixture/storage/ATT123/local-paper.pdf"
+      }
+    ]
+  }, { include_attachment_paths: true });
+
+  assert.equal(compact.attachments[0].path, "/zotero-fixture/storage/ATT123/local-paper.pdf");
+});
+
+test("normalizeAttachments keeps only structured attachment metadata", () => {
+  const normalized = normalizeAttachments([
+    null,
+    {
+      attachment_key: "A",
+      title: " Attachment A ",
+      filename: "a.pdf",
+      mime_type: "application/pdf",
+      link_mode: "imported_file",
+      url: "https://example.test/a.pdf",
+      select_uri: "zotero://select/library/items/A",
+      local_file_available: true,
+      path: "/zotero-fixture/storage/A/a.pdf",
+      note: "drop me"
+    },
+    { title: "No key", filename: "missing-key.pdf" }
+  ], { includeAttachmentPaths: true });
+
+  assert.deepEqual(normalized, [
+    {
+      attachment_key: "A",
+      title: "Attachment A",
+      filename: "a.pdf",
+      mime_type: "application/pdf",
+      link_mode: "imported_file",
+      url: "https://example.test/a.pdf",
+      select_uri: "zotero://select/library/items/A",
+      local_file_available: true,
+      path: "/zotero-fixture/storage/A/a.pdf"
+    }
+  ]);
 });
 
 test("searchLocalItems filters runtime items by DOI and title", async () => {
@@ -197,13 +275,31 @@ test("bootstrap startup registers endpoints from Zotero 8 and 9 global object", 
       date: "2024"
     })[field] ?? "",
     getTags: () => [{ tag: "qiongli:imported" }],
-    getCollections: () => ["COLL1"]
+    getCollections: () => ["COLL1"],
+    getAttachments: () => [123]
+  };
+  const attachmentItem = {
+    key: "ATT123",
+    itemType: "attachment",
+    attachmentLinkMode: "imported_file",
+    attachmentContentType: "application/pdf",
+    attachmentFilename: "platform-governance.pdf",
+    getField: (field) => ({
+      title: "Platform Governance PDF",
+      url: "https://example.test/platform-governance.pdf",
+      filename: "platform-governance.pdf",
+      contentType: "application/pdf"
+    })[field] ?? "",
+    getFilePath: () => "/zotero-fixture/storage/ATT123/platform-governance.pdf"
   };
   const Zotero = {
     version: "9.0.4",
     Server: { Endpoints: {} },
     Libraries: { userLibraryID: 1 },
-    Items: { getAll: async () => [libraryItem] },
+    Items: {
+      getAll: async () => [libraryItem],
+      getAsync: async (id) => id === 123 ? attachmentItem : null
+    },
     Collections: { getByLibrary: async () => [{ key: "COLL1", name: "Qiongli" }] }
   };
   const context = vm.createContext({
@@ -241,6 +337,11 @@ test("bootstrap startup registers endpoints from Zotero 8 and 9 global object", 
   assert.equal(response.body.status, "ok");
   assert.equal(response.body.results.length, 1);
   assert.equal(response.body.results[0].item_key, "ABC123");
+  assert.equal(response.body.results[0].attachments.length, 1);
+  assert.equal(response.body.results[0].attachments[0].attachment_key, "ATT123");
+  assert.equal(response.body.results[0].attachments[0].mime_type, "application/pdf");
+  assert.equal(response.body.results[0].attachments[0].local_file_available, true);
+  assert.equal(Object.hasOwn(response.body.results[0].attachments[0], "path"), false);
 
   await Zotero.Server.Endpoints["/qiongli/collections"].prototype.init("", (status, contentType, body) => {
     response = { status, contentType, body: JSON.parse(body) };

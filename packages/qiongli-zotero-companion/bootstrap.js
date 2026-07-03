@@ -29,7 +29,7 @@ var QiongliZoteroCompanion = {
       const items = await runtime.listItems();
       sendJson(sendResponse, 200, {
         status: "ok",
-        results: items.filter((item) => itemMatchesQuery(item, query)).map(toCompactItem)
+        results: items.filter((item) => itemMatchesQuery(item, query)).map((item) => toCompactItem(item, query))
       });
     });
 
@@ -119,23 +119,25 @@ function createRuntime(Zotero) {
     async listItems() {
       const libraryID = Zotero.Libraries?.userLibraryID;
       const rawItems = typeof Zotero.Items?.getAll === "function" ? await Zotero.Items.getAll(libraryID) : [];
-      return asArray(rawItems)
-        .filter((item) => typeof item.isRegularItem !== "function" || item.isRegularItem())
-        .map((item) => itemToPlainObject(item));
+      const plainItems = [];
+      for (const item of asArray(rawItems).filter((candidate) => typeof candidate.isRegularItem !== "function" || candidate.isRegularItem())) {
+        plainItems.push(await itemToPlainObject(Zotero, item));
+      }
+      return plainItems;
     },
 
     async createItem(itemData) {
       const item = new Zotero.Item(itemData.itemType || "journalArticle");
       applyItemData(item, itemData);
       await item.saveTx();
-      return itemToPlainObject(item);
+      return itemToPlainObject(Zotero, item);
     },
 
     async updateItem(key, patch) {
       const item = await getItemByKey(Zotero, key);
       applyItemData(item, patch);
       await item.saveTx();
-      return itemToPlainObject(item);
+      return itemToPlainObject(Zotero, item);
     },
 
     async listCollections() {
@@ -164,7 +166,7 @@ async function getItemByKey(Zotero, key) {
   return item;
 }
 
-function itemToPlainObject(item) {
+async function itemToPlainObject(Zotero, item) {
   return {
     key: item.key,
     itemType: item.itemType,
@@ -175,8 +177,59 @@ function itemToPlainObject(item) {
     publicationTitle: getField(item, "publicationTitle"),
     date: getField(item, "date"),
     tags: typeof item.getTags === "function" ? item.getTags() : [],
-    collections: typeof item.getCollections === "function" ? item.getCollections() : []
+    collections: typeof item.getCollections === "function" ? item.getCollections() : [],
+    attachments: await attachmentPlainObjects(Zotero, item)
   };
+}
+
+async function attachmentPlainObjects(Zotero, item) {
+  const attachmentIds = typeof item.getAttachments === "function" ? asArray(item.getAttachments()) : [];
+  const attachments = [];
+
+  for (const id of attachmentIds) {
+    const attachment = await getAttachmentItem(Zotero, id);
+    if (!attachment) {
+      continue;
+    }
+
+    const path = attachmentString(typeof attachment.getFilePath === "function"
+      ? await attachment.getFilePath()
+      : attachment.path);
+    const key = attachmentString(attachment.key);
+    if (!key) {
+      continue;
+    }
+
+    attachments.push({
+      key,
+      title: getField(attachment, "title"),
+      filename: getField(attachment, "filename") || attachmentString(attachment.attachmentFilename) || filenameFromPath(path),
+      mime_type: getField(attachment, "contentType")
+        || getField(attachment, "mimeType")
+        || getField(attachment, "mime_type")
+        || attachmentString(attachment.attachmentContentType),
+      link_mode: attachmentString(attachment.attachmentLinkMode ?? attachment.linkMode),
+      url: getField(attachment, "url"),
+      select_uri: `zotero://select/library/items/${key}`,
+      local_file_available: Boolean(path),
+      path
+    });
+  }
+
+  return attachments;
+}
+
+async function getAttachmentItem(Zotero, id) {
+  if (id && typeof id === "object") {
+    return id;
+  }
+  if (typeof Zotero.Items?.getAsync === "function") {
+    return Zotero.Items.getAsync(id);
+  }
+  if (typeof Zotero.Items?.get === "function") {
+    return Zotero.Items.get(id);
+  }
+  return null;
 }
 
 function applyItemData(item, data) {
@@ -278,7 +331,7 @@ function itemMatchesQuery(item, query) {
   return true;
 }
 
-function toCompactItem(item) {
+function toCompactItem(item, options = {}) {
   return {
     item_key: item.key ?? "",
     title: item.title ?? "",
@@ -287,8 +340,45 @@ function toCompactItem(item) {
     item_type: item.itemType ?? "",
     select_uri: item.key ? `zotero://select/library/items/${item.key}` : "",
     tags: Array.isArray(item.tags) ? item.tags.map((tag) => tag.tag ?? tag).filter(Boolean) : [],
-    collections: Array.isArray(item.collections) ? item.collections : []
+    collections: Array.isArray(item.collections) ? item.collections : [],
+    attachments: normalizeAttachments(item.attachments, options)
   };
+}
+
+function normalizeAttachments(value = [], options = {}) {
+  const includePaths = options.include_attachment_paths === true || options.includeAttachmentPaths === true;
+  const attachments = Array.isArray(value) ? value : [];
+
+  return attachments
+    .map((attachment) => {
+      if (!attachment || typeof attachment !== "object" || Array.isArray(attachment)) {
+        return null;
+      }
+
+      const attachmentKey = attachmentString(attachment.attachment_key ?? attachment.key ?? attachment.item_key);
+      if (!attachmentKey) {
+        return null;
+      }
+
+      const path = attachmentString(attachment.path);
+      const normalized = {
+        attachment_key: attachmentKey,
+        title: attachmentString(attachment.title),
+        filename: attachmentString(attachment.filename ?? attachment.attachmentFilename),
+        mime_type: attachmentString(attachment.mime_type ?? attachment.contentType ?? attachment.mimeType ?? attachment.attachmentContentType),
+        link_mode: attachmentString(attachment.link_mode ?? attachment.linkMode ?? attachment.attachmentLinkMode),
+        url: attachmentString(attachment.url ?? attachment.URL),
+        select_uri: attachmentString(attachment.select_uri) || `zotero://select/library/items/${attachmentKey}`,
+        local_file_available: Boolean(attachment.local_file_available ?? attachment.localFileAvailable ?? path)
+      };
+
+      if (includePaths && path) {
+        normalized.path = path;
+      }
+
+      return normalized;
+    })
+    .filter(Boolean);
 }
 
 function parseJson(postData) {
@@ -316,6 +406,14 @@ function asArray(value) {
 
 function getField(item, field) {
   return typeof item.getField === "function" ? item.getField(field) || "" : item[field] || "";
+}
+
+function attachmentString(value) {
+  return String(value ?? "").trim();
+}
+
+function filenameFromPath(path) {
+  return attachmentString(path).split(/[\\/]/).filter(Boolean).pop() ?? "";
 }
 
 function normalizeDoi(value) {

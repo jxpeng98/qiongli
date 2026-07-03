@@ -13,6 +13,19 @@ connector server:
 - `POST /qiongli/upsertItems`
 - `GET /qiongli/collections`
 
+## Attachment Metadata
+
+`POST /qiongli/search` returns compact Zotero item records plus attachment
+summaries when local attachments exist. Attachment summaries include the Zotero
+attachment key, file name, MIME type, link mode, Zotero select URI, URL, and
+`local_file_available`.
+
+Raw local file paths are omitted by default. Send `include_attachment_paths:
+true` only when a local resolver explicitly needs paths for controlled full-text
+retrieval. Qiongli treats Zotero attachment data as local verification evidence;
+provider or native search URLs remain candidate-only until `retrieval_manifest.csv`
+records a retrieved or unresolved status.
+
 Qiongli's MCPB probes these endpoints through `qiongli_zotero_status`, performs
 dry-run writes through `qiongli_zotero_upsert_references`, and falls back to
 `references.json`, `references.ris`, and `bibliography.bib` when the companion is

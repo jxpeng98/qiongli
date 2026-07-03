@@ -73,6 +73,10 @@ export function normalizeZoteroSourceResults(items = []) {
   return (Array.isArray(items) ? items : [])
     .map((item) => {
       const itemKey = cleanString(item.item_key ?? item.key);
+      const attachments = normalizeZoteroAttachments(item.attachments);
+      const fulltextAttachment = bestFulltextAttachment(attachments);
+      const fulltextStatus = zoteroFulltextStatus(attachments);
+      const evidenceLimit = zoteroEvidenceLimit(item, attachments);
       return {
         title: cleanString(item.title),
         authors: normalizeAuthors(item.authors ?? item.creators),
@@ -80,6 +84,9 @@ export function normalizeZoteroSourceResults(items = []) {
         doi: normalizeDoi(item.doi ?? item.DOI),
         url: cleanString(item.url ?? item.URL),
         abstract: cleanString(item.abstract ?? item.abstractNote),
+        access_url: fulltextAttachment?.select_uri ?? fulltextAttachment?.url ?? cleanString(item.url ?? item.URL),
+        fulltext_status: fulltextStatus,
+        evidence_limit: evidenceLimit,
         venue: cleanString(item.venue ?? item.publicationTitle),
         document_type: cleanString(item.item_type ?? item.document_type ?? item.itemType),
         citation_count: null,
@@ -93,7 +100,11 @@ export function normalizeZoteroSourceResults(items = []) {
           item_key: itemKey,
           select_uri: cleanString(item.select_uri),
           tags: normalizeStringList(item.tags),
-          collections: normalizeStringList(item.collections)
+          collections: normalizeStringList(item.collections),
+          attachments,
+          fulltext_status: fulltextStatus,
+          evidence_limit: evidenceLimit,
+          fulltext_attachment_key: fulltextAttachment?.attachment_key ?? null
         }
       };
     })
@@ -130,7 +141,10 @@ export function annotateLocalZoteroMatches({ externalResults = [], zoteroResults
       local_zotero_match: {
         item_key: match.zotero?.item_key ?? match.source_id ?? "",
         match_basis: doiMatch ? "doi" : "title_year",
-        select_uri: match.zotero?.select_uri ?? ""
+        match_confidence: doiMatch ? 1 : 0.85,
+        select_uri: match.zotero?.select_uri ?? "",
+        fulltext_status: match.zotero?.fulltext_status ?? match.fulltext_status ?? "metadata_only",
+        attachments: normalizeZoteroAttachments(match.zotero?.attachments ?? match.attachments)
       }
     };
   });
@@ -161,6 +175,61 @@ function zoteroSourceErrorCode(error) {
   return message.includes("ECONNREFUSED") || message.includes("fetch failed")
     ? "zotero_not_running"
     : "zotero_companion_missing";
+}
+
+function normalizeZoteroAttachments(value = []) {
+  const attachments = Array.isArray(value) ? value : [];
+
+  return attachments
+    .map((attachment) => {
+      if (!attachment || typeof attachment !== "object" || Array.isArray(attachment)) {
+        return null;
+      }
+
+      const attachmentKey = cleanString(attachment.attachment_key ?? attachment.key ?? attachment.item_key);
+      if (!attachmentKey) {
+        return null;
+      }
+
+      return {
+        attachment_key: attachmentKey,
+        title: cleanString(attachment.title) ?? "",
+        filename: cleanString(attachment.filename ?? attachment.attachmentFilename) ?? "",
+        mime_type: cleanString(attachment.mime_type ?? attachment.contentType ?? attachment.mimeType ?? attachment.attachmentContentType) ?? "",
+        link_mode: cleanString(attachment.link_mode ?? attachment.linkMode ?? attachment.attachmentLinkMode) ?? "",
+        url: cleanString(attachment.url ?? attachment.URL) ?? "",
+        select_uri: cleanString(attachment.select_uri) ?? `zotero://select/library/items/${attachmentKey}`,
+        local_file_available: Boolean(attachment.local_file_available ?? attachment.localFileAvailable)
+      };
+    })
+    .filter(Boolean);
+}
+
+function bestFulltextAttachment(attachments = []) {
+  return attachments.find((attachment) => isPdfAttachment(attachment) && attachment.local_file_available)
+    ?? attachments.find((attachment) => isPdfAttachment(attachment))
+    ?? attachments.find((attachment) => attachment.local_file_available)
+    ?? attachments[0]
+    ?? null;
+}
+
+function zoteroFulltextStatus(attachments = []) {
+  if (attachments.some((attachment) => attachment.local_file_available)) {
+    return "retrieved_zotero";
+  }
+  return attachments.length > 0 ? "not_retrieved:zotero_attachment_candidate" : "metadata_only";
+}
+
+function zoteroEvidenceLimit(item = {}, attachments = []) {
+  if (attachments.some((attachment) => attachment.local_file_available)) {
+    return "full_text";
+  }
+  return cleanString(item.abstract ?? item.abstractNote) ? "abstract_only" : "metadata_only";
+}
+
+function isPdfAttachment(attachment = {}) {
+  return attachment.mime_type.toLowerCase() === "application/pdf"
+    || attachment.filename.toLowerCase().endsWith(".pdf");
 }
 
 function titleYearKey(record) {
