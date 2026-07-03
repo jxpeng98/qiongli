@@ -222,6 +222,19 @@ class LiteratureContractTests(unittest.TestCase):
             content,
         )
 
+    def test_workflow_guidance_rejects_collect_evidence_as_provider_status_source(self) -> None:
+        content = (REPO_ROOT / "content" / "workflow" / "SKILL.md").read_text(encoding="utf-8")
+
+        self.assertIn("Do not use `qiongli_collect_evidence` to judge", content)
+        self.assertIn("`qiongli_literature_status`", content)
+        self.assertIn("`qiongli_literature_search`", content)
+
+    def test_workflow_guidance_lists_all_bundled_literature_providers(self) -> None:
+        content = (REPO_ROOT / "content" / "workflow" / "SKILL.md").read_text(encoding="utf-8")
+
+        for provider in ("OpenAlex", "Semantic Scholar", "Crossref", "PubMed", "arXiv"):
+            self.assertIn(provider, content)
+
 
 if __name__ == "__main__":
     unittest.main()
