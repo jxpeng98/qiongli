@@ -1,5 +1,7 @@
 {
   "id": "mixed_econ_finance",
+  "subject_under_test": "economics",
+  "tags": ["economics", "mixed_subject"],
   "description": "Request genuinely spans economics and finance; primary is economics because policy identification dominates.",
   "request": "Build a paper on how monetary policy shocks affect bank lending, firm investment, and household employment. I need local projections, event windows around FOMC surprises, distributional effects, and financial intermediary balance-sheet channels.",
   "manifest": {

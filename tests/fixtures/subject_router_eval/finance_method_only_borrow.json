@@ -1,5 +1,7 @@
 {
   "id": "finance_method_only_borrow",
+  "subject_under_test": "finance",
+  "tags": ["finance", "method_only_borrow"],
   "description": "Finance remains primary while borrowing econometric identification language.",
   "request": "I am writing an empirical asset pricing paper and need guidance on portfolio sorts, factor returns, factor regressions, Fama-MacBeth estimates, and whether a difference-in-differences appendix is credible after an index inclusion shock.",
   "manifest": {

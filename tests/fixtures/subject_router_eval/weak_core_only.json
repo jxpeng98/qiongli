@@ -1,5 +1,7 @@
 {
   "id": "weak_core_only",
+  "subject_under_test": "core",
+  "tags": ["core", "legacy_regression"],
   "description": "General academic planning request should remain on core guidance.",
   "request": "Help me organize a research workflow, write a stronger introduction, plan the related work section, and prepare a reproducible folder structure for my draft.",
   "manifest": {

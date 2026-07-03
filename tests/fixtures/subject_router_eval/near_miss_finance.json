@@ -1,5 +1,7 @@
 {
   "id": "near_miss_finance",
+  "subject_under_test": "finance",
+  "tags": ["finance", "near_miss"],
   "description": "Mentions budget and funding, but the task is project management rather than finance research.",
   "request": "Create a timeline and budget table for a grant-funded archive digitization project. I need staffing milestones, equipment cost categories, and a reporting calendar.",
   "manifest": {

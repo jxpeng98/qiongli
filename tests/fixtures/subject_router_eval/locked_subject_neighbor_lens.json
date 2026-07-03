@@ -1,5 +1,7 @@
 {
   "id": "locked_subject_neighbor_lens",
+  "subject_under_test": "economics",
+  "tags": ["economics", "locked_subject"],
   "description": "Locked economics project may borrow a finance lens without changing primary subject.",
   "request": "Within my economics project, add financial market event-study evidence around bank regulation announcements, but keep the core framing in policy evaluation and identification.",
   "manifest": {
