@@ -521,6 +521,42 @@ class MCPToolHandlerTests(unittest.TestCase):
             1,
         )
 
+    def test_collect_evidence_description_names_external_command_boundary(self) -> None:
+        definitions = {tool["name"]: tool for tool in MCP_TOOL_DEFINITIONS}
+        description = definitions["qiongli_collect_evidence"]["description"]
+
+        self.assertIn("external command adapters", description)
+        self.assertIn("qiongli_literature_status", description)
+        self.assertIn("qiongli_literature_search", description)
+
+    def test_collect_evidence_openalex_not_configured_is_not_provider_config_status(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            with mock.patch.dict(
+                "os.environ",
+                {"QIONGLI_CONFIG_HOME": str(root / "config")},
+                clear=False,
+            ):
+                set_provider_value("openalex", "api-key", "openalex-secret-key")
+                result = call_qiongli_tool(
+                    "qiongli_collect_evidence",
+                    {
+                        "cwd": str(root),
+                        "provider": "openalex",
+                        "task_packet": {"topic": "demo-topic"},
+                    },
+                )
+
+        payload = result["structuredContent"]["evidence"]
+        rendered = json.dumps(result, sort_keys=True)
+        self.assertFalse(result["isError"])
+        self.assertEqual(payload["status"], "not_configured")
+        self.assertEqual(payload["data"]["not_configured_scope"], "external_command_adapter")
+        self.assertEqual(payload["data"]["provider_config_status"], "configured")
+        self.assertEqual(payload["data"]["recommended_status_tool"], "qiongli_literature_status")
+        self.assertEqual(payload["data"]["recommended_search_tool"], "qiongli_literature_search")
+        self.assertNotIn("openalex-secret-key", rendered)
+
     def test_list_provider_env_returns_aliases_not_values(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)

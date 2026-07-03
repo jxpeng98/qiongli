@@ -92,7 +92,13 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
     },
     {
         "name": "qiongli_collect_evidence",
-        "description": "Collect evidence from a Qiongli MCP provider for a task packet.",
+        "description": (
+            "Collect evidence from filesystem, built-in workflow adapters, or external "
+            "command adapters configured outside Qiongli. Do not use this to judge "
+            "built-in literature provider config; use qiongli_literature_status or "
+            "qiongli_literature_search for OpenAlex, Semantic Scholar, Crossref, PubMed, "
+            "and arXiv provider status/search."
+        ),
         "inputSchema": {
             "type": "object",
             "required": ["provider", "task_packet"],
