@@ -299,6 +299,19 @@ class PluginArtifactsTests(unittest.TestCase):
                 module.MaterializeOptions = original_options
 
             self.assertTrue((dest / "skills" / "C_design" / "accounting-measurement-auditor.md").exists())
+            skill_text = (dest / "SKILL.md").read_text(encoding="utf-8")
+            self.assertIn(
+                "Do not use `qiongli_collect_evidence` to judge built-in literature provider configuration",
+                skill_text,
+            )
+            self.assertIn("Platform-native search alone is `native_only`, not `provider_connected`", skill_text)
+            self.assertIn("if no provider MCP/MCPB and no platform-native search is available", skill_text)
+            self.assertIn("do not claim review-grade external provider or native-search coverage", skill_text)
+            self.assertNotIn("use platform search or user-supplied corpus", skill_text)
+            self.assertNotIn(
+                "or platform-native search capability before claiming `provider_connected`",
+                skill_text,
+            )
             registry = (dest / "skills" / "registry.yaml").read_text(encoding="utf-8")
             self.assertIn("id: accounting-measurement-auditor", registry)
             manifest = json.loads((dest / "SUBJECT_MANIFEST.json").read_text(encoding="utf-8"))
