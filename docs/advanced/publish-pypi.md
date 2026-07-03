@@ -124,6 +124,18 @@ Use `release_ready.sh` when you want to prepare and verify locally without creat
 
 `release_ready.sh` runs version sync, strict validator, repository unit tests, release-tier smoke, release note evidence updates, package build checks, `twine check`, and wheel install smoke. It does not tag or push. Publish mode owns commit, branch push, the branch CI/check gate, tag push, tag publish wait, GitHub Release creation, plugin artifact upload, and acceptance receipt generation.
 
+Optional subject expansion gate:
+
+```bash
+uv run python tooling/scripts/evaluate_subject_router.py --json
+uv run python tooling/scripts/evaluate_subject_router.py \
+  --subject accounting \
+  --gate runtime-enabled \
+  --json
+```
+
+The first command must pass for release. The subject-scoped command should fail closed for candidate subjects and pass only when a subject is intentionally promoted to runtime-enabled.
+
 For beta releases where GitHub Actions may exceed the default local wait window, extend the hard wait instead of using a soft publish gate:
 
 ```bash

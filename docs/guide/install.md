@@ -214,6 +214,8 @@ npx qiongli@next install --target all --surface skills
 
 Advanced compatibility, Desktop ZIP, focused package, release payload, and install-surface testing examples:
 
+Subject packages and runtime activation are separate. A marketplace, npm-lite, or Desktop ZIP package may include subject content for compatibility, but the adaptive runtime only suggests `runtime_enabled` subjects whose runtime-enabled gate passes. Candidate subjects can still be installed or inspected; they are not automatically activated.
+
 ```bash
 qiongli install --subject core --target all --project-dir "$PWD"
 qiongli install --subject core --target all --surface skills --project-dir "$PWD"
