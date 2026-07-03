@@ -1,0 +1,24 @@
+schema_version: 1.0
+subject: business
+display_name: Business
+activation_status: candidate
+extends: core
+domain_profile: content/skills/domain-profiles/business-management.yaml
+overlay: ""
+subject_skill: ""
+signal_groups:
+  method: []
+  data_or_outcome: []
+  venue: []
+  theory_or_construct: []
+method_lenses: {}
+evaluation_pack: tests/fixtures/subject_router_eval/accounting
+near_miss_policy:
+  forbidden_subjects:
+    - finance
+    - economics
+activation_gate:
+  required_metrics:
+    primary_subject_accuracy: 0.95
+    suggest_subject_precision: 0.95
+    near_miss_false_positives: 0

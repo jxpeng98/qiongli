@@ -1,0 +1,7 @@
+subject: economics
+method_lens: did
+activation: method_only
+checks:
+  - Define treatment timing, comparison group, and estimand.
+  - Inspect pre-trends, anticipation, spillovers, and staggered-adoption weighting.
+  - Report robustness with alternative controls, windows, and clustering choices.
