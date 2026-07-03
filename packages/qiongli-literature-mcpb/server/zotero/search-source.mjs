@@ -197,7 +197,7 @@ function normalizeZoteroAttachments(value = []) {
         filename: cleanString(attachment.filename ?? attachment.attachmentFilename) ?? "",
         mime_type: cleanString(attachment.mime_type ?? attachment.contentType ?? attachment.mimeType ?? attachment.attachmentContentType) ?? "",
         link_mode: cleanString(attachment.link_mode ?? attachment.linkMode ?? attachment.attachmentLinkMode) ?? "",
-        url: cleanString(attachment.url ?? attachment.URL) ?? "",
+        url: sanitizeAttachmentUrl(attachment.url ?? attachment.URL),
         select_uri: cleanString(attachment.select_uri) ?? `zotero://select/library/items/${attachmentKey}`,
         local_file_available: Boolean(attachment.local_file_available ?? attachment.localFileAvailable)
       };
@@ -206,25 +206,42 @@ function normalizeZoteroAttachments(value = []) {
 }
 
 function bestFulltextAttachment(attachments = []) {
-  return attachments.find((attachment) => isPdfAttachment(attachment) && attachment.local_file_available)
-    ?? attachments.find((attachment) => isPdfAttachment(attachment))
-    ?? attachments.find((attachment) => attachment.local_file_available)
-    ?? attachments[0]
+  return attachments.find((attachment) => isFulltextLikeAttachment(attachment) && attachment.local_file_available)
+    ?? attachments.find((attachment) => isFulltextLikeAttachment(attachment))
     ?? null;
 }
 
 function zoteroFulltextStatus(attachments = []) {
-  if (attachments.some((attachment) => attachment.local_file_available)) {
+  if (attachments.some((attachment) => isFulltextLikeAttachment(attachment) && attachment.local_file_available)) {
     return "retrieved_zotero";
   }
   return attachments.length > 0 ? "not_retrieved:zotero_attachment_candidate" : "metadata_only";
 }
 
 function zoteroEvidenceLimit(item = {}, attachments = []) {
-  if (attachments.some((attachment) => attachment.local_file_available)) {
+  if (attachments.some((attachment) => isFulltextLikeAttachment(attachment) && attachment.local_file_available)) {
     return "full_text";
   }
   return cleanString(item.abstract ?? item.abstractNote) ? "abstract_only" : "metadata_only";
+}
+
+function sanitizeAttachmentUrl(value) {
+  const url = cleanString(value) ?? "";
+  return isLocalAttachmentUrl(url) ? "" : url;
+}
+
+function isLocalAttachmentUrl(value) {
+  return /^file:/i.test(value)
+    || /^\//.test(value)
+    || /^[A-Za-z]:[\\/]/.test(value);
+}
+
+function isFulltextLikeAttachment(attachment = {}) {
+  const mimeType = attachment.mime_type.toLowerCase();
+  const filename = attachment.filename.toLowerCase();
+  return isPdfAttachment(attachment)
+    || ["text/html", "text/plain", "application/epub+zip"].includes(mimeType)
+    || /\.(?:html?|txt|epub)$/.test(filename);
 }
 
 function isPdfAttachment(attachment = {}) {

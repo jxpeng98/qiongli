@@ -367,7 +367,7 @@ function normalizeAttachments(value = [], options = {}) {
         filename: attachmentString(attachment.filename ?? attachment.attachmentFilename),
         mime_type: attachmentString(attachment.mime_type ?? attachment.contentType ?? attachment.mimeType ?? attachment.attachmentContentType),
         link_mode: attachmentString(attachment.link_mode ?? attachment.linkMode ?? attachment.attachmentLinkMode),
-        url: attachmentString(attachment.url ?? attachment.URL),
+        url: sanitizeAttachmentUrl(attachment.url ?? attachment.URL),
         select_uri: attachmentString(attachment.select_uri) || `zotero://select/library/items/${attachmentKey}`,
         local_file_available: Boolean(attachment.local_file_available ?? attachment.localFileAvailable ?? path)
       };
@@ -410,6 +410,17 @@ function getField(item, field) {
 
 function attachmentString(value) {
   return String(value ?? "").trim();
+}
+
+function sanitizeAttachmentUrl(value) {
+  const url = attachmentString(value);
+  return isLocalAttachmentUrl(url) ? "" : url;
+}
+
+function isLocalAttachmentUrl(value) {
+  return /^file:/i.test(value)
+    || /^\//.test(value)
+    || /^[A-Za-z]:[\\/]/.test(value);
 }
 
 function filenameFromPath(path) {

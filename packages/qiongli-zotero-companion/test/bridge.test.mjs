@@ -103,6 +103,62 @@ test("toCompactItem exposes attachment paths only when explicitly requested", ()
   assert.equal(compact.attachments[0].path, "/zotero-fixture/storage/ATT123/local-paper.pdf");
 });
 
+test("normalizeAttachments omits local URL values from default summaries", () => {
+  const defaultSummary = toCompactItem({
+    key: "ABC123",
+    title: "Local Paper",
+    attachments: [
+      {
+        attachment_key: "FILEURL",
+        filename: "file-url.pdf",
+        url: "file:///Users/person/Zotero/storage/FILEURL/file-url.pdf",
+        path: "/Users/person/Zotero/storage/FILEURL/file-url.pdf"
+      },
+      {
+        attachment_key: "UNIXPATH",
+        filename: "unix-path.pdf",
+        url: "/private/tmp/zotero/unix-path.pdf",
+        path: "/private/tmp/zotero/unix-path.pdf"
+      },
+      {
+        attachment_key: "WINPATH",
+        filename: "windows-path.pdf",
+        url: "C:\\Users\\person\\Zotero\\windows-path.pdf",
+        path: "C:\\Users\\person\\Zotero\\windows-path.pdf"
+      },
+      {
+        attachment_key: "REMOTE",
+        filename: "remote.pdf",
+        url: "https://example.test/remote.pdf"
+      }
+    ]
+  });
+
+  assert.deepEqual(defaultSummary.attachments.map((attachment) => attachment.url), [
+    "",
+    "",
+    "",
+    "https://example.test/remote.pdf"
+  ]);
+  assert.equal(defaultSummary.attachments.some((attachment) => Object.hasOwn(attachment, "path")), false);
+
+  const explicitPathSummary = toCompactItem({
+    key: "ABC123",
+    title: "Local Paper",
+    attachments: [
+      {
+        attachment_key: "FILEURL",
+        filename: "file-url.pdf",
+        url: "file:///Users/person/Zotero/storage/FILEURL/file-url.pdf",
+        path: "/Users/person/Zotero/storage/FILEURL/file-url.pdf"
+      }
+    ]
+  }, { include_attachment_paths: true });
+
+  assert.equal(explicitPathSummary.attachments[0].url, "");
+  assert.equal(explicitPathSummary.attachments[0].path, "/Users/person/Zotero/storage/FILEURL/file-url.pdf");
+});
+
 test("normalizeAttachments keeps only structured attachment metadata", () => {
   const normalized = normalizeAttachments([
     null,
@@ -286,7 +342,7 @@ test("bootstrap startup registers endpoints from Zotero 8 and 9 global object", 
     attachmentFilename: "platform-governance.pdf",
     getField: (field) => ({
       title: "Platform Governance PDF",
-      url: "https://example.test/platform-governance.pdf",
+      url: "file:///Users/person/Zotero/storage/ATT123/platform-governance.pdf",
       filename: "platform-governance.pdf",
       contentType: "application/pdf"
     })[field] ?? "",
@@ -341,6 +397,7 @@ test("bootstrap startup registers endpoints from Zotero 8 and 9 global object", 
   assert.equal(response.body.results[0].attachments[0].attachment_key, "ATT123");
   assert.equal(response.body.results[0].attachments[0].mime_type, "application/pdf");
   assert.equal(response.body.results[0].attachments[0].local_file_available, true);
+  assert.equal(response.body.results[0].attachments[0].url, "");
   assert.equal(Object.hasOwn(response.body.results[0].attachments[0], "path"), false);
 
   await Zotero.Server.Endpoints["/qiongli/collections"].prototype.init("", (status, contentType, body) => {

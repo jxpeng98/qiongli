@@ -250,6 +250,68 @@ test("normalizeZoteroSourceResults maps attachment summaries to full-text hints"
   assert.equal(Object.hasOwn(results[0].zotero.attachments[0], "path"), false);
 });
 
+test("normalizeZoteroSourceResults does not treat local non-fulltext attachments as full text", () => {
+  const results = normalizeZoteroSourceResults([
+    {
+      item_key: "ABC123",
+      title: "Local Paper",
+      abstractNote: "This item has only a figure attachment.",
+      attachments: [
+        {
+          attachment_key: "IMG123",
+          filename: "figure.png",
+          mime_type: "image/png",
+          select_uri: "zotero://select/library/items/IMG123",
+          local_file_available: true
+        }
+      ]
+    }
+  ]);
+
+  assert.equal(results[0].fulltext_status, "not_retrieved:zotero_attachment_candidate");
+  assert.equal(results[0].evidence_limit, "abstract_only");
+  assert.equal(results[0].zotero.fulltext_status, "not_retrieved:zotero_attachment_candidate");
+  assert.equal(results[0].zotero.fulltext_attachment_key, null);
+});
+
+test("normalizeZoteroSourceResults sanitizes local attachment URLs", () => {
+  const results = normalizeZoteroSourceResults([
+    {
+      item_key: "ABC123",
+      title: "Local Paper",
+      attachments: [
+        {
+          attachment_key: "FILEURL",
+          filename: "file-url.pdf",
+          mime_type: "application/pdf",
+          url: "file:///Users/person/Zotero/storage/FILEURL/file-url.pdf",
+          local_file_available: true
+        },
+        {
+          attachment_key: "UNIXPATH",
+          filename: "unix-path.pdf",
+          mime_type: "application/pdf",
+          url: "/Users/person/Zotero/storage/UNIXPATH/unix-path.pdf",
+          local_file_available: true
+        },
+        {
+          attachment_key: "REMOTE",
+          filename: "remote.pdf",
+          mime_type: "application/pdf",
+          url: "https://example.test/remote.pdf",
+          local_file_available: false
+        }
+      ]
+    }
+  ]);
+
+  assert.deepEqual(results[0].zotero.attachments.map((attachment) => attachment.url), [
+    "",
+    "",
+    "https://example.test/remote.pdf"
+  ]);
+});
+
 test("annotateLocalZoteroMatches marks external DOI matches without dropping results", () => {
   const annotated = annotateLocalZoteroMatches({
     externalResults: [
