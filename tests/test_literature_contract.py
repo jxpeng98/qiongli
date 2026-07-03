@@ -1,14 +1,33 @@
 from __future__ import annotations
 
 import re
+import tempfile
 import unittest
 from pathlib import Path
 
 from qiongli.source_layout import RepoLayout
+from qiongli.subject_materializer import MaterializeOptions, materialize_subject_package
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LAYOUT = RepoLayout(REPO_ROOT)
+COLLECT_EVIDENCE_BOUNDARY_BULLET = (
+    "- Do not use `qiongli_collect_evidence` to judge built-in literature provider "
+    "configuration. That tool is a filesystem/builtin/external-command evidence adapter; "
+    "direct provider names such as `openalex` require a separate `RESEARCH_MCP_OPENALEX_CMD`. "
+    "Use `qiongli_literature_status`, `qiongli_config_status`, `qiongli_test_provider`, "
+    "and `qiongli_literature_search` to judge OpenAlex, Semantic Scholar, Crossref, "
+    "PubMed, and arXiv provider availability."
+)
+DESKTOP_MCPB_PROVIDER_BULLET = (
+    "- Desktop/Web users need the Qiongli Literature Provider `.mcpb` "
+    "(`qiongli-literature-provider.mcpb`) or another configured provider MCP before "
+    "claiming `provider_connected` literature search. The MCPB is the separate local "
+    "Claude Desktop provider for OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv "
+    "configuration/search. arXiv is enabled without credentials. Platform-native search "
+    "alone is `native_only`, not `provider_connected`; if no provider MCP/MCPB and no "
+    "platform-native search is available, record the run as `strategy_only`."
+)
 
 
 class LiteratureContractTests(unittest.TestCase):
@@ -225,15 +244,25 @@ class LiteratureContractTests(unittest.TestCase):
     def test_workflow_guidance_rejects_collect_evidence_as_provider_status_source(self) -> None:
         content = (REPO_ROOT / "content" / "workflow" / "SKILL.md").read_text(encoding="utf-8")
 
-        self.assertIn("Do not use `qiongli_collect_evidence` to judge", content)
+        self.assertIn(COLLECT_EVIDENCE_BOUNDARY_BULLET, content)
         self.assertIn("`qiongli_literature_status`", content)
         self.assertIn("`qiongli_literature_search`", content)
 
-    def test_workflow_guidance_lists_all_bundled_literature_providers(self) -> None:
+    def test_workflow_guidance_uses_exact_desktop_mcpb_provider_bullet(self) -> None:
         content = (REPO_ROOT / "content" / "workflow" / "SKILL.md").read_text(encoding="utf-8")
 
-        for provider in ("OpenAlex", "Semantic Scholar", "Crossref", "PubMed", "arXiv"):
-            self.assertIn(provider, content)
+        self.assertIn(DESKTOP_MCPB_PROVIDER_BULLET, content)
+
+    def test_materialized_workflow_guidance_matches_provider_boundary_text(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out = Path(tmp_dir) / "core-desktop"
+            materialize_subject_package(
+                MaterializeOptions(source=REPO_ROOT, out=out, subject="core", flavor="desktop")
+            )
+            text = (out / "SKILL.md").read_text(encoding="utf-8")
+
+        self.assertIn(COLLECT_EVIDENCE_BOUNDARY_BULLET, text)
+        self.assertIn(DESKTOP_MCPB_PROVIDER_BULLET, text)
 
 
 if __name__ == "__main__":
