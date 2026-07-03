@@ -263,6 +263,40 @@ test("searchOpenAlex keeps OA landing URLs out of open_access_pdf_url", async ()
   assert.equal(result.evidence_limit, "abstract_only");
 });
 
+test("searchOpenAlex does not treat DOI or OpenAlex ID as access candidates", async () => {
+  const fetchImpl = async () => ({
+    ok: true,
+    status: 200,
+    async json() {
+      return {
+        results: [
+          {
+            id: "https://openalex.org/W125",
+            doi: "https://doi.org/10.5555/metadata-only",
+            title: "OpenAlex Metadata Only Paper",
+            publication_year: 2024,
+            abstract_inverted_index: {
+              Metadata: [0],
+              only: [1]
+            }
+          }
+        ]
+      };
+    }
+  });
+
+  const response = await searchOpenAlex({
+    query: "metadata only query",
+    fetchImpl
+  });
+  const [result] = response.results;
+
+  assert.equal(result.url, "https://doi.org/10.5555/metadata-only");
+  assert.equal(result.access_url, null);
+  assert.equal(result.fulltext_status, "metadata_only");
+  assert.equal(result.evidence_limit, "abstract_only");
+});
+
 test("searchOpenAlex resolves DOI queries through the singleton work endpoint", async () => {
   let requestedUrl;
   const fetchImpl = async (url) => {

@@ -94,7 +94,9 @@ function openAlexAccessUrl(work, pdfUrl) {
   return (
     pdfUrl ??
     work?.open_access?.oa_url ??
-    openAlexUrl(work)
+    work?.best_oa_location?.landing_page_url ??
+    work?.primary_location?.landing_page_url ??
+    null
   );
 }
 
