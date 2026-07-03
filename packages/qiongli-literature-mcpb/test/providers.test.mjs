@@ -25,7 +25,7 @@ test("searchArxiv queries the Atom endpoint and normalizes preprint results", as
               <author><name>Ada Lovelace</name></author>
               <author><name>Grace Hopper</name></author>
               <link href="http://arxiv.org/abs/2401.01234v2" rel="alternate" type="text/html" />
-              <link title="pdf" href="http://arxiv.org/pdf/2401.01234v2" rel="related" type="application/pdf" />
+              <link title="pdf" href="https://arxiv.org/pdf/2401.01234v2" rel="related" type="application/pdf" />
               <arxiv:doi>10.48550/arXiv.2401.01234</arxiv:doi>
               <category term="cs.AI" />
             </entry>
@@ -56,6 +56,11 @@ test("searchArxiv queries the Atom endpoint and normalizes preprint results", as
       doi: "10.48550/arXiv.2401.01234",
       url: "http://arxiv.org/abs/2401.01234v2",
       abstract: "Results are normalized from Atom XML.",
+      open_access_pdf_url: "https://arxiv.org/pdf/2401.01234v2",
+      access_url: "https://arxiv.org/pdf/2401.01234v2",
+      fulltext_status: "not_retrieved:oa_candidate",
+      evidence_limit: "abstract_only",
+      license: null,
       venue: "arXiv",
       document_type: "cs.AI",
       citation_count: null,
@@ -116,6 +121,10 @@ test("searchOpenAlex normalizes records and reconstructs inverted abstracts", as
                 },
                 landing_page_url: "https://example.test/paper"
               },
+              best_oa_location: {
+                pdf_url: "https://example.org/paper.pdf",
+                license: "cc-by"
+              },
               authorships: [
                 {
                   author: {
@@ -168,6 +177,11 @@ test("searchOpenAlex normalizes records and reconstructs inverted abstracts", as
       doi: "10.1000/Example",
       url: "https://example.test/paper",
       abstract: "Results are normalized",
+      open_access_pdf_url: "https://example.org/paper.pdf",
+      access_url: "https://example.org/paper.pdf",
+      fulltext_status: "not_retrieved:oa_candidate",
+      evidence_limit: "abstract_only",
+      license: "cc-by",
       venue: "Journal of Tests",
       document_type: "journal-article",
       citation_count: null,
@@ -306,6 +320,9 @@ test("searchSemanticScholar sends optional API key header and normalizes results
               publicationTypes: ["JournalArticle"],
               externalIds: {
                 DOI: "https://doi.org/10.2000/Semantic"
+              },
+              openAccessPdf: {
+                url: "https://example.org/paper.pdf"
               }
             }
           ]
@@ -330,7 +347,7 @@ test("searchSemanticScholar sends optional API key header and normalizes results
   assert.equal(calls[0].url.searchParams.get("query"), "semantic query");
   assert.equal(calls[0].url.searchParams.get("limit"), "3");
   assert.equal(calls[0].url.searchParams.get("year"), "2021-2023");
-  assert.equal(calls[0].url.searchParams.get("fields"), "paperId,title,year,authors,abstract,url,venue,publicationTypes,externalIds");
+  assert.equal(calls[0].url.searchParams.get("fields"), "paperId,title,year,authors,abstract,url,venue,publicationTypes,externalIds,openAccessPdf");
   assert.equal(calls[0].options.headers["x-api-key"], "secret-api-key");
   assert.deepEqual(response.results, [
     {
@@ -340,6 +357,11 @@ test("searchSemanticScholar sends optional API key header and normalizes results
       doi: "10.2000/Semantic",
       url: "https://semanticscholar.org/paper/abc123",
       abstract: "Useful abstract",
+      open_access_pdf_url: "https://example.org/paper.pdf",
+      access_url: "https://example.org/paper.pdf",
+      fulltext_status: "not_retrieved:oa_candidate",
+      evidence_limit: "abstract_only",
+      license: null,
       venue: "Conference of Tests",
       document_type: "JournalArticle",
       citation_count: null,
@@ -473,7 +495,7 @@ test("searchSemanticScholar runs title-match before regular search in title mode
   assert.equal(calls.length, 2);
   assert.equal(calls[0].url.pathname, "/graph/v1/paper/search/match");
   assert.equal(calls[0].url.searchParams.get("query"), "Attention Is All You Need");
-  assert.equal(calls[0].url.searchParams.get("fields"), "paperId,title,year,authors,abstract,url,venue,publicationTypes,externalIds");
+  assert.equal(calls[0].url.searchParams.get("fields"), "paperId,title,year,authors,abstract,url,venue,publicationTypes,externalIds,openAccessPdf");
   assert.equal(calls[0].options.headers["x-api-key"], "secret-api-key");
   assert.equal(calls[1].url.pathname, "/graph/v1/paper/search");
   assert.deepEqual(
@@ -664,6 +686,11 @@ test("searchCrossref sends polite email and normalizes bibliographic results", a
       doi: "10.4000/Crossref",
       url: "https://doi.org/10.4000/Crossref",
       abstract: "Crossref abstract",
+      open_access_pdf_url: null,
+      access_url: null,
+      fulltext_status: null,
+      evidence_limit: null,
+      license: null,
       venue: "Journal of Crossref Tests",
       document_type: "journal-article",
       citation_count: 7,
@@ -870,6 +897,11 @@ test("searchPubMed uses ESearch and ESummary and normalizes records", async () =
       doi: "10.5000/PubMed",
       url: "https://pubmed.ncbi.nlm.nih.gov/12345/",
       abstract: null,
+      open_access_pdf_url: null,
+      access_url: null,
+      fulltext_status: null,
+      evidence_limit: null,
+      license: null,
       venue: "Journal of PubMed Tests",
       document_type: "Journal Article",
       citation_count: null,
@@ -1050,6 +1082,11 @@ test("normalizeResult normalizes DOI and preserves missing metadata as nulls and
       doi: "10.3000/Normalize",
       url: null,
       abstract: null,
+      open_access_pdf_url: null,
+      access_url: null,
+      fulltext_status: null,
+      evidence_limit: null,
+      license: null,
       venue: null,
       document_type: null,
       citation_count: null,

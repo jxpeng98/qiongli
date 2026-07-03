@@ -14,6 +14,7 @@ import {
   handleStatus,
   handleToolCall
 } from "../server/index.mjs";
+import { normalizeResult } from "../server/normalize.mjs";
 import { buildHybridSearchPlan } from "../server/search-plan.mjs";
 
 const PROVIDER_PROVENANCE_LABELS = [
@@ -449,6 +450,23 @@ test("literature search tool exposes extended search controls", () => {
   assert.equal(properties.documentTypes.items.type, "string");
   assert.equal(properties.query_variants.items.type, "string");
   assert.equal(properties.queryVariants.items.type, "string");
+});
+
+test("normalizeResult preserves full-text access candidate fields", () => {
+  const result = normalizeResult({
+    title: "OA Paper",
+    open_access_pdf_url: "https://example.org/paper.pdf",
+    access_url: "https://example.org/paper",
+    fulltext_status: "not_retrieved:oa_candidate",
+    evidence_limit: "abstract_only",
+    license: "cc-by"
+  });
+
+  assert.equal(result.open_access_pdf_url, "https://example.org/paper.pdf");
+  assert.equal(result.access_url, "https://example.org/paper");
+  assert.equal(result.fulltext_status, "not_retrieved:oa_candidate");
+  assert.equal(result.evidence_limit, "abstract_only");
+  assert.equal(result.license, "cc-by");
 });
 
 test("handleConfigStatus suggests the platform-neutral setup tool when provider secrets are missing", () => {

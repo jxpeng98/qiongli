@@ -18,7 +18,8 @@ const BASE_FIELDS = [
   "url",
   "venue",
   "publicationTypes",
-  "externalIds"
+  "externalIds",
+  "openAccessPdf"
 ];
 const CITATION_FIELDS = [
   "citationCount",
@@ -153,6 +154,10 @@ function doiFor(paper) {
   return paper?.externalIds?.DOI ?? paper?.externalIds?.doi ?? null;
 }
 
+function openAccessPdfUrl(paper) {
+  return typeof paper?.openAccessPdf?.url === "string" ? paper.openAccessPdf.url : null;
+}
+
 function linkedPapers(papers) {
   if (!Array.isArray(papers)) {
     return [];
@@ -178,6 +183,7 @@ function publicationTypeFor(paper) {
 }
 
 function mapPaper(paper) {
+  const pdfUrl = openAccessPdfUrl(paper);
   return normalizeResult({
     title: paper?.title,
     authors: authorsFor(paper),
@@ -185,6 +191,10 @@ function mapPaper(paper) {
     doi: doiFor(paper),
     url: paper?.url,
     abstract: paper?.abstract,
+    open_access_pdf_url: pdfUrl,
+    access_url: pdfUrl ?? paper?.url,
+    fulltext_status: pdfUrl ? "not_retrieved:oa_candidate" : "metadata_only",
+    evidence_limit: paper?.abstract ? "abstract_only" : "metadata_only",
     venue: paper?.venue,
     document_type: publicationTypeFor(paper),
     citation_count: paper?.citationCount,

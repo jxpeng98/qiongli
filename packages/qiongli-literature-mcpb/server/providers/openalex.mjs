@@ -82,6 +82,15 @@ function openAlexUrl(work) {
   );
 }
 
+function openAlexPdfUrl(work) {
+  return (
+    work?.best_oa_location?.pdf_url ??
+    work?.primary_location?.pdf_url ??
+    work?.open_access?.oa_url ??
+    null
+  );
+}
+
 function normalizeDocumentTypes(value) {
   const values = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
   return values
@@ -108,13 +117,20 @@ function openAlexReferences(work) {
 }
 
 function mapWork(work) {
+  const abstract = abstractFromInvertedIndex(work?.abstract_inverted_index);
+  const pdfUrl = openAlexPdfUrl(work);
   return normalizeResult({
     title: work?.title ?? work?.display_name,
     authors: openAlexAuthors(work),
     year: work?.publication_year,
     doi: work?.doi,
     url: openAlexUrl(work),
-    abstract: abstractFromInvertedIndex(work?.abstract_inverted_index),
+    abstract,
+    open_access_pdf_url: pdfUrl,
+    access_url: pdfUrl ?? openAlexUrl(work),
+    fulltext_status: pdfUrl ? "not_retrieved:oa_candidate" : "metadata_only",
+    evidence_limit: abstract ? "abstract_only" : "metadata_only",
+    license: work?.best_oa_location?.license ?? work?.primary_location?.license,
     venue: openAlexVenue(work),
     document_type: work?.type,
     citation_count: work?.cited_by_count,

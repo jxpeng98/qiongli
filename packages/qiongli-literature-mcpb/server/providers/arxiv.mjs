@@ -174,13 +174,20 @@ function sourceId(value) {
 
 function normalizeEntry(entry) {
   const id = tagText(entry, "id");
+  const abstract = tagText(entry, "summary");
+  const absUrl = linkHref(entry, { rel: "alternate" }) ?? id;
+  const pdfUrl = linkHref(entry, { type: "application/pdf" });
   return normalizeResult({
     title: tagText(entry, "title"),
     authors: authors(entry),
     year: publishedYear(tagText(entry, "published")),
     doi: prefixedTagText(entry, "arxiv", "doi"),
-    url: linkHref(entry, { rel: "alternate" }) ?? id,
-    abstract: tagText(entry, "summary"),
+    url: absUrl,
+    abstract,
+    open_access_pdf_url: pdfUrl,
+    access_url: pdfUrl ?? absUrl,
+    fulltext_status: pdfUrl ? "not_retrieved:oa_candidate" : "metadata_only",
+    evidence_limit: abstract ? "abstract_only" : "metadata_only",
     venue: "arXiv",
     document_type: category(entry),
     provider: PROVIDER,

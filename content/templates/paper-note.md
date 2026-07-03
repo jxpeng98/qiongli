@@ -26,6 +26,8 @@ Save to: RESEARCH/[topic]/notes/[citekey].md
 
 Do not invent citations, page numbers, sample sizes, methods, results, effect sizes, datasets, author claims, or implications. If the paper is not available as full text, mark `evidence_limit: abstract_only` or `evidence_limit: metadata_only` and leave unavailable fields as gaps.
 
+Metadata search coverage and full-text access are separate. A paper found through OpenAlex, Semantic Scholar, Crossref, PubMed, or arXiv remains `abstract_only` or `metadata_only` until the retrieval manifest records a readable full-text version.
+
 ### Source Anchors
 
 | Claim ID | Claim Type | Source Anchor | Inference Strength | Notes |
