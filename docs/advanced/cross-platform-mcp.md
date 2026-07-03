@@ -47,8 +47,9 @@ With `--target all --surface plugin`, Codex, Claude Code, and Antigravity get CL
 
 The full CLI server exposes literature, provider/configuration, and orchestrator tools:
 
-- `qiongli_config_status`, `qiongli_configure_provider`, `qiongli_save_provider_config`, and `qiongli_collect_evidence` for MCP/provider readiness.
-- `qiongli_literature_status`, `qiongli_literature_search`, and `qiongli_literature_export_evidence` for full CLI literature search and auditable evidence snapshots.
+- `qiongli_config_status`, `qiongli_configure_provider`, `qiongli_save_provider_config`, `qiongli_list_provider_env`, and `qiongli_test_provider` for provider configuration and redacted readiness.
+- External evidence adapter: `qiongli_collect_evidence` covers filesystem, builtin workflow adapters, and external evidence adapter commands. Do not use `qiongli_collect_evidence` to judge built-in literature provider config. Direct academic provider names such as `openalex` require `RESEARCH_MCP_<PROVIDER>_CMD`; OpenAlex/Semantic Scholar/Crossref/PubMed/arXiv provider availability is checked through `qiongli_literature_status` and `qiongli_literature_search`.
+- `qiongli_literature_status`, `qiongli_literature_search`, and `qiongli_literature_export_evidence` for literature provider status, search, and auditable evidence snapshots.
 - `qiongli_search_plan` is the workflow-level literature routing contract used by `lit-review`, `paper-read`, and related Stage B skills. It records `search_execution_mode` as `hybrid_search`, `provider_connected`, `native_only`, or `strategy_only`, and records `provider_capability_mode` separately as `provider_connected` or `strategy_only`.
 - `qiongli_orchestrator_route` for deciding whether Codex, Claude Code, Antigravity, or another client should upgrade from skill-only workflow routing to full orchestrator tools.
 - `qiongli_orchestrator_doctor` for local runtime preflight checks.
@@ -105,7 +106,7 @@ The bundled server entry is:
 node ${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs
 ```
 
-This bundled runtime covers literature-provider tools such as provider configuration, status, and search without requiring the `qiongli` CLI. Use `qiongli install --profile full --target claude --surface plugin` when Claude Code needs the unified full MCP surface, including `qiongli_literature_search`, `qiongli_orchestrator_route`, `qiongli_orchestrator_doctor`, `qiongli_task_plan`, or `qiongli_task_run`. Use `--target antigravity`, `--target hermes`, or `--target all --surface plugin` for local clients that should load the full MCP server instead of a bundled lite provider runtime.
+This bundled runtime covers literature-provider tools such as provider configuration, status, search, search planning, and evidence export without requiring the `qiongli` CLI. Use `qiongli install --profile full --target claude --surface plugin` when Claude Code needs Python-backed orchestration tools, including `qiongli_orchestrator_route`, `qiongli_orchestrator_doctor`, `qiongli_task_plan`, or `qiongli_task_run`. Use `--target antigravity`, `--target hermes`, or `--target all --surface plugin` for local clients that should load the full MCP server instead of a bundled lite provider runtime.
 
 ## Claude Desktop MCPB
 

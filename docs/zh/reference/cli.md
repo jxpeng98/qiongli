@@ -212,7 +212,7 @@ qiongli mcp config example --target hermes --json
 qiongli mcp wizard
 ```
 
-server 暴露的 MCP tools 包括 `qiongli_config_status`、`qiongli_save_provider_config`、`qiongli_collect_evidence`、`qiongli_list_provider_env`、`qiongli_test_provider`、`qiongli_configure_provider`、`qiongli_orchestrator_route`、`qiongli_orchestrator_doctor`、`qiongli_task_plan` 和 `qiongli_task_run`。
+full Python server 暴露的 MCP tools 包括 `qiongli_literature_status`、`qiongli_search_plan`、`qiongli_literature_search`、`qiongli_literature_export_evidence`、`qiongli_config_status`、`qiongli_save_provider_config`、`qiongli_configure_provider`、`qiongli_open_config_wizard`、`qiongli_list_provider_env`、`qiongli_test_provider`、`qiongli_collect_evidence`、`qiongli_subject_status`、`qiongli_subject_update`、`qiongli_orchestrator_route`、`qiongli_orchestrator_doctor`、`qiongli_task_plan` 和 `qiongli_task_run`。其中 `qiongli_collect_evidence` 是 filesystem / builtin / external-command evidence adapter；不要用它判断 OpenAlex、Semantic Scholar、Crossref、PubMed 或 arXiv 的 provider config。直接传入 `openalex` 这类 provider name 时，它检查的是 `RESEARCH_MCP_<PROVIDER>_CMD` 外部命令。
 
 默认 `stdio` 模式是本地进程，不需要远端 server。Codex、Claude Code、Antigravity、Hermes 或其他本地 MCP client 可以先调用 `qiongli_orchestrator_route`，决定是否从 skill-only routing 升级到 full orchestrator tools。`qiongli_task_run` 默认是 preview mode；只有 MCP caller 显式传入 JSON boolean `run_agents: true` 时，才会启动本地模型 CLI。
 

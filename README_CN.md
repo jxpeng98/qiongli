@@ -180,7 +180,7 @@ qiongli upgrade --target all
 
 Qiongli 包含 Academic Idea Funnel 和 Academic Grill Loop；这是对 Matt Pocock 的 `grill-me` idea-discovery pattern 的 academic adaptation，并面向 academic idea-discovery 调整。它会在起草前追问证据强度、替代解释、可行性、venue fit 和 boundary review。
 
-Provider 凭据保存在 provider config，不写进生成的 skill bundle。使用 `qiongli provider setup` 配置 OpenAlex 和 Semantic Scholar，再用 `qiongli provider doctor` 验证。`qiongli-literature-provider` `.mcpb` 为 Codex/Desktop 流程暴露 `qiongli_config_status`、`qiongli_configure_provider` 和 `qiongli_save_provider_config`；状态包括 `provider_connected` 和 `strategy_only`。skill-only 安装仍可使用 strategy fallback，外部 provider probe 保持 180 秒上限。
+Provider 凭据保存在 provider config，不写进生成的 skill bundle。使用 `qiongli provider setup` 配置 OpenAlex、Semantic Scholar、Crossref、PubMed 和 arXiv 支持的文献 workflow，再用 `qiongli provider doctor` 验证。`qiongli-literature-provider` `.mcpb` 为 Codex/Desktop 流程暴露 `qiongli_literature_status`、`qiongli_search_plan`、`qiongli_literature_search`、`qiongli_literature_export_evidence`、`qiongli_config_status`、`qiongli_configure_provider` 和 `qiongli_save_provider_config`；状态会根据 provider 和平台原生搜索可用性区分 `provider_connected`、`native_only` 和 `strategy_only`。`qiongli_collect_evidence` 是 external evidence adapter 路径，不能作为 OpenAlex provider config 检查。skill-only 安装仍可使用 strategy fallback，外部 provider probe 保持 180 秒上限。
 
 ## 文档地图
 

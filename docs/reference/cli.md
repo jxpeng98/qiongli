@@ -210,13 +210,20 @@ qiongli mcp config example --target hermes --json
 qiongli mcp wizard
 ```
 
-MCP tools exposed by the server:
+MCP tools exposed by the full Python server:
+- `qiongli_literature_status`
+- `qiongli_search_plan`
+- `qiongli_literature_search`
+- `qiongli_literature_export_evidence`
 - `qiongli_config_status`
 - `qiongli_save_provider_config`
-- `qiongli_collect_evidence`
+- `qiongli_configure_provider`
+- `qiongli_open_config_wizard`
 - `qiongli_list_provider_env`
 - `qiongli_test_provider`
-- `qiongli_configure_provider`
+- `qiongli_collect_evidence` - filesystem/builtin/external-command evidence adapter. Do not use it to judge OpenAlex/Semantic Scholar/Crossref/PubMed/arXiv provider config; direct provider names require `RESEARCH_MCP_<PROVIDER>_CMD`.
+- `qiongli_subject_status`
+- `qiongli_subject_update`
 - `qiongli_orchestrator_route`
 - `qiongli_orchestrator_doctor`
 - `qiongli_task_plan`
