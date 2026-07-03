@@ -22,6 +22,7 @@ from qiongli.universal_installer import PART_CHOICES, TARGET_CHOICES
 
 LITERATURE_TOOLS = [
     "qiongli_literature_status",
+    "qiongli_search_plan",
     "qiongli_literature_search",
     "qiongli_literature_export_evidence",
 ]

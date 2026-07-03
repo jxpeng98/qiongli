@@ -58,6 +58,7 @@ class MCPCLITests(unittest.TestCase):
         self.assertIn("literature_tools_available", payload)
         self.assertTrue(payload["literature_tools_available"])
         self.assertIn("qiongli_literature_search", payload["literature_tools"])
+        self.assertIn("qiongli_search_plan", payload["literature_tools"])
         self.assertIn("qiongli_configure_provider", payload["next_action"]["tool"])
         self.assertNotIn("openalex-secret-key", rendered)
 
@@ -75,6 +76,7 @@ class MCPCLITests(unittest.TestCase):
         self.assertEqual(payload["server"]["command"], "qiongli")
         self.assertEqual(payload["server"]["args"], ["mcp", "serve", "--transport", "stdio"])
         self.assertIn("qiongli_literature_search", payload["literature_tools"])
+        self.assertIn("qiongli_search_plan", payload["literature_tools"])
         self.assertIn("qiongli_orchestrator_route", payload["orchestrator_tools"])
         self.assertIn("qiongli_task_run", payload["orchestrator_tools"])
         self.assertIn("qiongli_task_plan", payload["orchestrator_tools"])
@@ -128,6 +130,7 @@ class MCPCLITests(unittest.TestCase):
         self.assertEqual(payload["server"]["command"], "qiongli")
         self.assertEqual(payload["server"]["args"], ["mcp", "serve", "--transport", "stdio"])
         self.assertIn("qiongli_literature_search", payload["literature_tools"])
+        self.assertIn("qiongli_search_plan", payload["literature_tools"])
         self.assertIn("qiongli_orchestrator_route", payload["orchestration_tools"])
         self.assertIn("qiongli_task_run", payload["orchestration_tools"])
 
