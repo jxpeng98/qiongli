@@ -828,6 +828,10 @@ def _contract_candidates(standards_dir: str | Path | None) -> list[Any]:
         candidates.append(explicit if explicit.name == CONTRACT_FILE else explicit / CONTRACT_FILE)
 
     runtime_file = Path(__file__).resolve()
+    cwd = Path.cwd().resolve()
+    for parent in (cwd, *cwd.parents):
+        candidates.append(parent / "content" / "standards" / CONTRACT_FILE)
+
     for parent in runtime_file.parents:
         candidates.append(parent / "content" / "standards" / CONTRACT_FILE)
 

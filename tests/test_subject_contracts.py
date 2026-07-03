@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -383,6 +385,38 @@ class RuntimeSubjectContractTests(unittest.TestCase):
             discovered = _default_subjects_root(runtime_file)
 
         self.assertEqual(discovered, source_root.resolve())
+
+    def test_default_subjects_root_uses_source_path_when_installed_module_is_loaded(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            repo_root = root / "repo"
+            source_path = repo_root / "packages" / "python-qiongli" / "src"
+            source_path.mkdir(parents=True)
+            source_root = repo_root / "content" / "subjects"
+            _write_runtime_subject(source_root / "finance" / "runtime-subject.yaml")
+            runtime_file = (
+                root
+                / "site-packages"
+                / "qiongli"
+                / "bridges"
+                / "subject_contracts.py"
+            )
+            runtime_file.parent.mkdir(parents=True)
+            project_root = root / "isolated-project"
+            project_root.mkdir()
+
+            old_cwd = Path.cwd()
+            sys.path.insert(0, str(source_path))
+            try:
+                os.chdir(project_root)
+                discovered = _default_subjects_root(runtime_file)
+                contracts = load_runtime_subject_contracts(runtime_file=runtime_file)
+            finally:
+                os.chdir(old_cwd)
+                sys.path.remove(str(source_path))
+
+        self.assertEqual(discovered, source_root.resolve())
+        self.assertEqual(subject_activation_status("finance", contracts), "runtime_enabled")
 
     def test_default_repository_contracts_classify_enabled_and_candidates(self) -> None:
         contracts = load_runtime_subject_contracts()

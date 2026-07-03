@@ -59,11 +59,16 @@ def _claude_plugin_zip(plugin_name: str, tag: str) -> str:
     return f"{plugin_name}-claude-plugin-{tag}.zip"
 
 
+def _claude_desktop_plugin_zip(plugin_name: str, tag: str) -> str:
+    return f"{plugin_name}-claude-desktop-plugin-{tag}.zip"
+
+
 def _release_assets(tag: str, root: Path) -> dict[str, list[str] | str]:
     if _is_prerelease_tag(tag):
         return {
             "download_guide": f"qiongli-downloads-{tag}.md",
             "download_index": f"qiongli-downloads-{tag}.json",
+            "claude_desktop_plugin": _claude_desktop_plugin_zip(NEXT_PLUGIN_NAME, tag),
             "claude_desktop_skills": [
                 f"{NEXT_PLUGIN_NAME}-claude-desktop-skill-core-{tag}.zip",
             ],
@@ -97,6 +102,7 @@ def _release_assets(tag: str, root: Path) -> dict[str, list[str] | str]:
     return {
         "download_guide": f"qiongli-downloads-{tag}.md",
         "download_index": f"qiongli-downloads-{tag}.json",
+        "claude_desktop_plugin": _claude_desktop_plugin_zip(PLUGIN_NAME, tag),
         "claude_desktop_skills": [
             f"{PLUGIN_NAME}-claude-desktop-skill-{subject}-{tag}.zip"
             for subject in desktop_subjects
@@ -141,6 +147,11 @@ def build_index(tag: str, repo_slug: str = DEFAULT_REPO_SLUG, root: Path = REPO_
                 if is_next
                 else f"{PLUGIN_NAME}-claude-desktop-skill-<subject>-{tag}.zip"
             ),
+        },
+        "claude_desktop_plugin": {
+            "install": "download_plugin_zip",
+            "asset": assets["claude_desktop_plugin"],
+            "note": "Use this for direct Claude Desktop/plugin install; use skill ZIP only for manual skill upload.",
         },
         "claude_desktop_literature_mcpb": {
             "install": "download_mcpb",
@@ -193,6 +204,7 @@ def render_markdown(index: dict[str, Any]) -> str:
     assets = index["assets"]
     asset_urls = index["asset_urls"]
     desktop_skills = list(assets["claude_desktop_skills"])
+    desktop_plugin_asset = str(assets["claude_desktop_plugin"])
     mcpb_asset = str(assets["claude_desktop_literature_mcpb"])
     zotero_asset = str(assets["zotero_desktop_companion"])
     guide_asset = str(assets["download_guide"])
@@ -215,6 +227,7 @@ def render_markdown(index: dict[str, Any]) -> str:
     desktop_core_url = desktop_url_by_asset.get(desktop_core_asset, release_url)
     if isinstance(desktop_urls, list) and desktop_core_asset in desktop_skills:
         desktop_core_url = desktop_urls[desktop_skills.index(desktop_core_asset)]
+    desktop_plugin_url = str(asset_urls["claude_desktop_plugin"])
     mcpb_url = str(asset_urls["claude_desktop_literature_mcpb"])
     zotero_url = str(asset_urls["zotero_desktop_companion"])
     guide_url = str(asset_urls["download_guide"])
@@ -249,6 +262,7 @@ def render_markdown(index: dict[str, Any]) -> str:
         "| Need | Link |",
         "|---|---|",
         f"| Release page and all assets | [Qiongli {tag}]({release_url}) |",
+        f"| Claude Desktop direct plugin ZIP | {_markdown_link(desktop_plugin_asset, desktop_plugin_url)} |",
         f"| Default Claude Desktop/Web skill ZIP | {_markdown_link(desktop_core_asset, desktop_core_url)} |",
         f"| Claude Desktop literature MCPB | {_markdown_link(mcpb_asset, mcpb_url)} |",
         f"| Zotero Desktop companion XPI | {_markdown_link(zotero_asset, zotero_url)} |",
@@ -262,7 +276,8 @@ def render_markdown(index: dict[str, Any]) -> str:
         f"| Qiongli CLI | `{recommended['qiongli_cli']['command']}` | Uses the {cli_channel_label} channel and bundled CLI payload. |",
         "| Codex | Use the marketplace command; do not download a plugin tarball. | Marketplace install keeps skills and bundled literature MCP registration together. |",
         "| Claude Code | Use the marketplace command; do not download a plugin tarball. | Marketplace install keeps slash commands, skills, and bundled literature MCP together. |",
-        "| Claude Desktop/Web skills | Download exactly one Desktop skill ZIP from the table below. | ZIPs are focused skill packages sized for Desktop/Web upload. |",
+        f"| Claude Desktop direct plugin | Download `{desktop_plugin_asset}`. | Use this for direct Claude Desktop/plugin install. |",
+        "| Claude Desktop/Web skills | Download exactly one Desktop skill ZIP from the table below. | Use skill ZIPs only for manual skill upload. |",
         f"| Claude Desktop literature tools | Download `{mcpb_asset}`. | MCPB adds local literature/provider tools and provider key configuration. |",
         f"| Zotero Desktop local writes | Download `{zotero_asset}` and install it from Zotero's add-on manager. | The companion enables Qiongli to search and write the local Zotero database through Zotero Desktop. |",
         "| Maintainers | Use plugin tarballs and Claude plugin ZIPs only for manual artifact checks or direct Claude plugin upload tests. | They are not the normal end-user install path. |",

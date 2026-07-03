@@ -67,6 +67,13 @@ def _read_json(path: Path) -> dict[str, object]:
     return data
 
 
+def _assert_root_plugin_manifest(plugin_root: Path, expected_plugin_name: str) -> None:
+    manifest_path = plugin_root / "plugin.json"
+    manifest = _read_json(manifest_path)
+    if manifest != {"name": expected_plugin_name}:
+        raise ValueError(f"{manifest_path} expected {{'name': {expected_plugin_name!r}}}, found {manifest}")
+
+
 def _mcp_server_name_for_plugin(plugin_name: str) -> str:
     return NEXT_MCP_SERVER_NAME if plugin_name == NEXT_PLUGIN_NAME else MCP_SERVER_NAME
 
@@ -467,6 +474,7 @@ def _validate_artifact(
         manifest_path = plugin_root / (".codex-plugin" if spec.platform == "codex" else ".claude-plugin") / "plugin.json"
         skill_root = plugin_root / "skills" / SKILL_DIR_NAME
 
+        _assert_root_plugin_manifest(plugin_root, plugin_name)
         _assert_manifest(
             spec.platform,
             manifest_path,
@@ -533,6 +541,59 @@ def _validate_claude_desktop_artifact(
     return (
         f"[OK] claude-desktop skill artifact ({label}): {skill_name} invocation checked; "
         f"{file_count}/{CLAUDE_DESKTOP_FILE_BUDGET} files under desktop file budget"
+    )
+
+
+def _validate_direct_desktop_plugin_artifact(
+    artifact: Path,
+    expected_repo_tag: str,
+    expected_version: str,
+    *,
+    plugin_name: str = PLUGIN_NAME,
+    skill_name: str = SKILL_NAME,
+    subject_label: str | None = None,
+) -> str:
+    with tempfile.TemporaryDirectory(prefix="qiongli-direct-desktop-plugin-") as tmp:
+        plugin_root = _extract_single_zip_root(artifact, Path(tmp))
+        if plugin_root.name != plugin_name:
+            raise ValueError(f"{artifact} must contain top-level {plugin_name}/ directory")
+
+        _assert_root_plugin_manifest(plugin_root, plugin_name)
+        _assert_manifest(
+            "codex",
+            plugin_root / ".codex-plugin" / "plugin.json",
+            expected_version,
+            expected_plugin_name=plugin_name,
+            expected_skill_name=skill_name,
+        )
+        _assert_manifest(
+            "claude",
+            plugin_root / ".claude-plugin" / "plugin.json",
+            expected_version,
+            expected_plugin_name=plugin_name,
+            expected_skill_name=skill_name,
+        )
+
+        skill_root = plugin_root / "skills" / SKILL_DIR_NAME
+        workflow_names = _assert_skill_invocation(skill_root, expected_repo_tag, skill_name=skill_name)
+        _assert_subject_marker(skill_root, "core")
+        _assert_subject_manifest(skill_root, "core", "complete")
+        _assert_command_invocation(plugin_root, workflow_names, skill_name=skill_name)
+        _assert_bundled_literature_mcp(
+            plugin_root,
+            "codex",
+            mcp_server_name=_mcp_server_name_for_plugin(plugin_name),
+        )
+        _assert_bundled_literature_mcp(
+            plugin_root,
+            "claude",
+            mcp_server_name=_mcp_server_name_for_plugin(plugin_name),
+        )
+
+    subject_suffix = f" ({subject_label})" if subject_label else ""
+    return (
+        f"[OK] claude-desktop direct plugin artifact{subject_suffix}: "
+        f"{skill_name} invocation checked; bundled literature MCP checked"
     )
 
 
@@ -648,6 +709,20 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
                 subject_label="core-next",
             )
         )
+        direct_plugin_name = f"{NEXT_PLUGIN_NAME}-claude-desktop-plugin-{expected_repo_tag}.zip"
+        direct_plugin_artifact = by_platform.get(direct_plugin_name)
+        if direct_plugin_artifact is None:
+            raise ValueError(f"expected claude-desktop next direct plugin artifact: {direct_plugin_name}")
+        messages.append(
+            _validate_direct_desktop_plugin_artifact(
+                direct_plugin_artifact,
+                expected_repo_tag,
+                expected_version,
+                plugin_name=NEXT_PLUGIN_NAME,
+                skill_name=NEXT_SKILL_NAME,
+                subject_label="core-next",
+            )
+        )
 
         _validate_subject_specialization(root)
         _validate_subject_eval_cases(root)
@@ -665,6 +740,18 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
             if zip_artifact is None:
                 raise ValueError(f"expected claude ZIP artifact: {zip_name}")
             messages.append(_validate_artifact(zip_artifact, spec, expected_repo_tag, expected_version))
+
+    direct_plugin_name = f"{PLUGIN_NAME}-claude-desktop-plugin-{expected_repo_tag}.zip"
+    direct_plugin_artifact = by_platform.get(direct_plugin_name)
+    if direct_plugin_artifact is None:
+        raise ValueError(f"expected claude-desktop direct plugin artifact: {direct_plugin_name}")
+    messages.append(
+        _validate_direct_desktop_plugin_artifact(
+            direct_plugin_artifact,
+            expected_repo_tag,
+            expected_version,
+        )
+    )
 
     for subject in _marketplace_subjects(root):
         plugin_name = f"{PLUGIN_NAME}-{subject}"

@@ -72,6 +72,8 @@ def _render_block(index: dict[str, Any], *, language: str) -> str:
     version = tag.removeprefix("v")
     release_url = _required_string(index.get("release_url"), "release URL")
     desktop_asset, desktop_url = _desktop_core_asset(index)
+    desktop_plugin_asset = _required_asset(index, "claude_desktop_plugin")
+    desktop_plugin_url = _required_url(index, "claude_desktop_plugin")
     mcpb_asset = _required_asset(index, "claude_desktop_literature_mcpb")
     mcpb_url = _required_url(index, "claude_desktop_literature_mcpb")
     zotero_asset = _required_asset(index, "zotero_desktop_companion")
@@ -92,6 +94,7 @@ def _render_block(index: dict[str, Any], *, language: str) -> str:
                 "|---|---|",
                 f"| npm CLI | [`qiongli@{version}`]({npm_url})：`npm install -g qiongli@latest` |",
                 f"| PyPI CLI | [`qiongli {version}`]({pypi_url})：`pipx install qiongli` |",
+                f"| Claude Desktop direct plugin | [`{desktop_plugin_asset}`]({desktop_plugin_url}) |",
                 f"| Claude Desktop/Web core skill | [`{desktop_asset}`]({desktop_url}) |",
                 f"| Claude Desktop literature MCPB | [`{mcpb_asset}`]({mcpb_url}) |",
                 f"| Zotero Desktop companion | [`{zotero_asset}`]({zotero_url}) |",
@@ -109,6 +112,7 @@ def _render_block(index: dict[str, Any], *, language: str) -> str:
             "|---|---|",
             f"| npm CLI | [`qiongli@{version}`]({npm_url}): `npm install -g qiongli@latest` |",
             f"| PyPI CLI | [`qiongli {version}`]({pypi_url}): `pipx install qiongli` |",
+            f"| Claude Desktop direct plugin | [`{desktop_plugin_asset}`]({desktop_plugin_url}) |",
             f"| Claude Desktop/Web core skill | [`{desktop_asset}`]({desktop_url}) |",
             f"| Claude Desktop literature MCPB | [`{mcpb_asset}`]({mcpb_url}) |",
             f"| Zotero Desktop companion | [`{zotero_asset}`]({zotero_url}) |",

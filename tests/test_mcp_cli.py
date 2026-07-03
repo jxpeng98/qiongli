@@ -4,9 +4,11 @@ import contextlib
 import io
 import json
 import os
+import queue
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 import urllib.parse
 import urllib.request
@@ -189,15 +191,7 @@ class MCPCLITests(unittest.TestCase):
                 env=self._env(root),
             )
             try:
-                assert proc.stdout is not None
-                lines = []
-                while True:
-                    lines.append(proc.stdout.readline())
-                    try:
-                        payload = json.loads("".join(lines))
-                        break
-                    except json.JSONDecodeError:
-                        continue
+                payload = self._read_wizard_payload(proc)
                 body = urllib.parse.urlencode({"openalex.api_key": "openalex-secret-key"}).encode(
                     "utf-8"
                 )
@@ -217,6 +211,27 @@ class MCPCLITests(unittest.TestCase):
                     proc.wait(timeout=5)
 
         self.assertEqual(returncode, 0, proc.stderr.read() if proc.stderr else "")
+
+    def test_mcp_cli_wizard_payload_reader_fails_when_child_exits_without_json(self) -> None:
+        proc = subprocess.Popen(
+            [
+                sys.executable,
+                "-c",
+                "import sys; sys.stderr.write('wizard failed before JSON\\n'); sys.exit(7)",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        try:
+            with self.assertRaisesRegex(AssertionError, "exited before emitting JSON"):
+                self._read_wizard_payload(proc, timeout=2)
+        finally:
+            proc.wait(timeout=5)
+            if proc.stdout is not None:
+                proc.stdout.close()
+            if proc.stderr is not None:
+                proc.stderr.close()
 
     def test_qiongli_cli_delegates_mcp_subcommand(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -238,6 +253,46 @@ class MCPCLITests(unittest.TestCase):
         env = dict(os.environ)
         env["QIONGLI_CONFIG_HOME"] = str(root / "config")
         return env
+
+    def _read_wizard_payload(self, proc: subprocess.Popen[str], *, timeout: float = 5.0) -> dict[str, object]:
+        self.assertIsNotNone(proc.stdout)
+        payloads: queue.Queue[dict[str, object] | None] = queue.Queue(maxsize=1)
+
+        def read_payload() -> None:
+            assert proc.stdout is not None
+            lines = []
+            while True:
+                line = proc.stdout.readline()
+                if not line:
+                    payloads.put(None)
+                    return
+                lines.append(line)
+                try:
+                    payloads.put(json.loads("".join(lines)))
+                    return
+                except json.JSONDecodeError:
+                    continue
+
+        reader = threading.Thread(target=read_payload, name="qiongli-wizard-json-reader", daemon=True)
+        reader.start()
+        try:
+            payload = payloads.get(timeout=timeout)
+        except queue.Empty:
+            if proc.poll() is None:
+                proc.terminate()
+                proc.wait(timeout=5)
+            self.fail(f"timed out waiting for wizard JSON: {self._read_stderr(proc)}")
+        if payload is None:
+            stderr = self._read_stderr(proc)
+            if "PermissionError" in stderr and "Operation not permitted" in stderr:
+                self.skipTest("local environment does not allow binding the wizard HTTP server")
+            self.fail(f"wizard exited before emitting JSON with code {proc.poll()}: {stderr}")
+        return payload
+
+    def _read_stderr(self, proc: subprocess.Popen[str]) -> str:
+        if proc.stderr is None:
+            return ""
+        return proc.stderr.read()
 
 
 if __name__ == "__main__":

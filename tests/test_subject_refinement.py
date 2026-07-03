@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 import yaml
 
+from bridges import subject_refinement as subject_refinement_module
 from bridges.project_manifest import ProjectManifest
 from bridges.subject_refinement import infer_subject_refinement
 
@@ -20,6 +21,24 @@ class SubjectRefinementTests(unittest.TestCase):
         self.assertIn("locked", statuses)
         self.assertIn("confirmed", statuses["applied"]["description"].lower())
         self.assertNotIn("locked", statuses["applied"]["description"].lower())
+
+    def test_default_contract_lookup_uses_repo_content_from_current_working_dir(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            fake_runtime_file = (
+                Path(tmp_dir)
+                / "site-packages"
+                / "qiongli"
+                / "bridges"
+                / "subject_refinement.py"
+            )
+            fake_runtime_file.parent.mkdir(parents=True)
+            fake_runtime_file.write_text("# installed package placeholder\n", encoding="utf-8")
+
+            with patch.object(subject_refinement_module, "__file__", str(fake_runtime_file)):
+                result = subject_refinement_module._load_contract(None)
+
+        self.assertEqual(result.warnings, [])
+        self.assertEqual(result.contract["name"], "subject-refinement-contract")
 
     def test_finance_event_study_method_signal_borrows_lens_without_subject_switch(self) -> None:
         packet = infer_subject_refinement(

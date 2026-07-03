@@ -33,26 +33,27 @@ class OrchestratorSubjectRefinementTests(unittest.TestCase):
                         "functional_owner_chain": [],
                     },
                 )
-                with mock.patch.object(orchestrator, "_execute_runtime_agent") as execute:
-                    execute.side_effect = [
-                        BridgeResponse(success=True, model="codex", content="draft"),
-                        BridgeResponse(
-                            success=True,
-                            model="claude",
-                            content="PASS\n\nRecommendations:\n- ok",
-                        ),
-                    ]
-                    result = orchestrator.task_run(
-                        task_id="C1",
-                        paper_type="empirical",
-                        topic=topic,
-                        context=context,
-                        domain=domain,
-                        cwd=root,
-                        skip_validation=True,
-                        max_revision_rounds=0,
-                    )
-                    return result, execute
+                with mock.patch.object(orchestrator, "_runtime_preflight_error", return_value=None):
+                    with mock.patch.object(orchestrator, "_execute_runtime_agent") as execute:
+                        execute.side_effect = [
+                            BridgeResponse(success=True, model="codex", content="draft"),
+                            BridgeResponse(
+                                success=True,
+                                model="claude",
+                                content="PASS\n\nRecommendations:\n- ok",
+                            ),
+                        ]
+                        result = orchestrator.task_run(
+                            task_id="C1",
+                            paper_type="empirical",
+                            topic=topic,
+                            context=context,
+                            domain=domain,
+                            cwd=root,
+                            skip_validation=True,
+                            max_revision_rounds=0,
+                        )
+                        return result, execute
 
         raise AssertionError("temporary task run exited unexpectedly")
 

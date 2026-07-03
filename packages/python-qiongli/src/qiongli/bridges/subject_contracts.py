@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 from pathlib import Path, PureWindowsPath
 from typing import Any, Mapping
@@ -156,9 +157,26 @@ def _subject_root_candidates(runtime_file: Path | str | None = None) -> list[Pat
         candidates.append(parent / "subjects")
     for parent in runtime_path.parents:
         candidates.append(parent / "payload" / "subjects")
+    candidates.extend(_ambient_content_subject_candidates())
     candidates.append(Path("content") / "subjects")
 
     return _unique_paths(candidates)
+
+
+def _ambient_content_subject_candidates() -> list[Path]:
+    roots = [Path.cwd()]
+    roots.extend(Path(entry) for entry in sys.path if entry)
+    candidates: list[Path] = []
+
+    for root in roots:
+        try:
+            resolved = root.expanduser().resolve()
+        except (OSError, RuntimeError):
+            continue
+        for parent in (resolved, *resolved.parents):
+            candidates.append(parent / "content" / "subjects")
+
+    return candidates
 
 
 def _runtime_subject_paths(root: Path, *, recursive: bool) -> list[Path]:
