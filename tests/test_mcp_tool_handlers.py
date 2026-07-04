@@ -84,6 +84,55 @@ class MCPToolHandlerTests(unittest.TestCase):
         self.assertFalse(result["isError"])
         return result, preview_stub
 
+    def _write_journal_fit_fixture(self, root: Path, *, venue_dir: str = "venues") -> None:
+        (root / "manuscript").mkdir()
+        (root / "manuscript" / "manuscript.md").write_text(
+            "A design science contribution with validated analytics methods.",
+            encoding="utf-8",
+        )
+        (root / "framing").mkdir()
+        (root / "framing" / "contribution_statement.md").write_text(
+            "This paper offers a design science contribution.",
+            encoding="utf-8",
+        )
+        (root / "study_design.md").write_text(
+            "The study uses validated analytics methods.",
+            encoding="utf-8",
+        )
+        (root / "evidence").mkdir()
+        (root / "evidence" / "claim-evidence-ledger.csv").write_text(
+            "claim_id,status\nc1,supported\n",
+            encoding="utf-8",
+        )
+        venues = root / venue_dir
+        venues.mkdir()
+        (venues / "primary.yaml").write_text(
+            "\n".join(
+                [
+                    "venue_id: primary",
+                    "community:",
+                    "  - design science",
+                    "contribution_expectations:",
+                    "  - design science contribution",
+                    "methods_expectations:",
+                    "  - validated analytics methods",
+                    "evidence_standards:",
+                    "  - supported",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        (venues / "backup.yaml").write_text(
+            "\n".join(
+                [
+                    "venue_id: backup",
+                    "community:",
+                    "  - unrelated community",
+                ]
+            ),
+            encoding="utf-8",
+        )
+
     def test_tool_definitions_include_config_and_evidence_tools(self) -> None:
         ordered_names = [tool["name"] for tool in MCP_TOOL_DEFINITIONS]
         names = set(ordered_names)
@@ -150,6 +199,140 @@ class MCPToolHandlerTests(unittest.TestCase):
             update_schema["properties"]["subject"]["enum"],
             expected_subjects,
         )
+
+    def test_tool_definitions_include_full_cycle_preview_tools(self) -> None:
+        definitions = {tool["name"]: tool for tool in MCP_TOOL_DEFINITIONS}
+
+        lifecycle_schema = definitions["qiongli_lifecycle_plan"]["inputSchema"]
+        lifecycle_properties = lifecycle_schema["properties"]
+        self.assertEqual(lifecycle_schema["type"], "object")
+        self.assertEqual(lifecycle_properties["cwd"]["type"], "string")
+        self.assertEqual(lifecycle_properties["topic"]["type"], "string")
+        self.assertEqual(lifecycle_properties["paper_type"]["type"], "string")
+        self.assertEqual(lifecycle_properties["mode"]["type"], "string")
+        self.assertEqual(lifecycle_properties["mode"]["enum"], ["preview"])
+
+        journal_schema = definitions["qiongli_journal_fit_recommend"]["inputSchema"]
+        journal_properties = journal_schema["properties"]
+        self.assertEqual(journal_schema["type"], "object")
+        self.assertEqual(journal_properties["cwd"]["type"], "string")
+        self.assertEqual(journal_properties["venue_roots"]["type"], "array")
+        self.assertEqual(journal_properties["venue_roots"]["items"]["type"], "string")
+        self.assertEqual(journal_properties["limit"]["type"], "integer")
+
+    def test_lifecycle_plan_tool_returns_preview_report_without_launching_agents(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / "manuscript").mkdir()
+            (root / "manuscript" / "manuscript.md").write_text("draft", encoding="utf-8")
+
+            with mock.patch.object(
+                tool_handlers,
+                "ModelOrchestrator",
+                side_effect=AssertionError("lifecycle preview must not launch agents"),
+            ):
+                result = call_qiongli_tool(
+                    "qiongli_lifecycle_plan",
+                    {"cwd": str(root), "topic": "demo", "paper_type": "empirical"},
+                )
+
+        self.assertFalse(result.get("isError"), result)
+        payload = result["structuredContent"]
+        self.assertEqual(payload["schema_version"], "1.0")
+        self.assertEqual(payload["mode"], "preview")
+        self.assertEqual(payload["topic"], "demo")
+        self.assertEqual(payload["paper_type"], "empirical")
+
+    def test_journal_fit_tool_blocks_missing_manuscript(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            result = call_qiongli_tool(
+                "qiongli_journal_fit_recommend",
+                {"cwd": str(root), "venue_roots": []},
+            )
+
+        self.assertFalse(result.get("isError"), result)
+        payload = result["structuredContent"]
+        self.assertEqual(payload["schema_version"], "1.0")
+        self.assertEqual(payload["status"], "blocked")
+        self.assertIn("missing manuscript/manuscript.md", payload["blocking_reasons"])
+
+    def test_journal_fit_tool_defaults_venue_roots_and_honors_limit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_journal_fit_fixture(root)
+
+            result = call_qiongli_tool(
+                "qiongli_journal_fit_recommend",
+                {"cwd": str(root), "limit": 1},
+            )
+
+        payload = result["structuredContent"]
+        self.assertFalse(result.get("isError"), result)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(len(payload["ranked_venues"]), 1)
+        self.assertEqual(payload["ranked_venues"][0]["venue_id"], "primary")
+        self.assertEqual(payload["ranked_venues"][0]["source"], "venues/primary.yaml")
+        self.assertFalse(Path(payload["ranked_venues"][0]["source"]).is_absolute())
+
+    def test_journal_fit_tool_resolves_relative_venue_roots_against_cwd(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_journal_fit_fixture(root, venue_dir="profiles")
+
+            result = call_qiongli_tool(
+                "qiongli_journal_fit_recommend",
+                {"cwd": str(root), "venue_roots": ["profiles"], "limit": 1},
+            )
+
+        payload = result["structuredContent"]
+        self.assertFalse(result.get("isError"), result)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(len(payload["ranked_venues"]), 1)
+        self.assertEqual(payload["ranked_venues"][0]["venue_id"], "primary")
+        self.assertEqual(payload["ranked_venues"][0]["source"], "profiles/primary.yaml")
+        self.assertFalse(Path(payload["ranked_venues"][0]["source"]).is_absolute())
+
+    def test_journal_fit_tool_rejects_invalid_venue_roots(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            for venue_roots in ("venues", [123], [None]):
+                with self.subTest(venue_roots=venue_roots):
+                    result = call_qiongli_tool(
+                        "qiongli_journal_fit_recommend",
+                        {"cwd": str(root), "venue_roots": venue_roots},
+                    )
+
+                    self.assertTrue(result["isError"])
+                    self.assertIn("venue_roots", result["structuredContent"]["error"])
+
+    def test_journal_fit_tool_limit_zero_returns_empty_ranked_venues(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_journal_fit_fixture(root)
+
+            result = call_qiongli_tool(
+                "qiongli_journal_fit_recommend",
+                {"cwd": str(root), "limit": 0},
+            )
+
+        payload = result["structuredContent"]
+        self.assertFalse(result.get("isError"), result)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["ranked_venues"], [])
+
+    def test_journal_fit_tool_rejects_invalid_limit_values(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            for limit in (-1, True, "1", 1.5):
+                with self.subTest(limit=limit):
+                    result = call_qiongli_tool(
+                        "qiongli_journal_fit_recommend",
+                        {"cwd": str(root), "limit": limit},
+                    )
+
+                    self.assertTrue(result["isError"])
+                    self.assertIn("limit", result["structuredContent"]["error"])
 
     def test_subject_lifecycle_schema_derives_enums_from_shared_constants(self) -> None:
         original_module = tool_handlers

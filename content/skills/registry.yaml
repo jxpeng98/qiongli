@@ -922,6 +922,25 @@ skills:
     tooling_requirements: [filesystem]
     domain_aware: true
 
+  - id: journal-fit-recommender
+    stage: H_submission
+    version: "1.15.0-beta.1"
+    file: skills/H_submission/journal-fit-recommender.md
+    canonical: true
+    summary: "Recommend journals from an existing manuscript using fit, evidence, and reviewer-risk checks."
+    display_name: "Journal Fit Recommender"
+    when_to_use: "Use when an existing manuscript needs manuscript-first reverse journal fit before submission."
+    summary_zh: "基于已有稿件、证据和审稿风险推荐投稿期刊。"
+    display_name_zh: "期刊匹配推荐"
+    when_to_use_zh: "当已有稿件需要先读全文、证据和方法，再反向推荐投稿期刊时使用。"
+    inputs: [Manuscript, ClaimGraph, VenueAnalysis, FatalFlawAnalysis, LimitationSection]
+    outputs: [JournalFitRecommendation]
+    tags: [submission, journal-selection, venue-fit, manuscript-first, reviewer-risk]
+    depends_on: [manuscript-architect, venue-analyzer, fatal-flaw-detector, limitation-auditor]
+    compatible_models: [codex, claude, gpt]
+    tooling_requirements: [filesystem]
+    domain_aware: true
+
   - id: reviewer-empathy-checker
     stage: H_submission
     version: "1.15.0-beta.1"

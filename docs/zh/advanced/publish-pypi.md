@@ -78,6 +78,17 @@
 
 默认的 release smoke tier 是保守配置：内置 literature smoke + `doctor`。如果你还想在发版前补跑更重的 `parallel` / `task-run` profile 路径检查，再显式加 `--maintainer-smoke`。
 
+可选的 full-cycle workflow harness：
+
+```bash
+python3 tooling/scripts/run_full_cycle_workflow_harness.py \
+  --fixture tests/fixtures/full_cycle_harness/clean_empirical \
+  --json-report /tmp/qiongli-full-cycle-harness.json
+```
+
+这是 preview-only 检查。它会验证 stage gates、drift checks 和 journal-fit
+readiness，且不会启动本地 agents。
+
 ### 可选的 subject runtime 本地 agent smoke
 
 默认 release smoke 仍然是 preview-first，不会启动本地 agent。发布候选版本前，

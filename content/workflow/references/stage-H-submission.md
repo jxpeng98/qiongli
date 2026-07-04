@@ -1,4 +1,4 @@
-# Stage H — Submission & Revision (H1–H4)
+# Stage H — Submission & Revision (H1–H5)
 
 This stage packages the work for submission and hardens it against reviewer objections.
 
@@ -20,6 +20,9 @@ This stage packages the work for submission and hardens it against reviewer obje
 - `H2_5` → `revision/reviewer_empathy_check.md`
 - `H3` → `revision/peer_review_simulation.md`
 - `H4` → `revision/fatal_flaw_analysis.md`
+- `H5` → reverse journal-fit recommendation:
+  - `submission/journal_fit_recommendation.md`
+  - `submission/journal_fit_recommendation.json`
 
 ## Quality gate focus
 
@@ -97,3 +100,26 @@ Constructive desk-reject analysis: what would cause immediate rejection and how 
 - Each flaw has a mitigation plan and “if we can’t fix, we must re-scope” note
 
 Write into: `revision/fatal_flaw_analysis.md`.
+
+---
+
+## H5 — Reverse Journal-Fit Recommendation
+
+Use H5 when a manuscript already exists and the question is which journal best
+fits the manuscript. H5 is manuscript-first: it must read the draft,
+contribution, methods or evidence design, limitations, claim-evidence map, and
+venue profiles before ranking venues.
+
+**Definition of done**
+- At least three candidate venues are ranked when the venue catalog permits.
+- The report distinguishes `primary`, `stretch`, `safe`, `fallback`, and
+  `do_not_submit` venues.
+- Each recommendation states scope fit, contribution fit, method or evidence
+  fit, reviewer risk, desk-reject risk, and required revisions.
+- The report blocks best-journal claims when the manuscript, contribution,
+  methods or evidence design, limitations, claim-evidence map, or venue
+  profiles are missing.
+
+Write into:
+- `submission/journal_fit_recommendation.md`
+- `submission/journal_fit_recommendation.json`

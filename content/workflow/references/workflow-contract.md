@@ -82,6 +82,7 @@ Use this contract as the single source of truth for:
 | `H2_5` | H | Reviewer empathy check | `revision/reviewer_empathy_check.md` |
 | `H3` | H | Peer review simulation | `revision/peer_review_simulation.md` |
 | `H4` | H | Fatal flaw analysis | `revision/fatal_flaw_analysis.md`, `revision/limitations_audit.md`, `revision/limitation_mitigations.md` |
+| `H5` | H | Reverse journal-fit recommendation | `submission/journal_fit_recommendation.md`, `submission/journal_fit_recommendation.json` |
 | `I1` | I | Method implementation | `analysis/` |
 | `I2` | I | Reproduction | `analysis/` |
 | `I3` | I | Data pipeline | `analysis/`, `data/cleaning_plan.md`, `data/merge_plan.md` |

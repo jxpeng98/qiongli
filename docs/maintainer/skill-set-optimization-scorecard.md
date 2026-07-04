@@ -2,7 +2,7 @@
 
 ## Baseline
 
-- Canonical registered skills: 73, sourced from `content/skills/` and `content/skills/registry.yaml`.
+- Canonical registered skills: 74, sourced from `content/skills/` and `content/skills/registry.yaml`.
 - Current gate model: Q1-Q4 labels exist in workflow contracts and task routing.
 - Current domain model: domain profiles are injected at runtime.
 - Current eval model: offline academic quality fixtures score broad quality dimensions.

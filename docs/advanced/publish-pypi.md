@@ -78,6 +78,17 @@ Package version format follows [PEP 440](https://peps.python.org/pep-0440/), whi
 
 The default release smoke tier is intentionally conservative: builtin literature smoke + `doctor`. If you also want the heavier `parallel` / `task-run` profile-path checks before publishing, add `--maintainer-smoke`.
 
+Optional full-cycle workflow harness:
+
+```bash
+python3 tooling/scripts/run_full_cycle_workflow_harness.py \
+  --fixture tests/fixtures/full_cycle_harness/clean_empirical \
+  --json-report /tmp/qiongli-full-cycle-harness.json
+```
+
+This is preview-only. It verifies stage gates, drift checks, and journal-fit
+readiness without launching local agents.
+
 ### Optional subject runtime local-agent smoke
 
 The default release smoke remains preview-first and does not launch local

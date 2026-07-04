@@ -226,8 +226,15 @@ MCP tools exposed by the full Python server:
 - `qiongli_subject_update`
 - `qiongli_orchestrator_route`
 - `qiongli_orchestrator_doctor`
+- `qiongli_lifecycle_plan`
+- `qiongli_journal_fit_recommend`
 - `qiongli_task_plan`
 - `qiongli_task_run`
+
+#### Full-cycle preview tools
+
+- `qiongli_lifecycle_plan`: builds a preview stage-gate report for an existing paper project. It does not launch agents.
+- `qiongli_journal_fit_recommend`: ranks journals from an existing manuscript and local venue profiles. It blocks when manuscript evidence is missing.
 
 Default `stdio` mode is local and does not require a remote server. HTTP mode can also run locally; use a remote server only when the client cannot launch local MCP commands or when you need a managed shared endpoint. Codex, Claude Code, Antigravity, Hermes, or another local MCP client should call `qiongli_orchestrator_route` when deciding whether to upgrade from skill-only routing to full orchestrator tools. `qiongli_task_run` defaults to preview mode and launches local model CLIs only when the MCP caller explicitly sets JSON boolean `run_agents: true`. The tool accepts `guidance_mode: "off" | "read" | "propose" | "apply"`; preview responses echo the effective task-run arguments and report whether project guidance will be bootstrapped, but do not create files or launch agents.
 

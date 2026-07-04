@@ -224,6 +224,36 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
         },
     },
     {
+        "name": "qiongli_lifecycle_plan",
+        "description": "Build a preview full-cycle paper lifecycle gate report without launching agents.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "cwd": {"type": "string"},
+                "topic": {"type": "string"},
+                "paper_type": {"type": "string"},
+                "mode": {"type": "string", "enum": ["preview"]},
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "qiongli_journal_fit_recommend",
+        "description": "Recommend journals from an existing manuscript using local venue profiles.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "cwd": {"type": "string"},
+                "venue_roots": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                },
+                "limit": {"type": "integer"},
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
         "name": "qiongli_task_plan",
         "description": "Render a Qiongli task execution plan without launching runtime agents.",
         "inputSchema": {
@@ -297,6 +327,8 @@ def call_qiongli_tool(name: str, arguments: dict[str, Any] | None = None) -> dic
         "qiongli_open_config_wizard": _tool_open_config_wizard,
         "qiongli_orchestrator_route": _tool_orchestrator_route,
         "qiongli_orchestrator_doctor": _tool_orchestrator_doctor,
+        "qiongli_lifecycle_plan": _tool_lifecycle_plan,
+        "qiongli_journal_fit_recommend": _tool_journal_fit_recommend,
         "qiongli_task_plan": _tool_task_plan,
         "qiongli_task_run": _tool_task_run,
     }
@@ -506,6 +538,70 @@ def _tool_orchestrator_route(args: dict[str, Any]) -> dict[str, Any]:
 def _tool_orchestrator_doctor(args: dict[str, Any]) -> dict[str, Any]:
     result = _model_orchestrator().doctor(_cwd_from_args(args))
     return _collaboration_payload(result)
+
+
+def _tool_lifecycle_plan(args: dict[str, Any]) -> dict[str, Any]:
+    from bridges.lifecycle_harness import build_lifecycle_report
+
+    cwd = _cwd_from_args(args).resolve()
+    return build_lifecycle_report(
+        cwd,
+        topic=str(args.get("topic") or cwd.name),
+        paper_type=str(args.get("paper_type") or "empirical"),
+        mode="preview",
+    )
+
+
+def _tool_journal_fit_recommend(args: dict[str, Any]) -> dict[str, Any]:
+    from bridges.journal_fit import recommend_journals
+
+    cwd = _cwd_from_args(args).resolve()
+    payload = recommend_journals(
+        cwd,
+        venue_roots=_journal_fit_venue_roots(args, cwd),
+        limit=_optional_int(args, "limit", 5, minimum=0) or 0,
+    )
+    return _normalize_journal_fit_sources(payload, cwd)
+
+
+def _journal_fit_venue_roots(args: dict[str, Any], cwd: Path) -> list[Path]:
+    raw_roots = args.get("venue_roots")
+    if raw_roots is None or raw_roots == []:
+        return [cwd / "venues"]
+    if not isinstance(raw_roots, list):
+        raise ValueError("venue_roots must be an array of strings")
+
+    roots: list[Path] = []
+    for index, raw_root in enumerate(raw_roots):
+        if not isinstance(raw_root, str):
+            raise ValueError(f"venue_roots[{index}] must be a string")
+        root = Path(raw_root).expanduser()
+        if not root.is_absolute():
+            root = cwd / root
+        roots.append(root.resolve())
+    return roots or [cwd / "venues"]
+
+
+def _normalize_journal_fit_sources(payload: dict[str, Any], cwd: Path) -> dict[str, Any]:
+    ranked_venues = payload.get("ranked_venues")
+    if not isinstance(ranked_venues, list):
+        return payload
+
+    cwd = cwd.resolve()
+    for venue in ranked_venues:
+        if not isinstance(venue, dict):
+            continue
+        raw_source = venue.get("source")
+        if not isinstance(raw_source, str) or not raw_source:
+            continue
+        source = Path(raw_source).expanduser()
+        if not source.is_absolute():
+            source = cwd / source
+        try:
+            venue["source"] = source.resolve().relative_to(cwd).as_posix()
+        except ValueError:
+            pass
+    return payload
 
 
 def _tool_task_plan(args: dict[str, Any]) -> dict[str, Any]:

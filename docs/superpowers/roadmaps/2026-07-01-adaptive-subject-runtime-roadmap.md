@@ -13,7 +13,7 @@ can ship with tests, local verification, and clear rollback behavior.
 
 ## Current Baseline
 
-Completed on `dev` as of July 2, 2026:
+Completed on `dev` as of July 4, 2026:
 
 - Runtime subject refinement packet with `decision`, `signals`,
   `resource_activation_plan`, `borrowed_lenses`, and backward-compatible fields.
@@ -33,14 +33,26 @@ Completed on `dev` as of July 2, 2026:
   `.qiongli/guidance.d/subject-runtime.md` after explicit confirmation or lock.
 - Runtime preview packets that expose loaded local guidance, including the
   managed subject guidance fragment.
+- Opt-in local-agent smoke foundations, including `--mode local-agent`,
+  `QIONGLI_SMOKE_RUN_AGENTS=1`, bounded task-run overrides, trace assertions,
+  and write-boundary reporting.
+- Runtime subject contract and subject-gate foundations that keep candidate
+  subjects inactive until their evaluation gates pass.
+- MCP provider status parity, broader literature-search defaults, full-text
+  candidate planning, and Zotero attachment verification summaries released in
+  `v1.15.0-beta.1`.
 
 Remaining product gaps:
 
-- Real local-agent smoke remains opt-in roadmap work rather than a release
-  confidence gate.
-- The runtime hardening layer does not yet prove that a real local agent
-  consumes materialized subject guidance without writing outside an isolated
-  root.
+- Real local-agent smoke remains opt-in and should stay outside the default
+  release gate until maintainer environments are stable.
+- Qiongli still lacks an end-to-end paper lifecycle harness that proves topic
+  framing, broad evidence search, data/methods, writing, compliance, strong
+  judging, journal recommendation, and feedback loops preserve locked research
+  state across multiple rounds and agents.
+- Journal support remains mostly target-first. Qiongli needs manuscript-first
+  reverse journal-fit recommendation for users who already have a draft and
+  need the best venue match.
 - Expansion to additional subjects still needs a formal onboarding contract
   that requires evaluation fixtures, near-miss guards, and regression
   thresholds before activation.
@@ -60,6 +72,29 @@ Remaining product gaps:
 - Local guidance writes must be explicit, reversible, and project-scoped.
 - Every stage must preserve preview-first safety: local agents do not launch
   unless explicitly requested.
+- End-to-end workflow claims require a lifecycle harness: stage handoffs,
+  claim-evidence coverage, strong judge results, and journal-fit decisions must
+  be checked together before later expansion work is considered release-ready.
+
+## Priority Update: Full-Cycle Workflow Harness
+
+Status: next priority before additional subject expansion.
+
+The local-agent smoke and subject-gate foundations are now partially present on
+`dev`, but Qiongli still lacks an end-to-end lifecycle harness that proves
+topic framing, broad evidence search, data/methods, writing, compliance,
+strong judge, reverse journal fit, and feedback loops preserve the same locked
+research state.
+
+The next implementation priority is therefore a full-cycle multi-agent workflow
+harness with reverse journal-fit recommendation. Subject expansion resumes
+after this harness can detect stage drift, unsupported claims, unresolved fatal
+flaws, and over-optimistic journal recommendations.
+
+Formal design and execution plan:
+
+- `docs/superpowers/specs/2026-07-04-full-cycle-multiagent-workflow-and-journal-fit-design.md`
+- `docs/superpowers/plans/2026-07-04-full-cycle-multiagent-workflow-and-journal-fit.md`
 
 ## Stage 1: Router Evaluation And Lifecycle Controls
 
@@ -132,7 +167,7 @@ First formal spec:
 
 ## Stage 3: Real Local-Agent Smoke And Runtime Hardening
 
-Status: next recommended implementation.
+Status: partially implemented on `dev`; remains opt-in for maintainers.
 
 Primary outcome:
 
@@ -167,6 +202,9 @@ First formal spec:
 - `docs/superpowers/specs/2026-07-02-real-local-agent-smoke-runtime-hardening-design.md`
 
 ## Stage 4: Subject Expansion With Evaluation Gates
+
+Status: partially implemented foundation; full subject activation remains
+deferred until after the full-cycle workflow harness.
 
 Primary outcome:
 
@@ -254,19 +292,19 @@ Success criteria:
 
 ## Recommended Immediate Plan
 
-Implement Stage 3 first:
+Implement the full-cycle workflow harness first:
 
-1. Add the real local-agent smoke design and implementation plan.
-2. Extend the smoke runner with an opt-in local-agent mode guarded by both a
-   CLI flag and `QIONGLI_SMOKE_RUN_AGENTS=1`.
-3. Run the confirmed-subject fixture through the real local runtime in an
-   isolated root.
-4. Assert local guidance consumption, trace bundle completeness, and no writes
-   outside the isolated root.
-5. Add release-readiness reporting for preview smoke, optional local-agent
-   smoke, subject router eval, and guidance materialization checks.
+1. Add `H5` reverse journal-fit recommendation to the workflow contract.
+2. Add `/paper-lifecycle` as a preview-first full-cycle workflow entrypoint.
+3. Build a deterministic lifecycle harness that checks stage handoffs,
+   claim-evidence coverage, strong judge status, drift, and journal-fit
+   readiness without launching agents.
+4. Add manuscript-first journal recommendation from local venue profiles, with
+   blocking behavior when manuscript evidence is missing.
+5. Expose preview tools through full Python MCP/CLI surfaces.
+6. Add release smoke coverage only for deterministic preview fixtures.
 
-After Stage 3 ships, move to Stage 4 subject expansion:
+After the full-cycle harness ships, resume Stage 4 subject expansion:
 
 - Require an evaluation fixture pack before enabling each new subject.
 - Start with one adjacent subject pack before expanding the full catalog.
