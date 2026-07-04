@@ -52,6 +52,7 @@ class PluginArtifactsTests(unittest.TestCase):
         self.assertEqual(
             sorted(path.name for path in artifacts),
             [
+                f"qiongli-next-claude-desktop-plugin-{current_tag}.zip",
                 f"qiongli-next-claude-desktop-skill-core-{current_tag}.zip",
                 f"qiongli-next-claude-plugin-{current_tag}.tar.gz",
                 f"qiongli-next-claude-plugin-{current_tag}.zip",

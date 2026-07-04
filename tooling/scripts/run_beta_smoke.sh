@@ -54,12 +54,26 @@ esac
 contains_text() {
   local pattern="$1"
   local text="$2"
-  if command -v rg >/dev/null 2>&1; then
-    rg -q "$pattern" <<<"$text"
+  if [[ -n "$RG_BIN" ]]; then
+    "$RG_BIN" -q "$pattern" <<<"$text"
   else
     grep -q "$pattern" <<<"$text"
   fi
 }
+
+find_usable_rg() {
+  local candidate
+  while IFS= read -r candidate; do
+    [[ -n "$candidate" ]] || continue
+    if "$candidate" --version >/dev/null 2>&1; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done < <(type -P -a rg 2>/dev/null || true)
+  return 1
+}
+
+RG_BIN="$(find_usable_rg || true)"
 
 run_and_assert_output() {
   local label="$1"

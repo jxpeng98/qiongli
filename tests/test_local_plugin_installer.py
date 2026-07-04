@@ -9,7 +9,6 @@ from unittest import mock
 
 import yaml
 
-from qiongli import __version__ as QIONGLI_VERSION
 from qiongli.local_plugin_installer import (
     LocalPluginOptions,
     _build_materialize_source,
@@ -19,9 +18,11 @@ from qiongli.local_plugin_installer import (
     resolve_claude_plugin_paths,
     resolve_codex_plugin_paths,
 )
+from qiongli.source_layout import RepoLayout
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+WORKFLOW_VERSION = (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(encoding="utf-8").strip().lstrip("v")
 
 
 class LocalPluginInstallerTests(unittest.TestCase):
@@ -262,7 +263,7 @@ class LocalPluginInstallerTests(unittest.TestCase):
             self.assertEqual(result.installed_roots, {"antigravity": plugin_root})
             manifest = self._read_json(plugin_root / "plugin.json")
             self.assertEqual(manifest["name"], "qiongli")
-            self.assertEqual(manifest["version"], QIONGLI_VERSION)
+            self.assertEqual(manifest["version"], WORKFLOW_VERSION)
             mcp_manifest = self._read_json(plugin_root / "mcp_config.json")
             self.assertEqual(
                 mcp_manifest,

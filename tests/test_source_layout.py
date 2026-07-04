@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+import tempfile
 from pathlib import Path
 
 from qiongli.source_layout import RepoLayout, discover_repo_root
@@ -74,6 +75,21 @@ class SourceLayoutTests(unittest.TestCase):
         self.assertIn(Path("qiongli-workflow"), layout.generated_output_roots)
         self.assertIn(Path("content/workflow/skills"), layout.generated_output_roots)
         self.assertIn(Path("content/workflow/templates"), layout.generated_output_roots)
+
+    def test_payload_skills_prefers_root_registry_over_partial_content_mirror(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / "skills").mkdir()
+            (root / "skills" / "registry.yaml").write_text("skills: []\n", encoding="utf-8")
+            (root / "content" / "skills" / "domain-profiles").mkdir(parents=True)
+            (root / "content" / "skills" / "domain-profiles" / "finance.yaml").write_text(
+                "id: finance\n",
+                encoding="utf-8",
+            )
+
+            layout = RepoLayout(root)
+
+            self.assertEqual(root.resolve() / "skills", layout.skills)
 
     def test_resolves_legacy_source_paths_to_current_content_tree(self) -> None:
         layout = RepoLayout(REPO_ROOT)
