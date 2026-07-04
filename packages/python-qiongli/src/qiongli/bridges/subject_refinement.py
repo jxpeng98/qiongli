@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from importlib import resources as importlib_resources
+import math
 from pathlib import Path
 import re
 from typing import Any, Mapping
@@ -9,7 +10,11 @@ from typing import Any, Mapping
 import yaml
 
 from .project_manifest import ProjectManifest, ProjectManifestState
-from .subject_contracts import subject_activation_status
+from .subject_contracts import (
+    RuntimeSubjectContract,
+    load_runtime_subject_contracts,
+    subject_activation_status,
+)
 from .subject_resources import build_resource_activation_plan
 
 
@@ -135,6 +140,8 @@ class SubjectSignals:
     economics_venues: list[str]
     evidence: list[str]
     signals: list[dict[str, Any]]
+    runtime_subject_matches: dict[str, RuntimeSubjectMatch]
+    contract_warnings: list[str]
 
     @property
     def has_any(self) -> bool:
@@ -144,6 +151,7 @@ class SubjectSignals:
             or self.finance_venues
             or self.economics_method_lenses
             or self.economics_venues
+            or self.runtime_subject_matches
         )
 
     @property
@@ -156,6 +164,19 @@ class SubjectSignals:
     @property
     def has_economics_subject_signal(self) -> bool:
         return bool(self.economics_method_lenses)
+
+
+@dataclass(frozen=True)
+class RuntimeSubjectMatch:
+    subject: str
+    dimensions: tuple[str, ...]
+    method_lenses: tuple[str, ...]
+    evidence: tuple[str, ...]
+    signal_ids: tuple[str, ...]
+
+    @property
+    def has_subject_strength(self) -> bool:
+        return len(self.dimensions) >= 2
 
 
 @dataclass(frozen=True)
@@ -238,14 +259,23 @@ def infer_subject_refinement(
     review_content: str = "",
     merged_analysis: str = "",
     standards_dir: str | Path | None = None,
+    evaluation_subjects: set[str] | None = None,
 ) -> SubjectRefinementPacket:
     manifest = _coerce_manifest(manifest_state)
     text = _collect_text(task_packet, draft_content, review_content, merged_analysis)
     signals = _detect_signals(text)
     contract_result = _load_contract(standards_dir)
     contract = contract_result.contract
-    finance_runtime_enabled = _subject_can_be_suggested("finance")
-    economics_runtime_enabled = _subject_can_be_suggested("economics")
+    contract_warnings = [*contract_result.warnings, *signals.contract_warnings]
+    evaluation_subjects = set(evaluation_subjects or set())
+    finance_runtime_enabled = _subject_can_be_suggested(
+        "finance",
+        evaluation_subjects=evaluation_subjects,
+    )
+    economics_runtime_enabled = _subject_can_be_suggested(
+        "economics",
+        evaluation_subjects=evaluation_subjects,
+    )
 
     if manifest.subject_mode == "locked":
         borrowed_lenses = _borrowed_lenses(manifest.active_subject, signals)
@@ -266,7 +296,7 @@ def infer_subject_refinement(
                 method_lenses=method_lenses,
                 borrowed_lenses=borrowed_lenses,
                 contract=contract,
-                contract_warnings=contract_result.warnings,
+                contract_warnings=contract_warnings,
             ),
             persistence={"status": "locked"},
             summary=_summary(
@@ -281,6 +311,7 @@ def infer_subject_refinement(
         )
 
     if manifest.subject_mode == "confirmed":
+        borrowed_lenses = _borrowed_manifest_lenses(manifest.active_subject, signals)
         method_lenses = _unique(list(manifest.method_lenses or []))
         return _packet(
             decision="confirm_subject",
@@ -288,16 +319,20 @@ def infer_subject_refinement(
             active_subject=manifest.active_subject,
             primary_subject=manifest.active_subject,
             secondary_subjects=list(manifest.secondary_subjects or []),
-            candidate_subjects=_candidate_subjects(signals),
+            candidate_subjects=_candidate_subjects(
+                signals,
+                evaluation_subjects=evaluation_subjects,
+            ),
             method_lenses=method_lenses,
-            borrowed_lenses=[],
+            borrowed_lenses=borrowed_lenses,
             loaded_resources=_loaded_resources(
-                ["subject_overlay", "subject_skill"],
+                ["subject_overlay", "subject_skill"]
+                + (["method_pack_only"] if borrowed_lenses else []),
                 primary_subject=manifest.active_subject,
                 method_lenses=method_lenses,
-                borrowed_lenses=[],
+                borrowed_lenses=borrowed_lenses,
                 contract=contract,
-                contract_warnings=contract_result.warnings,
+                contract_warnings=contract_warnings,
             ),
             persistence={"status": "applied"},
             summary=f"Confirmed project subject '{manifest.active_subject}' controls this task.",
@@ -316,7 +351,11 @@ def infer_subject_refinement(
             active_subject=manifest.active_subject,
             primary_subject="finance",
             secondary_subjects=list(manifest.secondary_subjects or []),
-            candidate_subjects=_candidate_subjects(signals, preferred="finance"),
+            candidate_subjects=_candidate_subjects(
+                signals,
+                preferred="finance",
+                evaluation_subjects=evaluation_subjects,
+            ),
             method_lenses=method_lenses,
             borrowed_lenses=borrowed_lenses,
             loaded_resources=_loaded_resources(
@@ -326,7 +365,7 @@ def infer_subject_refinement(
                 method_lenses=method_lenses,
                 borrowed_lenses=borrowed_lenses,
                 contract=contract,
-                contract_warnings=contract_result.warnings,
+                contract_warnings=contract_warnings,
             ),
             persistence={"status": "proposed"},
             summary="Finance subject suggested from method, data/outcome, and venue signals.",
@@ -345,7 +384,11 @@ def infer_subject_refinement(
             active_subject=manifest.active_subject,
             primary_subject="economics",
             secondary_subjects=list(manifest.secondary_subjects or []),
-            candidate_subjects=_candidate_subjects(signals, preferred="economics"),
+            candidate_subjects=_candidate_subjects(
+                signals,
+                preferred="economics",
+                evaluation_subjects=evaluation_subjects,
+            ),
             method_lenses=method_lenses,
             borrowed_lenses=borrowed_lenses,
             loaded_resources=_loaded_resources(
@@ -355,12 +398,96 @@ def infer_subject_refinement(
                 method_lenses=method_lenses,
                 borrowed_lenses=borrowed_lenses,
                 contract=contract,
-                contract_warnings=contract_result.warnings,
+                contract_warnings=contract_warnings,
             ),
             persistence={"status": "proposed"},
             summary="Economics subject suggested from causal-method signals.",
             domain="economics",
             confidence=0.7,
+            evidence=signals.evidence,
+            signals=signals.signals,
+        )
+
+    accounting_match = signals.runtime_subject_matches.get("accounting")
+    accounting_runtime_enabled = _subject_can_be_suggested(
+        "accounting",
+        evaluation_subjects=evaluation_subjects,
+    )
+    if (
+        accounting_match is not None
+        and accounting_match.has_subject_strength
+        and accounting_runtime_enabled
+    ):
+        method_lenses = _unique(list(accounting_match.method_lenses))
+        borrowed_lenses = _borrowed_lenses("accounting", signals)
+        return _packet(
+            decision="suggest_subject",
+            mode="suggested",
+            active_subject=manifest.active_subject,
+            primary_subject="accounting",
+            secondary_subjects=list(manifest.secondary_subjects or []),
+            candidate_subjects=_candidate_subjects(
+                signals,
+                preferred="accounting",
+                evaluation_subjects=evaluation_subjects,
+            ),
+            method_lenses=method_lenses,
+            borrowed_lenses=borrowed_lenses,
+            loaded_resources=_loaded_resources(
+                ["subject_overlay", "subject_skill", "method_pack"]
+                + (["method_pack_only"] if borrowed_lenses else []),
+                primary_subject="accounting",
+                method_lenses=method_lenses,
+                borrowed_lenses=borrowed_lenses,
+                contract=contract,
+                contract_warnings=contract_warnings,
+            ),
+            persistence={"status": "proposed"},
+            summary=(
+                "Accounting subject measured from archival method, construct, "
+                "data, and venue signals."
+            ),
+            domain="accounting",
+            confidence=0.75,
+            evidence=signals.evidence,
+            signals=signals.signals,
+        )
+
+    if (
+        accounting_match is not None
+        and accounting_match.method_lenses
+        and manifest.active_subject != "accounting"
+    ):
+        borrowed_lenses = _borrowed_lenses(manifest.active_subject, signals)
+        return _packet(
+            decision="borrow_lens",
+            mode="auto",
+            active_subject=manifest.active_subject,
+            primary_subject=manifest.active_subject,
+            secondary_subjects=list(manifest.secondary_subjects or []),
+            candidate_subjects=_candidate_subjects(
+                signals,
+                preferred="accounting",
+                evaluation_subjects=evaluation_subjects,
+            ),
+            method_lenses=_unique(list(manifest.method_lenses or [])),
+            borrowed_lenses=borrowed_lenses,
+            loaded_resources=_loaded_resources(
+                ["method_pack_only"],
+                primary_subject=manifest.active_subject,
+                method_lenses=[],
+                borrowed_lenses=borrowed_lenses,
+                contract=contract,
+                contract_warnings=contract_warnings,
+            ),
+            persistence={"status": "temporary"},
+            summary=_summary(
+                "Borrowing accounting method lens without changing the project subject.",
+                manifest.active_subject,
+                borrowed_lenses,
+            ),
+            domain=_domain_for_subject(manifest.active_subject),
+            confidence=0.45,
             evidence=signals.evidence,
             signals=signals.signals,
         )
@@ -373,7 +500,11 @@ def infer_subject_refinement(
             active_subject=manifest.active_subject,
             primary_subject=manifest.active_subject,
             secondary_subjects=list(manifest.secondary_subjects or []),
-            candidate_subjects=_candidate_subjects(signals, preferred="finance"),
+            candidate_subjects=_candidate_subjects(
+                signals,
+                preferred="finance",
+                evaluation_subjects=evaluation_subjects,
+            ),
             method_lenses=_unique(list(manifest.method_lenses or [])),
             borrowed_lenses=borrowed_lenses,
             loaded_resources=_loaded_resources(
@@ -382,7 +513,7 @@ def infer_subject_refinement(
                 method_lenses=[],
                 borrowed_lenses=borrowed_lenses,
                 contract=contract,
-                contract_warnings=contract_result.warnings,
+                contract_warnings=contract_warnings,
             ),
             persistence={"status": "temporary"},
             summary=_summary(
@@ -404,7 +535,11 @@ def infer_subject_refinement(
             active_subject=manifest.active_subject,
             primary_subject=manifest.active_subject,
             secondary_subjects=list(manifest.secondary_subjects or []),
-            candidate_subjects=_candidate_subjects(signals, preferred="economics"),
+            candidate_subjects=_candidate_subjects(
+                signals,
+                preferred="economics",
+                evaluation_subjects=evaluation_subjects,
+            ),
             method_lenses=_unique(list(manifest.method_lenses or [])),
             borrowed_lenses=borrowed_lenses,
             loaded_resources=_loaded_resources(
@@ -413,7 +548,7 @@ def infer_subject_refinement(
                 method_lenses=[],
                 borrowed_lenses=borrowed_lenses,
                 contract=contract,
-                contract_warnings=contract_result.warnings,
+                contract_warnings=contract_warnings,
             ),
             persistence={"status": "temporary"},
             summary=_summary(
@@ -442,7 +577,7 @@ def infer_subject_refinement(
             method_lenses=[],
             borrowed_lenses=[],
             contract=contract,
-            contract_warnings=contract_result.warnings,
+            contract_warnings=contract_warnings,
         ),
         persistence={"status": "none"},
         summary="No subject-specific signal detected; using core guidance only.",
@@ -502,6 +637,11 @@ def _stringify_task_value(value: Any) -> str:
 def _detect_signals(text: str) -> SubjectSignals:
     finance_method_lenses = _hits(FINANCE_METHOD_PATTERNS, text)
     economics_method_lenses = _hits(ECONOMICS_METHOD_PATTERNS, text)
+    (
+        manifest_records,
+        runtime_subject_matches,
+        contract_warnings,
+    ) = _detect_manifest_signal_records(text)
     finance_data_outcomes = _pattern_labels(
         {
             "finance-data": FINANCE_DATA_OUTCOME_PATTERNS[0],
@@ -531,8 +671,10 @@ def _detect_signals(text: str) -> SubjectSignals:
         finance_venues=finance_venues,
         economics_method_lenses=economics_method_lenses,
         economics_venues=economics_venues,
-        evidence=_evidence(text),
-        signals=_detect_signal_records(text),
+        evidence=_evidence(text, extra_records=manifest_records),
+        signals=_unique_records([*_detect_signal_records(text), *manifest_records], key="id"),
+        runtime_subject_matches=runtime_subject_matches,
+        contract_warnings=contract_warnings,
     )
 
 
@@ -550,6 +692,86 @@ def _detect_signal_records(text: str) -> list[dict[str, Any]]:
     records.extend(_signal_records_for_patterns("finance", "venue", FINANCE_VENUE_SIGNAL_PATTERNS, text))
     records.extend(_signal_records_for_patterns("economics", "method", ECONOMICS_METHOD_PATTERNS, text))
     records.extend(_signal_records_for_patterns("economics", "venue", ECONOMICS_VENUE_SIGNAL_PATTERNS, text))
+    return _unique_records(records, key="id")
+
+
+def _detect_manifest_signal_records(
+    text: str,
+) -> tuple[list[dict[str, Any]], dict[str, RuntimeSubjectMatch], list[str]]:
+    records: list[dict[str, Any]] = []
+    matches: dict[str, RuntimeSubjectMatch] = {}
+    contracts, warnings = _safe_load_runtime_subject_contracts()
+    for subject, contract in contracts.items():
+        if subject in {"economics", "finance"}:
+            continue
+        subject_records = _manifest_records_for_contract(contract, text)
+        if not subject_records:
+            continue
+        records.extend(subject_records)
+        dimensions = _unique([str(record["dimension"]) for record in subject_records])
+        method_lenses = _unique(
+            [
+                str(record["value"])
+                for record in subject_records
+                if record["dimension"] == "method"
+                and str(record["value"]) in contract.method_lenses
+            ]
+        )
+        matches[subject] = RuntimeSubjectMatch(
+            subject=subject,
+            dimensions=tuple(dimensions),
+            method_lenses=tuple(method_lenses),
+            evidence=tuple(_unique([str(record["snippet"]) for record in subject_records])),
+            signal_ids=tuple(_unique([str(record["id"]) for record in subject_records])),
+        )
+    return _unique_records(records, key="id"), matches, warnings
+
+
+def _safe_load_runtime_subject_contracts() -> tuple[dict[str, RuntimeSubjectContract], list[str]]:
+    try:
+        return load_runtime_subject_contracts(), []
+    except Exception as exc:
+        return {}, [f"Runtime subject contracts unavailable: {exc}"]
+
+
+def _manifest_records_for_contract(
+    contract: RuntimeSubjectContract,
+    text: str,
+) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    for dimension, entries in contract.signal_groups.items():
+        for entry in entries:
+            if not isinstance(entry, Mapping):
+                continue
+            entry_id = entry.get("id")
+            value = entry.get("value")
+            patterns = entry.get("patterns", [])
+            if not isinstance(entry_id, str) or not isinstance(value, str):
+                continue
+            if not isinstance(patterns, list):
+                continue
+            for pattern_text in patterns:
+                if not isinstance(pattern_text, str):
+                    continue
+                try:
+                    pattern = re.compile(pattern_text, re.I)
+                except re.error:
+                    continue
+                match = pattern.search(text)
+                if not match:
+                    continue
+                records.append(
+                    {
+                        "id": entry_id,
+                        "subject": contract.subject,
+                        "dimension": str(dimension),
+                        "value": value,
+                        "weight": _coerce_signal_weight(entry.get("weight", 0.0)),
+                        "source": "task_text",
+                        "snippet": _snippet_for_match(text, match),
+                    }
+                )
+                break
     return _unique_records(records, key="id")
 
 
@@ -578,6 +800,16 @@ def _signal_records_for_patterns(
     return records
 
 
+def _coerce_signal_weight(value: Any) -> float:
+    try:
+        weight = float(value or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+    if not math.isfinite(weight):
+        return 0.0
+    return weight
+
+
 def _hits(patterns: Mapping[str, re.Pattern[str]], text: str) -> list[str]:
     return [name for name, pattern in patterns.items() if pattern.search(text)]
 
@@ -586,7 +818,7 @@ def _pattern_labels(patterns: Mapping[str, re.Pattern[str]], text: str) -> list[
     return [name for name, pattern in patterns.items() if pattern.search(text)]
 
 
-def _evidence(text: str) -> list[str]:
+def _evidence(text: str, *, extra_records: list[dict[str, Any]] | None = None) -> list[str]:
     patterns = [
         *FINANCE_METHOD_PATTERNS.values(),
         *FINANCE_DATA_OUTCOME_PATTERNS,
@@ -602,6 +834,10 @@ def _evidence(text: str) -> list[str]:
         snippet = _snippet_for_match(text, match)
         if snippet not in snippets:
             snippets.append(snippet)
+    for record in extra_records or []:
+        snippet = record.get("snippet")
+        if isinstance(snippet, str) and snippet not in snippets:
+            snippets.append(snippet)
     return snippets[:5]
 
 
@@ -615,6 +851,7 @@ def _candidate_subjects(
     signals: SubjectSignals,
     *,
     preferred: str | None = None,
+    evaluation_subjects: set[str] | None = None,
 ) -> list[dict[str, Any]]:
     subjects: list[str] = []
     if preferred:
@@ -627,10 +864,11 @@ def _candidate_subjects(
         subjects.append("finance")
     if signals.economics_method_lenses or signals.economics_venues:
         subjects.append("economics")
+    subjects.extend(signals.runtime_subject_matches)
     return [
         _candidate_subject_record(subject, signals)
         for subject in _unique(subjects)
-        if _subject_can_be_suggested(subject)
+        if _subject_can_be_suggested(subject, evaluation_subjects=evaluation_subjects)
     ]
 
 
@@ -662,6 +900,16 @@ def _candidate_subject_record(subject: str, signals: SubjectSignals) -> dict[str
             "evidence": list(signals.evidence),
             "matched_dimensions": matched_dimensions,
             "method_lenses": list(signals.economics_method_lenses),
+        }
+    runtime_match = signals.runtime_subject_matches.get(subject)
+    if runtime_match is not None:
+        return {
+            "subject": subject,
+            "confidence": min(0.85, 0.35 + 0.15 * len(runtime_match.dimensions)),
+            "evidence": list(runtime_match.evidence),
+            "matched_dimensions": list(runtime_match.dimensions),
+            "method_lenses": list(runtime_match.method_lenses),
+            "signal_ids": list(runtime_match.signal_ids),
         }
     return {
         "subject": subject,
@@ -709,6 +957,26 @@ def _borrowed_lenses(active_subject: str, signals: SubjectSignals) -> list[dict[
                 reason="borrow neighboring economics method lens without replacing active subject",
             )
             for lens in signals.economics_method_lenses
+        )
+    lenses.extend(_borrowed_manifest_lenses(active_subject, signals))
+    return _unique_records(lenses, key="lens")
+
+
+def _borrowed_manifest_lenses(
+    active_subject: str,
+    signals: SubjectSignals,
+) -> list[dict[str, Any]]:
+    lenses: list[dict[str, Any]] = []
+    for subject, match in signals.runtime_subject_matches.items():
+        if active_subject == subject:
+            continue
+        lenses.extend(
+            _borrowed_lens_record(
+                subject,
+                lens,
+                reason=f"{subject} method-only signal; keep active subject",
+            )
+            for lens in match.method_lenses
         )
     return _unique_records(lenses, key="lens")
 
@@ -779,7 +1047,7 @@ def _loaded_resources(
 def _subject_level_resources_enabled(subject: str) -> tuple[bool, list[str]]:
     if subject in {"auto", "core"}:
         return True, []
-    status = subject_activation_status(subject)
+    status = _runtime_activation_status(subject)
     if status == "runtime_enabled":
         return True, []
     return False, [
@@ -787,8 +1055,23 @@ def _subject_level_resources_enabled(subject: str) -> tuple[bool, list[str]]:
     ]
 
 
-def _subject_can_be_suggested(subject: str) -> bool:
-    return subject_activation_status(subject) == "runtime_enabled"
+def _subject_can_be_suggested(
+    subject: str,
+    *,
+    evaluation_subjects: set[str] | None = None,
+) -> bool:
+    if evaluation_subjects and subject in evaluation_subjects:
+        return True
+    return _runtime_activation_status(subject) == "runtime_enabled"
+
+
+def _runtime_activation_status(subject: str) -> str:
+    try:
+        return subject_activation_status(subject)
+    except Exception:
+        if subject in {"economics", "finance"}:
+            return "runtime_enabled"
+        return "candidate"
 
 
 def _load_contract(standards_dir: str | Path | None) -> ContractLoadResult:
@@ -866,17 +1149,25 @@ def _subject_resource_map(
 def _method_pack_map(contract: Mapping[str, Any]) -> dict[str, dict[str, str]]:
     resources = {subject: dict(lenses) for subject, lenses in DEFAULT_METHOD_PACKS.items()}
     configured = contract.get("method_lenses")
-    if not isinstance(configured, Mapping):
-        return resources
-    for subject, lenses in configured.items():
-        if not isinstance(subject, str) or not isinstance(lenses, Mapping):
-            continue
+    if isinstance(configured, Mapping):
+        for subject, lenses in configured.items():
+            if not isinstance(subject, str) or not isinstance(lenses, Mapping):
+                continue
+            subject_resources = resources.setdefault(subject, {})
+            for lens, details in lenses.items():
+                if not isinstance(lens, str) or not isinstance(details, Mapping):
+                    continue
+                resource = details.get("resource")
+                if isinstance(resource, str):
+                    subject_resources[lens] = resource
+    runtime_contracts, _ = _safe_load_runtime_subject_contracts()
+    for subject, runtime_contract in runtime_contracts.items():
         subject_resources = resources.setdefault(subject, {})
-        for lens, details in lenses.items():
+        for lens, details in runtime_contract.method_lenses.items():
             if not isinstance(lens, str) or not isinstance(details, Mapping):
                 continue
             resource = details.get("resource")
-            if isinstance(resource, str):
+            if isinstance(resource, str) and resource.strip():
                 subject_resources[lens] = resource
     return resources
 
