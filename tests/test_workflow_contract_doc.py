@@ -9,7 +9,9 @@ from qiongli.workflow_contract_doc import generate_workflow_contract_reference
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-WORKFLOW_CONTRACT_DOC = RepoLayout(REPO_ROOT).workflow / "references" / "workflow-contract.md"
+LAYOUT = RepoLayout(REPO_ROOT)
+WORKFLOW_CONTRACT = LAYOUT.standards / "research-workflow-contract.yaml"
+WORKFLOW_CONTRACT_DOC = LAYOUT.workflow / "references" / "workflow-contract.md"
 
 
 class WorkflowContractDocTests(unittest.TestCase):
@@ -28,6 +30,23 @@ class WorkflowContractDocTests(unittest.TestCase):
         )
         self.assertIn("| `K4` | K | Beamer build | `presentation/beamer/`, `presentation/slides.bib` |", generated)
         self.assertIn("`references/stage-K-presentation.md`", generated)
+
+    def test_stage_h_includes_reverse_journal_fit_task(self) -> None:
+        contract = WORKFLOW_CONTRACT.read_text(encoding="utf-8")
+
+        self.assertIn("  H5:\n", contract)
+        self.assertIn('stage: "H"', contract)
+        self.assertIn('purpose: "Reverse journal-fit recommendation"', contract)
+        self.assertIn("submission/journal_fit_recommendation.md", contract)
+        self.assertIn("submission/journal_fit_recommendation.json", contract)
+
+    def test_generated_workflow_doc_includes_h5(self) -> None:
+        doc = WORKFLOW_CONTRACT_DOC.read_text(encoding="utf-8")
+
+        self.assertIn("`H5`", doc)
+        self.assertIn("Reverse journal-fit recommendation", doc)
+        self.assertIn("`submission/journal_fit_recommendation.md`", doc)
+        self.assertIn("`submission/journal_fit_recommendation.json`", doc)
 
     def test_stage_playbooks_surface_semantic_quality_gate_ids(self) -> None:
         required_tokens = {

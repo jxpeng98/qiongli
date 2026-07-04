@@ -1147,6 +1147,13 @@ task_skill_mapping:
       - "limitation-auditor"
       - "self-critique"
       - "academic-context-maintainer"
+  H5:
+    required_skills:
+      - "venue-analyzer"
+      - "manuscript-architect"
+      - "quality-assessor"
+      - "fatal-flaw-detector"
+      - "academic-context-maintainer"
 
   I1:
     required_skills:
@@ -1680,6 +1687,15 @@ task_execution:
     quality_gates:
       - "Q1"
       - "Q2"
+  H5:
+    required_mcp:
+      - "filesystem"
+    primary_agent: "claude"
+    review_agent: "antigravity"
+    fallback_agent: "codex"
+    quality_gates:
+      - "Q2"
+      - "Q3"
 
   I1:
     required_mcp:

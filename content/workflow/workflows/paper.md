@@ -192,10 +192,12 @@ Pick one:
 3. **H2_5 Reviewer Empathy Check** (Tone neutralization for responses)
 4. **H3 Multi-Agent Peer Review** (Simulate methodologist, expert, and Reviewer 2 personas)
 5. **H4 Fatal Flaw Analysis** (Constructive desk-reject analysis identifying critical flaws)
+6. **H5 Reverse Journal-Fit Recommendation** (Rank manuscript-fit venues and block unsupported best-journal claims)
 
 **Routing:**
 - H3 → use `peer-review-simulation`
 - H4 → use `fatal-flaw-detector`
+- H5 → use `venue-analyzer` + manuscript evidence checks
 - H2_5 → use `reviewer-empathy-checker`
 - H1 → `/submission-prep`
 - H2 → `/rebuttal`

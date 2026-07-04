@@ -67,6 +67,8 @@ artifacts:
     - "submission/data_availability.md"
     - "submission/ai_disclosure.md"
     - "submission/supplementary_inventory.md"
+    - "submission/journal_fit_recommendation.md"
+    - "submission/journal_fit_recommendation.json"
     - "revision/response_matrix.md"
     - "revision/response_letter.md"
     - "proofread/ai_detection_report.md"
@@ -364,6 +366,8 @@ stages:
       - "submission/data_availability.md"
       - "submission/ai_disclosure.md"
       - "submission/supplementary_inventory.md"
+      - "submission/journal_fit_recommendation.md"
+      - "submission/journal_fit_recommendation.json"
       - "revision/response_matrix.md"
       - "revision/reviewer_empathy_check.md"
       - "revision/response_letter.md"
@@ -663,6 +667,13 @@ task_catalog:
       - "revision/fatal_flaw_analysis.md"
       - "revision/limitations_audit.md"
       - "revision/limitation_mitigations.md"
+  H5:
+    stage: "H"
+    title: "reverse-journal-fit-recommendation"
+    purpose: "Reverse journal-fit recommendation"
+    outputs:
+      - "submission/journal_fit_recommendation.md"
+      - "submission/journal_fit_recommendation.json"
   I5:
     stage: "I"
     title: "code-specification"
@@ -1121,6 +1132,19 @@ dependency_catalog:
       - "F3"
     recommended_next:
       - "F3"
+      - "H5"
+      - "H1"
+  H5:
+    prerequisites_all:
+      - "F3"
+      - "F4"
+    recommended_prerequisites:
+      - "A2"
+      - "A5"
+      - "C1"
+      - "C3"
+      - "H4"
+    recommended_next:
       - "H1"
 
   I1:
@@ -1255,6 +1279,7 @@ platform_mapping:
     H2_5: "/rebuttal [topic] --focus reviewer_empathy"
     H3: "/rebuttal [topic] --focus peer_review_simulation"
     H4: "/rebuttal [topic] --focus fatal_flaw_analysis"
+    H5: "Use Claude to generate submission/journal_fit_recommendation.md from manuscript fit evidence"
     I1: "/code-build"
     I2: "/code-build [topic] --focus reproduction"
     I3: "/code-build [topic] --focus data_pipeline"

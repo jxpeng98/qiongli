@@ -81,6 +81,7 @@ TASK_PURPOSE_OVERRIDES = {
     "H2_5": "Reviewer empathy check",
     "H3": "Peer review simulation",
     "H4": "Fatal flaw analysis",
+    "H5": "Reverse journal-fit recommendation",
     "I1": "Method implementation",
     "I2": "Reproduction",
     "I3": "Data pipeline",
