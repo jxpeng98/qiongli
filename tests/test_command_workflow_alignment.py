@@ -11,6 +11,7 @@ from qiongli.source_layout import RepoLayout
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LAYOUT = RepoLayout(REPO_ROOT)
+CONTENT_ROOT = LAYOUT.content
 WORKFLOW_DIR = LAYOUT.workflow / "workflows"
 
 
@@ -73,6 +74,21 @@ class CommandWorkflowAlignmentTests(unittest.TestCase):
                         workflow.read_text(encoding="utf-8"),
                         platform_workflow.read_text(encoding="utf-8"),
                     )
+
+    def test_paper_lifecycle_workflow_is_packaged(self) -> None:
+        workflow = WORKFLOW_DIR / "paper-lifecycle.md"
+        self.assertTrue(workflow.exists(), "missing /paper-lifecycle workflow")
+        text = workflow.read_text(encoding="utf-8")
+        self.assertIn("Full-Cycle", text)
+        self.assertIn("stage_handoff.md", text)
+        self.assertIn("journal_fit_recommendation.md", text)
+
+    def test_journal_fit_recommender_skill_is_documented(self) -> None:
+        skill = CONTENT_ROOT / "skills" / "H_submission" / "journal-fit-recommender.md"
+        self.assertTrue(skill.exists(), "missing journal-fit-recommender skill")
+        text = skill.read_text(encoding="utf-8")
+        self.assertIn("manuscript-first", text)
+        self.assertIn("do_not_submit", text)
 
 
 if __name__ == "__main__":

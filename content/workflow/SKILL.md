@@ -99,6 +99,7 @@ Explicit workflow commands are optional entry points. In Codex, users can invoke
 
 ```
 /paper [topic] [venue]                # Master router — choose paper type + task ID
+/paper-lifecycle [topic]              # Full-Cycle lifecycle preview from topic to journal fit
 /lit-review [topic] [year range]     # Systematic literature review (PRISMA)
 /paper-read [URL or DOI]             # Deep paper analysis
 /find-gap [research area]            # Identify research gaps
@@ -135,7 +136,7 @@ skills/
 ├── F_writing/       (manuscript-architect, proposal-writer, analysis-interpreter, effect-size-interpreter, table-generator, figure-specifier, meta-optimizer, discussion-writer)
 ├── G_compliance/    (prisma-checker, reporting-checker, tone-normalizer)
 ├── J_proofread/     (ai-fingerprint-scanner, human-voice-rewriter, similarity-checker, final-proofreader)
-├── H_submission/    (submission-packager, rebuttal-assistant, peer-review-simulation, fatal-flaw-detector, reviewer-empathy-checker, credit-taxonomy-helper, limitation-auditor)
+├── H_submission/    (submission-packager, rebuttal-assistant, peer-review-simulation, fatal-flaw-detector, journal-fit-recommender, reviewer-empathy-checker, credit-taxonomy-helper, limitation-auditor)
 ├── I_code/          (code-builder, data-cleaning-planner, data-merge-planner, code-specification, code-planning, code-execution, code-review, reproducibility-auditor, stats-engine)
 ├── K_presentation/  (presentation-planner, slide-architect, slidev-scholarly-builder, beamer-builder)
 ├── Z_cross_cutting/ (academic-context-maintainer, metadata-enricher, model-collaborator, self-critique)
@@ -180,6 +181,7 @@ RESEARCH/[topic]/
 - Before final writing, proofread, submission, rebuttal, or presentation-facing outputs, apply `references/citation-risk-policy.md` when citation support is material.
 - At high-risk stage transitions, write `RESEARCH/[topic]/context/stage_handoff.md` using `references/stage-handoff-contract.md`.
 - Use `venue-profiles/` when a target venue profile is available; otherwise create a venue gap note instead of assuming community-specific expectations.
+- Use `H5` journal-fit-recommender for manuscript-first reverse journal fit when an existing draft needs ranked venue recommendations; block best-journal claims when manuscript evidence, methods, claim maps, or venue profiles are missing.
 - Apply `references/academic-output-rubric.md` whenever producing scholarly prose, synthesis, design, review, or submission artifacts.
 - Treat controller-mode metadata as audit-relevant: `task-run` accepts only `solo|duo|triad` for `--execution-mode`, only runtime agents for `--controller` / `--primary` / `--reviewer` / `--verifier`, and only `strict|standard|off` for `--solo-role-gates`.
 - Use `--mcp-strict` and `--skills-strict` for authoritative controller-aware runs; avoid `--skip-validation` for submission-facing, Stage-I code, or final manuscript outputs.
@@ -219,9 +221,9 @@ This package includes the following subdirectories:
 
 | Directory | Contents |
 |-----------|----------|
-| `workflows/` | 16 workflow definitions (slash commands) |
+| `workflows/` | 17 workflow definitions (slash commands) |
 | `references/` | Stage playbooks + workflow contract |
-| `skills/` | 71 detailed skill spec files across 13 stage directories |
+| `skills/` | 72 detailed skill spec files across 13 stage directories |
 | `skills-summary.md` | Quick-reference skill index (~3KB) |
 | `skills-core.md` | Consolidated skill reference (~19KB) |
 | `templates/` | 50+ output templates for manuscripts, submissions, ethics, evidence, and handoffs |
@@ -232,6 +234,7 @@ This package includes the following subdirectories:
 ## References
 
 - Task model + outputs: `references/workflow-contract.md`
+- Full-Cycle lifecycle gate contract: `references/full-cycle-workflow-harness.md`
 - Platform routing map: `references/platform-routing.md`
 - Coverage matrix: `references/coverage-matrix.md`
 - Academic output rubric: `references/academic-output-rubric.md`
@@ -248,6 +251,6 @@ This package includes the following subdirectories:
   - `references/stage-F-writing.md` (tasks F1–F6)
   - `references/stage-G-compliance.md` (tasks G1–G4)
   - `references/stage-J-proofread.md` (tasks J1–J4)
-  - `references/stage-H-submission.md` (tasks H1–H4)
+  - `references/stage-H-submission.md` (tasks H1–H5)
   - `references/stage-I-code.md` (tasks I1–I9)
   - `references/stage-K-presentation.md` (tasks K1–K4)

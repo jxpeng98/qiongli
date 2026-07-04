@@ -23,6 +23,7 @@ python3 -m bridges.orchestrator doctor --cwd .
 
 ```
 /paper [topic] [venue]                # Master router — choose paper type + task ID
+/paper-lifecycle [topic]              # Full-cycle lifecycle preview from topic to journal fit
 /lit-review [topic] [year range]     # Systematic literature review (PRISMA)
 /paper-read [URL or DOI]             # Deep paper analysis
 /find-gap [research area]            # Identify research gaps
@@ -63,7 +64,7 @@ When a user requests a specific task (e.g. "I need to do A1_5 hypothesis generat
    - `qiongli-workflow/references/stage-F-writing.md` (tasks F1–F6)
    - `qiongli-workflow/references/stage-G-compliance.md` (tasks G1–G4)
    - `qiongli-workflow/references/stage-J-proofread.md` (tasks J1–J4)
-   - `qiongli-workflow/references/stage-H-submission.md` (tasks H1–H4)
+   - `qiongli-workflow/references/stage-H-submission.md` (tasks H1–H5)
    - `qiongli-workflow/references/stage-I-code.md` (tasks I1–I8)
 
 ## Skill Loading Strategy

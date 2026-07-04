@@ -278,6 +278,7 @@ skill_registry:
   - "stats-engine"
   - "peer-review-simulation"
   - "fatal-flaw-detector"
+  - "journal-fit-recommender"
   - "code-specification"
   - "code-planning"
   - "code-execution"
@@ -678,6 +679,13 @@ skill_catalog:
     focus: "Constructive desk-reject analysis identifying critical flaws."
     default_outputs:
       - "revision/fatal_flaw_analysis.md"
+  journal-fit-recommender:
+    file: "skills/H_submission/journal-fit-recommender.md"
+    category: "submission"
+    focus: "Recommend journals from an existing manuscript using fit, evidence, and reviewer-risk checks."
+    default_outputs:
+      - "submission/journal_fit_recommendation.md"
+      - "submission/journal_fit_recommendation.json"
   code-specification:
     file: "skills/I_code/code-specification.md"
     category: "research-code"
@@ -1149,6 +1157,7 @@ task_skill_mapping:
       - "academic-context-maintainer"
   H5:
     required_skills:
+      - "journal-fit-recommender"
       - "venue-analyzer"
       - "manuscript-architect"
       - "quality-assessor"
