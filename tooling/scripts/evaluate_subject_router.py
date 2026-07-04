@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import inspect
 import json
 import sys
 from dataclasses import dataclass
@@ -29,10 +30,23 @@ DEFAULT_THRESHOLDS = {
     "all_case_checks_passed": 1.0,
 }
 CONCRETE_CORE_SUBJECTS = {"auto", "core"}
+GATE_CHOICES = ("runtime-enabled", "eval-ready")
+GATE_ELIGIBILITY_KEYS = {
+    "runtime-enabled": "eligible_for_runtime_enabled",
+    "eval-ready": "eligible_for_eval_ready",
+}
 REQUIRED_GATE_TAGS = {
     "clear_positive",
     "method_only_borrow",
     "near_miss",
+}
+REQUIRED_SIGNAL_DIMENSIONS_BY_SUBJECT = {
+    "accounting": (
+        "method",
+        "data_or_outcome",
+        "venue",
+        "theory_or_construct",
+    ),
 }
 
 
@@ -46,6 +60,19 @@ class EvalCase:
     source: str
     subject_under_test: str = ""
     tags: list[str] | None = None
+    gate_expected: dict[str, dict[str, Any]] | None = None
+
+    def expected_for_gate(self, gate: str) -> dict[str, Any]:
+        expected = dict(self.expected)
+        gate_expectations = self.gate_expected or {}
+        selected = (
+            gate_expectations.get(gate)
+            if gate and isinstance(gate_expectations, Mapping)
+            else None
+        )
+        if isinstance(selected, Mapping):
+            expected.update(dict(selected))
+        return expected
 
 
 def load_eval_cases(fixture_dir: Path = FIXTURE_DIR) -> list[EvalCase]:
@@ -68,6 +95,11 @@ def load_eval_cases(fixture_dir: Path = FIXTURE_DIR) -> list[EvalCase]:
             for tag in list(payload.get("tags", []) or [])
             if isinstance(tag, str)
         ]
+        gate_expected = _validate_gate_expected(
+            payload,
+            path=path,
+            case_id=case_id,
+        )
         cases.append(
             EvalCase(
                 id=case_id,
@@ -78,6 +110,7 @@ def load_eval_cases(fixture_dir: Path = FIXTURE_DIR) -> list[EvalCase]:
                 source=_repo_relative(path),
                 subject_under_test=subject_under_test,
                 tags=tags,
+                gate_expected=gate_expected,
             )
         )
     if not cases:
@@ -85,15 +118,55 @@ def load_eval_cases(fixture_dir: Path = FIXTURE_DIR) -> list[EvalCase]:
     return sorted(cases, key=lambda case: case.id)
 
 
-def run_eval_case(case: EvalCase) -> dict[str, Any]:
+def _validate_gate_expected(
+    payload: Mapping[str, Any],
+    *,
+    path: Path,
+    case_id: str,
+) -> dict[str, dict[str, Any]]:
+    if "gate_expected" not in payload or payload.get("gate_expected") in (None, {}):
+        return {}
+    gate_expected_payload = payload["gate_expected"]
+    if not isinstance(gate_expected_payload, Mapping):
+        raise ValueError(
+            f"{_repo_relative(path)} fixture {case_id!r}: "
+            "gate_expected must be a mapping"
+        )
+
+    gate_expected: dict[str, dict[str, Any]] = {}
+    for gate, expected in gate_expected_payload.items():
+        gate_name = str(gate)
+        if gate_name not in GATE_CHOICES:
+            allowed = ", ".join(GATE_CHOICES)
+            raise ValueError(
+                f"{_repo_relative(path)} fixture {case_id!r}: "
+                f"gate_expected[{gate_name!r}] is not supported; "
+                f"expected one of {allowed}"
+            )
+        if not isinstance(expected, Mapping):
+            raise ValueError(
+                f"{_repo_relative(path)} fixture {case_id!r}: "
+                f"gate_expected[{gate_name!r}] must be a mapping"
+            )
+        gate_expected[gate_name] = dict(expected)
+    return gate_expected
+
+
+def run_eval_case(
+    case: EvalCase,
+    *,
+    gate: str = "",
+    evaluation_subjects: list[str] | None = None,
+) -> dict[str, Any]:
     manifest = ProjectManifest(**case.manifest).normalized()
-    packet = infer_subject_refinement(
+    packet = _infer_subject_refinement(
         {"topic": case.request, "context": case.request},
         manifest_state=manifest,
+        evaluation_subjects=evaluation_subjects,
     )
     refinement = packet.to_packet()
     actual = _actual_eval_result(manifest, refinement)
-    expected = _normalized_expected(case.expected)
+    expected = _normalized_expected(case.expected_for_gate(gate))
     passed = {
         "decision": actual["decision"] == expected["decision"],
         "primary_subject": actual["primary_subject"] == expected["primary_subject"],
@@ -118,10 +191,20 @@ def run_eval_case(case: EvalCase) -> dict[str, Any]:
 def evaluate_cases(
     cases: list[EvalCase],
     thresholds: Mapping[str, float] = DEFAULT_THRESHOLDS,
+    *,
+    gate: str = "",
+    evaluation_subjects: list[str] | None = None,
 ) -> dict[str, Any]:
     if not cases:
         raise ValueError("cannot evaluate an empty case list")
-    case_results = [run_eval_case(case) for case in cases]
+    case_results = [
+        run_eval_case(
+            case,
+            gate=gate,
+            evaluation_subjects=evaluation_subjects,
+        )
+        for case in cases
+    ]
     metrics = _metrics(case_results, cases)
     return {
         "case_count": len(case_results),
@@ -131,7 +214,14 @@ def evaluate_cases(
     }
 
 
-def subject_gate_report(subject: str, cases: list[EvalCase]) -> dict[str, Any]:
+def subject_gate_report(
+    subject: str,
+    cases: list[EvalCase],
+    *,
+    gate: str = "runtime-enabled",
+) -> dict[str, Any]:
+    if gate not in GATE_CHOICES:
+        raise ValueError(f"unsupported subject gate: {gate}")
     contracts = load_runtime_subject_contracts()
     contract = contracts.get(subject)
     activation_status = contract.activation_status if contract else "candidate"
@@ -141,8 +231,14 @@ def subject_gate_report(subject: str, cases: list[EvalCase]) -> dict[str, Any]:
         for case in cases
         if case.subject_under_test == subject or subject in list(case.tags or [])
     ]
+    evaluation_subjects = [subject] if gate == "eval-ready" else None
     report = (
-        evaluate_cases(subject_cases, thresholds=thresholds)
+        evaluate_cases(
+            subject_cases,
+            thresholds=thresholds,
+            gate=gate,
+            evaluation_subjects=evaluation_subjects,
+        )
         if subject_cases
         else _empty_eval_report()
     )
@@ -154,26 +250,60 @@ def subject_gate_report(subject: str, cases: list[EvalCase]) -> dict[str, Any]:
     blocking_failures: list[str] = []
     if contract is None:
         blocking_failures.append("missing runtime subject contract")
-    if activation_status != "runtime_enabled":
-        blocking_failures.append(f"activation_status is {activation_status}")
-    if contract is not None and activation_status == "runtime_enabled":
-        blocking_failures.extend(_missing_resource_failures(contract))
+    if gate == "runtime-enabled":
+        if activation_status != "runtime_enabled":
+            blocking_failures.append(f"activation_status is {activation_status}")
+        if contract is not None and activation_status == "runtime_enabled":
+            blocking_failures.extend(_missing_resource_failures(contract))
+    if gate == "eval-ready":
+        if activation_status != "eval_ready":
+            blocking_failures.append(f"activation_status is {activation_status}")
+        if contract is not None and activation_status == "eval_ready":
+            blocking_failures.extend(_missing_eval_ready_resource_failures(contract))
+            blocking_failures.extend(_missing_signal_dimension_failures(contract))
     missing_tags = sorted(REQUIRED_GATE_TAGS - subject_tags)
     for tag in missing_tags:
         blocking_failures.append(f"missing {tag} fixtures")
     for failure in report["threshold_failures"]:
         metric = failure.get("metric", "unknown")
         blocking_failures.append(f"threshold failure: {metric}")
+    eligible = not blocking_failures
     return {
         "subject": subject,
+        "gate": gate,
         "activation_status": activation_status,
-        "eligible_for_runtime_enabled": not blocking_failures,
+        "eligible_for_eval_ready": gate == "eval-ready" and eligible,
+        "eligible_for_runtime_enabled": gate == "runtime-enabled" and eligible,
         "case_count": len(subject_cases),
         "required_tags": sorted(REQUIRED_GATE_TAGS),
         "present_tags": sorted(subject_tags),
         "metrics": report["metrics"],
         "blocking_failures": blocking_failures,
     }
+
+
+def _infer_subject_refinement(
+    task_packet: Mapping[str, Any],
+    *,
+    manifest_state: ProjectManifest,
+    evaluation_subjects: list[str] | None = None,
+) -> Any:
+    kwargs: dict[str, Any] = {"manifest_state": manifest_state}
+    if evaluation_subjects and _router_accepts_evaluation_subjects():
+        kwargs["evaluation_subjects"] = list(evaluation_subjects)
+    return infer_subject_refinement(task_packet, **kwargs)
+
+
+def _router_accepts_evaluation_subjects() -> bool:
+    try:
+        parameters = inspect.signature(infer_subject_refinement).parameters.values()
+    except (TypeError, ValueError):
+        return False
+    return any(
+        parameter.kind == inspect.Parameter.VAR_KEYWORD
+        or parameter.name == "evaluation_subjects"
+        for parameter in parameters
+    )
 
 
 def _contract_thresholds(contract: Any | None) -> Mapping[str, float]:
@@ -193,6 +323,58 @@ def _contract_thresholds(contract: Any | None) -> Mapping[str, float]:
             continue
         thresholds[str(metric)] = float(threshold)
     return thresholds or DEFAULT_THRESHOLDS
+
+
+def _missing_eval_ready_resource_failures(contract: Any) -> list[str]:
+    resource_root = _contract_resource_root(getattr(contract, "source", ""))
+    failures: list[str] = []
+    for field in ("domain_profile", "evaluation_pack"):
+        resource = getattr(contract, field, "")
+        if _resource_is_missing(resource_root, resource):
+            failures.append(f"missing resource: {field} {resource}")
+
+    for field in ("overlay", "subject_skill"):
+        resource = getattr(contract, field, "")
+        if isinstance(resource, str) and resource.strip():
+            if _resource_is_missing(resource_root, resource):
+                failures.append(f"missing resource: {field} {resource}")
+
+    method_lenses = getattr(contract, "method_lenses", {})
+    if isinstance(method_lenses, Mapping):
+        for lens, config in method_lenses.items():
+            if not isinstance(config, Mapping):
+                continue
+            resource = config.get("resource", "")
+            if _resource_is_missing(resource_root, resource):
+                failures.append(
+                    f"missing resource: method_lenses[{lens}].resource {resource}"
+                )
+    return failures
+
+
+def _missing_signal_dimension_failures(contract: Any) -> list[str]:
+    subject = str(getattr(contract, "subject", ""))
+    required_dimensions = REQUIRED_SIGNAL_DIMENSIONS_BY_SUBJECT.get(subject, ())
+    if not required_dimensions:
+        return []
+
+    signal_groups = getattr(contract, "signal_groups", {})
+    failures: list[str] = []
+    if not isinstance(signal_groups, Mapping):
+        return [
+            f"missing signal dimension: {dimension}"
+            for dimension in required_dimensions
+        ]
+    for dimension in required_dimensions:
+        signals = signal_groups.get(dimension, [])
+        if not isinstance(signals, list) or not any(
+            isinstance(signal, Mapping)
+            and isinstance(signal.get("id"), str)
+            and signal["id"].strip()
+            for signal in signals
+        ):
+            failures.append(f"missing signal dimension: {dimension}")
+    return failures
 
 
 def _missing_resource_failures(contract: Any) -> list[str]:
@@ -276,14 +458,21 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--fixture-dir", "--fixtures", type=Path, default=FIXTURE_DIR)
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--subject", default="")
-    parser.add_argument("--gate", choices=["runtime-enabled"], default="")
+    parser.add_argument("--gate", choices=GATE_CHOICES, default="")
     args = parser.parse_args(argv)
 
     try:
         cases = load_eval_cases(args.fixture_dir)
-        report = evaluate_cases(cases)
+        report = evaluate_cases(
+            cases,
+            gate=args.gate,
+        )
         if args.subject and args.gate:
-            report["subject_gate"] = subject_gate_report(args.subject, cases)
+            report["subject_gate"] = subject_gate_report(
+                args.subject,
+                cases,
+                gate=args.gate,
+            )
     except Exception as exc:  # noqa: BLE001 - keep CLI failures machine-readable with --json.
         report = {
             "case_count": 0,
@@ -297,8 +486,15 @@ def main(argv: list[str] | None = None) -> int:
     else:
         _print_text_report(report)
     gate = report.get("subject_gate")
-    if isinstance(gate, Mapping) and not gate.get("eligible_for_runtime_enabled"):
-        return 1
+    if isinstance(gate, Mapping):
+        gate_name = str(gate.get("gate", "runtime-enabled"))
+        eligibility_key = GATE_ELIGIBILITY_KEYS.get(
+            gate_name,
+            "eligible_for_runtime_enabled",
+        )
+        if not gate.get(eligibility_key):
+            return 1
+        return 0
     return 0 if not report["threshold_failures"] else 1
 
 
