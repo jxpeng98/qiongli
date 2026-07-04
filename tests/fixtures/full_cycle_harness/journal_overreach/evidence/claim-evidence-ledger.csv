@@ -1,0 +1,2 @@
+claim_id,claim_text,claim_type,evidence_type,source_id,source_location,artifact_path,confidence,limitations,status
+C1,CRSP event exposure affects abnormal returns in public firms,finding,event study,R1,p. 4,search_results.csv,high,Associative evidence,supported

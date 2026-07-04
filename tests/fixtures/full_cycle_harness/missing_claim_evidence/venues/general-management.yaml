@@ -1,0 +1,19 @@
+venue_id: general-management
+community: management
+article_types:
+  - qualitative article
+contribution_expectations:
+  - organization theory
+  - employee wellbeing
+methods_expectations:
+  - interviews
+  - field observation
+evidence_standards:
+  - qualitative coding
+writing_style:
+  - narrative
+common_reviewer_objections:
+  - weak management fit
+formatting_constraints:
+  word_limit: 10000
+required_reporting_standards: []
