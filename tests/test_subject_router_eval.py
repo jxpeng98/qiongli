@@ -78,6 +78,114 @@ def _finance_contract(
     )
 
 
+def _accounting_contract(
+    *,
+    activation_status: str = "eval_ready",
+    source: str | Path | None = None,
+    evaluation_pack: str = "tests/fixtures/subject_router_eval/accounting",
+    overlay: str = "",
+    subject_skill: str = (
+        "content/subjects/accounting/skills/accounting-measurement-auditor.md"
+    ),
+    signal_groups: Mapping[str, list[Mapping[str, Any]]] | None = None,
+    method_lenses: Mapping[str, Mapping[str, Any]] | None = None,
+    required_metrics: Mapping[str, float] | None = None,
+) -> RuntimeSubjectContract:
+    return RuntimeSubjectContract(
+        subject="accounting",
+        display_name="Accounting",
+        activation_status=activation_status,
+        extends="core",
+        source=str(
+            source or Path("content/subjects/accounting/runtime-subject.yaml").resolve()
+        ),
+        domain_profile="content/skills/domain-profiles/accounting.yaml",
+        overlay=overlay,
+        subject_skill=subject_skill,
+        signal_groups={
+            key: [dict(item) for item in value]
+            for key, value in (
+                signal_groups
+                or {
+                    "method": [{"id": "accounting.method.accrual-quality"}],
+                    "data_or_outcome": [{"id": "accounting.data.audit-analytics"}],
+                    "venue": [{"id": "accounting.venue.accounting-review"}],
+                    "theory_or_construct": [
+                        {"id": "accounting.construct.reporting-quality"}
+                    ],
+                }
+            ).items()
+        },
+        method_lenses={
+            key: dict(value)
+            for key, value in (
+                method_lenses
+                or {
+                    "accrual-quality": {
+                        "resource": "content/subjects/accounting/skills/accounting-measurement-auditor.md",
+                        "activation": "method_only",
+                    }
+                }
+            ).items()
+        },
+        evaluation_pack=evaluation_pack,
+        near_miss_policy={"forbidden_subjects": ["finance", "economics"]},
+        activation_gate={
+            "required_metrics": dict(
+                required_metrics
+                or {
+                    "primary_subject_accuracy": 0.95,
+                    "suggest_subject_precision": 0.95,
+                    "near_miss_false_positives": 0,
+                }
+            )
+        },
+    )
+
+
+def _successful_eval_report() -> dict[str, Any]:
+    return {
+        "case_count": 3,
+        "metrics": {
+            "decision_accuracy": 1.0,
+            "primary_subject_accuracy": 1.0,
+            "suggest_subject_precision": 1.0,
+            "near_miss_false_positives": 0,
+            "forbidden_subject_accuracy": 1.0,
+            "method_lens_accuracy": 1.0,
+            "all_case_checks_passed": 1.0,
+        },
+        "cases": [],
+        "threshold_failures": [],
+    }
+
+
+def _gate_case(case_id: str, tags: list[str]) -> EvalCase:
+    return EvalCase(
+        id=case_id,
+        description=case_id,
+        request="accounting fixture",
+        manifest={
+            "active_subject": "auto",
+            "subject_mode": "auto",
+            "secondary_subjects": [],
+            "venue_profiles": [],
+            "method_lenses": [],
+            "strictness": "standard",
+        },
+        expected={
+            "decision": "recommend",
+            "primary_subject": "auto",
+            "suggest_subjects": [],
+            "forbidden_subjects": [],
+            "method_lenses": ["accrual-quality"],
+        },
+        source=f"tests/fixtures/subject_router_eval/accounting/{case_id}.json",
+        subject_under_test="accounting",
+        tags=["accounting", *tags],
+    )
+
+
 def _finance_precision_cases() -> list[EvalCase]:
     fixtures = {case.id: case for case in load_eval_cases(FIXTURE_DIR)}
     base = fixtures["clear_finance"]
@@ -110,30 +218,83 @@ class SubjectRouterEvalTests(unittest.TestCase):
         cases = load_eval_cases(FIXTURE_DIR)
 
         ids = [case.id for case in cases]
-        self.assertEqual(
-            ids,
-            [
+        cases_by_id = {case.id: case for case in cases}
+        self.assertTrue(
+            {
                 "clear_economics",
                 "clear_finance",
                 "economics_method_only_borrow",
                 "finance_method_only_borrow",
                 "locked_subject_neighbor_lens",
                 "mixed_econ_finance",
+                "near_miss_economics_workflow",
                 "near_miss_finance",
                 "weak_core_only",
-            ],
+            }.issubset(set(ids))
         )
-        self.assertEqual(len(cases), 8)
+        required_accounting_ids = {
+            "accounting_clear_discretionary_accruals",
+            "accounting_method_only_borrow_accrual_quality",
+            "accounting_mixed_reporting_returns",
+            "accounting_near_miss_account_for_heterogeneity",
+            "accounting_near_miss_bookkeeping_budget",
+            "accounting_locked_finance_borrow_measurement",
+            "accounting_confirmed_construct_audit",
+            "accounting_near_miss_financial_reporting_operations",
+            "accounting_near_miss_management_forecast_staffing",
+        }
+        self.assertTrue(required_accounting_ids.issubset(set(ids)))
+        accounting_tags = {
+            tag
+            for case_id in required_accounting_ids
+            for tag in list(cases_by_id[case_id].tags or [])
+        }
+        self.assertTrue(
+            {
+                "clear_positive",
+                "method_only_borrow",
+                "mixed_subject",
+                "near_miss",
+                "locked_subject",
+                "confirmed_subject",
+            }.issubset(accounting_tags)
+        )
+        for case_id in {
+            "accounting_clear_discretionary_accruals",
+            "accounting_mixed_reporting_returns",
+        }:
+            self.assertIn(
+                "accounting",
+                cases_by_id[case_id].expected.get("forbidden_subjects", []),
+            )
+            self.assertEqual(
+                cases_by_id[case_id].expected_for_gate("eval-ready")[
+                    "forbidden_subjects"
+                ],
+                [],
+            )
+        self.assertTrue(
+            {"accounting", "finance", "economics"}.issubset(
+                set(
+                    cases_by_id[
+                        "accounting_near_miss_financial_reporting_operations"
+                    ].expected.get("forbidden_subjects", [])
+                )
+            )
+        )
+        self.assertGreaterEqual(len(cases), 15)
         self.assertTrue(all(isinstance(case, EvalCase) for case in cases))
         self.assertTrue(all(case.source.endswith(".json") for case in cases))
         self.assertTrue(all(isinstance(case.tags, list) for case in cases))
         self.assertTrue(any(case.subject_under_test == "finance" for case in cases))
 
     def test_evaluate_cases_reports_required_metrics_and_cases(self) -> None:
-        report = evaluate_cases(load_eval_cases(FIXTURE_DIR))
+        cases = load_eval_cases(FIXTURE_DIR)
 
-        self.assertEqual(report["case_count"], 8)
-        self.assertEqual(len(report["cases"]), 8)
+        report = evaluate_cases(cases)
+
+        self.assertEqual(report["case_count"], len(cases))
+        self.assertEqual(len(report["cases"]), len(cases))
         self.assertEqual(
             set(report["metrics"]),
             {
@@ -357,6 +518,92 @@ class SubjectRouterEvalTests(unittest.TestCase):
         self.assertIn("duplicate fixture id", str(raised.exception))
         self.assertIn("duplicate", str(raised.exception))
 
+    def test_load_eval_cases_rejects_malformed_gate_expected_entries(self) -> None:
+        payload = {
+            "id": "malformed_gate_expected",
+            "description": "malformed gate-specific expectation",
+            "request": "Design an archival accounting study.",
+            "manifest": {
+                "active_subject": "auto",
+                "subject_mode": "auto",
+                "secondary_subjects": [],
+                "venue_profiles": [],
+                "method_lenses": [],
+                "strictness": "standard",
+            },
+            "expected": {
+                "decision": "recommend",
+                "primary_subject": "auto",
+                "suggest_subjects": [],
+                "forbidden_subjects": [],
+                "method_lenses": [],
+            },
+            "gate_expected": {
+                "eval-ready": ["not", "a", "mapping"],
+            },
+        }
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            fixture_dir = Path(tmp_dir)
+            (fixture_dir / "malformed_gate_expected.json").write_text(
+                json.dumps(payload),
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(ValueError) as raised:
+                load_eval_cases(fixture_dir)
+
+        message = str(raised.exception)
+        self.assertIn("gate_expected", message)
+        self.assertIn("malformed_gate_expected", message)
+        self.assertIn("eval-ready", message)
+        self.assertIn("malformed_gate_expected.json", message)
+
+    def test_load_eval_cases_rejects_unknown_gate_expected_names(self) -> None:
+        payload = {
+            "id": "unknown_gate_expected",
+            "description": "unknown gate-specific expectation",
+            "request": "Design an archival accounting study.",
+            "manifest": {
+                "active_subject": "auto",
+                "subject_mode": "auto",
+                "secondary_subjects": [],
+                "venue_profiles": [],
+                "method_lenses": [],
+                "strictness": "standard",
+            },
+            "expected": {
+                "decision": "recommend",
+                "primary_subject": "auto",
+                "suggest_subjects": [],
+                "forbidden_subjects": [],
+                "method_lenses": [],
+            },
+            "gate_expected": {
+                "eval_ready": {
+                    "decision": "recommend",
+                    "primary_subject": "accounting",
+                    "suggest_subjects": ["accounting"],
+                    "forbidden_subjects": [],
+                    "method_lenses": [],
+                },
+            },
+        }
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            fixture_dir = Path(tmp_dir)
+            (fixture_dir / "unknown_gate_expected.json").write_text(
+                json.dumps(payload),
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(ValueError) as raised:
+                load_eval_cases(fixture_dir)
+
+        message = str(raised.exception)
+        self.assertIn("gate_expected", message)
+        self.assertIn("eval_ready", message)
+        self.assertIn("unknown_gate_expected", message)
+        self.assertIn("unknown_gate_expected.json", message)
+
     def test_load_eval_cases_reads_nested_subject_fixture_packs(self) -> None:
         payload = {
             "id": "accounting_near_miss_budget",
@@ -394,18 +641,431 @@ class SubjectRouterEvalTests(unittest.TestCase):
         self.assertEqual(cases[0].subject_under_test, "accounting")
         self.assertIn("near_miss", cases[0].tags)
 
-    def test_candidate_subject_gate_reports_blocking_failures(self) -> None:
+    def test_eval_ready_subject_runtime_gate_reports_blocking_failures(self) -> None:
         cases = load_eval_cases(FIXTURE_DIR)
 
-        report = subject_gate_report("accounting", cases)
+        report = subject_gate_report("accounting", cases, gate="runtime-enabled")
 
         self.assertEqual(report["subject"], "accounting")
-        self.assertEqual(report["activation_status"], "candidate")
+        self.assertEqual(report["activation_status"], "eval_ready")
         self.assertIs(report["eligible_for_runtime_enabled"], False)
         self.assertIn(
-            "activation_status is candidate",
+            "activation_status is eval_ready",
             report["blocking_failures"],
         )
+
+    def test_accounting_eval_ready_gate_passes_real_fixture_pack(self) -> None:
+        cases = load_eval_cases(FIXTURE_DIR)
+
+        report = subject_gate_report("accounting", cases, gate="eval-ready")
+
+        self.assertEqual(report["activation_status"], "eval_ready")
+        self.assertTrue(report["eligible_for_eval_ready"])
+        self.assertFalse(report["eligible_for_runtime_enabled"])
+        self.assertEqual(report["blocking_failures"], [])
+        self.assertEqual(report["metrics"]["decision_accuracy"], 1.0)
+        self.assertEqual(report["metrics"]["primary_subject_accuracy"], 1.0)
+        self.assertEqual(report["metrics"]["suggest_subject_precision"], 1.0)
+        self.assertEqual(report["metrics"]["forbidden_subject_accuracy"], 1.0)
+        self.assertEqual(report["metrics"]["method_lens_accuracy"], 1.0)
+        self.assertEqual(report["metrics"]["all_case_checks_passed"], 1.0)
+        self.assertEqual(report["metrics"]["near_miss_false_positives"], 0)
+
+    def test_economics_runtime_enabled_gate_passes_real_fixture_pack(self) -> None:
+        cases = load_eval_cases(FIXTURE_DIR)
+
+        report = subject_gate_report("economics", cases, gate="runtime-enabled")
+
+        self.assertEqual(report["activation_status"], "runtime_enabled")
+        self.assertFalse(report["eligible_for_eval_ready"])
+        self.assertTrue(report["eligible_for_runtime_enabled"])
+        self.assertEqual(report["blocking_failures"], [])
+        self.assertEqual(report["metrics"]["decision_accuracy"], 1.0)
+        self.assertEqual(report["metrics"]["primary_subject_accuracy"], 1.0)
+        self.assertEqual(report["metrics"]["suggest_subject_precision"], 1.0)
+        self.assertEqual(report["metrics"]["forbidden_subject_accuracy"], 1.0)
+        self.assertEqual(report["metrics"]["method_lens_accuracy"], 1.0)
+        self.assertEqual(report["metrics"]["all_case_checks_passed"], 1.0)
+        self.assertEqual(report["metrics"]["near_miss_false_positives"], 0)
+
+    def test_eval_ready_gate_accepts_eval_ready_subject_without_runtime_activation(self) -> None:
+        cases = [
+            _gate_case("accounting_clear", ["clear_positive"]),
+            _gate_case("accounting_method", ["method_only_borrow"]),
+            _gate_case("accounting_near_miss", ["near_miss"]),
+        ]
+
+        with patch(
+            "tooling.scripts.evaluate_subject_router.load_runtime_subject_contracts",
+            return_value={
+                "accounting": _accounting_contract(
+                    evaluation_pack="tests/fixtures/subject_router_eval"
+                )
+            },
+        ), patch(
+            "tooling.scripts.evaluate_subject_router.evaluate_cases",
+            return_value=_successful_eval_report(),
+        ):
+            report = subject_gate_report("accounting", cases, gate="eval-ready")
+
+        self.assertEqual(report["subject"], "accounting")
+        self.assertEqual(report["activation_status"], "eval_ready")
+        self.assertTrue(report["eligible_for_eval_ready"])
+        self.assertFalse(report["eligible_for_runtime_enabled"])
+        self.assertEqual(report["blocking_failures"], [])
+
+    def test_eval_ready_gate_allows_blank_optional_subject_resources(self) -> None:
+        cases = [
+            _gate_case("accounting_clear", ["clear_positive"]),
+            _gate_case("accounting_method", ["method_only_borrow"]),
+            _gate_case("accounting_near_miss", ["near_miss"]),
+        ]
+
+        with patch(
+            "tooling.scripts.evaluate_subject_router.load_runtime_subject_contracts",
+            return_value={
+                "accounting": _accounting_contract(
+                    evaluation_pack="tests/fixtures/subject_router_eval",
+                    overlay="",
+                    subject_skill="",
+                )
+            },
+        ), patch(
+            "tooling.scripts.evaluate_subject_router.evaluate_cases",
+            return_value=_successful_eval_report(),
+        ):
+            report = subject_gate_report("accounting", cases, gate="eval-ready")
+
+        self.assertTrue(report["eligible_for_eval_ready"])
+        self.assertEqual(report["blocking_failures"], [])
+
+    def test_eval_ready_gate_rejects_runtime_enabled_subject(self) -> None:
+        cases = [
+            _gate_case("accounting_clear", ["clear_positive"]),
+            _gate_case("accounting_method", ["method_only_borrow"]),
+            _gate_case("accounting_near_miss", ["near_miss"]),
+        ]
+
+        with patch(
+            "tooling.scripts.evaluate_subject_router.load_runtime_subject_contracts",
+            return_value={
+                "accounting": _accounting_contract(
+                    activation_status="runtime_enabled"
+                )
+            },
+        ), patch(
+            "tooling.scripts.evaluate_subject_router.evaluate_cases",
+            return_value=_successful_eval_report(),
+        ):
+            report = subject_gate_report("accounting", cases, gate="eval-ready")
+
+        self.assertFalse(report["eligible_for_eval_ready"])
+        self.assertIn(
+            "activation_status is runtime_enabled",
+            report["blocking_failures"],
+        )
+
+    def test_eval_ready_gate_reports_missing_evaluation_pack(self) -> None:
+        cases = [
+            _gate_case("accounting_clear", ["clear_positive"]),
+            _gate_case("accounting_method", ["method_only_borrow"]),
+            _gate_case("accounting_near_miss", ["near_miss"]),
+        ]
+
+        with patch(
+            "tooling.scripts.evaluate_subject_router.load_runtime_subject_contracts",
+            return_value={
+                "accounting": _accounting_contract(
+                    evaluation_pack="missing/accounting-eval-fixtures"
+                )
+            },
+        ), patch(
+            "tooling.scripts.evaluate_subject_router.evaluate_cases",
+            return_value=_successful_eval_report(),
+        ):
+            report = subject_gate_report("accounting", cases, gate="eval-ready")
+
+        self.assertFalse(report["eligible_for_eval_ready"])
+        self.assertIn(
+            "missing resource: evaluation_pack missing/accounting-eval-fixtures",
+            report["blocking_failures"],
+        )
+
+    def test_eval_ready_signal_dimension_requirements_are_subject_scoped(self) -> None:
+        cases = [
+            replace(
+                _gate_case("finance_clear", ["clear_positive"]),
+                subject_under_test="finance",
+                tags=["finance", "clear_positive"],
+            ),
+            replace(
+                _gate_case("finance_method", ["method_only_borrow"]),
+                subject_under_test="finance",
+                tags=["finance", "method_only_borrow"],
+            ),
+            replace(
+                _gate_case("finance_near_miss", ["near_miss"]),
+                subject_under_test="finance",
+                tags=["finance", "near_miss"],
+            ),
+        ]
+
+        with patch(
+            "tooling.scripts.evaluate_subject_router.load_runtime_subject_contracts",
+            return_value={
+                "finance": _finance_contract(activation_status="eval_ready")
+            },
+        ), patch(
+            "tooling.scripts.evaluate_subject_router.evaluate_cases",
+            return_value=_successful_eval_report(),
+        ):
+            report = subject_gate_report("finance", cases, gate="eval-ready")
+
+        self.assertTrue(report["eligible_for_eval_ready"])
+        self.assertEqual(
+            [
+                failure
+                for failure in report["blocking_failures"]
+                if failure.startswith("missing signal dimension:")
+            ],
+            [],
+        )
+
+    def test_runtime_enabled_gate_still_blocks_eval_ready_subject(self) -> None:
+        cases = [
+            _gate_case("accounting_clear", ["clear_positive"]),
+            _gate_case("accounting_method", ["method_only_borrow"]),
+            _gate_case("accounting_near_miss", ["near_miss"]),
+        ]
+
+        with patch(
+            "tooling.scripts.evaluate_subject_router.load_runtime_subject_contracts",
+            return_value={
+                "accounting": _accounting_contract(
+                    evaluation_pack="tests/fixtures/subject_router_eval"
+                )
+            },
+        ), patch(
+            "tooling.scripts.evaluate_subject_router.evaluate_cases",
+            return_value=_successful_eval_report(),
+        ):
+            report = subject_gate_report("accounting", cases, gate="runtime-enabled")
+
+        self.assertFalse(report["eligible_for_eval_ready"])
+        self.assertFalse(report["eligible_for_runtime_enabled"])
+        self.assertIn("activation_status is eval_ready", report["blocking_failures"])
+
+    def test_gate_specific_expected_overrides_default_expected(self) -> None:
+        case = EvalCase(
+            id="accounting_gate_specific",
+            description="gate-specific accounting expectation",
+            request="Design an archival accounting study of discretionary accruals.",
+            manifest={
+                "active_subject": "auto",
+                "subject_mode": "auto",
+                "secondary_subjects": [],
+                "venue_profiles": [],
+                "method_lenses": [],
+                "strictness": "standard",
+            },
+            expected={
+                "decision": "recommend",
+                "primary_subject": "auto",
+                "suggest_subjects": [],
+                "forbidden_subjects": [],
+                "method_lenses": ["accrual-quality"],
+            },
+            source="inline.json",
+            subject_under_test="accounting",
+            tags=["accounting", "clear_positive"],
+            gate_expected={
+                "eval-ready": {
+                    "decision": "recommend",
+                    "primary_subject": "accounting",
+                    "suggest_subjects": ["accounting"],
+                    "forbidden_subjects": [],
+                    "method_lenses": ["accrual-quality"],
+                }
+            },
+        )
+
+        self.assertEqual(
+            case.expected_for_gate("")["primary_subject"],
+            "auto",
+        )
+        self.assertEqual(
+            case.expected_for_gate("eval-ready")["primary_subject"],
+            "accounting",
+        )
+        malformed_case = replace(
+            case,
+            gate_expected={"eval-ready": ["not", "a", "mapping"]},
+        )
+        self.assertEqual(
+            malformed_case.expected_for_gate("eval-ready")["primary_subject"],
+            "auto",
+        )
+
+    def test_evaluate_cases_passes_eval_subjects_and_uses_gate_expected(self) -> None:
+        case = EvalCase(
+            id="accounting_eval_plumbing",
+            description="eval plumbing case",
+            request="Design an accounting accrual-quality study.",
+            manifest={
+                "active_subject": "auto",
+                "subject_mode": "auto",
+                "secondary_subjects": [],
+                "venue_profiles": [],
+                "method_lenses": [],
+                "strictness": "standard",
+            },
+            expected={
+                "decision": "recommend",
+                "primary_subject": "auto",
+                "suggest_subjects": [],
+                "forbidden_subjects": [],
+                "method_lenses": [],
+            },
+            source="inline.json",
+            subject_under_test="accounting",
+            tags=["accounting", "clear_positive"],
+            gate_expected={
+                "eval-ready": {
+                    "decision": "recommend",
+                    "primary_subject": "accounting",
+                    "suggest_subjects": ["accounting"],
+                    "forbidden_subjects": [],
+                    "method_lenses": ["accrual-quality"],
+                }
+            },
+        )
+        captured: dict[str, Any] = {}
+
+        class FakePacket:
+            def to_packet(self) -> dict[str, Any]:
+                return {
+                    "decision": "suggest_subject",
+                    "primary_subject": "accounting",
+                    "candidate_subjects": [{"subject": "accounting"}],
+                    "method_lenses": ["accrual-quality"],
+                    "borrowed_lenses": [],
+                }
+
+        def fake_infer(
+            task_packet: Mapping[str, Any],
+            *,
+            manifest_state: ProjectManifest,
+            evaluation_subjects: set[str] | None = None,
+        ) -> FakePacket:
+            captured["task_packet"] = task_packet
+            captured["manifest_state"] = manifest_state
+            captured["evaluation_subjects"] = evaluation_subjects
+            return FakePacket()
+
+        with patch(
+            "tooling.scripts.evaluate_subject_router._infer_subject_refinement",
+            side_effect=fake_infer,
+        ):
+            report = evaluate_cases(
+                [case],
+                gate="eval-ready",
+                evaluation_subjects={"accounting"},
+            )
+
+        self.assertEqual(captured["evaluation_subjects"], {"accounting"})
+        self.assertEqual(
+            report["cases"][0]["expected"]["primary_subject"],
+            "accounting",
+        )
+        self.assertEqual(report["threshold_failures"], [])
+
+    def test_main_subject_eval_ready_gate_uses_eval_ready_eligibility(self) -> None:
+        stdout = io.StringIO()
+
+        with patch(
+            "tooling.scripts.evaluate_subject_router.load_runtime_subject_contracts",
+            return_value={
+                "accounting": _accounting_contract(
+                    evaluation_pack="tests/fixtures/subject_router_eval"
+                )
+            },
+        ), patch(
+            "tooling.scripts.evaluate_subject_router.evaluate_cases",
+            return_value=_successful_eval_report(),
+        ), patch(
+            "tooling.scripts.evaluate_subject_router.load_eval_cases",
+            return_value=[
+                _gate_case("accounting_clear", ["clear_positive"]),
+                _gate_case("accounting_method", ["method_only_borrow"]),
+                _gate_case("accounting_near_miss", ["near_miss"]),
+            ],
+        ), contextlib.redirect_stdout(stdout):
+            exit_code = main(
+                ["--subject", "accounting", "--gate", "eval-ready", "--json"]
+            )
+
+        report = json.loads(stdout.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertTrue(report["subject_gate"]["eligible_for_eval_ready"])
+
+    def test_main_subject_gate_exit_ignores_global_threshold_failures(self) -> None:
+        stdout = io.StringIO()
+        cases = [
+            _gate_case("accounting_clear", ["clear_positive"]),
+            _gate_case("accounting_method", ["method_only_borrow"]),
+            _gate_case("accounting_near_miss", ["near_miss"]),
+        ]
+        calls: list[dict[str, Any]] = []
+
+        def fake_evaluate(
+            selected_cases: list[EvalCase],
+            thresholds: Mapping[str, float] = DEFAULT_THRESHOLDS,
+            *,
+            gate: str = "",
+            evaluation_subjects: list[str] | None = None,
+        ) -> dict[str, Any]:
+            calls.append(
+                {
+                    "case_count": len(selected_cases),
+                    "thresholds": thresholds,
+                    "gate": gate,
+                    "evaluation_subjects": evaluation_subjects,
+                }
+            )
+            if len(calls) == 1:
+                report = _successful_eval_report()
+                report["threshold_failures"] = [
+                    {"metric": "global_fixture_failure"},
+                ]
+                return report
+            return _successful_eval_report()
+
+        with patch(
+            "tooling.scripts.evaluate_subject_router.load_runtime_subject_contracts",
+            return_value={
+                "accounting": _accounting_contract(
+                    evaluation_pack="tests/fixtures/subject_router_eval"
+                )
+            },
+        ), patch(
+            "tooling.scripts.evaluate_subject_router.load_eval_cases",
+            return_value=cases,
+        ), patch(
+            "tooling.scripts.evaluate_subject_router.evaluate_cases",
+            side_effect=fake_evaluate,
+        ), contextlib.redirect_stdout(stdout):
+            exit_code = main(
+                ["--subject", "accounting", "--gate", "eval-ready", "--json"]
+            )
+
+        report = json.loads(stdout.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(
+            report["threshold_failures"],
+            [{"metric": "global_fixture_failure"}],
+        )
+        self.assertIsNone(calls[0]["evaluation_subjects"])
+        self.assertEqual(calls[1]["evaluation_subjects"], ["accounting"])
 
     def test_subject_gate_report_uses_subject_scoped_threshold_failures(self) -> None:
         fixtures = {case.id: case for case in load_eval_cases(FIXTURE_DIR)}
@@ -519,7 +1179,7 @@ class SubjectRouterEvalTests(unittest.TestCase):
         )
         self.assertFalse(report["eligible_for_runtime_enabled"])
 
-    def test_main_subject_gate_json_returns_one_for_candidate_subject(self) -> None:
+    def test_main_subject_gate_json_returns_one_for_non_runtime_subject(self) -> None:
         stdout = io.StringIO()
 
         with contextlib.redirect_stdout(stdout):
@@ -540,7 +1200,7 @@ class SubjectRouterEvalTests(unittest.TestCase):
 
         report = json.loads(stdout.getvalue())
         self.assertEqual(exit_code, 0)
-        self.assertEqual(report["case_count"], 8)
+        self.assertGreaterEqual(report["case_count"], 15)
         self.assertEqual(report["threshold_failures"], [])
 
     def test_main_returns_one_for_failing_fixture_directory(self) -> None:

@@ -1,0 +1,31 @@
+{
+  "id": "accounting_confirmed_construct_audit",
+  "subject_under_test": "accounting",
+  "tags": ["accounting", "confirmed_subject"],
+  "description": "Confirmed accounting project remains accounting even while subject resources are withheld before runtime activation.",
+  "request": "Audit the construct-proxy mapping for discretionary accruals, fiscal timing, and financial reporting quality.",
+  "manifest": {
+    "active_subject": "accounting",
+    "subject_mode": "confirmed",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": ["construct-proxy-audit"],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "recommend",
+    "primary_subject": "accounting",
+    "suggest_subjects": [],
+    "forbidden_subjects": [],
+    "method_lenses": ["construct-proxy-audit"]
+  },
+  "gate_expected": {
+    "eval-ready": {
+      "decision": "recommend",
+      "primary_subject": "accounting",
+      "suggest_subjects": ["accounting"],
+      "forbidden_subjects": [],
+      "method_lenses": ["construct-proxy-audit"]
+    }
+  }
+}
