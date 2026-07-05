@@ -105,7 +105,7 @@ class DistributionPayloadTests(unittest.TestCase):
         )
         for payload_root in payload_roots:
             contracts = load_runtime_subject_contracts(payload_root, recursive=False)
-            for subject in ("economics", "finance"):
+            for subject in ("accounting", "business", "economics", "finance"):
                 with self.subTest(payload_root=payload_root, subject=subject):
                     failures = self.evaluate_router_module._missing_resource_failures(
                         contracts[subject]

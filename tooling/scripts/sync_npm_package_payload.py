@@ -206,6 +206,7 @@ def sync_python_payload(root: Path, materialize_source: Path, *, dry_run: bool) 
         "skills": layout.skills,
         "subjects": layout.subjects,
         "content/distribution": layout.content / "distribution",
+        "content/subjects": layout.content / "subjects",
     }
     for item, src in payload_sources.items():
         copy_path(src, payload_root / item, dry_run=dry_run)

@@ -179,6 +179,33 @@ class DistributionMaterializerTests(unittest.TestCase):
             self.assertTrue(payload_metadata.is_file())
             self.assertEqual(source_metadata.read_text(encoding="utf-8"), payload_metadata.read_text(encoding="utf-8"))
 
+    def test_python_payload_contains_subject_catalog_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "staging"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(MATERIALIZER_PATH),
+                    "--target",
+                    "python",
+                    "--out",
+                    str(out),
+                    "--force",
+                ],
+                cwd=REPO_ROOT,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+
+            self.assertEqual(0, result.returncode, result.stderr)
+            source_catalog = out / "content" / "subjects" / "catalog.yaml"
+            payload_catalog = out / "packages" / "python-qiongli" / "src" / "qiongli" / "payload" / "content" / "subjects" / "catalog.yaml"
+            self.assertTrue(payload_catalog.is_file())
+            self.assertEqual(source_catalog.read_text(encoding="utf-8"), payload_catalog.read_text(encoding="utf-8"))
+
     def test_python_payload_contains_shell_cli_sources(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "staging"
