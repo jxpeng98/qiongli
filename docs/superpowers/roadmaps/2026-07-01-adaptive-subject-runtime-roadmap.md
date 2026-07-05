@@ -81,22 +81,20 @@ Remaining product gaps:
   claim-evidence coverage, strong judge results, and journal-fit decisions must
   be checked together before later expansion work is considered release-ready.
 
-## Priority Update: Subject Expansion Onboarding Contract
+## Priority Update: Business Eval-Ready Slice
 
-Status: accounting runtime promotion completed by the accounting runtime
-promotion change after the full-cycle workflow harness, manuscript-first
-journal fit, and accounting eval-ready pack were completed.
+Status: the subject expansion onboarding contract is complete, and business is
+the current Stage 4 subject expansion slice.
 
-The accounting runtime-enabled gate has been reviewed and remains green. The
-next Stage 4 prerequisite is the subject expansion onboarding contract, which
-prevents deferred candidate subjects from reusing another subject's fixture
-pack and makes missing fixture/signal readiness explicit in gate reports.
+The accounting runtime-enabled gate has been reviewed and remains green.
+Business now has a dedicated eval-ready design and execution plan. This slice
+keeps business below runtime activation while adding a business-owned fixture
+pack, manifest-backed method/data/venue/construct signals, method-lens
+borrowing, near-miss guards, and eval-ready gate coverage.
 
-After this onboarding contract merges, prepare the first post-accounting
-subject spec. Business is the recommended next candidate because business
-resources and venue profiles already exist, but it must remain `candidate`
-until a business-owned fixture pack, near-miss guards, and signal groups are
-reviewed.
+Business must remain `eval_ready`, not `runtime_enabled`, until a separate
+runtime promotion review proves default precision after the eval-ready pack is
+merged.
 
 Formal design and execution plan:
 
@@ -104,6 +102,8 @@ Formal design and execution plan:
 - `docs/superpowers/plans/2026-07-05-accounting-runtime-promotion.md`
 - `docs/superpowers/specs/2026-07-05-subject-expansion-onboarding-contract-design.md`
 - `docs/superpowers/plans/2026-07-05-subject-expansion-onboarding-contract.md`
+- `docs/superpowers/specs/2026-07-05-business-subject-eval-ready-design.md`
+- `docs/superpowers/plans/2026-07-05-business-subject-eval-ready.md`
 
 ## Stage 1: Router Evaluation And Lifecycle Controls
 
@@ -212,22 +212,27 @@ First formal spec:
 
 ## Stage 4: Subject Expansion With Evaluation Gates
 
-Status: accounting eval-ready slice and accounting runtime promotion completed
-as of July 5, 2026. Business, political economy, geoeconomics, and the
-economics-accounting bridge remain deferred while the current Stage 4
-prerequisite is the subject expansion onboarding contract.
+Status: accounting eval-ready and runtime promotion are completed as of
+July 5, 2026. The subject expansion onboarding contract is complete. Business
+is the current eval-ready slice; political economy, geoeconomics, and the
+economics-accounting bridge remain deferred candidates.
 
 Primary outcome:
 
 - New subjects can be added without weakening router precision.
 
-Runtime-enabled subject:
+Runtime-enabled subjects:
 
 - Accounting.
+- Economics.
+- Finance.
+
+Eval-ready subjects:
+
+- Business and management.
 
 Deferred candidate subjects:
 
-- Business and management.
 - Political economy.
 - Geoeconomics.
 - Economics-accounting bridge.
@@ -238,6 +243,9 @@ Scope:
 - Add subject-specific method, venue, data, and outcome signal groups.
 - Add near-miss cases for adjacent disciplines to prevent broad over-activation.
 - Extend subject resource activation plans only after the evaluation pack passes.
+- Business runtime promotion must revisit broad business vocabulary and
+  confirmed-subject eval semantics before changing business to
+  `runtime_enabled`.
 
 Success criteria:
 

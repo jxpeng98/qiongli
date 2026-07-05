@@ -143,31 +143,26 @@ uv run python tooling/scripts/evaluate_subject_router.py \
   --subject accounting \
   --gate runtime-enabled \
   --json
-```
-
-Both commands must pass for release: the default router evaluation and the
-accounting runtime-enabled gate. Accounting is now a runtime-enabled subject,
-so release verification should confirm
-`subject_gate.eligible_for_runtime_enabled`.
-
-Use the eval-ready gate for future candidate subjects before activation, for
-example:
-
-```bash
 uv run python tooling/scripts/evaluate_subject_router.py \
   --subject business \
   --gate eval-ready \
   --json
 ```
 
-Business, political economy, geoeconomics, and economics-accounting remain
-future eval-ready candidates.
+The default router evaluation and accounting runtime-enabled gate must pass for
+release. Business eval-ready should also pass while business remains below
+runtime activation.
 
-For subject-scoped JSON, read `subject_gate.eligible_for_eval_ready` or
-`subject_gate.eligible_for_runtime_enabled` and treat the command exit code as
-authoritative: default eval exits 0, accounting runtime-enabled exits 0, and
-future candidate eval-ready checks should exit 0 only after their fixture packs
-and metadata are ready for review.
+Business is eval-ready. Political economy, geoeconomics, and
+economics-accounting remain future eval-ready candidates.
+
+For subject-scoped JSON, top-level `case_count`, `metrics`, and
+`threshold_failures` are filtered to the requested subject gate. Read
+`subject_gate.eligible_for_eval_ready` or
+`subject_gate.eligible_for_runtime_enabled` for the activation decision and
+treat the command exit code as authoritative: default eval exits 0, accounting
+runtime-enabled exits 0, and future candidate eval-ready checks should exit 0
+only after their fixture packs and metadata are ready for review.
 
 For beta releases where GitHub Actions may exceed the default local wait window, extend the hard wait instead of using a soft publish gate:
 
