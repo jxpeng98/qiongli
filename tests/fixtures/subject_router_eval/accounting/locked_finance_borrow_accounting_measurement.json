@@ -15,8 +15,8 @@
   "expected": {
     "decision": "keep_locked",
     "primary_subject": "finance",
-    "suggest_subjects": [],
-    "forbidden_subjects": ["accounting"],
+    "suggest_subjects": ["accounting"],
+    "forbidden_subjects": [],
     "method_lenses": ["event-study", "accrual-quality", "construct-proxy-audit"]
   }
 }

@@ -170,13 +170,14 @@ class SubjectSignals:
 class RuntimeSubjectMatch:
     subject: str
     dimensions: tuple[str, ...]
+    subject_level_dimensions: tuple[str, ...]
     method_lenses: tuple[str, ...]
     evidence: tuple[str, ...]
     signal_ids: tuple[str, ...]
 
     @property
     def has_subject_strength(self) -> bool:
-        return len(self.dimensions) >= 2
+        return bool(self.subject_level_dimensions) and len(self.dimensions) >= 2
 
 
 @dataclass(frozen=True)
@@ -428,7 +429,6 @@ def infer_subject_refinement(
             secondary_subjects=list(manifest.secondary_subjects or []),
             candidate_subjects=_candidate_subjects(
                 signals,
-                preferred="accounting",
                 evaluation_subjects=evaluation_subjects,
             ),
             method_lenses=method_lenses,
@@ -467,7 +467,6 @@ def infer_subject_refinement(
             secondary_subjects=list(manifest.secondary_subjects or []),
             candidate_subjects=_candidate_subjects(
                 signals,
-                preferred="accounting",
                 evaluation_subjects=evaluation_subjects,
             ),
             method_lenses=_unique(list(manifest.method_lenses or [])),
@@ -709,6 +708,14 @@ def _detect_manifest_signal_records(
             continue
         records.extend(subject_records)
         dimensions = _unique([str(record["dimension"]) for record in subject_records])
+        subject_level_dimensions = _unique(
+            [
+                str(record["dimension"])
+                for record in subject_records
+                if str(record.get("activation", "subject") or "subject")
+                not in {"method_only", "context_only"}
+            ]
+        )
         method_lenses = _unique(
             [
                 str(record["value"])
@@ -720,6 +727,7 @@ def _detect_manifest_signal_records(
         matches[subject] = RuntimeSubjectMatch(
             subject=subject,
             dimensions=tuple(dimensions),
+            subject_level_dimensions=tuple(subject_level_dimensions),
             method_lenses=tuple(method_lenses),
             evidence=tuple(_unique([str(record["snippet"]) for record in subject_records])),
             signal_ids=tuple(_unique([str(record["id"]) for record in subject_records])),
@@ -767,6 +775,7 @@ def _manifest_records_for_contract(
                         "dimension": str(dimension),
                         "value": value,
                         "weight": _coerce_signal_weight(entry.get("weight", 0.0)),
+                        "activation": str(entry.get("activation", "subject") or "subject"),
                         "source": "task_text",
                         "snippet": _snippet_for_match(text, match),
                     }
@@ -864,7 +873,9 @@ def _candidate_subjects(
         subjects.append("finance")
     if signals.economics_method_lenses or signals.economics_venues:
         subjects.append("economics")
-    subjects.extend(signals.runtime_subject_matches)
+    for subject, match in signals.runtime_subject_matches.items():
+        if subject == preferred or match.has_subject_strength:
+            subjects.append(subject)
     return [
         _candidate_subject_record(subject, signals)
         for subject in _unique(subjects)
@@ -1138,11 +1149,24 @@ def _subject_resource_map(
 ) -> dict[str, str]:
     values = contract.get(key)
     if not isinstance(values, Mapping):
-        return dict(fallback)
-    resources = dict(fallback)
-    for subject, resource in values.items():
-        if isinstance(subject, str) and isinstance(resource, str):
-            resources[subject] = resource
+        resources = dict(fallback)
+    else:
+        resources = dict(fallback)
+        for subject, resource in values.items():
+            if isinstance(subject, str) and isinstance(resource, str):
+                resources[subject] = resource
+    manifest_field = {
+        "overlays": "overlay",
+        "subject_skills": "subject_skill",
+    }.get(key)
+    if manifest_field is not None:
+        runtime_contracts, _ = _safe_load_runtime_subject_contracts()
+        for subject, runtime_contract in runtime_contracts.items():
+            resource = getattr(runtime_contract, manifest_field, "")
+            if isinstance(resource, str) and (
+                manifest_field == "overlay" or resource.strip()
+            ):
+                resources[subject] = resource
     return resources
 
 

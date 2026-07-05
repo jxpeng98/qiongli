@@ -1,7 +1,7 @@
 schema_version: 1.0
 subject: accounting
 display_name: Accounting
-activation_status: eval_ready
+activation_status: runtime_enabled
 extends: core
 domain_profile: content/skills/domain-profiles/accounting.yaml
 overlay: ""
