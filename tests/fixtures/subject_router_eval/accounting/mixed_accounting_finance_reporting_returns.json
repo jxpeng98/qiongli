@@ -2,7 +2,7 @@
   "id": "accounting_mixed_reporting_returns",
   "subject_under_test": "accounting",
   "tags": ["accounting", "mixed_subject"],
-  "description": "Mixed accounting-finance request with explicit accounting primary expectation under the eval-ready gate.",
+  "description": "Mixed accounting-finance request with explicit accounting primary expectation after runtime activation.",
   "request": "Frame a paper on earnings management, discretionary accruals, financial reporting quality, and abnormal returns around disclosure announcements using Compustat and CRSP.",
   "manifest": {
     "active_subject": "auto",

@@ -82,7 +82,7 @@ Create `tests/fixtures/subject_router_eval/accounting/method_only_auto_accrual_c
     "strictness": "standard"
   },
   "expected": {
-    "decision": "borrow_lens",
+    "decision": "recommend",
     "primary_subject": "auto",
     "suggest_subjects": [],
     "forbidden_subjects": ["accounting"],
@@ -90,6 +90,9 @@ Create `tests/fixtures/subject_router_eval/accounting/method_only_auto_accrual_c
   }
 }
 ```
+
+The eval fixture records the evaluation-layer decision `recommend`; bridge packet
+tests can still assert `borrow_lens` for the underlying method-only packet.
 
 - [ ] **Step 2: Register the fixture in the inventory assertion**
 
