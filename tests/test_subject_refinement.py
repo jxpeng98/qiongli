@@ -37,6 +37,95 @@ def _runtime_subject_contract(
     )
 
 
+def _business_runtime_subject_contract(
+    *,
+    activation_status: str = "eval_ready",
+) -> RuntimeSubjectContract:
+    return RuntimeSubjectContract(
+        subject="business",
+        display_name="Business",
+        activation_status=activation_status,
+        extends="core",
+        source="content/subjects/business/runtime-subject.yaml",
+        domain_profile="content/skills/domain-profiles/business-management.yaml",
+        overlay="",
+        subject_skill="",
+        signal_groups={
+            "method": [
+                {
+                    "id": "business.method.case-study",
+                    "value": "case-study",
+                    "weight": 0.30,
+                    "activation": "method_only",
+                    "patterns": [r"\bmultiple case study\b"],
+                    "method_lenses": [
+                        "business-positioning",
+                        "qualitative-transparency",
+                    ],
+                },
+                {
+                    "id": "business.method.gioia",
+                    "value": "gioia-method",
+                    "weight": 0.30,
+                    "activation": "method_only",
+                    "patterns": [r"\bGioia\b", r"\bfirst-order concepts\b"],
+                    "method_lenses": ["qualitative-transparency"],
+                },
+            ],
+            "data_or_outcome": [
+                {
+                    "id": "business.data.qualitative-fieldwork",
+                    "value": "qualitative-fieldwork",
+                    "weight": 0.25,
+                    "activation": "subject",
+                    "patterns": [r"\binterviews with managers\b"],
+                }
+            ],
+            "venue": [
+                {
+                    "id": "business.venue.amj",
+                    "value": "academy-of-management-journal",
+                    "weight": 0.20,
+                    "activation": "context_only",
+                    "patterns": [r"\bAcademy of Management Journal\b", r"\bAMJ\b"],
+                    "method_lenses": ["business-positioning"],
+                }
+            ],
+            "theory_or_construct": [
+                {
+                    "id": "business.construct.theory-contribution",
+                    "value": "theory-contribution",
+                    "weight": 0.25,
+                    "activation": "subject",
+                    "patterns": [r"\bmanagement theory\b", r"\btheory contribution\b"],
+                }
+            ],
+        },
+        method_lenses={
+            "business-positioning": {
+                "resource": (
+                    "content/subjects/business/skills/"
+                    "business-journal-positioning-auditor.md"
+                ),
+                "activation": "method_only",
+            },
+            "qualitative-transparency": {
+                "resource": "content/subjects/business/overlays/skills/study-designer.md",
+                "activation": "method_only",
+            },
+        },
+        evaluation_pack="tests/fixtures/subject_router_eval/business",
+        near_miss_policy={"forbidden_subjects": ["finance", "economics"]},
+        activation_gate={
+            "required_metrics": {
+                "primary_subject_accuracy": 0.95,
+                "suggest_subject_precision": 0.95,
+                "near_miss_false_positives": 0,
+            }
+        },
+    )
+
+
 class SubjectRefinementTests(unittest.TestCase):
     def test_contract_declares_locked_persistence_status(self) -> None:
         contract_path = Path("content/standards/subject-refinement-contract.yaml")
@@ -537,6 +626,148 @@ class SubjectRefinementTests(unittest.TestCase):
             packet["loaded_resources"]["subject_skills"],
         )
         self.assertEqual(packet["loaded_resources"]["contract_warnings"], [])
+
+    def test_eval_ready_business_signals_can_be_measured_under_evaluation_subjects(self) -> None:
+        with patch(
+            "bridges.subject_refinement.load_runtime_subject_contracts",
+            return_value={"business": _business_runtime_subject_contract()},
+        ):
+            packet = infer_subject_refinement(
+                {
+                    "topic": "management theory case study",
+                    "context": (
+                        "Use a multiple case study with interviews with managers "
+                        "to develop a management theory contribution for AMJ."
+                    ),
+                },
+                manifest_state=ProjectManifest(),
+                evaluation_subjects={"business"},
+            ).to_packet()
+
+        self.assertEqual(packet["decision"], "suggest_subject")
+        self.assertEqual(packet["primary_subject"], "business")
+        self.assertEqual(packet["domain"], "business-management")
+        self.assertIn(
+            "business",
+            [candidate["subject"] for candidate in packet["candidate_subjects"]],
+        )
+        self.assertIn("business-positioning", packet["method_lenses"])
+        self.assertIn("qualitative-transparency", packet["method_lenses"])
+        self.assertEqual(packet["loaded_resources"]["overlays"], [])
+        self.assertEqual(packet["loaded_resources"]["subject_skills"], [])
+        self.assertIn(
+            "content/subjects/business/skills/business-journal-positioning-auditor.md",
+            packet["loaded_resources"]["method_packs"],
+        )
+        self.assertIn(
+            "content/subjects/business/overlays/skills/study-designer.md",
+            packet["loaded_resources"]["method_packs"],
+        )
+        self.assertTrue(packet["loaded_resources"]["contract_warnings"])
+        self.assertIn(
+            "activation_status=eval_ready",
+            packet["loaded_resources"]["contract_warnings"][0],
+        )
+
+    def test_eval_ready_business_method_only_borrows_lens_without_subject_suggestion(self) -> None:
+        with patch(
+            "bridges.subject_refinement.load_runtime_subject_contracts",
+            return_value={"business": _business_runtime_subject_contract()},
+        ):
+            packet = infer_subject_refinement(
+                {
+                    "topic": "qualitative coding appendix",
+                    "context": (
+                        "Use the Gioia method with first-order concepts and "
+                        "second-order themes for a qualitative coding appendix."
+                    ),
+                },
+                manifest_state=ProjectManifest(),
+            ).to_packet()
+
+        self.assertEqual(packet["decision"], "borrow_lens")
+        self.assertEqual(packet["primary_subject"], "auto")
+        self.assertNotIn(
+            "business",
+            [candidate["subject"] for candidate in packet["candidate_subjects"]],
+        )
+        self.assertIn(
+            ("business", "qualitative-transparency"),
+            {
+                (lens["source_subject"], lens["lens"])
+                for lens in packet["borrowed_lenses"]
+            },
+        )
+        self.assertIn(
+            "content/subjects/business/overlays/skills/study-designer.md",
+            packet["loaded_resources"]["method_packs"],
+        )
+
+    def test_eval_ready_business_default_runtime_does_not_suggest_business(self) -> None:
+        with patch(
+            "bridges.subject_refinement.load_runtime_subject_contracts",
+            return_value={"business": _business_runtime_subject_contract()},
+        ):
+            packet = infer_subject_refinement(
+                {
+                    "topic": "management theory case study",
+                    "context": (
+                        "Use a multiple case study with interviews with managers "
+                        "to develop a management theory contribution for AMJ."
+                    ),
+                },
+                manifest_state=ProjectManifest(),
+            ).to_packet()
+
+        self.assertNotEqual(packet["decision"], "suggest_subject")
+        self.assertNotEqual(packet["primary_subject"], "business")
+        self.assertNotIn(
+            "business",
+            [candidate["subject"] for candidate in packet["candidate_subjects"]],
+        )
+
+    def test_business_eval_ready_real_manifest_can_be_measured_under_evaluation_subjects(self) -> None:
+        packet = infer_subject_refinement(
+            {
+                "topic": "management theory case study",
+                "context": (
+                    "Design a multiple case study using interviews with managers "
+                    "to develop a management theory contribution about organizational "
+                    "routines for Academy of Management Journal business journal positioning."
+                ),
+            },
+            manifest_state=ProjectManifest(),
+            evaluation_subjects={"business"},
+        ).to_packet()
+
+        self.assertEqual(packet["decision"], "suggest_subject")
+        self.assertEqual(packet["primary_subject"], "business")
+        self.assertEqual(packet["domain"], "business-management")
+        self.assertIn(
+            "business",
+            [candidate["subject"] for candidate in packet["candidate_subjects"]],
+        )
+        self.assertIn("business-positioning", packet["method_lenses"])
+        self.assertIn("qualitative-transparency", packet["method_lenses"])
+
+    def test_business_eval_ready_real_manifest_does_not_activate_in_default_runtime(self) -> None:
+        packet = infer_subject_refinement(
+            {
+                "topic": "management theory case study",
+                "context": (
+                    "Design a multiple case study using interviews with managers "
+                    "to develop a management theory contribution for AMJ."
+                ),
+            },
+            manifest_state=ProjectManifest(),
+        ).to_packet()
+
+        self.assertNotEqual(packet["decision"], "suggest_subject")
+        self.assertNotEqual(packet["primary_subject"], "business")
+        self.assertNotIn(
+            "business",
+            [candidate["subject"] for candidate in packet["candidate_subjects"]],
+        )
 
     def test_accounting_near_miss_account_for_heterogeneity_keeps_core(self) -> None:
         packet = infer_subject_refinement(
