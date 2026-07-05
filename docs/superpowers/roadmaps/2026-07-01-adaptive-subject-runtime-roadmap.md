@@ -13,7 +13,7 @@ can ship with tests, local verification, and clear rollback behavior.
 
 ## Current Baseline
 
-Completed on `dev` as of July 4, 2026:
+Completed on `dev` as of July 5, 2026:
 
 - Runtime subject refinement packet with `decision`, `signals`,
   `resource_activation_plan`, `borrowed_lenses`, and backward-compatible fields.
@@ -41,18 +41,22 @@ Completed on `dev` as of July 4, 2026:
 - MCP provider status parity, broader literature-search defaults, full-text
   candidate planning, and Zotero attachment verification summaries released in
   `v1.15.0-beta.1`.
+- Preview-first full-cycle workflow harness for topic framing, evidence search,
+  data/methods, writing, compliance, judging, journal fit, and feedback loops.
+- Manuscript-first reverse journal-fit recommendation backed by local venue
+  profiles.
+- Accounting eval-ready fixture pack with manifest-backed method, venue,
+  data/outcome, theory/construct signals and gate-specific fixture
+  expectations.
 
 Remaining product gaps:
 
 - Real local-agent smoke remains opt-in and should stay outside the default
   release gate until maintainer environments are stable.
-- Qiongli still lacks an end-to-end paper lifecycle harness that proves topic
-  framing, broad evidence search, data/methods, writing, compliance, strong
-  judging, journal recommendation, and feedback loops preserve locked research
-  state across multiple rounds and agents.
-- Journal support remains mostly target-first. Qiongli needs manuscript-first
-  reverse journal-fit recommendation for users who already have a draft and
-  need the best venue match.
+- The full-cycle workflow harness is deterministic and preview-first; later
+  runtime-enabled multi-agent execution still needs separate opt-in hardening.
+- Accounting is eval-ready but not yet runtime-enabled; activation should be a
+  separate reviewed change with one more method-only auto-mode guard.
 - Expansion to additional subjects still needs a formal onboarding contract
   that requires evaluation fixtures, near-miss guards, and regression
   thresholds before activation.
@@ -76,26 +80,26 @@ Remaining product gaps:
   claim-evidence coverage, strong judge results, and journal-fit decisions must
   be checked together before later expansion work is considered release-ready.
 
-## Priority Update: Full-Cycle Workflow Harness
+## Priority Update: Accounting Runtime Promotion
 
-Status: next priority before additional subject expansion.
+Status: current Stage 4 priority after the full-cycle workflow harness and
+accounting eval-ready pack merged.
 
-The local-agent smoke and subject-gate foundations are now partially present on
-`dev`, but Qiongli still lacks an end-to-end lifecycle harness that proves
-topic framing, broad evidence search, data/methods, writing, compliance,
-strong judge, reverse journal fit, and feedback loops preserve the same locked
-research state.
+The full-cycle workflow harness and reverse journal-fit recommender are now on
+`dev`, and the accounting eval-ready gate passes with no blocking failures.
+The remaining accounting blocker for `runtime-enabled` is the manifest status
+itself.
 
-The next implementation priority is therefore a full-cycle multi-agent workflow
-harness with reverse journal-fit recommendation. Additional subject expansion
-or runtime activation beyond the accounting eval-ready slice resumes after this
-harness can detect stage drift, unsupported claims, unresolved fatal flaws, and
-over-optimistic journal recommendations.
+The next implementation priority is therefore a guarded accounting runtime
+promotion. This should add one more method-only auto-mode guard, promote only
+accounting to `runtime_enabled`, and re-run accounting, finance, economics, and
+full-cycle harness checks together. Additional subject expansion resumes only
+after this activation proves the gate can protect runtime precision.
 
 Formal design and execution plan:
 
-- `docs/superpowers/specs/2026-07-04-full-cycle-multiagent-workflow-and-journal-fit-design.md`
-- `docs/superpowers/plans/2026-07-04-full-cycle-multiagent-workflow-and-journal-fit.md`
+- `docs/superpowers/specs/2026-07-05-accounting-runtime-promotion-design.md`
+- `docs/superpowers/plans/2026-07-05-accounting-runtime-promotion.md`
 
 ## Stage 1: Router Evaluation And Lifecycle Controls
 
@@ -204,10 +208,10 @@ First formal spec:
 
 ## Stage 4: Subject Expansion With Evaluation Gates
 
-Status: accounting expansion slice in progress. Accounting is the first
-eval-ready candidate subject; business, political economy, geoeconomics, and
-the economics-accounting bridge remain deferred until the accounting gate is
-reviewed.
+Status: accounting eval-ready slice completed; accounting runtime promotion is
+the current reviewed activation step. Business, political economy,
+geoeconomics, and the economics-accounting bridge remain deferred until the
+accounting runtime gate is reviewed after activation.
 
 Primary outcome:
 
@@ -290,29 +294,30 @@ Success criteria:
   implementation.
 - Local file safety risk: mitigated by project-local writes, managed fragments,
   and isolated smoke tests.
-- Scope creep risk: mitigated by delaying additional subject expansion and
-  runtime activation beyond the accounting eval-ready slice until lifecycle and
-  evaluation gates are in place.
+- Scope creep risk: mitigated by activating only accounting first and delaying
+  business, political economy, geoeconomics, and economics-accounting until
+  accounting proves the runtime gate pattern.
 
 ## Recommended Immediate Plan
 
-Implement the full-cycle workflow harness first:
+Implement the accounting runtime promotion next:
 
-1. Add `H5` reverse journal-fit recommendation to the workflow contract.
-2. Add `/paper-lifecycle` as a preview-first full-cycle workflow entrypoint.
-3. Build a deterministic lifecycle harness that checks stage handoffs,
-   claim-evidence coverage, strong judge status, drift, and journal-fit
-   readiness without launching agents.
-4. Add manuscript-first journal recommendation from local venue profiles, with
-   blocking behavior when manuscript evidence is missing.
-5. Expose preview tools through full Python MCP/CLI surfaces.
-6. Add release smoke coverage only for deterministic preview fixtures.
+1. Add an auto-mode accounting method-only fixture so accrual-quality language
+   borrows a lens without suggesting accounting.
+2. Promote `content/subjects/accounting/runtime-subject.yaml` from
+   `eval_ready` to `runtime_enabled`.
+3. Update contract, router, refinement, CLI, release, and roadmap expectations
+   that still encode the eval-ready state.
+4. Re-run accounting, finance, and economics runtime-enabled gates.
+5. Re-run the deterministic full-cycle workflow harness.
+6. Keep business, political economy, geoeconomics, and economics-accounting as
+   follow-up specs.
 
 Current Stage 4 execution sequence:
 
-- Finish the accounting eval-ready fixture pack and manifest-backed signal
-  routing.
-- Review the accounting eval-ready gate report before considering a separate
-  runtime-enabled activation change.
+- Promote accounting to runtime-enabled only after the method-only guard and
+  gate checks pass.
+- Review the accounting runtime-enabled gate report before starting the next
+  subject expansion spec.
 - Keep business, political economy, geoeconomics, and economics-accounting as
   separate follow-up specs.
