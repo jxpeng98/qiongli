@@ -282,11 +282,12 @@ Subject packages are specialized installs, not reduced-quality cuts. Default ins
 
 Adaptive runtime subjects are not activated only because their content exists in the installed package. New subjects must pass the runtime subject gate before the router can suggest them automatically.
 
-For the current accounting runtime check, use the runtime-enabled gate:
+Current runtime-enabled subjects use the runtime-enabled gate. For the
+business runtime check, use:
 
 ```bash
 uv run python tooling/scripts/evaluate_subject_router.py \
-  --subject accounting \
+  --subject business \
   --gate runtime-enabled \
   --json
 ```
@@ -300,21 +301,22 @@ gate:
 
 ```bash
 uv run python tooling/scripts/evaluate_subject_router.py \
-  --subject business \
+  --subject political-economy \
   --gate eval-ready \
   --json
 ```
 
 `eligible_for_eval_ready: true` means the subject has a passing fixture pack and
 metadata that maintainers can review. It does not allow adaptive runtime
-suggestions. Business is the current eval-ready subject. Political economy,
-geoeconomics, and economics-accounting remain future eval-ready candidates.
+suggestions. Political economy, geoeconomics, and economics-accounting remain
+future eval-ready candidates.
 
-For a pre-activation promotion review, use the promotion-ready gate:
+For a pre-activation promotion review of a future eval-ready subject, use the
+promotion-ready gate:
 
 ```bash
 uv run python tooling/scripts/evaluate_subject_router.py \
-  --subject business \
+  --subject political-economy \
   --gate promotion-ready \
   --json
 ```

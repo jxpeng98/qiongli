@@ -144,22 +144,26 @@ uv run python tooling/scripts/evaluate_subject_router.py \
   --gate runtime-enabled \
   --json
 uv run python tooling/scripts/evaluate_subject_router.py \
-  --subject business \
-  --gate eval-ready \
+  --subject finance \
+  --gate runtime-enabled \
+  --json
+uv run python tooling/scripts/evaluate_subject_router.py \
+  --subject economics \
+  --gate runtime-enabled \
   --json
 uv run python tooling/scripts/evaluate_subject_router.py \
   --subject business \
-  --gate promotion-ready \
+  --gate runtime-enabled \
   --json
 ```
 
-The default router evaluation and accounting runtime-enabled gate must pass for
-release. Business eval-ready should pass while business remains below runtime
-activation. Business promotion-ready is an optional pre-activation review gate;
-it should pass before a separate business runtime activation PR.
+The default router evaluation and accounting, finance, economics, and business
+runtime-enabled gates must pass for release. Promotion-ready remains a
+pre-activation review gate for future eval-ready subjects; it should pass
+before those subjects move to a separate runtime activation PR.
 
-Business is eval-ready. Political economy, geoeconomics, and
-economics-accounting remain future eval-ready candidates.
+Political economy, geoeconomics, and economics-accounting remain future
+eval-ready candidates.
 
 For subject-scoped JSON, top-level `case_count`, `metrics`, and
 `threshold_failures` are filtered to the requested subject gate. Read
@@ -167,9 +171,10 @@ For subject-scoped JSON, top-level `case_count`, `metrics`, and
 `subject_gate.eligible_for_runtime_promotion` or
 `subject_gate.eligible_for_runtime_enabled` for the gate eligibility decision.
 Only `eligible_for_runtime_enabled` represents runtime activation eligibility.
-Treat the command exit code as authoritative: default eval exits 0, accounting
-runtime-enabled exits 0, and future candidate eval-ready checks should exit 0
-only after their fixture packs and metadata are ready for review.
+Treat the command exit code as authoritative: default eval exits 0; accounting,
+finance, economics, and business runtime-enabled checks should exit 0; and
+future candidate eval-ready checks still exit 0 when their fixture packs and
+metadata are ready for review.
 
 For beta releases where GitHub Actions may exceed the default local wait window, extend the hard wait instead of using a soft publish gate:
 
