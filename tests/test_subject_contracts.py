@@ -444,6 +444,45 @@ class RuntimeSubjectContractTests(unittest.TestCase):
             self.assertEqual(subject_activation_status(subject, contracts), "candidate")
             self.assertIn(subject, contracts)
 
+    def test_default_deferred_candidate_subjects_are_manifest_shells(self) -> None:
+        contracts = load_runtime_subject_contracts()
+        deferred_subjects = {
+            "business",
+            "political-economy",
+            "geoeconomics",
+            "economics-accounting",
+        }
+
+        for subject in sorted(deferred_subjects):
+            with self.subTest(subject=subject):
+                contract = contracts[subject]
+                self.assertEqual(contract.activation_status, "candidate")
+                self.assertEqual(contract.evaluation_pack, "")
+                self.assertNotEqual(
+                    contract.evaluation_pack,
+                    "tests/fixtures/subject_router_eval/accounting",
+                )
+                self.assertEqual(contract.method_lenses, {})
+                self.assertTrue(
+                    all(
+                        isinstance(entries, list) and not entries
+                        for entries in contract.signal_groups.values()
+                    )
+                )
+
+        self.assertEqual(
+            subject_activation_status("accounting", contracts),
+            "runtime_enabled",
+        )
+        self.assertEqual(
+            subject_activation_status("finance", contracts),
+            "runtime_enabled",
+        )
+        self.assertEqual(
+            subject_activation_status("economics", contracts),
+            "runtime_enabled",
+        )
+
     def test_accounting_runtime_enabled_manifest_declares_signals_and_method_lenses(self) -> None:
         contracts = load_runtime_subject_contracts()
         contract = contracts["accounting"]

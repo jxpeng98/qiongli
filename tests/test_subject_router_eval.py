@@ -36,6 +36,7 @@ def _finance_contract(
     overlay: str = "overlays/finance.yaml",
     subject_skill: str = "skills/finance/SKILL.md",
     evaluation_pack: str = "tests/fixtures/subject_router_eval",
+    signal_groups: Mapping[str, list[Mapping[str, Any]]] | None = None,
     method_lenses: Mapping[str, Mapping[str, Any]] | None = None,
     required_metrics: Mapping[str, float] | None = None,
 ) -> RuntimeSubjectContract:
@@ -50,7 +51,12 @@ def _finance_contract(
         domain_profile=domain_profile,
         overlay=overlay,
         subject_skill=subject_skill,
-        signal_groups={"method": [], "data_or_outcome": [], "venue": []},
+        signal_groups={
+            key: [dict(item) for item in value]
+            for key, value in (
+                signal_groups or {"method": [], "data_or_outcome": [], "venue": []}
+            ).items()
+        },
         method_lenses={
             key: dict(value)
             for key, value in (
@@ -143,6 +149,49 @@ def _accounting_contract(
     )
 
 
+def _business_contract(
+    *,
+    activation_status: str = "candidate",
+    source: str | Path | None = None,
+    evaluation_pack: str = "",
+    signal_groups: Mapping[str, list[Mapping[str, Any]]] | None = None,
+) -> RuntimeSubjectContract:
+    return RuntimeSubjectContract(
+        subject="business",
+        display_name="Business",
+        activation_status=activation_status,
+        extends="core",
+        source=str(
+            source or Path("content/subjects/business/runtime-subject.yaml").resolve()
+        ),
+        domain_profile="content/skills/domain-profiles/business-management.yaml",
+        overlay="",
+        subject_skill="",
+        signal_groups={
+            key: [dict(item) for item in value]
+            for key, value in (
+                signal_groups
+                or {
+                    "method": [],
+                    "data_or_outcome": [],
+                    "venue": [],
+                    "theory_or_construct": [],
+                }
+            ).items()
+        },
+        method_lenses={},
+        evaluation_pack=evaluation_pack,
+        near_miss_policy={"forbidden_subjects": ["finance", "economics"]},
+        activation_gate={
+            "required_metrics": {
+                "primary_subject_accuracy": 0.95,
+                "suggest_subject_precision": 0.95,
+                "near_miss_false_positives": 0,
+            }
+        },
+    )
+
+
 def _successful_eval_report() -> dict[str, Any]:
     return {
         "case_count": 3,
@@ -183,6 +232,18 @@ def _gate_case(case_id: str, tags: list[str]) -> EvalCase:
         source=f"tests/fixtures/subject_router_eval/accounting/{case_id}.json",
         subject_under_test="accounting",
         tags=["accounting", *tags],
+    )
+
+
+def _subject_gate_case(subject: str, case_id: str, tags: list[str]) -> EvalCase:
+    base = _gate_case(case_id, tags)
+    return replace(
+        base,
+        id=case_id,
+        description=case_id,
+        source=f"tests/fixtures/subject_router_eval/{subject}/{case_id}.json",
+        subject_under_test=subject,
+        tags=[subject, *tags],
     )
 
 
@@ -682,6 +743,93 @@ class SubjectRouterEvalTests(unittest.TestCase):
         self.assertEqual(report["metrics"]["all_case_checks_passed"], 1.0)
         self.assertEqual(report["metrics"]["near_miss_false_positives"], 0)
 
+    def test_candidate_subject_eval_ready_gate_reports_deferred_shell_reasons(self) -> None:
+        cases = load_eval_cases(FIXTURE_DIR)
+        deferred_subjects = (
+            "business",
+            "political-economy",
+            "geoeconomics",
+            "economics-accounting",
+        )
+
+        for subject in deferred_subjects:
+            with self.subTest(subject=subject):
+                report = subject_gate_report(subject, cases, gate="eval-ready")
+
+                self.assertEqual(report["subject"], subject)
+                self.assertEqual(report["activation_status"], "candidate")
+                self.assertFalse(report["eligible_for_eval_ready"])
+                self.assertFalse(report["eligible_for_runtime_enabled"])
+                self.assertEqual(report["case_count"], 0)
+                self.assertIn(
+                    "activation_status is candidate",
+                    report["blocking_failures"],
+                )
+                self.assertIn(
+                    "missing evaluation_pack for deferred subject",
+                    report["blocking_failures"],
+                )
+                for dimension in (
+                    "method",
+                    "data_or_outcome",
+                    "venue",
+                    "theory_or_construct",
+                ):
+                    self.assertIn(
+                        f"missing signal dimension: {dimension}",
+                        report["blocking_failures"],
+                    )
+                for tag in (
+                    "clear_positive",
+                    "method_only_borrow",
+                    "near_miss",
+                ):
+                    self.assertIn(
+                        f"missing {tag} fixtures",
+                        report["blocking_failures"],
+                    )
+
+    def test_eval_ready_gate_reports_subject_specific_pack_mismatch(self) -> None:
+        cases = [
+            _subject_gate_case("business", "business_clear", ["clear_positive"]),
+            _subject_gate_case(
+                "business",
+                "business_method",
+                ["method_only_borrow"],
+            ),
+            _subject_gate_case("business", "business_near_miss", ["near_miss"]),
+        ]
+
+        with patch(
+            "tooling.scripts.evaluate_subject_router.load_runtime_subject_contracts",
+            return_value={
+                "business": _business_contract(
+                    activation_status="eval_ready",
+                    evaluation_pack="tests/fixtures/subject_router_eval/accounting",
+                    signal_groups={
+                        "method": [{"id": "business.method.case-study"}],
+                        "data_or_outcome": [
+                            {"id": "business.data.organization-panel"}
+                        ],
+                        "venue": [{"id": "business.venue.amj"}],
+                        "theory_or_construct": [
+                            {"id": "business.construct.capability"}
+                        ],
+                    },
+                )
+            },
+        ), patch(
+            "tooling.scripts.evaluate_subject_router.evaluate_cases",
+            return_value=_successful_eval_report(),
+        ):
+            report = subject_gate_report("business", cases, gate="eval-ready")
+
+        self.assertFalse(report["eligible_for_eval_ready"])
+        self.assertIn(
+            "evaluation_pack subject mismatch: expected business, found accounting",
+            report["blocking_failures"],
+        )
+
     def test_eval_ready_gate_accepts_eval_ready_subject_without_runtime_activation(self) -> None:
         cases = [
             _gate_case("accounting_clear", ["clear_positive"]),
@@ -807,7 +955,14 @@ class SubjectRouterEvalTests(unittest.TestCase):
         with patch(
             "tooling.scripts.evaluate_subject_router.load_runtime_subject_contracts",
             return_value={
-                "finance": _finance_contract(activation_status="eval_ready")
+                "finance": _finance_contract(
+                    activation_status="eval_ready",
+                    signal_groups={
+                        "method": [{"id": "finance.method.event-study"}],
+                        "data_or_outcome": [],
+                        "venue": [],
+                    },
+                )
             },
         ), patch(
             "tooling.scripts.evaluate_subject_router.evaluate_cases",

@@ -12,7 +12,7 @@ signal_groups:
   venue: []
   theory_or_construct: []
 method_lenses: {}
-evaluation_pack: tests/fixtures/subject_router_eval/accounting
+evaluation_pack: ""
 near_miss_policy:
   forbidden_subjects:
     - finance

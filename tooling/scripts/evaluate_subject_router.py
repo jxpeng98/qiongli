@@ -48,6 +48,12 @@ REQUIRED_SIGNAL_DIMENSIONS_BY_SUBJECT = {
         "theory_or_construct",
     ),
 }
+ONBOARDING_SIGNAL_DIMENSIONS = (
+    "method",
+    "data_or_outcome",
+    "venue",
+    "theory_or_construct",
+)
 
 
 @dataclass(frozen=True)
@@ -258,6 +264,11 @@ def subject_gate_report(
     if gate == "eval-ready":
         if activation_status != "eval_ready":
             blocking_failures.append(f"activation_status is {activation_status}")
+        if contract is not None:
+            blocking_failures.extend(_evaluation_pack_onboarding_failures(contract))
+            blocking_failures.extend(
+                _missing_empty_shell_signal_dimension_failures(contract)
+            )
         if contract is not None and activation_status == "eval_ready":
             blocking_failures.extend(_missing_eval_ready_resource_failures(contract))
             blocking_failures.extend(_missing_signal_dimension_failures(contract))
@@ -323,6 +334,56 @@ def _contract_thresholds(contract: Any | None) -> Mapping[str, float]:
             continue
         thresholds[str(metric)] = float(threshold)
     return thresholds or DEFAULT_THRESHOLDS
+
+
+def _evaluation_pack_onboarding_failures(contract: Any) -> list[str]:
+    evaluation_pack = getattr(contract, "evaluation_pack", "")
+    if not isinstance(evaluation_pack, str) or not evaluation_pack.strip():
+        return ["missing evaluation_pack for deferred subject"]
+
+    actual_subject = _subject_specific_evaluation_pack_subject(evaluation_pack)
+    expected_subject = str(getattr(contract, "subject", "") or "")
+    if actual_subject and expected_subject and actual_subject != expected_subject:
+        return [
+            "evaluation_pack subject mismatch: "
+            f"expected {expected_subject}, found {actual_subject}"
+        ]
+    return []
+
+
+def _subject_specific_evaluation_pack_subject(evaluation_pack: str) -> str:
+    parts = Path(evaluation_pack.strip()).parts
+    marker = ("tests", "fixtures", "subject_router_eval")
+    for index in range(0, len(parts) - len(marker) + 1):
+        if tuple(parts[index : index + len(marker)]) != marker:
+            continue
+        tail = parts[index + len(marker) :]
+        return tail[0] if tail else ""
+    return ""
+
+
+def _missing_empty_shell_signal_dimension_failures(contract: Any) -> list[str]:
+    activation_status = str(getattr(contract, "activation_status", "") or "")
+    if activation_status == "runtime_enabled":
+        return []
+
+    signal_groups = getattr(contract, "signal_groups", {})
+    if _has_any_signal_group_entry(signal_groups):
+        return []
+    return [
+        f"missing signal dimension: {dimension}"
+        for dimension in ONBOARDING_SIGNAL_DIMENSIONS
+    ]
+
+
+def _has_any_signal_group_entry(signal_groups: Any) -> bool:
+    if not isinstance(signal_groups, Mapping):
+        return False
+    return any(
+        isinstance(entries, list)
+        and any(isinstance(entry, Mapping) for entry in entries)
+        for entries in signal_groups.values()
+    )
 
 
 def _missing_eval_ready_resource_failures(contract: Any) -> list[str]:
