@@ -169,6 +169,7 @@ class SubjectSignals:
 @dataclass(frozen=True)
 class RuntimeSubjectMatch:
     subject: str
+    activation_status: str
     dimensions: tuple[str, ...]
     subject_level_dimensions: tuple[str, ...]
     method_lenses: tuple[str, ...]
@@ -409,26 +410,23 @@ def infer_subject_refinement(
             signals=signals.signals,
         )
 
-    accounting_match = signals.runtime_subject_matches.get("accounting")
-    accounting_runtime_enabled = _subject_can_be_suggested(
-        "accounting",
+    runtime_subject_match = _runtime_subject_suggestion_match(
+        signals,
         evaluation_subjects=evaluation_subjects,
     )
-    if (
-        accounting_match is not None
-        and accounting_match.has_subject_strength
-        and accounting_runtime_enabled
-    ):
-        method_lenses = _unique(list(accounting_match.method_lenses))
-        borrowed_lenses = _borrowed_lenses("accounting", signals)
+    if runtime_subject_match is not None:
+        subject = runtime_subject_match.subject
+        method_lenses = _unique(list(runtime_subject_match.method_lenses))
+        borrowed_lenses = _borrowed_lenses(subject, signals)
         return _packet(
             decision="suggest_subject",
             mode="suggested",
             active_subject=manifest.active_subject,
-            primary_subject="accounting",
+            primary_subject=subject,
             secondary_subjects=list(manifest.secondary_subjects or []),
             candidate_subjects=_candidate_subjects(
                 signals,
+                preferred=subject,
                 evaluation_subjects=evaluation_subjects,
             ),
             method_lenses=method_lenses,
@@ -436,57 +434,20 @@ def infer_subject_refinement(
             loaded_resources=_loaded_resources(
                 ["subject_overlay", "subject_skill", "method_pack"]
                 + (["method_pack_only"] if borrowed_lenses else []),
-                primary_subject="accounting",
+                primary_subject=subject,
                 method_lenses=method_lenses,
                 borrowed_lenses=borrowed_lenses,
                 contract=contract,
                 contract_warnings=contract_warnings,
+                activation_statuses={subject: runtime_subject_match.activation_status},
             ),
             persistence={"status": "proposed"},
             summary=(
-                "Accounting subject measured from archival method, construct, "
-                "data, and venue signals."
+                f"{subject.title()} subject measured from manifest-backed "
+                "method, context, and subject-level signals."
             ),
-            domain="accounting",
+            domain=_domain_for_subject(subject),
             confidence=0.75,
-            evidence=signals.evidence,
-            signals=signals.signals,
-        )
-
-    if (
-        accounting_match is not None
-        and accounting_match.method_lenses
-        and manifest.active_subject != "accounting"
-    ):
-        borrowed_lenses = _borrowed_lenses(manifest.active_subject, signals)
-        return _packet(
-            decision="borrow_lens",
-            mode="auto",
-            active_subject=manifest.active_subject,
-            primary_subject=manifest.active_subject,
-            secondary_subjects=list(manifest.secondary_subjects or []),
-            candidate_subjects=_candidate_subjects(
-                signals,
-                evaluation_subjects=evaluation_subjects,
-            ),
-            method_lenses=_unique(list(manifest.method_lenses or [])),
-            borrowed_lenses=borrowed_lenses,
-            loaded_resources=_loaded_resources(
-                ["method_pack_only"],
-                primary_subject=manifest.active_subject,
-                method_lenses=[],
-                borrowed_lenses=borrowed_lenses,
-                contract=contract,
-                contract_warnings=contract_warnings,
-            ),
-            persistence={"status": "temporary"},
-            summary=_summary(
-                "Borrowing accounting method lens without changing the project subject.",
-                manifest.active_subject,
-                borrowed_lenses,
-            ),
-            domain=_domain_for_subject(manifest.active_subject),
-            confidence=0.45,
             evidence=signals.evidence,
             signals=signals.signals,
         )
@@ -552,6 +513,47 @@ def infer_subject_refinement(
             persistence={"status": "temporary"},
             summary=_summary(
                 "Borrowing economics method lens without changing the project subject.",
+                manifest.active_subject,
+                borrowed_lenses,
+            ),
+            domain=_domain_for_subject(manifest.active_subject),
+            confidence=0.45,
+            evidence=signals.evidence,
+            signals=signals.signals,
+        )
+
+    runtime_subject_borrow_match = _runtime_subject_borrow_match(
+        signals,
+        active_subject=manifest.active_subject,
+    )
+    if runtime_subject_borrow_match is not None:
+        borrowed_lenses = _borrowed_lenses(manifest.active_subject, signals)
+        return _packet(
+            decision="borrow_lens",
+            mode="auto",
+            active_subject=manifest.active_subject,
+            primary_subject=manifest.active_subject,
+            secondary_subjects=list(manifest.secondary_subjects or []),
+            candidate_subjects=_candidate_subjects(
+                signals,
+                evaluation_subjects=evaluation_subjects,
+            ),
+            method_lenses=_unique(list(manifest.method_lenses or [])),
+            borrowed_lenses=borrowed_lenses,
+            loaded_resources=_loaded_resources(
+                ["method_pack_only"],
+                primary_subject=manifest.active_subject,
+                method_lenses=[],
+                borrowed_lenses=borrowed_lenses,
+                contract=contract,
+                contract_warnings=contract_warnings,
+            ),
+            persistence={"status": "temporary"},
+            summary=_summary(
+                (
+                    f"Borrowing {runtime_subject_borrow_match.subject} method lens "
+                    "without changing the project subject."
+                ),
                 manifest.active_subject,
                 borrowed_lenses,
             ),
@@ -716,16 +718,10 @@ def _detect_manifest_signal_records(
                 not in {"method_only", "context_only"}
             ]
         )
-        method_lenses = _unique(
-            [
-                str(record["value"])
-                for record in subject_records
-                if record["dimension"] == "method"
-                and str(record["value"]) in contract.method_lenses
-            ]
-        )
+        method_lenses = _runtime_subject_method_lenses(contract, subject_records)
         matches[subject] = RuntimeSubjectMatch(
             subject=subject,
+            activation_status=contract.activation_status,
             dimensions=tuple(dimensions),
             subject_level_dimensions=tuple(subject_level_dimensions),
             method_lenses=tuple(method_lenses),
@@ -733,6 +729,27 @@ def _detect_manifest_signal_records(
             signal_ids=tuple(_unique([str(record["id"]) for record in subject_records])),
         )
     return _unique_records(records, key="id"), matches, warnings
+
+
+def _runtime_subject_method_lenses(
+    contract: RuntimeSubjectContract,
+    subject_records: list[dict[str, Any]],
+) -> list[str]:
+    lenses: list[str] = []
+    for record in subject_records:
+        declared_lenses = record.get("method_lenses", [])
+        if isinstance(declared_lenses, list):
+            lenses.extend(
+                str(lens)
+                for lens in declared_lenses
+                if isinstance(lens, str) and str(lens) in contract.method_lenses
+            )
+        if (
+            str(record.get("dimension", "")) == "method"
+            and str(record.get("value", "")) in contract.method_lenses
+        ):
+            lenses.append(str(record["value"]))
+    return _unique(lenses)
 
 
 def _safe_load_runtime_subject_contracts() -> tuple[dict[str, RuntimeSubjectContract], list[str]]:
@@ -754,6 +771,11 @@ def _manifest_records_for_contract(
             entry_id = entry.get("id")
             value = entry.get("value")
             patterns = entry.get("patterns", [])
+            method_lenses = [
+                str(lens)
+                for lens in list(entry.get("method_lenses", []) or [])
+                if isinstance(lens, str) and lens.strip()
+            ]
             if not isinstance(entry_id, str) or not isinstance(value, str):
                 continue
             if not isinstance(patterns, list):
@@ -776,6 +798,7 @@ def _manifest_records_for_contract(
                         "value": value,
                         "weight": _coerce_signal_weight(entry.get("weight", 0.0)),
                         "activation": str(entry.get("activation", "subject") or "subject"),
+                        "method_lenses": method_lenses,
                         "source": "task_text",
                         "snippet": _snippet_for_match(text, match),
                     }
@@ -881,6 +904,34 @@ def _candidate_subjects(
         for subject in _unique(subjects)
         if _subject_can_be_suggested(subject, evaluation_subjects=evaluation_subjects)
     ]
+
+
+def _runtime_subject_suggestion_match(
+    signals: SubjectSignals,
+    *,
+    evaluation_subjects: set[str],
+) -> RuntimeSubjectMatch | None:
+    for subject, match in signals.runtime_subject_matches.items():
+        if (
+            match.has_subject_strength
+            and _subject_can_be_suggested(
+                subject,
+                evaluation_subjects=evaluation_subjects,
+            )
+        ):
+            return match
+    return None
+
+
+def _runtime_subject_borrow_match(
+    signals: SubjectSignals,
+    *,
+    active_subject: str,
+) -> RuntimeSubjectMatch | None:
+    for subject, match in signals.runtime_subject_matches.items():
+        if subject != active_subject and match.method_lenses:
+            return match
+    return None
 
 
 def _candidate_subject_record(subject: str, signals: SubjectSignals) -> dict[str, Any]:
@@ -1009,6 +1060,7 @@ def _loaded_resources(
     borrowed_lenses: list[dict[str, Any]],
     contract: Mapping[str, Any],
     contract_warnings: list[str],
+    activation_statuses: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     overlays = _subject_resource_map(contract, "overlays", DEFAULT_OVERLAYS)
     subject_skills = _subject_resource_map(
@@ -1021,7 +1073,10 @@ def _loaded_resources(
         method_lenses + _borrowed_lens_names(borrowed_lenses),
         method_packs,
     )
-    activation_enabled, activation_warnings = _subject_level_resources_enabled(primary_subject)
+    activation_enabled, activation_warnings = _subject_level_resources_enabled(
+        primary_subject,
+        activation_statuses=activation_statuses,
+    )
     warnings = list(contract_warnings) + activation_warnings
     loaded_levels = list(levels)
     if not activation_enabled:
@@ -1055,10 +1110,18 @@ def _loaded_resources(
     }
 
 
-def _subject_level_resources_enabled(subject: str) -> tuple[bool, list[str]]:
+def _subject_level_resources_enabled(
+    subject: str,
+    *,
+    activation_statuses: Mapping[str, str] | None = None,
+) -> tuple[bool, list[str]]:
     if subject in {"auto", "core"}:
         return True, []
-    status = _runtime_activation_status(subject)
+    status = (
+        activation_statuses[subject]
+        if activation_statuses is not None and subject in activation_statuses
+        else _runtime_activation_status(subject)
+    )
     if status == "runtime_enabled":
         return True, []
     return False, [

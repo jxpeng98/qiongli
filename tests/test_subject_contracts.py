@@ -435,8 +435,9 @@ class RuntimeSubjectContractTests(unittest.TestCase):
             "runtime_enabled",
         )
         self.assertIn("accounting", contracts)
+        self.assertEqual(subject_activation_status("business", contracts), "eval_ready")
+        self.assertIn("business", contracts)
         for subject in {
-            "business",
             "political-economy",
             "geoeconomics",
             "economics-accounting",
@@ -447,7 +448,6 @@ class RuntimeSubjectContractTests(unittest.TestCase):
     def test_default_deferred_candidate_subjects_are_manifest_shells(self) -> None:
         contracts = load_runtime_subject_contracts()
         deferred_subjects = {
-            "business",
             "political-economy",
             "geoeconomics",
             "economics-accounting",
@@ -546,6 +546,53 @@ class RuntimeSubjectContractTests(unittest.TestCase):
             except ValueError:
                 self.fail(f"{declared_path} escapes the repository")
             self.assertTrue(resolved_path.exists(), declared_path)
+
+    def test_business_eval_ready_manifest_declares_signals_and_method_lenses(self) -> None:
+        contracts = load_runtime_subject_contracts()
+        contract = contracts["business"]
+
+        self.assertEqual(contract.activation_status, "eval_ready")
+        self.assertEqual(
+            contract.evaluation_pack,
+            "tests/fixtures/subject_router_eval/business",
+        )
+        self.assertEqual(
+            set(contract.signal_groups),
+            {"method", "data_or_outcome", "venue", "theory_or_construct"},
+        )
+        valid_activations = {"subject", "method_only", "context_only"}
+        for dimension in ("method", "data_or_outcome", "venue", "theory_or_construct"):
+            self.assertTrue(contract.signal_groups[dimension], dimension)
+            for entry in contract.signal_groups[dimension]:
+                with self.subTest(dimension=dimension, signal_id=entry.get("id")):
+                    self.assertIsInstance(entry["id"], str)
+                    self.assertTrue(entry["id"].strip())
+                    self.assertIsInstance(entry["value"], str)
+                    self.assertTrue(entry["value"].strip())
+                    self.assertIsInstance(entry["weight"], (int, float))
+                    self.assertGreater(entry["weight"], 0)
+                    self.assertIn(entry["activation"], valid_activations)
+                    for field in ("patterns", "examples", "near_misses"):
+                        self.assertIsInstance(entry[field], list)
+                        self.assertTrue(entry[field], field)
+                        for value in entry[field]:
+                            self.assertIsInstance(value, str)
+                            self.assertTrue(value.strip(), field)
+                    for pattern in entry["patterns"]:
+                        re.compile(pattern, re.I)
+        self.assertIn("business-positioning", contract.method_lenses)
+        self.assertIn("qualitative-transparency", contract.method_lenses)
+        self.assertIn("construct-level-fit", contract.method_lenses)
+        for lens in contract.method_lenses.values():
+            self.assertEqual(lens["activation"], "method_only")
+        self.assertEqual(
+            contract.activation_gate["required_metrics"],
+            {
+                "primary_subject_accuracy": 0.95,
+                "suggest_subject_precision": 0.95,
+                "near_miss_false_positives": 0,
+            },
+        )
 
     def test_runtime_enabled_subjects_declare_gate_metrics(self) -> None:
         contracts = load_runtime_subject_contracts()

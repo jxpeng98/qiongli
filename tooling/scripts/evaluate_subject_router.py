@@ -47,6 +47,12 @@ REQUIRED_SIGNAL_DIMENSIONS_BY_SUBJECT = {
         "venue",
         "theory_or_construct",
     ),
+    "business": (
+        "method",
+        "data_or_outcome",
+        "venue",
+        "theory_or_construct",
+    ),
 }
 ONBOARDING_SIGNAL_DIMENSIONS = (
     "method",
@@ -232,12 +238,8 @@ def subject_gate_report(
     contract = contracts.get(subject)
     activation_status = contract.activation_status if contract else "candidate"
     thresholds = _contract_thresholds(contract)
-    subject_cases = [
-        case
-        for case in cases
-        if case.subject_under_test == subject or subject in list(case.tags or [])
-    ]
-    evaluation_subjects = [subject] if gate == "eval-ready" else None
+    subject_cases = _subject_gate_cases(subject, cases)
+    evaluation_subjects = _evaluation_subjects_for_gate(subject, gate)
     report = (
         evaluate_cases(
             subject_cases,
@@ -291,6 +293,18 @@ def subject_gate_report(
         "metrics": report["metrics"],
         "blocking_failures": blocking_failures,
     }
+
+
+def _subject_gate_cases(subject: str, cases: list[EvalCase]) -> list[EvalCase]:
+    return [
+        case
+        for case in cases
+        if case.subject_under_test == subject or subject in list(case.tags or [])
+    ]
+
+
+def _evaluation_subjects_for_gate(subject: str, gate: str) -> list[str] | None:
+    return [subject] if gate == "eval-ready" else None
 
 
 def _infer_subject_refinement(
@@ -524,13 +538,30 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         cases = load_eval_cases(args.fixture_dir)
-        report = evaluate_cases(
-            cases,
-            gate=args.gate,
-        )
         if args.subject and args.gate:
+            subject_cases = _subject_gate_cases(args.subject, cases)
+            contracts = load_runtime_subject_contracts()
+            contract = contracts.get(args.subject)
+            report = (
+                evaluate_cases(
+                    subject_cases,
+                    thresholds=_contract_thresholds(contract),
+                    gate=args.gate,
+                    evaluation_subjects=_evaluation_subjects_for_gate(
+                        args.subject,
+                        args.gate,
+                    ),
+                )
+                if subject_cases
+                else _empty_eval_report()
+            )
             report["subject_gate"] = subject_gate_report(
                 args.subject,
+                cases,
+                gate=args.gate,
+            )
+        else:
+            report = evaluate_cases(
                 cases,
                 gate=args.gate,
             )

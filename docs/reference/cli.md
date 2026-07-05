@@ -307,8 +307,12 @@ uv run python tooling/scripts/evaluate_subject_router.py \
 
 `eligible_for_eval_ready: true` means the subject has a passing fixture pack and
 metadata that maintainers can review. It does not allow adaptive runtime
-suggestions. Business, political economy, geoeconomics, and
-economics-accounting remain future eval-ready candidates.
+suggestions. Business is the current eval-ready subject. Political economy,
+geoeconomics, and economics-accounting remain future eval-ready candidates.
+
+When `--subject` and `--gate` are both set, JSON top-level `case_count`,
+`metrics`, and `threshold_failures` are scoped to that subject gate; the
+`subject_gate` object reports the activation eligibility decision.
 
 In the full Python runtime, `qiongli install` defaults to `--profile full --surface plugin` from v1.9.0 onward. For Codex, the CLI writes a personal marketplace entry, places the plugin payload at `~/plugins/qiongli`, writes plugin `.mcp.json` that launches `qiongli mcp serve --transport stdio`, and runs `codex plugin add qiongli@personal` when the Codex CLI is available. For Claude Code, it writes a local marketplace under `~/.qiongli/plugins/claude-code`, places the plugin payload at `plugins/qiongli`, and runs `claude plugin marketplace add ...` plus `claude plugin install qiongli@qiongli-local --scope user` when the Claude CLI is available. For Antigravity, it writes a root `plugin.json` plugin bundle under `~/.qiongli/plugins/antigravity/qiongli`, writes the full MCP server config to the plugin root `mcp_config.json`, and runs `antigravity plugin install <path>` when available. With `--target all`, Codex/Claude Code/Antigravity use local plugins while Hermes receives managed full MCP client config. Marketplace-installed plugins stay on the lite no-Python path with the bundled Node literature provider. Use `--surface skills --profile partial` for the old skills-only layout. npm/npx defaults to skills and only writes plugin-lite assets when explicitly requested with `--surface plugin` or `--surface both`.
 

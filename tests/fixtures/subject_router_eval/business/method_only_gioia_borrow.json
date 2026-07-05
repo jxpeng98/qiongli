@@ -1,0 +1,29 @@
+{
+  "id": "business_method_only_gioia_borrow",
+  "subject_under_test": "business",
+  "tags": [
+    "business",
+    "method_only_borrow"
+  ],
+  "description": "Gioia method wording borrows a business qualitative lens without suggesting business.",
+  "request": "Use the Gioia method with first-order concepts, second-order themes, and aggregate dimensions to organize qualitative coding, but do not change the project subject.",
+  "manifest": {
+    "active_subject": "auto",
+    "subject_mode": "auto",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "recommend",
+    "primary_subject": "auto",
+    "suggest_subjects": [],
+    "forbidden_subjects": [
+      "business"
+    ],
+    "method_lenses": [
+      "qualitative-transparency"
+    ]
+  }
+}

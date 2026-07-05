@@ -1,0 +1,42 @@
+{
+  "id": "business_confirmed_journal_positioning",
+  "subject_under_test": "business",
+  "tags": [
+    "business",
+    "confirmed_subject"
+  ],
+  "description": "Confirmed business project remains business while eval-ready subject resources are withheld from runtime loading.",
+  "request": "Tighten the Academy of Management Journal positioning, management theory contribution, construct clarity, and boundary conditions for this business manuscript.",
+  "manifest": {
+    "active_subject": "business",
+    "subject_mode": "confirmed",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [
+      "business-positioning"
+    ],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "recommend",
+    "primary_subject": "business",
+    "suggest_subjects": [],
+    "forbidden_subjects": [],
+    "method_lenses": [
+      "business-positioning"
+    ]
+  },
+  "gate_expected": {
+    "eval-ready": {
+      "decision": "recommend",
+      "primary_subject": "business",
+      "suggest_subjects": [
+        "business"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "business-positioning"
+      ]
+    }
+  }
+}

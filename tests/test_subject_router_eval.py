@@ -321,6 +321,36 @@ class SubjectRouterEvalTests(unittest.TestCase):
                 "confirmed_subject",
             }.issubset(accounting_tags)
         )
+        required_business_ids = {
+            "business_clear_management_theory_case_study",
+            "business_clear_marketing_platform_experiment",
+            "business_method_only_gioia_borrow",
+            "business_mixed_finance_strategy_returns",
+            "business_locked_economics_borrow_positioning",
+            "business_confirmed_journal_positioning",
+            "business_near_miss_small_business_plan",
+            "business_near_miss_consulting_market_analysis",
+            "business_near_miss_product_launch_practitioner",
+            "business_near_miss_marketing_channel_sales_enablement",
+            "business_near_miss_project_management_workflow",
+            "business_near_miss_teaching_case_assignment",
+        }
+        self.assertTrue(required_business_ids.issubset(set(ids)))
+        business_tags = {
+            tag
+            for case_id in required_business_ids
+            for tag in list(cases_by_id[case_id].tags or [])
+        }
+        self.assertTrue(
+            {
+                "clear_positive",
+                "method_only_borrow",
+                "mixed_subject",
+                "near_miss",
+                "locked_subject",
+                "confirmed_subject",
+            }.issubset(business_tags)
+        )
         for case_id in {
             "accounting_clear_discretionary_accruals",
             "accounting_mixed_reporting_returns",
@@ -726,6 +756,28 @@ class SubjectRouterEvalTests(unittest.TestCase):
         self.assertEqual(report["blocking_failures"], [])
         self.assertEqual(report["metrics"]["near_miss_false_positives"], 0)
 
+    def test_business_eval_ready_gate_passes_real_fixture_pack(self) -> None:
+        cases = load_eval_cases(FIXTURE_DIR)
+
+        report = subject_gate_report("business", cases, gate="eval-ready")
+
+        self.assertEqual(report["subject"], "business")
+        self.assertEqual(report["activation_status"], "eval_ready")
+        self.assertTrue(report["eligible_for_eval_ready"])
+        self.assertFalse(report["eligible_for_runtime_enabled"])
+        self.assertEqual(report["blocking_failures"], [])
+        self.assertEqual(report["metrics"]["near_miss_false_positives"], 0)
+
+    def test_business_runtime_enabled_gate_blocks_eval_ready_manifest(self) -> None:
+        cases = load_eval_cases(FIXTURE_DIR)
+
+        report = subject_gate_report("business", cases, gate="runtime-enabled")
+
+        self.assertEqual(report["activation_status"], "eval_ready")
+        self.assertFalse(report["eligible_for_eval_ready"])
+        self.assertFalse(report["eligible_for_runtime_enabled"])
+        self.assertIn("activation_status is eval_ready", report["blocking_failures"])
+
     def test_economics_runtime_enabled_gate_passes_real_fixture_pack(self) -> None:
         cases = load_eval_cases(FIXTURE_DIR)
 
@@ -746,7 +798,6 @@ class SubjectRouterEvalTests(unittest.TestCase):
     def test_candidate_subject_eval_ready_gate_reports_deferred_shell_reasons(self) -> None:
         cases = load_eval_cases(FIXTURE_DIR)
         deferred_subjects = (
-            "business",
             "political-economy",
             "geoeconomics",
             "economics-accounting",
@@ -1157,12 +1208,13 @@ class SubjectRouterEvalTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertTrue(report["subject_gate"]["eligible_for_eval_ready"])
 
-    def test_main_subject_gate_exit_ignores_global_threshold_failures(self) -> None:
+    def test_main_subject_gate_report_is_subject_scoped(self) -> None:
         stdout = io.StringIO()
         cases = [
             _gate_case("accounting_clear", ["clear_positive"]),
             _gate_case("accounting_method", ["method_only_borrow"]),
             _gate_case("accounting_near_miss", ["near_miss"]),
+            _subject_gate_case("finance", "finance_global", ["clear_positive"]),
         ]
         calls: list[dict[str, Any]] = []
 
@@ -1181,12 +1233,9 @@ class SubjectRouterEvalTests(unittest.TestCase):
                     "evaluation_subjects": evaluation_subjects,
                 }
             )
-            if len(calls) == 1:
-                report = _successful_eval_report()
-                report["threshold_failures"] = [
-                    {"metric": "global_fixture_failure"},
-                ]
-                return report
+            self.assertTrue(
+                all(case.subject_under_test == "accounting" for case in selected_cases)
+            )
             return _successful_eval_report()
 
         with patch(
@@ -1209,12 +1258,24 @@ class SubjectRouterEvalTests(unittest.TestCase):
 
         report = json.loads(stdout.getvalue())
         self.assertEqual(exit_code, 0)
-        self.assertEqual(
-            report["threshold_failures"],
-            [{"metric": "global_fixture_failure"}],
-        )
-        self.assertIsNone(calls[0]["evaluation_subjects"])
+        self.assertEqual(report["threshold_failures"], [])
+        self.assertEqual(calls[0]["case_count"], 3)
+        self.assertEqual(calls[0]["evaluation_subjects"], ["accounting"])
         self.assertEqual(calls[1]["evaluation_subjects"], ["accounting"])
+
+    def test_main_business_eval_ready_gate_json_has_consistent_thresholds(self) -> None:
+        stdout = io.StringIO()
+
+        with contextlib.redirect_stdout(stdout):
+            exit_code = main(
+                ["--subject", "business", "--gate", "eval-ready", "--json"]
+            )
+
+        report = json.loads(stdout.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(report["threshold_failures"], [])
+        self.assertEqual(report["case_count"], report["subject_gate"]["case_count"])
+        self.assertTrue(report["subject_gate"]["eligible_for_eval_ready"])
 
     def test_subject_gate_report_uses_subject_scoped_threshold_failures(self) -> None:
         fixtures = {case.id: case for case in load_eval_cases(FIXTURE_DIR)}

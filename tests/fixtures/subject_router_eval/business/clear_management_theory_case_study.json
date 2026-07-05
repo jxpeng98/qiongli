@@ -1,0 +1,59 @@
+{
+  "id": "business_clear_management_theory_case_study",
+  "subject_under_test": "business",
+  "tags": [
+    "business",
+    "clear_positive"
+  ],
+  "description": "Management theory case-study request with method, fieldwork, venue, and construct signals.",
+  "request": "Design a multiple case study using interviews with managers, fieldnotes, and archival documents to develop a management theory contribution about organizational routines, construct clarity, and boundary conditions for Academy of Management Journal business journal positioning.",
+  "manifest": {
+    "active_subject": "auto",
+    "subject_mode": "auto",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "recommend",
+    "primary_subject": "auto",
+    "suggest_subjects": [],
+    "forbidden_subjects": [
+      "business"
+    ],
+    "method_lenses": [
+      "business-positioning",
+      "qualitative-transparency",
+      "construct-level-fit"
+    ]
+  },
+  "gate_expected": {
+    "eval-ready": {
+      "decision": "recommend",
+      "primary_subject": "business",
+      "suggest_subjects": [
+        "business"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "business-positioning",
+        "qualitative-transparency",
+        "construct-level-fit"
+      ]
+    },
+    "runtime-enabled": {
+      "decision": "recommend",
+      "primary_subject": "auto",
+      "suggest_subjects": [],
+      "forbidden_subjects": [
+        "business"
+      ],
+      "method_lenses": [
+        "business-positioning",
+        "qualitative-transparency",
+        "construct-level-fit"
+      ]
+    }
+  }
+}
