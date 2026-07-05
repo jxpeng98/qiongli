@@ -147,11 +147,16 @@ uv run python tooling/scripts/evaluate_subject_router.py \
   --subject business \
   --gate eval-ready \
   --json
+uv run python tooling/scripts/evaluate_subject_router.py \
+  --subject business \
+  --gate promotion-ready \
+  --json
 ```
 
 The default router evaluation and accounting runtime-enabled gate must pass for
-release. Business eval-ready should also pass while business remains below
-runtime activation.
+release. Business eval-ready should pass while business remains below runtime
+activation. Business promotion-ready is an optional pre-activation review gate;
+it should pass before a separate business runtime activation PR.
 
 Business is eval-ready. Political economy, geoeconomics, and
 economics-accounting remain future eval-ready candidates.
@@ -159,8 +164,10 @@ economics-accounting remain future eval-ready candidates.
 For subject-scoped JSON, top-level `case_count`, `metrics`, and
 `threshold_failures` are filtered to the requested subject gate. Read
 `subject_gate.eligible_for_eval_ready` or
-`subject_gate.eligible_for_runtime_enabled` for the activation decision and
-treat the command exit code as authoritative: default eval exits 0, accounting
+`subject_gate.eligible_for_runtime_promotion` or
+`subject_gate.eligible_for_runtime_enabled` for the gate eligibility decision.
+Only `eligible_for_runtime_enabled` represents runtime activation eligibility.
+Treat the command exit code as authoritative: default eval exits 0, accounting
 runtime-enabled exits 0, and future candidate eval-ready checks should exit 0
 only after their fixture packs and metadata are ready for review.
 

@@ -557,6 +557,10 @@ class RuntimeSubjectContractTests(unittest.TestCase):
             "tests/fixtures/subject_router_eval/business",
         )
         self.assertEqual(
+            contract.subject_skill,
+            "content/subjects/business/skills/business-journal-positioning-auditor.md",
+        )
+        self.assertEqual(
             set(contract.signal_groups),
             {"method", "data_or_outcome", "venue", "theory_or_construct"},
         )

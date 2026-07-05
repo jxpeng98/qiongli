@@ -154,7 +154,9 @@ def _business_contract(
     activation_status: str = "candidate",
     source: str | Path | None = None,
     evaluation_pack: str = "",
+    subject_skill: str = "",
     signal_groups: Mapping[str, list[Mapping[str, Any]]] | None = None,
+    method_lenses: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> RuntimeSubjectContract:
     return RuntimeSubjectContract(
         subject="business",
@@ -166,7 +168,7 @@ def _business_contract(
         ),
         domain_profile="content/skills/domain-profiles/business-management.yaml",
         overlay="",
-        subject_skill="",
+        subject_skill=subject_skill,
         signal_groups={
             key: [dict(item) for item in value]
             for key, value in (
@@ -179,7 +181,10 @@ def _business_contract(
                 }
             ).items()
         },
-        method_lenses={},
+        method_lenses={
+            key: dict(value)
+            for key, value in dict(method_lenses or {}).items()
+        },
         evaluation_pack=evaluation_pack,
         near_miss_policy={"forbidden_subjects": ["finance", "economics"]},
         activation_gate={
@@ -324,15 +329,19 @@ class SubjectRouterEvalTests(unittest.TestCase):
         required_business_ids = {
             "business_clear_management_theory_case_study",
             "business_clear_marketing_platform_experiment",
+            "business_clear_organization_panel_manager_survey",
+            "business_clear_strategic_management_capabilities",
             "business_method_only_gioia_borrow",
             "business_mixed_finance_strategy_returns",
             "business_locked_economics_borrow_positioning",
             "business_confirmed_journal_positioning",
+            "business_near_miss_customer_segmentation_sales_forecast",
             "business_near_miss_small_business_plan",
             "business_near_miss_consulting_market_analysis",
             "business_near_miss_product_launch_practitioner",
             "business_near_miss_marketing_channel_sales_enablement",
             "business_near_miss_project_management_workflow",
+            "business_near_miss_strategy_competitive_advantage_memo",
             "business_near_miss_teaching_case_assignment",
         }
         self.assertTrue(required_business_ids.issubset(set(ids)))
@@ -1179,6 +1188,85 @@ class SubjectRouterEvalTests(unittest.TestCase):
         )
         self.assertEqual(report["threshold_failures"], [])
 
+    def test_evaluate_cases_passes_activation_overrides_and_uses_promotion_expected(self) -> None:
+        case = EvalCase(
+            id="business_promotion_plumbing",
+            description="promotion plumbing case",
+            request="Design a business management theory case study.",
+            manifest={
+                "active_subject": "auto",
+                "subject_mode": "auto",
+                "secondary_subjects": [],
+                "venue_profiles": [],
+                "method_lenses": [],
+                "strictness": "standard",
+            },
+            expected={
+                "decision": "recommend",
+                "primary_subject": "auto",
+                "suggest_subjects": [],
+                "forbidden_subjects": [],
+                "method_lenses": [],
+            },
+            source="inline.json",
+            subject_under_test="business",
+            tags=["business", "clear_positive"],
+            gate_expected={
+                "promotion-ready": {
+                    "decision": "recommend",
+                    "primary_subject": "business",
+                    "suggest_subjects": ["business"],
+                    "forbidden_subjects": [],
+                    "method_lenses": ["business-positioning"],
+                }
+            },
+        )
+        captured: dict[str, Any] = {}
+
+        class FakePacket:
+            def to_packet(self) -> dict[str, Any]:
+                return {
+                    "decision": "suggest_subject",
+                    "primary_subject": "business",
+                    "candidate_subjects": [{"subject": "business"}],
+                    "method_lenses": ["business-positioning"],
+                    "borrowed_lenses": [],
+                }
+
+        def fake_infer(
+            task_packet: Mapping[str, Any],
+            *,
+            manifest_state: ProjectManifest,
+            evaluation_subjects: set[str] | None = None,
+            activation_status_overrides: Mapping[str, str] | None = None,
+        ) -> FakePacket:
+            captured["task_packet"] = task_packet
+            captured["manifest_state"] = manifest_state
+            captured["evaluation_subjects"] = evaluation_subjects
+            captured["activation_status_overrides"] = activation_status_overrides
+            return FakePacket()
+
+        with patch(
+            "tooling.scripts.evaluate_subject_router._infer_subject_refinement",
+            side_effect=fake_infer,
+        ):
+            report = evaluate_cases(
+                [case],
+                gate="promotion-ready",
+                activation_status_overrides={"business": "runtime_enabled"},
+            )
+
+        self.assertIsNone(captured["evaluation_subjects"])
+        self.assertEqual(
+            captured["activation_status_overrides"],
+            {"business": "runtime_enabled"},
+        )
+        self.assertEqual(
+            report["cases"][0]["expected"]["primary_subject"],
+            "business",
+        )
+        self.assertEqual(report["threshold_failures"], [])
+
     def test_main_subject_eval_ready_gate_uses_eval_ready_eligibility(self) -> None:
         stdout = io.StringIO()
 
@@ -1207,6 +1295,161 @@ class SubjectRouterEvalTests(unittest.TestCase):
         report = json.loads(stdout.getvalue())
         self.assertEqual(exit_code, 0)
         self.assertTrue(report["subject_gate"]["eligible_for_eval_ready"])
+
+    def test_promotion_ready_gate_accepts_eval_ready_subject_with_runtime_override(self) -> None:
+        cases = [
+            _subject_gate_case("business", "business_clear", ["clear_positive"]),
+            _subject_gate_case("business", "business_method", ["method_only_borrow"]),
+            _subject_gate_case("business", "business_near_miss", ["near_miss"]),
+        ]
+        calls: list[dict[str, Any]] = []
+
+        def fake_evaluate(
+            selected_cases: list[EvalCase],
+            thresholds: Mapping[str, float] = DEFAULT_THRESHOLDS,
+            *,
+            gate: str = "",
+            evaluation_subjects: list[str] | None = None,
+            activation_status_overrides: Mapping[str, str] | None = None,
+        ) -> dict[str, Any]:
+            calls.append(
+                {
+                    "gate": gate,
+                    "evaluation_subjects": evaluation_subjects,
+                    "activation_status_overrides": activation_status_overrides,
+                    "thresholds": thresholds,
+                    "case_count": len(selected_cases),
+                }
+            )
+            return _successful_eval_report()
+
+        with patch(
+            "tooling.scripts.evaluate_subject_router.load_runtime_subject_contracts",
+            return_value={
+                "business": _business_contract(
+                    activation_status="eval_ready",
+                    evaluation_pack="tests/fixtures/subject_router_eval/business",
+                    subject_skill=(
+                        "content/subjects/business/skills/"
+                        "business-journal-positioning-auditor.md"
+                    ),
+                    signal_groups={
+                        "method": [{"id": "business.method.case-study"}],
+                        "data_or_outcome": [
+                            {"id": "business.data.organization-panel"}
+                        ],
+                        "venue": [{"id": "business.venue.amj"}],
+                        "theory_or_construct": [
+                            {"id": "business.construct.capability"}
+                        ],
+                    },
+                )
+            },
+        ), patch(
+            "tooling.scripts.evaluate_subject_router.evaluate_cases",
+            side_effect=fake_evaluate,
+        ):
+            report = subject_gate_report("business", cases, gate="promotion-ready")
+
+        self.assertEqual(report["subject"], "business")
+        self.assertEqual(report["gate"], "promotion-ready")
+        self.assertEqual(report["activation_status"], "eval_ready")
+        self.assertFalse(report["eligible_for_eval_ready"])
+        self.assertTrue(report["eligible_for_runtime_promotion"])
+        self.assertFalse(report["eligible_for_runtime_enabled"])
+        self.assertEqual(report["blocking_failures"], [])
+        self.assertEqual(
+            calls[0]["activation_status_overrides"],
+            {"business": "runtime_enabled"},
+        )
+        self.assertIsNone(calls[0]["evaluation_subjects"])
+
+    def test_promotion_ready_gate_rejects_non_eval_ready_contract(self) -> None:
+        cases = [
+            _subject_gate_case("business", "business_clear", ["clear_positive"]),
+            _subject_gate_case("business", "business_method", ["method_only_borrow"]),
+            _subject_gate_case("business", "business_near_miss", ["near_miss"]),
+        ]
+
+        with patch(
+            "tooling.scripts.evaluate_subject_router.load_runtime_subject_contracts",
+            return_value={
+                "business": _business_contract(
+                    activation_status="runtime_enabled",
+                    evaluation_pack="tests/fixtures/subject_router_eval/business",
+                    subject_skill=(
+                        "content/subjects/business/skills/"
+                        "business-journal-positioning-auditor.md"
+                    ),
+                    signal_groups={
+                        "method": [{"id": "business.method.case-study"}],
+                        "data_or_outcome": [
+                            {"id": "business.data.organization-panel"}
+                        ],
+                        "venue": [{"id": "business.venue.amj"}],
+                        "theory_or_construct": [
+                            {"id": "business.construct.capability"}
+                        ],
+                    },
+                )
+            },
+        ), patch(
+            "tooling.scripts.evaluate_subject_router.evaluate_cases",
+            return_value=_successful_eval_report(),
+        ):
+            report = subject_gate_report("business", cases, gate="promotion-ready")
+
+        self.assertFalse(report["eligible_for_runtime_promotion"])
+        self.assertIn(
+            "activation_status is runtime_enabled",
+            report["blocking_failures"],
+        )
+
+    def test_main_subject_promotion_ready_gate_uses_runtime_promotion_eligibility(self) -> None:
+        stdout = io.StringIO()
+
+        with patch(
+            "tooling.scripts.evaluate_subject_router.load_runtime_subject_contracts",
+            return_value={
+                "business": _business_contract(
+                    activation_status="eval_ready",
+                    evaluation_pack="tests/fixtures/subject_router_eval/business",
+                    subject_skill=(
+                        "content/subjects/business/skills/"
+                        "business-journal-positioning-auditor.md"
+                    ),
+                    signal_groups={
+                        "method": [{"id": "business.method.case-study"}],
+                        "data_or_outcome": [
+                            {"id": "business.data.organization-panel"}
+                        ],
+                        "venue": [{"id": "business.venue.amj"}],
+                        "theory_or_construct": [
+                            {"id": "business.construct.capability"}
+                        ],
+                    },
+                )
+            },
+        ), patch(
+            "tooling.scripts.evaluate_subject_router.evaluate_cases",
+            return_value=_successful_eval_report(),
+        ), patch(
+            "tooling.scripts.evaluate_subject_router.load_eval_cases",
+            return_value=[
+                _subject_gate_case("business", "business_clear", ["clear_positive"]),
+                _subject_gate_case("business", "business_method", ["method_only_borrow"]),
+                _subject_gate_case("business", "business_near_miss", ["near_miss"]),
+            ],
+        ), contextlib.redirect_stdout(stdout):
+            exit_code = main(
+                ["--subject", "business", "--gate", "promotion-ready", "--json"]
+            )
+
+        report = json.loads(stdout.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertFalse(report["subject_gate"]["eligible_for_eval_ready"])
+        self.assertTrue(report["subject_gate"]["eligible_for_runtime_promotion"])
+        self.assertFalse(report["subject_gate"]["eligible_for_runtime_enabled"])
 
     def test_main_subject_gate_report_is_subject_scoped(self) -> None:
         stdout = io.StringIO()

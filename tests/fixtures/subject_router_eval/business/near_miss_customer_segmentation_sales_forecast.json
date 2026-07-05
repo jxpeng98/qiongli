@@ -1,0 +1,27 @@
+{
+  "id": "business_near_miss_customer_segmentation_sales_forecast",
+  "subject_under_test": "business",
+  "tags": [
+    "business",
+    "near_miss"
+  ],
+  "description": "Practitioner customer segmentation, journey, and sales forecast wording must stay core.",
+  "request": "Create customer segmentation bullets, improve the customer journey, forecast sales, and write launch messaging for a product marketing team.",
+  "manifest": {
+    "active_subject": "auto",
+    "subject_mode": "auto",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "core_only",
+    "primary_subject": "core",
+    "suggest_subjects": [],
+    "forbidden_subjects": [
+      "business"
+    ],
+    "method_lenses": []
+  }
+}

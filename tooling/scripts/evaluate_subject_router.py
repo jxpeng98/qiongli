@@ -30,10 +30,11 @@ DEFAULT_THRESHOLDS = {
     "all_case_checks_passed": 1.0,
 }
 CONCRETE_CORE_SUBJECTS = {"auto", "core"}
-GATE_CHOICES = ("runtime-enabled", "eval-ready")
+GATE_CHOICES = ("runtime-enabled", "eval-ready", "promotion-ready")
 GATE_ELIGIBILITY_KEYS = {
     "runtime-enabled": "eligible_for_runtime_enabled",
     "eval-ready": "eligible_for_eval_ready",
+    "promotion-ready": "eligible_for_runtime_promotion",
 }
 REQUIRED_GATE_TAGS = {
     "clear_positive",
@@ -169,12 +170,18 @@ def run_eval_case(
     *,
     gate: str = "",
     evaluation_subjects: list[str] | None = None,
+    activation_status_overrides: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     manifest = ProjectManifest(**case.manifest).normalized()
+    infer_kwargs: dict[str, Any] = {
+        "manifest_state": manifest,
+        "evaluation_subjects": evaluation_subjects,
+    }
+    if activation_status_overrides:
+        infer_kwargs["activation_status_overrides"] = activation_status_overrides
     packet = _infer_subject_refinement(
         {"topic": case.request, "context": case.request},
-        manifest_state=manifest,
-        evaluation_subjects=evaluation_subjects,
+        **infer_kwargs,
     )
     refinement = packet.to_packet()
     actual = _actual_eval_result(manifest, refinement)
@@ -206,6 +213,7 @@ def evaluate_cases(
     *,
     gate: str = "",
     evaluation_subjects: list[str] | None = None,
+    activation_status_overrides: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     if not cases:
         raise ValueError("cannot evaluate an empty case list")
@@ -214,6 +222,7 @@ def evaluate_cases(
             case,
             gate=gate,
             evaluation_subjects=evaluation_subjects,
+            activation_status_overrides=activation_status_overrides,
         )
         for case in cases
     ]
@@ -240,12 +249,18 @@ def subject_gate_report(
     thresholds = _contract_thresholds(contract)
     subject_cases = _subject_gate_cases(subject, cases)
     evaluation_subjects = _evaluation_subjects_for_gate(subject, gate)
+    activation_status_overrides = _activation_status_overrides_for_gate(subject, gate)
+    evaluate_kwargs: dict[str, Any] = {
+        "thresholds": thresholds,
+        "gate": gate,
+        "evaluation_subjects": evaluation_subjects,
+    }
+    if activation_status_overrides:
+        evaluate_kwargs["activation_status_overrides"] = activation_status_overrides
     report = (
         evaluate_cases(
             subject_cases,
-            thresholds=thresholds,
-            gate=gate,
-            evaluation_subjects=evaluation_subjects,
+            **evaluate_kwargs,
         )
         if subject_cases
         else _empty_eval_report()
@@ -274,6 +289,12 @@ def subject_gate_report(
         if contract is not None and activation_status == "eval_ready":
             blocking_failures.extend(_missing_eval_ready_resource_failures(contract))
             blocking_failures.extend(_missing_signal_dimension_failures(contract))
+    if gate == "promotion-ready":
+        if activation_status != "eval_ready":
+            blocking_failures.append(f"activation_status is {activation_status}")
+        if contract is not None:
+            blocking_failures.extend(_missing_resource_failures(contract))
+            blocking_failures.extend(_missing_signal_dimension_failures(contract))
     missing_tags = sorted(REQUIRED_GATE_TAGS - subject_tags)
     for tag in missing_tags:
         blocking_failures.append(f"missing {tag} fixtures")
@@ -286,6 +307,7 @@ def subject_gate_report(
         "gate": gate,
         "activation_status": activation_status,
         "eligible_for_eval_ready": gate == "eval-ready" and eligible,
+        "eligible_for_runtime_promotion": gate == "promotion-ready" and eligible,
         "eligible_for_runtime_enabled": gate == "runtime-enabled" and eligible,
         "case_count": len(subject_cases),
         "required_tags": sorted(REQUIRED_GATE_TAGS),
@@ -307,15 +329,27 @@ def _evaluation_subjects_for_gate(subject: str, gate: str) -> list[str] | None:
     return [subject] if gate == "eval-ready" else None
 
 
+def _activation_status_overrides_for_gate(
+    subject: str,
+    gate: str,
+) -> dict[str, str] | None:
+    if gate == "promotion-ready":
+        return {subject: "runtime_enabled"}
+    return None
+
+
 def _infer_subject_refinement(
     task_packet: Mapping[str, Any],
     *,
     manifest_state: ProjectManifest,
     evaluation_subjects: list[str] | None = None,
+    activation_status_overrides: Mapping[str, str] | None = None,
 ) -> Any:
     kwargs: dict[str, Any] = {"manifest_state": manifest_state}
     if evaluation_subjects and _router_accepts_evaluation_subjects():
         kwargs["evaluation_subjects"] = list(evaluation_subjects)
+    if activation_status_overrides and _router_accepts_activation_status_overrides():
+        kwargs["activation_status_overrides"] = dict(activation_status_overrides)
     return infer_subject_refinement(task_packet, **kwargs)
 
 
@@ -327,6 +361,18 @@ def _router_accepts_evaluation_subjects() -> bool:
     return any(
         parameter.kind == inspect.Parameter.VAR_KEYWORD
         or parameter.name == "evaluation_subjects"
+        for parameter in parameters
+    )
+
+
+def _router_accepts_activation_status_overrides() -> bool:
+    try:
+        parameters = inspect.signature(infer_subject_refinement).parameters.values()
+    except (TypeError, ValueError):
+        return False
+    return any(
+        parameter.kind == inspect.Parameter.VAR_KEYWORD
+        or parameter.name == "activation_status_overrides"
         for parameter in parameters
     )
 
@@ -542,15 +588,26 @@ def main(argv: list[str] | None = None) -> int:
             subject_cases = _subject_gate_cases(args.subject, cases)
             contracts = load_runtime_subject_contracts()
             contract = contracts.get(args.subject)
+            evaluate_kwargs: dict[str, Any] = {
+                "thresholds": _contract_thresholds(contract),
+                "gate": args.gate,
+                "evaluation_subjects": _evaluation_subjects_for_gate(
+                    args.subject,
+                    args.gate,
+                ),
+            }
+            activation_status_overrides = _activation_status_overrides_for_gate(
+                args.subject,
+                args.gate,
+            )
+            if activation_status_overrides:
+                evaluate_kwargs["activation_status_overrides"] = (
+                    activation_status_overrides
+                )
             report = (
                 evaluate_cases(
                     subject_cases,
-                    thresholds=_contract_thresholds(contract),
-                    gate=args.gate,
-                    evaluation_subjects=_evaluation_subjects_for_gate(
-                        args.subject,
-                        args.gate,
-                    ),
+                    **evaluate_kwargs,
                 )
                 if subject_cases
                 else _empty_eval_report()

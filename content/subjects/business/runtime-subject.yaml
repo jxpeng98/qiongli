@@ -5,7 +5,7 @@ activation_status: eval_ready
 extends: core
 domain_profile: content/skills/domain-profiles/business-management.yaml
 overlay: ""
-subject_skill: ""
+subject_skill: content/subjects/business/skills/business-journal-positioning-auditor.md
 signal_groups:
   method:
     - id: business.method.gioia
