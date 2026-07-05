@@ -13,7 +13,7 @@ can ship with tests, local verification, and clear rollback behavior.
 
 ## Current Baseline
 
-Completed on `dev` as of July 5, 2026:
+Completed as of July 5, 2026:
 
 - Runtime subject refinement packet with `decision`, `signals`,
   `resource_activation_plan`, `borrowed_lenses`, and backward-compatible fields.
@@ -48,6 +48,9 @@ Completed on `dev` as of July 5, 2026:
 - Accounting eval-ready fixture pack with manifest-backed method, venue,
   data/outcome, theory/construct signals and gate-specific fixture
   expectations.
+- Accounting runtime-enabled routing completed by the accounting runtime
+  promotion change, with a method-only auto-mode guard and passing
+  runtime-enabled gate.
 
 Remaining product gaps:
 
@@ -55,8 +58,6 @@ Remaining product gaps:
   release gate until maintainer environments are stable.
 - The full-cycle workflow harness is deterministic and preview-first; later
   runtime-enabled multi-agent execution still needs separate opt-in hardening.
-- Accounting is eval-ready but not yet runtime-enabled; activation should be a
-  separate reviewed change with one more method-only auto-mode guard.
 - Expansion to additional subjects still needs a formal onboarding contract
   that requires evaluation fixtures, near-miss guards, and regression
   thresholds before activation.
@@ -80,21 +81,21 @@ Remaining product gaps:
   claim-evidence coverage, strong judge results, and journal-fit decisions must
   be checked together before later expansion work is considered release-ready.
 
-## Priority Update: Accounting Runtime Promotion
+## Priority Update: Accounting Gate Review And Next Subject Spec
 
-Status: current Stage 4 priority after the full-cycle workflow harness and
-accounting eval-ready pack merged.
+Status: accounting runtime promotion completed by the accounting runtime
+promotion change after the full-cycle workflow harness, manuscript-first
+journal fit, and accounting eval-ready pack were completed.
 
-The full-cycle workflow harness and reverse journal-fit recommender are now on
-`dev`, and the accounting eval-ready gate passes with no blocking failures.
-The remaining accounting blocker for `runtime-enabled` is the manifest status
-itself.
+The full-cycle workflow harness and reverse journal-fit recommender were
+completed before the accounting runtime promotion change, and accounting passes
+the runtime-enabled gate as of that promotion.
 
-The next implementation priority is therefore a guarded accounting runtime
-promotion. This should add one more method-only auto-mode guard, promote only
-accounting to `runtime_enabled`, and re-run accounting, finance, economics, and
-full-cycle harness checks together. Additional subject expansion resumes only
-after this activation proves the gate can protect runtime precision.
+The next reviewed step is to inspect the accounting runtime-enabled gate report
+and then prepare the next subject expansion spec. Business, political economy,
+geoeconomics, and economics-accounting remain deferred until a reviewed spec
+defines their fixtures, near-miss guards, and activation criteria. If subject
+expansion is deferred, continue feedback-aware explainability work instead.
 
 Formal design and execution plan:
 
@@ -208,18 +209,22 @@ First formal spec:
 
 ## Stage 4: Subject Expansion With Evaluation Gates
 
-Status: accounting eval-ready slice completed; accounting runtime promotion is
-the current reviewed activation step. Business, political economy,
-geoeconomics, and the economics-accounting bridge remain deferred until the
-accounting runtime gate is reviewed after activation.
+Status: accounting eval-ready slice and accounting runtime promotion completed
+as of July 5, 2026. Business, political economy, geoeconomics, and the
+economics-accounting bridge remain deferred until the accounting
+runtime-enabled gate report is reviewed and the next subject expansion spec is
+approved.
 
 Primary outcome:
 
 - New subjects can be added without weakening router precision.
 
-Candidate subjects:
+Runtime-enabled subject:
 
 - Accounting.
+
+Deferred candidate subjects:
+
 - Business and management.
 - Political economy.
 - Geoeconomics.
@@ -294,29 +299,28 @@ Success criteria:
   implementation.
 - Local file safety risk: mitigated by project-local writes, managed fragments,
   and isolated smoke tests.
-- Scope creep risk: mitigated by activating only accounting first and delaying
+- Scope creep risk: mitigated by activating subjects one at a time and delaying
   business, political economy, geoeconomics, and economics-accounting until
-  accounting proves the runtime gate pattern.
+  the next reviewed subject expansion spec is approved.
 
 ## Recommended Immediate Plan
 
-Implement the accounting runtime promotion next:
+Review the accounting runtime-enabled gate report and choose the next reviewed
+subject expansion spec:
 
-1. Add an auto-mode accounting method-only fixture so accrual-quality language
-   borrows a lens without suggesting accounting.
-2. Promote `content/subjects/accounting/runtime-subject.yaml` from
-   `eval_ready` to `runtime_enabled`.
-3. Update contract, router, refinement, CLI, release, and roadmap expectations
-   that still encode the eval-ready state.
-4. Re-run accounting, finance, and economics runtime-enabled gates.
-5. Re-run the deterministic full-cycle workflow harness.
-6. Keep business, political economy, geoeconomics, and economics-accounting as
-   follow-up specs.
+1. Review the accounting runtime-enabled gate report for precision, near-miss
+   behavior, and method-only borrowed-lens safety.
+2. Choose whether the next reviewed subject expansion spec should cover
+   business, political economy, geoeconomics, or economics-accounting.
+3. If subject expansion is deferred, continue Stage 5 feedback-aware
+   explainability work so router outputs separate task-text, manifest,
+   trace-memory, and user-action evidence more clearly.
+4. Keep business, political economy, geoeconomics, and economics-accounting as
+   deferred specs until their fixture packs and activation criteria are
+   reviewed.
 
 Current Stage 4 execution sequence:
 
-- Promote accounting to runtime-enabled only after the method-only guard and
-  gate checks pass.
 - Review the accounting runtime-enabled gate report before starting the next
   subject expansion spec.
 - Keep business, political economy, geoeconomics, and economics-accounting as
