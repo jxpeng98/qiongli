@@ -51,6 +51,9 @@ Completed as of July 5, 2026:
 - Accounting runtime-enabled routing completed by the accounting runtime
   promotion change, with a method-only auto-mode guard and passing
   runtime-enabled gate.
+- Business promotion-ready review merged, with a passing promotion-ready gate,
+  business-owned runtime resources, expanded near-miss coverage, and
+  activation separated from the checked-in `eval_ready` manifest.
 
 Remaining product gaps:
 
@@ -80,21 +83,23 @@ Remaining product gaps:
   claim-evidence coverage, strong judge results, and journal-fit decisions must
   be checked together before later expansion work is considered release-ready.
 
-## Priority Update: Business Promotion-Readiness Review
+## Priority Update: Business Runtime Activation Prep
 
-Status: the subject expansion onboarding contract is complete, and business is
-the current Stage 4 promotion-readiness slice.
+Status: the subject expansion onboarding contract and business promotion-ready
+review are complete. Business is the current Stage 4 runtime activation prep
+slice.
 
 The accounting runtime-enabled gate has been reviewed and remains green.
-Business now has a dedicated eval-ready pack plus a promotion-ready review path.
-This keeps business below runtime activation while proving, under a harness-only
-runtime simulation, that business-owned fixtures, method-lens borrowing, mixed
-cases, confirmed-subject behavior, and practitioner near-miss guards remain
-precise enough for a later activation PR.
+Business now has a dedicated eval-ready pack plus a passing promotion-ready
+review path. That proves, under a harness-only runtime simulation, that
+business-owned fixtures, method-lens borrowing, mixed cases,
+confirmed-subject behavior, and practitioner near-miss guards remain precise
+enough for a smaller activation PR.
 
-Business must remain `eval_ready`, not `runtime_enabled`, until a separate
-activation PR changes the manifest. A green `promotion-ready` gate is evidence
-for that later PR; it is not activation by itself.
+Business remains `eval_ready` on `dev`; the next slice should prepare and
+execute the separate activation PR that changes the manifest to
+`runtime_enabled` and reruns the runtime-enabled gate without activation
+overrides.
 
 Formal design and execution plan:
 
@@ -106,6 +111,8 @@ Formal design and execution plan:
 - `docs/superpowers/plans/2026-07-05-business-subject-eval-ready.md`
 - `docs/superpowers/specs/2026-07-05-business-runtime-promotion-readiness-design.md`
 - `docs/superpowers/plans/2026-07-05-business-runtime-promotion-readiness.md`
+- `docs/superpowers/specs/2026-07-05-business-runtime-activation-design.md`
+- `docs/superpowers/plans/2026-07-05-business-runtime-activation.md`
 
 ## Stage 1: Router Evaluation And Lifecycle Controls
 
@@ -216,8 +223,9 @@ First formal spec:
 
 Status: accounting eval-ready and runtime promotion are completed as of
 July 5, 2026. The subject expansion onboarding contract is complete. Business
-is eval-ready with promotion-ready gate coverage; political economy,
-geoeconomics, and the economics-accounting bridge remain deferred candidates.
+is eval-ready with passing promotion-ready gate coverage and is the current
+runtime activation candidate; political economy, geoeconomics, and the
+economics-accounting bridge remain deferred candidates.
 
 Primary outcome:
 
@@ -231,7 +239,7 @@ Runtime-enabled subjects:
 
 Eval-ready subjects:
 
-- Business and management, with promotion-ready gate coverage.
+- Business and management, with passing promotion-ready gate coverage.
 
 Deferred candidate subjects:
 
@@ -245,10 +253,9 @@ Scope:
 - Add subject-specific method, venue, data, and outcome signal groups.
 - Add near-miss cases for adjacent disciplines to prevent broad over-activation.
 - Extend subject resource activation plans only after the evaluation pack passes.
-- Business runtime activation must stay separate from promotion-ready review:
-  `promotion-ready` may pass while the checked-in manifest remains
-  `eval_ready`; only a later activation PR may change business to
-  `runtime_enabled`.
+- Business runtime activation must be a small follow-up to promotion-ready
+  review: the activation PR may change `activation_status` only after the
+  runtime-enabled gate passes without harness overrides.
 
 Success criteria:
 
@@ -318,21 +325,22 @@ Success criteria:
 
 ## Recommended Immediate Plan
 
-1. Finish and review the business `promotion-ready` gate while keeping the
-   checked-in manifest at `activation_status: eval_ready`.
-2. If `promotion-ready` remains green after review, prepare a separate business
-   runtime activation PR that changes `activation_status` and reruns the
-   runtime-enabled gate.
-3. If activation is deferred, continue Stage 5 feedback-aware explainability
+1. Execute the business runtime activation plan on a separate branch, changing
+   only the activation state and the tests/docs that still encode eval-ready
+   status.
+2. Require business, accounting, finance, and economics runtime-enabled gates
+   to pass before opening the activation PR.
+3. If activation uncovers noisy business over-activation, keep business
+   `eval_ready`, preserve the promotion-ready fixtures, and return to Stage 5
+   explainability work.
+4. If activation is deferred, continue Stage 5 feedback-aware explainability
    work so router outputs separate task-text, manifest, trace-memory, and
    user-action evidence more clearly.
-4. Keep political economy, geoeconomics, and economics-accounting as separate
+5. Keep political economy, geoeconomics, and economics-accounting as separate
    follow-up subject specs with their own fixture packs and gate criteria.
 
 Current Stage 4 execution sequence:
 
-- Complete business promotion-ready review.
-- Prepare a separate business runtime activation PR only after promotion-ready
-  review passes.
+- Prepare and execute the business runtime activation PR.
 - Keep political economy, geoeconomics, and economics-accounting as separate
   follow-up specs.
