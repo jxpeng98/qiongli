@@ -17,11 +17,11 @@
   },
   "expected": {
     "decision": "recommend",
-    "primary_subject": "auto",
-    "suggest_subjects": [],
-    "forbidden_subjects": [
+    "primary_subject": "business",
+    "suggest_subjects": [
       "business"
     ],
+    "forbidden_subjects": [],
     "method_lenses": [
       "business-positioning"
     ]
@@ -51,11 +51,11 @@
     },
     "runtime-enabled": {
       "decision": "recommend",
-      "primary_subject": "auto",
-      "suggest_subjects": [],
-      "forbidden_subjects": [
+      "primary_subject": "business",
+      "suggest_subjects": [
         "business"
       ],
+      "forbidden_subjects": [],
       "method_lenses": [
         "business-positioning"
       ]

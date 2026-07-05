@@ -765,27 +765,44 @@ class SubjectRouterEvalTests(unittest.TestCase):
         self.assertEqual(report["blocking_failures"], [])
         self.assertEqual(report["metrics"]["near_miss_false_positives"], 0)
 
-    def test_business_eval_ready_gate_passes_real_fixture_pack(self) -> None:
-        cases = load_eval_cases(FIXTURE_DIR)
-
-        report = subject_gate_report("business", cases, gate="eval-ready")
-
-        self.assertEqual(report["subject"], "business")
-        self.assertEqual(report["activation_status"], "eval_ready")
-        self.assertTrue(report["eligible_for_eval_ready"])
-        self.assertFalse(report["eligible_for_runtime_enabled"])
-        self.assertEqual(report["blocking_failures"], [])
-        self.assertEqual(report["metrics"]["near_miss_false_positives"], 0)
-
-    def test_business_runtime_enabled_gate_blocks_eval_ready_manifest(self) -> None:
+    def test_business_runtime_enabled_gate_passes_real_fixture_pack(self) -> None:
         cases = load_eval_cases(FIXTURE_DIR)
 
         report = subject_gate_report("business", cases, gate="runtime-enabled")
 
-        self.assertEqual(report["activation_status"], "eval_ready")
+        self.assertEqual(report["subject"], "business")
+        self.assertEqual(report["activation_status"], "runtime_enabled")
+        self.assertFalse(report["eligible_for_eval_ready"])
+        self.assertFalse(report["eligible_for_runtime_promotion"])
+        self.assertTrue(report["eligible_for_runtime_enabled"])
+        self.assertEqual(report["blocking_failures"], [])
+        self.assertEqual(report["metrics"]["decision_accuracy"], 1.0)
+        self.assertEqual(report["metrics"]["primary_subject_accuracy"], 1.0)
+        self.assertEqual(report["metrics"]["suggest_subject_precision"], 1.0)
+        self.assertEqual(report["metrics"]["forbidden_subject_accuracy"], 1.0)
+        self.assertEqual(report["metrics"]["method_lens_accuracy"], 1.0)
+        self.assertEqual(report["metrics"]["all_case_checks_passed"], 1.0)
+        self.assertEqual(report["metrics"]["near_miss_false_positives"], 0)
+
+    def test_business_eval_ready_gate_blocks_runtime_enabled_manifest(self) -> None:
+        cases = load_eval_cases(FIXTURE_DIR)
+
+        report = subject_gate_report("business", cases, gate="eval-ready")
+
+        self.assertEqual(report["activation_status"], "runtime_enabled")
         self.assertFalse(report["eligible_for_eval_ready"])
         self.assertFalse(report["eligible_for_runtime_enabled"])
-        self.assertIn("activation_status is eval_ready", report["blocking_failures"])
+        self.assertIn("activation_status is runtime_enabled", report["blocking_failures"])
+
+    def test_business_promotion_ready_gate_blocks_runtime_enabled_manifest(self) -> None:
+        cases = load_eval_cases(FIXTURE_DIR)
+
+        report = subject_gate_report("business", cases, gate="promotion-ready")
+
+        self.assertEqual(report["activation_status"], "runtime_enabled")
+        self.assertFalse(report["eligible_for_runtime_promotion"])
+        self.assertFalse(report["eligible_for_runtime_enabled"])
+        self.assertIn("activation_status is runtime_enabled", report["blocking_failures"])
 
     def test_economics_runtime_enabled_gate_passes_real_fixture_pack(self) -> None:
         cases = load_eval_cases(FIXTURE_DIR)
@@ -1506,19 +1523,20 @@ class SubjectRouterEvalTests(unittest.TestCase):
         self.assertEqual(calls[0]["evaluation_subjects"], ["accounting"])
         self.assertEqual(calls[1]["evaluation_subjects"], ["accounting"])
 
-    def test_main_business_eval_ready_gate_json_has_consistent_thresholds(self) -> None:
+    def test_main_business_runtime_enabled_gate_json_has_consistent_thresholds(self) -> None:
         stdout = io.StringIO()
 
         with contextlib.redirect_stdout(stdout):
             exit_code = main(
-                ["--subject", "business", "--gate", "eval-ready", "--json"]
+                ["--subject", "business", "--gate", "runtime-enabled", "--json"]
             )
 
         report = json.loads(stdout.getvalue())
         self.assertEqual(exit_code, 0)
         self.assertEqual(report["threshold_failures"], [])
         self.assertEqual(report["case_count"], report["subject_gate"]["case_count"])
-        self.assertTrue(report["subject_gate"]["eligible_for_eval_ready"])
+        self.assertTrue(report["subject_gate"]["eligible_for_runtime_enabled"])
+        self.assertFalse(report["subject_gate"]["eligible_for_runtime_promotion"])
 
     def test_subject_gate_report_uses_subject_scoped_threshold_failures(self) -> None:
         fixtures = {case.id: case for case in load_eval_cases(FIXTURE_DIR)}

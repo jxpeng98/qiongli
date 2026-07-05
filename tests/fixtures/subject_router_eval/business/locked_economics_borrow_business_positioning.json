@@ -19,15 +19,28 @@
     "decision": "keep_locked",
     "primary_subject": "economics",
     "suggest_subjects": [],
-    "forbidden_subjects": [
+    "allowed_neighbor_subjects": [
       "business"
     ],
+    "forbidden_subjects": [],
     "method_lenses": [
       "business-positioning"
     ]
   },
   "gate_expected": {
     "promotion-ready": {
+      "decision": "keep_locked",
+      "primary_subject": "economics",
+      "suggest_subjects": [],
+      "allowed_neighbor_subjects": [
+        "business"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "business-positioning"
+      ]
+    },
+    "runtime-enabled": {
       "decision": "keep_locked",
       "primary_subject": "economics",
       "suggest_subjects": [],

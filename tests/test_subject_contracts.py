@@ -435,7 +435,10 @@ class RuntimeSubjectContractTests(unittest.TestCase):
             "runtime_enabled",
         )
         self.assertIn("accounting", contracts)
-        self.assertEqual(subject_activation_status("business", contracts), "eval_ready")
+        self.assertEqual(
+            subject_activation_status("business", contracts),
+            "runtime_enabled",
+        )
         self.assertIn("business", contracts)
         for subject in {
             "political-economy",
@@ -547,11 +550,11 @@ class RuntimeSubjectContractTests(unittest.TestCase):
                 self.fail(f"{declared_path} escapes the repository")
             self.assertTrue(resolved_path.exists(), declared_path)
 
-    def test_business_eval_ready_manifest_declares_signals_and_method_lenses(self) -> None:
+    def test_business_runtime_enabled_manifest_declares_signals_and_method_lenses(self) -> None:
         contracts = load_runtime_subject_contracts()
         contract = contracts["business"]
 
-        self.assertEqual(contract.activation_status, "eval_ready")
+        self.assertEqual(contract.activation_status, "runtime_enabled")
         self.assertEqual(
             contract.evaluation_pack,
             "tests/fixtures/subject_router_eval/business",

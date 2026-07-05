@@ -701,6 +701,9 @@ class SubjectRefinementTests(unittest.TestCase):
         with patch(
             "bridges.subject_refinement.load_runtime_subject_contracts",
             return_value={"business": _business_runtime_subject_contract()},
+        ), patch(
+            "bridges.subject_refinement.subject_activation_status",
+            return_value="eval_ready",
         ):
             packet = infer_subject_refinement(
                 {
@@ -758,6 +761,9 @@ class SubjectRefinementTests(unittest.TestCase):
         with patch(
             "bridges.subject_refinement.load_runtime_subject_contracts",
             return_value={"business": _business_runtime_subject_contract()},
+        ), patch(
+            "bridges.subject_refinement.subject_activation_status",
+            return_value="eval_ready",
         ):
             packet = infer_subject_refinement(
                 {
@@ -801,7 +807,7 @@ class SubjectRefinementTests(unittest.TestCase):
         self.assertIn("business-positioning", packet["method_lenses"])
         self.assertIn("qualitative-transparency", packet["method_lenses"])
 
-    def test_business_eval_ready_real_manifest_does_not_activate_in_default_runtime(self) -> None:
+    def test_runtime_enabled_business_real_manifest_suggests_business(self) -> None:
         packet = infer_subject_refinement(
             {
                 "topic": "management theory case study",
@@ -813,11 +819,38 @@ class SubjectRefinementTests(unittest.TestCase):
             manifest_state=ProjectManifest(),
         ).to_packet()
 
-        self.assertNotEqual(packet["decision"], "suggest_subject")
-        self.assertNotEqual(packet["primary_subject"], "business")
+        self.assertEqual(packet["decision"], "suggest_subject")
+        self.assertEqual(packet["primary_subject"], "business")
+        self.assertIn(
+            "business",
+            [candidate["subject"] for candidate in packet["candidate_subjects"]],
+        )
+        self.assertIn("business-positioning", packet["method_lenses"])
+
+    def test_runtime_enabled_business_method_only_real_manifest_borrows_lens(self) -> None:
+        packet = infer_subject_refinement(
+            {
+                "topic": "qualitative coding",
+                "context": (
+                    "Use the Gioia method with first-order concepts, second-order "
+                    "themes, and aggregate dimensions to organize qualitative coding."
+                ),
+            },
+            manifest_state=ProjectManifest(),
+        ).to_packet()
+
+        self.assertEqual(packet["decision"], "borrow_lens")
+        self.assertEqual(packet["primary_subject"], "auto")
         self.assertNotIn(
             "business",
             [candidate["subject"] for candidate in packet["candidate_subjects"]],
+        )
+        self.assertIn(
+            ("business", "qualitative-transparency"),
+            {
+                (lens["source_subject"], lens["lens"])
+                for lens in packet["borrowed_lenses"]
+            },
         )
 
     def test_accounting_near_miss_account_for_heterogeneity_keeps_core(self) -> None:
