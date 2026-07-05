@@ -783,7 +783,7 @@ class SubjectRefinementTests(unittest.TestCase):
             [candidate["subject"] for candidate in packet["candidate_subjects"]],
         )
 
-    def test_business_eval_ready_real_manifest_can_be_measured_under_evaluation_subjects(self) -> None:
+    def test_runtime_enabled_business_real_manifest_can_be_measured_under_evaluation_subjects(self) -> None:
         packet = infer_subject_refinement(
             {
                 "topic": "management theory case study",
@@ -826,6 +826,37 @@ class SubjectRefinementTests(unittest.TestCase):
             [candidate["subject"] for candidate in packet["candidate_subjects"]],
         )
         self.assertIn("business-positioning", packet["method_lenses"])
+        self.assertIn(
+            "content/subjects/business/skills/business-journal-positioning-auditor.md",
+            packet["loaded_resources"]["subject_skills"],
+        )
+        self.assertEqual(packet["loaded_resources"]["contract_warnings"], [])
+
+    def test_runtime_enabled_business_confirmed_manifest_loads_subject_resources(self) -> None:
+        packet = infer_subject_refinement(
+            {
+                "topic": "journal positioning",
+                "context": (
+                    "Tighten the Academy of Management Journal positioning, "
+                    "management theory contribution, construct clarity, and "
+                    "boundary conditions for this business manuscript."
+                ),
+            },
+            manifest_state=ProjectManifest(
+                active_subject="business",
+                subject_mode="confirmed",
+                method_lenses=["business-positioning"],
+            ),
+        ).to_packet()
+
+        self.assertEqual(packet["decision"], "confirm_subject")
+        self.assertEqual(packet["primary_subject"], "business")
+        self.assertIn(
+            "content/subjects/business/skills/business-journal-positioning-auditor.md",
+            packet["loaded_resources"]["subject_skills"],
+        )
+        self.assertIn("subject_skill", packet["loaded_resources"]["levels"])
+        self.assertEqual(packet["loaded_resources"]["contract_warnings"], [])
 
     def test_runtime_enabled_business_method_only_real_manifest_borrows_lens(self) -> None:
         packet = infer_subject_refinement(
