@@ -1,0 +1,22 @@
+{
+  "id": "accounting_method_only_auto_accrual_controls",
+  "subject_under_test": "accounting",
+  "tags": ["accounting", "method_only_borrow"],
+  "description": "Auto-mode accrual-quality controls borrow an accounting lens without activating accounting.",
+  "request": "Add accrual quality and discretionary accrual controls to the empirical appendix, but keep the project framing on general robustness checks.",
+  "manifest": {
+    "active_subject": "auto",
+    "subject_mode": "auto",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "recommend",
+    "primary_subject": "auto",
+    "suggest_subjects": [],
+    "forbidden_subjects": ["accounting"],
+    "method_lenses": ["accrual-quality"]
+  }
+}

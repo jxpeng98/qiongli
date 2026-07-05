@@ -135,28 +135,39 @@ Use `release_ready.sh` when you want to prepare and verify locally without creat
 
 `release_ready.sh` runs version sync, strict validator, repository unit tests, release-tier smoke, release note evidence updates, package build checks, `twine check`, and wheel install smoke. It does not tag or push. Publish mode owns commit, branch push, the branch CI/check gate, tag push, tag publish wait, GitHub Release creation, plugin artifact upload, and acceptance receipt generation.
 
-Optional subject expansion gate:
+Subject runtime gate checks:
 
 ```bash
 uv run python tooling/scripts/evaluate_subject_router.py --json
-uv run python tooling/scripts/evaluate_subject_router.py \
-  --subject accounting \
-  --gate eval-ready \
-  --json
 uv run python tooling/scripts/evaluate_subject_router.py \
   --subject accounting \
   --gate runtime-enabled \
   --json
 ```
 
-The first command must pass for release. The eval-ready command should pass for
-the accounting expansion slice. The runtime-enabled command should fail closed
-until accounting is intentionally promoted to `runtime_enabled`.
+Both commands must pass for release: the default router evaluation and the
+accounting runtime-enabled gate. Accounting is now a runtime-enabled subject,
+so release verification should confirm
+`subject_gate.eligible_for_runtime_enabled`.
+
+Use the eval-ready gate for future candidate subjects before activation, for
+example:
+
+```bash
+uv run python tooling/scripts/evaluate_subject_router.py \
+  --subject business \
+  --gate eval-ready \
+  --json
+```
+
+Business, political economy, geoeconomics, and economics-accounting remain
+future eval-ready candidates.
 
 For subject-scoped JSON, read `subject_gate.eligible_for_eval_ready` or
 `subject_gate.eligible_for_runtime_enabled` and treat the command exit code as
-authoritative: default eval exits 0, accounting eval-ready exits 0, and
-accounting runtime-enabled is expected to exit 1 until promotion.
+authoritative: default eval exits 0, accounting runtime-enabled exits 0, and
+future candidate eval-ready checks should exit 0 only after their fixture packs
+and metadata are ready for review.
 
 For beta releases where GitHub Actions may exceed the default local wait window, extend the hard wait instead of using a soft publish gate:
 

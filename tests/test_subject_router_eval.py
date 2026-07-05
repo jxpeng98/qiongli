@@ -234,6 +234,7 @@ class SubjectRouterEvalTests(unittest.TestCase):
         )
         required_accounting_ids = {
             "accounting_clear_discretionary_accruals",
+            "accounting_method_only_auto_accrual_controls",
             "accounting_method_only_borrow_accrual_quality",
             "accounting_mixed_reporting_returns",
             "accounting_near_miss_account_for_heterogeneity",
@@ -263,12 +264,23 @@ class SubjectRouterEvalTests(unittest.TestCase):
             "accounting_clear_discretionary_accruals",
             "accounting_mixed_reporting_returns",
         }:
-            self.assertIn(
+            self.assertEqual(
+                cases_by_id[case_id].expected["primary_subject"],
                 "accounting",
-                cases_by_id[case_id].expected.get("forbidden_subjects", []),
             )
             self.assertEqual(
+                cases_by_id[case_id].expected["suggest_subjects"],
+                ["accounting"],
+            )
+            self.assertEqual(cases_by_id[case_id].expected["forbidden_subjects"], [])
+            self.assertEqual(
                 cases_by_id[case_id].expected_for_gate("eval-ready")[
+                    "forbidden_subjects"
+                ],
+                [],
+            )
+            self.assertEqual(
+                cases_by_id[case_id].expected_for_gate("runtime-enabled")[
                     "forbidden_subjects"
                 ],
                 [],
@@ -641,34 +653,16 @@ class SubjectRouterEvalTests(unittest.TestCase):
         self.assertEqual(cases[0].subject_under_test, "accounting")
         self.assertIn("near_miss", cases[0].tags)
 
-    def test_eval_ready_subject_runtime_gate_reports_blocking_failures(self) -> None:
+    def test_accounting_runtime_enabled_gate_passes_real_fixture_pack(self) -> None:
         cases = load_eval_cases(FIXTURE_DIR)
 
         report = subject_gate_report("accounting", cases, gate="runtime-enabled")
 
         self.assertEqual(report["subject"], "accounting")
-        self.assertEqual(report["activation_status"], "eval_ready")
-        self.assertIs(report["eligible_for_runtime_enabled"], False)
-        self.assertIn(
-            "activation_status is eval_ready",
-            report["blocking_failures"],
-        )
-
-    def test_accounting_eval_ready_gate_passes_real_fixture_pack(self) -> None:
-        cases = load_eval_cases(FIXTURE_DIR)
-
-        report = subject_gate_report("accounting", cases, gate="eval-ready")
-
-        self.assertEqual(report["activation_status"], "eval_ready")
-        self.assertTrue(report["eligible_for_eval_ready"])
-        self.assertFalse(report["eligible_for_runtime_enabled"])
+        self.assertEqual(report["activation_status"], "runtime_enabled")
+        self.assertFalse(report["eligible_for_eval_ready"])
+        self.assertTrue(report["eligible_for_runtime_enabled"])
         self.assertEqual(report["blocking_failures"], [])
-        self.assertEqual(report["metrics"]["decision_accuracy"], 1.0)
-        self.assertEqual(report["metrics"]["primary_subject_accuracy"], 1.0)
-        self.assertEqual(report["metrics"]["suggest_subject_precision"], 1.0)
-        self.assertEqual(report["metrics"]["forbidden_subject_accuracy"], 1.0)
-        self.assertEqual(report["metrics"]["method_lens_accuracy"], 1.0)
-        self.assertEqual(report["metrics"]["all_case_checks_passed"], 1.0)
         self.assertEqual(report["metrics"]["near_miss_false_positives"], 0)
 
     def test_economics_runtime_enabled_gate_passes_real_fixture_pack(self) -> None:
@@ -831,7 +825,7 @@ class SubjectRouterEvalTests(unittest.TestCase):
             [],
         )
 
-    def test_runtime_enabled_gate_still_blocks_eval_ready_subject(self) -> None:
+    def test_runtime_enabled_gate_still_blocks_eval_ready_subject_contract(self) -> None:
         cases = [
             _gate_case("accounting_clear", ["clear_positive"]),
             _gate_case("accounting_method", ["method_only_borrow"]),
@@ -842,7 +836,7 @@ class SubjectRouterEvalTests(unittest.TestCase):
             "tooling.scripts.evaluate_subject_router.load_runtime_subject_contracts",
             return_value={
                 "accounting": _accounting_contract(
-                    evaluation_pack="tests/fixtures/subject_router_eval"
+                    activation_status="eval_ready"
                 )
             },
         ), patch(
@@ -1179,7 +1173,7 @@ class SubjectRouterEvalTests(unittest.TestCase):
         )
         self.assertFalse(report["eligible_for_runtime_enabled"])
 
-    def test_main_subject_gate_json_returns_one_for_non_runtime_subject(self) -> None:
+    def test_main_subject_runtime_gate_json_returns_zero_for_accounting(self) -> None:
         stdout = io.StringIO()
 
         with contextlib.redirect_stdout(stdout):
@@ -1188,9 +1182,12 @@ class SubjectRouterEvalTests(unittest.TestCase):
             )
 
         report = json.loads(stdout.getvalue())
-        self.assertEqual(exit_code, 1)
+        self.assertEqual(exit_code, 0)
         self.assertEqual(report["subject_gate"]["subject"], "accounting")
-        self.assertFalse(report["subject_gate"]["eligible_for_runtime_enabled"])
+        self.assertEqual(report["subject_gate"]["activation_status"], "runtime_enabled")
+        self.assertFalse(report["subject_gate"]["eligible_for_eval_ready"])
+        self.assertTrue(report["subject_gate"]["eligible_for_runtime_enabled"])
+        self.assertEqual(report["subject_gate"]["blocking_failures"], [])
 
     def test_main_json_returns_zero_for_current_fixture_corpus(self) -> None:
         stdout = io.StringIO()

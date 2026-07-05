@@ -2,7 +2,7 @@
   "id": "accounting_confirmed_construct_audit",
   "subject_under_test": "accounting",
   "tags": ["accounting", "confirmed_subject"],
-  "description": "Confirmed accounting project remains accounting even while subject resources are withheld before runtime activation.",
+  "description": "Confirmed accounting project remains accounting and keeps its accounting construct-audit method lens.",
   "request": "Audit the construct-proxy mapping for discretionary accruals, fiscal timing, and financial reporting quality.",
   "manifest": {
     "active_subject": "accounting",
@@ -15,7 +15,7 @@
   "expected": {
     "decision": "recommend",
     "primary_subject": "accounting",
-    "suggest_subjects": [],
+    "suggest_subjects": ["accounting"],
     "forbidden_subjects": [],
     "method_lenses": ["construct-proxy-audit"]
   },

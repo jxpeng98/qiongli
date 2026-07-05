@@ -380,15 +380,15 @@ def _missing_signal_dimension_failures(contract: Any) -> list[str]:
 def _missing_resource_failures(contract: Any) -> list[str]:
     resource_root = _contract_resource_root(getattr(contract, "source", ""))
     failures: list[str] = []
-    for field in (
-        "domain_profile",
-        "overlay",
-        "subject_skill",
-        "evaluation_pack",
-    ):
+    for field in ("domain_profile", "subject_skill", "evaluation_pack"):
         resource = getattr(contract, field, "")
         if _resource_is_missing(resource_root, resource):
             failures.append(f"missing resource: {field} {resource}")
+
+    overlay = getattr(contract, "overlay", "")
+    if isinstance(overlay, str) and overlay.strip():
+        if _resource_is_missing(resource_root, overlay):
+            failures.append(f"missing resource: overlay {overlay}")
 
     method_lenses = getattr(contract, "method_lenses", {})
     if isinstance(method_lenses, Mapping):
