@@ -58,9 +58,8 @@ Remaining product gaps:
   release gate until maintainer environments are stable.
 - The full-cycle workflow harness is deterministic and preview-first; later
   runtime-enabled multi-agent execution still needs separate opt-in hardening.
-- Expansion to additional subjects still needs a formal onboarding contract
-  that requires evaluation fixtures, near-miss guards, and regression
-  thresholds before activation.
+- Expansion to additional subjects still needs subject-specific fixture packs,
+  near-miss guards, and gate thresholds before activation.
 - Feedback from lifecycle actions is recorded, but router explainability does
   not yet clearly separate task-text, manifest, trace-memory, and user-action
   evidence in every output path.
@@ -81,20 +80,21 @@ Remaining product gaps:
   claim-evidence coverage, strong judge results, and journal-fit decisions must
   be checked together before later expansion work is considered release-ready.
 
-## Priority Update: Business Eval-Ready Slice
+## Priority Update: Business Promotion-Readiness Review
 
 Status: the subject expansion onboarding contract is complete, and business is
-the current Stage 4 subject expansion slice.
+the current Stage 4 promotion-readiness slice.
 
 The accounting runtime-enabled gate has been reviewed and remains green.
-Business now has a dedicated eval-ready design and execution plan. This slice
-keeps business below runtime activation while adding a business-owned fixture
-pack, manifest-backed method/data/venue/construct signals, method-lens
-borrowing, near-miss guards, and eval-ready gate coverage.
+Business now has a dedicated eval-ready pack plus a promotion-ready review path.
+This keeps business below runtime activation while proving, under a harness-only
+runtime simulation, that business-owned fixtures, method-lens borrowing, mixed
+cases, confirmed-subject behavior, and practitioner near-miss guards remain
+precise enough for a later activation PR.
 
 Business must remain `eval_ready`, not `runtime_enabled`, until a separate
-runtime promotion review proves default precision after the eval-ready pack is
-merged.
+activation PR changes the manifest. A green `promotion-ready` gate is evidence
+for that later PR; it is not activation by itself.
 
 Formal design and execution plan:
 
@@ -104,6 +104,8 @@ Formal design and execution plan:
 - `docs/superpowers/plans/2026-07-05-subject-expansion-onboarding-contract.md`
 - `docs/superpowers/specs/2026-07-05-business-subject-eval-ready-design.md`
 - `docs/superpowers/plans/2026-07-05-business-subject-eval-ready.md`
+- `docs/superpowers/specs/2026-07-05-business-runtime-promotion-readiness-design.md`
+- `docs/superpowers/plans/2026-07-05-business-runtime-promotion-readiness.md`
 
 ## Stage 1: Router Evaluation And Lifecycle Controls
 
@@ -214,8 +216,8 @@ First formal spec:
 
 Status: accounting eval-ready and runtime promotion are completed as of
 July 5, 2026. The subject expansion onboarding contract is complete. Business
-is the current eval-ready slice; political economy, geoeconomics, and the
-economics-accounting bridge remain deferred candidates.
+is eval-ready with promotion-ready gate coverage; political economy,
+geoeconomics, and the economics-accounting bridge remain deferred candidates.
 
 Primary outcome:
 
@@ -229,7 +231,7 @@ Runtime-enabled subjects:
 
 Eval-ready subjects:
 
-- Business and management.
+- Business and management, with promotion-ready gate coverage.
 
 Deferred candidate subjects:
 
@@ -243,8 +245,9 @@ Scope:
 - Add subject-specific method, venue, data, and outcome signal groups.
 - Add near-miss cases for adjacent disciplines to prevent broad over-activation.
 - Extend subject resource activation plans only after the evaluation pack passes.
-- Business runtime promotion must revisit broad business vocabulary and
-  confirmed-subject eval semantics before changing business to
+- Business runtime activation must stay separate from promotion-ready review:
+  `promotion-ready` may pass while the checked-in manifest remains
+  `eval_ready`; only a later activation PR may change business to
   `runtime_enabled`.
 
 Success criteria:
@@ -311,28 +314,25 @@ Success criteria:
   and isolated smoke tests.
 - Scope creep risk: mitigated by activating subjects one at a time, merging the
   subject expansion onboarding contract before expansion work, and keeping
-  business, political economy, geoeconomics, and economics-accounting behind
-  separate reviewed subject specs.
+  runtime activation behind separate reviewed promotion specs.
 
 ## Recommended Immediate Plan
 
-1. Merge the subject expansion onboarding contract so deferred candidate
-   subjects cannot reuse another subject's fixture pack and gate reports expose
-   missing readiness explicitly.
-2. Prepare the first post-accounting subject spec after the onboarding contract
-   is merged. Business is the recommended next candidate unless review chooses
-   political economy, geoeconomics, or the economics-accounting bridge.
-3. Keep business, political economy, geoeconomics, and economics-accounting as
-   deferred specs until their fixture packs and activation criteria are
-   reviewed.
-4. If subject expansion is deferred after onboarding, continue Stage 5
-   feedback-aware explainability work so router outputs separate task-text,
-   manifest, trace-memory, and user-action evidence more clearly.
+1. Finish and review the business `promotion-ready` gate while keeping the
+   checked-in manifest at `activation_status: eval_ready`.
+2. If `promotion-ready` remains green after review, prepare a separate business
+   runtime activation PR that changes `activation_status` and reruns the
+   runtime-enabled gate.
+3. If activation is deferred, continue Stage 5 feedback-aware explainability
+   work so router outputs separate task-text, manifest, trace-memory, and
+   user-action evidence more clearly.
+4. Keep political economy, geoeconomics, and economics-accounting as separate
+   follow-up subject specs with their own fixture packs and gate criteria.
 
 Current Stage 4 execution sequence:
 
-- Merge the subject expansion onboarding contract.
-- Prepare a separate business eval-ready spec unless review selects another
-  candidate.
+- Complete business promotion-ready review.
+- Prepare a separate business runtime activation PR only after promotion-ready
+  review passes.
 - Keep political economy, geoeconomics, and economics-accounting as separate
   follow-up specs.
