@@ -1,0 +1,31 @@
+{
+  "id": "accounting_clear_discretionary_accruals",
+  "subject_under_test": "accounting",
+  "tags": ["accounting", "clear_positive"],
+  "description": "Archival accounting request with method, data, construct, and venue signals.",
+  "request": "Design an archival accounting study of discretionary accruals, Audit Analytics restatements, internal-control weaknesses, financial reporting quality, and Journal of Accounting Research positioning.",
+  "manifest": {
+    "active_subject": "auto",
+    "subject_mode": "auto",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "recommend",
+    "primary_subject": "auto",
+    "suggest_subjects": [],
+    "forbidden_subjects": ["accounting"],
+    "method_lenses": ["accrual-quality", "construct-proxy-audit"]
+  },
+  "gate_expected": {
+    "eval-ready": {
+      "decision": "recommend",
+      "primary_subject": "accounting",
+      "suggest_subjects": ["accounting"],
+      "forbidden_subjects": [],
+      "method_lenses": ["accrual-quality", "construct-proxy-audit"]
+    }
+  }
+}

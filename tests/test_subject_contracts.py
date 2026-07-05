@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -418,7 +419,7 @@ class RuntimeSubjectContractTests(unittest.TestCase):
         self.assertEqual(discovered, source_root.resolve())
         self.assertEqual(subject_activation_status("finance", contracts), "runtime_enabled")
 
-    def test_default_repository_contracts_classify_enabled_and_candidates(self) -> None:
+    def test_default_repository_contracts_classify_enabled_candidates_and_eval_ready(self) -> None:
         contracts = load_runtime_subject_contracts()
 
         self.assertEqual(
@@ -429,8 +430,12 @@ class RuntimeSubjectContractTests(unittest.TestCase):
             subject_activation_status("finance", contracts),
             "runtime_enabled",
         )
+        self.assertEqual(
+            subject_activation_status("accounting", contracts),
+            "eval_ready",
+        )
+        self.assertIn("accounting", contracts)
         for subject in {
-            "accounting",
             "business",
             "political-economy",
             "geoeconomics",
@@ -438,6 +443,70 @@ class RuntimeSubjectContractTests(unittest.TestCase):
         }:
             self.assertEqual(subject_activation_status(subject, contracts), "candidate")
             self.assertIn(subject, contracts)
+
+    def test_accounting_eval_ready_manifest_declares_signals_and_method_lenses(self) -> None:
+        contracts = load_runtime_subject_contracts()
+        contract = contracts["accounting"]
+
+        self.assertEqual(contract.activation_status, "eval_ready")
+        self.assertEqual(
+            set(contract.signal_groups),
+            {"method", "data_or_outcome", "venue", "theory_or_construct"},
+        )
+        valid_activations = {"subject", "method_only", "context_only"}
+        for dimension in ("method", "data_or_outcome", "venue", "theory_or_construct"):
+            self.assertTrue(contract.signal_groups[dimension], dimension)
+            for entry in contract.signal_groups[dimension]:
+                with self.subTest(dimension=dimension, signal_id=entry.get("id")):
+                    self.assertIsInstance(entry["id"], str)
+                    self.assertTrue(entry["id"].strip())
+                    self.assertIsInstance(entry["value"], str)
+                    self.assertTrue(entry["value"].strip())
+                    self.assertIsInstance(entry["weight"], (int, float))
+                    self.assertGreater(entry["weight"], 0)
+                    self.assertIn(entry["activation"], valid_activations)
+                    for field in ("patterns", "examples", "near_misses"):
+                        self.assertIsInstance(entry[field], list)
+                        self.assertTrue(entry[field], field)
+                        for value in entry[field]:
+                            self.assertIsInstance(value, str)
+                            self.assertTrue(value.strip(), field)
+                    for pattern in entry["patterns"]:
+                        re.compile(pattern, re.I)
+        self.assertIn("accrual-quality", contract.method_lenses)
+        self.assertIn("construct-proxy-audit", contract.method_lenses)
+        self.assertEqual(
+            contract.method_lenses["accrual-quality"]["activation"],
+            "method_only",
+        )
+        self.assertEqual(
+            contract.activation_gate["required_metrics"],
+            {
+                "primary_subject_accuracy": 0.95,
+                "suggest_subject_precision": 0.95,
+                "near_miss_false_positives": 0,
+            },
+        )
+        repo_root = Path(__file__).resolve().parents[1]
+        declared_paths = [
+            contract.domain_profile,
+            contract.subject_skill,
+            contract.evaluation_pack,
+        ]
+        if contract.overlay:
+            declared_paths.append(contract.overlay)
+        declared_paths.extend(
+            method_lens["resource"] for method_lens in contract.method_lenses.values()
+        )
+        for declared_path in declared_paths:
+            path = Path(declared_path)
+            self.assertFalse(path.is_absolute(), declared_path)
+            resolved_path = (repo_root / path).resolve()
+            try:
+                resolved_path.relative_to(repo_root)
+            except ValueError:
+                self.fail(f"{declared_path} escapes the repository")
+            self.assertTrue(resolved_path.exists(), declared_path)
 
     def test_runtime_enabled_subjects_declare_gate_metrics(self) -> None:
         contracts = load_runtime_subject_contracts()

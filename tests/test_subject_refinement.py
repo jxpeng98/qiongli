@@ -9,7 +9,31 @@ import yaml
 
 from bridges import subject_refinement as subject_refinement_module
 from bridges.project_manifest import ProjectManifest
+from bridges.subject_contracts import RuntimeSubjectContract
 from bridges.subject_refinement import infer_subject_refinement
+
+
+def _runtime_subject_contract(
+    *,
+    subject: str = "accounting",
+    signal_groups: dict[str, list[dict[str, object]]] | None = None,
+    method_lenses: dict[str, dict[str, object]] | None = None,
+) -> RuntimeSubjectContract:
+    return RuntimeSubjectContract(
+        subject=subject,
+        display_name=subject.title(),
+        activation_status="eval_ready",
+        extends="core",
+        source="test-runtime-subject.yaml",
+        domain_profile="",
+        overlay="",
+        subject_skill="",
+        signal_groups=signal_groups or {},
+        method_lenses=method_lenses or {},
+        evaluation_pack="",
+        near_miss_policy={},
+        activation_gate={},
+    )
 
 
 class SubjectRefinementTests(unittest.TestCase):
@@ -209,6 +233,34 @@ class SubjectRefinementTests(unittest.TestCase):
         self.assertEqual(packet["borrowed_lenses"][0]["lens"], "event-study")
         self.assertEqual(packet["persistence"]["status"], "locked")
 
+    def test_locked_eval_ready_accounting_signal_borrows_without_candidate(self) -> None:
+        packet = infer_subject_refinement(
+            {
+                "topic": "archival accounting accrual quality",
+                "context": "Use discretionary accruals for the accounting measurement check.",
+            },
+            manifest_state=ProjectManifest(active_subject="finance", subject_mode="locked"),
+            evaluation_subjects={"accounting"},
+        ).to_packet()
+
+        self.assertEqual(packet["decision"], "lock_subject")
+        self.assertEqual(packet["primary_subject"], "finance")
+        self.assertNotIn(
+            "accounting",
+            [candidate["subject"] for candidate in packet["candidate_subjects"]],
+        )
+        self.assertIn(
+            ("accounting", "accrual-quality"),
+            {
+                (lens["source_subject"], lens["lens"])
+                for lens in packet["borrowed_lenses"]
+            },
+        )
+        self.assertIn(
+            "content/subjects/accounting/skills/accounting-measurement-auditor.md",
+            packet["loaded_resources"]["method_packs"],
+        )
+
     def test_confirmed_finance_manifest_controls_when_context_is_weak(self) -> None:
         packet = infer_subject_refinement(
             {"topic": "revise introduction", "context": "Tighten the framing."},
@@ -221,7 +273,37 @@ class SubjectRefinementTests(unittest.TestCase):
         self.assertEqual(packet["primary_subject"], "finance")
         self.assertEqual(packet["persistence"]["status"], "applied")
 
-    def test_candidate_confirmed_subject_withholds_subject_level_resources(self) -> None:
+    def test_confirmed_subject_does_not_borrow_hard_coded_neighbor_lenses(self) -> None:
+        cases = [
+            (
+                ProjectManifest(active_subject="economics", subject_mode="confirmed"),
+                {
+                    "topic": "treatment announcement",
+                    "context": "Use CRSP abnormal returns and an event study.",
+                },
+            ),
+            (
+                ProjectManifest(active_subject="finance", subject_mode="confirmed"),
+                {
+                    "topic": "policy shock identification",
+                    "context": "Use DID and parallel trends diagnostics.",
+                },
+            ),
+        ]
+
+        for manifest, task_packet in cases:
+            with self.subTest(active_subject=manifest.active_subject):
+                packet = infer_subject_refinement(
+                    task_packet,
+                    manifest_state=manifest,
+                ).to_packet()
+
+                self.assertEqual(packet["decision"], "confirm_subject")
+                self.assertEqual(packet["primary_subject"], manifest.active_subject)
+                self.assertEqual(packet["borrowed_lenses"], [])
+                self.assertNotIn("method_pack_only", packet["loaded_resources"]["levels"])
+
+    def test_eval_ready_confirmed_subject_withholds_subject_level_resources(self) -> None:
         packet = infer_subject_refinement(
             {"topic": "earnings management", "context": "Tighten the framing."},
             manifest_state=ProjectManifest(
@@ -240,9 +322,190 @@ class SubjectRefinementTests(unittest.TestCase):
         self.assertNotIn("subject_skill", packet["resource_activation_plan"]["levels"])
         self.assertTrue(packet["loaded_resources"]["contract_warnings"])
         self.assertIn(
-            "activation_status=candidate",
+            "activation_status=eval_ready",
             packet["loaded_resources"]["contract_warnings"][0],
         )
+
+    def test_eval_ready_accounting_signals_borrow_lens_without_runtime_suggestion(self) -> None:
+        packet = infer_subject_refinement(
+            {
+                "topic": "archival accounting accrual quality",
+                "context": (
+                    "Design a study of discretionary accruals, Audit Analytics "
+                    "restatements, internal-control weaknesses, financial reporting "
+                    "quality, and Journal of Accounting Research positioning."
+                ),
+            },
+            manifest_state=ProjectManifest(),
+        ).to_packet()
+
+        self.assertEqual(packet["decision"], "borrow_lens")
+        self.assertEqual(packet["primary_subject"], "auto")
+        self.assertNotIn(
+            "accounting",
+            [candidate["subject"] for candidate in packet["candidate_subjects"]],
+        )
+        self.assertIn("accrual-quality", [lens["lens"] for lens in packet["borrowed_lenses"]])
+        signal_ids = {signal["id"] for signal in packet["signals"]}
+        self.assertIn("accounting.method.accrual-quality", signal_ids)
+        self.assertIn("accounting.data.audit-analytics", signal_ids)
+        self.assertIn("accounting.venue.journal-of-accounting-research", signal_ids)
+        accounting_resource = (
+            "content/subjects/accounting/skills/accounting-measurement-auditor.md"
+        )
+        self.assertIn(accounting_resource, packet["loaded_resources"]["method_packs"])
+        self.assertIn(
+            {
+                "kind": "method_pack_only",
+                "subject": "accounting",
+                "lens": "accrual-quality",
+                "path": accounting_resource,
+                "activation": "temporary",
+            },
+            packet["resource_activation_plan"]["resources"],
+        )
+
+    def test_mixed_finance_and_accounting_method_only_borrows_both_lenses(self) -> None:
+        packet = infer_subject_refinement(
+            {
+                "topic": "announcement and accrual design",
+                "context": "Use an event study and discretionary accruals.",
+            },
+            manifest_state=ProjectManifest(),
+        ).to_packet()
+
+        borrowed = {
+            (lens["source_subject"], lens["lens"])
+            for lens in packet["borrowed_lenses"]
+        }
+        self.assertIn(("finance", "event-study"), borrowed)
+        self.assertIn(("accounting", "accrual-quality"), borrowed)
+        self.assertIn(
+            "method-packs/finance/event-study.yaml",
+            packet["loaded_resources"]["method_packs"],
+        )
+        self.assertIn(
+            "content/subjects/accounting/skills/accounting-measurement-auditor.md",
+            packet["loaded_resources"]["method_packs"],
+        )
+
+    def test_eval_ready_gate_mode_can_measure_accounting_primary_subject(self) -> None:
+        packet = infer_subject_refinement(
+            {
+                "topic": "archival accounting accrual quality",
+                "context": (
+                    "Design a study of discretionary accruals, Audit Analytics "
+                    "restatements, financial reporting quality, and Journal of "
+                    "Accounting Research positioning."
+                ),
+            },
+            manifest_state=ProjectManifest(),
+            evaluation_subjects={"accounting"},
+        ).to_packet()
+
+        self.assertEqual(packet["decision"], "suggest_subject")
+        self.assertEqual(packet["primary_subject"], "accounting")
+        self.assertIn(
+            "accounting",
+            [candidate["subject"] for candidate in packet["candidate_subjects"]],
+        )
+        self.assertIn("accrual-quality", packet["method_lenses"])
+        self.assertEqual(packet["loaded_resources"]["overlays"], [])
+        self.assertEqual(packet["loaded_resources"]["subject_skills"], [])
+        self.assertTrue(packet["loaded_resources"]["contract_warnings"])
+
+    def test_accounting_near_miss_account_for_heterogeneity_keeps_core(self) -> None:
+        packet = infer_subject_refinement(
+            {
+                "topic": "regression diagnostics",
+                "context": "Explain how to account for heterogeneity in a generic regression model.",
+            },
+            manifest_state=ProjectManifest(),
+        ).to_packet()
+
+        self.assertNotIn(
+            "accounting",
+            [signal["subject"] for signal in packet["signals"]],
+        )
+        self.assertEqual(packet["decision"], "no_subject")
+        self.assertNotEqual(packet["primary_subject"], "accounting")
+
+    def test_runtime_contract_load_failure_preserves_hard_coded_routing_warning(self) -> None:
+        with patch(
+            "bridges.subject_refinement.load_runtime_subject_contracts",
+            side_effect=RuntimeError("runtime manifests unavailable"),
+        ):
+            packet = infer_subject_refinement(
+                {
+                    "topic": "policy announcement effects",
+                    "context": "Use an event study design.",
+                },
+                manifest_state=ProjectManifest(active_subject="economics"),
+            ).to_packet()
+
+        self.assertEqual(packet["decision"], "borrow_lens")
+        self.assertEqual(packet["borrowed_lenses"][0]["source_subject"], "finance")
+        self.assertEqual(packet["borrowed_lenses"][0]["lens"], "event-study")
+        self.assertTrue(packet["loaded_resources"]["contract_warnings"])
+        self.assertIn(
+            "runtime manifests unavailable",
+            packet["loaded_resources"]["contract_warnings"][0],
+        )
+
+    def test_non_numeric_manifest_signal_weight_does_not_break_routing(self) -> None:
+        contract = _runtime_subject_contract(
+            signal_groups={
+                "method": [
+                    {
+                        "id": "accounting.method.accrual-quality",
+                        "value": "accrual-quality",
+                        "weight": "not-a-number",
+                        "patterns": [r"\bdiscretionary accruals?\b"],
+                    },
+                    {
+                        "id": "accounting.method.construct-proxy-audit",
+                        "value": "construct-proxy-audit",
+                        "weight": float("nan"),
+                        "patterns": [r"\bmeasurement validity\b"],
+                    }
+                ]
+            },
+            method_lenses={
+                "accrual-quality": {
+                    "resource": (
+                        "content/subjects/accounting/skills/"
+                        "accounting-measurement-auditor.md"
+                    )
+                },
+                "construct-proxy-audit": {
+                    "resource": (
+                        "content/subjects/accounting/overlays/skills/"
+                        "variable-constructor.md"
+                    )
+                }
+            },
+        )
+
+        with patch(
+            "bridges.subject_refinement.load_runtime_subject_contracts",
+            return_value={"accounting": contract},
+        ):
+            packet = infer_subject_refinement(
+                {
+                    "topic": "archival accounting",
+                    "context": "Estimate discretionary accruals and assess measurement validity.",
+                },
+                manifest_state=ProjectManifest(),
+            ).to_packet()
+
+        self.assertEqual(packet["decision"], "borrow_lens")
+        signal_weights = {
+            signal["id"]: signal["weight"]
+            for signal in packet["signals"]
+            if signal["subject"] == "accounting"
+        }
+        self.assertEqual(signal_weights["accounting.method.accrual-quality"], 0.0)
+        self.assertEqual(signal_weights["accounting.method.construct-proxy-audit"], 0.0)
 
     def test_runtime_enabled_finance_still_loads_subject_resources(self) -> None:
         packet = infer_subject_refinement(

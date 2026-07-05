@@ -87,9 +87,10 @@ strong judge, reverse journal fit, and feedback loops preserve the same locked
 research state.
 
 The next implementation priority is therefore a full-cycle multi-agent workflow
-harness with reverse journal-fit recommendation. Subject expansion resumes
-after this harness can detect stage drift, unsupported claims, unresolved fatal
-flaws, and over-optimistic journal recommendations.
+harness with reverse journal-fit recommendation. Additional subject expansion
+or runtime activation beyond the accounting eval-ready slice resumes after this
+harness can detect stage drift, unsupported claims, unresolved fatal flaws, and
+over-optimistic journal recommendations.
 
 Formal design and execution plan:
 
@@ -203,8 +204,10 @@ First formal spec:
 
 ## Stage 4: Subject Expansion With Evaluation Gates
 
-Status: partially implemented foundation; full subject activation remains
-deferred until after the full-cycle workflow harness.
+Status: accounting expansion slice in progress. Accounting is the first
+eval-ready candidate subject; business, political economy, geoeconomics, and
+the economics-accounting bridge remain deferred until the accounting gate is
+reviewed.
 
 Primary outcome:
 
@@ -287,8 +290,9 @@ Success criteria:
   implementation.
 - Local file safety risk: mitigated by project-local writes, managed fragments,
   and isolated smoke tests.
-- Scope creep risk: mitigated by delaying new subject expansion until lifecycle
-  and evaluation gates are in place.
+- Scope creep risk: mitigated by delaying additional subject expansion and
+  runtime activation beyond the accounting eval-ready slice until lifecycle and
+  evaluation gates are in place.
 
 ## Recommended Immediate Plan
 
@@ -304,9 +308,11 @@ Implement the full-cycle workflow harness first:
 5. Expose preview tools through full Python MCP/CLI surfaces.
 6. Add release smoke coverage only for deterministic preview fixtures.
 
-After the full-cycle harness ships, resume Stage 4 subject expansion:
+Current Stage 4 execution sequence:
 
-- Require an evaluation fixture pack before enabling each new subject.
-- Start with one adjacent subject pack before expanding the full catalog.
-- Keep feedback-aware routing and marketplace/read-only fallback work scoped as
-  separate follow-up specs unless Stage 4 exposes a blocking dependency.
+- Finish the accounting eval-ready fixture pack and manifest-backed signal
+  routing.
+- Review the accounting eval-ready gate report before considering a separate
+  runtime-enabled activation change.
+- Keep business, political economy, geoeconomics, and economics-accounting as
+  separate follow-up specs.
