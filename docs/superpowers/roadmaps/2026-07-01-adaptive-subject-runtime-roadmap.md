@@ -81,26 +81,29 @@ Remaining product gaps:
   claim-evidence coverage, strong judge results, and journal-fit decisions must
   be checked together before later expansion work is considered release-ready.
 
-## Priority Update: Accounting Gate Review And Next Subject Spec
+## Priority Update: Subject Expansion Onboarding Contract
 
 Status: accounting runtime promotion completed by the accounting runtime
 promotion change after the full-cycle workflow harness, manuscript-first
 journal fit, and accounting eval-ready pack were completed.
 
-The full-cycle workflow harness and reverse journal-fit recommender were
-completed before the accounting runtime promotion change, and accounting passes
-the runtime-enabled gate as of that promotion.
+The accounting runtime-enabled gate has been reviewed and remains green. The
+next Stage 4 prerequisite is the subject expansion onboarding contract, which
+prevents deferred candidate subjects from reusing another subject's fixture
+pack and makes missing fixture/signal readiness explicit in gate reports.
 
-The next reviewed step is to inspect the accounting runtime-enabled gate report
-and then prepare the next subject expansion spec. Business, political economy,
-geoeconomics, and economics-accounting remain deferred until a reviewed spec
-defines their fixtures, near-miss guards, and activation criteria. If subject
-expansion is deferred, continue feedback-aware explainability work instead.
+After this onboarding contract merges, prepare the first post-accounting
+subject spec. Business is the recommended next candidate because business
+resources and venue profiles already exist, but it must remain `candidate`
+until a business-owned fixture pack, near-miss guards, and signal groups are
+reviewed.
 
 Formal design and execution plan:
 
 - `docs/superpowers/specs/2026-07-05-accounting-runtime-promotion-design.md`
 - `docs/superpowers/plans/2026-07-05-accounting-runtime-promotion.md`
+- `docs/superpowers/specs/2026-07-05-subject-expansion-onboarding-contract-design.md`
+- `docs/superpowers/plans/2026-07-05-subject-expansion-onboarding-contract.md`
 
 ## Stage 1: Router Evaluation And Lifecycle Controls
 
@@ -211,9 +214,8 @@ First formal spec:
 
 Status: accounting eval-ready slice and accounting runtime promotion completed
 as of July 5, 2026. Business, political economy, geoeconomics, and the
-economics-accounting bridge remain deferred until the accounting
-runtime-enabled gate report is reviewed and the next subject expansion spec is
-approved.
+economics-accounting bridge remain deferred while the current Stage 4
+prerequisite is the subject expansion onboarding contract.
 
 Primary outcome:
 
@@ -299,29 +301,30 @@ Success criteria:
   implementation.
 - Local file safety risk: mitigated by project-local writes, managed fragments,
   and isolated smoke tests.
-- Scope creep risk: mitigated by activating subjects one at a time and delaying
-  business, political economy, geoeconomics, and economics-accounting until
-  the next reviewed subject expansion spec is approved.
+- Scope creep risk: mitigated by activating subjects one at a time, merging the
+  subject expansion onboarding contract before expansion work, and keeping
+  business, political economy, geoeconomics, and economics-accounting behind
+  separate reviewed subject specs.
 
 ## Recommended Immediate Plan
 
-Review the accounting runtime-enabled gate report and choose the next reviewed
-subject expansion spec:
-
-1. Review the accounting runtime-enabled gate report for precision, near-miss
-   behavior, and method-only borrowed-lens safety.
-2. Choose whether the next reviewed subject expansion spec should cover
-   business, political economy, geoeconomics, or economics-accounting.
-3. If subject expansion is deferred, continue Stage 5 feedback-aware
-   explainability work so router outputs separate task-text, manifest,
-   trace-memory, and user-action evidence more clearly.
-4. Keep business, political economy, geoeconomics, and economics-accounting as
+1. Merge the subject expansion onboarding contract so deferred candidate
+   subjects cannot reuse another subject's fixture pack and gate reports expose
+   missing readiness explicitly.
+2. Prepare the first post-accounting subject spec after the onboarding contract
+   is merged. Business is the recommended next candidate unless review chooses
+   political economy, geoeconomics, or the economics-accounting bridge.
+3. Keep business, political economy, geoeconomics, and economics-accounting as
    deferred specs until their fixture packs and activation criteria are
    reviewed.
+4. If subject expansion is deferred after onboarding, continue Stage 5
+   feedback-aware explainability work so router outputs separate task-text,
+   manifest, trace-memory, and user-action evidence more clearly.
 
 Current Stage 4 execution sequence:
 
-- Review the accounting runtime-enabled gate report before starting the next
-  subject expansion spec.
-- Keep business, political economy, geoeconomics, and economics-accounting as
-  separate follow-up specs.
+- Merge the subject expansion onboarding contract.
+- Prepare a separate business eval-ready spec unless review selects another
+  candidate.
+- Keep political economy, geoeconomics, and economics-accounting as separate
+  follow-up specs.
