@@ -262,10 +262,19 @@ def infer_subject_refinement(
     merged_analysis: str = "",
     standards_dir: str | Path | None = None,
     evaluation_subjects: set[str] | None = None,
+    activation_status_overrides: Mapping[str, str] | None = None,
 ) -> SubjectRefinementPacket:
     manifest = _coerce_manifest(manifest_state)
     text = _collect_text(task_packet, draft_content, review_content, merged_analysis)
-    signals = _detect_signals(text)
+    activation_status_overrides = {
+        str(subject): str(status)
+        for subject, status in dict(activation_status_overrides or {}).items()
+        if isinstance(subject, str) and isinstance(status, str)
+    }
+    signals = _detect_signals(
+        text,
+        activation_status_overrides=activation_status_overrides,
+    )
     contract_result = _load_contract(standards_dir)
     contract = contract_result.contract
     contract_warnings = [*contract_result.warnings, *signals.contract_warnings]
@@ -273,10 +282,12 @@ def infer_subject_refinement(
     finance_runtime_enabled = _subject_can_be_suggested(
         "finance",
         evaluation_subjects=evaluation_subjects,
+        activation_status_overrides=activation_status_overrides,
     )
     economics_runtime_enabled = _subject_can_be_suggested(
         "economics",
         evaluation_subjects=evaluation_subjects,
+        activation_status_overrides=activation_status_overrides,
     )
 
     if manifest.subject_mode == "locked":
@@ -288,7 +299,10 @@ def infer_subject_refinement(
             active_subject=manifest.active_subject,
             primary_subject=manifest.active_subject,
             secondary_subjects=list(manifest.secondary_subjects or []),
-            candidate_subjects=_candidate_subjects(signals),
+            candidate_subjects=_candidate_subjects(
+                signals,
+                activation_status_overrides=activation_status_overrides,
+            ),
             method_lenses=method_lenses,
             borrowed_lenses=borrowed_lenses,
             loaded_resources=_loaded_resources(
@@ -324,6 +338,7 @@ def infer_subject_refinement(
             candidate_subjects=_candidate_subjects(
                 signals,
                 evaluation_subjects=evaluation_subjects,
+                activation_status_overrides=activation_status_overrides,
             ),
             method_lenses=method_lenses,
             borrowed_lenses=borrowed_lenses,
@@ -357,6 +372,7 @@ def infer_subject_refinement(
                 signals,
                 preferred="finance",
                 evaluation_subjects=evaluation_subjects,
+                activation_status_overrides=activation_status_overrides,
             ),
             method_lenses=method_lenses,
             borrowed_lenses=borrowed_lenses,
@@ -390,6 +406,7 @@ def infer_subject_refinement(
                 signals,
                 preferred="economics",
                 evaluation_subjects=evaluation_subjects,
+                activation_status_overrides=activation_status_overrides,
             ),
             method_lenses=method_lenses,
             borrowed_lenses=borrowed_lenses,
@@ -413,6 +430,7 @@ def infer_subject_refinement(
     runtime_subject_match = _runtime_subject_suggestion_match(
         signals,
         evaluation_subjects=evaluation_subjects,
+        activation_status_overrides=activation_status_overrides,
     )
     if runtime_subject_match is not None:
         subject = runtime_subject_match.subject
@@ -428,6 +446,7 @@ def infer_subject_refinement(
                 signals,
                 preferred=subject,
                 evaluation_subjects=evaluation_subjects,
+                activation_status_overrides=activation_status_overrides,
             ),
             method_lenses=method_lenses,
             borrowed_lenses=borrowed_lenses,
@@ -464,6 +483,7 @@ def infer_subject_refinement(
                 signals,
                 preferred="finance",
                 evaluation_subjects=evaluation_subjects,
+                activation_status_overrides=activation_status_overrides,
             ),
             method_lenses=_unique(list(manifest.method_lenses or [])),
             borrowed_lenses=borrowed_lenses,
@@ -499,6 +519,7 @@ def infer_subject_refinement(
                 signals,
                 preferred="economics",
                 evaluation_subjects=evaluation_subjects,
+                activation_status_overrides=activation_status_overrides,
             ),
             method_lenses=_unique(list(manifest.method_lenses or [])),
             borrowed_lenses=borrowed_lenses,
@@ -537,6 +558,7 @@ def infer_subject_refinement(
             candidate_subjects=_candidate_subjects(
                 signals,
                 evaluation_subjects=evaluation_subjects,
+                activation_status_overrides=activation_status_overrides,
             ),
             method_lenses=_unique(list(manifest.method_lenses or [])),
             borrowed_lenses=borrowed_lenses,
@@ -635,14 +657,21 @@ def _stringify_task_value(value: Any) -> str:
     return ""
 
 
-def _detect_signals(text: str) -> SubjectSignals:
+def _detect_signals(
+    text: str,
+    *,
+    activation_status_overrides: Mapping[str, str] | None = None,
+) -> SubjectSignals:
     finance_method_lenses = _hits(FINANCE_METHOD_PATTERNS, text)
     economics_method_lenses = _hits(ECONOMICS_METHOD_PATTERNS, text)
     (
         manifest_records,
         runtime_subject_matches,
         contract_warnings,
-    ) = _detect_manifest_signal_records(text)
+    ) = _detect_manifest_signal_records(
+        text,
+        activation_status_overrides=activation_status_overrides,
+    )
     finance_data_outcomes = _pattern_labels(
         {
             "finance-data": FINANCE_DATA_OUTCOME_PATTERNS[0],
@@ -698,6 +727,8 @@ def _detect_signal_records(text: str) -> list[dict[str, Any]]:
 
 def _detect_manifest_signal_records(
     text: str,
+    *,
+    activation_status_overrides: Mapping[str, str] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, RuntimeSubjectMatch], list[str]]:
     records: list[dict[str, Any]] = []
     matches: dict[str, RuntimeSubjectMatch] = {}
@@ -719,9 +750,15 @@ def _detect_manifest_signal_records(
             ]
         )
         method_lenses = _runtime_subject_method_lenses(contract, subject_records)
+        activation_status = (
+            activation_status_overrides[subject]
+            if activation_status_overrides is not None
+            and subject in activation_status_overrides
+            else contract.activation_status
+        )
         matches[subject] = RuntimeSubjectMatch(
             subject=subject,
-            activation_status=contract.activation_status,
+            activation_status=activation_status,
             dimensions=tuple(dimensions),
             subject_level_dimensions=tuple(subject_level_dimensions),
             method_lenses=tuple(method_lenses),
@@ -884,6 +921,7 @@ def _candidate_subjects(
     *,
     preferred: str | None = None,
     evaluation_subjects: set[str] | None = None,
+    activation_status_overrides: Mapping[str, str] | None = None,
 ) -> list[dict[str, Any]]:
     subjects: list[str] = []
     if preferred:
@@ -902,7 +940,11 @@ def _candidate_subjects(
     return [
         _candidate_subject_record(subject, signals)
         for subject in _unique(subjects)
-        if _subject_can_be_suggested(subject, evaluation_subjects=evaluation_subjects)
+        if _subject_can_be_suggested(
+            subject,
+            evaluation_subjects=evaluation_subjects,
+            activation_status_overrides=activation_status_overrides,
+        )
     ]
 
 
@@ -910,6 +952,7 @@ def _runtime_subject_suggestion_match(
     signals: SubjectSignals,
     *,
     evaluation_subjects: set[str],
+    activation_status_overrides: Mapping[str, str] | None = None,
 ) -> RuntimeSubjectMatch | None:
     for subject, match in signals.runtime_subject_matches.items():
         if (
@@ -917,6 +960,7 @@ def _runtime_subject_suggestion_match(
             and _subject_can_be_suggested(
                 subject,
                 evaluation_subjects=evaluation_subjects,
+                activation_status_overrides=activation_status_overrides,
             )
         ):
             return match
@@ -1133,13 +1177,26 @@ def _subject_can_be_suggested(
     subject: str,
     *,
     evaluation_subjects: set[str] | None = None,
+    activation_status_overrides: Mapping[str, str] | None = None,
 ) -> bool:
     if evaluation_subjects and subject in evaluation_subjects:
         return True
-    return _runtime_activation_status(subject) == "runtime_enabled"
+    return (
+        _runtime_activation_status(
+            subject,
+            activation_status_overrides=activation_status_overrides,
+        )
+        == "runtime_enabled"
+    )
 
 
-def _runtime_activation_status(subject: str) -> str:
+def _runtime_activation_status(
+    subject: str,
+    *,
+    activation_status_overrides: Mapping[str, str] | None = None,
+) -> str:
+    if activation_status_overrides and subject in activation_status_overrides:
+        return activation_status_overrides[subject]
     try:
         return subject_activation_status(subject)
     except Exception:

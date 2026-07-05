@@ -669,6 +669,57 @@ class SubjectRefinementTests(unittest.TestCase):
             packet["loaded_resources"]["contract_warnings"][0],
         )
 
+    def test_business_activation_override_measures_default_runtime_suggestion(self) -> None:
+        with patch(
+            "bridges.subject_refinement.load_runtime_subject_contracts",
+            return_value={"business": _business_runtime_subject_contract()},
+        ):
+            packet = infer_subject_refinement(
+                {
+                    "topic": "management theory case study",
+                    "context": (
+                        "Use a multiple case study with interviews with managers "
+                        "to develop a management theory contribution for AMJ."
+                    ),
+                },
+                manifest_state=ProjectManifest(),
+                activation_status_overrides={"business": "runtime_enabled"},
+            ).to_packet()
+
+        self.assertEqual(packet["decision"], "suggest_subject")
+        self.assertEqual(packet["primary_subject"], "business")
+        self.assertEqual(packet["domain"], "business-management")
+        self.assertIn(
+            "business",
+            [candidate["subject"] for candidate in packet["candidate_subjects"]],
+        )
+        self.assertIn("business-positioning", packet["method_lenses"])
+        self.assertIn("qualitative-transparency", packet["method_lenses"])
+        self.assertEqual(packet["loaded_resources"]["contract_warnings"], [])
+
+    def test_business_without_activation_override_remains_suppressed_by_default(self) -> None:
+        with patch(
+            "bridges.subject_refinement.load_runtime_subject_contracts",
+            return_value={"business": _business_runtime_subject_contract()},
+        ):
+            packet = infer_subject_refinement(
+                {
+                    "topic": "management theory case study",
+                    "context": (
+                        "Use a multiple case study with interviews with managers "
+                        "to develop a management theory contribution for AMJ."
+                    ),
+                },
+                manifest_state=ProjectManifest(),
+            ).to_packet()
+
+        self.assertNotEqual(packet["decision"], "suggest_subject")
+        self.assertNotEqual(packet["primary_subject"], "business")
+        self.assertNotIn(
+            "business",
+            [candidate["subject"] for candidate in packet["candidate_subjects"]],
+        )
+
     def test_eval_ready_business_method_only_borrows_lens_without_subject_suggestion(self) -> None:
         with patch(
             "bridges.subject_refinement.load_runtime_subject_contracts",
