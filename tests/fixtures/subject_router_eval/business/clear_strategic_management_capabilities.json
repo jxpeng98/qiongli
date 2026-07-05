@@ -1,27 +1,27 @@
 {
-  "id": "business_confirmed_journal_positioning",
+  "id": "business_clear_strategic_management_capabilities",
   "subject_under_test": "business",
   "tags": [
     "business",
-    "confirmed_subject"
+    "clear_positive"
   ],
-  "description": "Confirmed business project remains business while eval-ready subject resources are withheld from runtime loading.",
-  "request": "Tighten the Academy of Management Journal positioning, management theory contribution, construct clarity, and boundary conditions for this business manuscript.",
+  "description": "Strategic management manuscript with dynamic capabilities, sustained competitive advantage, venue, and theory contribution signals.",
+  "request": "Frame a Strategic Management Journal manuscript on dynamic capabilities, sustained competitive advantage, organizational routines, and strategy mechanism as a management theory contribution with explicit boundary conditions.",
   "manifest": {
-    "active_subject": "business",
-    "subject_mode": "confirmed",
+    "active_subject": "auto",
+    "subject_mode": "auto",
     "secondary_subjects": [],
     "venue_profiles": [],
-    "method_lenses": [
-      "business-positioning"
-    ],
+    "method_lenses": [],
     "strictness": "standard"
   },
   "expected": {
     "decision": "recommend",
-    "primary_subject": "business",
+    "primary_subject": "auto",
     "suggest_subjects": [],
-    "forbidden_subjects": [],
+    "forbidden_subjects": [
+      "business"
+    ],
     "method_lenses": [
       "business-positioning"
     ]

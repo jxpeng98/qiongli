@@ -43,6 +43,20 @@
       "method_lenses": [
         "event-study"
       ]
+    },
+    "promotion-ready": {
+      "decision": "recommend",
+      "primary_subject": "finance",
+      "suggest_subjects": [
+        "finance"
+      ],
+      "allowed_neighbor_subjects": [
+        "business"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "event-study"
+      ]
     }
   }
 }

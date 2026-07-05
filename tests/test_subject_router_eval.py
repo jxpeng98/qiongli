@@ -329,15 +329,19 @@ class SubjectRouterEvalTests(unittest.TestCase):
         required_business_ids = {
             "business_clear_management_theory_case_study",
             "business_clear_marketing_platform_experiment",
+            "business_clear_organization_panel_manager_survey",
+            "business_clear_strategic_management_capabilities",
             "business_method_only_gioia_borrow",
             "business_mixed_finance_strategy_returns",
             "business_locked_economics_borrow_positioning",
             "business_confirmed_journal_positioning",
+            "business_near_miss_customer_segmentation_sales_forecast",
             "business_near_miss_small_business_plan",
             "business_near_miss_consulting_market_analysis",
             "business_near_miss_product_launch_practitioner",
             "business_near_miss_marketing_channel_sales_enablement",
             "business_near_miss_project_management_workflow",
+            "business_near_miss_strategy_competitive_advantage_memo",
             "business_near_miss_teaching_case_assignment",
         }
         self.assertTrue(required_business_ids.issubset(set(ids)))

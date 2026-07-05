@@ -42,6 +42,19 @@
         "construct-level-fit"
       ]
     },
+    "promotion-ready": {
+      "decision": "recommend",
+      "primary_subject": "business",
+      "suggest_subjects": [
+        "business"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "business-positioning",
+        "qualitative-transparency",
+        "construct-level-fit"
+      ]
+    },
     "runtime-enabled": {
       "decision": "recommend",
       "primary_subject": "auto",

@@ -1,12 +1,12 @@
 {
-  "id": "business_clear_marketing_platform_experiment",
+  "id": "business_clear_organization_panel_manager_survey",
   "subject_under_test": "business",
   "tags": [
     "business",
     "clear_positive"
   ],
-  "description": "Marketing platform request with market-platform data, venue, and theory contribution signals.",
-  "request": "Frame a Journal of Marketing manuscript on platform marketplace design, customer journey mechanisms, marketing channel strategy, firm-customer interaction, theory contribution, and managerial implication with explicit journal positioning.",
+  "description": "Quantitative organization-level business study with manager survey, construct, and venue signals.",
+  "request": "Design a Journal of Management manuscript using organization-level data, firm-level panel measures, manager survey evidence, construct clarity, and boundary conditions to build a management theory contribution.",
   "manifest": {
     "active_subject": "auto",
     "subject_mode": "auto",
@@ -23,7 +23,8 @@
       "business"
     ],
     "method_lenses": [
-      "business-positioning"
+      "business-positioning",
+      "construct-level-fit"
     ]
   },
   "gate_expected": {
@@ -35,7 +36,8 @@
       ],
       "forbidden_subjects": [],
       "method_lenses": [
-        "business-positioning"
+        "business-positioning",
+        "construct-level-fit"
       ]
     },
     "promotion-ready": {
@@ -46,18 +48,8 @@
       ],
       "forbidden_subjects": [],
       "method_lenses": [
-        "business-positioning"
-      ]
-    },
-    "runtime-enabled": {
-      "decision": "recommend",
-      "primary_subject": "auto",
-      "suggest_subjects": [],
-      "forbidden_subjects": [
-        "business"
-      ],
-      "method_lenses": [
-        "business-positioning"
+        "business-positioning",
+        "construct-level-fit"
       ]
     }
   }
