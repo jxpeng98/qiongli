@@ -14,14 +14,22 @@
   },
   "expected": {
     "decision": "recommend",
-    "primary_subject": "auto",
-    "suggest_subjects": [],
+    "primary_subject": "accounting",
+    "suggest_subjects": ["accounting"],
     "allowed_neighbor_subjects": ["finance"],
-    "forbidden_subjects": ["accounting"],
+    "forbidden_subjects": [],
     "method_lenses": ["accrual-quality"]
   },
   "gate_expected": {
     "eval-ready": {
+      "decision": "recommend",
+      "primary_subject": "accounting",
+      "suggest_subjects": ["accounting"],
+      "allowed_neighbor_subjects": ["finance"],
+      "forbidden_subjects": [],
+      "method_lenses": ["accrual-quality"]
+    },
+    "runtime-enabled": {
       "decision": "recommend",
       "primary_subject": "accounting",
       "suggest_subjects": ["accounting"],

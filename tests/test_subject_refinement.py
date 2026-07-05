@@ -326,14 +326,35 @@ class SubjectRefinementTests(unittest.TestCase):
             packet["loaded_resources"]["contract_warnings"][0],
         )
 
-    def test_eval_ready_accounting_signals_borrow_lens_without_runtime_suggestion(self) -> None:
+    def test_runtime_enabled_accounting_signals_suggest_accounting(self) -> None:
         packet = infer_subject_refinement(
             {
                 "topic": "archival accounting accrual quality",
                 "context": (
-                    "Design a study of discretionary accruals, Audit Analytics "
-                    "restatements, internal-control weaknesses, financial reporting "
-                    "quality, and Journal of Accounting Research positioning."
+                    "Use discretionary accruals, Audit Analytics restatements, "
+                    "internal-control weaknesses, financial reporting quality, "
+                    "and Journal of Accounting Research positioning."
+                ),
+            },
+            manifest_state=ProjectManifest(),
+        ).to_packet()
+
+        self.assertEqual(packet["decision"], "suggest_subject")
+        self.assertEqual(packet["primary_subject"], "accounting")
+        self.assertIn(
+            "accounting",
+            [candidate["subject"] for candidate in packet["candidate_subjects"]],
+        )
+        self.assertIn("accrual-quality", packet["method_lenses"])
+        self.assertIn("construct-proxy-audit", packet["method_lenses"])
+
+    def test_runtime_enabled_accounting_method_only_auto_borrows_lens(self) -> None:
+        packet = infer_subject_refinement(
+            {
+                "topic": "robustness controls",
+                "context": (
+                    "Add accrual quality and discretionary accrual controls "
+                    "to the empirical appendix."
                 ),
             },
             manifest_state=ProjectManifest(),
@@ -345,24 +366,12 @@ class SubjectRefinementTests(unittest.TestCase):
             "accounting",
             [candidate["subject"] for candidate in packet["candidate_subjects"]],
         )
-        self.assertIn("accrual-quality", [lens["lens"] for lens in packet["borrowed_lenses"]])
-        signal_ids = {signal["id"] for signal in packet["signals"]}
-        self.assertIn("accounting.method.accrual-quality", signal_ids)
-        self.assertIn("accounting.data.audit-analytics", signal_ids)
-        self.assertIn("accounting.venue.journal-of-accounting-research", signal_ids)
-        accounting_resource = (
-            "content/subjects/accounting/skills/accounting-measurement-auditor.md"
-        )
-        self.assertIn(accounting_resource, packet["loaded_resources"]["method_packs"])
         self.assertIn(
+            ("accounting", "accrual-quality"),
             {
-                "kind": "method_pack_only",
-                "subject": "accounting",
-                "lens": "accrual-quality",
-                "path": accounting_resource,
-                "activation": "temporary",
+                (lens["source_subject"], lens["lens"])
+                for lens in packet["borrowed_lenses"]
             },
-            packet["resource_activation_plan"]["resources"],
         )
 
     def test_mixed_finance_and_accounting_method_only_borrows_both_lenses(self) -> None:

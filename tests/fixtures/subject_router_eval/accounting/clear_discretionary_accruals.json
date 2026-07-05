@@ -14,13 +14,20 @@
   },
   "expected": {
     "decision": "recommend",
-    "primary_subject": "auto",
-    "suggest_subjects": [],
-    "forbidden_subjects": ["accounting"],
+    "primary_subject": "accounting",
+    "suggest_subjects": ["accounting"],
+    "forbidden_subjects": [],
     "method_lenses": ["accrual-quality", "construct-proxy-audit"]
   },
   "gate_expected": {
     "eval-ready": {
+      "decision": "recommend",
+      "primary_subject": "accounting",
+      "suggest_subjects": ["accounting"],
+      "forbidden_subjects": [],
+      "method_lenses": ["accrual-quality", "construct-proxy-audit"]
+    },
+    "runtime-enabled": {
       "decision": "recommend",
       "primary_subject": "accounting",
       "suggest_subjects": ["accounting"],

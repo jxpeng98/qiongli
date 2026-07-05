@@ -419,7 +419,7 @@ class RuntimeSubjectContractTests(unittest.TestCase):
         self.assertEqual(discovered, source_root.resolve())
         self.assertEqual(subject_activation_status("finance", contracts), "runtime_enabled")
 
-    def test_default_repository_contracts_classify_enabled_candidates_and_eval_ready(self) -> None:
+    def test_default_repository_contracts_classify_runtime_enabled_and_candidates(self) -> None:
         contracts = load_runtime_subject_contracts()
 
         self.assertEqual(
@@ -432,7 +432,7 @@ class RuntimeSubjectContractTests(unittest.TestCase):
         )
         self.assertEqual(
             subject_activation_status("accounting", contracts),
-            "eval_ready",
+            "runtime_enabled",
         )
         self.assertIn("accounting", contracts)
         for subject in {
@@ -444,11 +444,11 @@ class RuntimeSubjectContractTests(unittest.TestCase):
             self.assertEqual(subject_activation_status(subject, contracts), "candidate")
             self.assertIn(subject, contracts)
 
-    def test_accounting_eval_ready_manifest_declares_signals_and_method_lenses(self) -> None:
+    def test_accounting_runtime_enabled_manifest_declares_signals_and_method_lenses(self) -> None:
         contracts = load_runtime_subject_contracts()
         contract = contracts["accounting"]
 
-        self.assertEqual(contract.activation_status, "eval_ready")
+        self.assertEqual(contract.activation_status, "runtime_enabled")
         self.assertEqual(
             set(contract.signal_groups),
             {"method", "data_or_outcome", "venue", "theory_or_construct"},
