@@ -19,9 +19,12 @@ for import_root in (PYTHON_SOURCE_ROOT, SCRIPT_DIR, REPO_ROOT):
 from generated_output_paths import is_generated_output_path
 
 EXCLUDED_NAMES = {
+    ".env",
     ".git",
     ".mypy_cache",
     ".pytest_cache",
+    ".qiongli",
+    ".qiongli-config",
     ".ruff_cache",
     ".venv",
     ".worktrees",
