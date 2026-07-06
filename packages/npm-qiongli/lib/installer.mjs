@@ -6,6 +6,7 @@ const TARGETS = ['codex', 'claude', 'antigravity', 'hermes'];
 const PARTS = ['globals', 'project', 'cli', 'mcp'];
 const LEGACY_SKILL_NAME = 'research-paper-workflow';
 const NPM_PLUGIN_MARKER = '.qiongli-npm-lite.json';
+const NPM_PLUGIN_RECOMMENDED_KEY = 'qiongli_cli';
 
 export function resolveTargetPaths({ env = process.env } = {}) {
   const home = env.HOME || env.USERPROFILE || os.homedir();
@@ -136,7 +137,18 @@ export function installSkills({
           actions.push(pluginUnavailableAction({ target: item, path: dest }));
           continue;
         }
-        actions.push(copyPlugin({ src: pluginSrc, dest, mode, overwrite, dryRun, detail: item, platform, sourceVersion }));
+        const platformTarget = readNpmPluginPlatformTarget(packageRoot);
+        actions.push(copyPlugin({
+          src: pluginSrc,
+          dest,
+          mode,
+          overwrite,
+          dryRun,
+          detail: item,
+          platform,
+          sourceVersion,
+          platformTarget,
+        }));
       }
     }
   }
@@ -311,6 +323,7 @@ export function buildCheck({ packageRoot, subject = 'core', coverage = 'complete
         managed: pluginInstalled,
         version: pluginVersion,
         target: pluginMarker?.target || target,
+        platform_target: pluginMarker?.platform_target || null,
       },
     };
   }
@@ -365,7 +378,7 @@ function copySkill({ src, dest, mode, overwrite, dryRun, sourceVersion, sourceSu
   return { label: 'Skill', status: 'ok', path: dest, detail: `installed ${sourceVersion} (${sourceSubject}/${sourceCoverage})` };
 }
 
-function copyPlugin({ src, dest, mode, overwrite, dryRun, detail, platform, sourceVersion }) {
+function copyPlugin({ src, dest, mode, overwrite, dryRun, detail, platform, sourceVersion, platformTarget }) {
   if (pathExistsOrSymlink(dest)) {
     if (!isNpmManagedPluginDir(dest)) {
       return { label: 'Plugin', status: 'skip', path: dest, detail: 'unmanaged qiongli plugin directory' };
@@ -384,10 +397,51 @@ function copyPlugin({ src, dest, mode, overwrite, dryRun, detail, platform, sour
     } else {
       fs.cpSync(src, dest, { recursive: true, force: true });
     }
-    writeNpmPluginMarker(dest, { target: detail, sourceVersion });
+    writeNpmPluginMarker(dest, { target: detail, sourceVersion, platformTarget });
   }
 
   return { label: 'Plugin', status: 'ok', path: dest, detail: `installed ${detail}` };
+}
+
+function readNpmPluginPlatformTarget(packageRoot) {
+  const registryPath = path.join(packageRoot, 'payload', 'content', 'distribution', 'platform-targets.json');
+  const registry = JSON.parse(fs.readFileSync(registryPath, 'utf-8'));
+  return platformTargetMarker(platformTargetByRecommendedKey(registry, NPM_PLUGIN_RECOMMENDED_KEY));
+}
+
+function platformTargetByRecommendedKey(registry, recommendedKey) {
+  const targets = registry?.targets;
+  if (!targets || typeof targets !== 'object') {
+    throw new Error('Missing platform target registry targets');
+  }
+  const matches = Object.values(targets).filter(
+    (target) => target?.release_download?.recommended_key === recommendedKey,
+  );
+  if (matches.length !== 1) {
+    throw new Error(
+      `Platform target registry must define exactly one release_download.recommended_key=${JSON.stringify(recommendedKey)}; found ${matches.length}`,
+    );
+  }
+  return matches[0];
+}
+
+function platformTargetMarker(target) {
+  return {
+    target_id: requiredPlatformTargetString(target, 'target_id'),
+    artifact_kind: requiredPlatformTargetString(target, 'artifact_kind'),
+    archive_format: requiredPlatformTargetString(target, 'archive_format'),
+    bundled_mcp_mode: requiredPlatformTargetString(target, 'bundled_mcp_mode'),
+    command_surface: requiredPlatformTargetString(target, 'command_surface'),
+    validator: requiredPlatformTargetString(target, 'validator'),
+  };
+}
+
+function requiredPlatformTargetString(target, field) {
+  if (typeof target[field] !== 'string' || !target[field]) {
+    const targetId = typeof target.target_id === 'string' && target.target_id ? target.target_id : '<unknown>';
+    throw new Error(`Invalid platform target metadata field: ${targetId}.${field}`);
+  }
+  return target[field];
 }
 
 function resolveSubjectPayload({ packageRoot, subject, coverage = 'complete' }) {
@@ -646,12 +700,13 @@ function readNpmPluginMarker(pluginDir) {
   return null;
 }
 
-function writeNpmPluginMarker(pluginDir, { target, sourceVersion } = {}) {
+function writeNpmPluginMarker(pluginDir, { target, sourceVersion, platformTarget } = {}) {
   const marker = {
     managed_by: 'qiongli-npm',
     surface: 'plugin-lite',
     target,
     version: sourceVersion || '',
+    platform_target: platformTarget,
   };
   const markerPath = fs.lstatSync(pluginDir).isSymbolicLink()
     ? pluginSidecarMarkerPath(pluginDir)

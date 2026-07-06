@@ -219,6 +219,9 @@ Usage:
 Full runtime commands require \`pipx install qiongli\`:
   doctor|task-run|team-run|parallel|chain|role|single|code-build|task-plan|mcp|provider|guidance|customize|init|align
 
+subject lifecycle controls require \`pipx install qiongli\`:
+  use the full runtime for qiongli subject ... and MCP qiongli_subject_status/qiongli_subject_update full runtime tools
+
 Options:
   --target codex|claude|antigravity|hermes|all
   --surface skills|plugin|both

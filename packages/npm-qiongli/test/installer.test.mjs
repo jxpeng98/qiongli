@@ -16,6 +16,14 @@ import {
 } from '../lib/installer.mjs';
 
 const NPM_PLUGIN_MARKER = '.qiongli-npm-lite.json';
+const EXPECTED_NPM_PLATFORM_TARGET = Object.freeze({
+  target_id: 'npm-plugin-lite',
+  artifact_kind: 'npm-package',
+  archive_format: 'npm-tarball',
+  bundled_mcp_mode: 'none',
+  command_surface: 'npx-cli',
+  validator: 'npm-plugin-lite',
+});
 
 function npmPluginMarker(pluginDir) {
   return path.join(pluginDir, NPM_PLUGIN_MARKER);
@@ -31,6 +39,7 @@ function makeTempPackage() {
     path.join(root, 'package.json'),
     JSON.stringify({ name: 'qiongli', version: '9.9.9-beta.1' }),
   );
+  writePlatformTargetRegistry(root);
   const sharedPlugin = createPluginPayload(
     root,
     path.join('payload', 'plugins', 'qiongli'),
@@ -136,6 +145,24 @@ function makeTempPackage() {
   };
 }
 
+function writePlatformTargetRegistry(root, overrides = {}, { targetKey = 'npm-plugin-lite' } = {}) {
+  const registry = path.join(root, 'payload', 'content', 'distribution');
+  fs.mkdirSync(registry, { recursive: true });
+  const target = {
+    ...EXPECTED_NPM_PLATFORM_TARGET,
+    release_download: {
+      guide_label: 'Qiongli npm/npx CLI',
+      recommended_key: 'qiongli_cli',
+      asset_groups: [],
+    },
+    ...overrides,
+  };
+  fs.writeFileSync(
+    path.join(registry, 'platform-targets.json'),
+    `${JSON.stringify({ schema_version: '1.0', targets: { [targetKey]: target } }, null, 2)}\n`,
+  );
+}
+
 function createPluginPayload(root, rel, payloadText) {
   const plugin = path.join(root, rel);
   fs.mkdirSync(plugin, { recursive: true });
@@ -226,12 +253,89 @@ test('installSkills installs plugin-only surface from target-specific plugin pay
     surface: 'plugin-lite',
     target: 'codex',
     version: '9.9.9-beta.1',
+    platform_target: EXPECTED_NPM_PLATFORM_TARGET,
   });
   assert.equal(fs.existsSync(skillDest), false);
   assert.deepEqual(
     result.actions.map((action) => ({ label: action.label, path: action.path })),
     [{ label: 'Plugin', path: pluginDest }],
   );
+});
+
+test('installSkills records npm plugin-lite platform target metadata in marker', () => {
+  const { root } = makeTempPackage();
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-plugin-target-home-'));
+
+  installSkills({
+    packageRoot: root,
+    target: 'codex',
+    surface: 'plugin',
+    env: { HOME: home },
+    platform: 'linux',
+  });
+
+  const pluginDest = path.join(home, 'plugins', 'qiongli');
+  const marker = JSON.parse(fs.readFileSync(npmPluginMarker(pluginDest), 'utf-8'));
+
+  assert.deepEqual(marker.platform_target, EXPECTED_NPM_PLATFORM_TARGET);
+});
+
+test('installSkills uses bundled npm platform target registry values', () => {
+  const { root } = makeTempPackage();
+  writePlatformTargetRegistry(root, {
+    target_id: 'fake-npm-plugin-lite',
+    artifact_kind: 'fake-package',
+    archive_format: 'fake-tarball',
+    bundled_mcp_mode: 'fake-none',
+    command_surface: 'fake-cli',
+    validator: 'fake-validator',
+  });
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-plugin-fake-target-home-'));
+
+  installSkills({
+    packageRoot: root,
+    target: 'codex',
+    surface: 'plugin',
+    env: { HOME: home },
+    platform: 'linux',
+  });
+
+  const pluginDest = path.join(home, 'plugins', 'qiongli');
+  const marker = JSON.parse(fs.readFileSync(npmPluginMarker(pluginDest), 'utf-8'));
+
+  assert.equal(marker.platform_target.target_id, 'fake-npm-plugin-lite');
+  assert.equal(marker.platform_target.validator, 'fake-validator');
+});
+
+test('installSkills selects npm platform target by registry recommended key', () => {
+  const { root } = makeTempPackage();
+  writePlatformTargetRegistry(
+    root,
+    {
+      target_id: 'fixture-npm-target',
+      artifact_kind: 'fixture-package',
+      archive_format: 'fixture-tarball',
+      bundled_mcp_mode: 'fixture-none',
+      command_surface: 'fixture-cli',
+      validator: 'fixture-validator',
+    },
+    { targetKey: 'fixture-npm-target' },
+  );
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-plugin-recommended-target-home-'));
+
+  installSkills({
+    packageRoot: root,
+    target: 'codex',
+    surface: 'plugin',
+    env: { HOME: home },
+    platform: 'linux',
+  });
+
+  const pluginDest = path.join(home, 'plugins', 'qiongli');
+  const marker = JSON.parse(fs.readFileSync(npmPluginMarker(pluginDest), 'utf-8'));
+
+  assert.equal(marker.platform_target.target_id, 'fixture-npm-target');
+  assert.equal(marker.platform_target.validator, 'fixture-validator');
 });
 
 test('installSkills does not overwrite unmarked qiongli plugin directories', () => {
@@ -608,6 +712,7 @@ test('buildCheck reports plugin-only installs', () => {
   assert.equal(result.installed.codex.plugin.managed, true);
   assert.equal(result.installed.codex.plugin.version, '9.9.9-beta.1');
   assert.equal(result.installed.codex.plugin.target, 'codex');
+  assert.deepEqual(result.installed.codex.plugin.platform_target, EXPECTED_NPM_PLATFORM_TARGET);
 });
 
 test('cleanAssets globals removes legacy skill directories', () => {

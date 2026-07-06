@@ -72,6 +72,22 @@ The npm package and the installed workflow assets are separate surfaces:
 - `qiongli remove --target all` removes CLI-installed global workflow assets and generated discovery links while preserving marketplace plugins and unmanaged user files.
 - Project directories are not required for normal install or upgrade. Use project paths only for commands that inspect or clean a specific project, such as `qiongli doctor --cwd .` or `qiongli clean --project-dir .`.
 
+## Subject lifecycle controls
+
+The npm package can inspect and edit the lightweight `qiongli project ...`
+manifest, but subject lifecycle controls live in the full runtime: `pipx install qiongli`.
+
+```bash
+pipx install qiongli
+qiongli subject confirm finance --cwd .
+qiongli subject confirm finance --cwd . --propose-only --json
+```
+
+MCP clients that need `qiongli_subject_status` or `qiongli_subject_update`
+should use the full runtime server. Read-only clients can call
+`qiongli_subject_update` with `read_only: true` to export a proposed action
+without writing `.qiongli` project files.
+
 Advanced compatibility, Desktop ZIP, focused package, release payload, and install-surface testing examples:
 
 ```bash

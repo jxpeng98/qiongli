@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from qiongli.distribution_metadata import PluginDefinition, load_plugin_distribution
+from qiongli.platform_targets import PlatformTarget, load_platform_targets
 from qiongli.source_layout import RepoLayout
 from qiongli.subject_materializer import MaterializeOptions, materialize_subject_package
 from qiongli.workflow_wrapper_skills import write_codex_workflow_wrapper_skills
@@ -23,6 +24,11 @@ DEFAULT_CLAUDE_MARKETPLACE_ROOT = Path("~/.qiongli/plugins/claude-code")
 DEFAULT_ANTIGRAVITY_PLUGIN_PARENT = Path("~/.qiongli/plugins/antigravity")
 CLAUDE_MARKETPLACE_NAME = "qiongli-local"
 MANAGED_MARKER_NAME = ".qiongli-managed.json"
+LOCAL_PLUGIN_PLATFORM_RECOMMENDED_KEYS = {
+    "codex": "codex",
+    "claude": "claude_code",
+    "antigravity": "antigravity",
+}
 
 
 @dataclass(frozen=True)
@@ -129,6 +135,7 @@ def install_local_plugin(options: LocalPluginOptions) -> LocalPluginResult:
 
     if "codex" in targets:
         codex_paths = resolve_codex_plugin_paths(marketplace_path=options.codex_marketplace_path)
+        codex_target = _local_plugin_target(repo_root, "codex")
         _prepare_destination(codex_paths.plugin_root, options.overwrite)
         _materialize_plugin_root(
             repo_root=repo_root,
@@ -136,14 +143,16 @@ def install_local_plugin(options: LocalPluginOptions) -> LocalPluginResult:
             plugin=plugin,
             version=version,
             platform="codex",
+            platform_target=codex_target,
             subject=options.subject,
             coverage=options.coverage,
         )
-        _write_codex_marketplace_entry(codex_paths, plugin)
+        _write_codex_marketplace_entry(codex_paths, plugin, codex_target)
         changed = True
 
     if "claude" in targets:
         claude_paths = resolve_claude_plugin_paths(marketplace_root=options.claude_plugin_parent)
+        claude_target = _local_plugin_target(repo_root, "claude")
         _prepare_destination(claude_paths.plugin_root, options.overwrite)
         _materialize_plugin_root(
             repo_root=repo_root,
@@ -151,6 +160,7 @@ def install_local_plugin(options: LocalPluginOptions) -> LocalPluginResult:
             plugin=plugin,
             version=version,
             platform="claude",
+            platform_target=claude_target,
             subject=options.subject,
             coverage=options.coverage,
         )
@@ -159,6 +169,7 @@ def install_local_plugin(options: LocalPluginOptions) -> LocalPluginResult:
 
     if "antigravity" in targets:
         antigravity_root = resolve_antigravity_plugin_root(options.antigravity_plugin_parent)
+        antigravity_target = _local_plugin_target(repo_root, "antigravity")
         _prepare_destination(antigravity_root, options.overwrite)
         _materialize_plugin_root(
             repo_root=repo_root,
@@ -166,6 +177,7 @@ def install_local_plugin(options: LocalPluginOptions) -> LocalPluginResult:
             plugin=plugin,
             version=version,
             platform="antigravity",
+            platform_target=antigravity_target,
             subject=options.subject,
             coverage=options.coverage,
         )
@@ -255,6 +267,7 @@ def _materialize_plugin_root(
     plugin: PluginDefinition,
     version: str,
     platform: str,
+    platform_target: PlatformTarget,
     subject: str,
     coverage: str,
 ) -> None:
@@ -269,11 +282,45 @@ def _materialize_plugin_root(
     else:
         raise ValueError(f"unsupported local plugin platform: {platform}")
 
-    _write_json(plugin_root / MANAGED_MARKER_NAME, _managed_marker(platform=platform, version=version))
+    _write_json(
+        plugin_root / MANAGED_MARKER_NAME,
+        _managed_marker(
+            platform=platform,
+            version=version,
+            platform_target=platform_target,
+        ),
+    )
     _generate_commands(repo_root, plugin_root / "commands", plugin.skill_name)
     _materialize_skill(repo_root, plugin_root / "skills" / SKILL_DIR_NAME, subject=subject, coverage=coverage)
     if platform == "codex":
         _generate_codex_workflow_wrapper_skills(repo_root, plugin_root / "skills", plugin.skill_name)
+
+
+def _local_plugin_target(repo_root: Path, platform: str) -> PlatformTarget:
+    recommended_key = LOCAL_PLUGIN_PLATFORM_RECOMMENDED_KEYS.get(platform)
+    if recommended_key is None:
+        raise ValueError(f"unsupported local plugin platform: {platform}")
+    return _platform_target_by_recommended_key(load_platform_targets(repo_root), recommended_key)
+
+
+def _platform_target_by_recommended_key(
+    targets: dict[str, PlatformTarget],
+    recommended_key: str,
+) -> PlatformTarget:
+    matches = sorted(
+        (
+            target
+            for target in targets.values()
+            if target.release_download.get("recommended_key") == recommended_key
+        ),
+        key=lambda target: target.target_id,
+    )
+    if len(matches) != 1:
+        raise ValueError(
+            "platform target registry must define exactly one "
+            f"release_download.recommended_key={recommended_key!r}; found {len(matches)}"
+        )
+    return matches[0]
 
 
 def _codex_manifest(plugin: PluginDefinition, version: str) -> dict[str, Any]:
@@ -470,17 +517,34 @@ def _is_managed_plugin_root(plugin_root: Path) -> bool:
     )
 
 
-def _managed_marker(*, platform: str, version: str) -> dict[str, Any]:
+def _managed_marker(
+    *,
+    platform: str,
+    version: str,
+    platform_target: PlatformTarget,
+) -> dict[str, Any]:
     return {
         "managed_by": "qiongli-cli",
         "plugin": PLUGIN_ID,
         "surface": "plugin",
         "platform": platform,
+        "platform_target": _platform_target_marker(platform_target),
         "version": version,
         "mcp": {
             "command": "qiongli",
             "args": QIONGLI_MCP_ARGS,
         },
+    }
+
+
+def _platform_target_marker(target: PlatformTarget) -> dict[str, str]:
+    return {
+        "target_id": target.target_id,
+        "artifact_kind": target.artifact_kind,
+        "archive_format": target.archive_format,
+        "bundled_mcp_mode": target.bundled_mcp_mode,
+        "command_surface": target.command_surface,
+        "validator": target.validator,
     }
 
 
@@ -492,7 +556,11 @@ def _remove_managed_root(plugin_root: Path, *, dry_run: bool) -> bool:
     return True
 
 
-def _write_codex_marketplace_entry(paths: CodexPluginPaths, plugin: PluginDefinition) -> None:
+def _write_codex_marketplace_entry(
+    paths: CodexPluginPaths,
+    plugin: PluginDefinition,
+    target: PlatformTarget,
+) -> None:
     marketplace = _read_marketplace(paths.marketplace_path)
     plugins = _marketplace_plugins_list(marketplace)
     entry = {
@@ -509,6 +577,9 @@ def _write_codex_marketplace_entry(paths: CodexPluginPaths, plugin: PluginDefini
         "metadata": {
             "managedBy": "qiongli-cli",
             "surface": "plugin",
+            "targetId": target.target_id,
+            "artifactKind": target.artifact_kind,
+            "validator": target.validator,
         },
     }
     _upsert_marketplace_plugin(plugins, entry)
