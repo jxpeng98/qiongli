@@ -444,6 +444,87 @@ class SubjectRuntimeSmokeTests(unittest.TestCase):
         self.assertEqual(result["status"], "passed", result["failures"])
         self.assertEqual(result["local_agent"]["runtime_plan"], {})
 
+    def test_local_agent_report_includes_requested_runtime_and_runtime_notes(self) -> None:
+        case = next(
+            item
+            for item in load_smoke_cases(FIXTURE_DIR)
+            if item.name == "confirmed_finance_guidance_loaded"
+        )
+
+        def fake_call(name: str, args: dict[str, object]) -> dict[str, object]:
+            if name == "qiongli_subject_update":
+                return {"structuredContent": {"ok": True}, "isError": False}
+            return {
+                "structuredContent": {
+                    "mode": "task-run",
+                    "run_agents": True,
+                    "data": {
+                        "task_packet": {
+                            "controller_metadata": {
+                                "controller": "codex",
+                                "primary_agent": "codex",
+                                "review_agent": "claude",
+                            },
+                            "local_guidance": {
+                                "guidance_files_read": [
+                                    ".qiongli/guidance.d/subject-runtime.md"
+                                ]
+                            },
+                            "subject_refinement": {
+                                "decision": "confirm_subject",
+                                "primary_subject": "finance",
+                                "loaded_resources": {
+                                    "levels": ["subject_overlay", "subject_skill"]
+                                },
+                                "signals": [],
+                                "resource_activation_plan": {},
+                            },
+                            "runtime_plan": {
+                                "primary_agent": "codex",
+                                "review_agent": "claude",
+                                "fallback_agent": "antigravity",
+                            },
+                            "domain": "finance",
+                        },
+                        "local_guidance_trace": {
+                            "run_dir": ".qiongli/trace/runs/run-1",
+                            "trace_index": ".qiongli/trace/index.jsonl",
+                            "guidance_files_read": [
+                                ".qiongli/guidance.d/subject-runtime.md"
+                            ],
+                        },
+                        "routing_notes": [
+                            "Runtime plan: draft=codex, review=claude, fallback=antigravity.",
+                            "Runtime preflight: claude unavailable; fallback retained.",
+                            "Unrelated note.",
+                        ],
+                    },
+                },
+                "isError": False,
+            }
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            with mock.patch.object(smoke, "call_qiongli_tool", side_effect=fake_call):
+                result = smoke.run_smoke_case(case, Path(tmp_dir), "local-agent")
+
+        self.assertEqual(result["status"], "passed", result["failures"])
+        self.assertEqual(
+            result["local_agent"]["requested_runtime"],
+            {"controller": "codex", "primary_agent": "codex", "review_agent": "claude"},
+        )
+        self.assertEqual(
+            result["local_agent"]["runtime_plan"],
+            {
+                "primary_agent": "codex",
+                "review_agent": "claude",
+                "fallback_agent": "antigravity",
+            },
+        )
+        self.assertIn(
+            "Runtime preflight: claude unavailable; fallback retained.",
+            result["local_agent"]["runtime_notes"],
+        )
+
     def test_local_agent_assertion_treats_scalar_guidance_files_as_empty(
         self,
     ) -> None:
@@ -532,6 +613,24 @@ class SubjectRuntimeSmokeTests(unittest.TestCase):
         self.assertTrue(
             any("/tmp/outside/guidance-proposal.json" in item for item in result["violations"])
         )
+
+    def test_write_boundary_reports_checked_qiongli_visible_paths(self) -> None:
+        project_root = Path("/tmp/project").resolve()
+        payload = {
+            "data": {
+                "local_guidance_trace": {
+                    "run_dir": ".qiongli/trace/runs/run-1",
+                    "trace_index": ".qiongli/trace/index.jsonl",
+                    "guidance_proposal": ".qiongli/trace/runs/run-1/guidance-proposal.json",
+                }
+            }
+        }
+
+        result = smoke._write_boundary_report(payload, project_root)
+
+        self.assertTrue(result["known_paths_inside_project"])
+        self.assertIn(str(project_root / ".qiongli/trace/runs/run-1"), result["checked_paths"])
+        self.assertIn(str(project_root / ".qiongli/trace/index.jsonl"), result["checked_paths"])
 
     def test_error_report_includes_rerun_command(self) -> None:
         error = RuntimeError("local-agent smoke requires QIONGLI_SMOKE_RUN_AGENTS=1")
@@ -622,6 +721,43 @@ class SubjectRuntimeSmokeTests(unittest.TestCase):
         self.assertIn("rerun_command", result)
         self.assertIn("--mode local-agent", result["rerun_command"])
         self.assertIn("--case confirmed_finance_guidance_loaded", result["rerun_command"])
+
+    def test_local_agent_failure_diagnostics_include_roots_rerun_and_trace_paths(self) -> None:
+        case = next(
+            item
+            for item in load_smoke_cases(FIXTURE_DIR)
+            if item.name == "confirmed_finance_guidance_loaded"
+        )
+
+        def fake_call(name: str, args: dict[str, object]) -> dict[str, object]:
+            if name == "qiongli_subject_update":
+                return {"structuredContent": {"ok": True}, "isError": False}
+            return {
+                "structuredContent": {
+                    "mode": "task-run",
+                    "run_agents": True,
+                    "data": {
+                        "task_packet": {"domain": "finance"},
+                        "local_guidance_trace": {
+                            "run_dir": "/tmp/outside/run-1",
+                            "trace_index": ".qiongli/trace/index.jsonl",
+                        },
+                    },
+                },
+                "isError": False,
+            }
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            workspace = Path(tmp_dir)
+            with mock.patch.object(smoke, "call_qiongli_tool", side_effect=fake_call):
+                result = smoke.run_smoke_case(case, workspace, "local-agent")
+
+        diagnostics = result["diagnostics"]
+        self.assertEqual(diagnostics["case_name"], "confirmed_finance_guidance_loaded")
+        self.assertEqual(diagnostics["workspace_root"], str(workspace.resolve()))
+        self.assertEqual(diagnostics["project_root"], result["project_root"])
+        self.assertIn("--case confirmed_finance_guidance_loaded", diagnostics["rerun_command"])
+        self.assertEqual(diagnostics["trace_paths"]["run_dir"], "/tmp/outside/run-1")
 
     def test_non_no_subject_refinement_requires_packet_v2_fields(self) -> None:
         case = SmokeCase(

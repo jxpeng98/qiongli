@@ -5,6 +5,7 @@ import types
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest import mock
 
 try:
     import yaml as _yaml  # noqa: F401
@@ -20,9 +21,11 @@ from qiongli.multi_agent_smoke import (
     FAIL,
     PASS,
     WARN,
+    MultiAgentSmokeRunner,
     SmokeCaseResult,
     SmokeReport,
     build_default_report_paths,
+    build_parser,
     evaluate_doctor_output,
     overall_status_from_cases,
     render_report_markdown,
@@ -126,6 +129,86 @@ class MultiAgentSmokeTests(unittest.TestCase):
         self.assertIn("# Multi-Agent Smoke Report", markdown)
         self.assertIn("`PASS` doctor: doctor ok", markdown)
         self.assertIn("`WARN` claude_runtime: claude warn", markdown)
+
+    def test_parallel_smoke_requires_environment_opt_in(self) -> None:
+        args = build_parser().parse_args(["--run-parallel"])
+        runner = MultiAgentSmokeRunner(args)
+        skip_detail = "QIONGLI_SMOKE_RUN_AGENTS=1"
+
+        def fail_if_parallel_called() -> tuple[str, str, dict[str, object]]:
+            raise AssertionError("parallel runtime case should not launch")
+
+        with mock.patch.dict("os.environ", {}, clear=True):
+            with mock.patch.object(runner, "_write_reports"):
+                with mock.patch.object(
+                    runner,
+                    "_case_doctor",
+                    return_value=(PASS, "doctor ok", {}),
+                ):
+                    with mock.patch.object(
+                        runner,
+                        "_case_codex_runtime",
+                        return_value=(PASS, "codex ok", {}),
+                    ):
+                        with mock.patch.object(
+                            runner,
+                            "_case_claude_runtime",
+                            return_value=(PASS, "claude ok", {}),
+                        ):
+                            with mock.patch.object(
+                                runner,
+                                "_case_antigravity_runtime",
+                                return_value=(WARN, "antigravity skipped", {}),
+                            ):
+                                with mock.patch.object(
+                                    runner,
+                                    "_case_parallel_codex_claude_antigravity",
+                                    side_effect=fail_if_parallel_called,
+                                ):
+                                    report = runner.run()
+
+        parallel = report.cases[-1]
+        self.assertEqual(parallel.name, "parallel_codex_claude_antigravity")
+        self.assertEqual(parallel.status, WARN)
+        self.assertIn(skip_detail, parallel.detail)
+
+    def test_parallel_smoke_runs_when_environment_opt_in_is_present(self) -> None:
+        args = build_parser().parse_args(["--run-parallel"])
+        runner = MultiAgentSmokeRunner(args)
+
+        with mock.patch.dict("os.environ", {"QIONGLI_SMOKE_RUN_AGENTS": "1"}, clear=True):
+            with mock.patch.object(runner, "_write_reports"):
+                with mock.patch.object(
+                    runner,
+                    "_case_doctor",
+                    return_value=(PASS, "doctor ok", {}),
+                ):
+                    with mock.patch.object(
+                        runner,
+                        "_case_codex_runtime",
+                        return_value=(PASS, "codex ok", {}),
+                    ):
+                        with mock.patch.object(
+                            runner,
+                            "_case_claude_runtime",
+                            return_value=(PASS, "claude ok", {}),
+                        ):
+                            with mock.patch.object(
+                                runner,
+                                "_case_antigravity_runtime",
+                                return_value=(WARN, "antigravity skipped", {}),
+                            ):
+                                with mock.patch.object(
+                                    runner,
+                                    "_case_parallel_codex_claude_antigravity",
+                                    return_value=(PASS, "parallel ok", {}),
+                                ) as parallel_case:
+                                    report = runner.run()
+
+        parallel = report.cases[-1]
+        self.assertEqual(parallel.name, "parallel_codex_claude_antigravity")
+        self.assertEqual(parallel.status, PASS)
+        parallel_case.assert_called_once_with()
 
 
 if __name__ == "__main__":
