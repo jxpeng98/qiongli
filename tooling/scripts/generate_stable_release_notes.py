@@ -83,11 +83,13 @@ def render_notes(tag: str, changelog_path: Path, repo_slug: str = DEFAULT_REPO_S
     zotero_asset = _required_string(assets.get("zotero_desktop_companion"), "Zotero companion asset")
     guide_asset = _required_string(assets.get("download_guide"), "download guide asset")
     index_asset = _required_string(assets.get("download_index"), "download index asset")
+    manifest_asset = _required_string(assets.get("artifact_manifest"), "artifact manifest asset")
 
     mcpb_url = _required_string(asset_urls.get("claude_desktop_literature_mcpb"), "MCPB URL")
     zotero_url = _required_string(asset_urls.get("zotero_desktop_companion"), "Zotero companion URL")
     guide_url = _required_string(asset_urls.get("download_guide"), "download guide URL")
     index_url = _required_string(asset_urls.get("download_index"), "download index URL")
+    manifest_url = _required_string(asset_urls.get("artifact_manifest"), "artifact manifest URL")
 
     changelog = _demote_changelog_heading(changelog_section)
 
@@ -120,6 +122,7 @@ def render_notes(tag: str, changelog_path: Path, repo_slug: str = DEFAULT_REPO_S
         f"| Claude Desktop literature MCPB | {_asset_link(mcpb_asset, mcpb_url)} |",
         f"| Zotero Desktop companion XPI | {_asset_link(zotero_asset, zotero_url)} |",
         f"| Machine-readable download index | {_asset_link(index_asset, index_url)} |",
+        f"| Machine-readable artifact manifest | {_asset_link(manifest_asset, manifest_url)} |",
         "",
         "## Changelog",
         "",

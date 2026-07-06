@@ -132,31 +132,8 @@ if [[ -z "$STAGE" ]]; then
     STAGE="Stable"
   fi
 fi
-IS_NEXT=0
-if [[ "${TAG#v}" == *-* ]]; then
-  IS_NEXT=1
-fi
-
 VERSION_HINT="${TAG#v}"
 VERSION_HINT="${VERSION_HINT/-beta./b}"
-MCPB_VERSION="$(python3 - <<'PY'
-import json
-from pathlib import Path
-
-manifest = json.loads(Path("packages/qiongli-literature-mcpb/manifest.json").read_text(encoding="utf-8"))
-print(manifest["version"])
-PY
-)"
-MCPB_ASSET="qiongli-literature-provider-${MCPB_VERSION}.mcpb"
-ZOTERO_COMPANION_VERSION="$(python3 - <<'PY'
-import json
-from pathlib import Path
-
-manifest = json.loads(Path("packages/qiongli-zotero-companion/manifest.json").read_text(encoding="utf-8"))
-print(manifest["version"])
-PY
-)"
-ZOTERO_COMPANION_ASSET="qiongli-zotero-companion-${ZOTERO_COMPANION_VERSION}.xpi"
 
 if [[ "$UPDATE_EXISTING" -eq 1 && -e "$OUTPUT" ]]; then
   python3 - "$OUTPUT" "$VALIDATOR_RESULT" "$UNITTEST_RESULT" "$SMOKE_RESULT" <<'PY'
@@ -222,6 +199,15 @@ if [[ -z "$COMMITS" ]]; then
   COMMITS="- Draft highlights pending."
 fi
 
+DOWNLOAD_GUIDE_SUMMARY="$(python3 - "$TAG" <<'PY'
+import sys
+
+from scripts.generate_release_downloads import build_index, render_release_notes_download_summary
+
+print(render_release_notes_download_summary(build_index(sys.argv[1])))
+PY
+)"
+
 mkdir -p "$(dirname "$OUTPUT")"
 
 {
@@ -236,28 +222,7 @@ mkdir -p "$(dirname "$OUTPUT")"
   echo
   echo "## Download Guide"
   echo
-  echo "Most users should not download plugin tarballs manually from GitHub's flat asset list."
-  echo
-  echo "| You use | Recommended path |"
-  echo "|---|---|"
-  if [[ "$IS_NEXT" -eq 1 ]]; then
-    echo "| Qiongli CLI | Use \`npx qiongli@next install --target all --project-dir \"\$PWD\"\` for npm next-channel CLI testing. |"
-    echo "| Codex | Use \`codex plugin marketplace add jxpeng98/skillsplace --ref main\` and install \`qiongli-next\`; no manual tarball download required. |"
-    echo "| Claude Code | Use \`claude plugin marketplace add jxpeng98/skillsplace@main\` and install \`qiongli-next\`; no manual tarball download required. |"
-    echo "| Claude Desktop direct plugin | Download \`qiongli-next-claude-desktop-plugin-${TAG}.zip\` for direct plugin install. |"
-    echo "| Claude Desktop/Web skills | Download \`qiongli-next-claude-desktop-skill-core-${TAG}.zip\` only for manual skill upload. |"
-  else
-    echo "| Qiongli CLI | Use \`npx qiongli@latest install --target all --project-dir \"\$PWD\"\` for npm latest-channel CLI installs. |"
-    echo "| Codex | Use \`codex plugin marketplace add jxpeng98/skillsplace --ref main\`; no manual tarball download required. |"
-    echo "| Claude Code | Use \`claude plugin marketplace add jxpeng98/skillsplace@main\`; no manual tarball download required. |"
-    echo "| Claude Desktop direct plugin | Download \`qiongli-claude-desktop-plugin-${TAG}.zip\` for direct plugin install. |"
-    echo "| Claude Desktop/Web skills | Download one \`qiongli-claude-desktop-skill-<subject>-${TAG}.zip\` asset only for manual skill upload. Start with \`qiongli-claude-desktop-skill-core-${TAG}.zip\` unless you need a subject package. |"
-  fi
-  echo "| Claude Desktop literature tools | Download \`${MCPB_ASSET}\` and pair it with a Desktop skill ZIP when provider calls are required. |"
-  echo "| Zotero Desktop local writes | Download \`${ZOTERO_COMPANION_ASSET}\` and install it from Zotero's add-on manager when local Zotero search/write support is required. |"
-  echo "| Maintainers | Use Codex/Claude plugin tarballs and Claude plugin ZIPs only for manual marketplace artifact checks or direct Claude plugin upload tests. |"
-  echo
-  echo "The release also includes \`qiongli-downloads-${TAG}.md\` and \`qiongli-downloads-${TAG}.json\` to group the asset list by install surface."
+  printf '%s\n' "$DOWNLOAD_GUIDE_SUMMARY"
   echo
   echo "## Validation Evidence"
   echo
