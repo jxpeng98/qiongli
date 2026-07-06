@@ -351,6 +351,8 @@ def _write_claude_manifest(path: Path, plugin: PluginDefinition, version: str) -
         "repository": plugin.repository,
         "license": plugin.license,
         "keywords": _keywords(plugin, "claude-code-plugins"),
+        "skills": "./skills/",
+        "commands": "./commands/",
         "mcpServers": {
             plugin.mcp_server_name: {
                 "command": "node",
@@ -1133,6 +1135,43 @@ def materialize_next_plugin_package(root: Path, dest_plugin_root: Path, *, force
     return dest_plugin_root
 
 
+def materialize_next_claude_plugin_package(root: Path, dest_plugin_root: Path, *, force: bool = False) -> Path:
+    """Materialize the generated qiongli-next Claude direct plugin ZIP payload."""
+
+    root = root.resolve()
+    dest_plugin_root = dest_plugin_root.resolve()
+    if dest_plugin_root.exists():
+        if not force:
+            raise ValueError(f"{dest_plugin_root} already exists; pass force=True to replace it")
+        if dest_plugin_root.is_dir():
+            shutil.rmtree(dest_plugin_root)
+        else:
+            dest_plugin_root.unlink()
+
+    _display_name, package_goal = _subject_definitions(root)["core"]
+    _write_platform_manifest(
+        root,
+        "claude",
+        NEXT_PLUGIN_NAME,
+        dest_plugin_root / ".claude-plugin" / "plugin.json",
+    )
+    _write_subject_manifest(
+        dest_plugin_root / ".claude-plugin" / "plugin.json",
+        platform="claude",
+        plugin_name=NEXT_PLUGIN_NAME,
+        subject="core",
+        display_name="Qiongli Next",
+        package_goal=package_goal,
+        skill_name=NEXT_SKILL_NAME,
+        mcp_server_name=NEXT_MCP_SERVER_NAME,
+    )
+    _write_root_plugin_manifest(dest_plugin_root, NEXT_PLUGIN_NAME)
+    _copy_literature_mcp_runtime(root, dest_plugin_root)
+    _copy_commands(root, dest_plugin_root, skill_name=NEXT_SKILL_NAME)
+    _copy_subject_skill(root, dest_plugin_root, "core", skill_name=NEXT_SKILL_NAME)
+    return dest_plugin_root
+
+
 def materialize_plugin_package(root: Path, dest_plugin_root: Path, *, force: bool = False) -> Path:
     """Materialize the stable Qiongli plugin package from canonical sources."""
 
@@ -1166,6 +1205,35 @@ def materialize_plugin_package(root: Path, dest_plugin_root: Path, *, force: boo
     _copy_commands(root, dest_plugin_root, skill_name=DEFAULT_SKILL_NAME)
     _copy_subject_skill(root, dest_plugin_root, "core", skill_name=DEFAULT_SKILL_NAME)
     _copy_codex_workflow_wrapper_skills(root, dest_plugin_root, skill_name=DEFAULT_SKILL_NAME)
+    return dest_plugin_root
+
+
+def materialize_claude_plugin_package(root: Path, dest_plugin_root: Path, *, force: bool = False) -> Path:
+    """Materialize the stable Qiongli Claude direct plugin ZIP payload."""
+
+    root = root.resolve()
+    dest_plugin_root = dest_plugin_root.resolve()
+    if dest_plugin_root.exists():
+        if not force:
+            raise ValueError(f"{dest_plugin_root} already exists; pass force=True to replace it")
+        if dest_plugin_root.is_dir():
+            shutil.rmtree(dest_plugin_root)
+        else:
+            dest_plugin_root.unlink()
+
+    plugin = _plugin_definition(root, PLUGIN_NAME)
+    if not plugin.claude_enabled:
+        raise ValueError(f"{PLUGIN_NAME} is not enabled for Claude plugin packaging")
+    _write_platform_manifest(
+        root,
+        "claude",
+        PLUGIN_NAME,
+        dest_plugin_root / ".claude-plugin" / "plugin.json",
+    )
+    _write_root_plugin_manifest(dest_plugin_root, PLUGIN_NAME)
+    _copy_literature_mcp_runtime(root, dest_plugin_root)
+    _copy_commands(root, dest_plugin_root, skill_name=DEFAULT_SKILL_NAME)
+    _copy_subject_skill(root, dest_plugin_root, "core", skill_name=DEFAULT_SKILL_NAME)
     return dest_plugin_root
 
 
@@ -1276,9 +1344,9 @@ def _build_claude_desktop_plugin(
 ) -> Path:
     plugin_dest = work_dir / f"desktop-plugin-{artifact_prefix}" / plugin_name
     if next_channel:
-        materialize_next_plugin_package(root, plugin_dest, force=True)
+        materialize_next_claude_plugin_package(root, plugin_dest, force=True)
     else:
-        materialize_plugin_package(root, plugin_dest, force=True)
+        materialize_claude_plugin_package(root, plugin_dest, force=True)
 
     artifact = dist_dir / f"{artifact_prefix}-claude-desktop-plugin-{tag}.zip"
     _make_zip(plugin_dest, artifact)

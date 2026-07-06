@@ -168,6 +168,18 @@ class PluginArtifactsTests(unittest.TestCase):
         )
         self.assertIn("name: qiongli-next\n", desktop_skill_text)
         self.assertIn("$qiongli-next", desktop_skill_text)
+        direct_plugin_names = self._zip_names(
+            dist_dir / f"qiongli-next-claude-desktop-plugin-{current_tag}.zip"
+        )
+        self.assertIn(f"qiongli-next/.claude-plugin/plugin.json", direct_plugin_names)
+        self.assertIn(f"qiongli-next/commands/paper.md", direct_plugin_names)
+        self.assertIn(f"qiongli-next/skills/qiongli-workflow/SKILL.md", direct_plugin_names)
+        self.assertNotIn(f"qiongli-next/.codex-plugin/plugin.json", direct_plugin_names)
+        self.assertNotIn(f"qiongli-next/.mcp.json", direct_plugin_names)
+        self.assertFalse(
+            any(name.startswith("qiongli-next/skills/qiongli-next-") for name in direct_plugin_names),
+            "Claude Desktop direct plugin must not include Codex workflow wrapper skills",
+        )
 
     def _assert_stable_release_artifacts(self, dist_dir: Path, current_tag: str, artifacts: list[Path]) -> None:
         expected_names = [
@@ -283,6 +295,20 @@ class PluginArtifactsTests(unittest.TestCase):
             "qiongli/SKILL.md",
         )
         self.assertIn("name: qiongli\n", desktop_skill_text)
+        direct_plugin_names = self._zip_names(dist_dir / f"qiongli-claude-desktop-plugin-{current_tag}.zip")
+        self.assertIn(f"qiongli/.claude-plugin/plugin.json", direct_plugin_names)
+        self.assertIn(f"qiongli/commands/paper.md", direct_plugin_names)
+        self.assertIn(f"qiongli/skills/qiongli-workflow/SKILL.md", direct_plugin_names)
+        self.assertNotIn(f"qiongli/.codex-plugin/plugin.json", direct_plugin_names)
+        self.assertNotIn(f"qiongli/.mcp.json", direct_plugin_names)
+        self.assertFalse(
+            any(
+                name.startswith("qiongli/skills/qiongli-")
+                and not name.startswith("qiongli/skills/qiongli-workflow/")
+                for name in direct_plugin_names
+            ),
+            "Claude Desktop direct plugin must not include Codex workflow wrapper skills",
+        )
 
     def test_fallback_economics_accounting_desktop_skill_includes_accounting_auditor(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -391,6 +417,10 @@ class PluginArtifactsTests(unittest.TestCase):
             names = set(archive.namelist())
         for name in expected:
             self.assertIn(name, names)
+
+    def _zip_names(self, artifact: Path) -> set[str]:
+        with zipfile.ZipFile(artifact) as archive:
+            return set(archive.namelist())
 
     def _read_zip_text(self, artifact: Path, member: str) -> str:
         with zipfile.ZipFile(artifact) as archive:

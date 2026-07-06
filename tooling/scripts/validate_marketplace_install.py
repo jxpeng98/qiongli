@@ -446,6 +446,8 @@ def _assert_manifest(
         raise ValueError(f"{manifest_path} expected version {expected_version}, found {manifest['version']}")
 
     if platform == "codex":
+        if "commands" in manifest:
+            raise ValueError(f"{manifest_path} must not declare Codex commands in plugin.json")
         if manifest.get("skills") != "./skills/":
             raise ValueError(f"{manifest_path} must expose skills via ./skills/")
         interface = manifest.get("interface")
@@ -454,6 +456,11 @@ def _assert_manifest(
         prompts = interface.get("defaultPrompt")
         if not isinstance(prompts, list) or not any(f"${expected_skill_name}" in str(item) for item in prompts):
             raise ValueError(f"{manifest_path} defaultPrompt must include ${expected_skill_name}")
+    elif platform == "claude":
+        if manifest.get("skills") != "./skills/":
+            raise ValueError(f"{manifest_path} must expose Claude skills via ./skills/")
+        if manifest.get("commands") != "./commands/":
+            raise ValueError(f"{manifest_path} must expose Claude commands via ./commands/")
 
 
 def _validate_artifact(
@@ -560,30 +567,34 @@ def _validate_direct_desktop_plugin_artifact(
 
         _assert_root_plugin_manifest(plugin_root, plugin_name)
         _assert_manifest(
-            "codex",
-            plugin_root / ".codex-plugin" / "plugin.json",
-            expected_version,
-            expected_plugin_name=plugin_name,
-            expected_skill_name=skill_name,
-        )
-        _assert_manifest(
             "claude",
             plugin_root / ".claude-plugin" / "plugin.json",
             expected_version,
             expected_plugin_name=plugin_name,
             expected_skill_name=skill_name,
         )
+        if (plugin_root / ".codex-plugin").exists():
+            raise ValueError(f"{artifact} must not include Codex plugin metadata")
+        if (plugin_root / ".mcp.json").exists():
+            raise ValueError(f"{artifact} must not include Codex MCP config")
 
-        skill_root = plugin_root / "skills" / SKILL_DIR_NAME
+        skills_root = plugin_root / "skills"
+        _assert_dir(skills_root, "plugin skills directory")
+        skill_root = skills_root / SKILL_DIR_NAME
+        extra_skill_dirs = sorted(
+            path.name
+            for path in skills_root.iterdir()
+            if path.is_dir() and path.name != SKILL_DIR_NAME
+        )
+        if extra_skill_dirs:
+            raise ValueError(
+                f"{artifact} must not include Codex workflow wrapper skills: "
+                + ", ".join(extra_skill_dirs[:5])
+            )
         workflow_names = _assert_skill_invocation(skill_root, expected_repo_tag, skill_name=skill_name)
         _assert_subject_marker(skill_root, "core")
         _assert_subject_manifest(skill_root, "core", "complete")
         _assert_command_invocation(plugin_root, workflow_names, skill_name=skill_name)
-        _assert_bundled_literature_mcp(
-            plugin_root,
-            "codex",
-            mcp_server_name=_mcp_server_name_for_plugin(plugin_name),
-        )
         _assert_bundled_literature_mcp(
             plugin_root,
             "claude",

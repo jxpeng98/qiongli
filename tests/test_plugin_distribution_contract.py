@@ -273,15 +273,29 @@ class PluginDistributionContractTests(unittest.TestCase):
             with zipfile.ZipFile(artifact_by_name[expected_name]) as archive:
                 names = set(archive.namelist())
                 manifest = json.loads(archive.read(f"{plugin_name}/plugin.json").decode("utf-8"))
+                claude_manifest = json.loads(
+                    archive.read(f"{plugin_name}/.claude-plugin/plugin.json").decode("utf-8")
+                )
                 skill_text = archive.read(f"{plugin_name}/skills/qiongli-workflow/SKILL.md").decode("utf-8")
 
         self.assertEqual(manifest, {"name": plugin_name})
-        self.assertIn(f"{plugin_name}/.codex-plugin/plugin.json", names)
+        self.assertEqual(claude_manifest["skills"], "./skills/")
+        self.assertEqual(claude_manifest["commands"], "./commands/")
+        self.assertNotIn(f"{plugin_name}/.codex-plugin/plugin.json", names)
+        self.assertNotIn(f"{plugin_name}/.mcp.json", names)
         self.assertIn(f"{plugin_name}/.claude-plugin/plugin.json", names)
         self.assertIn(f"{plugin_name}/commands/qiongli.md", names)
         self.assertIn(f"{plugin_name}/commands/lit-review.md", names)
         self.assertIn(f"{plugin_name}/mcp/qiongli-literature-provider/index.mjs", names)
         self.assertIn(f"{plugin_name}/skills/qiongli-workflow/SKILL.md", names)
+        self.assertFalse(
+            any(
+                name.startswith(f"{plugin_name}/skills/{skill_name}-")
+                and not name.startswith(f"{plugin_name}/skills/qiongli-workflow/")
+                for name in names
+            ),
+            "Claude Desktop direct plugin must not include Codex workflow wrapper skills",
+        )
         self.assertIn(f"name: {skill_name}", skill_text)
 
     def test_marketplace_validator_builds_platform_artifacts_and_checks_invocation(self) -> None:
