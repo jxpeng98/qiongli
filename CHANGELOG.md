@@ -6,6 +6,17 @@
 
 暂无未发布变更。
 
+## [1.16.1] - 2026-07-06
+
+### Fixed
+
+- 修复 Claude Desktop direct plugin archive 混入 Codex plugin metadata 与 expanded
+  Qiongli wrapper skills 的问题，使 direct desktop plugin 只包含 Claude plugin
+  manifest、commands、MCP server 与必要 runtime payload。
+- 更新跨平台 packaging regression checks，明确禁止 `.codex-plugin/` 和
+  `skills/qiongli-*` 出现在 Claude Desktop direct plugin ZIP 中，同时继续验证
+  Codex、Claude marketplace、Desktop/Web skill ZIP 与 Antigravity 安装面。
+
 ## [1.16.0] - 2026-07-06
 
 ### Added
