@@ -4,17 +4,17 @@ Qiongli 有多个安装入口，是因为不同用户需要的运行时能力不
 
 ## 最新稳定版下载
 
-当前稳定版是 [v1.15.0](https://github.com/jxpeng98/qiongli/releases/tag/v1.15.0)。下面这些直达链接覆盖常见安装路径；需要 subject 专精 Desktop ZIP 或维护者 artifacts 时，再打开下载指南。
+当前稳定版是 [v1.16.0](https://github.com/jxpeng98/qiongli/releases/tag/v1.16.0)。下面这些直达链接覆盖常见安装路径；需要 subject 专精 Desktop ZIP 或维护者 artifacts 时，再打开下载指南。
 
 | 需求 | 链接或命令 |
 |---|---|
-| npm CLI | [`qiongli@1.15.0`](https://www.npmjs.com/package/qiongli/v/1.15.0)：`npm install -g qiongli@latest` |
-| PyPI CLI | [`qiongli 1.15.0`](https://pypi.org/project/qiongli/1.15.0/)：`pipx install qiongli` |
-| Claude Desktop direct plugin | [`qiongli-claude-desktop-plugin-v1.15.0.zip`](https://github.com/jxpeng98/qiongli/releases/download/v1.15.0/qiongli-claude-desktop-plugin-v1.15.0.zip) |
-| Claude Desktop/Web core skill | [`qiongli-claude-desktop-skill-core-v1.15.0.zip`](https://github.com/jxpeng98/qiongli/releases/download/v1.15.0/qiongli-claude-desktop-skill-core-v1.15.0.zip) |
-| Claude Desktop literature MCPB | [`qiongli-literature-provider-0.1.5.mcpb`](https://github.com/jxpeng98/qiongli/releases/download/v1.15.0/qiongli-literature-provider-0.1.5.mcpb) |
-| Zotero Desktop companion | [`qiongli-zotero-companion-0.2.2.xpi`](https://github.com/jxpeng98/qiongli/releases/download/v1.15.0/qiongli-zotero-companion-0.2.2.xpi) |
-| 全部 release assets | [下载指南](https://github.com/jxpeng98/qiongli/releases/download/v1.15.0/qiongli-downloads-v1.15.0.md) 和 [GitHub Release](https://github.com/jxpeng98/qiongli/releases/tag/v1.15.0) |
+| npm CLI | [`qiongli@1.16.0`](https://www.npmjs.com/package/qiongli/v/1.16.0)：`npm install -g qiongli@latest` |
+| PyPI CLI | [`qiongli 1.16.0`](https://pypi.org/project/qiongli/1.16.0/)：`pipx install qiongli` |
+| Claude Desktop 推荐插件 | [`qiongli-claude-desktop-plugin-v1.16.0.zip`](https://github.com/jxpeng98/qiongli/releases/download/v1.16.0/qiongli-claude-desktop-plugin-v1.16.0.zip) |
+| Claude Desktop/Web fallback skill ZIP | [`qiongli-claude-desktop-skill-core-v1.16.0.zip`](https://github.com/jxpeng98/qiongli/releases/download/v1.16.0/qiongli-claude-desktop-skill-core-v1.16.0.zip) |
+| Claude Desktop literature MCPB | [`qiongli-literature-provider-0.1.5.mcpb`](https://github.com/jxpeng98/qiongli/releases/download/v1.16.0/qiongli-literature-provider-0.1.5.mcpb) |
+| Zotero Desktop companion | [`qiongli-zotero-companion-0.2.2.xpi`](https://github.com/jxpeng98/qiongli/releases/download/v1.16.0/qiongli-zotero-companion-0.2.2.xpi) |
+| 全部 release assets | [下载指南](https://github.com/jxpeng98/qiongli/releases/download/v1.16.0/qiongli-downloads-v1.16.0.md) 和 [GitHub Release](https://github.com/jxpeng98/qiongli/releases/tag/v1.16.0) |
 
 ## 安装入口对比
 
@@ -79,14 +79,17 @@ claude plugin install qiongli-economics@skillsplace
 
 Claude Code marketplace plugin 也内置 `mcp/qiongli-literature-provider/` 下的零依赖 Node literature-provider MCP runtime，提供与 Codex plugin 相同的 provider、search、search-plan、evidence-export 和 status tools。只使用这些内置 literature-provider tools 时，不需要安装 `qiongli` CLI。`qiongli_orchestrator_route`、`qiongli_task_plan`、`qiongli_task_run` 和 `qiongli_orchestrator_doctor` 这类 Python-backed orchestration tools 需要完整运行时：`pipx install qiongli`。然后运行 `qiongli install --profile full --target claude --surface plugin` 生成本地 Claude Code plugin，并由这个 plugin 启动统一的 `qiongli mcp serve --transport stdio` server。`--target antigravity` 会生成带 root `mcp_config.json` 的 Antigravity plugin，`--target hermes` 写入 Hermes MCP config；`--target all --surface plugin` 会让 Codex / Claude Code / Antigravity 使用本地 plugin，同时给 Hermes 写入受管理的 full MCP client 配置。
 
-Claude Desktop 和 Claude.ai 不安装第三方 Claude Code plugin marketplace。如果你使用 Desktop 或网页版，并且不熟悉 code / CLI 环境，优先使用 release ZIP 路径，不需要任何终端命令：
+Claude Desktop 和 Claude.ai 不安装第三方 Claude Code plugin marketplace。对于 Claude Desktop，优先使用 direct plugin ZIP：
 
-1. 从 GitHub Release assets 下载 `qiongli-claude-desktop-skill-core-<tag>.zip`、`qiongli-claude-desktop-skill-economics-<tag>.zip`、`qiongli-claude-desktop-skill-business-<tag>.zip`、`qiongli-claude-desktop-skill-finance-<tag>.zip`、`qiongli-claude-desktop-skill-political-economy-<tag>.zip`、`qiongli-claude-desktop-skill-geoeconomics-<tag>.zip` 或 `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip`。本阶段公开 Desktop ZIP subjects 是 `core`、`economics`、`business`、`finance`、`political-economy`、`geoeconomics` 和 `economics-accounting`；还没有 standalone accounting Desktop ZIP。
-2. 在 Claude Desktop 中，把 ZIP 拖拽到 Skills 上传/安装流程中；也可以打开 `Customize > Skills`，点击 `+`，选择 `Create skill`，再选择 `Upload a skill`。
-3. 在 Claude.ai 网页版中，使用同样的 `Customize > Skills` 上传流程，选择同一个 ZIP。
-4. 启用上传后的 `qiongli` skill。
+1. 从 GitHub Release assets 下载 `qiongli-claude-desktop-plugin-<tag>.zip`。
+2. 通过 Claude Desktop 的 direct plugin 或 plugin upload 流程安装。
+3. 重启 Claude Desktop，并确认用户可见入口是 `qiongli`。
 
-Release ZIP 使用 `coverage=focused`，用于保持当前 180 文件上传预算。它是 subject 专精 Desktop/Web 包，不是降质删减版：保留可执行 workflows、prompts、templates、standards、所选 profiles、`skills-summary.md` 和 `skills-core.md`；专精 ZIP 还包含通过 layered overlays 生成的 selected effective skill markdown。这个 Desktop skill ZIP 是 skill-only asset：只包含 workflows/prompts/templates，不保存 secrets，也不执行 provider calls。完整 canonical source 可通过默认 `coverage=complete` 的 CLI/npm 安装、Codex / Claude Code plugin 包和源码仓库获得。
+direct plugin 是推荐的 Desktop 包，因为它把 `qiongli` skill、包含 `/qiongli` 的 workflow command wrappers，以及轻量 bundled literature MCP runtime 放在同一个 plugin-shaped asset 里。它不提供 Python-backed orchestrator；如果需要 `qiongli_orchestrator_route`、`qiongli_task_plan` 或 `qiongli_task_run`，仍然要单独安装完整运行时。
+
+如果 direct plugin 安装不可用，再使用 fallback skill ZIP。只下载一个 focused skill ZIP，例如 `qiongli-claude-desktop-skill-core-<tag>.zip`、`qiongli-claude-desktop-skill-economics-<tag>.zip`、`qiongli-claude-desktop-skill-business-<tag>.zip`、`qiongli-claude-desktop-skill-finance-<tag>.zip`、`qiongli-claude-desktop-skill-political-economy-<tag>.zip`、`qiongli-claude-desktop-skill-geoeconomics-<tag>.zip` 或 `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip`。在 Claude Desktop 中，把 ZIP 拖拽到 Skills 上传/安装流程中；也可以打开 `Customize > Skills`，点击 `+`，选择 `Create skill`，再选择 `Upload a skill`。Claude.ai 网页版使用同样的 `Customize > Skills` 上传流程。本阶段公开 Desktop ZIP subjects 是 `core`、`economics`、`business`、`finance`、`political-economy`、`geoeconomics` 和 `economics-accounting`；还没有 standalone accounting Desktop ZIP。
+
+fallback skill ZIP 使用 `coverage=focused`，用于保持当前 180 文件上传预算。它是 subject 专精 Desktop/Web 包，不是降质删减版：保留可执行 workflows、prompts、templates、standards、所选 profiles、`skills-summary.md` 和 `skills-core.md`；专精 ZIP 还包含通过 layered overlays 生成的 selected effective skill markdown。这个 Desktop skill ZIP 是 skill-only asset：只包含 workflows/prompts/templates，不保存 secrets，也不执行 provider calls。完整 canonical source 可通过默认 `coverage=complete` 的 CLI/npm 安装、Codex / Claude Code plugin 包和源码仓库获得。
 
 独立的 Qiongli Literature Provider `.mcpb`（`qiongli-literature-provider.mcpb`）才是 Claude Desktop 本地 provider asset。它在本地运行 Desktop literature search，支持 OpenAlex、Semantic Scholar、Crossref、PubMed 和 arXiv，并通过 Desktop 配置 UI 填写需要凭据的 provider；arXiv 默认可用，不需要凭据。敏感 key 交给 Claude Desktop sensitive-field handling，不写入 Desktop skill ZIP。这个 MCPB 自带零依赖 Node stdio server，所以 Desktop 用户不需要安装 `qiongli` CLI 或运行 npm install。CLI、Codex、Claude Code、Antigravity 和 Hermes 用户仍然可以运行 `qiongli provider setup`，再用 `qiongli provider doctor` 检查当前是 `provider_connected` 还是 `strategy_only`。Desktop 用户需要 `qiongli-literature-provider` MCPB 或平台原生搜索能力，才能声称 `provider_connected`；如果没有 MCPB 或平台原生搜索能力，就把运行记录为 `strategy_only`，并把平台搜索或用户提供的 corpus 作为证据来源。
 
@@ -97,7 +100,8 @@ Release ZIP 使用 `coverage=focused`，用于保持当前 180 文件上传预�
 | 客户端 | 发现方式 | 调用方式 |
 |---|---|---|
 | Codex | `/skills` 应该能列出 `qiongli`，以及 `qiongli-lit-review` 这类 plugin workflow wrappers | `$qiongli <research task>` 或 `$qiongli-lit-review <topic>` |
-| Claude Code | Plugin UI、`/plugin` 或全局 command discovery | `/paper`、`/lit-review`、`/paper-write`、`/code-build` |
+| Claude Desktop / Claude.ai | `Customize > Skills` 应该能看到 `qiongli`，或 direct plugin entry 已启用 | 直接用自然语言描述研究任务；当 workflow commands 可见时使用 `/qiongli` |
+| Claude Code | Plugin UI、`/plugin` 或全局 command discovery | `/qiongli`、`/paper`、`/lit-review`、`/paper-write`、`/code-build` |
 | Shell | `qiongli check` | `qiongli doctor`、`qiongli upgrade`、`python3 -m bridges.orchestrator ...` |
 
 Codex 不暴露自定义 `/qiongli` 或 `/lit-review` slash command。先用 `/skills` 确认主 skill 和生成的 wrapper skills 存在，再用 `$qiongli` 或 `$qiongli-lit-review` 这类 wrapper 调用。每个 wrapper 都会路由到 Claude Code slash command 使用的同一个 canonical workflow 文件。

@@ -44,17 +44,17 @@ The name comes from `穷理`: keep asking what principle, evidence, and limit si
 
 ## Latest Stable Downloads
 
-Current stable release: [v1.15.0](https://github.com/jxpeng98/qiongli/releases/tag/v1.15.0). These direct links cover the common install paths; use the download guide for subject-specific Desktop ZIPs and maintainer artifacts.
+Current stable release: [v1.16.0](https://github.com/jxpeng98/qiongli/releases/tag/v1.16.0). These direct links cover the common install paths; use the download guide for subject-specific Desktop ZIPs and maintainer artifacts.
 
 | Need | Link or command |
 |---|---|
-| npm CLI | [`qiongli@1.15.0`](https://www.npmjs.com/package/qiongli/v/1.15.0): `npm install -g qiongli@latest` |
-| PyPI CLI | [`qiongli 1.15.0`](https://pypi.org/project/qiongli/1.15.0/): `pipx install qiongli` |
-| Claude Desktop direct plugin | [`qiongli-claude-desktop-plugin-v1.15.0.zip`](https://github.com/jxpeng98/qiongli/releases/download/v1.15.0/qiongli-claude-desktop-plugin-v1.15.0.zip) |
-| Claude Desktop/Web core skill | [`qiongli-claude-desktop-skill-core-v1.15.0.zip`](https://github.com/jxpeng98/qiongli/releases/download/v1.15.0/qiongli-claude-desktop-skill-core-v1.15.0.zip) |
-| Claude Desktop literature MCPB | [`qiongli-literature-provider-0.1.5.mcpb`](https://github.com/jxpeng98/qiongli/releases/download/v1.15.0/qiongli-literature-provider-0.1.5.mcpb) |
-| Zotero Desktop companion | [`qiongli-zotero-companion-0.2.2.xpi`](https://github.com/jxpeng98/qiongli/releases/download/v1.15.0/qiongli-zotero-companion-0.2.2.xpi) |
-| All release assets | [Download guide](https://github.com/jxpeng98/qiongli/releases/download/v1.15.0/qiongli-downloads-v1.15.0.md) and [GitHub Release](https://github.com/jxpeng98/qiongli/releases/tag/v1.15.0) |
+| npm CLI | [`qiongli@1.16.0`](https://www.npmjs.com/package/qiongli/v/1.16.0): `npm install -g qiongli@latest` |
+| PyPI CLI | [`qiongli 1.16.0`](https://pypi.org/project/qiongli/1.16.0/): `pipx install qiongli` |
+| Claude Desktop recommended plugin | [`qiongli-claude-desktop-plugin-v1.16.0.zip`](https://github.com/jxpeng98/qiongli/releases/download/v1.16.0/qiongli-claude-desktop-plugin-v1.16.0.zip) |
+| Claude Desktop/Web fallback skill ZIP | [`qiongli-claude-desktop-skill-core-v1.16.0.zip`](https://github.com/jxpeng98/qiongli/releases/download/v1.16.0/qiongli-claude-desktop-skill-core-v1.16.0.zip) |
+| Claude Desktop literature MCPB | [`qiongli-literature-provider-0.1.5.mcpb`](https://github.com/jxpeng98/qiongli/releases/download/v1.16.0/qiongli-literature-provider-0.1.5.mcpb) |
+| Zotero Desktop companion | [`qiongli-zotero-companion-0.2.2.xpi`](https://github.com/jxpeng98/qiongli/releases/download/v1.16.0/qiongli-zotero-companion-0.2.2.xpi) |
+| All release assets | [Download guide](https://github.com/jxpeng98/qiongli/releases/download/v1.16.0/qiongli-downloads-v1.16.0.md) and [GitHub Release](https://github.com/jxpeng98/qiongli/releases/tag/v1.16.0) |
 
 ## Install Fast
 
@@ -80,14 +80,15 @@ qiongli project set-subject finance --project-dir "$PWD"
 qiongli project status --project-dir "$PWD"
 ```
 
-For plugin-lite or full runtime paths, use the install guide. It covers Codex and Claude Code marketplace plugins, Claude Desktop Skill ZIPs, the literature MCPB, bootstrap partial/full, npm/npx, pipx, and pip. npm plugin-lite output is opt-in with `--surface plugin` or `--surface both` where bundled and supported.
+For plugin-lite or full runtime paths, use the install guide. It covers Codex and Claude Code marketplace plugins, Claude Desktop direct plugin and fallback Skill ZIPs, the literature MCPB, bootstrap partial/full, npm/npx, pipx, and pip. npm plugin-lite output is opt-in with `--surface plugin` or `--surface both` where bundled and supported.
 
 ## Install Entry Comparison
 
 | Entry | Positioning | Includes | Use it for | Boundary |
 |---|---|---|---|---|
 | Marketplace plugin / extension | Client-native, lowest setup | Qiongli skill/plugin package, workflows, prompts, templates; Codex/Claude Code also bundle the Node literature MCP | Work inside one client without managing a CLI | No full orchestrator or Python runtime unless you install the full runtime separately |
-| Claude Desktop Skill ZIP + Literature MCPB | Desktop/Web no-code path | Uploaded `qiongli` Skill ZIP plus optional `qiongli-literature-provider.mcpb` | Claude Desktop/Web skill use and local literature provider tools | Skill ZIP is skill-only; MCPB is provider-only; neither runs the Python orchestrator |
+| Claude Desktop direct plugin | Recommended Desktop path | `qiongli` plugin with skill package, workflow wrappers, and bundled lightweight literature MCP runtime | A unified Qiongli entry in Claude Desktop without managing a CLI | No full Python orchestrator unless you install the full runtime separately |
+| Claude Desktop fallback Skill ZIP + Literature MCPB | Desktop/Web manual path | Uploaded `qiongli` Skill ZIP plus optional `qiongli-literature-provider.mcpb` | Manual skill upload or provider-only Desktop literature tools | Skill ZIP is skill-only; MCPB is provider-only; neither runs the Python orchestrator |
 | npm / npx | Python-free asset manager | npm CLI, pre-materialized skills by default, optional plugin-lite assets with `--surface plugin|both`, Node project commands | Scripted installs, dotfiles, CI, current-package asset refresh, project subject guidance | Does not self-update packages or run `doctor`, `mcp serve`, provider setup, or task orchestration |
 | pipx / pip full runtime | Python CLI and managed full local runtime | Python CLI, setup wizard, full plugin install, unified MCP server, provider setup, doctor checks, task/orchestrator commands | Local validation, provider configuration, MCP/orchestrator tools, package self-update | Requires Python 3.12+ and the relevant local CLIs for agent execution |
 | Bootstrap partial/full | Release-script install path | `partial`: global skills/discovery; `full`: partial plus shell CLI/MCP/doctor support | Machines that should install from release scripts instead of package managers | `full` still requires Python 3.12+ already available |

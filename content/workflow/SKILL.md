@@ -1,6 +1,6 @@
 ---
 name: qiongli
-description: "Qiongli version: v1.15.0. Cross-platform academic research workflow for Codex, Claude / Claude Code, and CLI. Use for academic research lifecycle work: paper planning, literature review, paper reading, gap finding, study design, manuscript writing, statistics, analysis code, reproducibility, proofread, rebuttal, submission, presentation, and stage-aware grill / critique. Route natural academic requests even when the user does not explicitly invoke $qiongli or a slash command."
+description: "Qiongli version: v1.16.0. Cross-platform academic research workflow for Codex, Claude / Claude Code, and CLI. Use for academic research lifecycle work: paper planning, literature review, paper reading, gap finding, study design, manuscript writing, statistics, analysis code, reproducibility, proofread, rebuttal, submission, presentation, and stage-aware grill / critique. Route natural academic requests even when the user does not explicitly invoke $qiongli or a slash command."
 ---
 
 # Qiongli Academic Workflow
@@ -9,7 +9,7 @@ Run a model-agnostic paper workflow using shared Task IDs and artifact contracts
 
 This is a **self-contained skill package**. All assets needed for execution — workflows, skill specifications, output templates, standards, and agent roles — are bundled in subdirectories of this package. No external repo access is needed.
 
-Installed Qiongli workflow version: `v1.15.0`
+Installed Qiongli workflow version: `v1.16.0`
 
 ## Quick Start
 
@@ -95,9 +95,10 @@ Domain profiles refine canonical contracts; they do not replace them. For each m
 
 ## Workflow Entry Points
 
-Explicit workflow commands are optional entry points. In Codex, users can invoke this skill with `/skills` or `$qiongli`, but natural academic requests should also route here. Claude Code surfaces may expose the same workflows as slash-style command wrappers:
+Explicit workflow commands are optional entry points. In Codex, users can invoke this skill with `/skills` or `$qiongli`, but natural academic requests should also route here. Claude Desktop should treat the user-visible skill name `qiongli` as the main entry and route natural academic requests through this contract. Claude Code and direct plugin surfaces may expose the same workflows as slash-style command wrappers:
 
 ```
+/qiongli [request]                  # Unified main entry — route to the correct workflow
 /paper [topic] [venue]                # Master router — choose paper type + task ID
 /paper-lifecycle [topic]              # Full-Cycle lifecycle preview from topic to journal fit
 /coursework [assignment brief, task, or topic] # Coursework, rubric, and learning-assessment support
@@ -120,9 +121,9 @@ Explicit workflow commands are optional entry points. In Codex, users can invoke
 
 ## Bundled Workflows
 
-Full workflow definitions are included in the `workflows/` subdirectory of this skill package. When a user invokes any workflow above (for example, `$qiongli run paper` or `/paper` on clients that support workflow wrappers), read the corresponding file from `workflows/<command-name>.md` for the complete execution instructions.
+Full workflow definitions are included in the `workflows/` subdirectory of this skill package. When a user invokes any workflow above (for example, `$qiongli run paper`, `/qiongli`, or `/paper` on clients that support workflow wrappers), read the corresponding file from `workflows/<command-name>.md` for the complete execution instructions.
 
-The `workflows/paper.md` file is the **master router** — it maps every research Task ID (A1–M7) to the correct sub-workflow or skill card. Use `workflows/coursework.md` for Stage L assignment tasks and `workflows/dissertation.md` for Stage M dissertation or thesis tasks.
+The `workflows/qiongli.md` file is the **unified entry router** for direct Qiongli invocation. It delegates to the right workflow based on user intent. The `workflows/paper.md` file remains the **paper/task master router** — it maps every research Task ID (A1–M7) to the correct sub-workflow or skill card. Start with `workflows/qiongli.md` for a broad direct invocation, `workflows/paper.md` for task-ID-based paper work, `workflows/coursework.md` for Stage L assignment tasks, and `workflows/dissertation.md` for Stage M dissertation or thesis tasks.
 
 ## Skill Directory Structure
 
@@ -209,8 +210,9 @@ RESEARCH/[topic]/
 - Preserve distinct provenance labels in `search_log.md`, `search_results.csv`, and diagnostics: provider records use labels such as `mcp:openalex`, `mcp:semantic_scholar`, `mcp:crossref`, `mcp:pubmed`, and `mcp:arxiv`; platform-native records use `native:codex_web_search` or `native:claude_web_search`; user-supplied files, notes, bibliographies, or pasted citations use `user_corpus`.
 - Treat `provider_connected` as the only mode where configured external academic provider credentials are available to the local runtime.
 - Treat `strategy_only` as a constrained mode: draft the search strategy or use user-supplied corpus, record the limitation, and do not claim review-grade external provider or native-search coverage.
-- Claude Desktop/Web focused ZIPs are skill-only packages kept within the 180-file upload budget. They contain workflows/prompts/templates, store no secrets, and cannot execute OpenAlex, Semantic Scholar, Crossref, PubMed, or arXiv API calls by themselves.
-- For a manual Desktop install, upload the `qiongli-claude-desktop-skill-*.zip` first, then add a manual MCP install when provider calls or local orchestration are required. The skill ZIP supplies agent instructions, workflows/prompts/templates, and subject overlays; MCP supplies tool calls.
+- Claude Desktop direct plugin ZIPs are the recommended Desktop plugin route when the client supports direct plugin install. They bundle the Qiongli skill package, generated workflow command wrappers, and the lightweight literature MCP runtime in one plugin-shaped asset.
+- Claude Desktop/Web focused skill ZIPs are fallback skill-only packages kept within the 180-file upload budget. They contain workflows/prompts/templates, store no secrets, and cannot execute OpenAlex, Semantic Scholar, Crossref, PubMed, or arXiv API calls by themselves.
+- For a manual Desktop skill install, upload the `qiongli-claude-desktop-skill-*.zip` first, then add a manual MCP install when provider calls or local orchestration are required. The skill ZIP supplies agent instructions, workflows/prompts/templates, and subject overlays; MCP supplies tool calls.
 - Desktop/Web users need the Qiongli Literature Provider `.mcpb` (`qiongli-literature-provider.mcpb`) or another configured provider MCP before claiming `provider_connected` literature search. The MCPB is the separate local Claude Desktop provider for OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv configuration/search. arXiv is enabled without credentials. Platform-native search alone is `native_only`, not `provider_connected`; if no provider MCP/MCPB and no platform-native search is available, record the run as `strategy_only`.
 - The literature MCPB provides literature MCP tools only. It does not launch orchestrator agents. To expose the full agent runtime through MCP, manually install the full CLI MCP server with `qiongli mcp serve --transport stdio`; clients can then call `qiongli_orchestrator_route`, `qiongli_task_plan`, and `qiongli_task_run` after the local CLI runtime and model CLIs are configured. `qiongli_task_run` remains preview-first unless the caller sends JSON boolean `run_agents: true`.
 

@@ -6,6 +6,24 @@
 
 暂无未发布变更。
 
+## [1.16.0] - 2026-07-06
+
+### Added
+
+- 新增 coursework / assignment 支持：`/coursework` 现在覆盖 assignment brief intake、rubric 与 learning outcome mapping、coursework outline、claim-evidence plan、draft、revision 和 final readiness，对应 canonical Task IDs `L1`–`L7`。
+- 新增 dissertation / thesis / major project 支持：`/dissertation` 现在覆盖 dissertation planning、chapter architecture、chapter drafting、supervisor feedback integration、milestone risk plan、final readiness 和 viva/defense preparation，对应 canonical Task IDs `M1`–`M7`。
+- 新增 Stage L 与 Stage M 的 skill cards、workflow playbooks、artifact templates、artifact types、routing references 和 skill registry/docs，使本科 coursework、capstone、taught master dissertation 与 supervisor feedback 场景可以进入同一套 Qiongli contract。
+
+### Changed
+
+- `research-workflow-contract.yaml`、capability map、platform routing、Claude/Codex quick commands 和 generated workflow reference 现在统一覆盖 `A1`–`M7`，并保留 coursework/dissertation 的 project-mode 输出路径。
+- `qiongli_task_plan` / MCP preview 现在可以规划 `L`/`M` task IDs，返回 functional owner、runtime route、required outputs 和 dissertation prerequisite chain。
+- coursework/dissertation templates 默认保留 missing-information 和 do-not-invent 边界，避免伪造课程规则、rubric、导师反馈、数据、个人经历、引用或成绩承诺。
+
+### Fixed
+
+- 修复 paper router、validator、skill docs 和 workflow contract reference 只覆盖论文生命周期 `A`–`K` 的问题，使 project-mode academic writing tasks 也能被标准验证和跨平台路由发现。
+
 ## [1.15.0] - 2026-07-06
 
 ### Added

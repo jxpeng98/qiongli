@@ -44,17 +44,17 @@
 
 ## 最新稳定版下载
 
-当前稳定版是 [v1.15.0](https://github.com/jxpeng98/qiongli/releases/tag/v1.15.0)。下面这些直达链接覆盖常见安装路径；需要 subject 专精 Desktop ZIP 或维护者 artifacts 时，再打开下载指南。
+当前稳定版是 [v1.16.0](https://github.com/jxpeng98/qiongli/releases/tag/v1.16.0)。下面这些直达链接覆盖常见安装路径；需要 subject 专精 Desktop ZIP 或维护者 artifacts 时，再打开下载指南。
 
 | 需求 | 链接或命令 |
 |---|---|
-| npm CLI | [`qiongli@1.15.0`](https://www.npmjs.com/package/qiongli/v/1.15.0)：`npm install -g qiongli@latest` |
-| PyPI CLI | [`qiongli 1.15.0`](https://pypi.org/project/qiongli/1.15.0/)：`pipx install qiongli` |
-| Claude Desktop direct plugin | [`qiongli-claude-desktop-plugin-v1.15.0.zip`](https://github.com/jxpeng98/qiongli/releases/download/v1.15.0/qiongli-claude-desktop-plugin-v1.15.0.zip) |
-| Claude Desktop/Web core skill | [`qiongli-claude-desktop-skill-core-v1.15.0.zip`](https://github.com/jxpeng98/qiongli/releases/download/v1.15.0/qiongli-claude-desktop-skill-core-v1.15.0.zip) |
-| Claude Desktop literature MCPB | [`qiongli-literature-provider-0.1.5.mcpb`](https://github.com/jxpeng98/qiongli/releases/download/v1.15.0/qiongli-literature-provider-0.1.5.mcpb) |
-| Zotero Desktop companion | [`qiongli-zotero-companion-0.2.2.xpi`](https://github.com/jxpeng98/qiongli/releases/download/v1.15.0/qiongli-zotero-companion-0.2.2.xpi) |
-| 全部 release assets | [下载指南](https://github.com/jxpeng98/qiongli/releases/download/v1.15.0/qiongli-downloads-v1.15.0.md) 和 [GitHub Release](https://github.com/jxpeng98/qiongli/releases/tag/v1.15.0) |
+| npm CLI | [`qiongli@1.16.0`](https://www.npmjs.com/package/qiongli/v/1.16.0)：`npm install -g qiongli@latest` |
+| PyPI CLI | [`qiongli 1.16.0`](https://pypi.org/project/qiongli/1.16.0/)：`pipx install qiongli` |
+| Claude Desktop 推荐插件 | [`qiongli-claude-desktop-plugin-v1.16.0.zip`](https://github.com/jxpeng98/qiongli/releases/download/v1.16.0/qiongli-claude-desktop-plugin-v1.16.0.zip) |
+| Claude Desktop/Web fallback skill ZIP | [`qiongli-claude-desktop-skill-core-v1.16.0.zip`](https://github.com/jxpeng98/qiongli/releases/download/v1.16.0/qiongli-claude-desktop-skill-core-v1.16.0.zip) |
+| Claude Desktop literature MCPB | [`qiongli-literature-provider-0.1.5.mcpb`](https://github.com/jxpeng98/qiongli/releases/download/v1.16.0/qiongli-literature-provider-0.1.5.mcpb) |
+| Zotero Desktop companion | [`qiongli-zotero-companion-0.2.2.xpi`](https://github.com/jxpeng98/qiongli/releases/download/v1.16.0/qiongli-zotero-companion-0.2.2.xpi) |
+| 全部 release assets | [下载指南](https://github.com/jxpeng98/qiongli/releases/download/v1.16.0/qiongli-downloads-v1.16.0.md) 和 [GitHub Release](https://github.com/jxpeng98/qiongli/releases/tag/v1.16.0) |
 
 ## 快速安装
 
@@ -80,14 +80,15 @@ qiongli project set-subject finance --project-dir "$PWD"
 qiongli project status --project-dir "$PWD"
 ```
 
-如果需要 plugin-lite 或完整运行时路径，请看安装指南。里面分别说明 Codex / Claude Code marketplace plugin、Claude Desktop Skill ZIP、literature MCPB、bootstrap partial/full、npm/npx、pipx 和 pip。npm 的 plugin-lite 输出只在 bundled/supported 的位置通过 `--surface plugin` 或 `--surface both` 显式启用。
+如果需要 plugin-lite 或完整运行时路径，请看安装指南。里面分别说明 Codex / Claude Code marketplace plugin、Claude Desktop direct plugin 和 fallback Skill ZIP、literature MCPB、bootstrap partial/full、npm/npx、pipx 和 pip。npm 的 plugin-lite 输出只在 bundled/supported 的位置通过 `--surface plugin` 或 `--surface both` 显式启用。
 
 ## 安装入口对比
 
 | 入口 | 定位 | 包含内容 | 适合做什么 | 边界 |
 |---|---|---|---|---|
 | Marketplace plugin / extension | 客户端原生、最少配置 | Qiongli skill/plugin package、workflows、prompts、templates；Codex / Claude Code 还内置 Node literature MCP | 不想管理 CLI，只在一个客户端里使用 Qiongli | 不包含完整 orchestrator 或 Python runtime；需要时单独安装完整运行时 |
-| Claude Desktop Skill ZIP + Literature MCPB | Desktop/Web 的无代码路径 | 上传式 `qiongli` Skill ZIP，加可选 `qiongli-literature-provider.mcpb` | Claude Desktop/Web 的 skill 使用和本地 literature provider 工具 | Skill ZIP 是 skill-only；MCPB 是 provider-only；二者都不运行 Python orchestrator |
+| Claude Desktop direct plugin | 推荐的 Desktop 路径 | 带 `qiongli` skill package、workflow wrappers 和轻量 bundled literature MCP runtime 的 plugin | 在 Claude Desktop 里获得统一的 Qiongli 入口，不需要管理 CLI | 不包含完整 Python orchestrator；需要时单独安装完整运行时 |
+| Claude Desktop fallback Skill ZIP + Literature MCPB | Desktop/Web 手动路径 | 上传式 `qiongli` Skill ZIP，加可选 `qiongli-literature-provider.mcpb` | 手动 skill 上传或 Desktop literature provider 工具 | Skill ZIP 是 skill-only；MCPB 是 provider-only；二者都不运行 Python orchestrator |
 | npm / npx | 免 Python 资产管理器 | npm CLI、默认预生成 skills；通过 `--surface plugin|both` 可显式安装 plugin-lite assets；Node project commands | 脚本化安装、dotfiles、CI、当前 package asset refresh、项目 subject guidance | 不升级 package，不运行 `doctor`、`mcp serve`、provider setup 或 task orchestration |
 | pipx / pip 完整运行时 | Python CLI 和受管理 full local runtime | Python CLI、setup wizard、完整 plugin install、统一 MCP server、provider setup、doctor、task/orchestrator commands | 本地验证、provider 配置、MCP/orchestrator 工具、package self-update | 需要 Python 3.12+；真实 agent execution 还需要对应本地模型 CLI |
 | Bootstrap partial/full | release script 安装路径 | `partial`：全局 skills/discovery；`full`：partial 加 shell CLI/MCP/doctor 支持 | 不走 package manager、直接从 release script 安装的机器 | `full` 仍要求机器已有 Python 3.12+ |
