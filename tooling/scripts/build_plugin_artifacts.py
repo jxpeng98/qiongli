@@ -19,6 +19,7 @@ for import_root in (PYTHON_SOURCE_ROOT, REPO_ROOT):
 
 from qiongli.source_layout import RepoLayout
 from qiongli.distribution_metadata import PluginDefinition, load_plugin_distribution
+from qiongli.platform_targets import load_platform_targets, remove_path_pattern
 from qiongli.workflow_wrapper_skills import write_codex_workflow_wrapper_skills
 
 try:
@@ -602,6 +603,29 @@ def _make_zip(source_dir: Path, zip_path: Path) -> None:
         for item in sorted(source_dir.rglob("*")):
             if item.is_file():
                 archive.write(item, item.relative_to(source_dir.parent).as_posix())
+
+
+def _platform_target_by_recommended_key(root: Path, recommended_key: str):
+    matches = sorted(
+        (
+            target
+            for target in load_platform_targets(root).values()
+            if target.release_download.get("recommended_key") == recommended_key
+        ),
+        key=lambda target: target.target_id,
+    )
+    if len(matches) != 1:
+        raise ValueError(
+            "platform target registry must define exactly one "
+            f"release_download.recommended_key={recommended_key!r}; found {len(matches)}"
+        )
+    return matches[0]
+
+
+def _apply_recommended_platform_forbidden_paths(root: Path, plugin_root: Path, recommended_key: str) -> None:
+    target = _platform_target_by_recommended_key(root, recommended_key)
+    for pattern in target.forbidden_paths:
+        remove_path_pattern(plugin_root, pattern)
 
 
 def _copy_claude_desktop_skill(
@@ -1279,6 +1303,7 @@ def _build_claude_desktop_plugin(
         materialize_next_plugin_package(root, plugin_dest, force=True)
     else:
         materialize_plugin_package(root, plugin_dest, force=True)
+    _apply_recommended_platform_forbidden_paths(root, plugin_dest, "claude_desktop_plugin")
 
     artifact = dist_dir / f"{artifact_prefix}-claude-desktop-plugin-{tag}.zip"
     _make_zip(plugin_dest, artifact)

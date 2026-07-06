@@ -7,8 +7,10 @@ import tarfile
 import tempfile
 import unittest
 import zipfile
+from dataclasses import replace
 from pathlib import Path
 
+from qiongli.platform_targets import load_platform_targets
 from qiongli.source_layout import RepoLayout
 
 
@@ -25,6 +27,34 @@ SPEC.loader.exec_module(module)
 
 
 class PluginArtifactsTests(unittest.TestCase):
+    def test_recommended_forbidden_paths_use_registry_recommended_key(self) -> None:
+        target = replace(
+            load_platform_targets(REPO_ROOT)["claude-desktop-direct-plugin"],
+            target_id="fixture-desktop-plugin-target",
+            forbidden_paths=("remove-me/",),
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            plugin_root = root / "plugin"
+            (plugin_root / "remove-me").mkdir(parents=True)
+            (plugin_root / "remove-me" / "file.txt").write_text("remove\n", encoding="utf-8")
+            (plugin_root / "keep-me").mkdir()
+
+            original_load = module.load_platform_targets
+            module.load_platform_targets = lambda _root: {"fixture-desktop-plugin-target": target}
+            try:
+                module._apply_recommended_platform_forbidden_paths(
+                    root,
+                    plugin_root,
+                    "claude_desktop_plugin",
+                )
+            finally:
+                module.load_platform_targets = original_load
+
+            self.assertFalse((plugin_root / "remove-me").exists())
+            self.assertTrue((plugin_root / "keep-me").is_dir())
+
     def test_release_builds_expected_channel_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             dist_dir = Path(tmp_dir) / "dist"
@@ -168,6 +198,10 @@ class PluginArtifactsTests(unittest.TestCase):
         )
         self.assertIn("name: qiongli-next\n", desktop_skill_text)
         self.assertIn("$qiongli-next", desktop_skill_text)
+        self._assert_direct_desktop_plugin_boundary(
+            dist_dir / f"qiongli-next-claude-desktop-plugin-{current_tag}.zip",
+            "qiongli-next",
+        )
 
     def _assert_stable_release_artifacts(self, dist_dir: Path, current_tag: str, artifacts: list[Path]) -> None:
         expected_names = [
@@ -283,6 +317,10 @@ class PluginArtifactsTests(unittest.TestCase):
             "qiongli/SKILL.md",
         )
         self.assertIn("name: qiongli\n", desktop_skill_text)
+        self._assert_direct_desktop_plugin_boundary(
+            dist_dir / f"qiongli-claude-desktop-plugin-{current_tag}.zip",
+            "qiongli",
+        )
 
     def test_fallback_economics_accounting_desktop_skill_includes_accounting_auditor(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -391,6 +429,38 @@ class PluginArtifactsTests(unittest.TestCase):
             names = set(archive.namelist())
         for name in expected:
             self.assertIn(name, names)
+
+    def _assert_zip_not_contains(self, artifact: Path, forbidden: list[str]) -> None:
+        with zipfile.ZipFile(artifact) as archive:
+            names = set(archive.namelist())
+        for name in forbidden:
+            self.assertNotIn(name, names)
+
+    def _assert_direct_desktop_plugin_boundary(self, artifact: Path, plugin_name: str) -> None:
+        self._assert_zip_contains(
+            artifact,
+            [
+                f"{plugin_name}/plugin.json",
+                f"{plugin_name}/.claude-plugin/plugin.json",
+                f"{plugin_name}/commands/paper.md",
+                f"{plugin_name}/mcp/qiongli-literature-provider/index.mjs",
+                f"{plugin_name}/skills/qiongli-workflow/SKILL.md",
+            ],
+        )
+        self._assert_zip_not_contains(
+            artifact,
+            [
+                f"{plugin_name}/.codex-plugin/plugin.json",
+                f"{plugin_name}/.mcp.json",
+                f"{plugin_name}/skills/{plugin_name}-lit-review/SKILL.md",
+                f"{plugin_name}/skills/{plugin_name}-paper/SKILL.md",
+            ],
+        )
+        self._assert_claude_zip_manifest_mcp_server(
+            artifact,
+            f"{plugin_name}/.claude-plugin/plugin.json",
+            server_name=plugin_name,
+        )
 
     def _read_zip_text(self, artifact: Path, member: str) -> str:
         with zipfile.ZipFile(artifact) as archive:

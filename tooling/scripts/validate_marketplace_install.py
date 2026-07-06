@@ -10,7 +10,6 @@ import tarfile
 import tempfile
 import warnings
 import zipfile
-from dataclasses import dataclass
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -20,6 +19,13 @@ for import_root in (PYTHON_SOURCE_ROOT, REPO_ROOT):
         sys.path.insert(0, str(import_root))
 
 from build_plugin_artifacts import _desktop_subjects, _is_prerelease_tag, _marketplace_subjects, build_artifacts
+from qiongli.platform_targets import (
+    PlatformTarget,
+    load_platform_targets,
+    missing_required_paths,
+    present_forbidden_paths,
+    plugin_manifest_platform,
+)
 from qiongli.source_layout import RepoLayout
 
 
@@ -31,33 +37,6 @@ NEXT_SKILL_NAME = "qiongli-next"
 MCP_SERVER_NAME = "qiongli"
 NEXT_MCP_SERVER_NAME = "qiongli-next"
 CLAUDE_DESKTOP_FILE_BUDGET = 180
-
-
-@dataclass(frozen=True)
-class ArtifactSpec:
-    platform: str
-    manifest: Path
-    plugin_root: Path
-    requires_commands: bool
-    expects_bundled_mcp: bool = False
-
-
-ARTIFACT_SPECS = {
-    "codex": ArtifactSpec(
-        platform="codex",
-        manifest=Path("plugins") / PLUGIN_NAME / ".codex-plugin" / "plugin.json",
-        plugin_root=Path("plugins") / PLUGIN_NAME,
-        requires_commands=True,
-        expects_bundled_mcp=True,
-    ),
-    "claude": ArtifactSpec(
-        platform="claude",
-        manifest=Path("plugins") / PLUGIN_NAME / ".claude-plugin" / "plugin.json",
-        plugin_root=Path("plugins") / PLUGIN_NAME,
-        requires_commands=True,
-        expects_bundled_mcp=True,
-    ),
-}
 
 
 def _read_json(path: Path) -> dict[str, object]:
@@ -456,9 +435,49 @@ def _assert_manifest(
             raise ValueError(f"{manifest_path} defaultPrompt must include ${expected_skill_name}")
 
 
+def _platform_for_target(target: PlatformTarget) -> str:
+    platform = plugin_manifest_platform(target)
+    if platform in {"codex", "claude"}:
+        return platform
+    raise ValueError(
+        f"platform target {target.target_id} adapter.plugin_manifest_platform={platform!r} "
+        "does not map to a plugin manifest platform"
+    )
+
+
+def _target_by_recommended_key(targets: dict[str, PlatformTarget], recommended_key: str) -> PlatformTarget:
+    matches = sorted(
+        (
+            target
+            for target in targets.values()
+            if target.release_download.get("recommended_key") == recommended_key
+        ),
+        key=lambda target: target.target_id,
+    )
+    if len(matches) != 1:
+        raise ValueError(
+            "platform target registry must define exactly one "
+            f"release_download.recommended_key={recommended_key!r}; found {len(matches)}"
+        )
+    return matches[0]
+
+
+def _assert_target_paths(root: Path, target: PlatformTarget, artifact: Path) -> None:
+    missing = missing_required_paths(root, target)
+    if missing:
+        raise ValueError(
+            f"{artifact} target {target.target_id} missing required paths: " + ", ".join(missing)
+        )
+    forbidden = present_forbidden_paths(root, target)
+    if forbidden:
+        raise ValueError(
+            f"{artifact} target {target.target_id} contains forbidden paths: " + ", ".join(forbidden)
+        )
+
+
 def _validate_artifact(
     artifact: Path,
-    spec: ArtifactSpec,
+    spec: PlatformTarget,
     expected_repo_tag: str,
     expected_version: str,
     *,
@@ -468,15 +487,17 @@ def _validate_artifact(
     skill_name: str = SKILL_NAME,
     subject_label: str | None = None,
 ) -> str:
-    with tempfile.TemporaryDirectory(prefix=f"qiongli-{spec.platform}-artifact-") as tmp:
+    platform = _platform_for_target(spec)
+    with tempfile.TemporaryDirectory(prefix=f"qiongli-{platform}-artifact-") as tmp:
         bundle_root = _extract_marketplace_root(artifact, Path(tmp))
         plugin_root = (bundle_root / "plugins" / plugin_name).resolve()
-        manifest_path = plugin_root / (".codex-plugin" if spec.platform == "codex" else ".claude-plugin") / "plugin.json"
+        _assert_target_paths(plugin_root, spec, artifact)
+        manifest_path = plugin_root / (".codex-plugin" if platform == "codex" else ".claude-plugin") / "plugin.json"
         skill_root = plugin_root / "skills" / SKILL_DIR_NAME
 
         _assert_root_plugin_manifest(plugin_root, plugin_name)
         _assert_manifest(
-            spec.platform,
+            platform,
             manifest_path,
             expected_version,
             expected_plugin_name=plugin_name,
@@ -486,22 +507,22 @@ def _validate_artifact(
         if subject is not None:
             _assert_subject_marker(skill_root, subject)
             _assert_subject_manifest(skill_root, subject, coverage or "complete")
-        if spec.requires_commands:
+        if spec.command_surface == "slash-commands":
             _assert_command_invocation(plugin_root, workflow_names, skill_name=skill_name)
-        if spec.expects_bundled_mcp:
+        if spec.bundled_mcp_mode != "none":
             _assert_bundled_literature_mcp(
                 plugin_root,
-                spec.platform,
+                platform,
                 mcp_server_name=_mcp_server_name_for_plugin(plugin_name),
             )
 
     label = subject_label or subject
     subject_suffix = f" ({label})" if label else ""
     checked = f"{skill_name} invocation checked"
-    if spec.expects_bundled_mcp:
+    if spec.bundled_mcp_mode != "none":
         checked += "; bundled literature MCP checked"
     archive_label = " ZIP" if artifact.suffix == ".zip" else ""
-    return f"[OK] {spec.platform} marketplace{archive_label} artifact{subject_suffix}: {checked}"
+    return f"[OK] {platform} marketplace{archive_label} artifact{subject_suffix}: {checked} [target_id={spec.target_id}]"
 
 
 def _validate_claude_desktop_artifact(
@@ -511,12 +532,15 @@ def _validate_claude_desktop_artifact(
     *,
     skill_name: str = SKILL_NAME,
     subject_label: str | None = None,
+    target: PlatformTarget | None = None,
 ) -> str:
     file_count = _assert_claude_desktop_zip_budget(artifact, subject, skill_name=skill_name)
     with tempfile.TemporaryDirectory(prefix=f"qiongli-claude-desktop-{subject}-artifact-") as tmp:
         skill_root = _extract_single_zip_root(artifact, Path(tmp))
         if skill_root.name != skill_name:
             raise ValueError(f"{artifact} must contain top-level {skill_name}/ directory")
+        if target is not None:
+            _assert_target_paths(skill_root, target, artifact)
         _assert_skill_invocation(skill_root, expected_repo_tag, skill_name=skill_name)
         if subject == "economics":
             _assert_economics_desktop_package(skill_root)
@@ -538,9 +562,10 @@ def _validate_claude_desktop_artifact(
             raise ValueError(f"{artifact} must not include Claude Code slash command wrappers")
 
     label = subject_label or subject
+    target_suffix = f" [target_id={target.target_id}]" if target is not None else ""
     return (
         f"[OK] claude-desktop skill artifact ({label}): {skill_name} invocation checked; "
-        f"{file_count}/{CLAUDE_DESKTOP_FILE_BUDGET} files under desktop file budget"
+        f"{file_count}/{CLAUDE_DESKTOP_FILE_BUDGET} files under desktop file budget{target_suffix}"
     )
 
 
@@ -548,6 +573,7 @@ def _validate_direct_desktop_plugin_artifact(
     artifact: Path,
     expected_repo_tag: str,
     expected_version: str,
+    target: PlatformTarget,
     *,
     plugin_name: str = PLUGIN_NAME,
     skill_name: str = SKILL_NAME,
@@ -558,14 +584,8 @@ def _validate_direct_desktop_plugin_artifact(
         if plugin_root.name != plugin_name:
             raise ValueError(f"{artifact} must contain top-level {plugin_name}/ directory")
 
+        _assert_target_paths(plugin_root, target, artifact)
         _assert_root_plugin_manifest(plugin_root, plugin_name)
-        _assert_manifest(
-            "codex",
-            plugin_root / ".codex-plugin" / "plugin.json",
-            expected_version,
-            expected_plugin_name=plugin_name,
-            expected_skill_name=skill_name,
-        )
         _assert_manifest(
             "claude",
             plugin_root / ".claude-plugin" / "plugin.json",
@@ -581,11 +601,6 @@ def _validate_direct_desktop_plugin_artifact(
         _assert_command_invocation(plugin_root, workflow_names, skill_name=skill_name)
         _assert_bundled_literature_mcp(
             plugin_root,
-            "codex",
-            mcp_server_name=_mcp_server_name_for_plugin(plugin_name),
-        )
-        _assert_bundled_literature_mcp(
-            plugin_root,
             "claude",
             mcp_server_name=_mcp_server_name_for_plugin(plugin_name),
         )
@@ -593,7 +608,7 @@ def _validate_direct_desktop_plugin_artifact(
     subject_suffix = f" ({subject_label})" if subject_label else ""
     return (
         f"[OK] claude-desktop direct plugin artifact{subject_suffix}: "
-        f"{skill_name} invocation checked; bundled literature MCP checked"
+        f"{skill_name} invocation checked; bundled literature MCP checked [target_id={target.target_id}]"
     )
 
 
@@ -652,6 +667,13 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
     dist_dir = dist_dir.resolve()
     expected_repo_tag = (RepoLayout(root).workflow / "VERSION").read_text(encoding="utf-8").strip()
     expected_version = expected_repo_tag.removeprefix("v")
+    targets = load_platform_targets(root)
+    marketplace_specs = {
+        "codex": _target_by_recommended_key(targets, "codex"),
+        "claude": _target_by_recommended_key(targets, "claude_code"),
+    }
+    direct_desktop_target = _target_by_recommended_key(targets, "claude_desktop_plugin")
+    desktop_skill_target = _target_by_recommended_key(targets, "claude_desktop_skill")
 
     artifacts = build_artifacts(root, expected_repo_tag, dist_dir)
     by_platform = {artifact.name: artifact for artifact in artifacts}
@@ -659,7 +681,7 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
 
     if _is_prerelease_tag(expected_repo_tag):
         for platform in ("codex", "claude"):
-            spec = ARTIFACT_SPECS[platform]
+            spec = marketplace_specs[platform]
             artifact_name = f"{NEXT_PLUGIN_NAME}-{platform}-plugin-{expected_repo_tag}.tar.gz"
             artifact = by_platform.get(artifact_name)
             if artifact is None:
@@ -707,6 +729,7 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
                 "core",
                 skill_name=NEXT_SKILL_NAME,
                 subject_label="core-next",
+                target=desktop_skill_target,
             )
         )
         direct_plugin_name = f"{NEXT_PLUGIN_NAME}-claude-desktop-plugin-{expected_repo_tag}.zip"
@@ -718,6 +741,7 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
                 direct_plugin_artifact,
                 expected_repo_tag,
                 expected_version,
+                direct_desktop_target,
                 plugin_name=NEXT_PLUGIN_NAME,
                 skill_name=NEXT_SKILL_NAME,
                 subject_label="core-next",
@@ -728,7 +752,7 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
         _validate_subject_eval_cases(root)
         return messages
 
-    for platform, spec in ARTIFACT_SPECS.items():
+    for platform, spec in marketplace_specs.items():
         artifact_name = f"{PLUGIN_NAME}-{platform}-plugin-{expected_repo_tag}.tar.gz"
         artifact = by_platform.get(artifact_name)
         if artifact is None:
@@ -750,13 +774,14 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
             direct_plugin_artifact,
             expected_repo_tag,
             expected_version,
+            direct_desktop_target,
         )
     )
 
     for subject in _marketplace_subjects(root):
         plugin_name = f"{PLUGIN_NAME}-{subject}"
         for platform in ("codex", "claude"):
-            spec = ARTIFACT_SPECS[platform]
+            spec = marketplace_specs[platform]
             artifact_name = f"{plugin_name}-{platform}-plugin-{expected_repo_tag}.tar.gz"
             artifact = by_platform.get(artifact_name)
             if artifact is None:
@@ -794,18 +819,40 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
         desktop_artifact = by_platform.get(desktop_name)
         if desktop_artifact is None:
             raise ValueError(f"expected claude-desktop {subject} artifact: {desktop_name}")
-        messages.append(_validate_claude_desktop_artifact(desktop_artifact, expected_repo_tag, subject))
+        messages.append(
+            _validate_claude_desktop_artifact(
+                desktop_artifact,
+                expected_repo_tag,
+                subject,
+                target=desktop_skill_target,
+            )
+        )
 
     legacy_desktop_name = f"{PLUGIN_NAME}-claude-desktop-skill-{expected_repo_tag}.zip"
     legacy_desktop_artifact = by_platform.get(legacy_desktop_name)
     if legacy_desktop_artifact is None:
         raise ValueError(f"expected legacy claude-desktop artifact: {legacy_desktop_name}")
-    messages.append(_validate_claude_desktop_artifact(legacy_desktop_artifact, expected_repo_tag, "core"))
+    messages.append(
+        _validate_claude_desktop_artifact(
+            legacy_desktop_artifact,
+            expected_repo_tag,
+            "core",
+            target=desktop_skill_target,
+        )
+    )
 
     _validate_subject_specialization(root)
     _validate_subject_eval_cases(root)
 
     return messages
+
+
+def _client_activation_target_ids(targets: dict[str, PlatformTarget]) -> list[str]:
+    return sorted(
+        target_id
+        for target_id, target in targets.items()
+        if target.smoke.get("client_activation_check") == "local_install_acceptance"
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -828,7 +875,13 @@ def main(argv: list[str] | None = None) -> int:
 
     for message in messages:
         print(message)
-    print("[OK] marketplace validation completed")
+    print("[OK] structural archive checks completed")
+    target_ids = _client_activation_target_ids(load_platform_targets(args.root))
+    target_list = ", ".join(target_ids) if target_ids else "none"
+    print(
+        "[SKIP] client CLI activation checks skipped for targets: "
+        f"{target_list}; run scripts/release_local_install_check.py"
+    )
     return 0
 
 

@@ -17,6 +17,7 @@ for import_root in (PYTHON_SOURCE_ROOT, REPO_ROOT):
         sys.path.insert(0, str(import_root))
 
 from qiongli.source_layout import RepoLayout
+from qiongli.platform_targets import load_platform_targets
 from qiongli.subject_materializer import MaterializeOptions, materialize_subject_package, validate_subject_catalog
 from qiongli.bridges.subject_contracts import load_runtime_subject_contracts
 
@@ -461,6 +462,7 @@ def audit(root: Path) -> list[AuditIssue]:
             "npm runtime subject resource",
         )
     )
+    issues.extend(_audit_npm_platform_target_registry(root, root / "packages" / "npm-qiongli" / "payload"))
     issues.extend(_compare_files(root / "LICENSE", root / "packages" / "npm-qiongli" / "LICENSE", "npm LICENSE vs source"))
 
     package_json = root / "packages" / "npm-qiongli" / "package.json"
@@ -472,6 +474,51 @@ def audit(root: Path) -> list[AuditIssue]:
             issues.append(AuditIssue("npm package version", f"expected {expected}, found {npm_version}"))
 
     return issues
+
+
+def _audit_npm_platform_target_registry(root: Path, npm_payload_root: Path) -> list[AuditIssue]:
+    registry_path = npm_payload_root / "content" / "distribution" / "platform-targets.json"
+    if not registry_path.is_file():
+        return [AuditIssue("npm platform target registry", f"missing {registry_path}")]
+    try:
+        actual = json.loads(registry_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return [AuditIssue("npm platform target registry", f"malformed JSON: {exc}")]
+
+    expected = _platform_target_registry_payload(root)
+    if actual != expected:
+        return [
+            AuditIssue(
+                "npm platform target registry",
+                "payload/content/distribution/platform-targets.json differs from canonical platform-targets.yaml",
+            )
+        ]
+    return []
+
+
+def _platform_target_registry_payload(root: Path) -> dict[str, object]:
+    targets = load_platform_targets(root)
+    return {
+        "schema_version": "1.0",
+        "targets": {
+            target_id: {
+                "target_id": target.target_id,
+                "display_name": target.display_name,
+                "artifact_kind": target.artifact_kind,
+                "archive_format": target.archive_format,
+                "adapter": dict(target.adapter),
+                "source_inputs": list(target.source_inputs),
+                "required_paths": list(target.required_paths),
+                "allowed_wrapper_dirs": list(target.allowed_wrapper_dirs),
+                "forbidden_paths": list(target.forbidden_paths),
+                "bundled_mcp_mode": target.bundled_mcp_mode,
+                "command_surface": target.command_surface,
+                "validator": target.validator,
+                "release_download": target.release_download,
+            }
+            for target_id, target in sorted(targets.items())
+        },
+    }
 
 
 def main(argv: list[str] | None = None) -> int:
