@@ -11,7 +11,8 @@ Use this page when you want to start using Qiongli, not maintain it. The shortes
 
 | Situation | Use | Requires Python before install |
 |---|---|---|
-| Claude Desktop/Web with no CLI | Focused subject Desktop ZIP, such as `qiongli-claude-desktop-skill-economics-<tag>.zip` | No |
+| Claude Desktop with no CLI | Recommended direct plugin ZIP, `qiongli-claude-desktop-plugin-<tag>.zip` | No |
+| Claude Desktop/Web manual skill upload | Focused fallback skill ZIP, such as `qiongli-claude-desktop-skill-economics-<tag>.zip` | No |
 | One client, minimal setup | Native plugin / extension | No |
 | Full local Qiongli in Codex/Claude Code plugin form | `qiongli install --profile full --target all --surface plugin` | Yes, Python 3.12+ |
 | Several clients need global workflow assets | Bootstrap `partial` | No |
@@ -23,7 +24,9 @@ For full detail, read [Install](/guide/install).
 
 ## 2. Install Workflow Assets
 
-If you use Claude Desktop or Claude.ai and do not want to work in a code/CLI environment, download the focused subject ZIP you need from the GitHub Release assets. Public Desktop ZIP subjects in this phase are `core`, `economics`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting`; there is no standalone accounting Desktop ZIP yet. Use `qiongli-claude-desktop-skill-core-<tag>.zip` for the default workflow, `qiongli-claude-desktop-skill-economics-<tag>.zip` for economics, `qiongli-claude-desktop-skill-political-economy-<tag>.zip` for political economy, `qiongli-claude-desktop-skill-geoeconomics-<tag>.zip` for geoeconomics, `qiongli-claude-desktop-skill-business-<tag>.zip` for business, `qiongli-claude-desktop-skill-finance-<tag>.zip` for finance, or `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip` for the official economics/accounting composite. Drag the ZIP into Claude Desktop's Skills upload/install flow, or use `Customize > Skills > + > Create skill > Upload a skill`. The same ZIP upload flow also works in Claude.ai.
+If you use Claude Desktop and do not want to work in a code/CLI environment, start with `qiongli-claude-desktop-plugin-<tag>.zip` from the GitHub Release assets. This is the recommended direct plugin package for the unified `qiongli` Desktop entry.
+
+If direct plugin install is unavailable, download one focused fallback skill ZIP. Public Desktop ZIP subjects in this phase are `core`, `economics`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting`; there is no standalone accounting Desktop ZIP yet. Use `qiongli-claude-desktop-skill-core-<tag>.zip` for the default workflow, `qiongli-claude-desktop-skill-economics-<tag>.zip` for economics, `qiongli-claude-desktop-skill-political-economy-<tag>.zip` for political economy, `qiongli-claude-desktop-skill-geoeconomics-<tag>.zip` for geoeconomics, `qiongli-claude-desktop-skill-business-<tag>.zip` for business, `qiongli-claude-desktop-skill-finance-<tag>.zip` for finance, or `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip` for the official economics/accounting composite. Drag the ZIP into Claude Desktop's Skills upload/install flow, or use `Customize > Skills > + > Create skill > Upload a skill`. The same ZIP upload flow also works in Claude.ai.
 
 The Desktop/Web ZIP uses `coverage=focused` to stay under upload limits. It is a subject-specialized package, not a reduced-quality cut. It keeps workflows, templates, standards, selected profiles, `skills-summary.md`, and `skills-core.md`; specialized ZIPs also include selected effective skill markdown generated with layered overlays.
 
@@ -107,13 +110,14 @@ $qiongli plan an empirical paper on ai-in-education
 Claude Code:
 
 ```text
+/qiongli
 /paper
 /lit-review
 /paper-write
 /code-build
 ```
 
-Codex uses `/skills` for discovery and `$qiongli` for execution; it does not register a custom `/qiongli` slash command. Claude Code exposes slash workflow entries when command discovery is installed. These entries are UX wrappers. The canonical task definitions, expected outputs, quality gates, and role boundaries live in the Qiongli contracts.
+Claude Desktop uses the installed `qiongli` skill or direct plugin entry for natural research requests; when command wrappers are visible, `/qiongli` is the unified entry router. Codex uses `/skills` for discovery and `$qiongli` for execution; it does not register a custom `/qiongli` slash command. Claude Code exposes slash workflow entries when command discovery is installed. These entries are UX wrappers. The canonical task definitions, expected outputs, quality gates, and role boundaries live in the Qiongli contracts.
 
 See [Using Agent Skills](/guide/using-agent-skills) for the full client-by-client usage matrix.
 

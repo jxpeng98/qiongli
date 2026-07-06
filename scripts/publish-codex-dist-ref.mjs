@@ -10,6 +10,7 @@ const REQUIRED_FILES = [
   ".mcp.json",
   "mcp/qiongli-literature-provider/index.mjs",
   "mcp/qiongli-literature-provider/query.mjs",
+  "commands/qiongli.md",
   "commands/paper.md",
   "skills/qiongli-workflow/SKILL.md",
   "skills/qiongli-workflow/VERSION",

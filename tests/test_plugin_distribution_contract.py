@@ -278,6 +278,7 @@ class PluginDistributionContractTests(unittest.TestCase):
         self.assertEqual(manifest, {"name": plugin_name})
         self.assertIn(f"{plugin_name}/.codex-plugin/plugin.json", names)
         self.assertIn(f"{plugin_name}/.claude-plugin/plugin.json", names)
+        self.assertIn(f"{plugin_name}/commands/qiongli.md", names)
         self.assertIn(f"{plugin_name}/commands/lit-review.md", names)
         self.assertIn(f"{plugin_name}/mcp/qiongli-literature-provider/index.mjs", names)
         self.assertIn(f"{plugin_name}/skills/qiongli-workflow/SKILL.md", names)

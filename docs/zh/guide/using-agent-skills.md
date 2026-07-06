@@ -121,12 +121,25 @@ qiongli upgrade --target codex --overwrite
 
 当前 qiongli 安装器会在升级时删除确认过的 `research-paper-workflow` 旧全局 skill 目录。如果你想单独预览全局清理，先运行 `qiongli clean --globals --dry-run`。
 
+## Claude Desktop / Claude.ai 用法
+
+Claude Desktop 应该把 Qiongli 暴露为已安装的 `qiongli` skill 或 direct plugin entry。可以直接用自然语言开始：
+
+```text
+Use Qiongli to plan a literature review on retrieval augmented generation in education.
+Use Qiongli to read this DOI and extract the claim, method, evidence, and limits.
+Use Qiongli to prepare a rebuttal matrix for these reviewer comments.
+```
+
+当 direct plugin 的 workflow command wrappers 可见时，`/qiongli` 是统一入口路由器。它会委派到与更窄阶段命令相同的 workflow 文件。Qiongli Literature Provider MCPB 或 bundled literature MCP 会提供 provider search tools；只有 skill 指令本身时，不应声称 `provider_connected` literature search。
+
 ## Claude Code 用法
 
 Claude Code 可以通过 workflow entry markdown 暴露 Qiongli。常用入口是：
 
 | 命令 | 适合场景 |
 |---|---|
+| `/qiongli` | 需要统一 Qiongli 入口自动选择正确 workflow。 |
 | `/paper` | 需要 guided paper workflow 和 paper-type routing。 |
 | `/lit-review` | 需要文献检索、筛选、提取或综合。 |
 | `/paper-read` | 需要深度分析单篇论文。 |

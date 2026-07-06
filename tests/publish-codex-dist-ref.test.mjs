@@ -77,6 +77,7 @@ async function createPluginSource(tmp, slug, version, extraSkillText = "") {
   );
   await writeText(path.join(source, "mcp", "qiongli-literature-provider", "index.mjs"), "export {};\n");
   await writeText(path.join(source, "mcp", "qiongli-literature-provider", "query.mjs"), "export {};\n");
+  await writeText(path.join(source, "commands", "qiongli.md"), `Load the \`${slug}\` skill.\n`);
   await writeText(path.join(source, "commands", "paper.md"), `Load the \`${slug}\` skill.\n`);
   await writeText(
     path.join(skillRoot, "SKILL.md"),

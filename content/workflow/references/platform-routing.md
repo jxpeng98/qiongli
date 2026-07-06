@@ -2,7 +2,7 @@
 
 Use this mapping to keep behavior consistent across tools. Explicit workflow
 commands are helpful shortcuts, but Qiongli routing does not require explicit
-`$qiongli`, `/paper`, `/lit-review`, or slash-command invocation when the user is
+`$qiongli`, `/qiongli`, `/paper`, `/lit-review`, or slash-command invocation when the user is
 doing academic research lifecycle work.
 
 ## Cross-Platform Trigger Contract
@@ -71,8 +71,27 @@ challenged like Reviewer 2, or checked for fatal flaws.
 | "Plan my dissertation / thesis / capstone" | Stage M or `/dissertation` |
 | "Integrate supervisor feedback / prepare viva questions" | `M4`, `M7`, or `/dissertation` |
 
+## Claude Desktop / Claude.ai
+
+- Use the installed `qiongli` skill as the user-visible main entry. Natural
+  academic requests should route through this contract even when the user does
+  not type a command.
+- When a direct Desktop plugin exposes workflow command wrappers, `/qiongli` is
+  the unified entry router and should delegate to the same canonical workflow
+  files listed below.
+- Treat the direct Desktop plugin as the preferred install when available. Treat
+  focused Desktop/Web skill ZIPs as fallback skill-only packages for manual skill
+  upload.
+- Literature provider tools require the Qiongli Literature Provider MCPB, the
+  direct plugin bundled literature MCP when visible, or another configured
+  provider MCP. Do not claim `provider_connected` from skill instructions alone.
+- Full orchestration tools such as `qiongli_orchestrator_route`,
+  `qiongli_task_plan`, and `qiongli_task_run` require the Python-backed runtime
+  MCP; Desktop skill ZIPs and the literature MCPB do not provide those tools.
+
 ## Claude Code
 
+- `/qiongli` -> unified entry router that delegates by user intent
 - `A1–A5` -> `/paper` (master router picks framing tasks)
 - `A3` -> `/build-framework`
 - `A4` -> `/find-gap`

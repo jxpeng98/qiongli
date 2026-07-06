@@ -40,10 +40,12 @@ The `qiongli-next` plugin is generated from the same canonical sources with prer
 |----------|----------|---------------|
 | Codex | generated `.codex-plugin/plugin.json` plus bundled `.mcp.json` in `plugins/qiongli/` or `plugins/qiongli-next/` | `skills/qiongli-workflow/`, visible as `qiongli` or `qiongli-next` in `/skills`, invoked as `$qiongli` or `$qiongli-next`; bundled Node literature-provider MCP runtime under `mcp/qiongli-literature-provider/` |
 | Claude Code | generated `.claude-plugin/plugin.json` in the plugin payload | `commands/*.md` plus `skills/qiongli-workflow/`; bundled Node literature-provider MCP runtime under `mcp/qiongli-literature-provider/` |
+| Claude Desktop direct plugin | root `plugin.json` plus generated `.claude-plugin/plugin.json` in `qiongli-claude-desktop-plugin-<tag>.zip` | installed `qiongli` entry, generated workflow wrappers including `/qiongli`, `skills/qiongli-workflow/`, and bundled lightweight literature MCP runtime |
+| Claude Desktop/Web fallback skill ZIP | uploaded skill package only | installed `qiongli` skill; no bundled provider tools unless the user also installs the Qiongli Literature Provider MCPB |
 
 The shared Skillsplace repository is the public marketplace source of truth. This repository owns the generator inputs and release artifacts used by marketplace entries, not duplicate public marketplace catalog state.
 
-Generated command wrappers intentionally contain no workflow logic. They only load the generated skill package and point to `skills/qiongli-workflow/workflows/<command>.md`.
+Generated command wrappers intentionally contain no workflow logic. They only load the generated skill package and point to `skills/qiongli-workflow/workflows/<command>.md`. The `/qiongli` wrapper points to `workflows/qiongli.md`, which is the unified entry router and delegates to the narrower canonical workflows.
 
 ## Upgrade Compatibility
 

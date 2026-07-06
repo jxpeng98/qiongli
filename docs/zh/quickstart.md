@@ -11,7 +11,8 @@
 
 | 场景 | 使用 | 安装前是否需要 Python |
 |---|---|---|
-| Claude Desktop/Web 且不想用 CLI | focused subject Desktop ZIP，例如 `qiongli-claude-desktop-skill-economics-<tag>.zip` | 否 |
+| Claude Desktop 且不想用 CLI | 推荐 direct plugin ZIP：`qiongli-claude-desktop-plugin-<tag>.zip` | 否 |
+| Claude Desktop/Web 手动 skill 上传 | focused fallback skill ZIP，例如 `qiongli-claude-desktop-skill-economics-<tag>.zip` | 否 |
 | 只在一个客户端里用 | 原生 plugin / extension | 否 |
 | 在 Codex/Claude Code plugin 形态中使用完整本地 Qiongli | `qiongli install --profile full --target all --surface plugin` | 是，Python 3.12+ |
 | 多个客户端需要全局 workflow assets | Bootstrap `partial` | 否 |
@@ -23,7 +24,9 @@
 
 ## 2. 安装 workflow assets
 
-如果你使用 Claude Desktop 或 Claude.ai 网页版，并且不想处理 code / CLI 环境，从 GitHub Release assets 下载需要的 focused subject ZIP。本阶段公开 Desktop ZIP subjects 是 `core`、`economics`、`business`、`finance`、`political-economy`、`geoeconomics` 和 `economics-accounting`，还没有 standalone accounting Desktop ZIP。默认通用 workflow 用 `qiongli-claude-desktop-skill-core-<tag>.zip`；经济学专精 workflow 用 `qiongli-claude-desktop-skill-economics-<tag>.zip`；political economy 专精 workflow 用 `qiongli-claude-desktop-skill-political-economy-<tag>.zip`；geoeconomics 专精 workflow 用 `qiongli-claude-desktop-skill-geoeconomics-<tag>.zip`；business 专精 workflow 用 `qiongli-claude-desktop-skill-business-<tag>.zip`；finance 专精 workflow 用 `qiongli-claude-desktop-skill-finance-<tag>.zip`；官方 economics/accounting 交叉学科包用 `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip`。在 Claude Desktop 中把 ZIP 拖拽到 Skills 上传/安装流程中，或使用 `Customize > Skills > + > Create skill > Upload a skill`。Claude.ai 网页版也使用同一个 ZIP 上传流程。
+如果你使用 Claude Desktop，并且不想处理 code / CLI 环境，先从 GitHub Release assets 下载 `qiongli-claude-desktop-plugin-<tag>.zip`。这是推荐的 direct plugin package，用于 Claude Desktop 中统一的 `qiongli` 入口。
+
+如果 direct plugin 安装不可用，再下载一个 focused fallback skill ZIP。本阶段公开 Desktop ZIP subjects 是 `core`、`economics`、`business`、`finance`、`political-economy`、`geoeconomics` 和 `economics-accounting`，还没有 standalone accounting Desktop ZIP。默认通用 workflow 用 `qiongli-claude-desktop-skill-core-<tag>.zip`；经济学专精 workflow 用 `qiongli-claude-desktop-skill-economics-<tag>.zip`；political economy 专精 workflow 用 `qiongli-claude-desktop-skill-political-economy-<tag>.zip`；geoeconomics 专精 workflow 用 `qiongli-claude-desktop-skill-geoeconomics-<tag>.zip`；business 专精 workflow 用 `qiongli-claude-desktop-skill-business-<tag>.zip`；finance 专精 workflow 用 `qiongli-claude-desktop-skill-finance-<tag>.zip`；官方 economics/accounting 交叉学科包用 `qiongli-claude-desktop-skill-economics-accounting-<tag>.zip`。在 Claude Desktop 中把 ZIP 拖拽到 Skills 上传/安装流程中，或使用 `Customize > Skills > + > Create skill > Upload a skill`。Claude.ai 网页版也使用同一个 ZIP 上传流程。
 
 Desktop/Web ZIP 使用 `coverage=focused`，用于保持上传文件数预算。它是 subject 专精包，不是降质删减版：保留 workflows、templates、standards、所选 profiles、`skills-summary.md` 和 `skills-core.md`；专精 ZIP 还包含通过 layered overlays 生成的 selected effective skill markdown。
 
@@ -107,13 +110,14 @@ $qiongli plan an empirical paper on ai-in-education
 Claude Code：
 
 ```text
+/qiongli
 /paper
 /lit-review
 /paper-write
 /code-build
 ```
 
-Codex 用 `/skills` 发现 skill，用 `$qiongli` 执行；它不会注册自定义 `/qiongli` slash command。Claude Code 在安装 command/workflow discovery 后可以使用 slash workflow 入口。这些入口只是 UX wrapper；真正的任务定义、预期产物、质量门和角色边界都在 Qiongli contracts 里。
+Claude Desktop 使用已安装的 `qiongli` skill 或 direct plugin entry 来处理自然语言研究请求；当 workflow commands 可见时，`/qiongli` 是统一入口路由器。Codex 用 `/skills` 发现 skill，用 `$qiongli` 执行；它不会注册自定义 `/qiongli` slash command。Claude Code 在安装 command/workflow discovery 后可以使用 slash workflow 入口。这些入口只是 UX wrapper；真正的任务定义、预期产物、质量门和角色边界都在 Qiongli contracts 里。
 
 完整客户端用法看 [使用 Agent Skills](/zh/guide/using-agent-skills)。
 

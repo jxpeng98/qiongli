@@ -121,12 +121,30 @@ qiongli upgrade --target codex --overwrite
 
 Current qiongli installers remove confirmed legacy `research-paper-workflow` global skill directories during upgrade. Use `qiongli clean --globals --dry-run` first if you want to preview global cleanup separately.
 
+## Claude Desktop / Claude.ai Usage
+
+Claude Desktop should expose Qiongli as the installed `qiongli` skill or direct
+plugin entry. Start with a natural academic request such as:
+
+```text
+Use Qiongli to plan a literature review on retrieval augmented generation in education.
+Use Qiongli to read this DOI and extract the claim, method, evidence, and limits.
+Use Qiongli to prepare a rebuttal matrix for these reviewer comments.
+```
+
+When direct plugin command wrappers are visible, `/qiongli` is the unified entry
+router. It delegates to the same workflow files used by the narrower stage
+commands. The Qiongli Literature Provider MCPB or bundled literature MCP adds
+provider search tools; the skill instructions alone do not imply
+`provider_connected` literature search.
+
 ## Claude Code Usage
 
 Claude Code can expose Qiongli through workflow entry markdowns. The common user-facing commands are:
 
 | Command | Use when |
 |---|---|
+| `/qiongli` | You want the unified Qiongli entry to choose the right workflow. |
 | `/paper` | You want the guided paper workflow and paper-type routing. |
 | `/lit-review` | You need literature search, screening, extraction, or synthesis. |
 | `/paper-read` | You want deep analysis of one paper. |
