@@ -52,6 +52,16 @@ from .guidance_runtime import (
     lint_project_guidance,
     write_guidance_trace,
 )
+from .experience_runtime import (
+    experience_lessons,
+    experience_metrics,
+    experience_summary,
+    promote_experience,
+    query_experience,
+    replay_experience_plan,
+    select_prior_experience,
+    show_experience,
+)
 from .project_manifest import (
     init_project_manifest,
     load_project_manifest,
@@ -2036,6 +2046,12 @@ Provide your verification assessment.
         if recommended_next:
             recommendations.append("After completion, consider next tasks: " + ", ".join(recommended_next))
 
+        prior_experience = select_prior_experience(
+            cwd,
+            task_id=normalized_task,
+            topic=normalized_topic,
+            limit=5,
+        )
         return CollaborationResult(
             mode="task-plan",
             task_description=f"{normalized_task} {paper_type} {normalized_topic}"[:200],
@@ -2063,6 +2079,7 @@ Provide your verification assessment.
                 "functional_handoff_trace": handoff_trace,
                 "functional_owner_chain": handoff_chain,
                 "runtime_plan": runtime_plan,
+                "prior_experience": prior_experience,
                 "mermaid": mermaid,
             },
         )
@@ -6324,6 +6341,12 @@ Return sections:
                 "status": "unavailable",
                 "detail": plan_result.merged_analysis,
             }
+        packet["prior_experience"] = select_prior_experience(
+            cwd,
+            task_id=normalized_task,
+            topic=normalized_topic,
+            limit=5,
+        )
         ensure_project_guidance(cwd, mode=guidance_mode)
         guidance_state = effective_guidance(
             cwd,
@@ -7615,6 +7638,67 @@ def _run_guidance_command(args: argparse.Namespace) -> CollaborationResult:
     )
 
 
+def _run_experience_command(args: argparse.Namespace) -> CollaborationResult:
+    project_dir = Path(getattr(args, "project_dir", Path.cwd())).expanduser().resolve()
+    action = str(getattr(args, "experience_cmd", "") or "").strip()
+    limit = int(getattr(args, "limit", 20) or 20)
+    if action == "list":
+        result = experience_summary(project_dir, limit=limit)
+        data = {"action": "list", **result}
+    elif action == "show":
+        result = show_experience(project_dir, str(getattr(args, "run_id", "")))
+        data = {"action": "show", **result}
+    elif action == "search":
+        result = query_experience(
+            project_dir,
+            task_id=getattr(args, "task_id", None),
+            stage=getattr(args, "stage", None),
+            topic=getattr(args, "topic", None),
+            subject=getattr(args, "subject", None),
+            validator_status=getattr(args, "validator_status", None),
+            failure_mode=getattr(args, "failure_mode", None),
+            guidance_source=getattr(args, "guidance_source", None),
+            worker_mode=getattr(args, "worker_mode", None),
+            limit=limit,
+        )
+        data = {"action": "search", **result}
+    elif action == "lessons":
+        result = experience_lessons(
+            project_dir,
+            task_id=getattr(args, "task_id", None),
+            topic=getattr(args, "topic", None),
+            failure_mode=getattr(args, "failure_mode", None),
+            limit=limit,
+        )
+        data = {"action": "lessons", **result}
+    elif action == "replay-plan":
+        result = replay_experience_plan(project_dir, str(getattr(args, "run_id", "")))
+        data = {"action": "replay-plan", **result}
+    elif action == "metrics":
+        result = experience_metrics(project_dir)
+        data = {"action": "metrics", **result}
+    elif action == "promote":
+        result = promote_experience(
+            project_dir,
+            scope=str(getattr(args, "scope", "")),
+            task_id=getattr(args, "task_id", None),
+            min_support=int(getattr(args, "min_support", 3) or 3),
+            test_plan=str(getattr(args, "test_plan", "") or ""),
+            approved=bool(getattr(args, "approved", False)),
+        )
+        data = {"action": "promote", **result}
+    else:
+        raise ValueError(f"Unhandled experience command: {action}")
+    return CollaborationResult(
+        mode="experience",
+        task_description=f"experience {action}".strip(),
+        merged_analysis=json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True),
+        confidence=1.0,
+        recommendations=[],
+        data=data,
+    )
+
+
 def _project_value(args: argparse.Namespace, name: str) -> str | None:
     value = getattr(args, name, None)
     if value is not None:
@@ -7882,6 +7966,136 @@ def main():
         help="Path to .qiongli/trace/runs/<run_id>/guidance_update_proposal.md",
     )
 
+    experience = subparsers.add_parser(
+        "experience",
+        help="Query project-local Qiongli experience records",
+    )
+    experience_subparsers = experience.add_subparsers(dest="experience_cmd", required=True)
+    experience_list = experience_subparsers.add_parser(
+        "list",
+        help="List recent local experience records",
+    )
+    experience_list.add_argument(
+        "--project-dir",
+        default=Path.cwd(),
+        type=Path,
+        help="Project directory that owns .qiongli/ (default: current directory)",
+    )
+    experience_list.add_argument(
+        "--limit",
+        default=20,
+        type=int,
+        help="Maximum number of recent experience records to show (default: 20)",
+    )
+    experience_show = experience_subparsers.add_parser(
+        "show",
+        help="Show one local experience record",
+    )
+    experience_show.add_argument(
+        "--project-dir",
+        default=Path.cwd(),
+        type=Path,
+        help="Project directory that owns .qiongli/ (default: current directory)",
+    )
+    experience_show.add_argument("--run-id", required=True, help="Experience run_id to show")
+    experience_search = experience_subparsers.add_parser(
+        "search",
+        help="Search local experience records",
+    )
+    experience_search.add_argument(
+        "--project-dir",
+        default=Path.cwd(),
+        type=Path,
+        help="Project directory that owns .qiongli/ (default: current directory)",
+    )
+    experience_search.add_argument("--task-id", help="Filter by canonical Task ID")
+    experience_search.add_argument("--stage", help="Filter by workflow stage")
+    experience_search.add_argument("--topic", help="Filter by topic")
+    experience_search.add_argument("--subject", help="Filter by subject/refinement text")
+    experience_search.add_argument("--validator-status", help="Filter by validator status")
+    experience_search.add_argument("--failure-mode", help="Filter by failure mode")
+    experience_search.add_argument("--guidance-source", help="Filter by guidance source text")
+    experience_search.add_argument("--worker-mode", help="Filter by worker mode")
+    experience_search.add_argument(
+        "--limit",
+        default=20,
+        type=int,
+        help="Maximum number of matching experience records to show (default: 20)",
+    )
+    experience_lessons_parser = experience_subparsers.add_parser(
+        "lessons",
+        help="Summarize reusable local experience lessons",
+    )
+    experience_lessons_parser.add_argument(
+        "--project-dir",
+        default=Path.cwd(),
+        type=Path,
+        help="Project directory that owns .qiongli/ (default: current directory)",
+    )
+    experience_lessons_parser.add_argument("--task-id", help="Filter by canonical Task ID")
+    experience_lessons_parser.add_argument("--topic", help="Filter by topic")
+    experience_lessons_parser.add_argument("--failure-mode", help="Filter by failure mode")
+    experience_lessons_parser.add_argument(
+        "--limit",
+        default=20,
+        type=int,
+        help="Maximum number of lesson records to show (default: 20)",
+    )
+    experience_replay = experience_subparsers.add_parser(
+        "replay-plan",
+        help="Reconstruct a safe local rerun plan from one experience record",
+    )
+    experience_replay.add_argument(
+        "--project-dir",
+        default=Path.cwd(),
+        type=Path,
+        help="Project directory that owns .qiongli/ (default: current directory)",
+    )
+    experience_replay.add_argument("--run-id", required=True, help="Experience run_id to replay")
+    experience_metrics_parser = experience_subparsers.add_parser(
+        "metrics",
+        help="Summarize local experience-derived quality metrics",
+    )
+    experience_metrics_parser.add_argument(
+        "--project-dir",
+        default=Path.cwd(),
+        type=Path,
+        help="Project directory that owns .qiongli/ (default: current directory)",
+    )
+    experience_promote = experience_subparsers.add_parser(
+        "promote",
+        help="Generate explicit promotion candidates from local experience records",
+    )
+    experience_promote.add_argument(
+        "--project-dir",
+        default=Path.cwd(),
+        type=Path,
+        help="Project directory that owns .qiongli/ (default: current directory)",
+    )
+    experience_promote.add_argument(
+        "--scope",
+        required=True,
+        choices=["local", "user-global", "skill-candidate", "canonical-candidate"],
+        help="Promotion scope to evaluate",
+    )
+    experience_promote.add_argument("--task-id", help="Filter support records by canonical Task ID")
+    experience_promote.add_argument(
+        "--min-support",
+        default=3,
+        type=int,
+        help="Minimum repeated support records for skill/canonical candidates",
+    )
+    experience_promote.add_argument(
+        "--test-plan",
+        default="",
+        help="Required test/eval plan for canonical-candidate promotion",
+    )
+    experience_promote.add_argument(
+        "--approved",
+        action="store_true",
+        help="Explicit approval flag for user-global promotion checks",
+    )
+
     project = subparsers.add_parser(
         "project",
         help="Manage project subject guidance settings",
@@ -8144,6 +8358,8 @@ def main():
 
     if args.mode == "guidance":
         result = _run_guidance_command(args)
+    elif args.mode == "experience":
+        result = _run_experience_command(args)
     elif args.mode == "project":
         result = _run_project_command(args)
     elif args.mode == "code-build":

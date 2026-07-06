@@ -217,6 +217,27 @@ class SubjectRefinementTests(unittest.TestCase):
             packet["resource_activation_plan"]["resources"],
         )
 
+    def test_subject_refinement_packet_separates_task_text_and_manifest_sources(self) -> None:
+        packet = infer_subject_refinement(
+            {
+                "topic": "earnings announcement returns",
+                "context": "Estimate abnormal returns using CRSP data for Journal of Finance.",
+            },
+            manifest_state=ProjectManifest(),
+            draft_content="Use an event study with event windows around earnings announcements.",
+        ).to_packet()
+
+        sources = packet["evidence_sources"]
+
+        self.assertEqual(sources["manifest_state"]["active_subject"], "auto")
+        self.assertEqual(sources["manifest_state"]["subject_mode"], "auto")
+        self.assertEqual(sources["task_text"]["status"], "present")
+        self.assertIn("finance.method.event-study", sources["task_text"]["signal_ids"])
+        self.assertIn("trace_memory", sources)
+        self.assertIn("user_action", sources)
+        self.assertEqual(sources["trace_memory"]["status"], "not_loaded")
+        self.assertEqual(sources["user_action"]["status"], "not_loaded")
+
     def test_candidate_finance_signals_borrow_lens_without_subject_suggestion(self) -> None:
         with patch(
             "bridges.subject_refinement.subject_activation_status",

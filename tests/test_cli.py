@@ -1132,6 +1132,36 @@ class InstallerCliTests(unittest.TestCase):
         self.assertEqual(payload["manifest"]["active_subject"], "finance")
         self.assertEqual(payload["manifest"]["subject_mode"], "confirmed")
 
+    def test_subject_confirm_propose_only_json_exports_action_without_writing_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            stdout = io.StringIO()
+
+            with mock.patch.object(
+                cli_module.sys,
+                "argv",
+                [
+                    "qiongli",
+                    "subject",
+                    "confirm",
+                    "finance",
+                    "--cwd",
+                    str(root),
+                    "--propose-only",
+                    "--json",
+                ],
+            ), contextlib.redirect_stdout(stdout):
+                exit_code = cli_module.main()
+
+            payload = json.loads(stdout.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertFalse((root / ".qiongli" / "guidance_manifest.yaml").exists())
+        self.assertEqual(payload["write_mode"], "proposed")
+        self.assertEqual(payload["proposed_action"]["action"], "confirm")
+        self.assertEqual(payload["proposed_action"]["subject"], "finance")
+        self.assertEqual(payload["proposed_action"]["source"], "cli")
+
     def test_subject_confirm_json_reports_materialized_guidance(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)

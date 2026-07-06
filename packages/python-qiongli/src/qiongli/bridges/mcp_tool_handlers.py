@@ -7,9 +7,10 @@ from typing import Any, Callable
 
 from bridges.mcp_config_wizard import start_config_wizard
 from bridges.mcp_connectors import MCPConnector
+from bridges.experience_runtime import experience_lessons, query_experience, show_experience
 from bridges.guidance_runtime import GUIDANCE_MODES, effective_guidance, guidance_bootstrap_status
 from bridges.project_manifest import OFFICIAL_SUBJECTS, ProjectManifestError, load_project_manifest
-from bridges.subject_lifecycle import ACTIONS, apply_subject_action, subject_status
+from bridges.subject_lifecycle import ACTIONS, apply_subject_action, propose_subject_action, subject_status
 from bridges.subject_refinement import infer_subject_refinement
 from bridges.subject_runtime import implicit_project_manifest_state, resolve_project_subject
 from bridges.literature_mcp_tools import (
@@ -156,6 +157,10 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
                 "action": {"type": "string", "enum": SUBJECT_LIFECYCLE_ACTION_ENUM},
                 "subject": {"type": "string", "enum": SUBJECT_LIFECYCLE_SUBJECT_ENUM},
                 "run_id": {"type": "string"},
+                "read_only": {
+                    "type": "boolean",
+                    "description": "Return an exportable proposed action without writing .qiongli files.",
+                },
             },
             "additionalProperties": False,
         },
@@ -254,6 +259,54 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
         },
     },
     {
+        "name": "qiongli_experience_query",
+        "description": "Query project-local Qiongli experience records without writing files.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "cwd": {"type": "string", "description": "Project directory to inspect."},
+                "task_id": {"type": "string"},
+                "stage": {"type": "string"},
+                "topic": {"type": "string"},
+                "subject": {"type": "string"},
+                "validator_status": {"type": "string"},
+                "failure_mode": {"type": "string"},
+                "guidance_source": {"type": "string"},
+                "worker_mode": {"type": "string"},
+                "limit": {"type": "integer", "default": 20},
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "qiongli_experience_show",
+        "description": "Show one project-local Qiongli experience record by run_id.",
+        "inputSchema": {
+            "type": "object",
+            "required": ["run_id"],
+            "properties": {
+                "cwd": {"type": "string", "description": "Project directory to inspect."},
+                "run_id": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "qiongli_experience_lessons",
+        "description": "Summarize reusable lessons from project-local Qiongli experience records.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "cwd": {"type": "string", "description": "Project directory to inspect."},
+                "task_id": {"type": "string"},
+                "topic": {"type": "string"},
+                "failure_mode": {"type": "string"},
+                "limit": {"type": "integer", "default": 20},
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
         "name": "qiongli_task_plan",
         "description": "Render a Qiongli task execution plan without launching runtime agents.",
         "inputSchema": {
@@ -329,6 +382,9 @@ def call_qiongli_tool(name: str, arguments: dict[str, Any] | None = None) -> dic
         "qiongli_orchestrator_doctor": _tool_orchestrator_doctor,
         "qiongli_lifecycle_plan": _tool_lifecycle_plan,
         "qiongli_journal_fit_recommend": _tool_journal_fit_recommend,
+        "qiongli_experience_query": _tool_experience_query,
+        "qiongli_experience_show": _tool_experience_show,
+        "qiongli_experience_lessons": _tool_experience_lessons,
         "qiongli_task_plan": _tool_task_plan,
         "qiongli_task_run": _tool_task_run,
     }
@@ -421,7 +477,8 @@ def _tool_subject_update(args: dict[str, Any]) -> dict[str, Any]:
     action = _required_str(args, "action")
     subject = args.get("subject")
     run_id = args.get("run_id")
-    return apply_subject_action(
+    action_fn = propose_subject_action if args.get("read_only") else apply_subject_action
+    return action_fn(
         _cwd_from_args(args),
         action,
         str(subject) if subject else None,
@@ -602,6 +659,35 @@ def _normalize_journal_fit_sources(payload: dict[str, Any], cwd: Path) -> dict[s
         except ValueError:
             pass
     return payload
+
+
+def _tool_experience_query(args: dict[str, Any]) -> dict[str, Any]:
+    return query_experience(
+        _cwd_from_args(args),
+        task_id=_optional_str(args, "task_id"),
+        stage=_optional_str(args, "stage"),
+        topic=_optional_str(args, "topic"),
+        subject=_optional_str(args, "subject"),
+        validator_status=_optional_str(args, "validator_status"),
+        failure_mode=_optional_str(args, "failure_mode"),
+        guidance_source=_optional_str(args, "guidance_source"),
+        worker_mode=_optional_str(args, "worker_mode"),
+        limit=_optional_int(args, "limit", 20, minimum=0) or 20,
+    )
+
+
+def _tool_experience_show(args: dict[str, Any]) -> dict[str, Any]:
+    return show_experience(_cwd_from_args(args), _required_str(args, "run_id"))
+
+
+def _tool_experience_lessons(args: dict[str, Any]) -> dict[str, Any]:
+    return experience_lessons(
+        _cwd_from_args(args),
+        task_id=_optional_str(args, "task_id"),
+        topic=_optional_str(args, "topic"),
+        failure_mode=_optional_str(args, "failure_mode"),
+        limit=_optional_int(args, "limit", 20, minimum=0) or 20,
+    )
 
 
 def _tool_task_plan(args: dict[str, Any]) -> dict[str, Any]:

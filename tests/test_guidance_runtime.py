@@ -21,6 +21,7 @@ from bridges.guidance_runtime import (
 )
 from bridges.project_manifest import load_project_manifest
 from bridges.subject_guidance import write_subject_guidance
+from bridges.subject_lifecycle import apply_subject_action
 
 
 class GuidanceRuntimeTests(unittest.TestCase):
@@ -243,6 +244,75 @@ class GuidanceRuntimeTests(unittest.TestCase):
             self.assertEqual(index_rows[0]["run_id"], "run-123")
             self.assertEqual(index_rows[0]["missing_outputs"], ["manuscript/manuscript.md"])
             self.assertEqual(index_rows[0]["subject_refinement"], subject_refinement)
+            self.assertEqual(trace["experience_status"], "written")
+            self.assertEqual(
+                trace["experience_record"],
+                ".qiongli/trace/runs/run-123/experience_record.json",
+            )
+            self.assertEqual(trace["experience_index"], ".qiongli/trace/experience.jsonl")
+            experience_record = json.loads(
+                (run_dir / "experience_record.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(experience_record["run_id"], "run-123")
+            self.assertEqual(experience_record["quality"]["validator_status"], "failed")
+            self.assertIn(
+                "missing_required_output:manuscript/manuscript.md",
+                experience_record["experience"]["failure_modes"],
+            )
+            experience_rows = [
+                json.loads(line)
+                for line in (root / ".qiongli" / "trace" / "experience.jsonl")
+                .read_text(encoding="utf-8")
+                .splitlines()
+            ]
+            self.assertEqual(experience_rows[0]["run_id"], "run-123")
+            self.assertEqual(experience_rows[0]["task"]["task_id"], "F3")
+
+    def test_write_guidance_trace_reports_experience_failure_without_deleting_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            init_project_guidance(root)
+            state = effective_guidance(root, mode="propose", run_id="run-fail")
+
+            with mock.patch(
+                "bridges.guidance_runtime.write_experience_record",
+                side_effect=OSError("disk full"),
+            ):
+                trace = write_guidance_trace(
+                    project_root=root,
+                    guidance_state=state,
+                    task_packet={
+                        "task_id": "B1",
+                        "paper_type": "systematic-review",
+                        "topic": "ai-writing",
+                        "required_outputs": ["search_diagnostics.md"],
+                    },
+                    draft_content="draft body",
+                    review_content="review body",
+                    merged_analysis="merged body",
+                    validator_gate={
+                        "passed": False,
+                        "found": [],
+                        "missing": ["search_diagnostics.md"],
+                        "checked": 1,
+                    },
+                    applied=False,
+                )
+
+            run_dir = root / ".qiongli" / "trace" / "runs" / "run-fail"
+            self.assertTrue((run_dir / "task_packet.json").is_file())
+            self.assertTrue((run_dir / "draft.md").is_file())
+            self.assertTrue((run_dir / "validator_gate.json").is_file())
+            self.assertFalse((run_dir / "experience_record.json").exists())
+            self.assertEqual(trace["experience_status"], "failed")
+            self.assertIn("disk full", trace["experience_warning"])
+            index_rows = [
+                json.loads(line)
+                for line in (root / ".qiongli" / "trace" / "index.jsonl")
+                .read_text(encoding="utf-8")
+                .splitlines()
+            ]
+            self.assertEqual(index_rows[0]["run_id"], "run-fail")
 
     def test_guidance_trace_records_materialized_subject_runtime_fragment(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -721,6 +791,51 @@ class GuidanceRuntimeTests(unittest.TestCase):
             self.assertEqual(memory["dismissed_subjects"]["finance"]["last_suggestion_count"], 1)
             self.assertEqual(memory["lifecycle_events"][0]["action"], "dismiss")
             self.assertEqual(memory["future_field"], {"keep": True})
+
+    def test_guidance_trace_explains_subject_evidence_sources(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            init_project_guidance(root)
+            apply_subject_action(root, "dismiss", "finance", source="cli", run_id="dismiss-run")
+            state = effective_guidance(root, mode="propose", run_id="finance-explain")
+
+            write_guidance_trace(
+                project_root=root,
+                guidance_state=state,
+                task_packet={
+                    "task_id": "C1",
+                    "paper_type": "empirical",
+                    "topic": "earnings announcement returns",
+                    "context": "event study abnormal returns from CRSP for Journal of Finance",
+                },
+                draft_content="Use an event window before estimating the market reaction.",
+                review_content="",
+                merged_analysis="",
+                validator_gate={"passed": True, "found": [], "missing": [], "checked": 0},
+                applied=False,
+            )
+
+            run_dir = root / ".qiongli" / "trace" / "runs" / "finance-explain"
+            subject_refinement = json.loads(
+                (run_dir / "subject_refinement.json").read_text(encoding="utf-8")
+            )
+            sources = subject_refinement["evidence_sources"]
+
+            self.assertEqual(sources["task_text"]["status"], "present")
+            self.assertIn("finance.method.event-study", sources["task_text"]["signal_ids"])
+            self.assertEqual(sources["manifest_state"]["active_subject"], "auto")
+            self.assertEqual(sources["trace_memory"]["status"], "present")
+            self.assertEqual(sources["trace_memory"]["subjects"]["finance"]["suggestion_count"], 1)
+            self.assertEqual(sources["user_action"]["status"], "present")
+            self.assertEqual(sources["user_action"]["latest_action"]["action"], "dismiss")
+            self.assertEqual(sources["user_action"]["latest_action"]["source"], "cli")
+
+            proposal_text = (run_dir / "guidance_update_proposal.md").read_text(encoding="utf-8")
+            self.assertIn("## Subject Evidence Sources", proposal_text)
+            self.assertIn("- task_text:", proposal_text)
+            self.assertIn("- manifest_state:", proposal_text)
+            self.assertIn("- trace_memory:", proposal_text)
+            self.assertIn("- user_action:", proposal_text)
 
     def test_dismissed_subject_recommendation_is_suppressed_until_new_evidence(self) -> None:
         recommendation = _subject_promotion_recommendation(

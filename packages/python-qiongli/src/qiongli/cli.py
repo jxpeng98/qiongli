@@ -1048,14 +1048,20 @@ def cmd_project(args: argparse.Namespace) -> int:
 
 def cmd_subject(args: argparse.Namespace) -> int:
     from bridges.project_manifest import ProjectManifestError
-    from bridges.subject_lifecycle import SubjectLifecycleError, apply_subject_action, subject_status
+    from bridges.subject_lifecycle import (
+        SubjectLifecycleError,
+        apply_subject_action,
+        propose_subject_action,
+        subject_status,
+    )
 
     project_root = Path(args.cwd).expanduser().resolve()
     try:
         if args.subject_cmd == "status":
             payload = subject_status(project_root)
         else:
-            payload = apply_subject_action(
+            action_fn = propose_subject_action if getattr(args, "propose_only", False) else apply_subject_action
+            payload = action_fn(
                 project_root,
                 args.subject_cmd,
                 getattr(args, "subject", None),
@@ -1624,6 +1630,11 @@ def build_parser() -> argparse.ArgumentParser:
             default=str(Path.cwd()),
             help="Project directory to update (default: current dir)",
         )
+        subject_action.add_argument(
+            "--propose-only",
+            action="store_true",
+            help="Return a proposed subject action without writing .qiongli project files",
+        )
         subject_action.add_argument("--json", action="store_true", help="Emit JSON only")
 
     for action in ("reset", "unlock"):
@@ -1632,6 +1643,11 @@ def build_parser() -> argparse.ArgumentParser:
             "--cwd",
             default=str(Path.cwd()),
             help="Project directory to update (default: current dir)",
+        )
+        subject_action.add_argument(
+            "--propose-only",
+            action="store_true",
+            help="Return a proposed subject action without writing .qiongli project files",
         )
         subject_action.add_argument("--json", action="store_true", help="Emit JSON only")
 

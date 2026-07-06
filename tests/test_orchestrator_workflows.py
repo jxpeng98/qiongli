@@ -129,6 +129,72 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         self.addCleanup(profile_path.unlink, missing_ok=True)
         return profile_path
 
+    def _write_experience_fixture(
+        self,
+        root: Path,
+        *,
+        run_id: str,
+        task_id: str,
+        topic: str,
+        validator_status: str,
+        failure_modes: list[str],
+    ) -> None:
+        run_dir = root / ".qiongli" / "trace" / "runs" / run_id
+        run_dir.mkdir(parents=True)
+        record = {
+            "schema_version": "1.0",
+            "run_id": run_id,
+            "created_at": "2026-07-06T12:00:00Z",
+            "project_root": str(root),
+            "task": {
+                "task_id": task_id,
+                "paper_type": "systematic-review",
+                "topic": topic,
+                "workflow": "",
+                "stage": "",
+            },
+            "execution": {
+                "run_agents": False,
+                "execution_mode": "solo",
+                "worker_mode": "none",
+            },
+            "inputs": {"guidance_sources": []},
+            "outputs": {
+                "required_outputs": ["search_diagnostics.md"],
+                "found_outputs": [],
+                "missing_outputs": ["search_diagnostics.md"],
+                "trace_files": [f".qiongli/trace/runs/{run_id}/validator_gate.json"],
+            },
+            "quality": {
+                "validator_status": validator_status,
+                "review_status": "unknown",
+                "blocking_issues": [],
+                "warnings": [],
+                "confidence": 0.0,
+            },
+            "experience": {
+                "lessons": [],
+                "failure_modes": failure_modes,
+                "reusable_guidance": [
+                    "Write search diagnostics before claiming review-grade coverage."
+                ],
+                "promotion_candidates": [],
+            },
+            "privacy": {
+                "redaction_status": "not_needed",
+                "contains_user_corpus": False,
+                "contains_provider_metadata": False,
+            },
+        }
+        (run_dir / "experience_record.json").write_text(
+            json.dumps(record, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        index_path = root / ".qiongli" / "trace" / "experience.jsonl"
+        index_path.parent.mkdir(parents=True, exist_ok=True)
+        with index_path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+
     def test_default_standards_dir_uses_runtime_root_standards(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
@@ -246,6 +312,156 @@ class OrchestratorWorkflowTests(unittest.TestCase):
             self.assertEqual(payload["data"]["action"], "init")
             self.assertTrue((root / ".qiongli" / "local_guidance.md").is_file())
             self.assertTrue((root / ".qiongli" / "trace").is_dir())
+
+    def test_experience_cli_search_and_replay_plan_use_local_records(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_experience_fixture(
+                root,
+                run_id="failed-b1",
+                task_id="B1",
+                topic="ai-writing",
+                validator_status="failed",
+                failure_modes=["missing_required_output:search_diagnostics.md"],
+            )
+            env = os.environ.copy()
+            env["RESEARCH_CLI_LANG"] = "en"
+            search_command = [
+                sys.executable,
+                "-m",
+                "bridges.orchestrator",
+                "experience",
+                "search",
+                "--project-dir",
+                str(root),
+                "--task-id",
+                "B1",
+                "--validator-status",
+                "failed",
+                "--failure-mode",
+                "missing_required_output:search_diagnostics.md",
+            ]
+            replay_command = [
+                sys.executable,
+                "-m",
+                "bridges.orchestrator",
+                "experience",
+                "replay-plan",
+                "--project-dir",
+                str(root),
+                "--run-id",
+                "failed-b1",
+            ]
+
+            search = subprocess.run(
+                search_command,
+                cwd=REPO_ROOT,
+                env=env,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+            )
+            replay = subprocess.run(
+                replay_command,
+                cwd=REPO_ROOT,
+                env=env,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+            )
+
+        self.assertEqual(search.returncode, 0, search.stdout)
+        search_payload = json.loads(search.stdout)
+        self.assertEqual(search_payload["mode"], "experience")
+        self.assertEqual(search_payload["data"]["action"], "search")
+        self.assertEqual(search_payload["data"]["run_count"], 1)
+        self.assertEqual(search_payload["data"]["records"][0]["run_id"], "failed-b1")
+        self.assertEqual(replay.returncode, 0, replay.stdout)
+        replay_payload = json.loads(replay.stdout)
+        self.assertEqual(replay_payload["data"]["action"], "replay-plan")
+        self.assertEqual(replay_payload["data"]["next_action"], "rerun_after_addressing_failures")
+
+    def test_experience_cli_metrics_and_promote_candidate(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_experience_fixture(
+                root,
+                run_id="failed-b1-a",
+                task_id="B1",
+                topic="ai-writing",
+                validator_status="failed",
+                failure_modes=["missing_required_output:search_diagnostics.md"],
+            )
+            self._write_experience_fixture(
+                root,
+                run_id="failed-b1-b",
+                task_id="B1",
+                topic="ai-writing",
+                validator_status="failed",
+                failure_modes=["missing_required_output:search_diagnostics.md"],
+            )
+            env = os.environ.copy()
+            env["RESEARCH_CLI_LANG"] = "en"
+            metrics_command = [
+                sys.executable,
+                "-m",
+                "bridges.orchestrator",
+                "experience",
+                "metrics",
+                "--project-dir",
+                str(root),
+            ]
+            promote_command = [
+                sys.executable,
+                "-m",
+                "bridges.orchestrator",
+                "experience",
+                "promote",
+                "--project-dir",
+                str(root),
+                "--scope",
+                "canonical-candidate",
+                "--task-id",
+                "B1",
+                "--min-support",
+                "2",
+                "--test-plan",
+                "Add a regression test for search diagnostics output.",
+            ]
+
+            metrics = subprocess.run(
+                metrics_command,
+                cwd=REPO_ROOT,
+                env=env,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+            )
+            promote = subprocess.run(
+                promote_command,
+                cwd=REPO_ROOT,
+                env=env,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+            )
+            promote_payload = json.loads(promote.stdout) if promote.returncode == 0 else {}
+            candidate_exists = (
+                root / promote_payload.get("data", {}).get("candidate_path", "")
+            ).is_file()
+
+        self.assertEqual(metrics.returncode, 0, metrics.stdout)
+        metrics_payload = json.loads(metrics.stdout)
+        self.assertEqual(metrics_payload["data"]["action"], "metrics")
+        self.assertEqual(metrics_payload["data"]["validator"]["by_task"]["B1"]["total_runs"], 2)
+        self.assertEqual(promote.returncode, 0, promote.stdout)
+        self.assertEqual(promote_payload["data"]["action"], "promote")
+        self.assertEqual(promote_payload["data"]["status"], "candidate_written")
+        self.assertTrue(candidate_exists, promote_payload["data"])
 
     def test_parallel_runs_with_mock_runtime(self) -> None:
         orchestrator = MockOrchestrator()
@@ -390,6 +606,62 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         self.assertEqual(result.data["functional_owner"], "writing-agent")
         self.assertEqual(result.data["runtime_plan"]["primary_agent"], "claude")
         self.assertTrue(result.data["functional_owner_chain"])
+
+    def test_task_plan_includes_bounded_prior_experience(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_experience_fixture(
+                root,
+                run_id="failed-b1",
+                task_id="B1",
+                topic="ai-writing",
+                validator_status="failed",
+                failure_modes=["missing_required_output:search_diagnostics.md"],
+            )
+            orchestrator = MockOrchestrator()
+
+            result = orchestrator.task_plan(
+                task_id="B1",
+                paper_type="systematic-review",
+                topic="ai-writing",
+                cwd=root,
+            )
+
+        prior = result.data["prior_experience"]
+        self.assertEqual(prior["query"]["task_id"], "B1")
+        self.assertEqual(prior["query"]["limit"], 5)
+        self.assertEqual(prior["records"][0]["run_id"], "failed-b1")
+        self.assertEqual(
+            prior["records"][0]["failure_modes"],
+            ["missing_required_output:search_diagnostics.md"],
+        )
+
+    def test_task_run_injects_prior_experience_into_packet(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_experience_fixture(
+                root,
+                run_id="failed-b1",
+                task_id="B1",
+                topic="ai-writing",
+                validator_status="failed",
+                failure_modes=["missing_required_output:search_diagnostics.md"],
+            )
+            orchestrator = MockOrchestrator()
+
+            result = orchestrator.task_run(
+                task_id="B1",
+                paper_type="systematic-review",
+                topic="ai-writing",
+                cwd=root,
+                skip_validation=True,
+                guidance_mode="off",
+            )
+
+        prior = result.data["task_packet"]["prior_experience"]
+        self.assertEqual(prior["source"], "local-project-experience")
+        self.assertEqual(prior["records"][0]["run_id"], "failed-b1")
+        self.assertEqual(prior["records"][0]["status"], "failed")
 
     def test_task_plan_accepts_qualitative_paper_type(self) -> None:
         orchestrator = MockOrchestrator()

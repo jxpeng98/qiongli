@@ -205,6 +205,7 @@ class SubjectRefinementPacket:
     evidence: list[str] | None = None
     signals: list[dict[str, Any]] | None = None
     resource_activation_plan: dict[str, Any] | None = None
+    evidence_sources: dict[str, Any] | None = None
 
     def to_packet(self) -> dict[str, Any]:
         return {
@@ -230,6 +231,7 @@ class SubjectRefinementPacket:
             "evidence": list(self.evidence or []),
             "signals": [_copy_record(signal) for signal in self.signals or []],
             "resource_activation_plan": _copy_value(self.resource_activation_plan or {}),
+            "evidence_sources": _copy_value(self.evidence_sources or {}),
         }
 
 
@@ -290,10 +292,17 @@ def infer_subject_refinement(
         activation_status_overrides=activation_status_overrides,
     )
 
+    def _packet_with_sources(**kwargs: Any) -> SubjectRefinementPacket:
+        kwargs.setdefault(
+            "evidence_sources",
+            _base_evidence_sources(manifest_state, manifest, signals),
+        )
+        return _packet(**kwargs)
+
     if manifest.subject_mode == "locked":
         borrowed_lenses = _borrowed_lenses(manifest.active_subject, signals)
         method_lenses = list(manifest.method_lenses or [])
-        return _packet(
+        return _packet_with_sources(
             decision="lock_subject",
             mode="locked",
             active_subject=manifest.active_subject,
@@ -329,7 +338,7 @@ def infer_subject_refinement(
     if manifest.subject_mode == "confirmed":
         borrowed_lenses = _borrowed_manifest_lenses(manifest.active_subject, signals)
         method_lenses = _unique(list(manifest.method_lenses or []))
-        return _packet(
+        return _packet_with_sources(
             decision="confirm_subject",
             mode="confirmed",
             active_subject=manifest.active_subject,
@@ -362,7 +371,7 @@ def infer_subject_refinement(
     if signals.has_strong_finance and finance_runtime_enabled:
         method_lenses = _unique(signals.finance_method_lenses)
         borrowed_lenses = _borrowed_lenses("finance", signals)
-        return _packet(
+        return _packet_with_sources(
             decision="suggest_subject",
             mode="suggested",
             active_subject=manifest.active_subject,
@@ -396,7 +405,7 @@ def infer_subject_refinement(
     if signals.has_economics_subject_signal and economics_runtime_enabled:
         method_lenses = _unique(signals.economics_method_lenses)
         borrowed_lenses = _borrowed_lenses("economics", signals)
-        return _packet(
+        return _packet_with_sources(
             decision="suggest_subject",
             mode="suggested",
             active_subject=manifest.active_subject,
@@ -436,7 +445,7 @@ def infer_subject_refinement(
         subject = runtime_subject_match.subject
         method_lenses = _unique(list(runtime_subject_match.method_lenses))
         borrowed_lenses = _borrowed_lenses(subject, signals)
-        return _packet(
+        return _packet_with_sources(
             decision="suggest_subject",
             mode="suggested",
             active_subject=manifest.active_subject,
@@ -473,7 +482,7 @@ def infer_subject_refinement(
 
     if signals.finance_method_lenses and manifest.active_subject != "finance":
         borrowed_lenses = _borrowed_lenses(manifest.active_subject, signals)
-        return _packet(
+        return _packet_with_sources(
             decision="borrow_lens",
             mode="auto",
             active_subject=manifest.active_subject,
@@ -509,7 +518,7 @@ def infer_subject_refinement(
 
     if signals.economics_method_lenses and manifest.active_subject != "economics":
         borrowed_lenses = _borrowed_lenses(manifest.active_subject, signals)
-        return _packet(
+        return _packet_with_sources(
             decision="borrow_lens",
             mode="auto",
             active_subject=manifest.active_subject,
@@ -549,7 +558,7 @@ def infer_subject_refinement(
     )
     if runtime_subject_borrow_match is not None:
         borrowed_lenses = _borrowed_lenses(manifest.active_subject, signals)
-        return _packet(
+        return _packet_with_sources(
             decision="borrow_lens",
             mode="auto",
             active_subject=manifest.active_subject,
@@ -585,7 +594,7 @@ def infer_subject_refinement(
             signals=signals.signals,
         )
 
-    return _packet(
+    return _packet_with_sources(
         decision="no_subject",
         mode="auto",
         active_subject="auto",
@@ -655,6 +664,62 @@ def _stringify_task_value(value: Any) -> str:
     if isinstance(value, list | tuple | set):
         return " ".join(_stringify_task_value(item) for item in value)
     return ""
+
+
+def _base_evidence_sources(
+    manifest_input: ProjectManifestState | ProjectManifest | Mapping[str, Any],
+    manifest: ProjectManifest,
+    signals: SubjectSignals,
+) -> dict[str, Any]:
+    return {
+        "task_text": _task_text_evidence_source(signals),
+        "manifest_state": _manifest_state_evidence_source(manifest_input, manifest),
+        "trace_memory": {"status": "not_loaded"},
+        "user_action": {"status": "not_loaded"},
+    }
+
+
+def _task_text_evidence_source(signals: SubjectSignals) -> dict[str, Any]:
+    signal_ids = [
+        str(signal["id"])
+        for signal in signals.signals
+        if isinstance(signal, Mapping) and isinstance(signal.get("id"), str)
+    ]
+    return {
+        "status": "present" if signal_ids or signals.evidence else "none",
+        "signal_ids": signal_ids,
+        "signal_count": len(signal_ids),
+        "evidence": list(signals.evidence),
+    }
+
+
+def _manifest_state_evidence_source(
+    manifest_input: ProjectManifestState | ProjectManifest | Mapping[str, Any],
+    manifest: ProjectManifest,
+) -> dict[str, Any]:
+    source = "provided_manifest"
+    exists: bool | None = None
+    path = ""
+    if isinstance(manifest_input, ProjectManifestState):
+        source = "guidance_manifest" if manifest_input.exists else "implicit_defaults"
+        exists = manifest_input.exists
+        path = manifest_input.to_packet()["path"]
+    elif isinstance(manifest_input, Mapping):
+        source = "mapping"
+        payload = manifest_input.get("exists")
+        exists = payload if isinstance(payload, bool) else None
+        raw_path = manifest_input.get("path")
+        path = str(raw_path) if isinstance(raw_path, str) else ""
+    return {
+        "status": "present" if manifest.subject_mode != "auto" or manifest.active_subject != "auto" else "default",
+        "source": source,
+        "exists": exists,
+        "path": path,
+        "active_subject": manifest.active_subject,
+        "subject_mode": manifest.subject_mode,
+        "secondary_subjects": list(manifest.secondary_subjects or []),
+        "method_lenses": list(manifest.method_lenses or []),
+    }
 
 
 def _detect_signals(

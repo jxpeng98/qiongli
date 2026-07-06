@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shlex
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Mapping
@@ -155,12 +156,39 @@ def apply_subject_action(
         )
         _restore_lifecycle_files(root, snapshot, original_error=lifecycle_error)
         raise lifecycle_error from exc
-    return _status_packet(
+    packet = _status_packet(
         root,
         manifest_state=manifest_state,
         state=state,
         subject_guidance=subject_guidance_status,
     )
+    packet["write_mode"] = "applied"
+    return packet
+
+
+def propose_subject_action(
+    project_root: Path,
+    action: str,
+    subject: str | None = None,
+    *,
+    source: str = "user",
+    run_id: str | None = None,
+) -> dict[str, Any]:
+    root = _normalize_project_root(project_root)
+    normalized_action = _validate_action(action)
+    normalized_subject = _validate_subject_for_action(normalized_action, subject)
+    manifest_state = load_project_manifest(root)
+    state = _load_state(root)
+    packet = _status_packet(root, manifest_state=manifest_state, state=state)
+    packet["write_mode"] = "proposed"
+    packet["proposed_action"] = _proposed_action_packet(
+        root,
+        action=normalized_action,
+        subject=normalized_subject,
+        source=source,
+        run_id=run_id,
+    )
+    return packet
 
 
 def _preflight_lifecycle_symlinks(project_root: Path) -> None:
@@ -274,6 +302,46 @@ def _status_packet(
         ),
         "state": state,
     }
+
+
+def _proposed_action_packet(
+    project_root: Path,
+    *,
+    action: str,
+    subject: str | None,
+    source: str,
+    run_id: str | None,
+) -> dict[str, Any]:
+    return {
+        "schema_version": "1.0",
+        "action": action,
+        "subject": subject,
+        "source": source,
+        "run_id": run_id,
+        "project_root": str(project_root.resolve()),
+        "created_at": _timestamp(),
+        "write_mode": "proposed",
+        "target_files": _target_files_for_action(action),
+        "apply_command": _apply_command_for_action(project_root, action=action, subject=subject),
+    }
+
+
+def _target_files_for_action(action: str) -> list[str]:
+    if action == "dismiss":
+        return [STATE_REL.as_posix()]
+    return [
+        (Path(".qiongli") / "guidance_manifest.yaml").as_posix(),
+        STATE_REL.as_posix(),
+        (Path(".qiongli") / "guidance.d" / "subject-runtime.md").as_posix(),
+    ]
+
+
+def _apply_command_for_action(project_root: Path, *, action: str, subject: str | None) -> str:
+    parts = ["qiongli", "subject", action]
+    if subject:
+        parts.append(subject)
+    parts.extend(["--cwd", str(project_root.resolve())])
+    return " ".join(shlex.quote(part) for part in parts)
 
 
 def _snapshot_lifecycle_files(project_root: Path) -> dict[Path, bytes | None]:
