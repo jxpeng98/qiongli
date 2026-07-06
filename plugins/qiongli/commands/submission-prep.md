@@ -1,0 +1,7 @@
+---
+description: 投稿前打包（reporting checklist + cover letter + submission checklist + statements）
+---
+
+Load the `qiongli` skill from this plugin, then follow `skills/qiongli-workflow/workflows/submission-prep.md`.
+
+Use that workflow as the source of truth for task order, artifacts, and quality gates.
