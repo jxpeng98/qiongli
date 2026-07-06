@@ -1,10 +1,35 @@
 # Changelog
 
-本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-06-29）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
+本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-07-06）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
 
 ## [Unreleased]
 
 暂无未发布变更。
+
+## [1.15.0] - 2026-07-06
+
+### Added
+
+- 新增完整论文生命周期 workflow：`/paper-lifecycle` 现在可以从选题、文献、大纲、数据/方法、写作、审查、强 judge、期刊匹配到反馈修订串联成可审计的全流程，并通过 lifecycle harness 检查研究问题漂移、claim-evidence 缺口、judge block 和 submission readiness。
+- 新增 manuscript-first 期刊推荐能力：`journal-fit-recommender` 与 MCP preview 可以基于已成稿内容、claim map、方法证据和 venue profiles 给出 primary/stretch/do-not-submit 排名，而不仅是从目标期刊反推写作。
+- 新增 adaptive subject runtime：项目可以在 `active_subject: auto` 下动态建议、确认或锁定 subject，并通过 materialized guidance、subject lifecycle state、router eval fixtures 和 runtime smoke 验证 economics、finance、accounting、business 等 subject 的资源加载。
+- 新增 accounting 与 business 的 subject runtime 支持，包括 eval-ready、promotion-ready、runtime-enabled gates、near-miss fixtures、venue profiles、method lenses 和 subject-specific guidance。
+- 新增 literature search 覆盖诊断与 full-text 边界记录：搜索计划现在区分 provider search、native search、strategy-only、Zotero/user corpus 和 full-text access candidates，避免把 OpenAlex/Semantic Scholar metadata 误判为正文覆盖。
+
+### Changed
+
+- 文献 provider 路由明确以 `qiongli_literature_status`、`qiongli_search_plan`、`qiongli_literature_search` 等工具判断 OpenAlex、Semantic Scholar、Crossref、PubMed 和 arXiv 可用性；`qiongli_collect_evidence` 只代表外部 evidence adapter 命令边界。
+- 文献搜索默认范围扩大，review-mode 默认每个 provider 搜索 50 条结果，并保留 raw/normalized/deduped hit counts、provider diagnostics、known-item recall 和 coverage gaps。
+- Zotero companion 增强附件核验、路径清洗、full-text status 和 Crossref/DOI metadata 校验，使 Zotero 本地资料可以参与正文/附件可得性判断。
+- Claude Desktop direct plugin、Desktop/Web skill ZIP、Codex/Claude plugin artifacts、npm/PyPI package preflight 和 release download index 进一步对齐，稳定版 release page 会给出按安装面分组的下载指南。
+- 稳定版发布流程继承 beta train 的 validator、unit tests、controller evals、release smoke、local plugin install acceptance、PyPI/npm preflight 和 tag publish workflow gates。
+
+### Fixed
+
+- 修复 OpenAlex provider configured 与 external OpenAlex MCP command not_configured 的语义混淆，避免把 `RESEARCH_MCP_OPENALEX_CMD` 缺失误报为内置 provider 不可用。
+- 修复 Python materialized payload 缺少 `content/subjects/catalog.yaml` 导致 local plugin install acceptance 失败的问题，并增加 subject catalog 与 runtime-enabled subject payload 回归测试。
+- 修复 DOI-only、OpenAlex PDF/access candidates 和 full-text retrieval candidates 混杂的问题，使全文获取计划可解释、可复核。
+- 修复 subject guidance 写入、managed marker、unsafe path、malformed lifecycle state 和 project manifest update 的若干边界问题，降低项目级 guidance 与全局 workflow contract 漂移风险。
 
 ## [1.14.0] - 2026-06-29
 
