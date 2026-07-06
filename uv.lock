@@ -50,7 +50,7 @@ wheels = [
 
 [[package]]
 name = "qiongli"
-version = "1.15.0b3"
+version = "1.17.0b1"
 source = { editable = "." }
 dependencies = [
     { name = "pyyaml" },
