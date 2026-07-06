@@ -823,6 +823,7 @@ class SubjectMaterializerTests(unittest.TestCase):
             self.assertTrue((out / "templates" / "agent-run-packet.json").exists())
             self.assertTrue((out / "templates" / "agent-review-packet.md").exists())
             self.assertTrue((out / "templates" / "agent-handoff.md").exists())
+            self.assertFalse((out / "templates" / "code").exists())
             self.assertFalse((out / "skills" / "F_writing" / "manuscript-architect.md").exists())
 
     def test_replace_sections_requires_declared_base_section(self) -> None:

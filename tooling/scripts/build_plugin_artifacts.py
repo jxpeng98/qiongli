@@ -674,7 +674,7 @@ def _copy_claude_desktop_skill_without_pyyaml(
             "General-purpose Qiongli academic workflow.",
             skill_name=skill_name,
         )
-        _copy_path(source / "templates", skill_dest / "templates")
+        _copy_path_excluding(source / "templates", skill_dest / "templates", {"code"})
         _copy_path(source / "venue-profiles", skill_dest / "venue-profiles")
         _copy_path(source / "skills" / "registry.yaml", skill_dest / "skills" / "registry.yaml")
         _copy_path(source / "skills" / "domain-profiles", skill_dest / "skills" / "domain-profiles")

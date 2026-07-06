@@ -32,6 +32,7 @@ WORKER_PACKET_TEMPLATES = (
     "worker-run-packet.json",
 )
 DEFAULT_PACKET_TEMPLATES = AGENT_PACKET_TEMPLATES + WORKER_PACKET_TEMPLATES
+CORE_DESKTOP_TEMPLATE_EXCLUDE_DIRS = {"code"}
 
 
 @dataclass(frozen=True)
@@ -190,7 +191,7 @@ def materialize_subject_package(options: MaterializeOptions) -> None:
     out.mkdir(parents=True)
 
     _copy_common_package_assets(package_root, out)
-    _materialize_templates(package_root, out, subject, options.coverage)
+    _materialize_templates(package_root, out, subject, options.flavor, options.coverage)
     _materialize_venue_profiles(package_root, source, out, subject, options.coverage, custom_layer)
     selected_entries = _selected_registry_entries(subject, base_registry, subject_registry, options.coverage)
     selected_entries = _append_custom_selected_entries(selected_entries, custom_layer, registry_by_id)
@@ -298,7 +299,13 @@ def _copy_common_package_assets(package_root: Path, out: Path) -> None:
             _copy_path(src, out / dirname)
 
 
-def _materialize_templates(package_root: Path, out: Path, subject: SubjectDefinition, coverage: str) -> None:
+def _materialize_templates(
+    package_root: Path,
+    out: Path,
+    subject: SubjectDefinition,
+    flavor: str,
+    coverage: str,
+) -> None:
     source = package_root.parent if package_root.name in {"qiongli-workflow", "workflow"} else package_root
     src_root = package_root / "templates"
     if not src_root.exists():
@@ -307,6 +314,9 @@ def _materialize_templates(package_root: Path, out: Path, subject: SubjectDefini
     if not src_root.exists():
         return
     if coverage == "complete" or subject.id == "core" or not subject.template_refs:
+        if subject.id == "core" and flavor == "desktop":
+            _copy_template_tree(src_root, dest_root, excluded_dirs=CORE_DESKTOP_TEMPLATE_EXCLUDE_DIRS)
+            return
         _copy_path(src_root, dest_root)
         return
     template_refs = list(subject.template_refs)
@@ -318,6 +328,19 @@ def _materialize_templates(package_root: Path, out: Path, subject: SubjectDefini
         if not src.exists():
             raise SubjectMaterializationError(f"subject {subject.id} references missing template: {rel}")
         _copy_path(src, dest_root / rel)
+
+
+def _copy_template_tree(src: Path, dest: Path, *, excluded_dirs: set[str]) -> None:
+    if src.is_symlink():
+        raise SubjectMaterializationError(f"refusing to copy symlink: {src}")
+
+    def ignore_template_paths(copy_src: str, names: list[str]) -> set[str]:
+        ignored = _ignore_generated(copy_src, names)
+        if Path(copy_src) == src:
+            ignored.update(name for name in names if name in excluded_dirs)
+        return ignored
+
+    shutil.copytree(src, dest, ignore=ignore_template_paths)
 
 
 def _materialize_venue_profiles(
