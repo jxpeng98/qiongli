@@ -360,6 +360,75 @@ class SubjectRouterEvalTests(unittest.TestCase):
                 "confirmed_subject",
             }.issubset(business_tags)
         )
+        required_political_economy_ids = {
+            "political_economy_clear_actor_institution_outcome",
+            "political_economy_method_only_process_tracing_borrow",
+            "political_economy_confirmed_mechanism_audit",
+            "political_economy_mixed_capital_market_distributional_conflict",
+            "political_economy_near_miss_policy_brief",
+            "political_economy_near_miss_campaign_strategy",
+        }
+        self.assertTrue(required_political_economy_ids.issubset(set(ids)))
+        political_economy_tags = {
+            tag
+            for case_id in required_political_economy_ids
+            for tag in list(cases_by_id[case_id].tags or [])
+        }
+        self.assertTrue(
+            {
+                "clear_positive",
+                "method_only_borrow",
+                "mixed_subject",
+                "near_miss",
+                "confirmed_subject",
+            }.issubset(political_economy_tags)
+        )
+        required_geoeconomics_ids = {
+            "geoeconomics_clear_sanctions_statecraft",
+            "geoeconomics_method_only_statecraft_borrow",
+            "geoeconomics_confirmed_statecraft_audit",
+            "geoeconomics_mixed_finance_supply_chain_exposure",
+            "geoeconomics_near_miss_supply_chain_ops",
+            "geoeconomics_near_miss_geopolitics_brief",
+        }
+        self.assertTrue(required_geoeconomics_ids.issubset(set(ids)))
+        geoeconomics_tags = {
+            tag
+            for case_id in required_geoeconomics_ids
+            for tag in list(cases_by_id[case_id].tags or [])
+        }
+        self.assertTrue(
+            {
+                "clear_positive",
+                "method_only_borrow",
+                "mixed_subject",
+                "near_miss",
+                "confirmed_subject",
+            }.issubset(geoeconomics_tags)
+        )
+        required_economics_accounting_ids = {
+            "economics_accounting_clear_identification_measurement_bridge",
+            "economics_accounting_method_only_alignment_borrow",
+            "economics_accounting_confirmed_bridge_positioning",
+            "economics_accounting_mixed_accounting_economics_bridge",
+            "economics_accounting_near_miss_course_comparison",
+            "economics_accounting_near_miss_internal_reporting_workflow",
+        }
+        self.assertTrue(required_economics_accounting_ids.issubset(set(ids)))
+        economics_accounting_tags = {
+            tag
+            for case_id in required_economics_accounting_ids
+            for tag in list(cases_by_id[case_id].tags or [])
+        }
+        self.assertTrue(
+            {
+                "clear_positive",
+                "method_only_borrow",
+                "mixed_subject",
+                "near_miss",
+                "confirmed_subject",
+            }.issubset(economics_accounting_tags)
+        )
         for case_id in {
             "accounting_clear_discretionary_accruals",
             "accounting_mixed_reporting_returns",
@@ -794,6 +863,163 @@ class SubjectRouterEvalTests(unittest.TestCase):
         self.assertFalse(report["eligible_for_runtime_enabled"])
         self.assertIn("activation_status is runtime_enabled", report["blocking_failures"])
 
+    def test_political_economy_runtime_enabled_gate_passes_real_fixture_pack(
+        self,
+    ) -> None:
+        cases = load_eval_cases(FIXTURE_DIR)
+
+        report = subject_gate_report(
+            "political-economy",
+            cases,
+            gate="runtime-enabled",
+        )
+
+        self.assertEqual(report["subject"], "political-economy")
+        self.assertEqual(report["activation_status"], "runtime_enabled")
+        self.assertFalse(report["eligible_for_eval_ready"])
+        self.assertFalse(report["eligible_for_runtime_promotion"])
+        self.assertTrue(report["eligible_for_runtime_enabled"])
+        self.assertEqual(report["blocking_failures"], [])
+        self.assertEqual(report["metrics"]["decision_accuracy"], 1.0)
+        self.assertEqual(report["metrics"]["primary_subject_accuracy"], 1.0)
+        self.assertEqual(report["metrics"]["suggest_subject_precision"], 1.0)
+        self.assertEqual(report["metrics"]["forbidden_subject_accuracy"], 1.0)
+        self.assertEqual(report["metrics"]["method_lens_accuracy"], 1.0)
+        self.assertEqual(report["metrics"]["all_case_checks_passed"], 1.0)
+        self.assertEqual(report["metrics"]["near_miss_false_positives"], 0)
+
+    def test_political_economy_eval_ready_gate_blocks_runtime_enabled_manifest(
+        self,
+    ) -> None:
+        cases = load_eval_cases(FIXTURE_DIR)
+
+        report = subject_gate_report("political-economy", cases, gate="eval-ready")
+
+        self.assertEqual(report["activation_status"], "runtime_enabled")
+        self.assertFalse(report["eligible_for_eval_ready"])
+        self.assertFalse(report["eligible_for_runtime_enabled"])
+        self.assertIn("activation_status is runtime_enabled", report["blocking_failures"])
+
+    def test_political_economy_promotion_ready_gate_blocks_runtime_enabled_manifest(
+        self,
+    ) -> None:
+        cases = load_eval_cases(FIXTURE_DIR)
+
+        report = subject_gate_report(
+            "political-economy",
+            cases,
+            gate="promotion-ready",
+        )
+
+        self.assertEqual(report["activation_status"], "runtime_enabled")
+        self.assertFalse(report["eligible_for_runtime_promotion"])
+        self.assertFalse(report["eligible_for_runtime_enabled"])
+        self.assertIn("activation_status is runtime_enabled", report["blocking_failures"])
+
+    def test_geoeconomics_runtime_enabled_gate_passes_real_fixture_pack(self) -> None:
+        cases = load_eval_cases(FIXTURE_DIR)
+
+        report = subject_gate_report("geoeconomics", cases, gate="runtime-enabled")
+
+        self.assertEqual(report["subject"], "geoeconomics")
+        self.assertEqual(report["activation_status"], "runtime_enabled")
+        self.assertFalse(report["eligible_for_eval_ready"])
+        self.assertFalse(report["eligible_for_runtime_promotion"])
+        self.assertTrue(report["eligible_for_runtime_enabled"])
+        self.assertEqual(report["blocking_failures"], [])
+        self.assertEqual(report["metrics"]["decision_accuracy"], 1.0)
+        self.assertEqual(report["metrics"]["primary_subject_accuracy"], 1.0)
+        self.assertEqual(report["metrics"]["suggest_subject_precision"], 1.0)
+        self.assertEqual(report["metrics"]["forbidden_subject_accuracy"], 1.0)
+        self.assertEqual(report["metrics"]["method_lens_accuracy"], 1.0)
+        self.assertEqual(report["metrics"]["all_case_checks_passed"], 1.0)
+        self.assertEqual(report["metrics"]["near_miss_false_positives"], 0)
+
+    def test_geoeconomics_eval_ready_gate_blocks_runtime_enabled_manifest(self) -> None:
+        cases = load_eval_cases(FIXTURE_DIR)
+
+        report = subject_gate_report("geoeconomics", cases, gate="eval-ready")
+
+        self.assertEqual(report["activation_status"], "runtime_enabled")
+        self.assertFalse(report["eligible_for_eval_ready"])
+        self.assertFalse(report["eligible_for_runtime_enabled"])
+        self.assertIn("activation_status is runtime_enabled", report["blocking_failures"])
+
+    def test_geoeconomics_promotion_ready_gate_blocks_runtime_enabled_manifest(
+        self,
+    ) -> None:
+        cases = load_eval_cases(FIXTURE_DIR)
+
+        report = subject_gate_report("geoeconomics", cases, gate="promotion-ready")
+
+        self.assertEqual(report["activation_status"], "runtime_enabled")
+        self.assertFalse(report["eligible_for_runtime_promotion"])
+        self.assertFalse(report["eligible_for_runtime_enabled"])
+        self.assertIn("activation_status is runtime_enabled", report["blocking_failures"])
+
+    def test_economics_accounting_runtime_enabled_gate_passes_real_fixture_pack(
+        self,
+    ) -> None:
+        cases = load_eval_cases(FIXTURE_DIR)
+
+        report = subject_gate_report(
+            "economics-accounting",
+            cases,
+            gate="runtime-enabled",
+        )
+
+        self.assertEqual(report["subject"], "economics-accounting")
+        self.assertEqual(report["activation_status"], "runtime_enabled")
+        self.assertFalse(report["eligible_for_eval_ready"])
+        self.assertFalse(report["eligible_for_runtime_promotion"])
+        self.assertTrue(report["eligible_for_runtime_enabled"])
+        self.assertEqual(report["blocking_failures"], [])
+        self.assertEqual(report["metrics"]["decision_accuracy"], 1.0)
+        self.assertEqual(report["metrics"]["primary_subject_accuracy"], 1.0)
+        self.assertEqual(report["metrics"]["suggest_subject_precision"], 1.0)
+        self.assertEqual(report["metrics"]["forbidden_subject_accuracy"], 1.0)
+        self.assertEqual(report["metrics"]["method_lens_accuracy"], 1.0)
+        self.assertEqual(report["metrics"]["all_case_checks_passed"], 1.0)
+        self.assertEqual(report["metrics"]["near_miss_false_positives"], 0)
+
+    def test_economics_accounting_eval_ready_gate_blocks_runtime_enabled_manifest(
+        self,
+    ) -> None:
+        cases = load_eval_cases(FIXTURE_DIR)
+
+        report = subject_gate_report(
+            "economics-accounting",
+            cases,
+            gate="eval-ready",
+        )
+
+        self.assertEqual(report["activation_status"], "runtime_enabled")
+        self.assertFalse(report["eligible_for_eval_ready"])
+        self.assertFalse(report["eligible_for_runtime_enabled"])
+        self.assertIn(
+            "activation_status is runtime_enabled",
+            report["blocking_failures"],
+        )
+
+    def test_economics_accounting_promotion_ready_gate_blocks_runtime_enabled_manifest(
+        self,
+    ) -> None:
+        cases = load_eval_cases(FIXTURE_DIR)
+
+        report = subject_gate_report(
+            "economics-accounting",
+            cases,
+            gate="promotion-ready",
+        )
+
+        self.assertEqual(report["activation_status"], "runtime_enabled")
+        self.assertFalse(report["eligible_for_runtime_promotion"])
+        self.assertFalse(report["eligible_for_runtime_enabled"])
+        self.assertIn(
+            "activation_status is runtime_enabled",
+            report["blocking_failures"],
+        )
+
     def test_business_promotion_ready_gate_blocks_runtime_enabled_manifest(self) -> None:
         cases = load_eval_cases(FIXTURE_DIR)
 
@@ -823,11 +1049,7 @@ class SubjectRouterEvalTests(unittest.TestCase):
 
     def test_candidate_subject_eval_ready_gate_reports_deferred_shell_reasons(self) -> None:
         cases = load_eval_cases(FIXTURE_DIR)
-        deferred_subjects = (
-            "political-economy",
-            "geoeconomics",
-            "economics-accounting",
-        )
+        deferred_subjects = ()
 
         for subject in deferred_subjects:
             with self.subTest(subject=subject):

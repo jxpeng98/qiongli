@@ -1,0 +1,29 @@
+{
+  "id": "political_economy_confirmed_mechanism_audit",
+  "subject_under_test": "political-economy",
+  "tags": [
+    "political-economy",
+    "confirmed_subject"
+  ],
+  "description": "Confirmed political economy project remains political economy without requiring a fresh inferred suggestion.",
+  "request": "Tighten the introduction and contribution for this confirmed manuscript while preserving the current subject.",
+  "manifest": {
+    "active_subject": "political-economy",
+    "subject_mode": "confirmed",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [
+      "political-economy-positioning"
+    ],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "recommend",
+    "primary_subject": "political-economy",
+    "suggest_subjects": [],
+    "forbidden_subjects": [],
+    "method_lenses": [
+      "political-economy-positioning"
+    ]
+  }
+}

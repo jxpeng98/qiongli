@@ -1,0 +1,29 @@
+{
+  "id": "geoeconomics_confirmed_statecraft_audit",
+  "subject_under_test": "geoeconomics",
+  "tags": [
+    "geoeconomics",
+    "confirmed_subject"
+  ],
+  "description": "Confirmed geoeconomics project remains geoeconomics without relying on a fresh inferred suggestion.",
+  "request": "Tighten the manuscript architecture and contribution for this confirmed geoeconomics paper.",
+  "manifest": {
+    "active_subject": "geoeconomics",
+    "subject_mode": "confirmed",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [
+      "geoeconomic-positioning"
+    ],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "recommend",
+    "primary_subject": "geoeconomics",
+    "suggest_subjects": [],
+    "forbidden_subjects": [],
+    "method_lenses": [
+      "geoeconomic-positioning"
+    ]
+  }
+}

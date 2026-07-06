@@ -1,0 +1,72 @@
+{
+  "id": "economics_accounting_clear_identification_measurement_bridge",
+  "subject_under_test": "economics-accounting",
+  "tags": [
+    "economics-accounting",
+    "clear_positive"
+  ],
+  "description": "Clear economics-accounting bridge request with estimand, construct, proxy, disclosure institution, fiscal timing, and venue signals.",
+  "request": "Architect a Journal of Accounting Research manuscript as an economics and accounting contribution: build the identification-measurement alignment, specify the estimand measurement proxy map, defend the accounting disclosure rule, name the disclosure institution, align fiscal-year timing with capital-market outcome windows, and state the composite reviewer risk.",
+  "manifest": {
+    "active_subject": "auto",
+    "subject_mode": "auto",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "recommend",
+    "primary_subject": "economics-accounting",
+    "suggest_subjects": [
+      "economics-accounting"
+    ],
+    "forbidden_subjects": [],
+    "method_lenses": [
+      "identification-measurement-alignment",
+      "fiscal-window-alignment",
+      "economics-accounting-positioning"
+    ]
+  },
+  "gate_expected": {
+    "eval-ready": {
+      "decision": "recommend",
+      "primary_subject": "economics-accounting",
+      "suggest_subjects": [
+        "economics-accounting"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "identification-measurement-alignment",
+        "fiscal-window-alignment",
+        "economics-accounting-positioning"
+      ]
+    },
+    "promotion-ready": {
+      "decision": "recommend",
+      "primary_subject": "economics-accounting",
+      "suggest_subjects": [
+        "economics-accounting"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "identification-measurement-alignment",
+        "fiscal-window-alignment",
+        "economics-accounting-positioning"
+      ]
+    },
+    "runtime-enabled": {
+      "decision": "recommend",
+      "primary_subject": "economics-accounting",
+      "suggest_subjects": [
+        "economics-accounting"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "identification-measurement-alignment",
+        "fiscal-window-alignment",
+        "economics-accounting-positioning"
+      ]
+    }
+  }
+}

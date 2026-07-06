@@ -440,10 +440,22 @@ class RuntimeSubjectContractTests(unittest.TestCase):
             "runtime_enabled",
         )
         self.assertIn("business", contracts)
+        self.assertEqual(
+            subject_activation_status("political-economy", contracts),
+            "runtime_enabled",
+        )
+        self.assertIn("political-economy", contracts)
+        self.assertEqual(
+            subject_activation_status("geoeconomics", contracts),
+            "runtime_enabled",
+        )
+        self.assertIn("geoeconomics", contracts)
+        self.assertEqual(
+            subject_activation_status("economics-accounting", contracts),
+            "runtime_enabled",
+        )
+        self.assertIn("economics-accounting", contracts)
         for subject in {
-            "political-economy",
-            "geoeconomics",
-            "economics-accounting",
         }:
             self.assertEqual(subject_activation_status(subject, contracts), "candidate")
             self.assertIn(subject, contracts)
@@ -451,9 +463,6 @@ class RuntimeSubjectContractTests(unittest.TestCase):
     def test_default_deferred_candidate_subjects_are_manifest_shells(self) -> None:
         contracts = load_runtime_subject_contracts()
         deferred_subjects = {
-            "political-economy",
-            "geoeconomics",
-            "economics-accounting",
         }
 
         for subject in sorted(deferred_subjects):
@@ -484,6 +493,174 @@ class RuntimeSubjectContractTests(unittest.TestCase):
         self.assertEqual(
             subject_activation_status("economics", contracts),
             "runtime_enabled",
+        )
+
+    def test_economics_accounting_runtime_enabled_manifest_declares_signals_and_lenses(
+        self,
+    ) -> None:
+        contracts = load_runtime_subject_contracts()
+        contract = contracts["economics-accounting"]
+
+        self.assertEqual(contract.activation_status, "runtime_enabled")
+        self.assertEqual(
+            contract.evaluation_pack,
+            "tests/fixtures/subject_router_eval/economics-accounting",
+        )
+        self.assertEqual(
+            contract.subject_skill,
+            (
+                "content/subjects/economics-accounting/skills/"
+                "economics-accounting-bridge-auditor.md"
+            ),
+        )
+        self.assertEqual(
+            set(contract.signal_groups),
+            {"method", "data_or_outcome", "venue", "theory_or_construct"},
+        )
+        valid_activations = {"subject", "method_only", "context_only"}
+        for dimension in ("method", "data_or_outcome", "venue", "theory_or_construct"):
+            self.assertTrue(contract.signal_groups[dimension], dimension)
+            for entry in contract.signal_groups[dimension]:
+                with self.subTest(dimension=dimension, signal_id=entry.get("id")):
+                    self.assertIsInstance(entry["id"], str)
+                    self.assertTrue(entry["id"].strip())
+                    self.assertIsInstance(entry["value"], str)
+                    self.assertTrue(entry["value"].strip())
+                    self.assertIsInstance(entry["weight"], (int, float))
+                    self.assertGreater(entry["weight"], 0)
+                    self.assertIn(entry["activation"], valid_activations)
+                    for field in ("patterns", "examples", "near_misses"):
+                        self.assertIsInstance(entry[field], list)
+                        self.assertTrue(entry[field], field)
+                        for value in entry[field]:
+                            self.assertIsInstance(value, str)
+                            self.assertTrue(value.strip(), field)
+                    for pattern in entry["patterns"]:
+                        re.compile(pattern, re.I)
+        self.assertIn("identification-measurement-alignment", contract.method_lenses)
+        self.assertIn("fiscal-window-alignment", contract.method_lenses)
+        self.assertIn("economics-accounting-positioning", contract.method_lenses)
+        for lens in contract.method_lenses.values():
+            self.assertEqual(lens["activation"], "method_only")
+        self.assertEqual(
+            contract.activation_gate["required_metrics"],
+            {
+                "primary_subject_accuracy": 0.95,
+                "suggest_subject_precision": 0.95,
+                "near_miss_false_positives": 0,
+            },
+        )
+
+    def test_geoeconomics_runtime_enabled_manifest_declares_signals_and_lenses(
+        self,
+    ) -> None:
+        contracts = load_runtime_subject_contracts()
+        contract = contracts["geoeconomics"]
+
+        self.assertEqual(contract.activation_status, "runtime_enabled")
+        self.assertEqual(
+            contract.evaluation_pack,
+            "tests/fixtures/subject_router_eval/geoeconomics",
+        )
+        self.assertEqual(
+            contract.subject_skill,
+            (
+                "content/subjects/geoeconomics/skills/"
+                "geoeconomic-statecraft-auditor.md"
+            ),
+        )
+        self.assertEqual(
+            set(contract.signal_groups),
+            {"method", "data_or_outcome", "venue", "theory_or_construct"},
+        )
+        valid_activations = {"subject", "method_only", "context_only"}
+        for dimension in ("method", "data_or_outcome", "venue", "theory_or_construct"):
+            self.assertTrue(contract.signal_groups[dimension], dimension)
+            for entry in contract.signal_groups[dimension]:
+                with self.subTest(dimension=dimension, signal_id=entry.get("id")):
+                    self.assertIsInstance(entry["id"], str)
+                    self.assertTrue(entry["id"].strip())
+                    self.assertIsInstance(entry["value"], str)
+                    self.assertTrue(entry["value"].strip())
+                    self.assertIsInstance(entry["weight"], (int, float))
+                    self.assertGreater(entry["weight"], 0)
+                    self.assertIn(entry["activation"], valid_activations)
+                    for field in ("patterns", "examples", "near_misses"):
+                        self.assertIsInstance(entry[field], list)
+                        self.assertTrue(entry[field], field)
+                        for value in entry[field]:
+                            self.assertIsInstance(value, str)
+                            self.assertTrue(value.strip(), field)
+                    for pattern in entry["patterns"]:
+                        re.compile(pattern, re.I)
+        self.assertIn("geoeconomic-statecraft-audit", contract.method_lenses)
+        self.assertIn("supply-chain-exposure-design", contract.method_lenses)
+        self.assertIn("geoeconomic-positioning", contract.method_lenses)
+        for lens in contract.method_lenses.values():
+            self.assertEqual(lens["activation"], "method_only")
+        self.assertEqual(
+            contract.activation_gate["required_metrics"],
+            {
+                "primary_subject_accuracy": 0.95,
+                "suggest_subject_precision": 0.95,
+                "near_miss_false_positives": 0,
+            },
+        )
+
+    def test_political_economy_runtime_enabled_manifest_declares_signals_and_lenses(
+        self,
+    ) -> None:
+        contracts = load_runtime_subject_contracts()
+        contract = contracts["political-economy"]
+
+        self.assertEqual(contract.activation_status, "runtime_enabled")
+        self.assertEqual(
+            contract.evaluation_pack,
+            "tests/fixtures/subject_router_eval/political-economy",
+        )
+        self.assertEqual(
+            contract.subject_skill,
+            (
+                "content/subjects/political-economy/skills/"
+                "political-economy-mechanism-auditor.md"
+            ),
+        )
+        self.assertEqual(
+            set(contract.signal_groups),
+            {"method", "data_or_outcome", "venue", "theory_or_construct"},
+        )
+        valid_activations = {"subject", "method_only", "context_only"}
+        for dimension in ("method", "data_or_outcome", "venue", "theory_or_construct"):
+            self.assertTrue(contract.signal_groups[dimension], dimension)
+            for entry in contract.signal_groups[dimension]:
+                with self.subTest(dimension=dimension, signal_id=entry.get("id")):
+                    self.assertIsInstance(entry["id"], str)
+                    self.assertTrue(entry["id"].strip())
+                    self.assertIsInstance(entry["value"], str)
+                    self.assertTrue(entry["value"].strip())
+                    self.assertIsInstance(entry["weight"], (int, float))
+                    self.assertGreater(entry["weight"], 0)
+                    self.assertIn(entry["activation"], valid_activations)
+                    for field in ("patterns", "examples", "near_misses"):
+                        self.assertIsInstance(entry[field], list)
+                        self.assertTrue(entry[field], field)
+                        for value in entry[field]:
+                            self.assertIsInstance(value, str)
+                            self.assertTrue(value.strip(), field)
+                    for pattern in entry["patterns"]:
+                        re.compile(pattern, re.I)
+        self.assertIn("political-mechanism-audit", contract.method_lenses)
+        self.assertIn("comparative-institutional-design", contract.method_lenses)
+        self.assertIn("political-economy-positioning", contract.method_lenses)
+        for lens in contract.method_lenses.values():
+            self.assertEqual(lens["activation"], "method_only")
+        self.assertEqual(
+            contract.activation_gate["required_metrics"],
+            {
+                "primary_subject_accuracy": 0.95,
+                "suggest_subject_precision": 0.95,
+                "near_miss_false_positives": 0,
+            },
         )
 
     def test_accounting_runtime_enabled_manifest_declares_signals_and_method_lenses(self) -> None:

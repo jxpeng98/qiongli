@@ -1,0 +1,29 @@
+{
+  "id": "political_economy_method_only_process_tracing_borrow",
+  "subject_under_test": "political-economy",
+  "tags": [
+    "political-economy",
+    "method_only_borrow"
+  ],
+  "description": "Process tracing wording borrows a political mechanism lens without suggesting political economy.",
+  "request": "Use process tracing and mechanism evidence as a generic causal narrative audit, but do not change the project subject.",
+  "manifest": {
+    "active_subject": "auto",
+    "subject_mode": "auto",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "recommend",
+    "primary_subject": "auto",
+    "suggest_subjects": [],
+    "forbidden_subjects": [
+      "political-economy"
+    ],
+    "method_lenses": [
+      "political-mechanism-audit"
+    ]
+  }
+}

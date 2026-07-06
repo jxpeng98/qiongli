@@ -1,0 +1,29 @@
+{
+  "id": "economics_accounting_confirmed_bridge_positioning",
+  "subject_under_test": "economics-accounting",
+  "tags": [
+    "economics-accounting",
+    "confirmed_subject"
+  ],
+  "description": "Confirmed economics-accounting project remains on the bridge subject.",
+  "request": "Tighten the introduction and reviewer-risk framing for this confirmed bridge manuscript.",
+  "manifest": {
+    "active_subject": "economics-accounting",
+    "subject_mode": "confirmed",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [
+      "economics-accounting-positioning"
+    ],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "recommend",
+    "primary_subject": "economics-accounting",
+    "suggest_subjects": [],
+    "forbidden_subjects": [],
+    "method_lenses": [
+      "economics-accounting-positioning"
+    ]
+  }
+}

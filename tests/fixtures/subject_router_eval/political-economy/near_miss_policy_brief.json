@@ -1,0 +1,27 @@
+{
+  "id": "political_economy_near_miss_policy_brief",
+  "subject_under_test": "political-economy",
+  "tags": [
+    "political-economy",
+    "near_miss"
+  ],
+  "description": "Practitioner public policy brief should stay core-only.",
+  "request": "Draft a public policy brief for city staff with a plain-language summary, stakeholder messages, an implementation checklist, and a two-page handout.",
+  "manifest": {
+    "active_subject": "auto",
+    "subject_mode": "auto",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "core_only",
+    "primary_subject": "core",
+    "suggest_subjects": [],
+    "forbidden_subjects": [
+      "political-economy"
+    ],
+    "method_lenses": []
+  }
+}
