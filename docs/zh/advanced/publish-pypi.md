@@ -110,6 +110,17 @@ uv run python tooling/scripts/run_subject_runtime_smoke.py \
 subject 的 `.qiongli/guidance.d/subject-runtime.md` 被真实 task run 加载、
 local guidance trace 已写入，并且 Qiongli 可见路径仍在隔离 smoke root 内。
 
+可选的 parallel multi-agent smoke 是更重的维护者检查，也使用同一个环境变量
+作为第二层 opt-in：
+
+```bash
+QIONGLI_SMOKE_RUN_AGENTS=1 \
+python3 tooling/scripts/smoke_multi_agent.py --run-parallel
+```
+
+如果没有设置 `QIONGLI_SMOKE_RUN_AGENTS=1`，`--run-parallel` 只会记录一个
+WARN case，不会启动并行的 Codex/Claude/Antigravity runtime 路径。
+
 当前 release 文档策略：
 
 - stable 正式版统一维护在 `CHANGELOG.md`；postflight 会把对应 changelog 段落拼成包含 release 分类说明和下载指南的 GitHub Release notes

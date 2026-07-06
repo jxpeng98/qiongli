@@ -112,6 +112,17 @@ is desired. It verifies that confirmed subject guidance is loaded through
 `.qiongli/guidance.d/subject-runtime.md`, that a local guidance trace is
 written, and that Qiongli-visible paths remain inside the isolated smoke root.
 
+Optional parallel multi-agent smoke is a heavier maintainer check and also uses
+the same environment opt-in:
+
+```bash
+QIONGLI_SMOKE_RUN_AGENTS=1 \
+python3 tooling/scripts/smoke_multi_agent.py --run-parallel
+```
+
+Without `QIONGLI_SMOKE_RUN_AGENTS=1`, `--run-parallel` records a WARN case and
+does not launch the parallel Codex/Claude/Antigravity runtime path.
+
 Release doc policy:
 
 - stable releases must be summarized in `CHANGELOG.md`; postflight turns that changelog section into GitHub Release notes with a release-category summary and download guide

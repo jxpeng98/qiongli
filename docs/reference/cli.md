@@ -238,6 +238,12 @@ MCP tools exposed by the full Python server:
 
 Default `stdio` mode is local and does not require a remote server. HTTP mode can also run locally; use a remote server only when the client cannot launch local MCP commands or when you need a managed shared endpoint. Codex, Claude Code, Antigravity, Hermes, or another local MCP client should call `qiongli_orchestrator_route` when deciding whether to upgrade from skill-only routing to full orchestrator tools. `qiongli_task_run` defaults to preview mode and launches local model CLIs only when the MCP caller explicitly sets JSON boolean `run_agents: true`. The tool accepts `guidance_mode: "off" | "read" | "propose" | "apply"`; preview responses echo the effective task-run arguments and report whether project guidance will be bootstrapped, but do not create files or launch agents.
 
+`qiongli_subject_update` accepts JSON boolean `read_only: true` for clients that
+can inspect a project but cannot write `.qiongli` files. In read-only mode the
+tool returns `write_mode: "proposed"` plus a `proposed_action` packet containing
+the lifecycle action, target files, and the normal `qiongli subject ...` command
+that can be applied later in a writable project.
+
 ### 2.3 `qiongli install` (Install bundled subject payload)
 
 Use Case:
@@ -582,6 +588,31 @@ qiongli project status --project-dir .
 These commands read and write `.qiongli/guidance_manifest.yaml`. The manifest can include `active_subject`, `secondary_subjects`, `venue_profiles`, `method_lenses`, and `strictness`. If the file is missing, the effective default is `active_subject: auto`: Qiongli remains usable without setup, uses core guidance, and may infer temporary subject or method lenses from the current task.
 
 Qiongli does not silently persist a subject switch. Persistent project changes come only from explicit `qiongli project ...` commands or from accepted guidance proposals. Task runs may propose manifest or local-guidance updates for audit, but unaccepted proposals do not change project-local state.
+
+### Adaptive subject lifecycle: `qiongli subject`
+
+Use `qiongli subject` for explicit adaptive subject lifecycle controls.
+
+```bash
+qiongli subject status --cwd .
+qiongli subject confirm finance --cwd .
+qiongli subject dismiss finance --cwd .
+qiongli subject reset --cwd .
+qiongli subject lock economics --cwd .
+qiongli subject unlock --cwd .
+```
+
+Update commands write only project-local `.qiongli` files. Read-only clients can
+export the same action without writing by adding `--propose-only --json`:
+
+```bash
+qiongli subject confirm finance --cwd . --propose-only --json
+```
+
+The JSON response includes `write_mode: "proposed"` and a `proposed_action`
+object with `action`, `subject`, `target_files`, and `apply_command`. Use that
+packet with a writable client, then run the `apply_command` to make the same
+project-local lifecycle change.
 
 - `guidance`: Manage project-local guidance and trace bundles
   ```bash
