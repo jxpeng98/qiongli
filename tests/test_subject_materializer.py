@@ -43,6 +43,231 @@ class SubjectMaterializerTests(unittest.TestCase):
             self.assertIn("/lit-review", skill_text)
             self.assertIn("/academic-write", skill_text)
 
+    def test_core_skill_entrypoint_explains_runtime_subject_refinement(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out = Path(tmp_dir) / "qiongli-workflow"
+
+            materialize_subject_package(
+                MaterializeOptions(source=REPO_ROOT, out=out, subject="core", flavor="full")
+            )
+
+            text = (out / "SKILL.md").read_text(encoding="utf-8")
+
+        self.assertIn("## Runtime Subject Refinement", text)
+        self.assertIn("borrowed method lens", text)
+        self.assertIn("Do not switch the whole project subject from a single method signal.", text)
+
+    def test_core_full_package_contains_adaptive_subject_resources(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out = Path(tmp_dir) / "qiongli-workflow"
+
+            materialize_subject_package(
+                MaterializeOptions(
+                    source=REPO_ROOT,
+                    out=out,
+                    subject="core",
+                    flavor="full",
+                    coverage="complete",
+                )
+            )
+
+            manifest = json.loads((out / "SUBJECT_MANIFEST.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["subject"], "core")
+            self.assertIn("adaptive_subject_refinement", manifest)
+            self.assertTrue(manifest["adaptive_subject_refinement"]["enabled"])
+            self.assertEqual(
+                manifest["adaptive_subject_refinement"]["contract"],
+                "standards/subject-refinement-contract.yaml",
+            )
+            self.assertTrue((out / "standards" / "subject-refinement-contract.yaml").exists())
+            self.assertTrue((out / "subjects" / "catalog.yaml").exists())
+            self.assertTrue((out / "subjects" / "finance" / "skills" / "finance-identification-risk-auditor.md").exists())
+            self.assertTrue((out / "subjects" / "economics" / "skills" / "econ-identification-auditor.md").exists())
+
+    def test_core_desktop_package_contains_compact_refinement_index_under_budget(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out = Path(tmp_dir) / "qiongli"
+
+            materialize_subject_package(
+                MaterializeOptions(source=REPO_ROOT, out=out, subject="core", flavor="desktop")
+            )
+
+            files = [path for path in out.rglob("*") if path.is_file()]
+            self.assertLessEqual(len(files), 180)
+            self.assertTrue((out / "standards" / "subject-refinement-contract.yaml").exists())
+            self.assertTrue((out / "subjects" / "refinement-index.yaml").exists())
+            self.assertFalse((out / "subjects" / "finance" / "skills" / "finance-identification-risk-auditor.md").exists())
+
+    def test_non_core_desktop_packages_omit_adaptive_resources_under_file_budget(self) -> None:
+        for subject in ("business", "economics"):
+            with self.subTest(subject=subject), tempfile.TemporaryDirectory() as tmp_dir:
+                out = Path(tmp_dir) / "qiongli"
+
+                materialize_subject_package(
+                    MaterializeOptions(
+                        source=REPO_ROOT,
+                        out=out,
+                        subject=subject,
+                        flavor="desktop",
+                        coverage="focused",
+                    )
+                )
+
+                files = [path for path in out.rglob("*") if path.is_file()]
+                manifest = json.loads((out / "SUBJECT_MANIFEST.json").read_text(encoding="utf-8"))
+                refinement = manifest["adaptive_subject_refinement"]
+
+                self.assertLessEqual(len(files), 180)
+                self.assertFalse(refinement["enabled"])
+                self.assertNotIn("resource_index", refinement)
+                self.assertFalse((out / "subjects" / "catalog.yaml").exists())
+                self.assertFalse((out / "subjects" / "refinement-index.yaml").exists())
+
+    def test_non_core_full_package_disables_adaptive_refinement_without_resource_index(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out = Path(tmp_dir) / "qiongli-workflow"
+
+            materialize_subject_package(
+                MaterializeOptions(
+                    source=REPO_ROOT,
+                    out=out,
+                    subject="economics",
+                    flavor="full",
+                    coverage="focused",
+                )
+            )
+
+            manifest = json.loads((out / "SUBJECT_MANIFEST.json").read_text(encoding="utf-8"))
+            refinement = manifest["adaptive_subject_refinement"]
+
+            self.assertFalse(refinement["enabled"])
+            self.assertNotIn("resource_index", refinement)
+            self.assertFalse((out / "subjects" / "catalog.yaml").exists())
+
+    def test_non_core_materialization_ignores_payload_like_subject_tree(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            workflow = root / "qiongli-workflow"
+            (workflow / "skills" / "I_code").mkdir(parents=True)
+            (workflow / "VERSION").write_text("v9.9.9\n", encoding="utf-8")
+            (workflow / "SKILL.md").write_text("---\nname: qiongli\n---\n", encoding="utf-8")
+            (workflow / "skills-core.md").write_text("# Core\n", encoding="utf-8")
+            (workflow / "skills-summary.md").write_text("# Summary\n", encoding="utf-8")
+            (workflow / "skills" / "I_code" / "stats-engine.md").write_text(
+                "# Stats Engine\n\nCore stats guidance.\n",
+                encoding="utf-8",
+            )
+            (root / "skills").mkdir()
+            (root / "skills" / "registry.yaml").write_text(
+                "\n".join(
+                    [
+                        "skills:",
+                        "  - id: stats-engine",
+                        "    stage: I_code",
+                        "    version: \"9.9.9\"",
+                        "    file: skills/I_code/stats-engine.md",
+                        "    canonical: true",
+                        "    summary: Stats",
+                        "    display_name: Stats",
+                        "    when_to_use: Stats",
+                        "    inputs: [AnalysisPlan]",
+                        "    outputs: [StatsReport]",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            (root / "subjects" / "demo" / "qiongli-workflow" / "subjects").mkdir(parents=True)
+            (root / "subjects" / "demo" / "qiongli-workflow" / "subjects" / "catalog.yaml").write_text(
+                "subjects: {}\n",
+                encoding="utf-8",
+            )
+            (root / "subjects" / "catalog.yaml").write_text(
+                "\n".join(
+                    [
+                        "subjects:",
+                        "  demo:",
+                        "    display_name: Demo",
+                        "    package_goal: Demo",
+                        "    skill_groups:",
+                        "      - order: 1",
+                        "        heading: Demo",
+                        "        subheading: Demo",
+                        "        skill_refs: [stats-engine]",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            out = root / "out"
+
+            materialize_subject_package(
+                MaterializeOptions(source=root, out=out, subject="demo", flavor="full", coverage="focused")
+            )
+
+            self.assertTrue((out / "SKILL.md").exists())
+            self.assertFalse((out / "subjects" / "demo" / "qiongli-workflow" / "subjects").exists())
+
+    def test_core_full_refinement_resources_ignore_generated_subject_payloads(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            workflow = root / "qiongli-workflow"
+            (workflow / "skills" / "A").mkdir(parents=True)
+            (workflow / "VERSION").write_text("v9.9.9\n", encoding="utf-8")
+            (workflow / "SKILL.md").write_text("---\nname: qiongli\n---\n", encoding="utf-8")
+            (workflow / "skills-core.md").write_text("# Core\n", encoding="utf-8")
+            (workflow / "skills-summary.md").write_text("# Summary\n", encoding="utf-8")
+            (workflow / "skills" / "A" / "question-refiner.md").write_text(
+                "# Question Refiner\n\nCore question guidance.\n",
+                encoding="utf-8",
+            )
+            (root / "skills").mkdir()
+            (root / "skills" / "registry.yaml").write_text(
+                "\n".join(
+                    [
+                        "skills:",
+                        "  - id: question-refiner",
+                        "    stage: A",
+                        "    version: \"9.9.9\"",
+                        "    file: skills/A/question-refiner.md",
+                        "    canonical: true",
+                        "    summary: Questions",
+                        "    display_name: Questions",
+                        "    when_to_use: Questions",
+                        "    inputs: [Topic]",
+                        "    outputs: [Question]",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            (root / "subjects" / "core" / "complete" / "qiongli-workflow").mkdir(parents=True)
+            (root / "subjects" / "core" / "complete" / "qiongli-workflow" / "SKILL.md").write_text(
+                "generated payload\n",
+                encoding="utf-8",
+            )
+            (root / "subjects" / "catalog.yaml").write_text(
+                "\n".join(
+                    [
+                        "subjects:",
+                        "  core:",
+                        "    display_name: Core",
+                        "    package_goal: Core",
+                        "    skill_groups:",
+                        "      - order: 1",
+                        "        heading: Core",
+                        "        subheading: Core",
+                        "        skill_refs: [question-refiner]",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            out = root / "out"
+
+            materialize_subject_package(
+                MaterializeOptions(source=root, out=out, subject="core", flavor="full", coverage="complete")
+            )
+
+            self.assertTrue((out / "subjects" / "catalog.yaml").exists())
+            self.assertFalse((out / "subjects" / "core" / "complete" / "qiongli-workflow").exists())
+
     def test_materializes_economics_full_package_with_overlays(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             out = Path(tmp_dir) / "qiongli-workflow"

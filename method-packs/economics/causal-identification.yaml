@@ -1,0 +1,7 @@
+subject: economics
+method_lens: causal-identification
+activation: subject
+checks:
+  - State the identifying variation and exclusion or continuity assumptions.
+  - Distinguish reduced-form evidence, mechanism tests, and welfare interpretation.
+  - Probe placebo outcomes, manipulation, heterogeneous effects, and external validity.

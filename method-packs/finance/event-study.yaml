@@ -1,0 +1,7 @@
+subject: finance
+method_lens: event-study
+activation: method_only
+checks:
+  - Define event time, estimation window, event window, and benchmark model.
+  - Test sensitivity to overlapping events, clustering, and alternative windows.
+  - Report abnormal returns and cumulative abnormal returns separately.

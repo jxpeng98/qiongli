@@ -13,6 +13,7 @@ RELEASE_READY = LAYOUT.scripts / "release_ready.sh"
 RELEASE_PREFLIGHT = LAYOUT.scripts / "release_preflight.sh"
 RELEASE_POSTFLIGHT = LAYOUT.scripts / "release_postflight.sh"
 RELEASE_LOCAL_INSTALL_CHECK = LAYOUT.scripts / "release_local_install_check.py"
+BETA_SMOKE = REPO_ROOT / "tooling" / "scripts" / "run_beta_smoke.sh"
 PYPI_PREFLIGHT = LAYOUT.scripts / "pypi_preflight.sh"
 RELEASE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-automation.yml"
 INSTALL_CHECK_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "install-check.yml"
@@ -103,6 +104,16 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn("before tag creation", docs)
         self.assertIn("创建 tag 前", docs)
         self.assertIn("--resume-after-ready", docs)
+
+    def test_beta_smoke_uses_usable_rg_fallback(self) -> None:
+        content = BETA_SMOKE.read_text(encoding="utf-8")
+
+        self.assertIn("find_usable_rg()", content)
+        self.assertIn("type -P -a rg", content)
+        self.assertIn('"$candidate" --version >/dev/null 2>&1', content)
+        self.assertIn('RG_BIN="$(find_usable_rg || true)"', content)
+        self.assertIn('grep -q "$pattern"', content)
+        self.assertNotIn("command -v rg >/dev/null 2>&1", content)
 
     def test_publish_mode_allows_beta_release_from_dev_only(self) -> None:
         content = RELEASE_AUTOMATION.read_text(encoding="utf-8")

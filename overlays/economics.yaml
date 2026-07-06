@@ -1,0 +1,6 @@
+subject: economics
+resource_type: overlay
+guidance:
+  - Check that the empirical design links the policy, shock, or treatment to an explicit economic mechanism.
+  - Require identification assumptions, comparison groups, and timing to be stated before interpretation.
+  - Surface threats from anticipation, spillovers, selection, and weak counterfactual support.

@@ -147,6 +147,18 @@ Mode-aware expectations:
 - `systematic_review` / review-grade: at least two productive providers, no unresolved known-item misses, no zero-hit required concept blocks, and no weak screening readiness flag
 - `targeted_search`: single-provider coverage or zero-hit concept blocks are warnings, but the artifact must not be used later as evidence of exhaustive coverage
 
+### Coverage and access semantics
+
+Discovery coverage and full-text access coverage are separate:
+
+- `discovery coverage`: how broad and reproducible the metadata search was across providers, query variants, years, venues, document types, citation snowballing, and known-item recall.
+- `full-text access coverage`: how many sought reports have a controlled `retrieval_manifest.csv` status such as `retrieved_oa`, `retrieved_preprint`, `abstract_only`, or `not_retrieved:<reason>`.
+- `native_fulltext_queries`: platform-native LLM search queries that the active agent may execute to discover PDF, PMC, arXiv, repository, author-manuscript, or publisher full-text candidates. These outputs stay `candidate_only` until retrieval status is recorded.
+- `Zotero attachment verification`: local Zotero attachment metadata that can distinguish citation-only Zotero matches from records with a local or linked PDF attachment.
+- `evidence_limit`: what the workflow is allowed to claim from a record: `full_text`, `abstract_only`, `metadata_only`, or `unavailable`.
+
+No search provider, native LLM search tool, or local Zotero library proves absolute completeness. There is no absolute completeness proof for Stage B. Review-grade claims require a reproducible search log, deduplication, known-item recall checks, citation snowballing where appropriate, Zotero attachment verification where available, and retrieval status for every included or sought report.
+
 Provider JSON output can be materialized with `scripts/materialize_literature_search_bundle.py`, which writes `search_strategy.md`, `search_results.csv`, `search_log.md`, `dedup_log.csv`, and `search_diagnostics.md`.
 
 ---

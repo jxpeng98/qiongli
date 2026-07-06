@@ -16,6 +16,7 @@ This stage turns artifacts into a publishable narrative: outline → draft → c
 
 - `Q1` (question-to-method alignment): intro/method/results must answer the same RQ(s).
 - `Q2` (claim-evidence traceability): enforced via `F4` and `G3`.
+- Semantic gate report: update `quality-gate-report.md` with `q2_claim_evidence_traceability`; evidence must anchor central claims to the claim-evidence ledger, source notes, analysis outputs, citations, or explicit gap notes.
 
 ## Cross-task depth rules
 

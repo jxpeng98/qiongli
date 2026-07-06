@@ -25,7 +25,7 @@ test("searchArxiv queries the Atom endpoint and normalizes preprint results", as
               <author><name>Ada Lovelace</name></author>
               <author><name>Grace Hopper</name></author>
               <link href="http://arxiv.org/abs/2401.01234v2" rel="alternate" type="text/html" />
-              <link title="pdf" href="http://arxiv.org/pdf/2401.01234v2" rel="related" type="application/pdf" />
+              <link title="pdf" href="https://arxiv.org/pdf/2401.01234v2" rel="related" type="application/pdf" />
               <arxiv:doi>10.48550/arXiv.2401.01234</arxiv:doi>
               <category term="cs.AI" />
             </entry>
@@ -56,6 +56,11 @@ test("searchArxiv queries the Atom endpoint and normalizes preprint results", as
       doi: "10.48550/arXiv.2401.01234",
       url: "http://arxiv.org/abs/2401.01234v2",
       abstract: "Results are normalized from Atom XML.",
+      open_access_pdf_url: "https://arxiv.org/pdf/2401.01234v2",
+      access_url: "https://arxiv.org/pdf/2401.01234v2",
+      fulltext_status: "not_retrieved:oa_candidate",
+      evidence_limit: "abstract_only",
+      license: null,
       venue: "arXiv",
       document_type: "cs.AI",
       citation_count: null,
@@ -71,6 +76,27 @@ test("searchArxiv queries the Atom endpoint and normalizes preprint results", as
       verification: null
     }
   ]);
+});
+
+test("searchArxiv defaults max_results to 25 when no limit is provided", async () => {
+  let requestedUrl;
+  const fetchImpl = async (url) => {
+    requestedUrl = new URL(url);
+    return {
+      ok: true,
+      status: 200,
+      async text() {
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?><feed></feed>";
+      }
+    };
+  };
+
+  await searchArxiv({
+    query: "machine learning",
+    fetchImpl
+  });
+
+  assert.equal(requestedUrl.searchParams.get("max_results"), "25");
 });
 
 test("searchOpenAlex normalizes records and reconstructs inverted abstracts", async () => {
@@ -94,6 +120,10 @@ test("searchOpenAlex normalizes records and reconstructs inverted abstracts", as
                   display_name: "Journal of Tests"
                 },
                 landing_page_url: "https://example.test/paper"
+              },
+              best_oa_location: {
+                pdf_url: "https://example.org/paper.pdf",
+                license: "cc-by"
               },
               authorships: [
                 {
@@ -147,6 +177,11 @@ test("searchOpenAlex normalizes records and reconstructs inverted abstracts", as
       doi: "10.1000/Example",
       url: "https://example.test/paper",
       abstract: "Results are normalized",
+      open_access_pdf_url: "https://example.org/paper.pdf",
+      access_url: "https://example.org/paper.pdf",
+      fulltext_status: "not_retrieved:oa_candidate",
+      evidence_limit: "abstract_only",
+      license: "cc-by",
       venue: "Journal of Tests",
       document_type: "journal-article",
       citation_count: null,
@@ -162,6 +197,104 @@ test("searchOpenAlex normalizes records and reconstructs inverted abstracts", as
       verification: null
     }
   ]);
+});
+
+test("searchOpenAlex defaults per-page to 25 when no limit is provided", async () => {
+  let requestedUrl;
+  const fetchImpl = async (url) => {
+    requestedUrl = new URL(url);
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return { results: [] };
+      }
+    };
+  };
+
+  await searchOpenAlex({
+    query: "test query",
+    fetchImpl
+  });
+
+  assert.equal(requestedUrl.searchParams.get("per-page"), "25");
+});
+
+test("searchOpenAlex keeps OA landing URLs out of open_access_pdf_url", async () => {
+  const fetchImpl = async () => ({
+    ok: true,
+    status: 200,
+    async json() {
+      return {
+        results: [
+          {
+            id: "https://openalex.org/W124",
+            title: "OpenAlex OA Landing Paper",
+            publication_year: 2024,
+            primary_location: {
+              landing_page_url: "https://publisher.example.org/article"
+            },
+            best_oa_location: {
+              landing_page_url: "https://repository.example.org/item",
+              license: "cc-by"
+            },
+            open_access: {
+              oa_url: "https://repository.example.org/item"
+            },
+            abstract_inverted_index: {
+              Useful: [0],
+              abstract: [1]
+            }
+          }
+        ]
+      };
+    }
+  });
+
+  const response = await searchOpenAlex({
+    query: "oa landing query",
+    fetchImpl
+  });
+  const [result] = response.results;
+
+  assert.equal(result.open_access_pdf_url, null);
+  assert.equal(result.access_url, "https://repository.example.org/item");
+  assert.equal(result.fulltext_status, "not_retrieved:oa_candidate");
+  assert.equal(result.evidence_limit, "abstract_only");
+});
+
+test("searchOpenAlex does not treat DOI or OpenAlex ID as access candidates", async () => {
+  const fetchImpl = async () => ({
+    ok: true,
+    status: 200,
+    async json() {
+      return {
+        results: [
+          {
+            id: "https://openalex.org/W125",
+            doi: "https://doi.org/10.5555/metadata-only",
+            title: "OpenAlex Metadata Only Paper",
+            publication_year: 2024,
+            abstract_inverted_index: {
+              Metadata: [0],
+              only: [1]
+            }
+          }
+        ]
+      };
+    }
+  });
+
+  const response = await searchOpenAlex({
+    query: "metadata only query",
+    fetchImpl
+  });
+  const [result] = response.results;
+
+  assert.equal(result.url, "https://doi.org/10.5555/metadata-only");
+  assert.equal(result.access_url, null);
+  assert.equal(result.fulltext_status, "metadata_only");
+  assert.equal(result.evidence_limit, "abstract_only");
 });
 
 test("searchOpenAlex resolves DOI queries through the singleton work endpoint", async () => {
@@ -264,6 +397,9 @@ test("searchSemanticScholar sends optional API key header and normalizes results
               publicationTypes: ["JournalArticle"],
               externalIds: {
                 DOI: "https://doi.org/10.2000/Semantic"
+              },
+              openAccessPdf: {
+                url: "https://example.org/paper.pdf"
               }
             }
           ]
@@ -288,7 +424,7 @@ test("searchSemanticScholar sends optional API key header and normalizes results
   assert.equal(calls[0].url.searchParams.get("query"), "semantic query");
   assert.equal(calls[0].url.searchParams.get("limit"), "3");
   assert.equal(calls[0].url.searchParams.get("year"), "2021-2023");
-  assert.equal(calls[0].url.searchParams.get("fields"), "paperId,title,year,authors,abstract,url,venue,publicationTypes,externalIds");
+  assert.equal(calls[0].url.searchParams.get("fields"), "paperId,title,year,authors,abstract,url,venue,publicationTypes,externalIds,openAccessPdf");
   assert.equal(calls[0].options.headers["x-api-key"], "secret-api-key");
   assert.deepEqual(response.results, [
     {
@@ -298,6 +434,11 @@ test("searchSemanticScholar sends optional API key header and normalizes results
       doi: "10.2000/Semantic",
       url: "https://semanticscholar.org/paper/abc123",
       abstract: "Useful abstract",
+      open_access_pdf_url: "https://example.org/paper.pdf",
+      access_url: "https://example.org/paper.pdf",
+      fulltext_status: "not_retrieved:oa_candidate",
+      evidence_limit: "abstract_only",
+      license: null,
       venue: "Conference of Tests",
       document_type: "JournalArticle",
       citation_count: null,
@@ -313,6 +454,27 @@ test("searchSemanticScholar sends optional API key header and normalizes results
       verification: null
     }
   ]);
+});
+
+test("searchSemanticScholar defaults limit to 25 when no limit is provided", async () => {
+  const calls = [];
+  const fetchImpl = async (url, options = {}) => {
+    calls.push({ url: new URL(url), options });
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return { data: [] };
+      }
+    };
+  };
+
+  await searchSemanticScholar({
+    query: "semantic query",
+    fetchImpl
+  });
+
+  assert.equal(calls[0].url.searchParams.get("limit"), "25");
 });
 
 test("searchSemanticScholar paginates with offset when limit exceeds one page", async () => {
@@ -410,7 +572,7 @@ test("searchSemanticScholar runs title-match before regular search in title mode
   assert.equal(calls.length, 2);
   assert.equal(calls[0].url.pathname, "/graph/v1/paper/search/match");
   assert.equal(calls[0].url.searchParams.get("query"), "Attention Is All You Need");
-  assert.equal(calls[0].url.searchParams.get("fields"), "paperId,title,year,authors,abstract,url,venue,publicationTypes,externalIds");
+  assert.equal(calls[0].url.searchParams.get("fields"), "paperId,title,year,authors,abstract,url,venue,publicationTypes,externalIds,openAccessPdf");
   assert.equal(calls[0].options.headers["x-api-key"], "secret-api-key");
   assert.equal(calls[1].url.pathname, "/graph/v1/paper/search");
   assert.deepEqual(
@@ -601,6 +763,11 @@ test("searchCrossref sends polite email and normalizes bibliographic results", a
       doi: "10.4000/Crossref",
       url: "https://doi.org/10.4000/Crossref",
       abstract: "Crossref abstract",
+      open_access_pdf_url: null,
+      access_url: null,
+      fulltext_status: null,
+      evidence_limit: null,
+      license: null,
       venue: "Journal of Crossref Tests",
       document_type: "journal-article",
       citation_count: 7,
@@ -626,6 +793,27 @@ test("searchCrossref sends polite email and normalizes bibliographic results", a
       verification: null
     }
   ]);
+});
+
+test("searchCrossref defaults rows to 25 when no limit is provided", async () => {
+  let requestedUrl;
+  const fetchImpl = async (url) => {
+    requestedUrl = new URL(url);
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return { message: { items: [] } };
+      }
+    };
+  };
+
+  await searchCrossref({
+    query: "crossref query",
+    fetchImpl
+  });
+
+  assert.equal(requestedUrl.searchParams.get("rows"), "25");
 });
 
 test("searchCrossref resolves DOI queries through singleton work endpoint", async () => {
@@ -786,6 +974,11 @@ test("searchPubMed uses ESearch and ESummary and normalizes records", async () =
       doi: "10.5000/PubMed",
       url: "https://pubmed.ncbi.nlm.nih.gov/12345/",
       abstract: null,
+      open_access_pdf_url: null,
+      access_url: null,
+      fulltext_status: null,
+      evidence_limit: null,
+      license: null,
       venue: "Journal of PubMed Tests",
       document_type: "Journal Article",
       citation_count: null,
@@ -801,6 +994,32 @@ test("searchPubMed uses ESearch and ESummary and normalizes records", async () =
       verification: null
     }
   ]);
+});
+
+test("searchPubMed defaults retmax to 25 when no limit is provided", async () => {
+  const calls = [];
+  const fetchImpl = async (url) => {
+    const requestedUrl = new URL(url);
+    calls.push(requestedUrl);
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return {
+          esearchresult: {
+            idlist: []
+          }
+        };
+      }
+    };
+  };
+
+  await searchPubMed({
+    query: "pubmed query",
+    fetchImpl
+  });
+
+  assert.equal(calls[0].searchParams.get("retmax"), "25");
 });
 
 test("searchPubMed translates DOI queries into PubMed DOI field terms", async () => {
@@ -940,6 +1159,11 @@ test("normalizeResult normalizes DOI and preserves missing metadata as nulls and
       doi: "10.3000/Normalize",
       url: null,
       abstract: null,
+      open_access_pdf_url: null,
+      access_url: null,
+      fulltext_status: null,
+      evidence_limit: null,
+      license: null,
       venue: null,
       document_type: null,
       citation_count: null,

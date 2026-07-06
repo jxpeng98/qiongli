@@ -90,14 +90,13 @@ Use Case:
 - Optional: Queries the upstream latest release tag and determines if an upgrade is needed.
 
 ```bash
-qiongli check [--repo <owner/repo|url>] [--json] [--strict-network] [--offline]
+qiongli check [--repo <owner/repo|url>] [--json] [--strict-network]
 ```
 
 Key Flags:
 - `--repo`: Specify upstream (can be omitted, see "Upstream" section).
 - `--json`: Output JSON only (useful for CI/Scripts).
 - `--strict-network`: Return a failure code if upstream polling fails (defaults to warning and continuing).
-- `--offline`: Skip PyPI and upstream release checks; inspect local install surfaces only.
 
 `qiongli check` is plugin-aware. It reports `surface=plugin` for CLI-managed Codex/Claude Code/Antigravity local plugins, `surface=mcp` for Hermes or MCP-only managed configs, `surface=legacy_skill` for old global skill directories, and `surface=none` when no Qiongli surface is found. JSON output keeps the compatibility fields `installed`, `version`, `subject`, `coverage`, and `path`, and adds nested `plugin`, `skill`, and `mcp` objects for diagnostics. Plugin diagnostics include `active`, `enabled`, `plugin_id`, and `activation_detail` where the client CLI can be queried, so file installation can be distinguished from an enabled client plugin. Older managed installs that do not have a `SUBJECT_MANIFEST.json` or `SUBJECT` marker are reported as legacy `core` / `complete`.
 
@@ -175,7 +174,7 @@ Default behavior:
 - Refresh defaults to `qiongli install --target all --surface plugin --profile full --overwrite`. This is intentional: after the package manager updates the CLI package, the bundled payload is already local, so the refresh should not download another release archive.
 - `--dry-run` prints the detected channel and exact commands without executing them.
 - Without `--yes`, the command asks before running the package-manager update, then asks whether to refresh installed local plugins/assets from the new package.
-- `--no-refresh` skips the installed surface refresh, and `--skip-check` skips the final `qiongli check --offline`.
+- `--no-refresh` skips the installed surface refresh, and `--skip-check` skips the final `qiongli check`.
 
 Source checkouts do not self-modify. When source mode is detected, update with `git pull`, then run `qiongli install --overwrite` for the surfaces you want to refresh.
 
@@ -211,17 +210,31 @@ qiongli mcp config example --target hermes --json
 qiongli mcp wizard
 ```
 
-MCP tools exposed by the server:
+MCP tools exposed by the full Python server:
+- `qiongli_literature_status`
+- `qiongli_search_plan`
+- `qiongli_literature_search`
+- `qiongli_literature_export_evidence`
 - `qiongli_config_status`
 - `qiongli_save_provider_config`
-- `qiongli_collect_evidence`
+- `qiongli_configure_provider`
+- `qiongli_open_config_wizard`
 - `qiongli_list_provider_env`
 - `qiongli_test_provider`
-- `qiongli_configure_provider`
+- `qiongli_collect_evidence` - filesystem/builtin/external-command evidence adapter. Do not use it to judge OpenAlex/Semantic Scholar/Crossref/PubMed/arXiv provider config; direct provider names require `RESEARCH_MCP_<PROVIDER>_CMD`.
+- `qiongli_subject_status`
+- `qiongli_subject_update`
 - `qiongli_orchestrator_route`
 - `qiongli_orchestrator_doctor`
+- `qiongli_lifecycle_plan`
+- `qiongli_journal_fit_recommend`
 - `qiongli_task_plan`
 - `qiongli_task_run`
+
+#### Full-cycle preview tools
+
+- `qiongli_lifecycle_plan`: builds a preview stage-gate report for an existing paper project. It does not launch agents.
+- `qiongli_journal_fit_recommend`: ranks journals from an existing manuscript and local venue profiles. It blocks when manuscript evidence is missing.
 
 Default `stdio` mode is local and does not require a remote server. HTTP mode can also run locally; use a remote server only when the client cannot launch local MCP commands or when you need a managed shared endpoint. Codex, Claude Code, Antigravity, Hermes, or another local MCP client should call `qiongli_orchestrator_route` when deciding whether to upgrade from skill-only routing to full orchestrator tools. `qiongli_task_run` defaults to preview mode and launches local model CLIs only when the MCP caller explicitly sets JSON boolean `run_agents: true`. The tool accepts `guidance_mode: "off" | "read" | "propose" | "apply"`; preview responses echo the effective task-run arguments and report whether project guidance will be bootstrapped, but do not create files or launch agents.
 
@@ -264,6 +277,58 @@ qiongli install --parts mcp --target hermes
 For normal CLI/local plugin use, install Qiongli once and set subject behavior per project with `qiongli project ...`. Subject install flags are retained for legacy and advanced compatibility cases: focused Claude Desktop/Web ZIPs, deliberately narrow packages, release payloads, and install-surface testing.
 
 Subject packages are specialized installs, not reduced-quality cuts. Default install is `core/complete`. `--subject economics`, `--subject business`, `--subject finance`, `--subject political-economy`, and `--subject geoeconomics` mean complete specialized installs, not reduced packages. `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. Focused coverage selects the subject profile set and active effective skills for deliberate slim installs and Desktop/Web ZIPs. Current official subjects are `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and the named composite `economics-accounting`; `political-economy` and `geoeconomics` are independent subject choices, not a composite. Official composites are not arbitrary comma-separated stacking. Public Desktop ZIP subjects are `core`, `economics`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting`, with no standalone accounting Desktop ZIP in this phase. Change ordinary project subject behavior with `qiongli project set-subject`; switch installed subject or coverage only when you are intentionally refreshing a specialized package.
+
+#### Subject Expansion Gate
+
+Adaptive runtime subjects are not activated only because their content exists in the installed package. New subjects must pass the runtime subject gate before the router can suggest them automatically.
+
+Current runtime-enabled subjects use the runtime-enabled gate. For the
+business runtime check, use:
+
+```bash
+uv run python tooling/scripts/evaluate_subject_router.py \
+  --subject business \
+  --gate runtime-enabled \
+  --json
+```
+
+`eligible_for_runtime_enabled: true` means the subject has a passing fixture
+pack, runtime-enabled manifest status, and gate metrics that allow adaptive
+runtime suggestions.
+
+For future candidate subjects before runtime activation, use the eval-ready
+gate:
+
+```bash
+uv run python tooling/scripts/evaluate_subject_router.py \
+  --subject political-economy \
+  --gate eval-ready \
+  --json
+```
+
+`eligible_for_eval_ready: true` means the subject has a passing fixture pack and
+metadata that maintainers can review. It does not allow adaptive runtime
+suggestions. Political economy, geoeconomics, and economics-accounting remain
+future eval-ready candidates.
+
+For a pre-activation promotion review of a future eval-ready subject, use the
+promotion-ready gate:
+
+```bash
+uv run python tooling/scripts/evaluate_subject_router.py \
+  --subject political-economy \
+  --gate promotion-ready \
+  --json
+```
+
+`eligible_for_runtime_promotion: true` means the subject is still checked in as
+eval-ready, but the router evaluation passes when the harness simulates that
+subject as runtime-enabled. It does not activate the subject.
+
+When `--subject` and `--gate` are both set, JSON top-level `case_count`,
+`metrics`, and `threshold_failures` are scoped to that subject gate; the
+`subject_gate` object reports the gate eligibility decision. Only
+`eligible_for_runtime_enabled` represents runtime activation eligibility.
 
 In the full Python runtime, `qiongli install` defaults to `--profile full --surface plugin` from v1.9.0 onward. For Codex, the CLI writes a personal marketplace entry, places the plugin payload at `~/plugins/qiongli`, writes plugin `.mcp.json` that launches `qiongli mcp serve --transport stdio`, and runs `codex plugin add qiongli@personal` when the Codex CLI is available. For Claude Code, it writes a local marketplace under `~/.qiongli/plugins/claude-code`, places the plugin payload at `plugins/qiongli`, and runs `claude plugin marketplace add ...` plus `claude plugin install qiongli@qiongli-local --scope user` when the Claude CLI is available. For Antigravity, it writes a root `plugin.json` plugin bundle under `~/.qiongli/plugins/antigravity/qiongli`, writes the full MCP server config to the plugin root `mcp_config.json`, and runs `antigravity plugin install <path>` when available. With `--target all`, Codex/Claude Code/Antigravity use local plugins while Hermes receives managed full MCP client config. Marketplace-installed plugins stay on the lite no-Python path with the bundled Node literature provider. Use `--surface skills --profile partial` for the old skills-only layout. npm/npx defaults to skills and only writes plugin-lite assets when explicitly requested with `--surface plugin` or `--surface both`.
 

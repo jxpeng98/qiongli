@@ -413,6 +413,12 @@ artifact_types:
     produced_by: [fatal-flaw-detector]
     consumed_by: [manuscript-architect]
 
+  - name: JournalFitRecommendation
+    description: "Manuscript-first journal fit ranking with venue classes, risks, and required revisions"
+    format: markdown
+    produced_by: [journal-fit-recommender]
+    consumed_by: [submission-packager]
+
   # ── I_code outputs ──
   - name: CodeSpec
     description: "Strict constraint set and requirement specification for code"

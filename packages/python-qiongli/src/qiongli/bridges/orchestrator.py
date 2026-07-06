@@ -58,6 +58,7 @@ from .project_manifest import (
     update_project_manifest,
 )
 from .subject_runtime import implicit_project_manifest_state, resolve_project_subject
+from .subject_refinement import infer_subject_refinement
 from .boundary_questions import (
     BOUNDARY_ARTIFACT,
     build_boundary_question_plan,
@@ -4792,6 +4793,23 @@ Domain profile guidance:
                 + str(project_subject.get("summary", "")).strip()
                 + "\n"
             )
+        subject_refinement = task_packet.get("subject_refinement", {})
+        subject_refinement_section = ""
+        if isinstance(subject_refinement, dict) and subject_refinement:
+            subject_refinement_section = (
+                "\nRuntime subject refinement:\n"
+                + str(subject_refinement.get("summary", "")).strip()
+                + "\n"
+                + "Decision: "
+                + str(subject_refinement.get("decision", ""))
+                + "; loaded_resources: "
+                + str(subject_refinement.get("loaded_resources", {}))
+                + "; resource_activation_plan: "
+                + str(subject_refinement.get("resource_activation_plan", {}))
+                + "; signals: "
+                + str(subject_refinement.get("signals", []))
+                + "\n"
+            )
         code_lane_rules = self._build_code_lane_rules(task_packet, "draft")
         code_lane_section = ""
         if code_lane_rules:
@@ -4941,7 +4959,7 @@ MCP evidence snapshot:
 
 Required skill cards:
 {self._format_skill_context(skill_cards)}
-{domain_section}{code_lane_section}{code_lane_template_section}{targeted_section}{academic_context_section}{self_critique_section}{boundary_section}{writing_harness_section}{project_subject_section}{local_guidance_section}
+{domain_section}{code_lane_section}{code_lane_template_section}{targeted_section}{academic_context_section}{self_critique_section}{boundary_section}{writing_harness_section}{project_subject_section}{subject_refinement_section}{local_guidance_section}
 
 Additional context:
 {extra_context or "No additional context."}
@@ -5051,6 +5069,23 @@ Domain profile guidance:
                 + str(project_subject.get("summary", "")).strip()
                 + "\n"
             )
+        subject_refinement = task_packet.get("subject_refinement", {})
+        subject_refinement_section = ""
+        if isinstance(subject_refinement, dict) and subject_refinement:
+            subject_refinement_section = (
+                "\nRuntime subject refinement:\n"
+                + str(subject_refinement.get("summary", "")).strip()
+                + "\n"
+                + "Decision: "
+                + str(subject_refinement.get("decision", ""))
+                + "; loaded_resources: "
+                + str(subject_refinement.get("loaded_resources", {}))
+                + "; resource_activation_plan: "
+                + str(subject_refinement.get("resource_activation_plan", {}))
+                + "; signals: "
+                + str(subject_refinement.get("signals", []))
+                + "\n"
+            )
         code_lane_rules = self._build_code_lane_rules(task_packet, "review")
         code_lane_section = ""
         if code_lane_rules:
@@ -5121,7 +5156,7 @@ MCP evidence snapshot:
 
 Required skill cards:
 {self._format_skill_context(skill_cards)}
-{domain_section}{code_lane_section}{code_lane_review_section}{targeted_section}{self_critique_section}{boundary_section}{writing_harness_section}{project_subject_section}{local_guidance_section}
+{domain_section}{code_lane_section}{code_lane_review_section}{targeted_section}{self_critique_section}{boundary_section}{writing_harness_section}{project_subject_section}{subject_refinement_section}{local_guidance_section}
 
 Review checklist:
 1. Output path coverage against required_outputs.
@@ -6300,21 +6335,40 @@ Return sections:
             if guidance_state.mode == "off"
             else load_project_manifest(cwd)
         )
-        project_subject = resolve_project_subject(manifest_state, requested_domain=domain)
-        effective_domain = (
-            project_subject.domain
-            if str(domain or "auto").strip().lower() == "auto"
-            else domain
+        subject_refinement = infer_subject_refinement(
+            {
+                **packet,
+                "context": context or "",
+                "venue": venue or "",
+            },
+            manifest_state=manifest_state,
+            standards_dir=self.standards_dir,
         )
-        domain_context = self._load_domain_profile_context(effective_domain)
+        subject_refinement_packet = subject_refinement.to_packet()
+        project_subject = resolve_project_subject(manifest_state, requested_domain=domain)
+        requested_domain = str(domain or "auto").strip().lower()
+        effective_domain = (
+            domain
+            if requested_domain != "auto"
+            else (
+                subject_refinement_packet.get("domain")
+                if subject_refinement_packet.get("decision")
+                in {"suggest_subject", "confirm_subject", "lock_subject"}
+                else project_subject.domain
+            )
+        )
+        domain_context = self._load_domain_profile_context(str(effective_domain or "auto"))
         packet["local_guidance"] = guidance_state.to_packet()
         packet.update(self._build_domain_packet_fields(domain_context))
+        packet["requested_domain"] = requested_domain
         packet["project_subject"] = project_subject.to_packet()
+        packet["subject_refinement"] = subject_refinement_packet
         packet["domain"] = (
             str(domain_context.get("domain", effective_domain or "auto")).strip()
             or "auto"
         )
         routing_notes.append(project_subject.summary)
+        routing_notes.append(subject_refinement_packet["summary"])
         for warning in guidance_state.warnings or []:
             routing_notes.append(f"Local guidance warning: {warning}")
         functional_handoff_trace = [

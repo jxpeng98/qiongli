@@ -22,6 +22,13 @@ qiongli project status --project-dir .
 
 If the manifest is missing, Qiongli runs with implicit `active_subject: auto`: it uses core guidance, infers temporary subject and method lenses from the current task, and writes auditable proposals before changing project-local state. Persistent subject changes come from explicit project commands or accepted guidance proposals.
 
+When a user or client confirms or locks a runtime subject, Qiongli writes a
+managed project fragment at `.qiongli/guidance.d/subject-runtime.md`. Future
+task runs read that fragment through the local guidance layer, so the installed
+adaptive core workflow can keep using core guidance while applying the confirmed
+subject layer for this project. `qiongli subject reset --cwd .` disables the
+managed subject fragment and returns the project to adaptive core inference.
+
 The installed skill directory is still `qiongli-workflow`, and each client install has one active package at a time. Subject-specific installs remain important for Desktop ZIPs, focused packages, compatibility testing, and release payloads.
 
 | Situation | Command | Meaning |

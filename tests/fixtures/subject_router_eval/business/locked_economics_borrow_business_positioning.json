@@ -1,0 +1,56 @@
+{
+  "id": "business_locked_economics_borrow_positioning",
+  "subject_under_test": "business",
+  "tags": [
+    "business",
+    "locked_subject"
+  ],
+  "description": "Locked economics project may borrow business journal positioning without switching subject.",
+  "request": "Keep the paper locked to economics, but borrow business journal positioning for AMJ and clarify the managerial implication without changing the primary subject.",
+  "manifest": {
+    "active_subject": "economics",
+    "subject_mode": "locked",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "keep_locked",
+    "primary_subject": "economics",
+    "suggest_subjects": [],
+    "allowed_neighbor_subjects": [
+      "business"
+    ],
+    "forbidden_subjects": [],
+    "method_lenses": [
+      "business-positioning"
+    ]
+  },
+  "gate_expected": {
+    "promotion-ready": {
+      "decision": "keep_locked",
+      "primary_subject": "economics",
+      "suggest_subjects": [],
+      "allowed_neighbor_subjects": [
+        "business"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "business-positioning"
+      ]
+    },
+    "runtime-enabled": {
+      "decision": "keep_locked",
+      "primary_subject": "economics",
+      "suggest_subjects": [],
+      "allowed_neighbor_subjects": [
+        "business"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "business-positioning"
+      ]
+    }
+  }
+}

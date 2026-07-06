@@ -1,0 +1,7 @@
+subject: finance
+method_lens: asset-pricing
+activation: method_only
+checks:
+  - Specify factor model, portfolio sorting rule, rebalancing frequency, and weighting scheme.
+  - Check exposure stability, missing-return handling, delisting returns, and benchmark robustness.
+  - Separate expected-return tests from risk-adjusted performance claims.

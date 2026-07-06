@@ -78,6 +78,40 @@ Package version format follows [PEP 440](https://peps.python.org/pep-0440/), whi
 
 The default release smoke tier is intentionally conservative: builtin literature smoke + `doctor`. If you also want the heavier `parallel` / `task-run` profile-path checks before publishing, add `--maintainer-smoke`.
 
+Optional full-cycle workflow harness:
+
+```bash
+python3 tooling/scripts/run_full_cycle_workflow_harness.py \
+  --fixture tests/fixtures/full_cycle_harness/clean_empirical \
+  --json-report /tmp/qiongli-full-cycle-harness.json
+```
+
+This is preview-only. It verifies stage gates, drift checks, and journal-fit
+readiness without launching local agents.
+
+### Optional subject runtime local-agent smoke
+
+The default release smoke remains preview-first and does not launch local
+agents. Before a release candidate, maintainers can additionally verify the
+adaptive subject runtime with the deterministic checks and, when local runtime
+validation is desired, an opt-in real local-agent run:
+
+```bash
+uv run python tooling/scripts/run_subject_runtime_smoke.py --json
+uv run python tooling/scripts/evaluate_subject_router.py --json
+QIONGLI_SMOKE_RUN_AGENTS=1 \
+uv run python tooling/scripts/run_subject_runtime_smoke.py \
+  --mode local-agent \
+  --case confirmed_finance_guidance_loaded \
+  --json
+```
+
+The local-agent command is opt-in because it launches local runtime agents. Run
+it only in an isolated environment before release when local runtime validation
+is desired. It verifies that confirmed subject guidance is loaded through
+`.qiongli/guidance.d/subject-runtime.md`, that a local guidance trace is
+written, and that Qiongli-visible paths remain inside the isolated smoke root.
+
 Release doc policy:
 
 - stable releases must be summarized in `CHANGELOG.md`; postflight turns that changelog section into GitHub Release notes with a release-category summary and download guide
@@ -100,6 +134,47 @@ Use `release_ready.sh` when you want to prepare and verify locally without creat
 ```
 
 `release_ready.sh` runs version sync, strict validator, repository unit tests, release-tier smoke, release note evidence updates, package build checks, `twine check`, and wheel install smoke. It does not tag or push. Publish mode owns commit, branch push, the branch CI/check gate, tag push, tag publish wait, GitHub Release creation, plugin artifact upload, and acceptance receipt generation.
+
+Subject runtime gate checks:
+
+```bash
+uv run python tooling/scripts/evaluate_subject_router.py --json
+uv run python tooling/scripts/evaluate_subject_router.py \
+  --subject accounting \
+  --gate runtime-enabled \
+  --json
+uv run python tooling/scripts/evaluate_subject_router.py \
+  --subject finance \
+  --gate runtime-enabled \
+  --json
+uv run python tooling/scripts/evaluate_subject_router.py \
+  --subject economics \
+  --gate runtime-enabled \
+  --json
+uv run python tooling/scripts/evaluate_subject_router.py \
+  --subject business \
+  --gate runtime-enabled \
+  --json
+```
+
+The default router evaluation and accounting, finance, economics, and business
+runtime-enabled gates must pass for release. Promotion-ready remains a
+pre-activation review gate for future eval-ready subjects; it should pass
+before those subjects move to a separate runtime activation PR.
+
+Political economy, geoeconomics, and economics-accounting remain future
+eval-ready candidates.
+
+For subject-scoped JSON, top-level `case_count`, `metrics`, and
+`threshold_failures` are filtered to the requested subject gate. Read
+`subject_gate.eligible_for_eval_ready` or
+`subject_gate.eligible_for_runtime_promotion` or
+`subject_gate.eligible_for_runtime_enabled` for the gate eligibility decision.
+Only `eligible_for_runtime_enabled` represents runtime activation eligibility.
+Treat the command exit code as authoritative: default eval exits 0; accounting,
+finance, economics, and business runtime-enabled checks should exit 0; and
+future candidate eval-ready checks still exit 0 when their fixture packs and
+metadata are ready for review.
 
 For beta releases where GitHub Actions may exceed the default local wait window, extend the hard wait instead of using a soft publish gate:
 

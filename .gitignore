@@ -11,7 +11,6 @@ docs/.vitepress/cache/
 output/test_runtime/
 .worktrees/
 .superpowers/
-docs/superpowers/
 
 # Local agent artifacts generated during `rsk` install tests
 .claude/

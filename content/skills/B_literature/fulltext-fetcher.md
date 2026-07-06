@@ -49,6 +49,11 @@ locator gaps, and mark OA/manual follow-up candidates. Actual downloads usually
 come from an external resolver such as Zotero, Unpaywall, CORE, arXiv, PMC, or a
 publisher-hosted OA page.
 
+Search providers can identify full-text candidates, but they do not prove that
+the full text was retrieved or read. Treat `open_access_pdf_url` and
+`access_url` as retrieval candidates until `retrieval_manifest.csv` records
+`retrieved_oa`, `retrieved_preprint`, or a controlled `not_retrieved:*` status.
+
 Do not overwrite `search_strategy.md`, `search_results.csv`, or
 `bibliography.bib`. If retrieval evidence changes eligibility, update
 `screening/full_text.md` and let `paper-screener` reconcile the decision.

@@ -1,0 +1,20 @@
+{
+  "name": "no_subject_core_only",
+  "manifest": null,
+  "args": {
+    "task_id": "F3",
+    "paper_type": "empirical",
+    "topic": "revise introduction",
+    "context": "Tighten the framing and improve transitions.",
+    "domain": "auto",
+    "guidance_mode": "propose",
+    "run_agents": false
+  },
+  "expected": {
+    "decision": "no_subject",
+    "primary_subject": "auto",
+    "effective_domain": "auto",
+    "resource_levels": ["core_only"],
+    "run_agents": false
+  }
+}

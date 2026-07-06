@@ -21,6 +21,18 @@ class SkillSetScorecardTests(unittest.TestCase):
 
         self.assertIn(f"Canonical registered skills: {skill_count}", scorecard)
         self.assertIn("Executable Q1-Q4 semantic gates", scorecard)
+        self.assertIn("Q1-Q4 semantic gate report", scorecard)
+        self.assertIn("semantic_checks", scorecard)
+        self.assertIn("quality-gate-report.md", scorecard)
+        self.assertIn("Real-Agent Smoke Roadmap", scorecard)
+        self.assertIn("maintainer-only opt-in", scorecard)
+        self.assertIn("isolated HOME", scorecard)
+        self.assertIn("CODEX_HOME", scorecard)
+        self.assertIn("CLAUDE_CODE_HOME", scorecard)
+        self.assertIn("ANTIGRAVITY_HOME", scorecard)
+        self.assertIn("Stage C/F/G/I", scorecard)
+        self.assertIn("not a default CI gate", scorecard)
+        self.assertIn("Recommended Next Optimization", scorecard)
         self.assertIn("Economics and finance method packs", scorecard)
         self.assertIn("Offline eval expansion", scorecard)
 

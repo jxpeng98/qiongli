@@ -26,6 +26,22 @@ class MCPProviderDocsTests(unittest.TestCase):
         ):
             self.assertIn(token, content)
 
+    def test_rigorous_search_docs_define_non_exhaustive_coverage_metrics(self) -> None:
+        content = (REPO_ROOT / "docs" / "advanced" / "rigorous-literature-search.md").read_text(
+            encoding="utf-8"
+        )
+
+        for phrase in (
+            "No provider can prove absolute completeness",
+            "known-item recall",
+            "duplicate saturation",
+            "full-text access coverage",
+            "native_fulltext_queries",
+            "Zotero attachment verification",
+            "evidence_limit",
+        ):
+            self.assertIn(phrase, content)
+
     def test_cross_platform_mcp_docs_include_literature_search_plan(self) -> None:
         content = (REPO_ROOT / "docs" / "advanced" / "cross-platform-mcp.md").read_text(
             encoding="utf-8"
@@ -46,6 +62,26 @@ class MCPProviderDocsTests(unittest.TestCase):
             "user_corpus",
         ):
             self.assertIn(token, content)
+
+    def test_cli_reference_lists_literature_status_search_plan_and_search(self) -> None:
+        content = (REPO_ROOT / "docs" / "reference" / "cli.md").read_text(encoding="utf-8")
+
+        for tool in (
+            "qiongli_literature_status",
+            "qiongli_search_plan",
+            "qiongli_literature_search",
+            "qiongli_literature_export_evidence",
+        ):
+            self.assertIn(tool, content)
+
+    def test_cross_platform_docs_separate_collect_evidence_from_provider_status(self) -> None:
+        content = (REPO_ROOT / "docs" / "advanced" / "cross-platform-mcp.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("External evidence adapter", content)
+        self.assertIn("Do not use `qiongli_collect_evidence` to judge", content)
+        self.assertIn("RESEARCH_MCP_<PROVIDER>_CMD", content)
 
     def test_provider_setup_docs_explain_hybrid_search_router(self) -> None:
         docs = {

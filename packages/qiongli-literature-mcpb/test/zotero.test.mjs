@@ -216,6 +216,102 @@ test("normalizeZoteroSourceResults maps compact local items to provider results"
   assert.equal(results[0].zotero.item_key, "ABC123");
 });
 
+test("normalizeZoteroSourceResults maps attachment summaries to full-text hints", () => {
+  const results = normalizeZoteroSourceResults([
+    {
+      item_key: "ABC123",
+      title: "Local Paper",
+      doi: "10.1000/local",
+      year: 2024,
+      item_type: "journalArticle",
+      select_uri: "zotero://select/library/items/ABC123",
+      attachments: [
+        {
+          attachment_key: "ATT123",
+          title: "Local Paper PDF",
+          filename: "local-paper.pdf",
+          mime_type: "application/pdf",
+          link_mode: "imported_file",
+          select_uri: "zotero://select/library/items/ATT123",
+          local_file_available: true,
+          path: "/zotero-fixture/storage/ATT123/local-paper.pdf"
+        }
+      ]
+    }
+  ]);
+
+  assert.equal(results[0].fulltext_status, "retrieved_zotero");
+  assert.equal(results[0].evidence_limit, "full_text");
+  assert.equal(results[0].access_url, "zotero://select/library/items/ATT123");
+  assert.equal(results[0].zotero.fulltext_status, "retrieved_zotero");
+  assert.equal(results[0].zotero.fulltext_attachment_key, "ATT123");
+  assert.equal(results[0].zotero.attachments.length, 1);
+  assert.equal(results[0].zotero.attachments[0].attachment_key, "ATT123");
+  assert.equal(Object.hasOwn(results[0].zotero.attachments[0], "path"), false);
+});
+
+test("normalizeZoteroSourceResults does not treat local non-fulltext attachments as full text", () => {
+  const results = normalizeZoteroSourceResults([
+    {
+      item_key: "ABC123",
+      title: "Local Paper",
+      abstractNote: "This item has only a figure attachment.",
+      attachments: [
+        {
+          attachment_key: "IMG123",
+          filename: "figure.png",
+          mime_type: "image/png",
+          select_uri: "zotero://select/library/items/IMG123",
+          local_file_available: true
+        }
+      ]
+    }
+  ]);
+
+  assert.equal(results[0].fulltext_status, "not_retrieved:zotero_attachment_candidate");
+  assert.equal(results[0].evidence_limit, "abstract_only");
+  assert.equal(results[0].zotero.fulltext_status, "not_retrieved:zotero_attachment_candidate");
+  assert.equal(results[0].zotero.fulltext_attachment_key, null);
+});
+
+test("normalizeZoteroSourceResults sanitizes local attachment URLs", () => {
+  const results = normalizeZoteroSourceResults([
+    {
+      item_key: "ABC123",
+      title: "Local Paper",
+      attachments: [
+        {
+          attachment_key: "FILEURL",
+          filename: "file-url.pdf",
+          mime_type: "application/pdf",
+          url: "file:///Users/person/Zotero/storage/FILEURL/file-url.pdf",
+          local_file_available: true
+        },
+        {
+          attachment_key: "UNIXPATH",
+          filename: "unix-path.pdf",
+          mime_type: "application/pdf",
+          url: "/Users/person/Zotero/storage/UNIXPATH/unix-path.pdf",
+          local_file_available: true
+        },
+        {
+          attachment_key: "REMOTE",
+          filename: "remote.pdf",
+          mime_type: "application/pdf",
+          url: "https://example.test/remote.pdf",
+          local_file_available: false
+        }
+      ]
+    }
+  ]);
+
+  assert.deepEqual(results[0].zotero.attachments.map((attachment) => attachment.url), [
+    "",
+    "",
+    "https://example.test/remote.pdf"
+  ]);
+});
+
 test("annotateLocalZoteroMatches marks external DOI matches without dropping results", () => {
   const annotated = annotateLocalZoteroMatches({
     externalResults: [
@@ -236,6 +332,42 @@ test("annotateLocalZoteroMatches marks external DOI matches without dropping res
   assert.equal(annotated[0].local_zotero_match.item_key, "ABC123");
   assert.equal(annotated[0].local_zotero_match.match_basis, "doi");
   assert.equal(annotated[1].local_zotero_match, undefined);
+});
+
+test("annotateLocalZoteroMatches includes match confidence and attachment status", () => {
+  const annotated = annotateLocalZoteroMatches({
+    externalResults: [
+      { title: "External Paper", doi: "10.1000/match", year: 2024, provider: "openalex" }
+    ],
+    zoteroResults: [
+      {
+        title: "Local Paper",
+        doi: "10.1000/match",
+        year: 2024,
+        provider: "zotero",
+        fulltext_status: "retrieved_zotero",
+        zotero: {
+          item_key: "ABC123",
+          select_uri: "zotero://select/library/items/ABC123",
+          fulltext_status: "retrieved_zotero",
+          attachments: [
+            {
+              attachment_key: "ATT123",
+              mime_type: "application/pdf",
+              local_file_available: true
+            }
+          ]
+        }
+      }
+    ]
+  });
+
+  assert.equal(annotated[0].local_zotero_match.item_key, "ABC123");
+  assert.equal(annotated[0].local_zotero_match.match_basis, "doi");
+  assert.equal(annotated[0].local_zotero_match.match_confidence, 1);
+  assert.equal(annotated[0].local_zotero_match.fulltext_status, "retrieved_zotero");
+  assert.equal(annotated[0].local_zotero_match.attachments.length, 1);
+  assert.equal(annotated[0].local_zotero_match.attachments[0].attachment_key, "ATT123");
 });
 
 test("verifyRecordWithCrossref fills blank fields from DOI metadata", async () => {

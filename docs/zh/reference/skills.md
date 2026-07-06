@@ -52,7 +52,7 @@
 | `F_writing` | 结构、结果解释、表格、图、摘要 | 8 | “如何把分析结果写成论文？” |
 | `G_compliance` | PRISMA、报告规范、学术语气 | 3 | “论文是否已经满足提交前规范？” |
 | `J_proofread` | AI 痕迹检查、人声化改写、相似度、终稿校对 | 4 | “怎么在投稿前去 AI 痕迹并做终稿校对？” |
-| `H_submission` | 投稿包、回复审稿、模拟评审 | 7 | “投稿前后怎么打包和应对审稿？” |
+| `H_submission` | 投稿包、回复审稿、模拟评审 | 8 | “投稿前后怎么打包和应对审稿？” |
 | `I_code` | 学术代码、统计、可复现性 | 10 | “研究代码如何实现、审查、复现？” |
 | `K_presentation` | 学术报告、幻灯片规划、Slidev、Beamer | 4 | “怎么把论文变成一个可讲、可答辩的学术报告？” |
 | `Z_cross_cutting` | 元数据、多模型协作、自我批判 | 5 | “哪些能力是跨阶段通用的？” |
@@ -172,6 +172,7 @@
 | `rebuttal-assistant` | 审稿回复助手 | 当你需要把审稿意见转成逐点回复矩阵时使用。 | `ResponseToReviewers`, `ResponseLetter` |
 | `peer-review-simulation` | 同行评审模拟 | 当你想在投稿前做多 persona 压力测试时使用。 | `PeerReviewSimulation` |
 | `fatal-flaw-detector` | 致命缺陷检测 | 当你想先做一轮 desk-reject 风险扫描时使用。 | `FatalFlawAnalysis` |
+| `journal-fit-recommender` | 期刊匹配推荐 | 当已有稿件需要先读全文、证据和方法，再反向推荐投稿期刊时使用。 | `JournalFitRecommendation` |
 | `reviewer-empathy-checker` | 审稿沟通校准 | 当回复内容技术上正确，但语气可能过硬或防御性过强时使用。 | `EmpathyCheck` |
 | `credit-taxonomy-helper` | CRediT贡献声明 | 当投稿需要 CRediT 作者贡献声明或需理清署名伦理时使用。 | `CRediTStatement` |
 | `limitation-auditor` | 研究局限审计 | 完稿前梳理研究的缺陷、数据局限及其应对机制时使用。 | `LimitationSection`, `MitigationStrategy` |

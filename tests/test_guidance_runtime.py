@@ -7,7 +7,9 @@ from pathlib import Path
 from unittest import mock
 
 from bridges.guidance_runtime import (
+    _load_subject_evidence,
     _proposal_text,
+    _subject_promotion_recommendation,
     apply_guidance_proposal,
     create_guidance_fragment,
     effective_guidance,
@@ -18,6 +20,7 @@ from bridges.guidance_runtime import (
     write_guidance_trace,
 )
 from bridges.project_manifest import load_project_manifest
+from bridges.subject_guidance import write_subject_guidance
 
 
 class GuidanceRuntimeTests(unittest.TestCase):
@@ -109,6 +112,35 @@ class GuidanceRuntimeTests(unittest.TestCase):
             self.assertEqual(state.source_order[-2:], ["project-fragment", "project-fragment"])
             self.assertEqual(state.guidance_sources[-1]["path"], ".qiongli/guidance.d/writing-style.md")
 
+    def test_effective_guidance_reads_materialized_subject_runtime_fragment(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            init_project_guidance(root)
+            write_subject_guidance(
+                root,
+                active_subject="finance",
+                subject_mode="confirmed",
+                lifecycle_action="confirm",
+                source="test",
+                run_id="subject-run",
+                method_lenses=["event-study"],
+                resource_activation_plan={
+                    "levels": ["core", "subject_overlay", "subject_skill", "method_pack"]
+                },
+            )
+
+            state = effective_guidance(root, mode="read")
+
+            self.assertIn(".qiongli/guidance.d/subject-runtime.md", state.guidance_files_read)
+            subject_sources = [
+                source
+                for source in state.guidance_sources
+                if source["path"] == ".qiongli/guidance.d/subject-runtime.md"
+            ]
+            self.assertEqual(len(subject_sources), 1)
+            self.assertEqual(subject_sources[0]["kind"], "project-fragment")
+            self.assertIn("active_subject: finance", state.guidance_context)
+
     def test_effective_guidance_off_mode_skips_guidance_reads(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
@@ -195,9 +227,13 @@ class GuidanceRuntimeTests(unittest.TestCase):
                 "review.md",
                 "merged_analysis.md",
                 "validator_gate.json",
+                "subject_refinement.json",
                 "guidance_update_proposal.md",
             ):
                 self.assertTrue((run_dir / filename).is_file(), filename)
+            subject_refinement = json.loads((run_dir / "subject_refinement.json").read_text(encoding="utf-8"))
+            self.assertEqual(subject_refinement["decision"], "no_subject")
+            self.assertEqual(trace["subject_refinement"], subject_refinement)
             index_rows = [
                 json.loads(line)
                 for line in (root / ".qiongli" / "trace" / "index.jsonl")
@@ -206,6 +242,56 @@ class GuidanceRuntimeTests(unittest.TestCase):
             ]
             self.assertEqual(index_rows[0]["run_id"], "run-123")
             self.assertEqual(index_rows[0]["missing_outputs"], ["manuscript/manuscript.md"])
+            self.assertEqual(index_rows[0]["subject_refinement"], subject_refinement)
+
+    def test_guidance_trace_records_materialized_subject_runtime_fragment(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            init_project_guidance(root)
+            write_subject_guidance(
+                root,
+                active_subject="finance",
+                subject_mode="confirmed",
+                lifecycle_action="confirm",
+                source="test",
+                run_id="subject-run",
+                method_lenses=["event-study"],
+                resource_activation_plan={
+                    "levels": ["core", "subject_overlay", "subject_skill", "method_pack"]
+                },
+            )
+            state = effective_guidance(root, mode="propose", run_id="subject-trace")
+
+            trace = write_guidance_trace(
+                project_root=root,
+                guidance_state=state,
+                task_packet={
+                    "task_id": "C1",
+                    "paper_type": "empirical",
+                    "topic": "earnings announcement returns",
+                },
+                draft_content="Use an event-study design.",
+                review_content="",
+                merged_analysis="",
+                validator_gate={"passed": True, "found": [], "missing": [], "checked": 0},
+                applied=False,
+            )
+
+            subject_source = {
+                "kind": "project-fragment",
+                "path": ".qiongli/guidance.d/subject-runtime.md",
+                "label": "Project Guidance Fragment: subject-runtime.md",
+            }
+            self.assertIn(".qiongli/guidance.d/subject-runtime.md", trace["guidance_files_read"])
+            self.assertIn(subject_source, trace["guidance_sources"])
+            index_rows = [
+                json.loads(line)
+                for line in (root / ".qiongli" / "trace" / "index.jsonl")
+                .read_text(encoding="utf-8")
+                .splitlines()
+            ]
+            self.assertIn(".qiongli/guidance.d/subject-runtime.md", index_rows[0]["guidance_files_read"])
+            self.assertIn(subject_source, index_rows[0]["guidance_sources"])
 
     def test_guidance_trace_records_project_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -287,6 +373,7 @@ class GuidanceRuntimeTests(unittest.TestCase):
                         "",
                         "```yaml",
                         "active_subject: finance",
+                        "subject_mode: suggested",
                         "method_lenses:",
                         "  - event-study",
                         "strictness: high",
@@ -307,12 +394,43 @@ class GuidanceRuntimeTests(unittest.TestCase):
             self.assertEqual(result["manifest_update"]["path"], ".qiongli/guidance_manifest.yaml")
             self.assertEqual(
                 result["manifest_update"]["fields"],
-                ["active_subject", "method_lenses", "strictness"],
+                ["active_subject", "method_lenses", "strictness", "subject_mode"],
             )
             self.assertEqual(manifest["manifest"]["active_subject"], "finance")
+            self.assertEqual(manifest["manifest"]["subject_mode"], "suggested")
             self.assertEqual(manifest["manifest"]["method_lenses"], ["event-study"])
             self.assertEqual(manifest["manifest"]["strictness"], "high")
             self.assertIn("Prefer event-study language for finance papers", guidance_text)
+
+    def test_apply_mode_subject_only_proposal_updates_manifest_without_noop_guidance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            init_project_guidance(root)
+            state = effective_guidance(root, mode="apply", run_id="subject-apply-run")
+
+            trace = write_guidance_trace(
+                project_root=root,
+                guidance_state=state,
+                task_packet={
+                    "task_id": "C1",
+                    "paper_type": "empirical",
+                    "topic": "earnings announcement returns",
+                    "context": "event study abnormal returns from CRSP for Journal of Finance",
+                },
+                draft_content="Use an event window before estimating the market reaction.",
+                review_content="",
+                merged_analysis="",
+                validator_gate={"passed": True, "found": [], "missing": [], "checked": 0},
+                applied=True,
+            )
+
+            manifest = load_project_manifest(root).to_packet()
+            guidance_text = (root / ".qiongli" / "local_guidance.md").read_text(encoding="utf-8")
+            self.assertTrue(trace["applied_guidance_update"])
+            self.assertEqual(manifest["manifest"]["active_subject"], "finance")
+            self.assertEqual(manifest["manifest"]["subject_mode"], "suggested")
+            self.assertNotIn("No guidance changes proposed from this run.", guidance_text)
+            self.assertNotIn("Applied Proposal: subject-apply-run", guidance_text)
 
     def test_apply_guidance_proposal_no_structured_manifest_change_keeps_manifest_auto(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -415,7 +533,42 @@ class GuidanceRuntimeTests(unittest.TestCase):
             self.assertIn("project-local", text)
             self.assertIn("## Conflict Check", text)
 
-    def test_guidance_trace_proposal_includes_finance_manifest_suggestion(self) -> None:
+    def test_guidance_trace_proposal_borrows_method_lens_without_manifest_switch(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            init_project_guidance(root)
+            state = effective_guidance(root, mode="propose", run_id="borrow-run")
+
+            write_guidance_trace(
+                project_root=root,
+                guidance_state=state,
+                task_packet={
+                    "task_id": "C1",
+                    "paper_type": "empirical",
+                    "topic": "policy announcement effects",
+                    "context": "Use an event study design.",
+                },
+                draft_content="Estimate the announcement window.",
+                review_content="",
+                merged_analysis="",
+                validator_gate={"passed": True, "found": [], "missing": [], "checked": 0},
+                applied=False,
+            )
+
+            proposal = root / ".qiongli" / "trace" / "runs" / "borrow-run" / "guidance_update_proposal.md"
+            text = proposal.read_text(encoding="utf-8")
+            self.assertIn("## Subject Refinement Decision", text)
+            self.assertIn("- decision: `borrow_lens`", text)
+            self.assertIn("- mode: `auto`", text)
+            self.assertIn("- active_subject: `auto`", text)
+            self.assertIn("- primary_subject: `auto`", text)
+            self.assertIn("### Borrowed Lenses", text)
+            self.assertIn("event-study", text)
+            self.assertIn("## Proposed Manifest Changes", text)
+            self.assertIn("No structured manifest change proposed.", text)
+            self.assertNotIn("active_subject: finance", text)
+
+    def test_guidance_trace_proposal_includes_suggested_finance_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
             init_project_guidance(root)
@@ -427,8 +580,8 @@ class GuidanceRuntimeTests(unittest.TestCase):
                 task_packet={
                     "task_id": "C1",
                     "paper_type": "empirical",
-                    "topic": "earnings announcement event study",
-                    "context": "check leakage around disclosure timing",
+                    "topic": "earnings announcement returns",
+                    "context": "event study abnormal returns from CRSP for Journal of Finance",
                 },
                 draft_content="Use an event window before estimating the market reaction.",
                 review_content="",
@@ -439,11 +592,258 @@ class GuidanceRuntimeTests(unittest.TestCase):
 
             proposal = root / ".qiongli" / "trace" / "runs" / "finance-run" / "guidance_update_proposal.md"
             text = proposal.read_text(encoding="utf-8")
-            self.assertIn("## Proposed Manifest Changes", text)
-            self.assertIn("```yaml\nactive_subject: finance\nmethod_lenses:\n  - event-study\n```", text)
+            self.assertIn("## Subject Refinement Decision", text)
+            self.assertIn("- decision: `suggest_subject`", text)
+            self.assertIn("- mode: `suggested`", text)
+            self.assertIn("- active_subject: `auto`", text)
+            self.assertIn("- primary_subject: `finance`", text)
+            self.assertIn("```yaml\nactive_subject: finance\nsubject_mode: suggested\nmethod_lenses:\n  - event-study\n```", text)
             self.assertIn("## Manifest Evidence", text)
-            self.assertIn("- confidence: 0.7", text)
-            self.assertIn("- evidence: earnings announcement event study", text)
+            self.assertIn("- confidence: 0.85", text)
+            self.assertIn("- evidence: empirical earnings announcement returns", text)
+            self.assertIn("abnormal returns", text)
+
+    def test_repeated_subject_suggestions_write_memory_without_manifest_update(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            init_project_guidance(root)
+            task_packet = {
+                "task_id": "C1",
+                "paper_type": "empirical",
+                "topic": "earnings announcement returns",
+                "context": "event study abnormal returns from CRSP for Journal of Finance",
+            }
+
+            first_state = effective_guidance(root, mode="propose", run_id="finance-memory-1")
+            write_guidance_trace(
+                project_root=root,
+                guidance_state=first_state,
+                task_packet=task_packet,
+                draft_content="Use an event window before estimating the market reaction.",
+                review_content="",
+                merged_analysis="",
+                validator_gate={"passed": True, "found": [], "missing": [], "checked": 0},
+                applied=False,
+            )
+            second_state = effective_guidance(root, mode="apply", run_id="finance-memory-2")
+            write_guidance_trace(
+                project_root=root,
+                guidance_state=second_state,
+                task_packet=task_packet,
+                draft_content="Use an event window before estimating the market reaction.",
+                review_content="",
+                merged_analysis="",
+                validator_gate={"passed": True, "found": [], "missing": [], "checked": 0},
+                applied=True,
+            )
+
+            memory_path = root / ".qiongli" / "trace" / "subject_evidence.json"
+            self.assertTrue(memory_path.is_file())
+            memory = json.loads(memory_path.read_text(encoding="utf-8"))
+            finance_memory = memory["subjects"]["finance"]
+            self.assertEqual(finance_memory["suggestion_count"], 2)
+            self.assertEqual(finance_memory["last_decision"], "suggest_subject")
+            self.assertEqual(finance_memory["last_run_id"], "finance-memory-2")
+            self.assertTrue(finance_memory["signals"])
+
+            proposal = (
+                root
+                / ".qiongli"
+                / "trace"
+                / "runs"
+                / "finance-memory-2"
+                / "guidance_update_proposal.md"
+            )
+            proposal_text = proposal.read_text(encoding="utf-8")
+            self.assertIn("## Subject Confirmation Proposal", proposal_text)
+            self.assertIn("subject_mode: suggested", proposal_text)
+            self.assertIn("confirm finance", proposal_text)
+            manifest = load_project_manifest(root).to_packet()
+            self.assertNotEqual(manifest["manifest"]["active_subject"], "finance")
+
+    def test_guidance_trace_preserves_subject_lifecycle_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            init_project_guidance(root)
+            memory_path = root / ".qiongli" / "trace" / "subject_evidence.json"
+            memory_path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "1.0",
+                        "subjects": {
+                            "finance": {
+                                "suggestion_count": 1,
+                                "last_decision": "suggest_subject",
+                            }
+                        },
+                        "dismissed_subjects": {
+                            "finance": {
+                                "source": "cli",
+                                "run_id": "dismiss-run",
+                                "created_at": "2026-07-01T00:00:00+00:00",
+                                "last_suggestion_count": 1,
+                            }
+                        },
+                        "lifecycle_events": [
+                            {
+                                "action": "dismiss",
+                                "subject": "finance",
+                                "source": "cli",
+                                "run_id": "dismiss-run",
+                                "created_at": "2026-07-01T00:00:00+00:00",
+                            }
+                        ],
+                        "future_field": {"keep": True},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            state = effective_guidance(root, mode="propose", run_id="finance-lifecycle")
+
+            write_guidance_trace(
+                project_root=root,
+                guidance_state=state,
+                task_packet={
+                    "task_id": "C1",
+                    "paper_type": "empirical",
+                    "topic": "earnings announcement returns",
+                    "context": "event study abnormal returns from CRSP for Journal of Finance",
+                },
+                draft_content="Use an event window before estimating the market reaction.",
+                review_content="",
+                merged_analysis="",
+                validator_gate={"passed": True, "found": [], "missing": [], "checked": 0},
+                applied=False,
+            )
+
+            memory = json.loads(memory_path.read_text(encoding="utf-8"))
+            self.assertEqual(memory["subjects"]["finance"]["suggestion_count"], 2)
+            self.assertEqual(memory["dismissed_subjects"]["finance"]["last_suggestion_count"], 1)
+            self.assertEqual(memory["lifecycle_events"][0]["action"], "dismiss")
+            self.assertEqual(memory["future_field"], {"keep": True})
+
+    def test_dismissed_subject_recommendation_is_suppressed_until_new_evidence(self) -> None:
+        recommendation = _subject_promotion_recommendation(
+            {
+                "subjects": {"finance": {"suggestion_count": 2}},
+                "dismissed_subjects": {
+                    "finance": {
+                        "source": "cli",
+                        "run_id": "run-123",
+                        "created_at": "2026-07-01T00:00:00+00:00",
+                        "last_suggestion_count": 2,
+                    }
+                },
+            },
+            {
+                "decision": "suggest_subject",
+                "primary_subject": "finance",
+                "confidence": 0.85,
+            },
+        )
+
+        self.assertEqual(recommendation["status"], "dismissed")
+        self.assertEqual(recommendation["subject"], "finance")
+        self.assertEqual(recommendation["active_subject"], "finance")
+        self.assertFalse(recommendation["write_manifest"])
+        self.assertEqual(recommendation["dismissed_at"], "2026-07-01T00:00:00+00:00")
+        self.assertEqual(recommendation["dismissed_run_id"], "run-123")
+
+    def test_dismissed_subject_recommendation_reopens_after_new_evidence(self) -> None:
+        recommendation = _subject_promotion_recommendation(
+            {
+                "subjects": {"finance": {"suggestion_count": 3}},
+                "dismissed_subjects": {
+                    "finance": {
+                        "source": "cli",
+                        "run_id": "run-123",
+                        "created_at": "2026-07-01T00:00:00+00:00",
+                        "last_suggestion_count": 2,
+                    }
+                },
+            },
+            {
+                "decision": "suggest_subject",
+                "primary_subject": "finance",
+                "confidence": 0.85,
+            },
+        )
+
+        self.assertEqual(recommendation["status"], "recommend_confirmation")
+        self.assertEqual(recommendation["subject"], "finance")
+
+    def test_invalid_lifecycle_state_shapes_warn_and_normalize(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            paths = init_project_guidance(root)
+            memory_path = root / ".qiongli" / "trace" / "subject_evidence.json"
+            memory_path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "1.0",
+                        "subjects": {},
+                        "dismissed_subjects": ["finance"],
+                        "lifecycle_events": {"action": "dismiss"},
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            memory = _load_subject_evidence(paths)
+
+            self.assertEqual(memory["dismissed_subjects"], {})
+            self.assertEqual(memory["lifecycle_events"], [])
+            warnings = memory.get("warnings", [])
+            self.assertTrue(any("dismissed_subjects" in warning for warning in warnings))
+            self.assertTrue(any("lifecycle_events" in warning for warning in warnings))
+
+    def test_malformed_subject_evidence_count_does_not_abort_trace_write(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            init_project_guidance(root)
+            memory_path = root / ".qiongli" / "trace" / "subject_evidence.json"
+            memory_path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "1.0",
+                        "subjects": {
+                            "finance": {
+                                "suggestion_count": "not-an-int",
+                                "last_decision": "suggest_subject",
+                            }
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            state = effective_guidance(root, mode="propose", run_id="malformed-memory")
+
+            trace = write_guidance_trace(
+                project_root=root,
+                guidance_state=state,
+                task_packet={
+                    "task_id": "C1",
+                    "paper_type": "empirical",
+                    "topic": "earnings announcement returns",
+                    "context": "event study abnormal returns from CRSP for Journal of Finance",
+                },
+                draft_content="Use an event window before estimating the market reaction.",
+                review_content="",
+                merged_analysis="",
+                validator_gate={"passed": True, "found": [], "missing": [], "checked": 0},
+                applied=False,
+            )
+
+            run_dir = root / ".qiongli" / "trace" / "runs" / "malformed-memory"
+            self.assertEqual(trace["run_id"], "malformed-memory")
+            self.assertTrue((run_dir / "subject_refinement.json").is_file())
+            self.assertTrue((root / ".qiongli" / "trace" / "index.jsonl").is_file())
+            memory = json.loads(memory_path.read_text(encoding="utf-8"))
+            self.assertEqual(memory["subjects"]["finance"]["suggestion_count"], 1)
+            self.assertIsInstance(memory["subjects"]["finance"]["suggestion_count"], int)
+            self.assertTrue(
+                any("suggestion_count" in warning for warning in memory.get("warnings", []))
+            )
 
     def test_guidance_trace_proposal_skips_structured_manifest_when_evidence_is_weak(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -478,13 +878,17 @@ class GuidanceRuntimeTests(unittest.TestCase):
             {"passed": True, "found": [], "missing": [], "checked": 0},
             False,
             {
+                "decision": "suggest_subject",
+                "mode": "suggested",
                 "active_subject": "finance",
+                "primary_subject": "finance",
                 "confidence": 0.7,
                 "evidence": ["portfolio returns"],
+                "summary": "Finance subject suggested.",
             },
         )
 
-        self.assertIn("```yaml\nactive_subject: finance\n```", text)
+        self.assertIn("```yaml\nactive_subject: finance\nsubject_mode: suggested\n```", text)
         self.assertNotIn("method_lenses:", text)
 
     def test_guidance_trace_summary_returns_recent_index_rows(self) -> None:

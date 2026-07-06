@@ -1,0 +1,23 @@
+{
+  "id": "economics_method_only_borrow",
+  "subject_under_test": "economics",
+  "tags": ["economics", "method_only_borrow"],
+  "description": "Economics remains primary while borrowing financial market measurement language.",
+  "request": "I need a development economics study on credit access after a banking reform, with household welfare outcomes, quasi-experimental identification, and market-based measures of local credit supply.",
+  "manifest": {
+    "active_subject": "auto",
+    "subject_mode": "auto",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "recommend",
+    "primary_subject": "economics",
+    "suggest_subjects": ["economics"],
+    "allowed_neighbor_subjects": ["finance"],
+    "forbidden_subjects": [],
+    "method_lenses": ["causal-identification"]
+  }
+}

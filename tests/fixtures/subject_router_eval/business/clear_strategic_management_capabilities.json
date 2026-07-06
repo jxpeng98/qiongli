@@ -1,0 +1,64 @@
+{
+  "id": "business_clear_strategic_management_capabilities",
+  "subject_under_test": "business",
+  "tags": [
+    "business",
+    "clear_positive"
+  ],
+  "description": "Strategic management manuscript with dynamic capabilities, sustained competitive advantage, venue, and theory contribution signals.",
+  "request": "Frame a Strategic Management Journal manuscript on dynamic capabilities, sustained competitive advantage, organizational routines, and strategy mechanism as a management theory contribution with explicit boundary conditions.",
+  "manifest": {
+    "active_subject": "auto",
+    "subject_mode": "auto",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "recommend",
+    "primary_subject": "business",
+    "suggest_subjects": [
+      "business"
+    ],
+    "forbidden_subjects": [],
+    "method_lenses": [
+      "business-positioning"
+    ]
+  },
+  "gate_expected": {
+    "eval-ready": {
+      "decision": "recommend",
+      "primary_subject": "business",
+      "suggest_subjects": [
+        "business"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "business-positioning"
+      ]
+    },
+    "promotion-ready": {
+      "decision": "recommend",
+      "primary_subject": "business",
+      "suggest_subjects": [
+        "business"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "business-positioning"
+      ]
+    },
+    "runtime-enabled": {
+      "decision": "recommend",
+      "primary_subject": "business",
+      "suggest_subjects": [
+        "business"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "business-positioning"
+      ]
+    }
+  }
+}

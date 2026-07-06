@@ -1,0 +1,6 @@
+subject: finance
+resource_type: overlay
+guidance:
+  - Check that the research question names the financial market, instrument, or firm outcome.
+  - Require data definitions for returns, spreads, liquidity, or portfolio construction.
+  - Surface identification risks from confounded announcements, benchmark choice, and look-ahead bias.

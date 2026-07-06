@@ -53,6 +53,7 @@ class HybridSearchRouterTests(unittest.TestCase):
                 "call qiongli_search_plan",
                 "call qiongli_literature_search",
                 "execute platform-native search",
+                "execute platform-native full-text candidate search",
                 "merge/dedupe/search_log",
             ],
         )
@@ -88,6 +89,39 @@ class HybridSearchRouterTests(unittest.TestCase):
         )
         self.assertIn("call qiongli_literature_search", [step["action"] for step in plan["execution_sequence"]])
         self.assertNotIn("execute platform-native search", [step["action"] for step in plan["execution_sequence"]])
+
+    def test_native_fulltext_queries_are_separate_candidate_discovery(self) -> None:
+        plan = build_hybrid_search_plan(
+            {
+                "query": "AI feedback in education",
+                "platform": "codex",
+                "native_search_available": True,
+                "native_search_tools": ["codex_web_search"],
+                "search_mode": "review",
+            },
+            provider_capability_mode="provider_connected",
+            provider_status={"openalex": "configured", "arxiv": "configured"},
+        )
+
+        self.assertEqual(plan["search_execution_mode"], "hybrid_search")
+        self.assertEqual(len(plan["native_search_queries"]), 1)
+        self.assertEqual(len(plan["native_fulltext_queries"]), 1)
+        fulltext_query = plan["native_fulltext_queries"][0]
+        self.assertEqual(fulltext_query["tool"], "codex_web_search")
+        self.assertEqual(fulltext_query["purpose"], "fulltext_candidate_discovery")
+        self.assertEqual(fulltext_query["candidate_status"], "candidate_only")
+        self.assertEqual(fulltext_query["provenance_label"], "native:codex_web_search")
+        self.assertIn("PDF", fulltext_query["query"])
+        self.assertIn("full text", fulltext_query["query"])
+        self.assertEqual(
+            plan["native_fulltext_candidate_schema"]["required"],
+            ["query_id", "source_agent", "url", "title", "candidate_status", "retrieved_at"],
+        )
+        self.assertIn(
+            "Use native_fulltext_queries only to discover candidate URLs; do not mark full text as retrieved from search snippets.",
+            plan["agent_instructions"],
+        )
+        self.assertIn("candidate_only", plan["merge_policy"]["fulltext_candidate_records"])
 
     def test_strategy_only_with_native_search_uses_native_only_mode(self) -> None:
         plan = build_hybrid_search_plan(

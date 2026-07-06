@@ -25,6 +25,13 @@ REQUIRED_METHOD_FIELDS = {
     "failure_modes",
     "minimum_report_fields",
 }
+ENHANCED_METHOD_FIELDS = {
+    "canonical_references",
+    "gate_relevance",
+    "diagnostic_artifacts",
+    "failure_triggers",
+}
+QUALITY_GATES = {"Q1", "Q2", "Q3", "Q4"}
 DEFAULT_PROFILE_NAMES = ("economics", "finance")
 
 
@@ -55,6 +62,21 @@ def audit_domain_profile(path: Path) -> DomainMethodPackAuditResult:
                     f"{path}: {method_name} missing or empty required method field: "
                     f"{field_name}"
                 )
+        for field_name in sorted(ENHANCED_METHOD_FIELDS):
+            if field_name in {"canonical_references", "diagnostic_artifacts"}:
+                if not _is_non_empty_object_list(method.get(field_name)):
+                    errors.append(
+                        f"{path}: {method_name} missing or empty required method field: "
+                        f"{field_name}"
+                    )
+            elif not _is_non_empty_string_list(method.get(field_name)):
+                errors.append(
+                    f"{path}: {method_name} missing or empty required method field: "
+                    f"{field_name}"
+                )
+        _validate_gate_relevance(path, method_name, method.get("gate_relevance"), errors)
+        _validate_canonical_references(path, method_name, method.get("canonical_references"), errors)
+        _validate_diagnostic_artifacts(path, method_name, method.get("diagnostic_artifacts"), errors)
 
     return DomainMethodPackAuditResult(errors=errors)
 
@@ -80,6 +102,47 @@ def _load_profile(path: Path, errors: list[str]) -> dict[str, Any] | None:
 
 def _is_non_empty_string_list(value: Any) -> bool:
     return isinstance(value, list) and any(isinstance(item, str) and item.strip() for item in value)
+
+
+def _is_non_empty_object_list(value: Any) -> bool:
+    return isinstance(value, list) and any(isinstance(item, dict) and item for item in value)
+
+
+def _validate_gate_relevance(path: Path, method_name: str, value: Any, errors: list[str]) -> None:
+    if not isinstance(value, list):
+        return
+    for gate in value:
+        if gate not in QUALITY_GATES:
+            errors.append(f"{path}: {method_name} gate_relevance contains unsupported gate: {gate}")
+
+
+def _validate_canonical_references(path: Path, method_name: str, value: Any, errors: list[str]) -> None:
+    if not isinstance(value, list):
+        return
+    for index, reference in enumerate(value, start=1):
+        if not isinstance(reference, dict):
+            errors.append(f"{path}: {method_name} canonical_references[{index}] must be an object")
+            continue
+        if not isinstance(reference.get("citation_key"), str) or not reference["citation_key"].strip():
+            errors.append(f"{path}: {method_name} canonical_references[{index}] missing citation_key")
+        if not isinstance(reference.get("role"), str) or not reference["role"].strip():
+            errors.append(f"{path}: {method_name} canonical_references[{index}] missing role")
+
+
+def _validate_diagnostic_artifacts(path: Path, method_name: str, value: Any, errors: list[str]) -> None:
+    if not isinstance(value, list):
+        return
+    for index, artifact in enumerate(value, start=1):
+        if not isinstance(artifact, dict):
+            errors.append(f"{path}: {method_name} diagnostic_artifacts[{index}] must be an object")
+            continue
+        artifact_path = artifact.get("artifact")
+        if not isinstance(artifact_path, str) or "RESEARCH/[topic]/" not in artifact_path:
+            errors.append(
+                f"{path}: {method_name} diagnostic_artifacts[{index}] must name a RESEARCH/[topic]/ artifact"
+            )
+        if not isinstance(artifact.get("required_for"), str) or not artifact["required_for"].strip():
+            errors.append(f"{path}: {method_name} diagnostic_artifacts[{index}] missing required_for")
 
 
 def _default_profile_paths() -> list[Path]:

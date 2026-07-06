@@ -18,6 +18,7 @@ for import_root in (PYTHON_SOURCE_ROOT, REPO_ROOT):
 
 from qiongli.source_layout import RepoLayout
 from qiongli.subject_materializer import MaterializeOptions, materialize_subject_package, validate_subject_catalog
+from qiongli.bridges.subject_contracts import load_runtime_subject_contracts
 
 
 EXCLUDED_NAMES = {
@@ -58,6 +59,12 @@ PYTHON_PAYLOAD_EXTRA_EXCLUDES = {
 GENERATED_PACKAGE_DIRS = ("skills", "templates", "standards", "roles", "venue-profiles")
 GENERATED_PACKAGE_FILES = ("skills-core.md", "skills-summary.md")
 GENERATED_PACKAGE_EXCLUDED_NAMES = set(GENERATED_PACKAGE_DIRS) | set(GENERATED_PACKAGE_FILES)
+RUNTIME_SUBJECT_RESOURCE_FIELDS = (
+    "domain_profile",
+    "overlay",
+    "subject_skill",
+    "evaluation_pack",
+)
 
 
 @dataclass(frozen=True)
@@ -146,6 +153,12 @@ def _compare_files(left: Path, right: Path, label: str) -> list[AuditIssue]:
     if _hash_file(left) != _hash_file(right):
         issues.append(AuditIssue(label, f"content mismatch: {left} != {right}"))
     return issues
+
+
+def _compare_paths(left: Path, right: Path, label: str) -> list[AuditIssue]:
+    if left.is_dir() or right.is_dir():
+        return _compare_trees(left, right, label)
+    return _compare_files(left, right, label)
 
 
 def _copy_path(src: Path, dest: Path, *, extra_excluded_names: set[str] | None = None) -> None:
@@ -303,6 +316,48 @@ def _audit_generated_skill_package(root: Path, generated: Path, label: str) -> l
     return issues
 
 
+def _runtime_subject_resource_paths(root: Path) -> list[Path]:
+    contracts = load_runtime_subject_contracts(
+        RepoLayout(root).subjects,
+        recursive=False,
+    )
+    resources: set[Path] = set()
+    for contract in contracts.values():
+        if contract.activation_status != "runtime_enabled":
+            continue
+        for field in RUNTIME_SUBJECT_RESOURCE_FIELDS:
+            resource = getattr(contract, field, "")
+            if resource:
+                resources.add(Path(resource))
+        for config in contract.method_lenses.values():
+            resource = config.get("resource")
+            if isinstance(resource, str) and resource:
+                resources.add(Path(resource))
+    return sorted(resources)
+
+
+def _runtime_resource_excluded_names(root: Path, top_level: str) -> set[str]:
+    excluded: set[str] = set()
+    for rel_path in _runtime_subject_resource_paths(root):
+        parts = rel_path.parts
+        if len(parts) > 1 and parts[0] == top_level:
+            excluded.add(parts[1])
+    return excluded
+
+
+def _audit_runtime_subject_resources(root: Path, target_root: Path, label: str) -> list[AuditIssue]:
+    issues: list[AuditIssue] = []
+    for rel_path in _runtime_subject_resource_paths(root):
+        issues.extend(
+            _compare_paths(
+                root / rel_path,
+                target_root / rel_path,
+                f"{label} {rel_path.as_posix()} vs source",
+            )
+        )
+    return issues
+
+
 def audit(root: Path) -> list[AuditIssue]:
     root = root.resolve()
     layout = RepoLayout(root)
@@ -334,12 +389,14 @@ def audit(root: Path) -> list[AuditIssue]:
             "skills": layout.skills,
             "subjects": layout.subjects,
         }
+        extra_excludes = set(PYTHON_PAYLOAD_EXTRA_EXCLUDES.get(dir_name, set()))
+        extra_excludes.update(_runtime_resource_excluded_names(root, dir_name))
         issues.extend(
             _compare_trees(
                 source_dirs[dir_name],
                 python_payload / dir_name,
                 f"python payload {dir_name}/ vs source {dir_name}/",
-                extra_excluded_names=PYTHON_PAYLOAD_EXTRA_EXCLUDES.get(dir_name),
+                extra_excluded_names=extra_excludes,
             )
         )
     issues.extend(
@@ -347,6 +404,13 @@ def audit(root: Path) -> list[AuditIssue]:
             layout.content / "distribution" / "plugins.yaml",
             python_payload / "content" / "distribution" / "plugins.yaml",
             "python payload plugin distribution metadata vs source",
+        )
+    )
+    issues.extend(
+        _audit_runtime_subject_resources(
+            root,
+            python_payload,
+            "python payload runtime subject resource",
         )
     )
 
@@ -371,12 +435,14 @@ def audit(root: Path) -> list[AuditIssue]:
         }
         src = runtime_sources[dir_name]
         if src.exists():
+            extra_excludes = set(NPM_RUNTIME_EXTRA_EXCLUDES.get(dir_name, set()))
+            extra_excludes.update(_runtime_resource_excluded_names(root, dir_name))
             issues.extend(
                 _compare_trees(
                     src,
                     npm_runtime / dir_name,
                     f"npm runtime {dir_name}/ vs source {dir_name}/",
-                    extra_excluded_names=NPM_RUNTIME_EXTRA_EXCLUDES.get(dir_name),
+                    extra_excluded_names=extra_excludes,
                 )
             )
     for file_name in NPM_RUNTIME_FILES:
@@ -388,6 +454,13 @@ def audit(root: Path) -> list[AuditIssue]:
         src = runtime_files[file_name]
         if src.exists():
             issues.extend(_compare_files(src, npm_runtime / file_name, f"npm runtime {file_name} vs source"))
+    issues.extend(
+        _audit_runtime_subject_resources(
+            root,
+            npm_runtime,
+            "npm runtime subject resource",
+        )
+    )
     issues.extend(_compare_files(root / "LICENSE", root / "packages" / "npm-qiongli" / "LICENSE", "npm LICENSE vs source"))
 
     package_json = root / "packages" / "npm-qiongli" / "package.json"

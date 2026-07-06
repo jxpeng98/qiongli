@@ -58,7 +58,7 @@ class RepoLayout:
 
     @property
     def skills(self) -> Path:
-        return self._content_path("skills")
+        return self._content_path("skills", marker="registry.yaml")
 
     @property
     def templates(self) -> Path:
@@ -244,7 +244,9 @@ class RepoLayout:
             return self.skills_summary
         return self.root / rel
 
-    def _content_path(self, name: str, *, legacy_name: str | None = None) -> Path:
+    def _content_path(self, name: str, *, legacy_name: str | None = None, marker: str | None = None) -> Path:
         content_path = self.content / name
         legacy_path = self.root / (legacy_name or name)
+        if marker and (legacy_path / marker).exists() and not (content_path / marker).exists():
+            return legacy_path
         return content_path if content_path.exists() else legacy_path

@@ -78,6 +78,38 @@
 
 默认的 release smoke tier 是保守配置：内置 literature smoke + `doctor`。如果你还想在发版前补跑更重的 `parallel` / `task-run` profile 路径检查，再显式加 `--maintainer-smoke`。
 
+可选的 full-cycle workflow harness：
+
+```bash
+python3 tooling/scripts/run_full_cycle_workflow_harness.py \
+  --fixture tests/fixtures/full_cycle_harness/clean_empirical \
+  --json-report /tmp/qiongli-full-cycle-harness.json
+```
+
+这是 preview-only 检查。它会验证 stage gates、drift checks 和 journal-fit
+readiness，且不会启动本地 agents。
+
+### 可选的 subject runtime 本地 agent smoke
+
+默认 release smoke 仍然是 preview-first，不会启动本地 agent。发布候选版本前，
+维护者可以先运行确定性的默认检查；当需要本地 runtime 验证时，再显式 opt in
+运行一次真实本地 agent smoke 来验证 adaptive subject runtime：
+
+```bash
+uv run python tooling/scripts/run_subject_runtime_smoke.py --json
+uv run python tooling/scripts/evaluate_subject_router.py --json
+QIONGLI_SMOKE_RUN_AGENTS=1 \
+uv run python tooling/scripts/run_subject_runtime_smoke.py \
+  --mode local-agent \
+  --case confirmed_finance_guidance_loaded \
+  --json
+```
+
+这个 local-agent 命令必须显式 opt in，因为它会启动本地 runtime agents。只有在
+需要本地 runtime 验证时，才应在发版前的隔离环境中运行它。它会验证已确认
+subject 的 `.qiongli/guidance.d/subject-runtime.md` 被真实 task run 加载、
+local guidance trace 已写入，并且 Qiongli 可见路径仍在隔离 smoke root 内。
+
 当前 release 文档策略：
 
 - stable 正式版统一维护在 `CHANGELOG.md`；postflight 会把对应 changelog 段落拼成包含 release 分类说明和下载指南的 GitHub Release notes

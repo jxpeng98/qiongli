@@ -9,7 +9,6 @@ from unittest import mock
 
 import yaml
 
-from qiongli import __version__ as QIONGLI_VERSION
 from qiongli.local_plugin_installer import (
     LocalPluginOptions,
     _build_materialize_source,
@@ -19,9 +18,11 @@ from qiongli.local_plugin_installer import (
     resolve_claude_plugin_paths,
     resolve_codex_plugin_paths,
 )
+from qiongli.source_layout import RepoLayout
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+WORKFLOW_VERSION = (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(encoding="utf-8").strip().lstrip("v")
 
 
 class LocalPluginInstallerTests(unittest.TestCase):
@@ -140,6 +141,26 @@ class LocalPluginInstallerTests(unittest.TestCase):
             self.assertEqual(qiongli_entry["category"], "Education")
             self.assertEqual(qiongli_entry["metadata"], {"managedBy": "qiongli-cli", "surface": "plugin"})
 
+    def test_install_codex_plugin_contains_adaptive_subject_resources(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            marketplace = root / "agents" / "marketplace.json"
+
+            install_local_plugin(
+                LocalPluginOptions(
+                    repo_root=REPO_ROOT,
+                    target="codex",
+                    codex_marketplace_path=marketplace,
+                )
+            )
+
+            skill_root = marketplace.parent / "plugins" / "qiongli" / "skills" / "qiongli-workflow"
+            manifest = self._read_json(skill_root / "SUBJECT_MANIFEST.json")
+            self.assertIn("adaptive_subject_refinement", manifest)
+            self.assertTrue(manifest["adaptive_subject_refinement"]["enabled"])
+            self.assertTrue((skill_root / "standards" / "subject-refinement-contract.yaml").exists())
+            self.assertTrue((skill_root / "subjects" / "catalog.yaml").exists())
+
     def test_install_codex_plugin_preserves_existing_marketplace_name_and_interface(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -242,7 +263,7 @@ class LocalPluginInstallerTests(unittest.TestCase):
             self.assertEqual(result.installed_roots, {"antigravity": plugin_root})
             manifest = self._read_json(plugin_root / "plugin.json")
             self.assertEqual(manifest["name"], "qiongli")
-            self.assertEqual(manifest["version"], QIONGLI_VERSION)
+            self.assertEqual(manifest["version"], WORKFLOW_VERSION)
             mcp_manifest = self._read_json(plugin_root / "mcp_config.json")
             self.assertEqual(
                 mcp_manifest,

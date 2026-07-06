@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: Qiongli
-  text: "Research workflows with an audit trail."
-  tagline: "Choose a paper route, install the smallest useful surface, and keep literature, writing, code, and review evidence inspectable."
+  text: "Use AI agents for academic research without losing the evidence trail."
+  tagline: "Turn a topic into a paper route, task IDs, quality gates, literature and citation evidence, writing and code outputs, and review handoffs."
   actions:
     - theme: brand
       text: Quickstart

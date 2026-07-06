@@ -43,6 +43,8 @@ Verify magic numbers, random seeds, containerization instructions, and fail-grac
 
 ## Process
 
+Create or update `RESEARCH/[topic]/quality-gate-report.md` with a Q4 `semantic_checks` entry using `q4_reproducibility_baseline`. Use structured evidence refs for the semantic check: each `evidence_refs` item must include `artifact`, `anchor`, and `supports`, with optional `claim_id` or `diagnostic_id` when the evidence maps to a specific claim or diagnostic. Evidence must point to data lineage, code entrypoints, environment files, command logs, seeds, outputs, and rerun limits. If a reported result cannot be traced to an input, script, command, or output artifact, set Q4 to `BLOCKED` and record the missing reproducibility baseline as a blocking issue.
+
 - **Environment**: language versions + key dependencies pinned
 - **Randomness**: seeds controlled; nondeterminism documented
 - **Data provenance**: where data came from; hashes/versions when possible

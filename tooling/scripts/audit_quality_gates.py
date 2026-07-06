@@ -11,6 +11,13 @@ from typing import Any
 import yaml
 
 
+STATUS_SEVERITY = {
+    "PASS": 0,
+    "WARN": 1,
+    "FAIL": 2,
+    "BLOCKED": 3,
+}
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PYTHON_SOURCE_ROOT = REPO_ROOT / "packages" / "python-qiongli" / "src"
 for import_root in (PYTHON_SOURCE_ROOT, REPO_ROOT):
@@ -42,12 +49,18 @@ def load_gate_contract(path: Path) -> dict[str, object]:
     return payload if isinstance(payload, dict) else {}
 
 
-def audit_gate_report(path: Path, contract: dict[str, object]) -> GateAuditResult:
+def audit_gate_report(
+    path: Path,
+    contract: dict[str, object],
+    *,
+    project_root: Path | None = None,
+) -> GateAuditResult:
     errors: list[str] = []
     report = _load_report_yaml(path, errors)
     gates = _as_mapping(contract.get("gates"))
     report_gates = _as_mapping(report.get("gates"))
     status_values = {str(value) for value in _as_list(contract.get("status_values"))}
+    required_evidence_ref_fields = _required_evidence_ref_fields(contract)
 
     if not gates:
         errors.append("Contract missing gates")
@@ -57,12 +70,13 @@ def audit_gate_report(path: Path, contract: dict[str, object]) -> GateAuditResul
         errors.append("Report missing gates")
 
     for gate_id, gate_contract in gates.items():
+        gate_contract = _as_mapping(gate_contract)
         gate_report = _as_mapping(report_gates.get(gate_id))
         if not gate_report:
             errors.append(f"{gate_id} missing from report gates")
             continue
 
-        report_fields = [str(field) for field in _as_list(_as_mapping(gate_contract).get("report_fields"))]
+        report_fields = [str(field) for field in _as_list(gate_contract.get("report_fields"))]
         for field_name in report_fields:
             if field_name not in gate_report:
                 errors.append(f"{gate_id} missing report field: {field_name}")
@@ -70,6 +84,19 @@ def audit_gate_report(path: Path, contract: dict[str, object]) -> GateAuditResul
         status = str(gate_report.get("status", "")).strip()
         if status not in status_values:
             errors.append(f"{gate_id} status {status or '<missing>'} not in contract status_values")
+
+        _validate_semantic_checks(
+            gate_id,
+            gate_report,
+            gate_contract,
+            status_values,
+            errors,
+            required_evidence_ref_fields=required_evidence_ref_fields,
+            project_root=project_root,
+        )
+        _validate_structured_evidence(gate_id, gate_report, errors)
+        _validate_structured_blocking_issues(gate_id, gate_report, errors)
+        _validate_status_rollup(gate_id, status, gate_report, errors)
 
         if status in {"PASS", "WARN"} and not _has_non_empty_items(gate_report.get("evidence")):
             errors.append(f"{gate_id} status {status} requires non-empty evidence")
@@ -114,6 +141,207 @@ def _has_non_empty_items(value: Any) -> bool:
     return bool(str(value or "").strip())
 
 
+def _required_evidence_ref_fields(contract: dict[str, Any]) -> tuple[str, ...]:
+    schema = _as_mapping(contract.get("evidence_ref_schema"))
+    fields = [str(item).strip() for item in _as_list(schema.get("required_fields"))]
+    return tuple(field for field in fields if field) or ("artifact", "anchor", "supports")
+
+
+def _validate_evidence_refs(
+    gate_id: str,
+    check_index: int,
+    evidence_refs: Any,
+    errors: list[str],
+    *,
+    required_fields: tuple[str, ...],
+    project_root: Path | None,
+) -> None:
+    if not isinstance(evidence_refs, list):
+        errors.append(f"{gate_id} semantic_checks[{check_index}] evidence_refs must be a list")
+        return
+
+    resolved_project_root = project_root.resolve() if project_root is not None else None
+    for ref_index, item in enumerate(evidence_refs, start=1):
+        if isinstance(item, str):
+            continue
+        if not isinstance(item, dict):
+            errors.append(
+                f"{gate_id} semantic_checks[{check_index}] "
+                f"evidence_refs[{ref_index}] must be an object"
+            )
+            continue
+        for field_name in required_fields:
+            if not str(item.get(field_name, "")).strip():
+                errors.append(
+                    f"{gate_id} semantic_checks[{check_index}] evidence_refs[{ref_index}] "
+                    f"missing field: {field_name}"
+                )
+        if resolved_project_root is not None:
+            artifact = str(item.get("artifact", "")).strip()
+            if not artifact:
+                continue
+            artifact_path = Path(artifact)
+            if artifact_path.is_absolute():
+                errors.append(
+                    f"{gate_id} semantic_checks[{check_index}] evidence_refs[{ref_index}] "
+                    f"artifact path must be project-relative: {artifact}"
+                )
+                continue
+            resolved_artifact_path = (resolved_project_root / artifact_path).resolve()
+            try:
+                resolved_artifact_path.relative_to(resolved_project_root)
+            except ValueError:
+                errors.append(
+                    f"{gate_id} semantic_checks[{check_index}] evidence_refs[{ref_index}] "
+                    f"artifact path escapes project root: {artifact}"
+                )
+                continue
+            if not resolved_artifact_path.exists():
+                errors.append(
+                    f"{gate_id} semantic_checks[{check_index}] evidence_refs[{ref_index}] "
+                    f"artifact path does not exist: {artifact}"
+                )
+
+
+def _validate_status_rollup(
+    gate_id: str,
+    gate_status: str,
+    gate_report: dict[str, Any],
+    errors: list[str],
+) -> None:
+    semantic_statuses = [
+        str(item.get("status", "")).strip()
+        for item in _as_list(gate_report.get("semantic_checks"))
+        if isinstance(item, dict)
+    ]
+    known_semantic_statuses = [
+        status for status in semantic_statuses if status in STATUS_SEVERITY
+    ]
+    if known_semantic_statuses and gate_status in STATUS_SEVERITY:
+        worst_status = max(known_semantic_statuses, key=lambda item: STATUS_SEVERITY[item])
+        if STATUS_SEVERITY[gate_status] < STATUS_SEVERITY[worst_status]:
+            errors.append(
+                f"{gate_id} status {gate_status} "
+                f"understates semantic check status {worst_status}"
+            )
+
+    if gate_status in {"PASS", "WARN"} and _has_non_empty_items(
+        gate_report.get("blocking_issues")
+    ):
+        errors.append(f"{gate_id} status {gate_status} cannot have blocking_issues")
+
+
+def _validate_semantic_checks(
+    gate_id: str,
+    gate_report: dict[str, Any],
+    gate_contract: dict[str, Any],
+    status_values: set[str],
+    errors: list[str],
+    *,
+    required_evidence_ref_fields: tuple[str, ...],
+    project_root: Path | None = None,
+) -> None:
+    semantic_checks = gate_report.get("semantic_checks")
+    if not isinstance(semantic_checks, list) or not semantic_checks:
+        if "semantic_checks" in gate_report:
+            errors.append(f"{gate_id} semantic_checks must be a non-empty list")
+        return
+
+    expected_ids = {
+        str(item.get("check_id")).strip()
+        for item in _as_list(gate_contract.get("semantic_checks"))
+        if isinstance(item, dict) and str(item.get("check_id", "")).strip()
+    }
+    found_ids: set[str] = set()
+    required_fields = ("check_id", "status", "finding", "evidence_refs")
+
+    for index, check in enumerate(semantic_checks, start=1):
+        if not isinstance(check, dict):
+            errors.append(f"{gate_id} semantic_checks[{index}] must be an object")
+            continue
+
+        for field_name in required_fields:
+            if field_name not in check:
+                errors.append(
+                    f"{gate_id} semantic_checks[{index}] missing required field: {field_name}"
+                )
+
+        check_id = str(check.get("check_id", "")).strip()
+        if check_id:
+            found_ids.add(check_id)
+
+        status = str(check.get("status", "")).strip()
+        if status not in status_values:
+            errors.append(
+                f"{gate_id} semantic_checks[{index}] status {status or '<missing>'} "
+                "not in contract status_values"
+            )
+
+        finding = str(check.get("finding", "")).strip()
+        if not finding:
+            errors.append(f"{gate_id} semantic_checks[{index}] finding is empty")
+
+        evidence_refs = check.get("evidence_refs")
+        _validate_evidence_refs(
+            gate_id,
+            index,
+            evidence_refs,
+            errors,
+            required_fields=required_evidence_ref_fields,
+            project_root=project_root,
+        )
+        if status in {"PASS", "WARN", "FAIL"} and not _has_non_empty_items(evidence_refs):
+            errors.append(
+                f"{gate_id} semantic_checks[{index}] status {status} "
+                "requires non-empty evidence_refs"
+            )
+
+    for check_id in sorted(expected_ids - found_ids):
+        errors.append(f"{gate_id} missing semantic check id: {check_id}")
+
+
+def _validate_structured_evidence(
+    gate_id: str,
+    gate_report: dict[str, Any],
+    errors: list[str],
+) -> None:
+    evidence = gate_report.get("evidence")
+    if "evidence" in gate_report and not isinstance(evidence, list):
+        errors.append(f"{gate_id} evidence must be a list")
+        return
+
+    for index, item in enumerate(_as_list(evidence), start=1):
+        if isinstance(item, str):
+            continue
+        if not isinstance(item, dict):
+            errors.append(f"{gate_id} evidence[{index}] must be a string or object")
+            continue
+        for field_name in ("artifact", "anchor", "supports"):
+            if not str(item.get(field_name, "")).strip():
+                errors.append(f"{gate_id} evidence[{index}] missing field: {field_name}")
+
+
+def _validate_structured_blocking_issues(
+    gate_id: str,
+    gate_report: dict[str, Any],
+    errors: list[str],
+) -> None:
+    blocking_issues = gate_report.get("blocking_issues")
+    if "blocking_issues" in gate_report and not isinstance(blocking_issues, list):
+        errors.append(f"{gate_id} blocking_issues must be a list")
+        return
+
+    for index, item in enumerate(_as_list(blocking_issues), start=1):
+        if isinstance(item, str):
+            continue
+        if not isinstance(item, dict):
+            errors.append(f"{gate_id} blocking_issues[{index}] must be a string or object")
+            continue
+        for field_name in ("issue", "required_action"):
+            if not str(item.get(field_name, "")).strip():
+                errors.append(f"{gate_id} blocking_issues[{index}] missing field: {field_name}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Audit quality gate report contract compliance.")
     parser.add_argument(
@@ -133,6 +361,11 @@ def main() -> int:
         default=RepoLayout(REPO_ROOT).templates / "quality-gate-report.md",
         help="Quality gate report path.",
     )
+    parser.add_argument(
+        "--project-root",
+        type=Path,
+        help="Optional project root used to verify structured evidence artifact paths.",
+    )
     args = parser.parse_args()
 
     try:
@@ -141,7 +374,7 @@ def main() -> int:
         print(f"[FAIL] Failed to load quality gate contract: {exc}")
         return 1
 
-    result = audit_gate_report(args.report, contract)
+    result = audit_gate_report(args.report, contract, project_root=args.project_root)
     for error in result.errors:
         print(f"[FAIL] {error}")
     if result.passed:

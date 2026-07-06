@@ -179,7 +179,7 @@ export async function main(argv, {
 function printInstallResult(result, stdout) {
   stdout.write('Qiongli npm asset manager\n');
   stdout.write(`source version: ${result.sourceVersion || '<unknown>'}\n`);
-  stdout.write(`source subject: ${result.sourceSubject || '<unknown>'}\n`);
+  stdout.write(`source subject: ${subjectLabel(result.sourceSubject)}\n`);
   stdout.write(`source coverage: ${result.sourceCoverage || '<unknown>'}\n`);
   for (const residue of result.legacyResidues) {
     stdout.write(`[legacy:${residue.status}] ${residue.target}: ${residue.legacyName} -> ${residue.path}\n`);
@@ -223,12 +223,23 @@ Options:
   --target codex|claude|antigravity|hermes|all
   --surface skills|plugin|both
   --subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting
+            Default core installs adaptive runtime subject refinement.
+            Non-core subjects are advanced overrides for pre-materialized packages.
   --coverage complete|focused
   --mode copy|link
   --parts globals,project,cli,mcp
   --overwrite
   --dry-run
 `;
+}
+
+function subjectLabel(subject) {
+  if (!subject) {
+    return '<unknown>';
+  }
+  return subject === 'core'
+    ? 'core (adaptive; active_subject defaults to auto)'
+    : `${subject} (advanced override)`;
 }
 
 function npmCliStatus() {

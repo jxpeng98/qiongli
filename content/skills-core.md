@@ -539,6 +539,12 @@ python -m bridges.orchestrator [mode] --prompt "..." --cwd "/path"
 
 **Domain Profiles:** `skills/domain-profiles/*.yaml` define discipline-specific libraries, method templates, diagnostics, and pitfalls. Available: finance, economics, psychology, biomedical, education, cs-ai, political-science, epidemiology, ecology-environmental. Add new domains via `domain-profiles/custom-template.yaml`.
 
+**Runtime Subject Refinement:** The default installed package is adaptive core.
+Use `standards/subject-refinement-contract.yaml` to distinguish core-only work,
+borrowed method lenses, suggested subjects, confirmed subjects, and locked
+subjects. Borrowed lenses load the narrow audited method pack without changing
+`active_subject`.
+
 **Languages:** Python, R, Stata, MATLAB, Julia (inferred from domain profile if not specified)
 
 **Strategies:**

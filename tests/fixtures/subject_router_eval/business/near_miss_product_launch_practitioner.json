@@ -1,0 +1,27 @@
+{
+  "id": "business_near_miss_product_launch_practitioner",
+  "subject_under_test": "business",
+  "tags": [
+    "business",
+    "near_miss"
+  ],
+  "description": "Practitioner product launch and marketing wording must stay core.",
+  "request": "Improve the customer journey and competitive advantage for a product launch plan with sales enablement and launch messaging.",
+  "manifest": {
+    "active_subject": "auto",
+    "subject_mode": "auto",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "core_only",
+    "primary_subject": "core",
+    "suggest_subjects": [],
+    "forbidden_subjects": [
+      "business"
+    ],
+    "method_lenses": []
+  }
+}

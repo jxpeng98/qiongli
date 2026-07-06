@@ -375,6 +375,14 @@ def _write_platform_manifest(root: Path, platform: str, plugin_name: str, manife
     raise ValueError(f"unsupported plugin manifest platform: {platform}")
 
 
+def _write_root_plugin_manifest(plugin_root: Path, plugin_name: str) -> None:
+    plugin_root.mkdir(parents=True, exist_ok=True)
+    (plugin_root / "plugin.json").write_text(
+        json.dumps({"name": plugin_name}, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+
 def _write_codex_mcp_manifest(root: Path, dest_plugin_root: Path, *, server_name: str) -> None:
     manifest = {
         "mcpServers": {
@@ -820,11 +828,12 @@ def _write_fallback_skill_md(
             "- CLI, Codex, Claude Code, Antigravity, and Hermes installs can configure external literature providers with `qiongli provider setup` and audit them with `qiongli provider doctor`.",
             "- In bundled MCP installs, do not expect the client MCP settings UI to inject provider keys into the plugin-bundled MCP server. Use `qiongli_config_status` to find the shared provider config path, then use `qiongli_configure_provider` to open a local browser setup page. Use `qiongli_save_provider_config` only for explicit scripted writes.",
             "- Keep provider secrets out of `.mcp.json`, plugin manifests, release ZIPs, and research artifacts. The bundled provider server reads the shared provider config or explicit provider environment variables at runtime.",
+            "- Do not use `qiongli_collect_evidence` to judge built-in literature provider configuration. That tool is a filesystem/builtin/external-command evidence adapter; direct provider names such as `openalex` require a separate `RESEARCH_MCP_OPENALEX_CMD`. Use `qiongli_literature_status`, `qiongli_config_status`, `qiongli_test_provider`, and `qiongli_literature_search` to judge OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv provider availability.",
             "- Treat `provider_connected` as the only mode where configured external academic provider credentials are available to the local runtime.",
-            "- Treat `strategy_only` as a constrained mode: use platform search or user-supplied corpus, record the limitation, and do not claim review-grade external provider coverage.",
+            "- Treat `strategy_only` as a constrained mode: draft the search strategy or use user-supplied corpus, record the limitation, and do not claim review-grade external provider or native-search coverage.",
             "- Claude Desktop/Web focused ZIPs are skill-only packages kept within the 180-file upload budget. They contain workflows/prompts/templates, store no secrets, and cannot execute OpenAlex, Semantic Scholar, Crossref, PubMed, or arXiv API calls by themselves.",
             "- For a manual Desktop install, upload the `qiongli-claude-desktop-skill-*.zip` first, then add a manual MCP install when provider calls or local orchestration are required. The skill ZIP supplies agent instructions, workflows/prompts/templates, and subject overlays; MCP supplies tool calls.",
-            "- Desktop/Web users need the Qiongli Literature Provider `.mcpb` (`qiongli-literature-provider.mcpb`) or platform-native search capability before claiming `provider_connected` literature search. The MCPB is the separate local Claude Desktop provider for OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv configuration/search. arXiv is enabled without credentials. If no MCPB or platform-native search is available, record the run as `strategy_only`.",
+            "- Desktop/Web users need the Qiongli Literature Provider `.mcpb` (`qiongli-literature-provider.mcpb`) or another configured provider MCP before claiming `provider_connected` literature search. The MCPB is the separate local Claude Desktop provider for OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv configuration/search. arXiv is enabled without credentials. Platform-native search alone is `native_only`, not `provider_connected`; if no provider MCP/MCPB and no platform-native search is available, record the run as `strategy_only`.",
             "- The literature MCPB provides literature MCP tools only. It does not launch orchestrator agents. To expose the full agent runtime through MCP, manually install the full CLI MCP server with `qiongli mcp serve --transport stdio`; clients can then call tools such as `qiongli_task_run` after the local CLI runtime and model CLIs are configured.",
             "",
         ]
@@ -1022,6 +1031,7 @@ def _build_marketplace_plugin(
         skill_name=skill_name,
         mcp_server_name=_mcp_server_name_for_plugin(plugin_name),
     )
+    _write_root_plugin_manifest(plugin_dest, plugin_name)
     if platform == "codex":
         _copy_codex_mcp_manifest(
             root,
@@ -1073,6 +1083,48 @@ def materialize_next_codex_plugin(root: Path, dest_plugin_root: Path, *, force: 
         skill_name=NEXT_SKILL_NAME,
         mcp_server_name=NEXT_MCP_SERVER_NAME,
     )
+    _write_root_plugin_manifest(dest_plugin_root, NEXT_PLUGIN_NAME)
+    _copy_codex_mcp_manifest(root, dest_plugin_root, server_name=NEXT_MCP_SERVER_NAME)
+    _copy_literature_mcp_runtime(root, dest_plugin_root)
+    _copy_commands(root, dest_plugin_root, skill_name=NEXT_SKILL_NAME)
+    _copy_subject_skill(root, dest_plugin_root, "core", skill_name=NEXT_SKILL_NAME)
+    _copy_codex_workflow_wrapper_skills(root, dest_plugin_root, skill_name=NEXT_SKILL_NAME)
+    return dest_plugin_root
+
+
+def materialize_next_plugin_package(root: Path, dest_plugin_root: Path, *, force: bool = False) -> Path:
+    """Materialize the generated qiongli-next plugin payload for direct plugin ZIP installs."""
+
+    root = root.resolve()
+    dest_plugin_root = dest_plugin_root.resolve()
+    if dest_plugin_root.exists():
+        if not force:
+            raise ValueError(f"{dest_plugin_root} already exists; pass force=True to replace it")
+        if dest_plugin_root.is_dir():
+            shutil.rmtree(dest_plugin_root)
+        else:
+            dest_plugin_root.unlink()
+
+    _display_name, package_goal = _subject_definitions(root)["core"]
+    for platform, manifest_dir in (("codex", ".codex-plugin"), ("claude", ".claude-plugin")):
+        _write_platform_manifest(
+            root,
+            platform,
+            NEXT_PLUGIN_NAME,
+            dest_plugin_root / manifest_dir / "plugin.json",
+        )
+        _write_subject_manifest(
+            dest_plugin_root / manifest_dir / "plugin.json",
+            platform=platform,
+            plugin_name=NEXT_PLUGIN_NAME,
+            subject="core",
+            display_name="Qiongli Next",
+            package_goal=package_goal,
+            skill_name=NEXT_SKILL_NAME,
+            mcp_server_name=NEXT_MCP_SERVER_NAME,
+        )
+
+    _write_root_plugin_manifest(dest_plugin_root, NEXT_PLUGIN_NAME)
     _copy_codex_mcp_manifest(root, dest_plugin_root, server_name=NEXT_MCP_SERVER_NAME)
     _copy_literature_mcp_runtime(root, dest_plugin_root)
     _copy_commands(root, dest_plugin_root, skill_name=NEXT_SKILL_NAME)
@@ -1108,6 +1160,7 @@ def materialize_plugin_package(root: Path, dest_plugin_root: Path, *, force: boo
             PLUGIN_NAME,
             dest_plugin_root / ".claude-plugin" / "plugin.json",
         )
+    _write_root_plugin_manifest(dest_plugin_root, PLUGIN_NAME)
     _copy_codex_mcp_manifest(root, dest_plugin_root, server_name=DEFAULT_MCP_SERVER_NAME)
     _copy_literature_mcp_runtime(root, dest_plugin_root)
     _copy_commands(root, dest_plugin_root, skill_name=DEFAULT_SKILL_NAME)
@@ -1211,6 +1264,27 @@ def _build_next_marketplace_plugins(root: Path, tag: str, dist_dir: Path, work_d
     return artifacts
 
 
+def _build_claude_desktop_plugin(
+    root: Path,
+    tag: str,
+    dist_dir: Path,
+    work_dir: Path,
+    *,
+    plugin_name: str = PLUGIN_NAME,
+    artifact_prefix: str = PLUGIN_NAME,
+    next_channel: bool = False,
+) -> Path:
+    plugin_dest = work_dir / f"desktop-plugin-{artifact_prefix}" / plugin_name
+    if next_channel:
+        materialize_next_plugin_package(root, plugin_dest, force=True)
+    else:
+        materialize_plugin_package(root, plugin_dest, force=True)
+
+    artifact = dist_dir / f"{artifact_prefix}-claude-desktop-plugin-{tag}.zip"
+    _make_zip(plugin_dest, artifact)
+    return artifact
+
+
 def _build_claude_desktop_skill(
     root: Path,
     tag: str,
@@ -1252,6 +1326,15 @@ def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
         if _is_prerelease_tag(repo_tag):
             return [
                 *_build_next_marketplace_plugins(root, repo_tag, dist_dir, work_dir),
+                _build_claude_desktop_plugin(
+                    root,
+                    repo_tag,
+                    dist_dir,
+                    work_dir,
+                    plugin_name=NEXT_PLUGIN_NAME,
+                    artifact_prefix=NEXT_PLUGIN_NAME,
+                    next_channel=True,
+                ),
                 _build_claude_desktop_skill(
                     root,
                     repo_tag,
@@ -1274,6 +1357,7 @@ def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
             *_build_codex(root, repo_tag, dist_dir, work_dir),
             *_build_claude(root, repo_tag, dist_dir, work_dir),
             *subject_marketplace_artifacts,
+            _build_claude_desktop_plugin(root, repo_tag, dist_dir, work_dir),
             *desktop_artifacts,
             legacy_desktop_artifact,
         ]

@@ -1,6 +1,6 @@
 ---
 name: qiongli
-description: "Qiongli version: v1.14.0. Cross-platform academic research workflow for Codex, Claude / Claude Code, and CLI. Use for academic research lifecycle work: paper planning, literature review, paper reading, gap finding, study design, manuscript writing, statistics, analysis code, reproducibility, proofread, rebuttal, submission, presentation, and stage-aware grill / critique. Route natural academic requests even when the user does not explicitly invoke $qiongli or a slash command."
+description: "Qiongli version: v1.15.0-beta.3. Cross-platform academic research workflow for Codex, Claude / Claude Code, and CLI. Use for academic research lifecycle work: paper planning, literature review, paper reading, gap finding, study design, manuscript writing, statistics, analysis code, reproducibility, proofread, rebuttal, submission, presentation, and stage-aware grill / critique. Route natural academic requests even when the user does not explicitly invoke $qiongli or a slash command."
 ---
 
 # Qiongli Academic Workflow
@@ -9,7 +9,7 @@ Run a model-agnostic paper workflow using shared Task IDs and artifact contracts
 
 This is a **self-contained skill package**. All assets needed for execution — workflows, skill specifications, output templates, standards, and agent roles — are bundled in subdirectories of this package. No external repo access is needed.
 
-Installed Qiongli workflow version: `v1.14.0`
+Installed Qiongli workflow version: `v1.15.0-beta.3`
 
 ## Quick Start
 
@@ -69,12 +69,37 @@ If `.qiongli/guidance_manifest.yaml` is missing, use implicit `active_subject: a
 
 Load concise project rules when present, cite the loaded paths in the working notes, and apply them only where they do not conflict with Qiongli contracts. Project-local guidance must never override canonical workflow contracts, required outputs, evidence gates, quality gates, MCP evidence requirements, safety constraints, or the task packet. If local guidance conflicts with any required output or gate, follow the canonical requirement and record the conflict.
 
+### Runtime Subject Refinement
+
+Qiongli installs as an adaptive core workflow. Start from `active_subject: auto`
+unless `.qiongli/guidance_manifest.yaml` says otherwise. During a task, infer
+whether the request needs core-only guidance, a borrowed method lens, a suggested
+subject, a confirmed subject, or a locked subject.
+
+Do not switch the whole project subject from a single method signal. A management
+paper that uses an event study borrows finance event-study diagnostics; it is not
+automatically a finance paper. A political science paper that uses DID borrows
+economics identification diagnostics; it is not automatically an economics paper.
+
+Use `subject_refinement.borrowed_lenses` as temporary method guidance. Use
+`subject_refinement.primary_subject` as the temporary subject only when the
+decision is `suggest_subject`, `confirm_subject`, or `lock_subject`. Persist
+changes only through project-local guidance proposals or an explicit
+`subject_mode: confirmed` or `subject_mode: locked` manifest.
+
+### Subject Domain Packs
+
+When Qiongli is installed through the CLI with a subject package, treat the subject-installed domain profile as the specialization layer for the canonical workflow. If `SUBJECT_MANIFEST.json` names `economics`, load `skills/domain-profiles/economics.yaml`; if it names `finance`, load `skills/domain-profiles/finance.yaml`. If project guidance is `active_subject: auto`, infer a temporary economics or finance domain from the task context, then apply the same profile rules.
+
+Domain profiles refine canonical contracts; they do not replace them. For each matched method, apply `canonical_references` as method anchors, `gate_relevance` as Q1-Q4 routing hints, `diagnostic_artifacts` as required local evidence, and `failure_triggers` as blocker language for unsupported claims.
+
 ## Workflow Entry Points
 
 Explicit workflow commands are optional entry points. In Codex, users can invoke this skill with `/skills` or `$qiongli`, but natural academic requests should also route here. Claude Code surfaces may expose the same workflows as slash-style command wrappers:
 
 ```
 /paper [topic] [venue]                # Master router — choose paper type + task ID
+/paper-lifecycle [topic]              # Full-Cycle lifecycle preview from topic to journal fit
 /lit-review [topic] [year range]     # Systematic literature review (PRISMA)
 /paper-read [URL or DOI]             # Deep paper analysis
 /find-gap [research area]            # Identify research gaps
@@ -111,7 +136,7 @@ skills/
 ├── F_writing/       (manuscript-architect, proposal-writer, analysis-interpreter, effect-size-interpreter, table-generator, figure-specifier, meta-optimizer, discussion-writer)
 ├── G_compliance/    (prisma-checker, reporting-checker, tone-normalizer)
 ├── J_proofread/     (ai-fingerprint-scanner, human-voice-rewriter, similarity-checker, final-proofreader)
-├── H_submission/    (submission-packager, rebuttal-assistant, peer-review-simulation, fatal-flaw-detector, reviewer-empathy-checker, credit-taxonomy-helper, limitation-auditor)
+├── H_submission/    (submission-packager, rebuttal-assistant, peer-review-simulation, fatal-flaw-detector, journal-fit-recommender, reviewer-empathy-checker, credit-taxonomy-helper, limitation-auditor)
 ├── I_code/          (code-builder, data-cleaning-planner, data-merge-planner, code-specification, code-planning, code-execution, code-review, reproducibility-auditor, stats-engine)
 ├── K_presentation/  (presentation-planner, slide-architect, slidev-scholarly-builder, beamer-builder)
 ├── Z_cross_cutting/ (academic-context-maintainer, metadata-enricher, model-collaborator, self-critique)
@@ -156,6 +181,7 @@ RESEARCH/[topic]/
 - Before final writing, proofread, submission, rebuttal, or presentation-facing outputs, apply `references/citation-risk-policy.md` when citation support is material.
 - At high-risk stage transitions, write `RESEARCH/[topic]/context/stage_handoff.md` using `references/stage-handoff-contract.md`.
 - Use `venue-profiles/` when a target venue profile is available; otherwise create a venue gap note instead of assuming community-specific expectations.
+- Use `H5` journal-fit-recommender for manuscript-first reverse journal fit when an existing draft needs ranked venue recommendations; block best-journal claims when manuscript evidence, methods, claim maps, or venue profiles are missing.
 - Apply `references/academic-output-rubric.md` whenever producing scholarly prose, synthesis, design, review, or submission artifacts.
 - Treat controller-mode metadata as audit-relevant: `task-run` accepts only `solo|duo|triad` for `--execution-mode`, only runtime agents for `--controller` / `--primary` / `--reviewer` / `--verifier`, and only `strict|standard|off` for `--solo-role-gates`.
 - Use `--mcp-strict` and `--skills-strict` for authoritative controller-aware runs; avoid `--skip-validation` for submission-facing, Stage-I code, or final manuscript outputs.
@@ -170,14 +196,15 @@ RESEARCH/[topic]/
 - Keep provider secrets out of `.mcp.json`, plugin manifests, release ZIPs, and research artifacts. The bundled provider server reads the shared provider config or explicit provider environment variables at runtime.
 - In Codex plugin sessions, before declaring `strategy_only` for literature search, literature review, paper screening, citation snowballing, or evidence synthesis, attempt the visible `qiongli_literature_status` MCP tool. If it returns `capability_mode: provider_connected`, proceed with provider-backed literature workflow. If the tool is not visible in the session, state that Qiongli MCP tools are not visible and recommend restarting Codex or installing the explicit standalone MCP fallback with `qiongli install --target codex --parts mcp`. If provider preflight is unavailable or non-provider-connected but platform-native search is usable, write `qiongli_search_plan` with `search_execution_mode: native_only`.
 - Literature workflows must create or update `qiongli_search_plan` after the `qiongli_literature_status` preflight and before search execution. The plan records `search_execution_mode` as exactly one of `hybrid_search`, `provider_connected`, `native_only`, or `strategy_only`; it separately records `provider_capability_mode` as `provider_connected` or `strategy_only` to show whether the MCP/provider layer has configured academic provider access.
+- Do not use `qiongli_collect_evidence` to judge built-in literature provider configuration. That tool is a filesystem/builtin/external-command evidence adapter; direct provider names such as `openalex` require a separate `RESEARCH_MCP_OPENALEX_CMD`. Use `qiongli_literature_status`, `qiongli_config_status`, `qiongli_test_provider`, and `qiongli_literature_search` to judge OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv provider availability.
 - Use `hybrid_search` when provider calls and platform-native search are both available and useful. Use `provider_connected` when the search run is provider-only. Use `native_only` when the active agent has platform native search but no provider-connected MCP. Use `strategy_only` only when neither provider MCP nor platform-native search is available and the workflow can only draft a search strategy or work from supplied corpus.
 - MCP servers must not call Codex or Claude native search directly. The active agent executes `native_search_queries` from `qiongli_search_plan`; the MCP provider layer only performs provider calls and returns provider records. Do not hide native search behind a provider adapter.
 - Preserve distinct provenance labels in `search_log.md`, `search_results.csv`, and diagnostics: provider records use labels such as `mcp:openalex`, `mcp:semantic_scholar`, `mcp:crossref`, `mcp:pubmed`, and `mcp:arxiv`; platform-native records use `native:codex_web_search` or `native:claude_web_search`; user-supplied files, notes, bibliographies, or pasted citations use `user_corpus`.
 - Treat `provider_connected` as the only mode where configured external academic provider credentials are available to the local runtime.
 - Treat `strategy_only` as a constrained mode: draft the search strategy or use user-supplied corpus, record the limitation, and do not claim review-grade external provider or native-search coverage.
-- Claude Desktop/Web focused ZIPs are skill-only packages kept within the 180-file upload budget. They contain workflows/prompts/templates, store no secrets, and cannot execute OpenAlex, Semantic Scholar, Crossref, or PubMed API calls by themselves.
+- Claude Desktop/Web focused ZIPs are skill-only packages kept within the 180-file upload budget. They contain workflows/prompts/templates, store no secrets, and cannot execute OpenAlex, Semantic Scholar, Crossref, PubMed, or arXiv API calls by themselves.
 - For a manual Desktop install, upload the `qiongli-claude-desktop-skill-*.zip` first, then add a manual MCP install when provider calls or local orchestration are required. The skill ZIP supplies agent instructions, workflows/prompts/templates, and subject overlays; MCP supplies tool calls.
-- Desktop/Web users need the Qiongli Literature Provider `.mcpb` (`qiongli-literature-provider.mcpb`) or another configured provider MCP before claiming `provider_connected` literature search. The MCPB is the separate local Claude Desktop provider for OpenAlex and Semantic Scholar configuration. Platform-native search alone is `native_only`, not `provider_connected`; if no provider MCP/MCPB and no platform-native search is available, record the run as `strategy_only`.
+- Desktop/Web users need the Qiongli Literature Provider `.mcpb` (`qiongli-literature-provider.mcpb`) or another configured provider MCP before claiming `provider_connected` literature search. The MCPB is the separate local Claude Desktop provider for OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv configuration/search. arXiv is enabled without credentials. Platform-native search alone is `native_only`, not `provider_connected`; if no provider MCP/MCPB and no platform-native search is available, record the run as `strategy_only`.
 - The literature MCPB provides literature MCP tools only. It does not launch orchestrator agents. To expose the full agent runtime through MCP, manually install the full CLI MCP server with `qiongli mcp serve --transport stdio`; clients can then call `qiongli_orchestrator_route`, `qiongli_task_plan`, and `qiongli_task_run` after the local CLI runtime and model CLIs are configured. `qiongli_task_run` remains preview-first unless the caller sends JSON boolean `run_agents: true`.
 
 ## Skill Loading Strategy
@@ -194,9 +221,9 @@ This package includes the following subdirectories:
 
 | Directory | Contents |
 |-----------|----------|
-| `workflows/` | 16 workflow definitions (slash commands) |
+| `workflows/` | 17 workflow definitions (slash commands) |
 | `references/` | Stage playbooks + workflow contract |
-| `skills/` | 71 detailed skill spec files across 13 stage directories |
+| `skills/` | 72 detailed skill spec files across 13 stage directories |
 | `skills-summary.md` | Quick-reference skill index (~3KB) |
 | `skills-core.md` | Consolidated skill reference (~19KB) |
 | `templates/` | 50+ output templates for manuscripts, submissions, ethics, evidence, and handoffs |
@@ -207,6 +234,7 @@ This package includes the following subdirectories:
 ## References
 
 - Task model + outputs: `references/workflow-contract.md`
+- Full-Cycle lifecycle gate contract: `references/full-cycle-workflow-harness.md`
 - Platform routing map: `references/platform-routing.md`
 - Coverage matrix: `references/coverage-matrix.md`
 - Academic output rubric: `references/academic-output-rubric.md`
@@ -223,6 +251,6 @@ This package includes the following subdirectories:
   - `references/stage-F-writing.md` (tasks F1–F6)
   - `references/stage-G-compliance.md` (tasks G1–G4)
   - `references/stage-J-proofread.md` (tasks J1–J4)
-  - `references/stage-H-submission.md` (tasks H1–H4)
+  - `references/stage-H-submission.md` (tasks H1–H5)
   - `references/stage-I-code.md` (tasks I1–I9)
   - `references/stage-K-presentation.md` (tasks K1–K4)

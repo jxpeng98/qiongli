@@ -1046,6 +1046,55 @@ def cmd_project(args: argparse.Namespace) -> int:
     return _run_orchestrator_project(args)
 
 
+def cmd_subject(args: argparse.Namespace) -> int:
+    from bridges.project_manifest import ProjectManifestError
+    from bridges.subject_lifecycle import SubjectLifecycleError, apply_subject_action, subject_status
+
+    project_root = Path(args.cwd).expanduser().resolve()
+    try:
+        if args.subject_cmd == "status":
+            payload = subject_status(project_root)
+        else:
+            payload = apply_subject_action(
+                project_root,
+                args.subject_cmd,
+                getattr(args, "subject", None),
+                source="cli",
+            )
+    except (ProjectManifestError, SubjectLifecycleError) as exc:
+        print(f"qiongli subject: {exc}", file=sys.stderr)
+        return 2
+    _print_subject_result(payload, args.json)
+    return 0
+
+
+def _print_subject_result(payload: dict[str, object], as_json: bool) -> None:
+    if as_json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return
+
+    manifest = payload.get("manifest", {})
+    if not isinstance(manifest, dict):
+        manifest = {}
+    print(f"active_subject: {manifest.get('active_subject', 'auto')}")
+    print(f"subject_mode: {manifest.get('subject_mode', 'auto')}")
+    print(f"manifest_exists: {str(bool(payload.get('manifest_exists'))).lower()}")
+
+    guidance = payload.get("subject_guidance", {})
+    if isinstance(guidance, dict):
+        block = str(guidance.get("managed_block") or "missing")
+        path = str(guidance.get("path") or ".qiongli/guidance.d/subject-runtime.md")
+        print(f"subject guidance: {block} ({path})")
+        warnings = guidance.get("warnings", [])
+        if isinstance(warnings, list) and warnings:
+            print("subject guidance warnings: " + "; ".join(str(item) for item in warnings))
+
+    state = payload.get("state", {})
+    dismissed = state.get("dismissed_subjects", {}) if isinstance(state, dict) else {}
+    if isinstance(dismissed, dict) and dismissed:
+        print(f"dismissed_subjects: {', '.join(sorted(str(subject) for subject in dismissed))}")
+
+
 def cmd_init(args: argparse.Namespace) -> int:
     project_dir = Path(args.project_dir).expanduser().resolve()
     repo_root = _packaged_payload_root()
@@ -1240,7 +1289,7 @@ def build_parser() -> argparse.ArgumentParser:
     check.add_argument(
         "--offline",
         action="store_true",
-        help="Skip PyPI and upstream release checks; inspect local install surfaces only",
+        help=argparse.SUPPRESS,
     )
     check.add_argument(
         "--beta",
@@ -1286,7 +1335,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Install output surface to prepare: skills, plugin, or both (default: plugin).",
     )
     upgrade.add_argument("--beta", action="store_true", help="Include beta/pre-release tags for upgrade")
-    upgrade.add_argument("--subject", default="core", help="Subject package to install (default: core)")
+    upgrade.add_argument(
+        "--subject",
+        default="core",
+        help=(
+            "Advanced override for pre-materialized subject packages. "
+            "Default core keeps runtime subject refinement adaptive."
+        ),
+    )
     upgrade.add_argument(
         "--coverage",
         default="complete",
@@ -1356,7 +1412,7 @@ def build_parser() -> argparse.ArgumentParser:
         help=argparse.SUPPRESS,
     )
     self_update.add_argument("--no-refresh", action="store_false", dest="refresh", help="Skip installed surface refresh")
-    self_update.add_argument("--skip-check", action="store_false", dest="check", help="Skip post-update offline check")
+    self_update.add_argument("--skip-check", action="store_false", dest="check", help="Skip post-update check")
     self_update.add_argument("--dry-run", action="store_true", help="Print the update plan without running commands")
     self_update.add_argument("--yes", action="store_true", help="Run the update plan without an extra confirmation prompt")
 
@@ -1378,7 +1434,14 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Install output surface to prepare: skills, plugin, or both (default: plugin).",
     )
-    install_parser.add_argument("--subject", default="core", help="Subject package to install (default: core)")
+    install_parser.add_argument(
+        "--subject",
+        default="core",
+        help=(
+            "Advanced override for pre-materialized subject packages. "
+            "Default core installs adaptive runtime subject refinement."
+        ),
+    )
     install_parser.add_argument(
         "--coverage",
         default="complete",
@@ -1539,6 +1602,39 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to .qiongli/trace/runs/<run_id>/guidance_update_proposal.md",
     )
 
+    from bridges.project_manifest import OFFICIAL_SUBJECTS
+
+    concrete_subjects = tuple(subject for subject in OFFICIAL_SUBJECTS if subject not in {"auto", "core"})
+    subject = subparsers.add_parser("subject", help="Inspect and control adaptive subject guidance")
+    subject_subparsers = subject.add_subparsers(dest="subject_cmd", required=True)
+
+    subject_status = subject_subparsers.add_parser("status", help="Show adaptive subject guidance status")
+    subject_status.add_argument(
+        "--cwd",
+        default=str(Path.cwd()),
+        help="Project directory to inspect (default: current dir)",
+    )
+    subject_status.add_argument("--json", action="store_true", help="Emit JSON only")
+
+    for action in ("confirm", "dismiss", "lock"):
+        subject_action = subject_subparsers.add_parser(action, help=f"{action.title()} an official subject")
+        subject_action.add_argument("subject", choices=concrete_subjects, help="Concrete official subject")
+        subject_action.add_argument(
+            "--cwd",
+            default=str(Path.cwd()),
+            help="Project directory to update (default: current dir)",
+        )
+        subject_action.add_argument("--json", action="store_true", help="Emit JSON only")
+
+    for action in ("reset", "unlock"):
+        subject_action = subject_subparsers.add_parser(action, help=f"{action.title()} adaptive subject guidance")
+        subject_action.add_argument(
+            "--cwd",
+            default=str(Path.cwd()),
+            help="Project directory to update (default: current dir)",
+        )
+        subject_action.add_argument("--json", action="store_true", help="Emit JSON only")
+
     project = subparsers.add_parser("project", help="Manage project subject guidance settings")
     project_subparsers = project.add_subparsers(dest="project_cmd", required=True)
     project_init = project_subparsers.add_parser("init", help="Initialize project guidance settings")
@@ -1697,6 +1793,8 @@ def main() -> int:
         return cmd_doctor(args)
     if args.cmd == "guidance":
         return cmd_guidance(args)
+    if args.cmd == "subject":
+        return cmd_subject(args)
     if args.cmd == "project":
         if getattr(args, "subject", None) is None:
             args.subject = getattr(args, "subject_flag", None)

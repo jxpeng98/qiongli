@@ -1,0 +1,30 @@
+venue_id: journal-of-finance
+community: finance
+article_types:
+  - research article
+  - empirical article
+contribution_expectations:
+  - finance
+  - event study
+  - abnormal returns
+  - CRSP
+  - market reaction
+methods_expectations:
+  - event study
+  - CRSP
+  - abnormal returns
+  - event window
+  - robustness checks
+evidence_standards:
+  - CRSP
+  - abnormal returns
+  - event window
+  - robustness checks
+writing_style:
+  - direct
+  - transparent
+common_reviewer_objections:
+  - weak identification
+formatting_constraints:
+  word_limit: 12000
+required_reporting_standards: []

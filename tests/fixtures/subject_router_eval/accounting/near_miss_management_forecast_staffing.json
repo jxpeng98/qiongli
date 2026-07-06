@@ -1,0 +1,22 @@
+{
+  "id": "accounting_near_miss_management_forecast_staffing",
+  "subject_under_test": "accounting",
+  "tags": ["accounting", "near_miss"],
+  "description": "General management forecast wording must not activate accounting.",
+  "request": "Prepare a management forecast for staffing needs and project milestones next quarter.",
+  "manifest": {
+    "active_subject": "auto",
+    "subject_mode": "auto",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "core_only",
+    "primary_subject": "core",
+    "suggest_subjects": [],
+    "forbidden_subjects": ["accounting"],
+    "method_lenses": []
+  }
+}

@@ -26,7 +26,7 @@
 - **修复**：
   - 如果 `/skills` 里能看到 wrapper，使用 `$qiongli-lit-review <topic>`。
   - 使用主 skill 时，可写 `$qiongli plan a literature review on <topic>` 或 `$qiongli run lit-review on <topic>`。
-  - 也可以直接写自然语言请求，例如 “Use Qiongli to run a literature review on <topic>”；skill 入口应该把它路由到 Stage B / `lit-review`。
+  - 也可以直接写自然语言请求，例如 “Use Qiongli to run a literature review on `<topic>`”；skill 入口应该把它路由到 Stage B / `lit-review`。
   - 升级到包含 Codex wrapper skills 的版本后，运行 `qiongli install --target codex --surface plugin --overwrite` 重新安装本地 Codex plugin，然后重启 Codex。
 - **说明**：Codex 仍然不会显示 `/lit-review` 这种 slash command。plugin 安装应显示 `qiongli-lit-review` 这类 skill wrapper；skills-only 安装可以继续使用 `$qiongli run lit-review on <topic>`。
 

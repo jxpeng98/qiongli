@@ -52,7 +52,7 @@ If you want scenario-driven routes such as "systematic review", "methods paper",
 | `F_writing` | manuscript building, tables, figures, results writing | 8 | "How do I turn analysis into publishable text?" |
 | `G_compliance` | reporting checklists, tone, PRISMA | 3 | "Is this compliant and submission-ready?" |
 | `J_proofread` | AI detection, humanization, similarity, final polish | 4 | "How do I de-AI and finalize the manuscript?" |
-| `H_submission` | submission package, rebuttal, review simulation | 7 | "How do I package, defend, and stress-test the paper?" |
+| `H_submission` | submission package, rebuttal, review simulation | 8 | "How do I package, defend, and stress-test the paper?" |
 | `I_code` | academic code, stats, reproducibility | 10 | "How do I implement and verify research code?" |
 | `K_presentation` | academic talks, slide planning, Slidev, Beamer | 4 | "How do I turn the paper into a defensible talk?" |
 | `Z_cross_cutting` | metadata, model collaboration, self-critique | 5 | "How do I improve quality across stages?" |
@@ -172,6 +172,7 @@ Use Stage H when the manuscript is near submission or already under review.
 | `rebuttal-assistant` | Rebuttal Assistant | After receiving a Revise & Resubmit (R&R) decision | `ResponseToReviewers`, `ResponseLetter` |
 | `peer-review-simulation` | Peer Review Simulation | Before submission (final red-team pass) | `PeerReviewSimulation` |
 | `fatal-flaw-detector` | Fatal Flaw Detector | Before final submission (last quality gate) | `FatalFlawAnalysis` |
+| `journal-fit-recommender` | Journal Fit Recommender | Use when an existing manuscript needs manuscript-first reverse journal fit before submission. | `JournalFitRecommendation` |
 | `reviewer-empathy-checker` | Reviewer Empathy Checker | After drafting the response letter (from `rebuttal-assistant` H2) but BEFORE submitting | `EmpathyCheck` |
 | `credit-taxonomy-helper` | CRediT Taxonomy Helper | During submission packaging (H1) | `CRediTStatement` |
 | `limitation-auditor` | Limitation Auditor | Use during the late drafting or pre-submission phase when the Methods and Discussion sections are complete, to ensure the manuscript demonstrates scholarly humility and self-awareness before peer reviewers point out the flaws. | `LimitationSection`, `MitigationStrategy` |

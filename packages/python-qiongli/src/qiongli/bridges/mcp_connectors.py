@@ -8,7 +8,11 @@ from pathlib import Path
 from typing import Any
 
 from bridges.command_runtime import current_python_command, split_command
-from bridges.provider_config import provider_config_env, resolve_provider_config
+from bridges.provider_config import (
+    provider_config_env,
+    provider_config_summary,
+    resolve_provider_config,
+)
 from qiongli.source_layout import RepoLayout, discover_repo_root
 
 
@@ -31,6 +35,15 @@ class MCPProviderResolution:
     source: str
     command: str | None = None
     native_script: str | None = None
+
+
+DIRECT_LITERATURE_PROVIDER_KEYS = {
+    "openalex",
+    "semantic_scholar",
+    "crossref",
+    "pubmed",
+    "arxiv",
+}
 
 
 class MCPConnector:
@@ -104,11 +117,35 @@ class MCPConnector:
         command = resolution.command
 
         if not command:
+            config_summary = provider_config_summary(resolve_provider_config(cwd=cwd))
+            provider_key = self._provider_config_key(provider)
+            data: dict[str, Any] = {
+                "not_configured_scope": "external_command_adapter",
+                "external_command_env": env_name,
+                "provider_config": config_summary,
+            }
+            if provider_key in DIRECT_LITERATURE_PROVIDER_KEYS:
+                data.update(
+                    {
+                        "provider_config_status": config_summary.get(provider_key, "missing"),
+                        "recommended_status_tool": "qiongli_literature_status",
+                        "recommended_search_tool": "qiongli_literature_search",
+                    }
+                )
+                summary = (
+                    f"The external command adapter for {provider} is not configured. "
+                    f"Set {env_name} only if you intend to use a separate external MCP command. "
+                    "Use qiongli_literature_status or qiongli_literature_search to check "
+                    "the built-in literature provider config."
+                )
+            else:
+                summary = f"External command adapter not configured. Set {env_name}."
             return MCPEvidence(
                 provider=provider,
                 status="not_configured",
-                summary=f"External MCP not configured. Set {env_name}.",
+                summary=summary,
                 provenance=[env_name],
+                data=data,
             )
 
         payload = {
@@ -197,6 +234,12 @@ class MCPConnector:
     def _provider_env_var(self, provider: str) -> str:
         key = provider.upper().replace("-", "_")
         return f"{self.env_prefix}{key}_CMD"
+
+    def _provider_config_key(self, provider: str) -> str:
+        key = provider.strip().lower().replace("-", "_")
+        if key == "semantic_scholar":
+            return "semantic_scholar"
+        return key
 
     def _provider_native_script(self, provider: str) -> Path:
         safe_provider_name = provider.replace("-", "_")

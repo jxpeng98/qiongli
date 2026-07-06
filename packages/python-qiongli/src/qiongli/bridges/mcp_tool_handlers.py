@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import json
 from pathlib import Path
 from typing import Any, Callable
 
 from bridges.mcp_config_wizard import start_config_wizard
 from bridges.mcp_connectors import MCPConnector
-from bridges.guidance_runtime import GUIDANCE_MODES, guidance_bootstrap_status
-from bridges.project_manifest import load_project_manifest
+from bridges.guidance_runtime import GUIDANCE_MODES, effective_guidance, guidance_bootstrap_status
+from bridges.project_manifest import OFFICIAL_SUBJECTS, ProjectManifestError, load_project_manifest
+from bridges.subject_lifecycle import ACTIONS, apply_subject_action, subject_status
+from bridges.subject_refinement import infer_subject_refinement
 from bridges.subject_runtime import implicit_project_manifest_state, resolve_project_subject
 from bridges.literature_mcp_tools import (
     LITERATURE_TOOL_DEFINITIONS,
@@ -30,6 +33,13 @@ from bridges.provider_config import (
 SERVER_NAME = "qiongli-mcp"
 ModelOrchestrator: Any | None = None
 RUNTIME_AGENT_ENUM = ["codex", "claude", "antigravity"]
+SUBJECT_LIFECYCLE_ACTION_ORDER = ("confirm", "dismiss", "reset", "lock", "unlock")
+SUBJECT_LIFECYCLE_ACTION_ENUM = [
+    action for action in SUBJECT_LIFECYCLE_ACTION_ORDER if action in ACTIONS
+]
+SUBJECT_LIFECYCLE_SUBJECT_ENUM = [
+    subject for subject in OFFICIAL_SUBJECTS if subject not in {"auto", "core"}
+]
 
 
 MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
@@ -82,7 +92,13 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
     },
     {
         "name": "qiongli_collect_evidence",
-        "description": "Collect evidence from a Qiongli MCP provider for a task packet.",
+        "description": (
+            "Collect evidence from filesystem, built-in workflow adapters, or external "
+            "command adapters configured outside Qiongli. Do not use this to judge "
+            "built-in literature provider config; use qiongli_literature_status or "
+            "qiongli_literature_search for OpenAlex, Semantic Scholar, Crossref, PubMed, "
+            "and arXiv provider status/search."
+        ),
         "inputSchema": {
             "type": "object",
             "required": ["provider", "task_packet"],
@@ -108,6 +124,38 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "properties": {
                 "provider": {"type": "string"},
                 "cwd": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "qiongli_subject_status",
+        "description": (
+            "Inspect adaptive subject state, project manifest, evidence memory, "
+            "and managed subject guidance for a project."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "cwd": {"type": "string", "description": "Project directory to inspect."},
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "qiongli_subject_update",
+        "description": (
+            "Confirm, dismiss, reset, lock, or unlock adaptive subject guidance "
+            "and managed project subject guidance."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "required": ["action"],
+            "properties": {
+                "cwd": {"type": "string", "description": "Project directory to update."},
+                "action": {"type": "string", "enum": SUBJECT_LIFECYCLE_ACTION_ENUM},
+                "subject": {"type": "string", "enum": SUBJECT_LIFECYCLE_SUBJECT_ENUM},
+                "run_id": {"type": "string"},
             },
             "additionalProperties": False,
         },
@@ -176,6 +224,36 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
         },
     },
     {
+        "name": "qiongli_lifecycle_plan",
+        "description": "Build a preview full-cycle paper lifecycle gate report without launching agents.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "cwd": {"type": "string"},
+                "topic": {"type": "string"},
+                "paper_type": {"type": "string"},
+                "mode": {"type": "string", "enum": ["preview"]},
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "qiongli_journal_fit_recommend",
+        "description": "Recommend journals from an existing manuscript using local venue profiles.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "cwd": {"type": "string"},
+                "venue_roots": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                },
+                "limit": {"type": "integer"},
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
         "name": "qiongli_task_plan",
         "description": "Render a Qiongli task execution plan without launching runtime agents.",
         "inputSchema": {
@@ -219,6 +297,9 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
                 "skills_strict": {"type": "boolean"},
                 "guidance_mode": {"type": "string", "enum": list(GUIDANCE_MODES), "default": "propose"},
                 "run_agents": {"type": "boolean", "default": False},
+                "max_revision_rounds": {"type": "integer", "minimum": 0},
+                "output_budget": {"type": "integer", "minimum": 1},
+                "skip_validation": {"type": "boolean"},
             },
             "additionalProperties": False,
         },
@@ -240,10 +321,14 @@ def call_qiongli_tool(name: str, arguments: dict[str, Any] | None = None) -> dic
         "qiongli_collect_evidence": _tool_collect_evidence,
         "qiongli_list_provider_env": _tool_list_provider_env,
         "qiongli_test_provider": _tool_test_provider,
+        "qiongli_subject_status": _tool_subject_status,
+        "qiongli_subject_update": _tool_subject_update,
         "qiongli_configure_provider": _tool_configure_provider,
         "qiongli_open_config_wizard": _tool_open_config_wizard,
         "qiongli_orchestrator_route": _tool_orchestrator_route,
         "qiongli_orchestrator_doctor": _tool_orchestrator_doctor,
+        "qiongli_lifecycle_plan": _tool_lifecycle_plan,
+        "qiongli_journal_fit_recommend": _tool_journal_fit_recommend,
         "qiongli_task_plan": _tool_task_plan,
         "qiongli_task_run": _tool_task_run,
     }
@@ -326,6 +411,23 @@ def _tool_test_provider(args: dict[str, Any]) -> dict[str, Any]:
         "configured": configured,
         "fields": raw.get("fields", {}) if isinstance(raw, dict) else {},
     }
+
+
+def _tool_subject_status(args: dict[str, Any]) -> dict[str, Any]:
+    return subject_status(_cwd_from_args(args))
+
+
+def _tool_subject_update(args: dict[str, Any]) -> dict[str, Any]:
+    action = _required_str(args, "action")
+    subject = args.get("subject")
+    run_id = args.get("run_id")
+    return apply_subject_action(
+        _cwd_from_args(args),
+        action,
+        str(subject) if subject else None,
+        source="mcp",
+        run_id=str(run_id) if run_id else None,
+    )
 
 
 def _tool_open_config_wizard(args: dict[str, Any]) -> dict[str, Any]:
@@ -438,6 +540,70 @@ def _tool_orchestrator_doctor(args: dict[str, Any]) -> dict[str, Any]:
     return _collaboration_payload(result)
 
 
+def _tool_lifecycle_plan(args: dict[str, Any]) -> dict[str, Any]:
+    from bridges.lifecycle_harness import build_lifecycle_report
+
+    cwd = _cwd_from_args(args).resolve()
+    return build_lifecycle_report(
+        cwd,
+        topic=str(args.get("topic") or cwd.name),
+        paper_type=str(args.get("paper_type") or "empirical"),
+        mode="preview",
+    )
+
+
+def _tool_journal_fit_recommend(args: dict[str, Any]) -> dict[str, Any]:
+    from bridges.journal_fit import recommend_journals
+
+    cwd = _cwd_from_args(args).resolve()
+    payload = recommend_journals(
+        cwd,
+        venue_roots=_journal_fit_venue_roots(args, cwd),
+        limit=_optional_int(args, "limit", 5, minimum=0) or 0,
+    )
+    return _normalize_journal_fit_sources(payload, cwd)
+
+
+def _journal_fit_venue_roots(args: dict[str, Any], cwd: Path) -> list[Path]:
+    raw_roots = args.get("venue_roots")
+    if raw_roots is None or raw_roots == []:
+        return [cwd / "venues"]
+    if not isinstance(raw_roots, list):
+        raise ValueError("venue_roots must be an array of strings")
+
+    roots: list[Path] = []
+    for index, raw_root in enumerate(raw_roots):
+        if not isinstance(raw_root, str):
+            raise ValueError(f"venue_roots[{index}] must be a string")
+        root = Path(raw_root).expanduser()
+        if not root.is_absolute():
+            root = cwd / root
+        roots.append(root.resolve())
+    return roots or [cwd / "venues"]
+
+
+def _normalize_journal_fit_sources(payload: dict[str, Any], cwd: Path) -> dict[str, Any]:
+    ranked_venues = payload.get("ranked_venues")
+    if not isinstance(ranked_venues, list):
+        return payload
+
+    cwd = cwd.resolve()
+    for venue in ranked_venues:
+        if not isinstance(venue, dict):
+            continue
+        raw_source = venue.get("source")
+        if not isinstance(raw_source, str) or not raw_source:
+            continue
+        source = Path(raw_source).expanduser()
+        if not source.is_absolute():
+            source = cwd / source
+        try:
+            venue["source"] = source.resolve().relative_to(cwd).as_posix()
+        except ValueError:
+            pass
+    return payload
+
+
 def _tool_task_plan(args: dict[str, Any]) -> dict[str, Any]:
     result = _model_orchestrator().task_plan(
         task_id=_required_str(args, "task_id"),
@@ -479,15 +645,19 @@ def _tool_task_run(args: dict[str, Any]) -> dict[str, Any]:
             task_packet.setdefault("topic", data.get("topic", task_run_kwargs["topic"]))
             task_packet.setdefault("artifact_root", data.get("artifact_root"))
             project_subject = preview["project_subject"]
+            subject_refinement = preview["subject_refinement"]
             task_packet.update(
                 _task_run_preview_domain_fields(
                     orchestrator,
                     task_run_kwargs,
                     project_subject=project_subject,
+                    subject_refinement=subject_refinement,
                 )
             )
             task_packet["project_subject"] = project_subject
+            task_packet["subject_refinement"] = subject_refinement
             task_packet["runtime_plan"] = preview["effective_runtime_plan"]
+            task_packet["local_guidance"] = _task_run_preview_local_guidance(task_run_kwargs)
         return payload
 
     result = orchestrator.task_run(**task_run_kwargs)
@@ -559,6 +729,9 @@ def _task_run_kwargs(args: dict[str, Any]) -> dict[str, Any]:
         "review_agent": _optional_str(args, "reviewer"),
         "verifier_agent": _optional_str(args, "verifier"),
         "solo_role_gates": _optional_str(args, "solo_role_gates", "standard"),
+        "max_revision_rounds": _optional_int(args, "max_revision_rounds", 2, minimum=0),
+        "output_budget": _optional_int(args, "output_budget", None, minimum=1),
+        "skip_validation": _optional_bool(args, "skip_validation", default=False),
     }
 
 
@@ -584,7 +757,16 @@ def _task_run_preview(
         task_run_kwargs,
         manifest_state=project_manifest_state,
     )
-    effective_domain = _task_run_preview_effective_domain(task_run_kwargs, project_subject)
+    subject_refinement = _task_run_preview_subject_refinement(
+        plan_data,
+        task_run_kwargs,
+        manifest_state=project_manifest_state,
+    )
+    effective_domain = _task_run_preview_effective_domain(
+        task_run_kwargs,
+        project_subject,
+        subject_refinement,
+    )
     return {
         "will_launch_agents": False,
         "enable_with": {"run_agents": True},
@@ -592,6 +774,7 @@ def _task_run_preview(
         "effective_runtime_plan": effective_runtime_plan,
         "project_manifest": project_manifest_state.to_packet(),
         "project_subject": project_subject,
+        "subject_refinement": subject_refinement,
         "effective_domain": effective_domain,
         "guidance_bootstrap": guidance_bootstrap_status(
             task_run_kwargs["cwd"],
@@ -601,16 +784,35 @@ def _task_run_preview(
     }
 
 
+def _task_run_preview_local_guidance(task_run_kwargs: dict[str, Any]) -> dict[str, Any]:
+    cwd = task_run_kwargs["cwd"]
+    guidance_mode = str(task_run_kwargs.get("guidance_mode", "propose") or "propose")
+    try:
+        return effective_guidance(cwd, mode=guidance_mode).to_packet()
+    except ProjectManifestError as exc:
+        packet = effective_guidance(cwd, mode="off").to_packet()
+        packet["warnings"] = [
+            *list(packet.get("warnings", []) or []),
+            f"Project guidance ignored: {exc}",
+        ]
+        return packet
+
+
 def _task_run_preview_domain_fields(
     orchestrator: Any,
     task_run_kwargs: dict[str, Any],
     *,
     project_subject: dict[str, Any] | None = None,
+    subject_refinement: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     requested_domain = str(task_run_kwargs.get("domain") or "auto").strip() or "auto"
     effective_domain = (
-        _task_run_preview_effective_domain(task_run_kwargs, project_subject)
-        if project_subject
+        _task_run_preview_effective_domain(
+            task_run_kwargs,
+            project_subject,
+            subject_refinement,
+        )
+        if project_subject or subject_refinement
         else requested_domain
     )
     load_context = getattr(orchestrator, "_load_domain_profile_context", None)
@@ -627,17 +829,22 @@ def _task_run_preview_domain_fields(
     if not fields.get("requested_domain"):
         context_requested = domain_context.get("requested_domain") if isinstance(domain_context, dict) else None
         fields["requested_domain"] = str(context_requested or requested_domain).strip() or requested_domain
+    fields["requested_domain"] = requested_domain
     return fields
 
 
 def _task_run_preview_project_manifest_state(task_run_kwargs: dict[str, Any]) -> Any:
     cwd = task_run_kwargs["cwd"]
     guidance_mode = str(task_run_kwargs.get("guidance_mode", "propose") or "propose")
-    return (
-        implicit_project_manifest_state(cwd)
-        if guidance_mode == "off"
-        else load_project_manifest(cwd)
-    )
+    if guidance_mode == "off":
+        return implicit_project_manifest_state(cwd)
+    try:
+        return load_project_manifest(cwd)
+    except ProjectManifestError as exc:
+        return replace(
+            implicit_project_manifest_state(cwd),
+            warnings=[f"Project manifest ignored: {exc}"],
+        )
 
 
 def _task_run_preview_project_subject(
@@ -652,18 +859,66 @@ def _task_run_preview_project_subject(
     ).to_packet()
 
 
+def _task_run_preview_subject_refinement(
+    plan_data: dict[str, Any],
+    task_run_kwargs: dict[str, Any],
+    *,
+    manifest_state: Any,
+) -> dict[str, Any]:
+    task_packet = _task_run_preview_subject_refinement_task_packet(plan_data, task_run_kwargs)
+    return infer_subject_refinement(
+        task_packet,
+        manifest_state=manifest_state,
+        merged_analysis=str(plan_data.get("merged_analysis") or ""),
+    ).to_packet()
+
+
+def _task_run_preview_subject_refinement_task_packet(
+    plan_data: dict[str, Any],
+    task_run_kwargs: dict[str, Any],
+) -> dict[str, Any]:
+    task_packet: dict[str, Any] = {}
+    raw_task_packet = plan_data.get("task_packet")
+    if isinstance(raw_task_packet, dict):
+        task_packet.update(raw_task_packet)
+    for key in ("task_id", "paper_type", "topic"):
+        if key not in task_packet and plan_data.get(key) is not None:
+            task_packet[key] = plan_data[key]
+    for key in ("task_id", "paper_type", "topic", "domain", "venue", "context", "profile"):
+        value = task_run_kwargs.get(key)
+        if value not in {None, ""}:
+            task_packet[key] = value
+    return task_packet
+
+
 def _task_run_preview_effective_domain(
     task_run_kwargs: dict[str, Any],
     project_subject: dict[str, Any] | None,
+    subject_refinement: dict[str, Any] | None = None,
 ) -> str:
     requested_domain = str(task_run_kwargs.get("domain") or "auto").strip() or "auto"
     if requested_domain.lower() != "auto":
         return requested_domain
+    refinement_domain = _subject_refinement_effective_domain(subject_refinement)
+    if refinement_domain:
+        return refinement_domain
     if isinstance(project_subject, dict):
         subject_domain = str(project_subject.get("domain", "")).strip()
         if subject_domain:
             return subject_domain
     return "auto"
+
+
+def _subject_refinement_effective_domain(subject_refinement: dict[str, Any] | None) -> str:
+    if not isinstance(subject_refinement, dict):
+        return ""
+    decision = str(subject_refinement.get("decision") or "").strip()
+    if decision not in {"suggest_subject", "confirm_subject", "lock_subject"}:
+        return ""
+    domain = str(subject_refinement.get("domain") or "").strip()
+    if not domain or domain.lower() == "auto":
+        return ""
+    return domain
 
 
 def _serializable_task_run_arguments(task_run_kwargs: dict[str, Any]) -> dict[str, Any]:
@@ -814,6 +1069,23 @@ def _optional_bool(args: dict[str, Any], key: str, *, default: bool) -> bool:
         if normalized in {"0", "false", "no", "off"}:
             return False
     raise ValueError(f"{key} must be a boolean.")
+
+
+def _optional_int(
+    args: dict[str, Any],
+    key: str,
+    default: int | None = None,
+    *,
+    minimum: int | None = None,
+) -> int | None:
+    if key not in args or args[key] is None:
+        return default
+    raw = args[key]
+    if isinstance(raw, bool) or not isinstance(raw, int):
+        raise ValueError(f"{key} must be an integer")
+    if minimum is not None and raw < minimum:
+        raise ValueError(f"{key} must be >= {minimum}")
+    return raw
 
 
 def _run_agents_enabled(args: dict[str, Any]) -> bool:

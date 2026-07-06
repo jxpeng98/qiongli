@@ -16,6 +16,7 @@ This stage converts framing into an executable plan: design choices, measurement
 
 - `Q1` (question-to-method alignment) is enforced here: every RQ/hypothesis must map to data + model + outcome, or to setting + evidence source + analytic lens for qualitative work.
 - `Q4` (reproducibility baseline): document data lineage, missingness, and analysis decisions.
+- Semantic gate report: update `quality-gate-report.md` with `q1_rq_method_alignment`; evidence must anchor each RQ/hypothesis to method, data or setting, outcome or evidence form, measurement or evidence source, estimand or analytic target, and analysis strategy.
 
 ---
 

@@ -97,7 +97,7 @@ def build_self_update_plan(
         )
 
     if options.check and options.refresh:
-        check_command = (qiongli_executable, "check", "--offline")
+        check_command = (qiongli_executable, "check")
 
     return SelfUpdatePlan(
         channel=options.channel,

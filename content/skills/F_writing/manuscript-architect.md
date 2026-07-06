@@ -73,6 +73,8 @@ These depth rules apply across empirical, qualitative, mixed-methods, theory, an
 
 Use this contract for direct skill use, role-prompted agent work, `/academic-write`, and `/paper-write`.
 
+Before accepting a manuscript section as ready, create or update `RESEARCH/[topic]/quality-gate-report.md` with a Q2 `semantic_checks` entry using `q2_claim_evidence_traceability`. Use structured evidence refs for the semantic check: each `evidence_refs` item must include `artifact`, `anchor`, and `supports`, with optional `claim_id` or `diagnostic_id` when the evidence maps to a specific claim or diagnostic. The evidence must cite the claim-evidence ledger, manuscript claim map, source note, analysis output, citation anchor, or an explicit gap note. Unsupported central claims must be narrowed, moved to limitations, or recorded as `BLOCKED`; do not turn an unsupported claim into polished prose.
+
 Before writing prose:
 - inspect available boundary, decision, handoff, claim-map, and self-critique artifacts
 - define the **Story Spine**: central claim, argumentative mainline, section jobs, non-goals, and evidence threshold

@@ -1,0 +1,29 @@
+{
+  "name": "borrow_finance_lens",
+  "manifest": {
+    "active_subject": "auto",
+    "subject_mode": "auto",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [],
+    "strictness": "standard"
+  },
+  "args": {
+    "task_id": "C1",
+    "paper_type": "empirical",
+    "topic": "policy announcement timing",
+    "context": "Use an event-study timing lens around policy announcements with qualitative adoption outcomes.",
+    "domain": "auto",
+    "guidance_mode": "propose",
+    "run_agents": false
+  },
+  "expected": {
+    "decision": "borrow_lens",
+    "primary_subject": "auto",
+    "effective_domain": "auto",
+    "borrowed_lens": "event-study",
+    "borrowed_subject": "finance",
+    "resource_levels": ["method_pack_only"],
+    "run_agents": false
+  }
+}

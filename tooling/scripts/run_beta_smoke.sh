@@ -15,6 +15,7 @@ Description:
   release tier:
     - builtin literature smoke
     - orchestrator doctor
+    - full-cycle workflow harness
 
   maintainer tier:
     - everything in release tier
@@ -54,12 +55,26 @@ esac
 contains_text() {
   local pattern="$1"
   local text="$2"
-  if command -v rg >/dev/null 2>&1; then
-    rg -q "$pattern" <<<"$text"
+  if [[ -n "$RG_BIN" ]]; then
+    "$RG_BIN" -q "$pattern" <<<"$text"
   else
     grep -q "$pattern" <<<"$text"
   fi
 }
+
+find_usable_rg() {
+  local candidate
+  while IFS= read -r candidate; do
+    [[ -n "$candidate" ]] || continue
+    if "$candidate" --version >/dev/null 2>&1; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done < <(type -P -a rg 2>/dev/null || true)
+  return 1
+}
+
+RG_BIN="$(find_usable_rg || true)"
 
 run_and_assert_output() {
   local label="$1"
@@ -122,6 +137,11 @@ fi
 echo "[smoke] doctor"
 run_and_assert_output "doctor" "Doctor Summary" \
   python3 -m bridges.orchestrator doctor --cwd .
+
+echo "[smoke] full-cycle workflow harness"
+python3 tooling/scripts/run_full_cycle_workflow_harness.py \
+  --fixture tests/fixtures/full_cycle_harness/clean_empirical \
+  --json-report "${TMPDIR:-/tmp}/qiongli-full-cycle-harness.json"
 
 if [[ "$SMOKE_TIER" == "maintainer" ]]; then
   echo "[smoke] parallel/profile path"

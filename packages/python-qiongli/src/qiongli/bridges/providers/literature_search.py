@@ -17,8 +17,10 @@ SearchFn = Callable[[str, int], dict[str, Any]]
 ProviderSearchFn = Callable[[dict[str, object], int], dict[str, object]]
 
 MAX_QUERY_VARIANTS = 4
-DEFAULT_PER_QUERY_LIMIT = 20
-MAX_PER_QUERY_LIMIT = 50
+STANDARD_PER_QUERY_LIMIT = 25
+REVIEW_PER_QUERY_LIMIT = 50
+DEEP_PER_QUERY_LIMIT = 100
+MAX_PER_QUERY_LIMIT = 200
 STOPWORDS = {
     "a",
     "an",
@@ -539,14 +541,35 @@ def _artifact_bundle() -> dict[str, str]:
 
 
 def _resolve_per_query_limit(task_packet: dict[str, Any]) -> int:
-    for key in ("per_query_limit", "limit", "search_limit"):
+    for key in ("per_query_limit", "per_provider_limit", "limit", "search_limit"):
         value = task_packet.get(key)
         try:
             parsed = int(str(value).strip())
         except (TypeError, ValueError):
             continue
         return max(1, min(parsed, MAX_PER_QUERY_LIMIT))
-    return DEFAULT_PER_QUERY_LIMIT
+    return _default_per_query_limit(task_packet)
+
+
+def _default_per_query_limit(task_packet: dict[str, Any]) -> int:
+    search_depth = _normalize_limit_mode(
+        task_packet.get("search_depth", task_packet.get("searchDepth"))
+    )
+    if search_depth == "deep":
+        return DEEP_PER_QUERY_LIMIT
+    if search_depth in {"review", "systematic_review"}:
+        return REVIEW_PER_QUERY_LIMIT
+
+    review_modes = {"review", "systematic_review", "literature_review", "lit_review"}
+    search_mode = _normalize_limit_mode(task_packet.get("search_mode", task_packet.get("searchMode")))
+    paper_type = _normalize_limit_mode(task_packet.get("paper_type", task_packet.get("paperType")))
+    if search_mode in review_modes or paper_type in review_modes:
+        return REVIEW_PER_QUERY_LIMIT
+    return STANDARD_PER_QUERY_LIMIT
+
+
+def _normalize_limit_mode(value: Any) -> str:
+    return str(value or "").strip().casefold().replace("-", "_")
 
 
 def _build_keyword_bundle(raw_keywords: Any) -> str:

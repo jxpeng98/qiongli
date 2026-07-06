@@ -78,6 +78,7 @@ class ReleaseDownloadsTests(unittest.TestCase):
                 self.assertNotIn("v1.5.0", content)
                 self.assertIn("[v1.6.0](https://github.com/jxpeng98/qiongli/releases/tag/v1.6.0)", content)
                 self.assertIn("qiongli-claude-desktop-skill-core-v1.6.0.zip", content)
+                self.assertIn("qiongli-claude-desktop-plugin-v1.6.0.zip", content)
                 self.assertIn("qiongli-literature-provider-0.1.5.mcpb", content)
                 self.assertIn("qiongli-zotero-companion-0.2.2.xpi", content)
                 self.assertIn("qiongli-downloads-v1.6.0.md", content)
@@ -120,6 +121,7 @@ class ReleaseDownloadsTests(unittest.TestCase):
         self.assertIn("## Direct downloads", guide)
         self.assertIn("Start here", guide)
         self.assertIn("https://github.com/jxpeng98/qiongli/releases/download/v1.1.0-beta.2/qiongli-next-claude-desktop-skill-core-v1.1.0-beta.2.zip", guide)
+        self.assertIn("qiongli-next-claude-desktop-plugin-v1.1.0-beta.2.zip", guide)
         self.assertIn("npx qiongli@next install --target all", guide)
         self.assertIn("Use the marketplace command; do not download a plugin tarball", guide)
         self.assertIn("qiongli-next-claude-desktop-skill-core-v1.1.0-beta.2.zip", guide)
@@ -137,6 +139,10 @@ class ReleaseDownloadsTests(unittest.TestCase):
         self.assertEqual(index["recommended"]["claude_code"]["install"], "marketplace")
         self.assertEqual(index["recommended"]["claude_code"]["plugin"], "qiongli-next")
         self.assertEqual(
+            index["recommended"]["claude_desktop_plugin"]["asset"],
+            "qiongli-next-claude-desktop-plugin-v1.1.0-beta.2.zip",
+        )
+        self.assertEqual(
             index["recommended"]["claude_desktop_literature_mcpb"]["asset"],
             "qiongli-literature-provider-0.1.5.mcpb",
         )
@@ -147,6 +153,14 @@ class ReleaseDownloadsTests(unittest.TestCase):
         self.assertEqual(
             index["assets"]["zotero_desktop_companion"],
             "qiongli-zotero-companion-0.2.2.xpi",
+        )
+        self.assertEqual(
+            index["assets"]["claude_desktop_plugin"],
+            "qiongli-next-claude-desktop-plugin-v1.1.0-beta.2.zip",
+        )
+        self.assertEqual(
+            index["asset_urls"]["claude_desktop_plugin"],
+            "https://github.com/jxpeng98/qiongli/releases/download/v1.1.0-beta.2/qiongli-next-claude-desktop-plugin-v1.1.0-beta.2.zip",
         )
         self.assertIn(
             "qiongli-next-claude-desktop-skill-core-v1.1.0-beta.2.zip",
@@ -196,6 +210,7 @@ class ReleaseDownloadsTests(unittest.TestCase):
         self.assertIn("## Download Guide", notes)
         self.assertIn("Most users should not download plugin tarballs manually", notes)
         self.assertIn("qiongli-downloads-v1.1.0-beta.2.md", notes)
+        self.assertIn("qiongli-next-claude-desktop-plugin-v1.1.0-beta.2.zip", notes)
         self.assertIn("qiongli-next-claude-desktop-skill-core-v1.1.0-beta.2.zip", notes)
         self.assertIn("qiongli-literature-provider-0.1.5.mcpb", notes)
         self.assertIn("qiongli-zotero-companion-0.2.2.xpi", notes)
@@ -226,6 +241,7 @@ class ReleaseDownloadsTests(unittest.TestCase):
         self.assertIn("## Download Guide", notes)
         self.assertIn("npm install -g qiongli@latest", notes)
         self.assertIn("pipx install qiongli", notes)
+        self.assertIn("qiongli-claude-desktop-plugin-v1.5.0.zip", notes)
         self.assertIn("qiongli-claude-desktop-skill-core-v1.5.0.zip", notes)
         self.assertIn("qiongli-literature-provider-0.1.5.mcpb", notes)
         self.assertIn("qiongli-zotero-companion-0.2.2.xpi", notes)

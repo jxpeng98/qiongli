@@ -14,6 +14,7 @@ import {
   handleStatus,
   handleToolCall
 } from "../server/index.mjs";
+import { normalizeResult } from "../server/normalize.mjs";
 import { buildHybridSearchPlan } from "../server/search-plan.mjs";
 
 const PROVIDER_PROVENANCE_LABELS = [
@@ -28,7 +29,9 @@ const AGENT_INSTRUCTIONS = [
   "MCP servers must not call Codex or Claude native search directly.",
   "The active agent executes native_search_queries only when the platform exposes native search.",
   "Do not treat native-search results as provider-reproducible records.",
-  "Write provider, native, and user-corpus records with distinct provenance labels."
+  "Write provider, native, and user-corpus records with distinct provenance labels.",
+  "Use native_fulltext_queries only to discover candidate URLs; do not mark full text as retrieved from search snippets.",
+  "Write native_fulltext_candidates with candidate_only status until retrieval_manifest.csv verifies readable text."
 ];
 
 function emptyArxivResponse() {
@@ -230,6 +233,44 @@ test("buildHybridSearchPlan filters provider queries and expands query variants"
   });
 });
 
+test("buildHybridSearchPlan emits native full-text candidate queries separately", () => {
+  const plan = buildHybridSearchPlan(
+    {
+      query: "AI feedback in education",
+      platform: "codex",
+      native_search_available: true,
+      native_search_tools: ["codex_web_search"],
+      search_mode: "review"
+    },
+    "provider_connected",
+    { openalex: "configured", arxiv: "configured" }
+  );
+
+  assert.equal(plan.search_execution_mode, "hybrid_search");
+  assert.equal(plan.native_search_queries.length, 1);
+  assert.equal(plan.native_fulltext_queries.length, 1);
+  assert.equal(plan.native_fulltext_queries[0].tool, "codex_web_search");
+  assert.equal(plan.native_fulltext_queries[0].purpose, "fulltext_candidate_discovery");
+  assert.equal(plan.native_fulltext_queries[0].candidate_status, "candidate_only");
+  assert.match(plan.native_fulltext_queries[0].query, /PDF/);
+  assert.match(plan.native_fulltext_queries[0].query, /full text/);
+  assert.equal(plan.native_fulltext_queries[0].provenance_label, "native:codex_web_search");
+  assert.deepEqual(plan.native_fulltext_candidate_schema.required, [
+    "query_id",
+    "source_agent",
+    "url",
+    "title",
+    "candidate_status",
+    "retrieved_at"
+  ]);
+  assert.ok(
+    plan.agent_instructions.includes(
+      "Use native_fulltext_queries only to discover candidate URLs; do not mark full text as retrieved from search snippets."
+    )
+  );
+  assert.ok(plan.merge_policy.fulltext_candidate_records.includes("candidate_only"));
+});
+
 test("buildHybridSearchPlan returns native_only with claude_code default tool", () => {
   const plan = buildHybridSearchPlan(
     {
@@ -313,6 +354,7 @@ test("buildHybridSearchPlan uses actor action execution sequence", () => {
       ["agent", "call qiongli_search_plan", "qiongli_search_plan"],
       ["agent", "call qiongli_literature_search", "qiongli_literature_search"],
       ["agent", "execute platform-native search", null],
+      ["agent", "execute platform-native full-text candidate search", null],
       ["agent", "merge/dedupe/search_log", null]
     ]
   );
@@ -449,6 +491,23 @@ test("literature search tool exposes extended search controls", () => {
   assert.equal(properties.documentTypes.items.type, "string");
   assert.equal(properties.query_variants.items.type, "string");
   assert.equal(properties.queryVariants.items.type, "string");
+});
+
+test("normalizeResult preserves full-text access candidate fields", () => {
+  const result = normalizeResult({
+    title: "OA Paper",
+    open_access_pdf_url: "https://example.org/paper.pdf",
+    access_url: "https://example.org/paper",
+    fulltext_status: "not_retrieved:oa_candidate",
+    evidence_limit: "abstract_only",
+    license: "cc-by"
+  });
+
+  assert.equal(result.open_access_pdf_url, "https://example.org/paper.pdf");
+  assert.equal(result.access_url, "https://example.org/paper");
+  assert.equal(result.fulltext_status, "not_retrieved:oa_candidate");
+  assert.equal(result.evidence_limit, "abstract_only");
+  assert.equal(result.license, "cc-by");
 });
 
 test("handleConfigStatus suggests the platform-neutral setup tool when provider secrets are missing", () => {

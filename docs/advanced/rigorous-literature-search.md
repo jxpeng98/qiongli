@@ -47,6 +47,32 @@ When literature workflows are behaving correctly, the shared bundle should conve
 - `screening/full_text.md`
 - `retrieval_manifest.csv`
 
+## Coverage Is Audited, Not Guaranteed
+
+No provider can prove absolute completeness. OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv provide metadata, abstracts, identifiers, citation/reference links, and sometimes open-access or PDF candidates. They do not guarantee that every relevant paper exists in the provider index, that every full text is accessible, or that the returned full text is the version that should be cited.
+
+Platform-native LLM search can improve recall for full-text entry points through `native_fulltext_queries`, especially for PDFs, author manuscripts, PMC pages, arXiv versions, repositories, publisher landing pages, and institutional copies. Treat these as `candidate_only` records with source URL and retrieval time. A native search snippet is not full-text evidence by itself.
+
+Zotero attachment verification is the local-library check. A Zotero item match by DOI or title-year proves that the reference exists locally; a Zotero PDF attachment summary proves that a local or linked full-text candidate exists. The retrieval manifest still records whether that attachment was readable and which version was used.
+
+Use these coverage checks before claiming review-grade search:
+
+- `provider coverage`: at least two productive scholarly providers for broad reviews, unless the protocol justifies a narrower source.
+- `known-item recall`: seed papers expected by the reviewer or protocol must be found by at least one query/provider path.
+- `query-block coverage`: each required concept block has nonzero hits or an explicit zero-hit explanation.
+- `duplicate saturation`: additional providers or query variants mostly return already-seen records after deduplication.
+- `snowball coverage`: backward and forward citation checks are logged when the review protocol requires them.
+- `native full-text candidate coverage`: `native_fulltext_queries` were executed when platform-native search was available, and their candidate URLs were logged with source-agent provenance.
+- `Zotero attachment coverage`: local Zotero matches record match basis, match confidence, and attachment status so citation-only matches are not counted as full-text retrieval.
+- `full-text access coverage`: every sought report has a `retrieval_manifest.csv` status and every extracted claim records `evidence_limit`.
+
+Treat full text as confirmed only after retrieval:
+
+- `full_text`: a readable full-text version was retrieved or verified.
+- `abstract_only`: only an abstract or structured abstract was available.
+- `metadata_only`: only metadata fields were available.
+- `unavailable`: no reliable metadata or text source was available.
+
 ## Configuration Matrix
 
 Use this table to decide what you actually need to configure:

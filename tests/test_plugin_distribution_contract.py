@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 from qiongli.source_layout import RepoLayout
@@ -90,6 +91,20 @@ class PluginDistributionContractTests(unittest.TestCase):
 
     def materialize_next_plugin_payload(self, tmp_dir: str) -> Path:
         return self.materialize_payload_root(tmp_dir, target="next-plugin") / "plugins" / "qiongli-next"
+
+    def test_materialized_plugin_has_root_plugin_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            materialized_plugin = self.materialize_plugin_payload(tmp_dir)
+            manifest = json.loads((materialized_plugin / "plugin.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(manifest, {"name": "qiongli"})
+
+    def test_materialized_next_plugin_has_root_plugin_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            materialized_plugin = self.materialize_next_plugin_payload(tmp_dir)
+            manifest = json.loads((materialized_plugin / "plugin.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(manifest, {"name": "qiongli-next"})
 
     def test_platform_manifests_share_workflow_version(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -241,6 +256,33 @@ class PluginDistributionContractTests(unittest.TestCase):
         self.assertIn("qiongli-workflow", result.stdout)
         self.assertIn("plugins/qiongli/skills/qiongli-workflow", result.stdout)
 
+    def test_build_artifacts_includes_direct_desktop_plugin(self) -> None:
+        from scripts.build_plugin_artifacts import build_artifacts
+
+        current_tag = (RepoLayout(REPO_ROOT).workflow / "VERSION").read_text(encoding="utf-8").strip()
+        is_next = "-" in current_tag.removeprefix("v")
+        plugin_name = "qiongli-next" if is_next else "qiongli"
+        skill_name = "qiongli-next" if is_next else "qiongli"
+        expected_name = f"{plugin_name}-claude-desktop-plugin-{current_tag}.zip"
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            artifacts = build_artifacts(REPO_ROOT, current_tag, Path(tmp_dir))
+            artifact_by_name = {artifact.name: artifact for artifact in artifacts}
+            self.assertIn(expected_name, artifact_by_name)
+
+            with zipfile.ZipFile(artifact_by_name[expected_name]) as archive:
+                names = set(archive.namelist())
+                manifest = json.loads(archive.read(f"{plugin_name}/plugin.json").decode("utf-8"))
+                skill_text = archive.read(f"{plugin_name}/skills/qiongli-workflow/SKILL.md").decode("utf-8")
+
+        self.assertEqual(manifest, {"name": plugin_name})
+        self.assertIn(f"{plugin_name}/.codex-plugin/plugin.json", names)
+        self.assertIn(f"{plugin_name}/.claude-plugin/plugin.json", names)
+        self.assertIn(f"{plugin_name}/commands/lit-review.md", names)
+        self.assertIn(f"{plugin_name}/mcp/qiongli-literature-provider/index.mjs", names)
+        self.assertIn(f"{plugin_name}/skills/qiongli-workflow/SKILL.md", names)
+        self.assertIn(f"name: {skill_name}", skill_text)
+
     def test_marketplace_validator_builds_platform_artifacts_and_checks_invocation(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             result = subprocess.run(
@@ -274,6 +316,11 @@ class PluginDistributionContractTests(unittest.TestCase):
                 "qiongli-next invocation checked; bundled literature MCP checked",
                 result.stdout,
             )
+            self.assertIn(
+                "[OK] claude-desktop direct plugin artifact (core-next): "
+                "qiongli-next invocation checked; bundled literature MCP checked",
+                result.stdout,
+            )
             self.assertIn("[OK] claude-desktop skill artifact (core-next)", result.stdout)
             self.assertNotIn("[OK] gemini marketplace artifact", result.stdout)
             self.assertNotIn("artifact (economics)", result.stdout)
@@ -289,6 +336,11 @@ class PluginDistributionContractTests(unittest.TestCase):
             )
             self.assertIn(
                 "[OK] claude marketplace ZIP artifact: qiongli invocation checked; bundled literature MCP checked",
+                result.stdout,
+            )
+            self.assertIn(
+                "[OK] claude-desktop direct plugin artifact: "
+                "qiongli invocation checked; bundled literature MCP checked",
                 result.stdout,
             )
             self.assertNotIn("[OK] gemini marketplace artifact", result.stdout)

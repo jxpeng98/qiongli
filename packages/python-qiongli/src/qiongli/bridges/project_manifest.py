@@ -19,9 +19,11 @@ OFFICIAL_SUBJECTS = (
     "economics-accounting",
 )
 STRICTNESS_CHOICES = ("standard", "high")
+SUBJECT_MODE_CHOICES = ("auto", "suggested", "confirmed", "locked")
 MANIFEST_REL = Path(".qiongli") / "guidance_manifest.yaml"
 KNOWN_FIELDS = {
     "active_subject",
+    "subject_mode",
     "secondary_subjects",
     "venue_profiles",
     "method_lenses",
@@ -36,14 +38,19 @@ class ProjectManifestError(ValueError):
 @dataclass(frozen=True)
 class ProjectManifest:
     active_subject: str = "auto"
+    subject_mode: str = "auto"
     secondary_subjects: list[str] | None = None
     venue_profiles: list[str] | None = None
     method_lenses: list[str] | None = None
     strictness: str = "standard"
 
     def normalized(self) -> ProjectManifest:
+        active_subject = _validate_subject(self.active_subject, field="active_subject")
+        subject_mode = _validate_subject_mode(self.subject_mode)
+        _validate_subject_mode_subject_pair(active_subject, subject_mode)
         return ProjectManifest(
-            active_subject=_validate_subject(self.active_subject, field="active_subject"),
+            active_subject=active_subject,
+            subject_mode=subject_mode,
             secondary_subjects=_validate_subject_list(
                 self.secondary_subjects,
                 field="secondary_subjects",
@@ -57,6 +64,7 @@ class ProjectManifest:
         manifest = self.normalized()
         return {
             "active_subject": manifest.active_subject,
+            "subject_mode": manifest.subject_mode,
             "secondary_subjects": list(manifest.secondary_subjects or []),
             "venue_profiles": list(manifest.venue_profiles or []),
             "method_lenses": list(manifest.method_lenses or []),
@@ -125,14 +133,24 @@ def update_project_manifest(
     project_root: Path,
     *,
     active_subject: str | None = None,
+    subject_mode: str | None = None,
     secondary_subjects: Sequence[str] | None = None,
     venue_profiles: Sequence[str] | None = None,
     method_lenses: Sequence[str] | None = None,
     strictness: str | None = None,
 ) -> ProjectManifestState:
     current = load_project_manifest(project_root)
+    resolved_active_subject = (
+        active_subject if active_subject is not None else current.manifest.active_subject
+    )
     manifest = ProjectManifest(
-        active_subject=active_subject if active_subject is not None else current.manifest.active_subject,
+        active_subject=resolved_active_subject,
+        subject_mode=_resolve_update_subject_mode(
+            current.manifest.subject_mode,
+            active_subject=active_subject,
+            resolved_active_subject=resolved_active_subject,
+            subject_mode=subject_mode,
+        ),
         secondary_subjects=(
             list(secondary_subjects)
             if secondary_subjects is not None
@@ -171,6 +189,7 @@ def manifest_to_guidance_section(state: ProjectManifestState) -> str:
         "",
         f"- source: {source}",
         f"- active_subject: {manifest.active_subject}",
+        f"- subject_mode: {manifest.subject_mode}",
         f"- secondary_subjects: {_display_list(manifest.secondary_subjects)}",
         f"- venue_profiles: {_display_list(manifest.venue_profiles)}",
         f"- method_lenses: {_display_list(manifest.method_lenses)}",
@@ -187,14 +206,35 @@ def _manifest_from_mapping(payload: Mapping[Any, Any]) -> tuple[ProjectManifest,
         f"Ignored unsupported manifest field: {key}"
         for key in sorted(str(key) for key in payload.keys() if str(key) not in KNOWN_FIELDS)
     ]
+    active_subject = payload.get("active_subject", "auto")
+    subject_mode = payload.get("subject_mode")
+    if subject_mode is None:
+        subject_mode = "confirmed" if active_subject != "auto" else "auto"
     manifest = ProjectManifest(
-        active_subject=payload.get("active_subject", "auto"),
+        active_subject=active_subject,
+        subject_mode=subject_mode,
         secondary_subjects=payload.get("secondary_subjects"),
         venue_profiles=payload.get("venue_profiles"),
         method_lenses=payload.get("method_lenses"),
         strictness=payload.get("strictness", "standard"),
     ).normalized()
     return manifest, warnings
+
+
+def _resolve_update_subject_mode(
+    current_subject_mode: str,
+    *,
+    active_subject: str | None,
+    resolved_active_subject: str,
+    subject_mode: str | None,
+) -> str:
+    if subject_mode is not None:
+        return subject_mode
+    if active_subject is None:
+        return current_subject_mode
+    if resolved_active_subject in {"auto", "core"}:
+        return "auto"
+    return "confirmed"
 
 
 def _read_manifest_mapping(path: Path) -> dict[Any, Any]:
@@ -231,6 +271,22 @@ def _validate_subject(value: Any, *, field: str) -> str:
     if normalized not in OFFICIAL_SUBJECTS:
         raise ProjectManifestError(f"Unsupported {field}: {normalized}")
     return normalized
+
+
+def _validate_subject_mode(value: Any) -> str:
+    if not isinstance(value, str):
+        raise ProjectManifestError(f"Unsupported subject_mode: {value!r}")
+    normalized = value.strip()
+    if normalized not in SUBJECT_MODE_CHOICES:
+        raise ProjectManifestError(f"Unsupported subject_mode: {normalized}")
+    return normalized
+
+
+def _validate_subject_mode_subject_pair(active_subject: str, subject_mode: str) -> None:
+    if subject_mode in {"confirmed", "locked"} and active_subject == "auto":
+        raise ProjectManifestError(
+            f"subject_mode {subject_mode!r} requires a non-auto active_subject"
+        )
 
 
 def _validate_subject_list(value: Any, *, field: str) -> list[str]:

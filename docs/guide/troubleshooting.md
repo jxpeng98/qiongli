@@ -26,7 +26,7 @@ This document lists all standard `ERR-RS-*` error codes you might encounter whil
 - **Fix**:
   - Use `$qiongli-lit-review <topic>` when the wrapper is visible in `/skills`.
   - Use `$qiongli plan a literature review on <topic>` or `$qiongli run lit-review on <topic>` for the main skill.
-  - You can also write the natural request directly, for example "Use Qiongli to run a literature review on <topic>"; the skill entrypoint is expected to route it to Stage B / `lit-review`.
+  - You can also write the natural request directly, for example "Use Qiongli to run a literature review on `<topic>`"; the skill entrypoint is expected to route it to Stage B / `lit-review`.
   - After upgrading to a build that includes Codex wrapper skills, reinstall the local Codex plugin with `qiongli install --target codex --surface plugin --overwrite` and restart Codex.
 - **Note**: Codex still will not show `/lit-review` as a slash command. It should show `qiongli-lit-review` as a skill wrapper for plugin installs; skills-only installs can continue using `$qiongli run lit-review on <topic>`.
 

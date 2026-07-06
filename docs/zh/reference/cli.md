@@ -90,14 +90,13 @@ npm/npx 不同：它是免 Python 资产管理器，默认 `--surface skills`；
 - 可选：查询上游最新 release tag，并判断是否需要升级
 
 ```bash
-qiongli check [--repo <owner/repo|url>] [--json] [--strict-network] [--offline]
+qiongli check [--repo <owner/repo|url>] [--json] [--strict-network]
 ```
 
 关键参数：
 - `--repo`：指定上游（可省略，见“上游解析”）
 - `--json`：只输出 JSON（便于 CI/脚本）
 - `--strict-network`：如果上游查询失败则返回失败（默认仅提示并继续）
-- `--offline`：跳过 PyPI 和上游 release 查询，只检查本地安装 surface
 
 `qiongli check` 现在会识别 plugin-first 安装形态：Codex / Claude Code / Antigravity 的 CLI-managed local plugin 会显示 `surface=plugin`，Hermes 或只安装 MCP 的受管理 config 会显示 `surface=mcp`，旧版全局 skill 目录会显示 `surface=legacy_skill`，未发现时显示 `surface=none`。JSON 仍保留兼容字段 `installed`、`version`、`subject`、`coverage` 和 `path`，同时增加 `plugin`、`skill`、`mcp` 三个诊断对象。可通过客户端 CLI 查询时，plugin 诊断还会包含 `active`、`enabled`、`plugin_id` 和 `activation_detail`，用于区分“文件已安装”和“客户端已启用 plugin”。旧 managed install 如果没有 `SUBJECT_MANIFEST.json` 或 `SUBJECT` marker，会按 legacy `core` / `complete` 处理。
 
@@ -177,7 +176,7 @@ qiongli self-update [--channel stable|next] [--dry-run] [--yes] [--no-refresh] [
 - 刷新安装面默认执行 `qiongli install --target all --surface plugin --profile full --overwrite`。这是有意设计：package manager 已经更新了 CLI package，本地 payload 已经是新的，不需要再下载 release archive。
 - `--dry-run` 只打印检测到的渠道和将要执行的命令。
 - 不传 `--yes` 时，会先询问是否执行 package-manager 更新；CLI/package 升级成功后，再询问是否刷新本地 plugin/assets。
-- `--no-refresh` 跳过安装面刷新，`--skip-check` 跳过最后的 `qiongli check --offline`。
+- `--no-refresh` 跳过安装面刷新，`--skip-check` 跳过最后的 `qiongli check`。
 
 源码 checkout 不会自我修改。检测到 source mode 时，先用 `git pull` 更新源码，再运行 `qiongli install --overwrite` 刷新需要的安装面。
 
@@ -213,7 +212,7 @@ qiongli mcp config example --target hermes --json
 qiongli mcp wizard
 ```
 
-server 暴露的 MCP tools 包括 `qiongli_config_status`、`qiongli_save_provider_config`、`qiongli_collect_evidence`、`qiongli_list_provider_env`、`qiongli_test_provider`、`qiongli_configure_provider`、`qiongli_orchestrator_route`、`qiongli_orchestrator_doctor`、`qiongli_task_plan` 和 `qiongli_task_run`。
+full Python server 暴露的 MCP tools 包括 `qiongli_literature_status`、`qiongli_search_plan`、`qiongli_literature_search`、`qiongli_literature_export_evidence`、`qiongli_config_status`、`qiongli_save_provider_config`、`qiongli_configure_provider`、`qiongli_open_config_wizard`、`qiongli_list_provider_env`、`qiongli_test_provider`、`qiongli_collect_evidence`、`qiongli_subject_status`、`qiongli_subject_update`、`qiongli_orchestrator_route`、`qiongli_orchestrator_doctor`、`qiongli_task_plan` 和 `qiongli_task_run`。其中 `qiongli_collect_evidence` 是 filesystem / builtin / external-command evidence adapter；不要用它判断 OpenAlex、Semantic Scholar、Crossref、PubMed 或 arXiv 的 provider config。直接传入 `openalex` 这类 provider name 时，它检查的是 `RESEARCH_MCP_<PROVIDER>_CMD` 外部命令。
 
 默认 `stdio` 模式是本地进程，不需要远端 server。Codex、Claude Code、Antigravity、Hermes 或其他本地 MCP client 可以先调用 `qiongli_orchestrator_route`，决定是否从 skill-only routing 升级到 full orchestrator tools。`qiongli_task_run` 默认是 preview mode；只有 MCP caller 显式传入 JSON boolean `run_agents: true` 时，才会启动本地模型 CLI。
 

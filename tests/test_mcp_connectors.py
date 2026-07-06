@@ -100,6 +100,28 @@ class MCPConnectorTests(unittest.TestCase):
         self.assertEqual(evidence.data["provider_config"]["semantic_scholar"], "missing")
         self.assertEqual(evidence.data["capability_mode"], "provider_connected")
 
+    def test_direct_literature_provider_without_external_command_reports_adapter_scope(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            config_home = root / "config"
+            with mock.patch.dict(
+                os.environ,
+                {"QIONGLI_CONFIG_HOME": str(config_home)},
+                clear=False,
+            ):
+                set_provider_value("openalex", "api-key", "openalex-key")
+                evidence = self.connector.collect("openalex", {"topic": "demo"}, root)
+
+        self.assertEqual(evidence.provider, "openalex")
+        self.assertEqual(evidence.status, "not_configured")
+        self.assertIn("external command adapter", evidence.summary)
+        self.assertIn("RESEARCH_MCP_OPENALEX_CMD", evidence.provenance)
+        self.assertEqual(evidence.data["not_configured_scope"], "external_command_adapter")
+        self.assertEqual(evidence.data["provider_config_status"], "configured")
+        self.assertEqual(evidence.data["provider_config"]["openalex"], "configured")
+        self.assertEqual(evidence.data["recommended_status_tool"], "qiongli_literature_status")
+        self.assertEqual(evidence.data["recommended_search_tool"], "qiongli_literature_search")
+
     def test_collect_external_provider_executes_quoted_env_command_with_space_paths(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)

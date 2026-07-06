@@ -1285,7 +1285,12 @@ def install(options: InstallOptions) -> int:
     print(f"  source:  {repo_root}")
     print(f"  project: {options.project_dir}")
     print(f"  target:  {options.target} | mode: {options.mode}")
-    print(f"  subject: {options.subject}")
+    subject_label = (
+        "core (adaptive; active_subject defaults to auto)"
+        if options.subject == "core"
+        else f"{options.subject} (advanced override)"
+    )
+    print(f"  subject: {subject_label}")
     print(f"  coverage: {options.coverage}")
     if options.profile:
         print(f"  profile: {options.profile}")

@@ -1,0 +1,22 @@
+{
+  "id": "accounting_method_only_borrow_accrual_quality",
+  "subject_under_test": "accounting",
+  "tags": ["accounting", "method_only_borrow"],
+  "description": "Locked finance project may borrow an accounting measurement lens without switching subject.",
+  "request": "Within my finance paper, add discretionary accruals and accrual quality as reporting-quality controls, but keep the main framing on abnormal returns and asset pricing.",
+  "manifest": {
+    "active_subject": "finance",
+    "subject_mode": "locked",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": ["asset-pricing"],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "keep_locked",
+    "primary_subject": "finance",
+    "suggest_subjects": [],
+    "forbidden_subjects": ["accounting"],
+    "method_lenses": ["asset-pricing", "accrual-quality"]
+  }
+}

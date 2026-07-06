@@ -117,8 +117,12 @@ LITERATURE_TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "properties": {
                 "query": {"type": "string"},
                 "limit": {"type": "number"},
+                "per_query_limit": {"type": "number"},
                 "per_provider_limit": {"type": "number"},
+                "search_limit": {"type": "number"},
                 "total_limit": {"type": "number"},
+                "search_depth": {"type": "string"},
+                "searchDepth": {"type": "string"},
                 "search_mode": {
                     "type": "string",
                     "enum": ["auto", "topic", "title", "doi", "review", "systematic_review"],
@@ -203,6 +207,7 @@ def _task_packet_from_search_args(args: dict[str, Any]) -> dict[str, Any]:
     keywords = [query] if query else []
     if isinstance(variants, list):
         keywords.extend(str(item).strip() for item in variants if str(item).strip())
+    per_query_limit = args.get("per_query_limit", args.get("perQueryLimit"))
     per_provider_limit = args.get("per_provider_limit", args.get("perProviderLimit"))
     return {
         "topic": query or "literature-search",
@@ -210,13 +215,15 @@ def _task_packet_from_search_args(args: dict[str, Any]) -> dict[str, Any]:
         "keywords": keywords,
         "paper_type": _paper_type_from_search_mode(args.get("search_mode", args.get("searchMode"))),
         "search_mode": args.get("search_mode", args.get("searchMode", "auto")),
+        "search_depth": args.get("search_depth", args.get("searchDepth")),
         "year_start": args.get("fromYear"),
         "year_end": args.get("toYear"),
         "venue_profile": args.get("venue_filter", args.get("venueFilter", "")),
         "publication_type": _first_document_type(args.get("document_types", args.get("documentTypes"))),
         "limit": args.get("limit"),
-        "per_provider_limit": args.get("per_provider_limit", args.get("perProviderLimit")),
-        "per_query_limit": per_provider_limit or args.get("limit"),
+        "search_limit": args.get("search_limit", args.get("searchLimit")),
+        "per_provider_limit": per_provider_limit,
+        "per_query_limit": per_query_limit,
     }
 
 

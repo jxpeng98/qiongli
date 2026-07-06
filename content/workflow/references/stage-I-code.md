@@ -16,6 +16,7 @@ This stage makes the computational parts reproducible: implementation, pipelines
 ## Quality gate focus
 
 - `Q4` (reproducibility baseline) is the primary gate in this stage.
+- Semantic gate report: update `quality-gate-report.md` with `q4_reproducibility_baseline`; evidence must anchor data lineage, code entrypoints, commands, environment, outputs, seeds, and rerun limits.
 
 ---
 

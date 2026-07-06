@@ -1,0 +1,68 @@
+{
+  "id": "business_clear_organization_panel_manager_survey",
+  "subject_under_test": "business",
+  "tags": [
+    "business",
+    "clear_positive"
+  ],
+  "description": "Quantitative organization-level business study with manager survey, construct, and venue signals.",
+  "request": "Design a Journal of Management manuscript using organization-level data, firm-level panel measures, manager survey evidence, construct clarity, and boundary conditions to build a management theory contribution.",
+  "manifest": {
+    "active_subject": "auto",
+    "subject_mode": "auto",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "recommend",
+    "primary_subject": "business",
+    "suggest_subjects": [
+      "business"
+    ],
+    "forbidden_subjects": [],
+    "method_lenses": [
+      "business-positioning",
+      "construct-level-fit"
+    ]
+  },
+  "gate_expected": {
+    "eval-ready": {
+      "decision": "recommend",
+      "primary_subject": "business",
+      "suggest_subjects": [
+        "business"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "business-positioning",
+        "construct-level-fit"
+      ]
+    },
+    "promotion-ready": {
+      "decision": "recommend",
+      "primary_subject": "business",
+      "suggest_subjects": [
+        "business"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "business-positioning",
+        "construct-level-fit"
+      ]
+    },
+    "runtime-enabled": {
+      "decision": "recommend",
+      "primary_subject": "business",
+      "suggest_subjects": [
+        "business"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "business-positioning",
+        "construct-level-fit"
+      ]
+    }
+  }
+}

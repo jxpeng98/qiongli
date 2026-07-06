@@ -17,6 +17,8 @@ test('help describes the npm asset manager and full runtime boundary', async () 
   assert.match(stdout, /qiongli project set-subject <subject> --project-dir \. \[--dry-run\] \[--json\]/);
   assert.match(stdout, /Full runtime commands require `pipx install qiongli`/);
   assert.match(stdout, /doctor\|task-run\|team-run\|parallel\|chain\|role\|single\|code-build\|task-plan\|mcp\|provider\|guidance\|customize\|init\|align/);
+  assert.match(stdout, /Default core installs adaptive runtime subject refinement/);
+  assert.match(stdout, /Non-core subjects are advanced overrides for pre-materialized packages/);
 });
 
 test('cli source does not import or call the Python runtime bridge', () => {
@@ -46,6 +48,54 @@ test('main runs setup as Node-only asset setup', async (t) => {
   assert.equal(stderr, '');
   assert.match(stdout, /Qiongli npm asset manager/);
   assert.match(stdout, /\[ok\] Skill -> .*qiongli-workflow/);
+});
+
+test('main describes default core install as adaptive in npm output', async (t) => {
+  const packageRoot = createMinimalPackageRoot(t);
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-home-'));
+  t.after(() => fs.rmSync(home, { recursive: true, force: true }));
+
+  const { exitCode, stdout, stderr } = await runMain(['install', '--dry-run', '--target', 'codex'], {
+    env: {
+      HOME: home,
+      CODEX_HOME: path.join(home, '.codex'),
+    },
+    packageRoot,
+    runPythonCliCommand: failPythonRunner,
+    runBridgeCommand: failPythonRunner,
+  });
+
+  assert.equal(exitCode, 0);
+  assert.equal(stderr, '');
+  assert.match(stdout, /source subject: core \(adaptive; active_subject defaults to auto\)/);
+});
+
+test('main describes non-core npm subject installs as advanced overrides', async (t) => {
+  const packageRoot = createMinimalPackageRoot(t);
+  createSubjectPayload(packageRoot, 'economics');
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-home-'));
+  t.after(() => fs.rmSync(home, { recursive: true, force: true }));
+
+  const { exitCode, stdout, stderr } = await runMain([
+    'upgrade',
+    '--subject',
+    'economics',
+    '--dry-run',
+    '--target',
+    'codex',
+  ], {
+    env: {
+      HOME: home,
+      CODEX_HOME: path.join(home, '.codex'),
+    },
+    packageRoot,
+    runPythonCliCommand: failPythonRunner,
+    runBridgeCommand: failPythonRunner,
+  });
+
+  assert.equal(exitCode, 0);
+  assert.equal(stderr, '');
+  assert.match(stdout, /source subject: economics \(advanced override\)/);
 });
 
 test('main treats update and refresh as overwrite install refreshes', async (t) => {
@@ -252,4 +302,12 @@ function createMinimalPackageRoot(t) {
   fs.writeFileSync(path.join(workflow, 'SUBJECT'), 'core\n');
   fs.writeFileSync(path.join(codexPlugin, 'manifest.json'), `${JSON.stringify({ name: 'qiongli', runtime: 'node-lite' })}\n`);
   return root;
+}
+
+function createSubjectPayload(root, subject) {
+  const workflow = path.join(root, 'payload', 'subjects', subject, 'complete', 'qiongli-workflow');
+  fs.mkdirSync(workflow, { recursive: true });
+  fs.writeFileSync(path.join(workflow, 'SKILL.md'), '---\nname: qiongli-workflow\n---\n');
+  fs.writeFileSync(path.join(workflow, 'VERSION'), '0.0.0-test\n');
+  fs.writeFileSync(path.join(workflow, 'SUBJECT'), `${subject}\n`);
 }

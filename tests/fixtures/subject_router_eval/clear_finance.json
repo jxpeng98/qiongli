@@ -1,0 +1,22 @@
+{
+  "id": "clear_finance",
+  "subject_under_test": "finance",
+  "tags": ["finance", "clear_positive"],
+  "description": "Corporate finance request with valuation and risk signals.",
+  "request": "Design a study of corporate bond spread reactions to earnings guidance surprises. I need asset pricing controls, event-study windows, liquidity filters, and robustness checks for abnormal returns.",
+  "manifest": {
+    "active_subject": "auto",
+    "subject_mode": "auto",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "recommend",
+    "primary_subject": "finance",
+    "suggest_subjects": ["finance"],
+    "forbidden_subjects": ["economics"],
+    "method_lenses": ["asset-pricing", "event-study"]
+  }
+}

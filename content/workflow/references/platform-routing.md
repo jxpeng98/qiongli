@@ -149,5 +149,7 @@ required skills, or MCP evidence when switching adapters.
 
 - `qiongli-workflow` portable packages must include this routing contract.
 - Desktop or web skill-only installs can route and write artifacts, but they
-  should not claim provider-connected literature search unless a provider MCPB or
-  platform-native search capability is available.
+  should not claim `provider_connected` literature search unless a provider MCP
+  or MCPB is available. Platform-native search alone is `native_only`; if no
+  provider MCP/MCPB and no platform-native search is available, record
+  `strategy_only`.

@@ -1,0 +1,27 @@
+{
+  "id": "business_near_miss_consulting_market_analysis",
+  "subject_under_test": "business",
+  "tags": [
+    "business",
+    "near_miss"
+  ],
+  "description": "Consulting market analysis wording must stay core.",
+  "request": "Prepare a consulting market analysis with competitor bullets, sales enablement messages, and product positioning copy for a client workshop.",
+  "manifest": {
+    "active_subject": "auto",
+    "subject_mode": "auto",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "core_only",
+    "primary_subject": "core",
+    "suggest_subjects": [],
+    "forbidden_subjects": [
+      "business"
+    ],
+    "method_lenses": []
+  }
+}

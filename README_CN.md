@@ -1,7 +1,7 @@
 <div align="center">
   <h1>穷理（Qiongli）</h1>
-  <p><strong>让 AI 辅助研究留下可复查证据链的学术工作流系统。</strong></p>
-  <p>把宽泛研究请求拆成 Task ID、质量门、证据链、角色交接和 <code>RESEARCH/[topic]/</code> 下的稳定产物。</p>
+  <p><strong>用 AI agent 做学术研究，同时保留可复查证据链。</strong></p>
+  <p>穷理把一个研究目标拆成论文路线、Task ID、文献和引用证据、质量门、agent 交接，以及 <code>RESEARCH/[topic]/</code> 下的稳定文件。</p>
   <p>
     <a href="https://www.npmjs.com/package/qiongli"><img alt="npm latest version" src="https://img.shields.io/npm/v/qiongli/latest?style=flat-square&amp;logo=npm&amp;label=npm%20latest"></a>
     <a href="https://www.npmjs.com/package/qiongli?activeTab=versions"><img alt="npm next version" src="https://img.shields.io/npm/v/qiongli/next?style=flat-square&amp;logo=npm&amp;label=npm%20next&amp;color=cb3837"></a>
@@ -19,14 +19,14 @@
 
 ## 它是什么
 
-穷理是一套便携的学术 workflow package，也可以按需接入本地运行时。它适合不能只靠一次 prompt 完成、后续还需要复查证据和过程的研究任务。
+穷理是面向学术研究的 AI agent 工作流系统，适合正在使用 Codex、Claude Code、Claude Desktop、Antigravity、Hermes 或类似工具的研究者。它适合那些不能只靠一次 prompt 完成、后续还需要复查证据、步骤和产物的研究任务。
 
 你可以用它来：
 
-- 为 empirical、qualitative、systematic review、RCT、theory、code-first methods 等任务选择论文路线；
-- 把 literature search、citation risk、methods、writing 和 review 绑定到明确证据；
-- 用 solo、duo、triad 模式组织多 agent 协作，并保留 handoff 与 verification status；
-- 把轻量 skill/plugin 使用和完整本地 orchestrator 运行分开管理。
+- 为 empirical、qualitative、systematic review、RCT、theory、code-first methods 等项目选择论文路线；
+- 组织 literature search、citation checking、study design、writing、code、review、submission 和 rebuttal；
+- 把 claim、source、method decision、review note 和生成产物放到稳定项目路径里；
+- 先用轻量 skill/plugin 工作流，需要受控 solo、duo、triad agent execution 时再接入完整本地 orchestrator。
 
 “穷理”表示持续追问一个 claim 背后的 principle、evidence 和 limit。
 
@@ -62,7 +62,7 @@ npm CLI 是免 Python 资产管理器，默认安装 skills surface：
 ```bash
 npm install -g qiongli
 qiongli install --target all --surface skills
-qiongli check --offline
+qiongli check
 ```
 
 脚本化安装时建议显式传入项目目录：
@@ -180,7 +180,7 @@ qiongli upgrade --target all
 
 Qiongli 包含 Academic Idea Funnel 和 Academic Grill Loop；这是对 Matt Pocock 的 `grill-me` idea-discovery pattern 的 academic adaptation，并面向 academic idea-discovery 调整。它会在起草前追问证据强度、替代解释、可行性、venue fit 和 boundary review。
 
-Provider 凭据保存在 provider config，不写进生成的 skill bundle。使用 `qiongli provider setup` 配置 OpenAlex 和 Semantic Scholar，再用 `qiongli provider doctor` 验证。`qiongli-literature-provider` `.mcpb` 为 Codex/Desktop 流程暴露 `qiongli_config_status`、`qiongli_configure_provider` 和 `qiongli_save_provider_config`；状态包括 `provider_connected` 和 `strategy_only`。skill-only 安装仍可使用 strategy fallback，外部 provider probe 保持 180 秒上限。
+Provider 凭据保存在 provider config，不写进生成的 skill bundle。使用 `qiongli provider setup` 配置 OpenAlex、Semantic Scholar、Crossref、PubMed 和 arXiv 支持的文献 workflow，再用 `qiongli provider doctor` 验证。`qiongli-literature-provider` `.mcpb` 为 Codex/Desktop 流程暴露 `qiongli_literature_status`、`qiongli_search_plan`、`qiongli_literature_search`、`qiongli_literature_export_evidence`、`qiongli_config_status`、`qiongli_configure_provider` 和 `qiongli_save_provider_config`；状态会根据 provider 和平台原生搜索可用性区分 `provider_connected`、`native_only` 和 `strategy_only`。`qiongli_collect_evidence` 是 external evidence adapter 路径，不能作为 OpenAlex provider config 检查。skill-only 安装仍可使用 strategy fallback，外部 provider probe 保持 180 秒上限。
 
 ## 文档地图
 

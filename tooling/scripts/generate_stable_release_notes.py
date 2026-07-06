@@ -77,6 +77,8 @@ def render_notes(tag: str, changelog_path: Path, repo_slug: str = DEFAULT_REPO_S
     if desktop_core_asset not in desktop_url_by_asset:
         desktop_core_asset = desktop_skills[0]
 
+    desktop_plugin_asset = _required_string(assets.get("claude_desktop_plugin"), "Desktop direct plugin asset")
+    desktop_plugin_url = _required_string(asset_urls.get("claude_desktop_plugin"), "Desktop direct plugin URL")
     mcpb_asset = _required_string(assets.get("claude_desktop_literature_mcpb"), "MCPB asset")
     zotero_asset = _required_string(assets.get("zotero_desktop_companion"), "Zotero companion asset")
     guide_asset = _required_string(assets.get("download_guide"), "download guide asset")
@@ -92,7 +94,7 @@ def render_notes(tag: str, changelog_path: Path, repo_slug: str = DEFAULT_REPO_S
     lines = [
         "## Release Category",
         "",
-        f"`{tag}` is the stable release for normal installs and upgrades. Use it for npm `latest`, PyPI stable, the `qiongli` marketplace entry, Claude Desktop/Web skill ZIPs, the literature MCPB, and the Zotero companion XPI.",
+        f"`{tag}` is the stable release for normal installs and upgrades. Use it for npm `latest`, PyPI stable, the `qiongli` marketplace entry, the Claude Desktop direct plugin ZIP, Claude Desktop/Web skill ZIPs, the literature MCPB, and the Zotero companion XPI.",
         "",
         "| Category | Use it for | Notes |",
         "|---|---|---|",
@@ -112,6 +114,7 @@ def render_notes(tag: str, changelog_path: Path, repo_slug: str = DEFAULT_REPO_S
         f"| Release page and all assets | [Qiongli {tag}]({release_url}) |",
         f"| npm CLI | `npm install -g qiongli@latest` or `npx qiongli@latest install --target all --project-dir \"$PWD\"` |",
         f"| PyPI CLI | `pipx install qiongli` or `pipx upgrade qiongli` |",
+        f"| Claude Desktop direct plugin ZIP | {_asset_link(desktop_plugin_asset, desktop_plugin_url)} |",
         f"| Default Claude Desktop/Web skill ZIP | {_asset_link(desktop_core_asset, desktop_url_by_asset[desktop_core_asset])} |",
         f"| All Desktop/Web subject ZIPs | {_asset_link(guide_asset, guide_url)} |",
         f"| Claude Desktop literature MCPB | {_asset_link(mcpb_asset, mcpb_url)} |",
