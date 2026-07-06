@@ -55,6 +55,8 @@
 | `H_submission` | 投稿包、回复审稿、模拟评审 | 8 | “投稿前后怎么打包和应对审稿？” |
 | `I_code` | 学术代码、统计、可复现性 | 10 | “研究代码如何实现、审查、复现？” |
 | `K_presentation` | 学术报告、幻灯片规划、Slidev、Beamer | 4 | “怎么把论文变成一个可讲、可答辩的学术报告？” |
+| `L_coursework` | 作业说明、评分标准、学习目标、课程作业修改 | 4 | “怎样诚实、清晰地完成这项课程作业？” |
+| `M_dissertation` | 毕业论文规划、章节地图、导师反馈、答辩准备 | 4 | “怎样规划、撰写、修改并答辩这篇 dissertation？” |
 | `Z_cross_cutting` | 元数据、多模型协作、自我批判 | 5 | “哪些能力是跨阶段通用的？” |
 
 ## 按 Stage 看 Canonical Skills
@@ -214,6 +216,28 @@
 | `slide-architect` | 幻灯片架构 | 当你需要逐页定义幻灯片的内容、布局和演讲备注时使用。 | `SlideDeckSpec` |
 | `slidev-scholarly-builder` | Slidev 学术构建 | 当你选择 Slidev + scholarly 主题作为演示后端时使用。 | `SlidevDeck`, `BibTeXFile` |
 | `beamer-builder` | Beamer 构建 | 当你选择 LaTeX Beamer 作为演示后端时使用。 | `BeamerDeck`, `BibTeXFile` |
+
+### L. Coursework
+
+当任务是 coursework、assignment brief、marking rubric、learning outcomes、case analysis、reflection、portfolio 或 capstone coursework 时，用 Stage L。
+
+| Skill | 中文名 | 适用场景 | 产出类型 |
+|---|---|---|---|
+| `assignment-brief-analyzer` | 作业说明解析 | 当 coursework、capstone 或 dissertation brief 需要先解析再规划或写作时使用。 | `AssignmentBrief`, `AcademicIntegrityNotes` |
+| `rubric-mapper` | 评分标准映射 | 当课程作业需要对照 rubric 或 learning outcomes 规划和修改时使用。 | `RubricMap`, `LearningOutcomeMap` |
+| `coursework-architect` | 课程作业架构 | 当课程 essay、report、case、reflection、portfolio 或 capstone 需要写作结构时使用。 | `CourseworkOutline`, `CourseworkClaimEvidencePlan` |
+| `coursework-reviser` | 课程作业修改 | 当 coursework 草稿需要按 rubric 修改或做提交前检查时使用。 | `CourseworkRevisionPlan`, `CourseworkSubmissionChecklist` |
+
+### M. Dissertation
+
+当任务是 dissertation、thesis、capstone、major project、导师反馈整合或 viva/defense 准备时，用 Stage M。
+
+| Skill | 中文名 | 适用场景 | 产出类型 |
+|---|---|---|---|
+| `dissertation-planner` | 毕业论文规划 | 当 dissertation、thesis、capstone 或 major project 需要启动或重构规划时使用。 | `DissertationPlan` |
+| `chapter-architect` | 论文章节架构 | 当 dissertation 需要章节结构、章节状态或字数分配时使用。 | `DissertationChapterMap` |
+| `supervisor-feedback-integrator` | 导师反馈整合 | 当导师或委员会反馈需要转成可追踪的 dissertation 修改计划时使用。 | `DissertationFeedbackLog` |
+| `dissertation-readiness-checker` | 毕业论文准备度检查 | 当 dissertation 提交、viva 或 defense 前需要最终检查时使用。 | `DissertationReadinessReport` |
 
 ### Z. Cross-Cutting
 

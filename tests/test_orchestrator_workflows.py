@@ -405,6 +405,40 @@ class OrchestratorWorkflowTests(unittest.TestCase):
         self.assertEqual(result.data["paper_type"], "qualitative")
         self.assertEqual(result.data["functional_owner"], "methodology-agent")
 
+    def test_task_plan_supports_coursework_project_mode(self) -> None:
+        orchestrator = MockOrchestrator()
+        result = orchestrator.task_plan(
+            task_id="L1",
+            paper_type="coursework",
+            topic="consumer-behaviour-assignment",
+            cwd=REPO_ROOT,
+        )
+
+        self.assertEqual(result.data["task_id"], "L1")
+        self.assertEqual(result.data["paper_type"], "coursework")
+        self.assertEqual(result.data["functional_owner"], "writing-agent")
+        self.assertEqual(result.data["functional_role_id"], "academic-writer")
+        self.assertEqual(result.data["runtime_plan"]["primary_agent"], "claude")
+        self.assertEqual(result.data["requires_all_order"], ["L1"])
+        self.assertIn("After completion, consider next tasks: L2", result.recommendations)
+
+    def test_task_plan_supports_dissertation_project_mode_dependencies(self) -> None:
+        orchestrator = MockOrchestrator()
+        result = orchestrator.task_plan(
+            task_id="M7",
+            paper_type="dissertation",
+            topic="ai-governance-dissertation",
+            cwd=REPO_ROOT,
+        )
+
+        self.assertEqual(result.data["task_id"], "M7")
+        self.assertEqual(result.data["paper_type"], "dissertation")
+        self.assertEqual(result.data["functional_owner"], "research-orchestrator")
+        self.assertEqual(result.data["functional_role_id"], "research-orchestrator")
+        self.assertEqual(result.data["runtime_plan"]["primary_agent"], "claude")
+        self.assertEqual(result.data["requires_all_order"], ["M1", "M2", "M6", "M7"])
+        self.assertEqual(result.data["missing_prerequisites_all"], ["M1", "M2", "M6"])
+
     def test_management_domain_alias_loads_business_management_profile(self) -> None:
         orchestrator = MockOrchestrator()
         context = orchestrator._load_domain_profile_context("management")

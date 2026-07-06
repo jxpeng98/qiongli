@@ -100,6 +100,8 @@ Explicit workflow commands are optional entry points. In Codex, users can invoke
 ```
 /paper [topic] [venue]                # Master router — choose paper type + task ID
 /paper-lifecycle [topic]              # Full-Cycle lifecycle preview from topic to journal fit
+/coursework [assignment brief, task, or topic] # Coursework, rubric, and learning-assessment support
+/dissertation [topic, program, or level]       # Dissertation / thesis / major-project support
 /lit-review [topic] [year range]     # Systematic literature review (PRISMA)
 /paper-read [URL or DOI]             # Deep paper analysis
 /find-gap [research area]            # Identify research gaps
@@ -120,11 +122,11 @@ Explicit workflow commands are optional entry points. In Codex, users can invoke
 
 Full workflow definitions are included in the `workflows/` subdirectory of this skill package. When a user invokes any workflow above (for example, `$qiongli run paper` or `/paper` on clients that support workflow wrappers), read the corresponding file from `workflows/<command-name>.md` for the complete execution instructions.
 
-The `workflows/paper.md` file is the **master router** — it maps every Task ID (A1–K4) to the correct sub-workflow or skill card. Start there for any task-ID-based request.
+The `workflows/paper.md` file is the **master router** — it maps every research Task ID (A1–M7) to the correct sub-workflow or skill card. Use `workflows/coursework.md` for Stage L assignment tasks and `workflows/dissertation.md` for Stage M dissertation or thesis tasks.
 
 ## Skill Directory Structure
 
-The skill system covers the full research lifecycle across 11 stages:
+The skill system covers the full research lifecycle across 13 stages plus cross-cutting skills:
 
 ```
 skills/
@@ -139,6 +141,8 @@ skills/
 ├── H_submission/    (submission-packager, rebuttal-assistant, peer-review-simulation, fatal-flaw-detector, journal-fit-recommender, reviewer-empathy-checker, credit-taxonomy-helper, limitation-auditor)
 ├── I_code/          (code-builder, data-cleaning-planner, data-merge-planner, code-specification, code-planning, code-execution, code-review, reproducibility-auditor, stats-engine)
 ├── K_presentation/  (presentation-planner, slide-architect, slidev-scholarly-builder, beamer-builder)
+├── L_coursework/    (assignment-brief-analyzer, rubric-mapper, coursework-architect, coursework-reviser)
+├── M_dissertation/  (dissertation-planner, chapter-architect, supervisor-feedback-integrator, dissertation-readiness-checker)
 ├── Z_cross_cutting/ (academic-context-maintainer, metadata-enricher, model-collaborator, self-critique)
 └── domain-profiles/ (economics, finance, psychology, biomedical, education, cs-ai, ...)
 ```
@@ -162,6 +166,9 @@ RESEARCH/[topic]/
 ├── revision/                # Rebuttal + response materials
 ├── analysis/                # Code + data pipelines
 ├── presentation/            # Slide deck spec, slides.md / slides.tex
+├── assignment/              # Coursework/dissertation briefs, rubrics, learning outcomes, integrity notes
+├── coursework/              # Coursework outlines, claim-evidence plans, drafts, revision plans
+├── dissertation/            # Dissertation plans, chapter maps, feedback logs, readiness, defense prep
 └── bibliography.bib         # BibTeX references
 ```
 
@@ -221,9 +228,9 @@ This package includes the following subdirectories:
 
 | Directory | Contents |
 |-----------|----------|
-| `workflows/` | 17 workflow definitions (slash commands) |
+| `workflows/` | 19 workflow definitions (slash commands) |
 | `references/` | Stage playbooks + workflow contract |
-| `skills/` | 72 detailed skill spec files across 13 stage directories |
+| `skills/` | 82 detailed skill spec files across 13 lifecycle/project stages plus cross-cutting support |
 | `skills-summary.md` | Quick-reference skill index (~3KB) |
 | `skills-core.md` | Consolidated skill reference (~19KB) |
 | `templates/` | 50+ output templates for manuscripts, submissions, ethics, evidence, and handoffs |
@@ -254,3 +261,5 @@ This package includes the following subdirectories:
   - `references/stage-H-submission.md` (tasks H1–H5)
   - `references/stage-I-code.md` (tasks I1–I9)
   - `references/stage-K-presentation.md` (tasks K1–K4)
+  - `references/stage-L-coursework.md` (tasks L1–L7)
+  - `references/stage-M-dissertation.md` (tasks M1–M7)

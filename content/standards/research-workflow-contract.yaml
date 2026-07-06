@@ -76,6 +76,26 @@ artifacts:
     - "proofread/similarity_report.md"
     - "proofread/citation-risk-report.md"
     - "proofread/proofread_checklist.md"
+    - "assignment/brief.md"
+    - "assignment/rubric_map.md"
+    - "assignment/learning_outcomes.md"
+    - "assignment/academic_integrity_notes.md"
+    - "assignment/submission_checklist.md"
+    - "coursework/outline.md"
+    - "coursework/claim_evidence_plan.md"
+    - "coursework/citation_plan.md"
+    - "coursework/draft.md"
+    - "coursework/revision_plan.md"
+    - "coursework/final_response.md"
+    - "dissertation/dissertation_plan.md"
+    - "dissertation/chapter_map.md"
+    - "dissertation/chapter_status.md"
+    - "dissertation/milestone_plan.md"
+    - "dissertation/supervisor_feedback_log.md"
+    - "dissertation/revision_plan.md"
+    - "dissertation/final_readiness.md"
+    - "dissertation/defense_prep.md"
+    - "dissertation/chapters/"
 
 paper_types:
   - id: "empirical"
@@ -88,6 +108,15 @@ paper_types:
     focus: "new method + validation + comparative evidence"
   - id: "theory"
     focus: "constructs, propositions, conceptual contribution"
+
+academic_project_types:
+  - "journal_manuscript"
+  - "research_paper"
+  - "coursework"
+  - "capstone"
+  - "dissertation"
+  - "thesis"
+  - "presentation"
 
 literature_evidence_bundle:
   shared_artifacts:
@@ -152,6 +181,8 @@ academic_context_continuity:
     E: "Distinguish stable findings from tentative signals, document heterogeneity/nulls/conflicts, and preserve the current evidence position before manuscript drafting."
     F: "Carry forward the manuscript thesis, claims-evidence alignment status, interpretation boundaries, and remaining narrative or analytical fragilities."
     H: "Summarize reviewer-sensitive weaknesses, locked revision strategy, unresolved fatal risks, and submission-readiness blockers."
+    L: "Preserve assignment brief, rubric criteria, learning outcomes, AI-policy status, word count, user-supplied evidence, and unresolved submission risks."
+    M: "Preserve degree level, dissertation type, chapter status, supervisor feedback, milestone constraints, ethics dependencies, and unresolved evidence gaps."
   research_state_required_sections:
     - "Paper identity and current stage status"
     - "Current research question, thesis, or contribution claim"
@@ -198,6 +229,8 @@ academic_context_continuity:
     I: "Refresh code/data lineage, reproducibility, and analysis-validity boundaries."
     J: "Refresh final wording and meaning-preservation boundaries."
     K: "Refresh presentation claim, audience, and disclosure boundaries."
+    L: "Refresh rubric, learning-outcome, permitted-assistance, source-use, and personal-evidence boundaries."
+    M: "Refresh chapter, supervisor-feedback, ethics, milestone, claim-evidence, and defense-readiness boundaries."
 
 stages:
   - id: "A"
@@ -308,6 +341,40 @@ stages:
       - "presentation/slidev/"
       - "presentation/beamer/"
       - "presentation/slides.bib"
+  - id: "L"
+    name: "coursework-learning-assessment"
+    sequence_index: 12
+    phase_type: "project-mode"
+    outputs:
+      - "assignment/brief.md"
+      - "assignment/rubric_map.md"
+      - "assignment/learning_outcomes.md"
+      - "assignment/academic_integrity_notes.md"
+      - "assignment/submission_checklist.md"
+      - "coursework/outline.md"
+      - "coursework/claim_evidence_plan.md"
+      - "coursework/citation_plan.md"
+      - "coursework/draft.md"
+      - "coursework/revision_plan.md"
+      - "coursework/final_response.md"
+  - id: "M"
+    name: "dissertation-major-project"
+    sequence_index: 13
+    phase_type: "project-mode"
+    outputs:
+      - "assignment/brief.md"
+      - "assignment/rubric_map.md"
+      - "assignment/learning_outcomes.md"
+      - "assignment/academic_integrity_notes.md"
+      - "dissertation/dissertation_plan.md"
+      - "dissertation/chapter_map.md"
+      - "dissertation/chapter_status.md"
+      - "dissertation/milestone_plan.md"
+      - "dissertation/supervisor_feedback_log.md"
+      - "dissertation/revision_plan.md"
+      - "dissertation/final_readiness.md"
+      - "dissertation/defense_prep.md"
+      - "dissertation/chapters/"
   - id: "F"
     name: "manuscript-writing"
     sequence_index: 7
@@ -745,6 +812,93 @@ task_catalog:
     outputs:
       - "presentation/beamer/"
       - "presentation/slides.bib"
+  L1:
+    stage: "L"
+    title: "assignment-brief-intake"
+    purpose: "Assignment brief intake"
+    outputs:
+      - "assignment/brief.md"
+  L2:
+    stage: "L"
+    title: "rubric-learning-outcome-map"
+    purpose: "Rubric and learning-outcome mapping"
+    outputs:
+      - "assignment/rubric_map.md"
+      - "assignment/learning_outcomes.md"
+  L3:
+    stage: "L"
+    title: "coursework-outline"
+    purpose: "Coursework outline and structure plan"
+    outputs:
+      - "coursework/outline.md"
+  L4:
+    stage: "L"
+    title: "coursework-claim-evidence-plan"
+    purpose: "Coursework claim-evidence and citation plan"
+    outputs:
+      - "coursework/claim_evidence_plan.md"
+      - "coursework/citation_plan.md"
+  L5:
+    stage: "L"
+    title: "coursework-draft"
+    purpose: "Coursework draft or section draft"
+    outputs:
+      - "coursework/draft.md"
+  L6:
+    stage: "L"
+    title: "coursework-revision"
+    purpose: "Coursework revision against rubric"
+    outputs:
+      - "coursework/revision_plan.md"
+  L7:
+    stage: "L"
+    title: "coursework-final-readiness"
+    purpose: "Coursework final readiness check"
+    outputs:
+      - "assignment/submission_checklist.md"
+  M1:
+    stage: "M"
+    title: "dissertation-planning"
+    purpose: "Dissertation project planning"
+    outputs:
+      - "dissertation/dissertation_plan.md"
+  M2:
+    stage: "M"
+    title: "dissertation-chapter-architecture"
+    purpose: "Dissertation chapter architecture"
+    outputs:
+      - "dissertation/chapter_map.md"
+  M3:
+    stage: "M"
+    title: "dissertation-chapter-drafting"
+    purpose: "Dissertation chapter drafting"
+    outputs:
+      - "dissertation/chapters/"
+  M4:
+    stage: "M"
+    title: "supervisor-feedback-integration"
+    purpose: "Supervisor feedback integration"
+    outputs:
+      - "dissertation/supervisor_feedback_log.md"
+      - "dissertation/revision_plan.md"
+  M5:
+    stage: "M"
+    title: "dissertation-milestone-risk-plan"
+    purpose: "Dissertation milestone and risk planning"
+    outputs:
+      - "dissertation/milestone_plan.md"
+  M6:
+    stage: "M"
+    title: "dissertation-final-readiness"
+    purpose: "Dissertation final readiness check"
+    outputs:
+      - "dissertation/final_readiness.md"
+  M7:
+    stage: "M"
+    title: "viva-defense-preparation"
+    purpose: "Viva or defense preparation"
+    outputs:
+      - "dissertation/defense_prep.md"
 
 dependency_catalog:
   A1:
@@ -1233,6 +1387,85 @@ dependency_catalog:
     prerequisites_all:
       - "K2"
 
+  L1:
+    recommended_next:
+      - "L2"
+  L2:
+    prerequisites_all:
+      - "L1"
+    recommended_next:
+      - "L3"
+      - "L4"
+  L3:
+    prerequisites_all:
+      - "L2"
+    recommended_next:
+      - "L4"
+      - "L5"
+  L4:
+    prerequisites_all:
+      - "L2"
+    recommended_prerequisites:
+      - "L3"
+    recommended_next:
+      - "L5"
+      - "L6"
+  L5:
+    prerequisites_any:
+      - "L3"
+      - "L4"
+    recommended_next:
+      - "L6"
+  L6:
+    prerequisites_any:
+      - "L4"
+      - "L5"
+    recommended_next:
+      - "L7"
+  L7:
+    prerequisites_any:
+      - "L2"
+      - "L6"
+
+  M1:
+    recommended_next:
+      - "M2"
+      - "A1"
+      - "C1"
+  M2:
+    prerequisites_all:
+      - "M1"
+    recommended_next:
+      - "M3"
+      - "M5"
+  M3:
+    prerequisites_all:
+      - "M2"
+    recommended_next:
+      - "M4"
+      - "M6"
+  M4:
+    prerequisites_all:
+      - "M2"
+    recommended_next:
+      - "M3"
+      - "M6"
+  M5:
+    prerequisites_all:
+      - "M1"
+    recommended_next:
+      - "M6"
+  M6:
+    prerequisites_all:
+      - "M2"
+    recommended_prerequisites:
+      - "M4"
+    recommended_next:
+      - "M7"
+  M7:
+    prerequisites_all:
+      - "M6"
+
 platform_mapping:
   claude_code:
     A1: "/paper [topic]"
@@ -1292,6 +1525,20 @@ platform_mapping:
     J2: "/proofread [topic] --focus humanize"
     J3: "/proofread [topic] --focus similarity"
     J4: "/proofread [topic] --focus final_proofread"
+    L1: "/coursework [topic] --focus assignment_brief"
+    L2: "/coursework [topic] --focus rubric_map"
+    L3: "/coursework [topic] --focus outline"
+    L4: "/coursework [topic] --focus claim_evidence"
+    L5: "/coursework [topic] --focus draft"
+    L6: "/coursework [topic] --focus revision"
+    L7: "/coursework [topic] --focus final_readiness"
+    M1: "/dissertation [topic] --focus plan"
+    M2: "/dissertation [topic] --focus chapter_map"
+    M3: "/dissertation [topic] --focus chapter_draft"
+    M4: "/dissertation [topic] --focus supervisor_feedback"
+    M5: "/dissertation [topic] --focus milestones"
+    M6: "/dissertation [topic] --focus final_readiness"
+    M7: "/dissertation [topic] --focus defense_prep"
   codex:
     entry: "$qiongli"
     task_selector: "Use Task ID from task_catalog (for example F3 or G1)"

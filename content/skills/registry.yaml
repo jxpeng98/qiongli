@@ -1350,6 +1350,164 @@ skills:
     domain_aware: false
 
   # ══════════════════════════════════════════════════════════
+  # L_coursework — Coursework and assessment support
+  # ══════════════════════════════════════════════════════════
+  - id: assignment-brief-analyzer
+    stage: L_coursework
+    version: "1.15.0"
+    file: skills/L_coursework/assignment-brief-analyzer.md
+    canonical: true
+    summary: "Parse coursework briefs into constraints, task type, missing information, and integrity boundaries."
+    display_name: "Assignment Brief Analyzer"
+    when_to_use: "Use when a coursework, capstone, or dissertation brief needs parsing before planning or drafting."
+    summary_zh: "将课程作业说明解析为约束、任务类型、缺失信息和学术诚信边界。"
+    display_name_zh: "作业说明解析"
+    when_to_use_zh: "当 coursework、capstone 或 dissertation brief 需要先解析再规划或写作时使用。"
+    inputs: [UserQuery]
+    outputs: [AssignmentBrief, AcademicIntegrityNotes]
+    tags: [coursework, assignment-brief, rubric, integrity]
+    depends_on: []
+    compatible_models: [codex, claude, gpt]
+    tooling_requirements: [filesystem]
+    domain_aware: true
+
+  - id: rubric-mapper
+    stage: L_coursework
+    version: "1.15.0"
+    file: skills/L_coursework/rubric-mapper.md
+    canonical: true
+    summary: "Map marking rubrics and learning outcomes to evidence, sections, quality thresholds, and risks."
+    display_name: "Rubric Mapper"
+    when_to_use: "Use when coursework must be planned or revised against a rubric or learning outcomes."
+    summary_zh: "将评分标准和学习目标映射到证据、章节、质量阈值和风险。"
+    display_name_zh: "评分标准映射"
+    when_to_use_zh: "当课程作业需要对照 rubric 或 learning outcomes 规划和修改时使用。"
+    inputs: [AssignmentBrief]
+    outputs: [RubricMap, LearningOutcomeMap]
+    tags: [coursework, rubric, learning-outcomes, assessment]
+    depends_on: [assignment-brief-analyzer]
+    compatible_models: [codex, claude, gpt]
+    tooling_requirements: [filesystem]
+    domain_aware: true
+
+  - id: coursework-architect
+    stage: L_coursework
+    version: "1.15.0"
+    file: skills/L_coursework/coursework-architect.md
+    canonical: true
+    summary: "Design coursework outlines, claim-evidence plans, and citation plans from briefs and rubrics."
+    display_name: "Coursework Architect"
+    when_to_use: "Use before drafting coursework essays, reports, cases, reflections, portfolios, or capstone components."
+    summary_zh: "根据作业说明和评分标准设计课程作业结构、主张-证据计划和引用计划。"
+    display_name_zh: "课程作业架构"
+    when_to_use_zh: "当课程 essay、report、case、reflection、portfolio 或 capstone 需要写作结构时使用。"
+    inputs: [AssignmentBrief, RubricMap, LearningOutcomeMap]
+    outputs: [CourseworkOutline, CourseworkClaimEvidencePlan]
+    tags: [coursework, outline, claim-evidence, citation-plan]
+    depends_on: [assignment-brief-analyzer, rubric-mapper]
+    compatible_models: [codex, claude, gpt]
+    tooling_requirements: [filesystem]
+    domain_aware: true
+
+  - id: coursework-reviser
+    stage: L_coursework
+    version: "1.15.0"
+    file: skills/L_coursework/coursework-reviser.md
+    canonical: true
+    summary: "Revise coursework against rubrics, learning outcomes, evidence plans, word count, and integrity constraints."
+    display_name: "Coursework Reviser"
+    when_to_use: "Use when a coursework draft needs rubric-facing revision or final submission readiness checks."
+    summary_zh: "对照评分标准、学习目标、证据计划、字数和诚信边界修改课程作业。"
+    display_name_zh: "课程作业修改"
+    when_to_use_zh: "当 coursework 草稿需要按 rubric 修改或做提交前检查时使用。"
+    inputs: [CourseworkOutline, CourseworkClaimEvidencePlan, RubricMap]
+    outputs: [CourseworkRevisionPlan, CourseworkSubmissionChecklist]
+    tags: [coursework, revision, checklist, integrity]
+    depends_on: [coursework-architect]
+    compatible_models: [codex, claude, gpt]
+    tooling_requirements: [filesystem]
+    domain_aware: true
+
+  # ══════════════════════════════════════════════════════════
+  # M_dissertation — Dissertation and major-project support
+  # ══════════════════════════════════════════════════════════
+  - id: dissertation-planner
+    stage: M_dissertation
+    version: "1.15.0"
+    file: skills/M_dissertation/dissertation-planner.md
+    canonical: true
+    summary: "Plan dissertations, theses, capstones, and major projects by level, method, dependencies, milestones, and risks."
+    display_name: "Dissertation Planner"
+    when_to_use: "Use when starting or restructuring a dissertation, thesis, capstone, or major project."
+    summary_zh: "按学位层级、方法、依赖、里程碑和风险规划 dissertation、thesis 或 major project。"
+    display_name_zh: "毕业论文规划"
+    when_to_use_zh: "当 dissertation、thesis、capstone 或 major project 需要启动或重构规划时使用。"
+    inputs: [AssignmentBrief, RQSet]
+    outputs: [DissertationPlan]
+    tags: [dissertation, thesis, capstone, planning]
+    depends_on: [assignment-brief-analyzer]
+    compatible_models: [codex, claude, gpt]
+    tooling_requirements: [filesystem]
+    domain_aware: true
+
+  - id: chapter-architect
+    stage: M_dissertation
+    version: "1.15.0"
+    file: skills/M_dissertation/chapter-architect.md
+    canonical: true
+    summary: "Design dissertation chapter maps, dependencies, evidence thresholds, status, and word-count allocations."
+    display_name: "Chapter Architect"
+    when_to_use: "Use when a dissertation needs chapter architecture, chapter status, or word-count allocation."
+    summary_zh: "设计 dissertation 章节地图、依赖关系、证据阈值、状态和字数分配。"
+    display_name_zh: "论文章节架构"
+    when_to_use_zh: "当 dissertation 需要章节结构、章节状态或字数分配时使用。"
+    inputs: [DissertationPlan]
+    outputs: [DissertationChapterMap]
+    tags: [dissertation, chapters, architecture, word-count]
+    depends_on: [dissertation-planner]
+    compatible_models: [codex, claude, gpt]
+    tooling_requirements: [filesystem]
+    domain_aware: true
+
+  - id: supervisor-feedback-integrator
+    stage: M_dissertation
+    version: "1.15.0"
+    file: skills/M_dissertation/supervisor-feedback-integrator.md
+    canonical: true
+    summary: "Map supervisor feedback to chapters, claims, required actions, evidence needs, priorities, and revision status."
+    display_name: "Supervisor Feedback Integrator"
+    when_to_use: "Use when supervisor or committee feedback must become a traceable dissertation revision plan."
+    summary_zh: "将导师反馈映射到章节、主张、行动、证据需求、优先级和修改状态。"
+    display_name_zh: "导师反馈整合"
+    when_to_use_zh: "当导师或委员会反馈需要转成可追踪的 dissertation 修改计划时使用。"
+    inputs: [DissertationChapterMap, ReviewComments]
+    outputs: [DissertationFeedbackLog]
+    tags: [dissertation, supervisor-feedback, revision, feedback-log]
+    depends_on: [chapter-architect]
+    compatible_models: [codex, claude, gpt]
+    tooling_requirements: [filesystem]
+    domain_aware: true
+
+  - id: dissertation-readiness-checker
+    stage: M_dissertation
+    version: "1.15.0"
+    file: skills/M_dissertation/dissertation-readiness-checker.md
+    canonical: true
+    summary: "Check dissertation readiness and defense preparation against completeness, evidence, formatting, and integrity."
+    display_name: "Dissertation Readiness Checker"
+    when_to_use: "Use before dissertation submission, viva, or defense preparation."
+    summary_zh: "对照完整性、证据、格式和诚信要求检查 dissertation 提交与答辩准备度。"
+    display_name_zh: "毕业论文准备度检查"
+    when_to_use_zh: "当 dissertation 提交、viva 或 defense 前需要最终检查时使用。"
+    inputs: [DissertationPlan, DissertationChapterMap]
+    outputs: [DissertationReadinessReport]
+    tags: [dissertation, readiness, defense, viva]
+    depends_on: [chapter-architect]
+    compatible_models: [codex, claude, gpt]
+    tooling_requirements: [filesystem]
+    domain_aware: true
+
+  # ══════════════════════════════════════════════════════════
   # Z_cross_cutting — Multi-agent, metadata, QA
   # ══════════════════════════════════════════════════════════
   - id: metadata-enricher

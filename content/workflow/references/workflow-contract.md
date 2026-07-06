@@ -29,6 +29,8 @@ Use this contract as the single source of truth for:
 - `H`: Submission and revision
 - `I`: Research code support
 - `K`: Academic presentation
+- `L`: Coursework and learning assessment
+- `M`: Dissertation and major project
 
 ## Task IDs (Canonical)
 
@@ -96,6 +98,20 @@ Use this contract as the single source of truth for:
 | `K2` | K | Slide architecture | `presentation/slide_deck_spec.md` |
 | `K3` | K | Slidev build | `presentation/slidev/`, `presentation/slides.bib` |
 | `K4` | K | Beamer build | `presentation/beamer/`, `presentation/slides.bib` |
+| `L1` | L | Assignment brief intake | `assignment/brief.md` |
+| `L2` | L | Rubric and learning-outcome mapping | `assignment/rubric_map.md`, `assignment/learning_outcomes.md` |
+| `L3` | L | Coursework outline | `coursework/outline.md` |
+| `L4` | L | Coursework claim-evidence and citation plan | `coursework/claim_evidence_plan.md`, `coursework/citation_plan.md` |
+| `L5` | L | Coursework draft | `coursework/draft.md` |
+| `L6` | L | Coursework revision | `coursework/revision_plan.md` |
+| `L7` | L | Coursework final readiness | `assignment/submission_checklist.md` |
+| `M1` | M | Dissertation project planning | `dissertation/dissertation_plan.md` |
+| `M2` | M | Dissertation chapter architecture | `dissertation/chapter_map.md` |
+| `M3` | M | Dissertation chapter drafting | `dissertation/chapters/` |
+| `M4` | M | Supervisor feedback integration | `dissertation/supervisor_feedback_log.md`, `dissertation/revision_plan.md` |
+| `M5` | M | Dissertation milestone and risk planning | `dissertation/milestone_plan.md` |
+| `M6` | M | Dissertation final readiness | `dissertation/final_readiness.md` |
+| `M7` | M | Viva or defense preparation | `dissertation/defense_prep.md` |
 
 ## Quality Gates
 
@@ -161,3 +177,5 @@ Use these when you need more operational detail than the task table provides:
 - `references/stage-H-submission.md`
 - `references/stage-I-code.md`
 - `references/stage-K-presentation.md`
+- `references/stage-L-coursework.md`
+- `references/stage-M-dissertation.md`

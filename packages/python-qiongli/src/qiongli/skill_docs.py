@@ -19,6 +19,8 @@ STAGE_ORDER = [
     "H_submission",
     "I_code",
     "K_presentation",
+    "L_coursework",
+    "M_dissertation",
     "Z_cross_cutting",
 ]
 
@@ -90,6 +92,18 @@ STAGE_META_EN: dict[str, dict[str, str]] = {
         "focus": "academic talks, slide planning, Slidev, Beamer",
         "intent": '"How do I turn the paper into a defensible talk?"',
         "intro": "Use Stage K when the paper already exists and the next task is to turn it into a talk, seminar deck, or conference presentation.",
+    },
+    "L_coursework": {
+        "label": "L. Coursework",
+        "focus": "assignment briefs, rubrics, learning outcomes, coursework revision",
+        "intent": '"How do I satisfy this assignment honestly and clearly?"',
+        "intro": "Use Stage L when the task is coursework, an assignment brief, marking rubric, learning outcomes, a case analysis, reflective writing, portfolio, or capstone coursework.",
+    },
+    "M_dissertation": {
+        "label": "M. Dissertation",
+        "focus": "dissertation planning, chapter maps, supervisor feedback, defense prep",
+        "intent": '"How do I plan, draft, revise, and defend this dissertation?"',
+        "intro": "Use Stage M when the task is a dissertation, thesis, capstone, major project, supervisor feedback integration, or viva/defense preparation.",
     },
     "Z_cross_cutting": {
         "label": "Z. Cross-Cutting",
@@ -167,6 +181,18 @@ STAGE_META_ZH: dict[str, dict[str, str]] = {
         "focus": "学术报告、幻灯片规划、Slidev、Beamer",
         "intent": "“怎么把论文变成一个可讲、可答辩的学术报告？”",
         "intro": "当论文已经成形，下一步是把内容转成 seminar、conference talk 或 defense deck 时，用 Stage K。",
+    },
+    "L_coursework": {
+        "label": "L. Coursework",
+        "focus": "作业说明、评分标准、学习目标、课程作业修改",
+        "intent": "“怎样诚实、清晰地完成这项课程作业？”",
+        "intro": "当任务是 coursework、assignment brief、marking rubric、learning outcomes、case analysis、reflection、portfolio 或 capstone coursework 时，用 Stage L。",
+    },
+    "M_dissertation": {
+        "label": "M. Dissertation",
+        "focus": "毕业论文规划、章节地图、导师反馈、答辩准备",
+        "intent": "“怎样规划、撰写、修改并答辩这篇 dissertation？”",
+        "intro": "当任务是 dissertation、thesis、capstone、major project、导师反馈整合或 viva/defense 准备时，用 Stage M。",
     },
     "Z_cross_cutting": {
         "label": "Z. Cross-Cutting",

@@ -8,7 +8,12 @@ Provide a systematic “choose-your-path” workflow for writing research papers
 1) paper type, and 2) what they want to do right now (stage/section).
 
 Use the canonical standard contract from the globally installed `qiongli-workflow` skill.
-Task IDs (`A1` ... `K4`) and output paths in `references/workflow-contract.md` are authoritative.
+Task IDs (`A1` ... `M7`) and output paths in `references/workflow-contract.md` are authoritative.
+
+For coursework, assignment brief, rubric, learning outcome, dissertation,
+thesis, supervisor feedback, viva, or defense-preparation requests, route to
+`/coursework` or `/dissertation` instead of forcing the request through this
+paper router.
 
 ## Context
 
@@ -242,6 +247,32 @@ Pick one:
 
 **Routing:**
 - K1-K4 → `/academic-present`
+
+### L) Coursework & Learning Assessment (课程作业与学习评估)
+Pick one:
+1. **L1 Assignment Brief Intake** (Parse task, deliverables, constraints, and integrity boundaries)
+2. **L2 Rubric & Learning Outcome Map** (Map rubric bands and learning outcomes to evidence)
+3. **L3 Coursework Outline** (Plan essay, report, case, reflection, portfolio, or capstone component)
+4. **L4 Coursework Claim-Evidence Plan** (Plan claims, sources, citations, and missing evidence)
+5. **L5 Coursework Draft** (Draft a bounded section or full coursework response from approved plan)
+6. **L6 Coursework Revision** (Revise against rubric, evidence, word count, and feedback)
+7. **L7 Coursework Final Readiness** (Check submission checklist, integrity, citations, and formatting)
+
+**Routing:**
+- L1-L7 → `/coursework` (the coursework workflow owns brief parsing, rubric mapping, drafting boundaries, and readiness checks)
+
+### M) Dissertation & Major Project (毕业论文与大型项目)
+Pick one:
+1. **M1 Dissertation Planning** (Plan topic, method, supervisor constraints, milestones, and risks)
+2. **M2 Dissertation Chapter Architecture** (Map chapters, dependencies, evidence thresholds, and word counts)
+3. **M3 Dissertation Chapter Drafting** (Draft bounded chapter components from confirmed evidence)
+4. **M4 Supervisor Feedback Integration** (Convert feedback into traceable chapter revision actions)
+5. **M5 Dissertation Milestone Risk Plan** (Plan timeline, blockers, evidence gaps, and contingency actions)
+6. **M6 Dissertation Final Readiness** (Check submission readiness, formatting, evidence, and integrity)
+7. **M7 Viva / Defense Preparation** (Prepare claims, likely questions, limitations, and defense materials)
+
+**Routing:**
+- M1-M7 → `/dissertation` (the dissertation workflow owns chapter planning, supervisor-feedback tracking, readiness, and defense preparation)
 
 ## Step 3: Execute the Chosen Path (In This Session)
 

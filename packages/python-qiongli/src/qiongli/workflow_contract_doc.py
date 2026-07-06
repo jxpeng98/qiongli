@@ -9,7 +9,7 @@ import yaml
 from .source_layout import RepoLayout
 
 
-STAGE_DISPLAY_ORDER = ["A", "B", "C", "D", "E", "F", "G", "J", "H", "I", "K"]
+STAGE_DISPLAY_ORDER = ["A", "B", "C", "D", "E", "F", "G", "J", "H", "I", "K", "L", "M"]
 STAGE_LABELS = {
     "A": "Framing and positioning",
     "B": "Literature and related work",
@@ -22,6 +22,8 @@ STAGE_LABELS = {
     "I": "Research code support",
     "J": "Proofread and de-AI",
     "K": "Academic presentation",
+    "L": "Coursework and learning assessment",
+    "M": "Dissertation and major project",
 }
 STAGE_GUIDE_FILES = {
     "A": "references/stage-A-framing.md",
@@ -35,6 +37,8 @@ STAGE_GUIDE_FILES = {
     "I": "references/stage-I-code.md",
     "J": "references/stage-J-proofread.md",
     "K": "references/stage-K-presentation.md",
+    "L": "references/stage-L-coursework.md",
+    "M": "references/stage-M-dissertation.md",
 }
 TASK_PURPOSE_OVERRIDES = {
     "A1": "Research question",
@@ -99,6 +103,20 @@ TASK_PURPOSE_OVERRIDES = {
     "K2": "Slide architecture",
     "K3": "Slidev build",
     "K4": "Beamer build",
+    "L1": "Assignment brief intake",
+    "L2": "Rubric and learning-outcome mapping",
+    "L3": "Coursework outline",
+    "L4": "Coursework claim-evidence and citation plan",
+    "L5": "Coursework draft",
+    "L6": "Coursework revision",
+    "L7": "Coursework final readiness",
+    "M1": "Dissertation project planning",
+    "M2": "Dissertation chapter architecture",
+    "M3": "Dissertation chapter drafting",
+    "M4": "Supervisor feedback integration",
+    "M5": "Dissertation milestone and risk planning",
+    "M6": "Dissertation final readiness",
+    "M7": "Viva or defense preparation",
 }
 QUALITY_GATE_LABEL_OVERRIDES = {
     "Q1": "RQ-method alignment",

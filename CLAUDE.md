@@ -7,7 +7,7 @@ This is a **Qiongli Zhengche** (`穷理证澈`) system: a contract-driven academ
 Canonical standard (cross-model):
 - `standards/research-workflow-contract.yaml` — Task IDs, required outputs, quality gates
 - `standards/mcp-agent-capability-map.yaml` — MCP tool mapping & primary/fallback agents
-- `qiongli-workflow/references/workflow-contract.md` — **Task ID table** (A1–K4)
+- `qiongli-workflow/references/workflow-contract.md` — **Task ID table** (A1–M7)
 - `qiongli-workflow/references/platform-routing.md` — Task ID → workflow mapping
 - Artifact root: `RESEARCH/[topic]/`
 
@@ -29,6 +29,8 @@ python3 -m bridges.orchestrator doctor --cwd .
 /find-gap [research area]            # Identify research gaps
 /build-framework [theory/concept]    # Build theoretical framework
 /academic-write [section] [topic]    # Academic writing assistance
+/coursework [brief/task/topic]       # Coursework, assignment, rubric, and learning-outcome support
+/dissertation [topic/program/level]  # Dissertation, thesis, capstone, supervisor feedback, and viva support
 /synthesize [topic] [outcome_id]     # Evidence synthesis / meta-analysis
 /paper-write [topic] [type] [venue]  # Full manuscript drafting
 /study-design [topic]                # Empirical study design
@@ -47,7 +49,7 @@ For consistency, ask users for `paper_type + task_id` when using `/paper`.
 
 When a user requests a specific task (e.g. "I need to do A1_5 hypothesis generation"), use the `/paper` workflow as the master router:
 
-1. Read `.agent/workflows/paper.md` → it maps **every task ID** (A1–K4) to the correct sub-workflow or skill card
+1. Read `.agent/workflows/paper.md` → it maps **every task ID** (A1–M7) to the correct sub-workflow or skill card
 2. Follow the routing. Examples:
    - `A1` → use `question-refiner` skill → output `RESEARCH/[topic]/framing/research_question.md`
    - `A3` → `/build-framework` workflow
@@ -55,6 +57,8 @@ When a user requests a specific task (e.g. "I need to do A1_5 hypothesis generat
    - `F3` → `/paper-write` workflow
    - `H1` → `/submission-prep` workflow
    - `K1` → `/academic-present` workflow
+   - `L1` → `/coursework` workflow
+   - `M1` → `/dissertation` workflow
 3. For detailed execution guidance on any task ID, read the corresponding **stage playbook**:
    - `qiongli-workflow/references/stage-A-framing.md` (tasks A1–A5)
    - `qiongli-workflow/references/stage-B-literature.md` (tasks B1–B6)
@@ -66,6 +70,8 @@ When a user requests a specific task (e.g. "I need to do A1_5 hypothesis generat
    - `qiongli-workflow/references/stage-J-proofread.md` (tasks J1–J4)
    - `qiongli-workflow/references/stage-H-submission.md` (tasks H1–H5)
    - `qiongli-workflow/references/stage-I-code.md` (tasks I1–I8)
+   - `qiongli-workflow/references/stage-L-coursework.md` (tasks L1–L7)
+   - `qiongli-workflow/references/stage-M-dissertation.md` (tasks M1–M7)
 
 ## Skill Loading Strategy
 
@@ -100,6 +106,8 @@ skills/
 ├── H_submission/    (submission-packager, rebuttal-assistant, peer-review-simulation, fatal-flaw-detector, reviewer-empathy-checker)
 ├── I_code/          (code-builder, data-cleaning-planner, data-merge-planner, code-specification, code-planning, code-execution, code-review, reproducibility-auditor, stats-engine)
 ├── K_presentation/  (presentation-planner, slide-architect, slidev-scholarly-builder, beamer-builder)
+├── L_coursework/    (assignment-brief-analyzer, rubric-mapper, coursework-architect, coursework-reviser)
+├── M_dissertation/  (dissertation-planner, chapter-architect, supervisor-feedback-integrator, dissertation-readiness-checker)
 ├── Z_cross_cutting/ (metadata-enricher, model-collaborator, self-critique)
 └── domain-profiles/ (economics, finance, psychology, biomedical, education, cs-ai, ...)
 ```
@@ -123,6 +131,9 @@ RESEARCH/[topic]/
 ├── revision/                # Rebuttal + response materials
 ├── analysis/                # Code + data pipelines
 ├── presentation/            # Slide deck spec, slides.md / slides.tex
+├── assignment/              # Brief, rubric, learning outcomes, integrity notes
+├── coursework/              # Outline, claim-evidence plan, draft, revision plan
+├── dissertation/            # Plan, chapter map, feedback log, readiness, defense prep
 ├── bibliography.bib         # BibTeX references
 └── ...
 ```

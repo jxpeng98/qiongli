@@ -39,6 +39,8 @@
                 "I_code",
                 "J_proofread",
                 "K_presentation",
+                "L_coursework",
+                "M_dissertation",
                 "Z_cross_cutting"
             ],
             "description": "Research lifecycle stage"

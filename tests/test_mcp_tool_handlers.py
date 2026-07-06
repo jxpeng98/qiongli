@@ -906,6 +906,26 @@ class MCPToolHandlerTests(unittest.TestCase):
         self.assertEqual(stub.kwargs["task_id"], "F3")
         self.assertEqual(stub.kwargs["topic"], "my-topic")
 
+    def test_task_plan_tool_supports_coursework_task_ids(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            result = call_qiongli_tool(
+                "qiongli_task_plan",
+                {
+                    "cwd": tmp_dir,
+                    "task_id": "L1",
+                    "paper_type": "coursework",
+                    "topic": "consumer-behaviour-assignment",
+                },
+            )
+
+        self.assertFalse(result["isError"])
+        payload = result["structuredContent"]
+        self.assertEqual(payload["mode"], "task-plan")
+        self.assertEqual(payload["data"]["task_id"], "L1")
+        self.assertEqual(payload["data"]["paper_type"], "coursework")
+        self.assertEqual(payload["data"]["functional_owner"], "writing-agent")
+        self.assertEqual(payload["data"]["runtime_plan"]["primary_agent"], "claude")
+
     def test_task_run_tool_defaults_to_preview_until_agents_are_enabled(self) -> None:
         class StubResult:
             mode = "task-plan"

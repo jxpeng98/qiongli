@@ -55,6 +55,8 @@ If you want scenario-driven routes such as "systematic review", "methods paper",
 | `H_submission` | submission package, rebuttal, review simulation | 8 | "How do I package, defend, and stress-test the paper?" |
 | `I_code` | academic code, stats, reproducibility | 10 | "How do I implement and verify research code?" |
 | `K_presentation` | academic talks, slide planning, Slidev, Beamer | 4 | "How do I turn the paper into a defensible talk?" |
+| `L_coursework` | assignment briefs, rubrics, learning outcomes, coursework revision | 4 | "How do I satisfy this assignment honestly and clearly?" |
+| `M_dissertation` | dissertation planning, chapter maps, supervisor feedback, defense prep | 4 | "How do I plan, draft, revise, and defend this dissertation?" |
 | `Z_cross_cutting` | metadata, model collaboration, self-critique | 5 | "How do I improve quality across stages?" |
 
 ## Canonical Skills By Stage
@@ -214,6 +216,28 @@ Use Stage K when the paper already exists and the next task is to turn it into a
 | `slide-architect` | Slide Architect | After `presentation-planner` has produced a slide blueprint | `SlideDeckSpec` |
 | `slidev-scholarly-builder` | Slidev Scholarly Builder | When Slidev + scholarly is chosen as the output backend | `SlidevDeck`, `BibTeXFile` |
 | `beamer-builder` | Beamer Builder | When LaTeX Beamer is the chosen backend | `BeamerDeck`, `BibTeXFile` |
+
+### L. Coursework
+
+Use Stage L when the task is coursework, an assignment brief, marking rubric, learning outcomes, a case analysis, reflective writing, portfolio, or capstone coursework.
+
+| Skill | Display Name | When to use | Produces |
+|---|---|---|---|
+| `assignment-brief-analyzer` | Assignment Brief Analyzer | Use when a coursework, capstone, or dissertation brief needs parsing before planning or drafting. | `AssignmentBrief`, `AcademicIntegrityNotes` |
+| `rubric-mapper` | Rubric Mapper | Use when coursework must be planned or revised against a rubric or learning outcomes. | `RubricMap`, `LearningOutcomeMap` |
+| `coursework-architect` | Coursework Architect | Use before drafting coursework essays, reports, cases, reflections, portfolios, or capstone components. | `CourseworkOutline`, `CourseworkClaimEvidencePlan` |
+| `coursework-reviser` | Coursework Reviser | Use when a coursework draft needs rubric-facing revision or final submission readiness checks. | `CourseworkRevisionPlan`, `CourseworkSubmissionChecklist` |
+
+### M. Dissertation
+
+Use Stage M when the task is a dissertation, thesis, capstone, major project, supervisor feedback integration, or viva/defense preparation.
+
+| Skill | Display Name | When to use | Produces |
+|---|---|---|---|
+| `dissertation-planner` | Dissertation Planner | Use when starting or restructuring a dissertation, thesis, capstone, or major project. | `DissertationPlan` |
+| `chapter-architect` | Chapter Architect | Use when a dissertation needs chapter architecture, chapter status, or word-count allocation. | `DissertationChapterMap` |
+| `supervisor-feedback-integrator` | Supervisor Feedback Integrator | Use when supervisor or committee feedback must become a traceable dissertation revision plan. | `DissertationFeedbackLog` |
+| `dissertation-readiness-checker` | Dissertation Readiness Checker | Use before dissertation submission, viva, or defense preparation. | `DissertationReadinessReport` |
 
 ### Z. Cross-Cutting
 

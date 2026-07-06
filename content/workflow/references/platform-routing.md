@@ -24,10 +24,17 @@ judgment, or outputs:
   or reproducibility
 - proofread, de-AI rewriting, citation-risk checking, reviewer response,
   peer-review simulation, fatal-flaw analysis, or academic presentations
+- coursework, assignment briefs, marking rubrics, learning outcomes, capstone
+  coursework, dissertations, theses, dissertation handbooks, supervisor
+  feedback, viva preparation, or defense preparation when they require academic
+  claim, evidence, source, method, or integrity judgment
 
 Do not route to Qiongli for generic software feature work, generic file cleanup,
 format conversion without scholarly interpretation, or prose edits with no claim,
 evidence, citation, venue, method, or reviewer-risk consequence.
+
+For timed exams, quizzes, or assessed problem sets, use concept explanation and
+study support rather than drafting an answer for submission.
 
 ## Ambiguity Trigger
 
@@ -59,6 +66,10 @@ challenged like Reviewer 2, or checked for fatal flaws.
 | "Prepare submission / cover letter" | `H1` or `/submission-prep` |
 | "Reply to reviewer comments" | `H2`, `H2_5`, or `/rebuttal` |
 | "Make slides" | Stage K or `/academic-present` |
+| "Analyze this assignment brief / coursework rubric" | Stage L or `/coursework` |
+| "Plan or revise my coursework essay/report/case analysis" | `L1-L7` or `/coursework` |
+| "Plan my dissertation / thesis / capstone" | Stage M or `/dissertation` |
+| "Integrate supervisor feedback / prepare viva questions" | `M4`, `M7`, or `/dissertation` |
 
 ## Claude Code
 
@@ -80,6 +91,8 @@ challenged like Reviewer 2, or checked for fatal flaws.
 - `I1–I8` -> `/code-build`
 - `J1–J4` -> `/proofread`
 - `K1–K4` -> `/academic-present`
+- `L1–L7` -> `/coursework`
+- `M1–M7` -> `/dissertation`
 - Natural academic requests should route to the same task IDs even when the user
   does not type the command wrapper.
 - If the request is ambiguous, use the Ambiguity Trigger before drafting.
@@ -100,6 +113,10 @@ challenged like Reviewer 2, or checked for fatal flaws.
   - use `fallback_agent` when primary fails
 - For proofread tasks (`J1`–`J4`), recommend `--triad` mode for iterative de-AI
 - For presentation tasks (`K1`–`K4`), specify backend: `slidev`, `beamer`, or `pptx`
+- For coursework tasks (`L1`–`L7`), preserve assignment brief, rubric, learning
+  outcomes, word count, source rules, and AI-policy status before drafting.
+- For dissertation tasks (`M1`–`M7`), preserve degree level, chapter status,
+  supervisor feedback, ethics dependencies, and milestone risks.
 - For academic code, prioritize estimand, data lineage, diagnostics, manuscript
   tables/figures, and reproducibility over generic software scaffolding.
 - If full Qiongli MCP tools are installed and the request involves multi-agent
@@ -112,7 +129,8 @@ challenged like Reviewer 2, or checked for fatal flaws.
 - Slash-style commands and `qiongli task-run` remain the stable entry points.
 - Generic task prompt pattern: `Task {ID} on RESEARCH/[topic] using outputs defined in the active contract.`
 - Task packets from other platforms should preserve `paper_type`, `stage`,
-  `task_id`, `topic`, artifact paths, and open grill issues.
+  `task_id`, `topic`, `academic_project_type`, artifact paths, and open grill
+  issues.
 - Orchestrator runs should carry boundary decisions and stage handoff risks into
   downstream agents rather than resetting context.
 

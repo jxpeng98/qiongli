@@ -650,3 +650,77 @@ artifact_types:
     format: directory
     produced_by: [release-packager]
     consumed_by: [submission-packager]
+
+  # ── L_coursework outputs ──
+  - name: AssignmentBrief
+    description: "Parsed coursework, capstone, or dissertation assignment brief with constraints and missing information"
+    format: markdown
+    produced_by: [assignment-brief-analyzer]
+    consumed_by: [rubric-mapper, coursework-architect, dissertation-planner]
+
+  - name: RubricMap
+    description: "Mapping from marking criteria to required evidence, sections, quality thresholds, and risks"
+    format: markdown
+    produced_by: [rubric-mapper]
+    consumed_by: [coursework-architect, coursework-reviser, dissertation-planner]
+
+  - name: LearningOutcomeMap
+    description: "Learning outcomes mapped to coursework or dissertation sections and evidence requirements"
+    format: markdown
+    produced_by: [rubric-mapper]
+    consumed_by: [coursework-architect, coursework-reviser]
+
+  - name: AcademicIntegrityNotes
+    description: "Visible record of AI policy, permitted assistance, user-supplied facts, missing policy information, and blocked requests"
+    format: markdown
+    produced_by: [assignment-brief-analyzer, coursework-reviser]
+    consumed_by: [coursework-architect, dissertation-planner, dissertation-readiness-checker]
+
+  - name: CourseworkOutline
+    description: "Coursework structure plan calibrated to assignment type, word count, rubric, and learning outcomes"
+    format: markdown
+    produced_by: [coursework-architect]
+    consumed_by: [coursework-reviser]
+
+  - name: CourseworkClaimEvidencePlan
+    description: "Coursework claim, evidence, citation, and missing-source plan"
+    format: markdown
+    produced_by: [coursework-architect]
+    consumed_by: [coursework-reviser]
+
+  - name: CourseworkRevisionPlan
+    description: "Rubric-facing revision plan with concrete changes and blocked items"
+    format: markdown
+    produced_by: [coursework-reviser]
+    consumed_by: []
+
+  - name: CourseworkSubmissionChecklist
+    description: "Final coursework readiness checklist covering rubric, learning outcomes, citations, word count, format, and integrity notes"
+    format: markdown
+    produced_by: [coursework-reviser]
+    consumed_by: []
+
+  # ── M_dissertation outputs ──
+  - name: DissertationPlan
+    description: "Dissertation or thesis project plan with degree level, research problem, method, dependencies, milestones, and risks"
+    format: markdown
+    produced_by: [dissertation-planner]
+    consumed_by: [chapter-architect, dissertation-readiness-checker]
+
+  - name: DissertationChapterMap
+    description: "Chapter architecture with purpose, word count, dependencies, evidence threshold, and status"
+    format: markdown
+    produced_by: [chapter-architect]
+    consumed_by: [supervisor-feedback-integrator, dissertation-readiness-checker]
+
+  - name: DissertationFeedbackLog
+    description: "Supervisor feedback log mapped to affected chapters, required action, evidence needs, priority, and revision status"
+    format: markdown
+    produced_by: [supervisor-feedback-integrator]
+    consumed_by: [chapter-architect, dissertation-readiness-checker]
+
+  - name: DissertationReadinessReport
+    description: "Final dissertation readiness report covering chapter completeness, alignment, evidence, formatting, integrity, and defense preparation"
+    format: markdown
+    produced_by: [dissertation-readiness-checker]
+    consumed_by: []

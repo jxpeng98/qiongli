@@ -2,6 +2,11 @@
 
 Defines recommended **minimum Task ID coverage** by `paper_type` for a submission-ready workflow.
 
+Coursework and dissertation work use supplemental project-mode stages `L` and
+`M`. Those stages wrap or delegate to this matrix when the assignment or chapter
+requires a research-paper style workflow, but rubric and chapter constraints
+remain authoritative for the educational project.
+
 ## Capability Matrix (at-a-glance)
 
 | Capability | Empirical | Qualitative | Systematic Review | Methods | Theory |

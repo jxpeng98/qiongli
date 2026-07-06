@@ -172,6 +172,7 @@ functional_agents:
       - "H"
       - "I"
       - "J"
+      - "M"
   literature-agent:
     file: "roles/literature-ra.yaml"
     mapped_role: "literature-ra"
@@ -217,6 +218,7 @@ functional_agents:
     focus: "Drafting, restructuring, deep interpretation, and claim presentation."
     owns_stages:
       - "F"
+      - "L"
   publication-agent:
     file: "roles/compliance-officer.yaml"
     mapped_role: "compliance-officer"
@@ -302,8 +304,73 @@ skill_registry:
   - "discussion-writer"
   - "limitation-auditor"
   - "qualitative-coding"
+  - "assignment-brief-analyzer"
+  - "rubric-mapper"
+  - "coursework-architect"
+  - "coursework-reviser"
+  - "dissertation-planner"
+  - "chapter-architect"
+  - "supervisor-feedback-integrator"
+  - "dissertation-readiness-checker"
 
 skill_catalog:
+  assignment-brief-analyzer:
+    file: "skills/L_coursework/assignment-brief-analyzer.md"
+    category: "coursework"
+    focus: "Parse assignment briefs into constraints, task type, deliverables, missing information, and academic integrity boundaries."
+    default_outputs:
+      - "assignment/brief.md"
+      - "assignment/academic_integrity_notes.md"
+  rubric-mapper:
+    file: "skills/L_coursework/rubric-mapper.md"
+    category: "coursework"
+    focus: "Map marking rubrics and learning outcomes to evidence requirements, section priorities, quality thresholds, and risks."
+    default_outputs:
+      - "assignment/rubric_map.md"
+      - "assignment/learning_outcomes.md"
+  coursework-architect:
+    file: "skills/L_coursework/coursework-architect.md"
+    category: "coursework"
+    focus: "Design coursework outlines, claim-evidence plans, citation plans, and bounded drafting plans from briefs and rubrics."
+    default_outputs:
+      - "coursework/outline.md"
+      - "coursework/claim_evidence_plan.md"
+      - "coursework/citation_plan.md"
+  coursework-reviser:
+    file: "skills/L_coursework/coursework-reviser.md"
+    category: "coursework"
+    focus: "Revise coursework against rubric, learning outcomes, evidence plan, word count, and permitted-assistance constraints."
+    default_outputs:
+      - "coursework/revision_plan.md"
+      - "assignment/submission_checklist.md"
+  dissertation-planner:
+    file: "skills/M_dissertation/dissertation-planner.md"
+    category: "dissertation"
+    focus: "Plan dissertations, theses, capstones, and major projects by level, method, dependencies, milestones, and risks."
+    default_outputs:
+      - "dissertation/dissertation_plan.md"
+      - "dissertation/milestone_plan.md"
+  chapter-architect:
+    file: "skills/M_dissertation/chapter-architect.md"
+    category: "dissertation"
+    focus: "Design dissertation chapter maps, dependencies, evidence thresholds, status, and word-count allocations."
+    default_outputs:
+      - "dissertation/chapter_map.md"
+      - "dissertation/chapter_status.md"
+  supervisor-feedback-integrator:
+    file: "skills/M_dissertation/supervisor-feedback-integrator.md"
+    category: "dissertation"
+    focus: "Map supervisor feedback to chapters, claims, required actions, evidence needs, priorities, and revision status."
+    default_outputs:
+      - "dissertation/supervisor_feedback_log.md"
+      - "dissertation/revision_plan.md"
+  dissertation-readiness-checker:
+    file: "skills/M_dissertation/dissertation-readiness-checker.md"
+    category: "dissertation"
+    focus: "Check dissertation submission and defense readiness against completeness, evidence, formatting, and integrity constraints."
+    default_outputs:
+      - "dissertation/final_readiness.md"
+      - "dissertation/defense_prep.md"
   academic-context-maintainer:
     file: "skills/Z_cross_cutting/academic-context-maintainer.md"
     category: "research-continuity"
@@ -911,6 +978,8 @@ task_functional_routing:
     I: "analysis-agent"
     J: "publication-agent"
     K: "publication-agent"
+    L: "writing-agent"
+    M: "research-orchestrator"
   overrides:
     A1_5: "theory-agent"
     A2: "theory-agent"
@@ -1243,6 +1312,62 @@ task_skill_mapping:
       - "beamer-builder"
       - "slide-architect"
       - "citation-formatter"
+  L1:
+    required_skills:
+      - "assignment-brief-analyzer"
+      - "academic-context-maintainer"
+  L2:
+    required_skills:
+      - "rubric-mapper"
+      - "assignment-brief-analyzer"
+  L3:
+    required_skills:
+      - "coursework-architect"
+      - "rubric-mapper"
+  L4:
+    required_skills:
+      - "coursework-architect"
+      - "citation-formatter"
+  L5:
+    required_skills:
+      - "coursework-architect"
+      - "manuscript-architect"
+  L6:
+    required_skills:
+      - "coursework-reviser"
+      - "rubric-mapper"
+  L7:
+    required_skills:
+      - "coursework-reviser"
+      - "academic-context-maintainer"
+  M1:
+    required_skills:
+      - "dissertation-planner"
+      - "academic-context-maintainer"
+  M2:
+    required_skills:
+      - "chapter-architect"
+      - "dissertation-planner"
+  M3:
+    required_skills:
+      - "chapter-architect"
+      - "manuscript-architect"
+  M4:
+    required_skills:
+      - "supervisor-feedback-integrator"
+      - "chapter-architect"
+  M5:
+    required_skills:
+      - "dissertation-planner"
+      - "academic-context-maintainer"
+  M6:
+    required_skills:
+      - "dissertation-readiness-checker"
+      - "chapter-architect"
+  M7:
+    required_skills:
+      - "dissertation-readiness-checker"
+      - "presentation-planner"
 
 task_execution:
   A1:
@@ -1857,6 +1982,132 @@ task_execution:
     review_agent: "antigravity"
     fallback_agent: "codex"
     quality_gates:
+      - "Q3"
+  L1:
+    required_mcp:
+      - "filesystem"
+    primary_agent: "claude"
+    review_agent: "antigravity"
+    fallback_agent: "codex"
+    quality_gates:
+      - "Q2"
+      - "Q3"
+  L2:
+    required_mcp:
+      - "filesystem"
+    primary_agent: "claude"
+    review_agent: "antigravity"
+    fallback_agent: "codex"
+    quality_gates:
+      - "Q2"
+      - "Q3"
+  L3:
+    required_mcp:
+      - "filesystem"
+    primary_agent: "claude"
+    review_agent: "antigravity"
+    fallback_agent: "codex"
+    quality_gates:
+      - "Q2"
+      - "Q3"
+  L4:
+    required_mcp:
+      - "filesystem"
+    primary_agent: "claude"
+    review_agent: "antigravity"
+    fallback_agent: "codex"
+    quality_gates:
+      - "Q2"
+      - "Q3"
+  L5:
+    required_mcp:
+      - "filesystem"
+    primary_agent: "claude"
+    review_agent: "antigravity"
+    fallback_agent: "codex"
+    quality_gates:
+      - "Q2"
+      - "Q3"
+  L6:
+    required_mcp:
+      - "filesystem"
+    primary_agent: "claude"
+    review_agent: "antigravity"
+    fallback_agent: "codex"
+    quality_gates:
+      - "Q2"
+      - "Q3"
+  L7:
+    required_mcp:
+      - "filesystem"
+    primary_agent: "claude"
+    review_agent: "antigravity"
+    fallback_agent: "codex"
+    quality_gates:
+      - "Q2"
+      - "Q3"
+  M1:
+    required_mcp:
+      - "filesystem"
+    primary_agent: "claude"
+    review_agent: "antigravity"
+    fallback_agent: "codex"
+    quality_gates:
+      - "Q1"
+      - "Q2"
+  M2:
+    required_mcp:
+      - "filesystem"
+    primary_agent: "claude"
+    review_agent: "antigravity"
+    fallback_agent: "codex"
+    quality_gates:
+      - "Q1"
+      - "Q2"
+  M3:
+    required_mcp:
+      - "filesystem"
+    primary_agent: "claude"
+    review_agent: "antigravity"
+    fallback_agent: "codex"
+    quality_gates:
+      - "Q2"
+      - "Q3"
+  M4:
+    required_mcp:
+      - "filesystem"
+    primary_agent: "claude"
+    review_agent: "antigravity"
+    fallback_agent: "codex"
+    quality_gates:
+      - "Q2"
+      - "Q3"
+  M5:
+    required_mcp:
+      - "filesystem"
+    primary_agent: "claude"
+    review_agent: "antigravity"
+    fallback_agent: "codex"
+    quality_gates:
+      - "Q1"
+      - "Q4"
+  M6:
+    required_mcp:
+      - "filesystem"
+    primary_agent: "claude"
+    review_agent: "antigravity"
+    fallback_agent: "codex"
+    quality_gates:
+      - "Q2"
+      - "Q3"
+  M7:
+    required_mcp:
+      - "filesystem"
+    primary_agent: "claude"
+    review_agent: "antigravity"
+    fallback_agent: "codex"
+    quality_gates:
+      - "Q2"
       - "Q3"
 
 # ── Team-Run (Research Fanout/Fanin) Configuration ──────────────────
