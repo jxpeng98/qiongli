@@ -68,10 +68,10 @@ qiongli check
 For scripted installs, keep the project directory explicit:
 
 ```bash
-qiongli install --target auto --project-dir "$PWD"
+qiongli install --target all --project-dir "$PWD"
 ```
 
-`--target auto` detects supported client CLIs on `PATH` and installs only those client surfaces. Use `--target all` for explicit all-platform asset writes.
+`--target all` writes every supported platform path explicitly. Use `--target auto` to detect supported client CLIs on `PATH` and install only those client surfaces.
 
 Use project-local subject guidance instead of reinstalling packages for every topic:
 

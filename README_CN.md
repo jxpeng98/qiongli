@@ -68,10 +68,10 @@ qiongli check
 脚本化安装时建议显式传入项目目录：
 
 ```bash
-qiongli install --target auto --project-dir "$PWD"
+qiongli install --target all --project-dir "$PWD"
 ```
 
-`--target auto` 会检测 `PATH` 上已安装的受支持客户端 CLI，只安装这些客户端对应的 surface。明确要写入所有支持平台路径时，使用 `--target all`。
+`--target all` 会显式写入全部支持的平台路径。需要检测 `PATH` 上已安装的受支持客户端 CLI 并只安装这些客户端对应的 surface 时，使用 `--target auto`。
 
 日常切换项目领域时，不需要反复重装 package；用项目级 subject guidance：
 
