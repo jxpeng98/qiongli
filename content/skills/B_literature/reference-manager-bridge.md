@@ -137,6 +137,10 @@ Local Zotero sync sequence:
 8. Add Qiongli review tags such as `qiongli:imported`,
    `qiongli:needs-review`, `qiongli:crossref-verified`, and
    `qiongli:metadata-conflict`.
+9. When paper-reading notes are available, pass them as per-record
+   `reading_note`, `reading_notes`, `notes`, or structured `note` fields so the
+   companion writes them as Zotero child notes. Do not place reading notes in
+   `abstractNote` or `extra`.
 
 ### 5. Fall back safely
 
@@ -176,6 +180,8 @@ summary, Crossref verification summary, and manual import instructions.
       `dry_run: false`.
 - [ ] User-curated Zotero fields are preserved under the default fill-blank
       policy.
+- [ ] Paper-reading notes are written as child notes, not into abstract or extra
+      metadata fields.
 - [ ] Import-file fallback produces JSON, RIS, BibTeX, and report artifacts.
 
 ## Common Pitfalls
