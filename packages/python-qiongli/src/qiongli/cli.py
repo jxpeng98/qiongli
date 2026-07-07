@@ -1798,6 +1798,10 @@ def main() -> int:
     if args.cmd == "upgrade":
         return cmd_upgrade(args)
     if args.cmd in {"self-update", "update"}:
+        if _should_run_self_update_wizard():
+            from qiongli.self_update import run_self_update_wizard
+
+            return run_self_update_wizard()
         _warn_deprecated_self_update_install_options(args)
         return cmd_self_update(args)
     if args.cmd == "setup":
@@ -1836,6 +1840,13 @@ def main() -> int:
     if args.cmd == "customize":
         return cmd_customize(args)
     raise RuntimeError(f"Unhandled command: {args.cmd}")
+
+
+def _should_run_self_update_wizard(argv: list[str] | None = None) -> bool:
+    raw_argv = sys.argv if argv is None else argv
+    if len(raw_argv) != 2 or raw_argv[1] not in {"self-update", "update"}:
+        return False
+    return bool(getattr(sys.stdin, "isatty", lambda: False)())
 
 
 if __name__ == "__main__":

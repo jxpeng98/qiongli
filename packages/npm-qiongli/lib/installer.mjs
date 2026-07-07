@@ -85,12 +85,13 @@ export function installSkills({
   env = process.env,
   platform = process.platform,
 } = {}) {
+  validateTarget(target);
   const selectedSurface = normalizeSurface(surface);
   const installSkillSurface = selectedSurface === 'skills' || selectedSurface === 'both';
   const installPluginSurface = selectedSurface === 'plugin' || selectedSurface === 'both';
   const targetPaths = resolveTargetPaths({ env });
   const pluginTargetPaths = resolvePluginTargetPaths({ env });
-  const selectedTargets = target === 'all' ? TARGETS : [target];
+  const selectedTargets = selectedTargetsFor({ target, env, platform });
   let sourceVersion = readPackageVersion(packageRoot);
   let sourceSubject = subject;
   let sourceCoverage = coverage;
@@ -230,7 +231,7 @@ export function removeAssets({
   if (selectedParts.includes('globals')) {
     const targetPaths = resolveTargetPaths({ env });
     const pluginTargetPaths = resolvePluginTargetPaths({ env });
-    const selectedTargets = target === 'all' ? TARGETS : [target];
+    const selectedTargets = selectedTargetsFor({ target, env });
     for (const item of selectedTargets) {
       if (removeSkillSurface) {
         const skillDest = targetPaths[item];
@@ -836,10 +837,53 @@ function symlinkTarget(item) {
 }
 
 function validateTarget(target) {
-  if (target === 'all' || TARGETS.includes(target)) {
+  if (target === 'all' || target === 'auto' || TARGETS.includes(target)) {
     return;
   }
   throw new Error(`Unsupported target: ${target}`);
+}
+
+function selectedTargetsFor({ target, env = process.env, platform = process.platform } = {}) {
+  if (target === 'all') {
+    return TARGETS;
+  }
+  if (target === 'auto') {
+    const detected = TARGETS.filter((item) => commandExists(cliNameForTarget(item), { env, platform }));
+    if (detected.length === 0) {
+      throw new Error(
+        'No supported client CLI was detected for --target auto. '
+        + 'Install codex, claude, antigravity, or hermes on PATH, or use --target all.',
+      );
+    }
+    return detected;
+  }
+  return [target];
+}
+
+function cliNameForTarget(target) {
+  return target;
+}
+
+function commandExists(command, { env = process.env, platform = process.platform } = {}) {
+  const pathValue = env.PATH || '';
+  if (!pathValue) {
+    return false;
+  }
+  const extensions = platform === 'win32'
+    ? (env.PATHEXT || '.COM;.EXE;.BAT;.CMD').split(';')
+    : [''];
+  for (const dir of pathValue.split(path.delimiter).filter(Boolean)) {
+    for (const extension of extensions) {
+      const candidate = path.join(dir, `${command}${extension}`);
+      try {
+        fs.accessSync(candidate, fs.constants.X_OK);
+        return true;
+      } catch {
+        continue;
+      }
+    }
+  }
+  return false;
 }
 
 function normalizeSurface(surface) {

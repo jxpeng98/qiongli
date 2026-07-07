@@ -272,7 +272,7 @@ qiongli project set-subject finance --project-dir .
 qiongli project status --project-dir .
 ```
 
-`qiongli setup` 可以交互式引导安装。脚本化安装使用 `qiongli install --target all`；项目 subject 行为用 `qiongli project set-subject` 修改。
+`qiongli setup` 可以交互式引导安装。脚本化安装可以用 `qiongli install --target auto` 只刷新检测到的客户端 CLI，也可以用 `--target all` 明确写入所有支持的平台路径；项目 subject 行为用 `qiongli project set-subject` 修改。
 
 升级完整运行时：
 
@@ -282,7 +282,7 @@ qiongli update --dry-run
 qiongli update --yes
 ```
 
-手动 package-manager 更新仍然可用：运行 `pipx upgrade qiongli` 或 `python -m pip install --upgrade qiongli`，然后用 `qiongli install --target all --surface plugin --profile full --overwrite` 刷新客户端安装面。`qiongli upgrade` 仍是你明确想下载上游 GitHub release 时使用的 release archive refresh 路径。
+在交互式终端中，裸 `qiongli update` 会打开 wizard，询问 stable/beta channel、刷新 target、surface、profile、是否刷新/检查，以及确认行为。手动 package-manager 更新仍然可用：运行 `pipx upgrade qiongli` 或 `python -m pip install --upgrade qiongli`，然后用 `qiongli install --target auto --surface plugin --profile full --overwrite` 刷新客户端安装面。`qiongli upgrade` 仍是你明确想下载上游 GitHub release 时使用的 release archive refresh 路径。
 
 `--subject` 默认是 `core`，`--coverage` 默认是 `complete`，但 subject 安装参数是 advanced compatibility 控制项。它们用于有意选择的精简安装、Desktop/Web 等价包、release payload validation 和 install-surface testing。当前官方 subjects 是 `core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics` 和命名 composite subject `economics-accounting`；`political-economy` 和 `geoeconomics` 是两个独立 subject 选择，不是一个 composite。官方 composite subjects 不是任意逗号分隔叠加。普通项目 subject 行为用 `qiongli project set-subject` 修改；installed subject 或 coverage 只在有意刷新专精安装包时改变。`qiongli check --json` 会输出每个 target 当前安装的 subject 和 coverage；旧安装缺少 `SUBJECT_MANIFEST.json` 或 `SUBJECT` 文件时按 legacy `core` / `complete` 处理。
 

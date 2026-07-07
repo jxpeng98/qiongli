@@ -60,6 +60,7 @@ class PackageUpdateStatus:
 CommandRunner = Callable[[Sequence[str]], int | subprocess.CompletedProcess[object]]
 ConfirmFn = Callable[[str, bool], bool]
 UpdateChecker = Callable[[SelfUpdatePlan], PackageUpdateStatus]
+SelfUpdateExecutor = Callable[[SelfUpdateOptions], int]
 
 
 def build_self_update_plan(
@@ -176,6 +177,80 @@ def execute_self_update(
     return 0
 
 
+def run_self_update_wizard(
+    *,
+    input_fn: Callable[[str], str] = input,
+    output: TextIO | None = None,
+    executor: SelfUpdateExecutor | None = None,
+) -> int:
+    out = output or sys.stdout
+    print("Qiongli self-update wizard", file=out)
+    channel_choice = _choose(
+        "Update channel",
+        ("stable", "beta"),
+        default="stable",
+        input_fn=input_fn,
+        output=out,
+        note="Beta uses the next/prerelease package channel.",
+    )
+    target = _choose(
+        "Refresh target",
+        TARGET_CHOICES,
+        default="auto",
+        input_fn=input_fn,
+        output=out,
+        note="Auto refreshes only client CLIs detected on PATH.",
+    )
+    surface = _choose(
+        "Install surface",
+        SURFACE_CHOICES,
+        default="plugin",
+        input_fn=input_fn,
+        output=out,
+        note="Plugin is the recommended local runtime surface; skills keeps legacy skill-directory installs.",
+    )
+    profile = _choose(
+        "Install profile",
+        PROFILE_CHOICES,
+        default="full",
+        input_fn=input_fn,
+        output=out,
+        note="Full refreshes plugin/MCP-capable local assets; partial limits the local asset refresh.",
+    )
+    refresh = _choose_yes_no(
+        "Refresh installed local plugins/assets after package update?",
+        default=True,
+        input_fn=input_fn,
+        output=out,
+    )
+    check = False
+    if refresh:
+        check = _choose_yes_no(
+            "Run qiongli check after refresh?",
+            default=True,
+            input_fn=input_fn,
+            output=out,
+        )
+    yes = _choose_yes_no(
+        "Run package update without additional confirmation prompts?",
+        default=False,
+        input_fn=input_fn,
+        output=out,
+    )
+    options = SelfUpdateOptions(
+        channel="next" if channel_choice == "beta" else "stable",
+        target=target,
+        surface=surface,
+        profile=profile,
+        refresh=refresh,
+        check=check,
+        yes=yes,
+    )
+    if executor is not None:
+        return executor(options)
+    return execute_self_update(options, output=out)
+
+
 def _validate_options(options: SelfUpdateOptions) -> None:
     if options.channel not in CHANNEL_CHOICES:
         raise ValueError(f"Unsupported update channel: {options.channel}")
@@ -185,6 +260,55 @@ def _validate_options(options: SelfUpdateOptions) -> None:
         raise ValueError(f"Unsupported install surface: {options.surface}")
     if options.profile not in PROFILE_CHOICES:
         raise ValueError(f"Unsupported install profile: {options.profile}")
+
+
+def _choose(
+    label: str,
+    choices: tuple[str, ...],
+    *,
+    default: str,
+    input_fn: Callable[[str], str],
+    output: TextIO,
+    note: str = "",
+) -> str:
+    if note:
+        print(f"Tip: {note}", file=output)
+    default_index = choices.index(default) + 1
+    while True:
+        print(f"{label}:", file=output)
+        for index, choice in enumerate(choices, start=1):
+            suffix = " (default)" if choice == default else ""
+            print(f"  {index}. {choice}{suffix}", file=output)
+        raw = input_fn(f"Choose {label} [{default_index}]: ").strip()
+        if not raw:
+            return default
+        if raw.isdigit():
+            index = int(raw)
+            if 1 <= index <= len(choices):
+                return choices[index - 1]
+        normalized = raw.lower()
+        if normalized in choices:
+            return normalized
+        print(f"Please choose one of: {', '.join(choices)}", file=output)
+
+
+def _choose_yes_no(
+    label: str,
+    *,
+    default: bool,
+    input_fn: Callable[[str], str],
+    output: TextIO,
+) -> bool:
+    suffix = "Y/n" if default else "y/N"
+    while True:
+        raw = input_fn(f"{label} [{suffix}]: ").strip().lower()
+        if not raw:
+            return default
+        if raw in {"y", "yes"}:
+            return True
+        if raw in {"n", "no"}:
+            return False
+        print("Please answer yes or no.", file=output)
 
 
 def _detect_install_channel(env: Mapping[str, str]) -> str:

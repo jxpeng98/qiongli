@@ -233,6 +233,44 @@ test('installSkills copies managed payload and removes legacy residues', () => {
   assert.equal(fs.existsSync(legacyDir), false);
 });
 
+test('installSkills auto target copies only detected client payloads', () => {
+  const { root } = makeTempPackage();
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-auto-home-'));
+  const binDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-auto-bin-'));
+  const codexBin = path.join(binDir, process.platform === 'win32' ? 'codex.cmd' : 'codex');
+  fs.writeFileSync(codexBin, process.platform === 'win32' ? '@echo off\r\n' : '#!/bin/sh\n');
+  fs.chmodSync(codexBin, 0o755);
+
+  installSkills({
+    packageRoot: root,
+    target: 'auto',
+    mode: 'copy',
+    env: { HOME: home, PATH: binDir },
+    platform: 'linux',
+  });
+
+  assert.equal(readSkillVersion(path.join(home, '.codex', 'skills', 'qiongli-workflow')), 'v9.9.9-beta.1');
+  assert.equal(fs.existsSync(path.join(home, '.claude', 'skills', 'qiongli-workflow')), false);
+  assert.equal(fs.existsSync(path.join(home, '.gemini', 'antigravity', 'skills', 'qiongli-workflow')), false);
+  assert.equal(fs.existsSync(path.join(home, '.hermes', 'skills', 'qiongli-workflow')), false);
+});
+
+test('installSkills auto target fails when no client CLI is detected', () => {
+  const { root } = makeTempPackage();
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-auto-empty-home-'));
+
+  assert.throws(
+    () => installSkills({
+      packageRoot: root,
+      target: 'auto',
+      mode: 'copy',
+      env: { HOME: home, PATH: '' },
+      platform: 'linux',
+    }),
+    /--target auto/,
+  );
+});
+
 test('installSkills installs plugin-only surface from target-specific plugin payload', () => {
   const { root } = makeTempPackage();
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qiongli-plugin-home-'));

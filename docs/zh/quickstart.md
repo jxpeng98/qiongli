@@ -61,7 +61,7 @@ pwsh -ExecutionPolicy Bypass -File .\bootstrap_qiongli.ps1 -Profile partial -Pro
 npm 或 pipx 安装中，先安装一次本地 runtime，再在每个项目里配置 subject guidance：
 
 ```bash
-qiongli install --target all
+qiongli install --target auto
 qiongli project init --project-dir .
 qiongli project set-subject finance --project-dir .
 qiongli project status --project-dir .
@@ -70,7 +70,7 @@ qiongli remove --target all --dry-run
 qiongli check --json
 ```
 
-如果 `.qiongli/guidance_manifest.yaml` 不存在，Qiongli 使用隐式 `active_subject: auto`：先使用 core guidance，再根据当前任务临时推断 subject 和 method lens，并且在改变项目本地状态前写出可审计 proposal。当 Codex / Claude Code / Antigravity 需要本地 plugin 持有完整 Python MCP 时，使用 `--profile full --surface plugin`；配合 `--target all` 时，Antigravity plugin 会内置 root `mcp_config.json`，Hermes 会写入受管理的 full MCP client 配置。
+如果 `.qiongli/guidance_manifest.yaml` 不存在，Qiongli 使用隐式 `active_subject: auto`：先使用 core guidance，再根据当前任务临时推断 subject 和 method lens，并且在改变项目本地状态前写出可审计 proposal。`--target auto` 会检测 `PATH` 上已安装的受支持客户端 CLI；明确想写入所有支持平台路径时使用 `--target all`。当 Codex / Claude Code / Antigravity 需要本地 plugin 持有完整 Python MCP 时，使用 `--profile full --surface plugin`；配合 `--target all` 时，Antigravity plugin 会内置 root `mcp_config.json`，Hermes 会写入受管理的 full MCP client 配置。
 
 Advanced compatibility、Desktop ZIP、focused package、release payload 和 install-surface testing 示例：
 

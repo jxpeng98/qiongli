@@ -77,7 +77,70 @@ class UniversalInstallerTests(unittest.TestCase):
 
     def test_supported_install_targets_drop_gemini_cli(self) -> None:
         self.assertNotIn("gemini", TARGET_CHOICES)
-        self.assertEqual(("codex", "claude", "antigravity", "hermes", "all"), TARGET_CHOICES)
+        self.assertEqual(("codex", "claude", "antigravity", "hermes", "all", "auto"), TARGET_CHOICES)
+
+    def test_auto_target_installs_only_detected_client_cli(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            env = _isolated_qiongli_env(temp_root)
+            stdout = io.StringIO()
+
+            def fake_which(name: str) -> str | None:
+                if name == "codex":
+                    return "/usr/local/bin/codex"
+                return None
+
+            with mock.patch.dict(os.environ, env, clear=True):
+                with mock.patch("qiongli.universal_installer.shutil.which", side_effect=fake_which):
+                    with contextlib.redirect_stdout(stdout):
+                        result = install(
+                            InstallOptions(
+                                repo_root=REPO_ROOT,
+                                project_dir=project_dir,
+                                target="auto",
+                                profile="partial",
+                            )
+                        )
+
+            self.assertEqual(result, 0)
+            self.assertTrue((temp_root / "codex-home" / "skills" / "qiongli-workflow" / "SKILL.md").is_file())
+            self.assertFalse((temp_root / "claude-home" / "skills" / "qiongli-workflow" / "SKILL.md").exists())
+            self.assertFalse((temp_root / "antigravity-home" / "skills" / "qiongli-workflow" / "SKILL.md").exists())
+            self.assertFalse((temp_root / "hermes-home" / "skills" / "qiongli-workflow" / "SKILL.md").exists())
+            self.assertIn("target:  auto", stdout.getvalue())
+
+    def test_auto_target_fails_when_no_client_cli_is_detected(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            env = _isolated_qiongli_env(temp_root)
+
+            with mock.patch.dict(os.environ, env, clear=True):
+                with mock.patch("qiongli.universal_installer.shutil.which", return_value=None):
+                    with self.assertRaisesRegex(ValueError, "--target auto"):
+                        install(
+                            InstallOptions(
+                                repo_root=REPO_ROOT,
+                                project_dir=project_dir,
+                                target="auto",
+                                profile="partial",
+                            )
+                        )
+
+    def test_auto_target_remove_fails_when_no_client_cli_is_detected(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            temp_root = Path(tmp_dir)
+            project_dir = temp_root / "project"
+            project_dir.mkdir(parents=True)
+            env = _isolated_qiongli_env(temp_root)
+
+            with mock.patch.dict(os.environ, env, clear=True):
+                with mock.patch("qiongli.universal_installer.shutil.which", return_value=None):
+                    with self.assertRaisesRegex(ValueError, "--target auto"):
+                        remove(RemoveOptions(project_dir=project_dir, target="auto"))
 
     def test_same_version_install_reports_current_and_source_versions(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

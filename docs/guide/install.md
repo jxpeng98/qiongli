@@ -283,13 +283,13 @@ Use pipx when you specifically want the Python-distributed updater CLI:
 ```bash
 pipx install qiongli
 qiongli setup
-qiongli install --target all
+qiongli install --target auto
 qiongli project init --project-dir .
 qiongli project set-subject finance --project-dir .
 qiongli project status --project-dir .
 ```
 
-`qiongli setup` can guide installation interactively. Scriptable installs should use `qiongli install --target all`; project subject behavior changes with `qiongli project set-subject`.
+`qiongli setup` can guide installation interactively. Scriptable installs can use `qiongli install --target auto` to refresh only detected client CLIs, or `--target all` to write every supported platform path. Project subject behavior changes with `qiongli project set-subject`.
 
 Upgrade the full runtime with:
 
@@ -299,7 +299,7 @@ qiongli update --dry-run
 qiongli update --yes
 ```
 
-Manual package-manager updates are still valid: run `pipx upgrade qiongli` or `python -m pip install --upgrade qiongli`, then refresh client surfaces with `qiongli install --target all --surface plugin --profile full --overwrite`. `qiongli upgrade` remains the release-archive refresh path when you intentionally want to download an upstream GitHub release.
+In an interactive terminal, bare `qiongli update` opens a wizard for stable/beta channel, refresh target, surface, profile, refresh/check, and confirmation behavior. Manual package-manager updates are still valid: run `pipx upgrade qiongli` or `python -m pip install --upgrade qiongli`, then refresh client surfaces with `qiongli install --target auto --surface plugin --profile full --overwrite`. `qiongli upgrade` remains the release-archive refresh path when you intentionally want to download an upstream GitHub release.
 
 `--subject` defaults to `core`, and `--coverage` defaults to `complete`, but subject install flags are advanced compatibility controls. Use them for deliberate slim installs, Desktop/Web-equivalent packages, release payload validation, and install-surface testing. Current official subjects are `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and the named composite `economics-accounting`; `political-economy` and `geoeconomics` are independent subject choices, not a composite. Official composite subjects are not arbitrary comma-separated stacking. Ordinary project subject behavior changes with `qiongli project set-subject`; installed subject or coverage changes are only intentional specialized package refreshes. `qiongli check --json` reports the active installed subject and coverage per target; legacy installs without a `SUBJECT_MANIFEST.json` or `SUBJECT` file are treated as `core` / `complete`.
 

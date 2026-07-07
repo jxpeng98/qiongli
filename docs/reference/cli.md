@@ -169,10 +169,12 @@ qiongli self-update [--channel stable|next] [--beta] [--dry-run] [--yes] [--no-r
 ```
 
 Default behavior:
+- In an interactive terminal, bare `qiongli update` or `qiongli self-update` opens a short wizard for channel, refresh target, surface, profile, refresh/check, and confirmation behavior. Passing any explicit option uses the scripted CLI path.
 - `--channel stable` delegates to `pipx upgrade qiongli` or `python -m pip install --upgrade qiongli`, depending on the detected full-runtime install channel.
 - `--channel next` enables Python prerelease upgrades with `--pre`.
 - `--beta` is a convenience alias for `--channel next`.
 - Refresh defaults to `qiongli install --target all --surface plugin --profile full --overwrite`. This is intentional: after the package manager updates the CLI package, the bundled payload is already local, so the refresh should not download another release archive.
+- The interactive wizard defaults refresh target to `auto`, which detects installed Codex, Claude Code, Antigravity, and Hermes CLIs on `PATH` and refreshes only those client surfaces.
 - `--dry-run` prints the detected channel and exact commands without executing them.
 - Without `--yes`, the command asks before running the package-manager update, then asks whether to refresh installed local plugins/assets from the new package.
 - `--no-refresh` skips the installed surface refresh, and `--skip-check` skips the final `qiongli check`.
@@ -258,7 +260,7 @@ qiongli install \
   [--profile partial|full] \
   [--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting] \
   [--coverage complete|focused] \
-  [--target codex|claude|antigravity|hermes|all] \
+  [--target codex|claude|antigravity|hermes|all|auto] \
   [--surface skills|plugin|both] \
   [--mode copy|link] \
   [--project-dir <path>] \
@@ -274,6 +276,7 @@ Examples:
 
 ```bash
 qiongli install --target all
+qiongli install --target auto
 qiongli install --surface skills --profile partial --target all
 qiongli install --profile full --target codex --surface plugin
 qiongli install --profile full --target all --surface plugin
@@ -282,6 +285,8 @@ qiongli install --parts mcp --target hermes
 ```
 
 For normal CLI/local plugin use, install Qiongli once and set subject behavior per project with `qiongli project ...`. Subject install flags are retained for legacy and advanced compatibility cases: focused Claude Desktop/Web ZIPs, deliberately narrow packages, release payloads, and install-surface testing.
+
+`--target auto` detects supported client CLIs on `PATH` and installs only those client surfaces. Use `--target all` when you intentionally want to write every supported platform path regardless of whether the corresponding CLI is currently installed.
 
 Subject packages are specialized installs, not reduced-quality cuts. Default install is `core/complete`. `--subject economics`, `--subject business`, `--subject finance`, `--subject political-economy`, and `--subject geoeconomics` mean complete specialized installs, not reduced packages. `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. Focused coverage selects the subject profile set and active effective skills for deliberate slim installs and Desktop/Web ZIPs. Current official subjects are `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and the named composite `economics-accounting`; `political-economy` and `geoeconomics` are independent subject choices, not a composite. Official composites are not arbitrary comma-separated stacking. Public Desktop ZIP subjects are `core`, `economics`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting`, with no standalone accounting Desktop ZIP in this phase. Change ordinary project subject behavior with `qiongli project set-subject`; switch installed subject or coverage only when you are intentionally refreshing a specialized package.
 
@@ -361,7 +366,7 @@ qiongli upgrade \
   [--profile partial|full] \
   [--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting] \
   [--coverage complete|focused] \
-  [--target codex|claude|antigravity|hermes|all] \
+  [--target codex|claude|antigravity|hermes|all|auto] \
   [--surface skills|plugin|both] \
   [--project-dir <path>] \
   [--install-cli | --no-cli] \
@@ -403,7 +408,7 @@ Use Case: Creates project-local `.env` configuration in your project directory.
 ```bash
 qiongli init \
   [--project-dir <path>] \
-  [--target all|codex|claude|antigravity|hermes] \
+  [--target all|auto|codex|claude|antigravity|hermes] \
   [--mode copy|link] \
   [--overwrite] \
   [--doctor] \
@@ -421,7 +426,7 @@ Use Case: Removes assets installed by the CLI so you can switch cleanly between 
 
 ```bash
 qiongli remove \
-  [--target codex|claude|antigravity|hermes|all] \
+  [--target codex|claude|antigravity|hermes|all|auto] \
   [--surface skills|plugin|both] \
   [--parts globals|project|cli|mcp] \
   [--project-dir <path>] \

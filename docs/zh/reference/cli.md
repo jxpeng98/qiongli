@@ -171,10 +171,12 @@ qiongli self-update [--channel stable|next] [--beta] [--dry-run] [--yes] [--no-r
 ```
 
 默认行为：
+- 在交互式终端中，裸 `qiongli update` 或 `qiongli self-update` 会打开一个简短 wizard，询问 channel、刷新 target、surface、profile、是否刷新/检查，以及确认行为。只要传入任意显式参数，就走脚本化 CLI 路径。
 - `--channel stable` 会根据检测到的完整运行时安装渠道委托给 `pipx upgrade qiongli` 或 `python -m pip install --upgrade qiongli`。
 - `--channel next` 会在 Python 包管理器路径上启用 prerelease `--pre`。
 - `--beta` 是 `--channel next` 的快捷别名。
 - 刷新安装面默认执行 `qiongli install --target all --surface plugin --profile full --overwrite`。这是有意设计：package manager 已经更新了 CLI package，本地 payload 已经是新的，不需要再下载 release archive。
+- 交互式 wizard 的刷新 target 默认是 `auto`：检测 `PATH` 上已安装的 Codex、Claude Code、Antigravity 和 Hermes CLI，只刷新检测到的客户端安装面。
 - `--dry-run` 只打印检测到的渠道和将要执行的命令。
 - 不传 `--yes` 时，会先询问是否执行 package-manager 更新；CLI/package 升级成功后，再询问是否刷新本地 plugin/assets。
 - `--no-refresh` 跳过安装面刷新，`--skip-check` 跳过最后的 `qiongli check`。
@@ -230,7 +232,7 @@ qiongli install \
   [--profile partial|full] \
   [--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting] \
   [--coverage complete|focused] \
-  [--target codex|claude|antigravity|hermes|all] \
+  [--target codex|claude|antigravity|hermes|all|auto] \
   [--surface skills|plugin|both] \
   [--mode copy|link] \
   [--project-dir <path>] \
@@ -246,6 +248,7 @@ qiongli install \
 
 ```bash
 qiongli install --target all
+qiongli install --target auto
 qiongli install --surface skills --profile partial --target all
 qiongli install --profile full --target codex --surface plugin
 qiongli install --profile full --target all --surface plugin
@@ -254,6 +257,8 @@ qiongli install --parts mcp --target hermes
 ```
 
 日常 CLI / local plugin 使用中，先安装一次 Qiongli，再用 `qiongli project ...` 在每个项目里设置 subject 行为。`--subject` 安装参数保留给 legacy 和 advanced compatibility 场景：focused Claude Desktop/Web ZIP、有意选择的窄包、release payload，以及安装面兼容性测试。
+
+`--target auto` 会检测 `PATH` 上已安装的受支持客户端 CLI，只安装这些客户端对应的 surface。明确想写入所有支持平台路径时，继续使用 `--target all`。
 
 Subject package 是专精安装包，不是降质删减版。默认安装是 `core/complete`。`--subject economics`、`--subject business`、`--subject finance`、`--subject political-economy` 和 `--subject geoeconomics` 表示 complete 专精安装，不是缩水包；`--subject accounting` 表示 `accounting/complete`，即全量框架加 accounting 专精。`focused` coverage 只选择该 subject 的 profiles 和 active effective skills，用于有意选择的精简安装和 Desktop/Web ZIP。当前官方 subjects 是 `core`、`economics`、`accounting`、`business`、`finance`、`political-economy`、`geoeconomics` 和命名 composite subject `economics-accounting`；`political-economy` 和 `geoeconomics` 是两个独立 subject 选择，不是一个 composite。官方 composite subjects 不是任意逗号分隔叠加。本阶段公开 Desktop ZIP subjects 是 `core`、`economics`、`business`、`finance`、`political-economy`、`geoeconomics` 和 `economics-accounting`，还没有 standalone accounting Desktop ZIP。普通项目的 subject 行为用 `qiongli project set-subject` 修改；只有在明确刷新专精安装包时，才通过 `install` 或 `upgrade` 切换 installed subject 或 coverage。
 
@@ -281,7 +286,7 @@ qiongli upgrade \
   [--profile partial|full] \
   [--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting] \
   [--coverage complete|focused] \
-  [--target codex|claude|antigravity|hermes|all] \
+  [--target codex|claude|antigravity|hermes|all|auto] \
   [--surface skills|plugin|both] \
   [--project-dir <path>] \
   [--install-cli | --no-cli] \
@@ -323,7 +328,7 @@ qiongli align [--repo <owner/repo|url>]
 ```bash
 qiongli init \
   [--project-dir <path>] \
-  [--target all|codex|claude|antigravity|hermes] \
+  [--target all|auto|codex|claude|antigravity|hermes] \
   [--mode copy|link] \
   [--overwrite] \
   [--doctor] \
@@ -341,7 +346,7 @@ qiongli init \
 
 ```bash
 qiongli remove \
-  [--target codex|claude|antigravity|hermes|all] \
+  [--target codex|claude|antigravity|hermes|all|auto] \
   [--surface skills|plugin|both] \
   [--parts globals|project|cli|mcp|plugin] \
   [--project-dir <path>] \

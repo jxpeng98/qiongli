@@ -236,6 +236,16 @@ def remove_local_plugin(
 def _selected_targets(target: str) -> tuple[str, ...]:
     if target == "all":
         return ("codex", "claude", "antigravity")
+    if target == "auto":
+        return tuple(
+            item
+            for item, cli_name in (
+                ("codex", "codex"),
+                ("claude", "claude"),
+                ("antigravity", "antigravity"),
+            )
+            if shutil.which(cli_name)
+        )
     if target in {"codex", "claude", "antigravity"}:
         return (target,)
     return ()

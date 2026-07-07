@@ -202,7 +202,7 @@ function helpText() {
   return `Qiongli npm asset manager
 
 Usage:
-  qiongli install --subject core --target all [--surface skills]
+  qiongli install --subject core --target auto [--surface skills]
   qiongli setup --target codex [--surface skills] [--dry-run]
   qiongli update --target all [--dry-run]
   qiongli refresh --target all [--dry-run]
@@ -223,7 +223,7 @@ subject lifecycle controls require \`pipx install qiongli\`:
   use the full runtime for qiongli subject ... and MCP qiongli_subject_status/qiongli_subject_update full runtime tools
 
 Options:
-  --target codex|claude|antigravity|hermes|all
+  --target codex|claude|antigravity|hermes|all|auto
   --surface skills|plugin|both
   --subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting
             Default core installs adaptive runtime subject refinement.

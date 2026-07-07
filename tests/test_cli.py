@@ -269,6 +269,21 @@ class InstallerCliTests(unittest.TestCase):
         self.assertEqual(options.channel, "next")
         self.assertTrue(options.dry_run)
 
+    def test_bare_self_update_uses_interactive_wizard_on_tty(self) -> None:
+        stdin = SimpleNamespace(isatty=lambda: True)
+        with mock.patch.object(cli_module.sys, "argv", ["qiongli", "self-update"]):
+            with mock.patch.object(cli_module.sys, "stdin", stdin):
+                with mock.patch("qiongli.self_update.run_self_update_wizard", return_value=0, create=True) as wizard_mock:
+                    with mock.patch.object(
+                        cli_module,
+                        "execute_self_update",
+                        side_effect=AssertionError("bare self-update should use the wizard on a TTY"),
+                    ):
+                        exit_code = cli_module.main()
+
+        self.assertEqual(exit_code, 0)
+        wizard_mock.assert_called_once()
+
     def test_self_update_help_hides_install_shape_options(self) -> None:
         stdout = io.StringIO()
         with mock.patch.object(cli_module.sys, "argv", ["qiongli", "self-update", "--help"]):
