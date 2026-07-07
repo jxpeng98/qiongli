@@ -402,6 +402,12 @@ test("zotero tool schemas expose dry-run and import fallback controls", () => {
   assert.deepEqual(upsertTool.inputSchema.properties.crossref_enrichment.enum, ["fill_blank", "off"]);
   assert.ok(upsertTool.inputSchema.properties.review_tags);
   assert.ok(upsertTool.inputSchema.properties.review_collection_path);
+  assert.equal(upsertTool.inputSchema.properties.project_title.type, "string");
+  assert.equal(upsertTool.inputSchema.properties.research_title.type, "string");
+  assert.equal(upsertTool.inputSchema.properties.topic.type, "string");
+  assert.deepEqual(upsertTool.inputSchema.properties.reading_note.type, ["string", "object"]);
+  assert.equal(upsertTool.inputSchema.properties.reading_notes.type, "array");
+  assert.deepEqual(upsertTool.inputSchema.properties.notes.type, ["string", "array", "object"]);
   assert.ok(exportTool.inputSchema.properties.formats);
   assert.ok(exportTool.inputSchema.properties.project_root);
 });
