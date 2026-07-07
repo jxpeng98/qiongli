@@ -26,6 +26,27 @@ retrieval. Qiongli treats Zotero attachment data as local verification evidence;
 provider or native search URLs remain candidate-only until `retrieval_manifest.csv`
 records a retrieved or unresolved status.
 
+## Project Collections
+
+`POST /qiongli/upsertItems` accepts `collection_path` values such as
+`Qiongli/platform-governance`. During dry runs, the companion reports the target
+collection path without mutating Zotero. During explicit writes, it creates any
+missing nested collections and adds created, updated, or unchanged duplicate
+items to the target collection.
+
+The companion does not infer project names from chat context. Qiongli's MCPB
+resolves that context first, either from an explicit collection path or from
+project-title fields, and sends one collection path to the companion.
+
+## Reading Notes
+
+`POST /qiongli/upsertItems` also accepts per-item `qiongli_notes`. During dry
+runs, the companion reports planned note writes. During explicit writes, each
+note is created as a Zotero child note under the reference item.
+
+Qiongli reading notes are not written into `abstractNote` or `extra`; those
+fields remain reserved for paper abstracts and compact provenance metadata.
+
 Qiongli's MCPB probes these endpoints through `qiongli_zotero_status`, performs
 dry-run writes through `qiongli_zotero_upsert_references`, and falls back to
 `references.json`, `references.ris`, and `bibliography.bib` when the companion is
