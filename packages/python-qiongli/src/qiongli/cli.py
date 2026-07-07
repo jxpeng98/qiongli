@@ -1400,6 +1400,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Package release channel to install: stable or next (default: stable)",
     )
     self_update.add_argument(
+        "--beta",
+        action="store_const",
+        const="next",
+        default=argparse.SUPPRESS,
+        dest="channel",
+        help="Shortcut for --channel next",
+    )
+    self_update.add_argument(
         "--target",
         default="all",
         choices=TARGET_CHOICES,

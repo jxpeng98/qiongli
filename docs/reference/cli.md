@@ -164,13 +164,14 @@ Use Case:
 - Keeps native marketplace plugins separate; they remain managed by Codex, Claude Code, or the relevant client plugin manager.
 
 ```bash
-qiongli update [--channel stable|next] [--dry-run] [--yes] [--no-refresh] [--skip-check]
-qiongli self-update [--channel stable|next] [--dry-run] [--yes] [--no-refresh] [--skip-check]
+qiongli update [--channel stable|next] [--beta] [--dry-run] [--yes] [--no-refresh] [--skip-check]
+qiongli self-update [--channel stable|next] [--beta] [--dry-run] [--yes] [--no-refresh] [--skip-check]
 ```
 
 Default behavior:
 - `--channel stable` delegates to `pipx upgrade qiongli` or `python -m pip install --upgrade qiongli`, depending on the detected full-runtime install channel.
 - `--channel next` enables Python prerelease upgrades with `--pre`.
+- `--beta` is a convenience alias for `--channel next`.
 - Refresh defaults to `qiongli install --target all --surface plugin --profile full --overwrite`. This is intentional: after the package manager updates the CLI package, the bundled payload is already local, so the refresh should not download another release archive.
 - `--dry-run` prints the detected channel and exact commands without executing them.
 - Without `--yes`, the command asks before running the package-manager update, then asks whether to refresh installed local plugins/assets from the new package.

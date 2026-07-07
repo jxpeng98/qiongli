@@ -166,13 +166,14 @@ wizard 选项：
 完整运行时的常规升级使用 `qiongli update`。它会先检查当前安装的 Python qiongli CLI/package 是否有新版本；如有，会询问是否升级。CLI/package 升级成功后，它会再询问是否用新 package 内的 payload 刷新本地 plugin/assets。脚本或 CI 使用 `qiongli update --yes`，它会把两个确认都视为 yes。只想升级完整运行时 package、不刷新本地内容时使用 `qiongli update --no-refresh`。
 
 ```bash
-qiongli update [--channel stable|next] [--dry-run] [--yes] [--no-refresh] [--skip-check]
-qiongli self-update [--channel stable|next] [--dry-run] [--yes] [--no-refresh] [--skip-check]
+qiongli update [--channel stable|next] [--beta] [--dry-run] [--yes] [--no-refresh] [--skip-check]
+qiongli self-update [--channel stable|next] [--beta] [--dry-run] [--yes] [--no-refresh] [--skip-check]
 ```
 
 默认行为：
 - `--channel stable` 会根据检测到的完整运行时安装渠道委托给 `pipx upgrade qiongli` 或 `python -m pip install --upgrade qiongli`。
 - `--channel next` 会在 Python 包管理器路径上启用 prerelease `--pre`。
+- `--beta` 是 `--channel next` 的快捷别名。
 - 刷新安装面默认执行 `qiongli install --target all --surface plugin --profile full --overwrite`。这是有意设计：package manager 已经更新了 CLI package，本地 payload 已经是新的，不需要再下载 release archive。
 - `--dry-run` 只打印检测到的渠道和将要执行的命令。
 - 不传 `--yes` 时，会先询问是否执行 package-manager 更新；CLI/package 升级成功后，再询问是否刷新本地 plugin/assets。

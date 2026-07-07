@@ -258,6 +258,17 @@ class InstallerCliTests(unittest.TestCase):
         self.assertFalse(options.check)
         self.assertIn("deprecated", stderr.getvalue())
 
+    def test_self_update_beta_alias_dispatches_to_next_channel(self) -> None:
+        with mock.patch.object(cli_module, "execute_self_update", return_value=0) as update_mock:
+            with mock.patch.object(cli_module.sys, "argv", ["qiongli", "self-update", "--beta", "--dry-run"]):
+                exit_code = cli_module.main()
+
+        self.assertEqual(exit_code, 0)
+        update_mock.assert_called_once()
+        options = update_mock.call_args.args[0]
+        self.assertEqual(options.channel, "next")
+        self.assertTrue(options.dry_run)
+
     def test_self_update_help_hides_install_shape_options(self) -> None:
         stdout = io.StringIO()
         with mock.patch.object(cli_module.sys, "argv", ["qiongli", "self-update", "--help"]):
@@ -268,6 +279,7 @@ class InstallerCliTests(unittest.TestCase):
         self.assertEqual(cm.exception.code, 0)
         help_text = stdout.getvalue()
         self.assertIn("--yes", help_text)
+        self.assertIn("--beta", help_text)
         self.assertIn("--no-refresh", help_text)
         self.assertNotIn("--target", help_text)
         self.assertNotIn("--surface", help_text)
