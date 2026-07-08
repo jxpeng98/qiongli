@@ -94,8 +94,7 @@ class PluginArtifactsTests(unittest.TestCase):
             [
                 f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/.codex-plugin/plugin.json",
                 f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/.mcp.json",
-                f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/mcp/qiongli-literature-provider/index.mjs",
-                f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/mcp/qiongli-literature-provider/query.mjs",
+                f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/bin/qiongli-literature-provider",
                 f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/commands/paper.md",
                 f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/SKILL.md",
                 f"qiongli-next-codex-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-next-lit-review/SKILL.md",
@@ -107,8 +106,7 @@ class PluginArtifactsTests(unittest.TestCase):
             dist_dir / f"qiongli-next-claude-plugin-{current_tag}.tar.gz",
             [
                 f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/.claude-plugin/plugin.json",
-                f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/mcp/qiongli-literature-provider/index.mjs",
-                f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/mcp/qiongli-literature-provider/query.mjs",
+                f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/bin/qiongli-literature-provider",
                 f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/commands/paper.md",
                 f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/SKILL.md",
                 f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/agents/openai.yaml",
@@ -119,7 +117,7 @@ class PluginArtifactsTests(unittest.TestCase):
             dist_dir / f"qiongli-next-claude-plugin-{current_tag}.zip",
             [
                 f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/.claude-plugin/plugin.json",
-                f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/mcp/qiongli-literature-provider/index.mjs",
+                f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/bin/qiongli-literature-provider",
                 f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/commands/paper.md",
                 f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/SKILL.md",
                 f"qiongli-next-claude-plugin-{current_tag}/plugins/qiongli-next/skills/qiongli-workflow/agents/openai.yaml",
@@ -230,8 +228,7 @@ class PluginArtifactsTests(unittest.TestCase):
             [
                 f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/.codex-plugin/plugin.json",
                 f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/.mcp.json",
-                f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/mcp/qiongli-literature-provider/index.mjs",
-                f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/mcp/qiongli-literature-provider/query.mjs",
+                f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/bin/qiongli-literature-provider",
                 f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/commands/paper.md",
                 f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
                 f"qiongli-codex-plugin-{current_tag}/plugins/qiongli/skills/qiongli-lit-review/SKILL.md",
@@ -241,8 +238,7 @@ class PluginArtifactsTests(unittest.TestCase):
             dist_dir / f"qiongli-claude-plugin-{current_tag}.zip",
             [
                 f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/.claude-plugin/plugin.json",
-                f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/mcp/qiongli-literature-provider/index.mjs",
-                f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/mcp/qiongli-literature-provider/query.mjs",
+                f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/bin/qiongli-literature-provider",
                 f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/commands/paper.md",
                 f"qiongli-claude-plugin-{current_tag}/plugins/qiongli/skills/qiongli-workflow/SKILL.md",
             ],
@@ -401,10 +397,14 @@ class PluginArtifactsTests(unittest.TestCase):
         if server_name != "qiongli":
             self.assertNotIn("qiongli", manifest["mcpServers"])
         server = manifest["mcpServers"][server_name]
-        self.assertEqual(server["command"], "node")
+        self.assertNotEqual(server["command"], "node")
+        self.assertEqual(
+            server["command"],
+            "${CLAUDE_PLUGIN_ROOT}/bin/qiongli-literature-provider",
+        )
         self.assertEqual(
             server["args"],
-            ["${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs"],
+            ["--transport", "stdio"],
         )
         self.assertEqual(server["cwd"], "${CLAUDE_PLUGIN_ROOT}")
 
@@ -421,8 +421,9 @@ class PluginArtifactsTests(unittest.TestCase):
         if server_name != "qiongli":
             self.assertNotIn("qiongli", manifest["mcpServers"])
         server = manifest["mcpServers"][server_name]
-        self.assertEqual(server["command"], "node")
-        self.assertEqual(server["args"], ["./mcp/qiongli-literature-provider/index.mjs"])
+        self.assertNotEqual(server["command"], "node")
+        self.assertEqual(server["command"], "./bin/qiongli-literature-provider")
+        self.assertEqual(server["args"], ["--transport", "stdio"])
 
     def _assert_zip_contains(self, artifact: Path, expected: list[str]) -> None:
         with zipfile.ZipFile(artifact) as archive:
@@ -443,7 +444,7 @@ class PluginArtifactsTests(unittest.TestCase):
                 f"{plugin_name}/plugin.json",
                 f"{plugin_name}/.claude-plugin/plugin.json",
                 f"{plugin_name}/commands/paper.md",
-                f"{plugin_name}/mcp/qiongli-literature-provider/index.mjs",
+                f"{plugin_name}/bin/qiongli-literature-provider",
                 f"{plugin_name}/skills/qiongli-workflow/SKILL.md",
             ],
         )
@@ -493,10 +494,14 @@ class PluginArtifactsTests(unittest.TestCase):
         if server_name != "qiongli":
             self.assertNotIn("qiongli", manifest["mcpServers"])
         server = manifest["mcpServers"][server_name]
-        self.assertEqual(server["command"], "node")
+        self.assertNotEqual(server["command"], "node")
+        self.assertEqual(
+            server["command"],
+            "${CLAUDE_PLUGIN_ROOT}/bin/qiongli-literature-provider",
+        )
         self.assertEqual(
             server["args"],
-            ["${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs"],
+            ["--transport", "stdio"],
         )
         self.assertEqual(server["cwd"], "${CLAUDE_PLUGIN_ROOT}")
 

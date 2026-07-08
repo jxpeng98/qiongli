@@ -21,6 +21,7 @@ from qiongli.source_layout import RepoLayout
 from qiongli.distribution_metadata import PluginDefinition, load_plugin_distribution
 from qiongli.platform_targets import load_platform_targets, remove_path_pattern
 from qiongli.workflow_wrapper_skills import write_codex_workflow_wrapper_skills
+from tooling.scripts.build_lite_mcp import build_current_platform
 
 try:
     from qiongli.subject_materializer import MaterializeOptions, materialize_subject_package, validate_subject_catalog
@@ -44,6 +45,8 @@ NEXT_PLUGIN_DESCRIPTION = (
     "Qiongli Next prerelease academic research workflow plugin for testing the upcoming core workflow "
     "with bundled literature MCP tools."
 )
+LITE_MCP_BIN_NAME = "qiongli-literature-provider"
+_LITE_MCP_BINARY_CACHE: dict[str, Path] = {}
 DESKTOP_SKILL_FILE_BUDGET = 180
 FALLBACK_SUBJECT_LAYERS = {
     "core": ["core"],
@@ -356,8 +359,8 @@ def _write_claude_manifest(path: Path, plugin: PluginDefinition, version: str) -
         "commands": "./commands/",
         "mcpServers": {
             plugin.mcp_server_name: {
-                "command": "node",
-                "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs"],
+                "command": "${CLAUDE_PLUGIN_ROOT}/bin/qiongli-literature-provider",
+                "args": ["--transport", "stdio"],
                 "cwd": "${CLAUDE_PLUGIN_ROOT}",
             }
         },
@@ -390,8 +393,8 @@ def _write_codex_mcp_manifest(root: Path, dest_plugin_root: Path, *, server_name
     manifest = {
         "mcpServers": {
             server_name: {
-                "command": "node",
-                "args": ["./mcp/qiongli-literature-provider/index.mjs"],
+                "command": "./bin/qiongli-literature-provider",
+                "args": ["--transport", "stdio"],
                 "cwd": ".",
                 "startup_timeout_sec": 20,
                 "tool_timeout_sec": 60,
@@ -587,6 +590,25 @@ def _copy_literature_mcp_runtime(root: Path, dest_plugin_root: Path) -> None:
     mcp_runtime = RepoLayout(root).literature_mcpb_package / "server"
     if mcp_runtime.is_dir():
         _copy_path(mcp_runtime, dest_plugin_root / "mcp" / "qiongli-literature-provider")
+
+
+def _cached_lite_mcp_binary(root: Path) -> Path:
+    root = root.resolve()
+    cache_key = str(root)
+    cached = _LITE_MCP_BINARY_CACHE.get(cache_key)
+    if cached is not None and cached.is_file():
+        return cached
+    cache_dir = Path(tempfile.mkdtemp(prefix="qiongli-lite-mcp-binary-"))
+    binary = build_current_platform(root, cache_dir)
+    _LITE_MCP_BINARY_CACHE[cache_key] = binary
+    return binary
+
+
+def _copy_lite_mcp_runtime(root: Path, dest_plugin_root: Path) -> None:
+    binary = _cached_lite_mcp_binary(root)
+    dest = dest_plugin_root / "bin" / LITE_MCP_BIN_NAME
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(binary, dest)
 
 
 def _make_tarball(source_dir: Path, tar_path: Path) -> None:
@@ -1064,7 +1086,7 @@ def _build_marketplace_plugin(
             plugin_dest,
             server_name=_mcp_server_name_for_plugin(plugin_name),
         )
-    _copy_literature_mcp_runtime(root, plugin_dest)
+    _copy_lite_mcp_runtime(root, plugin_dest)
     _copy_commands(root, plugin_dest, skill_name=skill_name)
     _copy_subject_skill(root, plugin_dest, subject, skill_name=skill_name)
     if platform == "codex":
@@ -1111,7 +1133,7 @@ def materialize_next_codex_plugin(root: Path, dest_plugin_root: Path, *, force: 
     )
     _write_root_plugin_manifest(dest_plugin_root, NEXT_PLUGIN_NAME)
     _copy_codex_mcp_manifest(root, dest_plugin_root, server_name=NEXT_MCP_SERVER_NAME)
-    _copy_literature_mcp_runtime(root, dest_plugin_root)
+    _copy_lite_mcp_runtime(root, dest_plugin_root)
     _copy_commands(root, dest_plugin_root, skill_name=NEXT_SKILL_NAME)
     _copy_subject_skill(root, dest_plugin_root, "core", skill_name=NEXT_SKILL_NAME)
     _copy_codex_workflow_wrapper_skills(root, dest_plugin_root, skill_name=NEXT_SKILL_NAME)
@@ -1152,7 +1174,7 @@ def materialize_next_plugin_package(root: Path, dest_plugin_root: Path, *, force
 
     _write_root_plugin_manifest(dest_plugin_root, NEXT_PLUGIN_NAME)
     _copy_codex_mcp_manifest(root, dest_plugin_root, server_name=NEXT_MCP_SERVER_NAME)
-    _copy_literature_mcp_runtime(root, dest_plugin_root)
+    _copy_lite_mcp_runtime(root, dest_plugin_root)
     _copy_commands(root, dest_plugin_root, skill_name=NEXT_SKILL_NAME)
     _copy_subject_skill(root, dest_plugin_root, "core", skill_name=NEXT_SKILL_NAME)
     _copy_codex_workflow_wrapper_skills(root, dest_plugin_root, skill_name=NEXT_SKILL_NAME)
@@ -1188,7 +1210,7 @@ def materialize_plugin_package(root: Path, dest_plugin_root: Path, *, force: boo
         )
     _write_root_plugin_manifest(dest_plugin_root, PLUGIN_NAME)
     _copy_codex_mcp_manifest(root, dest_plugin_root, server_name=DEFAULT_MCP_SERVER_NAME)
-    _copy_literature_mcp_runtime(root, dest_plugin_root)
+    _copy_lite_mcp_runtime(root, dest_plugin_root)
     _copy_commands(root, dest_plugin_root, skill_name=DEFAULT_SKILL_NAME)
     _copy_subject_skill(root, dest_plugin_root, "core", skill_name=DEFAULT_SKILL_NAME)
     _copy_codex_workflow_wrapper_skills(root, dest_plugin_root, skill_name=DEFAULT_SKILL_NAME)

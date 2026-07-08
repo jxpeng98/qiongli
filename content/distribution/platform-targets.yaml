@@ -14,19 +14,19 @@ targets:
     source_inputs:
       - content/distribution/plugins.yaml
       - content/workflow/**
-      - packages/qiongli-literature-mcpb/server/**
+      - packages/qiongli-lite-mcp/**
     required_paths:
       - plugin.json
       - .codex-plugin/plugin.json
       - .mcp.json
       - commands/
-      - mcp/qiongli-literature-provider/index.mjs
+      - bin/qiongli-literature-provider
       - skills/qiongli-workflow/SKILL.md
     allowed_wrapper_dirs:
       - skills/qiongli-*
     forbidden_paths:
       - .claude-plugin/
-    bundled_mcp_mode: codex-plugin-local-node
+    bundled_mcp_mode: marketplace-lite-binary
     command_surface: slash-commands
     validator: codex-marketplace-plugin
     release_download:
@@ -51,19 +51,19 @@ targets:
     source_inputs:
       - content/distribution/plugins.yaml
       - content/workflow/**
-      - packages/qiongli-literature-mcpb/server/**
+      - packages/qiongli-lite-mcp/**
     required_paths:
       - plugin.json
       - .claude-plugin/plugin.json
       - commands/
-      - mcp/qiongli-literature-provider/index.mjs
+      - bin/qiongli-literature-provider
       - skills/qiongli-workflow/SKILL.md
     allowed_wrapper_dirs: []
     forbidden_paths:
       - .codex-plugin/
       - .mcp.json
       - skills/qiongli-[!w]*/
-    bundled_mcp_mode: claude-plugin-local-node
+    bundled_mcp_mode: marketplace-lite-binary
     command_surface: slash-commands
     validator: claude-code-marketplace-plugin
     release_download:
@@ -89,19 +89,19 @@ targets:
     source_inputs:
       - content/distribution/plugins.yaml
       - content/workflow/**
-      - packages/qiongli-literature-mcpb/server/**
+      - packages/qiongli-lite-mcp/**
     required_paths:
       - plugin.json
       - .claude-plugin/plugin.json
       - commands/
-      - mcp/qiongli-literature-provider/index.mjs
+      - bin/qiongli-literature-provider
       - skills/qiongli-workflow/SKILL.md
     allowed_wrapper_dirs: []
     forbidden_paths:
       - .codex-plugin/
       - .mcp.json
       - skills/qiongli-[!w]*/
-    bundled_mcp_mode: claude-desktop-plugin-local-node
+    bundled_mcp_mode: marketplace-lite-binary
     command_surface: slash-commands
     validator: claude-desktop-direct-plugin
     release_download:

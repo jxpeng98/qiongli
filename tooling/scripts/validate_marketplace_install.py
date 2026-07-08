@@ -5,6 +5,7 @@ import argparse
 import importlib.util
 import json
 import re
+import stat
 import sys
 import tarfile
 import tempfile
@@ -37,6 +38,23 @@ NEXT_SKILL_NAME = "qiongli-next"
 MCP_SERVER_NAME = "qiongli"
 NEXT_MCP_SERVER_NAME = "qiongli-next"
 CLAUDE_DESKTOP_FILE_BUDGET = 180
+LITE_MCP_BIN_NAME = "qiongli-literature-provider"
+FORBIDDEN_MARKETPLACE_MCP_COMMANDS = {
+    "node",
+    "npm",
+    "npx",
+    "python",
+    "python3",
+    "pip",
+    "pip3",
+    "qiongli",
+    "sh",
+    "bash",
+    "zsh",
+    "cmd",
+    "powershell",
+    "pwsh",
+}
 
 
 def _read_json(path: Path) -> dict[str, object]:
@@ -68,7 +86,13 @@ def _extract_single_root(artifact: Path, dest: Path) -> Path:
 
 def _extract_single_zip_root(artifact: Path, dest: Path) -> Path:
     with zipfile.ZipFile(artifact) as archive:
-        archive.extractall(dest)
+        for info in archive.infolist():
+            archive.extract(info, dest)
+            mode = info.external_attr >> 16
+            if mode:
+                extracted = dest / info.filename
+                if extracted.exists():
+                    extracted.chmod(mode)
     roots = [item for item in dest.iterdir() if item.is_dir()]
     if len(roots) != 1:
         raise ValueError(f"{artifact} should extract to one top-level directory, found {len(roots)}")
@@ -369,8 +393,10 @@ def _assert_bundled_literature_mcp(
     *,
     mcp_server_name: str = MCP_SERVER_NAME,
 ) -> None:
-    provider_entrypoint = plugin_root / "mcp" / "qiongli-literature-provider" / "index.mjs"
-    _assert_file(provider_entrypoint, "bundled literature MCP entrypoint")
+    provider_entrypoint = plugin_root / "bin" / LITE_MCP_BIN_NAME
+    _assert_file(provider_entrypoint, "bundled Rust Lite MCP entrypoint")
+    if not provider_entrypoint.stat().st_mode & stat.S_IXUSR:
+        raise ValueError(f"{provider_entrypoint} must be executable by the owner")
 
     if platform == "codex":
         codex_manifest_path = plugin_root / ".codex-plugin" / "plugin.json"
@@ -378,15 +404,21 @@ def _assert_bundled_literature_mcp(
         if codex_manifest.get("mcpServers") != "./.mcp.json":
             raise ValueError(f"{codex_manifest_path} mcpServers must point to ./.mcp.json")
         config_path = plugin_root / ".mcp.json"
-        expected_args = ["./mcp/qiongli-literature-provider/index.mjs"]
+        expected_command = f"./bin/{LITE_MCP_BIN_NAME}"
     elif platform == "claude":
         config_path = plugin_root / ".claude-plugin" / "plugin.json"
-        expected_args = ["${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs"]
+        expected_command = f"${{CLAUDE_PLUGIN_ROOT}}/bin/{LITE_MCP_BIN_NAME}"
     else:
         raise ValueError(f"unsupported bundled literature MCP platform: {platform}")
+    expected_args = ["--transport", "stdio"]
 
     config_text = config_path.read_text(encoding="utf-8")
-    for forbidden in ("QIONGLI_OPENALEX_EMAIL", "SEMANTIC_SCHOLAR_API_KEY", "qiongli mcp"):
+    for forbidden in (
+        "QIONGLI_OPENALEX_EMAIL",
+        "SEMANTIC_SCHOLAR_API_KEY",
+        "qiongli mcp",
+        "mcp/qiongli-literature-provider/index.mjs",
+    ):
         if forbidden in config_text:
             raise ValueError(f"{config_path} must not contain forbidden bundled MCP config string: {forbidden}")
 
@@ -399,8 +431,14 @@ def _assert_bundled_literature_mcp(
     server = mcp_servers.get(mcp_server_name)
     if not isinstance(server, dict):
         raise ValueError(f"{config_path} missing mcpServers.{mcp_server_name}")
-    if server.get("command") != "node":
-        raise ValueError(f"{config_path} mcpServers.{mcp_server_name}.command must be node")
+    command = server.get("command")
+    if command in FORBIDDEN_MARKETPLACE_MCP_COMMANDS or str(command).endswith((".sh", ".bat", ".cmd")):
+        raise ValueError(f"{config_path} mcpServers.{mcp_server_name}.command must not use {command!r}")
+    if command != expected_command:
+        raise ValueError(
+            f"{config_path} mcpServers.{mcp_server_name}.command expected "
+            f"{expected_command}, found {command}"
+        )
     if server.get("args") != expected_args:
         raise ValueError(
             f"{config_path} mcpServers.{mcp_server_name}.args expected {expected_args}, found {server.get('args')}"
