@@ -1,6 +1,11 @@
 # Cross-Platform MCP Server
 
-Qiongli ships one canonical full local MCP server: `qiongli mcp serve --transport stdio`. It exposes literature-provider tools plus orchestrator and task-run tools from one Python-backed CLI process. The bundled Node literature MCP runtimes in marketplace plugins and MCPB packages remain lite/no-CLI fallbacks for environments that cannot run the full CLI.
+Qiongli ships two local MCP runtime profiles. Marketplace Lite is the no-runtime install path for plugin and MCPB users; Full CLI is the complete Python-backed local runtime.
+
+| Runtime profile | Install path | Requires user Node/Python | Main capabilities |
+|---|---|---:|---|
+| Marketplace Lite | Codex, Claude Code, Claude Desktop plugin marketplace/direct plugin, or Literature MCPB | No | Rust-built Literature Provider MCP, provider config/status, search planning, literature search, evidence export, Zotero import files, optional Zotero Companion bridge, and preview-only routing/planning |
+| Full CLI | `qiongli install --profile full` or `qiongli mcp serve --transport stdio` | Python Qiongli runtime | Full MCP tools, orchestrator, task-run, project guidance, local agent execution, doctor checks |
 
 ## Full CLI Stdio Mode
 
@@ -71,14 +76,14 @@ Skill-only Qiongli usage also checks `.qiongli/local_guidance.md` and `.qiongli/
 
 Use the full CLI server when Codex, Claude Code, Antigravity, or another local client needs the complete local product surface: literature tools, provider configuration, routing, planning, doctor checks, or task-run as MCP tools.
 
-## Codex Bundled Plugin MCP
+## Codex Marketplace Lite MCP
 
-The generated Codex plugin package includes `.mcp.json`, references it from `.codex-plugin/plugin.json`, and bundles a zero-dependency Node server under `mcp/qiongli-literature-provider/`. Codex plugin installs can therefore register and launch the literature-provider MCP server from the plugin bundle instead of requiring users to copy a separate `config.toml` snippet or install the `qiongli` CLI. This bundled server is the marketplace lite/no-CLI fallback, not the full local MCP.
+The generated Codex plugin package includes `.mcp.json`, references it from `.codex-plugin/plugin.json`, and bundles the Rust Lite MCP executable at `bin/qiongli-literature-provider`. Codex plugin installs can therefore register and launch the literature-provider MCP server from the plugin bundle instead of requiring users to copy a separate `config.toml` snippet, install Node, install Python, or install the `qiongli` CLI. This bundled server is the marketplace lite/no-CLI runtime, not the full local MCP.
 
 The bundled server entry is:
 
 ```bash
-node ./mcp/qiongli-literature-provider/index.mjs
+./bin/qiongli-literature-provider --transport stdio
 ```
 
 Provider keys are not embedded in the plugin manifest. Desktop users can configure keys with the bundled `qiongli_configure_provider` MCP tool, or script explicit writes with `qiongli_save_provider_config`. CLI users can configure the same shared provider file with `qiongli mcp configure` or `qiongli provider setup`.
@@ -90,27 +95,27 @@ Because Codex launches this MCP server from the installed plugin bundle, Codex's
 3. Enter the OpenAlex API key, optional OpenAlex email, and Semantic Scholar API key in the local browser form.
 4. Call `qiongli_literature_status` before claiming `provider_connected`.
 
-Keep provider secrets out of `.mcp.json`, `.codex-plugin/plugin.json`, marketplace metadata, and release artifacts. The bundled Node server reads the shared provider config at runtime.
+Keep provider secrets out of `.mcp.json`, `.codex-plugin/plugin.json`, marketplace metadata, and release artifacts. The bundled Rust Lite MCP server reads the shared provider config at runtime.
 
 The bundled Codex runtime focuses on literature-provider tools. Use `qiongli install --profile full --target codex --surface plugin` when you need a Codex-native plugin container backed by the unified full MCP surface with both literature and Python-backed orchestration tools.
 
 `qiongli_configure_provider` is the platform-neutral setup contract. Codex Desktop, Claude Desktop MCPB, Claude Code, Cursor-style clients, and any local stdio MCP client should prefer it for credentials because it opens a local `127.0.0.1` setup page and returns only redacted status. `qiongli_open_config_wizard` remains available as a compatibility alias for older clients and docs.
 
-## Claude Code Bundled Plugin MCP
+## Claude Code Marketplace Lite MCP
 
-The generated Claude Code plugin package declares a bundled `qiongli` MCP server from `.claude-plugin/plugin.json`. It uses the same zero-dependency Node literature-provider runtime under `mcp/qiongli-literature-provider/` as the Codex plugin.
+The generated Claude Code plugin package declares a bundled `qiongli` MCP server from `.claude-plugin/plugin.json`. It uses the same Rust Lite MCP executable under `bin/qiongli-literature-provider` as the Codex plugin.
 
 The bundled server entry is:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs
+${CLAUDE_PLUGIN_ROOT}/bin/qiongli-literature-provider --transport stdio
 ```
 
 This bundled runtime covers literature-provider tools such as provider configuration, status, search, search planning, and evidence export without requiring the `qiongli` CLI. Use `qiongli install --profile full --target claude --surface plugin` when Claude Code needs Python-backed orchestration tools, including `qiongli_orchestrator_route`, `qiongli_orchestrator_doctor`, `qiongli_task_plan`, or `qiongli_task_run`. Use `--target antigravity`, `--target hermes`, or `--target all --surface plugin` for local clients that should load the full MCP server instead of a bundled lite provider runtime.
 
 ## Claude Desktop MCPB
 
-The Claude Desktop `qiongli-literature-provider.mcpb` also contains the zero-dependency Node literature-provider server. It exposes user configuration fields for OpenAlex API key, optional OpenAlex email, Semantic Scholar API key, and default result limit, so a Desktop user can install the MCPB and configure provider keys without installing `qiongli` or running npm.
+The Claude Desktop `qiongli-literature-provider.mcpb` also contains the Rust Lite MCP executable. It exposes user configuration fields for OpenAlex API key, optional OpenAlex email, Semantic Scholar API key, and default result limit, so a Desktop user can install the MCPB and configure provider keys without installing `qiongli`, Node, Python, npm, or pip.
 
 For manual Claude Desktop installs, treat the Skill ZIP and MCPB as complementary assets:
 
@@ -128,7 +133,7 @@ qiongli mcp configure --provider semantic-scholar --field api-key --value "$S2_A
 qiongli mcp doctor --json
 ```
 
-Desktop-only users can use the MCP tools exposed by the bundled Node server or full CLI server:
+Desktop-only users can use the MCP tools exposed by the bundled Rust Lite MCP server or full CLI server:
 
 - `qiongli_configure_provider`: starts a local browser form for provider key setup without putting API keys in chat.
 - `qiongli_open_config_wizard`: compatibility alias for `qiongli_configure_provider`.

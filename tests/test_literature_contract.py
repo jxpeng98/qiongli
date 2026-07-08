@@ -24,9 +24,11 @@ DESKTOP_MCPB_PROVIDER_BULLET = (
     "(`qiongli-literature-provider.mcpb`) or another configured provider MCP before "
     "claiming `provider_connected` literature search. The MCPB is the separate local "
     "Claude Desktop provider for OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv "
-    "configuration/search. arXiv is enabled without credentials. Platform-native search "
-    "alone is `native_only`, not `provider_connected`; if no provider MCP/MCPB and no "
-    "platform-native search is available, record the run as `strategy_only`."
+    "configuration/search. Its primary package uses the Rust Lite MCP executable, not a "
+    "user-installed Node or Python runtime. arXiv is enabled without credentials. "
+    "Platform-native search alone is `native_only`, not `provider_connected`; if no "
+    "provider MCP/MCPB and no platform-native search is available, record the run as "
+    "`strategy_only`."
 )
 
 

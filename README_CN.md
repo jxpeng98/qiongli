@@ -88,7 +88,7 @@ qiongli project status --project-dir "$PWD"
 
 | 入口 | 定位 | 包含内容 | 适合做什么 | 边界 |
 |---|---|---|---|---|
-| Marketplace plugin / extension | 客户端原生、最少配置 | Qiongli skill/plugin package、workflows、prompts、templates；Codex / Claude Code 还内置 Node literature MCP | 不想管理 CLI，只在一个客户端里使用 Qiongli | 不包含完整 orchestrator 或 Python runtime；需要时单独安装完整运行时 |
+| Marketplace plugin / extension | 客户端原生、最少配置 | Qiongli skill/plugin package、workflows、prompts、templates；Codex / Claude Code 还内置 Rust Lite literature MCP | 不想管理 CLI，也不想安装 Node/Python runtime，只在一个客户端里使用 Qiongli | 不包含完整 orchestrator 或 Python runtime；需要时单独安装完整运行时 |
 | Claude Desktop direct plugin | 推荐的 Desktop 路径 | 带 `qiongli` skill package、workflow wrappers 和轻量 bundled literature MCP runtime 的 plugin | 在 Claude Desktop 里获得统一的 Qiongli 入口，不需要管理 CLI | 不包含完整 Python orchestrator；需要时单独安装完整运行时 |
 | Claude Desktop fallback Skill ZIP + Literature MCPB | Desktop/Web 手动路径 | 上传式 `qiongli` Skill ZIP，加可选 `qiongli-literature-provider.mcpb` | 手动 skill 上传或 Desktop literature provider 工具 | Skill ZIP 是 skill-only；MCPB 是 provider-only；二者都不运行 Python orchestrator |
 | npm / npx | 免 Python 资产管理器 | npm CLI、默认预生成 skills；通过 `--surface plugin|both` 可显式安装 plugin-lite assets；Node project commands | 脚本化安装、dotfiles、CI、当前 package asset refresh、项目 subject guidance | 不升级 package，不运行 `doctor`、`mcp serve`、provider setup 或 task orchestration |
@@ -108,7 +108,7 @@ flowchart TB
     Contract["任务合同<br/>Task ID, stage, outputs,<br/>evidence rules, gates"]
     Runtime{"选择能完成任务的<br/>最小运行时"}
     SkillOnly["Skill/plugin only<br/>draft, review, route"]
-    Provider["Literature provider<br/>MCPB 或内置 Node MCP"]
+    Provider["Literature provider<br/>MCPB 或内置 Rust Lite MCP"]
     Preview["完整运行时 preview<br/>doctor, task-plan,<br/>不启动 agents 的 task-run"]
     Execute{"run_agents true?"}
     Agents["受控 agent run<br/>solo, duo, triad"]
@@ -174,7 +174,7 @@ qiongli upgrade --target all
 | Surface | 用途 | 是否需要 Python / 模型 CLI |
 |---|---|---|
 | Skill 或 plugin package | prompts、task routes、templates、standards、subject overlays | 否 |
-| Literature MCPB / bundled literature MCP | provider status、本地检索、evidence export | 不需要 Python |
+| Literature MCPB / bundled literature MCP | provider status、本地检索、evidence export、Zotero import files | 不需要 Python 或 Node |
 | Full local plugin 或 CLI MCP | 完整运行时命令：`doctor`、provider config、`task-plan`、`task-run`、`mcp serve` | 需要 |
 | Shell/Python CLI | validators、release checks、本地编排、package 维护 | 需要 |
 

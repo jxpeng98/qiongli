@@ -526,10 +526,7 @@ class PluginDistributionContractTests(unittest.TestCase):
             self.assertTrue((materialized_plugin / "skills").is_dir())
             self.assertTrue((materialized_plugin / ".mcp.json").is_file())
             self.assertTrue(
-                (materialized_plugin / "mcp" / "qiongli-literature-provider" / "index.mjs").is_file()
-            )
-            self.assertTrue(
-                (materialized_plugin / "mcp" / "qiongli-literature-provider" / "query.mjs").is_file()
+                (materialized_plugin / "bin" / "qiongli-literature-provider").is_file()
             )
 
     def test_git_backed_next_codex_plugin_source_is_installable(self) -> None:
@@ -584,10 +581,13 @@ class PluginDistributionContractTests(unittest.TestCase):
             mcp_manifest = json.loads((materialized_plugin / ".mcp.json").read_text(encoding="utf-8"))
 
         self.assertEqual(manifest["mcpServers"], "./.mcp.json")
-        self.assertEqual(mcp_manifest["mcpServers"]["qiongli"]["command"], "node")
+        self.assertEqual(
+            mcp_manifest["mcpServers"]["qiongli"]["command"],
+            "./bin/qiongli-literature-provider",
+        )
         self.assertEqual(
             mcp_manifest["mcpServers"]["qiongli"]["args"],
-            ["./mcp/qiongli-literature-provider/index.mjs"],
+            ["--transport", "stdio"],
         )
 
     def test_claude_plugin_materializes_bundled_mcp_server(self) -> None:
@@ -600,14 +600,14 @@ class PluginDistributionContractTests(unittest.TestCase):
             self.assertIn("mcpServers", manifest)
             self.assertIn("qiongli", manifest["mcpServers"])
             server = manifest["mcpServers"]["qiongli"]
-            self.assertEqual(server["command"], "node")
+            self.assertEqual(server["command"], "${CLAUDE_PLUGIN_ROOT}/bin/qiongli-literature-provider")
             self.assertEqual(
                 server["args"],
-                ["${CLAUDE_PLUGIN_ROOT}/mcp/qiongli-literature-provider/index.mjs"],
+                ["--transport", "stdio"],
             )
             self.assertEqual(server["cwd"], "${CLAUDE_PLUGIN_ROOT}")
             self.assertTrue(
-                (materialized_plugin / "mcp" / "qiongli-literature-provider" / "index.mjs").is_file()
+                (materialized_plugin / "bin" / "qiongli-literature-provider").is_file()
             )
 
     def test_codex_bundled_mcp_validation_requires_plugin_manifest_reference(self) -> None:
@@ -677,7 +677,7 @@ class PluginDistributionContractTests(unittest.TestCase):
         self.assertEqual(manifest, {"name": plugin_name})
         self.assertIn(f"{plugin_name}/.claude-plugin/plugin.json", names)
         self.assertIn(f"{plugin_name}/commands/lit-review.md", names)
-        self.assertIn(f"{plugin_name}/mcp/qiongli-literature-provider/index.mjs", names)
+        self.assertIn(f"{plugin_name}/bin/qiongli-literature-provider", names)
         self.assertIn(f"{plugin_name}/skills/qiongli-workflow/SKILL.md", names)
         self.assertIn(f"name: {skill_name}", skill_text)
         self.assertNotIn(f"{plugin_name}/.codex-plugin/plugin.json", names)

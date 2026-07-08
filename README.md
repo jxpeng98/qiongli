@@ -88,7 +88,7 @@ For plugin-lite or full runtime paths, use the install guide. It covers Codex an
 
 | Entry | Positioning | Includes | Use it for | Boundary |
 |---|---|---|---|---|
-| Marketplace plugin / extension | Client-native, lowest setup | Qiongli skill/plugin package, workflows, prompts, templates; Codex/Claude Code also bundle the Node literature MCP | Work inside one client without managing a CLI | No full orchestrator or Python runtime unless you install the full runtime separately |
+| Marketplace plugin / extension | Client-native, lowest setup | Qiongli skill/plugin package, workflows, prompts, templates; Codex/Claude Code also bundle the Rust Lite literature MCP | Work inside one client without managing a CLI or Node/Python runtime | No full orchestrator or Python runtime unless you install the full runtime separately |
 | Claude Desktop direct plugin | Recommended Desktop path | `qiongli` plugin with skill package, workflow wrappers, and bundled lightweight literature MCP runtime | A unified Qiongli entry in Claude Desktop without managing a CLI | No full Python orchestrator unless you install the full runtime separately |
 | Claude Desktop fallback Skill ZIP + Literature MCPB | Desktop/Web manual path | Uploaded `qiongli` Skill ZIP plus optional `qiongli-literature-provider.mcpb` | Manual skill upload or provider-only Desktop literature tools | Skill ZIP is skill-only; MCPB is provider-only; neither runs the Python orchestrator |
 | npm / npx | Python-free asset manager | npm CLI, pre-materialized skills by default, optional plugin-lite assets with `--surface plugin|both`, Node project commands | Scripted installs, dotfiles, CI, current-package asset refresh, project subject guidance | Does not self-update packages or run `doctor`, `mcp serve`, provider setup, or task orchestration |
@@ -108,7 +108,7 @@ flowchart TB
     Contract["Task contract<br/>Task ID, stage, outputs,<br/>evidence rules, gates"]
     Runtime{"Smallest runtime<br/>that fits the job"}
     SkillOnly["Skill/plugin only<br/>draft, review, route"]
-    Provider["Literature provider<br/>MCPB or bundled Node MCP"]
+    Provider["Literature provider<br/>MCPB or bundled Rust Lite MCP"]
     Preview["Full runtime preview<br/>doctor, task-plan,<br/>task-run without agents"]
     Execute{"run_agents true?"}
     Agents["Controlled agent run<br/>solo, duo, triad"]
@@ -174,7 +174,7 @@ Installing Qiongli assets is intentionally lighter than running full orchestrati
 | Surface | Use it for | Needs Python/model CLIs? |
 |---|---|---|
 | skill-only or plugin package | prompts, task routes, templates, standards, subject overlays | No |
-| Literature MCPB / bundled literature MCP | provider status, local search, evidence export | No Python |
+| Literature MCPB / bundled literature MCP | provider status, local search, evidence export, Zotero import files | No Python or Node |
 | Full local plugin or CLI MCP | full runtime commands: `doctor`, provider config, `task-plan`, `task-run`, `mcp serve` | Yes |
 | Shell/Python CLI | validators, release checks, local orchestration, package maintenance | Yes |
 
