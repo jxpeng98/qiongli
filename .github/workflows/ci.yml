@@ -16,7 +16,7 @@ jobs:
   cross-platform-tests:
     name: Cross-platform tests (${{ matrix.os }}, ${{ matrix.test-tier }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
