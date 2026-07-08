@@ -1,10 +1,34 @@
 # Changelog
 
-本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-07-06）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
+本文件汇总自 `v0.3.0`（2026-03-25）以来到当前 `HEAD`（2026-07-08）的主要更新，重点记录用户可感知的新能力、安装体验变化与重要修复。正式版条目采用 summary 写法，将对应 beta 演进合并整理，不再按小 beta 分段展开。
 
 ## [Unreleased]
 
 暂无未发布变更。
+
+## [1.17.0] - 2026-07-08
+
+### Added
+
+- 新增 registry-backed 平台 target governance：release、marketplace validator、本地 installer、npm plugin-lite、local install acceptance 与 download guide 现在共享同一套 platform target metadata、recommended keys、adapter/materializer metadata 和 smoke policy，减少 Codex、Claude Code、Claude Desktop、Antigravity、npm 与 PyPI 安装面的分叉。
+- 新增 release download index 与 artifact manifest：稳定版和 beta release page 现在生成按安装面分组的人类下载指南、机器可读下载索引和 per-target artifact policy，帮助用户区分 marketplace install、direct Desktop plugin、fallback skill ZIP、MCPB、Zotero Companion 与 maintainer-only artifacts。
+- 新增 political economy、geoeconomics 与 economics-accounting bridge runtime activation：这些 subject 现在有 dedicated runtime signals、fixture packs、near-miss guards、method-lens borrowing 和 runtime-enabled gate，保持 adaptive subject router 的可测扩展。
+- 新增 Zotero collection 与 reference note workflow：Zotero Companion 与 literature MCPB 支持 collection path mapping、reference note 写入、dry-run 计划和测试覆盖，帮助文献资料从 search/export 进入本地 Zotero 项目组织。
+- 新增 Rust Marketplace Lite MCP roadmap、design spec 与 implementation plan，明确后续 marketplace-lite provider MCP 将迁移为 plugin-bundled Rust local executable，同时 Full CLI 继续保留 Python 完整运行时。
+
+### Changed
+
+- installer 现在通过 registry recommended keys 自动选择 Codex、Claude Code、Claude Desktop direct plugin、Antigravity、本地 plugin 和 npm plugin-lite 的推荐 target，避免 release guide、installer 和 validator 使用各自独立的 target ID。
+- npm plugin-lite lifecycle messaging 现在显式记录 registry-derived target metadata，并区分 npm-managed plugin root、link-mode marker、full runtime plugin 与 stale plugin source。
+- release automation 现在在 preflight、local install acceptance、artifact upload、release notes、release receipts 和 postflight upload list 中复用 registry-backed artifact/download metadata。
+- Claude Desktop direct plugin 继续保持与 Codex marketplace plugin 分离：direct plugin ZIP 只包含 Claude manifest、commands、bundled literature MCP 和 canonical workflow skill，不包含 Codex metadata 或 Codex workflow wrapper skills。
+
+### Fixed
+
+- 修复 release staging 中 local Qiongli state、target metadata、artifact manifests、recommended target labels 和 release companion target registry 的若干漂移问题，使发布前验证可以更早阻断错误 artifact。
+- 修复 npm beta alias 与 self-update 路径，使 prerelease channel 可以正确解析并刷新对应 payload。
+- 修复 release guide/download notes 中 end-user install path 与 maintainer artifact path 混杂的问题，让 Codex/Claude marketplace 用户优先走 marketplace command，而不是误下 plugin tarball。
+- 修复多个 subject runtime near-miss 与 method-only borrowing 边界，降低 subject auto-routing 在课程、运营、政策简报或非研究任务中的误触发风险。
 
 ## [1.16.1] - 2026-07-06
 
