@@ -66,8 +66,8 @@ async function createPluginSource(tmp, slug, version, extraSkillText = "") {
       {
         mcpServers: {
           [slug]: {
-            command: "node",
-            args: ["./mcp/qiongli-literature-provider/index.mjs"]
+            command: "./bin/qiongli-literature-provider",
+            args: ["--transport", "stdio"]
           }
         }
       },
@@ -75,8 +75,7 @@ async function createPluginSource(tmp, slug, version, extraSkillText = "") {
       2
     ) + "\n"
   );
-  await writeText(path.join(source, "mcp", "qiongli-literature-provider", "index.mjs"), "export {};\n");
-  await writeText(path.join(source, "mcp", "qiongli-literature-provider", "query.mjs"), "export {};\n");
+  await writeText(path.join(source, "bin", "qiongli-literature-provider"), "#!/bin/sh\nexit 0\n");
   await writeText(path.join(source, "commands", "qiongli.md"), `Load the \`${slug}\` skill.\n`);
   await writeText(path.join(source, "commands", "paper.md"), `Load the \`${slug}\` skill.\n`);
   await writeText(

@@ -8,8 +8,7 @@ const ALLOWED_SLUGS = new Set(["qiongli", "qiongli-next"]);
 const REQUIRED_FILES = [
   ".codex-plugin/plugin.json",
   ".mcp.json",
-  "mcp/qiongli-literature-provider/index.mjs",
-  "mcp/qiongli-literature-provider/query.mjs",
+  "bin/qiongli-literature-provider",
   "commands/qiongli.md",
   "commands/paper.md",
   "skills/qiongli-workflow/SKILL.md",

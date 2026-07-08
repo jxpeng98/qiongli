@@ -165,7 +165,7 @@ class LocalPluginInstallerTests(unittest.TestCase):
 
         self.assertEqual(marker["platform_target"]["target_id"], "codex-marketplace-plugin")
         self.assertEqual(marker["platform_target"]["artifact_kind"], "marketplace-plugin")
-        self.assertEqual(marker["platform_target"]["bundled_mcp_mode"], "codex-plugin-local-node")
+        self.assertEqual(marker["platform_target"]["bundled_mcp_mode"], "marketplace-lite-binary")
         self.assertEqual(marker["platform_target"]["command_surface"], "slash-commands")
         self.assertEqual(marker["platform_target"]["validator"], "codex-marketplace-plugin")
         self.assertEqual(marketplace_entry["metadata"]["targetId"], "codex-marketplace-plugin")

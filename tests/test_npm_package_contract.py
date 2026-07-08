@@ -168,8 +168,8 @@ class NpmPackageContractTests(unittest.TestCase):
             msg="expected bundled plugin-lite skill entrypoint in npm payload",
         )
         self.assertTrue(
-            (fallback_plugin_root / "mcp" / "qiongli-literature-provider").is_dir(),
-            msg="expected bundled plugin-lite literature MCP provider in npm payload",
+            (fallback_plugin_root / "bin" / "qiongli-literature-provider").is_file(),
+            msg="expected bundled Rust Lite MCP provider binary in npm payload",
         )
         self.assertTrue(
             (fallback_plugin_root / ".codex-plugin" / "plugin.json").is_file()
@@ -184,8 +184,8 @@ class NpmPackageContractTests(unittest.TestCase):
                     msg=f"expected plugin-lite skill entrypoint in target payload {target_root}",
                 )
                 self.assertTrue(
-                    (target_root / "mcp" / "qiongli-literature-provider").is_dir(),
-                    msg=f"expected bundled Node MCP provider in target payload {target_root}",
+                    (target_root / "bin" / "qiongli-literature-provider").is_file(),
+                    msg=f"expected bundled Rust Lite MCP provider binary in target payload {target_root}",
                 )
 
     def _assert_platform_target_registry(self, package_root: Path) -> None:

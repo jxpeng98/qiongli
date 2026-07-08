@@ -12,6 +12,15 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
+def _literature_mcpb_asset_name() -> str:
+    manifest = json.loads(
+        (REPO_ROOT / "packages" / "qiongli-literature-mcpb" / "manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    return f"{manifest['name']}-{manifest['version']}.mcpb"
+
+
 def _load_release_download_module():
     spec = importlib.util.spec_from_file_location(
         "generate_release_downloads",
@@ -173,6 +182,7 @@ class ReleaseDownloadsTests(unittest.TestCase):
         }
 
     def test_stable_download_section_updater_rewrites_docs(self) -> None:
+        literature_mcpb_asset = _literature_mcpb_asset_name()
         targets = {
             "README.md": "## Latest Stable Downloads",
             "README_CN.md": "## 最新稳定版下载",
@@ -239,7 +249,7 @@ class ReleaseDownloadsTests(unittest.TestCase):
                 self.assertIn("[v1.6.0](https://github.com/jxpeng98/qiongli/releases/tag/v1.6.0)", content)
                 self.assertIn("qiongli-claude-desktop-skill-core-v1.6.0.zip", content)
                 self.assertIn("qiongli-claude-desktop-plugin-v1.6.0.zip", content)
-                self.assertIn("qiongli-literature-provider-0.1.5.mcpb", content)
+                self.assertIn(literature_mcpb_asset, content)
                 self.assertIn("qiongli-zotero-companion-0.2.2.xpi", content)
                 self.assertIn("qiongli-downloads-v1.6.0.md", content)
 
@@ -255,6 +265,7 @@ class ReleaseDownloadsTests(unittest.TestCase):
             self.assertIn("| 全部 release assets |", chinese)
 
     def test_generates_human_and_machine_download_guides(self) -> None:
+        literature_mcpb_asset = _literature_mcpb_asset_name()
         with tempfile.TemporaryDirectory() as tmp_dir:
             out_dir = Path(tmp_dir)
             result = subprocess.run(
@@ -294,7 +305,7 @@ class ReleaseDownloadsTests(unittest.TestCase):
         self.assertIn("npx qiongli@next install --target all", guide)
         self.assertIn("Use the marketplace command; do not download a plugin tarball", guide)
         self.assertIn("qiongli-next-claude-desktop-skill-core-v1.1.0-beta.2.zip", guide)
-        self.assertIn("qiongli-literature-provider-0.1.5.mcpb", guide)
+        self.assertIn(literature_mcpb_asset, guide)
         self.assertIn("qiongli-zotero-companion-0.2.2.xpi", guide)
         self.assertIn("qiongli-next-claude-plugin-v1.1.0-beta.2.zip", guide)
         self.assertIn("qiongli-downloads-v1.1.0-beta.2.json", guide)
@@ -318,7 +329,7 @@ class ReleaseDownloadsTests(unittest.TestCase):
         )
         self.assertEqual(
             index["recommended"]["claude_desktop_literature_mcpb"]["asset"],
-            "qiongli-literature-provider-0.1.5.mcpb",
+            literature_mcpb_asset,
         )
         self.assertEqual(
             index["recommended"]["zotero_desktop_companion"]["asset"],
@@ -401,7 +412,7 @@ class ReleaseDownloadsTests(unittest.TestCase):
             companion_assets["claude-desktop-literature-mcpb"][
                 "claude_desktop_literature_mcpb"
             ],
-            "qiongli-literature-provider-0.1.5.mcpb",
+            literature_mcpb_asset,
         )
         self.assertEqual(
             companion_assets["zotero-desktop-companion-xpi"]["zotero_desktop_companion"],
@@ -470,7 +481,7 @@ class ReleaseDownloadsTests(unittest.TestCase):
         mcpb_record = next(
             item
             for item in manifest["artifacts"]
-            if item["asset"] == "qiongli-literature-provider-0.1.5.mcpb"
+            if item["asset"] == literature_mcpb_asset
         )
         self.assertEqual(mcpb_record["target_id"], "claude-desktop-literature-mcpb")
         self.assertEqual(mcpb_record["expected_install_method"], "download_mcpb")
@@ -708,6 +719,7 @@ class ReleaseDownloadsTests(unittest.TestCase):
         self.assertTrue(any("expected_install_method" in failure for failure in failures), failures)
 
     def test_release_notes_include_download_guide_section(self) -> None:
+        literature_mcpb_asset = _literature_mcpb_asset_name()
         with tempfile.TemporaryDirectory() as tmp_dir:
             note_path = Path(tmp_dir) / "notes.md"
             result = subprocess.run(
@@ -741,11 +753,12 @@ class ReleaseDownloadsTests(unittest.TestCase):
         self.assertIn("recommended direct plugin", notes)
         self.assertIn("fallback skill ZIP", notes)
         self.assertIn("qiongli-next-claude-desktop-skill-core-v1.1.0-beta.2.zip", notes)
-        self.assertIn("qiongli-literature-provider-0.1.5.mcpb", notes)
+        self.assertIn(literature_mcpb_asset, notes)
         self.assertIn("qiongli-zotero-companion-0.2.2.xpi", notes)
         self.assertIn("Claude plugin ZIPs", notes)
 
     def test_stable_release_notes_include_category_downloads_and_changelog(self) -> None:
+        literature_mcpb_asset = _literature_mcpb_asset_name()
         with tempfile.TemporaryDirectory() as tmp_dir:
             note_path = Path(tmp_dir) / "stable-notes.md"
             result = subprocess.run(
@@ -774,7 +787,7 @@ class ReleaseDownloadsTests(unittest.TestCase):
         self.assertIn("recommended direct plugin", notes)
         self.assertIn("fallback skill ZIP", notes)
         self.assertIn("qiongli-claude-desktop-skill-core-v1.5.0.zip", notes)
-        self.assertIn("qiongli-literature-provider-0.1.5.mcpb", notes)
+        self.assertIn(literature_mcpb_asset, notes)
         self.assertIn("qiongli-zotero-companion-0.2.2.xpi", notes)
         self.assertIn("qiongli-downloads-v1.5.0.md", notes)
         self.assertIn("qiongli-artifacts-v1.5.0.json", notes)
