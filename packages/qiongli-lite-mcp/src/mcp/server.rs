@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::config::provider_config::{normalize_key, save_provider_value, summary};
+use crate::orchestrator::preview::{build_task_plan, TaskPlanInput};
 use crate::providers::search::{empty_search_output, SearchInput};
 use crate::searchplan::{build_search_plan, SearchPlanInput};
 use crate::tools::definitions::lite_tool_definitions;
@@ -89,6 +90,8 @@ impl McpServer {
             "qiongli_literature_export_evidence" => self.export_evidence(id, &arguments),
             "qiongli_zotero_status" => self.zotero_status(id),
             "qiongli_zotero_export_import_files" => self.zotero_export_import_files(id, &arguments),
+            "qiongli_orchestrator_route" => self.orchestrator_route(id, &arguments),
+            "qiongli_task_plan" => self.task_plan(id, &arguments),
             _ => self.error(id, -32601, format!("Tool not found: {name}")),
         }
     }
@@ -208,6 +211,38 @@ impl McpServer {
                 "results": output.results
             }),
         )
+    }
+
+    fn orchestrator_route(&self, id: Option<Value>, arguments: &Value) -> Value {
+        self.tool_result(
+            id,
+            json!({
+                "mode": "preview",
+                "runtime_profile": "marketplace_lite",
+                "run_agents_allowed": false,
+                "request": arguments.get("request").cloned().unwrap_or(Value::Null),
+                "platform": arguments.get("platform").cloned().unwrap_or(Value::Null),
+                "recommended_runtime": "full_cli_for_execution"
+            }),
+        )
+    }
+
+    fn task_plan(&self, id: Option<Value>, arguments: &Value) -> Value {
+        let Some(task_id) = arguments.get("task_id").and_then(Value::as_str) else {
+            return self.error(id, -32602, "Missing task_id");
+        };
+        let Some(paper_type) = arguments.get("paper_type").and_then(Value::as_str) else {
+            return self.error(id, -32602, "Missing paper_type");
+        };
+        let Some(topic) = arguments.get("topic").and_then(Value::as_str) else {
+            return self.error(id, -32602, "Missing topic");
+        };
+        let plan = build_task_plan(TaskPlanInput {
+            task_id: task_id.to_string(),
+            paper_type: paper_type.to_string(),
+            topic: topic.to_string(),
+        });
+        self.tool_result(id, json!(plan))
     }
 
     fn export_evidence(&self, id: Option<Value>, arguments: &Value) -> Value {
