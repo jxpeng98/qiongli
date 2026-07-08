@@ -87,6 +87,7 @@ impl McpServer {
             "qiongli_search_plan" => self.search_plan(id, &arguments),
             "qiongli_literature_search" => self.literature_search(id, &arguments),
             "qiongli_literature_export_evidence" => self.export_evidence(id, &arguments),
+            "qiongli_zotero_status" => self.zotero_status(id),
             "qiongli_zotero_export_import_files" => self.zotero_export_import_files(id, &arguments),
             _ => self.error(id, -32601, format!("Tool not found: {name}")),
         }
@@ -221,6 +222,26 @@ impl McpServer {
                     .get("diagnostics")
                     .cloned()
                     .unwrap_or_else(|| json!({}))
+            }),
+        )
+    }
+
+    fn zotero_status(&self, id: Option<Value>) -> Value {
+        self.tool_result(
+            id,
+            json!({
+                "status": "fallback_only",
+                "connector": {"available": false},
+                "companion": {"available": false},
+                "fallback_import_files": {
+                    "available": true,
+                    "formats": [
+                        "references.json",
+                        "references.ris",
+                        "bibliography.bib",
+                        "zotero-import-report.md"
+                    ]
+                }
             }),
         )
     }
