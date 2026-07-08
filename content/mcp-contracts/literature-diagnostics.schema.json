@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "type": "object",
+  "required": ["status", "providers"],
+  "properties": {
+    "status": { "type": "string" },
+    "providers": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": { "type": "string" },
+          "count": { "type": "integer" },
+          "warning": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "warnings": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": true
+}
