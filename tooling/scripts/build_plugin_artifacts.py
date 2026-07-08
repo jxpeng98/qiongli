@@ -1210,7 +1210,7 @@ def _strip_codex_only_plugin_content(dest_plugin_root: Path, *, skill_name: str)
     if not skills_dir.is_dir():
         return
     for child in skills_dir.iterdir():
-        if child.name.startswith(f"{skill_name}-"):
+        if child.name != SKILL_DIR_NAME and child.name.startswith(f"{skill_name}-"):
             _remove_path(child)
 
 
