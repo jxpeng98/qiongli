@@ -1096,7 +1096,7 @@ export async function startStdioServer() {
   await startJsonRpcStdioServer({
     serverInfo: {
       name: "qiongli-literature-provider",
-      version: "0.1.5"
+      version: "0.2.0-beta.1"
     },
     listTools,
     handleToolCall

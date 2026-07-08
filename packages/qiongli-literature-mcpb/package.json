@@ -1,6 +1,6 @@
 {
   "name": "qiongli-literature-provider-mcpb",
-  "version": "0.1.5",
+  "version": "0.2.0-beta.1",
   "private": true,
   "type": "module",
   "description": "Qiongli academic literature provider MCPB for local OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv search, credential status, and secure setup.",
