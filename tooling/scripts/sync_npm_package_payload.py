@@ -9,6 +9,7 @@ staging, and package publishing.
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 import sys
 import tempfile
@@ -101,6 +102,7 @@ def sync_npm_payload(root: Path, *, dry_run: bool = False) -> None:
         sync_python_payload(root, materialize_source, dry_run=dry_run)
 
         copy_path(materialize_source / "qiongli-workflow", payload_root / "qiongli-workflow", dry_run=dry_run)
+        sync_npm_platform_target_registry(root, payload_root, dry_run=dry_run)
         sync_plugin_lite_payloads(root, payload_root, dry_run=dry_run)
         sync_shell_cli_sources(layout, payload_root / "scripts", dry_run=dry_run)
         sync_subject_payloads(root, payload_root, dry_run=dry_run, materialize_source=materialize_source)
@@ -140,6 +142,39 @@ def sync_npm_payload(root: Path, *, dry_run: bool = False) -> None:
     if not dry_run:
         fail_if_symlinks(payload_root)
         fail_if_symlinks(runtime_root)
+
+
+def sync_npm_platform_target_registry(root: Path, payload_root: Path, *, dry_run: bool) -> None:
+    from qiongli.platform_targets import load_platform_targets
+
+    dest = payload_root / "content" / "distribution" / "platform-targets.json"
+    if dry_run:
+        print(f"[npm-sync] would sync platform target registry -> {dest}")
+        return
+    targets = load_platform_targets(root)
+    payload = {
+        "schema_version": "1.0",
+        "targets": {
+            target_id: {
+                "target_id": target.target_id,
+                "display_name": target.display_name,
+                "artifact_kind": target.artifact_kind,
+                "archive_format": target.archive_format,
+                "adapter": dict(target.adapter),
+                "source_inputs": list(target.source_inputs),
+                "required_paths": list(target.required_paths),
+                "allowed_wrapper_dirs": list(target.allowed_wrapper_dirs),
+                "forbidden_paths": list(target.forbidden_paths),
+                "bundled_mcp_mode": target.bundled_mcp_mode,
+                "command_surface": target.command_surface,
+                "validator": target.validator,
+                "release_download": target.release_download,
+            }
+            for target_id, target in sorted(targets.items())
+        },
+    }
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def sync_plugin_lite_payloads(root: Path, payload_root: Path, *, dry_run: bool) -> None:

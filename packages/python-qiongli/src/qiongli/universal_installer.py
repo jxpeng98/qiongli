@@ -32,7 +32,8 @@ from .subject_materializer import (
 )
 
 
-TARGET_CHOICES = ("codex", "claude", "antigravity", "hermes", "all")
+CLIENT_TARGETS = ("codex", "claude", "antigravity", "hermes")
+TARGET_CHOICES = (*CLIENT_TARGETS, "all", "auto")
 PROFILE_CHOICES = ("partial", "full")
 SURFACE_CHOICES = ("skills", "plugin", "both")
 PART_CHOICES = ("globals", "plugin", "project", "cli", "mcp", "doctor")
@@ -273,7 +274,21 @@ _WORKFLOW_LINK_PACKAGE_MARKERS = ("qiongli-workflow", *_LEGACY_SKILL_PACKAGE_NAM
 
 
 def _selected_target_names(target: str) -> tuple[str, ...]:
-    return TARGET_CHOICES[:-1] if target == "all" else (target,)
+    if target == "all":
+        return CLIENT_TARGETS
+    if target == "auto":
+        return tuple(item for item in CLIENT_TARGETS if shutil.which(cli_name_for_target(item)))
+    return (target,)
+
+
+def _require_selected_target_names(target: str) -> tuple[str, ...]:
+    selected = _selected_target_names(target)
+    if target == "auto" and not selected:
+        raise ValueError(
+            "No supported client CLI was detected for --target auto. "
+            "Install codex, claude, antigravity, or hermes on PATH, or use --target all."
+        )
+    return selected
 
 
 def _legacy_global_skill_residues(
@@ -537,7 +552,7 @@ def _print_detected_versions(target: str, source_version: str, target_paths: dic
     _print_section("Detected Versions")
     print(f"  source:      {source_version or 'unknown'}")
     installed = discover_install_surfaces(check_activation=False)
-    section_targets = TARGET_CHOICES[:-1] if target == "all" else (target,)
+    section_targets = _selected_target_names(target)
     for item in section_targets:
         state = _detected_version_state(target_paths[item], installed.get(item, {}))
         print(f"  {item:<11} {state}")
@@ -866,7 +881,7 @@ def _create_workflow_symlinks(
 def _print_cli_checks(target: str) -> bool:
     found_antigravity = False
     _print_section("CLI Checks")
-    targets = TARGET_CHOICES[:-1] if target == "all" else (target,)
+    targets = CLIENT_TARGETS if target in {"all", "auto"} else (target,)
     for item in targets:
         cli_name = cli_name_for_target(item)
         resolved = shutil.which(cli_name)
@@ -1024,36 +1039,40 @@ def cleanup_legacy_surfaces_after_plugin_upgrade(options: RemoveOptions) -> int:
 
 def _mcp_config_targets(target: str, *, skip_targets: set[str] | None = None) -> list[tuple[str, str]]:
     skip_targets = skip_targets or set()
-    if target == "codex":
+    selected_targets = set(_selected_target_names(target))
+    if selected_targets == {"codex"}:
         targets = [("codex", "Codex MCP")]
-    elif target == "claude":
+    elif selected_targets == {"claude"}:
         targets = [("claude-code", "Claude Code MCP")]
-    elif target == "antigravity":
+    elif selected_targets == {"antigravity"}:
         targets = [("antigravity", "Antigravity MCP")]
-    elif target == "hermes":
+    elif selected_targets == {"hermes"}:
         targets = [("hermes", "Hermes MCP")]
-    elif target == "all":
-        targets = [
-            ("codex", "Codex MCP"),
-            ("claude-code", "Claude Code MCP"),
-            ("antigravity", "Antigravity MCP"),
-            ("hermes", "Hermes MCP"),
-        ]
     else:
-        targets = []
+        target_map = {
+            "codex": ("codex", "Codex MCP"),
+            "claude": ("claude-code", "Claude Code MCP"),
+            "antigravity": ("antigravity", "Antigravity MCP"),
+            "hermes": ("hermes", "Hermes MCP"),
+        }
+        targets = [
+            target_map[item]
+            for item in CLIENT_TARGETS
+            if item in selected_targets
+        ]
     return [(target_name, label) for target_name, label in targets if target_name not in skip_targets]
 
 
 def _plugin_managed_mcp_targets(target: str) -> set[str]:
-    if target == "codex":
-        return {"codex"}
-    if target == "claude":
-        return {"claude-code"}
-    if target == "antigravity":
-        return {"antigravity"}
-    if target == "all":
-        return {"codex", "claude-code", "antigravity"}
-    return set()
+    selected_targets = set(_selected_target_names(target))
+    managed: set[str] = set()
+    if "codex" in selected_targets:
+        managed.add("codex")
+    if "claude" in selected_targets:
+        managed.add("claude-code")
+    if "antigravity" in selected_targets:
+        managed.add("antigravity")
+    return managed
 
 
 def _install_local_plugin_surface(options: InstallOptions) -> set[str]:
@@ -1255,6 +1274,7 @@ def install(options: InstallOptions) -> int:
     install_cli = bool(options.install_cli) if selected_parts is None else "cli" in selected_parts
     install_mcp = bool(options.install_mcp) if selected_parts is None else "mcp" in selected_parts
     doctor = bool(options.doctor) if selected_parts is None else "doctor" in selected_parts
+    selected_targets = _require_selected_target_names(options.target)
 
     repo_root = options.repo_root
     catalog = validate_subject_catalog(repo_root)
@@ -1334,10 +1354,10 @@ def install(options: InstallOptions) -> int:
             _print_section("Subject Package")
             _print_result("Subject", f"{options.subject}/{options.coverage} -> {skill_src}", "ok")
 
-    section_targets = TARGET_CHOICES[:-1]
+    section_targets = CLIENT_TARGETS
     try:
         for section_target in section_targets:
-            if options.target not in {section_target, "all"}:
+            if section_target not in selected_targets:
                 continue
             entries_for_target = [
                 entry
@@ -1374,7 +1394,7 @@ def install(options: InstallOptions) -> int:
             "claude": claude_dest,
         }
         for sym_target, sym_dest in target_dest_map.items():
-            if options.target in {sym_target, "all"}:
+            if sym_target in selected_targets:
                 _create_workflow_symlinks(sym_target, sym_dest, dry_run=options.dry_run)
 
     plugin_installed_targets: set[str] = set()
@@ -1484,6 +1504,7 @@ def remove(options: RemoveOptions) -> int:
     )
     if options.target not in TARGET_CHOICES:
         raise ValueError(f"Unsupported target: {options.target}")
+    selected_targets = _require_selected_target_names(options.target)
     surface_globals, surface_plugin = _surface_parts(options.surface)
     selected_parts = normalize_parts(options.parts)
     if selected_parts is None:
@@ -1512,7 +1533,7 @@ def remove(options: RemoveOptions) -> int:
     if remove_globals:
         target_paths = _global_skill_target_paths()
         _print_section("Global Skills")
-        for target_name in _selected_target_names(options.target):
+        for target_name in selected_targets:
             dest = target_paths[target_name]
             removed += _remove_workflow_discovery_for_skill(target_name, dest, dry_run=options.dry_run)
             if not (dest.exists() or dest.is_symlink()):

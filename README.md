@@ -62,7 +62,7 @@ The npm CLI is a Python-free asset manager. It installs the skills surface by de
 
 ```bash
 npm install -g qiongli
-qiongli install --target all --surface skills
+qiongli install --target auto --surface skills
 qiongli check
 ```
 
@@ -71,6 +71,8 @@ For scripted installs, keep the project directory explicit:
 ```bash
 qiongli install --target all --project-dir "$PWD"
 ```
+
+`--target all` writes every supported platform path explicitly. Use `--target auto` to detect supported client CLIs on `PATH` and install only those client surfaces.
 
 Use project-local subject guidance instead of reinstalling packages for every topic:
 

@@ -140,16 +140,26 @@ function createRuntime(Zotero) {
       return itemToPlainObject(Zotero, item);
     },
 
+    async ensureCollectionPath(collectionPath) {
+      return ensureCollectionPath(Zotero, collectionPath);
+    },
+
+    async addItemToCollection(itemKey, collectionKey, collectionID) {
+      const item = await getItemByKey(Zotero, itemKey);
+      if (typeof item.addToCollection !== "function") {
+        throw new Error("Zotero item collection API is unavailable");
+      }
+      item.addToCollection(collectionID ?? collectionKey);
+      await item.saveTx();
+      return itemToPlainObject(Zotero, item);
+    },
+
+    async createChildNote(parentItemKey, note) {
+      return createChildNote(Zotero, parentItemKey, note);
+    },
+
     async listCollections() {
-      const libraryID = Zotero.Libraries?.userLibraryID;
-      const collections = typeof Zotero.Collections?.getByLibrary === "function"
-        ? await Zotero.Collections.getByLibrary(libraryID)
-        : [];
-      return asArray(collections).map((collection) => ({
-        key: collection.key,
-        name: collection.name,
-        path: collection.name
-      }));
+      return listPlainCollections(Zotero);
     }
   };
 }
@@ -164,6 +174,145 @@ async function getItemByKey(Zotero, key) {
     throw new Error(`Zotero item not found: ${key}`);
   }
   return item;
+}
+
+async function ensureCollectionPath(Zotero, collectionPath) {
+  const normalizedPath = normalizeCollectionPath(collectionPath);
+  const parts = normalizedPath.split("/").filter(Boolean);
+  if (parts.length === 0) {
+    throw new Error("Zotero collection path is empty");
+  }
+
+  const libraryID = Zotero.Libraries?.userLibraryID;
+  const collections = await listPlainCollections(Zotero);
+  let parentID = null;
+  let current = null;
+  let currentPath = "";
+
+  for (const part of parts) {
+    currentPath = currentPath ? `${currentPath}/${part}` : part;
+    current = collections.find((collection) => (
+      collection.name === part && sameCollectionParent(collection.parentID, parentID)
+    ));
+
+    if (!current) {
+      current = await createCollection(Zotero, {
+        libraryID,
+        name: part,
+        parentID,
+        path: currentPath
+      });
+      collections.push(current);
+    } else {
+      current.path = currentPath;
+    }
+
+    parentID = current.id;
+  }
+
+  if (!current?.key) {
+    throw new Error(`Zotero collection key missing for ${normalizedPath}`);
+  }
+
+  return {
+    id: current.id,
+    key: current.key,
+    path: currentPath
+  };
+}
+
+async function listPlainCollections(Zotero) {
+  const libraryID = Zotero.Libraries?.userLibraryID;
+  const rawCollections = typeof Zotero.Collections?.getByLibrary === "function"
+    ? await Zotero.Collections.getByLibrary(libraryID)
+    : [];
+  const plain = asArray(rawCollections).map((collection) => plainCollection(collection));
+  const byID = new Map(plain.map((collection) => [collection.id, collection]).filter(([id]) => id !== null));
+  return plain.map((collection) => ({
+    ...collection,
+    path: collectionPathFor(collection, byID)
+  }));
+}
+
+async function createCollection(Zotero, { libraryID, name, parentID, path }) {
+  if (typeof Zotero.Collection !== "function") {
+    throw new Error("Zotero collection creation API is unavailable");
+  }
+
+  const collection = new Zotero.Collection();
+  collection.libraryID = libraryID;
+  collection.name = name;
+  if (parentID !== null && parentID !== undefined) {
+    collection.parentID = parentID;
+  }
+  await collection.saveTx();
+
+  return {
+    ...plainCollection(collection),
+    path
+  };
+}
+
+async function createChildNote(Zotero, parentItemKey, note) {
+  if (typeof Zotero.Item !== "function") {
+    throw new Error("Zotero child note API is unavailable");
+  }
+  const parentItem = await getItemByKey(Zotero, parentItemKey);
+  const noteItem = new Zotero.Item("note");
+  noteItem.libraryID = Zotero.Libraries?.userLibraryID;
+  noteItem.parentItemID = parentItem.id ?? parentItem.itemID;
+  if (!noteItem.parentItemID) {
+    throw new Error(`Zotero parent item id missing for ${parentItemKey}`);
+  }
+
+  if (typeof noteItem.setNote === "function") {
+    noteItem.setNote(note.html);
+  } else if (typeof noteItem.setField === "function") {
+    noteItem.setField("note", note.html);
+  } else {
+    throw new Error("Zotero note content API is unavailable");
+  }
+
+  await noteItem.saveTx();
+  return {
+    key: noteItem.key,
+    parent_item_key: parentItemKey,
+    title: attachmentString(note.title) || "Qiongli Reading Note"
+  };
+}
+
+function plainCollection(collection) {
+  return {
+    id: normalizeCollectionID(collection.id ?? collection.collectionID),
+    key: attachmentString(collection.key),
+    name: attachmentString(collection.name),
+    parentID: normalizeCollectionID(collection.parentID)
+  };
+}
+
+function collectionPathFor(collection, byID, seen = new Set()) {
+  if (collection.parentID === null || seen.has(collection.parentID)) {
+    return collection.name;
+  }
+
+  seen.add(collection.parentID);
+  const parent = byID.get(collection.parentID);
+  if (!parent) {
+    return collection.name;
+  }
+  const parentPath = collectionPathFor(parent, byID, seen);
+  return parentPath ? `${parentPath}/${collection.name}` : collection.name;
+}
+
+function normalizeCollectionID(value) {
+  if (value === "" || value === null || value === undefined || value === false) {
+    return null;
+  }
+  return value;
+}
+
+function sameCollectionParent(left, right) {
+  return normalizeCollectionID(left) === normalizeCollectionID(right);
 }
 
 async function itemToPlainObject(Zotero, item) {
@@ -254,33 +403,200 @@ function applyItemData(item, data) {
 async function upsertRuntimeItems(payload, runtime) {
   const dryRun = payload.dry_run !== false;
   const updatePolicy = payload.update_policy ?? "fill_blank";
+  const collectionPath = normalizeCollectionPath(payload.collection_path);
   const incomingItems = Array.isArray(payload.items) ? payload.items : [];
   const existingItems = await runtime.listItems();
+  const targetCollection = !dryRun && collectionPath ? await ensureRuntimeCollection(runtime, collectionPath) : null;
   const results = [];
 
   for (const incoming of incomingItems) {
     const existing = findDuplicateItem(incoming, existingItems);
     const plan = planUpsert(incoming, existing, updatePolicy);
     if (dryRun) {
-      results.push({ ...plan, planned: true });
+      const plannedNotes = plannedNoteResults(incoming);
+      results.push({
+        ...plan,
+        planned: true,
+        ...(collectionPath ? { collection_path: collectionPath } : {}),
+        ...(plannedNotes.length > 0 ? { notes: plannedNotes } : {})
+      });
       continue;
     }
     if (!existing) {
       const created = await runtime.createItem(incoming);
+      const collection = await addItemToTargetCollection({ item: created, targetCollection, runtime });
+      const notes = await createChildNotes({ item: created, incoming, runtime });
       existingItems.push(created);
-      results.push({ status: "created", item_key: created.key, item: toCompactItem(created) });
+      results.push({
+        status: "created",
+        item_key: created.key,
+        ...(collection ? { collection } : {}),
+        ...(notes.length > 0 ? { notes } : {}),
+        item: toCompactItem(created)
+      });
       continue;
     }
     if (plan.status === "unchanged") {
-      results.push({ status: "unchanged", item_key: existing.key, item: toCompactItem(existing) });
+      const collection = await addItemToTargetCollection({ item: existing, targetCollection, runtime });
+      const notes = await createChildNotes({ item: existing, incoming, runtime });
+      results.push({
+        status: "unchanged",
+        item_key: existing.key,
+        ...(collection ? { collection } : {}),
+        ...(notes.length > 0 ? { notes } : {}),
+        item: toCompactItem(existing)
+      });
       continue;
     }
     const updated = await runtime.updateItem(existing.key, plan.patch);
     Object.assign(existing, updated);
-    results.push({ status: "updated", item_key: existing.key, patch: plan.patch, item: toCompactItem(existing) });
+    const collection = await addItemToTargetCollection({ item: existing, targetCollection, runtime });
+    const notes = await createChildNotes({ item: existing, incoming, runtime });
+    results.push({
+      status: "updated",
+      item_key: existing.key,
+      patch: plan.patch,
+      ...(collection ? { collection } : {}),
+      ...(notes.length > 0 ? { notes } : {}),
+      item: toCompactItem(existing)
+    });
   }
 
   return { status: "ok", dry_run: dryRun, results };
+}
+
+function normalizeCollectionPath(value) {
+  return String(value ?? "")
+    .split("/")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join("/");
+}
+
+async function ensureRuntimeCollection(runtime, collectionPath) {
+  if (typeof runtime.ensureCollectionPath !== "function") {
+    throw new Error("Zotero collection writes are unavailable in this companion runtime");
+  }
+  const collection = await runtime.ensureCollectionPath(collectionPath);
+  const key = attachmentString(collection?.key ?? collection?.collection_key);
+  if (!key) {
+    throw new Error(`Zotero collection key missing for ${collectionPath}`);
+  }
+  return {
+    ...(collection?.id !== undefined && collection?.id !== null ? { id: collection.id } : {}),
+    key,
+    path: attachmentString(collection?.path ?? collection?.collection_path) || collectionPath
+  };
+}
+
+async function addItemToTargetCollection({ item, targetCollection, runtime }) {
+  if (!targetCollection) {
+    return null;
+  }
+
+  if (itemBelongsToCollection(item, targetCollection)) {
+    return {
+      key: targetCollection.key,
+      path: targetCollection.path,
+      status: "already_member"
+    };
+  }
+
+  if (typeof runtime.addItemToCollection !== "function") {
+    throw new Error("Zotero collection membership writes are unavailable in this companion runtime");
+  }
+
+  const updated = await runtime.addItemToCollection(item.key, targetCollection.key, targetCollection.id);
+  if (updated && typeof updated === "object") {
+    Object.assign(item, updated);
+  } else {
+    item.collections = [...asCollectionList(item.collections), targetCollection.key];
+  }
+
+  return {
+    key: targetCollection.key,
+    path: targetCollection.path,
+    status: "added"
+  };
+}
+
+function itemBelongsToCollection(item, targetCollection) {
+  return asCollectionList(item.collections).some((collection) => {
+    if (typeof collection === "string") {
+      return collection === targetCollection.key || collection === targetCollection.path;
+    }
+    if (Number.isInteger(collection) || typeof collection === "number") {
+      return collection === targetCollection.id;
+    }
+    if (!collection || typeof collection !== "object") {
+      return false;
+    }
+    return collection.key === targetCollection.key
+      || collection.path === targetCollection.path
+      || collection.collection_key === targetCollection.key
+      || collection.collection_path === targetCollection.path;
+  });
+}
+
+function asCollectionList(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function plannedNoteResults(incoming) {
+  return normalizeIncomingNotes(incoming).map((note) => ({
+    status: "planned",
+    title: note.title
+  }));
+}
+
+async function createChildNotes({ item, incoming, runtime }) {
+  const notes = normalizeIncomingNotes(incoming);
+  if (notes.length === 0) {
+    return [];
+  }
+  if (typeof runtime.createChildNote !== "function") {
+    throw new Error("Zotero child note writes are unavailable in this companion runtime");
+  }
+
+  const results = [];
+  for (const note of notes) {
+    const created = await runtime.createChildNote(item.key, note);
+    results.push({
+      status: "created",
+      note_key: attachmentString(created?.key ?? created?.note_key),
+      title: attachmentString(created?.title) || note.title
+    });
+  }
+  return results;
+}
+
+function normalizeIncomingNotes(incoming) {
+  const notes = Array.isArray(incoming?.qiongli_notes) ? incoming.qiongli_notes : [];
+  return notes
+    .map((note) => {
+      if (!note || typeof note !== "object" || Array.isArray(note)) {
+        return null;
+      }
+      const html = attachmentString(note.html);
+      const text = attachmentString(note.text);
+      const title = attachmentString(note.title) || "Qiongli Reading Note";
+      if (!html && !text) {
+        return null;
+      }
+      return {
+        title,
+        html: html || `<p>${escapeHtml(text)}</p>`
+      };
+    })
+    .filter(Boolean);
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function findDuplicateItem(incoming, existingItems) {
@@ -304,6 +620,9 @@ function planUpsert(incoming, existing, updatePolicy) {
   }
   const patch = {};
   for (const [field, value] of Object.entries(incoming)) {
+    if (field === "qiongli_notes") {
+      continue;
+    }
     if (value === "" || value === null || value === undefined) {
       continue;
     }

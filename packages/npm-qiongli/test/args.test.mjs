@@ -25,6 +25,13 @@ test('parseArgv parses install surface option', () => {
   assert.equal(both.options.surface, 'both');
 });
 
+test('parseArgv accepts auto install target', () => {
+  const parsed = parseArgv(['install', '--target', 'auto']);
+
+  assert.equal(parsed.options.target, 'auto');
+  assert.deepEqual(parsed.rest, []);
+});
+
 test('parseArgv treats refresh commands as install refreshes with overwrite', () => {
   const upgrade = parseArgv(['upgrade', '--target', 'codex', '--subject', 'economics', '--coverage', 'focused']);
   const refresh = parseArgv(['refresh', '--target', 'claude']);

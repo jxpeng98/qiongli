@@ -1,0 +1,29 @@
+{
+  "id": "geoeconomics_method_only_statecraft_borrow",
+  "subject_under_test": "geoeconomics",
+  "tags": [
+    "geoeconomics",
+    "method_only_borrow"
+  ],
+  "description": "Statecraft instrument audit wording borrows a geoeconomics lens without suggesting geoeconomics.",
+  "request": "Use a statecraft instrument audit as a generic checklist for policy instruments, but do not change the project subject.",
+  "manifest": {
+    "active_subject": "auto",
+    "subject_mode": "auto",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "recommend",
+    "primary_subject": "auto",
+    "suggest_subjects": [],
+    "forbidden_subjects": [
+      "geoeconomics"
+    ],
+    "method_lenses": [
+      "geoeconomic-statecraft-audit"
+    ]
+  }
+}

@@ -11,10 +11,34 @@ from qiongli.self_update import (
     _pypi_latest_version,
     build_self_update_plan,
     execute_self_update,
+    run_self_update_wizard,
 )
 
 
 class SelfUpdateTests(unittest.TestCase):
+    def test_wizard_maps_beta_and_auto_refresh_options(self) -> None:
+        captured: list[SelfUpdateOptions] = []
+        answers = iter(["beta", "auto", "plugin", "full", "y", "y", "n"])
+        output = io.StringIO()
+
+        exit_code = run_self_update_wizard(
+            input_fn=lambda _prompt: next(answers),
+            output=output,
+            executor=lambda options: captured.append(options) or 0,
+        )
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(len(captured), 1)
+        options = captured[0]
+        self.assertEqual(options.channel, "next")
+        self.assertEqual(options.target, "auto")
+        self.assertEqual(options.surface, "plugin")
+        self.assertEqual(options.profile, "full")
+        self.assertTrue(options.refresh)
+        self.assertTrue(options.check)
+        self.assertFalse(options.yes)
+        self.assertIn("Qiongli self-update wizard", output.getvalue())
+
     def test_npm_channel_uses_npm_install_and_refreshes_full_plugin_surface(self) -> None:
         options = SelfUpdateOptions(channel="stable")
 

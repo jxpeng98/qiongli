@@ -213,6 +213,9 @@ echo "[release-ready] release preflight"
 echo "[release-ready] verify staged release tag version"
 bash ./scripts/verify_release_tag_version.sh --root "$RELEASE_STAGING_DIR" --tag "$REPO_TAG"
 
+echo "[release-ready] experience schema compatibility"
+python3 scripts/check_experience_schema_compatibility.py --root "$RELEASE_STAGING_DIR"
+
 echo "[release-ready] local plugin install acceptance"
 python3 scripts/release_local_install_check.py --root "$RELEASE_STAGING_DIR"
 

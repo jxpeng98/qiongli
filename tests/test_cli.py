@@ -258,6 +258,32 @@ class InstallerCliTests(unittest.TestCase):
         self.assertFalse(options.check)
         self.assertIn("deprecated", stderr.getvalue())
 
+    def test_self_update_beta_alias_dispatches_to_next_channel(self) -> None:
+        with mock.patch.object(cli_module, "execute_self_update", return_value=0) as update_mock:
+            with mock.patch.object(cli_module.sys, "argv", ["qiongli", "self-update", "--beta", "--dry-run"]):
+                exit_code = cli_module.main()
+
+        self.assertEqual(exit_code, 0)
+        update_mock.assert_called_once()
+        options = update_mock.call_args.args[0]
+        self.assertEqual(options.channel, "next")
+        self.assertTrue(options.dry_run)
+
+    def test_bare_self_update_uses_interactive_wizard_on_tty(self) -> None:
+        stdin = SimpleNamespace(isatty=lambda: True)
+        with mock.patch.object(cli_module.sys, "argv", ["qiongli", "self-update"]):
+            with mock.patch.object(cli_module.sys, "stdin", stdin):
+                with mock.patch("qiongli.self_update.run_self_update_wizard", return_value=0, create=True) as wizard_mock:
+                    with mock.patch.object(
+                        cli_module,
+                        "execute_self_update",
+                        side_effect=AssertionError("bare self-update should use the wizard on a TTY"),
+                    ):
+                        exit_code = cli_module.main()
+
+        self.assertEqual(exit_code, 0)
+        wizard_mock.assert_called_once()
+
     def test_self_update_help_hides_install_shape_options(self) -> None:
         stdout = io.StringIO()
         with mock.patch.object(cli_module.sys, "argv", ["qiongli", "self-update", "--help"]):
@@ -268,6 +294,7 @@ class InstallerCliTests(unittest.TestCase):
         self.assertEqual(cm.exception.code, 0)
         help_text = stdout.getvalue()
         self.assertIn("--yes", help_text)
+        self.assertIn("--beta", help_text)
         self.assertIn("--no-refresh", help_text)
         self.assertNotIn("--target", help_text)
         self.assertNotIn("--surface", help_text)
@@ -1131,6 +1158,36 @@ class InstallerCliTests(unittest.TestCase):
         self.assertTrue(manifest_exists)
         self.assertEqual(payload["manifest"]["active_subject"], "finance")
         self.assertEqual(payload["manifest"]["subject_mode"], "confirmed")
+
+    def test_subject_confirm_propose_only_json_exports_action_without_writing_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            stdout = io.StringIO()
+
+            with mock.patch.object(
+                cli_module.sys,
+                "argv",
+                [
+                    "qiongli",
+                    "subject",
+                    "confirm",
+                    "finance",
+                    "--cwd",
+                    str(root),
+                    "--propose-only",
+                    "--json",
+                ],
+            ), contextlib.redirect_stdout(stdout):
+                exit_code = cli_module.main()
+
+            payload = json.loads(stdout.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertFalse((root / ".qiongli" / "guidance_manifest.yaml").exists())
+        self.assertEqual(payload["write_mode"], "proposed")
+        self.assertEqual(payload["proposed_action"]["action"], "confirm")
+        self.assertEqual(payload["proposed_action"]["subject"], "finance")
+        self.assertEqual(payload["proposed_action"]["source"], "cli")
 
     def test_subject_confirm_json_reports_materialized_guidance(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

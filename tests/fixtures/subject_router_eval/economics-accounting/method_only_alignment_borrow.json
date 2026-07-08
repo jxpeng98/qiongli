@@ -1,0 +1,29 @@
+{
+  "id": "economics_accounting_method_only_alignment_borrow",
+  "subject_under_test": "economics-accounting",
+  "tags": [
+    "economics-accounting",
+    "method_only_borrow"
+  ],
+  "description": "Bridge method wording borrows the identification-measurement lens without suggesting the composite subject.",
+  "request": "Before choosing models, build an identification-measurement alignment and an estimand measurement proxy map for the empirical design.",
+  "manifest": {
+    "active_subject": "auto",
+    "subject_mode": "auto",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "recommend",
+    "primary_subject": "auto",
+    "suggest_subjects": [],
+    "forbidden_subjects": [
+      "economics-accounting"
+    ],
+    "method_lenses": [
+      "identification-measurement-alignment"
+    ]
+  }
+}

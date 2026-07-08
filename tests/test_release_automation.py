@@ -28,6 +28,7 @@ PUBLISH_PYPI_DOC = REPO_ROOT / "docs" / "advanced" / "publish-pypi.md"
 PUBLISH_PYPI_ZH_DOC = REPO_ROOT / "docs" / "zh" / "advanced" / "publish-pypi.md"
 RELEASE_BRANCH_POLICY_DOC = REPO_ROOT / "docs" / "maintainer" / "release-branch-policy.md"
 RELEASE_BRANCH_POLICY_ZH_DOC = REPO_ROOT / "docs" / "zh" / "maintainer" / "release-branch-policy.md"
+ACCEPTANCE_TEMPLATE = REPO_ROOT / "tooling" / "release" / "templates" / "beta-acceptance-template.md"
 
 
 class ReleaseAutomationTests(unittest.TestCase):
@@ -214,61 +215,41 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn("gh release view", content)
         self.assertIn("--prerelease", content)
         self.assertIn('scripts/build_plugin_artifacts.py --root "$POSTFLIGHT_STAGING_DIR" --tag "$TAG" --dist-dir dist', content)
-        self.assertIn('PLUGIN_ARTIFACTS=(', content)
-        self.assertIn('if [[ "${TAG#v}" == *-* ]]; then', content)
-        self.assertIn('"dist/qiongli-next-codex-plugin-${TAG}.tar.gz"', content)
-        self.assertIn('"dist/qiongli-next-claude-plugin-${TAG}.tar.gz"', content)
-        self.assertIn('"dist/qiongli-next-claude-plugin-${TAG}.zip"', content)
-        self.assertIn('"dist/qiongli-next-claude-desktop-skill-core-${TAG}.zip"', content)
-        self.assertIn('"dist/qiongli-claude-plugin-${TAG}.zip"', content)
-        self.assertIn('"dist/qiongli-core-codex-plugin-${TAG}.tar.gz"', content)
-        self.assertIn('"dist/qiongli-economics-codex-plugin-${TAG}.tar.gz"', content)
-        self.assertIn('"dist/qiongli-accounting-codex-plugin-${TAG}.tar.gz"', content)
-        self.assertIn('"dist/qiongli-business-codex-plugin-${TAG}.tar.gz"', content)
-        self.assertIn('"dist/qiongli-finance-codex-plugin-${TAG}.tar.gz"', content)
-        self.assertIn('"dist/qiongli-political-economy-codex-plugin-${TAG}.tar.gz"', content)
-        self.assertIn('"dist/qiongli-geoeconomics-codex-plugin-${TAG}.tar.gz"', content)
-        self.assertIn('"dist/qiongli-economics-accounting-codex-plugin-${TAG}.tar.gz"', content)
-        self.assertIn('"dist/qiongli-core-claude-plugin-${TAG}.tar.gz"', content)
-        self.assertIn('"dist/qiongli-core-claude-plugin-${TAG}.zip"', content)
-        self.assertIn('"dist/qiongli-economics-claude-plugin-${TAG}.tar.gz"', content)
-        self.assertIn('"dist/qiongli-economics-claude-plugin-${TAG}.zip"', content)
-        self.assertIn('"dist/qiongli-accounting-claude-plugin-${TAG}.tar.gz"', content)
-        self.assertIn('"dist/qiongli-accounting-claude-plugin-${TAG}.zip"', content)
-        self.assertIn('"dist/qiongli-business-claude-plugin-${TAG}.tar.gz"', content)
-        self.assertIn('"dist/qiongli-business-claude-plugin-${TAG}.zip"', content)
-        self.assertIn('"dist/qiongli-finance-claude-plugin-${TAG}.tar.gz"', content)
-        self.assertIn('"dist/qiongli-finance-claude-plugin-${TAG}.zip"', content)
-        self.assertIn('"dist/qiongli-political-economy-claude-plugin-${TAG}.tar.gz"', content)
-        self.assertIn('"dist/qiongli-political-economy-claude-plugin-${TAG}.zip"', content)
-        self.assertIn('"dist/qiongli-geoeconomics-claude-plugin-${TAG}.tar.gz"', content)
-        self.assertIn('"dist/qiongli-geoeconomics-claude-plugin-${TAG}.zip"', content)
-        self.assertIn('"dist/qiongli-economics-accounting-claude-plugin-${TAG}.tar.gz"', content)
-        self.assertIn('"dist/qiongli-economics-accounting-claude-plugin-${TAG}.zip"', content)
-        self.assertIn('"dist/qiongli-claude-desktop-skill-core-${TAG}.zip"', content)
-        self.assertIn('"dist/qiongli-claude-desktop-skill-economics-${TAG}.zip"', content)
-        self.assertIn('"dist/qiongli-claude-desktop-skill-business-${TAG}.zip"', content)
-        self.assertIn('"dist/qiongli-claude-desktop-skill-finance-${TAG}.zip"', content)
-        self.assertIn('"dist/qiongli-claude-desktop-skill-political-economy-${TAG}.zip"', content)
-        self.assertIn('"dist/qiongli-claude-desktop-skill-geoeconomics-${TAG}.zip"', content)
-        self.assertIn('"dist/qiongli-claude-desktop-skill-${TAG}.zip"', content)
-        self.assertIn('MCPB_ARTIFACT="$(python3 scripts/build_literature_mcpb.py --dist-dir dist | tail -n 1)"', content)
-        self.assertIn('"$MCPB_ARTIFACT"', content)
+        self.assertIn("python3 scripts/build_literature_mcpb.py --dist-dir dist >/dev/null", content)
         self.assertIn("python3 scripts/generate_release_downloads.py --tag \"$TAG\" --out-dir dist", content)
-        self.assertIn('"dist/qiongli-downloads-${TAG}.md"', content)
-        self.assertIn('"dist/qiongli-downloads-${TAG}.json"', content)
+        self.assertIn('UPLOAD_ASSETS_FILE=""', content)
+        self.assertIn('python3 scripts/release_upload_assets.py --tag "$TAG" --dist-dir dist >"$UPLOAD_ASSETS_FILE"', content)
+        self.assertIn('mapfile -t PLUGIN_ARTIFACTS <"$UPLOAD_ASSETS_FILE"', content)
+        self.assertNotIn('if [[ "${TAG#v}" == *-* ]]; then\n  PLUGIN_ARTIFACTS=(', content)
+        self.assertNotIn('"dist/qiongli-core-codex-plugin-${TAG}.tar.gz"', content)
         self.assertIn('gh release upload "$TAG" --repo "$REPO_SLUG" --clobber "${PLUGIN_ARTIFACTS[@]}"', content)
         self.assertIn('release_args+=("${PLUGIN_ARTIFACTS[@]}")', content)
 
     def test_release_postflight_uploads_zotero_companion(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
 
-        self.assertIn('ZOTERO_COMPANION_ARTIFACT="$(python3 scripts/build_zotero_companion.py --dist-dir dist | tail -n 1)"', content)
-        self.assertIn('"$ZOTERO_COMPANION_ARTIFACT"', content)
+        self.assertIn("python3 scripts/build_zotero_companion.py --dist-dir dist >/dev/null", content)
+        self.assertIn('python3 scripts/release_upload_assets.py --tag "$TAG" --dist-dir dist >"$UPLOAD_ASSETS_FILE"', content)
         self.assertLess(
-            content.index('ZOTERO_COMPANION_ARTIFACT="$(python3 scripts/build_zotero_companion.py --dist-dir dist | tail -n 1)"'),
-            content.index("python3 scripts/generate_release_downloads.py --tag \"$TAG\" --out-dir dist"),
+            content.index("python3 scripts/build_zotero_companion.py --dist-dir dist >/dev/null"),
+            content.index('python3 scripts/release_upload_assets.py --tag "$TAG" --dist-dir dist >"$UPLOAD_ASSETS_FILE"'),
         )
+
+    def test_release_postflight_injects_subject_runtime_evidence_into_acceptance_receipt(self) -> None:
+        content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
+        template = ACCEPTANCE_TEMPLATE.read_text(encoding="utf-8")
+
+        evidence = 'python3 scripts/release_acceptance_evidence.py --root "$ROOT_DIR" --out "$ACCEPTANCE_EVIDENCE_FILE"'
+        template_write = 'python3 - "$TEMPLATE_PATH" "$ACCEPTANCE_OUT" "$TAG" "$RELEASE_DATE" "$LOCAL_TAG_COMMIT" "$CI_STATUS" "$ACCEPTANCE_EVIDENCE_FILE"'
+
+        self.assertIn("{{SUBJECT_RUNTIME_EVIDENCE}}", template)
+        self.assertIn('ACCEPTANCE_EVIDENCE_FILE=""', content)
+        self.assertIn('rm -f "$ACCEPTANCE_EVIDENCE_FILE"', content)
+        self.assertIn(evidence, content)
+        self.assertIn(template_write, content)
+        self.assertIn('subject_runtime_evidence = evidence.read_text(encoding="utf-8")', content)
+        self.assertIn('.replace("{{SUBJECT_RUNTIME_EVIDENCE}}", subject_runtime_evidence)', content)
+        self.assertLess(content.index(evidence), content.index(template_write))
 
     def test_release_postflight_publishes_codex_dist_refs(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
@@ -416,6 +397,17 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertLess(content.index(local_install), content.index(pypi))
         self.assertLess(content.index(pypi), content.index(npm))
 
+    def test_release_ready_checks_experience_schema_compatibility(self) -> None:
+        content = RELEASE_READY.read_text(encoding="utf-8")
+
+        verify = 'bash ./scripts/verify_release_tag_version.sh --root "$RELEASE_STAGING_DIR" --tag "$REPO_TAG"'
+        checker = 'python3 scripts/check_experience_schema_compatibility.py --root "$RELEASE_STAGING_DIR"'
+        local_install = 'python3 scripts/release_local_install_check.py --root "$RELEASE_STAGING_DIR"'
+
+        self.assertIn(checker, content)
+        self.assertLess(content.index(verify), content.index(checker))
+        self.assertLess(content.index(checker), content.index(local_install))
+
     def test_release_ready_does_not_print_manual_publish_steps(self) -> None:
         content = RELEASE_READY.read_text(encoding="utf-8")
 
@@ -468,6 +460,17 @@ class ReleaseAutomationTests(unittest.TestCase):
             content.index("python3 scripts/generate_skill_docs.py"),
             content.index('run_logged_stage "unit tests" "$unit_log" python3 -m unittest discover -s tests -v'),
         )
+
+    def test_release_preflight_validates_platform_target_registry_before_standard_validator(self) -> None:
+        content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
+
+        platform_registry_gate = 'python3 scripts/validate_platform_targets.py --root "$PREFLIGHT_ROOT"'
+        standard_validator = 'run_logged_stage "validator" "$validator_log" "${validate_cmd[@]}"'
+
+        self.assertIn('echo "[preflight] release target registries schema"', content)
+        self.assertNotIn('echo "[preflight] platform target registry schema"', content)
+        self.assertIn(platform_registry_gate, content)
+        self.assertLess(content.index(platform_registry_gate), content.index(standard_validator))
 
     def test_release_preflight_supports_staged_materialization_for_ci(self) -> None:
         content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")

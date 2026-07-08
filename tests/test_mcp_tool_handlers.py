@@ -133,6 +133,62 @@ class MCPToolHandlerTests(unittest.TestCase):
             encoding="utf-8",
         )
 
+    def _write_experience_fixture(self, root: Path) -> None:
+        run_id = "failed-b1"
+        run_dir = root / ".qiongli" / "trace" / "runs" / run_id
+        run_dir.mkdir(parents=True)
+        record = {
+            "schema_version": "1.0",
+            "run_id": run_id,
+            "created_at": "2026-07-06T12:00:00Z",
+            "project_root": str(root),
+            "task": {
+                "task_id": "B1",
+                "paper_type": "systematic-review",
+                "topic": "ai-writing",
+                "workflow": "",
+                "stage": "",
+            },
+            "execution": {"run_agents": False, "execution_mode": "solo", "worker_mode": "none"},
+            "inputs": {"guidance_sources": []},
+            "outputs": {
+                "required_outputs": ["search_diagnostics.md"],
+                "found_outputs": [],
+                "missing_outputs": ["search_diagnostics.md"],
+                "trace_files": [".qiongli/trace/runs/failed-b1/validator_gate.json"],
+            },
+            "quality": {
+                "validator_status": "failed",
+                "review_status": "unknown",
+                "blocking_issues": [],
+                "warnings": [],
+                "confidence": 0.0,
+            },
+            "experience": {
+                "lessons": [],
+                "failure_modes": ["missing_required_output:search_diagnostics.md"],
+                "reusable_guidance": [
+                    "Write search diagnostics before claiming review-grade coverage."
+                ],
+                "promotion_candidates": [],
+            },
+            "privacy": {
+                "redaction_status": "not_needed",
+                "contains_user_corpus": False,
+                "contains_provider_metadata": False,
+            },
+        }
+        (run_dir / "experience_record.json").write_text(
+            json.dumps(record, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        index_path = root / ".qiongli" / "trace" / "experience.jsonl"
+        index_path.parent.mkdir(parents=True, exist_ok=True)
+        index_path.write_text(
+            json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+
     def test_tool_definitions_include_config_and_evidence_tools(self) -> None:
         ordered_names = [tool["name"] for tool in MCP_TOOL_DEFINITIONS]
         names = set(ordered_names)
@@ -156,6 +212,9 @@ class MCPToolHandlerTests(unittest.TestCase):
                 "qiongli_task_run",
                 "qiongli_subject_status",
                 "qiongli_subject_update",
+                "qiongli_experience_query",
+                "qiongli_experience_show",
+                "qiongli_experience_lessons",
             }.issubset(names)
         )
         status_index = ordered_names.index("qiongli_literature_status")
@@ -175,6 +234,40 @@ class MCPToolHandlerTests(unittest.TestCase):
             "queryVariants",
         ):
             self.assertIn(alias, search_plan_schema)
+
+    def test_experience_mcp_tools_query_show_and_lessons(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_experience_fixture(root)
+
+            query = call_qiongli_tool(
+                "qiongli_experience_query",
+                {
+                    "cwd": str(root),
+                    "task_id": "B1",
+                    "validator_status": "failed",
+                    "failure_mode": "missing_required_output:search_diagnostics.md",
+                },
+            )
+            shown = call_qiongli_tool(
+                "qiongli_experience_show",
+                {"cwd": str(root), "run_id": "failed-b1"},
+            )
+            lessons = call_qiongli_tool(
+                "qiongli_experience_lessons",
+                {"cwd": str(root), "task_id": "B1"},
+            )
+
+        self.assertFalse(query["isError"], query)
+        self.assertEqual(query["structuredContent"]["run_count"], 1)
+        self.assertEqual(query["structuredContent"]["records"][0]["run_id"], "failed-b1")
+        self.assertFalse(shown["isError"], shown)
+        self.assertEqual(shown["structuredContent"]["record"]["run_id"], "failed-b1")
+        self.assertFalse(lessons["isError"], lessons)
+        self.assertEqual(
+            lessons["structuredContent"]["records"][0]["reusable_guidance"],
+            ["Write search diagnostics before claiming review-grade coverage."],
+        )
 
     def test_tool_definitions_include_subject_lifecycle_tools(self) -> None:
         definitions = {tool["name"]: tool for tool in MCP_TOOL_DEFINITIONS}
@@ -199,6 +292,7 @@ class MCPToolHandlerTests(unittest.TestCase):
             update_schema["properties"]["subject"]["enum"],
             expected_subjects,
         )
+        self.assertIn("read_only", update_schema["properties"])
 
     def test_tool_definitions_include_full_cycle_preview_tools(self) -> None:
         definitions = {tool["name"]: tool for tool in MCP_TOOL_DEFINITIONS}
@@ -393,6 +487,30 @@ class MCPToolHandlerTests(unittest.TestCase):
             self.assertEqual(payload["manifest"]["active_subject"], "finance")
             self.assertEqual(payload["manifest"]["subject_mode"], "confirmed")
             self.assertTrue((root / ".qiongli" / "guidance_manifest.yaml").exists())
+
+    def test_subject_update_read_only_exports_proposed_action_without_writing_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+
+            result = call_qiongli_tool(
+                "qiongli_subject_update",
+                {
+                    "cwd": str(root),
+                    "action": "confirm",
+                    "subject": "finance",
+                    "read_only": True,
+                    "run_id": "run-1",
+                },
+            )
+
+            payload = result["structuredContent"]
+            self.assertFalse(result["isError"])
+            self.assertEqual(payload["write_mode"], "proposed")
+            self.assertFalse((root / ".qiongli" / "guidance_manifest.yaml").exists())
+            self.assertEqual(payload["proposed_action"]["action"], "confirm")
+            self.assertEqual(payload["proposed_action"]["subject"], "finance")
+            self.assertEqual(payload["proposed_action"]["source"], "mcp")
+            self.assertIn("qiongli subject confirm finance", payload["proposed_action"]["apply_command"])
 
     def test_subject_update_returns_materialized_guidance_status(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

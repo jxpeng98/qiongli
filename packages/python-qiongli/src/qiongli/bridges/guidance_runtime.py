@@ -12,6 +12,7 @@ from typing import Any
 
 import yaml
 
+from .experience_runtime import write_experience_record
 from .project_manifest import (
     ProjectManifestError,
     init_project_manifest,
@@ -250,6 +251,7 @@ def write_guidance_trace(
         subject_refinement_packet,
     )
     subject_refinement_packet["subject_evidence_memory"] = subject_evidence_memory
+    _enrich_subject_evidence_sources(subject_refinement_packet, subject_evidence_memory)
     subject_refinement_packet["promotion_recommendation"] = (
         _subject_promotion_recommendation(
             subject_evidence_memory,
@@ -294,6 +296,21 @@ def write_guidance_trace(
     paths.trace_index.parent.mkdir(parents=True, exist_ok=True)
     with paths.trace_index.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+    try:
+        experience_result = write_experience_record(
+            project_root=paths.project_root,
+            run_dir=run_dir,
+            guidance_trace=record,
+            task_packet=task_packet,
+            validator_gate=validator_gate,
+        )
+    except OSError as exc:
+        warning = f"Failed to write experience record: {exc}"
+        record["experience_status"] = "failed"
+        record["experience_warning"] = warning
+        record["warnings"] = [*list(record.get("warnings", []) or []), warning]
+    else:
+        record.update(experience_result)
     return record
 
 
@@ -689,6 +706,68 @@ def _subject_promotion_recommendation(
     return {"status": "none", "write_manifest": False}
 
 
+def _enrich_subject_evidence_sources(
+    subject_refinement: dict[str, Any],
+    memory: Mapping[str, Any],
+) -> None:
+    sources = subject_refinement.get("evidence_sources")
+    if not isinstance(sources, dict):
+        sources = {}
+        subject_refinement["evidence_sources"] = sources
+    primary_subject = str(subject_refinement.get("primary_subject", "auto") or "auto")
+    sources["trace_memory"] = _trace_memory_evidence_source(memory, primary_subject)
+    sources["user_action"] = _user_action_evidence_source(memory, primary_subject)
+
+
+def _trace_memory_evidence_source(memory: Mapping[str, Any], primary_subject: str) -> dict[str, Any]:
+    subjects = memory.get("subjects", {})
+    selected_subjects: dict[str, Any] = {}
+    if isinstance(subjects, Mapping):
+        if primary_subject in subjects and isinstance(subjects[primary_subject], Mapping):
+            selected_subjects[primary_subject] = dict(subjects[primary_subject])
+        elif subjects:
+            selected_subjects = {
+                str(subject): dict(record)
+                for subject, record in subjects.items()
+                if isinstance(subject, str) and isinstance(record, Mapping)
+            }
+    return {
+        "status": "present" if selected_subjects else "empty",
+        "subjects": selected_subjects,
+        "warnings": [
+            str(warning)
+            for warning in list(memory.get("warnings", []) or [])
+            if isinstance(warning, str) and warning.strip()
+        ],
+    }
+
+
+def _user_action_evidence_source(memory: Mapping[str, Any], primary_subject: str) -> dict[str, Any]:
+    events = [
+        dict(event)
+        for event in list(memory.get("lifecycle_events", []) or [])
+        if isinstance(event, Mapping)
+        and (
+            event.get("subject") == primary_subject
+            or event.get("subject") is None
+            or primary_subject in {"auto", "core", ""}
+        )
+    ]
+    dismissed_subjects = memory.get("dismissed_subjects", {})
+    dismissed_record = (
+        dismissed_subjects.get(primary_subject)
+        if isinstance(dismissed_subjects, Mapping)
+        else None
+    )
+    dismissed = dict(dismissed_record) if isinstance(dismissed_record, Mapping) else {}
+    latest_action = events[-1] if events else {}
+    return {
+        "status": "present" if latest_action or dismissed else "none",
+        "latest_action": latest_action,
+        "dismissed_subject": dismissed,
+    }
+
+
 def _memory_warnings(memory: dict[str, Any]) -> list[str]:
     existing = memory.get("warnings")
     if not isinstance(existing, list):
@@ -774,6 +853,7 @@ def _proposal_text(
             ]
         )
     lines.extend(_subject_refinement_decision_section(subject_refinement))
+    lines.extend(_subject_evidence_sources_section(subject_refinement))
     lines.extend(_subject_confirmation_proposal_section(subject_refinement))
     lines.extend(_manifest_proposal_section(subject_refinement))
     lines.extend(
@@ -828,6 +908,61 @@ def _subject_refinement_decision_section(subject_refinement: dict[str, Any]) -> 
             resource_level = str(lens.get("resource_level", ""))
             reason = str(lens.get("reason", ""))
             lines.append(f"- `{source_subject}/{method_lens}` ({resource_level}): {reason}")
+    return lines
+
+
+def _subject_evidence_sources_section(subject_refinement: dict[str, Any]) -> list[str]:
+    sources = subject_refinement.get("evidence_sources", {})
+    if not isinstance(sources, Mapping):
+        return []
+    task_text = sources.get("task_text", {})
+    manifest_state = sources.get("manifest_state", {})
+    trace_memory = sources.get("trace_memory", {})
+    user_action = sources.get("user_action", {})
+    lines = ["", "## Subject Evidence Sources", ""]
+    if isinstance(task_text, Mapping):
+        signal_ids = [
+            str(signal_id)
+            for signal_id in list(task_text.get("signal_ids", []) or [])
+            if isinstance(signal_id, str) and signal_id.strip()
+        ]
+        lines.append(
+            "- task_text: "
+            f"{task_text.get('status', 'unknown')}; "
+            f"signals: {', '.join(signal_ids) if signal_ids else 'none'}"
+        )
+    if isinstance(manifest_state, Mapping):
+        lines.append(
+            "- manifest_state: "
+            f"{manifest_state.get('source', 'unknown')}; "
+            f"active_subject={manifest_state.get('active_subject', '')}; "
+            f"subject_mode={manifest_state.get('subject_mode', '')}"
+        )
+    if isinstance(trace_memory, Mapping):
+        subjects = trace_memory.get("subjects", {})
+        subject_summaries: list[str] = []
+        if isinstance(subjects, Mapping):
+            for subject, record in subjects.items():
+                if not isinstance(record, Mapping):
+                    continue
+                count = record.get("suggestion_count", 0)
+                subject_summaries.append(f"{subject}:suggestion_count={count}")
+        lines.append(
+            "- trace_memory: "
+            f"{trace_memory.get('status', 'unknown')}; "
+            f"{', '.join(subject_summaries) if subject_summaries else 'none'}"
+        )
+    if isinstance(user_action, Mapping):
+        latest = user_action.get("latest_action", {})
+        if isinstance(latest, Mapping) and latest:
+            action_summary = (
+                f"{latest.get('action', '')}"
+                f"/{latest.get('subject', '')}"
+                f" from {latest.get('source', '')}"
+            )
+        else:
+            action_summary = "none"
+        lines.append(f"- user_action: {user_action.get('status', 'unknown')}; latest={action_summary}")
     return lines
 
 

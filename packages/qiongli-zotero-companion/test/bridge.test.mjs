@@ -268,6 +268,166 @@ test("upsertItems writes creates and updates through runtime when dry_run is fal
   assert.equal(result.results[1].item_key, "NEW1");
 });
 
+test("upsertItems dry run reports target collection without mutating runtime", async () => {
+  const calls = [];
+  const runtime = {
+    listItems: async () => [],
+    ensureCollectionPath: async (collectionPath) => {
+      calls.push(["ensureCollectionPath", collectionPath]);
+      return { key: "COLL1", path: collectionPath };
+    },
+    addItemToCollection: async (itemKey, collectionKey) => {
+      calls.push(["addItemToCollection", itemKey, collectionKey]);
+    }
+  };
+
+  const result = await upsertItems({
+    dry_run: true,
+    collection_path: "Qiongli/platform-governance",
+    items: [{ title: "Project Paper", DOI: "10.1000/project" }]
+  }, runtime);
+
+  assert.equal(result.results[0].status, "created");
+  assert.equal(result.results[0].collection_path, "Qiongli/platform-governance");
+  assert.deepEqual(calls, []);
+});
+
+test("upsertItems creates missing collection and adds created items to it", async () => {
+  const calls = [];
+  const runtime = {
+    listItems: async () => [],
+    createItem: async (item) => {
+      calls.push(["create", item.title]);
+      return { key: "NEW1", collections: [], ...item };
+    },
+    ensureCollectionPath: async (collectionPath) => {
+      calls.push(["ensureCollectionPath", collectionPath]);
+      return { key: "COLL1", path: collectionPath };
+    },
+    addItemToCollection: async (itemKey, collectionKey) => {
+      calls.push(["addItemToCollection", itemKey, collectionKey]);
+      return { key: itemKey, collections: [collectionKey] };
+    }
+  };
+
+  const result = await upsertItems({
+    dry_run: false,
+    collection_path: "Qiongli/platform-governance",
+    items: [{ title: "Created Paper", DOI: "10.1000/created" }]
+  }, runtime);
+
+  assert.deepEqual(calls, [
+    ["ensureCollectionPath", "Qiongli/platform-governance"],
+    ["create", "Created Paper"],
+    ["addItemToCollection", "NEW1", "COLL1"]
+  ]);
+  assert.equal(result.results[0].item_key, "NEW1");
+  assert.deepEqual(result.results[0].collection, {
+    key: "COLL1",
+    path: "Qiongli/platform-governance",
+    status: "added"
+  });
+  assert.deepEqual(result.results[0].item.collections, ["COLL1"]);
+});
+
+test("upsertItems adds unchanged duplicate items to target collection", async () => {
+  const calls = [];
+  const runtime = {
+    listItems: async () => [{ key: "A", title: "Existing Paper", DOI: "10.1000/existing", collections: [] }],
+    ensureCollectionPath: async (collectionPath) => {
+      calls.push(["ensureCollectionPath", collectionPath]);
+      return { key: "COLL1", path: collectionPath };
+    },
+    addItemToCollection: async (itemKey, collectionKey) => {
+      calls.push(["addItemToCollection", itemKey, collectionKey]);
+      return { key: itemKey, collections: [collectionKey] };
+    }
+  };
+
+  const result = await upsertItems({
+    dry_run: false,
+    collection_path: "Qiongli/platform-governance",
+    items: [{ title: "Existing Paper", DOI: "10.1000/existing" }]
+  }, runtime);
+
+  assert.deepEqual(calls, [
+    ["ensureCollectionPath", "Qiongli/platform-governance"],
+    ["addItemToCollection", "A", "COLL1"]
+  ]);
+  assert.equal(result.results[0].status, "unchanged");
+  assert.deepEqual(result.results[0].collection, {
+    key: "COLL1",
+    path: "Qiongli/platform-governance",
+    status: "added"
+  });
+});
+
+test("upsertItems dry run reports planned child notes without mutating runtime", async () => {
+  const calls = [];
+  const runtime = {
+    listItems: async () => [],
+    createChildNote: async (parentItemKey, note) => {
+      calls.push(["createChildNote", parentItemKey, note.title]);
+      return { key: "NOTE1", parent_item_key: parentItemKey };
+    }
+  };
+
+  const result = await upsertItems({
+    dry_run: true,
+    items: [
+      {
+        title: "Noted Paper",
+        DOI: "10.1000/noted",
+        qiongli_notes: [{ title: "Qiongli Reading Note", html: "<p>Important finding.</p>" }]
+      }
+    ]
+  }, runtime);
+
+  assert.equal(result.results[0].status, "created");
+  assert.deepEqual(result.results[0].notes, [
+    { status: "planned", title: "Qiongli Reading Note" }
+  ]);
+  assert.deepEqual(calls, []);
+});
+
+test("upsertItems creates child notes on written items", async () => {
+  const calls = [];
+  const runtime = {
+    listItems: async () => [],
+    createItem: async (item) => {
+      calls.push(["create", item.title]);
+      return { key: "NEW1", ...item };
+    },
+    createChildNote: async (parentItemKey, note) => {
+      calls.push(["createChildNote", parentItemKey, note.title, note.html]);
+      return { key: "NOTE1", parent_item_key: parentItemKey, title: note.title };
+    }
+  };
+
+  const result = await upsertItems({
+    dry_run: false,
+    items: [
+      {
+        title: "Noted Paper",
+        DOI: "10.1000/noted",
+        qiongli_notes: [{ title: "Qiongli Reading Note", html: "<p>Important finding.</p>" }]
+      }
+    ]
+  }, runtime);
+
+  assert.deepEqual(calls, [
+    ["create", "Noted Paper"],
+    ["createChildNote", "NEW1", "Qiongli Reading Note", "<p>Important finding.</p>"]
+  ]);
+  assert.deepEqual(result.results[0].notes, [
+    {
+      status: "created",
+      note_key: "NOTE1",
+      title: "Qiongli Reading Note"
+    }
+  ]);
+});
+
 test("upsertItems preserves incoming Qiongli review tags on created items", async () => {
   const calls = [];
   const runtime = {
@@ -321,7 +481,10 @@ test("companion package declares Zotero install metadata and qiongli endpoints",
 
 test("bootstrap startup registers endpoints from Zotero 8 and 9 global object", async () => {
   const bootstrap = await readFile(path.join(PACKAGE_ROOT, "bootstrap.js"), "utf8");
+  const itemCollections = [];
+  const noteItems = [];
   const libraryItem = {
+    id: 10,
     key: "ABC123",
     itemType: "journalArticle",
     isRegularItem: () => true,
@@ -331,8 +494,12 @@ test("bootstrap startup registers endpoints from Zotero 8 and 9 global object", 
       date: "2024"
     })[field] ?? "",
     getTags: () => [{ tag: "qiongli:imported" }],
-    getCollections: () => ["COLL1"],
-    getAttachments: () => [123]
+    getCollections: () => itemCollections,
+    getAttachments: () => [123],
+    addToCollection: (collectionKey) => {
+      itemCollections.push(collectionKey);
+    },
+    saveTx: async () => {}
   };
   const attachmentItem = {
     key: "ATT123",
@@ -348,15 +515,80 @@ test("bootstrap startup registers endpoints from Zotero 8 and 9 global object", 
     })[field] ?? "",
     getFilePath: () => "/zotero-fixture/storage/ATT123/platform-governance.pdf"
   };
+  const collections = [{ id: 1, key: "COLL1", name: "Qiongli", parentID: null }];
   const Zotero = {
     version: "9.0.4",
     Server: { Endpoints: {} },
     Libraries: { userLibraryID: 1 },
+    Item: class {
+      constructor(itemType) {
+        this.itemType = itemType;
+        this.key = itemType === "note" ? "NOTE1" : "NEWITEM";
+        this.fields = {};
+        this.tags = [];
+        this.collections = [];
+        this.parentItemID = null;
+        this.note = "";
+      }
+
+      setField(field, value) {
+        this.fields[field] = value;
+      }
+
+      getField(field) {
+        return this.fields[field] ?? "";
+      }
+
+      setCreators(creators) {
+        this.creators = creators;
+      }
+
+      addTag(tag) {
+        this.tags.push({ tag });
+      }
+
+      getTags() {
+        return this.tags;
+      }
+
+      getCollections() {
+        return this.collections;
+      }
+
+      addToCollection(collectionKey) {
+        this.collections.push(collectionKey);
+      }
+
+      getAttachments() {
+        return [];
+      }
+
+      setNote(noteHtml) {
+        this.note = noteHtml;
+      }
+
+      getNote() {
+        return this.note;
+      }
+
+      async saveTx() {
+        if (this.itemType === "note") {
+          noteItems.push(this);
+        }
+      }
+    },
+    Collection: class {
+      async saveTx() {
+        this.id = 2;
+        this.key = "COLL2";
+        collections.push(this);
+      }
+    },
     Items: {
       getAll: async () => [libraryItem],
       getAsync: async (id) => id === 123 ? attachmentItem : null
     },
-    Collections: { getByLibrary: async () => [{ key: "COLL1", name: "Qiongli" }] }
+    Collections: { getByLibrary: async () => collections }
   };
   const context = vm.createContext({
     Zotero,
@@ -406,4 +638,38 @@ test("bootstrap startup registers endpoints from Zotero 8 and 9 global object", 
 
   assert.equal(response.status, 200);
   assert.equal(response.body.collections[0].key, "COLL1");
+
+  await Zotero.Server.Endpoints["/qiongli/upsertItems"].prototype.init({
+    dry_run: false,
+    collection_path: "Qiongli/platform-governance",
+    items: [
+      {
+        title: "Platform Governance",
+        DOI: "10.1000/platform",
+        qiongli_notes: [{ title: "Qiongli Reading Note", html: "<p>Key finding.</p>" }]
+      }
+    ]
+  }, (status, contentType, body) => {
+    response = { status, contentType, body: JSON.parse(body) };
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.results[0].status, "unchanged");
+  assert.deepEqual(response.body.results[0].collection, {
+    key: "COLL2",
+    path: "Qiongli/platform-governance",
+    status: "added"
+  });
+  assert.equal(collections[1].name, "platform-governance");
+  assert.equal(collections[1].parentID, 1);
+  assert.deepEqual(itemCollections, [2]);
+  assert.deepEqual(response.body.results[0].notes, [
+    {
+      status: "created",
+      note_key: "NOTE1",
+      title: "Qiongli Reading Note"
+    }
+  ]);
+  assert.equal(noteItems[0].parentItemID, 10);
+  assert.equal(noteItems[0].note, "<p>Key finding.</p>");
 });

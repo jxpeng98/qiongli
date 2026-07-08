@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import shutil
 import subprocess
 import sys
@@ -124,6 +125,21 @@ class DistributionPayloadTests(unittest.TestCase):
             joined = "\n".join(f"{issue.label}: {issue.detail}" for issue in issues)
             self.assertIn("npm payload skills/ vs source skills/", joined)
             self.assertIn("registry.yaml", joined)
+
+    def test_audit_detects_stale_npm_platform_target_registry(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._copy_distribution_tree(root)
+
+            registry = root / "packages/npm-qiongli/payload/content/distribution/platform-targets.json"
+            payload = json.loads(registry.read_text(encoding="utf-8"))
+            payload["targets"]["npm-plugin-lite"]["validator"] = "stale-validator"
+            registry.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+            issues = self.audit_module.audit(root)
+            joined = "\n".join(f"{issue.label}: {issue.detail}" for issue in issues)
+            self.assertIn("npm platform target registry", joined)
+            self.assertIn("platform-targets.json differs", joined)
 
     def test_audit_detects_generated_symlink(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

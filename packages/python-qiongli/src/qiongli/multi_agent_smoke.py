@@ -17,6 +17,7 @@ from qiongli.source_layout import RepoLayout
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TIMEOUT_SECONDS = 60.0
+LOCAL_AGENT_ENV = "QIONGLI_SMOKE_RUN_AGENTS"
 PASS = "PASS"
 WARN = "WARN"
 FAIL = "FAIL"
@@ -256,10 +257,16 @@ class MultiAgentSmokeRunner:
             self._run_case("claude_runtime", self._case_claude_runtime)
             self._run_case("antigravity_runtime", self._case_antigravity_runtime)
             if self.args.run_parallel:
-                self._run_case(
-                    "parallel_codex_claude_antigravity",
-                    self._case_parallel_codex_claude_antigravity,
-                )
+                if os.environ.get(LOCAL_AGENT_ENV) == "1":
+                    self._run_case(
+                        "parallel_codex_claude_antigravity",
+                        self._case_parallel_codex_claude_antigravity,
+                    )
+                else:
+                    self._run_case(
+                        "parallel_codex_claude_antigravity",
+                        self._case_parallel_opt_in_missing,
+                    )
         finally:
             self._write_reports()
         return self.report
@@ -366,6 +373,16 @@ class MultiAgentSmokeRunner:
             "content": response.content,
             "error": response.error,
         }
+
+    def _case_parallel_opt_in_missing(self) -> tuple[str, str, dict[str, Any]]:
+        return (
+            WARN,
+            (
+                "parallel runtime smoke skipped; set "
+                f"{LOCAL_AGENT_ENV}=1 with --run-parallel to launch local agents"
+            ),
+            {"required_env": LOCAL_AGENT_ENV, "run_parallel": True},
+        )
 
     def _case_parallel_codex_claude_antigravity(self) -> tuple[str, str, dict[str, Any]]:
         from bridges.orchestrator import CollaborationMode

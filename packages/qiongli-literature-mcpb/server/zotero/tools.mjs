@@ -6,6 +6,29 @@ import { exportImportFiles } from "./exporters.mjs";
 import { dedupeReferenceRecords, mapRecordToZoteroItem, normalizeReferenceInputs } from "./records.mjs";
 import { mergeReviewTags, resolveDefaultReviewTags, reviewStatusForVerification } from "./review-tags.mjs";
 
+const PROJECT_COLLECTION_ROOT = "Qiongli";
+const PROJECT_TITLE_STOPWORDS = new Set([
+  "a",
+  "an",
+  "and",
+  "are",
+  "as",
+  "at",
+  "by",
+  "for",
+  "from",
+  "in",
+  "into",
+  "is",
+  "of",
+  "on",
+  "or",
+  "the",
+  "to",
+  "via",
+  "with"
+]);
+
 export async function handleZoteroStatus(input = {}, context = {}) {
   const config = resolveZoteroConfig({
     env: context.env ?? process.env,
@@ -108,10 +131,7 @@ export async function handleZoteroUpsertReferences(input = {}, context = {}) {
   const deduped = dedupeReferenceRecords(enrichedRecords);
   const dryRun = resolveDryRun(input, config);
   const inputTags = normalizeStringList(input.tags);
-  const collectionPath = input.collection_path
-    ?? input.review_collection_path
-    ?? config.default_review_collection_path
-    ?? config.default_collection_path;
+  const collectionPath = resolveCollectionPath(input, config);
   const defaultReviewTags = resolveDefaultReviewTags(config, input);
   const itemPayloadRecords = deduped.records.map((record) => {
     const crossrefStatus = record.verification?.crossref?.status ?? "skipped";
@@ -222,4 +242,40 @@ function resolveDryRun(input, config) {
 function normalizeStringList(value) {
   const values = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
   return values.map((item) => String(item ?? "").trim()).filter(Boolean);
+}
+
+function resolveCollectionPath(input, config) {
+  return cleanString(input.collection_path)
+    ?? cleanString(input.review_collection_path)
+    ?? config.default_review_collection_path
+    ?? config.default_collection_path
+    ?? deriveProjectCollectionPath(input);
+}
+
+function deriveProjectCollectionPath(input) {
+  const title = cleanString(input.project_title)
+    ?? cleanString(input.research_title)
+    ?? cleanString(input.topic);
+  const slug = slugFromProjectTitle(title);
+  return slug ? `${PROJECT_COLLECTION_ROOT}/${slug}` : null;
+}
+
+function slugFromProjectTitle(value) {
+  const rawTokens = String(value ?? "")
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/[\u0300-\u036f]/g, "")
+    .split(/[^a-z0-9]+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+  const keywordTokens = rawTokens.filter((token) => !PROJECT_TITLE_STOPWORDS.has(token));
+  return (keywordTokens.length > 0 ? keywordTokens : rawTokens).slice(0, 6).join("-");
+}
+
+function cleanString(value) {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed === "" ? null : trimmed;
 }

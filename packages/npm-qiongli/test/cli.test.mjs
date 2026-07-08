@@ -19,6 +19,17 @@ test('help describes the npm asset manager and full runtime boundary', async () 
   assert.match(stdout, /doctor\|task-run\|team-run\|parallel\|chain\|role\|single\|code-build\|task-plan\|mcp\|provider\|guidance\|customize\|init\|align/);
   assert.match(stdout, /Default core installs adaptive runtime subject refinement/);
   assert.match(stdout, /Non-core subjects are advanced overrides for pre-materialized packages/);
+  assert.match(stdout, /subject lifecycle controls require `pipx install qiongli`/);
+  assert.match(stdout, /qiongli_subject_update.*full runtime/);
+});
+
+test('README documents subject lifecycle controls as full runtime only', () => {
+  const readme = fs.readFileSync(new URL('../README.md', import.meta.url), 'utf-8');
+
+  assert.match(readme, /qiongli subject confirm finance --cwd \./);
+  assert.match(readme, /--propose-only --json/);
+  assert.match(readme, /qiongli_subject_update.*read_only: true/);
+  assert.match(readme, /full runtime.*pipx install qiongli/);
 });
 
 test('cli source does not import or call the Python runtime bridge', () => {
@@ -301,7 +312,29 @@ function createMinimalPackageRoot(t) {
   fs.writeFileSync(path.join(workflow, 'VERSION'), '0.0.0-test\n');
   fs.writeFileSync(path.join(workflow, 'SUBJECT'), 'core\n');
   fs.writeFileSync(path.join(codexPlugin, 'manifest.json'), `${JSON.stringify({ name: 'qiongli', runtime: 'node-lite' })}\n`);
+  writePlatformTargetRegistry(root);
   return root;
+}
+
+function writePlatformTargetRegistry(root) {
+  const registry = path.join(root, 'payload', 'content', 'distribution');
+  fs.mkdirSync(registry, { recursive: true });
+  fs.writeFileSync(
+    path.join(registry, 'platform-targets.json'),
+    `${JSON.stringify({
+      schema_version: '1.0',
+      targets: {
+        'npm-plugin-lite': {
+          target_id: 'npm-plugin-lite',
+          artifact_kind: 'npm-package',
+          archive_format: 'npm-tarball',
+          bundled_mcp_mode: 'none',
+          command_surface: 'npx-cli',
+          validator: 'npm-plugin-lite',
+        },
+      },
+    }, null, 2)}\n`,
+  );
 }
 
 function createSubjectPayload(root, subject) {

@@ -62,7 +62,7 @@ npm CLI 是免 Python 资产管理器，默认安装 skills surface：
 
 ```bash
 npm install -g qiongli
-qiongli install --target all --surface skills
+qiongli install --target auto --surface skills
 qiongli check
 ```
 
@@ -71,6 +71,8 @@ qiongli check
 ```bash
 qiongli install --target all --project-dir "$PWD"
 ```
+
+`--target all` 会显式写入全部支持的平台路径。需要检测 `PATH` 上已安装的受支持客户端 CLI 并只安装这些客户端对应的 surface 时，使用 `--target auto`。
 
 日常切换项目领域时，不需要反复重装 package；用项目级 subject guidance：
 

@@ -139,7 +139,102 @@ class LocalPluginInstallerTests(unittest.TestCase):
             self.assertEqual(qiongli_entry["policy"]["installation"], "AVAILABLE")
             self.assertEqual(qiongli_entry["policy"]["authentication"], "ON_INSTALL")
             self.assertEqual(qiongli_entry["category"], "Education")
-            self.assertEqual(qiongli_entry["metadata"], {"managedBy": "qiongli-cli", "surface": "plugin"})
+            metadata = qiongli_entry["metadata"]
+            self.assertEqual(metadata["managedBy"], "qiongli-cli")
+            self.assertEqual(metadata["surface"], "plugin")
+            self.assertEqual(metadata["targetId"], "codex-marketplace-plugin")
+            self.assertEqual(metadata["artifactKind"], "marketplace-plugin")
+            self.assertEqual(metadata["validator"], "codex-marketplace-plugin")
+
+    def test_install_codex_plugin_records_registry_target_metadata_in_marker(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            marketplace = root / "agents" / "marketplace.json"
+
+            install_local_plugin(
+                LocalPluginOptions(
+                    repo_root=REPO_ROOT,
+                    target="codex",
+                    codex_marketplace_path=marketplace,
+                )
+            )
+
+            plugin_root = marketplace.parent / "plugins" / "qiongli"
+            marker = self._read_json(plugin_root / ".qiongli-managed.json")
+            marketplace_entry = self._marketplace_entry(self._read_json(marketplace))
+
+        self.assertEqual(marker["platform_target"]["target_id"], "codex-marketplace-plugin")
+        self.assertEqual(marker["platform_target"]["artifact_kind"], "marketplace-plugin")
+        self.assertEqual(marker["platform_target"]["bundled_mcp_mode"], "codex-plugin-local-node")
+        self.assertEqual(marker["platform_target"]["command_surface"], "slash-commands")
+        self.assertEqual(marker["platform_target"]["validator"], "codex-marketplace-plugin")
+        self.assertEqual(marketplace_entry["metadata"]["targetId"], "codex-marketplace-plugin")
+
+    def test_local_plugin_marker_uses_loaded_platform_target_metadata(self) -> None:
+        fake_target = mock.Mock(
+            target_id="fake-codex-target",
+            artifact_kind="fake-artifact",
+            archive_format="fake-archive",
+            bundled_mcp_mode="fake-mcp-mode",
+            command_surface="fake-command-surface",
+            validator="fake-validator",
+            release_download={"recommended_key": "codex"},
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            marketplace = root / "agents" / "marketplace.json"
+
+            with mock.patch(
+                "qiongli.local_plugin_installer.load_platform_targets",
+                return_value={"fake-codex-target": fake_target},
+            ):
+                install_local_plugin(
+                    LocalPluginOptions(
+                        repo_root=REPO_ROOT,
+                        target="codex",
+                        codex_marketplace_path=marketplace,
+                    )
+                )
+
+            marker = self._read_json(
+                marketplace.parent / "plugins" / "qiongli" / ".qiongli-managed.json"
+            )
+
+        self.assertEqual(marker["platform_target"]["target_id"], "fake-codex-target")
+        self.assertEqual(marker["platform_target"]["validator"], "fake-validator")
+
+    def test_local_plugin_target_uses_registry_recommended_key(self) -> None:
+        fake_target = mock.Mock(
+            target_id="fixture-codex-target",
+            artifact_kind="fake-artifact",
+            archive_format="fake-archive",
+            bundled_mcp_mode="fake-mcp-mode",
+            command_surface="fake-command-surface",
+            validator="fake-validator",
+            release_download={"recommended_key": "codex"},
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            marketplace = root / "agents" / "marketplace.json"
+
+            with mock.patch(
+                "qiongli.local_plugin_installer.load_platform_targets",
+                return_value={"fixture-codex-target": fake_target},
+            ):
+                install_local_plugin(
+                    LocalPluginOptions(
+                        repo_root=REPO_ROOT,
+                        target="codex",
+                        codex_marketplace_path=marketplace,
+                    )
+                )
+
+            marker = self._read_json(
+                marketplace.parent / "plugins" / "qiongli" / ".qiongli-managed.json"
+            )
+
+        self.assertEqual(marker["platform_target"]["target_id"], "fixture-codex-target")
+        self.assertEqual(marker["platform_target"]["validator"], "fake-validator")
 
     def test_install_codex_plugin_contains_adaptive_subject_resources(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

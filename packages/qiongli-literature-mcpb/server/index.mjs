@@ -432,6 +432,33 @@ export const TOOL_DECLARATIONS = [
         review_collection_path: {
           type: "string"
         },
+        project_title: {
+          type: "string",
+          description: "Optional research project title used to derive a Zotero collection path when no explicit collection path is configured."
+        },
+        research_title: {
+          type: "string",
+          description: "Optional research title used to derive a Zotero collection path when no explicit collection path is configured."
+        },
+        topic: {
+          type: "string",
+          description: "Optional research topic used to derive a Zotero collection path when no explicit collection path is configured."
+        },
+        reading_note: {
+          type: ["string", "object"],
+          description: "Optional reading note to attach to written Zotero references as a child note."
+        },
+        reading_notes: {
+          type: "array",
+          items: {
+            type: ["string", "object"]
+          },
+          description: "Optional reading notes to attach to written Zotero references as child notes."
+        },
+        notes: {
+          type: ["string", "array", "object"],
+          description: "Optional note content to attach to written Zotero references as child notes."
+        },
         write_policy: {
           type: "string",
           enum: ["dry_run", "explicit", "allow"]

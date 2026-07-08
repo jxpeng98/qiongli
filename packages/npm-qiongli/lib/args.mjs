@@ -1,4 +1,4 @@
-const TARGETS = new Set(['codex', 'claude', 'antigravity', 'hermes', 'all']);
+const TARGETS = new Set(['codex', 'claude', 'antigravity', 'hermes', 'all', 'auto']);
 const MODES = new Set(['copy', 'link']);
 const SURFACES = new Set(['skills', 'plugin', 'both']);
 const REFRESH_COMMANDS = new Set(['upgrade', 'refresh', 'update']);

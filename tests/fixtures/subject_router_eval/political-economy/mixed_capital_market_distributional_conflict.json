@@ -1,0 +1,76 @@
+{
+  "id": "political_economy_mixed_capital_market_distributional_conflict",
+  "subject_under_test": "political-economy",
+  "tags": [
+    "political-economy",
+    "mixed_subject"
+  ],
+  "description": "Political economy request with capital-market adjacency stays political economy under the eval-ready gate.",
+  "request": "Frame a World Politics paper on state capacity, elite coalition incentives, distributional stakes, and the capital-market reaction to a tax reform bargain.",
+  "manifest": {
+    "active_subject": "auto",
+    "subject_mode": "auto",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "recommend",
+    "primary_subject": "political-economy",
+    "suggest_subjects": [
+      "political-economy"
+    ],
+    "allowed_neighbor_subjects": [
+      "finance"
+    ],
+    "forbidden_subjects": [],
+    "method_lenses": [
+      "political-economy-positioning"
+    ]
+  },
+  "gate_expected": {
+    "eval-ready": {
+      "decision": "recommend",
+      "primary_subject": "political-economy",
+      "suggest_subjects": [
+        "political-economy"
+      ],
+      "allowed_neighbor_subjects": [
+        "finance"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "political-economy-positioning"
+      ]
+    },
+    "promotion-ready": {
+      "decision": "recommend",
+      "primary_subject": "political-economy",
+      "suggest_subjects": [
+        "political-economy"
+      ],
+      "allowed_neighbor_subjects": [
+        "finance"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "political-economy-positioning"
+      ]
+    },
+    "runtime-enabled": {
+      "decision": "recommend",
+      "primary_subject": "political-economy",
+      "suggest_subjects": [
+        "political-economy"
+      ],
+      "allowed_neighbor_subjects": [
+        "finance"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "political-economy-positioning"
+      ]
+    }
+  }
+}

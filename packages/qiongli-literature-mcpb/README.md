@@ -63,7 +63,12 @@ Available tools:
   companion by DOI, title, creator, year, tag, or collection path.
 - `qiongli_zotero_upsert_references`: maps normalized Qiongli references to
   Zotero items, deduplicates by DOI or title/year, defaults to dry run, and
-  writes only when `dry_run: false` is explicit.
+  writes only when `dry_run: false` is explicit. Pass `collection_path` to save
+  references into a project collection such as `Qiongli/platform-governance`.
+  If no collection path is configured, `project_title`, `research_title`, or
+  `topic` can derive a `Qiongli/<keywords>` collection path. Per-record
+  `reading_note`, `reading_notes`, `notes`, or structured `note` fields are
+  written as Zotero child notes when local writes are explicit.
 - `qiongli_zotero_export_import_files`: generates `references.json`,
   `references.ris`, `bibliography.bib`, and `zotero-import-report.md` without
   contacting Zotero.

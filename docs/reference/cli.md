@@ -164,14 +164,17 @@ Use Case:
 - Keeps native marketplace plugins separate; they remain managed by Codex, Claude Code, or the relevant client plugin manager.
 
 ```bash
-qiongli update [--channel stable|next] [--dry-run] [--yes] [--no-refresh] [--skip-check]
-qiongli self-update [--channel stable|next] [--dry-run] [--yes] [--no-refresh] [--skip-check]
+qiongli update [--channel stable|next] [--beta] [--dry-run] [--yes] [--no-refresh] [--skip-check]
+qiongli self-update [--channel stable|next] [--beta] [--dry-run] [--yes] [--no-refresh] [--skip-check]
 ```
 
 Default behavior:
+- In an interactive terminal, bare `qiongli update` or `qiongli self-update` opens a short wizard for channel, refresh target, surface, profile, refresh/check, and confirmation behavior. Passing any explicit option uses the scripted CLI path.
 - `--channel stable` delegates to `pipx upgrade qiongli` or `python -m pip install --upgrade qiongli`, depending on the detected full-runtime install channel.
 - `--channel next` enables Python prerelease upgrades with `--pre`.
+- `--beta` is a convenience alias for `--channel next`.
 - Refresh defaults to `qiongli install --target all --surface plugin --profile full --overwrite`. This is intentional: after the package manager updates the CLI package, the bundled payload is already local, so the refresh should not download another release archive.
+- The interactive wizard defaults refresh target to `auto`, which detects installed Codex, Claude Code, Antigravity, and Hermes CLIs on `PATH` and refreshes only those client surfaces.
 - `--dry-run` prints the detected channel and exact commands without executing them.
 - Without `--yes`, the command asks before running the package-manager update, then asks whether to refresh installed local plugins/assets from the new package.
 - `--no-refresh` skips the installed surface refresh, and `--skip-check` skips the final `qiongli check`.
@@ -238,6 +241,12 @@ MCP tools exposed by the full Python server:
 
 Default `stdio` mode is local and does not require a remote server. HTTP mode can also run locally; use a remote server only when the client cannot launch local MCP commands or when you need a managed shared endpoint. Codex, Claude Code, Antigravity, Hermes, or another local MCP client should call `qiongli_orchestrator_route` when deciding whether to upgrade from skill-only routing to full orchestrator tools. `qiongli_task_run` defaults to preview mode and launches local model CLIs only when the MCP caller explicitly sets JSON boolean `run_agents: true`. The tool accepts `guidance_mode: "off" | "read" | "propose" | "apply"`; preview responses echo the effective task-run arguments and report whether project guidance will be bootstrapped, but do not create files or launch agents.
 
+`qiongli_subject_update` accepts JSON boolean `read_only: true` for clients that
+can inspect a project but cannot write `.qiongli` files. In read-only mode the
+tool returns `write_mode: "proposed"` plus a `proposed_action` packet containing
+the lifecycle action, target files, and the normal `qiongli subject ...` command
+that can be applied later in a writable project.
+
 ### 2.3 `qiongli install` (Install bundled subject payload)
 
 Use Case:
@@ -251,7 +260,7 @@ qiongli install \
   [--profile partial|full] \
   [--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting] \
   [--coverage complete|focused] \
-  [--target codex|claude|antigravity|hermes|all] \
+  [--target codex|claude|antigravity|hermes|all|auto] \
   [--surface skills|plugin|both] \
   [--mode copy|link] \
   [--project-dir <path>] \
@@ -267,6 +276,7 @@ Examples:
 
 ```bash
 qiongli install --target all
+qiongli install --target auto
 qiongli install --surface skills --profile partial --target all
 qiongli install --profile full --target codex --surface plugin
 qiongli install --profile full --target all --surface plugin
@@ -275,6 +285,8 @@ qiongli install --parts mcp --target hermes
 ```
 
 For normal CLI/local plugin use, install Qiongli once and set subject behavior per project with `qiongli project ...`. Subject install flags are retained for legacy and advanced compatibility cases: focused Claude Desktop/Web ZIPs, deliberately narrow packages, release payloads, and install-surface testing.
+
+`--target auto` detects supported client CLIs on `PATH` and installs only those client surfaces. Use `--target all` when you intentionally want to write every supported platform path regardless of whether the corresponding CLI is currently installed.
 
 Subject packages are specialized installs, not reduced-quality cuts. Default install is `core/complete`. `--subject economics`, `--subject business`, `--subject finance`, `--subject political-economy`, and `--subject geoeconomics` mean complete specialized installs, not reduced packages. `--subject accounting` means `accounting/complete`, full framework plus accounting specialization. Focused coverage selects the subject profile set and active effective skills for deliberate slim installs and Desktop/Web ZIPs. Current official subjects are `core`, `economics`, `accounting`, `business`, `finance`, `political-economy`, `geoeconomics`, and the named composite `economics-accounting`; `political-economy` and `geoeconomics` are independent subject choices, not a composite. Official composites are not arbitrary comma-separated stacking. Public Desktop ZIP subjects are `core`, `economics`, `business`, `finance`, `political-economy`, `geoeconomics`, and `economics-accounting`, with no standalone accounting Desktop ZIP in this phase. Change ordinary project subject behavior with `qiongli project set-subject`; switch installed subject or coverage only when you are intentionally refreshing a specialized package.
 
@@ -354,7 +366,7 @@ qiongli upgrade \
   [--profile partial|full] \
   [--subject core|economics|accounting|business|finance|political-economy|geoeconomics|economics-accounting] \
   [--coverage complete|focused] \
-  [--target codex|claude|antigravity|hermes|all] \
+  [--target codex|claude|antigravity|hermes|all|auto] \
   [--surface skills|plugin|both] \
   [--project-dir <path>] \
   [--install-cli | --no-cli] \
@@ -396,7 +408,7 @@ Use Case: Creates project-local `.env` configuration in your project directory.
 ```bash
 qiongli init \
   [--project-dir <path>] \
-  [--target all|codex|claude|antigravity|hermes] \
+  [--target all|auto|codex|claude|antigravity|hermes] \
   [--mode copy|link] \
   [--overwrite] \
   [--doctor] \
@@ -414,7 +426,7 @@ Use Case: Removes assets installed by the CLI so you can switch cleanly between 
 
 ```bash
 qiongli remove \
-  [--target codex|claude|antigravity|hermes|all] \
+  [--target codex|claude|antigravity|hermes|all|auto] \
   [--surface skills|plugin|both] \
   [--parts globals|project|cli|mcp] \
   [--project-dir <path>] \
@@ -582,6 +594,31 @@ qiongli project status --project-dir .
 These commands read and write `.qiongli/guidance_manifest.yaml`. The manifest can include `active_subject`, `secondary_subjects`, `venue_profiles`, `method_lenses`, and `strictness`. If the file is missing, the effective default is `active_subject: auto`: Qiongli remains usable without setup, uses core guidance, and may infer temporary subject or method lenses from the current task.
 
 Qiongli does not silently persist a subject switch. Persistent project changes come only from explicit `qiongli project ...` commands or from accepted guidance proposals. Task runs may propose manifest or local-guidance updates for audit, but unaccepted proposals do not change project-local state.
+
+### Adaptive subject lifecycle: `qiongli subject`
+
+Use `qiongli subject` for explicit adaptive subject lifecycle controls.
+
+```bash
+qiongli subject status --cwd .
+qiongli subject confirm finance --cwd .
+qiongli subject dismiss finance --cwd .
+qiongli subject reset --cwd .
+qiongli subject lock economics --cwd .
+qiongli subject unlock --cwd .
+```
+
+Update commands write only project-local `.qiongli` files. Read-only clients can
+export the same action without writing by adding `--propose-only --json`:
+
+```bash
+qiongli subject confirm finance --cwd . --propose-only --json
+```
+
+The JSON response includes `write_mode: "proposed"` and a `proposed_action`
+object with `action`, `subject`, `target_files`, and `apply_command`. Use that
+packet with a writable client, then run the `apply_command` to make the same
+project-local lifecycle change.
 
 - `guidance`: Manage project-local guidance and trace bundles
   ```bash

@@ -1,0 +1,68 @@
+{
+  "id": "political_economy_clear_actor_institution_outcome",
+  "subject_under_test": "political-economy",
+  "tags": [
+    "political-economy",
+    "clear_positive"
+  ],
+  "description": "Clear political economy manuscript with actor, institution, incentive, distributional conflict, venue, and mechanism signals.",
+  "request": "Audit an APSR political economy manuscript using process tracing of an actor-institution-outcome mechanism: cabinet coalition actors, actor incentives, institutional constraints, distributional conflict between winners and losers, and the resulting policy outcome.",
+  "manifest": {
+    "active_subject": "auto",
+    "subject_mode": "auto",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "recommend",
+    "primary_subject": "political-economy",
+    "suggest_subjects": [
+      "political-economy"
+    ],
+    "forbidden_subjects": [],
+    "method_lenses": [
+      "political-mechanism-audit",
+      "political-economy-positioning"
+    ]
+  },
+  "gate_expected": {
+    "eval-ready": {
+      "decision": "recommend",
+      "primary_subject": "political-economy",
+      "suggest_subjects": [
+        "political-economy"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "political-mechanism-audit",
+        "political-economy-positioning"
+      ]
+    },
+    "promotion-ready": {
+      "decision": "recommend",
+      "primary_subject": "political-economy",
+      "suggest_subjects": [
+        "political-economy"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "political-mechanism-audit",
+        "political-economy-positioning"
+      ]
+    },
+    "runtime-enabled": {
+      "decision": "recommend",
+      "primary_subject": "political-economy",
+      "suggest_subjects": [
+        "political-economy"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "political-mechanism-audit",
+        "political-economy-positioning"
+      ]
+    }
+  }
+}

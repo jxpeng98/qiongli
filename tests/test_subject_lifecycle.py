@@ -15,6 +15,7 @@ from bridges.subject_guidance import (
 from bridges.subject_lifecycle import (
     SubjectLifecycleError,
     apply_subject_action,
+    propose_subject_action,
     subject_status,
 )
 
@@ -197,6 +198,33 @@ class SubjectLifecycleTests(unittest.TestCase):
 
             self.assertIn("future_field", stored)
             self.assertEqual(stored["future_field"], {"keep": True})
+
+    def test_propose_subject_action_exports_action_without_writing_project_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+
+            result = propose_subject_action(
+                root,
+                "confirm",
+                "finance",
+                source="marketplace-readonly",
+                run_id="run-1",
+            )
+
+            self.assertEqual(result["write_mode"], "proposed")
+            self.assertFalse(self._manifest_path(root).exists())
+            self.assertFalse(self._state_path(root).exists())
+            self.assertFalse(self._guidance_path(root).exists())
+            self.assertEqual(result["manifest"]["active_subject"], "auto")
+            proposed = result["proposed_action"]
+            self.assertEqual(proposed["action"], "confirm")
+            self.assertEqual(proposed["subject"], "finance")
+            self.assertEqual(proposed["source"], "marketplace-readonly")
+            self.assertEqual(proposed["run_id"], "run-1")
+            self.assertEqual(proposed["write_mode"], "proposed")
+            self.assertIn(".qiongli/guidance_manifest.yaml", proposed["target_files"])
+            self.assertIn(".qiongli/trace/subject_evidence.json", proposed["target_files"])
+            self.assertIn("qiongli subject confirm finance", proposed["apply_command"])
 
     def test_lock_then_unlock_transitions_concrete_subject_to_confirmed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

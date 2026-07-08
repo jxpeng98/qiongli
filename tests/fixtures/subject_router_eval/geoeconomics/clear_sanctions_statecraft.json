@@ -1,0 +1,68 @@
+{
+  "id": "geoeconomics_clear_sanctions_statecraft",
+  "subject_under_test": "geoeconomics",
+  "tags": [
+    "geoeconomics",
+    "clear_positive"
+  ],
+  "description": "Clear geoeconomics manuscript with sanctions, export controls, sender-target-response logic, strategic competition, and venue signals.",
+  "request": "Audit an International Security manuscript using an economic statecraft instrument audit of sanctions and export controls: build the instrument-sender-target map, identify target response, separate national-security rhetoric from strategic competition evidence, and calibrate the statecraft mechanism.",
+  "manifest": {
+    "active_subject": "auto",
+    "subject_mode": "auto",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "recommend",
+    "primary_subject": "geoeconomics",
+    "suggest_subjects": [
+      "geoeconomics"
+    ],
+    "forbidden_subjects": [],
+    "method_lenses": [
+      "geoeconomic-statecraft-audit",
+      "geoeconomic-positioning"
+    ]
+  },
+  "gate_expected": {
+    "eval-ready": {
+      "decision": "recommend",
+      "primary_subject": "geoeconomics",
+      "suggest_subjects": [
+        "geoeconomics"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "geoeconomic-statecraft-audit",
+        "geoeconomic-positioning"
+      ]
+    },
+    "promotion-ready": {
+      "decision": "recommend",
+      "primary_subject": "geoeconomics",
+      "suggest_subjects": [
+        "geoeconomics"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "geoeconomic-statecraft-audit",
+        "geoeconomic-positioning"
+      ]
+    },
+    "runtime-enabled": {
+      "decision": "recommend",
+      "primary_subject": "geoeconomics",
+      "suggest_subjects": [
+        "geoeconomics"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "geoeconomic-statecraft-audit",
+        "geoeconomic-positioning"
+      ]
+    }
+  }
+}

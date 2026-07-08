@@ -61,6 +61,36 @@ test("mapRecordToZoteroItem maps journal metadata conservatively", () => {
   assert.match(item.extra, /Qiongli Provider: openalex/);
 });
 
+test("mapRecordToZoteroItem maps reading notes to child-note payloads", () => {
+  const item = mapRecordToZoteroItem({
+    title: "Noted Platform Paper",
+    authors: ["Smith, Alex"],
+    year: 2024,
+    doi: "10.1000/noted-platform",
+    reading_note: {
+      summary: "Explains platform governance mechanisms.",
+      key_findings: ["Rules shape participation", "Audits affect trust"],
+      limitations: "Single-market setting",
+      evidence_limit: "abstract_only",
+      source_anchor: "abstract"
+    }
+  });
+
+  assert.deepEqual(item.qiongli_notes, [
+    {
+      title: "Qiongli Reading Note",
+      html: [
+        "<h2>Qiongli Reading Note</h2>",
+        "<p><strong>Summary:</strong> Explains platform governance mechanisms.</p>",
+        "<p><strong>Key findings:</strong></p><ul><li>Rules shape participation</li><li>Audits affect trust</li></ul>",
+        "<p><strong>Limitations:</strong> Single-market setting</p>",
+        "<p><strong>Evidence limit:</strong> abstract_only</p>",
+        "<p><strong>Source anchor:</strong> abstract</p>"
+      ].join("")
+    }
+  ]);
+});
+
 test("dedupeReferenceRecords prefers DOI before title-year fallback", () => {
   const records = dedupeReferenceRecords([
     { title: "Same Paper", year: 2024, doi: "https://doi.org/10.1000/example", provider: "openalex" },
@@ -550,6 +580,66 @@ test("handleZoteroUpsertReferences defaults to dry run and sends mapped items", 
   assert.equal(result.dry_run, true);
   assert.equal(requests[0].body.dry_run, true);
   assert.equal(requests[0].body.items[0].DOI, "10.1000/dry");
+});
+
+test("handleZoteroUpsertReferences derives collection path from project title", async () => {
+  const requests = [];
+  await handleZoteroUpsertReferences({
+    verify_crossref: false,
+    project_title: "Platform Governance in Digital Markets",
+    records: [{ title: "Collection Paper", authors: ["Smith, Alex"], year: 2024, doi: "10.1000/collection" }]
+  }, {
+    fetchImpl: async (url, options = {}) => {
+      requests.push({ url: String(url), body: JSON.parse(options.body) });
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          status: "ok",
+          dry_run: true,
+          results: [{ status: "created", planned: true, item: { title: "Collection Paper" } }]
+        })
+      };
+    },
+    env: {}
+  });
+
+  const upsertBody = requests.find((request) => request.url.endsWith("/qiongli/upsertItems")).body;
+  assert.equal(upsertBody.collection_path, "Qiongli/platform-governance-digital-markets");
+});
+
+test("handleZoteroUpsertReferences sends reading notes to companion", async () => {
+  const requests = [];
+  await handleZoteroUpsertReferences({
+    verify_crossref: false,
+    records: [
+      {
+        title: "Noted Dry Run Paper",
+        authors: ["Smith, Alex"],
+        year: 2024,
+        doi: "10.1000/noted-dry",
+        notes: "Useful for the mechanism section."
+      }
+    ]
+  }, {
+    fetchImpl: async (url, options = {}) => {
+      requests.push({ url: String(url), body: JSON.parse(options.body) });
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          status: "ok",
+          dry_run: true,
+          results: [{ status: "created", planned: true, notes: [{ status: "planned", title: "Qiongli Reading Note" }] }]
+        })
+      };
+    },
+    env: {}
+  });
+
+  const upsertBody = requests.find((request) => request.url.endsWith("/qiongli/upsertItems")).body;
+  assert.equal(upsertBody.items[0].qiongli_notes[0].title, "Qiongli Reading Note");
+  assert.equal(upsertBody.items[0].qiongli_notes[0].html, "<h2>Qiongli Reading Note</h2><p>Useful for the mechanism section.</p>");
 });
 
 test("handleZoteroExportImportFiles works without local Zotero", async () => {

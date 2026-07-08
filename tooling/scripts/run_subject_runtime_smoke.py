@@ -204,6 +204,13 @@ def run_smoke_case(case: SmokeCase, workspace_root: Path, mode: str) -> dict[str
             )
         if report["status"] != "passed":
             report["rerun_command"] = _rerun_command(mode, case.name)
+            report["diagnostics"] = _failure_diagnostics(
+                case=case,
+                workspace_root=root,
+                project_root=project_root,
+                payload=diagnostic_payload,
+                rerun_command=report["rerun_command"],
+            )
     return report
 
 
@@ -352,13 +359,42 @@ def _payload_list(value: Any) -> list[Any]:
     return value if isinstance(value, list) else []
 
 
+def _payload_string(value: Any) -> str:
+    return value if isinstance(value, str) else ""
+
+
+def _routing_notes_from_payload(payload: dict[str, Any]) -> list[str]:
+    notes = _payload_data(payload).get("routing_notes", [])
+    return [str(item) for item in notes] if isinstance(notes, list) else []
+
+
+def _runtime_notes(notes: list[str]) -> list[str]:
+    keywords = ("runtime", "preflight", "fallback", "agent")
+    return [note for note in notes if any(keyword in note.lower() for keyword in keywords)]
+
+
 def _local_agent_metadata(payload: dict[str, Any]) -> dict[str, Any]:
     packet = _task_packet_from_payload(payload)
+    controller_metadata = _payload_object(packet.get("controller_metadata", {}))
+    routing_notes = _routing_notes_from_payload(payload)
     return {
         "requested": True,
         "env_opt_in": os.environ.get(LOCAL_AGENT_ENV) == "1",
         "will_launch_agents": bool(payload.get("run_agents")),
+        "requested_runtime": {
+            "controller": _payload_string(
+                packet.get("controller") or controller_metadata.get("controller")
+            ),
+            "primary_agent": _payload_string(
+                packet.get("primary_agent") or controller_metadata.get("primary_agent")
+            ),
+            "review_agent": _payload_string(
+                packet.get("review_agent") or controller_metadata.get("review_agent")
+            ),
+        },
         "runtime_plan": _payload_object(packet.get("runtime_plan", {})),
+        "routing_notes": routing_notes,
+        "runtime_notes": _runtime_notes(routing_notes),
     }
 
 
@@ -450,6 +486,7 @@ def _path_inside_project(project_root: Path, path: Path) -> bool:
 
 def _write_boundary_report(payload: dict[str, Any], project_root: Path) -> dict[str, Any]:
     violations: list[str] = []
+    checked_paths: list[str] = []
     expected_paths = [
         ".qiongli/guidance_manifest.yaml",
         SUBJECT_GUIDANCE_SOURCE,
@@ -457,18 +494,46 @@ def _write_boundary_report(payload: dict[str, Any], project_root: Path) -> dict[
     ]
     for rel_path in expected_paths:
         resolved = (project_root / rel_path).resolve()
+        checked_paths.append(str(resolved))
         if not _path_inside_project(project_root, resolved):
             violations.append(str(resolved))
 
     trace = _local_guidance_trace_from_payload(payload)
     for key in ("run_dir", "trace_index", "proposal_path", "guidance_proposal"):
         resolved = _resolve_reported_path(project_root, trace.get(key))
-        if resolved is not None and not _path_inside_project(project_root, resolved):
+        if resolved is None:
+            continue
+        checked_paths.append(str(resolved))
+        if not _path_inside_project(project_root, resolved):
             violations.append(str(resolved))
 
     return {
         "known_paths_inside_project": not violations,
+        "checked_paths": sorted(set(checked_paths)),
         "violations": violations,
+    }
+
+
+def _trace_paths(payload: dict[str, Any]) -> dict[str, str]:
+    trace = _local_guidance_trace_from_payload(payload)
+    keys = ("run_dir", "trace_index", "proposal_path", "guidance_proposal")
+    return {key: value for key in keys if isinstance((value := trace.get(key)), str) and value}
+
+
+def _failure_diagnostics(
+    *,
+    case: SmokeCase,
+    workspace_root: Path,
+    project_root: Path,
+    payload: dict[str, Any],
+    rerun_command: str,
+) -> dict[str, Any]:
+    return {
+        "case_name": case.name,
+        "workspace_root": str(workspace_root.resolve()),
+        "project_root": str(project_root.resolve()),
+        "rerun_command": rerun_command,
+        "trace_paths": _trace_paths(payload),
     }
 
 

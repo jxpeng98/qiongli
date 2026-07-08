@@ -1048,14 +1048,20 @@ def cmd_project(args: argparse.Namespace) -> int:
 
 def cmd_subject(args: argparse.Namespace) -> int:
     from bridges.project_manifest import ProjectManifestError
-    from bridges.subject_lifecycle import SubjectLifecycleError, apply_subject_action, subject_status
+    from bridges.subject_lifecycle import (
+        SubjectLifecycleError,
+        apply_subject_action,
+        propose_subject_action,
+        subject_status,
+    )
 
     project_root = Path(args.cwd).expanduser().resolve()
     try:
         if args.subject_cmd == "status":
             payload = subject_status(project_root)
         else:
-            payload = apply_subject_action(
+            action_fn = propose_subject_action if getattr(args, "propose_only", False) else apply_subject_action
+            payload = action_fn(
                 project_root,
                 args.subject_cmd,
                 getattr(args, "subject", None),
@@ -1394,6 +1400,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Package release channel to install: stable or next (default: stable)",
     )
     self_update.add_argument(
+        "--beta",
+        action="store_const",
+        const="next",
+        default=argparse.SUPPRESS,
+        dest="channel",
+        help="Shortcut for --channel next",
+    )
+    self_update.add_argument(
         "--target",
         default="all",
         choices=TARGET_CHOICES,
@@ -1624,6 +1638,11 @@ def build_parser() -> argparse.ArgumentParser:
             default=str(Path.cwd()),
             help="Project directory to update (default: current dir)",
         )
+        subject_action.add_argument(
+            "--propose-only",
+            action="store_true",
+            help="Return a proposed subject action without writing .qiongli project files",
+        )
         subject_action.add_argument("--json", action="store_true", help="Emit JSON only")
 
     for action in ("reset", "unlock"):
@@ -1632,6 +1651,11 @@ def build_parser() -> argparse.ArgumentParser:
             "--cwd",
             default=str(Path.cwd()),
             help="Project directory to update (default: current dir)",
+        )
+        subject_action.add_argument(
+            "--propose-only",
+            action="store_true",
+            help="Return a proposed subject action without writing .qiongli project files",
         )
         subject_action.add_argument("--json", action="store_true", help="Emit JSON only")
 
@@ -1774,6 +1798,10 @@ def main() -> int:
     if args.cmd == "upgrade":
         return cmd_upgrade(args)
     if args.cmd in {"self-update", "update"}:
+        if _should_run_self_update_wizard():
+            from qiongli.self_update import run_self_update_wizard
+
+            return run_self_update_wizard()
         _warn_deprecated_self_update_install_options(args)
         return cmd_self_update(args)
     if args.cmd == "setup":
@@ -1812,6 +1840,13 @@ def main() -> int:
     if args.cmd == "customize":
         return cmd_customize(args)
     raise RuntimeError(f"Unhandled command: {args.cmd}")
+
+
+def _should_run_self_update_wizard(argv: list[str] | None = None) -> bool:
+    raw_argv = sys.argv if argv is None else argv
+    if len(raw_argv) != 2 or raw_argv[1] not in {"self-update", "update"}:
+        return False
+    return bool(getattr(sys.stdin, "isatty", lambda: False)())
 
 
 if __name__ == "__main__":

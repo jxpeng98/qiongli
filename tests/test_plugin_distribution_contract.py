@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import importlib.util
 import json
 import os
@@ -92,6 +93,349 @@ class PluginDistributionContractTests(unittest.TestCase):
     def materialize_next_plugin_payload(self, tmp_dir: str) -> Path:
         return self.materialize_payload_root(tmp_dir, target="next-plugin") / "plugins" / "qiongli-next"
 
+    def test_platform_target_registry_declares_boundary_rules(self) -> None:
+        from qiongli.platform_targets import load_platform_targets
+
+        targets = load_platform_targets(REPO_ROOT)
+
+        expected_targets = {
+            "codex-marketplace-plugin",
+            "claude-code-marketplace-plugin",
+            "claude-desktop-direct-plugin",
+            "claude-desktop-skill-zip",
+            "antigravity-local-plugin",
+            "npm-plugin-lite",
+            "pypi-full-runtime",
+        }
+        self.assertTrue(expected_targets.issubset(targets.keys()))
+        self.assertIn(
+            ".codex-plugin/plugin.json",
+            targets["codex-marketplace-plugin"].required_paths,
+        )
+        self.assertIn(
+            ".codex-plugin/",
+            targets["claude-desktop-direct-plugin"].forbidden_paths,
+        )
+        self.assertIn(
+            ".mcp.json",
+            targets["claude-desktop-direct-plugin"].forbidden_paths,
+        )
+        self.assertEqual(targets["claude-desktop-direct-plugin"].archive_format, "zip")
+        self.assertEqual(
+            targets["codex-marketplace-plugin"].adapter["plugin_manifest_platform"],
+            "codex",
+        )
+        self.assertEqual(targets["codex-marketplace-plugin"].adapter["kind"], "plugin")
+        self.assertEqual(
+            targets["codex-marketplace-plugin"].adapter["materializer"],
+            "plugin_artifacts",
+        )
+        self.assertEqual(
+            targets["claude-desktop-direct-plugin"].adapter["plugin_manifest_platform"],
+            "claude",
+        )
+        self.assertEqual(
+            targets["claude-desktop-skill-zip"].adapter["plugin_manifest_platform"],
+            "none",
+        )
+        self.assertEqual(targets["claude-desktop-skill-zip"].adapter["kind"], "skill-zip")
+        self.assertEqual(
+            targets["claude-desktop-skill-zip"].adapter["materializer"],
+            "desktop_skill_artifacts",
+        )
+        self.assertEqual(targets["antigravity-local-plugin"].adapter["kind"], "local-plugin")
+        self.assertEqual(targets["pypi-full-runtime"].adapter["kind"], "package")
+        self.assertEqual(
+            targets["npm-plugin-lite"].adapter["materializer"],
+            "npm_package",
+        )
+        self.assertEqual(
+            targets["codex-marketplace-plugin"].smoke["structural_archive_check"],
+            "marketplace_validation",
+        )
+        self.assertEqual(
+            targets["codex-marketplace-plugin"].smoke["client_activation_check"],
+            "local_install_acceptance",
+        )
+        self.assertEqual(
+            targets["claude-desktop-skill-zip"].smoke["client_activation_check"],
+            "not_applicable",
+        )
+
+    def test_platform_target_registry_rejects_targets_without_positive_or_negative_checks(self) -> None:
+        from qiongli.platform_targets import validate_platform_target_registry
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_platform_target_registry(
+                root,
+                required_paths=[],
+                forbidden_paths=[".codex-plugin/"],
+            )
+
+            failures = validate_platform_target_registry(root)
+
+        self.assertTrue(
+            any("missing positive required_path checks" in failure for failure in failures),
+            failures,
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_platform_target_registry(
+                root,
+                required_paths=["plugin.json"],
+                forbidden_paths=[],
+            )
+
+            failures = validate_platform_target_registry(root)
+
+        self.assertTrue(
+            any("missing negative forbidden_path checks" in failure for failure in failures),
+            failures,
+        )
+
+    def test_platform_target_registry_rejects_missing_release_download_metadata(self) -> None:
+        from qiongli.platform_targets import validate_platform_target_registry
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_platform_target_registry(
+                root,
+                required_paths=["plugin.json"],
+                forbidden_paths=[".codex-plugin/"],
+                include_release_download=False,
+            )
+
+            failures = validate_platform_target_registry(root)
+
+        self.assertTrue(
+            any("release_download" in failure for failure in failures),
+            failures,
+        )
+
+    def test_platform_target_registry_rejects_missing_adapter_metadata(self) -> None:
+        from qiongli.platform_targets import validate_platform_target_registry
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_platform_target_registry(
+                root,
+                required_paths=["plugin.json"],
+                forbidden_paths=[".codex-plugin/"],
+                include_adapter=False,
+            )
+
+            failures = validate_platform_target_registry(root)
+
+        self.assertTrue(
+            any("adapter" in failure for failure in failures),
+            failures,
+        )
+
+    def test_platform_target_registry_rejects_missing_adapter_materializer(self) -> None:
+        from qiongli.platform_targets import validate_platform_target_registry
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_platform_target_registry(
+                root,
+                required_paths=["plugin.json"],
+                forbidden_paths=[".codex-plugin/"],
+                adapter={
+                    "kind": "plugin",
+                    "plugin_manifest_platform": "none",
+                },
+            )
+
+            failures = validate_platform_target_registry(root)
+
+        self.assertTrue(
+            any("adapter.materializer" in failure for failure in failures),
+            failures,
+        )
+
+    def test_platform_target_registry_rejects_unknown_adapter_materializer(self) -> None:
+        from qiongli.platform_targets import validate_platform_target_registry
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_platform_target_registry(
+                root,
+                required_paths=["plugin.json"],
+                forbidden_paths=[".codex-plugin/"],
+                adapter={
+                    "kind": "plugin",
+                    "plugin_manifest_platform": "none",
+                    "materializer": "ad_hoc_script",
+                },
+            )
+
+            failures = validate_platform_target_registry(root)
+
+        self.assertTrue(
+            any("adapter.materializer must be one of" in failure for failure in failures),
+            failures,
+        )
+
+    def test_platform_target_registry_rejects_unknown_adapter_kind(self) -> None:
+        from qiongli.platform_targets import validate_platform_target_registry
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_platform_target_registry(
+                root,
+                required_paths=["plugin.json"],
+                forbidden_paths=[".codex-plugin/"],
+                adapter={
+                    "kind": "handcrafted-plugin",
+                    "plugin_manifest_platform": "none",
+                    "materializer": "plugin_artifacts",
+                },
+            )
+
+            failures = validate_platform_target_registry(root)
+
+        self.assertTrue(
+            any("adapter.kind must be one of" in failure for failure in failures),
+            failures,
+        )
+
+    def test_platform_target_registry_rejects_unknown_manifest_platform(self) -> None:
+        from qiongli.platform_targets import validate_platform_target_registry
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_platform_target_registry(
+                root,
+                required_paths=["plugin.json"],
+                forbidden_paths=[".codex-plugin/"],
+                adapter={
+                    "kind": "plugin",
+                    "plugin_manifest_platform": "gemini",
+                    "materializer": "plugin_artifacts",
+                },
+            )
+
+            failures = validate_platform_target_registry(root)
+
+        self.assertTrue(
+            any("adapter.plugin_manifest_platform must be one of" in failure for failure in failures),
+            failures,
+        )
+
+    def test_platform_target_registry_rejects_adapter_manifest_platform_mismatch(self) -> None:
+        from qiongli.platform_targets import validate_platform_target_registry
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_platform_target_registry(
+                root,
+                required_paths=["package.json"],
+                forbidden_paths=[".codex-plugin/"],
+                adapter={
+                    "kind": "package",
+                    "plugin_manifest_platform": "codex",
+                    "materializer": "npm_package",
+                },
+            )
+
+            failures = validate_platform_target_registry(root)
+
+        self.assertTrue(
+            any("adapter.plugin_manifest_platform=codex is not valid" in failure for failure in failures),
+            failures,
+        )
+
+    def test_platform_target_registry_rejects_adapter_materializer_mismatch(self) -> None:
+        from qiongli.platform_targets import validate_platform_target_registry
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_platform_target_registry(
+                root,
+                required_paths=["SKILL.md"],
+                forbidden_paths=[".codex-plugin/"],
+                adapter={
+                    "kind": "skill-zip",
+                    "plugin_manifest_platform": "none",
+                    "materializer": "plugin_artifacts",
+                },
+            )
+
+            failures = validate_platform_target_registry(root)
+
+        self.assertTrue(
+            any("adapter.materializer=plugin_artifacts is not valid" in failure for failure in failures),
+            failures,
+        )
+
+    def test_platform_target_registry_rejects_missing_smoke_metadata(self) -> None:
+        from qiongli.platform_targets import validate_platform_target_registry
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_platform_target_registry(
+                root,
+                required_paths=["plugin.json"],
+                forbidden_paths=[".codex-plugin/"],
+                include_smoke=False,
+            )
+
+            failures = validate_platform_target_registry(root)
+
+        self.assertTrue(
+            any("target fixture-target.smoke must be an object" in failure for failure in failures),
+            failures,
+        )
+
+    def test_platform_target_registry_rejects_unknown_smoke_policy(self) -> None:
+        from qiongli.platform_targets import validate_platform_target_registry
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_platform_target_registry(
+                root,
+                required_paths=["plugin.json"],
+                forbidden_paths=[".codex-plugin/"],
+                smoke={
+                    "structural_archive_check": "ad_hoc_manual_check",
+                    "client_activation_check": "local_install_acceptance",
+                },
+            )
+
+            failures = validate_platform_target_registry(root)
+
+        self.assertTrue(
+            any(
+                "target fixture-target.smoke.structural_archive_check "
+                "must be one of" in failure
+                for failure in failures
+            ),
+            failures,
+        )
+
+    def test_marketplace_validator_uses_target_adapter_for_manifest_platform(self) -> None:
+        from qiongli.platform_targets import load_platform_targets
+
+        codex_target = load_platform_targets(REPO_ROOT)["codex-marketplace-plugin"]
+        fake_target = replace(codex_target, target_id="fixture-codex-like-plugin")
+
+        self.assertEqual(validator._platform_for_target(fake_target), "codex")
+
+    def test_marketplace_validator_selects_target_by_recommended_key(self) -> None:
+        from qiongli.platform_targets import load_platform_targets
+
+        codex_target = load_platform_targets(REPO_ROOT)["codex-marketplace-plugin"]
+        fake_target = replace(codex_target, target_id="fixture-codex-target")
+
+        selected = validator._target_by_recommended_key(
+            {"fixture-codex-target": fake_target},
+            "codex",
+        )
+
+        self.assertEqual(selected.target_id, "fixture-codex-target")
+
     def test_materialized_plugin_has_root_plugin_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             materialized_plugin = self.materialize_plugin_payload(tmp_dir)
@@ -105,6 +449,61 @@ class PluginDistributionContractTests(unittest.TestCase):
             manifest = json.loads((materialized_plugin / "plugin.json").read_text(encoding="utf-8"))
 
         self.assertEqual(manifest, {"name": "qiongli-next"})
+
+    def _write_platform_target_registry(
+        self,
+        root: Path,
+        *,
+        required_paths: list[str],
+        forbidden_paths: list[str],
+        include_release_download: bool = True,
+        release_download: dict[str, object] | None = None,
+        include_adapter: bool = True,
+        adapter: dict[str, object] | None = None,
+        include_smoke: bool = True,
+        smoke: dict[str, object] | None = None,
+    ) -> None:
+        registry = root / "content" / "distribution" / "platform-targets.yaml"
+        registry.parent.mkdir(parents=True)
+        target: dict[str, object] = {
+            "display_name": "Fixture Platform",
+            "artifact_kind": "fixture",
+            "archive_format": "zip",
+            "source_inputs": ["content/workflow/**"],
+            "required_paths": required_paths,
+            "allowed_wrapper_dirs": [],
+            "forbidden_paths": forbidden_paths,
+            "bundled_mcp_mode": "none",
+            "command_surface": "fixture-cli",
+            "validator": "fixture-validator",
+        }
+        if include_adapter:
+            target["adapter"] = adapter or {
+                "kind": "local-plugin",
+                "plugin_manifest_platform": "none",
+                "materializer": "local_plugin_installer",
+            }
+        if include_smoke:
+            target["smoke"] = smoke or {
+                "structural_archive_check": "marketplace_validation",
+                "client_activation_check": "local_install_acceptance",
+            }
+        if include_release_download:
+            target["release_download"] = release_download or {
+                "guide_label": "Fixture Platform",
+                "recommended_key": "fixture",
+                "asset_groups": [],
+            }
+        registry.write_text(
+            json.dumps(
+                {
+                    "schema_version": "1.0",
+                    "targets": {"fixture-target": target},
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
 
     def test_platform_manifests_share_workflow_version(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -273,21 +672,17 @@ class PluginDistributionContractTests(unittest.TestCase):
             with zipfile.ZipFile(artifact_by_name[expected_name]) as archive:
                 names = set(archive.namelist())
                 manifest = json.loads(archive.read(f"{plugin_name}/plugin.json").decode("utf-8"))
-                claude_manifest = json.loads(
-                    archive.read(f"{plugin_name}/.claude-plugin/plugin.json").decode("utf-8")
-                )
                 skill_text = archive.read(f"{plugin_name}/skills/qiongli-workflow/SKILL.md").decode("utf-8")
 
         self.assertEqual(manifest, {"name": plugin_name})
-        self.assertEqual(claude_manifest["skills"], "./skills/")
-        self.assertEqual(claude_manifest["commands"], "./commands/")
-        self.assertNotIn(f"{plugin_name}/.codex-plugin/plugin.json", names)
-        self.assertNotIn(f"{plugin_name}/.mcp.json", names)
         self.assertIn(f"{plugin_name}/.claude-plugin/plugin.json", names)
-        self.assertIn(f"{plugin_name}/commands/qiongli.md", names)
         self.assertIn(f"{plugin_name}/commands/lit-review.md", names)
         self.assertIn(f"{plugin_name}/mcp/qiongli-literature-provider/index.mjs", names)
         self.assertIn(f"{plugin_name}/skills/qiongli-workflow/SKILL.md", names)
+        self.assertIn(f"name: {skill_name}", skill_text)
+        self.assertNotIn(f"{plugin_name}/.codex-plugin/plugin.json", names)
+        self.assertNotIn(f"{plugin_name}/.mcp.json", names)
+        self.assertNotIn(f"{plugin_name}/skills/{skill_name}-lit-review/SKILL.md", names)
         self.assertFalse(
             any(
                 name.startswith(f"{plugin_name}/skills/{skill_name}-")
@@ -296,7 +691,6 @@ class PluginDistributionContractTests(unittest.TestCase):
             ),
             "Claude Desktop direct plugin must not include Codex workflow wrapper skills",
         )
-        self.assertIn(f"name: {skill_name}", skill_text)
 
     def test_marketplace_validator_builds_platform_artifacts_and_checks_invocation(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -365,6 +759,13 @@ class PluginDistributionContractTests(unittest.TestCase):
         self.assertIn("under desktop file budget", result.stdout)
         self.assertIn("invocation checked", result.stdout)
         self.assertIn("bundled literature MCP checked", result.stdout)
+        self.assertIn("[OK] structural archive checks completed", result.stdout)
+        self.assertIn(
+            "[SKIP] client CLI activation checks skipped for targets: "
+            "antigravity-local-plugin, claude-code-marketplace-plugin, codex-marketplace-plugin; "
+            "run scripts/release_local_install_check.py",
+            result.stdout,
+        )
 
 
 if __name__ == "__main__":

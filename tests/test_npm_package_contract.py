@@ -133,6 +133,7 @@ class NpmPackageContractTests(unittest.TestCase):
         self.assertIn('DEFAULT_REPO="jxpeng98/qiongli"', bootstrap_source)
         self.assertIn("--profile <partial|full>", bootstrap_source)
         self._assert_plugin_lite_payload(plugin_payload_root)
+        self._assert_platform_target_registry(package_root)
 
         self.assertTrue((runtime_root / "bridges" / "__init__.py").is_file())
         self.assertTrue((runtime_root / "qiongli" / "bridges" / "orchestrator.py").is_file())
@@ -186,6 +187,24 @@ class NpmPackageContractTests(unittest.TestCase):
                     (target_root / "mcp" / "qiongli-literature-provider").is_dir(),
                     msg=f"expected bundled Node MCP provider in target payload {target_root}",
                 )
+
+    def _assert_platform_target_registry(self, package_root: Path) -> None:
+        target_registry = json.loads(
+            (
+                package_root
+                / "payload"
+                / "content"
+                / "distribution"
+                / "platform-targets.json"
+            ).read_text(encoding="utf-8")
+        )
+        npm_target = target_registry["targets"]["npm-plugin-lite"]
+
+        self.assertEqual(npm_target["target_id"], "npm-plugin-lite")
+        self.assertEqual(npm_target["artifact_kind"], "npm-package")
+        self.assertEqual(npm_target["archive_format"], "npm-tarball")
+        self.assertEqual(npm_target["command_surface"], "npx-cli")
+        self.assertEqual(npm_target["validator"], "npm-plugin-lite")
 
     def test_transitional_python_runtime_packaging_resolves_payload_root(self) -> None:
         env = os.environ.copy()

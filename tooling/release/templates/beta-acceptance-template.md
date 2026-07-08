@@ -11,6 +11,8 @@
 - [ ] `python3 -m unittest tests.test_orchestrator_workflows -v`
 - [ ] `./scripts/run_beta_smoke.sh`
 
+{{SUBJECT_RUNTIME_EVIDENCE}}
+
 ## Publish Actions
 
 - [ ] `./scripts/release_automation.sh publish --tag {{TAG}} ...`

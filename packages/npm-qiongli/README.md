@@ -7,7 +7,7 @@
 ```bash
 npm install -g qiongli
 qiongli setup
-qiongli install --target all --surface skills
+qiongli install --target auto --surface skills
 qiongli check --json
 qiongli project init --project-dir .
 qiongli project set-subject finance --project-dir .
@@ -65,12 +65,28 @@ The npm package and the installed workflow assets are separate surfaces:
 
 - `npm install -g qiongli@latest` updates the npm CLI and bundled payload in npm's global package location.
 - `qiongli update`, `qiongli refresh`, and `qiongli upgrade` reapply bundled assets from the current npm package; they do not update the npm package.
-- `qiongli install --target all` installs the stable skills surface used across projects. Plugin-lite output is opt-in with `--surface plugin` or `--surface both` where bundled and supported.
+- `qiongli install --target auto` detects supported client CLIs on `PATH` and installs only those client surfaces. Use `--target all` when you explicitly want every supported platform path. Plugin-lite output is opt-in with `--surface plugin` or `--surface both` where bundled and supported.
 - `qiongli project init --project-dir .` creates `.qiongli/guidance_manifest.yaml` for a project.
 - `qiongli project set-subject finance --project-dir .` changes ordinary project subject behavior without reinstalling a package.
 - Missing `.qiongli/guidance_manifest.yaml` means implicit `active_subject: auto`: Qiongli uses core guidance, infers temporary subject or method lenses from the task, and writes auditable proposals before changing project-local state.
 - `qiongli remove --target all` removes CLI-installed global workflow assets and generated discovery links while preserving marketplace plugins and unmanaged user files.
 - Project directories are not required for normal install or upgrade. Use project paths only for commands that inspect or clean a specific project, such as `qiongli doctor --cwd .` or `qiongli clean --project-dir .`.
+
+## Subject lifecycle controls
+
+The npm package can inspect and edit the lightweight `qiongli project ...`
+manifest, but subject lifecycle controls live in the full runtime: `pipx install qiongli`.
+
+```bash
+pipx install qiongli
+qiongli subject confirm finance --cwd .
+qiongli subject confirm finance --cwd . --propose-only --json
+```
+
+MCP clients that need `qiongli_subject_status` or `qiongli_subject_update`
+should use the full runtime server. Read-only clients can call
+`qiongli_subject_update` with `read_only: true` to export a proposed action
+without writing `.qiongli` project files.
 
 Advanced compatibility, Desktop ZIP, focused package, release payload, and install-surface testing examples:
 

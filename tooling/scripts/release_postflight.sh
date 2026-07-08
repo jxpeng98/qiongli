@@ -18,6 +18,8 @@ CI_TIMEOUT_MODE="hard"
 CI_POLL_INTERVAL_SECONDS=30
 TEMP_RELEASE_NOTES=""
 POSTFLIGHT_STAGING_DIR=""
+ACCEPTANCE_EVIDENCE_FILE=""
+UPLOAD_ASSETS_FILE=""
 
 cleanup() {
   if [[ -n "$TEMP_RELEASE_NOTES" && -f "$TEMP_RELEASE_NOTES" ]]; then
@@ -25,6 +27,12 @@ cleanup() {
   fi
   if [[ -n "$POSTFLIGHT_STAGING_DIR" && -d "$POSTFLIGHT_STAGING_DIR" ]]; then
     rm -rf "$POSTFLIGHT_STAGING_DIR"
+  fi
+  if [[ -n "$ACCEPTANCE_EVIDENCE_FILE" && -f "$ACCEPTANCE_EVIDENCE_FILE" ]]; then
+    rm -f "$ACCEPTANCE_EVIDENCE_FILE"
+  fi
+  if [[ -n "$UPLOAD_ASSETS_FILE" && -f "$UPLOAD_ASSETS_FILE" ]]; then
+    rm -f "$UPLOAD_ASSETS_FILE"
   fi
 }
 
@@ -525,65 +533,12 @@ else
 fi
 
 python3 scripts/build_plugin_artifacts.py --root "$POSTFLIGHT_STAGING_DIR" --tag "$TAG" --dist-dir dist
-MCPB_ARTIFACT="$(python3 scripts/build_literature_mcpb.py --dist-dir dist | tail -n 1)"
-ZOTERO_COMPANION_ARTIFACT="$(python3 scripts/build_zotero_companion.py --dist-dir dist | tail -n 1)"
+python3 scripts/build_literature_mcpb.py --dist-dir dist >/dev/null
+python3 scripts/build_zotero_companion.py --dist-dir dist >/dev/null
 python3 scripts/generate_release_downloads.py --tag "$TAG" --out-dir dist
-if [[ "${TAG#v}" == *-* ]]; then
-  PLUGIN_ARTIFACTS=(
-    "dist/qiongli-next-codex-plugin-${TAG}.tar.gz"
-    "dist/qiongli-next-claude-plugin-${TAG}.tar.gz"
-    "dist/qiongli-next-claude-plugin-${TAG}.zip"
-    "dist/qiongli-next-claude-desktop-plugin-${TAG}.zip"
-    "dist/qiongli-next-claude-desktop-skill-core-${TAG}.zip"
-    "$MCPB_ARTIFACT"
-    "$ZOTERO_COMPANION_ARTIFACT"
-    "dist/qiongli-downloads-${TAG}.md"
-    "dist/qiongli-downloads-${TAG}.json"
-  )
-else
-  PLUGIN_ARTIFACTS=(
-    "dist/qiongli-codex-plugin-${TAG}.tar.gz"
-    "dist/qiongli-claude-plugin-${TAG}.tar.gz"
-    "dist/qiongli-claude-plugin-${TAG}.zip"
-    "dist/qiongli-claude-desktop-plugin-${TAG}.zip"
-    "dist/qiongli-core-codex-plugin-${TAG}.tar.gz"
-    "dist/qiongli-core-claude-plugin-${TAG}.tar.gz"
-    "dist/qiongli-core-claude-plugin-${TAG}.zip"
-    "dist/qiongli-economics-codex-plugin-${TAG}.tar.gz"
-    "dist/qiongli-economics-claude-plugin-${TAG}.tar.gz"
-    "dist/qiongli-economics-claude-plugin-${TAG}.zip"
-    "dist/qiongli-accounting-codex-plugin-${TAG}.tar.gz"
-    "dist/qiongli-accounting-claude-plugin-${TAG}.tar.gz"
-    "dist/qiongli-accounting-claude-plugin-${TAG}.zip"
-    "dist/qiongli-business-codex-plugin-${TAG}.tar.gz"
-    "dist/qiongli-business-claude-plugin-${TAG}.tar.gz"
-    "dist/qiongli-business-claude-plugin-${TAG}.zip"
-    "dist/qiongli-finance-codex-plugin-${TAG}.tar.gz"
-    "dist/qiongli-finance-claude-plugin-${TAG}.tar.gz"
-    "dist/qiongli-finance-claude-plugin-${TAG}.zip"
-    "dist/qiongli-political-economy-codex-plugin-${TAG}.tar.gz"
-    "dist/qiongli-political-economy-claude-plugin-${TAG}.tar.gz"
-    "dist/qiongli-political-economy-claude-plugin-${TAG}.zip"
-    "dist/qiongli-geoeconomics-codex-plugin-${TAG}.tar.gz"
-    "dist/qiongli-geoeconomics-claude-plugin-${TAG}.tar.gz"
-    "dist/qiongli-geoeconomics-claude-plugin-${TAG}.zip"
-    "dist/qiongli-economics-accounting-codex-plugin-${TAG}.tar.gz"
-    "dist/qiongli-economics-accounting-claude-plugin-${TAG}.tar.gz"
-    "dist/qiongli-economics-accounting-claude-plugin-${TAG}.zip"
-    "dist/qiongli-claude-desktop-skill-core-${TAG}.zip"
-    "dist/qiongli-claude-desktop-skill-economics-${TAG}.zip"
-    "dist/qiongli-claude-desktop-skill-business-${TAG}.zip"
-    "dist/qiongli-claude-desktop-skill-finance-${TAG}.zip"
-    "dist/qiongli-claude-desktop-skill-political-economy-${TAG}.zip"
-    "dist/qiongli-claude-desktop-skill-geoeconomics-${TAG}.zip"
-    "dist/qiongli-claude-desktop-skill-economics-accounting-${TAG}.zip"
-    "dist/qiongli-claude-desktop-skill-${TAG}.zip"
-    "$MCPB_ARTIFACT"
-    "$ZOTERO_COMPANION_ARTIFACT"
-    "dist/qiongli-downloads-${TAG}.md"
-    "dist/qiongli-downloads-${TAG}.json"
-  )
-fi
+UPLOAD_ASSETS_FILE="$(mktemp -t qiongli-upload-assets.XXXXXX.txt)"
+python3 scripts/release_upload_assets.py --tag "$TAG" --dist-dir dist >"$UPLOAD_ASSETS_FILE"
+mapfile -t PLUGIN_ARTIFACTS <"$UPLOAD_ASSETS_FILE"
 
 publish_codex_dist_ref "$TAG"
 
@@ -661,18 +616,25 @@ if [[ -z "$ACCEPTANCE_OUT" ]]; then
 fi
 mkdir -p "$(dirname "$ACCEPTANCE_OUT")"
 
+ACCEPTANCE_EVIDENCE_FILE="$(mktemp -t qiongli-acceptance-evidence.XXXXXX.md)"
+python3 scripts/release_acceptance_evidence.py --root "$ROOT_DIR" --out "$ACCEPTANCE_EVIDENCE_FILE"
+
 RELEASE_DATE="$(date +%F)"
-python3 - "$TEMPLATE_PATH" "$ACCEPTANCE_OUT" "$TAG" "$RELEASE_DATE" "$LOCAL_TAG_COMMIT" "$CI_STATUS" <<'PY'
+python3 - "$TEMPLATE_PATH" "$ACCEPTANCE_OUT" "$TAG" "$RELEASE_DATE" "$LOCAL_TAG_COMMIT" "$CI_STATUS" "$ACCEPTANCE_EVIDENCE_FILE" <<'PY'
+from pathlib import Path
 import sys
 
-template_path, out_path, tag, date, commit, ci_status = sys.argv[1:]
+template_path, out_path, tag, date, commit, ci_status, evidence_path = sys.argv[1:]
 with open(template_path, "r", encoding="utf-8") as f:
     content = f.read()
+evidence = Path(evidence_path)
+subject_runtime_evidence = evidence.read_text(encoding="utf-8")
 content = (
     content.replace("{{TAG}}", tag)
     .replace("{{DATE}}", date)
     .replace("{{COMMIT}}", commit)
     .replace("{{CI_STATUS}}", ci_status)
+    .replace("{{SUBJECT_RUNTIME_EVIDENCE}}", subject_runtime_evidence)
 )
 with open(out_path, "w", encoding="utf-8") as f:
     f.write(content)

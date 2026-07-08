@@ -1,0 +1,84 @@
+{
+  "id": "economics_accounting_mixed_accounting_economics_bridge",
+  "subject_under_test": "economics-accounting",
+  "tags": [
+    "economics-accounting",
+    "mixed_subject"
+  ],
+  "description": "Mixed accounting-economics bridge request stays composite under the eval-ready gate.",
+  "request": "Prepare a Review of Accounting Studies paper around a cross-disciplinary contribution: use fiscal-window alignment, a reporting mandate sample, source-item mapping, an accounting construct with identifying variation, and a measurement-validity and variation standard.",
+  "manifest": {
+    "active_subject": "auto",
+    "subject_mode": "auto",
+    "secondary_subjects": [],
+    "venue_profiles": [],
+    "method_lenses": [],
+    "strictness": "standard"
+  },
+  "expected": {
+    "decision": "recommend",
+    "primary_subject": "economics-accounting",
+    "suggest_subjects": [
+      "economics-accounting"
+    ],
+    "allowed_neighbor_subjects": [
+      "accounting",
+      "economics"
+    ],
+    "forbidden_subjects": [],
+    "method_lenses": [
+      "fiscal-window-alignment",
+      "economics-accounting-positioning"
+    ]
+  },
+  "gate_expected": {
+    "eval-ready": {
+      "decision": "recommend",
+      "primary_subject": "economics-accounting",
+      "suggest_subjects": [
+        "economics-accounting"
+      ],
+      "allowed_neighbor_subjects": [
+        "accounting",
+        "economics"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "fiscal-window-alignment",
+        "economics-accounting-positioning"
+      ]
+    },
+    "promotion-ready": {
+      "decision": "recommend",
+      "primary_subject": "economics-accounting",
+      "suggest_subjects": [
+        "economics-accounting"
+      ],
+      "allowed_neighbor_subjects": [
+        "accounting",
+        "economics"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "fiscal-window-alignment",
+        "economics-accounting-positioning"
+      ]
+    },
+    "runtime-enabled": {
+      "decision": "recommend",
+      "primary_subject": "economics-accounting",
+      "suggest_subjects": [
+        "economics-accounting"
+      ],
+      "allowed_neighbor_subjects": [
+        "accounting",
+        "economics"
+      ],
+      "forbidden_subjects": [],
+      "method_lenses": [
+        "fiscal-window-alignment",
+        "economics-accounting-positioning"
+      ]
+    }
+  }
+}

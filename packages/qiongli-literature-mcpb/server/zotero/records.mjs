@@ -35,7 +35,8 @@ export function normalizeReferenceRecord(record = {}) {
     tags: normalizeStringList(record.tags),
     citekey: cleanString(record.citekey ?? record.id),
     verification: clonePlainObject(record.verification),
-    review_status: cleanString(record.review_status)
+    review_status: cleanString(record.review_status),
+    qiongli_notes: normalizeRecordNotes(record)
   };
   normalized.citekey = normalized.citekey || generateCitekey(normalized);
   return normalized;
@@ -84,7 +85,8 @@ export function mapRecordToZoteroItem(record = {}, options = {}) {
     publicationTitle: itemType === "journalArticle" ? normalized.venue : "",
     conferenceName: itemType === "conferencePaper" ? normalized.venue : "",
     extra: provenanceExtra(normalized),
-    tags: mapTags(normalized, options.tags, options)
+    tags: mapTags(normalized, options.tags, options),
+    qiongli_notes: normalized.qiongli_notes
   });
 
   return item;
@@ -174,6 +176,89 @@ function provenanceExtra(record) {
     lines.push(`Qiongli Citekey: ${record.citekey}`);
   }
   return lines.join("\n");
+}
+
+function normalizeRecordNotes(record = {}) {
+  const values = [];
+  collectNoteValues(values, record.qiongli_notes);
+  collectNoteValues(values, record.reading_note);
+  collectNoteValues(values, record.reading_notes);
+  collectNoteValues(values, record.notes);
+  collectNoteValues(values, record.note);
+  return values.map(normalizeRecordNote).filter(Boolean);
+}
+
+function collectNoteValues(values, value) {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectNoteValues(values, item);
+    }
+    return;
+  }
+  if (value !== undefined && value !== null && value !== "") {
+    values.push(value);
+  }
+}
+
+function normalizeRecordNote(value) {
+  if (typeof value === "string") {
+    const text = cleanString(value);
+    return text ? {
+      title: "Qiongli Reading Note",
+      html: `<h2>Qiongli Reading Note</h2><p>${escapeHtml(text)}</p>`
+    } : null;
+  }
+
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const explicitHtml = cleanString(value.html);
+  const title = cleanString(value.title) || "Qiongli Reading Note";
+  if (explicitHtml) {
+    return { title, html: explicitHtml };
+  }
+
+  const sections = [
+    noteSection("Summary", value.summary),
+    noteSection("Key findings", value.key_findings ?? value.keyFindings),
+    noteSection("Limitations", value.limitations),
+    noteSection("Evidence limit", value.evidence_limit ?? value.evidenceLimit),
+    noteSection("Review status", value.review_status ?? value.reviewStatus),
+    noteSection("Screening decision", value.screening_decision ?? value.screeningDecision),
+    noteSection("Source anchor", value.source_anchor ?? value.sourceAnchor)
+  ].filter(Boolean);
+
+  const freeText = cleanString(value.text ?? value.note);
+  if (freeText) {
+    sections.push(`<p>${escapeHtml(freeText)}</p>`);
+  }
+
+  return sections.length > 0 ? {
+    title,
+    html: `<h2>${escapeHtml(title)}</h2>${sections.join("")}`
+  } : null;
+}
+
+function noteSection(label, value) {
+  if (Array.isArray(value)) {
+    const items = value.map(cleanString).filter(Boolean);
+    if (items.length === 0) {
+      return "";
+    }
+    return `<p><strong>${escapeHtml(label)}:</strong></p><ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
+  }
+
+  const cleaned = cleanString(value);
+  return cleaned ? `<p><strong>${escapeHtml(label)}:</strong> ${escapeHtml(cleaned)}</p>` : "";
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function normalizeAuthors(value) {
