@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::config::provider_config::{normalize_key, save_provider_value, summary};
+use crate::providers::search::{empty_search_output, SearchInput};
 use crate::searchplan::{build_search_plan, SearchPlanInput};
 use crate::tools::definitions::lite_tool_definitions;
 
@@ -83,6 +84,7 @@ impl McpServer {
             "qiongli_save_provider_config" => self.save_provider_config(id, &arguments),
             "qiongli_literature_status" => self.literature_status(id),
             "qiongli_search_plan" => self.search_plan(id, &arguments),
+            "qiongli_literature_search" => self.literature_search(id, &arguments),
             _ => self.error(id, -32601, format!("Tool not found: {name}")),
         }
     }
@@ -159,6 +161,49 @@ impl McpServer {
             native_search_usable,
         });
         self.tool_result(id, json!(plan))
+    }
+
+    fn literature_search(&self, id: Option<Value>, arguments: &Value) -> Value {
+        let Some(query) = arguments.get("query").and_then(Value::as_str) else {
+            return self.error(id, -32602, "Missing query");
+        };
+        let input = SearchInput {
+            query: query.to_string(),
+            search_mode: arguments
+                .get("search_mode")
+                .and_then(Value::as_str)
+                .map(ToString::to_string),
+            limit: arguments
+                .get("limit")
+                .and_then(Value::as_u64)
+                .map(|value| value as usize),
+            per_provider_limit: arguments
+                .get("per_provider_limit")
+                .and_then(Value::as_u64)
+                .map(|value| value as usize),
+            total_limit: arguments
+                .get("total_limit")
+                .and_then(Value::as_u64)
+                .map(|value| value as usize),
+        };
+        let plan = build_search_plan(SearchPlanInput {
+            query: input.query.clone(),
+            search_mode: input.search_mode.clone(),
+            provider_connected: summary()
+                .map(|status| status.capability_mode == "provider_connected")
+                .unwrap_or(false),
+            native_search_usable: false,
+        });
+        let output = empty_search_output();
+        self.tool_result(
+            id,
+            json!({
+                "status": output.status,
+                "search_plan": plan,
+                "diagnostics": output.diagnostics,
+                "results": output.results
+            }),
+        )
     }
 
     fn result(&self, id: Option<Value>, result: Value) -> Value {

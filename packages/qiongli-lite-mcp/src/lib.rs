@@ -1,4 +1,5 @@
 pub mod config;
 pub mod mcp;
+pub mod providers;
 pub mod searchplan;
 pub mod tools;
