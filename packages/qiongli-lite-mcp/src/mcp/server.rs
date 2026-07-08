@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::config::provider_config::{normalize_key, save_provider_value, summary};
+use crate::searchplan::{build_search_plan, SearchPlanInput};
 use crate::tools::definitions::lite_tool_definitions;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -80,6 +81,8 @@ impl McpServer {
                 Err(error) => self.tool_error(id, error.to_string()),
             },
             "qiongli_save_provider_config" => self.save_provider_config(id, &arguments),
+            "qiongli_literature_status" => self.literature_status(id),
+            "qiongli_search_plan" => self.search_plan(id, &arguments),
             _ => self.error(id, -32601, format!("Tool not found: {name}")),
         }
     }
@@ -110,6 +113,52 @@ impl McpServer {
             ),
             Err(error) => self.tool_error(id, error.to_string()),
         }
+    }
+
+    fn literature_status(&self, id: Option<Value>) -> Value {
+        match summary() {
+            Ok(status) => self.tool_result(
+                id,
+                json!({
+                    "status": status.status,
+                    "capability_mode": status.capability_mode,
+                    "providers": status.providers,
+                    "missing": status.missing,
+                    "provider_capabilities": {
+                        "openalex": ["search", "doi_lookup", "title_lookup"],
+                        "semantic_scholar": ["search", "doi_lookup", "title_lookup"],
+                        "crossref": ["search", "doi_lookup", "title_lookup"],
+                        "pubmed": ["search", "title_lookup"],
+                        "arxiv": ["search", "title_lookup"]
+                    }
+                }),
+            ),
+            Err(error) => self.tool_error(id, error.to_string()),
+        }
+    }
+
+    fn search_plan(&self, id: Option<Value>, arguments: &Value) -> Value {
+        let Some(query) = arguments.get("query").and_then(Value::as_str) else {
+            return self.error(id, -32602, "Missing query");
+        };
+        let search_mode = arguments
+            .get("search_mode")
+            .and_then(Value::as_str)
+            .map(ToString::to_string);
+        let native_search_usable = arguments
+            .get("native_search_usable")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        let provider_connected = summary()
+            .map(|status| status.capability_mode == "provider_connected")
+            .unwrap_or(false);
+        let plan = build_search_plan(SearchPlanInput {
+            query: query.to_string(),
+            search_mode,
+            provider_connected,
+            native_search_usable,
+        });
+        self.tool_result(id, json!(plan))
     }
 
     fn result(&self, id: Option<Value>, result: Value) -> Value {
