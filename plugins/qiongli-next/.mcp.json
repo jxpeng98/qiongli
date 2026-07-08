@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "qiongli-next": {
+      "command": "./bin/qiongli-literature-provider",
+      "args": [
+        "--transport",
+        "stdio"
+      ],
+      "cwd": ".",
+      "startup_timeout_sec": 20,
+      "tool_timeout_sec": 60
+    }
+  }
+}
