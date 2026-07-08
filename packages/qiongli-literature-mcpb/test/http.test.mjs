@@ -50,7 +50,7 @@ test("fetchJsonWithRetry does not retry non-retryable HTTP statuses", async () =
       status: 404,
       headers: new Headers(),
       async json() {
-        return { secret: "do-not-leak" };
+        return { redacted_fixture: "do-not-leak" };
       }
     };
   };

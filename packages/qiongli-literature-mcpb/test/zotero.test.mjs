@@ -314,14 +314,14 @@ test("normalizeZoteroSourceResults sanitizes local attachment URLs", () => {
           attachment_key: "FILEURL",
           filename: "file-url.pdf",
           mime_type: "application/pdf",
-          url: "file:///Users/person/Zotero/storage/FILEURL/file-url.pdf",
+          url: "file:///example-home/person/Zotero/storage/FILEURL/file-url.pdf",
           local_file_available: true
         },
         {
           attachment_key: "UNIXPATH",
           filename: "unix-path.pdf",
           mime_type: "application/pdf",
-          url: "/Users/person/Zotero/storage/UNIXPATH/unix-path.pdf",
+          url: "/example-home/person/Zotero/storage/UNIXPATH/unix-path.pdf",
           local_file_available: true
         },
         {
