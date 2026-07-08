@@ -1,10 +1,10 @@
 # Qiongli Literature Provider MCPB
 
-This package is the Claude Desktop MCPB for Qiongli literature provider access. It contains a zero-dependency Node stdio MCP server, so users do not need to install the `qiongli` CLI or run npm before installing the MCPB.
+This package is the Claude Desktop MCPB for Qiongli literature provider access. Its primary package contains the Rust Lite MCP executable, so users do not need to install Node, Python, the `qiongli` CLI, or run npm before installing the MCPB.
 
 Pair it with a manual Desktop skill ZIP when you are installing Qiongli without Claude Code or Codex plugin marketplaces. Upload a `qiongli-claude-desktop-skill-*.zip` skill first, then install this MCPB when the same Desktop workspace needs literature MCP tools such as `qiongli_literature_search`, `qiongli_config_status`, `qiongli_configure_provider`, and `qiongli_save_provider_config`.
 
-This MCPB does not launch orchestrator agents. If the Desktop or coding client also needs the full CLI MCP server, local agent runtime, or orchestration tools such as `qiongli_orchestrator_route` and `qiongli_task_run`, install the Python or npm Qiongli CLI and configure the full CLI MCP server separately:
+This MCPB does not launch orchestrator agents or execute project tasks. It can return preview-only routing and task-plan responses, but if the Desktop or coding client also needs the full CLI MCP server, local agent runtime, or executable orchestration tools such as `qiongli_task_run`, install the Python or npm Qiongli CLI and configure the full CLI MCP server separately:
 
 For Codex-style desktop clients, use the Codex plugin bundle when available. For Claude Code, Cursor-style clients, or any client that can launch a local stdio MCP command and needs the full Python-backed tool set, use the unified CLI server:
 
@@ -14,7 +14,7 @@ qiongli mcp config example --target codex --json
 qiongli mcp config example --target hermes --json
 ```
 
-The bundled MCPB server and the full CLI MCP server both read the shared provider config. The MCPB also accepts Claude Desktop user configuration values directly from the extension settings.
+The bundled Rust Lite MCP executable and the full CLI MCP server both read the shared provider config. The MCPB also accepts Claude Desktop user configuration values directly from the extension settings.
 
 ## Search Precision
 
@@ -49,26 +49,15 @@ Search responses include `search_plan` and `diagnostics` with raw, deduplicated,
 
 ## Local Zotero Reference Database
 
-The MCPB can use Zotero Desktop as a local reference database through the
-Qiongli Zotero companion extension in `packages/qiongli-zotero-companion/`. This
-does not replace OpenAlex, Semantic Scholar, Crossref, PubMed, or arXiv as discovery
-providers. Qiongli still searches and enriches references, then selected records
-can be dry-run or written into local Zotero.
+The MCPB can generate Zotero import files without Zotero Desktop. Direct local
+Zotero library search and writes still belong to the Qiongli Zotero companion
+extension in `packages/qiongli-zotero-companion/`; the companion remains a
+separate Zotero-side install.
 
 Available tools:
 
 - `qiongli_zotero_status`: checks Zotero Desktop's local connector, the Qiongli
   Zotero companion, and import-file fallback availability.
-- `qiongli_zotero_search`: searches the local Zotero library through the
-  companion by DOI, title, creator, year, tag, or collection path.
-- `qiongli_zotero_upsert_references`: maps normalized Qiongli references to
-  Zotero items, deduplicates by DOI or title/year, defaults to dry run, and
-  writes only when `dry_run: false` is explicit. Pass `collection_path` to save
-  references into a project collection such as `Qiongli/platform-governance`.
-  If no collection path is configured, `project_title`, `research_title`, or
-  `topic` can derive a `Qiongli/<keywords>` collection path. Per-record
-  `reading_note`, `reading_notes`, `notes`, or structured `note` fields are
-  written as Zotero child notes when local writes are explicit.
 - `qiongli_zotero_export_import_files`: generates `references.json`,
   `references.ris`, `bibliography.bib`, and `zotero-import-report.md` without
   contacting Zotero.
@@ -82,12 +71,6 @@ records can include `local_zotero_match` when the DOI or title/year already
 exists in Zotero.
 
 ### Crossref verification before Zotero writes
-
-DOI-bearing imports use Crossref DOI registry metadata by default to fill blank
-fields before writing to Zotero. Crossref metadata is not human verification, so
-new or updated items still receive `qiongli:needs-review`. Conflicts between
-incoming metadata and Crossref registry metadata add `qiongli:metadata-conflict`
-and are returned in `verification.crossref.conflicts`.
 
 Local mode uses the loopback connector URL `http://127.0.0.1:23119` by default.
 Non-loopback connector URLs are rejected. If Zotero Desktop or the companion is
@@ -104,18 +87,20 @@ Build or package this directory as a Claude Desktop `.mcpb` extension, then inst
 - NCBI / PubMed API key
 - Default result limit
 
-Claude Desktop injects these values into the local Node MCP server environment when the extension runs. The server can also open a local setup page through `qiongli_configure_provider` or save explicit provider values through `qiongli_save_provider_config` into the shared local provider config. `qiongli_open_config_wizard` remains as a compatibility alias for older instructions. Do not store provider credentials in the Qiongli Desktop skill ZIP or commit local secrets into this package.
+Claude Desktop injects these values into the local Rust Lite MCP process environment when the extension runs. The server can also save explicit provider values through `qiongli_save_provider_config` into the shared local provider config. `qiongli_open_config_wizard` remains as a compatibility alias for older instructions. Do not store provider credentials in the Qiongli Desktop skill ZIP or commit local secrets into this package.
 
 ## Development
 
-Run the syntax check:
+Build the primary MCPB:
 
 ```bash
-npm --prefix packages/qiongli-literature-mcpb test
+python3 scripts/build_literature_mcpb.py --dist-dir dist
 ```
 
-Start the stdio server:
+The legacy Node reference server is retained for one release train and can be
+packaged explicitly when needed:
 
 ```bash
-npm --prefix packages/qiongli-literature-mcpb start
+python3 scripts/build_literature_mcpb.py --dist-dir dist --legacy-node
+npm --prefix packages/qiongli-literature-mcpb test
 ```

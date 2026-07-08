@@ -26,8 +26,8 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
         self.assertIn("Qiongli academic literature provider", manifest["description"])
         self.assertEqual(manifest["author"], EXPECTED_AUTHOR)
         self.assertEqual(manifest["license"], EXPECTED_LICENSE)
-        self.assertEqual(manifest["server"]["type"], "node")
-        self.assertEqual(manifest["server"]["entry_point"], "server/index.mjs")
+        self.assertEqual(manifest["server"]["type"], "stdio")
+        self.assertEqual(manifest["server"]["entry_point"], "bin/qiongli-literature-provider")
         self.assertIs(manifest["user_config"]["openalex_api_key"]["sensitive"], True)
         self.assertIs(manifest["user_config"]["semantic_scholar_api_key"]["sensitive"], True)
         self.assertEqual(manifest["user_config"]["openalex_email"]["type"], "string")
@@ -41,30 +41,23 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
 
     def test_literature_mcpb_manifest_server_entry_exists(self) -> None:
         manifest = json.loads((PACKAGE_ROOT / "manifest.json").read_text(encoding="utf-8"))
-        server_entry = PACKAGE_ROOT / manifest["server"]["entry_point"]
+        server_entry = Path(manifest["server"]["entry_point"])
 
-        self.assertTrue(server_entry.is_file())
+        self.assertFalse(server_entry.is_absolute())
+        self.assertNotIn("..", server_entry.parts)
 
     def test_literature_mcpb_manifest_declares_expected_tools(self) -> None:
         manifest = json.loads((PACKAGE_ROOT / "manifest.json").read_text(encoding="utf-8"))
+        contract = json.loads(
+            (REPO_ROOT / "content" / "mcp-contracts" / "lite-tools.json").read_text(
+                encoding="utf-8"
+            )
+        )
         tool_names = [tool["name"] for tool in manifest["tools"]]
 
         self.assertEqual(
             tool_names,
-            [
-                "qiongli_literature_status",
-                "qiongli_search_plan",
-                "qiongli_config_status",
-                "qiongli_configure_provider",
-                "qiongli_save_provider_config",
-                "qiongli_open_config_wizard",
-                "qiongli_literature_search",
-                "qiongli_literature_export_evidence",
-                "qiongli_zotero_status",
-                "qiongli_zotero_search",
-                "qiongli_zotero_upsert_references",
-                "qiongli_zotero_export_import_files",
-            ],
+            [tool["name"] for tool in contract["tools"]],
         )
         self.assertEqual(
             tool_names.index("qiongli_search_plan"),
@@ -84,7 +77,7 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
         self.assertEqual(package["homepage"], EXPECTED_REPOSITORY)
         self.assertEqual(package["repository"]["url"], f"git+{EXPECTED_REPOSITORY}.git")
         self.assertEqual(package["license"], EXPECTED_LICENSE)
-        self.assertEqual(package["scripts"]["start"], "node server/index.mjs")
+        self.assertEqual(package["scripts"]["legacy:start"], "node server/index.mjs")
         self.assertEqual(package.get("dependencies", {}), {})
 
     def test_literature_mcpb_server_info_version_matches_manifest(self) -> None:
@@ -93,14 +86,14 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
 
         self.assertIn(f'version: "{manifest["version"]}"', server_index)
 
-    def test_literature_mcpb_runs_without_qiongli_cli_or_npm_install(self) -> None:
+    def test_literature_mcpb_uses_self_contained_runtime(self) -> None:
         manifest = json.loads((PACKAGE_ROOT / "manifest.json").read_text(encoding="utf-8"))
-        package = json.loads((PACKAGE_ROOT / "package.json").read_text(encoding="utf-8"))
-        server_index = (PACKAGE_ROOT / "server" / "index.mjs").read_text(encoding="utf-8")
 
         mcp_config = manifest["server"]["mcp_config"]
         serialized_manifest = json.dumps(manifest)
-        self.assertEqual(mcp_config["command"], "node")
+        self.assertNotEqual(mcp_config["command"], "node")
+        self.assertIn("qiongli-literature-provider", mcp_config["command"])
+        self.assertEqual(mcp_config["args"], ["--transport", "stdio"])
         self.assertEqual(
             mcp_config["env"]["QIONGLI_MCPB_OPENALEX_API_KEY"],
             "${user_config.openalex_api_key}",
@@ -110,9 +103,8 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
             "${user_config.zotero_connector_url}",
         )
         self.assertNotIn("qiongli mcp", serialized_manifest)
-        self.assertNotIn("qiongli", mcp_config["command"])
-        self.assertEqual(package.get("dependencies", {}), {})
-        self.assertNotIn("@modelcontextprotocol/sdk", server_index)
+        self.assertNotEqual(mcp_config["command"], "qiongli")
+        self.assertNotIn("server/index.mjs", serialized_manifest)
 
     def test_literature_mcpb_readme_explains_manual_skill_pairing_boundaries(self) -> None:
         readme = (PACKAGE_ROOT / "README.md").read_text(encoding="utf-8")
@@ -120,6 +112,7 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
         self.assertIn("manual Desktop skill ZIP", readme)
         self.assertIn("qiongli-claude-desktop-skill", readme)
         self.assertIn("literature MCP tools", readme)
+        self.assertIn("Rust Lite MCP executable", readme)
         self.assertIn("full CLI MCP", readme)
         self.assertIn("qiongli_task_run", readme)
         self.assertIn("does not launch orchestrator agents", readme)
@@ -143,29 +136,9 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
                 names = set(zf.namelist())
 
         self.assertIn("manifest.json", names)
-        self.assertIn("package.json", names)
         self.assertIn("README.md", names)
-        self.assertIn("server/index.mjs", names)
-        self.assertIn("server/config.mjs", names)
-        self.assertIn("server/config-wizard.mjs", names)
-        self.assertIn("server/capabilities.mjs", names)
-        self.assertIn("server/diagnostics.mjs", names)
-        self.assertIn("server/domain-profiles.mjs", names)
-        self.assertIn("server/query.mjs", names)
-        self.assertIn("server/search-plan.mjs", names)
-        self.assertIn("server/stdio.mjs", names)
-        self.assertIn("server/providers/http.mjs", names)
-        self.assertIn("server/providers/arxiv.mjs", names)
-        self.assertIn("server/providers/crossref.mjs", names)
-        self.assertIn("server/providers/pubmed.mjs", names)
-        self.assertIn("server/zotero/config.mjs", names)
-        self.assertIn("server/zotero/records.mjs", names)
-        self.assertIn("server/zotero/exporters.mjs", names)
-        self.assertIn("server/zotero/client.mjs", names)
-        self.assertIn("server/zotero/tools.mjs", names)
-        self.assertIn("server/zotero/search-source.mjs", names)
-        self.assertIn("server/zotero/crossref-verifier.mjs", names)
-        self.assertIn("server/zotero/review-tags.mjs", names)
+        self.assertIn("bin/qiongli-literature-provider", names)
+        self.assertFalse(any(name.startswith("server/") for name in names))
 
     def test_build_literature_mcpb_excludes_tests(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

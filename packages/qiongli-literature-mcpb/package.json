@@ -16,7 +16,7 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "start": "node server/index.mjs"
+    "legacy:start": "node server/index.mjs"
   },
   "dependencies": {},
   "devDependencies": {},
