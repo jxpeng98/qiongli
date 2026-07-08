@@ -23,6 +23,8 @@ class LiteMCPContractTests(unittest.TestCase):
                     '{"jsonrpc":"2.0","id":1,"method":"initialize",'
                     '"params":{"protocolVersion":"2025-11-25"}}\n'
                     '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}\n'
+                    '{"jsonrpc":"2.0","id":3,"method":"tools/call",'
+                    '"params":{"name":"qiongli_literature_status","arguments":{}}}\n'
                 ),
                 text=True,
                 capture_output=True,
@@ -39,6 +41,7 @@ class LiteMCPContractTests(unittest.TestCase):
         self.assertIn("qiongli_literature_status", names)
         self.assertIn("qiongli_literature_search", names)
         self.assertIn("qiongli_zotero_export_import_files", names)
+        self.assertEqual(lines[2]["result"]["structuredContent"]["status"], "ok")
 
     def test_binary_config_status_does_not_leak_saved_secret(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

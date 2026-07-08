@@ -31,6 +31,15 @@ class MCPContractFixtureTests(unittest.TestCase):
             }.issubset(names)
         )
 
+    def test_lite_tools_contract_has_unique_described_tools(self) -> None:
+        tools = json.loads((CONTRACT_ROOT / "lite-tools.json").read_text(encoding="utf-8"))
+        names = [tool["name"] for tool in tools["tools"]]
+
+        self.assertEqual(len(names), len(set(names)))
+        for tool in tools["tools"]:
+            self.assertTrue(tool["description"].strip())
+            self.assertEqual(tool["inputSchema"]["type"], "object")
+
     def test_expected_normalized_results_fixture_has_stable_shape(self) -> None:
         payload = json.loads(
             (CONTRACT_ROOT / "fixtures" / "expected-normalized-results.json").read_text(
@@ -43,4 +52,3 @@ class MCPContractFixtureTests(unittest.TestCase):
         self.assertEqual(first["doi"], "10.1234/example")
         self.assertEqual(first["year"], 2025)
         self.assertEqual(first["providers"], ["openalex"])
-
