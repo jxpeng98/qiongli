@@ -5,6 +5,7 @@ use crate::config::provider_config::{normalize_key, save_provider_value, summary
 use crate::providers::search::{empty_search_output, SearchInput};
 use crate::searchplan::{build_search_plan, SearchPlanInput};
 use crate::tools::definitions::lite_tool_definitions;
+use crate::zotero::export::export_import_files;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct McpRequest {
@@ -85,6 +86,8 @@ impl McpServer {
             "qiongli_literature_status" => self.literature_status(id),
             "qiongli_search_plan" => self.search_plan(id, &arguments),
             "qiongli_literature_search" => self.literature_search(id, &arguments),
+            "qiongli_literature_export_evidence" => self.export_evidence(id, &arguments),
+            "qiongli_zotero_export_import_files" => self.zotero_export_import_files(id, &arguments),
             _ => self.error(id, -32601, format!("Tool not found: {name}")),
         }
     }
@@ -202,6 +205,40 @@ impl McpServer {
                 "search_plan": plan,
                 "diagnostics": output.diagnostics,
                 "results": output.results
+            }),
+        )
+    }
+
+    fn export_evidence(&self, id: Option<Value>, arguments: &Value) -> Value {
+        self.tool_result(
+            id,
+            json!({
+                "status": "ok",
+                "artifact_type": "literature_evidence_snapshot",
+                "query": arguments.get("query").cloned().unwrap_or(Value::Null),
+                "results": arguments.get("results").cloned().unwrap_or_else(|| json!([])),
+                "diagnostics": arguments
+                    .get("diagnostics")
+                    .cloned()
+                    .unwrap_or_else(|| json!({}))
+            }),
+        )
+    }
+
+    fn zotero_export_import_files(&self, id: Option<Value>, arguments: &Value) -> Value {
+        let records = arguments
+            .get("records")
+            .cloned()
+            .unwrap_or_else(|| json!([]));
+        let records = match serde_json::from_value(records) {
+            Ok(records) => records,
+            Err(error) => return self.tool_error(id, error.to_string()),
+        };
+        self.tool_result(
+            id,
+            json!({
+                "status": "ok",
+                "files": export_import_files(records)
             }),
         )
     }
