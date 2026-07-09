@@ -88,6 +88,39 @@ async function createPluginSource(tmp, slug, version, extraSkillText = "") {
   return source;
 }
 
+async function createClaudePluginSource(tmp, slug, version) {
+  const source = path.join(tmp, "claude-source", slug);
+  const skillRoot = path.join(source, "skills", "qiongli-workflow");
+  const manifest = {
+    name: slug,
+    version,
+    description: "Claude plugin test payload",
+    skills: "./skills/",
+    commands: "./commands/",
+    mcpServers: {
+      [slug]: {
+        command: "${CLAUDE_PLUGIN_ROOT}/bin/qiongli-literature-provider",
+        args: ["--transport", "stdio"],
+        cwd: "${CLAUDE_PLUGIN_ROOT}"
+      }
+    }
+  };
+
+  await writeText(
+    path.join(source, ".claude-plugin", "plugin.json"),
+    `${JSON.stringify(manifest, null, 2)}\n`
+  );
+  await writeText(path.join(source, "plugin.json"), `${JSON.stringify({ name: slug }, null, 2)}\n`);
+  await writeText(path.join(source, "bin", "qiongli-literature-provider"), "#!/bin/sh\nexit 0\n");
+  await writeText(path.join(source, "commands", "qiongli.md"), `Load the \`${slug}\` skill.\n`);
+  await writeText(path.join(source, "commands", "paper.md"), `Load the \`${slug}\` skill.\n`);
+  await writeText(path.join(skillRoot, "SKILL.md"), `---\nname: ${slug}\ndescription: test\n---\n`);
+  await writeText(path.join(skillRoot, "VERSION"), `v${version}\n`);
+  await writeText(path.join(skillRoot, "skills", "registry.yaml"), `version: "${version}"\n`);
+
+  return source;
+}
+
 async function runPublisher(repo, args) {
   return execFileAsync("node", [scriptPath, "--repo", repo, ...args], {
     cwd: root,
@@ -128,6 +161,44 @@ test("publishes a plugin payload to an orphan codex version branch", async () =>
   );
 
   const parents = await git(repo, ["rev-list", "--parents", "-n", "1", "refs/heads/codex/v1.2.3"]);
+  assert.equal(parents.stdout.trim().split(/\s+/).length, 1);
+});
+
+test("publishes a Claude plugin payload to an orphan claude version branch", async () => {
+  const { tmp, repo, remote } = await createRepo();
+  const source = await createClaudePluginSource(tmp, "qiongli-next", "1.5.0-beta.1");
+
+  await runPublisher(repo, [
+    "--channel",
+    "claude",
+    "--version",
+    "1.5.0-beta.1",
+    "--slug",
+    "qiongli-next",
+    "--source",
+    source,
+    "--remote",
+    "origin"
+  ]);
+
+  const localManifest = await git(repo, [
+    "show",
+    "refs/heads/claude/v1.5.0-beta.1:plugins/qiongli-next/.claude-plugin/plugin.json"
+  ]);
+  assert.equal(JSON.parse(localManifest.stdout).name, "qiongli-next");
+
+  const remoteManifest = await git(remote, [
+    "show",
+    "refs/heads/claude/v1.5.0-beta.1:plugins/qiongli-next/.claude-plugin/plugin.json"
+  ]);
+  assert.equal(JSON.parse(remoteManifest.stdout).version, "1.5.0-beta.1");
+
+  await assert.rejects(
+    git(repo, ["show", "refs/heads/claude/v1.5.0-beta.1:plugins/qiongli-next/.codex-plugin/plugin.json"]),
+    /does not exist|exists on disk, but not in/
+  );
+
+  const parents = await git(repo, ["rev-list", "--parents", "-n", "1", "refs/heads/claude/v1.5.0-beta.1"]);
   assert.equal(parents.stdout.trim().split(/\s+/).length, 1);
 });
 

@@ -251,23 +251,27 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('.replace("{{SUBJECT_RUNTIME_EVIDENCE}}", subject_runtime_evidence)', content)
         self.assertLess(content.index(evidence), content.index(template_write))
 
-    def test_release_postflight_publishes_codex_dist_refs(self) -> None:
+    def test_release_postflight_publishes_platform_dist_refs(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
 
-        self.assertIn("publish_codex_dist_ref()", content)
+        self.assertIn("publish_plugin_dist_refs()", content)
         self.assertIn('codex_slug="qiongli"', content)
         self.assertIn('codex_slug="qiongli-next"', content)
+        self.assertIn('claude_slug="qiongli"', content)
+        self.assertIn('claude_slug="qiongli-next"', content)
         self.assertIn('node scripts/publish-codex-dist-ref.mjs \\', content)
+        self.assertIn('--channel "$channel" \\', content)
         self.assertIn('--version "${TAG#v}" \\', content)
-        self.assertIn('--slug "$codex_slug" \\', content)
-        self.assertIn('--source "$POSTFLIGHT_STAGING_DIR/plugins/$codex_slug"', content)
-        self.assertIn('publish_codex_dist_ref "$TAG"', content)
+        self.assertIn('--slug "$platform_slug" \\', content)
+        self.assertIn('--source "$platform_source"', content)
+        self.assertIn('! -name "qiongli-workflow"', content)
+        self.assertIn('publish_plugin_dist_refs "$TAG"', content)
         self.assertLess(
             content.index('python3 scripts/build_plugin_artifacts.py --root "$POSTFLIGHT_STAGING_DIR" --tag "$TAG" --dist-dir dist'),
-            content.index('publish_codex_dist_ref "$TAG"'),
+            content.index('publish_plugin_dist_refs "$TAG"'),
         )
         self.assertLess(
-            content.index('publish_codex_dist_ref "$TAG"'),
+            content.index('publish_plugin_dist_refs "$TAG"'),
             content.index('gh release upload "$TAG" --repo "$REPO_SLUG" --clobber "${PLUGIN_ARTIFACTS[@]}"'),
         )
 
@@ -697,6 +701,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('plugins/qiongli/skills/qiongli-workflow/VERSION', content)
         self.assertIn('plugins/qiongli/skills/qiongli-workflow/skills/registry.yaml', content)
         self.assertIn('plugins/qiongli-next/.codex-plugin/plugin.json', content)
+        self.assertIn('plugins/qiongli-next/.claude-plugin/plugin.json', content)
         self.assertIn('plugins/qiongli-next/skills/qiongli-workflow/VERSION', content)
         self.assertIn('plugins/qiongli-next/skills/qiongli-workflow/skills/registry.yaml', content)
         self.assertIn('plugins/qiongli/.claude-plugin/plugin.json', content)

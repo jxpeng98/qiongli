@@ -34,32 +34,48 @@ The `qiongli-next` Codex and Claude Code plugin artifacts install only the `core
 
 This repository does not track stable or beta plugin payload directories. `plugins/qiongli/`, `plugins/qiongli-next/`, `packages/qiongli-plugin/`, and `packages/qiongli-next-plugin/` are generated shapes. Change `content/workflow/`, `content/distribution/plugins.yaml`, or `tooling/scripts/build_plugin_artifacts.py`, then materialize into a staging directory for validation.
 
-## Codex dist refs
+## Platform dist refs
 
-Codex marketplace installs from `jxpeng98/skillsplace` use Git subdirectory sources because Codex cannot install the release `.tar.gz` archive URL as a plugin source. Keep the existing release tag, GitHub Release, PyPI, npm, and Claude artifact flow unchanged, and publish an additional orphan branch ref for Codex:
+Codex and Claude marketplace installs from `jxpeng98/skillsplace` use Git subdirectory sources when the reviewed plugin payload is generated at release time. Keep the existing release tag, GitHub Release, PyPI, npm, and archive artifact flow unchanged, and publish separate orphan branch refs for each platform:
 
 ```text
 refs/heads/codex/v<version>
+refs/heads/claude/v<version>
 ```
 
-Each Codex dist ref must contain only the generated plugin payload tree needed by the marketplace entry:
+## Codex dist refs
+
+Each Codex dist ref must contain only the generated plugin payload tree needed by the Codex marketplace entry:
 
 ```text
 plugins/qiongli/.codex-plugin/plugin.json
 plugins/qiongli-next/.codex-plugin/plugin.json
 ```
 
-The release postflight automatically publishes the Codex dist ref after it materializes the release staging payload and builds the existing plugin artifacts. Stable marketplace installs publish `plugins/qiongli` to `codex/v<stable-version>`; prerelease installs publish `plugins/qiongli-next` to `codex/v<prerelease-version>`.
+Codex refs must not include `.claude-plugin/`; Claude refs carry that metadata separately.
+
+## Claude dist refs
+
+Each Claude dist ref must contain only the generated plugin payload tree needed by the Claude marketplace entry:
+
+```text
+plugins/qiongli/.claude-plugin/plugin.json
+plugins/qiongli-next/.claude-plugin/plugin.json
+```
+
+Claude refs must not include `.codex-plugin/` or `.mcp.json`. The release postflight automatically publishes the platform dist refs after it materializes the release staging payload and builds the existing plugin artifacts. Stable marketplace installs publish `plugins/qiongli` to `codex/v<stable-version>` and `claude/v<stable-version>`; prerelease installs publish `plugins/qiongli-next` to `codex/v<prerelease-version>` and `claude/v<prerelease-version>`.
 
 Use `scripts/publish-codex-dist-ref.mjs` manually only when backfilling an existing release or intentionally repairing a dist ref from a verified staging directory:
 
 ```bash
 python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qiongli-dist --force
-node scripts/publish-codex-dist-ref.mjs --version 1.3.0 --slug qiongli --source /tmp/qiongli-dist/plugins/qiongli
-node scripts/publish-codex-dist-ref.mjs --version 1.5.0-beta.1 --slug qiongli-next --source /tmp/qiongli-dist/plugins/qiongli-next
+node scripts/publish-codex-dist-ref.mjs --channel codex --version 1.3.0 --slug qiongli --source /tmp/qiongli-dist/plugins/qiongli
+node scripts/publish-codex-dist-ref.mjs --channel claude --version 1.3.0 --slug qiongli --source /tmp/qiongli-dist/plugins/qiongli
+node scripts/publish-codex-dist-ref.mjs --channel codex --version 1.5.0-beta.1 --slug qiongli-next --source /tmp/qiongli-dist/plugins/qiongli-next
+node scripts/publish-codex-dist-ref.mjs --channel claude --version 1.5.0-beta.1 --slug qiongli-next --source /tmp/qiongli-dist/plugins/qiongli-next
 ```
 
-The publisher validates the Codex manifest, bundled MCP entrypoint, portable skill package, and version fields before it writes the orphan ref. Re-run with `--force` only when intentionally replacing an existing `codex/v<version>` payload.
+The publisher validates the channel-specific manifest, bundled MCP entrypoint, portable skill package, and version fields before it writes the orphan ref. Re-run with `--force` only when intentionally replacing an existing platform `v<version>` payload.
 
 ## Development Flow
 

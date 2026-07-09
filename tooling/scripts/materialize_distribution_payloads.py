@@ -147,13 +147,13 @@ def materialize_next_plugin_payload(root: Path) -> None:
         if str(import_root) not in sys.path:
             sys.path.insert(0, str(import_root))
     from qiongli.source_layout import RepoLayout
-    from scripts.build_plugin_artifacts import materialize_next_codex_plugin
+    from scripts.build_plugin_artifacts import materialize_next_plugin_package
     from scripts.sync_npm_package_payload import fail_if_symlinks
 
     layout = RepoLayout(root)
     next_plugin_root = layout.next_plugin_package
     print(f"Syncing generated qiongli-next plugin payload: {next_plugin_root}")
-    materialize_next_codex_plugin(root, next_plugin_root, force=True)
+    materialize_next_plugin_package(root, next_plugin_root, force=True)
     fail_if_symlinks(next_plugin_root)
     print("  [ok] qiongli-next plugin payload")
 

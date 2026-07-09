@@ -5,9 +5,8 @@ import path from "node:path";
 import process from "node:process";
 
 const ALLOWED_SLUGS = new Set(["qiongli", "qiongli-next"]);
-const REQUIRED_FILES = [
-  ".codex-plugin/plugin.json",
-  ".mcp.json",
+const ALLOWED_CHANNELS = new Set(["codex", "claude"]);
+const COMMON_REQUIRED_FILES = [
   "bin/qiongli-literature-provider",
   "commands/qiongli.md",
   "commands/paper.md",
@@ -15,12 +14,21 @@ const REQUIRED_FILES = [
   "skills/qiongli-workflow/VERSION",
   "skills/qiongli-workflow/skills/registry.yaml"
 ];
+const REQUIRED_FILES_BY_CHANNEL = {
+  codex: [".codex-plugin/plugin.json", ".mcp.json", ...COMMON_REQUIRED_FILES],
+  claude: ["plugin.json", ".claude-plugin/plugin.json", ...COMMON_REQUIRED_FILES]
+};
+const FORBIDDEN_FILES_BY_CHANNEL = {
+  codex: [".claude-plugin/plugin.json"],
+  claude: [".codex-plugin/plugin.json", ".mcp.json"]
+};
 
 function usage() {
   return `Usage:
   node scripts/publish-codex-dist-ref.mjs --version <version> --slug <qiongli|qiongli-next> --source <plugin-dir> [options]
 
 Options:
+  --channel <name>   Dist ref channel to publish: codex or claude (default: codex)
   --repo <dir>       Git repository used to create/update the dist ref (default: cwd)
   --remote <name>    Remote to push to when pushing is enabled (default: origin)
   --force            Replace an existing different dist ref
@@ -34,6 +42,7 @@ function parseArgs(argv) {
     remote: "origin",
     force: false,
     push: true,
+    channel: "codex",
     version: "",
     slug: "",
     source: ""
@@ -53,7 +62,7 @@ function parseArgs(argv) {
       options.push = false;
       continue;
     }
-    if (["--repo", "--remote", "--version", "--slug", "--source"].includes(arg)) {
+    if (["--channel", "--repo", "--remote", "--version", "--slug", "--source"].includes(arg)) {
       const value = argv[index + 1];
       if (!value || value.startsWith("--")) {
         throw new Error(`missing value for ${arg}`);
@@ -81,6 +90,13 @@ function normalizeSlug(slug) {
     throw new Error(`unsupported slug: ${slug}`);
   }
   return slug;
+}
+
+function normalizeChannel(channel) {
+  if (!ALLOWED_CHANNELS.has(channel)) {
+    throw new Error(`unsupported channel: ${channel}`);
+  }
+  return channel;
 }
 
 async function runGit(repo, args, { input, allowFailure = false, env = {} } = {}) {
@@ -130,17 +146,40 @@ async function assertFile(source, relPath) {
   return filePath;
 }
 
-async function validateSource(source, slug, version) {
+async function pathExists(source, relPath) {
+  try {
+    await lstat(path.join(source, relPath));
+    return true;
+  } catch (error) {
+    if (error && error.code === "ENOENT") {
+      return false;
+    }
+    throw error;
+  }
+}
+
+function expectedMcpServerName(slug) {
+  return slug === "qiongli-next" ? "qiongli-next" : "qiongli";
+}
+
+async function validateSource(source, slug, version, channel) {
   const sourceStat = await lstat(source);
   if (!sourceStat.isDirectory()) {
     throw new Error(`source must be a plugin directory: ${source}`);
   }
 
-  for (const relPath of REQUIRED_FILES) {
+  for (const relPath of REQUIRED_FILES_BY_CHANNEL[channel]) {
     await assertFile(source, relPath);
   }
 
-  const manifest = await readJson(path.join(source, ".codex-plugin", "plugin.json"));
+  for (const relPath of FORBIDDEN_FILES_BY_CHANNEL[channel]) {
+    if (await pathExists(source, relPath)) {
+      throw new Error(`${channel} dist source must not include ${relPath}`);
+    }
+  }
+
+  const manifestDir = channel === "codex" ? ".codex-plugin" : ".claude-plugin";
+  const manifest = await readJson(path.join(source, manifestDir, "plugin.json"));
   if (manifest.name !== slug) {
     throw new Error(`manifest name mismatch: expected ${slug}, found ${manifest.name}`);
   }
@@ -150,8 +189,22 @@ async function validateSource(source, slug, version) {
   if (manifest.skills !== "./skills/") {
     throw new Error(`manifest skills must be ./skills/, found ${manifest.skills}`);
   }
-  if (manifest.mcpServers !== "./.mcp.json") {
+  if (channel === "codex" && manifest.mcpServers !== "./.mcp.json") {
     throw new Error(`manifest mcpServers must be ./.mcp.json, found ${manifest.mcpServers}`);
+  }
+  if (channel === "claude") {
+    if (manifest.commands !== "./commands/") {
+      throw new Error(`manifest commands must be ./commands/, found ${manifest.commands}`);
+    }
+    const serverName = expectedMcpServerName(slug);
+    const server = manifest.mcpServers?.[serverName];
+    if (!server) {
+      throw new Error(`manifest missing mcpServers.${serverName}`);
+    }
+    const expectedCommand = "${CLAUDE_PLUGIN_ROOT}/bin/qiongli-literature-provider";
+    if (server.command !== expectedCommand) {
+      throw new Error(`manifest mcpServers.${serverName}.command must be ${expectedCommand}, found ${server.command}`);
+    }
   }
 
   const skillVersion = (await readFile(path.join(source, "skills", "qiongli-workflow", "VERSION"), "utf8")).trim();
@@ -242,9 +295,9 @@ async function sourceCommit(repo) {
   return result.code === 0 ? result.stdout.trim() : "unknown";
 }
 
-async function commitTree(repo, tree, refName, slug, version) {
+async function commitTree(repo, tree, refName, channel, slug, version) {
   const commitMessage = [
-    `Publish Codex dist ref ${refName} for ${slug}`,
+    `Publish ${channel} dist ref ${refName} for ${slug}`,
     "",
     `Version: ${version}`,
     `Source: ${await sourceCommit(repo)}`
@@ -265,11 +318,12 @@ async function publish(options) {
   const repo = path.resolve(options.repo);
   const source = path.resolve(options.source);
   const slug = normalizeSlug(options.slug);
+  const channel = normalizeChannel(options.channel);
   const version = normalizeVersion(options.version);
-  const refName = `codex/v${version}`;
+  const refName = `${channel}/v${version}`;
   const fullRef = `refs/heads/${refName}`;
 
-  await validateSource(source, slug, version);
+  await validateSource(source, slug, version, channel);
   if (options.push) {
     await syncRemoteRef(repo, options.remote, refName);
   }
@@ -285,7 +339,7 @@ async function publish(options) {
     commit = (await runGit(repo, ["rev-parse", "--verify", fullRef])).stdout.trim();
     console.log(`[codex-dist-ref] ${refName} already matches ${slug}@${version}`);
   } else {
-    commit = await commitTree(repo, newTree, refName, slug, version);
+    commit = await commitTree(repo, newTree, refName, channel, slug, version);
     await runGit(repo, ["update-ref", "-m", `publish ${refName}`, fullRef, commit]);
     console.log(`[codex-dist-ref] updated ${fullRef} -> ${commit}`);
   }

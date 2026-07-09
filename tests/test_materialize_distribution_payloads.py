@@ -162,6 +162,7 @@ class DistributionMaterializerTests(unittest.TestCase):
             self.assertTrue((out / "plugins/qiongli/skills/qiongli-workflow/SKILL.md").is_file())
             self.assertTrue((out / "plugins/qiongli/skills/qiongli-workflow/skills/registry.yaml").is_file())
             self.assertTrue((out / "plugins/qiongli-next/.codex-plugin/plugin.json").is_file())
+            self.assertTrue((out / "plugins/qiongli-next/.claude-plugin/plugin.json").is_file())
             self.assertTrue((out / "plugins/qiongli-next/.mcp.json").is_file())
             self.assertTrue((out / "plugins/qiongli-next/skills/qiongli-workflow/SKILL.md").is_file())
             self.assertTrue((out / "qiongli-workflow/skills/registry.yaml").is_file())

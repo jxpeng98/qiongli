@@ -105,9 +105,12 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertIn("Codex dist refs", content)
         self.assertIn("refs/heads/codex/v<version>", content)
         self.assertIn("scripts/publish-codex-dist-ref.mjs", content)
-        self.assertIn("release postflight automatically publishes the Codex dist ref", content)
+        self.assertIn("Claude dist refs", content)
+        self.assertIn("refs/heads/claude/v<version>", content)
+        self.assertIn("release postflight automatically publishes the platform dist refs", content)
         self.assertIn("plugins/qiongli/.codex-plugin/plugin.json", content)
         self.assertIn("plugins/qiongli-next/.codex-plugin/plugin.json", content)
+        self.assertIn("plugins/qiongli-next/.claude-plugin/plugin.json", content)
 
     def test_maintainer_policy_documents_naming_decision(self) -> None:
         content = read("docs/maintainer/naming-policy.md")

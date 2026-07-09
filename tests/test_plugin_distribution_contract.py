@@ -534,6 +534,7 @@ class PluginDistributionContractTests(unittest.TestCase):
             materialized_next = self.materialize_next_plugin_payload(tmp_dir)
             manifest_path = materialized_next / ".codex-plugin" / "plugin.json"
             mcp_manifest_path = materialized_next / ".mcp.json"
+            claude_manifest_path = materialized_next / ".claude-plugin" / "plugin.json"
             skill_root = materialized_next / "skills" / "qiongli-workflow"
 
             validator._assert_manifest(
@@ -562,6 +563,14 @@ class PluginDistributionContractTests(unittest.TestCase):
                 f"v{WORKFLOW_VERSION}",
                 skill_name="qiongli-next",
             )
+            validator._assert_manifest(
+                "claude",
+                claude_manifest_path,
+                WORKFLOW_VERSION,
+                expected_plugin_name="qiongli-next",
+                expected_skill_name="qiongli-next",
+            )
+            validator._assert_bundled_literature_mcp(materialized_next, "claude", mcp_server_name="qiongli-next")
             skill_text = (skill_root / "SKILL.md").read_text(encoding="utf-8")
             self.assertIn(f"Qiongli Next version: v{WORKFLOW_VERSION}", skill_text)
             self.assertIn(f"Installed Qiongli workflow version: `v{WORKFLOW_VERSION}`", skill_text)
@@ -569,7 +578,6 @@ class PluginDistributionContractTests(unittest.TestCase):
             validator._assert_subject_manifest(skill_root, "core", "complete")
             validator._assert_command_invocation(materialized_next, workflow_names, skill_name="qiongli-next")
 
-            self.assertFalse((materialized_next / ".claude-plugin").exists())
             self.assertFalse((materialized_next / "gemini-extension.json").exists())
 
     def test_codex_plugin_materializes_bundled_mcp_manifest(self) -> None:

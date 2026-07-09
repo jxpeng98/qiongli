@@ -284,24 +284,68 @@ PY
   return "$status"
 }
 
-publish_codex_dist_ref() {
-  local tag="$1"
-  local codex_slug="qiongli"
+prepare_platform_dist_source() {
+  local channel="$1"
+  local slug="$2"
+  local source_dir="$3"
+  local out_root="$4"
+  local platform_source="$out_root/$channel/$slug"
 
-  if is_prerelease_tag "$tag"; then
-    codex_slug="qiongli-next"
-  fi
-
-  if [[ ! -d "$POSTFLIGHT_STAGING_DIR/plugins/$codex_slug" ]]; then
-    echo "[postflight] missing Codex dist payload: $POSTFLIGHT_STAGING_DIR/plugins/$codex_slug" >&2
+  if [[ ! -d "$source_dir" ]]; then
+    echo "[postflight] missing $channel dist payload: $source_dir" >&2
     exit 1
   fi
 
-  echo "[postflight] publishing Codex dist ref: codex/${TAG}"
+  mkdir -p "$(dirname "$platform_source")"
+  cp -R "$source_dir" "$platform_source"
+
+  if [[ "$channel" == "codex" ]]; then
+    rm -rf "$platform_source/.claude-plugin"
+  elif [[ "$channel" == "claude" ]]; then
+    rm -rf "$platform_source/.codex-plugin" "$platform_source/.mcp.json"
+    if [[ -d "$platform_source/skills" ]]; then
+      find "$platform_source/skills" -mindepth 1 -maxdepth 1 -type d -name "${slug}-*" ! -name "qiongli-workflow" -exec rm -rf {} +
+    fi
+  else
+    echo "[postflight] unsupported dist ref channel: $channel" >&2
+    exit 1
+  fi
+
+  printf '%s\n' "$platform_source"
+}
+
+publish_platform_dist_ref() {
+  local channel="$1"
+  local platform_slug="$2"
+  local platform_source="$3"
+
+  echo "[postflight] publishing $channel dist ref: $channel/${TAG}"
   node scripts/publish-codex-dist-ref.mjs \
+    --channel "$channel" \
     --version "${TAG#v}" \
-    --slug "$codex_slug" \
-    --source "$POSTFLIGHT_STAGING_DIR/plugins/$codex_slug"
+    --slug "$platform_slug" \
+    --source "$platform_source"
+}
+
+publish_plugin_dist_refs() {
+  local tag="$1"
+  local codex_slug="qiongli"
+  local claude_slug="qiongli"
+  local platform_work_root="$POSTFLIGHT_STAGING_DIR/.platform-dist-refs"
+  local platform_slug platform_source
+
+  if is_prerelease_tag "$tag"; then
+    codex_slug="qiongli-next"
+    claude_slug="qiongli-next"
+  fi
+
+  platform_slug="$codex_slug"
+  platform_source="$(prepare_platform_dist_source codex "$platform_slug" "$POSTFLIGHT_STAGING_DIR/plugins/$platform_slug" "$platform_work_root")"
+  publish_platform_dist_ref codex "$platform_slug" "$platform_source"
+
+  platform_slug="$claude_slug"
+  platform_source="$(prepare_platform_dist_source claude "$platform_slug" "$POSTFLIGHT_STAGING_DIR/plugins/$platform_slug" "$platform_work_root")"
+  publish_platform_dist_ref claude "$platform_slug" "$platform_source"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -540,7 +584,7 @@ UPLOAD_ASSETS_FILE="$(mktemp -t qiongli-upload-assets.XXXXXX.txt)"
 python3 scripts/release_upload_assets.py --tag "$TAG" --dist-dir dist >"$UPLOAD_ASSETS_FILE"
 mapfile -t PLUGIN_ARTIFACTS <"$UPLOAD_ASSETS_FILE"
 
-publish_codex_dist_ref "$TAG"
+publish_plugin_dist_refs "$TAG"
 
 if ! command -v gh >/dev/null 2>&1 || ! gh auth status >/dev/null 2>&1; then
   echo "[postflight] gh auth is required to verify or create the GitHub release page" >&2
