@@ -17,13 +17,23 @@ PROVIDER_FIELDS: dict[str, dict[str, tuple[str, ...]]] = {
         "email": ("QIONGLI_OPENALEX_EMAIL", "OPENALEX_EMAIL", "QIONGLI_MCPB_OPENALEX_EMAIL"),
     },
     "semantic_scholar": {
-        "api_key": ("QIONGLI_SEMANTIC_SCHOLAR_API_KEY", "SEMANTIC_SCHOLAR_API_KEY", "S2_API_KEY"),
+        "api_key": (
+            "QIONGLI_SEMANTIC_SCHOLAR_API_KEY",
+            "SEMANTIC_SCHOLAR_API_KEY",
+            "S2_API_KEY",
+            "QIONGLI_MCPB_SEMANTIC_SCHOLAR_API_KEY",
+        ),
     },
     "crossref": {
-        "email": ("QIONGLI_CROSSREF_EMAIL", "CROSSREF_EMAIL"),
+        "email": ("QIONGLI_CROSSREF_EMAIL", "CROSSREF_EMAIL", "QIONGLI_MCPB_CROSSREF_EMAIL"),
     },
     "pubmed": {
-        "api_key": ("QIONGLI_NCBI_API_KEY", "NCBI_API_KEY", "PUBMED_API_KEY"),
+        "api_key": (
+            "QIONGLI_NCBI_API_KEY",
+            "NCBI_API_KEY",
+            "PUBMED_API_KEY",
+            "QIONGLI_MCPB_PUBMED_API_KEY",
+        ),
     },
     "arxiv": {},
 }

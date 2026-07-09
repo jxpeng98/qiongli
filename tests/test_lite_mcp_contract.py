@@ -70,6 +70,40 @@ class LiteMCPContractTests(unittest.TestCase):
         status = lines[1]["result"]["structuredContent"]
         self.assertEqual(status["providers"]["semantic_scholar"], "configured")
 
+    def test_binary_preserves_content_length_framing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            binary = build_current_platform(REPO_ROOT, root / "build")
+            payload = json.dumps(
+                {
+                    "jsonrpc": "2.0",
+                    "id": 7,
+                    "method": "initialize",
+                    "params": {"protocolVersion": "2025-11-25"},
+                },
+                separators=(",", ":"),
+            ).encode("utf-8")
+            process = subprocess.run(
+                [str(binary), "--transport", "stdio"],
+                input=b"Content-Length: "
+                + str(len(payload)).encode("ascii")
+                + b"\r\n\r\n"
+                + payload,
+                capture_output=True,
+                check=False,
+                timeout=10,
+                env=self._runtime_env(root / "config"),
+            )
+
+        self.assertEqual(process.returncode, 0, msg=process.stderr.decode("utf-8"))
+        header, response_payload = process.stdout.split(b"\r\n\r\n", 1)
+        self.assertTrue(header.startswith(b"Content-Length: "))
+        declared = int(header.split(b":", 1)[1].strip())
+        self.assertEqual(declared, len(response_payload))
+        response = json.loads(response_payload)
+        self.assertEqual(response["id"], 7)
+        self.assertEqual(response["result"]["protocolVersion"], "2025-11-25")
+
     def _runtime_env(self, config_home: Path) -> dict[str, str]:
         env = os.environ.copy()
         env["PATH"] = ""
