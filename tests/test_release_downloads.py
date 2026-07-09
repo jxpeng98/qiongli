@@ -5,11 +5,14 @@ import json
 import subprocess
 import sys
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+with (REPO_ROOT / "pyproject.toml").open("rb") as handle:
+    EXPECTED_PRODUCT_VERSION = tomllib.load(handle)["project"]["version"]
 
 
 def _literature_mcpb_asset_name() -> str:
@@ -340,7 +343,10 @@ class ReleaseDownloadsTests(unittest.TestCase):
 
         self.assertEqual(index["tag"], "v1.1.0-beta.2")
         self.assertEqual(index["channel"], "next")
-        self.assertEqual(index["component_versions"]["product"]["version"], "1.18.0b2")
+        self.assertEqual(
+            index["component_versions"]["product"]["version"],
+            EXPECTED_PRODUCT_VERSION,
+        )
         self.assertEqual(
             index["component_versions"]["lite_mcp"]["version"],
             index["component_versions"]["literature_mcpb"]["version"],
