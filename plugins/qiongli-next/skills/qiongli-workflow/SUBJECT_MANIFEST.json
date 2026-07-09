@@ -1,0 +1,14 @@
+{
+  "adaptive_subject_refinement": {
+    "contract": "standards/subject-refinement-contract.yaml",
+    "default_mode": "auto",
+    "enabled": true,
+    "resource_index": "subjects/catalog.yaml"
+  },
+  "coverage": "complete",
+  "flavor": "full",
+  "layers": [
+    "core"
+  ],
+  "subject": "core"
+}
