@@ -92,9 +92,16 @@ run_warning_stage() {
 cleanup_logs() {
   local status="$?"
   if [[ "$status" -eq 0 ]]; then
-    rm -f "$validator_log" "$unit_log" "$smoke_log" "$eval_log"
+    rm -f "$validator_log" "$unit_log" "$smoke_log" "$eval_log" \
+      "$rust_fmt_log" "$rust_clippy_log" "$rust_test_log" "$rust_build_log"
+    rm -rf "$rust_artifact_dir"
   else
     echo "[preflight] retained logs for failed run:" >&2
+    echo "  Rust fmt: $rust_fmt_log" >&2
+    echo "  Rust clippy: $rust_clippy_log" >&2
+    echo "  Rust tests: $rust_test_log" >&2
+    echo "  Rust release build: $rust_build_log" >&2
+    echo "  Rust current-host artifact: $rust_artifact_dir" >&2
     echo "  validator: $validator_log" >&2
     echo "  unit tests: $unit_log" >&2
     echo "  smoke: $smoke_log" >&2
@@ -115,10 +122,11 @@ Description:
   Run standardized pre-release gates:
     0) prerelease: auto-generate tooling/release/<tag>.md draft
        stable: verify matching CHANGELOG.md section exists
-    1) strict standard validator
-    2) repository unit tests
-    3) release smoke tier (literature pipeline + doctor)
-    4) optional maintainer smoke tier (parallel + task-run profile paths)
+    1) Rust Lite fmt, clippy, tests, and current-host release build
+    2) strict standard validator
+    3) repository unit tests
+    4) release smoke tier (literature pipeline + doctor)
+    5) optional maintainer smoke tier (parallel + task-run profile paths)
 
 Options:
   --tag <tag>     Optional release tag to pre-check. If provided, script verifies
@@ -129,7 +137,8 @@ Options:
   --skip-smoke    Skip smoke test stage.
   --skip-unit-tests  Skip repository unit tests.
   --skip-controller-evals  Skip controller-mode eval warning stage.
-  --quick         Run the lightweight CI gate: validator + package checks only.
+  --quick         Run the CI gate: Rust Lite gates + validator + package checks,
+                  while skipping the broad Python unit, smoke, and controller-eval stages.
   --materialize-out <dir>  Materialize generated payloads into a staging
                   directory and run package validation against that tree.
   --in-place      Materialize generated payloads in the source checkout.
@@ -253,6 +262,34 @@ if [[ -n "$TAG" ]]; then
   fi
 fi
 
+validator_log="$(mktemp -t qiongli-validator.XXXXXX.log)"
+unit_log="$(mktemp -t qiongli-unittest.XXXXXX.log)"
+smoke_log="$(mktemp -t qiongli-smoke.XXXXXX.log)"
+eval_log="$(mktemp -t qiongli-controller-evals.XXXXXX.log)"
+rust_fmt_log="$(mktemp -t qiongli-rust-fmt.XXXXXX.log)"
+rust_clippy_log="$(mktemp -t qiongli-rust-clippy.XXXXXX.log)"
+rust_test_log="$(mktemp -t qiongli-rust-test.XXXXXX.log)"
+rust_build_log="$(mktemp -t qiongli-rust-build.XXXXXX.log)"
+rust_artifact_dir="$(mktemp -d "${TMPDIR:-/tmp}/qiongli-rust-lite-artifact.XXXXXX")"
+trap cleanup_logs EXIT
+
+run_logged_stage \
+  "Rust Lite MCP format" \
+  "$rust_fmt_log" \
+  cargo fmt --manifest-path packages/qiongli-lite-mcp/Cargo.toml -- --check
+run_logged_stage \
+  "Rust Lite MCP clippy" \
+  "$rust_clippy_log" \
+  cargo clippy --locked --manifest-path packages/qiongli-lite-mcp/Cargo.toml --all-targets -- -D warnings
+run_logged_stage \
+  "Rust Lite MCP tests" \
+  "$rust_test_log" \
+  cargo test --locked --manifest-path packages/qiongli-lite-mcp/Cargo.toml --all-targets
+run_logged_stage \
+  "Rust Lite MCP current-host release build" \
+  "$rust_build_log" \
+  python3 tooling/scripts/build_lite_mcp.py --target current --out-dir "$rust_artifact_dir"
+
 echo "[preflight] materialize distribution payloads"
 if [[ "$MATERIALIZE_IN_PLACE" -eq 1 ]]; then
   echo "[preflight] in-place materialization requires explicit --in-place"
@@ -296,12 +333,6 @@ validate_cmd=(python3 scripts/validate_research_standard.py --root "$PREFLIGHT_R
 if [[ "$STRICT_MODE" -eq 1 ]]; then
   validate_cmd+=(--strict)
 fi
-
-validator_log="$(mktemp -t qiongli-validator.XXXXXX.log)"
-unit_log="$(mktemp -t qiongli-unittest.XXXXXX.log)"
-smoke_log="$(mktemp -t qiongli-smoke.XXXXXX.log)"
-eval_log="$(mktemp -t qiongli-controller-evals.XXXXXX.log)"
-trap cleanup_logs EXIT
 
 run_logged_stage "validator" "$validator_log" "${validate_cmd[@]}"
 validator_summary="$(grep '^Summary:' "$validator_log" | tail -n1 || true)"

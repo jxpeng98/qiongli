@@ -1,104 +1,119 @@
 # Qiongli Literature Provider MCPB
 
-This package is the Claude Desktop MCPB for Qiongli literature provider access. Its primary package contains the Rust Lite MCP executable, so users do not need to install Node, Python, the `qiongli` CLI, or run npm before installing the MCPB.
+This package is the Claude Desktop adapter for Qiongli Marketplace Lite. The
+primary MCPB contains the Rust Lite executable, so it does not require Node,
+Python, the Qiongli CLI, npm, or pip at runtime.
 
-Pair it with a manual Desktop skill ZIP when you are installing Qiongli without Claude Code or Codex plugin marketplaces. Upload a `qiongli-claude-desktop-skill-*.zip` skill first, then install this MCPB when the same Desktop workspace needs literature MCP tools such as `qiongli_literature_search`, `qiongli_config_status`, `qiongli_configure_provider`, and `qiongli_save_provider_config`.
+Pair it with a manual Desktop skill ZIP when installing outside the Codex or
+Claude Code plugin marketplaces. The MCPB supplies literature-provider tools;
+the skill ZIP supplies the research workflow.
 
-This MCPB does not launch orchestrator agents or execute project tasks. It can return preview-only routing and task-plan responses, but if the Desktop or coding client also needs the full CLI MCP server, local agent runtime, or executable orchestration tools such as `qiongli_task_run`, install the Python or npm Qiongli CLI and configure the full CLI MCP server separately:
+Upload a `qiongli-claude-desktop-skill-*.zip` first, then install this
+Rust Lite MCP executable when the same workspace needs literature MCP tools.
+Rust Lite does not launch orchestrator agents. Use the full CLI MCP for
+executable tools such as `qiongli_task_run`.
 
-For Codex-style desktop clients, use the Codex plugin bundle when available. For Claude Code, Cursor-style clients, or any client that can launch a local stdio MCP command and needs the full Python-backed tool set, use the unified CLI server:
+## Runtime Boundary
+
+Rust Lite provides:
+
+- redacted provider configuration status and local configuration writes;
+- a tokenized loopback setup page whose URL is returned to the MCP caller;
+- bounded OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv search;
+- deterministic normalization, DOI-first deduplication, title/year fallback,
+  limits, partial-failure diagnostics, and evidence export;
+- Zotero Connector/Companion status probes and import-file generation;
+- preview-only route and task-plan responses.
+
+Rust Lite does not launch agents, run shell commands, write project guidance,
+search or modify a Zotero library, expand citation graphs, or perform the Full
+runtime's domain-specific deep-search workflow. Install the Python Full runtime
+for those capabilities:
 
 ```bash
 qiongli mcp serve --transport stdio
-qiongli mcp config example --target codex --json
-qiongli mcp config example --target hermes --json
 ```
 
-The bundled Rust Lite MCP executable and the full CLI MCP server both read the shared provider config. The MCPB also accepts Claude Desktop user configuration values directly from the extension settings.
+## Provider Configuration
 
-## Search Precision
+The Lite MCP and Full runtime read the same local `providers.json` contract.
+Claude Desktop may also inject these MCPB settings:
 
-`qiongli_literature_search` defaults to broad topic search. For known-item lookup, pass a DOI directly or set `search_mode`:
+- OpenAlex API key and optional contact email
+- Semantic Scholar API key
+- Crossref contact email
+- NCBI/PubMed API key
+- Default non-review result limit
+- Zotero local-enabled flag and loopback Connector URL
+
+OpenAlex, Semantic Scholar, Crossref, and PubMed are called only when their
+activation field is configured. arXiv is available without credentials.
+
+Call `qiongli_configure_provider` to start the local setup page. The result
+contains a `127.0.0.1` URL with a one-time token; open that URL yourself. The
+server does not promise to launch a system browser. `qiongli_open_config_wizard`
+is the compatibility alias. Provider values are never returned in MCP output.
+
+## Literature Search
+
+The supported Lite arguments are deliberately small:
 
 ```json
-{ "query": "10.5555/example", "limit": 1 }
-{ "query": "Attention Is All You Need", "search_mode": "title", "limit": 1 }
-{ "query": "social media mental health", "search_mode": "review", "limit": 150 }
+{ "query": "platform governance" }
+{ "query": "social media mental health", "search_mode": "review" }
+{ "query": "climate governance", "providers": ["openalex", "arxiv"] }
 { "query": "climate governance", "per_provider_limit": 50, "total_limit": 75 }
-{ "query": "older adults conversational agents", "query_variants": ["older people chatbots", "home health conversational agents"], "per_provider_limit": 90 }
-{ "query": "public health", "document_types": ["journal-article"], "venue_filter": "Lancet" }
 ```
 
-DOI queries use provider singleton lookup where available. Title mode asks Semantic Scholar for a title match before regular search, requests a wider provider page, then ranks merged results by title similarity before applying the final limit.
+Supported `search_mode` values are `auto`, `topic`, `review`, and
+`systematic_review`. General searches default to 25 results per provider;
+review modes default to 50. `limit` is the compatibility alias for
+`per_provider_limit`; explicit per-provider values are bounded to `1..200`.
+`total_limit` is applied after deduplication.
 
-For general topic searches, omitted limits default to 25 results per provider. For literature reviews, use `search_mode: "review"` or `search_mode: "systematic_review"`. Review mode defaults to 50 results per provider when `limit` is omitted and accepts explicit limits up to 200 per provider.
+Provider calls are bounded and may complete independently. A partial provider
+failure returns successful records with top-level `status: "warning"` and
+`diagnostics.status: "partial"`. If every attempted provider fails, the result
+uses `status: "error"`. Diagnostics expose stable error kinds, never
+credential-bearing request URLs.
 
-`limit` remains the backward-compatible per-provider limit for topic and review searches. Use `per_provider_limit` when you want that intent to be explicit, and use `total_limit` to cap the merged, deduplicated result list returned to the MCP client. Both snake_case and camelCase aliases are accepted.
+PubMed uses ESearch followed by ESummary. Records are deduplicated by normalized
+DOI, then by normalized title and year when no DOI is present. Merged records
+retain deterministic provider provenance.
 
-Advanced controls include:
+## Zotero Boundary
 
-- `search_depth`: `quick`, `standard`, `review`, or `deep`. Review and deep searches return `insufficient_review_results` when the merged result set is below the review threshold.
-- `search_depth: "deep"` defaults to 200 results per provider, uses provider pagination instead of stopping at the first provider page, and automatically searches the primary query plus conservative review and systematic-review variants.
-- Finance/economics deep searches use a domain profile for field-aware variants around working papers, JEL terms, and reviews. Search diagnostics include `field_term_coverage`, `working_paper_coverage`, and `published_version_coverage`; coverage is computed before `total_limit` truncates returned results.
-- `query_variants`: adds explicit alternate queries to the same call. The MCPB splits the per-provider budget across the primary query and variants, returns the auditable `search_plan`, and records each query/provider attempt in `diagnostics.queries`. Pass an empty array to disable automatic deep-search variants.
-- `document_types`: filters OpenAlex and Crossref at request time and filters merged provider results after normalization. Semantic Scholar publication types are normalized from `publicationTypes`, and PubMed publication types are normalized from ESummary.
-- `venue_filter`: filters merged results by venue text.
-- `include_citations` and `include_references`: request limited citation/reference metadata when providers expose it. The MCPB reports `citation_expansion_limited` or `reference_expansion_limited` because this is metadata expansion, not a full citation graph crawler.
+Lite exposes two Zotero tools:
 
-Search responses include `search_plan` and `diagnostics` with raw, deduplicated, filtered, coverage-basis, and returned result counts plus per-provider and per-query status, result count, request count, retry attempts, and sanitized error messages. Search and status responses also include `provider_capabilities`, which marks OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv as implemented providers. `qiongli_literature_export_evidence` returns the same search plan, options, diagnostics, capabilities, warnings, result count, and normalized result snapshot for audit handoff. Crossref needs `crossref.email` for polite access. PubMed needs `pubmed.api_key` to enable the bundled E-Utilities provider. arXiv is enabled without credentials.
-
-## Local Zotero Reference Database
-
-The MCPB can generate Zotero import files without Zotero Desktop. Direct local
-Zotero library search and writes still belong to the Qiongli Zotero companion
-extension in `packages/qiongli-zotero-companion/`; the companion remains a
-separate Zotero-side install.
-
-Available tools:
-
-- `qiongli_zotero_status`: checks Zotero Desktop's local connector, the Qiongli
-  Zotero companion, and import-file fallback availability.
-- `qiongli_zotero_export_import_files`: generates `references.json`,
+- `qiongli_zotero_status` probes only loopback Connector and Companion
+  endpoints and returns `ok`, `companion_missing`, `fallback_only`, or
+  `disabled`.
+- `qiongli_zotero_export_import_files` produces `references.json`,
   `references.ris`, `bibliography.bib`, and `zotero-import-report.md` without
-  contacting Zotero.
+  writing to Zotero.
 
-### Opt-in Zotero source search
+Zotero search, collections, tags, notes, and reference writes belong to the
+Full runtime plus the separately installed Qiongli Zotero Companion. Import
+files remain available when Desktop or the Companion is unavailable.
 
-`qiongli_literature_search` does not search Zotero by default. Pass
-`include_zotero: true` to include the local Zotero library as an additional
-reference source. Local-only records return `provider: "zotero"` and external
-records can include `local_zotero_match` when the DOI or title/year already
-exists in Zotero.
+## Native Artifact Identity
 
-### Crossref verification before Zotero writes
-
-Local mode uses the loopback connector URL `http://127.0.0.1:23119` by default.
-Non-loopback connector URLs are rejected. If Zotero Desktop or the companion is
-not available, use the generated import files for manual Zotero import.
-
-## Local Claude Desktop Install
-
-Build or package this directory as a Claude Desktop `.mcpb` extension, then install it through Claude Desktop's extension settings. The manifest declares user configuration fields for:
-
-- OpenAlex API key
-- OpenAlex email
-- Semantic Scholar API key
-- Crossref polite access email
-- NCBI / PubMed API key
-- Default result limit
-
-Claude Desktop injects these values into the local Rust Lite MCP process environment when the extension runs. The server can also save explicit provider values through `qiongli_save_provider_config` into the shared local provider config. `qiongli_open_config_wizard` remains as a compatibility alias for older instructions. Do not store provider credentials in the Qiongli Desktop skill ZIP or commit local secrets into this package.
+The Rust Lite beta is built for the current host. Builders stage a machine-
+readable target identity beside the executable, and the resulting artifact must
+be named or scoped for that target. A current-host binary must not be presented
+as a generic Darwin/Linux/Windows package.
 
 ## Development
 
-Build the primary MCPB:
+Build the primary Rust Lite MCPB:
 
 ```bash
 python3 scripts/build_literature_mcpb.py --dist-dir dist
 ```
 
-The legacy Node reference server is retained for one release train and can be
-packaged explicitly when needed:
+The legacy Node reference remains an explicit compatibility artifact for one
+release train. It keeps its own manifest overlay and advanced controls; those
+controls are not claims about Rust Lite:
 
 ```bash
 python3 scripts/build_literature_mcpb.py --dist-dir dist --legacy-node

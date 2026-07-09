@@ -73,6 +73,11 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
       - name: Configure git identity
         run: |
           git config user.name "github-actions[bot]"

@@ -13,6 +13,84 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  rust-lite-mcp:
+    name: Rust Lite MCP quality and release build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Setup Node.js for legacy MCPB parity
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path packages/qiongli-lite-mcp/Cargo.toml -- --check
+
+      - name: Run Rust clippy
+        run: cargo clippy --locked --manifest-path packages/qiongli-lite-mcp/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run Rust tests
+        run: cargo test --locked --manifest-path packages/qiongli-lite-mcp/Cargo.toml --all-targets
+
+      - name: Run legacy Node MCPB reference tests
+        run: npm --prefix packages/qiongli-literature-mcpb test
+
+      - name: Build current-host Rust Lite release artifact
+        run: python tooling/scripts/build_lite_mcp.py --target current --out-dir "$RUNNER_TEMP/qiongli-lite-mcp"
+
+      - name: Upload current-host identity evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: qiongli-lite-mcp-linux-x86_64
+          path: |
+            ${{ runner.temp }}/qiongli-lite-mcp/qiongli-literature-provider
+            ${{ runner.temp }}/qiongli-lite-mcp/qiongli-literature-provider.target.json
+          if-no-files-found: error
+
+  rust-lite-mcp-windows:
+    name: Rust Lite MCP tests (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run Rust tests
+        run: cargo test --locked --manifest-path packages/qiongli-lite-mcp/Cargo.toml --all-targets
+
+      - name: Build current-host Rust Lite release artifact
+        run: python tooling/scripts/build_lite_mcp.py --target current --out-dir "$env:RUNNER_TEMP/qiongli-lite-mcp"
+
+      - name: Upload current-host identity evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: qiongli-lite-mcp-windows-x86_64
+          path: |
+            ${{ runner.temp }}/qiongli-lite-mcp/qiongli-literature-provider.exe
+            ${{ runner.temp }}/qiongli-lite-mcp/qiongli-literature-provider.target.json
+          if-no-files-found: error
+
   cross-platform-tests:
     name: Cross-platform tests (${{ matrix.os }}, ${{ matrix.test-tier }})
     runs-on: ${{ matrix.os }}
@@ -36,6 +114,11 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
 
       - name: Inject packaged upstream defaults
         shell: bash
@@ -85,6 +168,11 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
 
       - name: Inject packaged upstream defaults
         run: bash scripts/inject_project_toml.sh

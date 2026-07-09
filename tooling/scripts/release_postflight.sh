@@ -348,6 +348,31 @@ publish_plugin_dist_refs() {
   publish_platform_dist_ref claude "$platform_slug" "$platform_source"
 }
 
+native_plugin_dist_ref_policy() {
+  local tag="$1"
+  local plugin_slug="qiongli"
+  local identity_path
+
+  if is_prerelease_tag "$tag"; then
+    plugin_slug="qiongli-next"
+  fi
+  identity_path="$POSTFLIGHT_STAGING_DIR/plugins/$plugin_slug/bin/qiongli-literature-provider.target.json"
+  python3 - "$identity_path" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+identity_path = Path(sys.argv[1])
+if not identity_path.is_file():
+    raise SystemExit(f"missing native target identity: {identity_path}")
+identity = json.loads(identity_path.read_text(encoding="utf-8"))
+policy = identity.get("target_policy")
+if not isinstance(policy, str) or not policy:
+    raise SystemExit(f"native target identity has no target_policy: {identity_path}")
+print(policy)
+PY
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --tag)
@@ -584,7 +609,13 @@ UPLOAD_ASSETS_FILE="$(mktemp -t qiongli-upload-assets.XXXXXX.txt)"
 python3 scripts/release_upload_assets.py --tag "$TAG" --dist-dir dist >"$UPLOAD_ASSETS_FILE"
 mapfile -t PLUGIN_ARTIFACTS <"$UPLOAD_ASSETS_FILE"
 
-publish_plugin_dist_refs "$TAG"
+NATIVE_PLUGIN_DIST_REF_POLICY="$(native_plugin_dist_ref_policy "$TAG")"
+if [[ "$NATIVE_PLUGIN_DIST_REF_POLICY" == "multi-target" ]]; then
+  publish_plugin_dist_refs "$TAG"
+else
+  echo "[postflight] generic plugin dist refs skipped: native policy is $NATIVE_PLUGIN_DIST_REF_POLICY"
+  echo "[postflight] target-identified release assets remain available from the GitHub release"
+fi
 
 if ! command -v gh >/dev/null 2>&1 || ! gh auth status >/dev/null 2>&1; then
   echo "[postflight] gh auth is required to verify or create the GitHub release page" >&2
@@ -664,20 +695,52 @@ ACCEPTANCE_EVIDENCE_FILE="$(mktemp -t qiongli-acceptance-evidence.XXXXXX.md)"
 python3 scripts/release_acceptance_evidence.py --root "$ROOT_DIR" --out "$ACCEPTANCE_EVIDENCE_FILE"
 
 RELEASE_DATE="$(date +%F)"
-python3 - "$TEMPLATE_PATH" "$ACCEPTANCE_OUT" "$TAG" "$RELEASE_DATE" "$LOCAL_TAG_COMMIT" "$CI_STATUS" "$ACCEPTANCE_EVIDENCE_FILE" <<'PY'
+DOWNLOAD_INDEX="dist/qiongli-downloads-${TAG}.json"
+python3 - "$TEMPLATE_PATH" "$ACCEPTANCE_OUT" "$TAG" "$RELEASE_DATE" "$LOCAL_TAG_COMMIT" "$CI_STATUS" "$ACCEPTANCE_EVIDENCE_FILE" "$DOWNLOAD_INDEX" <<'PY'
+import json
 from pathlib import Path
 import sys
 
-template_path, out_path, tag, date, commit, ci_status, evidence_path = sys.argv[1:]
+template_path, out_path, tag, date, commit, ci_status, evidence_path, index_path = sys.argv[1:]
 with open(template_path, "r", encoding="utf-8") as f:
     content = f.read()
 evidence = Path(evidence_path)
 subject_runtime_evidence = evidence.read_text(encoding="utf-8")
+release_index = json.loads(Path(index_path).read_text(encoding="utf-8"))
+components = release_index.get("component_versions")
+if not isinstance(components, dict) or not components:
+    raise SystemExit(f"release index has no component_versions: {index_path}")
+component_version_map = "\n".join(
+    [
+        "| Component | Version | Runtime / target | Source |",
+        "|---|---|---|---|",
+        *(
+            "| {name} | `{version}` | {runtime} | `{source}` |".format(
+                name=name,
+                version=entry.get("version", "unknown"),
+                runtime=" / ".join(
+                    value
+                    for value in (
+                        entry.get("runtime_profile"),
+                        entry.get("runtime_implementation"),
+                        entry.get("native_target"),
+                    )
+                    if isinstance(value, str) and value
+                )
+                or "not applicable",
+                source=entry.get("source", "unknown"),
+            )
+            for name, entry in components.items()
+            if isinstance(entry, dict)
+        ),
+    ]
+)
 content = (
     content.replace("{{TAG}}", tag)
     .replace("{{DATE}}", date)
     .replace("{{COMMIT}}", commit)
     .replace("{{CI_STATUS}}", ci_status)
+    .replace("{{COMPONENT_VERSION_MAP}}", component_version_map)
     .replace("{{SUBJECT_RUNTIME_EVIDENCE}}", subject_runtime_evidence)
 )
 with open(out_path, "w", encoding="utf-8") as f:

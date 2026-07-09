@@ -240,18 +240,21 @@ class ReleaseAutomationTests(unittest.TestCase):
         template = ACCEPTANCE_TEMPLATE.read_text(encoding="utf-8")
 
         evidence = 'python3 scripts/release_acceptance_evidence.py --root "$ROOT_DIR" --out "$ACCEPTANCE_EVIDENCE_FILE"'
-        template_write = 'python3 - "$TEMPLATE_PATH" "$ACCEPTANCE_OUT" "$TAG" "$RELEASE_DATE" "$LOCAL_TAG_COMMIT" "$CI_STATUS" "$ACCEPTANCE_EVIDENCE_FILE"'
+        template_write = 'python3 - "$TEMPLATE_PATH" "$ACCEPTANCE_OUT" "$TAG" "$RELEASE_DATE" "$LOCAL_TAG_COMMIT" "$CI_STATUS" "$ACCEPTANCE_EVIDENCE_FILE" "$DOWNLOAD_INDEX"'
 
         self.assertIn("{{SUBJECT_RUNTIME_EVIDENCE}}", template)
+        self.assertIn("{{COMPONENT_VERSION_MAP}}", template)
         self.assertIn('ACCEPTANCE_EVIDENCE_FILE=""', content)
         self.assertIn('rm -f "$ACCEPTANCE_EVIDENCE_FILE"', content)
         self.assertIn(evidence, content)
         self.assertIn(template_write, content)
         self.assertIn('subject_runtime_evidence = evidence.read_text(encoding="utf-8")', content)
+        self.assertIn('release_index.get("component_versions")', content)
+        self.assertIn('.replace("{{COMPONENT_VERSION_MAP}}", component_version_map)', content)
         self.assertIn('.replace("{{SUBJECT_RUNTIME_EVIDENCE}}", subject_runtime_evidence)', content)
         self.assertLess(content.index(evidence), content.index(template_write))
 
-    def test_release_postflight_publishes_platform_dist_refs(self) -> None:
+    def test_release_postflight_guards_generic_platform_dist_refs(self) -> None:
         content = RELEASE_POSTFLIGHT.read_text(encoding="utf-8")
 
         self.assertIn("publish_plugin_dist_refs()", content)
@@ -266,9 +269,13 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('--source "$platform_source"', content)
         self.assertIn('! -name "qiongli-workflow"', content)
         self.assertIn('publish_plugin_dist_refs "$TAG"', content)
+        self.assertIn("native_plugin_dist_ref_policy()", content)
+        self.assertIn('NATIVE_PLUGIN_DIST_REF_POLICY="$(native_plugin_dist_ref_policy "$TAG")"', content)
+        self.assertIn('if [[ "$NATIVE_PLUGIN_DIST_REF_POLICY" == "multi-target" ]]; then', content)
+        self.assertIn("generic plugin dist refs skipped: native policy is", content)
         self.assertLess(
             content.index('python3 scripts/build_plugin_artifacts.py --root "$POSTFLIGHT_STAGING_DIR" --tag "$TAG" --dist-dir dist'),
-            content.index('publish_plugin_dist_refs "$TAG"'),
+            content.index('NATIVE_PLUGIN_DIST_REF_POLICY="$(native_plugin_dist_ref_policy "$TAG")"'),
         )
         self.assertLess(
             content.index('publish_plugin_dist_refs "$TAG"'),

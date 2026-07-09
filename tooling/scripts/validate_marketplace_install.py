@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 import json
+import os
 import re
 import stat
 import subprocess
@@ -29,6 +31,13 @@ from qiongli.platform_targets import (
     plugin_manifest_platform,
 )
 from qiongli.source_layout import RepoLayout
+from tooling.scripts.build_lite_mcp import (
+    TARGETS as LITE_MCP_TARGETS,
+    TARGET_IDENTITY_FILENAME,
+    current_host_target,
+    target_architecture,
+    target_platform,
+)
 
 
 PLUGIN_NAME = "qiongli"
@@ -40,6 +49,10 @@ MCP_SERVER_NAME = "qiongli"
 NEXT_MCP_SERVER_NAME = "qiongli-next"
 CLAUDE_DESKTOP_FILE_BUDGET = 180
 LITE_MCP_BIN_NAME = "qiongli-literature-provider"
+LITE_TOOL_SMOKE_FIXTURE_RELATIVE = (
+    Path("content") / "mcp-contracts" / "fixtures" / "lite-tool-smoke-calls.json"
+)
+DEFAULT_LITE_TOOL_SMOKE_FIXTURE = REPO_ROOT / LITE_TOOL_SMOKE_FIXTURE_RELATIVE
 MCP_LAUNCH_REQUIRED_TOOLS = {
     "qiongli_literature_status",
     "qiongli_literature_search",
@@ -399,7 +412,10 @@ def _assert_bundled_literature_mcp(
     *,
     mcp_server_name: str = MCP_SERVER_NAME,
 ) -> None:
-    provider_entrypoint = plugin_root / "bin" / LITE_MCP_BIN_NAME
+    identity = _assert_lite_mcp_target_identity(plugin_root)
+    binary_name = identity["binary"]
+    assert isinstance(binary_name, str)
+    provider_entrypoint = plugin_root / "bin" / binary_name
     _assert_file(provider_entrypoint, "bundled Rust Lite MCP entrypoint")
     if not provider_entrypoint.stat().st_mode & stat.S_IXUSR:
         raise ValueError(f"{provider_entrypoint} must be executable by the owner")
@@ -410,10 +426,10 @@ def _assert_bundled_literature_mcp(
         if codex_manifest.get("mcpServers") != "./.mcp.json":
             raise ValueError(f"{codex_manifest_path} mcpServers must point to ./.mcp.json")
         config_path = plugin_root / ".mcp.json"
-        expected_command = f"./bin/{LITE_MCP_BIN_NAME}"
+        expected_command = f"./bin/{binary_name}"
     elif platform == "claude":
         config_path = plugin_root / ".claude-plugin" / "plugin.json"
-        expected_command = f"${{CLAUDE_PLUGIN_ROOT}}/bin/{LITE_MCP_BIN_NAME}"
+        expected_command = f"${{CLAUDE_PLUGIN_ROOT}}/bin/{binary_name}"
     else:
         raise ValueError(f"unsupported bundled literature MCP platform: {platform}")
     expected_args = ["--transport", "stdio"]
@@ -449,6 +465,65 @@ def _assert_bundled_literature_mcp(
         raise ValueError(
             f"{config_path} mcpServers.{mcp_server_name}.args expected {expected_args}, found {server.get('args')}"
         )
+
+
+def _assert_lite_mcp_target_identity(plugin_root: Path) -> dict[str, object]:
+    identity_path = plugin_root / "bin" / TARGET_IDENTITY_FILENAME
+    _assert_file(identity_path, "Rust Lite MCP target identity")
+    identity = _read_json(identity_path)
+    required = {
+        "schema_version",
+        "component_version",
+        "runtime_profile",
+        "runtime_implementation",
+        "target_policy",
+        "target_triple",
+        "platform",
+        "architecture",
+        "binary",
+        "sha256",
+        "size_bytes",
+    }
+    missing = sorted(required - set(identity))
+    if missing:
+        raise ValueError(f"{identity_path} missing required fields: {', '.join(missing)}")
+    if identity["schema_version"] != "1.0":
+        raise ValueError(f"{identity_path} schema_version must be 1.0")
+    component_version = identity["component_version"]
+    if not isinstance(component_version, str) or not component_version:
+        raise ValueError(f"{identity_path} component_version must be a non-empty string")
+    if identity["runtime_profile"] != "lite" or identity["runtime_implementation"] != "rust":
+        raise ValueError(f"{identity_path} must describe the Rust Lite runtime")
+    if identity["target_policy"] != "current-host-only":
+        raise ValueError(f"{identity_path} target_policy must be current-host-only")
+
+    target = identity["target_triple"]
+    if not isinstance(target, str) or target not in LITE_MCP_TARGETS:
+        raise ValueError(f"{identity_path} has unsupported target_triple: {target!r}")
+    if identity["platform"] != target_platform(target):
+        raise ValueError(f"{identity_path} platform does not match target_triple {target}")
+    if identity["architecture"] != target_architecture(target):
+        raise ValueError(f"{identity_path} architecture does not match target_triple {target}")
+
+    binary_name = identity["binary"]
+    if not isinstance(binary_name, str) or not binary_name or Path(binary_name).name != binary_name:
+        raise ValueError(f"{identity_path} binary must be a filename")
+    binary = identity_path.parent / binary_name
+    _assert_file(binary, "target-identified Rust Lite MCP binary")
+    expected_size = identity["size_bytes"]
+    if not isinstance(expected_size, int) or expected_size != binary.stat().st_size:
+        raise ValueError(f"{identity_path} size_bytes does not match {binary}")
+    expected_digest = identity["sha256"]
+    actual_digest = hashlib.sha256(binary.read_bytes()).hexdigest()
+    if not isinstance(expected_digest, str) or expected_digest != actual_digest:
+        raise ValueError(f"{identity_path} sha256 does not match {binary}")
+
+    host_target = current_host_target(REPO_ROOT)
+    if target != host_target:
+        raise ValueError(
+            f"{identity_path} target_triple={target} cannot be launched on validator host {host_target}"
+        )
+    return identity
 
 
 def _substitute_plugin_mcp_value(value: object, plugin_root: Path) -> str:
@@ -511,11 +586,156 @@ def _plugin_mcp_cwd(plugin_root: Path, server: dict[str, object]) -> Path:
     return path.resolve()
 
 
+def _load_lite_tool_smoke_fixture(path: Path) -> dict[str, object]:
+    if not path.is_file():
+        raise ValueError(
+            f"missing Lite tool smoke fixture: {path}; "
+            "release validation requires it unless --skip-lite-tool-smoke is explicit"
+        )
+    fixture = _read_json(path)
+    if fixture.get("schema_version") != "1.0":
+        raise ValueError(f"{path} schema_version must be 1.0")
+    canary = fixture.get("canary_value")
+    if not isinstance(canary, str) or not canary:
+        raise ValueError(f"{path} canary_value must be a non-empty string")
+    calls = fixture.get("calls")
+    if not isinstance(calls, list) or not calls:
+        raise ValueError(f"{path} calls must be a non-empty list")
+    allowed_response_classes = {"success", "input_error", "bounded_local_result"}
+    for index, call in enumerate(calls):
+        label = f"{path} calls[{index}]"
+        if not isinstance(call, dict):
+            raise ValueError(f"{label} must be an object")
+        if not isinstance(call.get("name"), str) or not call["name"]:
+            raise ValueError(f"{label}.name must be a non-empty string")
+        if not isinstance(call.get("arguments"), dict):
+            raise ValueError(f"{label}.arguments must be an object")
+        if call.get("expected_response_class") not in allowed_response_classes:
+            raise ValueError(
+                f"{label}.expected_response_class must be one of: "
+                + ", ".join(sorted(allowed_response_classes))
+            )
+        side_effects = call.get("side_effects")
+        if not isinstance(side_effects, dict):
+            raise ValueError(f"{label}.side_effects must be an object")
+        for field in ("config", "network", "loopback_listener"):
+            if not isinstance(side_effects.get(field), bool):
+                raise ValueError(f"{label}.side_effects.{field} must be a boolean")
+        forbidden_output = call.get("forbidden_output")
+        if not isinstance(forbidden_output, list) or not all(
+            isinstance(item, str) and item for item in forbidden_output
+        ):
+            raise ValueError(f"{label}.forbidden_output must be a list of non-empty strings")
+    return fixture
+
+
+def _lite_tool_smoke_requests(
+    fixture: dict[str, object],
+    *,
+    first_id: int = 100,
+) -> tuple[list[dict[str, object]], dict[int, dict[str, object]]]:
+    raw_calls = fixture["calls"]
+    assert isinstance(raw_calls, list)
+    requests: list[dict[str, object]] = []
+    calls_by_id: dict[int, dict[str, object]] = {}
+    for offset, raw_call in enumerate(raw_calls):
+        assert isinstance(raw_call, dict)
+        request_id = first_id + offset
+        call = dict(raw_call)
+        calls_by_id[request_id] = call
+        requests.append(
+            {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "method": "tools/call",
+                "params": {
+                    "name": call["name"],
+                    "arguments": call["arguments"],
+                },
+            }
+        )
+    return requests, calls_by_id
+
+
+def _assert_lite_tool_smoke_responses(
+    *,
+    fixture_path: Path,
+    fixture: dict[str, object],
+    calls_by_id: dict[int, dict[str, object]],
+    response_by_id: dict[object, dict[str, object]],
+    tool_names: set[str],
+    stdout: str,
+    stderr: str,
+) -> None:
+    combined_output = f"{stdout}\n{stderr}"
+    canary = fixture["canary_value"]
+    assert isinstance(canary, str)
+    forbidden_values = {canary}
+    for call in calls_by_id.values():
+        raw_forbidden = call["forbidden_output"]
+        assert isinstance(raw_forbidden, list)
+        forbidden_values.update(
+            str(item).replace("${canary_value}", canary)
+            for item in raw_forbidden
+        )
+    leaked = sorted(value for value in forbidden_values if value and value in combined_output)
+    if leaked:
+        raise ValueError(
+            f"{fixture_path} forbidden output appeared in Lite MCP response: "
+            + ", ".join(repr(item) for item in leaked)
+        )
+
+    for request_id, call in calls_by_id.items():
+        name = call["name"]
+        assert isinstance(name, str)
+        if name not in tool_names:
+            raise ValueError(f"{fixture_path} smoke tool is absent from tools/list: {name}")
+        response = response_by_id.get(request_id)
+        if not isinstance(response, dict):
+            raise ValueError(f"{fixture_path} smoke tool returned no response: {name}")
+        error = response.get("error")
+        if isinstance(error, dict) and error.get("code") == -32601:
+            raise ValueError(f"{fixture_path} smoke tool is listed but not dispatched: {name}")
+
+        expected_class = call["expected_response_class"]
+        if expected_class == "input_error":
+            input_error = isinstance(error, dict) and error.get("code") == -32602
+            result = response.get("result")
+            tool_error = isinstance(result, dict) and result.get("isError") is True
+            if not input_error and not tool_error:
+                raise ValueError(
+                    f"{fixture_path} smoke tool {name} expected input_error, found {response}"
+                )
+            continue
+
+        if error is not None:
+            raise ValueError(
+                f"{fixture_path} smoke tool {name} expected {expected_class}, found error {error}"
+            )
+        result = response.get("result")
+        if not isinstance(result, dict) or result.get("isError") is True:
+            raise ValueError(
+                f"{fixture_path} smoke tool {name} expected {expected_class}, found {response}"
+            )
+        if not isinstance(result.get("content"), list):
+            raise ValueError(
+                f"{fixture_path} smoke tool {name} expected {expected_class} "
+                "with result.content list"
+            )
+        if not isinstance(result.get("structuredContent"), dict):
+            raise ValueError(
+                f"{fixture_path} smoke tool {name} expected {expected_class} "
+                "with result.structuredContent object"
+            )
+
+
 def _assert_plugin_mcp_server_launches(
     plugin_root: Path,
     platform: str,
     *,
     mcp_server_name: str = MCP_SERVER_NAME,
+    safety_fixture: Path = DEFAULT_LITE_TOOL_SMOKE_FIXTURE,
+    run_tool_smoke: bool = True,
 ) -> set[str]:
     server = _plugin_mcp_server(plugin_root, platform, mcp_server_name)
     command = _substitute_plugin_mcp_value(server.get("command"), plugin_root)
@@ -527,45 +747,51 @@ def _assert_plugin_mcp_server_launches(
     if not cwd.is_dir():
         raise ValueError(f"{plugin_root} mcpServers.{mcp_server_name}.cwd does not exist: {cwd}")
 
+    requests: list[dict[str, object]] = [
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {
+                "protocolVersion": "2025-06-18",
+                "capabilities": {},
+                "clientInfo": {"name": "qiongli-marketplace-validator", "version": "0.0.0"},
+            },
+        },
+        {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
+    ]
+    fixture: dict[str, object] | None = None
+    calls_by_id: dict[int, dict[str, object]] = {}
+    if run_tool_smoke:
+        fixture = _load_lite_tool_smoke_fixture(safety_fixture)
+        smoke_requests, calls_by_id = _lite_tool_smoke_requests(fixture)
+        requests.extend(smoke_requests)
     request_payload = "\n".join(
-        [
-            json.dumps(
-                {
-                    "jsonrpc": "2.0",
-                    "id": 1,
-                    "method": "initialize",
-                    "params": {
-                        "protocolVersion": "2025-06-18",
-                        "capabilities": {},
-                        "clientInfo": {"name": "qiongli-marketplace-validator", "version": "0.0.0"},
-                    },
-                },
-                separators=(",", ":"),
-            ),
-            json.dumps(
-                {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
-                separators=(",", ":"),
-            ),
-            "",
-        ]
+        [*(json.dumps(item, separators=(",", ":")) for item in requests), ""]
     )
 
-    try:
-        result = subprocess.run(
-            [command, *args],
-            cwd=cwd,
-            input=request_payload,
-            text=True,
-            capture_output=True,
-            timeout=10,
-            check=False,
-        )
-    except FileNotFoundError as exc:
-        raise ValueError(
-            f"{plugin_root} mcpServers.{mcp_server_name} command could not be launched: {command}"
-        ) from exc
-    except subprocess.TimeoutExpired as exc:
-        raise ValueError(f"{plugin_root} mcpServers.{mcp_server_name} did not answer tools/list") from exc
+    runtime_env = os.environ.copy()
+    runtime_env["QIONGLI_ZOTERO_LOCAL_ENABLED"] = "false"
+
+    with tempfile.TemporaryDirectory(prefix="qiongli-lite-tool-smoke-config-") as config_home:
+        runtime_env["QIONGLI_CONFIG_HOME"] = config_home
+        try:
+            result = subprocess.run(
+                [command, *args],
+                cwd=cwd,
+                env=runtime_env,
+                input=request_payload,
+                text=True,
+                capture_output=True,
+                timeout=20,
+                check=False,
+            )
+        except FileNotFoundError as exc:
+            raise ValueError(
+                f"{plugin_root} mcpServers.{mcp_server_name} command could not be launched: {command}"
+            ) from exc
+        except subprocess.TimeoutExpired as exc:
+            raise ValueError(f"{plugin_root} mcpServers.{mcp_server_name} did not answer tools/list") from exc
 
     if result.returncode != 0:
         stderr = result.stderr.strip()
@@ -604,6 +830,17 @@ def _assert_plugin_mcp_server_launches(
         raise ValueError(
             f"{plugin_root} mcpServers.{mcp_server_name} tools/list missing required tools: "
             + ", ".join(missing_tools)
+        )
+    if run_tool_smoke:
+        assert fixture is not None
+        _assert_lite_tool_smoke_responses(
+            fixture_path=safety_fixture,
+            fixture=fixture,
+            calls_by_id=calls_by_id,
+            response_by_id=response_by_id,
+            tool_names=tool_names,
+            stdout=result.stdout,
+            stderr=result.stderr,
         )
     return tool_names
 
@@ -694,6 +931,8 @@ def _validate_artifact(
     coverage: str | None = None,
     skill_name: str = SKILL_NAME,
     subject_label: str | None = None,
+    safety_fixture: Path = DEFAULT_LITE_TOOL_SMOKE_FIXTURE,
+    run_tool_smoke: bool = True,
 ) -> str:
     platform = _platform_for_target(spec)
     with tempfile.TemporaryDirectory(prefix=f"qiongli-{platform}-artifact-") as tmp:
@@ -727,6 +966,8 @@ def _validate_artifact(
                 plugin_root,
                 platform,
                 mcp_server_name=_mcp_server_name_for_plugin(plugin_name),
+                safety_fixture=safety_fixture,
+                run_tool_smoke=run_tool_smoke,
             )
 
     label = subject_label or subject
@@ -791,6 +1032,8 @@ def _validate_direct_desktop_plugin_artifact(
     plugin_name: str = PLUGIN_NAME,
     skill_name: str = SKILL_NAME,
     subject_label: str | None = None,
+    safety_fixture: Path = DEFAULT_LITE_TOOL_SMOKE_FIXTURE,
+    run_tool_smoke: bool = True,
 ) -> str:
     with tempfile.TemporaryDirectory(prefix="qiongli-direct-desktop-plugin-") as tmp:
         plugin_root = _extract_single_zip_root(artifact, Path(tmp))
@@ -837,6 +1080,8 @@ def _validate_direct_desktop_plugin_artifact(
             plugin_root,
             "claude",
             mcp_server_name=_mcp_server_name_for_plugin(plugin_name),
+            safety_fixture=safety_fixture,
+            run_tool_smoke=run_tool_smoke,
         )
 
     subject_suffix = f" ({subject_label})" if subject_label else ""
@@ -897,7 +1142,12 @@ def _validate_subject_eval_cases(root: Path) -> None:
     raise ValueError(f"Subject eval case audit failed:\n{details}")
 
 
-def validate(root: Path, dist_dir: Path) -> list[str]:
+def validate(
+    root: Path,
+    dist_dir: Path,
+    *,
+    run_tool_smoke: bool = True,
+) -> list[str]:
     root = root.resolve()
     dist_dir = dist_dir.resolve()
     expected_repo_tag = (RepoLayout(root).workflow / "VERSION").read_text(encoding="utf-8").strip()
@@ -909,6 +1159,9 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
     }
     direct_desktop_target = _target_by_recommended_key(targets, "claude_desktop_plugin")
     desktop_skill_target = _target_by_recommended_key(targets, "claude_desktop_skill")
+    safety_fixture = root / LITE_TOOL_SMOKE_FIXTURE_RELATIVE
+    if run_tool_smoke:
+        _load_lite_tool_smoke_fixture(safety_fixture)
 
     artifacts = build_artifacts(root, expected_repo_tag, dist_dir)
     by_platform = {artifact.name: artifact for artifact in artifacts}
@@ -932,6 +1185,8 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
                     coverage="complete",
                     skill_name=NEXT_SKILL_NAME,
                     subject_label="core-next",
+                    safety_fixture=safety_fixture,
+                    run_tool_smoke=run_tool_smoke,
                 )
             )
             if platform == "claude":
@@ -950,6 +1205,8 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
                         coverage="complete",
                         skill_name=NEXT_SKILL_NAME,
                         subject_label="core-next",
+                        safety_fixture=safety_fixture,
+                        run_tool_smoke=run_tool_smoke,
                     )
                 )
 
@@ -980,6 +1237,8 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
                 plugin_name=NEXT_PLUGIN_NAME,
                 skill_name=NEXT_SKILL_NAME,
                 subject_label="core-next",
+                safety_fixture=safety_fixture,
+                run_tool_smoke=run_tool_smoke,
             )
         )
 
@@ -992,13 +1251,31 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
         artifact = by_platform.get(artifact_name)
         if artifact is None:
             raise ValueError(f"expected {platform} artifact: {artifact_name}")
-        messages.append(_validate_artifact(artifact, spec, expected_repo_tag, expected_version))
+        messages.append(
+            _validate_artifact(
+                artifact,
+                spec,
+                expected_repo_tag,
+                expected_version,
+                safety_fixture=safety_fixture,
+                run_tool_smoke=run_tool_smoke,
+            )
+        )
         if platform == "claude":
             zip_name = f"{PLUGIN_NAME}-claude-plugin-{expected_repo_tag}.zip"
             zip_artifact = by_platform.get(zip_name)
             if zip_artifact is None:
                 raise ValueError(f"expected claude ZIP artifact: {zip_name}")
-            messages.append(_validate_artifact(zip_artifact, spec, expected_repo_tag, expected_version))
+            messages.append(
+                _validate_artifact(
+                    zip_artifact,
+                    spec,
+                    expected_repo_tag,
+                    expected_version,
+                    safety_fixture=safety_fixture,
+                    run_tool_smoke=run_tool_smoke,
+                )
+            )
 
     direct_plugin_name = f"{PLUGIN_NAME}-claude-desktop-plugin-{expected_repo_tag}.zip"
     direct_plugin_artifact = by_platform.get(direct_plugin_name)
@@ -1010,6 +1287,8 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
             expected_repo_tag,
             expected_version,
             direct_desktop_target,
+            safety_fixture=safety_fixture,
+            run_tool_smoke=run_tool_smoke,
         )
     )
 
@@ -1030,6 +1309,8 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
                     plugin_name=plugin_name,
                     subject=subject,
                     coverage="complete",
+                    safety_fixture=safety_fixture,
+                    run_tool_smoke=run_tool_smoke,
                 )
             )
             if platform == "claude":
@@ -1046,6 +1327,8 @@ def validate(root: Path, dist_dir: Path) -> list[str]:
                         plugin_name=plugin_name,
                         subject=subject,
                         coverage="complete",
+                        safety_fixture=safety_fixture,
+                        run_tool_smoke=run_tool_smoke,
                     )
                 )
 
@@ -1096,20 +1379,40 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[2])
     parser.add_argument("--dist-dir", type=Path, help="Directory for temporary artifact builds. Defaults to a temp dir.")
+    parser.add_argument(
+        "--skip-lite-tool-smoke",
+        action="store_true",
+        help=(
+            "Compatibility-only escape hatch: validate startup and tools/list without "
+            "executing content/mcp-contracts/fixtures/lite-tool-smoke-calls.json."
+        ),
+    )
     args = parser.parse_args(argv)
 
     try:
         if args.dist_dir is None:
             with tempfile.TemporaryDirectory(prefix="qiongli-marketplace-validate-") as tmp:
-                messages = validate(args.root, Path(tmp))
+                messages = validate(
+                    args.root,
+                    Path(tmp),
+                    run_tool_smoke=not args.skip_lite_tool_smoke,
+                )
         else:
-            messages = validate(args.root, args.dist_dir)
+            messages = validate(
+                args.root,
+                args.dist_dir,
+                run_tool_smoke=not args.skip_lite_tool_smoke,
+            )
     except ValueError as exc:
         print(f"[FAIL] marketplace validation: {exc}")
         return 1
 
     for message in messages:
         print(message)
+    if args.skip_lite_tool_smoke:
+        print("[SKIP] Lite tool smoke calls skipped by explicit compatibility flag")
+    else:
+        print(f"[OK] Lite tool smoke calls checked from {LITE_TOOL_SMOKE_FIXTURE_RELATIVE}")
     print("[OK] structural archive checks completed")
     target_ids = _client_activation_target_ids(load_platform_targets(args.root))
     target_list = ", ".join(target_ids) if target_ids else "none"

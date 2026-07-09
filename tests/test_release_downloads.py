@@ -86,6 +86,28 @@ class ReleaseDownloadsTests(unittest.TestCase):
         )
 
     def _write_valid_companion_registry(self, root: Path) -> None:
+        (root / "pyproject.toml").write_text(
+            '[project]\nname = "fixture"\nversion = "1.1.0b2"\n',
+            encoding="utf-8",
+        )
+        lite_manifest = root / "packages" / "qiongli-lite-mcp" / "Cargo.toml"
+        lite_manifest.parent.mkdir(parents=True, exist_ok=True)
+        lite_manifest.write_text(
+            '[package]\nname = "fixture-lite"\nversion = "0.2.0-beta.1"\n',
+            encoding="utf-8",
+        )
+        mcpb_manifest = root / "packages" / "qiongli-literature-mcpb" / "manifest.json"
+        mcpb_manifest.parent.mkdir(parents=True, exist_ok=True)
+        mcpb_manifest.write_text(
+            json.dumps({"version": "0.2.0-beta.1"}),
+            encoding="utf-8",
+        )
+        contract = root / "content" / "mcp-contracts" / "lite-tools.json"
+        contract.parent.mkdir(parents=True, exist_ok=True)
+        contract.write_text(
+            json.dumps({"schema_version": "1.0"}),
+            encoding="utf-8",
+        )
         registry = root / "content" / "distribution" / "release-companion-targets.yaml"
         registry.parent.mkdir(parents=True, exist_ok=True)
         registry.write_text(
@@ -298,12 +320,18 @@ class ReleaseDownloadsTests(unittest.TestCase):
         self.assertIn("# Qiongli v1.1.0-beta.2 Download Guide", guide)
         self.assertIn("## Direct downloads", guide)
         self.assertIn("Start here", guide)
+        self.assertIn("they are not generic multi-platform binaries", guide)
+        self.assertIn(
+            index["component_versions"]["lite_mcp"]["native_target"],
+            guide,
+        )
         self.assertIn("https://github.com/jxpeng98/qiongli/releases/download/v1.1.0-beta.2/qiongli-next-claude-desktop-skill-core-v1.1.0-beta.2.zip", guide)
         self.assertIn("qiongli-next-claude-desktop-plugin-v1.1.0-beta.2.zip", guide)
         self.assertIn("recommended direct plugin", guide)
         self.assertIn("fallback skill ZIP", guide)
         self.assertIn("npx qiongli@next install --target all", guide)
-        self.assertIn("Use the marketplace command; do not download a plugin tarball", guide)
+        self.assertIn("marketplace dist refs are not advanced", guide)
+        self.assertIn("only when the bundled target identity matches", guide)
         self.assertIn("qiongli-next-claude-desktop-skill-core-v1.1.0-beta.2.zip", guide)
         self.assertIn(literature_mcpb_asset, guide)
         self.assertIn("qiongli-zotero-companion-0.2.2.xpi", guide)
@@ -312,6 +340,17 @@ class ReleaseDownloadsTests(unittest.TestCase):
 
         self.assertEqual(index["tag"], "v1.1.0-beta.2")
         self.assertEqual(index["channel"], "next")
+        self.assertEqual(index["component_versions"]["product"]["version"], "1.18.0b2")
+        self.assertEqual(
+            index["component_versions"]["lite_mcp"]["version"],
+            index["component_versions"]["literature_mcpb"]["version"],
+        )
+        self.assertEqual(
+            index["component_versions"]["lite_mcp"]["target_policy"],
+            "current-host-only",
+        )
+        self.assertIn("native_target", index["component_versions"]["lite_mcp"])
+        self.assertEqual(index["component_versions"]["lite_contract"]["version"], "1.0")
         self.assertEqual(index["release_url"], "https://github.com/jxpeng98/qiongli/releases/tag/v1.1.0-beta.2")
         self.assertEqual(
             index["companion_target_registry"]["path"],
@@ -319,10 +358,28 @@ class ReleaseDownloadsTests(unittest.TestCase):
         )
         self.assertEqual(index["companion_target_registry"]["schema_version"], "1.0")
         self.assertEqual(index["recommended"]["qiongli_cli"]["install"], "npm_next")
-        self.assertEqual(index["recommended"]["codex"]["install"], "marketplace")
+        self.assertEqual(
+            index["recommended"]["codex"]["install"],
+            "download_matching_native_asset",
+        )
         self.assertEqual(index["recommended"]["codex"]["plugin"], "qiongli-next")
-        self.assertEqual(index["recommended"]["claude_code"]["install"], "marketplace")
+        self.assertEqual(
+            index["recommended"]["codex"]["marketplace_dist_ref"],
+            "paused_current_host_only",
+        )
+        self.assertEqual(
+            index["recommended"]["codex"]["manual_asset"],
+            "qiongli-next-codex-plugin-v1.1.0-beta.2.tar.gz",
+        )
+        self.assertEqual(
+            index["recommended"]["claude_code"]["install"],
+            "download_matching_native_asset",
+        )
         self.assertEqual(index["recommended"]["claude_code"]["plugin"], "qiongli-next")
+        self.assertEqual(
+            index["recommended"]["claude_code"]["manual_asset"],
+            "qiongli-next-claude-plugin-v1.1.0-beta.2.zip",
+        )
         self.assertEqual(
             index["recommended"]["claude_desktop_plugin"]["asset"],
             "qiongli-next-claude-desktop-plugin-v1.1.0-beta.2.zip",
@@ -447,7 +504,10 @@ class ReleaseDownloadsTests(unittest.TestCase):
         )
         self.assertEqual(codex_record["target_id"], "codex-marketplace-plugin")
         self.assertEqual(codex_record["archive_format"], "tar.gz")
-        self.assertEqual(codex_record["expected_install_method"], "marketplace")
+        self.assertEqual(
+            codex_record["expected_install_method"],
+            "download_matching_native_asset",
+        )
         self.assertIn(".claude-plugin/", codex_record["forbidden_paths"])
         self.assertEqual(
             codex_record["smoke"]["structural_archive_check"],
@@ -487,6 +547,11 @@ class ReleaseDownloadsTests(unittest.TestCase):
         self.assertEqual(mcpb_record["expected_install_method"], "download_mcpb")
         self.assertEqual(mcpb_record["artifact_kind"], "mcpb")
         self.assertFalse(mcpb_record["registry_target"])
+        self.assertEqual(mcpb_record["native_variant"]["policy"], "current-host-only")
+        self.assertEqual(
+            mcpb_record["native_variant"]["target_triple"],
+            index["component_versions"]["lite_mcp"]["native_target"],
+        )
         zotero_record = next(
             item
             for item in manifest["artifacts"]
@@ -508,6 +573,7 @@ class ReleaseDownloadsTests(unittest.TestCase):
             index["companion_targets"]["artifact_manifest"]["target_id"],
             "release-artifact-manifest",
         )
+        self.assertEqual(manifest["component_versions"], index["component_versions"])
 
     def test_recommended_target_ids_follow_registry_recommended_keys(self) -> None:
         module = _load_release_download_module()
@@ -612,6 +678,8 @@ class ReleaseDownloadsTests(unittest.TestCase):
         self.assertIn("Fixture claude_desktop_skill (`fixture-desktop-skill-target`)", guide)
         self.assertIn("Fixture qiongli_cli (`fixture-npm-target`)", notes)
         self.assertIn("Fixture codex (`fixture-codex-target`)", notes)
+        self.assertIn("not generic multi-platform binaries", notes)
+        self.assertIn("generic marketplace dist ref is not advanced", notes)
 
     def test_release_companion_target_registry_rejects_missing_metadata(self) -> None:
         module = _load_release_download_module()
@@ -749,6 +817,7 @@ class ReleaseDownloadsTests(unittest.TestCase):
         self.assertIn("Claude Desktop direct plugin (`claude-desktop-direct-plugin`)", notes)
         self.assertIn("qiongli-downloads-v1.1.0-beta.2.md", notes)
         self.assertIn("qiongli-artifacts-v1.1.0-beta.2.json", notes)
+        self.assertIn("not generic multi-platform binaries", notes)
         self.assertIn("qiongli-next-claude-desktop-plugin-v1.1.0-beta.2.zip", notes)
         self.assertIn("recommended direct plugin", notes)
         self.assertIn("fallback skill ZIP", notes)

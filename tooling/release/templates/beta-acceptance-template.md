@@ -5,6 +5,10 @@
 - Commit: {{COMMIT}}
 - CI Status: {{CI_STATUS}}
 
+## Component Version Map
+
+{{COMPONENT_VERSION_MAP}}
+
 ## Publish Preconditions (Preflight)
 
 - [ ] `python3 scripts/validate_research_standard.py --strict`

@@ -632,6 +632,68 @@ class PluginDistributionContractTests(unittest.TestCase):
         self.assertIn("qiongli_literature_search", tools)
         self.assertIn("qiongli_task_plan", tools)
 
+    def test_bundled_mcp_validation_requires_target_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            materialized_plugin = self.materialize_plugin_payload(tmp_dir)
+            identity = (
+                materialized_plugin
+                / "bin"
+                / "qiongli-literature-provider.target.json"
+            )
+            identity.unlink()
+
+            with self.assertRaisesRegex(ValueError, "target.json"):
+                validator._assert_bundled_literature_mcp(materialized_plugin, "codex")
+
+    def test_plugin_mcp_launch_requires_smoke_fixture_by_default(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            materialized_plugin = self.materialize_plugin_payload(tmp_dir)
+            missing_fixture = Path(tmp_dir) / "missing-lite-tool-smoke-calls.json"
+
+            with self.assertRaisesRegex(ValueError, "missing Lite tool smoke fixture"):
+                validator._assert_plugin_mcp_server_launches(
+                    materialized_plugin,
+                    "codex",
+                    safety_fixture=missing_fixture,
+                )
+
+            tools = validator._assert_plugin_mcp_server_launches(
+                materialized_plugin,
+                "codex",
+                safety_fixture=missing_fixture,
+                run_tool_smoke=False,
+            )
+
+        self.assertIn("qiongli_literature_status", tools)
+
+    def test_lite_tool_smoke_requires_complete_success_envelope(self) -> None:
+        fixture_path = Path("lite-tool-smoke-calls.json")
+        fixture = {"canary_value": "fixture-canary"}
+        call = {
+            "name": "qiongli_literature_status",
+            "expected_response_class": "bounded_local_result",
+            "forbidden_output": [],
+        }
+        base_result = {"isError": False, "content": [], "structuredContent": {}}
+
+        for missing_field, expected_error in (
+            ("content", "result.content list"),
+            ("structuredContent", "result.structuredContent object"),
+        ):
+            with self.subTest(missing_field=missing_field):
+                result = dict(base_result)
+                del result[missing_field]
+                with self.assertRaisesRegex(ValueError, expected_error):
+                    validator._assert_lite_tool_smoke_responses(
+                        fixture_path=fixture_path,
+                        fixture=fixture,
+                        calls_by_id={100: call},
+                        response_by_id={100: {"jsonrpc": "2.0", "id": 100, "result": result}},
+                        tool_names={"qiongli_literature_status"},
+                        stdout="",
+                        stderr="",
+                    )
+
     def test_claude_plugin_bundled_mcp_server_launches(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             materialized_plugin = self.materialize_plugin_payload(tmp_dir)
@@ -799,6 +861,11 @@ class PluginDistributionContractTests(unittest.TestCase):
         self.assertIn("invocation checked", result.stdout)
         self.assertIn("bundled literature MCP checked", result.stdout)
         self.assertIn("MCP startup checked", result.stdout)
+        self.assertIn(
+            "[OK] Lite tool smoke calls checked from "
+            "content/mcp-contracts/fixtures/lite-tool-smoke-calls.json",
+            result.stdout,
+        )
         self.assertIn("[OK] structural archive checks completed", result.stdout)
         self.assertIn(
             "[SKIP] client CLI activation checks skipped for targets: "
@@ -806,6 +873,29 @@ class PluginDistributionContractTests(unittest.TestCase):
             "run scripts/release_local_install_check.py",
             result.stdout,
         )
+
+    def test_ci_and_preflight_enforce_rust_lite_release_gates(self) -> None:
+        ci = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        preflight = (REPO_ROOT / "tooling" / "scripts" / "release_preflight.sh").read_text(
+            encoding="utf-8"
+        )
+
+        for expected in (
+            "cargo fmt --manifest-path packages/qiongli-lite-mcp/Cargo.toml -- --check",
+            "cargo clippy --locked --manifest-path packages/qiongli-lite-mcp/Cargo.toml",
+            "cargo test --locked --manifest-path packages/qiongli-lite-mcp/Cargo.toml --all-targets",
+            "python tooling/scripts/build_lite_mcp.py --target current",
+            "runs-on: windows-latest",
+        ):
+            self.assertIn(expected, ci)
+
+        for expected in (
+            "cargo fmt --manifest-path packages/qiongli-lite-mcp/Cargo.toml -- --check",
+            "cargo clippy --locked --manifest-path packages/qiongli-lite-mcp/Cargo.toml",
+            "cargo test --locked --manifest-path packages/qiongli-lite-mcp/Cargo.toml --all-targets",
+            "python3 tooling/scripts/build_lite_mcp.py --target current",
+        ):
+            self.assertIn(expected, preflight)
 
 
 if __name__ == "__main__":

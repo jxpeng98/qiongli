@@ -8,13 +8,18 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-from build_lite_mcp import build_current_platform
+from build_lite_mcp import (
+    TARGET_IDENTITY_FILENAME,
+    build_current_platform,
+    read_target_identity,
+)
 
 
 PACKAGE_RELATIVE = Path("packages/qiongli-literature-mcpb")
 REQUIRED_FILES = (
     Path("manifest.json"),
     Path("README.md"),
+    Path("bin") / TARGET_IDENTITY_FILENAME,
 )
 LEGACY_NODE_REQUIRED_FILES = (
     Path("manifest.json"),
@@ -22,6 +27,61 @@ LEGACY_NODE_REQUIRED_FILES = (
     Path("README.md"),
 )
 SECRET_FIXTURES = ("secret-key", "desktop-secret", "api-key-value")
+RUST_LITE_ENV_KEYS = (
+    "QIONGLI_MCPB_OPENALEX_API_KEY",
+    "QIONGLI_MCPB_OPENALEX_EMAIL",
+    "QIONGLI_MCPB_SEMANTIC_SCHOLAR_API_KEY",
+    "QIONGLI_MCPB_CROSSREF_EMAIL",
+    "QIONGLI_MCPB_PUBMED_API_KEY",
+    "QIONGLI_MCPB_DEFAULT_LIMIT",
+    "QIONGLI_ZOTERO_LOCAL_ENABLED",
+    "QIONGLI_ZOTERO_CONNECTOR_URL",
+)
+RUST_LITE_USER_CONFIG_KEYS = (
+    "openalex_api_key",
+    "openalex_email",
+    "semantic_scholar_api_key",
+    "crossref_email",
+    "pubmed_api_key",
+    "default_result_limit",
+    "zotero_local_enabled",
+    "zotero_connector_url",
+)
+RUST_LITE_TOOL_DESCRIPTIONS = {
+    "qiongli_configure_provider": (
+        "Start a bounded, tokenized provider setup session and return its URL to the client."
+    ),
+    "qiongli_open_config_wizard": (
+        "Compatibility alias that returns the bounded provider setup URL."
+    ),
+    "qiongli_search_plan": (
+        "Plan bounded provider and platform-native literature search routing without executing search."
+    ),
+    "qiongli_literature_search": (
+        "Run a bounded academic literature search across configured Lite providers."
+    ),
+}
+RUST_LITE_USER_CONFIG_OVERRIDES = {
+    "semantic_scholar_api_key": {
+        "description": (
+            "API key required to enable the bundled Semantic Scholar provider. "
+            "Leave blank to skip Semantic Scholar calls."
+        )
+    },
+    "crossref_email": {
+        "description": (
+            "Contact email required to enable the bundled Crossref provider and sent as "
+            "polite-pool mailto metadata. Leave blank to skip Crossref calls."
+        )
+    },
+    "pubmed_api_key": {
+        "description": (
+            "NCBI API key required to enable the bundled PubMed provider. "
+            "Leave blank to skip PubMed calls."
+        )
+    },
+    "default_result_limit": {"max": 200},
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -129,6 +189,70 @@ def _write_manifest(staging: Path, manifest: dict[str, object]) -> None:
     )
 
 
+def _rust_lite_manifest(
+    manifest: dict[str, object],
+    target_identity: dict[str, object],
+) -> dict[str, object]:
+    rust_lite = json.loads(json.dumps(manifest))
+    binary = target_identity.get("binary")
+    platform = target_identity.get("platform")
+    architecture = target_identity.get("architecture")
+    target_triple = target_identity.get("target_triple")
+    if not isinstance(binary, str) or not binary:
+        raise ValueError("Rust Lite target identity missing binary")
+    if platform not in {"darwin", "linux", "win32"}:
+        raise ValueError(f"Rust Lite target identity has unsupported platform: {platform!r}")
+    if architecture not in {"aarch64", "x86_64"}:
+        raise ValueError(
+            f"Rust Lite target identity has unsupported architecture: {architecture!r}"
+        )
+    if not isinstance(target_triple, str) or not target_triple:
+        raise ValueError("Rust Lite target identity missing target_triple")
+
+    rust_lite["description"] = (
+        "Qiongli Lite MCP for bounded academic literature search, redacted provider status, "
+        "secure credential setup, and a URL-returning configuration wizard."
+    )
+    server = rust_lite["server"]
+    server["type"] = "stdio"
+    server["entry_point"] = f"bin/{binary}"
+    mcp_config = server["mcp_config"]
+    mcp_config["command"] = f"${{__dirname}}/bin/{binary}"
+    mcp_config["args"] = ["--transport", "stdio"]
+    source_env = mcp_config.get("env")
+    if not isinstance(source_env, dict):
+        raise ValueError("Rust Lite manifest source missing server.mcp_config.env")
+    mcp_config["env"] = {key: source_env[key] for key in RUST_LITE_ENV_KEYS}
+
+    source_user_config = rust_lite.get("user_config")
+    if not isinstance(source_user_config, dict):
+        raise ValueError("Rust Lite manifest source missing user_config")
+    rust_lite["user_config"] = {
+        key: source_user_config[key] for key in RUST_LITE_USER_CONFIG_KEYS
+    }
+    for key, overrides in RUST_LITE_USER_CONFIG_OVERRIDES.items():
+        setting = rust_lite["user_config"].get(key)
+        if not isinstance(setting, dict):
+            raise ValueError(f"Rust Lite manifest source missing user_config.{key}")
+        setting.update(overrides)
+    tools = rust_lite.get("tools")
+    if not isinstance(tools, list):
+        raise ValueError("Rust Lite manifest source missing tools")
+    for tool in tools:
+        if not isinstance(tool, dict):
+            raise ValueError("Rust Lite manifest tools must be objects")
+        name = tool.get("name")
+        if name in RUST_LITE_TOOL_DESCRIPTIONS:
+            tool["description"] = RUST_LITE_TOOL_DESCRIPTIONS[name]
+
+    compatibility = rust_lite.setdefault("compatibility", {})
+    compatibility["platforms"] = [platform]
+    compatibility["architectures"] = [architecture]
+    compatibility["target_triple"] = target_triple
+    compatibility["runtimes"] = {"native": "bundled-rust-lite-mcp"}
+    return rust_lite
+
+
 def _legacy_node_manifest(manifest: dict[str, object]) -> dict[str, object]:
     legacy = json.loads(json.dumps(manifest))
     server = legacy["server"]
@@ -143,9 +267,10 @@ def _legacy_node_manifest(manifest: dict[str, object]) -> dict[str, object]:
 
 
 def _stage_binary_package(root: Path, staging: Path, manifest: dict[str, object]) -> None:
-    _write_manifest(staging, manifest)
     _copy_package_file(root, staging, Path("README.md"))
-    build_current_platform(repo_root(), staging / "bin")
+    binary = build_current_platform(repo_root(), staging / "bin")
+    identity = read_target_identity(binary)
+    _write_manifest(staging, _rust_lite_manifest(manifest, identity))
 
 
 def _stage_legacy_node_package(root: Path, staging: Path, manifest: dict[str, object]) -> None:
@@ -156,6 +281,9 @@ def _stage_legacy_node_package(root: Path, staging: Path, manifest: dict[str, ob
     if not server_root.is_dir():
         raise ValueError(f"Missing required directory: {server_root}")
     shutil.copytree(server_root, staging / "server")
+    identity_path = staging / "bin" / TARGET_IDENTITY_FILENAME
+    if identity_path.exists():
+        identity_path.unlink()
 
 
 def build(root: Path, dist_dir: Path, *, legacy_node: bool = False) -> Path:

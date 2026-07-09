@@ -21,7 +21,11 @@ from qiongli.source_layout import RepoLayout
 from qiongli.distribution_metadata import PluginDefinition, load_plugin_distribution
 from qiongli.platform_targets import load_platform_targets, remove_path_pattern
 from qiongli.workflow_wrapper_skills import write_codex_workflow_wrapper_skills
-from tooling.scripts.build_lite_mcp import build_current_platform
+from tooling.scripts.build_lite_mcp import (
+    build_current_platform,
+    read_target_identity,
+    write_target_identity,
+)
 
 try:
     from qiongli.subject_materializer import MaterializeOptions, materialize_subject_package, validate_subject_catalog
@@ -609,6 +613,14 @@ def _copy_lite_mcp_runtime(root: Path, dest_plugin_root: Path) -> None:
     dest = dest_plugin_root / "bin" / LITE_MCP_BIN_NAME
     dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(binary, dest)
+    identity = read_target_identity(binary)
+    target = identity.get("target_triple")
+    if not isinstance(target, str) or not target:
+        raise ValueError(f"Lite MCP target identity missing target_triple: {binary}")
+    version = identity.get("component_version")
+    if not isinstance(version, str) or not version:
+        raise ValueError(f"Lite MCP target identity missing component_version: {binary}")
+    write_target_identity(dest, target, version)
 
 
 def _make_tarball(source_dir: Path, tar_path: Path) -> None:
