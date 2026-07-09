@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-const LITE_TOOLS_JSON: &str =
-    include_str!("../../../../content/mcp-contracts/lite-tools.json");
+const LITE_TOOLS_JSON: &str = include_str!("../../../../content/mcp-contracts/lite-tools.json");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolDefinition {

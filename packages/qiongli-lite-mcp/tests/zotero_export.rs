@@ -19,4 +19,3 @@ fn export_import_files_includes_ris_bibtex_csl_and_report() {
     assert!(files["references.ris"].contains("TY  - JOUR"));
     assert!(files["bibliography.bib"].contains("@article"));
 }
-

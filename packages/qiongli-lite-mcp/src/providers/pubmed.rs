@@ -1,8 +1,20 @@
 use serde::Deserialize;
 
+use crate::providers::runtime::{ProviderRuntime, ProviderRuntimeError};
 use crate::providers::search::{
     limit_for, normalize_doi, year_from_text, LiteratureResult, ProviderError, SearchInput,
 };
+
+#[derive(Debug, Deserialize)]
+struct PubmedSearchResponse {
+    esearchresult: Option<PubmedSearchResult>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PubmedSearchResult {
+    #[serde(default)]
+    idlist: Vec<String>,
+}
 
 #[derive(Debug, Deserialize)]
 struct PubmedArticle {
@@ -63,21 +75,68 @@ pub fn normalize_pubmed_summary_response(
     Ok(records)
 }
 
+pub fn normalize_pubmed_search_response(payload: &str) -> Result<Vec<String>, ProviderError> {
+    let response: PubmedSearchResponse = serde_json::from_str(payload)?;
+    Ok(response
+        .esearchresult
+        .map(|result| result.idlist)
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|id| !id.trim().is_empty())
+        .collect())
+}
+
 pub fn search_pubmed(
-    client: &reqwest::blocking::Client,
-    base_url: &str,
+    runtime: &ProviderRuntime,
     input: &SearchInput,
-) -> Result<Vec<LiteratureResult>, ProviderError> {
-    let payload = client
-        .get(base_url)
-        .query(&[
-            ("db", "pubmed"),
-            ("term", input.query.as_str()),
-            ("retmode", "json"),
-            ("retmax", &limit_for(input).to_string()),
-        ])
-        .send()?
-        .error_for_status()?
-        .text()?;
-    normalize_pubmed_summary_response(&payload)
+) -> Result<Vec<LiteratureResult>, ProviderRuntimeError> {
+    let mut search_url = runtime
+        .endpoints()
+        .pubmed()
+        .join("esearch.fcgi")
+        .map_err(|_| ProviderRuntimeError::InvalidEndpoint)?;
+    {
+        let mut query = search_url.query_pairs_mut();
+        query.append_pair("db", "pubmed");
+        query.append_pair("term", &input.query);
+        query.append_pair("retmode", "json");
+        query.append_pair("sort", "relevance");
+        query.append_pair("retmax", &limit_for(input).min(200).to_string());
+        if let Some(api_key) = runtime.config().value("pubmed", "api_key") {
+            query.append_pair("api_key", api_key);
+        }
+    }
+    let search_payload = runtime.get_text(
+        runtime
+            .client()
+            .get(search_url)
+            .header("Accept", "application/json"),
+    )?;
+    let ids = normalize_pubmed_search_response(&search_payload)
+        .map_err(|_| ProviderRuntimeError::Decode)?;
+    if ids.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let mut summary_url = runtime
+        .endpoints()
+        .pubmed()
+        .join("esummary.fcgi")
+        .map_err(|_| ProviderRuntimeError::InvalidEndpoint)?;
+    {
+        let mut query = summary_url.query_pairs_mut();
+        query.append_pair("db", "pubmed");
+        query.append_pair("id", &ids.join(","));
+        query.append_pair("retmode", "json");
+        if let Some(api_key) = runtime.config().value("pubmed", "api_key") {
+            query.append_pair("api_key", api_key);
+        }
+    }
+    let summary_payload = runtime.get_text(
+        runtime
+            .client()
+            .get(summary_url)
+            .header("Accept", "application/json"),
+    )?;
+    normalize_pubmed_summary_response(&summary_payload).map_err(|_| ProviderRuntimeError::Decode)
 }

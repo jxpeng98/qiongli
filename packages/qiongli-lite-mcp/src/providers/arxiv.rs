@@ -1,6 +1,7 @@
 use quick_xml::events::Event;
 use quick_xml::Reader;
 
+use crate::providers::runtime::{ProviderRuntime, ProviderRuntimeError};
 use crate::providers::search::{
     clean_text, limit_for, normalize_doi, year_from_text, LiteratureResult, ProviderError,
     SearchInput,
@@ -75,21 +76,29 @@ pub fn normalize_arxiv_response(payload: &str) -> Result<Vec<LiteratureResult>, 
 }
 
 pub fn search_arxiv(
-    client: &reqwest::blocking::Client,
-    base_url: &str,
+    runtime: &ProviderRuntime,
     input: &SearchInput,
-) -> Result<Vec<LiteratureResult>, ProviderError> {
-    let payload = client
-        .get(base_url)
-        .query(&[
-            ("search_query", format!("all:{}", input.query)),
-            ("start", "0".to_string()),
-            ("max_results", limit_for(input).to_string()),
-        ])
-        .send()?
-        .error_for_status()?
-        .text()?;
-    normalize_arxiv_response(&payload)
+) -> Result<Vec<LiteratureResult>, ProviderRuntimeError> {
+    let mut url = runtime
+        .endpoints()
+        .arxiv()
+        .join("api/query")
+        .map_err(|_| ProviderRuntimeError::InvalidEndpoint)?;
+    {
+        let mut query = url.query_pairs_mut();
+        query.append_pair("search_query", &format!("all:{}", input.query));
+        query.append_pair("start", "0");
+        query.append_pair("max_results", &limit_for(input).min(200).to_string());
+        query.append_pair("sortBy", "relevance");
+        query.append_pair("sortOrder", "descending");
+    }
+    let payload = runtime.get_text(
+        runtime
+            .client()
+            .get(url)
+            .header("Accept", "application/atom+xml"),
+    )?;
+    normalize_arxiv_response(&payload).map_err(|_| ProviderRuntimeError::Decode)
 }
 
 fn local_name(name: &[u8]) -> &[u8] {

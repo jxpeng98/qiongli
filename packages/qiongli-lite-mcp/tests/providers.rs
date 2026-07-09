@@ -1,7 +1,9 @@
 use qiongli_lite_mcp::providers::arxiv::normalize_arxiv_response;
 use qiongli_lite_mcp::providers::crossref::normalize_crossref_response;
 use qiongli_lite_mcp::providers::openalex::normalize_openalex_response;
-use qiongli_lite_mcp::providers::pubmed::normalize_pubmed_summary_response;
+use qiongli_lite_mcp::providers::pubmed::{
+    normalize_pubmed_search_response, normalize_pubmed_summary_response,
+};
 use qiongli_lite_mcp::providers::semantic_scholar::normalize_semantic_scholar_response;
 
 #[test]
@@ -58,9 +60,18 @@ fn pubmed_summary_response_normalizes_title_year_and_doi() {
 }
 
 #[test]
+fn pubmed_search_response_extracts_non_empty_ids() {
+    let ids = normalize_pubmed_search_response(
+        r#"{"esearchresult":{"count":"2","idlist":["123", "", "456"]}}"#,
+    )
+    .unwrap();
+
+    assert_eq!(ids, vec!["123", "456"]);
+}
+
+#[test]
 fn arxiv_atom_response_normalizes_title_year_and_url() {
-    let fixture =
-        include_str!("../../../content/mcp-contracts/fixtures/arxiv-search-response.xml");
+    let fixture = include_str!("../../../content/mcp-contracts/fixtures/arxiv-search-response.xml");
     let results = normalize_arxiv_response(fixture).unwrap();
 
     assert_eq!(results.len(), 1);
@@ -69,4 +80,3 @@ fn arxiv_atom_response_normalizes_title_year_and_url() {
     assert_eq!(results[0].year, Some(2025));
     assert_eq!(results[0].provider, "arxiv");
 }
-

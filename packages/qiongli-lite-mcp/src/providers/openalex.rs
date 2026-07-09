@@ -1,5 +1,6 @@
 use serde::Deserialize;
 
+use crate::providers::runtime::{ProviderRuntime, ProviderRuntimeError};
 use crate::providers::search::{
     limit_for, normalize_doi, LiteratureResult, ProviderError, SearchInput,
 };
@@ -51,18 +52,30 @@ pub fn normalize_openalex_response(payload: &str) -> Result<Vec<LiteratureResult
 }
 
 pub fn search_openalex(
-    client: &reqwest::blocking::Client,
-    base_url: &str,
+    runtime: &ProviderRuntime,
     input: &SearchInput,
-) -> Result<Vec<LiteratureResult>, ProviderError> {
-    let payload = client
-        .get(format!("{}/works", base_url.trim_end_matches('/')))
-        .query(&[
-            ("search", input.query.as_str()),
-            ("per-page", &limit_for(input).to_string()),
-        ])
-        .send()?
-        .error_for_status()?
-        .text()?;
-    normalize_openalex_response(&payload)
+) -> Result<Vec<LiteratureResult>, ProviderRuntimeError> {
+    let mut url = runtime
+        .endpoints()
+        .openalex()
+        .join("works")
+        .map_err(|_| ProviderRuntimeError::InvalidEndpoint)?;
+    {
+        let mut query = url.query_pairs_mut();
+        query.append_pair("search", &input.query);
+        query.append_pair("per-page", &limit_for(input).min(200).to_string());
+        if let Some(api_key) = runtime.config().value("openalex", "api_key") {
+            query.append_pair("api_key", api_key);
+        }
+        if let Some(email) = runtime.config().value("openalex", "email") {
+            query.append_pair("mailto", email);
+        }
+    }
+    let payload = runtime.get_text(
+        runtime
+            .client()
+            .get(url)
+            .header("Accept", "application/json"),
+    )?;
+    normalize_openalex_response(&payload).map_err(|_| ProviderRuntimeError::Decode)
 }

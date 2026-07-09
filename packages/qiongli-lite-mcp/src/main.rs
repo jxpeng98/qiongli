@@ -1,5 +1,6 @@
-use std::io::{self, BufRead, Write};
+use std::io::{self, BufReader};
 
+use qiongli_lite_mcp::mcp::protocol::{read_message, write_message};
 use qiongli_lite_mcp::mcp::server::{McpRequest, McpServer};
 use serde_json::json;
 
@@ -24,24 +25,43 @@ fn main() {
 
     let server = McpServer::new("qiongli-literature-provider", env!("CARGO_PKG_VERSION"));
     let stdin = io::stdin();
+    let mut reader = BufReader::new(stdin.lock());
     let mut stdout = io::stdout();
 
-    for line in stdin.lock().lines() {
-        let Ok(line) = line else {
-            continue;
+    loop {
+        let message = match read_message(&mut reader) {
+            Ok(Some(message)) => message,
+            Ok(None) => break,
+            Err(_) => {
+                let response = json!({
+                    "jsonrpc": "2.0",
+                    "id": null,
+                    "error": {"code": -32700, "message": "Parse error"}
+                });
+                let _ = write_message(
+                    &mut stdout,
+                    &response,
+                    qiongli_lite_mcp::mcp::protocol::Framing::Line,
+                );
+                break;
+            }
         };
-        if line.trim().is_empty() {
-            continue;
-        }
-        let response = match serde_json::from_str::<McpRequest>(&line) {
-            Ok(request) => server.handle(request),
+        let response = match serde_json::from_str::<McpRequest>(&message.payload) {
+            Ok(request) => {
+                let is_notification = request.id.is_none();
+                let response = server.handle(request);
+                if is_notification {
+                    continue;
+                }
+                response
+            }
             Err(_) => json!({
                 "jsonrpc": "2.0",
                 "id": null,
                 "error": {"code": -32700, "message": "Parse error"}
             }),
         };
-        writeln!(stdout, "{response}").expect("failed to write MCP response");
-        stdout.flush().expect("failed to flush MCP response");
+        write_message(&mut stdout, &response, message.framing)
+            .expect("failed to write MCP response");
     }
 }

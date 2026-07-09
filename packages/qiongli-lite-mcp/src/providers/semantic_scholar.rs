@@ -1,5 +1,6 @@
 use serde::Deserialize;
 
+use crate::providers::runtime::{ProviderRuntime, ProviderRuntimeError};
 use crate::providers::search::{
     limit_for, normalize_doi, LiteratureResult, ProviderError, SearchInput,
 };
@@ -51,19 +52,27 @@ pub fn normalize_semantic_scholar_response(
 }
 
 pub fn search_semantic_scholar(
-    client: &reqwest::blocking::Client,
-    base_url: &str,
+    runtime: &ProviderRuntime,
     input: &SearchInput,
-) -> Result<Vec<LiteratureResult>, ProviderError> {
-    let payload = client
-        .get(format!("{}/paper/search", base_url.trim_end_matches('/')))
-        .query(&[
-            ("query", input.query.as_str()),
-            ("limit", &limit_for(input).to_string()),
-            ("fields", "title,year,venue,externalIds"),
-        ])
-        .send()?
-        .error_for_status()?
-        .text()?;
-    normalize_semantic_scholar_response(&payload)
+) -> Result<Vec<LiteratureResult>, ProviderRuntimeError> {
+    let mut url = runtime
+        .endpoints()
+        .semantic_scholar()
+        .join("paper/search")
+        .map_err(|_| ProviderRuntimeError::InvalidEndpoint)?;
+    {
+        let mut query = url.query_pairs_mut();
+        query.append_pair("query", &input.query);
+        query.append_pair("limit", &limit_for(input).min(200).to_string());
+        query.append_pair("fields", "title,year,venue,externalIds");
+    }
+    let mut request = runtime
+        .client()
+        .get(url)
+        .header("Accept", "application/json");
+    if let Some(api_key) = runtime.config().value("semantic_scholar", "api_key") {
+        request = request.header("x-api-key", api_key);
+    }
+    let payload = runtime.get_text(request)?;
+    normalize_semantic_scholar_response(&payload).map_err(|_| ProviderRuntimeError::Decode)
 }
