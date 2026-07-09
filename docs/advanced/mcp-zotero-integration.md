@@ -7,7 +7,24 @@ records into Zotero Desktop through the Qiongli Zotero companion.
 
 This local-first path does not require a Zotero Web API key or Zotero cloud sync.
 If local Zotero is unavailable, Qiongli still generates import files:
-`references.json`, `references.ris`, and `bibliography.bib`.
+`references.json`, `references.ris`, `bibliography.bib`, and
+`zotero-import-report.md`.
+
+## Runtime Profiles
+
+The Marketplace Rust Lite and Python Full profiles intentionally expose
+different Zotero capabilities:
+
+| Capability | Rust Lite | Python Full + Companion |
+|---|---:|---:|
+| Loopback Connector/Companion status probe | Yes | Yes |
+| Generate import files | Yes | Yes |
+| Search the local Zotero library | No | Yes |
+| Create collections, tags, notes, or references | No | Yes, with explicit write intent |
+
+The Lite status probe never implies that Lite can search or write the local
+library. The search and write examples below require the Full runtime and the
+separately installed Qiongli Zotero Companion.
 
 ## Components
 
@@ -54,7 +71,7 @@ Possible states:
 - `fallback_only`: Zotero Desktop is not reachable; use generated import files.
 - `disabled`: local Zotero mode is disabled in config.
 
-## Opt-In Local Source Search
+## Full Runtime Only: Opt-In Local Source Search
 
 `qiongli_literature_search` does not search Zotero by default. Add
 `include_zotero: true` when you want Zotero to act as an additional local
@@ -75,7 +92,7 @@ Local-only Zotero records return `provider: "zotero"` and
 `source_type: "local_reference_database"`. External provider records can include
 `local_zotero_match` when the DOI or title/year already exists in Zotero.
 
-## Saving Search Results
+## Full Runtime Only: Saving Search Results
 
 Search first:
 
@@ -152,8 +169,8 @@ The output includes:
 - `references.json` for Zotero CSL-JSON import.
 - `references.ris` for Zotero, EndNote, and Mendeley.
 - `bibliography.bib` for BibTeX workflows.
-- `zotero-import-report.md` with counts, Crossref verification summary, and
-  fallback instructions.
+- `zotero-import-report.md` with the exported record count and fallback
+  instructions. Full-runtime enrichment may add separate verification evidence.
 
 ## Configuration
 
@@ -172,7 +189,12 @@ QIONGLI_ZOTERO_CROSSREF_VERIFICATION_ENABLED=true
 `QIONGLI_ZOTERO_CONNECTOR_URL` must point to `127.0.0.1`, `localhost`, or `::1`.
 Non-loopback URLs are rejected.
 
-## Web API Mode
+Rust Lite consumes only `QIONGLI_ZOTERO_LOCAL_ENABLED` and
+`QIONGLI_ZOTERO_CONNECTOR_URL`. Collection, write, update, review-tag, and
+Crossref-verification settings are Full-runtime settings and are excluded from
+the Rust Lite MCPB overlay.
+
+## Full Runtime Only: Web API Mode
 
 Zotero Web API supports writes with an API key that has write access. That mode
 is useful for future cloud-sync workflows, but it is not the default Qiongli

@@ -186,6 +186,11 @@ Qiongli 包含 Academic Idea Funnel 和 Academic Grill Loop；这是对 Matt Poc
 
 Provider 凭据保存在 provider config，不写进生成的 skill bundle。使用 `qiongli provider setup` 配置 OpenAlex、Semantic Scholar、Crossref、PubMed 和 arXiv 支持的文献 workflow，再用 `qiongli provider doctor` 验证。`qiongli-literature-provider` `.mcpb` 为 Codex/Desktop 流程暴露 `qiongli_literature_status`、`qiongli_search_plan`、`qiongli_literature_search`、`qiongli_literature_export_evidence`、`qiongli_config_status`、`qiongli_configure_provider` 和 `qiongli_save_provider_config`；状态会根据 provider 和平台原生搜索可用性区分 `provider_connected`、`native_only` 和 `strategy_only`。`qiongli_collect_evidence` 是 external evidence adapter 路径，不能作为 OpenAlex provider config 检查。skill-only 安装仍可使用 strategy fallback，外部 provider probe 保持 180 秒上限。
 
+Rust Lite provider 只承诺有界的基础 provider 检索、规范化、去重、限额和
+真实的部分失败诊断。配置工具返回由调用方打开的 tokenized loopback URL。
+领域深搜、citation expansion、Zotero library 检索/写入、项目写入和 agent
+execution 仍属于 Full runtime。
+
 ## 文档地图
 
 - [入门](docs/zh/guide/index.md)：安装、使用、升级、故障排除和 runtime 选择。

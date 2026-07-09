@@ -186,6 +186,12 @@ Qiongli includes the Academic Idea Funnel and Academic Grill Loop as an academic
 
 Provider credentials stay in provider config, not generated skill bundles. Use `qiongli provider setup` for OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv-supported literature workflows, then `qiongli provider doctor` to verify. The `qiongli-literature-provider` `.mcpb` exposes `qiongli_literature_status`, `qiongli_search_plan`, `qiongli_literature_search`, `qiongli_literature_export_evidence`, `qiongli_config_status`, `qiongli_configure_provider`, and `qiongli_save_provider_config` for Codex/Desktop flows; statuses include `provider_connected`, `native_only`, and `strategy_only` depending on provider and platform search availability. `qiongli_collect_evidence` is an external evidence adapter path and must not be used as the OpenAlex provider-config check. Skill-only installs can still use strategy fallback, and runtime checks keep a 180-second ceiling for external provider probes.
 
+The Rust Lite provider performs bounded basic provider search, normalization,
+deduplication, limits, and truthful partial-failure diagnostics. Its setup tool
+returns a tokenized loopback URL for the caller to open. Domain deep search,
+citation expansion, Zotero library search/writes, project writes, and agent
+execution remain Full-runtime capabilities.
+
 ## Documentation Map
 
 - [Guide](docs/guide/index.md): install, usage, upgrade, troubleshooting, and runtime choices.

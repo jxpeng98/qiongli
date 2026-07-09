@@ -7,7 +7,22 @@ reference 通过 Qiongli Zotero companion 写入本地 Zotero Desktop。
 
 这个 local-first 路径不需要 Zotero Web API key，也不要求 Zotero 云同步。
 如果本地 Zotero 不可用，Qiongli 仍会生成可导入文件：
-`references.json`、`references.ris` 和 `bibliography.bib`。
+`references.json`、`references.ris`、`bibliography.bib` 和
+`zotero-import-report.md`。
+
+## Runtime Profiles
+
+Marketplace Rust Lite 与 Python Full 的 Zotero 边界不同：
+
+| 能力 | Rust Lite | Python Full + Companion |
+|---|---:|---:|
+| Loopback Connector/Companion 状态探测 | 支持 | 支持 |
+| 生成导入文件 | 支持 | 支持 |
+| 检索本地 Zotero library | 不支持 | 支持 |
+| 创建 collections、tags、notes 或 references | 不支持 | 支持，但必须显式请求写入 |
+
+Lite 的状态探测不代表 Lite 可以检索或写入 Zotero。下方检索和写入示例都
+需要 Full runtime，并且需要单独安装 Qiongli Zotero Companion。
 
 ## 组件
 
@@ -54,7 +69,7 @@ python3 scripts/build_zotero_companion.py --dist-dir dist
 - `fallback_only`：无法连接 Zotero Desktop；改用可导入文件。
 - `disabled`：本地 Zotero 模式被配置关闭。
 
-## 显式启用本地 Zotero 来源检索
+## 仅 Full Runtime：显式启用本地 Zotero 来源检索
 
 `qiongli_literature_search` 默认不会搜索 Zotero。只有当你明确传入
 `include_zotero: true` 时，Zotero 才会作为额外的本地 reference source：
@@ -74,7 +89,7 @@ python3 scripts/build_zotero_companion.py --dist-dir dist
 `source_type: "local_reference_database"`。外部 provider 的结果如果 DOI 或
 title/year 已经存在于 Zotero，会带上 `local_zotero_match`，方便判断是否已经保存。
 
-## 保存检索结果
+## 仅 Full Runtime：保存检索结果
 
 先检索：
 
@@ -149,7 +164,8 @@ companion 不可用时，可以生成导入文件：
 - `references.json`：Zotero CSL-JSON 导入。
 - `references.ris`：Zotero、EndNote、Mendeley 通用。
 - `bibliography.bib`：BibTeX 工作流。
-- `zotero-import-report.md`：记录数量、Crossref verification 汇总和 fallback 操作说明。
+- `zotero-import-report.md`：导出记录数量和 fallback 操作说明。Full runtime
+  的 enrichment 可以另外生成 verification evidence。
 
 ## 配置
 
@@ -168,7 +184,11 @@ QIONGLI_ZOTERO_CROSSREF_VERIFICATION_ENABLED=true
 `QIONGLI_ZOTERO_CONNECTOR_URL` 必须指向 `127.0.0.1`、`localhost` 或 `::1`。
 非 loopback URL 会被拒绝。
 
-## Web API 模式
+Rust Lite 只消费 `QIONGLI_ZOTERO_LOCAL_ENABLED` 和
+`QIONGLI_ZOTERO_CONNECTOR_URL`。Collection、write、update、review tag 与
+Crossref verification 设置属于 Full runtime，不会进入 Rust Lite MCPB overlay。
+
+## 仅 Full Runtime：Web API 模式
 
 Zotero Web API 支持通过具备写权限的 API key 写入。这个模式未来可以用于
 cloud-sync workflow，但它不是 Qiongli 的默认 Zotero 集成路径。默认路径是：

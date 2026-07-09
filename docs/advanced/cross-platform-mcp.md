@@ -99,7 +99,7 @@ Keep provider secrets out of `.mcp.json`, `.codex-plugin/plugin.json`, marketpla
 
 The bundled Codex runtime focuses on literature-provider tools. Use `qiongli install --profile full --target codex --surface plugin` when you need a Codex-native plugin container backed by the unified full MCP surface with both literature and Python-backed orchestration tools.
 
-`qiongli_configure_provider` is the platform-neutral setup contract. Codex Desktop, Claude Desktop MCPB, Claude Code, Cursor-style clients, and any local stdio MCP client should prefer it for credentials because it opens a local `127.0.0.1` setup page and returns only redacted status. `qiongli_open_config_wizard` remains available as a compatibility alias for older clients and docs.
+`qiongli_configure_provider` is the platform-neutral setup contract. Codex Desktop, Claude Desktop MCPB, Claude Code, Cursor-style clients, and any local stdio MCP client should prefer it for credentials because it starts a tokenized `127.0.0.1` setup page and returns its URL without returning provider values. The caller opens that URL; Lite does not promise automatic system-browser launch. `qiongli_open_config_wizard` remains available as a compatibility alias for older clients and docs.
 
 ## Claude Code Marketplace Lite MCP
 
@@ -111,17 +111,17 @@ The bundled server entry is:
 ${CLAUDE_PLUGIN_ROOT}/bin/qiongli-literature-provider --transport stdio
 ```
 
-This bundled runtime covers literature-provider tools such as provider configuration, status, search, search planning, and evidence export without requiring the `qiongli` CLI. Use `qiongli install --profile full --target claude --surface plugin` when Claude Code needs Python-backed orchestration tools, including `qiongli_orchestrator_route`, `qiongli_orchestrator_doctor`, `qiongli_task_plan`, or `qiongli_task_run`. Use `--target antigravity`, `--target hermes`, or `--target all --surface plugin` for local clients that should load the full MCP server instead of a bundled lite provider runtime.
+This bundled runtime covers literature-provider tools such as provider configuration, status, search, search planning, evidence export, and preview-only route/task planning without requiring the `qiongli` CLI. Use `qiongli install --profile full --target claude --surface plugin` when Claude Code needs Python-backed doctor checks, task execution, project writes, or local agent launch. Use `--target antigravity`, `--target hermes`, or `--target all --surface plugin` for local clients that should load the full MCP server instead of a bundled lite provider runtime.
 
 ## Claude Desktop MCPB
 
-The Claude Desktop `qiongli-literature-provider.mcpb` also contains the Rust Lite MCP executable. It exposes user configuration fields for OpenAlex API key, optional OpenAlex email, Semantic Scholar API key, and default result limit, so a Desktop user can install the MCPB and configure provider keys without installing `qiongli`, Node, Python, npm, or pip.
+The Claude Desktop `qiongli-literature-provider.mcpb` also contains the Rust Lite MCP executable. It exposes the Lite runtime's provider fields, default result limit, and loopback Zotero probe settings, so a Desktop user can install the MCPB without installing `qiongli`, Node, Python, npm, or pip. Current-host beta artifacts carry an explicit Rust target identity and must not be treated as generic multi-platform binaries. While that identity reports `target_policy: current-host-only`, release postflight uploads target-identified beta assets but does not advance the generic Codex or Claude marketplace dist refs. Install such a beta asset only when its target triple matches the host.
 
 For manual Claude Desktop installs, treat the Skill ZIP and MCPB as complementary assets:
 
 - The `qiongli-claude-desktop-skill-*.zip` upload provides the agent instructions, workflows, templates, subject overlays, and skill guidance.
 - The `qiongli-literature-provider.mcpb` install provides literature MCP tools such as `qiongli_literature_search`.
-- The MCPB does not launch orchestrator agents. If the same Desktop or coding client needs `qiongli_orchestrator_route` or `qiongli_task_run`, install the full CLI MCP server separately. For Codex/Claude Code use `qiongli install --profile full --target all --surface plugin`; for a direct stdio integration use `qiongli mcp serve --transport stdio`.
+- The MCPB does not launch orchestrator agents. Its route and task-plan tools are previews only. If the same Desktop or coding client needs doctor checks or `qiongli_task_run`, install the full CLI MCP server separately. For Codex/Claude Code use `qiongli install --profile full --target all --surface plugin`; for a direct stdio integration use `qiongli mcp serve --transport stdio`.
 
 ## Provider Keys
 
@@ -135,11 +135,11 @@ qiongli mcp doctor --json
 
 Desktop-only users can use the MCP tools exposed by the bundled Rust Lite MCP server or full CLI server:
 
-- `qiongli_configure_provider`: starts a local browser form for provider key setup without putting API keys in chat.
+- `qiongli_configure_provider`: starts a tokenized loopback form and returns its URL; the caller opens it.
 - `qiongli_open_config_wizard`: compatibility alias for `qiongli_configure_provider`.
 - `qiongli_save_provider_config`: saves one provider field from the desktop client; use it only for explicit scripted writes or when the user deliberately supplied the value in chat.
 - `qiongli_config_status`: reports redacted provider status.
-- `qiongli_literature_search`: searches configured OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv providers with query variants, finance/economics deep-search routing, and sanitized diagnostics. arXiv is enabled without credentials.
+- `qiongli_literature_search`: performs bounded basic search across selected configured OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv providers, then normalizes, deduplicates, limits, and reports sanitized complete/partial/failed diagnostics. arXiv is enabled without credentials. Query variants, domain deep search, citation expansion, and review-grade coverage diagnostics belong to Full or the explicitly packaged legacy Node reference.
 
 The full CLI server exposes the same `qiongli_configure_provider` flow.
 
