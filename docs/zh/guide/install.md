@@ -49,6 +49,8 @@ codex plugin marketplace list
 
 Codex plugin 自带 `.mcp.json` 和 `bin/qiongli-literature-provider` Rust Lite literature-provider MCP runtime。只使用这些内置文献 provider 工具时，桌面用户不需要安装 Node、Python、`qiongli` CLI，也不需要手写 MCP config。Provider key 不写入 plugin manifest；可以通过平台无关的本地设置工具 `qiongli_configure_provider` 配置，也可以用 `qiongli_save_provider_config` 保存，或者在已安装 CLI 时用 `qiongli mcp configure` / `qiongli provider setup` 配置。完整本地 Qiongli 使用 CLI 生成的本地 plugin：`qiongli install --profile full --target codex --surface plugin`。这个本地 plugin 保留 Codex 原生 plugin 容器，但它的 `.mcp.json` 会启动完整 Python-backed `qiongli mcp serve --transport stdio` server。
 
+安装或升级 plugin 之后，请新开一个 Codex thread，或者重启本地 Codex 客户端，让 plugin 内置 MCP server 被重新加载。在 Codex CLI 中，`codex mcp list` 应该能看到 `qiongli` 或 `qiongli-next`，其 command 为 `./bin/qiongli-literature-provider`，`cwd` 指向 plugin cache 路径。在 Codex App 中，可以通过 Settings > Integrations & MCP 或当前 thread 的 MCP status view 确认 server 已启用，再测试 provider tools。
+
 Codex 插件安装默认使用插件内置 MCP。安装器会把 `.mcp.json` 写在 Qiongli 插件目录内，并由插件 manifest 指向它；插件路径不会写入 `~/.codex/config.toml`。只有在需要 standalone MCP fallback 时，才运行 `qiongli install --target codex --parts mcp`。
 
 Codex 目前会把 plugin-bundled MCP server 当作 plugin asset：设置页可以启用 server 和管理 tool policy，但不适合作为这个内置 server 的 provider key 注入入口。Claude Desktop MCPB、Claude Code、Cursor 类客户端和其他本地 stdio MCP client 也应使用同一个 Qiongli provider setup contract。请改用 Qiongli provider config：
@@ -78,6 +80,8 @@ claude plugin install qiongli-economics@skillsplace
 ```
 
 Claude Code marketplace plugin 也内置 `bin/qiongli-literature-provider` Rust Lite literature-provider MCP runtime，提供与 Codex plugin 相同的 provider、search、search-plan、evidence-export、Zotero import-file 和 status tools。只使用这些内置 literature-provider tools 时，不需要安装 Node、Python 或 `qiongli` CLI。`qiongli_task_run` 和 `qiongli_orchestrator_doctor` 这类 Python-backed orchestration tools 需要完整运行时：`pipx install qiongli`。然后运行 `qiongli install --profile full --target claude --surface plugin` 生成本地 Claude Code plugin，并由这个 plugin 启动统一的 `qiongli mcp serve --transport stdio` server。`--target antigravity` 会生成带 root `mcp_config.json` 的 Antigravity plugin，`--target hermes` 写入 Hermes MCP config；`--target all --surface plugin` 会让 Codex / Claude Code / Antigravity 使用本地 plugin，同时给 Hermes 写入受管理的 full MCP client 配置。
+
+安装或升级 Claude Code plugin 之后，请运行 `/reload-plugins` 或新开一个 Claude Code session。然后打开 `/mcp`；Qiongli server 应显示为 plugin-provided MCP server，并且 tool count 不应为 0。Plugin-bundled MCP tool name 会带 plugin 和 server namespace，所以实际可调用名称会包含 plugin 前缀，而不只是裸的 `qiongli_literature_search`。
 
 Claude Desktop 和 Claude.ai 不安装第三方 Claude Code plugin marketplace。对于 Claude Desktop，优先使用 direct plugin ZIP：
 

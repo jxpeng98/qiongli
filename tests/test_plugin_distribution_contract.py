@@ -618,6 +618,34 @@ class PluginDistributionContractTests(unittest.TestCase):
                 (materialized_plugin / "bin" / "qiongli-literature-provider").is_file()
             )
 
+    def test_codex_plugin_bundled_mcp_server_launches(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            materialized_plugin = self.materialize_plugin_payload(tmp_dir)
+
+            tools = validator._assert_plugin_mcp_server_launches(
+                materialized_plugin,
+                "codex",
+                mcp_server_name="qiongli",
+            )
+
+        self.assertIn("qiongli_literature_status", tools)
+        self.assertIn("qiongli_literature_search", tools)
+        self.assertIn("qiongli_task_plan", tools)
+
+    def test_claude_plugin_bundled_mcp_server_launches(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            materialized_plugin = self.materialize_plugin_payload(tmp_dir)
+
+            tools = validator._assert_plugin_mcp_server_launches(
+                materialized_plugin,
+                "claude",
+                mcp_server_name="qiongli",
+            )
+
+        self.assertIn("qiongli_literature_status", tools)
+        self.assertIn("qiongli_literature_search", tools)
+        self.assertIn("qiongli_task_plan", tools)
+
     def test_codex_bundled_mcp_validation_requires_plugin_manifest_reference(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             materialized_plugin = self.materialize_plugin_payload(tmp_dir)
@@ -720,22 +748,22 @@ class PluginDistributionContractTests(unittest.TestCase):
         if "-" in current_tag.removeprefix("v"):
             self.assertIn(
                 "[OK] codex marketplace artifact (core-next): "
-                "qiongli-next invocation checked; bundled literature MCP checked",
+                "qiongli-next invocation checked; bundled literature MCP checked; MCP startup checked",
                 result.stdout,
             )
             self.assertIn(
                 "[OK] claude marketplace artifact (core-next): "
-                "qiongli-next invocation checked; bundled literature MCP checked",
+                "qiongli-next invocation checked; bundled literature MCP checked; MCP startup checked",
                 result.stdout,
             )
             self.assertIn(
                 "[OK] claude marketplace ZIP artifact (core-next): "
-                "qiongli-next invocation checked; bundled literature MCP checked",
+                "qiongli-next invocation checked; bundled literature MCP checked; MCP startup checked",
                 result.stdout,
             )
             self.assertIn(
                 "[OK] claude-desktop direct plugin artifact (core-next): "
-                "qiongli-next invocation checked; bundled literature MCP checked",
+                "qiongli-next invocation checked; bundled literature MCP checked; MCP startup checked",
                 result.stdout,
             )
             self.assertIn("[OK] claude-desktop skill artifact (core-next)", result.stdout)
@@ -744,20 +772,23 @@ class PluginDistributionContractTests(unittest.TestCase):
             self.assertIn("qiongli-next invocation", result.stdout)
         else:
             self.assertIn(
-                "[OK] codex marketplace artifact: qiongli invocation checked; bundled literature MCP checked",
+                "[OK] codex marketplace artifact: qiongli invocation checked; "
+                "bundled literature MCP checked; MCP startup checked",
                 result.stdout,
             )
             self.assertIn(
-                "[OK] claude marketplace artifact: qiongli invocation checked; bundled literature MCP checked",
+                "[OK] claude marketplace artifact: qiongli invocation checked; "
+                "bundled literature MCP checked; MCP startup checked",
                 result.stdout,
             )
             self.assertIn(
-                "[OK] claude marketplace ZIP artifact: qiongli invocation checked; bundled literature MCP checked",
+                "[OK] claude marketplace ZIP artifact: qiongli invocation checked; "
+                "bundled literature MCP checked; MCP startup checked",
                 result.stdout,
             )
             self.assertIn(
                 "[OK] claude-desktop direct plugin artifact: "
-                "qiongli invocation checked; bundled literature MCP checked",
+                "qiongli invocation checked; bundled literature MCP checked; MCP startup checked",
                 result.stdout,
             )
             self.assertNotIn("[OK] gemini marketplace artifact", result.stdout)
@@ -767,6 +798,7 @@ class PluginDistributionContractTests(unittest.TestCase):
         self.assertIn("under desktop file budget", result.stdout)
         self.assertIn("invocation checked", result.stdout)
         self.assertIn("bundled literature MCP checked", result.stdout)
+        self.assertIn("MCP startup checked", result.stdout)
         self.assertIn("[OK] structural archive checks completed", result.stdout)
         self.assertIn(
             "[SKIP] client CLI activation checks skipped for targets: "

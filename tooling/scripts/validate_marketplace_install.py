@@ -6,6 +6,7 @@ import importlib.util
 import json
 import re
 import stat
+import subprocess
 import sys
 import tarfile
 import tempfile
@@ -39,6 +40,11 @@ MCP_SERVER_NAME = "qiongli"
 NEXT_MCP_SERVER_NAME = "qiongli-next"
 CLAUDE_DESKTOP_FILE_BUDGET = 180
 LITE_MCP_BIN_NAME = "qiongli-literature-provider"
+MCP_LAUNCH_REQUIRED_TOOLS = {
+    "qiongli_literature_status",
+    "qiongli_literature_search",
+    "qiongli_task_plan",
+}
 FORBIDDEN_MARKETPLACE_MCP_COMMANDS = {
     "node",
     "npm",
@@ -445,6 +451,163 @@ def _assert_bundled_literature_mcp(
         )
 
 
+def _substitute_plugin_mcp_value(value: object, plugin_root: Path) -> str:
+    if not isinstance(value, str):
+        raise ValueError(f"plugin MCP value must be a string, found {type(value).__name__}")
+    replacements = {
+        "${CLAUDE_PLUGIN_ROOT}": str(plugin_root),
+        "${CLAUDE_PLUGIN_DATA}": str(plugin_root / ".data"),
+        "${CLAUDE_PROJECT_DIR}": str(plugin_root),
+    }
+    rendered = value
+    for needle, replacement in replacements.items():
+        rendered = rendered.replace(needle, replacement)
+    return rendered
+
+
+def _plugin_mcp_config(plugin_root: Path, platform: str) -> dict[str, object]:
+    if platform == "codex":
+        manifest_path = plugin_root / ".codex-plugin" / "plugin.json"
+        manifest = _read_json(manifest_path)
+        mcp_servers = manifest.get("mcpServers")
+        if isinstance(mcp_servers, str):
+            config_path = plugin_root / mcp_servers
+            return _read_json(config_path)
+        if isinstance(mcp_servers, dict):
+            return {"mcpServers": mcp_servers}
+        raise ValueError(f"{manifest_path} missing plugin MCP server configuration")
+
+    if platform == "claude":
+        manifest_path = plugin_root / ".claude-plugin" / "plugin.json"
+        manifest = _read_json(manifest_path)
+        mcp_servers = manifest.get("mcpServers")
+        if isinstance(mcp_servers, dict):
+            return {"mcpServers": mcp_servers}
+        config_path = plugin_root / ".mcp.json"
+        if config_path.is_file():
+            return _read_json(config_path)
+        raise ValueError(f"{manifest_path} missing plugin MCP server configuration")
+
+    raise ValueError(f"unsupported plugin MCP platform: {platform}")
+
+
+def _plugin_mcp_server(plugin_root: Path, platform: str, mcp_server_name: str) -> dict[str, object]:
+    config = _plugin_mcp_config(plugin_root, platform)
+    mcp_servers = config.get("mcpServers")
+    if not isinstance(mcp_servers, dict):
+        raise ValueError(f"{plugin_root} plugin MCP config missing mcpServers")
+    server = mcp_servers.get(mcp_server_name)
+    if not isinstance(server, dict):
+        raise ValueError(f"{plugin_root} plugin MCP config missing mcpServers.{mcp_server_name}")
+    return server
+
+
+def _plugin_mcp_cwd(plugin_root: Path, server: dict[str, object]) -> Path:
+    raw_cwd = server.get("cwd", ".")
+    cwd = _substitute_plugin_mcp_value(raw_cwd, plugin_root)
+    path = Path(cwd)
+    if not path.is_absolute():
+        path = plugin_root / path
+    return path.resolve()
+
+
+def _assert_plugin_mcp_server_launches(
+    plugin_root: Path,
+    platform: str,
+    *,
+    mcp_server_name: str = MCP_SERVER_NAME,
+) -> set[str]:
+    server = _plugin_mcp_server(plugin_root, platform, mcp_server_name)
+    command = _substitute_plugin_mcp_value(server.get("command"), plugin_root)
+    args_value = server.get("args", [])
+    if not isinstance(args_value, list):
+        raise ValueError(f"{plugin_root} mcpServers.{mcp_server_name}.args must be a list")
+    args = [_substitute_plugin_mcp_value(item, plugin_root) for item in args_value]
+    cwd = _plugin_mcp_cwd(plugin_root, server)
+    if not cwd.is_dir():
+        raise ValueError(f"{plugin_root} mcpServers.{mcp_server_name}.cwd does not exist: {cwd}")
+
+    request_payload = "\n".join(
+        [
+            json.dumps(
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "initialize",
+                    "params": {
+                        "protocolVersion": "2025-06-18",
+                        "capabilities": {},
+                        "clientInfo": {"name": "qiongli-marketplace-validator", "version": "0.0.0"},
+                    },
+                },
+                separators=(",", ":"),
+            ),
+            json.dumps(
+                {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
+                separators=(",", ":"),
+            ),
+            "",
+        ]
+    )
+
+    try:
+        result = subprocess.run(
+            [command, *args],
+            cwd=cwd,
+            input=request_payload,
+            text=True,
+            capture_output=True,
+            timeout=10,
+            check=False,
+        )
+    except FileNotFoundError as exc:
+        raise ValueError(
+            f"{plugin_root} mcpServers.{mcp_server_name} command could not be launched: {command}"
+        ) from exc
+    except subprocess.TimeoutExpired as exc:
+        raise ValueError(f"{plugin_root} mcpServers.{mcp_server_name} did not answer tools/list") from exc
+
+    if result.returncode != 0:
+        stderr = result.stderr.strip()
+        raise ValueError(
+            f"{plugin_root} mcpServers.{mcp_server_name} exited with {result.returncode}: {stderr}"
+        )
+
+    responses: list[dict[str, object]] = []
+    for line in result.stdout.splitlines():
+        if not line.strip():
+            continue
+        try:
+            item = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"{plugin_root} mcpServers.{mcp_server_name} emitted invalid JSON: {line}") from exc
+        if isinstance(item, dict):
+            responses.append(item)
+
+    response_by_id = {item.get("id"): item for item in responses}
+    initialize = response_by_id.get(1)
+    tools_list = response_by_id.get(2)
+    if not isinstance(initialize, dict) or "result" not in initialize:
+        raise ValueError(f"{plugin_root} mcpServers.{mcp_server_name} did not initialize successfully")
+    if not isinstance(tools_list, dict):
+        raise ValueError(f"{plugin_root} mcpServers.{mcp_server_name} did not return tools/list")
+    result_payload = tools_list.get("result")
+    if not isinstance(result_payload, dict):
+        raise ValueError(f"{plugin_root} mcpServers.{mcp_server_name} tools/list missing result")
+    tools = result_payload.get("tools")
+    if not isinstance(tools, list):
+        raise ValueError(f"{plugin_root} mcpServers.{mcp_server_name} tools/list missing tools")
+
+    tool_names = {tool.get("name") for tool in tools if isinstance(tool, dict) and isinstance(tool.get("name"), str)}
+    missing_tools = sorted(MCP_LAUNCH_REQUIRED_TOOLS - tool_names)
+    if missing_tools:
+        raise ValueError(
+            f"{plugin_root} mcpServers.{mcp_server_name} tools/list missing required tools: "
+            + ", ".join(missing_tools)
+        )
+    return tool_names
+
+
 def _assert_manifest(
     platform: str,
     manifest_path: Path,
@@ -560,12 +723,17 @@ def _validate_artifact(
                 platform,
                 mcp_server_name=_mcp_server_name_for_plugin(plugin_name),
             )
+            _assert_plugin_mcp_server_launches(
+                plugin_root,
+                platform,
+                mcp_server_name=_mcp_server_name_for_plugin(plugin_name),
+            )
 
     label = subject_label or subject
     subject_suffix = f" ({label})" if label else ""
     checked = f"{skill_name} invocation checked"
     if spec.bundled_mcp_mode != "none":
-        checked += "; bundled literature MCP checked"
+        checked += "; bundled literature MCP checked; MCP startup checked"
     archive_label = " ZIP" if artifact.suffix == ".zip" else ""
     return f"[OK] {platform} marketplace{archive_label} artifact{subject_suffix}: {checked} [target_id={spec.target_id}]"
 
@@ -665,11 +833,17 @@ def _validate_direct_desktop_plugin_artifact(
             "claude",
             mcp_server_name=_mcp_server_name_for_plugin(plugin_name),
         )
+        _assert_plugin_mcp_server_launches(
+            plugin_root,
+            "claude",
+            mcp_server_name=_mcp_server_name_for_plugin(plugin_name),
+        )
 
     subject_suffix = f" ({subject_label})" if subject_label else ""
     return (
         f"[OK] claude-desktop direct plugin artifact{subject_suffix}: "
-        f"{skill_name} invocation checked; bundled literature MCP checked [target_id={target.target_id}]"
+        f"{skill_name} invocation checked; bundled literature MCP checked; "
+        f"MCP startup checked [target_id={target.target_id}]"
     )
 
 
