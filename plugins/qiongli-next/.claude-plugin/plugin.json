@@ -1,0 +1,40 @@
+{
+  "name": "qiongli-next",
+  "description": "Qiongli Next prerelease academic research workflow plugin for testing the upcoming core workflow with bundled literature MCP tools.",
+  "version": "1.18.0-beta.1",
+  "author": {
+    "name": "Jiaxin Peng",
+    "url": "https://github.com/jxpeng98"
+  },
+  "category": "Education",
+  "homepage": "https://github.com/jxpeng98/qiongli",
+  "repository": "https://github.com/jxpeng98/qiongli",
+  "license": "MIT",
+  "keywords": [
+    "research",
+    "academic-writing",
+    "literature-review",
+    "manuscript",
+    "analysis",
+    "statistics",
+    "reproducibility",
+    "rebuttal",
+    "academic-code",
+    "grill",
+    "qiongli-next",
+    "prerelease",
+    "claude-code-plugins"
+  ],
+  "skills": "./skills/",
+  "commands": "./commands/",
+  "mcpServers": {
+    "qiongli-next": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/bin/qiongli-literature-provider",
+      "args": [
+        "--transport",
+        "stdio"
+      ],
+      "cwd": "${CLAUDE_PLUGIN_ROOT}"
+    }
+  }
+}
