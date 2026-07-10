@@ -333,6 +333,8 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn("owner_is_current_user", acceptance)
         self.assertIn("current_user_full_control_only", acceptance)
         self.assertIn("canary_redacted", acceptance)
+        self.assertIn("$null -eq $originalValue", acceptance)
+        self.assertNotIn("[object]::Equals($restoredValue", acceptance)
         self.assertIn("temporary_config_removed", acceptance)
 
     def test_failed_ci_and_checkout_runs_are_rerun_once(self) -> None:

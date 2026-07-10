@@ -554,16 +554,27 @@ finally {
     $environmentRestored = $true
     foreach ($name in $environmentNames) {
         try {
+            $originalValue = $originalEnvironment[$name]
             [System.Environment]::SetEnvironmentVariable(
                 $name,
-                $originalEnvironment[$name],
+                $originalValue,
                 [System.EnvironmentVariableTarget]::Process
             )
             $restoredValue = [System.Environment]::GetEnvironmentVariable(
                 $name,
                 [System.EnvironmentVariableTarget]::Process
             )
-            if (-not [object]::Equals($restoredValue, $originalEnvironment[$name])) {
+            $valuesMatch = if ($null -eq $originalValue) {
+                $null -eq $restoredValue
+            }
+            else {
+                [string]::Equals(
+                    $restoredValue,
+                    $originalValue,
+                    [System.StringComparison]::Ordinal
+                )
+            }
+            if (-not $valuesMatch) {
                 $environmentRestored = $false
             }
         }
