@@ -183,6 +183,9 @@ impl FixtureServer {
                         Err(error) => panic!("fixture accept failed: {error}"),
                     }
                 };
+                // Accepted sockets inherit the listener's non-blocking mode on
+                // Windows, so restore blocking reads before applying a timeout.
+                stream.set_nonblocking(false).unwrap();
                 stream
                     .set_read_timeout(Some(Duration::from_secs(1)))
                     .unwrap();
