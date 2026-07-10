@@ -95,13 +95,18 @@ test("relative provider config home fails closed without cwd writes or path leak
   assert.equal(existsSync(attemptedPath), false);
   for (const invalidHome of invalidHomes) {
     const env = { ...homeEnv, QIONGLI_CONFIG_HOME: invalidHome };
-    for (const action of [
-      () => providerConfigPath(env),
-      () => readConfig(env),
-      () => saveProviderValue({ provider: "openalex", field: "api-key", value: secret, env })
+    for (const [action, actionError] of [
+      [() => providerConfigPath(env), expectedError],
+      [() => readConfig(env), expectedError],
+      [
+        () => saveProviderValue({ provider: "openalex", field: "api-key", value: secret, env }),
+        process.platform === "win32"
+          ? "provider configuration could not be saved"
+          : expectedError
+      ]
     ]) {
       assert.throws(action, (error) => {
-        assert.equal(error.message, expectedError);
+        assert.equal(error.message, actionError);
         for (const canary of invalidHomes) {
           assert.equal(error.message.includes(canary), false);
         }
@@ -265,6 +270,10 @@ test("malformed shared config fails closed and save never overwrites it", (t) =>
 });
 
 test("saving canonicalizes known aliases while preserving future extensions", (t) => {
+  if (process.platform === "win32") {
+    t.skip("Legacy Node writes fail closed on Windows; canonicalization is covered on POSIX");
+    return;
+  }
   const configHome = mkdtempSync(path.join(os.tmpdir(), "qiongli-mcpb-alias-config-"));
   const configPath = path.join(configHome, "providers.json");
   const env = { QIONGLI_CONFIG_HOME: configHome };
@@ -534,6 +543,10 @@ test("opened config identity must match the path that was inspected", () => {
 });
 
 test("atomic replacement failure preserves original bytes and removes temporary files", (t) => {
+  if (process.platform === "win32") {
+    t.skip("Legacy Node writes fail before replacement on Windows");
+    return;
+  }
   const configHome = mkdtempSync(path.join(os.tmpdir(), "qiongli-mcpb-atomic-failure-"));
   const configPath = path.join(configHome, "providers.json");
   const original = '{"version":1,"providers":{"arxiv":{"enabled":false}}}\n';
