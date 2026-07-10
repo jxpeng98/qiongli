@@ -12,9 +12,25 @@ This roadmap covers the work after `v1.18.0-beta.2`. It starts with a mandatory
 Lite MCP functional-closure gate, then builds the shared control plane required
 for platform convergence.
 
-The first execution plan is:
+Execution plans:
 
 - `docs/superpowers/plans/2026-07-09-lite-mcp-functional-closure.md`
+- `docs/superpowers/plans/2026-07-10-capability-contract-v2-pilot.md`
+
+## Execution Update — July 10, 2026
+
+`v1.18.0-beta.3` completed the Gate 0 release. Stage 1 has started on `dev` with
+a deliberately bounded Capability Contract v2 pilot for
+`qiongli_literature_export_evidence`. The pilot adds a versioned registry,
+canonical input/output schemas, semantic errors, compatibility arguments,
+runtime-declaration drift validation, Lite/Full golden calls, and a required CI
+validator. Its coverage is explicitly `1 / 23` canonical capability records and
+`1 / 24` public names; the registry remains `pilot`, not complete.
+
+Task AC1 now separately governs claim-bearing academic paper code through Stage
+I and Q1/Q2/Q4. Task RC1 separately governs Qiongli repository source through a
+repo-only future contract under `tooling/quality/`; RC1 policy must not be
+placed in materialized `content/standards/`.
 
 ## Execution Update — July 9, 2026
 
@@ -184,31 +200,31 @@ state remains in the external marketplace repository.
   support windows instead of disappearing through incidental refactors.
 - Release claims require native evidence. A binary built on one host cannot be
   presented as a generic multi-platform artifact.
+- Academic analysis-code rules must be enforceable: code used to produce a
+  paper's estimates, tables, figures, or other claim-bearing evidence follows
+  versioned academic policy, machine-checkable gates, independent review, and
+  explicit time-bounded exceptions instead of prose-only conventions.
 
 ## Dependency Sequence
 
 ```text
 Gate 0: Lite functional closure
         |
-        v
-Stage 1: Capability Contract v2
-        |
-        v
-Stage 2: Product and Platform Target v2
-        |
-        v
-Stage 3: Platform compiler and shared install plan
-        |
-        v
-Stage 4: Native release matrix and supply-chain evidence
-        |
-        v
-Stage 5: Unified product experience and stable rollout
+        +-- Platform: Stage 1 -> Stage 2 -> Stage 3 -> Stage 4 --+
+        |                                                        |
+        +-- Academic code: Task AC1 -----------------------------+--> Stage 5
+        |                                                        |
+        +-- Repository source: Task RC1 -------------------------+
 ```
 
-Stage 1 contract design and early Stage 2 schema design may be explored in
-parallel after Gate 0 behavior is frozen. Stages 3 through 5 must consume the
-new contracts rather than inventing additional sources of truth.
+Stage 1 contract design, early Stage 2 schema design, Task AC1, and Task RC1 may
+be explored in parallel after Gate 0 behavior is frozen. Task AC1 does not
+govern the Qiongli platform implementation; it blocks stable maturity for
+code-generating academic capabilities and the Stage 5 stable rollout. Task RC1
+does not judge academic validity; its changed-file gate is required before the
+Stage 3 compiler cutover, and its release gate is required for Stage 4. Stages
+3 through 5 must consume the new contracts rather than inventing additional
+sources of truth.
 
 ## Gate 0: Lite MCP Functional And Truth Closure
 
@@ -283,7 +299,8 @@ Formal execution plan:
 
 ## Stage 1: Capability Contract v2
 
-Status: planned after Gate 0.
+Status: pilot implementation started on `dev`; one side-effect-free capability
+is contract-backed and the remaining 22 canonical records are pending.
 
 Suggested release target: `v1.19.0-beta.1`.
 
@@ -330,6 +347,10 @@ Non-goals:
 - Renaming existing MCP tools.
 - Expanding the Lite profile merely to make lists equal.
 
+Formal pilot execution plan:
+
+- `docs/superpowers/plans/2026-07-10-capability-contract-v2-pilot.md`
+
 ## Stage 2: Product And Platform Target v2
 
 Status: planned after the Stage 1 registry shape is stable.
@@ -374,6 +395,297 @@ Non-goals:
 
 - Replacing all builders in the same change.
 - Removing legacy target IDs immediately.
+
+## Cross-Cutting Task AC1: Academic Analysis Code Standard And Enforcement
+
+`AC1` is a roadmap work-item label, not a new canonical research Task ID. It
+strengthens the existing Stage I tasks `I1` through `I9`.
+
+Status: planned; the baseline may start alongside Stages 1 and 2. Enforcement
+is required before any academic code-generation capability is marked stable
+and before the Stage 5 stable rollout.
+
+Suggested release target: standard and audit baseline in `v1.19.0-beta.1`;
+enforced paper-code gate in `v1.19.0-beta.2`.
+
+Primary outcome:
+
+- Code used to produce or validate a paper's estimates, models, tables,
+  figures, simulations, qualitative computations, or other claim-bearing
+  evidence is method-faithful, statistically defensible, auditable,
+  reproducible, and traceable to the manuscript.
+
+Canonical contract and workflow integration:
+
+- Add `content/standards/academic-analysis-code-contract.yaml` as the source of
+  truth, with stable `AAC-*` rule IDs, applicability conditions, evidence
+  requirements, failure severity, and enforcement mode.
+- Extend rather than replace the canonical Stage I flow:
+  `I5 specification -> I6 planning -> I7 execution -> I8 independent review`,
+  with `I4 reproducibility audit` and `I9 release packaging` where applicable.
+- Connect the standard to `Q1` research-question/method alignment, `Q2`
+  claim/evidence traceability, and the primary Stage I gate, `Q4`
+  reproducibility baseline.
+- Reuse `code/code_specification.md`, `code/plan.md`,
+  `code/performance_profile.md`, `code/code_review.md`,
+  `code/reproducibility_audit.md`, `quality-gate-report.md`, and the existing
+  claim-evidence ledger instead of creating a parallel artifact system.
+- Allow method- and domain-specific overlays for econometrics, statistics,
+  experiments, simulation, machine learning, qualitative computation, and
+  other scholarly methods without weakening the common minimum standard.
+- Permit an exception only when it records an owner, scientific rationale,
+  affected claim or output, compensating validation, residual limitation, and
+  expiry date or version. Silent waivers are invalid.
+
+Academic analysis-code constraints:
+
+- Start from the research question, hypothesis, estimand, identification
+  strategy, analysis plan, or manuscript-facing output. Code must not silently
+  change the method, population, outcome, specification, or evidential claim.
+- Lock inputs, outputs, variable definitions, assumptions, seeds, diagnostics,
+  acceptance tests, and forbidden shortcuts in `I5` before claim-bearing
+  implementation begins.
+- Preserve data lineage for every analysis input: source and vintage, raw-data
+  immutability, cleaning rules, exclusions, missingness, joins, derived
+  variables, sample construction, and leakage checks. This is computational
+  evidence governance, not a general platform-data policy.
+- Make statistical assumptions and inferential choices explicit. Record model
+  diagnostics, uncertainty estimates, effect sizes where applicable,
+  multiplicity handling, sensitivity analyses, robustness checks, and reasons
+  for analytic exclusions.
+- Prohibit undisclosed specification search, outcome switching, selective
+  reporting, test-set leakage, post-treatment leakage, fabricated observations,
+  and presentation of simulated, imputed, or exploratory results as observed
+  confirmatory evidence.
+- Record deviations from preregistration or the approved analysis plan and
+  state how each deviation changes interpretation or claim strength.
+- Use researcher-readable scripts, notebooks, Quarto files, or small modules.
+  Names should reflect scholarly constructs; constants and thresholds require
+  a source or rationale; functions should have explicit inputs, outputs, units,
+  missing-value behavior, and failure conditions.
+- Prefer validation and method clarity over application scaffolding. Service
+  layers, controllers, generic framework abstractions, and unnecessary classes
+  are out of scope unless the research method genuinely requires a reusable
+  library.
+- Comments and documentation explain the method, assumption, equation,
+  transformation, or non-obvious research decision. They must not merely
+  restate syntax or imply evidence that the code did not establish.
+- Keep notebooks runnable from a clean kernel without hidden execution order.
+  Claim-bearing transformations and estimators must be testable outside opaque
+  interactive state.
+- Use synthetic or disclosure-safe fixtures with known expected properties to
+  test cleaning, merges, estimators, edge cases, and failure paths. Tests must
+  not depend on committing protected data or calling live services.
+- Record runtime and dependency versions, exact commands, random seeds, known
+  nondeterminism, environment requirements, output paths, and rerun limits.
+- Write tables, figures, model outputs, and machine-readable results to
+  predictable paths. Every manuscript-facing output must resolve to the script
+  or notebook, input-data identity, model/specification, sample, and command
+  that produced it.
+- Label exploratory code and outputs explicitly. Exploratory results cannot
+  enter the claim-evidence ledger as confirmatory support until the strict
+  Stage I specification, execution, review, and audit path is complete.
+- Keep credentials, unapproved personal data, and disclosive row-level values
+  out of source code, prompts, fixtures, logs, review artifacts, and replication
+  packages.
+
+Review and enforcement model:
+
+- Machine checks validate required artifacts, contract blocks, paths, seeds,
+  environment evidence, output provenance, exception expiry, and forbidden
+  leakage patterns.
+- `I8` supplies the semantic review that automation cannot: method fidelity,
+  inferential validity, data leakage, robustness adequacy, claim inflation, and
+  reproducibility limits.
+- Blocking academic findings take priority over style, refactoring, performance,
+  or packaging suggestions. The implementer must not self-approve unresolved
+  method-validity findings.
+- Paper-facing results cannot pass `Q4`, enter release packaging, or be cited as
+  final manuscript evidence while blocking `I8` findings remain open.
+- Language-specific formatters and linters remain useful supporting checks, but
+  they are not evidence of academic correctness.
+
+Deliverables:
+
+- The canonical academic analysis-code contract and a concise Stage I reference
+  for researchers and reviewers.
+- `tooling/scripts/validate_academic_analysis_code.py` for structural checks and
+  machine-readable findings, with semantic review status consumed from `I8` and
+  Q4 artifacts.
+- Positive and negative fixtures plus eval cases covering lineage, sample
+  construction, missingness, leakage, seed control, estimator correctness,
+  robustness evidence, manuscript-output traceability, and exploratory-result
+  labeling.
+- Updated `/code-build` routing and Stage C/Stage I skills/templates that cite
+  `AAC-*` rules without duplicating the canonical policy.
+- A staged rollout: report-only audit, blocking for newly generated or changed
+  paper code, then a stable release gate after legacy academic-code debt has
+  owners and bounded remediation plans.
+
+Success criteria:
+
+- A full `/code-build --focus full` run preserves the strict
+  `I5 -> I6 -> I7 -> I8` chain and produces sufficient Q4 evidence for an
+  independent reviewer to rerun and audit the work.
+- Every final table, figure, coefficient, metric, or computational claim in a
+  manuscript resolves to code entrypoint, input-data identity, specification,
+  sample, environment, command, and output artifact.
+- A clean rerun reproduces declared outputs exactly or within a justified,
+  recorded numerical tolerance; nondeterministic limits weaken the release
+  claim rather than being hidden.
+- `I8` verifies method fidelity, inferential validity, leakage risks,
+  robustness, and reproducibility. Unresolved blocking findings prevent Q4 and
+  release-packaging completion.
+- Exploratory outputs are distinguishable and cannot silently become
+  confirmatory claim support.
+- No code or supporting artifact invents data, results, sample sizes,
+  statistical significance, citations, or reviewer conclusions.
+- Every active exception has an owner, affected claim, compensating evidence,
+  residual limitation, and unexpired deadline.
+
+Non-goals:
+
+- Governing the Rust, Python, or JavaScript source code used to implement the
+  Qiongli product itself.
+- Imposing one universal formatting style or application architecture on R,
+  Python, Stata, Julia, MATLAB, notebooks, or other research environments.
+- Treating formatter, linter, type-check, or unit-test success as proof of
+  statistical or scientific validity.
+- Replacing method expertise, ethics review, statistical review, or independent
+  academic code review with automated validation.
+- Requiring protected raw data to be committed or publicly released.
+
+## Cross-Cutting Task RC1: Repository Source Code Standard And Enforcement
+
+`RC1` means repository code in this roadmap; it is not a release-candidate
+version label and it is not a canonical academic Task ID. It governs Qiongli's
+own product source and maintainer tooling. It never substitutes for AC1's
+method, statistics, claim-traceability, or reproducibility review.
+
+Status: planned; the inventory and report-only baseline may start alongside
+Stages 1 and 2. Changed-file enforcement is required before the Stage 3
+compiler cutover, and release-preflight enforcement is required for Stage 4.
+
+Suggested release target: baseline in `v1.19.0-beta.1`; changed-file gate in
+`v1.19.0-beta.2`; release gate in `v1.19.0-rc.1`.
+
+Primary outcome:
+
+- Qiongli's Rust, Python, JavaScript/TypeScript, Shell, PowerShell, tests,
+  generators, and maintainer scripts follow one repository-only engineering
+  policy with stable rule IDs, deterministic validation, bounded legacy debt,
+  and narrow expiring exceptions.
+
+Canonical boundary and policy:
+
+- Add `tooling/quality/repository-source-code-contract.yaml` as the canonical
+  repo-only policy. Do not place RC1 under `content/standards/`, because content
+  materialization would leak internal engineering policy into portable skills,
+  plugins, npm/Python payloads, and release artifacts.
+- Add `tooling/quality/repository-source-code-baseline.json` only for existing,
+  fingerprinted debt. Every record requires rule ID, exact paths, owner,
+  rationale, compensating check, and expiry. New findings cannot be hidden by
+  broad path or rule suppression.
+- Use stable `RSC-*` rule families for repository boundaries, Python, Rust,
+  JavaScript/TypeScript, Shell, PowerShell, security, tests, dependencies,
+  generated outputs, and exceptions.
+- Keep language-native configuration authoritative for formatting, linting,
+  types, tests, and dependencies. The RC1 contract declares which checks are
+  required and how evidence is collected; it does not duplicate every tool's
+  configuration.
+- Add a concise contributor entrypoint in `CONTRIBUTING.md` and the full policy
+  guide in `docs/development/repository-source-code-standard.md`.
+
+Repository-source constraints:
+
+- Preserve canonical-source boundaries among `content/`, runtime packages,
+  plugin shells, generated payloads, release artifacts, and the external
+  marketplace catalog. Generated or mirrored files cannot become an
+  undocumented source of truth.
+- Require Rust formatting, clippy with warnings denied, locked tests, explicit
+  target/platform behavior, and a justification plus safety test for any
+  `unsafe` code.
+- Require Python formatting/lint checks, import hygiene, explicit error
+  boundaries, types at public or contract-facing interfaces, deterministic
+  tests, and no catch-all exception handling that erases actionable failure
+  context.
+- Require JavaScript/TypeScript formatting/lint checks, `node:test` or an
+  approved test runner, consistent package-engine declarations, explicit async
+  error handling, and safe process/argument construction.
+- Require Shell syntax and ShellCheck policy, quoted variables and paths,
+  failure-safe handling in release or mutating scripts, secure temporary-file
+  use, and no secret-bearing command traces. Apply equivalent report-only then
+  blocking analysis to PowerShell.
+- Prohibit embedded credentials, private data, machine-specific absolute paths,
+  unsafe command construction, unvalidated archive paths, and sensitive values
+  in logs, fixtures, manifests, caches, or generated outputs.
+- Require behavior-changing code to include focused tests and relevant docs or
+  contract updates. Live external services cannot be mandatory test
+  dependencies.
+- Keep generated-output drift at zero: generators identify their canonical
+  inputs, generated files carry provenance where appropriate, and CI rejects
+  hand-edited payloads or stale projections.
+- Pin or record toolchains and dependencies where reproducibility or release
+  identity depends on them. Dependency and lockfile changes require scoped
+  review and rollback awareness.
+- Prefer clear, cohesive modules and explicit interfaces over speculative
+  abstractions. Comments explain non-obvious product, compatibility, safety, or
+  architectural decisions instead of restating syntax.
+
+Deliverables:
+
+- The repository-source contract, debt baseline, contributor guide, and short
+  `CONTRIBUTING.md` entrypoint.
+- `tooling/scripts/validate_repository_source.py`, a stable wrapper at
+  `scripts/validate_repository_source.py`, and machine-readable JSON findings.
+- Positive and negative fixtures plus
+  `tests/test_repository_source_validator.py` covering rule selection,
+  changed-file enforcement, baseline fingerprints, exception expiry,
+  boundaries, secrets, paths, generated drift, and language profiles.
+- CI integration that runs a full-tree report and blocks violations in new or
+  changed first-party source. Boundary, secret, and generated-output rules are
+  full-tree blocking from the first enforcing phase.
+- Release-preflight integration after the changed-file gate is stable and the
+  existing debt baseline is owned.
+
+Rollout:
+
+- Phase 0 (`v1.19.0-beta.1`): inventory the tree, publish the contract and
+  guide, emit reports, and record only fingerprinted existing debt.
+- Phase 1 (`v1.19.0-beta.2`): block new and changed first-party violations;
+  immediately block repository-boundary, high-severity security, expired
+  exception, and generated-output findings across the full tree.
+- Phase 2 (`v1.19.0-rc.1`): make touched-scope Python, Node, Shell, and
+  PowerShell language gates release-preflight requirements alongside the
+  existing Rust gates.
+- Stable (`v1.19.0`): repository-wide blocking findings are cleared or covered
+  by narrow, owned, unexpired exceptions, and the debt baseline can only
+  shrink.
+
+Success criteria:
+
+- All changed first-party source passes applicable blocking `RSC-*` rules; new
+  baseline suppressions and expired exceptions are zero.
+- Rust fmt/clippy/test evidence remains 100%; touched Python, Node, Shell, and
+  PowerShell files run their declared language checks before merge.
+- High-severity secret, command-injection, unsafe-path, and private-data
+  findings are zero in source and release artifacts.
+- Public API, contract, installer, or release behavior changes include focused
+  tests and documentation or an explicit non-applicability reason.
+- Generated payload drift and hand-edited generated files remain zero.
+- Every active exception is path- and rule-scoped, has complete ownership and
+  compensating-check metadata, and has not expired.
+
+Non-goals:
+
+- Judging the scientific validity of paper analysis code; that belongs to AC1,
+  Stage I, I8, and Q4.
+- Forcing one implementation tool across every language or rewriting the whole
+  repository to satisfy a new formatter in one change.
+- Treating style compliance as proof of correctness, security, compatibility,
+  or test adequacy.
+- Copying marketplace catalogs, generated plugin payloads, or installable skill
+  sources into the wrong repository boundary.
 
 ## Stage 3: Platform Compiler And Shared Install Plan
 
@@ -553,6 +865,8 @@ Breaking changes require:
 | Rust integration | Mock HTTP providers, partial failures, MCP dispatcher coverage, stdio lifecycle |
 | Python Full | Shared schema conformance, Full-only behavior regression, installer and doctor behavior |
 | Cross-runtime | Golden calls for overlapping tools, error and redaction parity, handoff compatibility |
+| Academic analysis code | I5/I6 contract checks, method and inferential validity, lineage/leakage tests, robustness evidence, manuscript-output traceability, I8 review, and clean Q4 rerun |
+| Repository source | `RSC-*` changed-file rules, language-native gates, security/boundary scans, generated drift, baseline fingerprints, and exception expiry |
 | Artifact | Manifest, binary identity, permissions, forbidden paths, checksums, SBOM |
 | Client activation | Native launch and safe tool calls from the client-declared command |
 | Migration | Fresh, upgrade, repair, downgrade, remove, rollback, unmanaged-entry preservation |
@@ -572,6 +886,14 @@ The following metrics are release gates, not aspirational dashboards:
 | Advertised Lite tools with behavior tests | 100% | 100% |
 | Overlapping Lite/Full golden calls schema-valid | 100% | 100% |
 | Raw secret occurrences in tool output or artifacts | 0 | 0 |
+| Paper-facing code packages with I5/I6/I7/I8 and Q4 evidence | measured in Task AC1 baseline | 100% |
+| Final computational manuscript outputs traceable to code, data identity, specification, sample, and command | measured in Task AC1 baseline | 100% |
+| Unresolved blocking I8 findings in released paper-code packages | measured in Task AC1 baseline | 0 |
+| Active `AAC-*` exceptions with affected claim, owner, evidence, limitation, and unexpired deadline | measured in Task AC1 baseline | 100% |
+| Changed first-party repository files passing blocking `RSC-*` rules | measured in Task RC1 baseline | 100% |
+| New repository debt-baseline suppressions or expired `RSC-*` exceptions | measured in Task RC1 baseline | 0 |
+| Generated repository payload drift | 0 | 0 |
+| High-severity repository secret, injection, unsafe-path, or private-data findings | 0 | 0 |
 | Native assets with explicit target identity | current release host only, honestly scoped | 100% of published native assets |
 | Published native assets with startup evidence | current release host | 100% |
 | Managed Lite-to-Full migrations that avoid duplicate server entries | measured after Target v2 | 100% of supported clients |
@@ -584,23 +906,27 @@ Recommended change sequence:
 1. `fix/lite-mcp-functional-closure`
 2. `test/mcp-behavioral-conformance`
 3. `feat/capability-contract-v2`
-4. `refactor/platform-target-v2`
-5. `feat/platform-compiler`
-6. `build/lite-mcp-release-matrix`
-7. `feat/unified-platform-doctor`
+4. `feat/academic-analysis-code-governance`
+5. `chore/repository-source-governance`
+6. `refactor/platform-target-v2`
+7. `feat/platform-compiler`
+8. `build/lite-mcp-release-matrix`
+9. `feat/unified-platform-doctor`
 
 Keep each branch independently reviewable. Gate 0 should land before contract
 generation starts so the generated contract describes real behavior. Contract
-and target schema changes should land before the compiler consumes them.
+and target schema changes should land before the compiler consumes them. Task
+AC1 is a parallel academic-workflow line: it gates paper-code maturity and the
+stable rollout, not implementation changes to the platform compiler.
 
 Suggested release train:
 
 | Release | Main claim |
 |---|---|
 | `v1.18.0-beta.3` | Lite functional and truth closure |
-| `v1.19.0-beta.1` | Capability Contract v2 and initial Target v2 |
-| `v1.19.0-beta.2` | Platform compiler and shared install plan |
-| `v1.19.0-rc.1` | Native release matrix and migration acceptance |
+| `v1.19.0-beta.1` | Capability Contract v2, AC1/RC1 baselines, and initial Target v2 |
+| `v1.19.0-beta.2` | Enforced paper-code and repository changed-file gates, platform compiler, and shared install plan |
+| `v1.19.0-rc.1` | RC1 release gate, native release matrix, and migration acceptance |
 | `v1.19.0` | Unified setup, diagnostics, upgrade, and stable platform model |
 
 Release numbers are planning labels, not permission to skip an unmet gate.
@@ -617,6 +943,8 @@ Release numbers are planning labels, not permission to skip an unmet gate.
 | Config wizard leaks secrets or binds publicly | Credential exposure | Loopback allowlist, random tokens, redaction tests, no secrets in URL or response |
 | Provider mocks diverge from APIs | Tests pass while live requests fail | Preserve raw fixtures, request-shape tests, optional non-gating live diagnostics |
 | Lite scope expands into unsafe execution | Marketplace binary becomes a shell/agent launcher | Side-effect classes and profile policy in Capability Contract v2 |
+| Academic code rules remain stylistic prose or blanket waivers | Method errors, leakage, selective reporting, or irreproducible results can reach a manuscript despite clean formatting | `AAC-*` rules, strict I5-I8 flow, semantic I8 review, Q4 rerun evidence, and claim-scoped expiring exceptions |
+| Repository engineering rules become a mass-reformat project or permanent blanket baseline | Review noise grows while real boundary, security, test, and compatibility risks remain hidden | Separate `RSC-*` policy, report-first inventory, changed-file ratchet, fingerprinted debt, narrow expiring exceptions, and language-native tools |
 | Node fallback persists indefinitely | Maintenance never converges | Two-green-release retirement criterion and explicit owner/date in release plan |
 | Full Rust rewrite distracts from control-plane convergence | High cost without product benefit | Separate decision gate based on measured distribution and maintenance evidence |
 | Hosted scope enters the monorepo | Security and operational boundaries blur | Separate service repository and explicit future product design |
@@ -669,5 +997,13 @@ This roadmap is complete when:
 - Full remains Python-backed and retains complete orchestration behavior.
 - Marketplace Lite remains self-contained and does not gain unsafe execution
   capabilities.
+- Paper-facing academic code passes the versioned `AAC-*` contract, remains
+  aligned with the approved method and analysis plan, preserves data and sample
+  lineage, reproduces manuscript outputs, clears independent I8 review and Q4,
+  and records any exception against an affected claim with an expiry.
+- Qiongli repository source passes the repo-only `RSC-*` contract; changed-file
+  and release gates cover supported languages, generated drift and severe
+  security findings are zero, and remaining debt or exceptions are narrow,
+  owned, fingerprinted, and unexpired.
 - Generated payloads, external marketplace catalogs, and release archives do
   not become canonical source.

@@ -15,6 +15,7 @@ from bridges.subject_refinement import infer_subject_refinement
 from bridges.subject_runtime import implicit_project_manifest_state, resolve_project_subject
 from bridges.literature_mcp_tools import (
     LITERATURE_TOOL_DEFINITIONS,
+    MCPToolInputError,
     handle_literature_export_evidence,
     handle_literature_search,
     handle_literature_status,
@@ -393,6 +394,16 @@ def call_qiongli_tool(name: str, arguments: dict[str, Any] | None = None) -> dic
         return _tool_result({"error": f"unknown tool: {name}"}, is_error=True)
     try:
         return _tool_result(handler(args))
+    except MCPToolInputError as exc:
+        return _tool_result(
+            {
+                "status": "error",
+                "error_kind": "invalid_arguments",
+                "message": str(exc),
+                "tool": name,
+            },
+            is_error=True,
+        )
     except Exception as exc:  # noqa: BLE001 - MCP tools must convert failures into tool results.
         return _tool_result({"error": str(exc), "tool": name}, is_error=True)
 

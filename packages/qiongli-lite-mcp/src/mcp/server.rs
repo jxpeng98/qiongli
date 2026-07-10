@@ -439,25 +439,39 @@ impl McpServer {
     }
 
     fn export_evidence(&self, id: Option<Value>, arguments: &Value) -> Value {
+        if arguments.get("cwd").is_some_and(|value| !value.is_string()) {
+            return self.error(id, -32602, "cwd must be a string");
+        }
         if arguments
             .get("query")
             .is_some_and(|value| !value.is_string())
         {
             return self.error(id, -32602, "query must be a string");
         }
-        for field in ["provider_status", "search_plan", "diagnostics"] {
+        for field in [
+            "provider_status",
+            "search_plan",
+            "query_plan",
+            "diagnostics",
+            "search_diagnostics",
+        ] {
             if arguments.get(field).is_some_and(|value| !value.is_object()) {
                 return self.error(id, -32602, format!("{field} must be an object"));
             }
         }
-        if arguments
-            .get("results")
-            .is_some_and(|value| !value.is_array())
-        {
-            return self.error(id, -32602, "results must be an array");
+        for field in ["results", "search_results"] {
+            if let Some(value) = arguments.get(field) {
+                let Some(values) = value.as_array() else {
+                    return self.error(id, -32602, format!("{field} must be an array"));
+                };
+                if values.iter().any(|item| !item.is_object()) {
+                    return self.error(id, -32602, format!("{field} must contain objects"));
+                }
+            }
         }
         let results = arguments
             .get("results")
+            .or_else(|| arguments.get("search_results"))
             .cloned()
             .unwrap_or_else(|| json!([]));
         let result_count = results.as_array().map_or(0, Vec::len);
@@ -476,12 +490,14 @@ impl McpServer {
                     .unwrap_or_else(|| json!({})),
                 "search_plan": arguments
                     .get("search_plan")
+                    .or_else(|| arguments.get("query_plan"))
                     .cloned()
                     .unwrap_or_else(|| json!({})),
                 "result_count": result_count,
                 "results": results,
                 "diagnostics": arguments
                     .get("diagnostics")
+                    .or_else(|| arguments.get("search_diagnostics"))
                     .cloned()
                     .unwrap_or_else(|| json!({}))
             }),
@@ -629,11 +645,15 @@ fn allowed_arguments(name: &str) -> Option<&'static [&'static str]> {
             "total_limit",
         ]),
         "qiongli_literature_export_evidence" => Some(&[
+            "cwd",
             "query",
             "provider_status",
             "search_plan",
             "results",
             "diagnostics",
+            "query_plan",
+            "search_results",
+            "search_diagnostics",
         ]),
         "qiongli_zotero_export_import_files" => Some(&["records", "formats"]),
         "qiongli_orchestrator_route" => Some(&["request", "platform"]),

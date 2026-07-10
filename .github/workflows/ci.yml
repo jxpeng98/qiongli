@@ -183,6 +183,9 @@ jobs:
       - name: Compile critical modules
         run: python -m py_compile packages/python-qiongli/src/qiongli/bridges/base_bridge.py packages/python-qiongli/src/qiongli/bridges/orchestrator.py scripts/validate_research_standard.py tests/test_orchestrator_workflows.py
 
+      - name: Validate Capability Contract v2 pilot
+        run: python scripts/validate_capability_contract.py
+
       - name: Validate shell scripts syntax
         run: |
           bash -n scripts/run_beta_smoke.sh

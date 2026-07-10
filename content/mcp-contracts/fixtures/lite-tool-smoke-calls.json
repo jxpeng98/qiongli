@@ -56,6 +56,7 @@
       "forbidden_output": ["QIONGLI_CANARY_DO_NOT_ECHO_7f3a9c"]
     },
     {
+      "id": "lite.qiongli_literature_export_evidence.success",
       "name": "qiongli_literature_export_evidence",
       "arguments": { "query": "fixture query", "results": [], "diagnostics": {} },
       "expected_response_class": "success",

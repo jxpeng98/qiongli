@@ -139,13 +139,52 @@ LITERATURE_TOOL_DEFINITIONS: list[dict[str, Any]] = [
     },
     {
         "name": "qiongli_literature_export_evidence",
-        "description": "Export an auditable provider capability and search evidence snapshot.",
-        "inputSchema": {"type": "object", "properties": {}, "additionalProperties": True},
+        "description": (
+            "Export an auditable provider capability, search plan, diagnostics, "
+            "and result snapshot."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "cwd": {
+                    "type": "string",
+                    "description": (
+                        "Compatibility context path used by the Full runtime and ignored by Lite."
+                    ),
+                },
+                "query": {"type": "string"},
+                "provider_status": {"type": "object"},
+                "search_plan": {"type": "object"},
+                "results": {"type": "array", "items": {"type": "object"}},
+                "diagnostics": {"type": "object"},
+                "query_plan": {
+                    "type": "object",
+                    "deprecated": True,
+                    "description": "Compatibility alias for search_plan.",
+                },
+                "search_results": {
+                    "type": "array",
+                    "items": {"type": "object"},
+                    "deprecated": True,
+                    "description": "Compatibility alias for results.",
+                },
+                "search_diagnostics": {
+                    "type": "object",
+                    "deprecated": True,
+                    "description": "Compatibility alias for diagnostics.",
+                },
+            },
+            "additionalProperties": False,
+        },
     },
 ]
 
 ProviderSearchFn = Callable[[dict[str, object], int], dict[str, object]]
 PROVIDER_SEARCH_ORDER = ("semantic_scholar", "openalex", "crossref", "pubmed", "arxiv")
+
+
+class MCPToolInputError(ValueError):
+    """Raised when a tool call violates the public capability input contract."""
 
 
 def handle_literature_status(args: dict[str, Any]) -> dict[str, Any]:
@@ -176,18 +215,60 @@ def handle_literature_search(args: dict[str, Any]) -> dict[str, Any]:
 
 
 def handle_literature_export_evidence(args: dict[str, Any]) -> dict[str, Any]:
-    results = args.get("results", args.get("search_results", []))
-    if not isinstance(results, list):
-        results = []
+    normalized = _normalize_evidence_export_args(args)
+    results = normalized["results"]
     return {
         "artifact_type": "qiongli_literature_evidence_snapshot",
         "exported_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "query": normalized["query"],
+        "provider_status": normalized["provider_status"],
+        "search_plan": normalized["search_plan"],
+        "diagnostics": normalized["diagnostics"],
+        "result_count": len(results),
+        "results": results,
+    }
+
+
+def _normalize_evidence_export_args(args: dict[str, Any]) -> dict[str, Any]:
+    allowed = {
+        "cwd",
+        "query",
+        "provider_status",
+        "search_plan",
+        "results",
+        "diagnostics",
+        "query_plan",
+        "search_results",
+        "search_diagnostics",
+    }
+    unknown = sorted(set(args) - allowed)
+    if unknown:
+        raise MCPToolInputError(f"unknown arguments: {', '.join(unknown)}")
+
+    expected_types: dict[str, type[Any]] = {
+        "cwd": str,
+        "query": str,
+        "provider_status": dict,
+        "search_plan": dict,
+        "results": list,
+        "diagnostics": dict,
+        "query_plan": dict,
+        "search_results": list,
+        "search_diagnostics": dict,
+    }
+    for field, expected_type in expected_types.items():
+        if field in args and not isinstance(args[field], expected_type):
+            raise MCPToolInputError(f"{field} must be a {expected_type.__name__}")
+    for field in ("results", "search_results"):
+        if field in args and any(not isinstance(item, dict) for item in args[field]):
+            raise MCPToolInputError(f"{field} must contain objects")
+
+    return {
         "query": str(args.get("query", "") or "").strip(),
         "provider_status": args.get("provider_status", {}),
         "search_plan": args.get("search_plan", args.get("query_plan", {})),
+        "results": args.get("results", args.get("search_results", [])),
         "diagnostics": args.get("diagnostics", args.get("search_diagnostics", {})),
-        "result_count": len(results),
-        "results": results,
     }
 
 

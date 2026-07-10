@@ -1,0 +1,86 @@
+{
+  "$schema": "./registry.schema.json",
+  "schema_version": "2.0",
+  "contract_version": "2.0.0-preview.1",
+  "status": "pilot",
+  "coverage": {
+    "mode": "pilot",
+    "canonical_tool_count": 1,
+    "target_canonical_tool_count": 23,
+    "public_name_count": 1,
+    "target_public_name_count": 24
+  },
+  "profiles": ["skill-only", "marketplace-lite", "full"],
+  "profile_aliases": {
+    "marketplace-lite": ["lite", "marketplace_lite", "marketplace-lite-binary"],
+    "full": ["full_cli"]
+  },
+  "side_effect_classes": [
+    "read",
+    "local-config-write",
+    "project-write",
+    "network",
+    "loopback-listener",
+    "process-launch",
+    "agent-launch"
+  ],
+  "error_taxonomy": {
+    "invalid_arguments": {
+      "retryable": false,
+      "redaction_required": true,
+      "description": "The caller supplied missing, unknown, or type-invalid arguments."
+    },
+    "tool_error": {
+      "retryable": false,
+      "redaction_required": true,
+      "description": "The tool could not complete a bounded local operation."
+    },
+    "timeout": {
+      "retryable": true,
+      "redaction_required": true,
+      "description": "A bounded network or local operation exceeded its deadline."
+    }
+  },
+  "tools": [
+    {
+      "name": "qiongli_literature_export_evidence",
+      "description": "Export an auditable provider capability, search plan, diagnostics, and result snapshot.",
+      "aliases": [],
+      "maturity": "preview",
+      "lifecycle": {
+        "introduced_in": "legacy",
+        "deprecated_in": null,
+        "remove_after": null
+      },
+      "profiles": {
+        "skill-only": {
+          "exposure": "metadata-only",
+          "error_transport": "not-applicable"
+        },
+        "marketplace-lite": {
+          "exposure": "tool",
+          "input_schema_ref": "schemas/qiongli_literature_export_evidence.input.schema.json",
+          "output_schema_ref": "schemas/qiongli_literature_export_evidence.output.schema.json",
+          "error_transport": "json-rpc-and-tool-result"
+        },
+        "full": {
+          "exposure": "tool",
+          "input_schema_ref": "schemas/qiongli_literature_export_evidence.input.schema.json",
+          "output_schema_ref": "schemas/qiongli_literature_export_evidence.output.schema.json",
+          "error_transport": "tool-result"
+        }
+      },
+      "errors": ["invalid_arguments", "tool_error"],
+      "side_effects": [],
+      "security": {
+        "accepts_secret_input": false,
+        "raw_secret_output": "forbidden",
+        "redaction_required": true,
+        "notes": [
+          "Evidence export is side-effect free and must not add provider credentials to the snapshot."
+        ]
+      },
+      "smoke_call_ids": ["lite.qiongli_literature_export_evidence.success"]
+    }
+  ]
+}
