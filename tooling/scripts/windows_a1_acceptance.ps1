@@ -249,8 +249,8 @@ $environmentRestored = $false
 $temporaryConfigRemoved = $false
 
 try {
-    $isWindows = [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
-    Assert-AcceptanceCheck -Condition $isWindows -FailureCode "unsupported_platform"
+    $runningOnWindows = [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
+    Assert-AcceptanceCheck -Condition $runningOnWindows -FailureCode "unsupported_platform"
     Assert-AcceptanceCheck `
         -Condition (-not [string]::IsNullOrWhiteSpace($BinaryPath)) `
         -FailureCode "artifact_invalid"

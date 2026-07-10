@@ -324,6 +324,8 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn("if-no-files-found: warn", windows_job)
 
         self.assertIn('acceptance = "qiongli_windows_a1_release_artifact"', acceptance)
+        self.assertIn("$runningOnWindows =", acceptance)
+        self.assertNotIn("$isWindows =", acceptance)
         self.assertIn('$saveJsonRpc -ceq "2.0" -and $saveResponseId -eq 1', acceptance)
         self.assertIn('$statusJsonRpc -ceq "2.0" -and $statusResponseId -eq 2', acceptance)
         self.assertIn('GetEnvironmentVariable("GITHUB_SHA")', acceptance)
