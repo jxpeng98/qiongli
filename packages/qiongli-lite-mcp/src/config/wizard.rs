@@ -1,4 +1,3 @@
-use std::fs::File;
 use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::PathBuf;
@@ -624,7 +623,7 @@ fn secure_token() -> io::Result<String> {
 
 #[cfg(unix)]
 fn fill_random(bytes: &mut [u8]) -> io::Result<()> {
-    File::open("/dev/urandom")?.read_exact(bytes)
+    std::fs::File::open("/dev/urandom")?.read_exact(bytes)
 }
 
 #[cfg(windows)]

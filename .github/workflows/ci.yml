@@ -109,7 +109,7 @@ jobs:
             -EvidencePath "$env:RUNNER_TEMP/qiongli-lite-mcp/windows-a1-acceptance.json"
 
       - name: Upload current-host identity evidence
-        if: always()
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: qiongli-lite-mcp-windows-x86_64
@@ -118,6 +118,17 @@ jobs:
             ${{ runner.temp }}/qiongli-lite-mcp/qiongli-literature-provider.target.json
             ${{ runner.temp }}/qiongli-lite-mcp/windows-a1-acceptance.json
           if-no-files-found: error
+
+      - name: Upload partial Windows diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qiongli-lite-mcp-windows-x86_64-partial
+          path: |
+            ${{ runner.temp }}/qiongli-lite-mcp/qiongli-literature-provider.exe
+            ${{ runner.temp }}/qiongli-lite-mcp/qiongli-literature-provider.target.json
+            ${{ runner.temp }}/qiongli-lite-mcp/windows-a1-acceptance.json
+          if-no-files-found: warn
 
   cross-platform-tests:
     name: Cross-platform tests (${{ matrix.os }}, ${{ matrix.test-tier }})

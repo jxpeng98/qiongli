@@ -316,7 +316,12 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn("Run built Windows artifact A1 acceptance", windows_job)
         self.assertIn("tooling/scripts/windows_a1_acceptance.ps1", windows_job)
         self.assertIn("windows-a1-acceptance.json", windows_job)
-        self.assertIn("if: always()", windows_job)
+        self.assertIn("if: success()", windows_job)
+        self.assertIn("if-no-files-found: error", windows_job)
+        self.assertIn("Upload partial Windows diagnostics", windows_job)
+        self.assertIn("if: failure()", windows_job)
+        self.assertIn("qiongli-lite-mcp-windows-x86_64-partial", windows_job)
+        self.assertIn("if-no-files-found: warn", windows_job)
 
         self.assertIn('acceptance = "qiongli_windows_a1_release_artifact"', acceptance)
         self.assertIn('$saveJsonRpc -ceq "2.0" -and $saveResponseId -eq 1', acceptance)
