@@ -1,12 +1,23 @@
 # Qiongli Unified Platform Roadmap
 
+> **Transition status (July 10, 2026): partially superseded.** Gate 0, Stage 1,
+> Task AC1, Task RC1, the canonical-source boundaries, and their conformance
+> evidence remain the 1.x foundation. The former Python-Full stable path in
+> Stages 2-5 is replaced by the Rust-native 2.x program in
+> `docs/superpowers/roadmaps/2026-07-10-qiongli-2-rust-native-platform-roadmap.md`.
+> The immediate handoff is defined in
+> `docs/superpowers/plans/2026-07-10-qiongli-1x-closeout-and-2x-native-bootstrap.md`.
+> Retained stage text below is historical design input, not authority to ship
+> the previously planned `v1.19.0-beta.2`, RC, or stable release train.
+
 ## Purpose
 
 Qiongli now has a self-contained Rust Marketplace Lite MCP runtime and a
-Python-backed Full CLI runtime. The next product goal is not to collapse both
-runtimes into one language. It is to make them two capability profiles of one
-platform with one set of contracts, one target model, one installation plan,
-one diagnostic vocabulary, and one release policy.
+Python-backed Full CLI runtime. This roadmap established the contracts, target
+model, installation vocabulary, diagnostics, and release evidence needed to
+make them profiles of one platform. The July 10 transition decision changes
+the implementation destination: the shared control plane remains, but active
+product development moves to one Rust-native core after the final 1.x beta.
 
 This roadmap covers the work after `v1.18.0-beta.2`. It starts with a mandatory
 Lite MCP functional-closure gate, then builds the shared control plane required
@@ -16,21 +27,68 @@ Execution plans:
 
 - `docs/superpowers/plans/2026-07-09-lite-mcp-functional-closure.md`
 - `docs/superpowers/plans/2026-07-10-capability-contract-v2-pilot.md`
+- `docs/superpowers/plans/2026-07-10-capability-contract-v2-configuration.md`
+- `docs/superpowers/plans/2026-07-10-capability-contract-v2-literature-planning.md`
+- `docs/superpowers/plans/2026-07-10-qiongli-1x-closeout-and-2x-native-bootstrap.md`
+
+Successor roadmap:
+
+- `docs/superpowers/roadmaps/2026-07-10-qiongli-2-rust-native-platform-roadmap.md`
 
 ## Execution Update — July 10, 2026
 
-`v1.18.0-beta.3` completed the Gate 0 release. Stage 1 has started on `dev` with
-a deliberately bounded Capability Contract v2 pilot for
-`qiongli_literature_export_evidence`. The pilot adds a versioned registry,
-canonical input/output schemas, semantic errors, compatibility arguments,
-runtime-declaration drift validation, Lite/Full golden calls, and a required CI
-validator. Its coverage is explicitly `1 / 23` canonical capability records and
-`1 / 24` public names; the registry remains `pilot`, not complete.
+`v1.18.0-beta.3` completed the Gate 0 release. Stage 1 is active on `dev`. The
+initial `qiongli_literature_export_evidence` pilot established the versioned
+registry, canonical schemas, semantic errors, runtime-declaration drift checks,
+Lite/Full golden calls, and required CI validation. The configuration batch
+adds `qiongli_config_status`, `qiongli_save_provider_config`, and
+`qiongli_configure_provider`, with `qiongli_open_config_wizard` represented as a
+compatibility alias. The literature-planning batch then adds
+`qiongli_literature_status` and `qiongli_search_plan`, converging Lite on the
+rich hybrid plan already exposed by Full. Coverage is now explicitly `6 / 23`
+canonical capability records and `7 / 24` public names; the registry remains
+`pilot`, not complete.
+
+The configuration batch also closes contract-relevant security differences:
+Full provider configuration now fails closed on malformed persisted JSON and
+uses atomic replacement with Unix mode `0600`; Rust Lite Windows writes use a
+protected current-user-only DACL, while the legacy Node MCPB fails closed and
+remains read-only on Windows. Redacted status output allowlists public search
+settings, and the Full loopback wizard enforces a bounded lifetime, request
+limits, single-use submission, and no-store response headers. Runtime Windows
+CI is the remaining acceptance gate for DACL and reparse-point behavior.
+
+Provider configuration path resolution is also shared: an explicit
+`QIONGLI_CONFIG_HOME` must be a fully qualified absolute path or use portable
+`~` / `~/...` home notation; rooted or drive-prefixed home suffixes and other
+relative values fail closed, and the default is always derived from the
+platform user home rather than the server working directory.
+
+The literature-planning batch separates configured from active providers,
+strictly normalizes legacy search-plan arguments, preserves provider/native
+provenance, propagates corrupted config as a redacted tool error, and brings
+the capability contract validator into staged release preflight. Provider
+opt-out now propagates through command environments, diagnostics, and Full
+search execution without a legacy network fallback; deprecated camel-case year
+filters remain present beside canonical snake-case keys during the compatibility
+window.
+
+A subsequent final-beta audit found unresolved provider-disable, legacy Node
+fail-closed/atomic-write, disabled-credential export, active-status, redaction,
+and compatibility-alias cases. The preceding paragraphs describe the intended
+Stage 1 behavior, not accepted release evidence. These findings are blocking
+items in Phase A1 of the 1.x closeout plan and must be closed before
+`v1.19.0-beta.1`.
 
 Task AC1 now separately governs claim-bearing academic paper code through Stage
 I and Q1/Q2/Q4. Task RC1 separately governs Qiongli repository source through a
 repo-only future contract under `tooling/quality/`; RC1 policy must not be
 placed in materialized `content/standards/`.
+
+Stage 1 freeze also records the machine-readable 1.x-to-2.x baseline plan at
+`tooling/migration/qiongli-1x-baseline-plan.json`. It references the existing
+Capability Contract v2 registry and golden-call fixture instead of duplicating
+their tool records, and makes `qiongli-testkit` the read-only 2.x consumer.
 
 ## Execution Update — July 9, 2026
 
@@ -65,14 +123,18 @@ signing, provenance, and install-time variant enforcement remain Stage 4 work.
 
 Qiongli will use a contract-first modular monorepo architecture:
 
+- `v1.19.0-beta.1` is the final planned Python-led 1.x beta and the migration
+  oracle; Python Full receives critical fixes only after that accepted tag.
 - Rust Marketplace Lite remains the self-contained, no-user-runtime,
-  marketplace-safe subset.
-- Python Full remains the complete runtime for orchestration, project writes,
-  local agents, guidance, validation, and task execution.
+  marketplace-safe subset during the transition, then becomes a profile of the
+  shared Rust-native core.
+- Qiongli 2 migrates Full CLI, MCP, project writes, local agents, orchestration,
+  guidance, validation, installation, update, and desktop management to Rust.
 - Shared contracts, platform targets, generated install plans, and conformance
-  tests form the unified control plane.
-- A shared Rust provider kernel may be evaluated only after the control plane
-  is stable and measured drift still justifies it.
+  tests remain the migration control plane and compatibility oracle.
+- `v2.0.0-alpha.1`, not beta, begins the native release train; beta requires
+  full parity, data migration, zero-runtime, integration, and native-matrix
+  evidence.
 - A hosted control plane is not part of this roadmap. If a future team or web
   product requires one, its service implementation belongs in a separate
   repository; this repository should retain open contracts, local runtimes,
@@ -183,14 +245,15 @@ state remains in the external marketplace repository.
 
 - Truth before expansion: every advertised capability must be dispatchable,
   tested, and documented accurately before new tools are added.
-- One contract, multiple implementations: shared behavior is defined outside
-  Rust and Python and verified against both.
+- One contract, migration-safe implementations: shared behavior is defined
+  outside Rust and Python, verified against the frozen 1.x oracle during alpha,
+  and implemented by the Rust-native core for 2.x.
 - One product model, platform-specific artifacts: canonical inputs are shared,
   but native binaries and manifests remain explicit per target variant.
 - Profiles are capability boundaries: Lite must not launch agents, run arbitrary
   shell commands, or write project guidance.
-- Full stays Python during this roadmap. A language migration requires a new
-  design, benchmarks, rollback plan, and release train.
+- Python Full freezes after the final planned 1.x beta. The approved migration
+  design, rollback policy, and release train live in the successor 2.x roadmap.
 - Local-first security remains the default: loopback-only setup and Companion
   traffic, redacted secrets, owner-only config permissions where supported,
   and no remote telemetry by default.
@@ -299,8 +362,9 @@ Formal execution plan:
 
 ## Stage 1: Capability Contract v2
 
-Status: pilot implementation started on `dev`; one side-effect-free capability
-is contract-backed and the remaining 22 canonical records are pending.
+Status: implementation active on `dev`; six canonical capabilities are
+contract-backed, plus one compatibility alias, and the remaining 17 canonical
+records are pending.
 
 Suggested release target: `v1.19.0-beta.1`.
 
@@ -341,6 +405,14 @@ Success criteria:
 - MCPB manifests and docs no longer maintain independent hand-written tool
   inventories.
 
+Compatibility follow-up:
+
+- Keep `--legacy-node` outside the Capability Contract v2 production profiles
+  and normal beta/postflight artifacts. Before that reference runtime can be
+  published again, either retire it after the documented compatibility window
+  or bring provider-config reads/writes, `enabled: false`, atomic replacement,
+  and fixed redacted errors up to the Rust Lite/Full contract.
+
 Non-goals:
 
 - Generating runtime handler implementations.
@@ -350,12 +422,16 @@ Non-goals:
 Formal pilot execution plan:
 
 - `docs/superpowers/plans/2026-07-10-capability-contract-v2-pilot.md`
+- `docs/superpowers/plans/2026-07-10-capability-contract-v2-configuration.md`
+- `docs/superpowers/plans/2026-07-10-capability-contract-v2-literature-planning.md`
 
 ## Stage 2: Product And Platform Target v2
 
-Status: planned after the Stage 1 registry shape is stable.
+Status: archived as a 1.x implementation stage. Its target-model requirements
+move to the Rust-native successor roadmap.
 
-Suggested release target: `v1.19.0-beta.1` or `v1.19.0-beta.2`.
+Historical target: `v1.19.0-beta.1` or `v1.19.0-beta.2`; cancelled as a
+standalone 1.x stage.
 
 Primary outcome:
 
@@ -403,10 +479,11 @@ strengthens the existing Stage I tasks `I1` through `I9`.
 
 Status: planned; the baseline may start alongside Stages 1 and 2. Enforcement
 is required before any academic code-generation capability is marked stable
-and before the Stage 5 stable rollout.
+and before the Qiongli 2 beta/stable rollout.
 
-Suggested release target: standard and audit baseline in `v1.19.0-beta.1`;
-enforced paper-code gate in `v1.19.0-beta.2`.
+Revised release target: standard and audit baseline in `v1.19.0-beta.1`;
+native-runtime enforcement no later than the full-workflow alpha, with the
+paper-code release gate blocking `v2.0.0-beta.1`.
 
 Primary outcome:
 
@@ -562,12 +639,13 @@ version label and it is not a canonical academic Task ID. It governs Qiongli's
 own product source and maintainer tooling. It never substitutes for AC1's
 method, statistics, claim-traceability, or reproducibility review.
 
-Status: planned; the inventory and report-only baseline may start alongside
-Stages 1 and 2. Changed-file enforcement is required before the Stage 3
-compiler cutover, and release-preflight enforcement is required for Stage 4.
+Status: planned across the release transition; the inventory and report-only
+baseline may land in the final 1.x beta. Changed-file enforcement is required
+from the native workspace foundation, and release-preflight enforcement is
+required before native beta promotion.
 
-Suggested release target: baseline in `v1.19.0-beta.1`; changed-file gate in
-`v1.19.0-beta.2`; release gate in `v1.19.0-rc.1`.
+Revised release target: baseline in `v1.19.0-beta.1`; Rust changed-file gate in
+the native foundation; release gate before `v2.0.0-beta.1`.
 
 Primary outcome:
 
@@ -652,13 +730,14 @@ Rollout:
 
 - Phase 0 (`v1.19.0-beta.1`): inventory the tree, publish the contract and
   guide, emit reports, and record only fingerprinted existing debt.
-- Phase 1 (`v1.19.0-beta.2`): block new and changed first-party violations;
+- Phase 1 (2.x native foundation): block new and changed first-party violations;
   immediately block repository-boundary, high-severity security, expired
   exception, and generated-output findings across the full tree.
-- Phase 2 (`v1.19.0-rc.1`): make touched-scope Python, Node, Shell, and
+- Phase 2 (before `v2.0.0-beta.1`): make touched-scope Rust, Python, Node,
+  Shell, and
   PowerShell language gates release-preflight requirements alongside the
   existing Rust gates.
-- Stable (`v1.19.0`): repository-wide blocking findings are cleared or covered
+- Stable (`v2.0.0`): repository-wide blocking findings are cleared or covered
   by narrow, owned, unexpired exceptions, and the debt baseline can only
   shrink.
 
@@ -689,9 +768,10 @@ Non-goals:
 
 ## Stage 3: Platform Compiler And Shared Install Plan
 
-Status: planned after Platform Target v2.
+Status: archived as a Python-led 1.x implementation stage. Its declarative
+install-plan requirements move to the native installer workstream.
 
-Suggested release target: `v1.19.0-beta.2`.
+Historical target: `v1.19.0-beta.2`; cancelled.
 
 Primary outcome:
 
@@ -745,9 +825,9 @@ Non-goals:
 
 ## Stage 4: Native Release Matrix And Supply-Chain Evidence
 
-Status: planned after target variants and compiler inputs are stable.
+Status: migrated to the Qiongli 2 native release-matrix workstream.
 
-Suggested release target: `v1.19.0-rc.1`.
+Historical target: `v1.19.0-rc.1`; cancelled.
 
 Primary outcome:
 
@@ -792,9 +872,10 @@ Non-goals:
 
 ## Stage 5: Unified Product Experience And Stable Rollout
 
-Status: planned after native release evidence is reliable.
+Status: migrated to the Qiongli 2 desktop, installer, doctor, updater, and
+stable-promotion workstreams.
 
-Suggested release target: `v1.19.0`.
+Historical target: `v1.19.0`; cancelled.
 
 Primary outcome:
 
@@ -901,7 +982,7 @@ The following metrics are release gates, not aspirational dashboards:
 
 ## Branch And Release Sequence
 
-Recommended change sequence:
+Historical 1.x change sequence:
 
 1. `fix/lite-mcp-functional-closure`
 2. `test/mcp-behavioral-conformance`
@@ -919,17 +1000,19 @@ and target schema changes should land before the compiler consumes them. Task
 AC1 is a parallel academic-workflow line: it gates paper-code maturity and the
 stable rollout, not implementation changes to the platform compiler.
 
-Suggested release train:
+Revised release transition:
 
 | Release | Main claim |
 |---|---|
 | `v1.18.0-beta.3` | Lite functional and truth closure |
-| `v1.19.0-beta.1` | Capability Contract v2, AC1/RC1 baselines, and initial Target v2 |
-| `v1.19.0-beta.2` | Enforced paper-code and repository changed-file gates, platform compiler, and shared install plan |
-| `v1.19.0-rc.1` | RC1 release gate, native release matrix, and migration acceptance |
-| `v1.19.0` | Unified setup, diagnostics, upgrade, and stable platform model |
+| `v1.19.0-beta.1` | Final planned 1.x beta: implemented Contract v2 pilot batches, AC1/RC1 direction, and frozen Python migration baseline |
+| `v2.0.0-alpha.1` | First usable Rust-native, zero-language-runtime vertical slice |
+| `v2.0.0-beta.1` | Full migration qualification after all successor-roadmap beta gates |
+| `v2.0.0` | Stable Rust-native platform |
 
 Release numbers are planning labels, not permission to skip an unmet gate.
+The previously listed `v1.19.0-beta.2`, `v1.19.0-rc.1`, and `v1.19.0` platform
+releases are cancelled unless a future explicit decision restores them.
 
 ## Risk Register
 
@@ -946,31 +1029,28 @@ Release numbers are planning labels, not permission to skip an unmet gate.
 | Academic code rules remain stylistic prose or blanket waivers | Method errors, leakage, selective reporting, or irreproducible results can reach a manuscript despite clean formatting | `AAC-*` rules, strict I5-I8 flow, semantic I8 review, Q4 rerun evidence, and claim-scoped expiring exceptions |
 | Repository engineering rules become a mass-reformat project or permanent blanket baseline | Review noise grows while real boundary, security, test, and compatibility risks remain hidden | Separate `RSC-*` policy, report-first inventory, changed-file ratchet, fingerprinted debt, narrow expiring exceptions, and language-native tools |
 | Node fallback persists indefinitely | Maintenance never converges | Two-green-release retirement criterion and explicit owner/date in release plan |
-| Full Rust rewrite distracts from control-plane convergence | High cost without product benefit | Separate decision gate based on measured distribution and maintenance evidence |
+| Rust migration starts without a frozen oracle | Skills, state, agents, or installer behavior is lost | Accept the final 1.x beta, freeze normalized fixtures, then migrate by contract |
 | Hosted scope enters the monorepo | Security and operational boundaries blur | Separate service repository and explicit future product design |
 
-## Decision Gates After Stable
+## Transition Decisions
 
 ### Shared Rust Provider Kernel
 
-Evaluate a shared Rust provider subprocess only if, after Contract v2:
-
-- provider behavior drift remains a leading maintenance failure;
-- native binary delivery is reliable on every supported Full platform;
-- subprocess failure, version negotiation, and rollback behavior are designed;
-- Python Full can preserve its public API and project runtime behavior.
-
-Prefer a versioned JSON subprocess protocol before considering FFI.
+Decision taken as part of the native program. Extract the existing Rust Lite
+provider behavior into shared native crates while retaining the old binary as a
+compatibility entry during alpha. The 2.x core should use those crates directly;
+a versioned JSON subprocess remains preferable to FFI only when process
+isolation is intentionally required.
 
 ### Full Rust Migration
 
-Do not evaluate until:
-
-- multiple stable Lite release trains have shipped;
-- Python installation is a measured, persistent blocker;
-- orchestration, project writes, agent execution, and doctor contracts are
-  stable;
-- the team can fund parallel compatibility and rollback paths.
+Decision taken on July 10, 2026. Full Rust migration is now the active 2.x
+program. Its architecture, task catalog, parity gates, target matrix, local and
+cloud boundaries, rollback plan, alpha/beta promotion criteria, and definition
+of done are authoritative in
+`docs/superpowers/roadmaps/2026-07-10-qiongli-2-rust-native-platform-roadmap.md`.
+The contracts and evidence created by this roadmap remain required migration
+inputs; they are not discarded by the language change.
 
 ### Hosted Control Plane
 
@@ -980,30 +1060,30 @@ operations are outside this repository's current boundary.
 
 ## Definition Of Done
 
+This definition applies only to the retained 1.x foundation. The end-to-end
+product definition of done is owned by the Rust-native successor roadmap.
+
 This roadmap is complete when:
 
-- Lite and Full are discoverable as capability profiles of one Qiongli product.
-- Every overlapping public tool is defined by one versioned contract and passes
-  schema, error, redaction, and behavior conformance.
-- Product, target, surface, runtime profile, and native variant are modeled
-  separately and reported accurately.
-- Platform artifacts and install plans are compiled from canonical registries.
-- Every published native binary has explicit identity and native startup
-  evidence.
-- Setup, check, doctor, upgrade, repair, removal, and rollback share one target
-  and capability vocabulary.
-- Lite-to-Full migration is reversible and does not duplicate managed client
-  entries.
-- Full remains Python-backed and retains complete orchestration behavior.
+- Gate 0 Lite functional and truth closure is published and accepted.
+- Every Stage 1 capability actually included in the final 1.x beta has a valid
+  versioned record, schema, semantic error, redaction, side-effect, declaration,
+  and golden-call evidence for its advertised profiles.
+- Contract v2 is described honestly as a pilot with generated exact coverage;
+  completion of all Full tools is a 2.x migration gate, not a false 1.x claim.
+- `v1.19.0-beta.1` is published and accepted as the immutable Python-led
+  behavior oracle, with explicit product/component versions, target identity,
+  startup evidence, rollback, and known limitations.
+- Python Full behavior, Rust Lite behavior, Node-only compatibility behavior,
+  CLI semantics, mutable state, installation behavior, skills, agents, and
+  orchestrator scenarios are inventoried for the successor migration.
+- Canonical content, contract, distribution, implementation, generated-output,
+  and external marketplace boundaries remain explicit.
 - Marketplace Lite remains self-contained and does not gain unsafe execution
-  capabilities.
-- Paper-facing academic code passes the versioned `AAC-*` contract, remains
-  aligned with the approved method and analysis plan, preserves data and sample
-  lineage, reproduces manuscript outputs, clears independent I8 review and Q4,
-  and records any exception against an affected claim with an expiry.
-- Qiongli repository source passes the repo-only `RSC-*` contract; changed-file
-  and release gates cover supported languages, generated drift and severe
-  security findings are zero, and remaining debt or exceptions are narrow,
-  owned, fingerprinted, and unexpired.
+  capabilities in the final 1.x release.
+- AC1 academic-code and RC1 repository-code requirements, source boundaries,
+  rule families, evidence, exception policy, and native enforcement milestones
+  are carried into the 2.x task catalog without being presented as implemented
+  in 1.x unless their release evidence actually exists.
 - Generated payloads, external marketplace catalogs, and release archives do
   not become canonical source.

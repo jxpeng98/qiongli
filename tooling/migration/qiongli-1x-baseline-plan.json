@@ -1,0 +1,182 @@
+{
+  "$schema": "./baseline-plan.schema.json",
+  "schema_version": "1.0",
+  "plan_id": "qiongli-1x-to-2x-migration-baseline",
+  "status": "planned",
+  "release_lineage": {
+    "source_release": "v1.19.0-beta.1",
+    "accepted_tag": "v1.19.0-beta.1",
+    "maintenance_branch": "release/1.x-python",
+    "successor_branch": "2.x",
+    "first_native_release": "v2.0.0-alpha.1",
+    "generation_gate": "accepted-final-1x-beta",
+    "branch_point": "clean-post-release-baseline-commit"
+  },
+  "output": {
+    "manifest_path": "tooling/migration/baselines/v1.19.0-beta.1/manifest.json",
+    "format_id": "qiongli-migration-baseline-v1",
+    "generated_from": "accepted-tag",
+    "deterministic": true
+  },
+  "contracts": {
+    "capability_registry": "content/mcp-contracts/v2/registry.json",
+    "golden_fixture": "content/mcp-contracts/fixtures/lite-tool-smoke-calls.json",
+    "conformance_test": "tests/test_capability_contract_v2.py",
+    "golden_selection": "registry.tools[*].smoke_call_ids",
+    "registry_copy_policy": "reference-only"
+  },
+  "oracles": [
+    {
+      "id": "python-full",
+      "runtime": "python",
+      "profile": "full",
+      "source_root": "packages/python-qiongli",
+      "capture": "Full CLI, MCP, orchestration, installer, and mutable-state results",
+      "production_dependency": false
+    },
+    {
+      "id": "rust-lite",
+      "runtime": "rust",
+      "profile": "marketplace-lite",
+      "source_root": "packages/qiongli-lite-mcp",
+      "capture": "Self-contained Lite MCP contract and bounded provider results",
+      "production_dependency": false
+    },
+    {
+      "id": "node-mcpb",
+      "runtime": "node",
+      "profile": "legacy-mcpb",
+      "source_root": "packages/qiongli-literature-mcpb",
+      "capture": "Legacy MCPB compatibility and fail-closed reference results",
+      "production_dependency": false
+    }
+  ],
+  "inventory": {
+    "domains": [
+      {
+        "id": "mcp",
+        "source_selectors": [
+          "content/mcp-contracts/**",
+          "packages/python-qiongli/src/qiongli/bridges/mcp_*.py",
+          "packages/qiongli-lite-mcp/**",
+          "packages/qiongli-literature-mcpb/**"
+        ]
+      },
+      {
+        "id": "cli",
+        "source_selectors": [
+          "packages/python-qiongli/src/qiongli/cli.py",
+          "content/distribution/**"
+        ]
+      },
+      {
+        "id": "skills",
+        "source_selectors": ["content/skills/**", "content/workflow/SKILL.md"]
+      },
+      {
+        "id": "tasks",
+        "source_selectors": [
+          "content/templates/solo-task-packet.md",
+          "content/standards/worker-orchestration-contract.yaml"
+        ]
+      },
+      { "id": "roles", "source_selectors": ["content/roles/**"] },
+      {
+        "id": "workflows",
+        "source_selectors": [
+          "content/workflow/workflows/**",
+          "content/workflow/references/**"
+        ]
+      },
+      { "id": "subjects", "source_selectors": ["content/subjects/**"] },
+      { "id": "templates", "source_selectors": ["content/templates/**"] },
+      {
+        "id": "installers",
+        "source_selectors": [
+          "tooling/install/**",
+          "tooling/scripts/install_qiongli.sh",
+          "packages/python-qiongli/src/qiongli/universal_installer.py",
+          "packages/python-qiongli/src/qiongli/local_plugin_installer.py"
+        ]
+      },
+      {
+        "id": "mutable-state",
+        "source_selectors": [
+          "content/templates/research-state.md",
+          "packages/python-qiongli/src/qiongli/bridges/project_manifest.py",
+          "packages/python-qiongli/src/qiongli/bridges/experience_runtime.py",
+          "packages/python-qiongli/src/qiongli/bridges/guidance_runtime.py",
+          "packages/python-qiongli/src/qiongli/bridges/provider_config.py"
+        ]
+      },
+      {
+        "id": "orchestrator-scenarios",
+        "source_selectors": [
+          "packages/python-qiongli/src/qiongli/bridges/orchestrator.py",
+          "packages/qiongli-lite-mcp/tests/orchestrator_preview.rs",
+          "tests/test_orchestrator_workflows.py",
+          "tests/test_controller_agnostic_orchestration.py"
+        ]
+      }
+    ],
+    "exclude_selectors": [
+      "**/__pycache__/**",
+      "**/node_modules/**",
+      "**/target/**",
+      "**/.DS_Store"
+    ]
+  },
+  "normalization": {
+    "rules": [
+      {
+        "id": "paths",
+        "strategy": "make repository-relative or replace machine-local paths",
+        "replacement": "<REPO_PATH>"
+      },
+      {
+        "id": "ports",
+        "strategy": "replace allocated or environment-specific ports",
+        "replacement": "<PORT>"
+      },
+      {
+        "id": "timestamps",
+        "strategy": "replace wall-clock and file-system timestamps",
+        "replacement": "<TIMESTAMP>"
+      },
+      {
+        "id": "process-ids",
+        "strategy": "replace process and worker identifiers",
+        "replacement": "<PID>"
+      },
+      {
+        "id": "secrets",
+        "strategy": "redact credentials and reject output that contains canaries",
+        "replacement": "<REDACTED>"
+      }
+    ],
+    "serialization": {
+      "encoding": "utf-8",
+      "line_endings": "lf",
+      "json_keys": "sorted"
+    }
+  },
+  "integrity": {
+    "digest_algorithm": "sha256",
+    "record_file_checksums": true,
+    "record_package_trees": true,
+    "package_tree_roots": [
+      "content/",
+      "packages/python-qiongli/",
+      "packages/qiongli-lite-mcp/",
+      "packages/qiongli-literature-mcpb/"
+    ],
+    "path_order": "sorted-repository-relative-path",
+    "file_mode_policy": "record-executable-bit"
+  },
+  "consumer": {
+    "id": "qiongli-testkit",
+    "planned_path": "packages/qiongli-native/crates/qiongli-testkit",
+    "mode": "read-only-golden-oracle",
+    "requires_oracle_runtime": false
+  }
+}

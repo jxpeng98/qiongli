@@ -9,7 +9,8 @@ outputs.
 
 | Boundary | Editable source | Responsibility |
 |---|---|---|
-| Academic content | `content/` | Workflow package source, internal skills, templates, standards, roles, subjects, schemas, and venue profiles |
+| Academic content | `content/workflow/`, `content/skills/`, `content/templates/`, `content/standards/`, `content/roles/`, `content/subjects/`, `content/schemas/`, `content/venue-profiles/` | Workflow package source, academic contracts, skills, templates, roles, subjects, schemas, and venue profiles |
+| Runtime capability contracts | `content/mcp-contracts/` | Versioned MCP capability registry, runtime input/output schemas, compatibility aliases, and smoke fixtures; not an academic-standard or RC1-policy boundary |
 | Plugin distribution metadata | `content/distribution/plugins.yaml` | Stable and prerelease plugin names, descriptions, prompts, keywords, and platform enablement |
 | Python runtime | `packages/python-qiongli/src/` | `qiongli`, deprecated `research_skills` shim, bridge adapters, CLI/runtime code |
 | Package shells | `packages/npm-qiongli/`, `packages/qiongli-literature-mcpb/` | Publishable npm and MCPB package sources |
@@ -53,11 +54,11 @@ under `content/workflow/` and plugin metadata under
 
 Treat the system as a one-way graph:
 
-1. `content/standards/`
+1. `content/standards/` and `content/mcp-contracts/`
 2. `content/roles/` and `content/skills/`
 3. `content/templates/`
 4. `tooling/pipelines/`, `content/workflow/workflows/`, and plugin metadata
-5. `packages/python-qiongli/src/qiongli/`
+5. Python and Rust runtime packages
 6. materialized distribution payloads
 
 Generated payloads must not become hidden sources of truth. If a generated

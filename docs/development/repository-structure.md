@@ -4,12 +4,13 @@ This page is the current source-layout contract for maintainers.
 
 ```text
 /
-  content/                  canonical academic content source
+  content/                  canonical academic and runtime-contract source
     workflow/               source for generated qiongli-workflow package
     distribution/           plugin metadata source for generated plugin payloads
     skills/                 internal skill specs
     templates/              reusable artifact templates
     standards/              contracts, capability maps, policies
+    mcp-contracts/          runtime capability registry, schemas, and fixtures
     roles/                  functional-agent role configs
     subjects/               subject catalog and overlays
     schemas/                JSON/YAML schemas
@@ -57,6 +58,9 @@ python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qio
 
 - Root `scripts/` remains stable for CI, docs, and user habits. Edit
   `tooling/scripts/` unless the wrapper contract itself changes.
+- `content/mcp-contracts/` is the canonical MCP runtime-contract boundary. It
+  is not an academic standard, and repository-only RC1 engineering policy must
+  remain under `tooling/quality/` rather than being materialized from it.
 - `research_skills` remains as a deprecated Python compatibility shim under
   `packages/python-qiongli/src/research_skills/`.
 - Root `.agent/` is generated from `content/workflow/` and

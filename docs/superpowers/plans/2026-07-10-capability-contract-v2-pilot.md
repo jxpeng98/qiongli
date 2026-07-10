@@ -83,7 +83,7 @@ Modify:
 - [x] Add golden Lite/Full calls, alias normalization, output validation,
   semantic error classification, and negative schema tests.
 - [x] Add the validator to required CI.
-- [ ] Add the validator to release preflight after the pilot remains green on
+- [x] Add the validator to release preflight after the pilot remains green on
   `dev` and the registry expands beyond one tool.
 
 ## Acceptance

@@ -1,0 +1,232 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qiongli.dev/schemas/migration-baseline-plan-v1.json",
+  "title": "Qiongli 1.x to 2.x Migration Baseline Plan",
+  "type": "object",
+  "required": [
+    "$schema",
+    "schema_version",
+    "plan_id",
+    "status",
+    "release_lineage",
+    "output",
+    "contracts",
+    "oracles",
+    "inventory",
+    "normalization",
+    "integrity",
+    "consumer"
+  ],
+  "properties": {
+    "$schema": { "const": "./baseline-plan.schema.json" },
+    "schema_version": { "const": "1.0" },
+    "plan_id": { "const": "qiongli-1x-to-2x-migration-baseline" },
+    "status": { "enum": ["planned", "captured", "accepted"] },
+    "release_lineage": {
+      "type": "object",
+      "required": [
+        "source_release",
+        "accepted_tag",
+        "maintenance_branch",
+        "successor_branch",
+        "first_native_release",
+        "generation_gate",
+        "branch_point"
+      ],
+      "properties": {
+        "source_release": { "const": "v1.19.0-beta.1" },
+        "accepted_tag": { "const": "v1.19.0-beta.1" },
+        "maintenance_branch": { "const": "release/1.x-python" },
+        "successor_branch": { "const": "2.x" },
+        "first_native_release": { "const": "v2.0.0-alpha.1" },
+        "generation_gate": { "const": "accepted-final-1x-beta" },
+        "branch_point": { "const": "clean-post-release-baseline-commit" }
+      },
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "required": ["manifest_path", "format_id", "generated_from", "deterministic"],
+      "properties": {
+        "manifest_path": {
+          "const": "tooling/migration/baselines/v1.19.0-beta.1/manifest.json"
+        },
+        "format_id": { "const": "qiongli-migration-baseline-v1" },
+        "generated_from": { "const": "accepted-tag" },
+        "deterministic": { "const": true }
+      },
+      "additionalProperties": false
+    },
+    "contracts": {
+      "type": "object",
+      "required": [
+        "capability_registry",
+        "golden_fixture",
+        "conformance_test",
+        "golden_selection",
+        "registry_copy_policy"
+      ],
+      "properties": {
+        "capability_registry": {
+          "const": "content/mcp-contracts/v2/registry.json"
+        },
+        "golden_fixture": {
+          "const": "content/mcp-contracts/fixtures/lite-tool-smoke-calls.json"
+        },
+        "conformance_test": { "const": "tests/test_capability_contract_v2.py" },
+        "golden_selection": { "const": "registry.tools[*].smoke_call_ids" },
+        "registry_copy_policy": { "const": "reference-only" }
+      },
+      "additionalProperties": false
+    },
+    "oracles": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "runtime",
+          "profile",
+          "source_root",
+          "capture",
+          "production_dependency"
+        ],
+        "properties": {
+          "id": { "enum": ["python-full", "rust-lite", "node-mcpb"] },
+          "runtime": { "enum": ["python", "rust", "node"] },
+          "profile": { "enum": ["full", "marketplace-lite", "legacy-mcpb"] },
+          "source_root": { "type": "string", "pattern": "^(packages|content)/" },
+          "capture": { "type": "string", "minLength": 1 },
+          "production_dependency": { "const": false }
+        },
+        "additionalProperties": false
+      }
+    },
+    "inventory": {
+      "type": "object",
+      "required": ["domains", "exclude_selectors"],
+      "properties": {
+        "domains": {
+          "type": "array",
+          "minItems": 11,
+          "maxItems": 11,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "required": ["id", "source_selectors"],
+            "properties": {
+              "id": {
+                "enum": [
+                  "mcp",
+                  "cli",
+                  "skills",
+                  "tasks",
+                  "roles",
+                  "workflows",
+                  "subjects",
+                  "templates",
+                  "installers",
+                  "mutable-state",
+                  "orchestrator-scenarios"
+                ]
+              },
+              "source_selectors": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^(content|packages|tests|tooling)/"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "exclude_selectors": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "additionalProperties": false
+    },
+    "normalization": {
+      "type": "object",
+      "required": ["rules", "serialization"],
+      "properties": {
+        "rules": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "required": ["id", "strategy", "replacement"],
+            "properties": {
+              "id": { "enum": ["paths", "ports", "timestamps", "process-ids", "secrets"] },
+              "strategy": { "type": "string", "minLength": 1 },
+              "replacement": { "type": "string", "pattern": "^<[A-Z_]+>$" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "serialization": {
+          "type": "object",
+          "required": ["encoding", "line_endings", "json_keys"],
+          "properties": {
+            "encoding": { "const": "utf-8" },
+            "line_endings": { "const": "lf" },
+            "json_keys": { "const": "sorted" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "integrity": {
+      "type": "object",
+      "required": [
+        "digest_algorithm",
+        "record_file_checksums",
+        "record_package_trees",
+        "package_tree_roots",
+        "path_order",
+        "file_mode_policy"
+      ],
+      "properties": {
+        "digest_algorithm": { "const": "sha256" },
+        "record_file_checksums": { "const": true },
+        "record_package_trees": { "const": true },
+        "package_tree_roots": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^(content|packages)/" }
+        },
+        "path_order": { "const": "sorted-repository-relative-path" },
+        "file_mode_policy": { "const": "record-executable-bit" }
+      },
+      "additionalProperties": false
+    },
+    "consumer": {
+      "type": "object",
+      "required": ["id", "planned_path", "mode", "requires_oracle_runtime"],
+      "properties": {
+        "id": { "const": "qiongli-testkit" },
+        "planned_path": {
+          "const": "packages/qiongli-native/crates/qiongli-testkit"
+        },
+        "mode": { "const": "read-only-golden-oracle" },
+        "requires_oracle_runtime": { "const": false }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
