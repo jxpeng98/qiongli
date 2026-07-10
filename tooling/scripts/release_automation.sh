@@ -45,7 +45,7 @@ ensure_git_identity() {
 }
 
 ensure_clean_resume_worktree() {
-  if ! git diff --quiet || ! git diff --cached --quiet; then
+  if [[ -n "$(git status --porcelain --untracked-files=normal)" ]]; then
     echo "[release-automation] --resume-after-ready requires a clean working tree; commit or discard release-prep changes first" >&2
     exit 1
   fi

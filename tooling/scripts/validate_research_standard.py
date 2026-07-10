@@ -2326,6 +2326,7 @@ def validate_release_artifacts(root: Path, report: ValidationReport) -> None:
     if preflight_content:
         for token in (
             "validate_research_standard.py",
+            "validate_capability_contract.py",
             "unittest discover -s tests -v",
             "./scripts/run_beta_smoke.sh",
             "release smoke tier (literature pipeline + doctor)",

@@ -626,6 +626,18 @@ def _load_lite_tool_smoke_fixture(path: Path) -> dict[str, object]:
             isinstance(item, str) and item for item in forbidden_output
         ):
             raise ValueError(f"{label}.forbidden_output must be a list of non-empty strings")
+        equalities = call.get("required_output_equalities", [])
+        if not isinstance(equalities, list):
+            raise ValueError(f"{label}.required_output_equalities must be a list")
+        for equality_index, equality in enumerate(equalities):
+            equality_label = f"{label}.required_output_equalities[{equality_index}]"
+            if not isinstance(equality, dict) or set(equality) != {"left", "right"}:
+                raise ValueError(f"{equality_label} must contain only left and right")
+            if not all(
+                isinstance(equality[field], str) and equality[field].startswith("/")
+                for field in ("left", "right")
+            ):
+                raise ValueError(f"{equality_label} values must be JSON pointers")
     return fixture
 
 
@@ -727,6 +739,34 @@ def _assert_lite_tool_smoke_responses(
                 f"{fixture_path} smoke tool {name} expected {expected_class} "
                 "with result.structuredContent object"
             )
+        structured = result["structuredContent"]
+        for equality in call.get("required_output_equalities", []):
+            try:
+                left = _resolve_json_pointer(structured, equality["left"])
+                right = _resolve_json_pointer(structured, equality["right"])
+            except (IndexError, KeyError, TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"{fixture_path} smoke tool {name} could not resolve compatibility "
+                    f"assertion {equality}: {exc}"
+                ) from exc
+            if left != right:
+                raise ValueError(
+                    f"{fixture_path} smoke tool {name} compatibility assertion failed: "
+                    f"{equality['left']} != {equality['right']}"
+                )
+
+
+def _resolve_json_pointer(value: object, pointer: str) -> object:
+    current = value
+    for raw_token in pointer.removeprefix("/").split("/"):
+        token = raw_token.replace("~1", "/").replace("~0", "~")
+        if isinstance(current, list):
+            current = current[int(token)]
+        elif isinstance(current, dict):
+            current = current[token]
+        else:
+            raise TypeError(f"{pointer} traverses a non-container value")
+    return current
 
 
 def _assert_plugin_mcp_server_launches(

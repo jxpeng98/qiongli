@@ -16,6 +16,7 @@ RELEASE_LOCAL_INSTALL_CHECK = LAYOUT.scripts / "release_local_install_check.py"
 BETA_SMOKE = REPO_ROOT / "tooling" / "scripts" / "run_beta_smoke.sh"
 PYPI_PREFLIGHT = LAYOUT.scripts / "pypi_preflight.sh"
 RELEASE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-automation.yml"
+CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci.yml"
 INSTALL_CHECK_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "install-check.yml"
 MACOS_INSTALL_CHECK_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "install-check-macos.yml"
 AUTO_RERUN_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "auto-rerun-failed-actions.yml"
@@ -29,6 +30,7 @@ PUBLISH_PYPI_ZH_DOC = REPO_ROOT / "docs" / "zh" / "advanced" / "publish-pypi.md"
 RELEASE_BRANCH_POLICY_DOC = REPO_ROOT / "docs" / "maintainer" / "release-branch-policy.md"
 RELEASE_BRANCH_POLICY_ZH_DOC = REPO_ROOT / "docs" / "zh" / "maintainer" / "release-branch-policy.md"
 ACCEPTANCE_TEMPLATE = REPO_ROOT / "tooling" / "release" / "templates" / "beta-acceptance-template.md"
+WINDOWS_A1_ACCEPTANCE = REPO_ROOT / "tooling" / "scripts" / "windows_a1_acceptance.ps1"
 
 
 class ReleaseAutomationTests(unittest.TestCase):
@@ -177,6 +179,8 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn("resume_after_ready=0", content)
         self.assertIn('if [[ "$resume_after_ready" -eq 0 ]]; then', content)
         self.assertIn("ensure_clean_resume_worktree", content)
+        self.assertIn('git status --porcelain --untracked-files=normal', content)
+        self.assertNotIn('if ! git diff --quiet || ! git diff --cached --quiet; then', content)
         self.assertIn('echo "[release-automation] resuming after release_ready; skipping preflight and release-prep commit"', content)
         self.assertIn('ensure_tag_matches_release_commit "$repo_tag" "$release_commit" "$push_remote"', content)
         self.assertIn('local_tag_target="$(resolve_local_tag_target "$repo_tag")"', content)
@@ -296,6 +300,33 @@ class ReleaseAutomationTests(unittest.TestCase):
             MACOS_INSTALL_CHECK_WORKFLOW.exists(),
             msg="macOS checkout checks should stay in the main workflow to avoid duplicate checks.",
         )
+
+    def test_ci_runs_windows_a1_acceptance_against_the_built_artifact(self) -> None:
+        workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+        windows_job = workflow.split("  rust-lite-mcp-windows:\n", 1)[1].split(
+            "  cross-platform-tests:\n", 1
+        )[0]
+        acceptance = WINDOWS_A1_ACCEPTANCE.read_text(encoding="utf-8")
+
+        self.assertIn("components: rustfmt, clippy", windows_job)
+        self.assertIn("Run Windows provider-config ACL evidence", windows_job)
+        self.assertIn("--lib windows_ -- --nocapture", windows_job)
+        self.assertIn("Run legacy Node MCPB Windows tests", windows_job)
+        self.assertIn("npm --prefix packages/qiongli-literature-mcpb test", windows_job)
+        self.assertIn("Run built Windows artifact A1 acceptance", windows_job)
+        self.assertIn("tooling/scripts/windows_a1_acceptance.ps1", windows_job)
+        self.assertIn("windows-a1-acceptance.json", windows_job)
+        self.assertIn("if: always()", windows_job)
+
+        self.assertIn('acceptance = "qiongli_windows_a1_release_artifact"', acceptance)
+        self.assertIn('$saveJsonRpc -ceq "2.0" -and $saveResponseId -eq 1', acceptance)
+        self.assertIn('$statusJsonRpc -ceq "2.0" -and $statusResponseId -eq 2', acceptance)
+        self.assertIn('GetEnvironmentVariable("GITHUB_SHA")', acceptance)
+        self.assertIn("AreAccessRulesProtected", acceptance)
+        self.assertIn("owner_is_current_user", acceptance)
+        self.assertIn("current_user_full_control_only", acceptance)
+        self.assertIn("canary_redacted", acceptance)
+        self.assertIn("temporary_config_removed", acceptance)
 
     def test_failed_ci_and_checkout_runs_are_rerun_once(self) -> None:
         content = AUTO_RERUN_WORKFLOW.read_text(encoding="utf-8")
@@ -482,6 +513,18 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertNotIn('echo "[preflight] platform target registry schema"', content)
         self.assertIn(platform_registry_gate, content)
         self.assertLess(content.index(platform_registry_gate), content.index(standard_validator))
+
+    def test_release_preflight_validates_capability_contract_before_standard_validator(self) -> None:
+        content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
+
+        capability_gate = (
+            'python3 scripts/validate_capability_contract.py --root "$PREFLIGHT_ROOT"'
+        )
+        standard_validator = 'run_logged_stage "validator" "$validator_log" "${validate_cmd[@]}"'
+
+        self.assertIn('echo "[preflight] capability contract v2"', content)
+        self.assertIn(capability_gate, content)
+        self.assertLess(content.index(capability_gate), content.index(standard_validator))
 
     def test_release_preflight_supports_staged_materialization_for_ci(self) -> None:
         content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")

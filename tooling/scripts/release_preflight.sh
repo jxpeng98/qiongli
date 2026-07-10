@@ -323,6 +323,9 @@ echo "[preflight] skill package verified self-contained"
 echo "[preflight] release target registries schema"
 python3 scripts/validate_platform_targets.py --root "$PREFLIGHT_ROOT"
 
+echo "[preflight] capability contract v2"
+python3 scripts/validate_capability_contract.py --root "$PREFLIGHT_ROOT"
+
 echo "[preflight] sync skill reference docs"
 (
   cd "$PREFLIGHT_ROOT"
