@@ -1194,7 +1194,7 @@ mod windows_security {
     }
 
     #[cfg(test)]
-    pub(super) fn create_noncompliant_inheritable_acl_file(
+    pub(super) fn create_noncompliant_broad_acl_file(
         path: &Path,
         contents: &[u8],
     ) -> io::Result<()> {
@@ -1257,8 +1257,9 @@ mod windows_security {
                 _system_acl: null_mut(),
                 _discretionary_acl: null_mut(),
             };
-            // Deliberately leave SE_DACL_PROTECTED unset so this is a deterministic
-            // noncompliant precondition even when the parent contributes no inherited ACEs.
+            // Deliberately include Everyone and leave SE_DACL_PROTECTED unset. Even if the
+            // stored descriptor reports protection, the additional Everyone ACE keeps this
+            // a deterministic broad-DACL precondition.
             if unsafe { initialize_security_descriptor(&mut descriptor, 1) } == 0
                 || unsafe { set_security_descriptor_owner(&mut descriptor, current_user, 0) } == 0
                 || unsafe { set_security_descriptor_dacl(&mut descriptor, 1, acl, 0) } == 0
@@ -1533,19 +1534,25 @@ mod tests {
 
     #[cfg(windows)]
     #[test]
-    fn windows_secure_replacement_overwrites_a_preexisting_inherited_acl_file() {
+    fn windows_secure_replacement_overwrites_a_preexisting_broad_acl_file() {
         let directory = test_directory("windows-preexisting-acl-replacement");
         let path = directory.join("providers.json");
-        windows_security::create_noncompliant_inheritable_acl_file(
+        windows_security::create_noncompliant_broad_acl_file(
             &path,
             br#"{"version":1,"providers":{"arxiv":{"enabled":false}}}"#,
         )
         .unwrap();
+        // The verifier may reject this fixture at the protection check or at the additional
+        // Everyone ACE. Both outcomes establish the same noncompliant broad-DACL precondition.
         let precondition = windows_security::verify_owner_only_file(&path)
-            .expect_err("the broad unprotected preexisting DACL must be rejected");
-        assert_eq!(
-            precondition.to_string(),
-            "provider config DACL is not protected"
+            .expect_err("the broad preexisting DACL must be rejected");
+        assert!(
+            matches!(
+                precondition.to_string().as_str(),
+                "provider config DACL is not protected"
+                    | "provider config DACL must contain exactly one ACE"
+            ),
+            "unexpected broad-DACL precondition: {precondition}"
         );
 
         save_provider_value_at(&path, "crossref", "email", "person@example.com").unwrap();
