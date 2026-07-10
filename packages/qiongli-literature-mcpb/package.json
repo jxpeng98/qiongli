@@ -15,7 +15,7 @@
     "directory": "packages/qiongli-literature-mcpb"
   },
   "scripts": {
-    "test": "node --test test/*.test.mjs",
+    "test": "node --test",
     "legacy:start": "node server/index.mjs"
   },
   "dependencies": {},

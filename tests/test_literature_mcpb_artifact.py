@@ -81,6 +81,7 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
         self.assertEqual(package["homepage"], EXPECTED_REPOSITORY)
         self.assertEqual(package["repository"]["url"], f"git+{EXPECTED_REPOSITORY}.git")
         self.assertEqual(package["license"], EXPECTED_LICENSE)
+        self.assertEqual(package["scripts"]["test"], "node --test")
         self.assertEqual(package["scripts"]["legacy:start"], "node server/index.mjs")
         self.assertEqual(package.get("dependencies", {}), {})
 
