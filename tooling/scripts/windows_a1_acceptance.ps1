@@ -555,11 +555,23 @@ finally {
     foreach ($name in $environmentNames) {
         try {
             $originalValue = $originalEnvironment[$name]
-            [System.Environment]::SetEnvironmentVariable(
-                $name,
-                $originalValue,
-                [System.EnvironmentVariableTarget]::Process
-            )
+            if ($null -eq $originalValue) {
+                # PowerShell coerces $null to an empty string for .NET string parameters.
+                # NullString preserves the CLR null required to delete an originally absent
+                # process variable on .NET versions where empty values are retained.
+                [System.Environment]::SetEnvironmentVariable(
+                    $name,
+                    [System.Management.Automation.Language.NullString]::Value,
+                    [System.EnvironmentVariableTarget]::Process
+                )
+            }
+            else {
+                [System.Environment]::SetEnvironmentVariable(
+                    $name,
+                    $originalValue,
+                    [System.EnvironmentVariableTarget]::Process
+                )
+            }
             $restoredValue = [System.Environment]::GetEnvironmentVariable(
                 $name,
                 [System.EnvironmentVariableTarget]::Process

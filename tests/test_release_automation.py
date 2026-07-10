@@ -334,6 +334,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn("current_user_full_control_only", acceptance)
         self.assertIn("canary_redacted", acceptance)
         self.assertIn("$null -eq $originalValue", acceptance)
+        self.assertIn("[System.Management.Automation.Language.NullString]::Value", acceptance)
         self.assertNotIn("[object]::Equals($restoredValue", acceptance)
         self.assertIn("temporary_config_removed", acceptance)
 
