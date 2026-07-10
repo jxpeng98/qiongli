@@ -4,13 +4,16 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::config::provider_config::{
-    normalize_key, resolve_provider_config, save_provider_value, summary,
+    normalize_key, normalize_provider, resolve_provider_config, save_provider_value, summary,
+    ConfigError,
 };
-use crate::config::wizard::{start_config_wizard, ConfigWizardOptions};
+use crate::config::wizard::{start_config_wizard, ConfigWizardOptions, WizardError};
 use crate::orchestrator::preview::{build_task_plan, TaskPlanInput};
 use crate::providers::runtime::ProviderRuntime;
 use crate::providers::search::{execute_search, SearchInput, PROVIDER_ORDER};
-use crate::searchplan::{build_search_plan, SearchPlanInput};
+use crate::searchplan::{
+    build_search_plan, normalize_identifier, SearchPlanInput, PLAN_PROVIDER_ORDER,
+};
 use crate::tools::definitions::lite_tool_definitions;
 use crate::zotero::companion::probe_zotero_from_env;
 use crate::zotero::export::export_import_files;
@@ -28,6 +31,27 @@ pub const HANDLED_TOOL_NAMES: [&str; 12] = [
     "qiongli_zotero_export_import_files",
     "qiongli_orchestrator_route",
     "qiongli_task_plan",
+];
+
+const MAX_CONTEXT_LENGTH: usize = 4096;
+const MAX_QUERY_LENGTH: usize = 4096;
+const MAX_PLATFORM_LENGTH: usize = 64;
+const MAX_NATIVE_TOOLS: usize = 8;
+const MAX_QUERY_VARIANTS: usize = 16;
+const MAX_DOCUMENT_TYPES: usize = 32;
+const MAX_FILTER_VALUE_LENGTH: usize = 256;
+const MIN_SEARCH_YEAR: u16 = 1000;
+const MAX_SEARCH_YEAR: u16 = 9999;
+const REDACTED_CONFIG_ERROR: &str = "provider configuration is unavailable";
+const REDACTED_CONFIG_SAVE_ERROR: &str = "provider configuration could not be saved";
+const REDACTED_CONFIG_WIZARD_ERROR: &str = "provider configuration wizard could not start";
+const REDACTED_PROVIDER_RUNTIME_ERROR: &str = "provider runtime is unavailable";
+const STATUS_PROVIDER_ORDER: [&str; 5] = [
+    "openalex",
+    "semantic_scholar",
+    "crossref",
+    "pubmed",
+    "arxiv",
 ];
 
 pub fn has_tool_handler(name: &str) -> bool {
@@ -134,15 +158,21 @@ impl McpServer {
         }
 
         match name {
-            "qiongli_config_status" => match summary() {
-                Ok(status) => self.tool_result(id, json!(status)),
-                Err(error) => self.tool_error(id, error.to_string()),
-            },
+            "qiongli_config_status" => {
+                if arguments.get("cwd").is_some_and(|value| !value.is_string()) {
+                    self.error(id, -32602, "cwd must be a string")
+                } else {
+                    match summary() {
+                        Ok(status) => self.tool_result(id, json!(status)),
+                        Err(_) => self.tool_error(id, REDACTED_CONFIG_ERROR.to_string()),
+                    }
+                }
+            }
             "qiongli_save_provider_config" => self.save_provider_config(id, &arguments),
             "qiongli_configure_provider" | "qiongli_open_config_wizard" => {
                 self.configure_provider(id, &arguments)
             }
-            "qiongli_literature_status" => self.literature_status(id),
+            "qiongli_literature_status" => self.literature_status(id, &arguments),
             "qiongli_search_plan" => self.search_plan(id, &arguments),
             "qiongli_literature_search" => self.literature_search(id, &arguments),
             "qiongli_literature_export_evidence" => self.export_evidence(id, &arguments),
@@ -202,7 +232,10 @@ impl McpServer {
                 *active_session = Some(wizard);
                 self.tool_result(id, payload)
             }
-            Err(error) => self.tool_error(id, error.to_string()),
+            Err(error @ (WizardError::NonLoopbackHost | WizardError::UnsupportedProvider(_))) => {
+                self.error(id, -32602, error.to_string())
+            }
+            Err(_) => self.tool_error(id, REDACTED_CONFIG_WIZARD_ERROR.to_string()),
         }
     }
 
@@ -220,74 +253,72 @@ impl McpServer {
             return self.error(id, -32602, "value must not be empty");
         }
 
-        let normalized_provider = normalize_key(provider);
+        let normalized_provider = normalize_provider(provider);
         let normalized_field = normalize_key(field);
-        match save_provider_value(provider, field, value) {
-            Ok(path) => self.tool_result(
-                id,
-                json!({
+        match save_provider_value(provider, field, value.trim()) {
+            Ok(path) => {
+                let mut payload = json!({
                     "status": "saved",
                     "provider": normalized_provider,
                     "field": normalized_field,
                     "saved": true,
-                    "config_path": path,
-                    "warning": "Prefer qiongli_configure_provider for interactive API key setup."
-                }),
-            ),
-            Err(error) => self.tool_error(id, error.to_string()),
+                    "config_path": path
+                });
+                if normalized_field == "api_key" {
+                    payload["warning"] = json!(
+                        "api_key was saved from chat input. Prefer qiongli_configure_provider \
+                         so provider secrets do not enter chat history."
+                    );
+                }
+                self.tool_result(id, payload)
+            }
+            Err(error @ ConfigError::UnsupportedField(_, _)) => {
+                self.error(id, -32602, error.to_string())
+            }
+            Err(_) => self.tool_error(id, REDACTED_CONFIG_SAVE_ERROR.to_string()),
         }
     }
 
-    fn literature_status(&self, id: Option<Value>) -> Value {
+    fn literature_status(&self, id: Option<Value>, arguments: &Value) -> Value {
+        if let Err(message) = validate_optional_context(arguments) {
+            return self.error(id, -32602, message);
+        }
         match summary() {
-            Ok(status) => self.tool_result(
-                id,
-                json!({
-                    "status": status.status,
-                    "capability_mode": status.capability_mode,
-                    "providers": status.providers,
-                    "missing": status.missing,
-                    "provider_capabilities": {
-                        "openalex": ["search"],
-                        "semantic_scholar": ["search"],
-                        "crossref": ["search"],
-                        "pubmed": ["search"],
-                        "arxiv": ["search"]
-                    }
-                }),
-            ),
-            Err(error) => self.tool_error(id, error.to_string()),
+            Ok(status) => {
+                let active_providers = active_providers_from_summary(&status);
+                let mut payload = json!({
+                    "status": &status.status,
+                    "capability_mode": if active_providers.is_empty() {
+                        "strategy_only"
+                    } else {
+                        "provider_connected"
+                    },
+                    "providers": &status.providers,
+                    "active_providers": active_providers,
+                    "missing": &status.missing,
+                    "provider_capabilities": lite_provider_capabilities(),
+                    "redacted_config": &status.redacted_config
+                });
+                if let Some(next_action) = status.next_action.as_ref() {
+                    payload["next_action"] = json!(next_action);
+                }
+                self.tool_result(id, payload)
+            }
+            Err(_) => self.tool_error(id, REDACTED_CONFIG_ERROR.to_string()),
         }
     }
 
     fn search_plan(&self, id: Option<Value>, arguments: &Value) -> Value {
-        let Some(query) = arguments.get("query").and_then(Value::as_str) else {
-            return self.error(id, -32602, "Missing query");
-        };
-        if query.trim().is_empty() {
-            return self.error(id, -32602, "query must not be empty");
-        }
-        let search_mode = match parse_search_mode(arguments) {
-            Ok(value) => value,
+        let mut input = match parse_search_plan_input(arguments, Vec::new()) {
+            Ok(input) => input,
             Err(message) => return self.error(id, -32602, message),
         };
-        let native_value = arguments
-            .get("native_search_available")
-            .or_else(|| arguments.get("native_search_usable"));
-        let native_search_available = match native_value {
-            Some(value) => match value.as_bool() {
-                Some(value) => value,
-                None => return self.error(id, -32602, "native_search_available must be a boolean"),
-            },
-            None => false,
+        let active_providers = match self.active_provider_names() {
+            Ok(providers) => providers,
+            Err(_) => return self.tool_error(id, REDACTED_CONFIG_ERROR.to_string()),
         };
-        let provider_connected = self.provider_connected();
-        let plan = build_search_plan(SearchPlanInput {
-            query: query.trim().to_string(),
-            search_mode,
-            provider_connected,
-            native_search_available,
-        });
+        input.active_providers = active_providers;
+        let plan = build_search_plan(input);
         self.tool_result(id, json!(plan))
     }
 
@@ -331,12 +362,25 @@ impl McpServer {
         };
         let plan = build_search_plan(SearchPlanInput {
             query: input.query.clone(),
-            search_mode: input.search_mode.clone(),
-            provider_connected: PROVIDER_ORDER
+            search_mode: input
+                .search_mode
+                .clone()
+                .unwrap_or_else(|| "topic".to_string()),
+            platform: "unknown".to_string(),
+            native_search_available: false,
+            native_search_tools: Vec::new(),
+            query_variants: Vec::new(),
+            include_working_papers: None,
+            from_year: None,
+            to_year: None,
+            venue_filter: None,
+            document_types: Vec::new(),
+            active_providers: PROVIDER_ORDER
                 .iter()
                 .filter(|provider| selected_providers_include(provider, providers.as_deref()))
-                .any(|provider| runtime.config().is_active(provider)),
-            native_search_available: false,
+                .filter(|provider| runtime.config().is_active(provider))
+                .map(|provider| (*provider).to_string())
+                .collect(),
         });
         let output = execute_search(&runtime, &input, providers.as_deref());
         self.tool_result(
@@ -350,23 +394,23 @@ impl McpServer {
         )
     }
 
-    fn provider_connected(&self) -> bool {
+    fn active_provider_names(&self) -> Result<Vec<String>, ConfigError> {
         if let Some(runtime) = &self.provider_runtime {
-            return PROVIDER_ORDER
+            return Ok(PLAN_PROVIDER_ORDER
                 .iter()
-                .any(|provider| runtime.config().is_active(provider));
+                .filter(|provider| runtime.config().is_active(provider))
+                .map(|provider| (*provider).to_string())
+                .collect());
         }
-        summary()
-            .map(|status| status.capability_mode == "provider_connected")
-            .unwrap_or(false)
+        summary().map(|status| active_providers_from_summary(&status))
     }
 
     fn search_runtime(&self) -> Result<ProviderRuntime, String> {
         if let Some(runtime) = &self.provider_runtime {
             return Ok(runtime.clone());
         }
-        let config = resolve_provider_config().map_err(|error| error.to_string())?;
-        ProviderRuntime::production(config).map_err(|error| error.to_string())
+        let config = resolve_provider_config().map_err(|_| REDACTED_CONFIG_ERROR.to_string())?;
+        ProviderRuntime::production(config).map_err(|_| REDACTED_PROVIDER_RUNTIME_ERROR.to_string())
     }
 
     fn orchestrator_route(&self, id: Option<Value>, arguments: &Value) -> Value {
@@ -623,18 +667,36 @@ fn first_unknown_key<'a>(arguments: &'a Value, allowed: &[&str]) -> Option<&'a s
 
 fn allowed_arguments(name: &str) -> Option<&'static [&'static str]> {
     match name {
-        "qiongli_config_status" | "qiongli_literature_status" | "qiongli_zotero_status" => {
-            Some(&[])
-        }
+        "qiongli_config_status" => Some(&["cwd"]),
+        "qiongli_literature_status" => Some(&["cwd"]),
+        "qiongli_zotero_status" => Some(&[]),
         "qiongli_save_provider_config" => Some(&["provider", "field", "value"]),
         "qiongli_configure_provider" | "qiongli_open_config_wizard" => {
             Some(&["provider", "host", "port"])
         }
         "qiongli_search_plan" => Some(&[
+            "cwd",
             "query",
+            "platform",
             "search_mode",
+            "searchMode",
             "native_search_available",
             "native_search_usable",
+            "nativeSearchAvailable",
+            "native_search_tools",
+            "nativeSearchTools",
+            "query_variants",
+            "queryVariants",
+            "include_working_papers",
+            "includeWorkingPapers",
+            "from_year",
+            "fromYear",
+            "to_year",
+            "toYear",
+            "venue_filter",
+            "venueFilter",
+            "document_types",
+            "documentTypes",
         ]),
         "qiongli_literature_search" => Some(&[
             "query",
@@ -660,6 +722,362 @@ fn allowed_arguments(name: &str) -> Option<&'static [&'static str]> {
         "qiongli_task_plan" => Some(&["task_id", "paper_type", "topic"]),
         _ => None,
     }
+}
+
+fn validate_optional_context(arguments: &Value) -> Result<(), String> {
+    let Some(value) = arguments.get("cwd") else {
+        return Ok(());
+    };
+    let cwd = value
+        .as_str()
+        .ok_or_else(|| "cwd must be a string".to_string())?;
+    if cwd.trim().is_empty() {
+        return Err("cwd must not be empty".to_string());
+    }
+    if cwd.chars().count() > MAX_CONTEXT_LENGTH {
+        return Err(format!(
+            "cwd must be at most {MAX_CONTEXT_LENGTH} characters"
+        ));
+    }
+    Ok(())
+}
+
+fn parse_search_plan_input(
+    arguments: &Value,
+    active_providers: Vec<String>,
+) -> Result<SearchPlanInput, String> {
+    validate_optional_context(arguments)?;
+    let query = required_bounded_string(arguments, "query", MAX_QUERY_LENGTH)?;
+    let platform = optional_alias_string(
+        arguments,
+        &["platform"],
+        "platform",
+        MAX_PLATFORM_LENGTH,
+        false,
+    )?;
+    let platform = match platform {
+        Some(value) if !valid_platform_identifier(&value) => {
+            return Err("platform must be an ASCII identifier".to_string())
+        }
+        Some(value) => normalize_identifier(&value),
+        None => "unknown".to_string(),
+    };
+    let native_search_available = optional_alias_bool(
+        arguments,
+        &[
+            "native_search_available",
+            "native_search_usable",
+            "nativeSearchAvailable",
+        ],
+        "native_search_available",
+    )?
+    .unwrap_or(false);
+    let native_search_tools = optional_alias_string_list(
+        arguments,
+        &["native_search_tools", "nativeSearchTools"],
+        "native_search_tools",
+        MAX_NATIVE_TOOLS,
+        MAX_FILTER_VALUE_LENGTH,
+        true,
+    )?
+    .unwrap_or_default();
+    let query_variants = optional_alias_string_list(
+        arguments,
+        &["query_variants", "queryVariants"],
+        "query_variants",
+        MAX_QUERY_VARIANTS,
+        MAX_QUERY_LENGTH,
+        false,
+    )?
+    .unwrap_or_default();
+    let include_working_papers = optional_alias_bool(
+        arguments,
+        &["include_working_papers", "includeWorkingPapers"],
+        "include_working_papers",
+    )?;
+    let from_year = optional_alias_year(arguments, &["from_year", "fromYear"], "from_year")?;
+    let to_year = optional_alias_year(arguments, &["to_year", "toYear"], "to_year")?;
+    if from_year.zip(to_year).is_some_and(|(from, to)| from > to) {
+        return Err("from_year must be less than or equal to to_year".to_string());
+    }
+    let search_mode =
+        optional_alias_search_mode(arguments, &["search_mode", "searchMode"], "search_mode")?
+            .unwrap_or_else(|| "topic".to_string());
+    let venue_filter = optional_alias_string(
+        arguments,
+        &["venue_filter", "venueFilter"],
+        "venue_filter",
+        MAX_FILTER_VALUE_LENGTH,
+        true,
+    )?
+    .filter(|value| !value.is_empty());
+    let document_types = optional_alias_string_list(
+        arguments,
+        &["document_types", "documentTypes"],
+        "document_types",
+        MAX_DOCUMENT_TYPES,
+        MAX_FILTER_VALUE_LENGTH,
+        false,
+    )?
+    .unwrap_or_default();
+
+    Ok(SearchPlanInput {
+        query,
+        search_mode,
+        platform,
+        native_search_available,
+        native_search_tools,
+        query_variants,
+        include_working_papers,
+        from_year,
+        to_year,
+        venue_filter,
+        document_types,
+        active_providers,
+    })
+}
+
+fn required_bounded_string(
+    arguments: &Value,
+    name: &str,
+    maximum: usize,
+) -> Result<String, String> {
+    let value = arguments
+        .get(name)
+        .ok_or_else(|| format!("Missing {name}"))?
+        .as_str()
+        .ok_or_else(|| format!("{name} must be a string"))?;
+    let normalized = value.trim();
+    if normalized.is_empty() {
+        return Err(format!("{name} must not be empty"));
+    }
+    if value.chars().count() > maximum {
+        return Err(format!("{name} must be at most {maximum} characters"));
+    }
+    Ok(normalized.to_string())
+}
+
+fn one_alias_value<'a>(
+    arguments: &'a Value,
+    names: &[&str],
+    canonical_name: &str,
+) -> Result<Option<&'a Value>, String> {
+    let mut found = None;
+    for name in names {
+        if let Some(value) = arguments.get(name) {
+            if found.is_some() {
+                return Err(format!("conflicting aliases for {canonical_name}"));
+            }
+            found = Some(value);
+        }
+    }
+    Ok(found)
+}
+
+fn optional_alias_bool(
+    arguments: &Value,
+    names: &[&str],
+    canonical_name: &str,
+) -> Result<Option<bool>, String> {
+    one_alias_value(arguments, names, canonical_name)?
+        .map(|value| {
+            value
+                .as_bool()
+                .ok_or_else(|| format!("{canonical_name} must be a boolean"))
+        })
+        .transpose()
+}
+
+fn optional_alias_string(
+    arguments: &Value,
+    names: &[&str],
+    canonical_name: &str,
+    maximum: usize,
+    allow_empty: bool,
+) -> Result<Option<String>, String> {
+    one_alias_value(arguments, names, canonical_name)?
+        .map(|value| {
+            let value = value
+                .as_str()
+                .ok_or_else(|| format!("{canonical_name} must be a string"))?;
+            if value.chars().count() > maximum {
+                return Err(format!(
+                    "{canonical_name} must be at most {maximum} characters"
+                ));
+            }
+            let normalized = value.trim();
+            if !allow_empty && normalized.is_empty() {
+                return Err(format!("{canonical_name} must not be empty"));
+            }
+            Ok(normalized.to_string())
+        })
+        .transpose()
+}
+
+fn valid_platform_identifier(value: &str) -> bool {
+    value
+        .chars()
+        .next()
+        .is_some_and(|character| character.is_ascii_alphanumeric())
+        && value.chars().all(|character| {
+            character.is_ascii_alphanumeric() || matches!(character, ' ' | '_' | '-')
+        })
+}
+
+fn optional_alias_string_list(
+    arguments: &Value,
+    names: &[&str],
+    canonical_name: &str,
+    maximum_items: usize,
+    maximum_item_length: usize,
+    normalize_tools: bool,
+) -> Result<Option<Vec<String>>, String> {
+    let Some(value) = one_alias_value(arguments, names, canonical_name)? else {
+        return Ok(None);
+    };
+    let values = value
+        .as_array()
+        .ok_or_else(|| format!("{canonical_name} must be an array"))?;
+    if values.len() > maximum_items {
+        return Err(format!(
+            "{canonical_name} must contain at most {maximum_items} items"
+        ));
+    }
+    let mut normalized = Vec::with_capacity(values.len());
+    let mut raw_values = Vec::with_capacity(values.len());
+    for value in values {
+        let raw_value = value
+            .as_str()
+            .ok_or_else(|| format!("{canonical_name} must contain strings"))?;
+        if raw_value.chars().count() > maximum_item_length {
+            return Err(format!(
+                "{canonical_name} items must be at most {maximum_item_length} characters"
+            ));
+        }
+        if raw_values.contains(&raw_value) {
+            return Err(format!("{canonical_name} must contain unique values"));
+        }
+        raw_values.push(raw_value);
+        let value = raw_value.trim();
+        if value.is_empty() {
+            return Err(format!("{canonical_name} must not contain empty values"));
+        }
+        let value = if normalize_tools {
+            normalize_identifier(value)
+        } else {
+            value.to_string()
+        };
+        if value.is_empty() {
+            return Err(format!("{canonical_name} must contain valid identifiers"));
+        }
+        let duplicate_key = value.to_lowercase();
+        if normalized
+            .iter()
+            .any(|candidate: &String| candidate.to_lowercase() == duplicate_key)
+        {
+            return Err(format!("{canonical_name} must contain unique values"));
+        }
+        normalized.push(value);
+    }
+    Ok(Some(normalized))
+}
+
+fn optional_alias_year(
+    arguments: &Value,
+    names: &[&str],
+    canonical_name: &str,
+) -> Result<Option<u16>, String> {
+    let Some(value) = one_alias_value(arguments, names, canonical_name)? else {
+        return Ok(None);
+    };
+    let parsed = if let Some(value) = value.as_u64() {
+        u16::try_from(value).ok()
+    } else if let Some(value) = value.as_str() {
+        (value.len() == 4 && value.bytes().all(|byte| byte.is_ascii_digit()))
+            .then(|| value.parse::<u16>().ok())
+            .flatten()
+    } else {
+        None
+    }
+    .ok_or_else(|| format!("{canonical_name} must be a four-digit year"))?;
+    if !(MIN_SEARCH_YEAR..=MAX_SEARCH_YEAR).contains(&parsed) {
+        return Err(format!(
+            "{canonical_name} must be between {MIN_SEARCH_YEAR} and {MAX_SEARCH_YEAR}"
+        ));
+    }
+    Ok(Some(parsed))
+}
+
+fn optional_alias_search_mode(
+    arguments: &Value,
+    names: &[&str],
+    canonical_name: &str,
+) -> Result<Option<String>, String> {
+    let Some(value) = one_alias_value(arguments, names, canonical_name)? else {
+        return Ok(None);
+    };
+    let value = value
+        .as_str()
+        .ok_or_else(|| format!("{canonical_name} must be a string"))?;
+    if ![
+        "auto",
+        "topic",
+        "title",
+        "doi",
+        "review",
+        "systematic_review",
+    ]
+    .contains(&value)
+    {
+        return Err("unsupported search_mode".to_string());
+    }
+    Ok(Some(value.to_string()))
+}
+
+fn active_providers_from_summary(
+    status: &crate::config::provider_config::ProviderSummary,
+) -> Vec<String> {
+    STATUS_PROVIDER_ORDER
+        .iter()
+        .filter(|provider| {
+            status
+                .redacted_config
+                .providers
+                .get(**provider)
+                .is_some_and(|entry| entry.enabled && entry.configured)
+        })
+        .map(|provider| (*provider).to_string())
+        .collect()
+}
+
+fn lite_provider_capabilities() -> Value {
+    json!({
+        "openalex": {
+            "status": "implemented",
+            "max_per_provider_limit": 200,
+            "capabilities": ["topic_search", "venue_metadata"]
+        },
+        "semantic_scholar": {
+            "status": "implemented",
+            "max_per_provider_limit": 200,
+            "capabilities": ["topic_search", "venue_metadata"]
+        },
+        "crossref": {
+            "status": "implemented",
+            "max_per_provider_limit": 200,
+            "capabilities": ["topic_search", "venue_metadata"]
+        },
+        "pubmed": {
+            "status": "implemented",
+            "max_per_provider_limit": 200,
+            "capabilities": ["topic_search", "biomedical_topic_search"]
+        },
+        "arxiv": {
+            "status": "implemented",
+            "max_per_provider_limit": 200,
+            "capabilities": ["topic_search", "preprint_search"]
+        }
+    })
 }
 
 fn parse_limit(arguments: &Value, name: &str, maximum: usize) -> Result<Option<usize>, String> {

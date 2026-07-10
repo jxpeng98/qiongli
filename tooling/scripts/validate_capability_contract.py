@@ -14,9 +14,13 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 REGISTRY_RELATIVE = Path("content/mcp-contracts/v2/registry.json")
 LITE_TOOLS_RELATIVE = Path("content/mcp-contracts/lite-tools.json")
 SMOKE_CALLS_RELATIVE = Path("content/mcp-contracts/fixtures/lite-tool-smoke-calls.json")
+MCPB_MANIFEST_RELATIVE = Path("packages/qiongli-literature-mcpb/manifest.json")
 FULL_SOURCE_RELATIVE = Path("packages/python-qiongli/src/qiongli")
 EXPECTED_PROFILES = ("skill-only", "marketplace-lite", "full")
 FORBIDDEN_LITE_SIDE_EFFECTS = {"project-write", "process-launch", "agent-launch"}
+COMPATIBILITY_ALIAS_PATTERN = re.compile(
+    r"^Compatibility alias for (?P<canonical>[A-Za-z0-9_]+)\.$"
+)
 
 
 def _load_json(path: Path) -> Any:
@@ -76,6 +80,16 @@ def validate_instance(
         return validate_instance(value, target, path=path, root_schema=root)
 
     failures: list[str] = []
+    one_of = schema.get("oneOf")
+    if isinstance(one_of, list):
+        matches = [
+            option
+            for option in one_of
+            if isinstance(option, Mapping)
+            and not validate_instance(value, option, path=path, root_schema=root)
+        ]
+        if len(matches) != 1:
+            failures.append(f"{path}: expected exactly one oneOf branch to match")
     if "const" in schema and value != schema["const"]:
         failures.append(f"{path}: expected constant {schema['const']!r}")
     if "enum" in schema and value not in schema["enum"]:
@@ -122,6 +136,9 @@ def validate_instance(
         minimum_items = schema.get("minItems")
         if isinstance(minimum_items, int) and len(value) < minimum_items:
             failures.append(f"{path}: expected at least {minimum_items} items")
+        maximum_items = schema.get("maxItems")
+        if isinstance(maximum_items, int) and len(value) > maximum_items:
+            failures.append(f"{path}: expected at most {maximum_items} items")
         if schema.get("uniqueItems") is True:
             serialized = [json.dumps(item, sort_keys=True) for item in value]
             if len(serialized) != len(set(serialized)):
@@ -142,8 +159,11 @@ def validate_instance(
         minimum_length = schema.get("minLength")
         if isinstance(minimum_length, int) and len(value) < minimum_length:
             failures.append(f"{path}: string is shorter than {minimum_length}")
+        maximum_length = schema.get("maxLength")
+        if isinstance(maximum_length, int) and len(value) > maximum_length:
+            failures.append(f"{path}: string is longer than {maximum_length}")
         pattern = schema.get("pattern")
-        if isinstance(pattern, str) and re.fullmatch(pattern, value) is None:
+        if isinstance(pattern, str) and re.search(pattern, value) is None:
             failures.append(f"{path}: value does not match pattern {pattern!r}")
 
     if isinstance(value, (int, float)) and not isinstance(value, bool):
@@ -196,10 +216,67 @@ def runtime_schema_projection(schema: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _derive_runtime_coverage(
+    full_tools: Mapping[str, Mapping[str, Any]],
+    lite_tools: Mapping[str, Mapping[str, Any]],
+) -> tuple[int, int, list[str]]:
+    """Derive canonical/public totals from the union of shipped runtime names."""
+    public_names = set(full_tools) | set(lite_tools)
+    alias_targets: dict[str, dict[str, str | None]] = {}
+    failures: list[str] = []
+
+    for profile_name, runtime_tools in (
+        ("full", full_tools),
+        ("marketplace-lite", lite_tools),
+    ):
+        for name, definition in runtime_tools.items():
+            description = definition.get("description") if isinstance(definition, Mapping) else None
+            match = (
+                COMPATIBILITY_ALIAS_PATTERN.fullmatch(description)
+                if isinstance(description, str)
+                else None
+            )
+            alias_targets.setdefault(name, {})[profile_name] = (
+                match.group("canonical") if match is not None else None
+            )
+
+    aliases: set[str] = set()
+    for name, declarations in alias_targets.items():
+        declared_targets = {target for target in declarations.values() if target is not None}
+        if not declared_targets:
+            continue
+        aliases.add(name)
+        if len(declared_targets) != 1:
+            failures.append(
+                f"{name}: runtime compatibility alias targets disagree across Full and Lite"
+            )
+            continue
+        canonical = next(iter(declared_targets))
+        non_alias_profiles = sorted(
+            profile for profile, target in declarations.items() if target is None
+        )
+        if non_alias_profiles:
+            failures.append(
+                f"{name}: compatibility alias classification disagrees in "
+                f"{', '.join(non_alias_profiles)}"
+            )
+        if canonical == name:
+            failures.append(f"{name}: runtime compatibility alias cannot target itself")
+        elif canonical not in public_names:
+            failures.append(
+                f"{name}: runtime compatibility alias targets missing canonical tool "
+                f"{canonical!r}"
+            )
+
+    return len(public_names - aliases), len(public_names), failures
+
+
 def validate_capability_contract(
     root: Path,
     *,
     full_tool_definitions: Mapping[str, Mapping[str, Any]] | None = None,
+    lite_tool_definitions: Mapping[str, Mapping[str, Any]] | None = None,
+    mcpb_tool_definitions: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> list[str]:
     root = root.resolve()
     registry_path = root / REGISTRY_RELATIVE
@@ -229,6 +306,8 @@ def validate_capability_contract(
     side_effect_classes = set(side_effect_classes) if isinstance(side_effect_classes, list) else set()
 
     referenced_schemas: dict[str, Mapping[str, Any]] = {}
+    schema_ids: dict[str, str] = {}
+    canonical_inputs: dict[str, Mapping[str, Any]] = {}
     for tool in tools:
         if not isinstance(tool, dict):
             continue
@@ -254,8 +333,29 @@ def validate_capability_contract(
                 failures.append(f"{name}: unknown side-effect class {effect_name!r}")
             if isinstance(effect_name, str):
                 effect_names.add(effect_name)
+            if effect.get("mode") in {"conditional", "deferred"} and not effect.get("trigger"):
+                failures.append(
+                    f"{name}: {effect.get('mode')} side effect {effect_name!r} requires a trigger"
+                )
+        lifecycle = tool.get("lifecycle", {})
+        if isinstance(lifecycle, Mapping):
+            if lifecycle.get("remove_after") is not None and lifecycle.get("deprecated_in") is None:
+                failures.append(f"{name}: remove_after requires deprecated_in")
+        aliases = tool.get("aliases", [])
+        if isinstance(aliases, list):
+            for alias in aliases:
+                if not isinstance(alias, Mapping):
+                    continue
+                if alias.get("remove_after") is not None and alias.get("deprecated_in") is None:
+                    failures.append(f"{name}: alias remove_after requires deprecated_in")
         profiles = tool.get("profiles", {})
         profiles = profiles if isinstance(profiles, Mapping) else {}
+        security = tool.get("security", {})
+        security = security if isinstance(security, Mapping) else {}
+        sensitive_output_paths = security.get("sensitive_output_paths", [])
+        sensitive_output_paths = (
+            set(sensitive_output_paths) if isinstance(sensitive_output_paths, list) else set()
+        )
         if set(profiles) != set(EXPECTED_PROFILES):
             failures.append(f"{name}: profiles must explicitly declare {EXPECTED_PROFILES!r}")
         lite_profile = profiles.get("marketplace-lite", {})
@@ -286,6 +386,62 @@ def validate_capability_contract(
                     failures.append(f"{name}.{profile_name}: {field} must resolve to an object")
                     continue
                 referenced_schemas[reference] = schema_document
+                schema_id = schema_document.get("$id")
+                schema_kind = "input" if field == "input_schema_ref" else "output"
+                expected_schema_id = (
+                    f"https://qiongli.dev/schemas/tools/{name}.{schema_kind}.v2.json"
+                )
+                if schema_id != expected_schema_id:
+                    failures.append(
+                        f"{name}.{profile_name}: {field} must declare $id "
+                        f"{expected_schema_id!r}"
+                    )
+                elif isinstance(schema_id, str):
+                    prior_reference = schema_ids.get(schema_id)
+                    if prior_reference is not None and prior_reference != reference:
+                        failures.append(
+                            f"{name}: schema $id {schema_id!r} is reused by "
+                            f"{prior_reference!r} and {reference!r}"
+                        )
+                    schema_ids[schema_id] = reference
+                if field == "input_schema_ref":
+                    canonical_inputs[name] = schema_document
+                    if schema_document.get("additionalProperties") is not False:
+                        failures.append(
+                            f"{name}: migrated input schema must reject additional properties"
+                        )
+                if field == "output_schema_ref":
+                    output_properties = schema_document.get("properties", {})
+                    output_properties = (
+                        output_properties if isinstance(output_properties, Mapping) else {}
+                    )
+                    for pointer in sensitive_output_paths:
+                        if not isinstance(pointer, str) or not pointer.startswith("/"):
+                            failures.append(
+                                f"{name}: sensitive output path {pointer!r} is not a JSON pointer"
+                            )
+                            continue
+                        top_level = pointer[1:].split("/", 1)[0].replace("~1", "/").replace(
+                            "~0", "~"
+                        )
+                        if top_level not in output_properties:
+                            failures.append(
+                                f"{name}: sensitive output path {pointer!r} does not resolve "
+                                "to a declared top-level output property"
+                            )
+                    if (
+                        "config_path" in output_properties
+                        and "/config_path" not in sensitive_output_paths
+                    ):
+                        failures.append(
+                            f"{name}: config_path output must be declared as sensitive"
+                        )
+                    if (
+                        "loopback-listener" in effect_names
+                        and "url" in output_properties
+                        and "/url" not in sensitive_output_paths
+                    ):
+                        failures.append(f"{name}: loopback URL output must be declared as sensitive")
         ids = tool.get("smoke_call_ids", [])
         if isinstance(ids, list):
             smoke_ids.extend(item for item in ids if isinstance(item, str))
@@ -311,13 +467,29 @@ def validate_capability_contract(
 
     try:
         lite_contract = _load_json(root / LITE_TOOLS_RELATIVE)
-        lite_tools = {
-            str(item["name"]): item
-            for item in lite_contract.get("tools", [])
-            if isinstance(item, dict) and isinstance(item.get("name"), str)
-        }
-        full_tools = dict(full_tool_definitions or _load_full_tool_definitions(root))
+        if lite_tool_definitions is None:
+            lite_tools = {
+                str(item["name"]): item
+                for item in lite_contract.get("tools", [])
+                if isinstance(item, dict) and isinstance(item.get("name"), str)
+            }
+        else:
+            lite_tools = dict(lite_tool_definitions)
+        full_tools = (
+            _load_full_tool_definitions(root)
+            if full_tool_definitions is None
+            else dict(full_tool_definitions)
+        )
         smoke_fixture = _load_json(root / SMOKE_CALLS_RELATIVE)
+        if mcpb_tool_definitions is None:
+            mcpb_manifest = _load_json(root / MCPB_MANIFEST_RELATIVE)
+            mcpb_tools = {
+                str(item["name"]): item
+                for item in mcpb_manifest.get("tools", [])
+                if isinstance(item, dict) and isinstance(item.get("name"), str)
+            }
+        else:
+            mcpb_tools = dict(mcpb_tool_definitions)
         smoke_by_id = {
             str(item["id"]): item
             for item in smoke_fixture.get("calls", [])
@@ -327,11 +499,32 @@ def validate_capability_contract(
         failures.append(str(exc))
         return failures
 
+    target_canonical_count, target_public_count, coverage_failures = (
+        _derive_runtime_coverage(full_tools, lite_tools)
+    )
+    failures.extend(coverage_failures)
+    if isinstance(coverage, Mapping):
+        if coverage.get("target_canonical_tool_count") != target_canonical_count:
+            failures.append(
+                "coverage.target_canonical_tool_count does not match the derived "
+                f"Full/Lite runtime total ({target_canonical_count})"
+            )
+        if coverage.get("target_public_name_count") != target_public_count:
+            failures.append(
+                "coverage.target_public_name_count does not match the derived "
+                f"Full/Lite runtime total ({target_public_count})"
+            )
+
     for tool in tools:
         if not isinstance(tool, dict) or not isinstance(tool.get("name"), str):
             continue
         name = tool["name"]
         profiles = tool.get("profiles", {})
+        aliases = [
+            alias["name"]
+            for alias in tool.get("aliases", [])
+            if isinstance(alias, Mapping) and isinstance(alias.get("name"), str)
+        ]
         for profile_name, runtime_tools in (
             ("marketplace-lite", lite_tools),
             ("full", full_tools),
@@ -351,9 +544,67 @@ def validate_capability_contract(
                 "inputSchema"
             ) != runtime_schema_projection(canonical_input):
                 failures.append(f"{name}: {profile_name} input schema drifts from v2 registry")
+            for alias_name in aliases:
+                alias_definition = runtime_tools.get(alias_name)
+                if not isinstance(alias_definition, Mapping):
+                    failures.append(
+                        f"{name}: alias {alias_name} is missing from {profile_name} runtime definitions"
+                    )
+                    continue
+                expected_description = f"Compatibility alias for {name}."
+                if alias_definition.get("description") != expected_description:
+                    failures.append(
+                        f"{alias_name}: {profile_name} alias description drifts from v2 registry"
+                    )
+                if canonical_input is not None and alias_definition.get(
+                    "inputSchema"
+                ) != runtime_schema_projection(canonical_input):
+                    failures.append(
+                        f"{alias_name}: {profile_name} alias input schema drifts from {name}"
+                    )
         for smoke_id in tool.get("smoke_call_ids", []):
-            if smoke_id not in smoke_by_id:
+            smoke = smoke_by_id.get(smoke_id)
+            if smoke is None:
                 failures.append(f"{name}: missing smoke fixture {smoke_id!r}")
+            elif smoke.get("name") not in {name, *aliases}:
+                failures.append(
+                    f"{name}: smoke fixture {smoke_id!r} targets unrelated tool "
+                    f"{smoke.get('name')!r}"
+                )
+            elif isinstance(canonical_inputs.get(name), Mapping):
+                arguments = smoke.get("arguments")
+                input_failures = validate_instance(arguments, canonical_inputs[name])
+                expects_input_error = smoke.get("expected_response_class") == "input_error"
+                if expects_input_error and not input_failures:
+                    failures.append(
+                        f"{name}: input-error smoke fixture {smoke_id!r} is schema-valid"
+                    )
+                elif not expects_input_error and input_failures:
+                    failures.append(
+                        f"{name}: smoke fixture {smoke_id!r} violates its input schema: "
+                        + "; ".join(input_failures)
+                    )
+        smoke_names = {
+            smoke_by_id[smoke_id].get("name")
+            for smoke_id in tool.get("smoke_call_ids", [])
+            if smoke_id in smoke_by_id
+        }
+        for public_name in (name, *aliases):
+            if public_name not in smoke_names:
+                failures.append(f"{name}: no referenced smoke fixture covers {public_name}")
+            manifest_definition = mcpb_tools.get(public_name)
+            if not isinstance(manifest_definition, Mapping):
+                failures.append(f"{name}: {public_name} is missing from the MCPB manifest")
+                continue
+            expected_description = (
+                tool.get("description")
+                if public_name == name
+                else f"Compatibility alias for {name}."
+            )
+            if manifest_definition.get("description") != expected_description:
+                failures.append(
+                    f"{public_name}: MCPB manifest description drifts from v2 registry"
+                )
 
     return failures
 

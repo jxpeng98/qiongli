@@ -219,15 +219,23 @@ class MCPToolHandlerTests(unittest.TestCase):
         )
         status_index = ordered_names.index("qiongli_literature_status")
         self.assertEqual(ordered_names[status_index + 1], "qiongli_search_plan")
-        search_plan_schema = next(
-            tool["inputSchema"]["properties"]
+        search_plan_input = next(
+            tool["inputSchema"]
             for tool in MCP_TOOL_DEFINITIONS
             if tool["name"] == "qiongli_search_plan"
         )
+        self.assertEqual(search_plan_input["required"], ["query"])
+        self.assertIs(search_plan_input["additionalProperties"], False)
+        search_plan_schema = search_plan_input["properties"]
         for alias in (
+            "native_search_usable",
             "nativeSearchAvailable",
             "nativeSearchTools",
             "includeWorkingPapers",
+            "from_year",
+            "fromYear",
+            "to_year",
+            "toYear",
             "searchMode",
             "venueFilter",
             "documentTypes",
@@ -753,7 +761,15 @@ class MCPToolHandlerTests(unittest.TestCase):
         payload = result["structuredContent"]
         self.assertEqual(payload["providers"]["openalex"], "missing")
         self.assertEqual(payload["providers"]["semantic_scholar"], "missing")
-        self.assertEqual(payload["missing"], ["openalex.api_key", "semantic_scholar.api_key"])
+        self.assertEqual(
+            payload["missing"],
+            [
+                "openalex.api_key",
+                "semantic_scholar.api_key",
+                "crossref.email",
+                "pubmed.api_key",
+            ],
+        )
         self.assertEqual(payload["next_action"]["tool"], "qiongli_configure_provider")
         self.assertEqual(payload["next_action"]["args"], {"provider": "openalex"})
 
@@ -774,6 +790,7 @@ class MCPToolHandlerTests(unittest.TestCase):
         rendered = json.dumps(result, sort_keys=True)
         self.assertEqual(result["structuredContent"]["provider"], "openalex")
         self.assertEqual(result["structuredContent"]["field"], "api_key")
+        self.assertIs(result["structuredContent"]["saved"], True)
         self.assertEqual(status["structuredContent"]["providers"]["openalex"], "configured")
         self.assertNotIn("openalex-secret-key", rendered)
 
@@ -793,6 +810,7 @@ class MCPToolHandlerTests(unittest.TestCase):
         rendered = json.dumps(result, sort_keys=True)
         self.assertEqual(result["structuredContent"]["provider"], "semantic_scholar")
         self.assertEqual(result["structuredContent"]["field"], "api_key")
+        self.assertIs(result["structuredContent"]["saved"], True)
         self.assertIn("Prefer qiongli_configure_provider", result["structuredContent"]["warning"])
         self.assertNotIn("secret-demo-key", rendered)
 
@@ -904,6 +922,7 @@ class MCPToolHandlerTests(unittest.TestCase):
         rendered = json.dumps(result, sort_keys=True)
         self.assertFalse(result["isError"])
         self.assertEqual(payload["artifact_type"], "qiongli_hybrid_search_plan")
+        self.assertEqual(payload["search_mode"], "topic")
         self.assertEqual(payload["search_execution_mode"], "hybrid_search")
         self.assertEqual(payload["provider_capability_mode"], "provider_connected")
         self.assertEqual(payload["native_search_tools"], ["codex_web_search"])
@@ -921,6 +940,7 @@ class MCPToolHandlerTests(unittest.TestCase):
             port = 8765
             token = "abc"
             config_path = "/tmp/qiongli/providers.json"
+            provider = None
 
         with mock.patch.object(
             tool_handlers,
@@ -945,6 +965,7 @@ class MCPToolHandlerTests(unittest.TestCase):
             port = 8765
             token = "abc"
             config_path = "/tmp/qiongli/providers.json"
+            provider = "semantic_scholar"
 
         with mock.patch.object(
             tool_handlers,
@@ -962,6 +983,32 @@ class MCPToolHandlerTests(unittest.TestCase):
         )
         self.assertEqual(result["structuredContent"]["provider"], "semantic_scholar")
         self.assertEqual(result["structuredContent"]["config_path"], "/tmp/qiongli/providers.json")
+
+    def test_configure_provider_reuse_reports_the_active_wizard_provider(self) -> None:
+        class ActiveWizard:
+            url = "http://127.0.0.1:8765/?token=abc"
+            host = "127.0.0.1"
+            port = 8765
+            config_path = "/tmp/qiongli/providers.json"
+            provider = "openalex"
+            completed = mock.Mock()
+
+        ActiveWizard.completed.is_set.return_value = False
+        previous = tool_handlers._ACTIVE_CONFIG_WIZARD
+        tool_handlers._ACTIVE_CONFIG_WIZARD = ActiveWizard()
+        try:
+            result = call_qiongli_tool(
+                "qiongli_configure_provider",
+                {"provider": "pubmed", "host": "localhost", "port": 0},
+            )
+        finally:
+            tool_handlers._ACTIVE_CONFIG_WIZARD = previous
+
+        payload = result["structuredContent"]
+        self.assertFalse(result["isError"])
+        self.assertEqual(payload["status"], "already_running")
+        self.assertEqual(payload["provider"], "openalex")
+        self.assertEqual(payload["url"], ActiveWizard.url)
 
     def test_orchestrator_doctor_tool_returns_structured_result(self) -> None:
         class StubResult:

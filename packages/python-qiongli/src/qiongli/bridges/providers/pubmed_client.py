@@ -17,11 +17,21 @@ DEFAULT_TIMEOUT_SECONDS = 15
 YEAR_RE = re.compile(r"\b(19|20)\d{2}\b")
 
 
-def search(translation: dict[str, object], limit: int) -> dict[str, object]:
+def search(
+    translation: dict[str, object],
+    limit: int,
+    *,
+    api_key: str | None = None,
+) -> dict[str, object]:
     query = str(translation.get("translated_query", "") or "").strip()
     if not query:
         return {"data": []}
 
+    api_key_param = (
+        _api_key_param()
+        if api_key is None
+        else ({"api_key": api_key.strip()} if api_key.strip() else {})
+    )
     try:
         search_payload = _get_json(
             PUBMED_ESEARCH_URL,
@@ -30,7 +40,7 @@ def search(translation: dict[str, object], limit: int) -> dict[str, object]:
                 "retmode": "json",
                 "retmax": max(1, int(limit)),
                 "term": query,
-                **_api_key_param(),
+                **api_key_param,
             },
         )
         ids = _ids_from_search(search_payload)
@@ -42,7 +52,7 @@ def search(translation: dict[str, object], limit: int) -> dict[str, object]:
                 "db": "pubmed",
                 "retmode": "json",
                 "id": ",".join(ids),
-                **_api_key_param(),
+                **api_key_param,
             },
         )
     except Exception as exc:  # noqa: BLE001 - provider client returns structured errors.

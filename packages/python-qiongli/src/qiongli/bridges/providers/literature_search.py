@@ -67,6 +67,13 @@ def run_scholarly_search(
     query_plan = build_structured_query_plan(task_packet)
     query_variants = build_query_variants(task_packet)
     if not query_variants:
+        provider_mode = (
+            "builtin_semantic_scholar_baseline"
+            if provider_fns is None
+            else "provider_translations"
+            if provider_fns
+            else "strategy_only"
+        )
         diagnostics = _build_search_diagnostics(
             attempted_providers=[],
             attempted_query_count=0,
@@ -92,7 +99,7 @@ def run_scholarly_search(
             "summary": "Empty topic/query context, no scholarly search performed.",
             "provenance": [],
             "data": {
-                "provider_mode": "builtin_semantic_scholar_baseline",
+                "provider_mode": provider_mode,
                 "query_plan": query_plan,
                 "provider_summaries": {},
                 "search_diagnostics": diagnostics,
@@ -137,7 +144,7 @@ def run_scholarly_search(
                 provider_summaries=provider_summaries,
             )
     else:
-        provider_mode = "provider_translations"
+        provider_mode = "provider_translations" if provider_fns else "strategy_only"
         provenance = []
         attempted_providers = []
         for provider, provider_fn in provider_fns.items():
@@ -195,6 +202,8 @@ def run_scholarly_search(
         normalized_result_count=len(normalized_results),
         duplicate_count=duplicate_count,
     )
+    if provider_fns is not None and not attempted_providers:
+        diagnostics["status_reason"] = "no_active_providers"
 
     if unique_results:
         status = "warning" if failures else "ok"
@@ -202,6 +211,9 @@ def run_scholarly_search(
             f"Found {len(unique_results)} unique papers across {attempted_query_count} query attempts "
             f"({raw_result_count} raw hits, {duplicate_count} deduplicated)."
         )
+    elif not attempted_providers:
+        status = "warning"
+        summary = "No active literature providers; no network search was performed."
     elif diagnostics["all_providers_failed"]:
         status = "error"
         summary = (

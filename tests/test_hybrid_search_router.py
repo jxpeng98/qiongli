@@ -25,6 +25,7 @@ class HybridSearchRouterTests(unittest.TestCase):
 
         self.assertEqual(plan["artifact_type"], "qiongli_hybrid_search_plan")
         self.assertEqual(plan["query"], "AI feedback in education")
+        self.assertEqual(plan["search_mode"], "systematic_review")
         self.assertEqual(plan["platform"], "codex")
         self.assertEqual(plan["search_execution_mode"], "hybrid_search")
         self.assertEqual(plan["provider_capability_mode"], "provider_connected")
@@ -44,7 +45,10 @@ class HybridSearchRouterTests(unittest.TestCase):
         self.assertEqual(plan["provenance_labels"]["user_corpus"], ["user_corpus"])
         self.assertEqual({query["provider"] for query in plan["provider_queries"]}, {"semantic_scholar", "openalex", "crossref", "pubmed", "arxiv"})
         self.assertEqual(plan["native_search_queries"][0]["tool"], "codex_web_search")
+        self.assertEqual(plan["provider_queries"][0]["filters"]["from_year"], 2020)
         self.assertEqual(plan["provider_queries"][0]["filters"]["fromYear"], 2020)
+        self.assertEqual(plan["provider_queries"][0]["filters"]["to_year"], 2025)
+        self.assertEqual(plan["provider_queries"][0]["filters"]["toYear"], 2025)
         self.assertTrue(plan["provider_queries"][0]["filters"]["include_working_papers"])
         self.assertEqual(
             [step["action"] for step in plan["execution_sequence"]],

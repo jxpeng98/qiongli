@@ -164,9 +164,17 @@ fn selected_unconfigured_provider_is_not_called() {
 
     let output = execute_search(&runtime, &search_input(None), Some(&selected));
 
-    assert_eq!(output.status, "error");
-    assert_eq!(output.diagnostics.status, "failed");
+    assert_eq!(output.status, "warning");
+    assert_eq!(output.diagnostics.status, "not_run");
+    assert_eq!(
+        output.diagnostics.status_reason.as_deref(),
+        Some("no_active_providers")
+    );
     assert!(output.diagnostics.providers.is_empty());
+    assert_eq!(
+        output.diagnostics.warnings,
+        vec!["no active literature providers; no network search was performed"]
+    );
 }
 
 #[test]
@@ -185,7 +193,12 @@ fn mcp_plan_is_strategy_only_when_selected_provider_is_unconfigured() {
     });
     let payload = &response["result"]["structuredContent"];
 
-    assert_eq!(payload["status"], "error");
+    assert_eq!(payload["status"], "warning");
+    assert_eq!(payload["diagnostics"]["status"], "not_run");
+    assert_eq!(
+        payload["diagnostics"]["status_reason"],
+        "no_active_providers"
+    );
     assert_eq!(
         payload["search_plan"]["search_execution_mode"],
         "strategy_only"

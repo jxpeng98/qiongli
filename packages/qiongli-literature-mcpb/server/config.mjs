@@ -1,10 +1,32 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  closeSync,
+  constants as fsConstants,
+  fchmodSync,
+  fstatSync,
+  fsyncSync,
+  lstatSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync
+} from "node:fs";
+import { randomBytes } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 
 const DEFAULT_LIMIT = 25;
 const MIN_LIMIT = 1;
 const MAX_LIMIT = 50;
+const SUPPORTED_CONFIG_VERSION = 1;
+const TEMP_CREATE_ATTEMPTS = 128;
+const CONFIG_HOME_PATH_ERROR =
+  "QIONGLI_CONFIG_HOME must be a fully qualified absolute path or use '~' home notation";
+const USER_HOME_RESOLUTION_ERROR =
+  "platform user home directory must be a fully qualified absolute path";
+const CONFIG_UNAVAILABLE_ERROR = "provider configuration is unavailable";
+const CONFIG_SAVE_ERROR = "provider configuration could not be saved";
 const PROVIDER_FIELDS = {
   openalex: {
     api_key: [
@@ -29,6 +51,13 @@ const PROVIDER_FIELDS = {
     api_key: ["QIONGLI_NCBI_API_KEY", "NCBI_API_KEY", "PUBMED_API_KEY", "QIONGLI_MCPB_PUBMED_API_KEY"]
   },
   arxiv: {}
+};
+const PROVIDER_ACTIVATION_FIELDS = {
+  openalex: ["api_key"],
+  semantic_scholar: ["api_key"],
+  crossref: ["email"],
+  pubmed: ["api_key"],
+  arxiv: []
 };
 const PROVIDER_ACCESS_GUIDANCE = {
   openalex: {
@@ -112,35 +141,77 @@ function readDefaultLimit(env) {
 
 export function readConfig(env = process.env) {
   const shared = readSharedProviderConfig(env);
+  const resolved = resolveProviders(shared, env);
   return {
-    openalexApiKey: firstConfigured([
-      readTrimmed(env, "QIONGLI_MCPB_OPENALEX_API_KEY"),
-      readSharedField(shared, "openalex", "api_key")
-    ]),
-    openalexEmail: firstConfigured([
-      readTrimmed(env, "QIONGLI_MCPB_OPENALEX_EMAIL"),
-      readSharedField(shared, "openalex", "email")
-    ]),
-    semanticScholarApiKey: firstConfigured([
-      readTrimmed(env, "QIONGLI_MCPB_SEMANTIC_SCHOLAR_API_KEY"),
-      readSharedField(shared, "semantic_scholar", "api_key")
-    ]),
-    crossrefEmail: firstConfigured([
-      readTrimmed(env, "QIONGLI_MCPB_CROSSREF_EMAIL"),
-      readSharedField(shared, "crossref", "email")
-    ]),
-    pubmedApiKey: firstConfigured([
-      readTrimmed(env, "QIONGLI_MCPB_PUBMED_API_KEY"),
-      readSharedField(shared, "pubmed", "api_key")
-    ]),
+    openalexApiKey: resolved.openalex.values.api_key ?? "",
+    openalexEmail: resolved.openalex.values.email ?? "",
+    semanticScholarApiKey: resolved.semantic_scholar.values.api_key ?? "",
+    crossrefEmail: resolved.crossref.values.email ?? "",
+    pubmedApiKey: resolved.pubmed.values.api_key ?? "",
+    providerStates: Object.fromEntries(
+      Object.entries(resolved).map(([provider, state]) => [
+        provider,
+        { enabled: state.enabled, configured: state.configured }
+      ])
+    ),
     defaultLimit: readDefaultLimit(env)
   };
 }
 
 export function providerConfigPath(env = process.env) {
   const configured = readTrimmed(env, "QIONGLI_CONFIG_HOME");
-  const root = configured || path.join(os.homedir(), ".config", "qiongli");
+  let root;
+  if (!configured) {
+    root = path.join(platformUserHome(env), ".config", "qiongli");
+  } else if (isFullyQualifiedConfigHomePath(configured)) {
+    root = configured;
+  } else if (configured === "~") {
+    root = platformUserHome(env);
+  } else if (configured.startsWith("~/")) {
+    const suffix = portableTildeSuffix(configured);
+    root = path.join(platformUserHome(env), suffix);
+  } else {
+    throw new Error(CONFIG_HOME_PATH_ERROR);
+  }
   return path.join(root, "providers.json");
+}
+
+export function isFullyQualifiedConfigHomePath(value, pathApi = path) {
+  if (pathApi.sep === "\\") {
+    const { root } = pathApi.parse(String(value ?? ""));
+    return /^[A-Za-z]:[\\/]$/.test(root) || root.startsWith("\\\\");
+  }
+  return pathApi.isAbsolute(String(value ?? ""));
+}
+
+function portableTildeSuffix(value) {
+  const suffix = value.slice(2);
+  if (suffix.startsWith("/") || suffix.startsWith("\\") || /^[A-Za-z]:/.test(suffix)) {
+    throw new Error(CONFIG_HOME_PATH_ERROR);
+  }
+  return suffix;
+}
+
+export function platformUserHome(env, pathApi = path, fallbackHome = os.homedir()) {
+  let configuredHome = "";
+  if (pathApi.sep === "\\") {
+    configuredHome = readTrimmed(env, "USERPROFILE");
+    if (!configuredHome) {
+      const homeDrive = readTrimmed(env, "HOMEDRIVE");
+      const homePath = readTrimmed(env, "HOMEPATH");
+      if (homeDrive && homePath) {
+        configuredHome = `${homeDrive}${homePath}`;
+      }
+    }
+  } else {
+    configuredHome = readTrimmed(env, "HOME");
+  }
+
+  const home = configuredHome || fallbackHome;
+  if (!isFullyQualifiedConfigHomePath(home, pathApi)) {
+    throw new Error(USER_HOME_RESOLUTION_ERROR);
+  }
+  return home;
 }
 
 export function providerFieldAliases() {
@@ -155,46 +226,51 @@ export function saveProviderValue({ provider, field, value, env = process.env } 
   const providerId = normalizeProvider(provider);
   const fieldId = normalizeField(field);
   assertKnownField(providerId, fieldId);
+  assertSecureProviderConfigWritesSupported();
 
   const configPath = providerConfigPath(env);
-  const config = readSharedProviderConfig(env);
-  if (!config.providers || typeof config.providers !== "object" || Array.isArray(config.providers)) {
-    config.providers = {};
-  }
-  const providerConfig = config.providers[providerId] && typeof config.providers[providerId] === "object"
-    ? config.providers[providerId]
-    : {};
-  providerConfig.enabled = true;
-  providerConfig[fieldId] = String(value ?? "");
-  config.providers[providerId] = providerConfig;
+  try {
+    const config = readSharedProviderConfig(env);
+    canonicalizeKnownAliases(config);
+    config.version = SUPPORTED_CONFIG_VERSION;
+    if (!isObject(config.providers)) {
+      config.providers = {};
+    }
+    const providerConfig = isObject(config.providers[providerId])
+      ? config.providers[providerId]
+      : {};
+    providerConfig.enabled = true;
+    removeNormalizedKey(providerConfig, fieldId);
+    providerConfig[fieldId] = String(value ?? "");
+    config.providers[providerId] = providerConfig;
 
-  mkdirSync(path.dirname(configPath), { recursive: true });
-  writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, { encoding: "utf8", mode: 0o600 });
+    atomicWriteProviderConfig(configPath, `${JSON.stringify(config, null, 2)}\n`);
+  } catch {
+    throw new Error(CONFIG_SAVE_ERROR);
+  }
   return { path: configPath, provider: providerId, field: fieldId };
 }
 
 export function providerStatus(config) {
+  const states = providerRuntimeStates(config);
   const providers = {
-    openalex: config.openalexApiKey ? "configured" : "missing",
-    semantic_scholar: config.semanticScholarApiKey ? "configured" : "missing",
-    crossref: config.crossrefEmail ? "configured" : "missing",
-    pubmed: config.pubmedApiKey ? "configured" : "missing",
-    arxiv: "configured"
+    openalex: states.openalex.configured ? "configured" : "missing",
+    semantic_scholar: states.semantic_scholar.configured ? "configured" : "missing",
+    crossref: states.crossref.configured ? "configured" : "missing",
+    pubmed: states.pubmed.configured ? "configured" : "missing",
+    arxiv: states.arxiv.configured ? "configured" : "missing"
   };
-  const openalexUsable = providers.openalex === "configured";
-  const semanticScholarUsable = providers.semantic_scholar === "configured";
-  const crossrefUsable = providers.crossref === "configured";
-  const pubmedUsable = providers.pubmed === "configured";
-  const arxivUsable = providers.arxiv === "configured";
+  const activeProviders = Object.entries(states)
+    .filter(([, state]) => state.enabled && state.configured)
+    .map(([provider]) => provider);
   const missing = missingProviderFields(config);
   const nextAction = providerSetupNextAction(missing);
 
   const status = {
     status: "ok",
-    capability_mode: openalexUsable || semanticScholarUsable || crossrefUsable || pubmedUsable || arxivUsable
-      ? "provider_connected"
-      : "strategy_only",
+    capability_mode: activeProviders.length > 0 ? "provider_connected" : "strategy_only",
     providers,
+    active_providers: activeProviders,
     missing
   };
   if (nextAction) {
@@ -205,38 +281,45 @@ export function providerStatus(config) {
 
 export function redactedProviderStatus(config) {
   const status = providerStatus(config);
+  const states = providerRuntimeStates(config);
   const redacted = {
     status: status.status,
     capability_mode: status.capability_mode,
+    active_providers: status.active_providers,
     missing: status.missing,
     providers: {
       openalex: {
-        configured: status.providers.openalex === "configured",
+        enabled: states.openalex.enabled,
+        configured: states.openalex.configured,
         fields: {
           api_key: config.openalexApiKey ? "configured" : "missing",
           email: config.openalexEmail ? "configured" : "missing"
         }
       },
       semantic_scholar: {
-        configured: status.providers.semantic_scholar === "configured",
+        enabled: states.semantic_scholar.enabled,
+        configured: states.semantic_scholar.configured,
         fields: {
           api_key: config.semanticScholarApiKey ? "configured" : "missing"
         }
       },
       crossref: {
-        configured: status.providers.crossref === "configured",
+        enabled: states.crossref.enabled,
+        configured: states.crossref.configured,
         fields: {
           email: config.crossrefEmail ? "configured" : "missing"
         }
       },
       pubmed: {
-        configured: status.providers.pubmed === "configured",
+        enabled: states.pubmed.enabled,
+        configured: states.pubmed.configured,
         fields: {
           api_key: config.pubmedApiKey ? "configured" : "missing"
         }
       },
       arxiv: {
-        configured: true,
+        enabled: states.arxiv.enabled,
+        configured: states.arxiv.configured,
         fields: {}
       }
     },
@@ -309,29 +392,367 @@ function providerSetupNextAction(missing) {
   };
 }
 
-function firstConfigured(values) {
-  return values.map((value) => String(value ?? "").trim()).find((value) => value) ?? "";
-}
-
 function readSharedProviderConfig(env) {
+  const configPath = providerConfigPath(env);
+  let metadata;
   try {
-    const parsed = JSON.parse(readFileSync(providerConfigPath(env), "utf8"));
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    metadata = lstatSync(configPath);
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      return { version: SUPPORTED_CONFIG_VERSION, providers: {} };
+    }
+    throw new Error(CONFIG_UNAVAILABLE_ERROR);
+  }
+
+  if (metadata.isSymbolicLink() || !metadata.isFile()) {
+    throw new Error(CONFIG_UNAVAILABLE_ERROR);
+  }
+
+  let descriptor;
+  try {
+    const noFollow = process.platform === "win32" ? 0 : (fsConstants.O_NOFOLLOW ?? 0);
+    descriptor = openSync(configPath, fsConstants.O_RDONLY | noFollow);
+    const opened = fstatSync(descriptor);
+    if (!opened.isFile() || !sameFileIdentity(metadata, opened)) {
+      throw new Error(CONFIG_UNAVAILABLE_ERROR);
+    }
+    tightenDescriptorPermissions(descriptor);
+    const parsed = JSON.parse(readFileSync(descriptor, "utf8"));
+    validateProviderConfig(parsed);
+    return parsed;
   } catch {
-    return {};
+    throw new Error(CONFIG_UNAVAILABLE_ERROR);
+  } finally {
+    if (descriptor !== undefined) {
+      try {
+        closeSync(descriptor);
+      } catch {
+        // The public error above is deliberately fixed and path-free.
+      }
+    }
   }
 }
 
-function readSharedField(config, provider, field) {
+function resolveProviders(config, env) {
+  return Object.fromEntries(
+    Object.keys(PROVIDER_FIELDS).map((provider) => {
+      const persisted = persistedProvider(config, provider);
+      const values = {};
+      let activationEnvironmentSupplied = false;
+      for (const [field, aliases] of Object.entries(PROVIDER_FIELDS[provider])) {
+        const environmentValue = aliases
+          .map((alias) => readTrimmed(env, alias))
+          .find(Boolean);
+        if (environmentValue) {
+          values[field] = environmentValue;
+          activationEnvironmentSupplied ||= PROVIDER_ACTIVATION_FIELDS[provider].includes(field);
+          continue;
+        }
+        const persistedValueForField = persistedValue(persisted, field);
+        if (typeof persistedValueForField === "string" && persistedValueForField.trim()) {
+          values[field] = persistedValueForField.trim();
+        }
+      }
+
+      const configured = PROVIDER_ACTIVATION_FIELDS[provider]
+        .every((field) => Boolean(values[field]));
+      const explicitEnabled = persistedValue(persisted, "enabled");
+      const enabled = activationEnvironmentSupplied
+        ? true
+        : typeof explicitEnabled === "boolean"
+          ? explicitEnabled
+          : configured;
+      return [provider, { enabled, configured, values }];
+    })
+  );
+}
+
+function providerRuntimeStates(config) {
+  const configured = {
+    openalex: Boolean(config?.openalexApiKey),
+    semantic_scholar: Boolean(config?.semanticScholarApiKey),
+    crossref: Boolean(config?.crossrefEmail),
+    pubmed: Boolean(config?.pubmedApiKey),
+    arxiv: true
+  };
+  return Object.fromEntries(
+    Object.entries(configured).map(([provider, fallbackConfigured]) => {
+      const persisted = config?.providerStates?.[provider];
+      const stateConfigured = typeof persisted?.configured === "boolean"
+        ? persisted.configured
+        : fallbackConfigured;
+      const enabled = typeof persisted?.enabled === "boolean"
+        ? persisted.enabled
+        : stateConfigured;
+      return [provider, { enabled, configured: stateConfigured }];
+    })
+  );
+}
+
+function persistedProvider(config, provider) {
   const providers = config.providers;
-  if (!providers || typeof providers !== "object" || Array.isArray(providers)) {
-    return "";
+  if (!isObject(providers)) {
+    return undefined;
   }
-  const providerConfig = providers[provider];
-  if (!providerConfig || typeof providerConfig !== "object" || Array.isArray(providerConfig)) {
-    return "";
+  for (const [rawProvider, entry] of Object.entries(providers)) {
+    if (normalizeProvider(rawProvider) === provider) {
+      return isObject(entry) ? entry : undefined;
+    }
   }
-  return String(providerConfig[field] ?? "").trim();
+  return undefined;
+}
+
+function persistedValue(entry, field) {
+  if (!isObject(entry)) {
+    return undefined;
+  }
+  for (const [rawField, value] of Object.entries(entry)) {
+    if (normalizeField(rawField) === field) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+function validateProviderConfig(config) {
+  if (!isObject(config)) {
+    throw new Error(CONFIG_UNAVAILABLE_ERROR);
+  }
+
+  if (Object.hasOwn(config, "version")) {
+    if (!Number.isInteger(config.version) || config.version < 1) {
+      throw new Error(CONFIG_UNAVAILABLE_ERROR);
+    }
+    if (config.version !== SUPPORTED_CONFIG_VERSION) {
+      throw new Error(CONFIG_UNAVAILABLE_ERROR);
+    }
+  }
+
+  if (Object.hasOwn(config, "providers")) {
+    if (!isObject(config.providers)) {
+      throw new Error(CONFIG_UNAVAILABLE_ERROR);
+    }
+    const seenProviders = new Set();
+    for (const [rawProvider, entry] of Object.entries(config.providers)) {
+      const provider = normalizeProvider(rawProvider);
+      if (!Object.hasOwn(PROVIDER_FIELDS, provider)) {
+        continue;
+      }
+      if (seenProviders.has(provider) || !isObject(entry)) {
+        throw new Error(CONFIG_UNAVAILABLE_ERROR);
+      }
+      seenProviders.add(provider);
+      const seenFields = new Set();
+      for (const [rawField, value] of Object.entries(entry)) {
+        const field = normalizeField(rawField);
+        const known = field === "enabled" || Object.hasOwn(PROVIDER_FIELDS[provider], field);
+        if (known && seenFields.has(field)) {
+          throw new Error(CONFIG_UNAVAILABLE_ERROR);
+        }
+        if (known) {
+          seenFields.add(field);
+        }
+        if (field === "enabled" && typeof value !== "boolean") {
+          throw new Error(CONFIG_UNAVAILABLE_ERROR);
+        }
+        if (Object.hasOwn(PROVIDER_FIELDS[provider], field) && typeof value !== "string") {
+          throw new Error(CONFIG_UNAVAILABLE_ERROR);
+        }
+      }
+    }
+  }
+
+  if (Object.hasOwn(config, "search")) {
+    if (!isObject(config.search)) {
+      throw new Error(CONFIG_UNAVAILABLE_ERROR);
+    }
+    const seenFields = new Set();
+    for (const [rawField, value] of Object.entries(config.search)) {
+      const field = normalizeField(rawField);
+      const known = field === "minimum_productive_providers"
+        || field === "allow_platform_search_supplement";
+      if (known && seenFields.has(field)) {
+        throw new Error(CONFIG_UNAVAILABLE_ERROR);
+      }
+      if (known) {
+        seenFields.add(field);
+      }
+      if (field === "minimum_productive_providers"
+        && (!Number.isInteger(value) || value < 1)) {
+        throw new Error(CONFIG_UNAVAILABLE_ERROR);
+      }
+      if (field === "allow_platform_search_supplement" && typeof value !== "boolean") {
+        throw new Error(CONFIG_UNAVAILABLE_ERROR);
+      }
+    }
+  }
+}
+
+function canonicalizeKnownAliases(config) {
+  const providerEntries = isObject(config.providers) ? Object.entries(config.providers) : [];
+  config.providers = Object.fromEntries(
+    providerEntries.map(([rawProvider, rawEntry]) => {
+      const provider = normalizeProvider(rawProvider);
+      if (!Object.hasOwn(PROVIDER_FIELDS, provider)) {
+        return [rawProvider, rawEntry];
+      }
+      const entry = Object.fromEntries(
+        Object.entries(rawEntry).map(([rawField, fieldValue]) => {
+          const field = normalizeField(rawField);
+          const canonical = field === "enabled" || Object.hasOwn(PROVIDER_FIELDS[provider], field);
+          return [canonical ? field : rawField, fieldValue];
+        })
+      );
+      return [provider, entry];
+    })
+  );
+
+  if (isObject(config.search)) {
+    config.search = Object.fromEntries(
+      Object.entries(config.search).map(([rawField, fieldValue]) => {
+        const field = normalizeField(rawField);
+        const canonical = field === "minimum_productive_providers"
+          || field === "allow_platform_search_supplement";
+        return [canonical ? field : rawField, fieldValue];
+      })
+    );
+  }
+}
+
+function removeNormalizedKey(entry, field) {
+  for (const rawField of Object.keys(entry)) {
+    if (normalizeField(rawField) === field) {
+      delete entry[rawField];
+    }
+  }
+}
+
+export function atomicWriteProviderConfig(
+  configPath,
+  contents,
+  replace = renameSync,
+  platform = process.platform
+) {
+  assertSecureProviderConfigWritesSupported(platform);
+  const directory = path.dirname(configPath);
+  mkdirSync(directory, { recursive: true, mode: 0o700 });
+  assertSafeConfigTarget(configPath, true);
+
+  let temporaryPath;
+  let descriptor;
+  try {
+    for (let attempt = 0; attempt < TEMP_CREATE_ATTEMPTS; attempt += 1) {
+      temporaryPath = path.join(
+        directory,
+        `.${path.basename(configPath)}.tmp-${process.pid}-${randomBytes(8).toString("hex")}`
+      );
+      try {
+        descriptor = openSync(
+          temporaryPath,
+          fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_EXCL,
+          0o600
+        );
+        break;
+      } catch (error) {
+        if (error?.code !== "EEXIST") {
+          throw error;
+        }
+      }
+    }
+    if (descriptor === undefined) {
+      throw new Error(CONFIG_SAVE_ERROR);
+    }
+
+    tightenDescriptorPermissions(descriptor);
+    writeFileSync(descriptor, contents, "utf8");
+    fsyncSync(descriptor);
+    closeSync(descriptor);
+    descriptor = undefined;
+
+    assertSafeConfigTarget(configPath, true);
+    replace(temporaryPath, configPath);
+    temporaryPath = undefined;
+    syncDirectory(directory);
+  } finally {
+    if (descriptor !== undefined) {
+      try {
+        closeSync(descriptor);
+      } catch {
+        // Cleanup is best effort; callers receive a fixed redacted error.
+      }
+    }
+    if (temporaryPath !== undefined) {
+      try {
+        rmSync(temporaryPath, { force: true });
+      } catch {
+        // Cleanup is best effort; callers receive a fixed redacted error.
+      }
+    }
+  }
+}
+
+export function secureProviderConfigWritesSupported(platform = process.platform) {
+  return platform !== "win32";
+}
+
+export function assertSecureProviderConfigWritesSupported(platform = process.platform) {
+  if (!secureProviderConfigWritesSupported(platform)) {
+    throw new Error(CONFIG_SAVE_ERROR);
+  }
+}
+
+export function sameFileIdentity(
+  initial,
+  opened,
+  requireNonZeroIdentity = process.platform === "win32"
+) {
+  const sameIdentity = initial?.dev === opened?.dev && initial?.ino === opened?.ino;
+  if (!sameIdentity) {
+    return false;
+  }
+  return !requireNonZeroIdentity || initial.ino !== 0;
+}
+
+function assertSafeConfigTarget(configPath, allowMissing) {
+  try {
+    const metadata = lstatSync(configPath);
+    if (metadata.isSymbolicLink() || !metadata.isFile()) {
+      throw new Error(CONFIG_SAVE_ERROR);
+    }
+  } catch (error) {
+    if (allowMissing && error?.code === "ENOENT") {
+      return;
+    }
+    throw error;
+  }
+}
+
+function tightenDescriptorPermissions(descriptor) {
+  if (process.platform !== "win32") {
+    const currentMode = fstatSync(descriptor).mode & 0o777;
+    if (currentMode !== 0o600) {
+      fchmodSync(descriptor, 0o600);
+    }
+  }
+}
+
+function syncDirectory(directory) {
+  if (process.platform === "win32") {
+    return;
+  }
+  let descriptor;
+  try {
+    descriptor = openSync(directory, fsConstants.O_RDONLY);
+    fsyncSync(descriptor);
+  } finally {
+    if (descriptor !== undefined) {
+      closeSync(descriptor);
+    }
+  }
+}
+
+function isObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function normalizeLabel(value) {
@@ -354,7 +775,8 @@ function normalizeField(value) {
 }
 
 function assertKnownField(provider, field) {
-  if (!PROVIDER_FIELDS[provider]?.[field]) {
-    throw new Error(`unsupported provider field: ${provider}.${field}`);
+  if (!Object.hasOwn(PROVIDER_FIELDS, provider)
+    || !Object.hasOwn(PROVIDER_FIELDS[provider], field)) {
+    throw new Error("unsupported provider field");
   }
 }

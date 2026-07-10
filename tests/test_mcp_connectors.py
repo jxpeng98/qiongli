@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import os
 import tempfile
@@ -11,6 +13,7 @@ import bridges.mcp_connectors as mcp_connectors_module
 from bridges.command_runtime import current_python_command
 from bridges.mcp_connectors import MCPConnector
 from bridges.provider_config import set_provider_value
+from scripts import mcp_scholarly_search
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -99,6 +102,115 @@ class MCPConnectorTests(unittest.TestCase):
         self.assertEqual(evidence.data["provider_config"]["openalex"], "configured")
         self.assertEqual(evidence.data["provider_config"]["semantic_scholar"], "missing")
         self.assertEqual(evidence.data["capability_mode"], "provider_connected")
+
+    def test_builtin_scholarly_search_reports_strategy_only_when_all_providers_disabled(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            config_home = root / "config"
+            config_home.mkdir()
+            (config_home / "providers.json").write_text(
+                json.dumps(
+                    {
+                        "version": 1,
+                        "providers": {
+                            "openalex": {"enabled": False, "api_key": "disabled-canary"},
+                            "arxiv": {"enabled": False},
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with mock.patch.dict(
+                os.environ,
+                {"QIONGLI_CONFIG_HOME": str(config_home)},
+                clear=False,
+            ):
+                evidence = self.connector.collect("scholarly-search", {}, root)
+
+        self.assertEqual(evidence.data["provider_config"]["openalex"], "configured")
+        self.assertEqual(evidence.data["capability_mode"], "strategy_only")
+
+    def test_builtin_scholarly_search_all_disabled_nonempty_query_never_uses_network(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            config_home = root / "config"
+            config_home.mkdir()
+            (config_home / "providers.json").write_text(
+                json.dumps(
+                    {
+                        "version": 1,
+                        "providers": {
+                            "openalex": {"enabled": False, "api_key": "disabled-canary"},
+                            "semantic_scholar": {
+                                "enabled": False,
+                                "api_key": "disabled-s2-canary",
+                            },
+                            "arxiv": {"enabled": False},
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            network_search = mock.Mock(
+                side_effect=AssertionError("disabled providers must remain offline")
+            )
+            with mock.patch.dict(
+                os.environ,
+                {"QIONGLI_CONFIG_HOME": str(config_home)},
+                clear=True,
+            ):
+                output = mcp_scholarly_search.run_with_provider_config(
+                    {"topic": "non-empty provider opt-out query"},
+                    cwd=root,
+                    search_fn=network_search,
+                )
+
+        self.assertEqual(output["status"], "warning")
+        self.assertEqual(output["data"]["provider_mode"], "strategy_only")
+        self.assertEqual(output["data"]["capability_mode"], "strategy_only")
+        self.assertEqual(
+            output["data"]["search_diagnostics"]["status_reason"],
+            "no_active_providers",
+        )
+        network_search.assert_not_called()
+
+    def test_builtin_scholarly_search_redacts_malformed_config_errors(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            config_home = root / "config-path-canary"
+            config_home.mkdir()
+            secret = "malformed-provider-secret-canary"
+            (config_home / "providers.json").write_text(
+                f"{{not-json {secret}",
+                encoding="utf-8",
+            )
+            output = io.StringIO()
+            payload = io.StringIO(json.dumps({"task_packet": {"topic": "governance"}}))
+            with (
+                mock.patch.dict(
+                    os.environ,
+                    {"QIONGLI_CONFIG_HOME": str(config_home)},
+                    clear=True,
+                ),
+                mock.patch("sys.stdin", payload),
+                contextlib.redirect_stdout(output),
+            ):
+                mcp_scholarly_search.main()
+
+        response = json.loads(output.getvalue())
+        rendered = json.dumps(response)
+        self.assertEqual(response["status"], "error")
+        self.assertEqual(response["summary"], "Scholarly search provider failed.")
+        self.assertEqual(
+            response["data"]["error"],
+            "provider configuration or search execution failed",
+        )
+        self.assertNotIn(secret, rendered)
+        self.assertNotIn(str(config_home), rendered)
 
     def test_direct_literature_provider_without_external_command_reports_adapter_scope(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -219,6 +331,58 @@ class MCPConnectorTests(unittest.TestCase):
         self.assertEqual(evidence.data["openalex_email"], "user@example.com")
         self.assertEqual(evidence.data["s2_api_key"], "stored-key")
         self.assertEqual(evidence.data["qiongli_s2_api_key"], "stored-key")
+
+    def test_collect_external_provider_omits_persisted_disabled_credentials(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            config_home = root / "config"
+            config_home.mkdir()
+            workspace = root / "workspace"
+            workspace.mkdir()
+            (config_home / "providers.json").write_text(
+                json.dumps(
+                    {
+                        "version": 1,
+                        "providers": {
+                            "semantic_scholar": {
+                                "enabled": False,
+                                "api_key": "disabled-secret-canary",
+                            },
+                            "arxiv": {"enabled": False},
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            script = workspace / "disabled provider env stub.py"
+            script.write_text(
+                "import json\n"
+                "import os\n"
+                "print(json.dumps({\n"
+                "    'status': 'ok',\n"
+                "    'summary': 'disabled provider env captured',\n"
+                "    'data': {\n"
+                "        's2_api_key': os.environ.get('S2_API_KEY'),\n"
+                "        'qiongli_s2_api_key': os.environ.get('QIONGLI_SEMANTIC_SCHOLAR_API_KEY'),\n"
+                "    },\n"
+                "}))\n",
+                encoding="utf-8",
+            )
+
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "QIONGLI_CONFIG_HOME": str(config_home),
+                    "RESEARCH_MCP_SCREENING_TRACKER_CMD": current_python_command(str(script)),
+                },
+                clear=True,
+            ):
+                evidence = self.connector.collect("screening-tracker", {}, workspace)
+
+        self.assertEqual(evidence.status, "ok")
+        self.assertIsNone(evidence.data["s2_api_key"])
+        self.assertIsNone(evidence.data["qiongli_s2_api_key"])
+        self.assertNotIn("disabled-secret-canary", json.dumps(evidence.data))
 
     def test_builtin_metadata_registry_normalizes_local_doi(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

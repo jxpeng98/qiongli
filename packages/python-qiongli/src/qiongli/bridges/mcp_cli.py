@@ -249,7 +249,7 @@ def _doctor_payload(cwd: Path) -> dict[str, Any]:
         "server": {"name": SERVER_NAME, "version": __version__},
         "config_path": str(global_provider_config_path()),
         "providers": summary,
-        "capability_mode": provider_capability_mode(summary),
+        "capability_mode": provider_capability_mode(config),
         "literature_tools_available": True,
         "orchestrator_tools_available": True,
         "literature_tools": LITERATURE_TOOLS,

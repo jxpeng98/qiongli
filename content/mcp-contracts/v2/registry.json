@@ -1,13 +1,13 @@
 {
   "$schema": "./registry.schema.json",
   "schema_version": "2.0",
-  "contract_version": "2.0.0-preview.1",
+  "contract_version": "2.0.0-preview.3",
   "status": "pilot",
   "coverage": {
     "mode": "pilot",
-    "canonical_tool_count": 1,
+    "canonical_tool_count": 6,
     "target_canonical_tool_count": 23,
-    "public_name_count": 1,
+    "public_name_count": 7,
     "target_public_name_count": 24
   },
   "profiles": ["skill-only", "marketplace-lite", "full"],
@@ -43,6 +43,249 @@
   },
   "tools": [
     {
+      "name": "qiongli_config_status",
+      "description": "Return redacted Qiongli provider configuration status.",
+      "aliases": [],
+      "maturity": "stable",
+      "lifecycle": {
+        "introduced_in": "legacy",
+        "deprecated_in": null,
+        "remove_after": null
+      },
+      "profiles": {
+        "skill-only": {
+          "exposure": "metadata-only",
+          "error_transport": "not-applicable"
+        },
+        "marketplace-lite": {
+          "exposure": "tool",
+          "input_schema_ref": "schemas/qiongli_config_status.input.schema.json",
+          "output_schema_ref": "schemas/qiongli_config_status.output.schema.json",
+          "error_transport": "json-rpc-and-tool-result"
+        },
+        "full": {
+          "exposure": "tool",
+          "input_schema_ref": "schemas/qiongli_config_status.input.schema.json",
+          "output_schema_ref": "schemas/qiongli_config_status.output.schema.json",
+          "error_transport": "tool-result"
+        }
+      },
+      "errors": ["invalid_arguments", "tool_error"],
+      "side_effects": [{ "class": "read", "mode": "always" }],
+      "security": {
+        "accepts_secret_input": false,
+        "raw_secret_output": "forbidden",
+        "redaction_required": true,
+        "sensitive_output_paths": ["/config_path"],
+        "notes": [
+          "Only provider state and an allowlisted search configuration summary may be returned; provider values remain redacted.",
+          "QIONGLI_CONFIG_HOME must be a fully qualified absolute path or use the portable ~ or ~/... home notation; rooted or drive-prefixed home suffixes and other relative values fail closed, and an unset value resolves from the platform user home without falling back to the process working directory.",
+          "config_path is an intentional local identifier that can reveal the user's home-directory layout and must not be copied into shared artifacts or logs."
+        ]
+      },
+      "smoke_call_ids": ["lite.qiongli_config_status.success"]
+    },
+    {
+      "name": "qiongli_save_provider_config",
+      "description": "Save explicit Qiongli provider config values from chat or scripts. Prefer qiongli_configure_provider for API keys.",
+      "aliases": [],
+      "maturity": "stable",
+      "lifecycle": {
+        "introduced_in": "legacy",
+        "deprecated_in": null,
+        "remove_after": null
+      },
+      "profiles": {
+        "skill-only": {
+          "exposure": "metadata-only",
+          "error_transport": "not-applicable"
+        },
+        "marketplace-lite": {
+          "exposure": "tool",
+          "input_schema_ref": "schemas/qiongli_save_provider_config.input.schema.json",
+          "output_schema_ref": "schemas/qiongli_save_provider_config.output.schema.json",
+          "error_transport": "json-rpc-and-tool-result"
+        },
+        "full": {
+          "exposure": "tool",
+          "input_schema_ref": "schemas/qiongli_save_provider_config.input.schema.json",
+          "output_schema_ref": "schemas/qiongli_save_provider_config.output.schema.json",
+          "error_transport": "tool-result"
+        }
+      },
+      "errors": ["invalid_arguments", "tool_error"],
+      "side_effects": [{ "class": "local-config-write", "mode": "always" }],
+      "security": {
+        "accepts_secret_input": true,
+        "raw_secret_output": "forbidden",
+        "redaction_required": true,
+        "sensitive_output_paths": ["/config_path"],
+        "notes": [
+          "The value argument can contain a provider credential and must never appear in content, structuredContent, errors, logs, or diagnostics.",
+          "Configuration updates fail closed when the existing global file is malformed. Writes use POSIX mode 0600 on Unix. Rust Lite applies a protected current-user-only DACL before atomic replacement on Windows; the legacy Node MCPB remains read-only there because it cannot enforce that DACL.",
+          "QIONGLI_CONFIG_HOME must be a fully qualified absolute path or use the portable ~ or ~/... home notation; rooted or drive-prefixed home suffixes and other relative values fail closed, and an unset value resolves from the platform user home without falling back to the process working directory.",
+          "config_path is an intentional local identifier that can reveal the user's home-directory layout and must not be copied into shared artifacts or logs."
+        ]
+      },
+      "smoke_call_ids": ["lite.qiongli_save_provider_config.success"]
+    },
+    {
+      "name": "qiongli_configure_provider",
+      "description": "Start a tokenized loopback setup page and return its URL for provider configuration. Prefer this for API keys so secrets do not enter chat history.",
+      "aliases": [
+        {
+          "name": "qiongli_open_config_wizard",
+          "kind": "compatibility",
+          "introduced_in": "legacy",
+          "deprecated_in": null,
+          "remove_after": null
+        }
+      ],
+      "maturity": "preview",
+      "lifecycle": {
+        "introduced_in": "legacy",
+        "deprecated_in": null,
+        "remove_after": null
+      },
+      "profiles": {
+        "skill-only": {
+          "exposure": "metadata-only",
+          "error_transport": "not-applicable"
+        },
+        "marketplace-lite": {
+          "exposure": "tool",
+          "input_schema_ref": "schemas/qiongli_configure_provider.input.schema.json",
+          "output_schema_ref": "schemas/qiongli_configure_provider.output.schema.json",
+          "error_transport": "json-rpc-and-tool-result"
+        },
+        "full": {
+          "exposure": "tool",
+          "input_schema_ref": "schemas/qiongli_configure_provider.input.schema.json",
+          "output_schema_ref": "schemas/qiongli_configure_provider.output.schema.json",
+          "error_transport": "tool-result"
+        }
+      },
+      "errors": ["invalid_arguments", "tool_error"],
+      "side_effects": [
+        { "class": "loopback-listener", "mode": "always" },
+        {
+          "class": "local-config-write",
+          "mode": "deferred",
+          "trigger": "An authorized user submits a supported non-empty provider field."
+        }
+      ],
+      "security": {
+        "accepts_secret_input": false,
+        "raw_secret_output": "forbidden",
+        "redaction_required": true,
+        "sensitive_output_paths": ["/url", "/config_path"],
+        "notes": [
+          "Provider credentials are accepted only by the tokenized loopback page, never by MCP arguments.",
+          "The returned URL contains an ephemeral bearer token and must be treated as sensitive control data.",
+          "QIONGLI_CONFIG_HOME must be a fully qualified absolute path or use the portable ~ or ~/... home notation; rooted or drive-prefixed home suffixes and other relative values fail closed, and an unset value resolves from the platform user home without falling back to the process working directory.",
+          "config_path is an intentional local identifier that can reveal the user's home-directory layout.",
+          "The listener binds only to loopback and does not launch a browser or external process."
+        ]
+      },
+      "smoke_call_ids": [
+        "lite.qiongli_configure_provider.invalid-host",
+        "lite.qiongli_open_config_wizard.invalid-host"
+      ]
+    },
+    {
+      "name": "qiongli_literature_status",
+      "description": "Report configured literature providers and capability mode without exposing secrets.",
+      "aliases": [],
+      "maturity": "stable",
+      "lifecycle": {
+        "introduced_in": "legacy",
+        "deprecated_in": null,
+        "remove_after": null
+      },
+      "profiles": {
+        "skill-only": {
+          "exposure": "metadata-only",
+          "error_transport": "not-applicable"
+        },
+        "marketplace-lite": {
+          "exposure": "tool",
+          "input_schema_ref": "schemas/qiongli_literature_status.input.schema.json",
+          "output_schema_ref": "schemas/qiongli_literature_status.output.schema.json",
+          "error_transport": "json-rpc-and-tool-result"
+        },
+        "full": {
+          "exposure": "tool",
+          "input_schema_ref": "schemas/qiongli_literature_status.input.schema.json",
+          "output_schema_ref": "schemas/qiongli_literature_status.output.schema.json",
+          "error_transport": "tool-result"
+        }
+      },
+      "errors": ["invalid_arguments", "tool_error"],
+      "side_effects": [{ "class": "read", "mode": "always" }],
+      "security": {
+        "accepts_secret_input": false,
+        "raw_secret_output": "forbidden",
+        "redaction_required": true,
+        "sensitive_output_paths": [],
+        "notes": [
+          "Only provider readiness, active-provider identity, implemented capabilities, activation-field names, and redacted configuration state may be returned.",
+          "Provider capability records share one schema, but each runtime profile must report only behavior it actually implements; Lite capability lists may be strict subsets of Full.",
+          "Provider credentials, environment values, malformed configuration content, and local configuration paths must not appear in results or errors.",
+          "Configured status is local readiness metadata, not a live provider health guarantee."
+        ]
+      },
+      "smoke_call_ids": ["lite.qiongli_literature_status.success"]
+    },
+    {
+      "name": "qiongli_search_plan",
+      "description": "Plan provider and platform-native literature search routing without executing search.",
+      "aliases": [],
+      "maturity": "preview",
+      "lifecycle": {
+        "introduced_in": "legacy",
+        "deprecated_in": null,
+        "remove_after": null
+      },
+      "profiles": {
+        "skill-only": {
+          "exposure": "metadata-only",
+          "error_transport": "not-applicable"
+        },
+        "marketplace-lite": {
+          "exposure": "tool",
+          "input_schema_ref": "schemas/qiongli_search_plan.input.schema.json",
+          "output_schema_ref": "schemas/qiongli_search_plan.output.schema.json",
+          "error_transport": "json-rpc-and-tool-result"
+        },
+        "full": {
+          "exposure": "tool",
+          "input_schema_ref": "schemas/qiongli_search_plan.input.schema.json",
+          "output_schema_ref": "schemas/qiongli_search_plan.output.schema.json",
+          "error_transport": "tool-result"
+        }
+      },
+      "errors": ["invalid_arguments", "tool_error"],
+      "side_effects": [{ "class": "read", "mode": "always" }],
+      "security": {
+        "accepts_secret_input": false,
+        "raw_secret_output": "forbidden",
+        "redaction_required": true,
+        "sensitive_output_paths": [
+          "/query",
+          "/provider_queries",
+          "/native_search_queries",
+          "/native_fulltext_queries"
+        ],
+        "notes": [
+          "The tool plans routes only and must not execute provider, platform-native, process, or agent operations.",
+          "Research queries and generated routes may be returned to the caller but must not be copied into shared logs automatically.",
+          "During the v2 compatibility window, year filters emit canonical from_year/to_year together with deprecated fromYear/toYear aliases.",
+          "Provider credentials, environment values, malformed configuration content, and local configuration paths must not appear in plans or errors."
+        ]
+      },
+      "smoke_call_ids": ["lite.qiongli_search_plan.success"]
+    },
+    {
       "name": "qiongli_literature_export_evidence",
       "description": "Export an auditable provider capability, search plan, diagnostics, and result snapshot.",
       "aliases": [],
@@ -76,6 +319,7 @@
         "accepts_secret_input": false,
         "raw_secret_output": "forbidden",
         "redaction_required": true,
+        "sensitive_output_paths": [],
         "notes": [
           "Evidence export is side-effect free and must not add provider credentials to the snapshot."
         ]

@@ -1405,5 +1405,39 @@ class InstallerCliTests(unittest.TestCase):
         self.assertEqual(payload["providers"]["openalex"], "configured")
         self.assertEqual(payload["providers"]["semantic_scholar"], "configured")
 
+    def test_provider_doctor_reports_strategy_only_when_every_provider_is_disabled(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            config_home = root / "config"
+            config_home.mkdir()
+            (config_home / "providers.json").write_text(
+                json.dumps(
+                    {
+                        "version": 1,
+                        "providers": {
+                            "openalex": {"enabled": False, "api_key": "disabled-canary"},
+                            "arxiv": {"enabled": False},
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            env = _isolated_qiongli_env(root, QIONGLI_CONFIG_HOME=str(config_home))
+            stdout = io.StringIO()
+            with (
+                mock.patch.dict(os.environ, env, clear=True),
+                mock.patch.object(
+                    cli_module.sys,
+                    "argv",
+                    ["qiongli", "provider", "doctor", "--json"],
+                ),
+                contextlib.redirect_stdout(stdout),
+            ):
+                self.assertEqual(cli_module.main(), 0)
+
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual(payload["providers"]["openalex"], "configured")
+        self.assertEqual(payload["capability_mode"], "strategy_only")
+
 if __name__ == "__main__":
     unittest.main()

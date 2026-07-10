@@ -69,6 +69,12 @@ class LiteMCPBehaviorContractTests(unittest.TestCase):
                     self.assertFalse(response["result"].get("isError", False), msg=response)
                     self.assertIn("content", response["result"])
                     self.assertIn("structuredContent", response["result"])
+                    structured = response["result"]["structuredContent"]
+                    for equality in call.get("required_output_equalities", []):
+                        self.assertEqual(
+                            _resolve_json_pointer(structured, equality["left"]),
+                            _resolve_json_pointer(structured, equality["right"]),
+                        )
 
                 for forbidden in call["forbidden_output"]:
                     self.assertNotIn(forbidden, json.dumps(response, sort_keys=True))
@@ -142,6 +148,14 @@ class LiteMCPBehaviorContractTests(unittest.TestCase):
             json.loads(line) for line in process.stdout.splitlines() if line.strip()
         ]
         return responses, process
+
+
+def _resolve_json_pointer(value: Any, pointer: str) -> Any:
+    current = value
+    for raw_token in pointer.removeprefix("/").split("/"):
+        token = raw_token.replace("~1", "/").replace("~0", "~")
+        current = current[int(token)] if isinstance(current, list) else current[token]
+    return current
 
 
 if __name__ == "__main__":

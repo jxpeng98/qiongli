@@ -63,6 +63,17 @@ class MCPContractFixtureTests(unittest.TestCase):
                 {"config", "network", "loopback_listener"},
             )
             self.assertIsInstance(call["forbidden_output"], list)
+            for equality in call.get("required_output_equalities", []):
+                self.assertEqual(set(equality), {"left", "right"})
+                self.assertTrue(equality["left"].startswith("/"))
+                self.assertTrue(equality["right"].startswith("/"))
+
+        search_plan = next(
+            call for call in smoke["calls"] if call["name"] == "qiongli_search_plan"
+        )
+        self.assertEqual(search_plan["arguments"]["from_year"], 2020)
+        self.assertEqual(search_plan["arguments"]["toYear"], "2026")
+        self.assertEqual(len(search_plan["required_output_equalities"]), 2)
 
     def test_expected_normalized_results_fixture_has_stable_shape(self) -> None:
         payload = json.loads(

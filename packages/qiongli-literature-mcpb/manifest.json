@@ -46,7 +46,7 @@
     },
     {
       "name": "qiongli_configure_provider",
-      "description": "Open a local browser-based setup page for Qiongli provider credentials."
+      "description": "Start a tokenized loopback setup page and return its URL for provider configuration. Prefer this for API keys so secrets do not enter chat history."
     },
     {
       "name": "qiongli_open_config_wizard",
@@ -58,7 +58,7 @@
     },
     {
       "name": "qiongli_search_plan",
-      "description": "Plan provider MCP and platform-native literature search routing."
+      "description": "Plan provider and platform-native literature search routing without executing search."
     },
     {
       "name": "qiongli_literature_search",

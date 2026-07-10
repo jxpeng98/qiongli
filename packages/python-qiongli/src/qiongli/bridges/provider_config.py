@@ -3,7 +3,8 @@ from __future__ import annotations
 import json
 import os
 import stat
-from pathlib import Path
+import tempfile
+from pathlib import Path, PureWindowsPath
 from typing import Mapping
 
 
@@ -38,14 +39,78 @@ PROVIDER_FIELDS: dict[str, dict[str, tuple[str, ...]]] = {
     "arxiv": {},
 }
 
+SUPPORTED_PROVIDER_CONFIG_VERSIONS = frozenset({1})
+SEARCH_PUBLIC_FIELD_TYPES: dict[str, type[object]] = {
+    "minimum_productive_providers": int,
+    "allow_platform_search_supplement": bool,
+}
+
 PROJECT_ENV_FILES = (".env",)
 PROJECT_TOML_FILES = ("qiongli.toml", ".qiongli.toml")
 
 
+class ProviderConfigError(RuntimeError):
+    """Raised when the persisted provider config cannot be read safely."""
+
+
+_CONFIG_HOME_PATH_ERROR = (
+    "QIONGLI_CONFIG_HOME must be a fully qualified absolute path "
+    "or use '~' home notation"
+)
+_USER_HOME_RESOLUTION_ERROR = (
+    "platform user home directory must be a fully qualified absolute path"
+)
+
+
 def global_provider_config_path() -> Path:
     config_home = os.environ.get("QIONGLI_CONFIG_HOME", "").strip()
-    root = Path(config_home).expanduser() if config_home else Path.home() / ".config" / "qiongli"
+    if not config_home:
+        root = _platform_user_home() / ".config" / "qiongli"
+    elif _is_fully_qualified_config_home(config_home):
+        root = Path(config_home)
+    elif config_home == "~":
+        root = _platform_user_home()
+    elif config_home.startswith("~/"):
+        suffix = _portable_tilde_suffix(config_home)
+        root = _platform_user_home() / Path(suffix)
+    else:
+        raise ProviderConfigError(_CONFIG_HOME_PATH_ERROR)
     return root / "providers.json"
+
+
+def _is_fully_qualified_config_home(
+    value: str,
+    *,
+    windows: bool | None = None,
+) -> bool:
+    use_windows_semantics = os.name == "nt" if windows is None else windows
+    if use_windows_semantics:
+        candidate = PureWindowsPath(value)
+        return bool(candidate.drive and candidate.root)
+    return Path(value).is_absolute()
+
+
+def _portable_tilde_suffix(value: str) -> str:
+    suffix = value[2:]
+    has_ascii_drive_prefix = (
+        len(suffix) >= 2
+        and suffix[0].isascii()
+        and suffix[0].isalpha()
+        and suffix[1] == ":"
+    )
+    if suffix.startswith(("/", "\\")) or has_ascii_drive_prefix:
+        raise ProviderConfigError(_CONFIG_HOME_PATH_ERROR)
+    return suffix
+
+
+def _platform_user_home() -> Path:
+    try:
+        home = Path.home()
+    except (OSError, RuntimeError) as exc:
+        raise ProviderConfigError(_USER_HOME_RESOLUTION_ERROR) from exc
+    if not _is_fully_qualified_config_home(str(home)):
+        raise ProviderConfigError(_USER_HOME_RESOLUTION_ERROR)
+    return home
 
 
 def resolve_provider_config(
@@ -68,7 +133,10 @@ def redact_provider_config(config: Mapping[str, object]) -> dict[str, object]:
     providers = config.get("providers", {})
     if not isinstance(providers, Mapping):
         providers = {}
-    redacted: dict[str, object] = {"providers": {}, "search": dict(config.get("search", {}) or {})}
+    redacted: dict[str, object] = {
+        "providers": {},
+        "search": _redacted_search_config(config.get("search")),
+    }
     redacted_providers: dict[str, object] = {}
     for provider, field_map in PROVIDER_FIELDS.items():
         raw = providers.get(provider, {})
@@ -101,6 +169,22 @@ def provider_config_summary(config: Mapping[str, object]) -> dict[str, str]:
     return summary
 
 
+def active_provider_names(config: Mapping[str, object]) -> list[str]:
+    providers = config.get("providers", {})
+    if not isinstance(providers, Mapping):
+        return []
+    active: list[str] = []
+    for provider in PROVIDER_FIELDS:
+        raw_provider = providers.get(provider)
+        if (
+            isinstance(raw_provider, Mapping)
+            and raw_provider.get("enabled") is True
+            and raw_provider.get("configured") is True
+        ):
+            active.append(provider)
+    return active
+
+
 def provider_config_env(config: Mapping[str, object]) -> dict[str, str]:
     providers = config.get("providers", {})
     if not isinstance(providers, Mapping):
@@ -109,6 +193,8 @@ def provider_config_env(config: Mapping[str, object]) -> dict[str, str]:
     for provider, field_map in PROVIDER_FIELDS.items():
         raw = providers.get(provider, {})
         if not isinstance(raw, Mapping):
+            continue
+        if raw.get("enabled") is not True or raw.get("configured") is not True:
             continue
         for field, aliases in field_map.items():
             value = str(raw.get(field, "")).strip()
@@ -119,11 +205,10 @@ def provider_config_env(config: Mapping[str, object]) -> dict[str, str]:
     return env
 
 
-def provider_capability_mode(summary: Mapping[str, str]) -> str:
-    academic_providers = ("openalex", "semantic_scholar", "crossref", "pubmed", "arxiv")
-    if any(summary.get(provider) == "configured" for provider in academic_providers):
-        return "provider_connected"
-    return "strategy_only"
+def provider_capability_mode(config: Mapping[str, object]) -> str:
+    """Report provider connectivity from configured *and enabled* state."""
+
+    return "provider_connected" if active_provider_names(config) else "strategy_only"
 
 
 def set_provider_value(provider: str, field: str, value: str, *, project_dir: Path | str | None = None) -> Path:
@@ -134,15 +219,11 @@ def set_provider_value(provider: str, field: str, value: str, *, project_dir: Pa
     _assert_known_field(provider_id, field_id)
     path = global_provider_config_path()
     config = _read_json_config(path)
-    providers = config.setdefault("providers", {})
-    if not isinstance(providers, dict):
-        providers = {}
-        config["providers"] = providers
-    raw_provider = providers.setdefault(provider_id, {})
-    if not isinstance(raw_provider, dict):
-        raw_provider = {}
-        providers[provider_id] = raw_provider
+    raw_provider = _provider_entry_for_write(config, provider_id, create=True)
+    if raw_provider is None:  # pragma: no cover - create=True always returns an entry.
+        raise ProviderConfigError("provider configuration could not be prepared for writing")
     raw_provider["enabled"] = True
+    _remove_normalized_key(raw_provider, field_id)
     raw_provider[field_id] = str(value)
     _write_json_config(path, config)
     return path
@@ -156,22 +237,72 @@ def unset_provider_value(provider: str, field: str, *, project_dir: Path | str |
     _assert_known_field(provider_id, field_id)
     path = global_provider_config_path()
     config = _read_json_config(path)
-    providers = config.get("providers", {})
-    if isinstance(providers, dict):
-        raw_provider = providers.get(provider_id, {})
-        if isinstance(raw_provider, dict):
-            raw_provider.pop(field_id, None)
+    raw_provider = _provider_entry_for_write(config, provider_id, create=False)
+    if raw_provider is not None:
+        _remove_normalized_key(raw_provider, field_id)
     _write_json_config(path, config)
     return path
+
+
+def _provider_entry_for_write(
+    config: dict[str, object],
+    provider: str,
+    *,
+    create: bool,
+) -> dict[str, object] | None:
+    providers = config.get("providers")
+    if providers is None:
+        if not create:
+            return None
+        providers = {}
+        config["providers"] = providers
+    if not isinstance(providers, dict):
+        raise ProviderConfigError("provider config providers must be an object")
+
+    matched_key = next(
+        (
+            raw_provider
+            for raw_provider in providers
+            if _normalize_provider(str(raw_provider)) == provider
+        ),
+        None,
+    )
+    if matched_key is None:
+        if not create:
+            return None
+        raw_config: object = {}
+    else:
+        raw_config = providers.pop(matched_key)
+    if not isinstance(raw_config, dict):
+        raise ProviderConfigError(
+            f"provider config providers.{provider} must be an object"
+        )
+    _canonicalize_known_provider_fields(raw_config, provider)
+    providers[provider] = raw_config
+    return raw_config
+
+
+def _canonicalize_known_provider_fields(
+    config: dict[str, object],
+    provider: str,
+) -> None:
+    known_fields = {"enabled", *PROVIDER_FIELDS[provider]}
+    for raw_field in list(config):
+        field = _normalize_field(str(raw_field))
+        if field in known_fields and raw_field != field:
+            config[field] = config.pop(raw_field)
+
+
+def _remove_normalized_key(config: dict[str, object], field: str) -> None:
+    for raw_field in list(config):
+        if _normalize_field(str(raw_field)) == field:
+            config.pop(raw_field)
 
 
 def _empty_config() -> dict[str, object]:
     return {
         "version": 1,
-        "providers": {
-            provider: {"enabled": False, "configured": False}
-            for provider in PROVIDER_FIELDS
-        },
+        "providers": {provider: {} for provider in PROVIDER_FIELDS},
         "search": {
             "minimum_productive_providers": 2,
             "allow_platform_search_supplement": True,
@@ -180,22 +311,159 @@ def _empty_config() -> dict[str, object]:
 
 
 def _read_json_config(path: Path) -> dict[str, object]:
-    if not path.is_file():
-        return {}
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
         return {}
-    return payload if isinstance(payload, dict) else {}
+    except OSError as exc:
+        raise ProviderConfigError(f"unable to read provider config: {path}") from exc
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise ProviderConfigError(f"provider config is not valid JSON: {path}") from exc
+    if not isinstance(payload, dict):
+        raise ProviderConfigError(f"provider config root must be an object: {path}")
+    _validate_json_config(payload, path)
+    return payload
+
+
+def _validate_json_config(config: Mapping[str, object], path: Path) -> None:
+    if "version" in config:
+        version = config["version"]
+        if isinstance(version, bool) or not isinstance(version, int) or version < 1:
+            raise ProviderConfigError(
+                f"provider config version must be a positive integer: {path}"
+            )
+        if version not in SUPPORTED_PROVIDER_CONFIG_VERSIONS:
+            raise ProviderConfigError(
+                f"provider config version is not supported: {path}"
+            )
+
+    providers = config.get("providers")
+    if "providers" in config and not isinstance(providers, Mapping):
+        raise ProviderConfigError(
+            f"provider config providers must be an object: {path}"
+        )
+    if isinstance(providers, Mapping):
+        seen_providers: set[str] = set()
+        for raw_provider, raw_config in providers.items():
+            provider = _normalize_provider(str(raw_provider))
+            if provider not in PROVIDER_FIELDS:
+                continue
+            if provider in seen_providers:
+                raise ProviderConfigError(
+                    f"provider config has conflicting keys for providers.{provider}: {path}"
+                )
+            seen_providers.add(provider)
+            if not isinstance(raw_config, Mapping):
+                raise ProviderConfigError(
+                    f"provider config providers.{provider} must be an object: {path}"
+                )
+            seen_fields: set[str] = set()
+            for raw_field, value in raw_config.items():
+                field = _normalize_field(str(raw_field))
+                is_known_field = (
+                    field == "enabled" or field in PROVIDER_FIELDS[provider]
+                )
+                if is_known_field and field in seen_fields:
+                    raise ProviderConfigError(
+                        "provider config has conflicting keys for "
+                        f"providers.{provider}.{field}: {path}"
+                    )
+                if is_known_field:
+                    seen_fields.add(field)
+                if field == "enabled" and not isinstance(value, bool):
+                    raise ProviderConfigError(
+                        f"provider config providers.{provider}.enabled must be a boolean: {path}"
+                    )
+                if field in PROVIDER_FIELDS[provider] and not isinstance(value, str):
+                    raise ProviderConfigError(
+                        f"provider config providers.{provider}.{field} must be a string: {path}"
+                    )
+
+    search = config.get("search")
+    if "search" in config and not isinstance(search, Mapping):
+        raise ProviderConfigError(
+            f"provider config search must be an object: {path}"
+        )
+    if isinstance(search, Mapping):
+        seen_search_fields: set[str] = set()
+        for raw_field, value in search.items():
+            field = _normalize_field(str(raw_field))
+            expected_type = SEARCH_PUBLIC_FIELD_TYPES.get(field)
+            if expected_type is None:
+                continue
+            if field in seen_search_fields:
+                raise ProviderConfigError(
+                    f"provider config has conflicting keys for search.{field}: {path}"
+                )
+            seen_search_fields.add(field)
+            if expected_type is int:
+                valid = isinstance(value, int) and not isinstance(value, bool)
+            else:
+                valid = isinstance(value, expected_type)
+            if not valid:
+                type_name = "an integer" if expected_type is int else "a boolean"
+                raise ProviderConfigError(
+                    f"provider config search.{field} must be {type_name}: {path}"
+                )
+            if (
+                field == "minimum_productive_providers"
+                and isinstance(value, int)
+                and value < 1
+            ):
+                raise ProviderConfigError(
+                    "provider config search.minimum_productive_providers "
+                    f"must be a positive integer: {path}"
+                )
 
 
 def _write_json_config(path: Path, config: Mapping[str, object]) -> None:
+    text = json.dumps(config, indent=2, sort_keys=True) + "\n"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(config, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    descriptor, temporary_name = tempfile.mkstemp(
+        dir=path.parent,
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+    )
+    temporary_path = Path(temporary_name)
     try:
-        path.chmod(stat.S_IRUSR | stat.S_IWUSR)
-    except OSError:
-        pass
+        if os.name == "posix":
+            os.fchmod(descriptor, stat.S_IRUSR | stat.S_IWUSR)
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
+            descriptor = -1
+            handle.write(text)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_path, path)
+    except BaseException:
+        if descriptor >= 0:
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+        try:
+            temporary_path.unlink()
+        except FileNotFoundError:
+            pass
+        raise
+
+
+def _redacted_search_config(raw_search: object) -> dict[str, object]:
+    if not isinstance(raw_search, Mapping):
+        return {}
+    redacted: dict[str, object] = {}
+    minimum = raw_search.get("minimum_productive_providers")
+    if (
+        isinstance(minimum, int)
+        and not isinstance(minimum, bool)
+        and minimum >= 1
+    ):
+        redacted["minimum_productive_providers"] = minimum
+    allow_supplement = raw_search.get("allow_platform_search_supplement")
+    if isinstance(allow_supplement, bool):
+        redacted["allow_platform_search_supplement"] = allow_supplement
+    return redacted
 
 
 def _read_project_env_config(root: Path) -> dict[str, object]:
@@ -336,7 +604,7 @@ def _finalize_config(config: dict[str, object]) -> None:
         else:
             configured = any(str(raw.get(field, "")).strip() for field in fields)
         raw["configured"] = configured
-        raw["enabled"] = True if not fields else bool(raw.get("enabled", configured))
+        raw["enabled"] = bool(raw.get("enabled", configured))
 
 
 def _normalize_provider(value: str) -> str:

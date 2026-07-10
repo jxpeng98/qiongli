@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { createServer } from "node:net";
 import os from "node:os";
 import path from "node:path";
 import {
@@ -602,7 +603,11 @@ test("status responses include provider capability registry", () => {
   assert.equal(status.provider_capabilities.arxiv.capabilities.includes("preprint_search"), true);
 });
 
-test("handleSaveProviderConfig writes shared provider config without echoing secrets", async () => {
+test("handleSaveProviderConfig writes shared provider config without echoing secrets", async (t) => {
+  if (process.platform === "win32") {
+    t.skip("Legacy Node writes fail closed on Windows; use the Rust provider config runtime");
+    return;
+  }
   const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-config-"));
   try {
     const response = await handleSaveProviderConfig(
@@ -625,7 +630,11 @@ test("handleSaveProviderConfig writes shared provider config without echoing sec
   }
 });
 
-test("handleOpenConfigWizard returns local setup URL and saves provider config", async () => {
+test("handleOpenConfigWizard returns local setup URL and saves provider config", async (t) => {
+  if (process.platform === "win32") {
+    t.skip("Legacy Node writes fail closed on Windows; use the Rust provider config runtime");
+    return;
+  }
   const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-wizard-"));
   const wizard = await handleOpenConfigWizard({}, { env: { QIONGLI_CONFIG_HOME: configHome } });
   try {
@@ -662,7 +671,105 @@ test("handleOpenConfigWizard returns local setup URL and saves provider config",
   }
 });
 
-test("handleOpenConfigWizard serves guidance, OpenAlex key input, and saving state", async () => {
+test("malformed config remains byte-identical after wizard and MCP save failures", async (t) => {
+  if (process.platform === "win32") {
+    t.skip("Legacy Node wizard writes are disabled on Windows before the listener starts");
+    return;
+  }
+  const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-malformed-wizard-"));
+  const configPath = path.join(configHome, "providers.json");
+  const original = "{not-json malformed-secret-canary";
+  await writeFile(configPath, original);
+  const wizard = await handleOpenConfigWizard({}, { env: { QIONGLI_CONFIG_HOME: configHome } });
+  try {
+    const response = await fetch(wizard.url, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ "openalex.api_key": "submitted-secret-canary" }),
+      redirect: "manual"
+    });
+    const body = await response.text();
+
+    assert.equal(response.status, 500);
+    assert.equal(body, "provider configuration could not be saved");
+    assert.equal(body.includes("malformed-secret-canary"), false);
+    assert.equal(body.includes("submitted-secret-canary"), false);
+    assert.equal(body.includes(configHome), false);
+    assert.equal(await readFile(configPath, "utf8"), original);
+
+    await assert.rejects(
+      () => handleSaveProviderConfig(
+        { provider: "openalex", field: "api_key", value: "mcp-secret-canary" },
+        { env: { QIONGLI_CONFIG_HOME: configHome } }
+      ),
+      (error) => {
+        assert.equal(error.message, "provider configuration could not be saved");
+        assert.equal(error.message.includes("mcp-secret-canary"), false);
+        assert.equal(error.message.includes(configHome), false);
+        return true;
+      }
+    );
+    assert.equal(await readFile(configPath, "utf8"), original);
+  } finally {
+    await wizard.stop();
+    await rm(configHome, { recursive: true, force: true });
+  }
+});
+
+test("Windows config wizard fails before listening and preserves config bytes", async (t) => {
+  if (process.platform !== "win32") {
+    t.skip("Windows-only fail-before-listener behavior");
+    return;
+  }
+  const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-windows-wizard-"));
+  const configPath = path.join(configHome, "providers.json");
+  const original = Buffer.from("{not-json windows-wizard-secret-canary", "utf8");
+  const guardServer = createServer();
+  let guardConnections = 0;
+  guardServer.on("connection", () => {
+    guardConnections += 1;
+  });
+  await new Promise((resolve, reject) => {
+    guardServer.once("error", reject);
+    guardServer.listen(0, "127.0.0.1", resolve);
+  });
+  const address = guardServer.address();
+  assert.equal(typeof address, "object");
+  const guardedPort = address.port;
+  await writeFile(configPath, original);
+
+  try {
+    await assert.rejects(
+      () => handleOpenConfigWizard(
+        { host: "127.0.0.1", port: guardedPort },
+        { env: { QIONGLI_CONFIG_HOME: configHome } }
+      ),
+      (error) => {
+        assert.equal(error.message, "provider configuration could not be saved");
+        assert.equal(error.message.includes("windows-wizard-secret-canary"), false);
+        assert.equal(error.message.includes(configHome), false);
+        assert.equal(error.message.includes(String(guardedPort)), false);
+        return true;
+      }
+    );
+
+    assert.equal(guardServer.listening, true);
+    assert.equal(guardConnections, 0);
+    assert.deepEqual(await readFile(configPath), original);
+    assert.deepEqual(await readdir(configHome), ["providers.json"]);
+  } finally {
+    await new Promise((resolve, reject) => {
+      guardServer.close((error) => error ? reject(error) : resolve());
+    });
+    await rm(configHome, { recursive: true, force: true });
+  }
+});
+
+test("handleOpenConfigWizard serves guidance, OpenAlex key input, and saving state", async (t) => {
+  if (process.platform === "win32") {
+    t.skip("Legacy Node wizard writes are disabled on Windows before the listener starts");
+    return;
+  }
   const configHome = await mkdtemp(path.join(os.tmpdir(), "qiongli-mcpb-wizard-ui-"));
   const wizard = await handleOpenConfigWizard(
     { provider: "openalex" },

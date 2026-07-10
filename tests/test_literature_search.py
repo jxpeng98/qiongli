@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import types
 import unittest
+from unittest import mock
 
 from bridges.providers.literature_search import (
     build_query_variants,
@@ -345,6 +346,29 @@ class LiteratureSearchBaselineTests(unittest.TestCase):
         self.assertFalse(diagnostics["all_providers_failed"])
         self.assertTrue(diagnostics["zero_hit"])
         self.assertEqual(diagnostics["failed_query_count"], 0)
+
+    def test_run_scholarly_search_treats_explicit_empty_provider_map_as_offline(self) -> None:
+        search = mock.Mock(side_effect=AssertionError("legacy network fallback must not run"))
+
+        result = run_scholarly_search(
+            {"topic": "platform governance"},
+            search,
+            provider_fns={},
+            retrieved_at="2026-03-25T12:00:00+00:00",
+        )
+
+        self.assertEqual(result["status"], "warning")
+        self.assertEqual(result["data"]["provider_mode"], "strategy_only")
+        self.assertEqual(
+            result["data"]["search_diagnostics"]["attempted_providers"],
+            [],
+        )
+        self.assertEqual(
+            result["data"]["search_diagnostics"]["status_reason"],
+            "no_active_providers",
+        )
+        self.assertIn("no active literature providers", result["summary"].lower())
+        search.assert_not_called()
 
     def test_run_scholarly_search_does_not_mark_error_response_with_hits_as_all_failed(self) -> None:
         result = run_scholarly_search(

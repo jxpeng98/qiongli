@@ -218,6 +218,12 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
         self.assertNotIn("Open a local browser", json.dumps(manifest))
 
     def test_legacy_node_mcpb_uses_node_runtime_overlay_without_native_identity(self) -> None:
+        source_manifest = json.loads(
+            (PACKAGE_ROOT / "manifest.json").read_text(encoding="utf-8")
+        )
+        source_tool_descriptions = {
+            tool["name"]: tool["description"] for tool in source_manifest["tools"]
+        }
         with tempfile.TemporaryDirectory() as tmp_dir:
             dist = Path(tmp_dir) / "dist"
             result = subprocess.run(
@@ -254,10 +260,9 @@ class LiteratureMCPBArtifactTests(unittest.TestCase):
         legacy_tool_descriptions = {
             tool["name"]: tool["description"] for tool in manifest["tools"]
         }
-        self.assertIn(
-            "Open a local browser",
-            legacy_tool_descriptions["qiongli_configure_provider"],
-        )
+        self.assertEqual(legacy_tool_descriptions, source_tool_descriptions)
+        self.assertIn("return its URL", legacy_tool_descriptions["qiongli_configure_provider"])
+        self.assertNotIn("Open a local browser", json.dumps(manifest))
         self.assertNotIn("bin/qiongli-literature-provider.target.json", names)
         self.assertTrue(any(name.startswith("server/") for name in names))
 

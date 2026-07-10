@@ -118,13 +118,9 @@ fn config_wizard_aliases_share_the_same_handler_policy() {
     let canonical = call("qiongli_configure_provider", 1);
     let alias = call("qiongli_open_config_wizard", 2);
 
-    assert_eq!(canonical["result"]["isError"], true);
-    assert_eq!(alias["result"]["isError"], true);
-    assert_eq!(
-        canonical["result"]["structuredContent"],
-        alias["result"]["structuredContent"]
-    );
-    assert_eq!(canonical["result"]["content"], alias["result"]["content"]);
+    assert_eq!(canonical["error"]["code"], -32602);
+    assert_eq!(alias["error"]["code"], -32602);
+    assert_eq!(canonical["error"]["message"], alias["error"]["message"]);
 }
 
 #[test]

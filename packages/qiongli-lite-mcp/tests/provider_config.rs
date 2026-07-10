@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use qiongli_lite_mcp::config::provider_config::{
     provider_config_path, provider_field_specs, resolve_provider_config, save_provider_value,
-    summary, ProviderFieldRole, ResolvedProviderConfig,
+    summary, ConfigError, ProviderFieldRole, ResolvedProviderConfig,
 };
 
 static ENV_LOCK: Mutex<()> = Mutex::new(());
@@ -13,10 +13,117 @@ fn provider_config_path_uses_qiongli_config_home() {
     let temp = tempfile_dir();
     std::env::set_var("QIONGLI_CONFIG_HOME", &temp);
 
-    let path = provider_config_path();
+    let path = provider_config_path().unwrap();
     assert_eq!(path, temp.join("providers.json"));
 
     std::env::remove_var("QIONGLI_CONFIG_HOME");
+}
+
+#[cfg(any(unix, windows))]
+#[test]
+fn default_and_tilde_paths_resolve_against_the_platform_home() {
+    let _guard = ENV_LOCK.lock().unwrap();
+    let home = tempfile_dir().join("platform-home");
+    std::fs::create_dir_all(&home).unwrap();
+    let previous_config_home = std::env::var_os("QIONGLI_CONFIG_HOME");
+    let previous_home: Vec<_> = platform_home_variables()
+        .iter()
+        .map(|name| (*name, std::env::var_os(name)))
+        .collect();
+    std::env::remove_var("QIONGLI_CONFIG_HOME");
+    set_platform_home(&home);
+
+    assert_eq!(
+        provider_config_path().unwrap(),
+        home.join(".config/qiongli/providers.json")
+    );
+    std::env::set_var("QIONGLI_CONFIG_HOME", "~");
+    assert_eq!(provider_config_path().unwrap(), home.join("providers.json"));
+    std::env::set_var("QIONGLI_CONFIG_HOME", "~/nested/config");
+    assert_eq!(
+        provider_config_path().unwrap(),
+        home.join("nested/config/providers.json")
+    );
+    for invalid in ["~//abs", r"~/\abs", r"~/C:\abs", "~/C:relative"] {
+        std::env::set_var("QIONGLI_CONFIG_HOME", invalid);
+        let error = provider_config_path().expect_err("portable absolute form must fail");
+        assert!(matches!(error, ConfigError::InvalidConfigHome));
+        assert_eq!(
+            error.to_string(),
+            "provider config home must be a fully qualified absolute path or start with ~/"
+        );
+        assert!(!error.to_string().contains(invalid));
+    }
+    assert_eq!(std::fs::read_dir(&home).unwrap().count(), 0);
+
+    restore_env("QIONGLI_CONFIG_HOME", previous_config_home);
+    for (name, value) in previous_home {
+        restore_env(name, value);
+    }
+}
+
+#[test]
+fn relative_config_home_is_rejected_without_writing_to_cwd() {
+    let _guard = ENV_LOCK.lock().unwrap();
+    let previous_home = std::env::var_os("QIONGLI_CONFIG_HOME");
+    let relative = format!(
+        "qiongli-relative-config-{}",
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    );
+    let cwd_root = std::path::PathBuf::from(&relative);
+    let cwd_target = cwd_root.join("providers.json");
+    assert!(!cwd_root.exists());
+    std::env::set_var("QIONGLI_CONFIG_HOME", &relative);
+
+    let path_error = provider_config_path().expect_err("relative path must fail");
+    let save_error = save_provider_value("crossref", "email", "person@example.com")
+        .expect_err("relative path must not be written");
+    let summary_error = summary().expect_err("relative path must not be read");
+
+    assert!(matches!(path_error, ConfigError::InvalidConfigHome));
+    assert!(matches!(save_error, ConfigError::InvalidConfigHome));
+    assert!(matches!(summary_error, ConfigError::InvalidConfigHome));
+    assert_eq!(
+        path_error.to_string(),
+        "provider config home must be a fully qualified absolute path or start with ~/"
+    );
+    assert!(!path_error.to_string().contains(&relative));
+    assert!(!cwd_root.exists());
+    assert!(!cwd_target.exists());
+    restore_env("QIONGLI_CONFIG_HOME", previous_home);
+}
+
+#[cfg(any(unix, windows))]
+#[test]
+fn missing_platform_home_fails_closed() {
+    let _guard = ENV_LOCK.lock().unwrap();
+    let previous_config_home = std::env::var_os("QIONGLI_CONFIG_HOME");
+    let previous_home: Vec<_> = platform_home_variables()
+        .iter()
+        .map(|name| (*name, std::env::var_os(name)))
+        .collect();
+    std::env::remove_var("QIONGLI_CONFIG_HOME");
+    for name in platform_home_variables() {
+        std::env::remove_var(name);
+    }
+
+    assert!(matches!(
+        provider_config_path(),
+        Err(ConfigError::HomeUnavailable)
+    ));
+    assert!(matches!(
+        save_provider_value("crossref", "email", "person@example.com"),
+        Err(ConfigError::HomeUnavailable)
+    ));
+    assert!(matches!(summary(), Err(ConfigError::HomeUnavailable)));
+
+    restore_env("QIONGLI_CONFIG_HOME", previous_config_home);
+    for (name, value) in previous_home {
+        restore_env(name, value);
+    }
 }
 
 #[test]
@@ -109,6 +216,44 @@ fn mcpb_environment_aliases_resolve_without_leaking_values() {
 }
 
 #[test]
+fn environment_credentials_enable_a_persisted_disabled_provider() {
+    let _guard = ENV_LOCK.lock().unwrap();
+    let temp = tempfile_dir();
+    let previous_home = std::env::var_os("QIONGLI_CONFIG_HOME");
+    let aliases = [
+        "QIONGLI_SEMANTIC_SCHOLAR_API_KEY",
+        "SEMANTIC_SCHOLAR_API_KEY",
+        "S2_API_KEY",
+        "QIONGLI_MCPB_SEMANTIC_SCHOLAR_API_KEY",
+    ];
+    let previous_aliases = aliases.map(|name| (name, std::env::var_os(name)));
+    std::env::set_var("QIONGLI_CONFIG_HOME", &temp);
+    for alias in aliases {
+        std::env::remove_var(alias);
+    }
+    std::fs::write(
+        temp.join("providers.json"),
+        r#"{"version":1,"providers":{"semantic_scholar":{"enabled":false}}}"#,
+    )
+    .unwrap();
+    std::env::set_var("QIONGLI_SEMANTIC_SCHOLAR_API_KEY", "environment-secret");
+
+    let resolved = resolve_provider_config().unwrap();
+
+    assert!(resolved.is_enabled("semantic_scholar"));
+    assert!(resolved.is_configured("semantic_scholar"));
+    assert!(resolved.is_active("semantic_scholar"));
+    assert_eq!(
+        resolved.value("semantic_scholar", "api_key"),
+        Some("environment-secret")
+    );
+    restore_env("QIONGLI_CONFIG_HOME", previous_home);
+    for (name, value) in previous_aliases {
+        restore_env(name, value);
+    }
+}
+
+#[test]
 fn every_mcpb_environment_alias_matches_the_shared_provider_contract() {
     let _guard = ENV_LOCK.lock().unwrap();
     let temp = tempfile_dir();
@@ -191,7 +336,19 @@ fn saving_a_provider_value_preserves_unknown_future_top_level_fields() {
     let path = temp.join("providers.json");
     std::fs::write(
         &path,
-        r#"{"version":1,"providers":{},"future_extension":{"enabled":true}}"#,
+        r#"{
+            "version": 1,
+            "providers": {
+                "crossref": {"future_provider_field": {"mode": "next"}},
+                "future_provider": ["opaque", 2]
+            },
+            "search": {
+                "minimum_productive_providers": 3,
+                "allow_platform_search_supplement": false,
+                "future_search_field": {"mode": "next"}
+            },
+            "future_extension": {"enabled": true}
+        }"#,
     )
     .unwrap();
 
@@ -200,6 +357,133 @@ fn saving_a_provider_value_preserves_unknown_future_top_level_fields() {
         serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
 
     assert_eq!(payload["future_extension"]["enabled"], true);
+    assert_eq!(
+        payload["providers"]["crossref"]["future_provider_field"]["mode"],
+        "next"
+    );
+    assert_eq!(payload["providers"]["future_provider"][0], "opaque");
+    assert_eq!(payload["search"]["minimum_productive_providers"], 3);
+    assert_eq!(payload["search"]["allow_platform_search_supplement"], false);
+    assert_eq!(payload["search"]["future_search_field"]["mode"], "next");
+    restore_env("QIONGLI_CONFIG_HOME", previous_home);
+}
+
+#[test]
+fn saving_migrates_unique_legacy_aliases_to_canonical_keys() {
+    let _guard = ENV_LOCK.lock().unwrap();
+    let temp = tempfile_dir();
+    let previous_home = std::env::var_os("QIONGLI_CONFIG_HOME");
+    let aliases = [
+        "QIONGLI_SEMANTIC_SCHOLAR_API_KEY",
+        "SEMANTIC_SCHOLAR_API_KEY",
+        "S2_API_KEY",
+        "QIONGLI_MCPB_SEMANTIC_SCHOLAR_API_KEY",
+    ];
+    let previous_aliases = aliases.map(|name| (name, std::env::var_os(name)));
+    std::env::set_var("QIONGLI_CONFIG_HOME", &temp);
+    for alias in aliases {
+        std::env::remove_var(alias);
+    }
+    let path = temp.join("providers.json");
+    std::fs::write(
+        &path,
+        r#"{
+            "version": 1,
+            "providers": {
+                "semantic-scholar": {
+                    "enabled": false,
+                    "api-key": "legacy-key",
+                    "future-field": {"keep": true}
+                },
+                "future-provider": {"keep": true}
+            },
+            "search": {
+                "minimum-productive-providers": 2,
+                "future-setting": {"keep": true}
+            }
+        }"#,
+    )
+    .unwrap();
+
+    save_provider_value("s2", "api-key", "replacement-key").unwrap();
+    let resolved = resolve_provider_config().unwrap();
+    let payload: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+
+    assert!(resolved.is_active("semantic_scholar"));
+    assert_eq!(
+        resolved.value("semantic_scholar", "api_key"),
+        Some("replacement-key")
+    );
+    assert!(payload["providers"].get("semantic-scholar").is_none());
+    assert!(payload["providers"]["semantic_scholar"]
+        .get("api-key")
+        .is_none());
+    assert_eq!(
+        payload["providers"]["semantic_scholar"]["api_key"],
+        "replacement-key"
+    );
+    assert_eq!(
+        payload["providers"]["semantic_scholar"]["future-field"]["keep"],
+        true
+    );
+    assert_eq!(payload["providers"]["future-provider"]["keep"], true);
+    assert!(payload["search"]
+        .get("minimum-productive-providers")
+        .is_none());
+    assert_eq!(payload["search"]["minimum_productive_providers"], 2);
+    assert_eq!(payload["search"]["future-setting"]["keep"], true);
+
+    restore_env("QIONGLI_CONFIG_HOME", previous_home);
+    for (name, value) in previous_aliases {
+        restore_env(name, value);
+    }
+}
+
+#[test]
+fn malformed_known_config_fails_closed_without_overwriting_original() {
+    let _guard = ENV_LOCK.lock().unwrap();
+    let temp = tempfile_dir();
+    let previous_home = std::env::var_os("QIONGLI_CONFIG_HOME");
+    std::env::set_var("QIONGLI_CONFIG_HOME", &temp);
+    let path = temp.join("providers.json");
+    let malformed_payloads = [
+        r#"[]"#,
+        r#"{"version":0}"#,
+        r#"{"version":2}"#,
+        r#"{"version":true}"#,
+        r#"{"providers":[]}"#,
+        r#"{"providers":{"openalex":[]}}"#,
+        r#"{"providers":{"openalex":{"enabled":"credential-canary"}}}"#,
+        r#"{"providers":{"openalex":{"api_key":{"secret":"credential-canary"}}}}"#,
+        r#"{"providers":{"semantic-scholar":{"api_key":"first"},"semantic_scholar":{"api_key":"second"}}}"#,
+        r#"{"providers":{"openalex":{"api-key":"first","api_key":"second"}}}"#,
+        r#"{"search":[]}"#,
+        r#"{"search":{"minimum_productive_providers":true}}"#,
+        r#"{"search":{"minimum_productive_providers":0}}"#,
+        r#"{"search":{"minimum_productive_providers":-1}}"#,
+        r#"{"search":{"minimum-productive-providers":2,"minimum_productive_providers":3}}"#,
+        r#"{"search":{"allow_platform_search_supplement":1}}"#,
+    ];
+
+    for payload in malformed_payloads {
+        std::fs::write(&path, payload).unwrap();
+        let original = std::fs::read(&path).unwrap();
+
+        let read_error = resolve_provider_config().err().expect("config must fail");
+        let save_error =
+            save_provider_value("crossref", "email", "new-value").expect_err("save must fail");
+
+        assert!(!read_error.to_string().contains("credential-canary"));
+        assert!(!save_error.to_string().contains("credential-canary"));
+        assert_eq!(std::fs::read(&path).unwrap(), original);
+        let entries: Vec<_> = std::fs::read_dir(&temp)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name())
+            .collect();
+        assert_eq!(entries, vec![std::ffi::OsString::from("providers.json")]);
+    }
+
     restore_env("QIONGLI_CONFIG_HOME", previous_home);
 }
 
@@ -247,6 +531,28 @@ fn tempfile_dir() -> std::path::PathBuf {
     ));
     std::fs::create_dir_all(&path).unwrap();
     path
+}
+
+#[cfg(unix)]
+fn platform_home_variables() -> &'static [&'static str] {
+    &["HOME"]
+}
+
+#[cfg(windows)]
+fn platform_home_variables() -> &'static [&'static str] {
+    &["USERPROFILE", "HOMEDRIVE", "HOMEPATH"]
+}
+
+#[cfg(unix)]
+fn set_platform_home(path: &std::path::Path) {
+    std::env::set_var("HOME", path);
+}
+
+#[cfg(windows)]
+fn set_platform_home(path: &std::path::Path) {
+    std::env::set_var("USERPROFILE", path);
+    std::env::remove_var("HOMEDRIVE");
+    std::env::remove_var("HOMEPATH");
 }
 
 fn restore_env(name: &str, value: Option<std::ffi::OsString>) {

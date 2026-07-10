@@ -26,10 +26,17 @@ class ProviderClientTests(unittest.TestCase):
             )
 
         with mock.patch("urllib.request.urlopen", fake_urlopen):
-            result = openalex_client.search({"translated_query": "AI education", "filters": {"year_start": 2020}}, 3)
+            result = openalex_client.search(
+                {"translated_query": "AI education", "filters": {"year_start": 2020}},
+                3,
+                api_key="openalex-test-key",
+                email="maintainer@example.com",
+            )
 
         self.assertIn("search=AI%20education", captured["url"])
         self.assertIn("per-page=3", captured["url"])
+        self.assertIn("api_key=openalex-test-key", captured["url"])
+        self.assertIn("mailto=maintainer%40example.com", captured["url"])
         self.assertEqual(result["data"][0]["title"], "OpenAlex Paper")
         self.assertEqual(result["data"][0]["provider"], "openalex")
 

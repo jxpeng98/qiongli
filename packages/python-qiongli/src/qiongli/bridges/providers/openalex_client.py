@@ -14,7 +14,13 @@ OPENALEX_WORKS_URL = "https://api.openalex.org/works"
 DEFAULT_TIMEOUT_SECONDS = 15
 
 
-def search(translation: dict[str, object], limit: int) -> dict[str, object]:
+def search(
+    translation: dict[str, object],
+    limit: int,
+    *,
+    api_key: str | None = None,
+    email: str | None = None,
+) -> dict[str, object]:
     query = str(translation.get("translated_query", "") or "").strip()
     if not query:
         return {"data": []}
@@ -29,9 +35,12 @@ def search(translation: dict[str, object], limit: int) -> dict[str, object]:
     filter_value = _filter_value(filters)
     if filter_value:
         params["filter"] = filter_value
-    email = _openalex_email()
-    if email:
-        params["mailto"] = email
+    resolved_api_key = _openalex_api_key() if api_key is None else api_key.strip()
+    if resolved_api_key:
+        params["api_key"] = resolved_api_key
+    resolved_email = _openalex_email() if email is None else email.strip()
+    if resolved_email:
+        params["mailto"] = resolved_email
 
     try:
         payload = _get_json(OPENALEX_WORKS_URL, params)
@@ -114,3 +123,13 @@ def _openalex_email() -> str:
     if not isinstance(openalex, dict):
         return ""
     return str(openalex.get("email", "") or "").strip()
+
+
+def _openalex_api_key() -> str:
+    providers = resolve_provider_config(cwd=Path.cwd()).get("providers", {})
+    if not isinstance(providers, dict):
+        return ""
+    openalex = providers.get("openalex", {})
+    if not isinstance(openalex, dict):
+        return ""
+    return str(openalex.get("api_key", "") or "").strip()

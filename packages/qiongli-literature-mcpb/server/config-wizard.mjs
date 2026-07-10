@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
 import {
+  assertSecureProviderConfigWritesSupported,
   providerAccessGuidance,
   providerConfigPath,
   providerFieldAliases,
@@ -14,6 +15,7 @@ const TOKEN_BYTES = 18;
 export async function startConfigWizard({ host = DEFAULT_HOST, port = 0, provider, env = process.env } = {}) {
   const normalizedHost = normalizeHost(host);
   const selectedProvider = normalizeProvider(provider);
+  assertSecureProviderConfigWritesSupported();
   const token = randomBytes(TOKEN_BYTES).toString("base64url");
   const configPath = providerConfigPath(env);
   let closeTimer;

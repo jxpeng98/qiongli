@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use qiongli_lite_mcp::config::provider_config::ConfigError;
 use qiongli_lite_mcp::config::wizard::{start_config_wizard, ConfigWizardOptions, WizardError};
 use url::Url;
 
@@ -12,6 +13,7 @@ static ENV_LOCK: Mutex<()> = Mutex::new(());
 
 #[test]
 fn rejects_non_loopback_host_and_unsupported_provider() {
+    let _guard = ENV_LOCK.lock().unwrap();
     let non_loopback = start_config_wizard(ConfigWizardOptions {
         host: "0.0.0.0".to_string(),
         ..ConfigWizardOptions::default()
@@ -30,6 +32,7 @@ fn rejects_non_loopback_host_and_unsupported_provider() {
 
 #[test]
 fn uses_distinct_random_tokens_and_normalizes_localhost() {
+    let _guard = ENV_LOCK.lock().unwrap();
     let first = start_config_wizard(ConfigWizardOptions {
         host: "localhost".to_string(),
         ttl: Duration::from_secs(2),
@@ -54,6 +57,7 @@ fn uses_distinct_random_tokens_and_normalizes_localhost() {
 
 #[test]
 fn requires_token_limits_body_and_expires() {
+    let _guard = ENV_LOCK.lock().unwrap();
     let wizard = start_config_wizard(ConfigWizardOptions {
         ttl: Duration::from_millis(150),
         max_body_bytes: 24,
@@ -90,9 +94,25 @@ fn requires_token_limits_body_and_expires() {
 }
 
 #[test]
+fn rejects_relative_config_home_before_starting_the_wizard() {
+    let _guard = ENV_LOCK.lock().unwrap();
+    let previous_home = std::env::var_os("QIONGLI_CONFIG_HOME");
+    std::env::set_var("QIONGLI_CONFIG_HOME", "relative/config");
+
+    let result = start_config_wizard(ConfigWizardOptions::default());
+
+    assert!(matches!(
+        result,
+        Err(WizardError::Config(ConfigError::InvalidConfigHome))
+    ));
+    restore_env("QIONGLI_CONFIG_HOME", previous_home);
+}
+
+#[test]
 fn saves_once_without_echoing_secret_and_stops_after_redirect() {
     let _guard = ENV_LOCK.lock().unwrap();
     let config_home = temp_dir();
+    let previous_home = std::env::var_os("QIONGLI_CONFIG_HOME");
     std::env::set_var("QIONGLI_CONFIG_HOME", &config_home);
 
     let wizard = start_config_wizard(ConfigWizardOptions {
@@ -149,7 +169,48 @@ fn saves_once_without_echoing_secret_and_stops_after_redirect() {
     assert!(config.contains(secret));
     assert_eq!(wizard.config_path(), &config_home.join("providers.json"));
 
-    std::env::remove_var("QIONGLI_CONFIG_HOME");
+    restore_env("QIONGLI_CONFIG_HOME", previous_home);
+}
+
+#[test]
+fn malformed_config_remains_byte_identical_after_failed_submission() {
+    let _guard = ENV_LOCK.lock().unwrap();
+    let config_home = temp_dir();
+    let previous_home = std::env::var_os("QIONGLI_CONFIG_HOME");
+    std::env::set_var("QIONGLI_CONFIG_HOME", &config_home);
+    let config_path = config_home.join("providers.json");
+    let malformed_secret = "malformed-rust-wizard-secret-canary";
+    let submitted_secret = "submitted-rust-wizard-secret-canary";
+    let original = format!("{{not-json {malformed_secret}").into_bytes();
+    fs::write(&config_path, &original).unwrap();
+
+    let wizard = start_config_wizard(ConfigWizardOptions {
+        ttl: Duration::from_secs(3),
+        ..ConfigWizardOptions::default()
+    })
+    .unwrap();
+    let body = format!("openalex.api_key={submitted_secret}");
+    let save_target = target_with_path(wizard.url(), "/save");
+    let response = send_request(
+        wizard.url(),
+        &format!(
+            "POST {save_target} HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+            body.len()
+        ),
+    );
+
+    assert!(response.starts_with("HTTP/1.1 500"), "{response}");
+    assert!(response.contains("Unable to save configuration."));
+    assert!(!response.contains(malformed_secret));
+    assert!(!response.contains(submitted_secret));
+    assert!(!response.contains(config_home.to_string_lossy().as_ref()));
+    assert_eq!(fs::read(&config_path).unwrap(), original);
+    assert!(!wizard.is_completed());
+
+    wizard.stop();
+    assert!(wizard.wait_until_stopped(Duration::from_secs(1)));
+    restore_env("QIONGLI_CONFIG_HOME", previous_home);
+    fs::remove_dir_all(config_home).unwrap();
 }
 
 fn send_request(base_url: &str, request: &str) -> String {
@@ -189,4 +250,12 @@ fn temp_dir() -> PathBuf {
     ));
     fs::create_dir_all(&path).unwrap();
     path
+}
+
+fn restore_env(name: &str, value: Option<std::ffi::OsString>) {
+    if let Some(value) = value {
+        std::env::set_var(name, value);
+    } else {
+        std::env::remove_var(name);
+    }
 }

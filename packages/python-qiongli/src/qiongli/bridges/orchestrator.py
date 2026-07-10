@@ -37,7 +37,12 @@ from .command_runtime import split_command
 from .codex_bridge import CodexBridge
 from .mcp_connectors import MCPEvidence, MCPConnector
 from .i18n import get_language, get_text
-from .provider_config import provider_capability_mode, provider_config_summary, resolve_provider_config
+from .provider_config import (
+    active_provider_names,
+    provider_capability_mode,
+    provider_config_summary,
+    resolve_provider_config,
+)
 from .critique_questions import get_critique_questions
 from .guidance_runtime import (
     GUIDANCE_MODES,
@@ -2262,20 +2267,18 @@ Provide your verification assessment.
                     f"Restore {filename} under standards/ before running task-run.",
                 )
 
-        provider_summary = provider_config_summary(resolve_provider_config(cwd=target_cwd))
-        configured_literature_providers = [
-            provider for provider, status in provider_summary.items() if status == "configured"
-        ]
-        for provider in configured_literature_providers:
-            add_check(f"Literature provider {provider}", "ok", "configured")
-        capability_mode = provider_capability_mode(provider_summary)
+        provider_config = resolve_provider_config(cwd=target_cwd)
+        provider_summary = provider_config_summary(provider_config)
+        for provider in active_provider_names(provider_config):
+            add_check(f"Literature provider {provider}", "ok", "configured and enabled")
+        capability_mode = provider_capability_mode(provider_config)
         if capability_mode == "provider_connected":
             add_check("Literature search capability", "ok", capability_mode)
         else:
             add_check(
                 "Literature search capability",
                 "warning",
-                "strategy_only; no configured external literature providers",
+                "strategy_only; no active external literature providers",
                 "Run qiongli provider setup or qiongli provider set before relying on external literature search.",
             )
 

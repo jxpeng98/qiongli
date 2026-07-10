@@ -57,7 +57,7 @@ export const TOOL_DECLARATIONS = [
   },
   {
     name: "qiongli_search_plan",
-    description: "Plan provider MCP and platform-native literature search routing without executing platform-native search.",
+    description: "Plan provider and platform-native literature search routing without executing search.",
     inputSchema: {
       type: "object",
       additionalProperties: true,
@@ -149,7 +149,7 @@ export const TOOL_DECLARATIONS = [
   },
   {
     name: "qiongli_configure_provider",
-    description: "Open a local browser-based setup page for Qiongli provider credentials. Prefer this for API keys so secrets do not enter chat history.",
+    description: "Start a tokenized loopback setup page and return its URL for provider configuration. Prefer this for API keys so secrets do not enter chat history.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -191,7 +191,7 @@ export const TOOL_DECLARATIONS = [
   },
   {
     name: "qiongli_open_config_wizard",
-    description: "Compatibility alias for qiongli_configure_provider. Starts a local browser-based provider configuration wizard.",
+    description: "Compatibility alias for qiongli_configure_provider.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -685,29 +685,7 @@ function readOptionalYear(value) {
 
 function providersFor(config) {
   const status = providerStatus(config);
-  const providers = [];
-
-  if (status.providers.openalex === "configured") {
-    providers.push("openalex");
-  }
-
-  if (status.providers.semantic_scholar === "configured") {
-    providers.push("semantic_scholar");
-  }
-
-  if (status.providers.crossref === "configured") {
-    providers.push("crossref");
-  }
-
-  if (status.providers.pubmed === "configured") {
-    providers.push("pubmed");
-  }
-
-  if (status.providers.arxiv === "configured") {
-    providers.push("arxiv");
-  }
-
-  return providers;
+  return [...status.active_providers];
 }
 
 function comparableFilterValue(value) {
@@ -861,7 +839,13 @@ export function handleStatus(context = {}) {
 
 export function handleSearchPlan(input = {}, context = {}) {
   const status = handleStatus(context);
-  return buildHybridSearchPlan(input, status.capability_mode, status.providers);
+  const activeProviderStatus = Object.fromEntries(
+    Object.keys(status.providers).map((provider) => [
+      provider,
+      status.active_providers.includes(provider) ? "configured" : "missing"
+    ])
+  );
+  return buildHybridSearchPlan(input, status.capability_mode, activeProviderStatus);
 }
 
 export function handleConfigStatus(context = {}) {

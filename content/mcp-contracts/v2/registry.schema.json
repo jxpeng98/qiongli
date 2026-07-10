@@ -99,7 +99,7 @@
     },
     "profile": {
       "type": "object",
-      "required": ["exposure"],
+      "required": ["exposure", "error_transport"],
       "properties": {
         "exposure": { "enum": ["tool", "metadata-only", "unavailable"] },
         "input_schema_ref": { "type": "string", "minLength": 1 },
@@ -139,7 +139,8 @@
         "description": { "type": "string", "minLength": 1 },
         "aliases": {
           "type": "array",
-          "items": { "$ref": "#/$defs/alias" }
+          "items": { "$ref": "#/$defs/alias" },
+          "uniqueItems": true
         },
         "maturity": { "enum": ["stable", "preview", "experimental", "deprecated"] },
         "lifecycle": {
@@ -165,6 +166,7 @@
         "errors": {
           "type": "array",
           "items": { "type": "string", "minLength": 1 },
+          "minItems": 1,
           "uniqueItems": true
         },
         "side_effects": {
@@ -177,15 +179,22 @@
             "accepts_secret_input",
             "raw_secret_output",
             "redaction_required",
+            "sensitive_output_paths",
             "notes"
           ],
           "properties": {
             "accepts_secret_input": { "type": "boolean" },
             "raw_secret_output": { "const": "forbidden" },
             "redaction_required": { "type": "boolean" },
+            "sensitive_output_paths": {
+              "type": "array",
+              "items": { "type": "string", "pattern": "^/" },
+              "uniqueItems": true
+            },
             "notes": {
               "type": "array",
-              "items": { "type": "string", "minLength": 1 }
+              "items": { "type": "string", "minLength": 1 },
+              "minItems": 1
             }
           },
           "additionalProperties": false
@@ -193,6 +202,7 @@
         "smoke_call_ids": {
           "type": "array",
           "items": { "type": "string", "minLength": 1 },
+          "minItems": 1,
           "uniqueItems": true
         }
       },

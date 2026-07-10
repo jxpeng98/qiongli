@@ -30,6 +30,7 @@ def build_hybrid_search_plan(
     provider_status: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     query = _string_arg(args, "query")
+    search_mode = _search_mode_arg(args)
     platform = _platform_arg(args)
     native_search_available = _bool_arg(_first_arg(args, ("native_search_available", "nativeSearchAvailable"), False))
     native_search_tools = _native_search_tools(
@@ -69,6 +70,7 @@ def build_hybrid_search_plan(
     return {
         "artifact_type": "qiongli_hybrid_search_plan",
         "query": query,
+        "search_mode": search_mode,
         "platform": platform,
         "search_execution_mode": search_execution_mode,
         "provider_capability_mode": normalized_provider_mode,
@@ -266,14 +268,17 @@ def _search_filters(args: Mapping[str, Any]) -> dict[str, Any]:
     filters: dict[str, Any] = {}
     for output_key, aliases in (
         ("include_working_papers", ("include_working_papers", "includeWorkingPapers")),
-        ("fromYear", ("fromYear",)),
-        ("toYear", ("toYear",)),
         ("search_mode", ("search_mode", "searchMode")),
         ("venue_filter", ("venue_filter", "venueFilter")),
     ):
         value = _first_arg(args, aliases)
         if value is not None:
             filters[output_key] = value
+    for canonical, legacy in (("from_year", "fromYear"), ("to_year", "toYear")):
+        value = _first_arg(args, (canonical, legacy))
+        if value is not None:
+            filters[canonical] = value
+            filters[legacy] = value
     document_types = _string_list(_first_arg(args, ("document_types", "documentTypes")))
     if document_types:
         filters["document_types"] = document_types
@@ -353,6 +358,11 @@ def _string_arg(args: Mapping[str, Any], key: str) -> str:
     return str(args.get(key, "") or "").strip()
 
 
+def _search_mode_arg(args: Mapping[str, Any]) -> str:
+    value = _first_arg(args, ("search_mode", "searchMode"), "topic")
+    return str(value or "topic").strip()
+
+
 def _first_arg(args: Mapping[str, Any], keys: tuple[str, ...], default: Any = None) -> Any:
     for key in keys:
         if key in args and args[key] is not None:
@@ -361,8 +371,7 @@ def _first_arg(args: Mapping[str, Any], keys: tuple[str, ...], default: Any = No
 
 
 def _platform_arg(args: Mapping[str, Any]) -> str:
-    platform = str(args.get("platform", "unknown") or "unknown").strip()
-    return platform.replace("-", "_") or "unknown"
+    return _normalize_identifier(args.get("platform", "unknown")) or "unknown"
 
 
 def _bool_arg(value: Any) -> bool:
@@ -374,4 +383,9 @@ def _bool_arg(value: Any) -> bool:
 
 
 def _normalize_tool(value: Any) -> str:
-    return str(value or "").strip().replace(" ", "_")
+    return _normalize_identifier(value)
+
+
+def _normalize_identifier(value: Any) -> str:
+    normalized = str(value or "").strip().lower().replace("-", " ").replace("_", " ")
+    return "_".join(normalized.split())

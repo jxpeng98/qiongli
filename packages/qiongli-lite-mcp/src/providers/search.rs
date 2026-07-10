@@ -68,6 +68,8 @@ pub struct ProviderDiagnostic {
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct SearchDiagnostics {
     pub status: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status_reason: Option<String>,
     pub providers: BTreeMap<String, ProviderDiagnostic>,
     pub warnings: Vec<String>,
 }
@@ -92,12 +94,15 @@ pub fn execute_search(
 
     if attempted.is_empty() {
         return SearchOutput {
-            status: "error".to_string(),
+            status: "warning".to_string(),
             results: Vec::new(),
             diagnostics: SearchDiagnostics {
-                status: "failed".to_string(),
+                status: "not_run".to_string(),
+                status_reason: Some("no_active_providers".to_string()),
                 providers: BTreeMap::new(),
-                warnings: vec!["no configured providers matched the request".to_string()],
+                warnings: vec![
+                    "no active literature providers; no network search was performed".to_string(),
+                ],
             },
         };
     }
@@ -186,6 +191,7 @@ pub fn execute_search(
         results,
         diagnostics: SearchDiagnostics {
             status: diagnostic_status.to_string(),
+            status_reason: None,
             providers: diagnostics,
             warnings,
         },

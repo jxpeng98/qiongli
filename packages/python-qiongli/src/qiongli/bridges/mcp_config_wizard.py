@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import html
+import math
 import secrets
 import sys
 import threading
@@ -9,13 +10,20 @@ from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, TextIO
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, parse_qsl, urlparse
 
 from bridges.provider_config import PROVIDER_FIELDS, global_provider_config_path, set_provider_value
 
 
 DEFAULT_HOST = "127.0.0.1"
 ALLOWED_HOSTS = {"127.0.0.1", "localhost"}
+DEFAULT_WIZARD_TTL_SECONDS = 10 * 60
+DEFAULT_MAX_BODY_BYTES = 16 * 1024
+MAX_ALLOWED_BODY_BYTES = 64 * 1024
+MAX_HEADER_BYTES = 8 * 1024
+MAX_FIELD_BYTES = 4 * 1024
+MAX_FORM_FIELDS = 32
+SAVE_REDIRECT_GRACE_SECONDS = 1.0
 
 
 PROVIDER_ACCESS_GUIDANCE: dict[str, dict[str, object]] = {
@@ -89,6 +97,7 @@ class ConfigWizard:
     port: int
     token: str
     config_path: str
+    provider: str | None
     server: ThreadingHTTPServer
     thread: threading.Thread
     completed: threading.Event
@@ -138,12 +147,27 @@ def start_config_wizard(
     host: str = DEFAULT_HOST,
     port: int = 0,
     provider: str | None = None,
+    ttl_seconds: float = DEFAULT_WIZARD_TTL_SECONDS,
+    max_body_bytes: int = DEFAULT_MAX_BODY_BYTES,
 ) -> ConfigWizard:
     host = _normalize_host(host)
     provider_id = _normalize_provider(provider)
+    ttl_seconds = float(ttl_seconds)
+    if not math.isfinite(ttl_seconds) or ttl_seconds <= 0:
+        raise ValueError("wizard TTL must be greater than zero")
+    if (
+        isinstance(max_body_bytes, bool)
+        or not isinstance(max_body_bytes, int)
+        or not 1 <= max_body_bytes <= MAX_ALLOWED_BODY_BYTES
+    ):
+        raise ValueError(
+            f"wizard request body limit must be between 1 and {MAX_ALLOWED_BODY_BYTES} bytes"
+        )
     token = secrets.token_urlsafe(18)
     config_path = str(global_provider_config_path())
     completed = threading.Event()
+    saved = threading.Event()
+    save_lock = threading.Lock()
     close_lock = threading.Lock()
     close_started = False
     close_timer: threading.Timer | None = None
@@ -155,55 +179,93 @@ def start_config_wizard(
                 return
             if close_timer is not None:
                 close_timer.cancel()
-
-        def shutdown() -> None:
-            nonlocal close_started
-            with close_lock:
-                if close_started:
-                    return
-                close_started = True
-            _shutdown_server_once(server, completed)
-
-        timer = threading.Timer(delay, shutdown)
-        timer.daemon = True
-        close_timer = timer
+            timer = threading.Timer(delay, shutdown)
+            timer.daemon = True
+            close_timer = timer
         timer.start()
+
+    def shutdown() -> None:
+        nonlocal close_started
+        with close_lock:
+            if close_started:
+                return
+            close_started = True
+        _shutdown_server_once(server, completed)
 
     class WizardHandler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:
-            if not self._authorized():
-                self._send_text("Forbidden", status=403)
+            if self._headers_too_large():
+                self._send_text("Request headers too large.", status=431)
                 return
-            if urlparse(self.path).path == "/saved":
+            if not self._authorized():
+                self._send_text("Forbidden.", status=403)
+                return
+            path = urlparse(self.path).path
+            if path in {"/", "/saved"} and saved.is_set():
                 self._send_html(_render_saved_page(config_path=config_path))
                 schedule_shutdown(0.1)
                 return
-            saved = "saved" in parse_qs(urlparse(self.path).query)
+            if path != "/":
+                self._send_text("Not found.", status=404)
+                return
             self._send_html(
                 _render_form(
                     token=token,
                     config_path=config_path,
-                    saved=saved,
+                    saved=False,
                     provider=provider_id,
                 )
             )
 
         def do_POST(self) -> None:
-            if not self._authorized():
-                self._send_text("Forbidden", status=403)
+            if self._headers_too_large():
+                self._send_text("Request headers too large.", status=431)
                 return
-            length = int(self.headers.get("Content-Length", "0") or "0")
-            body = self.rfile.read(length).decode("utf-8")
-            values = parse_qs(body)
-            for provider, fields in _provider_entries(provider_id):
-                for field in fields:
-                    value = values.get(f"{provider}.{field}", [""])[0].strip()
-                    if value:
-                        set_provider_value(provider, field, value)
-            self.send_response(303)
-            self.send_header("Location", f"/saved?token={token}")
-            self.end_headers()
-            schedule_shutdown(1.5)
+            if not self._authorized():
+                self._send_text("Forbidden.", status=403)
+                return
+            if urlparse(self.path).path != "/save":
+                self._send_text("Not found.", status=404)
+                return
+            if saved.is_set():
+                self._send_text("Setup already completed.", status=410)
+                return
+            length = self._content_length()
+            if length is None:
+                return
+            body_bytes = self.rfile.read(length)
+            if len(body_bytes) != length:
+                self._send_text("Invalid request.", status=400)
+                return
+            try:
+                body = body_bytes.decode("utf-8")
+            except UnicodeDecodeError:
+                self._send_text("Invalid request.", status=400)
+                return
+            values = _validated_provider_values(body, provider_id)
+            if values is None:
+                self._send_text(
+                    "No supported configuration values were provided.",
+                    status=400,
+                )
+                return
+            with save_lock:
+                if saved.is_set():
+                    self._send_text("Setup already completed.", status=410)
+                    return
+                try:
+                    for value_provider, field, value in values:
+                        set_provider_value(value_provider, field, value)
+                except Exception:  # noqa: BLE001 - never echo credential-bearing failures.
+                    self._send_text("Unable to save configuration.", status=500)
+                    return
+                saved.set()
+            self._send_text(
+                "Configuration saved.",
+                status=303,
+                headers=(("Location", f"/saved?token={token}"),),
+            )
+            schedule_shutdown(SAVE_REDIRECT_GRACE_SECONDS)
 
         def log_message(self, _format: str, *_args: Any) -> None:
             return
@@ -212,31 +274,84 @@ def start_config_wizard(
             query = parse_qs(urlparse(self.path).query)
             return query.get("token", [""])[0] == token
 
-        def _send_html(self, body: str) -> None:
-            payload = body.encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Content-Length", str(len(payload)))
-            self.end_headers()
-            self.wfile.write(payload)
+        def _headers_too_large(self) -> bool:
+            size = len(self.requestline.encode("utf-8", errors="replace")) + 2
+            size += sum(
+                len(name.encode("utf-8", errors="replace"))
+                + len(value.encode("utf-8", errors="replace"))
+                + 4
+                for name, value in self.headers.items()
+            )
+            return size > MAX_HEADER_BYTES
 
-        def _send_text(self, body: str, *, status: int = 200) -> None:
+        def _content_length(self) -> int | None:
+            raw_values = self.headers.get_all("Content-Length", failobj=[])
+            if not raw_values:
+                self._send_text("Content-Length is required.", status=411)
+                return None
+            if len(raw_values) != 1:
+                self._send_text("Invalid request.", status=400)
+                return None
+            raw_length = raw_values[0].strip()
+            if not raw_length.isascii() or not raw_length.isdigit():
+                self._send_text("Invalid request.", status=400)
+                return None
+            length = int(raw_length)
+            if length > max_body_bytes:
+                self.close_connection = True
+                self._send_text("Request too large.", status=413)
+                return None
+            return length
+
+        def _send_html(self, body: str) -> None:
+            self._send(body, status=200, content_type="text/html; charset=utf-8")
+
+        def _send_text(
+            self,
+            body: str,
+            *,
+            status: int = 200,
+            headers: tuple[tuple[str, str], ...] = (),
+        ) -> None:
+            self._send(
+                body,
+                status=status,
+                content_type="text/plain; charset=utf-8",
+                headers=headers,
+            )
+
+        def _send(
+            self,
+            body: str,
+            *,
+            status: int,
+            content_type: str,
+            headers: tuple[tuple[str, str], ...] = (),
+        ) -> None:
             payload = body.encode("utf-8")
             self.send_response(status)
-            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(payload)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Referrer-Policy", "no-referrer")
+            for name, value in headers:
+                self.send_header(name, value)
             self.end_headers()
             self.wfile.write(payload)
 
     server = ThreadingHTTPServer((host, port), WizardHandler)
+    server.daemon_threads = True
     actual_host, actual_port = server.server_address
     thread = threading.Thread(target=server.serve_forever, name="qiongli-mcp-config", daemon=True)
     thread.start()
+    schedule_shutdown(ttl_seconds)
     return ConfigWizard(
         host=str(actual_host),
         port=int(actual_port),
         token=token,
         config_path=config_path,
+        provider=provider_id,
         server=server,
         thread=thread,
         completed=completed,
@@ -265,6 +380,40 @@ def _provider_entries(provider: str | None) -> list[tuple[str, object]]:
     if provider:
         return [(provider, PROVIDER_FIELDS[provider])]
     return list(PROVIDER_FIELDS.items())
+
+
+def _validated_provider_values(
+    body: str,
+    provider: str | None,
+) -> list[tuple[str, str, str]] | None:
+    try:
+        pairs = parse_qsl(
+            body,
+            keep_blank_values=True,
+            strict_parsing=True,
+            max_num_fields=MAX_FORM_FIELDS,
+        )
+    except ValueError:
+        return None
+    allowed = {
+        f"{entry_provider}.{field}": (entry_provider, field)
+        for entry_provider, fields in _provider_entries(provider)
+        for field in fields
+    }
+    seen: set[str] = set()
+    values: list[tuple[str, str, str]] = []
+    for key, raw_value in pairs:
+        if key not in allowed or key in seen:
+            return None
+        seen.add(key)
+        value = raw_value.strip()
+        if not value:
+            continue
+        if len(value.encode("utf-8")) > MAX_FIELD_BYTES:
+            return None
+        value_provider, field = allowed[key]
+        values.append((value_provider, field, value))
+    return values or None
 
 
 def _render_form(*, token: str, config_path: str, saved: bool, provider: str | None = None) -> str:

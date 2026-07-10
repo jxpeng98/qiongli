@@ -12,7 +12,9 @@ use std::time::{Duration, Instant};
 use thiserror::Error;
 use url::form_urlencoded;
 
-use crate::config::provider_config::{normalize_key, provider_config_path, save_provider_value};
+use crate::config::provider_config::{
+    normalize_key, provider_config_path, save_provider_value_at, ConfigError,
+};
 
 pub const DEFAULT_WIZARD_TTL: Duration = Duration::from_secs(10 * 60);
 pub const DEFAULT_MAX_BODY_BYTES: usize = 16 * 1024;
@@ -56,6 +58,8 @@ pub enum WizardError {
     InvalidTtl,
     #[error("wizard request body limit must be between 1 and {MAX_ALLOWED_BODY_BYTES} bytes")]
     InvalidBodyLimit,
+    #[error("{0}")]
+    Config(#[from] ConfigError),
     #[error("failed to bind local configuration wizard: {0}")]
     Bind(io::Error),
     #[error("failed to configure local configuration wizard: {0}")]
@@ -136,6 +140,7 @@ pub fn start_config_wizard(options: ConfigWizardOptions) -> Result<ConfigWizard,
     if !(1..=MAX_ALLOWED_BODY_BYTES).contains(&options.max_body_bytes) {
         return Err(WizardError::InvalidBodyLimit);
     }
+    let config_path = provider_config_path()?;
 
     let token = secure_token().map_err(WizardError::Random)?;
     let listener = TcpListener::bind((host.as_str(), options.port)).map_err(WizardError::Bind)?;
@@ -145,7 +150,6 @@ pub fn start_config_wizard(options: ConfigWizardOptions) -> Result<ConfigWizard,
     let address = listener.local_addr().map_err(WizardError::Listener)?;
     let port = address.port();
     let url = format!("http://{host}:{port}/?token={token}");
-    let config_path = provider_config_path();
     let running = Arc::new(AtomicBool::new(true));
     let completed = Arc::new(AtomicBool::new(false));
     let stop_requested = Arc::new(AtomicBool::new(false));
@@ -153,6 +157,7 @@ pub fn start_config_wizard(options: ConfigWizardOptions) -> Result<ConfigWizard,
     let worker_state = WizardWorkerState {
         token,
         selected_provider: provider.clone(),
+        config_path: config_path.clone(),
         ttl: options.ttl,
         max_body_bytes: options.max_body_bytes,
         running: Arc::clone(&running),
@@ -180,6 +185,7 @@ pub fn start_config_wizard(options: ConfigWizardOptions) -> Result<ConfigWizard,
 struct WizardWorkerState {
     token: String,
     selected_provider: Option<String>,
+    config_path: PathBuf,
     ttl: Duration,
     max_body_bytes: usize,
     running: Arc<AtomicBool>,
@@ -202,6 +208,7 @@ fn serve_wizard(listener: TcpListener, state: WizardWorkerState) {
                     &mut stream,
                     &state.token,
                     state.selected_provider.as_deref(),
+                    &state.config_path,
                     state.max_body_bytes,
                     saved,
                 ) {
@@ -235,6 +242,7 @@ fn handle_connection(
     stream: &mut TcpStream,
     token: &str,
     selected_provider: Option<&str>,
+    config_path: &std::path::Path,
     max_body_bytes: usize,
     already_saved: bool,
 ) -> ConnectionOutcome {
@@ -277,7 +285,7 @@ fn handle_connection(
             let _ = write_text_response(stream, 410, "Gone", "Setup already completed.", &[]);
             ConnectionOutcome::Continue
         }
-        ("POST", "/save") => match save_form(&request.body, selected_provider) {
+        ("POST", "/save") => match save_form(&request.body, selected_provider, config_path) {
             Ok(()) => {
                 let location = format!("/saved?token={token}");
                 let _ = write_text_response(
@@ -437,7 +445,11 @@ enum SaveFormError {
     WriteFailed,
 }
 
-fn save_form(body: &[u8], selected_provider: Option<&str>) -> Result<(), SaveFormError> {
+fn save_form(
+    body: &[u8],
+    selected_provider: Option<&str>,
+    config_path: &std::path::Path,
+) -> Result<(), SaveFormError> {
     let mut values = Vec::new();
     for (raw_key, raw_value) in form_urlencoded::parse(body) {
         let Some((provider, field)) = raw_key.split_once('.') else {
@@ -468,7 +480,8 @@ fn save_form(body: &[u8], selected_provider: Option<&str>) -> Result<(), SaveFor
     }
 
     for (provider, field, value) in values {
-        save_provider_value(&provider, &field, &value).map_err(|_| SaveFormError::WriteFailed)?;
+        save_provider_value_at(config_path, &provider, &field, &value)
+            .map_err(|_| SaveFormError::WriteFailed)?;
     }
     Ok(())
 }
