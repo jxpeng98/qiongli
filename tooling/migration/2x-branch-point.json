@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "record_type": "qiongli-2x-branch-point",
+  "branch": "2.x",
+  "source": {
+    "branch": "dev",
+    "baseline_commit": "70c5bd9e5b098fbb61bd60934e8774b2eef44a01",
+    "baseline_tree": "c17f7612cdd6e69040332442fde7e6d44c0c24a0",
+    "initialization_commit": "974f3f254040aad064f06cce6b75fc4a9c950456",
+    "initialization_tree": "c17f7612cdd6e69040332442fde7e6d44c0c24a0",
+    "initialization_tree_changed": false,
+    "accepted_release_tag": "v1.19.0-beta.1",
+    "accepted_release_commit": "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f",
+    "maintenance_branch": "release/1.x-python"
+  },
+  "baseline": {
+    "manifest_path": "tooling/migration/baselines/v1.19.0-beta.1/manifest.json",
+    "manifest_sha256": "77bb7628d43a496c995e4b0a8daf6a624847b62e96948c0461affe89002da131",
+    "corpus_sha256": "7fdd92894d88b221180e77ad73677cc158147cc861b17ba0245ea54f0127fbe2"
+  },
+  "source_validation": {
+    "ci": {
+      "run_id": 29141373649,
+      "head_sha": "70c5bd9e5b098fbb61bd60934e8774b2eef44a01",
+      "job_count": 5,
+      "conclusion": "success",
+      "url": "https://github.com/jxpeng98/qiongli/actions/runs/29141373649"
+    },
+    "checkout_install_check": {
+      "run_id": 29141373644,
+      "head_sha": "70c5bd9e5b098fbb61bd60934e8774b2eef44a01",
+      "job_count": 3,
+      "conclusion": "success",
+      "url": "https://github.com/jxpeng98/qiongli/actions/runs/29141373644"
+    }
+  },
+  "branch_validation_policy": {
+    "required_workflows": [
+      "CI",
+      "Checkout Install Check"
+    ],
+    "evidence_binding": "GitHub Actions checks on the commit introducing this record",
+    "ruleset_activation_gate": "Both branch-specific workflows pass before active protection"
+  }
+}
