@@ -17,10 +17,10 @@ def read(path: str) -> str:
 
 
 class BranchPolicyTests(unittest.TestCase):
-    def test_ci_workflows_cover_development_branch(self) -> None:
+    def test_ci_workflows_cover_legacy_and_native_development_branches(self) -> None:
         for workflow in (".github/workflows/ci.yml", ".github/workflows/install-check.yml"):
             content = read(workflow)
-            self.assertIn('branches: ["main", "master", "dev"]', content)
+            self.assertEqual(content.count('branches: ["main", "master", "dev", "2.x"]'), 2)
             self.assertIn("tooling/release/acceptance/**", content)
 
     def test_ci_workflow_cancels_stale_runs_and_splits_test_tiers(self) -> None:
@@ -48,12 +48,49 @@ class BranchPolicyTests(unittest.TestCase):
 
     def test_ci_rejects_generated_payload_edits_before_sync_steps(self) -> None:
         content = read(".github/workflows/ci.yml")
-        guard_cmd = "python scripts/check_generated_payload_edits.py --base-ref origin/dev"
+        resolver_step = "      - name: Resolve generated payload comparison base"
+        guard_cmd = "          python scripts/check_generated_payload_edits.py"
+        frozen_guard_cmd = (
+            "          python scripts/check_frozen_migration_baseline.py"
+        )
         materialize_cmd = 'python scripts/materialize_distribution_payloads.py --target all --out "$RUNNER_TEMP/qiongli-dist" --force'
 
+        self.assertIn(resolver_step, content)
         self.assertIn(guard_cmd, content)
+        self.assertIn(frozen_guard_cmd, content)
         self.assertIn(materialize_cmd, content)
+        self.assertLess(content.index(resolver_step), content.index(guard_cmd))
         self.assertLess(content.index(guard_cmd), content.index(materialize_cmd))
+        self.assertLess(content.index(frozen_guard_cmd), content.index(materialize_cmd))
+
+    def test_generated_payload_guard_uses_event_aware_comparison_base(self) -> None:
+        content = read(".github/workflows/ci.yml")
+
+        self.assertIn("PULL_REQUEST_BASE: ${{ github.base_ref }}", content)
+        self.assertIn("PUSH_BEFORE: ${{ github.event.before }}", content)
+        self.assertIn('base_ref="origin/$PULL_REQUEST_BASE"', content)
+        self.assertIn('base_ref="$PUSH_BEFORE"', content)
+        self.assertIn('base_ref="HEAD^"', content)
+        self.assertIn('base_ref="$(git rev-list --max-parents=0 HEAD)"', content)
+        self.assertIn('echo "base-ref=$base_ref" >> "$GITHUB_OUTPUT"', content)
+        self.assertIn(
+            "GENERATED_PAYLOAD_BASE: "
+            "${{ steps.generated-payload-base.outputs.base-ref }}",
+            content,
+        )
+        self.assertIn(
+            "      - name: Check generated payload edits\n        shell: bash",
+            content,
+        )
+        self.assertIn(
+            "      - name: Protect frozen migration baseline\n        shell: bash",
+            content,
+        )
+        self.assertIn('--base-ref "$GENERATED_PAYLOAD_BASE"', content)
+        self.assertEqual(
+            content.count('--base-ref "$GENERATED_PAYLOAD_BASE"'), 2
+        )
+        self.assertNotIn("--base-ref origin/dev", content)
 
     def test_ci_audits_staged_payload_after_injected_project_defaults(self) -> None:
         content = read(".github/workflows/ci.yml")
@@ -99,6 +136,44 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertIn("`dev`", content)
         self.assertIn("`main`", content)
         self.assertIn("stable release", content)
+
+    def test_bilingual_policy_freezes_1x_and_assigns_native_work_to_2x(self) -> None:
+        policies = {
+            "docs/maintainer/release-branch-policy.md": (
+                "No normal features.",
+                "does **not**\ncontain the A8 workflow-filter changes",
+                "90 days after Qiongli 2 stable",
+                "immutable guard is preventive only",
+            ),
+            "docs/zh/maintainer/release-branch-policy.md": (
+                "不接受常规功能",
+                "**不包含**之后在 `dev` 提交的 A8",
+                "Qiongli 2 stable 发布后 90 天",
+                "immutable guard 才能",
+            ),
+        }
+
+        for path, localized_markers in policies.items():
+            content = read(path)
+            with self.subTest(path=path):
+                self.assertIn("`release/1.x-python`", content)
+                self.assertIn("`v1.19.0-beta.1`", content)
+                self.assertIn("`8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f`", content)
+                self.assertIn("`2.x`", content)
+                self.assertIn("Rust", content)
+                self.assertIn("pull request", content)
+                self.assertIn("forward-port", content)
+                self.assertIn("equivalence evidence", content)
+                self.assertIn("frozen-baseline guard", content)
+                self.assertIn(
+                    "tooling/migration/baselines/v1.19.0-beta.1/manifest.json",
+                    content,
+                )
+                self.assertIn("capture --check", content)
+                self.assertIn("https://github.com/jxpeng98/qiongli/rules/18797579", content)
+                self.assertIn("ruleset 18797579", content)
+                for marker in localized_markers:
+                    self.assertIn(marker, content)
 
     def test_maintainer_policy_documents_codex_dist_refs(self) -> None:
         content = read("docs/maintainer/release-branch-policy.md")

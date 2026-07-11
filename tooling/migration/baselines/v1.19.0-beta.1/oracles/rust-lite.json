@@ -1,0 +1,550 @@
+{
+  "$schema": "../../../oracle-fixture.schema.json",
+  "capture_kind": "accepted-runtime-outcomes",
+  "cases": [
+    {
+      "assertions": {
+        "machine_paths_normalized": true,
+        "secret_absent": true
+      },
+      "coverage": [
+        "config-status"
+      ],
+      "disposition": "captured",
+      "id": "rust.config-status",
+      "invocation": {
+        "arguments": {},
+        "operation": "tools/call qiongli_config_status",
+        "transport": "jsonrpc-stdio"
+      },
+      "kind": "config-status-outcome",
+      "outcome": {
+        "error": null,
+        "exit_code": 0,
+        "status": "success",
+        "value": {
+          "capability_mode": "provider_connected",
+          "config_path": "<CONFIG_ROOT>/providers.json",
+          "missing": [
+            "openalex.api_key",
+            "semantic_scholar.api_key",
+            "crossref.email",
+            "pubmed.api_key"
+          ],
+          "providers": {
+            "arxiv": "configured",
+            "crossref": "missing",
+            "openalex": "missing",
+            "pubmed": "missing",
+            "semantic_scholar": "missing"
+          },
+          "status": "ok",
+          "stderr_lines": []
+        }
+      },
+      "side_effects": {
+        "class": "none",
+        "filesystem_delta": {
+          "after_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "before_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "created": [],
+          "deleted": [],
+          "modified": []
+        },
+        "writes_outside_sandbox": false
+      },
+      "source_paths": [
+        "packages/qiongli-lite-mcp/src/config/provider_config.rs",
+        "packages/qiongli-lite-mcp/src/mcp/server.rs"
+      ]
+    },
+    {
+      "assertions": {
+        "machine_paths_normalized": true,
+        "secret_absent": true
+      },
+      "coverage": [
+        "mcp-initialize-and-list"
+      ],
+      "disposition": "captured",
+      "id": "rust.mcp-initialize-list",
+      "invocation": {
+        "arguments": {
+          "protocol_version": "2024-11-05"
+        },
+        "operation": "initialize + tools/list",
+        "transport": "jsonrpc-stdio"
+      },
+      "kind": "jsonrpc-outcome",
+      "outcome": {
+        "error": null,
+        "exit_code": 0,
+        "status": "success",
+        "value": {
+          "initialize": {
+            "capabilities": {
+              "tools": {}
+            },
+            "protocolVersion": "2024-11-05",
+            "serverInfo": {
+              "name": "qiongli-literature-provider",
+              "version": "0.2.0-beta.3"
+            }
+          },
+          "stderr_lines": [],
+          "tool_count": 12,
+          "tool_names": [
+            "qiongli_config_status",
+            "qiongli_save_provider_config",
+            "qiongli_configure_provider",
+            "qiongli_open_config_wizard",
+            "qiongli_literature_status",
+            "qiongli_search_plan",
+            "qiongli_literature_search",
+            "qiongli_literature_export_evidence",
+            "qiongli_zotero_status",
+            "qiongli_zotero_export_import_files",
+            "qiongli_orchestrator_route",
+            "qiongli_task_plan"
+          ]
+        }
+      },
+      "side_effects": {
+        "class": "none",
+        "filesystem_delta": {
+          "after_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "before_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "created": [],
+          "deleted": [],
+          "modified": []
+        },
+        "writes_outside_sandbox": false
+      },
+      "source_paths": [
+        "packages/qiongli-lite-mcp/src/main.rs",
+        "packages/qiongli-lite-mcp/src/mcp/server.rs",
+        "packages/qiongli-lite-mcp/src/tools/definitions.rs"
+      ]
+    },
+    {
+      "assertions": {
+        "machine_paths_normalized": true,
+        "secret_absent": true
+      },
+      "coverage": [
+        "search-plan"
+      ],
+      "disposition": "captured",
+      "id": "rust.search-plan",
+      "invocation": {
+        "arguments": {
+          "native_search_available": true,
+          "native_search_tools": [
+            "codex_web_search"
+          ],
+          "platform": "codex",
+          "query": "runtime oracle"
+        },
+        "operation": "tools/call qiongli_search_plan",
+        "transport": "jsonrpc-stdio"
+      },
+      "kind": "search-plan-outcome",
+      "outcome": {
+        "error": null,
+        "exit_code": 0,
+        "status": "success",
+        "value": {
+          "plan": {
+            "artifact_type": "qiongli_hybrid_search_plan",
+            "limitations": [],
+            "native_search_queries": [
+              {
+                "filters": {
+                  "search_mode": "topic"
+                },
+                "platform": "codex",
+                "provenance_label": "native:codex_web_search",
+                "query": "runtime oracle",
+                "query_id": "Q1",
+                "source": "primary",
+                "tool": "codex_web_search"
+              }
+            ],
+            "platform": "codex",
+            "provider_capability_mode": "provider_connected",
+            "provider_queries": [
+              {
+                "filters": {
+                  "search_mode": "topic"
+                },
+                "provenance_label": "mcp:arxiv",
+                "provider": "arxiv",
+                "query": "runtime oracle",
+                "query_id": "Q1",
+                "source": "primary"
+              }
+            ],
+            "query": "runtime oracle",
+            "search_execution_mode": "hybrid_search"
+          },
+          "stderr_lines": []
+        }
+      },
+      "side_effects": {
+        "class": "none",
+        "filesystem_delta": {
+          "after_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "before_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "created": [],
+          "deleted": [],
+          "modified": []
+        },
+        "writes_outside_sandbox": false
+      },
+      "source_paths": [
+        "packages/qiongli-lite-mcp/src/searchplan.rs",
+        "packages/qiongli-lite-mcp/src/mcp/server.rs"
+      ]
+    },
+    {
+      "assertions": {
+        "machine_paths_normalized": true,
+        "secret_absent": true
+      },
+      "coverage": [
+        "secret-redaction"
+      ],
+      "disposition": "captured",
+      "id": "rust.secret-redaction",
+      "invocation": {
+        "arguments": {
+          "QIONGLI_MCPB_OPENALEX_API_KEY": "<REDACTED>"
+        },
+        "operation": "tools/call qiongli_config_status with provider secret",
+        "transport": "jsonrpc-stdio"
+      },
+      "kind": "redaction-outcome",
+      "outcome": {
+        "error": null,
+        "exit_code": 0,
+        "status": "success",
+        "value": {
+          "providers": {
+            "arxiv": "configured",
+            "crossref": "missing",
+            "openalex": "configured",
+            "pubmed": "missing",
+            "semantic_scholar": "missing"
+          },
+          "redacted_config": {
+            "providers": {
+              "arxiv": {
+                "configured": true,
+                "enabled": true,
+                "fields": {}
+              },
+              "crossref": {
+                "configured": false,
+                "enabled": false,
+                "fields": {
+                  "email": "missing"
+                }
+              },
+              "openalex": {
+                "configured": true,
+                "enabled": true,
+                "fields": {
+                  "api_key": "configured",
+                  "email": "missing"
+                }
+              },
+              "pubmed": {
+                "configured": false,
+                "enabled": false,
+                "fields": {
+                  "api_key": "missing"
+                }
+              },
+              "semantic_scholar": {
+                "configured": false,
+                "enabled": false,
+                "fields": {
+                  "api_key": "missing"
+                }
+              }
+            }
+          },
+          "redaction_assertion": "capture secret absent from process output",
+          "stderr_lines": []
+        }
+      },
+      "side_effects": {
+        "class": "none",
+        "filesystem_delta": {
+          "after_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "before_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "created": [],
+          "deleted": [],
+          "modified": []
+        },
+        "writes_outside_sandbox": false
+      },
+      "source_paths": [
+        "packages/qiongli-lite-mcp/src/config/provider_config.rs",
+        "packages/qiongli-lite-mcp/src/mcp/server.rs"
+      ]
+    },
+    {
+      "assertions": {
+        "machine_paths_normalized": true,
+        "secret_absent": true
+      },
+      "coverage": [
+        "jsonrpc-error"
+      ],
+      "disposition": "captured",
+      "id": "rust.unknown-tool-error",
+      "invocation": {
+        "arguments": {
+          "name": "does_not_exist"
+        },
+        "operation": "tools/call unknown tool",
+        "transport": "jsonrpc-stdio"
+      },
+      "kind": "jsonrpc-error-outcome",
+      "outcome": {
+        "error": {
+          "code": -32601,
+          "message": "Tool not found: does_not_exist"
+        },
+        "exit_code": 0,
+        "status": "error",
+        "value": {
+          "stderr_lines": []
+        }
+      },
+      "side_effects": {
+        "class": "none",
+        "filesystem_delta": {
+          "after_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "before_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "created": [],
+          "deleted": [],
+          "modified": []
+        },
+        "writes_outside_sandbox": false
+      },
+      "source_paths": [
+        "packages/qiongli-lite-mcp/src/mcp/protocol.rs",
+        "packages/qiongli-lite-mcp/src/mcp/server.rs"
+      ]
+    }
+  ],
+  "coverage": {
+    "accepted_gaps": [
+      {
+        "capability": "live-provider-search",
+        "disposition": "accepted-gap",
+        "reason": "Live provider search depends on external network state; deterministic status and search-plan behavior are captured without network access."
+      }
+    ],
+    "captured_capabilities": [
+      "mcp-initialize-and-list",
+      "config-status",
+      "search-plan",
+      "jsonrpc-error",
+      "secret-redaction"
+    ],
+    "required_capabilities": [
+      "mcp-initialize-and-list",
+      "config-status",
+      "search-plan",
+      "jsonrpc-error",
+      "secret-redaction"
+    ]
+  },
+  "oracle_id": "rust-lite",
+  "profile": "marketplace-lite",
+  "runtime_origin": "rust",
+  "schema_version": "2.0",
+  "source": {
+    "access_method": "git-ls-tree-and-cat-file",
+    "peeled_commit": "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f",
+    "projections": [
+      {
+        "git_blob_oid": "f4501d0dd3b880bfc929544a5355c9fc033584e8",
+        "path": "content/mcp-contracts/lite-tools.json",
+        "sha256": "6dc8928237d8df132dcbc257d1fc019dc2b1e4187236350fe1c3685b2efecf29",
+        "size_bytes": 13979
+      },
+      {
+        "git_blob_oid": "d8c1a2bbac5ff89d20bf473a341d0cc50b1923eb",
+        "path": "content/mcp-contracts/v2/registry.json",
+        "sha256": "602d3faf525e2e5c938afb14f1b1d291f528240947b3df6ed9f56baeb73e7020",
+        "size_bytes": 14222
+      },
+      {
+        "git_blob_oid": "95b8b60087885dbf6916a53e253b96e5849af65c",
+        "path": "packages/qiongli-lite-mcp/Cargo.toml",
+        "sha256": "241b029ea25c4e172e254aa569fe0e34c38c00c642d15b77e3843bc93dc16db9",
+        "size_bytes": 392
+      },
+      {
+        "git_blob_oid": "7ce6feaedb0a199f93c22224d481db56c44c8a04",
+        "path": "packages/qiongli-lite-mcp/src/config/mod.rs",
+        "sha256": "7d054e8ca21d3ee1f4d9c0564dd33825b3eaed850572a1fc24d7a633d86fa9f4",
+        "size_bytes": 41
+      },
+      {
+        "git_blob_oid": "21fbf4ed93576e8fe27d035b907f498ee35d8e97",
+        "path": "packages/qiongli-lite-mcp/src/config/provider_config.rs",
+        "sha256": "fad3402dc80c2ba0690f7f25dc67d54b336e300952d9fb655bff9e38542f6d4c",
+        "size_bytes": 55695
+      },
+      {
+        "git_blob_oid": "9e7a48ca89c7b01e51569a5afed8c8b513a59ea9",
+        "path": "packages/qiongli-lite-mcp/src/config/wizard.rs",
+        "sha256": "65465b38d1f84a165a2d3812e999575eef9b18525060f87fa181c90b5639e82e",
+        "size_bytes": 20685
+      },
+      {
+        "git_blob_oid": "164595af11fa90667ed38247fceafbc06f500cad",
+        "path": "packages/qiongli-lite-mcp/src/lib.rs",
+        "sha256": "b9a5fc54867481ff3375f267132bd3fe87bca3a3a11c8be3188ef769c91ae87d",
+        "size_bytes": 121
+      },
+      {
+        "git_blob_oid": "a73e9c6d461fcf879909cd4f679267735df146eb",
+        "path": "packages/qiongli-lite-mcp/src/main.rs",
+        "sha256": "a8ccd1e93574fe27b557558729ba3454e9be052513a843f849c53452429d15ee",
+        "size_bytes": 2247
+      },
+      {
+        "git_blob_oid": "863791867cf3b8305c1489413a58af56467b3477",
+        "path": "packages/qiongli-lite-mcp/src/mcp/mod.rs",
+        "sha256": "f56dcd8b51561a17f864b32e395ce446a565cd74cac67afa87039d33d1bccda4",
+        "size_bytes": 34
+      },
+      {
+        "git_blob_oid": "cbe25762d077e18b0e3f4335a6d27aa66f9ede3a",
+        "path": "packages/qiongli-lite-mcp/src/mcp/protocol.rs",
+        "sha256": "0c2e10fb23b1f9f77e1a465f0147f59ec4068236862cc8035fc925e250caa6bc",
+        "size_bytes": 4879
+      },
+      {
+        "git_blob_oid": "193bf37c5d3fdc221a2a73b418b1f3f64f208d48",
+        "path": "packages/qiongli-lite-mcp/src/mcp/server.rs",
+        "sha256": "870a52cac0320b0ad8b1ed9ea39ef2628539f969aa6088e541be62a8f1b7a0af",
+        "size_bytes": 40302
+      },
+      {
+        "git_blob_oid": "e5c0abf1acb02a782c67c4fb58e94e65b6767456",
+        "path": "packages/qiongli-lite-mcp/src/orchestrator/mod.rs",
+        "sha256": "bf675d52522e76ed88af3169e3b799d843c6efae6a0228561f93d107e00d749d",
+        "size_bytes": 17
+      },
+      {
+        "git_blob_oid": "c3b1613fd9956944b6caa132f88c13dcc1f2596c",
+        "path": "packages/qiongli-lite-mcp/src/orchestrator/preview.rs",
+        "sha256": "9e3c0c0bb6872c686a8371fe6b563a4092c5170c8d228b592c239ea41d958e17",
+        "size_bytes": 1464
+      },
+      {
+        "git_blob_oid": "5566bcf3f3877ffeaed958088a98c658869290fd",
+        "path": "packages/qiongli-lite-mcp/src/providers/arxiv.rs",
+        "sha256": "b0006175a07cc6bc05f8620f597782244f1de50a11a9e4397be3a2ae5c3cfdda",
+        "size_bytes": 3866
+      },
+      {
+        "git_blob_oid": "4afc56d6d2bd141d6ab6b79a4aafab5d6f6261ad",
+        "path": "packages/qiongli-lite-mcp/src/providers/crossref.rs",
+        "sha256": "3f6edaab41c68656a6800f75143ec935d24693fdc51d2b9073f8f93252e494aa",
+        "size_bytes": 2592
+      },
+      {
+        "git_blob_oid": "f943c97129370ca481cd7d713de15d045137c29d",
+        "path": "packages/qiongli-lite-mcp/src/providers/mod.rs",
+        "sha256": "adac3e8ded5d98f2bd14297b397a842defeb80a8cf177640e93c7a1d9fdb5db6",
+        "size_bytes": 126
+      },
+      {
+        "git_blob_oid": "68a97fd45d735dd35b8a13ebcf20f43bb176015f",
+        "path": "packages/qiongli-lite-mcp/src/providers/openalex.rs",
+        "sha256": "b7221ff82873d68ba1d9814965cd83442ab928db330b8d88ba8c8fb3440f10f9",
+        "size_bytes": 2506
+      },
+      {
+        "git_blob_oid": "bb623623ef87aaee34993198c1c6eaec8cf50e03",
+        "path": "packages/qiongli-lite-mcp/src/providers/pubmed.rs",
+        "sha256": "20516c8aaaf261b267f5d8742a576eafe6e677a07fb0ea9fd8205240d9adab24",
+        "size_bytes": 4372
+      },
+      {
+        "git_blob_oid": "3fe624a5fcabfbfe7ed5dc59f7e7e3ccfb756ea9",
+        "path": "packages/qiongli-lite-mcp/src/providers/runtime.rs",
+        "sha256": "8ce2347103f7dd238f800719e0f062f08b15477c7af82472a92c1ddd4999b448",
+        "size_bytes": 6940
+      },
+      {
+        "git_blob_oid": "088062263af752e7db6ddd263f78af3a32d2659b",
+        "path": "packages/qiongli-lite-mcp/src/providers/search.rs",
+        "sha256": "7e40588be6ded0cad62400c0bc04dd997cf8124e52adcd108dcd9a647739d3ea",
+        "size_bytes": 11038
+      },
+      {
+        "git_blob_oid": "d5ecf08e8dfe257ea8368e4d68c8977ffd8dae72",
+        "path": "packages/qiongli-lite-mcp/src/providers/semantic_scholar.rs",
+        "sha256": "b6f49ac81c3ec407b7cf159a26b3bcf87d41cf8fd64630b75fc97430af8d8aaa",
+        "size_bytes": 2449
+      },
+      {
+        "git_blob_oid": "338edd03734156be8d5d71fee9e3b93960287c89",
+        "path": "packages/qiongli-lite-mcp/src/searchplan.rs",
+        "sha256": "88224fda8232d7f486ae997c3b4541463d0445482d9dfb4095bd364ae16459f4",
+        "size_bytes": 15973
+      },
+      {
+        "git_blob_oid": "c95d9c93ec4eb943f13a161a738c06f194d94617",
+        "path": "packages/qiongli-lite-mcp/src/tools/definitions.rs",
+        "sha256": "0ab3843ab62809f2cb9226866118885f1e535f68b75ebc462c9e749e266672e0",
+        "size_bytes": 638
+      },
+      {
+        "git_blob_oid": "7f5d5d0963f154f371a57551e742d09fd6cb510c",
+        "path": "packages/qiongli-lite-mcp/src/tools/mod.rs",
+        "sha256": "6eb2d2335848cbc7d8babdece28004ec9d2f3a42d7335d97a0dae402bfc4504c",
+        "size_bytes": 21
+      },
+      {
+        "git_blob_oid": "6dbf1c5923306427b088ab430da9699819af0c15",
+        "path": "packages/qiongli-lite-mcp/src/zotero/companion.rs",
+        "sha256": "944d18929f44a315570b53253b5df856d51fbadcddb51e606a6e85f623dadf92",
+        "size_bytes": 8405
+      },
+      {
+        "git_blob_oid": "be7844fa9bd390ea1a1b55d765275562c565edda",
+        "path": "packages/qiongli-lite-mcp/src/zotero/export.rs",
+        "sha256": "5bc44d75d9b57aeb86dd146f69838a7c532a66909620ffe633d2ac823b41e528",
+        "size_bytes": 2511
+      },
+      {
+        "git_blob_oid": "a0e2126be8a9163d5f0bc217ddec5f873f08036a",
+        "path": "packages/qiongli-lite-mcp/src/zotero/mod.rs",
+        "sha256": "199d84835117c309c16229f7ec4742c7f4b2e856c54449c9c5f36ec969c80694",
+        "size_bytes": 35
+      }
+    ],
+    "runtime_source": {
+      "binary_member": "qiongli-next/bin/qiongli-literature-provider",
+      "binary_sha256": "3b139992abfe1fc607aa6c8a7a166c640ddeaddde40f6a16c14460b942e2c9d9",
+      "binary_size_bytes": 4998576,
+      "container": "qiongli-next-claude-desktop-plugin-v1.19.0-beta.1.zip",
+      "container_sha256": "fb687bd229e3c85ebfb637b751334807e16376dfa85f66692542652c14323fe0",
+      "identity_document_sha256": "74fe4a30670d17ea7a80a2cec99fc295a975189acfe8e15aeee09ac5aa358969",
+      "identity_member": "qiongli-next/bin/qiongli-literature-provider.target.json",
+      "kind": "accepted-release-binary",
+      "target_triple": "aarch64-apple-darwin"
+    },
+    "tag": "v1.19.0-beta.1"
+  }
+}

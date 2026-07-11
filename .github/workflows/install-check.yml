@@ -2,11 +2,11 @@ name: Checkout Install Check
 
 on:
   push:
-    branches: ["main", "master", "dev"]
+    branches: ["main", "master", "dev", "2.x"]
     paths-ignore:
       - "tooling/release/acceptance/**"
   pull_request:
-    branches: ["main", "master", "dev"]
+    branches: ["main", "master", "dev", "2.x"]
   workflow_dispatch:
 
 concurrency:

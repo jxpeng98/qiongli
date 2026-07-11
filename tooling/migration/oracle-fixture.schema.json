@@ -1,0 +1,325 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qiongli.dev/schemas/migration-runtime-oracle-fixture-v2.json",
+  "title": "Qiongli language-independent accepted-runtime oracle fixture",
+  "type": "object",
+  "required": [
+    "$schema",
+    "schema_version",
+    "oracle_id",
+    "runtime_origin",
+    "profile",
+    "capture_kind",
+    "source",
+    "coverage",
+    "cases"
+  ],
+  "properties": {
+    "$schema": { "const": "../../../oracle-fixture.schema.json" },
+    "schema_version": { "const": "2.0" },
+    "oracle_id": { "enum": ["python-full", "rust-lite", "node-mcpb"] },
+    "runtime_origin": { "enum": ["python", "rust", "node"] },
+    "profile": { "enum": ["full", "marketplace-lite", "legacy-mcpb"] },
+    "capture_kind": { "const": "accepted-runtime-outcomes" },
+    "source": {
+      "type": "object",
+      "required": [
+        "tag",
+        "peeled_commit",
+        "access_method",
+        "projections",
+        "runtime_source"
+      ],
+      "properties": {
+        "tag": { "const": "v1.19.0-beta.1" },
+        "peeled_commit": {
+          "const": "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f"
+        },
+        "access_method": { "const": "git-ls-tree-and-cat-file" },
+        "projections": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/sourceProjection" }
+        },
+        "runtime_source": {
+          "oneOf": [
+            { "$ref": "#/$defs/tagRuntimeSource" },
+            { "$ref": "#/$defs/releaseRuntimeSource" }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "required_capabilities",
+        "captured_capabilities",
+        "accepted_gaps"
+      ],
+      "properties": {
+        "required_capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "captured_capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "accepted_gaps": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/acceptedGap" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/oracleCase" }
+    }
+  },
+  "$defs": {
+    "sourceProjection": {
+      "type": "object",
+      "required": ["path", "git_blob_oid", "size_bytes", "sha256"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(content|packages)/"
+        },
+        "git_blob_oid": { "type": "string", "pattern": "^[0-9a-f]{40,64}$" },
+        "size_bytes": { "type": "integer", "minimum": 0 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      },
+      "additionalProperties": false
+    },
+    "tagRuntimeSource": {
+      "type": "object",
+      "required": [
+        "kind",
+        "tag",
+        "peeled_commit",
+        "source_root",
+        "source_file_count",
+        "source_tree_sha256"
+      ],
+      "properties": {
+        "kind": { "const": "peeled-tag-materialization" },
+        "tag": { "const": "v1.19.0-beta.1" },
+        "peeled_commit": {
+          "const": "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f"
+        },
+        "source_root": {
+          "enum": [
+            "packages/python-qiongli/",
+            "packages/qiongli-literature-mcpb/"
+          ]
+        },
+        "source_file_count": { "type": "integer", "minimum": 1 },
+        "source_tree_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      },
+      "additionalProperties": false
+    },
+    "releaseRuntimeSource": {
+      "type": "object",
+      "required": [
+        "kind",
+        "container",
+        "container_sha256",
+        "identity_member",
+        "identity_document_sha256",
+        "binary_member",
+        "binary_sha256",
+        "binary_size_bytes",
+        "target_triple"
+      ],
+      "properties": {
+        "kind": { "const": "accepted-release-binary" },
+        "container": {
+          "const": "qiongli-next-claude-desktop-plugin-v1.19.0-beta.1.zip"
+        },
+        "container_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "identity_member": {
+          "const": "qiongli-next/bin/qiongli-literature-provider.target.json"
+        },
+        "identity_document_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "binary_member": {
+          "const": "qiongli-next/bin/qiongli-literature-provider"
+        },
+        "binary_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "binary_size_bytes": { "type": "integer", "minimum": 1 },
+        "target_triple": { "const": "aarch64-apple-darwin" }
+      },
+      "additionalProperties": false
+    },
+    "acceptedGap": {
+      "type": "object",
+      "required": ["capability", "disposition", "reason"],
+      "properties": {
+        "capability": { "type": "string", "minLength": 1 },
+        "disposition": { "const": "accepted-gap" },
+        "reason": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "fileState": {
+      "type": "object",
+      "required": ["path", "sha256", "size_bytes"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "size_bytes": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "modifiedFileState": {
+      "type": "object",
+      "required": [
+        "path",
+        "before_sha256",
+        "before_size_bytes",
+        "after_sha256",
+        "after_size_bytes"
+      ],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "before_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "before_size_bytes": { "type": "integer", "minimum": 0 },
+        "after_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "after_size_bytes": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "filesystemDelta": {
+      "type": "object",
+      "required": [
+        "before_tree_sha256",
+        "after_tree_sha256",
+        "created",
+        "modified",
+        "deleted"
+      ],
+      "properties": {
+        "before_tree_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "after_tree_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "created": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/fileState" }
+        },
+        "modified": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/modifiedFileState" }
+        },
+        "deleted": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/fileState" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "oracleCase": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "disposition",
+        "coverage",
+        "source_paths",
+        "invocation",
+        "outcome",
+        "side_effects",
+        "assertions"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "minLength": 1 },
+        "disposition": { "const": "captured" },
+        "coverage": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "source_paths": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "invocation": {
+          "type": "object",
+          "required": ["transport", "operation", "arguments"],
+          "properties": {
+            "transport": {
+              "enum": ["cli", "jsonrpc-stdio", "module-fixture-driver"]
+            },
+            "operation": { "type": "string", "minLength": 1 },
+            "arguments": { "type": "object" }
+          },
+          "additionalProperties": false
+        },
+        "outcome": {
+          "type": "object",
+          "required": ["status", "exit_code", "error", "value"],
+          "properties": {
+            "status": { "enum": ["success", "error"] },
+            "exit_code": { "type": "integer" },
+            "error": {
+              "oneOf": [
+                { "type": "null" },
+                {
+                  "type": "object",
+                  "required": ["code", "message"],
+                  "properties": {
+                    "code": { "type": "integer" },
+                    "message": { "type": "string", "minLength": 1 }
+                  },
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "value": { "type": "object" }
+          },
+          "additionalProperties": false
+        },
+        "side_effects": {
+          "type": "object",
+          "required": ["class", "filesystem_delta", "writes_outside_sandbox"],
+          "properties": {
+            "class": { "enum": ["none", "bounded-write"] },
+            "filesystem_delta": { "$ref": "#/$defs/filesystemDelta" },
+            "writes_outside_sandbox": { "const": false }
+          },
+          "additionalProperties": false
+        },
+        "assertions": {
+          "type": "object",
+          "required": ["secret_absent", "machine_paths_normalized"],
+          "properties": {
+            "secret_absent": { "const": true },
+            "machine_paths_normalized": { "const": true }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

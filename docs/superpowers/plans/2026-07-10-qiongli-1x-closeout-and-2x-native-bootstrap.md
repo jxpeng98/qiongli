@@ -1,9 +1,12 @@
 # Qiongli 1.x Closeout And 2.x Native Bootstrap Execution Plan
 
-Status: in progress; A1 accepted and the A2 Stage 1 contract and
-migration-baseline plan frozen on exact pushed `dev` commit
-`2cf0760d67bc41eee9875f08a9e13941887727ed`; A3 maintainer smoke passed and
-final 1.x release preparation remains.
+Status: in progress; A1-A7 are complete and `v1.19.0-beta.1` is published and
+accepted at exact tag commit `8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f`.
+The finalized acceptance receipt is pushed on `dev` at
+`ba4517c8dfd5ce8b551c83b129213e689d32cac4`. A8 is now executing the frozen
+baseline, maintenance-governance, and branch-handoff work; no baseline digest,
+A8 CI result, or `2.x` branch point is recorded until it is actually produced
+and verified.
 Roadmap:
 `docs/superpowers/roadmaps/2026-07-10-qiongli-2-rust-native-platform-roadmap.md`
 Release source: `dev`
@@ -376,7 +379,7 @@ Implementation status: complete
 Acceptance status: accepted; exact-tip Windows, checkout, and branch gates
 passed, and the release owner approved limitations 1 and 3 and accepted the
 technical closure of item 4
-Release status: not ready; A5-A7 remain
+Checkpoint release status: not ready at A1 acceptance; A5-A7 remained then
 
 ### Closed findings
 
@@ -498,7 +501,8 @@ Freeze status: Stage 1 contract and migration-baseline plan frozen; all Stage 1
 source batches are pushed and required Windows, checkout, and branch gates
 passed on the exact freeze commit. A8 still owns generation of the normalized
 1.x migration baseline and compatibility oracles
-Release status: not ready; final release-note disclosure of the explicitly
+Checkpoint release status: not ready at A2 freeze; final release-note
+disclosure of the explicitly
 partial Contract v2 pilot (`6/23` canonical records and `7/24` public names)
 remains an A6 gate
 
@@ -793,11 +797,25 @@ Exit criteria:
   accepted limitation;
 - the release can be installed and rolled back from published artifacts.
 
+A7 execution status: **accepted**.
+
+- annotated tag `v1.19.0-beta.1` peels to
+  `8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f`;
+- the branch/tag workflows, published registries, 10 release assets, native
+  target identities, isolated installs, safe Rust Lite launch, and read-only
+  rollback rehearsal are recorded in
+  `tooling/release/acceptance/v1.19.0-beta.1-receipt.md`;
+- the completed receipt and owner/reviewer sign-off were finalized on `dev` at
+  `ba4517c8dfd5ce8b551c83b129213e689d32cac4`;
+- accepted limitations remain explicit: the Full CLI still requires Python,
+  the npm asset manager still requires Node, and the published native payloads
+  are scoped to `aarch64-apple-darwin`.
+
 ### A8 — Cut the 1.x maintenance and migration baseline
 
 Task IDs: `RLS-103A`, `CTR-102`
 
-Only after A7 acceptance:
+A7's acceptance precondition is satisfied. A8 now executes in this order:
 
 1. create `release/1.x-python` at the accepted tag;
 2. update `docs/maintainer/release-branch-policy.md` and protect the branch as
@@ -811,7 +829,64 @@ Only after A7 acceptance:
 8. commit and push the normalized baseline and branch-policy update on `dev`;
 9. verify that no local or remote `2.x` branch already exists;
 10. create and push `2.x` from that exact clean baseline commit;
-11. open native migration work only on `2.x` after the branch point is recorded.
+11. wait for the first `2.x` `CI` and `Checkout Install Check` runs to pass;
+12. protect `2.x` with pull-request, required-check, deletion, and
+    non-fast-forward rules with no bypass, audit the existing `dev` protection,
+    then record both ruleset identities or corrective actions;
+13. open native migration work only on `2.x` after the branch point and
+    protection evidence are recorded.
+
+A8 execution status: **in progress**.
+
+- `release/1.x-python` exists locally and remotely at the accepted tag commit
+  `8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f`;
+- repository ruleset
+  [18797579](https://github.com/jxpeng98/qiongli/rules/18797579) protects that
+  critical-fix-only line with a pull-request requirement;
+- the branch-policy and CI handoff changes are being prepared on `dev`; the
+  frozen maintenance branch itself remains at the accepted tag and therefore
+  does not contain these later A8 workflow changes;
+- normalized baseline generation now captures real Python Full, accepted Rust
+  Lite binary, and Node MCPB runtime outcomes. The manifest binds their tag or
+  release-binary identities, package trees, checksums, planned coverage, and
+  accepted gaps; asset-backed recapture and offline verification remain part
+  of the final A8 evidence;
+- CI now treats the versioned 1.x baseline, plan, and schemas as immutable once
+  the comparison base contains the frozen manifest. This allows only the
+  one-time A8/initial `2.x` bootstrap and prevents later synchronized oracle
+  and manifest rewrites;
+- local/remote absence checks, creation and first checks of `2.x`, its
+  server-side ruleset, and the `dev` protection audit remain pending until the
+  A8 baseline commit is clean, pushed, and green.
+
+Current generated A8 evidence:
+
+| Evidence | Recorded result |
+|---|---|
+| Baseline manifest | `tooling/migration/baselines/v1.19.0-beta.1/manifest.json` |
+| Accepted tag object / commit | `e68e3af4c879d8e9053124d1aed625bfcddfdbb4` / `8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f` |
+| Finalized receipt SHA-256 | `a462dc24d94debfb678038e9ed437bdf04dc75476237cc74a9bf06ac366444e9` |
+| Baseline corpus SHA-256 | `7fdd92894d88b221180e77ad73677cc158147cc861b17ba0245ea54f0127fbe2` |
+| Python Full runtime oracle | 5 captured cases; peeled-tag source tree; 1 accepted gap |
+| Rust Lite runtime oracle | 5 captured cases; accepted release binary; 1 accepted gap |
+| Node MCPB runtime oracle | 5 captured cases; peeled-tag source tree; 1 accepted gap |
+| Asset-backed determinism | two independent accepted-asset directories reproduce byte-identical output |
+| Focused A8 tests | 46 passed, including runtime replay and frozen-baseline guard tests |
+| Strict research-standard validation | 6,204 passed, 0 failed, 0 warnings |
+
+Offline `verify` validates schema, source identity, release evidence, hashes,
+coverage shape, portability, and corpus integrity without launching the three
+runtimes. It is not an independent attestation of a simultaneously rewritten
+case outcome and manifest. Initial outcome authenticity is established by the
+asset-backed recapture above; after the A8 commit, the comparison-base guard
+makes the baseline, plan, and schemas immutable on `dev` and `2.x`.
+
+The A8 side-effect recorder compares each runtime sandbox and the declared
+accepted source/binary guard roots. Its `writes_outside_sandbox: false` value
+means no write was observed in that bounded set; it is not OS-wide filesystem
+tracing and does not observe empty-directory or permission-only changes. The
+2.x testkit must either narrow that field name/contract or replace it with an
+OS sandbox or tracing-backed assertion before using it as a security claim.
 
 Exit criteria:
 
@@ -938,13 +1013,15 @@ Exit criteria:
 - no production crate depends on Python or Node launch behavior;
 - crate dependency direction is documented and acyclic.
 
-### B3 — Freeze and load contracts and content
+### B3 — Verify and load frozen contracts and content
 
 Task IDs: `CTR-201`, `FND-202`
 
 Actions:
 
-1. generate the exact 1.x baseline manifest from the accepted tag;
+1. load and verify the frozen A8 1.x baseline manifest, accepted-tag lineage,
+   checksums, package trees, and oracle inventory; do not regenerate or move
+   the accepted oracle during B3;
 2. implement typed Contract v2 and platform-target loaders;
 3. compile canonical workflow, skills, roles, templates, standards, subjects, and
    metadata into one deterministic resource pack;
@@ -1230,11 +1307,13 @@ scaffold. The accepted 1.x tag must remain an unambiguous oracle boundary.
 
 ## Immediate Next Actions
 
-A0-A4 are complete; A1 is accepted and the A2 Stage 1 contract and
-migration-baseline plan are frozen. Continue in this order:
+A0-A7 are complete and the final planned 1.x beta is accepted. Continue in
+this order:
 
-1. prepare and publish `v1.19.0-beta.1` through A5-A7;
-2. cut the frozen 1.x baseline and create/push `2.x` through A8;
+1. finish generating, verifying, and committing the frozen 1.x baseline and
+   branch-policy evidence on `dev` through A8;
+2. wait for the exact A8 commit's required checks, then create/push `2.x` from
+   that clean commit and record the branch point;
 3. start B0 ADRs and B1 alpha release-tooling support on `2.x` in parallel;
 4. scaffold the native workspace only after those decisions are reviewed.
 

@@ -11,6 +11,8 @@ from tooling.scripts.validate_capability_contract import validate_instance
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PLAN_PATH = REPO_ROOT / "tooling/migration/qiongli-1x-baseline-plan.json"
 SCHEMA_PATH = REPO_ROOT / "tooling/migration/baseline-plan.schema.json"
+EXPECTED_TAG = "v1.19.0-beta.1"
+EXPECTED_COMMIT = "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f"
 
 
 class MigrationBaselinePlanTests(unittest.TestCase):
@@ -21,6 +23,67 @@ class MigrationBaselinePlanTests(unittest.TestCase):
 
     def test_plan_matches_schema(self) -> None:
         self.assertEqual(validate_instance(self.plan, self.schema), [])
+        self.assertEqual(self.plan["schema_version"], "1.1")
+        self.assertEqual(self.plan["status"], "captured")
+
+    def test_plan_pins_the_accepted_annotated_tag_and_finalized_inputs(self) -> None:
+        lineage = self.plan["release_lineage"]
+        self.assertEqual(lineage["accepted_tag"], EXPECTED_TAG)
+        self.assertEqual(lineage["accepted_commit"], EXPECTED_COMMIT)
+        self.assertEqual(
+            self.plan["capture_inputs"]["finalized_receipt"],
+            "tooling/release/acceptance/v1.19.0-beta.1-receipt.md",
+        )
+        self.assertEqual(
+            self.plan["capture_inputs"]["finalized_receipt_commit"],
+            "ba4517c8dfd5ce8b551c83b129213e689d32cac4",
+        )
+        self.assertEqual(
+            self.plan["capture_inputs"]["finalized_receipt_git_blob_oid"],
+            "605ab151b1621838a85f9909d6877f0f69857fc3",
+        )
+        self.assertEqual(
+            self.plan["capture_inputs"]["finalized_receipt_sha256"],
+            "a462dc24d94debfb678038e9ed437bdf04dc75476237cc74a9bf06ac366444e9",
+        )
+        self.assertEqual(
+            self.plan["capture_inputs"]["finalized_receipt_size_bytes"], 6641
+        )
+        self.assertEqual(len(self.plan["capture_inputs"]["release_asset_names"]), 10)
+        self.assertEqual(len(self.plan["capture_inputs"]["native_container_names"]), 5)
+        self.assertEqual(
+            set(self.plan["capture_inputs"]["native_receipt_labels"]),
+            set(self.plan["capture_inputs"]["native_container_names"]),
+        )
+        self.assertEqual(
+            len(set(self.plan["capture_inputs"]["native_receipt_labels"].values())),
+            5,
+        )
+        bindings = self.plan["capture_inputs"]["native_member_bindings"]
+        self.assertEqual(set(bindings), set(self.plan["capture_inputs"]["native_container_names"]))
+        self.assertTrue(
+            all(
+                set(binding)
+                == {
+                    "identity_member",
+                    "binary_member",
+                    "identity_document_sha256",
+                }
+                for binding in bindings.values()
+            )
+        )
+        self.assertEqual(
+            self.plan["output"]["generated_from"], "accepted-annotated-tag"
+        )
+
+    def test_selector_semantics_are_explicit_and_filesystem_independent(self) -> None:
+        semantics = self.plan["selector_semantics"]
+        self.assertIn("git ls-tree", semantics["universe"])
+        self.assertIn("repository-relative", semantics["path_format"])
+        self.assertIn("one path segment", semantics["star"])
+        self.assertIn("complete path segments", semantics["double_star"])
+        self.assertIn("after", semantics["exclude_policy"])
+        self.assertIn("filesystem traversal", semantics["unsupported"])
 
     def test_plan_covers_every_required_inventory_and_normalization_domain(self) -> None:
         inventory_ids = {item["id"] for item in self.plan["inventory"]["domains"]}
@@ -59,6 +122,11 @@ class MigrationBaselinePlanTests(unittest.TestCase):
             selector
             for domain in self.plan["inventory"]["domains"]
             for selector in domain["source_selectors"]
+        )
+        referenced_paths.extend(
+            selector
+            for oracle in self.plan["oracles"]
+            for selector in oracle["projection"]["source_selectors"]
         )
 
         for reference in referenced_paths:
@@ -141,6 +209,30 @@ class MigrationBaselinePlanTests(unittest.TestCase):
         self.assertLessEqual(
             {"**/__pycache__/**", "**/node_modules/**", "**/target/**"},
             set(self.plan["inventory"]["exclude_selectors"]),
+        )
+        self.assertEqual(
+            self.plan["integrity"]["package_tree_roots"],
+            [
+                "content/",
+                "packages/python-qiongli/",
+                "packages/qiongli-lite-mcp/",
+                "packages/qiongli-literature-mcpb/",
+                "packages/npm-qiongli/",
+            ],
+        )
+
+    def test_inventory_explicitly_covers_npm_install_and_scenario_fixtures(self) -> None:
+        domains = {
+            item["id"]: set(item["source_selectors"])
+            for item in self.plan["inventory"]["domains"]
+        }
+        self.assertIn("packages/npm-qiongli/bin/qiongli.mjs", domains["cli"])
+        self.assertIn("packages/npm-qiongli/lib/installer.mjs", domains["installers"])
+        self.assertIn("tests/test_install_qiongli.py", domains["installers"])
+        self.assertIn("evals/controller_modes/**", domains["orchestrator-scenarios"])
+        self.assertIn(
+            "tests/fixtures/full_cycle_harness/**",
+            domains["orchestrator-scenarios"],
         )
 
     def test_schema_rejects_an_incomplete_capture_plan(self) -> None:

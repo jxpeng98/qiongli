@@ -1,0 +1,280 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qiongli.dev/schemas/migration-baseline-manifest-v1.json",
+  "title": "Qiongli deterministic 1.x migration baseline manifest",
+  "type": "object",
+  "required": [
+    "$schema",
+    "schema_version",
+    "format_id",
+    "source",
+    "acceptance_receipt",
+    "selector_semantics",
+    "domains",
+    "package_trees",
+    "release_assets",
+    "native_identities",
+    "oracle_fixtures",
+    "integrity"
+  ],
+  "properties": {
+    "$schema": { "const": "../../baseline-manifest.schema.json" },
+    "schema_version": { "const": "1.0" },
+    "format_id": { "const": "qiongli-migration-baseline-v1" },
+    "source": {
+      "type": "object",
+      "required": [
+        "tag",
+        "tag_object_oid",
+        "tag_type",
+        "peeled_commit",
+        "tree_access"
+      ],
+      "properties": {
+        "tag": { "const": "v1.19.0-beta.1" },
+        "tag_object_oid": { "type": "string", "pattern": "^[0-9a-f]{40,64}$" },
+        "tag_type": { "const": "annotated" },
+        "peeled_commit": {
+          "const": "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f"
+        },
+        "tree_access": { "const": "git-ls-tree-and-cat-file" }
+      },
+      "additionalProperties": false
+    },
+    "acceptance_receipt": {
+      "type": "object",
+      "required": [
+        "path",
+        "git_blob_oid",
+        "size_bytes",
+        "sha256",
+        "source_commit",
+        "status"
+      ],
+      "properties": {
+        "path": {
+          "const": "tooling/release/acceptance/v1.19.0-beta.1-receipt.md"
+        },
+        "git_blob_oid": { "type": "string", "pattern": "^[0-9a-f]{40,64}$" },
+        "size_bytes": { "type": "integer", "minimum": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "source_commit": {
+          "const": "ba4517c8dfd5ce8b551c83b129213e689d32cac4"
+        },
+        "status": { "const": "finalized" }
+      },
+      "additionalProperties": false
+    },
+    "selector_semantics": {
+      "type": "object",
+      "minProperties": 9,
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "domains": {
+      "type": "array",
+      "minItems": 11,
+      "maxItems": 11,
+      "items": { "$ref": "#/$defs/domain" }
+    },
+    "package_trees": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": { "$ref": "#/$defs/packageTree" }
+    },
+    "release_assets": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "items": { "$ref": "#/$defs/releaseAsset" }
+    },
+    "native_identities": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": { "$ref": "#/$defs/nativeIdentity" }
+    },
+    "oracle_fixtures": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": { "$ref": "#/$defs/oracleFixture" }
+    },
+    "integrity": {
+      "type": "object",
+      "required": ["algorithm", "corpus_definition", "corpus_sha256"],
+      "properties": {
+        "algorithm": { "const": "sha256" },
+        "corpus_definition": {
+          "const": "canonical-json(source,acceptance_receipt,selector_semantics,domains,package_trees,release_assets,native_identities,oracle_fixtures)"
+        },
+        "corpus_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "fileEntry": {
+      "type": "object",
+      "required": ["path", "mode", "git_blob_oid", "size_bytes", "sha256"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "mode": { "enum": ["100644", "100755"] },
+        "git_blob_oid": { "type": "string", "pattern": "^[0-9a-f]{40,64}$" },
+        "size_bytes": { "type": "integer", "minimum": 0 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      },
+      "additionalProperties": false
+    },
+    "domain": {
+      "type": "object",
+      "required": ["id", "selectors", "file_count", "files"],
+      "properties": {
+        "id": {
+          "enum": [
+            "mcp",
+            "cli",
+            "skills",
+            "tasks",
+            "roles",
+            "workflows",
+            "subjects",
+            "templates",
+            "installers",
+            "mutable-state",
+            "orchestrator-scenarios"
+          ]
+        },
+        "selectors": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "file_count": { "type": "integer", "minimum": 1 },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/fileEntry" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "packageTree": {
+      "type": "object",
+      "required": ["root", "file_count", "tree_sha256", "files"],
+      "properties": {
+        "root": {
+          "enum": [
+            "content/",
+            "packages/python-qiongli/",
+            "packages/qiongli-lite-mcp/",
+            "packages/qiongli-literature-mcpb/",
+            "packages/npm-qiongli/"
+          ]
+        },
+        "file_count": { "type": "integer", "minimum": 1 },
+        "tree_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/fileEntry" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "releaseAsset": {
+      "type": "object",
+      "required": ["name", "size_bytes", "sha256"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "size_bytes": { "type": "integer", "minimum": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      },
+      "additionalProperties": false
+    },
+    "nativeIdentityDocument": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "component_version",
+        "runtime_profile",
+        "runtime_implementation",
+        "target_policy",
+        "target_triple",
+        "platform",
+        "architecture",
+        "binary",
+        "sha256",
+        "size_bytes"
+      ],
+      "properties": {
+        "schema_version": { "const": "1.0" },
+        "component_version": { "const": "0.2.0-beta.3" },
+        "runtime_profile": { "const": "lite" },
+        "runtime_implementation": { "const": "rust" },
+        "target_policy": { "const": "current-host-only" },
+        "target_triple": { "const": "aarch64-apple-darwin" },
+        "platform": { "const": "darwin" },
+        "architecture": { "const": "aarch64" },
+        "binary": { "const": "qiongli-literature-provider" },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "size_bytes": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "nativeIdentity": {
+      "type": "object",
+      "required": [
+        "container",
+        "identity_member",
+        "identity_document_sha256",
+        "binary_member",
+        "identity"
+      ],
+      "properties": {
+        "container": { "type": "string", "minLength": 1 },
+        "identity_member": { "type": "string", "minLength": 1 },
+        "identity_document_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "binary_member": { "type": "string", "minLength": 1 },
+        "identity": { "$ref": "#/$defs/nativeIdentityDocument" }
+      },
+      "additionalProperties": false
+    },
+    "oracleFixture": {
+      "type": "object",
+      "required": [
+        "oracle_id",
+        "path",
+        "runtime_source_kind",
+        "captured_capabilities",
+        "accepted_gap_count",
+        "case_count",
+        "size_bytes",
+        "sha256"
+      ],
+      "properties": {
+        "oracle_id": { "enum": ["python-full", "rust-lite", "node-mcpb"] },
+        "path": { "type": "string", "pattern": "^oracles/.+\\.json$" },
+        "runtime_source_kind": {
+          "enum": ["peeled-tag-materialization", "accepted-release-binary"]
+        },
+        "captured_capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "accepted_gap_count": { "type": "integer", "minimum": 1 },
+        "case_count": { "type": "integer", "minimum": 1 },
+        "size_bytes": { "type": "integer", "minimum": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

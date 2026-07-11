@@ -1,11 +1,12 @@
 {
   "$schema": "./baseline-plan.schema.json",
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "plan_id": "qiongli-1x-to-2x-migration-baseline",
-  "status": "planned",
+  "status": "captured",
   "release_lineage": {
     "source_release": "v1.19.0-beta.1",
     "accepted_tag": "v1.19.0-beta.1",
+    "accepted_commit": "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f",
     "maintenance_branch": "release/1.x-python",
     "successor_branch": "2.x",
     "first_native_release": "v2.0.0-alpha.1",
@@ -14,9 +15,82 @@
   },
   "output": {
     "manifest_path": "tooling/migration/baselines/v1.19.0-beta.1/manifest.json",
+    "manifest_schema": "tooling/migration/baseline-manifest.schema.json",
+    "oracle_schema": "tooling/migration/oracle-fixture.schema.json",
     "format_id": "qiongli-migration-baseline-v1",
-    "generated_from": "accepted-tag",
+    "generated_from": "accepted-annotated-tag",
     "deterministic": true
+  },
+  "capture_inputs": {
+    "finalized_receipt": "tooling/release/acceptance/v1.19.0-beta.1-receipt.md",
+    "finalized_receipt_commit": "ba4517c8dfd5ce8b551c83b129213e689d32cac4",
+    "finalized_receipt_git_blob_oid": "605ab151b1621838a85f9909d6877f0f69857fc3",
+    "finalized_receipt_sha256": "a462dc24d94debfb678038e9ed437bdf04dc75476237cc74a9bf06ac366444e9",
+    "finalized_receipt_size_bytes": 6641,
+    "release_asset_names": [
+      "qiongli-artifacts-v1.19.0-beta.1.json",
+      "qiongli-downloads-v1.19.0-beta.1.json",
+      "qiongli-downloads-v1.19.0-beta.1.md",
+      "qiongli-literature-provider-0.2.0-beta.3.mcpb",
+      "qiongli-next-claude-desktop-plugin-v1.19.0-beta.1.zip",
+      "qiongli-next-claude-desktop-skill-core-v1.19.0-beta.1.zip",
+      "qiongli-next-claude-plugin-v1.19.0-beta.1.tar.gz",
+      "qiongli-next-claude-plugin-v1.19.0-beta.1.zip",
+      "qiongli-next-codex-plugin-v1.19.0-beta.1.tar.gz",
+      "qiongli-zotero-companion-0.2.2.xpi"
+    ],
+    "native_container_names": [
+      "qiongli-literature-provider-0.2.0-beta.3.mcpb",
+      "qiongli-next-claude-desktop-plugin-v1.19.0-beta.1.zip",
+      "qiongli-next-claude-plugin-v1.19.0-beta.1.tar.gz",
+      "qiongli-next-claude-plugin-v1.19.0-beta.1.zip",
+      "qiongli-next-codex-plugin-v1.19.0-beta.1.tar.gz"
+    ],
+    "native_receipt_labels": {
+      "qiongli-literature-provider-0.2.0-beta.3.mcpb": "Literature MCPB",
+      "qiongli-next-claude-desktop-plugin-v1.19.0-beta.1.zip": "Claude Desktop direct-plugin ZIP",
+      "qiongli-next-claude-plugin-v1.19.0-beta.1.tar.gz": "Claude plugin tarball",
+      "qiongli-next-claude-plugin-v1.19.0-beta.1.zip": "Claude plugin ZIP",
+      "qiongli-next-codex-plugin-v1.19.0-beta.1.tar.gz": "Codex plugin tarball"
+    },
+    "native_member_bindings": {
+      "qiongli-literature-provider-0.2.0-beta.3.mcpb": {
+        "identity_member": "bin/qiongli-literature-provider.target.json",
+        "binary_member": "bin/qiongli-literature-provider",
+        "identity_document_sha256": "ab86a29ba47602f4c16322a4e65663684f888c02c2c1d370461991f7ad19c7ce"
+      },
+      "qiongli-next-claude-desktop-plugin-v1.19.0-beta.1.zip": {
+        "identity_member": "qiongli-next/bin/qiongli-literature-provider.target.json",
+        "binary_member": "qiongli-next/bin/qiongli-literature-provider",
+        "identity_document_sha256": "74fe4a30670d17ea7a80a2cec99fc295a975189acfe8e15aeee09ac5aa358969"
+      },
+      "qiongli-next-claude-plugin-v1.19.0-beta.1.tar.gz": {
+        "identity_member": "qiongli-next-claude-plugin-v1.19.0-beta.1/plugins/qiongli-next/bin/qiongli-literature-provider.target.json",
+        "binary_member": "qiongli-next-claude-plugin-v1.19.0-beta.1/plugins/qiongli-next/bin/qiongli-literature-provider",
+        "identity_document_sha256": "74fe4a30670d17ea7a80a2cec99fc295a975189acfe8e15aeee09ac5aa358969"
+      },
+      "qiongli-next-claude-plugin-v1.19.0-beta.1.zip": {
+        "identity_member": "qiongli-next-claude-plugin-v1.19.0-beta.1/plugins/qiongli-next/bin/qiongli-literature-provider.target.json",
+        "binary_member": "qiongli-next-claude-plugin-v1.19.0-beta.1/plugins/qiongli-next/bin/qiongli-literature-provider",
+        "identity_document_sha256": "74fe4a30670d17ea7a80a2cec99fc295a975189acfe8e15aeee09ac5aa358969"
+      },
+      "qiongli-next-codex-plugin-v1.19.0-beta.1.tar.gz": {
+        "identity_member": "qiongli-next-codex-plugin-v1.19.0-beta.1/plugins/qiongli-next/bin/qiongli-literature-provider.target.json",
+        "binary_member": "qiongli-next-codex-plugin-v1.19.0-beta.1/plugins/qiongli-next/bin/qiongli-literature-provider",
+        "identity_document_sha256": "74fe4a30670d17ea7a80a2cec99fc295a975189acfe8e15aeee09ac5aa358969"
+      }
+    }
+  },
+  "selector_semantics": {
+    "universe": "blob entries returned by git ls-tree -r for the annotated accepted tag",
+    "path_format": "repository-relative POSIX paths",
+    "exact": "a selector without metacharacters matches one exact blob path",
+    "star": "* matches zero or more characters inside one path segment",
+    "question": "? matches exactly one character inside one path segment",
+    "double_star": "** matches zero or more complete path segments or remaining characters",
+    "include_policy": "union of every selector in a domain",
+    "exclude_policy": "exclude selectors are applied after the include union",
+    "unsupported": "character classes, brace expansion, filesystem traversal, and symlink following"
   },
   "contracts": {
     "capability_registry": "content/mcp-contracts/v2/registry.json",
@@ -31,7 +105,34 @@
       "runtime": "python",
       "profile": "full",
       "source_root": "packages/python-qiongli",
-      "capture": "Full CLI, MCP, orchestration, installer, and mutable-state results",
+      "capture": "Actual Full CLI, MCP, preview orchestration, installer dry-run, and bounded mutable-state outcomes from the accepted peeled tag",
+      "projection": {
+        "kind": "accepted-runtime-outcome-capture",
+        "source_selectors": [
+          "packages/python-qiongli/src/qiongli/cli.py",
+          "packages/python-qiongli/src/qiongli/universal_installer.py",
+          "packages/python-qiongli/src/qiongli/bridges/mcp_server_stdio.py",
+          "packages/python-qiongli/src/qiongli/bridges/mcp_tool_handlers.py",
+          "packages/python-qiongli/src/qiongli/bridges/orchestrator.py",
+          "packages/python-qiongli/src/qiongli/bridges/provider_config.py",
+          "content/standards/research-workflow-contract.yaml",
+          "content/standards/mcp-agent-capability-map.yaml"
+        ]
+      },
+      "required_coverage": [
+        "cli-command",
+        "mcp-initialize-and-list",
+        "orchestration-preview",
+        "installer-dry-run",
+        "mutable-provider-state"
+      ],
+      "accepted_gaps": [
+        {
+          "capability": "external-agent-process-launch",
+          "disposition": "accepted-gap",
+          "reason": "External Codex, Claude, and Antigravity execution requires host credentials and is intentionally excluded from the deterministic offline oracle; preview routing is captured instead."
+        }
+      ],
       "production_dependency": false
     },
     {
@@ -39,7 +140,30 @@
       "runtime": "rust",
       "profile": "marketplace-lite",
       "source_root": "packages/qiongli-lite-mcp",
-      "capture": "Self-contained Lite MCP contract and bounded provider results",
+      "capture": "Actual JSON-RPC outcomes from the accepted Claude Desktop Rust binary, including initialization, tool discovery, status, search planning, errors, and secret redaction",
+      "projection": {
+        "kind": "accepted-runtime-outcome-capture",
+        "source_selectors": [
+          "packages/qiongli-lite-mcp/src/**",
+          "packages/qiongli-lite-mcp/Cargo.toml",
+          "content/mcp-contracts/lite-tools.json",
+          "content/mcp-contracts/v2/registry.json"
+        ]
+      },
+      "required_coverage": [
+        "mcp-initialize-and-list",
+        "config-status",
+        "search-plan",
+        "jsonrpc-error",
+        "secret-redaction"
+      ],
+      "accepted_gaps": [
+        {
+          "capability": "live-provider-search",
+          "disposition": "accepted-gap",
+          "reason": "Live provider search depends on external network state; deterministic status and search-plan behavior are captured without network access."
+        }
+      ],
       "production_dependency": false
     },
     {
@@ -47,7 +171,29 @@
       "runtime": "node",
       "profile": "legacy-mcpb",
       "source_root": "packages/qiongli-literature-mcpb",
-      "capture": "Legacy MCPB compatibility and fail-closed reference results",
+      "capture": "Actual legacy Node MCPB initialization, tool discovery, provider-fixture normalization, search planning, and fail-closed configuration outcomes from the accepted peeled tag",
+      "projection": {
+        "kind": "accepted-runtime-outcome-capture",
+        "source_selectors": [
+          "packages/qiongli-literature-mcpb/server/**",
+          "packages/qiongli-literature-mcpb/package.json",
+          "content/mcp-contracts/fixtures/crossref-search-response.json"
+        ]
+      },
+      "required_coverage": [
+        "mcp-initialize-and-list",
+        "provider-normalization",
+        "search-plan",
+        "malformed-config-fail-closed",
+        "unsupported-config-fail-closed"
+      ],
+      "accepted_gaps": [
+        {
+          "capability": "live-provider-search",
+          "disposition": "accepted-gap",
+          "reason": "Live provider search depends on external network state; deterministic mocked-provider normalization and offline search planning are captured instead."
+        }
+      ],
       "production_dependency": false
     }
   ],
@@ -66,12 +212,19 @@
         "id": "cli",
         "source_selectors": [
           "packages/python-qiongli/src/qiongli/cli.py",
+          "packages/npm-qiongli/bin/qiongli.mjs",
+          "packages/npm-qiongli/lib/args.mjs",
+          "packages/npm-qiongli/lib/cli.mjs",
+          "packages/npm-qiongli/package.json",
           "content/distribution/**"
         ]
       },
       {
         "id": "skills",
-        "source_selectors": ["content/skills/**", "content/workflow/SKILL.md"]
+        "source_selectors": [
+          "content/skills/**",
+          "content/workflow/SKILL.md"
+        ]
       },
       {
         "id": "tasks",
@@ -80,7 +233,12 @@
           "content/standards/worker-orchestration-contract.yaml"
         ]
       },
-      { "id": "roles", "source_selectors": ["content/roles/**"] },
+      {
+        "id": "roles",
+        "source_selectors": [
+          "content/roles/**"
+        ]
+      },
       {
         "id": "workflows",
         "source_selectors": [
@@ -88,15 +246,35 @@
           "content/workflow/references/**"
         ]
       },
-      { "id": "subjects", "source_selectors": ["content/subjects/**"] },
-      { "id": "templates", "source_selectors": ["content/templates/**"] },
+      {
+        "id": "subjects",
+        "source_selectors": [
+          "content/subjects/**"
+        ]
+      },
+      {
+        "id": "templates",
+        "source_selectors": [
+          "content/templates/**"
+        ]
+      },
       {
         "id": "installers",
         "source_selectors": [
           "tooling/install/**",
           "tooling/scripts/install_qiongli.sh",
           "packages/python-qiongli/src/qiongli/universal_installer.py",
-          "packages/python-qiongli/src/qiongli/local_plugin_installer.py"
+          "packages/python-qiongli/src/qiongli/local_plugin_installer.py",
+          "packages/python-qiongli/src/qiongli/install_discovery.py",
+          "packages/python-qiongli/src/qiongli/install_manifest.tsv",
+          "packages/npm-qiongli/lib/installer.mjs",
+          "packages/npm-qiongli/lib/project.mjs",
+          "packages/npm-qiongli/lib/python-runtime.mjs",
+          "packages/npm-qiongli/lib/runtime-message.mjs",
+          "tests/test_install_manifest.py",
+          "tests/test_install_qiongli.py",
+          "tests/test_local_plugin_installer.py",
+          "tests/test_universal_installer.py"
         ]
       },
       {
@@ -114,8 +292,14 @@
         "source_selectors": [
           "packages/python-qiongli/src/qiongli/bridges/orchestrator.py",
           "packages/qiongli-lite-mcp/tests/orchestrator_preview.rs",
+          "content/workflow/references/full-cycle-workflow-harness.md",
+          "evals/controller_modes/**",
+          "tests/fixtures/full_cycle_harness/**",
           "tests/test_orchestrator_workflows.py",
-          "tests/test_controller_agnostic_orchestration.py"
+          "tests/test_controller_agnostic_orchestration.py",
+          "tests/test_controller_mode_evals.py",
+          "tests/test_full_cycle_harness_script.py",
+          "tooling/scripts/run_controller_mode_evals.py"
         ]
       }
     ],
@@ -130,7 +314,7 @@
     "rules": [
       {
         "id": "paths",
-        "strategy": "make repository-relative or replace machine-local paths",
+        "strategy": "store repository-relative paths and reject machine-local paths",
         "replacement": "<REPO_PATH>"
       },
       {
@@ -140,24 +324,25 @@
       },
       {
         "id": "timestamps",
-        "strategy": "replace wall-clock and file-system timestamps",
+        "strategy": "omit wall-clock and file-system timestamps",
         "replacement": "<TIMESTAMP>"
       },
       {
         "id": "process-ids",
-        "strategy": "replace process and worker identifiers",
+        "strategy": "omit process and worker identifiers",
         "replacement": "<PID>"
       },
       {
         "id": "secrets",
-        "strategy": "redact credentials and reject output that contains canaries",
+        "strategy": "redact canonical canaries and reject secret-shaped output",
         "replacement": "<REDACTED>"
       }
     ],
     "serialization": {
       "encoding": "utf-8",
       "line_endings": "lf",
-      "json_keys": "sorted"
+      "json_keys": "sorted",
+      "terminal_newline": true
     }
   },
   "integrity": {
@@ -168,10 +353,12 @@
       "content/",
       "packages/python-qiongli/",
       "packages/qiongli-lite-mcp/",
-      "packages/qiongli-literature-mcpb/"
+      "packages/qiongli-literature-mcpb/",
+      "packages/npm-qiongli/"
     ],
     "path_order": "sorted-repository-relative-path",
-    "file_mode_policy": "record-executable-bit"
+    "file_mode_policy": "record-git-mode",
+    "corpus_digest": "sha256-of-canonical-manifest-corpus"
   },
   "consumer": {
     "id": "qiongli-testkit",

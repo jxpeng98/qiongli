@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://qiongli.dev/schemas/migration-baseline-plan-v1.json",
+  "$id": "https://qiongli.dev/schemas/migration-baseline-plan-v1.1.json",
   "title": "Qiongli 1.x to 2.x Migration Baseline Plan",
   "type": "object",
   "required": [
@@ -10,6 +10,8 @@
     "status",
     "release_lineage",
     "output",
+    "capture_inputs",
+    "selector_semantics",
     "contracts",
     "oracles",
     "inventory",
@@ -19,7 +21,7 @@
   ],
   "properties": {
     "$schema": { "const": "./baseline-plan.schema.json" },
-    "schema_version": { "const": "1.0" },
+    "schema_version": { "const": "1.1" },
     "plan_id": { "const": "qiongli-1x-to-2x-migration-baseline" },
     "status": { "enum": ["planned", "captured", "accepted"] },
     "release_lineage": {
@@ -27,6 +29,7 @@
       "required": [
         "source_release",
         "accepted_tag",
+        "accepted_commit",
         "maintenance_branch",
         "successor_branch",
         "first_native_release",
@@ -36,6 +39,9 @@
       "properties": {
         "source_release": { "const": "v1.19.0-beta.1" },
         "accepted_tag": { "const": "v1.19.0-beta.1" },
+        "accepted_commit": {
+          "const": "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f"
+        },
         "maintenance_branch": { "const": "release/1.x-python" },
         "successor_branch": { "const": "2.x" },
         "first_native_release": { "const": "v2.0.0-alpha.1" },
@@ -46,16 +52,115 @@
     },
     "output": {
       "type": "object",
-      "required": ["manifest_path", "format_id", "generated_from", "deterministic"],
+      "required": [
+        "manifest_path",
+        "manifest_schema",
+        "oracle_schema",
+        "format_id",
+        "generated_from",
+        "deterministic"
+      ],
       "properties": {
         "manifest_path": {
           "const": "tooling/migration/baselines/v1.19.0-beta.1/manifest.json"
         },
+        "manifest_schema": {
+          "const": "tooling/migration/baseline-manifest.schema.json"
+        },
+        "oracle_schema": {
+          "const": "tooling/migration/oracle-fixture.schema.json"
+        },
         "format_id": { "const": "qiongli-migration-baseline-v1" },
-        "generated_from": { "const": "accepted-tag" },
+        "generated_from": { "const": "accepted-annotated-tag" },
         "deterministic": { "const": true }
       },
       "additionalProperties": false
+    },
+    "capture_inputs": {
+      "type": "object",
+      "required": [
+        "finalized_receipt",
+        "finalized_receipt_commit",
+        "finalized_receipt_git_blob_oid",
+        "finalized_receipt_sha256",
+        "finalized_receipt_size_bytes",
+        "release_asset_names",
+        "native_container_names",
+        "native_receipt_labels",
+        "native_member_bindings"
+      ],
+      "properties": {
+        "finalized_receipt": {
+          "const": "tooling/release/acceptance/v1.19.0-beta.1-receipt.md"
+        },
+        "finalized_receipt_commit": {
+          "const": "ba4517c8dfd5ce8b551c83b129213e689d32cac4"
+        },
+        "finalized_receipt_git_blob_oid": {
+          "const": "605ab151b1621838a85f9909d6877f0f69857fc3"
+        },
+        "finalized_receipt_sha256": {
+          "const": "a462dc24d94debfb678038e9ed437bdf04dc75476237cc74a9bf06ac366444e9"
+        },
+        "finalized_receipt_size_bytes": { "const": 6641 },
+        "release_asset_names": {
+          "type": "array",
+          "minItems": 10,
+          "maxItems": 10,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "native_container_names": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "native_receipt_labels": {
+          "type": "object",
+          "minProperties": 5,
+          "additionalProperties": { "type": "string", "minLength": 1 }
+        },
+        "native_member_bindings": {
+          "type": "object",
+          "minProperties": 5,
+          "maxProperties": 5,
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "identity_member",
+              "binary_member",
+              "identity_document_sha256"
+            ],
+            "properties": {
+              "identity_member": { "type": "string", "minLength": 1 },
+              "binary_member": { "type": "string", "minLength": 1 },
+              "identity_document_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "selector_semantics": {
+      "type": "object",
+      "required": [
+        "universe",
+        "path_format",
+        "exact",
+        "star",
+        "question",
+        "double_star",
+        "include_policy",
+        "exclude_policy",
+        "unsupported"
+      ],
+      "additionalProperties": { "type": "string", "minLength": 1 }
     },
     "contracts": {
       "type": "object",
@@ -92,14 +197,54 @@
           "profile",
           "source_root",
           "capture",
+          "projection",
+          "required_coverage",
+          "accepted_gaps",
           "production_dependency"
         ],
         "properties": {
           "id": { "enum": ["python-full", "rust-lite", "node-mcpb"] },
           "runtime": { "enum": ["python", "rust", "node"] },
           "profile": { "enum": ["full", "marketplace-lite", "legacy-mcpb"] },
-          "source_root": { "type": "string", "pattern": "^(packages|content)/" },
+          "source_root": { "type": "string", "pattern": "^packages/" },
           "capture": { "type": "string", "minLength": 1 },
+          "projection": {
+            "type": "object",
+            "required": ["kind", "source_selectors"],
+            "properties": {
+              "kind": {
+                "const": "accepted-runtime-outcome-capture"
+              },
+              "source_selectors": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": { "type": "string", "minLength": 1 }
+              }
+            },
+            "additionalProperties": false
+          },
+          "required_coverage": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "accepted_gaps": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "required": ["capability", "disposition", "reason"],
+              "properties": {
+                "capability": { "type": "string", "minLength": 1 },
+                "disposition": { "const": "accepted-gap" },
+                "reason": { "type": "string", "minLength": 1 }
+              },
+              "additionalProperties": false
+            }
+          },
           "production_dependency": { "const": false }
         },
         "additionalProperties": false
@@ -140,7 +285,7 @@
                 "items": {
                   "type": "string",
                   "minLength": 1,
-                  "pattern": "^(content|packages|tests|tooling)/"
+                  "pattern": "^(content|packages|tests|tooling|evals)/"
                 }
               }
             },
@@ -169,7 +314,9 @@
             "type": "object",
             "required": ["id", "strategy", "replacement"],
             "properties": {
-              "id": { "enum": ["paths", "ports", "timestamps", "process-ids", "secrets"] },
+              "id": {
+                "enum": ["paths", "ports", "timestamps", "process-ids", "secrets"]
+              },
               "strategy": { "type": "string", "minLength": 1 },
               "replacement": { "type": "string", "pattern": "^<[A-Z_]+>$" }
             },
@@ -178,11 +325,12 @@
         },
         "serialization": {
           "type": "object",
-          "required": ["encoding", "line_endings", "json_keys"],
+          "required": ["encoding", "line_endings", "json_keys", "terminal_newline"],
           "properties": {
             "encoding": { "const": "utf-8" },
             "line_endings": { "const": "lf" },
-            "json_keys": { "const": "sorted" }
+            "json_keys": { "const": "sorted" },
+            "terminal_newline": { "const": true }
           },
           "additionalProperties": false
         }
@@ -197,7 +345,8 @@
         "record_package_trees",
         "package_tree_roots",
         "path_order",
-        "file_mode_policy"
+        "file_mode_policy",
+        "corpus_digest"
       ],
       "properties": {
         "digest_algorithm": { "const": "sha256" },
@@ -205,12 +354,14 @@
         "record_package_trees": { "const": true },
         "package_tree_roots": {
           "type": "array",
-          "minItems": 4,
+          "minItems": 5,
+          "maxItems": 5,
           "uniqueItems": true,
           "items": { "type": "string", "pattern": "^(content|packages)/" }
         },
         "path_order": { "const": "sorted-repository-relative-path" },
-        "file_mode_policy": { "const": "record-executable-bit" }
+        "file_mode_policy": { "const": "record-git-mode" },
+        "corpus_digest": { "const": "sha256-of-canonical-manifest-corpus" }
       },
       "additionalProperties": false
     },
