@@ -143,6 +143,17 @@ release-candidate。任何例外 1.x 发布都必须满足上面的维护决策�
 forward-port/equivalence evidence 和 release gates；不得绕过现有 release
 automation 的 branch checks。
 
+现有 release automation 仍要求 stable publish mode 从 primary branch 运行，
+并在创建 tag 前等待必需的 branch checks；beta publish 则先等待 `dev` 上的
+CI/checks，再创建 beta tag 并等待 tag publish workflows。
+
+beta 不是每个 stable release 的必经步骤。只有当 release 改动发布自动化、
+package payload、installer、package metadata、CI 或 publish workflows 这类
+高风险面时，才需要先用 beta 验证。低风险文档、小修复和维护改动可以直接从
+`main` 发 stable。若 stable 没有对应的新 beta，npm `latest` 会前进，npm
+`next` 会有意停在上一个 beta；`next` 表示最新预发布验证版，不是必须始终
+比 stable 更新的通道。不要为了移动 `next` 而机械发 beta。
+
 2.x stable 与 prerelease 规则随原生发布工具在 `2.x` 上建立。统一
 Skillsplace 条目只有在对应原生 release gates 和 artifact acceptance 通过后
 才能推进。
