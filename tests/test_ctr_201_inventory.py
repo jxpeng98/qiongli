@@ -17,14 +17,23 @@ from tooling.scripts.validate_capability_contract import validate_instance
 from tooling.scripts.validate_ctr_201_inventory import (
     DEFAULT_CLI_ARTIFACT,
     DEFAULT_CLI_SCHEMA,
+    DEFAULT_ORCHESTRATOR_ARTIFACT,
+    DEFAULT_ORCHESTRATOR_SCHEMA,
     EXPECTED_CLI_SCHEMA_CANONICAL_SHA256,
+    EXPECTED_ORCHESTRATOR_PAYLOAD_SHA256,
+    EXPECTED_ORCHESTRATOR_SCHEMA_CANONICAL_SHA256,
     InventoryConfigError,
+    OrchestratorArtifactMismatch,
     _CLI_EXTRACTION_CACHE,
+    _ORCHESTRATOR_EXTRACTION_CACHE,
     _accepted_cli_extraction_bytes,
+    _accepted_orchestrator_extraction_bytes,
     _canonical_json_bytes,
     _load_json_file,
     _validate_cli_artifact_semantics,
     _validate_cli_static_semantics,
+    _validate_orchestrator_artifact_semantics,
+    _validate_orchestrator_static_contract,
     _validate_recursively_closed_schema,
     canonical_payload_sha256,
     is_canonical_repository_path,
@@ -41,6 +50,8 @@ DIGEST_BOUND_JSON_PATHS = (
     "tooling/migration/baselines/v1.19.0-beta.1/oracles/node-mcpb.json",
     "tooling/migration/baselines/v1.19.0-beta.1/oracles/python-full.json",
     "tooling/migration/baselines/v1.19.0-beta.1/oracles/rust-lite.json",
+    "tooling/migration/ctr-201-orchestrator.json",
+    "tooling/migration/ctr-201-orchestrator.schema.json",
 )
 
 
@@ -54,12 +65,25 @@ class Ctr201InventoryTests(unittest.TestCase):
         cls.cli_schema = _load_json_file(
             REPO_ROOT, DEFAULT_CLI_SCHEMA, label="CLI child schema"
         )
+        cls.orchestrator_artifact = _load_json_file(
+            REPO_ROOT,
+            DEFAULT_ORCHESTRATOR_ARTIFACT,
+            label="orchestrator child artifact",
+        )
+        cls.orchestrator_schema = _load_json_file(
+            REPO_ROOT,
+            DEFAULT_ORCHESTRATOR_SCHEMA,
+            label="orchestrator child schema",
+        )
 
     def _record(self) -> dict[str, object]:
         return copy.deepcopy(self.record)
 
     def _cli_record(self) -> dict[str, object]:
         return copy.deepcopy(self.cli_artifact)
+
+    def _orchestrator_record(self) -> dict[str, object]:
+        return copy.deepcopy(self.orchestrator_artifact)
 
     @staticmethod
     def _rehash(record: dict[str, object]) -> None:
@@ -74,6 +98,12 @@ class Ctr201InventoryTests(unittest.TestCase):
     def _validate_cli_rehashed(self, artifact: dict[str, object]) -> list[str]:
         self._rehash(artifact)
         return _validate_cli_artifact_semantics(artifact)
+
+    def _validate_orchestrator_rehashed(
+        self, artifact: dict[str, object]
+    ) -> list[str]:
+        self._rehash(artifact)
+        return _validate_orchestrator_artifact_semantics(artifact)
 
     def test_inventory_matches_closed_schema_and_all_semantic_checks(self) -> None:
         self.assertEqual(validate_instance(self.record, self.schema), [])
@@ -139,7 +169,7 @@ class Ctr201InventoryTests(unittest.TestCase):
             self.record["orchestrator"]["captured_scope"],
         )
         self.assertIn(
-            "all-solo-duo-triad-modes",
+            "complete-solo-duo-triad-runtime-parity",
             self.record["orchestrator"]["required_not_fully_captured"],
         )
         self.assertFalse(self.record["cli"]["completion_ready"])
@@ -155,7 +185,9 @@ class Ctr201InventoryTests(unittest.TestCase):
         binding = self.record["cli"]["static_semantics"]
         coverage = self.cli_artifact["coverage"]
         self.assertEqual(validate_instance(self.cli_artifact, self.cli_schema), [])
-        self.assertEqual(_validate_recursively_closed_schema(self.cli_schema), [])
+        self.assertEqual(
+            _validate_recursively_closed_schema(self.cli_schema, label="CLI child"), []
+        )
         self.assertEqual(_validate_cli_artifact_semantics(self.cli_artifact), [])
         self.assertEqual(_validate_cli_static_semantics(REPO_ROOT, self.record), [])
         self.assertEqual(
@@ -290,7 +322,7 @@ class Ctr201InventoryTests(unittest.TestCase):
         schema = copy.deepcopy(self.cli_schema)
         schema["$defs"]["argument"]["additionalProperties"] = True
         self.assertEqual(
-            _validate_recursively_closed_schema(schema),
+            _validate_recursively_closed_schema(schema, label="CLI child"),
             ["CLI child schema must be recursively closed"],
         )
 
@@ -438,6 +470,264 @@ class Ctr201InventoryTests(unittest.TestCase):
         output = stdout.getvalue()
         self.assertEqual(json.loads(output)["status"], "error")
         self.assertNotIn(canary, output)
+
+    def test_orchestrator_child_schema_artifact_and_master_binding_are_exact(
+        self,
+    ) -> None:
+        binding = self.record["orchestrator"]["static_contract"]
+        coverage = self.orchestrator_artifact["coverage"]
+        self.assertEqual(
+            validate_instance(self.orchestrator_artifact, self.orchestrator_schema), []
+        )
+        self.assertEqual(
+            _validate_recursively_closed_schema(
+                self.orchestrator_schema, label="orchestrator child"
+            ),
+            [],
+        )
+        self.assertEqual(
+            _validate_orchestrator_artifact_semantics(self.orchestrator_artifact), []
+        )
+        self.assertEqual(
+            _validate_orchestrator_static_contract(REPO_ROOT, self.record), []
+        )
+        self.assertEqual(
+            hashlib.sha256(_canonical_json_bytes(self.orchestrator_schema)).hexdigest(),
+            EXPECTED_ORCHESTRATOR_SCHEMA_CANONICAL_SHA256,
+        )
+        self.assertEqual(binding["artifact_path"], DEFAULT_ORCHESTRATOR_ARTIFACT)
+        self.assertEqual(binding["schema_path"], DEFAULT_ORCHESTRATOR_SCHEMA)
+        self.assertEqual(
+            binding["payload_sha256"], EXPECTED_ORCHESTRATOR_PAYLOAD_SHA256
+        )
+        for key in (
+            "stage_count",
+            "task_count",
+            "required_dependency_edge_count",
+            "runtime_agent_count",
+            "functional_agent_count",
+            "routing_skill_id_count",
+            "logical_mcp_capability_count",
+            "quality_gate_count",
+            "declared_profile_count",
+            "team_run_task_count",
+            "worker_orchestration_task_count",
+        ):
+            self.assertEqual(binding[key], coverage[key])
+
+    def test_orchestrator_child_rejects_schema_and_payload_tampering(self) -> None:
+        schema = copy.deepcopy(self.orchestrator_schema)
+        schema["properties"]["workflow"]["properties"]["tasks"]["items"][
+            "additionalProperties"
+        ] = True
+        self.assertEqual(
+            _validate_recursively_closed_schema(schema, label="orchestrator child"),
+            ["orchestrator child schema must be recursively closed"],
+        )
+
+        artifact = self._orchestrator_record()
+        artifact["workflow"]["tasks"][0]["title"] = "tampered-without-rehash"
+        self.assertIn(
+            "orchestrator child canonical payload digest does not match",
+            _validate_orchestrator_artifact_semantics(artifact),
+        )
+
+        record = self._record()
+        record["orchestrator"]["static_contract"]["payload_sha256"] = "0" * 64
+        self.assertEqual(
+            _validate_orchestrator_static_contract(REPO_ROOT, record),
+            ["orchestrator static-contract master binding is invalid"],
+        )
+
+    def test_orchestrator_master_rejects_count_status_hash_and_path_drift(self) -> None:
+        mutations = (
+            ("task_count", 75),
+            ("status", "complete"),
+            ("schema_canonical_sha256", "0" * 64),
+            ("artifact_path", "tooling/migration/wrong.json"),
+        )
+        for key, value in mutations:
+            with self.subTest(key=key):
+                record = self._record()
+                record["orchestrator"]["static_contract"][key] = value
+                self.assertEqual(
+                    _validate_orchestrator_static_contract(REPO_ROOT, record),
+                    ["orchestrator static-contract master binding is invalid"],
+                )
+
+    def test_orchestrator_child_rejects_task_key_reference_and_dag_drift(self) -> None:
+        artifact = self._orchestrator_record()
+        del artifact["workflow"]["tasks"][0]["purpose"]
+        errors = self._validate_orchestrator_rehashed(artifact)
+        self.assertIn("orchestrator child task key closure is invalid", errors)
+
+        artifact = self._orchestrator_record()
+        artifact["workflow"]["tasks"][0]["required_skills"] = ["unknown-skill"]
+        errors = self._validate_orchestrator_rehashed(artifact)
+        self.assertIn("orchestrator child task reference closure is invalid", errors)
+
+        artifact = self._orchestrator_record()
+        first = artifact["workflow"]["tasks"][0]
+        first["dependencies"]["prerequisites_all"] = [first["task_id"]]
+        errors = self._validate_orchestrator_rehashed(artifact)
+        self.assertIn(
+            "orchestrator child prerequisites_all graph is not a DAG", errors
+        )
+
+    def test_orchestrator_child_rejects_unsafe_and_unstable_values(self) -> None:
+        canaries = (
+            ("/Users/private/hidden", "machine-local path"),
+            ("QIONGLI_CANARY_DO_NOT_ECHO_orchestrator", "secret-shaped data"),
+            ("<function hidden at 0xdeadbeef>", "callable representation"),
+        )
+        for canary, diagnostic in canaries:
+            with self.subTest(diagnostic=diagnostic):
+                artifact = self._orchestrator_record()
+                artifact["workflow"]["tasks"][0]["title"] = canary
+                errors = self._validate_orchestrator_rehashed(artifact)
+                self.assertTrue(any(diagnostic in error for error in errors), errors)
+                self.assertFalse(any(canary in error for error in errors))
+
+        artifact = self._orchestrator_record()
+        artifact["workflow"]["tasks"][0]["outputs"][0] = "../escape.md"
+        errors = self._validate_orchestrator_rehashed(artifact)
+        self.assertIn(
+            "orchestrator child contains a non-canonical portable path", errors
+        )
+
+        artifact = self._orchestrator_record()
+        artifact["workflow"]["tasks"][0]["title"] = "\ud800"
+        self.assertEqual(
+            _validate_orchestrator_artifact_semantics(artifact),
+            ["orchestrator child contains invalid Unicode scalar data"],
+        )
+
+        artifact = self._orchestrator_record()
+        artifact["routing"]["team_runs"][0]["barrier"]["min_success_ratio"] = float(
+            "nan"
+        )
+        self.assertEqual(
+            _validate_orchestrator_artifact_semantics(artifact),
+            ["orchestrator child contains invalid numeric data"],
+        )
+
+    def test_orchestrator_child_frozen_oracle_outcome_is_exact(self) -> None:
+        oracle = self.orchestrator_artifact["oracle"]
+        self.assertEqual(oracle["case_id"], "python.orchestration-preview")
+        self.assertEqual(oracle["outcome"]["mode"], "task-run-preview")
+        self.assertFalse(oracle["outcome"]["will_launch_agents"])
+        self.assertFalse(oracle["task"]["run_agents"])
+        self.assertFalse(oracle["filesystem_delta"]["writes_outside_sandbox"])
+
+        artifact = self._orchestrator_record()
+        artifact["oracle"]["outcome"]["will_launch_agents"] = True
+        errors = self._validate_orchestrator_rehashed(artifact)
+        self.assertIn("orchestrator child frozen oracle outcome is not exact", errors)
+
+    def test_orchestrator_extraction_is_cached_and_compared_exactly(self) -> None:
+        _ORCHESTRATOR_EXTRACTION_CACHE.clear()
+        try:
+            with patch(
+                "tooling.scripts.extract_ctr_201_orchestrator_inventory."
+                "extract_orchestrator_inventory",
+                return_value=self.orchestrator_artifact,
+            ) as extractor:
+                expected = _canonical_json_bytes(self.orchestrator_artifact)
+                self.assertEqual(
+                    _accepted_orchestrator_extraction_bytes(REPO_ROOT), expected
+                )
+                self.assertEqual(
+                    _accepted_orchestrator_extraction_bytes(REPO_ROOT), expected
+                )
+                extractor.assert_called_once_with(REPO_ROOT)
+        finally:
+            _ORCHESTRATOR_EXTRACTION_CACHE.clear()
+
+        with patch(
+            "tooling.scripts.validate_ctr_201_inventory."
+            "_accepted_orchestrator_extraction_bytes",
+            return_value=b"{}",
+        ):
+            self.assertEqual(
+                _validate_orchestrator_static_contract(REPO_ROOT, self.record),
+                [
+                    "orchestrator child artifact differs from accepted-source "
+                    "extraction"
+                ],
+            )
+
+    def test_orchestrator_extractor_unavailable_and_mismatch_are_distinct(self) -> None:
+        from tooling.scripts.extract_ctr_201_orchestrator_inventory import (
+            ExtractorError as OrchestratorExtractorError,
+            InventoryMismatch as OrchestratorInventoryMismatch,
+        )
+
+        canary = "QIONGLI_CANARY_DO_NOT_ECHO_orchestrator_extractor"
+        _ORCHESTRATOR_EXTRACTION_CACHE.clear()
+        try:
+            with patch(
+                "tooling.scripts.extract_ctr_201_orchestrator_inventory."
+                "extract_orchestrator_inventory",
+                side_effect=OrchestratorInventoryMismatch(canary),
+            ):
+                with self.assertRaises(OrchestratorArtifactMismatch):
+                    _accepted_orchestrator_extraction_bytes(REPO_ROOT)
+            with patch(
+                "tooling.scripts.extract_ctr_201_orchestrator_inventory."
+                "extract_orchestrator_inventory",
+                side_effect=OrchestratorExtractorError(canary),
+            ):
+                with self.assertRaises(InventoryConfigError):
+                    _accepted_orchestrator_extraction_bytes(REPO_ROOT)
+        finally:
+            _ORCHESTRATOR_EXTRACTION_CACHE.clear()
+
+        stdout = io.StringIO()
+        with patch(
+            "tooling.scripts.validate_ctr_201_inventory."
+            "_accepted_orchestrator_extraction_bytes",
+            side_effect=OrchestratorArtifactMismatch(canary),
+        ), redirect_stdout(stdout):
+            self.assertEqual(main(["--root", str(REPO_ROOT), "--json"]), 1)
+        mismatch_output = stdout.getvalue()
+        self.assertEqual(json.loads(mismatch_output)["status"], "fail")
+        self.assertNotIn(canary, mismatch_output)
+
+        stdout = io.StringIO()
+        with patch(
+            "tooling.scripts.validate_ctr_201_inventory."
+            "_accepted_orchestrator_extraction_bytes",
+            side_effect=InventoryConfigError(canary),
+        ), redirect_stdout(stdout):
+            self.assertEqual(main(["--root", str(REPO_ROOT), "--json"]), 2)
+        unavailable_output = stdout.getvalue()
+        self.assertEqual(json.loads(unavailable_output)["status"], "error")
+        self.assertNotIn(canary, unavailable_output)
+
+    def test_orchestrator_static_capture_does_not_overclaim_runtime_parity(self) -> None:
+        parent = self.record["orchestrator"]
+        coverage = self.orchestrator_artifact["coverage"]
+        self.assertEqual(parent["status"], "incomplete")
+        self.assertFalse(parent["completion_ready"])
+        self.assertEqual(parent["static_contract"]["status"], "static-contract-captured")
+        self.assertEqual(coverage["static_contract"], "captured")
+        for field in (
+            "runtime_behavior_matrix",
+            "state_resume_behavior",
+            "agent_launch_behavior",
+            "solo_duo_triad_runtime_parity",
+            "concurrency_timeout_cancellation",
+            "failure_replay_behavior",
+            "quality_gate_semantic_execution",
+            "profile_override_runtime_behavior",
+            "materialized_content_closure",
+        ):
+            self.assertEqual(coverage[field], "incomplete")
+        self.assertEqual(coverage["plugin_marketplace_behavior"], "not-implemented")
+        self.assertEqual(coverage["rust_orchestrator"], "not-implemented")
+        self.assertEqual(coverage["ctr_201"], "in-progress")
+        self.assertEqual(coverage["fnd_202"], "not-implemented")
+        self.assertFalse(coverage["completion_ready"])
 
     def test_canonical_payload_hash_excludes_integrity_and_is_key_order_stable(self) -> None:
         expected = self.record["integrity"]["payload_sha256"]

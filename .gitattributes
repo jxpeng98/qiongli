@@ -1,4 +1,6 @@
-# CTR-201A binds these canonical JSON files by their repository byte digests.
+# CTR inventory deterministic and digest-bound JSON files must remain LF-only.
 content/mcp-contracts/v2/registry.json text eol=lf
 tooling/migration/baselines/v1.19.0-beta.1/manifest.json text eol=lf
 tooling/migration/baselines/v1.19.0-beta.1/oracles/*.json text eol=lf
+tooling/migration/ctr-201-orchestrator.json text eol=lf
+tooling/migration/ctr-201-orchestrator.schema.json text eol=lf

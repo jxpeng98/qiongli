@@ -17,6 +17,8 @@ DEFAULT_RECORD = "tooling/migration/ctr-201-inventory.json"
 DEFAULT_SCHEMA = "tooling/migration/ctr-201-inventory.schema.json"
 DEFAULT_CLI_ARTIFACT = "tooling/migration/ctr-201-cli.json"
 DEFAULT_CLI_SCHEMA = "tooling/migration/ctr-201-cli.schema.json"
+DEFAULT_ORCHESTRATOR_ARTIFACT = "tooling/migration/ctr-201-orchestrator.json"
+DEFAULT_ORCHESTRATOR_SCHEMA = "tooling/migration/ctr-201-orchestrator.schema.json"
 EXPECTED_TAG = "v1.19.0-beta.1"
 EXPECTED_COMMIT = "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f"
 EXPECTED_MANIFEST_PATH = (
@@ -37,10 +39,16 @@ EXPECTED_REGISTRY_SHA256 = (
     "602d3faf525e2e5c938afb14f1b1d291f528240947b3df6ed9f56baeb73e7020"
 )
 EXPECTED_SCHEMA_CANONICAL_SHA256 = (
-    "33403b58331a946b266a5e60360ac376c8be0119f4cf565f1544fa11f0b7d02b"
+    "6531e9b432428baa8391fa0c86f1996ee74349a3b2c354945c1c645b950e01e5"
 )
 EXPECTED_CLI_SCHEMA_CANONICAL_SHA256 = (
     "173436615a8a26d45903cc7812a55f2e9ae094089f637bced0f418a3976456ad"
+)
+EXPECTED_ORCHESTRATOR_SCHEMA_CANONICAL_SHA256 = (
+    "0473158288cf35d4a10e39cfc741fd5b4cb38a49c68209aaea48337d52782510"
+)
+EXPECTED_ORCHESTRATOR_PAYLOAD_SHA256 = (
+    "508ed0f92a511a0a9a6daa33598ce891222540b15e5aa207984db97319fe2c5e"
 )
 EXPECTED_CLI_CAPTURE_CONTRACT = {
     "source_mode": "accepted-tag-git-blobs",
@@ -60,6 +68,85 @@ EXPECTED_CLI_COUNTS = {
     "argument_action_count": 164,
     "cwd_default_count": 27,
 }
+EXPECTED_ORCHESTRATOR_COUNTS = {
+    "stage_count": 13,
+    "task_count": 76,
+    "required_dependency_edge_count": 104,
+    "runtime_agent_count": 3,
+    "functional_agent_count": 9,
+    "routing_skill_id_count": 82,
+    "logical_mcp_capability_count": 11,
+    "quality_gate_count": 4,
+    "declared_profile_count": 5,
+    "team_run_task_count": 2,
+    "worker_orchestration_task_count": 2,
+}
+EXPECTED_ORCHESTRATOR_CHILD_COUNTS = {
+    "stage_count": 13,
+    "task_count": 76,
+    "prerequisites_all_edge_count": 54,
+    "prerequisites_any_edge_count": 50,
+    "required_dependency_edge_count": 104,
+    "recommended_prerequisite_edge_count": 44,
+    "recommended_next_edge_count": 154,
+    "task_output_assignment_count": 136,
+    "unique_task_output_count": 118,
+    "runtime_agent_count": 3,
+    "functional_agent_count": 9,
+    "functional_stage_default_count": 13,
+    "functional_task_override_count": 16,
+    "routing_skill_id_count": 82,
+    "task_skill_assignment_count": 207,
+    "logical_mcp_capability_count": 11,
+    "task_mcp_assignment_count": 139,
+    "quality_gate_count": 4,
+    "task_quality_gate_assignment_count": 136,
+    "declared_profile_count": 5,
+    "team_run_task_count": 2,
+    "worker_orchestration_task_count": 2,
+    "source_anchor_count": 4,
+}
+EXPECTED_ORCHESTRATOR_CAPTURE_CONTRACT = {
+    "source_mode": "accepted-tag-git-blobs",
+    "python_version": "python3.12",
+    "yaml_toolchain": "pyyaml-6.0.3-strict-safe-loader",
+    "python_analysis": "stdlib-ast-no-import-no-compile-no-eval",
+    "environment_mode": "environment-independent-static-analysis",
+    "side_effect_policy": "git-read-only-until-explicit-artifact-write",
+    "ordering_policy": (
+        "source-order-for-primary-catalogs;canonical-sort-for-map-summaries;"
+        "explicit-ordinals-where-order-preserved"
+    ),
+    "yaml_policy": (
+        "strict-safe-loader-with-one-authenticated-identical-duplicate;"
+        "reject-other-duplicates-merge-anchor-alias-custom-tag-timestamp-binary-"
+        "or-nonfinite"
+    ),
+    "compatibility_policy": "preserve-external-and-normalized-spellings",
+}
+EXPECTED_ORCHESTRATOR_COVERAGE_BOUNDARY = {
+    "static_contract": "captured",
+    "runtime_behavior_matrix": "incomplete",
+    "state_resume_behavior": "incomplete",
+    "agent_launch_behavior": "incomplete",
+    "solo_duo_triad_runtime_parity": "incomplete",
+    "concurrency_timeout_cancellation": "incomplete",
+    "failure_replay_behavior": "incomplete",
+    "quality_gate_semantic_execution": "incomplete",
+    "profile_override_runtime_behavior": "incomplete",
+    "plugin_marketplace_behavior": "not-implemented",
+    "materialized_content_closure": "incomplete",
+    "rust_orchestrator": "not-implemented",
+    "ctr_201": "in-progress",
+    "fnd_202": "not-implemented",
+    "completion_ready": False,
+}
+EXPECTED_ORCHESTRATOR_SOURCE_PATHS = (
+    "packages/python-qiongli/src/qiongli/bridges/orchestrator.py",
+    "packages/python-qiongli/src/qiongli/bridges/mcp_tool_handlers.py",
+    "content/standards/research-workflow-contract.yaml",
+    "content/standards/mcp-agent-capability-map.yaml",
+)
 EXPECTED_CLI_ALIASES = {
     ("qiongli", "self-update"): ("update",),
     ("qiongli", "remove"): ("uninstall", "delete"),
@@ -128,15 +215,49 @@ EXPECTED_CLI_GAPS = (
     "complete-error-classes",
     "complete-legacy-npm-compatibility-surface",
 )
-EXPECTED_ORCHESTRATOR_GAPS = (
-    "complete-task-graph",
-    "complete-state-and-resume",
-    "all-solo-duo-triad-modes",
-    "complete-primary-reviewer-verifier",
-    "complete-profile-resolution",
-    "complete-artifact-and-quality-gates",
-    "complete-failure-and-cancellation",
+EXPECTED_ORCHESTRATOR_CAPTURED_SCOPE = (
+    "task-run-preview",
+    "duo-mode-preview",
+    "python-full-static-declared-stage-task-graph",
+    "python-full-static-declared-agent-contracts",
+    "python-full-static-declared-routing-contracts",
+    "python-full-static-declared-mcp-capability-contracts",
+    "python-full-static-declared-quality-gates",
 )
+EXPECTED_ORCHESTRATOR_GAPS = (
+    "complete-runtime-behavior-matrix",
+    "complete-state-and-resume",
+    "complete-agent-launch-behavior",
+    "complete-solo-duo-triad-runtime-parity",
+    "complete-failure-and-cancellation",
+    "complete-quality-gate-semantic-execution",
+)
+EXPECTED_ORCHESTRATION_ORACLE_OUTCOME = {
+    "error": None,
+    "exit_code": 0,
+    "status": "success",
+    "value": {
+        "controller_metadata": {
+            "controller": "codex",
+            "execution_mode": "duo",
+            "primary_agent": "",
+            "review_agent": "",
+            "solo_role_gates": "standard",
+            "verifier_agent": "",
+        },
+        "effective_domain": "auto",
+        "mode": "task-run-preview",
+        "run_agents": False,
+        "stderr_lines": [],
+        "task": {
+            "paper_type": "empirical",
+            "task_id": "F3",
+            "topic": "runtime-baseline",
+        },
+        "task_description": "F3 empirical runtime-baseline",
+        "will_launch_agents": False,
+    },
+}
 EXPECTED_RESOURCE_ROOTS = (
     ("content/distribution/", "prefix", "target-metadata", 3),
     ("content/mcp-contracts/", "prefix", "mcp-contract", 28),
@@ -173,6 +294,7 @@ WINDOWS_RESERVED_COMPONENT = re.compile(
 
 
 _CLI_EXTRACTION_CACHE: dict[str, bytes] = {}
+_ORCHESTRATOR_EXTRACTION_CACHE: dict[str, bytes] = {}
 
 
 class InventoryConfigError(ValueError):
@@ -181,6 +303,10 @@ class InventoryConfigError(ValueError):
 
 class CliArtifactMismatch(ValueError):
     """Raised when accepted source extraction disagrees with the child artifact."""
+
+
+class OrchestratorArtifactMismatch(ValueError):
+    """Raised when accepted-source orchestrator extraction disagrees."""
 
 
 class SafeArgumentParser(argparse.ArgumentParser):
@@ -375,7 +501,9 @@ def _validate_schema_contract(schema: Mapping[str, Any]) -> list[str]:
     return errors
 
 
-def _validate_recursively_closed_schema(schema: Mapping[str, Any]) -> list[str]:
+def _validate_recursively_closed_schema(
+    schema: Mapping[str, Any], *, label: str = "child"
+) -> list[str]:
     """Require every object-shaped child schema to be closed and fully required."""
 
     stack: list[Any] = [schema]
@@ -393,7 +521,7 @@ def _validate_recursively_closed_schema(schema: Mapping[str, Any]) -> list[str]:
                     or set(required) != set(properties)
                     or value.get("additionalProperties") is not False
                 ):
-                    return ["CLI child schema must be recursively closed"]
+                    return [f"{label} schema must be recursively closed"]
             stack.extend(value.values())
         elif isinstance(value, list):
             stack.extend(value)
@@ -714,6 +842,459 @@ def _validate_cli_artifact_semantics(artifact: Mapping[str, Any]) -> list[str]:
     return sorted(set(errors))
 
 
+def _validate_orchestrator_repository_paths(
+    artifact: Mapping[str, Any],
+) -> list[str]:
+    checks: list[tuple[Any, bool]] = []
+    source = artifact.get("source")
+    if isinstance(source, Mapping):
+        for key in ("a8_manifest", "python_full_oracle"):
+            binding = source.get(key)
+            checks.append(
+                (binding.get("path") if isinstance(binding, Mapping) else None, False)
+            )
+        trees = source.get("package_trees")
+        if isinstance(trees, list):
+            checks.extend(
+                (
+                    tree.get("root") if isinstance(tree, Mapping) else None,
+                    True,
+                )
+                for tree in trees
+            )
+        else:
+            checks.append((None, True))
+        anchors = source.get("blob_anchors")
+        if isinstance(anchors, list):
+            checks.extend(
+                (
+                    anchor.get("path") if isinstance(anchor, Mapping) else None,
+                    False,
+                )
+                for anchor in anchors
+            )
+        else:
+            checks.append((None, False))
+    else:
+        checks.append((None, False))
+
+    workflow = artifact.get("workflow")
+    if isinstance(workflow, Mapping):
+        checks.append((workflow.get("artifact_root"), True))
+        for collection in (workflow.get("stages"), workflow.get("tasks")):
+            if not isinstance(collection, list):
+                checks.append((None, True))
+                continue
+            for item in collection:
+                outputs = item.get("outputs") if isinstance(item, Mapping) else None
+                if not isinstance(outputs, list):
+                    checks.append((None, True))
+                    continue
+                checks.extend((output, output.endswith("/") if isinstance(output, str) else False) for output in outputs)
+
+    routing = artifact.get("routing")
+    if isinstance(routing, Mapping):
+        for skill in routing.get("skills", []):
+            if not isinstance(skill, Mapping):
+                checks.append((None, False))
+                continue
+            checks.append((skill.get("file"), False))
+            outputs = skill.get("default_outputs")
+            if isinstance(outputs, list):
+                checks.extend(
+                    (
+                        output,
+                        output.endswith("/") if isinstance(output, str) else False,
+                    )
+                    for output in outputs
+                )
+            else:
+                checks.append((None, True))
+        for agent in routing.get("functional_agents", []):
+            checks.append(
+                (
+                    agent.get("role_file") if isinstance(agent, Mapping) else None,
+                    False,
+                )
+            )
+        for gate in routing.get("quality_gates", []):
+            contract_ref = gate.get("contract_ref") if isinstance(gate, Mapping) else None
+            checks.append(
+                (
+                    contract_ref.split("#", 1)[0]
+                    if isinstance(contract_ref, str) and contract_ref.count("#") == 1
+                    else None,
+                    False,
+                )
+            )
+        for team_run in routing.get("team_runs", []):
+            if not isinstance(team_run, Mapping):
+                checks.append((None, True))
+                continue
+            for key in ("shard_outputs", "canonical_outputs"):
+                outputs = team_run.get(key)
+                if isinstance(outputs, list):
+                    checks.extend(
+                        (
+                            output,
+                            output.endswith("/") if isinstance(output, str) else False,
+                        )
+                        for output in outputs
+                    )
+                else:
+                    checks.append((None, True))
+
+    compatibility = artifact.get("compatibility")
+    indirect = (
+        compatibility.get("indirect_content_dependencies")
+        if isinstance(compatibility, Mapping)
+        else None
+    )
+    if isinstance(indirect, Mapping):
+        checks.append((indirect.get("skill_registry_path"), False))
+        role_paths = indirect.get("functional_role_paths")
+        if isinstance(role_paths, list):
+            checks.extend((path, False) for path in role_paths)
+        else:
+            checks.append((None, False))
+
+    oracle = artifact.get("oracle")
+    source_paths = oracle.get("source_paths") if isinstance(oracle, Mapping) else None
+    if isinstance(source_paths, list):
+        checks.extend((path, False) for path in source_paths)
+    else:
+        checks.append((None, False))
+    if any(
+        not isinstance(path, str)
+        or not is_canonical_repository_path(path, allow_trailing_slash=trailing)
+        for path, trailing in checks
+    ):
+        return ["orchestrator child contains a non-canonical portable path"]
+    return []
+
+
+def _orchestrator_required_graph_has_cycle(
+    graph: Mapping[str, Sequence[str]],
+) -> bool:
+    visited: set[str] = set()
+    visiting: set[str] = set()
+
+    def visit(task_id: str) -> bool:
+        if task_id in visited:
+            return False
+        if task_id in visiting:
+            return True
+        visiting.add(task_id)
+        for dependency in graph.get(task_id, ()):
+            if dependency not in graph or visit(dependency):
+                return True
+        visiting.remove(task_id)
+        visited.add(task_id)
+        return False
+
+    return any(visit(task_id) for task_id in graph)
+
+
+def _validate_orchestrator_artifact_semantics(
+    artifact: Mapping[str, Any],
+) -> list[str]:
+    errors: list[str] = []
+    if _contains_unicode_surrogate(artifact):
+        return ["orchestrator child contains invalid Unicode scalar data"]
+    if _contains_non_finite_number(artifact):
+        return ["orchestrator child contains invalid numeric data"]
+    strings = _iter_strings(artifact)
+    if any(MACHINE_PATH_PATTERN.search(value) for value in strings):
+        errors.append("orchestrator child contains a forbidden machine-local path")
+    if any(SECRET_PATTERN.search(value) for value in strings):
+        errors.append("orchestrator child contains forbidden secret-shaped data")
+    if any(CALLABLE_REPR_PATTERN.search(value) for value in strings):
+        errors.append("orchestrator child contains an unstable callable representation")
+    errors.extend(_validate_orchestrator_repository_paths(artifact))
+    if artifact.get("task_id") != "CTR-201C" or artifact.get("status") != (
+        "static-contract-captured"
+    ):
+        errors.append("orchestrator child status boundary is invalid")
+    if artifact.get("capture_contract") != EXPECTED_ORCHESTRATOR_CAPTURE_CONTRACT:
+        errors.append("orchestrator child capture-isolation contract is invalid")
+    integrity = artifact.get("integrity")
+    if not isinstance(integrity, Mapping) or (
+        integrity.get("algorithm") != "sha256"
+        or integrity.get("canonicalization")
+        != "utf-8-json-sorted-keys-compact-excluding-integrity"
+        or integrity.get("payload_sha256") != canonical_payload_sha256(artifact)
+    ):
+        errors.append("orchestrator child canonical payload digest does not match")
+
+    source = artifact.get("source")
+    source_ok = False
+    if isinstance(source, Mapping):
+        manifest = source.get("a8_manifest")
+        python_oracle = source.get("python_full_oracle")
+        trees = source.get("package_trees")
+        anchors = source.get("blob_anchors")
+        source_ok = (
+            source.get("accepted_tag") == EXPECTED_TAG
+            and source.get("accepted_commit") == EXPECTED_COMMIT
+            and manifest
+            == {"path": EXPECTED_MANIFEST_PATH, "sha256": EXPECTED_MANIFEST_SHA256}
+            and python_oracle
+            == {
+                "path": (
+                    "tooling/migration/baselines/v1.19.0-beta.1/oracles/"
+                    "python-full.json"
+                ),
+                "sha256": (
+                    "26d247c9268c3166c98080aef420acfdb8248f62b11cc69420250f6e493a23e3"
+                ),
+                "case_id": "python.orchestration-preview",
+            }
+            and trees
+            == [
+                {
+                    "root": "packages/python-qiongli/",
+                    "file_count": 76,
+                    "tree_sha256": (
+                        "3a91a6dde9a78116fed73358275b2797c3ce7bf3d9a54894e7dbd11d2f0f9781"
+                    ),
+                },
+                {
+                    "root": "content/",
+                    "file_count": 377,
+                    "tree_sha256": EXPECTED_CONTENT_TREE_SHA256,
+                },
+            ]
+            and isinstance(anchors, list)
+            and tuple(
+                anchor.get("path")
+                for anchor in anchors
+                if isinstance(anchor, Mapping)
+            )
+            == EXPECTED_ORCHESTRATOR_SOURCE_PATHS
+            and len(anchors) == len(EXPECTED_ORCHESTRATOR_SOURCE_PATHS)
+        )
+    if not source_ok:
+        errors.append("orchestrator child frozen-source binding is invalid")
+
+    coverage = artifact.get("coverage")
+    if not isinstance(coverage, Mapping) or any(
+        coverage.get(key) != value
+        for key, value in {
+            **EXPECTED_ORCHESTRATOR_CHILD_COUNTS,
+            **EXPECTED_ORCHESTRATOR_COVERAGE_BOUNDARY,
+        }.items()
+    ) or set(coverage) != set(EXPECTED_ORCHESTRATOR_CHILD_COUNTS) | set(
+        EXPECTED_ORCHESTRATOR_COVERAGE_BOUNDARY
+    ):
+        errors.append("orchestrator child coverage boundary is invalid")
+
+    workflow = artifact.get("workflow")
+    routing = artifact.get("routing")
+    if not isinstance(workflow, Mapping) or not isinstance(routing, Mapping):
+        return sorted(
+            set([*errors, "orchestrator child workflow or routing inventory is invalid"])
+        )
+    stages = workflow.get("stages")
+    tasks = workflow.get("tasks")
+    if not isinstance(stages, list) or not isinstance(tasks, list):
+        return sorted(set([*errors, "orchestrator child task inventory is invalid"]))
+
+    stage_ids = [
+        item.get("stage_id") for item in stages if isinstance(item, Mapping)
+    ]
+    if (
+        len(stage_ids) != len(stages)
+        or len(stage_ids) != len(set(stage_ids))
+        or len(stage_ids) != EXPECTED_ORCHESTRATOR_COUNTS["stage_count"]
+        or [item.get("declaration_ordinal") for item in stages if isinstance(item, Mapping)]
+        != list(range(len(stages)))
+    ):
+        errors.append("orchestrator child stage inventory is not unique and ordered")
+
+    def registry_ids(key: str, field: str) -> list[Any]:
+        values = routing.get(key)
+        return (
+            [item.get(field) for item in values if isinstance(item, Mapping)]
+            if isinstance(values, list)
+            else []
+        )
+
+    runtime_agents = registry_ids("runtime_agents", "agent_id")
+    functional_agents = registry_ids("functional_agents", "agent_id")
+    skills = registry_ids("skills", "skill_id")
+    mcp_capabilities = registry_ids("logical_mcp_capabilities", "capability_id")
+    quality_gates = registry_ids("quality_gates", "gate_id")
+    registries = (
+        (runtime_agents, EXPECTED_ORCHESTRATOR_COUNTS["runtime_agent_count"]),
+        (functional_agents, EXPECTED_ORCHESTRATOR_COUNTS["functional_agent_count"]),
+        (skills, EXPECTED_ORCHESTRATOR_COUNTS["routing_skill_id_count"]),
+        (
+            mcp_capabilities,
+            EXPECTED_ORCHESTRATOR_COUNTS["logical_mcp_capability_count"],
+        ),
+        (quality_gates, EXPECTED_ORCHESTRATOR_COUNTS["quality_gate_count"]),
+    )
+    if any(
+        len(values) != expected or len(values) != len(set(values))
+        for values, expected in registries
+    ):
+        errors.append("orchestrator child registry identities are invalid")
+
+    expected_task_keys = {
+        "task_id",
+        "declaration_ordinal",
+        "stage_id",
+        "title",
+        "purpose",
+        "outputs",
+        "dependencies",
+        "required_skills",
+        "required_mcp",
+        "quality_gates",
+        "runtime_plan",
+        "functional_plan",
+    }
+    expected_dependency_keys = {
+        "prerequisites_all",
+        "prerequisites_any",
+        "recommended_prerequisites",
+        "recommended_next",
+    }
+    expected_runtime_keys = {"primary_agent", "review_agent", "fallback_agent"}
+    expected_functional_keys = {
+        "owner",
+        "source",
+        "stage_default_owner",
+        "role_id",
+        "role_file",
+    }
+    task_ids = [item.get("task_id") for item in tasks if isinstance(item, Mapping)]
+    task_id_set = set(task_ids)
+    if (
+        len(task_ids) != len(tasks)
+        or len(task_ids) != len(task_id_set)
+        or len(task_ids) != EXPECTED_ORCHESTRATOR_COUNTS["task_count"]
+    ):
+        errors.append("orchestrator child task identities are invalid")
+    required_graph: dict[str, Sequence[str]] = {}
+    task_key_error = False
+    ordinal_error = False
+    reference_error = False
+    for ordinal, task in enumerate(tasks):
+        if not isinstance(task, Mapping):
+            task_key_error = True
+            continue
+        if set(task) != expected_task_keys:
+            task_key_error = True
+        if task.get("declaration_ordinal") != ordinal:
+            ordinal_error = True
+        task_id = task.get("task_id")
+        if task.get("stage_id") not in set(stage_ids):
+            reference_error = True
+        dependencies = task.get("dependencies")
+        if not isinstance(dependencies, Mapping) or set(dependencies) != expected_dependency_keys:
+            task_key_error = True
+            continue
+        dependency_values: dict[str, Sequence[str]] = {}
+        for key in expected_dependency_keys:
+            values = dependencies.get(key)
+            if not isinstance(values, list) or not all(
+                isinstance(value, str) for value in values
+            ):
+                task_key_error = True
+                dependency_values[key] = ()
+            else:
+                dependency_values[key] = values
+                if not set(values).issubset(task_id_set):
+                    reference_error = True
+        if isinstance(task_id, str):
+            required_graph[task_id] = dependency_values.get("prerequisites_all", ())
+        runtime_plan = task.get("runtime_plan")
+        functional_plan = task.get("functional_plan")
+        if not isinstance(runtime_plan, Mapping) or set(runtime_plan) != expected_runtime_keys:
+            task_key_error = True
+        elif not set(runtime_plan.values()).issubset(set(runtime_agents)):
+            reference_error = True
+        if (
+            not isinstance(functional_plan, Mapping)
+            or set(functional_plan) != expected_functional_keys
+        ):
+            task_key_error = True
+        elif {
+            functional_plan.get("owner"),
+            functional_plan.get("stage_default_owner"),
+        } - set(functional_agents):
+            reference_error = True
+        for key, allowed in (
+            ("required_skills", set(skills)),
+            ("required_mcp", set(mcp_capabilities)),
+            ("quality_gates", set(quality_gates)),
+        ):
+            values = task.get(key)
+            if not isinstance(values, list) or not all(
+                isinstance(value, str) for value in values
+            ):
+                task_key_error = True
+            elif not set(values).issubset(allowed):
+                reference_error = True
+    if task_key_error:
+        errors.append("orchestrator child task key closure is invalid")
+    if ordinal_error:
+        errors.append("orchestrator child task ordinals are not contiguous")
+    if reference_error:
+        errors.append("orchestrator child task reference closure is invalid")
+    if (
+        len(required_graph) != len(tasks)
+        or _orchestrator_required_graph_has_cycle(required_graph)
+    ):
+        errors.append("orchestrator child prerequisites_all graph is not a DAG")
+
+    expected_oracle = {
+        "oracle_id": "python-full",
+        "case_id": "python.orchestration-preview",
+        "source_paths": list(EXPECTED_ORCHESTRATOR_SOURCE_PATHS),
+        "operation": "tools/call qiongli_task_run",
+        "transport": "jsonrpc-stdio",
+        "task": {
+            "task_id": "F3",
+            "paper_type": "empirical",
+            "topic": "runtime-baseline",
+            "guidance_mode": "off",
+            "run_agents": False,
+        },
+        "outcome": {
+            "status": "success",
+            "exit_code": 0,
+            "mode": "task-run-preview",
+            "will_launch_agents": False,
+            "controller": "codex",
+            "execution_mode": "duo",
+            "primary_agent": "",
+            "review_agent": "",
+            "verifier_agent": "",
+            "solo_role_gates": "standard",
+            "effective_domain": "auto",
+            "task_description": "F3 empirical runtime-baseline",
+            "stderr_lines": [],
+        },
+        "filesystem_delta": {
+            "before_tree_sha256": (
+                "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            ),
+            "after_tree_sha256": (
+                "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            ),
+            "created": [],
+            "modified": [],
+            "deleted": [],
+            "writes_outside_sandbox": False,
+        },
+    }
+    if artifact.get("oracle") != expected_oracle:
+        errors.append("orchestrator child frozen oracle outcome is not exact")
+    return sorted(set(errors))
+
+
 def _accepted_cli_extraction_bytes(repo_root: Path) -> bytes:
     try:
         cache_key = str(repo_root.resolve(strict=True))
@@ -744,6 +1325,51 @@ def _accepted_cli_extraction_bytes(repo_root: Path) -> bytes:
         raise InventoryConfigError("accepted CLI extraction returned invalid data")
     canonical = _canonical_json_bytes(extracted)
     _CLI_EXTRACTION_CACHE[cache_key] = canonical
+    return canonical
+
+
+def _accepted_orchestrator_extraction_bytes(repo_root: Path) -> bytes:
+    try:
+        cache_key = str(repo_root.resolve(strict=True))
+    except (OSError, RuntimeError) as error:
+        raise InventoryConfigError(
+            "accepted orchestrator extraction root is unavailable"
+        ) from error
+    cached = _ORCHESTRATOR_EXTRACTION_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+    try:
+        from tooling.scripts import extract_ctr_201_orchestrator_inventory as extractor
+    except ImportError as error:
+        raise InventoryConfigError(
+            "accepted orchestrator extractor is unavailable"
+        ) from error
+    try:
+        extracted = extractor.extract_orchestrator_inventory(repo_root)
+    except Exception as error:
+        mismatch_type = getattr(extractor, "InventoryMismatch", ())
+        unavailable_type = getattr(extractor, "ExtractorError", ())
+        if mismatch_type and isinstance(error, mismatch_type):
+            raise OrchestratorArtifactMismatch(
+                "accepted orchestrator extraction does not match"
+            ) from error
+        if unavailable_type and isinstance(error, unavailable_type):
+            raise InventoryConfigError(
+                "accepted orchestrator extraction is unavailable"
+            ) from error
+        raise InventoryConfigError(
+            "accepted orchestrator extraction failed safely"
+        ) from error
+    if (
+        not isinstance(extracted, Mapping)
+        or _contains_unicode_surrogate(extracted)
+        or _contains_non_finite_number(extracted)
+    ):
+        raise InventoryConfigError(
+            "accepted orchestrator extraction returned invalid data"
+        )
+    canonical = _canonical_json_bytes(extracted)
+    _ORCHESTRATOR_EXTRACTION_CACHE[cache_key] = canonical
     return canonical
 
 
@@ -786,7 +1412,7 @@ def _validate_cli_static_semantics(
         != "https://qiongli.dev/schemas/ctr-201-cli-static-semantics-v1.json"
     ):
         errors.append("CLI child schema identity is invalid")
-    errors.extend(_validate_recursively_closed_schema(child_schema))
+    errors.extend(_validate_recursively_closed_schema(child_schema, label="CLI child"))
     if validate_instance(artifact, child_schema):
         errors.append("CLI child artifact does not satisfy its closed schema")
         return sorted(set(errors))
@@ -818,6 +1444,89 @@ def _validate_cli_static_semantics(
         return ["accepted CLI extraction does not match its frozen source"]
     if extracted != _canonical_json_bytes(artifact):
         errors.append("CLI child artifact differs from accepted-source extraction")
+    return sorted(set(errors))
+
+
+def _validate_orchestrator_static_contract(
+    repo_root: Path, record: Mapping[str, Any]
+) -> list[str]:
+    orchestrator = record.get("orchestrator")
+    binding = (
+        orchestrator.get("static_contract")
+        if isinstance(orchestrator, Mapping)
+        else None
+    )
+    if not isinstance(binding, Mapping):
+        return ["orchestrator static-contract binding is missing"]
+    expected_binding = {
+        "task_id": "CTR-201C",
+        "status": "static-contract-captured",
+        "artifact_path": DEFAULT_ORCHESTRATOR_ARTIFACT,
+        "schema_path": DEFAULT_ORCHESTRATOR_SCHEMA,
+        "schema_canonical_sha256": EXPECTED_ORCHESTRATOR_SCHEMA_CANONICAL_SHA256,
+        "payload_sha256": EXPECTED_ORCHESTRATOR_PAYLOAD_SHA256,
+        **EXPECTED_ORCHESTRATOR_COUNTS,
+        "capture_ready": True,
+    }
+    if dict(binding) != expected_binding:
+        return ["orchestrator static-contract master binding is invalid"]
+
+    child_schema = _load_json_file(
+        repo_root, DEFAULT_ORCHESTRATOR_SCHEMA, label="orchestrator child schema"
+    )
+    artifact = _load_json_file(
+        repo_root, DEFAULT_ORCHESTRATOR_ARTIFACT, label="orchestrator child artifact"
+    )
+    errors: list[str] = []
+    if (
+        _sha256(_canonical_json_bytes(child_schema))
+        != EXPECTED_ORCHESTRATOR_SCHEMA_CANONICAL_SHA256
+    ):
+        errors.append("orchestrator child schema canonical digest is invalid")
+    if (
+        child_schema.get("$schema")
+        != "https://json-schema.org/draft/2020-12/schema"
+        or child_schema.get("$id")
+        != (
+            "https://qiongli.dev/schemas/"
+            "ctr-201-orchestrator-static-semantics-v1.json"
+        )
+    ):
+        errors.append("orchestrator child schema identity is invalid")
+    errors.extend(
+        _validate_recursively_closed_schema(
+            child_schema, label="orchestrator child"
+        )
+    )
+    if validate_instance(artifact, child_schema):
+        errors.append("orchestrator child artifact does not satisfy its closed schema")
+        return sorted(set(errors))
+    errors.extend(_validate_orchestrator_artifact_semantics(artifact))
+    integrity = artifact.get("integrity")
+    coverage = artifact.get("coverage")
+    if (
+        not isinstance(integrity, Mapping)
+        or integrity.get("payload_sha256") != EXPECTED_ORCHESTRATOR_PAYLOAD_SHA256
+        or binding.get("payload_sha256") != integrity.get("payload_sha256")
+    ):
+        errors.append(
+            "orchestrator child payload digest does not match the master binding"
+        )
+    if not isinstance(coverage, Mapping) or any(
+        binding.get(key) != coverage.get(key)
+        for key in EXPECTED_ORCHESTRATOR_COUNTS
+    ):
+        errors.append("orchestrator child counts do not match the master binding")
+    if errors:
+        return sorted(set(errors))
+    try:
+        extracted = _accepted_orchestrator_extraction_bytes(repo_root)
+    except OrchestratorArtifactMismatch:
+        return ["accepted orchestrator extraction does not match its frozen source"]
+    if extracted != _canonical_json_bytes(artifact):
+        errors.append(
+            "orchestrator child artifact differs from accepted-source extraction"
+        )
     return sorted(set(errors))
 
 
@@ -1191,6 +1900,23 @@ def _validate_coverage_gaps(
     python_oracle = oracle_documents.get("python-full")
     if not isinstance(python_oracle, Mapping):
         return ["Python Full oracle is unavailable for CLI and orchestrator coverage"]
+    oracle_cases = python_oracle.get("cases")
+    orchestration_cases = (
+        [
+            case
+            for case in oracle_cases
+            if isinstance(case, Mapping)
+            and case.get("id") == "python.orchestration-preview"
+        ]
+        if isinstance(oracle_cases, list)
+        else []
+    )
+    if (
+        len(orchestration_cases) != 1
+        or orchestration_cases[0].get("outcome")
+        != EXPECTED_ORCHESTRATION_ORACLE_OUTCOME
+    ):
+        errors.append("Python Full orchestration oracle outcome is not exact")
     expected = (
         (
             "cli",
@@ -1203,7 +1929,7 @@ def _validate_coverage_gaps(
             "orchestrator",
             ("orchestration-preview",),
             ["python.orchestration-preview"],
-            ["task-run-preview", "duo-mode-preview"],
+            list(EXPECTED_ORCHESTRATOR_CAPTURED_SCOPE),
             list(EXPECTED_ORCHESTRATOR_GAPS),
         ),
     )
@@ -1369,13 +2095,14 @@ def validate_inventory(
     errors.extend(_validate_contract_and_target(repo_root, record))
     errors.extend(_validate_coverage_gaps(record, oracle_documents))
     errors.extend(_validate_cli_static_semantics(repo_root, record))
+    errors.extend(_validate_orchestrator_static_contract(repo_root, record))
     errors.extend(_validate_content(record, manifest))
     return sorted(set(errors))
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = SafeArgumentParser(
-        description="Validate the derived CTR-201A semantic inventory."
+        description="Validate the derived and accepted-source CTR-201A/B/C inventories."
     )
     parser.add_argument("--root", type=Path, default=REPO_ROOT)
     parser.add_argument("--record", default=DEFAULT_RECORD)

@@ -6,9 +6,11 @@ and the frozen migration baseline is committed on `dev`. The protected `2.x`
 branch is initialized and validated at branch-point record commit
 `69855fd50413ee6809baf21eb345fc0c55721de3`. B0 records the accepted native
 architecture decisions, and the B2 native workspace scaffold and repository
-gates are implemented. In B3, the CTR-201A slice is merged and CTR-201B
-accepted-source static CLI semantics are captured; CTR-201 remains in progress
-and FND-202 is not implemented.
+gates are implemented. In B3, the CTR-201A slice is merged, CTR-201B
+accepted-source static CLI semantics are captured, and CTR-201C captures the
+accepted-source `DECLARED/STATIC` orchestrator control contract and
+compatibility boundary; CTR-201 remains in progress and FND-202 is not
+implemented.
 Roadmap:
 `docs/superpowers/roadmaps/2026-07-10-qiongli-2-rust-native-platform-roadmap.md`
 Release source: `dev`
@@ -1072,13 +1074,25 @@ B3 execution status: **in progress**.
 - CTR-201B's static Python Full CLI inventory captures 46 canonical and 49
   public command paths, five console entrypoints, 164 non-help actions, and 27
   defaults that resolve to the current working directory;
-- help coverage is authored parser metadata only. Formatted help output,
+- CTR-201C captures the accepted-source `DECLARED/STATIC` orchestrator control
+  contract and compatibility boundary: 13 stages, 76 tasks, 104 required
+  dependency edges, three runtime agent IDs, nine functional agent IDs, 82
+  routing skill IDs, 11 logical MCP capabilities, four quality gates, five
+  built-in profiles, and the B1/H3 team and worker configurations. The 82 skill
+  values are unique routing IDs rather than an installable-skill count; the 11
+  MCP values are logical capability IDs rather than public tool names;
+- CTR-201B help coverage is authored parser metadata only. Formatted help output,
   runtime behavior, JSON output, exit codes, dry-run behavior, error classes,
   and npm compatibility remain incomplete;
+- CTR-201C does not prove that agents run, solo/triad runtime parity, state or
+  resume behavior, concurrency, failure or cancellation semantics, or
+  quality-gate semantic execution. The accepted handler makes `doctor` part of
+  an advisory route sequence; `_tool_task_run(run_agents=true)` does not call
+  or enforce it. CTR-201C also does not implement plugin or Marketplace
+  behavior, materialized content, or a Rust orchestrator;
 - CTR-201 has not reached its exit gate, and FND-202 resource-pack work has not
   been implemented;
-- continue with CTR-201C for the orchestrator, then CTR-201D for content and
-  materialized-tree closure.
+- continue with CTR-201D for content and materialized-tree closure.
 
 Exit criteria:
 
@@ -1368,18 +1382,18 @@ scaffold. The accepted 1.x tag must remain an unambiguous oracle boundary.
 
 A0-A8 and B0 are complete, the B2 native workspace scaffold and repository
 gates are implemented, and B3 is in progress with the CTR-201A slice merged and
-CTR-201B accepted-source static CLI semantics captured. CTR-201 remains in
-progress, and FND-202 is not implemented. Continue in this order:
+CTR-201B accepted-source static CLI semantics captured. CTR-201C captures the
+accepted-source `DECLARED/STATIC` orchestrator control contract and
+compatibility boundary. CTR-201 remains in progress, and FND-202 is not
+implemented. Continue in this order:
 
-1. complete CTR-201C by freezing the orchestrator contract and compatibility
-   boundary without claiming runtime parity;
-2. complete CTR-201D by closing the canonical-content and materialized-tree
+1. complete CTR-201D by closing the canonical-content and materialized-tree
    inventory against the accepted 1.x baseline;
-3. execute B1 (`REL-201`) as an independent stream, but do not begin FND-202
+2. execute B1 (`REL-201`) as an independent stream, but do not begin FND-202
    resource-pack implementation until CTR-201 reaches its exit gate; keep later
    B3 and B4 work inside the ADR 0204 and ADR 0205 service and rollback
    boundaries;
-4. preserve protected-branch pull requests and exact-head CI evidence for each
+3. preserve protected-branch pull requests and exact-head CI evidence for each
    independently reviewable slice.
 
 ## Phase Completion Definition
