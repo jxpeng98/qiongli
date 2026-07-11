@@ -5,7 +5,10 @@ accepted at exact tag commit `8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f`,
 and the frozen migration baseline is committed on `dev`. The protected `2.x`
 branch is initialized and validated at branch-point record commit
 `69855fd50413ee6809baf21eb345fc0c55721de3`. B0 records the accepted native
-architecture decisions before implementation scaffolding begins.
+architecture decisions, and the B2 native workspace scaffold and repository
+gates are implemented. In B3, the CTR-201A slice is merged and CTR-201B
+accepted-source static CLI semantics are captured; CTR-201 remains in progress
+and FND-202 is not implemented.
 Roadmap:
 `docs/superpowers/roadmaps/2026-07-10-qiongli-2-rust-native-platform-roadmap.md`
 Release source: `dev`
@@ -1063,6 +1066,20 @@ Actions:
    profile;
 6. fail the build when generated resources drift from source.
 
+B3 execution status: **in progress**.
+
+- the CTR-201A derived-inventory slice is merged and validation-backed;
+- CTR-201B's static Python Full CLI inventory captures 46 canonical and 49
+  public command paths, five console entrypoints, 164 non-help actions, and 27
+  defaults that resolve to the current working directory;
+- help coverage is authored parser metadata only. Formatted help output,
+  runtime behavior, JSON output, exit codes, dry-run behavior, error classes,
+  and npm compatibility remain incomplete;
+- CTR-201 has not reached its exit gate, and FND-202 resource-pack work has not
+  been implemented;
+- continue with CTR-201C for the orchestrator, then CTR-201D for content and
+  materialized-tree closure.
+
 Exit criteria:
 
 - two clean builds from the same commit produce the same resource hash;
@@ -1349,15 +1366,19 @@ scaffold. The accepted 1.x tag must remain an unambiguous oracle boundary.
 
 ## Immediate Next Actions
 
-A0-A8 and B0 are complete. Continue in this order:
+A0-A8 and B0 are complete, the B2 native workspace scaffold and repository
+gates are implemented, and B3 is in progress with the CTR-201A slice merged and
+CTR-201B accepted-source static CLI semantics captured. CTR-201 remains in
+progress, and FND-202 is not implemented. Continue in this order:
 
-1. begin B2 (`FND-201`, `GOV-201`) with the workspace root, the single
-   `apps/qiongli` product app, native version source, and first Rust gates;
-2. execute B1 (`REL-201`) against that version source so alpha parsing, channel
-   isolation, native release identity, and dry-run behavior exist before a 2.x
-   tag can be created, while the remaining B2 crates proceed in parallel;
-3. run B3 contract/resource work and B4 state migration only through the
-   service and rollback boundaries fixed by ADR 0204 and ADR 0205;
+1. complete CTR-201C by freezing the orchestrator contract and compatibility
+   boundary without claiming runtime parity;
+2. complete CTR-201D by closing the canonical-content and materialized-tree
+   inventory against the accepted 1.x baseline;
+3. execute B1 (`REL-201`) as an independent stream, but do not begin FND-202
+   resource-pack implementation until CTR-201 reaches its exit gate; keep later
+   B3 and B4 work inside the ADR 0204 and ADR 0205 service and rollback
+   boundaries;
 4. preserve protected-branch pull requests and exact-head CI evidence for each
    independently reviewable slice.
 

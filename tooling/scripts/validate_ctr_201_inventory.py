@@ -15,6 +15,8 @@ from tooling.scripts.validate_capability_contract import validate_instance
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_RECORD = "tooling/migration/ctr-201-inventory.json"
 DEFAULT_SCHEMA = "tooling/migration/ctr-201-inventory.schema.json"
+DEFAULT_CLI_ARTIFACT = "tooling/migration/ctr-201-cli.json"
+DEFAULT_CLI_SCHEMA = "tooling/migration/ctr-201-cli.schema.json"
 EXPECTED_TAG = "v1.19.0-beta.1"
 EXPECTED_COMMIT = "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f"
 EXPECTED_MANIFEST_PATH = (
@@ -35,8 +37,65 @@ EXPECTED_REGISTRY_SHA256 = (
     "602d3faf525e2e5c938afb14f1b1d291f528240947b3df6ed9f56baeb73e7020"
 )
 EXPECTED_SCHEMA_CANONICAL_SHA256 = (
-    "5b25a7b8901a1bdd2207f961336b73504a241dda23d4189b89ddc93899652e88"
+    "33403b58331a946b266a5e60360ac376c8be0119f4cf565f1544fa11f0b7d02b"
 )
+EXPECTED_CLI_SCHEMA_CANONICAL_SHA256 = (
+    "173436615a8a26d45903cc7812a55f2e9ae094089f637bced0f418a3976456ad"
+)
+EXPECTED_CLI_CAPTURE_CONTRACT = {
+    "source_mode": "accepted-tag-git-blobs",
+    "python_version": "python3.12",
+    "help_mode": "authored-help-only",
+    "environment_mode": "dual-environment",
+    "environment_count": 2,
+    "dynamic_default_policy": "symbolic-context-values",
+    "callable_policy": "allowlisted-symbols-no-repr",
+    "ambient_dependency_policy": "disabled-with-deny-use-stubs",
+    "side_effect_policy": "read-only-no-network-no-process",
+}
+EXPECTED_CLI_COUNTS = {
+    "canonical_command_path_count": 46,
+    "public_command_path_count": 49,
+    "console_entrypoint_count": 5,
+    "argument_action_count": 164,
+    "cwd_default_count": 27,
+}
+EXPECTED_CLI_ALIASES = {
+    ("qiongli", "self-update"): ("update",),
+    ("qiongli", "remove"): ("uninstall", "delete"),
+}
+EXPECTED_EMPTY_ARGUMENT_COMMANDS = {
+    ("qiongli", "provider"),
+    ("qiongli", "guidance"),
+    ("qiongli", "subject"),
+    ("qiongli", "project"),
+    ("qiongli", "mcp", "config"),
+}
+EXPECTED_CONSOLE_ENTRYPOINTS = (
+    ("qiongli", "qiongli.cli:main", 0),
+    ("ql", "qiongli.cli:main", 1),
+    ("research-skills", "qiongli.cli:main", 2),
+    ("rsk", "qiongli.cli:main", 3),
+    ("rsw", "qiongli.cli:main", 4),
+)
+EXPECTED_PARSER_ROOTS = {
+    "qiongli-cli": (
+        ("qiongli",),
+        "qiongli.cli:build_parser",
+        "cli-parser",
+        "Install/upgrade qiongli client skills without requiring a git fork.",
+        ("cmd", True),
+        0,
+    ),
+    "qiongli-mcp-cli": (
+        ("qiongli", "mcp"),
+        "bridges.mcp_cli:build_parser",
+        "mcp-cli-parser",
+        "Run and configure the Qiongli cross-platform MCP server.",
+        ("cmd", True),
+        1,
+    ),
+}
 EXPECTED_ALIAS = {
     "public_name": "qiongli_open_config_wizard",
     "canonical_name": "qiongli_configure_provider",
@@ -51,14 +110,23 @@ EXPECTED_RUNTIME_METADATA = {
     "python-full": ("python", "full"),
     "rust-lite": ("rust", "marketplace-lite"),
 }
+EXPECTED_CLI_CAPTURED_SCOPE = (
+    "align-success-outcome",
+    "installer-dry-run-success",
+    "observed-success-exit-code-zero",
+    "python-full-static-command-tree",
+    "python-full-static-arguments-and-aliases",
+    "python-full-authored-help-metadata",
+    "python-full-console-entrypoints",
+    "python-full-mounted-mcp-parser",
+)
 EXPECTED_CLI_GAPS = (
-    "complete-command-tree",
-    "complete-arguments-and-aliases",
-    "complete-help-text",
+    "complete-formatted-help-output",
     "complete-json-output",
     "complete-exit-code-matrix",
     "complete-dry-run-semantics",
     "complete-error-classes",
+    "complete-legacy-npm-compatibility-surface",
 )
 EXPECTED_ORCHESTRATOR_GAPS = (
     "complete-task-graph",
@@ -94,10 +162,25 @@ SECRET_PATTERN = re.compile(
     r"(?:QIONGLI_CANARY_DO_NOT_ECHO|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|"
     r"\b(?:sk[-_]|ghp_|github_pat_)[A-Za-z0-9_-]{12,}\b)"
 )
+CALLABLE_REPR_PATTERN = re.compile(
+    r"(?:<(?:(?:bound )?method|function|class)\b|\bat 0x[0-9a-f]+>)",
+    re.IGNORECASE,
+)
+WINDOWS_RESERVED_COMPONENT = re.compile(
+    r"^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$",
+    re.IGNORECASE,
+)
+
+
+_CLI_EXTRACTION_CACHE: dict[str, bytes] = {}
 
 
 class InventoryConfigError(ValueError):
     """Raised when validator inputs cannot be loaded safely."""
+
+
+class CliArtifactMismatch(ValueError):
+    """Raised when accepted source extraction disagrees with the child artifact."""
 
 
 class SafeArgumentParser(argparse.ArgumentParser):
@@ -116,6 +199,10 @@ def _unique_json_object(pairs: Sequence[tuple[str, Any]]) -> dict[str, Any]:
     return value
 
 
+def _reject_non_finite_constant(_value: str) -> None:
+    raise InventoryConfigError("JSON document contains a non-finite number")
+
+
 def _contains_unicode_surrogate(value: Any) -> bool:
     if isinstance(value, str):
         return any(0xD800 <= ord(character) <= 0xDFFF for character in value)
@@ -129,16 +216,38 @@ def _contains_unicode_surrogate(value: Any) -> bool:
     return False
 
 
+def _contains_non_finite_number(value: Any) -> bool:
+    if isinstance(value, float):
+        return value != value or value in {float("inf"), float("-inf")}
+    if isinstance(value, Mapping):
+        return any(
+            _contains_non_finite_number(key) or _contains_non_finite_number(item)
+            for key, item in value.items()
+        )
+    if isinstance(value, list):
+        return any(_contains_non_finite_number(item) for item in value)
+    return False
+
+
+def _canonical_json_bytes(value: Any) -> bytes:
+    try:
+        rendered = json.dumps(
+            value,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+            allow_nan=False,
+        )
+        return rendered.encode("utf-8")
+    except (TypeError, UnicodeEncodeError, ValueError) as error:
+        raise InventoryConfigError("JSON value cannot be serialized canonically") from error
+
+
 def canonical_payload_bytes(record: Mapping[str, Any]) -> bytes:
     """Serialize the integrity-covered record without the integrity block."""
 
     payload = {key: value for key, value in record.items() if key != "integrity"}
-    return json.dumps(
-        payload,
-        ensure_ascii=False,
-        separators=(",", ":"),
-        sort_keys=True,
-    ).encode("utf-8")
+    return _canonical_json_bytes(payload)
 
 
 def canonical_payload_sha256(record: Mapping[str, Any]) -> str:
@@ -160,9 +269,16 @@ def is_canonical_repository_path(value: str, *, allow_trailing_slash: bool = Fal
         return False
     posix = PurePosixPath(value)
     windows = PureWindowsPath(value)
-    if posix.is_absolute() or windows.is_absolute():
+    if posix.is_absolute() or windows.is_absolute() or windows.drive or windows.root:
         return False
     if any(part in {"", ".", ".."} for part in posix.parts):
+        return False
+    if any(
+        ":" in part
+        or part.endswith((" ", "."))
+        or WINDOWS_RESERVED_COMPONENT.fullmatch(part) is not None
+        for part in posix.parts
+    ):
         return False
     return posix.as_posix() == value
 
@@ -192,6 +308,7 @@ def _load_json_file(repo_root: Path, relative: str, *, label: str) -> dict[str, 
         value = json.loads(
             path.read_text(encoding="utf-8"),
             object_pairs_hook=_unique_json_object,
+            parse_constant=_reject_non_finite_constant,
         )
     except (
         InventoryConfigError,
@@ -258,6 +375,452 @@ def _validate_schema_contract(schema: Mapping[str, Any]) -> list[str]:
     return errors
 
 
+def _validate_recursively_closed_schema(schema: Mapping[str, Any]) -> list[str]:
+    """Require every object-shaped child schema to be closed and fully required."""
+
+    stack: list[Any] = [schema]
+    while stack:
+        value = stack.pop()
+        if isinstance(value, Mapping):
+            if value.get("type") == "object":
+                properties = value.get("properties")
+                required = value.get("required")
+                if (
+                    not isinstance(properties, Mapping)
+                    or not isinstance(required, list)
+                    or not all(isinstance(item, str) for item in required)
+                    or len(required) != len(set(required))
+                    or set(required) != set(properties)
+                    or value.get("additionalProperties") is not False
+                ):
+                    return ["CLI child schema must be recursively closed"]
+            stack.extend(value.values())
+        elif isinstance(value, list):
+            stack.extend(value)
+    return []
+
+
+def _cli_path(value: Any) -> tuple[str, ...] | None:
+    if not isinstance(value, list) or not value or not all(
+        isinstance(item, str) for item in value
+    ):
+        return None
+    return tuple(value)
+
+
+def _validate_cli_repository_paths(artifact: Mapping[str, Any]) -> list[str]:
+    source = artifact.get("source")
+    if not isinstance(source, Mapping):
+        return ["CLI child source bindings are invalid"]
+    a8_manifest = source.get("a8_manifest")
+    python_oracle = source.get("python_full_oracle")
+    package_tree = source.get("package_tree")
+    anchors = source.get("blob_anchors")
+    checks: list[tuple[Any, bool]] = []
+    for binding in (a8_manifest, python_oracle):
+        checks.append((binding.get("path") if isinstance(binding, Mapping) else None, False))
+    checks.append(
+        (
+            package_tree.get("root") if isinstance(package_tree, Mapping) else None,
+            True,
+        )
+    )
+    if isinstance(anchors, list):
+        checks.extend(
+            (anchor.get("path") if isinstance(anchor, Mapping) else None, False)
+            for anchor in anchors
+        )
+    else:
+        checks.append((None, False))
+    if any(
+        not isinstance(path, str)
+        or not is_canonical_repository_path(path, allow_trailing_slash=trailing)
+        for path, trailing in checks
+    ):
+        return ["CLI child contains a non-canonical repository path"]
+    return []
+
+
+def _validate_cli_artifact_semantics(artifact: Mapping[str, Any]) -> list[str]:
+    """Validate cross-field facts which JSON Schema cannot express."""
+
+    errors: list[str] = []
+    if _contains_unicode_surrogate(artifact):
+        return ["CLI child contains invalid Unicode scalar data"]
+    if _contains_non_finite_number(artifact):
+        return ["CLI child contains invalid numeric data"]
+
+    strings = _iter_strings(artifact)
+    if any(MACHINE_PATH_PATTERN.search(value) for value in strings):
+        errors.append("CLI child contains a forbidden machine-local path")
+    if any(SECRET_PATTERN.search(value) for value in strings):
+        errors.append("CLI child contains forbidden secret-shaped data")
+    if any(CALLABLE_REPR_PATTERN.search(value) for value in strings):
+        errors.append("CLI child contains an unstable callable representation")
+    errors.extend(_validate_cli_repository_paths(artifact))
+    if artifact.get("capture_contract") != EXPECTED_CLI_CAPTURE_CONTRACT:
+        errors.append("CLI child capture-isolation contract is invalid")
+
+    integrity = artifact.get("integrity")
+    if not isinstance(integrity, Mapping) or (
+        integrity.get("algorithm") != "sha256"
+        or integrity.get("canonicalization")
+        != "utf-8-json-sorted-keys-compact-excluding-integrity"
+        or integrity.get("payload_sha256") != canonical_payload_sha256(artifact)
+    ):
+        errors.append("CLI child canonical payload digest does not match")
+
+    entrypoints = artifact.get("console_entrypoints")
+    projected_entrypoints = (
+        tuple(
+            (
+                item.get("name"),
+                item.get("target"),
+                item.get("declaration_ordinal"),
+            )
+            for item in entrypoints
+            if isinstance(item, Mapping)
+        )
+        if isinstance(entrypoints, list)
+        else ()
+    )
+    if projected_entrypoints != EXPECTED_CONSOLE_ENTRYPOINTS:
+        errors.append("CLI child console entrypoints are not exact")
+
+    parser_roots = artifact.get("parser_roots")
+    projected_roots: dict[Any, Any] = {}
+    duplicate_root = False
+    if isinstance(parser_roots, list):
+        for root in parser_roots:
+            if not isinstance(root, Mapping):
+                duplicate_root = True
+                continue
+            root_id = root.get("root_id")
+            if root_id in projected_roots:
+                duplicate_root = True
+            subcommands = root.get("subcommand_metadata")
+            projected_roots[root_id] = (
+                _cli_path(root.get("path")),
+                root.get("builder"),
+                root.get("source_anchor_role"),
+                root.get("description"),
+                (
+                    subcommands.get("destination"),
+                    subcommands.get("required"),
+                )
+                if isinstance(subcommands, Mapping)
+                else None,
+                root.get("declaration_ordinal"),
+            )
+    if duplicate_root or projected_roots != EXPECTED_PARSER_ROOTS:
+        errors.append("CLI child parser roots are not exact")
+
+    commands = artifact.get("commands")
+    if not isinstance(commands, list):
+        return sorted(set([*errors, "CLI child command inventory is invalid"]))
+
+    canonical_paths: set[tuple[str, ...]] = set()
+    public_paths: set[tuple[str, ...]] = set()
+    alias_projection: dict[tuple[str, ...], tuple[str, ...]] = {}
+    parser_root_ordinals: dict[str, list[int]] = {
+        "qiongli-cli": [],
+        "qiongli-mcp-cli": [],
+    }
+    empty_argument_paths: set[tuple[str, ...]] = set()
+    total_arguments = 0
+    cwd_defaults = 0
+    mounted_command_count = 0
+
+    for command in commands:
+        if not isinstance(command, Mapping):
+            errors.append("CLI child command inventory is invalid")
+            continue
+        path = _cli_path(command.get("path"))
+        segment = command.get("segment")
+        aliases = command.get("aliases")
+        ordinal = command.get("declaration_ordinal")
+        if path is None or len(path) < 2 or path[0] != "qiongli":
+            errors.append("CLI child command path is invalid")
+            continue
+        if path in canonical_paths:
+            errors.append("CLI child contains a duplicate canonical command path")
+        canonical_paths.add(path)
+        if segment != path[-1]:
+            errors.append("CLI child command segment does not match its path")
+        if not isinstance(ordinal, int) or isinstance(ordinal, bool) or ordinal < 0:
+            errors.append("CLI child command declaration ordinal is invalid")
+        else:
+            parser_root_id = (
+                "qiongli-mcp-cli"
+                if len(path) > 2 and path[:2] == ("qiongli", "mcp")
+                else "qiongli-cli"
+            )
+            parser_root_ordinals[parser_root_id].append(ordinal)
+
+        alias_values = (
+            tuple(alias for alias in aliases if isinstance(alias, str))
+            if isinstance(aliases, list)
+            else ()
+        )
+        if not isinstance(aliases, list) or len(alias_values) != len(aliases):
+            errors.append("CLI child command aliases are invalid")
+        if len(alias_values) != len(set(alias_values)) or segment in alias_values:
+            errors.append("CLI child command aliases are not unique")
+        alias_projection[path] = alias_values
+        for public_path in (path, *(path[:-1] + (alias,) for alias in alias_values)):
+            if public_path in public_paths:
+                errors.append("CLI child contains a projected public command collision")
+            public_paths.add(public_path)
+
+        expected_delegate = (
+            {
+                "kind": "parser-root",
+                "parser_root_id": "qiongli-mcp-cli",
+                "argument_destination": "mcp_args",
+            }
+            if path == ("qiongli", "mcp")
+            else None
+        )
+        if command.get("delegate") != expected_delegate:
+            errors.append("CLI child parser-root delegation is invalid")
+        if len(path) > 2 and path[:2] == ("qiongli", "mcp"):
+            mounted_command_count += 1
+
+        arguments = command.get("arguments")
+        if not isinstance(arguments, list):
+            errors.append("CLI child command arguments are invalid")
+            continue
+        if not arguments:
+            empty_argument_paths.add(path)
+        total_arguments += len(arguments)
+        argument_ordinals: list[int] = []
+        option_strings: set[str] = set()
+        positional_destinations: set[str] = set()
+        delegate_arguments = 0
+        for argument in arguments:
+            if not isinstance(argument, Mapping):
+                errors.append("CLI child command argument is invalid")
+                continue
+            argument_ordinal = argument.get("declaration_ordinal")
+            if (
+                not isinstance(argument_ordinal, int)
+                or isinstance(argument_ordinal, bool)
+                or argument_ordinal < 0
+            ):
+                errors.append("CLI child argument declaration ordinal is invalid")
+            else:
+                argument_ordinals.append(argument_ordinal)
+            options = argument.get("option_strings")
+            positional = argument.get("positional")
+            if not isinstance(options, list) or not all(
+                isinstance(option, str) for option in options
+            ):
+                errors.append("CLI child option-string inventory is invalid")
+                options = []
+            if positional is not (len(options) == 0):
+                errors.append("CLI child positional and option-string metadata disagree")
+            for option in options:
+                if option in option_strings:
+                    errors.append("CLI child reuses an option string within a command")
+                option_strings.add(option)
+
+            destination = argument.get("destination")
+            action = argument.get("action")
+            nargs = argument.get("nargs")
+            type_name = argument.get("type")
+            if action == "help" or not isinstance(destination, str):
+                errors.append("CLI child includes a non-callable argument action")
+            if positional is True:
+                if destination in positional_destinations:
+                    errors.append("CLI child reuses a positional destination")
+                if isinstance(destination, str):
+                    positional_destinations.add(destination)
+            if action in {"store-const", "store-false", "store-true"} and (
+                positional is not False or nargs != "zero" or type_name != "none"
+            ):
+                errors.append("CLI child constant action metadata is inconsistent")
+            if action == "store" and nargs == "zero":
+                errors.append("CLI child store action cannot use zero arguments")
+            if type_name == "integer" and action != "store":
+                errors.append("CLI child integer type is bound to an invalid action")
+            default = argument.get("default")
+            if isinstance(default, Mapping) and default.get("kind") == "context":
+                if default.get("source") != "cwd":
+                    errors.append("CLI child dynamic default context is invalid")
+                cwd_defaults += 1
+            if destination == "mcp_args":
+                delegate_arguments += 1
+                if (
+                    path != ("qiongli", "mcp")
+                    or positional is not True
+                    or action != "store"
+                    or nargs != "remainder"
+                ):
+                    errors.append("CLI child delegated argument metadata is invalid")
+        if sorted(argument_ordinals) != list(range(len(arguments))):
+            errors.append("CLI child argument ordinals must be contiguous per command")
+        if path == ("qiongli", "mcp") and delegate_arguments != 1:
+            errors.append("CLI child MCP delegate argument must be unique")
+        if path != ("qiongli", "mcp") and delegate_arguments:
+            errors.append("CLI child delegate argument is attached to the wrong command")
+
+    if len(commands) != EXPECTED_CLI_COUNTS["canonical_command_path_count"] or len(
+        canonical_paths
+    ) != EXPECTED_CLI_COUNTS["canonical_command_path_count"]:
+        errors.append("CLI child canonical command count does not match")
+    if len(public_paths) != EXPECTED_CLI_COUNTS["public_command_path_count"]:
+        errors.append("CLI child public command count does not match")
+    if mounted_command_count != 7:
+        errors.append("CLI child mounted parser-root command count does not match")
+    if any(
+        sorted(ordinals) != list(range(len(ordinals)))
+        for ordinals in parser_root_ordinals.values()
+    ):
+        errors.append("CLI child command ordinals must be contiguous per parser root")
+    nonempty_aliases = {
+        path: aliases for path, aliases in alias_projection.items() if aliases
+    }
+    if nonempty_aliases != EXPECTED_CLI_ALIASES:
+        errors.append("CLI child alias inventory is not exact")
+    if empty_argument_paths != EXPECTED_EMPTY_ARGUMENT_COMMANDS:
+        errors.append("CLI child zero-argument command inventory is not exact")
+    if total_arguments != EXPECTED_CLI_COUNTS["argument_action_count"]:
+        errors.append("CLI child argument action count does not match")
+    if cwd_defaults != EXPECTED_CLI_COUNTS["cwd_default_count"]:
+        errors.append("CLI child cwd-default count does not match")
+
+    coverage = artifact.get("coverage")
+    expected_coverage = {
+        "canonical_command_count": 46,
+        "public_command_count": 49,
+        "console_entrypoint_count": 5,
+        "argument_action_count": 164,
+        "cwd_default_count": 27,
+        "static_semantics": "captured",
+        "formatted_help_output": "incomplete",
+        "json_output": "incomplete",
+        "runtime_behavior_matrix": "incomplete",
+        "exit_code_matrix": "incomplete",
+        "dry_run_semantics": "incomplete",
+        "error_matrix": "incomplete",
+        "side_effect_matrix": "incomplete",
+        "legacy_npm_compatibility_surface": "incomplete",
+        "ctr_201": "in-progress",
+        "fnd_202": "not-implemented",
+        "completion_ready": False,
+    }
+    if not isinstance(coverage, Mapping) or dict(coverage) != expected_coverage:
+        errors.append("CLI child coverage boundary is invalid")
+    return sorted(set(errors))
+
+
+def _accepted_cli_extraction_bytes(repo_root: Path) -> bytes:
+    try:
+        cache_key = str(repo_root.resolve(strict=True))
+    except (OSError, RuntimeError) as error:
+        raise InventoryConfigError("accepted CLI extraction root is unavailable") from error
+    cached = _CLI_EXTRACTION_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+    try:
+        from tooling.scripts import extract_ctr_201_cli_inventory as extractor
+    except ImportError as error:
+        raise InventoryConfigError("accepted CLI extractor is unavailable") from error
+    try:
+        extracted = extractor.extract_cli_inventory(repo_root)
+    except Exception as error:
+        mismatch_type = getattr(extractor, "InventoryMismatch", ())
+        unavailable_type = getattr(extractor, "ExtractorError", ())
+        if mismatch_type and isinstance(error, mismatch_type):
+            raise CliArtifactMismatch("accepted CLI extraction does not match") from error
+        if unavailable_type and isinstance(error, unavailable_type):
+            raise InventoryConfigError("accepted CLI extraction is unavailable") from error
+        raise InventoryConfigError("accepted CLI extraction failed safely") from error
+    if (
+        not isinstance(extracted, Mapping)
+        or _contains_unicode_surrogate(extracted)
+        or _contains_non_finite_number(extracted)
+    ):
+        raise InventoryConfigError("accepted CLI extraction returned invalid data")
+    canonical = _canonical_json_bytes(extracted)
+    _CLI_EXTRACTION_CACHE[cache_key] = canonical
+    return canonical
+
+
+def _validate_cli_static_semantics(
+    repo_root: Path, record: Mapping[str, Any]
+) -> list[str]:
+    cli = record.get("cli")
+    binding = cli.get("static_semantics") if isinstance(cli, Mapping) else None
+    if not isinstance(binding, Mapping):
+        return ["CLI static-semantics binding is missing"]
+    expected_binding = {
+        "task_id": "CTR-201B",
+        "status": "static-semantics-captured",
+        "artifact_path": DEFAULT_CLI_ARTIFACT,
+        "schema_path": DEFAULT_CLI_SCHEMA,
+        "schema_canonical_sha256": EXPECTED_CLI_SCHEMA_CANONICAL_SHA256,
+        **EXPECTED_CLI_COUNTS,
+        "capture_ready": True,
+    }
+    errors = [
+        "CLI static-semantics master binding is invalid"
+        for key, value in expected_binding.items()
+        if binding.get(key) != value
+    ]
+    if errors:
+        return sorted(set(errors))
+
+    child_schema = _load_json_file(
+        repo_root, DEFAULT_CLI_SCHEMA, label="CLI child schema"
+    )
+    artifact = _load_json_file(
+        repo_root, DEFAULT_CLI_ARTIFACT, label="CLI child artifact"
+    )
+    if _sha256(_canonical_json_bytes(child_schema)) != EXPECTED_CLI_SCHEMA_CANONICAL_SHA256:
+        errors.append("CLI child schema canonical digest is invalid")
+    if (
+        child_schema.get("$schema")
+        != "https://json-schema.org/draft/2020-12/schema"
+        or child_schema.get("$id")
+        != "https://qiongli.dev/schemas/ctr-201-cli-static-semantics-v1.json"
+    ):
+        errors.append("CLI child schema identity is invalid")
+    errors.extend(_validate_recursively_closed_schema(child_schema))
+    if validate_instance(artifact, child_schema):
+        errors.append("CLI child artifact does not satisfy its closed schema")
+        return sorted(set(errors))
+
+    errors.extend(_validate_cli_artifact_semantics(artifact))
+    integrity = artifact.get("integrity")
+    coverage = artifact.get("coverage")
+    if not isinstance(integrity, Mapping) or binding.get("payload_sha256") != integrity.get(
+        "payload_sha256"
+    ):
+        errors.append("CLI child payload digest does not match the master binding")
+    child_count_keys = {
+        "canonical_command_path_count": "canonical_command_count",
+        "public_command_path_count": "public_command_count",
+        "console_entrypoint_count": "console_entrypoint_count",
+        "argument_action_count": "argument_action_count",
+        "cwd_default_count": "cwd_default_count",
+    }
+    if not isinstance(coverage, Mapping) or any(
+        binding.get(master_key) != coverage.get(child_key)
+        for master_key, child_key in child_count_keys.items()
+    ):
+        errors.append("CLI child counts do not match the master binding")
+    if errors:
+        return sorted(set(errors))
+    try:
+        extracted = _accepted_cli_extraction_bytes(repo_root)
+    except CliArtifactMismatch:
+        return ["accepted CLI extraction does not match its frozen source"]
+    if extracted != _canonical_json_bytes(artifact):
+        errors.append("CLI child artifact differs from accepted-source extraction")
+    return sorted(set(errors))
+
+
 def _validate_completion_claims(record: Mapping[str, Any]) -> list[str]:
     errors: list[str] = []
     completion = record.get("completion")
@@ -290,6 +853,7 @@ def _load_bound_json(
         value = json.loads(
             data.decode("utf-8"),
             object_pairs_hook=_unique_json_object,
+            parse_constant=_reject_non_finite_constant,
         )
     except (InventoryConfigError, OSError, UnicodeDecodeError, json.JSONDecodeError):
         return None, [f"{label} cannot be verified"]
@@ -297,6 +861,8 @@ def _load_bound_json(
         return None, [f"{label} must contain a JSON object"]
     if _contains_unicode_surrogate(value):
         return None, [f"{label} contains invalid Unicode scalar data"]
+    if _contains_non_finite_number(value):
+        return None, [f"{label} contains invalid numeric data"]
     errors = []
     if _sha256(data) != expected_sha256:
         errors.append(f"{label} digest does not match its binding")
@@ -630,11 +1196,7 @@ def _validate_coverage_gaps(
             "cli",
             ("cli-command", "installer-dry-run"),
             ["python.cli-align", "python.installer-dry-run"],
-            [
-                "align-success-outcome",
-                "installer-dry-run-success",
-                "observed-success-exit-code-zero",
-            ],
+            list(EXPECTED_CLI_CAPTURED_SCOPE),
             list(EXPECTED_CLI_GAPS),
         ),
         (
@@ -768,6 +1330,10 @@ def validate_inventory(
         return ["inventory schema contains invalid Unicode scalar data"]
     if _contains_unicode_surrogate(record):
         return ["inventory contains invalid Unicode scalar data"]
+    if _contains_non_finite_number(schema):
+        return ["inventory schema contains invalid numeric data"]
+    if _contains_non_finite_number(record):
+        return ["inventory contains invalid numeric data"]
     errors = _validate_schema_contract(schema)
     schema_errors = validate_instance(record, schema)
     if schema_errors:
@@ -802,6 +1368,7 @@ def validate_inventory(
     errors.extend(surface_errors)
     errors.extend(_validate_contract_and_target(repo_root, record))
     errors.extend(_validate_coverage_gaps(record, oracle_documents))
+    errors.extend(_validate_cli_static_semantics(repo_root, record))
     errors.extend(_validate_content(record, manifest))
     return sorted(set(errors))
 
@@ -856,7 +1423,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         _emit(payload, as_json=as_json)
         return 2
 
-    errors = validate_inventory(root, record, schema)
+    try:
+        errors = validate_inventory(root, record, schema)
+    except (InventoryConfigError, OSError, RuntimeError):
+        payload = {
+            "status": "error",
+            "exit_code": 2,
+            "error_count": 1,
+            "errors": ["validator configuration could not be loaded safely"],
+        }
+        _emit(payload, as_json=args.json)
+        return 2
     if errors:
         payload = {
             "status": "fail",
