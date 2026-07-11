@@ -1,0 +1,322 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qiongli.dev/schemas/ctr-201-semantic-inventory-v1.json",
+  "title": "Qiongli CTR-201A derived semantic inventory",
+  "type": "object",
+  "required": [
+    "$schema",
+    "schema_version",
+    "record_type",
+    "task_id",
+    "status",
+    "completion",
+    "frozen_source",
+    "contract_v2",
+    "mcp",
+    "cli",
+    "orchestrator",
+    "content",
+    "integrity"
+  ],
+  "properties": {
+    "$schema": { "const": "./ctr-201-inventory.schema.json" },
+    "schema_version": { "const": "1.0" },
+    "record_type": { "const": "qiongli-ctr-201-semantic-inventory" },
+    "task_id": { "const": "CTR-201A" },
+    "status": { "const": "in-progress" },
+    "completion": {
+      "type": "object",
+      "required": ["ctr_201", "fnd_202", "completion_ready"],
+      "properties": {
+        "ctr_201": { "const": "in-progress" },
+        "fnd_202": { "const": "not-implemented" },
+        "completion_ready": { "const": false }
+      },
+      "additionalProperties": false
+    },
+    "frozen_source": {
+      "type": "object",
+      "required": [
+        "accepted_tag",
+        "accepted_commit",
+        "manifest_path",
+        "manifest_sha256",
+        "corpus_sha256",
+        "content_tree"
+      ],
+      "properties": {
+        "accepted_tag": { "const": "v1.19.0-beta.1" },
+        "accepted_commit": {
+          "const": "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f"
+        },
+        "manifest_path": { "$ref": "#/$defs/repositoryPath" },
+        "manifest_sha256": { "$ref": "#/$defs/sha256" },
+        "corpus_sha256": { "$ref": "#/$defs/sha256" },
+        "content_tree": {
+          "type": "object",
+          "required": ["root", "file_count", "tree_sha256"],
+          "properties": {
+            "root": { "const": "content/" },
+            "file_count": { "const": 377 },
+            "tree_sha256": { "$ref": "#/$defs/sha256" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "contract_v2": {
+      "type": "object",
+      "required": [
+        "registry_path",
+        "registry_sha256",
+        "status",
+        "coverage_mode",
+        "canonical_tool_count",
+        "public_name_count",
+        "target_canonical_tool_count",
+        "target_public_name_count",
+        "completion_ready"
+      ],
+      "properties": {
+        "registry_path": { "$ref": "#/$defs/repositoryPath" },
+        "registry_sha256": { "$ref": "#/$defs/sha256" },
+        "status": { "const": "pilot" },
+        "coverage_mode": { "const": "pilot" },
+        "canonical_tool_count": { "const": 6 },
+        "public_name_count": { "const": 7 },
+        "target_canonical_tool_count": { "const": 23 },
+        "target_public_name_count": { "const": 24 },
+        "completion_ready": { "const": false }
+      },
+      "additionalProperties": false
+    },
+    "mcp": {
+      "type": "object",
+      "required": [
+        "runtime_surfaces",
+        "target_public_names",
+        "target_canonical_names",
+        "aliases",
+        "legacy_only",
+        "target_public_name_count",
+        "target_canonical_tool_count",
+        "completion_ready"
+      ],
+      "properties": {
+        "runtime_surfaces": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": { "$ref": "#/$defs/runtimeSurface" }
+        },
+        "target_public_names": { "$ref": "#/$defs/nonEmptyUniqueNames" },
+        "target_canonical_names": { "$ref": "#/$defs/nonEmptyUniqueNames" },
+        "aliases": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/alias" }
+        },
+        "legacy_only": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/legacyName" }
+        },
+        "target_public_name_count": { "const": 24 },
+        "target_canonical_tool_count": { "const": 23 },
+        "completion_ready": { "const": true }
+      },
+      "additionalProperties": false
+    },
+    "cli": { "$ref": "#/$defs/coverageGap" },
+    "orchestrator": { "$ref": "#/$defs/coverageGap" },
+    "content": {
+      "type": "object",
+      "required": [
+        "source_file_count",
+        "source_tree_sha256",
+        "resource_roots",
+        "profiles",
+        "materialization",
+        "completion_ready"
+      ],
+      "properties": {
+        "source_file_count": { "const": 377 },
+        "source_tree_sha256": { "$ref": "#/$defs/sha256" },
+        "resource_roots": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/resourceRoot" }
+        },
+        "profiles": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": { "$ref": "#/$defs/incompleteProfile" }
+        },
+        "materialization": {
+          "type": "object",
+          "required": ["status", "mapping_policy", "expected_tree_sha256"],
+          "properties": {
+            "status": { "const": "not-ready" },
+            "mapping_policy": { "const": "not-frozen" },
+            "expected_tree_sha256": { "type": "null" }
+          },
+          "additionalProperties": false
+        },
+        "completion_ready": { "const": false }
+      },
+      "additionalProperties": false
+    },
+    "integrity": {
+      "type": "object",
+      "required": ["algorithm", "canonicalization", "payload_sha256"],
+      "properties": {
+        "algorithm": { "const": "sha256" },
+        "canonicalization": {
+          "const": "utf-8-json-sorted-keys-compact-excluding-integrity"
+        },
+        "payload_sha256": { "$ref": "#/$defs/sha256" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "repositoryPath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9._/-]+$"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]+$"
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]+$"
+    },
+    "nonEmptyUniqueNames": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/name" }
+    },
+    "oracleBinding": {
+      "type": "object",
+      "required": ["path", "sha256", "case_count"],
+      "properties": {
+        "path": { "$ref": "#/$defs/repositoryPath" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "case_count": { "const": 5 }
+      },
+      "additionalProperties": false
+    },
+    "runtimeSurface": {
+      "type": "object",
+      "required": [
+        "oracle_id",
+        "runtime",
+        "profile",
+        "oracle",
+        "public_name_count",
+        "public_names"
+      ],
+      "properties": {
+        "oracle_id": { "enum": ["python-full", "rust-lite", "node-mcpb"] },
+        "runtime": { "enum": ["python", "rust", "node"] },
+        "profile": { "enum": ["full", "marketplace-lite", "legacy-mcpb"] },
+        "oracle": { "$ref": "#/$defs/oracleBinding" },
+        "public_name_count": { "type": "integer", "minimum": 1 },
+        "public_names": { "$ref": "#/$defs/nonEmptyUniqueNames" }
+      },
+      "additionalProperties": false
+    },
+    "alias": {
+      "type": "object",
+      "required": ["public_name", "canonical_name"],
+      "properties": {
+        "public_name": { "$ref": "#/$defs/name" },
+        "canonical_name": { "$ref": "#/$defs/name" }
+      },
+      "additionalProperties": false
+    },
+    "legacyName": {
+      "type": "object",
+      "required": ["public_name", "source_oracle", "disposition"],
+      "properties": {
+        "public_name": { "$ref": "#/$defs/name" },
+        "source_oracle": { "const": "node-mcpb" },
+        "disposition": { "const": "pending-LEG-201" }
+      },
+      "additionalProperties": false
+    },
+    "coverageGap": {
+      "type": "object",
+      "required": [
+        "status",
+        "captured_oracle_cases",
+        "captured_scope",
+        "required_not_fully_captured",
+        "completion_ready"
+      ],
+      "properties": {
+        "status": { "const": "incomplete" },
+        "captured_oracle_cases": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "captured_scope": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "required_not_fully_captured": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "completion_ready": { "const": false }
+      },
+      "additionalProperties": false
+    },
+    "resourceRoot": {
+      "type": "object",
+      "required": ["source", "match", "resource_kind", "file_count"],
+      "properties": {
+        "source": { "$ref": "#/$defs/repositoryPath" },
+        "match": { "enum": ["exact", "prefix"] },
+        "resource_kind": { "$ref": "#/$defs/name" },
+        "file_count": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "incompleteProfile": {
+      "type": "object",
+      "required": [
+        "profile",
+        "status",
+        "included_resource_kinds",
+        "expected_materialized_tree_sha256"
+      ],
+      "properties": {
+        "profile": { "enum": ["skill-only", "lite", "full"] },
+        "status": { "const": "not-ready" },
+        "included_resource_kinds": {
+          "type": "array",
+          "maxItems": 0
+        },
+        "expected_materialized_tree_sha256": { "type": "null" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

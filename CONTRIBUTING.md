@@ -14,6 +14,7 @@ CI uses Rust `1.97.0`; select that toolchain locally or run Cargo from
 
 ```bash
 python scripts/validate_repository_source.py --base-ref <base-commit>
+python scripts/validate_ctr_201_inventory.py
 cargo fmt --manifest-path packages/qiongli-native/Cargo.toml --all -- --check
 cargo clippy --manifest-path packages/qiongli-native/Cargo.toml \
   --workspace --all-targets --all-features --locked -- -D warnings
