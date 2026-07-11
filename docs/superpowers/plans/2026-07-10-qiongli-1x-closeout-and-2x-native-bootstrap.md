@@ -1,7 +1,9 @@
 # Qiongli 1.x Closeout And 2.x Native Bootstrap Execution Plan
 
-Status: in progress; A1 and A2 implementation complete, Windows acceptance
-and final Stage 1 freeze pending on the pushed `dev` commit
+Status: in progress; A1 accepted and the A2 Stage 1 contract and
+migration-baseline plan frozen on exact pushed `dev` commit
+`2cf0760d67bc41eee9875f08a9e13941887727ed`; A3 maintainer smoke passed and
+final 1.x release preparation remains.
 Roadmap:
 `docs/superpowers/roadmaps/2026-07-10-qiongli-2-rust-native-platform-roadmap.md`
 Release source: `dev`
@@ -368,10 +370,13 @@ Exit criteria:
 
 Execution time: `2026-07-10T21:23:29Z` (`2026-07-10 22:23:29 BST`)
 Execution commit: `2e240dc1bf67` with an intentionally unstaged worktree
+Acceptance commit: `2cf0760d67bc41eee9875f08a9e13941887727ed`
+Acceptance time: `2026-07-11T00:02:51Z` (`2026-07-11 01:02:51 BST`)
 Implementation status: complete
-Acceptance status: conditional; Windows CI and release-owner limitation
-approval remain mandatory
-Release status: not ready
+Acceptance status: accepted; exact-tip Windows, checkout, and branch gates
+passed, and the release owner approved limitations 1 and 3 and accepted the
+technical closure of item 4
+Release status: not ready; A5-A7 remain
 
 ### Closed findings
 
@@ -402,8 +407,23 @@ Release status: not ready
 | Repository-boundary and added-line secret/local-path scans | pass |
 | `git diff --check` | pass |
 
-No file was staged, committed, pushed, versioned, tagged, published, or copied
-into a marketplace catalog during A1.
+### Windows exact-tip acceptance evidence
+
+| Evidence | Result |
+|---|---|
+| Exact pushed commit | `2cf0760d67bc41eee9875f08a9e13941887727ed` |
+| CI workflow | run `29130430299`, success; all five jobs passed |
+| Checkout Install Check | run `29130430264`, success |
+| Windows acceptance job | job `86484631597`, success |
+| Release artifact | `qiongli-lite-mcp-windows-x86_64` |
+| Acceptance receipt | `passed` at `2026-07-10T23:32:36.6245418Z` |
+| Executable SHA-256 | `9cf1f43926f4be63a6b4600f611192e8252cf731632bd410a1b6de6403cf046f` |
+| Executable size | `4,335,104` bytes |
+| Receipt assertions | two stdio calls, persistence, protected current-user-only ACL, redaction, environment restoration, and temporary cleanup passed |
+
+At the original A1 implementation checkpoint, no file was staged, committed,
+pushed, versioned, tagged, published, or copied into a marketplace catalog.
+The later acceptance evidence above is bound to the exact pushed commit.
 
 ### Explicit 1.x limitations and mandatory acceptance gates
 
@@ -414,22 +434,35 @@ into a marketplace catalog during A1.
    shared file. This prevents Node from replacing a Rust-secured file with one
    that inherits a wider directory ACL.
 2. The Windows Rust branch and its native ACL tests cannot execute on the
-   current `aarch64-apple-darwin` host. The dedicated Windows CI job now runs
+   current `aarch64-apple-darwin` host. The dedicated Windows CI job executed
    provider-config ACL tests, full Rust tests, clippy, Node fail-closed tests,
-   and a built-artifact stdio/DACL smoke, but it has not yet run on the pushed
-   candidate commit.
+   and a built-artifact stdio/DACL smoke successfully on exact pushed commit
+   `2cf0760d67bc41eee9875f08a9e13941887727ed`.
 3. Rust Win32 paths do not yet opt into extended-length `\\?\` path handling.
    An unusually deep Windows config path can fail closed without writing or
    disclosing credentials. Supporting such paths is deferred to 2.x unless the
    release owner rejects this limitation.
-4. Windows reparse behavior for the legacy Node read path still requires an
-   actual Windows runner. The CI suite now creates a real junction and verifies
-   that the read path fails closed without touching the target; POSIX
-   target-symlink and cross-platform identity tests pass locally.
+4. The Windows runner created a real junction and verified that the legacy Node
+   read path fails closed without touching the target. This technical acceptance
+   gate is complete; POSIX target-symlink and cross-platform identity tests also
+   pass.
 
-These are release gates, not permission to publish. A1 becomes accepted only
-after the Windows job is green and the release owner records approval of items
-1, 3, and 4. Until then A2 may be reviewed but must not be declared frozen.
+### Release-owner limitation decision
+
+- Status: approved
+- Scope: the limitation approval applies to the `v1.19` beta; its technical
+  evidence is anchored at accepted candidate commit
+  `2cf0760d67bc41eee9875f08a9e13941887727ed`, not the future release tag
+- Owner: repository release owner
+- Decision: accept limitations 1 and 3 for the final 1.x beta and accept the
+  Windows technical closure of item 4
+- Decision time: `2026-07-11T00:02:51Z` (`2026-07-11 01:02:51 BST`)
+- Decision evidence: reply to the release-owner approval request that explicitly
+  listed items 1, 3, and 4: “这一轮审查完成，并继续按照计划进行下一步”
+
+With the exact-tip Windows, checkout, and branch gates green and the owner
+decision recorded, A1 is accepted. This decision authorizes A5 preparation; it
+does not by itself create a version, tag, publication, or accepted release.
 
 ### A2 — Complete and freeze the Stage 1 batches
 
@@ -458,12 +491,18 @@ Exit criteria:
 
 Execution time: `2026-07-10T22:04:07Z` (`2026-07-10 23:04:07 BST`)
 Execution commit: `2e240dc1bf67` with an intentionally unstaged worktree
+Freeze commit: `2cf0760d67bc41eee9875f08a9e13941887727ed`
+Freeze time: `2026-07-11T00:02:51Z` (`2026-07-11 01:02:51 BST`)
 Implementation status: complete
-Freeze status: conditional; the Windows job and required branch checks must
-pass on the pushed candidate commit
-Release status: not ready
+Freeze status: Stage 1 contract and migration-baseline plan frozen; all Stage 1
+source batches are pushed and required Windows, checkout, and branch gates
+passed on the exact freeze commit. A8 still owns generation of the normalized
+1.x migration baseline and compatibility oracles
+Release status: not ready; final release-note disclosure of the explicitly
+partial Contract v2 pilot (`6/23` canonical records and `7/24` public names)
+remains an A6 gate
 
-### Contract and baseline evidence
+### Contract and baseline-plan evidence
 
 - Capability coverage targets are derived from the union of shipped Full and
   Lite public declarations. Runtime compatibility aliases are validated and
@@ -498,9 +537,10 @@ Focused validation at this checkpoint:
 
 ### Pre-commit ownership refresh
 
-After the Windows acceptance and migration-plan work, the candidate contains
-80 intended dirty files: 60 modified tracked files and 20 untracked files. The
-staging area remains empty; there are no deleted or renamed tracked paths.
+At the historical pre-commit ownership checkpoint, the candidate contained 80
+intended dirty files: 60 modified tracked files and 20 untracked files. The
+staging area was empty, with no deleted or renamed tracked paths. At the A2
+freeze commit, all intended paths are committed and the worktree is clean.
 
 The 65 A0 paths retain their original owners. The 15 additional intended files
 are assigned as follows:
@@ -543,8 +583,9 @@ host cache, local absolute path, or credential is part of the intended change.
    baseline plan/schema/test.
 
 The migration plan test travels with the third commit because it validates the
-planning artifact itself. A2 becomes frozen only after these commits are pushed
-and the Windows and branch gates are green on their exact tip.
+planning artifact itself. The freeze condition was satisfied at exact commit
+`2cf0760d67bc41eee9875f08a9e13941887727ed`: the source batches were pushed and
+the Windows, checkout, and branch gates were green. A2 is frozen at that commit.
 
 ### A3 — Run the pre-version regression gate
 
@@ -574,6 +615,19 @@ Exit criteria:
 - all blocking checks pass from a clean source commit candidate;
 - failures are fixed in their source boundary, not suppressed globally;
 - test receipts identify the exact commit and host target.
+
+Execution time: `2026-07-11T00:08:20Z` (`2026-07-11 01:08:20 BST`)
+Source commit: `2cf0760d67bc41eee9875f08a9e13941887727ed`, with only this
+documentation-only acceptance record unstaged
+Host target: `aarch64-apple-darwin`
+Command: `./scripts/run_beta_smoke.sh --tier maintainer`
+Status: passed
+
+The fresh maintainer tier passed the built-in literature pipeline, doctor,
+full-cycle workflow harness, parallel/profile path, and task-run/profile path.
+Together with the exact-tip CI and Checkout Install Check evidence recorded in
+A1, the A3 pre-version regression gate is complete. A5 must still validate the
+coordinated version-preparation diff before A6 begins.
 
 ### A4 — Commit and push cohesive source batches
 
@@ -1171,15 +1225,13 @@ scaffold. The accepted 1.x tag must remain an unambiguous oracle boundary.
 
 ## Immediate Next Actions
 
-A0 is complete. Continue in this order:
+A0-A4 are complete; A1 is accepted and the A2 Stage 1 contract and
+migration-baseline plan are frozen. Continue in this order:
 
-1. reproduce and fix A1 security/compatibility findings;
-2. finish and validate the two Stage 1 batches;
-3. commit and push cohesive source changes;
-4. prepare and publish `v1.19.0-beta.1` through A5-A7;
-5. cut the frozen 1.x baseline and create/push `2.x` through A8;
-6. start B0 ADRs and B1 alpha release-tooling support on `2.x` in parallel;
-7. scaffold the native workspace only after those decisions are reviewed.
+1. prepare and publish `v1.19.0-beta.1` through A5-A7;
+2. cut the frozen 1.x baseline and create/push `2.x` through A8;
+3. start B0 ADRs and B1 alpha release-tooling support on `2.x` in parallel;
+4. scaffold the native workspace only after those decisions are reviewed.
 
 ## Phase Completion Definition
 
