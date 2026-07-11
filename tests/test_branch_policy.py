@@ -45,9 +45,27 @@ class BranchPolicyTests(unittest.TestCase):
             "tests.test_arc_201_adrs",
             "tests.test_frozen_2x_architecture_baseline",
             "tests.test_repository_source_validator",
+            "tests.test_ctr_201_inventory",
         ):
             self.assertIn(module, content)
         self.assertIn('./scripts/release_preflight.sh --quick --materialize-out "$RUNNER_TEMP/qiongli-preflight-dist"', content)
+
+    def test_ci_validates_ctr_201a_inventory_before_distribution_work(self) -> None:
+        content = read(".github/workflows/ci.yml")
+        compile_step = "      - name: Compile CTR-201A inventory validator"
+        validate_step = "      - name: Validate CTR-201A semantic inventory"
+        validate_command = "python scripts/validate_ctr_201_inventory.py"
+        materialize_command = (
+            "python scripts/materialize_distribution_payloads.py --target all "
+            '--out "$RUNNER_TEMP/qiongli-dist" --force'
+        )
+
+        self.assertIn(compile_step, content)
+        self.assertIn(validate_step, content)
+        self.assertIn(validate_command, content)
+        self.assertIn(materialize_command, content)
+        self.assertLess(content.index(compile_step), content.index(validate_step))
+        self.assertLess(content.index(validate_step), content.index(materialize_command))
 
     def test_ci_has_independent_three_platform_native_rust_foundation_gate(self) -> None:
         content = read(".github/workflows/ci.yml")

@@ -244,6 +244,9 @@ jobs:
       - name: Compile critical modules
         run: python -m py_compile packages/python-qiongli/src/qiongli/bridges/base_bridge.py packages/python-qiongli/src/qiongli/bridges/orchestrator.py scripts/validate_research_standard.py tests/test_orchestrator_workflows.py tests/test_install_qiongli.py
 
+      - name: Compile CTR-201A inventory validator
+        run: python -m py_compile scripts/validate_ctr_201_inventory.py tooling/scripts/validate_ctr_201_inventory.py tests/test_ctr_201_inventory.py
+
       - name: Resolve generated payload comparison base
         id: generated-payload-base
         shell: bash
@@ -282,6 +285,9 @@ jobs:
         run: >-
           python scripts/validate_repository_source.py
           --base-ref "$GENERATED_PAYLOAD_BASE"
+
+      - name: Validate CTR-201A semantic inventory
+        run: python scripts/validate_ctr_201_inventory.py
 
       - name: Protect frozen migration baseline
         shell: bash
@@ -335,6 +341,7 @@ jobs:
           tests.test_arc_201_adrs
           tests.test_frozen_2x_architecture_baseline
           tests.test_repository_source_validator
+          tests.test_ctr_201_inventory
 
   shell-release-gates:
     name: Shell and release gates (ubuntu-latest)
