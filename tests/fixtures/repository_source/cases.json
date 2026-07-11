@@ -1,0 +1,65 @@
+{
+  "schema_version": "1.0",
+  "cases": [
+    {
+      "id": "portable-rust-source",
+      "path": "packages/qiongli-native/apps/qiongli/src/portable.rs",
+      "content": "const CONFIG_LABEL: &str = \"qiongli-config\";\n",
+      "expected_rule_ids": []
+    },
+    {
+      "id": "macos-user-path",
+      "path": "packages/qiongli-native/apps/qiongli/src/macos_path.rs",
+      "content": "const CONFIG_PATH: &str = \"/Users/example/.qiongli/config.json\";\n",
+      "expected_rule_ids": ["RSC-SECURITY-001"]
+    },
+    {
+      "id": "windows-user-path",
+      "path": "packages/qiongli-native/apps/qiongli/src/windows_path.rs",
+      "content": "const CONFIG_PATH: &str = r\"C:\\\\Users\\\\example\\\\.qiongli\\\\config.json\";\n",
+      "expected_rule_ids": ["RSC-SECURITY-001"]
+    },
+    {
+      "id": "root-home-path",
+      "path": "packages/qiongli-native/apps/qiongli/src/root_path.rs",
+      "content": "const CONFIG_PATH: &str = \"/root/.qiongli/config.json\";\n",
+      "expected_rule_ids": ["RSC-SECURITY-001"]
+    },
+    {
+      "id": "windows-drive-path",
+      "path": "packages/qiongli-native/apps/qiongli/src/drive_path.rs",
+      "content": "const CONFIG_PATH: &str = r\"D:\\\\work\\\\qiongli\\\\config.json\";\n",
+      "expected_rule_ids": ["RSC-SECURITY-001"]
+    },
+    {
+      "id": "temporary-path",
+      "path": "packages/qiongli-native/apps/qiongli/src/temp_path.rs",
+      "content": "const CONFIG_PATH: &str = \"/tmp/qiongli/config.json\";\n",
+      "expected_rule_ids": ["RSC-SECURITY-001"]
+    },
+    {
+      "id": "mounted-volume-path",
+      "path": "packages/qiongli-native/apps/qiongli/src/volume_path.rs",
+      "content": "const CONFIG_PATH: &str = \"/Volumes/Developer/qiongli/config.json\";\n",
+      "expected_rule_ids": ["RSC-SECURITY-001"]
+    },
+    {
+      "id": "homebrew-install-path",
+      "path": "packages/qiongli-native/apps/qiongli/src/homebrew_path.rs",
+      "content": "const NODE_PATH: &str = \"/opt/homebrew/bin/node\";\n",
+      "expected_rule_ids": ["RSC-SECURITY-001"]
+    },
+    {
+      "id": "workspace-mount-path",
+      "path": "packages/qiongli-native/apps/qiongli/src/workspace_path.rs",
+      "content": "const CHECKOUT: &str = \"/workspace/qiongli\";\n",
+      "expected_rule_ids": ["RSC-SECURITY-001"]
+    },
+    {
+      "id": "linux-mount-path",
+      "path": "packages/qiongli-native/apps/qiongli/src/mount_path.rs",
+      "content": "const CHECKOUT: &str = \"/mnt/c/qiongli\";\n",
+      "expected_rule_ids": ["RSC-SECURITY-001"]
+    }
+  ]
+}

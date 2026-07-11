@@ -130,6 +130,81 @@ jobs:
             ${{ runner.temp }}/qiongli-lite-mcp/windows-a1-acceptance.json
           if-no-files-found: warn
 
+  rust-native-foundation:
+    name: Rust native foundation (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Linux
+            os: ubuntu-latest
+          - platform: macOS
+            os: macos-latest
+          - platform: Windows
+            os: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@1.97.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Reject injected target-specific Rust flags
+        shell: bash
+        run: |
+          injected=0
+          while IFS='=' read -r name value; do
+            case "$name" in
+              CARGO_TARGET_*_RUSTFLAGS)
+                if [[ -n "$value" ]]; then
+                  echo "Unexpected Rust compiler override: $name" >&2
+                  injected=1
+                fi
+                ;;
+            esac
+          done < <(env)
+          [[ "$injected" -eq 0 ]]
+
+      - name: Check native Rust formatting
+        env:
+          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+          CARGO_BUILD_RUSTC_WRAPPER: ""
+          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+          CARGO_BUILD_RUSTFLAGS: ""
+          CARGO_ENCODED_RUSTFLAGS: ""
+          RUSTC_WORKSPACE_WRAPPER: ""
+          RUSTC_WRAPPER: ""
+          RUSTFLAGS: ""
+        run: cargo fmt --manifest-path packages/qiongli-native/Cargo.toml --all -- --check
+
+      - name: Run native Rust clippy
+        env:
+          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+          CARGO_BUILD_RUSTC_WRAPPER: ""
+          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+          CARGO_BUILD_RUSTFLAGS: ""
+          CARGO_ENCODED_RUSTFLAGS: ""
+          RUSTC_WORKSPACE_WRAPPER: ""
+          RUSTC_WRAPPER: ""
+          RUSTFLAGS: ""
+        run: cargo clippy --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked -- -D warnings
+
+      - name: Run native Rust tests
+        env:
+          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+          CARGO_BUILD_RUSTC_WRAPPER: ""
+          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+          CARGO_BUILD_RUSTFLAGS: ""
+          CARGO_ENCODED_RUSTFLAGS: ""
+          RUSTC_WORKSPACE_WRAPPER: ""
+          RUSTC_WRAPPER: ""
+          RUSTFLAGS: ""
+        run: cargo test --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked
+
   cross-platform-tests:
     name: Cross-platform tests (${{ matrix.os }}, ${{ matrix.test-tier }})
     runs-on: ${{ matrix.os }}
@@ -200,6 +275,14 @@ jobs:
           python scripts/check_generated_payload_edits.py
           --base-ref "$GENERATED_PAYLOAD_BASE"
 
+      - name: Validate repository source policy
+        shell: bash
+        env:
+          GENERATED_PAYLOAD_BASE: ${{ steps.generated-payload-base.outputs.base-ref }}
+        run: >-
+          python scripts/validate_repository_source.py
+          --base-ref "$GENERATED_PAYLOAD_BASE"
+
       - name: Protect frozen migration baseline
         shell: bash
         env:
@@ -251,6 +334,7 @@ jobs:
           tests.test_2x_branch_point
           tests.test_arc_201_adrs
           tests.test_frozen_2x_architecture_baseline
+          tests.test_repository_source_validator
 
   shell-release-gates:
     name: Shell and release gates (ubuntu-latest)
