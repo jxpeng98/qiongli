@@ -1,12 +1,11 @@
 # Qiongli 1.x Closeout And 2.x Native Bootstrap Execution Plan
 
-Status: in progress; A1-A7 are complete and `v1.19.0-beta.1` is published and
-accepted at exact tag commit `8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f`.
-The finalized acceptance receipt is pushed on `dev` at
-`ba4517c8dfd5ce8b551c83b129213e689d32cac4`. A8 is now executing the frozen
-baseline, maintenance-governance, and branch-handoff work; no baseline digest,
-A8 CI result, or `2.x` branch point is recorded until it is actually produced
-and verified.
+Status: in progress; A1-A8 are complete, `v1.19.0-beta.1` is published and
+accepted at exact tag commit `8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f`,
+and the frozen migration baseline is committed on `dev`. The protected `2.x`
+branch is initialized and validated at branch-point record commit
+`69855fd50413ee6809baf21eb345fc0c55721de3`. B0 records the accepted native
+architecture decisions before implementation scaffolding begins.
 Roadmap:
 `docs/superpowers/roadmaps/2026-07-10-qiongli-2-rust-native-platform-roadmap.md`
 Release source: `dev`
@@ -836,34 +835,42 @@ A7's acceptance precondition is satisfied. A8 now executes in this order:
 13. open native migration work only on `2.x` after the branch point and
     protection evidence are recorded.
 
-A8 execution status: **in progress**.
+A8 execution status: **complete**.
 
 - `release/1.x-python` exists locally and remotely at the accepted tag commit
-  `8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f`;
-- repository ruleset
-  [18797579](https://github.com/jxpeng98/qiongli/rules/18797579) protects that
-  critical-fix-only line with a pull-request requirement;
-- the branch-policy and CI handoff changes are being prepared on `dev`; the
-  frozen maintenance branch itself remains at the accepted tag and therefore
-  does not contain these later A8 workflow changes;
-- normalized baseline generation now captures real Python Full, accepted Rust
-  Lite binary, and Node MCPB runtime outcomes. The manifest binds their tag or
-  release-binary identities, package trees, checksums, planned coverage, and
-  accepted gaps; asset-backed recapture and offline verification remain part
-  of the final A8 evidence;
-- CI now treats the versioned 1.x baseline, plan, and schemas as immutable once
-  the comparison base contains the frozen manifest. This allows only the
-  one-time A8/initial `2.x` bootstrap and prevents later synchronized oracle
-  and manifest rewrites;
-- local/remote absence checks, creation and first checks of `2.x`, its
-  server-side ruleset, and the `dev` protection audit remain pending until the
-  A8 baseline commit is clean, pushed, and green.
+  `8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f` and ruleset
+  [18797579](https://github.com/jxpeng98/qiongli/rules/18797579) protects it as
+  critical-fix-only;
+- the accepted baseline and immutable guard landed on `dev` in
+  `04a0e49cb455e5a10175c7d0c66949b837b7442c`; the final release-policy fix is
+  `70c5bd9e5b098fbb61bd60934e8774b2eef44a01`;
+- exact-head `dev` CI run
+  [29141373649](https://github.com/jxpeng98/qiongli/actions/runs/29141373649)
+  passed 5/5 jobs and checkout run
+  [29141373644](https://github.com/jxpeng98/qiongli/actions/runs/29141373644)
+  passed 3/3 jobs;
+- `2.x` was created from the unchanged `dev` baseline tree, and its auditable
+  branch-point record is commit
+  `69855fd50413ee6809baf21eb345fc0c55721de3`;
+- exact-head `2.x` CI run
+  [29142556037](https://github.com/jxpeng98/qiongli/actions/runs/29142556037)
+  passed 5/5 jobs and checkout run
+  [29142556048](https://github.com/jxpeng98/qiongli/actions/runs/29142556048)
+  passed 3/3 jobs;
+- active rulesets
+  [17189053](https://github.com/jxpeng98/qiongli/rules/17189053) and
+  [18800504](https://github.com/jxpeng98/qiongli/rules/18800504) protect `dev`
+  and `2.x` with pull-request, required-check, deletion, and non-fast-forward
+  rules and no bypass actors;
+- the machine-readable source, validation, and protection evidence is recorded
+  in `tooling/migration/2x-branch-point.json`.
 
 Current generated A8 evidence:
 
 | Evidence | Recorded result |
 |---|---|
 | Baseline manifest | `tooling/migration/baselines/v1.19.0-beta.1/manifest.json` |
+| Baseline manifest SHA-256 | `77bb7628d43a496c995e4b0a8daf6a624847b62e96948c0461affe89002da131` |
 | Accepted tag object / commit | `e68e3af4c879d8e9053124d1aed625bfcddfdbb4` / `8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f` |
 | Finalized receipt SHA-256 | `a462dc24d94debfb678038e9ed437bdf04dc75476237cc74a9bf06ac366444e9` |
 | Baseline corpus SHA-256 | `7fdd92894d88b221180e77ad73677cc158147cc861b17ba0245ea54f0127fbe2` |
@@ -935,6 +942,29 @@ Exit criteria:
   rollback, and acceptance test;
 - no unresolved architecture choice blocks a vertical slice.
 
+B0 execution status: **accepted**.
+
+- ADR 0201 selects one canonical, multi-mode `qiongli` executable per target;
+- ADR 0202 selects native `egui`/`eframe` with AccessKit and a blocking
+  accessibility and packaging prototype;
+- ADR 0203 separates typed `AgentBackend` implementations from the native,
+  policy-enforced `ToolHost` and `AgentExecutionPolicy`;
+- ADR 0204 fixes versioned state, copy-on-migrate backup/restore, atomic writes,
+  secret references, and an OS-keychain-first storage facade;
+- ADR 0205 fixes the deterministic embedded resource-pack and signature model;
+- ADR 0206 fixes a typed transactional `InstallPlan`, managed ownership, and
+  host-controlled trust/activation boundaries without cache mutation;
+- ADR 0207 fixes independent alpha/beta/stable channels and complete target
+  artifact identity;
+- `tooling/architecture/arc-201-decisions.json` records the complete set, and
+  `scripts/validate_arc_201_adrs.py` enforces its decision-grade sections in CI;
+- `tooling/migration/2x-branch-point.schema.json` and
+  `scripts/validate_2x_branch_point.py` bind the handoff record to its local Git,
+  baseline hash, run, and ruleset evidence;
+- after this one-time bootstrap, `scripts/check_frozen_2x_architecture_baseline.py`
+  freezes ADR 0201-0207, their inventory, and the handoff evidence. Future
+  changes require a new superseding ADR instead of synchronized rewrites.
+
 ### B1 — Teach release tooling about native alpha releases
 
 Task ID: `REL-201`
@@ -945,7 +975,8 @@ Current tooling accepts stable and beta syntax only. Before any 2.x alpha tag:
   representation without confusing alpha with stable;
 - make prerelease detection include alpha in readiness, preflight, automation,
   postflight, notes, version verification, download metadata, and validators;
-- introduce a native product version source in the Rust workspace;
+- consume the native product version source created with the B2 Rust workspace;
+  parser work may begin first, but B1 cannot exit before that source exists;
 - do not require PyPI or npm publication for a native release;
 - keep frozen 1.x PyPI/npm channels distinct from native GitHub/installer and
   plugin channels;
@@ -985,9 +1016,10 @@ slice:
 - `qiongli-mcp`;
 - `qiongli-platform`;
 - `qiongli-installer`;
+- `qiongli-updater`;
 - `qiongli-ui`;
 - `qiongli-testkit`;
-- CLI and desktop apps.
+- one `apps/qiongli` product application for CLI, UI, MCP, and internal modes.
 
 Add empty orchestrator and agent crates only when their public traits are ready;
 avoid placeholder APIs that become accidental contracts.
@@ -1057,7 +1089,8 @@ State coexistence is explicit:
 
 - legacy 1.x global files remain read-only under `QIONGLI_CONFIG_HOME`;
 - 2.x global config, receipts, and markers write under
-  `QIONGLI_CONFIG_HOME/v2/` or an ADR-approved equivalent versioned location;
+  `QIONGLI_CONFIG_HOME/v2/`; changing that root requires a superseding state
+  migration ADR;
 - legacy project files under `<project>/.qiongli/` remain read-only during
   preview, while 2.x writes under `<project>/.qiongli/v2/`;
 - alpha dual-reads legacy state only as a fallback and writes only v2 state;
@@ -1096,6 +1129,8 @@ Exit criteria:
 
 - old Lite, native `qiongli mcp serve --profile lite`, and required Full
   projections pass equivalent contract fixtures;
+- Lite startup requires a signed artifact/receipt grant and cannot request a
+  profile above that grant even when it reuses the canonical product binary;
 - production process trees contain no Python or Node subprocess;
 - no Lite permission boundary expands accidentally.
 
@@ -1107,7 +1142,7 @@ Required alpha.1 commands:
 
 ```text
 qiongli version
-qiongli gui
+qiongli ui
 qiongli skills list|materialize
 qiongli mcp serve --profile lite
 qiongli config status|set|import
@@ -1147,6 +1182,8 @@ path as a vertical slice:
 - generate one `InstallPlan` containing source, target, managed marker, conflict,
   backup, activation instruction, verification, and rollback operations;
 - install the correct native binary/resource payload for the current target;
+- install and verify the target/profile-specific signed launch grant bound to
+  the canonical binary, resource pack, and integration scope;
 - register Codex through documented personal/repo marketplace source metadata;
 - register Claude Code through a personal skills-directory plugin and validate
   marketplace form separately;
@@ -1169,7 +1206,7 @@ Exit criteria:
 
 ### B8 — Build alpha.1 clean-machine and release evidence
 
-Task IDs: `QAT-201`, first slice of `PKG-201`, `UPD-201`
+Task IDs: first slices of `QAT-201`, `PKG-201`, `PKG-202`, and `UPD-201`
 
 Build the current-host alpha artifact with explicit OS and architecture. The
 alpha may be narrow, but it may not be generic or ambiguous.
@@ -1191,7 +1228,8 @@ Verify:
 - Codex and Claude local registration and verification;
 - doctor output and redaction;
 - process tree and production payload forbidden-runtime scan;
-- checksum/signature metadata;
+- checksum, resource-pack and platform/artifact signature verification;
+- an SBOM and build provenance bound to the exact artifact identity;
 - failed update/installation rollback;
 - no write outside the generated plan.
 
@@ -1210,6 +1248,8 @@ Publish only after B0-B8 pass. The release must:
 
 - use the new native alpha release path, not the frozen Python release path;
 - publish target-specific native assets and a machine-readable artifact index;
+- publish and verify checksums, signatures, resource-pack identity, SBOM, and
+  provenance for every advertised native artifact;
 - keep PyPI/npm 1.x channels frozen unless a separately reviewed native
   downloader shim is intentionally released;
 - update only prerelease plugin metadata that can honestly start on the
@@ -1220,8 +1260,8 @@ Publish only after B0-B8 pass. The release must:
 
 Exit criteria:
 
-- postflight validates tag, assets, checksums, target identity, launch, and
-  rollback;
+- postflight validates tag, assets, checksums, signatures, resource-pack
+  identity, SBOM, provenance, target identity, launch, and rollback;
 - alpha feedback is triaged into M2 without reopening Python feature work.
 
 ## Dependency And Parallel-Execution Plan
@@ -1296,6 +1336,8 @@ scaffold. The accepted 1.x tag must remain an unambiguous oracle boundary.
 - the vertical slice runs on a clean advertised target;
 - CLI, GUI, skills, config, Lite MCP, doctor, and two local host registrations
   operate without a language runtime;
+- every advertised artifact passes checksum, signature, resource-pack identity,
+  SBOM, provenance, and target-native launch verification;
 - rollback and redaction evidence pass;
 - release claims match the narrow tested scope.
 
@@ -1307,15 +1349,17 @@ scaffold. The accepted 1.x tag must remain an unambiguous oracle boundary.
 
 ## Immediate Next Actions
 
-A0-A7 are complete and the final planned 1.x beta is accepted. Continue in
-this order:
+A0-A8 and B0 are complete. Continue in this order:
 
-1. finish generating, verifying, and committing the frozen 1.x baseline and
-   branch-policy evidence on `dev` through A8;
-2. wait for the exact A8 commit's required checks, then create/push `2.x` from
-   that clean commit and record the branch point;
-3. start B0 ADRs and B1 alpha release-tooling support on `2.x` in parallel;
-4. scaffold the native workspace only after those decisions are reviewed.
+1. begin B2 (`FND-201`, `GOV-201`) with the workspace root, the single
+   `apps/qiongli` product app, native version source, and first Rust gates;
+2. execute B1 (`REL-201`) against that version source so alpha parsing, channel
+   isolation, native release identity, and dry-run behavior exist before a 2.x
+   tag can be created, while the remaining B2 crates proceed in parallel;
+3. run B3 contract/resource work and B4 state migration only through the
+   service and rollback boundaries fixed by ADR 0204 and ADR 0205;
+4. preserve protected-branch pull requests and exact-head CI evidence for each
+   independently reviewable slice.
 
 ## Phase Completion Definition
 

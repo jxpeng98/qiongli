@@ -1,0 +1,78 @@
+{
+  "schema_version": "1.0",
+  "record_type": "qiongli-architecture-decision-set",
+  "program": "Qiongli 2 Rust-Native Platform",
+  "branch": "2.x",
+  "status": "accepted",
+  "decision_date": "2026-07-11",
+  "source_baseline": {
+    "release": "v1.19.0-beta.1",
+    "branch_point_record_commit": "69855fd50413ee6809baf21eb345fc0c55721de3",
+    "manifest_sha256": "77bb7628d43a496c995e4b0a8daf6a624847b62e96948c0461affe89002da131"
+  },
+  "decisions": [
+    {
+      "task_id": "ARC-201A",
+      "adr_number": "0201",
+      "title": "Canonical Native Executable Topology",
+      "path": "docs/architecture/decisions/0201-executable-topology.md",
+      "status": "Accepted",
+      "decision_summary": "Ship one canonical qiongli executable per target with typed internal modes and shared service crates.",
+      "unblocks": ["FND-201", "MCP-201", "UI-201"]
+    },
+    {
+      "task_id": "ARC-201B",
+      "adr_number": "0202",
+      "title": "Rust-Native UI And Accessibility Foundation",
+      "path": "docs/architecture/decisions/0202-rust-native-ui-and-accessibility.md",
+      "status": "Accepted",
+      "decision_summary": "Use egui and native eframe with AccessKit, gated by target-native accessibility and packaging acceptance.",
+      "unblocks": ["FND-201", "UI-201"]
+    },
+    {
+      "task_id": "ARC-201C",
+      "adr_number": "0203",
+      "title": "Agent Backend And Native Tool Host Boundary",
+      "path": "docs/architecture/decisions/0203-agent-backend-and-tool-host.md",
+      "status": "Accepted",
+      "decision_summary": "Keep model backends capability-typed and separate from policy-enforced native tool execution.",
+      "unblocks": ["AGT-201", "AGT-203", "ORC-201"]
+    },
+    {
+      "task_id": "ARC-201D",
+      "adr_number": "0204",
+      "title": "Versioned State And Secret Storage",
+      "path": "docs/architecture/decisions/0204-versioned-state-and-secret-storage.md",
+      "status": "Accepted",
+      "decision_summary": "Use versioned atomic state, copy-on-migrate snapshots, secret references, and an OS-keychain-first facade.",
+      "unblocks": ["CFG-201", "CFG-202"]
+    },
+    {
+      "task_id": "ARC-201E",
+      "adr_number": "0205",
+      "title": "Deterministic Embedded Resource Pack",
+      "path": "docs/architecture/decisions/0205-deterministic-resource-pack.md",
+      "status": "Accepted",
+      "decision_summary": "Compile canonical content into a reproducible indexed pack with verified hashes and signed external updates.",
+      "unblocks": ["FND-202", "DOM-201"]
+    },
+    {
+      "task_id": "ARC-201F",
+      "adr_number": "0206",
+      "title": "Declarative Install Plan and Client Trust Boundaries",
+      "path": "docs/architecture/decisions/0206-declarative-install-plan-and-client-trust.md",
+      "status": "Accepted",
+      "decision_summary": "Use previewable transactional install plans and supported client source boundaries without bypassing host trust.",
+      "unblocks": ["PLT-201", "PLT-202", "INT-201", "INT-202", "INT-203"]
+    },
+    {
+      "task_id": "ARC-201G",
+      "adr_number": "0207",
+      "title": "Release Channels and Native Artifact Identity",
+      "path": "docs/architecture/decisions/0207-release-channel-and-artifact-identity.md",
+      "status": "Accepted",
+      "decision_summary": "Give every signed target artifact and update channel a complete immutable native identity.",
+      "unblocks": ["REL-201", "UPD-201", "PKG-201", "PKG-202"]
+    }
+  ]
+}

@@ -22,6 +22,7 @@ This page is the current source-layout contract for maintainers.
     qiongli-literature-mcpb/ MCPB package source
 
   tooling/
+    architecture/           machine-readable native decision inventory
     scripts/                real maintainer script implementations
     pipelines/              paper-type DAG descriptors
     install/                installer manifests and support assets
@@ -30,6 +31,7 @@ This page is the current source-layout contract for maintainers.
   evals/                    eval cases, rubrics, runner assets
   tests/                    cross-package regression tests
   docs/                     VitePress documentation
+    architecture/decisions/ accepted and superseded native ADRs
   scripts/                  stable wrapper entrypoints
 ```
 
@@ -67,6 +69,9 @@ python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qio
   `content/distribution/plugins.yaml`.
 - Root `qiongli-workflow/` is generated from `content/workflow/` plus synced
   content mirrors.
+- `docs/architecture/decisions/` is the reviewed source of Qiongli 2
+  architecture decisions; `tooling/architecture/` contains validation records,
+  not runtime payloads or marketplace metadata.
 - `plugins/qiongli/`, `plugins/qiongli-next/`, `packages/qiongli-plugin/`,
   and `packages/qiongli-next-plugin/` are generated plugin payload shapes, not
   source directories.

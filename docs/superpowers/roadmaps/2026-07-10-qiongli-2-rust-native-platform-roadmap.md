@@ -1,10 +1,14 @@
 # Qiongli 2 Rust-Native Platform Migration Roadmap
 
-Status: approved direction, implementation not started
+Status: native architecture baseline accepted; implementation not started
 Decision date: July 10, 2026
 Target branch after the 1.x freeze: `2.x`
 Immediate execution plan:
 `docs/superpowers/plans/2026-07-10-qiongli-1x-closeout-and-2x-native-bootstrap.md`
+
+`ARC-201A` through `ARC-201G` were accepted on July 11, 2026. Their reviewed
+source is `docs/architecture/decisions/`, and
+`tooling/architecture/arc-201-decisions.json` is the CI-validated inventory.
 
 ## Executive Decision
 
@@ -174,8 +178,8 @@ Alpha uses copy-on-migrate, never an in-place global-state rewrite:
 - legacy 1.x global files remain at their existing paths and are read-only to
   the 2.x importer;
 - 2.x global config, state, migration receipts, and managed markers live under
-  `QIONGLI_CONFIG_HOME/v2/` unless a platform ADR chooses an equivalent
-  version-scoped native location;
+  `QIONGLI_CONFIG_HOME/v2/`; changing that root requires a superseding state
+  migration ADR and cannot be an implementation-local platform choice;
 - legacy project state under `<project>/.qiongli/` is read-only during preview;
   migrated 2.x state is first written under `<project>/.qiongli/v2/`;
 - before acceptance, 2.x may dual-read legacy state as a fallback but writes
@@ -188,8 +192,9 @@ Alpha uses copy-on-migrate, never an in-place global-state rewrite:
   registrations to 1.x and uses the untouched legacy state or a verified
   pre-migration backup.
 
-The state ADR may replace the literal directory names only if it preserves the
-same isolation, copy-on-migrate, secret-retention, and downgrade properties.
+ADR 0204 fixes these literal directory names. A future superseding state ADR
+may change them only through a tested migration that preserves the same
+isolation, copy-on-migrate, secret-retention, and downgrade properties.
 
 ## Target Architecture
 
@@ -220,12 +225,12 @@ flowchart TD
     ADP --> OUT
 ```
 
-CLI and GUI are thin frontends over the same Rust services. MCP tools call the
-same services. The full installer is one signed product bundle and may expose a
-`qiongli` CLI plus a platform-native desktop launcher; whether those are one
-multi-mode executable or two thin executables is an ADR, not a user-runtime
-difference. Platform plugin artifacts may carry a headless executable or a
-profile-constrained companion built from the same workspace.
+CLI, GUI, MCP, and internal worker modes are thin frontends over the same Rust
+services. ADR 0201 selects one canonical multi-mode `qiongli` executable per
+target. A platform-native desktop entry and CLI link resolve to those same
+product bytes; a minimal OS-required launcher is packaging metadata, not a
+second product runtime. Platform plugin artifacts may carry the same target
+binary with a profile-constrained invocation and complete artifact identity.
 
 ## Proposed Rust Workspace
 
@@ -248,8 +253,7 @@ packages/qiongli-native/
     qiongli-ui/
     qiongli-testkit/
   apps/
-    qiongli-cli/
-    qiongli-desktop/
+    qiongli/
 ```
 
 | Crate | Responsibility | Primary migration inputs |
@@ -284,7 +288,9 @@ after two consecutive parity-qualified 2.x prereleases.
 | `remote` | Future deployed service | Hosted MCP for web/cloud surfaces | Separate service and security program |
 
 Lite and Full are capability policies over the same contracts and shared
-crates. They must not become independent language implementations again.
+crates. Native executable packages bind the allowed ceiling through a signed
+launch grant; a command argument may reduce but never raise it. Lite and Full
+must not become independent language implementations again.
 
 ## Integration Strategy
 
@@ -420,8 +426,9 @@ external agent CLI.
 - replace three installer inference paths with one declarative `InstallPlan`;
 - make plan preview, conflict detection, apply, verify, repair, remove, upgrade,
   and rollback use the same target and managed-file model;
-- preserve unmanaged user configuration and require approval before replacing
-  conflicting entries;
+- preserve unmanaged user configuration and fail closed on conflicting entries;
+  approval may select a different supported scope but never authorizes an
+  overwrite of state Qiongli cannot prove it owns;
 - implement Codex and Claude local adapters within documented source and trust
   boundaries;
 - display which surfaces are installed, registered, enabled, active, unsupported,
@@ -553,8 +560,8 @@ move; their claims must not be weakened to preserve the estimated dates.
 | `RLS-101` | Close current Stage 1 security and compatibility findings | none | targeted regressions and zero release-blocking findings |
 | `RLS-102` | Commit, version, validate, publish, and accept final 1.x beta | RLS-101 | accepted `v1.19.0-beta.1` receipt |
 | `RLS-103` | Create Python maintenance baseline and support policy | RLS-102 | `release/1.x-python` and frozen manifest |
-| `ARC-201` | Record native architecture, UI, backend, state, and installer ADRs | RLS-102 | reviewed ADR set |
-| `REL-201` | Add alpha version/tag/channel support to release tooling | RLS-102 | alpha dry-run and parser tests |
+| `ARC-201` | Record native architecture, UI, backend, state, and installer ADRs | RLS-102 | accepted ADR 0201-0207 set and CI validator |
+| `REL-201` | Add alpha version/tag/channel support to release tooling | RLS-102, FND-201 native version source | alpha dry-run and parser tests |
 | `CTR-201` | Generate complete MCP/CLI/content/orchestrator baseline inventory | RLS-102 | normalized freeze manifest |
 | `CTR-202` | Complete Capability Contract v2 | CTR-201 | full validator and golden corpus |
 | `LEG-201` | Inventory and disposition every Python/Node/Rust Lite legacy behavior | CTR-201 | capability disposition manifest and normalized oracles |

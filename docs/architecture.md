@@ -5,6 +5,21 @@ code, package shells, and maintainer tooling live in separate source
 boundaries, while release and install payloads are materialized as generated
 outputs.
 
+## Qiongli 2 Decision Boundary
+
+The Rust-native 2.x line is governed by the accepted `ARC-201A` through
+`ARC-201G` decision set under `docs/architecture/decisions/`. The
+machine-readable inventory at `tooling/architecture/arc-201-decisions.json`
+keeps the complete set and its acceptance sections enforceable in CI. Product
+scaffolding must follow those decisions or land a superseding ADR first.
+
+The decisions establish one canonical native product executable, an
+AccessKit-gated Rust desktop UI, typed model and tool-host boundaries,
+versioned state and secret references, a deterministic resource pack,
+transactional client installation plans, and complete native release identity.
+They do not make generated plugin payloads or host caches editable sources of
+truth.
+
 ## Source Boundaries
 
 | Boundary | Editable source | Responsibility |
@@ -17,6 +32,7 @@ outputs.
 | Maintainer tooling | `tooling/scripts/`, `tooling/pipelines/`, `tooling/install/`, `tooling/release/` | Automation, pipeline descriptors, installer manifests, release assets |
 | Quality assets | `evals/`, `tests/` | Evaluation cases/runners and cross-package regression tests |
 | Documentation | `docs/` | VitePress docs and maintainer guidance |
+| Native architecture decisions | `docs/architecture/decisions/`, `tooling/architecture/` | Reviewed 2.x ADRs and their machine-verifiable decision inventory |
 
 Root `scripts/` files are compatibility wrappers. Keep user-facing commands and
 CI references stable there, but edit script implementations under
