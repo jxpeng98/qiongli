@@ -120,14 +120,10 @@ plugin directories.
 
 ```bash
 set -euo pipefail
+(
 
 export ISOLATION_ROOT
 ISOLATION_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/qiongli-rollback.XXXXXX")"
-
-python3 -m venv "$ISOLATION_ROOT/venv"
-"$ISOLATION_ROOT/venv/bin/python" -m pip install \
-  "qiongli==${PYPI_FALLBACK_VERSION}"
-"$ISOLATION_ROOT/venv/bin/qiongli" --version
 
 mkdir -p \
   "$ISOLATION_ROOT/home" \
@@ -135,14 +131,33 @@ mkdir -p \
   "$ISOLATION_ROOT/claude" \
   "$ISOLATION_ROOT/antigravity" \
   "$ISOLATION_ROOT/hermes" \
-  "$ISOLATION_ROOT/project"
+  "$ISOLATION_ROOT/project" \
+  "$ISOLATION_ROOT/npm-cache"
 
-env \
+python3 -m venv "$ISOLATION_ROOT/venv"
+
+export CODEX_HOME="$ISOLATION_ROOT/codex"
+export CLAUDE_CODE_HOME="$ISOLATION_ROOT/claude"
+export ANTIGRAVITY_HOME="$ISOLATION_ROOT/antigravity"
+export HERMES_HOME="$ISOLATION_ROOT/hermes"
+export npm_config_cache="$ISOLATION_ROOT/npm-cache"
+
+env -u PYTHONPATH "$ISOLATION_ROOT/venv/bin/python" -m pip install \
+  "qiongli==${PYPI_FALLBACK_VERSION}"
+
+cd "$ISOLATION_ROOT"
+
+env -u PYTHONPATH "$ISOLATION_ROOT/venv/bin/python" -I -c '
+import os
+import qiongli
+
+expected = os.environ["PYPI_FALLBACK_VERSION"]
+assert qiongli.__version__ == expected, (qiongli.__version__, expected)
+print(f"PyPI fallback verified: {expected}")
+'
+
+env -u PYTHONPATH \
   HOME="$ISOLATION_ROOT/home" \
-  CODEX_HOME="$ISOLATION_ROOT/codex" \
-  CLAUDE_CODE_HOME="$ISOLATION_ROOT/claude" \
-  ANTIGRAVITY_HOME="$ISOLATION_ROOT/antigravity" \
-  HERMES_HOME="$ISOLATION_ROOT/hermes" \
   "$ISOLATION_ROOT/venv/bin/qiongli" install \
   --target all \
   --surface plugin \
@@ -150,19 +165,36 @@ env \
   --project-dir "$ISOLATION_ROOT/project" \
   --overwrite
 
-env \
+env -u PYTHONPATH \
   HOME="$ISOLATION_ROOT/home" \
-  CODEX_HOME="$ISOLATION_ROOT/codex" \
-  CLAUDE_CODE_HOME="$ISOLATION_ROOT/claude" \
-  ANTIGRAVITY_HOME="$ISOLATION_ROOT/antigravity" \
-  HERMES_HOME="$ISOLATION_ROOT/hermes" \
   "$ISOLATION_ROOT/venv/bin/qiongli" check \
   --offline \
   --json
 
+export NPM_FALLBACK_CHECK
+NPM_FALLBACK_CHECK="$(npm exec --yes \
+  --package "qiongli@${NPM_FALLBACK_VERSION}" \
+  -- qiongli check --json)"
+
+node --input-type=module -e '
+const payload = JSON.parse(process.env.NPM_FALLBACK_CHECK);
+const expectedVersion = process.env.NPM_FALLBACK_VERSION;
+if (payload?.npm_package?.version !== expectedVersion) {
+  throw new Error(`unexpected npm fallback version: ${payload?.npm_package?.version}`);
+}
+if (payload?.npm_cli?.role !== "asset-manager") {
+  throw new Error(`unexpected npm CLI role: ${payload?.npm_cli?.role}`);
+}
+if (payload?.npm_cli?.python_free !== true) {
+  throw new Error("npm fallback asset manager is not Python-free");
+}
+console.log(`npm fallback verified: ${expectedVersion}`);
+'
+
 npm exec --yes \
   --package "qiongli@${NPM_FALLBACK_VERSION}" \
-  -- qiongli --version
+  -- qiongli runtime doctor
+)
 ```
 
 Do not direct users to downgrade until fallback CLI, plugin payload, MCP
