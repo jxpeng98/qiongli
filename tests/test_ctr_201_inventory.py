@@ -23,6 +23,13 @@ from tooling.scripts.validate_ctr_201_inventory import (
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+DIGEST_BOUND_JSON_PATHS = (
+    "content/mcp-contracts/v2/registry.json",
+    "tooling/migration/baselines/v1.19.0-beta.1/manifest.json",
+    "tooling/migration/baselines/v1.19.0-beta.1/oracles/node-mcpb.json",
+    "tooling/migration/baselines/v1.19.0-beta.1/oracles/python-full.json",
+    "tooling/migration/baselines/v1.19.0-beta.1/oracles/rust-lite.json",
+)
 
 
 class Ctr201InventoryTests(unittest.TestCase):
@@ -310,6 +317,22 @@ class Ctr201InventoryTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertEqual(completed.stderr, "")
         self.assertEqual(json.loads(completed.stdout)["status"], "pass")
+
+    def test_digest_bound_json_files_are_forced_to_lf_checkout(self) -> None:
+        completed = subprocess.run(
+            ["git", "check-attr", "eol", "--", *DIGEST_BOUND_JSON_PATHS],
+            cwd=REPO_ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(
+            completed.stdout.splitlines(),
+            [f"{path}: eol: lf" for path in DIGEST_BOUND_JSON_PATHS],
+        )
 
     def test_validation_output_redacts_secret_shaped_record_values(self) -> None:
         record = self._record()
