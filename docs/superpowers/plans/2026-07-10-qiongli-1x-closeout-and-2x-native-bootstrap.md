@@ -758,10 +758,15 @@ through the canonical automation:
 ./scripts/release_automation.sh publish \
   --tag v1.19.0-beta.1 \
   --skip-bump \
-  --from-tag v1.18.0-beta.3
+  --from-tag v1.18.0-beta.3 \
+  --resume-after-ready
 ```
 
-The automation must gate on the pushed branch commit before creating the tag.
+Because A6 already ran full readiness and committed its reviewed evidence,
+`--resume-after-ready` is required here. It preserves the exact A6 commit and
+prevents a second readiness run from rewriting dynamic duration evidence before
+tagging. The automation must gate on the pushed branch commit before creating
+the tag.
 Verify:
 
 - remote `dev` and release commit identity;
