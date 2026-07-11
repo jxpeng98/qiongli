@@ -1,6 +1,8 @@
 # Qiongli 2 Rust-Native Platform Migration Roadmap
 
-Status: native architecture baseline accepted; implementation not started
+Status: the B2 native workspace scaffold and repository gates are implemented;
+the CTR-201A slice is merged, and CTR-201B accepted-source static CLI semantics
+are captured; CTR-201 remains in progress and FND-202 is not implemented
 Decision date: July 10, 2026
 Target branch after the 1.x freeze: `2.x`
 Immediate execution plan:
@@ -352,6 +354,19 @@ limitations are recorded.
 Exit gate: `23/23` canonical tools and `24/24` public names are contract-backed,
 or the generated freeze manifest records an updated exact count with an
 approved compatibility explanation.
+
+Current execution record:
+
+- the CTR-201A derived-inventory slice is merged and validation-backed;
+- CTR-201B's static Python Full CLI inventory captures 46 canonical and 49
+  public command paths, five console entrypoints, 164 non-help actions, and 27
+  defaults that resolve to the current working directory;
+- CTR-201B records authored parser help metadata only. Formatted help output,
+  runtime behavior, JSON output, exit codes, dry-run behavior, error classes,
+  and npm compatibility remain incomplete;
+- CTR-201 therefore remains in progress, and FND-202 is not implemented;
+- the next slices are CTR-201C for the orchestrator, followed by CTR-201D for
+  content and materialized-tree closure.
 
 ### W2 — Native core, config, and data migration
 

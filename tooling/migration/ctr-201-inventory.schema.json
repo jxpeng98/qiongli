@@ -128,7 +128,7 @@
       },
       "additionalProperties": false
     },
-    "cli": { "$ref": "#/$defs/coverageGap" },
+    "cli": { "$ref": "#/$defs/cliCoverage" },
     "orchestrator": { "$ref": "#/$defs/coverageGap" },
     "content": {
       "type": "object",
@@ -282,6 +282,72 @@
           "minItems": 1,
           "uniqueItems": true,
           "items": { "type": "string", "minLength": 1 }
+        },
+        "completion_ready": { "const": false }
+      },
+      "additionalProperties": false
+    },
+    "cliCoverage": {
+      "type": "object",
+      "required": [
+        "status",
+        "captured_oracle_cases",
+        "captured_scope",
+        "required_not_fully_captured",
+        "static_semantics",
+        "completion_ready"
+      ],
+      "properties": {
+        "status": { "const": "incomplete" },
+        "captured_oracle_cases": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "captured_scope": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "required_not_fully_captured": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "static_semantics": {
+          "type": "object",
+          "required": [
+            "task_id",
+            "status",
+            "artifact_path",
+            "schema_path",
+            "schema_canonical_sha256",
+            "payload_sha256",
+            "canonical_command_path_count",
+            "public_command_path_count",
+            "console_entrypoint_count",
+            "argument_action_count",
+            "cwd_default_count",
+            "capture_ready"
+          ],
+          "properties": {
+            "task_id": { "const": "CTR-201B" },
+            "status": { "const": "static-semantics-captured" },
+            "artifact_path": { "$ref": "#/$defs/repositoryPath" },
+            "schema_path": { "$ref": "#/$defs/repositoryPath" },
+            "schema_canonical_sha256": { "$ref": "#/$defs/sha256" },
+            "payload_sha256": { "$ref": "#/$defs/sha256" },
+            "canonical_command_path_count": { "const": 46 },
+            "public_command_path_count": { "const": 49 },
+            "console_entrypoint_count": { "const": 5 },
+            "argument_action_count": { "const": 164 },
+            "cwd_default_count": { "const": 27 },
+            "capture_ready": { "const": true }
+          },
+          "additionalProperties": false
         },
         "completion_ready": { "const": false }
       },

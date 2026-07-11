@@ -202,17 +202,35 @@
     "captured_scope": [
       "align-success-outcome",
       "installer-dry-run-success",
-      "observed-success-exit-code-zero"
+      "observed-success-exit-code-zero",
+      "python-full-static-command-tree",
+      "python-full-static-arguments-and-aliases",
+      "python-full-authored-help-metadata",
+      "python-full-console-entrypoints",
+      "python-full-mounted-mcp-parser"
     ],
     "required_not_fully_captured": [
-      "complete-command-tree",
-      "complete-arguments-and-aliases",
-      "complete-help-text",
+      "complete-formatted-help-output",
       "complete-json-output",
       "complete-exit-code-matrix",
       "complete-dry-run-semantics",
-      "complete-error-classes"
+      "complete-error-classes",
+      "complete-legacy-npm-compatibility-surface"
     ],
+    "static_semantics": {
+      "task_id": "CTR-201B",
+      "status": "static-semantics-captured",
+      "artifact_path": "tooling/migration/ctr-201-cli.json",
+      "schema_path": "tooling/migration/ctr-201-cli.schema.json",
+      "schema_canonical_sha256": "173436615a8a26d45903cc7812a55f2e9ae094089f637bced0f418a3976456ad",
+      "payload_sha256": "f81c8f039fae28dd8747f0672bfb6c1caacbd563153f65826356eeb93eacf1a7",
+      "canonical_command_path_count": 46,
+      "public_command_path_count": 49,
+      "console_entrypoint_count": 5,
+      "argument_action_count": 164,
+      "cwd_default_count": 27,
+      "capture_ready": true
+    },
     "completion_ready": false
   },
   "orchestrator": {
@@ -342,6 +360,6 @@
   "integrity": {
     "algorithm": "sha256",
     "canonicalization": "utf-8-json-sorted-keys-compact-excluding-integrity",
-    "payload_sha256": "9311b932e18c8c8b91d00a2f13d052d34fd62c861beba74ad76ade5be2eed1ac"
+    "payload_sha256": "bba5459a7310b2ad860f72207f506fcf30e28ace75088ccd48ed008e04e1329b"
   }
 }

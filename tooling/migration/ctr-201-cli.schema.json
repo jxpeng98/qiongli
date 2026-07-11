@@ -1,0 +1,682 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qiongli.dev/schemas/ctr-201-cli-static-semantics-v1.json",
+  "title": "Qiongli CTR-201B static CLI semantics inventory",
+  "type": "object",
+  "required": [
+    "$schema",
+    "schema_version",
+    "record_type",
+    "task_id",
+    "status",
+    "source",
+    "capture_contract",
+    "console_entrypoints",
+    "parser_roots",
+    "commands",
+    "coverage",
+    "integrity"
+  ],
+  "properties": {
+    "$schema": { "const": "./ctr-201-cli.schema.json" },
+    "schema_version": { "const": "1.0" },
+    "record_type": { "const": "qiongli-ctr-201-cli-static-semantics" },
+    "task_id": { "const": "CTR-201B" },
+    "status": { "const": "static-semantics-captured" },
+    "source": {
+      "type": "object",
+      "required": [
+        "accepted_tag",
+        "accepted_commit",
+        "a8_manifest",
+        "python_full_oracle",
+        "package_tree",
+        "blob_anchors"
+      ],
+      "properties": {
+        "accepted_tag": { "const": "v1.19.0-beta.1" },
+        "accepted_commit": {
+          "const": "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f"
+        },
+        "a8_manifest": { "$ref": "#/$defs/a8ManifestBinding" },
+        "python_full_oracle": { "$ref": "#/$defs/pythonOracleBinding" },
+        "package_tree": { "$ref": "#/$defs/pythonPackageTree" },
+        "blob_anchors": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/blobAnchor" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "capture_contract": {
+      "type": "object",
+      "required": [
+        "source_mode",
+        "python_version",
+        "help_mode",
+        "environment_mode",
+        "environment_count",
+        "dynamic_default_policy",
+        "callable_policy",
+        "ambient_dependency_policy",
+        "side_effect_policy"
+      ],
+      "properties": {
+        "source_mode": { "const": "accepted-tag-git-blobs" },
+        "python_version": { "const": "python3.12" },
+        "help_mode": { "const": "authored-help-only" },
+        "environment_mode": { "const": "dual-environment" },
+        "environment_count": { "const": 2 },
+        "dynamic_default_policy": { "const": "symbolic-context-values" },
+        "callable_policy": { "const": "allowlisted-symbols-no-repr" },
+        "ambient_dependency_policy": {
+          "const": "disabled-with-deny-use-stubs"
+        },
+        "side_effect_policy": {
+          "const": "read-only-no-network-no-process"
+        }
+      },
+      "additionalProperties": false
+    },
+    "console_entrypoints": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/consoleEntrypoint" }
+    },
+    "parser_roots": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/parserRoot" }
+    },
+    "commands": {
+      "type": "array",
+      "minItems": 46,
+      "maxItems": 46,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/command" }
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "canonical_command_count",
+        "public_command_count",
+        "console_entrypoint_count",
+        "argument_action_count",
+        "cwd_default_count",
+        "static_semantics",
+        "formatted_help_output",
+        "json_output",
+        "runtime_behavior_matrix",
+        "exit_code_matrix",
+        "dry_run_semantics",
+        "error_matrix",
+        "side_effect_matrix",
+        "legacy_npm_compatibility_surface",
+        "ctr_201",
+        "fnd_202",
+        "completion_ready"
+      ],
+      "properties": {
+        "canonical_command_count": { "const": 46 },
+        "public_command_count": { "const": 49 },
+        "console_entrypoint_count": { "const": 5 },
+        "argument_action_count": { "const": 164 },
+        "cwd_default_count": { "const": 27 },
+        "static_semantics": { "const": "captured" },
+        "formatted_help_output": { "const": "incomplete" },
+        "json_output": { "const": "incomplete" },
+        "runtime_behavior_matrix": { "const": "incomplete" },
+        "exit_code_matrix": { "const": "incomplete" },
+        "dry_run_semantics": { "const": "incomplete" },
+        "error_matrix": { "const": "incomplete" },
+        "side_effect_matrix": { "const": "incomplete" },
+        "legacy_npm_compatibility_surface": { "const": "incomplete" },
+        "ctr_201": { "const": "in-progress" },
+        "fnd_202": { "const": "not-implemented" },
+        "completion_ready": { "const": false }
+      },
+      "additionalProperties": false
+    },
+    "integrity": {
+      "type": "object",
+      "required": ["algorithm", "canonicalization", "payload_sha256"],
+      "properties": {
+        "algorithm": { "const": "sha256" },
+        "canonicalization": {
+          "const": "utf-8-json-sorted-keys-compact-excluding-integrity"
+        },
+        "payload_sha256": { "$ref": "#/$defs/sha256" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "gitObjectId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "repositoryPath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9._/-]+$"
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9._-]*$"
+    },
+    "commandSegment": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "commandPath": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/commandSegment" }
+    },
+    "a8ManifestBinding": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {
+          "const": "tooling/migration/baselines/v1.19.0-beta.1/manifest.json"
+        },
+        "sha256": {
+          "const": "77bb7628d43a496c995e4b0a8daf6a624847b62e96948c0461affe89002da131"
+        }
+      },
+      "additionalProperties": false
+    },
+    "pythonOracleBinding": {
+      "type": "object",
+      "required": ["oracle_id", "path", "sha256", "case_count"],
+      "properties": {
+        "oracle_id": { "const": "python-full" },
+        "path": {
+          "const": "tooling/migration/baselines/v1.19.0-beta.1/oracles/python-full.json"
+        },
+        "sha256": {
+          "const": "26d247c9268c3166c98080aef420acfdb8248f62b11cc69420250f6e493a23e3"
+        },
+        "case_count": { "const": 5 }
+      },
+      "additionalProperties": false
+    },
+    "pythonPackageTree": {
+      "type": "object",
+      "required": ["root", "file_count", "tree_sha256"],
+      "properties": {
+        "root": { "const": "packages/python-qiongli/" },
+        "file_count": { "const": 76 },
+        "tree_sha256": {
+          "const": "3a91a6dde9a78116fed73358275b2797c3ce7bf3d9a54894e7dbd11d2f0f9781"
+        }
+      },
+      "additionalProperties": false
+    },
+    "blobAnchor": {
+      "oneOf": [
+        { "$ref": "#/$defs/cliBlobAnchor" },
+        { "$ref": "#/$defs/mcpCliBlobAnchor" },
+        { "$ref": "#/$defs/pyprojectBlobAnchor" }
+      ]
+    },
+    "cliBlobAnchor": {
+      "type": "object",
+      "required": [
+        "role",
+        "binding_class",
+        "path",
+        "git_blob_oid",
+        "sha256",
+        "size_bytes"
+      ],
+      "properties": {
+        "role": { "const": "cli-parser" },
+        "binding_class": { "const": "frozen-a8-domain-file" },
+        "path": { "const": "packages/python-qiongli/src/qiongli/cli.py" },
+        "git_blob_oid": {
+          "const": "4802fddd7a019eb24ea6c69cc5f065e40ee3c61e"
+        },
+        "sha256": {
+          "const": "bab1a374aece96fbf802771774203536830709c3579541987ea46cf650d357bb"
+        },
+        "size_bytes": { "const": 71311 }
+      },
+      "additionalProperties": false
+    },
+    "mcpCliBlobAnchor": {
+      "type": "object",
+      "required": [
+        "role",
+        "binding_class",
+        "path",
+        "git_blob_oid",
+        "sha256",
+        "size_bytes"
+      ],
+      "properties": {
+        "role": { "const": "mcp-cli-parser" },
+        "binding_class": { "const": "frozen-a8-domain-file" },
+        "path": {
+          "const": "packages/python-qiongli/src/qiongli/bridges/mcp_cli.py"
+        },
+        "git_blob_oid": {
+          "const": "c0ab03e7e1e07bfd8f059c94eadc0b69cefb5eae"
+        },
+        "sha256": {
+          "const": "5409f37d0eb1ac769fa7988f18d9a431a75c51947819e0e8087bf238559ba33b"
+        },
+        "size_bytes": { "const": 11850 }
+      },
+      "additionalProperties": false
+    },
+    "pyprojectBlobAnchor": {
+      "type": "object",
+      "required": [
+        "role",
+        "binding_class",
+        "path",
+        "git_blob_oid",
+        "sha256",
+        "size_bytes"
+      ],
+      "properties": {
+        "role": { "const": "console-entrypoints" },
+        "binding_class": { "const": "accepted-tag-additional-blob" },
+        "path": { "const": "pyproject.toml" },
+        "git_blob_oid": {
+          "const": "4fc00c6a21b5c7e8a9ffc1ac58698b9d2bd087a5"
+        },
+        "sha256": {
+          "const": "3001a8c7e6002e6fca928a7748dbb556e95c3cb6b9cc864a0a8d4294638f5ebf"
+        },
+        "size_bytes": { "const": 1315 }
+      },
+      "additionalProperties": false
+    },
+    "consoleEntrypoint": {
+      "oneOf": [
+        { "$ref": "#/$defs/qiongliEntrypoint" },
+        { "$ref": "#/$defs/qlEntrypoint" },
+        { "$ref": "#/$defs/researchSkillsEntrypoint" },
+        { "$ref": "#/$defs/rskEntrypoint" },
+        { "$ref": "#/$defs/rswEntrypoint" }
+      ]
+    },
+    "qiongliEntrypoint": {
+      "type": "object",
+      "required": ["name", "target", "declaration_ordinal"],
+      "properties": {
+        "name": { "const": "qiongli" },
+        "target": { "const": "qiongli.cli:main" },
+        "declaration_ordinal": { "const": 0 }
+      },
+      "additionalProperties": false
+    },
+    "qlEntrypoint": {
+      "type": "object",
+      "required": ["name", "target", "declaration_ordinal"],
+      "properties": {
+        "name": { "const": "ql" },
+        "target": { "const": "qiongli.cli:main" },
+        "declaration_ordinal": { "const": 1 }
+      },
+      "additionalProperties": false
+    },
+    "researchSkillsEntrypoint": {
+      "type": "object",
+      "required": ["name", "target", "declaration_ordinal"],
+      "properties": {
+        "name": { "const": "research-skills" },
+        "target": { "const": "qiongli.cli:main" },
+        "declaration_ordinal": { "const": 2 }
+      },
+      "additionalProperties": false
+    },
+    "rskEntrypoint": {
+      "type": "object",
+      "required": ["name", "target", "declaration_ordinal"],
+      "properties": {
+        "name": { "const": "rsk" },
+        "target": { "const": "qiongli.cli:main" },
+        "declaration_ordinal": { "const": 3 }
+      },
+      "additionalProperties": false
+    },
+    "rswEntrypoint": {
+      "type": "object",
+      "required": ["name", "target", "declaration_ordinal"],
+      "properties": {
+        "name": { "const": "rsw" },
+        "target": { "const": "qiongli.cli:main" },
+        "declaration_ordinal": { "const": 4 }
+      },
+      "additionalProperties": false
+    },
+    "parserRoot": {
+      "oneOf": [
+        { "$ref": "#/$defs/mainParserRoot" },
+        { "$ref": "#/$defs/mcpParserRoot" }
+      ]
+    },
+    "mainParserRoot": {
+      "type": "object",
+      "required": [
+        "root_id",
+        "path",
+        "builder",
+        "source_anchor_role",
+        "description",
+        "subcommand_metadata",
+        "declaration_ordinal"
+      ],
+      "properties": {
+        "root_id": { "const": "qiongli-cli" },
+        "path": { "const": ["qiongli"] },
+        "builder": { "const": "qiongli.cli:build_parser" },
+        "source_anchor_role": { "const": "cli-parser" },
+        "description": {
+          "const": "Install/upgrade qiongli client skills without requiring a git fork."
+        },
+        "subcommand_metadata": {
+          "const": { "destination": "cmd", "required": true }
+        },
+        "declaration_ordinal": { "const": 0 }
+      },
+      "additionalProperties": false
+    },
+    "mcpParserRoot": {
+      "type": "object",
+      "required": [
+        "root_id",
+        "path",
+        "builder",
+        "source_anchor_role",
+        "description",
+        "subcommand_metadata",
+        "declaration_ordinal"
+      ],
+      "properties": {
+        "root_id": { "const": "qiongli-mcp-cli" },
+        "path": { "const": ["qiongli", "mcp"] },
+        "builder": { "const": "bridges.mcp_cli:build_parser" },
+        "source_anchor_role": { "const": "mcp-cli-parser" },
+        "description": {
+          "const": "Run and configure the Qiongli cross-platform MCP server."
+        },
+        "subcommand_metadata": {
+          "const": { "destination": "cmd", "required": true }
+        },
+        "declaration_ordinal": { "const": 1 }
+      },
+      "additionalProperties": false
+    },
+    "command": {
+      "type": "object",
+      "required": [
+        "segment",
+        "path",
+        "aliases",
+        "help",
+        "description",
+        "declaration_ordinal",
+        "subcommand_metadata",
+        "delegate",
+        "arguments"
+      ],
+      "properties": {
+        "segment": { "$ref": "#/$defs/commandSegment" },
+        "path": { "$ref": "#/$defs/commandPath" },
+        "aliases": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/commandSegment" }
+        },
+        "help": { "$ref": "#/$defs/nullableText" },
+        "description": { "$ref": "#/$defs/nullableText" },
+        "declaration_ordinal": { "type": "integer", "minimum": 0 },
+        "subcommand_metadata": { "$ref": "#/$defs/subcommandMetadata" },
+        "delegate": { "$ref": "#/$defs/delegate" },
+        "arguments": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/argument" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "nullableText": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string", "minLength": 1 }
+      ]
+    },
+    "subcommandMetadata": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["destination", "required"],
+          "properties": {
+            "destination": { "$ref": "#/$defs/identifier" },
+            "required": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "delegate": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["kind", "parser_root_id", "argument_destination"],
+          "properties": {
+            "kind": { "const": "parser-root" },
+            "parser_root_id": { "const": "qiongli-mcp-cli" },
+            "argument_destination": { "const": "mcp_args" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "argument": {
+      "type": "object",
+      "required": [
+        "destination",
+        "option_strings",
+        "positional",
+        "declaration_ordinal",
+        "action",
+        "nargs",
+        "type",
+        "required",
+        "choices",
+        "default",
+        "const",
+        "help",
+        "metavar"
+      ],
+      "properties": {
+        "destination": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/identifier" }
+          ]
+        },
+        "option_strings": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^-{1,2}[A-Za-z0-9][A-Za-z0-9_-]*$"
+          }
+        },
+        "positional": { "type": "boolean" },
+        "declaration_ordinal": { "type": "integer", "minimum": 0 },
+        "action": {
+          "enum": ["store", "store-const", "store-false", "store-true"]
+        },
+        "nargs": {
+          "enum": ["one", "zero", "optional", "one-or-more", "remainder"]
+        },
+        "type": { "enum": ["none", "integer"] },
+        "required": { "type": "boolean" },
+        "choices": { "$ref": "#/$defs/choicesValue" },
+        "default": { "$ref": "#/$defs/typedValue" },
+        "const": { "$ref": "#/$defs/typedValue" },
+        "help": { "$ref": "#/$defs/helpValue" },
+        "metavar": { "$ref": "#/$defs/metavarValue" }
+      },
+      "additionalProperties": false
+    },
+    "choicesValue": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind"],
+          "properties": {
+            "kind": { "const": "none" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind", "values"],
+          "properties": {
+            "kind": { "const": "ordered" },
+            "values": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "$ref": "#/$defs/choiceScalar" }
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "choiceScalar": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "integer" }
+      ]
+    },
+    "typedValue": {
+      "oneOf": [
+        { "$ref": "#/$defs/noneValue" },
+        { "$ref": "#/$defs/suppressedValue" },
+        { "$ref": "#/$defs/booleanValue" },
+        { "$ref": "#/$defs/integerValue" },
+        { "$ref": "#/$defs/stringValue" },
+        { "$ref": "#/$defs/contextValue" }
+      ]
+    },
+    "noneValue": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": { "const": "none" }
+      },
+      "additionalProperties": false
+    },
+    "suppressedValue": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": { "const": "suppressed" }
+      },
+      "additionalProperties": false
+    },
+    "booleanValue": {
+      "type": "object",
+      "required": ["kind", "value"],
+      "properties": {
+        "kind": { "const": "boolean" },
+        "value": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "integerValue": {
+      "type": "object",
+      "required": ["kind", "value"],
+      "properties": {
+        "kind": { "const": "integer" },
+        "value": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "stringValue": {
+      "type": "object",
+      "required": ["kind", "value"],
+      "properties": {
+        "kind": { "const": "string" },
+        "value": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "contextValue": {
+      "type": "object",
+      "required": ["kind", "source"],
+      "properties": {
+        "kind": { "const": "context" },
+        "source": { "const": "cwd" }
+      },
+      "additionalProperties": false
+    },
+    "helpValue": {
+      "oneOf": [
+        { "$ref": "#/$defs/noneValue" },
+        { "$ref": "#/$defs/suppressedValue" },
+        {
+          "type": "object",
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": { "const": "text" },
+            "value": { "type": "string", "minLength": 1 }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "metavarValue": {
+      "oneOf": [
+        { "$ref": "#/$defs/noneValue" },
+        {
+          "type": "object",
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": { "const": "text" },
+            "value": { "type": "string", "minLength": 1 }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["kind", "values"],
+          "properties": {
+            "kind": { "const": "tuple" },
+            "values": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "minLength": 1 }
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import io
 import json
 import os
@@ -14,8 +15,19 @@ from unittest.mock import patch
 
 from tooling.scripts.validate_capability_contract import validate_instance
 from tooling.scripts.validate_ctr_201_inventory import (
+    DEFAULT_CLI_ARTIFACT,
+    DEFAULT_CLI_SCHEMA,
+    EXPECTED_CLI_SCHEMA_CANONICAL_SHA256,
     InventoryConfigError,
+    _CLI_EXTRACTION_CACHE,
+    _accepted_cli_extraction_bytes,
+    _canonical_json_bytes,
+    _load_json_file,
+    _validate_cli_artifact_semantics,
+    _validate_cli_static_semantics,
+    _validate_recursively_closed_schema,
     canonical_payload_sha256,
+    is_canonical_repository_path,
     load_inventory_documents,
     main,
     validate_inventory,
@@ -36,9 +48,18 @@ class Ctr201InventoryTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.record, cls.schema = load_inventory_documents(REPO_ROOT)
+        cls.cli_artifact = _load_json_file(
+            REPO_ROOT, DEFAULT_CLI_ARTIFACT, label="CLI child artifact"
+        )
+        cls.cli_schema = _load_json_file(
+            REPO_ROOT, DEFAULT_CLI_SCHEMA, label="CLI child schema"
+        )
 
     def _record(self) -> dict[str, object]:
         return copy.deepcopy(self.record)
+
+    def _cli_record(self) -> dict[str, object]:
+        return copy.deepcopy(self.cli_artifact)
 
     @staticmethod
     def _rehash(record: dict[str, object]) -> None:
@@ -49,6 +70,10 @@ class Ctr201InventoryTests(unittest.TestCase):
     def _validate_rehashed(self, record: dict[str, object]) -> list[str]:
         self._rehash(record)
         return validate_inventory(REPO_ROOT, record, self.schema)
+
+    def _validate_cli_rehashed(self, artifact: dict[str, object]) -> list[str]:
+        self._rehash(artifact)
+        return _validate_cli_artifact_semantics(artifact)
 
     def test_inventory_matches_closed_schema_and_all_semantic_checks(self) -> None:
         self.assertEqual(validate_instance(self.record, self.schema), [])
@@ -125,6 +150,294 @@ class Ctr201InventoryTests(unittest.TestCase):
             ["not-ready", "not-ready", "not-ready"],
         )
         self.assertEqual(self.record["content"]["materialization"]["status"], "not-ready")
+
+    def test_cli_child_schema_artifact_and_master_binding_are_exact(self) -> None:
+        binding = self.record["cli"]["static_semantics"]
+        coverage = self.cli_artifact["coverage"]
+        self.assertEqual(validate_instance(self.cli_artifact, self.cli_schema), [])
+        self.assertEqual(_validate_recursively_closed_schema(self.cli_schema), [])
+        self.assertEqual(_validate_cli_artifact_semantics(self.cli_artifact), [])
+        self.assertEqual(_validate_cli_static_semantics(REPO_ROOT, self.record), [])
+        self.assertEqual(
+            hashlib.sha256(_canonical_json_bytes(self.cli_schema)).hexdigest(),
+            EXPECTED_CLI_SCHEMA_CANONICAL_SHA256,
+        )
+        self.assertEqual(binding["artifact_path"], DEFAULT_CLI_ARTIFACT)
+        self.assertEqual(binding["schema_path"], DEFAULT_CLI_SCHEMA)
+        self.assertEqual(
+            binding["payload_sha256"],
+            self.cli_artifact["integrity"]["payload_sha256"],
+        )
+        self.assertEqual(
+            self.cli_artifact["capture_contract"]["ambient_dependency_policy"],
+            "disabled-with-deny-use-stubs",
+        )
+        self.assertEqual(
+            [root["subcommand_metadata"] for root in self.cli_artifact["parser_roots"]],
+            [
+                {"destination": "cmd", "required": True},
+                {"destination": "cmd", "required": True},
+            ],
+        )
+        self.assertEqual(
+            (
+                binding["canonical_command_path_count"],
+                binding["public_command_path_count"],
+                binding["console_entrypoint_count"],
+                binding["argument_action_count"],
+                binding["cwd_default_count"],
+            ),
+            (
+                coverage["canonical_command_count"],
+                coverage["public_command_count"],
+                coverage["console_entrypoint_count"],
+                coverage["argument_action_count"],
+                coverage["cwd_default_count"],
+            ),
+        )
+
+    def test_cli_child_preserves_static_only_completion_boundary(self) -> None:
+        coverage = self.cli_artifact["coverage"]
+        self.assertEqual(coverage["static_semantics"], "captured")
+        for field in (
+            "formatted_help_output",
+            "json_output",
+            "runtime_behavior_matrix",
+            "exit_code_matrix",
+            "dry_run_semantics",
+            "error_matrix",
+            "side_effect_matrix",
+            "legacy_npm_compatibility_surface",
+        ):
+            self.assertEqual(coverage[field], "incomplete")
+        self.assertEqual(coverage["ctr_201"], "in-progress")
+        self.assertEqual(coverage["fnd_202"], "not-implemented")
+        self.assertFalse(coverage["completion_ready"])
+
+    def test_cli_child_exact_aliases_zero_argument_commands_and_counts(self) -> None:
+        commands = self.cli_artifact["commands"]
+        aliases = {
+            tuple(command["path"]): tuple(command["aliases"])
+            for command in commands
+            if command["aliases"]
+        }
+        empty = {
+            tuple(command["path"])
+            for command in commands
+            if not command["arguments"]
+        }
+        self.assertEqual(
+            aliases,
+            {
+                ("qiongli", "self-update"): ("update",),
+                ("qiongli", "remove"): ("uninstall", "delete"),
+            },
+        )
+        self.assertEqual(
+            empty,
+            {
+                ("qiongli", "provider"),
+                ("qiongli", "guidance"),
+                ("qiongli", "subject"),
+                ("qiongli", "project"),
+                ("qiongli", "mcp", "config"),
+            },
+        )
+        self.assertEqual(len(commands), 46)
+        self.assertEqual(sum(len(command["arguments"]) for command in commands), 164)
+
+    def test_cli_child_loader_rejects_duplicate_nonfinite_and_surrogate_json(self) -> None:
+        cases = {
+            "duplicate": '{"value":1,"value":2}',
+            "nan": '{"value":NaN}',
+            "infinity": '{"value":Infinity}',
+            "surrogate": '{"value":"\\ud800"}',
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name, value in cases.items():
+                with self.subTest(name=name):
+                    path = root / f"{name}.json"
+                    path.write_text(value, encoding="utf-8")
+                    with self.assertRaises(InventoryConfigError):
+                        _load_json_file(root, path.name, label="CLI child test")
+
+    def test_cli_child_loader_rejects_symlinks_and_unsafe_repository_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "target.json"
+            target.write_text("{}", encoding="utf-8")
+            link = root / "link.json"
+            try:
+                link.symlink_to(target.name)
+            except (OSError, NotImplementedError):
+                pass
+            else:
+                with self.assertRaises(InventoryConfigError):
+                    _load_json_file(root, link.name, label="CLI child test")
+
+        for value in (
+            "../escape.json",
+            "nested//artifact.json",
+            "C:/artifact.json",
+            "CON/artifact.json",
+            "nested./artifact.json.",
+        ):
+            with self.subTest(value=value):
+                self.assertFalse(is_canonical_repository_path(value))
+
+    def test_cli_child_rejects_recursive_schema_weakening(self) -> None:
+        schema = copy.deepcopy(self.cli_schema)
+        schema["$defs"]["argument"]["additionalProperties"] = True
+        self.assertEqual(
+            _validate_recursively_closed_schema(schema),
+            ["CLI child schema must be recursively closed"],
+        )
+
+    def test_cli_child_rejects_integrity_and_master_binding_tampering(self) -> None:
+        artifact = self._cli_record()
+        artifact["commands"][0]["help"] = "changed without rehashing"
+        self.assertIn(
+            "CLI child canonical payload digest does not match",
+            _validate_cli_artifact_semantics(artifact),
+        )
+
+        record = self._record()
+        record["cli"]["static_semantics"]["schema_canonical_sha256"] = "0" * 64
+        self.assertEqual(
+            _validate_cli_static_semantics(REPO_ROOT, record),
+            ["CLI static-semantics master binding is invalid"],
+        )
+
+    def test_cli_child_rejects_projected_path_alias_and_option_collisions(self) -> None:
+        artifact = self._cli_record()
+        artifact["commands"][1]["path"] = copy.deepcopy(
+            artifact["commands"][0]["path"]
+        )
+        artifact["commands"][1]["segment"] = artifact["commands"][0]["segment"]
+        errors = self._validate_cli_rehashed(artifact)
+        self.assertIn("CLI child contains a duplicate canonical command path", errors)
+
+        artifact = self._cli_record()
+        artifact["commands"][0]["aliases"] = ["upgrade"]
+        errors = self._validate_cli_rehashed(artifact)
+        self.assertIn("CLI child contains a projected public command collision", errors)
+
+        artifact = self._cli_record()
+        command = next(
+            item
+            for item in artifact["commands"]
+            if sum(bool(argument["option_strings"]) for argument in item["arguments"])
+            >= 2
+        )
+        option_arguments = [
+            argument for argument in command["arguments"] if argument["option_strings"]
+        ]
+        option_arguments[1]["option_strings"][0] = option_arguments[0]["option_strings"][0]
+        errors = self._validate_cli_rehashed(artifact)
+        self.assertIn("CLI child reuses an option string within a command", errors)
+
+    def test_cli_child_rejects_root_delegate_action_and_ordinal_inconsistency(self) -> None:
+        artifact = self._cli_record()
+        mcp = next(
+            command
+            for command in artifact["commands"]
+            if command["path"] == ["qiongli", "mcp"]
+        )
+        mcp["delegate"] = None
+        errors = self._validate_cli_rehashed(artifact)
+        self.assertIn("CLI child parser-root delegation is invalid", errors)
+
+        artifact = self._cli_record()
+        argument = next(
+            argument
+            for command in artifact["commands"]
+            for argument in command["arguments"]
+        )
+        argument["action"] = "help"
+        argument["destination"] = None
+        errors = self._validate_cli_rehashed(artifact)
+        self.assertIn("CLI child includes a non-callable argument action", errors)
+
+        artifact = self._cli_record()
+        artifact["commands"][0]["declaration_ordinal"] = 99
+        errors = self._validate_cli_rehashed(artifact)
+        self.assertIn(
+            "CLI child command ordinals must be contiguous per parser root", errors
+        )
+
+    def test_cli_child_rejects_zero_argument_and_cwd_count_drift(self) -> None:
+        artifact = self._cli_record()
+        command = next(item for item in artifact["commands"] if item["arguments"])
+        command["arguments"] = []
+        errors = self._validate_cli_rehashed(artifact)
+        self.assertIn("CLI child zero-argument command inventory is not exact", errors)
+        self.assertIn("CLI child argument action count does not match", errors)
+
+        artifact = self._cli_record()
+        argument = next(
+            argument
+            for command in artifact["commands"]
+            for argument in command["arguments"]
+            if argument["default"] == {"kind": "context", "source": "cwd"}
+        )
+        argument["default"] = {"kind": "none"}
+        errors = self._validate_cli_rehashed(artifact)
+        self.assertIn("CLI child cwd-default count does not match", errors)
+
+    def test_cli_child_redacts_machine_secret_and_callable_repr_canaries(self) -> None:
+        canaries = (
+            "/Users/private/hidden.json",
+            "QIONGLI_CANARY_DO_NOT_ECHO_child",
+            "<function hidden at 0xdeadbeef>",
+        )
+        expected = (
+            "machine-local path",
+            "secret-shaped data",
+            "callable representation",
+        )
+        for canary, diagnostic in zip(canaries, expected, strict=True):
+            with self.subTest(diagnostic=diagnostic):
+                artifact = self._cli_record()
+                artifact["commands"][0]["help"] = canary
+                errors = self._validate_cli_rehashed(artifact)
+                self.assertTrue(any(diagnostic in error for error in errors), errors)
+                self.assertFalse(any(canary in error for error in errors))
+
+    def test_cli_child_extraction_is_cached_and_compared_exactly(self) -> None:
+        _CLI_EXTRACTION_CACHE.clear()
+        try:
+            with patch(
+                "tooling.scripts.extract_ctr_201_cli_inventory.extract_cli_inventory",
+                return_value=self.cli_artifact,
+            ) as extractor:
+                expected = _canonical_json_bytes(self.cli_artifact)
+                self.assertEqual(_accepted_cli_extraction_bytes(REPO_ROOT), expected)
+                self.assertEqual(_accepted_cli_extraction_bytes(REPO_ROOT), expected)
+                extractor.assert_called_once_with(REPO_ROOT)
+        finally:
+            _CLI_EXTRACTION_CACHE.clear()
+
+        with patch(
+            "tooling.scripts.validate_ctr_201_inventory._accepted_cli_extraction_bytes",
+            return_value=b"{}",
+        ):
+            self.assertEqual(
+                _validate_cli_static_semantics(REPO_ROOT, self.record),
+                ["CLI child artifact differs from accepted-source extraction"],
+            )
+
+    def test_cli_extraction_unavailable_is_redacted_exit_two(self) -> None:
+        canary = "QIONGLI_CANARY_DO_NOT_ECHO_extractor"
+        stdout = io.StringIO()
+        with patch(
+            "tooling.scripts.validate_ctr_201_inventory._accepted_cli_extraction_bytes",
+            side_effect=InventoryConfigError(canary),
+        ), redirect_stdout(stdout):
+            self.assertEqual(main(["--root", str(REPO_ROOT), "--json"]), 2)
+        output = stdout.getvalue()
+        self.assertEqual(json.loads(output)["status"], "error")
+        self.assertNotIn(canary, output)
 
     def test_canonical_payload_hash_excludes_integrity_and_is_key_order_stable(self) -> None:
         expected = self.record["integrity"]["payload_sha256"]
