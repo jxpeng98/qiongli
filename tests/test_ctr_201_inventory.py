@@ -3,6 +3,9 @@ from __future__ import annotations
 import copy
 import io
 import json
+import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
@@ -286,6 +289,27 @@ class Ctr201InventoryTests(unittest.TestCase):
         self.assertEqual(json.loads(output)["status"], "error")
         self.assertNotIn("QIONGLI_CANARY_DO_NOT_ECHO", output)
         self.assertNotIn("/Users/", output)
+
+    def test_repository_entrypoint_does_not_depend_on_pythonpath(self) -> None:
+        environment = os.environ.copy()
+        environment.pop("PYTHONPATH", None)
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(REPO_ROOT / "scripts/validate_ctr_201_inventory.py"),
+                "--json",
+            ],
+            cwd=REPO_ROOT,
+            env=environment,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(completed.stderr, "")
+        self.assertEqual(json.loads(completed.stdout)["status"], "pass")
 
     def test_validation_output_redacts_secret_shaped_record_values(self) -> None:
         record = self._record()
