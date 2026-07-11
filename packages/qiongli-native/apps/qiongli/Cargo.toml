@@ -1,0 +1,13 @@
+[package]
+name = "qiongli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+description = "Canonical native Qiongli product executable"
+
+[lints]
+workspace = true

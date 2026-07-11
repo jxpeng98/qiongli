@@ -1,0 +1,96 @@
+schema_version: "1.0"
+contract_id: RC1
+title: Qiongli repository source code contract
+status: native-foundation-enforcing
+
+scope:
+  native_root: packages/qiongli-native
+  baseline_path: tooling/quality/repository-source-code-baseline.json
+  tracked_text_extensions:
+    - .json
+    - .md
+    - .rs
+    - .toml
+    - .txt
+    - .yaml
+    - .yml
+
+language_gates:
+  rust:
+    trigger_prefix: packages/qiongli-native/
+    commands:
+      - cargo fmt --manifest-path packages/qiongli-native/Cargo.toml --all -- --check
+      - cargo clippy --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked -- -D warnings
+      - cargo test --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked
+
+delegated_gates:
+  generated_output:
+    rule_id: RSC-GENERATED-001
+    command: python scripts/check_generated_payload_edits.py --base-ref <event-base>
+    canonical_roots_module: packages/python-qiongli/src/qiongli/source_layout.py
+
+rules:
+  - id: RSC-BOUNDARY-001
+    title: Keep native source inside its canonical repository boundary
+    enforcement: full-tree
+    severity: error
+    description: Reject non-canonical paths, symlinks, gitlinks, executable or oversized build outputs, and path dependencies that escape the native workspace.
+    remediation: Move source under packages/qiongli-native, remove generated output, or replace the escaping dependency with an in-workspace crate.
+  - id: RSC-TOPOLOGY-001
+    title: Preserve the single native product topology
+    enforcement: full-tree
+    severity: error
+    description: Require one workspace member and one product application at apps/qiongli with the accepted native identity.
+    remediation: Keep apps/qiongli as the only product member during the B2a foundation slice and update the reviewed policy before expanding the graph.
+  - id: RSC-RUST-001
+    title: Run the locked Rust quality gates for native changes
+    enforcement: changed-file
+    severity: error
+    description: Native Rust changes select formatting, clippy with denied warnings, and locked workspace tests.
+    remediation: Run every declared Rust language gate and fix failures before merge.
+  - id: RSC-UNSAFE-001
+    title: Forbid unsafe code in the native foundation
+    enforcement: full-tree
+    severity: error
+    description: Require the workspace unsafe_code lint to be forbid and every member to inherit workspace lints.
+    remediation: Keep the foundation safe; a future justified FFI exception requires a scoped policy update and safety tests.
+  - id: RSC-DEPENDENCY-001
+    title: Keep native dependency and toolchain identity reproducible
+    enforcement: changed-file
+    severity: error
+    description: Require the committed lockfile, pinned toolchain, accepted package metadata, and a zero-dependency B2a product before reviewed service crates exist.
+    remediation: Remove premature dependencies, regenerate Cargo.lock with the pinned toolchain, and restore the accepted workspace metadata.
+  - id: RSC-SECURITY-001
+    title: Reject high-confidence secrets and machine-local paths
+    enforcement: full-tree
+    severity: error
+    description: Decode every regular native source file and reject private-key or token signatures and machine-specific absolute paths without echoing matched values.
+    remediation: Remove the sensitive value or local path and use a runtime secret reference or portable repository-relative fixture.
+  - id: RSC-RUNTIME-001
+    title: Keep the native foundation independent of external runtimes
+    enforcement: full-tree
+    severity: error
+    description: Reject external process-launch APIs, build scripts, Cargo compiler overrides, and require a crate-root forbid on resolved std::process::Command constructors so lint overrides cannot hide a startup dependency.
+    remediation: Remove compiler overrides and build scripts, implement the behavior in native Rust, or defer an optional process adapter until its isolated policy and clean-machine tests are accepted.
+  - id: RSC-GENERATED-001
+    title: Reject hand-edited generated repository payloads
+    enforcement: delegated
+    severity: error
+    description: Reuse the canonical generated-payload guard rather than duplicating generated source roots in RC1.
+    remediation: Edit canonical content and regenerate through the supported staging workflow.
+  - id: RSC-EXCEPTION-001
+    title: Keep debt exceptions narrow, owned, fingerprinted, and current
+    enforcement: full-tree
+    severity: error
+    description: Reject broad, expired, ownerless, or fingerprint-drifted baseline entries and all native-foundation suppressions.
+    remediation: Fix the finding or record an exact non-native path with owner, rationale, compensating check, fingerprint, and unexpired deadline.
+
+planned_profiles:
+  - language: javascript-typescript
+    enforcement: planned-before-beta
+  - language: powershell
+    enforcement: planned-before-beta
+  - language: python
+    enforcement: planned-before-beta
+  - language: shell
+    enforcement: planned-before-beta

@@ -17,12 +17,14 @@ This page is the current source-layout contract for maintainers.
     venue-profiles/         venue profile data
 
   packages/
+    qiongli-native/         canonical Rust-native 2.x workspace and product app
     python-qiongli/         Python package source and compatibility shims
     npm-qiongli/            npm wrapper package source
     qiongli-literature-mcpb/ MCPB package source
 
   tooling/
     architecture/           machine-readable native decision inventory
+    quality/                repository-only source policy and debt baseline
     scripts/                real maintainer script implementations
     pipelines/              paper-type DAG descriptors
     install/                installer manifests and support assets
@@ -63,6 +65,9 @@ python3 scripts/materialize_distribution_payloads.py --target all --out /tmp/qio
 - `content/mcp-contracts/` is the canonical MCP runtime-contract boundary. It
   is not an academic standard, and repository-only RC1 engineering policy must
   remain under `tooling/quality/` rather than being materialized from it.
+- `packages/qiongli-native/` is the only Qiongli 2 native workspace. It owns
+  the single `apps/qiongli` product executable; native service crates must stay
+  below that workspace and must not be duplicated into generated plugins.
 - `research_skills` remains as a deprecated Python compatibility shim under
   `packages/python-qiongli/src/research_skills/`.
 - Root `.agent/` is generated from `content/workflow/` and

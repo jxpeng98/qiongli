@@ -44,9 +44,56 @@ class BranchPolicyTests(unittest.TestCase):
             "tests.test_2x_branch_point",
             "tests.test_arc_201_adrs",
             "tests.test_frozen_2x_architecture_baseline",
+            "tests.test_repository_source_validator",
         ):
             self.assertIn(module, content)
         self.assertIn('./scripts/release_preflight.sh --quick --materialize-out "$RUNNER_TEMP/qiongli-preflight-dist"', content)
+
+    def test_ci_has_independent_three_platform_native_rust_foundation_gate(self) -> None:
+        content = read(".github/workflows/ci.yml")
+        start = content.index("  rust-native-foundation:")
+        end = content.index("  cross-platform-tests:", start)
+        job = content[start:end]
+
+        self.assertIn(
+            "name: Rust native foundation (${{ matrix.platform }})", job
+        )
+        self.assertIn("fail-fast: false", job)
+        for platform, runner in (
+            ("Linux", "ubuntu-latest"),
+            ("macOS", "macos-latest"),
+            ("Windows", "windows-latest"),
+        ):
+            with self.subTest(platform=platform):
+                self.assertIn(
+                    f"          - platform: {platform}\n            os: {runner}", job
+                )
+        self.assertIn("uses: dtolnay/rust-toolchain@1.97.0", job)
+        self.assertIn("components: rustfmt, clippy", job)
+        self.assertIn("Reject injected target-specific Rust flags", job)
+        self.assertIn("CARGO_TARGET_*_RUSTFLAGS", job)
+        self.assertEqual(job.count("CARGO_HOME:"), 3)
+        self.assertIn("CARGO_ENCODED_RUSTFLAGS: \"\"", job)
+        self.assertIn("RUSTC_WRAPPER: \"\"", job)
+        self.assertIn("RUSTFLAGS: \"\"", job)
+        self.assertIn(
+            "cargo fmt --manifest-path packages/qiongli-native/Cargo.toml "
+            "--all -- --check",
+            job,
+        )
+        self.assertIn(
+            "cargo clippy --manifest-path packages/qiongli-native/Cargo.toml "
+            "--workspace --all-targets --all-features --locked -- -D warnings",
+            job,
+        )
+        self.assertIn(
+            "cargo test --manifest-path packages/qiongli-native/Cargo.toml "
+            "--workspace --all-targets --all-features --locked",
+            job,
+        )
+        self.assertNotIn("continue-on-error", job)
+        self.assertNotRegex(job, r"(?m)^\s+if:")
+        self.assertNotIn("cache:", job)
 
     def test_ci_materializes_payloads_to_runner_temp_before_strict_research_validation(self) -> None:
         content = read(".github/workflows/ci.yml")
@@ -68,15 +115,21 @@ class BranchPolicyTests(unittest.TestCase):
         architecture_guard_cmd = (
             "          python scripts/check_frozen_2x_architecture_baseline.py"
         )
+        source_guard_cmd = (
+            "          python scripts/validate_repository_source.py"
+        )
         materialize_cmd = 'python scripts/materialize_distribution_payloads.py --target all --out "$RUNNER_TEMP/qiongli-dist" --force'
 
         self.assertIn(resolver_step, content)
         self.assertIn(guard_cmd, content)
         self.assertIn(frozen_guard_cmd, content)
         self.assertIn(architecture_guard_cmd, content)
+        self.assertIn(source_guard_cmd, content)
         self.assertIn(materialize_cmd, content)
         self.assertLess(content.index(resolver_step), content.index(guard_cmd))
         self.assertLess(content.index(guard_cmd), content.index(materialize_cmd))
+        self.assertLess(content.index(guard_cmd), content.index(source_guard_cmd))
+        self.assertLess(content.index(source_guard_cmd), content.index(materialize_cmd))
         self.assertLess(content.index(frozen_guard_cmd), content.index(materialize_cmd))
         self.assertLess(
             content.index(architecture_guard_cmd), content.index(materialize_cmd)
@@ -110,9 +163,13 @@ class BranchPolicyTests(unittest.TestCase):
             "        shell: bash",
             content,
         )
+        self.assertIn(
+            "      - name: Validate repository source policy\n        shell: bash",
+            content,
+        )
         self.assertIn('--base-ref "$GENERATED_PAYLOAD_BASE"', content)
         self.assertEqual(
-            content.count('--base-ref "$GENERATED_PAYLOAD_BASE"'), 3
+            content.count('--base-ref "$GENERATED_PAYLOAD_BASE"'), 4
         )
         self.assertNotIn("--base-ref origin/dev", content)
 

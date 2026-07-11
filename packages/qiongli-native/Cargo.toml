@@ -1,0 +1,29 @@
+[workspace]
+resolver = "3"
+members = ["apps/qiongli"]
+default-members = ["apps/qiongli"]
+
+[workspace.package]
+version = "2.0.0-alpha.1"
+edition = "2024"
+rust-version = "1.97"
+authors = ["Jiaxin Peng"]
+license = "MIT"
+repository = "https://github.com/jxpeng98/qiongli"
+publish = false
+
+[workspace.metadata.qiongli]
+product = "qiongli"
+channel = "alpha"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+rust_2018_idioms = { level = "deny", priority = -1 }
+unused_lifetimes = "deny"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+dbg_macro = "deny"
+disallowed_methods = "deny"
+todo = "deny"
+unimplemented = "deny"
