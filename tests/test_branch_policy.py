@@ -33,7 +33,19 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertIn("test-tier: windows-smoke", content)
         self.assertIn("if: matrix.test-tier == 'full'", content)
         self.assertIn("if: matrix.test-tier == 'windows-smoke'", content)
-        self.assertIn("python -m unittest tests.test_install_qiongli tests.test_bootstrap_qiongli tests.test_universal_installer tests.test_command_runtime tests.test_release_automation tests.test_branch_policy", content)
+        self.assertIn("      - name: Run Windows smoke tests", content)
+        for module in (
+            "tests.test_install_qiongli",
+            "tests.test_bootstrap_qiongli",
+            "tests.test_universal_installer",
+            "tests.test_command_runtime",
+            "tests.test_release_automation",
+            "tests.test_branch_policy",
+            "tests.test_2x_branch_point",
+            "tests.test_arc_201_adrs",
+            "tests.test_frozen_2x_architecture_baseline",
+        ):
+            self.assertIn(module, content)
         self.assertIn('./scripts/release_preflight.sh --quick --materialize-out "$RUNNER_TEMP/qiongli-preflight-dist"', content)
 
     def test_ci_materializes_payloads_to_runner_temp_before_strict_research_validation(self) -> None:
@@ -53,15 +65,22 @@ class BranchPolicyTests(unittest.TestCase):
         frozen_guard_cmd = (
             "          python scripts/check_frozen_migration_baseline.py"
         )
+        architecture_guard_cmd = (
+            "          python scripts/check_frozen_2x_architecture_baseline.py"
+        )
         materialize_cmd = 'python scripts/materialize_distribution_payloads.py --target all --out "$RUNNER_TEMP/qiongli-dist" --force'
 
         self.assertIn(resolver_step, content)
         self.assertIn(guard_cmd, content)
         self.assertIn(frozen_guard_cmd, content)
+        self.assertIn(architecture_guard_cmd, content)
         self.assertIn(materialize_cmd, content)
         self.assertLess(content.index(resolver_step), content.index(guard_cmd))
         self.assertLess(content.index(guard_cmd), content.index(materialize_cmd))
         self.assertLess(content.index(frozen_guard_cmd), content.index(materialize_cmd))
+        self.assertLess(
+            content.index(architecture_guard_cmd), content.index(materialize_cmd)
+        )
 
     def test_generated_payload_guard_uses_event_aware_comparison_base(self) -> None:
         content = read(".github/workflows/ci.yml")
@@ -86,9 +105,14 @@ class BranchPolicyTests(unittest.TestCase):
             "      - name: Protect frozen migration baseline\n        shell: bash",
             content,
         )
+        self.assertIn(
+            "      - name: Protect frozen 2.x architecture baseline\n"
+            "        shell: bash",
+            content,
+        )
         self.assertIn('--base-ref "$GENERATED_PAYLOAD_BASE"', content)
         self.assertEqual(
-            content.count('--base-ref "$GENERATED_PAYLOAD_BASE"'), 2
+            content.count('--base-ref "$GENERATED_PAYLOAD_BASE"'), 3
         )
         self.assertNotIn("--base-ref origin/dev", content)
 
