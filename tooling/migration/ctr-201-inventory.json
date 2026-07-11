@@ -240,17 +240,41 @@
     ],
     "captured_scope": [
       "task-run-preview",
-      "duo-mode-preview"
+      "duo-mode-preview",
+      "python-full-static-declared-stage-task-graph",
+      "python-full-static-declared-agent-contracts",
+      "python-full-static-declared-routing-contracts",
+      "python-full-static-declared-mcp-capability-contracts",
+      "python-full-static-declared-quality-gates"
     ],
     "required_not_fully_captured": [
-      "complete-task-graph",
+      "complete-runtime-behavior-matrix",
       "complete-state-and-resume",
-      "all-solo-duo-triad-modes",
-      "complete-primary-reviewer-verifier",
-      "complete-profile-resolution",
-      "complete-artifact-and-quality-gates",
-      "complete-failure-and-cancellation"
+      "complete-agent-launch-behavior",
+      "complete-solo-duo-triad-runtime-parity",
+      "complete-failure-and-cancellation",
+      "complete-quality-gate-semantic-execution"
     ],
+    "static_contract": {
+      "task_id": "CTR-201C",
+      "status": "static-contract-captured",
+      "artifact_path": "tooling/migration/ctr-201-orchestrator.json",
+      "schema_path": "tooling/migration/ctr-201-orchestrator.schema.json",
+      "schema_canonical_sha256": "0473158288cf35d4a10e39cfc741fd5b4cb38a49c68209aaea48337d52782510",
+      "payload_sha256": "508ed0f92a511a0a9a6daa33598ce891222540b15e5aa207984db97319fe2c5e",
+      "stage_count": 13,
+      "task_count": 76,
+      "required_dependency_edge_count": 104,
+      "runtime_agent_count": 3,
+      "functional_agent_count": 9,
+      "routing_skill_id_count": 82,
+      "logical_mcp_capability_count": 11,
+      "quality_gate_count": 4,
+      "declared_profile_count": 5,
+      "team_run_task_count": 2,
+      "worker_orchestration_task_count": 2,
+      "capture_ready": true
+    },
     "completion_ready": false
   },
   "content": {
@@ -360,6 +384,6 @@
   "integrity": {
     "algorithm": "sha256",
     "canonicalization": "utf-8-json-sorted-keys-compact-excluding-integrity",
-    "payload_sha256": "bba5459a7310b2ad860f72207f506fcf30e28ace75088ccd48ed008e04e1329b"
+    "payload_sha256": "4c8eab8b190a94065f48ab52b6aabaff6c900092cd2d044bcbbb41f95cfbfb3d"
   }
 }

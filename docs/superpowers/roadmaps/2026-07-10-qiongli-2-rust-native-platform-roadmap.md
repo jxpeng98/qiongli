@@ -1,8 +1,10 @@
 # Qiongli 2 Rust-Native Platform Migration Roadmap
 
 Status: the B2 native workspace scaffold and repository gates are implemented;
-the CTR-201A slice is merged, and CTR-201B accepted-source static CLI semantics
-are captured; CTR-201 remains in progress and FND-202 is not implemented
+the CTR-201A slice is merged, CTR-201B accepted-source static CLI semantics are
+captured, and CTR-201C captures the accepted-source `DECLARED/STATIC`
+orchestrator control contract and compatibility boundary; CTR-201 remains in
+progress and FND-202 is not implemented
 Decision date: July 10, 2026
 Target branch after the 1.x freeze: `2.x`
 Immediate execution plan:
@@ -361,12 +363,32 @@ Current execution record:
 - CTR-201B's static Python Full CLI inventory captures 46 canonical and 49
   public command paths, five console entrypoints, 164 non-help actions, and 27
   defaults that resolve to the current working directory;
+- CTR-201C captures the accepted-source `DECLARED/STATIC` orchestrator control
+  contract and compatibility boundary: 13 stages, 76 tasks, 104 required
+  dependency edges, three runtime agent IDs, nine functional agent IDs, 82
+  routing skill IDs, 11 logical MCP capabilities, four quality gates, five
+  built-in profiles, and the B1/H3 team and worker configurations. Public
+  worker mode and adapter spellings use hyphens while internal normalized
+  values use underscores. Worker orchestration is disabled by default; when it
+  is explicitly enabled for a configured task, the recognized
+  `codex-subagent` and `claude-cowork` adapter names still fall back to
+  `generic_prompt` because native dispatch is not implemented;
+- the 82 skill values are unique routing IDs, not an installable-skill count.
+  The frozen `skill_catalog` has 83 declarations because
+  `academic-context-maintainer` is declared twice with the same value. The 11
+  MCP values are logical capability IDs, distinct from the 23 canonical and 24
+  public MCP tool names;
 - CTR-201B records authored parser help metadata only. Formatted help output,
   runtime behavior, JSON output, exit codes, dry-run behavior, error classes,
   and npm compatibility remain incomplete;
+- CTR-201C does not prove that agents run, solo/triad runtime parity, state or
+  resume behavior, concurrency, failure or cancellation semantics, or
+  quality-gate semantic execution. The accepted handler makes `doctor` part of
+  an advisory route sequence; `_tool_task_run(run_agents=true)` does not call
+  or enforce it. CTR-201C also does not implement plugin or Marketplace
+  behavior, materialized content, or a Rust orchestrator;
 - CTR-201 therefore remains in progress, and FND-202 is not implemented;
-- the next slices are CTR-201C for the orchestrator, followed by CTR-201D for
-  content and materialized-tree closure.
+- the next slice is CTR-201D for content and materialized-tree closure.
 
 ### W2 — Native core, config, and data migration
 

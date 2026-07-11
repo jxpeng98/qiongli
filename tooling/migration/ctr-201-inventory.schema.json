@@ -129,7 +129,7 @@
       "additionalProperties": false
     },
     "cli": { "$ref": "#/$defs/cliCoverage" },
-    "orchestrator": { "$ref": "#/$defs/coverageGap" },
+    "orchestrator": { "$ref": "#/$defs/orchestratorCoverage" },
     "content": {
       "type": "object",
       "required": [
@@ -254,39 +254,6 @@
       },
       "additionalProperties": false
     },
-    "coverageGap": {
-      "type": "object",
-      "required": [
-        "status",
-        "captured_oracle_cases",
-        "captured_scope",
-        "required_not_fully_captured",
-        "completion_ready"
-      ],
-      "properties": {
-        "status": { "const": "incomplete" },
-        "captured_oracle_cases": {
-          "type": "array",
-          "minItems": 1,
-          "uniqueItems": true,
-          "items": { "$ref": "#/$defs/identifier" }
-        },
-        "captured_scope": {
-          "type": "array",
-          "minItems": 1,
-          "uniqueItems": true,
-          "items": { "type": "string", "minLength": 1 }
-        },
-        "required_not_fully_captured": {
-          "type": "array",
-          "minItems": 1,
-          "uniqueItems": true,
-          "items": { "type": "string", "minLength": 1 }
-        },
-        "completion_ready": { "const": false }
-      },
-      "additionalProperties": false
-    },
     "cliCoverage": {
       "type": "object",
       "required": [
@@ -345,6 +312,84 @@
             "console_entrypoint_count": { "const": 5 },
             "argument_action_count": { "const": 164 },
             "cwd_default_count": { "const": 27 },
+            "capture_ready": { "const": true }
+          },
+          "additionalProperties": false
+        },
+        "completion_ready": { "const": false }
+      },
+      "additionalProperties": false
+    },
+    "orchestratorCoverage": {
+      "type": "object",
+      "required": [
+        "status",
+        "captured_oracle_cases",
+        "captured_scope",
+        "required_not_fully_captured",
+        "static_contract",
+        "completion_ready"
+      ],
+      "properties": {
+        "status": { "const": "incomplete" },
+        "captured_oracle_cases": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "captured_scope": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "required_not_fully_captured": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "static_contract": {
+          "type": "object",
+          "required": [
+            "task_id",
+            "status",
+            "artifact_path",
+            "schema_path",
+            "schema_canonical_sha256",
+            "payload_sha256",
+            "stage_count",
+            "task_count",
+            "required_dependency_edge_count",
+            "runtime_agent_count",
+            "functional_agent_count",
+            "routing_skill_id_count",
+            "logical_mcp_capability_count",
+            "quality_gate_count",
+            "declared_profile_count",
+            "team_run_task_count",
+            "worker_orchestration_task_count",
+            "capture_ready"
+          ],
+          "properties": {
+            "task_id": { "const": "CTR-201C" },
+            "status": { "const": "static-contract-captured" },
+            "artifact_path": { "$ref": "#/$defs/repositoryPath" },
+            "schema_path": { "$ref": "#/$defs/repositoryPath" },
+            "schema_canonical_sha256": { "$ref": "#/$defs/sha256" },
+            "payload_sha256": { "$ref": "#/$defs/sha256" },
+            "stage_count": { "const": 13 },
+            "task_count": { "const": 76 },
+            "required_dependency_edge_count": { "const": 104 },
+            "runtime_agent_count": { "const": 3 },
+            "functional_agent_count": { "const": 9 },
+            "routing_skill_id_count": { "const": 82 },
+            "logical_mcp_capability_count": { "const": 11 },
+            "quality_gate_count": { "const": 4 },
+            "declared_profile_count": { "const": 5 },
+            "team_run_task_count": { "const": 2 },
+            "worker_orchestration_task_count": { "const": 2 },
             "capture_ready": { "const": true }
           },
           "additionalProperties": false

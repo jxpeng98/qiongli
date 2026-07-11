@@ -37,7 +37,7 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertIn("if: matrix.test-tier == 'macos-smoke'", content)
         self.assertIn("      - name: Run Windows smoke tests", content)
         self.assertIn("      - name: Run macOS CTR inventory smoke tests", content)
-        for module in (
+        windows_modules = (
             "tests.test_install_qiongli",
             "tests.test_bootstrap_qiongli",
             "tests.test_universal_installer",
@@ -50,8 +50,19 @@ class BranchPolicyTests(unittest.TestCase):
             "tests.test_repository_source_validator",
             "tests.test_ctr_201_inventory",
             "tests.test_ctr_201_cli_inventory",
-        ):
+            "tests.test_ctr_201_orchestrator_inventory",
+        )
+        for module in windows_modules:
             self.assertIn(module, content)
+        windows_start = content.index("      - name: Run Windows smoke tests")
+        windows_end = content.index(
+            "      - name: Run macOS CTR inventory smoke tests", windows_start
+        )
+        windows_block = content[windows_start:windows_end]
+        self.assertEqual(
+            [windows_block.index(module) for module in windows_modules],
+            sorted(windows_block.index(module) for module in windows_modules),
+        )
         self.assertIn('./scripts/release_preflight.sh --quick --materialize-out "$RUNNER_TEMP/qiongli-preflight-dist"', content)
 
     def test_ci_runs_ctr_inventory_smoke_on_macos_after_shared_validation(
@@ -73,7 +84,7 @@ class BranchPolicyTests(unittest.TestCase):
                     job,
                 )
 
-        validate_step = "      - name: Validate CTR-201A/B static inventories"
+        validate_step = "      - name: Validate CTR-201A/B/C static inventories"
         macos_step = "      - name: Run macOS CTR inventory smoke tests"
         self.assertIn(validate_step, job)
         self.assertIn(macos_step, job)
@@ -81,16 +92,25 @@ class BranchPolicyTests(unittest.TestCase):
         macos_block = job[macos_start:]
         self.assertIn("if: matrix.test-tier == 'macos-smoke'", macos_block)
         self.assertIn("python -m unittest", macos_block)
-        self.assertIn("tests.test_ctr_201_inventory", macos_block)
-        self.assertIn("tests.test_ctr_201_cli_inventory", macos_block)
+        macos_modules = (
+            "tests.test_ctr_201_inventory",
+            "tests.test_ctr_201_cli_inventory",
+            "tests.test_ctr_201_orchestrator_inventory",
+        )
+        for module in macos_modules:
+            self.assertIn(module, macos_block)
+        self.assertEqual(
+            [macos_block.index(module) for module in macos_modules],
+            sorted(macos_block.index(module) for module in macos_modules),
+        )
         self.assertLess(job.index(validate_step), macos_start)
 
-    def test_ci_validates_ctr_201a_b_static_inventories_before_distribution_work(
+    def test_ci_validates_ctr_201a_b_c_static_inventories_before_distribution_work(
         self,
     ) -> None:
         content = read(".github/workflows/ci.yml")
-        compile_step = "      - name: Compile CTR-201A/B static inventory gates"
-        validate_step = "      - name: Validate CTR-201A/B static inventories"
+        compile_step = "      - name: Compile CTR-201A/B/C static inventory gates"
+        validate_step = "      - name: Validate CTR-201A/B/C static inventories"
         validate_command = "python scripts/validate_ctr_201_inventory.py"
         materialize_command = (
             "python scripts/materialize_distribution_payloads.py --target all "
@@ -107,15 +127,23 @@ class BranchPolicyTests(unittest.TestCase):
             compile_start,
         )
         compile_block = content[compile_start:compile_end]
-        for compiled_path in (
+        compiled_paths = (
             "scripts/validate_ctr_201_inventory.py",
             "tooling/scripts/validate_ctr_201_inventory.py",
             "scripts/extract_ctr_201_cli_inventory.py",
             "tooling/scripts/extract_ctr_201_cli_inventory.py",
+            "scripts/extract_ctr_201_orchestrator_inventory.py",
+            "tooling/scripts/extract_ctr_201_orchestrator_inventory.py",
             "tests/test_ctr_201_inventory.py",
             "tests/test_ctr_201_cli_inventory.py",
-        ):
+            "tests/test_ctr_201_orchestrator_inventory.py",
+        )
+        for compiled_path in compiled_paths:
             self.assertIn(compiled_path, compile_block)
+        self.assertEqual(
+            [compile_block.index(path) for path in compiled_paths],
+            sorted(compile_block.index(path) for path in compiled_paths),
+        )
         self.assertLess(content.index(compile_step), content.index(validate_step))
         self.assertLess(content.index(validate_step), content.index(materialize_command))
 
