@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "qiongli-literature-provider",
   "display_name": "Qiongli Literature Provider",
-  "version": "0.2.0-beta.2",
+  "version": "0.2.0-beta.3",
   "description": "Qiongli academic literature provider MCPB for local OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv search, advanced result controls, credential status, and secure setup.",
   "author": {
     "name": "Jiaxin Peng",

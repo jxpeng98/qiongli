@@ -1,6 +1,6 @@
 [package]
 name = "qiongli-lite-mcp"
-version = "0.2.0-beta.2"
+version = "0.2.0-beta.3"
 edition = "2021"
 license = "MIT"
 
