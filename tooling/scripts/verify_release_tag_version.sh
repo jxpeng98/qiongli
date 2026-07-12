@@ -46,15 +46,92 @@ done
 
 cd "$ROOT_DIR"
 
-expected_repo_tag="$(python3 scripts/sync_versions.py "$TAG" --print-field repo_version)"
-expected_package_version="$(python3 scripts/sync_versions.py "$TAG" --print-field package_version)"
-expected_skill_version="$(python3 scripts/sync_versions.py "$TAG" --print-field skill_version)"
-expected_npm_version="$(python3 scripts/sync_versions.py "$TAG" --print-field npm_version)"
+release_field() {
+  local field="$1"
+  python3 scripts/release_version.py "$TAG" --print-field "$field"
+}
+
+expected_repo_tag="$(release_field repo_version)"
+expected_package_version="$(release_field package_version)"
+expected_release_line="$(release_field release_line)"
+expected_channel="$(release_field channel)"
 
 if [[ "$expected_repo_tag" != "$TAG" ]]; then
   echo "[verify-release-tag] normalized tag mismatch: expected $expected_repo_tag from input $TAG" >&2
   exit 1
 fi
+
+if [[ "$expected_release_line" == "native-2x" ]]; then
+  expected_native_version="${expected_repo_tag#v}"
+  python3 - "$expected_native_version" "$expected_channel" <<'PY'
+from pathlib import Path
+import sys
+import tomllib
+
+expected_version, expected_channel = sys.argv[1:]
+manifest_path = Path("packages/qiongli-native/Cargo.toml")
+lock_path = Path("packages/qiongli-native/Cargo.lock")
+
+if not manifest_path.is_file():
+    raise SystemExit(f"[verify-release-tag] missing native product manifest: {manifest_path}")
+if not lock_path.is_file():
+    raise SystemExit(f"[verify-release-tag] missing native lockfile: {lock_path}")
+
+with manifest_path.open("rb") as handle:
+    manifest = tomllib.load(handle)
+workspace = manifest.get("workspace")
+if not isinstance(workspace, dict):
+    raise SystemExit("[verify-release-tag] native Cargo.toml must define [workspace]")
+package = workspace.get("package")
+if not isinstance(package, dict):
+    raise SystemExit("[verify-release-tag] native Cargo.toml must define [workspace.package]")
+actual_version = package.get("version")
+if actual_version != expected_version:
+    raise SystemExit(
+        "[verify-release-tag] native workspace version mismatch: "
+        f"tag expects {expected_version}, found {actual_version}"
+    )
+
+metadata = workspace.get("metadata")
+qiongli = metadata.get("qiongli") if isinstance(metadata, dict) else None
+if not isinstance(qiongli, dict) or qiongli.get("product") != "qiongli":
+    raise SystemExit("[verify-release-tag] native workspace metadata must identify product qiongli")
+actual_channel = qiongli.get("channel")
+if actual_channel != expected_channel:
+    raise SystemExit(
+        "[verify-release-tag] native workspace channel mismatch: "
+        f"version expects {expected_channel}, found {actual_channel}"
+    )
+
+with lock_path.open("rb") as handle:
+    lock = tomllib.load(handle)
+matches = [
+    package
+    for package in lock.get("package", [])
+    if isinstance(package, dict) and package.get("name") == "qiongli"
+]
+if len(matches) != 1:
+    raise SystemExit(
+        "[verify-release-tag] native Cargo.lock must contain exactly one qiongli package"
+    )
+locked_version = matches[0].get("version")
+if locked_version != expected_version:
+    raise SystemExit(
+        "[verify-release-tag] native Cargo.lock version mismatch: "
+        f"tag expects {expected_version}, found {locked_version}"
+    )
+PY
+  echo "[verify-release-tag] native tag, workspace version, channel, and Cargo.lock are aligned: $TAG"
+  exit 0
+fi
+
+if [[ "$expected_release_line" != "legacy-1x" ]]; then
+  echo "[verify-release-tag] unsupported release line: $expected_release_line" >&2
+  exit 2
+fi
+
+expected_skill_version="${expected_repo_tag#v}"
+expected_npm_version="$expected_skill_version"
 
 actual_package_version="$(python3 - <<'PY'
 import re

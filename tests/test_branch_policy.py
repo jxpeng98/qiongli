@@ -306,12 +306,16 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertIn(materialize_step, content)
         self.assertIn(audit_step, content)
 
-    def test_release_workflow_allows_beta_from_dev_but_stable_from_primary(self) -> None:
+    def test_release_workflow_preserves_legacy_branches_and_blocks_native_publish(self) -> None:
         content = read("scripts/release_automation.sh")
         self.assertIn('DEV_PRERELEASE_BRANCH="dev"', content)
         self.assertIn('if is_prerelease_tag "$repo_tag" && [[ "$current_branch" == "$DEV_PRERELEASE_BRANCH" ]]; then', content)
         self.assertIn("Stable releases use primary branch ($primary_branch); prerelease releases may run from $DEV_PRERELEASE_BRANCH", content)
         self.assertIn('push_branch="$current_branch"', content)
+        self.assertIn('source_branch="$(normalize_field "$version_input" source_branch)"', content)
+        self.assertIn('if [[ "$release_line" == "native-2x" ]]; then', content)
+        self.assertIn("RLS-201/PKG gate: native", content)
+        self.assertIn("run pre from the ${source_branch} release line", content)
 
     def test_maintainer_policy_documents_official_plugin_and_branch_roles(self) -> None:
         content = read("docs/maintainer/release-branch-policy.md")
@@ -366,7 +370,8 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertIn("scripts/publish-codex-dist-ref.mjs", content)
         self.assertIn("Claude dist refs", content)
         self.assertIn("refs/heads/claude/v<version>", content)
-        self.assertIn("release postflight automatically publishes the platform dist refs", content)
+        self.assertIn("legacy 1.x\nrelease postflight publishes platform dist refs", content)
+        self.assertIn("A native 2.x alpha dry-run never publishes these refs", content)
         self.assertIn("plugins/qiongli/.codex-plugin/plugin.json", content)
         self.assertIn("plugins/qiongli-next/.codex-plugin/plugin.json", content)
         self.assertIn("plugins/qiongli-next/.claude-plugin/plugin.json", content)

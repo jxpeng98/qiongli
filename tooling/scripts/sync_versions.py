@@ -15,38 +15,25 @@ for import_root in (PYTHON_SOURCE_ROOT, REPO_ROOT):
 
 from qiongli.source_layout import RepoLayout
 
+try:
+    from tooling.scripts.release_version import ReleaseIdentity, parse_release_version
+except ModuleNotFoundError:  # Direct execution from tooling/scripts.
+    from release_version import ReleaseIdentity, parse_release_version
 
-VERSION_PATTERN = re.compile(
-    r"^(?:v)?(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(?:(?:-beta\.|b)(?P<beta>\d+))?$"
-)
+
 PRINTABLE_FIELDS = ("package_version", "skill_version", "repo_version", "npm_version")
 
 
 def parse_version(raw: str) -> tuple[str, str, str, str]:
-    match = VERSION_PATTERN.fullmatch(raw.strip())
-    if not match:
-        raise ValueError(
-            "unsupported version format. Use stable `X.Y.Z` or beta `X.Y.ZbN` / `vX.Y.Z-beta.N`."
-        )
+    """Preserve the historical four-value API over the shared release contract."""
 
-    major = int(match.group("major"))
-    minor = int(match.group("minor"))
-    patch = int(match.group("patch"))
-    beta_raw = match.group("beta")
-
-    if beta_raw is None:
-        skill_version = f"{major}.{minor}.{patch}"
-        package_version = skill_version
-        npm_version = skill_version
-        repo_version = f"v{skill_version}"
-        return package_version, skill_version, repo_version, npm_version
-
-    beta = int(beta_raw)
-    package_version = f"{major}.{minor}.{patch}b{beta}"
-    skill_version = f"{major}.{minor}.{patch}-beta.{beta}"
-    npm_version = skill_version
-    repo_version = f"v{skill_version}"
-    return package_version, skill_version, repo_version, npm_version
+    identity = parse_release_version(raw)
+    return (
+        identity.package_version,
+        identity.skill_version,
+        identity.repo_tag,
+        identity.npm_version,
+    )
 
 
 def replace_pattern(path: Path, pattern: re.Pattern[str], replacement: str) -> bool:
@@ -161,9 +148,112 @@ def replace_uv_lock_editable_package_version(path: Path, package_name: str, vers
     return True
 
 
+def _replace_toml_section_string(
+    content: str, *, section: str, field: str, value: str, path: Path
+) -> str:
+    section_pattern = re.compile(
+        rf"(?ms)^\[{re.escape(section)}\]\s*$\n(?P<body>.*?)(?=^\[|\Z)"
+    )
+    section_match = section_pattern.search(content)
+    if section_match is None:
+        raise ValueError(f"missing [{section}] section in {path}")
+
+    body = section_match.group("body")
+    field_pattern = re.compile(
+        rf'(?m)^(?P<prefix>{re.escape(field)}\s*=\s*)"[^"]*"(?P<suffix>\s*(?:#.*)?)$'
+    )
+    updated_body, count = field_pattern.subn(
+        lambda match: f'{match.group("prefix")}"{value}"{match.group("suffix")}',
+        body,
+    )
+    if count != 1:
+        raise ValueError(
+            f"expected exactly one {field!r} field in [{section}] in {path}; found {count}"
+        )
+    return (
+        content[: section_match.start("body")]
+        + updated_body
+        + content[section_match.end("body") :]
+    )
+
+
+def _replace_cargo_lock_package_version(
+    content: str, *, package_name: str, version: str, path: Path
+) -> str:
+    package_pattern = re.compile(r"(?ms)^\[\[package\]\]\s*$\n.*?(?=^\[\[package\]\]\s*$|\Z)")
+    matching_blocks = [
+        match
+        for match in package_pattern.finditer(content)
+        if re.search(
+            rf'(?m)^name\s*=\s*"{re.escape(package_name)}"\s*$',
+            match.group(0),
+        )
+    ]
+    if len(matching_blocks) != 1:
+        raise ValueError(
+            f"expected exactly one Cargo.lock package named {package_name!r} in {path}; "
+            f"found {len(matching_blocks)}"
+        )
+
+    block_match = matching_blocks[0]
+    updated_block, count = re.subn(
+        r'(?m)^(version\s*=\s*)"[^"]*"(\s*)$',
+        rf'\g<1>"{version}"\g<2>',
+        block_match.group(0),
+        count=1,
+    )
+    if count != 1:
+        raise ValueError(f"missing version field for package {package_name!r} in {path}")
+    return content[: block_match.start()] + updated_block + content[block_match.end() :]
+
+
+def _sync_native_versions(root: Path, identity: ReleaseIdentity) -> list[Path]:
+    manifest = root / "packages" / "qiongli-native" / "Cargo.toml"
+    lockfile = root / "packages" / "qiongli-native" / "Cargo.lock"
+
+    manifest_original = manifest.read_text(encoding="utf-8")
+    manifest_updated = _replace_toml_section_string(
+        manifest_original,
+        section="workspace.package",
+        field="version",
+        value=identity.version,
+        path=manifest,
+    )
+    manifest_updated = _replace_toml_section_string(
+        manifest_updated,
+        section="workspace.metadata.qiongli",
+        field="channel",
+        value=identity.channel,
+        path=manifest,
+    )
+    lock_original = lockfile.read_text(encoding="utf-8")
+    lock_updated = _replace_cargo_lock_package_version(
+        lock_original,
+        package_name=identity.product,
+        version=identity.version,
+        path=lockfile,
+    )
+
+    changed: list[Path] = []
+    if manifest_updated != manifest_original:
+        manifest.write_text(manifest_updated, encoding="utf-8")
+        changed.append(manifest)
+    if lock_updated != lock_original:
+        lockfile.write_text(lock_updated, encoding="utf-8")
+        changed.append(lockfile)
+    return changed
+
+
 def sync_versions(root: Path, raw_version: str) -> list[Path]:
     root = root.resolve()
-    package_version, skill_version, repo_version, npm_version = parse_version(raw_version)
+    identity = parse_release_version(raw_version)
+    if identity.release_line == "native-2x":
+        return _sync_native_versions(root, identity)
+
+    package_version = identity.package_version
+    skill_version = identity.skill_version
+    repo_version = identity.repo_tag
+    npm_version = identity.npm_version
     changed: list[Path] = []
     layout = RepoLayout(root)
 
@@ -257,9 +347,12 @@ def sync_versions(root: Path, raw_version: str) -> list[Path]:
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(
-        description="Sync package, portable skill, and skill metadata versions from one release version."
+        description="Sync the version sources owned by one Qiongli release line."
     )
-    parser.add_argument("version", help="Stable or beta version, e.g. 0.2.0 or 0.2.0b1")
+    parser.add_argument(
+        "version",
+        help="Stable, beta, or native alpha version, e.g. 1.19.1b1 or 2.0.0-alpha.1",
+    )
     parser.add_argument(
         "--print-field",
         choices=PRINTABLE_FIELDS,

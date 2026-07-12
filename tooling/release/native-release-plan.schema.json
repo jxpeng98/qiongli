@@ -1,0 +1,526 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qiongli.dev/schemas/native-release-plan-v1.json",
+  "title": "Qiongli native release dry-run plan",
+  "type": "object",
+  "required": [
+    "$schema",
+    "schema_version",
+    "record_type",
+    "task_id",
+    "status",
+    "identity",
+    "source",
+    "channel_isolation",
+    "publication",
+    "planned_artifacts",
+    "rollback",
+    "promotion",
+    "non_goals",
+    "integrity"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "const": "https://qiongli.dev/schemas/native-release-plan-v1.json"
+    },
+    "schema_version": {
+      "const": "1.0"
+    },
+    "record_type": {
+      "const": "qiongli-native-release-dry-run-plan"
+    },
+    "task_id": {
+      "const": "REL-201"
+    },
+    "status": {
+      "const": "planned-only"
+    },
+    "identity": {
+      "$ref": "#/$defs/release_identity"
+    },
+    "source": {
+      "$ref": "#/$defs/source"
+    },
+    "channel_isolation": {
+      "$ref": "#/$defs/channel_isolation"
+    },
+    "publication": {
+      "$ref": "#/$defs/publication"
+    },
+    "planned_artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": {
+        "$ref": "#/$defs/planned_artifact"
+      }
+    },
+    "rollback": {
+      "$ref": "#/$defs/rollback"
+    },
+    "promotion": {
+      "$ref": "#/$defs/promotion"
+    },
+    "non_goals": {
+      "$ref": "#/$defs/non_empty_string_array"
+    },
+    "integrity": {
+      "$ref": "#/$defs/integrity"
+    }
+  },
+  "$defs": {
+    "release_identity": {
+      "type": "object",
+      "required": [
+        "product",
+        "version",
+        "repo_tag",
+        "channel",
+        "release_line"
+      ],
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "properties": {
+            "version": {
+              "type": "string",
+              "pattern": "^2\\.\\d+\\.\\d+-alpha\\.[1-9]\\d*$"
+            },
+            "repo_tag": {
+              "type": "string",
+              "pattern": "^v2\\.\\d+\\.\\d+-alpha\\.[1-9]\\d*$"
+            },
+            "channel": {
+              "const": "alpha"
+            }
+          }
+        },
+        {
+          "properties": {
+            "version": {
+              "type": "string",
+              "pattern": "^2\\.\\d+\\.\\d+-beta\\.[1-9]\\d*$"
+            },
+            "repo_tag": {
+              "type": "string",
+              "pattern": "^v2\\.\\d+\\.\\d+-beta\\.[1-9]\\d*$"
+            },
+            "channel": {
+              "const": "beta"
+            }
+          }
+        },
+        {
+          "properties": {
+            "version": {
+              "type": "string",
+              "pattern": "^2\\.\\d+\\.\\d+$"
+            },
+            "repo_tag": {
+              "type": "string",
+              "pattern": "^v2\\.\\d+\\.\\d+$"
+            },
+            "channel": {
+              "const": "stable"
+            }
+          }
+        }
+      ],
+      "properties": {
+        "product": {
+          "const": "qiongli"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^2\\.\\d+\\.\\d+(?:-(?:alpha|beta)\\.[1-9]\\d*)?$"
+        },
+        "repo_tag": {
+          "type": "string",
+          "pattern": "^v2\\.\\d+\\.\\d+(?:-(?:alpha|beta)\\.[1-9]\\d*)?$"
+        },
+        "channel": {
+          "enum": [
+            "alpha",
+            "beta",
+            "stable"
+          ]
+        },
+        "release_line": {
+          "const": "native-2x"
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "required_branch",
+        "required_ref_type",
+        "observed_ref",
+        "observed_ref_type",
+        "worktree_state",
+        "source_commit",
+        "release_source_eligible",
+        "version_source",
+        "channel_source",
+        "lock_source"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "required_branch": {
+          "const": "2.x"
+        },
+        "required_ref_type": {
+          "const": "branch"
+        },
+        "observed_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]{0,254}$"
+        },
+        "observed_ref_type": {
+          "enum": [
+            "branch",
+            "tag",
+            "detached",
+            "unknown"
+          ]
+        },
+        "worktree_state": {
+          "enum": [
+            "clean",
+            "dirty",
+            "unknown"
+          ]
+        },
+        "source_commit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        },
+        "release_source_eligible": {
+          "type": "boolean"
+        },
+        "version_source": {
+          "const": "packages/qiongli-native/Cargo.toml#workspace.package.version"
+        },
+        "channel_source": {
+          "const": "packages/qiongli-native/Cargo.toml#workspace.metadata.qiongli.channel"
+        },
+        "lock_source": {
+          "const": "packages/qiongli-native/Cargo.lock"
+        }
+      }
+    },
+    "channel_isolation": {
+      "type": "object",
+      "required": [
+        "canonical_channels",
+        "selected_channel",
+        "mutable_alias_is_canonical",
+        "cross_channel_fallback",
+        "legacy_1x_feed_included",
+        "pypi_publication",
+        "npm_publication"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "canonical_channels": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "alpha",
+              "beta",
+              "stable"
+            ]
+          }
+        },
+        "selected_channel": {
+          "enum": [
+            "alpha",
+            "beta",
+            "stable"
+          ]
+        },
+        "mutable_alias_is_canonical": {
+          "const": false
+        },
+        "cross_channel_fallback": {
+          "const": false
+        },
+        "legacy_1x_feed_included": {
+          "const": false
+        },
+        "pypi_publication": {
+          "const": "not-applicable"
+        },
+        "npm_publication": {
+          "const": "not-applicable"
+        }
+      }
+    },
+    "publication": {
+      "type": "object",
+      "required": [
+        "mode",
+        "publication_performed",
+        "publication_allowed",
+        "publication_network_access",
+        "git_mutation",
+        "registry_publication",
+        "future_blockers"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "const": "dry-run"
+        },
+        "publication_performed": {
+          "const": false
+        },
+        "publication_allowed": {
+          "const": false
+        },
+        "publication_network_access": {
+          "const": "forbidden"
+        },
+        "git_mutation": {
+          "const": "forbidden"
+        },
+        "registry_publication": {
+          "const": "not-applicable"
+        },
+        "future_blockers": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "planned_artifact": {
+      "type": "object",
+      "required": [
+        "status",
+        "artifact_id",
+        "identity",
+        "target_source",
+        "artifact_created",
+        "target_native_startup_verified",
+        "signed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "const": "planned-only"
+        },
+        "artifact_id": {
+          "type": "string",
+          "pattern": "^qiongli-2\\.\\d+\\.\\d+(?:-(?:alpha|beta)\\.[1-9]\\d*)?-(?:alpha|beta|stable)-bootstrap-(?:macos|windows|linux)-(?:aarch64|x86_64)-portable-archive$"
+        },
+        "identity": {
+          "$ref": "#/$defs/artifact_identity"
+        },
+        "target_source": {
+          "enum": [
+            "explicit",
+            "host-detected"
+          ]
+        },
+        "artifact_created": {
+          "const": false
+        },
+        "target_native_startup_verified": {
+          "const": false
+        },
+        "signed": {
+          "const": false
+        }
+      }
+    },
+    "artifact_identity": {
+      "type": "object",
+      "required": [
+        "product",
+        "version",
+        "channel",
+        "profile",
+        "os",
+        "arch",
+        "installer_kind"
+      ],
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "properties": {
+            "version": {
+              "type": "string",
+              "pattern": "^2\\.\\d+\\.\\d+-alpha\\.[1-9]\\d*$"
+            },
+            "channel": {
+              "const": "alpha"
+            }
+          }
+        },
+        {
+          "properties": {
+            "version": {
+              "type": "string",
+              "pattern": "^2\\.\\d+\\.\\d+-beta\\.[1-9]\\d*$"
+            },
+            "channel": {
+              "const": "beta"
+            }
+          }
+        },
+        {
+          "properties": {
+            "version": {
+              "type": "string",
+              "pattern": "^2\\.\\d+\\.\\d+$"
+            },
+            "channel": {
+              "const": "stable"
+            }
+          }
+        }
+      ],
+      "properties": {
+        "product": {
+          "const": "qiongli"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^2\\.\\d+\\.\\d+(?:-(?:alpha|beta)\\.[1-9]\\d*)?$"
+        },
+        "channel": {
+          "enum": [
+            "alpha",
+            "beta",
+            "stable"
+          ]
+        },
+        "profile": {
+          "const": "bootstrap"
+        },
+        "os": {
+          "enum": [
+            "macos",
+            "windows",
+            "linux"
+          ]
+        },
+        "arch": {
+          "enum": [
+            "aarch64",
+            "x86_64"
+          ]
+        },
+        "installer_kind": {
+          "const": "portable-archive"
+        }
+      }
+    },
+    "rollback": {
+      "type": "object",
+      "required": [
+        "strategy",
+        "publication_withdrawal_required",
+        "last_known_good_affected",
+        "cross_channel_fallback_allowed",
+        "actions"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "strategy": {
+          "const": "discard-unpublished-dry-run-bundle"
+        },
+        "publication_withdrawal_required": {
+          "const": false
+        },
+        "last_known_good_affected": {
+          "const": false
+        },
+        "cross_channel_fallback_allowed": {
+          "const": false
+        },
+        "actions": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "promotion": {
+      "type": "object",
+      "required": [
+        "strategy",
+        "relabel_existing_artifact",
+        "move_mutable_channel_alias",
+        "requirements"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "strategy": {
+          "const": "new-version-new-identity"
+        },
+        "relabel_existing_artifact": {
+          "const": false
+        },
+        "move_mutable_channel_alias": {
+          "const": false
+        },
+        "requirements": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "required": [
+        "canonicalization",
+        "payload_sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "canonicalization": {
+          "const": "utf-8-json-sorted-keys-compact-excluding-integrity"
+        },
+        "payload_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "non_empty_string_array": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

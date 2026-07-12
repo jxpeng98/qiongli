@@ -39,6 +39,27 @@ tools from masking a required startup dependency.
 is explicit workspace metadata and must agree with the SemVer prerelease.
 `rust-toolchain.toml` pins the build toolchain used by the Tier 1 CI matrix.
 
+REL-201 exposes that identity through `scripts/release_version.py` and a
+non-publishing dry-run. The dry-run writes a release plan, notes, a planned-only
+target identity, and rollback metadata to an explicit directory outside the
+checkout:
+
+```bash
+OUT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/qiongli-native-release.XXXXXX")"
+python3 scripts/native_release_dry_run.py \
+  --tag v2.0.0-alpha.1 \
+  --out-dir "$OUT_DIR" \
+  --json
+```
+
+This is planning evidence, not permission to publish. It does not build an
+installer, modify Git, publish PyPI/npm or Marketplace records, or claim the
+target-native, signing, SBOM, provenance, updater, and rollback gates owned by
+later roadmap tasks.
+The direct command leaves source-ref and cleanliness unassessed. Use
+`scripts/release_automation.sh pre` from a clean `2.x` checkout when the plan
+must carry an eligible source binding.
+
 Run the foundation gates from the native workspace so Rustup applies the
 workspace-local pinned toolchain:
 

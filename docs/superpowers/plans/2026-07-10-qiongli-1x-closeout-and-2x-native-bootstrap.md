@@ -11,7 +11,10 @@ accepted-source static CLI semantics are captured, CTR-201C captures the
 accepted-source `DECLARED/STATIC` orchestrator control contract and
 compatibility boundary, and CTR-201D captures canonical-content and
 reproducible materialized-skill-subtree closure; CTR-201 remains in progress
-and FND-202 is not implemented.
+and FND-202 is not implemented. B1 / REL-201 now provides a typed native
+release identity, strict 1.x/2.x channel isolation, and an external-staging
+`v2.0.0-alpha.1` dry-run; real native publication remains fail-closed pending
+the later artifact, signing, updater, and acceptance gates.
 Roadmap:
 `docs/superpowers/roadmaps/2026-07-10-qiongli-2-rust-native-platform-roadmap.md`
 Release source: `dev`
@@ -1007,6 +1010,24 @@ Exit criteria:
   identity, channel metadata, and rollback plan without publishing;
 - existing 1.x stable and beta parser tests remain green.
 
+B1 execution status: **implemented as a non-publishing release contract**.
+
+- `packages/qiongli-native/Cargo.toml` is the sole native product version and
+  channel source; Cargo.lock is verified as a derived binding;
+- the shared classifier distinguishes `legacy-1x` from `native-2x` and the
+  canonical `alpha`, `beta`, and `stable` channels;
+- native sync never rewrites the frozen Python/npm/content identities;
+- `v2.*` tags cannot enter the 1.x PyPI/npm jobs;
+- native preflight writes a deterministic plan, notes, planned-only target
+  identity, channel metadata, and rollback plan only to an explicit directory
+  outside the checkout;
+- native `publish` and production `post` remain blocked. The dry-run records
+  `publication_performed=false` and `publication_allowed=false`; it is not an
+  accepted alpha artifact or permission to create `v2.0.0-alpha.1`.
+- `qiongli-next` metadata represents native alpha/beta as planned targets only;
+  its active builder allowlist remains legacy 1.x beta until native versioned
+  content and package acceptance exist.
+
 ### B2 — Scaffold the native workspace and gates
 
 Task IDs: `FND-201`, `GOV-201`
@@ -1391,20 +1412,22 @@ scaffold. The accepted 1.x tag must remain an unambiguous oracle boundary.
 
 ## Immediate Next Actions
 
-A0-A8 and B0 are complete, the B2 native workspace scaffold and repository
-gates are implemented, and B3 is in progress with the CTR-201A slice merged,
+A0-A8, B0, and the non-publishing B1 release contract are complete, the B2
+native workspace scaffold and repository gates are implemented, and B3 is in
+progress with the CTR-201A slice merged,
 CTR-201B accepted-source static CLI semantics captured, CTR-201C capturing the
 accepted-source `DECLARED/STATIC` orchestrator boundary, and CTR-201D capturing
 canonical-content and reproducible materialized-skill-subtree closure. CTR-201
 remains in progress, and FND-202 is not implemented. Continue in this order:
 
-1. execute B1 (`REL-201`) as an independent stream;
-2. close the remaining Contract v2, CLI-runtime, and orchestrator-runtime
+1. close the remaining Contract v2, CLI-runtime, and orchestrator-runtime
    CTR-201 gaps, including any separately authenticated published-archive
    evidence needed for a future parity claim;
-3. do not begin FND-202 resource-pack implementation until CTR-201 reaches its
+2. do not begin FND-202 resource-pack implementation until CTR-201 reaches its
    exit gate; keep later B3 and B4 work inside the ADR 0204 and ADR 0205 service
    and rollback boundaries;
+3. keep native publication blocked while PKG-201/PKG-202, UPD-201, target-native
+   acceptance, and the remaining public release gates are incomplete;
 4. preserve protected-branch pull requests and exact-head CI evidence for each
    independently reviewable slice.
 

@@ -16,6 +16,11 @@ from typing import Any, Iterable, Mapping, Sequence
 
 import yaml
 
+try:
+    from tooling.scripts.release_version import parse_release_version
+except ModuleNotFoundError:  # Direct execution from tooling/scripts.
+    from release_version import parse_release_version
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_RELATIVE = "tooling/quality/repository-source-code-contract.yaml"
@@ -748,9 +753,10 @@ def _topology_and_dependency_findings(
                 )
             )
 
+    native_version: str | None = None
+    native_channel: str | None = None
     package = workspace_table.get("package")
     expected_package = {
-        "version": "2.0.0-alpha.1",
         "edition": "2024",
         "rust-version": "1.97",
         "license": "MIT",
@@ -766,6 +772,41 @@ def _topology_and_dependency_findings(
             )
         )
     else:
+        raw_version = package.get("version")
+        if not isinstance(raw_version, str):
+            findings.append(
+                _finding(
+                    repo_root,
+                    "RSC-DEPENDENCY-001",
+                    NATIVE_MANIFEST_RELATIVE,
+                    "workspace package version must be a supported native 2.x version",
+                )
+            )
+        else:
+            try:
+                identity = parse_release_version(raw_version)
+            except ValueError as error:
+                findings.append(
+                    _finding(
+                        repo_root,
+                        "RSC-DEPENDENCY-001",
+                        NATIVE_MANIFEST_RELATIVE,
+                        f"workspace package version is invalid: {error}",
+                    )
+                )
+            else:
+                if identity.release_line != "native-2x":
+                    findings.append(
+                        _finding(
+                            repo_root,
+                            "RSC-DEPENDENCY-001",
+                            NATIVE_MANIFEST_RELATIVE,
+                            "workspace package version must belong to the native 2.x release line",
+                        )
+                    )
+                else:
+                    native_version = identity.version
+                    native_channel = identity.channel
         for field, expected in expected_package.items():
             if package.get(field) != expected:
                 findings.append(
@@ -779,17 +820,36 @@ def _topology_and_dependency_findings(
 
     metadata = workspace_table.get("metadata")
     qiongli = metadata.get("qiongli") if isinstance(metadata, Mapping) else None
-    if not isinstance(qiongli, Mapping) or qiongli.get("product") != "qiongli" or qiongli.get(
-        "channel"
-    ) != "alpha":
+    if not isinstance(qiongli, Mapping) or qiongli.get("product") != "qiongli":
         findings.append(
             _finding(
                 repo_root,
                 "RSC-TOPOLOGY-001",
                 NATIVE_MANIFEST_RELATIVE,
-                "workspace metadata must identify product qiongli and channel alpha",
+                "workspace metadata must identify product qiongli",
             )
         )
+    else:
+        metadata_channel = qiongli.get("channel")
+        if native_channel is not None and metadata_channel != native_channel:
+            findings.append(
+                _finding(
+                    repo_root,
+                    "RSC-TOPOLOGY-001",
+                    NATIVE_MANIFEST_RELATIVE,
+                    "workspace metadata channel must match the channel implied by "
+                    f"version {native_version!r}: expected {native_channel!r}",
+                )
+            )
+        elif native_channel is None and metadata_channel not in {"alpha", "beta", "stable"}:
+            findings.append(
+                _finding(
+                    repo_root,
+                    "RSC-TOPOLOGY-001",
+                    NATIVE_MANIFEST_RELATIVE,
+                    "workspace metadata channel must be alpha, beta, or stable",
+                )
+            )
 
     lints = workspace_table.get("lints")
     rust_lints = lints.get("rust") if isinstance(lints, Mapping) else None
@@ -1014,18 +1074,33 @@ def _topology_and_dependency_findings(
     lock, lock_errors = _read_toml(repo_root, NATIVE_LOCK_RELATIVE, "RSC-DEPENDENCY-001")
     findings.extend(lock_errors)
     packages = lock.get("package") if isinstance(lock, Mapping) else None
-    if not isinstance(packages, list) or not any(
-        isinstance(item, Mapping)
-        and item.get("name") == "qiongli"
-        and item.get("version") == "2.0.0-alpha.1"
-        for item in packages
+    product_packages = (
+        [
+            item
+            for item in packages
+            if isinstance(item, Mapping) and item.get("name") == "qiongli"
+        ]
+        if isinstance(packages, list)
+        else []
+    )
+    if native_version is not None and (
+        len(product_packages) != 1 or product_packages[0].get("version") != native_version
     ):
         findings.append(
             _finding(
                 repo_root,
                 "RSC-DEPENDENCY-001",
                 NATIVE_LOCK_RELATIVE,
-                "Cargo.lock must bind qiongli 2.0.0-alpha.1",
+                f"Cargo.lock must bind exactly one qiongli package at {native_version}",
+            )
+        )
+    elif native_version is None and len(product_packages) != 1:
+        findings.append(
+            _finding(
+                repo_root,
+                "RSC-DEPENDENCY-001",
+                NATIVE_LOCK_RELATIVE,
+                "Cargo.lock must bind exactly one qiongli package",
             )
         )
     return findings

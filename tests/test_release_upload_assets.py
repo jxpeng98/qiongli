@@ -89,6 +89,15 @@ class ReleaseUploadAssetsTests(unittest.TestCase):
                     require_existing=True,
                 )
 
+    def test_native_alpha_cannot_reuse_legacy_upload_asset_set(self) -> None:
+        module = load_release_upload_assets()
+        with self.assertRaisesRegex(module.ReleaseUploadAssetError, "legacy upload assets are disabled"):
+            module.release_upload_asset_names(
+                "v2.0.0-alpha.1",
+                root=REPO_ROOT,
+                require_existing=False,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

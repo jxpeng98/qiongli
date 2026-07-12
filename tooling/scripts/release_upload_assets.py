@@ -14,6 +14,7 @@ for import_root in (Path(__file__).resolve().parent, PYTHON_SOURCE_ROOT, REPO_RO
         sys.path.insert(0, str(import_root))
 
 from generate_release_downloads import build_index  # noqa: E402
+from tooling.scripts.release_version import parse_release_version  # noqa: E402
 
 
 class ReleaseUploadAssetError(RuntimeError):
@@ -27,6 +28,15 @@ def release_upload_asset_names(
     require_existing: bool = True,
     dist_dir: Path | None = None,
 ) -> list[str]:
+    try:
+        release_identity = parse_release_version(tag)
+    except ValueError as exc:
+        raise ReleaseUploadAssetError(str(exc)) from exc
+    if release_identity.release_line == "native-2x":
+        raise ReleaseUploadAssetError(
+            "native 2.x assets must come from a target-identified native manifest; "
+            "legacy upload assets are disabled"
+        )
     index = build_index(tag, root=root)
     names: list[str] = []
     for target_assets in index.get("assets_by_target", {}).values():

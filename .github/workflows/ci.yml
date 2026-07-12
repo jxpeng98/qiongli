@@ -351,6 +351,10 @@ jobs:
           tests.test_universal_installer
           tests.test_command_runtime
           tests.test_release_automation
+          tests.test_release_version_contract
+          tests.test_native_release_dry_run
+          tests.test_release_note_versions
+          tests.test_sync_versions
           tests.test_branch_policy
           tests.test_2x_branch_point
           tests.test_arc_201_adrs
@@ -369,6 +373,9 @@ jobs:
           tests.test_ctr_201_cli_inventory
           tests.test_ctr_201_orchestrator_inventory
           tests.test_ctr_201_content_inventory
+          tests.test_release_version_contract
+          tests.test_native_release_dry_run
+          tests.test_release_note_versions
 
   shell-release-gates:
     name: Shell and release gates (ubuntu-latest)
@@ -398,7 +405,7 @@ jobs:
         run: python -m pip install .
 
       - name: Compile critical modules
-        run: python -m py_compile packages/python-qiongli/src/qiongli/bridges/base_bridge.py packages/python-qiongli/src/qiongli/bridges/orchestrator.py scripts/validate_research_standard.py tests/test_orchestrator_workflows.py
+        run: python -m py_compile packages/python-qiongli/src/qiongli/bridges/base_bridge.py packages/python-qiongli/src/qiongli/bridges/orchestrator.py scripts/release_version.py scripts/native_release_dry_run.py scripts/validate_research_standard.py tests/test_orchestrator_workflows.py
 
       - name: Validate Capability Contract v2 pilot
         run: python scripts/validate_capability_contract.py
@@ -414,6 +421,14 @@ jobs:
           bash -n scripts/install_qiongli.sh
           bash -n scripts/inject_project_toml.sh
           bash -n scripts/sync_skill_package.sh
+
+      - name: Validate native alpha dry-run
+        run: |
+          native_version="$(python -c 'import tomllib; print(tomllib.load(open("packages/qiongli-native/Cargo.toml", "rb"))["workspace"]["package"]["version"])')"
+          python scripts/native_release_dry_run.py \
+            --tag "v${native_version}" \
+            --out-dir "$RUNNER_TEMP/qiongli-native-release-plan" \
+            --json
 
       - name: Run standardized pre-release gates
         run: ./scripts/release_preflight.sh --quick --materialize-out "$RUNNER_TEMP/qiongli-preflight-dist"

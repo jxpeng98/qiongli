@@ -132,7 +132,10 @@ STAGE_I_TEMPLATE_EXPECTATIONS = {
         "```json",
     ],
 }
-RELEASE_NOTE_FILE_PATTERN = re.compile(r"^v(\d+)\.(\d+)\.(\d+)(?:-beta\.(\d+))?\.md$")
+RELEASE_NOTE_FILE_PATTERN = re.compile(
+    r"^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
+    r"(?:-(alpha|beta)\.([1-9]\d*))?\.md$"
+)
 CONTROLLER_MODE_REQUIRED_FILES = (
     "standards/agent-run-contract.yaml",
     "standards/solo-role-policy.yaml",
@@ -238,10 +241,11 @@ def parse_release_note_version(name: str) -> tuple[int, int, int, int, int] | No
     major = int(match.group(1))
     minor = int(match.group(2))
     patch = int(match.group(3))
-    beta_number = match.group(4)
-    is_stable = 1 if beta_number is None else 0
-    beta_rank = -1 if beta_number is None else int(beta_number)
-    return (major, minor, patch, is_stable, beta_rank)
+    channel = match.group(4)
+    prerelease_number = match.group(5)
+    channel_rank = {"alpha": 0, "beta": 1, None: 2}[channel]
+    sequence_rank = int(prerelease_number) if prerelease_number is not None else 0
+    return (major, minor, patch, channel_rank, sequence_rank)
 
 
 def references_collaboration_guide(content: str) -> bool:
@@ -2466,7 +2470,7 @@ def validate_release_artifacts(root: Path, report: ValidationReport) -> None:
     report.check(
         latest_note is not None,
         "release includes at least one release note",
-        "tooling/release/ missing release note files (expected vX.Y.Z.md or vX.Y.Z-beta.N.md)",
+        "tooling/release/ missing release note files (expected vX.Y.Z.md, vX.Y.Z-beta.N.md, or vX.Y.Z-alpha.N.md)",
     )
     if latest_note is not None:
         relative_note_path = str(latest_note.relative_to(root))

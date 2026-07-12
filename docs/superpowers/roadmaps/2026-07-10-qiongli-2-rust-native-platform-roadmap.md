@@ -1,6 +1,8 @@
 # Qiongli 2 Rust-Native Platform Migration Roadmap
 
-Status: the B2 native workspace scaffold and repository gates are implemented;
+Status: B1 / REL-201 provides a typed, channel-isolated, non-publishing native
+alpha dry-run and keeps real publication fail-closed; the B2 native workspace
+scaffold and repository gates are implemented;
 the CTR-201A slice is merged, CTR-201B accepted-source static CLI semantics are
 captured, CTR-201C captures the accepted-source `DECLARED/STATIC`
 orchestrator control contract and compatibility boundary, and CTR-201D captures
@@ -400,8 +402,12 @@ Current execution record:
   pack. The accepted A8 evidence contains source package trees and release
   asset hashes, but no archive-member tree inventory;
 - CTR-201 therefore remains in progress, and FND-202 is not implemented;
-- the next independent stream is B1 (`REL-201`); remaining CTR-201 Contract v2,
-  CLI-runtime, and orchestrator-runtime gaps must close before FND-202 begins.
+- B1 (`REL-201`) is implemented as a non-publishing contract: native version,
+  channel, branch, planned target identity, notes, registry isolation, and
+  rollback/promotion metadata are dry-run validated, while public native
+  publication remains blocked by later artifact and acceptance work;
+- the next stream is the remaining CTR-201 Contract v2, CLI-runtime, and
+  orchestrator-runtime closure required before FND-202 begins.
 
 ### W2 — Native core, config, and data migration
 

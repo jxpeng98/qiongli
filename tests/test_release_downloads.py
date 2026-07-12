@@ -373,6 +373,7 @@ class ReleaseDownloadsTests(unittest.TestCase):
             index["recommended"]["codex"]["marketplace_dist_ref"],
             "paused_current_host_only",
         )
+
         self.assertEqual(
             index["recommended"]["codex"]["manual_asset"],
             "qiongli-next-codex-plugin-v1.1.0-beta.2.tar.gz",
@@ -580,6 +581,27 @@ class ReleaseDownloadsTests(unittest.TestCase):
             "release-artifact-manifest",
         )
         self.assertEqual(manifest["component_versions"], index["component_versions"])
+
+    def test_native_alpha_is_rejected_by_legacy_download_generator(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "scripts/generate_release_downloads.py",
+                    "--tag",
+                    "v2.0.0-alpha.1",
+                    "--out-dir",
+                    tmp_dir,
+                ],
+                cwd=REPO_ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("native 2.x release metadata is isolated", result.stderr)
+            self.assertEqual(list(Path(tmp_dir).iterdir()), [])
 
     def test_recommended_target_ids_follow_registry_recommended_keys(self) -> None:
         module = _load_release_download_module()

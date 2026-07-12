@@ -31,6 +31,17 @@ class SyncVersionsTests(unittest.TestCase):
         self.assertEqual(repo_version, "v0.2.0-beta.3")
         self.assertEqual(npm_version, "0.2.0-beta.3")
 
+    def test_parse_version_preserves_four_tuple_api_for_native_alpha(self) -> None:
+        self.assertEqual(
+            sync_versions_module.parse_version("v2.0.0-alpha.2"),
+            (
+                "2.0.0a2",
+                "2.0.0-alpha.2",
+                "v2.0.0-alpha.2",
+                "2.0.0-alpha.2",
+            ),
+        )
+
     def test_main_print_field_outputs_repo_version_without_syncing(self) -> None:
         stdout = io.StringIO()
         with contextlib.redirect_stdout(stdout):
@@ -185,3 +196,95 @@ class SyncVersionsTests(unittest.TestCase):
             self.assertIn('"version": "0.1.0"', generated_manifest.read_text())
             self.assertEqual(generated_next_version.read_text().strip(), "v0.1.0")
             self.assertNotIn(root / "skills" / "F_writing" / "demo.md", changed)
+
+    def test_native_sync_updates_only_workspace_identity_and_product_lock_entry(self) -> None:
+        targets = (
+            ("v2.0.0-alpha.2", "2.0.0-alpha.2", "alpha"),
+            ("2.1.0b3", "2.1.0-beta.3", "beta"),
+            ("v2.1.0", "2.1.0", "stable"),
+        )
+        for raw, expected_version, expected_channel in targets:
+            with self.subTest(raw=raw), tempfile.TemporaryDirectory() as tmp_dir:
+                root = Path(tmp_dir).resolve()
+                native_root = root / "packages" / "qiongli-native"
+                native_root.mkdir(parents=True)
+                manifest = native_root / "Cargo.toml"
+                manifest.write_text(
+                    """[workspace]
+resolver = "3"
+
+[workspace.package]
+version = "2.0.0-alpha.1"
+edition = "2024"
+
+[workspace.metadata.qiongli]
+product = "qiongli"
+channel = "alpha"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+""",
+                    encoding="utf-8",
+                )
+                lockfile = native_root / "Cargo.lock"
+                lockfile.write_text(
+                    """version = 4
+
+[[package]]
+name = "qiongli"
+version = "2.0.0-alpha.1"
+
+[[package]]
+name = "unchanged-dependency"
+version = "9.8.7"
+""",
+                    encoding="utf-8",
+                )
+                legacy_files = {
+                    root / "pyproject.toml": '[project]\nversion = "1.19.0b1"\n',
+                    root / "packages" / "npm-qiongli" / "package.json": (
+                        '{"name":"qiongli","version":"1.19.0-beta.1"}\n'
+                    ),
+                    root / "qiongli-workflow" / "VERSION": "v1.19.0-beta.1\n",
+                }
+                for path, content in legacy_files.items():
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text(content, encoding="utf-8")
+
+                changed = sync_versions_module.sync_versions(root, raw)
+
+                self.assertEqual(changed, [manifest, lockfile])
+                manifest_text = manifest.read_text(encoding="utf-8")
+                self.assertIn(f'version = "{expected_version}"', manifest_text)
+                self.assertIn(f'channel = "{expected_channel}"', manifest_text)
+                self.assertIn('edition = "2024"', manifest_text)
+                lock_text = lockfile.read_text(encoding="utf-8")
+                self.assertIn(f'version = "{expected_version}"', lock_text)
+                self.assertIn('name = "unchanged-dependency"\nversion = "9.8.7"', lock_text)
+                for path, original in legacy_files.items():
+                    self.assertEqual(path.read_text(encoding="utf-8"), original)
+
+                self.assertEqual(sync_versions_module.sync_versions(root, raw), [])
+
+    def test_native_sync_validates_manifest_and_lock_before_writing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir).resolve()
+            native_root = root / "packages" / "qiongli-native"
+            native_root.mkdir(parents=True)
+            manifest = native_root / "Cargo.toml"
+            original_manifest = """[workspace.package]
+version = "2.0.0-alpha.1"
+
+[workspace.metadata.qiongli]
+channel = "alpha"
+"""
+            manifest.write_text(original_manifest, encoding="utf-8")
+            (native_root / "Cargo.lock").write_text(
+                "version = 4\n\n[[package]]\nname = \"not-qiongli\"\nversion = \"1.0.0\"\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "exactly one Cargo.lock package"):
+                sync_versions_module.sync_versions(root, "v2.0.0-alpha.2")
+
+            self.assertEqual(manifest.read_text(encoding="utf-8"), original_manifest)

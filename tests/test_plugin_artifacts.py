@@ -27,6 +27,15 @@ SPEC.loader.exec_module(module)
 
 
 class PluginArtifactsTests(unittest.TestCase):
+    def test_release_tag_classifier_accepts_alpha_and_rejects_unsupported_prereleases(self) -> None:
+        self.assertTrue(module._is_prerelease_tag("v2.0.0-alpha.1"))
+        self.assertTrue(module._is_prerelease_tag("v1.19.0-beta.1"))
+        self.assertFalse(module._is_prerelease_tag("v1.19.0"))
+        with self.assertRaises(ValueError):
+            module._normalize_tag("v1.19.0-alpha.1")
+        with self.assertRaises(ValueError):
+            module._normalize_tag("v2.0.0-rc.1")
+
     def test_recommended_forbidden_paths_use_registry_recommended_key(self) -> None:
         target = replace(
             load_platform_targets(REPO_ROOT)["claude-desktop-direct-plugin"],

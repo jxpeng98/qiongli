@@ -9,6 +9,7 @@ permissions:
 
 jobs:
   build-and-publish:
+    if: ${{ github.ref_type == 'branch' && (github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'release/1.x-python') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment:
@@ -23,6 +24,15 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Reject native release lines
+        run: |
+          package_version="$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          release_line="$(python3 scripts/release_version.py "$package_version" --print-field release_line)"
+          if [[ "$release_line" != "legacy-1x" ]]; then
+            echo "[testpypi-publish] native release lines must not publish the frozen Python package" >&2
+            exit 1
+          fi
 
       - name: Inject packaged upstream defaults
         env:

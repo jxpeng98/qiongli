@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   build-and-publish:
+    if: ${{ !startsWith(github.ref_name, 'v2.') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment:
@@ -36,6 +37,14 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Reject native release lines
+        run: |
+          release_line="$(python3 scripts/release_version.py "${RELEASE_TAG}" --print-field release_line)"
+          if [[ "$release_line" == "native-2x" ]]; then
+            echo "[npm-publish] RLS-201/PKG gate: native 2.x tags must not publish the frozen npm package" >&2
+            exit 1
+          fi
+
       - name: Install Python runtime dependency
         run: python -m pip install -e .
 
@@ -51,7 +60,13 @@ jobs:
       - name: Publish to npm
         working-directory: ${{ runner.temp }}/qiongli-dist/packages/npm-qiongli
         run: |
-          if [[ "${RELEASE_TAG}" == *beta* ]]; then
+          release_line="$(python3 "${GITHUB_WORKSPACE}/scripts/release_version.py" "${RELEASE_TAG}" --print-field release_line)"
+          channel="$(python3 "${GITHUB_WORKSPACE}/scripts/release_version.py" "${RELEASE_TAG}" --print-field channel)"
+          if [[ "$release_line" == "native-2x" ]]; then
+            echo "[npm-publish] RLS-201/PKG gate: refusing native 2.x registry publication" >&2
+            exit 1
+          fi
+          if [[ "$channel" != "stable" ]]; then
             npm publish --tag next
             latest="$(npm view qiongli dist-tags.latest --silent || true)"
             if [[ "$latest" == *"-beta."* ]]; then

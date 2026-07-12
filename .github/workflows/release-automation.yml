@@ -12,7 +12,7 @@ on:
           - pre
           - post
       tag:
-        description: "Release tag (for example v0.1.0 or v0.1.1-beta.1)"
+        description: "Release tag (for example v1.19.0-beta.1 or v2.0.0-alpha.1)"
         required: true
         type: string
       skip_smoke:
@@ -56,10 +56,80 @@ on:
         default: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  release-automation:
+  native-release-dry-run:
+    if: ${{ startsWith(inputs.tag, 'v2.') || startsWith(inputs.tag, '2.') }}
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Classify native release
+        id: release
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          release_line="$(python3 scripts/release_version.py "$INPUT_TAG" --print-field release_line)"
+          channel="$(python3 scripts/release_version.py "$INPUT_TAG" --print-field channel)"
+          repo_version="$(python3 scripts/release_version.py "$INPUT_TAG" --print-field repo_version)"
+          source_branch="$(python3 scripts/release_version.py "$INPUT_TAG" --print-field source_branch)"
+          if [[ "$release_line" != "native-2x" ]]; then
+            echo "[release-workflow] native job requires a native-2x identity" >&2
+            exit 2
+          fi
+          echo "release_line=$release_line" >> "$GITHUB_OUTPUT"
+          echo "channel=$channel" >> "$GITHUB_OUTPUT"
+          echo "repo_version=$repo_version" >> "$GITHUB_OUTPUT"
+          echo "source_branch=$source_branch" >> "$GITHUB_OUTPUT"
+
+      - name: Setup pinned native Rust
+        uses: dtolnay/rust-toolchain@1.97.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Run native release dry-run
+        env:
+          INPUT_MODE: ${{ inputs.mode }}
+          INPUT_TAG: ${{ inputs.tag }}
+          SOURCE_BRANCH: ${{ steps.release.outputs.source_branch }}
+        run: |
+          if [[ "$INPUT_MODE" != "pre" ]]; then
+            echo "[release-workflow] RLS-201/PKG gate: native 2.x workflow supports pre dry-run only" >&2
+            exit 1
+          fi
+          if [[ "$GITHUB_REF_TYPE" != "branch" || "$GITHUB_REF_NAME" != "$SOURCE_BRANCH" ]]; then
+            echo "[release-workflow] native dry-run requires branch $SOURCE_BRANCH; current ref is ${GITHUB_REF_TYPE}:${GITHUB_REF_NAME}" >&2
+            exit 1
+          fi
+          ./scripts/release_automation.sh pre \
+            --tag "$INPUT_TAG" \
+            --materialize-out "$RUNNER_TEMP/qiongli-native-release-plan"
+
+      - name: Upload native release dry-run bundle
+        if: always() && steps.release.outputs.release_line == 'native-2x'
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-release-plan-${{ steps.release.outputs.repo_version }}
+          path: ${{ runner.temp }}/qiongli-native-release-plan/
+          if-no-files-found: error
+
+  legacy-release-automation:
+    if: ${{ !startsWith(inputs.tag, 'v2.') && !startsWith(inputs.tag, '2.') }}
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -72,6 +142,26 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Classify release
+        id: release
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          release_line="$(python3 scripts/release_version.py "$INPUT_TAG" --print-field release_line)"
+          channel="$(python3 scripts/release_version.py "$INPUT_TAG" --print-field channel)"
+          repo_version="$(python3 scripts/release_version.py "$INPUT_TAG" --print-field repo_version)"
+          package_version="$(python3 scripts/release_version.py "$INPUT_TAG" --print-field package_version)"
+          source_branch="$(python3 scripts/release_version.py "$INPUT_TAG" --print-field source_branch)"
+          if [[ "$release_line" != "legacy-1x" ]]; then
+            echo "[release-workflow] legacy job requires a legacy-1x identity" >&2
+            exit 2
+          fi
+          echo "release_line=$release_line" >> "$GITHUB_OUTPUT"
+          echo "channel=$channel" >> "$GITHUB_OUTPUT"
+          echo "repo_version=$repo_version" >> "$GITHUB_OUTPUT"
+          echo "package_version=$package_version" >> "$GITHUB_OUTPUT"
+          echo "source_branch=$source_branch" >> "$GITHUB_OUTPUT"
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -98,43 +188,54 @@ jobs:
       - name: Run release automation
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_MODE: ${{ inputs.mode }}
+          INPUT_TAG: ${{ inputs.tag }}
+          INPUT_SKIP_SMOKE: ${{ inputs.skip_smoke }}
+          INPUT_MAINTAINER_SMOKE: ${{ inputs.maintainer_smoke }}
+          INPUT_SKIP_NOTE_GEN: ${{ inputs.skip_note_gen }}
+          INPUT_NOTE_OVERWRITE: ${{ inputs.note_overwrite }}
+          INPUT_FROM_TAG: ${{ inputs.from_tag }}
+          INPUT_SKIP_REMOTE: ${{ inputs.skip_remote }}
+          INPUT_SKIP_CI_STATUS: ${{ inputs.skip_ci_status }}
+          INPUT_CREATE_RELEASE: ${{ inputs.create_release }}
         run: |
-          git fetch --force --prune origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
-          mode="${{ inputs.mode }}"
-          tag="${{ inputs.tag }}"
+          mode="$INPUT_MODE"
+          tag="$INPUT_TAG"
           args=()
 
           if [[ -z "$tag" ]]; then
             echo "${mode} mode requires 'tag' input" >&2
             exit 2
           fi
+
+          git fetch --force --prune origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
           args+=(--tag "$tag")
           if [[ "$mode" == "pre" ]]; then
             args+=(--materialize-out "$RUNNER_TEMP/qiongli-preflight-dist")
           fi
 
-          if [[ "${{ inputs.skip_smoke }}" == "true" ]]; then
+          if [[ "$INPUT_SKIP_SMOKE" == "true" ]]; then
             args+=(--skip-smoke)
           fi
-          if [[ "${{ inputs.maintainer_smoke }}" == "true" ]]; then
+          if [[ "$INPUT_MAINTAINER_SMOKE" == "true" ]]; then
             args+=(--maintainer-smoke)
           fi
-          if [[ "${{ inputs.skip_note_gen }}" == "true" ]]; then
+          if [[ "$INPUT_SKIP_NOTE_GEN" == "true" ]]; then
             args+=(--skip-note-gen)
           fi
-          if [[ "${{ inputs.note_overwrite }}" == "true" ]]; then
+          if [[ "$INPUT_NOTE_OVERWRITE" == "true" ]]; then
             args+=(--note-overwrite)
           fi
-          if [[ -n "${{ inputs.from_tag }}" ]]; then
-            args+=(--from-tag "${{ inputs.from_tag }}")
+          if [[ -n "$INPUT_FROM_TAG" ]]; then
+            args+=(--from-tag "$INPUT_FROM_TAG")
           fi
-          if [[ "${{ inputs.skip_remote }}" == "true" ]]; then
+          if [[ "$INPUT_SKIP_REMOTE" == "true" ]]; then
             args+=(--skip-remote)
           fi
-          if [[ "${{ inputs.skip_ci_status }}" == "true" ]]; then
+          if [[ "$INPUT_SKIP_CI_STATUS" == "true" ]]; then
             args+=(--skip-ci-status)
           fi
-          if [[ "${{ inputs.create_release }}" == "true" ]]; then
+          if [[ "$INPUT_CREATE_RELEASE" == "true" ]]; then
             args+=(--create-release)
           fi
 
