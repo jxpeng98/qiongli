@@ -277,6 +277,69 @@ class MCPToolHandlerTests(unittest.TestCase):
             ["Write search diagnostics before claiming review-grade coverage."],
         )
 
+    def test_experience_mcp_tools_redact_credential_bearing_record_fields(self) -> None:
+        canary = "QIONGLI_EXPERIENCE_CREDENTIAL_CANARY_DO_NOT_ECHO"
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_experience_fixture(root)
+            run_dir = root / ".qiongli" / "trace" / "runs" / "failed-b1"
+            record_path = run_dir / "experience_record.json"
+            record = json.loads(record_path.read_text(encoding="utf-8"))
+            record["inputs"] = {
+                "QIONGLI_OPENALEX_API_KEY": canary,
+                "nested": {"access_token": canary, "safe": "kept"},
+            }
+            record_path.write_text(json.dumps(record), encoding="utf-8")
+            index_path = root / ".qiongli" / "trace" / "experience.jsonl"
+            index_path.write_text(json.dumps(record) + "\n", encoding="utf-8")
+
+            results = (
+                call_qiongli_tool("qiongli_experience_query", {"cwd": str(root)}),
+                call_qiongli_tool(
+                    "qiongli_experience_show",
+                    {"cwd": str(root), "run_id": "failed-b1"},
+                ),
+                call_qiongli_tool("qiongli_experience_lessons", {"cwd": str(root)}),
+            )
+
+        for result in results:
+            with self.subTest(tool_result=result["structuredContent"].keys()):
+                self.assertFalse(result["isError"], result)
+                self.assertNotIn(canary, json.dumps(result, sort_keys=True))
+
+    def test_experience_show_rejects_traversal_and_symlink_escape_without_leak(self) -> None:
+        canary = "QIONGLI_EXPERIENCE_OUTSIDE_CANARY_DO_NOT_ECHO"
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            base = Path(tmp_dir)
+            root = base / "project"
+            runs_root = root / ".qiongli" / "trace" / "runs"
+            outside_run = base / "outside"
+            runs_root.mkdir(parents=True)
+            outside_run.mkdir()
+            (outside_run / "experience_record.json").write_text(
+                json.dumps({"run_id": "linked", "api_key": canary}),
+                encoding="utf-8",
+            )
+            (runs_root / "linked").symlink_to(outside_run, target_is_directory=True)
+
+            traversal = call_qiongli_tool(
+                "qiongli_experience_show",
+                {"cwd": str(root), "run_id": str(outside_run)},
+            )
+            linked = call_qiongli_tool(
+                "qiongli_experience_show",
+                {"cwd": str(root), "run_id": "linked"},
+            )
+
+        self.assertTrue(traversal["isError"])
+        self.assertEqual(
+            traversal["structuredContent"]["error_kind"],
+            "invalid_arguments",
+        )
+        self.assertTrue(linked["isError"])
+        self.assertEqual(linked["structuredContent"]["error_kind"], "tool_error")
+        self.assertNotIn(canary, json.dumps((traversal, linked), sort_keys=True))
+
     def test_tool_definitions_include_subject_lifecycle_tools(self) -> None:
         definitions = {tool["name"]: tool for tool in MCP_TOOL_DEFINITIONS}
         expected_actions = [
@@ -637,7 +700,8 @@ class MCPToolHandlerTests(unittest.TestCase):
             )
 
         self.assertTrue(result["isError"])
-        self.assertIn("Unsupported subject lifecycle action", result["structuredContent"]["error"])
+        self.assertEqual(result["structuredContent"]["error_kind"], "invalid_arguments")
+        self.assertIn("action", result["structuredContent"]["error"])
 
     def test_subject_update_confirm_rejects_auto_or_missing_subject(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -651,10 +715,8 @@ class MCPToolHandlerTests(unittest.TestCase):
             )
 
         self.assertTrue(auto_result["isError"])
-        self.assertIn(
-            "confirm requires a concrete official subject",
-            auto_result["structuredContent"]["error"],
-        )
+        self.assertEqual(auto_result["structuredContent"]["error_kind"], "invalid_arguments")
+        self.assertIn("subject", auto_result["structuredContent"]["error"])
         self.assertTrue(missing_result["isError"])
         self.assertIn("confirm requires a subject", missing_result["structuredContent"]["error"])
 
@@ -898,6 +960,7 @@ class MCPToolHandlerTests(unittest.TestCase):
         self.assertIn("QIONGLI_SEMANTIC_SCHOLAR_API_KEY", aliases)
         self.assertIn("S2_API_KEY", aliases)
         self.assertNotIn("secret-demo-key", rendered)
+        self.assertFalse(result["isError"])
 
     def test_search_plan_tool_uses_status_capability_without_leaking_secrets(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -1060,8 +1123,6 @@ class MCPToolHandlerTests(unittest.TestCase):
                         "task_id": "F3",
                         "paper_type": "empirical",
                         "topic": "my-topic",
-                        "primary": "codex",
-                        "reviewer": "claude",
                     },
                 )
 
@@ -1170,7 +1231,11 @@ class MCPToolHandlerTests(unittest.TestCase):
                     )
 
                 self.assertTrue(result["isError"])
-                self.assertIn("run_agents must be the JSON boolean", result["structuredContent"]["error"])
+                self.assertEqual(
+                    result["structuredContent"]["error_kind"],
+                    "invalid_arguments",
+                )
+                self.assertIn("run_agents", result["structuredContent"]["error"])
                 self.assertFalse(stub.ran_agents)
 
     def test_task_run_preview_exposes_effective_runtime_options(self) -> None:

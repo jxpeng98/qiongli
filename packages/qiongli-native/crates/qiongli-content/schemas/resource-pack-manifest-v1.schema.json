@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qiongli.dev/schemas/native/resource-pack-manifest-v1.json",
+  "title": "Qiongli deterministic resource-pack manifest v1",
+  "type": "object",
+  "required": [
+    "format_version",
+    "compiler_contract_version",
+    "pack_id",
+    "content_version",
+    "source_commit",
+    "compatible_product",
+    "profiles",
+    "entries",
+    "content_root_sha256"
+  ],
+  "properties": {
+    "format_version": { "const": 1 },
+    "compiler_contract_version": { "const": 1 },
+    "pack_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "content_version": { "type": "string", "minLength": 1 },
+    "source_commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "compatible_product": {
+      "type": "object",
+      "required": ["minimum", "maximum_exclusive"],
+      "properties": {
+        "minimum": { "type": "string", "minLength": 1 },
+        "maximum_exclusive": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["id", "aliases", "included_resource_kinds"],
+        "properties": {
+          "id": { "enum": ["skill-only", "marketplace-lite", "full"] },
+          "aliases": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "uniqueItems": true
+          },
+          "included_resource_kinds": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/resourceKind" },
+            "uniqueItems": true
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "resource_kind",
+          "mode",
+          "size_bytes",
+          "payload_offset",
+          "sha256"
+        ],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "resource_kind": { "$ref": "#/$defs/resourceKind" },
+          "mode": { "enum": ["0644", "0755"] },
+          "size_bytes": { "type": "integer", "minimum": 0 },
+          "payload_offset": { "type": "integer", "minimum": 0 },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "content_root_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "resourceKind": {
+      "enum": [
+        "target-metadata",
+        "mcp-contract",
+        "role",
+        "schema",
+        "skill",
+        "skill-summary",
+        "standard",
+        "subject",
+        "template",
+        "venue-profile",
+        "workflow"
+      ]
+    }
+  }
+}

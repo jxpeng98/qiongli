@@ -265,7 +265,10 @@ LITERATURE_TOOL_DEFINITIONS: list[dict[str, Any]] = [
     },
     {
         "name": "qiongli_literature_search",
-        "description": "Search academic literature using the full Qiongli CLI MCP provider stack.",
+        "description": (
+            "Search academic literature using the providers available in the active "
+            "Qiongli runtime profile."
+        ),
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -632,7 +635,7 @@ def _year_value(value: Any, field: str) -> int:
 def _reject_unknown_arguments(args: Mapping[str, Any], allowed: set[str]) -> None:
     unknown = sorted(set(args) - allowed)
     if unknown:
-        raise MCPToolInputError(f"unknown arguments: {', '.join(unknown)}")
+        raise MCPToolInputError("arguments contain unsupported fields")
 
 
 def _active_provider_names(config: Mapping[str, Any]) -> list[str]:
@@ -710,7 +713,7 @@ def _normalize_evidence_export_args(args: dict[str, Any]) -> dict[str, Any]:
     }
     unknown = sorted(set(args) - allowed)
     if unknown:
-        raise MCPToolInputError(f"unknown arguments: {', '.join(unknown)}")
+        raise MCPToolInputError("arguments contain unsupported fields")
 
     expected_types: dict[str, type[Any]] = {
         "cwd": str,

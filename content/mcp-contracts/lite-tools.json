@@ -301,7 +301,7 @@
     },
     {
       "name": "qiongli_literature_search",
-      "description": "Search academic literature using configured OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv providers.",
+      "description": "Search academic literature using the providers available in the active Qiongli runtime profile.",
       "inputSchema": {
         "type": "object",
         "required": ["query"],
@@ -391,7 +391,7 @@
     },
     {
       "name": "qiongli_orchestrator_route",
-      "description": "Preview whether the client should use skill-only routing or Full CLI orchestration.",
+      "description": "Decide whether the active client should use skill-only routing or Full Qiongli orchestration.",
       "inputSchema": {
         "type": "object",
         "required": ["request"],

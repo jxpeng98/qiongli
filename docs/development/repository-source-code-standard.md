@@ -1,61 +1,24 @@
-# Repository Source Code Standard
+# Repository Source Code Guidance
 
-Qiongli's repository engineering policy is Task RC1. It governs the product's
-source code and maintainer tooling; it does not judge the scientific validity
-of analysis code produced for a paper. Academic analysis-code requirements
-remain under AC1 and the Stage I workflow.
+Status: optional diagnostic reference. RC1 is not a required migration, CI,
+pull-request, or release gate for Qiongli 2.x.
 
-The canonical machine policy is
-`tooling/quality/repository-source-code-contract.yaml`. Keep it under
-`tooling/quality/`: repository policy must not be materialized into skills,
-plugins, package payloads, or marketplace catalogs.
+Qiongli repository code follows the same lightweight development policy used
+by the Python line: implement a coherent useful behavior, run the normal tools
+for the changed component, review the change, and fix concrete defects. This
+document does not judge academic analysis code produced for a paper; academic
+workflow guidance remains under Stage I and the historical AC1 design.
 
-## Native-foundation enforcement
+## Native development policy
 
-The first enforcing phase is intentionally narrow. It protects
-`packages/qiongli-native/` while the Rust-native platform is bootstrapped:
+Maintainers may add the Rust crates, locked dependencies, build scripts,
+desktop libraries, operating-system APIs, FFI, and typed process adapters
+needed by the approved architecture. The installed product must not require a
+user to install Python, Node, or Rust in order to start or use supported
+features.
 
-- the workspace has one product member and binary at `apps/qiongli`;
-- package, release-channel, toolchain, lockfile, and lint identity stay fixed;
-- native source cannot use symlinks or gitlinks, commit executable, oversized,
-  or binary build output, or escape the workspace through Cargo path
-  dependencies;
-- high-confidence credentials and machine-specific absolute paths are blocked;
-- B2a production Rust cannot launch external processes, so a CI-installed
-  Python, Node.js, Cargo, or agent CLI cannot hide a startup dependency;
-- the initial product remains dependency-free, and Clippy resolves aliases when
-  rejecting `std::process::Command::new` in production targets; the product
-  crate root uses `forbid`, so a local lint allowance cannot weaken the gate;
-- repository Cargo config, compiler-flag/wrapper environment overrides, and
-  build scripts are rejected during B2a so `--cap-lints` cannot silence it;
-- all native changes select locked Rust formatting, clippy, and test gates; and
-- native-foundation findings cannot be hidden in the legacy-debt baseline.
-
-Python, JavaScript/TypeScript, Shell, and PowerShell profiles remain planned for
-the pre-beta RC1 phase. This policy does not authorize a repository-wide
-reformat or claim complete secret, license, SBOM, or supply-chain coverage.
-
-## Commands
-
-Use the event-aware merge base in CI:
-
-```bash
-python scripts/validate_repository_source.py --base-ref <base-commit>
-```
-
-Check an explicit local change or the complete repository tree:
-
-```bash
-python scripts/validate_repository_source.py \
-  --changed-file packages/qiongli-native/apps/qiongli/src/main.rs
-python scripts/validate_repository_source.py --full-tree --json
-```
-
-Native changes must also pass:
-
-CI pins Rust `1.97.0`. When running locally, either enter
-`packages/qiongli-native/` so its `rust-toolchain.toml` override applies, or
-activate the same toolchain before using these repository-root commands.
+Run the language-native checks relevant to the changed component. For the
+native workspace, the normal baseline is:
 
 ```bash
 cargo fmt --manifest-path packages/qiongli-native/Cargo.toml --all -- --check
@@ -65,24 +28,33 @@ cargo test --manifest-path packages/qiongli-native/Cargo.toml \
   --workspace --all-targets --all-features --locked
 ```
 
-Exit status `0` means pass, `1` means blocking findings, and `2` means the
-policy, path input, or Git comparison could not be evaluated safely. JSON mode
-writes one deterministic report to stdout.
+Run broader integration, operating-system, packaging, signing, updater, and
+clean-machine checks when preparing the corresponding feature or artifact.
 
-## Findings and baseline policy
+Concrete credential disclosure, private-data leakage, path traversal, command
+injection, unauthorized writes, destructive side effects, or data loss remain
+bugs and must be fixed in the affected component. They do not require a
+separate repository-governance program before unrelated migration work can
+continue.
 
-Rule IDs are stable `RSC-*` identifiers. A finding fingerprint binds its rule,
-canonical path, and source blob digest without recording the matched secret or
-machine-local value.
+## Optional RC1 diagnostic
 
-`tooling/quality/repository-source-code-baseline.json` is reserved for exact,
-pre-existing non-native debt. Every future entry must identify one regular
-file, one rule, an owner, rationale, compensating check, unexpired deadline,
-and matching fingerprint. Glob suppressions, directory suppressions, expired
-entries, fingerprint drift, and all suppressions under
-`packages/qiongli-native/` fail closed.
+The historical machine policy remains at
+`tooling/quality/repository-source-code-contract.yaml`, with its wrapper at
+`scripts/validate_repository_source.py`. Maintainers may run it manually when
+useful:
 
-Generated distribution payloads remain governed by
-`scripts/check_generated_payload_edits.py`, which reads the canonical generated
-roots from the repository source-layout module. Do not duplicate or broaden
-those roots in RC1.
+```bash
+python scripts/validate_repository_source.py --base-ref <base-commit>
+python scripts/validate_repository_source.py --full-tree --json
+```
+
+The validator can evaluate whole-native-tree rules for a selected file and can
+classify context-free portable path text as a finding. Its result is therefore
+diagnostic only and is not evidence that an unrelated change introduced a
+cybersecurity defect. No GOV-201 applicability system, exception framework, or
+RC1 release enforcement is required for the 2.x migration.
+
+Generated distribution payloads remain protected by
+`scripts/check_generated_payload_edits.py` because that check enforces the
+canonical-source boundary rather than a general coding-style policy.

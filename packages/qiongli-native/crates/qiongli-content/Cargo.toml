@@ -1,0 +1,18 @@
+[package]
+name = "qiongli-content"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+description = "Typed Qiongli native resource-pack contract"
+
+[dependencies]
+semver.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

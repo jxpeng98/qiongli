@@ -86,17 +86,23 @@ agent backend.
 CTR-201D does not establish archive or published-package parity, but that
 evidence is an unassigned downstream governance boundary rather than a CTR-201
 exit dependency. CTR-202 owns completion of Capability Contract v2 and follows
-CTR-201. FND-202 is a separate successor to CTR-201. Both successors are
-unblocked by the inventory closure but remain unimplemented.
+CTR-201. The current CTR-202 working-tree candidate closes the concrete issues
+found by the July 12 review and passes focused local complete-mode validation;
+it still requires commit, review, and exact-head CI. SEC/CTR child IDs remain
+evidence labels rather than mandatory PR shapes or canonical academic Task IDs.
+FND-202 is a separate successor; FND-202A now defines the native manifest and
+profile projection contract. See
+`docs/development/ctr-202-capability-contract-v2.md` for the exact profile
+matrix, safety strategy, and claim boundary.
 
 ```bash
-python scripts/validate_repository_source.py --base-ref <base-commit>
 python scripts/extract_ctr_201_cli_inventory.py --check
 python scripts/extract_ctr_201_orchestrator_inventory.py --check
 python scripts/extract_ctr_201_content_inventory.py --check
 python scripts/extract_ctr_201_cli_runtime_inventory.py --check
 python scripts/extract_ctr_201_orchestrator_runtime_inventory.py --check
 python scripts/validate_ctr_201_inventory.py
+python scripts/validate_capability_contract.py
 python -m unittest tests.test_ctr_201_inventory \
   tests.test_ctr_201_cli_inventory \
   tests.test_ctr_201_orchestrator_inventory \
@@ -110,6 +116,7 @@ cargo test --manifest-path packages/qiongli-native/Cargo.toml \
   --workspace --all-targets --all-features --locked
 ```
 
-The complete repository engineering policy and exception rules are documented
-in `docs/development/repository-source-code-standard.md`. These RC1 rules are
-separate from the AC1 academic analysis-code standard.
+The former RC1 repository checks and AC1 academic-code design remain available
+as optional review guidance. They are not required migration, CI, or release
+gates. Use language-native checks, relevant tests, and normal review for the
+changed behavior.

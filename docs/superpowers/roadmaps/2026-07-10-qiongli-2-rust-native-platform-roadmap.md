@@ -2,15 +2,17 @@
 
 Status: B1 / REL-201 provides a typed, channel-isolated, non-publishing native
 alpha dry-run and keeps real publication fail-closed; the B2 native workspace
-scaffold and repository gates are implemented;
-the CTR-201A-D slices are merged and validation-backed, and CTR-201E's
-accepted-source Full CLI runtime-inventory freeze is merged. CTR-201F closes
-the accepted-source orchestrator runtime inventory with deterministic bounded
-fixtures: 44 cases (one A8 plus 43 bounded), six behavior dimensions, and six
-explicit dispositions. The CTR-201 source-oracle inventory is therefore closed
-in this tree. CTR-202 and FND-202 are now unblocked, separate
-successor tasks; neither is implemented
+scaffold and normal native gates are implemented. CTR-201A-F close the accepted
+1.x source-oracle inventory in this tree. The CTR-202 working-tree candidate
+now closes the concrete redaction, managed-path, external-adapter, input, and
+profile-divergent metadata defects found on July 12; complete-mode contract and
+focused runtime tests pass locally, but the candidate is not integrated until
+it is committed and passes exact-head CI. FND-202A is implemented locally as
+the typed `qiongli-content` manifest, version, three-profile projection,
+schema, and golden-fixture contract. Later collector, writer, loader, and
+materializer work remains open.
 Decision date: July 10, 2026
+Execution rebaseline: July 12, 2026
 Target branch after the 1.x freeze: `2.x`
 Immediate execution plan:
 `docs/superpowers/plans/2026-07-10-qiongli-1x-closeout-and-2x-native-bootstrap.md`
@@ -30,6 +32,67 @@ rewrite changes configuration ownership, project-state writes, installer
 transactions, agent backends, desktop integration, native packaging, and
 rollback behavior. Calling the first vertical slice a beta would claim a level
 of compatibility and operational stability that has not yet been demonstrated.
+
+## July 12 Execution Rebaseline
+
+The program keeps the Rust-native destination, but changes how work reaches it.
+The previous plan treated a workstream exit gate as if it were one executable
+task. CTR-202 consequently combined registry expansion, 52 schemas, runtime
+behavior, security hardening, smoke execution, documentation, and release
+gates in one review unit. That made review slow and allowed a contract-coverage
+task to grow into an unbounded runtime-security task.
+
+Decision: use **reviewable changes with milestone aggregation**. Small slices
+are encouraged when they reduce risk, but they are not mandatory process gates.
+
+| Option | Benefit | Cost / risk | Decision |
+|---|---|---|---|
+| Keep workstream-sized implementation batches | Fewer branches and PRs | Long feedback cycles, mixed risk, hard rollback, security scope expands late | rejected |
+| Remove concrete security and artifact checks | Faster local iteration | Repeats the credential, path, side-effect, and release-claim failures found in CTR-202 | rejected |
+| Merge reviewable changes and aggregate them into milestones | Fast feedback, practical rollback, and less process overhead | Maintainers must keep each change coherent | adopted |
+
+### Preferred development cadence
+
+Workstream and milestone IDs are planning containers. Implementation follows
+the same lightweight policy used by the Python line:
+
+- implement one coherent, useful behavior at a time where practical;
+- keep a change reviewable and testable, but impose no mandatory day, file,
+  tool-count, WIP, or task-ID limit;
+- combine contract, runtime, fixture, and test changes when that produces the
+  clearest working unit;
+- add focused regression coverage for changed behavior and concrete security
+  bugs;
+- split work only when a change becomes difficult to understand, validate, or
+  roll back.
+
+During development, run language-native format, lint, build, and focused tests.
+Run cross-platform, integration, signing, packaging, and clean-machine checks
+when preparing the corresponding artifact or release claim. A concrete
+security failure blocks the affected behavior; it becomes program-wide only
+when it invalidates a shared contract, accepted baseline, release artifact, or
+already-promoted trust boundary.
+
+### Three gate classes
+
+1. **Always blocking:** credential or private-data disclosure, path escape,
+   unauthorized write/process/network behavior, data loss, fabricated academic
+   evidence, a false public contract claim, or failure to compile the changed
+   component.
+2. **Changed-component merge gates:** formatting, linting, focused unit and
+   contract tests, and boundary tests for only the components changed by the
+   slice. Unrelated full-repository debt does not block an exploratory branch.
+3. **Milestone and release gates:** complete 23/24 coverage, full Tier 1 matrix,
+   package reproducibility, signing, clean-machine, and end-to-end workflow
+   evidence. These aggregate accepted changes; they are not rerun as a
+   prerequisite to every local edit.
+
+Security is therefore an early continuous lane, not late W9 cleanup. A slice
+that touches secrets, local paths, external adapters, project writes, or
+profile-specific outputs must state its threat boundary before code changes and
+must close its P0/P1 findings before merge. P2 design debt may be deferred only
+with an owner, affected profiles, compensating check, and a named successor
+slice; it cannot support a `complete` or release claim.
 
 The target product is one Qiongli Native Platform with multiple execution
 profiles, not separate Python Full, Rust Lite, Node MCPB, and desktop products.
@@ -165,19 +228,54 @@ The Rust migration changes implementations, not sources of academic truth.
 | Boundary | Canonical source | 2.x rule |
 |---|---|---|
 | Academic workflows and skills | `content/workflow/`, `content/skills/`, `content/templates/`, `content/roles/` | Embed or materialize; do not translate into Rust source |
-| Academic and data standards | `content/standards/`, `content/schemas/` | Load as versioned contracts; retain AC1 academic-code governance |
+| Academic and data standards | `content/standards/`, `content/schemas/` | Preserve as workflow guidance and versioned content; do not make AC1 a migration gate |
 | MCP capability contracts | `content/mcp-contracts/` | Complete Contract v2 before Full cutover |
 | Product and target model | `content/distribution/` | Compile target-aware install and release plans |
 | Python 1.x behavior | `packages/python-qiongli/` plus frozen fixtures | Compatibility oracle only after the final 1.x beta |
 | Rust Lite behavior | `packages/qiongli-lite-mcp/` | Extract into shared crates while retaining a compatibility binary |
 | Legacy Node behavior | `packages/qiongli-literature-mcpb/`, `packages/npm-qiongli/` | Frozen oracle until parity or explicit retirement decision |
 | Native implementation | `packages/qiongli-native/` | New Rust workspace and product runtime |
-| Repository code policy | future `tooling/quality/` | Retain RC1; do not move it into academic content |
+| Repository code policy | language-native tooling and normal review | RC1 remains optional reference material, not a required migration validator |
 | Marketplace catalogs | external marketplace repository | Do not copy external catalog state into this repository |
 
 Generated plugins, desktop bundles, installers, caches, and release archives
 remain generated outputs. The native runtime may embed a compiled resource
 pack, but that pack must be reproducible from canonical `content/` sources.
+
+### Lightweight development policy
+
+Decision update: RC1 repository governance and AC1 academic-code governance are
+removed from the 2.x migration critical path. Their planned enforcement tasks
+are cancelled. They may remain as optional review guidance, but they do not
+block a branch, PR, milestone, alpha, beta, or stable release.
+
+The Rust migration follows the development policy that kept the Python line
+productive:
+
+- implement one useful behavior at a time and review the actual diff;
+- require the changed component to compile and run its focused tests;
+- use normal Rust formatting, Clippy, Cargo tests, and ordinary code review;
+- permit reviewed crates, locked third-party dependencies, build scripts,
+  platform APIs, UI libraries, and explicit process execution when the feature
+  needs them;
+- run broader integration, platform, packaging, signing, and clean-machine
+  checks when preparing the relevant artifact, not before routine development;
+- treat real credential disclosure, private-data exposure, path traversal,
+  command injection, unauthorized writes, corruption, and data loss as concrete
+  bugs in the affected component. Fix and regress-test them without creating a
+  separate governance program first.
+
+`validate_repository_source.py` and the RC1 contract become optional diagnostic
+tools and are removed from required CI. They must not block development or be
+used as a dependency for FND, MCP, UI, installer, agent, or orchestrator work.
+Language-native tools and existing component tests remain authoritative.
+
+AC1 similarly stops being an enforced workflow layer. Existing Stage I and
+academic-code material may continue to offer reproducibility, lineage,
+diagnostics, and review suggestions, but migration work does not need to build
+or port an AC1 validator. A user or journal may explicitly request a stricter
+replication workflow; that is a workflow feature, not a platform-development
+or release prerequisite.
 
 ### 1.x and 2.x state coexistence policy
 
@@ -359,19 +457,62 @@ limitations are recorded.
 - normalize local absolute paths and nondeterministic timestamps in oracle data;
 - add a differential harness that can run Python/Node oracles in CI but stores
   runtime-independent golden results for Rust tests;
-- after `CTR-201` reaches its exit gate, complete `CTR-202` by expanding
-  Capability Contract v2 from the current pilot to every canonical Full MCP
-  tool and public alias. `FND-202` is a separate successor to `CTR-201`; it does
-  not depend on completion of `CTR-202` under the current program DAG.
+- after `CTR-201` reaches its exit gate, aggregate bounded CTR-202 contract and
+  security slices toward the frozen accepted public-surface union: 23 canonical
+  tools and 24 public names. The parent CTR-202 ID is not an implementation
+  batch. `FND-202` remains a separate successor to `CTR-201` and does not wait
+  for the CTR-202 aggregation gate.
 
 `CTR-201` exit gate: the accepted-source MCP, CLI, content, and orchestrator
 baseline is closed, normalized, digest-bound, and contains no unclassified
 required capture gap. An explicitly approved disposition may replace unsafe or
 inapplicable runtime execution, but omission may not.
 
-`CTR-202` exit gate: `23/23` canonical tools and `24/24` public names are
-Contract v2-backed, or the generated contract manifest records an updated exact
-count with an approved compatibility explanation.
+`CTR-202` exit gate: `23/23` frozen canonical tools and `24/24` frozen public
+names are Contract v2-backed, exact profile closure and complete-mode
+validation pass, and no mutable runtime declaration can silently shrink the
+target. Changing the target requires an explicit reviewed amendment to the
+accepted inventory and compatibility rationale.
+
+CTR-202 completion evidence maps to the following concerns. These IDs no longer
+dictate branch, PR, or implementation shape:
+
+| ID | Scope | Depends on | Slice evidence |
+|---|---|---|---|
+| `SEC-201A` | Record the incident, threat boundaries, and execution/side-effect class for all 34 cases | CTR-201 | complete risk matrix with no sensitive values |
+| `SEC-201B` | Hermetic MCP harness with isolated HOME/CWD/config/project and default-denied network/listener/process/write effects | SEC-201A | guard self-tests catch each prohibited effect |
+| `CTR-202A` | Profile-scoped security metadata, schema, and validator semantics | SEC-201A | Full/Lite divergent-path mutation tests |
+| `SEC-201C` | Shared non-reflective errors and credential-output sanitization | SEC-201B | Full and Lite nested canary tests |
+| `SEC-201D` | Managed-path, minimal external-adapter environment/output, and declared side-effect boundary | SEC-201B | traversal, symlink, process, and unauthorized-write tests |
+| `CTR-202B` | Configuration tools: three canonical, four public names | CTR-202A, SEC-201C | contract/schema/fixture-only change and bounded calls |
+| `CTR-202C` | Literature status, planning, and evidence export: three tools | CTR-202A, SEC-201C | contract/schema/fixture-only change and provider/error canaries |
+| `CTR-202D` | Literature execution, routing, and task planning: three shared tools | CTR-202A, SEC-201C | profile-specific contract outputs and path/query declarations |
+| `CTR-202E` | Marketplace Lite Zotero tools: two tools | CTR-202A, SEC-201C | Lite-only contract/manifest and safe-call closure |
+| `CTR-202F` | Full evidence/provider inspection: three tools | CTR-202A, SEC-201C, SEC-201D | contract-only closure plus accepted adapter-boundary evidence |
+| `CTR-202G` | Full subject status/update: two tools | CTR-202A, SEC-201C, SEC-201D | contract-only read/proposal/write declarations |
+| `CTR-202H` | Full doctor, lifecycle, and journal-fit: three tools | CTR-202A, SEC-201C, SEC-201D | contract-only project-path and read-only declarations |
+| `CTR-202I` | Full experience query/show/lessons: three tools | CTR-202A, SEC-201C, SEC-201D | contract-only managed-record and redaction declarations |
+| `CTR-202J` | Full task execution: one tool | CTR-202A, SEC-201C, SEC-201D | contract-only preview/execution side-effect declaration |
+| `CTR-202K` | Aggregate frozen 23/24 coverage and switch complete mode | CTR-202B through CTR-202J | exact closure, 34-case corpus, no open security blocker |
+
+Contract, runtime, fixture, and test changes may be combined when they form one
+coherent working behavior. Concrete conformance or security bugs are fixed in
+their owning component and verified with focused regressions.
+
+FND-202 is likewise an epic, not one implementation change:
+
+| ID | Scope | Depends on | Slice evidence |
+|---|---|---|---|
+| `FND-202A` | Resource-pack manifest, version, and profile projection contract | FND-201, CTR-201 | schema and golden manifest |
+| `FND-202B` | Canonical source collector with traversal, symlink, duplicate, and size rejection | FND-202A | negative boundary tests |
+| `FND-202C` | Deterministic writer and content digest | FND-202B | two clean builds produce the same bytes/hash |
+| `FND-202D` | Rust verifier/loader with no materialization | FND-202C | corrupt/version/profile tests and load/list smoke |
+| `FND-202E` | Atomic materializer restricted to a temporary/approved target | FND-202D, SEC-201B | before/after filesystem receipt and permission tests |
+| `FND-202F` | Source-drift and portable Tier 1 verification aggregation | FND-202C, FND-202D, FND-202E | normalized tree parity, drift mutation, and CI receipt |
+
+The implementation and remaining acceptance contract, exact profile matrix,
+safety probes, compatibility debt, and nonclaims are recorded in
+`docs/development/ctr-202-capability-contract-v2.md`.
 
 W1 exit gate: both gates above pass. Closing a `CTR-201` source-oracle slice is
 not evidence that the Rust implementation conforms to it.
@@ -449,9 +590,14 @@ Current execution record:
 - published ZIP/TAR/plugin-wrapper and archive-member parity remains an
   unassigned downstream governance boundary. CTR-201D does not establish it,
   but it is not a CTR-201 completion dependency;
-- CTR-202 Contract v2 completion and FND-202 resource-pack implementation are
-  separately unblocked and may proceed in parallel, but neither is implemented
-  by the CTR-201 closure.
+- the CTR-202 working-tree candidate now has exact 23/24 closure, profile-level
+  sensitive-output metadata, bounded external-adapter environment/error
+  handling, managed experience paths, shared input validation, and nested
+  credential redaction. Focused contract, Full Python, Node, and Lite Rust
+  evidence is green locally; integration and exact-head CI remain open;
+- FND-202A is implemented locally in `qiongli-content`. It defines the manifest
+  and projections only; FND-202B-F collector, writer, loader, materializer, and
+  drift work remains open.
 
 ### W2 — Native core, config, and data migration
 
@@ -490,8 +636,9 @@ without Python or Node in the production process tree.
   materialization;
 - migrate experience records, journal fit, literature artifacts, screening,
   full-text, and citation graph behavior;
-- preserve academic analysis-code governance AC1, Stage I tasks, Q1/Q2/Q4
-  quality gates, exceptions, provenance, and reproduction artifacts;
+- preserve useful existing Stage I tasks, provenance, and reproduction
+  behaviors as workflow content, without making AC1 enforcement or a new
+  academic-code validator a native migration dependency;
 - keep canonical academic policy in `content/`, not hard-coded in Rust.
 
 Exit gate: the same project fixtures produce semantically equivalent managed
@@ -573,21 +720,30 @@ Cross-compilation alone is not release evidence.
 Exit gate: every advertised target has a target-native startup receipt and no
 generic artifact contains an undisclosed current-host binary.
 
-### W9 — Security, data, and repository governance
+### W9 — Continuous security, data, and repository governance
 
-- retain fail-closed config parsing, atomic writes, redaction, loopback-only
-  local setup, bounded requests, and explicit network-provider consent;
+- start at SEC-201A and run beside every workstream; W9 is not a late hardening
+  phase that waits until the product is otherwise complete;
+- retain fail-closed config parsing, atomic writes, non-reflective errors,
+  profile-scoped sensitive-output metadata, redaction, loopback-only local
+  setup, bounded requests, and explicit network-provider consent;
+- treat managed paths and external commands as explicit capabilities: reject
+  traversal and symlink redirection, minimize child environments, declare
+  read/write/network/process effects, and return allowlisted public results;
 - store secrets in the OS keychain where available, with a documented secure
   fallback and no secret values in status, logs, crash reports, or fixtures;
 - define telemetry as opt-in and non-blocking; alpha ships with no remote
   telemetry by default;
-- enforce Rust formatting, clippy, tests, dependency policy, unsafe-code policy,
-  secret scans, path safety, and repository RC1 changed-file gates;
-- preserve academic data identity, provenance, deidentification, and AC1 code
-  standards as separate domain governance.
+- use normal component tests and code review rather than RC1/AC1 enforcement;
+- permit the crates, dependencies, build scripts, platform APIs, FFI, and
+  explicit process adapters required by the implementation, with ordinary
+  scoped review and tests;
+- preserve academic data identity, provenance, and deidentification where the
+  workflow actually uses them, without a separate governance milestone.
 
-Exit gate: no high-severity security, private-data, unsafe-path, or supply-chain
-finding remains open at beta promotion.
+Slice exit gate: no P0/P1 finding in the touched trust boundary remains open.
+Beta exit gate: no high-severity security, private-data, unsafe-path, or
+supply-chain finding remains open across the promoted product surface.
 
 ### W10 — Legacy retirement
 
@@ -619,17 +775,18 @@ attributable to the retirement.
 |---|---|---|
 | M0 — 1.x closeout | `v1.19.0-beta.1` | Clean, accepted Python baseline; Contract v2 pilot described honestly; current-host native limits retained |
 | M1 — Native vertical slice | `v2.0.0-alpha.1` | Rust workspace, embedded content, versioned config import, CLI/GUI shells, Lite MCP, doctor, current-host local install, clean-machine proof |
-| M2 — MCP and data parity | `v2.0.0-alpha.2` | Full Contract v2 coverage, provider/MCP parity, project-state migrations and rollback |
+| M2 — MCP and data parity | `v2.0.0-alpha.2` | CTR-202K aggregate coverage, provider/MCP parity, project-state migrations and rollback |
 | M3 — Local integration manager | `v2.0.0-alpha.3` | Codex and Claude local adapters, skills/MCP management, transactional install/update/remove |
 | M4 — Agents and orchestration | `v2.0.0-alpha.4` | Direct API backend, policy-enforced ToolHost, task graph, multi-agent modes, artifact and quality gates |
-| M5 — Full workflow parity | `v2.0.0-alpha.5` | Domain runtime, all Full capabilities, AC1/RC1 enforcement, no Node production fallback |
+| M5 — Full workflow parity | `v2.0.0-alpha.5` | Domain runtime, all Full capabilities, existing academic workflow parity, no Node production fallback |
 | M6 — Native matrix | `v2.0.0-alpha.6` | Signed Tier 1 artifacts, target-native receipts, updater and clean-VM matrix |
 | M7 — Migration qualification | `v2.0.0-beta.1` | All beta-entry gates below; Python product runtime no longer required |
 | M8 — Hardening | `v2.0.0-beta.N` | Real-user migration fixes, performance, accessibility, recovery, no P0/P1 defects |
 | M9 — Stable | `v2.0.0` | Stable gates, support docs, rollback and supply-chain evidence complete |
 
 Alpha numbers are planning labels, not permission to publish incomplete or
-unsafe artifacts. Milestones may combine or split, but their exit gates remain.
+unsafe artifacts. Milestones aggregate accepted micro-slices; a multi-week
+milestone is never assigned or reviewed as one implementation task.
 
 ### Planning horizon
 
@@ -637,6 +794,9 @@ The following ranges are capacity estimates, not release commitments. They
 assume two full-time Rust/product engineers plus part-time release/QA support,
 with contract, runtime, UI/integration, and release lanes overlapping after the
 1.x freeze. A solo implementation should expect a materially longer schedule.
+They are cumulative aggregation windows, not task durations. Execution should
+produce a reviewable child-slice checkpoint each week and an internal runnable
+artifact or explicit blocked/nonclaim receipt at least every two weeks.
 
 | Outcome | Incremental effort | Expected cumulative window after the accepted 1.x tag |
 |---|---:|---:|
@@ -655,6 +815,10 @@ move; their claims must not be weakened to preserve the estimated dates.
 
 ## Program Task Catalog
 
+Rows in this catalog are program outcomes rather than mandatory branch or PR
+shapes. Maintainers may implement them through the smallest coherent changes
+that keep review and validation practical.
+
 | ID | Task | Depends on | Completion evidence |
 |---|---|---|---|
 | `RLS-101` | Close current Stage 1 security and compatibility findings | none | targeted regressions and zero release-blocking findings |
@@ -663,19 +827,20 @@ move; their claims must not be weakened to preserve the estimated dates.
 | `ARC-201` | Record native architecture, UI, backend, state, and installer ADRs | RLS-102 | accepted ADR 0201-0207 set and CI validator |
 | `REL-201` | Add alpha version/tag/channel support to release tooling | RLS-102, FND-201 native version source | alpha dry-run and parser tests |
 | `CTR-201` | Generate complete MCP/CLI/content/orchestrator baseline inventory | RLS-102 | normalized freeze manifest |
-| `CTR-202` | Complete Capability Contract v2 | CTR-201 | full validator and golden corpus |
+| `SEC-201` | Establish MCP/runtime trust-boundary baseline | CTR-201 | aggregate SEC-201A-D threat, harness, redaction, path, adapter, and side-effect evidence |
+| `CTR-202` | Aggregate Capability Contract v2 | CTR-201, SEC-201 | CTR-202A-K exact 23-canonical / 24-public profile closure and smoke corpus |
 | `LEG-201` | Inventory and disposition every Python/Node/Rust Lite legacy behavior | CTR-201 | capability disposition manifest and normalized oracles |
 | `FND-201` | Scaffold `packages/qiongli-native/` workspace | ARC-201 | fmt/clippy/test on Tier 1 CI |
-| `FND-202` | Build deterministic embedded resource pack | FND-201, CTR-201 | reproducible hash and drift test |
+| `FND-202` | Aggregate deterministic embedded resource pack | FND-201, CTR-201 | FND-202A-F format, reproducible digest, loader, materialization, and drift evidence |
 | `CFG-201` | Define versioned global config and secret-store facade | ARC-201, FND-201 | cross-platform config tests |
 | `CFG-202` | Version and migrate project/guidance/experience state | CFG-201, CTR-201 | import, idempotency and rollback fixtures |
 | `PRV-201` | Extract Rust provider kernel from the frozen Lite surface | FND-201, CTR-201 | Lite compatibility suite |
 | `MCP-201` | Extract Lite transport, protocol, dispatch, and profile policy | FND-201, CTR-201 | stdio and frozen-Lite contract suite |
-| `MCP-202` | Migrate all Full read/config tools | MCP-201, CFG-201, CTR-202 | Full golden calls |
+| `MCP-202` | Aggregate Full read/config migration slices | MCP-201, CFG-201, relevant accepted CTR-202 child | per-family Full golden calls |
 | `MCP-203` | Migrate Full project-write tools | MCP-202, CFG-202, DOM-201 | side-effect and rollback tests |
 | `MCP-204` | Expose agent/orchestrator execution tools through Full MCP | MCP-203, DOM-202, AGT-203, ORC-203 | execution-policy and end-to-end tests |
 | `DOM-201` | Migrate project and subject runtime | CFG-202, FND-202 | fixture parity |
-| `DOM-202` | Migrate guidance, experience, literature artifacts, and journal fit | DOM-201 | fixture parity and AC1 gates |
+| `DOM-202` | Migrate guidance, experience, literature artifacts, and journal fit | DOM-201 | fixture parity |
 | `AGT-201` | Define and implement `AgentBackend` protocol | ARC-201, CFG-201 | fake backend and direct API tests |
 | `AGT-202` | Add direct OpenAI and Anthropic backends | AGT-201 | redacted live opt-in smoke |
 | `AGT-203` | Implement `ToolHost` and `AgentExecutionPolicy` | AGT-201, CFG-201 | sandbox, approval, tool-loop, limit, redaction and audit tests |
@@ -683,7 +848,7 @@ move; their claims must not be weakened to preserve the estimated dates.
 | `AGT-205` | Decide and test the advertised backend matrix, including host-native and Antigravity disposition | AGT-202, AGT-203, AGT-204, INT-204 | per-backend capability and acceptance matrix |
 | `ORC-201` | Port task graph, state, resume, and profiles | CTR-201, CFG-202, AGT-201 | frozen scenario parity |
 | `ORC-202` | Port solo/duo/triad workers and synthesis | ORC-201, AGT-202, AGT-203 | deterministic sandboxed fake-backend suite |
-| `ORC-203` | Port artifacts, review, quality, Stage I, AC1 and Q gates | ORC-202, DOM-202, AGT-203 | end-to-end academic workflow suite |
+| `ORC-203` | Port artifacts, review, quality, and useful Stage I behavior | ORC-202, DOM-202, AGT-203 | end-to-end academic workflow suite |
 | `PLT-201` | Define one target-aware `InstallPlan` | ARC-201, CTR-201 | schema and preview fixtures |
 | `PLT-202` | Implement transactional installer and managed markers | PLT-201, CFG-201 | install/remove/rollback tests |
 | `INT-201` | Implement Codex local source registration | PLT-202 | CLI and desktop activation receipt |
@@ -697,8 +862,6 @@ move; their claims must not be weakened to preserve the estimated dates.
 | `PKG-201` | Build Tier 1 native artifact matrix | FND-201 | target-native startup receipts |
 | `PKG-202` | Add signing, notarization, SBOM, provenance, and checksums | PKG-201 | verified release evidence |
 | `QAT-201` | Add clean-machine zero-runtime acceptance | FND-202, CFG-201, MCP-201, PLT-202, UI-202, INT-201, INT-202, UPD-201 | full alpha-slice no-language-runtime process audit |
-| `GOV-201` | Enforce Rust repository RC1 gates | FND-201 | changed-file and release policy checks |
-| `GOV-202` | Preserve academic AC1/data governance in native runtime | DOM-202, ORC-203 | I4-I8 and Q1/Q2/Q4 evidence |
 | `RET-201` | Remove Node production fallback | LEG-201, PRV-201, DOM-202, MCP-204, two qualified green prereleases | disposition, payload and process audit |
 | `RET-202` | Stop Python product runtime publication | beta-entry gates | registry/channel transition receipt |
 | `REM-201` | Design remote MCP for cloud/web surfaces | local beta evidence | separate threat model and service decision |
@@ -722,8 +885,17 @@ CTR-201E closes only the CLI-runtime inventory slice. CTR-201F closes the
 remaining accepted-source orchestrator-runtime inventory requirement, so the
 parent `CTR-201` source-oracle gate is complete. Archive and published-package
 parity remains an unassigned downstream governance boundary rather than a
-CTR-201 blocker. `CTR-202` and `FND-202` are separate, now-unblocked successors
-in the declared program DAG; neither is implemented by this closure.
+CTR-201 blocker. `CTR-202` and `FND-202` are separate successors in the
+declared program DAG and their CTR-201 dependency is closed. CTR-202 is locally
+complete in the working tree and awaits commit plus exact-head CI. FND-202A is
+locally implemented; FND-202B-F remains open.
+
+### Cancelled governance tasks
+
+The proposed GOV-201A-C and GOV-202A-C enforcement work is cancelled and removed
+from the migration DAG. RC1 and AC1 documents may remain for historical context
+or optional review, but no replacement governance implementation is required.
+Normal language-native checks and concrete regression tests are sufficient.
 
 `REM-201` is intentionally outside the local alpha critical path.
 
@@ -772,8 +944,8 @@ in the declared program DAG; neither is implemented by this closure.
 - accessibility, localization, performance, startup, update, crash recovery,
   and uninstall acceptance;
 - final 1.x support and end-of-life communication;
-- repository RC1 and academic AC1 release gates both passing in their distinct
-  scopes.
+- ordinary component, integration, platform, packaging, and security tests for
+  the released scope passing.
 
 ## Quality And Acceptance Matrix
 
@@ -816,6 +988,8 @@ Track these values per prerelease:
 | Orchestrator remains coupled to external CLIs | Zero-dependency promise is false | `AgentBackend` first; direct API implementation before beta |
 | Direct API agents receive unrestricted local tools | Data loss, secret exposure, or arbitrary execution | Native `ToolHost`, project sandbox, allowlists, approvals, limits and audit |
 | Partial Contract v2 is treated as complete | Full tools drift or vanish | Generated full inventory and blocking coverage gate |
+| Contract completion mixes unrelated schemas, runtimes, security, and release gates | Review time grows and a documentation task becomes an unsafe refactor | keep changes coherent; split only when review or validation becomes unclear |
+| Optional RC1/AC1 guidance is treated as mandatory | Migration returns to governance-first development | keep both outside required CI, dependencies, and release gates |
 | Project files are rewritten without schema migration | Irrecoverable user data loss | backup, forward-only versioning, atomic writes and rollback |
 | GUI duplicates CLI logic | Long-term behavioral drift | one service layer and typed frontend commands |
 | Marketplace payload claims unsupported platforms | Installed MCP cannot start | target identity, local variant selection, honest marketplace scope |

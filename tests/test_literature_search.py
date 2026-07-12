@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 import types
 import unittest
@@ -330,6 +331,60 @@ class LiteratureSearchBaselineTests(unittest.TestCase):
         self.assertTrue(diagnostics["all_providers_failed"])
         self.assertTrue(diagnostics["zero_hit"])
         self.assertEqual(diagnostics["failed_query_count"], diagnostics["attempted_query_count"])
+
+    def test_provider_exception_text_is_replaced_across_public_diagnostics(self) -> None:
+        canary = "QIONGLI_PROVIDER_EXCEPTION_CANARY_DO_NOT_ECHO"
+
+        def failing_provider(
+            translation: dict[str, object],
+            limit: int,
+        ) -> dict[str, object]:
+            raise RuntimeError(canary)
+
+        result = run_scholarly_search(
+            {"topic": "provider failure redaction"},
+            lambda query, limit: {"data": []},
+            retrieved_at="2026-03-25T12:00:00+00:00",
+            provider_fns={"openalex": failing_provider},
+        )
+
+        data = result["data"]
+        failure = data["failures"][0]
+        search_log = data["search_log"][0]
+        provider_failure = data["provider_summaries"]["openalex"]["failures"][0]
+        self.assertEqual(result["status"], "error")
+        self.assertEqual(failure["error_kind"], "provider_exception")
+        self.assertEqual(failure["error"], "Literature provider request failed.")
+        self.assertEqual(search_log["error_kind"], "provider_exception")
+        self.assertEqual(search_log["error"], "Literature provider request failed.")
+        self.assertEqual(provider_failure["error_kind"], "provider_exception")
+        self.assertEqual(
+            provider_failure["error"],
+            "Literature provider request failed.",
+        )
+        self.assertNotIn(canary, json.dumps(result, sort_keys=True))
+
+    def test_provider_error_response_text_is_replaced_at_search_boundary(self) -> None:
+        canary = "QIONGLI_PROVIDER_ERROR_RESPONSE_CANARY_DO_NOT_ECHO"
+        result = run_scholarly_search(
+            {"topic": "provider error response redaction"},
+            lambda query, limit: {"data": []},
+            retrieved_at="2026-03-25T12:00:00+00:00",
+            provider_fns={
+                "openalex": lambda translation, limit: {
+                    "error": canary,
+                    "data": [],
+                }
+            },
+        )
+
+        data = result["data"]
+        self.assertEqual(data["failures"][0]["error_kind"], "provider_error_response")
+        self.assertEqual(
+            data["failures"][0]["error"],
+            "Literature provider request failed.",
+        )
+        self.assertNotIn(canary, json.dumps(result, sort_keys=True))
 
     def test_run_scholarly_search_reports_warning_when_successful_attempts_return_zero_hits(self) -> None:
         result = run_scholarly_search(

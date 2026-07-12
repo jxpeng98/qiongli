@@ -2235,6 +2235,7 @@ def _ordered_union(*values: Sequence[str]) -> list[str]:
 def _validate_contract_and_target(
     repo_root: Path,
     record: Mapping[str, Any],
+    manifest: Mapping[str, Any],
 ) -> list[str]:
     errors: list[str] = []
     contract = record.get("contract_v2")
@@ -2246,45 +2247,45 @@ def _validate_contract_and_target(
         or contract.get("registry_sha256") != EXPECTED_REGISTRY_SHA256
     ):
         errors.append("Contract v2 registry binding is invalid")
-    registry, load_errors = _load_bound_json(
-        repo_root,
+    manifest_domains = manifest.get("domains")
+    mcp_domains = (
+        [
+            domain
+            for domain in manifest_domains
+            if isinstance(domain, Mapping) and domain.get("id") == "mcp"
+        ]
+        if isinstance(manifest_domains, list)
+        else []
+    )
+    registry_entries: list[Mapping[str, Any]] = []
+    if len(mcp_domains) == 1:
+        files = mcp_domains[0].get("files")
+        if isinstance(files, list):
+            registry_entries = [
+                item
+                for item in files
+                if isinstance(item, Mapping)
+                and item.get("path") == EXPECTED_REGISTRY_PATH
+            ]
+    if len(registry_entries) != 1 or (
+        registry_entries[0].get("path"),
+        registry_entries[0].get("sha256"),
+    ) != (EXPECTED_REGISTRY_PATH, EXPECTED_REGISTRY_SHA256):
+        errors.append(
+            "Contract v2 registry binding is absent from accepted A8 MCP metadata"
+        )
+    elif (
         contract.get("registry_path"),
         contract.get("registry_sha256"),
-        label="Contract v2 registry",
-    )
-    errors.extend(load_errors)
-    if registry is None:
-        return errors
-    tools = registry.get("tools")
-    coverage = registry.get("coverage")
-    if not isinstance(tools, list) or not isinstance(coverage, Mapping):
-        return [*errors, "Contract v2 pilot structure is invalid"]
-    canonical: list[str] = []
-    public: list[str] = []
-    for tool in tools:
-        if not isinstance(tool, Mapping) or not isinstance(tool.get("name"), str):
-            errors.append("Contract v2 pilot contains an invalid tool entry")
-            continue
-        canonical.append(tool["name"])
-        public.append(tool["name"])
-        aliases = tool.get("aliases", [])
-        if not isinstance(aliases, list):
-            errors.append("Contract v2 pilot contains an invalid alias inventory")
-            continue
-        for alias in aliases:
-            if isinstance(alias, Mapping) and isinstance(alias.get("name"), str):
-                public.append(alias["name"])
-            else:
-                errors.append("Contract v2 pilot contains an invalid alias entry")
+    ) != (
+        registry_entries[0].get("path"),
+        registry_entries[0].get("sha256"),
+    ):
+        errors.append("Contract v2 registry binding differs from accepted A8 metadata")
+
+    # CTR-201 is a historical freeze. Its six-tool pilot facts remain recorded in
+    # the immutable ledger even after the live Contract v2 registry advances.
     actual_contract = (
-        registry.get("status"),
-        coverage.get("mode"),
-        len(canonical),
-        len(public),
-        coverage.get("target_canonical_tool_count"),
-        coverage.get("target_public_name_count"),
-    )
-    recorded_contract = (
         contract.get("status"),
         contract.get("coverage_mode"),
         contract.get("canonical_tool_count"),
@@ -2292,8 +2293,8 @@ def _validate_contract_and_target(
         contract.get("target_canonical_tool_count"),
         contract.get("target_public_name_count"),
     )
-    if actual_contract != ("pilot", "pilot", 6, 7, 23, 24) or recorded_contract != actual_contract:
-        errors.append("Contract v2 pilot coverage does not match the current registry")
+    if actual_contract != ("pilot", "pilot", 6, 7, 23, 24):
+        errors.append("Contract v2 pilot coverage does not match the frozen CTR-201 facts")
     if contract.get("completion_ready") is not False:
         errors.append("Contract v2 pilot cannot be marked complete")
 
@@ -2323,8 +2324,6 @@ def _validate_contract_and_target(
     target_canonical = [name for name in target_public if name not in alias_names]
     if target_canonical != mcp.get("target_canonical_names") or len(target_canonical) != 23:
         errors.append("target MCP canonical-name inventory is invalid")
-    if not set(canonical).issubset(target_canonical) or not set(public).issubset(target_public):
-        errors.append("Contract v2 pilot names must be contained in the target inventory")
     target_set = set(target_public)
     derived_legacy = [name for name in node_names if name not in target_set]
     legacy = mcp.get("legacy_only")
@@ -3087,7 +3086,7 @@ def validate_inventory(
         repo_root, record, manifest
     )
     errors.extend(surface_errors)
-    errors.extend(_validate_contract_and_target(repo_root, record))
+    errors.extend(_validate_contract_and_target(repo_root, record, manifest))
     errors.extend(_validate_coverage_gaps(record, oracle_documents))
     errors.extend(_validate_cli_static_semantics(repo_root, record))
     errors.extend(_validate_cli_runtime_freeze(repo_root, record))

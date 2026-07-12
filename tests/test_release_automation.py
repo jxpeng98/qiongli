@@ -541,7 +541,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
 
         capability_gate = (
-            'python3 scripts/validate_capability_contract.py --root "$PREFLIGHT_ROOT"'
+            'python3 scripts/validate_capability_contract.py --root "$PREFLIGHT_ROOT" --require-complete'
         )
         standard_validator = 'run_logged_stage "validator" "$validator_log" "${validate_cmd[@]}"'
 

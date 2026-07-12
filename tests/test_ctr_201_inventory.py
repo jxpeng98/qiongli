@@ -51,6 +51,7 @@ from tooling.scripts.validate_ctr_201_inventory import (
     _validate_cli_static_semantics,
     _validate_content_artifact_semantics,
     _validate_content_materialization_contract,
+    _validate_contract_and_target,
     _validate_orchestrator_artifact_semantics,
     _validate_orchestrator_runtime_freeze,
     _validate_orchestrator_static_contract,
@@ -65,7 +66,6 @@ from tooling.scripts.validate_ctr_201_inventory import (
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DIGEST_BOUND_JSON_PATHS = (
-    "content/mcp-contracts/v2/registry.json",
     "tooling/migration/baselines/v1.19.0-beta.1/manifest.json",
     "tooling/migration/baselines/v1.19.0-beta.1/oracles/node-mcpb.json",
     "tooling/migration/baselines/v1.19.0-beta.1/oracles/python-full.json",
@@ -85,6 +85,11 @@ class Ctr201InventoryTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.record, cls.schema = load_inventory_documents(REPO_ROOT)
+        cls.manifest = _load_json_file(
+            REPO_ROOT,
+            "tooling/migration/baselines/v1.19.0-beta.1/manifest.json",
+            label="frozen A8 manifest",
+        )
         cls.cli_artifact = _load_json_file(
             REPO_ROOT, DEFAULT_CLI_ARTIFACT, label="CLI child artifact"
         )
@@ -202,6 +207,36 @@ class Ctr201InventoryTests(unittest.TestCase):
                 contract["target_public_name_count"],
             ),
             ("pilot", 6, 7, 23, 24),
+        )
+
+    def test_historical_contract_uses_a8_metadata_not_live_registry_bytes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            errors = _validate_contract_and_target(
+                Path(directory),
+                self.record,
+                self.manifest,
+            )
+
+        self.assertEqual(errors, [])
+
+        mutated_manifest = copy.deepcopy(self.manifest)
+        mcp_domain = next(
+            domain for domain in mutated_manifest["domains"] if domain["id"] == "mcp"
+        )
+        registry_entry = next(
+            item
+            for item in mcp_domain["files"]
+            if item["path"] == "content/mcp-contracts/v2/registry.json"
+        )
+        registry_entry["sha256"] = "0" * 64
+        errors = _validate_contract_and_target(
+            REPO_ROOT,
+            self.record,
+            mutated_manifest,
+        )
+        self.assertIn(
+            "Contract v2 registry binding is absent from accepted A8 MCP metadata",
+            errors,
         )
 
     def test_runtime_surfaces_and_node_only_legacy_names_are_exact(self) -> None:

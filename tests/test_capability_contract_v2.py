@@ -13,6 +13,7 @@ from unittest import mock
 import tooling.scripts.validate_capability_contract as capability_contract_validator
 from tooling.scripts.build_lite_mcp import build_current_platform
 from tooling.scripts.validate_capability_contract import (
+    _load_json,
     runtime_schema_projection,
     validate_capability_contract,
     validate_instance,
@@ -90,15 +91,39 @@ class CapabilityContractV2Tests(unittest.TestCase):
     def tearDownClass(cls) -> None:
         cls._temporary_directory.cleanup()
 
-    def test_registry_pilot_is_structurally_and_semantically_valid(self) -> None:
-        self.assertEqual(validate_capability_contract(REPO_ROOT), [])
+    def _validate_registry_mutation(
+        self,
+        registry: dict[str, object],
+        **kwargs: object,
+    ) -> list[str]:
+        original_load_json = capability_contract_validator._load_json
+        registry_path = (REPO_ROOT / "content/mcp-contracts/v2/registry.json").resolve()
+
+        def load_json(path: Path) -> object:
+            if path.resolve() == registry_path:
+                return copy.deepcopy(registry)
+            return original_load_json(path)
+
+        with mock.patch.object(
+            capability_contract_validator,
+            "_load_json",
+            side_effect=load_json,
+        ):
+            return capability_contract_validator.validate_capability_contract(
+                REPO_ROOT,
+                **kwargs,
+            )
+
+    def test_registry_complete_is_structurally_and_semantically_valid(self) -> None:
+        self.assertEqual(validate_capability_contract(REPO_ROOT, require_complete=True), [])
         self.assertEqual(
             validate_instance(self._registry, self._registry_schema),
             [],
         )
-        self.assertEqual(self._registry["coverage"]["mode"], "pilot")
-        self.assertEqual(self._registry["coverage"]["canonical_tool_count"], 6)
-        self.assertEqual(self._registry["coverage"]["public_name_count"], 7)
+        self.assertEqual(self._registry["status"], "preview")
+        self.assertEqual(self._registry["coverage"]["mode"], "complete")
+        self.assertEqual(self._registry["coverage"]["canonical_tool_count"], 23)
+        self.assertEqual(self._registry["coverage"]["public_name_count"], 24)
         self.assertEqual(self._registry["coverage"]["target_canonical_tool_count"], 23)
         self.assertEqual(self._registry["coverage"]["target_public_name_count"], 24)
 
@@ -185,6 +210,54 @@ class CapabilityContractV2Tests(unittest.TestCase):
                 "/native_search_queries",
                 "/native_fulltext_queries",
             ],
+        )
+
+    def test_experience_records_are_declared_as_sensitive_outputs(self) -> None:
+        records = {tool["name"]: tool for tool in self._registry["tools"]}
+
+        self.assertEqual(
+            records["qiongli_experience_query"]["security"]["sensitive_output_paths"],
+            ["/project_dir", "/records"],
+        )
+        self.assertEqual(
+            records["qiongli_experience_show"]["security"]["sensitive_output_paths"],
+            ["/project_dir", "/record_path", "/record"],
+        )
+        self.assertEqual(
+            records["qiongli_experience_lessons"]["security"]["sensitive_output_paths"],
+            ["/project_dir", "/records"],
+        )
+
+    def test_divergent_outputs_declare_profile_scoped_sensitive_paths(self) -> None:
+        records = {tool["name"]: tool for tool in self._registry["tools"]}
+
+        for name in (
+            "qiongli_literature_search",
+            "qiongli_orchestrator_route",
+            "qiongli_task_plan",
+        ):
+            with self.subTest(tool=name):
+                paths = records[name]["security"]["profile_sensitive_output_paths"]
+                self.assertEqual(set(paths), {"marketplace-lite", "full"})
+                self.assertNotEqual(paths["marketplace-lite"], paths["full"])
+
+    def test_validator_rejects_missing_profile_scoped_security_metadata(self) -> None:
+        invalid = copy.deepcopy(self._registry)
+        record = next(
+            tool
+            for tool in invalid["tools"]
+            if tool["name"] == "qiongli_literature_search"
+        )
+        del record["security"]["profile_sensitive_output_paths"]["full"]
+
+        failures = self._validate_registry_mutation(invalid)
+
+        self.assertTrue(
+            any(
+                "divergent output schemas require profile-sensitive paths" in failure
+                for failure in failures
+            ),
+            failures,
         )
 
     def test_literature_status_golden_call_is_schema_valid_and_secret_free(self) -> None:
@@ -812,7 +885,7 @@ class CapabilityContractV2Tests(unittest.TestCase):
             failures,
         )
 
-    def test_validator_derives_target_counts_from_full_and_lite_union(self) -> None:
+    def test_validator_rejects_runtime_deletion_against_frozen_inventory(self) -> None:
         full_definitions = {tool["name"]: tool for tool in MCP_TOOL_DEFINITIONS}
         del full_definitions["qiongli_task_run"]
 
@@ -823,14 +896,15 @@ class CapabilityContractV2Tests(unittest.TestCase):
 
         self.assertTrue(
             any(
-                "target_canonical_tool_count" in failure and "(22)" in failure
+                "full runtime public names differs from frozen CTR-201 inventory" in failure
+                and "qiongli_task_run" in failure
                 for failure in failures
             ),
             failures,
         )
         self.assertTrue(
             any(
-                "target_public_name_count" in failure and "(23)" in failure
+                "live Full/Lite runtime union" in failure
                 for failure in failures
             ),
             failures,
@@ -869,7 +943,233 @@ class CapabilityContractV2Tests(unittest.TestCase):
                 failures,
             )
 
-    def test_validator_excludes_runtime_compatibility_aliases_from_canonical_target(
+    def test_validator_rejects_complete_registry_reordering(self) -> None:
+        invalid = copy.deepcopy(self._registry)
+        invalid["tools"][0], invalid["tools"][1] = (
+            invalid["tools"][1],
+            invalid["tools"][0],
+        )
+
+        failures = self._validate_registry_mutation(invalid)
+
+        self.assertIn(
+            "registry canonical tool order differs from frozen CTR-201 inventory",
+            failures,
+        )
+
+    def test_require_complete_rejects_pilot_mode(self) -> None:
+        invalid = copy.deepcopy(self._registry)
+        invalid["status"] = "pilot"
+        invalid["coverage"]["mode"] = "pilot"
+
+        failures = self._validate_registry_mutation(
+            invalid,
+            require_complete=True,
+        )
+
+        self.assertIn("Capability Contract v2 complete coverage is required", failures)
+
+    def test_validator_rejects_profile_overclaim_and_non_tool_schema_refs(self) -> None:
+        invalid = copy.deepcopy(self._registry)
+        task_run = next(
+            tool for tool in invalid["tools"] if tool["name"] == "qiongli_task_run"
+        )
+        task_run["profiles"]["marketplace-lite"] = {
+            "exposure": "tool",
+            "input_schema_ref": task_run["profiles"]["full"]["input_schema_ref"],
+            "output_schema_ref": task_run["profiles"]["full"]["output_schema_ref"],
+            "error_transport": "json-rpc-and-tool-result",
+        }
+
+        failures = self._validate_registry_mutation(invalid)
+
+        self.assertTrue(
+            any(
+                "qiongli_task_run.marketplace-lite: exposure must be 'unavailable'"
+                in failure
+                for failure in failures
+            ),
+            failures,
+        )
+
+        invalid = copy.deepcopy(self._registry)
+        zotero_status = next(
+            tool for tool in invalid["tools"] if tool["name"] == "qiongli_zotero_status"
+        )
+        zotero_status["profiles"]["full"]["input_schema_ref"] = (
+            zotero_status["profiles"]["marketplace-lite"]["input_schema_ref"]
+        )
+        failures = self._validate_registry_mutation(invalid)
+        self.assertTrue(
+            any(
+                "qiongli_zotero_status.full: non-tool exposure must not declare schema refs"
+                in failure
+                for failure in failures
+            ),
+            failures,
+        )
+
+    def test_validator_indexes_divergent_input_schemas_by_profile(self) -> None:
+        lite_contract = json.loads(
+            (REPO_ROOT / "content/mcp-contracts/lite-tools.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        lite_definitions = {tool["name"]: tool for tool in lite_contract["tools"]}
+        full_definitions = {tool["name"]: tool for tool in MCP_TOOL_DEFINITIONS}
+        lite_definitions["qiongli_literature_search"] = {
+            **lite_definitions["qiongli_literature_search"],
+            "inputSchema": full_definitions["qiongli_literature_search"]["inputSchema"],
+        }
+
+        failures = validate_capability_contract(
+            REPO_ROOT,
+            lite_tool_definitions=lite_definitions,
+        )
+
+        self.assertIn(
+            "qiongli_literature_search: marketplace-lite input schema drifts from v2 registry",
+            failures,
+        )
+
+    def test_validator_rejects_wrong_profile_specific_schema_id(self) -> None:
+        schema_path = (
+            CONTRACT_ROOT
+            / "schemas/qiongli_task_run.full.input.schema.json"
+        ).resolve()
+        invalid_schema = json.loads(schema_path.read_text(encoding="utf-8"))
+        invalid_schema["$id"] = (
+            "https://qiongli.dev/schemas/tools/qiongli_task_run.input.v2.json"
+        )
+        original_load_json = capability_contract_validator._load_json
+
+        def load_json(path: Path) -> object:
+            if path.resolve() == schema_path:
+                return copy.deepcopy(invalid_schema)
+            return original_load_json(path)
+
+        with mock.patch.object(
+            capability_contract_validator,
+            "_load_json",
+            side_effect=load_json,
+        ):
+            failures = validate_capability_contract(REPO_ROOT)
+
+        self.assertTrue(
+            any(
+                "qiongli_task_run.full: input_schema_ref must declare $id" in failure
+                and "qiongli_task_run.full.input.v2.json" in failure
+                for failure in failures
+            ),
+            failures,
+        )
+
+    def test_validator_rejects_open_or_empty_top_level_output_envelopes(self) -> None:
+        schema_path = (
+            CONTRACT_ROOT
+            / "schemas/qiongli_task_run.full.output.schema.json"
+        ).resolve()
+        invalid_schema = json.loads(schema_path.read_text(encoding="utf-8"))
+        invalid_schema["properties"] = {}
+        invalid_schema["required"] = []
+        invalid_schema["additionalProperties"] = True
+        original_load_json = capability_contract_validator._load_json
+
+        def load_json(path: Path) -> object:
+            if path.resolve() == schema_path:
+                return copy.deepcopy(invalid_schema)
+            return original_load_json(path)
+
+        with mock.patch.object(
+            capability_contract_validator,
+            "_load_json",
+            side_effect=load_json,
+        ):
+            failures = validate_capability_contract(REPO_ROOT)
+
+        self.assertTrue(
+            any(
+                "must close its top-level additional properties" in failure
+                for failure in failures
+            ),
+            failures,
+        )
+        self.assertTrue(
+            any("must declare non-empty top-level properties" in failure for failure in failures),
+            failures,
+        )
+        self.assertTrue(
+            any(
+                "must declare non-empty top-level required properties" in failure
+                for failure in failures
+            ),
+            failures,
+        )
+
+    def test_validator_rejects_smoke_orphans_and_missing_profile_pairs(self) -> None:
+        invalid = copy.deepcopy(self._registry)
+        shared = next(
+            tool for tool in invalid["tools"] if len(tool["smoke_call_ids"]) >= 2
+        )
+        shared["smoke_call_ids"].pop()
+
+        failures = self._validate_registry_mutation(invalid)
+
+        self.assertTrue(
+            any("registry/fixture smoke IDs" in failure for failure in failures),
+            failures,
+        )
+        self.assertTrue(
+            any("no referenced smoke fixture covers" in failure for failure in failures),
+            failures,
+        )
+
+    def test_validator_rejects_downgrading_positive_smoke_to_input_error(self) -> None:
+        fixture_path = (
+            REPO_ROOT
+            / "content/mcp-contracts/fixtures/capability-contract-v2-smoke-calls.json"
+        ).resolve()
+        invalid_fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+        task_plan = next(
+            call
+            for call in invalid_fixture["calls"]
+            if call["profile"] == "full" and call["name"] == "qiongli_task_plan"
+        )
+        task_plan["arguments"] = {}
+        task_plan["expected_response_class"] = "input_error"
+        original_load_json = capability_contract_validator._load_json
+
+        def load_json(path: Path) -> object:
+            if path.resolve() == fixture_path:
+                return copy.deepcopy(invalid_fixture)
+            return original_load_json(path)
+
+        with mock.patch.object(
+            capability_contract_validator,
+            "_load_json",
+            side_effect=load_json,
+        ):
+            failures = validate_capability_contract(REPO_ROOT)
+
+        self.assertTrue(
+            any("input-error smoke boundary" in failure for failure in failures),
+            failures,
+        )
+
+    def test_strict_json_loader_rejects_duplicate_and_nonfinite_values(self) -> None:
+        cases = (
+            '{"value":1,"value":2}',
+            '{"value":NaN}',
+            '{"value":1e999}',
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            for index, source in enumerate(cases):
+                path = Path(directory) / f"invalid-{index}.json"
+                path.write_text(source, encoding="utf-8")
+                with self.subTest(source=source), self.assertRaises(ValueError):
+                    _load_json(path)
+
+    def test_validator_rejects_runtime_alias_outside_frozen_public_surface(
         self,
     ) -> None:
         lite_contract = json.loads(
@@ -889,13 +1189,10 @@ class CapabilityContractV2Tests(unittest.TestCase):
             lite_tool_definitions=lite_definitions,
         )
 
-        self.assertFalse(
-            any("target_canonical_tool_count" in failure for failure in failures),
-            failures,
-        )
         self.assertTrue(
             any(
-                "target_public_name_count" in failure and "(25)" in failure
+                "marketplace-lite runtime public names differs from frozen CTR-201 inventory"
+                in failure
                 for failure in failures
             ),
             failures,
@@ -923,6 +1220,35 @@ class CapabilityContractV2Tests(unittest.TestCase):
             failures,
         )
 
+    def test_validator_requires_exact_lite_mcpb_surface_without_full_only_tools(
+        self,
+    ) -> None:
+        manifest = json.loads(
+            (REPO_ROOT / "packages/qiongli-literature-mcpb/manifest.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        definitions = {tool["name"]: tool for tool in manifest["tools"]}
+        self.assertNotIn("qiongli_task_run", definitions)
+        del definitions["qiongli_task_plan"]
+
+        failures = validate_capability_contract(
+            REPO_ROOT,
+            mcpb_tool_definitions=definitions,
+        )
+
+        self.assertTrue(
+            any("MCPB/Lite public names" in failure for failure in failures),
+            failures,
+        )
+        self.assertFalse(
+            any(
+                "qiongli_task_run is missing from the MCPB manifest" in failure
+                for failure in failures
+            ),
+            failures,
+        )
+
     def test_schema_validator_enforces_declared_string_and_array_bounds(self) -> None:
         schema = self._literature_planning_schemas["qiongli_search_plan"]["input"]
 
@@ -934,6 +1260,36 @@ class CapabilityContractV2Tests(unittest.TestCase):
 
         self.assertTrue(any("longer than 4096" in failure for failure in string_failures))
         self.assertTrue(any("at most 8 items" in failure for failure in array_failures))
+
+    def test_schema_validator_enforces_declared_formats(self) -> None:
+        self.assertEqual(
+            validate_instance(
+                "2026-07-12T20:30:50Z",
+                {"type": "string", "format": "date-time"},
+            ),
+            [],
+        )
+        self.assertNotEqual(
+            validate_instance(
+                "2026-07-12 20:30:50",
+                {"type": "string", "format": "date-time"},
+            ),
+            [],
+        )
+        self.assertEqual(
+            validate_instance(
+                "http://127.0.0.1:8765/setup?token=redacted",
+                {"type": "string", "format": "uri"},
+            ),
+            [],
+        )
+        self.assertNotEqual(
+            validate_instance(
+                "/relative/setup",
+                {"type": "string", "format": "uri"},
+            ),
+            [],
+        )
 
     def test_output_schema_rejects_untraceable_snapshot(self) -> None:
         failures = validate_instance(

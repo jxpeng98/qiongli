@@ -152,8 +152,8 @@ impl McpServer {
             return self.error(id, -32602, "Tool arguments must be an object");
         }
         if let Some(allowed) = allowed_arguments(name) {
-            if let Some(unknown) = first_unknown_key(&arguments, allowed) {
-                return self.error(id, -32602, format!("Unsupported argument: {unknown}"));
+            if first_unknown_key(&arguments, allowed).is_some() {
+                return self.error(id, -32602, "Unsupported argument");
             }
         }
 
@@ -232,8 +232,11 @@ impl McpServer {
                 *active_session = Some(wizard);
                 self.tool_result(id, payload)
             }
-            Err(error @ (WizardError::NonLoopbackHost | WizardError::UnsupportedProvider(_))) => {
-                self.error(id, -32602, error.to_string())
+            Err(WizardError::NonLoopbackHost) => {
+                self.error(id, -32602, "wizard host must be loopback")
+            }
+            Err(WizardError::UnsupportedProvider(_)) => {
+                self.error(id, -32602, "unsupported provider")
             }
             Err(_) => self.tool_error(id, REDACTED_CONFIG_WIZARD_ERROR.to_string()),
         }
@@ -272,8 +275,8 @@ impl McpServer {
                 }
                 self.tool_result(id, payload)
             }
-            Err(error @ ConfigError::UnsupportedField(_, _)) => {
-                self.error(id, -32602, error.to_string())
+            Err(ConfigError::UnsupportedField(_, _)) => {
+                self.error(id, -32602, "unsupported provider field")
             }
             Err(_) => self.tool_error(id, REDACTED_CONFIG_SAVE_ERROR.to_string()),
         }
@@ -583,7 +586,7 @@ impl McpServer {
                     ]
                     .contains(&format)
                     {
-                        return self.error(id, -32602, format!("Unsupported format: {format}"));
+                        return self.error(id, -32602, "Unsupported format");
                     }
                     selected.push(format);
                 }
@@ -604,6 +607,7 @@ impl McpServer {
     }
 
     fn tool_result(&self, id: Option<Value>, structured_content: Value) -> Value {
+        let structured_content = redact_tool_output(structured_content);
         let text = serde_json::to_string_pretty(&structured_content)
             .unwrap_or_else(|_| "{\"status\":\"ok\"}".to_string());
         self.result(
@@ -663,6 +667,63 @@ fn first_unknown_key<'a>(arguments: &'a Value, allowed: &[&str]) -> Option<&'a s
         .keys()
         .find(|key| !allowed.contains(&key.as_str()))
         .map(String::as_str)
+}
+
+fn redact_tool_output(value: Value) -> Value {
+    match value {
+        Value::Object(entries) => Value::Object(
+            entries
+                .into_iter()
+                .filter_map(|(key, value)| {
+                    (!credential_bearing_key(&key)).then(|| (key, redact_tool_output(value)))
+                })
+                .collect(),
+        ),
+        Value::Array(values) => Value::Array(values.into_iter().map(redact_tool_output).collect()),
+        value => value,
+    }
+}
+
+fn credential_bearing_key(key: &str) -> bool {
+    let normalized = key
+        .trim()
+        .to_ascii_lowercase()
+        .replace('-', "_")
+        .replace(' ', "_");
+    let compact = normalized.replace('_', "");
+    let padded = format!("_{normalized}_");
+    let has_sensitive_segment = normalized.split('_').any(|segment| {
+        matches!(
+            segment,
+            "secret" | "password" | "passwd" | "credential" | "credentials" | "auth" | "bearer"
+        )
+    });
+    let has_sensitive_marker = [
+        "api_key",
+        "access_key",
+        "authorization",
+        "cookie",
+        "private_key",
+        "client_secret",
+        "access_token",
+        "refresh_token",
+        "auth_token",
+        "id_token",
+    ]
+    .iter()
+    .any(|marker| padded.contains(&format!("_{marker}_")));
+
+    has_sensitive_segment
+        || normalized == "token"
+        || normalized == "authorization"
+        || normalized.ends_with("_token")
+        || compact.ends_with("token")
+        || compact.ends_with("apikey")
+        || compact.ends_with("accesstoken")
+        || compact.ends_with("accesskey")
+        || compact.ends_with("privatekey")
+        || compact.ends_with("clientsecret")
+        || has_sensitive_marker
 }
 
 fn allowed_arguments(name: &str) -> Option<&'static [&'static str]> {
@@ -1122,7 +1183,7 @@ fn parse_providers(arguments: &Value) -> Result<Option<Vec<String>>, String> {
             .as_str()
             .ok_or_else(|| "providers must contain strings".to_string())?;
         if !PROVIDER_ORDER.contains(&provider) {
-            return Err(format!("unsupported provider: {provider}"));
+            return Err("unsupported provider".to_string());
         }
         if !providers.iter().any(|candidate| candidate == provider) {
             providers.push(provider.to_string());
