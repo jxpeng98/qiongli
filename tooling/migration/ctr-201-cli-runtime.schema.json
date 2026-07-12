@@ -1,0 +1,624 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qiongli.dev/schemas/ctr-201-cli-runtime.schema.json",
+  "title": "Qiongli CTR-201E accepted-source Full CLI runtime inventory freeze",
+  "type": "object",
+  "required": [
+    "$schema",
+    "schema_version",
+    "record_type",
+    "task_id",
+    "status",
+    "source",
+    "capture_contract",
+    "error_taxonomy",
+    "disposition_decisions",
+    "console_entrypoints",
+    "public_commands",
+    "cases",
+    "npm_compatibility",
+    "coverage",
+    "compatibility_boundary",
+    "integrity"
+  ],
+  "properties": {
+    "$schema": {"const": "./ctr-201-cli-runtime.schema.json"},
+    "schema_version": {"const": "1.0"},
+    "record_type": {"const": "qiongli-ctr-201-cli-runtime-inventory-freeze"},
+    "task_id": {"const": "CTR-201E"},
+    "status": {"const": "runtime-inventory-freeze-captured"},
+    "source": {"$ref": "#/$defs/source"},
+    "capture_contract": {"$ref": "#/$defs/captureContract"},
+    "error_taxonomy": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/errorTaxonomyItem"}
+    },
+    "disposition_decisions": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/dispositionDecision"}
+    },
+    "console_entrypoints": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/consoleEntrypoint"}
+    },
+    "public_commands": {
+      "type": "array",
+      "minItems": 49,
+      "maxItems": 49,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/publicCommand"}
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 118,
+      "maxItems": 118,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/runtimeCase"}
+    },
+    "npm_compatibility": {"$ref": "#/$defs/npmCompatibility"},
+    "coverage": {"$ref": "#/$defs/coverage"},
+    "compatibility_boundary": {"$ref": "#/$defs/compatibilityBoundary"},
+    "integrity": {"$ref": "#/$defs/integrity"}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "gitOid": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "nonemptyString": {"type": "string", "minLength": 1},
+    "nullableString": {
+      "oneOf": [
+        {"type": "null"},
+        {"$ref": "#/$defs/nonemptyString"}
+      ]
+    },
+    "nullableSha256": {
+      "oneOf": [
+        {"type": "null"},
+        {"$ref": "#/$defs/sha256"}
+      ]
+    },
+    "path": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 4,
+      "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"}
+    },
+    "fileBinding": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    },
+    "treeBinding": {
+      "type": "object",
+      "required": ["root", "file_count", "tree_sha256"],
+      "properties": {
+        "root": {"type": "string", "pattern": "^packages/.+/$"},
+        "file_count": {"type": "integer", "minimum": 1},
+        "tree_sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "trust",
+        "accepted_tag",
+        "tag_object_oid",
+        "accepted_commit",
+        "a8_manifest",
+        "acceptance_receipt",
+        "python_package_tree",
+        "npm_package_tree",
+        "python_full_oracle",
+        "ctr_201b"
+      ],
+      "properties": {
+        "trust": {"const": "exact-tag-object-receipt-and-digest-bound-not-signature-verified"},
+        "accepted_tag": {"const": "v1.19.0-beta.1"},
+        "tag_object_oid": {"const": "e68e3af4c879d8e9053124d1aed625bfcddfdbb4"},
+        "accepted_commit": {"const": "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f"},
+        "a8_manifest": {"$ref": "#/$defs/fileBinding"},
+        "acceptance_receipt": {
+          "type": "object",
+          "required": ["path", "git_blob_oid", "sha256", "size_bytes", "source_commit"],
+          "properties": {
+            "path": {"const": "tooling/release/acceptance/v1.19.0-beta.1-receipt.md"},
+            "git_blob_oid": {"$ref": "#/$defs/gitOid"},
+            "sha256": {"$ref": "#/$defs/sha256"},
+            "size_bytes": {"const": 6641},
+            "source_commit": {"$ref": "#/$defs/gitOid"}
+          },
+          "additionalProperties": false
+        },
+        "python_package_tree": {"$ref": "#/$defs/treeBinding"},
+        "npm_package_tree": {"$ref": "#/$defs/treeBinding"},
+        "python_full_oracle": {
+          "type": "object",
+          "required": ["path", "sha256", "case_ids"],
+          "properties": {
+            "path": {"const": "tooling/migration/baselines/v1.19.0-beta.1/oracles/python-full.json"},
+            "sha256": {"$ref": "#/$defs/sha256"},
+            "case_ids": {
+              "const": ["python.cli-align", "python.installer-dry-run"]
+            }
+          },
+          "additionalProperties": false
+        },
+        "ctr_201b": {
+          "type": "object",
+          "required": [
+            "artifact_path",
+            "schema_path",
+            "schema_canonical_sha256",
+            "payload_sha256"
+          ],
+          "properties": {
+            "artifact_path": {"const": "tooling/migration/ctr-201-cli.json"},
+            "schema_path": {"const": "tooling/migration/ctr-201-cli.schema.json"},
+            "schema_canonical_sha256": {"$ref": "#/$defs/sha256"},
+            "payload_sha256": {"$ref": "#/$defs/sha256"}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "captureContract": {
+      "type": "object",
+      "required": [
+        "source_mode",
+        "python_version",
+        "python_isolation",
+        "npm_capture",
+        "npm_engine_requirement",
+        "terminal",
+        "locale",
+        "timezone",
+        "path_normalization",
+        "network_policy",
+        "write_policy",
+        "process_policy",
+        "secret_policy",
+        "determinism"
+      ],
+      "properties": {
+        "source_mode": {"const": "accepted-tag-git-blobs"},
+        "python_version": {"const": "python3.12"},
+        "python_isolation": {"const": "-I-S-B-dual-environment-audit-hook"},
+        "npm_capture": {"const": "accepted-args-mjs-parse-only-dual-environment"},
+        "npm_engine_requirement": {"const": ">=18"},
+        "terminal": {"const": "non-tty-80-columns-no-color"},
+        "locale": {"const": "C.UTF-8"},
+        "timezone": {"const": "UTC"},
+        "path_normalization": {
+          "const": [
+            "<RUNTIME_SOURCE>",
+            "<ACCEPTED_ROOT>",
+            "<CONFIG_ROOT>",
+            "<HOME>",
+            "<CWD>",
+            "<SANDBOX>"
+          ]
+        },
+        "network_policy": {"const": "python-audit-denied;node-authenticated-parse-only-no-capability-imports"},
+        "write_policy": {"const": "python-mutable-roots-measured-and-audit-confined;node-accepted-tree-before-after-identical"},
+        "process_policy": {"const": "accepted-runtime-cases-launch-no-child-processes;parent-launches-git-python-node-capture-processes"},
+        "secret_policy": {"const": "sanitized-environment-and-canary-rejection"},
+        "determinism": {"const": "two-distinct-temp-roots-and-hash-seeds-byte-equivalent"}
+      },
+      "additionalProperties": false
+    },
+    "errorTaxonomyItem": {
+      "type": "object",
+      "required": ["id", "meaning"],
+      "properties": {
+        "id": {
+          "enum": ["none", "usage-error", "input-error"]
+        },
+        "meaning": {"$ref": "#/$defs/nonemptyString"}
+      },
+      "additionalProperties": false
+    },
+    "dispositionDecision": {
+      "type": "object",
+      "required": ["id", "status", "owner_task", "scope", "rationale"],
+      "properties": {
+        "id": {"enum": ["CTR-201E-D001", "CTR-201E-D002", "CTR-201E-D003"]},
+        "status": {"const": "approved-for-ctr-201-inventory-only"},
+        "owner_task": {"const": "LEG-201"},
+        "scope": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+        "rationale": {"$ref": "#/$defs/nonemptyString"}
+      },
+      "additionalProperties": false
+    },
+    "consoleEntrypoint": {
+      "type": "object",
+      "required": [
+        "name",
+        "target",
+        "root_help_case_id",
+        "align_case_id",
+        "root_help_sha256",
+        "align_sha256"
+      ],
+      "properties": {
+        "name": {"enum": ["qiongli", "ql", "research-skills", "rsk", "rsw"]},
+        "target": {"const": "qiongli.cli:main"},
+        "root_help_case_id": {"type": "string", "pattern": "^python\\.entrypoint\\..+\\.root-help$"},
+        "align_case_id": {"type": "string", "pattern": "^python\\.entrypoint\\..+\\.align$"},
+        "root_help_sha256": {"$ref": "#/$defs/sha256"},
+        "align_sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    },
+    "dimension": {
+      "type": "object",
+      "required": ["disposition", "case_ids", "reason_code", "decision_id"],
+      "properties": {
+        "disposition": {
+          "enum": ["captured", "accepted-oracle", "not-applicable", "explicit-disposition"]
+        },
+        "case_ids": {
+          "type": "array",
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "reason_code": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+        "decision_id": {
+          "oneOf": [
+            {"type": "null"},
+            {"enum": ["CTR-201E-D001", "CTR-201E-D002", "CTR-201E-D003"]}
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "publicCommand": {
+      "type": "object",
+      "required": [
+        "public_path",
+        "canonical_path",
+        "path_kind",
+        "json_capable",
+        "dry_run_capable",
+        "executable",
+        "help",
+        "behavior",
+        "stdout_stderr",
+        "exit_code",
+        "json",
+        "dry_run",
+        "zero_argument",
+        "error",
+        "side_effects"
+      ],
+      "properties": {
+        "public_path": {"$ref": "#/$defs/path"},
+        "canonical_path": {"$ref": "#/$defs/path"},
+        "path_kind": {"enum": ["canonical", "alias"]},
+        "json_capable": {"type": "boolean"},
+        "dry_run_capable": {"type": "boolean"},
+        "executable": {"type": "boolean"},
+        "help": {"$ref": "#/$defs/dimension"},
+        "behavior": {"$ref": "#/$defs/dimension"},
+        "stdout_stderr": {"$ref": "#/$defs/dimension"},
+        "exit_code": {"$ref": "#/$defs/dimension"},
+        "json": {"$ref": "#/$defs/dimension"},
+        "dry_run": {"$ref": "#/$defs/dimension"},
+        "zero_argument": {"$ref": "#/$defs/dimension"},
+        "error": {"$ref": "#/$defs/dimension"},
+        "side_effects": {"$ref": "#/$defs/dimension"}
+      },
+      "additionalProperties": false
+    },
+    "jsonOutcome": {
+      "type": "object",
+      "required": ["disposition", "canonical_json", "canonical_sha256"],
+      "properties": {
+        "disposition": {"enum": ["captured", "not-applicable"]},
+        "canonical_json": {"$ref": "#/$defs/nullableString"},
+        "canonical_sha256": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/sha256"}
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "outcome": {
+      "type": "object",
+      "required": [
+        "exit_code",
+        "termination",
+        "error_class",
+        "exception_type",
+        "exception_message",
+        "stdout_lines",
+        "stdout_terminated",
+        "stderr_lines",
+        "stderr_terminated",
+        "json"
+      ],
+      "properties": {
+        "exit_code": {"type": "integer", "minimum": 0, "maximum": 255},
+        "termination": {"enum": ["return", "system-exit", "exception", "accepted-oracle"]},
+        "error_class": {"enum": ["none", "usage-error", "input-error"]},
+        "exception_type": {"$ref": "#/$defs/nullableString"},
+        "exception_message": {"$ref": "#/$defs/nullableString"},
+        "stdout_lines": {"type": "array", "maxItems": 2000, "items": {"type": "string"}},
+        "stdout_terminated": {"type": ["boolean", "null"]},
+        "stderr_lines": {"type": "array", "maxItems": 2000, "items": {"type": "string"}},
+        "stderr_terminated": {"type": ["boolean", "null"]},
+        "json": {"$ref": "#/$defs/jsonOutcome"}
+      },
+      "additionalProperties": false
+    },
+    "filesystemEffects": {
+      "type": "object",
+      "required": [
+        "class",
+        "before_tree_sha256",
+        "after_tree_sha256",
+        "created",
+        "modified",
+        "deleted",
+        "writes_outside_sandbox"
+      ],
+      "properties": {
+        "class": {"const": "none"},
+        "before_tree_sha256": {"$ref": "#/$defs/sha256"},
+        "after_tree_sha256": {"$ref": "#/$defs/sha256"},
+        "created": {"type": "array", "maxItems": 0},
+        "modified": {"type": "array", "maxItems": 0},
+        "deleted": {"type": "array", "maxItems": 0},
+        "writes_outside_sandbox": {"const": false}
+      },
+      "additionalProperties": false
+    },
+    "effects": {
+      "type": "object",
+      "required": ["filesystem", "network", "process", "browser"],
+      "properties": {
+        "filesystem": {"$ref": "#/$defs/filesystemEffects"},
+        "network": {
+          "enum": ["denied-by-python-audit-hook", "not-assessed-by-a8-runtime-fixture"]
+        },
+        "process": {
+          "enum": ["denied-by-python-audit-hook", "not-assessed-by-a8-runtime-fixture"]
+        },
+        "browser": {
+          "enum": ["denied-by-python-audit-hook", "not-assessed-by-a8-runtime-fixture"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "runtimeCase": {
+      "type": "object",
+      "required": [
+        "id",
+        "layer",
+        "invocation",
+        "outcome",
+        "effects",
+        "entrypoint_observations",
+        "source_case_id",
+        "source_case_sha256"
+      ],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"},
+        "layer": {
+          "enum": [
+            "python-console-entrypoint",
+            "python-parser-route",
+            "python-safe-handler",
+            "accepted-a8-oracle"
+          ]
+        },
+        "invocation": {
+          "type": "object",
+          "required": ["entrypoint", "arguments"],
+          "properties": {
+            "entrypoint": {"type": "string", "minLength": 1},
+            "arguments": {"type": "array", "items": {"type": "string"}}
+          },
+          "additionalProperties": false
+        },
+        "outcome": {"$ref": "#/$defs/outcome"},
+        "effects": {"$ref": "#/$defs/effects"},
+        "entrypoint_observations": {
+          "type": "object",
+          "required": ["qiongli", "ql", "research-skills", "rsk", "rsw"],
+          "properties": {
+            "qiongli": {"$ref": "#/$defs/nullableSha256"},
+            "ql": {"$ref": "#/$defs/nullableSha256"},
+            "research-skills": {"$ref": "#/$defs/nullableSha256"},
+            "rsk": {"$ref": "#/$defs/nullableSha256"},
+            "rsw": {"$ref": "#/$defs/nullableSha256"}
+          },
+          "additionalProperties": false
+        },
+        "source_case_id": {"$ref": "#/$defs/nullableString"},
+        "source_case_sha256": {"$ref": "#/$defs/nullableSha256"}
+      },
+      "additionalProperties": false
+    },
+    "npmDispatch": {
+      "type": "object",
+      "required": ["raw_command", "normalized_command", "overwrite", "rest"],
+      "properties": {
+        "raw_command": {"type": "string", "minLength": 1},
+        "normalized_command": {"type": "string", "minLength": 1},
+        "overwrite": {"type": "boolean"},
+        "rest": {"type": "array", "maxItems": 0}
+      },
+      "additionalProperties": false
+    },
+    "npmCompatibility": {
+      "type": "object",
+      "required": [
+        "status",
+        "capture_layer",
+        "source_tree_sha256",
+        "filesystem_unchanged",
+        "dispatch",
+        "alias_count",
+        "python_npm_divergences",
+        "handler_runtime_parity",
+        "disposition_decision_id"
+      ],
+      "properties": {
+        "status": {"const": "dispatch-frozen"},
+        "capture_layer": {"const": "accepted-node-parseArgv"},
+        "source_tree_sha256": {"$ref": "#/$defs/sha256"},
+        "filesystem_unchanged": {"const": true},
+        "dispatch": {
+          "type": "array",
+          "minItems": 22,
+          "maxItems": 22,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/npmDispatch"}
+        },
+        "alias_count": {"const": 5},
+        "python_npm_divergences": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "public_command",
+              "python_target",
+              "npm_target",
+              "npm_overwrite",
+              "disposition"
+            ],
+            "properties": {
+              "public_command": {"const": "update"},
+              "python_target": {"const": "self-update"},
+              "npm_target": {"const": "install"},
+              "npm_overwrite": {"const": true},
+              "disposition": {"const": "frozen-divergence-pending-LEG-201"}
+            },
+            "additionalProperties": false
+          }
+        },
+        "handler_runtime_parity": {"const": "pending-LEG-201"},
+        "disposition_decision_id": {"const": "CTR-201E-D003"}
+      },
+      "additionalProperties": false
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "canonical_commands",
+        "public_commands",
+        "console_entrypoints",
+        "argument_actions",
+        "cwd_defaults",
+        "json_canonical_commands",
+        "dry_run_canonical_commands",
+        "dry_run_public_commands",
+        "group_or_delegate_commands",
+        "executable_canonical_commands",
+        "executable_public_commands",
+        "help_observations",
+        "invalid_usage_observations",
+        "zero_argument_observations",
+        "npm_aliases",
+        "formatted_help_output",
+        "stdout_stderr",
+        "json_output",
+        "runtime_behavior_matrix",
+        "exit_code_matrix",
+        "dry_run_semantics",
+        "error_matrix",
+        "side_effect_matrix",
+        "legacy_npm_compatibility_surface",
+        "full_handler_runtime_parity",
+        "cli_inventory_completion_ready",
+        "ctr_201",
+        "ctr_202",
+        "fnd_202",
+        "rust_cli",
+        "cross_platform_runtime_parity"
+      ],
+      "properties": {
+        "canonical_commands": {"const": 46},
+        "public_commands": {"const": 49},
+        "console_entrypoints": {"const": 5},
+        "argument_actions": {"const": 164},
+        "cwd_defaults": {"const": 27},
+        "json_canonical_commands": {"const": 13},
+        "dry_run_canonical_commands": {"const": 8},
+        "dry_run_public_commands": {"const": 11},
+        "group_or_delegate_commands": {"const": 6},
+        "executable_canonical_commands": {"const": 40},
+        "executable_public_commands": {"const": 43},
+        "help_observations": {"const": 245},
+        "invalid_usage_observations": {"const": 49},
+        "zero_argument_observations": {"const": 5},
+        "npm_aliases": {"const": 5},
+        "formatted_help_output": {"const": "captured"},
+        "stdout_stderr": {"const": "parser-and-bounded-handler-cases-plus-approved-dispositions"},
+        "json_output": {"const": "classified-with-safe-cases-and-explicit-dispositions"},
+        "runtime_behavior_matrix": {"const": "classified-with-no-omissions"},
+        "exit_code_matrix": {"const": "parser-and-bounded-handler-cases-plus-approved-dispositions"},
+        "dry_run_semantics": {"const": "accepted-case-plus-explicit-dispositions"},
+        "error_matrix": {"const": "parser-and-representative-domain-cases-plus-approved-dispositions"},
+        "side_effect_matrix": {"const": "measured-safe-cases-plus-approved-dispositions"},
+        "legacy_npm_compatibility_surface": {"const": "dispatch-captured-handler-parity-pending-LEG-201"},
+        "full_handler_runtime_parity": {"const": "not-claimed"},
+        "cli_inventory_completion_ready": {"const": true},
+        "ctr_201": {"const": "in-progress"},
+        "ctr_202": {"const": "not-complete"},
+        "fnd_202": {"const": "not-implemented"},
+        "rust_cli": {"const": "not-implemented"},
+        "cross_platform_runtime_parity": {"const": "not-claimed"}
+      },
+      "additionalProperties": false
+    },
+    "compatibilityBoundary": {
+      "type": "object",
+      "required": ["closes", "does_not_prove", "remaining_ctr_201_blocker", "archive_parity"],
+      "properties": {
+        "closes": {"const": "accepted-source-cli-runtime-inventory-slice"},
+        "does_not_prove": {
+          "type": "array",
+          "minItems": 10,
+          "maxItems": 10,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "remaining_ctr_201_blocker": {"const": "accepted-source-orchestrator-runtime-closure"},
+        "archive_parity": {"const": "unassigned-downstream-governance-boundary-not-ctr-201e-evidence"}
+      },
+      "additionalProperties": false
+    },
+    "integrity": {
+      "type": "object",
+      "required": ["algorithm", "canonicalization", "case_manifest_sha256", "payload_sha256"],
+      "properties": {
+        "algorithm": {"const": "sha256"},
+        "canonicalization": {"const": "utf-8-json-sorted-keys-compact-excluding-integrity"},
+        "case_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "payload_sha256": {"$ref": "#/$defs/sha256"}
+      },
+      "additionalProperties": false
+    }
+  }
+}
