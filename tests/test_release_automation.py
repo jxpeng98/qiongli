@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import tempfile
 import unittest
@@ -670,6 +671,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertIn('release_ready.sh --version', content)
         self.assertNotIn('git push origin main --tags', content)
 
+    @unittest.skipIf(os.name == "nt", "requires POSIX Bash release entrypoints")
     def test_native_note_generator_is_truthful_and_rejects_legacy_customization(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "native-alpha.md"
@@ -905,6 +907,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertLess(postflight.index(postflight_gate), postflight.index('POSTFLIGHT_STAGING_DIR="$(mktemp'))
         self.assertLess(postflight.index(postflight_gate), postflight.index('publish_plugin_dist_refs "$TAG"'))
 
+    @unittest.skipIf(os.name == "nt", "requires POSIX Bash release entrypoints")
     def test_native_publish_gate_is_functional_and_does_not_change_head(self) -> None:
         before = subprocess.run(
             ["git", "rev-parse", "HEAD"],
@@ -973,6 +976,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertEqual(after, before)
         self.assertEqual(refs_after, refs_before)
 
+    @unittest.skipIf(os.name == "nt", "requires POSIX Bash release entrypoints")
     def test_native_tag_verifier_binds_cargo_version_channel_and_lock(self) -> None:
         aligned = subprocess.run(
             [
@@ -1010,6 +1014,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertEqual(mismatch.returncode, 1, mismatch.stderr)
         self.assertIn("native workspace version mismatch", mismatch.stderr)
 
+    @unittest.skipIf(os.name == "nt", "requires POSIX Bash release entrypoints")
     def test_native_preflight_rejects_source_tree_output_before_write(self) -> None:
         forbidden = REPO_ROOT / ".rel201-forbidden-output"
         self.assertFalse(forbidden.exists())
