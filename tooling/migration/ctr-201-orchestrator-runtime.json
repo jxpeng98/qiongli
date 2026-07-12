@@ -1,0 +1,4625 @@
+{
+  "$schema": "./ctr-201-orchestrator-runtime.schema.json",
+  "behavior_dimensions": [
+    {
+      "accepted_behavior": "Bounded offline control-flow matrix captured; live provider behavior remains downstream.",
+      "case_ids": [
+        "a8.orchestration-preview",
+        "mcp.preview-controller-matrix",
+        "mcp.run-agents-boolean-contract",
+        "mcp.doctor-advisory-run-agents",
+        "mcp.orchestrator-route-matrix",
+        "task-plan.prerequisite-filesystem-matrix",
+        "quality.artifact-existence-gate",
+        "profile.builtin-and-custom-resolution",
+        "profile.unknown-rejected",
+        "execute.single-chain-role",
+        "execute.parallel-triad",
+        "execute.parallel-dual-degrade",
+        "code-build.focus-routing",
+        "code-build.legacy-standard",
+        "code-build.legacy-advanced",
+        "code-build.legacy-advanced-failure",
+        "task-run.solo-observed-review",
+        "task-run.duo-pass",
+        "task-run.direct-triad-metadata-only",
+        "task-run.triad-enabled",
+        "task-run.primary-fallback",
+        "task-run.block-revision-pass",
+        "task-run.final-block",
+        "task-run.draft-failure",
+        "failure.policy-boundary-matrix",
+        "worker.adapter-fallback",
+        "worker.b1-success",
+        "worker.b1-degrade",
+        "worker.b1-merge-failure",
+        "worker.b1-final-review-failure",
+        "worker.b1-final-review-block",
+        "worker.h3-block",
+        "team-run.b1-planner-success",
+        "team-run.b1-degrade",
+        "team-run.b1-planner-fallback",
+        "team-run.b1-all-workers-block",
+        "team-run.b1-merge-failure",
+        "team-run.b1-review-failure",
+        "team-run.b1-review-block-observed",
+        "team-run.h3-static-personas",
+        "team-run.h3-block",
+        "experience.replay-plan-advisory",
+        "bridge.session-command-passthrough",
+        "doctor.sanitized-environment"
+      ],
+      "decision_ids": [
+        "CTR-201F-D001",
+        "CTR-201F-D002",
+        "CTR-201F-D005",
+        "CTR-201F-D006"
+      ],
+      "id": "complete-runtime-behavior-matrix",
+      "resolution": "captured-with-explicit-disposition"
+    },
+    {
+      "accepted_behavior": "Single session passthrough and replay advice captured; durable task/team resume is absent.",
+      "case_ids": [
+        "execute.single-chain-role",
+        "experience.replay-plan-advisory",
+        "bridge.session-command-passthrough"
+      ],
+      "decision_ids": [
+        "CTR-201F-D003"
+      ],
+      "id": "complete-state-and-resume",
+      "resolution": "captured-accepted-absence"
+    },
+    {
+      "accepted_behavior": "Dispatch and fallback decisions captured through deterministic bridge fakes; live agents are excluded.",
+      "case_ids": [
+        "mcp.run-agents-boolean-contract",
+        "mcp.doctor-advisory-run-agents",
+        "execute.single-chain-role",
+        "execute.parallel-triad",
+        "code-build.legacy-standard",
+        "code-build.legacy-advanced",
+        "task-run.duo-pass",
+        "task-run.triad-enabled",
+        "team-run.b1-planner-success"
+      ],
+      "decision_ids": [
+        "CTR-201F-D001",
+        "CTR-201F-D005"
+      ],
+      "id": "complete-agent-launch-behavior",
+      "resolution": "captured-with-explicit-disposition"
+    },
+    {
+      "accepted_behavior": "Accepted controller semantics captured, including solo review and direct triad flag behavior.",
+      "case_ids": [
+        "mcp.preview-controller-matrix",
+        "task-run.solo-observed-review",
+        "task-run.duo-pass",
+        "task-run.direct-triad-metadata-only",
+        "task-run.triad-enabled"
+      ],
+      "decision_ids": [
+        "CTR-201F-D001"
+      ],
+      "id": "complete-solo-duo-triad-runtime-parity",
+      "resolution": "captured-with-explicit-disposition"
+    },
+    {
+      "accepted_behavior": "Deterministic failure policies captured; public cancellation and real process interruption are absent or downstream.",
+      "case_ids": [
+        "execute.parallel-dual-degrade",
+        "code-build.legacy-advanced-failure",
+        "task-run.primary-fallback",
+        "task-run.block-revision-pass",
+        "task-run.final-block",
+        "task-run.draft-failure",
+        "failure.policy-boundary-matrix",
+        "worker.b1-degrade",
+        "worker.b1-merge-failure",
+        "worker.b1-final-review-failure",
+        "worker.b1-final-review-block",
+        "worker.h3-block",
+        "team-run.b1-degrade",
+        "team-run.b1-planner-fallback",
+        "team-run.b1-all-workers-block",
+        "team-run.b1-merge-failure",
+        "team-run.b1-review-failure",
+        "team-run.b1-review-block-observed",
+        "team-run.h3-block"
+      ],
+      "decision_ids": [
+        "CTR-201F-D002",
+        "CTR-201F-D003"
+      ],
+      "id": "complete-failure-and-cancellation",
+      "resolution": "captured-with-explicit-disposition"
+    },
+    {
+      "accepted_behavior": "Artifact existence behavior captured; semantic Q1-Q4 execution is absent from accepted runtime.",
+      "case_ids": [
+        "quality.artifact-existence-gate"
+      ],
+      "decision_ids": [
+        "CTR-201F-D004"
+      ],
+      "id": "complete-quality-gate-semantic-execution",
+      "resolution": "captured-accepted-absence"
+    }
+  ],
+  "capture_contract": {
+    "dependency": "pure-python-pyyaml-6.0.3-capsule",
+    "dependency_tree_sha256": "06f74e5c27433e236e83428ba11cc911d29217f68bc778b0396885699afb8992",
+    "determinism": "two-distinct-temp-roots-and-environments-byte-equivalent",
+    "fake_boundary": "bridge-mcp-availability-and-deterministic-identity-injection",
+    "network_policy": "python-audit-denied",
+    "os_sandbox_claim": "authenticated-source-capability-guard-not-hostile-code-os-sandbox",
+    "process_policy": "worker-denies-child-processes;parent-launches-git-and-python-capture-processes",
+    "python_isolation": "-I-S-B-dual-environment-audit-hook",
+    "python_version": "python3.12",
+    "secret_policy": "sanitized-environment-and-canary-rejection",
+    "source_mode": "accepted-tag-git-blobs",
+    "trace_order": "logical-order-preserved-only-concurrent-cohorts-canonicalized",
+    "write_policy": "worker-denies-sut-writes;fixture-roots-before-after-measured"
+  },
+  "cases": [
+    {
+      "case_sha256": "41c56b4e5477103c9d8169cec70c22349cf3d122cb7b1e72900bdbe924f4d3d4",
+      "declaration_ordinal": 0,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix"
+      ],
+      "effects": {
+        "after_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "before_tree_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "mcp",
+      "id": "a8.orchestration-preview",
+      "input_facts": [
+        {
+          "key": "task_id",
+          "value": "F3"
+        },
+        {
+          "key": "run_agents",
+          "value": "false"
+        }
+      ],
+      "operation": "tools/call qiongli_task_run",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "3a17a037638d067d5cd8760ce7223389c7db3fb0b1a3769ac549e880541565a1"
+      },
+      "provenance": "accepted-a8-oracle",
+      "result_facts": [
+        {
+          "key": "mode",
+          "value": "task-run-preview"
+        },
+        {
+          "key": "will_launch_agents",
+          "value": "false"
+        }
+      ],
+      "trace": []
+    },
+    {
+      "case_sha256": "57a073550952392e67fd4773b9d511d89079378e330498befb5a32f98951ab0d",
+      "declaration_ordinal": 1,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-solo-duo-triad-runtime-parity"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "mcp",
+      "id": "mcp.preview-controller-matrix",
+      "input_facts": [
+        {
+          "key": "run_agents",
+          "value": "false"
+        }
+      ],
+      "operation": "_tool_task_run preview matrix",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "916a160281bad88a0b7a1742ad86252c9f55e8b188e2db0f369156c6f065ddaf"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "preview_matrix",
+          "value": "{\"duo\":{\"execution_mode\":\"duo\",\"mode\":\"task-run-preview\",\"run_agents\":false,\"will_launch_agents\":false},\"solo\":{\"execution_mode\":\"solo\",\"mode\":\"task-run-preview\",\"run_agents\":false,\"will_launch_agents\":false},\"triad\":{\"execution_mode\":\"triad\",\"mode\":\"task-run-preview\",\"run_agents\":false,\"will_launch_agents\":false}}"
+        }
+      ],
+      "trace": []
+    },
+    {
+      "case_sha256": "08e307287b9a46b6209dc2db8910efeaa9229f8f04d52281eeec8ef7ce89a9e7",
+      "declaration_ordinal": 2,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-agent-launch-behavior"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "mcp",
+      "id": "mcp.run-agents-boolean-contract",
+      "input_facts": [
+        {
+          "key": "accepted_type",
+          "value": "JSON boolean"
+        }
+      ],
+      "operation": "_run_agents_enabled",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "ad16f53e90d8938ff6cd3095964a04f59f0d692c6422bb5320a0bdb7ef61adc1"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "missing",
+          "value": "false"
+        },
+        {
+          "key": "false",
+          "value": "false"
+        },
+        {
+          "key": "true",
+          "value": "true"
+        },
+        {
+          "key": "string_true_rejected",
+          "value": "true"
+        }
+      ],
+      "trace": []
+    },
+    {
+      "case_sha256": "c43eb75a460e4bc5687e8c8c7a9dd200736c85c4848038976122829792b7cc0f",
+      "declaration_ordinal": 3,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-agent-launch-behavior"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "mcp",
+      "id": "mcp.doctor-advisory-run-agents",
+      "input_facts": [
+        {
+          "key": "doctor_requirement",
+          "value": "advisory-not-enforced"
+        }
+      ],
+      "operation": "_tool_task_run run_agents=true",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "07222cc355aaf2f0aa1d60fb62e29b25f66e45b79e79dabbd5c51539fa1b50f8"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "doctor_calls_during_task_run",
+          "value": "0"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "b3541e1664c2aacdd8475c6e505da55ad803430f5ab05e64460c38b33e8f6479",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "draft",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "sequential",
+          "ordinal": 1,
+          "prompt_sha256": "f6f21acfd7048045a0dc0aa44eba7eed1bd9d81a7a16fc73f3993334e05e7c39",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "review",
+          "state_ordinal": 0,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_sha256": "7cfc5f3efcead430d8f38204e1671994067d29f7ddf50b4e3c05e34b47d6bc1c",
+      "declaration_ordinal": 4,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "mcp",
+      "id": "mcp.orchestrator-route-matrix",
+      "input_facts": [
+        {
+          "key": "routes",
+          "value": "[\"skill_workflow\",\"orchestrator_mcp\"]"
+        }
+      ],
+      "operation": "_tool_orchestrator_route",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "44c1649cfc4fbc921b17c22dd0c3a6291195d3545c7fb0bd1317a813eac18a4a"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "skill_route",
+          "value": "skill_workflow"
+        },
+        {
+          "key": "skill_tools",
+          "value": "[\"qiongli_task_plan\"]"
+        },
+        {
+          "key": "skill_missing",
+          "value": "[\"task_id\",\"paper_type\",\"topic\"]"
+        },
+        {
+          "key": "orchestrator_route",
+          "value": "orchestrator_mcp"
+        },
+        {
+          "key": "orchestrator_tools",
+          "value": "[\"qiongli_orchestrator_doctor\",\"qiongli_task_plan\",\"qiongli_task_run\"]"
+        },
+        {
+          "key": "orchestrator_run_agents",
+          "value": "false"
+        },
+        {
+          "key": "platform",
+          "value": "claude_code"
+        },
+        {
+          "key": "requires_full_runtime",
+          "value": "true"
+        },
+        {
+          "key": "route_safety_claims_doctor_gate",
+          "value": "true"
+        }
+      ],
+      "trace": []
+    },
+    {
+      "case_sha256": "acf1925fe414a18d032b9679ac8183433acad0779e8dc2688dee23b0216c5dd2",
+      "declaration_ordinal": 5,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "task-plan",
+      "id": "task-plan.prerequisite-filesystem-matrix",
+      "input_facts": [
+        {
+          "key": "tasks",
+          "value": "[\"F3\",\"B3\"]"
+        }
+      ],
+      "operation": "ModelOrchestrator.task_plan",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "63a4b382fcb602a236b5e00ad015dfdde088736ad1f403707423ecb824914663"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "plan_matrix",
+          "value": "{\"b3_any_satisfied\":{\"any_of\":[{\"satisfied\":true,\"satisfied_by\":\"B1\",\"task\":\"B3\"}],\"confidence\":1.0,\"missing_prerequisites_all\":[]},\"f3_empty\":{\"any_of\":[],\"confidence\":0.6,\"missing_prerequisites_all\":[\"A1\",\"A2\",\"F1\"]},\"f3_satisfied\":{\"any_of\":[],\"confidence\":1.0,\"missing_prerequisites_all\":[]}}"
+        }
+      ],
+      "trace": []
+    },
+    {
+      "case_sha256": "533e64eb584da8b68146032c9ab7b7c465d08a27c7ac729cb1b91f0abdfcea60",
+      "declaration_ordinal": 6,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-quality-gate-semantic-execution"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "quality",
+      "id": "quality.artifact-existence-gate",
+      "input_facts": [
+        {
+          "key": "gate_kind",
+          "value": "artifact-existence-only"
+        }
+      ],
+      "operation": "ModelOrchestrator._validator_gate",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "4b3e0cc3f7643425ff981f6143d60653f4327306d89c82bf1f5aae0c9d841187"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "gate_results",
+          "value": "{\"empty_directory\":{\"checked\":1,\"found\":[],\"missing\":[\"empty-dir/\"],\"passed\":false},\"empty_file\":{\"checked\":1,\"found\":[\"empty.txt\"],\"missing\":[],\"passed\":true},\"nonempty_directory\":{\"checked\":1,\"found\":[\"nonempty-dir/\"],\"missing\":[],\"passed\":true}}"
+        },
+        {
+          "key": "semantic_execution",
+          "value": "false"
+        }
+      ],
+      "trace": []
+    },
+    {
+      "case_sha256": "739821d6579fdbce0deea2502007842bc078a3934c8466586f5ffaaccb67fedc",
+      "declaration_ordinal": 7,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "profile",
+      "id": "profile.builtin-and-custom-resolution",
+      "input_facts": [
+        {
+          "key": "profile_file",
+          "value": "fixture profile bundle"
+        }
+      ],
+      "operation": "profile bundle resolution",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "b6844af19ddc1e975cac1cb81ffb65ea5a72b4cf054667d272aeb5ff750a4589"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "builtin_profile_count",
+          "value": "5"
+        },
+        {
+          "key": "parallel_codex_timeout_seconds",
+          "value": "123"
+        },
+        {
+          "key": "draft_timeout_seconds",
+          "value": "123"
+        },
+        {
+          "key": "parallel_profile_applied",
+          "value": "true"
+        },
+        {
+          "key": "draft_profile_applied",
+          "value": "true"
+        },
+        {
+          "key": "review_profile_applied",
+          "value": "true"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "antigravity",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "concurrent",
+          "ordinal": 0,
+          "prompt_sha256": "0f3d57cefb16de2c864f650b684bede1c3c38e7552b50ebb640cd75356cba6d5",
+          "runtime_options_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "stage": "analysis",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 1,
+          "logical_cohort_ordinal": 0,
+          "ordering": "concurrent",
+          "ordinal": 1,
+          "prompt_sha256": "0f3d57cefb16de2c864f650b684bede1c3c38e7552b50ebb640cd75356cba6d5",
+          "runtime_options_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "stage": "analysis",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 2,
+          "logical_cohort_ordinal": 0,
+          "ordering": "concurrent",
+          "ordinal": 2,
+          "prompt_sha256": "0f3d57cefb16de2c864f650b684bede1c3c38e7552b50ebb640cd75356cba6d5",
+          "runtime_options_sha256": "6550d2b5e23a1f25a173cf9c098d5db430c114246cb67fb5e886daca879fbd49",
+          "stage": "analysis",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "sequential",
+          "ordinal": 3,
+          "prompt_sha256": "c685174cf1854e41cd4949e32e2361459dcacea29e389246327358608919797c",
+          "runtime_options_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "stage": "parallel-synthesis",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 2,
+          "ordering": "sequential",
+          "ordinal": 4,
+          "prompt_sha256": "8edaaa1a19ce06052c4c32d71f6c2bdd450113e80dea6baebbc019c4c16e106c",
+          "runtime_options_sha256": "6550d2b5e23a1f25a173cf9c098d5db430c114246cb67fb5e886daca879fbd49",
+          "stage": "draft",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 3,
+          "ordering": "sequential",
+          "ordinal": 5,
+          "prompt_sha256": "cab89c4ed1e517e3b0b2ff153a7ad4098a024e95abe60df044073f796f2356b9",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "review",
+          "state_ordinal": 0,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_sha256": "bc5d8a0aba1b83f3a48267d1c408681c3ba3d588beb1dd81a8f595de2ddcb738",
+      "declaration_ordinal": 8,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "profile",
+      "id": "profile.unknown-rejected",
+      "input_facts": [
+        {
+          "key": "profile",
+          "value": "missing-profile"
+        }
+      ],
+      "operation": "_resolve_profile_config unknown",
+      "outcome": {
+        "exception_message_sha256": "196f9ad28e6de781a4741ce4b63feb2780cb4d743895dd217beff00c8307f4b7",
+        "exception_type": "ConfigError",
+        "kind": "exception",
+        "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [],
+      "trace": []
+    },
+    {
+      "case_sha256": "61e9c4f06375243bf8641d93e745c22a9617ea2fb4cb7c8935be9c4d27e7b15f",
+      "declaration_ordinal": 9,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-state-and-resume",
+        "complete-agent-launch-behavior"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "execute",
+      "id": "execute.single-chain-role",
+      "input_facts": [
+        {
+          "key": "session_id",
+          "value": "fixture-session"
+        }
+      ],
+      "operation": "ModelOrchestrator.execute",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "41645d1004a5d0a25ab93ab53452e8266c8fd42773a6f0bae7510ee0fa9b29a1"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "mode_results",
+          "value": "{\"chain\":{\"antigravity_success\":false,\"claude_success\":true,\"codex_success\":true,\"confidence\":0.85,\"result_mode\":\"chain\"},\"role\":{\"antigravity_success\":true,\"claude_success\":true,\"codex_success\":true,\"confidence\":1.0,\"result_mode\":\"role_based\"},\"single\":{\"antigravity_success\":false,\"claude_success\":false,\"codex_success\":true,\"confidence\":1.0,\"result_mode\":\"single\"}}"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "194713ad972b9125a463802fa203cc68e814e7b681bece09a1975df5efd0fa11",
+          "runtime_options_sha256": "3879b41ccd7d2fca8c1f84a0dfff56db06edaa5c5cc761f19719491ddd43169f",
+          "stage": "analysis",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "sequential",
+          "ordinal": 1,
+          "prompt_sha256": "194713ad972b9125a463802fa203cc68e814e7b681bece09a1975df5efd0fa11",
+          "runtime_options_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "stage": "analysis",
+          "state_ordinal": 1,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 2,
+          "ordering": "sequential",
+          "ordinal": 2,
+          "prompt_sha256": "141dfe3bfbdaa00a4347cf806164bfce2aa978ee4c9d41c6caf010b4c1936f3c",
+          "runtime_options_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "stage": "verify",
+          "state_ordinal": 1,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 3,
+          "ordering": "sequential",
+          "ordinal": 3,
+          "prompt_sha256": "bb959c1cc13961f438d8c17b3a609dd3e2d60470349dc39c8f27fcad00019617",
+          "runtime_options_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "stage": "analysis",
+          "state_ordinal": 2,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 4,
+          "ordering": "sequential",
+          "ordinal": 4,
+          "prompt_sha256": "a7149ef71ad257e8f7b6d20f46d9b8364ebe085be7a2a5a76ba59b193812ea77",
+          "runtime_options_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "stage": "analysis",
+          "state_ordinal": 2,
+          "success": true
+        },
+        {
+          "agent": "antigravity",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 5,
+          "ordering": "sequential",
+          "ordinal": 5,
+          "prompt_sha256": "9e92aa27547838da307d9cc5a85be582dc944a77e49aed8eaa90fa2377379f53",
+          "runtime_options_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "stage": "analysis",
+          "state_ordinal": 2,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_sha256": "804cc04722170b5482ccd0abb6a396adc0d2c71e8f08f6881f48eff5b4eaae6b",
+      "declaration_ordinal": 10,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-agent-launch-behavior"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "execute",
+      "id": "execute.parallel-triad",
+      "input_facts": [
+        {
+          "key": "expected_level",
+          "value": "triad"
+        }
+      ],
+      "operation": "ModelOrchestrator.execute parallel",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "25c02709161774a6035014bd4f8f1c1b43662e2f3190ec7ace4f2375314fb089"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "available_agents",
+          "value": "[\"antigravity\",\"claude\",\"codex\"]"
+        },
+        {
+          "key": "mode",
+          "value": "parallel"
+        },
+        {
+          "key": "confidence",
+          "value": "0.93"
+        },
+        {
+          "key": "response_success",
+          "value": "{\"antigravity\":true,\"claude\":true,\"codex\":true}"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "antigravity",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "concurrent",
+          "ordinal": 0,
+          "prompt_sha256": "5fdd9e92333ef03a83e54e72c479858dd25fc1b7d2c7c62b0da4be3a9097c266",
+          "runtime_options_sha256": "7b5de4b6b6777e050a5f557d8e71f02cddb182bca30b5dae9a8a8e4222dc3155",
+          "stage": "analysis",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 1,
+          "logical_cohort_ordinal": 0,
+          "ordering": "concurrent",
+          "ordinal": 1,
+          "prompt_sha256": "5fdd9e92333ef03a83e54e72c479858dd25fc1b7d2c7c62b0da4be3a9097c266",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "analysis",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 2,
+          "logical_cohort_ordinal": 0,
+          "ordering": "concurrent",
+          "ordinal": 2,
+          "prompt_sha256": "5fdd9e92333ef03a83e54e72c479858dd25fc1b7d2c7c62b0da4be3a9097c266",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "analysis",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "sequential",
+          "ordinal": 3,
+          "prompt_sha256": "db0e2f8991e0b2598efd10297a94e63e76c59d1450279d38357efa3d7d5e7e01",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "parallel-synthesis",
+          "state_ordinal": 0,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_sha256": "1a281d1b39186630b2cccee06095e6753788fb138b9d40dc3f2ca8f7fe094dd5",
+      "declaration_ordinal": 11,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-failure-and-cancellation"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "execute",
+      "id": "execute.parallel-dual-degrade",
+      "input_facts": [
+        {
+          "key": "unavailable_agent",
+          "value": "codex"
+        }
+      ],
+      "operation": "ModelOrchestrator.execute parallel degrade",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "074d3dd781d1d113138f62c54879d94312411761954b80ae25766cc684587bb8"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "available_agents",
+          "value": "[\"antigravity\",\"claude\"]"
+        },
+        {
+          "key": "mode",
+          "value": "parallel"
+        },
+        {
+          "key": "confidence",
+          "value": "0.8"
+        },
+        {
+          "key": "response_success",
+          "value": "{\"antigravity\":true,\"claude\":true,\"codex\":false}"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "antigravity",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "concurrent",
+          "ordinal": 0,
+          "prompt_sha256": "5fdd9e92333ef03a83e54e72c479858dd25fc1b7d2c7c62b0da4be3a9097c266",
+          "runtime_options_sha256": "7b5de4b6b6777e050a5f557d8e71f02cddb182bca30b5dae9a8a8e4222dc3155",
+          "stage": "analysis",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 1,
+          "logical_cohort_ordinal": 0,
+          "ordering": "concurrent",
+          "ordinal": 1,
+          "prompt_sha256": "5fdd9e92333ef03a83e54e72c479858dd25fc1b7d2c7c62b0da4be3a9097c266",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "analysis",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "sequential",
+          "ordinal": 2,
+          "prompt_sha256": "6825a0e042bbbe9f5197384ef236ba708c0d247da8ac8a125dccf967aa9551e7",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "parallel-synthesis",
+          "state_ordinal": 0,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_sha256": "f1c12f5d5028780d8055edee5ed3623bf19bd1e9e98571b16d924098c378e97f",
+      "declaration_ordinal": 12,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "code-build",
+      "id": "code-build.focus-routing",
+      "input_facts": [
+        {
+          "key": "topic_route",
+          "value": "not-executed-no-write-boundary"
+        }
+      ],
+      "operation": "code_build focus and target routing",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "49500588a3b301bde6d3ea07c5e5ff327c901ccf7376450b870e9e2e72b8a9c0"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "mappings",
+          "value": "{\"default\":{\"normalized\":\"implementation\",\"task_id\":\"I1\"},\"execution\":{\"normalized\":\"execution\",\"task_id\":\"I7\"},\"full\":{\"normalized\":\"full\",\"task_id\":\"FULL\"},\"implementation\":{\"normalized\":\"implementation\",\"task_id\":\"I1\"},\"planning\":{\"normalized\":\"planning\",\"task_id\":\"I6\"},\"review\":{\"normalized\":\"review\",\"task_id\":\"I8\"}}"
+        },
+        {
+          "key": "target_map",
+          "value": "{\"I6\":[\"S1\",\"S2\"],\"I8\":[\"P1-01\"]}"
+        },
+        {
+          "key": "invalid_selector_rejected",
+          "value": "true"
+        }
+      ],
+      "trace": []
+    },
+    {
+      "case_sha256": "d6e94dc3931aa2e2980dbcfd25ab1639bff695d7fd6ae7ab2ba1b9ad23746ba2",
+      "declaration_ordinal": 13,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-agent-launch-behavior"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "code-build",
+      "id": "code-build.legacy-standard",
+      "input_facts": [
+        {
+          "key": "tier",
+          "value": "standard"
+        },
+        {
+          "key": "scenario",
+          "value": "pass"
+        }
+      ],
+      "operation": "ModelOrchestrator.code_build topic-less route",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "14057dab6d976e373e6c0f16eb2ca1a6c8e44c003825e8f6c5d75936aea1235c"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "mode",
+          "value": "role_based"
+        },
+        {
+          "key": "confidence",
+          "value": "1.0"
+        },
+        {
+          "key": "response_success",
+          "value": "{\"antigravity\":false,\"claude\":true,\"codex\":true}"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "069f4f670510a0f4c22c795b85c4eaa96e55125b747b9965e8aa1c9c6ce82bb6",
+          "runtime_options_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "stage": "code-build-standard",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "sequential",
+          "ordinal": 1,
+          "prompt_sha256": "465e0dbedf8159fa8d23c8eaf74f3da7a080f48b6ee5e9bb05ae0072278d693f",
+          "runtime_options_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "stage": "code-build-standard",
+          "state_ordinal": 0,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_sha256": "c5f7b17f30afd41dda0f11bf898c47e89e3338153cfc8483e0dc19f9a95ad66a",
+      "declaration_ordinal": 14,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-agent-launch-behavior"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "code-build",
+      "id": "code-build.legacy-advanced",
+      "input_facts": [
+        {
+          "key": "tier",
+          "value": "advanced"
+        },
+        {
+          "key": "scenario",
+          "value": "pass"
+        }
+      ],
+      "operation": "ModelOrchestrator.code_build topic-less route",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "6a086109549c27ec0f5969ccde5f8a0e2ddb42844b6ce5f30734d19cf926e812"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "mode",
+          "value": "chain"
+        },
+        {
+          "key": "confidence",
+          "value": "0.85"
+        },
+        {
+          "key": "response_success",
+          "value": "{\"antigravity\":false,\"claude\":true,\"codex\":true}"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "24640f325dcc520e6fe3e3f6e28e2e360efb273984341e7831dfe9050d24f034",
+          "runtime_options_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "stage": "code-build-advanced",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "sequential",
+          "ordinal": 1,
+          "prompt_sha256": "754955ffb5de2fe37c676b3c6af5e03a7f4f9bc762b9cea0bf4fb09b5edacc22",
+          "runtime_options_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "stage": "verify",
+          "state_ordinal": 0,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_sha256": "688d9b165e85aae5bd9ee9d67fb65f56e3b05bab4708887e71cff8317e7a8ed5",
+      "declaration_ordinal": 15,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-failure-and-cancellation"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "code-build",
+      "id": "code-build.legacy-advanced-failure",
+      "input_facts": [
+        {
+          "key": "tier",
+          "value": "advanced"
+        },
+        {
+          "key": "scenario",
+          "value": "code-build-advanced-failure"
+        }
+      ],
+      "operation": "ModelOrchestrator.code_build topic-less route",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "ca8d474e99c3399b4daf7922baf9ab6bebfe8ffba730d63d05289846f9e876a1"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "mode",
+          "value": "chain"
+        },
+        {
+          "key": "confidence",
+          "value": "0.0"
+        },
+        {
+          "key": "response_success",
+          "value": "{\"antigravity\":false,\"claude\":false,\"codex\":false}"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "24640f325dcc520e6fe3e3f6e28e2e360efb273984341e7831dfe9050d24f034",
+          "runtime_options_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "stage": "code-build-advanced",
+          "state_ordinal": 0,
+          "success": false
+        }
+      ]
+    },
+    {
+      "case_sha256": "4d00a6fd3ef8eac69c012a56ab731ecd99f089b80998ba6b6754fada0dbd265a",
+      "declaration_ordinal": 16,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-solo-duo-triad-runtime-parity"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "task-run",
+      "id": "task-run.solo-observed-review",
+      "input_facts": [
+        {
+          "key": "execution_mode",
+          "value": "solo"
+        },
+        {
+          "key": "triad_flag",
+          "value": "false"
+        },
+        {
+          "key": "scenario",
+          "value": "pass"
+        }
+      ],
+      "operation": "ModelOrchestrator.task_run",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "2b7caa5bb9273575276a3a6a65349f55e7c1730df0fddc99c302e2c83f231600"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "trace_count",
+          "value": "2"
+        },
+        {
+          "key": "mode",
+          "value": "task-run"
+        },
+        {
+          "key": "confidence",
+          "value": "0.9"
+        },
+        {
+          "key": "review_loop_status",
+          "value": "passed"
+        },
+        {
+          "key": "final_verdict",
+          "value": "PASS"
+        },
+        {
+          "key": "reviews_completed",
+          "value": "1"
+        },
+        {
+          "key": "revisions_attempted",
+          "value": "0"
+        },
+        {
+          "key": "validator_gate_passed",
+          "value": "true"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "25c52f92279b48f562c59531d443159cb4b7e7988ee7dc0d833ce5097decaed0",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "draft",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "antigravity",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "sequential",
+          "ordinal": 1,
+          "prompt_sha256": "91de84e33551352813154ea5f02e6966232ce4d92bcbe2c11a12502b224404f1",
+          "runtime_options_sha256": "7b5de4b6b6777e050a5f557d8e71f02cddb182bca30b5dae9a8a8e4222dc3155",
+          "stage": "review",
+          "state_ordinal": 0,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_sha256": "3e41c7f73831818e7e14b794c8b4265b14ccb7fe688923570867416f66f51497",
+      "declaration_ordinal": 17,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-agent-launch-behavior",
+        "complete-solo-duo-triad-runtime-parity"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "task-run",
+      "id": "task-run.duo-pass",
+      "input_facts": [
+        {
+          "key": "execution_mode",
+          "value": "duo"
+        },
+        {
+          "key": "triad_flag",
+          "value": "false"
+        },
+        {
+          "key": "scenario",
+          "value": "pass"
+        }
+      ],
+      "operation": "ModelOrchestrator.task_run",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "a143c5aab451eafd8ab7eedc85e0a4c8ed509ee4d74e3724496761f9312ed17a"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "trace_count",
+          "value": "2"
+        },
+        {
+          "key": "mode",
+          "value": "task-run"
+        },
+        {
+          "key": "confidence",
+          "value": "0.9"
+        },
+        {
+          "key": "review_loop_status",
+          "value": "passed"
+        },
+        {
+          "key": "final_verdict",
+          "value": "PASS"
+        },
+        {
+          "key": "reviews_completed",
+          "value": "1"
+        },
+        {
+          "key": "revisions_attempted",
+          "value": "0"
+        },
+        {
+          "key": "validator_gate_passed",
+          "value": "true"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "fec1351f83ac1897d294bd600d9a00af4a4fca3d9e05bd47b4ea2d4a44cda734",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "draft",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "sequential",
+          "ordinal": 1,
+          "prompt_sha256": "c4d6066c0b2b74258d35fa04946cc95189d2bf6bfbdaceccd21e7328fdaa4387",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "review",
+          "state_ordinal": 0,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_sha256": "ca2f13650bd8be4dcc81e23cc623d2091c93bfdadaff87050bf04a1d72fcf38d",
+      "declaration_ordinal": 18,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-solo-duo-triad-runtime-parity"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "task-run",
+      "id": "task-run.direct-triad-metadata-only",
+      "input_facts": [
+        {
+          "key": "execution_mode",
+          "value": "triad"
+        },
+        {
+          "key": "triad_flag",
+          "value": "false"
+        },
+        {
+          "key": "scenario",
+          "value": "pass"
+        }
+      ],
+      "operation": "ModelOrchestrator.task_run",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "db10995066e39ce41e64c4f017299322dd301136be5107679df2e27628efba4d"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "trace_count",
+          "value": "2"
+        },
+        {
+          "key": "mode",
+          "value": "task-run"
+        },
+        {
+          "key": "confidence",
+          "value": "0.9"
+        },
+        {
+          "key": "review_loop_status",
+          "value": "passed"
+        },
+        {
+          "key": "final_verdict",
+          "value": "PASS"
+        },
+        {
+          "key": "reviews_completed",
+          "value": "1"
+        },
+        {
+          "key": "revisions_attempted",
+          "value": "0"
+        },
+        {
+          "key": "validator_gate_passed",
+          "value": "true"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "9bc5c9fe4baa63b46c0525be4a506a7ee91cd92aa13731a9a62a9f232bdd0ab8",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "draft",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "sequential",
+          "ordinal": 1,
+          "prompt_sha256": "003ef7165007657805190f145730c95ad36135aad14ddd6d9fa6723b4903a190",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "review",
+          "state_ordinal": 0,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_sha256": "eb90c81c1f97c18b59255d0fc1a6b1cf2cd377ab6abe996b209a0e44e963c2a1",
+      "declaration_ordinal": 19,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-agent-launch-behavior",
+        "complete-solo-duo-triad-runtime-parity"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "task-run",
+      "id": "task-run.triad-enabled",
+      "input_facts": [
+        {
+          "key": "execution_mode",
+          "value": "triad"
+        },
+        {
+          "key": "triad_flag",
+          "value": "true"
+        },
+        {
+          "key": "scenario",
+          "value": "pass"
+        }
+      ],
+      "operation": "ModelOrchestrator.task_run",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "f004012e3c29f8f7629c2c9062f67b0f3500142e9600001bfbef3aece8a7e380"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "trace_count",
+          "value": "3"
+        },
+        {
+          "key": "mode",
+          "value": "task-run"
+        },
+        {
+          "key": "confidence",
+          "value": "0.95"
+        },
+        {
+          "key": "review_loop_status",
+          "value": "passed"
+        },
+        {
+          "key": "final_verdict",
+          "value": "PASS"
+        },
+        {
+          "key": "reviews_completed",
+          "value": "1"
+        },
+        {
+          "key": "revisions_attempted",
+          "value": "0"
+        },
+        {
+          "key": "validator_gate_passed",
+          "value": "true"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "9bc5c9fe4baa63b46c0525be4a506a7ee91cd92aa13731a9a62a9f232bdd0ab8",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "draft",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "sequential",
+          "ordinal": 1,
+          "prompt_sha256": "003ef7165007657805190f145730c95ad36135aad14ddd6d9fa6723b4903a190",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "review",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "antigravity",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 2,
+          "ordering": "sequential",
+          "ordinal": 2,
+          "prompt_sha256": "64f85795daadc760ec67b88f921a002b3b5bfac1eeac4311d8e7a91e83b8e37e",
+          "runtime_options_sha256": "7b5de4b6b6777e050a5f557d8e71f02cddb182bca30b5dae9a8a8e4222dc3155",
+          "stage": "triad",
+          "state_ordinal": 0,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_sha256": "47dd98a903e543dc9b3ebcd1a4268dcb5249e0865bb0008ec194bfdd98aabe36",
+      "declaration_ordinal": 20,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-failure-and-cancellation"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "task-run",
+      "id": "task-run.primary-fallback",
+      "input_facts": [
+        {
+          "key": "execution_mode",
+          "value": "duo"
+        },
+        {
+          "key": "triad_flag",
+          "value": "false"
+        },
+        {
+          "key": "scenario",
+          "value": "pass"
+        }
+      ],
+      "operation": "ModelOrchestrator.task_run",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "88179ee5b49bd5ae62d83df027f2842d38d482abc3bf6f2942ddc1a403c88997"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "trace_count",
+          "value": "2"
+        },
+        {
+          "key": "mode",
+          "value": "task-run"
+        },
+        {
+          "key": "confidence",
+          "value": "0.9"
+        },
+        {
+          "key": "review_loop_status",
+          "value": "passed"
+        },
+        {
+          "key": "final_verdict",
+          "value": "PASS"
+        },
+        {
+          "key": "reviews_completed",
+          "value": "1"
+        },
+        {
+          "key": "revisions_attempted",
+          "value": "0"
+        },
+        {
+          "key": "validator_gate_passed",
+          "value": "true"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "antigravity",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "fec1351f83ac1897d294bd600d9a00af4a4fca3d9e05bd47b4ea2d4a44cda734",
+          "runtime_options_sha256": "7b5de4b6b6777e050a5f557d8e71f02cddb182bca30b5dae9a8a8e4222dc3155",
+          "stage": "draft",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "sequential",
+          "ordinal": 1,
+          "prompt_sha256": "5d674cbda67c3b87689f183a4ad4f72f644e756544a59f89ecc1cbf608ef59a1",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "review",
+          "state_ordinal": 0,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_sha256": "c52dd3483ce153c4ce42337607422655a065c4dc6f1785c4c18cd30995b1b8e5",
+      "declaration_ordinal": 21,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-failure-and-cancellation"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "task-run",
+      "id": "task-run.block-revision-pass",
+      "input_facts": [
+        {
+          "key": "execution_mode",
+          "value": "duo"
+        },
+        {
+          "key": "triad_flag",
+          "value": "false"
+        },
+        {
+          "key": "scenario",
+          "value": "block-then-pass"
+        }
+      ],
+      "operation": "ModelOrchestrator.task_run",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "3b5f70e6ca24299e66bca40e81117da6b5b14892d723d57a678dc6fdae3a22ee"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "trace_count",
+          "value": "4"
+        },
+        {
+          "key": "mode",
+          "value": "task-run"
+        },
+        {
+          "key": "confidence",
+          "value": "0.9"
+        },
+        {
+          "key": "review_loop_status",
+          "value": "passed"
+        },
+        {
+          "key": "final_verdict",
+          "value": "PASS"
+        },
+        {
+          "key": "reviews_completed",
+          "value": "2"
+        },
+        {
+          "key": "revisions_attempted",
+          "value": "1"
+        },
+        {
+          "key": "validator_gate_passed",
+          "value": "true"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "abb58be78e3a7b5f88435239d39ec6d9672a3fc2e9fc1379462362d6ee827b3e",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "draft",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "sequential",
+          "ordinal": 1,
+          "prompt_sha256": "5a7c4af86a3e8960bbf3225a5db1d525ca59f1490fee0a50222c2714e80d8c4a",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "review",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 2,
+          "ordering": "sequential",
+          "ordinal": 2,
+          "prompt_sha256": "086d13fbc564fcde3a5a70923c726e280a73b3679acca07155e31778286c3b60",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "revision",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 3,
+          "ordering": "sequential",
+          "ordinal": 3,
+          "prompt_sha256": "937ed86bb7427d7d97e277e4ce4b25f8b8ef43419a2d4a42bb00e98af4453515",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "review",
+          "state_ordinal": 0,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_sha256": "ee473fa891c906f36adc56ec38a24448284d6b52ca3cf286fd6a4fe4f3ae2edd",
+      "declaration_ordinal": 22,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-failure-and-cancellation"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "task-run",
+      "id": "task-run.final-block",
+      "input_facts": [
+        {
+          "key": "execution_mode",
+          "value": "duo"
+        },
+        {
+          "key": "triad_flag",
+          "value": "false"
+        },
+        {
+          "key": "scenario",
+          "value": "final-block"
+        }
+      ],
+      "operation": "ModelOrchestrator.task_run",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "2686fc3fe29ce7d4596323707a8d2ae58b3b0b0fe35211e16c7bd633e9dfc840"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "trace_count",
+          "value": "2"
+        },
+        {
+          "key": "mode",
+          "value": "task-run"
+        },
+        {
+          "key": "confidence",
+          "value": "0.55"
+        },
+        {
+          "key": "review_loop_status",
+          "value": "blocked"
+        },
+        {
+          "key": "final_verdict",
+          "value": "BLOCK"
+        },
+        {
+          "key": "reviews_completed",
+          "value": "1"
+        },
+        {
+          "key": "revisions_attempted",
+          "value": "0"
+        },
+        {
+          "key": "validator_gate_passed",
+          "value": "true"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "fec1351f83ac1897d294bd600d9a00af4a4fca3d9e05bd47b4ea2d4a44cda734",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "draft",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "sequential",
+          "ordinal": 1,
+          "prompt_sha256": "c4d6066c0b2b74258d35fa04946cc95189d2bf6bfbdaceccd21e7328fdaa4387",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "review",
+          "state_ordinal": 0,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_sha256": "304d275405b812020499d86334d2a41e2c5ff16c8112c7b6a3040486223303ac",
+      "declaration_ordinal": 23,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-failure-and-cancellation"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "task-run",
+      "id": "task-run.draft-failure",
+      "input_facts": [
+        {
+          "key": "execution_mode",
+          "value": "duo"
+        },
+        {
+          "key": "triad_flag",
+          "value": "false"
+        },
+        {
+          "key": "scenario",
+          "value": "draft-failure"
+        }
+      ],
+      "operation": "ModelOrchestrator.task_run",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "dfbd821579e5f352644883c7746beb7f4495b204bf68c9f8fa53893c376be998"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "trace_count",
+          "value": "2"
+        },
+        {
+          "key": "mode",
+          "value": "task-run"
+        },
+        {
+          "key": "confidence",
+          "value": "0.0"
+        },
+        {
+          "key": "review_loop_status",
+          "value": "skipped"
+        },
+        {
+          "key": "final_verdict",
+          "value": "NOT_RUN"
+        },
+        {
+          "key": "reviews_completed",
+          "value": "0"
+        },
+        {
+          "key": "revisions_attempted",
+          "value": "0"
+        },
+        {
+          "key": "validator_gate_passed",
+          "value": "true"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "fec1351f83ac1897d294bd600d9a00af4a4fca3d9e05bd47b4ea2d4a44cda734",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "draft",
+          "state_ordinal": 0,
+          "success": false
+        },
+        {
+          "agent": "antigravity",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "sequential",
+          "ordinal": 1,
+          "prompt_sha256": "fec1351f83ac1897d294bd600d9a00af4a4fca3d9e05bd47b4ea2d4a44cda734",
+          "runtime_options_sha256": "7b5de4b6b6777e050a5f557d8e71f02cddb182bca30b5dae9a8a8e4222dc3155",
+          "stage": "draft",
+          "state_ordinal": 0,
+          "success": false
+        }
+      ]
+    },
+    {
+      "case_sha256": "75e792b35f04ec96fb3a60725fa36f73ebf367e46df09479eec3d8230e447667",
+      "declaration_ordinal": 24,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-failure-and-cancellation"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "failure",
+      "id": "failure.policy-boundary-matrix",
+      "input_facts": [
+        {
+          "key": "policies",
+          "value": "[\"degrade\",\"block\"]"
+        }
+      ],
+      "operation": "worker and team failure policy thresholds",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "3ad9f6beb05b463cd666b2671a3bf62ed675d61812f7b179ea1e09250ebe6006"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "policy_matrix",
+          "value": "{\"team_below_threshold\":\"blocked\",\"team_below_threshold_success_count\":0,\"team_block\":\"blocked\",\"team_block_success_count\":0,\"team_degraded\":\"degraded\",\"team_degraded_success_count\":2,\"worker_below_threshold\":\"blocked\",\"worker_block\":\"blocked\",\"worker_degraded\":\"degraded\"}"
+        }
+      ],
+      "trace": []
+    },
+    {
+      "case_sha256": "c53dafb94bed7a71bb812929b113ae677a4113e3a3e504166567e8db5e2e8fb0",
+      "declaration_ordinal": 25,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "worker",
+      "id": "worker.adapter-fallback",
+      "input_facts": [
+        {
+          "key": "native_dispatch",
+          "value": "false"
+        }
+      ],
+      "operation": "_resolve_worker_orchestration_adapter",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "a3bcf1d98da683d6dbcbb60aba2f5b20ad186988885b98f2984a4faabcb82aed"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "effective_adapters",
+          "value": "{\"auto\":\"generic_prompt\",\"claude_cowork\":\"generic_prompt\",\"codex_subagent\":\"generic_prompt\"}"
+        },
+        {
+          "key": "mcp_worker_controls_present",
+          "value": "false"
+        }
+      ],
+      "trace": []
+    },
+    {
+      "case_sha256": "58de944ab6f9c0f7df8d4f0199596f1d6a6fe13a576c38f9abe1897b719948cf",
+      "declaration_ordinal": 26,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "worker",
+      "id": "worker.b1-success",
+      "input_facts": [
+        {
+          "key": "task_id",
+          "value": "B1"
+        },
+        {
+          "key": "barrier_policy",
+          "value": "degrade"
+        }
+      ],
+      "operation": "task_run delegated workers B1",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "7c892d899340719b0ba8485743966b20db64e39cfdff22b542f81631c65db413"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "trace_count",
+          "value": "6"
+        },
+        {
+          "key": "mode",
+          "value": "task-run"
+        },
+        {
+          "key": "confidence",
+          "value": "0.9"
+        },
+        {
+          "key": "review_loop_status",
+          "value": "passed"
+        },
+        {
+          "key": "final_verdict",
+          "value": "PASS"
+        },
+        {
+          "key": "reviews_completed",
+          "value": "1"
+        },
+        {
+          "key": "revisions_attempted",
+          "value": "0"
+        },
+        {
+          "key": "validator_gate_passed",
+          "value": "true"
+        },
+        {
+          "key": "worker_count",
+          "value": "2"
+        },
+        {
+          "key": "worker_failure_count",
+          "value": "0"
+        },
+        {
+          "key": "worker_status",
+          "value": "completed"
+        },
+        {
+          "key": "worker_barrier_status",
+          "value": "ok"
+        },
+        {
+          "key": "worker_merge_status",
+          "value": "passed"
+        },
+        {
+          "key": "worker_final_review_status",
+          "value": "passed"
+        },
+        {
+          "key": "worker_final_review_verdict",
+          "value": "PASS"
+        },
+        {
+          "key": "worker_final_review_confidence",
+          "value": "0.9"
+        },
+        {
+          "key": "review_loop_stopped_reason",
+          "value": "Review PASSED at round 0 (confidence=0.90); loop converged."
+        },
+        {
+          "key": "validator_gate_skipped",
+          "value": "true"
+        },
+        {
+          "key": "validator_gate_reason",
+          "value": "--skip-validation requested"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "36236fc48976483b0b8fe1687ec7470cf08c60986cb1342d5fdd970032148627",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "sequential",
+          "ordinal": 1,
+          "prompt_sha256": "40fa1e34081502946c8892ab6e5507f01264b9bbb0ce0dee47afbf588e48d0d8",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 2,
+          "ordering": "sequential",
+          "ordinal": 2,
+          "prompt_sha256": "352b5a80cf1c6698511c825ed3434a924a6b3296f3c3960457a5623a6e3b2ec7",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker-merge",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 3,
+          "ordering": "sequential",
+          "ordinal": 3,
+          "prompt_sha256": "d638b36e4f78f432a7f5702a231897ac429e2add1f54b22025a7653849a5d0c0",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker-final-review",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 4,
+          "ordering": "sequential",
+          "ordinal": 4,
+          "prompt_sha256": "5b56a65ebc9783ee2205aecaa3eeabcf7223b49895ad5351ee6edd5202426266",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "draft",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "antigravity",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 5,
+          "ordering": "sequential",
+          "ordinal": 5,
+          "prompt_sha256": "4b148dd90877f50072eb7dc6bd066a7c5cb81d77dd1e93cee7c1b7251c004945",
+          "runtime_options_sha256": "7b5de4b6b6777e050a5f557d8e71f02cddb182bca30b5dae9a8a8e4222dc3155",
+          "stage": "review",
+          "state_ordinal": 0,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_sha256": "c4f4dfe586e7390b06e4f519332728edbf2c07f525e357df04e74ab978c995b9",
+      "declaration_ordinal": 27,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-failure-and-cancellation"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "worker",
+      "id": "worker.b1-degrade",
+      "input_facts": [
+        {
+          "key": "task_id",
+          "value": "B1"
+        },
+        {
+          "key": "barrier_policy",
+          "value": "degrade"
+        }
+      ],
+      "operation": "task_run delegated workers B1 degrade",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "0a6fbd47dec0c9a3035c70af9db78b7297a228ca06401ceb7e1ad09189af69cb"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "trace_count",
+          "value": "7"
+        },
+        {
+          "key": "mode",
+          "value": "task-run"
+        },
+        {
+          "key": "confidence",
+          "value": "0.9"
+        },
+        {
+          "key": "review_loop_status",
+          "value": "passed"
+        },
+        {
+          "key": "final_verdict",
+          "value": "PASS"
+        },
+        {
+          "key": "reviews_completed",
+          "value": "1"
+        },
+        {
+          "key": "revisions_attempted",
+          "value": "0"
+        },
+        {
+          "key": "validator_gate_passed",
+          "value": "true"
+        },
+        {
+          "key": "worker_count",
+          "value": "3"
+        },
+        {
+          "key": "worker_failure_count",
+          "value": "1"
+        },
+        {
+          "key": "worker_status",
+          "value": "completed"
+        },
+        {
+          "key": "worker_barrier_status",
+          "value": "degraded"
+        },
+        {
+          "key": "worker_merge_status",
+          "value": "passed"
+        },
+        {
+          "key": "worker_final_review_status",
+          "value": "passed"
+        },
+        {
+          "key": "worker_final_review_verdict",
+          "value": "PASS"
+        },
+        {
+          "key": "worker_final_review_confidence",
+          "value": "0.9"
+        },
+        {
+          "key": "review_loop_stopped_reason",
+          "value": "Review PASSED at round 0 (confidence=0.90); loop converged."
+        },
+        {
+          "key": "validator_gate_skipped",
+          "value": "true"
+        },
+        {
+          "key": "validator_gate_reason",
+          "value": "--skip-validation requested"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "25e32a0acfd25f80527d650c4d6b57cbb57c6f0ce9e4f4ebdfa982b917aa9d90",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "sequential",
+          "ordinal": 1,
+          "prompt_sha256": "d7942684f9f5c4447066eb7bb28509ef2b9e33e922b6ca54f376ea8d16e26697",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": false
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 2,
+          "ordering": "sequential",
+          "ordinal": 2,
+          "prompt_sha256": "11030fda71d7e453e3d83eb86eaacc4285c12d5314a4ea476f1876033c4dd1c5",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 3,
+          "ordering": "sequential",
+          "ordinal": 3,
+          "prompt_sha256": "866fc75915be09ba3bf82cba4aa1effa516b260c430fb84889d1e1a343d56a90",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker-merge",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 4,
+          "ordering": "sequential",
+          "ordinal": 4,
+          "prompt_sha256": "6f7094008e497a5d430921dbee07a991618772b9998bd87cb9c02ec5847f9cd3",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker-final-review",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 5,
+          "ordering": "sequential",
+          "ordinal": 5,
+          "prompt_sha256": "333d2a9aeb95d38b45dd68c70f7703233cb54472b3563dc8ec6fe4a57d823b3e",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "draft",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "antigravity",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 6,
+          "ordering": "sequential",
+          "ordinal": 6,
+          "prompt_sha256": "74cc74ae9001cda743de7a03386d118a3db45d4d8228a2a6379df1325304f094",
+          "runtime_options_sha256": "7b5de4b6b6777e050a5f557d8e71f02cddb182bca30b5dae9a8a8e4222dc3155",
+          "stage": "review",
+          "state_ordinal": 0,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_sha256": "2de3ac1023e780bdb570a1042e9e1381249c740ee130457c5a80146ecdd0206b",
+      "declaration_ordinal": 28,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-failure-and-cancellation"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "worker",
+      "id": "worker.b1-merge-failure",
+      "input_facts": [
+        {
+          "key": "task_id",
+          "value": "B1"
+        },
+        {
+          "key": "scenario",
+          "value": "worker-merge-failure"
+        }
+      ],
+      "operation": "task_run delegated workers B1 post-barrier failure",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "23bb51f5097b4f9c3ba009e434822c64cded380445cd1aad7ade6cfbcb5cce15"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "trace_count",
+          "value": "3"
+        },
+        {
+          "key": "mode",
+          "value": "task-run"
+        },
+        {
+          "key": "confidence",
+          "value": "0.0"
+        },
+        {
+          "key": "review_loop_status",
+          "value": "skipped"
+        },
+        {
+          "key": "final_verdict",
+          "value": "NOT_RUN"
+        },
+        {
+          "key": "reviews_completed",
+          "value": "0"
+        },
+        {
+          "key": "revisions_attempted",
+          "value": "0"
+        },
+        {
+          "key": "validator_gate_passed",
+          "value": "false"
+        },
+        {
+          "key": "worker_count",
+          "value": "2"
+        },
+        {
+          "key": "worker_failure_count",
+          "value": "0"
+        },
+        {
+          "key": "worker_status",
+          "value": "blocked"
+        },
+        {
+          "key": "worker_barrier_status",
+          "value": "ok"
+        },
+        {
+          "key": "worker_merge_status",
+          "value": "failed"
+        },
+        {
+          "key": "worker_final_review_status",
+          "value": "merge_failed"
+        },
+        {
+          "key": "worker_final_review_verdict",
+          "value": ""
+        },
+        {
+          "key": "worker_final_review_confidence",
+          "value": "null"
+        },
+        {
+          "key": "review_loop_stopped_reason",
+          "value": "worker merge failed"
+        },
+        {
+          "key": "validator_gate_skipped",
+          "value": "true"
+        },
+        {
+          "key": "validator_gate_reason",
+          "value": "worker merge failed"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "36236fc48976483b0b8fe1687ec7470cf08c60986cb1342d5fdd970032148627",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "sequential",
+          "ordinal": 1,
+          "prompt_sha256": "40fa1e34081502946c8892ab6e5507f01264b9bbb0ce0dee47afbf588e48d0d8",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 2,
+          "ordering": "sequential",
+          "ordinal": 2,
+          "prompt_sha256": "352b5a80cf1c6698511c825ed3434a924a6b3296f3c3960457a5623a6e3b2ec7",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker-merge",
+          "state_ordinal": 0,
+          "success": false
+        }
+      ]
+    },
+    {
+      "case_sha256": "39126855108fe4b2dda478c575992f248d86917b58a370edc3b80ed2d6f6dde3",
+      "declaration_ordinal": 29,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-failure-and-cancellation"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "worker",
+      "id": "worker.b1-final-review-failure",
+      "input_facts": [
+        {
+          "key": "task_id",
+          "value": "B1"
+        },
+        {
+          "key": "scenario",
+          "value": "worker-final-review-failure"
+        }
+      ],
+      "operation": "task_run delegated workers B1 post-barrier failure",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "ab02d1f71307e82a6fa31e6853819eaa3eafe9417483c3ef47f2e512d856012d"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "trace_count",
+          "value": "4"
+        },
+        {
+          "key": "mode",
+          "value": "task-run"
+        },
+        {
+          "key": "confidence",
+          "value": "0.0"
+        },
+        {
+          "key": "review_loop_status",
+          "value": "skipped"
+        },
+        {
+          "key": "final_verdict",
+          "value": "NOT_RUN"
+        },
+        {
+          "key": "reviews_completed",
+          "value": "0"
+        },
+        {
+          "key": "revisions_attempted",
+          "value": "0"
+        },
+        {
+          "key": "validator_gate_passed",
+          "value": "false"
+        },
+        {
+          "key": "worker_count",
+          "value": "2"
+        },
+        {
+          "key": "worker_failure_count",
+          "value": "0"
+        },
+        {
+          "key": "worker_status",
+          "value": "blocked"
+        },
+        {
+          "key": "worker_barrier_status",
+          "value": "ok"
+        },
+        {
+          "key": "worker_merge_status",
+          "value": "passed"
+        },
+        {
+          "key": "worker_final_review_status",
+          "value": "failed"
+        },
+        {
+          "key": "worker_final_review_verdict",
+          "value": ""
+        },
+        {
+          "key": "worker_final_review_confidence",
+          "value": "null"
+        },
+        {
+          "key": "review_loop_stopped_reason",
+          "value": "worker final review failed"
+        },
+        {
+          "key": "validator_gate_skipped",
+          "value": "true"
+        },
+        {
+          "key": "validator_gate_reason",
+          "value": "worker final review failed"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "36236fc48976483b0b8fe1687ec7470cf08c60986cb1342d5fdd970032148627",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "sequential",
+          "ordinal": 1,
+          "prompt_sha256": "40fa1e34081502946c8892ab6e5507f01264b9bbb0ce0dee47afbf588e48d0d8",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 2,
+          "ordering": "sequential",
+          "ordinal": 2,
+          "prompt_sha256": "352b5a80cf1c6698511c825ed3434a924a6b3296f3c3960457a5623a6e3b2ec7",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker-merge",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 3,
+          "ordering": "sequential",
+          "ordinal": 3,
+          "prompt_sha256": "d638b36e4f78f432a7f5702a231897ac429e2add1f54b22025a7653849a5d0c0",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker-final-review",
+          "state_ordinal": 0,
+          "success": false
+        }
+      ]
+    },
+    {
+      "case_sha256": "e56f71bae881046988830666c29258889a195131e57efddfae17c525bba15278",
+      "declaration_ordinal": 30,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-failure-and-cancellation"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "worker",
+      "id": "worker.b1-final-review-block",
+      "input_facts": [
+        {
+          "key": "task_id",
+          "value": "B1"
+        },
+        {
+          "key": "scenario",
+          "value": "worker-final-review-block"
+        }
+      ],
+      "operation": "task_run delegated workers B1 post-barrier failure",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "43659c7c60acfc0cb7fc85d4ae18923aeea46619251286d4feacc146280eeab4"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "trace_count",
+          "value": "4"
+        },
+        {
+          "key": "mode",
+          "value": "task-run"
+        },
+        {
+          "key": "confidence",
+          "value": "0.0"
+        },
+        {
+          "key": "review_loop_status",
+          "value": "skipped"
+        },
+        {
+          "key": "final_verdict",
+          "value": "NOT_RUN"
+        },
+        {
+          "key": "reviews_completed",
+          "value": "0"
+        },
+        {
+          "key": "revisions_attempted",
+          "value": "0"
+        },
+        {
+          "key": "validator_gate_passed",
+          "value": "false"
+        },
+        {
+          "key": "worker_count",
+          "value": "2"
+        },
+        {
+          "key": "worker_failure_count",
+          "value": "0"
+        },
+        {
+          "key": "worker_status",
+          "value": "blocked"
+        },
+        {
+          "key": "worker_barrier_status",
+          "value": "ok"
+        },
+        {
+          "key": "worker_merge_status",
+          "value": "passed"
+        },
+        {
+          "key": "worker_final_review_status",
+          "value": "blocked"
+        },
+        {
+          "key": "worker_final_review_verdict",
+          "value": "BLOCK"
+        },
+        {
+          "key": "worker_final_review_confidence",
+          "value": "0.2"
+        },
+        {
+          "key": "review_loop_stopped_reason",
+          "value": "worker final review blocked"
+        },
+        {
+          "key": "validator_gate_skipped",
+          "value": "true"
+        },
+        {
+          "key": "validator_gate_reason",
+          "value": "worker final review blocked"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "36236fc48976483b0b8fe1687ec7470cf08c60986cb1342d5fdd970032148627",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "sequential",
+          "ordinal": 1,
+          "prompt_sha256": "40fa1e34081502946c8892ab6e5507f01264b9bbb0ce0dee47afbf588e48d0d8",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 2,
+          "ordering": "sequential",
+          "ordinal": 2,
+          "prompt_sha256": "352b5a80cf1c6698511c825ed3434a924a6b3296f3c3960457a5623a6e3b2ec7",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker-merge",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 3,
+          "ordering": "sequential",
+          "ordinal": 3,
+          "prompt_sha256": "d638b36e4f78f432a7f5702a231897ac429e2add1f54b22025a7653849a5d0c0",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker-final-review",
+          "state_ordinal": 0,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_sha256": "15a22651efd5b0fd51ae0ef07c83f1e9c7ace323cec97fad2cf5291e7c6dced7",
+      "declaration_ordinal": 31,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-failure-and-cancellation"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "worker",
+      "id": "worker.h3-block",
+      "input_facts": [
+        {
+          "key": "task_id",
+          "value": "H3"
+        },
+        {
+          "key": "barrier_policy",
+          "value": "block"
+        }
+      ],
+      "operation": "task_run delegated workers H3",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "b015e64248edb5b1177d79dae1292377f416948c60a5f27f8b03253ac573c55c"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "trace_count",
+          "value": "3"
+        },
+        {
+          "key": "mode",
+          "value": "task-run"
+        },
+        {
+          "key": "confidence",
+          "value": "0.0"
+        },
+        {
+          "key": "review_loop_status",
+          "value": "skipped"
+        },
+        {
+          "key": "final_verdict",
+          "value": "NOT_RUN"
+        },
+        {
+          "key": "reviews_completed",
+          "value": "0"
+        },
+        {
+          "key": "revisions_attempted",
+          "value": "0"
+        },
+        {
+          "key": "validator_gate_passed",
+          "value": "false"
+        },
+        {
+          "key": "worker_count",
+          "value": "3"
+        },
+        {
+          "key": "worker_failure_count",
+          "value": "1"
+        },
+        {
+          "key": "worker_status",
+          "value": "blocked"
+        },
+        {
+          "key": "worker_barrier_status",
+          "value": "blocked"
+        },
+        {
+          "key": "worker_merge_status",
+          "value": "skipped"
+        },
+        {
+          "key": "worker_final_review_status",
+          "value": "skipped"
+        },
+        {
+          "key": "worker_final_review_verdict",
+          "value": ""
+        },
+        {
+          "key": "worker_final_review_confidence",
+          "value": "null"
+        },
+        {
+          "key": "review_loop_stopped_reason",
+          "value": "worker barrier blocked"
+        },
+        {
+          "key": "validator_gate_skipped",
+          "value": "true"
+        },
+        {
+          "key": "validator_gate_reason",
+          "value": "worker barrier blocked"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "55da61141f310c0d8a70b98638114bfc24f840bb4ced816ae07b73fe0d2267e2",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": false
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "sequential",
+          "ordinal": 1,
+          "prompt_sha256": "0e33addd85fc885f6ee8471c37c5eb07fee3f8303b95937e9feea4fa8a9b2bc0",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 2,
+          "ordering": "sequential",
+          "ordinal": 2,
+          "prompt_sha256": "7259c80a414395e886041a73115b1aadcea2b23ff64a6915a26b354dddf3e175",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_sha256": "3826cbbe3eb0b1140fed99090fa0e3db04b84956de5932562aeff0157ef26aae",
+      "declaration_ordinal": 32,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-agent-launch-behavior"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "team-run",
+      "id": "team-run.b1-planner-success",
+      "input_facts": [
+        {
+          "key": "partition",
+          "value": "dynamic-planner"
+        }
+      ],
+      "operation": "ModelOrchestrator.team_run B1",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "c9b54c135c13c231232b6086b60a8ff8c823b2934466910738d5f30707eace3a"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "task_id",
+          "value": "B1"
+        },
+        {
+          "key": "trace_count",
+          "value": "5"
+        },
+        {
+          "key": "barrier_status",
+          "value": "ok"
+        },
+        {
+          "key": "confidence",
+          "value": "0.92"
+        },
+        {
+          "key": "worker_count",
+          "value": "2"
+        },
+        {
+          "key": "worker_failure_count",
+          "value": "0"
+        },
+        {
+          "key": "merge_executed",
+          "value": "true"
+        },
+        {
+          "key": "review_executed",
+          "value": "true"
+        },
+        {
+          "key": "review_block_observed",
+          "value": "false"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "394d012941fd7a5ac52f4878bed9a54114fc0f792a08af966b068e2255f84b1c",
+          "runtime_options_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "stage": "team-planner",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "concurrent",
+          "ordinal": 1,
+          "prompt_sha256": "c0c372fc1d6a743eac6da95df02c3e73e20e9347d02499b243a09d4c4900a705",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 1,
+          "logical_cohort_ordinal": 1,
+          "ordering": "concurrent",
+          "ordinal": 2,
+          "prompt_sha256": "cd9dd35020631f496c32605745b282557a2aeb9d4eaef0f33afd268f6458b9ac",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 2,
+          "ordering": "sequential",
+          "ordinal": 3,
+          "prompt_sha256": "522ecc00fa779f2b6df3c0f094d17cf78d2be07a8ed8fda38dd1ee9ef7849c85",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "team-merge",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 3,
+          "ordering": "sequential",
+          "ordinal": 4,
+          "prompt_sha256": "fa2feaa8d2e8b1165c5989a52f32800cc729cd533bc787c3b7d8ce358a2345fc",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "review",
+          "state_ordinal": 0,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_sha256": "dc1e15b509a0efda2687ff8abca79f5f08dd4a3bf5bddc331e800820a0f2494c",
+      "declaration_ordinal": 33,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-failure-and-cancellation"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "team-run",
+      "id": "team-run.b1-degrade",
+      "input_facts": [
+        {
+          "key": "partition",
+          "value": "dynamic-planner"
+        },
+        {
+          "key": "barrier_policy",
+          "value": "degrade"
+        }
+      ],
+      "operation": "ModelOrchestrator.team_run B1 degrade",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "707e938c22e0b3898aabab83fdd6d516971a17fb305a74e48d3805f88e138f06"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "task_id",
+          "value": "B1"
+        },
+        {
+          "key": "trace_count",
+          "value": "6"
+        },
+        {
+          "key": "barrier_status",
+          "value": "degraded"
+        },
+        {
+          "key": "confidence",
+          "value": "0.92"
+        },
+        {
+          "key": "worker_count",
+          "value": "3"
+        },
+        {
+          "key": "worker_failure_count",
+          "value": "1"
+        },
+        {
+          "key": "merge_executed",
+          "value": "true"
+        },
+        {
+          "key": "review_executed",
+          "value": "true"
+        },
+        {
+          "key": "review_block_observed",
+          "value": "false"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "dfe5abeccc2aaa2e15d9262a7bbad0d75f5beb149d0bcb170c8c0f25b9b622b0",
+          "runtime_options_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "stage": "team-planner",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "antigravity",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "concurrent",
+          "ordinal": 1,
+          "prompt_sha256": "b10a0af8a35a1ca6d98438d55ecfe22ccbd65161c65f33ad6af6b2126a3c3ed4",
+          "runtime_options_sha256": "7b5de4b6b6777e050a5f557d8e71f02cddb182bca30b5dae9a8a8e4222dc3155",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 1,
+          "logical_cohort_ordinal": 1,
+          "ordering": "concurrent",
+          "ordinal": 2,
+          "prompt_sha256": "39b760cd09c78e551c9ad6d30371adda087c4301265766e27a1ccb591d262af1",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": false
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 2,
+          "logical_cohort_ordinal": 1,
+          "ordering": "concurrent",
+          "ordinal": 3,
+          "prompt_sha256": "18583ac2958cb912dabf99c6cb6746c9536a5c5452a72e5fb4a62ad57c99bedf",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 2,
+          "ordering": "sequential",
+          "ordinal": 4,
+          "prompt_sha256": "ed34e2fdfcc8dfac874856b8e3f53e38797123bc55782840ea998fec18238d01",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "team-merge",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 3,
+          "ordering": "sequential",
+          "ordinal": 5,
+          "prompt_sha256": "222fdaf8c739312c36e9eb0d7f91bd68f2f906ec56eb9cfee7731efc0c7b4eef",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "review",
+          "state_ordinal": 0,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_sha256": "845803ac5f011c2f564960f8bdf1ac54e0f10fba0e34924eb1ec4084ce7ef10d",
+      "declaration_ordinal": 34,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-failure-and-cancellation"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "team-run",
+      "id": "team-run.b1-planner-fallback",
+      "input_facts": [
+        {
+          "key": "partition",
+          "value": "dynamic-planner"
+        },
+        {
+          "key": "scenario",
+          "value": "b1-team-planner-failure"
+        }
+      ],
+      "operation": "ModelOrchestrator.team_run B1 failure branch",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "e283a4b22b9aba944adcef3d41e40325218c8bb428e45cc2becf73cb514c25a2"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "task_id",
+          "value": "B1"
+        },
+        {
+          "key": "trace_count",
+          "value": "4"
+        },
+        {
+          "key": "barrier_status",
+          "value": "ok"
+        },
+        {
+          "key": "confidence",
+          "value": "0.92"
+        },
+        {
+          "key": "worker_count",
+          "value": "1"
+        },
+        {
+          "key": "worker_failure_count",
+          "value": "0"
+        },
+        {
+          "key": "merge_executed",
+          "value": "true"
+        },
+        {
+          "key": "review_executed",
+          "value": "true"
+        },
+        {
+          "key": "review_block_observed",
+          "value": "false"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "394d012941fd7a5ac52f4878bed9a54114fc0f792a08af966b068e2255f84b1c",
+          "runtime_options_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "stage": "team-planner",
+          "state_ordinal": 0,
+          "success": false
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "concurrent",
+          "ordinal": 1,
+          "prompt_sha256": "f2bc80b96e6d4b02fa987beee0ee3e0ca902afe5fd6e5427da5118440959a2b2",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 2,
+          "ordering": "sequential",
+          "ordinal": 2,
+          "prompt_sha256": "6c5ece0e49a4d4f6654a44200980cf8272e6aa58e13eb5181eb0b4e7838930d7",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "team-merge",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 3,
+          "ordering": "sequential",
+          "ordinal": 3,
+          "prompt_sha256": "fa2feaa8d2e8b1165c5989a52f32800cc729cd533bc787c3b7d8ce358a2345fc",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "review",
+          "state_ordinal": 0,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_sha256": "5ca36965ee04035da9265b32015f5b1d90a43cdac81bd9cf6e895a57e50a1c62",
+      "declaration_ordinal": 35,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-failure-and-cancellation"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "team-run",
+      "id": "team-run.b1-all-workers-block",
+      "input_facts": [
+        {
+          "key": "partition",
+          "value": "dynamic-planner"
+        },
+        {
+          "key": "scenario",
+          "value": "b1-team-all-block"
+        }
+      ],
+      "operation": "ModelOrchestrator.team_run B1 failure branch",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "9d62a6b52f415ca2adeb279e35445675052864ad543781635a4d99ca6f0d92d8"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "task_id",
+          "value": "B1"
+        },
+        {
+          "key": "trace_count",
+          "value": "3"
+        },
+        {
+          "key": "barrier_status",
+          "value": "blocked"
+        },
+        {
+          "key": "confidence",
+          "value": "0.0"
+        },
+        {
+          "key": "worker_count",
+          "value": "2"
+        },
+        {
+          "key": "worker_failure_count",
+          "value": "2"
+        },
+        {
+          "key": "merge_executed",
+          "value": "false"
+        },
+        {
+          "key": "review_executed",
+          "value": "false"
+        },
+        {
+          "key": "review_block_observed",
+          "value": "false"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "394d012941fd7a5ac52f4878bed9a54114fc0f792a08af966b068e2255f84b1c",
+          "runtime_options_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "stage": "team-planner",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "concurrent",
+          "ordinal": 1,
+          "prompt_sha256": "c0c372fc1d6a743eac6da95df02c3e73e20e9347d02499b243a09d4c4900a705",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": false
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 1,
+          "logical_cohort_ordinal": 1,
+          "ordering": "concurrent",
+          "ordinal": 2,
+          "prompt_sha256": "cd9dd35020631f496c32605745b282557a2aeb9d4eaef0f33afd268f6458b9ac",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": false
+        }
+      ]
+    },
+    {
+      "case_sha256": "ae0c55c14e9d309efb049654eedf7168fb1dcd2b22cfc19195e03bf56d6d7ba7",
+      "declaration_ordinal": 36,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-failure-and-cancellation"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "team-run",
+      "id": "team-run.b1-merge-failure",
+      "input_facts": [
+        {
+          "key": "partition",
+          "value": "dynamic-planner"
+        },
+        {
+          "key": "scenario",
+          "value": "b1-team-merge-failure"
+        }
+      ],
+      "operation": "ModelOrchestrator.team_run B1 failure branch",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "e6f7330a94ea8be777a458268683d895d145a45b89fd50fe8d2e64ba9f6dd71e"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "task_id",
+          "value": "B1"
+        },
+        {
+          "key": "trace_count",
+          "value": "4"
+        },
+        {
+          "key": "barrier_status",
+          "value": "ok"
+        },
+        {
+          "key": "confidence",
+          "value": "0.3"
+        },
+        {
+          "key": "worker_count",
+          "value": "2"
+        },
+        {
+          "key": "worker_failure_count",
+          "value": "0"
+        },
+        {
+          "key": "merge_executed",
+          "value": "true"
+        },
+        {
+          "key": "review_executed",
+          "value": "false"
+        },
+        {
+          "key": "review_block_observed",
+          "value": "false"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "394d012941fd7a5ac52f4878bed9a54114fc0f792a08af966b068e2255f84b1c",
+          "runtime_options_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "stage": "team-planner",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "concurrent",
+          "ordinal": 1,
+          "prompt_sha256": "c0c372fc1d6a743eac6da95df02c3e73e20e9347d02499b243a09d4c4900a705",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 1,
+          "logical_cohort_ordinal": 1,
+          "ordering": "concurrent",
+          "ordinal": 2,
+          "prompt_sha256": "cd9dd35020631f496c32605745b282557a2aeb9d4eaef0f33afd268f6458b9ac",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 2,
+          "ordering": "sequential",
+          "ordinal": 3,
+          "prompt_sha256": "522ecc00fa779f2b6df3c0f094d17cf78d2be07a8ed8fda38dd1ee9ef7849c85",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "team-merge",
+          "state_ordinal": 0,
+          "success": false
+        }
+      ]
+    },
+    {
+      "case_sha256": "b0737933153bc4623a2063731dd4f61a95fba9a44702dde94dc2242c54e201ca",
+      "declaration_ordinal": 37,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-failure-and-cancellation"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "team-run",
+      "id": "team-run.b1-review-failure",
+      "input_facts": [
+        {
+          "key": "partition",
+          "value": "dynamic-planner"
+        },
+        {
+          "key": "scenario",
+          "value": "b1-team-review-failure"
+        }
+      ],
+      "operation": "ModelOrchestrator.team_run B1 failure branch",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "76b127fbb0e322567650cac4820cdfccc2a3751fe1489ebed4980fe5b4888971"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "task_id",
+          "value": "B1"
+        },
+        {
+          "key": "trace_count",
+          "value": "5"
+        },
+        {
+          "key": "barrier_status",
+          "value": "ok"
+        },
+        {
+          "key": "confidence",
+          "value": "0.78"
+        },
+        {
+          "key": "worker_count",
+          "value": "2"
+        },
+        {
+          "key": "worker_failure_count",
+          "value": "0"
+        },
+        {
+          "key": "merge_executed",
+          "value": "true"
+        },
+        {
+          "key": "review_executed",
+          "value": "true"
+        },
+        {
+          "key": "review_block_observed",
+          "value": "false"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "394d012941fd7a5ac52f4878bed9a54114fc0f792a08af966b068e2255f84b1c",
+          "runtime_options_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "stage": "team-planner",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "concurrent",
+          "ordinal": 1,
+          "prompt_sha256": "c0c372fc1d6a743eac6da95df02c3e73e20e9347d02499b243a09d4c4900a705",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 1,
+          "logical_cohort_ordinal": 1,
+          "ordering": "concurrent",
+          "ordinal": 2,
+          "prompt_sha256": "cd9dd35020631f496c32605745b282557a2aeb9d4eaef0f33afd268f6458b9ac",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 2,
+          "ordering": "sequential",
+          "ordinal": 3,
+          "prompt_sha256": "522ecc00fa779f2b6df3c0f094d17cf78d2be07a8ed8fda38dd1ee9ef7849c85",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "team-merge",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 3,
+          "ordering": "sequential",
+          "ordinal": 4,
+          "prompt_sha256": "fa2feaa8d2e8b1165c5989a52f32800cc729cd533bc787c3b7d8ce358a2345fc",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "review",
+          "state_ordinal": 0,
+          "success": false
+        }
+      ]
+    },
+    {
+      "case_sha256": "db20ada3f8976d97dcf90a14cd136d28c1700e3f4f570dbd54edd1d95c8ad049",
+      "declaration_ordinal": 38,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-failure-and-cancellation"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "team-run",
+      "id": "team-run.b1-review-block-observed",
+      "input_facts": [
+        {
+          "key": "partition",
+          "value": "dynamic-planner"
+        },
+        {
+          "key": "scenario",
+          "value": "b1-team-review-block"
+        }
+      ],
+      "operation": "ModelOrchestrator.team_run B1 failure branch",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "fd2b0da93e34d618583096044e6c55dcb35d0d9b156a058972e02688847e4958"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "task_id",
+          "value": "B1"
+        },
+        {
+          "key": "trace_count",
+          "value": "5"
+        },
+        {
+          "key": "barrier_status",
+          "value": "ok"
+        },
+        {
+          "key": "confidence",
+          "value": "0.92"
+        },
+        {
+          "key": "worker_count",
+          "value": "2"
+        },
+        {
+          "key": "worker_failure_count",
+          "value": "0"
+        },
+        {
+          "key": "merge_executed",
+          "value": "true"
+        },
+        {
+          "key": "review_executed",
+          "value": "true"
+        },
+        {
+          "key": "review_block_observed",
+          "value": "true"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "sequential",
+          "ordinal": 0,
+          "prompt_sha256": "394d012941fd7a5ac52f4878bed9a54114fc0f792a08af966b068e2255f84b1c",
+          "runtime_options_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "stage": "team-planner",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "concurrent",
+          "ordinal": 1,
+          "prompt_sha256": "c0c372fc1d6a743eac6da95df02c3e73e20e9347d02499b243a09d4c4900a705",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 1,
+          "logical_cohort_ordinal": 1,
+          "ordering": "concurrent",
+          "ordinal": 2,
+          "prompt_sha256": "cd9dd35020631f496c32605745b282557a2aeb9d4eaef0f33afd268f6458b9ac",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 2,
+          "ordering": "sequential",
+          "ordinal": 3,
+          "prompt_sha256": "522ecc00fa779f2b6df3c0f094d17cf78d2be07a8ed8fda38dd1ee9ef7849c85",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "team-merge",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 3,
+          "ordering": "sequential",
+          "ordinal": 4,
+          "prompt_sha256": "fa2feaa8d2e8b1165c5989a52f32800cc729cd533bc787c3b7d8ce358a2345fc",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "review",
+          "state_ordinal": 0,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_sha256": "a1304f2399c38fd74f2b424723c7f13759846ccc2be293284ae30e12507ec74a",
+      "declaration_ordinal": 39,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "team-run",
+      "id": "team-run.h3-static-personas",
+      "input_facts": [
+        {
+          "key": "partition",
+          "value": "static-personas"
+        }
+      ],
+      "operation": "ModelOrchestrator.team_run H3",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "4f14cf155e39f76262eca69a841621ba3d121737266f15c86f0ffbcae778015b"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "task_id",
+          "value": "H3"
+        },
+        {
+          "key": "trace_count",
+          "value": "5"
+        },
+        {
+          "key": "barrier_status",
+          "value": "ok"
+        },
+        {
+          "key": "confidence",
+          "value": "0.92"
+        },
+        {
+          "key": "worker_count",
+          "value": "3"
+        },
+        {
+          "key": "worker_failure_count",
+          "value": "0"
+        },
+        {
+          "key": "merge_executed",
+          "value": "true"
+        },
+        {
+          "key": "review_executed",
+          "value": "true"
+        },
+        {
+          "key": "review_block_observed",
+          "value": "false"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "antigravity",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "concurrent",
+          "ordinal": 0,
+          "prompt_sha256": "29dc14f54b86247b3fd4dfc358f79d9bcfb1b0ce829e1aa81e82bea62c132cc3",
+          "runtime_options_sha256": "7b5de4b6b6777e050a5f557d8e71f02cddb182bca30b5dae9a8a8e4222dc3155",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 1,
+          "logical_cohort_ordinal": 0,
+          "ordering": "concurrent",
+          "ordinal": 1,
+          "prompt_sha256": "7370f0a058ddff68ccc5683c9d9292428bb46ebc24dac26b0ba29c96f7d27747",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 2,
+          "logical_cohort_ordinal": 0,
+          "ordering": "concurrent",
+          "ordinal": 2,
+          "prompt_sha256": "f1b08728c65cfc314f127390b4019ac7438abe8a18f1b86c7958bcbea3d9ad8e",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 1,
+          "ordering": "sequential",
+          "ordinal": 3,
+          "prompt_sha256": "d5a0bed5af8734a03fb1ae5db2b789d4826ce8a2d48a930aa3b65177e0db76d5",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "team-merge",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 2,
+          "ordering": "sequential",
+          "ordinal": 4,
+          "prompt_sha256": "964f1e6508b6c67e8082ffd7ea2ecba07cd58cd8f5bd991554a958fe92cdfd96",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "review",
+          "state_ordinal": 0,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_sha256": "cf9234e8b1b39cedde288df128f0a36022868f40be9ecf4ae17f411aaaf64d57",
+      "declaration_ordinal": 40,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-failure-and-cancellation"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "team-run",
+      "id": "team-run.h3-block",
+      "input_facts": [
+        {
+          "key": "partition",
+          "value": "static-personas"
+        },
+        {
+          "key": "barrier_policy",
+          "value": "block"
+        }
+      ],
+      "operation": "ModelOrchestrator.team_run H3 block",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "31ad8224595de4f50a3a2ad39585a84a8436e863e8f7bfa7fd7c1e6ecb4881ab"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "task_id",
+          "value": "H3"
+        },
+        {
+          "key": "trace_count",
+          "value": "3"
+        },
+        {
+          "key": "barrier_status",
+          "value": "blocked"
+        },
+        {
+          "key": "confidence",
+          "value": "0.0"
+        },
+        {
+          "key": "worker_count",
+          "value": "3"
+        },
+        {
+          "key": "worker_failure_count",
+          "value": "1"
+        },
+        {
+          "key": "merge_executed",
+          "value": "false"
+        },
+        {
+          "key": "review_executed",
+          "value": "false"
+        },
+        {
+          "key": "review_block_observed",
+          "value": "false"
+        }
+      ],
+      "trace": [
+        {
+          "agent": "antigravity",
+          "cohort_member_ordinal": 0,
+          "logical_cohort_ordinal": 0,
+          "ordering": "concurrent",
+          "ordinal": 0,
+          "prompt_sha256": "29dc14f54b86247b3fd4dfc358f79d9bcfb1b0ce829e1aa81e82bea62c132cc3",
+          "runtime_options_sha256": "7b5de4b6b6777e050a5f557d8e71f02cddb182bca30b5dae9a8a8e4222dc3155",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "claude",
+          "cohort_member_ordinal": 1,
+          "logical_cohort_ordinal": 0,
+          "ordering": "concurrent",
+          "ordinal": 1,
+          "prompt_sha256": "7370f0a058ddff68ccc5683c9d9292428bb46ebc24dac26b0ba29c96f7d27747",
+          "runtime_options_sha256": "121be94602b3ca073383136098b0296e769708091305505ff0b873846cbfccae",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": true
+        },
+        {
+          "agent": "codex",
+          "cohort_member_ordinal": 2,
+          "logical_cohort_ordinal": 0,
+          "ordering": "concurrent",
+          "ordinal": 2,
+          "prompt_sha256": "f1b08728c65cfc314f127390b4019ac7438abe8a18f1b86c7958bcbea3d9ad8e",
+          "runtime_options_sha256": "d858c2592818977b046705c93f64ed339a4f2cb8744b9c7a5fe0973771f9756b",
+          "stage": "worker",
+          "state_ordinal": 0,
+          "success": false
+        }
+      ]
+    },
+    {
+      "case_sha256": "eaa23f8da34240153260b322abe67b4faf1627bbc2f873c2369bfcde095ac93e",
+      "declaration_ordinal": 41,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-state-and-resume"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "state",
+      "id": "experience.replay-plan-advisory",
+      "input_facts": [
+        {
+          "key": "run_ids",
+          "value": "[\"failed-run\",\"passed-run\"]"
+        }
+      ],
+      "operation": "replay_experience_plan",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "edeb7c1b9ab448e6bb9736c6f03a5720691af6857e510e3f9b7fed7afe53c8ec"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "execution_performed",
+          "value": "false"
+        },
+        {
+          "key": "failed_validator_status",
+          "value": "failed"
+        },
+        {
+          "key": "failed_failure_modes",
+          "value": "[\"missing-output\"]"
+        },
+        {
+          "key": "failed_next_action",
+          "value": "rerun_after_addressing_failures"
+        },
+        {
+          "key": "passed_validator_status",
+          "value": "passed"
+        },
+        {
+          "key": "passed_failure_modes",
+          "value": "[]"
+        },
+        {
+          "key": "passed_next_action",
+          "value": "no_rerun_needed"
+        }
+      ],
+      "trace": []
+    },
+    {
+      "case_sha256": "8f71814184abe00cf92e8a99c9cce999bccdeecfa06765484fcc4c511467d031",
+      "declaration_ordinal": 42,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix",
+        "complete-state-and-resume"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "state",
+      "id": "bridge.session-command-passthrough",
+      "input_facts": [
+        {
+          "key": "bridges",
+          "value": "[\"codex\",\"claude\",\"antigravity\"]"
+        }
+      ],
+      "operation": "bridge build_command session_id",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "92e11e334b5f1c35e088f46e778ffe91aa4207f21436714a3694de7fb0e31afb"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "session_id",
+          "value": "fixture-session"
+        },
+        {
+          "key": "task_run_has_resume",
+          "value": "false"
+        },
+        {
+          "key": "team_run_has_resume",
+          "value": "false"
+        },
+        {
+          "key": "task_run_has_cancel",
+          "value": "false"
+        },
+        {
+          "key": "team_run_has_cancel",
+          "value": "false"
+        },
+        {
+          "key": "codex_session_forwarded",
+          "value": "true"
+        },
+        {
+          "key": "claude_session_forwarded",
+          "value": "true"
+        },
+        {
+          "key": "antigravity_session_forwarded",
+          "value": "true"
+        }
+      ],
+      "trace": []
+    },
+    {
+      "case_sha256": "398a718b32e5c2cd032335561fce367120e19224e44c32ce7c78717cfff1c404",
+      "declaration_ordinal": 43,
+      "dimension_ids": [
+        "complete-runtime-behavior-matrix"
+      ],
+      "effects": {
+        "after_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "before_tree_sha256": "409875e29ac9c95f697086c2c35a47ea61e13fd17440abca75ca8ab23e7d0a4f",
+        "changed_path_count": 0,
+        "changed_paths_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "group": "doctor",
+      "id": "doctor.sanitized-environment",
+      "input_facts": [
+        {
+          "key": "availability",
+          "value": "none"
+        }
+      ],
+      "operation": "ModelOrchestrator.doctor",
+      "outcome": {
+        "exception_message_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exception_type": "",
+        "kind": "result",
+        "result_sha256": "72f96b18d00422af069d40431c39867d78cdb61a039e513b7b9f3272423555bd"
+      },
+      "provenance": "accepted-source-bounded-runtime",
+      "result_facts": [
+        {
+          "key": "executes_commands",
+          "value": "false"
+        },
+        {
+          "key": "cli_statuses",
+          "value": "{\"antigravity\":\"warning\",\"claude\":\"warning\",\"codex\":\"warning\"}"
+        }
+      ],
+      "trace": []
+    }
+  ],
+  "compatibility_boundary": {
+    "cross_platform_runtime_parity": "not-claimed",
+    "native_worker_adapter_dispatch": "accepted-generic-fallback",
+    "plugin_marketplace_behavior": "not-captured",
+    "real_agent_execution": "not-executed",
+    "real_provider_network": "not-executed",
+    "real_timeout_signal_cancel": "not-captured",
+    "rust_implementation": "not-implemented",
+    "semantic_quality_gate_execution": "accepted-absent",
+    "strict_topic_code_build": "not-captured-no-write-disposition",
+    "task_team_checkpoint_resume": "accepted-absent"
+  },
+  "coverage": {
+    "accepted_a8_case_count": 1,
+    "bounded_runtime_case_count": 43,
+    "case_count": 44,
+    "completion_ready": true,
+    "cross_platform_runtime_parity": "not-claimed",
+    "ctr_201": "complete",
+    "ctr_202": "not-complete",
+    "disposition_decision_count": 6,
+    "fnd_202": "not-implemented",
+    "real_agent_runtime_parity": "not-claimed",
+    "required_not_fully_captured_count": 0,
+    "resolved_dimension_count": 6,
+    "rust_orchestrator": "not-implemented"
+  },
+  "disposition_decisions": [
+    {
+      "accepted_fact": "The accepted control plane can be exercised with deterministic bridge fakes, but real Codex, Claude, Antigravity, credentials, network, model output, and tool loops are not part of this offline inventory.",
+      "downstream_tasks": [
+        "AGT-201",
+        "AGT-202",
+        "AGT-204",
+        "AGT-205",
+        "ORC-202"
+      ],
+      "id": "CTR-201F-D001",
+      "prohibited_claims": [
+        "real-agent-runtime-parity",
+        "provider-or-model-parity",
+        "network-tool-loop-parity"
+      ],
+      "scope": "real-agent-provider-and-network-execution"
+    },
+    {
+      "accepted_fact": "Deterministic fakes capture fanout, fallback, and failure-policy decisions only; wall-clock ordering, operating-system signals, kill behavior, and user cancellation are not frozen.",
+      "downstream_tasks": [
+        "AGT-204",
+        "ORC-202"
+      ],
+      "id": "CTR-201F-D002",
+      "prohibited_claims": [
+        "real-concurrency-timing-parity",
+        "timeout-signal-parity",
+        "public-cancellation-support"
+      ],
+      "scope": "real-concurrency-timeout-signal-and-cancellation"
+    },
+    {
+      "accepted_fact": "The accepted source forwards a legacy single-mode session_id and can generate an experience replay recommendation, but task_run and team_run expose no durable checkpoint, resume, rollback, or cancel API.",
+      "downstream_tasks": [
+        "CFG-202",
+        "ORC-201"
+      ],
+      "id": "CTR-201F-D003",
+      "prohibited_claims": [
+        "task-run-resume-parity",
+        "team-run-resume-parity",
+        "durable-checkpoint-support"
+      ],
+      "scope": "durable-task-team-resume-and-checkpoint"
+    },
+    {
+      "accepted_fact": "The accepted runtime propagates declared Q1-Q4 identifiers and checks artifact existence; it does not execute their academic semantic policies.",
+      "downstream_tasks": [
+        "ORC-203",
+        "GOV-202"
+      ],
+      "id": "CTR-201F-D004",
+      "prohibited_claims": [
+        "semantic-quality-gate-parity",
+        "academic-quality-verdict-parity"
+      ],
+      "scope": "semantic-academic-quality-gate-execution"
+    },
+    {
+      "accepted_fact": "codex-subagent and claude-cowork are recognized but route through generic_prompt; the accepted MCP task-run schema does not expose worker mode, adapter, or max-workers.",
+      "downstream_tasks": [
+        "AGT-203",
+        "ORC-202",
+        "MCP-204",
+        "LEG-201"
+      ],
+      "id": "CTR-201F-D005",
+      "prohibited_claims": [
+        "native-worker-adapter-parity",
+        "mcp-worker-control-parity"
+      ],
+      "scope": "native-worker-dispatch-and-mcp-worker-controls"
+    },
+    {
+      "accepted_fact": "Topic-less standard and advanced code-build routes plus focus and target mapping are captured offline. The strict topic route forces project guidance or trace state writes and Stage-I task-run integration, so it is excluded from the no-write fixture matrix.",
+      "downstream_tasks": [
+        "CFG-202",
+        "DOM-202",
+        "ORC-203",
+        "GOV-202",
+        "LEG-201"
+      ],
+      "id": "CTR-201F-D006",
+      "prohibited_claims": [
+        "strict-topic-code-build-runtime-parity",
+        "stage-i-code-build-state-parity"
+      ],
+      "scope": "strict-topic-code-build-state-and-stage-integration"
+    }
+  ],
+  "integrity": {
+    "algorithm": "sha256",
+    "canonicalization": "utf-8-json-sorted-keys-compact-excluding-integrity",
+    "case_manifest_sha256": "676b7b269889da02bbb928b29fa254e40ca8794f5bf2e199477364f330debddd",
+    "payload_sha256": "9232b0a3c2ba223c860244142054940229e435e00735261bd7db834c7a94faab"
+  },
+  "record_type": "qiongli-ctr-201-orchestrator-runtime-inventory-freeze",
+  "schema_version": "1.0",
+  "source": {
+    "a8_manifest": {
+      "path": "tooling/migration/baselines/v1.19.0-beta.1/manifest.json",
+      "sha256": "77bb7628d43a496c995e4b0a8daf6a624847b62e96948c0461affe89002da131"
+    },
+    "accepted_commit": "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f",
+    "accepted_manifest_corpus_sha256": "7fdd92894d88b221180e77ad73677cc158147cc861b17ba0245ea54f0127fbe2",
+    "accepted_tag": "v1.19.0-beta.1",
+    "blob_anchors": [
+      {
+        "consumption_class": "source-constant-and-runtime-module",
+        "git_blob_oid": "219743fcae7674dc709c311b90df3684ff98435d",
+        "mode": "100644",
+        "path": "packages/python-qiongli/src/qiongli/bridges/orchestrator.py",
+        "role": "orchestrator-module",
+        "sha256": "e9e5899f69ee1853c2105724100a52096c8f0f5353863ef4c1c794424212cf6e",
+        "size_bytes": 355170
+      },
+      {
+        "consumption_class": "runtime-loaded-mcp-boundary",
+        "git_blob_oid": "173da40211ba04527423f474807f8a773f98d9d1",
+        "mode": "100644",
+        "path": "packages/python-qiongli/src/qiongli/bridges/mcp_tool_handlers.py",
+        "role": "orchestrator-mcp-boundary",
+        "sha256": "f1aacdc2d00667497416271f20a5121fed04d7198c0bddd88ce4fa4076aeb3fd",
+        "size_bytes": 53455
+      },
+      {
+        "consumption_class": "runtime-loaded-declarative-contract",
+        "git_blob_oid": "609cdd9e6616c838b7ec959c7402d37f3f118345",
+        "mode": "100644",
+        "path": "content/standards/research-workflow-contract.yaml",
+        "role": "workflow-contract",
+        "sha256": "b77b901b552bb235edde21476763cab6149b63d329d124cf00c92c2fece6cf63",
+        "size_bytes": 41041
+      },
+      {
+        "consumption_class": "runtime-loaded-declarative-contract",
+        "git_blob_oid": "d925febb940964b95fcb9b082295f91efcdb7435",
+        "mode": "100644",
+        "path": "content/standards/mcp-agent-capability-map.yaml",
+        "role": "agent-capability-map",
+        "sha256": "b1ff20d2edcec9cfc02669f635ee77c2ec17d5bc23531ed5ebd481c9865a661a",
+        "size_bytes": 62173
+      }
+    ],
+    "ctr_201c": {
+      "artifact_path": "tooling/migration/ctr-201-orchestrator.json",
+      "payload_sha256": "508ed0f92a511a0a9a6daa33598ce891222540b15e5aa207984db97319fe2c5e",
+      "schema_canonical_sha256": "0473158288cf35d4a10e39cfc741fd5b4cb38a49c68209aaea48337d52782510",
+      "schema_path": "tooling/migration/ctr-201-orchestrator.schema.json"
+    },
+    "ctr_201d": {
+      "artifact_path": "tooling/migration/ctr-201-content.json",
+      "payload_sha256": "d17f37aa96d1896d047b27d197d63f773ae1d644a875722f5262be39593ff304"
+    },
+    "package_trees": [
+      {
+        "file_count": 76,
+        "root": "packages/python-qiongli/",
+        "tree_sha256": "3a91a6dde9a78116fed73358275b2797c3ce7bf3d9a54894e7dbd11d2f0f9781"
+      },
+      {
+        "file_count": 377,
+        "root": "content/",
+        "tree_sha256": "4659cbcd839c3f8eb3798a64981b7ec2180cf766566fcf439ac892eb32a8a5a8"
+      }
+    ],
+    "python_full_oracle": {
+      "case_id": "python.orchestration-preview",
+      "path": "tooling/migration/baselines/v1.19.0-beta.1/oracles/python-full.json",
+      "sha256": "26d247c9268c3166c98080aef420acfdb8248f62b11cc69420250f6e493a23e3"
+    }
+  },
+  "status": "runtime-inventory-freeze-captured",
+  "task_id": "CTR-201F"
+}

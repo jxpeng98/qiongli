@@ -6,14 +6,13 @@ and the frozen migration baseline is committed on `dev`. The protected `2.x`
 branch is initialized and validated at branch-point record commit
 `69855fd50413ee6809baf21eb345fc0c55721de3`. B0 records the accepted native
 architecture decisions, and the B2 native workspace scaffold and repository
-gates are implemented. In B3, the CTR-201A slice is merged, CTR-201B
-accepted-source static CLI semantics are captured, CTR-201C captures the
-accepted-source `DECLARED/STATIC` orchestrator control contract and
-compatibility boundary, and CTR-201D captures canonical-content and
-reproducible materialized-skill-subtree closure. CTR-201E's accepted-source
-Full CLI runtime-inventory-freeze implementation and checked corpus are
-present; branch integration remains gated by exact-head CI. CTR-201 remains in
-progress, CTR-202 remains a successor task, and FND-202 is not implemented.
+gates are implemented. In B3, CTR-201A-D are merged and validation-backed, and
+CTR-201E's accepted-source Full CLI runtime-inventory freeze is merged through
+protected PR #57. CTR-201F closes the accepted-source orchestrator runtime
+inventory with 44 deterministic cases (one A8 plus 43 bounded), six behavior
+dimensions, and six explicit dispositions. The CTR-201 source-oracle gate is
+complete in this tree. CTR-202 and FND-202 are
+now unblocked, separate successor tasks; neither is implemented.
 B1 / REL-201 now provides a typed native
 release identity, strict 1.x/2.x channel isolation, and an external-staging
 `v2.0.0-alpha.1` dry-run; real native publication remains fail-closed pending
@@ -1089,9 +1088,10 @@ Actions:
 1. load and verify the frozen A8 1.x baseline manifest, accepted-tag lineage,
    checksums, package trees, and oracle inventory; do not regenerate or move
    the accepted oracle during B3;
-2. integrate CTR-201E's accepted-source Full CLI runtime inventory freeze only
-   after its exact-head CI gate, then close the remaining accepted-source
-   orchestrator-runtime requirement needed by the CTR-201 parent exit gate;
+2. retain merged CTR-201E as the accepted-source Full CLI runtime inventory and
+   close the remaining accepted-source orchestrator-runtime requirement through
+   CTR-201F, using bounded fixtures or explicit dispositions for every required
+   matrix cell;
 3. after CTR-201 closes, implement typed Contract v2 and platform-target loaders
    under CTR-202;
 4. after CTR-201 closes, compile canonical workflow, skills, roles, templates,
@@ -1119,8 +1119,8 @@ B3 execution status: **in progress**.
   captures formatted parser output and bounded handler cases and binds every
   unexecuted handler dimension to an inventory-only `LEG-201` disposition;
   Full handler runtime parity remains unclaimed;
-- CTR-201C does not prove that agents run, solo/triad runtime parity, state or
-  resume behavior, concurrency, failure or cancellation semantics, or
+- CTR-201C alone does not prove that agents run, solo/triad runtime parity,
+  state or resume behavior, concurrency, failure or cancellation semantics, or
   quality-gate semantic execution. The accepted handler makes `doctor` part of
   an advisory route sequence; `_tool_task_run(run_agents=true)` does not call
   or enforce it. CTR-201C also does not implement plugin or Marketplace
@@ -1140,15 +1140,26 @@ B3 execution status: **in progress**.
   zero-argument behavior, aliases, and legacy npm dispatch. Unexecuted handler
   scenarios are bound to `CTR-201E-D001`/`D002` and npm handler parity to
   `D003`; all remain `LEG-201` work rather than executed parity evidence;
-- CTR-201 has not reached its exit gate, and FND-202 resource-pack work has not
-  been implemented;
-- integrate CTR-201E only after exact-head CI;
-- after CTR-201E's integration gate, accepted-source orchestrator runtime is
-  the known remaining CTR-201 blocker. Published archive/plugin-wrapper parity
-  remains an unassigned downstream governance boundary rather than a parent
-  exit gate;
-- after the parent CTR-201 exit gate, CTR-202 and FND-202 may begin as separate
-  successors.
+- CTR-201E is merged through protected PR #57 and closes only the CLI runtime
+  inventory slice; it does not establish Full handler or cross-platform runtime
+  parity;
+- CTR-201F closes the accepted-source orchestrator runtime inventory with
+  44 normalized deterministic cases (one A8 plus 43 bounded), six behavior
+  dimensions, and six machine-bound dispositions. It does not launch real
+  Codex, Claude, or Antigravity agents and does not claim
+  strict single-agent solo enforcement, public cancellation, real session
+  resume, native worker dispatch, semantic quality-gate execution, a Rust
+  orchestrator, or cross-platform runtime parity;
+- CTR-201 has reached its source-oracle exit gate: every required MCP, CLI,
+  content, and orchestrator inventory gap is captured or explicitly
+  dispositioned. FND-202 resource-pack work remains unimplemented;
+- CTR-201F canonical re-extraction runs with Python 3.12 in the Ubuntu full
+  tier. Windows and macOS validate the checked portable artifact and master
+  binding only;
+- published archive/plugin-wrapper parity remains an unassigned downstream
+  governance boundary rather than a parent exit gate;
+- CTR-202 and FND-202 may now begin as separate successors. Neither is
+  implementation evidence for the other.
 
 Exit criteria:
 
@@ -1442,21 +1453,18 @@ scaffold. The accepted 1.x tag must remain an unambiguous oracle boundary.
 ## Immediate Next Actions
 
 A0-A8, B0, and the non-publishing B1 release contract are complete, the B2
-native workspace scaffold and repository gates are implemented, and B3 is in
-progress with the CTR-201A slice merged,
-CTR-201B accepted-source static CLI semantics captured, CTR-201C capturing the
-accepted-source `DECLARED/STATIC` orchestrator boundary, and CTR-201D capturing
-canonical-content and reproducible materialized-skill-subtree closure.
-CTR-201E's implementation and checked corpus are present; its integration is
-gated by exact-head CI. CTR-201 remains in progress, CTR-202 remains a
-successor, and FND-202 is not implemented. Continue in this order:
+native workspace scaffold and repository gates are implemented, and B3 has
+closed CTR-201A-F as the accepted-source source-oracle inventory. CTR-201E is
+merged; CTR-201F provides the final orchestrator-runtime inventory closure.
+CTR-202 and FND-202 are unblocked but remain unimplemented. Continue in this
+order:
 
-1. integrate CTR-201E only after exact-head CI, without claiming Rust CLI or
-   cross-platform runtime parity;
-2. close the remaining accepted-source orchestrator-runtime gap required by
-   CTR-201; retain published archive/plugin-wrapper parity as an unassigned
-   downstream governance boundary, not a parent-task blocker;
-3. after CTR-201 reaches its exit gate, begin CTR-202 Contract v2 completion and
+1. protect CTR-201F with an exact-head CI gate while describing it as bounded
+   accepted-source inventory evidence, not real-agent, Rust, or cross-platform
+   runtime parity;
+2. retain published archive/plugin-wrapper parity as an unassigned downstream
+   governance boundary, not a CTR-201 blocker;
+3. begin CTR-202 Contract v2 completion and
    FND-202 resource-pack implementation as separate, parallel successors; keep
    later B3 and B4 work inside the ADR 0204 and ADR 0205 service and rollback
    boundaries;

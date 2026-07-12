@@ -252,7 +252,7 @@ jobs:
       - name: Compile critical modules
         run: python -m py_compile packages/python-qiongli/src/qiongli/bridges/base_bridge.py packages/python-qiongli/src/qiongli/bridges/orchestrator.py scripts/validate_research_standard.py tests/test_orchestrator_workflows.py tests/test_install_qiongli.py
 
-      - name: Compile CTR-201A/B/C/D/E inventory gates
+      - name: Compile CTR-201A/B/C/D/E/F inventory gates
         run: >-
           python -m py_compile
           scripts/validate_ctr_201_inventory.py
@@ -265,11 +265,14 @@ jobs:
           tooling/scripts/extract_ctr_201_content_inventory.py
           scripts/extract_ctr_201_cli_runtime_inventory.py
           tooling/scripts/extract_ctr_201_cli_runtime_inventory.py
+          scripts/extract_ctr_201_orchestrator_runtime_inventory.py
+          tooling/scripts/extract_ctr_201_orchestrator_runtime_inventory.py
           tests/test_ctr_201_inventory.py
           tests/test_ctr_201_cli_inventory.py
           tests/test_ctr_201_orchestrator_inventory.py
           tests/test_ctr_201_content_inventory.py
           tests/test_ctr_201_cli_runtime_inventory.py
+          tests/test_ctr_201_orchestrator_runtime_inventory.py
 
       - name: Resolve generated payload comparison base
         id: generated-payload-base
@@ -310,7 +313,7 @@ jobs:
           python scripts/validate_repository_source.py
           --base-ref "$GENERATED_PAYLOAD_BASE"
 
-      - name: Validate CTR-201A/B/C/D/E inventories
+      - name: Validate CTR-201A/B/C/D/E/F inventories
         run: python scripts/validate_ctr_201_inventory.py
 
       - name: Protect frozen migration baseline
@@ -374,6 +377,7 @@ jobs:
           tests.test_ctr_201_orchestrator_inventory
           tests.test_ctr_201_content_inventory
           tests.test_ctr_201_cli_runtime_inventory
+          tests.test_ctr_201_orchestrator_runtime_inventory
 
       - name: Run macOS CTR inventory smoke tests
         if: matrix.test-tier == 'macos-smoke'
@@ -384,6 +388,7 @@ jobs:
           tests.test_ctr_201_orchestrator_inventory
           tests.test_ctr_201_content_inventory
           tests.test_ctr_201_cli_runtime_inventory
+          tests.test_ctr_201_orchestrator_runtime_inventory
           tests.test_release_version_contract
           tests.test_native_release_dry_run
           tests.test_release_note_versions

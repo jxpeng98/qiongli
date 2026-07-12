@@ -22,6 +22,12 @@ DEFAULT_CLI_RUNTIME_ARTIFACT = "tooling/migration/ctr-201-cli-runtime.json"
 DEFAULT_CLI_RUNTIME_SCHEMA = "tooling/migration/ctr-201-cli-runtime.schema.json"
 DEFAULT_ORCHESTRATOR_ARTIFACT = "tooling/migration/ctr-201-orchestrator.json"
 DEFAULT_ORCHESTRATOR_SCHEMA = "tooling/migration/ctr-201-orchestrator.schema.json"
+DEFAULT_ORCHESTRATOR_RUNTIME_ARTIFACT = (
+    "tooling/migration/ctr-201-orchestrator-runtime.json"
+)
+DEFAULT_ORCHESTRATOR_RUNTIME_SCHEMA = (
+    "tooling/migration/ctr-201-orchestrator-runtime.schema.json"
+)
 DEFAULT_CONTENT_ARTIFACT = "tooling/migration/ctr-201-content.json"
 DEFAULT_CONTENT_SCHEMA = "tooling/migration/ctr-201-content.schema.json"
 EXPECTED_TAG = "v1.19.0-beta.1"
@@ -44,7 +50,7 @@ EXPECTED_REGISTRY_SHA256 = (
     "602d3faf525e2e5c938afb14f1b1d291f528240947b3df6ed9f56baeb73e7020"
 )
 EXPECTED_SCHEMA_CANONICAL_SHA256 = (
-    "609965299e3a71f9a6e7dd09df2533ac2390eff33738ae5c13c9f4c65070313b"
+    "a373e6727e639a07c48bfd3c7c2ec2c56a2a7ca5f713ebd5fa31c5b0dbf72a3e"
 )
 EXPECTED_CLI_SCHEMA_CANONICAL_SHA256 = (
     "173436615a8a26d45903cc7812a55f2e9ae094089f637bced0f418a3976456ad"
@@ -60,6 +66,15 @@ EXPECTED_ORCHESTRATOR_SCHEMA_CANONICAL_SHA256 = (
 )
 EXPECTED_ORCHESTRATOR_PAYLOAD_SHA256 = (
     "508ed0f92a511a0a9a6daa33598ce891222540b15e5aa207984db97319fe2c5e"
+)
+EXPECTED_ORCHESTRATOR_RUNTIME_SCHEMA_CANONICAL_SHA256 = (
+    "dff9d2226a4f3cb6ab068b158c7aecbff393c0c2a18a46058c5f587172a5178e"
+)
+EXPECTED_ORCHESTRATOR_RUNTIME_PAYLOAD_SHA256 = (
+    "9232b0a3c2ba223c860244142054940229e435e00735261bd7db834c7a94faab"
+)
+EXPECTED_ORCHESTRATOR_RUNTIME_CASE_MANIFEST_SHA256 = (
+    "676b7b269889da02bbb928b29fa254e40ca8794f5bf2e199477364f330debddd"
 )
 EXPECTED_CONTENT_SCHEMA_CANONICAL_SHA256 = (
     "6f88a56c2a88c51f68a6bb10bce05776d1e06f678ae916739a6e3de96d2b1704"
@@ -108,6 +123,26 @@ EXPECTED_ORCHESTRATOR_COUNTS = {
     "declared_profile_count": 5,
     "team_run_task_count": 2,
     "worker_orchestration_task_count": 2,
+}
+EXPECTED_ORCHESTRATOR_RUNTIME_COUNTS = {
+    "case_count": 44,
+    "resolved_dimension_count": 6,
+    "disposition_decision_count": 6,
+}
+EXPECTED_ORCHESTRATOR_RUNTIME_COVERAGE = {
+    "accepted_a8_case_count": 1,
+    "bounded_runtime_case_count": 43,
+    "case_count": 44,
+    "completion_ready": True,
+    "cross_platform_runtime_parity": "not-claimed",
+    "ctr_201": "complete",
+    "ctr_202": "not-complete",
+    "disposition_decision_count": 6,
+    "fnd_202": "not-implemented",
+    "real_agent_runtime_parity": "not-claimed",
+    "required_not_fully_captured_count": 0,
+    "resolved_dimension_count": 6,
+    "rust_orchestrator": "not-implemented",
 }
 EXPECTED_ORCHESTRATOR_CHILD_COUNTS = {
     "stage_count": 13,
@@ -255,8 +290,16 @@ EXPECTED_ORCHESTRATOR_CAPTURED_SCOPE = (
     "python-full-static-declared-routing-contracts",
     "python-full-static-declared-mcp-capability-contracts",
     "python-full-static-declared-quality-gates",
+    "python-full-bounded-orchestrator-runtime-matrix",
+    "python-full-state-and-resume-observed-boundary",
+    "python-full-agent-launch-fake-boundary",
+    "python-full-solo-duo-triad-controller-semantics",
+    "python-full-failure-and-cancellation-observed-boundary",
+    "python-full-quality-gate-artifact-existence-boundary",
+    "python-full-approved-downstream-disposition-decisions",
+    "python-full-real-agent-runtime-parity-not-claimed",
 )
-EXPECTED_ORCHESTRATOR_GAPS = (
+EXPECTED_ORCHESTRATOR_RUNTIME_DIMENSION_IDS = (
     "complete-runtime-behavior-matrix",
     "complete-state-and-resume",
     "complete-agent-launch-behavior",
@@ -264,6 +307,7 @@ EXPECTED_ORCHESTRATOR_GAPS = (
     "complete-failure-and-cancellation",
     "complete-quality-gate-semantic-execution",
 )
+EXPECTED_ORCHESTRATOR_GAPS: tuple[str, ...] = ()
 EXPECTED_ORCHESTRATION_ORACLE_OUTCOME = {
     "error": None,
     "exit_code": 0,
@@ -1788,18 +1832,176 @@ def _validate_orchestrator_static_contract(
     return sorted(set(errors))
 
 
+def _validate_orchestrator_runtime_freeze(
+    repo_root: Path, record: Mapping[str, Any]
+) -> list[str]:
+    orchestrator = record.get("orchestrator")
+    binding = (
+        orchestrator.get("runtime_freeze")
+        if isinstance(orchestrator, Mapping)
+        else None
+    )
+    if not isinstance(binding, Mapping):
+        return ["orchestrator runtime-freeze binding is missing"]
+    expected_binding = {
+        "task_id": "CTR-201F",
+        "status": "runtime-inventory-freeze-captured",
+        "artifact_path": DEFAULT_ORCHESTRATOR_RUNTIME_ARTIFACT,
+        "schema_path": DEFAULT_ORCHESTRATOR_RUNTIME_SCHEMA,
+        "schema_canonical_sha256": (
+            EXPECTED_ORCHESTRATOR_RUNTIME_SCHEMA_CANONICAL_SHA256
+        ),
+        "payload_sha256": EXPECTED_ORCHESTRATOR_RUNTIME_PAYLOAD_SHA256,
+        "case_manifest_sha256": (
+            EXPECTED_ORCHESTRATOR_RUNTIME_CASE_MANIFEST_SHA256
+        ),
+        **EXPECTED_ORCHESTRATOR_RUNTIME_COUNTS,
+        "capture_ready": True,
+    }
+    if dict(binding) != expected_binding:
+        return ["orchestrator runtime-freeze master binding is invalid"]
+
+    child_schema = _load_json_file(
+        repo_root,
+        DEFAULT_ORCHESTRATOR_RUNTIME_SCHEMA,
+        label="orchestrator runtime child schema",
+    )
+    artifact = _load_json_file(
+        repo_root,
+        DEFAULT_ORCHESTRATOR_RUNTIME_ARTIFACT,
+        label="orchestrator runtime child artifact",
+    )
+    errors: list[str] = []
+    if (
+        _sha256(_canonical_json_bytes(child_schema))
+        != EXPECTED_ORCHESTRATOR_RUNTIME_SCHEMA_CANONICAL_SHA256
+    ):
+        errors.append("orchestrator runtime child schema canonical digest is invalid")
+    if (
+        child_schema.get("$schema")
+        != "https://json-schema.org/draft/2020-12/schema"
+        or child_schema.get("$id")
+        != "https://qiongli.dev/schemas/ctr-201-orchestrator-runtime.schema.json"
+    ):
+        errors.append("orchestrator runtime child schema identity is invalid")
+    errors.extend(
+        _validate_recursively_closed_schema(
+            child_schema, label="orchestrator runtime child"
+        )
+    )
+    if validate_instance(artifact, child_schema):
+        errors.append(
+            "orchestrator runtime child artifact does not satisfy its closed schema"
+        )
+        return sorted(set(errors))
+
+    try:
+        from tooling.scripts import (
+            extract_ctr_201_orchestrator_runtime_inventory as extractor,
+        )
+
+        extractor.validate_runtime_artifact(artifact)
+    except Exception:
+        errors.append("orchestrator runtime child semantic validation failed")
+        return sorted(set(errors))
+
+    static_artifact = _load_json_file(
+        repo_root, DEFAULT_ORCHESTRATOR_ARTIFACT, label="orchestrator child artifact"
+    )
+    static_source = static_artifact.get("source")
+    expected_source = (
+        {
+            "accepted_tag": EXPECTED_TAG,
+            "accepted_commit": EXPECTED_COMMIT,
+            "a8_manifest": {
+                "path": EXPECTED_MANIFEST_PATH,
+                "sha256": EXPECTED_MANIFEST_SHA256,
+            },
+            "python_full_oracle": static_source.get("python_full_oracle"),
+            "package_trees": static_source.get("package_trees"),
+            "blob_anchors": static_source.get("blob_anchors"),
+            "ctr_201c": {
+                "artifact_path": DEFAULT_ORCHESTRATOR_ARTIFACT,
+                "schema_path": DEFAULT_ORCHESTRATOR_SCHEMA,
+                "schema_canonical_sha256": (
+                    EXPECTED_ORCHESTRATOR_SCHEMA_CANONICAL_SHA256
+                ),
+                "payload_sha256": EXPECTED_ORCHESTRATOR_PAYLOAD_SHA256,
+            },
+            "ctr_201d": {
+                "artifact_path": DEFAULT_CONTENT_ARTIFACT,
+                "payload_sha256": EXPECTED_CONTENT_PAYLOAD_SHA256,
+            },
+            "accepted_manifest_corpus_sha256": EXPECTED_CORPUS_SHA256,
+        }
+        if isinstance(static_source, Mapping)
+        else None
+    )
+    if artifact.get("source") != expected_source:
+        errors.append("orchestrator runtime child frozen-source binding is invalid")
+
+    integrity = artifact.get("integrity")
+    coverage = artifact.get("coverage")
+    cases = artifact.get("cases")
+    dimensions = artifact.get("behavior_dimensions")
+    decisions = artifact.get("disposition_decisions")
+    if not isinstance(integrity, Mapping) or (
+        integrity.get("payload_sha256")
+        != EXPECTED_ORCHESTRATOR_RUNTIME_PAYLOAD_SHA256
+        or integrity.get("case_manifest_sha256")
+        != EXPECTED_ORCHESTRATOR_RUNTIME_CASE_MANIFEST_SHA256
+        or binding.get("payload_sha256") != integrity.get("payload_sha256")
+        or binding.get("case_manifest_sha256")
+        != integrity.get("case_manifest_sha256")
+    ):
+        errors.append(
+            "orchestrator runtime child integrity does not match the master binding"
+        )
+    if not isinstance(coverage, Mapping) or dict(coverage) != (
+        EXPECTED_ORCHESTRATOR_RUNTIME_COVERAGE
+    ):
+        errors.append("orchestrator runtime child coverage boundary is invalid")
+    if (
+        not isinstance(cases, list)
+        or binding.get("case_count") != len(cases)
+        or not isinstance(dimensions, list)
+        or binding.get("resolved_dimension_count") != len(dimensions)
+        or [
+            item.get("id") for item in dimensions if isinstance(item, Mapping)
+        ]
+        != list(EXPECTED_ORCHESTRATOR_RUNTIME_DIMENSION_IDS)
+        or not isinstance(decisions, list)
+        or binding.get("disposition_decision_count") != len(decisions)
+    ):
+        errors.append("orchestrator runtime child counts do not match the master binding")
+    return sorted(set(errors))
+
+
 def _validate_completion_claims(record: Mapping[str, Any]) -> list[str]:
     errors: list[str] = []
     completion = record.get("completion")
+    cli = record.get("cli")
+    orchestrator = record.get("orchestrator")
+    content = record.get("content")
     if (
         record.get("task_id") != "CTR-201A"
-        or record.get("status") != "in-progress"
+        or record.get("status") != "complete"
         or not isinstance(completion, Mapping)
-        or completion.get("ctr_201") != "in-progress"
+        or completion.get("ctr_201") != "complete"
         or completion.get("fnd_202") != "not-implemented"
-        or completion.get("completion_ready") is not False
+        or completion.get("completion_ready") is not True
+        or not isinstance(cli, Mapping)
+        or cli.get("completion_ready") is not True
+        or not isinstance(orchestrator, Mapping)
+        or orchestrator.get("completion_ready") is not True
+        or orchestrator.get("required_not_fully_captured") != []
+        or not isinstance(content, Mapping)
+        or content.get("completion_ready") is not True
     ):
-        errors.append("CTR-201A must remain in progress and FND-202 not implemented")
+        errors.append(
+            "CTR-201 accepted-source inventory must be complete while FND-202 "
+            "remains not implemented"
+        )
     return errors
 
 
@@ -2198,16 +2400,18 @@ def _validate_coverage_gaps(
         python_oracle, "orchestration-preview"
     )
     if not isinstance(orchestrator, Mapping) or (
-        orchestrator.get("status") != "incomplete"
+        orchestrator.get("status") != "runtime-inventory-frozen"
         or orchestrator.get("captured_oracle_cases") != orchestrator_case_ids
         or actual_orchestrator_cases != orchestrator_case_ids
         or orchestrator.get("captured_scope")
         != list(EXPECTED_ORCHESTRATOR_CAPTURED_SCOPE)
         or orchestrator.get("required_not_fully_captured")
         != list(EXPECTED_ORCHESTRATOR_GAPS)
-        or orchestrator.get("completion_ready") is not False
+        or orchestrator.get("completion_ready") is not True
     ):
-        errors.append("orchestrator coverage must remain explicit and incomplete")
+        errors.append(
+            "orchestrator coverage must remain explicit and runtime-inventory-frozen"
+        )
     return errors
 
 
@@ -2888,13 +3092,17 @@ def validate_inventory(
     errors.extend(_validate_cli_static_semantics(repo_root, record))
     errors.extend(_validate_cli_runtime_freeze(repo_root, record))
     errors.extend(_validate_orchestrator_static_contract(repo_root, record))
+    errors.extend(_validate_orchestrator_runtime_freeze(repo_root, record))
     errors.extend(_validate_content(repo_root, record, manifest))
     return sorted(set(errors))
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = SafeArgumentParser(
-        description="Validate the derived and accepted-source CTR-201A/B/C/D/E inventories."
+        description=(
+            "Validate the derived and accepted-source CTR-201A/B/C/D/E/F "
+            "inventories."
+        )
     )
     parser.add_argument("--root", type=Path, default=REPO_ROOT)
     parser.add_argument("--record", default=DEFAULT_RECORD)
@@ -2910,7 +3118,7 @@ def _emit(payload: Mapping[str, Any], *, as_json: bool) -> None:
     status = payload["status"]
     if status == "pass":
         print(
-            "[ctr-201] PASS: semantic inventory is in progress; "
+            "[ctr-201] PASS: accepted-source semantic inventory is complete; "
             "FND-202 is not implemented"
         )
         return
@@ -2966,7 +3174,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "status": "pass",
         "exit_code": 0,
         "error_count": 0,
-        "ctr_201": "in-progress",
+        "ctr_201": "complete",
         "fnd_202": "not-implemented",
     }
     _emit(payload, as_json=args.json)

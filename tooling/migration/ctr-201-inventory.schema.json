@@ -23,14 +23,14 @@
     "schema_version": { "const": "1.0" },
     "record_type": { "const": "qiongli-ctr-201-semantic-inventory" },
     "task_id": { "const": "CTR-201A" },
-    "status": { "const": "in-progress" },
+    "status": { "const": "complete" },
     "completion": {
       "type": "object",
       "required": ["ctr_201", "fnd_202", "completion_ready"],
       "properties": {
-        "ctr_201": { "const": "in-progress" },
+        "ctr_201": { "const": "complete" },
         "fnd_202": { "const": "not-implemented" },
-        "completion_ready": { "const": false }
+        "completion_ready": { "const": true }
       },
       "additionalProperties": false
     },
@@ -430,10 +430,11 @@
         "captured_scope",
         "required_not_fully_captured",
         "static_contract",
+        "runtime_freeze",
         "completion_ready"
       ],
       "properties": {
-        "status": { "const": "incomplete" },
+        "status": { "const": "runtime-inventory-frozen" },
         "captured_oracle_cases": {
           "type": "array",
           "minItems": 1,
@@ -448,7 +449,7 @@
         },
         "required_not_fully_captured": {
           "type": "array",
-          "minItems": 1,
+          "maxItems": 0,
           "uniqueItems": true,
           "items": { "type": "string", "minLength": 1 }
         },
@@ -496,7 +497,37 @@
           },
           "additionalProperties": false
         },
-        "completion_ready": { "const": false }
+        "runtime_freeze": {
+          "type": "object",
+          "required": [
+            "task_id",
+            "status",
+            "artifact_path",
+            "schema_path",
+            "schema_canonical_sha256",
+            "payload_sha256",
+            "case_manifest_sha256",
+            "case_count",
+            "resolved_dimension_count",
+            "disposition_decision_count",
+            "capture_ready"
+          ],
+          "properties": {
+            "task_id": { "const": "CTR-201F" },
+            "status": { "const": "runtime-inventory-freeze-captured" },
+            "artifact_path": { "$ref": "#/$defs/repositoryPath" },
+            "schema_path": { "$ref": "#/$defs/repositoryPath" },
+            "schema_canonical_sha256": { "$ref": "#/$defs/sha256" },
+            "payload_sha256": { "$ref": "#/$defs/sha256" },
+            "case_manifest_sha256": { "$ref": "#/$defs/sha256" },
+            "case_count": { "const": 44 },
+            "resolved_dimension_count": { "const": 6 },
+            "disposition_decision_count": { "const": 6 },
+            "capture_ready": { "const": true }
+          },
+          "additionalProperties": false
+        },
+        "completion_ready": { "const": true }
       },
       "additionalProperties": false
     },

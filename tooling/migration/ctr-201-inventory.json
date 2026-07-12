@@ -3,11 +3,11 @@
   "schema_version": "1.0",
   "record_type": "qiongli-ctr-201-semantic-inventory",
   "task_id": "CTR-201A",
-  "status": "in-progress",
+  "status": "complete",
   "completion": {
-    "ctr_201": "in-progress",
+    "ctr_201": "complete",
     "fnd_202": "not-implemented",
-    "completion_ready": false
+    "completion_ready": true
   },
   "frozen_source": {
     "accepted_tag": "v1.19.0-beta.1",
@@ -256,7 +256,7 @@
     "completion_ready": true
   },
   "orchestrator": {
-    "status": "incomplete",
+    "status": "runtime-inventory-frozen",
     "captured_oracle_cases": [
       "python.orchestration-preview"
     ],
@@ -267,16 +267,17 @@
       "python-full-static-declared-agent-contracts",
       "python-full-static-declared-routing-contracts",
       "python-full-static-declared-mcp-capability-contracts",
-      "python-full-static-declared-quality-gates"
+      "python-full-static-declared-quality-gates",
+      "python-full-bounded-orchestrator-runtime-matrix",
+      "python-full-state-and-resume-observed-boundary",
+      "python-full-agent-launch-fake-boundary",
+      "python-full-solo-duo-triad-controller-semantics",
+      "python-full-failure-and-cancellation-observed-boundary",
+      "python-full-quality-gate-artifact-existence-boundary",
+      "python-full-approved-downstream-disposition-decisions",
+      "python-full-real-agent-runtime-parity-not-claimed"
     ],
-    "required_not_fully_captured": [
-      "complete-runtime-behavior-matrix",
-      "complete-state-and-resume",
-      "complete-agent-launch-behavior",
-      "complete-solo-duo-triad-runtime-parity",
-      "complete-failure-and-cancellation",
-      "complete-quality-gate-semantic-execution"
-    ],
+    "required_not_fully_captured": [],
     "static_contract": {
       "task_id": "CTR-201C",
       "status": "static-contract-captured",
@@ -297,7 +298,20 @@
       "worker_orchestration_task_count": 2,
       "capture_ready": true
     },
-    "completion_ready": false
+    "runtime_freeze": {
+      "task_id": "CTR-201F",
+      "status": "runtime-inventory-freeze-captured",
+      "artifact_path": "tooling/migration/ctr-201-orchestrator-runtime.json",
+      "schema_path": "tooling/migration/ctr-201-orchestrator-runtime.schema.json",
+      "schema_canonical_sha256": "dff9d2226a4f3cb6ab068b158c7aecbff393c0c2a18a46058c5f587172a5178e",
+      "payload_sha256": "9232b0a3c2ba223c860244142054940229e435e00735261bd7db834c7a94faab",
+      "case_manifest_sha256": "676b7b269889da02bbb928b29fa254e40ca8794f5bf2e199477364f330debddd",
+      "case_count": 44,
+      "resolved_dimension_count": 6,
+      "disposition_decision_count": 6,
+      "capture_ready": true
+    },
+    "completion_ready": true
   },
   "content": {
     "status": "content-materialization-captured",
@@ -450,6 +464,6 @@
   "integrity": {
     "algorithm": "sha256",
     "canonicalization": "utf-8-json-sorted-keys-compact-excluding-integrity",
-    "payload_sha256": "0c68b8df02d4f599fb5e99c6f0c67bc500da075b24c07c795eb72cabcb4cb061"
+    "payload_sha256": "d0acc885b0aa10d6ed78de8f84fecb2675f7fd94640030ec2a6bd15c1f62bdf1"
   }
 }

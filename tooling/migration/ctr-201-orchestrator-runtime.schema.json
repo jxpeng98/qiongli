@@ -1,0 +1,654 @@
+{
+  "$id": "https://qiongli.dev/schemas/ctr-201-orchestrator-runtime.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "const": "./ctr-201-orchestrator-runtime.schema.json"
+    },
+    "behavior_dimensions": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "accepted_behavior": {
+            "type": "string"
+          },
+          "case_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "decision_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "resolution": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "accepted_behavior",
+          "case_ids",
+          "decision_ids",
+          "id",
+          "resolution"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "capture_contract": {
+      "additionalProperties": false,
+      "properties": {
+        "dependency": {
+          "const": "pure-python-pyyaml-6.0.3-capsule"
+        },
+        "dependency_tree_sha256": {
+          "const": "06f74e5c27433e236e83428ba11cc911d29217f68bc778b0396885699afb8992"
+        },
+        "determinism": {
+          "const": "two-distinct-temp-roots-and-environments-byte-equivalent"
+        },
+        "fake_boundary": {
+          "const": "bridge-mcp-availability-and-deterministic-identity-injection"
+        },
+        "network_policy": {
+          "const": "python-audit-denied"
+        },
+        "os_sandbox_claim": {
+          "const": "authenticated-source-capability-guard-not-hostile-code-os-sandbox"
+        },
+        "process_policy": {
+          "const": "worker-denies-child-processes;parent-launches-git-and-python-capture-processes"
+        },
+        "python_isolation": {
+          "const": "-I-S-B-dual-environment-audit-hook"
+        },
+        "python_version": {
+          "const": "python3.12"
+        },
+        "secret_policy": {
+          "const": "sanitized-environment-and-canary-rejection"
+        },
+        "source_mode": {
+          "const": "accepted-tag-git-blobs"
+        },
+        "trace_order": {
+          "const": "logical-order-preserved-only-concurrent-cohorts-canonicalized"
+        },
+        "write_policy": {
+          "const": "worker-denies-sut-writes;fixture-roots-before-after-measured"
+        }
+      },
+      "required": [
+        "dependency",
+        "dependency_tree_sha256",
+        "determinism",
+        "fake_boundary",
+        "network_policy",
+        "os_sandbox_claim",
+        "process_policy",
+        "python_isolation",
+        "python_version",
+        "secret_policy",
+        "source_mode",
+        "trace_order",
+        "write_policy"
+      ],
+      "type": "object"
+    },
+    "cases": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "case_sha256": {
+            "type": "string"
+          },
+          "declaration_ordinal": {
+            "type": "integer"
+          },
+          "dimension_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "effects": {
+            "additionalProperties": false,
+            "properties": {
+              "after_tree_sha256": {
+                "type": "string"
+              },
+              "before_tree_sha256": {
+                "type": "string"
+              },
+              "changed_path_count": {
+                "type": "integer"
+              },
+              "changed_paths_sha256": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "after_tree_sha256",
+              "before_tree_sha256",
+              "changed_path_count",
+              "changed_paths_sha256"
+            ],
+            "type": "object"
+          },
+          "group": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "input_facts": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key",
+                "value"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "outcome": {
+            "additionalProperties": false,
+            "properties": {
+              "exception_message_sha256": {
+                "type": "string"
+              },
+              "exception_type": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "result_sha256": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "exception_message_sha256",
+              "exception_type",
+              "kind",
+              "result_sha256"
+            ],
+            "type": "object"
+          },
+          "provenance": {
+            "type": "string"
+          },
+          "result_facts": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key",
+                "value"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "trace": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "agent": {
+                  "type": "string"
+                },
+                "cohort_member_ordinal": {
+                  "type": "integer"
+                },
+                "logical_cohort_ordinal": {
+                  "type": "integer"
+                },
+                "ordering": {
+                  "type": "string"
+                },
+                "ordinal": {
+                  "type": "integer"
+                },
+                "prompt_sha256": {
+                  "type": "string"
+                },
+                "runtime_options_sha256": {
+                  "type": "string"
+                },
+                "stage": {
+                  "type": "string"
+                },
+                "state_ordinal": {
+                  "type": "integer"
+                },
+                "success": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "agent",
+                "cohort_member_ordinal",
+                "logical_cohort_ordinal",
+                "ordering",
+                "ordinal",
+                "prompt_sha256",
+                "runtime_options_sha256",
+                "stage",
+                "state_ordinal",
+                "success"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "case_sha256",
+          "declaration_ordinal",
+          "dimension_ids",
+          "effects",
+          "group",
+          "id",
+          "input_facts",
+          "operation",
+          "outcome",
+          "provenance",
+          "result_facts",
+          "trace"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "compatibility_boundary": {
+      "additionalProperties": false,
+      "properties": {
+        "cross_platform_runtime_parity": {
+          "const": "not-claimed"
+        },
+        "native_worker_adapter_dispatch": {
+          "const": "accepted-generic-fallback"
+        },
+        "plugin_marketplace_behavior": {
+          "const": "not-captured"
+        },
+        "real_agent_execution": {
+          "const": "not-executed"
+        },
+        "real_provider_network": {
+          "const": "not-executed"
+        },
+        "real_timeout_signal_cancel": {
+          "const": "not-captured"
+        },
+        "rust_implementation": {
+          "const": "not-implemented"
+        },
+        "semantic_quality_gate_execution": {
+          "const": "accepted-absent"
+        },
+        "strict_topic_code_build": {
+          "const": "not-captured-no-write-disposition"
+        },
+        "task_team_checkpoint_resume": {
+          "const": "accepted-absent"
+        }
+      },
+      "required": [
+        "cross_platform_runtime_parity",
+        "native_worker_adapter_dispatch",
+        "plugin_marketplace_behavior",
+        "real_agent_execution",
+        "real_provider_network",
+        "real_timeout_signal_cancel",
+        "rust_implementation",
+        "semantic_quality_gate_execution",
+        "strict_topic_code_build",
+        "task_team_checkpoint_resume"
+      ],
+      "type": "object"
+    },
+    "coverage": {
+      "additionalProperties": false,
+      "properties": {
+        "accepted_a8_case_count": {
+          "const": 1
+        },
+        "bounded_runtime_case_count": {
+          "const": 43
+        },
+        "case_count": {
+          "const": 44
+        },
+        "completion_ready": {
+          "const": true
+        },
+        "cross_platform_runtime_parity": {
+          "const": "not-claimed"
+        },
+        "ctr_201": {
+          "const": "complete"
+        },
+        "ctr_202": {
+          "const": "not-complete"
+        },
+        "disposition_decision_count": {
+          "const": 6
+        },
+        "fnd_202": {
+          "const": "not-implemented"
+        },
+        "real_agent_runtime_parity": {
+          "const": "not-claimed"
+        },
+        "required_not_fully_captured_count": {
+          "const": 0
+        },
+        "resolved_dimension_count": {
+          "const": 6
+        },
+        "rust_orchestrator": {
+          "const": "not-implemented"
+        }
+      },
+      "required": [
+        "accepted_a8_case_count",
+        "bounded_runtime_case_count",
+        "case_count",
+        "completion_ready",
+        "cross_platform_runtime_parity",
+        "ctr_201",
+        "ctr_202",
+        "disposition_decision_count",
+        "fnd_202",
+        "real_agent_runtime_parity",
+        "required_not_fully_captured_count",
+        "resolved_dimension_count",
+        "rust_orchestrator"
+      ],
+      "type": "object"
+    },
+    "disposition_decisions": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "accepted_fact": {
+            "type": "string"
+          },
+          "downstream_tasks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "prohibited_claims": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "scope": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "accepted_fact",
+          "downstream_tasks",
+          "id",
+          "prohibited_claims",
+          "scope"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "integrity": {
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "const": "sha256"
+        },
+        "canonicalization": {
+          "const": "utf-8-json-sorted-keys-compact-excluding-integrity"
+        },
+        "case_manifest_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "payload_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "algorithm",
+        "canonicalization",
+        "case_manifest_sha256",
+        "payload_sha256"
+      ],
+      "type": "object"
+    },
+    "record_type": {
+      "const": "qiongli-ctr-201-orchestrator-runtime-inventory-freeze"
+    },
+    "schema_version": {
+      "const": "1.0"
+    },
+    "source": {
+      "additionalProperties": false,
+      "properties": {
+        "a8_manifest": {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "type": "object"
+        },
+        "accepted_commit": {
+          "type": "string"
+        },
+        "accepted_manifest_corpus_sha256": {
+          "type": "string"
+        },
+        "accepted_tag": {
+          "type": "string"
+        },
+        "blob_anchors": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "consumption_class": {
+                "type": "string"
+              },
+              "git_blob_oid": {
+                "type": "string"
+              },
+              "mode": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string"
+              },
+              "sha256": {
+                "type": "string"
+              },
+              "size_bytes": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "consumption_class",
+              "git_blob_oid",
+              "mode",
+              "path",
+              "role",
+              "sha256",
+              "size_bytes"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "ctr_201c": {
+          "additionalProperties": false,
+          "properties": {
+            "artifact_path": {
+              "type": "string"
+            },
+            "payload_sha256": {
+              "type": "string"
+            },
+            "schema_canonical_sha256": {
+              "type": "string"
+            },
+            "schema_path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "artifact_path",
+            "payload_sha256",
+            "schema_canonical_sha256",
+            "schema_path"
+          ],
+          "type": "object"
+        },
+        "ctr_201d": {
+          "additionalProperties": false,
+          "properties": {
+            "artifact_path": {
+              "type": "string"
+            },
+            "payload_sha256": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "artifact_path",
+            "payload_sha256"
+          ],
+          "type": "object"
+        },
+        "package_trees": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "file_count": {
+                "type": "integer"
+              },
+              "root": {
+                "type": "string"
+              },
+              "tree_sha256": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "file_count",
+              "root",
+              "tree_sha256"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "python_full_oracle": {
+          "additionalProperties": false,
+          "properties": {
+            "case_id": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "case_id",
+            "path",
+            "sha256"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "a8_manifest",
+        "accepted_commit",
+        "accepted_manifest_corpus_sha256",
+        "accepted_tag",
+        "blob_anchors",
+        "ctr_201c",
+        "ctr_201d",
+        "package_trees",
+        "python_full_oracle"
+      ],
+      "type": "object"
+    },
+    "status": {
+      "const": "runtime-inventory-freeze-captured"
+    },
+    "task_id": {
+      "const": "CTR-201F"
+    }
+  },
+  "required": [
+    "$schema",
+    "behavior_dimensions",
+    "capture_contract",
+    "cases",
+    "compatibility_boundary",
+    "coverage",
+    "disposition_decisions",
+    "integrity",
+    "record_type",
+    "schema_version",
+    "source",
+    "status",
+    "task_id"
+  ],
+  "type": "object"
+}

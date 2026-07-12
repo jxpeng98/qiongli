@@ -1,6 +1,6 @@
 # CTR-201E accepted-source Full CLI runtime inventory freeze
 
-Status: **implemented; integration remains gated by exact-head CI**
+Status: **merged through protected PR #57; historical slice complete**
 
 CTR-201E is an engineering child of the Qiongli 2 migration task `CTR-201`.
 It freezes the observable and explicitly dispositioned Full CLI runtime
@@ -23,9 +23,11 @@ CTR-201E depends on:
 
 CTR-201E must not declare `CTR-201` as its dependency: the parent exit gate
 depends on its required children, so that declaration would create a cycle.
-Completing CTR-201E closes only the CLI-runtime inventory slice. CTR-201 remains
-in progress until its remaining accepted-source orchestrator-runtime requirement
-is closed.
+CTR-201E closed only the CLI-runtime inventory slice. At the time this child
+artifact was recorded, CTR-201 remained in progress pending the
+accepted-source orchestrator-runtime requirement. CTR-201F subsequently closed
+that remaining source-oracle requirement; the CTR-201E child artifact retains
+its historical slice-local status unchanged.
 
 CTR-201D does not establish archive-member, published ZIP/TAR, or plugin-wrapper
 parity. That evidence remains an unassigned downstream governance boundary; it
@@ -142,12 +144,13 @@ CTR-201E may be described as complete only when all of the following pass:
 5. schema and semantic validation reject missing/duplicate cases, altered
    streams or exit codes, invalid error classes, source/digest drift, forbidden
    host writes, and undeclared nondeterminism;
-6. the master CTR-201 ledger binds the child artifact and reports the CLI
-   runtime slice ready while retaining `CTR-201: in-progress` and
-   `FND-202: not-implemented`; and
-7. exact-head CI runs canonical extraction in the controlled Ubuntu full tier
-   with Python 3.12 and Node 20, then validates the portable artifact and parent
-   binding on the declared operating-system matrix.
+6. the slice-local child binding reports the CLI runtime inventory ready while
+   retaining its historical `CTR-201: in-progress` and
+   `FND-202: not-implemented` boundary; the mutable master ledger may advance
+   only through a later, separately validated child; and
+7. protected PR #57 exact-head CI ran canonical extraction in the controlled
+   Ubuntu full tier with Python 3.12 and Node 20, then validated the portable
+   artifact and parent binding on the declared operating-system matrix.
 
 Running a schema or validator on Linux, macOS, and Windows proves portable
 validation only. Tier 1 runtime parity may be claimed only if the runtime corpus
@@ -161,14 +164,15 @@ Allowed completion language:
 > CTR-201E captures and explicitly dispositions the declared accepted-source
 > Full CLI runtime inventory, closing that inventory slice. It is bounded
 > oracle and decision evidence, not Full handler parity or a Rust
-> implementation. CTR-201 remains in progress, CTR-202 is not complete, and
+> implementation. This child did not complete CTR-201 by itself; CTR-201F later
+> closed the remaining source-oracle requirement. CTR-202 is not complete, and
 > FND-202 is not implemented.
 
 Do not describe CTR-201E as any of the following:
 
 - a Rust Full CLI implementation or migration;
 - Full CLI parity, Tier 1 runtime parity, or zero-dependency runtime acceptance;
-- completion of CTR-201 or Capability Contract v2 / CTR-202;
+- completion of CTR-201 by CTR-201E alone, or Capability Contract v2 / CTR-202;
 - implementation of FND-202 or an embedded resource pack; or
 - an installable or published Qiongli 2 alpha, plugin, Marketplace package,
   release artifact, tag, or registry publication.
