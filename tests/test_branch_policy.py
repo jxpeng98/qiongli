@@ -53,6 +53,7 @@ class BranchPolicyTests(unittest.TestCase):
             "tests.test_ctr_201_orchestrator_inventory",
             "tests.test_ctr_201_content_inventory",
             "tests.test_ctr_201_cli_runtime_inventory",
+            "tests.test_ctr_201_orchestrator_runtime_inventory",
         )
         for module in windows_modules:
             self.assertIn(module, content)
@@ -67,6 +68,10 @@ class BranchPolicyTests(unittest.TestCase):
         )
         self.assertNotIn(
             "scripts/extract_ctr_201_cli_runtime_inventory.py",
+            windows_block,
+        )
+        self.assertNotIn(
+            "scripts/extract_ctr_201_orchestrator_runtime_inventory.py",
             windows_block,
         )
         self.assertIn('./scripts/release_preflight.sh --quick --materialize-out "$RUNNER_TEMP/qiongli-preflight-dist"', content)
@@ -90,7 +95,7 @@ class BranchPolicyTests(unittest.TestCase):
                     job,
                 )
 
-        validate_step = "      - name: Validate CTR-201A/B/C/D/E inventories"
+        validate_step = "      - name: Validate CTR-201A/B/C/D/E/F inventories"
         macos_step = "      - name: Run macOS CTR inventory smoke tests"
         self.assertIn(validate_step, job)
         self.assertIn(macos_step, job)
@@ -104,6 +109,7 @@ class BranchPolicyTests(unittest.TestCase):
             "tests.test_ctr_201_orchestrator_inventory",
             "tests.test_ctr_201_content_inventory",
             "tests.test_ctr_201_cli_runtime_inventory",
+            "tests.test_ctr_201_orchestrator_runtime_inventory",
         )
         for module in macos_modules:
             self.assertIn(module, macos_block)
@@ -115,17 +121,21 @@ class BranchPolicyTests(unittest.TestCase):
             "scripts/extract_ctr_201_cli_runtime_inventory.py",
             macos_block,
         )
+        self.assertNotIn(
+            "scripts/extract_ctr_201_orchestrator_runtime_inventory.py",
+            macos_block,
+        )
         self.assertLess(job.index(validate_step), macos_start)
 
-    def test_ci_validates_ctr_201a_b_c_d_e_inventories_before_distribution_work(
+    def test_ci_validates_ctr_201a_b_c_d_e_f_inventories_before_distribution_work(
         self,
     ) -> None:
         content = read(".github/workflows/ci.yml")
         self.assertIn("      - name: Setup Node for accepted npm parser oracle", content)
         self.assertIn("        if: matrix.test-tier == 'full'", content)
         self.assertIn('          node-version: "20"', content)
-        compile_step = "      - name: Compile CTR-201A/B/C/D/E inventory gates"
-        validate_step = "      - name: Validate CTR-201A/B/C/D/E inventories"
+        compile_step = "      - name: Compile CTR-201A/B/C/D/E/F inventory gates"
+        validate_step = "      - name: Validate CTR-201A/B/C/D/E/F inventories"
         validate_command = "python scripts/validate_ctr_201_inventory.py"
         materialize_command = (
             "python scripts/materialize_distribution_payloads.py --target all "
@@ -153,11 +163,14 @@ class BranchPolicyTests(unittest.TestCase):
             "tooling/scripts/extract_ctr_201_content_inventory.py",
             "scripts/extract_ctr_201_cli_runtime_inventory.py",
             "tooling/scripts/extract_ctr_201_cli_runtime_inventory.py",
+            "scripts/extract_ctr_201_orchestrator_runtime_inventory.py",
+            "tooling/scripts/extract_ctr_201_orchestrator_runtime_inventory.py",
             "tests/test_ctr_201_inventory.py",
             "tests/test_ctr_201_cli_inventory.py",
             "tests/test_ctr_201_orchestrator_inventory.py",
             "tests/test_ctr_201_content_inventory.py",
             "tests/test_ctr_201_cli_runtime_inventory.py",
+            "tests/test_ctr_201_orchestrator_runtime_inventory.py",
         )
         for compiled_path in compiled_paths:
             self.assertIn(compiled_path, compile_block)

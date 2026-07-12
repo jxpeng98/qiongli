@@ -22,6 +22,8 @@ from tooling.scripts.validate_ctr_201_inventory import (
     DEFAULT_CONTENT_ARTIFACT,
     DEFAULT_CONTENT_SCHEMA,
     DEFAULT_ORCHESTRATOR_ARTIFACT,
+    DEFAULT_ORCHESTRATOR_RUNTIME_ARTIFACT,
+    DEFAULT_ORCHESTRATOR_RUNTIME_SCHEMA,
     DEFAULT_ORCHESTRATOR_SCHEMA,
     EXPECTED_CLI_SCHEMA_CANONICAL_SHA256,
     EXPECTED_CLI_RUNTIME_PAYLOAD_SHA256,
@@ -29,6 +31,9 @@ from tooling.scripts.validate_ctr_201_inventory import (
     EXPECTED_CONTENT_PAYLOAD_SHA256,
     EXPECTED_CONTENT_SCHEMA_CANONICAL_SHA256,
     EXPECTED_ORCHESTRATOR_PAYLOAD_SHA256,
+    EXPECTED_ORCHESTRATOR_RUNTIME_CASE_MANIFEST_SHA256,
+    EXPECTED_ORCHESTRATOR_RUNTIME_PAYLOAD_SHA256,
+    EXPECTED_ORCHESTRATOR_RUNTIME_SCHEMA_CANONICAL_SHA256,
     EXPECTED_ORCHESTRATOR_SCHEMA_CANONICAL_SHA256,
     ContentArtifactMismatch,
     InventoryConfigError,
@@ -47,6 +52,7 @@ from tooling.scripts.validate_ctr_201_inventory import (
     _validate_content_artifact_semantics,
     _validate_content_materialization_contract,
     _validate_orchestrator_artifact_semantics,
+    _validate_orchestrator_runtime_freeze,
     _validate_orchestrator_static_contract,
     _validate_recursively_closed_schema,
     canonical_payload_sha256,
@@ -66,6 +72,8 @@ DIGEST_BOUND_JSON_PATHS = (
     "tooling/migration/baselines/v1.19.0-beta.1/oracles/rust-lite.json",
     "tooling/migration/ctr-201-orchestrator.json",
     "tooling/migration/ctr-201-orchestrator.schema.json",
+    "tooling/migration/ctr-201-orchestrator-runtime.json",
+    "tooling/migration/ctr-201-orchestrator-runtime.schema.json",
     "tooling/migration/ctr-201-content.json",
     "tooling/migration/ctr-201-content.schema.json",
     "tooling/migration/ctr-201-cli-runtime.json",
@@ -103,6 +111,16 @@ class Ctr201InventoryTests(unittest.TestCase):
             DEFAULT_ORCHESTRATOR_SCHEMA,
             label="orchestrator child schema",
         )
+        cls.orchestrator_runtime_artifact = _load_json_file(
+            REPO_ROOT,
+            DEFAULT_ORCHESTRATOR_RUNTIME_ARTIFACT,
+            label="orchestrator runtime child artifact",
+        )
+        cls.orchestrator_runtime_schema = _load_json_file(
+            REPO_ROOT,
+            DEFAULT_ORCHESTRATOR_RUNTIME_SCHEMA,
+            label="orchestrator runtime child schema",
+        )
         cls.content_artifact = _load_json_file(
             REPO_ROOT,
             DEFAULT_CONTENT_ARTIFACT,
@@ -125,6 +143,9 @@ class Ctr201InventoryTests(unittest.TestCase):
 
     def _orchestrator_record(self) -> dict[str, object]:
         return copy.deepcopy(self.orchestrator_artifact)
+
+    def _orchestrator_runtime_record(self) -> dict[str, object]:
+        return copy.deepcopy(self.orchestrator_runtime_artifact)
 
     def _content_record(self) -> dict[str, object]:
         return copy.deepcopy(self.content_artifact)
@@ -158,10 +179,10 @@ class Ctr201InventoryTests(unittest.TestCase):
     def test_inventory_matches_closed_schema_and_all_semantic_checks(self) -> None:
         self.assertEqual(validate_instance(self.record, self.schema), [])
         self.assertEqual(validate_inventory(REPO_ROOT, self.record, self.schema), [])
-        self.assertEqual(self.record["status"], "in-progress")
-        self.assertEqual(self.record["completion"]["ctr_201"], "in-progress")
+        self.assertEqual(self.record["status"], "complete")
+        self.assertEqual(self.record["completion"]["ctr_201"], "complete")
         self.assertEqual(self.record["completion"]["fnd_202"], "not-implemented")
-        self.assertFalse(self.record["completion"]["completion_ready"])
+        self.assertTrue(self.record["completion"]["completion_ready"])
 
     def test_inventory_binds_exact_frozen_a8_and_contract_pilot_facts(self) -> None:
         source = self.record["frozen_source"]
@@ -203,9 +224,11 @@ class Ctr201InventoryTests(unittest.TestCase):
             all(entry["disposition"] == "pending-LEG-201" for entry in mcp["legacy_only"])
         )
 
-    def test_cli_runtime_is_frozen_while_orchestrator_still_blocks_parent(self) -> None:
+    def test_cli_and_orchestrator_runtime_freezes_close_parent_inventory(self) -> None:
         self.assertEqual(self.record["cli"]["status"], "runtime-inventory-frozen")
-        self.assertEqual(self.record["orchestrator"]["status"], "incomplete")
+        self.assertEqual(
+            self.record["orchestrator"]["status"], "runtime-inventory-frozen"
+        )
         self.assertEqual(
             self.record["cli"]["captured_oracle_cases"],
             ["python.cli-align", "python.installer-dry-run"],
@@ -219,12 +242,11 @@ class Ctr201InventoryTests(unittest.TestCase):
             "duo-mode-preview",
             self.record["orchestrator"]["captured_scope"],
         )
-        self.assertIn(
-            "complete-solo-duo-triad-runtime-parity",
-            self.record["orchestrator"]["required_not_fully_captured"],
+        self.assertEqual(
+            self.record["orchestrator"]["required_not_fully_captured"], []
         )
         self.assertTrue(self.record["cli"]["completion_ready"])
-        self.assertFalse(self.record["orchestrator"]["completion_ready"])
+        self.assertTrue(self.record["orchestrator"]["completion_ready"])
         self.assertTrue(self.record["content"]["completion_ready"])
         self.assertEqual(
             [profile["profile_id"] for profile in self.record["content"]["profiles"]],
@@ -323,7 +345,7 @@ class Ctr201InventoryTests(unittest.TestCase):
         )
         self.assertTrue(binding["capture_ready"])
         self.assertTrue(self.record["cli"]["completion_ready"])
-        self.assertFalse(self.record["completion"]["completion_ready"])
+        self.assertTrue(self.record["completion"]["completion_ready"])
 
     def test_cli_runtime_master_binding_tampering_fails_closed(self) -> None:
         record = self._record()
@@ -809,11 +831,212 @@ class Ctr201InventoryTests(unittest.TestCase):
         self.assertEqual(json.loads(unavailable_output)["status"], "error")
         self.assertNotIn(canary, unavailable_output)
 
+    def test_orchestrator_runtime_child_schema_artifact_and_binding_are_exact(
+        self,
+    ) -> None:
+        binding = self.record["orchestrator"]["runtime_freeze"]
+        coverage = self.orchestrator_runtime_artifact["coverage"]
+        integrity = self.orchestrator_runtime_artifact["integrity"]
+        self.assertEqual(
+            validate_instance(
+                self.orchestrator_runtime_artifact,
+                self.orchestrator_runtime_schema,
+            ),
+            [],
+        )
+        self.assertEqual(
+            _validate_recursively_closed_schema(
+                self.orchestrator_runtime_schema,
+                label="orchestrator runtime child",
+            ),
+            [],
+        )
+        self.assertEqual(
+            _validate_orchestrator_runtime_freeze(REPO_ROOT, self.record), []
+        )
+        self.assertEqual(
+            hashlib.sha256(
+                _canonical_json_bytes(self.orchestrator_runtime_schema)
+            ).hexdigest(),
+            EXPECTED_ORCHESTRATOR_RUNTIME_SCHEMA_CANONICAL_SHA256,
+        )
+        self.assertEqual(binding["artifact_path"], DEFAULT_ORCHESTRATOR_RUNTIME_ARTIFACT)
+        self.assertEqual(binding["schema_path"], DEFAULT_ORCHESTRATOR_RUNTIME_SCHEMA)
+        self.assertEqual(
+            binding["payload_sha256"], EXPECTED_ORCHESTRATOR_RUNTIME_PAYLOAD_SHA256
+        )
+        self.assertEqual(
+            binding["case_manifest_sha256"],
+            EXPECTED_ORCHESTRATOR_RUNTIME_CASE_MANIFEST_SHA256,
+        )
+        self.assertEqual(binding["payload_sha256"], integrity["payload_sha256"])
+        self.assertEqual(
+            binding["case_manifest_sha256"], integrity["case_manifest_sha256"]
+        )
+        self.assertEqual(binding["case_count"], coverage["case_count"])
+        self.assertEqual(
+            binding["resolved_dimension_count"], coverage["resolved_dimension_count"]
+        )
+        self.assertEqual(
+            binding["disposition_decision_count"],
+            coverage["disposition_decision_count"],
+        )
+        self.assertEqual(coverage["ctr_201"], "complete")
+        self.assertEqual(coverage["ctr_202"], "not-complete")
+        self.assertEqual(coverage["fnd_202"], "not-implemented")
+        self.assertEqual(coverage["rust_orchestrator"], "not-implemented")
+        self.assertEqual(coverage["real_agent_runtime_parity"], "not-claimed")
+        self.assertEqual(coverage["cross_platform_runtime_parity"], "not-claimed")
+
+    def test_orchestrator_runtime_master_binding_mutations_fail_closed(self) -> None:
+        mutations = (
+            ("status", "complete"),
+            ("artifact_path", "tooling/migration/wrong-runtime.json"),
+            ("schema_canonical_sha256", "0" * 64),
+            ("payload_sha256", "0" * 64),
+            ("case_manifest_sha256", "0" * 64),
+            ("case_count", 26),
+            ("resolved_dimension_count", 5),
+            ("disposition_decision_count", 4),
+            ("capture_ready", False),
+        )
+        for key, value in mutations:
+            with self.subTest(key=key):
+                record = self._record()
+                record["orchestrator"]["runtime_freeze"][key] = value
+                self.assertEqual(
+                    _validate_orchestrator_runtime_freeze(REPO_ROOT, record),
+                    ["orchestrator runtime-freeze master binding is invalid"],
+                )
+
+    def test_orchestrator_runtime_child_source_and_integrity_mutations_fail_closed(
+        self,
+    ) -> None:
+        real_loader = _load_json_file
+        mutations = []
+
+        source = self._orchestrator_runtime_record()
+        source["source"]["accepted_commit"] = "0" * 40
+        self._rehash(source)
+        mutations.append(source)
+
+        manifest_root = self._orchestrator_runtime_record()
+        manifest_root["integrity"]["case_manifest_sha256"] = "0" * 64
+        mutations.append(manifest_root)
+
+        missing_case = self._orchestrator_runtime_record()
+        missing_case["cases"] = missing_case["cases"][:-1]
+        self._rehash(missing_case)
+        mutations.append(missing_case)
+
+        for index, mutation in enumerate(mutations):
+            def loader(
+                repo_root: Path,
+                relative: str,
+                *,
+                label: str,
+                _mutation: dict[str, object] = mutation,
+            ) -> dict[str, object]:
+                if relative == DEFAULT_ORCHESTRATOR_RUNTIME_ARTIFACT:
+                    return _mutation
+                return real_loader(repo_root, relative, label=label)
+
+            with self.subTest(index=index), patch(
+                "tooling.scripts.validate_ctr_201_inventory._load_json_file",
+                side_effect=loader,
+            ):
+                errors = _validate_orchestrator_runtime_freeze(
+                    REPO_ROOT, self.record
+                )
+                self.assertTrue(errors)
+                self.assertIn(
+                    "orchestrator runtime child semantic validation failed", errors
+                )
+
+    def test_orchestrator_runtime_master_rejects_synchronized_source_forgery(
+        self,
+    ) -> None:
+        from tooling.scripts import (
+            extract_ctr_201_orchestrator_runtime_inventory as runtime_extractor,
+        )
+
+        artifact = self._orchestrator_runtime_record()
+        artifact["source"]["accepted_commit"] = "0" * 40
+        self._rehash(artifact)
+        real_loader = _load_json_file
+
+        def loader(
+            repo_root: Path, relative: str, *, label: str
+        ) -> dict[str, object]:
+            if relative == DEFAULT_ORCHESTRATOR_RUNTIME_ARTIFACT:
+                return artifact
+            return real_loader(repo_root, relative, label=label)
+
+        with patch.object(
+            runtime_extractor, "validate_runtime_artifact", return_value=None
+        ), patch(
+            "tooling.scripts.validate_ctr_201_inventory._load_json_file",
+            side_effect=loader,
+        ):
+            errors = _validate_orchestrator_runtime_freeze(REPO_ROOT, self.record)
+        self.assertIn(
+            "orchestrator runtime child frozen-source binding is invalid", errors
+        )
+
+    def test_orchestrator_runtime_master_rejects_synchronized_case_forgery(
+        self,
+    ) -> None:
+        from tooling.scripts import (
+            extract_ctr_201_orchestrator_runtime_inventory as runtime_extractor,
+        )
+
+        artifact = self._orchestrator_runtime_record()
+        first_case = artifact["cases"][0]
+        first_case["operation"] = "forged accepted-source operation"
+        first_case["case_sha256"] = runtime_extractor.canonical_case_sha256(
+            first_case
+        )
+        artifact["integrity"]["case_manifest_sha256"] = (
+            runtime_extractor.case_manifest_sha256(artifact["cases"])
+        )
+        self._rehash(artifact)
+        real_loader = _load_json_file
+
+        def loader(
+            repo_root: Path, relative: str, *, label: str
+        ) -> dict[str, object]:
+            if relative == DEFAULT_ORCHESTRATOR_RUNTIME_ARTIFACT:
+                return artifact
+            return real_loader(repo_root, relative, label=label)
+
+        with patch.object(
+            runtime_extractor,
+            "EXPECTED_PAYLOAD_SHA256",
+            artifact["integrity"]["payload_sha256"],
+        ), patch.object(
+            runtime_extractor,
+            "EXPECTED_CASE_MANIFEST_SHA256",
+            artifact["integrity"]["case_manifest_sha256"],
+        ), patch(
+            "tooling.scripts.validate_ctr_201_inventory._load_json_file",
+            side_effect=loader,
+        ):
+            errors = _validate_orchestrator_runtime_freeze(REPO_ROOT, self.record)
+        self.assertIn(
+            "orchestrator runtime child integrity does not match the master binding",
+            errors,
+        )
+
     def test_orchestrator_static_capture_does_not_overclaim_runtime_parity(self) -> None:
         parent = self.record["orchestrator"]
         coverage = self.orchestrator_artifact["coverage"]
-        self.assertEqual(parent["status"], "incomplete")
-        self.assertFalse(parent["completion_ready"])
+        self.assertEqual(parent["status"], "runtime-inventory-frozen")
+        self.assertTrue(parent["completion_ready"])
+        self.assertEqual(parent["required_not_fully_captured"], [])
+        self.assertEqual(
+            parent["runtime_freeze"]["status"],
+            "runtime-inventory-freeze-captured",
+        )
         self.assertEqual(parent["static_contract"]["status"], "static-contract-captured")
         self.assertEqual(coverage["static_contract"], "captured")
         for field in (
@@ -1082,12 +1305,9 @@ class Ctr201InventoryTests(unittest.TestCase):
         errors = self._validate_rehashed(record)
         self.assertTrue(any("python-full public MCP surface" in error for error in errors), errors)
 
-    def test_rejects_completion_overclaim(self) -> None:
+    def test_rejects_fnd_202_completion_overclaim(self) -> None:
         record = self._record()
-        record["status"] = "complete"
-        record["completion"]["ctr_201"] = "complete"
         record["completion"]["fnd_202"] = "implemented"
-        record["completion"]["completion_ready"] = True
         errors = self._validate_rehashed(record)
         self.assertTrue(errors)
         self.assertIn("inventory record does not satisfy its closed schema", errors)
@@ -1145,8 +1365,8 @@ class Ctr201InventoryTests(unittest.TestCase):
             REPO_ROOT / "tooling/migration/ctr-201-inventory.json"
         ).read_text(encoding="utf-8")
         duplicate = record_text.replace(
-            '  "status": "in-progress",',
-            '  "status": "complete",\n  "status": "in-progress",',
+            '  "status": "complete",',
+            '  "status": "in-progress",\n  "status": "complete",',
             1,
         )
 
