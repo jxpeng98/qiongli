@@ -133,15 +133,20 @@
     "content": {
       "type": "object",
       "required": [
+        "status",
         "source_file_count",
+        "source_total_bytes",
         "source_tree_sha256",
         "resource_roots",
         "profiles",
         "materialization",
+        "static_inventory",
         "completion_ready"
       ],
       "properties": {
+        "status": { "const": "content-materialization-captured" },
         "source_file_count": { "const": 377 },
+        "source_total_bytes": { "const": 1761400 },
         "source_tree_sha256": { "$ref": "#/$defs/sha256" },
         "resource_roots": {
           "type": "array",
@@ -152,19 +157,75 @@
           "type": "array",
           "minItems": 3,
           "maxItems": 3,
-          "items": { "$ref": "#/$defs/incompleteProfile" }
+          "items": { "$ref": "#/$defs/capturedContentProfile" }
         },
         "materialization": {
           "type": "object",
-          "required": ["status", "mapping_policy", "expected_tree_sha256"],
+          "required": [
+            "status",
+            "mapping_policy",
+            "published_archive_parity",
+            "extraction_network_sandbox",
+            "extraction_filesystem_sandbox",
+            "rust_materializer"
+          ],
           "properties": {
-            "status": { "const": "not-ready" },
-            "mapping_policy": { "const": "not-frozen" },
-            "expected_tree_sha256": { "type": "null" }
+            "status": { "const": "content-materialization-captured" },
+            "mapping_policy": {
+              "const": "authenticated-accepted-materializer-in-ephemeral-isolated-subprocess"
+            },
+            "published_archive_parity": { "const": "not-captured" },
+            "extraction_network_sandbox": { "const": "not-proven" },
+            "extraction_filesystem_sandbox": {
+              "const": "python-audit-write-confined;host-read-isolation-not-proven;os-sandbox-not-proven"
+            },
+            "rust_materializer": { "const": "not-implemented" }
           },
           "additionalProperties": false
         },
-        "completion_ready": { "const": false }
+        "static_inventory": {
+          "type": "object",
+          "required": [
+            "task_id",
+            "status",
+            "artifact_path",
+            "schema_path",
+            "schema_canonical_sha256",
+            "payload_sha256",
+            "accepted_content_file_count",
+            "accepted_content_total_bytes",
+            "resource_root_count",
+            "resource_kind_count",
+            "portable_core_file_count",
+            "materialized_profile_count",
+            "materialized_output_file_count",
+            "identity_output_count",
+            "transformed_output_count",
+            "generated_output_count",
+            "capture_ready"
+          ],
+          "properties": {
+            "task_id": { "const": "CTR-201D" },
+            "status": { "const": "content-materialization-captured" },
+            "artifact_path": { "$ref": "#/$defs/repositoryPath" },
+            "schema_path": { "$ref": "#/$defs/repositoryPath" },
+            "schema_canonical_sha256": { "$ref": "#/$defs/sha256" },
+            "payload_sha256": { "$ref": "#/$defs/sha256" },
+            "accepted_content_file_count": { "const": 377 },
+            "accepted_content_total_bytes": { "const": 1761400 },
+            "resource_root_count": { "const": 12 },
+            "resource_kind_count": { "const": 11 },
+            "portable_core_file_count": { "const": 263 },
+            "materialized_profile_count": { "const": 3 },
+            "materialized_output_file_count": { "const": 863 },
+            "identity_output_count": { "const": 850 },
+            "transformed_output_count": { "const": 6 },
+            "generated_output_count": { "const": 7 },
+            "capture_ready": { "const": true }
+          },
+          "additionalProperties": false
+        },
+        "completion_ready": { "const": true }
       },
       "additionalProperties": false
     },
@@ -409,22 +470,35 @@
       },
       "additionalProperties": false
     },
-    "incompleteProfile": {
+    "capturedContentProfile": {
       "type": "object",
       "required": [
-        "profile",
-        "status",
-        "included_resource_kinds",
-        "expected_materialized_tree_sha256"
+        "profile_id",
+        "aliases",
+        "variant_id",
+        "source_file_count",
+        "materialized_file_count",
+        "materialized_total_bytes",
+        "expected_materialized_tree_sha256",
+        "identity_output_count",
+        "transformed_output_count",
+        "generated_output_count"
       ],
       "properties": {
-        "profile": { "enum": ["skill-only", "lite", "full"] },
-        "status": { "const": "not-ready" },
-        "included_resource_kinds": {
+        "profile_id": { "enum": ["skill-only", "marketplace-lite", "full"] },
+        "aliases": {
           "type": "array",
-          "maxItems": 0
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/name" }
         },
-        "expected_materialized_tree_sha256": { "type": "null" }
+        "variant_id": { "$ref": "#/$defs/name" },
+        "source_file_count": { "type": "integer", "minimum": 1 },
+        "materialized_file_count": { "type": "integer", "minimum": 1 },
+        "materialized_total_bytes": { "type": "integer", "minimum": 1 },
+        "expected_materialized_tree_sha256": { "$ref": "#/$defs/sha256" },
+        "identity_output_count": { "type": "integer", "minimum": 0 },
+        "transformed_output_count": { "type": "integer", "minimum": 0 },
+        "generated_output_count": { "type": "integer", "minimum": 0 }
       },
       "additionalProperties": false
     }

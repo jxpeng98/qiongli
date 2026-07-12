@@ -2,9 +2,10 @@
 
 Status: the B2 native workspace scaffold and repository gates are implemented;
 the CTR-201A slice is merged, CTR-201B accepted-source static CLI semantics are
-captured, and CTR-201C captures the accepted-source `DECLARED/STATIC`
-orchestrator control contract and compatibility boundary; CTR-201 remains in
-progress and FND-202 is not implemented
+captured, CTR-201C captures the accepted-source `DECLARED/STATIC`
+orchestrator control contract and compatibility boundary, and CTR-201D captures
+canonical-content and reproducible materialized-skill-subtree closure; CTR-201
+remains in progress and FND-202 is not implemented
 Decision date: July 10, 2026
 Target branch after the 1.x freeze: `2.x`
 Immediate execution plan:
@@ -386,9 +387,21 @@ Current execution record:
   quality-gate semantic execution. The accepted handler makes `doctor` part of
   an advisory route sequence; `_tool_task_run(run_agents=true)` does not call
   or enforce it. CTR-201C also does not implement plugin or Marketplace
-  behavior, materialized content, or a Rust orchestrator;
+  behavior or a Rust orchestrator;
+- CTR-201D partitions all 377 accepted `content/` files into 12 disjoint roots
+  and 11 logical resource kinds. It freezes `skill-only`,
+  `marketplace-lite` (with `lite` as an explicit alias), and `full` source
+  projections plus three accepted-source materialized skill subtrees: 178
+  files for the Qiongli Next Desktop/Web skill-only profile, 342 files for the
+  Qiongli Next Marketplace Lite skill subtree, and 343 files for the Full CLI
+  global skill subtree;
+- CTR-201D does not claim byte parity for published ZIP/TAR/plugin wrappers,
+  release archives, host activation, or the not-yet-implemented Rust resource
+  pack. The accepted A8 evidence contains source package trees and release
+  asset hashes, but no archive-member tree inventory;
 - CTR-201 therefore remains in progress, and FND-202 is not implemented;
-- the next slice is CTR-201D for content and materialized-tree closure.
+- the next independent stream is B1 (`REL-201`); remaining CTR-201 Contract v2,
+  CLI-runtime, and orchestrator-runtime gaps must close before FND-202 begins.
 
 ### W2 — Native core, config, and data migration
 

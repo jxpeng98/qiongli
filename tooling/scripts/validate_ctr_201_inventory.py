@@ -6,6 +6,7 @@ import hashlib
 import json
 import re
 import sys
+import unicodedata
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any, Mapping, Sequence
 
@@ -19,6 +20,8 @@ DEFAULT_CLI_ARTIFACT = "tooling/migration/ctr-201-cli.json"
 DEFAULT_CLI_SCHEMA = "tooling/migration/ctr-201-cli.schema.json"
 DEFAULT_ORCHESTRATOR_ARTIFACT = "tooling/migration/ctr-201-orchestrator.json"
 DEFAULT_ORCHESTRATOR_SCHEMA = "tooling/migration/ctr-201-orchestrator.schema.json"
+DEFAULT_CONTENT_ARTIFACT = "tooling/migration/ctr-201-content.json"
+DEFAULT_CONTENT_SCHEMA = "tooling/migration/ctr-201-content.schema.json"
 EXPECTED_TAG = "v1.19.0-beta.1"
 EXPECTED_COMMIT = "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f"
 EXPECTED_MANIFEST_PATH = (
@@ -39,7 +42,7 @@ EXPECTED_REGISTRY_SHA256 = (
     "602d3faf525e2e5c938afb14f1b1d291f528240947b3df6ed9f56baeb73e7020"
 )
 EXPECTED_SCHEMA_CANONICAL_SHA256 = (
-    "6531e9b432428baa8391fa0c86f1996ee74349a3b2c354945c1c645b950e01e5"
+    "a5c56560b32116463fb6d2ca452e4a10e5ad655fed542500ca3b4d26eef51ce4"
 )
 EXPECTED_CLI_SCHEMA_CANONICAL_SHA256 = (
     "173436615a8a26d45903cc7812a55f2e9ae094089f637bced0f418a3976456ad"
@@ -49,6 +52,12 @@ EXPECTED_ORCHESTRATOR_SCHEMA_CANONICAL_SHA256 = (
 )
 EXPECTED_ORCHESTRATOR_PAYLOAD_SHA256 = (
     "508ed0f92a511a0a9a6daa33598ce891222540b15e5aa207984db97319fe2c5e"
+)
+EXPECTED_CONTENT_SCHEMA_CANONICAL_SHA256 = (
+    "6f88a56c2a88c51f68a6bb10bce05776d1e06f678ae916739a6e3de96d2b1704"
+)
+EXPECTED_CONTENT_PAYLOAD_SHA256 = (
+    "d17f37aa96d1896d047b27d197d63f773ae1d644a875722f5262be39593ff304"
 )
 EXPECTED_CLI_CAPTURE_CONTRACT = {
     "source_mode": "accepted-tag-git-blobs",
@@ -272,7 +281,102 @@ EXPECTED_RESOURCE_ROOTS = (
     ("content/venue-profiles/", "prefix", "venue-profile", 6),
     ("content/workflow/", "prefix", "workflow", 46),
 )
-EXPECTED_PROFILES = ("skill-only", "lite", "full")
+EXPECTED_PROFILES = ("skill-only", "marketplace-lite", "full")
+EXPECTED_CONTENT_COUNTS = {
+    "accepted_content_file_count": 377,
+    "accepted_content_total_bytes": 1_761_400,
+    "resource_root_count": 12,
+    "resource_kind_count": 11,
+    "portable_core_file_count": 263,
+    "materialized_profile_count": 3,
+    "materialized_output_file_count": 863,
+    "identity_output_count": 850,
+    "transformed_output_count": 6,
+    "generated_output_count": 7,
+}
+EXPECTED_CONTENT_PROFILE_FACTS = (
+    {
+        "profile_id": "skill-only",
+        "aliases": [],
+        "variant_id": "qiongli-next-prerelease-core-desktop-focused",
+        "subject": "core",
+        "flavor": "desktop",
+        "coverage": "focused",
+        "skill_name": "qiongli-next",
+        "source_file_count": 341,
+        "source_total_bytes": 1_627_305,
+        "source_tree_sha256": (
+            "2283d6f5d284dde43225c5fb194e2e714b5e7b34e9c9bb97e753914d968acf26"
+        ),
+        "materialized_file_count": 178,
+        "materialized_total_bytes": 708_608,
+        "materialized_tree_sha256": (
+            "5b76bc0c02cda7fc18adf2b1afd492e763392ed5fc2a05dac360d1221045f280"
+        ),
+        "origin_counts": {
+            "identity-copy": 173,
+            "content-transform": 2,
+            "generated-metadata": 3,
+        },
+    },
+    {
+        "profile_id": "marketplace-lite",
+        "aliases": ["lite"],
+        "variant_id": "qiongli-next-prerelease-core-full-complete",
+        "subject": "core",
+        "flavor": "full",
+        "coverage": "complete",
+        "skill_name": "qiongli-next",
+        "source_file_count": 377,
+        "source_total_bytes": 1_761_400,
+        "source_tree_sha256": EXPECTED_CONTENT_TREE_SHA256,
+        "materialized_file_count": 342,
+        "materialized_total_bytes": 1_600_064,
+        "materialized_tree_sha256": (
+            "a854fc61203883132041a43077cc9ea26e62aa28e2c2eeb266777f582b029c6c"
+        ),
+        "origin_counts": {
+            "identity-copy": 338,
+            "content-transform": 2,
+            "generated-metadata": 2,
+        },
+    },
+    {
+        "profile_id": "full",
+        "aliases": [],
+        "variant_id": "qiongli-local-core-full-complete",
+        "subject": "core",
+        "flavor": "full",
+        "coverage": "complete",
+        "skill_name": "qiongli",
+        "source_file_count": 377,
+        "source_total_bytes": 1_761_400,
+        "source_tree_sha256": EXPECTED_CONTENT_TREE_SHA256,
+        "materialized_file_count": 343,
+        "materialized_total_bytes": 1_602_568,
+        "materialized_tree_sha256": (
+            "b5612c713789bbd126829edc1e0646ec2c2387898aa2f5a4c812de0de5aad554"
+        ),
+        "origin_counts": {
+            "identity-copy": 339,
+            "content-transform": 2,
+            "generated-metadata": 2,
+        },
+    },
+)
+EXPECTED_PORTABLE_CORE_FACTS = {
+    "variant_id": "legacy-portable-core",
+    "file_count": 263,
+    "total_bytes": 1_442_456,
+    "tree_sha256": (
+        "21840d087bd18b1b9d37a03bddf6318a9023c69a0a320ff8bfcea843d4f5b48b"
+    ),
+    "origin_counts": {
+        "identity-copy": 263,
+        "content-transform": 0,
+        "generated-metadata": 0,
+    },
+}
 MACHINE_PATH_PATTERN = re.compile(
     r"(?:file://|(?<![A-Za-z0-9/])/(?:Users|home|root|Volumes|tmp|var/tmp|"
     r"var/folders|private/tmp|private/var/folders)/|"
@@ -295,6 +399,7 @@ WINDOWS_RESERVED_COMPONENT = re.compile(
 
 _CLI_EXTRACTION_CACHE: dict[str, bytes] = {}
 _ORCHESTRATOR_EXTRACTION_CACHE: dict[str, bytes] = {}
+_CONTENT_EXTRACTION_CACHE: dict[str, bytes] = {}
 
 
 class InventoryConfigError(ValueError):
@@ -307,6 +412,10 @@ class CliArtifactMismatch(ValueError):
 
 class OrchestratorArtifactMismatch(ValueError):
     """Raised when accepted-source orchestrator extraction disagrees."""
+
+
+class ContentArtifactMismatch(ValueError):
+    """Raised when accepted-source content extraction disagrees."""
 
 
 class SafeArgumentParser(argparse.ArgumentParser):
@@ -1373,6 +1482,51 @@ def _accepted_orchestrator_extraction_bytes(repo_root: Path) -> bytes:
     return canonical
 
 
+def _accepted_content_extraction_bytes(repo_root: Path) -> bytes:
+    try:
+        cache_key = str(repo_root.resolve(strict=True))
+    except (OSError, RuntimeError) as error:
+        raise InventoryConfigError(
+            "accepted content extraction root is unavailable"
+        ) from error
+    cached = _CONTENT_EXTRACTION_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+    try:
+        from tooling.scripts import extract_ctr_201_content_inventory as extractor
+    except ImportError as error:
+        raise InventoryConfigError(
+            "accepted content extractor is unavailable"
+        ) from error
+    try:
+        extracted = extractor.extract_content_inventory(repo_root)
+    except Exception as error:
+        mismatch_type = getattr(extractor, "InventoryMismatch", ())
+        unavailable_type = getattr(extractor, "ExtractorError", ())
+        if mismatch_type and isinstance(error, mismatch_type):
+            raise ContentArtifactMismatch(
+                "accepted content extraction does not match"
+            ) from error
+        if unavailable_type and isinstance(error, unavailable_type):
+            raise InventoryConfigError(
+                "accepted content extraction is unavailable"
+            ) from error
+        raise InventoryConfigError(
+            "accepted content extraction failed safely"
+        ) from error
+    if (
+        not isinstance(extracted, Mapping)
+        or _contains_unicode_surrogate(extracted)
+        or _contains_non_finite_number(extracted)
+    ):
+        raise InventoryConfigError(
+            "accepted content extraction returned invalid data"
+        )
+    canonical = _canonical_json_bytes(extracted)
+    _CONTENT_EXTRACTION_CACHE[cache_key] = canonical
+    return canonical
+
+
 def _validate_cli_static_semantics(
     repo_root: Path, record: Mapping[str, Any]
 ) -> list[str]:
@@ -1952,11 +2106,407 @@ def _validate_coverage_gaps(
     return errors
 
 
+def _is_portable_content_path(value: Any, *, allow_trailing_slash: bool = False) -> bool:
+    if not isinstance(value, str):
+        return False
+    candidate = value[:-1] if allow_trailing_slash and value.endswith("/") else value
+    return (
+        unicodedata.normalize("NFC", candidate) == candidate
+        and len(candidate.encode("utf-8")) <= 512
+        and len(PurePosixPath(candidate).parts) <= 32
+        and is_canonical_repository_path(
+            value, allow_trailing_slash=allow_trailing_slash
+        )
+    )
+
+
+def _validate_content_materialized_tree(
+    tree: Any,
+    *,
+    expected: Mapping[str, Any] | None = None,
+) -> list[str]:
+    if not isinstance(tree, Mapping):
+        return ["content child materialized tree is invalid"]
+    entries = tree.get("entries")
+    if not isinstance(entries, list) or not all(
+        isinstance(entry, Mapping) for entry in entries
+    ):
+        return ["content child materialized tree entries are invalid"]
+    errors: list[str] = []
+    paths = [entry.get("path") for entry in entries]
+    if any(not _is_portable_content_path(path) for path in paths):
+        errors.append("content child contains a non-canonical materialized path")
+    string_paths = [path for path in paths if isinstance(path, str)]
+    if (
+        len(string_paths) != len(set(string_paths))
+        or len({unicodedata.normalize("NFC", path).casefold() for path in string_paths})
+        != len(string_paths)
+        or string_paths != sorted(string_paths, key=lambda path: path.encode("utf-8"))
+    ):
+        errors.append("content child materialized paths are not unique and ordered")
+
+    total_bytes = 0
+    origin_counts = {
+        "identity-copy": 0,
+        "content-transform": 0,
+        "generated-metadata": 0,
+    }
+    top_level: dict[str, int] = {}
+    digest_rows: list[dict[str, Any]] = []
+    for entry in entries:
+        size = entry.get("size_bytes")
+        digest = entry.get("sha256")
+        mode = entry.get("mode")
+        origin = entry.get("origin")
+        path = entry.get("path")
+        if (
+            not isinstance(size, int)
+            or isinstance(size, bool)
+            or size < 0
+            or not isinstance(digest, str)
+            or re.fullmatch(r"[0-9a-f]{64}", digest) is None
+            or mode != "0644"
+            or not isinstance(path, str)
+            or not isinstance(origin, Mapping)
+        ):
+            errors.append("content child materialized entry metadata is invalid")
+            continue
+        origin_class = origin.get("origin_class")
+        source_paths = origin.get("source_paths")
+        if (
+            origin_class not in origin_counts
+            or not isinstance(source_paths, list)
+            or not source_paths
+            or any(not _is_portable_content_path(item) for item in source_paths)
+        ):
+            errors.append("content child materialized provenance is invalid")
+        else:
+            origin_counts[str(origin_class)] += 1
+        total_bytes += size
+        top = path.split("/", 1)[0]
+        top_level[top] = top_level.get(top, 0) + 1
+        digest_rows.append(
+            {
+                "path": path,
+                "mode": mode,
+                "size_bytes": size,
+                "sha256": digest,
+            }
+        )
+    expected_top = [
+        {"name": name, "file_count": top_level[name]}
+        for name in sorted(top_level, key=lambda value: value.encode("utf-8"))
+    ]
+    if (
+        tree.get("root") != "normalized-skill-root"
+        or tree.get("file_count") != len(entries)
+        or tree.get("total_bytes") != total_bytes
+        or tree.get("tree_sha256") != _sha256(_canonical_json_bytes(digest_rows))
+        or tree.get("origin_counts") != origin_counts
+        or tree.get("top_level_counts") != expected_top
+    ):
+        errors.append("content child materialized tree summary is invalid")
+    if expected is not None and (
+        tree.get("file_count") != expected.get("file_count")
+        or tree.get("total_bytes") != expected.get("total_bytes")
+        or tree.get("tree_sha256") != expected.get("tree_sha256")
+        or tree.get("origin_counts") != expected.get("origin_counts")
+    ):
+        errors.append("content child materialized tree identity is not exact")
+    return sorted(set(errors))
+
+
+def _validate_content_repository_paths(artifact: Mapping[str, Any]) -> list[str]:
+    checks: list[tuple[Any, bool]] = []
+    source = artifact.get("source")
+    if isinstance(source, Mapping):
+        checks.append((source.get("manifest_path"), False))
+        content_tree = source.get("content_tree")
+        if isinstance(content_tree, Mapping):
+            checks.append((content_tree.get("root"), True))
+            files = content_tree.get("files")
+            if isinstance(files, list):
+                checks.extend(
+                    (
+                        item.get("path") if isinstance(item, Mapping) else None,
+                        False,
+                    )
+                    for item in files
+                )
+            else:
+                checks.append((None, False))
+        anchors = source.get("materializer_anchors")
+        if isinstance(anchors, list):
+            checks.extend(
+                (
+                    item.get("path") if isinstance(item, Mapping) else None,
+                    False,
+                )
+                for item in anchors
+            )
+        else:
+            checks.append((None, False))
+    else:
+        checks.append((None, False))
+
+    catalog = artifact.get("resource_catalog")
+    if isinstance(catalog, Mapping):
+        for root in catalog.get("roots", []):
+            if isinstance(root, Mapping):
+                checks.append((root.get("source"), root.get("match") == "prefix"))
+            else:
+                checks.append((None, False))
+        for kind in catalog.get("kinds", []):
+            sources = kind.get("source_roots") if isinstance(kind, Mapping) else None
+            if isinstance(sources, list):
+                checks.extend((value, value.endswith("/") if isinstance(value, str) else False) for value in sources)
+            else:
+                checks.append((None, False))
+    else:
+        checks.append((None, False))
+
+    for projection in [artifact.get("portable_core"), *(
+        artifact.get("profiles") if isinstance(artifact.get("profiles"), list) else []
+    )]:
+        tree = projection.get("materialized_tree") if isinstance(projection, Mapping) else None
+        entries = tree.get("entries") if isinstance(tree, Mapping) else None
+        if not isinstance(entries, list):
+            checks.append((None, False))
+            continue
+        for entry in entries:
+            if not isinstance(entry, Mapping):
+                checks.append((None, False))
+                continue
+            checks.append((entry.get("path"), False))
+            origin = entry.get("origin")
+            sources = origin.get("source_paths") if isinstance(origin, Mapping) else None
+            if isinstance(sources, list):
+                checks.extend((path, False) for path in sources)
+            else:
+                checks.append((None, False))
+    if any(
+        not _is_portable_content_path(path, allow_trailing_slash=trailing)
+        for path, trailing in checks
+    ):
+        return ["content child contains a non-canonical portable path"]
+    return []
+
+
+def _validate_content_artifact_semantics(
+    artifact: Mapping[str, Any],
+) -> list[str]:
+    if _contains_unicode_surrogate(artifact):
+        return ["content child contains invalid Unicode scalar data"]
+    if _contains_non_finite_number(artifact):
+        return ["content child contains invalid numeric data"]
+    errors: list[str] = []
+    strings = _iter_strings(artifact)
+    if any(MACHINE_PATH_PATTERN.search(value) for value in strings):
+        errors.append("content child contains a forbidden machine-local path")
+    if any(SECRET_PATTERN.search(value) for value in strings):
+        errors.append("content child contains forbidden secret-shaped data")
+    if any(CALLABLE_REPR_PATTERN.search(value) for value in strings):
+        errors.append("content child contains an unstable callable representation")
+    errors.extend(_validate_content_repository_paths(artifact))
+    if (
+        artifact.get("task_id") != "CTR-201D"
+        or artifact.get("status") != "content-materialization-captured"
+    ):
+        errors.append("content child status boundary is invalid")
+    integrity = artifact.get("integrity")
+    if (
+        not isinstance(integrity, Mapping)
+        or integrity.get("algorithm") != "sha256"
+        or integrity.get("canonicalization")
+        != "utf-8-json-sorted-keys-compact-excluding-integrity"
+        or integrity.get("payload_sha256") != canonical_payload_sha256(artifact)
+    ):
+        errors.append("content child canonical payload digest does not match")
+    coverage = artifact.get("coverage")
+    if not isinstance(coverage, Mapping) or dict(coverage) != {
+        **EXPECTED_CONTENT_COUNTS,
+        "capture_ready": True,
+    }:
+        errors.append("content child coverage boundary is invalid")
+    source = artifact.get("source")
+    content_tree = source.get("content_tree") if isinstance(source, Mapping) else None
+    files = content_tree.get("files") if isinstance(content_tree, Mapping) else None
+    if (
+        not isinstance(source, Mapping)
+        or source.get("accepted_tag") != EXPECTED_TAG
+        or source.get("accepted_commit") != EXPECTED_COMMIT
+        or source.get("manifest_path") != EXPECTED_MANIFEST_PATH
+        or source.get("manifest_sha256") != EXPECTED_MANIFEST_SHA256
+        or not isinstance(content_tree, Mapping)
+        or content_tree.get("root") != "content/"
+        or content_tree.get("file_count") != EXPECTED_CONTENT_FILE_COUNT
+        or content_tree.get("total_bytes") != 1_761_400
+        or content_tree.get("tree_sha256") != EXPECTED_CONTENT_TREE_SHA256
+        or not isinstance(files, list)
+        or len(files) != EXPECTED_CONTENT_FILE_COUNT
+        or _sha256(_canonical_json_bytes(files)) != EXPECTED_CONTENT_TREE_SHA256
+    ):
+        errors.append("content child frozen-source binding is invalid")
+
+    catalog = artifact.get("resource_catalog")
+    roots = catalog.get("roots") if isinstance(catalog, Mapping) else None
+    recorded_roots = [
+        (
+            item.get("source"),
+            item.get("match"),
+            item.get("resource_kind"),
+            item.get("file_count"),
+        )
+        for item in roots
+        if isinstance(item, Mapping)
+    ] if isinstance(roots, list) else []
+    if (
+        not isinstance(catalog, Mapping)
+        or catalog.get("resource_root_count") != 12
+        or catalog.get("resource_kind_count") != 11
+        or tuple(recorded_roots) != EXPECTED_RESOURCE_ROOTS
+    ):
+        errors.append("content child resource catalog is invalid")
+    if isinstance(files, list) and isinstance(roots, list):
+        for root in roots:
+            if not isinstance(root, Mapping):
+                errors.append("content child resource catalog is invalid")
+                continue
+            selected = [
+                item
+                for item in files
+                if isinstance(item, Mapping)
+                and isinstance(item.get("path"), str)
+                and isinstance(root.get("source"), str)
+                and _matches_root(
+                    str(item["path"]),
+                    str(root["source"]),
+                    str(root.get("match")),
+                )
+            ]
+            if (
+                root.get("file_count") != len(selected)
+                or root.get("total_bytes")
+                != sum(int(item.get("size_bytes", -1)) for item in selected)
+                or root.get("entries_sha256")
+                != _sha256(_canonical_json_bytes(selected))
+            ):
+                errors.append("content child resource-root digest is invalid")
+        if any(
+            sum(
+                _matches_root(
+                    str(item.get("path")),
+                    str(root.get("source")),
+                    str(root.get("match")),
+                )
+                for root in roots
+                if isinstance(root, Mapping)
+            )
+            != 1
+            for item in files
+            if isinstance(item, Mapping)
+        ):
+            errors.append("content child resource-root partition is invalid")
+
+    contract = artifact.get("materialization_contract")
+    if not isinstance(contract, Mapping) or dict(contract) != {
+        "python_requirement": ">=3.12",
+        "pyyaml_version": "6.0.3",
+        "execution_model": (
+            "authenticated-accepted-materializer-in-ephemeral-isolated-subprocess"
+        ),
+        "input_policy": "A8-authenticated-regular-blobs-only",
+        "path_policy": "relative-posix-utf8-nfc-portable-casefold-unique",
+        "mode_policy": "regular-skill-resources-normalized-to-0644",
+        "entry_order": "ascending-utf8-path-bytes",
+        "tree_canonicalization": (
+            "sha256-of-utf8-compact-sorted-key-json-over-utf8-byte-sorted-"
+            "path-mode-size_bytes-sha256-entry-array"
+        ),
+        "worker_network": (
+            "accepted-reference-code-static-allowlist-plus-python-audit-denial;"
+            "os-network-sandbox-not-proven"
+        ),
+        "worker_write_scope": "ephemeral-temporary-root-only",
+        "host_cache_writes": "forbidden",
+    }:
+        errors.append("content child materialization contract is invalid")
+
+    portable = artifact.get("portable_core")
+    portable_tree = portable.get("materialized_tree") if isinstance(portable, Mapping) else None
+    if not isinstance(portable, Mapping) or portable.get("variant_id") != EXPECTED_PORTABLE_CORE_FACTS["variant_id"]:
+        errors.append("content child portable-core identity is invalid")
+    errors.extend(
+        _validate_content_materialized_tree(
+            portable_tree,
+            expected=EXPECTED_PORTABLE_CORE_FACTS,
+        )
+    )
+
+    profiles = artifact.get("profiles")
+    if not isinstance(profiles, list) or len(profiles) != len(EXPECTED_CONTENT_PROFILE_FACTS):
+        errors.append("content child profile inventory is invalid")
+        profiles = []
+    for profile, expected in zip(profiles, EXPECTED_CONTENT_PROFILE_FACTS):
+        if not isinstance(profile, Mapping):
+            errors.append("content child profile inventory is invalid")
+            continue
+        closure = profile.get("source_closure")
+        tree = profile.get("materialized_tree")
+        if any(profile.get(key) != expected[key] for key in (
+            "profile_id", "aliases", "variant_id", "subject", "flavor", "coverage", "skill_name"
+        )):
+            errors.append("content child profile identity is not exact")
+        if (
+            not isinstance(closure, Mapping)
+            or closure.get("file_count") != expected["source_file_count"]
+            or closure.get("total_bytes") != expected["source_total_bytes"]
+            or closure.get("tree_sha256") != expected["source_tree_sha256"]
+        ):
+            errors.append("content child profile source closure is not exact")
+        errors.extend(
+            _validate_content_materialized_tree(
+                tree,
+                expected={
+                    "file_count": expected["materialized_file_count"],
+                    "total_bytes": expected["materialized_total_bytes"],
+                    "tree_sha256": expected["materialized_tree_sha256"],
+                    "origin_counts": expected["origin_counts"],
+                },
+            )
+        )
+        if (
+            profile.get("evidence_scope")
+            != "authenticated-accepted-source-skill-subtree"
+            or profile.get("published_archive_member_parity") != "not-captured"
+        ):
+            errors.append("content child profile evidence boundary is invalid")
+
+    compatibility = artifact.get("compatibility_boundary")
+    if not isinstance(compatibility, Mapping) or (
+        compatibility.get("a8_generated_tree_evidence") is not False
+        or compatibility.get("published_archive_member_parity") != "not-captured"
+        or compatibility.get("complete_plugin_wrapper_parity") != "not-captured"
+        or compatibility.get("complete_native_binary_parity") != "not-captured"
+        or compatibility.get("complete_subject_matrix_parity") != "not-captured"
+        or compatibility.get("extraction_network_sandbox") != "not-proven"
+        or compatibility.get("extraction_filesystem_sandbox")
+        != "python-audit-write-confined;host-read-isolation-not-proven;os-sandbox-not-proven"
+        or compatibility.get("fnd_202_implemented") is not False
+    ):
+        errors.append("content child compatibility boundary is invalid")
+    return sorted(set(errors))
+
+
 def _matches_root(path: str, source: str, match: str) -> bool:
     return path == source if match == "exact" else path.startswith(source)
 
 
-def _validate_content(record: Mapping[str, Any], manifest: Mapping[str, Any]) -> list[str]:
+def _validate_content_materialization_contract(
+    repo_root: Path,
+    record: Mapping[str, Any],
+    manifest: Mapping[str, Any] | None = None,
+) -> list[str]:
     errors: list[str] = []
     content = record.get("content")
     if not isinstance(content, Mapping):
@@ -1985,7 +2535,7 @@ def _validate_content(record: Mapping[str, Any], manifest: Mapping[str, Any]) ->
         ):
             errors.append("content resource root contains a non-canonical path")
 
-    package_trees = manifest.get("package_trees")
+    package_trees = manifest.get("package_trees") if isinstance(manifest, Mapping) else None
     content_trees = [
         item
         for item in package_trees
@@ -2016,35 +2566,171 @@ def _validate_content(record: Mapping[str, Any], manifest: Mapping[str, Any]) ->
             errors.append("content resource root file count does not match the frozen tree")
             break
     if (
-        content.get("source_file_count") != EXPECTED_CONTENT_FILE_COUNT
+        content.get("status") != "content-materialization-captured"
+        or content.get("source_file_count") != EXPECTED_CONTENT_FILE_COUNT
+        or content.get("source_total_bytes") != 1_761_400
         or content.get("source_tree_sha256") != EXPECTED_CONTENT_TREE_SHA256
     ):
         errors.append("content source identity does not match the frozen tree")
 
     profiles = content.get("profiles")
     profile_names = [
-        item.get("profile") for item in profiles if isinstance(item, Mapping)
+        item.get("profile_id") for item in profiles if isinstance(item, Mapping)
     ] if isinstance(profiles, list) else []
     if tuple(profile_names) != EXPECTED_PROFILES or len(profile_names) != len(set(profile_names)):
         errors.append("content profiles must be unique and ordered")
-    if not isinstance(profiles, list) or any(
-        not isinstance(item, Mapping)
-        or item.get("status") != "not-ready"
-        or item.get("included_resource_kinds") != []
-        or item.get("expected_materialized_tree_sha256") is not None
-        for item in profiles
-    ):
-        errors.append("content profile mappings must remain explicitly not ready")
+    expected_parent_profiles = [
+        {
+            "profile_id": expected["profile_id"],
+            "aliases": expected["aliases"],
+            "variant_id": expected["variant_id"],
+            "source_file_count": expected["source_file_count"],
+            "materialized_file_count": expected["materialized_file_count"],
+            "materialized_total_bytes": expected["materialized_total_bytes"],
+            "expected_materialized_tree_sha256": expected[
+                "materialized_tree_sha256"
+            ],
+            "identity_output_count": expected["origin_counts"]["identity-copy"],
+            "transformed_output_count": expected["origin_counts"][
+                "content-transform"
+            ],
+            "generated_output_count": expected["origin_counts"][
+                "generated-metadata"
+            ],
+        }
+        for expected in EXPECTED_CONTENT_PROFILE_FACTS
+    ]
+    if profiles != expected_parent_profiles:
+        errors.append("content profile materialization summaries are not exact")
     materialization = content.get("materialization")
     if (
         not isinstance(materialization, Mapping)
-        or materialization.get("status") != "not-ready"
-        or materialization.get("mapping_policy") != "not-frozen"
-        or materialization.get("expected_tree_sha256") is not None
-        or content.get("completion_ready") is not False
+        or dict(materialization)
+        != {
+            "status": "content-materialization-captured",
+            "mapping_policy": (
+                "authenticated-accepted-materializer-in-ephemeral-isolated-subprocess"
+            ),
+            "published_archive_parity": "not-captured",
+            "extraction_network_sandbox": "not-proven",
+            "extraction_filesystem_sandbox": (
+                "python-audit-write-confined;host-read-isolation-not-proven;os-sandbox-not-proven"
+            ),
+            "rust_materializer": "not-implemented",
+        }
+        or content.get("completion_ready") is not True
     ):
-        errors.append("content materialization must remain explicitly not ready")
-    return errors
+        errors.append("content materialization boundary is invalid")
+
+    binding = content.get("static_inventory")
+    expected_binding = {
+        "task_id": "CTR-201D",
+        "status": "content-materialization-captured",
+        "artifact_path": DEFAULT_CONTENT_ARTIFACT,
+        "schema_path": DEFAULT_CONTENT_SCHEMA,
+        "schema_canonical_sha256": EXPECTED_CONTENT_SCHEMA_CANONICAL_SHA256,
+        "payload_sha256": EXPECTED_CONTENT_PAYLOAD_SHA256,
+        **EXPECTED_CONTENT_COUNTS,
+        "capture_ready": True,
+    }
+    if not isinstance(binding, Mapping) or dict(binding) != expected_binding:
+        errors.append("content static-inventory master binding is invalid")
+        return sorted(set(errors))
+
+    child_schema = _load_json_file(
+        repo_root, DEFAULT_CONTENT_SCHEMA, label="content child schema"
+    )
+    artifact = _load_json_file(
+        repo_root, DEFAULT_CONTENT_ARTIFACT, label="content child artifact"
+    )
+    if (
+        _sha256(_canonical_json_bytes(child_schema))
+        != EXPECTED_CONTENT_SCHEMA_CANONICAL_SHA256
+    ):
+        errors.append("content child schema canonical digest is invalid")
+    if (
+        child_schema.get("$schema")
+        != "https://json-schema.org/draft/2020-12/schema"
+        or child_schema.get("$id")
+        != "https://qiongli.dev/schemas/ctr-201-content.schema.json"
+    ):
+        errors.append("content child schema identity is invalid")
+    errors.extend(
+        _validate_recursively_closed_schema(child_schema, label="content child")
+    )
+    if validate_instance(artifact, child_schema):
+        errors.append("content child artifact does not satisfy its closed schema")
+        return sorted(set(errors))
+    errors.extend(_validate_content_artifact_semantics(artifact))
+
+    child_integrity = artifact.get("integrity")
+    child_coverage = artifact.get("coverage")
+    if (
+        not isinstance(child_integrity, Mapping)
+        or child_integrity.get("payload_sha256") != EXPECTED_CONTENT_PAYLOAD_SHA256
+        or binding.get("payload_sha256") != child_integrity.get("payload_sha256")
+    ):
+        errors.append("content child payload digest does not match the master binding")
+    if not isinstance(child_coverage, Mapping) or any(
+        binding.get(key) != child_coverage.get(key)
+        for key in (*EXPECTED_CONTENT_COUNTS, "capture_ready")
+    ):
+        errors.append("content child counts do not match the master binding")
+    child_source = artifact.get("source")
+    child_tree = (
+        child_source.get("content_tree") if isinstance(child_source, Mapping) else None
+    )
+    child_files = child_tree.get("files") if isinstance(child_tree, Mapping) else None
+    if isinstance(files, list) and child_files != files:
+        errors.append("content child source inventory differs from the frozen manifest")
+    child_profiles = artifact.get("profiles")
+    if isinstance(child_profiles, list) and len(child_profiles) == len(expected_parent_profiles):
+        projected = []
+        for profile in child_profiles:
+            if not isinstance(profile, Mapping):
+                projected = []
+                break
+            closure = profile.get("source_closure")
+            tree = profile.get("materialized_tree")
+            origins = tree.get("origin_counts") if isinstance(tree, Mapping) else None
+            if not isinstance(closure, Mapping) or not isinstance(tree, Mapping) or not isinstance(origins, Mapping):
+                projected = []
+                break
+            projected.append(
+                {
+                    "profile_id": profile.get("profile_id"),
+                    "aliases": profile.get("aliases"),
+                    "variant_id": profile.get("variant_id"),
+                    "source_file_count": closure.get("file_count"),
+                    "materialized_file_count": tree.get("file_count"),
+                    "materialized_total_bytes": tree.get("total_bytes"),
+                    "expected_materialized_tree_sha256": tree.get("tree_sha256"),
+                    "identity_output_count": origins.get("identity-copy"),
+                    "transformed_output_count": origins.get("content-transform"),
+                    "generated_output_count": origins.get("generated-metadata"),
+                }
+            )
+        if projected != expected_parent_profiles or projected != profiles:
+            errors.append("content child profiles do not match the master summaries")
+    else:
+        errors.append("content child profiles do not match the master summaries")
+    if errors:
+        return sorted(set(errors))
+    try:
+        extracted = _accepted_content_extraction_bytes(repo_root)
+    except ContentArtifactMismatch:
+        return ["accepted content extraction does not match its frozen source"]
+    if extracted != _canonical_json_bytes(artifact):
+        errors.append("content child artifact differs from accepted-source extraction")
+    return sorted(set(errors))
+
+
+def _validate_content(
+    repo_root: Path,
+    record: Mapping[str, Any],
+    manifest: Mapping[str, Any],
+) -> list[str]:
+    return _validate_content_materialization_contract(repo_root, record, manifest)
 
 
 def validate_inventory(
@@ -2096,13 +2782,13 @@ def validate_inventory(
     errors.extend(_validate_coverage_gaps(record, oracle_documents))
     errors.extend(_validate_cli_static_semantics(repo_root, record))
     errors.extend(_validate_orchestrator_static_contract(repo_root, record))
-    errors.extend(_validate_content(record, manifest))
+    errors.extend(_validate_content(repo_root, record, manifest))
     return sorted(set(errors))
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = SafeArgumentParser(
-        description="Validate the derived and accepted-source CTR-201A/B/C inventories."
+        description="Validate the derived and accepted-source CTR-201A/B/C/D inventories."
     )
     parser.add_argument("--root", type=Path, default=REPO_ROOT)
     parser.add_argument("--record", default=DEFAULT_RECORD)

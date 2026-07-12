@@ -278,7 +278,9 @@
     "completion_ready": false
   },
   "content": {
+    "status": "content-materialization-captured",
     "source_file_count": 377,
+    "source_total_bytes": 1761400,
     "source_tree_sha256": "4659cbcd839c3f8eb3798a64981b7ec2180cf766566fcf439ac892eb32a8a5a8",
     "resource_roots": [
       {
@@ -356,34 +358,76 @@
     ],
     "profiles": [
       {
-        "profile": "skill-only",
-        "status": "not-ready",
-        "included_resource_kinds": [],
-        "expected_materialized_tree_sha256": null
+        "profile_id": "skill-only",
+        "aliases": [],
+        "variant_id": "qiongli-next-prerelease-core-desktop-focused",
+        "source_file_count": 341,
+        "materialized_file_count": 178,
+        "materialized_total_bytes": 708608,
+        "expected_materialized_tree_sha256": "5b76bc0c02cda7fc18adf2b1afd492e763392ed5fc2a05dac360d1221045f280",
+        "identity_output_count": 173,
+        "transformed_output_count": 2,
+        "generated_output_count": 3
       },
       {
-        "profile": "lite",
-        "status": "not-ready",
-        "included_resource_kinds": [],
-        "expected_materialized_tree_sha256": null
+        "profile_id": "marketplace-lite",
+        "aliases": [
+          "lite"
+        ],
+        "variant_id": "qiongli-next-prerelease-core-full-complete",
+        "source_file_count": 377,
+        "materialized_file_count": 342,
+        "materialized_total_bytes": 1600064,
+        "expected_materialized_tree_sha256": "a854fc61203883132041a43077cc9ea26e62aa28e2c2eeb266777f582b029c6c",
+        "identity_output_count": 338,
+        "transformed_output_count": 2,
+        "generated_output_count": 2
       },
       {
-        "profile": "full",
-        "status": "not-ready",
-        "included_resource_kinds": [],
-        "expected_materialized_tree_sha256": null
+        "profile_id": "full",
+        "aliases": [],
+        "variant_id": "qiongli-local-core-full-complete",
+        "source_file_count": 377,
+        "materialized_file_count": 343,
+        "materialized_total_bytes": 1602568,
+        "expected_materialized_tree_sha256": "b5612c713789bbd126829edc1e0646ec2c2387898aa2f5a4c812de0de5aad554",
+        "identity_output_count": 339,
+        "transformed_output_count": 2,
+        "generated_output_count": 2
       }
     ],
     "materialization": {
-      "status": "not-ready",
-      "mapping_policy": "not-frozen",
-      "expected_tree_sha256": null
+      "status": "content-materialization-captured",
+      "mapping_policy": "authenticated-accepted-materializer-in-ephemeral-isolated-subprocess",
+      "published_archive_parity": "not-captured",
+      "extraction_network_sandbox": "not-proven",
+      "extraction_filesystem_sandbox": "python-audit-write-confined;host-read-isolation-not-proven;os-sandbox-not-proven",
+      "rust_materializer": "not-implemented"
     },
-    "completion_ready": false
+    "static_inventory": {
+      "task_id": "CTR-201D",
+      "status": "content-materialization-captured",
+      "artifact_path": "tooling/migration/ctr-201-content.json",
+      "schema_path": "tooling/migration/ctr-201-content.schema.json",
+      "schema_canonical_sha256": "6f88a56c2a88c51f68a6bb10bce05776d1e06f678ae916739a6e3de96d2b1704",
+      "payload_sha256": "d17f37aa96d1896d047b27d197d63f773ae1d644a875722f5262be39593ff304",
+      "accepted_content_file_count": 377,
+      "accepted_content_total_bytes": 1761400,
+      "resource_root_count": 12,
+      "resource_kind_count": 11,
+      "portable_core_file_count": 263,
+      "materialized_profile_count": 3,
+      "materialized_output_file_count": 863,
+      "identity_output_count": 850,
+      "transformed_output_count": 6,
+      "generated_output_count": 7,
+      "capture_ready": true
+    },
+    "completion_ready": true
   },
   "integrity": {
     "algorithm": "sha256",
     "canonicalization": "utf-8-json-sorted-keys-compact-excluding-integrity",
-    "payload_sha256": "4c8eab8b190a94065f48ab52b6aabaff6c900092cd2d044bcbbb41f95cfbfb3d"
+    "payload_sha256": "690966ed3e49ecc20aa5f87936be841ff86af09c08918d740cf6993f2ee4e68c"
   }
 }

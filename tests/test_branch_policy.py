@@ -51,6 +51,7 @@ class BranchPolicyTests(unittest.TestCase):
             "tests.test_ctr_201_inventory",
             "tests.test_ctr_201_cli_inventory",
             "tests.test_ctr_201_orchestrator_inventory",
+            "tests.test_ctr_201_content_inventory",
         )
         for module in windows_modules:
             self.assertIn(module, content)
@@ -84,7 +85,7 @@ class BranchPolicyTests(unittest.TestCase):
                     job,
                 )
 
-        validate_step = "      - name: Validate CTR-201A/B/C static inventories"
+        validate_step = "      - name: Validate CTR-201A/B/C/D static inventories"
         macos_step = "      - name: Run macOS CTR inventory smoke tests"
         self.assertIn(validate_step, job)
         self.assertIn(macos_step, job)
@@ -96,6 +97,7 @@ class BranchPolicyTests(unittest.TestCase):
             "tests.test_ctr_201_inventory",
             "tests.test_ctr_201_cli_inventory",
             "tests.test_ctr_201_orchestrator_inventory",
+            "tests.test_ctr_201_content_inventory",
         )
         for module in macos_modules:
             self.assertIn(module, macos_block)
@@ -105,12 +107,12 @@ class BranchPolicyTests(unittest.TestCase):
         )
         self.assertLess(job.index(validate_step), macos_start)
 
-    def test_ci_validates_ctr_201a_b_c_static_inventories_before_distribution_work(
+    def test_ci_validates_ctr_201a_b_c_d_static_inventories_before_distribution_work(
         self,
     ) -> None:
         content = read(".github/workflows/ci.yml")
-        compile_step = "      - name: Compile CTR-201A/B/C static inventory gates"
-        validate_step = "      - name: Validate CTR-201A/B/C static inventories"
+        compile_step = "      - name: Compile CTR-201A/B/C/D static inventory gates"
+        validate_step = "      - name: Validate CTR-201A/B/C/D static inventories"
         validate_command = "python scripts/validate_ctr_201_inventory.py"
         materialize_command = (
             "python scripts/materialize_distribution_payloads.py --target all "
@@ -134,9 +136,12 @@ class BranchPolicyTests(unittest.TestCase):
             "tooling/scripts/extract_ctr_201_cli_inventory.py",
             "scripts/extract_ctr_201_orchestrator_inventory.py",
             "tooling/scripts/extract_ctr_201_orchestrator_inventory.py",
+            "scripts/extract_ctr_201_content_inventory.py",
+            "tooling/scripts/extract_ctr_201_content_inventory.py",
             "tests/test_ctr_201_inventory.py",
             "tests/test_ctr_201_cli_inventory.py",
             "tests/test_ctr_201_orchestrator_inventory.py",
+            "tests/test_ctr_201_content_inventory.py",
         )
         for compiled_path in compiled_paths:
             self.assertIn(compiled_path, compile_block)
