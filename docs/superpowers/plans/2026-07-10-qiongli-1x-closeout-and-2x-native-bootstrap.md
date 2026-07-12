@@ -10,8 +10,11 @@ gates are implemented. In B3, the CTR-201A slice is merged, CTR-201B
 accepted-source static CLI semantics are captured, CTR-201C captures the
 accepted-source `DECLARED/STATIC` orchestrator control contract and
 compatibility boundary, and CTR-201D captures canonical-content and
-reproducible materialized-skill-subtree closure; CTR-201 remains in progress
-and FND-202 is not implemented. B1 / REL-201 now provides a typed native
+reproducible materialized-skill-subtree closure. CTR-201E's accepted-source
+Full CLI runtime-inventory-freeze implementation and checked corpus are
+present; branch integration remains gated by exact-head CI. CTR-201 remains in
+progress, CTR-202 remains a successor task, and FND-202 is not implemented.
+B1 / REL-201 now provides a typed native
 release identity, strict 1.x/2.x channel isolation, and an external-staging
 `v2.0.0-alpha.1` dry-run; real native publication remains fail-closed pending
 the later artifact, signing, updater, and acceptance gates.
@@ -1074,21 +1077,30 @@ Exit criteria:
 
 ### B3 — Verify and load frozen contracts and content
 
-Task IDs: `CTR-201`, `FND-202`
+Task IDs: `CTR-201`, `CTR-202`, `FND-202`
+
+Dependency order: `CTR-201` is the shared entry gate. Under the declared
+program DAG, `CTR-202` Contract v2 completion and `FND-202` resource-pack
+implementation are separate successors and may proceed in parallel only after
+CTR-201 closes. Neither successor is completion evidence for the other.
 
 Actions:
 
 1. load and verify the frozen A8 1.x baseline manifest, accepted-tag lineage,
    checksums, package trees, and oracle inventory; do not regenerate or move
    the accepted oracle during B3;
-2. implement typed Contract v2 and platform-target loaders;
-3. compile canonical workflow, skills, roles, templates, standards, subjects, and
-   metadata into one deterministic resource pack;
-4. verify path traversal, symlink, duplicate ID, invalid schema, and resource
+2. integrate CTR-201E's accepted-source Full CLI runtime inventory freeze only
+   after its exact-head CI gate, then close the remaining accepted-source
+   orchestrator-runtime requirement needed by the CTR-201 parent exit gate;
+3. after CTR-201 closes, implement typed Contract v2 and platform-target loaders
+   under CTR-202;
+4. after CTR-201 closes, compile canonical workflow, skills, roles, templates,
+   standards, subjects, and metadata into one deterministic resource pack;
+5. verify path traversal, symlink, duplicate ID, invalid schema, and resource
    size limits;
-5. materialize the same normalized tree as 1.x for the alpha.1 supported core
+6. materialize the same normalized tree as 1.x for the alpha.1 supported core
    profile;
-6. fail the build when generated resources drift from source.
+7. fail the build when generated resources drift from source.
 
 B3 execution status: **in progress**.
 
@@ -1103,9 +1115,10 @@ B3 execution status: **in progress**.
   built-in profiles, and the B1/H3 team and worker configurations. The 82 skill
   values are unique routing IDs rather than an installable-skill count; the 11
   MCP values are logical capability IDs rather than public tool names;
-- CTR-201B help coverage is authored parser metadata only. Formatted help output,
-  runtime behavior, JSON output, exit codes, dry-run behavior, error classes,
-  and npm compatibility remain incomplete;
+- CTR-201B help coverage is authored parser metadata only. CTR-201E separately
+  captures formatted parser output and bounded handler cases and binds every
+  unexecuted handler dimension to an inventory-only `LEG-201` disposition;
+  Full handler runtime parity remains unclaimed;
 - CTR-201C does not prove that agents run, solo/triad runtime parity, state or
   resume behavior, concurrency, failure or cancellation semantics, or
   quality-gate semantic execution. The accepted handler makes `doctor` part of
@@ -1120,14 +1133,30 @@ B3 execution status: **in progress**.
 - CTR-201D does not establish published archive/plugin-wrapper parity, host
   activation, or Rust resource-pack behavior because A8 contains no
   archive-member tree inventory;
+- CTR-201E implements the accepted-source Full CLI runtime-inventory-freeze
+  slice. Its gate covers the CTR-201B-fixed 49 public command
+  paths and five console entrypoints across formatted help, stdout/stderr,
+  JSON, exit codes, normalized error classes, dry-run and side-effect behavior,
+  zero-argument behavior, aliases, and legacy npm dispatch. Unexecuted handler
+  scenarios are bound to `CTR-201E-D001`/`D002` and npm handler parity to
+  `D003`; all remain `LEG-201` work rather than executed parity evidence;
 - CTR-201 has not reached its exit gate, and FND-202 resource-pack work has not
   been implemented;
-- continue with B1 (`REL-201`) independently while closing the remaining
-  Contract v2, CLI-runtime, and orchestrator-runtime CTR-201 gaps before
-  beginning FND-202.
+- integrate CTR-201E only after exact-head CI;
+- after CTR-201E's integration gate, accepted-source orchestrator runtime is
+  the known remaining CTR-201 blocker. Published archive/plugin-wrapper parity
+  remains an unassigned downstream governance boundary rather than a parent
+  exit gate;
+- after the parent CTR-201 exit gate, CTR-202 and FND-202 may begin as separate
+  successors.
 
 Exit criteria:
 
+- the CTR-201 master ledger binds every required child corpus, contains no
+  unclassified required capture gap, and keeps unsafe or inapplicable behavior
+  behind an explicit approved disposition rather than an omission;
+- Contract v2 reaches the CTR-202 coverage gate independently of the source
+  freeze;
 - two clean builds from the same commit produce the same resource hash;
 - alpha.1 can list and materialize its embedded skills without source checkout;
 - canonical files are not duplicated as hand-maintained Rust constants.
@@ -1417,18 +1446,23 @@ native workspace scaffold and repository gates are implemented, and B3 is in
 progress with the CTR-201A slice merged,
 CTR-201B accepted-source static CLI semantics captured, CTR-201C capturing the
 accepted-source `DECLARED/STATIC` orchestrator boundary, and CTR-201D capturing
-canonical-content and reproducible materialized-skill-subtree closure. CTR-201
-remains in progress, and FND-202 is not implemented. Continue in this order:
+canonical-content and reproducible materialized-skill-subtree closure.
+CTR-201E's implementation and checked corpus are present; its integration is
+gated by exact-head CI. CTR-201 remains in progress, CTR-202 remains a
+successor, and FND-202 is not implemented. Continue in this order:
 
-1. close the remaining Contract v2, CLI-runtime, and orchestrator-runtime
-   CTR-201 gaps, including any separately authenticated published-archive
-   evidence needed for a future parity claim;
-2. do not begin FND-202 resource-pack implementation until CTR-201 reaches its
-   exit gate; keep later B3 and B4 work inside the ADR 0204 and ADR 0205 service
-   and rollback boundaries;
-3. keep native publication blocked while PKG-201/PKG-202, UPD-201, target-native
+1. integrate CTR-201E only after exact-head CI, without claiming Rust CLI or
+   cross-platform runtime parity;
+2. close the remaining accepted-source orchestrator-runtime gap required by
+   CTR-201; retain published archive/plugin-wrapper parity as an unassigned
+   downstream governance boundary, not a parent-task blocker;
+3. after CTR-201 reaches its exit gate, begin CTR-202 Contract v2 completion and
+   FND-202 resource-pack implementation as separate, parallel successors; keep
+   later B3 and B4 work inside the ADR 0204 and ADR 0205 service and rollback
+   boundaries;
+4. keep native publication blocked while PKG-201/PKG-202, UPD-201, target-native
    acceptance, and the remaining public release gates are incomplete;
-4. preserve protected-branch pull requests and exact-head CI evidence for each
+5. preserve protected-branch pull requests and exact-head CI evidence for each
    independently reviewable slice.
 
 ## Phase Completion Definition

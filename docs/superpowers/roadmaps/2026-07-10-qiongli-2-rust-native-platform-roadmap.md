@@ -6,8 +6,12 @@ scaffold and repository gates are implemented;
 the CTR-201A slice is merged, CTR-201B accepted-source static CLI semantics are
 captured, CTR-201C captures the accepted-source `DECLARED/STATIC`
 orchestrator control contract and compatibility boundary, and CTR-201D captures
-canonical-content and reproducible materialized-skill-subtree closure; CTR-201
-remains in progress and FND-202 is not implemented
+canonical-content and reproducible materialized-skill-subtree closure.
+CTR-201E's accepted-source Full CLI runtime-inventory-freeze implementation
+and checked corpus are present; branch integration remains gated by exact-head
+CI. The accepted-source orchestrator runtime is the next CTR-201 slice.
+CTR-201 remains in progress, CTR-202 remains a successor task, and FND-202 is
+not implemented
 Decision date: July 10, 2026
 Target branch after the 1.x freeze: `2.x`
 Immediate execution plan:
@@ -346,19 +350,33 @@ limitations are recorded.
 
 ### W1 — Contract and parity foundation
 
-- expand Capability Contract v2 from the current pilot to every canonical Full
-  MCP tool and public alias;
-- freeze CLI help, arguments, JSON output, exit codes, dry-run behavior, and
-  error classes;
-- inventory all skills, tasks, roles, workflows, subjects, templates, standards,
-  and generated package combinations at the final 1.x tag;
+- complete the accepted-source `CTR-201` baseline before beginning either
+  successor: freeze CLI help, arguments, stdout/stderr, JSON output, exit codes,
+  dry-run and side-effect behavior, error classes, and the orchestrator runtime
+  scenarios required by the parent inventory;
+- inventory all skills, tasks, roles, workflows, subjects, templates, and
+  standards at the final 1.x tag;
+- track generated-package and published-archive parity as an unassigned
+  downstream governance boundary rather than a CTR-201 exit dependency;
 - normalize local absolute paths and nondeterministic timestamps in oracle data;
 - add a differential harness that can run Python/Node oracles in CI but stores
-  runtime-independent golden results for Rust tests.
+  runtime-independent golden results for Rust tests;
+- after `CTR-201` reaches its exit gate, complete `CTR-202` by expanding
+  Capability Contract v2 from the current pilot to every canonical Full MCP
+  tool and public alias. `FND-202` is a separate successor to `CTR-201`; it does
+  not depend on completion of `CTR-202` under the current program DAG.
 
-Exit gate: `23/23` canonical tools and `24/24` public names are contract-backed,
-or the generated freeze manifest records an updated exact count with an
-approved compatibility explanation.
+`CTR-201` exit gate: the accepted-source MCP, CLI, content, and orchestrator
+baseline is closed, normalized, digest-bound, and contains no unclassified
+required capture gap. An explicitly approved disposition may replace unsafe or
+inapplicable runtime execution, but omission may not.
+
+`CTR-202` exit gate: `23/23` canonical tools and `24/24` public names are
+Contract v2-backed, or the generated contract manifest records an updated exact
+count with an approved compatibility explanation.
+
+W1 exit gate: both gates above pass. Closing a `CTR-201` source-oracle slice is
+not evidence that the Rust implementation conforms to it.
 
 Current execution record:
 
@@ -381,9 +399,10 @@ Current execution record:
   `academic-context-maintainer` is declared twice with the same value. The 11
   MCP values are logical capability IDs, distinct from the 23 canonical and 24
   public MCP tool names;
-- CTR-201B records authored parser help metadata only. Formatted help output,
-  runtime behavior, JSON output, exit codes, dry-run behavior, error classes,
-  and npm compatibility remain incomplete;
+- CTR-201B records authored parser help metadata only. CTR-201E separately
+  captures formatted parser output and bounded handler cases, then links every
+  unexecuted handler dimension to an inventory-only disposition owned by
+  `LEG-201`; Full handler runtime parity remains unclaimed;
 - CTR-201C does not prove that agents run, solo/triad runtime parity, state or
   resume behavior, concurrency, failure or cancellation semantics, or
   quality-gate semantic execution. The accepted handler makes `doctor` part of
@@ -401,13 +420,28 @@ Current execution record:
   release archives, host activation, or the not-yet-implemented Rust resource
   pack. The accepted A8 evidence contains source package trees and release
   asset hashes, but no archive-member tree inventory;
+- CTR-201E implements the accepted-source Full CLI runtime-inventory-freeze
+  slice. It
+  classifies the 49 public command paths and five console
+  entrypoints already fixed by CTR-201B across formatted help, stdout/stderr,
+  JSON, exit codes, normalized error classes, dry-run and side-effect behavior,
+  zero-argument behavior, aliases, and legacy npm dispatch. Unexecuted handler
+  scenarios bind to `CTR-201E-D001`/`D002`, npm handler parity binds to `D003`,
+  all three remain `LEG-201` work, and cross-platform schema validation is not
+  a Tier 1 runtime-parity claim;
 - CTR-201 therefore remains in progress, and FND-202 is not implemented;
 - B1 (`REL-201`) is implemented as a non-publishing contract: native version,
   channel, branch, planned target identity, notes, registry isolation, and
   rollback/promotion metadata are dry-run validated, while public native
   publication remains blocked by later artifact and acceptance work;
-- the next stream is the remaining CTR-201 Contract v2, CLI-runtime, and
-  orchestrator-runtime closure required before FND-202 begins.
+- CTR-201E branch integration remains protected by exact-head CI. After that
+  gate, accepted-source orchestrator runtime is the known remaining blocker for
+  the parent CTR-201 exit gate;
+- published ZIP/TAR/plugin-wrapper and archive-member parity remains an
+  unassigned downstream governance boundary. CTR-201D does not establish it,
+  but it is not a CTR-201 completion dependency;
+- after CTR-201 closes, CTR-202 Contract v2 completion and FND-202 resource-pack
+  implementation are separately unblocked and may proceed in parallel.
 
 ### W2 — Native core, config, and data migration
 
@@ -658,6 +692,27 @@ move; their claims must not be weakened to preserve the estimated dates.
 | `RET-201` | Remove Node production fallback | LEG-201, PRV-201, DOM-202, MCP-204, two qualified green prereleases | disposition, payload and process audit |
 | `RET-202` | Stop Python product runtime publication | beta-entry gates | registry/channel transition receipt |
 | `REM-201` | Design remote MCP for cloud/web surfaces | local beta evidence | separate threat model and service decision |
+
+### CTR-201 decomposition ledger
+
+These IDs are engineering work-item children of `CTR-201`; they are not new
+canonical academic Task IDs. A child must not depend on its parent because the
+parent exit gate depends on completion of its required children.
+
+| ID | Scope | Depends on | Status / exit evidence |
+|---|---|---|---|
+| `CTR-201A` | Derived semantic inventory and frozen-baseline binding | accepted `v1.19.0-beta.1` baseline | merged; validation-backed master ledger |
+| `CTR-201B` | Accepted-source static Full CLI semantics | CTR-201A | merged; closed command/parser inventory |
+| `CTR-201C` | Accepted-source declared/static orchestrator control contract | CTR-201A | merged; closed declared-control inventory |
+| `CTR-201D` | Canonical content and materialized skill-subtree closure | CTR-201A | merged; source and materialized-tree digests |
+| `CTR-201E` | Accepted-source Full CLI runtime inventory freeze | CTR-201A, CTR-201B, accepted `v1.19.0-beta.1` baseline | implemented; checked digest-bound matrix, three `LEG-201` disposition decisions, deterministic extractor check, semantic validator, and negative/mutation tests; integration gated by exact-head CI; Full handler parity not claimed |
+
+Completing CTR-201E closes only the CLI-runtime inventory slice. The parent
+`CTR-201` remains in progress until its accepted-source orchestrator-runtime
+requirement is closed. Archive and published-package parity remains an
+unassigned downstream governance boundary rather than a CTR-201 blocker. Once
+the parent closes, `CTR-202` and `FND-202` are separate successors in the
+declared program DAG.
 
 `REM-201` is intentionally outside the local alpha critical path.
 

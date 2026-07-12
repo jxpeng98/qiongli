@@ -18,6 +18,8 @@ DEFAULT_RECORD = "tooling/migration/ctr-201-inventory.json"
 DEFAULT_SCHEMA = "tooling/migration/ctr-201-inventory.schema.json"
 DEFAULT_CLI_ARTIFACT = "tooling/migration/ctr-201-cli.json"
 DEFAULT_CLI_SCHEMA = "tooling/migration/ctr-201-cli.schema.json"
+DEFAULT_CLI_RUNTIME_ARTIFACT = "tooling/migration/ctr-201-cli-runtime.json"
+DEFAULT_CLI_RUNTIME_SCHEMA = "tooling/migration/ctr-201-cli-runtime.schema.json"
 DEFAULT_ORCHESTRATOR_ARTIFACT = "tooling/migration/ctr-201-orchestrator.json"
 DEFAULT_ORCHESTRATOR_SCHEMA = "tooling/migration/ctr-201-orchestrator.schema.json"
 DEFAULT_CONTENT_ARTIFACT = "tooling/migration/ctr-201-content.json"
@@ -42,10 +44,16 @@ EXPECTED_REGISTRY_SHA256 = (
     "602d3faf525e2e5c938afb14f1b1d291f528240947b3df6ed9f56baeb73e7020"
 )
 EXPECTED_SCHEMA_CANONICAL_SHA256 = (
-    "a5c56560b32116463fb6d2ca452e4a10e5ad655fed542500ca3b4d26eef51ce4"
+    "609965299e3a71f9a6e7dd09df2533ac2390eff33738ae5c13c9f4c65070313b"
 )
 EXPECTED_CLI_SCHEMA_CANONICAL_SHA256 = (
     "173436615a8a26d45903cc7812a55f2e9ae094089f637bced0f418a3976456ad"
+)
+EXPECTED_CLI_RUNTIME_SCHEMA_CANONICAL_SHA256 = (
+    "785b051f5d67900d43012b7f9574f43e7a2a1c63e3b4274a4814637d0623175b"
+)
+EXPECTED_CLI_RUNTIME_PAYLOAD_SHA256 = (
+    "b82be3d7f1531a3fefdf3dd864c74042d2d3ecc806d38337f24e2b14d843f41c"
 )
 EXPECTED_ORCHESTRATOR_SCHEMA_CANONICAL_SHA256 = (
     "0473158288cf35d4a10e39cfc741fd5b4cb38a49c68209aaea48337d52782510"
@@ -76,6 +84,17 @@ EXPECTED_CLI_COUNTS = {
     "console_entrypoint_count": 5,
     "argument_action_count": 164,
     "cwd_default_count": 27,
+}
+EXPECTED_CLI_RUNTIME_COUNTS = {
+    "public_command_path_count": 49,
+    "console_entrypoint_count": 5,
+    "case_count": 118,
+    "formatted_help_observation_count": 245,
+    "invalid_usage_observation_count": 49,
+    "zero_argument_observation_count": 5,
+    "json_canonical_path_count": 13,
+    "dry_run_public_path_count": 11,
+    "npm_alias_count": 5,
 }
 EXPECTED_ORCHESTRATOR_COUNTS = {
     "stage_count": 13,
@@ -215,15 +234,19 @@ EXPECTED_CLI_CAPTURED_SCOPE = (
     "python-full-authored-help-metadata",
     "python-full-console-entrypoints",
     "python-full-mounted-mcp-parser",
+    "python-full-formatted-help-49-public-paths",
+    "python-full-invalid-usage-49-public-paths",
+    "python-full-five-console-entrypoint-root-help-and-align",
+    "python-full-safe-json-handler-boundaries",
+    "python-full-observable-error-taxonomy",
+    "python-full-dry-run-explicit-dispositions",
+    "python-full-side-effect-explicit-dispositions",
+    "python-full-approved-leg-201-disposition-decisions",
+    "python-full-handler-runtime-parity-not-claimed",
+    "npm-accepted-parse-argv-dispatch",
+    "npm-python-update-divergence",
 )
-EXPECTED_CLI_GAPS = (
-    "complete-formatted-help-output",
-    "complete-json-output",
-    "complete-exit-code-matrix",
-    "complete-dry-run-semantics",
-    "complete-error-classes",
-    "complete-legacy-npm-compatibility-surface",
-)
+EXPECTED_CLI_GAPS: tuple[str, ...] = ()
 EXPECTED_ORCHESTRATOR_CAPTURED_SCOPE = (
     "task-run-preview",
     "duo-mode-preview",
@@ -1601,6 +1624,87 @@ def _validate_cli_static_semantics(
     return sorted(set(errors))
 
 
+def _validate_cli_runtime_freeze(
+    repo_root: Path, record: Mapping[str, Any]
+) -> list[str]:
+    cli = record.get("cli")
+    binding = cli.get("runtime_freeze") if isinstance(cli, Mapping) else None
+    if not isinstance(binding, Mapping):
+        return ["CLI runtime-freeze binding is missing"]
+    expected_binding = {
+        "task_id": "CTR-201E",
+        "status": "runtime-inventory-freeze-captured",
+        "artifact_path": DEFAULT_CLI_RUNTIME_ARTIFACT,
+        "schema_path": DEFAULT_CLI_RUNTIME_SCHEMA,
+        "schema_canonical_sha256": EXPECTED_CLI_RUNTIME_SCHEMA_CANONICAL_SHA256,
+        "payload_sha256": EXPECTED_CLI_RUNTIME_PAYLOAD_SHA256,
+        **EXPECTED_CLI_RUNTIME_COUNTS,
+        "capture_ready": True,
+    }
+    if dict(binding) != expected_binding:
+        return ["CLI runtime-freeze master binding is invalid"]
+
+    child_schema = _load_json_file(
+        repo_root, DEFAULT_CLI_RUNTIME_SCHEMA, label="CLI runtime child schema"
+    )
+    artifact = _load_json_file(
+        repo_root, DEFAULT_CLI_RUNTIME_ARTIFACT, label="CLI runtime child artifact"
+    )
+    errors: list[str] = []
+    if (
+        _sha256(_canonical_json_bytes(child_schema))
+        != EXPECTED_CLI_RUNTIME_SCHEMA_CANONICAL_SHA256
+    ):
+        errors.append("CLI runtime child schema canonical digest is invalid")
+    if (
+        child_schema.get("$schema")
+        != "https://json-schema.org/draft/2020-12/schema"
+        or child_schema.get("$id")
+        != "https://qiongli.dev/schemas/ctr-201-cli-runtime.schema.json"
+    ):
+        errors.append("CLI runtime child schema identity is invalid")
+    errors.extend(
+        _validate_recursively_closed_schema(child_schema, label="CLI runtime child")
+    )
+    if validate_instance(artifact, child_schema):
+        errors.append("CLI runtime child artifact does not satisfy its closed schema")
+        return sorted(set(errors))
+    try:
+        from tooling.scripts import extract_ctr_201_cli_runtime_inventory as extractor
+
+        extractor._validate_expected_artifact(artifact, repo_root)
+    except Exception:
+        errors.append("CLI runtime child semantic validation failed")
+        return sorted(set(errors))
+    integrity = artifact.get("integrity")
+    coverage = artifact.get("coverage")
+    if (
+        not isinstance(integrity, Mapping)
+        or integrity.get("payload_sha256") != EXPECTED_CLI_RUNTIME_PAYLOAD_SHA256
+        or binding.get("payload_sha256") != integrity.get("payload_sha256")
+    ):
+        errors.append("CLI runtime child payload digest does not match the master binding")
+    child_count_keys = {
+        "public_command_path_count": "public_commands",
+        "console_entrypoint_count": "console_entrypoints",
+        "formatted_help_observation_count": "help_observations",
+        "invalid_usage_observation_count": "invalid_usage_observations",
+        "zero_argument_observation_count": "zero_argument_observations",
+        "json_canonical_path_count": "json_canonical_commands",
+        "dry_run_public_path_count": "dry_run_public_commands",
+        "npm_alias_count": "npm_aliases",
+    }
+    if not isinstance(coverage, Mapping) or any(
+        binding.get(master_key) != coverage.get(child_key)
+        for master_key, child_key in child_count_keys.items()
+    ):
+        errors.append("CLI runtime child counts do not match the master binding")
+    cases = artifact.get("cases")
+    if not isinstance(cases, list) or binding.get("case_count") != len(cases):
+        errors.append("CLI runtime child case count does not match the master binding")
+    return sorted(set(errors))
+
+
 def _validate_orchestrator_static_contract(
     repo_root: Path, record: Mapping[str, Any]
 ) -> list[str]:
@@ -2071,38 +2175,39 @@ def _validate_coverage_gaps(
         != EXPECTED_ORCHESTRATION_ORACLE_OUTCOME
     ):
         errors.append("Python Full orchestration oracle outcome is not exact")
-    expected = (
-        (
-            "cli",
-            ("cli-command", "installer-dry-run"),
-            ["python.cli-align", "python.installer-dry-run"],
-            list(EXPECTED_CLI_CAPTURED_SCOPE),
-            list(EXPECTED_CLI_GAPS),
-        ),
-        (
-            "orchestrator",
-            ("orchestration-preview",),
-            ["python.orchestration-preview"],
-            list(EXPECTED_ORCHESTRATOR_CAPTURED_SCOPE),
-            list(EXPECTED_ORCHESTRATOR_GAPS),
-        ),
+    cli = record.get("cli")
+    cli_case_ids = ["python.cli-align", "python.installer-dry-run"]
+    actual_cli_cases = [
+        case_id
+        for coverage in ("cli-command", "installer-dry-run")
+        for case_id in _case_ids_for_coverage(python_oracle, coverage)
+    ]
+    if not isinstance(cli, Mapping) or (
+        cli.get("status") != "runtime-inventory-frozen"
+        or cli.get("captured_oracle_cases") != cli_case_ids
+        or actual_cli_cases != cli_case_ids
+        or cli.get("captured_scope") != list(EXPECTED_CLI_CAPTURED_SCOPE)
+        or cli.get("required_not_fully_captured") != list(EXPECTED_CLI_GAPS)
+        or cli.get("completion_ready") is not True
+    ):
+        errors.append("CLI coverage must remain explicit and runtime-inventory-frozen")
+
+    orchestrator = record.get("orchestrator")
+    orchestrator_case_ids = ["python.orchestration-preview"]
+    actual_orchestrator_cases = _case_ids_for_coverage(
+        python_oracle, "orchestration-preview"
     )
-    for section_name, coverages, case_ids, captured_scope, gaps in expected:
-        section = record.get(section_name)
-        actual_cases = [
-            case_id
-            for coverage in coverages
-            for case_id in _case_ids_for_coverage(python_oracle, coverage)
-        ]
-        if not isinstance(section, Mapping) or (
-            section.get("status") != "incomplete"
-            or section.get("captured_oracle_cases") != case_ids
-            or actual_cases != case_ids
-            or section.get("captured_scope") != captured_scope
-            or section.get("required_not_fully_captured") != gaps
-            or section.get("completion_ready") is not False
-        ):
-            errors.append(f"{section_name} coverage must remain explicit and incomplete")
+    if not isinstance(orchestrator, Mapping) or (
+        orchestrator.get("status") != "incomplete"
+        or orchestrator.get("captured_oracle_cases") != orchestrator_case_ids
+        or actual_orchestrator_cases != orchestrator_case_ids
+        or orchestrator.get("captured_scope")
+        != list(EXPECTED_ORCHESTRATOR_CAPTURED_SCOPE)
+        or orchestrator.get("required_not_fully_captured")
+        != list(EXPECTED_ORCHESTRATOR_GAPS)
+        or orchestrator.get("completion_ready") is not False
+    ):
+        errors.append("orchestrator coverage must remain explicit and incomplete")
     return errors
 
 
@@ -2781,6 +2886,7 @@ def validate_inventory(
     errors.extend(_validate_contract_and_target(repo_root, record))
     errors.extend(_validate_coverage_gaps(record, oracle_documents))
     errors.extend(_validate_cli_static_semantics(repo_root, record))
+    errors.extend(_validate_cli_runtime_freeze(repo_root, record))
     errors.extend(_validate_orchestrator_static_contract(repo_root, record))
     errors.extend(_validate_content(repo_root, record, manifest))
     return sorted(set(errors))
@@ -2788,7 +2894,7 @@ def validate_inventory(
 
 def _parser() -> argparse.ArgumentParser:
     parser = SafeArgumentParser(
-        description="Validate the derived and accepted-source CTR-201A/B/C/D inventories."
+        description="Validate the derived and accepted-source CTR-201A/B/C/D/E inventories."
     )
     parser.add_argument("--root", type=Path, default=REPO_ROOT)
     parser.add_argument("--record", default=DEFAULT_RECORD)

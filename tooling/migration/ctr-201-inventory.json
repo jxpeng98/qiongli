@@ -194,7 +194,7 @@
     "completion_ready": true
   },
   "cli": {
-    "status": "incomplete",
+    "status": "runtime-inventory-frozen",
     "captured_oracle_cases": [
       "python.cli-align",
       "python.installer-dry-run"
@@ -207,16 +207,20 @@
       "python-full-static-arguments-and-aliases",
       "python-full-authored-help-metadata",
       "python-full-console-entrypoints",
-      "python-full-mounted-mcp-parser"
+      "python-full-mounted-mcp-parser",
+      "python-full-formatted-help-49-public-paths",
+      "python-full-invalid-usage-49-public-paths",
+      "python-full-five-console-entrypoint-root-help-and-align",
+      "python-full-safe-json-handler-boundaries",
+      "python-full-observable-error-taxonomy",
+      "python-full-dry-run-explicit-dispositions",
+      "python-full-side-effect-explicit-dispositions",
+      "python-full-approved-leg-201-disposition-decisions",
+      "python-full-handler-runtime-parity-not-claimed",
+      "npm-accepted-parse-argv-dispatch",
+      "npm-python-update-divergence"
     ],
-    "required_not_fully_captured": [
-      "complete-formatted-help-output",
-      "complete-json-output",
-      "complete-exit-code-matrix",
-      "complete-dry-run-semantics",
-      "complete-error-classes",
-      "complete-legacy-npm-compatibility-surface"
-    ],
+    "required_not_fully_captured": [],
     "static_semantics": {
       "task_id": "CTR-201B",
       "status": "static-semantics-captured",
@@ -231,7 +235,25 @@
       "cwd_default_count": 27,
       "capture_ready": true
     },
-    "completion_ready": false
+    "runtime_freeze": {
+      "task_id": "CTR-201E",
+      "status": "runtime-inventory-freeze-captured",
+      "artifact_path": "tooling/migration/ctr-201-cli-runtime.json",
+      "schema_path": "tooling/migration/ctr-201-cli-runtime.schema.json",
+      "schema_canonical_sha256": "785b051f5d67900d43012b7f9574f43e7a2a1c63e3b4274a4814637d0623175b",
+      "payload_sha256": "b82be3d7f1531a3fefdf3dd864c74042d2d3ecc806d38337f24e2b14d843f41c",
+      "public_command_path_count": 49,
+      "console_entrypoint_count": 5,
+      "case_count": 118,
+      "formatted_help_observation_count": 245,
+      "invalid_usage_observation_count": 49,
+      "zero_argument_observation_count": 5,
+      "json_canonical_path_count": 13,
+      "dry_run_public_path_count": 11,
+      "npm_alias_count": 5,
+      "capture_ready": true
+    },
+    "completion_ready": true
   },
   "orchestrator": {
     "status": "incomplete",
@@ -428,6 +450,6 @@
   "integrity": {
     "algorithm": "sha256",
     "canonicalization": "utf-8-json-sorted-keys-compact-excluding-integrity",
-    "payload_sha256": "690966ed3e49ecc20aa5f87936be841ff86af09c08918d740cf6993f2ee4e68c"
+    "payload_sha256": "0c68b8df02d4f599fb5e99c6f0c67bc500da075b24c07c795eb72cabcb4cb061"
   }
 }

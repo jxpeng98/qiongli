@@ -16,12 +16,16 @@ from unittest.mock import patch
 from tooling.scripts.validate_capability_contract import validate_instance
 from tooling.scripts.validate_ctr_201_inventory import (
     DEFAULT_CLI_ARTIFACT,
+    DEFAULT_CLI_RUNTIME_ARTIFACT,
+    DEFAULT_CLI_RUNTIME_SCHEMA,
     DEFAULT_CLI_SCHEMA,
     DEFAULT_CONTENT_ARTIFACT,
     DEFAULT_CONTENT_SCHEMA,
     DEFAULT_ORCHESTRATOR_ARTIFACT,
     DEFAULT_ORCHESTRATOR_SCHEMA,
     EXPECTED_CLI_SCHEMA_CANONICAL_SHA256,
+    EXPECTED_CLI_RUNTIME_PAYLOAD_SHA256,
+    EXPECTED_CLI_RUNTIME_SCHEMA_CANONICAL_SHA256,
     EXPECTED_CONTENT_PAYLOAD_SHA256,
     EXPECTED_CONTENT_SCHEMA_CANONICAL_SHA256,
     EXPECTED_ORCHESTRATOR_PAYLOAD_SHA256,
@@ -38,6 +42,7 @@ from tooling.scripts.validate_ctr_201_inventory import (
     _canonical_json_bytes,
     _load_json_file,
     _validate_cli_artifact_semantics,
+    _validate_cli_runtime_freeze,
     _validate_cli_static_semantics,
     _validate_content_artifact_semantics,
     _validate_content_materialization_contract,
@@ -63,6 +68,8 @@ DIGEST_BOUND_JSON_PATHS = (
     "tooling/migration/ctr-201-orchestrator.schema.json",
     "tooling/migration/ctr-201-content.json",
     "tooling/migration/ctr-201-content.schema.json",
+    "tooling/migration/ctr-201-cli-runtime.json",
+    "tooling/migration/ctr-201-cli-runtime.schema.json",
 )
 
 
@@ -75,6 +82,16 @@ class Ctr201InventoryTests(unittest.TestCase):
         )
         cls.cli_schema = _load_json_file(
             REPO_ROOT, DEFAULT_CLI_SCHEMA, label="CLI child schema"
+        )
+        cls.cli_runtime_artifact = _load_json_file(
+            REPO_ROOT,
+            DEFAULT_CLI_RUNTIME_ARTIFACT,
+            label="CLI runtime child artifact",
+        )
+        cls.cli_runtime_schema = _load_json_file(
+            REPO_ROOT,
+            DEFAULT_CLI_RUNTIME_SCHEMA,
+            label="CLI runtime child schema",
         )
         cls.orchestrator_artifact = _load_json_file(
             REPO_ROOT,
@@ -102,6 +119,9 @@ class Ctr201InventoryTests(unittest.TestCase):
 
     def _cli_record(self) -> dict[str, object]:
         return copy.deepcopy(self.cli_artifact)
+
+    def _cli_runtime_record(self) -> dict[str, object]:
+        return copy.deepcopy(self.cli_runtime_artifact)
 
     def _orchestrator_record(self) -> dict[str, object]:
         return copy.deepcopy(self.orchestrator_artifact)
@@ -183,16 +203,17 @@ class Ctr201InventoryTests(unittest.TestCase):
             all(entry["disposition"] == "pending-LEG-201" for entry in mcp["legacy_only"])
         )
 
-    def test_cli_and_orchestrator_gaps_still_block_global_completion(self) -> None:
-        self.assertEqual(self.record["cli"]["status"], "incomplete")
+    def test_cli_runtime_is_frozen_while_orchestrator_still_blocks_parent(self) -> None:
+        self.assertEqual(self.record["cli"]["status"], "runtime-inventory-frozen")
         self.assertEqual(self.record["orchestrator"]["status"], "incomplete")
         self.assertEqual(
             self.record["cli"]["captured_oracle_cases"],
             ["python.cli-align", "python.installer-dry-run"],
         )
+        self.assertEqual(self.record["cli"]["required_not_fully_captured"], [])
         self.assertIn(
-            "complete-dry-run-semantics",
-            self.record["cli"]["required_not_fully_captured"],
+            "python-full-dry-run-explicit-dispositions",
+            self.record["cli"]["captured_scope"],
         )
         self.assertIn(
             "duo-mode-preview",
@@ -202,7 +223,7 @@ class Ctr201InventoryTests(unittest.TestCase):
             "complete-solo-duo-triad-runtime-parity",
             self.record["orchestrator"]["required_not_fully_captured"],
         )
-        self.assertFalse(self.record["cli"]["completion_ready"])
+        self.assertTrue(self.record["cli"]["completion_ready"])
         self.assertFalse(self.record["orchestrator"]["completion_ready"])
         self.assertTrue(self.record["content"]["completion_ready"])
         self.assertEqual(
@@ -267,6 +288,49 @@ class Ctr201InventoryTests(unittest.TestCase):
                 coverage["argument_action_count"],
                 coverage["cwd_default_count"],
             ),
+        )
+
+    def test_cli_runtime_child_schema_artifact_and_master_binding_are_exact(self) -> None:
+        binding = self.record["cli"]["runtime_freeze"]
+        coverage = self.cli_runtime_artifact["coverage"]
+        self.assertEqual(
+            validate_instance(self.cli_runtime_artifact, self.cli_runtime_schema), []
+        )
+        self.assertEqual(
+            _validate_recursively_closed_schema(
+                self.cli_runtime_schema, label="CLI runtime child"
+            ),
+            [],
+        )
+        self.assertEqual(_validate_cli_runtime_freeze(REPO_ROOT, self.record), [])
+        self.assertEqual(
+            hashlib.sha256(_canonical_json_bytes(self.cli_runtime_schema)).hexdigest(),
+            EXPECTED_CLI_RUNTIME_SCHEMA_CANONICAL_SHA256,
+        )
+        self.assertEqual(binding["artifact_path"], DEFAULT_CLI_RUNTIME_ARTIFACT)
+        self.assertEqual(binding["schema_path"], DEFAULT_CLI_RUNTIME_SCHEMA)
+        self.assertEqual(
+            binding["payload_sha256"], EXPECTED_CLI_RUNTIME_PAYLOAD_SHA256
+        )
+        self.assertEqual(
+            binding["payload_sha256"],
+            self.cli_runtime_artifact["integrity"]["payload_sha256"],
+        )
+        self.assertEqual(binding["public_command_path_count"], coverage["public_commands"])
+        self.assertEqual(binding["case_count"], len(self.cli_runtime_artifact["cases"]))
+        self.assertEqual(
+            binding["formatted_help_observation_count"], coverage["help_observations"]
+        )
+        self.assertTrue(binding["capture_ready"])
+        self.assertTrue(self.record["cli"]["completion_ready"])
+        self.assertFalse(self.record["completion"]["completion_ready"])
+
+    def test_cli_runtime_master_binding_tampering_fails_closed(self) -> None:
+        record = self._record()
+        record["cli"]["runtime_freeze"]["payload_sha256"] = "0" * 64
+        self.assertEqual(
+            _validate_cli_runtime_freeze(REPO_ROOT, record),
+            ["CLI runtime-freeze master binding is invalid"],
         )
 
     def test_cli_child_preserves_static_only_completion_boundary(self) -> None:

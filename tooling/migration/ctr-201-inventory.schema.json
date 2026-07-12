@@ -323,10 +323,11 @@
         "captured_scope",
         "required_not_fully_captured",
         "static_semantics",
+        "runtime_freeze",
         "completion_ready"
       ],
       "properties": {
-        "status": { "const": "incomplete" },
+        "status": { "const": "runtime-inventory-frozen" },
         "captured_oracle_cases": {
           "type": "array",
           "minItems": 1,
@@ -341,7 +342,7 @@
         },
         "required_not_fully_captured": {
           "type": "array",
-          "minItems": 1,
+          "maxItems": 0,
           "uniqueItems": true,
           "items": { "type": "string", "minLength": 1 }
         },
@@ -377,7 +378,47 @@
           },
           "additionalProperties": false
         },
-        "completion_ready": { "const": false }
+        "runtime_freeze": {
+          "type": "object",
+          "required": [
+            "task_id",
+            "status",
+            "artifact_path",
+            "schema_path",
+            "schema_canonical_sha256",
+            "payload_sha256",
+            "public_command_path_count",
+            "console_entrypoint_count",
+            "case_count",
+            "formatted_help_observation_count",
+            "invalid_usage_observation_count",
+            "zero_argument_observation_count",
+            "json_canonical_path_count",
+            "dry_run_public_path_count",
+            "npm_alias_count",
+            "capture_ready"
+          ],
+          "properties": {
+            "task_id": { "const": "CTR-201E" },
+            "status": { "const": "runtime-inventory-freeze-captured" },
+            "artifact_path": { "$ref": "#/$defs/repositoryPath" },
+            "schema_path": { "$ref": "#/$defs/repositoryPath" },
+            "schema_canonical_sha256": { "$ref": "#/$defs/sha256" },
+            "payload_sha256": { "$ref": "#/$defs/sha256" },
+            "public_command_path_count": { "const": 49 },
+            "console_entrypoint_count": { "const": 5 },
+            "case_count": { "const": 118 },
+            "formatted_help_observation_count": { "const": 245 },
+            "invalid_usage_observation_count": { "const": 49 },
+            "zero_argument_observation_count": { "const": 5 },
+            "json_canonical_path_count": { "const": 13 },
+            "dry_run_public_path_count": { "const": 11 },
+            "npm_alias_count": { "const": 5 },
+            "capture_ready": { "const": true }
+          },
+          "additionalProperties": false
+        },
+        "completion_ready": { "const": true }
       },
       "additionalProperties": false
     },
