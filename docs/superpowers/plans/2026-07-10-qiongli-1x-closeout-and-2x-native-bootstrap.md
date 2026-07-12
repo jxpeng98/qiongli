@@ -7,10 +7,11 @@ branch is initialized and validated at branch-point record commit
 `69855fd50413ee6809baf21eb345fc0c55721de3`. B0 records the accepted native
 architecture decisions, and the B2 native workspace scaffold and repository
 gates are implemented. In B3, the CTR-201A slice is merged, CTR-201B
-accepted-source static CLI semantics are captured, and CTR-201C captures the
+accepted-source static CLI semantics are captured, CTR-201C captures the
 accepted-source `DECLARED/STATIC` orchestrator control contract and
-compatibility boundary; CTR-201 remains in progress and FND-202 is not
-implemented.
+compatibility boundary, and CTR-201D captures canonical-content and
+reproducible materialized-skill-subtree closure; CTR-201 remains in progress
+and FND-202 is not implemented.
 Roadmap:
 `docs/superpowers/roadmaps/2026-07-10-qiongli-2-rust-native-platform-roadmap.md`
 Release source: `dev`
@@ -1089,10 +1090,20 @@ B3 execution status: **in progress**.
   quality-gate semantic execution. The accepted handler makes `doctor` part of
   an advisory route sequence; `_tool_task_run(run_agents=true)` does not call
   or enforce it. CTR-201C also does not implement plugin or Marketplace
-  behavior, materialized content, or a Rust orchestrator;
+  behavior or a Rust orchestrator;
+- CTR-201D partitions all 377 accepted canonical content files into 12
+  disjoint roots and 11 logical resource kinds. It freezes the `skill-only`,
+  `marketplace-lite` (`lite` alias), and `full` source projections and the
+  three corresponding accepted-source materialized skill subtrees (178, 342,
+  and 343 files respectively);
+- CTR-201D does not establish published archive/plugin-wrapper parity, host
+  activation, or Rust resource-pack behavior because A8 contains no
+  archive-member tree inventory;
 - CTR-201 has not reached its exit gate, and FND-202 resource-pack work has not
   been implemented;
-- continue with CTR-201D for content and materialized-tree closure.
+- continue with B1 (`REL-201`) independently while closing the remaining
+  Contract v2, CLI-runtime, and orchestrator-runtime CTR-201 gaps before
+  beginning FND-202.
 
 Exit criteria:
 
@@ -1381,19 +1392,20 @@ scaffold. The accepted 1.x tag must remain an unambiguous oracle boundary.
 ## Immediate Next Actions
 
 A0-A8 and B0 are complete, the B2 native workspace scaffold and repository
-gates are implemented, and B3 is in progress with the CTR-201A slice merged and
-CTR-201B accepted-source static CLI semantics captured. CTR-201C captures the
-accepted-source `DECLARED/STATIC` orchestrator control contract and
-compatibility boundary. CTR-201 remains in progress, and FND-202 is not
-implemented. Continue in this order:
+gates are implemented, and B3 is in progress with the CTR-201A slice merged,
+CTR-201B accepted-source static CLI semantics captured, CTR-201C capturing the
+accepted-source `DECLARED/STATIC` orchestrator boundary, and CTR-201D capturing
+canonical-content and reproducible materialized-skill-subtree closure. CTR-201
+remains in progress, and FND-202 is not implemented. Continue in this order:
 
-1. complete CTR-201D by closing the canonical-content and materialized-tree
-   inventory against the accepted 1.x baseline;
-2. execute B1 (`REL-201`) as an independent stream, but do not begin FND-202
-   resource-pack implementation until CTR-201 reaches its exit gate; keep later
-   B3 and B4 work inside the ADR 0204 and ADR 0205 service and rollback
-   boundaries;
-3. preserve protected-branch pull requests and exact-head CI evidence for each
+1. execute B1 (`REL-201`) as an independent stream;
+2. close the remaining Contract v2, CLI-runtime, and orchestrator-runtime
+   CTR-201 gaps, including any separately authenticated published-archive
+   evidence needed for a future parity claim;
+3. do not begin FND-202 resource-pack implementation until CTR-201 reaches its
+   exit gate; keep later B3 and B4 work inside the ADR 0204 and ADR 0205 service
+   and rollback boundaries;
+4. preserve protected-branch pull requests and exact-head CI evidence for each
    independently reviewable slice.
 
 ## Phase Completion Definition

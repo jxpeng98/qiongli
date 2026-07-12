@@ -17,21 +17,30 @@ from tooling.scripts.validate_capability_contract import validate_instance
 from tooling.scripts.validate_ctr_201_inventory import (
     DEFAULT_CLI_ARTIFACT,
     DEFAULT_CLI_SCHEMA,
+    DEFAULT_CONTENT_ARTIFACT,
+    DEFAULT_CONTENT_SCHEMA,
     DEFAULT_ORCHESTRATOR_ARTIFACT,
     DEFAULT_ORCHESTRATOR_SCHEMA,
     EXPECTED_CLI_SCHEMA_CANONICAL_SHA256,
+    EXPECTED_CONTENT_PAYLOAD_SHA256,
+    EXPECTED_CONTENT_SCHEMA_CANONICAL_SHA256,
     EXPECTED_ORCHESTRATOR_PAYLOAD_SHA256,
     EXPECTED_ORCHESTRATOR_SCHEMA_CANONICAL_SHA256,
+    ContentArtifactMismatch,
     InventoryConfigError,
     OrchestratorArtifactMismatch,
     _CLI_EXTRACTION_CACHE,
+    _CONTENT_EXTRACTION_CACHE,
     _ORCHESTRATOR_EXTRACTION_CACHE,
     _accepted_cli_extraction_bytes,
+    _accepted_content_extraction_bytes,
     _accepted_orchestrator_extraction_bytes,
     _canonical_json_bytes,
     _load_json_file,
     _validate_cli_artifact_semantics,
     _validate_cli_static_semantics,
+    _validate_content_artifact_semantics,
+    _validate_content_materialization_contract,
     _validate_orchestrator_artifact_semantics,
     _validate_orchestrator_static_contract,
     _validate_recursively_closed_schema,
@@ -52,6 +61,8 @@ DIGEST_BOUND_JSON_PATHS = (
     "tooling/migration/baselines/v1.19.0-beta.1/oracles/rust-lite.json",
     "tooling/migration/ctr-201-orchestrator.json",
     "tooling/migration/ctr-201-orchestrator.schema.json",
+    "tooling/migration/ctr-201-content.json",
+    "tooling/migration/ctr-201-content.schema.json",
 )
 
 
@@ -75,6 +86,16 @@ class Ctr201InventoryTests(unittest.TestCase):
             DEFAULT_ORCHESTRATOR_SCHEMA,
             label="orchestrator child schema",
         )
+        cls.content_artifact = _load_json_file(
+            REPO_ROOT,
+            DEFAULT_CONTENT_ARTIFACT,
+            label="content child artifact",
+        )
+        cls.content_schema = _load_json_file(
+            REPO_ROOT,
+            DEFAULT_CONTENT_SCHEMA,
+            label="content child schema",
+        )
 
     def _record(self) -> dict[str, object]:
         return copy.deepcopy(self.record)
@@ -84,6 +105,9 @@ class Ctr201InventoryTests(unittest.TestCase):
 
     def _orchestrator_record(self) -> dict[str, object]:
         return copy.deepcopy(self.orchestrator_artifact)
+
+    def _content_record(self) -> dict[str, object]:
+        return copy.deepcopy(self.content_artifact)
 
     @staticmethod
     def _rehash(record: dict[str, object]) -> None:
@@ -104,6 +128,12 @@ class Ctr201InventoryTests(unittest.TestCase):
     ) -> list[str]:
         self._rehash(artifact)
         return _validate_orchestrator_artifact_semantics(artifact)
+
+    def _validate_content_rehashed(
+        self, artifact: dict[str, object]
+    ) -> list[str]:
+        self._rehash(artifact)
+        return _validate_content_artifact_semantics(artifact)
 
     def test_inventory_matches_closed_schema_and_all_semantic_checks(self) -> None:
         self.assertEqual(validate_instance(self.record, self.schema), [])
@@ -153,7 +183,7 @@ class Ctr201InventoryTests(unittest.TestCase):
             all(entry["disposition"] == "pending-LEG-201" for entry in mcp["legacy_only"])
         )
 
-    def test_cli_orchestrator_and_content_gaps_block_completion(self) -> None:
+    def test_cli_and_orchestrator_gaps_still_block_global_completion(self) -> None:
         self.assertEqual(self.record["cli"]["status"], "incomplete")
         self.assertEqual(self.record["orchestrator"]["status"], "incomplete")
         self.assertEqual(
@@ -174,12 +204,23 @@ class Ctr201InventoryTests(unittest.TestCase):
         )
         self.assertFalse(self.record["cli"]["completion_ready"])
         self.assertFalse(self.record["orchestrator"]["completion_ready"])
-        self.assertFalse(self.record["content"]["completion_ready"])
+        self.assertTrue(self.record["content"]["completion_ready"])
         self.assertEqual(
-            [profile["status"] for profile in self.record["content"]["profiles"]],
-            ["not-ready", "not-ready", "not-ready"],
+            [profile["profile_id"] for profile in self.record["content"]["profiles"]],
+            ["skill-only", "marketplace-lite", "full"],
         )
-        self.assertEqual(self.record["content"]["materialization"]["status"], "not-ready")
+        self.assertEqual(
+            self.record["content"]["materialization"]["status"],
+            "content-materialization-captured",
+        )
+        self.assertEqual(
+            self.record["content"]["materialization"]["published_archive_parity"],
+            "not-captured",
+        )
+        self.assertEqual(
+            self.record["content"]["materialization"]["rust_materializer"],
+            "not-implemented",
+        )
 
     def test_cli_child_schema_artifact_and_master_binding_are_exact(self) -> None:
         binding = self.record["cli"]["static_semantics"]
@@ -728,6 +769,231 @@ class Ctr201InventoryTests(unittest.TestCase):
         self.assertEqual(coverage["ctr_201"], "in-progress")
         self.assertEqual(coverage["fnd_202"], "not-implemented")
         self.assertFalse(coverage["completion_ready"])
+
+    def test_content_child_schema_artifact_and_master_binding_are_exact(self) -> None:
+        binding = self.record["content"]["static_inventory"]
+        coverage = self.content_artifact["coverage"]
+        self.assertEqual(validate_instance(self.content_artifact, self.content_schema), [])
+        self.assertEqual(
+            _validate_recursively_closed_schema(
+                self.content_schema, label="content child"
+            ),
+            [],
+        )
+        self.assertEqual(_validate_content_artifact_semantics(self.content_artifact), [])
+        self.assertEqual(
+            _validate_content_materialization_contract(
+                REPO_ROOT,
+                self.record,
+                _load_json_file(
+                    REPO_ROOT,
+                    "tooling/migration/baselines/v1.19.0-beta.1/manifest.json",
+                    label="manifest",
+                ),
+            ),
+            [],
+        )
+        self.assertEqual(
+            hashlib.sha256(_canonical_json_bytes(self.content_schema)).hexdigest(),
+            EXPECTED_CONTENT_SCHEMA_CANONICAL_SHA256,
+        )
+        self.assertEqual(binding["artifact_path"], DEFAULT_CONTENT_ARTIFACT)
+        self.assertEqual(binding["schema_path"], DEFAULT_CONTENT_SCHEMA)
+        self.assertEqual(
+            binding["payload_sha256"],
+            self.content_artifact["integrity"]["payload_sha256"],
+        )
+        self.assertEqual(binding["payload_sha256"], EXPECTED_CONTENT_PAYLOAD_SHA256)
+        for key, value in coverage.items():
+            self.assertEqual(binding[key], value)
+
+    def test_content_parent_profiles_bind_exact_source_and_output_trees(self) -> None:
+        parent_profiles = self.record["content"]["profiles"]
+        child_profiles = self.content_artifact["profiles"]
+        self.assertEqual(
+            [profile["profile_id"] for profile in parent_profiles],
+            ["skill-only", "marketplace-lite", "full"],
+        )
+        self.assertEqual(parent_profiles[1]["aliases"], ["lite"])
+        self.assertNotIn("lite", [profile["profile_id"] for profile in parent_profiles])
+        for parent, child in zip(parent_profiles, child_profiles, strict=True):
+            source = child["source_closure"]
+            tree = child["materialized_tree"]
+            origins = tree["origin_counts"]
+            self.assertEqual(parent["profile_id"], child["profile_id"])
+            self.assertEqual(parent["aliases"], child["aliases"])
+            self.assertEqual(parent["variant_id"], child["variant_id"])
+            self.assertEqual(parent["source_file_count"], source["file_count"])
+            self.assertEqual(parent["materialized_file_count"], tree["file_count"])
+            self.assertEqual(parent["materialized_total_bytes"], tree["total_bytes"])
+            self.assertEqual(
+                parent["expected_materialized_tree_sha256"], tree["tree_sha256"]
+            )
+            self.assertEqual(parent["identity_output_count"], origins["identity-copy"])
+            self.assertEqual(
+                parent["transformed_output_count"], origins["content-transform"]
+            )
+            self.assertEqual(
+                parent["generated_output_count"], origins["generated-metadata"]
+            )
+
+    def test_content_child_rejects_payload_tree_and_path_tampering(self) -> None:
+        artifact = self._content_record()
+        artifact["profiles"].pop()
+        errors = _validate_content_artifact_semantics(artifact)
+        self.assertIn("content child profile inventory is invalid", errors)
+
+        artifact = self._content_record()
+        artifact["profiles"][0]["materialized_tree"]["entries"][0]["size_bytes"] += 1
+        errors = self._validate_content_rehashed(artifact)
+        self.assertIn("content child materialized tree summary is invalid", errors)
+
+        artifact = self._content_record()
+        entries = artifact["profiles"][0]["materialized_tree"]["entries"]
+        entries[1]["path"] = entries[0]["path"].swapcase()
+        errors = self._validate_content_rehashed(artifact)
+        self.assertIn(
+            "content child materialized paths are not unique and ordered", errors
+        )
+
+        artifact = self._content_record()
+        artifact["profiles"][0]["materialized_tree"]["entries"][0]["path"] = (
+            "../escape.md"
+        )
+        errors = self._validate_content_rehashed(artifact)
+        self.assertTrue(
+            any("non-canonical" in error for error in errors), errors
+        )
+
+        artifact = self._content_record()
+        artifact["profiles"][0]["materialized_tree"]["entries"][0]["path"] = (
+            "QIONGLI_CANARY_DO_NOT_ECHO_content"
+        )
+        errors = self._validate_content_rehashed(artifact)
+        self.assertIn("content child contains forbidden secret-shaped data", errors)
+        self.assertFalse(any("DO_NOT_ECHO_content" in error for error in errors))
+
+    def test_content_master_rejects_status_hash_count_and_profile_drift(self) -> None:
+        for mutate in (
+            lambda binding: binding.__setitem__("status", "complete"),
+            lambda binding: binding.__setitem__("payload_sha256", "0" * 64),
+            lambda binding: binding.__setitem__("materialized_output_file_count", 864),
+            lambda binding: binding.__setitem__("artifact_path", "../content.json"),
+        ):
+            with self.subTest(mutate=mutate):
+                record = self._record()
+                mutate(record["content"]["static_inventory"])
+                errors = self._validate_rehashed(record)
+                self.assertTrue(errors)
+
+        record = self._record()
+        record["content"]["profiles"][1]["profile_id"] = "lite"
+        errors = self._validate_rehashed(record)
+        self.assertTrue(errors)
+
+    def test_content_extraction_is_cached_and_compared_exactly(self) -> None:
+        _CONTENT_EXTRACTION_CACHE.clear()
+        try:
+            with patch(
+                "tooling.scripts.extract_ctr_201_content_inventory."
+                "extract_content_inventory",
+                return_value=self.content_artifact,
+            ) as extractor:
+                expected = _canonical_json_bytes(self.content_artifact)
+                self.assertEqual(_accepted_content_extraction_bytes(REPO_ROOT), expected)
+                self.assertEqual(_accepted_content_extraction_bytes(REPO_ROOT), expected)
+                extractor.assert_called_once_with(REPO_ROOT)
+        finally:
+            _CONTENT_EXTRACTION_CACHE.clear()
+
+        with patch(
+            "tooling.scripts.validate_ctr_201_inventory."
+            "_accepted_content_extraction_bytes",
+            return_value=b"{}",
+        ):
+            self.assertEqual(
+                _validate_content_materialization_contract(
+                    REPO_ROOT,
+                    self.record,
+                    _load_json_file(
+                        REPO_ROOT,
+                        "tooling/migration/baselines/v1.19.0-beta.1/manifest.json",
+                        label="manifest",
+                    ),
+                ),
+                ["content child artifact differs from accepted-source extraction"],
+            )
+
+    def test_content_extractor_unavailable_and_mismatch_are_distinct(self) -> None:
+        from tooling.scripts.extract_ctr_201_content_inventory import (
+            ExtractorError as ContentExtractorError,
+            InventoryMismatch as ContentInventoryMismatch,
+        )
+
+        canary = "QIONGLI_CANARY_DO_NOT_ECHO_content_extractor"
+        _CONTENT_EXTRACTION_CACHE.clear()
+        try:
+            with patch(
+                "tooling.scripts.extract_ctr_201_content_inventory."
+                "extract_content_inventory",
+                side_effect=ContentInventoryMismatch(canary),
+            ):
+                with self.assertRaises(ContentArtifactMismatch):
+                    _accepted_content_extraction_bytes(REPO_ROOT)
+            with patch(
+                "tooling.scripts.extract_ctr_201_content_inventory."
+                "extract_content_inventory",
+                side_effect=ContentExtractorError(canary),
+            ):
+                with self.assertRaises(InventoryConfigError):
+                    _accepted_content_extraction_bytes(REPO_ROOT)
+        finally:
+            _CONTENT_EXTRACTION_CACHE.clear()
+
+        stdout = io.StringIO()
+        with patch(
+            "tooling.scripts.validate_ctr_201_inventory."
+            "_accepted_content_extraction_bytes",
+            side_effect=ContentArtifactMismatch(canary),
+        ), redirect_stdout(stdout):
+            self.assertEqual(main(["--root", str(REPO_ROOT), "--json"]), 1)
+        self.assertEqual(json.loads(stdout.getvalue())["status"], "fail")
+        self.assertNotIn(canary, stdout.getvalue())
+
+        stdout = io.StringIO()
+        with patch(
+            "tooling.scripts.validate_ctr_201_inventory."
+            "_accepted_content_extraction_bytes",
+            side_effect=InventoryConfigError(canary),
+        ), redirect_stdout(stdout):
+            self.assertEqual(main(["--root", str(REPO_ROOT), "--json"]), 2)
+        self.assertEqual(json.loads(stdout.getvalue())["status"], "error")
+        self.assertNotIn(canary, stdout.getvalue())
+
+    def test_content_capture_does_not_overclaim_archive_or_runtime_parity(self) -> None:
+        parent = self.record["content"]
+        boundary = self.content_artifact["compatibility_boundary"]
+        self.assertTrue(parent["completion_ready"])
+        self.assertEqual(parent["materialization"]["published_archive_parity"], "not-captured")
+        self.assertEqual(
+            parent["materialization"]["extraction_network_sandbox"], "not-proven"
+        )
+        self.assertEqual(
+            parent["materialization"]["extraction_filesystem_sandbox"],
+            "python-audit-write-confined;host-read-isolation-not-proven;os-sandbox-not-proven",
+        )
+        self.assertEqual(parent["materialization"]["rust_materializer"], "not-implemented")
+        self.assertFalse(boundary["a8_generated_tree_evidence"])
+        self.assertEqual(boundary["published_archive_member_parity"], "not-captured")
+        self.assertEqual(boundary["complete_plugin_wrapper_parity"], "not-captured")
+        self.assertEqual(boundary["complete_native_binary_parity"], "not-captured")
+        self.assertEqual(boundary["complete_subject_matrix_parity"], "not-captured")
+        self.assertFalse(boundary["fnd_202_implemented"])
+        self.assertEqual(boundary["extraction_network_sandbox"], "not-proven")
+        self.assertEqual(
+            boundary["extraction_filesystem_sandbox"],
+            "python-audit-write-confined;host-read-isolation-not-proven;os-sandbox-not-proven",
+        )
 
     def test_canonical_payload_hash_excludes_integrity_and_is_key_order_stable(self) -> None:
         expected = self.record["integrity"]["payload_sha256"]
