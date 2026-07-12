@@ -75,11 +75,11 @@ class Ctr201OrchestratorRuntimeCheckedArtifactTests(unittest.TestCase):
         )
         self.assertEqual(
             self.artifact["integrity"]["payload_sha256"],
-            "9232b0a3c2ba223c860244142054940229e435e00735261bd7db834c7a94faab",
+            "29bbb1c0cd042d469f55e93078a4d3b4494148f47a2bd66e568d097f83e6b5da",
         )
         self.assertEqual(
             self.artifact["integrity"]["case_manifest_sha256"],
-            "676b7b269889da02bbb928b29fa254e40ca8794f5bf2e199477364f330debddd",
+            "6a930dd355eb57b0b6b1759f73dba9c7af4b115e1b0bdc576112e49c14cc20ee",
         )
 
     def test_checked_schema_is_generated_from_the_artifact_and_recursively_closed(
@@ -244,6 +244,74 @@ class Ctr201OrchestratorRuntimeCheckedArtifactTests(unittest.TestCase):
         self.assertEqual(contract["network_policy"], "python-audit-denied")
         self.assertIn("worker-denies-child-processes", contract["process_policy"])
         self.assertIn("worker-denies-sut-writes", contract["write_policy"])
+
+    def test_runtime_replacements_normalize_lexical_and_resolved_temp_aliases(
+        self,
+    ) -> None:
+        lexical_root = "/var/folders/fixture/runtime"
+        control = {
+            "accepted_root": f"{lexical_root}/accepted",
+            "source_root": f"{lexical_root}/accepted/python-src",
+            "content_root": f"{lexical_root}/accepted/content",
+            "capsule_root": f"{lexical_root}/capsule",
+            "project_roots": {"empty": f"{lexical_root}/project-empty"},
+        }
+
+        def resolved(path: str) -> str:
+            return f"/private{path}" if path.startswith("/var/") else path
+
+        environment = {
+            "HOME": f"{lexical_root}/home",
+            "USERPROFILE": f"{lexical_root}/home",
+            "TMP": lexical_root,
+            "TEMP": lexical_root,
+            "TMPDIR": lexical_root,
+        }
+        with patch.dict(extractor.os.environ, environment, clear=True), patch.object(
+            extractor.os.path,
+            "realpath",
+            side_effect=resolved,
+        ):
+            replacements = extractor._runtime_replacements(control)
+
+        normalized = extractor._normalize_runtime_value(
+            {
+                "project": f"/private{lexical_root}/project-empty/result.json",
+                "home": f"/private{lexical_root}/home/config.json",
+                "tmp": f"/private{lexical_root}/worker.json",
+            },
+            replacements,
+        )
+        self.assertEqual(normalized["project"], "<PROJECT_EMPTY>/result.json")
+        self.assertEqual(normalized["home"], "<HOME>/config.json")
+        self.assertEqual(normalized["tmp"], "<TMP>/worker.json")
+        self.assertNotIn("/private<", json.dumps(normalized, sort_keys=True))
+        self.assertEqual(
+            replacements,
+            sorted(replacements, key=lambda item: (-len(item[0]), item[0], item[1])),
+        )
+        self.assertEqual(len(replacements), len({source for source, _ in replacements}))
+
+    def test_runtime_replacements_reject_resolved_alias_conflicts(self) -> None:
+        control = {
+            "accepted_root": "/var/fixture/accepted",
+            "source_root": "/var/fixture/source",
+            "content_root": "/var/fixture/content",
+            "capsule_root": "/var/fixture/capsule",
+            "project_roots": {},
+        }
+
+        def conflicting_alias(path: str) -> str:
+            if path in {control["accepted_root"], control["source_root"]}:
+                return "/private/var/fixture/shared"
+            return f"/private{path}"
+
+        with patch.dict(extractor.os.environ, {}, clear=True), patch.object(
+            extractor.os.path,
+            "realpath",
+            side_effect=conflicting_alias,
+        ), self.assertRaises(extractor.ExtractorError):
+            extractor._runtime_replacements(control)
 
     def test_all_cases_preserve_the_no_sut_write_boundary(self) -> None:
         empty_manifest_sha256 = extractor._sha256(extractor._canonical_json_bytes([]))

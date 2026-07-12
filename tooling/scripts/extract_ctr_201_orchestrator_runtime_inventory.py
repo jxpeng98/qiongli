@@ -72,10 +72,10 @@ PYYAML_PURE_TREE_SHA256 = (
 )
 
 EXPECTED_PAYLOAD_SHA256 = (
-    "9232b0a3c2ba223c860244142054940229e435e00735261bd7db834c7a94faab"
+    "29bbb1c0cd042d469f55e93078a4d3b4494148f47a2bd66e568d097f83e6b5da"
 )
 EXPECTED_CASE_MANIFEST_SHA256 = (
-    "676b7b269889da02bbb928b29fa254e40ca8794f5bf2e199477364f330debddd"
+    "6a930dd355eb57b0b6b1759f73dba9c7af4b115e1b0bdc576112e49c14cc20ee"
 )
 
 HEX_40 = re.compile(r"^[0-9a-f]{40}$")
@@ -393,14 +393,14 @@ def _iter_strings(value: Any) -> list[str]:
 
 
 def _runtime_replacements(control: Mapping[str, Any]) -> list[tuple[str, str]]:
-    pairs = [
+    sources = [
         (str(control["accepted_root"]), "<ACCEPTED_ROOT>"),
         (str(control["source_root"]), "<RUNTIME_SOURCE>"),
         (str(control["content_root"]), "<CONTENT_ROOT>"),
         (str(control["capsule_root"]), "<PYYAML_CAPSULE>"),
     ]
     for key, value in sorted(control["project_roots"].items()):
-        pairs.append((str(value), f"<PROJECT_{str(key).upper()}>") )
+        sources.append((str(value), f"<PROJECT_{str(key).upper()}>"))
     for env_name, token in (
         ("HOME", "<HOME>"),
         ("USERPROFILE", "<HOME>"),
@@ -417,8 +417,21 @@ def _runtime_replacements(control: Mapping[str, Any]) -> list[tuple[str, str]]:
     ):
         value = os.environ.get(env_name, "")
         if value:
-            pairs.append((value, token))
-    return sorted(pairs, key=lambda item: len(item[0]), reverse=True)
+            sources.append((value, token))
+
+    aliases: dict[str, str] = {}
+    for source, token in sources:
+        for alias in (source, os.path.realpath(source)):
+            if not alias:
+                continue
+            existing = aliases.get(alias)
+            if existing is not None and existing != token:
+                raise ExtractorError("runtime replacement alias maps to conflicting tokens")
+            aliases[alias] = token
+    return sorted(
+        aliases.items(),
+        key=lambda item: (-len(item[0]), item[0], item[1]),
+    )
 
 
 def _normalize_runtime_value(
