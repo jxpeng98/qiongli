@@ -15,12 +15,124 @@ NOTE_OVERWRITE=0
 FROM_TAG=""
 MATERIALIZE_OUT=""
 MATERIALIZE_IN_PLACE=0
+RELEASE_LINE=""
+RELEASE_CHANNEL=""
+NATIVE_CARGO_TARGET_DIR=""
 FAILED_STAGE=""
 FAILED_LOG=""
 FAILED_STATUS=""
 
+release_field() {
+  local version="$1"
+  local field="$2"
+  python3 "${ROOT_DIR}/scripts/release_version.py" "$version" --print-field "$field"
+}
+
 is_prerelease_tag() {
-  [[ "$1" == *beta* || "$1" =~ b[0-9]+ ]]
+  [[ "$(release_field "$1" channel)" != "stable" ]]
+}
+
+cleanup_native_preflight() {
+  if [[ -n "$NATIVE_CARGO_TARGET_DIR" && -d "$NATIVE_CARGO_TARGET_DIR" ]]; then
+    rm -rf "$NATIVE_CARGO_TARGET_DIR"
+  fi
+}
+
+canonical_external_path() {
+  python3 - "$ROOT_DIR" "$1" <<'PY'
+from pathlib import Path
+import sys
+
+root = Path(sys.argv[1]).resolve()
+candidate = Path(sys.argv[2]).expanduser()
+if candidate.is_symlink():
+    raise SystemExit("[preflight] native --materialize-out must not be a symbolic link")
+out = candidate.resolve()
+if out == root or root in out.parents:
+    raise SystemExit("[preflight] native --materialize-out must be outside the source tree")
+print(out)
+PY
+}
+
+run_native_preflight() {
+  [[ -n "$TAG" ]] || {
+    echo "[preflight] native preflight requires --tag" >&2
+    exit 2
+  }
+  [[ -n "$MATERIALIZE_OUT" ]] || {
+    echo "[preflight] native preflight requires external --materialize-out" >&2
+    exit 2
+  }
+  if [[ "$MATERIALIZE_IN_PLACE" -eq 1 ]]; then
+    echo "[preflight] native preflight forbids --in-place" >&2
+    exit 2
+  fi
+
+  local canonical_out native_source_ref native_source_ref_type native_worktree_state
+  local -a native_source_args
+  if ! canonical_out="$(canonical_external_path "$MATERIALIZE_OUT")"; then
+    exit 2
+  fi
+  MATERIALIZE_OUT="$canonical_out"
+  mkdir -p "$MATERIALIZE_OUT"
+  NATIVE_CARGO_TARGET_DIR="$(mktemp -d "${TMPDIR:-/tmp}/qiongli-native-preflight-target.XXXXXX")"
+  export CARGO_TARGET_DIR="$NATIVE_CARGO_TARGET_DIR"
+  trap cleanup_native_preflight EXIT
+
+  native_source_ref="$(git symbolic-ref --quiet --short HEAD 2>/dev/null || true)"
+  native_source_ref_type="branch"
+  if [[ -z "$native_source_ref" && "${GITHUB_ACTIONS:-}" == "true" && -n "${GITHUB_REF_NAME:-}" && -n "${GITHUB_REF_TYPE:-}" ]]; then
+    native_source_ref="$GITHUB_REF_NAME"
+    native_source_ref_type="$GITHUB_REF_TYPE"
+  fi
+  if [[ -z "$native_source_ref" ]]; then
+    native_source_ref="detached"
+    native_source_ref_type="detached"
+  fi
+  native_worktree_state="dirty"
+  native_source_args=(
+    --source-ref "$native_source_ref"
+    --source-ref-type "$native_source_ref_type"
+    --worktree-state "$native_worktree_state"
+  )
+  if [[ -z "$(git status --porcelain --untracked-files=normal)" ]]; then
+    native_worktree_state="clean"
+    native_source_args=(
+      --source-ref "$native_source_ref"
+      --source-ref-type "$native_source_ref_type"
+      --worktree-state "$native_worktree_state"
+      --source-commit "$(git rev-parse HEAD)"
+    )
+  else
+    echo "[preflight] dirty worktree detected; dry-run evidence will not bind source_commit"
+  fi
+
+  echo "[preflight] verify native release tag version"
+  bash ./scripts/verify_release_tag_version.sh --root "$ROOT_DIR" --tag "$TAG"
+
+  (
+    cd packages/qiongli-native
+    echo "[preflight] native Rust format"
+    cargo fmt --all -- --check
+    echo "[preflight] native Rust clippy"
+    cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+    echo "[preflight] native Rust tests"
+    cargo test --workspace --all-targets --all-features --locked
+  )
+
+  echo "[preflight] native release dry-run"
+  python3 scripts/native_release_dry_run.py \
+    --tag "$TAG" \
+    --root "$ROOT_DIR" \
+    --out-dir "$MATERIALIZE_OUT" \
+    "${native_source_args[@]}" \
+    --json
+  if [[ "$native_source_ref_type" == "branch" && "$native_source_ref" == "2.x" && "$native_worktree_state" == "clean" ]]; then
+    echo "[preflight] clean 2.x source eligibility confirmed"
+  else
+    echo "[preflight] diagnostic-only source: ref=${native_source_ref_type}:${native_source_ref}, worktree=${native_worktree_state}"
+  fi
+  echo "[preflight] native release diagnostics passed; publication remains blocked by RLS-201/PKG"
 }
 
 require_python_module() {
@@ -224,7 +336,14 @@ if [[ "$MATERIALIZE_IN_PLACE" -eq 1 && -n "$MATERIALIZE_OUT" ]]; then
   exit 2
 fi
 
-require_python_module yaml PyYAML
+if [[ -n "$TAG" ]]; then
+  RELEASE_LINE="$(release_field "$TAG" release_line)"
+  RELEASE_CHANNEL="$(release_field "$TAG" channel)"
+  if [[ "$RELEASE_LINE" != "legacy-1x" && "$RELEASE_LINE" != "native-2x" ]]; then
+    echo "[preflight] unsupported release line: $RELEASE_LINE" >&2
+    exit 2
+  fi
+fi
 
 if [[ "$QUICK_MODE" -eq 1 ]]; then
   echo "[preflight] quick CI gate enabled"
@@ -236,6 +355,13 @@ if [[ -n "$TAG" ]]; then
     exit 1
   fi
   echo "[preflight] tag pre-check passed: $TAG is available"
+
+  if [[ "$RELEASE_LINE" == "native-2x" ]]; then
+    run_native_preflight
+    echo "[preflight] all checks passed"
+    echo "[preflight] native dry-run completed without publishing"
+    exit 0
+  fi
 
   if is_prerelease_tag "$TAG"; then
     if [[ "$SKIP_NOTE_GEN" -eq 0 ]]; then
@@ -261,6 +387,8 @@ if [[ -n "$TAG" ]]; then
     python3 scripts/changelog_section.py --version "${TAG#v}" --check
   fi
 fi
+
+require_python_module yaml PyYAML
 
 validator_log="$(mktemp -t qiongli-validator.XXXXXX.log)"
 unit_log="$(mktemp -t qiongli-unittest.XXXXXX.log)"

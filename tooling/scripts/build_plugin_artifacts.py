@@ -21,6 +21,7 @@ from qiongli.source_layout import RepoLayout
 from qiongli.distribution_metadata import PluginDefinition, load_plugin_distribution
 from qiongli.platform_targets import load_platform_targets, remove_path_pattern
 from qiongli.workflow_wrapper_skills import write_codex_workflow_wrapper_skills
+from tooling.scripts.release_version import parse_release_version
 from tooling.scripts.build_lite_mcp import (
     build_current_platform,
     read_target_identity,
@@ -268,16 +269,12 @@ AGENT_PACKET_TEMPLATES = (
 
 
 def _normalize_tag(raw: str) -> tuple[str, str]:
-    tag = raw.strip()
-    if not tag:
-        raise ValueError("tag is required")
-    repo_tag = tag if tag.startswith("v") else f"v{tag}"
-    skill_version = repo_tag.removeprefix("v")
-    return repo_tag, skill_version
+    identity = parse_release_version(raw)
+    return identity.repo_tag, identity.version
 
 
 def _is_prerelease_tag(repo_tag: str) -> bool:
-    return "-" in repo_tag.removeprefix("v")
+    return parse_release_version(repo_tag).is_prerelease
 
 
 def _read_json(path: Path) -> object:
@@ -1416,6 +1413,18 @@ def build_artifacts(root: Path, raw_tag: str, dist_dir: Path) -> list[Path]:
     workflow_version = (layout.workflow / "VERSION").read_text(encoding="utf-8").strip()
     if workflow_version != repo_tag:
         raise ValueError(f"version mismatch in qiongli-workflow/VERSION: expected {repo_tag}, found {workflow_version}")
+
+    release_identity = parse_release_version(repo_tag)
+    plugin_name = NEXT_PLUGIN_NAME if release_identity.is_prerelease else PLUGIN_NAME
+    plugin = _plugin_definition(root, plugin_name)
+    if release_identity.release_line not in plugin.release_lines:
+        raise ValueError(
+            f"{plugin_name} does not support release line {release_identity.release_line}"
+        )
+    if release_identity.channel not in plugin.release_channels:
+        raise ValueError(
+            f"{plugin_name} does not support release channel {release_identity.channel}"
+        )
 
     with tempfile.TemporaryDirectory(prefix="qiongli-plugin-") as tmp:
         work_dir = Path(tmp)

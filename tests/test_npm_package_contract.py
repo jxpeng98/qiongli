@@ -266,6 +266,14 @@ class NpmPackageContractTests(unittest.TestCase):
         self.assertIn("[npm-publish] warning: unable to remove beta latest dist-tag", npm_workflow)
         self.assertNotIn("npm publish --tag beta", npm_workflow)
         self.assertIn("scripts/npm_preflight.sh", npm_workflow)
+        for workflow in (pypi_workflow, npm_workflow):
+            self.assertIn("if: ${{ !startsWith(github.ref_name, 'v2.') }}", workflow)
+            self.assertIn("scripts/release_version.py", workflow)
+            self.assertIn('if [[ "$release_line" == "native-2x" ]]; then', workflow)
+            self.assertIn("RLS-201/PKG gate", workflow)
+        self.assertIn('--print-field channel', npm_workflow)
+        self.assertIn('if [[ "$channel" != "stable" ]]; then', npm_workflow)
+        self.assertNotIn('if [[ "${RELEASE_TAG}" == *beta* ]]; then', npm_workflow)
 
     def test_docs_use_npm_next_dist_tag_for_prereleases(self) -> None:
         docs = "\n".join(

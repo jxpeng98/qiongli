@@ -466,6 +466,39 @@ Unyanking or removing deprecation from the original immutable release requires
 a separate release-owner decision and evidence that those exact artifacts are
 safe.
 
+## Native 2.x Alpha Dry-Run And Future Promotion
+
+`REL-201` supports a non-publishing native release plan. Its output records
+`publication_performed=false`, `publication_allowed=false`, and writes only to
+the explicitly selected staging directory outside the checkout. Rolling back
+that dry-run means deleting only its three generated
+`qiongli-native-release-*` bundle files. Preserve the containing directory and
+every unrelated file. Do not yank PyPI, change npm dist-tags, edit Marketplace
+records, or modify Git refs because the dry-run does not touch any of those
+systems.
+
+The frozen 1.x PyPI, npm, plugin, MCPB, and GitHub feeds remain independent
+from native 2.x `alpha`, `beta`, and `stable` channels. A native rollback must
+not direct users to a 1.x registry version through update metadata; returning
+to 1.x is a separate, previewed migration rollback transaction.
+
+Once a later task authorizes native publication, use these rules:
+
+1. Never move, delete, reuse, or relabel an existing native tag or artifact
+   identity.
+2. Withdraw a bad channel entry with signed revocation or replacement metadata
+   and retain the verified last-known-good installation.
+3. Remove or pause only the affected target/profile/installer identity; do not
+   advertise another target as a generic fallback.
+4. Preserve checksums, signatures, SBOM, provenance, startup receipts, and the
+   incident record for the withdrawn identity.
+5. Promote alpha to beta, or beta to stable, by creating a new SemVer version,
+   new immutable identity, new signatures, and a new acceptance receipt after
+   the destination-channel gates pass. Promotion never moves a mutable alias.
+
+Until `PKG-201`, `PKG-202`, `UPD-201`, and the matching release acceptance
+gates are complete, native `publish` and production `post` remain fail-closed.
+
 ## Known Rollback Risks
 
 - A PyPI yank does not block an explicit exact-version installation.

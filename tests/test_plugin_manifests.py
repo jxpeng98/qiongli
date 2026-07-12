@@ -50,6 +50,21 @@ class PluginDistributionMetadataTests(unittest.TestCase):
         self.assertEqual(metadata.plugins["qiongli-next"].skill_name, "qiongli-next")
         self.assertEqual(metadata.plugins["qiongli"].mcp_server_name, "qiongli")
         self.assertEqual(metadata.plugins["qiongli-next"].mcp_server_name, "qiongli-next")
+        self.assertEqual(metadata.plugins["qiongli"].release_lines, ("legacy-1x",))
+        self.assertEqual(metadata.plugins["qiongli"].release_channels, ("stable",))
+        self.assertEqual(
+            metadata.plugins["qiongli-next"].release_lines,
+            ("legacy-1x",),
+        )
+        self.assertEqual(metadata.plugins["qiongli-next"].release_channels, ("beta",))
+        self.assertEqual(
+            metadata.plugins["qiongli-next"].planned_release_lines,
+            ("native-2x",),
+        )
+        self.assertEqual(
+            metadata.plugins["qiongli-next"].planned_release_channels,
+            ("alpha", "beta"),
+        )
 
     def test_canonical_distribution_metadata_carries_discovery_terms(self) -> None:
         metadata = load_plugin_distribution(REPO_ROOT)

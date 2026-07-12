@@ -9,6 +9,8 @@ SKIP_BUMP=0
 PACKAGE_VERSION=""
 SKILL_VERSION=""
 REPO_TAG=""
+RELEASE_LINE=""
+RELEASE_CHANNEL=""
 PRE_ARGS=()
 PYPI_ARGS=()
 RELEASE_STAGING_DIR=""
@@ -22,8 +24,14 @@ cleanup() {
 
 trap cleanup EXIT
 
+release_field() {
+  local version="$1"
+  local field="$2"
+  python3 "${ROOT_DIR}/scripts/release_version.py" "$version" --print-field "$field"
+}
+
 is_prerelease_tag() {
-  [[ "$1" == *beta* || "$1" =~ b[0-9]+ ]]
+  [[ "$(release_field "$1" channel)" != "stable" ]]
 }
 
 usage() {
@@ -34,12 +42,16 @@ Usage:
 Description:
   Prepare a local publish-ready release state by chaining:
     1) version bump + metadata sync
-    2) release preflight (validator + tests + smoke + beta note draft or stable changelog check)
+    2) release preflight (legacy package gates or native alpha dry-run gates)
     3) local plugin install acceptance in an isolated sandbox
     4) package preflight (build + twine + install smoke)
 
+  Native 2.x stops after step 2 and remains non-publishing; steps 3-4 apply
+  only to the legacy 1.x release line.
+
 Options:
-  --version <v>        Required version input (for example 0.2.0, 0.2.0b1, or v0.2.0-beta.1).
+  --version <v>        Required version input (for example 0.2.0, v0.2.0-beta.1,
+                       or v2.0.0-alpha.1).
   --from-tag <tag>     Optional baseline tag passed into release note generation.
   --skip-bump          Skip version sync and start from preflight/package checks.
   --allow-dirty        Allow existing local changes before running release prep.
@@ -58,7 +70,23 @@ EOF
 
 normalize_field() {
   local field="$1"
-  python3 "${ROOT_DIR}/scripts/sync_versions.py" "${VERSION}" --print-field "${field}"
+  release_field "$VERSION" "$field"
+}
+
+canonical_external_path() {
+  python3 - "$ROOT_DIR" "$1" <<'PY'
+from pathlib import Path
+import sys
+
+root = Path(sys.argv[1]).resolve()
+candidate = Path(sys.argv[2]).expanduser()
+if candidate.is_symlink():
+    raise SystemExit("[release-ready] native --staging-dir must not be a symbolic link")
+out = candidate.resolve()
+if out == root or root in out.parents:
+    raise SystemExit("[release-ready] native --staging-dir must be outside the source tree")
+print(out)
+PY
 }
 
 status_path_from_line() {
@@ -103,7 +131,7 @@ ensure_clean_worktree() {
     return 0
   fi
 
-  if [[ "$SKIP_BUMP" -eq 1 ]]; then
+  if [[ "$SKIP_BUMP" -eq 1 && "$RELEASE_LINE" == "legacy-1x" ]]; then
     local unexpected=()
     local path=""
     while IFS= read -r line; do
@@ -177,19 +205,28 @@ done
 cd "$ROOT_DIR"
 
 PACKAGE_VERSION="$(normalize_field package_version)"
-SKILL_VERSION="$(normalize_field skill_version)"
 REPO_TAG="$(normalize_field repo_version)"
+RELEASE_LINE="$(normalize_field release_line)"
+RELEASE_CHANNEL="$(normalize_field channel)"
+SKILL_VERSION="${REPO_TAG#v}"
+
+if [[ "$RELEASE_LINE" != "legacy-1x" && "$RELEASE_LINE" != "native-2x" ]]; then
+  echo "[release-ready] unsupported release line: $RELEASE_LINE" >&2
+  exit 2
+fi
 
 ensure_clean_worktree
 
-if [[ "$SKIP_BUMP" -eq 0 ]]; then
+if [[ "$RELEASE_LINE" == "native-2x" ]]; then
+  echo "[release-ready] native product version is read from packages/qiongli-native/Cargo.toml"
+elif [[ "$SKIP_BUMP" -eq 0 ]]; then
   echo "[release-ready] syncing release versions"
   ./scripts/bump-version.sh "$VERSION"
 else
   echo "[release-ready] version sync skipped"
 fi
 
-if ! is_prerelease_tag "$REPO_TAG"; then
+if [[ "$RELEASE_LINE" == "legacy-1x" ]] && ! is_prerelease_tag "$REPO_TAG"; then
   echo "[release-ready] update stable download sections"
   python3 scripts/update_stable_download_sections.py --tag "$REPO_TAG" --root "$ROOT_DIR"
 fi
@@ -203,6 +240,11 @@ if [[ -z "$RELEASE_STAGING_DIR" ]]; then
   RELEASE_STAGING_DIR="$(mktemp -d "${TMPDIR:-/tmp}/qiongli-release-ready.XXXXXX")"
   RELEASE_STAGING_AUTO=1
 else
+  if [[ "$RELEASE_LINE" == "native-2x" ]]; then
+    if ! RELEASE_STAGING_DIR="$(canonical_external_path "$RELEASE_STAGING_DIR")"; then
+      exit 2
+    fi
+  fi
   mkdir -p "$RELEASE_STAGING_DIR"
   RELEASE_STAGING_DIR="$(cd "$RELEASE_STAGING_DIR" && pwd)"
 fi
@@ -210,8 +252,25 @@ fi
 echo "[release-ready] release preflight"
 ./scripts/release_automation.sh pre "${PRE_ARGS[@]}" --materialize-out "$RELEASE_STAGING_DIR"
 
+VERIFY_ROOT="$RELEASE_STAGING_DIR"
+if [[ "$RELEASE_LINE" == "native-2x" ]]; then
+  VERIFY_ROOT="$ROOT_DIR"
+fi
 echo "[release-ready] verify staged release tag version"
-bash ./scripts/verify_release_tag_version.sh --root "$RELEASE_STAGING_DIR" --tag "$REPO_TAG"
+bash ./scripts/verify_release_tag_version.sh --root "$VERIFY_ROOT" --tag "$REPO_TAG"
+
+if [[ "$RELEASE_LINE" == "native-2x" ]]; then
+  echo "[release-ready] native ${RELEASE_CHANNEL} dry-run generated; legacy package and installer gates are not applicable"
+  echo "[release-ready] normalized versions"
+  echo "  - native_version:  ${REPO_TAG#v}"
+  echo "  - package_version: not-applicable"
+  echo "  - skill_version:   not-applicable"
+  echo "  - repo_tag:        ${REPO_TAG}"
+  echo "  - release_line:    ${RELEASE_LINE}"
+  echo "  - channel:         ${RELEASE_CHANNEL}"
+  echo "[release-ready] prepare+verify completed; native publication remains blocked by RLS-201/PKG gates"
+  exit 0
+fi
 
 echo "[release-ready] experience schema compatibility"
 python3 scripts/check_experience_schema_compatibility.py --root "$RELEASE_STAGING_DIR"

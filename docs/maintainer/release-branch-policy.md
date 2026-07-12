@@ -105,7 +105,9 @@ baseline and governance evidence. This repository no longer carries Codex or
 Claude marketplace catalog files; it owns the plugin manifests and materializes
 the release payload from canonical source.
 
-Prerelease tags publish the `qiongli-next` testing channel instead of the full stable marketplace matrix. The generated next artifacts are:
+Legacy 1.x beta tags publish the `qiongli-next` testing channel instead of the
+full stable marketplace matrix. Native 2.x alpha dry-runs do not publish or
+build these plugin artifacts. The legacy-generated next artifacts are:
 
 - `qiongli-next-codex-plugin-<tag>.tar.gz`
 - `qiongli-next-claude-plugin-<tag>.tar.gz`
@@ -145,7 +147,13 @@ plugins/qiongli/.claude-plugin/plugin.json
 plugins/qiongli-next/.claude-plugin/plugin.json
 ```
 
-Claude refs must not include `.codex-plugin/` or `.mcp.json`. The release postflight automatically publishes the platform dist refs after it materializes the release staging payload and builds the existing plugin artifacts. Stable marketplace installs publish `plugins/qiongli` to `codex/v<stable-version>` and `claude/v<stable-version>`; prerelease installs publish `plugins/qiongli-next` to `codex/v<prerelease-version>` and `claude/v<prerelease-version>`.
+Claude refs must not include `.codex-plugin/` or `.mcp.json`. The legacy 1.x
+release postflight publishes platform dist refs after it materializes the
+release staging payload and builds the existing plugin artifacts. Legacy stable
+marketplace installs publish `plugins/qiongli`; legacy beta installs publish
+`plugins/qiongli-next`. A native 2.x alpha dry-run never publishes these refs,
+and native postflight remains blocked until target and package identities are
+truthful and accepted.
 
 Use `scripts/publish-codex-dist-ref.mjs` manually only when backfilling an existing release or intentionally repairing a dist ref from a verified staging directory:
 
@@ -188,8 +196,12 @@ python3 -m unittest discover -s tests -v
 5. Route any 1.x security or release-breakage exception to
    `release/1.x-python` under the PR-only policy above. Do not use `dev` as a
    feature-bearing 1.x release source.
-6. Do not publish a 2.x alpha until the B1 release-tooling work explicitly
-   supports alpha syntax, native artifacts, channels, acceptance, and rollback.
+6. Use the B1 native preflight only as an external-staging dry-run. It now
+   validates alpha syntax, the Cargo version/channel source, isolated channel
+   metadata, a planned target identity, and rollback/promotion semantics. Do
+   not create or publish a 2.x tag until the later native artifact, signing,
+   target acceptance, updater, and release gates remove the explicit
+   `publication_allowed=false` blocker.
 
 ## Stable Release Rule
 

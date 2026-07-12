@@ -26,6 +26,10 @@ class PluginDefinition:
     repository: str
     license: str
     keywords: tuple[str, ...]
+    release_lines: tuple[str, ...]
+    release_channels: tuple[str, ...]
+    planned_release_lines: tuple[str, ...]
+    planned_release_channels: tuple[str, ...]
     default_prompts: tuple[str, ...]
     codex_short_description: str
     brand_color: str
@@ -79,6 +83,34 @@ def _parse_plugin_definition(path: Path, plugin_id: str, raw_plugin: dict[str, A
         repository=_required_string(path, plugin_id, raw_plugin, "repository"),
         license=_required_string(path, plugin_id, raw_plugin, "license"),
         keywords=_required_string_tuple(path, plugin_id, raw_plugin, "keywords"),
+        release_lines=_required_choice_tuple(
+            path,
+            plugin_id,
+            raw_plugin,
+            "release_lines",
+            {"legacy-1x", "native-2x"},
+        ),
+        release_channels=_required_choice_tuple(
+            path,
+            plugin_id,
+            raw_plugin,
+            "release_channels",
+            {"alpha", "beta", "stable"},
+        ),
+        planned_release_lines=_optional_choice_tuple(
+            path,
+            plugin_id,
+            raw_plugin,
+            "planned_release_lines",
+            {"legacy-1x", "native-2x"},
+        ),
+        planned_release_channels=_optional_choice_tuple(
+            path,
+            plugin_id,
+            raw_plugin,
+            "planned_release_channels",
+            {"alpha", "beta", "stable"},
+        ),
         default_prompts=_required_string_tuple(path, plugin_id, codex, "codex.default_prompts"),
         codex_short_description=_required_string(path, plugin_id, codex, "codex.short_description"),
         brand_color=_required_string(path, plugin_id, codex, "codex.brand_color"),
@@ -119,6 +151,33 @@ def _required_string_tuple(path: Path, plugin_id: str, container: dict[str, Any]
     ):
         raise PluginDistributionError(f"{path} plugins.{plugin_id}.{field} must be a non-empty string list")
     return tuple(value)
+
+
+def _required_choice_tuple(
+    path: Path,
+    plugin_id: str,
+    container: dict[str, Any],
+    field: str,
+    allowed: set[str],
+) -> tuple[str, ...]:
+    values = _required_string_tuple(path, plugin_id, container, field)
+    if len(set(values)) != len(values) or any(value not in allowed for value in values):
+        raise PluginDistributionError(
+            f"{path} plugins.{plugin_id}.{field} must contain unique values from {sorted(allowed)}"
+        )
+    return values
+
+
+def _optional_choice_tuple(
+    path: Path,
+    plugin_id: str,
+    container: dict[str, Any],
+    field: str,
+    allowed: set[str],
+) -> tuple[str, ...]:
+    if field not in container:
+        return ()
+    return _required_choice_tuple(path, plugin_id, container, field, allowed)
 
 
 def _required_value(path: Path, plugin_id: str, container: dict[str, Any], field: str) -> Any:

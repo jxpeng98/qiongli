@@ -2,6 +2,11 @@
 
 本指南说明如何将 `qiongli` 发布到 PyPI，以及日常版本发布的完整流程。
 
+这里描述的是冻结的 **legacy 1.x** registry 路径。原生 2.x 使用 Cargo
+版本源和独立的 alpha/beta/stable channel；`v2.*` tag 会被 PyPI/npm jobs
+明确排除。REL-201 只开放无发布的 native dry-run。请参见
+`tooling/release/automation.md`，不得使用本指南发布 `v2.0.0-alpha.1`。
+
 ## 0) 前置条件（一次性配置）
 
 ### 0.1 PyPI Trusted Publisher
@@ -74,7 +79,7 @@
 | Skill metadata / registry | `0.2.0` | `0.2.0-beta.1` |
 | Portable skill `VERSION` / git tag | `v0.2.0` | `v0.2.0-beta.1` |
 
-其中 package 版本遵循 [PEP 440](https://peps.python.org/pep-0440/)，skill metadata 使用 SemVer 兼容的 prerelease 语法。当前 release tooling 只支持 `stable` 和 `beta`。
+其中 package 版本遵循 [PEP 440](https://peps.python.org/pep-0440/)，skill metadata 使用 SemVer 兼容的 prerelease 语法。这个 legacy registry 路径只支持 `stable` 和 `beta`；独立 native classifier 可以识别 `alpha`，但原生 registry publication 仍然禁用。
 
 默认的 release smoke tier 是保守配置：内置 literature smoke + `doctor`。如果你还想在发版前补跑更重的 `parallel` / `task-run` profile 路径检查，再显式加 `--maintainer-smoke`。
 
@@ -226,7 +231,9 @@ qiongli check --repo jxpeng98/qiongli
 2. 选择 **Publish to TestPyPI**
 3. 在目标分支点击 **Run workflow**
 
-该 workflow 会自动构建、校验并通过 Trusted Publishing 发布到 TestPyPI。
+该 workflow 只会从 `main`、`dev` 或冻结的 `release/1.x-python` 分支构建、
+校验并通过 Trusted Publishing 发布到 TestPyPI。选择 `2.x` 或功能分支时
+任务会跳过；请求发布前还会再次拒绝任何非 legacy 的包版本身份。
 
 发布后从 TestPyPI 安装验证：
 

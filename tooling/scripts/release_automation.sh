@@ -10,11 +10,11 @@ shift || true
 normalize_field() {
   local version="$1"
   local field="$2"
-  python3 "${ROOT_DIR}/scripts/sync_versions.py" "$version" --print-field "$field"
+  python3 "${ROOT_DIR}/scripts/release_version.py" "$version" --print-field "$field"
 }
 
 is_prerelease_tag() {
-  [[ "$1" == *beta* || "$1" =~ b[0-9]+ ]]
+  [[ "$(normalize_field "$1" channel)" != "stable" ]]
 }
 
 detect_primary_branch() {
@@ -272,6 +272,7 @@ Notes:
   - publish --resume-after-ready starts after a completed release_ready/release-prep commit and continues branch push, branch CI gate, tag push, postflight, and acceptance receipt.
   - publish always uses hard CI gates before tag creation and release-page creation; use post mode for diagnostic soft waits only.
   - publish stable releases from the primary branch; publish prerelease/beta tags from dev or the primary branch.
+  - native 2.x pre mode produces an external-staging dry-run bundle; native publication is blocked until the RLS-201/PKG gates exist.
 EOF
 }
 
@@ -439,6 +440,20 @@ case "$MODE" in
       repo_tag="$(normalize_field "$version_input" repo_version)"
     fi
     package_version="$(normalize_field "$version_input" package_version)"
+    release_line="$(normalize_field "$version_input" release_line)"
+    release_channel="$(normalize_field "$version_input" channel)"
+    source_branch="$(normalize_field "$version_input" source_branch)"
+
+    if [[ "$release_line" != "legacy-1x" && "$release_line" != "native-2x" ]]; then
+      echo "[release-automation] unsupported release line: $release_line" >&2
+      exit 2
+    fi
+
+    if [[ "$release_line" == "native-2x" ]]; then
+      echo "[release-automation] RLS-201/PKG gate: native ${release_channel} publication is disabled before packaging, signing, provenance, and target-native acceptance exist" >&2
+      echo "[release-automation] run pre from the ${source_branch} release line with external --materialize-out evidence; no commit, push, or tag was created" >&2
+      exit 1
+    fi
 
     primary_branch="$(detect_primary_branch)"
     current_branch="$(git rev-parse --abbrev-ref HEAD)"

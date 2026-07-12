@@ -20,6 +20,9 @@ TEMP_RELEASE_NOTES=""
 POSTFLIGHT_STAGING_DIR=""
 ACCEPTANCE_EVIDENCE_FILE=""
 UPLOAD_ASSETS_FILE=""
+RELEASE_LINE=""
+RELEASE_CHANNEL=""
+RELEASE_SOURCE_BRANCH=""
 
 cleanup() {
   if [[ -n "$TEMP_RELEASE_NOTES" && -f "$TEMP_RELEASE_NOTES" ]]; then
@@ -124,8 +127,14 @@ refresh_branch_ref() {
   return 0
 }
 
+release_field() {
+  local version="$1"
+  local field="$2"
+  python3 "${ROOT_DIR}/scripts/release_version.py" "$version" --print-field "$field"
+}
+
 is_prerelease_tag() {
-  [[ "$1" == *beta* || "$1" =~ b[0-9]+ ]]
+  [[ "$(release_field "$1" channel)" != "stable" ]]
 }
 
 select_release_branch_ref() {
@@ -440,6 +449,19 @@ done
 [[ -n "$TAG" ]] || { echo "[postflight] --tag is required" >&2; usage; exit 2; }
 
 cd "$ROOT_DIR"
+
+RELEASE_LINE="$(release_field "$TAG" release_line)"
+RELEASE_CHANNEL="$(release_field "$TAG" channel)"
+RELEASE_SOURCE_BRANCH="$(release_field "$TAG" source_branch)"
+if [[ "$RELEASE_LINE" != "legacy-1x" && "$RELEASE_LINE" != "native-2x" ]]; then
+  echo "[postflight] unsupported release line: $RELEASE_LINE" >&2
+  exit 2
+fi
+if [[ "$RELEASE_LINE" == "native-2x" ]]; then
+  echo "[postflight] RLS-201/PKG gate: native ${RELEASE_CHANNEL} postflight is disabled until native packaging and publication gates exist" >&2
+  echo "[postflight] expected source branch: ${RELEASE_SOURCE_BRANCH}; no materialization, dist-ref update, asset upload, or GitHub release mutation was attempted" >&2
+  exit 1
+fi
 
 if ! LOCAL_TAG_COMMIT="$(git rev-parse "$TAG^{}" 2>/dev/null)"; then
   echo "[postflight] local tag not found: $TAG" >&2

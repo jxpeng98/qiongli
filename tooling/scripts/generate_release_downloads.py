@@ -20,6 +20,7 @@ for import_root in (Path(__file__).resolve().parent, PYTHON_SOURCE_ROOT, REPO_RO
 from build_plugin_artifacts import _desktop_subjects, _is_prerelease_tag, _marketplace_subjects
 from build_lite_mcp import current_host_target
 from qiongli.platform_targets import PlatformTarget, load_platform_targets
+from tooling.scripts.release_version import parse_release_version
 
 
 DEFAULT_REPO_SLUG = "jxpeng98/qiongli"
@@ -125,10 +126,7 @@ def build_component_versions(root: Path = REPO_ROOT) -> dict[str, dict[str, str]
 
 
 def _normalize_tag(raw: str) -> str:
-    tag = raw.strip()
-    if not tag:
-        raise ValueError("tag is required")
-    return tag if tag.startswith("v") else f"v{tag}"
+    return parse_release_version(raw).repo_tag
 
 
 def _asset_url(repo_slug: str, tag: str, name: str) -> str:
@@ -338,6 +336,12 @@ def _recommended_target_ids(targets: dict[str, PlatformTarget]) -> dict[str, str
 
 def build_index(tag: str, repo_slug: str = DEFAULT_REPO_SLUG, root: Path = REPO_ROOT) -> dict[str, Any]:
     tag = _normalize_tag(tag)
+    release_identity = parse_release_version(tag)
+    if release_identity.release_line == "native-2x":
+        raise ValueError(
+            "native 2.x release metadata is isolated from legacy downloads; "
+            "use scripts/native_release_dry_run.py"
+        )
     is_next = _is_prerelease_tag(tag)
     assets = _release_assets(tag, root)
     component_versions = build_component_versions(root)

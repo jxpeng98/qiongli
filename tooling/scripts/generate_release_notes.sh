@@ -14,6 +14,9 @@ VALIDATOR_RESULT="TODO"
 UNITTEST_RESULT="TODO"
 SMOKE_RESULT="TODO"
 VERSION_HINT=""
+RELEASE_LINE=""
+CHANNEL=""
+NATIVE_CUSTOMIZATION=0
 
 usage() {
   cat <<'EOF'
@@ -22,11 +25,11 @@ Usage:
 
 Description:
   Generate a draft release notes file at tooling/release/<tag>.md.
-  This is primarily for beta / prerelease release notes. Stable releases should
+  This is primarily for alpha/beta prerelease release notes. Stable releases should
   be documented in CHANGELOG.md and published from the matching changelog section.
 
 Options:
-  --tag <tag>           Required release tag (for example v0.1.0 or v0.1.1-beta.1)
+  --tag <tag>           Required release tag (for example v1.19.0-beta.1 or v2.0.0-alpha.1)
   --from-tag <tag>      Optional baseline tag for commit highlights
   --output <path>       Output file path (default: tooling/release/<tag>.md)
   --date <YYYY-MM-DD>   Release date (default: today)
@@ -60,6 +63,7 @@ while [[ $# -gt 0 ]]; do
     --from-tag)
       [[ $# -ge 2 ]] || { echo "[notes] missing value for --from-tag" >&2; exit 2; }
       FROM_TAG="$2"
+      NATIVE_CUSTOMIZATION=1
       shift 2
       ;;
     --output)
@@ -70,31 +74,37 @@ while [[ $# -gt 0 ]]; do
     --date)
       [[ $# -ge 2 ]] || { echo "[notes] missing value for --date" >&2; exit 2; }
       RELEASE_DATE="$2"
+      NATIVE_CUSTOMIZATION=1
       shift 2
       ;;
     --stage)
       [[ $# -ge 2 ]] || { echo "[notes] missing value for --stage" >&2; exit 2; }
       STAGE="$2"
+      NATIVE_CUSTOMIZATION=1
       shift 2
       ;;
     --max-commits)
       [[ $# -ge 2 ]] || { echo "[notes] missing value for --max-commits" >&2; exit 2; }
       MAX_COMMITS="$2"
+      NATIVE_CUSTOMIZATION=1
       shift 2
       ;;
     --validator-result)
       [[ $# -ge 2 ]] || { echo "[notes] missing value for --validator-result" >&2; exit 2; }
       VALIDATOR_RESULT="$2"
+      NATIVE_CUSTOMIZATION=1
       shift 2
       ;;
     --unittest-result)
       [[ $# -ge 2 ]] || { echo "[notes] missing value for --unittest-result" >&2; exit 2; }
       UNITTEST_RESULT="$2"
+      NATIVE_CUSTOMIZATION=1
       shift 2
       ;;
     --smoke-result)
       [[ $# -ge 2 ]] || { echo "[notes] missing value for --smoke-result" >&2; exit 2; }
       SMOKE_RESULT="$2"
+      NATIVE_CUSTOMIZATION=1
       shift 2
       ;;
     --update-existing)
@@ -121,19 +131,49 @@ done
 
 cd "$ROOT_DIR"
 
+TAG="$(python3 scripts/release_version.py "$TAG" --print-field repo_version)"
+RELEASE_LINE="$(python3 scripts/release_version.py "$TAG" --print-field release_line)"
+CHANNEL="$(python3 scripts/release_version.py "$TAG" --print-field channel)"
+
 if [[ -z "$OUTPUT" ]]; then
   OUTPUT="tooling/release/${TAG}.md"
 fi
 
 if [[ -z "$STAGE" ]]; then
-  if [[ "$TAG" == *beta* || "$TAG" =~ b[0-9]+ ]]; then
-    STAGE="Beta"
-  else
-    STAGE="Stable"
-  fi
+  case "$CHANNEL" in
+    alpha) STAGE="Alpha" ;;
+    beta) STAGE="Beta" ;;
+    stable) STAGE="Stable" ;;
+    *) echo "[notes] unsupported release channel: $CHANNEL" >&2; exit 2 ;;
+  esac
 fi
-VERSION_HINT="${TAG#v}"
-VERSION_HINT="${VERSION_HINT/-beta./b}"
+VERSION_HINT="$(python3 scripts/release_version.py "$TAG" --print-field package_version)"
+
+if [[ "$RELEASE_LINE" == "native-2x" ]]; then
+  if [[ "$UPDATE_EXISTING" -eq 1 ]]; then
+    echo "[notes] native notes are regenerated as an atomic dry-run bundle; --update-existing is unsupported" >&2
+    exit 2
+  fi
+  if [[ "$NATIVE_CUSTOMIZATION" -eq 1 ]]; then
+    echo "[notes] native dry-run notes reject legacy highlight, date, stage, and evidence customization options" >&2
+    exit 2
+  fi
+  if [[ -e "$OUTPUT" && "$OVERWRITE" -ne 1 ]]; then
+    echo "[notes] skip existing file: $OUTPUT (use --overwrite)"
+    exit 0
+  fi
+  native_tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/qiongli-native-notes.XXXXXX")"
+  trap 'rm -rf "$native_tmp_dir"' EXIT
+  python3 scripts/native_release_dry_run.py \
+    --tag "$TAG" \
+    --root "$ROOT_DIR" \
+    --out-dir "$native_tmp_dir"
+  generated_notes="$native_tmp_dir/qiongli-native-release-${TAG}-notes.md"
+  mkdir -p "$(dirname "$OUTPUT")"
+  cp "$generated_notes" "$OUTPUT"
+  echo "[notes] generated native ${CHANNEL} notes: $OUTPUT"
+  exit 0
+fi
 
 if [[ "$UPDATE_EXISTING" -eq 1 && -e "$OUTPUT" ]]; then
   python3 - "$OUTPUT" "$VALIDATOR_RESULT" "$UNITTEST_RESULT" "$SMOKE_RESULT" <<'PY'

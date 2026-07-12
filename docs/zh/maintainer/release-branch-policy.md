@@ -91,7 +91,10 @@ baseline 与治理证据。本仓库不再携带 Codex 或 Claude marketplace ca
 文件，只负责 plugin manifest，并从 canonical source materialize release
 payload。
 
-预发布 tag 会发布 `qiongli-next` 测试通道，而不是完整的 stable marketplace matrix。生成的 next artifacts 是：
+旧版 1.x beta tag 会发布 `qiongli-next` 测试通道，而不是完整的 stable
+marketplace matrix。原生 2.x alpha dry-run 不发布任何 dist ref；原生
+postflight 会保持阻断，直到 target/package identity 真实且通过验收。旧版
+beta 生成的 next artifacts 是：
 
 - `qiongli-next-codex-plugin-<tag>.tar.gz`
 - `qiongli-next-claude-plugin-<tag>.tar.gz`
@@ -132,8 +135,11 @@ python3 -m unittest discover -s tests -v
 
 5. 所有 1.x 安全或发布损坏例外必须按照上面的 PR-only 政策进入
    `release/1.x-python`；不得继续把 `dev` 当成功能型 1.x 发布源。
-6. B1 发布工具明确支持 alpha syntax、原生 artifact、channel、验收和
-   rollback 之前，不得发布 2.x alpha。
+6. B1 原生 preflight 只能作为写入外部 staging 目录的 dry-run。它现在会
+   校验 alpha syntax、Cargo version/channel source、独立 channel metadata、
+   planned target identity 以及 rollback/promotion 语义。在后续原生产物、
+   签名、target acceptance、updater 与公开发布 gates 移除明确的
+   `publication_allowed=false` 阻断之前，不得创建或发布 2.x tag。
 
 ## 稳定发布规则
 

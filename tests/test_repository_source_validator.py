@@ -142,6 +142,25 @@ def _validate(root: Path, *changed: str):
     )
 
 
+def _set_native_identity(
+    root: Path, *, version: str, channel: str, lock_version: str | None = None
+) -> None:
+    manifest = root / "packages/qiongli-native/Cargo.toml"
+    manifest_text = manifest.read_text(encoding="utf-8")
+    manifest_text = manifest_text.replace(
+        'version = "2.0.0-alpha.1"', f'version = "{version}"', 1
+    ).replace('channel = "alpha"', f'channel = "{channel}"', 1)
+    manifest.write_text(manifest_text, encoding="utf-8")
+
+    lockfile = root / "packages/qiongli-native/Cargo.lock"
+    lock_text = lockfile.read_text(encoding="utf-8").replace(
+        'version = "2.0.0-alpha.1"',
+        f'version = "{lock_version or version}"',
+        1,
+    )
+    lockfile.write_text(lock_text, encoding="utf-8")
+
+
 class RepositorySourceValidatorTests(unittest.TestCase):
     def test_repository_policy_and_native_workspace_pass(self) -> None:
         contract = load_contract(REPO_ROOT)
@@ -153,6 +172,79 @@ class RepositorySourceValidatorTests(unittest.TestCase):
         )
         self.assertEqual(result.findings, ())
         self.assertIn("RSC-RUST-001", result.applicable_rule_ids)
+
+    def test_native_version_and_channel_are_derived_instead_of_hardcoded(self) -> None:
+        identities = (
+            ("2.0.0-alpha.2", "alpha"),
+            ("2.0.0-beta.1", "beta"),
+            ("2.0.0", "stable"),
+        )
+        for version, channel in identities:
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory) / "repo"
+                _create_policy_repo(root)
+                _set_native_identity(root, version=version, channel=channel)
+
+                result = _validate(root, "packages/qiongli-native/Cargo.toml")
+
+                self.assertEqual(result.findings, ())
+
+    def test_native_channel_must_match_version_semantics(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "repo"
+            _create_policy_repo(root)
+            _set_native_identity(root, version="2.0.0-beta.2", channel="alpha")
+
+            result = _validate(root, "packages/qiongli-native/Cargo.toml")
+
+        channel_findings = [
+            finding
+            for finding in result.findings
+            if finding.rule_id == "RSC-TOPOLOGY-001"
+            and "metadata channel" in finding.message
+        ]
+        self.assertEqual(len(channel_findings), 1)
+        self.assertIn("expected 'beta'", channel_findings[0].message)
+
+    def test_native_lock_version_must_match_dynamic_workspace_version(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "repo"
+            _create_policy_repo(root)
+            _set_native_identity(
+                root,
+                version="2.0.0-alpha.4",
+                channel="alpha",
+                lock_version="2.0.0-alpha.3",
+            )
+
+            result = _validate(root, "packages/qiongli-native/Cargo.lock")
+
+        lock_findings = [
+            finding
+            for finding in result.findings
+            if finding.path == "packages/qiongli-native/Cargo.lock"
+            and finding.rule_id == "RSC-DEPENDENCY-001"
+        ]
+        self.assertEqual(len(lock_findings), 1)
+        self.assertIn("2.0.0-alpha.4", lock_findings[0].message)
+
+    def test_native_manifest_rejects_legacy_or_undefined_release_channels(self) -> None:
+        cases = (
+            ("1.19.1-beta.1", "beta", "native 2.x release line"),
+            ("2.0.0-rc.1", "rc", "version is invalid"),
+        )
+        for version, channel, expected_message in cases:
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory) / "repo"
+                _create_policy_repo(root)
+                _set_native_identity(root, version=version, channel=channel)
+
+                result = _validate(root, "packages/qiongli-native/Cargo.toml")
+
+                self.assertTrue(
+                    any(expected_message in finding.message for finding in result.findings),
+                    result.findings,
+                )
 
     def test_rule_selection_is_limited_to_native_changes(self) -> None:
         docs_rules = applicable_rule_ids(["docs/development/example.md"])

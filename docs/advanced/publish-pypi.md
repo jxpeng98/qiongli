@@ -2,6 +2,12 @@
 
 This guide explains how to publish `qiongli` to PyPI, as well as the complete workflow for routine version releases.
 
+This is the frozen **legacy 1.x** registry path. Native 2.x releases use the
+Cargo version source and independent alpha/beta/stable channels; `v2.*` tags
+are explicitly excluded from the PyPI and npm jobs. REL-201 supports only a
+non-publishing native dry-run. See `tooling/release/automation.md`; do not use
+this guide to publish `v2.0.0-alpha.1`.
+
 ## 0) Prerequisites (One-time Setup)
 
 ### 0.1 PyPI Trusted Publisher
@@ -74,7 +80,7 @@ Use a stable version such as `0.2.0` or a beta version such as `0.2.0b1`. The au
 | Skill metadata / registry | `0.2.0` | `0.2.0-beta.1` |
 | Portable skill `VERSION` / git tag | `v0.2.0` | `v0.2.0-beta.1` |
 
-Package version format follows [PEP 440](https://peps.python.org/pep-0440/), while skill metadata uses SemVer-compatible prerelease syntax. Currently the release tooling supports `stable` and `beta` only.
+Package version format follows [PEP 440](https://peps.python.org/pep-0440/), while skill metadata uses SemVer-compatible prerelease syntax. This legacy registry path supports `stable` and `beta`; the separate native classifier understands `alpha`, but native registry publication remains disabled.
 
 The default release smoke tier is intentionally conservative: builtin literature smoke + `doctor`. If you also want the heavier `parallel` / `task-run` profile-path checks before publishing, add `--maintainer-smoke`.
 
@@ -266,7 +272,10 @@ Use the GitHub Actions workflow (manual trigger, no tag required):
 2. Select **Publish to TestPyPI**.
 3. Click **Run workflow** on the target branch.
 
-The workflow will build, validate, and publish with Trusted Publishing to TestPyPI.
+The workflow will build, validate, and publish with Trusted Publishing to
+TestPyPI only from `main`, `dev`, or the frozen `release/1.x-python` branch.
+Runs selected from `2.x` or feature branches are skipped, and the workflow
+also rejects any non-legacy package identity before requesting publication.
 
 Install and verify from TestPyPI:
 

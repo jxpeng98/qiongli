@@ -11,7 +11,55 @@ Prerelease note draft generator:
 
 - `scripts/generate_release_notes.sh`
 
-## 1) One-command publish
+Native release identity and non-publishing plan tools:
+
+- `scripts/release_version.py`
+- `scripts/native_release_dry_run.py`
+
+## Native 2.x alpha dry-run (`REL-201`)
+
+The authoritative native product version is
+`packages/qiongli-native/Cargo.toml` under `[workspace.package]`; its explicit
+`[workspace.metadata.qiongli].channel` must agree with the SemVer suffix. Run
+native release diagnostics from `2.x` into an explicit directory outside the
+checkout:
+
+```bash
+OUT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/qiongli-native-release.XXXXXX")"
+./scripts/release_automation.sh pre \
+  --tag v2.0.0-alpha.1 \
+  --materialize-out "$OUT_DIR"
+```
+
+The dry-run bundle contains a deterministic JSON release plan, alpha notes, a
+target-specific planned-only artifact identity, canonical channel-isolation
+metadata, and a rollback/promotion plan. It explicitly records
+`publication_performed=false` and `publication_allowed=false`. It does not
+materialize 1.x Python/npm/plugin payloads, mutate Git refs, create a GitHub
+Release, publish registry or Marketplace records, or claim that a native
+artifact was built, signed, or accepted.
+
+The publication-network prohibition is scoped to native publication. CI may
+download the pinned Rust toolchain or locked dependencies and upload the
+planned-only evidence bundle; that diagnostic traffic does not publish a
+native product artifact or release record.
+
+`qiongli-next` distribution metadata records native alpha/beta only as planned
+targets. The active artifact allowlist remains legacy 1.x beta, so the current
+builder cannot turn frozen 1.x workflow content into a native plugin or claim
+that such a plugin is installable.
+
+`release_automation.sh publish` and native postflight remain fail-closed until
+the later package, signing, target-native acceptance, updater, and public
+release gates are implemented. A `v2.*` tag is excluded from the frozen 1.x
+PyPI and npm jobs. Do not bypass these guards by manually creating a tag.
+
+Alpha, beta, and stable are independent canonical channels. `next` remains a
+legacy installation alias, not a native channel name. Promotion creates a new
+SemVer version and immutable identity; it never relabels an alpha asset or
+moves a mutable alias across channels.
+
+## 1) Legacy 1.x one-command publish
 
 If you want the whole path chained together, use:
 
@@ -19,7 +67,9 @@ If you want the whole path chained together, use:
 ./scripts/release_automation.sh publish --tag v0.1.0 --from-tag v0.1.0-beta.6
 ```
 
-`publish` is the only routine release entrypoint. Do not manually create release tags and do not manually dispatch production publish workflows for normal releases.
+`publish` is the routine legacy 1.x release entrypoint. Native 2.x publishing
+is deliberately blocked at `REL-201`; do not manually create release tags or
+dispatch production publish workflows to bypass that boundary.
 
 This mode runs:
 
@@ -169,8 +219,8 @@ When `--create-release` is used, the generated Codex and Claude Code artifacts a
 
 ## Optional flags
 
-- `--tag <tag>`: preferred by `publish`, accepts stable (`v0.2.0`) and beta (`v0.2.0-beta.1`) tag forms.
-- `--version <version>`: compatibility input for `publish`, accepts stable (`0.2.0`) and beta (`0.2.0b1`) forms.
+- `--tag <tag>`: accepts stable (`v1.19.0`), legacy beta (`v1.19.0-beta.1`), and native alpha (`v2.0.0-alpha.1`) identities. Native alpha is accepted by `pre`, not by `publish` or production `post`.
+- `--version <version>`: accepts the corresponding canonical or compact input forms; output is always normalized to SemVer/tag form.
 - `--skip-smoke`: skip smoke stage during preflight.
 - `--maintainer-smoke`: upgrade preflight smoke from the default release tier to the maintainer tier (`parallel` + `task-run` profile checks).
 - `--skip-note-gen`: skip prerelease draft generation of `tooling/release/<tag>.md`.
