@@ -66,7 +66,7 @@
     "write_policy": "python-mutable-roots-measured-and-audit-confined;node-accepted-tree-before-after-identical",
     "process_policy": "accepted-runtime-cases-launch-no-child-processes;parent-launches-git-python-node-capture-processes",
     "secret_policy": "sanitized-environment-and-canary-rejection",
-    "determinism": "two-distinct-temp-roots-and-hash-seeds-byte-equivalent"
+    "determinism": "two-distinct-temp-roots-and-environments-byte-equivalent"
   },
   "error_taxonomy": [
     {
@@ -11818,6 +11818,6 @@
     "algorithm": "sha256",
     "canonicalization": "utf-8-json-sorted-keys-compact-excluding-integrity",
     "case_manifest_sha256": "6f0236562749c56adc94318e49b098b7392dc99bf193e1afd9bda1deb66a7e2e",
-    "payload_sha256": "07d0a8b97a117e137351ac18f3cbcabc2078b6031dcd1da2893a9cda11d7c8f4"
+    "payload_sha256": "b82be3d7f1531a3fefdf3dd864c74042d2d3ecc806d38337f24e2b14d843f41c"
   }
 }

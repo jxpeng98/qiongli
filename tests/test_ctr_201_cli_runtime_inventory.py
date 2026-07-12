@@ -594,7 +594,9 @@ class Ctr201CliRuntimeCanonicalExtractionTests(unittest.TestCase):
                 self.assertNotIn(secret_name, environment)
         self.assertEqual(first["PATH"], "")
         self.assertTrue(second["PATH"].endswith("unused-bin"))
-        self.assertNotEqual(first["PYTHONHASHSEED"], second["PYTHONHASHSEED"])
+        self.assertNotIn("PYTHONHASHSEED", first)
+        self.assertNotIn("PYTHONHASHSEED", second)
+        self.assertNotEqual(first["HOME"], second["HOME"])
 
     def test_cli_check_and_generation_are_explicit_and_redacted(self) -> None:
         stdout = io.StringIO()

@@ -217,7 +217,7 @@
         "write_policy": {"const": "python-mutable-roots-measured-and-audit-confined;node-accepted-tree-before-after-identical"},
         "process_policy": {"const": "accepted-runtime-cases-launch-no-child-processes;parent-launches-git-python-node-capture-processes"},
         "secret_policy": {"const": "sanitized-environment-and-canary-rejection"},
-        "determinism": {"const": "two-distinct-temp-roots-and-hash-seeds-byte-equivalent"}
+        "determinism": {"const": "two-distinct-temp-roots-and-environments-byte-equivalent"}
       },
       "additionalProperties": false
     },

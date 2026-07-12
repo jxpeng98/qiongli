@@ -240,8 +240,8 @@
       "status": "runtime-inventory-freeze-captured",
       "artifact_path": "tooling/migration/ctr-201-cli-runtime.json",
       "schema_path": "tooling/migration/ctr-201-cli-runtime.schema.json",
-      "schema_canonical_sha256": "4be096a194277ac03cbafbbeebafbbda9dec02c74121ad69dca0b9c2a6908255",
-      "payload_sha256": "07d0a8b97a117e137351ac18f3cbcabc2078b6031dcd1da2893a9cda11d7c8f4",
+      "schema_canonical_sha256": "785b051f5d67900d43012b7f9574f43e7a2a1c63e3b4274a4814637d0623175b",
+      "payload_sha256": "b82be3d7f1531a3fefdf3dd864c74042d2d3ecc806d38337f24e2b14d843f41c",
       "public_command_path_count": 49,
       "console_entrypoint_count": 5,
       "case_count": 118,
@@ -450,6 +450,6 @@
   "integrity": {
     "algorithm": "sha256",
     "canonicalization": "utf-8-json-sorted-keys-compact-excluding-integrity",
-    "payload_sha256": "3dbb322ef103d7410f4b55c59aba11eac8220c301c32743af2722aae1891b045"
+    "payload_sha256": "0c68b8df02d4f599fb5e99c6f0c67bc500da075b24c07c795eb72cabcb4cb061"
   }
 }

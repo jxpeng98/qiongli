@@ -137,7 +137,7 @@ ARTIFACT_RECORD_TYPE = "qiongli-ctr-201-cli-runtime-inventory-freeze"
 CANONICALIZATION = "utf-8-json-sorted-keys-compact-excluding-integrity"
 HEX_64 = re.compile(r"^[0-9a-f]{64}$")
 EXPECTED_PAYLOAD_SHA256 = (
-    "07d0a8b97a117e137351ac18f3cbcabc2078b6031dcd1da2893a9cda11d7c8f4"
+    "b82be3d7f1531a3fefdf3dd864c74042d2d3ecc806d38337f24e2b14d843f41c"
 )
 EXPECTED_CASE_MANIFEST_SHA256 = (
     "6f0236562749c56adc94318e49b098b7392dc99bf193e1afd9bda1deb66a7e2e"
@@ -185,7 +185,7 @@ EXPECTED_CAPTURE_CONTRACT = {
         "parent-launches-git-python-node-capture-processes"
     ),
     "secret_policy": "sanitized-environment-and-canary-rejection",
-    "determinism": "two-distinct-temp-roots-and-hash-seeds-byte-equivalent",
+    "determinism": "two-distinct-temp-roots-and-environments-byte-equivalent",
 }
 OBSERVED_ERROR_TAXONOMY = [
     {"id": "none", "meaning": "successful observable outcome"},
@@ -479,6 +479,8 @@ def _tree_digest(root: Path) -> str:
 
 def _runtime_environment(temp_root: Path, variant: str) -> dict[str, str]:
     environment = static_cli._worker_environment(temp_root, variant)
+    # The worker runs with -I, which ignores PYTHON* environment variables.
+    # Keep determinism claims scoped to the distinct temp roots/environments.
     environment.update(
         {
             "COLUMNS": "80",
@@ -487,7 +489,6 @@ def _runtime_environment(temp_root: Path, variant: str) -> dict[str, str]:
             "LC_ALL": "C.UTF-8",
             "TZ": "UTC",
             "NO_COLOR": "1",
-            "PYTHONHASHSEED": "1" if variant == "a" else "731",
             "QIONGLI_CONFIG_HOME": str(temp_root / f"state-{variant}" / "config"),
             "CTR201E_CANARY_SECRET": CANARY_SECRET,
         }
