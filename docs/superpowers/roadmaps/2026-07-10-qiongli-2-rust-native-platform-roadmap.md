@@ -6,10 +6,10 @@ scaffold and normal native gates are implemented. CTR-201A-F close the accepted
 1.x source-oracle inventory in this tree. CTR-202 and FND-202A are integrated
 through PR #59 at merge commit `e24d26ab`: Contract v2 has exact 23/24 closure,
 and `qiongli-content` has the typed manifest and three-profile projection
-contract. The FND-202B branch candidate adds bounded canonical source
-collection; its focused collector tests pass locally, while pull-request review
-and exact-head CI remain open. FND-202C-F writer, loader, materializer, and
-drift work remains open.
+contract. FND-202B is integrated through PR #60 at merge commit `29088975`
+with bounded canonical source collection and green exact-head CI. The FND-202C
+branch candidate adds deterministic writing and content digests with focused
+local evidence; its integration and FND-202D-F remain open.
 Decision date: July 10, 2026
 Execution rebaseline: July 12, 2026
 Target branch after the 1.x freeze: `2.x`
@@ -555,9 +555,9 @@ Current execution record:
   Qiongli Next Marketplace Lite skill subtree, and 343 files for the Full CLI
   global skill subtree;
 - CTR-201D does not claim byte parity for published ZIP/TAR/plugin wrappers,
-  release archives, host activation, or the not-yet-implemented Rust resource
-  pack. The accepted A8 evidence contains source package trees and release
-  asset hashes, but no archive-member tree inventory;
+  release archives, host activation, or Rust resource-pack behavior. The
+  accepted A8 evidence contains source package trees and release asset hashes,
+  but no archive-member tree inventory;
 - CTR-201E implements the accepted-source Full CLI runtime-inventory-freeze
   slice. It
   classifies the 49 public command paths and five console
@@ -593,11 +593,14 @@ Current execution record:
   sensitive-output metadata, bounded external-adapter environment/error
   handling, managed experience paths, shared input validation, nested
   credential redaction, and green exact-head CI;
-- FND-202A is integrated through PR #59 in `qiongli-content`. The FND-202B
-  branch candidate collects the 12 allowlisted canonical roots into sorted,
-  typed, in-memory resources and fails closed on traversal, links, portable
-  path collisions, unsupported file types, and configured count/size limits.
-  Focused tests pass locally; FND-202C-F remains open.
+- FND-202A is integrated through PR #59 in `qiongli-content`. FND-202B is
+  integrated through PR #60 and collects the 12 allowlisted canonical roots
+  into sorted, typed, in-memory resources while failing closed on traversal,
+  links, portable path collisions, unsupported file types, and configured
+  count/size limits. The FND-202C branch candidate deterministically writes the
+  version 1 header, canonical manifest, and ordered payload with entry, content
+  root, and whole-core SHA-256 identities. Focused tests pass locally; FND-202C
+  integration and FND-202D-F remain open.
 
 ### W2 — Native core, config, and data migration
 
@@ -888,8 +891,9 @@ parity remains an unassigned downstream governance boundary rather than a
 CTR-201 blocker. `CTR-202` and `FND-202` are separate successors in the
 declared program DAG and their CTR-201 dependency is closed. CTR-202 is
 complete and integrated through PR #59 with exact-head CI. FND-202A is also
-integrated through PR #59. FND-202B is active as a branch candidate with
-focused local evidence; exact-head integration and FND-202C-F remain open.
+integrated through PR #59. FND-202B is integrated through PR #60 with
+exact-head CI. FND-202C is the active deterministic-writer branch candidate
+with focused local evidence; its integration and FND-202D-F remain open.
 
 ### Cancelled governance tasks
 

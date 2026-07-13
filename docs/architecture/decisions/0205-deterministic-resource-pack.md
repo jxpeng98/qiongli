@@ -71,6 +71,13 @@ Format version 1 is an uncompressed, seekable `.qlpack` core with:
 3. the manifest encoded with RFC 8785 JSON Canonicalization Scheme (JCS); and
 4. raw file payloads concatenated in manifest path order.
 
+The version 1 header is exactly 20 bytes: the eight-byte magic `QLPACK\0\0`
+(`QLPACK` followed by two NUL bytes), a four-byte unsigned format version, and
+an eight-byte unsigned manifest length. Both integers use little-endian
+encoding. Entry
+`payload_offset` values are relative to the first byte after the canonical
+manifest, not to the start of the core.
+
 The manifest contains at least:
 
 - `format_version`, `pack_id`, `content_version`, and canonical source commit;
@@ -81,6 +88,14 @@ The manifest contains at least:
   offset, and SHA-256 digest; and
 - a domain-separated `content_root_sha256` calculated over the ordered entry
   metadata and digests.
+
+For compiler-contract version 1, the content-root preimage is the ASCII domain
+`qiongli:resource-pack:content-root:v1` followed by one NUL byte, then the
+eight-byte little-endian length of the RFC 8785 canonical entry-array JSON,
+then those canonical entry-array bytes. Release metadata such as source commit
+and compatibility range is intentionally outside the content root but remains
+bound by `pack_sha256`. Manifest integers must remain within the RFC 8785 /
+I-JSON safe range (`0..=9007199254740991`).
 
 Offsets must be contiguous, in bounds, non-overlapping, and consistent with
 the declared lengths. The SHA-256 digest of the complete unsigned core is its
