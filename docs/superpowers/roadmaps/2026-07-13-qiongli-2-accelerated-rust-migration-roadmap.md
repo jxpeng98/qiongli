@@ -1,7 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; FND-202E complete and FND-202F locally green, with
-exact-head CI next
+Status: active execution; FND-202E and FND-202F complete, with the first
+`qiongli-config` vertical slice next
 
 Decision date: July 13, 2026
 
@@ -47,9 +47,9 @@ Integrated on `2.x`:
 
 The current physical native workspace contains `apps/qiongli` and
 `qiongli-content`. FND-202E is complete through portability head `870d85b8`,
-and FND-202F has a locally verified implementation candidate on the same
-rolling branch. Work does not return to another legacy inventory or Python
-parity phase.
+and FND-202F is complete at `76ee339f` on the same rolling branch. Work now
+continues directly into the first native config vertical slice rather than
+returning to another legacy inventory or Python parity phase.
 
 ## Operating Rules
 
@@ -219,7 +219,10 @@ Implementation status on July 13, 2026:
 - the FND-202F local gate passed format, workspace check, Clippy with warnings
   denied, and 52 Rust tests. Review caught and closed an initial source-commit
   provenance mismatch, then reported no remaining Critical or Important
-  blocker; exact-head cross-platform CI is the remaining integration evidence.
+  blocker;
+- GitHub Actions run `29292694823` passed the native boundary plus Linux,
+  macOS, and Windows Rust jobs at exact implementation head
+  `76ee339f2c21ac1139ff422392778f3fb0857598` in 7s, 29s, 33s, and 1m3s.
 
 Deliverables:
 
@@ -229,8 +232,7 @@ Deliverables:
    - traversal and symlink rejection;
    - atomic commit and rollback;
    - no arbitrary output path from untrusted MCP input.
-2. FND-202F embedding and drift closure — locally complete; integration
-   evidence pending:
+2. FND-202F embedding and drift closure — complete at `76ee339f`:
    - reproducible build-time pack;
    - embedded expected digest;
    - profile list/read/materialize API;
@@ -383,7 +385,7 @@ superseded head is not reported as current-head evidence.
 
 1. acceleration design, authoritative roadmap, and Draft PR #63: complete;
 2. R0 native required CI and live ruleset narrowing: complete;
-3. FND-202E is complete and FND-202F is locally green in the same rolling PR;
+3. FND-202E and FND-202F are complete in the same rolling PR;
 4. continue directly into the R1 config and native-command slice;
 5. continue into R2 without creating another branch or PR;
 6. continue into R3 and prepare alpha.1 only after the complete vertical gate.

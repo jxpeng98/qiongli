@@ -92,7 +92,16 @@ collector/writer/loader/materializer, `serde`, RFC 8785 canonical JSON, SHA-256.
 - [x] Run `cargo test --workspace --all-targets --all-features --locked`.
 - [x] Review build-script path handling, drift failure semantics, public API
       scope, and the claim that runtime needs no source checkout.
-- [ ] Update the native README, accelerated roadmap, and rolling Draft PR #63
+- [x] Update the native README, accelerated roadmap, and rolling Draft PR #63
       capability ledger with exact evidence and explicit nonclaims.
-- [ ] Commit and push the cohesive FND-202F checkpoint to the existing rolling
+- [x] Commit and push the cohesive FND-202F checkpoint to the existing rolling
       branch and obtain exact-head Linux, macOS, and Windows CI evidence.
+
+Final implementation receipt: checkpoint
+`76ee339f2c21ac1139ff422392778f3fb0857598` passed local format, workspace
+check, Clippy with warnings denied, all 52 Rust tests, and GitHub Actions run
+`29292694823` (boundary 7s, Linux 29s, macOS 33s, Windows 1m3s). Review first
+caught an incorrect legacy provenance value; the final lock is bound to
+canonical 418-file source commit
+`ff2c4f35cd1ee5df78a04ff90a0325273917eed8`, and re-review reported no
+remaining Critical or Important blocker.
