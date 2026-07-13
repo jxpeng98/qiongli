@@ -190,11 +190,13 @@ pub fn build_resource_pack(
     })
 }
 
-fn canonical_json<T: Serialize>(value: &T) -> Result<Vec<u8>, ResourcePackWriterError> {
+pub(crate) fn canonical_json<T: Serialize>(value: &T) -> Result<Vec<u8>, ResourcePackWriterError> {
     serde_json_canonicalizer::to_vec(value).map_err(ResourcePackWriterError::CanonicalJson)
 }
 
-fn content_root_sha256(canonical_entries: &[u8]) -> Result<String, ResourcePackWriterError> {
+pub(crate) fn content_root_sha256(
+    canonical_entries: &[u8],
+) -> Result<String, ResourcePackWriterError> {
     let entries_len = u64::try_from(canonical_entries.len())
         .map_err(|_| ResourcePackWriterError::PayloadSizeOverflow)?;
     let mut hasher = Sha256::new();
@@ -204,7 +206,7 @@ fn content_root_sha256(canonical_entries: &[u8]) -> Result<String, ResourcePackW
     Ok(lower_hex(&hasher.finalize()))
 }
 
-fn sha256_hex(bytes: &[u8]) -> String {
+pub(crate) fn sha256_hex(bytes: &[u8]) -> String {
     lower_hex(&Sha256::digest(bytes))
 }
 

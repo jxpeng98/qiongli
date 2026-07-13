@@ -1,10 +1,15 @@
 pub mod collector;
+pub mod loader;
 pub mod manifest;
 pub mod writer;
 
 pub use collector::{
     CollectedResource, CollectorError, CollectorLimits, collect_canonical_sources,
     collect_canonical_sources_with_limits,
+};
+pub use loader::{
+    LoadedResource, LoadedResourcePack, ResourcePackLimits, ResourcePackLoaderError,
+    load_resource_pack, load_resource_pack_with_limits,
 };
 pub use manifest::{
     CompatibleProduct, JCS_MAX_SAFE_INTEGER, LogicalMode, ManifestError, ProfileId,
