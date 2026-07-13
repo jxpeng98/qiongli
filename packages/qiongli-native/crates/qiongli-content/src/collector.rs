@@ -329,6 +329,18 @@ const CANONICAL_SOURCES: [SourceSpec; 12] = [
     },
 ];
 
+pub(crate) fn expected_resource_kind(path: &str) -> Option<ResourceKind> {
+    CANONICAL_SOURCES.iter().find_map(|source| {
+        let matches = match source.source_match {
+            SourceMatch::Directory => path
+                .strip_prefix(source.path)
+                .is_some_and(|suffix| suffix.starts_with('/')),
+            SourceMatch::File => path == source.path,
+        };
+        matches.then_some(source.resource_kind)
+    })
+}
+
 struct CollectionState {
     limits: CollectorLimits,
     resources: Vec<CollectedResource>,

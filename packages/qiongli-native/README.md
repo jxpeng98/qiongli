@@ -5,8 +5,8 @@ It contains the product application, `apps/qiongli`, plus the first real shared
 service contract in `crates/qiongli-content`. The content crate defines the
 versioned resource-pack manifest, frozen profile projections, and bounded
 canonical source collector. It now compiles those collected bytes into an
-unsigned deterministic `.qlpack` core; it does not yet load, verify, sign, or
-materialize pack bytes.
+unsigned deterministic `.qlpack` core and verifies/loads that core entirely in
+memory; it does not yet sign or materialize pack bytes.
 
 ## Dependency direction
 
@@ -31,7 +31,18 @@ FND-202C writes a 20-byte versioned header, an RFC 8785 canonical manifest, and
 the sorted uncompressed payload. SHA-256 entry digests feed a domain-separated
 content root; SHA-256 over the entire unsigned core produces `pack_sha256`.
 Input enumeration order, filesystem metadata, build paths, and wall-clock time
-do not enter the result. Verification and direct loading belong to FND-202D.
+do not enter the result. FND-202D requires an expected whole-core SHA-256,
+enforces bounded pack/manifest/entry/payload/path limits, rejects noncanonical
+manifests, incompatible format/profile declarations, paths outside the
+canonical roots, path/resource-kind mismatches, portable path collisions,
+trailing payload, content-root drift, and entry-digest drift, then exposes
+borrowed immutable bytes through an explicit profile projection. It accepts no
+output path and performs no filesystem writes.
+
+The expected digest establishes integrity only when it comes from a trusted
+embedding or authenticated descriptor. Publisher signatures, trusted-key and
+revocation policy, running-product compatibility enforcement, runtime
+embedding, and atomic materialization remain separate successor work.
 
 The version 1 header is `QLPACK\0\0`, followed by a little-endian `u32` format
 version and a little-endian `u64` manifest length. Payload offsets start after

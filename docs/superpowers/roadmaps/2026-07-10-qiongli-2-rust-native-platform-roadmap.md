@@ -7,9 +7,11 @@ scaffold and normal native gates are implemented. CTR-201A-F close the accepted
 through PR #59 at merge commit `e24d26ab`: Contract v2 has exact 23/24 closure,
 and `qiongli-content` has the typed manifest and three-profile projection
 contract. FND-202B is integrated through PR #60 at merge commit `29088975`
-with bounded canonical source collection and green exact-head CI. The FND-202C
-branch candidate adds deterministic writing and content digests with focused
-local evidence; its integration and FND-202D-F remain open.
+with bounded canonical source collection and green exact-head CI. FND-202C is
+integrated through PR #61 at merge commit `f6a260bb` with deterministic writing,
+content digests, and green exact-head CI. The FND-202D branch candidate adds
+bounded in-memory verification and profile-scoped direct loading with focused
+local evidence; its integration and FND-202E-F remain open.
 Decision date: July 10, 2026
 Execution rebaseline: July 12, 2026
 Target branch after the 1.x freeze: `2.x`
@@ -597,10 +599,13 @@ Current execution record:
   integrated through PR #60 and collects the 12 allowlisted canonical roots
   into sorted, typed, in-memory resources while failing closed on traversal,
   links, portable path collisions, unsupported file types, and configured
-  count/size limits. The FND-202C branch candidate deterministically writes the
-  version 1 header, canonical manifest, and ordered payload with entry, content
-  root, and whole-core SHA-256 identities. Focused tests pass locally; FND-202C
-  integration and FND-202D-F remain open.
+  count/size limits. FND-202C is integrated through PR #61 and deterministically
+  writes the version 1 header, canonical manifest, and ordered payload with
+  entry, content root, and whole-core SHA-256 identities. The FND-202D branch candidate
+  verifies the expected whole-core digest, bounded canonical manifest, content
+  root, entry payloads, and portable paths before exposing immutable resources
+  through a declared profile. Focused tests pass locally; FND-202D integration
+  and FND-202E-F remain open.
 
 ### W2 — Native core, config, and data migration
 
@@ -892,8 +897,9 @@ CTR-201 blocker. `CTR-202` and `FND-202` are separate successors in the
 declared program DAG and their CTR-201 dependency is closed. CTR-202 is
 complete and integrated through PR #59 with exact-head CI. FND-202A is also
 integrated through PR #59. FND-202B is integrated through PR #60 with
-exact-head CI. FND-202C is the active deterministic-writer branch candidate
-with focused local evidence; its integration and FND-202D-F remain open.
+exact-head CI. FND-202C is integrated through PR #61 with green exact-head CI.
+FND-202D is the active bounded verifier/loader branch candidate with focused
+local evidence; its integration and FND-202E-F remain open.
 
 ### Cancelled governance tasks
 
