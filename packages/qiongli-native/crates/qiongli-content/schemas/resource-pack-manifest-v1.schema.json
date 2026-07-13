@@ -69,8 +69,16 @@
           "path": { "type": "string", "minLength": 1 },
           "resource_kind": { "$ref": "#/$defs/resourceKind" },
           "mode": { "enum": ["0644", "0755"] },
-          "size_bytes": { "type": "integer", "minimum": 0 },
-          "payload_offset": { "type": "integer", "minimum": 0 },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "payload_offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
           "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
         },
         "additionalProperties": false

@@ -5,8 +5,9 @@ use std::fmt::{self, Display, Formatter};
 use semver::Version;
 use serde::{Deserialize, Serialize};
 
-const FORMAT_VERSION: u32 = 1;
-const COMPILER_CONTRACT_VERSION: u32 = 1;
+pub const RESOURCE_PACK_FORMAT_VERSION: u32 = 1;
+pub const RESOURCE_PACK_COMPILER_CONTRACT_VERSION: u32 = 1;
+pub const JCS_MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ManifestError(String);
@@ -104,10 +105,10 @@ impl ResourcePackManifestV1 {
     }
 
     pub fn validate(&self) -> Result<(), ManifestError> {
-        if self.format_version != FORMAT_VERSION {
+        if self.format_version != RESOURCE_PACK_FORMAT_VERSION {
             return Err(ManifestError::new("format_version must be 1"));
         }
-        if self.compiler_contract_version != COMPILER_CONTRACT_VERSION {
+        if self.compiler_contract_version != RESOURCE_PACK_COMPILER_CONTRACT_VERSION {
             return Err(ManifestError::new("compiler_contract_version must be 1"));
         }
         if self.pack_id.is_empty()
@@ -179,6 +180,23 @@ impl ResourcePackManifestV1 {
             ));
         }
 
+        let profile_order = self
+            .profiles
+            .iter()
+            .map(|profile| profile.id)
+            .collect::<Vec<_>>();
+        if profile_order
+            != [
+                ProfileId::SkillOnly,
+                ProfileId::MarketplaceLite,
+                ProfileId::Full,
+            ]
+        {
+            return Err(ManifestError::new(
+                "resource-pack profiles must use canonical order",
+            ));
+        }
+
         for profile_id in [
             ProfileId::SkillOnly,
             ProfileId::MarketplaceLite,
@@ -231,6 +249,13 @@ impl ResourcePackManifestV1 {
                     "resource-pack payload offsets must be contiguous",
                 ));
             }
+            if entry.size_bytes > JCS_MAX_SAFE_INTEGER
+                || entry.payload_offset > JCS_MAX_SAFE_INTEGER
+            {
+                return Err(ManifestError::new(
+                    "resource-pack numeric fields exceed the JCS safe-integer range",
+                ));
+            }
             require_lower_hex(&entry.sha256, 64, "entry sha256")?;
             expected_offset = expected_offset
                 .checked_add(entry.size_bytes)
@@ -275,6 +300,25 @@ fn expected_resource_kinds(profile: ProfileId) -> Vec<ResourceKind> {
     } else {
         all
     }
+}
+
+pub(crate) fn canonical_profile_projections() -> Vec<ProfileProjection> {
+    [
+        ProfileId::SkillOnly,
+        ProfileId::MarketplaceLite,
+        ProfileId::Full,
+    ]
+    .into_iter()
+    .map(|id| ProfileProjection {
+        id,
+        aliases: if id == ProfileId::MarketplaceLite {
+            vec!["lite".to_string()]
+        } else {
+            Vec::new()
+        },
+        included_resource_kinds: expected_resource_kinds(id),
+    })
+    .collect()
 }
 
 fn validate_pack_path(path: &str) -> Result<(), ManifestError> {

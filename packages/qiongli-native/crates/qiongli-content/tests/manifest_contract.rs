@@ -25,6 +25,10 @@ fn schema_closes_versions_profiles_kinds_and_unknown_fields() {
     assert_eq!(schema["additionalProperties"], false);
     assert_eq!(schema["properties"]["format_version"]["const"], 1);
     assert_eq!(
+        schema["properties"]["entries"]["items"]["properties"]["size_bytes"]["maximum"],
+        9_007_199_254_740_991_u64
+    );
+    assert_eq!(
         schema["$defs"]["resourceKind"]["enum"]
             .as_array()
             .expect("resource kind enum")
@@ -95,6 +99,10 @@ fn semantic_mutations_fail_closed() {
     assert!(manifest.validate().is_err());
 
     let mut manifest = golden();
+    manifest.profiles.swap(0, 1);
+    assert!(manifest.validate().is_err());
+
+    let mut manifest = golden();
     manifest.profiles[1].aliases.clear();
     assert!(manifest.validate().is_err());
 
@@ -110,6 +118,10 @@ fn semantic_mutations_fail_closed() {
 
     let mut manifest = golden();
     manifest.entries[1].payload_offset = 99;
+    assert!(manifest.validate().is_err());
+
+    let mut manifest = golden();
+    manifest.entries[0].size_bytes = 9_007_199_254_740_992;
     assert!(manifest.validate().is_err());
 
     let mut manifest = golden();

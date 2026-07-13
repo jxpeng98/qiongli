@@ -4,8 +4,9 @@ This workspace is the canonical Rust-native product source for Qiongli 2.x.
 It contains the product application, `apps/qiongli`, plus the first real shared
 service contract in `crates/qiongli-content`. The content crate defines the
 versioned resource-pack manifest, frozen profile projections, and bounded
-canonical source collector. It does not yet write, load, verify, or materialize
-pack bytes.
+canonical source collector. It now compiles those collected bytes into an
+unsigned deterministic `.qlpack` core; it does not yet load, verify, sign, or
+materialize pack bytes.
 
 ## Dependency direction
 
@@ -26,7 +27,18 @@ tests the format contract without binding the crate to the uncommitted working
 copy of canonical content. FND-202B collects only the 12 allowlisted roots under
 `content/`, normalizes and sorts portable paths, and rejects links, path
 collisions, unsupported file types, and bounded count/size violations.
-Deterministic hashing and `.qlpack` writing belong to FND-202C.
+FND-202C writes a 20-byte versioned header, an RFC 8785 canonical manifest, and
+the sorted uncompressed payload. SHA-256 entry digests feed a domain-separated
+content root; SHA-256 over the entire unsigned core produces `pack_sha256`.
+Input enumeration order, filesystem metadata, build paths, and wall-clock time
+do not enter the result. Verification and direct loading belong to FND-202D.
+
+The version 1 header is `QLPACK\0\0`, followed by a little-endian `u32` format
+version and a little-endian `u64` manifest length. Payload offsets start after
+the manifest. The content-root preimage is
+`qiongli:resource-pack:content-root:v1`, one NUL byte, the little-endian `u64`
+length of the canonical entry-array JSON, and those canonical bytes. The
+manifest schema keeps numeric fields within the JCS safe-integer range.
 
 The existing `packages/qiongli-lite-mcp` crate remains a migration oracle and
 compatibility package. Native functionality will be extracted into shared
