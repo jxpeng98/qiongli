@@ -685,11 +685,7 @@ fn redact_tool_output(value: Value) -> Value {
 }
 
 fn credential_bearing_key(key: &str) -> bool {
-    let normalized = key
-        .trim()
-        .to_ascii_lowercase()
-        .replace('-', "_")
-        .replace(' ', "_");
+    let normalized = key.trim().to_ascii_lowercase().replace(['-', ' '], "_");
     let compact = normalized.replace('_', "");
     let padded = format!("_{normalized}_");
     let has_sensitive_segment = normalized.split('_').any(|segment| {
