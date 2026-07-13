@@ -139,9 +139,19 @@ fn caller_selected_targets_require_explicit_absolute_normalized_approval() {
         Err(MaterializationError::InvalidTarget { .. })
     ));
     assert!(matches!(
-        approve_materialization_target(tree.root.join("child/../install")),
+        approve_materialization_target(absolute_traversal_target(&tree.root)),
         Err(MaterializationError::InvalidTarget { .. })
     ));
+}
+
+#[cfg(windows)]
+fn absolute_traversal_target(_root: &Path) -> PathBuf {
+    PathBuf::from(r"C:\qiongli-child\..\qiongli-install")
+}
+
+#[cfg(not(windows))]
+fn absolute_traversal_target(root: &Path) -> PathBuf {
+    root.join("child/../install")
 }
 
 #[cfg(unix)]
