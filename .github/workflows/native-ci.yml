@@ -1,0 +1,116 @@
+name: Native CI
+
+on:
+  push:
+    branches: ["2.x"]
+    paths-ignore:
+      - "tooling/release/acceptance/**"
+  pull_request:
+    branches: ["2.x"]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  native-change-boundary:
+    name: Native 2.x change boundary
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve comparison base
+        id: comparison-base
+        shell: bash
+        env:
+          PULL_REQUEST_BASE: ${{ github.base_ref }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          zero_sha="0000000000000000000000000000000000000000"
+
+          if [[ -n "$PULL_REQUEST_BASE" ]]; then
+            base_ref="origin/$PULL_REQUEST_BASE"
+          elif [[ -n "$PUSH_BEFORE" && "$PUSH_BEFORE" != "$zero_sha" ]] &&
+               git cat-file -e "$PUSH_BEFORE^{commit}" 2>/dev/null; then
+            base_ref="$PUSH_BEFORE"
+          elif git rev-parse --verify HEAD^ >/dev/null 2>&1; then
+            base_ref="HEAD^"
+          else
+            base_ref="$(git rev-list --max-parents=0 HEAD)"
+          fi
+
+          echo "base-ref=$base_ref" >> "$GITHUB_OUTPUT"
+
+      - name: Protect frozen legacy and architecture boundaries
+        run: >-
+          ./scripts/check_2x_native_change_boundary.sh
+          --base-ref "${{ steps.comparison-base.outputs.base-ref }}"
+
+  rust-native-foundation:
+    name: Rust native foundation (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Linux
+            os: ubuntu-latest
+          - platform: macOS
+            os: macos-latest
+          - platform: Windows
+            os: windows-latest
+    env:
+      CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+      CARGO_BUILD_RUSTC_WRAPPER: ""
+      CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+      CARGO_BUILD_RUSTFLAGS: ""
+      CARGO_ENCODED_RUSTFLAGS: ""
+      RUSTC_WORKSPACE_WRAPPER: ""
+      RUSTC_WRAPPER: ""
+      RUSTFLAGS: ""
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@1.97.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Reject injected target-specific Rust flags
+        shell: bash
+        run: |
+          injected=0
+          while IFS='=' read -r name value; do
+            case "$name" in
+              CARGO_TARGET_*_RUSTFLAGS)
+                if [[ -n "$value" ]]; then
+                  echo "Unexpected Rust compiler override: $name" >&2
+                  injected=1
+                fi
+                ;;
+            esac
+          done < <(env)
+          [[ "$injected" -eq 0 ]]
+
+      - name: Check native Rust formatting
+        run: cargo fmt --manifest-path packages/qiongli-native/Cargo.toml --all -- --check
+
+      - name: Check native Rust workspace
+        run: cargo check --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked
+
+      - name: Run native Rust clippy
+        run: cargo clippy --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked -- -D warnings
+
+      - name: Run native Rust tests
+        run: cargo test --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked

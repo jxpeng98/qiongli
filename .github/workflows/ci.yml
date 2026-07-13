@@ -1,12 +1,13 @@
-name: CI
+name: Legacy Compatibility CI
 
 on:
   push:
-    branches: ["main", "master", "dev", "2.x"]
+    branches: ["main", "master", "dev"]
     paths-ignore:
       - "tooling/release/acceptance/**"
   pull_request:
-    branches: ["main", "master", "dev", "2.x"]
+    branches: ["main", "master", "dev"]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
