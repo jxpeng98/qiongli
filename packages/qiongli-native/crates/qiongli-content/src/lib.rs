@@ -1,6 +1,7 @@
 pub mod collector;
 pub mod loader;
 pub mod manifest;
+pub mod materializer;
 pub mod writer;
 
 pub use collector::{
@@ -15,6 +16,11 @@ pub use manifest::{
     CompatibleProduct, JCS_MAX_SAFE_INTEGER, LogicalMode, ManifestError, ProfileId,
     ProfileProjection, RESOURCE_PACK_COMPILER_CONTRACT_VERSION, RESOURCE_PACK_FORMAT_VERSION,
     ResourceEntry, ResourceKind, ResourcePackManifestV1,
+};
+pub use materializer::{
+    MATERIALIZATION_RECEIPT_FILE, MATERIALIZATION_RECEIPT_VERSION, MaterializationAuthorization,
+    MaterializationError, MaterializationReceiptV1, MaterializationTarget, MaterializedEntry,
+    approve_materialization_target, materialize_profile, temporary_materialization_target,
 };
 pub use writer::{
     BuiltResourcePack, RESOURCE_PACK_CONTENT_ROOT_DOMAIN_V1, RESOURCE_PACK_HEADER_LEN,

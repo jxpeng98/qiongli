@@ -4,9 +4,10 @@ This workspace is the canonical Rust-native product source for Qiongli 2.x.
 It contains the product application, `apps/qiongli`, plus the first real shared
 service contract in `crates/qiongli-content`. The content crate defines the
 versioned resource-pack manifest, frozen profile projections, and bounded
-canonical source collector. It now compiles those collected bytes into an
-unsigned deterministic `.qlpack` core and verifies/loads that core entirely in
-memory; it does not yet sign or materialize pack bytes.
+canonical source collector. It compiles those collected bytes into an unsigned
+deterministic `.qlpack` core, verifies and loads that core entirely in memory,
+and can atomically materialize a verified profile through a trusted target
+capability.
 
 ## Dependency direction
 
@@ -39,10 +40,35 @@ trailing payload, content-root drift, and entry-digest drift, then exposes
 borrowed immutable bytes through an explicit profile projection. It accepts no
 output path and performs no filesystem writes.
 
+FND-202E keeps the write boundary separate from loading. A caller can request a
+unique target inside an atomically created private temporary container (`0700`
+on Unix) or can explicitly approve an absolute normalized target at a trusted
+CLI, UI, or installer boundary. Explicit Unix targets reject group- or
+world-writable ancestors; the private temporary factory permits only sticky
+system temporary ancestors before its owner-only container. Model-generated
+and MCP tool arguments must not cross that approval boundary. Materialization
+refuses linked/reparse-point ancestors, unmanaged existing contents, receipt or
+file drift, hard-linked managed files on Unix, and concurrent target ownership.
+The create-new lock is
+pinned to its file identity so an earlier owner does not unlink a replacement.
+The selected profile and canonical `.qiongli-materialization.json` receipt are
+written into a unique sibling staging directory that remains `0700` while
+files are atomically created as `0600` on Unix. Files are closed before final
+modes are applied; directories become `0755` only after writing completes. The
+tree is then verified with bounded canonical-source/profile paths and logical
+`0644`/`0755` modes before the prior managed tree is renamed to a backup and the
+staging tree is promoted.
+A promotion failure restores the backup before returning; handled pre-commit
+failures remove their staging and lock artifacts. A failure after promotion is
+reported explicitly as committed-with-cleanup-failure, including any remaining
+backup cleanup path, instead of being indistinguishable from a pre-commit
+failure.
+
 The expected digest establishes integrity only when it comes from a trusted
 embedding or authenticated descriptor. Publisher signatures, trusted-key and
 revocation policy, running-product compatibility enforcement, runtime
-embedding, and atomic materialization remain separate successor work.
+embedding, public CLI/UI wiring, host installation, and adversarial same-user
+handle-relative filesystem hardening remain separate successor work.
 
 The version 1 header is `QLPACK\0\0`, followed by a little-endian `u32` format
 version and a little-endian `u64` manifest length. Payload offsets start after
