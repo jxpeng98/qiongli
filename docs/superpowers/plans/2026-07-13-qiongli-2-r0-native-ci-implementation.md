@@ -635,7 +635,7 @@ python3 -m unittest tests.test_branch_policy -v
 
 Expected: no whitespace errors and the branch policy suite passes.
 
-- [ ] **Step 5: Commit the governance checkpoint**
+- [x] **Step 5: Commit the governance checkpoint**
 
 ```bash
 git add docs/maintainer/release-branch-policy.md \
@@ -649,7 +649,7 @@ git commit -m "docs(native): record the R0 CI control plane"
 **Files:**
 - Verify only; no expected source edits
 
-- [ ] **Step 1: Check formatting**
+- [x] **Step 1: Check formatting**
 
 ```bash
 cargo fmt --manifest-path packages/qiongli-native/Cargo.toml --all -- --check
@@ -657,7 +657,7 @@ cargo fmt --manifest-path packages/qiongli-native/Cargo.toml --all -- --check
 
 Expected: exit 0.
 
-- [ ] **Step 2: Check all workspace targets**
+- [x] **Step 2: Check all workspace targets**
 
 ```bash
 cargo check --manifest-path packages/qiongli-native/Cargo.toml \
@@ -666,7 +666,7 @@ cargo check --manifest-path packages/qiongli-native/Cargo.toml \
 
 Expected: exit 0.
 
-- [ ] **Step 3: Run Clippy**
+- [x] **Step 3: Run Clippy**
 
 ```bash
 cargo clippy --manifest-path packages/qiongli-native/Cargo.toml \
@@ -675,7 +675,7 @@ cargo clippy --manifest-path packages/qiongli-native/Cargo.toml \
 
 Expected: exit 0 with no warnings.
 
-- [ ] **Step 4: Run all native workspace tests**
+- [x] **Step 4: Run all native workspace tests**
 
 ```bash
 cargo test --manifest-path packages/qiongli-native/Cargo.toml \
@@ -690,13 +690,13 @@ Expected: exit 0 with all tests passing.
 - External update: GitHub ruleset `18800504`
 - External update: Draft PR #63 body
 
-- [ ] **Step 1: Push the same rolling branch**
+- [x] **Step 1: Push the same rolling branch**
 
 ```bash
 git push origin feat/2x-native-alpha1
 ```
 
-- [ ] **Step 2: Verify workflow routing on the exact head**
+- [x] **Step 2: Verify workflow routing on the exact head**
 
 Run:
 
@@ -709,7 +709,7 @@ Expected: `Native CI` produces `Native 2.x change boundary` and three
 `Rust native foundation` checks. `Legacy Compatibility CI` and `Legacy Checkout
 Install Check` do not start automatically for the PR head.
 
-- [ ] **Step 3: Update ruleset 18800504**
+- [x] **Step 3: Update ruleset 18800504**
 
 Submit a full ruleset update preserving pull-request, deletion, and
 non-fast-forward protection while replacing the old eleven required contexts
@@ -728,7 +728,7 @@ Keep `strict_required_status_checks_policy=true`, no bypass actors, zero
 required approving reviews, stale-review dismissal, review-thread resolution,
 and merge/squash/rebase methods exactly as currently configured.
 
-- [ ] **Step 4: Verify the live ruleset and exact-head checks**
+- [x] **Step 4: Verify the live ruleset and exact-head checks**
 
 ```bash
 gh api repos/jxpeng98/qiongli/rulesets/18800504
@@ -738,7 +738,7 @@ gh pr checks 63 --required
 Expected: the live ruleset contains exactly four required contexts and all four
 are successful on the current PR head.
 
-- [ ] **Step 5: Update the Draft PR ledger without overstating R1**
+- [x] **Step 5: Update the Draft PR ledger without overstating R1**
 
 Record:
 

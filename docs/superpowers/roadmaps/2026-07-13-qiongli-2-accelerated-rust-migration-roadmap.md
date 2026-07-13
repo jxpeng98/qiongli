@@ -1,7 +1,6 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; R0 repository implementation awaits exact-head CI
-and live ruleset verification
+Status: active execution; R0 complete and R1 FND-202E is next
 
 Decision date: July 13, 2026
 
@@ -151,10 +150,14 @@ Purpose: remove process overhead before adding more product surface.
 
 Implementation status on July 13, 2026:
 
-- workflow routing, the dependency-free frozen change boundary, and focused
-  policy tests are implemented at checkpoint `de98cc96`;
-- exact-head GitHub Actions evidence and ruleset `18800504` narrowing remain
-  open until this checkpoint is pushed and all four native contexts pass.
+- complete at checkpoint `4d81a933` after actionlint, 18 focused policy tests,
+  and the local native format/check/Clippy/workspace-test gate passed;
+- GitHub Actions run `29286377360` passed the change boundary and Linux, macOS,
+  and Windows Rust jobs on that checkpoint;
+- live ruleset `18800504` requires exactly those four contexts while retaining
+  pull-request, deletion, non-fast-forward, review-thread, and no-bypass rules;
+- Draft PR #63 remains the only active 2.x migration PR, so R1 begins with
+  FND-202E in the same branch.
 
 Deliverables:
 
@@ -333,13 +336,12 @@ superseded head is not reported as current-head evidence.
 
 ## Immediate Sequence
 
-1. commit and review the acceleration design and roadmap;
-2. create the one Draft PR from `feat/2x-native-alpha1` to `2.x`;
-3. replace legacy required CI with the native R0 gate;
-4. implement FND-202E and FND-202F in the same rolling PR;
-5. continue directly into the R1 config and native-command slice;
-6. continue into R2 without creating another branch or PR;
-7. continue into R3 and prepare alpha.1 only after the complete vertical gate.
+1. acceleration design, authoritative roadmap, and Draft PR #63: complete;
+2. R0 native required CI and live ruleset narrowing: complete;
+3. implement FND-202E and FND-202F in the same rolling PR;
+4. continue directly into the R1 config and native-command slice;
+5. continue into R2 without creating another branch or PR;
+6. continue into R3 and prepare alpha.1 only after the complete vertical gate.
 
 ## Program Done
 

@@ -1497,19 +1497,18 @@ merged; CTR-201F provides the final orchestrator-runtime inventory closure.
 CTR-202 and FND-202A are integrated through PR #59, and FND-202B is integrated
 through PR #60. FND-202C is integrated through PR #61, and FND-202D is
 integrated through PR #62. The one active native branch is
-`feat/2x-native-alpha1`. Continue in this order:
+`feat/2x-native-alpha1`, and Draft PR #63 carries the alpha.1 milestone. R0 is
+complete at checkpoint `4d81a933`: GitHub Actions run `29286377360` passed the
+four native contexts, and live ruleset `18800504` requires only those contexts
+while retaining the existing branch protections. Continue in this order:
 
-1. commit the approved acceleration design and authoritative R0-R5 roadmap,
-   then open the single alpha.1 Draft PR;
-2. complete R0 by making Rust-native checks the required 2.x feedback path and
-   moving full Python/Node suites to non-blocking manual compatibility jobs;
-3. implement FND-202E atomic materialization and FND-202F source-drift/parity
+1. implement FND-202E atomic materialization and FND-202F source-drift/parity
    aggregation as consecutive checkpoints in the same Draft PR;
-4. continue directly into versioned config/state, native Lite MCP, CLI/doctor,
+2. continue directly into versioned config/state, native Lite MCP, CLI/doctor,
    platform registration, desktop UI, packaging, and clean-machine proof;
-5. update the PR capability ledger after every coherent checkpoint and fix
+3. update the PR capability ledger after every coherent checkpoint and fix
    concrete native regressions without opening child PRs;
-6. keep public publication fail-closed until artifact, signing, updater,
+4. keep public publication fail-closed until artifact, signing, updater,
    target-native acceptance, and truthful release-scope gates pass.
 
 ## Phase Completion Definition
