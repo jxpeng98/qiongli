@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from bridges.command_runtime import current_python_command, split_command
+from bridges.experience_runtime import redact_experience_payload
 from bridges.provider_config import (
     provider_config_env,
     provider_config_summary,
@@ -44,6 +45,22 @@ DIRECT_LITERATURE_PROVIDER_KEYS = {
     "pubmed",
     "arxiv",
 }
+
+SAFE_EXTERNAL_ENV_NAMES = {
+    "COMSPEC",
+    "HOME",
+    "LANG",
+    "LC_ALL",
+    "PATH",
+    "SSL_CERT_DIR",
+    "SSL_CERT_FILE",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "TMPDIR",
+    "USERPROFILE",
+}
+MAX_EXTERNAL_OUTPUT_BYTES = 262_144
 
 
 class MCPConnector:
@@ -154,8 +171,23 @@ class MCPConnector:
         }
         try:
             parsed_cmd = split_command(command)
-            child_env = dict(os.environ)
-            child_env.update(provider_config_env(resolve_provider_config(cwd=cwd, env=child_env)))
+            child_env = {
+                key: value
+                for key, value in os.environ.items()
+                if key.upper() in SAFE_EXTERNAL_ENV_NAMES
+            }
+            if resolution.source == "builtin":
+                child_env.update(
+                    {
+                        key: value
+                        for key, value in os.environ.items()
+                        if key == "QIONGLI_CONFIG_HOME"
+                        or (key.startswith("RESEARCH_MCP_") and key.endswith("_CMD"))
+                    }
+                )
+                child_env.update(
+                    provider_config_env(resolve_provider_config(cwd=cwd, env=os.environ))
+                )
             run_result = subprocess.run(
                 parsed_cmd,
                 input=json.dumps(payload, ensure_ascii=False),
@@ -173,21 +205,20 @@ class MCPConnector:
                 summary=f"External MCP command timed out after {self.timeout_seconds}s.",
                 provenance=[env_name],
             )
-        except OSError as exc:
+        except OSError:
             return MCPEvidence(
                 provider=provider,
                 status="error",
-                summary=f"External MCP command failed to start: {exc}",
+                summary="External MCP command failed to start.",
                 provenance=[env_name],
             )
 
         if run_result.returncode != 0:
-            stderr = (run_result.stderr or "").strip()
             return MCPEvidence(
                 provider=provider,
                 status="error",
                 summary=f"External MCP command exited with code {run_result.returncode}.",
-                provenance=[env_name, stderr] if stderr else [env_name],
+                provenance=[env_name],
             )
 
         stdout = (run_result.stdout or "").strip()
@@ -198,6 +229,13 @@ class MCPConnector:
                 summary="External MCP command returned empty output.",
                 provenance=[env_name],
             )
+        if len(stdout.encode("utf-8")) > MAX_EXTERNAL_OUTPUT_BYTES:
+            return MCPEvidence(
+                provider=provider,
+                status="error",
+                summary="External MCP command output exceeded the allowed size.",
+                provenance=[env_name],
+            )
 
         try:
             parsed = json.loads(stdout)
@@ -206,7 +244,15 @@ class MCPConnector:
                 provider=provider,
                 status="warning",
                 summary="External MCP command returned non-JSON output.",
-                provenance=[env_name, stdout[:280]],
+                provenance=[env_name],
+            )
+
+        if not isinstance(parsed, dict):
+            return MCPEvidence(
+                provider=provider,
+                status="warning",
+                summary="External MCP command returned an invalid JSON envelope.",
+                provenance=[env_name],
             )
 
         raw_status = str(parsed.get("status", "ok")).strip().lower()
@@ -222,6 +268,10 @@ class MCPConnector:
         data = parsed.get("data", {})
         if not isinstance(data, dict):
             data = {"raw_data": data}
+        data = redact_experience_payload(data)
+        if resolution.source == "env_override":
+            summary = "External MCP command completed."
+            provenance = [env_name]
 
         return MCPEvidence(
             provider=provider,

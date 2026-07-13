@@ -52,13 +52,13 @@ class MCPLiteratureToolTests(unittest.TestCase):
     def test_literature_status_and_search_plan_reject_invalid_contract_inputs(self) -> None:
         canary = "QIONGLI_LITERATURE_INPUT_CANARY_DO_NOT_ECHO"
         cases = (
-            ("qiongli_literature_status", {"unknown": canary}),
+            ("qiongli_literature_status", {canary: "value"}),
             ("qiongli_literature_status", {"cwd": 7}),
             ("qiongli_literature_status", {"cwd": "   "}),
             ("qiongli_search_plan", {}),
             ("qiongli_search_plan", {"query": "   "}),
             ("qiongli_search_plan", {"query": ["not", "a", "string"]}),
-            ("qiongli_search_plan", {"query": "valid", "unexpected": canary}),
+            ("qiongli_search_plan", {"query": "valid", canary: "value"}),
             (
                 "qiongli_search_plan",
                 {
@@ -516,6 +516,45 @@ class MCPLiteratureToolTests(unittest.TestCase):
         )
         self.assertEqual(payload["data"]["search_results"][0]["source"], "openalex")
         self.assertEqual(provider_calls[0][1]["filters"]["year_start"], "2020")
+
+    def test_literature_search_redacts_provider_exception_from_full_mcp_output(self) -> None:
+        canary = "QIONGLI_FULL_PROVIDER_EXCEPTION_CANARY_DO_NOT_ECHO"
+        config = {
+            "providers": {
+                "openalex": {
+                    "enabled": True,
+                    "configured": True,
+                    "api_key": "configured-key",
+                }
+            }
+        }
+        with (
+            mock.patch(
+                "bridges.literature_mcp_tools.resolve_provider_config",
+                return_value=config,
+            ),
+            mock.patch(
+                "bridges.literature_mcp_tools.openalex_client.search",
+                side_effect=RuntimeError(canary),
+            ),
+        ):
+            result = call_qiongli_tool(
+                "qiongli_literature_search",
+                {"query": "provider exception redaction"},
+            )
+
+        payload = result["structuredContent"]
+        failure = payload["data"]["failures"][0]
+        search_log = payload["data"]["search_log"][0]
+        provider_failure = payload["data"]["provider_summaries"]["openalex"][
+            "failures"
+        ][0]
+        self.assertFalse(result["isError"])
+        self.assertEqual(payload["status"], "error")
+        self.assertEqual(failure["error_kind"], "provider_exception")
+        self.assertEqual(search_log["error_kind"], "provider_exception")
+        self.assertEqual(provider_failure["error_kind"], "provider_exception")
+        self.assertNotIn(canary, json.dumps(result, sort_keys=True))
 
     def test_literature_search_with_all_providers_disabled_never_uses_legacy_network_fallback(
         self,

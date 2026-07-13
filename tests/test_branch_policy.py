@@ -247,21 +247,15 @@ class BranchPolicyTests(unittest.TestCase):
         architecture_guard_cmd = (
             "          python scripts/check_frozen_2x_architecture_baseline.py"
         )
-        source_guard_cmd = (
-            "          python scripts/validate_repository_source.py"
-        )
         materialize_cmd = 'python scripts/materialize_distribution_payloads.py --target all --out "$RUNNER_TEMP/qiongli-dist" --force'
 
         self.assertIn(resolver_step, content)
         self.assertIn(guard_cmd, content)
         self.assertIn(frozen_guard_cmd, content)
         self.assertIn(architecture_guard_cmd, content)
-        self.assertIn(source_guard_cmd, content)
         self.assertIn(materialize_cmd, content)
         self.assertLess(content.index(resolver_step), content.index(guard_cmd))
         self.assertLess(content.index(guard_cmd), content.index(materialize_cmd))
-        self.assertLess(content.index(guard_cmd), content.index(source_guard_cmd))
-        self.assertLess(content.index(source_guard_cmd), content.index(materialize_cmd))
         self.assertLess(content.index(frozen_guard_cmd), content.index(materialize_cmd))
         self.assertLess(
             content.index(architecture_guard_cmd), content.index(materialize_cmd)
@@ -295,13 +289,10 @@ class BranchPolicyTests(unittest.TestCase):
             "        shell: bash",
             content,
         )
-        self.assertIn(
-            "      - name: Validate repository source policy\n        shell: bash",
-            content,
-        )
+        self.assertNotIn("python scripts/validate_repository_source.py", content)
         self.assertIn('--base-ref "$GENERATED_PAYLOAD_BASE"', content)
         self.assertEqual(
-            content.count('--base-ref "$GENERATED_PAYLOAD_BASE"'), 4
+            content.count('--base-ref "$GENERATED_PAYLOAD_BASE"'), 3
         )
         self.assertNotIn("--base-ref origin/dev", content)
 

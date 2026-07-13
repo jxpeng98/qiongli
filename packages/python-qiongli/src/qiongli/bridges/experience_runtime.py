@@ -8,7 +8,6 @@ from typing import Any
 
 
 SCHEMA_VERSION = "1.0"
-EXPERIENCE_INDEX_REL = Path(".qiongli") / "trace" / "experience.jsonl"
 EXPERIENCE_RECORD_NAME = "experience_record.json"
 REQUIRED_EXPERIENCE_OBJECT_FIELDS = (
     "task",
@@ -30,6 +29,7 @@ def build_experience_record(
     validator_gate: dict[str, Any],
 ) -> dict[str, Any]:
     root = Path(project_root).expanduser().resolve()
+    resolved_run_dir = _safe_run_dir(root, run_dir)
     worker_state = _mapping(task_packet.get("worker_orchestration"))
     controller = _mapping(task_packet.get("controller_metadata"))
     subject_refinement = _mapping(
@@ -85,7 +85,7 @@ def build_experience_record(
             "found_outputs": found_outputs,
             "missing_outputs": missing_outputs,
             "artifacts_written": _string_list(task_packet.get("artifacts_written")),
-            "trace_files": _trace_files(root, run_dir),
+            "trace_files": _trace_files(root, resolved_run_dir),
         },
         "quality": {
             "validator_status": _validator_status(validator_gate),
@@ -122,7 +122,9 @@ def write_experience_record(
     validator_gate: dict[str, Any],
 ) -> dict[str, Any]:
     root = Path(project_root).expanduser().resolve()
-    resolved_run_dir = Path(run_dir).expanduser().resolve()
+    resolved_run_dir = _safe_run_dir(root, run_dir)
+    record_path = _record_path_for_run(root, resolved_run_dir.name)
+    index_path = _experience_index_path(root)
     record = build_experience_record(
         project_root=root,
         run_dir=resolved_run_dir,
@@ -130,8 +132,9 @@ def write_experience_record(
         task_packet=task_packet,
         validator_gate=validator_gate,
     )
-    record_path = resolved_run_dir / EXPERIENCE_RECORD_NAME
-    index_path = root / EXPERIENCE_INDEX_REL
+    record_run_id = str(record.get("run_id", "") or "").strip()
+    if record_run_id and record_run_id != resolved_run_dir.name:
+        raise ValueError("experience run_id does not match the managed run directory")
     record_path.parent.mkdir(parents=True, exist_ok=True)
     index_path.parent.mkdir(parents=True, exist_ok=True)
     record_path.write_text(
@@ -199,9 +202,7 @@ def query_experience(
 
 def show_experience(project_root: Path, run_id: str) -> dict[str, Any]:
     root = Path(project_root).expanduser().resolve()
-    normalized_run_id = str(run_id).strip()
-    if not normalized_run_id:
-        raise ValueError("run_id is required")
+    normalized_run_id = _safe_run_id(run_id)
     record_path = _record_path_for_run(root, normalized_run_id)
     if record_path.is_file():
         loaded = json.loads(record_path.read_text(encoding="utf-8"))
@@ -533,7 +534,7 @@ def experience_metrics(project_root: Path) -> dict[str, Any]:
 
 def experience_schema_compatibility(project_root: Path) -> dict[str, Any]:
     root = Path(project_root).expanduser().resolve()
-    index_path = root / EXPERIENCE_INDEX_REL
+    index_path = _experience_index_path(root)
     errors: list[str] = []
     checked_records = 0
     malformed_count = 0
@@ -567,7 +568,11 @@ def experience_schema_compatibility(project_root: Path) -> dict[str, Any]:
         run_id = str(parsed.get("run_id", "") or "").strip()
         if not run_id:
             continue
-        record_path = _record_path_for_run(root, run_id)
+        try:
+            record_path = _record_path_for_run(root, run_id)
+        except ValueError:
+            errors.append(f"{source}: run_id does not identify a managed experience record")
+            continue
         if not record_path.is_file():
             continue
         record_source = _rel(root, record_path)
@@ -730,7 +735,7 @@ def _skill_reinforcement_candidate_text(
 
 
 def _load_experience_rows(root: Path) -> tuple[list[dict[str, Any]], int]:
-    index_path = root / EXPERIENCE_INDEX_REL
+    index_path = _experience_index_path(root)
     if not index_path.is_file():
         return [], 0
     rows: list[dict[str, Any]] = []
@@ -791,7 +796,143 @@ def _record_matches(record: dict[str, Any], filters: dict[str, Any]) -> bool:
 
 
 def _record_path_for_run(root: Path, run_id: str) -> Path:
-    return root / ".qiongli" / "trace" / "runs" / run_id / EXPERIENCE_RECORD_NAME
+    normalized_run_id = _safe_run_id(run_id)
+    runs_root = _experience_runs_root(root)
+    expected_path = runs_root / normalized_run_id / EXPERIENCE_RECORD_NAME
+    record_path = expected_path.resolve()
+    _require_exact_managed_path(record_path, expected_path, "experience record")
+    return record_path
+
+
+def _safe_run_id(run_id: Any) -> str:
+    normalized = str(run_id).strip()
+    if (
+        not normalized
+        or len(normalized) > 255
+        or normalized in {".", ".."}
+        or "/" in normalized
+        or "\\" in normalized
+        or "\x00" in normalized
+        or not normalized[0].isascii()
+        or not normalized[0].isalnum()
+        or not all(
+            character.isascii()
+            and (character.isalnum() or character in {".", "_", "-"})
+            for character in normalized
+        )
+    ):
+        raise ValueError("run_id must be a safe managed-run identifier")
+    return normalized
+
+
+def _experience_trace_root(root: Path) -> Path:
+    resolved_root = Path(root).expanduser().resolve()
+    expected_root = resolved_root / ".qiongli" / "trace"
+    trace_root = expected_root.resolve()
+    _require_exact_managed_path(trace_root, expected_root, "experience trace root")
+    return trace_root
+
+
+def _experience_runs_root(root: Path) -> Path:
+    trace_root = _experience_trace_root(root)
+    expected_root = trace_root / "runs"
+    runs_root = expected_root.resolve()
+    _require_exact_managed_path(runs_root, expected_root, "experience runs root")
+    return runs_root
+
+
+def _experience_index_path(root: Path) -> Path:
+    trace_root = _experience_trace_root(root)
+    expected_path = trace_root / "experience.jsonl"
+    index_path = expected_path.resolve()
+    _require_exact_managed_path(index_path, expected_path, "experience index")
+    return index_path
+
+
+def _safe_run_dir(root: Path, run_dir: Path) -> Path:
+    runs_root = _experience_runs_root(root)
+    expanded_run_dir = Path(run_dir).expanduser()
+    if ".." in expanded_run_dir.parts:
+        raise ValueError("experience run directory must not traverse managed project paths")
+    run_id = _safe_run_id(expanded_run_dir.name)
+    expected_run_dir = runs_root / run_id
+    resolved_run_dir = expanded_run_dir.resolve()
+    _require_exact_managed_path(
+        resolved_run_dir,
+        expected_run_dir,
+        "experience run directory",
+    )
+    return resolved_run_dir
+
+
+def _require_exact_managed_path(candidate: Path, expected: Path, label: str) -> None:
+    if candidate != expected:
+        raise ValueError(f"{label} must not traverse or redirect managed project paths")
+
+
+def redact_experience_payload(value: Any) -> Any:
+    """Return experience data with credential-bearing mapping entries removed."""
+
+    if isinstance(value, Mapping):
+        return {
+            str(key): redact_experience_payload(item)
+            for key, item in value.items()
+            if not _credential_bearing_key(key)
+        }
+    if isinstance(value, list):
+        return [redact_experience_payload(item) for item in value]
+    if isinstance(value, tuple):
+        return [redact_experience_payload(item) for item in value]
+    return value
+
+
+def _credential_bearing_key(key: Any) -> bool:
+    normalized = str(key).strip().lower().replace("-", "_").replace(" ", "_")
+    compact = normalized.replace("_", "")
+    segments = set(filter(None, normalized.split("_")))
+    padded = f"_{normalized}_"
+    return bool(
+        segments
+        & {
+            "secret",
+            "password",
+            "passwd",
+            "credential",
+            "credentials",
+            "auth",
+            "bearer",
+        }
+        or normalized in {"token", "authorization"}
+        or normalized.endswith(
+            ("apikey", "accesstoken", "accesskey", "privatekey", "clientsecret")
+        )
+        or compact.endswith(
+            (
+                "token",
+                "apikey",
+                "accesstoken",
+                "accesskey",
+                "privatekey",
+                "clientsecret",
+            )
+        )
+        or any(
+            f"_{marker}_" in padded
+            for marker in (
+                "api_key",
+                "access_key",
+                "authorization",
+                "cookie",
+                "private_key",
+                "client_secret",
+                "access_token",
+                "refresh_token",
+                "auth_token",
+                "id_token",
+            )
+        )
+        or normalized.endswith("_token")
+    )
 
 
 def _task_from_record(record: dict[str, Any]) -> dict[str, Any]:
@@ -981,9 +1122,19 @@ def _trace_path_from_record(record: dict[str, Any]) -> str:
         if marker in first:
             prefix, _, rest = first.partition(marker)
             run_id = rest.split("/", 1)[0]
+            try:
+                run_id = _safe_run_id(run_id)
+            except ValueError:
+                return ""
             return f"{prefix}{marker}{run_id}/{EXPERIENCE_RECORD_NAME}"
     run_id = str(record.get("run_id", "")).strip()
-    return f".qiongli/trace/runs/{run_id}/{EXPERIENCE_RECORD_NAME}" if run_id else ""
+    if not run_id:
+        return ""
+    try:
+        run_id = _safe_run_id(run_id)
+    except ValueError:
+        return ""
+    return f".qiongli/trace/runs/{run_id}/{EXPERIENCE_RECORD_NAME}"
 
 
 def _replay_recommendation(
@@ -1002,7 +1153,7 @@ def _replay_recommendation(
 
 
 def _trace_files(root: Path, run_dir: Path) -> list[str]:
-    resolved_run_dir = Path(run_dir).expanduser().resolve()
+    resolved_run_dir = _safe_run_dir(root, run_dir)
     if not resolved_run_dir.is_dir():
         return []
     return sorted(

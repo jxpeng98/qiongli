@@ -11,8 +11,13 @@ CTR-201E's accepted-source Full CLI runtime-inventory freeze is merged through
 protected PR #57. CTR-201F closes the accepted-source orchestrator runtime
 inventory with 44 deterministic cases (one A8 plus 43 bounded), six behavior
 dimensions, and six explicit dispositions. The CTR-201 source-oracle gate is
-complete in this tree. CTR-202 and FND-202 are
-now unblocked, separate successor tasks; neither is implemented.
+complete in this tree. CTR-202 and FND-202 are separate successors whose
+CTR-201 dependency is closed. The CTR-202 working-tree candidate now fixes the
+concrete redaction, managed-path, external-adapter, input, and profile-specific
+metadata defects exposed by the July 12 review. Complete-mode and focused
+runtime validation pass locally; commit, protected-branch review, and
+exact-head CI remain open. FND-202A is implemented locally as a typed native
+manifest/profile contract; FND-202B-F remains open.
 B1 / REL-201 now provides a typed native
 release identity, strict 1.x/2.x channel isolation, and an external-staging
 `v2.0.0-alpha.1` dry-run; real native publication remains fail-closed pending
@@ -732,7 +737,7 @@ Create `tooling/release/v1.19.0-beta.1.md` from
 - Contract v2 pilot version and exact coverage, not a completeness claim;
 - configuration and literature-planning behavior;
 - security and compatibility closures;
-- AC1 academic-code and RC1 repository-code governance status;
+- optional AC1/RC1 guidance status without a 2.x enforcement claim;
 - product and component version map;
 - supported client surfaces;
 - current-host native target and the absence of a generic multi-platform claim;
@@ -1032,7 +1037,7 @@ B1 execution status: **implemented as a non-publishing release contract**.
 
 ### B2 — Scaffold the native workspace and gates
 
-Task IDs: `FND-201`, `GOV-201`
+Task IDs: `FND-201`
 
 Create `packages/qiongli-native/` as the workspace defined by the roadmap.
 Initial members should be limited to the crates required by the alpha.1 vertical
@@ -1053,6 +1058,13 @@ slice:
 Add empty orchestrator and agent crates only when their public traits are ready;
 avoid placeholder APIs that become accidental contracts.
 
+Execution rebaseline: FND-201/B2a intentionally landed a single dependency-free
+application first. That temporary topology is not a migration constraint. As
+FND-202 begins, maintainers may add reviewed service crates, locked
+dependencies, build scripts, platform APIs, and typed process adapters through
+normal implementation and review. The installed product must still start and
+run without requiring Python, Node, or a Rust toolchain on the user machine.
+
 Gates from the first commit:
 
 ```bash
@@ -1063,25 +1075,33 @@ cargo test --manifest-path packages/qiongli-native/Cargo.toml \
   --workspace --all-targets --all-features --locked
 ```
 
-Also enforce locked dependencies, license policy, secret scanning, path safety,
-unsafe-code policy, and RC1 changed-file checks. CI must include Linux, Windows,
-and macOS native runners even if alpha.1 publishes only one explicitly scoped
-target.
+These are normal component gates, not a separate governance program. Review
+locked dependencies and relevant license, secret, path-safety, and unsafe-code
+risks when the changed component introduces them. Use Linux, Windows, and macOS
+runners when the change or release claim touches those platforms; ordinary
+component work may use focused checks first.
 
 Exit criteria:
 
-- workspace gates pass on all three operating-system families;
+- changed workspace components compile and pass their focused tests;
 - no production crate depends on Python or Node launch behavior;
 - crate dependency direction is documented and acyclic.
 
 ### B3 — Verify and load frozen contracts and content
 
-Task IDs: `CTR-201`, `CTR-202`, `FND-202`
+Task IDs: `CTR-201`, `SEC-201A-D`, `CTR-202A-K`, `FND-202A-F`
 
 Dependency order: `CTR-201` is the shared entry gate. Under the declared
 program DAG, `CTR-202` Contract v2 completion and `FND-202` resource-pack
 implementation are separate successors and may proceed in parallel only after
 CTR-201 closes. Neither successor is completion evidence for the other.
+
+B3 prefers reviewable child slices, but slice size, WIP, and task-ID granularity
+are planning guidance rather than merge gates. A maintainer may combine
+coherent contract, runtime, and test changes when the combined behavior is
+easier to implement and verify. Focused checks run during development; broader
+platform and release checks run when the relevant artifact or claim is being
+prepared.
 
 Actions:
 
@@ -1092,10 +1112,13 @@ Actions:
    close the remaining accepted-source orchestrator-runtime requirement through
    CTR-201F, using bounded fixtures or explicit dispositions for every required
    matrix cell;
-3. after CTR-201 closes, implement typed Contract v2 and platform-target loaders
-   under CTR-202;
-4. after CTR-201 closes, compile canonical workflow, skills, roles, templates,
-   standards, subjects, and metadata into one deterministic resource pack;
+3. keep Contract v2 anchored to the frozen 23 canonical tools and 24 public
+   names, and fix contract/runtime/test gaps together when they are one coherent
+   behavior;
+4. implement the deterministic resource pack through FND-202A-F: manifest,
+   collector,
+   deterministic writer, verifier/loader, atomic materializer, then drift/Tier
+   1 aggregation;
 5. verify path traversal, symlink, duplicate ID, invalid schema, and resource
    size limits;
 6. materialize the same normalized tree as 1.x for the alpha.1 supported core
@@ -1152,22 +1175,26 @@ B3 execution status: **in progress**.
   orchestrator, or cross-platform runtime parity;
 - CTR-201 has reached its source-oracle exit gate: every required MCP, CLI,
   content, and orchestrator inventory gap is captured or explicitly
-  dispositioned. FND-202 resource-pack work remains unimplemented;
+  dispositioned. FND-202A now provides the native resource-pack contract;
 - CTR-201F canonical re-extraction runs with Python 3.12 in the Ubuntu full
   tier. Windows and macOS validate the checked portable artifact and master
   binding only;
 - published archive/plugin-wrapper parity remains an unassigned downstream
   governance boundary rather than a parent exit gate;
-- CTR-202 and FND-202 may now begin as separate successors. Neither is
-  implementation evidence for the other.
+- the CTR-202 working-tree candidate now closes the reviewed contract/runtime
+  gaps and passes focused local validation. It remains uncommitted and requires
+  exact-head CI before integration;
+- FND-202A is implemented locally in `qiongli-content`; FND-202B-F remains a
+  separate successor lane.
 
 Exit criteria:
 
 - the CTR-201 master ledger binds every required child corpus, contains no
   unclassified required capture gap, and keeps unsafe or inapplicable behavior
   behind an explicit approved disposition rather than an omission;
-- Contract v2 reaches the CTR-202 coverage gate independently of the source
-  freeze;
+- Contract v2 reaches the CTR-202 exact `23/23` canonical and `24/24` public
+  profile-closure gate independently of the source freeze, without a mutable
+  runtime declaration silently shrinking the target;
 - two clean builds from the same commit produce the same resource hash;
 - alpha.1 can list and materialize its embedded skills without source checkout;
 - canonical files are not duplicated as hand-maintained Rust constants.
@@ -1456,22 +1483,20 @@ A0-A8, B0, and the non-publishing B1 release contract are complete, the B2
 native workspace scaffold and repository gates are implemented, and B3 has
 closed CTR-201A-F as the accepted-source source-oracle inventory. CTR-201E is
 merged; CTR-201F provides the final orchestrator-runtime inventory closure.
-CTR-202 and FND-202 are unblocked but remain unimplemented. Continue in this
-order:
+CTR-202 and FND-202A are locally implemented but not yet integrated.
+Continue in this order:
 
-1. protect CTR-201F with an exact-head CI gate while describing it as bounded
-   accepted-source inventory evidence, not real-agent, Rust, or cross-platform
-   runtime parity;
-2. retain published archive/plugin-wrapper parity as an unassigned downstream
-   governance boundary, not a CTR-201 blocker;
-3. begin CTR-202 Contract v2 completion and
-   FND-202 resource-pack implementation as separate, parallel successors; keep
-   later B3 and B4 work inside the ADR 0204 and ADR 0205 service and rollback
-   boundaries;
-4. keep native publication blocked while PKG-201/PKG-202, UPD-201, target-native
+1. review and commit the coherent CTR-202 candidate after focused validation;
+2. run protected-branch exact-head CI and fix only concrete regressions;
+3. review and commit FND-202A, then continue FND-202B canonical collection;
+4. keep CTR and FND evidence independent even when implementation proceeds in
+   parallel;
+5. retain published archive/plugin-wrapper parity as downstream product work;
+6. keep native publication blocked while PKG-201/PKG-202, UPD-201, target-native
    acceptance, and the remaining public release gates are incomplete;
-5. preserve protected-branch pull requests and exact-head CI evidence for each
-   independently reviewable slice.
+7. preserve protected-branch pull requests and run the tests relevant to each
+   reviewable change, expanding to exact-head platform CI for release-facing
+   work.
 
 ## Phase Completion Definition
 

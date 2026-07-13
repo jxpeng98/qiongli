@@ -440,16 +440,13 @@ try {
         $redactedSemanticScholar `
         "fields" `
         "status_response_invalid"
-    $redactedApiKey = Get-RequiredJsonProperty `
-        $redactedFields `
-        "api_key" `
-        "status_response_invalid"
+    $redactedApiKeyProperty = $redactedFields.PSObject.Properties["api_key"]
     Assert-AcceptanceCheck `
         -Condition (
             $semanticScholarStatus -ceq "configured" -and
             $redactedEnabled -eq $true -and
             $redactedConfigured -eq $true -and
-            $redactedApiKey -ceq "configured"
+            $null -eq $redactedApiKeyProperty
         ) `
         -FailureCode "status_response_invalid"
 

@@ -8,7 +8,12 @@ from typing import Any, Callable
 
 from bridges.mcp_config_wizard import ConfigWizard, start_config_wizard
 from bridges.mcp_connectors import MCPConnector
-from bridges.experience_runtime import experience_lessons, query_experience, show_experience
+from bridges.experience_runtime import (
+    experience_lessons,
+    query_experience,
+    redact_experience_payload,
+    show_experience,
+)
 from bridges.guidance_runtime import GUIDANCE_MODES, effective_guidance, guidance_bootstrap_status
 from bridges.project_manifest import OFFICIAL_SUBJECTS, ProjectManifestError, load_project_manifest
 from bridges.subject_lifecycle import ACTIONS, apply_subject_action, propose_subject_action, subject_status
@@ -22,6 +27,7 @@ from bridges.literature_mcp_tools import (
     handle_literature_status,
     handle_search_plan,
 )
+from bridges.mcp_input_validation import first_input_error
 from bridges.provider_config import (
     PROVIDER_FIELDS,
     ProviderConfigError,
@@ -148,15 +154,6 @@ CONFIGURE_PROVIDER_INPUT_SCHEMA: dict[str, Any] = {
 
 _CONFIG_WIZARD_LOCK = threading.Lock()
 _ACTIVE_CONFIG_WIZARD: ConfigWizard | None = None
-CONTRACT_V2_TOOL_NAMES = {
-    "qiongli_config_status",
-    "qiongli_save_provider_config",
-    "qiongli_configure_provider",
-    "qiongli_open_config_wizard",
-    "qiongli_literature_status",
-    "qiongli_search_plan",
-    "qiongli_literature_export_evidence",
-}
 CONTRACT_V2_TOOL_ERROR_MESSAGES = {
     "qiongli_config_status": "provider configuration status is unavailable",
     "qiongli_save_provider_config": "provider configuration could not be saved",
@@ -164,7 +161,22 @@ CONTRACT_V2_TOOL_ERROR_MESSAGES = {
     "qiongli_open_config_wizard": "provider configuration wizard could not start",
     "qiongli_literature_status": "literature provider status is unavailable",
     "qiongli_search_plan": "literature search planning is unavailable",
+    "qiongli_literature_search": "literature search failed",
     "qiongli_literature_export_evidence": "literature evidence export failed",
+    "qiongli_collect_evidence": "evidence collection failed",
+    "qiongli_list_provider_env": "provider environment metadata is unavailable",
+    "qiongli_test_provider": "provider configuration check failed",
+    "qiongli_subject_status": "subject status is unavailable",
+    "qiongli_subject_update": "subject state could not be updated",
+    "qiongli_orchestrator_route": "orchestrator routing failed",
+    "qiongli_orchestrator_doctor": "orchestrator preflight is unavailable",
+    "qiongli_lifecycle_plan": "lifecycle planning failed",
+    "qiongli_journal_fit_recommend": "journal-fit recommendation failed",
+    "qiongli_experience_query": "experience query failed",
+    "qiongli_experience_show": "experience record is unavailable",
+    "qiongli_experience_lessons": "experience lesson synthesis failed",
+    "qiongli_task_plan": "task planning failed",
+    "qiongli_task_run": "task execution failed",
 }
 
 
@@ -255,7 +267,7 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
                 "cwd": {"type": "string", "description": "Project directory to update."},
                 "action": {"type": "string", "enum": SUBJECT_LIFECYCLE_ACTION_ENUM},
                 "subject": {"type": "string", "enum": SUBJECT_LIFECYCLE_SUBJECT_ENUM},
-                "run_id": {"type": "string"},
+                "run_id": {"type": ["string", "integer"]},
                 "read_only": {
                     "type": "boolean",
                     "description": "Return an exportable proposed action without writing .qiongli files.",
@@ -272,8 +284,8 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
     {
         "name": "qiongli_orchestrator_route",
         "description": (
-            "Decide whether a Codex, Claude Code, or other MCP client should use "
-            "the full Qiongli orchestrator instead of skill-only workflow routing."
+            "Decide whether the active client should use skill-only routing or "
+            "Full Qiongli orchestration."
         ),
         "inputSchema": {
             "type": "object",
@@ -338,7 +350,7 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
                     "type": "array",
                     "items": {"type": "string"},
                 },
-                "limit": {"type": "integer"},
+                "limit": {"type": "integer", "minimum": 0},
             },
             "additionalProperties": False,
         },
@@ -371,7 +383,12 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "required": ["run_id"],
             "properties": {
                 "cwd": {"type": "string", "description": "Project directory to inspect."},
-                "run_id": {"type": "string"},
+                "run_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+                },
             },
             "additionalProperties": False,
         },
@@ -445,10 +462,12 @@ MCP_TOOL_DEFINITIONS: list[dict[str, Any]] = [
 ]
 
 MCP_TOOL_DEFINITIONS = [*LITERATURE_TOOL_DEFINITIONS, *MCP_TOOL_DEFINITIONS]
+MCP_TOOL_DEFINITION_BY_NAME = {
+    definition["name"]: definition for definition in MCP_TOOL_DEFINITIONS
+}
 
 
 def call_qiongli_tool(name: str, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
-    args = arguments or {}
     handlers: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
         "qiongli_literature_status": handle_literature_status,
         "qiongli_search_plan": handle_search_plan,
@@ -475,15 +494,38 @@ def call_qiongli_tool(name: str, arguments: dict[str, Any] | None = None) -> dic
     }
     handler = handlers.get(name)
     if handler is None:
-        return _tool_result({"error": f"unknown tool: {name}"}, is_error=True)
+        return _tool_result(
+            {
+                "status": "error",
+                "error_kind": "tool_error",
+                "message": "tool is unavailable",
+                "error": "tool is unavailable",
+            },
+            is_error=True,
+        )
     try:
-        return _tool_result(handler(args))
+        if arguments is not None and not isinstance(arguments, dict):
+            raise MCPToolInputError("arguments must be an object")
+        args = {} if arguments is None else arguments
+        definition = MCP_TOOL_DEFINITION_BY_NAME.get(name)
+        input_schema = definition.get("inputSchema") if isinstance(definition, dict) else None
+        if not isinstance(input_schema, dict):
+            raise MCPToolInputError("tool input schema is unavailable")
+        input_error = first_input_error(args, input_schema)
+        if input_error is not None:
+            raise MCPToolInputError(input_error)
+        payload = handler(args)
+        if name != "qiongli_list_provider_env":
+            payload = redact_experience_payload(payload)
+        return _tool_result(payload)
     except MCPToolInputError as exc:
+        message = str(exc)
         return _tool_result(
             {
                 "status": "error",
                 "error_kind": "invalid_arguments",
-                "message": str(exc),
+                "message": message,
+                "error": message,
                 "tool": name,
             },
             is_error=True,
@@ -498,20 +540,18 @@ def call_qiongli_tool(name: str, arguments: dict[str, Any] | None = None) -> dic
             },
             is_error=True,
         )
-    except Exception as exc:  # noqa: BLE001 - MCP tools must convert failures into tool results.
-        if name in CONTRACT_V2_TOOL_NAMES:
-            message = CONTRACT_V2_TOOL_ERROR_MESSAGES[name]
-            return _tool_result(
-                {
-                    "status": "error",
-                    "error_kind": "tool_error",
-                    "message": message,
-                    "error": message,
-                    "tool": name,
-                },
-                is_error=True,
-            )
-        return _tool_result({"error": str(exc), "tool": name}, is_error=True)
+    except Exception:  # noqa: BLE001 - MCP tools must convert failures into tool results.
+        message = CONTRACT_V2_TOOL_ERROR_MESSAGES.get(name, "tool operation failed")
+        return _tool_result(
+            {
+                "status": "error",
+                "error_kind": "tool_error",
+                "message": message,
+                "error": message,
+                "tool": name,
+            },
+            is_error=True,
+        )
 
 
 def _tool_config_status(args: dict[str, Any]) -> dict[str, Any]:
@@ -614,6 +654,8 @@ def _tool_subject_update(args: dict[str, Any]) -> dict[str, Any]:
     action = _required_str(args, "action")
     subject = args.get("subject")
     run_id = args.get("run_id")
+    if action in {"confirm", "dismiss", "lock"} and not subject:
+        raise MCPToolInputError(f"{action} requires a subject")
     action_fn = propose_subject_action if args.get("read_only") else apply_subject_action
     return action_fn(
         _cwd_from_args(args),

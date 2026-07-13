@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -11,6 +12,9 @@ from tooling.scripts.validate_capability_contract import validate_instance
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PLAN_PATH = REPO_ROOT / "tooling/migration/qiongli-1x-baseline-plan.json"
 SCHEMA_PATH = REPO_ROOT / "tooling/migration/baseline-plan.schema.json"
+BASELINE_MANIFEST_PATH = (
+    REPO_ROOT / "tooling/migration/baselines/v1.19.0-beta.1/manifest.json"
+)
 EXPECTED_TAG = "v1.19.0-beta.1"
 EXPECTED_COMMIT = "8d2e99866ce4c4efb8b3b5e0265c0c1f89a36b0f"
 
@@ -20,6 +24,36 @@ class MigrationBaselinePlanTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.plan = json.loads(PLAN_PATH.read_text(encoding="utf-8"))
         cls.schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+        cls.baseline_manifest = json.loads(
+            BASELINE_MANIFEST_PATH.read_text(encoding="utf-8")
+        )
+
+    def _load_frozen_json_reference(self, relative_path: str) -> dict[str, object]:
+        records = [
+            record
+            for domain in self.baseline_manifest["domains"]
+            for record in domain["files"]
+            if record["path"] == relative_path
+        ]
+        self.assertEqual(len(records), 1, relative_path)
+        result = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(REPO_ROOT),
+                "cat-file",
+                "blob",
+                records[0]["git_blob_oid"],
+            ],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertIsInstance(payload, dict)
+        return payload
 
     def test_plan_matches_schema(self) -> None:
         self.assertEqual(validate_instance(self.plan, self.schema), [])
@@ -146,11 +180,14 @@ class MigrationBaselinePlanTests(unittest.TestCase):
 
     def test_contract_and_golden_sources_are_referenced_not_duplicated(self) -> None:
         contracts = self.plan["contracts"]
-        registry = json.loads(
-            (REPO_ROOT / contracts["capability_registry"]).read_text(encoding="utf-8")
+        # The 1.x plan is immutable while its canonical source paths continue to
+        # evolve on 2.x. Resolve both references through the frozen manifest so
+        # this assertion compares artifacts from the same accepted baseline.
+        registry = self._load_frozen_json_reference(
+            contracts["capability_registry"]
         )
-        fixture = json.loads(
-            (REPO_ROOT / contracts["golden_fixture"]).read_text(encoding="utf-8")
+        fixture = self._load_frozen_json_reference(
+            contracts["golden_fixture"]
         )
         registry_smoke_ids = {
             smoke_id

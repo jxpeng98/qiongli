@@ -38,10 +38,11 @@ fn literature_status_returns_rich_redacted_provider_state() {
         payload["provider_capabilities"]["openalex"]["status"],
         "implemented"
     );
-    assert_eq!(
-        payload["redacted_config"]["providers"]["openalex"]["fields"]["api_key"],
-        "configured"
-    );
+    let redacted_fields = payload["redacted_config"]["providers"]["openalex"]["fields"]
+        .as_object()
+        .unwrap();
+    assert!(!redacted_fields.contains_key("api_key"));
+    assert_eq!(redacted_fields["email"], "missing");
     assert_eq!(
         payload["next_action"]["args"]["provider"],
         "semantic_scholar"

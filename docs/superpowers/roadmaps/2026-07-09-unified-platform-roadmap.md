@@ -1,8 +1,10 @@
 # Qiongli Unified Platform Roadmap
 
-> **Transition status (July 10, 2026): partially superseded.** Gate 0, Stage 1,
-> Task AC1, Task RC1, the canonical-source boundaries, and their conformance
-> evidence remain the 1.x foundation. The former Python-Full stable path in
+> **Transition status (updated July 12, 2026): superseded for 2.x execution.**
+> Gate 0, Stage 1, and canonical-source evidence remain historical 1.x input.
+> AC1 and RC1 enforcement is cancelled as a migration, CI, and release
+> requirement; references below are optional design history only. The former
+> Python-Full stable path in
 > Stages 2-5 is replaced by the Rust-native 2.x program in
 > `docs/superpowers/roadmaps/2026-07-10-qiongli-2-rust-native-platform-roadmap.md`.
 > The immediate handoff is defined in
@@ -80,10 +82,9 @@ Stage 1 behavior, not accepted release evidence. These findings are blocking
 items in Phase A1 of the 1.x closeout plan and must be closed before
 `v1.19.0-beta.1`.
 
-Task AC1 now separately governs claim-bearing academic paper code through Stage
-I and Q1/Q2/Q4. Task RC1 separately governs Qiongli repository source through a
-repo-only future contract under `tooling/quality/`; RC1 policy must not be
-placed in materialized `content/standards/`.
+The AC1 academic-code and RC1 repository-policy designs are retained only as
+optional guidance. Neither governs the active Rust migration or blocks CI,
+pull requests, or release promotion.
 
 Stage 1 freeze also records the machine-readable 1.x-to-2.x baseline plan at
 `tooling/migration/qiongli-1x-baseline-plan.json`. It references the existing
@@ -477,13 +478,10 @@ Non-goals:
 `AC1` is a roadmap work-item label, not a new canonical research Task ID. It
 strengthens the existing Stage I tasks `I1` through `I9`.
 
-Status: planned; the baseline may start alongside Stages 1 and 2. Enforcement
-is required before any academic code-generation capability is marked stable
-and before the Qiongli 2 beta/stable rollout.
-
-Revised release target: standard and audit baseline in `v1.19.0-beta.1`;
-native-runtime enforcement no later than the full-workflow alpha, with the
-paper-code release gate blocking `v2.0.0-beta.1`.
+Status: archived as optional workflow guidance on July 12, 2026. AC1 has no
+active implementation or release target and does not block exploratory code,
+the Rust migration, or Qiongli 2 promotion. The detailed design below is kept
+for users or journals that explicitly request stricter academic-code evidence.
 
 Primary outcome:
 
@@ -514,14 +512,40 @@ Canonical contract and workflow integration:
   affected claim or output, compensating validation, residual limitation, and
   expiry date or version. Silent waivers are invalid.
 
+Progressive enforcement modes:
+
+- `explore`: permit reversible scripts, notebooks, method spikes, and
+  data-shape discovery before the full I5/I6 chain. Require an exploratory
+  label, a minimal source/assumption note, disclosure-safe inputs, and no
+  fabricated or confirmatory claim. Do not require I8, a lockfile, container,
+  synthetic generator, profiling, or a final output tree by default;
+- `candidate`: trigger when code feeds a draft table, figure, estimate, model
+  choice, or claim candidate. Require a decision-bounded specification/plan,
+  changed-analysis lineage, relevant diagnostics/tests, environment version,
+  stable output mapping, and recorded deviations. High-risk method or leakage
+  changes require targeted independent review;
+- `release`: trigger for final manuscript evidence, submission, archive,
+  replication, or public package. Require the full applicable I5-I9 chain,
+  independent I8 review, Q4 rerun or recorded tolerance/limitation, exact data
+  identity/environment/command/output provenance, and no open blocking
+  scientific finding.
+
+Promotion strengthens evidence. An exploratory artifact may be promoted after
+the missing candidate/release evidence is attached, but it may not be cited as
+claim support merely because it runs. Supplying `--topic` chooses project
+storage; it must not implicitly select strict release mode. Workflow routing
+must use explicit or inferred evidence intent (`explore`, `candidate`, or
+`release`).
+
 Academic analysis-code constraints:
 
 - Start from the research question, hypothesis, estimand, identification
   strategy, analysis plan, or manuscript-facing output. Code must not silently
   change the method, population, outcome, specification, or evidential claim.
-- Lock inputs, outputs, variable definitions, assumptions, seeds, diagnostics,
-  acceptance tests, and forbidden shortcuts in `I5` before claim-bearing
-  implementation begins.
+- Lock the scientific decisions that affect estimand, population, outcome,
+  identification, data lineage, specification, or manuscript output before
+  candidate promotion. Implementation details may iterate when assumptions
+  and deviations remain visible and affected evidence is revalidated.
 - Preserve data lineage for every analysis input: source and vintage, raw-data
   immutability, cleaning rules, exclusions, missingness, joins, derived
   variables, sample construction, and leakage checks. This is computational
@@ -544,15 +568,25 @@ Academic analysis-code constraints:
   layers, controllers, generic framework abstractions, and unnecessary classes
   are out of scope unless the research method genuinely requires a reusable
   library.
+- Choose a trusted library, high-level wrapper, or custom implementation based
+  on method fidelity and auditability. First-principles code is required only
+  when available abstractions cannot represent the specified method; it is not
+  a blanket requirement for advanced work.
+- Require performance profiling only when scale, runtime, memory, numerical
+  stability, or a release acceptance criterion creates a material performance
+  risk. Ordinary exploration and candidate analysis prioritize correctness and
+  scientific diagnostics.
 - Comments and documentation explain the method, assumption, equation,
   transformation, or non-obvious research decision. They must not merely
   restate syntax or imply evidence that the code did not establish.
 - Keep notebooks runnable from a clean kernel without hidden execution order.
   Claim-bearing transformations and estimators must be testable outside opaque
   interactive state.
-- Use synthetic or disclosure-safe fixtures with known expected properties to
-  test cleaning, merges, estimators, edge cases, and failure paths. Tests must
-  not depend on committing protected data or calling live services.
+- Use synthetic or disclosure-safe fixtures with known expected properties
+  when they are needed to test cleaning, merges, estimators, edge cases, and
+  failure paths. Exploration still must not commit protected data or call live
+  services without explicit authorization, but it need not manufacture a
+  synthetic generator when a safe local stub or structural check is sufficient.
 - Record runtime and dependency versions, exact commands, random seeds, known
   nondeterminism, environment requirements, output paths, and rerun limits.
 - Write tables, figures, model outputs, and machine-readable results to
@@ -595,9 +629,10 @@ Deliverables:
   labeling.
 - Updated `/code-build` routing and Stage C/Stage I skills/templates that cite
   `AAC-*` rules without duplicating the canonical policy.
-- A staged rollout: report-only audit, blocking for newly generated or changed
-  paper code, then a stable release gate after legacy academic-code debt has
-  owners and bounded remediation plans.
+- A staged rollout: exploration labels and report-only audit, candidate
+  promotion checks for changed claim-supporting code, then the full release
+  gate after legacy academic-code debt has owners and bounded remediation
+  plans.
 
 Success criteria:
 
@@ -639,13 +674,11 @@ version label and it is not a canonical academic Task ID. It governs Qiongli's
 own product source and maintainer tooling. It never substitutes for AC1's
 method, statistics, claim-traceability, or reproducibility review.
 
-Status: planned across the release transition; the inventory and report-only
-baseline may land in the final 1.x beta. Changed-file enforcement is required
-from the native workspace foundation, and release-preflight enforcement is
-required before native beta promotion.
-
-Revised release target: baseline in `v1.19.0-beta.1`; Rust changed-file gate in
-the native foundation; release gate before `v2.0.0-beta.1`.
+Status: archived as optional diagnostic guidance on July 12, 2026. The
+Phase-1 validator can evaluate whole-native-tree rules for a selected file and
+can report context-free path text as a cybersecurity finding. It is therefore
+removed from required CI and has no active implementation or release target.
+GOV-201A-C is cancelled.
 
 Primary outcome:
 
@@ -710,7 +743,33 @@ Repository-source constraints:
   abstractions. Comments explain non-obvious product, compatibility, safety, or
   architectural decisions instead of restating syntax.
 
-Deliverables:
+Archived enforcement proposal (not active for the 2.x migration):
+
+- `development/changed-component`: always block real credentials/private data,
+  traversal or archive escape, command injection, unauthorized writes, and
+  canonical-boundary violations; run language-native formatting and focused
+  tests only for the touched component;
+- `candidate/PR`: add dependency/lock review, relevant integration and contract
+  tests, and platform checks for any touched platform surface;
+- `release`: add full-tree security and generated parity, all-target/all-feature
+  workspace tests, dependency/license/SBOM/provenance, signing, and clean-machine
+  no-runtime-dependency evidence.
+
+Portable documentation, fixture paths, and sanitized sentinels require
+context-aware classification; they are not equivalent to a live credential or
+runtime path escape. A real secret, unapproved private data, command injection,
+or traversal finding is never waivable. Other bounded debt requires exact
+rule/path/component, owner, rationale, compensating check, and expiry within 30
+days or one milestone.
+
+The B2a single-member, zero-dependency, no-build-script, blanket process-launch,
+and workspace-wide no-exception rules no longer constrain FND-202 or later
+native work. Reviewed locked dependencies, service crates, build scripts,
+crate-scoped FFI, and typed process adapters may be introduced through normal
+implementation, tests, and review. Core startup must still have no hidden
+Python, Node, Cargo, shell, or optional CLI dependency.
+
+Archived deliverables (optional reference only):
 
 - The repository-source contract, debt baseline, contributor guide, and short
   `CONTRIBUTING.md` entrypoint.
@@ -720,26 +779,11 @@ Deliverables:
   `tests/test_repository_source_validator.py` covering rule selection,
   changed-file enforcement, baseline fingerprints, exception expiry,
   boundaries, secrets, paths, generated drift, and language profiles.
-- CI integration that runs a full-tree report and blocks violations in new or
-  changed first-party source. Boundary, secret, and generated-output rules are
-  full-tree blocking from the first enforcing phase.
-- Release-preflight integration after the changed-file gate is stable and the
-  existing debt baseline is owned.
+- CI and release-preflight integration were proposed but are cancelled. The
+  validator remains available for manual diagnostics.
 
-Rollout:
-
-- Phase 0 (`v1.19.0-beta.1`): inventory the tree, publish the contract and
-  guide, emit reports, and record only fingerprinted existing debt.
-- Phase 1 (2.x native foundation): block new and changed first-party violations;
-  immediately block repository-boundary, high-severity security, expired
-  exception, and generated-output findings across the full tree.
-- Phase 2 (before `v2.0.0-beta.1`): make touched-scope Rust, Python, Node,
-  Shell, and
-  PowerShell language gates release-preflight requirements alongside the
-  existing Rust gates.
-- Stable (`v2.0.0`): repository-wide blocking findings are cleared or covered
-  by narrow, owned, unexpired exceptions, and the debt baseline can only
-  shrink.
+Rollout: cancelled. No GOV-201 phase, RC1 CI gate, or RC1 beta/stable release
+gate remains in the active plan.
 
 Success criteria:
 
@@ -967,12 +1011,6 @@ The following metrics are release gates, not aspirational dashboards:
 | Advertised Lite tools with behavior tests | 100% | 100% |
 | Overlapping Lite/Full golden calls schema-valid | 100% | 100% |
 | Raw secret occurrences in tool output or artifacts | 0 | 0 |
-| Paper-facing code packages with I5/I6/I7/I8 and Q4 evidence | measured in Task AC1 baseline | 100% |
-| Final computational manuscript outputs traceable to code, data identity, specification, sample, and command | measured in Task AC1 baseline | 100% |
-| Unresolved blocking I8 findings in released paper-code packages | measured in Task AC1 baseline | 0 |
-| Active `AAC-*` exceptions with affected claim, owner, evidence, limitation, and unexpired deadline | measured in Task AC1 baseline | 100% |
-| Changed first-party repository files passing blocking `RSC-*` rules | measured in Task RC1 baseline | 100% |
-| New repository debt-baseline suppressions or expired `RSC-*` exceptions | measured in Task RC1 baseline | 0 |
 | Generated repository payload drift | 0 | 0 |
 | High-severity repository secret, injection, unsafe-path, or private-data findings | 0 | 0 |
 | Native assets with explicit target identity | current release host only, honestly scoped | 100% of published native assets |
@@ -996,9 +1034,9 @@ Historical 1.x change sequence:
 
 Keep each branch independently reviewable. Gate 0 should land before contract
 generation starts so the generated contract describes real behavior. Contract
-and target schema changes should land before the compiler consumes them. Task
-AC1 is a parallel academic-workflow line: it gates paper-code maturity and the
-stable rollout, not implementation changes to the platform compiler.
+and target schema changes should land before the compiler consumes them. The
+AC1 and RC1 branches are historical planning records; neither is required for
+the active Rust-native migration or stable rollout.
 
 Revised release transition:
 
@@ -1081,9 +1119,7 @@ This roadmap is complete when:
   and external marketplace boundaries remain explicit.
 - Marketplace Lite remains self-contained and does not gain unsafe execution
   capabilities in the final 1.x release.
-- AC1 academic-code and RC1 repository-code requirements, source boundaries,
-  rule families, evidence, exception policy, and native enforcement milestones
-  are carried into the 2.x task catalog without being presented as implemented
-  in 1.x unless their release evidence actually exists.
+- AC1 academic-code and RC1 repository-code documents remain optional guidance
+  and are not carried into the active 2.x dependency graph or release gates.
 - Generated payloads, external marketplace catalogs, and release archives do
   not become canonical source.

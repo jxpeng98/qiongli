@@ -341,6 +341,12 @@ class ReleaseAutomationTests(unittest.TestCase):
         self.assertNotIn("$isWindows =", acceptance)
         self.assertIn('$saveJsonRpc -ceq "2.0" -and $saveResponseId -eq 1', acceptance)
         self.assertIn('$statusJsonRpc -ceq "2.0" -and $statusResponseId -eq 2', acceptance)
+        self.assertIn(
+            '$redactedApiKeyProperty = $redactedFields.PSObject.Properties["api_key"]',
+            acceptance,
+        )
+        self.assertIn('$null -eq $redactedApiKeyProperty', acceptance)
+        self.assertNotIn('$redactedApiKey -ceq "configured"', acceptance)
         self.assertIn('GetEnvironmentVariable("GITHUB_SHA")', acceptance)
         self.assertIn("AreAccessRulesProtected", acceptance)
         self.assertIn("owner_is_current_user", acceptance)
@@ -541,7 +547,7 @@ class ReleaseAutomationTests(unittest.TestCase):
         content = RELEASE_PREFLIGHT.read_text(encoding="utf-8")
 
         capability_gate = (
-            'python3 scripts/validate_capability_contract.py --root "$PREFLIGHT_ROOT"'
+            'python3 scripts/validate_capability_contract.py --root "$PREFLIGHT_ROOT" --require-complete'
         )
         standard_validator = 'run_logged_stage "validator" "$validator_log" "${validate_cmd[@]}"'
 

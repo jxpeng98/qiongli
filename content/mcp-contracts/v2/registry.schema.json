@@ -191,6 +191,23 @@
               "items": { "type": "string", "pattern": "^/" },
               "uniqueItems": true
             },
+            "profile_sensitive_output_paths": {
+              "type": "object",
+              "minProperties": 1,
+              "properties": {
+                "marketplace-lite": {
+                  "type": "array",
+                  "items": { "type": "string", "pattern": "^/" },
+                  "uniqueItems": true
+                },
+                "full": {
+                  "type": "array",
+                  "items": { "type": "string", "pattern": "^/" },
+                  "uniqueItems": true
+                }
+              },
+              "additionalProperties": false
+            },
             "notes": {
               "type": "array",
               "items": { "type": "string", "minLength": 1 },

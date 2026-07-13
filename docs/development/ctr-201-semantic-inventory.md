@@ -87,8 +87,10 @@ python3 -m unittest tests.test_ctr_201_inventory \
   tests.test_ctr_201_orchestrator_runtime_inventory -v
 python3 scripts/check_frozen_migration_baseline.py --base-ref origin/2.x
 python3 scripts/check_frozen_2x_architecture_baseline.py --base-ref origin/2.x
-python3 scripts/validate_repository_source.py --base-ref origin/2.x
 ```
+
+The RC1 repository-source validator may still be run manually as an optional
+diagnostic, but it is not part of the CTR-201, migration, CI, or release gate.
 
 PR descriptions must distinguish checked-tree implementation, exact-head CI,
 and protected-branch integration. Allowed completion language is:

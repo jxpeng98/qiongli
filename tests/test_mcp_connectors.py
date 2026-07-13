@@ -281,13 +281,13 @@ class MCPConnectorTests(unittest.TestCase):
                 )
 
         self.assertEqual(evidence.status, "ok")
-        self.assertEqual(evidence.summary, "screening stub ok")
-        self.assertEqual(evidence.provenance, ["fixture://screening"])
+        self.assertEqual(evidence.summary, "External MCP command completed.")
+        self.assertEqual(evidence.provenance, ["RESEARCH_MCP_SCREENING_TRACKER_CMD"])
         self.assertEqual(evidence.data["source"], "fixture")
         self.assertEqual(evidence.data["provider"], "screening-tracker")
         self.assertEqual(evidence.data["topic"], "demo-topic")
 
-    def test_collect_external_provider_injects_saved_provider_config_env(self) -> None:
+    def test_collect_external_provider_does_not_inject_saved_provider_config_env(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
             config_home = root / "config"
@@ -327,10 +327,36 @@ class MCPConnectorTests(unittest.TestCase):
                 evidence = self.connector.collect("screening-tracker", {}, workspace)
 
         self.assertEqual(evidence.status, "ok")
-        self.assertEqual(evidence.data["openalex_api_key"], "openalex-key")
-        self.assertEqual(evidence.data["openalex_email"], "user@example.com")
-        self.assertEqual(evidence.data["s2_api_key"], "stored-key")
-        self.assertEqual(evidence.data["qiongli_s2_api_key"], "stored-key")
+        self.assertEqual(evidence.status, "ok")
+        self.assertEqual(evidence.summary, "External MCP command completed.")
+        self.assertEqual(evidence.data, {"openalex_email": None})
+
+    def test_external_provider_does_not_inherit_unrelated_environment_or_stderr(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            script = root / "external adapter.py"
+            script.write_text(
+                "import os, sys\n"
+                "sys.stderr.write(os.environ.get('UNRELATED_SECRET', 'missing'))\n"
+                "raise SystemExit(7)\n",
+                encoding="utf-8",
+            )
+            canary = "external-adapter-secret-canary"
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "RESEARCH_MCP_EXTERNAL_ADAPTER_CMD": current_python_command(
+                        str(script)
+                    ),
+                    "UNRELATED_SECRET": canary,
+                },
+                clear=False,
+            ):
+                evidence = self.connector.collect("external-adapter", {}, root)
+
+        rendered = json.dumps(evidence.to_dict(), sort_keys=True)
+        self.assertEqual(evidence.status, "error")
+        self.assertNotIn(canary, rendered)
 
     def test_collect_external_provider_omits_persisted_disabled_credentials(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -380,8 +406,8 @@ class MCPConnectorTests(unittest.TestCase):
                 evidence = self.connector.collect("screening-tracker", {}, workspace)
 
         self.assertEqual(evidence.status, "ok")
-        self.assertIsNone(evidence.data["s2_api_key"])
-        self.assertIsNone(evidence.data["qiongli_s2_api_key"])
+        self.assertNotIn("s2_api_key", evidence.data)
+        self.assertNotIn("qiongli_s2_api_key", evidence.data)
         self.assertNotIn("disabled-secret-canary", json.dumps(evidence.data))
 
     def test_builtin_metadata_registry_normalizes_local_doi(self) -> None:

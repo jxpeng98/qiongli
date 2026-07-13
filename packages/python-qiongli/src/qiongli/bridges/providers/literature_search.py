@@ -21,6 +21,8 @@ STANDARD_PER_QUERY_LIMIT = 25
 REVIEW_PER_QUERY_LIMIT = 50
 DEEP_PER_QUERY_LIMIT = 100
 MAX_PER_QUERY_LIMIT = 200
+PROVIDER_FAILURE_MESSAGE = "Literature provider request failed."
+INVALID_PROVIDER_RESPONSE_MESSAGE = "Literature provider returned an invalid response."
 STOPWORDS = {
     "a",
     "an",
@@ -131,7 +133,12 @@ def run_scholarly_search(
                 "translated_query": variant["query"],
                 "filters": {},
             }
-            response = search_fn(variant["query"], per_query_limit)
+            provider_error_kind = ""
+            try:
+                response = search_fn(variant["query"], per_query_limit)
+            except Exception:  # noqa: BLE001 - provider exceptions are untrusted output.
+                response = {"error": True, "data": []}
+                provider_error_kind = "provider_exception"
             raw_result_count += _handle_search_response(
                 response,
                 translation=translation,
@@ -142,6 +149,7 @@ def run_scholarly_search(
                 search_log=search_log,
                 failures=failures,
                 provider_summaries=provider_summaries,
+                provider_error_kind=provider_error_kind,
             )
     else:
         provider_mode = "provider_translations" if provider_fns else "strategy_only"
@@ -153,10 +161,12 @@ def run_scholarly_search(
                 continue
             attempted_providers.append(provider_name)
             translation = translate_query_for_provider(query_plan, provider_name)
+            provider_error_kind = ""
             try:
                 response = provider_fn(translation, per_query_limit)
-            except Exception as exc:  # pragma: no cover - exact exception type is provider-owned.
-                response = {"error": str(exc), "data": []}
+            except Exception:  # noqa: BLE001 - provider exceptions are untrusted output.
+                response = {"error": True, "data": []}
+                provider_error_kind = "provider_exception"
             raw_result_count += _handle_search_response(
                 response,
                 translation=translation,
@@ -167,6 +177,7 @@ def run_scholarly_search(
                 search_log=search_log,
                 failures=failures,
                 provider_summaries=provider_summaries,
+                provider_error_kind=provider_error_kind,
             )
 
     for summary in provider_summaries.values():
@@ -261,6 +272,7 @@ def _handle_search_response(
     search_log: list[dict[str, Any]],
     failures: list[dict[str, str]],
     provider_summaries: dict[str, dict[str, Any]],
+    provider_error_kind: str = "",
 ) -> int:
     query_id = str(translation.get("query_id", "")).strip()
     translated_query = str(translation.get("translated_query", "")).strip()
@@ -269,16 +281,36 @@ def _handle_search_response(
         filters = {}
 
     if not isinstance(response, dict):
-        response = {"error": "provider returned a non-mapping response", "data": []}
+        response = {"error": True, "data": []}
+        provider_error_kind = "invalid_provider_response"
 
-    error = str(response.get("error", "")).strip()
+    raw_error = response.get("error", "")
+    has_error = bool(str(raw_error).strip())
+    if has_error:
+        error_kind = provider_error_kind or "provider_error_response"
+        error = (
+            INVALID_PROVIDER_RESPONSE_MESSAGE
+            if error_kind == "invalid_provider_response"
+            else PROVIDER_FAILURE_MESSAGE
+        )
+    else:
+        error_kind = ""
+        error = ""
     hits = response.get("data", [])
     if not isinstance(hits, list):
         hits = []
     raw_hit_count = len(hits)
 
     if error:
-        failures.append({"query_id": query_id, "query": translated_query, "provider": provider, "error": error})
+        failures.append(
+            {
+                "query_id": query_id,
+                "query": translated_query,
+                "provider": provider,
+                "error_kind": error_kind,
+                "error": error,
+            }
+        )
 
     search_log.append(
         {
@@ -291,6 +323,7 @@ def _handle_search_response(
             "retrieved_count": len(hits),
             "limit": per_query_limit,
             "status": "error" if error else "ok",
+            "error_kind": error_kind,
             "error": error,
         }
     )
@@ -315,7 +348,9 @@ def _handle_search_response(
     )
     summary["raw_hits"] += raw_hit_count
     if error:
-        summary["failures"].append({"query_id": query_id, "error": error})
+        summary["failures"].append(
+            {"query_id": query_id, "error_kind": error_kind, "error": error}
+        )
 
     normalized_for_attempt = 0
     for offset, hit in enumerate(hits, start=1):
