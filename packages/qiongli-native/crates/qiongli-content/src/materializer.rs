@@ -493,10 +493,7 @@ fn validate_target_path(path: &Path) -> Result<(), MaterializationError> {
             reason: "target must be absolute",
         });
     }
-    if path
-        .components()
-        .any(|component| matches!(component, Component::CurDir | Component::ParentDir))
-    {
+    if has_lexical_traversal_component(path) {
         return Err(MaterializationError::InvalidTarget {
             path: path.to_path_buf(),
             reason: "target must not contain traversal components",
@@ -517,6 +514,31 @@ fn validate_target_path(path: &Path) -> Result<(), MaterializationError> {
     }
     let leaf = target_leaf(path)?;
     validate_target_leaf(leaf, path)
+}
+
+#[cfg(unix)]
+fn has_lexical_traversal_component(path: &Path) -> bool {
+    use std::os::unix::ffi::OsStrExt;
+
+    path.as_os_str()
+        .as_bytes()
+        .split(|byte| *byte == b'/')
+        .any(|component| component == b"." || component == b"..")
+}
+
+#[cfg(windows)]
+fn has_lexical_traversal_component(path: &Path) -> bool {
+    use std::os::windows::ffi::OsStrExt;
+
+    let path = path.as_os_str().encode_wide().collect::<Vec<_>>();
+    path.split(|unit| matches!(*unit, 47 | 92))
+        .any(|component| component == [46] || component == [46, 46])
+}
+
+#[cfg(not(any(unix, windows)))]
+fn has_lexical_traversal_component(path: &Path) -> bool {
+    path.components()
+        .any(|component| matches!(component, Component::CurDir | Component::ParentDir))
 }
 
 fn target_leaf(path: &Path) -> Result<&str, MaterializationError> {
@@ -747,9 +769,7 @@ fn write_new_file(path: &Path, bytes: &[u8], mode: u32) -> Result<(), Materializ
         .map_err(|error| MaterializationError::io("sync staged file", path, &error))?;
     drop(file);
     set_file_mode(path, mode)?;
-    File::open(path)
-        .and_then(|file| file.sync_all())
-        .map_err(|error| MaterializationError::io("sync staged file mode", path, &error))?;
+    sync_file_mode(path)?;
     Ok(())
 }
 
@@ -762,6 +782,18 @@ fn open_new_private_file(path: &Path) -> io::Result<File> {
         .write(true)
         .mode(0o600)
         .open(path)
+}
+
+#[cfg(unix)]
+fn sync_file_mode(path: &Path) -> Result<(), MaterializationError> {
+    File::open(path)
+        .and_then(|file| file.sync_all())
+        .map_err(|error| MaterializationError::io("sync staged file mode", path, &error))
+}
+
+#[cfg(not(unix))]
+fn sync_file_mode(_path: &Path) -> Result<(), MaterializationError> {
+    Ok(())
 }
 
 #[cfg(not(unix))]
