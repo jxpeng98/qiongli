@@ -3,8 +3,9 @@
 This workspace is the canonical Rust-native product source for Qiongli 2.x.
 It contains the product application, `apps/qiongli`, plus the first real shared
 service contract in `crates/qiongli-content`. The content crate defines the
-versioned deterministic resource-pack manifest and frozen profile projections;
-it does not yet collect, write, load, or materialize pack bytes.
+versioned resource-pack manifest, frozen profile projections, and bounded
+canonical source collector. It does not yet write, load, verify, or materialize
+pack bytes.
 
 ## Dependency direction
 
@@ -22,8 +23,10 @@ Cargo, or another language runtime to start.
 `qiongli-content` freezes three projections: `skill-only`,
 `marketplace-lite` (alias `lite`), and `full`. Its synthetic golden fixture
 tests the format contract without binding the crate to the uncommitted working
-copy of canonical content. Collection and path-boundary work belongs to
-FND-202B; deterministic hashing and writing belongs to FND-202C.
+copy of canonical content. FND-202B collects only the 12 allowlisted roots under
+`content/`, normalizes and sorts portable paths, and rejects links, path
+collisions, unsupported file types, and bounded count/size violations.
+Deterministic hashing and `.qlpack` writing belong to FND-202C.
 
 The existing `packages/qiongli-lite-mcp` crate remains a migration oracle and
 compatibility package. Native functionality will be extracted into shared

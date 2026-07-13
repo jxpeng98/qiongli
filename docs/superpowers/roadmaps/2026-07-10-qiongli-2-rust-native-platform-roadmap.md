@@ -3,14 +3,13 @@
 Status: B1 / REL-201 provides a typed, channel-isolated, non-publishing native
 alpha dry-run and keeps real publication fail-closed; the B2 native workspace
 scaffold and normal native gates are implemented. CTR-201A-F close the accepted
-1.x source-oracle inventory in this tree. The CTR-202 working-tree candidate
-now closes the concrete redaction, managed-path, external-adapter, input, and
-profile-divergent metadata defects found on July 12; complete-mode contract and
-focused runtime tests pass locally, but the candidate is not integrated until
-it is committed and passes exact-head CI. FND-202A is implemented locally as
-the typed `qiongli-content` manifest, version, three-profile projection,
-schema, and golden-fixture contract. Later collector, writer, loader, and
-materializer work remains open.
+1.x source-oracle inventory in this tree. CTR-202 and FND-202A are integrated
+through PR #59 at merge commit `e24d26ab`: Contract v2 has exact 23/24 closure,
+and `qiongli-content` has the typed manifest and three-profile projection
+contract. The FND-202B branch candidate adds bounded canonical source
+collection; its focused collector tests pass locally, while pull-request review
+and exact-head CI remain open. FND-202C-F writer, loader, materializer, and
+drift work remains open.
 Decision date: July 10, 2026
 Execution rebaseline: July 12, 2026
 Target branch after the 1.x freeze: `2.x`
@@ -590,14 +589,15 @@ Current execution record:
 - published ZIP/TAR/plugin-wrapper and archive-member parity remains an
   unassigned downstream governance boundary. CTR-201D does not establish it,
   but it is not a CTR-201 completion dependency;
-- the CTR-202 working-tree candidate now has exact 23/24 closure, profile-level
+- CTR-202 is integrated through PR #59 with exact 23/24 closure, profile-level
   sensitive-output metadata, bounded external-adapter environment/error
-  handling, managed experience paths, shared input validation, and nested
-  credential redaction. Focused contract, Full Python, Node, and Lite Rust
-  evidence is green locally; integration and exact-head CI remain open;
-- FND-202A is implemented locally in `qiongli-content`. It defines the manifest
-  and projections only; FND-202B-F collector, writer, loader, materializer, and
-  drift work remains open.
+  handling, managed experience paths, shared input validation, nested
+  credential redaction, and green exact-head CI;
+- FND-202A is integrated through PR #59 in `qiongli-content`. The FND-202B
+  branch candidate collects the 12 allowlisted canonical roots into sorted,
+  typed, in-memory resources and fails closed on traversal, links, portable
+  path collisions, unsupported file types, and configured count/size limits.
+  Focused tests pass locally; FND-202C-F remains open.
 
 ### W2 — Native core, config, and data migration
 
@@ -886,9 +886,10 @@ remaining accepted-source orchestrator-runtime inventory requirement, so the
 parent `CTR-201` source-oracle gate is complete. Archive and published-package
 parity remains an unassigned downstream governance boundary rather than a
 CTR-201 blocker. `CTR-202` and `FND-202` are separate successors in the
-declared program DAG and their CTR-201 dependency is closed. CTR-202 is locally
-complete in the working tree and awaits commit plus exact-head CI. FND-202A is
-locally implemented; FND-202B-F remains open.
+declared program DAG and their CTR-201 dependency is closed. CTR-202 is
+complete and integrated through PR #59 with exact-head CI. FND-202A is also
+integrated through PR #59. FND-202B is active as a branch candidate with
+focused local evidence; exact-head integration and FND-202C-F remain open.
 
 ### Cancelled governance tasks
 

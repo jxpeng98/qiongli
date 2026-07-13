@@ -1,5 +1,10 @@
+pub mod collector;
 pub mod manifest;
 
+pub use collector::{
+    CollectedResource, CollectorError, CollectorLimits, collect_canonical_sources,
+    collect_canonical_sources_with_limits,
+};
 pub use manifest::{
     CompatibleProduct, LogicalMode, ManifestError, ProfileId, ProfileProjection, ResourceEntry,
     ResourceKind, ResourcePackManifestV1,

@@ -12,12 +12,10 @@ protected PR #57. CTR-201F closes the accepted-source orchestrator runtime
 inventory with 44 deterministic cases (one A8 plus 43 bounded), six behavior
 dimensions, and six explicit dispositions. The CTR-201 source-oracle gate is
 complete in this tree. CTR-202 and FND-202 are separate successors whose
-CTR-201 dependency is closed. The CTR-202 working-tree candidate now fixes the
-concrete redaction, managed-path, external-adapter, input, and profile-specific
-metadata defects exposed by the July 12 review. Complete-mode and focused
-runtime validation pass locally; commit, protected-branch review, and
-exact-head CI remain open. FND-202A is implemented locally as a typed native
-manifest/profile contract; FND-202B-F remains open.
+CTR-201 dependency is closed. CTR-202 and the FND-202A typed native
+manifest/profile contract are integrated through PR #59 with green exact-head
+CI. FND-202B is active as a bounded canonical source-collector branch
+candidate with focused local tests; integration and FND-202C-F remain open.
 B1 / REL-201 now provides a typed native
 release identity, strict 1.x/2.x channel isolation, and an external-staging
 `v2.0.0-alpha.1` dry-run; real native publication remains fail-closed pending
@@ -1181,11 +1179,10 @@ B3 execution status: **in progress**.
   binding only;
 - published archive/plugin-wrapper parity remains an unassigned downstream
   governance boundary rather than a parent exit gate;
-- the CTR-202 working-tree candidate now closes the reviewed contract/runtime
-  gaps and passes focused local validation. It remains uncommitted and requires
-  exact-head CI before integration;
-- FND-202A is implemented locally in `qiongli-content`; FND-202B-F remains a
-  separate successor lane.
+- CTR-202 is integrated through PR #59 with exact 23/24 coverage and green
+  exact-head CI;
+- FND-202A is integrated in `qiongli-content`. FND-202B is the active branch
+  candidate; FND-202C-F remains a separate successor lane.
 
 Exit criteria:
 
@@ -1483,12 +1480,14 @@ A0-A8, B0, and the non-publishing B1 release contract are complete, the B2
 native workspace scaffold and repository gates are implemented, and B3 has
 closed CTR-201A-F as the accepted-source source-oracle inventory. CTR-201E is
 merged; CTR-201F provides the final orchestrator-runtime inventory closure.
-CTR-202 and FND-202A are locally implemented but not yet integrated.
+CTR-202 and FND-202A are integrated through PR #59. FND-202B is the active
+canonical source-collector branch candidate.
 Continue in this order:
 
-1. review and commit the coherent CTR-202 candidate after focused validation;
+1. finish FND-202B collector, boundary tests, and focused native validation;
 2. run protected-branch exact-head CI and fix only concrete regressions;
-3. review and commit FND-202A, then continue FND-202B canonical collection;
+3. after FND-202B integration, continue FND-202C deterministic writing and
+   content digest work;
 4. keep CTR and FND evidence independent even when implementation proceeds in
    parallel;
 5. retain published archive/plugin-wrapper parity as downstream product work;
