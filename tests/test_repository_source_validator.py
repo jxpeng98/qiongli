@@ -163,13 +163,17 @@ def _set_native_identity(
 
 class RepositorySourceValidatorTests(unittest.TestCase):
     def test_repository_policy_and_native_workspace_pass(self) -> None:
-        contract = load_contract(REPO_ROOT)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "repo"
+            _create_policy_repo(root)
+            contract = load_contract(root)
+            result = validate_repository(
+                root,
+                ["packages/qiongli-native/apps/qiongli/src/main.rs"],
+                mode="changed-files",
+            )
+
         self.assertEqual(contract["contract_id"], "RC1")
-        result = validate_repository(
-            REPO_ROOT,
-            ["packages/qiongli-native/apps/qiongli/src/main.rs"],
-            mode="changed-files",
-        )
         self.assertEqual(result.findings, ())
         self.assertIn("RSC-RUST-001", result.applicable_rule_ids)
 
@@ -703,20 +707,26 @@ fn main() { let _ = Launcher::new("node"); }
         self.assertIn("packages/qiongli-native/apps/qiongli/src/main.rs", changed)
 
     def test_cli_emits_machine_readable_pass_and_usage_error(self) -> None:
-        passed = subprocess.run(
-            [
-                sys.executable,
-                str(SCRIPT),
-                "--changed-file",
-                "packages/qiongli-native/apps/qiongli/src/main.rs",
-                "--json",
-            ],
-            cwd=REPO_ROOT,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,
-        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "repo"
+            _create_policy_repo(root)
+            passed = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--root",
+                    str(root),
+                    "--changed-file",
+                    "packages/qiongli-native/apps/qiongli/src/main.rs",
+                    "--json",
+                ],
+                cwd=REPO_ROOT,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+
         self.assertEqual(passed.returncode, 0, passed.stderr)
         self.assertEqual(json.loads(passed.stdout)["status"], "passed")
         self.assertEqual(passed.stderr, "")
