@@ -1,6 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; R0 and FND-202E complete, with FND-202F next
+Status: active execution; FND-202E complete and FND-202F locally green, with
+exact-head CI next
 
 Decision date: July 13, 2026
 
@@ -45,9 +46,10 @@ Integrated on `2.x`:
   `ebd2d7bef651fcbd22a7310aa50f9945604fa9eb`.
 
 The current physical native workspace contains `apps/qiongli` and
-`qiongli-content`. FND-202E is implemented at checkpoint `bd11896e`; the next
-work starts from FND-202F, not from another legacy inventory or Python parity
-phase.
+`qiongli-content`. FND-202E is complete through portability head `870d85b8`,
+and FND-202F has a locally verified implementation candidate on the same
+rolling branch. Work does not return to another legacy inventory or Python
+parity phase.
 
 ## Operating Rules
 
@@ -180,7 +182,8 @@ Purpose: make the native binary self-contained and safe to configure.
 
 Implementation status on July 13, 2026:
 
-- FND-202E is complete at implementation checkpoint `bd11896e`;
+- FND-202E is complete through implementation checkpoint `bd11896e` and
+  portability follow-ups `e3c3f93e` and `870d85b8`;
 - the service accepts only an already verified in-memory pack plus a target
   capability created by the private temporary factory or an explicitly named
   trusted CLI/UI/installer approval boundary;
@@ -192,22 +195,42 @@ Implementation status on July 13, 2026:
   errors are covered by focused tests;
 - the final local gate passed format, workspace check, Clippy with warnings
   denied, and 48 Rust tests;
+- GitHub Actions run `29291560721` passed the native boundary plus Linux,
+  macOS, and Windows Rust jobs at exact code head
+  `870d85b8f0ac5f57311292d06b7278441eb9d3f7`;
 - two review passes closed the shared-temp, staging-permission, lock-identity,
   and post-commit ambiguity findings, with no remaining Critical or Important
   blocker inside the declared FND-202E threat model;
-- public CLI/UI/MCP wiring, runtime embedding, Windows ACL and hard-link
-  hardening, and adversarial same-user handle-relative filesystem operations
-  remain explicit successor work rather than FND-202E claims.
+- public CLI/UI/MCP wiring, Windows ACL and hard-link hardening, and adversarial
+  same-user handle-relative filesystem operations remain explicit successor
+  work rather than FND-202E claims;
+- FND-202F now builds the canonical 418-entry content tree during the Rust
+  application build, verifies it against committed content-root and whole-pack
+  SHA-256 identities, and embeds only the verified bytes and expected digest;
+- the lock binds academic content version `v1.19.0-beta.1` and the complete
+  Contract v2 source tree at canonical content commit
+  `ff2c4f35cd1ee5df78a04ff90a0325273917eed8`, content root
+  `7a56401cb8208ab53483631e72cbcdc5b37c20a32e46eebfc9e8e2b219352f69`,
+  and pack digest
+  `38b9b1342a6a699b64d416a14ae25736750c166c2f502e6402c0c4418a6dc00d`;
+- `EmbeddedContent` supplies profile list/read/materialize services, while the
+  application validates the pack at startup; a copied-binary test runs outside
+  the checkout with an empty `PATH`;
+- the FND-202F local gate passed format, workspace check, Clippy with warnings
+  denied, and 52 Rust tests. Review caught and closed an initial source-commit
+  provenance mismatch, then reported no remaining Critical or Important
+  blocker; exact-head cross-platform CI is the remaining integration evidence.
 
 Deliverables:
 
-1. FND-202E atomic materializer — complete at `bd11896e`:
+1. FND-202E atomic materializer — complete through `870d85b8`:
    - temporary or explicitly approved output root;
    - managed receipt;
    - traversal and symlink rejection;
    - atomic commit and rollback;
    - no arbitrary output path from untrusted MCP input.
-2. FND-202F embedding and drift closure:
+2. FND-202F embedding and drift closure — locally complete; integration
+   evidence pending:
    - reproducible build-time pack;
    - embedded expected digest;
    - profile list/read/materialize API;
@@ -360,7 +383,7 @@ superseded head is not reported as current-head evidence.
 
 1. acceleration design, authoritative roadmap, and Draft PR #63: complete;
 2. R0 native required CI and live ruleset narrowing: complete;
-3. implement FND-202E and FND-202F in the same rolling PR;
+3. FND-202E is complete and FND-202F is locally green in the same rolling PR;
 4. continue directly into the R1 config and native-command slice;
 5. continue into R2 without creating another branch or PR;
 6. continue into R3 and prepare alpha.1 only after the complete vertical gate.

@@ -1,3 +1,7 @@
+# Native resource packs hash canonical source bytes, so every supported checkout
+# must materialize the content tree with the same LF line endings.
+content/** text eol=lf
+
 # CTR inventory deterministic and digest-bound JSON files must remain LF-only.
 content/mcp-contracts/v2/registry.json text eol=lf
 tooling/migration/baselines/v1.19.0-beta.1/manifest.json text eol=lf

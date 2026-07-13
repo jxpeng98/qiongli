@@ -1,6 +1,12 @@
 #![allow(clippy::disallowed_methods)]
 
+use std::fs;
+use std::path::PathBuf;
 use std::process::{Command, Output};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+static NEXT_RUNTIME_COPY_ID: AtomicU64 = AtomicU64::new(0);
 
 fn run(args: &[&str]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_qiongli"))
@@ -73,4 +79,40 @@ fn invalid_invocations_fail_as_usage_errors() {
             assert!(!stderr.contains(canary));
         }
     }
+}
+
+#[test]
+fn copied_binary_starts_without_the_source_checkout_or_runtime_path() {
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("test clock must follow the Unix epoch")
+        .as_nanos();
+    let copy_id = NEXT_RUNTIME_COPY_ID.fetch_add(1, Ordering::Relaxed);
+    let runtime_root = std::env::temp_dir().join(format!(
+        "qiongli-embedded-runtime-{}-{nonce}-{copy_id}",
+        std::process::id(),
+    ));
+    fs::create_dir(&runtime_root).expect("isolated runtime root must be created");
+    let source = PathBuf::from(env!("CARGO_BIN_EXE_qiongli"));
+    let copied = runtime_root.join(
+        source
+            .file_name()
+            .expect("native executable must have a file name"),
+    );
+    fs::copy(&source, &copied).expect("native executable must copy outside the checkout");
+
+    let output = Command::new(&copied)
+        .arg("--version")
+        .current_dir(&runtime_root)
+        .env("PATH", "")
+        .output()
+        .expect("copied native executable must start without external runtimes");
+    assert!(output.status.success());
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        format!("qiongli {}\n", env!("CARGO_PKG_VERSION"))
+    );
+    assert!(output.stderr.is_empty());
+
+    fs::remove_dir_all(runtime_root).expect("isolated runtime root must be removed");
 }

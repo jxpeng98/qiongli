@@ -34,6 +34,11 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, &'sta
 }
 
 fn main() -> ExitCode {
+    if let Err(error) = qiongli::embedded_content() {
+        eprintln!("error: embedded content integrity verification failed: {error}");
+        return ExitCode::FAILURE;
+    }
+
     match parse_args(env::args_os().skip(1)) {
         Ok(Command::Help) => {
             print!("{USAGE}");

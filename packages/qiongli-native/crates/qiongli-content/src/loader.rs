@@ -344,6 +344,42 @@ impl<'a> LoadedResourcePack<'a> {
             })
             .collect())
     }
+
+    pub fn resource_for_profile<'pack>(
+        &'pack self,
+        profile: &str,
+        path: &str,
+    ) -> Result<Option<LoadedResource<'pack, 'a>>, ResourcePackLoaderError> {
+        let profile_id = self
+            .manifest
+            .resolve_profile(profile)
+            .map_err(ResourcePackLoaderError::InvalidProfile)?;
+        let projection = self
+            .manifest
+            .profiles
+            .iter()
+            .find(|candidate| candidate.id == profile_id)
+            .ok_or(ResourcePackLoaderError::InvalidProfileProjection)?;
+        let Some(index) = self
+            .manifest
+            .entries
+            .binary_search_by(|entry| entry.path.as_str().cmp(path))
+            .ok()
+        else {
+            return Ok(None);
+        };
+        let entry = &self.manifest.entries[index];
+        if !projection
+            .included_resource_kinds
+            .contains(&entry.resource_kind)
+        {
+            return Ok(None);
+        }
+        Ok(Some(LoadedResource {
+            entry,
+            bytes: &self.payload_bytes[self.entry_ranges[index].clone()],
+        }))
+    }
 }
 
 #[derive(Clone, Copy, Debug)]

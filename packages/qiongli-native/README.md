@@ -64,11 +64,39 @@ reported explicitly as committed-with-cleanup-failure, including any remaining
 backup cleanup path, instead of being indistinguishable from a pre-commit
 failure.
 
+FND-202F turns that content pipeline into a self-contained product resource.
+The committed `qiongli-core.lock.json` freezes the accepted 1.19 metadata, 418
+entries, content-root SHA-256, and whole-pack SHA-256. The `qiongli` Cargo build
+script collects canonical sources, deterministically rebuilds the pack, and
+fails closed unless both identities match the canonical lock. It writes only
+the verified `.qlpack` and expected digest under Cargo `OUT_DIR`; normal builds
+never rewrite tracked sources. `content/**` is fixed to LF through repository
+attributes so checkout line-ending policy cannot create platform-specific pack
+identities.
+
+The application embeds both outputs at compile time. `EmbeddedContent` verifies
+the static bytes against the expected digest and exposes profile inspection,
+profile-scoped resource reads, and materialization through the existing target
+capability. The canonical executable performs this integrity check at startup.
+An integration test copies the executable outside the checkout and starts it
+with an empty `PATH`, demonstrating that runtime content access does not read
+the source tree or launch Python, Node.js, Cargo, or another external runtime.
+Building Qiongli from source still requires the pinned Rust toolchain and the
+canonical source tree; the distributed executable does not.
+
+When a future content baseline is explicitly accepted, regenerate and review
+the lock with native tooling before rebuilding the application:
+
+```bash
+cd packages/qiongli-native
+cargo run -p qiongli-content --example update_qiongli_core_lock --locked
+```
+
 The expected digest establishes integrity only when it comes from a trusted
 embedding or authenticated descriptor. Publisher signatures, trusted-key and
 revocation policy, running-product compatibility enforcement, runtime
-embedding, public CLI/UI wiring, host installation, and adversarial same-user
-handle-relative filesystem hardening remain separate successor work.
+content commands, public UI/MCP wiring, host installation, and adversarial
+same-user handle-relative filesystem hardening remain separate successor work.
 
 The version 1 header is `QLPACK\0\0`, followed by a little-endian `u32` format
 version and a little-endian `u64` manifest length. Payload offsets start after

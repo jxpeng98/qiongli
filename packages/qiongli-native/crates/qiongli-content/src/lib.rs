@@ -1,13 +1,16 @@
 pub mod collector;
+pub mod embedded;
 pub mod loader;
 pub mod manifest;
 pub mod materializer;
+pub mod pack_lock;
 pub mod writer;
 
 pub use collector::{
     CollectedResource, CollectorError, CollectorLimits, collect_canonical_sources,
     collect_canonical_sources_with_limits,
 };
+pub use embedded::EmbeddedContent;
 pub use loader::{
     LoadedResource, LoadedResourcePack, ResourcePackLimits, ResourcePackLoaderError,
     load_resource_pack, load_resource_pack_with_limits,
@@ -22,6 +25,7 @@ pub use materializer::{
     MaterializationError, MaterializationReceiptV1, MaterializationTarget, MaterializedEntry,
     approve_materialization_target, materialize_profile, temporary_materialization_target,
 };
+pub use pack_lock::{RESOURCE_PACK_LOCK_VERSION, ResourcePackLockError, ResourcePackLockV1};
 pub use writer::{
     BuiltResourcePack, RESOURCE_PACK_CONTENT_ROOT_DOMAIN_V1, RESOURCE_PACK_HEADER_LEN,
     RESOURCE_PACK_MAGIC, ResourcePackBuildMetadata, ResourcePackWriterError, build_resource_pack,
@@ -29,3 +33,6 @@ pub use writer::{
 
 pub const RESOURCE_PACK_MANIFEST_SCHEMA_V1: &str =
     include_str!("../schemas/resource-pack-manifest-v1.schema.json");
+
+pub const QIONGLI_CORE_RESOURCE_PACK_LOCK_V1: &str =
+    include_str!("../resources/qiongli-core.lock.json");

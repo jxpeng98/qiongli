@@ -9,5 +9,11 @@ repository.workspace = true
 publish.workspace = true
 description = "Canonical native Qiongli product executable"
 
+[dependencies]
+qiongli-content = { path = "../../crates/qiongli-content" }
+
+[build-dependencies]
+qiongli-content = { path = "../../crates/qiongli-content" }
+
 [lints]
 workspace = true
