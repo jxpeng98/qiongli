@@ -2,6 +2,7 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use qiongli_content::{
@@ -21,6 +22,7 @@ const DIRECTORY_ROOTS: [&str; 10] = [
     "venue-profiles",
     "workflow",
 ];
+static NEXT_TREE_ID: AtomicU64 = AtomicU64::new(0);
 
 struct TestTree {
     root: PathBuf,
@@ -32,9 +34,10 @@ impl TestTree {
             .duration_since(UNIX_EPOCH)
             .expect("test clock must follow the Unix epoch")
             .as_nanos();
+        let tree_id = NEXT_TREE_ID.fetch_add(1, Ordering::Relaxed);
         let root = std::env::temp_dir().join(format!(
-            "qiongli-content-collector-{}-{nonce}",
-            std::process::id()
+            "qiongli-content-collector-{}-{nonce}-{tree_id}",
+            std::process::id(),
         ));
         fs::create_dir(&root).expect("test content root must be created");
         for directory in DIRECTORY_ROOTS {
