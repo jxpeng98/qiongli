@@ -33,6 +33,13 @@ content root; SHA-256 over the entire unsigned core produces `pack_sha256`.
 Input enumeration order, filesystem metadata, build paths, and wall-clock time
 do not enter the result. Verification and direct loading belong to FND-202D.
 
+The version 1 header is `QLPACK\0\0`, followed by a little-endian `u32` format
+version and a little-endian `u64` manifest length. Payload offsets start after
+the manifest. The content-root preimage is
+`qiongli:resource-pack:content-root:v1`, one NUL byte, the little-endian `u64`
+length of the canonical entry-array JSON, and those canonical bytes. The
+manifest schema keeps numeric fields within the JCS safe-integer range.
+
 The existing `packages/qiongli-lite-mcp` crate remains a migration oracle and
 compatibility package. Native functionality will be extracted into shared
 workspace crates rather than copied into a second implementation.
