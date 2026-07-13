@@ -56,5 +56,5 @@
 - [x] Run `cargo check --workspace --all-targets --all-features --locked`.
 - [x] Run `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings`.
 - [x] Run `cargo test --workspace --all-targets --all-features --locked`.
-- [ ] Update the native README and accelerated roadmap with exact evidence and explicit nonclaims.
+- [x] Update the native README and accelerated roadmap with exact evidence and explicit nonclaims.
 - [ ] Commit and push the cohesive FND-202E checkpoint to the existing rolling Draft PR #63.

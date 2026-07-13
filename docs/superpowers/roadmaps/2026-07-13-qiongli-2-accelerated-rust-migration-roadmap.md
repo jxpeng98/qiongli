@@ -1,6 +1,6 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; R0 complete and R1 FND-202E is next
+Status: active execution; R0 and FND-202E complete, with FND-202F next
 
 Decision date: July 13, 2026
 
@@ -45,8 +45,9 @@ Integrated on `2.x`:
   `ebd2d7bef651fcbd22a7310aa50f9945604fa9eb`.
 
 The current physical native workspace contains `apps/qiongli` and
-`qiongli-content`. The next work starts from FND-202E, not from another legacy
-inventory or Python parity phase.
+`qiongli-content`. FND-202E is implemented at checkpoint `bd11896e`; the next
+work starts from FND-202F, not from another legacy inventory or Python parity
+phase.
 
 ## Operating Rules
 
@@ -156,8 +157,8 @@ Implementation status on July 13, 2026:
   and Windows Rust jobs on that checkpoint;
 - live ruleset `18800504` requires exactly those four contexts while retaining
   pull-request, deletion, non-fast-forward, review-thread, and no-bypass rules;
-- Draft PR #63 remains the only active 2.x migration PR, so R1 begins with
-  FND-202E in the same branch.
+- Draft PR #63 remains the only active 2.x migration PR, and R1 continues in
+  that same branch.
 
 Deliverables:
 
@@ -177,9 +178,30 @@ Exit gate:
 
 Purpose: make the native binary self-contained and safe to configure.
 
+Implementation status on July 13, 2026:
+
+- FND-202E is complete at implementation checkpoint `bd11896e`;
+- the service accepts only an already verified in-memory pack plus a target
+  capability created by the private temporary factory or an explicitly named
+  trusted CLI/UI/installer approval boundary;
+- temporary targets live in atomically created private containers, while
+  explicit Unix targets reject group- or world-writable ancestor chains;
+- managed receipts, bounded canonical-source/profile validation, private
+  staging, logical modes, link/reparse rejection, lock identity, managed-tree
+  drift checks, sibling promotion, rollback, and distinct post-commit cleanup
+  errors are covered by focused tests;
+- the final local gate passed format, workspace check, Clippy with warnings
+  denied, and 48 Rust tests;
+- two review passes closed the shared-temp, staging-permission, lock-identity,
+  and post-commit ambiguity findings, with no remaining Critical or Important
+  blocker inside the declared FND-202E threat model;
+- public CLI/UI/MCP wiring, runtime embedding, Windows ACL and hard-link
+  hardening, and adversarial same-user handle-relative filesystem operations
+  remain explicit successor work rather than FND-202E claims.
+
 Deliverables:
 
-1. FND-202E atomic materializer:
+1. FND-202E atomic materializer — complete at `bd11896e`:
    - temporary or explicitly approved output root;
    - managed receipt;
    - traversal and symlink rejection;
