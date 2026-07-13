@@ -215,7 +215,7 @@ class BranchPolicyTests(unittest.TestCase):
         self.assertIn("components: rustfmt, clippy", job)
         self.assertIn("Reject injected target-specific Rust flags", job)
         self.assertIn("CARGO_TARGET_*_RUSTFLAGS", job)
-        self.assertEqual(job.count("CARGO_HOME:"), 1)
+        self.assertEqual(job.count("CARGO_HOME:"), 4)
         self.assertIn('CARGO_ENCODED_RUSTFLAGS: ""', job)
         self.assertIn('RUSTC_WRAPPER: ""', job)
         self.assertIn('RUSTFLAGS: ""', job)

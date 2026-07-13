@@ -182,7 +182,7 @@ with:
         self.assertIn("components: rustfmt, clippy", job)
         self.assertIn("Reject injected target-specific Rust flags", job)
         self.assertIn("CARGO_TARGET_*_RUSTFLAGS", job)
-        self.assertEqual(job.count("CARGO_HOME:"), 1)
+        self.assertEqual(job.count("CARGO_HOME:"), 4)
         self.assertIn('CARGO_ENCODED_RUSTFLAGS: ""', job)
         self.assertIn('RUSTC_WRAPPER: ""', job)
         self.assertIn('RUSTFLAGS: ""', job)
@@ -438,15 +438,6 @@ jobs:
             os: macos-latest
           - platform: Windows
             os: windows-latest
-    env:
-      CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
-      CARGO_BUILD_RUSTC_WRAPPER: ""
-      CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
-      CARGO_BUILD_RUSTFLAGS: ""
-      CARGO_ENCODED_RUSTFLAGS: ""
-      RUSTC_WORKSPACE_WRAPPER: ""
-      RUSTC_WRAPPER: ""
-      RUSTFLAGS: ""
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -473,15 +464,51 @@ jobs:
           [[ "$injected" -eq 0 ]]
 
       - name: Check native Rust formatting
+        env:
+          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+          CARGO_BUILD_RUSTC_WRAPPER: ""
+          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+          CARGO_BUILD_RUSTFLAGS: ""
+          CARGO_ENCODED_RUSTFLAGS: ""
+          RUSTC_WORKSPACE_WRAPPER: ""
+          RUSTC_WRAPPER: ""
+          RUSTFLAGS: ""
         run: cargo fmt --manifest-path packages/qiongli-native/Cargo.toml --all -- --check
 
       - name: Check native Rust workspace
+        env:
+          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+          CARGO_BUILD_RUSTC_WRAPPER: ""
+          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+          CARGO_BUILD_RUSTFLAGS: ""
+          CARGO_ENCODED_RUSTFLAGS: ""
+          RUSTC_WORKSPACE_WRAPPER: ""
+          RUSTC_WRAPPER: ""
+          RUSTFLAGS: ""
         run: cargo check --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked
 
       - name: Run native Rust clippy
+        env:
+          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+          CARGO_BUILD_RUSTC_WRAPPER: ""
+          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+          CARGO_BUILD_RUSTFLAGS: ""
+          CARGO_ENCODED_RUSTFLAGS: ""
+          RUSTC_WORKSPACE_WRAPPER: ""
+          RUSTC_WRAPPER: ""
+          RUSTFLAGS: ""
         run: cargo clippy --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked -- -D warnings
 
       - name: Run native Rust tests
+        env:
+          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+          CARGO_BUILD_RUSTC_WRAPPER: ""
+          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+          CARGO_BUILD_RUSTFLAGS: ""
+          CARGO_ENCODED_RUSTFLAGS: ""
+          RUSTC_WORKSPACE_WRAPPER: ""
+          RUSTC_WRAPPER: ""
+          RUSTFLAGS: ""
         run: cargo test --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked
 ```
 
