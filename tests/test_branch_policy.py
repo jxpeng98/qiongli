@@ -378,12 +378,16 @@ class BranchPolicyTests(unittest.TestCase):
                 "does **not**\ncontain the A8 workflow-filter changes",
                 "90 days after Qiongli 2 stable",
                 "immutable guard is preventive only",
+                "manually dispatchable against a named `2.x` ref",
+                "diagnostic and are not required checks",
             ),
             "docs/zh/maintainer/release-branch-policy.md": (
                 "不接受常规功能",
                 "**不包含**之后在 `dev` 提交的 A8",
                 "Qiongli 2 stable 发布后 90 天",
                 "immutable guard 才能",
+                "指定的 `2.x` ref 手动触发",
+                "诊断证据，不是 2.x 原生开发的 required checks",
             ),
         }
 
@@ -406,6 +410,15 @@ class BranchPolicyTests(unittest.TestCase):
                 self.assertIn("capture --check", content)
                 self.assertIn("https://github.com/jxpeng98/qiongli/rules/18797579", content)
                 self.assertIn("ruleset 18797579", content)
+                self.assertIn("ruleset `18800504`", content)
+                self.assertIn("`Native CI`", content)
+                self.assertIn("`Native 2.x change boundary`", content)
+                for context in (
+                    "`Rust native foundation (Linux)`",
+                    "`Rust native foundation (macOS)`",
+                    "`Rust native foundation (Windows)`",
+                ):
+                    self.assertIn(context, content)
                 for marker in localized_markers:
                     self.assertIn(marker, content)
 

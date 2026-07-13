@@ -1,6 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active design baseline; implementation planning follows design review
+Status: active execution; R0 repository implementation awaits exact-head CI
+and live ruleset verification
 
 Decision date: July 13, 2026
 
@@ -147,6 +148,13 @@ but only one may be active at a time.
 ## R0 — Native Control Plane
 
 Purpose: remove process overhead before adding more product surface.
+
+Implementation status on July 13, 2026:
+
+- workflow routing, the dependency-free frozen change boundary, and focused
+  policy tests are implemented at checkpoint `de98cc96`;
+- exact-head GitHub Actions evidence and ruleset `18800504` narrowing remain
+  open until this checkpoint is pushed and all four native contexts pass.
 
 Deliverables:
 

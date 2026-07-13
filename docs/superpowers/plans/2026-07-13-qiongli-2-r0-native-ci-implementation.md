@@ -31,7 +31,7 @@
 - Modify: `tests/test_branch_policy.py:15-25`
 - Modify: `tests/test_branch_policy.py:142-190`
 
-- [ ] **Step 1: Create the boundary-guard behavioral tests**
+- [x] **Step 1: Create the boundary-guard behavioral tests**
 
 Create `tests/test_native_change_boundary.py` with this complete test harness:
 
@@ -129,7 +129,7 @@ if __name__ == "__main__":
     unittest.main()
 ```
 
-- [ ] **Step 2: Replace the branch-routing policy test**
+- [x] **Step 2: Replace the branch-routing policy test**
 
 Replace `test_ci_workflows_cover_legacy_and_native_development_branches` in
 `tests/test_branch_policy.py` with:
@@ -156,7 +156,7 @@ Replace `test_ci_workflows_cover_legacy_and_native_development_branches` in
         self.assertIn("tooling/release/acceptance/**", native_ci)
 ```
 
-- [ ] **Step 3: Point the native matrix policy test at the new workflow**
+- [x] **Step 3: Point the native matrix policy test at the new workflow**
 
 Replace `test_ci_has_independent_three_platform_native_rust_foundation_gate`
 with:
@@ -221,7 +221,7 @@ with:
                 self.assertNotIn(marker, content)
 ```
 
-- [ ] **Step 4: Run the focused tests and verify the red state**
+- [x] **Step 4: Run the focused tests and verify the red state**
 
 Run:
 
@@ -238,7 +238,7 @@ Expected: FAIL because `.github/workflows/native-ci.yml` and
 - Create: `scripts/check_2x_native_change_boundary.sh`
 - Test: `tests/test_native_change_boundary.py`
 
-- [ ] **Step 1: Add the dependency-free boundary guard**
+- [x] **Step 1: Add the dependency-free boundary guard**
 
 Create `scripts/check_2x_native_change_boundary.sh`:
 
@@ -336,7 +336,7 @@ fi
 echo "Native 2.x change boundary passed."
 ```
 
-- [ ] **Step 2: Make the guard executable**
+- [x] **Step 2: Make the guard executable**
 
 Run:
 
@@ -344,7 +344,7 @@ Run:
 chmod +x scripts/check_2x_native_change_boundary.sh
 ```
 
-- [ ] **Step 3: Run the behavioral tests**
+- [x] **Step 3: Run the behavioral tests**
 
 Run:
 
@@ -362,7 +362,7 @@ Expected: 2 tests pass.
 - Modify: `.github/workflows/install-check.yml:1-11`
 - Test: `tests/test_branch_policy.py`
 
-- [ ] **Step 1: Add the dedicated native workflow**
+- [x] **Step 1: Add the dedicated native workflow**
 
 Create `.github/workflows/native-ci.yml` with two jobs:
 
@@ -485,7 +485,7 @@ jobs:
         run: cargo test --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked
 ```
 
-- [ ] **Step 2: Restrict legacy CI automatic triggers**
+- [x] **Step 2: Restrict legacy CI automatic triggers**
 
 Change the top of `.github/workflows/ci.yml` to:
 
@@ -505,7 +505,7 @@ on:
 Keep all existing legacy jobs unchanged so maintainers can dispatch the
 workflow manually against `2.x` for a named compatibility investigation.
 
-- [ ] **Step 3: Restrict checkout-install automatic triggers**
+- [x] **Step 3: Restrict checkout-install automatic triggers**
 
 Change the top of `.github/workflows/install-check.yml` to:
 
@@ -522,7 +522,7 @@ on:
   workflow_dispatch:
 ```
 
-- [ ] **Step 4: Run the complete focused R0 policy suite**
+- [x] **Step 4: Run the complete focused R0 policy suite**
 
 Run:
 
@@ -532,7 +532,7 @@ python3 -m unittest tests.test_native_change_boundary tests.test_branch_policy -
 
 Expected: all focused tests pass.
 
-- [ ] **Step 5: Commit the workflow checkpoint**
+- [x] **Step 5: Commit the workflow checkpoint**
 
 ```bash
 git add .github/workflows/native-ci.yml .github/workflows/ci.yml \
@@ -550,7 +550,7 @@ git commit -m "ci(native): route 2.x through Rust-only gates"
 - Modify: `docs/zh/maintainer/release-branch-policy.md:111-132`
 - Modify: `docs/superpowers/roadmaps/2026-07-13-qiongli-2-accelerated-rust-migration-roadmap.md:143-164`
 
-- [ ] **Step 1: Replace the obsolete 2.x workflow policy in English**
+- [x] **Step 1: Replace the obsolete 2.x workflow policy in English**
 
 Document these exact rules under `2.x Native Branch Governance` and
 `Development Flow`:
@@ -573,7 +573,7 @@ Record ruleset `18800504` as the enforcement source and list the four required
 contexts. Replace the development-flow instruction to run old CI with the
 native gate commands and state that legacy workflows are manual diagnostics.
 
-- [ ] **Step 2: Mirror the policy in Chinese**
+- [x] **Step 2: Mirror the policy in Chinese**
 
 Add the equivalent rules:
 
@@ -590,14 +590,14 @@ Node。
 required checks。
 ```
 
-- [ ] **Step 3: Mark R0 repository work implemented but server verification pending**
+- [x] **Step 3: Mark R0 repository work implemented but server verification pending**
 
 In the accelerated roadmap, change the R0 status to state that workflow routing,
 the boundary guard, and focused tests are implemented. Keep the R0 exit gate
 open until the pushed exact head produces all four required contexts and
 ruleset `18800504` is verified with only those contexts.
 
-- [ ] **Step 4: Run documentation and patch checks**
+- [x] **Step 4: Run documentation and patch checks**
 
 Run:
 
