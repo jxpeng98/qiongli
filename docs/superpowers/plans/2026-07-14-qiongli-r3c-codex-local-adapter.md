@@ -18,54 +18,55 @@ writing Codex's plugin cache or claiming client activation.
   symbolic paths.
 - [x] Freeze discovery, plan, approval, receipt, merge, transaction, and
   non-claim rules in the R3C design.
-- [ ] Commit and push the design checkpoint to the rolling Draft PR.
+- [x] Commit and push design checkpoint `8c76f5f2` to the rolling Draft PR.
 
 ## 2. Make The Embedded Lite Projection A Codex Source
 
-- [ ] Add a skills-only `.codex-plugin/plugin.json` to canonical content.
-- [ ] Include and validate it in every applicable resource-pack projection.
-- [ ] Regenerate the checked resource-pack lock and update deterministic
+- [x] Add a skills-only `.codex-plugin/plugin.json` to canonical content.
+- [x] Include and validate it in every applicable resource-pack projection.
+- [x] Regenerate the checked resource-pack lock and update deterministic
   fixture expectations.
-- [ ] Prove the `marketplace-lite` materialization contains and receipts the
+- [x] Prove the `marketplace-lite` materialization contains and receipts the
   manifest without adding a Python or Node launch path.
 
 ## 3. Implement Discovery And Preview
 
-- [ ] Add typed redacted current-user Codex discovery.
-- [ ] Validate the fixed R3B materialized source and Codex manifest.
-- [ ] Parse bounded personal marketplace documents and classify absent,
+- [x] Add typed redacted current-user Codex discovery.
+- [x] Validate the fixed R3B materialized source and Codex manifest.
+- [x] Parse bounded personal marketplace documents and classify absent,
   registered, conflict, drift, and recovery states.
-- [ ] Build a deterministic one-operation `RegisterPluginSource` install plan
+- [x] Build a deterministic one-operation `RegisterPluginSource` install plan
   with exact approvals, inverse, source digest, and outstanding host action.
-- [ ] Add pure document-merge tests and plan tamper/approval tests.
+- [x] Add pure document-merge tests and plan tamper/approval tests.
 
 ## 4. Implement Receipt-backed Registration Lifecycle
 
-- [ ] Add canonical registration, lifecycle, state, and journal schemas.
-- [ ] Add private-root locking, compare-and-swap marketplace writes, rollback,
+- [x] Add canonical registration, lifecycle, state, and journal schemas.
+- [x] Add private-root locking, compare-and-swap marketplace writes, rollback,
   and post-commit verification on Unix and Windows.
-- [ ] Implement apply, verify, repair, remove, and rollback.
-- [ ] Reject source, marketplace, receipt, ownership, path, permission,
+- [x] Implement apply, verify, repair, remove, and rollback.
+- [x] Reject source, marketplace, receipt, ownership, path, permission,
   duplicate-entry, and recovery drift without deleting user data.
-- [ ] Add idempotence, preservation, drift, rollback, and fault tests.
+- [x] Add idempotence, preservation, drift, rollback, and fault tests.
 
 ## 5. Expose Conservative Product Status
 
-- [ ] Add side-effect-free `qiongli install codex status` output with symbolic
+- [x] Add side-effect-free `qiongli install codex status` output with symbolic
   locations only.
-- [ ] Change the Codex install target from `contract-only` only to an accurate
+- [x] Change the Codex install target from `contract-only` only to an accurate
   adapter-engine state; keep production `launch_grant`, `preview`, and `apply`
   unavailable in the source build.
-- [ ] Update native README and accelerated roadmap with exact capabilities and
+- [x] Update native README and accelerated roadmap with exact capabilities and
   non-claims.
 
 ## 6. Verify And Land The Batch
 
-- [ ] Run formatting and the focused `qiongli-platform`, `qiongli-content`, and
+- [x] Run formatting and the focused `qiongli-platform`, `qiongli-content`, and
   CLI Rust tests.
-- [ ] Run the full native Rust workspace tests locally.
-- [ ] Run the native boundary and focused Lite gates.
-- [ ] Cross-check the Windows target and obtain the real Windows CI result.
+- [x] Run all 185 native Rust workspace tests locally.
+- [x] Run the native boundary and all 69 focused Lite compatibility tests.
+- [x] Cross-check all workspace targets for Windows MSVC locally.
+- [ ] Obtain the real Windows CI result.
 - [ ] Commit and push the implementation and local receipt checkpoints.
 - [ ] Update Draft PR `#63` with factual files, tests, limitations, and the
   exact head.
@@ -85,4 +86,22 @@ writing Codex's plugin cache or claiming client activation.
 
 ## Receipt
 
-Pending implementation and exact-head CI evidence.
+Local implementation receipt, before checkpoint commit:
+
+- official Codex manual cache was current on 2026-07-14 and confirmed the
+  personal marketplace, local source, client-owned cache, and enablement
+  boundaries used by the design;
+- the resource pack now has 419 entries with content root
+  `db362981aa9c9ad1f84eeecbdb4f119924c7f442096be3a8e657afa424aea2f2`
+  and pack digest
+  `04a0ac3a980194c741ba57f0cc8da8490bb1c77c9d445f6f2144bf5464b3818d`;
+- seven focused Codex adapter tests pass, including post-activation rollback
+  and ambiguous concurrent-state preservation;
+- strict workspace Clippy passes;
+- all 185 native Rust tests pass;
+- the native change boundary and all 69 focused Lite compatibility tests pass;
+  and
+- the Windows MSVC all-target, all-feature workspace check passes.
+
+Implementation commit, push, and exact-head Native CI/Cloudflare evidence remain
+pending.

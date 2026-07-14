@@ -1,9 +1,22 @@
+mod codex;
 mod error;
 mod grant;
 mod identity;
 mod plan;
 mod transaction;
 
+pub use codex::{
+    CODEX_ADAPTER_SCHEMA_VERSION, CODEX_MARKETPLACE_SYMBOLIC_PATH,
+    CODEX_PLUGIN_SOURCE_MARKETPLACE_PATH, CODEX_PLUGIN_SOURCE_SYMBOLIC_PATH,
+    CODEX_REGISTRATION_RECEIPT_SCHEMA_VERSION, CODEX_REGISTRATION_STATE_SCHEMA_VERSION,
+    CodexAdapterError, CodexDiscoverySummaryV1, CodexMarketplaceState, CodexRegistrationCommit,
+    CodexRegistrationDisposition, CodexRegistrationEffect, CodexRegistrationExecutor,
+    CodexRegistrationLifecycleCommit, CodexRegistrationLifecycleDisposition,
+    CodexRegistrationLifecycleKind, CodexRegistrationLifecycleReceiptV1, CodexRegistrationPreview,
+    CodexRegistrationReceiptV1, CodexRegistrationState, CodexRegistrationStateV1,
+    CodexRegistrationVerification, CodexSourceState, CodexUserTarget, discover_codex_user,
+    preview_codex_registration,
+};
 pub use error::PlatformError;
 pub use grant::{
     GrantMode, GrantSignatureV1, GrantVerificationContext, IntegrationScope, LaunchGrantV1,

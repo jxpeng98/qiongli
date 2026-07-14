@@ -32,4 +32,14 @@ fn product_binary_contains_the_frozen_verified_resource_pack() {
             .bytes(),
         b"v1.19.0-beta.1\n"
     );
+    let codex_manifest = content
+        .read_profile_resource("marketplace-lite", ".codex-plugin/plugin.json")
+        .expect("marketplace-lite profile must resolve")
+        .expect("Codex plugin manifest must be embedded");
+    let codex_manifest: serde_json::Value = serde_json::from_slice(codex_manifest.bytes())
+        .expect("Codex plugin manifest must be valid JSON");
+    assert_eq!(codex_manifest["name"], "qiongli");
+    assert_eq!(codex_manifest["version"], "2.0.0-alpha.1");
+    assert_eq!(codex_manifest["skills"], "./");
+    assert!(codex_manifest.get("mcpServers").is_none());
 }

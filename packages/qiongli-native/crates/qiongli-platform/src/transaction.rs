@@ -109,6 +109,28 @@ impl Debug for ApprovedInstallPlan {
     }
 }
 
+impl ApprovedInstallPlan {
+    pub(crate) fn validate_for(
+        &self,
+        plan: &VerifiedInstallPlan,
+        now_unix: u64,
+    ) -> Result<(), TransactionError> {
+        let plan = plan.plan();
+        if now_unix < plan.created_at_unix
+            || now_unix >= plan.expires_at_unix
+            || now_unix >= self.expires_at_unix
+        {
+            return Err(TransactionError::PlanExpired);
+        }
+        if self.semantic_digest_sha256 != plan.semantic_digest_sha256
+            || self.approvals != plan.approvals_required
+        {
+            return Err(TransactionError::InvalidApproval);
+        }
+        Ok(())
+    }
+}
+
 /// Creates an approval token at a trusted local CLI or UI confirmation
 /// boundary. Callers must not invoke this function directly from an MCP or
 /// model-generated request.
@@ -977,17 +999,7 @@ impl<'a> ExecutableMaterialization<'a> {
         now_unix: u64,
     ) -> Result<Self, TransactionError> {
         let plan = verified_plan.plan();
-        if now_unix < plan.created_at_unix
-            || now_unix >= plan.expires_at_unix
-            || now_unix >= approval.expires_at_unix
-        {
-            return Err(TransactionError::PlanExpired);
-        }
-        if approval.semantic_digest_sha256 != plan.semantic_digest_sha256
-            || approval.approvals != plan.approvals_required
-        {
-            return Err(TransactionError::InvalidApproval);
-        }
+        approval.validate_for(verified_plan, now_unix)?;
         if plan.approvals_required != [ApprovalRequirement::FilesystemWrite]
             || plan.target.profile != CapabilityProfile::Lite
             || plan.target.scope != InstallScope::User
@@ -1884,7 +1896,8 @@ mod tests {
 
     const BINARY_DIGEST: &str = "1111111111111111111111111111111111111111111111111111111111111111";
     const NOW: u64 = 1_750_000_000;
-    const CANONICAL_DIRECTORIES: [&str; 10] = [
+    const CANONICAL_DIRECTORIES: [&str; 11] = [
+        ".codex-plugin",
         "distribution",
         "mcp-contracts",
         "roles",

@@ -10,15 +10,16 @@ use qiongli_content::{
     approve_materialization_target,
 };
 use qiongli_platform::{
-    ARTIFACT_IDENTITY_SCHEMA_VERSION, Architecture, INSTALL_PLAN_SCHEMA_VERSION,
-    INSTALL_RECEIPT_SCHEMA_VERSION, LAUNCH_GRANT_SCHEMA_VERSION, LocalTargetFamily,
-    OperatingSystem,
+    ARTIFACT_IDENTITY_SCHEMA_VERSION, Architecture, CODEX_ADAPTER_SCHEMA_VERSION,
+    CODEX_REGISTRATION_RECEIPT_SCHEMA_VERSION, CODEX_REGISTRATION_STATE_SCHEMA_VERSION,
+    CodexDiscoverySummaryV1, INSTALL_PLAN_SCHEMA_VERSION, INSTALL_RECEIPT_SCHEMA_VERSION,
+    LAUNCH_GRANT_SCHEMA_VERSION, LocalTargetFamily, OperatingSystem, discover_codex_user,
 };
 use serde::Serialize;
 
 const OUTPUT_SCHEMA_VERSION: u32 = 1;
 
-const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli --version\n  qiongli --help\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli install status\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
+const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli --version\n  qiongli --help\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli install status\n  qiongli install codex status\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
 
 const CONTENT_USAGE: &str = "Qiongli embedded content\n\nUsage:\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli content --help\n";
 
@@ -26,8 +27,7 @@ const CONFIG_USAGE: &str = "Qiongli global config\n\nUsage:\n  qiongli config sh
 
 const MCP_USAGE: &str = "Qiongli native MCP\n\nUsage:\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli mcp --help\n";
 
-const INSTALL_USAGE: &str =
-    "Qiongli native installation\n\nUsage:\n  qiongli install status\n  qiongli install --help\n";
+const INSTALL_USAGE: &str = "Qiongli native installation\n\nUsage:\n  qiongli install status\n  qiongli install codex status\n  qiongli install --help\n";
 
 #[derive(Clone, Default)]
 pub struct CommandEnvironment {
@@ -143,6 +143,7 @@ pub fn prepare_action(
         } => config_set(environment, expected_revision, default_profile),
         Command::InstallHelp => CliOutput::success_text(INSTALL_USAGE),
         Command::InstallStatus => install_status(),
+        Command::InstallCodexStatus => install_codex_status(environment),
         Command::McpHelp => CliOutput::success_text(MCP_USAGE),
         Command::McpServeLiteStdio => return ProductAction::ServeLiteMcpStdio,
         Command::Status => status(environment, content),
@@ -169,6 +170,7 @@ enum Command {
     },
     InstallHelp,
     InstallStatus,
+    InstallCodexStatus,
     McpHelp,
     McpServeLiteStdio,
     Status,
@@ -210,7 +212,13 @@ fn parse_install_args(args: &[OsString]) -> Result<Command, UsageError> {
     match subcommand {
         "--help" if args.len() == 1 => Ok(Command::InstallHelp),
         "status" if args.len() == 1 => Ok(Command::InstallStatus),
-        "--help" | "status" => Err(install_usage_error("unexpected extra argument")),
+        "codex"
+            if args.get(1).and_then(|value| value.to_str()) == Some("status")
+                && args.len() == 2 =>
+        {
+            Ok(Command::InstallCodexStatus)
+        }
+        "--help" | "status" | "codex" => Err(install_usage_error("unexpected extra argument")),
         _ => Err(install_usage_error("unknown install subcommand")),
     }
 }
@@ -522,6 +530,9 @@ fn install_status() -> CliOutput {
                 launch_grant: LAUNCH_GRANT_SCHEMA_VERSION,
                 install_plan: INSTALL_PLAN_SCHEMA_VERSION,
                 install_receipt: INSTALL_RECEIPT_SCHEMA_VERSION,
+                codex_adapter: CODEX_ADAPTER_SCHEMA_VERSION,
+                codex_registration_receipt: CODEX_REGISTRATION_RECEIPT_SCHEMA_VERSION,
+                codex_registration_state: CODEX_REGISTRATION_STATE_SCHEMA_VERSION,
             },
             current_target: InstallBuildTarget { os, arch },
             transaction_engine: "grant-and-approval-gated",
@@ -531,13 +542,35 @@ fn install_status() -> CliOutput {
             targets: [
                 InstallTargetStatus {
                     family: LocalTargetFamily::CodexLocal,
-                    state: "contract-only",
+                    state: "adapter-engine-ready",
                 },
                 InstallTargetStatus {
                     family: LocalTargetFamily::ClaudeCodeLocal,
                     state: "contract-only",
                 },
             ],
+        },
+        0,
+    )
+}
+
+fn install_codex_status(environment: &CommandEnvironment) -> CliOutput {
+    let Some(home) = environment.platform_home.as_deref() else {
+        return CliOutput::operation_failure("codex-home-unavailable");
+    };
+    let target = match discover_codex_user(home) {
+        Ok(target) => target,
+        Err(error) => return CliOutput::operation_failure(error.reason_code()),
+    };
+    json_output(
+        &InstallCodexStatusOutput {
+            schema_version: OUTPUT_SCHEMA_VERSION,
+            command: "install-codex-status",
+            target: target.summary(),
+            launch_grant: "unavailable",
+            preview: "unavailable",
+            apply: "unavailable",
+            activation: "client-action-required",
         },
         0,
     )
@@ -725,11 +758,25 @@ struct InstallStatusOutput {
 }
 
 #[derive(Serialize)]
+struct InstallCodexStatusOutput<'a> {
+    schema_version: u32,
+    command: &'static str,
+    target: &'a CodexDiscoverySummaryV1,
+    launch_grant: &'static str,
+    preview: &'static str,
+    apply: &'static str,
+    activation: &'static str,
+}
+
+#[derive(Serialize)]
 struct InstallContractVersions {
     artifact_identity: u32,
     launch_grant: u32,
     install_plan: u32,
     install_receipt: u32,
+    codex_adapter: u32,
+    codex_registration_receipt: u32,
+    codex_registration_state: u32,
 }
 
 #[derive(Serialize)]

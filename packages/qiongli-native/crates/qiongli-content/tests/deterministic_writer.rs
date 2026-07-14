@@ -10,7 +10,8 @@ use qiongli_content::{
     collect_canonical_sources,
 };
 
-const DIRECTORY_ROOTS: [&str; 10] = [
+const DIRECTORY_ROOTS: [&str; 11] = [
+    ".codex-plugin",
     "distribution",
     "mcp-contracts",
     "roles",

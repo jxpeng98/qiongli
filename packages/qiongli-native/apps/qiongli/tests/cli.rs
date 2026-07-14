@@ -535,6 +535,9 @@ fn install_status_is_read_only_and_truthful_for_source_builds() {
     assert_eq!(value["contracts"]["launch_grant"], 1);
     assert_eq!(value["contracts"]["install_plan"], 1);
     assert_eq!(value["contracts"]["install_receipt"], 1);
+    assert_eq!(value["contracts"]["codex_adapter"], 1);
+    assert_eq!(value["contracts"]["codex_registration_receipt"], 1);
+    assert_eq!(value["contracts"]["codex_registration_state"], 1);
     assert!(value["current_target"]["os"].is_string());
     assert!(value["current_target"]["arch"].is_string());
     assert_eq!(value["transaction_engine"], "grant-and-approval-gated");
@@ -543,8 +546,33 @@ fn install_status_is_read_only_and_truthful_for_source_builds() {
     assert_eq!(value["apply"], "unavailable");
     assert_eq!(value["targets"][0]["family"], "codex-local");
     assert_eq!(value["targets"][1]["family"], "claude-code-local");
-    assert_eq!(value["targets"][0]["state"], "contract-only");
+    assert_eq!(value["targets"][0]["state"], "adapter-engine-ready");
     assert_eq!(value["targets"][1]["state"], "contract-only");
+}
+
+#[test]
+fn codex_install_status_discovers_without_writing_or_leaking_home() {
+    let fixture = Fixture::new("codex-discovery-private-canary");
+    let output = run_configured(&fixture, &["install", "codex", "status"]);
+    assert!(output.status.success(), "{}", public_output(&output));
+    assert!(output.stderr.is_empty());
+    let value = parse_json(&output);
+    assert_eq!(value["schema_version"], 1);
+    assert_eq!(value["command"], "install-codex-status");
+    assert_eq!(value["target"]["source"], "missing");
+    assert_eq!(value["target"]["marketplace"], "missing");
+    assert_eq!(value["target"]["registration"], "absent");
+    assert_eq!(
+        value["target"]["marketplace_path"],
+        "<user-home>/.agents/plugins/marketplace.json"
+    );
+    assert_eq!(value["launch_grant"], "unavailable");
+    assert_eq!(value["preview"], "unavailable");
+    assert_eq!(value["apply"], "unavailable");
+    assert_eq!(value["activation"], "client-action-required");
+    assert!(!fixture.home.join(".agents").exists());
+    assert!(!fixture.home.join(".qiongli").exists());
+    assert!(!public_output(&output).contains(fixture.home.to_string_lossy().as_ref()));
 }
 
 #[test]

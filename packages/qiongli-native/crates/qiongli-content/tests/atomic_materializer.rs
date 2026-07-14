@@ -12,7 +12,8 @@ use qiongli_content::{
     verify_materialization,
 };
 
-const DIRECTORY_ROOTS: [&str; 10] = [
+const DIRECTORY_ROOTS: [&str; 11] = [
+    ".codex-plugin",
     "distribution",
     "mcp-contracts",
     "roles",

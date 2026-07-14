@@ -1,7 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
 Status: active execution; R1, R2, R3A, and R3B are complete; R3C Codex local
-adapter planning is next
+adapter implementation has a green local checkpoint and awaits exact-head CI
 
 Decision date: July 13, 2026
 
@@ -584,8 +584,8 @@ R3B is complete at design checkpoint `714315cd` and implementation checkpoint
   host actions, nested destinations, client paths, production grants, packages,
   and release claims remain rejected or unavailable.
 
-R3C is the next dependency-contiguous batch: implement the first `INT-201`
-Codex local adapter planning vertical with documented current-user discovery,
+R3C is the active dependency-contiguous batch: implement the first `INT-201`
+Codex local adapter vertical with documented current-user discovery,
 read-only preview, exact client-config approval, and receipt-backed
 registration/removal. It must not write Codex plugin caches or claim
 Desktop/Marketplace activation; real client activation evidence remains a
@@ -600,6 +600,22 @@ It uses the documented personal marketplace at
 Codex-owned cache and enablement state remain out of scope; registration means
 only that the desktop client can discover the local source for a later user
 install.
+
+R3C now has a green local implementation checkpoint:
+
+- the canonical embedded pack contains a receipt-covered skills-only Codex
+  manifest and has 419 entries;
+- `qiongli-platform` implements redacted discovery, deterministic preview,
+  exact approval, canonical registration/lifecycle receipts, root-scoped
+  journaling, and apply/verify/repair/remove/rollback;
+- marketplace merges preserve unrelated fields and entries and reject
+  unreceipted conflicts, drift, links, unsafe permissions, oversized input,
+  partial approval, and ambiguous recovery;
+- `qiongli install codex status` is read-only and the source build continues to
+  report production grant, preview, and apply as unavailable; and
+- the native boundary, strict Clippy, all 185 native Rust tests, all 69 focused
+  Lite compatibility tests, and the Windows MSVC all-target workspace check
+  pass locally. Exact implementation commit and CI evidence are still pending.
 
 Deliverables:
 

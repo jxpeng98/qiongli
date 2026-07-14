@@ -26,7 +26,7 @@ Cargo, or another language runtime to start.
 `qiongli-content` freezes three projections: `skill-only`,
 `marketplace-lite` (alias `lite`), and `full`. Its synthetic golden fixture
 tests the format contract without binding the crate to the uncommitted working
-copy of canonical content. FND-202B collects only the 12 allowlisted roots under
+copy of canonical content. FND-202B collects only the 13 allowlisted roots under
 `content/`, normalizes and sorts portable paths, and rejects links, path
 collisions, unsupported file types, and bounded count/size violations.
 FND-202C writes a 20-byte versioned header, an RFC 8785 canonical manifest, and
@@ -66,7 +66,7 @@ backup cleanup path, instead of being indistinguishable from a pre-commit
 failure.
 
 FND-202F turns that content pipeline into a self-contained product resource.
-The committed `qiongli-core.lock.json` freezes the accepted 1.19 metadata, 418
+The committed `qiongli-core.lock.json` freezes the accepted 1.19 metadata, 419
 entries, content-root SHA-256, and whole-pack SHA-256. The `qiongli` Cargo build
 script collects canonical sources, deterministically rebuilds the pack, and
 fails closed unless both identities match the canonical lock. It writes only
@@ -297,6 +297,37 @@ no production launch grant, approved root, or executable plan, so
 discover or register Codex/Claude, write MCP/client configuration, activate a
 plugin, perform an in-place upgrade, install into Marketplace/Desktop/cloud,
 or produce a package or release.
+
+## R3C Codex personal marketplace adapter
+
+`qiongli-platform` now contains the first `CodexLocal` host adapter. It derives
+only the documented current-user personal marketplace and a fixed private
+Qiongli source location, validates that source through its complete R3B
+materialization receipt, and exposes a deterministic one-operation
+`RegisterPluginSource` preview. The plan requires the exact
+`filesystem-write`, `client-config-change`, and `host-trust` approval vector and
+retains `install-or-enable-plugin` as an outstanding client action.
+
+The registration executor preserves unrelated marketplace fields and entries,
+uses private canonical receipts and a root-scoped journal, and supports apply,
+verify, absent-entry repair, remove, and rollback. Conflicting unreceipted
+`qiongli` entries, malformed or oversized documents, source or receipt drift,
+linked/insecure paths, partial approval, and ambiguous rollback fail closed.
+The embedded `marketplace-lite` projection now contains a skills-only
+`.codex-plugin/plugin.json`; it intentionally has no MCP declaration yet.
+
+The source executable adds the side-effect-free command:
+
+```text
+qiongli install codex status
+```
+
+It returns symbolic paths and typed source, marketplace, and registration
+states without creating directories or exposing the user home. General install
+status labels the Codex adapter engine ready, while production `launch_grant`,
+`preview`, and `apply` remain `unavailable`. Registration does not write or
+claim the Codex plugin cache, enablement state, Desktop installation, MCP
+activation, public Marketplace publication, or cloud availability.
 
 ## R1 command contract (retained)
 
