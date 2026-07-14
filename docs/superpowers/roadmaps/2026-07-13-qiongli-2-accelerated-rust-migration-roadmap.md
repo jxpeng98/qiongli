@@ -1,7 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
 Status: active execution; R1, R2, R3A, R3B, and R3C are complete; R3D Codex
-native plugin composition and activation evidence is next
+native plugin design is frozen and implementation is active
 
 Decision date: July 13, 2026
 
@@ -629,6 +629,14 @@ client cache and enablement writes client-owned and must not claim public
 Marketplace or cloud availability. The Claude adapters remain later R3
 successors until the complete Codex plugin vertical is proven.
 
+The R3D boundary is frozen in
+`docs/superpowers/specs/2026-07-14-qiongli-r3d-codex-native-plugin-design.md`.
+The generated target-specific package uses one native Qiongli executable for
+CLI and Lite MCP, a canonical `skills/qiongli-workflow` projection, a strict
+bundle receipt, and client-owned activation. Real Codex evidence must use an
+isolated home and must not modify the developer's normal cache or enablement
+state.
+
 Deliverables:
 
 1. `qiongli-platform`:
@@ -749,9 +757,11 @@ superseded head is not reported as current-head evidence.
 11. R3B managed resource transactions are complete at `b3a6ea6b`, with exact
     implementation-and-local-receipt Native CI run `29335762713` and
     Cloudflare green;
-12. begin R3C with the first Codex local adapter planning and registration
-    vertical;
-13. prepare alpha.1 only after the complete installed-product vertical gate.
+12. R3C Codex local registration is accepted at `e1166010`, with exact-head
+    Native CI run `29339197110` and Cloudflare Pages green;
+13. implement R3D native Codex plugin composition and isolated real-client
+    activation evidence in the same rolling Draft PR;
+14. prepare alpha.1 only after the complete installed-product vertical gate.
 
 ## Program Done
 
