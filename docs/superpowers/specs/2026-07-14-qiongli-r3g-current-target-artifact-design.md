@@ -93,7 +93,7 @@ The public platform API consists of:
 - deterministic artifact-ID and binary-relative-path helpers;
 - explicit target approval at a trusted CLI, UI, release, or test boundary;
 - staging-tree composition; and
-- complete-tree verification.
+- complete-tree verification against a caller-supplied verified resource pack.
 
 Composition requires a verified embedded resource pack, a regular executable,
 the exact current-target identity, and an approved absolute target with the
@@ -108,7 +108,8 @@ existing target. A target lock prevents two local composers from racing for
 the same artifact path. Failure before promotion removes only the
 transaction-owned stage.
 
-Verification is independent of composition. It rejects:
+Verification is independent of composition but requires the verified embedded
+resource pack as an external content-identity anchor. It rejects:
 
 - a missing, oversized, non-canonical, unknown-field, or invalid manifest;
 - a non-current or otherwise unsupported identity;
@@ -118,6 +119,12 @@ Verification is independent of composition. It rejects:
 - binary size, digest, path, or content-root drift; and
 - pack identifiers, source commit, versions, or digests outside their bounded
   canonical forms.
+
+The returned manifest SHA-256 is the pre-signing binary-manifest anchor for the
+caller. R3G does not claim that an unsigned tree can authenticate a coherent
+attacker rewrite of both executable and manifest; the production launch grant
+and platform signature provide that external binary trust anchor in a later
+slice.
 
 Public errors expose fixed reason codes and I/O kinds only. Debug and Display
 output do not reveal approved paths, home directories, or source locations.

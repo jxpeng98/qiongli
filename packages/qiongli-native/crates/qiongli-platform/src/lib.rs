@@ -5,6 +5,7 @@ mod codex_bundle;
 mod error;
 mod grant;
 mod identity;
+mod native_artifact;
 mod plan;
 mod transaction;
 
@@ -55,6 +56,14 @@ pub use grant::{
 pub use identity::{
     Architecture, ArtifactIdentityV1, CapabilityProfile, InstallerKind, OperatingSystem, ProductId,
     ReleaseChannel,
+};
+pub use native_artifact::{
+    NATIVE_ARTIFACT_MANIFEST_FILE, NATIVE_ARTIFACT_MANIFEST_SCHEMA_VERSION,
+    NativeArtifactContentV1, NativeArtifactEntryV1, NativeArtifactError, NativeArtifactManifestV1,
+    NativeArtifactRecordType, NativeArtifactStatus, NativeArtifactTarget, VerifiedNativeArtifact,
+    approve_native_artifact_target, compose_native_artifact,
+    current_target_native_artifact_identity, native_artifact_binary_path, native_artifact_id,
+    verify_native_artifact,
 };
 pub use plan::{
     AllowedRootV1, ApprovalRequirement, HostAction, InstallActionV1, InstallOperationV1,
