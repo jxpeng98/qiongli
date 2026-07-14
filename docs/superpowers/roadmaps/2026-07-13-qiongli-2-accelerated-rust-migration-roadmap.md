@@ -1,8 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; R1 complete and R2 in progress, with the R2A shared
-Lite contract/framing, R2B provider/search, R2C evidence/Zotero, and R2D
-orchestration-preview/typed-dispatch boundaries complete
+Status: active execution; R1 and R2 complete, with R3A install-plan and signed
+Lite launch-grant contracts in progress
 
 Decision date: July 13, 2026
 
@@ -494,8 +493,9 @@ R2E and the R2 native Lite vertical are complete on July 14, 2026:
   entrypoints; the old Lite server removed 408 lines and added 20, a 388-line
   net reduction in duplicate compatibility-server code;
 - the copied canonical binary passed initialize, exact 12-name tools/list,
-  bounded domain calls, line/Content-Length behavior, notification
-  suppression, secret/path redaction, and EOF with an empty `PATH`;
+  bounded line-framed domain calls, notification suppression, secret/path
+  redaction, and EOF with an empty `PATH`; direct shared-server tests passed
+  `Content-Length` framing;
 - the local gate passed boundary, native and Lite format, locked native check,
   strict native and Lite Clippy, all 148 native tests, all 69 focused Lite
   compatibility tests, and Windows MSVC cross-target check/Clippy;
