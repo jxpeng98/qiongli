@@ -9,17 +9,24 @@ use qiongli_content::{
     EmbeddedContent, MaterializationAuthorization, ProfileId, ProfileProjection,
     approve_materialization_target,
 };
+use qiongli_platform::{
+    ARTIFACT_IDENTITY_SCHEMA_VERSION, Architecture, INSTALL_PLAN_SCHEMA_VERSION,
+    LAUNCH_GRANT_SCHEMA_VERSION, LocalTargetFamily, OperatingSystem,
+};
 use serde::Serialize;
 
 const OUTPUT_SCHEMA_VERSION: u32 = 1;
 
-const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli --version\n  qiongli --help\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
+const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli --version\n  qiongli --help\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli install status\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
 
 const CONTENT_USAGE: &str = "Qiongli embedded content\n\nUsage:\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli content --help\n";
 
 const CONFIG_USAGE: &str = "Qiongli global config\n\nUsage:\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli config --help\n";
 
 const MCP_USAGE: &str = "Qiongli native MCP\n\nUsage:\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli mcp --help\n";
+
+const INSTALL_USAGE: &str =
+    "Qiongli native installation\n\nUsage:\n  qiongli install status\n  qiongli install --help\n";
 
 #[derive(Clone, Default)]
 pub struct CommandEnvironment {
@@ -133,6 +140,8 @@ pub fn prepare_action(
             expected_revision,
             default_profile,
         } => config_set(environment, expected_revision, default_profile),
+        Command::InstallHelp => CliOutput::success_text(INSTALL_USAGE),
+        Command::InstallStatus => install_status(),
         Command::McpHelp => CliOutput::success_text(MCP_USAGE),
         Command::McpServeLiteStdio => return ProductAction::ServeLiteMcpStdio,
         Command::Status => status(environment, content),
@@ -157,6 +166,8 @@ enum Command {
         expected_revision: u64,
         default_profile: ProfileId,
     },
+    InstallHelp,
+    InstallStatus,
     McpHelp,
     McpServeLiteStdio,
     Status,
@@ -180,6 +191,7 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
         "--version" if args.len() == 1 => Ok(Command::Version),
         "content" => parse_content_args(&args[1..]),
         "config" => parse_config_args(&args[1..]),
+        "install" => parse_install_args(&args[1..]),
         "mcp" => parse_mcp_args(&args[1..]),
         "status" if args.len() == 1 => Ok(Command::Status),
         "doctor" if args.len() == 1 => Ok(Command::Doctor),
@@ -187,6 +199,18 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
             Err(global_usage_error("unexpected extra argument"))
         }
         _ => Err(global_usage_error("unknown command or option")),
+    }
+}
+
+fn parse_install_args(args: &[OsString]) -> Result<Command, UsageError> {
+    let Some(subcommand) = args.first().and_then(|value| value.to_str()) else {
+        return Err(install_usage_error("an install subcommand is required"));
+    };
+    match subcommand {
+        "--help" if args.len() == 1 => Ok(Command::InstallHelp),
+        "status" if args.len() == 1 => Ok(Command::InstallStatus),
+        "--help" | "status" => Err(install_usage_error("unexpected extra argument")),
+        _ => Err(install_usage_error("unknown install subcommand")),
     }
 }
 
@@ -392,6 +416,13 @@ const fn mcp_usage_error(message: &'static str) -> UsageError {
     }
 }
 
+const fn install_usage_error(message: &'static str) -> UsageError {
+    UsageError {
+        message,
+        usage: INSTALL_USAGE,
+    }
+}
+
 fn content_list(content: &EmbeddedContent) -> CliOutput {
     let manifest = content.pack().manifest();
     json_output(
@@ -472,6 +503,38 @@ fn config_set(
             revision: outcome.revision,
             default_profile,
             cleanup_required: outcome.cleanup_required,
+        },
+        0,
+    )
+}
+
+fn install_status() -> CliOutput {
+    let (Some(os), Some(arch)) = (OperatingSystem::current(), Architecture::current()) else {
+        return CliOutput::operation_failure("unsupported-build-target");
+    };
+    json_output(
+        &InstallStatusOutput {
+            schema_version: OUTPUT_SCHEMA_VERSION,
+            command: "install-status",
+            contracts: InstallContractVersions {
+                artifact_identity: ARTIFACT_IDENTITY_SCHEMA_VERSION,
+                launch_grant: LAUNCH_GRANT_SCHEMA_VERSION,
+                install_plan: INSTALL_PLAN_SCHEMA_VERSION,
+            },
+            current_target: InstallBuildTarget { os, arch },
+            launch_grant: "unavailable",
+            preview: "unavailable",
+            apply: "unavailable",
+            targets: [
+                InstallTargetStatus {
+                    family: LocalTargetFamily::CodexLocal,
+                    state: "contract-only",
+                },
+                InstallTargetStatus {
+                    family: LocalTargetFamily::ClaudeCodeLocal,
+                    state: "contract-only",
+                },
+            ],
         },
         0,
     )
@@ -643,6 +706,37 @@ struct ConfigSetOutput {
     revision: u64,
     default_profile: ProfileId,
     cleanup_required: bool,
+}
+
+#[derive(Serialize)]
+struct InstallStatusOutput {
+    schema_version: u32,
+    command: &'static str,
+    contracts: InstallContractVersions,
+    current_target: InstallBuildTarget,
+    launch_grant: &'static str,
+    preview: &'static str,
+    apply: &'static str,
+    targets: [InstallTargetStatus; 2],
+}
+
+#[derive(Serialize)]
+struct InstallContractVersions {
+    artifact_identity: u32,
+    launch_grant: u32,
+    install_plan: u32,
+}
+
+#[derive(Serialize)]
+struct InstallBuildTarget {
+    os: OperatingSystem,
+    arch: Architecture,
+}
+
+#[derive(Serialize)]
+struct InstallTargetStatus {
+    family: LocalTargetFamily,
+    state: &'static str,
 }
 
 #[derive(Serialize)]

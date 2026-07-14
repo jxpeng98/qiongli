@@ -174,6 +174,7 @@ fn root_and_nested_help_use_stdout_and_return_success() {
         ["-h"].as_slice(),
         ["content", "--help"].as_slice(),
         ["config", "--help"].as_slice(),
+        ["install", "--help"].as_slice(),
     ] {
         let output = run(args);
         assert!(output.status.success());
@@ -502,6 +503,7 @@ fn supported_commands_do_not_require_an_external_runtime_path() {
         ["--version"].as_slice(),
         ["--help"].as_slice(),
         ["content", "list"].as_slice(),
+        ["install", "status"].as_slice(),
     ] {
         let output = run_without_home_or_path(args);
         assert!(output.status.success(), "{}", public_output(&output));
@@ -522,6 +524,28 @@ fn supported_commands_do_not_require_an_external_runtime_path() {
 }
 
 #[test]
+fn install_status_is_read_only_and_truthful_for_source_builds() {
+    let output = run_without_home_or_path(&["install", "status"]);
+    assert!(output.status.success(), "{}", public_output(&output));
+    assert!(output.stderr.is_empty());
+    let value = parse_json(&output);
+    assert_eq!(value["schema_version"], 1);
+    assert_eq!(value["command"], "install-status");
+    assert_eq!(value["contracts"]["artifact_identity"], 1);
+    assert_eq!(value["contracts"]["launch_grant"], 1);
+    assert_eq!(value["contracts"]["install_plan"], 1);
+    assert!(value["current_target"]["os"].is_string());
+    assert!(value["current_target"]["arch"].is_string());
+    assert_eq!(value["launch_grant"], "unavailable");
+    assert_eq!(value["preview"], "unavailable");
+    assert_eq!(value["apply"], "unavailable");
+    assert_eq!(value["targets"][0]["family"], "codex-local");
+    assert_eq!(value["targets"][1]["family"], "claude-code-local");
+    assert_eq!(value["targets"][0]["state"], "contract-only");
+    assert_eq!(value["targets"][1]["state"], "contract-only");
+}
+
+#[test]
 fn invalid_invocations_and_environment_fail_without_echoing_private_values() {
     let cases: &[(&[&str], Option<&str>)] = &[
         (&[], None),
@@ -535,6 +559,11 @@ fn invalid_invocations_and_environment_fail_without_echoing_private_values() {
         (&["content", "materialize", "--profile", "full"], None),
         (&["config"], None),
         (&["config", "-h"], None),
+        (&["install"], None),
+        (
+            &["install", "status", "extra-private-canary"],
+            Some("extra-private-canary"),
+        ),
         (
             &["config", "show", "extra-private-canary"],
             Some("extra-private-canary"),
@@ -620,6 +649,26 @@ fn copied_binary_lists_and_materializes_embedded_content_without_source_lookup()
         .expect("copied executable must list embedded content outside the checkout");
     assert!(list.status.success(), "{}", public_output(&list));
     assert_eq!(parse_json(&list)["command"], "content-list");
+
+    let install_status = fixture_command(&copied, &fixture)
+        .current_dir(&runtime_root)
+        .args(["install", "status"])
+        .env("PATH", "")
+        .env_remove("HOME")
+        .env_remove("USERPROFILE")
+        .env_remove("HOMEDRIVE")
+        .env_remove("HOMEPATH")
+        .output()
+        .expect("copied executable must report install status without a runtime");
+    assert!(
+        install_status.status.success(),
+        "{}",
+        public_output(&install_status)
+    );
+    let install_value = parse_json(&install_status);
+    assert_eq!(install_value["command"], "install-status");
+    assert_eq!(install_value["launch_grant"], "unavailable");
+    assert_eq!(install_value["apply"], "unavailable");
 
     let target = fixture.root.join("copied-binary-materialized");
     let materialize = fixture_command(&copied, &fixture)

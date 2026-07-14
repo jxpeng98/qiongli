@@ -2,8 +2,9 @@
 
 This workspace is the canonical Rust-native product source for Qiongli 2.x.
 It contains the product application, `apps/qiongli`, plus the accepted content,
-config, runtime, and isolated Windows-security service boundaries. The content
-crate defines the versioned resource-pack manifest, frozen profile projections,
+config, runtime, platform-trust, and isolated Windows-security service
+boundaries. The content crate defines the versioned resource-pack manifest,
+frozen profile projections,
 and bounded canonical source collector. It compiles those collected bytes into
 an unsigned deterministic `.qlpack` core, verifies and loads that core entirely
 in memory, and can atomically materialize a verified profile through a trusted
@@ -230,6 +231,41 @@ without Python or Node. This establishes the native development vertical
 slice only. Signed launch grants, plugin/Desktop activation, target packaging,
 provider-secret mutation, Full MCP, agents, UI, installer, and release
 readiness remain R3 or later work.
+
+## R3A install-plan and Lite launch-grant contracts
+
+`qiongli-platform` now owns the first installation trust boundary. It validates
+the exact product/version/channel/profile/OS/architecture/installer identity,
+then verifies a bounded Ed25519-signed Lite launch grant against public keys
+already trusted by the product composition layer. The signature covers
+domain-separated canonical JSON plus binary and embedded-pack SHA-256 values,
+allowed `cli`/`lite-mcp` modes, local Codex/Claude Code scopes, validity times,
+and an anti-replay generation. The verified capability token retains the mode
+and scope checked by the verifier, so it cannot be reused to plan a different
+integration.
+
+The same crate defines a bounded, strict `InstallPlanV1` preview with closed
+target and symbolic-root vocabularies, typed materialize/plugin-source/Lite-MCP
+operations, observed state, postconditions, inverse operations, approvals, and
+host-owned outstanding actions. Plans reject traversal, nonportable paths,
+unknown roots, duplicate or unsorted identities, mismatched ownership, stale
+targets, non-Lite profiles, altered semantic digests, and operations without a
+matching inverse. Plan ID and display timestamps do not affect the canonical
+semantic digest; every semantic field does.
+
+The source-built executable reports this boundary through:
+
+```text
+qiongli install status
+```
+
+It truthfully returns `launch_grant`, `preview`, and `apply` as `unavailable`
+and labels `codex-local` and `claude-code-local` as `contract-only`. Tests
+generate ephemeral signing keys; the repository contains no signing private
+key or caller-selectable trust root. This checkpoint does not discover or
+write host paths, register a plugin/MCP entry, mutate a private cache, create
+receipts, or claim installation, activation, packaging, or alpha.1 readiness.
+Those remain R3 successor gates.
 
 ## R1 command contract (retained)
 

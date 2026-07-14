@@ -4,6 +4,7 @@ members = [
     "apps/qiongli",
     "crates/qiongli-config",
     "crates/qiongli-content",
+    "crates/qiongli-platform",
     "crates/qiongli-runtime",
     "crates/qiongli-windows-security",
 ]
@@ -25,6 +26,7 @@ channel = "alpha"
 [workspace.dependencies]
 quick-xml = "0.36.2"
 reqwest = { version = "0.12.28", default-features = false, features = ["blocking", "json"] }
+ed25519-dalek = "3.0.0"
 same-file = "1.0.6"
 rustix = { version = "1.1.3", features = ["process"] }
 semver = "1.0.26"
