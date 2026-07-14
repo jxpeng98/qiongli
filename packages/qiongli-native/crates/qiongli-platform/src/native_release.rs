@@ -271,11 +271,23 @@ impl TrustedReleasePublicKey {
         self.maximum_generation_exclusive
     }
 
-    fn authorizes_generation(&self, generation: u64) -> bool {
+    pub(crate) fn authorizes_generation(&self, generation: u64) -> bool {
         generation >= self.minimum_generation
             && self
                 .maximum_generation_exclusive
                 .is_none_or(|maximum| generation < maximum)
+    }
+
+    pub(crate) fn verifies_signature(
+        &self,
+        signing_bytes: &[u8],
+        signature_bytes: &[u8; ED25519_SIGNATURE_BYTES],
+    ) -> bool {
+        VerifyingKey::from_bytes(&self.public_key).is_ok_and(|verifying_key| {
+            verifying_key
+                .verify_strict(signing_bytes, &Signature::from_bytes(signature_bytes))
+                .is_ok()
+        })
     }
 }
 
@@ -395,7 +407,9 @@ pub fn native_release_envelope_signing_bytes(
     Ok(output)
 }
 
-fn validate_release_keys(keys: &[TrustedReleasePublicKey]) -> Result<(), NativeReleaseError> {
+pub(crate) fn validate_release_keys(
+    keys: &[TrustedReleasePublicKey],
+) -> Result<(), NativeReleaseError> {
     if keys.len() > MAX_TRUSTED_RELEASE_KEYS {
         return Err(NativeReleaseError::InvalidReleaseKeySet);
     }

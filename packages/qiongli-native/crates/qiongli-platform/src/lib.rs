@@ -12,6 +12,7 @@ mod native_install;
 mod native_release;
 mod plan;
 mod release_authority;
+mod release_candidate;
 mod transaction;
 
 pub use activation::{
@@ -108,6 +109,15 @@ pub use plan::{
 pub use release_authority::{
     MAX_NATIVE_RELEASE_AUTHORITY_BYTES, NATIVE_RELEASE_AUTHORITY_SCHEMA_VERSION,
     NativeReleaseAuthority, NativeReleaseAuthorityError,
+};
+pub use release_candidate::{
+    MAX_NATIVE_RELEASE_CANDIDATE_BYTES, MAX_NATIVE_RELEASE_NOTES_BYTES,
+    NATIVE_RELEASE_CANDIDATE_SCHEMA_VERSION, NativeClientPluginGrantV1,
+    NativeReleaseCandidateError, NativeReleaseCandidateStatus, NativeReleaseCandidateV1,
+    NativeReleaseCandidateVerificationContext, NativeReleaseNotesV1,
+    SignedNativeReleaseCandidateV1, VerifiedNativeReleaseCandidate, build_native_release_candidate,
+    native_release_candidate_file_name, native_release_candidate_signing_bytes,
+    native_release_notes_file_name,
 };
 pub use transaction::{
     ApprovedInstallPlan, ApprovedManagedRoot, INSTALL_JOURNAL_SCHEMA_VERSION,

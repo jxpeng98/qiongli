@@ -33,19 +33,19 @@ publish without explicit maintainer authority.
   descriptor.
 - [x] Keep private keys behind an external signing boundary and require an
   explicit final publication decision.
-- [ ] Commit the design checkpoint on the rolling branch.
+- [x] Commit the design checkpoint on the rolling branch.
 
 ## Task 2 — Add The Signed Candidate
 
-- [ ] Add bounded canonical candidate, client target, status, notes descriptor,
+- [x] Add bounded canonical candidate, client target, status, notes descriptor,
   detached signature, and fixed errors.
-- [ ] Require the nested portable release plus exact Codex and Claude Code
+- [x] Require the nested portable release plus exact Codex and Claude Code
   PluginBundle grants.
-- [ ] Enforce generation, time, channel, target, source, notes, binary, pack,
+- [x] Enforce generation, time, channel, target, source, notes, binary, pack,
   mode, and target-scope closure.
-- [ ] Return a private verified token containing only the requested target's
+- [x] Return a private verified token containing only the requested target's
   accepted capabilities.
-- [ ] Add canonicalization, tamper, role, replay, swap, omission, redaction, and
+- [x] Add canonicalization, tamper, role, replay, swap, omission, redaction, and
   bound tests.
 
 ## Task 3 — Materialize Local Integrations
@@ -121,4 +121,3 @@ from isolated extracted bytes; managed apply, diagnose, remove, rollback, and
 unrelated-state preservation pass; exact release limitations are bound and
 reviewed; and every required external gate is recorded. Completion permits an
 explicit Alpha.1 publication decision but does not itself publish.
-
