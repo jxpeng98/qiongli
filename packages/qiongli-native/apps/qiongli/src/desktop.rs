@@ -4,49 +4,229 @@ use qiongli_config::{
 };
 use qiongli_content::{EmbeddedContent, ProfileId};
 use qiongli_platform::{
-    Architecture, ClaudeAdapterError, ClaudeMarketplaceState, ClaudeRegistrationState,
-    ClaudeSkillsPluginState, ClaudeSourceState, CodexAdapterError, CodexMarketplaceState,
-    CodexRegistrationState, CodexSourceState, OperatingSystem, discover_claude_user_with_config,
-    discover_codex_user,
+    ApprovalRequirement, Architecture, ClaudeAdapterError, ClaudeMarketplaceState,
+    ClaudeRegistrationState, ClaudeSkillsPluginState, ClaudeSourceState,
+    ClientActivationCoordinator, ClientActivationDisposition, ClientActivationHandle,
+    ClientActivationPreview, ClientActivationTarget, CodexAdapterError, CodexMarketplaceState,
+    CodexRegistrationState, CodexSourceState, InstallPlanMetadataV1, OperatingSystem,
+    TrustedPublicKey, VerifiedLaunchGrant, approve_install_plan, discover_claude_user_with_config,
+    discover_codex_user, preview_client_activation,
 };
 use qiongli_runtime::LITE_PUBLIC_TOOL_NAMES;
 use qiongli_ui::{
     ActivationPolicy, ArchitectureView, CapabilityView, ConfigView, ContentView,
     DESKTOP_SNAPSHOT_SCHEMA_VERSION, DesktopEvent, DesktopIntent, DesktopService,
     DesktopSnapshotV1, DiagnosticCheckId, DiagnosticCheckView, IntegrationTarget, IntegrationView,
-    McpView, OperatingSystemView, OperationPreview, OperationToken, ProductView, ProfileKind,
-    ProfileView, ProviderKind, ProviderReadinessView, ProviderView, RemediationCode, StatusCode,
-    SymbolicLocation,
+    McpView, OperatingSystemView, OperationApproval, OperationPreview, OperationToken, ProductView,
+    ProfileKind, ProfileView, ProviderKind, ProviderReadinessView, ProviderView, RemediationCode,
+    StatusCode, SymbolicLocation,
 };
+
+use std::fmt::{self, Debug, Formatter};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::command::{CommandEnvironment, config_store};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct DesktopLaunchError;
 
+const ACTIVATION_PLAN_TTL_SECONDS: u64 = 600;
+const ACTIVATION_APPROVALS: [ApprovalRequirement; 3] = [
+    ApprovalRequirement::FilesystemWrite,
+    ApprovalRequirement::ClientConfigChange,
+    ApprovalRequirement::HostTrust,
+];
+
 pub fn run_desktop(
     environment: CommandEnvironment,
     content: EmbeddedContent,
 ) -> Result<(), DesktopLaunchError> {
-    let service = NativeDesktopService::new(environment, content);
+    run_desktop_with_activation_sessions(environment, content, Vec::new())
+}
+
+pub fn run_desktop_with_activation_sessions(
+    environment: CommandEnvironment,
+    content: EmbeddedContent,
+    sessions: Vec<DesktopActivationSession>,
+) -> Result<(), DesktopLaunchError> {
+    if sessions.len() > 2
+        || sessions.iter().enumerate().any(|(index, session)| {
+            sessions[..index]
+                .iter()
+                .any(|prior| prior.target == session.target)
+        })
+    {
+        return Err(DesktopLaunchError);
+    }
+    let service = NativeDesktopService::new(environment, content, sessions);
     qiongli_ui::run_native(Box::new(service)).map_err(|_| DesktopLaunchError)
+}
+
+pub(crate) fn validate_desktop_startup(
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+) -> Result<(), DesktopLaunchError> {
+    let _window_entrypoint: fn(
+        CommandEnvironment,
+        EmbeddedContent,
+    ) -> Result<(), DesktopLaunchError> = run_desktop;
+    let owned_content = crate::embedded_content().map_err(|_| DesktopLaunchError)?;
+    if owned_content.pack().pack_sha256() != content.pack().pack_sha256() {
+        return Err(DesktopLaunchError);
+    }
+    let mut service = NativeDesktopService::new(environment.clone(), owned_content, Vec::new());
+    service
+        .snapshot()
+        .validate()
+        .map_err(|_| DesktopLaunchError)?;
+    let _app = qiongli_ui::QiongliDesktopApp::new(Box::new(service));
+    Ok(())
+}
+
+pub struct DesktopActivationSession {
+    target: IntegrationTarget,
+    handle: ClientActivationHandle,
+    grant: VerifiedLaunchGrant,
+    trusted_keys: Vec<TrustedPublicKey>,
+    minimum_generation: u64,
+    pending: Option<ClientActivationPreview>,
+}
+
+impl DesktopActivationSession {
+    #[must_use]
+    pub fn new(
+        handle: ClientActivationHandle,
+        grant: VerifiedLaunchGrant,
+        trusted_keys: Vec<TrustedPublicKey>,
+        minimum_generation: u64,
+    ) -> Self {
+        let target = integration_target(handle.target());
+        Self {
+            target,
+            handle,
+            grant,
+            trusted_keys,
+            minimum_generation,
+            pending: None,
+        }
+    }
+
+    fn preview(
+        &mut self,
+        token: OperationToken,
+        now_unix: u64,
+    ) -> Result<OperationPreview, &'static str> {
+        let expires_at_unix = now_unix
+            .saturating_add(ACTIVATION_PLAN_TTL_SECONDS)
+            .min(self.grant.grant().expires_at_unix);
+        let plan_id = match self.target {
+            IntegrationTarget::Codex => "desktop-activate-codex",
+            IntegrationTarget::ClaudeCode => "desktop-activate-claude-code",
+        };
+        let preview = preview_client_activation(
+            &self.handle,
+            InstallPlanMetadataV1 {
+                plan_id: plan_id.to_owned(),
+                created_at_unix: now_unix,
+                expires_at_unix,
+            },
+            &self.grant,
+            &self.trusted_keys,
+            self.minimum_generation,
+            now_unix,
+        )
+        .map_err(|error| error.reason_code())?;
+        let digest = preview.plan().plan().semantic_digest_sha256.clone();
+        self.pending = Some(preview);
+        Ok(OperationPreview {
+            token,
+            title: match self.target {
+                IntegrationTarget::Codex => "Codex activation preview",
+                IntegrationTarget::ClaudeCode => "Claude Code activation preview",
+            },
+            summary: "Register the verified local Qiongli source. Client-owned enablement remains a host action.",
+            plan_digest_sha256: Some(digest),
+            approvals_required: OperationApproval::ACTIVATION.to_vec(),
+            can_confirm: true,
+            blocked_reason: None,
+        })
+    }
+
+    fn confirm(&mut self, now_unix: u64) -> Result<&'static str, &'static str> {
+        let preview = self
+            .pending
+            .take()
+            .ok_or("desktop-activation-preview-missing")?;
+        let approval = approve_install_plan(preview.plan(), &ACTIVATION_APPROVALS, now_unix)
+            .map_err(|error| error.reason_code())?;
+        let commit = ClientActivationCoordinator::new(self.handle.clone())
+            .apply(&preview, &approval, now_unix)
+            .map_err(|error| error.reason_code())?;
+        Ok(match commit.disposition {
+            ClientActivationDisposition::Activated => "client-activation-applied",
+            ClientActivationDisposition::AlreadyActive => "client-activation-already-active",
+            ClientActivationDisposition::Repaired => "client-activation-repaired",
+            ClientActivationDisposition::AlreadyHealthy => "client-activation-already-healthy",
+        })
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+impl Debug for DesktopActivationSession {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("DesktopActivationSession")
+            .field("target", &self.target)
+            .field("pending", &self.pending.is_some())
+            .finish()
+    }
 }
 
 struct NativeDesktopService {
     environment: CommandEnvironment,
     content: EmbeddedContent,
-    next_token: u64,
-    active_token: Option<OperationToken>,
+    active_operation: Option<PendingDesktopOperation>,
+    activation_sessions: Vec<DesktopActivationSession>,
+}
+
+#[derive(Clone, Copy)]
+enum PendingDesktopOperation {
+    Blocked(OperationToken),
+    Activation {
+        token: OperationToken,
+        target: IntegrationTarget,
+    },
+}
+
+impl PendingDesktopOperation {
+    const fn token(self) -> OperationToken {
+        match self {
+            Self::Blocked(token) | Self::Activation { token, .. } => token,
+        }
+    }
 }
 
 impl NativeDesktopService {
-    const fn new(environment: CommandEnvironment, content: EmbeddedContent) -> Self {
+    fn new(
+        environment: CommandEnvironment,
+        content: EmbeddedContent,
+        activation_sessions: Vec<DesktopActivationSession>,
+    ) -> Self {
         Self {
             environment,
             content,
-            next_token: 1,
-            active_token: None,
+            active_operation: None,
+            activation_sessions,
         }
+    }
+
+    fn next_operation_token() -> Result<OperationToken, &'static str> {
+        let mut bytes = [0_u8; 16];
+        getrandom::fill(&mut bytes).map_err(|_| "operation-token-unavailable")?;
+        Ok(OperationToken::new(u128::from_le_bytes(bytes)))
     }
 
     fn issue_preview(
@@ -55,22 +235,79 @@ impl NativeDesktopService {
         summary: &'static str,
         blocked_reason: &'static str,
     ) -> DesktopEvent {
-        let token = OperationToken::new(self.next_token);
-        self.next_token = self.next_token.checked_add(1).unwrap_or(1);
-        self.active_token = Some(token);
+        self.cancel_active_operation();
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        self.active_operation = Some(PendingDesktopOperation::Blocked(token));
         DesktopEvent::PreviewReady(OperationPreview {
             token,
             title,
             summary,
+            plan_digest_sha256: None,
+            approvals_required: Vec::new(),
             can_confirm: false,
             blocked_reason: Some(blocked_reason),
         })
+    }
+
+    fn preview_activation(&mut self, target: IntegrationTarget) -> DesktopEvent {
+        self.cancel_active_operation();
+        let token = match Self::next_operation_token() {
+            Ok(token) => token,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let now_unix = match now_unix() {
+            Ok(now_unix) => now_unix,
+            Err(code) => return DesktopEvent::Failed { code },
+        };
+        let Some(session) = self
+            .activation_sessions
+            .iter_mut()
+            .find(|session| session.target == target)
+        else {
+            self.active_operation = Some(PendingDesktopOperation::Blocked(token));
+            return DesktopEvent::PreviewReady(OperationPreview {
+                token,
+                title: match target {
+                    IntegrationTarget::Codex => "Codex installation preview",
+                    IntegrationTarget::ClaudeCode => "Claude Code installation preview",
+                },
+                summary: "The local target was inspected. No host state was changed.",
+                plan_digest_sha256: None,
+                approvals_required: Vec::new(),
+                can_confirm: false,
+                blocked_reason: Some("production-activation-session-unavailable"),
+            });
+        };
+        match session.preview(token, now_unix) {
+            Ok(preview) => {
+                self.active_operation = Some(PendingDesktopOperation::Activation { token, target });
+                DesktopEvent::PreviewReady(preview)
+            }
+            Err(code) => DesktopEvent::Failed { code },
+        }
+    }
+
+    fn cancel_active_operation(&mut self) {
+        if let Some(PendingDesktopOperation::Activation { target, .. }) = self.active_operation
+            && let Some(session) = self
+                .activation_sessions
+                .iter_mut()
+                .find(|session| session.target == target)
+        {
+            session.cancel();
+        }
+        self.active_operation = None;
     }
 }
 
 impl DesktopService for NativeDesktopService {
     fn snapshot(&mut self) -> DesktopSnapshotV1 {
-        build_snapshot(&self.environment, &self.content)
+        let mut snapshot = build_snapshot(&self.environment, &self.content);
+        snapshot.capabilities.apply = !self.activation_sessions.is_empty();
+        snapshot
     }
 
     fn execute(&mut self, intent: DesktopIntent) -> DesktopEvent {
@@ -93,35 +330,47 @@ impl DesktopService for NativeDesktopService {
                     "config-write-unavailable",
                 )
             }
-            DesktopIntent::PreviewIntegration { target } => {
-                let title = match target {
-                    IntegrationTarget::Codex => "Codex installation preview",
-                    IntegrationTarget::ClaudeCode => "Claude Code installation preview",
-                };
-                self.issue_preview(
-                    title,
-                    "The local target was inspected. No host state was changed.",
-                    "production-launch-grant-unavailable",
-                )
-            }
+            DesktopIntent::PreviewIntegration { target } => self.preview_activation(target),
             DesktopIntent::ConfirmOperation { token } => {
-                if self.active_token != Some(token) {
+                let Some(operation) = self.active_operation else {
+                    return DesktopEvent::Failed {
+                        code: "operation-token-invalid",
+                    };
+                };
+                if operation.token() != token {
                     return DesktopEvent::Failed {
                         code: "operation-token-invalid",
                     };
                 }
-                self.active_token = None;
-                DesktopEvent::Failed {
-                    code: "desktop-apply-unavailable",
+                self.active_operation = None;
+                match operation {
+                    PendingDesktopOperation::Blocked(_) => DesktopEvent::Failed {
+                        code: "desktop-apply-unavailable",
+                    },
+                    PendingDesktopOperation::Activation { target, .. } => {
+                        let Some(session) = self
+                            .activation_sessions
+                            .iter_mut()
+                            .find(|session| session.target == target)
+                        else {
+                            return DesktopEvent::Failed {
+                                code: "desktop-activation-session-missing",
+                            };
+                        };
+                        match now_unix().and_then(|now_unix| session.confirm(now_unix)) {
+                            Ok(code) => DesktopEvent::Completed { code },
+                            Err(code) => DesktopEvent::Failed { code },
+                        }
+                    }
                 }
             }
             DesktopIntent::CancelOperation { token } => {
-                if self.active_token != Some(token) {
+                if self.active_operation.map(PendingDesktopOperation::token) != Some(token) {
                     return DesktopEvent::Failed {
                         code: "operation-token-invalid",
                     };
                 }
-                self.active_token = None;
+                self.cancel_active_operation();
                 DesktopEvent::Cancelled {
                     code: "operation-preview-cancelled",
                 }
@@ -191,6 +440,20 @@ fn build_snapshot(
             apply: false,
         },
     }
+}
+
+const fn integration_target(target: ClientActivationTarget) -> IntegrationTarget {
+    match target {
+        ClientActivationTarget::Codex => IntegrationTarget::Codex,
+        ClientActivationTarget::ClaudeCode => IntegrationTarget::ClaudeCode,
+    }
+}
+
+fn now_unix() -> Result<u64, &'static str> {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_secs())
+        .map_err(|_| "system-clock-unavailable")
 }
 
 fn config_snapshot(environment: &CommandEnvironment) -> (ConfigView, DiagnosticCheckView) {
@@ -646,7 +909,8 @@ mod tests {
     fn production_previews_never_enable_apply_or_echo_private_input() {
         let environment = CommandEnvironment::default();
         let content = crate::embedded_content().unwrap();
-        let mut service = NativeDesktopService::new(environment, content);
+        let mut service = NativeDesktopService::new(environment, content, Vec::new());
+        assert!(!service.snapshot().capabilities.apply);
 
         let event = service.execute(DesktopIntent::PreviewProviderPublicSetting {
             provider: ProviderKind::Crossref,
@@ -658,7 +922,29 @@ mod tests {
         };
         assert!(!preview.can_confirm);
         assert_eq!(preview.blocked_reason, Some("config-write-unavailable"));
+        assert!(preview.plan_digest_sha256.is_none());
+        assert!(preview.approvals_required.is_empty());
         assert!(!format!("{preview:?}").contains("private@example.org"));
+
+        let wrong_token = if preview.token == OperationToken::new(99) {
+            OperationToken::new(100)
+        } else {
+            OperationToken::new(99)
+        };
+        assert_eq!(
+            service.execute(DesktopIntent::ConfirmOperation { token: wrong_token }),
+            DesktopEvent::Failed {
+                code: "operation-token-invalid",
+            }
+        );
+        assert_eq!(
+            service.execute(DesktopIntent::CancelOperation {
+                token: preview.token,
+            }),
+            DesktopEvent::Cancelled {
+                code: "operation-preview-cancelled",
+            }
+        );
     }
 
     fn isolated_root(name: &str) -> PathBuf {

@@ -2905,6 +2905,7 @@ name = "qiongli"
 version = "2.0.0-alpha.1"
 dependencies = [
  "ed25519-dalek",
+ "getrandom 0.3.4",
  "qiongli-config",
  "qiongli-content",
  "qiongli-platform",

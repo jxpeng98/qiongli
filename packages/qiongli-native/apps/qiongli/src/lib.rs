@@ -7,7 +7,9 @@ pub use command::{
     CliOutput, CommandEnvironment, ProductAction, failed_embedded_content_output, prepare_action,
     run_cli,
 };
-pub use desktop::{DesktopLaunchError, run_desktop};
+pub use desktop::{
+    DesktopActivationSession, DesktopLaunchError, run_desktop, run_desktop_with_activation_sessions,
+};
 pub use mcp::serve_lite_mcp;
 use qiongli_content::{EmbeddedContent, ResourcePackLoaderError};
 use qiongli_platform::{NativeReleaseAuthority, NativeReleaseAuthorityError};

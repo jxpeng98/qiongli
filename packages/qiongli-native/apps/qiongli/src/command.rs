@@ -27,7 +27,7 @@ use crate::native_cli::{
 
 const OUTPUT_SCHEMA_VERSION: u32 = 1;
 
-const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli --version\n  qiongli --help\n  qiongli ui\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli install status\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install native <preview|apply|verify|remove> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
+const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli --version\n  qiongli --help\n  qiongli ui [--startup-check]\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli install status\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install native <preview|apply|verify|remove> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
 
 const CONTENT_USAGE: &str = "Qiongli embedded content\n\nUsage:\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli content --help\n";
 
@@ -183,6 +183,7 @@ pub(crate) fn prepare_action_with_release_authority(
             CliOutput::success_text(format!("qiongli {}\n", env!("CARGO_PKG_VERSION")))
         }
         Command::Ui => return ProductAction::LaunchDesktop,
+        Command::UiStartupCheck => ui_startup_check(environment, content),
         Command::ContentHelp => CliOutput::success_text(CONTENT_USAGE),
         Command::ContentList => content_list(content),
         Command::ContentMaterialize { profile, target } => {
@@ -217,6 +218,7 @@ enum Command {
     Help,
     Version,
     Ui,
+    UiStartupCheck,
     ContentHelp,
     ContentList,
     ContentMaterialize {
@@ -260,6 +262,11 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
         "install" => parse_install_args(&args[1..]),
         "mcp" => parse_mcp_args(&args[1..]),
         "ui" if args.len() == 1 => Ok(Command::Ui),
+        "ui" if args.get(1).and_then(|value| value.to_str()) == Some("--startup-check")
+            && args.len() == 2 =>
+        {
+            Ok(Command::UiStartupCheck)
+        }
         "status" if args.len() == 1 => Ok(Command::Status),
         "doctor" if args.len() == 1 => Ok(Command::Doctor),
         "-h" | "--help" | "--version" | "ui" | "status" | "doctor" => {
@@ -737,6 +744,29 @@ fn content_list(content: &EmbeddedContent) -> CliOutput {
     )
 }
 
+fn ui_startup_check(environment: &CommandEnvironment, content: &EmbeddedContent) -> CliOutput {
+    if crate::desktop::validate_desktop_startup(environment, content).is_err() {
+        return CliOutput::operation_failure("desktop-startup-check-failed");
+    }
+    let (Some(os), Some(arch)) = (OperatingSystem::current(), Architecture::current()) else {
+        return CliOutput::operation_failure("unsupported-build-target");
+    };
+    json_output(
+        &UiStartupCheckOutput {
+            schema_version: OUTPUT_SCHEMA_VERSION,
+            command: "ui-startup-check",
+            product_version: env!("CARGO_PKG_VERSION"),
+            current_target: InstallBuildTarget { os, arch },
+            service: "ready",
+            snapshot: "ready",
+            app_state: "ready",
+            window_entrypoint: "available",
+            window: "not-opened",
+        },
+        0,
+    )
+}
+
 fn content_materialize(content: &EmbeddedContent, profile: ProfileId, path: &Path) -> CliOutput {
     let target = match approve_materialization_target(path) {
         Ok(target) => target,
@@ -1057,6 +1087,19 @@ struct ContentListOutput<'a> {
 }
 
 #[derive(Serialize)]
+struct UiStartupCheckOutput {
+    schema_version: u32,
+    command: &'static str,
+    product_version: &'static str,
+    current_target: InstallBuildTarget,
+    service: &'static str,
+    snapshot: &'static str,
+    app_state: &'static str,
+    window_entrypoint: &'static str,
+    window: &'static str,
+}
+
+#[derive(Serialize)]
 struct MaterializeOutput<'a> {
     schema_version: u32,
     command: &'static str,
@@ -1230,6 +1273,10 @@ mod tests {
         assert_eq!(parse_args(args(&["--version"])), Ok(Command::Version));
         assert_eq!(parse_args(args(&["ui"])), Ok(Command::Ui));
         assert_eq!(
+            parse_args(args(&["ui", "--startup-check"])),
+            Ok(Command::UiStartupCheck)
+        );
+        assert_eq!(
             parse_args(args(&["content", "list"])),
             Ok(Command::ContentList)
         );
@@ -1385,6 +1432,18 @@ mod tests {
             ui.stderr(),
             "error: desktop-command-requires-product-entrypoint\n"
         );
+
+        let startup_check = run_cli(args(&["ui", "--startup-check"]), &environment, &content);
+        assert_eq!(startup_check.exit_code(), 0);
+        assert!(startup_check.stderr().is_empty());
+        let startup_check: serde_json::Value =
+            serde_json::from_str(startup_check.stdout()).unwrap();
+        assert_eq!(startup_check["command"], "ui-startup-check");
+        assert_eq!(startup_check["service"], "ready");
+        assert_eq!(startup_check["snapshot"], "ready");
+        assert_eq!(startup_check["app_state"], "ready");
+        assert_eq!(startup_check["window_entrypoint"], "available");
+        assert_eq!(startup_check["window"], "not-opened");
 
         let mcp = run_cli(
             args(&["mcp", "serve", "--profile", "lite", "--transport", "stdio"]),

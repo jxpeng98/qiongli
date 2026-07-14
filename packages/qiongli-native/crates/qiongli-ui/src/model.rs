@@ -543,12 +543,36 @@ impl PrivateText {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct OperationToken(u64);
+pub struct OperationToken(u128);
 
 impl OperationToken {
     #[must_use]
-    pub const fn new(value: u64) -> Self {
+    pub const fn new(value: u128) -> Self {
         Self(value)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OperationApproval {
+    FilesystemWrite,
+    ClientConfigChange,
+    HostTrust,
+}
+
+impl OperationApproval {
+    pub const ACTIVATION: [Self; 3] = [
+        Self::FilesystemWrite,
+        Self::ClientConfigChange,
+        Self::HostTrust,
+    ];
+
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::FilesystemWrite => "Filesystem write",
+            Self::ClientConfigChange => "Client configuration change",
+            Self::HostTrust => "Host trust",
+        }
     }
 }
 
@@ -569,13 +593,39 @@ pub enum DesktopIntent {
     },
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OperationPreview {
     pub token: OperationToken,
     pub title: &'static str,
     pub summary: &'static str,
+    pub plan_digest_sha256: Option<String>,
+    pub approvals_required: Vec<OperationApproval>,
     pub can_confirm: bool,
     pub blocked_reason: Option<&'static str>,
+}
+
+impl OperationPreview {
+    pub(crate) fn validate(&self) -> bool {
+        if self.can_confirm {
+            self.blocked_reason.is_none()
+                && self.approvals_required == OperationApproval::ACTIVATION
+                && self
+                    .plan_digest_sha256
+                    .as_deref()
+                    .is_some_and(valid_lower_sha256)
+        } else {
+            self.blocked_reason.is_some()
+                && self.approvals_required.is_empty()
+                && self.plan_digest_sha256.is_none()
+        }
+    }
+}
+
+fn valid_lower_sha256(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -708,6 +758,18 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
 mod tests {
     use super::*;
 
+    fn confirmable_preview() -> OperationPreview {
+        OperationPreview {
+            token: OperationToken::new(1),
+            title: "Activation preview",
+            summary: "A bounded activation preview.",
+            plan_digest_sha256: Some("a".repeat(64)),
+            approvals_required: OperationApproval::ACTIVATION.to_vec(),
+            can_confirm: true,
+            blocked_reason: None,
+        }
+    }
+
     #[test]
     fn snapshot_rejects_noncanonical_order_and_unbounded_text() {
         let mut snapshot = sample_snapshot();
@@ -732,5 +794,29 @@ mod tests {
             snapshot.validate().map_err(SnapshotValidationError::code),
             Err("product-version-invalid")
         );
+    }
+
+    #[test]
+    fn operation_preview_requires_exact_digest_and_activation_approvals() {
+        let mut preview = confirmable_preview();
+        assert!(preview.validate());
+
+        preview.plan_digest_sha256 = Some("A".repeat(64));
+        assert!(!preview.validate());
+
+        preview = confirmable_preview();
+        preview.approvals_required.swap(0, 1);
+        assert!(!preview.validate());
+
+        preview = confirmable_preview();
+        preview.blocked_reason = Some("unexpected-block");
+        assert!(!preview.validate());
+
+        preview = confirmable_preview();
+        preview.can_confirm = false;
+        preview.plan_digest_sha256 = None;
+        preview.approvals_required.clear();
+        preview.blocked_reason = Some("activation-unavailable");
+        assert!(preview.validate());
     }
 }

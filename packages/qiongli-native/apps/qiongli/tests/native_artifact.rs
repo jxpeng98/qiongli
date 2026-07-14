@@ -195,6 +195,26 @@ fn assembled_artifact_is_deterministic_tamper_evident_and_runtime_independent() 
     );
     assert!(version.stderr.is_empty());
 
+    let startup_check = fixture
+        .command(&artifact_binary)
+        .args(["ui", "--startup-check"])
+        .output()
+        .expect("artifact desktop startup check must run without PATH or a window");
+    assert!(
+        startup_check.status.success(),
+        "{}",
+        public_output(&startup_check)
+    );
+    assert!(startup_check.stderr.is_empty());
+    let startup_check: Value = serde_json::from_slice(&startup_check.stdout).unwrap();
+    assert_eq!(startup_check["command"], "ui-startup-check");
+    assert_eq!(startup_check["product_version"], env!("CARGO_PKG_VERSION"));
+    assert_eq!(startup_check["service"], "ready");
+    assert_eq!(startup_check["snapshot"], "ready");
+    assert_eq!(startup_check["app_state"], "ready");
+    assert_eq!(startup_check["window_entrypoint"], "available");
+    assert_eq!(startup_check["window"], "not-opened");
+
     let listed = fixture
         .command(&artifact_binary)
         .args(["content", "list"])

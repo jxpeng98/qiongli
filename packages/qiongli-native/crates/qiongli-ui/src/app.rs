@@ -185,12 +185,22 @@ impl QiongliDesktopApp {
     }
 
     fn render_preview(&mut self, context: &egui::Context) -> Option<DesktopIntent> {
-        let preview = self.preview?;
+        let preview = self.preview.as_ref()?;
         let mut intent = None;
         let response = Modal::new(Id::new("operation-preview")).show(context, |ui| {
             ui.set_max_width(460.0);
             ui.heading(preview.title);
             ui.label(preview.summary);
+            if let Some(digest) = &preview.plan_digest_sha256 {
+                ui.label("Exact plan digest");
+                ui.monospace(digest);
+            }
+            if !preview.approvals_required.is_empty() {
+                ui.label("Confirmation approves:");
+                for approval in &preview.approvals_required {
+                    ui.label(format!("• {}", approval.label()));
+                }
+            }
             if let Some(reason) = preview.blocked_reason {
                 ui.label(format!("Blocked: {reason}"));
             }
@@ -249,16 +259,35 @@ impl QiongliDesktopApp {
                 });
             }
             DesktopEvent::PreviewReady(preview) => {
-                self.preview = Some(preview);
-                self.feedback = None;
+                if preview.validate() {
+                    self.preview = Some(preview);
+                    self.feedback = None;
+                } else {
+                    self.preview = None;
+                    self.feedback = Some(Feedback {
+                        status: StatusCode::Invalid,
+                        message: "The operation preview was rejected. No changes were made.",
+                        code: "operation-preview-invalid",
+                    });
+                }
             }
             DesktopEvent::Completed { code } => {
                 self.preview = None;
-                self.feedback = Some(Feedback {
-                    status: StatusCode::Ready,
-                    message: "The approved operation completed.",
-                    code,
-                });
+                let snapshot = self.service.snapshot();
+                if snapshot.validate().is_ok() {
+                    self.snapshot = snapshot;
+                    self.feedback = Some(Feedback {
+                        status: StatusCode::Ready,
+                        message: "The approved operation completed.",
+                        code,
+                    });
+                } else {
+                    self.feedback = Some(Feedback {
+                        status: StatusCode::Invalid,
+                        message: "The operation completed, but its refreshed snapshot was rejected.",
+                        code: "operation-snapshot-invalid",
+                    });
+                }
             }
             DesktopEvent::Cancelled { code } => {
                 self.preview = None;
@@ -367,9 +396,11 @@ fn render_overview(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<DesktopI
     );
     Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
         ui.strong("Alpha boundary");
-        ui.label(
-            "This window can inspect and preview. It cannot install plugins, write configuration, store secrets, or launch MCP processes.",
-        );
+        ui.label(if snapshot.capabilities.apply {
+            "This trusted release session can activate a verified local plugin only after exact preview confirmation. It cannot store secrets or launch MCP processes."
+        } else {
+            "This source-build window can inspect and preview. It cannot install plugins, write configuration, store secrets, or launch MCP processes."
+        });
     });
     ui.add_space(16.0);
     Grid::new("overview-status-grid")
@@ -638,6 +669,8 @@ mod tests {
                         token: OperationToken::new(7),
                         title: "Test operation preview",
                         summary: "A bounded fake service preview.",
+                        plan_digest_sha256: Some("7".repeat(64)),
+                        approvals_required: crate::OperationApproval::ACTIVATION.to_vec(),
                         can_confirm: true,
                         blocked_reason: None,
                     })
@@ -780,6 +813,14 @@ mod tests {
                 .next()
                 .is_some()
         );
+        assert!(harness.query_all_by_value(&"7".repeat(64)).next().is_some());
+        for approval in [
+            "• Filesystem write",
+            "• Client configuration change",
+            "• Host trust",
+        ] {
+            assert!(harness.query_all_by_value(approval).next().is_some());
+        }
         harness.get_by_label("Confirm operation").click_accesskit();
         let _ = harness.run();
         assert!(

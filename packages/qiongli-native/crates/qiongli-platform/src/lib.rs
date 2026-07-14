@@ -1,3 +1,4 @@
+mod activation;
 mod claude;
 mod claude_bundle;
 mod codex;
@@ -13,6 +14,14 @@ mod plan;
 mod release_authority;
 mod transaction;
 
+pub use activation::{
+    CLIENT_ACTIVATION_SCHEMA_VERSION, ClientActivationCommit, ClientActivationCoordinator,
+    ClientActivationDiscoveryV1, ClientActivationDisposition, ClientActivationEffect,
+    ClientActivationError, ClientActivationHandle, ClientActivationLifecycleCommit,
+    ClientActivationLifecycleDisposition, ClientActivationPreview, ClientActivationState,
+    ClientActivationTarget, ClientActivationVerification, discover_client_activation,
+    preview_client_activation,
+};
 pub use claude::{
     CLAUDE_ADAPTER_SCHEMA_VERSION, CLAUDE_MARKETPLACE_SYMBOLIC_PATH,
     CLAUDE_PLUGIN_SOURCE_MARKETPLACE_PATH, CLAUDE_PLUGIN_SOURCE_SYMBOLIC_PATH,
