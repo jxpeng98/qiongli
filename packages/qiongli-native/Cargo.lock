@@ -117,6 +117,7 @@ name = "qiongli-config"
 version = "2.0.0-alpha.1"
 dependencies = [
  "qiongli-content",
+ "qiongli-windows-security",
  "rustix",
  "serde",
  "serde_json",

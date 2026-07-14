@@ -21,7 +21,7 @@ impl SecretRef {
         Ok(Self(value.to_owned()))
     }
 
-    #[cfg(any(unix, test))]
+    #[cfg(any(unix, windows, test))]
     pub(crate) fn raw(&self) -> &str {
         &self.0
     }

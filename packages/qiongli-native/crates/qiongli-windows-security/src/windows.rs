@@ -365,7 +365,7 @@ pub fn create_owner_only_new_file(path: &Path) -> Result<File, SecurityError> {
             FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT,
             attributes,
         )?;
-        validate_owner_only_file(&file)?;
+        verify_owner_only_file_handle(&file)?;
         Ok(file)
     })
 }
@@ -381,7 +381,7 @@ pub fn open_or_create_owner_only_lock(path: &Path) -> Result<File, SecurityError
             FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT,
             attributes,
         )?;
-        validate_owner_only_file(&file)?;
+        verify_owner_only_file_handle(&file)?;
         Ok(file)
     })
 }
@@ -396,7 +396,7 @@ pub fn open_owner_only_file(path: &Path) -> Result<File, SecurityError> {
         FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT,
         null_mut(),
     )?;
-    validate_owner_only_file(&file)?;
+    verify_owner_only_file_handle(&file)?;
     Ok(file)
 }
 
@@ -448,12 +448,16 @@ fn open_owner_only_directory_path(path: &[u16]) -> Result<File, SecurityError> {
         FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT,
         null_mut(),
     )?;
-    validate_kind_and_links(&directory, true)?;
-    verify_owner_only_handle(directory.as_raw_handle())?;
+    verify_owner_only_directory_handle(&directory)?;
     Ok(directory)
 }
 
-fn validate_owner_only_file(file: &File) -> Result<(), SecurityError> {
+pub fn verify_owner_only_directory_handle(file: &File) -> Result<(), SecurityError> {
+    validate_kind_and_links(file, true)?;
+    verify_owner_only_handle(file.as_raw_handle())
+}
+
+pub fn verify_owner_only_file_handle(file: &File) -> Result<(), SecurityError> {
     validate_kind_and_links(file, false)?;
     verify_owner_only_handle(file.as_raw_handle())
 }

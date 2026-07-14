@@ -1,9 +1,11 @@
 use std::ffi::OsStr;
 use std::path::Path;
 
-use qiongli_config::resolve_config_root;
+#[cfg(any(unix, windows))]
+use qiongli_config::ConfigError;
 #[cfg(unix)]
-use qiongli_config::{ConfigError, ConfigRootSource};
+use qiongli_config::ConfigRootSource;
+use qiongli_config::resolve_config_root;
 
 #[test]
 #[cfg(unix)]
@@ -89,4 +91,25 @@ fn windows_home_relative_separator_is_supported() {
         root.state_root(),
         Path::new(r"C:\Users\researcher\state\v2")
     );
+}
+
+#[test]
+#[cfg(windows)]
+fn windows_device_namespaces_are_rejected() {
+    assert_eq!(
+        resolve_config_root(None, Path::new(r"\\.\pipe\qiongli")),
+        Err(ConfigError::HomeUnavailable)
+    );
+    for configured in [
+        r"\\.\pipe\qiongli",
+        r"\\?\GLOBALROOT\Device\HarddiskVolume1",
+    ] {
+        assert_eq!(
+            resolve_config_root(
+                Some(OsStr::new(configured)),
+                Path::new(r"C:\Users\researcher")
+            ),
+            Err(ConfigError::InvalidConfigHome)
+        );
+    }
 }

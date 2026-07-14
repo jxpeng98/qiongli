@@ -79,7 +79,10 @@ pub fn resolve_config_root(
 }
 
 fn validate_home(platform_home: &Path) -> Result<(), ConfigError> {
-    if !platform_home.is_absolute() || has_lexical_traversal(platform_home) {
+    if !platform_home.is_absolute()
+        || has_lexical_traversal(platform_home)
+        || !has_supported_platform_root(platform_home)
+    {
         return Err(ConfigError::HomeUnavailable);
     }
     Ok(())
@@ -91,7 +94,7 @@ fn resolve_configured_root(value: &OsStr, platform_home: &Path) -> Result<PathBu
     }
     let path = Path::new(value);
     if path.is_absolute() {
-        return (!has_lexical_traversal(path))
+        return (!has_lexical_traversal(path) && has_supported_platform_root(path))
             .then(|| path.to_path_buf())
             .ok_or(ConfigError::InvalidConfigHome);
     }
@@ -111,6 +114,28 @@ fn resolve_configured_root(value: &OsStr, platform_home: &Path) -> Result<PathBu
         return Err(ConfigError::InvalidConfigHome);
     }
     Ok(platform_home.join(suffix))
+}
+
+#[cfg(windows)]
+fn has_supported_platform_root(path: &Path) -> bool {
+    use std::path::Prefix;
+
+    matches!(
+        path.components().next(),
+        Some(Component::Prefix(prefix))
+            if matches!(
+                prefix.kind(),
+                Prefix::Disk(_)
+                    | Prefix::UNC(_, _)
+                    | Prefix::VerbatimDisk(_)
+                    | Prefix::VerbatimUNC(_, _)
+            )
+    )
+}
+
+#[cfg(not(windows))]
+const fn has_supported_platform_root(_path: &Path) -> bool {
+    true
 }
 
 #[cfg(windows)]

@@ -16,5 +16,8 @@ serde.workspace = true
 serde_json.workspace = true
 zeroize.workspace = true
 
+[target.'cfg(windows)'.dependencies]
+qiongli-windows-security = { path = "../qiongli-windows-security" }
+
 [lints]
 workspace = true

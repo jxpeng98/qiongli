@@ -1,11 +1,13 @@
 use std::fs;
+#[cfg(windows)]
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use qiongli_config::{
     ConfigError, ConfigState, GlobalSettings, GlobalSettingsStore, resolve_config_root,
 };
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 use qiongli_content::ProfileId;
 
 const SECRET_REF: &str = "qsr1_0123456789abcdef0123456789abcdef";
@@ -47,10 +49,33 @@ impl Fixture {
     }
 
     fn write_document(&self, document: &str) {
-        fs::create_dir_all(self.state_root()).unwrap();
-        set_mode(&self.state_root(), 0o700);
-        fs::write(self.settings_path(), document).unwrap();
-        set_mode(&self.settings_path(), 0o600);
+        #[cfg(unix)]
+        {
+            fs::create_dir_all(self.state_root()).unwrap();
+            set_mode(&self.state_root(), 0o700);
+            fs::write(self.settings_path(), document).unwrap();
+            set_mode(&self.settings_path(), 0o600);
+        }
+        #[cfg(windows)]
+        {
+            fs::create_dir_all(&self.compatibility_root).unwrap();
+            if !self.state_root().exists() {
+                drop(
+                    qiongli_windows_security::create_owner_only_directory(&self.state_root())
+                        .unwrap(),
+                );
+            }
+            match fs::remove_file(self.settings_path()) {
+                Ok(()) => {}
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                Err(error) => panic!("failed to reset fixture document: {error:?}"),
+            }
+            let mut file =
+                qiongli_windows_security::create_owner_only_new_file(&self.settings_path())
+                    .unwrap();
+            file.write_all(document.as_bytes()).unwrap();
+            file.sync_all().unwrap();
+        }
     }
 }
 
@@ -66,20 +91,6 @@ fn missing_state_returns_revision_zero_without_writing() {
     let loaded = fixture.store().load().unwrap();
     assert_eq!(loaded.revision, 0);
     assert_eq!(loaded.settings, GlobalSettings::default());
-    assert!(!fixture.compatibility_root.exists());
-}
-
-#[test]
-#[cfg(windows)]
-fn windows_replace_fails_before_any_filesystem_mutation() {
-    let fixture = Fixture::new("windows-write-unsupported");
-    assert!(!fixture.compatibility_root.exists());
-
-    assert_eq!(
-        fixture.store().replace(0, GlobalSettings::default()),
-        Err(ConfigError::UnsupportedPlatformSecurity)
-    );
-
     assert!(!fixture.compatibility_root.exists());
 }
 
@@ -140,9 +151,9 @@ fn status_redacts_paths_emails_and_secret_refs() {
         assert!(!debug.contains(canary));
         assert!(!json.contains(canary));
     }
-    #[cfg(unix)]
+    #[cfg(any(unix, windows))]
     assert_eq!(status.state, ConfigState::Ready);
-    #[cfg(windows)]
+    #[cfg(not(any(unix, windows)))]
     assert_eq!(status.state, ConfigState::WriteUnsupported);
     assert_eq!(status.revision, Some(1));
     assert!(
@@ -159,9 +170,9 @@ fn status_redacts_paths_emails_and_secret_refs() {
 fn status_is_read_only_for_missing_state() {
     let fixture = Fixture::new("status-missing");
     let status = fixture.store().status();
-    #[cfg(unix)]
+    #[cfg(any(unix, windows))]
     assert_eq!(status.state, ConfigState::Missing);
-    #[cfg(windows)]
+    #[cfg(not(any(unix, windows)))]
     assert_eq!(status.state, ConfigState::WriteUnsupported);
     assert_eq!(status.revision, Some(0));
     assert!(!fixture.compatibility_root.exists());
@@ -191,16 +202,81 @@ fn linked_or_insecure_managed_paths_fail_without_disclosing_paths() {
 }
 
 #[test]
-#[cfg(unix)]
-fn unix_replace_commits_owner_only_monotonic_documents() {
+#[cfg(windows)]
+fn windows_reparse_and_insecure_managed_paths_fail_without_touching_targets() {
+    use std::os::windows::fs::{symlink_dir, symlink_file};
+
+    let fixture = Fixture::new("windows-reparse");
+    let outside = Fixture::new("windows-target");
+    fs::create_dir_all(outside.state_root()).unwrap();
+    fs::write(outside.state_root().join("canary.txt"), b"unchanged\n").unwrap();
+    fs::create_dir_all(&fixture.compatibility_root).unwrap();
+    symlink_dir(outside.state_root(), fixture.state_root()).unwrap();
+
+    let error = fixture.store().load().unwrap_err();
+    assert_eq!(error, ConfigError::UnsafeManagedPath);
+    assert!(!format!("{error:?}").contains("windows-reparse"));
+    assert_eq!(
+        fs::read(outside.state_root().join("canary.txt")).unwrap(),
+        b"unchanged\n"
+    );
+
+    fs::remove_dir(fixture.state_root()).unwrap();
+    drop(qiongli_windows_security::create_owner_only_directory(&fixture.state_root()).unwrap());
+    let outside_settings = outside.state_root().join("outside-settings.json");
+    fs::write(&outside_settings, valid_document()).unwrap();
+    symlink_file(&outside_settings, fixture.settings_path()).unwrap();
+    assert_eq!(fixture.store().load(), Err(ConfigError::UnsafeManagedPath));
+    assert_eq!(
+        fs::read_to_string(&outside_settings).unwrap(),
+        valid_document()
+    );
+
+    fs::remove_file(fixture.settings_path()).unwrap();
+    fs::write(fixture.settings_path(), valid_document()).unwrap();
+    assert_eq!(
+        fixture.store().load(),
+        Err(ConfigError::InsecurePermissions)
+    );
+}
+
+#[test]
+#[cfg(windows)]
+fn windows_hard_linked_settings_are_rejected() {
+    let fixture = Fixture::new("windows-hard-link");
+    fixture.write_document(&valid_document());
+    fs::hard_link(
+        fixture.settings_path(),
+        fixture.state_root().join("settings-alias.json"),
+    )
+    .unwrap();
+
+    assert_eq!(fixture.store().load(), Err(ConfigError::UnsafeManagedPath));
+}
+
+#[test]
+#[cfg(any(unix, windows))]
+fn supported_replace_commits_owner_only_monotonic_documents() {
     let fixture = Fixture::new("replace");
     let store = fixture.store();
     let first = store.replace(0, GlobalSettings::default()).unwrap();
     assert_eq!(first.revision, 1);
     assert!(!first.cleanup_required);
-    assert_eq!(mode(&fixture.state_root()), 0o700);
-    assert_eq!(mode(&fixture.settings_path()), 0o600);
-    assert_eq!(mode(&fixture.state_root().join(".settings.lock")), 0o600);
+    #[cfg(unix)]
+    {
+        assert_eq!(mode(&fixture.state_root()), 0o700);
+        assert_eq!(mode(&fixture.settings_path()), 0o600);
+        assert_eq!(mode(&fixture.state_root().join(".settings.lock")), 0o600);
+    }
+    #[cfg(windows)]
+    {
+        qiongli_windows_security::open_owner_only_directory(&fixture.state_root()).unwrap();
+        qiongli_windows_security::open_owner_only_file(&fixture.settings_path()).unwrap();
+        qiongli_windows_security::open_owner_only_file(
+            &fixture.state_root().join(".settings.lock"),
+        )
+        .unwrap();
+    }
 
     let mut next = GlobalSettings {
         default_profile: ProfileId::Full,
@@ -220,7 +296,7 @@ fn unix_replace_commits_owner_only_monotonic_documents() {
 }
 
 #[test]
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 fn stale_revision_never_changes_live_bytes() {
     let fixture = Fixture::new("conflict");
     let store = fixture.store();
@@ -234,7 +310,7 @@ fn stale_revision_never_changes_live_bytes() {
 }
 
 #[test]
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 fn concurrent_replacements_have_one_winner_and_one_conflict() {
     use std::sync::{Arc, Barrier};
 
@@ -290,6 +366,24 @@ fn insecure_existing_lock_fails_before_live_state_changes() {
     assert_eq!(fs::read(fixture.settings_path()).unwrap(), before);
 }
 
+#[test]
+#[cfg(windows)]
+fn windows_insecure_existing_lock_fails_before_live_state_changes() {
+    let fixture = Fixture::new("windows-lock-dacl");
+    let store = fixture.store();
+    store.replace(0, GlobalSettings::default()).unwrap();
+    let before = fs::read(fixture.settings_path()).unwrap();
+    let lock_path = fixture.state_root().join(".settings.lock");
+    fs::remove_file(&lock_path).unwrap();
+    fs::write(&lock_path, b"broad-dacl\n").unwrap();
+
+    assert_eq!(
+        store.replace(1, GlobalSettings::default()),
+        Err(ConfigError::InsecurePermissions)
+    );
+    assert_eq!(fs::read(fixture.settings_path()).unwrap(), before);
+}
+
 fn valid_document() -> String {
     String::from(
         "{\n  \"document_kind\": \"qiongli-global-settings\",\n  \"schema_version\": 1,\n  \"revision\": 1,\n  \"default_profile\": \"marketplace-lite\",\n  \"providers\": {\n    \"openalex\": {\n      \"enabled\": false,\n      \"email\": null,\n      \"api_key_ref\": null\n    },\n    \"semantic_scholar\": {\n      \"enabled\": false,\n      \"api_key_ref\": null\n    },\n    \"crossref\": {\n      \"enabled\": false,\n      \"email\": null\n    },\n    \"pubmed\": {\n      \"enabled\": false,\n      \"api_key_ref\": null\n    },\n    \"arxiv\": {\n      \"enabled\": true\n    }\n  }\n}\n",
@@ -318,9 +412,6 @@ fn set_mode(path: &Path, mode: u32) {
     fs::set_permissions(path, fs::Permissions::from_mode(mode)).unwrap();
 }
 
-#[cfg(not(unix))]
-fn set_mode(_path: &Path, _mode: u32) {}
-
 #[cfg(unix)]
 fn mode(path: &Path) -> u32 {
     use std::os::unix::fs::PermissionsExt;
@@ -328,7 +419,7 @@ fn mode(path: &Path) -> u32 {
     fs::metadata(path).unwrap().permissions().mode() & 0o777
 }
 
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 fn transaction_artifacts(state_root: &Path) -> Vec<String> {
     let mut artifacts = fs::read_dir(state_root)
         .unwrap()
