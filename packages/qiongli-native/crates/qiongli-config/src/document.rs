@@ -242,6 +242,7 @@ struct ArxivDocumentV1 {
     enabled: bool,
 }
 
+#[cfg(any(unix, test))]
 pub(crate) fn encode_global_settings(
     settings: &GlobalSettings,
     revision: u64,
@@ -284,6 +285,7 @@ fn validate_revision(revision: u64) -> Result<(), ConfigError> {
 }
 
 impl GlobalSettingsDocumentV1 {
+    #[cfg(any(unix, test))]
     fn from_settings(settings: &GlobalSettings, revision: u64) -> Self {
         Self {
             document_kind: GLOBAL_SETTINGS_DOCUMENT_KIND.to_owned(),
