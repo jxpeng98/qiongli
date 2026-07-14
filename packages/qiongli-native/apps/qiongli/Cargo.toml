@@ -20,6 +20,7 @@ serde_json.workspace = true
 
 [build-dependencies]
 qiongli-content = { path = "../../crates/qiongli-content" }
+qiongli-platform = { path = "../../crates/qiongli-platform" }
 
 [dev-dependencies]
 ed25519-dalek.workspace = true

@@ -15,13 +15,19 @@ use qiongli_platform::{
     CODEX_ADAPTER_SCHEMA_VERSION, CODEX_REGISTRATION_RECEIPT_SCHEMA_VERSION,
     CODEX_REGISTRATION_STATE_SCHEMA_VERSION, ClaudeDiscoverySummaryV1, CodexDiscoverySummaryV1,
     INSTALL_PLAN_SCHEMA_VERSION, INSTALL_RECEIPT_SCHEMA_VERSION, LAUNCH_GRANT_SCHEMA_VERSION,
-    LocalTargetFamily, OperatingSystem, discover_claude_user_with_config, discover_codex_user,
+    LocalTargetFamily, NATIVE_PAYLOAD_INSTALL_RECEIPT_SCHEMA_VERSION,
+    NATIVE_RELEASE_AUTHORITY_SCHEMA_VERSION, NATIVE_RELEASE_ENVELOPE_SCHEMA_VERSION,
+    NativeReleaseAuthority, OperatingSystem, discover_claude_user_with_config, discover_codex_user,
 };
 use serde::Serialize;
 
+use crate::native_cli::{
+    NativeCliCommand, NativeClientTarget, NativeReceiptOptions, NativeReleaseOptions,
+};
+
 const OUTPUT_SCHEMA_VERSION: u32 = 1;
 
-const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli --version\n  qiongli --help\n  qiongli ui\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli install status\n  qiongli install codex status\n  qiongli install claude status\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
+const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli --version\n  qiongli --help\n  qiongli ui\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli install status\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install native <preview|apply|verify|remove> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
 
 const CONTENT_USAGE: &str = "Qiongli embedded content\n\nUsage:\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli content --help\n";
 
@@ -29,7 +35,7 @@ const CONFIG_USAGE: &str = "Qiongli global config\n\nUsage:\n  qiongli config sh
 
 const MCP_USAGE: &str = "Qiongli native MCP\n\nUsage:\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli mcp --help\n";
 
-const INSTALL_USAGE: &str = "Qiongli native installation\n\nUsage:\n  qiongli install status\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install --help\n";
+const INSTALL_USAGE: &str = "Qiongli native installation\n\nUsage:\n  qiongli install status\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install native preview --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude>\n  qiongli install native apply --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli install native verify --managed-root <absolute-path> --install-id <native-payload-id>\n  qiongli install native remove --managed-root <absolute-path> --install-id <native-payload-id> --approve-filesystem-write\n  qiongli install --help\n";
 
 #[derive(Clone, Default)]
 pub struct CommandEnvironment {
@@ -149,6 +155,23 @@ pub fn prepare_action(
     environment: &CommandEnvironment,
     content: &EmbeddedContent,
 ) -> ProductAction {
+    let authority = match crate::embedded_release_authority() {
+        Ok(authority) => authority,
+        Err(_) => {
+            return ProductAction::Output(CliOutput::operation_failure(
+                "native-release-authority-invalid",
+            ));
+        }
+    };
+    prepare_action_with_release_authority(args, environment, content, authority.as_ref())
+}
+
+pub(crate) fn prepare_action_with_release_authority(
+    args: impl IntoIterator<Item = OsString>,
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+    authority: Option<&NativeReleaseAuthority>,
+) -> ProductAction {
     let command = match parse_args(args) {
         Ok(command) => command,
         Err(error) => return ProductAction::Output(CliOutput::usage_failure(error)),
@@ -172,9 +195,15 @@ pub fn prepare_action(
             default_profile,
         } => config_set(environment, expected_revision, default_profile),
         Command::InstallHelp => CliOutput::success_text(INSTALL_USAGE),
-        Command::InstallStatus => install_status(),
+        Command::InstallStatus => install_status(authority),
         Command::InstallCodexStatus => install_codex_status(environment),
         Command::InstallClaudeStatus => install_claude_status(environment),
+        Command::InstallNative(command) => {
+            match crate::native_cli::execute(command, authority, content) {
+                Ok(output) => json_output(&output, 0),
+                Err(reason_code) => CliOutput::operation_failure(reason_code),
+            }
+        }
         Command::McpHelp => CliOutput::success_text(MCP_USAGE),
         Command::McpServeLiteStdio => return ProductAction::ServeLiteMcpStdio,
         Command::Status => status(environment, content),
@@ -204,6 +233,7 @@ enum Command {
     InstallStatus,
     InstallCodexStatus,
     InstallClaudeStatus,
+    InstallNative(NativeCliCommand),
     McpHelp,
     McpServeLiteStdio,
     Status,
@@ -258,11 +288,227 @@ fn parse_install_args(args: &[OsString]) -> Result<Command, UsageError> {
         {
             Ok(Command::InstallClaudeStatus)
         }
+        "native"
+            if args.get(1).and_then(|value| value.to_str()) == Some("--help")
+                && args.len() == 2 =>
+        {
+            Ok(Command::InstallHelp)
+        }
+        "native" => parse_native_install_args(&args[1..]).map(Command::InstallNative),
         "--help" | "status" | "codex" | "claude" => {
             Err(install_usage_error("unexpected extra argument"))
         }
         _ => Err(install_usage_error("unknown install subcommand")),
     }
+}
+
+fn parse_native_install_args(args: &[OsString]) -> Result<NativeCliCommand, UsageError> {
+    let Some(subcommand) = args.first().and_then(|value| value.to_str()) else {
+        return Err(install_usage_error(
+            "a native install subcommand is required",
+        ));
+    };
+    match subcommand {
+        "preview" => parse_native_release_options(&args[1..], false)
+            .map(|parsed| NativeCliCommand::Preview(parsed.options)),
+        "apply" => parse_native_release_options(&args[1..], true).and_then(|parsed| {
+            Ok(NativeCliCommand::Apply {
+                options: parsed.options,
+                expected_plan_digest: parsed.expected_plan_digest.ok_or_else(|| {
+                    install_usage_error("expected native install plan digest is required")
+                })?,
+            })
+        }),
+        "verify" => parse_native_receipt_options(&args[1..], false)
+            .map(|parsed| NativeCliCommand::Verify(parsed.options)),
+        "remove" => parse_native_receipt_options(&args[1..], true)
+            .map(|parsed| NativeCliCommand::Remove(parsed.options)),
+        "--help" if args.len() == 1 => Err(install_usage_error(
+            "use qiongli install --help for native install options",
+        )),
+        "--help" => Err(install_usage_error("unexpected native install argument")),
+        _ => Err(install_usage_error("unknown native install subcommand")),
+    }
+}
+
+struct ParsedNativeReleaseOptions {
+    options: NativeReleaseOptions,
+    expected_plan_digest: Option<String>,
+}
+
+fn parse_native_release_options(
+    args: &[OsString],
+    apply: bool,
+) -> Result<ParsedNativeReleaseOptions, UsageError> {
+    let mut release = None;
+    let mut archive = None;
+    let mut managed_root = None;
+    let mut target = None;
+    let mut expected_plan_digest = None;
+    let mut approved = false;
+    let mut index = 0;
+    while index < args.len() {
+        let option = args[index]
+            .to_str()
+            .ok_or_else(|| install_usage_error("native install option is not valid UTF-8"))?;
+        if option == "--approve-filesystem-write" {
+            if !apply || approved {
+                return Err(install_usage_error(
+                    "native install approval option is unexpected or duplicate",
+                ));
+            }
+            approved = true;
+            index += 1;
+            continue;
+        }
+        let value = args
+            .get(index + 1)
+            .ok_or_else(|| install_usage_error("native install option value is required"))?;
+        match option {
+            "--release" if release.is_none() => release = nonempty_path(value),
+            "--archive" if archive.is_none() => archive = nonempty_path(value),
+            "--managed-root" if managed_root.is_none() => managed_root = nonempty_path(value),
+            "--target" if target.is_none() => {
+                target = Some(
+                    parse_native_client_target(value)
+                        .ok_or_else(|| install_usage_error("native install target is invalid"))?,
+                );
+            }
+            "--expected-plan-digest" if apply && expected_plan_digest.is_none() => {
+                expected_plan_digest =
+                    Some(parse_sha256(value).ok_or_else(|| {
+                        install_usage_error("native install plan digest is invalid")
+                    })?);
+            }
+            "--release"
+            | "--archive"
+            | "--managed-root"
+            | "--target"
+            | "--expected-plan-digest" => {
+                return Err(install_usage_error(
+                    "native install option is unexpected or duplicate",
+                ));
+            }
+            _ => return Err(install_usage_error("unknown native install option")),
+        }
+        if matches!(option, "--release" | "--archive" | "--managed-root") && value.is_empty() {
+            return Err(install_usage_error("native install path is empty"));
+        }
+        index += 2;
+    }
+    if apply && !approved {
+        return Err(install_usage_error(
+            "explicit filesystem-write approval is required",
+        ));
+    }
+    Ok(ParsedNativeReleaseOptions {
+        options: NativeReleaseOptions {
+            release: release
+                .ok_or_else(|| install_usage_error("native release path is required"))?,
+            archive: archive
+                .ok_or_else(|| install_usage_error("native archive path is required"))?,
+            managed_root: managed_root
+                .ok_or_else(|| install_usage_error("native managed root is required"))?,
+            target: target
+                .ok_or_else(|| install_usage_error("native install target is required"))?,
+        },
+        expected_plan_digest,
+    })
+}
+
+struct ParsedNativeReceiptOptions {
+    options: NativeReceiptOptions,
+}
+
+fn parse_native_receipt_options(
+    args: &[OsString],
+    remove: bool,
+) -> Result<ParsedNativeReceiptOptions, UsageError> {
+    let mut managed_root = None;
+    let mut install_id = None;
+    let mut approved = false;
+    let mut index = 0;
+    while index < args.len() {
+        let option = args[index]
+            .to_str()
+            .ok_or_else(|| install_usage_error("native install option is not valid UTF-8"))?;
+        if option == "--approve-filesystem-write" {
+            if !remove || approved {
+                return Err(install_usage_error(
+                    "native install approval option is unexpected or duplicate",
+                ));
+            }
+            approved = true;
+            index += 1;
+            continue;
+        }
+        let value = args
+            .get(index + 1)
+            .ok_or_else(|| install_usage_error("native install option value is required"))?;
+        match option {
+            "--managed-root" if managed_root.is_none() => managed_root = nonempty_path(value),
+            "--install-id" if install_id.is_none() => {
+                install_id = Some(
+                    parse_native_install_id(value)
+                        .ok_or_else(|| install_usage_error("native install ID is invalid"))?,
+                );
+            }
+            "--managed-root" | "--install-id" => {
+                return Err(install_usage_error(
+                    "native install option is unexpected or duplicate",
+                ));
+            }
+            _ => return Err(install_usage_error("unknown native install option")),
+        }
+        if option == "--managed-root" && value.is_empty() {
+            return Err(install_usage_error("native install path is empty"));
+        }
+        index += 2;
+    }
+    if remove && !approved {
+        return Err(install_usage_error(
+            "explicit filesystem-write approval is required",
+        ));
+    }
+    Ok(ParsedNativeReceiptOptions {
+        options: NativeReceiptOptions {
+            managed_root: managed_root
+                .ok_or_else(|| install_usage_error("native managed root is required"))?,
+            install_id: install_id
+                .ok_or_else(|| install_usage_error("native install ID is required"))?,
+        },
+    })
+}
+
+fn nonempty_path(value: &OsStr) -> Option<PathBuf> {
+    (!value.is_empty()).then(|| PathBuf::from(value))
+}
+
+fn parse_native_client_target(value: &OsStr) -> Option<NativeClientTarget> {
+    match value.to_str()? {
+        "codex" => Some(NativeClientTarget::Codex),
+        "claude" => Some(NativeClientTarget::Claude),
+        _ => None,
+    }
+}
+
+fn parse_sha256(value: &OsStr) -> Option<String> {
+    let value = value.to_str()?;
+    (value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)))
+    .then(|| value.to_string())
+}
+
+fn parse_native_install_id(value: &OsStr) -> Option<String> {
+    let value = value.to_str()?;
+    let digest = value.strip_prefix("native-payload-")?;
+    (digest.len() == 64
+        && digest
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)))
+    .then(|| value.to_string())
 }
 
 fn parse_mcp_args(args: &[OsString]) -> Result<Command, UsageError> {
@@ -559,7 +805,7 @@ fn config_set(
     )
 }
 
-fn install_status() -> CliOutput {
+fn install_status(authority: Option<&NativeReleaseAuthority>) -> CliOutput {
     let (Some(os), Some(arch)) = (OperatingSystem::current(), Architecture::current()) else {
         return CliOutput::operation_failure("unsupported-build-target");
     };
@@ -570,8 +816,11 @@ fn install_status() -> CliOutput {
             contracts: InstallContractVersions {
                 artifact_identity: ARTIFACT_IDENTITY_SCHEMA_VERSION,
                 launch_grant: LAUNCH_GRANT_SCHEMA_VERSION,
+                release_authority: NATIVE_RELEASE_AUTHORITY_SCHEMA_VERSION,
+                release_envelope: NATIVE_RELEASE_ENVELOPE_SCHEMA_VERSION,
                 install_plan: INSTALL_PLAN_SCHEMA_VERSION,
                 install_receipt: INSTALL_RECEIPT_SCHEMA_VERSION,
+                native_payload_install_receipt: NATIVE_PAYLOAD_INSTALL_RECEIPT_SCHEMA_VERSION,
                 codex_adapter: CODEX_ADAPTER_SCHEMA_VERSION,
                 codex_registration_receipt: CODEX_REGISTRATION_RECEIPT_SCHEMA_VERSION,
                 codex_registration_state: CODEX_REGISTRATION_STATE_SCHEMA_VERSION,
@@ -581,9 +830,28 @@ fn install_status() -> CliOutput {
             },
             current_target: InstallBuildTarget { os, arch },
             transaction_engine: "grant-and-approval-gated",
-            launch_grant: "unavailable",
-            preview: "unavailable",
-            apply: "unavailable",
+            release_authority: if authority.is_some() {
+                "embedded"
+            } else {
+                "unavailable"
+            },
+            launch_grant: if authority.is_some() {
+                "release-bound"
+            } else {
+                "unavailable"
+            },
+            preview: if authority.is_some() {
+                "signed-release-required"
+            } else {
+                "unavailable"
+            },
+            apply: if authority.is_some() {
+                "signed-release-and-approval-required"
+            } else {
+                "unavailable"
+            },
+            verify: "receipt-backed",
+            remove: "receipt-backed-explicit-approval",
             targets: [
                 InstallTargetStatus {
                     family: LocalTargetFamily::CodexLocal,
@@ -822,9 +1090,12 @@ struct InstallStatusOutput {
     contracts: InstallContractVersions,
     current_target: InstallBuildTarget,
     transaction_engine: &'static str,
+    release_authority: &'static str,
     launch_grant: &'static str,
     preview: &'static str,
     apply: &'static str,
+    verify: &'static str,
+    remove: &'static str,
     targets: [InstallTargetStatus; 2],
 }
 
@@ -854,8 +1125,11 @@ struct InstallClaudeStatusOutput<'a> {
 struct InstallContractVersions {
     artifact_identity: u32,
     launch_grant: u32,
+    release_authority: u32,
+    release_envelope: u32,
     install_plan: u32,
     install_receipt: u32,
+    native_payload_install_receipt: u32,
     codex_adapter: u32,
     codex_registration_receipt: u32,
     codex_registration_state: u32,
@@ -975,6 +1249,29 @@ mod tests {
         );
         assert_eq!(
             parse_args(args(&[
+                "install",
+                "native",
+                "preview",
+                "--release",
+                "/approved/release.json",
+                "--archive",
+                "/approved/archive.zip",
+                "--managed-root",
+                "/approved/managed",
+                "--target",
+                "codex",
+            ])),
+            Ok(Command::InstallNative(NativeCliCommand::Preview(
+                NativeReleaseOptions {
+                    release: PathBuf::from("/approved/release.json"),
+                    archive: PathBuf::from("/approved/archive.zip"),
+                    managed_root: PathBuf::from("/approved/managed"),
+                    target: NativeClientTarget::Codex,
+                }
+            )))
+        );
+        assert_eq!(
+            parse_args(args(&[
                 "mcp",
                 "serve",
                 "--profile",
@@ -1003,6 +1300,41 @@ mod tests {
             "/approved/target",
             "--profile",
             "marketplace-lite",
+        ]));
+        assert_eq!(first, second);
+
+        let digest = "a".repeat(64);
+        let first = parse_args(args(&[
+            "install",
+            "native",
+            "apply",
+            "--release",
+            "/approved/release.json",
+            "--archive",
+            "/approved/archive.zip",
+            "--managed-root",
+            "/approved/managed",
+            "--target",
+            "claude",
+            "--expected-plan-digest",
+            &digest,
+            "--approve-filesystem-write",
+        ]));
+        let second = parse_args(args(&[
+            "install",
+            "native",
+            "apply",
+            "--approve-filesystem-write",
+            "--target",
+            "claude",
+            "--managed-root",
+            "/approved/managed",
+            "--expected-plan-digest",
+            &digest,
+            "--archive",
+            "/approved/archive.zip",
+            "--release",
+            "/approved/release.json",
         ]));
         assert_eq!(first, second);
 
@@ -1090,6 +1422,41 @@ mod tests {
             vec!["mcp", "serve", "--profile", "lite"],
             vec!["mcp", "serve", "--transport", "stdio"],
             vec!["mcp", "serve", "--profile", "full", "--transport", "stdio"],
+            vec![
+                "install",
+                "native",
+                "apply",
+                "--release",
+                "/approved/release.json",
+                "--archive",
+                "/approved/archive.zip",
+                "--managed-root",
+                "/approved/managed",
+                "--target",
+                "codex",
+                "--expected-plan-digest",
+                "a",
+                "--approve-filesystem-write",
+            ],
+            vec![
+                "install",
+                "native",
+                "remove",
+                "--managed-root",
+                "/approved/managed",
+                "--install-id",
+                "native-payload-invalid",
+                "--approve-filesystem-write",
+            ],
+            vec![
+                "install",
+                "native",
+                "remove",
+                "--managed-root",
+                "/approved/managed",
+                "--install-id",
+                "native-payload-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            ],
             vec!["mcp", "serve", "--profile", "lite", "--transport", "http"],
             vec![
                 "mcp",

@@ -10,6 +10,7 @@ mod native_artifact;
 mod native_install;
 mod native_release;
 mod plan;
+mod release_authority;
 mod transaction;
 
 pub use claude::{
@@ -83,9 +84,10 @@ pub use native_install::{
     preview_native_payload_install,
 };
 pub use native_release::{
-    NATIVE_RELEASE_ENVELOPE_SCHEMA_VERSION, NativeReleaseEnvelopeV1, NativeReleaseError,
-    NativeReleaseSignatureV1, NativeReleaseVerificationContext, SignedNativeReleaseEnvelopeV1,
-    TrustedReleasePublicKey, VerifiedNativeReleaseEnvelope, build_native_release_envelope,
+    MAX_NATIVE_RELEASE_ENVELOPE_BYTES, NATIVE_RELEASE_ENVELOPE_SCHEMA_VERSION,
+    NativeReleaseEnvelopeV1, NativeReleaseError, NativeReleaseSignatureV1,
+    NativeReleaseVerificationContext, SignedNativeReleaseEnvelopeV1, TrustedReleasePublicKey,
+    VerifiedNativeReleaseEnvelope, build_native_release_envelope,
     native_release_envelope_signing_bytes,
 };
 pub use plan::{
@@ -93,6 +95,10 @@ pub use plan::{
     InstallPlanDraftV1, InstallPlanMetadataV1, InstallPlanV1, InstallScope, LocalSurface,
     LocalTargetFamily, OwnershipMarkerV1, PlanStateV1, SymbolicRoot, TargetDescriptorV1,
     VerifiedInstallPlan, observed_plan_state_sha256,
+};
+pub use release_authority::{
+    MAX_NATIVE_RELEASE_AUTHORITY_BYTES, NATIVE_RELEASE_AUTHORITY_SCHEMA_VERSION,
+    NativeReleaseAuthority, NativeReleaseAuthorityError,
 };
 pub use transaction::{
     ApprovedInstallPlan, ApprovedManagedRoot, INSTALL_JOURNAL_SCHEMA_VERSION,

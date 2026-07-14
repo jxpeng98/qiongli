@@ -175,6 +175,7 @@ fn root_and_nested_help_use_stdout_and_return_success() {
         ["content", "--help"].as_slice(),
         ["config", "--help"].as_slice(),
         ["install", "--help"].as_slice(),
+        ["install", "native", "--help"].as_slice(),
     ] {
         let output = run(args);
         assert!(output.status.success());
@@ -536,8 +537,11 @@ fn install_status_is_read_only_and_truthful_for_source_builds() {
     assert_eq!(value["command"], "install-status");
     assert_eq!(value["contracts"]["artifact_identity"], 1);
     assert_eq!(value["contracts"]["launch_grant"], 1);
+    assert_eq!(value["contracts"]["release_authority"], 1);
+    assert_eq!(value["contracts"]["release_envelope"], 1);
     assert_eq!(value["contracts"]["install_plan"], 1);
     assert_eq!(value["contracts"]["install_receipt"], 1);
+    assert_eq!(value["contracts"]["native_payload_install_receipt"], 1);
     assert_eq!(value["contracts"]["codex_adapter"], 1);
     assert_eq!(value["contracts"]["codex_registration_receipt"], 1);
     assert_eq!(value["contracts"]["codex_registration_state"], 1);
@@ -547,13 +551,54 @@ fn install_status_is_read_only_and_truthful_for_source_builds() {
     assert!(value["current_target"]["os"].is_string());
     assert!(value["current_target"]["arch"].is_string());
     assert_eq!(value["transaction_engine"], "grant-and-approval-gated");
+    assert_eq!(value["release_authority"], "unavailable");
     assert_eq!(value["launch_grant"], "unavailable");
     assert_eq!(value["preview"], "unavailable");
     assert_eq!(value["apply"], "unavailable");
+    assert_eq!(value["verify"], "receipt-backed");
+    assert_eq!(value["remove"], "receipt-backed-explicit-approval");
     assert_eq!(value["targets"][0]["family"], "codex-local");
     assert_eq!(value["targets"][1]["family"], "claude-code-local");
     assert_eq!(value["targets"][0]["state"], "adapter-engine-ready");
     assert_eq!(value["targets"][1]["state"], "adapter-engine-ready");
+}
+
+#[test]
+fn source_build_has_no_release_authority_and_cannot_preview_native_install() {
+    assert!(qiongli::embedded_release_authority().unwrap().is_none());
+    let fixture = Fixture::new("native-preview-source-build-private-canary");
+    let release = fixture.root.join("release-private-canary.json");
+    let archive = fixture.root.join("archive-private-canary.zip");
+    let managed = fixture.root.join("managed-private-canary");
+    let output = run_configured_os(
+        Path::new(env!("CARGO_BIN_EXE_qiongli")),
+        &fixture,
+        &[
+            OsString::from("install"),
+            OsString::from("native"),
+            OsString::from("preview"),
+            OsString::from("--release"),
+            release.clone().into_os_string(),
+            OsString::from("--archive"),
+            archive.clone().into_os_string(),
+            OsString::from("--managed-root"),
+            managed.clone().into_os_string(),
+            OsString::from("--target"),
+            OsString::from("codex"),
+        ],
+        true,
+    );
+    assert_eq!(output.status.code(), Some(1));
+    assert!(output.stdout.is_empty());
+    assert_eq!(
+        output.stderr,
+        b"error: native-release-authority-unavailable\n"
+    );
+    let public = public_output(&output);
+    assert!(!public.contains(release.to_string_lossy().as_ref()));
+    assert!(!public.contains(archive.to_string_lossy().as_ref()));
+    assert!(!public.contains(managed.to_string_lossy().as_ref()));
+    assert!(!managed.exists());
 }
 
 #[test]
@@ -647,6 +692,16 @@ fn invalid_invocations_and_environment_fail_without_echoing_private_values() {
         (
             &["install", "claude", "extra-private-canary"],
             Some("extra-private-canary"),
+        ),
+        (
+            &[
+                "install",
+                "native",
+                "preview",
+                "--private-key",
+                "native-private-key-canary",
+            ],
+            Some("native-private-key-canary"),
         ),
         (
             &["config", "show", "extra-private-canary"],
