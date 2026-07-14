@@ -1,6 +1,6 @@
 # Qiongli Config Windows Persistence Design
 
-Status: approved for execution
+Status: implemented and accepted
 
 Date: July 14, 2026
 

@@ -1,6 +1,6 @@
 # Qiongli Config Windows Persistence Implementation Plan
 
-Status: active execution
+Status: complete
 
 Date: July 14, 2026
 
@@ -38,60 +38,62 @@ small and explicit.
 - [x] Verify `CreateFileW`, `MoveFileExW`, `GetSecurityInfo`, file identity, and
   Rust locking against primary documentation.
 - [x] Record the unsafe-code isolation and explicit nonclaims in the design.
-- [ ] Commit the design and this implementation plan.
+- [x] Commit the design and this implementation plan (`974e539b`).
 
 ## Task 2 — Build The Isolated Win32 Security Adapter
 
-- [ ] Add `qiongli-windows-security` without weakening workspace lints.
-- [ ] Expose safe functions for owner-only directory/file creation, DACL
+- [x] Add `qiongli-windows-security` without weakening workspace lints.
+- [x] Expose safe functions for owner-only directory/file creation, DACL
   verification, handle facts, and write-through replacement.
-- [ ] Keep all path and private-value data out of adapter errors.
-- [ ] Add Windows tests for protected single-user DACLs, broad-DACL rejection,
+- [x] Keep all path and private-value data out of adapter errors.
+- [x] Add Windows tests for protected single-user DACLs, broad-DACL rejection,
   handle identity/link facts, and replacement preservation.
-- [ ] Pass format/check/Clippy on the local host and compile in Windows CI.
-- [ ] Commit the isolated adapter as one rollback checkpoint.
+- [x] Pass format/check/Clippy on the local host and compile in Windows CI.
+- [x] Commit the isolated adapter as one rollback checkpoint (`1c3df663`).
 
 ## Task 3 — Integrate Windows With The Shared Transaction
 
-- [ ] Compile the strict encoder and private SecretRef adapter for Windows.
-- [ ] Generalize lock timeout, fault points, transaction bytes, and high-level
+- [x] Compile the strict encoder and private SecretRef adapter for Windows.
+- [x] Generalize lock timeout, fault points, transaction bytes, and high-level
   replace/rollback flow across Unix and Windows.
-- [ ] Keep Unix behavior and its existing fault suite unchanged.
-- [ ] Add Windows private-directory, no-follow open, DACL, identity, hard-link,
+- [x] Keep Unix behavior and its existing fault suite unchanged.
+- [x] Add Windows private-directory, no-follow open, DACL, identity, hard-link,
   and write-through move primitives.
-- [ ] Change Windows status from `write-unsupported` to shared ready/missing
+- [x] Change Windows status from `write-unsupported` to shared ready/missing
   semantics only after the write path exists.
-- [ ] Commit the integrated store as one rollback checkpoint.
+- [x] Commit the integrated store as one rollback checkpoint (`90190612`).
 
 ## Task 4 — Prove The Windows Failure Matrix
 
-- [ ] Replace the old zero-side-effect unsupported-write test with first-write
+- [x] Replace the old zero-side-effect unsupported-write test with first-write
   and replacement success tests.
-- [ ] Verify protected DACLs on state root, lock, settings, and retained
+- [x] Verify protected DACLs on state root, lock, settings, and retained
   transaction artifacts.
-- [ ] Run stale revision and concurrent-writer tests on Windows.
-- [ ] Reject state-root and settings reparse points without touching their
+- [x] Run stale revision and concurrent-writer tests on Windows.
+- [x] Reject state-root and settings reparse points without touching their
   targets.
-- [ ] Reject hard-linked settings and insecure managed objects.
-- [ ] Run shared pre-activation, post-activation, prior-absence, cleanup,
+- [x] Reject hard-linked settings and insecure managed objects.
+- [x] Run shared pre-activation, post-activation, prior-absence, cleanup,
   rollback-failure, and lock-timeout tests on Windows.
-- [ ] Confirm every error/status surface remains path- and secret-redacted.
-- [ ] Commit the Windows acceptance tests.
+- [x] Confirm every error/status surface remains path- and secret-redacted.
+- [x] Commit the Windows acceptance tests with the integrated checkpoint to
+  keep the accelerated migration history compact (`90190612`).
 
 ## Task 5 — Run The Native Gate And Close The Receipt
 
-- [ ] Run the native change-boundary check.
-- [ ] Run workspace format, locked check, Clippy with warnings denied, and all
+- [x] Run the native change-boundary check.
+- [x] Run workspace format, locked check, Clippy with warnings denied, and all
   Rust tests locally.
-- [ ] Audit production code for Python/Node/process launch, plaintext fallback,
+- [x] Audit production code for Python/Node/process launch, plaintext fallback,
   and private canaries.
-- [ ] Update the roadmap with implementation commits, local count, exact
+- [x] Update the roadmap with implementation commits, local count, exact
   nonclaims, and the next native-command batch.
-- [ ] Push the same rolling branch; do not create another PR.
-- [ ] Require exact-head boundary, Linux, macOS, and Windows jobs to pass.
-- [ ] Fix owned Windows findings on the same branch and rerun exact-head CI.
-- [ ] Update Draft PR #63 only after current-head evidence exists.
-- [ ] Leave the branch pushed, Draft, clean, and synchronized with origin.
+- [x] Push the same rolling branch; do not create another PR.
+- [x] Require exact-head boundary, Linux, macOS, and Windows jobs to pass.
+- [x] Fix owned Windows findings on the same branch and rerun exact-head CI;
+  the first real Windows behavior run passed, so no fix cycle was required.
+- [x] Update Draft PR #63 only after current-head evidence exists.
+- [x] Leave the branch pushed, Draft, clean, and synchronized with origin.
 
 ## Required Commands
 
@@ -105,6 +107,23 @@ cargo test --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-
 
 Legacy Python and Node suites remain diagnostic-only and are not part of this
 CFG-201B gate.
+
+## Completion Receipt
+
+- Design checkpoint: `974e539b`.
+- Isolated Win32 adapter checkpoint: `1c3df663`.
+- Shared transaction and Windows acceptance checkpoint: `90190612`.
+- Local gate: native boundary, format, locked workspace check, Clippy with
+  warnings denied, and all 84 Rust tests passed.
+- Local Windows preflight: full workspace check and Clippy passed for
+  `x86_64-pc-windows-msvc`, including all Windows-only test targets.
+- Exact implementation CI: run `29321393463` passed boundary, Linux, macOS,
+  and Windows at `90190612d2ba66b93ae98c536d688ba86ab78b34` in 6s, 31s,
+  49s, and 1m29s.
+- Legacy Python/Node suites were not run and were not required.
+- The next batch is the R1 native content/config/status command composition;
+  CFG-201B makes no CLI, UI, MCP, credential-store, project-state, migration,
+  installer, or release claim.
 
 ## Completion Definition
 

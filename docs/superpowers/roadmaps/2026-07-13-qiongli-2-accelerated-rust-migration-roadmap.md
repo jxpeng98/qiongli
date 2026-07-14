@@ -1,7 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; FND-202E, FND-202F, and CFG-201A complete, with
-CFG-201B and the native command slice next
+Status: active execution; FND-202E, FND-202F, CFG-201A, and CFG-201B complete,
+with the R1 native command slice next
 
 Decision date: July 13, 2026
 
@@ -46,11 +46,12 @@ Integrated on `2.x`:
   `ebd2d7bef651fcbd22a7310aa50f9945604fa9eb`.
 
 The current physical native workspace contains `apps/qiongli`,
-`qiongli-content`, and `qiongli-config`. FND-202E is complete through
-portability head `870d85b8`, FND-202F is complete at `76ee339f`, and the local
-CFG-201A implementation checkpoint ends at `588e564d` on the same rolling
-branch. Work continues through the native config and command path rather than
-returning to another legacy inventory or Python parity phase.
+`qiongli-content`, `qiongli-config`, and the isolated
+`qiongli-windows-security` FFI boundary. FND-202E is complete through
+portability head `870d85b8`, FND-202F is complete at `76ee339f`, CFG-201A ends
+at `588e564d`, and CFG-201B ends at implementation checkpoint `90190612` on
+the same rolling branch. Work continues through the native command path rather
+than returning to another legacy inventory or Python parity phase.
 
 ## Operating Rules
 
@@ -236,18 +237,35 @@ Implementation status on July 14, 2026:
   synchronized staging and recovery files, atomic activation, rollback, and
   explicit post-commit cleanup state. The local macOS execution covered the
   permission, conflict, concurrency, lock-timeout, and fault-injection matrix;
-- Windows retains strict root/document read validation and redacted status,
-  while writes return `UnsupportedPlatformSecurity` before any filesystem
-  mutation;
+- CFG-201B design commit `974e539b`, isolated adapter commit `1c3df663`, and
+  shared-transaction implementation commit `90190612` add supported Windows
+  persistence without weakening `qiongli-config`'s unsafe-code prohibition;
+- the isolated adapter creates and verifies protected current-user-only DACLs,
+  rejects reparse points and hard-linked managed files, exposes handle identity,
+  and performs write-through same-volume replacement;
+- Windows now runs the same bounded lock, optimistic revision, synchronized
+  staging/recovery, activation, verification, cleanup, and rollback state
+  machine as Unix. Windows uses `MoveFileExW` write-through semantics instead
+  of claiming an undocumented directory-fsync guarantee;
 - GitHub Actions run `29318765759` passed the native boundary plus Linux,
   macOS, and Windows Rust jobs at exact implementation head
   `588e564d73b1afa367c7d7ee4d539c55f893e368` in 7s, 32s, 46s, and 57s;
+- the CFG-201B local gate passed the native boundary, format, locked workspace
+  check, Clippy with warnings denied, and all 84 Rust tests. A local
+  `x86_64-pc-windows-msvc` workspace check and Clippy pass also type-checked
+  every Windows-only production and test target before push;
+- GitHub Actions run `29321393463` passed the native boundary plus Linux,
+  macOS, and real Windows Rust jobs at exact implementation head
+  `90190612d2ba66b93ae98c536d688ba86ab78b34` in 6s, 31s, 49s, and 1m29s;
+- the Windows runner executed first/replacement writes, DACL checks, reparse
+  and hard-link rejection, stale/concurrent writers, lock timeout, redaction,
+  pre/post-activation failure injection, cleanup, and rollback-failure tests;
 - credentials remain opaque `SecretRef` values. `UnavailableSecretStore` is
   the only secret-store implementation, so this checkpoint does not claim a
   keychain, credential vault, or plaintext fallback;
-- CFG-201A does not wire config CLI, UI, MCP, project state, or 1.x migration.
-  The next config batch is CFG-201B, the separately accepted Windows secure
-  persistence adapter.
+- CFG-201A/B do not wire config CLI, UI, MCP, project state, credentials, or
+  1.x migration. The next dependency-contiguous batch is the R1 native command
+  slice over the accepted content and config services.
 
 Deliverables:
 
@@ -262,11 +280,13 @@ Deliverables:
    - embedded expected digest;
    - profile list/read/materialize API;
    - source-drift guard owned by native tooling.
-3. `qiongli-config` first vertical slice — complete at `588e564d`:
+3. `qiongli-config` cross-platform vertical slice — complete at `90190612`:
    - `QIONGLI_CONFIG_HOME/v2/` resolution;
    - typed public settings and profile selection;
    - provider settings and secret references;
-   - atomic owner-only writes and redacted diagnostics.
+   - atomic owner-only Unix and Windows writes and redacted diagnostics;
+   - an isolated safe Win32 security boundary with protected DACL, identity,
+     reparse, hard-link, and write-through replacement checks.
 4. Native commands:
    - version/help;
    - content list/materialize;
@@ -411,8 +431,8 @@ superseded head is not reported as current-head evidence.
 1. acceleration design, authoritative roadmap, and Draft PR #63: complete;
 2. R0 native required CI and live ruleset narrowing: complete;
 3. FND-202E and FND-202F are complete in the same rolling PR;
-4. CFG-201A is complete; continue with CFG-201B and the R1 native-command slice
-   in the same rolling Draft PR;
+4. CFG-201A and CFG-201B are complete; continue with the R1 native-command
+   slice in the same rolling Draft PR;
 5. continue into R2 without creating another branch or PR;
 6. continue into R3 and prepare alpha.1 only after the complete vertical gate.
 
