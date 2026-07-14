@@ -1,6 +1,6 @@
 # Qiongli R2B Provider Runtime Implementation Plan
 
-Status: in progress
+Status: complete
 
 Date: July 14, 2026
 
@@ -86,10 +86,10 @@ MCP claims closed until binary-level MCP dispatch is implemented later.
 - [x] Run all focused old Lite Rust compatibility tests without live services.
 - [x] Audit secrets, endpoint injection, error rendering, and cancellation
   claims.
-- [ ] Commit and push the cohesive implementation to rolling Draft PR #63.
-- [ ] Require exact-head boundary, Linux, macOS, Windows, and focused Lite jobs
+- [x] Commit and push the cohesive implementation to rolling Draft PR #63.
+- [x] Require exact-head boundary, Linux, macOS, Windows, and focused Lite jobs
   to pass.
-- [ ] Record observed evidence in this plan, the roadmap, and PR while leaving
+- [x] Record observed evidence in this plan, the roadmap, and PR while leaving
   R2 open.
 
 ## Required Commands
@@ -114,3 +114,23 @@ native settings reach it only through typed settings plus `SecretStore`, all
 bounds/redaction/network/cancellation claims have deterministic proof, and
 exact-head CI is green while native MCP availability remains explicitly
 unclaimed.
+
+## Execution Receipt
+
+- Design and implementation plan: `a7a505eb`.
+- Shared provider/search implementation: `2eaadfb1`.
+- Local native evidence: change boundary, format, locked workspace check,
+  strict Clippy, and all 116 native Rust tests passed.
+- Cross-target evidence: Windows MSVC workspace check and strict Clippy passed;
+  the Windows dependency graph uses SChannel and does not cross-compile Ring.
+- Compatibility evidence: all 57 focused old Lite tests and strict all-target
+  Clippy passed. Loopback coverage includes each provider's request/auth shape,
+  redirect refusal, timeout, 4 MiB response rejection, PubMed's two-step and
+  over-return bounds, orchestration, deduplication, planning, and MCP behavior.
+- GitHub evidence: Native CI run `29326303112` passed exact implementation head
+  `2eaadfb137bb26a71ab578f0c2bcdf6dc140a869`: boundary in 5s, focused Lite in
+  35s, Linux in 1m02s, macOS in 1m28s, and real Windows in 1m53s.
+- Scope evidence: no live scholarly service, Python suite, or Node suite ran;
+  canonical CLI grammar did not change; native MCP mode, production secure
+  storage, evidence, Zotero, orchestration, UI, integration installation, and
+  packaging remain outside R2B.

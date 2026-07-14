@@ -1,7 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
 Status: active execution; R1 complete and R2 in progress, with the R2A shared
-Lite contract/framing boundary complete and provider runtime migration next
+Lite contract/framing and R2B shared provider/search boundaries complete
 
 Decision date: July 13, 2026
 
@@ -331,7 +331,8 @@ Exit gate result: passed on implementation head `f2a6fbe6` in Native CI run
 Purpose: move the already working Rust Lite value into the canonical native
 workspace instead of reimplementing it.
 
-Implementation status: in progress. R2A is complete on July 14, 2026:
+Implementation status: in progress. R2A and R2B are complete. R2A closed on
+July 14, 2026:
 
 - design checkpoint `1e732155` freezes the first extraction boundary and
   explicit nonclaims;
@@ -361,11 +362,52 @@ Implementation status: in progress. R2A is complete on July 14, 2026:
   command in the canonical executable and does not migrate provider, evidence,
   Zotero, route-preview, or task-plan behavior.
 
-The next dependency-contiguous batch moves provider configuration/status and
-bounded literature-search behavior behind shared runtime contracts and leaves
-the old package as a compatibility consumer. Native MCP availability remains
-unclaimed until canonical binary-level initialize, tools/list, and tools/call
-tests pass.
+R2A deliberately left provider behavior in the compatibility package. R2B
+below closes that next dependency-contiguous boundary without opening native
+MCP availability.
+
+R2B is complete on July 14, 2026:
+
+- design checkpoint `a7a505eb` freezes the native-config authority, redacted
+  access/status model, request and HTTP bounds, cooperative cancellation,
+  compatibility extraction, and explicit nonclaims;
+- implementation checkpoint `2eaadfb1` adds canonical identities and aliases
+  for OpenAlex, Semantic Scholar, Crossref, PubMed, and arXiv plus
+  non-serializable zeroizing access and redacted readiness;
+- native global settings adapt through the injected `SecretStore` only. Missing
+  secrets and unavailable secure storage remain distinct, and no plaintext or
+  process-environment fallback was added to the native path;
+- canonical search requests cap UTF-8 query bytes at 4,096, per-provider
+  results at 200, and total results at 1,000 before runtime construction;
+- the shared client keeps fixed production endpoints, disables redirects and
+  implicit proxy discovery, uses 3-second connect and 15-second request
+  timeouts, and reads at most 4 MiB. Non-Windows uses bundled Rustls roots and
+  Windows uses operating-system SChannel without a user-installed runtime;
+- the five provider clients, response normalization, concurrent fan-out,
+  canonical output order, partial-failure diagnostics, DOI/title-year
+  deduplication, final limiting, and deterministic search planning now have one
+  Rust owner in `qiongli-runtime`;
+- cancellation is typed and checked before/after request boundaries and
+  between PubMed's calls. Blocking HTTP already in flight is not claimed to be
+  immediately interruptible and remains bounded by the request timeout;
+- the old Lite provider/search/search-plan modules are re-exports or thin
+  constructors. Legacy file/environment config resolves only at that
+  compatibility edge before conversion to shared access;
+- the local gate passed format, boundary, locked native check, strict native
+  and Lite Clippy, all 116 native tests, 57 focused Lite compatibility tests,
+  and Windows MSVC cross-target check/Clippy;
+- Native CI run `29326303112` passed exact implementation head
+  `2eaadfb137bb26a71ab578f0c2bcdf6dc140a869`: boundary in 5s, focused Lite in
+  35s, Linux in 1m02s, macOS in 1m28s, and real Windows in 1m53s; and
+- no live provider, Python, or Node suite ran. R2B does not expose provider or
+  MCP commands in the canonical executable and does not implement production
+  secure storage, evidence, Zotero, orchestration, UI, installation, or
+  packaging.
+
+The next dependency-contiguous batch moves evidence export and supported
+Zotero behavior behind shared runtime contracts. Native MCP availability
+remains unclaimed until canonical binary-level initialize, tools/list, and
+tools/call tests pass.
 
 Deliverables:
 
@@ -495,9 +537,11 @@ superseded head is not reported as current-head evidence.
 3. FND-202E and FND-202F are complete in the same rolling PR;
 4. CFG-201A, CFG-201B, and the R1 native-command slice are complete;
 5. R2A shared Lite contract/framing extraction is complete at `d7f2d64f`;
-6. continue R2 with shared provider config/status and bounded search behavior,
+6. R2B shared provider config/status and bounded search extraction is complete
+   at `2eaadfb1`;
+7. continue R2 with shared evidence export and supported Zotero behavior,
    without creating another branch or PR;
-7. continue into R3 and prepare alpha.1 only after the complete vertical gate.
+8. continue into R3 and prepare alpha.1 only after the complete vertical gate.
 
 ## Program Done
 
