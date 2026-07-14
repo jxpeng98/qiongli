@@ -111,6 +111,7 @@ version = "2.0.0-alpha.1"
 dependencies = [
  "qiongli-config",
  "qiongli-content",
+ "qiongli-runtime",
  "serde",
  "serde_json",
 ]
@@ -138,6 +139,15 @@ dependencies = [
  "serde_json_canonicalizer",
  "sha2",
  "unicode-normalization",
+]
+
+[[package]]
+name = "qiongli-runtime"
+version = "2.0.0-alpha.1"
+dependencies = [
+ "qiongli-content",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

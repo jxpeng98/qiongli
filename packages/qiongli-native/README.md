@@ -1,13 +1,13 @@
 # Qiongli Native Workspace
 
 This workspace is the canonical Rust-native product source for Qiongli 2.x.
-It contains the product application, `apps/qiongli`, plus the first real shared
-service contract in `crates/qiongli-content`. The content crate defines the
-versioned resource-pack manifest, frozen profile projections, and bounded
-canonical source collector. It compiles those collected bytes into an unsigned
-deterministic `.qlpack` core, verifies and loads that core entirely in memory,
-and can atomically materialize a verified profile through a trusted target
-capability.
+It contains the product application, `apps/qiongli`, plus the accepted content,
+config, runtime, and isolated Windows-security service boundaries. The content
+crate defines the versioned resource-pack manifest, frozen profile projections,
+and bounded canonical source collector. It compiles those collected bytes into
+an unsigned deterministic `.qlpack` core, verifies and loads that core entirely
+in memory, and can atomically materialize a verified profile through a trusted
+target capability.
 
 ## Dependency direction
 
@@ -108,6 +108,22 @@ manifest schema keeps numeric fields within the JCS safe-integer range.
 The existing `packages/qiongli-lite-mcp` crate remains a migration oracle and
 compatibility package. Native functionality will be extracted into shared
 workspace crates rather than copied into a second implementation.
+
+## R2A shared Lite boundary
+
+`qiongli-runtime` owns the first extracted Lite boundaries: a strict parser for
+the 12 public Contract v2 Lite definitions (11 canonical typed identities) and
+bounded newline/Content-Length stdio framing. The config-wizard compatibility
+name resolves to the same typed handler identity as the canonical name. Runtime
+errors expose only stable reason codes, and framing limits messages to 8 MiB
+and headers to 64 KiB.
+
+The canonical app enables the embedded-content adapter and proves that the
+registry loads through the already verified `marketplace-lite` projection. The
+old Lite package uses the same parser, identity resolver, and framing code
+through thin compatibility modules. This checkpoint does not add an MCP mode
+to the native executable and does not migrate provider, evidence, Zotero, or
+orchestration-preview behavior.
 
 ## R1 command contract
 

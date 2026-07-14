@@ -141,3 +141,58 @@ jobs:
           RUSTC_WRAPPER: ""
           RUSTFLAGS: ""
         run: cargo test --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked
+
+  lite-runtime-compatibility:
+    name: R2 Lite compatibility (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@1.97.0
+        with:
+          components: rustfmt
+
+      - name: Reject injected target-specific Rust flags
+        shell: bash
+        run: |
+          injected=0
+          while IFS='=' read -r name value; do
+            case "$name" in
+              CARGO_TARGET_*_RUSTFLAGS)
+                if [[ -n "$value" ]]; then
+                  echo "Unexpected Rust compiler override: $name" >&2
+                  injected=1
+                fi
+                ;;
+            esac
+          done < <(env)
+          [[ "$injected" -eq 0 ]]
+
+      - name: Check Lite compatibility formatting
+        env:
+          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+          CARGO_BUILD_RUSTC_WRAPPER: ""
+          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+          CARGO_BUILD_RUSTFLAGS: ""
+          CARGO_ENCODED_RUSTFLAGS: ""
+          RUSTC_WORKSPACE_WRAPPER: ""
+          RUSTC_WRAPPER: ""
+          RUSTFLAGS: ""
+        run: cargo fmt --manifest-path packages/qiongli-lite-mcp/Cargo.toml --all -- --check
+
+      - name: Run focused Lite protocol and server tests
+        env:
+          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+          CARGO_BUILD_RUSTC_WRAPPER: ""
+          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+          CARGO_BUILD_RUSTFLAGS: ""
+          CARGO_ENCODED_RUSTFLAGS: ""
+          RUSTC_WORKSPACE_WRAPPER: ""
+          RUSTC_WRAPPER: ""
+          RUSTFLAGS: ""
+        run: >-
+          cargo test --manifest-path packages/qiongli-lite-mcp/Cargo.toml
+          --locked --test mcp_protocol --test mcp_server

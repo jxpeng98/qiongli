@@ -1,0 +1,22 @@
+[package]
+name = "qiongli-runtime"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+description = "Shared native Qiongli runtime contracts and protocol primitives"
+
+[features]
+default = []
+embedded-content = ["dep:qiongli-content"]
+
+[dependencies]
+qiongli-content = { path = "../qiongli-content", optional = true }
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

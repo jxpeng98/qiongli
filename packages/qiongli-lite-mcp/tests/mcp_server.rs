@@ -195,6 +195,34 @@ fn validation_errors_do_not_echo_attacker_controlled_names_or_enum_values() {
 }
 
 #[test]
+fn unknown_methods_and_tool_names_return_static_no_echo_errors() {
+    const CANARY: &str = "attacker-controlled-dispatch-canary";
+    let server = McpServer::new("qiongli-literature-provider", "0.1.0");
+
+    let unknown_method = server.handle(McpRequest {
+        jsonrpc: "2.0".to_string(),
+        id: Some(json!(1)),
+        method: CANARY.to_string(),
+        params: Some(json!({})),
+    });
+    assert_eq!(unknown_method["error"]["code"], -32601);
+    assert_eq!(unknown_method["error"]["message"], "Method not found");
+
+    let unknown_tool = server.handle(McpRequest {
+        jsonrpc: "2.0".to_string(),
+        id: Some(json!(2)),
+        method: "tools/call".to_string(),
+        params: Some(json!({"name": CANARY, "arguments": {}})),
+    });
+    assert_eq!(unknown_tool["error"]["code"], -32601);
+    assert_eq!(unknown_tool["error"]["message"], "Tool not found");
+
+    for response in [unknown_method, unknown_tool] {
+        assert!(!serde_json::to_string(&response).unwrap().contains(CANARY));
+    }
+}
+
+#[test]
 fn config_wizard_aliases_share_the_same_handler_policy() {
     let server = McpServer::new("qiongli-literature-provider", "0.1.0");
     let call = |name: &str, id: i64| {

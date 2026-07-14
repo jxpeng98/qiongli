@@ -34,53 +34,53 @@ package a compatibility consumer of the shared parser and protocol.
   API, Lite contract, framing, dispatch, tests, and native CI.
 - [x] Freeze strict registry, typed identity, bounded framing, redacted error,
   compatibility, CI, and nonclaim contracts.
-- [ ] Commit the design and implementation plan before production changes.
+- [x] Commit the design and implementation plan before production changes.
 
 ## Task 2 — Build The Shared Registry
 
-- [ ] Add `qiongli-runtime` with workspace metadata and lint policy.
-- [ ] Add stable path/input-free runtime errors.
-- [ ] Parse at most 1 MiB of strict Contract v2 Lite JSON.
-- [ ] Freeze the exact 12 public names and 11 typed canonical identities.
-- [ ] Resolve the config-wizard alias without duplicating a handler identity.
-- [ ] Load the registry from the verified `marketplace-lite` embedded profile.
-- [ ] Test malformed, oversized, drifted, reordered, and canary-bearing input.
+- [x] Add `qiongli-runtime` with workspace metadata and lint policy.
+- [x] Add stable path/input-free runtime errors.
+- [x] Parse at most 1 MiB of strict Contract v2 Lite JSON.
+- [x] Freeze the exact 12 public names and 11 typed canonical identities.
+- [x] Resolve the config-wizard alias without duplicating a handler identity.
+- [x] Load the registry from the verified `marketplace-lite` embedded profile.
+- [x] Test malformed, oversized, drifted, reordered, and canary-bearing input.
 
 ## Task 3 — Share Bounded Framing
 
-- [ ] Move newline and Content-Length framing into `qiongli-runtime`.
-- [ ] Preserve the 8 MiB message and 64 KiB header bounds.
-- [ ] Return typed input/output/serialization/UTF-8/incomplete-message errors.
-- [ ] Test byte-length UTF-8, blank lines, EOF, malformed headers, all bounds,
+- [x] Move newline and Content-Length framing into `qiongli-runtime`.
+- [x] Preserve the 8 MiB message and 64 KiB header bounds.
+- [x] Return typed input/output/serialization/UTF-8/incomplete-message errors.
+- [x] Test byte-length UTF-8, blank lines, EOF, malformed headers, all bounds,
   short payloads, input failures, output failures, and error redaction.
 
 ## Task 4 — Reduce The Old Lite Boundary
 
-- [ ] Point `qiongli-lite-mcp` at `qiongli-runtime`.
-- [ ] Preserve old tool-definition and protocol module call sites through thin
+- [x] Point `qiongli-lite-mcp` at `qiongli-runtime`.
+- [x] Preserve old tool-definition and protocol module call sites through thin
   adapters.
-- [ ] Replace the duplicate handler name table with the shared typed resolver.
-- [ ] Make unknown JSON-RPC method and tool errors static and no-echo.
-- [ ] Run focused existing protocol/server tests plus the new alias/no-echo
+- [x] Replace the duplicate handler name table with the shared typed resolver.
+- [x] Make unknown JSON-RPC method and tool errors static and no-echo.
+- [x] Run focused existing protocol/server tests plus the new alias/no-echo
   assertions.
 
 ## Task 5 — Prove Native Composition
 
-- [ ] Add the runtime dependency to the canonical app.
-- [ ] Load all 12 definitions from the real verified embedded pack in an app
+- [x] Add the runtime dependency to the canonical app.
+- [x] Load all 12 definitions from the real verified embedded pack in an app
   integration test.
-- [ ] Confirm production runtime/app code adds no loose-file fallback, process
+- [x] Confirm production runtime/app code adds no loose-file fallback, process
   launch, shell, network, Python, or Node dependency.
-- [ ] Keep the public CLI grammar unchanged and make no MCP availability claim.
+- [x] Keep the public CLI grammar unchanged and make no MCP availability claim.
 
 ## Task 6 — Gate And Record The Slice
 
-- [ ] Add a parallel Linux focused Lite compatibility CI job.
-- [ ] Run the native change boundary, format, locked check, strict Clippy, and
+- [x] Add a parallel Linux focused Lite compatibility CI job.
+- [x] Run the native change boundary, format, locked check, strict Clippy, and
   all native Rust tests.
-- [ ] Run Windows MSVC cross-target check and strict Clippy.
-- [ ] Run focused old Lite protocol/server tests with the locked manifest.
-- [ ] Audit the diff for duplicate behavior and attacker-controlled error
+- [x] Run Windows MSVC cross-target check and strict Clippy.
+- [x] Run focused old Lite protocol/server tests with the locked manifest.
+- [x] Audit the diff for duplicate behavior and attacker-controlled error
   rendering.
 - [ ] Commit cohesive implementation, push the rolling branch, and keep Draft
   PR #63 as the only PR.

@@ -1,5 +1,7 @@
 use std::sync::{Arc, Mutex};
 
+use qiongli_runtime::LiteToolId;
+pub use qiongli_runtime::LITE_PUBLIC_TOOL_NAMES as HANDLED_TOOL_NAMES;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -17,21 +19,6 @@ use crate::searchplan::{
 use crate::tools::definitions::lite_tool_definitions;
 use crate::zotero::companion::probe_zotero_from_env;
 use crate::zotero::export::export_import_files;
-
-pub const HANDLED_TOOL_NAMES: [&str; 12] = [
-    "qiongli_config_status",
-    "qiongli_save_provider_config",
-    "qiongli_configure_provider",
-    "qiongli_open_config_wizard",
-    "qiongli_literature_status",
-    "qiongli_search_plan",
-    "qiongli_literature_search",
-    "qiongli_literature_export_evidence",
-    "qiongli_zotero_status",
-    "qiongli_zotero_export_import_files",
-    "qiongli_orchestrator_route",
-    "qiongli_task_plan",
-];
 
 const MAX_CONTEXT_LENGTH: usize = 4096;
 const MAX_QUERY_LENGTH: usize = 4096;
@@ -55,7 +42,7 @@ const STATUS_PROVIDER_ORDER: [&str; 5] = [
 ];
 
 pub fn has_tool_handler(name: &str) -> bool {
-    HANDLED_TOOL_NAMES.contains(&name)
+    LiteToolId::from_public_name(name).is_some()
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -129,11 +116,7 @@ impl McpServer {
             "ping" => self.result(request.id, json!({})),
             "tools/list" => self.result(request.id, json!({"tools": lite_tool_definitions()})),
             "tools/call" => self.handle_tool_call(request.id, request.params),
-            _ => self.error(
-                request.id,
-                -32601,
-                format!("Method not found: {}", request.method),
-            ),
+            _ => self.error(request.id, -32601, "Method not found"),
         }
     }
 
@@ -151,14 +134,15 @@ impl McpServer {
         if !arguments.is_object() {
             return self.error(id, -32602, "Tool arguments must be an object");
         }
-        if let Some(allowed) = allowed_arguments(name) {
-            if first_unknown_key(&arguments, allowed).is_some() {
-                return self.error(id, -32602, "Unsupported argument");
-            }
+        let Some(tool_id) = LiteToolId::from_public_name(name) else {
+            return self.error(id, -32601, "Tool not found");
+        };
+        if first_unknown_key(&arguments, allowed_arguments(tool_id)).is_some() {
+            return self.error(id, -32602, "Unsupported argument");
         }
 
-        match name {
-            "qiongli_config_status" => {
+        match tool_id {
+            LiteToolId::ConfigStatus => {
                 if arguments.get("cwd").is_some_and(|value| !value.is_string()) {
                     self.error(id, -32602, "cwd must be a string")
                 } else {
@@ -168,19 +152,16 @@ impl McpServer {
                     }
                 }
             }
-            "qiongli_save_provider_config" => self.save_provider_config(id, &arguments),
-            "qiongli_configure_provider" | "qiongli_open_config_wizard" => {
-                self.configure_provider(id, &arguments)
-            }
-            "qiongli_literature_status" => self.literature_status(id, &arguments),
-            "qiongli_search_plan" => self.search_plan(id, &arguments),
-            "qiongli_literature_search" => self.literature_search(id, &arguments),
-            "qiongli_literature_export_evidence" => self.export_evidence(id, &arguments),
-            "qiongli_zotero_status" => self.zotero_status(id),
-            "qiongli_zotero_export_import_files" => self.zotero_export_import_files(id, &arguments),
-            "qiongli_orchestrator_route" => self.orchestrator_route(id, &arguments),
-            "qiongli_task_plan" => self.task_plan(id, &arguments),
-            _ => self.error(id, -32601, format!("Tool not found: {name}")),
+            LiteToolId::SaveProviderConfig => self.save_provider_config(id, &arguments),
+            LiteToolId::ConfigureProvider => self.configure_provider(id, &arguments),
+            LiteToolId::LiteratureStatus => self.literature_status(id, &arguments),
+            LiteToolId::SearchPlan => self.search_plan(id, &arguments),
+            LiteToolId::LiteratureSearch => self.literature_search(id, &arguments),
+            LiteToolId::LiteratureExportEvidence => self.export_evidence(id, &arguments),
+            LiteToolId::ZoteroStatus => self.zotero_status(id),
+            LiteToolId::ZoteroExportImportFiles => self.zotero_export_import_files(id, &arguments),
+            LiteToolId::OrchestratorRoute => self.orchestrator_route(id, &arguments),
+            LiteToolId::TaskPlan => self.task_plan(id, &arguments),
         }
     }
 
@@ -722,16 +703,13 @@ fn credential_bearing_key(key: &str) -> bool {
         || has_sensitive_marker
 }
 
-fn allowed_arguments(name: &str) -> Option<&'static [&'static str]> {
-    match name {
-        "qiongli_config_status" => Some(&["cwd"]),
-        "qiongli_literature_status" => Some(&["cwd"]),
-        "qiongli_zotero_status" => Some(&[]),
-        "qiongli_save_provider_config" => Some(&["provider", "field", "value"]),
-        "qiongli_configure_provider" | "qiongli_open_config_wizard" => {
-            Some(&["provider", "host", "port"])
-        }
-        "qiongli_search_plan" => Some(&[
+fn allowed_arguments(tool_id: LiteToolId) -> &'static [&'static str] {
+    match tool_id {
+        LiteToolId::ConfigStatus | LiteToolId::LiteratureStatus => &["cwd"],
+        LiteToolId::ZoteroStatus => &[],
+        LiteToolId::SaveProviderConfig => &["provider", "field", "value"],
+        LiteToolId::ConfigureProvider => &["provider", "host", "port"],
+        LiteToolId::SearchPlan => &[
             "cwd",
             "query",
             "platform",
@@ -754,16 +732,16 @@ fn allowed_arguments(name: &str) -> Option<&'static [&'static str]> {
             "venueFilter",
             "document_types",
             "documentTypes",
-        ]),
-        "qiongli_literature_search" => Some(&[
+        ],
+        LiteToolId::LiteratureSearch => &[
             "query",
             "search_mode",
             "providers",
             "limit",
             "per_provider_limit",
             "total_limit",
-        ]),
-        "qiongli_literature_export_evidence" => Some(&[
+        ],
+        LiteToolId::LiteratureExportEvidence => &[
             "cwd",
             "query",
             "provider_status",
@@ -773,11 +751,10 @@ fn allowed_arguments(name: &str) -> Option<&'static [&'static str]> {
             "query_plan",
             "search_results",
             "search_diagnostics",
-        ]),
-        "qiongli_zotero_export_import_files" => Some(&["records", "formats"]),
-        "qiongli_orchestrator_route" => Some(&["request", "platform"]),
-        "qiongli_task_plan" => Some(&["task_id", "paper_type", "topic"]),
-        _ => None,
+        ],
+        LiteToolId::ZoteroExportImportFiles => &["records", "formats"],
+        LiteToolId::OrchestratorRoute => &["request", "platform"],
+        LiteToolId::TaskPlan => &["task_id", "paper_type", "topic"],
     }
 }
 

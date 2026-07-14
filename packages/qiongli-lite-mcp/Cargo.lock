@@ -481,12 +481,21 @@ dependencies = [
 name = "qiongli-lite-mcp"
 version = "0.2.0-beta.3"
 dependencies = [
+ "qiongli-runtime",
  "quick-xml",
  "reqwest",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
  "url",
+]
+
+[[package]]
+name = "qiongli-runtime"
+version = "2.0.0-alpha.1"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
