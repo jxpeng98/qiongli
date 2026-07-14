@@ -1119,9 +1119,19 @@ fn write_new_file(
         .map_err(|error| CodexPluginBundleError::PersistenceFailed(error.kind()))?;
     drop(file);
     set_file_mode(path, mode)?;
+    sync_file_mode(path)
+}
+
+#[cfg(unix)]
+fn sync_file_mode(path: &Path) -> Result<(), CodexPluginBundleError> {
     File::open(path)
         .and_then(|file| file.sync_all())
         .map_err(|error| CodexPluginBundleError::PersistenceFailed(error.kind()))
+}
+
+#[cfg(not(unix))]
+fn sync_file_mode(_path: &Path) -> Result<(), CodexPluginBundleError> {
+    Ok(())
 }
 
 #[cfg(unix)]
