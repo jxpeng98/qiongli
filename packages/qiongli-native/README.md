@@ -438,6 +438,42 @@ signing, or release readiness. Building from source requires the pinned Rust
 toolchain; a future packaged executable must not require that toolchain at
 runtime.
 
+## R3G current-target artifact staging
+
+`qiongli-platform` can now assemble the canonical current-target executable
+into a verified native artifact staging tree:
+
+```text
+qiongli-<version-channel-profile-os-arch-package>/
+  .qiongli-native-artifact.json
+  bin/qiongli[.exe]
+```
+
+The typed identity fixes product, version, channel, Lite profile, host OS and
+architecture, and `portable-archive` package kind. The canonical RFC 8785 JSON
+manifest records `assembled-unpublished` status, the binary's logical mode,
+size, and SHA-256 digest, the caller-supplied verified resource-pack identity,
+and a domain-separated artifact content root.
+
+Composition validates a bounded regular source executable and an explicitly
+approved canonical target, uses an owner-private sibling stage and target lock,
+writes with create-new semantics and fixed logical modes, syncs the result,
+promotes without replacement, and verifies the committed tree. Verification
+rejects links/reparse points, hard links, ownership or mode drift, missing or
+extra entries, non-canonical metadata, identity drift, resource-pack drift,
+and binary/content-root tampering through fixed path-redacted reason codes.
+
+Current-target application tests run only the committed artifact-local binary
+from outside the checkout with an empty `PATH`. They verify `--version`, content
+inspection, MCP initialization, the exact 12-tool Lite contract, and a bounded
+read-only tool call. The Windows fixture uses the same owner-only directory
+primitive required by the production validator.
+
+R3G produces an unpacked staging tree, not the final portable archive. It does
+not add compression, signing, notarization, checksums, SBOM, provenance,
+installation, updater, publication, packaged-window startup, cross-target
+packaging, or clean-machine release acceptance.
+
 ## R1 command contract (retained)
 
 The native executable composes the verified embedded pack and versioned global

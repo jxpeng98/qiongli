@@ -1,7 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; R1, R2, and R3A-R3F are complete; R3G current-target
-native artifact assembly is the next dependency-contiguous batch
+Status: active execution; R1, R2, and R3A-R3G are complete; R3H current-target
+portable archive finalization is the next dependency-contiguous batch
 
 Decision date: July 13, 2026
 
@@ -735,13 +735,40 @@ acceptance, config or secret writes, UI-launched MCP, plugin mutation, signing,
 updater, clean-machine release, Claude Desktop, cloud/web, Full MCP, agents, or
 orchestrator completion.
 
-R3G / `PKG-201A` is next: assemble one current-target native alpha artifact
-around the canonical binary, bind its target/version/content identity, and
-prove copied-artifact CLI and Lite MCP startup with an empty runtime `PATH`.
-This smaller batch establishes the artifact required by later production
-launch grants and service-backed install actions. It does not add signing,
-notarization, public release, updater, UI mutation, cross-target packaging, or
-clean-machine desktop acceptance.
+R3G / `PKG-201A` is complete at design checkpoint `0b895a88`, implementation
+checkpoint `df493e13`, and accepted implementation-and-CI head `7fddca15`. The
+platform now assembles one current-target `lite` plus `portable-archive`
+staging tree around the canonical binary and binds its complete target,
+version, channel, profile, package, binary, and verified resource-pack identity
+in canonical metadata with explicit `assembled-unpublished` status.
+
+Local R3G acceptance proves deterministic composition, private no-replace
+staging, bounded source validation, complete-tree and external resource-pack
+verification, fixed path-redacted failures, and tamper/conflict rejection. The
+committed artifact-local binary runs `--version`, verified content listing,
+MCP initialization, the exact 12-tool Lite surface, and one bounded read-only
+tool call from outside the checkout with an empty runtime `PATH`. All 215
+normal native tests pass, two external-client tests remain explicitly ignored,
+all 69 focused Lite compatibility tests pass, and strict host and Windows MSVC
+checks and Clippy pass.
+
+Initial Native CI run `29353736596` passed every job except the new Windows
+R3G tests, whose fixture used a default-DACL parent. `7fddca15` switched that
+test fixture to the existing owner-only Windows helper without weakening the
+production validator. Exact-head Native CI run `29354332680` then passed the
+boundary in 7s, focused Lite in 32s, Linux in 5m22s, macOS in 6m34s, and
+Windows in 6m59s; Cloudflare Pages also passed.
+
+R3G does not claim a final compressed archive, signing, notarization, public
+release, updater, service-backed install mutation, packaged-window startup,
+cross-target packaging, or clean-machine desktop acceptance.
+
+R3H / `PKG-201B` is next: turn the verified current-target staging tree into a
+deterministic portable archive, verify extraction back to the same identity and
+content root, and prove target-native CLI and Lite MCP startup from the
+extracted archive. This remains an unsigned, unpublished current-target gate;
+signing, installers, UI mutation, publication, updater, and the cross-target
+matrix stay in later batches.
 
 Deliverables:
 
@@ -873,8 +900,10 @@ superseded head is not reported as current-head evidence.
     Cloudflare Pages green;
 15. R3F minimal native desktop manager is accepted at `4d706033`, with
     exact-head Native CI run `29351331008` and Cloudflare Pages green;
-16. R3G current-target native artifact assembly is next;
-17. prepare alpha.1 only after the complete installed-product vertical gate.
+16. R3G current-target native artifact assembly is accepted at `7fddca15`,
+    with exact-head Native CI run `29354332680` and Cloudflare Pages green;
+17. R3H deterministic current-target portable archive finalization is next;
+18. prepare alpha.1 only after the complete installed-product vertical gate.
 
 ## Program Done
 
