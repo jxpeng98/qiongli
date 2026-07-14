@@ -1,8 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; R1, R2, R3A, R3B, and R3C are complete; R3D Codex
-native plugin implementation and local acceptance are complete, with exact-head
-remote acceptance pending
+Status: active execution; R1, R2, R3A, R3B, R3C, and R3D are complete; R3E
+Claude Code local integration is the next dependency-contiguous batch
 
 Decision date: July 13, 2026
 
@@ -622,13 +621,13 @@ R3C acceptance evidence:
   focused Lite in 41s, Linux in 1m15s, macOS in 2m13s, and real Windows in
   2m19s. Cloudflare Pages also passed.
 
-R3D is the next dependency-contiguous batch. Compose the target native binary
-and native Lite MCP declaration into a distributable Codex plugin layout, bind
-the package identity to the signed artifact and embedded content receipts, and
-obtain a real clean-client install/enable/runtime evidence path. It must keep
-client cache and enablement writes client-owned and must not claim public
-Marketplace or cloud availability. The Claude adapters remain later R3
-successors until the complete Codex plugin vertical is proven.
+R3D is complete at design checkpoint `e2e5c814`, implementation checkpoint
+`468f458e`, and accepted portability head `103fe11d`. It composes the target
+native binary and native Lite MCP declaration into a complete Codex plugin
+layout, binds package identity to the signed artifact and embedded content
+receipts, and proves a real clean-client install/enable/runtime path. Client
+cache and enablement writes remain client-owned; public Marketplace and cloud
+availability are not claimed.
 
 The R3D boundary is frozen in
 `docs/superpowers/specs/2026-07-14-qiongli-r3d-codex-native-plugin-design.md`.
@@ -638,7 +637,7 @@ bundle receipt, and client-owned activation. Real Codex evidence must use an
 isolated home and must not modify the developer's normal cache or enablement
 state.
 
-R3D is locally complete before its implementation checkpoint. The platform now
+R3D is complete. The platform now
 builds and verifies a target-specific, receipt-covered package containing the
 canonical skill projection, one native Qiongli executable, and a root MCP
 declaration. R3C discovery accepts only that complete package and binds its
@@ -660,6 +659,19 @@ test passes explicitly and remains ignored in the default workspace gate.
 Production grants, public Marketplace publication, cloud/web execution,
 package upgrade/rollback, release artifacts, and Claude/UI/Full-runtime work
 remain unavailable.
+
+Remote R3D acceptance passed at
+`103fe11dc5ada2f4e34a6c79a367f9e27a82ad5e`: Native CI run `29342795330`
+passed the boundary in 6s, focused Lite in 36s, Linux in 1m33s, macOS in
+2m17s, and Windows in 2m44s; Cloudflare Pages also passed. The Windows gate
+includes the complete bundle and secure owner-only operations beyond the
+legacy 260-character path limit.
+
+R3E / `INT-202A` is next. Freeze and implement the documented Claude Code
+local skills-directory and marketplace source boundary over the same verified
+native package, plan, receipt, and transaction primitives. R3E must obtain real
+isolated local-client evidence and must not infer Claude Desktop or cloud
+support; those remain separate `INT-203` and remote-service gates.
 
 Deliverables:
 
@@ -783,9 +795,9 @@ superseded head is not reported as current-head evidence.
     Cloudflare green;
 12. R3C Codex local registration is accepted at `e1166010`, with exact-head
     Native CI run `29339197110` and Cloudflare Pages green;
-13. R3D native Codex plugin composition and isolated real-client activation
-    pass locally; commit, push, and accept the exact implementation head in the
-    same rolling Draft PR;
+13. R3D native Codex plugin composition and isolated real-client activation are
+    accepted at `103fe11d`, with exact-head Native CI run `29342795330` and
+    Cloudflare Pages green;
 14. prepare alpha.1 only after the complete installed-product vertical gate.
 
 ## Program Done

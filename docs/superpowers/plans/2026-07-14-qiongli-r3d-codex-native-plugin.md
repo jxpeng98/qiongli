@@ -1,7 +1,7 @@
 # Qiongli 2.0 R3D Codex Native Plugin Execution Plan
 
 Date: 2026-07-14  
-Status: implementation and local acceptance complete; remote acceptance pending
+Status: complete and accepted at `103fe11d`
 Branch: `feat/2x-native-alpha1`  
 Rolling PR: `#63`
 
@@ -65,10 +65,11 @@ writing the developer's normal Codex cache or enablement state.
   test gate.
 - [x] Update the accelerated roadmap and native README with exact local facts,
   limitations, tests, and evidence.
-- [ ] Update rolling Draft PR `#63` with the implementation checkpoint and
+- [x] Update rolling Draft PR `#63` with the implementation checkpoint and
   exact facts, limitations, tests, and head SHA.
-- [ ] Commit and push the implementation/local-evidence checkpoint.
-- [ ] Accept R3D only after exact-head Native CI and Cloudflare Pages are green.
+- [x] Commit and push implementation checkpoint `468f458e` plus Windows
+  portability fixes `ddb11b1c` and `103fe11d`.
+- [x] Accept R3D only after exact-head Native CI and Cloudflare Pages are green.
 
 ## Explicit Non-goals
 
@@ -104,3 +105,15 @@ writing the developer's normal Codex cache or enablement state.
 - no Python or Node product suite was run or required. Python was used only to
   execute Plugin Creator's development-time structural validator, never by the
   generated plugin or cached MCP runtime.
+
+## Remote Acceptance Receipt
+
+- accepted head: `103fe11dc5ada2f4e34a6c79a367f9e27a82ad5e`;
+- Native CI run `29342795330` passed the native boundary in 6s, focused Lite in
+  36s, Linux in 1m33s, macOS in 2m17s, and Windows in 2m44s;
+- Cloudflare Pages passed for the same head;
+- Windows validates the complete plugin bundle plus owner-only secure file and
+  move operations beyond the legacy 260-character path limit; and
+- the accepted portability fixes retain write-handle durability, add
+  extended-length disk and UNC paths, and continue to reject relative paths,
+  traversal, and device namespaces.
