@@ -1,6 +1,6 @@
 # Qiongli R3B Managed Resource Transaction Design
 
-Status: implemented locally; exact-head CI pending
+Status: implemented and accepted
 
 Date: July 14, 2026
 
@@ -260,4 +260,6 @@ This authorizes R3B on the existing rolling branch and Draft PR #63.
 - Implementation checkpoint: `b3a6ea6b811ec50f891a5e32ee53820f084f857d`.
 - Local boundary, format, locked workspace check, strict Clippy, 177 Rust
   tests, and Windows MSVC cross-target workspace check/strict Clippy passed.
-- Exact-head Native CI and Cloudflare evidence remain pending.
+- Native CI run `29335762713` passed exact implementation-and-local-receipt
+  head `6fdbcde5549103f1c7f9a252b75739c762e25936` across boundary, focused Lite,
+  Linux, macOS, and real Windows jobs. Cloudflare Pages also passed.

@@ -1,6 +1,6 @@
 # Qiongli R3B Managed Resource Transaction Implementation Plan
 
-Status: local implementation complete; exact-head CI pending
+Status: complete
 
 Date: July 14, 2026
 
@@ -61,10 +61,10 @@ vertical behind R3A without adding host adapters or false installability claims.
   `qiongli install status` while keeping grant/preview/apply unavailable.
 - [x] Update the native README, accelerated roadmap, and execution receipt with
   observed evidence only.
-- [ ] Update the rolling Draft PR with observed exact-head evidence only.
+- [x] Update the rolling Draft PR with observed exact-head evidence only.
 - [x] Run boundary, format, locked check, strict Clippy, and all native tests.
 - [x] Run Windows MSVC cross-target check and strict Clippy.
-- [ ] Push to Draft PR #63 and require exact-head boundary, Lite, Linux,
+- [x] Push to Draft PR #63 and require exact-head boundary, Lite, Linux,
   macOS, Windows, and Cloudflare checks to pass.
 
 ## Required Commands
@@ -90,7 +90,7 @@ all drift and ambiguous recovery fail closed; and required local plus
 exact-head Rust gates pass without making client-adapter, package, activation,
 upgrade, or release claims.
 
-## Local Execution Receipt
+## Execution Receipt
 
 - Design and implementation plan checkpoint: `714315cd`.
 - Managed transaction implementation checkpoint:
@@ -117,5 +117,7 @@ upgrade, or release claims.
 - No production signing key, packaged grant, client discovery/configuration,
   Codex/Claude registration, Marketplace/Desktop/cloud activation, package,
   updater, release, or alpha readiness was added or exercised.
-- Exact-head Native CI and Cloudflare evidence remain pending until this local
-  receipt is pushed to Draft PR #63.
+- Native CI run `29335762713` passed exact implementation-and-local-receipt
+  head `6fdbcde5549103f1c7f9a252b75739c762e25936`: boundary in 4s, focused Lite
+  compatibility in 37s, Linux in 1m15s, macOS in 1m24s, and real Windows in
+  2m22s. Cloudflare Pages also passed on Draft PR #63.
