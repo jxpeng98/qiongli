@@ -174,6 +174,26 @@ companion, add native Zotero settings/UI, or expose MCP mode in the canonical
 binary. Returned import-file contents prove generation only, not a completed
 Zotero import.
 
+## R2D shared orchestration previews and typed dispatch
+
+Every canonical Lite tool identity now projects exhaustively into a typed
+config, literature, Zotero, or orchestration handler target. The two
+orchestration targets dispatch only bounded route and task-plan previews. They
+return the accepted Marketplace Lite safety flags with agent execution, shell
+execution, and project writes disabled.
+
+Route requests are capped at 4,096 bytes and accept only the six Contract v2
+platform values. Task IDs and paper types are capped at 256 bytes, topics at
+4,096 bytes, and current trimming behavior is retained. Unknown, missing,
+mistyped, blank, unsupported, and oversized input returns static errors without
+echoing private values. The old Lite preview module is now a shared-runtime
+re-export and its server dispatches through the same typed projection.
+
+The returned `qiongli mcp serve --transport stdio` value remains compatibility
+guidance for the frozen 1.x Full runtime. R2D does not add that command or any
+MCP mode to the native executable, launch agents or processes, write project
+state, or provide native provider-secret configuration.
+
 ## R1 command contract
 
 The native executable composes the verified embedded pack and versioned global

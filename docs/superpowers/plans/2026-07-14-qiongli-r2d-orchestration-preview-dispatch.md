@@ -1,6 +1,6 @@
 # Qiongli R2D Orchestration Preview And Dispatch Implementation Plan
 
-Status: in progress
+Status: complete
 
 Date: July 14, 2026
 
@@ -33,47 +33,47 @@ closed.
 - [x] Freeze bounds, compatibility output, typed dispatch ownership, privacy,
   verification, and nonclaims.
 - [x] Write the design and implementation plan before production changes.
-- [ ] Commit the design and plan before production changes.
+- [x] Commit the design and plan before production changes.
 
 ## Task 2 — Add Typed Lite Dispatch
 
-- [ ] Add exhaustive config, literature, Zotero, and orchestration handler
+- [x] Add exhaustive config, literature, Zotero, and orchestration handler
   identities.
-- [ ] Map every canonical `LiteToolId` to exactly one domain target.
-- [ ] Preserve the public config-wizard alias mapping before dispatch.
-- [ ] Test all identities and compile-time-exhaustive projection behavior.
+- [x] Map every canonical `LiteToolId` to exactly one domain target.
+- [x] Preserve the public config-wizard alias mapping before dispatch.
+- [x] Test all identities and compile-time-exhaustive projection behavior.
 
 ## Task 3 — Add Shared Orchestration Previews
 
-- [ ] Add typed route and task-plan argument parsing with static errors.
-- [ ] Enforce field bounds, platform enum, unknown-field rejection, and current
+- [x] Add typed route and task-plan argument parsing with static errors.
+- [x] Enforce field bounds, platform enum, unknown-field rejection, and current
   normalization behavior in the runtime.
-- [ ] Emit deterministic Contract v2 safety flags and compatibility upgrade
+- [x] Emit deterministic Contract v2 safety flags and compatibility upgrade
   projections.
-- [ ] Dispatch only typed route/task-plan handlers and test output variants.
-- [ ] Test missing, malformed, blank, oversized, UTF-8 boundary, and canary
+- [x] Dispatch only typed route/task-plan handlers and test output variants.
+- [x] Test missing, malformed, blank, oversized, UTF-8 boundary, and canary
   inputs directly against the runtime.
 
 ## Task 4 — Reduce Old Lite
 
-- [ ] Replace the local preview kernel with a shared-runtime re-export.
-- [ ] Replace the flat server handler match with shared domain-typed dispatch.
-- [ ] Delegate route/task validation and output construction to the shared
+- [x] Replace the local preview kernel with a shared-runtime re-export.
+- [x] Replace the flat server handler match with shared domain-typed dispatch.
+- [x] Delegate route/task validation and output construction to the shared
   dispatcher.
-- [ ] Preserve the JSON-RPC envelope and static invalid-argument transport.
-- [ ] Confirm no second Rust orchestration-preview implementation remains.
+- [x] Preserve the JSON-RPC envelope and static invalid-argument transport.
+- [x] Confirm no second Rust orchestration-preview implementation remains.
 
 ## Task 5 — Gate And Record
 
-- [ ] Add `orchestrator_preview` to the focused Lite CI test list.
-- [ ] Run native boundary, format, locked check, strict Clippy, and all native
+- [x] Add `orchestrator_preview` to the focused Lite CI test list.
+- [x] Run native boundary, format, locked check, strict Clippy, and all native
   Rust tests.
-- [ ] Run Windows MSVC cross-target check and strict Clippy.
-- [ ] Run focused old Lite Rust compatibility tests without live services.
-- [ ] Commit and push the cohesive implementation to rolling Draft PR #63.
-- [ ] Require exact-head boundary, Linux, macOS, Windows, and focused Lite jobs
+- [x] Run Windows MSVC cross-target check and strict Clippy.
+- [x] Run focused old Lite Rust compatibility tests without live services.
+- [x] Commit and push the cohesive implementation to rolling Draft PR #63.
+- [x] Require exact-head boundary, Linux, macOS, Windows, and focused Lite jobs
   to pass.
-- [ ] Record observed evidence in this plan, the roadmap, and PR while leaving
+- [x] Record observed evidence in this plan, the roadmap, and PR while leaving
   canonical MCP availability unclaimed.
 
 ## Required Commands
@@ -97,3 +97,22 @@ R2D is complete when one shared Rust implementation owns bounded route/task
 previews, every Lite identity has a typed domain target, the old Lite entrypoint
 uses both, local and exact-head CI gates are green, and the canonical binary
 still makes no MCP or execution claim.
+
+## Execution Receipt
+
+- Design and implementation plan: `bb6d2b08`.
+- Shared orchestration preview and typed dispatch implementation: `5509d2c1`.
+- Local native evidence: change boundary, native and Lite format, locked native
+  workspace check, strict native and Lite Clippy, all 138 native Rust tests,
+  and Windows MSVC cross-target check/Clippy passed.
+- Compatibility evidence: all 69 focused old Lite tests passed without a live
+  provider, Zotero installation, Full runtime, or agent process. The set now
+  includes the explicit `orchestrator_preview` target plus public route and
+  task-plan calls.
+- GitHub evidence: Native CI run `29328767532` passed exact implementation head
+  `5509d2c146e65265e1f47cc9b4badb3f258325c9`: boundary in 4s, focused Lite in
+  33s, Linux in 52s, macOS in 1m22s, and real Windows in 1m59s.
+- Scope evidence: no Python or Node suite, live scholarly/Zotero service,
+  filesystem write, process launch, shell, environment lookup, or agent
+  backend was used by the new preview implementation. The canonical CLI
+  grammar did not change and native MCP availability remains unclaimed.

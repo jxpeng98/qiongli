@@ -1,8 +1,8 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
 Status: active execution; R1 complete and R2 in progress, with the R2A shared
-Lite contract/framing, R2B provider/search, and R2C evidence/Zotero boundaries
-complete
+Lite contract/framing, R2B provider/search, R2C evidence/Zotero, and R2D
+orchestration-preview/typed-dispatch boundaries complete
 
 Decision date: July 13, 2026
 
@@ -332,8 +332,8 @@ Exit gate result: passed on implementation head `f2a6fbe6` in Native CI run
 Purpose: move the already working Rust Lite value into the canonical native
 workspace instead of reimplementing it.
 
-Implementation status: in progress. R2A, R2B, and R2C are complete. R2A closed
-on July 14, 2026:
+Implementation status: in progress. R2A, R2B, R2C, and R2D are complete. R2A
+closed on July 14, 2026:
 
 - design checkpoint `1e732155` freezes the first extraction boundary and
   explicit nonclaims;
@@ -440,12 +440,45 @@ R2C is complete on July 14, 2026:
   mutate/search a Zotero library, install the companion, expose a native Zotero
   settings surface, or add MCP mode to the canonical executable.
 
-The next dependency-contiguous batch moves the remaining side-effect-free Lite
-orchestration route/task-plan previews and typed handler dispatch into the
-shared runtime. Native MCP availability remains unclaimed until canonical
-binary-level initialize, tools/list, and tools/call tests pass; provider secret
-mutation and wizard ownership will not be guessed around the unavailable
-production secure-store boundary.
+R2D is complete on July 14, 2026:
+
+- design checkpoint `bb6d2b08` freezes the bounded pure-preview contract,
+  typed dispatch projection, compatibility command meaning, privacy boundary,
+  verification, and explicit nonclaims;
+- implementation checkpoint `5509d2c1` gives all 11 canonical Lite identities
+  one exhaustive config, literature, Zotero, or orchestration handler target;
+- the configure-provider compatibility alias still resolves before dispatch,
+  and handler selection performs no string matching after typed resolution;
+- shared route input accepts a required nonblank request of at most 4,096
+  bytes plus the exact optional Contract v2 platform enum; shared task input
+  accepts required task ID and paper type values of at most 256 bytes plus a
+  topic of at most 4,096 bytes, preserving current task-field trimming;
+- route/task outputs deterministically retain the accepted Marketplace Lite
+  preview flags, keep agent/shell/project-write permissions false, and retain
+  the 1.x Full-runtime command only as compatibility guidance rather than
+  native 2.x capability discovery;
+- runtime validation rejects non-object, unknown, missing, mistyped, blank,
+  unsupported-platform, and oversized input with static canary-free errors;
+- the old Lite preview module is a shared-runtime re-export and its server now
+  dispatches every tool through the shared typed domain projection before
+  wrapping results in JSON-RPC;
+- the local gate passed boundary, native and Lite format, locked native check,
+  strict native and Lite Clippy, all 138 native tests, all 69 focused Lite
+  compatibility tests, and Windows MSVC cross-target check/Clippy;
+- Native CI run `29328767532` passed exact implementation head
+  `5509d2c146e65265e1f47cc9b4badb3f258325c9`: boundary in 4s, focused Lite in
+  33s, Linux in 52s, macOS in 1m22s, and real Windows in 1m59s; and
+- no Python/Node suite, live provider/Zotero service, filesystem write,
+  process, shell, environment lookup, or agent backend was added or required.
+  The canonical executable still exposes no MCP mode.
+
+The next dependency-contiguous batch composes a canonical native Lite MCP
+stdio vertical slice from the shared registry, framing, typed dispatch, and
+already migrated domain services. Native MCP availability remains unclaimed
+until copied-binary initialize, tools/list, and bounded tools/call tests pass.
+Provider secret mutation and wizard ownership remain unavailable-safe until a
+production secure-store and explicit UI/CLI boundary exist; R2E must not guess
+or add a plaintext fallback.
 
 Deliverables:
 
@@ -579,9 +612,11 @@ superseded head is not reported as current-head evidence.
    at `2eaadfb1`;
 7. R2C shared evidence export and supported Zotero behavior is complete at
    `2513c52f`;
-8. continue R2 with shared route/task-plan preview and typed dispatch, without
+8. R2D shared route/task-plan preview and typed dispatch is complete at
+   `5509d2c1`;
+9. continue R2 with the canonical native Lite MCP stdio vertical slice, without
    creating another branch or PR;
-9. continue into R3 and prepare alpha.1 only after the complete vertical gate.
+10. continue into R3 and prepare alpha.1 only after the complete vertical gate.
 
 ## Program Done
 
