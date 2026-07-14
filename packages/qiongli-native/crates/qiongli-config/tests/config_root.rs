@@ -1,7 +1,9 @@
 use std::ffi::OsStr;
 use std::path::Path;
 
-use qiongli_config::{ConfigError, ConfigRootSource, resolve_config_root};
+use qiongli_config::resolve_config_root;
+#[cfg(unix)]
+use qiongli_config::{ConfigError, ConfigRootSource};
 
 #[test]
 #[cfg(unix)]
