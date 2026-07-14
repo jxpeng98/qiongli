@@ -472,13 +472,16 @@ R2D is complete on July 14, 2026:
   process, shell, environment lookup, or agent backend was added or required.
   The canonical executable still exposes no MCP mode.
 
-The next dependency-contiguous batch composes a canonical native Lite MCP
-stdio vertical slice from the shared registry, framing, typed dispatch, and
-already migrated domain services. Native MCP availability remains unclaimed
-until copied-binary initialize, tools/list, and bounded tools/call tests pass.
+R2E design is approved and implementation is in progress on July 14, 2026.
+The dependency-contiguous batch composes a canonical native Lite MCP stdio
+vertical slice from the shared registry, framing, typed dispatch, and already
+migrated domain services. Native MCP availability remains unclaimed until
+copied-binary initialize, tools/list, and bounded tools/call tests pass.
 Provider secret mutation and wizard ownership remain unavailable-safe until a
 production secure-store and explicit UI/CLI boundary exist; R2E must not guess
-or add a plaintext fallback.
+or add a plaintext fallback. The copied-binary proof is a development vertical
+gate, not a release plugin, signed-launch-grant, Marketplace, or packaging
+claim; those remain R3 work.
 
 Deliverables:
 
@@ -614,8 +617,8 @@ superseded head is not reported as current-head evidence.
    `2513c52f`;
 8. R2D shared route/task-plan preview and typed dispatch is complete at
    `5509d2c1`;
-9. continue R2 with the canonical native Lite MCP stdio vertical slice, without
-   creating another branch or PR;
+9. R2E canonical native Lite MCP stdio design is approved; implement and prove
+   the copied-binary vertical slice without creating another branch or PR;
 10. continue into R3 and prepare alpha.1 only after the complete vertical gate.
 
 ## Program Done
