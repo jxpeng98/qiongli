@@ -362,6 +362,43 @@ does not publish a public Marketplace entry, make a local executable available
 to cloud/web runtimes, ship an alpha, add package upgrade/rollback, or complete
 Claude, UI, Full MCP, agent, or orchestrator execution work.
 
+## R3E Claude Code local integration
+
+`qiongli-platform` now composes the same verified native Marketplace Lite
+content into a target-specific Claude Code plugin. The generated package
+contains `.claude-plugin/plugin.json`, `.mcp.json`,
+`skills/qiongli-workflow`, `bin/qiongli[.exe]`, and a canonical receipt binding
+the signed grant, artifact, embedded pack, binary, modes, sizes, digests, and
+complete package tree.
+
+The preferred direct target is `<claude-config>/skills/qiongli`. Discovery
+accepts only an exact verified package, reports symbolic state through
+`qiongli install claude status`, and treats unreceipted or drifted content as a
+conflict. Verified removal first moves the exact package into a
+transaction-owned quarantine and never adopts or overwrites unmanaged data.
+
+The alternative local marketplace remains below Qiongli-managed data. Its
+receipt-backed adapter provides preview, apply, verify, absent-entry repair,
+remove, and rollback while preserving unrelated state. Claude Code—not
+Qiongli—adds that marketplace, installs or enables the plugin, and owns its
+registry, settings, and versioned cache. The plugin MCP command uses
+`${CLAUDE_PLUGIN_ROOT}/bin/qiongli[.exe]` and needs no Python, Node, Rust,
+package manager, checkout, or global Qiongli command at runtime.
+
+An explicit acceptance test isolates both `HOME` and `CLAUDE_CONFIG_DIR`.
+Claude Code `2.1.206` strictly validates and discovers the skills-directory
+package, adds and installs the local marketplace package, copies the verified
+tree into its isolated cache, launches all 12 Lite MCP tools with an empty
+`PATH`, and removes the isolated plugin and marketplace. The normal gate keeps
+this external-client test ignored and passes all 199 normal native Rust tests,
+all 69 focused Lite compatibility tests, strict host Clippy, and Windows MSVC
+workspace check/Clippy.
+
+Production grants, mutating install commands, Claude Desktop, cloud/web
+execution, public marketplace publication, managed in-place upgrade, release
+artifacts, UI, Full MCP, agent execution, and orchestrator execution remain
+unavailable.
+
 ## R1 command contract (retained)
 
 The native executable composes the verified embedded pack and versioned global

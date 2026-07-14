@@ -1,7 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; R1, R2, R3A, R3B, R3C, and R3D are complete; R3E
-Claude Code local integration is the next dependency-contiguous batch
+Status: active execution; R1, R2, and R3A-R3E are complete; R3F minimal native
+desktop manager is the next dependency-contiguous batch
 
 Decision date: July 13, 2026
 
@@ -667,11 +667,45 @@ passed the boundary in 6s, focused Lite in 36s, Linux in 1m33s, macOS in
 includes the complete bundle and secure owner-only operations beyond the
 legacy 260-character path limit.
 
-R3E / `INT-202A` is next. Freeze and implement the documented Claude Code
-local skills-directory and marketplace source boundary over the same verified
-native package, plan, receipt, and transaction primitives. R3E must obtain real
-isolated local-client evidence and must not infer Claude Desktop or cloud
-support; those remain separate `INT-203` and remote-service gates.
+R3E / `INT-202A` is complete at design checkpoint `461c4839` and accepted
+implementation head `337cce74`. It adds a target-native, receipt-covered Claude
+Code plugin package, exact direct skills-directory discovery and removal, and a
+Qiongli-owned local marketplace lifecycle over the existing signed artifact,
+embedded content, install-plan, approval, and transaction boundaries.
+
+Local R3E acceptance proves:
+
+- the verified embedded pack contains 420 entries including the canonical
+  Claude manifest, while Codex and Claude composers each exclude the other
+  host's manifest from the generated skill payload;
+- direct discovery accepts only an exact verified package and direct removal
+  preserves unmanaged or drifted paths;
+- the local marketplace adapter supports preview, apply, verify, absent-entry
+  repair, remove, and rollback without writing Claude-owned settings, registry,
+  cache, or enablement state;
+- all 199 normal native Rust tests, all 69 focused Lite compatibility tests,
+  strict host Clippy, and Windows MSVC workspace check/Clippy pass; and
+- Claude Code `2.1.206` strictly validates and discovers `qiongli@skills-dir`,
+  adds and installs the isolated local marketplace package, verifies the copied
+  cache, serves all 12 Lite MCP tools with an empty `PATH`, and removes the
+  isolated plugin and marketplace.
+
+Remote R3E acceptance passed at
+`337cce741ee2837165331a9a3cd5a53d2e7bf245`: Native CI run `29345585219`
+passed the boundary in 5s, focused Lite in 38s, Linux in 2m14s, Windows in
+2m30s, and macOS in 2m42s; Cloudflare Pages also passed.
+
+R3E does not add production grants or mutating install commands and does not
+claim Claude Desktop, cloud/web, public marketplace, managed upgrade, release,
+UI, Full MCP, agent, or orchestrator completion. `INT-203` and remote service
+support remain separate gates.
+
+R3F is next. Freeze and implement the minimal native desktop manager boundary
+for `UI-201` and the read-only/service-backed part of `UI-202`: Skills, MCP,
+Providers, Integrations, and Diagnostics views over existing Rust services,
+with no business logic or direct filesystem/client mutation in UI callbacks.
+Production install mutation, packaging, updater, signing, and clean-machine
+release evidence remain later R3 gates.
 
 Deliverables:
 
@@ -798,7 +832,11 @@ superseded head is not reported as current-head evidence.
 13. R3D native Codex plugin composition and isolated real-client activation are
     accepted at `103fe11d`, with exact-head Native CI run `29342795330` and
     Cloudflare Pages green;
-14. prepare alpha.1 only after the complete installed-product vertical gate.
+14. R3E Claude Code skills-directory and local marketplace integration is
+    accepted at `337cce74`, with exact-head Native CI run `29345585219` and
+    Cloudflare Pages green;
+15. R3F minimal native desktop manager is next;
+16. prepare alpha.1 only after the complete installed-product vertical gate.
 
 ## Program Done
 
