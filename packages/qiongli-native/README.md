@@ -650,6 +650,54 @@ start a packaged window, publish an artifact or Marketplace entry, provide an
 updater, sign/notarize an OS package, produce checksum/SBOM/provenance outputs,
 or claim clean-machine Lite Alpha.1 readiness.
 
+## R3L client activation coordination and desktop intent
+
+The accepted Codex and Claude Code registration adapters now share one closed
+`ClientActivationCoordinator`. Discovery returns a path-redacted capability
+handle for exactly one target. Preview accepts only an already verified Lite
+PluginBundle launch grant, re-verifies its trusted key, generation, target
+scope, mode, artifact and plan, and requires exactly `filesystem-write`,
+`client-config-change`, and `host-trust` approval. A private process-local
+binding prevents a preview from one discovered handle being applied through a
+different handle, even when both name the same client family.
+
+The coordinator preserves target-specific apply/replay, verify, repair,
+remove/replay, rollback/replay, recovery, and unrelated-entry behavior. It
+verifies immediately after apply or repair and attempts the accepted adapter
+rollback if a fresh mutation unexpectedly fails verification. Public discovery,
+commit, verification, lifecycle, Debug, and error output remain path-redacted;
+client-owned plugin installation, cache, enablement, reload, and trust prompts
+remain explicit host actions.
+
+The desktop service may receive at most one prepared trusted activation session
+per local target from a release/installer boundary. A confirmable preview shows
+the exact lowercase plan digest and the three approval labels, while the
+verified plan remains application-owned behind one OS-random 128-bit operation
+token. Confirm applies only that pending plan and refreshes the validated
+snapshot; cancel, wrong token, stale token, malformed preview, and missing
+session paths fail closed. Ordinary source builds receive no session, report
+`apply: false`, and retain a truthful blocked integration preview.
+
+The canonical binary also exposes the non-mutating preflight:
+
+```text
+qiongli ui --startup-check
+```
+
+It validates the embedded content, desktop service, redacted snapshot, UI app
+state, and linked window entrypoint, emits versioned path-free JSON, opens no
+window, and starts no subprocess. Acceptance runs the command from a copied
+current-target artifact outside the checkout with an empty `PATH`, so it cannot
+silently depend on Python, Node.js, Cargo, or another language runtime.
+
+R3L does not assemble the R3K portable payload and target-specific PluginBundle
+into a release candidate, create/discover managed roots, select production
+keys, invoke Codex or Claude CLIs, modify client-owned settings or enablement,
+support Claude Desktop or cloud surfaces, display a clean-machine window,
+publish Alpha.1, provide an updater, or claim signing/notarization,
+checksum/SBOM/provenance, cross-target, or clean-machine release acceptance.
+Those gates remain R3M.
+
 ## R1 command contract (retained)
 
 The native executable composes the verified embedded pack and versioned global

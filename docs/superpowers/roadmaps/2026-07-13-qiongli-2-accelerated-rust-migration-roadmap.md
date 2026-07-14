@@ -1,7 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; R1, R2, and R3A-R3K are complete; R3L activation
-coordination and desktop intent are next
+Status: active execution; R1, R2, and R3A-R3L are complete; R3M release
+candidate and clean-machine acceptance are next
 
 Decision date: July 13, 2026
 
@@ -874,12 +874,41 @@ create or discover managed roots, download releases, activate clients, mutate
 desktop state, publish artifacts, provide an updater, or claim clean-machine
 Alpha.1 readiness.
 
-The remaining Lite Alpha.1 path is deliberately split into two short batches:
+R3L is complete at design checkpoint `789af6ba` and implementation head
+`a4aa9172`. The accepted Codex and Claude Code registration adapters now share
+one handle-bound coordinator that re-verifies the target-specific signed
+PluginBundle grant, complete plan, exact three approvals, and outstanding host
+action before delegating apply/replay, verify, repair, remove, or rollback.
+Immediate post-mutation verification and accepted adapter rollback remain in
+force, and previews cannot cross independently discovered handles.
 
-1. R3L composes the accepted Codex and Claude local adapters into one
-   rollback-aware activation coordinator and wires the same typed intent into
-   the desktop manager, including packaged-window startup.
-2. R3M builds the advertised current-target release candidate, performs the
+The desktop boundary can receive one prepared trusted session per local target,
+show the exact plan digest and approval labels, retain the verified plan behind
+an OS-random 128-bit token, and apply only after exact confirmation. Source
+builds receive no session and continue to report `apply: false`. The canonical
+binary now provides a bounded `qiongli ui --startup-check` that validates the
+embedded content, desktop service, snapshot, app state, and linked window
+entrypoint without opening a window or starting a subprocess. A copied
+current-target artifact passes that check outside the checkout with an empty
+runtime `PATH`.
+
+Local R3L acceptance passes 236 native Rust tests with the two real external-
+client tests explicitly ignored, the three-test coordinator suite in under one
+second, all 69 focused Lite tests, strict host and Windows MSVC checks and
+Clippy, both formatting gates, and the frozen boundary. Exact implementation-
+head Native CI run `29373107891` passed `a4aa9172`: boundary in 6s, focused
+Lite in 36s, Linux in 8m17s, Windows in 8m39s, and macOS in 11m13s.
+Cloudflare Pages also passed.
+
+R3L does not assemble release inputs, select production keys, create or
+discover managed roots, invoke client CLIs, mutate client-owned caches or
+enablement, support desktop/cloud Marketplace bypass, display a clean-machine
+window, publish artifacts, provide an updater, or publish Alpha.1.
+
+The remaining Lite Alpha.1 path is one bounded R3M batch:
+
+1. R3M assembles the accepted portable payload and target-specific plugin
+   sources into the advertised current-target release candidate, performs the
    clean-machine zero-language-runtime CLI/UI/install/diagnose/remove journey,
    records release notes and limitations, and only then publishes Lite
    `v2.0.0-alpha.1`.
@@ -1031,7 +1060,9 @@ superseded head is not reported as current-head evidence.
 20. R3K build-time release-authority injection and explicit current-target CLI
     install intent are accepted at `d90d4846`, with exact-head Native CI run
     `29369405002` and Cloudflare Pages green;
-21. R3L activation coordination and desktop typed intent are next;
+21. R3L activation coordination, desktop typed intent, and copied-artifact
+    startup preflight are accepted at `a4aa9172`, with exact-head Native CI run
+    `29373107891` and Cloudflare Pages green;
 22. R3M prepares and publishes Alpha.1 only after the clean-machine installed-
     product vertical gate.
 
