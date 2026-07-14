@@ -592,6 +592,15 @@ Desktop/Marketplace activation; real client activation evidence remains a
 separate exit gate. Claude Code and Claude Desktop remain `INT-202`/`INT-203`
 successor work.
 
+The R3C boundary is frozen in
+`docs/superpowers/specs/2026-07-14-qiongli-r3c-codex-local-adapter-design.md`.
+It uses the documented personal marketplace at
+`~/.agents/plugins/marketplace.json`, a receipt-verified fixed source below
+`~/.qiongli/plugins/codex`, and an exact approval-gated merge transaction.
+Codex-owned cache and enablement state remain out of scope; registration means
+only that the desktop client can discover the local source for a later user
+install.
+
 Deliverables:
 
 1. `qiongli-platform`:
