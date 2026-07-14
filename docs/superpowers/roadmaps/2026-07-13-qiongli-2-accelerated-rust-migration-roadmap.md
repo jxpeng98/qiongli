@@ -1,7 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; R1, R2, and R3A-R3I are complete; R3J signed
-current-target release envelope and trust policy is the next bounded batch
+Status: active execution; R1, R2, and R3A-R3J are complete; R3K production
+release-authority injection and the explicit CLI install intent are next
 
 Decision date: July 13, 2026
 
@@ -820,16 +820,48 @@ intent, client activation, updater, public Marketplace distribution,
 notarization, SBOM, provenance, cross-target output, or clean-machine release
 acceptance.
 
-R3J / `PKG-202A` is next: freeze and implement one bounded signed current-target
-release envelope and trusted-public-key policy that authorizes the exact R3H
-archive consumed by R3I. It must bind release channel and generation plus the
-archive, manifest, resource-pack, artifact-content-root, and executable
-digests; use strict canonical serialization and detached Ed25519 verification;
-define key-ID rotation and release-CI private-key injection without storing a
-private key in the repository; and expose only a verified token to later
-installation intents. OS code signing/notarization, SBOM/provenance, automatic
-root discovery, CLI/desktop mutation, updater metadata, public publication,
-and clean-machine acceptance remain separate later gates.
+R3J / `PKG-202A` is complete at design checkpoint `3554ba69` and accepted
+implementation head `cc33360b`. The platform now verifies a strict bounded
+canonical Ed25519-signed release envelope through a release-key role separate
+from launch-grant authority. It binds the complete artifact identity, channel,
+generation and validity interval plus archive, R3G manifest, resource pack,
+artifact content root, executable, and attached launch grant before returning
+one private verified release token.
+
+R3I preview, apply, and repair now require that token. The plan action,
+semantic digest, and canonical receipt bind its signed-payload digest; the
+executor compares the exact signed grant and re-verifies the token-retained
+archive immediately before extraction. Offline receipt-backed verify, remove,
+rollback, recovery, and caller-data preservation remain intact.
+
+Local R3J acceptance passes all 227 normal native Rust tests with two external
+real-client tests explicitly ignored, all 57 platform tests, all 69 focused
+Lite compatibility tests on the complete rerun, strict host and Windows MSVC
+checks and Clippy, and the frozen boundary. Exact-head Native CI run
+`29365515446` passed `cc33360b`: boundary in 6s, focused Lite in 37s, Windows in
+6m51s, Linux in 9m16s, and macOS in 9m40s. Cloudflare Pages also passed.
+
+R3J remains test-signed and does not claim production release-key provisioning,
+an executable CLI/UI install intent, automatic managed-root discovery, client
+activation, public publication, updater behavior, OS code signing/notarization,
+checksums, SBOM, provenance, cross-target artifacts, or clean-machine Alpha.1
+acceptance.
+
+The remaining Lite Alpha.1 path is deliberately split into short batches:
+
+1. R3K freezes production release-public-key injection and exposes the explicit
+   current-target CLI preview/apply/verify/remove intent over the accepted R3J
+   and R3I services. Private signing material remains outside the repository.
+2. R3L composes the accepted Codex and Claude local adapters into one
+   rollback-aware activation coordinator and wires the same typed intent into
+   the desktop manager, including packaged-window startup.
+3. R3M builds the advertised current-target release candidate, performs the
+   clean-machine zero-language-runtime CLI/UI/install/diagnose/remove journey,
+   records release notes and limitations, and only then publishes Lite
+   `v2.0.0-alpha.1`.
+
+Full MCP, agents, ToolHost, orchestration, and updater work remain R4 and target
+the next Alpha rather than blocking the bounded Lite Alpha.1 publication.
 
 Deliverables:
 
@@ -970,8 +1002,13 @@ superseded head is not reported as current-head evidence.
     services is accepted at `25335d43`, with exact-head Native CI run
     `29361710636` and Cloudflare Pages green;
 19. R3J signed current-target release envelope and trusted-public-key policy is
-    next;
-20. prepare alpha.1 only after the complete installed-product vertical gate.
+    accepted at `cc33360b`, with exact-head Native CI run `29365515446` and
+    Cloudflare Pages green;
+20. R3K production release-public-key injection and explicit current-target CLI
+    install intent is next;
+21. R3L activation coordination and desktop mutation follow R3K;
+22. R3M prepares and publishes Alpha.1 only after the clean-machine installed-
+    product vertical gate.
 
 ## Program Done
 

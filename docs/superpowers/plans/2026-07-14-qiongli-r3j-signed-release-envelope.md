@@ -2,7 +2,7 @@
 
 Date: 2026-07-14
 
-Status: active
+Status: complete — accepted on exact implementation head `cc33360b`
 
 Branch: `feat/2x-native-alpha1`
 
@@ -60,13 +60,43 @@ Gate: current-target application integration test plus focused Lite suite.
 
 ## Batch 5 — Acceptance And Rolling PR
 
-- [ ] Run format, locked workspace check, strict Clippy, all native tests,
+- [x] Run format, locked workspace check, strict Clippy, all native tests,
   focused Lite compatibility, Windows MSVC check/Clippy, and frozen boundary.
-- [ ] Commit and push cohesive checkpoints on the same rolling branch.
-- [ ] Monitor Native CI and Cloudflare on the exact implementation head.
-- [ ] Update the accelerated roadmap, native README, this acceptance record,
+- [x] Commit and push cohesive checkpoints on the same rolling branch.
+- [x] Monitor Native CI and Cloudflare on the exact implementation head.
+- [x] Update the accelerated roadmap, native README, this acceptance record,
   and Draft PR #63 with factual evidence and non-claims.
 
 R3J closes only after exact-head target-native CI. The accepted result is a
 signed release-verification boundary, not yet an end-user installer or a
 published Alpha.1 artifact.
+
+## Acceptance Record
+
+R3J is accepted at design checkpoint `3554ba69` and implementation head
+`cc33360b`.
+
+Local acceptance passed:
+
+- native format, locked all-target/all-feature workspace check, and strict
+  Clippy;
+- all 227 normal native Rust tests, with the two external real-client tests
+  remaining explicitly ignored;
+- all 57 `qiongli-platform` tests and the signed current-target installed-
+  runtime integration test;
+- all 69 focused Lite compatibility tests on the complete rerun;
+- Windows MSVC all-target/all-feature check and strict Clippy; and
+- the committed native 2.x frozen-boundary check.
+
+One existing loopback-session Lite test failed transiently during the first
+focused invocation. It passed immediately in isolation and the complete
+69-test rerun passed without a legacy Lite code change.
+
+Exact-head Native CI run `29365515446` passed `cc33360b`: frozen boundary in
+6s, focused Lite in 37s, Windows in 6m51s, Linux in 9m16s, and macOS in 9m40s.
+Cloudflare Pages passed on the same head.
+
+The accepted result remains test-signed. No production release public key or
+private-key provisioning, user-facing install command, desktop mutation,
+Marketplace publication, updater, OS signing/notarization, checksum sidecar,
+SBOM, provenance, cross-target package, or clean-machine Alpha.1 claim exists.

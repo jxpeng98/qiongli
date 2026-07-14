@@ -553,10 +553,49 @@ caller data and use fixed path-redacted errors.
 
 R3I is a shared installation service, not a production installer or release.
 The source build cannot manufacture a production launch grant. Production key
-provisioning, signed release metadata, automatic managed-root discovery,
-client activation, public Marketplace installation, updater behavior,
-notarization, SBOM, provenance, packaged-window startup, cross-target output,
-and clean-machine release acceptance remain later gates.
+provisioning, production-signed release metadata, automatic managed-root
+discovery, client activation, public Marketplace installation, updater
+behavior, notarization, SBOM, provenance, packaged-window startup, cross-target
+output, and clean-machine release acceptance remain later gates.
+
+## R3J signed native release envelope
+
+`qiongli-platform` now authorizes one exact R3H current-target archive through
+a strict bounded canonical `NativeReleaseEnvelopeV1`. The envelope binds the
+complete artifact identity, release channel and generation, validity interval,
+archive filename, size and digest, R3G manifest, embedded resource pack,
+artifact content root, executable digest, and complete R3A signed launch grant.
+
+Release-envelope Ed25519 keys and launch-grant keys are separate Rust trust
+roles. A trusted release public key has a bounded key ID plus an inclusive
+minimum and optional exclusive maximum release generation. At most sixteen
+unique release keys are accepted, and there is no unsigned, caller-supplied, or
+cross-role fallback. The repository exposes only deterministic envelope and
+domain-separated signing-preimage construction; it contains no production
+private-key API or material.
+
+Successful verification returns a private token retaining the caller-approved
+archive target, newly verified archive, and independently verified launch
+grant. Native-payload preview, apply, and repair require that token. The plan
+action, semantic digest, and canonical receipt bind its signed-payload digest,
+and the executor re-verifies and compares the retained archive immediately
+before extraction. Receipt-backed verify, remove, rollback, and recovery remain
+available without the release source.
+
+Acceptance uses distinct deterministic test-only release and launch keys. It
+rejects noncanonical and oversized input, unknown fields, removed or
+out-of-window keys, wrong key roles, stale generations, invalid time or
+channel, signature and metadata tampering, payload mismatch, invalid attached
+grants, archive drift, and alternate valid release tokens before managed
+mutation. The installed current-target executable still runs CLI and the exact
+12-tool Lite MCP contract outside the checkout with an empty runtime `PATH`.
+
+R3J is a release-verification boundary, not the published Lite Alpha.1. The
+accepted implementation remains test-signed and does not provide production
+release-key provisioning, an executable CLI/UI install intent, automatic root
+discovery, client activation, public publication, updater behavior, OS signing
+or notarization, checksum sidecars, SBOM, provenance, cross-target artifacts,
+or clean-machine release acceptance.
 
 ## R1 command contract (retained)
 
