@@ -95,7 +95,13 @@ fn create_private_directory(path: &Path) {
         .expect("fixture directory must remain private");
 }
 
-#[cfg(not(unix))]
+#[cfg(windows)]
+fn create_private_directory(path: &Path) {
+    qiongli_windows_security::create_owner_only_directory(path)
+        .expect("owner-only Windows fixture directory must be created");
+}
+
+#[cfg(not(any(unix, windows)))]
 fn create_private_directory(path: &Path) {
     fs::create_dir(path).expect("private fixture directory must be created");
 }
