@@ -6,7 +6,7 @@ use std::io;
 use std::mem::size_of;
 use std::os::windows::ffi::OsStrExt;
 use std::os::windows::io::{AsRawHandle, FromRawHandle, RawHandle};
-use std::path::Path;
+use std::path::{Component, Path, Prefix};
 use std::ptr::null_mut;
 
 const TOKEN_QUERY: u32 = 0x0008;
@@ -36,6 +36,20 @@ const ACCESS_ALLOWED_ACE_TYPE: u8 = 0;
 const INHERITED_ACE: u8 = 0x10;
 const MOVEFILE_REPLACE_EXISTING: u32 = 0x0000_0001;
 const MOVEFILE_WRITE_THROUGH: u32 = 0x0000_0008;
+const BACKSLASH: u16 = b'\\' as u16;
+const FORWARD_SLASH: u16 = b'/' as u16;
+const EXTENDED_PATH_PREFIX: [u16; 4] = [BACKSLASH, BACKSLASH, b'?' as u16, BACKSLASH];
+const UNC_PATH_PREFIX: [u16; 2] = [BACKSLASH, BACKSLASH];
+const EXTENDED_UNC_PATH_PREFIX: [u16; 8] = [
+    BACKSLASH,
+    BACKSLASH,
+    b'?' as u16,
+    BACKSLASH,
+    b'U' as u16,
+    b'N' as u16,
+    b'C' as u16,
+    BACKSLASH,
+];
 
 #[cfg(test)]
 const FILE_GENERIC_READ: u32 = 0x0012_0089;
@@ -670,12 +684,54 @@ fn verify_owner_only_handle(handle: RawHandle) -> Result<(), SecurityError> {
 }
 
 fn wide_path(path: &Path) -> Result<Vec<u16>, SecurityError> {
-    let mut encoded = path.as_os_str().encode_wide().collect::<Vec<_>>();
+    if !path.is_absolute()
+        || path
+            .components()
+            .any(|component| matches!(component, Component::CurDir | Component::ParentDir))
+    {
+        return Err(SecurityError::Io(io::ErrorKind::InvalidInput));
+    }
+    let prefix = match path.components().next() {
+        Some(Component::Prefix(prefix)) => prefix.kind(),
+        _ => return Err(SecurityError::Io(io::ErrorKind::InvalidInput)),
+    };
+    match prefix {
+        Prefix::Disk(_)
+        | Prefix::UNC(_, _)
+        | Prefix::VerbatimDisk(_)
+        | Prefix::VerbatimUNC(_, _) => {}
+        Prefix::DeviceNS(_) | Prefix::Verbatim(_) => return Err(SecurityError::UnsafeObject),
+    }
+
+    let encoded = path
+        .as_os_str()
+        .encode_wide()
+        .map(|unit| {
+            if unit == FORWARD_SLASH {
+                BACKSLASH
+            } else {
+                unit
+            }
+        })
+        .collect::<Vec<_>>();
     if encoded.contains(&0) {
         return Err(SecurityError::Io(io::ErrorKind::InvalidInput));
     }
-    encoded.push(0);
-    Ok(encoded)
+    let mut extended = if encoded.starts_with(&EXTENDED_PATH_PREFIX) {
+        encoded
+    } else if encoded.starts_with(&UNC_PATH_PREFIX) {
+        let mut extended = Vec::with_capacity(EXTENDED_UNC_PATH_PREFIX.len() + encoded.len() - 2);
+        extended.extend_from_slice(&EXTENDED_UNC_PATH_PREFIX);
+        extended.extend_from_slice(&encoded[2..]);
+        extended
+    } else {
+        let mut extended = Vec::with_capacity(EXTENDED_PATH_PREFIX.len() + encoded.len());
+        extended.extend_from_slice(&EXTENDED_PATH_PREFIX);
+        extended.extend_from_slice(&encoded);
+        extended
+    };
+    extended.push(0);
+    Ok(extended)
 }
 
 #[cfg(test)]
@@ -730,6 +786,29 @@ mod tests {
         file.sync_all().unwrap();
         drop(file);
         open_owner_only_file(&file_path).unwrap();
+    }
+
+    #[test]
+    fn owner_only_operations_support_extended_length_paths() {
+        let fixture = Fixture::new("extended-length");
+        let mut directory_path = fixture.0.join("private");
+        drop(create_owner_only_directory(&directory_path).unwrap());
+        while directory_path.as_os_str().encode_wide().count() <= 280 {
+            directory_path.push("qiongli-long-path-segment");
+            drop(create_owner_only_directory(&directory_path).unwrap());
+        }
+        open_owner_only_directory(&directory_path).unwrap();
+
+        let source = directory_path.join("staging.json");
+        let destination = directory_path.join("settings.json");
+        let mut file = create_owner_only_new_file(&source).unwrap();
+        file.write_all(b"owner-only\n").unwrap();
+        file.sync_all().unwrap();
+        drop(file);
+
+        move_file_write_through(&source, &destination, false).unwrap();
+        assert!(!source.exists());
+        open_owner_only_file(&destination).unwrap();
     }
 
     #[test]
