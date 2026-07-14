@@ -9,9 +9,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use qiongli_content::{ProfileId, approve_materialization_target, verify_materialization};
 use same_file::Handle;
-use semver::Version;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -36,7 +34,6 @@ pub const CODEX_PLUGIN_SOURCE_MARKETPLACE_PATH: &str = "./.qiongli/plugins/codex
 const MARKETPLACE_RELATIVE_PATH: [&str; 3] = [".agents", "plugins", "marketplace.json"];
 const STATE_ROOT_RELATIVE_PATH: [&str; 4] = [".qiongli", "plugins", "codex", ""];
 const PLUGIN_SOURCE_LEAF: &str = "qiongli";
-const PLUGIN_MANIFEST_RELATIVE_PATH: &str = ".codex-plugin/plugin.json";
 const INSTALL_ID: &str = "qiongli-codex-user";
 const ROOT_ID: &str = "codex-personal-marketplace";
 const ENTRY_KEY: &str = "qiongli";
@@ -46,7 +43,6 @@ const STATE_FILE_NAME: &str = ".qiongli-codex-registration.json";
 const JOURNAL_FILE_NAME: &str = ".qiongli-codex-registration-journal.json";
 const LOCK_FILE_NAME: &str = ".qiongli-codex-registration.lock";
 const MAX_DOCUMENT_BYTES: u64 = 1024 * 1024;
-const MAX_MANIFEST_BYTES: u64 = 256 * 1024;
 const JCS_MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 const EXACT_APPROVALS: [ApprovalRequirement; 3] = [
     ApprovalRequirement::FilesystemWrite,
@@ -193,6 +189,7 @@ struct MarketplaceSnapshot {
 struct CodexSourceEvidence {
     receipt_sha256: String,
     content_root_sha256: String,
+    artifact: ArtifactIdentityV1,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -473,6 +470,9 @@ pub fn preview_codex_registration(
         .source
         .as_ref()
         .ok_or(CodexAdapterError::SourceMissing)?;
+    if source.artifact != grant.grant().artifact {
+        return Err(CodexAdapterError::SourceInvalid);
+    }
     let ownership = OwnershipMarkerV1 {
         schema_version: 1,
         product: ProductId::Qiongli,
@@ -937,6 +937,7 @@ impl<'a> ExecutableCodexRegistration<'a> {
             || entry_key != ENTRY_KEY
             || source_id != SOURCE_ID
             || source_digest_sha256 != &source.receipt_sha256
+            || source.artifact != plan.grant().grant().artifact
             || ownership.install_id != INSTALL_ID
             || ownership.product != ProductId::Qiongli
             || ownership.artifact_digest_sha256 != plan.grant().signed_payload_sha256()
@@ -1058,51 +1059,16 @@ fn classify_registration(
 }
 
 fn validate_plugin_source(path: &Path) -> Result<CodexSourceEvidence, CodexAdapterError> {
-    let target =
-        approve_materialization_target(path).map_err(|_| CodexAdapterError::SourceInvalid)?;
-    let receipt = verify_materialization(&target).map_err(|_| CodexAdapterError::SourceInvalid)?;
-    if receipt.profile != ProfileId::MarketplaceLite {
-        return Err(CodexAdapterError::SourceInvalid);
-    }
-    let manifest_entry = receipt
-        .entries
-        .iter()
-        .find(|entry| entry.path == PLUGIN_MANIFEST_RELATIVE_PATH)
-        .ok_or(CodexAdapterError::SourceInvalid)?;
-    let manifest_path = path.join(PLUGIN_MANIFEST_RELATIVE_PATH);
-    let manifest_bytes = read_bounded_config_file(&manifest_path, MAX_MANIFEST_BYTES)?;
-    if sha256_hex(&manifest_bytes) != manifest_entry.sha256 {
-        return Err(CodexAdapterError::SourceInvalid);
-    }
-    let manifest: CodexPluginManifestProbe =
-        serde_json::from_slice(&manifest_bytes).map_err(|_| CodexAdapterError::SourceInvalid)?;
-    if manifest.name != "qiongli"
-        || Version::parse(&manifest.version).is_err()
-        || !valid_plugin_relative_path(&manifest.skills)
-    {
-        return Err(CodexAdapterError::SourceInvalid);
-    }
-    let receipt_sha256 = sha256_hex(&canonical_json(&receipt)?);
+    let target = crate::approve_codex_plugin_bundle_target(path)
+        .map_err(|_| CodexAdapterError::SourceInvalid)?;
+    let verified =
+        crate::verify_codex_plugin_bundle(&target).map_err(|_| CodexAdapterError::SourceInvalid)?;
+    let receipt = verified.receipt();
     Ok(CodexSourceEvidence {
-        receipt_sha256,
-        content_root_sha256: receipt.content_root_sha256,
+        receipt_sha256: verified.receipt_sha256().to_string(),
+        content_root_sha256: receipt.package_content_root_sha256.clone(),
+        artifact: receipt.artifact.clone(),
     })
-}
-
-#[derive(Deserialize)]
-struct CodexPluginManifestProbe {
-    name: String,
-    version: String,
-    skills: String,
-}
-
-fn valid_plugin_relative_path(value: &str) -> bool {
-    value == "./"
-        || (value.starts_with("./")
-            && !value.contains('\\')
-            && value[2..]
-                .split('/')
-                .all(|component| !component.is_empty() && !matches!(component, "." | "..")))
 }
 
 fn marketplace_entry() -> Value {
@@ -1924,18 +1890,20 @@ mod tests {
     use ed25519_dalek::{Signer, SigningKey};
     use qiongli_content::{
         BuiltResourcePack, CompatibleProduct, ResourcePackBuildMetadata, build_resource_pack,
-        collect_canonical_sources, load_resource_pack, materialize_profile,
+        collect_canonical_sources, load_resource_pack,
     };
 
     use super::*;
     use crate::{
         Architecture, GrantMode, GrantSignatureV1, GrantVerificationContext, InstallerKind,
         IntegrationScope, LaunchGrantV1, OperatingSystem, ReleaseChannel, SignatureAlgorithm,
-        SignedLaunchGrantV1, TrustedPublicKey, approve_install_plan, launch_grant_signing_bytes,
+        SignedLaunchGrantV1, TrustedPublicKey, approve_codex_plugin_bundle_target,
+        approve_install_plan, compose_codex_plugin_bundle, launch_grant_signing_bytes,
     };
 
     const NOW: u64 = 1_750_100_000;
-    const BINARY_DIGEST: &str = "1111111111111111111111111111111111111111111111111111111111111111";
+    const PLUGIN_MANIFEST_RELATIVE_PATH: &str = ".codex-plugin/plugin.json";
+    const TEST_BINARY_BYTES: &[u8] = b"qiongli native Codex fixture\n";
     static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
     static PACK: OnceLock<BuiltResourcePack> = OnceLock::new();
 
@@ -1970,10 +1938,15 @@ mod tests {
             let codex = plugins.join("codex");
             create_private_test_directory(&codex);
             let source = codex.join(PLUGIN_SOURCE_LEAF);
-            let approved = approve_materialization_target(&source)
-                .expect("Codex test source must approve for materialization");
-            materialize_profile(test_pack(), "marketplace-lite", &approved)
-                .expect("Codex test source must materialize");
+            let binary = fixture.container.join("qiongli-codex-fixture-binary");
+            fs::write(&binary, TEST_BINARY_BYTES).expect("Codex test binary must write");
+            set_test_executable_mode(&binary);
+            let artifact = test_artifact();
+            let (verified_grant, _) = verified_test_grant(&artifact);
+            let target = approve_codex_plugin_bundle_target(&source)
+                .expect("Codex test bundle target must approve");
+            compose_codex_plugin_bundle(test_pack(), &verified_grant, &binary, &target)
+                .expect("Codex test plugin bundle must compose");
             fixture
         }
 
@@ -1998,51 +1971,18 @@ mod tests {
             ApprovedInstallPlan,
             CodexRegistrationExecutor,
         ) {
-            let artifact = ArtifactIdentityV1 {
-                product: ProductId::Qiongli,
-                version: "2.0.0-alpha.1".to_string(),
-                channel: ReleaseChannel::Alpha,
-                profile: CapabilityProfile::Lite,
-                os: OperatingSystem::current().expect("test OS must be supported"),
-                arch: Architecture::current().expect("test architecture must be supported"),
-                installer_kind: InstallerKind::PortableArchive,
-            };
-            let grant = LaunchGrantV1 {
-                schema_version: 1,
-                generation: 9,
-                artifact: artifact.clone(),
-                binary_sha256: BINARY_DIGEST.to_string(),
-                resource_pack_sha256: test_pack().pack_sha256().to_string(),
-                allowed_modes: vec![GrantMode::LiteMcp],
-                integration_scopes: vec![IntegrationScope::CodexLocal],
-                not_before_unix: NOW - 60,
-                expires_at_unix: NOW + 3_600,
-            };
-            let signing_key = SigningKey::from_bytes(&[7_u8; 32]);
-            let signature = signing_key.sign(&launch_grant_signing_bytes(&grant).unwrap());
-            let signed = SignedLaunchGrantV1 {
-                grant,
-                signature: GrantSignatureV1 {
-                    algorithm: SignatureAlgorithm::Ed25519,
-                    key_id: "codex-test-key".to_string(),
-                    value_hex: encode_hex(&signature.to_bytes()),
-                },
-            };
-            let trusted =
-                TrustedPublicKey::new("codex-test-key", signing_key.verifying_key().to_bytes())
-                    .unwrap();
+            let artifact = test_artifact();
+            let binary_digest = test_binary_digest();
+            let (verified_grant, trusted) = verified_test_grant(&artifact);
             let context = GrantVerificationContext {
                 now_unix: NOW,
                 minimum_generation: 9,
                 expected_artifact: &artifact,
-                binary_sha256: BINARY_DIGEST,
+                binary_sha256: &binary_digest,
                 resource_pack_sha256: test_pack().pack_sha256(),
                 requested_mode: GrantMode::LiteMcp,
                 requested_scope: IntegrationScope::CodexLocal,
             };
-            let verified_grant = signed
-                .verify(std::slice::from_ref(&trusted), &context)
-                .expect("Codex test grant must verify");
             let target = discover_codex_user(&self.home).expect("Codex target must discover");
             let executor = CodexRegistrationExecutor::new(target.clone());
             let preview = preview_codex_registration(
@@ -2070,6 +2010,75 @@ mod tests {
             let _ = fs::remove_dir_all(&self.container);
         }
     }
+
+    fn test_artifact() -> ArtifactIdentityV1 {
+        ArtifactIdentityV1 {
+            product: ProductId::Qiongli,
+            version: "2.0.0-alpha.1".to_string(),
+            channel: ReleaseChannel::Alpha,
+            profile: CapabilityProfile::Lite,
+            os: OperatingSystem::current().expect("test OS must be supported"),
+            arch: Architecture::current().expect("test architecture must be supported"),
+            installer_kind: InstallerKind::PluginBundle,
+        }
+    }
+
+    fn test_binary_digest() -> String {
+        sha256_hex(TEST_BINARY_BYTES)
+    }
+
+    fn verified_test_grant(
+        artifact: &ArtifactIdentityV1,
+    ) -> (VerifiedLaunchGrant, TrustedPublicKey) {
+        let binary_digest = test_binary_digest();
+        let grant = LaunchGrantV1 {
+            schema_version: 1,
+            generation: 9,
+            artifact: artifact.clone(),
+            binary_sha256: binary_digest.clone(),
+            resource_pack_sha256: test_pack().pack_sha256().to_string(),
+            allowed_modes: vec![GrantMode::LiteMcp],
+            integration_scopes: vec![IntegrationScope::CodexLocal],
+            not_before_unix: NOW - 60,
+            expires_at_unix: NOW + 3_600,
+        };
+        let signing_key = SigningKey::from_bytes(&[7_u8; 32]);
+        let signature = signing_key.sign(&launch_grant_signing_bytes(&grant).unwrap());
+        let signed = SignedLaunchGrantV1 {
+            grant,
+            signature: GrantSignatureV1 {
+                algorithm: SignatureAlgorithm::Ed25519,
+                key_id: "codex-test-key".to_string(),
+                value_hex: encode_hex(&signature.to_bytes()),
+            },
+        };
+        let trusted =
+            TrustedPublicKey::new("codex-test-key", signing_key.verifying_key().to_bytes())
+                .unwrap();
+        let context = GrantVerificationContext {
+            now_unix: NOW,
+            minimum_generation: 9,
+            expected_artifact: artifact,
+            binary_sha256: &binary_digest,
+            resource_pack_sha256: test_pack().pack_sha256(),
+            requested_mode: GrantMode::LiteMcp,
+            requested_scope: IntegrationScope::CodexLocal,
+        };
+        let verified = signed
+            .verify(std::slice::from_ref(&trusted), &context)
+            .expect("Codex test grant must verify");
+        (verified, trusted)
+    }
+
+    #[cfg(unix)]
+    fn set_test_executable_mode(path: &Path) {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(path, fs::Permissions::from_mode(0o700))
+            .expect("Codex test binary must be executable");
+    }
+
+    #[cfg(not(unix))]
+    fn set_test_executable_mode(_path: &Path) {}
 
     fn test_pack() -> &'static qiongli_content::LoadedResourcePack<'static> {
         static LOADED: OnceLock<qiongli_content::LoadedResourcePack<'static>> = OnceLock::new();

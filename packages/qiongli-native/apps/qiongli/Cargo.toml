@@ -20,5 +20,12 @@ serde_json.workspace = true
 [build-dependencies]
 qiongli-content = { path = "../../crates/qiongli-content" }
 
+[dev-dependencies]
+ed25519-dalek.workspace = true
+sha2.workspace = true
+
+[target.'cfg(windows)'.dev-dependencies]
+qiongli-windows-security = { path = "../../crates/qiongli-windows-security" }
+
 [lints]
 workspace = true

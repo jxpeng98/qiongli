@@ -302,8 +302,8 @@ or produce a package or release.
 
 `qiongli-platform` now contains the first `CodexLocal` host adapter. It derives
 only the documented current-user personal marketplace and a fixed private
-Qiongli source location, validates that source through its complete R3B
-materialization receipt, and exposes a deterministic one-operation
+Qiongli source location, validates that source through its complete native
+plugin-bundle receipt, and exposes a deterministic one-operation
 `RegisterPluginSource` preview. The plan requires the exact
 `filesystem-write`, `client-config-change`, and `host-trust` approval vector and
 retains `install-or-enable-plugin` as an outstanding client action.
@@ -313,8 +313,8 @@ uses private canonical receipts and a root-scoped journal, and supports apply,
 verify, absent-entry repair, remove, and rollback. Conflicting unreceipted
 `qiongli` entries, malformed or oversized documents, source or receipt drift,
 linked/insecure paths, partial approval, and ambiguous rollback fail closed.
-The embedded `marketplace-lite` projection now contains a skills-only
-`.codex-plugin/plugin.json`; it intentionally has no MCP declaration yet.
+The embedded `marketplace-lite` projection contains the canonical Codex
+metadata template; it is not itself treated as an installable plugin package.
 
 The source executable adds the side-effect-free command:
 
@@ -328,6 +328,39 @@ status labels the Codex adapter engine ready, while production `launch_grant`,
 `preview`, and `apply` remain `unavailable`. Registration does not write or
 claim the Codex plugin cache, enablement state, Desktop installation, MCP
 activation, public Marketplace publication, or cloud availability.
+
+## R3D native Codex plugin package
+
+`qiongli-platform` now composes a complete target-specific Codex plugin from
+the verified embedded Marketplace Lite projection, a verified `PluginBundle`
+launch grant, and the grant-matched native Qiongli executable. The generated
+root contains canonical `skills/qiongli-workflow` content,
+`.codex-plugin/plugin.json`, `.mcp.json`, `bin/qiongli[.exe]`, and a canonical
+receipt covering every other file, mode, size, digest, artifact identity,
+signed-grant payload, and resource-pack identity.
+
+The root MCP declaration launches that plugin-local executable as
+`qiongli mcp serve --profile marketplace-lite --transport stdio`. It never
+names Python, Node, Rust, Cargo, a package manager, or a user-global Qiongli
+command. Composition uses a private sibling stage, a target lock, no-replace
+promotion, and committed verification. Existing targets, unmanaged data,
+links, reparse points, hard links, permission drift, extra or missing files,
+receipt drift, and signed binary or content mismatch fail closed.
+
+The normal Rust test copies the product binary, builds the full 419-entry
+embedded projection into the generated plugin layout, and launches the bundled
+MCP with an empty `PATH`. A separate explicit acceptance test uses an isolated
+home and `CODEX_HOME`, validates the generated root with Plugin Creator, asks
+the real Codex CLI to install it from the isolated personal marketplace,
+verifies Codex's cache and enablement record, and launches the cached MCP with
+an empty `PATH`. It does not modify the developer's normal Codex state.
+
+The source executable still has no production signing grant or public package
+command, so general `launch_grant`, `preview`, and `apply` status remains
+`unavailable`. R3D proves local package composition and client activation; it
+does not publish a public Marketplace entry, make a local executable available
+to cloud/web runtimes, ship an alpha, add package upgrade/rollback, or complete
+Claude, UI, Full MCP, agent, or orchestrator execution work.
 
 ## R1 command contract (retained)
 

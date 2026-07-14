@@ -756,12 +756,15 @@ dependencies = [
 name = "qiongli"
 version = "2.0.0-alpha.1"
 dependencies = [
+ "ed25519-dalek",
  "qiongli-config",
  "qiongli-content",
  "qiongli-platform",
  "qiongli-runtime",
+ "qiongli-windows-security",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
 ]
 
 [[package]]

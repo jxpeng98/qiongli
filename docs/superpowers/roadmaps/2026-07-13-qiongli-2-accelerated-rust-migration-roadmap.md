@@ -1,7 +1,8 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
 Status: active execution; R1, R2, R3A, R3B, and R3C are complete; R3D Codex
-native plugin design is frozen and implementation is active
+native plugin implementation and local acceptance are complete, with exact-head
+remote acceptance pending
 
 Decision date: July 13, 2026
 
@@ -637,6 +638,29 @@ bundle receipt, and client-owned activation. Real Codex evidence must use an
 isolated home and must not modify the developer's normal cache or enablement
 state.
 
+R3D is locally complete before its implementation checkpoint. The platform now
+builds and verifies a target-specific, receipt-covered package containing the
+canonical skill projection, one native Qiongli executable, and a root MCP
+declaration. R3C discovery accepts only that complete package and binds its
+registration state to the package receipt and content root.
+
+Local R3D acceptance proves:
+
+- deterministic composition, private staging, locking, no-replace promotion,
+  complete-tree verification, and rejection of target, lock, binary, mode,
+  hard-link, receipt, extra-file, and content drift;
+- the packaged binary serves all 12 Lite MCP tools with an empty `PATH`;
+- Plugin Creator validates the generated package; and
+- Codex CLI `0.144.1` installs, lists, enables, caches, and launches the package
+  in an isolated client home without modifying normal Codex state.
+
+The local gate passes strict host and Windows MSVC Clippy, all 187 normal native
+Rust tests, and all 69 focused Lite compatibility tests. The external Codex
+test passes explicitly and remains ignored in the default workspace gate.
+Production grants, public Marketplace publication, cloud/web execution,
+package upgrade/rollback, release artifacts, and Claude/UI/Full-runtime work
+remain unavailable.
+
 Deliverables:
 
 1. `qiongli-platform`:
@@ -759,8 +783,9 @@ superseded head is not reported as current-head evidence.
     Cloudflare green;
 12. R3C Codex local registration is accepted at `e1166010`, with exact-head
     Native CI run `29339197110` and Cloudflare Pages green;
-13. implement R3D native Codex plugin composition and isolated real-client
-    activation evidence in the same rolling Draft PR;
+13. R3D native Codex plugin composition and isolated real-client activation
+    pass locally; commit, push, and accept the exact implementation head in the
+    same rolling Draft PR;
 14. prepare alpha.1 only after the complete installed-product vertical gate.
 
 ## Program Done

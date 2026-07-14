@@ -1,4 +1,5 @@
 mod codex;
+mod codex_bundle;
 mod error;
 mod grant;
 mod identity;
@@ -16,6 +17,12 @@ pub use codex::{
     CodexRegistrationReceiptV1, CodexRegistrationState, CodexRegistrationStateV1,
     CodexRegistrationVerification, CodexSourceState, CodexUserTarget, discover_codex_user,
     preview_codex_registration,
+};
+pub use codex_bundle::{
+    CODEX_PLUGIN_BUNDLE_RECEIPT_FILE, CODEX_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION,
+    CodexPluginBundleEntryV1, CodexPluginBundleError, CodexPluginBundleKind,
+    CodexPluginBundleReceiptV1, CodexPluginBundleTarget, VerifiedCodexPluginBundle,
+    approve_codex_plugin_bundle_target, compose_codex_plugin_bundle, verify_codex_plugin_bundle,
 };
 pub use error::PlatformError;
 pub use grant::{
