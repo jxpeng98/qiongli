@@ -1,7 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; R1, R2, R3A, and R3B are complete; R3C Codex local
-adapter implementation has a green local checkpoint and awaits exact-head CI
+Status: active execution; R1, R2, R3A, R3B, and R3C are complete; R3D Codex
+native plugin composition and activation evidence is next
 
 Decision date: July 13, 2026
 
@@ -584,10 +584,11 @@ R3B is complete at design checkpoint `714315cd` and implementation checkpoint
   host actions, nested destinations, client paths, production grants, packages,
   and release claims remain rejected or unavailable.
 
-R3C is the active dependency-contiguous batch: implement the first `INT-201`
-Codex local adapter vertical with documented current-user discovery,
-read-only preview, exact client-config approval, and receipt-backed
-registration/removal. It must not write Codex plugin caches or claim
+R3C is complete at design checkpoint `8c76f5f2` and implementation checkpoint
+`f0455ad8`. It implements the first `INT-201` Codex local adapter vertical with
+documented current-user discovery, read-only preview, exact client-config
+approval, and receipt-backed registration/removal. It must not write Codex
+plugin caches or claim
 Desktop/Marketplace activation; real client activation evidence remains a
 separate exit gate. Claude Code and Claude Desktop remain `INT-202`/`INT-203`
 successor work.
@@ -601,7 +602,7 @@ Codex-owned cache and enablement state remain out of scope; registration means
 only that the desktop client can discover the local source for a later user
 install.
 
-R3C now has a green local implementation checkpoint:
+R3C acceptance evidence:
 
 - the canonical embedded pack contains a receipt-covered skills-only Codex
   manifest and has 419 entries;
@@ -615,7 +616,18 @@ R3C now has a green local implementation checkpoint:
   report production grant, preview, and apply as unavailable; and
 - the native boundary, strict Clippy, all 185 native Rust tests, all 69 focused
   Lite compatibility tests, and the Windows MSVC all-target workspace check
-  pass locally. Exact implementation commit and CI evidence are still pending.
+  pass locally; and
+- exact-head Native CI run `29338915660` passed `f0455ad8`: boundary in 5s,
+  focused Lite in 41s, Linux in 1m15s, macOS in 2m13s, and real Windows in
+  2m19s. Cloudflare Pages also passed.
+
+R3D is the next dependency-contiguous batch. Compose the target native binary
+and native Lite MCP declaration into a distributable Codex plugin layout, bind
+the package identity to the signed artifact and embedded content receipts, and
+obtain a real clean-client install/enable/runtime evidence path. It must keep
+client cache and enablement writes client-owned and must not claim public
+Marketplace or cloud availability. The Claude adapters remain later R3
+successors until the complete Codex plugin vertical is proven.
 
 Deliverables:
 

@@ -1,7 +1,7 @@
 # Qiongli 2.0 R3C Codex Local Adapter Execution Plan
 
 Date: 2026-07-14  
-Status: in progress  
+Status: complete
 Branch: `feat/2x-native-alpha1`  
 Rolling PR: `#63`
 
@@ -66,11 +66,11 @@ writing Codex's plugin cache or claiming client activation.
 - [x] Run all 185 native Rust workspace tests locally.
 - [x] Run the native boundary and all 69 focused Lite compatibility tests.
 - [x] Cross-check all workspace targets for Windows MSVC locally.
-- [ ] Obtain the real Windows CI result.
-- [ ] Commit and push the implementation and local receipt checkpoints.
-- [ ] Update Draft PR `#63` with factual files, tests, limitations, and the
+- [x] Obtain the real Windows CI result.
+- [x] Commit and push implementation and local receipt checkpoint `f0455ad8`.
+- [x] Update Draft PR `#63` with factual files, tests, limitations, and the
   exact head.
-- [ ] Accept R3C only after the exact implementation-and-receipt head is green
+- [x] Accept R3C only after the exact implementation-and-receipt head is green
   on Native CI and Cloudflare Pages.
 
 ## Explicit Non-goals
@@ -103,5 +103,15 @@ Local implementation receipt, before checkpoint commit:
   and
 - the Windows MSVC all-target, all-feature workspace check passes.
 
-Implementation commit, push, and exact-head Native CI/Cloudflare evidence remain
-pending.
+Implementation and remote acceptance receipt:
+
+- checkpoint `f0455ad8c47c85401cb4c3fc230869fa2d3a1506` contains the R3C
+  implementation and local receipt and is pushed to the rolling Draft PR;
+- exact-head Native CI run `29338915660` passed: boundary in 5s, focused Lite
+  in 41s, Linux in 1m15s, macOS in 2m13s, and real Windows in 2m19s;
+- Cloudflare Pages passed for the same PR head; and
+- the only annotations were the existing `actions/checkout@v4` Node 20
+  deprecation warnings; every R3C test and build step completed successfully.
+
+R3C is accepted. This documentation-only acceptance checkpoint must also pass
+the same exact-head PR gates after push.
