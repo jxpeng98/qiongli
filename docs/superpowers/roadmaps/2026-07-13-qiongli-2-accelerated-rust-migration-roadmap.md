@@ -1,7 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; R1, R2, and R3A-R3G are complete; R3H current-target
-portable archive finalization is the next dependency-contiguous batch
+Status: active execution; R1, R2, and R3A-R3H are complete; R3I verified
+current-target payload installation is the next dependency-contiguous batch
 
 Decision date: July 13, 2026
 
@@ -763,12 +763,42 @@ R3G does not claim a final compressed archive, signing, notarization, public
 release, updater, service-backed install mutation, packaged-window startup,
 cross-target packaging, or clean-machine desktop acceptance.
 
-R3H / `PKG-201B` is next: turn the verified current-target staging tree into a
-deterministic portable archive, verify extraction back to the same identity and
-content root, and prove target-native CLI and Lite MCP startup from the
-extracted archive. This remains an unsigned, unpublished current-target gate;
-signing, installers, UI mutation, publication, updater, and the cross-target
-matrix stay in later batches.
+R3H / `PKG-201B` is complete at design checkpoint `dad77e66` and accepted
+implementation head `f1e50074`. The platform now composes the verified R3G
+staging tree into one canonical, deterministic, store-only ZIP and accepts only
+its exact four-entry profile. Composition and verification bind the archive to
+the complete artifact identity, external verified resource pack, canonical R3G
+manifest, binary digest, logical modes, CRC values, offsets, and fixed ZIP
+metadata.
+
+Local R3H acceptance proves byte-for-byte deterministic output, bounded strict
+parsing, structural and payload tamper rejection, owner-private create-new
+staging, target locking, persistence, no-replace promotion, fixed-path safe
+extraction through the R3G commit path, and cleanup without adopting existing
+caller data. The extracted artifact-local executable runs `--version`, content
+inspection, MCP initialization, the exact 12-tool Lite contract, and one
+bounded read-only call from outside the checkout with an empty runtime `PATH`.
+All 220 normal native tests pass, the two external-client tests remain
+explicitly ignored, all 50 platform tests pass, all 69 focused Lite tests pass,
+and strict host and Windows MSVC checks and Clippy pass.
+
+Exact-head Native CI run `29357292961` passed the boundary in 7s, focused Lite
+in 37s, Windows in 6m33s, Linux in 7m12s, and macOS in 9m36s; Cloudflare Pages
+also passed. R3H remains unsigned and unpublished and does not claim signing,
+notarization, checksums, SBOM, provenance, launch grants, an installer, updater,
+public distribution, packaged-window startup, cross-target output, or
+clean-machine acceptance.
+
+R3I / the remaining `PLT-202` native-payload vertical is next: bind one verified
+current-target R3H payload to a Qiongli-owned installed payload slot and expose
+its preview, approve, apply, verify, remove, repair, and rollback lifecycle only
+through shared platform services. It must retain exact artifact identity,
+receipt-backed ownership, no-replace mutation, rollback safety, and
+path-redacted failures, then prove the installed executable starts CLI and Lite
+MCP outside the source and extraction trees. The R3I design checkpoint must fix
+the managed-root layout and state machine before implementation. Client-path
+discovery, direct UI filesystem callbacks, signing, publication, update-channel
+metadata, public marketplaces, and cross-target packaging remain outside R3I.
 
 Deliverables:
 
@@ -902,8 +932,12 @@ superseded head is not reported as current-head evidence.
     exact-head Native CI run `29351331008` and Cloudflare Pages green;
 16. R3G current-target native artifact assembly is accepted at `7fddca15`,
     with exact-head Native CI run `29354332680` and Cloudflare Pages green;
-17. R3H deterministic current-target portable archive finalization is next;
-18. prepare alpha.1 only after the complete installed-product vertical gate.
+17. R3H deterministic current-target portable archive finalization is accepted
+    at `f1e50074`, with exact-head Native CI run `29357292961` and Cloudflare
+    Pages green;
+18. R3I verified current-target payload installation through shared platform
+    services is next;
+19. prepare alpha.1 only after the complete installed-product vertical gate.
 
 ## Program Done
 

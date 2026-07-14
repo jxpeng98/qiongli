@@ -474,6 +474,46 @@ not add compression, signing, notarization, checksums, SBOM, provenance,
 installation, updater, publication, packaged-window startup, cross-target
 packaging, or clean-machine release acceptance.
 
+## R3H deterministic portable archive
+
+`qiongli-platform` can wrap one verified R3G current-target staging tree in a
+canonical portable archive named `<artifact-id>.zip`. The accepted container is
+a strict store-only ZIP with exactly these entries in fixed order:
+
+```text
+<artifact-id>/
+<artifact-id>/.qiongli-native-artifact.json
+<artifact-id>/bin/
+<artifact-id>/bin/qiongli[.exe]
+```
+
+The writer fixes UTF-8 names, the 1980-01-01 DOS timestamp, logical modes,
+local and central records, CRC-32 values, offsets, and an empty comment. The
+bounded parser rejects compression, encryption, ZIP64, data descriptors,
+extra fields, comments, multiple disks, unknown or reordered entries, trailing
+bytes, and any mismatch with the canonical R3G manifest or caller-supplied
+verified resource pack.
+
+Composition uses an explicitly approved canonical target, an owner-private
+create-new sibling file, target locking, persistence sync, no-replace
+promotion, and committed verification. Extraction parses and verifies the
+complete envelope before mutation, never joins an archive-controlled path, and
+commits only the fixed manifest and executable payload through the existing
+R3G private staging path.
+
+Current-target application tests compose two byte-identical archives, extract
+one into an isolated root, and run only its executable outside the checkout
+with an empty runtime `PATH`. They verify `--version`, embedded content, MCP
+initialization, the exact 12-tool Lite contract, and one bounded read-only tool
+call. Structural, content, source-drift, link, lock, and destination-conflict
+failures preserve existing caller data and return fixed path-redacted reason
+codes.
+
+R3H is an unsigned, unpublished transport-container gate. It does not provide
+signing, notarization, checksum sidecars, SBOM, provenance, launch grants,
+installation, updater behavior, publication, packaged-window startup,
+cross-target packaging, or clean-machine release acceptance.
+
 ## R1 command contract (retained)
 
 The native executable composes the verified embedded pack and versioned global
