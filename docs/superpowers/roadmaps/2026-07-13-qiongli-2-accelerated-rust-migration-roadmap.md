@@ -1,7 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; FND-202E and FND-202F complete, with the local
-`CFG-201A` implementation checkpoint complete and exact-head CI pending
+Status: active execution; FND-202E, FND-202F, and CFG-201A complete, with
+CFG-201B and the native command slice next
 
 Decision date: July 13, 2026
 
@@ -48,7 +48,7 @@ Integrated on `2.x`:
 The current physical native workspace contains `apps/qiongli`,
 `qiongli-content`, and `qiongli-config`. FND-202E is complete through
 portability head `870d85b8`, FND-202F is complete at `76ee339f`, and the local
-CFG-201A implementation checkpoint ends at `bb3537e4` on the same rolling
+CFG-201A implementation checkpoint ends at `588e564d` on the same rolling
 branch. Work continues through the native config and command path rather than
 returning to another legacy inventory or Python parity phase.
 
@@ -225,9 +225,10 @@ Implementation status on July 14, 2026:
   macOS, and Windows Rust jobs at exact implementation head
   `76ee339f2c21ac1139ff422392778f3fb0857598` in 7s, 29s, 33s, and 1m3s.
 - CFG-201A spans implementation commits `60886b33`, `ed3e3384`, `ebf36bd4`,
-  and `bb3537e4`: it adds a versioned global root, exact typed settings,
-  opaque secret references, strict bounded JSON, redacted status, revision
-  conflicts, and recovery-aware persistence;
+  and `bb3537e4`, plus portability fixes `31beab11` and `588e564d`: it adds a
+  versioned global root, exact typed settings, opaque secret references,
+  strict bounded JSON, redacted status, revision conflicts, and
+  recovery-aware persistence;
 - the local CFG-201A gate passed the native change boundary, format, locked
   workspace check, Clippy with warnings denied, and 84 Rust tests using the
   required native-only commands; no Python or Node suite was run or required;
@@ -237,8 +238,10 @@ Implementation status on July 14, 2026:
   permission, conflict, concurrency, lock-timeout, and fault-injection matrix;
 - Windows retains strict root/document read validation and redacted status,
   while writes return `UnsupportedPlatformSecurity` before any filesystem
-  mutation. Linux and Windows exact-head validation remains pending in GitHub
-  Actions and is not claimed by this local receipt;
+  mutation;
+- GitHub Actions run `29318765759` passed the native boundary plus Linux,
+  macOS, and Windows Rust jobs at exact implementation head
+  `588e564d73b1afa367c7d7ee4d539c55f893e368` in 7s, 32s, 46s, and 57s;
 - credentials remain opaque `SecretRef` values. `UnavailableSecretStore` is
   the only secret-store implementation, so this checkpoint does not claim a
   keychain, credential vault, or plaintext fallback;
@@ -259,8 +262,7 @@ Deliverables:
    - embedded expected digest;
    - profile list/read/materialize API;
    - source-drift guard owned by native tooling.
-3. `qiongli-config` first vertical slice — local implementation complete at
-   `bb3537e4`, exact-head CI pending:
+3. `qiongli-config` first vertical slice — complete at `588e564d`:
    - `QIONGLI_CONFIG_HOME/v2/` resolution;
    - typed public settings and profile selection;
    - provider settings and secret references;
@@ -409,8 +411,8 @@ superseded head is not reported as current-head evidence.
 1. acceleration design, authoritative roadmap, and Draft PR #63: complete;
 2. R0 native required CI and live ruleset narrowing: complete;
 3. FND-202E and FND-202F are complete in the same rolling PR;
-4. complete the exact-head CFG-201A CI receipt, then continue with CFG-201B and
-   the R1 native-command slice in the same rolling Draft PR;
+4. CFG-201A is complete; continue with CFG-201B and the R1 native-command slice
+   in the same rolling Draft PR;
 5. continue into R2 without creating another branch or PR;
 6. continue into R3 and prepare alpha.1 only after the complete vertical gate.
 
