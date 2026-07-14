@@ -135,6 +135,12 @@ impl VerifiedNativeArtifact {
     }
 }
 
+pub(crate) struct NativeArtifactPayload {
+    pub(crate) verified: VerifiedNativeArtifact,
+    pub(crate) manifest_bytes: Vec<u8>,
+    pub(crate) binary_bytes: Vec<u8>,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NativeArtifactError {
     UnsupportedPlatform,
@@ -310,6 +316,27 @@ pub fn compose_native_artifact(
     validate_manifest_shape(&manifest)?;
     let manifest_bytes = canonical_json(&manifest)?;
 
+    commit_native_artifact_payload(pack, artifact, &manifest_bytes, &binary_bytes, target)
+}
+
+pub(crate) fn commit_native_artifact_payload(
+    pack: &LoadedResourcePack<'_>,
+    artifact: &ArtifactIdentityV1,
+    manifest_bytes: &[u8],
+    binary_bytes: &[u8],
+    target: &NativeArtifactTarget,
+) -> Result<VerifiedNativeArtifact, NativeArtifactError> {
+    validate_artifact_identity(artifact)?;
+    validate_resource_pack(pack)?;
+    if target.artifact != *artifact || target.artifact_id != native_artifact_id(artifact)? {
+        return Err(NativeArtifactError::InvalidTarget);
+    }
+    let expected =
+        verify_native_artifact_payload(pack, target.artifact_id(), manifest_bytes, binary_bytes)?;
+    if expected.manifest.artifact != *artifact {
+        return Err(NativeArtifactError::ArtifactDrift);
+    }
+
     let _lock = TargetLock::acquire(target)?;
     revalidate_target(target)?;
     if path_metadata(target.path())?.is_some() {
@@ -321,9 +348,9 @@ pub fn compose_native_artifact(
         .ok_or(NativeArtifactError::InvalidTarget)?;
     let staging = create_staging_directory(parent)?;
     let cleanup = DirectoryCleanup::new(staging.clone());
-    write_artifact_tree(&staging, &binary_bytes, &manifest_bytes, artifact.os)?;
+    write_artifact_tree(&staging, binary_bytes, manifest_bytes, artifact.os)?;
     let staged = verify_artifact_tree(&staging, target.artifact_id(), pack)?;
-    if staged.manifest != manifest {
+    if staged != expected {
         return Err(NativeArtifactError::ArtifactDrift);
     }
 
@@ -348,13 +375,20 @@ pub fn verify_native_artifact(
     pack: &LoadedResourcePack<'_>,
     target: &NativeArtifactTarget,
 ) -> Result<VerifiedNativeArtifact, NativeArtifactError> {
+    Ok(read_native_artifact_payload(pack, target)?.verified)
+}
+
+pub(crate) fn read_native_artifact_payload(
+    pack: &LoadedResourcePack<'_>,
+    target: &NativeArtifactTarget,
+) -> Result<NativeArtifactPayload, NativeArtifactError> {
     validate_resource_pack(pack)?;
     revalidate_target(target)?;
-    let verified = verify_artifact_tree(target.path(), target.artifact_id(), pack)?;
-    if verified.manifest.artifact != target.artifact {
+    let payload = read_artifact_tree_payload(target.path(), target.artifact_id(), pack)?;
+    if payload.verified.manifest.artifact != target.artifact {
         return Err(NativeArtifactError::ArtifactDrift);
     }
-    Ok(verified)
+    Ok(payload)
 }
 
 fn validate_artifact_identity(artifact: &ArtifactIdentityV1) -> Result<(), NativeArtifactError> {
@@ -421,6 +455,14 @@ fn verify_artifact_tree(
     expected_artifact_id: &str,
     expected_pack: &LoadedResourcePack<'_>,
 ) -> Result<VerifiedNativeArtifact, NativeArtifactError> {
+    Ok(read_artifact_tree_payload(root, expected_artifact_id, expected_pack)?.verified)
+}
+
+fn read_artifact_tree_payload(
+    root: &Path,
+    expected_artifact_id: &str,
+    expected_pack: &LoadedResourcePack<'_>,
+) -> Result<NativeArtifactPayload, NativeArtifactError> {
     verify_directory(root, true)?;
     let root_entries = directory_entries(root)?;
     if root_entries
@@ -435,9 +477,70 @@ fn verify_artifact_tree(
         MAX_MANIFEST_BYTES,
         LogicalMode::Regular,
         NativeArtifactError::ManifestMissing,
+        NativeArtifactError::ManifestInvalid,
     )?;
-    let manifest: NativeArtifactManifestV1 = serde_json::from_slice(&manifest_bytes)
-        .map_err(|_| NativeArtifactError::ManifestInvalid)?;
+    let manifest = verify_manifest_bytes(expected_pack, expected_artifact_id, &manifest_bytes)?;
+
+    let binary_relative = Path::new(&manifest.binary_path);
+    let binary_name = binary_relative
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or(NativeArtifactError::ManifestInvalid)?;
+    let binary_parent = root.join("bin");
+    verify_directory(&binary_parent, false)?;
+    if directory_entries(&binary_parent)? != BTreeSet::from([binary_name.to_string()]) {
+        return Err(NativeArtifactError::ArtifactDrift);
+    }
+    let binary_path = root.join(binary_relative);
+    let binary_bytes = read_bounded_managed_file(
+        &binary_path,
+        MAX_BINARY_BYTES,
+        LogicalMode::Executable,
+        NativeArtifactError::ArtifactDrift,
+        NativeArtifactError::ArtifactDrift,
+    )?;
+    let verified = verify_native_artifact_payload(
+        expected_pack,
+        expected_artifact_id,
+        &manifest_bytes,
+        &binary_bytes,
+    )?;
+
+    Ok(NativeArtifactPayload {
+        verified,
+        manifest_bytes,
+        binary_bytes,
+    })
+}
+
+pub(crate) fn verify_native_artifact_payload(
+    expected_pack: &LoadedResourcePack<'_>,
+    expected_artifact_id: &str,
+    manifest_bytes: &[u8],
+    binary_bytes: &[u8],
+) -> Result<VerifiedNativeArtifact, NativeArtifactError> {
+    let manifest = verify_manifest_bytes(expected_pack, expected_artifact_id, manifest_bytes)?;
+    let entry = &manifest.entries[0];
+    if binary_bytes.len() as u64 != entry.size_bytes || sha256_hex(binary_bytes) != entry.sha256 {
+        return Err(NativeArtifactError::ArtifactDrift);
+    }
+    Ok(VerifiedNativeArtifact {
+        manifest_sha256: sha256_hex(manifest_bytes),
+        manifest,
+    })
+}
+
+fn verify_manifest_bytes(
+    expected_pack: &LoadedResourcePack<'_>,
+    expected_artifact_id: &str,
+    manifest_bytes: &[u8],
+) -> Result<NativeArtifactManifestV1, NativeArtifactError> {
+    validate_resource_pack(expected_pack)?;
+    if manifest_bytes.len() as u64 > MAX_MANIFEST_BYTES {
+        return Err(NativeArtifactError::ManifestInvalid);
+    }
+    let manifest: NativeArtifactManifestV1 =
+        serde_json::from_slice(manifest_bytes).map_err(|_| NativeArtifactError::ManifestInvalid)?;
     if canonical_json(&manifest)? != manifest_bytes {
         return Err(NativeArtifactError::ManifestInvalid);
     }
@@ -455,28 +558,7 @@ fn verify_artifact_tree(
     {
         return Err(NativeArtifactError::ArtifactDrift);
     }
-
-    let binary_relative = Path::new(&manifest.binary_path);
-    let binary_name = binary_relative
-        .file_name()
-        .and_then(|name| name.to_str())
-        .ok_or(NativeArtifactError::ManifestInvalid)?;
-    let binary_parent = root.join("bin");
-    verify_directory(&binary_parent, false)?;
-    if directory_entries(&binary_parent)? != BTreeSet::from([binary_name.to_string()]) {
-        return Err(NativeArtifactError::ArtifactDrift);
-    }
-    let binary_path = root.join(binary_relative);
-    let binary_metadata = verify_managed_file(&binary_path, LogicalMode::Executable)?;
-    let entry = &manifest.entries[0];
-    if binary_metadata.len() != entry.size_bytes || hash_file(&binary_path)? != entry.sha256 {
-        return Err(NativeArtifactError::ArtifactDrift);
-    }
-
-    Ok(VerifiedNativeArtifact {
-        manifest_sha256: sha256_hex(&manifest_bytes),
-        manifest,
-    })
+    Ok(manifest)
 }
 
 fn write_artifact_tree(
@@ -574,6 +656,7 @@ fn read_bounded_managed_file(
     limit: u64,
     mode: LogicalMode,
     missing: NativeArtifactError,
+    invalid: NativeArtifactError,
 ) -> Result<Vec<u8>, NativeArtifactError> {
     let metadata = fs::symlink_metadata(path).map_err(|error| {
         if error.kind() == io::ErrorKind::NotFound {
@@ -583,27 +666,20 @@ fn read_bounded_managed_file(
         }
     })?;
     if metadata.len() > limit {
-        return Err(NativeArtifactError::ManifestInvalid);
+        return Err(invalid);
     }
     verify_managed_file_with_metadata(path, &metadata, mode)?;
     let mut file =
         File::open(path).map_err(|error| NativeArtifactError::PersistenceFailed(error.kind()))?;
-    let mut bytes = Vec::new();
+    let mut bytes = Vec::with_capacity(usize::try_from(metadata.len()).map_err(|_| invalid)?);
     Read::by_ref(&mut file)
         .take(limit.saturating_add(1))
         .read_to_end(&mut bytes)
         .map_err(|error| NativeArtifactError::PersistenceFailed(error.kind()))?;
     if bytes.len() as u64 > limit || bytes.len() as u64 != metadata.len() {
-        return Err(NativeArtifactError::ManifestInvalid);
+        return Err(invalid);
     }
     Ok(bytes)
-}
-
-fn verify_managed_file(path: &Path, mode: LogicalMode) -> Result<Metadata, NativeArtifactError> {
-    let metadata = fs::symlink_metadata(path)
-        .map_err(|error| NativeArtifactError::PersistenceFailed(error.kind()))?;
-    verify_managed_file_with_metadata(path, &metadata, mode)?;
-    Ok(metadata)
 }
 
 fn verify_managed_file_with_metadata(
@@ -696,23 +772,6 @@ fn verify_file_mode(_metadata: &Metadata, _mode: LogicalMode) -> Result<(), Nati
 #[cfg(not(any(unix, windows)))]
 fn verify_file_mode(_metadata: &Metadata, _mode: LogicalMode) -> Result<(), NativeArtifactError> {
     Err(NativeArtifactError::UnsupportedPlatform)
-}
-
-fn hash_file(path: &Path) -> Result<String, NativeArtifactError> {
-    let mut file =
-        File::open(path).map_err(|error| NativeArtifactError::PersistenceFailed(error.kind()))?;
-    let mut hasher = Sha256::new();
-    let mut buffer = [0_u8; 64 * 1024];
-    loop {
-        let read = file
-            .read(&mut buffer)
-            .map_err(|error| NativeArtifactError::PersistenceFailed(error.kind()))?;
-        if read == 0 {
-            break;
-        }
-        hasher.update(&buffer[..read]);
-    }
-    Ok(encode_hex(&hasher.finalize()))
 }
 
 fn write_new_file(path: &Path, bytes: &[u8], mode: LogicalMode) -> Result<(), NativeArtifactError> {

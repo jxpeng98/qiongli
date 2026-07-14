@@ -10,6 +10,7 @@ publish.workspace = true
 description = "Qiongli native artifact trust and declarative installation contracts"
 
 [dependencies]
+crc32fast.workspace = true
 ed25519-dalek.workspace = true
 qiongli-content = { path = "../qiongli-content" }
 same-file.workspace = true

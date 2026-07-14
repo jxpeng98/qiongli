@@ -5,6 +5,7 @@ mod codex_bundle;
 mod error;
 mod grant;
 mod identity;
+mod native_archive;
 mod native_artifact;
 mod plan;
 mod transaction;
@@ -56,6 +57,12 @@ pub use grant::{
 pub use identity::{
     Architecture, ArtifactIdentityV1, CapabilityProfile, InstallerKind, OperatingSystem, ProductId,
     ReleaseChannel,
+};
+pub use native_archive::{
+    NATIVE_PORTABLE_ARCHIVE_EXTENSION, NativePortableArchiveError, NativePortableArchiveTarget,
+    VerifiedNativePortableArchive, approve_native_portable_archive_target,
+    compose_native_portable_archive, extract_native_portable_archive,
+    native_portable_archive_file_name, verify_native_portable_archive,
 };
 pub use native_artifact::{
     NATIVE_ARTIFACT_MANIFEST_FILE, NATIVE_ARTIFACT_MANIFEST_SCHEMA_VERSION,
