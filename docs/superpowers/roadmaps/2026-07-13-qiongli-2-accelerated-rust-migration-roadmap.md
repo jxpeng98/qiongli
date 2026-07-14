@@ -1,7 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; R1, R2, and R3A-R3E are complete; R3F minimal native
-desktop manager is the next dependency-contiguous batch
+Status: active execution; R1, R2, and R3A-R3F are complete; R3G current-target
+native artifact assembly is the next dependency-contiguous batch
 
 Decision date: July 13, 2026
 
@@ -46,10 +46,11 @@ Integrated on `2.x`:
   `ebd2d7bef651fcbd22a7310aa50f9945604fa9eb`.
 
 The current physical native workspace contains `apps/qiongli`,
-`qiongli-content`, `qiongli-config`, `qiongli-runtime`, `qiongli-platform`, and
-the isolated `qiongli-windows-security` FFI boundary. FND-202E is complete through
-portability head `870d85b8`, FND-202F is complete at `76ee339f`, CFG-201A ends
-at `588e564d`, and CFG-201B ends at implementation checkpoint `90190612` on
+`qiongli-content`, `qiongli-config`, `qiongli-runtime`, `qiongli-platform`,
+`qiongli-ui`, and the isolated `qiongli-windows-security` FFI boundary.
+FND-202E is complete through portability head `870d85b8`, FND-202F is complete
+at `76ee339f`, CFG-201A ends at `588e564d`, and CFG-201B ends at implementation
+checkpoint `90190612` on
 the same rolling branch. R1 native command composition ends at implementation
 checkpoint `f2a6fbe6`. The first shared Lite runtime extraction is complete at
 `d7f2d64f`. Work continues through provider/domain behavior rather than
@@ -700,12 +701,47 @@ claim Claude Desktop, cloud/web, public marketplace, managed upgrade, release,
 UI, Full MCP, agent, or orchestrator completion. `INT-203` and remote service
 support remain separate gates.
 
-R3F is next. Freeze and implement the minimal native desktop manager boundary
-for `UI-201` and the read-only/service-backed part of `UI-202`: Skills, MCP,
-Providers, Integrations, and Diagnostics views over existing Rust services,
-with no business logic or direct filesystem/client mutation in UI callbacks.
-Production install mutation, packaging, updater, signing, and clean-machine
-release evidence remain later R3 gates.
+R3F / `UI-201` plus the read-only portion of `UI-202` is complete at design
+checkpoint `59f968c6`, implementation checkpoint `66398b2c`, and accepted
+implementation-and-CI head `4d706033`. The canonical executable now exposes
+`qiongli ui` with Overview, Skills, MCP, Providers, Integrations, and
+Diagnostics views over a bounded redacted snapshot.
+
+Local R3F acceptance proves:
+
+- `qiongli-ui` depends only on eframe, egui, and zeroize and has no concrete
+  config, content, platform, runtime, filesystem, process, or network service;
+- all eight headless AccessKit tests pass across six views, keyboard
+  activation, labelled transient input, preview confirm/cancel, recovery,
+  680/1080 widths, and 100/150/200 percent scale;
+- the real adapter reads verified embedded content, redacted provider/config
+  state, the 12-tool Lite contract, and Codex/Claude Code discovery without
+  creating host or Qiongli state;
+- invalid initial snapshots are quarantined without rendering their dynamic
+  text, while production apply and install confirmation remain unavailable;
+- all 210 normal native Rust tests pass with two external-client tests ignored,
+  and strict host and Windows MSVC Clippy pass; and
+- the test profile strips debug information so the unified GUI/CLI/MCP test
+  binary stays inside the unchanged 128 MiB plugin-composer input bound.
+
+The initial implementation-head Native CI run `29349701112` found the Linux
+debug test binary above that bound. The build-only fix at `4d706033` retained
+the production limit. Exact-head Native CI run `29351331008` then passed the
+boundary in 6s, focused Lite in 39s, macOS in 4m45s, Linux in 4m51s, and
+Windows in 6m16s; Cloudflare Pages also passed.
+
+R3F does not claim packaged-window startup, manual target screen-reader
+acceptance, config or secret writes, UI-launched MCP, plugin mutation, signing,
+updater, clean-machine release, Claude Desktop, cloud/web, Full MCP, agents, or
+orchestrator completion.
+
+R3G / `PKG-201A` is next: assemble one current-target native alpha artifact
+around the canonical binary, bind its target/version/content identity, and
+prove copied-artifact CLI and Lite MCP startup with an empty runtime `PATH`.
+This smaller batch establishes the artifact required by later production
+launch grants and service-backed install actions. It does not add signing,
+notarization, public release, updater, UI mutation, cross-target packaging, or
+clean-machine desktop acceptance.
 
 Deliverables:
 
@@ -835,8 +871,10 @@ superseded head is not reported as current-head evidence.
 14. R3E Claude Code skills-directory and local marketplace integration is
     accepted at `337cce74`, with exact-head Native CI run `29345585219` and
     Cloudflare Pages green;
-15. R3F minimal native desktop manager is next;
-16. prepare alpha.1 only after the complete installed-product vertical gate.
+15. R3F minimal native desktop manager is accepted at `4d706033`, with
+    exact-head Native CI run `29351331008` and Cloudflare Pages green;
+16. R3G current-target native artifact assembly is next;
+17. prepare alpha.1 only after the complete installed-product vertical gate.
 
 ## Program Done
 
