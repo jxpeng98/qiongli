@@ -1,7 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; R1, R2, and R3A are complete, with R3B transactional
-managed installation next
+Status: active execution; R1, R2, and R3A are complete, with the R3B managed
+resource transaction vertical in progress
 
 Decision date: July 13, 2026
 
@@ -562,6 +562,14 @@ apply/verify/repair/remove/rollback behavior behind the R3A verified-plan
 boundary. Host discovery and Codex/Claude registration remain separate later
 adapter work.
 
+The approved R3B execution slice begins with one exact Marketplace Lite
+resource materialization below an explicitly approved private
+`QiongliManagedData` root. It closes fresh apply, read-only verify,
+missing-target repair, remove, rollback, journal/failure handling, and canonical
+receipts. It rejects multi-operation, managed replacement/upgrade, plugin/MCP
+registration, host actions, nested destinations, and client paths before
+mutation; those remain later adapter or updater work.
+
 Deliverables:
 
 1. `qiongli-platform`:
@@ -679,8 +687,8 @@ superseded head is not reported as current-head evidence.
 10. R3A install-plan/platform boundary and signed Lite launch-grant contracts
     are complete at `60c2ddc5`, with exact implementation-head Native CI run
     `29332864357` and Cloudflare Pages green;
-11. continue with R3B transactional managed installation on the same rolling
-    branch and Draft PR;
+11. R3B managed resource transactions are in progress on the same rolling
+    branch and Draft PR, beginning with the exact single-resource lifecycle;
 12. prepare alpha.1 only after the complete installed-product vertical gate.
 
 ## Program Done
