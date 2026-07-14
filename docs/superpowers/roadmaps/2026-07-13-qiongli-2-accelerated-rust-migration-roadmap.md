@@ -1,7 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; R1, R2, and R3A are complete, with the R3B managed
-resource transaction vertical in progress
+Status: active execution; R1, R2, and R3A are complete; R3B is locally complete
+at its implementation checkpoint with exact-head CI pending
 
 Decision date: July 13, 2026
 
@@ -59,6 +59,12 @@ R3A reaches its implementation checkpoint at `60c2ddc5`. It defines the
 signed Lite launch-grant and declarative install-plan trust boundary and adds
 truthful read-only `qiongli install status`; it does not yet install, mutate,
 discover, register, activate, package, or release anything.
+
+R3B reaches its local implementation checkpoint at `b3a6ea6b`. It adds the
+first verified-plan and exact-approval-gated managed resource transaction
+lifecycle, canonical receipts/state, a root-scoped recovery journal, and safe
+apply/verify/repair/remove/rollback behavior. Exact-head CI is pending; the
+source binary still exposes no executable install command.
 
 ## Operating Rules
 
@@ -556,19 +562,32 @@ R3A is complete on July 14, 2026:
   receipt, adapter, real client activation, Marketplace/Desktop install,
   package, or release exists yet.
 
-R3B is the next dependency-contiguous batch: implement the transactional
-current-user filesystem executor, managed ownership receipts, and deterministic
-apply/verify/repair/remove/rollback behavior behind the R3A verified-plan
-boundary. Host discovery and Codex/Claude registration remain separate later
-adapter work.
+R3B is locally complete at design checkpoint `714315cd` and implementation
+checkpoint `b3a6ea6b`:
 
-The approved R3B execution slice begins with one exact Marketplace Lite
-resource materialization below an explicitly approved private
-`QiongliManagedData` root. It closes fresh apply, read-only verify,
-missing-target repair, remove, rollback, journal/failure handling, and canonical
-receipts. It rejects multi-operation, managed replacement/upgrade, plugin/MCP
-registration, host actions, nested destinations, and client paths before
-mutation; those remain later adapter or updater work.
+- one exact Marketplace Lite resource plan can materialize below an explicitly
+  approved owner-only `QiongliManagedData` root only after exact grant, plan,
+  payload, root, and approval validation;
+- canonical active and lifecycle receipts support fresh apply, exact replay,
+  read-only verify, absent-target repair, remove, and rollback;
+- a root-scoped journal serializes distinct install IDs, and UID/DACL, root and
+  target identity, no-replace rename, quarantine, and post-rename ambiguity
+  handling fail closed without deleting uncertain data;
+- local gates passed the native boundary, format, locked workspace check,
+  strict Clippy, all 177 native Rust tests, and Windows MSVC cross-target
+  workspace check/strict Clippy; exact-head Native CI and Cloudflare are still
+  pending; and
+- multi-operation plans, managed replacement/upgrade, plugin/MCP registration,
+  host actions, nested destinations, client paths, production grants, packages,
+  and release claims remain rejected or unavailable.
+
+R3C is the next dependency-contiguous batch after exact-head R3B acceptance:
+implement the first `INT-201` Codex local adapter planning vertical with
+documented current-user discovery, read-only preview, exact client-config
+approval, and receipt-backed registration/removal. It must not write Codex
+plugin caches or claim Desktop/Marketplace activation; real client activation
+evidence remains a separate exit gate. Claude Code and Claude Desktop remain
+`INT-202`/`INT-203` successor work.
 
 Deliverables:
 
@@ -687,9 +706,11 @@ superseded head is not reported as current-head evidence.
 10. R3A install-plan/platform boundary and signed Lite launch-grant contracts
     are complete at `60c2ddc5`, with exact implementation-head Native CI run
     `29332864357` and Cloudflare Pages green;
-11. R3B managed resource transactions are in progress on the same rolling
-    branch and Draft PR, beginning with the exact single-resource lifecycle;
-12. prepare alpha.1 only after the complete installed-product vertical gate.
+11. R3B managed resource transactions are locally complete at `b3a6ea6b` on
+    the same rolling branch and Draft PR; exact-head CI is pending;
+12. after R3B exact-head acceptance, begin R3C with the first Codex local
+    adapter planning and registration vertical;
+13. prepare alpha.1 only after the complete installed-product vertical gate.
 
 ## Program Done
 

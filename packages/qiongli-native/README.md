@@ -278,15 +278,17 @@ precondition; arbitrary paths, caller-provided bytes, client configuration,
 multi-operation plans, managed overwrite, and host actions are rejected before
 persistent mutation.
 
-Fresh apply writes an immutable journal before delegating the atomic resource
-tree commit to `qiongli-content`, verifies the complete tree, and commits a
-canonical owner-only platform receipt last. Read-only verify binds the active
-platform receipt to the canonical materialization receipt. Repair restores only
-an absent target with the same semantic plan and install identity; a present
-but drifted target remains a conflict. Remove and rollback identity-pin and
-reverify the exact managed target, quarantine it, commit a distinct lifecycle
-receipt, and then clean the quarantine. Pre-commit failures restore absence or
-the active target; ambiguous recovery retains the journal and fails closed.
+Fresh apply writes one root-scoped immutable journal before delegating the
+atomic resource tree commit to `qiongli-content`, verifies the complete tree,
+and commits a canonical owner-only platform receipt last. Read-only verify
+binds the active platform receipt to the canonical materialization receipt.
+Repair restores only an absent target with the same semantic plan and install
+identity; a present but drifted target remains a conflict. Remove and rollback
+identity-pin and reverify the exact managed target, quarantine it, commit a
+distinct lifecycle receipt, and then clean the quarantine. Proven pre-commit
+failures restore absence or the active target; uncertain materializer
+ownership, state-commit results, or rollback retain data and the journal and
+fail closed.
 
 `qiongli install status` reports receipt contract version `1` and the
 transaction engine as `grant-and-approval-gated`. The source binary still has

@@ -1,6 +1,6 @@
 # Qiongli R3B Managed Resource Transaction Design
 
-Status: approved for execution
+Status: implemented locally; exact-head CI pending
 
 Date: July 14, 2026
 
@@ -98,14 +98,16 @@ siblings:
 
 ```text
 .qiongli-install-<id>.json
-.<id>.qiongli-transaction.json
+.qiongli-transaction.json
 .<id>.qiongli-quarantine-<transaction-id>
 ```
 
 The state document is the durable source of truth. The journal is created and
 synced before the first managed-target mutation and doubles as the exclusive
-per-install transaction claim. A surviving journal means `recovery-required`;
-normal apply never silently deletes an unknown or stale journal.
+transaction claim for the entire approved managed root. Root-wide
+serialization prevents distinct install IDs from racing on the same target
+leaf. A surviving journal means `recovery-required`; normal apply never
+silently deletes an unknown or stale journal.
 
 State files and journals are owner-only, bounded, unknown-field-denying,
 canonical JSON. Unix uses `0600`; Windows uses the isolated owner-only security
@@ -174,14 +176,21 @@ unmanaged, foreign, or user-modified target.
 ## Failure And Recovery
 
 Fault tests cover journal persistence, post-materialization failure,
-pre-state-commit failure, rollback failure, state-commit failure after
-quarantine, and post-commit cleanup failure.
+ambiguous materializer results, pre-state-commit failure, state rename with an
+ambiguous durability/readback result, rollback failure, state-commit failure
+after quarantine, and post-commit cleanup failure.
 
 Before state commit, an apply failure removes only the just-created verified
 target. A remove/rollback commit failure restores the verified quarantine. If
 that safe recovery cannot be proven, the journal and data remain and the
 executor returns `recovery-required` instead of attempting another destructive
 action.
+
+If the content materializer reports an error after a target has appeared, the
+platform cannot prove that the target belongs to the current transaction. It
+therefore preserves the target and journal rather than deleting by digest
+alone. Likewise, once a state rename may have committed, later sync or readback
+failure retains target, state/quarantine, and journal without a false rollback.
 
 R3B does not add an automatic crash-recovery command. A surviving journal is
 preserved evidence and blocks later mutation until the next recovery slice.
@@ -199,6 +208,11 @@ no production launch grant, root approval, or install plan, its `launch_grant`,
 - Resource bytes come only from a verified `LoadedResourcePack`.
 - All destination, state, journal, and quarantine paths stay below one
   explicitly approved private root.
+- The managed root is bound to the current Unix UID or owner-only Windows DACL
+  and to the filesystem identity observed at approval time.
+- One root-scoped journal serializes transactions across install IDs, and
+  supported Linux/macOS non-overwrite transitions use kernel no-replace rename
+  semantics.
 - Target verification rejects symlink/reparse substitution, hard links,
   unexpected files, digest/mode drift, and materialization-receipt drift.
 - Errors and debug output use static reason codes and symbolic identifiers,
@@ -239,3 +253,11 @@ R3B is complete when:
 
 The user instructed continuation into the next roadmap batch on July 14, 2026.
 This authorizes R3B on the existing rolling branch and Draft PR #63.
+
+## Local Implementation Evidence
+
+- Design checkpoint: `714315cd1d82d4e143a7e1c1e720b57e2e9ce3f1`.
+- Implementation checkpoint: `b3a6ea6b811ec50f891a5e32ee53820f084f857d`.
+- Local boundary, format, locked workspace check, strict Clippy, 177 Rust
+  tests, and Windows MSVC cross-target workspace check/strict Clippy passed.
+- Exact-head Native CI and Cloudflare evidence remain pending.
