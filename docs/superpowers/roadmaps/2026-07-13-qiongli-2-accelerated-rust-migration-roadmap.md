@@ -491,7 +491,8 @@ R2E and the R2 native Lite vertical are complete on July 14, 2026:
   unavailable tool errors without writing config, starting a listener,
   launching a browser, or echoing the supplied value;
 - shared search-plan and literature-search parsers now serve both Rust
-  entrypoints, removing 408 lines net of duplicate compatibility-server code;
+  entrypoints; the old Lite server removed 408 lines and added 20, a 388-line
+  net reduction in duplicate compatibility-server code;
 - the copied canonical binary passed initialize, exact 12-name tools/list,
   bounded domain calls, line/Content-Length behavior, notification
   suppression, secret/path redaction, and EOF with an empty `PATH`;

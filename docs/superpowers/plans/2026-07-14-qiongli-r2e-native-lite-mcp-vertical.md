@@ -134,9 +134,9 @@ launch-grant, Marketplace, Full MCP, agent, and release claims remain closed.
 - One shared server owns line and `Content-Length` framing, JSON-RPC/MCP,
   notification suppression, the embedded 12-name registry, typed dispatch,
   status/search, evidence, Zotero fallback/export, and preview orchestration.
-- The old Lite adapter deleted 408 lines net from its server by delegating
-  search-plan and literature-search parsing to the shared runtime; no second
-  Rust provider/search request parser remains there.
+- The old Lite server removed 408 lines and added 20, a 388-line net reduction,
+  by delegating search-plan and literature-search parsing to the shared
+  runtime; no second Rust provider/search request parser remains there.
 - Valid native provider-save and wizard calls are strictly validated and then
   return fixed `capability-unavailable` tool errors. The secret canary is not
   echoed, no local path is returned, and no config write or listener occurs.
