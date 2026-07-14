@@ -1,7 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; FND-202E, FND-202F, CFG-201A, and CFG-201B complete,
-with the R1 native command slice next
+Status: active execution; R1 content, config, and native command foundation
+complete, with the R2 shared Lite runtime next
 
 Decision date: July 13, 2026
 
@@ -50,7 +50,8 @@ The current physical native workspace contains `apps/qiongli`,
 `qiongli-windows-security` FFI boundary. FND-202E is complete through
 portability head `870d85b8`, FND-202F is complete at `76ee339f`, CFG-201A ends
 at `588e564d`, and CFG-201B ends at implementation checkpoint `90190612` on
-the same rolling branch. Work continues through the native command path rather
+the same rolling branch. R1 native command composition ends at implementation
+checkpoint `f2a6fbe6`. Work continues through the shared Lite runtime rather
 than returning to another legacy inventory or Python parity phase.
 
 ## Operating Rules
@@ -263,9 +264,32 @@ Implementation status on July 14, 2026:
 - credentials remain opaque `SecretRef` values. `UnavailableSecretStore` is
   the only secret-store implementation, so this checkpoint does not claim a
   keychain, credential vault, or plaintext fallback;
-- CFG-201A/B do not wire config CLI, UI, MCP, project state, credentials, or
-  1.x migration. The next dependency-contiguous batch is the R1 native command
-  slice over the accepted content and config services.
+- R1 command design commit `45a1cc87` and implementation checkpoint
+  `f2a6fbe6` compose the accepted content and config services without adding a
+  second service implementation;
+- the canonical binary now exposes exact help/version, content list and
+  explicitly approved materialization, redacted config show and revision-safe
+  default-profile set, combined status, and foundation doctor commands;
+- every successful data command emits schema-version-1 JSON. Usage failures
+  return 2, operation failures return 1, and doctor returns 1 only for a
+  blocking config state;
+- public errors use static or allowlisted reason codes. CLI tests prove that
+  materialization/config paths, environment values, provider email, malformed
+  document bytes, and private arguments do not enter stdout or stderr;
+- config set preserves every provider field and delegates optimistic writes to
+  the accepted cross-platform store. It accepts no secret or provider value;
+- the copied binary lists and materializes the embedded pack from outside the
+  checkout with an empty `PATH`, while failed target and stale config writes
+  preserve prior bytes;
+- the local R1 gate passed the native boundary, format, locked workspace check,
+  Clippy with warnings denied, and all 92 Rust tests. The Windows MSVC
+  cross-target workspace check and Clippy also passed;
+- GitHub Actions run `29323018180` passed the boundary, Linux, macOS, and real
+  Windows jobs on exact implementation head
+  `f2a6fbe608c234219526c8947f0cb50470ac1482` in 4s, 37s, 40s, and 1m19s;
+- no Python or Node suite was run or required. R1 does not implement provider
+  configuration, credentials, MCP, project state, 1.x migration, agents,
+  orchestration, desktop UI, host installation, or release packaging.
 
 Deliverables:
 
@@ -287,13 +311,14 @@ Deliverables:
    - atomic owner-only Unix and Windows writes and redacted diagnostics;
    - an isolated safe Win32 security boundary with protected DACL, identity,
      reparse, hard-link, and write-through replacement checks.
-4. Native commands:
+4. Native commands — complete at `f2a6fbe6`:
    - version/help;
    - content list/materialize;
    - config show/set;
    - status/doctor foundation.
 
-Exit gate:
+Exit gate result: passed on implementation head `f2a6fbe6` in Native CI run
+`29323018180`.
 
 - the application starts with an empty `PATH`;
 - embedded content is usable without a source checkout;
@@ -304,6 +329,12 @@ Exit gate:
 
 Purpose: move the already working Rust Lite value into the canonical native
 workspace instead of reimplementing it.
+
+Implementation status: not started. The next dependency-contiguous batch will
+freeze the `qiongli-runtime` contract/error boundary and map reusable Lite
+provider, evidence, Zotero, framing, and dispatch code before moving behavior.
+It will not claim native MCP availability until binary-level protocol tests
+pass.
 
 Deliverables:
 
