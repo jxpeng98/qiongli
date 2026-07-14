@@ -534,8 +534,10 @@ fn install_status_is_read_only_and_truthful_for_source_builds() {
     assert_eq!(value["contracts"]["artifact_identity"], 1);
     assert_eq!(value["contracts"]["launch_grant"], 1);
     assert_eq!(value["contracts"]["install_plan"], 1);
+    assert_eq!(value["contracts"]["install_receipt"], 1);
     assert!(value["current_target"]["os"].is_string());
     assert!(value["current_target"]["arch"].is_string());
+    assert_eq!(value["transaction_engine"], "grant-and-approval-gated");
     assert_eq!(value["launch_grant"], "unavailable");
     assert_eq!(value["preview"], "unavailable");
     assert_eq!(value["apply"], "unavailable");
@@ -667,6 +669,10 @@ fn copied_binary_lists_and_materializes_embedded_content_without_source_lookup()
     );
     let install_value = parse_json(&install_status);
     assert_eq!(install_value["command"], "install-status");
+    assert_eq!(
+        install_value["transaction_engine"],
+        "grant-and-approval-gated"
+    );
     assert_eq!(install_value["launch_grant"], "unavailable");
     assert_eq!(install_value["apply"], "unavailable");
 

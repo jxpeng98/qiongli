@@ -105,12 +105,19 @@ pub struct OwnershipMarkerV1 {
 }
 
 impl OwnershipMarkerV1 {
-    fn validate(&self, artifact_digest: &str) -> Result<(), PlatformError> {
+    fn validate_shape(&self) -> Result<(), PlatformError> {
         if self.schema_version != 1
             || !valid_identifier(&self.install_id, MAX_IDENTIFIER_BYTES)
-            || self.artifact_digest_sha256 != artifact_digest
             || !is_lower_hex(&self.artifact_digest_sha256, 64)
         {
+            return Err(PlatformError::InvalidInstallPlan);
+        }
+        Ok(())
+    }
+
+    fn validate(&self, artifact_digest: &str) -> Result<(), PlatformError> {
+        self.validate_shape()?;
+        if self.artifact_digest_sha256 != artifact_digest {
             return Err(PlatformError::InvalidInstallPlan);
         }
         Ok(())
@@ -579,6 +586,26 @@ impl VerifiedInstallPlan {
     pub fn grant(&self) -> &VerifiedLaunchGrant {
         &self.grant
     }
+}
+
+/// Returns the canonical digest used by a planner to bind an observed
+/// missing or managed state into an install operation.
+pub fn observed_plan_state_sha256(state: &PlanStateV1) -> Result<String, PlatformError> {
+    match state {
+        PlanStateV1::Missing => {}
+        PlanStateV1::Managed {
+            ownership,
+            content_sha256,
+        } => {
+            ownership.validate_shape()?;
+            if !is_lower_hex(content_sha256, 64) {
+                return Err(PlatformError::InvalidInstallPlan);
+            }
+        }
+    }
+    let canonical = serde_json_canonicalizer::to_vec(state)
+        .map_err(|_| PlatformError::CanonicalSerializationFailed)?;
+    Ok(sha256_hex(&canonical))
 }
 
 fn validate_state(state: &PlanStateV1, artifact_digest: &str) -> Result<(), PlatformError> {

@@ -11,7 +11,8 @@ use qiongli_content::{
 };
 use qiongli_platform::{
     ARTIFACT_IDENTITY_SCHEMA_VERSION, Architecture, INSTALL_PLAN_SCHEMA_VERSION,
-    LAUNCH_GRANT_SCHEMA_VERSION, LocalTargetFamily, OperatingSystem,
+    INSTALL_RECEIPT_SCHEMA_VERSION, LAUNCH_GRANT_SCHEMA_VERSION, LocalTargetFamily,
+    OperatingSystem,
 };
 use serde::Serialize;
 
@@ -520,8 +521,10 @@ fn install_status() -> CliOutput {
                 artifact_identity: ARTIFACT_IDENTITY_SCHEMA_VERSION,
                 launch_grant: LAUNCH_GRANT_SCHEMA_VERSION,
                 install_plan: INSTALL_PLAN_SCHEMA_VERSION,
+                install_receipt: INSTALL_RECEIPT_SCHEMA_VERSION,
             },
             current_target: InstallBuildTarget { os, arch },
+            transaction_engine: "grant-and-approval-gated",
             launch_grant: "unavailable",
             preview: "unavailable",
             apply: "unavailable",
@@ -714,6 +717,7 @@ struct InstallStatusOutput {
     command: &'static str,
     contracts: InstallContractVersions,
     current_target: InstallBuildTarget,
+    transaction_engine: &'static str,
     launch_grant: &'static str,
     preview: &'static str,
     apply: &'static str,
@@ -725,6 +729,7 @@ struct InstallContractVersions {
     artifact_identity: u32,
     launch_grant: u32,
     install_plan: u32,
+    install_receipt: u32,
 }
 
 #[derive(Serialize)]

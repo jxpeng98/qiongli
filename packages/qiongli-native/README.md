@@ -267,6 +267,35 @@ write host paths, register a plugin/MCP entry, mutate a private cache, create
 receipts, or claim installation, activation, packaging, or alpha.1 readiness.
 Those remain R3 successor gates.
 
+## R3B managed resource transaction vertical
+
+`qiongli-platform` now contains the first executor behind the R3A trust
+boundary. It accepts only an already verified signed plan, an exact local
+approval token, one explicitly approved owner-only `QiongliManagedData` root,
+and bytes from a verified embedded resource pack. The initial executable
+subset is deliberately one Marketplace Lite resource directory with a missing
+precondition; arbitrary paths, caller-provided bytes, client configuration,
+multi-operation plans, managed overwrite, and host actions are rejected before
+persistent mutation.
+
+Fresh apply writes an immutable journal before delegating the atomic resource
+tree commit to `qiongli-content`, verifies the complete tree, and commits a
+canonical owner-only platform receipt last. Read-only verify binds the active
+platform receipt to the canonical materialization receipt. Repair restores only
+an absent target with the same semantic plan and install identity; a present
+but drifted target remains a conflict. Remove and rollback identity-pin and
+reverify the exact managed target, quarantine it, commit a distinct lifecycle
+receipt, and then clean the quarantine. Pre-commit failures restore absence or
+the active target; ambiguous recovery retains the journal and fails closed.
+
+`qiongli install status` reports receipt contract version `1` and the
+transaction engine as `grant-and-approval-gated`. The source binary still has
+no production launch grant, approved root, or executable plan, so
+`launch_grant`, `preview`, and `apply` remain `unavailable`. R3B does not
+discover or register Codex/Claude, write MCP/client configuration, activate a
+plugin, perform an in-place upgrade, install into Marketplace/Desktop/cloud,
+or produce a package or release.
+
 ## R1 command contract (retained)
 
 The native executable composes the verified embedded pack and versioned global

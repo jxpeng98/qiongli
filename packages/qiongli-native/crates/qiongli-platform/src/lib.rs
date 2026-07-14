@@ -2,6 +2,7 @@ mod error;
 mod grant;
 mod identity;
 mod plan;
+mod transaction;
 
 pub use error::PlatformError;
 pub use grant::{
@@ -17,7 +18,15 @@ pub use plan::{
     AllowedRootV1, ApprovalRequirement, HostAction, InstallActionV1, InstallOperationV1,
     InstallPlanDraftV1, InstallPlanMetadataV1, InstallPlanV1, InstallScope, LocalSurface,
     LocalTargetFamily, OwnershipMarkerV1, PlanStateV1, SymbolicRoot, TargetDescriptorV1,
-    VerifiedInstallPlan,
+    VerifiedInstallPlan, observed_plan_state_sha256,
+};
+pub use transaction::{
+    ApprovedInstallPlan, ApprovedManagedRoot, INSTALL_JOURNAL_SCHEMA_VERSION,
+    INSTALL_RECEIPT_SCHEMA_VERSION, InstallCommit, InstallDisposition, InstallLifecycleKind,
+    InstallLifecycleReceiptV1, InstallReceiptV1, InstallVerification, LifecycleCommit,
+    LifecycleDisposition, MANAGED_INSTALL_STATE_SCHEMA_VERSION, ManagedInstallStateV1,
+    ManagedOperationReceiptV1, ManagedResourceExecutor, TransactionError, approve_install_plan,
+    approve_managed_root,
 };
 
 pub const ARTIFACT_IDENTITY_SCHEMA_VERSION: u32 = 1;

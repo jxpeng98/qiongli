@@ -9,6 +9,7 @@ use qiongli_content::{
     MaterializationAuthorization, MaterializationError, ProfileId, ResourcePackBuildMetadata,
     approve_materialization_target, build_resource_pack, collect_canonical_sources,
     load_resource_pack, materialize_profile, temporary_materialization_target,
+    verify_materialization,
 };
 
 const DIRECTORY_ROOTS: [&str; 10] = [
@@ -182,6 +183,11 @@ fn materializes_only_the_selected_profile_with_a_canonical_managed_receipt() {
 
     let receipt = materialize_profile(&loaded, "skill-only", &target)
         .expect("verified profile must materialize");
+
+    assert_eq!(
+        verify_materialization(&target).expect("managed tree must verify read-only"),
+        receipt
+    );
 
     assert_eq!(receipt.receipt_version, MATERIALIZATION_RECEIPT_VERSION);
     assert_eq!(receipt.pack_id, "qiongli-core");

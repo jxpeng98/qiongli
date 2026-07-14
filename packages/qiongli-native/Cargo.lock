@@ -794,6 +794,10 @@ name = "qiongli-platform"
 version = "2.0.0-alpha.1"
 dependencies = [
  "ed25519-dalek",
+ "qiongli-content",
+ "qiongli-windows-security",
+ "rustix",
+ "same-file",
  "semver",
  "serde",
  "serde_json",

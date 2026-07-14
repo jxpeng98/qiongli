@@ -97,6 +97,9 @@ pub enum MaterializationError {
     TargetNotDirectory {
         path: PathBuf,
     },
+    MissingManagedTarget {
+        path: PathBuf,
+    },
     TargetBusy {
         path: PathBuf,
     },
@@ -148,6 +151,7 @@ impl MaterializationError {
             Self::InsecureTargetParent { .. } => "insecure-materialization-parent",
             Self::LinkNotAllowed { .. } => "linked-materialization-path",
             Self::TargetNotDirectory { .. } => "invalid-materialization-target-kind",
+            Self::MissingManagedTarget { .. } => "missing-managed-materialization",
             Self::TargetBusy { .. } => "materialization-target-busy",
             Self::TargetChanged { .. } => "materialization-target-changed",
             Self::UnmanagedTarget { .. } => "unmanaged-materialization-target",
@@ -224,6 +228,11 @@ impl Display for MaterializationError {
             Self::TargetNotDirectory { path } => write!(
                 formatter,
                 "materialization target is not a directory: {}",
+                path.display()
+            ),
+            Self::MissingManagedTarget { path } => write!(
+                formatter,
+                "managed materialization target is missing: {}",
                 path.display()
             ),
             Self::TargetBusy { path } => write!(
@@ -440,6 +449,34 @@ pub fn materialize_profile(
     staging_cleanup.disarm();
 
     Ok(receipt)
+}
+
+/// Verifies an existing managed materialization without modifying it.
+///
+/// The target must have been approved by a trusted CLI, UI, or installer
+/// boundary. The complete tree, canonical receipt, modes, paths, file kinds,
+/// sizes, and digests are checked before the receipt is returned.
+pub fn verify_materialization(
+    target: &MaterializationTarget,
+) -> Result<MaterializationReceiptV1, MaterializationError> {
+    validate_target_path(&target.path)?;
+    validate_target_filesystem(&target.path)?;
+    validate_target_parent_policy(
+        target
+            .path
+            .parent()
+            .expect("validated materialization targets always have a parent"),
+        target.authorization,
+    )?;
+    match inspect_existing_target(&target.path)? {
+        ExistingTarget::Managed(receipt) => Ok(receipt),
+        ExistingTarget::Absent => Err(MaterializationError::MissingManagedTarget {
+            path: target.path.clone(),
+        }),
+        ExistingTarget::Empty => Err(MaterializationError::UnmanagedTarget {
+            path: target.path.clone(),
+        }),
+    }
 }
 
 fn build_receipt(
