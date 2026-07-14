@@ -1,6 +1,6 @@
 # Qiongli R3A Install Plan And Lite Launch Grant Design
 
-Status: approved for execution
+Status: implemented locally; exact-head CI pending
 
 Date: July 14, 2026
 

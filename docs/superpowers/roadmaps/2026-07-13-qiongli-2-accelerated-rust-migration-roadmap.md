@@ -1,7 +1,8 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; R1 and R2 complete, with R3A install-plan and signed
-Lite launch-grant contracts in progress
+Status: active execution; R1 and R2 complete, with the R3A install-plan and
+signed Lite launch-grant implementation complete locally and exact-head CI
+pending
 
 Decision date: July 13, 2026
 
@@ -46,14 +47,19 @@ Integrated on `2.x`:
   `ebd2d7bef651fcbd22a7310aa50f9945604fa9eb`.
 
 The current physical native workspace contains `apps/qiongli`,
-`qiongli-content`, `qiongli-config`, `qiongli-runtime`, and the isolated
-`qiongli-windows-security` FFI boundary. FND-202E is complete through
+`qiongli-content`, `qiongli-config`, `qiongli-runtime`, `qiongli-platform`, and
+the isolated `qiongli-windows-security` FFI boundary. FND-202E is complete through
 portability head `870d85b8`, FND-202F is complete at `76ee339f`, CFG-201A ends
 at `588e564d`, and CFG-201B ends at implementation checkpoint `90190612` on
 the same rolling branch. R1 native command composition ends at implementation
 checkpoint `f2a6fbe6`. The first shared Lite runtime extraction is complete at
 `d7f2d64f`. Work continues through provider/domain behavior rather than
 returning to another legacy inventory or Python parity phase.
+
+R3A reaches its local implementation checkpoint at `60c2ddc5`. It defines the
+signed Lite launch-grant and declarative install-plan trust boundary and adds
+truthful read-only `qiongli install status`; it does not yet install, mutate,
+discover, register, activate, package, or release anything.
 
 ## Operating Rules
 
@@ -533,6 +539,27 @@ Exit gate:
 
 Purpose: turn the native services into a usable local product.
 
+R3A is implementation-complete locally on July 14, 2026:
+
+- design checkpoint `60c50526` freezes exact Lite artifact identity, injected
+  Ed25519 trust, deterministic typed plans, bounded parsing, and nonclaims;
+- implementation checkpoint `60c2ddc5` adds `qiongli-platform`, strict signed
+  grant verification, private verified tokens, target-matched invertible plan
+  contracts, semantic digests, and closed reason-coded failures;
+- the canonical source binary exposes read-only `qiongli install status` and
+  truthfully reports launch grant, preview, and apply as unavailable;
+- local gates passed the native boundary, format, locked check, strict Clippy,
+  all 161 native Rust tests, and Windows MSVC cross-target check/Clippy; and
+- no production signing key, signed release artifact, filesystem executor,
+  receipt, adapter, real client activation, Marketplace/Desktop install,
+  package, or release exists yet. Exact-head CI remains pending until push.
+
+R3B is the next dependency-contiguous batch: implement the transactional
+current-user filesystem executor, managed ownership receipts, and deterministic
+apply/verify/repair/remove/rollback behavior behind the R3A verified-plan
+boundary. Host discovery and Codex/Claude registration remain separate later
+adapter work.
+
 Deliverables:
 
 1. `qiongli-platform`:
@@ -647,9 +674,11 @@ superseded head is not reported as current-head evidence.
    `5509d2c1`;
 9. R2E canonical native Lite MCP stdio vertical slice is complete at
    `fce20f46`, including copied-binary and exact-head CI proof;
-10. continue into R3 on the same rolling branch and Draft PR, beginning with
-    the install-plan/platform boundary and signed Lite launch-grant contract;
-11. prepare alpha.1 only after the complete installed-product vertical gate.
+10. R3A install-plan/platform boundary and signed Lite launch-grant contracts
+    are implementation-complete at `60c2ddc5`; exact-head CI is pending push;
+11. after R3A acceptance, continue with R3B transactional managed installation
+    on the same rolling branch and Draft PR;
+12. prepare alpha.1 only after the complete installed-product vertical gate.
 
 ## Program Done
 

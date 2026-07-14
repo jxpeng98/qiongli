@@ -1,6 +1,6 @@
 # Qiongli R3A Install Plan And Lite Launch Grant Implementation Plan
 
-Status: in progress
+Status: implementation complete locally; exact-head CI pending
 
 Date: July 14, 2026
 
@@ -30,51 +30,51 @@ canonical app unpackaged and expose only truthful read-only install status.
   typed plan model, semantic digest, bounds, CLI status, and nonclaims.
 - [x] Reject embedded development private keys, caller-selected trust roots,
   host-cache writes, and premature adapter/activation claims.
-- [ ] Commit the design checkpoint on the rolling branch.
+- [x] Commit the design checkpoint on the rolling branch.
 
 ## Task 2 — Add Artifact And Grant Contracts
 
-- [ ] Add closed product/channel/profile/OS/architecture/installer enums and
+- [x] Add closed product/channel/profile/OS/architecture/installer enums and
   strict SemVer/channel validation.
-- [ ] Add bounded strict JSON for `LaunchGrantV1` and its Ed25519 signature
+- [x] Add bounded strict JSON for `LaunchGrantV1` and its Ed25519 signature
   envelope.
-- [ ] Canonicalize domain-separated grant bytes and verify against injected
+- [x] Canonicalize domain-separated grant bytes and verify against injected
   trusted public keys.
-- [ ] Bind time window, minimum generation, artifact tuple, binary/resource
+- [x] Bind time window, minimum generation, artifact tuple, binary/resource
   pack digests, requested mode, and requested local integration scope.
-- [ ] Return an unforgeable `VerifiedLaunchGrant` and static reason-coded
+- [x] Return an unforgeable `VerifiedLaunchGrant` and static reason-coded
   failures.
-- [ ] Test signature success plus tampering, expiry, replay, identity, digest,
+- [x] Test signature success plus tampering, expiry, replay, identity, digest,
   mode, scope, schema, size, and redaction failures.
 
 ## Task 3 — Add Declarative Install Plan
 
-- [ ] Add exact target, scope, surface, allowed-root, state, approval, and host
+- [x] Add exact target, scope, surface, allowed-root, state, approval, and host
   action vocabularies.
-- [ ] Add typed materialize, plugin-source, Lite-MCP, and managed-remove
+- [x] Add typed materialize, plugin-source, Lite-MCP, and managed-remove
   actions with explicit inverse and postcondition data.
-- [ ] Reject unknown roots, traversal, unsorted/duplicate IDs, excess counts,
+- [x] Reject unknown roots, traversal, unsorted/duplicate IDs, excess counts,
   mismatched targets, non-Lite profiles, and non-invertible operations.
-- [ ] Compute the canonical semantic digest excluding only plan identity and
+- [x] Compute the canonical semantic digest excluding only plan identity and
   display timestamps.
-- [ ] Parse and revalidate bounded plan JSON, expiry, signed grant, and digest.
-- [ ] Test deterministic equivalent previews and semantic mutation families.
+- [x] Parse and revalidate bounded plan JSON, expiry, signed grant, and digest.
+- [x] Test deterministic equivalent previews and semantic mutation families.
 
 ## Task 4 — Expose Truthful Source-Build Status
 
-- [ ] Add closed `qiongli install status` grammar and help.
-- [ ] Report current compiled target and contract-only local target families.
-- [ ] Report launch grant, preview, and apply as unavailable without performing
+- [x] Add closed `qiongli install status` grammar and help.
+- [x] Report current compiled target and contract-only local target families.
+- [x] Report launch grant, preview, and apply as unavailable without performing
   client discovery, config/home access, network, process, or filesystem I/O.
-- [ ] Add copied-binary empty-`PATH` and no-home proof plus unknown/extra
+- [x] Add copied-binary empty-`PATH` and no-home proof plus unknown/extra
   argument rejection.
 
 ## Task 5 — Verify And Record
 
-- [ ] Run native boundary, format, locked check, strict Clippy, and all native
+- [x] Run native boundary, format, locked check, strict Clippy, and all native
   tests.
-- [ ] Run Windows MSVC cross-target check and strict Clippy.
-- [ ] Review public errors/output for secrets, paths, attacker input, and false
+- [x] Run Windows MSVC cross-target check and strict Clippy.
+- [x] Review public errors/output for secrets, paths, attacker input, and false
   installation claims.
 - [ ] Commit and push the implementation checkpoint to rolling Draft PR #63.
 - [ ] Require exact-head boundary, Linux, macOS, and Windows jobs to pass.
@@ -103,3 +103,29 @@ invertible, target-matched, and deterministically digestible; the ordinary
 source binary reports that it is not packaged or installable; and required
 local plus exact-head CI gates pass without making adapter, mutation, UI, or
 release claims.
+
+## Execution Receipt — Local Implementation Checkpoint
+
+- Design and implementation plan checkpoint: `60c50526`.
+- Platform contract implementation checkpoint:
+  `60c2ddc5dc21bfefc5c4767b9a3275614c8fae26`.
+- `qiongli-platform` now owns closed artifact identities, strict bounded
+  launch-grant envelopes, injected Ed25519 trust roots, private verified
+  capability tokens, typed invertible install plans, and deterministic
+  semantic digests.
+- Plan verification rejects stale or not-yet-valid plans, foreign ownership,
+  missing approvals, duplicate destinations, traversal and reserved names,
+  non-Lite grants, target mismatches, and mode/scope token reuse.
+- `qiongli install status` is intentionally read-only. It reports the compiled
+  target and contract-only local families while launch grant, preview, and
+  apply remain unavailable; copied-binary proof ran with empty `PATH` and no
+  home directory.
+- Local evidence passed the 2.x native boundary, format, locked workspace
+  check, strict Clippy, all 161 native Rust tests, and Windows MSVC
+  cross-target check/Clippy.
+- Tests use runtime-generated ephemeral signing keys. No production private
+  key, publisher trust root, signed artifact, real install plan, filesystem
+  executor, host discovery, client activation, packaging, or release was
+  added or exercised.
+- Exact-head Native CI and Cloudflare evidence remain pending until this
+  checkpoint is pushed to Draft PR #63.
