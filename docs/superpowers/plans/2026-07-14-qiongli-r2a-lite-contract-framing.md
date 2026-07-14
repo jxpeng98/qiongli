@@ -1,6 +1,6 @@
 # Qiongli R2A Lite Contract And Framing Implementation Plan
 
-Status: in progress
+Status: complete
 
 Date: July 14, 2026
 
@@ -82,11 +82,11 @@ package a compatibility consumer of the shared parser and protocol.
 - [x] Run focused old Lite protocol/server tests with the locked manifest.
 - [x] Audit the diff for duplicate behavior and attacker-controlled error
   rendering.
-- [ ] Commit cohesive implementation, push the rolling branch, and keep Draft
+- [x] Commit cohesive implementation, push the rolling branch, and keep Draft
   PR #63 as the only PR.
-- [ ] Require exact-head boundary, Linux, macOS, Windows, and focused Lite jobs
+- [x] Require exact-head boundary, Linux, macOS, Windows, and focused Lite jobs
   to pass.
-- [ ] Update the roadmap and PR only from observed evidence, leaving R2 open.
+- [x] Update the roadmap and PR only from observed evidence, leaving R2 open.
 
 ## Required Commands
 
@@ -111,3 +111,20 @@ from verified embedded content, the old Lite entrypoint consumes the same
 registry and framing code, all declared bounds and redaction contracts are
 proved locally and in exact-head CI, and the roadmap still truthfully states
 that native MCP mode and the remaining R2 domain behavior are not available.
+
+## Execution Receipt
+
+- Design and implementation plan: `1e732155`.
+- Shared runtime and compatibility implementation: `d7f2d64f`.
+- Local native evidence: change boundary, format, locked workspace check,
+  strict Clippy, and all 104 native Rust tests passed.
+- Cross-target evidence: Windows MSVC workspace check and strict Clippy passed.
+- Compatibility evidence: all 5 old Lite protocol tests and 10 old Lite server
+  tests passed; the focused package dependency graph uses the feature-light
+  runtime boundary rather than compiling `qiongli-content`.
+- GitHub evidence: Native CI run `29324291281` passed boundary, focused Lite,
+  Linux, macOS, and real Windows jobs on exact implementation head
+  `d7f2d64f5028bc909f4055834e8644077501752e` in 7s, 33s, 36s, 41s, and 1m17s.
+- Scope evidence: no Python or Node suite ran; the canonical CLI grammar did
+  not change; native MCP mode, providers, evidence, Zotero, route preview, task
+  planning, UI, integration installation, and packaging remain outside R2A.

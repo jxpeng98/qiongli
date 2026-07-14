@@ -1,7 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; R1 content, config, and native command foundation
-complete, with the R2 shared Lite runtime next
+Status: active execution; R1 complete and R2 in progress, with the R2A shared
+Lite contract/framing boundary complete and provider runtime migration next
 
 Decision date: July 13, 2026
 
@@ -46,13 +46,14 @@ Integrated on `2.x`:
   `ebd2d7bef651fcbd22a7310aa50f9945604fa9eb`.
 
 The current physical native workspace contains `apps/qiongli`,
-`qiongli-content`, `qiongli-config`, and the isolated
+`qiongli-content`, `qiongli-config`, `qiongli-runtime`, and the isolated
 `qiongli-windows-security` FFI boundary. FND-202E is complete through
 portability head `870d85b8`, FND-202F is complete at `76ee339f`, CFG-201A ends
 at `588e564d`, and CFG-201B ends at implementation checkpoint `90190612` on
 the same rolling branch. R1 native command composition ends at implementation
-checkpoint `f2a6fbe6`. Work continues through the shared Lite runtime rather
-than returning to another legacy inventory or Python parity phase.
+checkpoint `f2a6fbe6`. The first shared Lite runtime extraction is complete at
+`d7f2d64f`. Work continues through provider/domain behavior rather than
+returning to another legacy inventory or Python parity phase.
 
 ## Operating Rules
 
@@ -330,11 +331,41 @@ Exit gate result: passed on implementation head `f2a6fbe6` in Native CI run
 Purpose: move the already working Rust Lite value into the canonical native
 workspace instead of reimplementing it.
 
-Implementation status: not started. The next dependency-contiguous batch will
-freeze the `qiongli-runtime` contract/error boundary and map reusable Lite
-provider, evidence, Zotero, framing, and dispatch code before moving behavior.
-It will not claim native MCP availability until binary-level protocol tests
-pass.
+Implementation status: in progress. R2A is complete on July 14, 2026:
+
+- design checkpoint `1e732155` freezes the first extraction boundary and
+  explicit nonclaims;
+- implementation checkpoint `d7f2d64f` adds `qiongli-runtime` with typed,
+  path/input-free errors and an optional verified-embedded-content adapter;
+- the strict parser accepts at most 1 MiB and requires the exact Contract v2
+  Lite schema version, 12 public definitions in frozen order, and 11 canonical
+  typed identities. `qiongli_open_config_wizard` resolves to the canonical
+  configure-provider identity;
+- newline and Content-Length stdio framing now have one shared implementation
+  with 8 MiB message and 64 KiB header bounds plus typed UTF-8, incomplete,
+  input, output, and serialization failures;
+- the canonical app proves that the registry loads from the already verified
+  `marketplace-lite` embedded profile without a loose-file fallback;
+- the old Rust Lite package now uses thin definitions/protocol adapters and the
+  shared typed handler resolver. Its duplicate name table and local
+  framing/contract parsers were removed;
+- unknown Lite JSON-RPC method and tool names now return static errors without
+  echoing attacker-controlled names;
+- the local gate passed the native boundary, format, locked workspace check,
+  strict Clippy, all 104 native Rust tests, Windows MSVC cross-target check and
+  strict Clippy, plus 15 focused old Lite protocol/server tests;
+- Native CI run `29324291281` passed the exact implementation head
+  `d7f2d64f5028bc909f4055834e8644077501752e`: boundary in 7s, focused Lite
+  compatibility in 33s, Linux in 36s, macOS in 41s, and real Windows in 1m17s;
+- no Python or Node suite ran or became required. R2A does not expose an MCP
+  command in the canonical executable and does not migrate provider, evidence,
+  Zotero, route-preview, or task-plan behavior.
+
+The next dependency-contiguous batch moves provider configuration/status and
+bounded literature-search behavior behind shared runtime contracts and leaves
+the old package as a compatibility consumer. Native MCP availability remains
+unclaimed until canonical binary-level initialize, tools/list, and tools/call
+tests pass.
 
 Deliverables:
 
@@ -462,10 +493,11 @@ superseded head is not reported as current-head evidence.
 1. acceleration design, authoritative roadmap, and Draft PR #63: complete;
 2. R0 native required CI and live ruleset narrowing: complete;
 3. FND-202E and FND-202F are complete in the same rolling PR;
-4. CFG-201A and CFG-201B are complete; continue with the R1 native-command
-   slice in the same rolling Draft PR;
-5. continue into R2 without creating another branch or PR;
-6. continue into R3 and prepare alpha.1 only after the complete vertical gate.
+4. CFG-201A, CFG-201B, and the R1 native-command slice are complete;
+5. R2A shared Lite contract/framing extraction is complete at `d7f2d64f`;
+6. continue R2 with shared provider config/status and bounded search behavior,
+   without creating another branch or PR;
+7. continue into R3 and prepare alpha.1 only after the complete vertical gate.
 
 ## Program Done
 
