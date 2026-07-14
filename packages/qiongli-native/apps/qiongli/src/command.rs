@@ -13,11 +13,13 @@ use serde::Serialize;
 
 const OUTPUT_SCHEMA_VERSION: u32 = 1;
 
-const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli --version\n  qiongli --help\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
+const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli --version\n  qiongli --help\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
 
 const CONTENT_USAGE: &str = "Qiongli embedded content\n\nUsage:\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli content --help\n";
 
 const CONFIG_USAGE: &str = "Qiongli global config\n\nUsage:\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli config --help\n";
+
+const MCP_USAGE: &str = "Qiongli native MCP\n\nUsage:\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli mcp --help\n";
 
 #[derive(Clone, Default)]
 pub struct CommandEnvironment {
@@ -39,6 +41,11 @@ pub struct CliOutput {
     exit_code: u8,
     stdout: String,
     stderr: String,
+}
+
+pub enum ProductAction {
+    Output(CliOutput),
+    ServeLiteMcpStdio,
 }
 
 impl CliOutput {
@@ -92,12 +99,25 @@ pub fn run_cli(
     environment: &CommandEnvironment,
     content: &EmbeddedContent,
 ) -> CliOutput {
+    match prepare_action(args, environment, content) {
+        ProductAction::Output(output) => output,
+        ProductAction::ServeLiteMcpStdio => {
+            CliOutput::operation_failure("streaming-command-requires-product-entrypoint")
+        }
+    }
+}
+
+pub fn prepare_action(
+    args: impl IntoIterator<Item = OsString>,
+    environment: &CommandEnvironment,
+    content: &EmbeddedContent,
+) -> ProductAction {
     let command = match parse_args(args) {
         Ok(command) => command,
-        Err(error) => return CliOutput::usage_failure(error),
+        Err(error) => return ProductAction::Output(CliOutput::usage_failure(error)),
     };
 
-    match command {
+    let output = match command {
         Command::Help => CliOutput::success_text(USAGE),
         Command::Version => {
             CliOutput::success_text(format!("qiongli {}\n", env!("CARGO_PKG_VERSION")))
@@ -113,9 +133,12 @@ pub fn run_cli(
             expected_revision,
             default_profile,
         } => config_set(environment, expected_revision, default_profile),
+        Command::McpHelp => CliOutput::success_text(MCP_USAGE),
+        Command::McpServeLiteStdio => return ProductAction::ServeLiteMcpStdio,
         Command::Status => status(environment, content),
         Command::Doctor => doctor(environment),
-    }
+    };
+    ProductAction::Output(output)
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -134,6 +157,8 @@ enum Command {
         expected_revision: u64,
         default_profile: ProfileId,
     },
+    McpHelp,
+    McpServeLiteStdio,
     Status,
     Doctor,
 }
@@ -155,6 +180,7 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
         "--version" if args.len() == 1 => Ok(Command::Version),
         "content" => parse_content_args(&args[1..]),
         "config" => parse_config_args(&args[1..]),
+        "mcp" => parse_mcp_args(&args[1..]),
         "status" if args.len() == 1 => Ok(Command::Status),
         "doctor" if args.len() == 1 => Ok(Command::Doctor),
         "-h" | "--help" | "--version" | "status" | "doctor" => {
@@ -162,6 +188,66 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
         }
         _ => Err(global_usage_error("unknown command or option")),
     }
+}
+
+fn parse_mcp_args(args: &[OsString]) -> Result<Command, UsageError> {
+    let Some(subcommand) = args.first().and_then(|value| value.to_str()) else {
+        return Err(mcp_usage_error("an MCP subcommand is required"));
+    };
+    match subcommand {
+        "--help" if args.len() == 1 => Ok(Command::McpHelp),
+        "serve"
+            if args.get(1).and_then(|value| value.to_str()) == Some("--help")
+                && args.len() == 2 =>
+        {
+            Ok(Command::McpHelp)
+        }
+        "serve" => parse_mcp_serve_options(&args[1..]),
+        "--help" => Err(mcp_usage_error("unexpected extra argument")),
+        _ => Err(mcp_usage_error("unknown MCP subcommand")),
+    }
+}
+
+fn parse_mcp_serve_options(args: &[OsString]) -> Result<Command, UsageError> {
+    let mut profile = None;
+    let mut transport = None;
+    let mut index = 0;
+    while index < args.len() {
+        let option = args[index]
+            .to_str()
+            .ok_or_else(|| mcp_usage_error("MCP option is not valid UTF-8"))?;
+        let value = args
+            .get(index + 1)
+            .ok_or_else(|| mcp_usage_error("MCP option value is required"))?
+            .to_str()
+            .ok_or_else(|| mcp_usage_error("MCP option value is not valid UTF-8"))?;
+        match option {
+            "--profile" if profile.is_none() => {
+                if !matches!(value, "lite" | "marketplace-lite") {
+                    return Err(mcp_usage_error("MCP profile is unavailable"));
+                }
+                profile = Some(value);
+            }
+            "--transport" if transport.is_none() => {
+                if value != "stdio" {
+                    return Err(mcp_usage_error("MCP transport is unavailable"));
+                }
+                transport = Some(value);
+            }
+            "--profile" | "--transport" => {
+                return Err(mcp_usage_error("duplicate MCP option"));
+            }
+            _ => return Err(mcp_usage_error("unknown MCP option")),
+        }
+        index += 2;
+    }
+    if profile.is_none() {
+        return Err(mcp_usage_error("MCP profile is required"));
+    }
+    if transport.is_none() {
+        return Err(mcp_usage_error("MCP transport is required"));
+    }
+    Ok(Command::McpServeLiteStdio)
 }
 
 fn parse_content_args(args: &[OsString]) -> Result<Command, UsageError> {
@@ -296,6 +382,13 @@ const fn config_usage_error(message: &'static str) -> UsageError {
     UsageError {
         message,
         usage: CONFIG_USAGE,
+    }
+}
+
+const fn mcp_usage_error(message: &'static str) -> UsageError {
+    UsageError {
+        message,
+        usage: MCP_USAGE,
     }
 }
 
@@ -439,7 +532,9 @@ fn doctor(environment: &CommandEnvironment) -> CliOutput {
     )
 }
 
-fn config_store(environment: &CommandEnvironment) -> Result<GlobalSettingsStore, ConfigError> {
+pub(crate) fn config_store(
+    environment: &CommandEnvironment,
+) -> Result<GlobalSettingsStore, ConfigError> {
     let home = environment
         .platform_home
         .as_deref()
@@ -638,6 +733,17 @@ mod tests {
         );
         assert_eq!(parse_args(args(&["status"])), Ok(Command::Status));
         assert_eq!(parse_args(args(&["doctor"])), Ok(Command::Doctor));
+        assert_eq!(
+            parse_args(args(&[
+                "mcp",
+                "serve",
+                "--profile",
+                "lite",
+                "--transport",
+                "stdio",
+            ])),
+            Ok(Command::McpServeLiteStdio)
+        );
     }
 
     #[test]
@@ -655,6 +761,24 @@ mod tests {
             "materialize",
             "--target",
             "/approved/target",
+            "--profile",
+            "marketplace-lite",
+        ]));
+        assert_eq!(first, second);
+
+        let first = parse_args(args(&[
+            "mcp",
+            "serve",
+            "--profile",
+            "lite",
+            "--transport",
+            "stdio",
+        ]));
+        let second = parse_args(args(&[
+            "mcp",
+            "serve",
+            "--transport",
+            "stdio",
             "--profile",
             "marketplace-lite",
         ]));
@@ -699,6 +823,21 @@ mod tests {
             vec!["config", "set", "--expected-revision", "not-a-number"],
             vec!["config", "set", "--api-key", "private-canary"],
             vec!["status", "extra"],
+            vec!["mcp"],
+            vec!["mcp", "serve", "--profile", "lite"],
+            vec!["mcp", "serve", "--transport", "stdio"],
+            vec!["mcp", "serve", "--profile", "full", "--transport", "stdio"],
+            vec!["mcp", "serve", "--profile", "lite", "--transport", "http"],
+            vec![
+                "mcp",
+                "serve",
+                "--profile",
+                "lite",
+                "--profile",
+                "lite",
+                "--transport",
+                "stdio",
+            ],
         ] {
             assert!(parse_args(args(&values)).is_err());
         }

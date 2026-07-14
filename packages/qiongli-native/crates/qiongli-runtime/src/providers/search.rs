@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::thread;
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use thiserror::Error;
 
 use super::ProviderId;
@@ -25,6 +26,14 @@ const REVIEW_DEFAULT_LIMIT: usize = 50;
 const MAX_PER_PROVIDER_LIMIT: usize = 200;
 const MAX_TOTAL_LIMIT: usize = 1_000;
 const MAX_QUERY_BYTES: usize = 4_096;
+const SEARCH_ARGUMENTS: [&str; 6] = [
+    "query",
+    "search_mode",
+    "providers",
+    "limit",
+    "per_provider_limit",
+    "total_limit",
+];
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Error)]
 pub enum ProviderError {
@@ -115,6 +124,52 @@ pub struct SearchRequest {
 }
 
 impl SearchRequest {
+    pub fn from_arguments(arguments: &Value) -> Result<Self, SearchArgumentsError> {
+        let entries = arguments.as_object().ok_or(SearchArgumentsError::new(
+            "search arguments must be an object",
+        ))?;
+        if entries
+            .keys()
+            .any(|key| !SEARCH_ARGUMENTS.contains(&key.as_str()))
+        {
+            return Err(SearchArgumentsError::new("Unsupported argument"));
+        }
+        let query = entries
+            .get("query")
+            .and_then(Value::as_str)
+            .ok_or(SearchArgumentsError::new("Missing query"))?;
+        if query.trim().is_empty() {
+            return Err(SearchArgumentsError::new("query must not be empty"));
+        }
+        let mode = entries
+            .get("search_mode")
+            .map(|value| {
+                value
+                    .as_str()
+                    .ok_or(SearchArgumentsError::new("search_mode must be a string"))
+            })
+            .transpose()?;
+        let providers = parse_provider_arguments(entries.get("providers"))?;
+        let limit = parse_argument_limit(entries.get("limit"), "limit", 200)?;
+        let per_provider_limit = parse_argument_limit(
+            entries.get("per_provider_limit"),
+            "per_provider_limit",
+            MAX_PER_PROVIDER_LIMIT,
+        )?;
+        let total_limit =
+            parse_argument_limit(entries.get("total_limit"), "total_limit", MAX_TOTAL_LIMIT)?;
+
+        Self::from_raw(
+            query,
+            mode,
+            providers.as_deref(),
+            limit,
+            per_provider_limit,
+            total_limit,
+        )
+        .map_err(SearchArgumentsError::from_request_error)
+    }
+
     pub fn from_raw(
         query: &str,
         mode: Option<&str>,
@@ -191,6 +246,96 @@ impl SearchRequest {
     pub const fn total_limit(&self) -> usize {
         self.total_limit
     }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SearchArgumentsError {
+    message: &'static str,
+}
+
+impl SearchArgumentsError {
+    const fn new(message: &'static str) -> Self {
+        Self { message }
+    }
+
+    const fn from_request_error(error: SearchRequestError) -> Self {
+        let message = match error {
+            SearchRequestError::EmptyQuery => "query must not be empty",
+            SearchRequestError::QueryTooLarge => "search query exceeds the byte limit",
+            SearchRequestError::UnsupportedMode => "unsupported search_mode",
+            SearchRequestError::UnsupportedProvider => "unsupported provider",
+            SearchRequestError::EmptyProviders => "providers must not be empty",
+            SearchRequestError::DuplicateProvider => "providers must contain unique values",
+            SearchRequestError::InvalidPerProviderLimit => {
+                "per_provider_limit must be between 1 and 200"
+            }
+            SearchRequestError::InvalidTotalLimit => "total_limit must be between 1 and 1000",
+        };
+        Self { message }
+    }
+}
+
+impl std::fmt::Display for SearchArgumentsError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(self.message)
+    }
+}
+
+impl std::error::Error for SearchArgumentsError {}
+
+fn parse_provider_arguments(
+    value: Option<&Value>,
+) -> Result<Option<Vec<String>>, SearchArgumentsError> {
+    let Some(value) = value else {
+        return Ok(None);
+    };
+    let values = value
+        .as_array()
+        .ok_or(SearchArgumentsError::new("providers must be an array"))?;
+    if values.is_empty() {
+        return Err(SearchArgumentsError::new("providers must not be empty"));
+    }
+    let mut providers = Vec::with_capacity(values.len());
+    for value in values {
+        let provider = value
+            .as_str()
+            .ok_or(SearchArgumentsError::new("providers must contain strings"))?;
+        if !PROVIDER_ORDER.contains(&provider) {
+            return Err(SearchArgumentsError::new("unsupported provider"));
+        }
+        if providers.iter().any(|candidate| candidate == provider) {
+            return Err(SearchArgumentsError::new(
+                "providers must contain unique values",
+            ));
+        }
+        providers.push(provider.to_string());
+    }
+    Ok(Some(providers))
+}
+
+fn parse_argument_limit(
+    value: Option<&Value>,
+    name: &'static str,
+    maximum: usize,
+) -> Result<Option<usize>, SearchArgumentsError> {
+    let Some(value) = value else {
+        return Ok(None);
+    };
+    let value = value.as_u64().ok_or(match name {
+        "limit" => SearchArgumentsError::new("limit must be an integer"),
+        "per_provider_limit" => SearchArgumentsError::new("per_provider_limit must be an integer"),
+        _ => SearchArgumentsError::new("total_limit must be an integer"),
+    })?;
+    if value == 0 || value > maximum as u64 {
+        return Err(match name {
+            "limit" => SearchArgumentsError::new("limit must be between 1 and 200"),
+            "per_provider_limit" => {
+                SearchArgumentsError::new("per_provider_limit must be between 1 and 200")
+            }
+            _ => SearchArgumentsError::new("total_limit must be between 1 and 1000"),
+        });
+    }
+    Ok(Some(value as usize))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -550,6 +695,8 @@ fn ordered_providers(primary: &str, providers: &[String]) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
+
     use super::*;
     use crate::providers::{
         CancellationToken, ProviderAccess, ProviderAvailability, ProviderEndpoints,
@@ -618,6 +765,52 @@ mod tests {
         );
         assert_eq!(request.per_provider_limit(), 50);
         assert_eq!(request.total_limit(), 250);
+    }
+
+    #[test]
+    fn lite_arguments_are_strict_bounded_and_do_not_accept_provider_aliases() {
+        let request = SearchRequest::from_arguments(&json!({
+            "query": " governance ",
+            "search_mode": "review",
+            "providers": ["openalex", "arxiv"],
+            "limit": 20,
+            "per_provider_limit": 30,
+            "total_limit": 40
+        }))
+        .unwrap();
+        assert_eq!(request.query(), "governance");
+        assert_eq!(request.mode(), SearchMode::Review);
+        assert_eq!(request.per_provider_limit(), 30);
+        assert_eq!(request.total_limit(), 40);
+
+        for (arguments, message) in [
+            (json!([]), "search arguments must be an object"),
+            (json!({}), "Missing query"),
+            (
+                json!({"query": "topic", "private-canary": true}),
+                "Unsupported argument",
+            ),
+            (
+                json!({"query": "topic", "providers": ["s2"]}),
+                "unsupported provider",
+            ),
+            (
+                json!({"query": "topic", "providers": ["arxiv", "arxiv"]}),
+                "providers must contain unique values",
+            ),
+            (
+                json!({"query": "topic", "per_provider_limit": 201}),
+                "per_provider_limit must be between 1 and 200",
+            ),
+        ] {
+            assert_eq!(
+                SearchRequest::from_arguments(&arguments)
+                    .err()
+                    .unwrap()
+                    .to_string(),
+                message
+            );
+        }
     }
 
     #[test]

@@ -1,6 +1,7 @@
 mod contract;
 mod error;
 pub mod evidence;
+pub mod mcp;
 pub mod orchestration;
 pub mod protocol;
 pub mod providers;

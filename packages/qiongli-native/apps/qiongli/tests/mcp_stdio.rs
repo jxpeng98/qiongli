@@ -1,0 +1,280 @@
+#![allow(clippy::disallowed_methods)]
+
+use std::fs;
+use std::io::Write as _;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use qiongli_runtime::LITE_PUBLIC_TOOL_NAMES;
+use serde_json::{Value, json};
+
+static NEXT_FIXTURE_ID: AtomicU64 = AtomicU64::new(0);
+const SECRET_CANARY: &str = "copied-native-mcp-secret-canary";
+
+struct Fixture {
+    root: PathBuf,
+    home: PathBuf,
+    config_root: PathBuf,
+    executable: PathBuf,
+}
+
+impl Fixture {
+    fn new() -> Self {
+        let native_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .and_then(Path::parent)
+            .expect("app crate must live below the native workspace");
+        let test_base = native_root.join("target/qiongli-native-mcp-tests");
+        fs::create_dir_all(&test_base).expect("MCP test base must be created");
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("test clock must follow the Unix epoch")
+            .as_nanos();
+        let root = test_base.join(format!(
+            "copied-binary-{}-{nonce}-{}",
+            std::process::id(),
+            NEXT_FIXTURE_ID.fetch_add(1, Ordering::Relaxed)
+        ));
+        fs::create_dir(&root).expect("isolated MCP root must be created");
+        set_private_directory_mode(&root);
+        let home = root.join("home");
+        fs::create_dir(&home).expect("isolated MCP home must be created");
+        set_private_directory_mode(&home);
+        let config_root = root.join("private-config-path-canary");
+        let executable = root.join(format!("copied-qiongli{}", std::env::consts::EXE_SUFFIX));
+        fs::copy(env!("CARGO_BIN_EXE_qiongli"), &executable)
+            .expect("canonical binary must be copied");
+        set_executable_mode(&executable);
+        Self {
+            root,
+            home,
+            config_root,
+            executable,
+        }
+    }
+
+    fn command(&self) -> Command {
+        let mut command = Command::new(&self.executable);
+        command
+            .current_dir(&self.root)
+            .env("PATH", "")
+            .env("QIONGLI_CONFIG_HOME", &self.config_root)
+            .env("HOME", &self.home)
+            .env("USERPROFILE", &self.home)
+            .args([
+                "mcp",
+                "serve",
+                "--transport",
+                "stdio",
+                "--profile",
+                "marketplace-lite",
+            ])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        command
+    }
+}
+
+impl Drop for Fixture {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.root);
+    }
+}
+
+#[cfg(unix)]
+fn set_private_directory_mode(path: &Path) {
+    use std::os::unix::fs::PermissionsExt;
+
+    fs::set_permissions(path, fs::Permissions::from_mode(0o700))
+        .expect("fixture directory mode must be private");
+}
+
+#[cfg(not(unix))]
+fn set_private_directory_mode(_path: &Path) {}
+
+#[cfg(unix)]
+fn set_executable_mode(path: &Path) {
+    use std::os::unix::fs::PermissionsExt;
+
+    fs::set_permissions(path, fs::Permissions::from_mode(0o700))
+        .expect("copied binary must be executable");
+}
+
+#[cfg(not(unix))]
+fn set_executable_mode(_path: &Path) {}
+
+fn rpc(id: u64, method: &str, params: Value) -> Value {
+    json!({"jsonrpc": "2.0", "id": id, "method": method, "params": params})
+}
+
+fn tool_call(id: u64, name: &str, arguments: Value) -> Value {
+    rpc(
+        id,
+        "tools/call",
+        json!({"name": name, "arguments": arguments}),
+    )
+}
+
+#[test]
+fn copied_binary_serves_initialize_list_and_bounded_calls_without_path_runtime() {
+    let fixture = Fixture::new();
+    let mut child = fixture
+        .command()
+        .spawn()
+        .expect("copied canonical binary must start");
+    let requests = [
+        rpc(
+            1,
+            "initialize",
+            json!({"protocolVersion": "2025-11-25", "capabilities": {}}),
+        ),
+        json!({
+            "jsonrpc": "2.0",
+            "method": "notifications/initialized",
+            "params": {}
+        }),
+        rpc(2, "tools/list", json!({})),
+        tool_call(3, "qiongli_config_status", json!({})),
+        tool_call(
+            4,
+            "qiongli_search_plan",
+            json!({
+                "query": "copied binary planning",
+                "from_year": 2020,
+                "toYear": "2026"
+            }),
+        ),
+        tool_call(5, "qiongli_literature_search", json!({})),
+        tool_call(
+            6,
+            "qiongli_literature_export_evidence",
+            json!({"query": "copied binary", "results": [], "diagnostics": {}}),
+        ),
+        tool_call(7, "qiongli_zotero_status", json!({})),
+        tool_call(
+            8,
+            "qiongli_zotero_export_import_files",
+            json!({"records": [], "formats": []}),
+        ),
+        tool_call(
+            9,
+            "qiongli_orchestrator_route",
+            json!({"request": "plan a review", "platform": "codex"}),
+        ),
+        tool_call(
+            10,
+            "qiongli_task_plan",
+            json!({"task_id": "B1", "paper_type": "review", "topic": "AI"}),
+        ),
+        tool_call(
+            11,
+            "qiongli_save_provider_config",
+            json!({
+                "provider": "semantic_scholar",
+                "field": "api_key",
+                "value": SECRET_CANARY
+            }),
+        ),
+        tool_call(
+            12,
+            "qiongli_configure_provider",
+            json!({"host": "example.invalid", "port": 0}),
+        ),
+    ];
+    {
+        let stdin = child.stdin.as_mut().expect("MCP stdin must be piped");
+        for request in requests {
+            serde_json::to_writer(&mut *stdin, &request).expect("request must serialize");
+            stdin
+                .write_all(b"\n")
+                .expect("request delimiter must write");
+        }
+    }
+    drop(child.stdin.take());
+    let output = child
+        .wait_with_output()
+        .expect("copied MCP process must exit on EOF");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(output.stderr.is_empty());
+    let rendered = String::from_utf8(output.stdout).expect("MCP stdout must be UTF-8 JSON lines");
+    assert!(!rendered.contains(SECRET_CANARY));
+    assert!(!rendered.contains("private-config-path-canary"));
+    let responses = rendered
+        .lines()
+        .map(|line| serde_json::from_str::<Value>(line).expect("response must be JSON"))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        responses.len(),
+        12,
+        "notification must not produce a response"
+    );
+
+    let by_id = |id: u64| {
+        responses
+            .iter()
+            .find(|response| response["id"] == id)
+            .expect("response ID must exist")
+    };
+    assert_eq!(by_id(1)["result"]["serverInfo"]["name"], "qiongli");
+    let names = by_id(2)["result"]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|tool| tool["name"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(names, LITE_PUBLIC_TOOL_NAMES);
+    assert_eq!(
+        by_id(3)["result"]["structuredContent"]["config_path"],
+        "<managed-native-config>"
+    );
+    let filters = &by_id(4)["result"]["structuredContent"]["provider_queries"][0]["filters"];
+    assert_eq!(filters["from_year"], filters["fromYear"]);
+    assert_eq!(filters["to_year"], filters["toYear"]);
+    assert_eq!(by_id(5)["error"]["code"], -32602);
+    assert_eq!(
+        by_id(6)["result"]["structuredContent"]["artifact_type"],
+        "qiongli_literature_evidence_snapshot"
+    );
+    assert_eq!(
+        by_id(7)["result"]["structuredContent"]["status"],
+        "disabled"
+    );
+    assert_eq!(by_id(8)["result"]["structuredContent"]["status"], "ok");
+    assert_eq!(
+        by_id(9)["result"]["structuredContent"]["run_agents_allowed"],
+        false
+    );
+    assert_eq!(
+        by_id(10)["result"]["structuredContent"]["preview_only"],
+        true
+    );
+    assert_eq!(
+        by_id(11)["result"]["structuredContent"]["reason_code"],
+        "capability-unavailable"
+    );
+    assert_eq!(by_id(12)["error"]["code"], -32602);
+}
+
+#[test]
+fn invalid_or_escalating_mcp_cli_modes_fail_before_stdio_serving() {
+    for args in [
+        ["mcp", "serve", "--profile", "full", "--transport", "stdio"].as_slice(),
+        ["mcp", "serve", "--profile", "lite", "--transport", "http"].as_slice(),
+        ["mcp", "serve", "--profile", "lite"].as_slice(),
+    ] {
+        let output = Command::new(env!("CARGO_BIN_EXE_qiongli"))
+            .args(args)
+            .output()
+            .expect("invalid native MCP command must exit");
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("Qiongli native MCP"));
+    }
+}

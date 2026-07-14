@@ -1,6 +1,7 @@
 //! Deterministic provider/native-search planning shared by Rust entrypoints.
 
 use std::collections::{BTreeMap, HashSet};
+use std::fmt::{self, Display, Formatter};
 
 use serde::Serialize;
 use serde_json::{Value, json};
@@ -11,6 +12,41 @@ pub const PLAN_PROVIDER_ORDER: [&str; 5] = [
     "crossref",
     "pubmed",
     "arxiv",
+];
+
+const MAX_CONTEXT_LENGTH: usize = 4_096;
+const MAX_QUERY_LENGTH: usize = 4_096;
+const MAX_PLATFORM_LENGTH: usize = 64;
+const MAX_NATIVE_TOOLS: usize = 8;
+const MAX_QUERY_VARIANTS: usize = 16;
+const MAX_DOCUMENT_TYPES: usize = 32;
+const MAX_FILTER_VALUE_LENGTH: usize = 256;
+const MIN_SEARCH_YEAR: u16 = 1_000;
+const MAX_SEARCH_YEAR: u16 = 9_999;
+
+const ALLOWED_ARGUMENTS: [&str; 22] = [
+    "cwd",
+    "query",
+    "platform",
+    "search_mode",
+    "searchMode",
+    "native_search_available",
+    "native_search_usable",
+    "nativeSearchAvailable",
+    "native_search_tools",
+    "nativeSearchTools",
+    "query_variants",
+    "queryVariants",
+    "include_working_papers",
+    "includeWorkingPapers",
+    "from_year",
+    "fromYear",
+    "to_year",
+    "toYear",
+    "venue_filter",
+    "venueFilter",
+    "document_types",
+    "documentTypes",
 ];
 
 pub fn normalize_identifier(value: &str) -> String {
@@ -56,6 +92,370 @@ pub struct SearchPlanInput {
     pub venue_filter: Option<String>,
     pub document_types: Vec<String>,
     pub active_providers: Vec<String>,
+}
+
+impl SearchPlanInput {
+    pub fn from_arguments(
+        arguments: &Value,
+        active_providers: Vec<String>,
+    ) -> Result<Self, SearchPlanInputError> {
+        let entries = arguments
+            .as_object()
+            .ok_or_else(|| SearchPlanInputError::new("search plan arguments must be an object"))?;
+        if entries
+            .keys()
+            .any(|key| !ALLOWED_ARGUMENTS.contains(&key.as_str()))
+        {
+            return Err(SearchPlanInputError::new("Unsupported argument"));
+        }
+        validate_optional_context(arguments)?;
+        let query = required_bounded_string(arguments, "query", MAX_QUERY_LENGTH)?;
+        let platform = optional_alias_string(
+            arguments,
+            &["platform"],
+            "platform",
+            MAX_PLATFORM_LENGTH,
+            false,
+        )?;
+        let platform = match platform {
+            Some(value) if !valid_platform_identifier(&value) => {
+                return Err(SearchPlanInputError::new(
+                    "platform must be an ASCII identifier",
+                ));
+            }
+            Some(value) => normalize_identifier(&value),
+            None => "unknown".to_string(),
+        };
+        let native_search_available = optional_alias_bool(
+            arguments,
+            &[
+                "native_search_available",
+                "native_search_usable",
+                "nativeSearchAvailable",
+            ],
+            "native_search_available",
+        )?
+        .unwrap_or(false);
+        let native_search_tools = optional_alias_string_list(
+            arguments,
+            &["native_search_tools", "nativeSearchTools"],
+            "native_search_tools",
+            MAX_NATIVE_TOOLS,
+            MAX_FILTER_VALUE_LENGTH,
+            true,
+        )?
+        .unwrap_or_default();
+        let query_variants = optional_alias_string_list(
+            arguments,
+            &["query_variants", "queryVariants"],
+            "query_variants",
+            MAX_QUERY_VARIANTS,
+            MAX_QUERY_LENGTH,
+            false,
+        )?
+        .unwrap_or_default();
+        let include_working_papers = optional_alias_bool(
+            arguments,
+            &["include_working_papers", "includeWorkingPapers"],
+            "include_working_papers",
+        )?;
+        let from_year = optional_alias_year(arguments, &["from_year", "fromYear"], "from_year")?;
+        let to_year = optional_alias_year(arguments, &["to_year", "toYear"], "to_year")?;
+        if from_year.zip(to_year).is_some_and(|(from, to)| from > to) {
+            return Err(SearchPlanInputError::new(
+                "from_year must be less than or equal to to_year",
+            ));
+        }
+        let search_mode =
+            optional_alias_search_mode(arguments, &["search_mode", "searchMode"], "search_mode")?
+                .unwrap_or_else(|| "topic".to_string());
+        let venue_filter = optional_alias_string(
+            arguments,
+            &["venue_filter", "venueFilter"],
+            "venue_filter",
+            MAX_FILTER_VALUE_LENGTH,
+            true,
+        )?
+        .filter(|value| !value.is_empty());
+        let document_types = optional_alias_string_list(
+            arguments,
+            &["document_types", "documentTypes"],
+            "document_types",
+            MAX_DOCUMENT_TYPES,
+            MAX_FILTER_VALUE_LENGTH,
+            false,
+        )?
+        .unwrap_or_default();
+
+        Ok(Self {
+            query,
+            search_mode,
+            platform,
+            native_search_available,
+            native_search_tools,
+            query_variants,
+            include_working_papers,
+            from_year,
+            to_year,
+            venue_filter,
+            document_types,
+            active_providers,
+        })
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SearchPlanInputError {
+    message: String,
+}
+
+impl SearchPlanInputError {
+    fn new(message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+        }
+    }
+}
+
+impl Display for SearchPlanInputError {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter.write_str(&self.message)
+    }
+}
+
+impl std::error::Error for SearchPlanInputError {}
+
+fn validate_optional_context(arguments: &Value) -> Result<(), SearchPlanInputError> {
+    let Some(value) = arguments.get("cwd") else {
+        return Ok(());
+    };
+    let cwd = value
+        .as_str()
+        .ok_or_else(|| SearchPlanInputError::new("cwd must be a string"))?;
+    if cwd.trim().is_empty() {
+        return Err(SearchPlanInputError::new("cwd must not be empty"));
+    }
+    if cwd.chars().count() > MAX_CONTEXT_LENGTH {
+        return Err(SearchPlanInputError::new(format!(
+            "cwd must be at most {MAX_CONTEXT_LENGTH} characters"
+        )));
+    }
+    Ok(())
+}
+
+fn required_bounded_string(
+    arguments: &Value,
+    name: &str,
+    maximum: usize,
+) -> Result<String, SearchPlanInputError> {
+    let value = arguments
+        .get(name)
+        .ok_or_else(|| SearchPlanInputError::new(format!("Missing {name}")))?
+        .as_str()
+        .ok_or_else(|| SearchPlanInputError::new(format!("{name} must be a string")))?;
+    let normalized = value.trim();
+    if normalized.is_empty() {
+        return Err(SearchPlanInputError::new(format!(
+            "{name} must not be empty"
+        )));
+    }
+    if value.chars().count() > maximum {
+        return Err(SearchPlanInputError::new(format!(
+            "{name} must be at most {maximum} characters"
+        )));
+    }
+    Ok(normalized.to_string())
+}
+
+fn one_alias_value<'a>(
+    arguments: &'a Value,
+    names: &[&str],
+    canonical_name: &str,
+) -> Result<Option<&'a Value>, SearchPlanInputError> {
+    let mut found = None;
+    for name in names {
+        if let Some(value) = arguments.get(name) {
+            if found.is_some() {
+                return Err(SearchPlanInputError::new(format!(
+                    "conflicting aliases for {canonical_name}"
+                )));
+            }
+            found = Some(value);
+        }
+    }
+    Ok(found)
+}
+
+fn optional_alias_bool(
+    arguments: &Value,
+    names: &[&str],
+    canonical_name: &str,
+) -> Result<Option<bool>, SearchPlanInputError> {
+    one_alias_value(arguments, names, canonical_name)?
+        .map(|value| {
+            value.as_bool().ok_or_else(|| {
+                SearchPlanInputError::new(format!("{canonical_name} must be a boolean"))
+            })
+        })
+        .transpose()
+}
+
+fn optional_alias_string(
+    arguments: &Value,
+    names: &[&str],
+    canonical_name: &str,
+    maximum: usize,
+    allow_empty: bool,
+) -> Result<Option<String>, SearchPlanInputError> {
+    one_alias_value(arguments, names, canonical_name)?
+        .map(|value| {
+            let value = value.as_str().ok_or_else(|| {
+                SearchPlanInputError::new(format!("{canonical_name} must be a string"))
+            })?;
+            if value.chars().count() > maximum {
+                return Err(SearchPlanInputError::new(format!(
+                    "{canonical_name} must be at most {maximum} characters"
+                )));
+            }
+            let normalized = value.trim();
+            if !allow_empty && normalized.is_empty() {
+                return Err(SearchPlanInputError::new(format!(
+                    "{canonical_name} must not be empty"
+                )));
+            }
+            Ok(normalized.to_string())
+        })
+        .transpose()
+}
+
+fn valid_platform_identifier(value: &str) -> bool {
+    value
+        .chars()
+        .next()
+        .is_some_and(|character| character.is_ascii_alphanumeric())
+        && value.chars().all(|character| {
+            character.is_ascii_alphanumeric() || matches!(character, ' ' | '_' | '-')
+        })
+}
+
+fn optional_alias_string_list(
+    arguments: &Value,
+    names: &[&str],
+    canonical_name: &str,
+    maximum_items: usize,
+    maximum_item_length: usize,
+    normalize_tools: bool,
+) -> Result<Option<Vec<String>>, SearchPlanInputError> {
+    let Some(value) = one_alias_value(arguments, names, canonical_name)? else {
+        return Ok(None);
+    };
+    let values = value
+        .as_array()
+        .ok_or_else(|| SearchPlanInputError::new(format!("{canonical_name} must be an array")))?;
+    if values.len() > maximum_items {
+        return Err(SearchPlanInputError::new(format!(
+            "{canonical_name} must contain at most {maximum_items} items"
+        )));
+    }
+    let mut normalized = Vec::with_capacity(values.len());
+    let mut raw_values = Vec::with_capacity(values.len());
+    for value in values {
+        let raw_value = value.as_str().ok_or_else(|| {
+            SearchPlanInputError::new(format!("{canonical_name} must contain strings"))
+        })?;
+        if raw_value.chars().count() > maximum_item_length {
+            return Err(SearchPlanInputError::new(format!(
+                "{canonical_name} items must be at most {maximum_item_length} characters"
+            )));
+        }
+        if raw_values.contains(&raw_value) {
+            return Err(SearchPlanInputError::new(format!(
+                "{canonical_name} must contain unique values"
+            )));
+        }
+        raw_values.push(raw_value);
+        let value = raw_value.trim();
+        if value.is_empty() {
+            return Err(SearchPlanInputError::new(format!(
+                "{canonical_name} must not contain empty values"
+            )));
+        }
+        let value = if normalize_tools {
+            normalize_identifier(value)
+        } else {
+            value.to_string()
+        };
+        if value.is_empty() {
+            return Err(SearchPlanInputError::new(format!(
+                "{canonical_name} must contain valid identifiers"
+            )));
+        }
+        let duplicate_key = value.to_lowercase();
+        if normalized
+            .iter()
+            .any(|candidate: &String| candidate.to_lowercase() == duplicate_key)
+        {
+            return Err(SearchPlanInputError::new(format!(
+                "{canonical_name} must contain unique values"
+            )));
+        }
+        normalized.push(value);
+    }
+    Ok(Some(normalized))
+}
+
+fn optional_alias_year(
+    arguments: &Value,
+    names: &[&str],
+    canonical_name: &str,
+) -> Result<Option<u16>, SearchPlanInputError> {
+    let Some(value) = one_alias_value(arguments, names, canonical_name)? else {
+        return Ok(None);
+    };
+    let parsed = if let Some(value) = value.as_u64() {
+        u16::try_from(value).ok()
+    } else if let Some(value) = value.as_str() {
+        (value.len() == 4 && value.bytes().all(|byte| byte.is_ascii_digit()))
+            .then(|| value.parse::<u16>().ok())
+            .flatten()
+    } else {
+        None
+    }
+    .ok_or_else(|| {
+        SearchPlanInputError::new(format!("{canonical_name} must be a four-digit year"))
+    })?;
+    if !(MIN_SEARCH_YEAR..=MAX_SEARCH_YEAR).contains(&parsed) {
+        return Err(SearchPlanInputError::new(format!(
+            "{canonical_name} must be between {MIN_SEARCH_YEAR} and {MAX_SEARCH_YEAR}"
+        )));
+    }
+    Ok(Some(parsed))
+}
+
+fn optional_alias_search_mode(
+    arguments: &Value,
+    names: &[&str],
+    canonical_name: &str,
+) -> Result<Option<String>, SearchPlanInputError> {
+    let Some(value) = one_alias_value(arguments, names, canonical_name)? else {
+        return Ok(None);
+    };
+    let value = value
+        .as_str()
+        .ok_or_else(|| SearchPlanInputError::new(format!("{canonical_name} must be a string")))?;
+    if ![
+        "auto",
+        "topic",
+        "title",
+        "doi",
+        "review",
+        "systematic_review",
+    ]
+    .contains(&value)
+    {
+        return Err(SearchPlanInputError::new("unsupported search_mode"));
+    }
+    Ok(Some(value.to_string()))
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -467,5 +867,73 @@ fn merge_policy() -> MergePolicy {
         search_log:
             "Record provider and native query execution separately before merge and dedupe."
                 .to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn argument_parser_normalizes_aliases_and_retains_year_compatibility() {
+        let input = SearchPlanInput::from_arguments(
+            &json!({
+                "cwd": "/project",
+                "query": " governance ",
+                "platform": "Claude Code",
+                "nativeSearchAvailable": true,
+                "nativeSearchTools": [" Web Search "],
+                "queryVariants": ["institutions"],
+                "includeWorkingPapers": true,
+                "from_year": 2020,
+                "toYear": "2026",
+                "searchMode": "review",
+                "venueFilter": "journal",
+                "documentTypes": ["article"]
+            }),
+            vec!["arxiv".to_string()],
+        )
+        .unwrap();
+        assert_eq!(input.query, "governance");
+        assert_eq!(input.platform, "claude_code");
+        assert_eq!(input.native_search_tools, ["web_search"]);
+        assert_eq!(input.from_year, Some(2020));
+        assert_eq!(input.to_year, Some(2026));
+
+        let plan = build_search_plan(input);
+        assert_eq!(
+            plan.provider_queries[0].filters["from_year"],
+            plan.provider_queries[0].filters["fromYear"]
+        );
+        assert_eq!(
+            plan.provider_queries[0].filters["to_year"],
+            plan.provider_queries[0].filters["toYear"]
+        );
+    }
+
+    #[test]
+    fn argument_parser_rejects_shape_alias_bounds_and_unknowns_without_echo() {
+        const CANARY: &str = "private-search-plan-canary";
+        let mut unknown = json!({"query": "topic"});
+        unknown
+            .as_object_mut()
+            .unwrap()
+            .insert(CANARY.to_string(), json!(true));
+        for arguments in [
+            json!([]),
+            json!({}),
+            json!({"query": " "}),
+            json!({"query": "topic", "from_year": 2026, "to_year": 2020}),
+            json!({
+                "query": "topic",
+                "native_search_available": true,
+                "nativeSearchAvailable": true
+            }),
+            json!({"query": "topic", "query_variants": vec!["x"; 17]}),
+            unknown,
+        ] {
+            let error = SearchPlanInput::from_arguments(&arguments, Vec::new()).unwrap_err();
+            assert!(!error.to_string().contains(CANARY));
+        }
     }
 }

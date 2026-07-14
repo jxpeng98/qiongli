@@ -1,6 +1,11 @@
 mod command;
+mod mcp;
 
-pub use command::{CliOutput, CommandEnvironment, failed_embedded_content_output, run_cli};
+pub use command::{
+    CliOutput, CommandEnvironment, ProductAction, failed_embedded_content_output, prepare_action,
+    run_cli,
+};
+pub use mcp::serve_lite_mcp;
 use qiongli_content::{EmbeddedContent, ResourcePackLoaderError};
 
 pub const EMBEDDED_PACK_SHA256: &str =

@@ -194,7 +194,44 @@ guidance for the frozen 1.x Full runtime. R2D does not add that command or any
 MCP mode to the native executable, launch agents or processes, write project
 state, or provide native provider-secret configuration.
 
-## R1 command contract
+## R2E canonical native Lite MCP vertical slice
+
+The canonical product binary now composes the embedded Marketplace Lite
+registry, bounded line and `Content-Length` framing, JSON-RPC/MCP envelopes,
+typed dispatch, and the shared R2 domain services through one closed command:
+
+```text
+qiongli mcp serve --profile lite --transport stdio
+```
+
+`marketplace-lite` is the exact profile alias. Both options are required;
+unknown, duplicate, Full-profile, and non-stdio values fail before serving.
+Once selected, stdout contains MCP responses only. The server supports
+initialize, initialized notifications, ping, tools/list, and tools/call for the
+12 frozen Lite public names.
+
+Search-plan and literature-search inputs are now parsed in `qiongli-runtime`,
+so the canonical server and old Lite compatibility adapter use the same alias,
+provider, mode, and limit boundaries. Native global settings are converted to
+the shared in-memory provider model. Secret references use only the explicit
+`SecretStore` boundary; R2E has no production secure-store backend and never
+falls back to environment credentials or the 1.x plaintext provider file.
+
+Provider-status results use `<managed-native-config>` instead of a local path.
+Valid provider-save and wizard calls return a fixed unavailable tool error
+after strict validation, without writing config, opening a listener, launching
+a browser, or echoing the supplied value. Zotero status is explicitly disabled
+with import-file fallback and performs no loopback probe. Route and task tools
+remain preview-only.
+
+The copied-binary acceptance runs with an empty `PATH` and proves initialize,
+all 12 listed names, bounded safe calls, secret/path redaction, and clean EOF
+without Python or Node. This establishes the native development vertical
+slice only. Signed launch grants, plugin/Desktop activation, target packaging,
+provider-secret mutation, Full MCP, agents, UI, installer, and release
+readiness remain R3 or later work.
+
+## R1 command contract (retained)
 
 The native executable composes the verified embedded pack and versioned global
 config service through this first useful command surface:

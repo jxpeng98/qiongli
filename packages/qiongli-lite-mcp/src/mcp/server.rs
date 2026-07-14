@@ -16,25 +16,13 @@ use crate::config::provider_config::{
 };
 use crate::config::wizard::{start_config_wizard, ConfigWizardOptions, WizardError};
 use crate::providers::runtime::ProviderRuntime;
-use crate::providers::search::{
-    execute_bounded_search, limit_for, SearchInput, SearchRequest, PROVIDER_ORDER,
-};
-use crate::searchplan::{
-    build_search_plan, normalize_identifier, SearchPlanInput, PLAN_PROVIDER_ORDER,
-};
+use crate::providers::search::{execute_bounded_search, SearchRequest, PROVIDER_ORDER};
+use crate::searchplan::{build_search_plan, SearchPlanInput, PLAN_PROVIDER_ORDER};
 use crate::tools::definitions::lite_tool_definitions;
 use crate::zotero::companion::probe_zotero_from_env;
 use crate::zotero::export::{export_selected_import_files, ZoteroExportError, ZoteroExportRequest};
 
 const MAX_CONTEXT_LENGTH: usize = 4096;
-const MAX_QUERY_LENGTH: usize = 4096;
-const MAX_PLATFORM_LENGTH: usize = 64;
-const MAX_NATIVE_TOOLS: usize = 8;
-const MAX_QUERY_VARIANTS: usize = 16;
-const MAX_DOCUMENT_TYPES: usize = 32;
-const MAX_FILTER_VALUE_LENGTH: usize = 256;
-const MIN_SEARCH_YEAR: u16 = 1000;
-const MAX_SEARCH_YEAR: u16 = 9999;
 const REDACTED_CONFIG_ERROR: &str = "provider configuration is unavailable";
 const REDACTED_CONFIG_SAVE_ERROR: &str = "provider configuration could not be saved";
 const REDACTED_CONFIG_WIZARD_ERROR: &str = "provider configuration wizard could not start";
@@ -314,9 +302,9 @@ impl McpServer {
     }
 
     fn search_plan(&self, id: Option<Value>, arguments: &Value) -> Value {
-        let mut input = match parse_search_plan_input(arguments, Vec::new()) {
+        let mut input = match SearchPlanInput::from_arguments(arguments, Vec::new()) {
             Ok(input) => input,
-            Err(message) => return self.error(id, -32602, message),
+            Err(error) => return self.error(id, -32602, error.to_string()),
         };
         let active_providers = match self.active_provider_names() {
             Ok(providers) => providers,
@@ -328,47 +316,7 @@ impl McpServer {
     }
 
     fn literature_search(&self, id: Option<Value>, arguments: &Value) -> Value {
-        let Some(query) = arguments.get("query").and_then(Value::as_str) else {
-            return self.error(id, -32602, "Missing query");
-        };
-        if query.trim().is_empty() {
-            return self.error(id, -32602, "query must not be empty");
-        }
-        let search_mode = match parse_search_mode(arguments) {
-            Ok(value) => value,
-            Err(message) => return self.error(id, -32602, message),
-        };
-        let providers = match parse_providers(arguments) {
-            Ok(value) => value,
-            Err(message) => return self.error(id, -32602, message),
-        };
-        let limit = match parse_limit(arguments, "limit", 200) {
-            Ok(value) => value,
-            Err(message) => return self.error(id, -32602, message),
-        };
-        let per_provider_limit = match parse_limit(arguments, "per_provider_limit", 200) {
-            Ok(value) => value,
-            Err(message) => return self.error(id, -32602, message),
-        };
-        let total_limit = match parse_limit(arguments, "total_limit", 1000) {
-            Ok(value) => value,
-            Err(message) => return self.error(id, -32602, message),
-        };
-        let input = SearchInput {
-            query: query.trim().to_string(),
-            search_mode,
-            limit,
-            per_provider_limit,
-            total_limit,
-        };
-        let request = match SearchRequest::from_raw(
-            &input.query,
-            input.search_mode.as_deref(),
-            providers.as_deref(),
-            None,
-            Some(limit_for(&input)),
-            input.total_limit,
-        ) {
+        let request = match SearchRequest::from_arguments(arguments) {
             Ok(request) => request,
             Err(error) => return self.error(id, -32602, error.to_string()),
         };
@@ -377,11 +325,12 @@ impl McpServer {
             Err(error) => return self.tool_error(id, error),
         };
         let plan = build_search_plan(SearchPlanInput {
-            query: input.query.clone(),
-            search_mode: input
-                .search_mode
-                .clone()
-                .unwrap_or_else(|| "topic".to_string()),
+            query: request.query().to_string(),
+            search_mode: arguments
+                .get("search_mode")
+                .and_then(Value::as_str)
+                .unwrap_or("topic")
+                .to_string(),
             platform: "unknown".to_string(),
             native_search_available: false,
             native_search_tools: Vec::new(),
@@ -393,7 +342,7 @@ impl McpServer {
             document_types: Vec::new(),
             active_providers: PROVIDER_ORDER
                 .iter()
-                .filter(|provider| selected_providers_include(provider, providers.as_deref()))
+                .filter(|provider| selected_providers_include(provider, request.providers()))
                 .filter(|provider| runtime.config().is_active(provider))
                 .map(|provider| (*provider).to_string())
                 .collect(),
@@ -672,298 +621,6 @@ fn validate_optional_context(arguments: &Value) -> Result<(), String> {
     Ok(())
 }
 
-fn parse_search_plan_input(
-    arguments: &Value,
-    active_providers: Vec<String>,
-) -> Result<SearchPlanInput, String> {
-    validate_optional_context(arguments)?;
-    let query = required_bounded_string(arguments, "query", MAX_QUERY_LENGTH)?;
-    let platform = optional_alias_string(
-        arguments,
-        &["platform"],
-        "platform",
-        MAX_PLATFORM_LENGTH,
-        false,
-    )?;
-    let platform = match platform {
-        Some(value) if !valid_platform_identifier(&value) => {
-            return Err("platform must be an ASCII identifier".to_string())
-        }
-        Some(value) => normalize_identifier(&value),
-        None => "unknown".to_string(),
-    };
-    let native_search_available = optional_alias_bool(
-        arguments,
-        &[
-            "native_search_available",
-            "native_search_usable",
-            "nativeSearchAvailable",
-        ],
-        "native_search_available",
-    )?
-    .unwrap_or(false);
-    let native_search_tools = optional_alias_string_list(
-        arguments,
-        &["native_search_tools", "nativeSearchTools"],
-        "native_search_tools",
-        MAX_NATIVE_TOOLS,
-        MAX_FILTER_VALUE_LENGTH,
-        true,
-    )?
-    .unwrap_or_default();
-    let query_variants = optional_alias_string_list(
-        arguments,
-        &["query_variants", "queryVariants"],
-        "query_variants",
-        MAX_QUERY_VARIANTS,
-        MAX_QUERY_LENGTH,
-        false,
-    )?
-    .unwrap_or_default();
-    let include_working_papers = optional_alias_bool(
-        arguments,
-        &["include_working_papers", "includeWorkingPapers"],
-        "include_working_papers",
-    )?;
-    let from_year = optional_alias_year(arguments, &["from_year", "fromYear"], "from_year")?;
-    let to_year = optional_alias_year(arguments, &["to_year", "toYear"], "to_year")?;
-    if from_year.zip(to_year).is_some_and(|(from, to)| from > to) {
-        return Err("from_year must be less than or equal to to_year".to_string());
-    }
-    let search_mode =
-        optional_alias_search_mode(arguments, &["search_mode", "searchMode"], "search_mode")?
-            .unwrap_or_else(|| "topic".to_string());
-    let venue_filter = optional_alias_string(
-        arguments,
-        &["venue_filter", "venueFilter"],
-        "venue_filter",
-        MAX_FILTER_VALUE_LENGTH,
-        true,
-    )?
-    .filter(|value| !value.is_empty());
-    let document_types = optional_alias_string_list(
-        arguments,
-        &["document_types", "documentTypes"],
-        "document_types",
-        MAX_DOCUMENT_TYPES,
-        MAX_FILTER_VALUE_LENGTH,
-        false,
-    )?
-    .unwrap_or_default();
-
-    Ok(SearchPlanInput {
-        query,
-        search_mode,
-        platform,
-        native_search_available,
-        native_search_tools,
-        query_variants,
-        include_working_papers,
-        from_year,
-        to_year,
-        venue_filter,
-        document_types,
-        active_providers,
-    })
-}
-
-fn required_bounded_string(
-    arguments: &Value,
-    name: &str,
-    maximum: usize,
-) -> Result<String, String> {
-    let value = arguments
-        .get(name)
-        .ok_or_else(|| format!("Missing {name}"))?
-        .as_str()
-        .ok_or_else(|| format!("{name} must be a string"))?;
-    let normalized = value.trim();
-    if normalized.is_empty() {
-        return Err(format!("{name} must not be empty"));
-    }
-    if value.chars().count() > maximum {
-        return Err(format!("{name} must be at most {maximum} characters"));
-    }
-    Ok(normalized.to_string())
-}
-
-fn one_alias_value<'a>(
-    arguments: &'a Value,
-    names: &[&str],
-    canonical_name: &str,
-) -> Result<Option<&'a Value>, String> {
-    let mut found = None;
-    for name in names {
-        if let Some(value) = arguments.get(name) {
-            if found.is_some() {
-                return Err(format!("conflicting aliases for {canonical_name}"));
-            }
-            found = Some(value);
-        }
-    }
-    Ok(found)
-}
-
-fn optional_alias_bool(
-    arguments: &Value,
-    names: &[&str],
-    canonical_name: &str,
-) -> Result<Option<bool>, String> {
-    one_alias_value(arguments, names, canonical_name)?
-        .map(|value| {
-            value
-                .as_bool()
-                .ok_or_else(|| format!("{canonical_name} must be a boolean"))
-        })
-        .transpose()
-}
-
-fn optional_alias_string(
-    arguments: &Value,
-    names: &[&str],
-    canonical_name: &str,
-    maximum: usize,
-    allow_empty: bool,
-) -> Result<Option<String>, String> {
-    one_alias_value(arguments, names, canonical_name)?
-        .map(|value| {
-            let value = value
-                .as_str()
-                .ok_or_else(|| format!("{canonical_name} must be a string"))?;
-            if value.chars().count() > maximum {
-                return Err(format!(
-                    "{canonical_name} must be at most {maximum} characters"
-                ));
-            }
-            let normalized = value.trim();
-            if !allow_empty && normalized.is_empty() {
-                return Err(format!("{canonical_name} must not be empty"));
-            }
-            Ok(normalized.to_string())
-        })
-        .transpose()
-}
-
-fn valid_platform_identifier(value: &str) -> bool {
-    value
-        .chars()
-        .next()
-        .is_some_and(|character| character.is_ascii_alphanumeric())
-        && value.chars().all(|character| {
-            character.is_ascii_alphanumeric() || matches!(character, ' ' | '_' | '-')
-        })
-}
-
-fn optional_alias_string_list(
-    arguments: &Value,
-    names: &[&str],
-    canonical_name: &str,
-    maximum_items: usize,
-    maximum_item_length: usize,
-    normalize_tools: bool,
-) -> Result<Option<Vec<String>>, String> {
-    let Some(value) = one_alias_value(arguments, names, canonical_name)? else {
-        return Ok(None);
-    };
-    let values = value
-        .as_array()
-        .ok_or_else(|| format!("{canonical_name} must be an array"))?;
-    if values.len() > maximum_items {
-        return Err(format!(
-            "{canonical_name} must contain at most {maximum_items} items"
-        ));
-    }
-    let mut normalized = Vec::with_capacity(values.len());
-    let mut raw_values = Vec::with_capacity(values.len());
-    for value in values {
-        let raw_value = value
-            .as_str()
-            .ok_or_else(|| format!("{canonical_name} must contain strings"))?;
-        if raw_value.chars().count() > maximum_item_length {
-            return Err(format!(
-                "{canonical_name} items must be at most {maximum_item_length} characters"
-            ));
-        }
-        if raw_values.contains(&raw_value) {
-            return Err(format!("{canonical_name} must contain unique values"));
-        }
-        raw_values.push(raw_value);
-        let value = raw_value.trim();
-        if value.is_empty() {
-            return Err(format!("{canonical_name} must not contain empty values"));
-        }
-        let value = if normalize_tools {
-            normalize_identifier(value)
-        } else {
-            value.to_string()
-        };
-        if value.is_empty() {
-            return Err(format!("{canonical_name} must contain valid identifiers"));
-        }
-        let duplicate_key = value.to_lowercase();
-        if normalized
-            .iter()
-            .any(|candidate: &String| candidate.to_lowercase() == duplicate_key)
-        {
-            return Err(format!("{canonical_name} must contain unique values"));
-        }
-        normalized.push(value);
-    }
-    Ok(Some(normalized))
-}
-
-fn optional_alias_year(
-    arguments: &Value,
-    names: &[&str],
-    canonical_name: &str,
-) -> Result<Option<u16>, String> {
-    let Some(value) = one_alias_value(arguments, names, canonical_name)? else {
-        return Ok(None);
-    };
-    let parsed = if let Some(value) = value.as_u64() {
-        u16::try_from(value).ok()
-    } else if let Some(value) = value.as_str() {
-        (value.len() == 4 && value.bytes().all(|byte| byte.is_ascii_digit()))
-            .then(|| value.parse::<u16>().ok())
-            .flatten()
-    } else {
-        None
-    }
-    .ok_or_else(|| format!("{canonical_name} must be a four-digit year"))?;
-    if !(MIN_SEARCH_YEAR..=MAX_SEARCH_YEAR).contains(&parsed) {
-        return Err(format!(
-            "{canonical_name} must be between {MIN_SEARCH_YEAR} and {MAX_SEARCH_YEAR}"
-        ));
-    }
-    Ok(Some(parsed))
-}
-
-fn optional_alias_search_mode(
-    arguments: &Value,
-    names: &[&str],
-    canonical_name: &str,
-) -> Result<Option<String>, String> {
-    let Some(value) = one_alias_value(arguments, names, canonical_name)? else {
-        return Ok(None);
-    };
-    let value = value
-        .as_str()
-        .ok_or_else(|| format!("{canonical_name} must be a string"))?;
-    if ![
-        "auto",
-        "topic",
-        "title",
-        "doi",
-        "review",
-        "systematic_review",
-    ]
-    .contains(&value)
-    {
-        return Err("unsupported search_mode".to_string());
-    }
-    Ok(Some(value.to_string()))
-}
-
 fn active_providers_from_summary(
     status: &crate::config::provider_config::ProviderSummary,
 ) -> Vec<String> {
@@ -1010,57 +667,12 @@ fn lite_provider_capabilities() -> Value {
     })
 }
 
-fn parse_limit(arguments: &Value, name: &str, maximum: usize) -> Result<Option<usize>, String> {
-    let Some(value) = arguments.get(name) else {
-        return Ok(None);
-    };
-    let value = value
-        .as_u64()
-        .ok_or_else(|| format!("{name} must be an integer"))?;
-    if value == 0 || value > maximum as u64 {
-        return Err(format!("{name} must be between 1 and {maximum}"));
-    }
-    Ok(Some(value as usize))
-}
-
-fn parse_search_mode(arguments: &Value) -> Result<Option<String>, String> {
-    let Some(value) = arguments.get("search_mode") else {
-        return Ok(None);
-    };
-    let value = value
-        .as_str()
-        .ok_or_else(|| "search_mode must be a string".to_string())?;
-    if !["auto", "topic", "review", "systematic_review"].contains(&value) {
-        return Err("unsupported search_mode".to_string());
-    }
-    Ok(Some(value.to_string()))
-}
-
-fn parse_providers(arguments: &Value) -> Result<Option<Vec<String>>, String> {
-    let Some(value) = arguments.get("providers") else {
-        return Ok(None);
-    };
-    let values = value
-        .as_array()
-        .ok_or_else(|| "providers must be an array".to_string())?;
-    if values.is_empty() {
-        return Err("providers must not be empty".to_string());
-    }
-    let mut providers = Vec::new();
-    for value in values {
-        let provider = value
-            .as_str()
-            .ok_or_else(|| "providers must contain strings".to_string())?;
-        if !PROVIDER_ORDER.contains(&provider) {
-            return Err("unsupported provider".to_string());
-        }
-        if !providers.iter().any(|candidate| candidate == provider) {
-            providers.push(provider.to_string());
-        }
-    }
-    Ok(Some(providers))
-}
-
-fn selected_providers_include(provider: &str, selected: Option<&[String]>) -> bool {
-    selected.is_none_or(|providers| providers.iter().any(|candidate| candidate == provider))
+fn selected_providers_include(
+    provider: &str,
+    selected: Option<&[qiongli_runtime::providers::ProviderId]>,
+) -> bool {
+    selected.is_none_or(|providers| {
+        qiongli_runtime::providers::ProviderId::parse(provider)
+            .is_ok_and(|candidate| providers.contains(&candidate))
+    })
 }
