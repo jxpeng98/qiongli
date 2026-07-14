@@ -50,13 +50,13 @@ publish without explicit maintainer authority.
 
 ## Task 3 — Materialize Local Integrations
 
-- [ ] Compose or replay the R3I native payload from the verified candidate.
-- [ ] Compose and verify the fixed R3D or R3E plugin source from the installed
+- [x] Compose or replay the R3I native payload from the verified candidate.
+- [x] Compose and verify the fixed R3D or R3E plugin source from the installed
   target-native binary.
-- [ ] Preview and apply the R3L registration using the exact three approvals.
-- [ ] Verify after every fresh mutation and compensate only fresh committed
+- [x] Preview and apply the R3L registration using the exact three approvals.
+- [x] Verify after every fresh mutation and compensate only fresh committed
   steps in reverse order.
-- [ ] Preserve client-owned cache, enablement, registry, settings, and trust as
+- [x] Preserve client-owned cache, enablement, registry, settings, and trust as
   explicit outstanding host actions.
 
 ## Task 4 — Expose The Product Journey

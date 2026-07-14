@@ -15,7 +15,8 @@ use qiongli_platform::{
     LaunchGrantV1, OperatingSystem, ProductId, ReleaseChannel, SignatureAlgorithm,
     SignedLaunchGrantV1, TrustedPublicKey, VerifiedLaunchGrant, approve_codex_plugin_bundle_target,
     approve_install_plan, compose_codex_plugin_bundle, discover_codex_user,
-    launch_grant_signing_bytes, preview_codex_registration, verify_codex_plugin_bundle,
+    launch_grant_signing_bytes, preview_codex_registration, remove_codex_plugin_bundle,
+    verify_codex_plugin_bundle,
 };
 use qiongli_runtime::LITE_PUBLIC_TOOL_NAMES;
 use serde_json::{Value, json};
@@ -315,6 +316,27 @@ fn complete_bundle_is_deterministic_tamper_evident_and_runtime_independent() {
     assert_eq!(
         verify_codex_plugin_bundle(&target).unwrap_err(),
         CodexPluginBundleError::BundleDrift
+    );
+    assert_eq!(
+        remove_codex_plugin_bundle(&target).unwrap_err(),
+        CodexPluginBundleError::BundleDrift
+    );
+    fs::write(&packaged_binary, fs::read(&fixture.source_binary).unwrap()).unwrap();
+    let canary = target_path.parent().unwrap().join("user-canary");
+    fs::write(&canary, b"preserve").unwrap();
+
+    let removed = remove_codex_plugin_bundle(&target).unwrap();
+    assert_eq!(removed, composed);
+    assert!(!target_path.exists());
+    assert_eq!(fs::read(&canary).unwrap(), b"preserve");
+    assert!(
+        fs::read_dir(target_path.parent().unwrap())
+            .unwrap()
+            .flatten()
+            .all(|entry| !entry
+                .file_name()
+                .to_string_lossy()
+                .contains("qiongli-codex-remove"))
     );
 }
 

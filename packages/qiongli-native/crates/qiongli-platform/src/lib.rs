@@ -1,4 +1,6 @@
 mod activation;
+mod candidate_install;
+mod candidate_source;
 mod claude;
 mod claude_bundle;
 mod codex;
@@ -22,6 +24,17 @@ pub use activation::{
     ClientActivationLifecycleDisposition, ClientActivationPreview, ClientActivationState,
     ClientActivationTarget, ClientActivationVerification, discover_client_activation,
     preview_client_activation,
+};
+pub use candidate_install::{
+    NativeCandidateLocalInstallCommit, NativeCandidateLocalInstallError,
+    NativeCandidateRegistrationCommit, apply_native_release_candidate_local,
+};
+pub use candidate_source::{
+    NativeCandidatePluginSourceCommit, NativeCandidatePluginSourceDisposition,
+    NativeCandidatePluginSourceError, NativeCandidatePluginSourceTarget,
+    NativeCandidatePluginSourceVerification, materialize_native_candidate_plugin_source,
+    prepare_native_candidate_plugin_source_target, remove_native_candidate_plugin_source,
+    verify_native_candidate_plugin_source,
 };
 pub use claude::{
     CLAUDE_ADAPTER_SCHEMA_VERSION, CLAUDE_MARKETPLACE_SYMBOLIC_PATH,
@@ -59,7 +72,8 @@ pub use codex_bundle::{
     CODEX_PLUGIN_BUNDLE_RECEIPT_FILE, CODEX_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION,
     CodexPluginBundleEntryV1, CodexPluginBundleError, CodexPluginBundleKind,
     CodexPluginBundleReceiptV1, CodexPluginBundleTarget, VerifiedCodexPluginBundle,
-    approve_codex_plugin_bundle_target, compose_codex_plugin_bundle, verify_codex_plugin_bundle,
+    approve_codex_plugin_bundle_target, compose_codex_plugin_bundle, remove_codex_plugin_bundle,
+    verify_codex_plugin_bundle,
 };
 pub use error::PlatformError;
 pub use grant::{

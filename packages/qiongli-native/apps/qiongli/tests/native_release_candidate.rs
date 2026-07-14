@@ -6,17 +6,28 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use ed25519_dalek::{Signer, SigningKey};
+use qiongli_content::{
+    CompatibleProduct, ResourcePackBuildMetadata, build_resource_pack, collect_canonical_sources,
+    load_resource_pack,
+};
 use qiongli_platform::{
-    ClientActivationTarget, GrantMode, GrantSignatureV1, InstallerKind, IntegrationScope,
-    LaunchGrantV1, NativeClientPluginGrantV1, NativeReleaseAuthority, NativeReleaseCandidateError,
-    NativeReleaseCandidateVerificationContext, NativeReleaseSignatureV1, ReleaseChannel,
-    SignatureAlgorithm, SignedLaunchGrantV1, SignedNativeReleaseCandidateV1,
-    SignedNativeReleaseEnvelopeV1, approve_native_artifact_target,
+    AllowedRootV1, ClaudeRegistrationDisposition, ClaudeRegistrationExecutor,
+    ClientActivationTarget, CodexAdapterError, CodexRegistrationDisposition,
+    CodexRegistrationExecutor, GrantMode, GrantSignatureV1, InstallDisposition, InstallerKind,
+    IntegrationScope, LaunchGrantV1, ManagedNativePayloadExecutor,
+    NativeCandidateLocalInstallError, NativeCandidatePluginSourceDisposition,
+    NativeCandidatePluginSourceError, NativeCandidateRegistrationCommit, NativeClientPluginGrantV1,
+    NativeReleaseAuthority, NativeReleaseCandidateError, NativeReleaseCandidateVerificationContext,
+    NativeReleaseSignatureV1, ReleaseChannel, SignatureAlgorithm, SignedLaunchGrantV1,
+    SignedNativeReleaseCandidateV1, SignedNativeReleaseEnvelopeV1, SymbolicRoot,
+    apply_native_release_candidate_local, approve_managed_root, approve_native_artifact_target,
     approve_native_portable_archive_target, build_native_release_candidate,
     build_native_release_envelope, compose_native_artifact, compose_native_portable_archive,
-    current_target_native_artifact_identity, launch_grant_signing_bytes, native_artifact_id,
+    current_target_native_artifact_identity, discover_claude_user, discover_codex_user,
+    launch_grant_signing_bytes, materialize_native_candidate_plugin_source, native_artifact_id,
     native_portable_archive_file_name, native_release_candidate_signing_bytes,
-    native_release_envelope_signing_bytes,
+    native_release_envelope_signing_bytes, prepare_native_candidate_plugin_source_target,
+    remove_native_candidate_plugin_source, verify_native_candidate_plugin_source,
 };
 use serde_json::json;
 
@@ -24,6 +35,20 @@ static NEXT_FIXTURE_ID: AtomicU64 = AtomicU64::new(0);
 const NOW: u64 = 1_750_000_000;
 const SOURCE_COMMIT: &str = "89abcdef0123456789abcdef0123456789abcdef";
 const NOTES: &[u8] = b"# Qiongli 2.0.0-alpha.1\n\nLite local release candidate.\n";
+const CONTENT_ROOTS: [&str; 12] = [
+    ".claude-plugin",
+    ".codex-plugin",
+    "distribution",
+    "mcp-contracts",
+    "roles",
+    "schemas",
+    "skills",
+    "standards",
+    "subjects",
+    "templates",
+    "venue-profiles",
+    "workflow",
+];
 
 struct Fixture {
     root: PathBuf,
@@ -209,10 +234,54 @@ fn corrupt_hex(value: &mut String) {
     value.replace_range(0..1, replacement);
 }
 
+fn minimal_pack(root: &Path) -> qiongli_content::BuiltResourcePack {
+    let content_root = root.join("minimal-content");
+    fs::create_dir(&content_root).expect("minimal content root must be created");
+    for directory in CONTENT_ROOTS {
+        fs::create_dir_all(content_root.join(directory))
+            .expect("canonical content directory must be created");
+    }
+    fs::write(content_root.join("skills-core.md"), b"minimal core")
+        .expect("core fixture must write");
+    fs::write(content_root.join("skills-summary.md"), b"minimal summary")
+        .expect("summary fixture must write");
+    fs::write(
+        content_root.join(".codex-plugin/plugin.json"),
+        br#"{"name":"qiongli","version":"0.0.0"}"#,
+    )
+    .expect("Codex manifest fixture must write");
+    fs::write(
+        content_root.join(".claude-plugin/plugin.json"),
+        br#"{"name":"qiongli","version":"0.0.0"}"#,
+    )
+    .expect("Claude manifest fixture must write");
+    fs::write(
+        content_root.join("workflow/SKILL.md"),
+        b"---\nname: qiongli-workflow\ndescription: minimal candidate fixture\n---\n",
+    )
+    .expect("workflow fixture must write");
+    let resources = collect_canonical_sources(&content_root).expect("minimal content must collect");
+    build_resource_pack(
+        &ResourcePackBuildMetadata {
+            pack_id: "qiongli-core".to_string(),
+            content_version: "1.19.0-beta.1".to_string(),
+            source_commit: SOURCE_COMMIT.to_string(),
+            compatible_product: CompatibleProduct {
+                minimum: "2.0.0-alpha.1".to_string(),
+                maximum_exclusive: "3.0.0".to_string(),
+            },
+        },
+        &resources,
+    )
+    .expect("minimal resource pack must build")
+}
+
 #[test]
 fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
     let fixture = Fixture::new("complete-candidate");
-    let content = qiongli::embedded_content().expect("embedded content must verify");
+    let built_pack = minimal_pack(&fixture.root);
+    let content = load_resource_pack(built_pack.core_bytes(), built_pack.pack_sha256())
+        .expect("minimal content must verify");
     let artifact =
         current_target_native_artifact_identity(env!("CARGO_PKG_VERSION"), ReleaseChannel::Alpha)
             .expect("current target artifact must resolve");
@@ -221,7 +290,7 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
     let artifact_target = approve_native_artifact_target(&artifact_path, &artifact)
         .expect("artifact target must approve");
     let assembled = compose_native_artifact(
-        content.pack(),
+        &content,
         &artifact,
         &fixture.source_binary,
         &artifact_target,
@@ -232,9 +301,8 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
     let archive_path = fixture.target("archive", &archive_name);
     let archive_target = approve_native_portable_archive_target(&archive_path, &artifact)
         .expect("archive target must approve");
-    let archive =
-        compose_native_portable_archive(content.pack(), &artifact_target, &archive_target)
-            .expect("portable archive must compose");
+    let archive = compose_native_portable_archive(&content, &artifact_target, &archive_target)
+        .expect("portable archive must compose");
 
     let launch_key = SigningKey::from_bytes(&[101_u8; 32]);
     let release_key = SigningKey::from_bytes(&[102_u8; 32]);
@@ -244,7 +312,7 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
             generation: 23,
             artifact: artifact.clone(),
             binary_sha256: assembled.manifest().binary_sha256.clone(),
-            resource_pack_sha256: content.pack().pack_sha256().to_string(),
+            resource_pack_sha256: content.pack_sha256().to_string(),
             allowed_modes: vec![GrantMode::LiteMcp],
             integration_scopes: vec![
                 IntegrationScope::CodexLocal,
@@ -278,14 +346,14 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
                 &artifact,
                 ClientActivationTarget::Codex,
                 &assembled.manifest().binary_sha256,
-                content.pack().pack_sha256(),
+                content.pack_sha256(),
                 &launch_key,
             ),
             plugin_grant(
                 &artifact,
                 ClientActivationTarget::ClaudeCode,
                 &assembled.manifest().binary_sha256,
-                content.pack().pack_sha256(),
+                content.pack_sha256(),
                 &launch_key,
             ),
         ],
@@ -313,13 +381,7 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
         requested_target: ClientActivationTarget::Codex,
     };
     let codex = signed_candidate
-        .verify(
-            &authority,
-            &codex_context,
-            content.pack(),
-            &archive_target,
-            NOTES,
-        )
+        .verify(&authority, &codex_context, &content, &archive_target, NOTES)
         .expect("Codex candidate must verify");
     assert_eq!(codex.target(), ClientActivationTarget::Codex);
     assert_eq!(
@@ -338,7 +400,7 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
         .verify(
             &authority,
             &claude_context,
-            content.pack(),
+            &content,
             &archive_target,
             NOTES,
         )
@@ -348,12 +410,231 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
         claude.plugin_grant().authorized_scope(),
         IntegrationScope::ClaudeCodeLocal
     );
+
+    let home = fixture.root.join("home");
+    create_private_directory(&home);
+    let codex_source =
+        prepare_native_candidate_plugin_source_target(&home, ClientActivationTarget::Codex)
+            .expect("fixed Codex source target must prepare");
+    let codex_materialized = materialize_native_candidate_plugin_source(
+        &content,
+        &codex,
+        &fixture.source_binary,
+        &codex_source,
+    )
+    .expect("Codex candidate source must materialize");
+    assert_eq!(
+        codex_materialized.disposition,
+        NativeCandidatePluginSourceDisposition::Materialized
+    );
+    let codex_replayed = materialize_native_candidate_plugin_source(
+        &content,
+        &codex,
+        &fixture.source_binary,
+        &codex_source,
+    )
+    .expect("healthy Codex source must replay");
+    assert_eq!(
+        codex_replayed.disposition,
+        NativeCandidatePluginSourceDisposition::AlreadyHealthy
+    );
+    assert_eq!(
+        codex_replayed.verification,
+        verify_native_candidate_plugin_source(&codex_source).unwrap()
+    );
+
+    let claude_source =
+        prepare_native_candidate_plugin_source_target(&home, ClientActivationTarget::ClaudeCode)
+            .expect("fixed Claude source target must prepare");
+    assert_eq!(
+        materialize_native_candidate_plugin_source(
+            &content,
+            &codex,
+            &fixture.source_binary,
+            &claude_source,
+        )
+        .unwrap_err(),
+        NativeCandidatePluginSourceError::TargetMismatch
+    );
+    let claude_materialized = materialize_native_candidate_plugin_source(
+        &content,
+        &claude,
+        &fixture.source_binary,
+        &claude_source,
+    )
+    .expect("Claude candidate source must materialize");
+    assert_eq!(
+        claude_materialized.disposition,
+        NativeCandidatePluginSourceDisposition::Materialized
+    );
+    let canary = home.join("user-canary");
+    fs::write(&canary, b"preserve").unwrap();
+    assert_eq!(
+        remove_native_candidate_plugin_source(&claude_source).unwrap(),
+        claude_materialized.verification
+    );
+    assert_eq!(
+        remove_native_candidate_plugin_source(&codex_source).unwrap(),
+        codex_materialized.verification
+    );
+    assert_eq!(fs::read(canary).unwrap(), b"preserve");
+
+    let codex_managed_path = fixture.root.join("codex-managed");
+    create_private_directory(&codex_managed_path);
+    let codex_root = AllowedRootV1 {
+        id: "candidate-codex-data".to_string(),
+        root: SymbolicRoot::QiongliManagedData,
+    };
+    let codex_managed = approve_managed_root(&codex_root, &codex_managed_path).unwrap();
+    let codex_install = apply_native_release_candidate_local(
+        &content,
+        &codex,
+        &home,
+        codex_managed.clone(),
+        NOW + 2,
+    )
+    .expect("Codex candidate journey must apply");
+    assert_eq!(
+        codex_install.payload.disposition,
+        InstallDisposition::Applied
+    );
+    assert_eq!(
+        codex_install.source.disposition,
+        NativeCandidatePluginSourceDisposition::Materialized
+    );
+    assert!(matches!(
+        codex_install.registration,
+        NativeCandidateRegistrationCommit::Codex(ref commit)
+            if commit.disposition == CodexRegistrationDisposition::Registered
+    ));
+    let codex_replay = apply_native_release_candidate_local(
+        &content,
+        &codex,
+        &home,
+        codex_managed.clone(),
+        NOW + 3,
+    )
+    .expect("Codex candidate journey must replay");
+    assert_eq!(
+        codex_replay.payload.disposition,
+        InstallDisposition::AlreadyApplied
+    );
+    assert_eq!(
+        codex_replay.source.disposition,
+        NativeCandidatePluginSourceDisposition::AlreadyHealthy
+    );
+    assert!(matches!(
+        codex_replay.registration,
+        NativeCandidateRegistrationCommit::Codex(ref commit)
+            if commit.disposition == CodexRegistrationDisposition::AlreadyRegistered
+    ));
+    CodexRegistrationExecutor::new(discover_codex_user(&home).unwrap())
+        .remove(NOW + 4)
+        .unwrap();
+    let codex_source =
+        prepare_native_candidate_plugin_source_target(&home, ClientActivationTarget::Codex)
+            .unwrap();
+    remove_native_candidate_plugin_source(&codex_source).unwrap();
+    ManagedNativePayloadExecutor::new(codex_managed)
+        .remove(&codex_install.payload.receipt.install_id, &content, NOW + 5)
+        .unwrap();
+
+    let claude_home = fixture.root.join("claude-home");
+    create_private_directory(&claude_home);
+    let claude_managed_path = fixture.root.join("claude-managed");
+    create_private_directory(&claude_managed_path);
+    let claude_root = AllowedRootV1 {
+        id: "candidate-claude-data".to_string(),
+        root: SymbolicRoot::QiongliManagedData,
+    };
+    let claude_managed = approve_managed_root(&claude_root, &claude_managed_path).unwrap();
+    let claude_install = apply_native_release_candidate_local(
+        &content,
+        &claude,
+        &claude_home,
+        claude_managed.clone(),
+        NOW + 2,
+    )
+    .expect("Claude candidate journey must apply");
+    assert_eq!(
+        claude_install.payload.disposition,
+        InstallDisposition::Applied
+    );
+    assert_eq!(
+        claude_install.source.disposition,
+        NativeCandidatePluginSourceDisposition::Materialized
+    );
+    assert!(matches!(
+        claude_install.registration,
+        NativeCandidateRegistrationCommit::ClaudeCode(ref commit)
+            if commit.disposition == ClaudeRegistrationDisposition::Registered
+    ));
+    ClaudeRegistrationExecutor::new(discover_claude_user(&claude_home).unwrap())
+        .remove(NOW + 4)
+        .unwrap();
+    let claude_source = prepare_native_candidate_plugin_source_target(
+        &claude_home,
+        ClientActivationTarget::ClaudeCode,
+    )
+    .unwrap();
+    remove_native_candidate_plugin_source(&claude_source).unwrap();
+    ManagedNativePayloadExecutor::new(claude_managed)
+        .remove(
+            &claude_install.payload.receipt.install_id,
+            &content,
+            NOW + 5,
+        )
+        .unwrap();
+
+    let conflict_home = fixture.root.join("conflict-home");
+    create_private_directory(&conflict_home);
+    let agents = conflict_home.join(".agents");
+    create_private_directory(&agents);
+    let agent_plugins = agents.join("plugins");
+    create_private_directory(&agent_plugins);
+    let conflict_marketplace = serde_json::to_vec(&json!({
+        "plugins": [{
+            "name": "qiongli",
+            "source": {"source": "local", "path": "./someone-else"},
+            "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+            "category": "Education"
+        }]
+    }))
+    .unwrap();
+    let marketplace_path = agent_plugins.join("marketplace.json");
+    fs::write(&marketplace_path, &conflict_marketplace).unwrap();
+    let conflict_managed_path = fixture.root.join("conflict-managed");
+    create_private_directory(&conflict_managed_path);
+    let conflict_root = AllowedRootV1 {
+        id: "candidate-conflict-data".to_string(),
+        root: SymbolicRoot::QiongliManagedData,
+    };
+    let conflict_managed = approve_managed_root(&conflict_root, &conflict_managed_path).unwrap();
+    assert_eq!(
+        apply_native_release_candidate_local(
+            &content,
+            &codex,
+            &conflict_home,
+            conflict_managed,
+            NOW + 6,
+        )
+        .unwrap_err(),
+        NativeCandidateLocalInstallError::Codex(CodexAdapterError::RegistrationConflict)
+    );
+    assert!(!conflict_managed_path.join(&artifact_id).exists());
+    assert!(
+        !conflict_home
+            .join(".qiongli/plugins/codex/qiongli")
+            .exists()
+    );
+    assert_eq!(fs::read(marketplace_path).unwrap(), conflict_marketplace);
+
     assert_eq!(
         signed_candidate
             .verify(
                 &authority,
                 &codex_context,
-                content.pack(),
+                &content,
                 &archive_target,
                 b"tampered notes",
             )
@@ -366,13 +647,7 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
     };
     assert_eq!(
         signed_candidate
-            .verify(
-                &authority,
-                &wrong_source,
-                content.pack(),
-                &archive_target,
-                NOTES,
-            )
+            .verify(&authority, &wrong_source, &content, &archive_target, NOTES,)
             .unwrap_err(),
         NativeReleaseCandidateError::CandidateSourceMismatch
     );
@@ -381,13 +656,7 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
     corrupt_hex(&mut bad_signature.signature.value_hex);
     assert_eq!(
         bad_signature
-            .verify(
-                &authority,
-                &codex_context,
-                content.pack(),
-                &archive_target,
-                NOTES,
-            )
+            .verify(&authority, &codex_context, &content, &archive_target, NOTES,)
             .unwrap_err(),
         NativeReleaseCandidateError::SignatureInvalid
     );
@@ -398,13 +667,7 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
     };
     assert_eq!(
         signed_candidate
-            .verify(
-                &authority,
-                &not_yet_valid,
-                content.pack(),
-                &archive_target,
-                NOTES,
-            )
+            .verify(&authority, &not_yet_valid, &content, &archive_target, NOTES,)
             .unwrap_err(),
         NativeReleaseCandidateError::CandidateNotYetValid
     );
@@ -414,7 +677,7 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
     };
     assert_eq!(
         signed_candidate
-            .verify(&authority, &expired, content.pack(), &archive_target, NOTES,)
+            .verify(&authority, &expired, &content, &archive_target, NOTES,)
             .unwrap_err(),
         NativeReleaseCandidateError::CandidateExpired
     );
@@ -425,7 +688,7 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
             .verify(
                 &stale_authority,
                 &codex_context,
-                content.pack(),
+                &content,
                 &archive_target,
                 NOTES,
             )
@@ -438,7 +701,7 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
             .verify(
                 &beta_authority,
                 &codex_context,
-                content.pack(),
+                &content,
                 &archive_target,
                 NOTES,
             )
@@ -450,13 +713,7 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
     untrusted.signature.key_id = "other-release-key".to_string();
     assert_eq!(
         untrusted
-            .verify(
-                &authority,
-                &codex_context,
-                content.pack(),
-                &archive_target,
-                NOTES,
-            )
+            .verify(&authority, &codex_context, &content, &archive_target, NOTES,)
             .unwrap_err(),
         NativeReleaseCandidateError::ReleaseKeyUntrusted
     );
@@ -472,13 +729,7 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
     let bad_portable = resign_candidate(bad_portable, &release_key);
     assert_eq!(
         bad_portable
-            .verify(
-                &authority,
-                &codex_context,
-                content.pack(),
-                &archive_target,
-                NOTES,
-            )
+            .verify(&authority, &codex_context, &content, &archive_target, NOTES,)
             .unwrap_err(),
         NativeReleaseCandidateError::PortableReleaseInvalid
     );
@@ -493,13 +744,7 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
     let bad_plugin = resign_candidate(bad_plugin, &release_key);
     assert_eq!(
         bad_plugin
-            .verify(
-                &authority,
-                &codex_context,
-                content.pack(),
-                &archive_target,
-                NOTES,
-            )
+            .verify(&authority, &codex_context, &content, &archive_target, NOTES,)
             .unwrap_err(),
         NativeReleaseCandidateError::PluginGrantInvalid
     );

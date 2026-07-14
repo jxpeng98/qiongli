@@ -448,6 +448,21 @@ pub fn discover_codex_user(home: impl AsRef<Path>) -> Result<CodexUserTarget, Co
     })
 }
 
+pub(crate) fn prepare_codex_plugin_source_target(
+    home: impl AsRef<Path>,
+) -> Result<crate::CodexPluginBundleTarget, CodexAdapterError> {
+    let home = home.as_ref();
+    validate_home(home)?;
+    let qiongli_root = home.join(".qiongli");
+    ensure_private_directory(&qiongli_root)?;
+    let plugin_root = qiongli_root.join("plugins");
+    ensure_private_directory(&plugin_root)?;
+    let state_root = plugin_root.join("codex");
+    ensure_owner_private_directory(&state_root)?;
+    crate::approve_codex_plugin_bundle_target(state_root.join(PLUGIN_SOURCE_LEAF))
+        .map_err(|_| CodexAdapterError::UnsafePath)
+}
+
 pub fn preview_codex_registration(
     target: &CodexUserTarget,
     metadata: InstallPlanMetadataV1,
@@ -1408,6 +1423,17 @@ fn prepare_marketplace_parent(path: &Path) -> Result<(), CodexAdapterError> {
 fn ensure_private_directory(path: &Path) -> Result<(), CodexAdapterError> {
     match fs::symlink_metadata(path) {
         Ok(_) => validate_directory(path, false),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {
+            create_private_directory(path)?;
+            validate_directory(path, true)
+        }
+        Err(error) => Err(CodexAdapterError::PersistenceFailed(error.kind())),
+    }
+}
+
+fn ensure_owner_private_directory(path: &Path) -> Result<(), CodexAdapterError> {
+    match fs::symlink_metadata(path) {
+        Ok(_) => validate_directory(path, true),
         Err(error) if error.kind() == io::ErrorKind::NotFound => {
             create_private_directory(path)?;
             validate_directory(path, true)

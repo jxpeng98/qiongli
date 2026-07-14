@@ -44,6 +44,7 @@ const MARKETPLACE_RELATIVE_PATH: [&str; 6] = [
 ];
 const STATE_ROOT_RELATIVE_PATH: [&str; 4] = [".qiongli", "plugins", "claude-code", ""];
 const PLUGIN_SOURCE_RELATIVE_PATH: [&str; 3] = ["qiongli-local", "plugins", "qiongli"];
+const PLUGIN_SOURCE_LEAF: &str = "qiongli";
 const INSTALL_ID: &str = "qiongli-claude-code-user";
 const ROOT_ID: &str = "claude-marketplace-source";
 const ENTRY_KEY: &str = "qiongli";
@@ -488,6 +489,25 @@ pub fn discover_claude_user_with_config(
             registration,
         },
     })
+}
+
+pub(crate) fn prepare_claude_plugin_source_target(
+    home: impl AsRef<Path>,
+) -> Result<crate::ClaudePluginBundleTarget, ClaudeAdapterError> {
+    let home = home.as_ref();
+    validate_home(home)?;
+    let qiongli_root = home.join(".qiongli");
+    ensure_private_directory(&qiongli_root)?;
+    let plugin_root = qiongli_root.join("plugins");
+    ensure_private_directory(&plugin_root)?;
+    let state_root = plugin_root.join("claude-code");
+    ensure_owner_private_directory(&state_root)?;
+    let marketplace_root = state_root.join("qiongli-local");
+    ensure_owner_private_directory(&marketplace_root)?;
+    let marketplace_plugins = marketplace_root.join("plugins");
+    ensure_owner_private_directory(&marketplace_plugins)?;
+    crate::approve_claude_plugin_bundle_target(marketplace_plugins.join(PLUGIN_SOURCE_LEAF))
+        .map_err(|_| ClaudeAdapterError::UnsafePath)
 }
 
 fn discover_skills_plugin(
@@ -1475,6 +1495,17 @@ fn prepare_marketplace_parent(path: &Path) -> Result<(), ClaudeAdapterError> {
 fn ensure_private_directory(path: &Path) -> Result<(), ClaudeAdapterError> {
     match fs::symlink_metadata(path) {
         Ok(_) => validate_directory(path, false),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {
+            create_private_directory(path)?;
+            validate_directory(path, true)
+        }
+        Err(error) => Err(ClaudeAdapterError::PersistenceFailed(error.kind())),
+    }
+}
+
+fn ensure_owner_private_directory(path: &Path) -> Result<(), ClaudeAdapterError> {
+    match fs::symlink_metadata(path) {
+        Ok(_) => validate_directory(path, true),
         Err(error) if error.kind() == io::ErrorKind::NotFound => {
             create_private_directory(path)?;
             validate_directory(path, true)

@@ -332,6 +332,67 @@ pub fn verify_codex_plugin_bundle(
     verify_bundle_tree(target.path())
 }
 
+/// Removes only an exact receipt-verified Codex plugin bundle.
+///
+/// The target is moved to a transaction-owned sibling quarantine before it is
+/// deleted. Drifted, linked, or unreceipted targets are preserved and rejected.
+pub fn remove_codex_plugin_bundle(
+    target: &CodexPluginBundleTarget,
+) -> Result<VerifiedCodexPluginBundle, CodexPluginBundleError> {
+    revalidate_target(target)?;
+    let initial = verify_bundle_tree(target.path())?;
+    let _lock = TargetLock::acquire(target)?;
+    revalidate_target(target)?;
+    let current = verify_bundle_tree(target.path())?;
+    if current != initial {
+        return Err(CodexPluginBundleError::BundleDrift);
+    }
+
+    let parent = target
+        .path()
+        .parent()
+        .ok_or(CodexPluginBundleError::InvalidTarget)?;
+    let quarantine = create_removal_quarantine_path(parent)?;
+    let before =
+        Handle::from_path(target.path()).map_err(|_| CodexPluginBundleError::BundleDrift)?;
+    let rechecked = verify_bundle_tree(target.path())?;
+    let after =
+        Handle::from_path(target.path()).map_err(|_| CodexPluginBundleError::BundleDrift)?;
+    if before != after || rechecked != initial {
+        return Err(CodexPluginBundleError::BundleDrift);
+    }
+
+    rename_no_replace(target.path(), &quarantine)?;
+    sync_directory(parent).map_err(committed_persistence_error)?;
+    let quarantined = verify_bundle_tree(&quarantine)
+        .map_err(|_| CodexPluginBundleError::CommittedVerificationFailed)?;
+    if quarantined != initial {
+        return Err(CodexPluginBundleError::CommittedVerificationFailed);
+    }
+    let quarantine_before = Handle::from_path(&quarantine)
+        .map_err(|_| CodexPluginBundleError::CommittedVerificationFailed)?;
+    let final_check = verify_bundle_tree(&quarantine)
+        .map_err(|_| CodexPluginBundleError::CommittedVerificationFailed)?;
+    let quarantine_after = Handle::from_path(&quarantine)
+        .map_err(|_| CodexPluginBundleError::CommittedVerificationFailed)?;
+    if quarantine_before != quarantine_after || final_check != initial {
+        return Err(CodexPluginBundleError::CommittedVerificationFailed);
+    }
+    fs::remove_dir_all(&quarantine)
+        .map_err(|error| CodexPluginBundleError::CommittedPersistenceFailed(error.kind()))?;
+    sync_directory(parent).map_err(committed_persistence_error)?;
+    Ok(initial)
+}
+
+fn committed_persistence_error(error: CodexPluginBundleError) -> CodexPluginBundleError {
+    match error {
+        CodexPluginBundleError::PersistenceFailed(kind) => {
+            CodexPluginBundleError::CommittedPersistenceFailed(kind)
+        }
+        other => other,
+    }
+}
+
 fn validate_composition_identity(
     pack: &LoadedResourcePack<'_>,
     grant: &VerifiedLaunchGrant,
@@ -1341,6 +1402,22 @@ fn create_staging_directory(parent: &Path) -> Result<PathBuf, CodexPluginBundleE
             Ok(()) => return Ok(path),
             Err(CodexPluginBundleError::PersistenceFailed(io::ErrorKind::AlreadyExists)) => {}
             Err(error) => return Err(error),
+        }
+    }
+    Err(CodexPluginBundleError::PersistenceFailed(
+        io::ErrorKind::AlreadyExists,
+    ))
+}
+
+fn create_removal_quarantine_path(parent: &Path) -> Result<PathBuf, CodexPluginBundleError> {
+    for _ in 0..128 {
+        let path = parent.join(format!(
+            ".qiongli.qiongli-codex-remove-{}-{}",
+            std::process::id(),
+            transaction_id()
+        ));
+        if path_metadata(&path)?.is_none() {
+            return Ok(path);
         }
     }
     Err(CodexPluginBundleError::PersistenceFailed(

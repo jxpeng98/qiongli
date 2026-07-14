@@ -356,6 +356,37 @@ impl InstallPlanV1 {
         })
     }
 
+    /// Verifies a newly built plan against an already verified launch capability.
+    ///
+    /// This path is used after a release candidate has authenticated the exact
+    /// signed grant. It never re-opens a public-key or raw-signature boundary.
+    pub(crate) fn verify_with_grant_capability(
+        &self,
+        verified_grant: &VerifiedLaunchGrant,
+        now_unix: u64,
+    ) -> Result<VerifiedInstallPlan, PlatformError> {
+        self.validate_structure(None)?;
+        self.verify_semantic_digest()?;
+        if now_unix < self.created_at_unix || now_unix < verified_grant.verified_at_unix() {
+            return Err(PlatformError::InstallPlanNotYetValid);
+        }
+        if now_unix >= self.expires_at_unix {
+            return Err(PlatformError::InstallPlanExpired);
+        }
+        if &self.signed_launch_grant != verified_grant.signed_grant()
+            || self.artifact != verified_grant.grant().artifact
+            || self.target.family.integration_scope() != verified_grant.authorized_scope()
+            || verified_grant.signed_payload_sha256() != self.artifact_digest()?
+        {
+            return Err(PlatformError::InstallPlanTargetMismatch);
+        }
+        self.validate_structure(Some(verified_grant.signed_payload_sha256()))?;
+        Ok(VerifiedInstallPlan {
+            plan: self.clone(),
+            grant: verified_grant.clone(),
+        })
+    }
+
     fn validate_structure(
         &self,
         expected_artifact_digest: Option<&str>,
