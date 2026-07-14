@@ -139,6 +139,31 @@ pub enum MaterializationError {
 }
 
 impl MaterializationError {
+    #[must_use]
+    pub const fn reason_code(&self) -> &'static str {
+        match self {
+            Self::InvalidTarget { .. } => "invalid-materialization-target",
+            Self::MissingTargetParent { .. } => "missing-materialization-parent",
+            Self::TargetParentNotDirectory { .. } => "invalid-materialization-parent",
+            Self::InsecureTargetParent { .. } => "insecure-materialization-parent",
+            Self::LinkNotAllowed { .. } => "linked-materialization-path",
+            Self::TargetNotDirectory { .. } => "invalid-materialization-target-kind",
+            Self::TargetBusy { .. } => "materialization-target-busy",
+            Self::TargetChanged { .. } => "materialization-target-changed",
+            Self::UnmanagedTarget { .. } => "unmanaged-materialization-target",
+            Self::InvalidManagedReceipt { .. } => "invalid-materialization-receipt",
+            Self::ManagedTargetDrift { .. } => "materialization-target-drift",
+            Self::Profile(_) => "invalid-content-profile",
+            Self::CanonicalJson(_) => "materialization-receipt-failed",
+            Self::CommitFailed { .. } => "materialization-commit-failed",
+            Self::RollbackFailed { .. } => "materialization-rollback-failed",
+            Self::CommittedWithCleanupFailure { .. } => {
+                "materialization-committed-cleanup-required"
+            }
+            Self::Io { .. } => "materialization-io-failed",
+        }
+    }
+
     fn io(operation: &'static str, path: &Path, error: &io::Error) -> Self {
         if error.kind() == io::ErrorKind::NotFound && operation == "inspect target parent" {
             Self::MissingTargetParent {

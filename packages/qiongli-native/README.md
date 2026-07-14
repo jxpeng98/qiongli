@@ -94,9 +94,9 @@ cargo run -p qiongli-content --example update_qiongli_core_lock --locked
 
 The expected digest establishes integrity only when it comes from a trusted
 embedding or authenticated descriptor. Publisher signatures, trusted-key and
-revocation policy, running-product compatibility enforcement, runtime
-content commands, public UI/MCP wiring, host installation, and adversarial
-same-user handle-relative filesystem hardening remain separate successor work.
+revocation policy, running-product compatibility enforcement, public UI/MCP
+wiring, host installation, and adversarial same-user handle-relative
+filesystem hardening remain separate successor work.
 
 The version 1 header is `QLPACK\0\0`, followed by a little-endian `u32` format
 version and a little-endian `u64` manifest length. Payload offsets start after
@@ -109,17 +109,38 @@ The existing `packages/qiongli-lite-mcp` crate remains a migration oracle and
 compatibility package. Native functionality will be extracted into shared
 workspace crates rather than copied into a second implementation.
 
-## B2a command contract
+## R1 command contract
 
-The bootstrap executable intentionally supports only `--version` and
-`-h|--help`. A bare invocation, unknown command or option, and extra token
-returns exit code 2 with a redacted usage error. UI, MCP, doctor, installer,
-agent, and orchestration modes are added only with their real service contract;
-they are not placeholder commands in this slice.
+The native executable composes the verified embedded pack and versioned global
+config service through this first useful command surface:
 
-The CLI contract tests also clear `PATH` before starting the binary. This
-prevents developer or CI installations of Python, Node.js, Cargo, or other
-tools from masking a required startup dependency.
+```text
+qiongli --help
+qiongli --version
+qiongli content --help
+qiongli content list
+qiongli content materialize --profile <profile> --target <absolute-path>
+qiongli config --help
+qiongli config show
+qiongli config set --expected-revision <revision> --default-profile <profile>
+qiongli status
+qiongli doctor
+```
+
+Data commands emit a newline-terminated JSON object with `schema_version: 1`.
+Usage failures return exit code 2, operation failures return exit code 1, and
+public errors contain only allowlisted reason codes. Materialization paths,
+config roots, environment values, provider identifiers, and document bytes are
+not rendered. `config set` changes only the default profile, preserves provider
+settings, and requires an optimistic expected revision. This `doctor` command
+reports only the R1 embedded-content, global-config, and secure-store foundation;
+it does not claim provider, MCP, installer, agent, or orchestration readiness.
+
+Binary contract tests clear `PATH` before supported commands and also copy the
+executable outside the checkout before listing and materializing embedded
+content. This prevents developer or CI installations of Python, Node.js, Cargo,
+or other tools—and a source-relative working directory—from masking a required
+runtime dependency.
 
 ## Version and toolchain
 

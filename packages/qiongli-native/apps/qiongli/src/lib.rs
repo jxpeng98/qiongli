@@ -1,3 +1,6 @@
+mod command;
+
+pub use command::{CliOutput, CommandEnvironment, failed_embedded_content_output, run_cli};
 use qiongli_content::{EmbeddedContent, ResourcePackLoaderError};
 
 pub const EMBEDDED_PACK_SHA256: &str =

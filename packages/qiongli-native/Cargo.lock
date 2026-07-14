@@ -109,7 +109,10 @@ dependencies = [
 name = "qiongli"
 version = "2.0.0-alpha.1"
 dependencies = [
+ "qiongli-config",
  "qiongli-content",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
