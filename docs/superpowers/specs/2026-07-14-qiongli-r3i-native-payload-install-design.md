@@ -75,10 +75,12 @@ approval            = filesystem-write only
 outstanding action  = none
 ```
 
-The ownership marker uses the canonical artifact ID as the install ID and binds
-the signed launch-grant payload digest. Preview rejects any mismatch among the
-archive, R3G manifest, signed grant, target descriptor, pack, or canonical
-artifact ID before producing a plan.
+The ownership marker uses `native-payload-<archive-sha256>` as its portable
+install ID and binds the signed launch-grant payload digest. This prevents two
+versions with identical executable bytes from sharing state. The installed
+directory leaf remains the canonical artifact ID. Preview rejects any mismatch
+among the archive, R3G manifest, signed grant, target descriptor, pack, or
+canonical artifact ID before producing a plan.
 
 The executor reparses the action instead of trusting a planner convention. It
 requires the exact single-operation shape, rechecks the approval, verifies the
@@ -93,7 +95,7 @@ The approved private root contains only caller-independent portable leaves:
   <artifact-id>/
     .qiongli-native-artifact.json
     bin/qiongli[.exe]
-  .qiongli-native-payload-<artifact-id>.json
+  .qiongli-native-payload-<archive-sha256>.json
 ```
 
 During a transaction it may additionally contain:

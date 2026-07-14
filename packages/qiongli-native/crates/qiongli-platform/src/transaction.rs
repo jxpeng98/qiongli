@@ -52,6 +52,7 @@ pub enum TransactionError {
     ManagedStateDrift,
     RecoveryRequired,
     MaterializationFailed,
+    NativePayloadInstallFailed,
     PersistenceFailed(io::ErrorKind),
     RollbackConflict,
 }
@@ -73,6 +74,7 @@ impl TransactionError {
             Self::ManagedStateDrift => "managed-install-drift",
             Self::RecoveryRequired => "install-recovery-required",
             Self::MaterializationFailed => "resource-materialization-failed",
+            Self::NativePayloadInstallFailed => "native-payload-install-failed",
             Self::PersistenceFailed(_) => "install-persistence-failed",
             Self::RollbackConflict => "install-rollback-conflict",
         }
@@ -166,11 +168,11 @@ impl ApprovedManagedRoot {
         &self.root_id
     }
 
-    fn path(&self) -> &Path {
+    pub(crate) fn path(&self) -> &Path {
         &self.path
     }
 
-    fn validate(&self) -> Result<(), TransactionError> {
+    pub(crate) fn validate(&self) -> Result<(), TransactionError> {
         validate_managed_root(&self.path)?;
         let current =
             Handle::from_path(&self.path).map_err(|_| TransactionError::UnsafeManagedRoot)?;
@@ -1530,7 +1532,7 @@ fn approved_materialization_target(path: &Path) -> Result<MaterializationTarget,
     approve_materialization_target(path).map_err(|_| TransactionError::UnsafeManagedRoot)
 }
 
-fn ensure_destination_absent(path: &Path) -> Result<(), TransactionError> {
+pub(crate) fn ensure_destination_absent(path: &Path) -> Result<(), TransactionError> {
     if path_exists(path)? {
         Err(TransactionError::DestinationConflict)
     } else {
@@ -1538,7 +1540,7 @@ fn ensure_destination_absent(path: &Path) -> Result<(), TransactionError> {
     }
 }
 
-fn path_exists(path: &Path) -> Result<bool, TransactionError> {
+pub(crate) fn path_exists(path: &Path) -> Result<bool, TransactionError> {
     match fs::symlink_metadata(path) {
         Ok(_) => Ok(true),
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(false),
@@ -1581,7 +1583,7 @@ fn validate_private_root(_path: &Path, _metadata: &Metadata) -> Result<(), Trans
     Err(TransactionError::UnsupportedPlatform)
 }
 
-fn read_private_file(path: &Path) -> Result<Vec<u8>, TransactionError> {
+pub(crate) fn read_private_file(path: &Path) -> Result<Vec<u8>, TransactionError> {
     let file = open_private_file(path)?;
     let metadata = file
         .metadata()
@@ -1637,7 +1639,7 @@ fn open_private_file(_path: &Path) -> Result<File, TransactionError> {
 }
 
 #[cfg(unix)]
-fn create_private_new_file(path: &Path) -> Result<File, TransactionError> {
+pub(crate) fn create_private_new_file(path: &Path) -> Result<File, TransactionError> {
     use std::os::unix::fs::OpenOptionsExt;
 
     OpenOptions::new()
@@ -1655,7 +1657,7 @@ fn create_private_new_file(path: &Path) -> Result<File, TransactionError> {
 }
 
 #[cfg(windows)]
-fn create_private_new_file(path: &Path) -> Result<File, TransactionError> {
+pub(crate) fn create_private_new_file(path: &Path) -> Result<File, TransactionError> {
     qiongli_windows_security::create_owner_only_new_file(path).map_err(|error| {
         if error.io_kind() == Some(io::ErrorKind::AlreadyExists) {
             TransactionError::RecoveryRequired
@@ -1668,18 +1670,18 @@ fn create_private_new_file(path: &Path) -> Result<File, TransactionError> {
 }
 
 #[cfg(not(any(unix, windows)))]
-fn create_private_new_file(_path: &Path) -> Result<File, TransactionError> {
+pub(crate) fn create_private_new_file(_path: &Path) -> Result<File, TransactionError> {
     Err(TransactionError::UnsupportedPlatform)
 }
 
-fn write_sync_file(file: &mut File, bytes: &[u8]) -> Result<(), TransactionError> {
+pub(crate) fn write_sync_file(file: &mut File, bytes: &[u8]) -> Result<(), TransactionError> {
     file.write_all(bytes)
         .and_then(|()| file.sync_all())
         .map_err(|error| TransactionError::PersistenceFailed(error.kind()))
 }
 
 #[cfg(windows)]
-fn rename_path(
+pub(crate) fn rename_path(
     source: &Path,
     destination: &Path,
     replace_existing: bool,
@@ -1693,7 +1695,7 @@ fn rename_path(
 }
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
-fn rename_path(
+pub(crate) fn rename_path(
     source: &Path,
     destination: &Path,
     replace_existing: bool,
@@ -1716,7 +1718,7 @@ fn rename_path(
 }
 
 #[cfg(all(not(windows), not(any(target_os = "linux", target_os = "macos"))))]
-fn rename_path(
+pub(crate) fn rename_path(
     source: &Path,
     destination: &Path,
     replace_existing: bool,
@@ -1729,14 +1731,14 @@ fn rename_path(
 }
 
 #[cfg(unix)]
-fn sync_directory(path: &Path) -> Result<(), TransactionError> {
+pub(crate) fn sync_directory(path: &Path) -> Result<(), TransactionError> {
     File::open(path)
         .and_then(|file| file.sync_all())
         .map_err(|error| TransactionError::PersistenceFailed(error.kind()))
 }
 
 #[cfg(not(unix))]
-fn sync_directory(_path: &Path) -> Result<(), TransactionError> {
+pub(crate) fn sync_directory(_path: &Path) -> Result<(), TransactionError> {
     Ok(())
 }
 
@@ -1840,7 +1842,7 @@ fn has_lexical_traversal(path: &Path) -> bool {
         .any(|component| matches!(component, Component::CurDir | Component::ParentDir))
 }
 
-fn transaction_id() -> String {
+pub(crate) fn transaction_id() -> String {
     let nonce = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0, |duration| duration.as_nanos());

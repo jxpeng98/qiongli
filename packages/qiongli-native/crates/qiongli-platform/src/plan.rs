@@ -144,6 +144,17 @@ pub enum InstallActionV1 {
         content_root_sha256: String,
         ownership: OwnershipMarkerV1,
     },
+    InstallNativePayload {
+        root_id: String,
+        entry_key: String,
+        relative_path: String,
+        archive_sha256: String,
+        manifest_sha256: String,
+        pack_sha256: String,
+        artifact_content_root_sha256: String,
+        binary_sha256: String,
+        ownership: OwnershipMarkerV1,
+    },
     RegisterPluginSource {
         root_id: String,
         entry_key: String,
@@ -171,6 +182,7 @@ impl InstallActionV1 {
     fn root_id(&self) -> &str {
         match self {
             Self::MaterializeResources { root_id, .. }
+            | Self::InstallNativePayload { root_id, .. }
             | Self::RegisterPluginSource { root_id, .. }
             | Self::RegisterLiteMcp { root_id, .. }
             | Self::RemoveManagedEntry { root_id, .. } => root_id,
@@ -180,6 +192,7 @@ impl InstallActionV1 {
     fn entry_key(&self) -> &str {
         match self {
             Self::MaterializeResources { entry_key, .. }
+            | Self::InstallNativePayload { entry_key, .. }
             | Self::RegisterPluginSource { entry_key, .. }
             | Self::RegisterLiteMcp { entry_key, .. }
             | Self::RemoveManagedEntry { entry_key, .. } => entry_key,
@@ -189,6 +202,7 @@ impl InstallActionV1 {
     fn ownership(&self) -> &OwnershipMarkerV1 {
         match self {
             Self::MaterializeResources { ownership, .. }
+            | Self::InstallNativePayload { ownership, .. }
             | Self::RegisterPluginSource { ownership, .. }
             | Self::RegisterLiteMcp { ownership, .. } => ownership,
             Self::RemoveManagedEntry {
@@ -483,6 +497,29 @@ impl InstallPlanV1 {
                 if root.root != SymbolicRoot::QiongliManagedData
                     || !valid_relative_path(relative_path)
                     || !is_lower_hex(content_root_sha256, 64)
+                {
+                    return Err(PlatformError::InvalidInstallPlan);
+                }
+            }
+            InstallActionV1::InstallNativePayload {
+                relative_path,
+                archive_sha256,
+                manifest_sha256,
+                pack_sha256,
+                artifact_content_root_sha256,
+                binary_sha256,
+                ..
+            } => {
+                if root.root != SymbolicRoot::QiongliManagedData
+                    || !valid_relative_path(relative_path)
+                    || relative_path.contains('/')
+                    || !is_lower_hex(archive_sha256, 64)
+                    || !is_lower_hex(manifest_sha256, 64)
+                    || !is_lower_hex(pack_sha256, 64)
+                    || !is_lower_hex(artifact_content_root_sha256, 64)
+                    || !is_lower_hex(binary_sha256, 64)
+                    || pack_sha256 != &self.signed_launch_grant.grant.resource_pack_sha256
+                    || binary_sha256 != &self.signed_launch_grant.grant.binary_sha256
                 {
                     return Err(PlatformError::InvalidInstallPlan);
                 }

@@ -7,6 +7,7 @@ mod grant;
 mod identity;
 mod native_archive;
 mod native_artifact;
+mod native_install;
 mod plan;
 mod transaction;
 
@@ -71,6 +72,14 @@ pub use native_artifact::{
     approve_native_artifact_target, compose_native_artifact,
     current_target_native_artifact_identity, native_artifact_binary_path, native_artifact_id,
     verify_native_artifact,
+};
+pub use native_install::{
+    ManagedNativePayloadExecutor, NATIVE_PAYLOAD_INSTALL_JOURNAL_SCHEMA_VERSION,
+    NATIVE_PAYLOAD_INSTALL_RECEIPT_SCHEMA_VERSION, NATIVE_PAYLOAD_INSTALL_STATE_SCHEMA_VERSION,
+    NativePayloadInstallCommit, NativePayloadInstallReceiptV1, NativePayloadInstallStateV1,
+    NativePayloadInstallVerification, NativePayloadLifecycleCommit,
+    NativePayloadLifecycleReceiptV1, NativePayloadOperationReceiptV1, native_payload_install_id,
+    preview_native_payload_install,
 };
 pub use plan::{
     AllowedRootV1, ApprovalRequirement, HostAction, InstallActionV1, InstallOperationV1,

@@ -7,18 +7,26 @@ use std::process::{Command, Output, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use ed25519_dalek::{Signer, SigningKey};
 use qiongli_platform::{
-    NativePortableArchiveError, ReleaseChannel, approve_native_artifact_target,
-    approve_native_portable_archive_target, compose_native_artifact,
-    compose_native_portable_archive, current_target_native_artifact_identity,
-    extract_native_portable_archive, native_artifact_id, native_portable_archive_file_name,
-    verify_native_artifact, verify_native_portable_archive,
+    AllowedRootV1, ApprovalRequirement, CapabilityProfile, GrantMode, GrantSignatureV1,
+    GrantVerificationContext, InstallDisposition, InstallPlanMetadataV1, InstallScope,
+    IntegrationScope, LaunchGrantV1, LocalSurface, LocalTargetFamily, ManagedNativePayloadExecutor,
+    NativeArtifactManifestV1, NativePortableArchiveError, ReleaseChannel, SignatureAlgorithm,
+    SignedLaunchGrantV1, SymbolicRoot, TargetDescriptorV1, TrustedPublicKey, approve_install_plan,
+    approve_managed_root, approve_native_artifact_target, approve_native_portable_archive_target,
+    compose_native_artifact, compose_native_portable_archive,
+    current_target_native_artifact_identity, extract_native_portable_archive,
+    launch_grant_signing_bytes, native_artifact_id, native_payload_install_id,
+    native_portable_archive_file_name, preview_native_payload_install, verify_native_artifact,
+    verify_native_portable_archive,
 };
 use qiongli_runtime::LITE_PUBLIC_TOOL_NAMES;
 use serde_json::{Value, json};
 
 static NEXT_FIXTURE_ID: AtomicU64 = AtomicU64::new(0);
 const PRIVATE_PATH_CANARY: &str = "native-portable-archive-private-path-canary";
+const NOW: u64 = 1_750_000_000;
 
 struct Fixture {
     root: PathBuf,
@@ -131,6 +139,116 @@ fn rpc(id: u64, method: &str, params: Value) -> Value {
     json!({"jsonrpc": "2.0", "id": id, "method": method, "params": params})
 }
 
+fn assert_runtime(fixture: &Fixture, executable: &Path, expected: &NativeArtifactManifestV1) {
+    let version = fixture
+        .command(executable)
+        .arg("--version")
+        .output()
+        .expect("isolated CLI must start without PATH");
+    assert!(version.status.success(), "{}", public_output(&version));
+    assert_eq!(
+        version.stdout,
+        format!("qiongli {}\n", env!("CARGO_PKG_VERSION")).as_bytes()
+    );
+    assert!(version.stderr.is_empty());
+
+    let listed = fixture
+        .command(executable)
+        .args(["content", "list"])
+        .output()
+        .expect("isolated content command must start without PATH");
+    assert!(listed.status.success(), "{}", public_output(&listed));
+    assert!(listed.stderr.is_empty());
+    let listed_json: Value = serde_json::from_slice(&listed.stdout).unwrap();
+    assert_eq!(listed_json["pack_id"], expected.content.pack_id);
+    assert_eq!(listed_json["pack_sha256"], expected.content.pack_sha256);
+    assert_eq!(
+        listed_json["content_root_sha256"],
+        expected.content.content_root_sha256
+    );
+
+    let mut child = fixture
+        .command(executable)
+        .args([
+            "mcp",
+            "serve",
+            "--profile",
+            "marketplace-lite",
+            "--transport",
+            "stdio",
+        ])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("isolated MCP must start without PATH");
+    let requests = [
+        rpc(
+            1,
+            "initialize",
+            json!({"protocolVersion": "2025-11-25", "capabilities": {}}),
+        ),
+        json!({
+            "jsonrpc": "2.0",
+            "method": "notifications/initialized",
+            "params": {}
+        }),
+        rpc(2, "tools/list", json!({})),
+        rpc(
+            3,
+            "tools/call",
+            json!({"name": "qiongli_config_status", "arguments": {}}),
+        ),
+    ];
+    {
+        let stdin = child.stdin.as_mut().expect("isolated MCP stdin must exist");
+        for request in requests {
+            serde_json::to_writer(&mut *stdin, &request).unwrap();
+            stdin.write_all(b"\n").unwrap();
+        }
+    }
+    drop(child.stdin.take());
+    let mcp = child
+        .wait_with_output()
+        .expect("isolated MCP must exit on EOF");
+    assert!(mcp.status.success(), "{}", public_output(&mcp));
+    assert!(mcp.stderr.is_empty(), "{}", public_output(&mcp));
+    let rendered = String::from_utf8(mcp.stdout).expect("MCP output must be UTF-8");
+    assert!(!rendered.contains(PRIVATE_PATH_CANARY));
+    let responses = rendered
+        .lines()
+        .map(|line| serde_json::from_str::<Value>(line).unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(responses.len(), 3);
+    let tools = responses
+        .iter()
+        .find(|response| response["id"] == 2)
+        .unwrap()["result"]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|tool| tool["name"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(tools, LITE_PUBLIC_TOOL_NAMES);
+    assert_eq!(
+        responses
+            .iter()
+            .find(|response| response["id"] == 3)
+            .unwrap()["result"]["structuredContent"]["config_path"],
+        "<managed-native-config>"
+    );
+}
+
+fn encode_hex<const N: usize>(bytes: &[u8; N]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut output = String::with_capacity(N * 2);
+    for byte in bytes {
+        output.push(char::from(HEX[usize::from(byte >> 4)]));
+        output.push(char::from(HEX[usize::from(byte & 0x0f)]));
+    }
+    output
+}
+
 #[test]
 fn portable_archive_is_deterministic_safe_and_runtime_independent() {
     let fixture = Fixture::new("portable-archive");
@@ -175,136 +293,120 @@ fn portable_archive_is_deterministic_safe_and_runtime_independent() {
     assert_eq!(original_bytes, fs::read(&second_path).unwrap());
     assert_eq!(first.size_bytes(), original_bytes.len() as u64);
 
-    let extracted_path = fixture.target("extracted-parent", &artifact_id);
-    let extracted_target = approve_native_artifact_target(&extracted_path, &artifact)
-        .expect("extracted artifact target must approve");
-    let extracted =
-        extract_native_portable_archive(content.pack(), &first_target, &extracted_target)
-            .expect("archive must extract through the R3G commit path");
-    assert_eq!(extracted, source);
+    let grant = LaunchGrantV1 {
+        schema_version: 1,
+        generation: 13,
+        artifact: artifact.clone(),
+        binary_sha256: first.payload().manifest().binary_sha256.clone(),
+        resource_pack_sha256: first.payload().manifest().content.pack_sha256.clone(),
+        allowed_modes: vec![GrantMode::LiteMcp],
+        integration_scopes: vec![IntegrationScope::CodexLocal],
+        not_before_unix: NOW - 60,
+        expires_at_unix: NOW + 3_600,
+    };
+    let signing_key = SigningKey::from_bytes(&[73_u8; 32]);
+    let signature = signing_key.sign(&launch_grant_signing_bytes(&grant).unwrap());
+    let signed = SignedLaunchGrantV1 {
+        grant,
+        signature: GrantSignatureV1 {
+            algorithm: SignatureAlgorithm::Ed25519,
+            key_id: "installed-runtime-test-key".to_string(),
+            value_hex: encode_hex(&signature.to_bytes()),
+        },
+    };
+    let trusted = TrustedPublicKey::new(
+        "installed-runtime-test-key",
+        signing_key.verifying_key().to_bytes(),
+    )
+    .unwrap();
+    let context = GrantVerificationContext {
+        now_unix: NOW,
+        minimum_generation: 13,
+        expected_artifact: &artifact,
+        binary_sha256: &first.payload().manifest().binary_sha256,
+        resource_pack_sha256: &first.payload().manifest().content.pack_sha256,
+        requested_mode: GrantMode::LiteMcp,
+        requested_scope: IntegrationScope::CodexLocal,
+    };
+    let verified_grant = signed
+        .verify(std::slice::from_ref(&trusted), &context)
+        .expect("test-signed installed-runtime grant must verify");
+    let managed_root = fixture.root.join("installed-managed");
+    create_private_directory(&managed_root);
+    let root = AllowedRootV1 {
+        id: "qiongli-data".to_string(),
+        root: SymbolicRoot::QiongliManagedData,
+    };
+    let approved_root =
+        approve_managed_root(&root, &managed_root).expect("installed root must approve");
+    let plan = preview_native_payload_install(
+        InstallPlanMetadataV1 {
+            plan_id: "installed-runtime-plan".to_string(),
+            created_at_unix: NOW,
+            expires_at_unix: NOW + 600,
+        },
+        &verified_grant,
+        &first,
+        TargetDescriptorV1 {
+            family: LocalTargetFamily::CodexLocal,
+            surface: LocalSurface::CliLocal,
+            scope: InstallScope::User,
+            profile: CapabilityProfile::Lite,
+            os: artifact.os,
+            arch: artifact.arch,
+            adapter_version: 1,
+        },
+        root,
+    )
+    .expect("native payload install plan must preview");
+    let verified_plan = plan
+        .verify(std::slice::from_ref(&trusted), &context)
+        .expect("native payload install plan must verify");
+    let approval =
+        approve_install_plan(&verified_plan, &[ApprovalRequirement::FilesystemWrite], NOW)
+            .expect("native payload install plan must approve");
+    let install_id = native_payload_install_id(&first);
+    let executor = ManagedNativePayloadExecutor::new(approved_root);
+    let applied = executor
+        .apply(
+            &verified_plan,
+            &approval,
+            content.pack(),
+            &first_target,
+            NOW + 1,
+        )
+        .expect("verified archive must install");
+    assert_eq!(applied.disposition, InstallDisposition::Applied);
     assert_eq!(
-        extracted,
-        verify_native_artifact(content.pack(), &extracted_target).unwrap()
+        executor
+            .verify(&install_id, content.pack())
+            .unwrap()
+            .receipt,
+        applied.receipt
     );
-
-    let extracted_binary = extracted_path.join(&extracted.manifest().binary_path);
-    let version = fixture
-        .command(&extracted_binary)
-        .arg("--version")
-        .output()
-        .expect("extracted CLI must start without PATH");
-    assert!(version.status.success(), "{}", public_output(&version));
-    assert_eq!(
-        version.stdout,
-        format!("qiongli {}\n", env!("CARGO_PKG_VERSION")).as_bytes()
+    let state_bytes = fs::read(managed_root.join(format!(".qiongli-{install_id}.json"))).unwrap();
+    assert!(
+        !String::from_utf8_lossy(&state_bytes).contains(fixture.root.to_string_lossy().as_ref())
     );
-    assert!(version.stderr.is_empty());
-
-    let listed = fixture
-        .command(&extracted_binary)
-        .args(["content", "list"])
-        .output()
-        .expect("extracted content command must start without PATH");
-    assert!(listed.status.success(), "{}", public_output(&listed));
-    assert!(listed.stderr.is_empty());
-    let listed_json: Value = serde_json::from_slice(&listed.stdout).unwrap();
-    assert_eq!(listed_json["pack_id"], extracted.manifest().content.pack_id);
+    let installed_path = managed_root.join(&artifact_id);
+    let installed_target = approve_native_artifact_target(&installed_path, &artifact)
+        .expect("installed artifact target must approve");
     assert_eq!(
-        listed_json["pack_sha256"],
-        extracted.manifest().content.pack_sha256
+        verify_native_artifact(content.pack(), &installed_target).unwrap(),
+        source
     );
     assert_eq!(
-        listed_json["content_root_sha256"],
-        extracted.manifest().content.content_root_sha256
+        extract_native_portable_archive(content.pack(), &first_target, &installed_target),
+        Err(NativePortableArchiveError::DestinationExists)
     );
-
-    let mut child = fixture
-        .command(&extracted_binary)
-        .args([
-            "mcp",
-            "serve",
-            "--profile",
-            "marketplace-lite",
-            "--transport",
-            "stdio",
-        ])
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .expect("extracted MCP must start without PATH");
-    let requests = [
-        rpc(
-            1,
-            "initialize",
-            json!({"protocolVersion": "2025-11-25", "capabilities": {}}),
-        ),
-        json!({
-            "jsonrpc": "2.0",
-            "method": "notifications/initialized",
-            "params": {}
-        }),
-        rpc(2, "tools/list", json!({})),
-        rpc(
-            3,
-            "tools/call",
-            json!({"name": "qiongli_config_status", "arguments": {}}),
-        ),
-    ];
-    {
-        let stdin = child
-            .stdin
-            .as_mut()
-            .expect("extracted MCP stdin must exist");
-        for request in requests {
-            serde_json::to_writer(&mut *stdin, &request).unwrap();
-            stdin.write_all(b"\n").unwrap();
-        }
-    }
-    drop(child.stdin.take());
-    let mcp = child
-        .wait_with_output()
-        .expect("extracted MCP must exit on EOF");
-    assert!(mcp.status.success(), "{}", public_output(&mcp));
-    assert!(mcp.stderr.is_empty(), "{}", public_output(&mcp));
-    let rendered = String::from_utf8(mcp.stdout).expect("MCP output must be UTF-8");
-    assert!(!rendered.contains(PRIVATE_PATH_CANARY));
-    let responses = rendered
-        .lines()
-        .map(|line| serde_json::from_str::<Value>(line).unwrap())
-        .collect::<Vec<_>>();
-    assert_eq!(responses.len(), 3);
-    let tools = responses
-        .iter()
-        .find(|response| response["id"] == 2)
-        .unwrap()["result"]["tools"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|tool| tool["name"].as_str().unwrap())
-        .collect::<Vec<_>>();
-    assert_eq!(tools, LITE_PUBLIC_TOOL_NAMES);
-    assert_eq!(
-        responses
-            .iter()
-            .find(|response| response["id"] == 3)
-            .unwrap()["result"]["structuredContent"]["config_path"],
-        "<managed-native-config>"
-    );
+    let installed_binary = installed_path.join(&first.payload().manifest().binary_path);
+    assert_runtime(&fixture, &installed_binary, first.payload().manifest());
 
     assert_eq!(
         compose_native_portable_archive(content.pack(), &source_target, &first_target),
         Err(NativePortableArchiveError::TargetExists)
     );
     assert_eq!(fs::read(&first_path).unwrap(), original_bytes);
-    assert_eq!(
-        extract_native_portable_archive(content.pack(), &first_target, &extracted_target),
-        Err(NativePortableArchiveError::DestinationExists)
-    );
-    assert_eq!(
-        verify_native_artifact(content.pack(), &extracted_target).unwrap(),
-        source
-    );
 
     let hard_link = fixture.root.join("archive-hard-link.zip");
     fs::hard_link(&first_path, &hard_link).unwrap();

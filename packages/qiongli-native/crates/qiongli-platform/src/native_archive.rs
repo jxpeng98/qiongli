@@ -86,7 +86,7 @@ pub struct VerifiedNativePortableArchive {
     file_name: String,
     size_bytes: u64,
     archive_sha256: String,
-    manifest_sha256: String,
+    payload: VerifiedNativeArtifact,
 }
 
 impl VerifiedNativePortableArchive {
@@ -112,7 +112,12 @@ impl VerifiedNativePortableArchive {
 
     #[must_use]
     pub fn manifest_sha256(&self) -> &str {
-        &self.manifest_sha256
+        self.payload.manifest_sha256()
+    }
+
+    #[must_use]
+    pub const fn payload(&self) -> &VerifiedNativeArtifact {
+        &self.payload
     }
 }
 
@@ -233,11 +238,7 @@ pub fn compose_native_portable_archive(
         return Err(NativePortableArchiveError::SourceArtifactInvalid);
     }
     let archive_bytes = build_archive_bytes(target.artifact_id(), &payload)?;
-    let expected = verified_archive(
-        target.artifact(),
-        &archive_bytes,
-        payload.verified.manifest_sha256(),
-    )?;
+    let expected = verified_archive(target.artifact(), &archive_bytes, &payload.verified)?;
 
     let _lock = TargetLock::acquire(target)?;
     revalidate_target(target)?;
@@ -484,7 +485,7 @@ fn parse_archive_bytes<'a>(
         return Err(NativePortableArchiveError::ArchiveDrift);
     }
     Ok(ParsedArchive {
-        verified: verified_archive(artifact, bytes, verified_artifact.manifest_sha256())?,
+        verified: verified_archive(artifact, bytes, &verified_artifact)?,
         manifest_bytes: payload.manifest_bytes,
         binary_bytes: payload.binary_bytes,
     })
@@ -637,7 +638,7 @@ fn parse_zip_entries<'a>(
 fn verified_archive(
     artifact: &ArtifactIdentityV1,
     bytes: &[u8],
-    manifest_sha256: &str,
+    payload: &VerifiedNativeArtifact,
 ) -> Result<VerifiedNativePortableArchive, NativePortableArchiveError> {
     let size_bytes =
         u64::try_from(bytes.len()).map_err(|_| NativePortableArchiveError::ArchiveTooLarge)?;
@@ -646,7 +647,7 @@ fn verified_archive(
         file_name: native_portable_archive_file_name(artifact)?,
         size_bytes,
         archive_sha256: sha256_hex(bytes),
-        manifest_sha256: manifest_sha256.to_string(),
+        payload: payload.clone(),
     })
 }
 

@@ -26,43 +26,43 @@ Gate: reviewed R3I design and execution-plan checkpoint.
 
 ## Batch 2 — Bind Plans To Verified Native Payloads
 
-- [ ] Add the bounded `InstallNativePayload` plan action without changing
+- [x] Add the bounded `InstallNativePayload` plan action without changing
   existing serialized plan semantics.
-- [ ] Expose the verified R3H payload manifest needed to bind archive, manifest,
+- [x] Expose the verified R3H payload manifest needed to bind archive, manifest,
   pack, content-root, and binary digests.
-- [ ] Add deterministic preview generation from a verified launch grant and
+- [x] Add deterministic preview generation from a verified launch grant and
   verified archive.
-- [ ] Reject target, grant, archive, resource-pack, root, path, approval, and
+- [x] Reject target, grant, archive, resource-pack, root, path, approval, and
   inverse mismatches before execution.
 
 Gate: plan unit tests, existing plan fixtures, format, and strict Clippy.
 
 ## Batch 3 — Implement The Transactional Service
 
-- [ ] Add dedicated canonical native-payload receipt and state schemas.
-- [ ] Add owner-private state and journal writes with bounded reads, persistence,
+- [x] Add dedicated canonical native-payload receipt and state schemas.
+- [x] Add owner-private state and journal writes with bounded reads, persistence,
   identity rechecks, and path-redacted failures.
-- [ ] Implement apply, identical replay, read-only verify, and absent-target
+- [x] Implement apply, identical replay, read-only verify, and absent-target
   repair through R3H extraction and R3G verification.
-- [ ] Implement verified quarantine, remove, rollback, idempotent terminal
+- [x] Implement verified quarantine, remove, rollback, idempotent terminal
   replay, restoration on pre-commit failure, and fail-closed recovery.
-- [ ] Preserve foreign, drifted, linked, or existing caller data without
+- [x] Preserve foreign, drifted, linked, or existing caller data without
   overwrite or adoption.
 
 Gate: platform lifecycle, tamper, fault-injection, Unix, and Windows checks.
 
 ## Batch 4 — Prove The Installed Runtime
 
-- [ ] Compose and verify one real current-target R3H archive.
-- [ ] Create and verify an explicit test-signed launch grant and native-payload
+- [x] Compose and verify one real current-target R3H archive.
+- [x] Create and verify an explicit test-signed launch grant and native-payload
   install plan.
-- [ ] Apply into an isolated approved managed root and verify the persisted
+- [x] Apply into an isolated approved managed root and verify the persisted
   receipt contains no private path.
-- [ ] Launch only the installed executable from outside the checkout and archive
+- [x] Launch only the installed executable from outside the checkout and archive
   extraction tree with empty `PATH` and isolated HOME/config roots.
-- [ ] Verify `--version`, embedded content, MCP initialize, exact Lite
+- [x] Verify `--version`, embedded content, MCP initialize, exact Lite
   `tools/list`, and one bounded read-only tool call.
-- [ ] Exercise replay, repair, remove, rollback, and tamper refusal without
+- [x] Exercise replay, repair, remove, rollback, and tamper refusal without
   duplicating the full legacy product suites.
 
 Gate: current-target application integration test plus focused Lite suite.
