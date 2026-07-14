@@ -597,6 +597,59 @@ discovery, client activation, public publication, updater behavior, OS signing
 or notarization, checksum sidecars, SBOM, provenance, cross-target artifacts,
 or clean-machine release acceptance.
 
+## R3K embedded release authority and native install CLI
+
+The canonical product can now embed one strict public release-authority policy
+at build time. `NativeReleaseAuthorityV1` fixes the channel, minimum release and
+launch-grant generations, and bounded sorted Ed25519 public-key sets for the two
+independent R3J trust roles. Release keys retain explicit generation windows;
+key IDs and public-key bytes cannot overlap across roles. The policy channel
+must agree with the compiled product version.
+
+Release builds provide the byte-canonical public policy through
+`QIONGLI_NATIVE_RELEASE_AUTHORITY_FILE`. The build script validates and embeds
+the policy or fails the build. The variable is a build input only: the installed
+binary has no runtime environment, command-line, file, network, or development
+key override. Ordinary source builds embed an empty sentinel and truthfully
+report release authority, signed-release preview, and apply as unavailable.
+
+An authority-injected current-target product exposes:
+
+```text
+qiongli install native preview \
+  --release <release.json> \
+  --archive <archive> \
+  --managed-root <existing-private-absolute-directory> \
+  --target <codex|claude>
+
+qiongli install native apply <same source options> \
+  --expected-plan-digest <preview-sha256> \
+  --approve-filesystem-write
+
+qiongli install native verify \
+  --managed-root <existing-private-absolute-directory> \
+  --install-id <native-payload-id>
+
+qiongli install native remove <same receipt options> \
+  --approve-filesystem-write
+```
+
+Preview and apply derive the compiled current Lite portable target and repeat
+the complete R3J release/archive/grant verification plus R3I plan verification.
+Preview emits a path-redacted `mutation: none` summary. Apply reconstructs that
+plan and requires both its exact semantic digest and explicit filesystem-write
+approval. Verify and remove use the canonical owned receipt, so they remain
+available without the release source or embedded authority; remove still
+requires explicit approval and preserves R3I drift, quarantine, and recovery
+rules.
+
+R3K requires an already existing owner-private managed root. It does not choose
+or provision production key values, sign or download a release, create or
+discover the root, expose repair, activate Codex or Claude, write desktop state,
+start a packaged window, publish an artifact or Marketplace entry, provide an
+updater, sign/notarize an OS package, produce checksum/SBOM/provenance outputs,
+or claim clean-machine Lite Alpha.1 readiness.
+
 ## R1 command contract (retained)
 
 The native executable composes the verified embedded pack and versioned global

@@ -1,6 +1,6 @@
 # Qiongli R3K Native CLI And Release Authority Implementation Plan
 
-Status: in progress
+Status: complete — accepted on exact implementation head `d90d4846`
 
 Date: July 14, 2026
 
@@ -32,49 +32,49 @@ lifecycle operations without duplicating transaction logic.
   command grammar, preview/apply approval binding, outputs, and nonclaims.
 - [x] Keep private signing, managed-root discovery/creation, activation,
   desktop apply, publication, and updater behavior outside R3K.
-- [ ] Commit the design checkpoint on the rolling branch.
+- [x] Commit the design checkpoint on the rolling branch.
 
 ## Task 2 — Add Embedded Public Authority
 
-- [ ] Add bounded strict canonical authority parsing with separate release and
+- [x] Add bounded strict canonical authority parsing with separate release and
   launch-grant key roles.
-- [ ] Enforce sorted unique IDs, Ed25519 key validity, generation floors,
+- [x] Enforce sorted unique IDs, Ed25519 key validity, generation floors,
   release-key windows, key-count limits, and fixed errors.
-- [ ] Add optional build-time authority-file validation and byte embedding.
-- [ ] Keep ordinary builds empty and reject runtime/caller trust overrides.
-- [ ] Test canonical success, malformed/oversized input, role confusion,
+- [x] Add optional build-time authority-file validation and byte embedding.
+- [x] Keep ordinary builds empty and reject runtime/caller trust overrides.
+- [x] Test canonical success, malformed/oversized input, role confusion,
   duplicate/unsorted keys, invalid windows, and redacted debug/errors.
 
 ## Task 3 — Add Native CLI Lifecycle
 
-- [ ] Add exact order-independent preview/apply/verify/remove grammar.
-- [ ] Derive the current Lite portable artifact and authority policy rather
+- [x] Add exact order-independent preview/apply/verify/remove grammar.
+- [x] Derive the current Lite portable artifact and authority policy rather
   than accepting version/channel/profile/key/generation arguments.
-- [ ] Compose bounded release read, R3H target approval, R3J verification,
+- [x] Compose bounded release read, R3H target approval, R3J verification,
   approved managed root, R3I plan, and plan re-verification.
-- [ ] Require expected semantic digest plus explicit filesystem-write approval
+- [x] Require expected semantic digest plus explicit filesystem-write approval
   before apply; require explicit approval before remove.
-- [ ] Emit versioned redacted summaries and preserve fixed reason-code errors.
-- [ ] Keep receipt-backed verify/remove independent of release source expiry.
+- [x] Emit versioned redacted summaries and preserve fixed reason-code errors.
+- [x] Keep receipt-backed verify/remove independent of release source expiry.
 
 ## Task 4 — Verify The Vertical
 
-- [ ] Prove source builds report no authority and cannot preview/apply.
-- [ ] Use distinct deterministic test keys to exercise authority-backed
+- [x] Prove source builds report no authority and cannot preview/apply.
+- [x] Use distinct deterministic test keys to exercise authority-backed
   preview/no-mutation, digest rejection, apply/replay, verify, and remove.
-- [ ] Reject tampered release/archive, wrong role, stale generation, unsafe
+- [x] Reject tampered release/archive, wrong role, stale generation, unsafe
   root, invalid install ID, duplicate/unknown options, and missing approval.
-- [ ] Assert output never contains release/archive/root/environment canaries.
-- [ ] Preserve the accepted installed-binary empty-`PATH` Lite runtime proof.
+- [x] Assert output never contains release/archive/root/environment canaries.
+- [x] Preserve the accepted installed-binary empty-`PATH` Lite runtime proof.
 
 ## Task 5 — Accept R3K
 
-- [ ] Run format, locked workspace check, strict Clippy, normal native tests,
+- [x] Run format, locked workspace check, strict Clippy, normal native tests,
   platform tests, focused Lite compatibility, Windows MSVC check/Clippy, and
   the frozen 2.x boundary.
-- [ ] Commit and push implementation to the single rolling Draft PR #63.
-- [ ] Require exact-head Native CI and Cloudflare Pages to pass.
-- [ ] Update this receipt, native README, accelerated roadmap, and PR body with
+- [x] Commit and push implementation to the single rolling Draft PR #63.
+- [x] Require exact-head Native CI and Cloudflare Pages to pass.
+- [x] Update this receipt, native README, accelerated roadmap, and PR body with
   observed evidence only.
 
 ## Required Commands
@@ -101,3 +101,37 @@ preview, explicitly approve and apply, verify, and remove one exact signed Lite
 payload using shared Rust services; an ordinary source build remains
 non-installable; no runtime trust override or private material exists; and all
 required exact-head gates pass without claiming activation or Alpha.1 release.
+
+## Acceptance Record
+
+R3K is accepted at design checkpoint `e6619560` and implementation head
+`d90d4846`.
+
+Local acceptance passed:
+
+- native and Lite Rust formatting checks;
+- locked all-target, all-feature native workspace check and strict Clippy;
+- 232 passing native Rust tests, with the two real external-client tests
+  remaining explicitly ignored;
+- focused post-hardening platform, app-library, and CLI tests (60 + 8 + 16);
+- all 69 focused Lite compatibility tests;
+- Windows MSVC all-target, all-feature check and strict Clippy;
+- the committed native 2.x frozen-boundary check; and
+- an isolated authority-injected build whose `install status` ran with an
+  empty environment and `PATH` and reported `release_authority: embedded`.
+
+The isolated build gate first rejected a newline-terminated noncanonical
+authority fixture, then accepted the byte-canonical fixture containing only
+RFC test public keys. No private key material entered the source tree or build.
+
+Exact-head Native CI run `29369405002` passed `d90d4846`: frozen boundary in
+5s, focused Lite in 38s, macOS in 7m55s, Linux in 8m16s, and Windows in 8m26s.
+Cloudflare Pages passed on the same head.
+
+R3K supplies the reviewed production-grade public-policy injection mechanism;
+it does not select a production public key or handle a production private key.
+Managed-root creation/discovery, release signing and download, repair, client
+activation, desktop apply, packaged-window startup, Marketplace publication,
+updater behavior, OS signing/notarization, checksum/SBOM/provenance output,
+cross-target artifacts, clean-machine release acceptance, and Alpha.1
+publication remain outside this accepted batch.

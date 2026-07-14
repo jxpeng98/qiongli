@@ -1,6 +1,6 @@
 # Qiongli R3K Native CLI And Release Authority Design
 
-Status: frozen for implementation
+Status: implemented and accepted at `d90d4846`
 
 Date: July 14, 2026
 

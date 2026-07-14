@@ -1,7 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; R1, R2, and R3A-R3J are complete; R3K production
-release-authority injection and the explicit CLI install intent are next
+Status: active execution; R1, R2, and R3A-R3K are complete; R3L activation
+coordination and desktop intent are next
 
 Decision date: July 13, 2026
 
@@ -847,15 +847,39 @@ activation, public publication, updater behavior, OS code signing/notarization,
 checksums, SBOM, provenance, cross-target artifacts, or clean-machine Alpha.1
 acceptance.
 
-The remaining Lite Alpha.1 path is deliberately split into short batches:
+R3K is complete at design checkpoint `e6619560` and accepted implementation
+head `d90d4846`. The canonical product can now embed one strict byte-canonical
+public release-authority policy at build time, with separate release-envelope
+and launch-grant roles, bounded key sets, generation floors, release-key
+windows, product channel validation, and no runtime trust override. Ordinary
+source builds embed no authority and cannot preview or apply a payload.
 
-1. R3K freezes production release-public-key injection and exposes the explicit
-   current-target CLI preview/apply/verify/remove intent over the accepted R3J
-   and R3I services. Private signing material remains outside the repository.
-2. R3L composes the accepted Codex and Claude local adapters into one
+The current-target native CLI now composes R3J and R3I into explicit
+preview/apply/verify/remove operations. Preview is non-mutating; apply requires
+the exact semantic plan digest and explicit filesystem-write approval; verify
+and remove remain canonical-receipt-backed. All output is versioned and path
+redacted, and the managed root must already be absolute, owner-private, and
+approved.
+
+Local R3K acceptance passes 232 native Rust tests with the two real
+external-client tests ignored, the focused 60 platform + 8 app-library + 16 CLI
+tests, all 69 focused Lite tests, strict host and Windows checks and Clippy, the
+frozen boundary, and an isolated authority-injected empty-environment status
+proof. Exact-head Native CI run `29369405002` passed `d90d4846`: boundary in
+5s, focused Lite in 38s, macOS in 7m55s, Linux in 8m16s, and Windows in 8m26s.
+Cloudflare Pages also passed.
+
+R3K does not select production key values, handle private signing material,
+create or discover managed roots, download releases, activate clients, mutate
+desktop state, publish artifacts, provide an updater, or claim clean-machine
+Alpha.1 readiness.
+
+The remaining Lite Alpha.1 path is deliberately split into two short batches:
+
+1. R3L composes the accepted Codex and Claude local adapters into one
    rollback-aware activation coordinator and wires the same typed intent into
    the desktop manager, including packaged-window startup.
-3. R3M builds the advertised current-target release candidate, performs the
+2. R3M builds the advertised current-target release candidate, performs the
    clean-machine zero-language-runtime CLI/UI/install/diagnose/remove journey,
    records release notes and limitations, and only then publishes Lite
    `v2.0.0-alpha.1`.
@@ -1004,9 +1028,10 @@ superseded head is not reported as current-head evidence.
 19. R3J signed current-target release envelope and trusted-public-key policy is
     accepted at `cc33360b`, with exact-head Native CI run `29365515446` and
     Cloudflare Pages green;
-20. R3K production release-public-key injection and explicit current-target CLI
-    install intent is next;
-21. R3L activation coordination and desktop mutation follow R3K;
+20. R3K build-time release-authority injection and explicit current-target CLI
+    install intent are accepted at `d90d4846`, with exact-head Native CI run
+    `29369405002` and Cloudflare Pages green;
+21. R3L activation coordination and desktop typed intent are next;
 22. R3M prepares and publishes Alpha.1 only after the clean-machine installed-
     product vertical gate.
 
