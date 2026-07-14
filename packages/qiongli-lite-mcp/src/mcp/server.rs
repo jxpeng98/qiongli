@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 
+use qiongli_runtime::evidence::{build_evidence_snapshot, EvidenceInput};
 use qiongli_runtime::LiteToolId;
 pub use qiongli_runtime::LITE_PUBLIC_TOOL_NAMES as HANDLED_TOOL_NAMES;
 use serde::{Deserialize, Serialize};
@@ -20,7 +21,7 @@ use crate::searchplan::{
 };
 use crate::tools::definitions::lite_tool_definitions;
 use crate::zotero::companion::probe_zotero_from_env;
-use crate::zotero::export::export_import_files;
+use crate::zotero::export::{export_selected_import_files, ZoteroExportError, ZoteroExportRequest};
 
 const MAX_CONTEXT_LENGTH: usize = 4096;
 const MAX_QUERY_LENGTH: usize = 4096;
@@ -483,69 +484,10 @@ impl McpServer {
     }
 
     fn export_evidence(&self, id: Option<Value>, arguments: &Value) -> Value {
-        if arguments.get("cwd").is_some_and(|value| !value.is_string()) {
-            return self.error(id, -32602, "cwd must be a string");
+        match EvidenceInput::from_arguments(arguments) {
+            Ok(input) => self.tool_result(id, json!(build_evidence_snapshot(input))),
+            Err(error) => self.error(id, -32602, error.to_string()),
         }
-        if arguments
-            .get("query")
-            .is_some_and(|value| !value.is_string())
-        {
-            return self.error(id, -32602, "query must be a string");
-        }
-        for field in [
-            "provider_status",
-            "search_plan",
-            "query_plan",
-            "diagnostics",
-            "search_diagnostics",
-        ] {
-            if arguments.get(field).is_some_and(|value| !value.is_object()) {
-                return self.error(id, -32602, format!("{field} must be an object"));
-            }
-        }
-        for field in ["results", "search_results"] {
-            if let Some(value) = arguments.get(field) {
-                let Some(values) = value.as_array() else {
-                    return self.error(id, -32602, format!("{field} must be an array"));
-                };
-                if values.iter().any(|item| !item.is_object()) {
-                    return self.error(id, -32602, format!("{field} must contain objects"));
-                }
-            }
-        }
-        let results = arguments
-            .get("results")
-            .or_else(|| arguments.get("search_results"))
-            .cloned()
-            .unwrap_or_else(|| json!([]));
-        let result_count = results.as_array().map_or(0, Vec::len);
-        self.tool_result(
-            id,
-            json!({
-                "status": "ok",
-                "artifact_type": "qiongli_literature_evidence_snapshot",
-                "query": arguments
-                    .get("query")
-                    .cloned()
-                    .unwrap_or_else(|| json!("")),
-                "provider_status": arguments
-                    .get("provider_status")
-                    .cloned()
-                    .unwrap_or_else(|| json!({})),
-                "search_plan": arguments
-                    .get("search_plan")
-                    .or_else(|| arguments.get("query_plan"))
-                    .cloned()
-                    .unwrap_or_else(|| json!({})),
-                "result_count": result_count,
-                "results": results,
-                "diagnostics": arguments
-                    .get("diagnostics")
-                    .or_else(|| arguments.get("search_diagnostics"))
-                    .cloned()
-                    .unwrap_or_else(|| json!({}))
-            }),
-        )
     }
 
     fn zotero_status(&self, id: Option<Value>) -> Value {
@@ -556,40 +498,17 @@ impl McpServer {
     }
 
     fn zotero_export_import_files(&self, id: Option<Value>, arguments: &Value) -> Value {
-        let records = arguments
-            .get("records")
-            .cloned()
-            .unwrap_or_else(|| json!([]));
-        let records = match serde_json::from_value(records) {
-            Ok(records) => records,
-            Err(error) => return self.tool_error(id, error.to_string()),
+        let request = match ZoteroExportRequest::from_arguments(arguments) {
+            Ok(request) => request,
+            Err(error) => return self.error(id, -32602, error.to_string()),
         };
-        let mut files = export_import_files(records);
-        if let Some(formats) = arguments.get("formats") {
-            let Some(formats) = formats.as_array() else {
-                return self.error(id, -32602, "formats must be an array");
-            };
-            if !formats.is_empty() {
-                let mut selected = Vec::new();
-                for value in formats {
-                    let Some(format) = value.as_str() else {
-                        return self.error(id, -32602, "formats must contain strings");
-                    };
-                    if ![
-                        "references.json",
-                        "references.ris",
-                        "bibliography.bib",
-                        "zotero-import-report.md",
-                    ]
-                    .contains(&format)
-                    {
-                        return self.error(id, -32602, "Unsupported format");
-                    }
-                    selected.push(format);
-                }
-                files.retain(|name, _| selected.contains(&name.as_str()));
+        let files = match export_selected_import_files(request) {
+            Ok(files) => files,
+            Err(ZoteroExportError::OutputTooLarge | ZoteroExportError::Serialization) => {
+                return self.tool_error(id, "Zotero export failed".to_owned())
             }
-        }
+            Err(error) => return self.error(id, -32602, error.to_string()),
+        };
         self.tool_result(
             id,
             json!({

@@ -10,7 +10,8 @@ fn export_import_files_includes_ris_bibtex_csl_and_report() {
         venue: Some("Journal of Tests".to_string()),
         provider: "openalex".to_string(),
         providers: vec!["openalex".to_string()],
-    }]);
+    }])
+    .unwrap();
 
     assert!(files.contains_key("references.json"));
     assert!(files.contains_key("references.ris"));

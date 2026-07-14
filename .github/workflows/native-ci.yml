@@ -203,3 +203,5 @@ jobs:
           --test search_orchestration
           --test literature_planning_mcp
           --test searchplan
+          --test zotero_export
+          --test zotero_companion
