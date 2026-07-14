@@ -148,6 +148,7 @@ pub enum InstallActionV1 {
         root_id: String,
         entry_key: String,
         relative_path: String,
+        release_envelope_sha256: String,
         archive_sha256: String,
         manifest_sha256: String,
         pack_sha256: String,
@@ -503,6 +504,7 @@ impl InstallPlanV1 {
             }
             InstallActionV1::InstallNativePayload {
                 relative_path,
+                release_envelope_sha256,
                 archive_sha256,
                 manifest_sha256,
                 pack_sha256,
@@ -513,6 +515,7 @@ impl InstallPlanV1 {
                 if root.root != SymbolicRoot::QiongliManagedData
                     || !valid_relative_path(relative_path)
                     || relative_path.contains('/')
+                    || !is_lower_hex(release_envelope_sha256, 64)
                     || !is_lower_hex(archive_sha256, 64)
                     || !is_lower_hex(manifest_sha256, 64)
                     || !is_lower_hex(pack_sha256, 64)

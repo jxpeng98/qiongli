@@ -12,14 +12,16 @@ use qiongli_platform::{
     AllowedRootV1, ApprovalRequirement, CapabilityProfile, GrantMode, GrantSignatureV1,
     GrantVerificationContext, InstallDisposition, InstallPlanMetadataV1, InstallScope,
     IntegrationScope, LaunchGrantV1, LocalSurface, LocalTargetFamily, ManagedNativePayloadExecutor,
-    NativeArtifactManifestV1, NativePortableArchiveError, ReleaseChannel, SignatureAlgorithm,
-    SignedLaunchGrantV1, SymbolicRoot, TargetDescriptorV1, TrustedPublicKey, approve_install_plan,
+    NativeArtifactManifestV1, NativePortableArchiveError, NativeReleaseError,
+    NativeReleaseSignatureV1, NativeReleaseVerificationContext, ReleaseChannel, SignatureAlgorithm,
+    SignedLaunchGrantV1, SignedNativeReleaseEnvelopeV1, SymbolicRoot, TargetDescriptorV1,
+    TransactionError, TrustedPublicKey, TrustedReleasePublicKey, approve_install_plan,
     approve_managed_root, approve_native_artifact_target, approve_native_portable_archive_target,
-    compose_native_artifact, compose_native_portable_archive,
+    build_native_release_envelope, compose_native_artifact, compose_native_portable_archive,
     current_target_native_artifact_identity, extract_native_portable_archive,
     launch_grant_signing_bytes, native_artifact_id, native_payload_install_id,
-    native_portable_archive_file_name, preview_native_payload_install, verify_native_artifact,
-    verify_native_portable_archive,
+    native_portable_archive_file_name, native_release_envelope_signing_bytes,
+    preview_native_payload_install, verify_native_artifact, verify_native_portable_archive,
 };
 use qiongli_runtime::LITE_PUBLIC_TOOL_NAMES;
 use serde_json::{Value, json};
@@ -249,6 +251,18 @@ fn encode_hex<const N: usize>(bytes: &[u8; N]) -> String {
     output
 }
 
+fn resign_release(
+    mut release: SignedNativeReleaseEnvelopeV1,
+    signing_key: &SigningKey,
+) -> SignedNativeReleaseEnvelopeV1 {
+    let signature = signing_key.sign(
+        &native_release_envelope_signing_bytes(&release.envelope)
+            .expect("test release preimage must build"),
+    );
+    release.signature.value_hex = encode_hex(&signature.to_bytes());
+    release
+}
+
 #[test]
 fn portable_archive_is_deterministic_safe_and_runtime_independent() {
     let fixture = Fixture::new("portable-archive");
@@ -328,9 +342,226 @@ fn portable_archive_is_deterministic_safe_and_runtime_independent() {
         requested_mode: GrantMode::LiteMcp,
         requested_scope: IntegrationScope::CodexLocal,
     };
-    let verified_grant = signed
-        .verify(std::slice::from_ref(&trusted), &context)
-        .expect("test-signed installed-runtime grant must verify");
+    let release_envelope =
+        build_native_release_envelope(19, &first, &signed, NOW - 30, NOW + 1_800)
+            .expect("installed-runtime release envelope must build");
+    let release_signing_key = SigningKey::from_bytes(&[74_u8; 32]);
+    let release_signature = release_signing_key.sign(
+        &native_release_envelope_signing_bytes(&release_envelope)
+            .expect("installed-runtime release preimage must build"),
+    );
+    let signed_release = SignedNativeReleaseEnvelopeV1 {
+        envelope: release_envelope,
+        signature: NativeReleaseSignatureV1 {
+            algorithm: SignatureAlgorithm::Ed25519,
+            key_id: "installed-runtime-release-key".to_string(),
+            value_hex: encode_hex(&release_signature.to_bytes()),
+        },
+    };
+    let canonical_release = signed_release
+        .to_canonical_json()
+        .expect("installed-runtime release must serialize");
+    let signed_release = SignedNativeReleaseEnvelopeV1::from_json(&canonical_release)
+        .expect("canonical installed-runtime release must parse");
+    let mut noncanonical_release = canonical_release.clone();
+    noncanonical_release.push(b'\n');
+    assert_eq!(
+        SignedNativeReleaseEnvelopeV1::from_json(&noncanonical_release).unwrap_err(),
+        NativeReleaseError::NonCanonicalJson
+    );
+    let mut unknown_release: Value = serde_json::from_slice(&canonical_release).unwrap();
+    unknown_release
+        .as_object_mut()
+        .unwrap()
+        .insert("unexpected".to_string(), Value::Bool(true));
+    assert_eq!(
+        SignedNativeReleaseEnvelopeV1::from_json(&serde_json::to_vec(&unknown_release).unwrap())
+            .unwrap_err(),
+        NativeReleaseError::InvalidJson
+    );
+    assert_eq!(
+        SignedNativeReleaseEnvelopeV1::from_json(&vec![b' '; 300 * 1024]).unwrap_err(),
+        NativeReleaseError::InputTooLarge
+    );
+    let trusted_release = TrustedReleasePublicKey::new(
+        "installed-runtime-release-key",
+        release_signing_key.verifying_key().to_bytes(),
+        19,
+        Some(20),
+    )
+    .expect("installed-runtime release key must approve");
+    let release_context = NativeReleaseVerificationContext {
+        now_unix: NOW,
+        minimum_release_generation: 19,
+        minimum_launch_grant_generation: 13,
+        expected_artifact: &artifact,
+        expected_channel: ReleaseChannel::Alpha,
+        requested_mode: GrantMode::LiteMcp,
+        requested_scope: IntegrationScope::CodexLocal,
+    };
+    assert_eq!(
+        signed_release
+            .verify(
+                &[],
+                std::slice::from_ref(&trusted),
+                &release_context,
+                content.pack(),
+                &first_target,
+            )
+            .unwrap_err(),
+        NativeReleaseError::ReleaseKeyUntrusted
+    );
+    assert_eq!(
+        signed_release
+            .verify(
+                &[trusted_release.clone(), trusted_release.clone()],
+                std::slice::from_ref(&trusted),
+                &release_context,
+                content.pack(),
+                &first_target,
+            )
+            .unwrap_err(),
+        NativeReleaseError::InvalidReleaseKeySet
+    );
+    let future_release_key = TrustedReleasePublicKey::new(
+        "installed-runtime-release-key",
+        release_signing_key.verifying_key().to_bytes(),
+        20,
+        None,
+    )
+    .unwrap();
+    assert_eq!(
+        signed_release
+            .verify(
+                std::slice::from_ref(&future_release_key),
+                std::slice::from_ref(&trusted),
+                &release_context,
+                content.pack(),
+                &first_target,
+            )
+            .unwrap_err(),
+        NativeReleaseError::ReleaseKeyGenerationUnavailable
+    );
+    let wrong_role_key = TrustedReleasePublicKey::new(
+        "installed-runtime-release-key",
+        signing_key.verifying_key().to_bytes(),
+        19,
+        Some(20),
+    )
+    .unwrap();
+    assert_eq!(
+        signed_release
+            .verify(
+                std::slice::from_ref(&wrong_role_key),
+                std::slice::from_ref(&trusted),
+                &release_context,
+                content.pack(),
+                &first_target,
+            )
+            .unwrap_err(),
+        NativeReleaseError::ReleaseSignatureInvalid
+    );
+    let mut stale_context = release_context;
+    stale_context.minimum_release_generation = 20;
+    assert_eq!(
+        signed_release
+            .verify(
+                std::slice::from_ref(&trusted_release),
+                std::slice::from_ref(&trusted),
+                &stale_context,
+                content.pack(),
+                &first_target,
+            )
+            .unwrap_err(),
+        NativeReleaseError::ReleaseReplayed
+    );
+    let mut early_context = release_context;
+    early_context.now_unix = NOW - 31;
+    assert_eq!(
+        signed_release
+            .verify(
+                std::slice::from_ref(&trusted_release),
+                std::slice::from_ref(&trusted),
+                &early_context,
+                content.pack(),
+                &first_target,
+            )
+            .unwrap_err(),
+        NativeReleaseError::ReleaseNotYetValid
+    );
+    let mut tampered_release = signed_release.clone();
+    tampered_release.envelope.archive_sha256 = "0".repeat(64);
+    assert_eq!(
+        tampered_release
+            .verify(
+                std::slice::from_ref(&trusted_release),
+                std::slice::from_ref(&trusted),
+                &release_context,
+                content.pack(),
+                &first_target,
+            )
+            .unwrap_err(),
+        NativeReleaseError::ReleaseSignatureInvalid
+    );
+    let payload_mismatch = resign_release(tampered_release, &release_signing_key);
+    assert_eq!(
+        payload_mismatch
+            .verify(
+                std::slice::from_ref(&trusted_release),
+                std::slice::from_ref(&trusted),
+                &release_context,
+                content.pack(),
+                &first_target,
+            )
+            .unwrap_err(),
+        NativeReleaseError::ReleasePayloadMismatch
+    );
+    let mut invalid_launch = signed_release.clone();
+    invalid_launch
+        .envelope
+        .signed_launch_grant
+        .signature
+        .value_hex = "0".repeat(128);
+    let invalid_launch = resign_release(invalid_launch, &release_signing_key);
+    assert_eq!(
+        invalid_launch
+            .verify(
+                std::slice::from_ref(&trusted_release),
+                std::slice::from_ref(&trusted),
+                &release_context,
+                content.pack(),
+                &first_target,
+            )
+            .unwrap_err(),
+        NativeReleaseError::LaunchGrantInvalid
+    );
+    let missing_path = fixture.target("missing-release-archive", &archive_file_name);
+    let missing_target = approve_native_portable_archive_target(&missing_path, &artifact).unwrap();
+    let missing_error = signed_release
+        .verify(
+            std::slice::from_ref(&trusted_release),
+            std::slice::from_ref(&trusted),
+            &release_context,
+            content.pack(),
+            &missing_target,
+        )
+        .unwrap_err();
+    assert_eq!(missing_error, NativeReleaseError::ArchiveInvalid);
+    assert!(!missing_error.to_string().contains(PRIVATE_PATH_CANARY));
+    assert!(
+        !missing_error
+            .to_string()
+            .contains(fixture.root.to_string_lossy().as_ref())
+    );
+    let verified_release = signed_release
+        .verify(
+            std::slice::from_ref(&trusted_release),
+            std::slice::from_ref(&trusted),
+            &release_context,
+            content.pack(),
+            &first_target,
+        )
+        .expect("test-signed installed-runtime release must verify");
     let managed_root = fixture.root.join("installed-managed");
     create_private_directory(&managed_root);
     let root = AllowedRootV1 {
@@ -345,8 +576,7 @@ fn portable_archive_is_deterministic_safe_and_runtime_independent() {
             created_at_unix: NOW,
             expires_at_unix: NOW + 600,
         },
-        &verified_grant,
-        &first,
+        &verified_release,
         TargetDescriptorV1 {
             family: LocalTargetFamily::CodexLocal,
             surface: LocalSurface::CliLocal,
@@ -367,16 +597,52 @@ fn portable_archive_is_deterministic_safe_and_runtime_independent() {
             .expect("native payload install plan must approve");
     let install_id = native_payload_install_id(&first);
     let executor = ManagedNativePayloadExecutor::new(approved_root);
+    let mut alternate_signed_release = signed_release.clone();
+    alternate_signed_release.envelope.generation = 20;
+    let alternate_signed_release = resign_release(alternate_signed_release, &release_signing_key);
+    let alternate_release_key = TrustedReleasePublicKey::new(
+        "installed-runtime-release-key",
+        release_signing_key.verifying_key().to_bytes(),
+        19,
+        Some(21),
+    )
+    .unwrap();
+    let alternate_release = alternate_signed_release
+        .verify(
+            std::slice::from_ref(&alternate_release_key),
+            std::slice::from_ref(&trusted),
+            &release_context,
+            content.pack(),
+            &first_target,
+        )
+        .expect("alternate release must verify independently");
+    assert_eq!(
+        executor
+            .apply(
+                &verified_plan,
+                &approval,
+                content.pack(),
+                &alternate_release,
+                NOW + 1,
+            )
+            .unwrap_err(),
+        TransactionError::PayloadMismatch
+    );
+    assert!(!managed_root.join(&artifact_id).exists());
     let applied = executor
         .apply(
             &verified_plan,
             &approval,
             content.pack(),
-            &first_target,
-            NOW + 1,
+            &verified_release,
+            NOW + 2,
         )
         .expect("verified archive must install");
     assert_eq!(applied.disposition, InstallDisposition::Applied);
+    assert_eq!(
+        applied.receipt.operation.release_envelope_sha256,
+        verified_release.signed_payload_sha256()
+    );
     assert_eq!(
         executor
             .verify(&install_id, content.pack())

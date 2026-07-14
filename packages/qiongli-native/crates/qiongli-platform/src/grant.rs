@@ -335,7 +335,7 @@ fn validate_trusted_keys(trusted_keys: &[TrustedPublicKey]) -> Result<(), Platfo
     Ok(())
 }
 
-fn decode_fixed_hex<const N: usize>(value: &str) -> Option<[u8; N]> {
+pub(crate) fn decode_fixed_hex<const N: usize>(value: &str) -> Option<[u8; N]> {
     if !is_lower_hex(value, N.checked_mul(2)?) {
         return None;
     }

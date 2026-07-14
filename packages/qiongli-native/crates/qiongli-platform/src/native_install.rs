@@ -17,8 +17,8 @@ use crate::{
     InstallPlanV1, InstallScope, LifecycleDisposition, NativeArtifactTarget,
     NativePortableArchiveError, NativePortableArchiveTarget, OwnershipMarkerV1, PlanStateV1,
     PlatformError, ProductId, SymbolicRoot, TargetDescriptorV1, TransactionError,
-    VerifiedInstallPlan, VerifiedLaunchGrant, VerifiedNativeArtifact,
-    VerifiedNativePortableArchive, approve_native_artifact_target, extract_native_portable_archive,
+    VerifiedInstallPlan, VerifiedNativeArtifact, VerifiedNativePortableArchive,
+    VerifiedNativeReleaseEnvelope, approve_native_artifact_target, extract_native_portable_archive,
     native_artifact_id, observed_plan_state_sha256, verify_native_artifact,
     verify_native_portable_archive,
 };
@@ -43,17 +43,21 @@ pub fn native_payload_install_id(archive: &VerifiedNativePortableArchive) -> Str
 
 pub fn preview_native_payload_install(
     metadata: InstallPlanMetadataV1,
-    verified_grant: &VerifiedLaunchGrant,
-    archive: &VerifiedNativePortableArchive,
+    release: &VerifiedNativeReleaseEnvelope,
     target: TargetDescriptorV1,
     root: AllowedRootV1,
 ) -> Result<InstallPlanV1, PlatformError> {
+    let verified_grant = release.launch_grant();
+    let archive = release.archive();
     let manifest = archive.payload().manifest();
     if archive.artifact() != &verified_grant.grant().artifact
         || manifest.artifact != verified_grant.grant().artifact
         || manifest.binary_sha256 != verified_grant.grant().binary_sha256
         || manifest.content.pack_sha256 != verified_grant.grant().resource_pack_sha256
         || root.root != SymbolicRoot::QiongliManagedData
+        || metadata.created_at_unix < release.envelope().not_before_unix
+        || metadata.created_at_unix < release.verified_at_unix()
+        || metadata.expires_at_unix > release.envelope().expires_at_unix
     {
         return Err(PlatformError::InstallPlanTargetMismatch);
     }
@@ -79,6 +83,7 @@ pub fn preview_native_payload_install(
                     root_id: root.id.clone(),
                     entry_key: ENTRY_KEY.to_string(),
                     relative_path: artifact_id,
+                    release_envelope_sha256: release.signed_payload_sha256().to_string(),
                     archive_sha256: archive.archive_sha256().to_string(),
                     manifest_sha256: archive.manifest_sha256().to_string(),
                     pack_sha256: manifest.content.pack_sha256.clone(),
@@ -113,6 +118,7 @@ pub struct NativePayloadOperationReceiptV1 {
     pub entry_key: String,
     pub relative_path: String,
     pub ownership: OwnershipMarkerV1,
+    pub release_envelope_sha256: String,
     pub archive_sha256: String,
     pub manifest_sha256: String,
     pub pack_sha256: String,
@@ -245,6 +251,7 @@ impl NativePayloadOperationReceiptV1 {
             || self.entry_key != ENTRY_KEY
             || !valid_leaf(&self.relative_path)
             || !valid_digest(&self.ownership.artifact_digest_sha256)
+            || !valid_digest(&self.release_envelope_sha256)
             || !valid_digest(&self.archive_sha256)
             || !valid_digest(&self.manifest_sha256)
             || !valid_digest(&self.pack_sha256)
@@ -306,14 +313,14 @@ impl ManagedNativePayloadExecutor {
         plan: &VerifiedInstallPlan,
         approval: &ApprovedInstallPlan,
         pack: &LoadedResourcePack<'_>,
-        archive: &NativePortableArchiveTarget,
+        release: &VerifiedNativeReleaseEnvelope,
         now_unix: u64,
     ) -> Result<NativePayloadInstallCommit, TransactionError> {
         self.apply_with(
             plan,
             approval,
             pack,
-            archive,
+            release,
             now_unix,
             ApplyKind::Fresh,
             &NoFaults,
@@ -325,14 +332,14 @@ impl ManagedNativePayloadExecutor {
         plan: &VerifiedInstallPlan,
         approval: &ApprovedInstallPlan,
         pack: &LoadedResourcePack<'_>,
-        archive: &NativePortableArchiveTarget,
+        release: &VerifiedNativeReleaseEnvelope,
         now_unix: u64,
     ) -> Result<NativePayloadInstallCommit, TransactionError> {
         self.apply_with(
             plan,
             approval,
             pack,
-            archive,
+            release,
             now_unix,
             ApplyKind::Repair,
             &NoFaults,
@@ -389,7 +396,7 @@ impl ManagedNativePayloadExecutor {
         verified_plan: &VerifiedInstallPlan,
         approval: &ApprovedInstallPlan,
         pack: &LoadedResourcePack<'_>,
-        archive: &NativePortableArchiveTarget,
+        release: &VerifiedNativeReleaseEnvelope,
         now_unix: u64,
         kind: ApplyKind,
         faults: &F,
@@ -399,7 +406,7 @@ impl ManagedNativePayloadExecutor {
             verified_plan,
             approval,
             pack,
-            archive,
+            release,
             &self.root,
             now_unix,
         )?;
@@ -493,7 +500,9 @@ impl ManagedNativePayloadExecutor {
         let destination =
             approve_native_artifact_target(&executable.destination, &verified_plan.plan().artifact)
                 .map_err(|_| TransactionError::UnsafeManagedRoot)?;
-        if let Err(error) = extract_native_portable_archive(pack, archive, &destination) {
+        if let Err(error) =
+            extract_native_portable_archive(pack, executable.archive_target(), &destination)
+        {
             match error {
                 NativePortableArchiveError::ExtractionFailed => {
                     return self.fail_after_possible_extract(
@@ -770,13 +779,14 @@ struct ExecutableNativePayload<'a> {
     operation: &'a InstallOperationV1,
     root_id: &'a str,
     relative_path: &'a str,
+    release_envelope_sha256: &'a str,
     archive_sha256: &'a str,
     manifest_sha256: &'a str,
     pack_sha256: &'a str,
     artifact_content_root_sha256: &'a str,
     binary_sha256: &'a str,
     ownership: &'a OwnershipMarkerV1,
-    archive: &'a NativePortableArchiveTarget,
+    release: &'a VerifiedNativeReleaseEnvelope,
     destination: PathBuf,
     plan_digest: &'a str,
 }
@@ -786,12 +796,18 @@ impl<'a> ExecutableNativePayload<'a> {
         verified_plan: &'a VerifiedInstallPlan,
         approval: &ApprovedInstallPlan,
         pack: &LoadedResourcePack<'_>,
-        archive: &'a NativePortableArchiveTarget,
+        release: &'a VerifiedNativeReleaseEnvelope,
         root: &ApprovedManagedRoot,
         now_unix: u64,
     ) -> Result<Self, TransactionError> {
         let plan = verified_plan.plan();
         approval.validate_for(verified_plan, now_unix)?;
+        if now_unix < release.verified_at_unix()
+            || now_unix < release.envelope().not_before_unix
+            || now_unix >= release.envelope().expires_at_unix
+        {
+            return Err(TransactionError::PlanExpired);
+        }
         if plan.approvals_required != [ApprovalRequirement::FilesystemWrite]
             || plan.target.profile != CapabilityProfile::Lite
             || plan.target.scope != InstallScope::User
@@ -812,6 +828,7 @@ impl<'a> ExecutableNativePayload<'a> {
             root_id,
             entry_key,
             relative_path,
+            release_envelope_sha256,
             archive_sha256,
             manifest_sha256,
             pack_sha256,
@@ -835,6 +852,9 @@ impl<'a> ExecutableNativePayload<'a> {
                     .map_err(|_| TransactionError::UnsupportedPlan)?
         {
             return Err(TransactionError::ObservedStateMismatch);
+        }
+        if release_envelope_sha256 != release.signed_payload_sha256() {
+            return Err(TransactionError::PayloadMismatch);
         }
         let PlanStateV1::Managed {
             ownership: post_ownership,
@@ -861,11 +881,21 @@ impl<'a> ExecutableNativePayload<'a> {
         {
             return Err(TransactionError::UnsupportedPlan);
         }
+        if verified_plan.grant().signed_grant() != release.launch_grant().signed_grant()
+            || verified_plan.grant().signed_payload_sha256()
+                != release.launch_grant().signed_payload_sha256()
+            || verified_plan.grant().authorized_mode() != release.launch_grant().authorized_mode()
+            || verified_plan.grant().authorized_scope() != release.launch_grant().authorized_scope()
+        {
+            return Err(TransactionError::PayloadMismatch);
+        }
+        let archive = release.archive_target();
         let verified = verify_native_portable_archive(pack, archive)
             .map_err(|_| TransactionError::PayloadMismatch)?;
         let manifest = verified.payload().manifest();
         if verified.artifact() != &plan.artifact
             || archive.artifact() != &plan.artifact
+            || &verified != release.archive()
             || verified.archive_sha256() != archive_sha256
             || verified.manifest_sha256() != manifest_sha256
             || manifest.content.pack_sha256 != *pack_sha256
@@ -882,13 +912,14 @@ impl<'a> ExecutableNativePayload<'a> {
             operation,
             root_id,
             relative_path,
+            release_envelope_sha256,
             archive_sha256,
             manifest_sha256,
             pack_sha256,
             artifact_content_root_sha256,
             binary_sha256,
             ownership,
-            archive,
+            release,
             destination: root.path().join(relative_path),
             plan_digest: &plan.semantic_digest_sha256,
         })
@@ -899,10 +930,11 @@ impl<'a> ExecutableNativePayload<'a> {
     }
 
     fn verify_archive(&self, pack: &LoadedResourcePack<'_>) -> Result<(), TransactionError> {
-        let verified = verify_native_portable_archive(pack, self.archive)
+        let verified = verify_native_portable_archive(pack, self.release.archive_target())
             .map_err(|_| TransactionError::PayloadMismatch)?;
         let manifest = verified.payload().manifest();
-        if verified.archive_sha256() != self.archive_sha256
+        if &verified != self.release.archive()
+            || verified.archive_sha256() != self.archive_sha256
             || verified.manifest_sha256() != self.manifest_sha256
             || manifest.content.pack_sha256 != self.pack_sha256
             || manifest.artifact_content_root_sha256 != self.artifact_content_root_sha256
@@ -911,6 +943,10 @@ impl<'a> ExecutableNativePayload<'a> {
             return Err(TransactionError::PayloadMismatch);
         }
         Ok(())
+    }
+
+    fn archive_target(&self) -> &NativePortableArchiveTarget {
+        self.release.archive_target()
     }
 
     fn build_receipt(
@@ -933,6 +969,7 @@ impl<'a> ExecutableNativePayload<'a> {
                 entry_key: ENTRY_KEY.to_string(),
                 relative_path: self.relative_path.to_string(),
                 ownership: self.ownership.clone(),
+                release_envelope_sha256: self.release_envelope_sha256.to_string(),
                 archive_sha256: self.archive_sha256.to_string(),
                 manifest_sha256: self.manifest_sha256.to_string(),
                 pack_sha256: self.pack_sha256.to_string(),
@@ -950,6 +987,7 @@ impl<'a> ExecutableNativePayload<'a> {
             && active.operation.root_id == self.root_id
             && active.operation.relative_path == self.relative_path
             && active.operation.ownership == *self.ownership
+            && active.operation.release_envelope_sha256 == self.release_envelope_sha256
             && active.operation.archive_sha256 == self.archive_sha256
             && active.operation.manifest_sha256 == self.manifest_sha256
             && active.operation.pack_sha256 == self.pack_sha256
@@ -1443,11 +1481,14 @@ mod tests {
     use super::*;
     use crate::{
         GrantMode, GrantSignatureV1, GrantVerificationContext, IntegrationScope, LaunchGrantV1,
-        LocalSurface, LocalTargetFamily, ReleaseChannel, SignatureAlgorithm, SignedLaunchGrantV1,
-        TrustedPublicKey, approve_install_plan, approve_managed_root,
-        approve_native_portable_archive_target, compose_native_artifact,
-        compose_native_portable_archive, current_target_native_artifact_identity,
-        launch_grant_signing_bytes, native_artifact_binary_path, native_portable_archive_file_name,
+        LocalSurface, LocalTargetFamily, NativeReleaseSignatureV1,
+        NativeReleaseVerificationContext, ReleaseChannel, SignatureAlgorithm, SignedLaunchGrantV1,
+        SignedNativeReleaseEnvelopeV1, TrustedPublicKey, TrustedReleasePublicKey,
+        approve_install_plan, approve_managed_root, approve_native_portable_archive_target,
+        build_native_release_envelope, compose_native_artifact, compose_native_portable_archive,
+        current_target_native_artifact_identity, launch_grant_signing_bytes,
+        native_artifact_binary_path, native_portable_archive_file_name,
+        native_release_envelope_signing_bytes,
     };
 
     const NOW: u64 = 1_750_000_000;
@@ -1602,7 +1643,11 @@ mod tests {
 
     fn verified_plan(
         prepared: &Prepared,
-    ) -> (VerifiedInstallPlan, ApprovedInstallPlan, TrustedPublicKey) {
+    ) -> (
+        VerifiedNativeReleaseEnvelope,
+        VerifiedInstallPlan,
+        ApprovedInstallPlan,
+    ) {
         let manifest = prepared.archive.payload().manifest();
         let grant = LaunchGrantV1 {
             schema_version: 1,
@@ -1639,17 +1684,56 @@ mod tests {
             requested_mode: GrantMode::LiteMcp,
             requested_scope: IntegrationScope::CodexLocal,
         };
-        let verified_grant = signed
-            .verify(std::slice::from_ref(&trusted), &context)
-            .expect("native payload test grant must verify");
+        let loaded = load_resource_pack(prepared.built.core_bytes(), prepared.built.pack_sha256())
+            .expect("native install pack must reload");
+        let envelope =
+            build_native_release_envelope(17, &prepared.archive, &signed, NOW - 30, NOW + 1_800)
+                .expect("native payload release envelope must build");
+        let release_signing_key = SigningKey::from_bytes(&[43_u8; 32]);
+        let release_signature = release_signing_key.sign(
+            &native_release_envelope_signing_bytes(&envelope)
+                .expect("native payload release preimage must build"),
+        );
+        let signed_release = SignedNativeReleaseEnvelopeV1 {
+            envelope,
+            signature: NativeReleaseSignatureV1 {
+                algorithm: SignatureAlgorithm::Ed25519,
+                key_id: "native-release-test-key".to_string(),
+                value_hex: encode_hex(&release_signature.to_bytes()),
+            },
+        };
+        let trusted_release = TrustedReleasePublicKey::new(
+            "native-release-test-key",
+            release_signing_key.verifying_key().to_bytes(),
+            17,
+            Some(18),
+        )
+        .expect("native release key must be trusted");
+        let release_context = NativeReleaseVerificationContext {
+            now_unix: NOW,
+            minimum_release_generation: 17,
+            minimum_launch_grant_generation: 11,
+            expected_artifact: prepared.archive.artifact(),
+            expected_channel: ReleaseChannel::Alpha,
+            requested_mode: GrantMode::LiteMcp,
+            requested_scope: IntegrationScope::CodexLocal,
+        };
+        let release = signed_release
+            .verify(
+                std::slice::from_ref(&trusted_release),
+                std::slice::from_ref(&trusted),
+                &release_context,
+                &loaded,
+                &prepared.archive_target,
+            )
+            .expect("native payload release must verify");
         let plan = preview_native_payload_install(
             InstallPlanMetadataV1 {
                 plan_id: "r3i-native-payload-plan".to_string(),
                 created_at_unix: NOW,
                 expires_at_unix: NOW + 600,
             },
-            &verified_grant,
-            &prepared.archive,
+            &release,
             TargetDescriptorV1 {
                 family: LocalTargetFamily::CodexLocal,
                 surface: LocalSurface::CliLocal,
@@ -1673,7 +1757,7 @@ mod tests {
         let approval =
             approve_install_plan(&verified, &[ApprovalRequirement::FilesystemWrite], NOW)
                 .expect("native payload plan must approve");
-        (verified, approval, trusted)
+        (release, verified, approval)
     }
 
     #[test]
@@ -1682,11 +1766,11 @@ mod tests {
         let prepared = prepare(&fixture);
         let loaded =
             load_resource_pack(prepared.built.core_bytes(), prepared.built.pack_sha256()).unwrap();
-        let (plan, approval, _) = verified_plan(&prepared);
+        let (release, plan, approval) = verified_plan(&prepared);
         let executor = ManagedNativePayloadExecutor::new(fixture.approved_root());
 
         let applied = executor
-            .apply(&plan, &approval, &loaded, &prepared.archive_target, NOW + 1)
+            .apply(&plan, &approval, &loaded, &release, NOW + 1)
             .expect("native payload must apply");
         assert_eq!(applied.disposition, InstallDisposition::Applied);
         assert!(!applied.cleanup_required);
@@ -1713,7 +1797,7 @@ mod tests {
         );
 
         let replay = executor
-            .apply(&plan, &approval, &loaded, &prepared.archive_target, NOW + 2)
+            .apply(&plan, &approval, &loaded, &release, NOW + 2)
             .expect("identical apply must replay");
         assert_eq!(replay.disposition, InstallDisposition::AlreadyApplied);
         assert_eq!(replay.receipt, applied.receipt);
@@ -1747,14 +1831,14 @@ mod tests {
         let prepared = prepare(&fixture);
         let loaded =
             load_resource_pack(prepared.built.core_bytes(), prepared.built.pack_sha256()).unwrap();
-        let (plan, approval, _) = verified_plan(&prepared);
+        let (release, plan, approval) = verified_plan(&prepared);
         let executor = ManagedNativePayloadExecutor::new(fixture.approved_root());
         executor
-            .apply(&plan, &approval, &loaded, &prepared.archive_target, NOW + 1)
+            .apply(&plan, &approval, &loaded, &release, NOW + 1)
             .unwrap();
         fs::remove_dir_all(fixture.managed.join(&prepared.artifact_id)).unwrap();
         let repaired = executor
-            .repair(&plan, &approval, &loaded, &prepared.archive_target, NOW + 2)
+            .repair(&plan, &approval, &loaded, &release, NOW + 2)
             .expect("absent managed payload must repair");
         assert_eq!(repaired.disposition, InstallDisposition::Repaired);
         assert!(repaired.receipt.replaces_transaction_id.is_some());
@@ -1774,7 +1858,7 @@ mod tests {
             Err(TransactionError::ManagedStateDrift)
         );
         assert_eq!(
-            executor.repair(&plan, &approval, &loaded, &prepared.archive_target, NOW + 3),
+            executor.repair(&plan, &approval, &loaded, &release, NOW + 3),
             Err(TransactionError::ManagedStateDrift)
         );
         assert!(fs::read(binary).unwrap().ends_with(b"drift"));
@@ -1786,7 +1870,7 @@ mod tests {
         let prepared = prepare(&fixture);
         let loaded =
             load_resource_pack(prepared.built.core_bytes(), prepared.built.pack_sha256()).unwrap();
-        let (plan, approval, _) = verified_plan(&prepared);
+        let (release, plan, approval) = verified_plan(&prepared);
         let executor = ManagedNativePayloadExecutor::new(fixture.approved_root());
         let fault = FaultAt(FaultPoint::BeforeStateCommit);
 
@@ -1795,7 +1879,7 @@ mod tests {
                 &plan,
                 &approval,
                 &loaded,
-                &prepared.archive_target,
+                &release,
                 NOW + 1,
                 ApplyKind::Fresh,
                 &fault,
@@ -1807,7 +1891,7 @@ mod tests {
         assert!(!journal_path(&fixture.managed).exists());
 
         executor
-            .apply(&plan, &approval, &loaded, &prepared.archive_target, NOW + 2)
+            .apply(&plan, &approval, &loaded, &release, NOW + 2)
             .unwrap();
         assert_eq!(
             executor.lifecycle_with(
@@ -1842,7 +1926,7 @@ mod tests {
         let prepared = prepare(&fixture);
         let loaded =
             load_resource_pack(prepared.built.core_bytes(), prepared.built.pack_sha256()).unwrap();
-        let (plan, approval, _) = verified_plan(&prepared);
+        let (release, plan, approval) = verified_plan(&prepared);
         let executor = ManagedNativePayloadExecutor::new(fixture.approved_root());
         let original_archive = fs::read(prepared.archive_target.path()).unwrap();
         fs::OpenOptions::new()
@@ -1852,7 +1936,7 @@ mod tests {
             .write_all(b"drift")
             .unwrap();
         assert_eq!(
-            executor.apply(&plan, &approval, &loaded, &prepared.archive_target, NOW + 1),
+            executor.apply(&plan, &approval, &loaded, &release, NOW + 1),
             Err(TransactionError::PayloadMismatch)
         );
         assert!(!fixture.managed.join(&prepared.artifact_id).exists());
@@ -1869,7 +1953,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(
-            executor.apply(&plan, &approval, &loaded, &prepared.archive_target, NOW + 2),
+            executor.apply(&plan, &approval, &loaded, &release, NOW + 2),
             Err(TransactionError::DestinationConflict)
         );
         assert_eq!(

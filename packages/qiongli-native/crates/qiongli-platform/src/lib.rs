@@ -8,6 +8,7 @@ mod identity;
 mod native_archive;
 mod native_artifact;
 mod native_install;
+mod native_release;
 mod plan;
 mod transaction;
 
@@ -80,6 +81,12 @@ pub use native_install::{
     NativePayloadInstallVerification, NativePayloadLifecycleCommit,
     NativePayloadLifecycleReceiptV1, NativePayloadOperationReceiptV1, native_payload_install_id,
     preview_native_payload_install,
+};
+pub use native_release::{
+    NATIVE_RELEASE_ENVELOPE_SCHEMA_VERSION, NativeReleaseEnvelopeV1, NativeReleaseError,
+    NativeReleaseSignatureV1, NativeReleaseVerificationContext, SignedNativeReleaseEnvelopeV1,
+    TrustedReleasePublicKey, VerifiedNativeReleaseEnvelope, build_native_release_envelope,
+    native_release_envelope_signing_bytes,
 };
 pub use plan::{
     AllowedRootV1, ApprovalRequirement, HostAction, InstallActionV1, InstallOperationV1,

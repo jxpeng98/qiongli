@@ -25,35 +25,35 @@ Gate: reviewed R3J design and execution-plan checkpoint.
 
 ## Batch 2 — Implement Canonical Release Verification
 
-- [ ] Add strict bounded canonical release-envelope and signature schemas.
-- [ ] Add deterministic envelope construction and domain-separated signing
+- [x] Add strict bounded canonical release-envelope and signature schemas.
+- [x] Add deterministic envelope construction and domain-separated signing
   bytes without adding private-key handling.
-- [ ] Add bounded trusted release keys with generation windows and distinct
+- [x] Add bounded trusted release keys with generation windows and distinct
   release-key verification.
-- [ ] Verify time, generation, channel, artifact, archive, R3G payload, pack,
+- [x] Verify time, generation, channel, artifact, archive, R3G payload, pack,
   and independent launch-grant authority into one private verified token.
 
 Gate: release-envelope unit tests, format, locked check, and strict Clippy.
 
 ## Batch 3 — Bind R3I To The Verified Release
 
-- [ ] Add the release-envelope digest to the native-payload plan action and
+- [x] Add the release-envelope digest to the native-payload plan action and
   receipt.
-- [ ] Require the verified release token for preview, apply, and repair.
-- [ ] Re-verify the token-retained archive immediately before extraction.
-- [ ] Preserve offline receipt-backed verify, remove, rollback, recovery, and
+- [x] Require the verified release token for preview, apply, and repair.
+- [x] Re-verify the token-retained archive immediately before extraction.
+- [x] Preserve offline receipt-backed verify, remove, rollback, recovery, and
   caller-data safety.
 
 Gate: R3I lifecycle and fault-injection tests.
 
 ## Batch 4 — Prove The Signed Installed Runtime
 
-- [ ] Build and sign one current-target release envelope with distinct test-only
+- [x] Build and sign one current-target release envelope with distinct test-only
   release and launch-grant keys.
-- [ ] Parse and verify the canonical envelope before producing the install plan.
-- [ ] Install only through the verified release token and run only the managed
+- [x] Parse and verify the canonical envelope before producing the install plan.
+- [x] Install only through the verified release token and run only the managed
   installed executable with an empty runtime `PATH`.
-- [ ] Reject envelope, key, generation, archive, payload, and grant tampering
+- [x] Reject envelope, key, generation, archive, payload, and grant tampering
   before managed mutation.
 
 Gate: current-target application integration test plus focused Lite suite.
