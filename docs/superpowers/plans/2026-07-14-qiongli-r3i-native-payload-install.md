@@ -2,7 +2,7 @@
 
 Date: 2026-07-14
 
-Status: active
+Status: accepted at `25335d430d2d13977caffc92adbb813f5c00af48`
 
 Branch: `feat/2x-native-alpha1`
 
@@ -69,14 +69,54 @@ Gate: current-target application integration test plus focused Lite suite.
 
 ## Batch 5 — Acceptance And Rolling PR
 
-- [ ] Run format, locked workspace check, strict Clippy, all native tests,
+- [x] Run format, locked workspace check, strict Clippy, all native tests,
   focused Lite compatibility, Windows MSVC check/Clippy, and frozen boundary.
-- [ ] Commit and push cohesive checkpoints on the same rolling branch.
-- [ ] Monitor Native CI and Cloudflare on the exact implementation head.
-- [ ] Update the accelerated roadmap, native README, this acceptance record,
+- [x] Commit and push cohesive checkpoints on the same rolling branch.
+- [x] Monitor Native CI and Cloudflare on the exact implementation head.
+- [x] Update the accelerated roadmap, native README, this acceptance record,
   and Draft PR #63 with factual evidence and non-claims.
 
 R3I closes only after exact-head target-native CI. A test-signed transactional
 service is not a production installer or release: signing, managed-root
 discovery/creation, client activation, updater, and clean-machine gates remain
 explicit later work.
+
+## Local Acceptance Receipt
+
+Accepted implementation head:
+`25335d430d2d13977caffc92adbb813f5c00af48`.
+
+- `cargo fmt --all -- --check` passed.
+- Locked all-target, all-feature workspace check and strict host Clippy passed.
+- Windows MSVC all-target, all-feature workspace check and strict Clippy
+  passed after correcting the Windows owner-private directory return type.
+- All-target, all-feature native tests passed: 224 normal tests; the two
+  external-client tests remain explicitly ignored by the normal gate.
+- All 54 `qiongli-platform` tests passed.
+- The current-target installed-runtime integration test passed.
+- All 69 focused Lite compatibility tests passed, including their existing
+  ephemeral localhost fixtures.
+- The native 2.x frozen-boundary check passed on the committed implementation
+  head.
+
+The accepted tests cover signed plan and approval binding, canonical private
+state, apply/replay/verify/repair/remove/rollback, commit fault restoration,
+ambiguous recovery evidence, linked-state and payload-drift refusal, caller-data
+preservation, and execution of only the installed binary with an empty runtime
+`PATH`.
+
+## Remote Acceptance Receipt
+
+- Design and plan checkpoint: `33e331c9`.
+- Implementation checkpoint:
+  `25335d430d2d13977caffc92adbb813f5c00af48`.
+- Exact-head Native CI run `29361710636` passed: boundary in 4s, focused Lite
+  in 35s, Linux in 7m33s, Windows in 7m59s, and macOS in 8m12s.
+- Cloudflare Pages passed on the same implementation head.
+
+This receipt does not claim a production signing key, archive signature,
+notarization, checksum sidecar, SBOM, provenance, automatic managed-root
+discovery, client activation, updater, public release, packaged-window startup,
+cross-target build, or clean-machine release acceptance. Python and Node
+product suites remain outside the frozen 2.x native migration gate and did not
+run.

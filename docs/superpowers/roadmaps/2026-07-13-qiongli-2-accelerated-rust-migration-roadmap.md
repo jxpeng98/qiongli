@@ -1,7 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; R1, R2, and R3A-R3H are complete; R3I verified
-current-target payload installation is the next dependency-contiguous batch
+Status: active execution; R1, R2, and R3A-R3I are complete; R3J signed
+current-target release envelope and trust policy is the next bounded batch
 
 Decision date: July 13, 2026
 
@@ -789,16 +789,47 @@ notarization, checksums, SBOM, provenance, launch grants, an installer, updater,
 public distribution, packaged-window startup, cross-target output, or
 clean-machine acceptance.
 
-R3I / the remaining `PLT-202` native-payload vertical is next: bind one verified
-current-target R3H payload to a Qiongli-owned installed payload slot and expose
-its preview, approve, apply, verify, remove, repair, and rollback lifecycle only
-through shared platform services. It must retain exact artifact identity,
-receipt-backed ownership, no-replace mutation, rollback safety, and
-path-redacted failures, then prove the installed executable starts CLI and Lite
-MCP outside the source and extraction trees. The R3I design checkpoint must fix
-the managed-root layout and state machine before implementation. Client-path
-discovery, direct UI filesystem callbacks, signing, publication, update-channel
-metadata, public marketplaces, and cross-target packaging remain outside R3I.
+R3I / the remaining `PLT-202` native-payload vertical is complete at design
+checkpoint `33e331c9` and accepted implementation head `25335d43`. The platform
+now binds one verified current-target R3H archive to an R3A signed launch grant,
+deterministic single-operation install plan, explicit filesystem approval, and
+caller-approved private `QiongliManagedData` root. Archive-derived install
+identity prevents different archives from sharing state, while the installed
+directory remains the canonical artifact ID.
+
+The shared service implements apply, identical replay, read-only verify,
+absent-target repair, verified quarantine, remove, rollback, terminal
+idempotence, restoration before the durable state point, and retained recovery
+evidence for ambiguous outcomes. Strict bounded canonical state contains no
+absolute path. Foreign destinations, linked state, payload drift, archive/pack
+mismatch, and conflicting journals fail closed without adoption or overwrite.
+The installed executable runs `--version`, content inspection, MCP initialize,
+the exact 12-tool Lite contract, and one bounded read-only call outside the
+source and archive trees with an empty runtime `PATH`.
+
+Local R3I acceptance passes all 224 normal native tests, keeps the two
+external-client tests explicitly ignored, passes all 54 platform tests and all
+69 focused Lite compatibility tests, and passes strict host and Windows MSVC
+checks and Clippy. Exact-head Native CI run `29361710636` passed the boundary
+in 4s, focused Lite in 35s, Linux in 7m33s, Windows in 7m59s, and macOS in
+8m12s; Cloudflare Pages also passed.
+
+R3I remains test-signed and does not claim a production signing key, signed
+release envelope, automatic managed-root discovery, user-facing install
+intent, client activation, updater, public Marketplace distribution,
+notarization, SBOM, provenance, cross-target output, or clean-machine release
+acceptance.
+
+R3J / `PKG-202A` is next: freeze and implement one bounded signed current-target
+release envelope and trusted-public-key policy that authorizes the exact R3H
+archive consumed by R3I. It must bind release channel and generation plus the
+archive, manifest, resource-pack, artifact-content-root, and executable
+digests; use strict canonical serialization and detached Ed25519 verification;
+define key-ID rotation and release-CI private-key injection without storing a
+private key in the repository; and expose only a verified token to later
+installation intents. OS code signing/notarization, SBOM/provenance, automatic
+root discovery, CLI/desktop mutation, updater metadata, public publication,
+and clean-machine acceptance remain separate later gates.
 
 Deliverables:
 
@@ -936,8 +967,11 @@ superseded head is not reported as current-head evidence.
     at `f1e50074`, with exact-head Native CI run `29357292961` and Cloudflare
     Pages green;
 18. R3I verified current-target payload installation through shared platform
-    services is next;
-19. prepare alpha.1 only after the complete installed-product vertical gate.
+    services is accepted at `25335d43`, with exact-head Native CI run
+    `29361710636` and Cloudflare Pages green;
+19. R3J signed current-target release envelope and trusted-public-key policy is
+    next;
+20. prepare alpha.1 only after the complete installed-product vertical gate.
 
 ## Program Done
 

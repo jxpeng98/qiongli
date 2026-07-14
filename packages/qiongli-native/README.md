@@ -514,6 +514,50 @@ signing, notarization, checksum sidecars, SBOM, provenance, launch grants,
 installation, updater behavior, publication, packaged-window startup,
 cross-target packaging, or clean-machine release acceptance.
 
+## R3I verified native-payload installation
+
+`qiongli-platform` can now bind one verified R3H current-target archive to an
+R3A signed launch grant, deterministic `InstallPlanV1`, explicit
+`filesystem-write` approval, and caller-approved `QiongliManagedData` root.
+The additive `InstallNativePayload` action fixes the canonical artifact leaf
+and binds the archive, manifest, resource-pack, artifact-content-root, binary,
+and signed-grant digests before persistent mutation.
+
+The managed root uses an archive-derived install identity and contains only
+portable, caller-independent records:
+
+```text
+<managed-root>/
+  <artifact-id>/
+    .qiongli-native-artifact.json
+    bin/qiongli[.exe]
+  .qiongli-native-payload-<archive-sha256>.json
+```
+
+Apply and absent-target repair run through the accepted R3H parser and R3G
+no-replace commit path, re-verify the installed tree, and atomically persist a
+strict bounded owner-private receipt. Identical apply, read-only verify,
+present-healthy repair, remove, rollback, and terminal lifecycle replay have
+explicit dispositions. Remove and rollback first move a verified tree into an
+identity-checked private quarantine; failures before the durable state point
+restore it, while ambiguous outcomes retain a journal and return
+`install-recovery-required`.
+
+Current-target acceptance creates an explicit test-signed launch grant,
+installs the verified archive into an isolated managed root, and runs only the
+installed executable outside the checkout and archive trees with an empty
+runtime `PATH`. It verifies `--version`, embedded content, MCP initialization,
+the exact 12-tool Lite contract, and one bounded read-only tool call. Fault,
+tamper, linked-state, drift, and foreign-destination tests preserve existing
+caller data and use fixed path-redacted errors.
+
+R3I is a shared installation service, not a production installer or release.
+The source build cannot manufacture a production launch grant. Production key
+provisioning, signed release metadata, automatic managed-root discovery,
+client activation, public Marketplace installation, updater behavior,
+notarization, SBOM, provenance, packaged-window startup, cross-target output,
+and clean-machine release acceptance remain later gates.
+
 ## R1 command contract (retained)
 
 The native executable composes the verified embedded pack and versioned global
