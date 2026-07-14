@@ -1,0 +1,20 @@
+[package]
+name = "qiongli-config"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+description = "Versioned native Qiongli state and secret-reference boundary"
+
+[dependencies]
+qiongli-content = { path = "../qiongli-content" }
+rustix.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+zeroize.workspace = true
+
+[lints]
+workspace = true
