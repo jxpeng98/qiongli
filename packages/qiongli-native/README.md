@@ -147,6 +147,33 @@ production secure-store backend, evidence/Zotero extraction, or an installable
 native release. Canonical MCP availability remains closed until binary-level
 initialize, tools/list, and tools/call tests pass.
 
+## R2C shared evidence and Zotero services
+
+`qiongli-runtime` now owns bounded literature evidence snapshots and the
+accepted Zotero surface. Evidence input is capped at 2 MiB, 1,000 results, 32
+container levels, and 100,000 JSON values. Credential-bearing keys are removed
+recursively before the deterministic snapshot is returned; the compatibility
+`cwd` is validated but never copied into output.
+
+Zotero export validates at most 1,000 normalized literature records and returns
+only selected CSL-JSON, RIS, BibTeX, and import-report contents in memory. The
+combined result is capped at 2 MiB. RIS folds control and line-separator input,
+while BibTeX escapes syntax-bearing characters so reference text cannot inject
+new records or fields.
+
+The shared probe accepts only bounded HTTP(S) loopback roots, normalizes them
+to fixed `/connector/ping` and `/qiongli/ping` calls, disables redirects and
+implicit proxy discovery, applies a five-second production timeout, and reads
+at most 32 KiB from the companion response. It returns status and bounded
+version metadata only. The old Lite package retains the historical
+`QIONGLI_ZOTERO_*` environment mapping at its edge and otherwise re-exports
+the shared implementation.
+
+R2C does not write import files, mutate or search a Zotero library, install the
+companion, add native Zotero settings/UI, or expose MCP mode in the canonical
+binary. Returned import-file contents prove generation only, not a completed
+Zotero import.
+
 ## R1 command contract
 
 The native executable composes the verified embedded pack and versioned global

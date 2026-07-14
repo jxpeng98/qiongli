@@ -1,7 +1,8 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
 Status: active execution; R1 complete and R2 in progress, with the R2A shared
-Lite contract/framing and R2B shared provider/search boundaries complete
+Lite contract/framing, R2B provider/search, and R2C evidence/Zotero boundaries
+complete
 
 Decision date: July 13, 2026
 
@@ -331,8 +332,8 @@ Exit gate result: passed on implementation head `f2a6fbe6` in Native CI run
 Purpose: move the already working Rust Lite value into the canonical native
 workspace instead of reimplementing it.
 
-Implementation status: in progress. R2A and R2B are complete. R2A closed on
-July 14, 2026:
+Implementation status: in progress. R2A, R2B, and R2C are complete. R2A closed
+on July 14, 2026:
 
 - design checkpoint `1e732155` freezes the first extraction boundary and
   explicit nonclaims;
@@ -404,10 +405,47 @@ R2B is complete on July 14, 2026:
   secure storage, evidence, Zotero, orchestration, UI, installation, or
   packaging.
 
-The next dependency-contiguous batch moves evidence export and supported
-Zotero behavior behind shared runtime contracts. Native MCP availability
-remains unclaimed until canonical binary-level initialize, tools/list, and
-tools/call tests pass.
+R2C is complete on July 14, 2026:
+
+- design checkpoint `68558ed0` freezes the side-effect-free evidence snapshot,
+  read-only loopback probe, in-memory import-file export, resource bounds,
+  compatibility edge, and explicit nonclaims;
+- implementation checkpoint `2513c52f` adds typed evidence input with
+  canonical/alias ambiguity rejection, 4,096-byte queries, 1,000 results,
+  2 MiB serialized input, 32 container levels, and 100,000 JSON values;
+- evidence snapshots remove credential-bearing keys recursively, retain benign
+  evidence fields such as `token_budget` and `public_key`, omit compatibility
+  paths and wall-clock time, and expose only static validation errors;
+- the shared Zotero exporter validates at most 1,000 normalized records,
+  unique exact format selection, 2 MiB input, bounded fields and provider
+  metadata, and a 2 MiB combined output before returning deterministic
+  CSL-JSON, RIS, BibTeX, and import-report contents in memory;
+- RIS folds control and Unicode line-separator characters, while BibTeX escapes
+  syntax-bearing input so record text cannot inject fields or entries;
+- the shared Zotero probe accepts only bounded HTTP(S) loopback roots, strips
+  path/query/fragment input, calls fixed connector/companion paths, disables
+  redirects and implicit proxy discovery, bounds production requests to five
+  seconds and companion bodies to 32 KiB, and never returns URL/body/library
+  content;
+- the old Lite evidence handler now delegates to the shared snapshot builder;
+  its Zotero exporter is a re-export, and its companion module retains only
+  the historical environment-to-client adapter beside shared re-exports;
+- the local gate passed boundary, native and Lite format, locked native check,
+  strict native and Lite Clippy, all 131 native tests, all 67 focused Lite
+  compatibility tests, and Windows MSVC cross-target check/Clippy;
+- Native CI run `29327768079` passed exact implementation head
+  `2513c52f9a39cb97a6d41f282dcbdff920eac979`: boundary in 4s, focused Lite in
+  32s, Linux in 1m08s, macOS in 1m39s, and real Windows in 1m53s; and
+- no live Zotero/provider, Python, or Node suite ran. R2C does not write files,
+  mutate/search a Zotero library, install the companion, expose a native Zotero
+  settings surface, or add MCP mode to the canonical executable.
+
+The next dependency-contiguous batch moves the remaining side-effect-free Lite
+orchestration route/task-plan previews and typed handler dispatch into the
+shared runtime. Native MCP availability remains unclaimed until canonical
+binary-level initialize, tools/list, and tools/call tests pass; provider secret
+mutation and wizard ownership will not be guessed around the unavailable
+production secure-store boundary.
 
 Deliverables:
 
@@ -539,9 +577,11 @@ superseded head is not reported as current-head evidence.
 5. R2A shared Lite contract/framing extraction is complete at `d7f2d64f`;
 6. R2B shared provider config/status and bounded search extraction is complete
    at `2eaadfb1`;
-7. continue R2 with shared evidence export and supported Zotero behavior,
-   without creating another branch or PR;
-8. continue into R3 and prepare alpha.1 only after the complete vertical gate.
+7. R2C shared evidence export and supported Zotero behavior is complete at
+   `2513c52f`;
+8. continue R2 with shared route/task-plan preview and typed dispatch, without
+   creating another branch or PR;
+9. continue into R3 and prepare alpha.1 only after the complete vertical gate.
 
 ## Program Done
 

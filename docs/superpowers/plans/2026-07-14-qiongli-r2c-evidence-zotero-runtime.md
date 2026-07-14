@@ -1,6 +1,6 @@
 # Qiongli R2C Evidence And Zotero Runtime Implementation Plan
 
-Status: in progress
+Status: complete
 
 Date: July 14, 2026
 
@@ -29,53 +29,53 @@ availability closed until binary-level dispatch is implemented.
   existing tests, and shared runtime boundaries.
 - [x] Freeze operations, bounds, redaction, loopback/network policy,
   compatibility ownership, verification, and nonclaims.
-- [ ] Commit the design and plan before production changes.
+- [x] Commit the design and plan before production changes.
 
 ## Task 2 — Add Shared Evidence Snapshots
 
-- [ ] Add typed canonical/alias parsing and reject ambiguous pairs.
-- [ ] Bound query, result count, JSON depth/value count, and total input.
-- [ ] Recursively remove credential-bearing keys while retaining benign keys.
-- [ ] Return a deterministic snapshot with no path or wall-clock leakage.
-- [ ] Test direct runtime behavior independently of MCP framing.
+- [x] Add typed canonical/alias parsing and reject ambiguous pairs.
+- [x] Bound query, result count, JSON depth/value count, and total input.
+- [x] Recursively remove credential-bearing keys while retaining benign keys.
+- [x] Return a deterministic snapshot with no path or wall-clock leakage.
+- [x] Test direct runtime behavior independently of MCP framing.
 
 ## Task 3 — Add Shared Zotero Export
 
-- [ ] Add exact format identities, selection validation, and record bounds.
-- [ ] Emit deterministic CSL-JSON, RIS, BibTeX, and report contents.
-- [ ] Fold RIS control characters and escape BibTeX syntax-bearing values.
-- [ ] Enforce aggregate input/output bounds before returning contents.
-- [ ] Test selected formats, malformed records, injection strings, and limits.
+- [x] Add exact format identities, selection validation, and record bounds.
+- [x] Emit deterministic CSL-JSON, RIS, BibTeX, and report contents.
+- [x] Fold RIS control characters and escape BibTeX syntax-bearing values.
+- [x] Enforce aggregate input/output bounds before returning contents.
+- [x] Test selected formats, malformed records, injection strings, and limits.
 
 ## Task 4 — Add Shared Zotero Probe
 
-- [ ] Move loopback URL validation and status types into the runtime.
-- [ ] Add redirect denial, implicit-proxy denial, fixed paths, bounded timeout,
+- [x] Move loopback URL validation and status types into the runtime.
+- [x] Add redirect denial, implicit-proxy denial, fixed paths, bounded timeout,
   and bounded response reads.
-- [ ] Return static sanitized status without URL/body/library disclosure.
-- [ ] Test loopback variants, non-loopback/credential rejection, redirects,
+- [x] Return static sanitized status without URL/body/library disclosure.
+- [x] Test loopback variants, non-loopback/credential rejection, redirects,
   malformed/oversized responses, disabled behavior, and timeout.
 
 ## Task 5 — Reduce Old Lite
 
-- [ ] Replace evidence construction with shared parsing/building.
-- [ ] Replace Zotero exporter code with shared re-exports.
-- [ ] Retain only the historical environment-to-client adapter beside shared
+- [x] Replace evidence construction with shared parsing/building.
+- [x] Replace Zotero exporter code with shared re-exports.
+- [x] Retain only the historical environment-to-client adapter beside shared
   companion re-exports.
-- [ ] Map shared errors to static existing JSON-RPC messages.
-- [ ] Confirm no duplicate Rust evidence/Zotero kernel remains.
+- [x] Map shared errors to static existing JSON-RPC messages.
+- [x] Confirm no duplicate Rust evidence/Zotero kernel remains.
 
 ## Task 6 — Gate And Record
 
-- [ ] Expand focused Linux Lite CI to evidence and Zotero tests.
-- [ ] Run native boundary, format, locked check, strict Clippy, and all native
+- [x] Expand focused Linux Lite CI to evidence and Zotero tests.
+- [x] Run native boundary, format, locked check, strict Clippy, and all native
   Rust tests.
-- [ ] Run Windows MSVC cross-target check and strict Clippy.
-- [ ] Run focused old Lite Rust compatibility tests without live services.
-- [ ] Commit and push the cohesive implementation to rolling Draft PR #63.
-- [ ] Require exact-head boundary, Linux, macOS, Windows, and focused Lite jobs
+- [x] Run Windows MSVC cross-target check and strict Clippy.
+- [x] Run focused old Lite Rust compatibility tests without live services.
+- [x] Commit and push the cohesive implementation to rolling Draft PR #63.
+- [x] Require exact-head boundary, Linux, macOS, Windows, and focused Lite jobs
   to pass.
-- [ ] Record observed evidence in this plan, the roadmap, and PR while leaving
+- [x] Record observed evidence in this plan, the roadmap, and PR while leaving
   R2 open.
 
 ## Required Commands
@@ -88,7 +88,7 @@ cargo clippy --manifest-path packages/qiongli-native/Cargo.toml --workspace --al
 cargo test --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked
 cargo check --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --target x86_64-pc-windows-msvc --locked
 cargo clippy --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --target x86_64-pc-windows-msvc --locked -- -D warnings
-cargo test --manifest-path packages/qiongli-lite-mcp/Cargo.toml --locked --test mcp_protocol --test mcp_server --test zotero_export --test zotero_companion
+cargo test --manifest-path packages/qiongli-lite-mcp/Cargo.toml --locked --test mcp_protocol --test mcp_server --test provider_http --test providers --test search_orchestration --test literature_planning_mcp --test searchplan --test zotero_export --test zotero_companion
 ```
 
 Python and Node suites remain outside this accelerated migration batch.
@@ -100,3 +100,23 @@ implementation, the old environment behavior remains isolated at the
 compatibility edge, direct runtime tests prove the declared security limits,
 and exact-head CI is green while native MCP availability remains explicitly
 unclaimed.
+
+## Execution Receipt
+
+- Design and implementation plan: `68558ed0`.
+- Shared evidence/Zotero implementation: `2513c52f`.
+- Local native evidence: change boundary, native and Lite format, locked
+  workspace check, strict native and Lite Clippy, all 131 native Rust tests,
+  and Windows MSVC cross-target check/Clippy passed.
+- Compatibility evidence: all 67 focused old Lite tests passed without a live
+  provider or Zotero installation. The set covers framing, dispatch, provider
+  HTTP/parsers/search, evidence redaction, selected exports, loopback rules,
+  redirects, malformed/oversized responses, and timeout behavior.
+- GitHub evidence: Native CI run `29327768079` passed exact implementation head
+  `2513c52f9a39cb97a6d41f282dcbdff920eac979`: boundary in 4s, focused Lite in
+  32s, Linux in 1m08s, macOS in 1m39s, and real Windows in 1m53s.
+- Scope evidence: no live Zotero or scholarly service, Python suite, or Node
+  suite ran. The canonical CLI grammar did not change; native MCP mode, Zotero
+  library mutation/search, file writes, companion installation, production
+  secure storage, orchestration execution, UI, installation, and packaging
+  remain outside R2C.
