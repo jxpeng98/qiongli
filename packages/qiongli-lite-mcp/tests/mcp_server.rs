@@ -52,7 +52,10 @@ fn preview_route_rejects_missing_request_and_declares_lite_safety() {
         method: "tools/call".to_string(),
         params: Some(json!({
             "name": "qiongli_orchestrator_route",
-            "arguments": {"request": "run a full paper workflow"}
+            "arguments": {
+                "request": "run a full paper workflow",
+                "platform": "codex"
+            }
         })),
     });
     let payload = &preview["result"]["structuredContent"];
@@ -61,7 +64,55 @@ fn preview_route_rejects_missing_request_and_declares_lite_safety() {
     assert_eq!(payload["run_agents_allowed"], false);
     assert_eq!(payload["shell_execution_allowed"], false);
     assert_eq!(payload["project_writes_allowed"], false);
+    assert_eq!(payload["request"], "run a full paper workflow");
+    assert_eq!(payload["platform"], "codex");
     assert_eq!(payload["upgrade"]["required_for_execution"], true);
+    assert_eq!(
+        payload["upgrade"]["command"],
+        "qiongli mcp serve --transport stdio"
+    );
+
+    let oversized = server.handle(McpRequest {
+        jsonrpc: "2.0".to_string(),
+        id: Some(json!(3)),
+        method: "tools/call".to_string(),
+        params: Some(json!({
+            "name": "qiongli_orchestrator_route",
+            "arguments": {"request": "x".repeat(4097)}
+        })),
+    });
+    assert_eq!(oversized["error"]["code"], -32602);
+    assert_eq!(
+        oversized["error"]["message"],
+        "request exceeds the byte limit"
+    );
+}
+
+#[test]
+fn task_plan_uses_the_shared_trimmed_preview_contract() {
+    let server = McpServer::new("qiongli-literature-provider", "0.1.0");
+    let preview = server.handle(McpRequest {
+        jsonrpc: "2.0".to_string(),
+        id: Some(json!(1)),
+        method: "tools/call".to_string(),
+        params: Some(json!({
+            "name": "qiongli_task_plan",
+            "arguments": {
+                "task_id": " B1 ",
+                "paper_type": " systematic-review ",
+                "topic": " ai-feedback "
+            }
+        })),
+    });
+    let payload = &preview["result"]["structuredContent"];
+
+    assert_eq!(payload["task_id"], "B1");
+    assert_eq!(payload["paper_type"], "systematic-review");
+    assert_eq!(payload["topic"], "ai-feedback");
+    assert_eq!(payload["preview_only"], true);
+    assert_eq!(payload["run_agents_allowed"], false);
+    assert_eq!(payload["shell_execution_allowed"], false);
+    assert_eq!(payload["project_writes_allowed"], false);
 }
 
 #[test]

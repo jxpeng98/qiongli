@@ -43,6 +43,41 @@ pub enum LiteToolId {
     TaskPlan,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LiteConfigHandler {
+    Status,
+    SaveProvider,
+    ConfigureProvider,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LiteLiteratureHandler {
+    Status,
+    SearchPlan,
+    Search,
+    ExportEvidence,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LiteZoteroHandler {
+    Status,
+    ExportImportFiles,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LiteOrchestrationHandler {
+    Route,
+    TaskPlan,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LiteDispatchTarget {
+    Config(LiteConfigHandler),
+    Literature(LiteLiteratureHandler),
+    Zotero(LiteZoteroHandler),
+    Orchestration(LiteOrchestrationHandler),
+}
+
 impl LiteToolId {
     #[must_use]
     pub fn from_public_name(name: &str) -> Option<Self> {
@@ -78,6 +113,31 @@ impl LiteToolId {
             Self::ZoteroExportImportFiles => "qiongli_zotero_export_import_files",
             Self::OrchestratorRoute => "qiongli_orchestrator_route",
             Self::TaskPlan => "qiongli_task_plan",
+        }
+    }
+
+    #[must_use]
+    pub const fn dispatch_target(self) -> LiteDispatchTarget {
+        match self {
+            Self::ConfigStatus => LiteDispatchTarget::Config(LiteConfigHandler::Status),
+            Self::SaveProviderConfig => LiteDispatchTarget::Config(LiteConfigHandler::SaveProvider),
+            Self::ConfigureProvider => {
+                LiteDispatchTarget::Config(LiteConfigHandler::ConfigureProvider)
+            }
+            Self::LiteratureStatus => LiteDispatchTarget::Literature(LiteLiteratureHandler::Status),
+            Self::SearchPlan => LiteDispatchTarget::Literature(LiteLiteratureHandler::SearchPlan),
+            Self::LiteratureSearch => LiteDispatchTarget::Literature(LiteLiteratureHandler::Search),
+            Self::LiteratureExportEvidence => {
+                LiteDispatchTarget::Literature(LiteLiteratureHandler::ExportEvidence)
+            }
+            Self::ZoteroStatus => LiteDispatchTarget::Zotero(LiteZoteroHandler::Status),
+            Self::ZoteroExportImportFiles => {
+                LiteDispatchTarget::Zotero(LiteZoteroHandler::ExportImportFiles)
+            }
+            Self::OrchestratorRoute => {
+                LiteDispatchTarget::Orchestration(LiteOrchestrationHandler::Route)
+            }
+            Self::TaskPlan => LiteDispatchTarget::Orchestration(LiteOrchestrationHandler::TaskPlan),
         }
     }
 }
@@ -191,6 +251,67 @@ mod tests {
             "qiongli_configure_provider"
         );
         assert_eq!(registry.resolve("unknown"), None);
+    }
+
+    #[test]
+    fn every_canonical_identity_has_an_exhaustive_domain_target() {
+        let expected = [
+            (
+                LiteToolId::ConfigStatus,
+                LiteDispatchTarget::Config(LiteConfigHandler::Status),
+            ),
+            (
+                LiteToolId::SaveProviderConfig,
+                LiteDispatchTarget::Config(LiteConfigHandler::SaveProvider),
+            ),
+            (
+                LiteToolId::ConfigureProvider,
+                LiteDispatchTarget::Config(LiteConfigHandler::ConfigureProvider),
+            ),
+            (
+                LiteToolId::LiteratureStatus,
+                LiteDispatchTarget::Literature(LiteLiteratureHandler::Status),
+            ),
+            (
+                LiteToolId::SearchPlan,
+                LiteDispatchTarget::Literature(LiteLiteratureHandler::SearchPlan),
+            ),
+            (
+                LiteToolId::LiteratureSearch,
+                LiteDispatchTarget::Literature(LiteLiteratureHandler::Search),
+            ),
+            (
+                LiteToolId::LiteratureExportEvidence,
+                LiteDispatchTarget::Literature(LiteLiteratureHandler::ExportEvidence),
+            ),
+            (
+                LiteToolId::ZoteroStatus,
+                LiteDispatchTarget::Zotero(LiteZoteroHandler::Status),
+            ),
+            (
+                LiteToolId::ZoteroExportImportFiles,
+                LiteDispatchTarget::Zotero(LiteZoteroHandler::ExportImportFiles),
+            ),
+            (
+                LiteToolId::OrchestratorRoute,
+                LiteDispatchTarget::Orchestration(LiteOrchestrationHandler::Route),
+            ),
+            (
+                LiteToolId::TaskPlan,
+                LiteDispatchTarget::Orchestration(LiteOrchestrationHandler::TaskPlan),
+            ),
+        ];
+
+        for (tool, target) in expected {
+            assert_eq!(tool.dispatch_target(), target);
+        }
+
+        assert_eq!(
+            LiteToolId::from_public_name("qiongli_open_config_wizard")
+                .unwrap()
+                .dispatch_target(),
+            LiteDispatchTarget::Config(LiteConfigHandler::ConfigureProvider)
+        );
     }
 
     #[test]

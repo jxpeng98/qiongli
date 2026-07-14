@@ -1,8 +1,12 @@
 use std::sync::{Arc, Mutex};
 
 use qiongli_runtime::evidence::{build_evidence_snapshot, EvidenceInput};
-use qiongli_runtime::LiteToolId;
+use qiongli_runtime::orchestration::dispatch_lite_orchestration;
 pub use qiongli_runtime::LITE_PUBLIC_TOOL_NAMES as HANDLED_TOOL_NAMES;
+use qiongli_runtime::{
+    LiteConfigHandler, LiteDispatchTarget, LiteLiteratureHandler, LiteOrchestrationHandler,
+    LiteToolId, LiteZoteroHandler,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -11,7 +15,6 @@ use crate::config::provider_config::{
     ConfigError,
 };
 use crate::config::wizard::{start_config_wizard, ConfigWizardOptions, WizardError};
-use crate::orchestrator::preview::{build_task_plan, TaskPlanInput};
 use crate::providers::runtime::ProviderRuntime;
 use crate::providers::search::{
     execute_bounded_search, limit_for, SearchInput, SearchRequest, PROVIDER_ORDER,
@@ -144,8 +147,8 @@ impl McpServer {
             return self.error(id, -32602, "Unsupported argument");
         }
 
-        match tool_id {
-            LiteToolId::ConfigStatus => {
+        match tool_id.dispatch_target() {
+            LiteDispatchTarget::Config(LiteConfigHandler::Status) => {
                 if arguments.get("cwd").is_some_and(|value| !value.is_string()) {
                     self.error(id, -32602, "cwd must be a string")
                 } else {
@@ -155,16 +158,31 @@ impl McpServer {
                     }
                 }
             }
-            LiteToolId::SaveProviderConfig => self.save_provider_config(id, &arguments),
-            LiteToolId::ConfigureProvider => self.configure_provider(id, &arguments),
-            LiteToolId::LiteratureStatus => self.literature_status(id, &arguments),
-            LiteToolId::SearchPlan => self.search_plan(id, &arguments),
-            LiteToolId::LiteratureSearch => self.literature_search(id, &arguments),
-            LiteToolId::LiteratureExportEvidence => self.export_evidence(id, &arguments),
-            LiteToolId::ZoteroStatus => self.zotero_status(id),
-            LiteToolId::ZoteroExportImportFiles => self.zotero_export_import_files(id, &arguments),
-            LiteToolId::OrchestratorRoute => self.orchestrator_route(id, &arguments),
-            LiteToolId::TaskPlan => self.task_plan(id, &arguments),
+            LiteDispatchTarget::Config(LiteConfigHandler::SaveProvider) => {
+                self.save_provider_config(id, &arguments)
+            }
+            LiteDispatchTarget::Config(LiteConfigHandler::ConfigureProvider) => {
+                self.configure_provider(id, &arguments)
+            }
+            LiteDispatchTarget::Literature(LiteLiteratureHandler::Status) => {
+                self.literature_status(id, &arguments)
+            }
+            LiteDispatchTarget::Literature(LiteLiteratureHandler::SearchPlan) => {
+                self.search_plan(id, &arguments)
+            }
+            LiteDispatchTarget::Literature(LiteLiteratureHandler::Search) => {
+                self.literature_search(id, &arguments)
+            }
+            LiteDispatchTarget::Literature(LiteLiteratureHandler::ExportEvidence) => {
+                self.export_evidence(id, &arguments)
+            }
+            LiteDispatchTarget::Zotero(LiteZoteroHandler::Status) => self.zotero_status(id),
+            LiteDispatchTarget::Zotero(LiteZoteroHandler::ExportImportFiles) => {
+                self.zotero_export_import_files(id, &arguments)
+            }
+            LiteDispatchTarget::Orchestration(handler) => {
+                self.orchestration_preview(id, handler, &arguments)
+            }
         }
     }
 
@@ -414,73 +432,16 @@ impl McpServer {
         ProviderRuntime::production(config).map_err(|_| REDACTED_PROVIDER_RUNTIME_ERROR.to_string())
     }
 
-    fn orchestrator_route(&self, id: Option<Value>, arguments: &Value) -> Value {
-        let Some(request) = arguments.get("request").and_then(Value::as_str) else {
-            return self.error(id, -32602, "Missing request");
-        };
-        if request.trim().is_empty() {
-            return self.error(id, -32602, "request must not be empty");
+    fn orchestration_preview(
+        &self,
+        id: Option<Value>,
+        handler: LiteOrchestrationHandler,
+        arguments: &Value,
+    ) -> Value {
+        match dispatch_lite_orchestration(handler, arguments) {
+            Ok(preview) => self.tool_result(id, json!(preview)),
+            Err(error) => self.error(id, -32602, error.to_string()),
         }
-        if let Some(platform) = arguments.get("platform") {
-            let Some(platform) = platform.as_str() else {
-                return self.error(id, -32602, "platform must be a string");
-            };
-            if ![
-                "codex",
-                "claude_code",
-                "claude",
-                "antigravity",
-                "cli",
-                "unknown",
-            ]
-            .contains(&platform)
-            {
-                return self.error(id, -32602, "unsupported platform");
-            }
-        }
-        self.tool_result(
-            id,
-            json!({
-                "mode": "preview",
-                "preview_only": true,
-                "runtime_profile": "marketplace_lite",
-                "run_agents_allowed": false,
-                "shell_execution_allowed": false,
-                "project_writes_allowed": false,
-                "request": request,
-                "platform": arguments
-                    .get("platform")
-                    .and_then(Value::as_str)
-                    .unwrap_or("unknown"),
-                "recommended_runtime": "full_cli_for_execution",
-                "upgrade": {
-                    "required_for_execution": true,
-                    "runtime_profile": "full_cli",
-                    "command": "qiongli mcp serve --transport stdio"
-                }
-            }),
-        )
-    }
-
-    fn task_plan(&self, id: Option<Value>, arguments: &Value) -> Value {
-        let Some(task_id) = arguments.get("task_id").and_then(Value::as_str) else {
-            return self.error(id, -32602, "Missing task_id");
-        };
-        let Some(paper_type) = arguments.get("paper_type").and_then(Value::as_str) else {
-            return self.error(id, -32602, "Missing paper_type");
-        };
-        let Some(topic) = arguments.get("topic").and_then(Value::as_str) else {
-            return self.error(id, -32602, "Missing topic");
-        };
-        if task_id.trim().is_empty() || paper_type.trim().is_empty() || topic.trim().is_empty() {
-            return self.error(id, -32602, "task plan fields must not be empty");
-        }
-        let plan = build_task_plan(TaskPlanInput {
-            task_id: task_id.trim().to_string(),
-            paper_type: paper_type.trim().to_string(),
-            topic: topic.trim().to_string(),
-        });
-        self.tool_result(id, json!(plan))
     }
 
     fn export_evidence(&self, id: Option<Value>, arguments: &Value) -> Value {

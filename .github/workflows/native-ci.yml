@@ -205,3 +205,4 @@ jobs:
           --test searchplan
           --test zotero_export
           --test zotero_companion
+          --test orchestrator_preview
