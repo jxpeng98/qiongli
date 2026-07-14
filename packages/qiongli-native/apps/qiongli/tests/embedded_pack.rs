@@ -42,4 +42,15 @@ fn product_binary_contains_the_frozen_verified_resource_pack() {
     assert_eq!(codex_manifest["version"], "2.0.0-alpha.1");
     assert_eq!(codex_manifest["skills"], "./");
     assert!(codex_manifest.get("mcpServers").is_none());
+
+    let claude_manifest = content
+        .read_profile_resource("marketplace-lite", ".claude-plugin/plugin.json")
+        .expect("marketplace-lite profile must resolve")
+        .expect("Claude plugin manifest must be embedded");
+    let claude_manifest: serde_json::Value = serde_json::from_slice(claude_manifest.bytes())
+        .expect("Claude plugin manifest must be valid JSON");
+    assert_eq!(claude_manifest["name"], "qiongli");
+    assert_eq!(claude_manifest["version"], "2.0.0-alpha.1");
+    assert_eq!(claude_manifest["skills"], "./skills/");
+    assert_eq!(claude_manifest["mcpServers"], "./.mcp.json");
 }

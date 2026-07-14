@@ -10,16 +10,18 @@ use qiongli_content::{
     approve_materialization_target,
 };
 use qiongli_platform::{
-    ARTIFACT_IDENTITY_SCHEMA_VERSION, Architecture, CODEX_ADAPTER_SCHEMA_VERSION,
-    CODEX_REGISTRATION_RECEIPT_SCHEMA_VERSION, CODEX_REGISTRATION_STATE_SCHEMA_VERSION,
-    CodexDiscoverySummaryV1, INSTALL_PLAN_SCHEMA_VERSION, INSTALL_RECEIPT_SCHEMA_VERSION,
-    LAUNCH_GRANT_SCHEMA_VERSION, LocalTargetFamily, OperatingSystem, discover_codex_user,
+    ARTIFACT_IDENTITY_SCHEMA_VERSION, Architecture, CLAUDE_ADAPTER_SCHEMA_VERSION,
+    CLAUDE_REGISTRATION_RECEIPT_SCHEMA_VERSION, CLAUDE_REGISTRATION_STATE_SCHEMA_VERSION,
+    CODEX_ADAPTER_SCHEMA_VERSION, CODEX_REGISTRATION_RECEIPT_SCHEMA_VERSION,
+    CODEX_REGISTRATION_STATE_SCHEMA_VERSION, ClaudeDiscoverySummaryV1, CodexDiscoverySummaryV1,
+    INSTALL_PLAN_SCHEMA_VERSION, INSTALL_RECEIPT_SCHEMA_VERSION, LAUNCH_GRANT_SCHEMA_VERSION,
+    LocalTargetFamily, OperatingSystem, discover_claude_user_with_config, discover_codex_user,
 };
 use serde::Serialize;
 
 const OUTPUT_SCHEMA_VERSION: u32 = 1;
 
-const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli --version\n  qiongli --help\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli install status\n  qiongli install codex status\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
+const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli --version\n  qiongli --help\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli install status\n  qiongli install codex status\n  qiongli install claude status\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
 
 const CONTENT_USAGE: &str = "Qiongli embedded content\n\nUsage:\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli content --help\n";
 
@@ -27,12 +29,13 @@ const CONFIG_USAGE: &str = "Qiongli global config\n\nUsage:\n  qiongli config sh
 
 const MCP_USAGE: &str = "Qiongli native MCP\n\nUsage:\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli mcp --help\n";
 
-const INSTALL_USAGE: &str = "Qiongli native installation\n\nUsage:\n  qiongli install status\n  qiongli install codex status\n  qiongli install --help\n";
+const INSTALL_USAGE: &str = "Qiongli native installation\n\nUsage:\n  qiongli install status\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install --help\n";
 
 #[derive(Clone, Default)]
 pub struct CommandEnvironment {
     configured_root: Option<OsString>,
     platform_home: Option<PathBuf>,
+    claude_config_root: Option<PathBuf>,
 }
 
 impl CommandEnvironment {
@@ -41,6 +44,7 @@ impl CommandEnvironment {
         Self {
             configured_root: env::var_os("QIONGLI_CONFIG_HOME"),
             platform_home: process_platform_home(),
+            claude_config_root: nonempty_environment_path("CLAUDE_CONFIG_DIR"),
         }
     }
 }
@@ -144,6 +148,7 @@ pub fn prepare_action(
         Command::InstallHelp => CliOutput::success_text(INSTALL_USAGE),
         Command::InstallStatus => install_status(),
         Command::InstallCodexStatus => install_codex_status(environment),
+        Command::InstallClaudeStatus => install_claude_status(environment),
         Command::McpHelp => CliOutput::success_text(MCP_USAGE),
         Command::McpServeLiteStdio => return ProductAction::ServeLiteMcpStdio,
         Command::Status => status(environment, content),
@@ -171,6 +176,7 @@ enum Command {
     InstallHelp,
     InstallStatus,
     InstallCodexStatus,
+    InstallClaudeStatus,
     McpHelp,
     McpServeLiteStdio,
     Status,
@@ -218,7 +224,15 @@ fn parse_install_args(args: &[OsString]) -> Result<Command, UsageError> {
         {
             Ok(Command::InstallCodexStatus)
         }
-        "--help" | "status" | "codex" => Err(install_usage_error("unexpected extra argument")),
+        "claude"
+            if args.get(1).and_then(|value| value.to_str()) == Some("status")
+                && args.len() == 2 =>
+        {
+            Ok(Command::InstallClaudeStatus)
+        }
+        "--help" | "status" | "codex" | "claude" => {
+            Err(install_usage_error("unexpected extra argument"))
+        }
         _ => Err(install_usage_error("unknown install subcommand")),
     }
 }
@@ -533,6 +547,9 @@ fn install_status() -> CliOutput {
                 codex_adapter: CODEX_ADAPTER_SCHEMA_VERSION,
                 codex_registration_receipt: CODEX_REGISTRATION_RECEIPT_SCHEMA_VERSION,
                 codex_registration_state: CODEX_REGISTRATION_STATE_SCHEMA_VERSION,
+                claude_adapter: CLAUDE_ADAPTER_SCHEMA_VERSION,
+                claude_registration_receipt: CLAUDE_REGISTRATION_RECEIPT_SCHEMA_VERSION,
+                claude_registration_state: CLAUDE_REGISTRATION_STATE_SCHEMA_VERSION,
             },
             current_target: InstallBuildTarget { os, arch },
             transaction_engine: "grant-and-approval-gated",
@@ -546,7 +563,7 @@ fn install_status() -> CliOutput {
                 },
                 InstallTargetStatus {
                     family: LocalTargetFamily::ClaudeCodeLocal,
-                    state: "contract-only",
+                    state: "adapter-engine-ready",
                 },
             ],
         },
@@ -571,6 +588,32 @@ fn install_codex_status(environment: &CommandEnvironment) -> CliOutput {
             preview: "unavailable",
             apply: "unavailable",
             activation: "client-action-required",
+        },
+        0,
+    )
+}
+
+fn install_claude_status(environment: &CommandEnvironment) -> CliOutput {
+    let Some(home) = environment.platform_home.as_deref() else {
+        return CliOutput::operation_failure("claude-home-unavailable");
+    };
+    let claude_config_root = environment
+        .claude_config_root
+        .clone()
+        .unwrap_or_else(|| home.join(".claude"));
+    let target = match discover_claude_user_with_config(home, &claude_config_root) {
+        Ok(target) => target,
+        Err(error) => return CliOutput::operation_failure(error.reason_code()),
+    };
+    json_output(
+        &InstallClaudeStatusOutput {
+            schema_version: OUTPUT_SCHEMA_VERSION,
+            command: "install-claude-status",
+            target: target.summary(),
+            launch_grant: "unavailable",
+            preview: "unavailable",
+            apply: "unavailable",
+            activation: "reload-or-client-action-required",
         },
         0,
     )
@@ -769,6 +812,17 @@ struct InstallCodexStatusOutput<'a> {
 }
 
 #[derive(Serialize)]
+struct InstallClaudeStatusOutput<'a> {
+    schema_version: u32,
+    command: &'static str,
+    target: &'a ClaudeDiscoverySummaryV1,
+    launch_grant: &'static str,
+    preview: &'static str,
+    apply: &'static str,
+    activation: &'static str,
+}
+
+#[derive(Serialize)]
 struct InstallContractVersions {
     artifact_identity: u32,
     launch_grant: u32,
@@ -777,6 +831,9 @@ struct InstallContractVersions {
     codex_adapter: u32,
     codex_registration_receipt: u32,
     codex_registration_state: u32,
+    claude_adapter: u32,
+    claude_registration_receipt: u32,
+    claude_registration_state: u32,
 }
 
 #[derive(Serialize)]
@@ -879,6 +936,14 @@ mod tests {
         );
         assert_eq!(parse_args(args(&["status"])), Ok(Command::Status));
         assert_eq!(parse_args(args(&["doctor"])), Ok(Command::Doctor));
+        assert_eq!(
+            parse_args(args(&["install", "codex", "status"])),
+            Ok(Command::InstallCodexStatus)
+        );
+        assert_eq!(
+            parse_args(args(&["install", "claude", "status"])),
+            Ok(Command::InstallClaudeStatus)
+        );
         assert_eq!(
             parse_args(args(&[
                 "mcp",

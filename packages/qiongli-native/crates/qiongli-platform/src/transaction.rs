@@ -1896,7 +1896,8 @@ mod tests {
 
     const BINARY_DIGEST: &str = "1111111111111111111111111111111111111111111111111111111111111111";
     const NOW: u64 = 1_750_000_000;
-    const CANONICAL_DIRECTORIES: [&str; 11] = [
+    const CANONICAL_DIRECTORIES: [&str; 12] = [
+        ".claude-plugin",
         ".codex-plugin",
         "distribution",
         "mcp-contracts",

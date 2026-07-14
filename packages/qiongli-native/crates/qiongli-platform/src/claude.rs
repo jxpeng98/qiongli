@@ -23,25 +23,35 @@ use crate::{
     observed_plan_state_sha256,
 };
 
-pub const CODEX_ADAPTER_SCHEMA_VERSION: u32 = 1;
-pub const CODEX_REGISTRATION_RECEIPT_SCHEMA_VERSION: u32 = 1;
-pub const CODEX_REGISTRATION_STATE_SCHEMA_VERSION: u32 = 1;
+pub const CLAUDE_ADAPTER_SCHEMA_VERSION: u32 = 1;
+pub const CLAUDE_REGISTRATION_RECEIPT_SCHEMA_VERSION: u32 = 1;
+pub const CLAUDE_REGISTRATION_STATE_SCHEMA_VERSION: u32 = 1;
 
-pub const CODEX_MARKETPLACE_SYMBOLIC_PATH: &str = "<user-home>/.agents/plugins/marketplace.json";
-pub const CODEX_PLUGIN_SOURCE_SYMBOLIC_PATH: &str = "<user-home>/.qiongli/plugins/codex/qiongli";
-pub const CODEX_PLUGIN_SOURCE_MARKETPLACE_PATH: &str = "./.qiongli/plugins/codex/qiongli";
+pub const CLAUDE_MARKETPLACE_SYMBOLIC_PATH: &str =
+    "<user-home>/.qiongli/plugins/claude-code/qiongli-local/.claude-plugin/marketplace.json";
+pub const CLAUDE_PLUGIN_SOURCE_SYMBOLIC_PATH: &str =
+    "<user-home>/.qiongli/plugins/claude-code/qiongli-local/plugins/qiongli";
+pub const CLAUDE_PLUGIN_SOURCE_MARKETPLACE_PATH: &str = "./plugins/qiongli";
+pub const CLAUDE_SKILLS_PLUGIN_SYMBOLIC_PATH: &str = "<claude-config>/skills/qiongli";
 
-const MARKETPLACE_RELATIVE_PATH: [&str; 3] = [".agents", "plugins", "marketplace.json"];
-const STATE_ROOT_RELATIVE_PATH: [&str; 4] = [".qiongli", "plugins", "codex", ""];
-const PLUGIN_SOURCE_LEAF: &str = "qiongli";
-const INSTALL_ID: &str = "qiongli-codex-user";
-const ROOT_ID: &str = "codex-personal-marketplace";
+const MARKETPLACE_RELATIVE_PATH: [&str; 6] = [
+    ".qiongli",
+    "plugins",
+    "claude-code",
+    "qiongli-local",
+    ".claude-plugin",
+    "marketplace.json",
+];
+const STATE_ROOT_RELATIVE_PATH: [&str; 4] = [".qiongli", "plugins", "claude-code", ""];
+const PLUGIN_SOURCE_RELATIVE_PATH: [&str; 3] = ["qiongli-local", "plugins", "qiongli"];
+const INSTALL_ID: &str = "qiongli-claude-code-user";
+const ROOT_ID: &str = "claude-marketplace-source";
 const ENTRY_KEY: &str = "qiongli";
 const SOURCE_ID: &str = "qiongli-local";
-const OPERATION_ID: &str = "codex-register-qiongli";
-const STATE_FILE_NAME: &str = ".qiongli-codex-registration.json";
-const JOURNAL_FILE_NAME: &str = ".qiongli-codex-registration-journal.json";
-const LOCK_FILE_NAME: &str = ".qiongli-codex-registration.lock";
+const OPERATION_ID: &str = "claude-register-qiongli";
+const STATE_FILE_NAME: &str = ".qiongli-claude-registration.json";
+const JOURNAL_FILE_NAME: &str = ".qiongli-claude-registration-journal.json";
+const LOCK_FILE_NAME: &str = ".qiongli-claude-registration.lock";
 const MAX_DOCUMENT_BYTES: u64 = 1024 * 1024;
 const JCS_MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 const EXACT_APPROVALS: [ApprovalRequirement; 3] = [
@@ -53,21 +63,29 @@ static NEXT_TRANSACTION_ID: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
-pub enum CodexSourceState {
+pub enum ClaudeSourceState {
     Missing,
     Ready,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
-pub enum CodexMarketplaceState {
+pub enum ClaudeMarketplaceState {
     Missing,
     Ready,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
-pub enum CodexRegistrationState {
+pub enum ClaudeSkillsPluginState {
+    Missing,
+    Ready,
+    Conflict,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ClaudeRegistrationState {
     Absent,
     Registered,
     Conflict,
@@ -77,18 +95,20 @@ pub enum CodexRegistrationState {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct CodexDiscoverySummaryV1 {
+pub struct ClaudeDiscoverySummaryV1 {
     pub schema_version: u32,
+    pub skills_plugin_path: &'static str,
+    pub skills_plugin: ClaudeSkillsPluginState,
     pub marketplace_path: &'static str,
     pub plugin_source_path: &'static str,
     pub marketplace_source: &'static str,
-    pub source: CodexSourceState,
-    pub marketplace: CodexMarketplaceState,
-    pub registration: CodexRegistrationState,
+    pub source: ClaudeSourceState,
+    pub marketplace: ClaudeMarketplaceState,
+    pub registration: ClaudeRegistrationState,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum CodexAdapterError {
+pub enum ClaudeAdapterError {
     UnsupportedPlatform,
     HomeUnavailable,
     UnsafePath,
@@ -110,34 +130,34 @@ pub enum CodexAdapterError {
     RollbackFailed,
 }
 
-impl CodexAdapterError {
+impl ClaudeAdapterError {
     #[must_use]
     pub const fn reason_code(self) -> &'static str {
         match self {
-            Self::UnsupportedPlatform => "codex-adapter-platform-unsupported",
-            Self::HomeUnavailable => "codex-home-unavailable",
-            Self::UnsafePath => "codex-adapter-path-unsafe",
-            Self::SourceMissing => "codex-plugin-source-missing",
-            Self::SourceInvalid => "codex-plugin-source-invalid",
-            Self::MarketplaceInvalid => "codex-marketplace-invalid",
-            Self::DocumentTooLarge => "codex-adapter-document-too-large",
-            Self::RegistrationConflict => "codex-registration-conflict",
-            Self::RegistrationDrift => "codex-registration-drift",
-            Self::RecoveryRequired => "codex-registration-recovery-required",
-            Self::InvalidPlan => "codex-registration-plan-invalid",
-            Self::InvalidApproval => "codex-registration-approval-invalid",
-            Self::PlanExpired => "codex-registration-plan-expired",
-            Self::ReceiptMissing => "codex-registration-receipt-missing",
-            Self::ReceiptInvalid => "codex-registration-receipt-invalid",
-            Self::LockBusy => "codex-registration-busy",
-            Self::ObservedStateMismatch => "codex-registration-observed-state-mismatch",
-            Self::PersistenceFailed(_) => "codex-registration-persistence-failed",
-            Self::RollbackFailed => "codex-registration-rollback-failed",
+            Self::UnsupportedPlatform => "claude-adapter-platform-unsupported",
+            Self::HomeUnavailable => "claude-home-unavailable",
+            Self::UnsafePath => "claude-adapter-path-unsafe",
+            Self::SourceMissing => "claude-plugin-source-missing",
+            Self::SourceInvalid => "claude-plugin-source-invalid",
+            Self::MarketplaceInvalid => "claude-marketplace-invalid",
+            Self::DocumentTooLarge => "claude-adapter-document-too-large",
+            Self::RegistrationConflict => "claude-registration-conflict",
+            Self::RegistrationDrift => "claude-registration-drift",
+            Self::RecoveryRequired => "claude-registration-recovery-required",
+            Self::InvalidPlan => "claude-registration-plan-invalid",
+            Self::InvalidApproval => "claude-registration-approval-invalid",
+            Self::PlanExpired => "claude-registration-plan-expired",
+            Self::ReceiptMissing => "claude-registration-receipt-missing",
+            Self::ReceiptInvalid => "claude-registration-receipt-invalid",
+            Self::LockBusy => "claude-registration-busy",
+            Self::ObservedStateMismatch => "claude-registration-observed-state-mismatch",
+            Self::PersistenceFailed(_) => "claude-registration-persistence-failed",
+            Self::RollbackFailed => "claude-registration-rollback-failed",
         }
     }
 }
 
-impl Display for CodexAdapterError {
+impl Display for ClaudeAdapterError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         formatter.write_str(self.reason_code())?;
         if let Self::PersistenceFailed(kind) = self {
@@ -147,32 +167,33 @@ impl Display for CodexAdapterError {
     }
 }
 
-impl std::error::Error for CodexAdapterError {}
+impl std::error::Error for ClaudeAdapterError {}
 
 #[derive(Clone)]
-pub struct CodexUserTarget {
+pub struct ClaudeUserTarget {
     home: PathBuf,
     marketplace_path: PathBuf,
     state_root: PathBuf,
     marketplace: MarketplaceSnapshot,
-    source: Option<CodexSourceEvidence>,
-    registration_state: Option<CodexRegistrationStateV1>,
-    summary: CodexDiscoverySummaryV1,
+    source: Option<ClaudeSourceEvidence>,
+    registration_state: Option<ClaudeRegistrationStateV1>,
+    summary: ClaudeDiscoverySummaryV1,
 }
 
-impl CodexUserTarget {
+impl ClaudeUserTarget {
     #[must_use]
-    pub const fn summary(&self) -> &CodexDiscoverySummaryV1 {
+    pub const fn summary(&self) -> &ClaudeDiscoverySummaryV1 {
         &self.summary
     }
 }
 
-impl Debug for CodexUserTarget {
+impl Debug for ClaudeUserTarget {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         formatter
-            .debug_struct("CodexUserTarget")
-            .field("marketplace_path", &CODEX_MARKETPLACE_SYMBOLIC_PATH)
-            .field("plugin_source", &CODEX_PLUGIN_SOURCE_SYMBOLIC_PATH)
+            .debug_struct("ClaudeUserTarget")
+            .field("skills_plugin_path", &CLAUDE_SKILLS_PLUGIN_SYMBOLIC_PATH)
+            .field("marketplace_path", &CLAUDE_MARKETPLACE_SYMBOLIC_PATH)
+            .field("plugin_source", &CLAUDE_PLUGIN_SOURCE_SYMBOLIC_PATH)
             .field("summary", &self.summary)
             .finish()
     }
@@ -186,28 +207,28 @@ struct MarketplaceSnapshot {
 }
 
 #[derive(Clone, Debug)]
-struct CodexSourceEvidence {
+struct ClaudeSourceEvidence {
     receipt_sha256: String,
     content_root_sha256: String,
     artifact: ArtifactIdentityV1,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum CodexRegistrationEffect {
+pub enum ClaudeRegistrationEffect {
     Register,
     AlreadyRegistered,
 }
 
 #[derive(Clone, Debug)]
-pub struct CodexRegistrationPreview {
+pub struct ClaudeRegistrationPreview {
     pub plan: InstallPlanV1,
-    pub effect: CodexRegistrationEffect,
-    pub discovery: CodexDiscoverySummaryV1,
+    pub effect: ClaudeRegistrationEffect,
+    pub discovery: ClaudeDiscoverySummaryV1,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct CodexRegistrationReceiptV1 {
+pub struct ClaudeRegistrationReceiptV1 {
     pub schema_version: u32,
     pub transaction_id: String,
     pub plan_id: String,
@@ -226,83 +247,83 @@ pub struct CodexRegistrationReceiptV1 {
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
-pub enum CodexRegistrationLifecycleKind {
+pub enum ClaudeRegistrationLifecycleKind {
     Removed,
     RolledBack,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct CodexRegistrationLifecycleReceiptV1 {
+pub struct ClaudeRegistrationLifecycleReceiptV1 {
     pub schema_version: u32,
     pub transaction_id: String,
     pub install_id: String,
     pub prior_transaction_id: String,
-    pub kind: CodexRegistrationLifecycleKind,
+    pub kind: ClaudeRegistrationLifecycleKind,
     pub completed_at_unix: u64,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct CodexRegistrationStateV1 {
+pub struct ClaudeRegistrationStateV1 {
     pub schema_version: u32,
     pub generation: u64,
     pub install_id: String,
-    pub active: Option<CodexRegistrationReceiptV1>,
-    pub last_lifecycle: Option<CodexRegistrationLifecycleReceiptV1>,
+    pub active: Option<ClaudeRegistrationReceiptV1>,
+    pub last_lifecycle: Option<ClaudeRegistrationLifecycleReceiptV1>,
 }
 
-impl CodexRegistrationStateV1 {
-    pub fn from_json(input: &[u8]) -> Result<Self, CodexAdapterError> {
+impl ClaudeRegistrationStateV1 {
+    pub fn from_json(input: &[u8]) -> Result<Self, ClaudeAdapterError> {
         if input.len() as u64 > MAX_DOCUMENT_BYTES {
-            return Err(CodexAdapterError::DocumentTooLarge);
+            return Err(ClaudeAdapterError::DocumentTooLarge);
         }
         let state: Self =
-            serde_json::from_slice(input).map_err(|_| CodexAdapterError::ReceiptInvalid)?;
+            serde_json::from_slice(input).map_err(|_| ClaudeAdapterError::ReceiptInvalid)?;
         state.validate()?;
         if canonical_json(&state)? != input {
-            return Err(CodexAdapterError::ReceiptInvalid);
+            return Err(ClaudeAdapterError::ReceiptInvalid);
         }
         Ok(state)
     }
 
-    pub fn to_canonical_json(&self) -> Result<Vec<u8>, CodexAdapterError> {
+    pub fn to_canonical_json(&self) -> Result<Vec<u8>, ClaudeAdapterError> {
         self.validate()?;
         let bytes = canonical_json(self)?;
         if bytes.len() as u64 > MAX_DOCUMENT_BYTES {
-            return Err(CodexAdapterError::DocumentTooLarge);
+            return Err(ClaudeAdapterError::DocumentTooLarge);
         }
         Ok(bytes)
     }
 
-    fn validate(&self) -> Result<(), CodexAdapterError> {
-        if self.schema_version != CODEX_REGISTRATION_STATE_SCHEMA_VERSION
+    fn validate(&self) -> Result<(), ClaudeAdapterError> {
+        if self.schema_version != CLAUDE_REGISTRATION_STATE_SCHEMA_VERSION
             || self.generation == 0
             || self.generation > JCS_MAX_SAFE_INTEGER
             || self.install_id != INSTALL_ID
             || (self.active.is_none() && self.last_lifecycle.is_none())
         {
-            return Err(CodexAdapterError::ReceiptInvalid);
+            return Err(ClaudeAdapterError::ReceiptInvalid);
         }
         if let Some(active) = &self.active {
             active.validate()?;
             if active.install_id != self.install_id {
-                return Err(CodexAdapterError::ReceiptInvalid);
+                return Err(ClaudeAdapterError::ReceiptInvalid);
             }
         }
         if let Some(lifecycle) = &self.last_lifecycle {
             lifecycle.validate()?;
             if lifecycle.install_id != self.install_id {
-                return Err(CodexAdapterError::ReceiptInvalid);
+                return Err(ClaudeAdapterError::ReceiptInvalid);
             }
         }
         Ok(())
     }
 }
 
-impl CodexRegistrationReceiptV1 {
-    fn validate(&self) -> Result<(), CodexAdapterError> {
-        if self.schema_version != CODEX_REGISTRATION_RECEIPT_SCHEMA_VERSION
+impl ClaudeRegistrationReceiptV1 {
+    fn validate(&self) -> Result<(), ClaudeAdapterError> {
+        if self.schema_version != CLAUDE_REGISTRATION_RECEIPT_SCHEMA_VERSION
             || !valid_identifier(&self.transaction_id)
             || !valid_identifier(&self.plan_id)
             || !valid_lower_hex(&self.semantic_digest_sha256, 64)
@@ -317,38 +338,38 @@ impl CodexRegistrationReceiptV1 {
             || !valid_lower_hex(&self.marketplace_document_sha256, 64)
             || self.registered_at_unix > JCS_MAX_SAFE_INTEGER
             || self.outstanding_host_action != HostAction::InstallOrEnablePlugin
-            || self.target.family != LocalTargetFamily::CodexLocal
-            || self.target.surface != LocalSurface::DesktopLocal
+            || self.target.family != LocalTargetFamily::ClaudeCodeLocal
+            || self.target.surface != LocalSurface::CliLocal
             || self.target.scope != InstallScope::User
             || self.target.profile != CapabilityProfile::Lite
             || self.target.adapter_version != 1
             || self.target.os != self.artifact.os
             || self.target.arch != self.artifact.arch
         {
-            return Err(CodexAdapterError::ReceiptInvalid);
+            return Err(ClaudeAdapterError::ReceiptInvalid);
         }
         self.artifact
             .validate()
-            .map_err(|_| CodexAdapterError::ReceiptInvalid)
+            .map_err(|_| ClaudeAdapterError::ReceiptInvalid)
     }
 }
 
-impl CodexRegistrationLifecycleReceiptV1 {
-    fn validate(&self) -> Result<(), CodexAdapterError> {
-        if self.schema_version != CODEX_REGISTRATION_RECEIPT_SCHEMA_VERSION
+impl ClaudeRegistrationLifecycleReceiptV1 {
+    fn validate(&self) -> Result<(), ClaudeAdapterError> {
+        if self.schema_version != CLAUDE_REGISTRATION_RECEIPT_SCHEMA_VERSION
             || !valid_identifier(&self.transaction_id)
             || self.install_id != INSTALL_ID
             || !valid_identifier(&self.prior_transaction_id)
             || self.completed_at_unix > JCS_MAX_SAFE_INTEGER
         {
-            return Err(CodexAdapterError::ReceiptInvalid);
+            return Err(ClaudeAdapterError::ReceiptInvalid);
         }
         Ok(())
     }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum CodexRegistrationDisposition {
+pub enum ClaudeRegistrationDisposition {
     Registered,
     AlreadyRegistered,
     Repaired,
@@ -356,19 +377,19 @@ pub enum CodexRegistrationDisposition {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CodexRegistrationCommit {
-    pub disposition: CodexRegistrationDisposition,
-    pub receipt: CodexRegistrationReceiptV1,
+pub struct ClaudeRegistrationCommit {
+    pub disposition: ClaudeRegistrationDisposition,
+    pub receipt: ClaudeRegistrationReceiptV1,
     pub cleanup_required: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CodexRegistrationVerification {
-    pub receipt: CodexRegistrationReceiptV1,
+pub struct ClaudeRegistrationVerification {
+    pub receipt: ClaudeRegistrationReceiptV1,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum CodexRegistrationLifecycleDisposition {
+pub enum ClaudeRegistrationLifecycleDisposition {
     Removed,
     AlreadyRemoved,
     RolledBack,
@@ -376,26 +397,45 @@ pub enum CodexRegistrationLifecycleDisposition {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CodexRegistrationLifecycleCommit {
-    pub disposition: CodexRegistrationLifecycleDisposition,
-    pub receipt: CodexRegistrationLifecycleReceiptV1,
+pub struct ClaudeRegistrationLifecycleCommit {
+    pub disposition: ClaudeRegistrationLifecycleDisposition,
+    pub receipt: ClaudeRegistrationLifecycleReceiptV1,
     pub cleanup_required: bool,
 }
 
-pub fn discover_codex_user(home: impl AsRef<Path>) -> Result<CodexUserTarget, CodexAdapterError> {
+pub fn discover_claude_user(
+    home: impl AsRef<Path>,
+) -> Result<ClaudeUserTarget, ClaudeAdapterError> {
     let home = home.as_ref();
+    discover_claude_user_with_config(home, home.join(".claude"))
+}
+
+pub fn discover_claude_user_with_config(
+    home: impl AsRef<Path>,
+    claude_config_root: impl AsRef<Path>,
+) -> Result<ClaudeUserTarget, ClaudeAdapterError> {
+    let home = home.as_ref();
+    let claude_config_root = claude_config_root.as_ref();
     validate_home(home)?;
+    if !claude_config_root.is_absolute() || has_lexical_traversal(claude_config_root) {
+        return Err(ClaudeAdapterError::UnsafePath);
+    }
+    let skills_plugin = discover_skills_plugin(claude_config_root)?;
     let marketplace_path = marketplace_path(home);
     let state_root = state_root_path(home);
-    let plugin_source = state_root.join(PLUGIN_SOURCE_LEAF);
+    let plugin_source = plugin_source_path(home);
 
-    validate_optional_directory_chain(home, &[".agents", "plugins"], false)?;
-    validate_optional_directory_chain(home, &[".qiongli", "plugins", "codex"], true)?;
+    validate_optional_directory_chain(home, &[".qiongli", "plugins", "claude-code"], true)?;
+    validate_optional_directory_chain(
+        home,
+        &[".qiongli", "plugins", "claude-code", "qiongli-local"],
+        true,
+    )?;
     let marketplace = read_marketplace(&marketplace_path)?;
     let marketplace_state = if marketplace.present {
-        CodexMarketplaceState::Ready
+        ClaudeMarketplaceState::Ready
     } else {
-        CodexMarketplaceState::Missing
+        ClaudeMarketplaceState::Missing
     };
 
     let state_root_exists = path_exists(&state_root)?;
@@ -404,16 +444,16 @@ pub fn discover_codex_user(home: impl AsRef<Path>) -> Result<CodexUserTarget, Co
     }
     let source = if path_exists(&plugin_source)? {
         if !state_root_exists {
-            return Err(CodexAdapterError::UnsafePath);
+            return Err(ClaudeAdapterError::UnsafePath);
         }
         Some(validate_plugin_source(&plugin_source)?)
     } else {
         None
     };
     let source_state = if source.is_some() {
-        CodexSourceState::Ready
+        ClaudeSourceState::Ready
     } else {
-        CodexSourceState::Missing
+        ClaudeSourceState::Missing
     };
 
     let registration_state = if state_root_exists {
@@ -429,18 +469,20 @@ pub fn discover_codex_user(home: impl AsRef<Path>) -> Result<CodexUserTarget, Co
         recovery,
     )?;
 
-    Ok(CodexUserTarget {
+    Ok(ClaudeUserTarget {
         home: home.to_path_buf(),
         marketplace_path,
         state_root,
         marketplace,
         source,
         registration_state,
-        summary: CodexDiscoverySummaryV1 {
-            schema_version: CODEX_ADAPTER_SCHEMA_VERSION,
-            marketplace_path: CODEX_MARKETPLACE_SYMBOLIC_PATH,
-            plugin_source_path: CODEX_PLUGIN_SOURCE_SYMBOLIC_PATH,
-            marketplace_source: CODEX_PLUGIN_SOURCE_MARKETPLACE_PATH,
+        summary: ClaudeDiscoverySummaryV1 {
+            schema_version: CLAUDE_ADAPTER_SCHEMA_VERSION,
+            skills_plugin_path: CLAUDE_SKILLS_PLUGIN_SYMBOLIC_PATH,
+            skills_plugin,
+            marketplace_path: CLAUDE_MARKETPLACE_SYMBOLIC_PATH,
+            plugin_source_path: CLAUDE_PLUGIN_SOURCE_SYMBOLIC_PATH,
+            marketplace_source: CLAUDE_PLUGIN_SOURCE_MARKETPLACE_PATH,
             source: source_state,
             marketplace: marketplace_state,
             registration,
@@ -448,30 +490,58 @@ pub fn discover_codex_user(home: impl AsRef<Path>) -> Result<CodexUserTarget, Co
     })
 }
 
-pub fn preview_codex_registration(
-    target: &CodexUserTarget,
+fn discover_skills_plugin(
+    claude_config_root: &Path,
+) -> Result<ClaudeSkillsPluginState, ClaudeAdapterError> {
+    if !path_exists(claude_config_root)? {
+        return Ok(ClaudeSkillsPluginState::Missing);
+    }
+    validate_directory(claude_config_root, false)?;
+    let skills_root = claude_config_root.join("skills");
+    if !path_exists(&skills_root)? {
+        return Ok(ClaudeSkillsPluginState::Missing);
+    }
+    if validate_directory(&skills_root, false).is_err() {
+        return Ok(ClaudeSkillsPluginState::Conflict);
+    }
+    let plugin = skills_root.join("qiongli");
+    if !path_exists(&plugin)? {
+        return Ok(ClaudeSkillsPluginState::Missing);
+    }
+    let target = match crate::approve_claude_plugin_bundle_target(&plugin) {
+        Ok(target) => target,
+        Err(_) => return Ok(ClaudeSkillsPluginState::Conflict),
+    };
+    match crate::verify_claude_plugin_bundle(&target) {
+        Ok(_) => Ok(ClaudeSkillsPluginState::Ready),
+        Err(_) => Ok(ClaudeSkillsPluginState::Conflict),
+    }
+}
+
+pub fn preview_claude_registration(
+    target: &ClaudeUserTarget,
     metadata: InstallPlanMetadataV1,
     grant: &VerifiedLaunchGrant,
-) -> Result<CodexRegistrationPreview, CodexAdapterError> {
-    if target.summary.registration == CodexRegistrationState::RecoveryRequired {
-        return Err(CodexAdapterError::RecoveryRequired);
+) -> Result<ClaudeRegistrationPreview, ClaudeAdapterError> {
+    if target.summary.registration == ClaudeRegistrationState::RecoveryRequired {
+        return Err(ClaudeAdapterError::RecoveryRequired);
     }
     if matches!(
         target.summary.registration,
-        CodexRegistrationState::Conflict | CodexRegistrationState::Drifted
+        ClaudeRegistrationState::Conflict | ClaudeRegistrationState::Drifted
     ) {
         return Err(match target.summary.registration {
-            CodexRegistrationState::Conflict => CodexAdapterError::RegistrationConflict,
-            CodexRegistrationState::Drifted => CodexAdapterError::RegistrationDrift,
-            _ => CodexAdapterError::InvalidPlan,
+            ClaudeRegistrationState::Conflict => ClaudeAdapterError::RegistrationConflict,
+            ClaudeRegistrationState::Drifted => ClaudeAdapterError::RegistrationDrift,
+            _ => ClaudeAdapterError::InvalidPlan,
         });
     }
     let source = target
         .source
         .as_ref()
-        .ok_or(CodexAdapterError::SourceMissing)?;
+        .ok_or(ClaudeAdapterError::SourceMissing)?;
     if source.artifact != grant.grant().artifact {
-        return Err(CodexAdapterError::SourceInvalid);
+        return Err(ClaudeAdapterError::SourceInvalid);
     }
     let ownership = OwnershipMarkerV1 {
         schema_version: 1,
@@ -481,40 +551,40 @@ pub fn preview_codex_registration(
     };
     let entry_digest = marketplace_entry_digest()?;
     let precondition = match target.summary.registration {
-        CodexRegistrationState::Absent => PlanStateV1::Missing,
-        CodexRegistrationState::Registered => {
+        ClaudeRegistrationState::Absent => PlanStateV1::Missing,
+        ClaudeRegistrationState::Registered => {
             let active = target
                 .registration_state
                 .as_ref()
                 .and_then(|state| state.active.as_ref())
-                .ok_or(CodexAdapterError::RegistrationDrift)?;
+                .ok_or(ClaudeAdapterError::RegistrationDrift)?;
             if active.ownership != ownership
                 || active.source_receipt_sha256 != source.receipt_sha256
                 || active.marketplace_entry_sha256 != entry_digest
             {
-                return Err(CodexAdapterError::RegistrationConflict);
+                return Err(ClaudeAdapterError::RegistrationConflict);
             }
             PlanStateV1::Managed {
                 ownership: ownership.clone(),
                 content_sha256: entry_digest.clone(),
             }
         }
-        _ => return Err(CodexAdapterError::InvalidPlan),
+        _ => return Err(ClaudeAdapterError::InvalidPlan),
     };
     let postcondition = PlanStateV1::Managed {
         ownership: ownership.clone(),
         content_sha256: entry_digest.clone(),
     };
     let observed_state_sha256 =
-        observed_plan_state_sha256(&precondition).map_err(|_| CodexAdapterError::InvalidPlan)?;
+        observed_plan_state_sha256(&precondition).map_err(|_| ClaudeAdapterError::InvalidPlan)?;
     let artifact = grant.grant().artifact.clone();
     let plan = InstallPlanV1::build(
         metadata,
         grant,
         InstallPlanDraftV1 {
             target: TargetDescriptorV1 {
-                family: LocalTargetFamily::CodexLocal,
-                surface: LocalSurface::DesktopLocal,
+                family: LocalTargetFamily::ClaudeCodeLocal,
+                surface: LocalSurface::CliLocal,
                 scope: InstallScope::User,
                 profile: CapabilityProfile::Lite,
                 os: artifact.os,
@@ -523,7 +593,7 @@ pub fn preview_codex_registration(
             },
             allowed_roots: vec![AllowedRootV1 {
                 id: ROOT_ID.to_string(),
-                root: SymbolicRoot::CodexPersonalMarketplace,
+                root: SymbolicRoot::ClaudeMarketplaceSource,
             }],
             operations: vec![InstallOperationV1 {
                 operation_id: OPERATION_ID.to_string(),
@@ -548,27 +618,27 @@ pub fn preview_codex_registration(
             outstanding_host_action: Some(HostAction::InstallOrEnablePlugin),
         },
     )
-    .map_err(|_| CodexAdapterError::InvalidPlan)?;
+    .map_err(|_| ClaudeAdapterError::InvalidPlan)?;
 
-    Ok(CodexRegistrationPreview {
+    Ok(ClaudeRegistrationPreview {
         plan,
-        effect: if target.summary.registration == CodexRegistrationState::Registered {
-            CodexRegistrationEffect::AlreadyRegistered
+        effect: if target.summary.registration == ClaudeRegistrationState::Registered {
+            ClaudeRegistrationEffect::AlreadyRegistered
         } else {
-            CodexRegistrationEffect::Register
+            ClaudeRegistrationEffect::Register
         },
         discovery: target.summary.clone(),
     })
 }
 
 #[derive(Clone, Debug)]
-pub struct CodexRegistrationExecutor {
+pub struct ClaudeRegistrationExecutor {
     home: PathBuf,
 }
 
-impl CodexRegistrationExecutor {
+impl ClaudeRegistrationExecutor {
     #[must_use]
-    pub fn new(target: CodexUserTarget) -> Self {
+    pub fn new(target: ClaudeUserTarget) -> Self {
         Self { home: target.home }
     }
 
@@ -577,7 +647,7 @@ impl CodexRegistrationExecutor {
         plan: &VerifiedInstallPlan,
         approval: &ApprovedInstallPlan,
         now_unix: u64,
-    ) -> Result<CodexRegistrationCommit, CodexAdapterError> {
+    ) -> Result<ClaudeRegistrationCommit, ClaudeAdapterError> {
         self.apply_or_repair(plan, approval, now_unix, false)
     }
 
@@ -586,38 +656,38 @@ impl CodexRegistrationExecutor {
         plan: &VerifiedInstallPlan,
         approval: &ApprovedInstallPlan,
         now_unix: u64,
-    ) -> Result<CodexRegistrationCommit, CodexAdapterError> {
+    ) -> Result<ClaudeRegistrationCommit, ClaudeAdapterError> {
         self.apply_or_repair(plan, approval, now_unix, true)
     }
 
-    pub fn verify(&self) -> Result<CodexRegistrationVerification, CodexAdapterError> {
-        let target = discover_codex_user(&self.home)?;
-        if target.summary.registration == CodexRegistrationState::RecoveryRequired {
-            return Err(CodexAdapterError::RecoveryRequired);
+    pub fn verify(&self) -> Result<ClaudeRegistrationVerification, ClaudeAdapterError> {
+        let target = discover_claude_user(&self.home)?;
+        if target.summary.registration == ClaudeRegistrationState::RecoveryRequired {
+            return Err(ClaudeAdapterError::RecoveryRequired);
         }
-        if target.summary.registration != CodexRegistrationState::Registered {
-            return Err(CodexAdapterError::RegistrationDrift);
+        if target.summary.registration != ClaudeRegistrationState::Registered {
+            return Err(ClaudeAdapterError::RegistrationDrift);
         }
         let receipt = target
             .registration_state
             .and_then(|state| state.active)
-            .ok_or(CodexAdapterError::ReceiptMissing)?;
+            .ok_or(ClaudeAdapterError::ReceiptMissing)?;
         receipt.validate()?;
-        Ok(CodexRegistrationVerification { receipt })
+        Ok(ClaudeRegistrationVerification { receipt })
     }
 
     pub fn remove(
         &self,
         now_unix: u64,
-    ) -> Result<CodexRegistrationLifecycleCommit, CodexAdapterError> {
-        self.lifecycle(now_unix, CodexRegistrationLifecycleKind::Removed)
+    ) -> Result<ClaudeRegistrationLifecycleCommit, ClaudeAdapterError> {
+        self.lifecycle(now_unix, ClaudeRegistrationLifecycleKind::Removed)
     }
 
     pub fn rollback(
         &self,
         now_unix: u64,
-    ) -> Result<CodexRegistrationLifecycleCommit, CodexAdapterError> {
-        self.lifecycle(now_unix, CodexRegistrationLifecycleKind::RolledBack)
+    ) -> Result<ClaudeRegistrationLifecycleCommit, ClaudeAdapterError> {
+        self.lifecycle(now_unix, ClaudeRegistrationLifecycleKind::RolledBack)
     }
 
     fn apply_or_repair(
@@ -626,89 +696,89 @@ impl CodexRegistrationExecutor {
         approval: &ApprovedInstallPlan,
         now_unix: u64,
         repair: bool,
-    ) -> Result<CodexRegistrationCommit, CodexAdapterError> {
+    ) -> Result<ClaudeRegistrationCommit, ClaudeAdapterError> {
         approval.validate_for(plan, now_unix).map_err(|error| {
             use crate::TransactionError;
             match error {
-                TransactionError::PlanExpired => CodexAdapterError::PlanExpired,
-                _ => CodexAdapterError::InvalidApproval,
+                TransactionError::PlanExpired => ClaudeAdapterError::PlanExpired,
+                _ => ClaudeAdapterError::InvalidApproval,
             }
         })?;
-        let initial = discover_codex_user(&self.home)?;
-        let executable = ExecutableCodexRegistration::from_plan(plan, &initial)?;
+        let initial = discover_claude_user(&self.home)?;
+        let executable = ExecutableClaudeRegistration::from_plan(plan, &initial)?;
         let _lock = acquire_lock(&initial.state_root)?;
-        let current = discover_codex_user(&self.home)?;
+        let current = discover_claude_user(&self.home)?;
         executable.revalidate_source(&current)?;
-        if current.summary.registration == CodexRegistrationState::RecoveryRequired {
-            return Err(CodexAdapterError::RecoveryRequired);
+        if current.summary.registration == ClaudeRegistrationState::RecoveryRequired {
+            return Err(ClaudeAdapterError::RecoveryRequired);
         }
 
         if !repair {
             match current.summary.registration {
-                CodexRegistrationState::Registered => {
+                ClaudeRegistrationState::Registered => {
                     let receipt = current
                         .registration_state
                         .and_then(|state| state.active)
-                        .ok_or(CodexAdapterError::ReceiptMissing)?;
+                        .ok_or(ClaudeAdapterError::ReceiptMissing)?;
                     executable.validate_active(&receipt)?;
-                    return Ok(CodexRegistrationCommit {
-                        disposition: CodexRegistrationDisposition::AlreadyRegistered,
+                    return Ok(ClaudeRegistrationCommit {
+                        disposition: ClaudeRegistrationDisposition::AlreadyRegistered,
                         receipt,
                         cleanup_required: false,
                     });
                 }
-                CodexRegistrationState::Absent => {}
-                CodexRegistrationState::Conflict => {
-                    return Err(CodexAdapterError::RegistrationConflict);
+                ClaudeRegistrationState::Absent => {}
+                ClaudeRegistrationState::Conflict => {
+                    return Err(ClaudeAdapterError::RegistrationConflict);
                 }
-                CodexRegistrationState::Drifted => {
-                    return Err(CodexAdapterError::RegistrationDrift);
+                ClaudeRegistrationState::Drifted => {
+                    return Err(ClaudeAdapterError::RegistrationDrift);
                 }
-                CodexRegistrationState::RecoveryRequired => {
-                    return Err(CodexAdapterError::RecoveryRequired);
+                ClaudeRegistrationState::RecoveryRequired => {
+                    return Err(ClaudeAdapterError::RecoveryRequired);
                 }
             }
             if executable.precondition != PlanStateV1::Missing {
-                return Err(CodexAdapterError::ObservedStateMismatch);
+                return Err(ClaudeAdapterError::ObservedStateMismatch);
             }
         } else {
             match current.summary.registration {
-                CodexRegistrationState::Registered => {
+                ClaudeRegistrationState::Registered => {
                     let receipt = current
                         .registration_state
                         .and_then(|state| state.active)
-                        .ok_or(CodexAdapterError::ReceiptMissing)?;
+                        .ok_or(ClaudeAdapterError::ReceiptMissing)?;
                     executable.validate_active(&receipt)?;
-                    return Ok(CodexRegistrationCommit {
-                        disposition: CodexRegistrationDisposition::AlreadyHealthy,
+                    return Ok(ClaudeRegistrationCommit {
+                        disposition: ClaudeRegistrationDisposition::AlreadyHealthy,
                         receipt,
                         cleanup_required: false,
                     });
                 }
-                CodexRegistrationState::Drifted => {}
-                _ => return Err(CodexAdapterError::RegistrationDrift),
+                ClaudeRegistrationState::Drifted => {}
+                _ => return Err(ClaudeAdapterError::RegistrationDrift),
             }
         }
 
         let prior_state = current.registration_state.clone();
         let prior_active = prior_state.as_ref().and_then(|state| state.active.as_ref());
         if repair {
-            executable.validate_active(prior_active.ok_or(CodexAdapterError::ReceiptMissing)?)?;
+            executable.validate_active(prior_active.ok_or(ClaudeAdapterError::ReceiptMissing)?)?;
             if !qiongli_entries(&current.marketplace.document)?.is_empty() {
-                return Err(CodexAdapterError::RegistrationDrift);
+                return Err(ClaudeAdapterError::RegistrationDrift);
             }
         }
 
         let next_document = insert_marketplace_entry(&current.marketplace.document)?;
         let next_digest = document_digest(&next_document)?;
         let transaction_id = transaction_id();
-        let journal = CodexRegistrationJournalV1 {
-            schema_version: CODEX_ADAPTER_SCHEMA_VERSION,
+        let journal = ClaudeRegistrationJournalV1 {
+            schema_version: CLAUDE_ADAPTER_SCHEMA_VERSION,
             transaction_id: transaction_id.clone(),
             kind: if repair {
-                CodexJournalKind::Repair
+                ClaudeJournalKind::Repair
             } else {
-                CodexJournalKind::Apply
+                ClaudeJournalKind::Apply
             },
             prior_marketplace_present: current.marketplace.present,
             prior_marketplace: current.marketplace.document.clone(),
@@ -716,7 +786,7 @@ impl CodexRegistrationExecutor {
             next_marketplace_sha256: next_digest.clone(),
             prior_state_sha256: prior_state
                 .as_ref()
-                .map(CodexRegistrationStateV1::to_canonical_json)
+                .map(ClaudeRegistrationStateV1::to_canonical_json)
                 .transpose()?
                 .as_deref()
                 .map(sha256_hex),
@@ -736,10 +806,10 @@ impl CodexRegistrationExecutor {
         let receipt = if repair {
             prior_active
                 .cloned()
-                .ok_or(CodexAdapterError::ReceiptMissing)?
+                .ok_or(ClaudeAdapterError::ReceiptMissing)?
         } else {
-            CodexRegistrationReceiptV1 {
-                schema_version: CODEX_REGISTRATION_RECEIPT_SCHEMA_VERSION,
+            ClaudeRegistrationReceiptV1 {
+                schema_version: CLAUDE_REGISTRATION_RECEIPT_SCHEMA_VERSION,
                 transaction_id: transaction_id.clone(),
                 plan_id: executable.plan.plan().plan_id.clone(),
                 semantic_digest_sha256: executable.plan.plan().semantic_digest_sha256.clone(),
@@ -758,8 +828,8 @@ impl CodexRegistrationExecutor {
         receipt.validate()?;
 
         if !repair {
-            let state = CodexRegistrationStateV1 {
-                schema_version: CODEX_REGISTRATION_STATE_SCHEMA_VERSION,
+            let state = ClaudeRegistrationStateV1 {
+                schema_version: CLAUDE_REGISTRATION_STATE_SCHEMA_VERSION,
                 generation: next_generation(prior_state.as_ref())?,
                 install_id: INSTALL_ID.to_string(),
                 active: Some(receipt.clone()),
@@ -773,11 +843,11 @@ impl CodexRegistrationExecutor {
         }
 
         let cleanup_required = finish_journal(&current.state_root).is_err();
-        Ok(CodexRegistrationCommit {
+        Ok(ClaudeRegistrationCommit {
             disposition: if repair {
-                CodexRegistrationDisposition::Repaired
+                ClaudeRegistrationDisposition::Repaired
             } else {
-                CodexRegistrationDisposition::Registered
+                ClaudeRegistrationDisposition::Registered
             },
             receipt,
             cleanup_required,
@@ -787,29 +857,29 @@ impl CodexRegistrationExecutor {
     fn lifecycle(
         &self,
         now_unix: u64,
-        kind: CodexRegistrationLifecycleKind,
-    ) -> Result<CodexRegistrationLifecycleCommit, CodexAdapterError> {
-        let initial = discover_codex_user(&self.home)?;
+        kind: ClaudeRegistrationLifecycleKind,
+    ) -> Result<ClaudeRegistrationLifecycleCommit, ClaudeAdapterError> {
+        let initial = discover_claude_user(&self.home)?;
         if !path_exists(&initial.state_root)? {
-            return Err(CodexAdapterError::ReceiptMissing);
+            return Err(ClaudeAdapterError::ReceiptMissing);
         }
         let _lock = acquire_lock(&initial.state_root)?;
-        let current = discover_codex_user(&self.home)?;
-        if current.summary.registration == CodexRegistrationState::RecoveryRequired {
-            return Err(CodexAdapterError::RecoveryRequired);
+        let current = discover_claude_user(&self.home)?;
+        if current.summary.registration == ClaudeRegistrationState::RecoveryRequired {
+            return Err(ClaudeAdapterError::RecoveryRequired);
         }
         let prior_state = current
             .registration_state
             .clone()
-            .ok_or(CodexAdapterError::ReceiptMissing)?;
+            .ok_or(ClaudeAdapterError::ReceiptMissing)?;
         let Some(active) = prior_state.active.as_ref() else {
             let lifecycle = prior_state
                 .last_lifecycle
-                .ok_or(CodexAdapterError::ReceiptMissing)?;
+                .ok_or(ClaudeAdapterError::ReceiptMissing)?;
             if lifecycle.kind != kind {
-                return Err(CodexAdapterError::ReceiptMissing);
+                return Err(ClaudeAdapterError::ReceiptMissing);
             }
-            return Ok(CodexRegistrationLifecycleCommit {
+            return Ok(ClaudeRegistrationLifecycleCommit {
                 disposition: already_lifecycle_disposition(kind),
                 receipt: lifecycle,
                 cleanup_required: false,
@@ -820,17 +890,17 @@ impl CodexRegistrationExecutor {
         if let Some(entry) = entries.first()
             && (entries.len() != 1 || value_digest(entry)? != active.marketplace_entry_sha256)
         {
-            return Err(CodexAdapterError::RegistrationDrift);
+            return Err(ClaudeAdapterError::RegistrationDrift);
         }
         let next_document = remove_marketplace_entry(&current.marketplace.document)?;
         let next_digest = document_digest(&next_document)?;
         let transaction_id = transaction_id();
-        let journal = CodexRegistrationJournalV1 {
-            schema_version: CODEX_ADAPTER_SCHEMA_VERSION,
+        let journal = ClaudeRegistrationJournalV1 {
+            schema_version: CLAUDE_ADAPTER_SCHEMA_VERSION,
             transaction_id: transaction_id.clone(),
             kind: match kind {
-                CodexRegistrationLifecycleKind::Removed => CodexJournalKind::Remove,
-                CodexRegistrationLifecycleKind::RolledBack => CodexJournalKind::Rollback,
+                ClaudeRegistrationLifecycleKind::Removed => ClaudeJournalKind::Remove,
+                ClaudeRegistrationLifecycleKind::RolledBack => ClaudeJournalKind::Rollback,
             },
             prior_marketplace_present: current.marketplace.present,
             prior_marketplace: current.marketplace.document.clone(),
@@ -850,8 +920,8 @@ impl CodexRegistrationExecutor {
         {
             return rollback_after_activation(&current, &journal, error);
         }
-        let lifecycle = CodexRegistrationLifecycleReceiptV1 {
-            schema_version: CODEX_REGISTRATION_RECEIPT_SCHEMA_VERSION,
+        let lifecycle = ClaudeRegistrationLifecycleReceiptV1 {
+            schema_version: CLAUDE_REGISTRATION_RECEIPT_SCHEMA_VERSION,
             transaction_id: transaction_id.clone(),
             install_id: INSTALL_ID.to_string(),
             prior_transaction_id: active.transaction_id.clone(),
@@ -859,8 +929,8 @@ impl CodexRegistrationExecutor {
             completed_at_unix: now_unix,
         };
         lifecycle.validate()?;
-        let state = CodexRegistrationStateV1 {
-            schema_version: CODEX_REGISTRATION_STATE_SCHEMA_VERSION,
+        let state = ClaudeRegistrationStateV1 {
+            schema_version: CLAUDE_REGISTRATION_STATE_SCHEMA_VERSION,
             generation: next_generation(Some(&prior_state))?,
             install_id: INSTALL_ID.to_string(),
             active: None,
@@ -871,7 +941,7 @@ impl CodexRegistrationExecutor {
             return recover_after_state_failure(&current, &journal, error);
         }
         let cleanup_required = finish_journal(&current.state_root).is_err();
-        Ok(CodexRegistrationLifecycleCommit {
+        Ok(ClaudeRegistrationLifecycleCommit {
             disposition: lifecycle_disposition(kind),
             receipt: lifecycle,
             cleanup_required,
@@ -879,7 +949,7 @@ impl CodexRegistrationExecutor {
     }
 }
 
-struct ExecutableCodexRegistration<'a> {
+struct ExecutableClaudeRegistration<'a> {
     plan: &'a VerifiedInstallPlan,
     precondition: PlanStateV1,
     ownership: OwnershipMarkerV1,
@@ -888,31 +958,31 @@ struct ExecutableCodexRegistration<'a> {
     entry_sha256: String,
 }
 
-impl<'a> ExecutableCodexRegistration<'a> {
+impl<'a> ExecutableClaudeRegistration<'a> {
     fn from_plan(
         plan: &'a VerifiedInstallPlan,
-        target: &CodexUserTarget,
-    ) -> Result<Self, CodexAdapterError> {
+        target: &ClaudeUserTarget,
+    ) -> Result<Self, ClaudeAdapterError> {
         let plan_value = plan.plan();
-        if plan_value.target.family != LocalTargetFamily::CodexLocal
-            || plan_value.target.surface != LocalSurface::DesktopLocal
+        if plan_value.target.family != LocalTargetFamily::ClaudeCodeLocal
+            || plan_value.target.surface != LocalSurface::CliLocal
             || plan_value.target.scope != InstallScope::User
             || plan_value.target.profile != CapabilityProfile::Lite
             || plan_value.target.adapter_version != 1
             || plan_value.allowed_roots
                 != [AllowedRootV1 {
                     id: ROOT_ID.to_string(),
-                    root: SymbolicRoot::CodexPersonalMarketplace,
+                    root: SymbolicRoot::ClaudeMarketplaceSource,
                 }]
             || plan_value.approvals_required != EXACT_APPROVALS
             || plan_value.outstanding_host_action != Some(HostAction::InstallOrEnablePlugin)
             || plan_value.operations.len() != 1
         {
-            return Err(CodexAdapterError::InvalidPlan);
+            return Err(ClaudeAdapterError::InvalidPlan);
         }
         let operation = &plan_value.operations[0];
         if operation.operation_id != OPERATION_ID {
-            return Err(CodexAdapterError::InvalidPlan);
+            return Err(ClaudeAdapterError::InvalidPlan);
         }
         let InstallActionV1::RegisterPluginSource {
             root_id,
@@ -922,12 +992,12 @@ impl<'a> ExecutableCodexRegistration<'a> {
             ownership,
         } = &operation.action
         else {
-            return Err(CodexAdapterError::InvalidPlan);
+            return Err(ClaudeAdapterError::InvalidPlan);
         };
         let source = target
             .source
             .as_ref()
-            .ok_or(CodexAdapterError::SourceMissing)?;
+            .ok_or(ClaudeAdapterError::SourceMissing)?;
         let entry_sha256 = marketplace_entry_digest()?;
         let postcondition = PlanStateV1::Managed {
             ownership: ownership.clone(),
@@ -943,10 +1013,10 @@ impl<'a> ExecutableCodexRegistration<'a> {
             || ownership.artifact_digest_sha256 != plan.grant().signed_payload_sha256()
             || operation.observed_state_sha256
                 != observed_plan_state_sha256(&operation.precondition)
-                    .map_err(|_| CodexAdapterError::InvalidPlan)?
+                    .map_err(|_| ClaudeAdapterError::InvalidPlan)?
             || operation.postcondition != postcondition
         {
-            return Err(CodexAdapterError::InvalidPlan);
+            return Err(ClaudeAdapterError::InvalidPlan);
         }
         let InstallActionV1::RemoveManagedEntry {
             root_id: inverse_root,
@@ -955,14 +1025,14 @@ impl<'a> ExecutableCodexRegistration<'a> {
             expected_sha256,
         } = &operation.inverse
         else {
-            return Err(CodexAdapterError::InvalidPlan);
+            return Err(ClaudeAdapterError::InvalidPlan);
         };
         if inverse_root != ROOT_ID
             || inverse_entry != ENTRY_KEY
             || expected_ownership != ownership
             || expected_sha256 != &entry_sha256
         {
-            return Err(CodexAdapterError::InvalidPlan);
+            return Err(ClaudeAdapterError::InvalidPlan);
         }
         Ok(Self {
             plan,
@@ -974,30 +1044,30 @@ impl<'a> ExecutableCodexRegistration<'a> {
         })
     }
 
-    fn revalidate_source(&self, target: &CodexUserTarget) -> Result<(), CodexAdapterError> {
+    fn revalidate_source(&self, target: &ClaudeUserTarget) -> Result<(), ClaudeAdapterError> {
         let source = target
             .source
             .as_ref()
-            .ok_or(CodexAdapterError::SourceMissing)?;
+            .ok_or(ClaudeAdapterError::SourceMissing)?;
         if source.receipt_sha256 != self.source_receipt_sha256
             || source.content_root_sha256 != self.source_content_root_sha256
         {
-            return Err(CodexAdapterError::ObservedStateMismatch);
+            return Err(ClaudeAdapterError::ObservedStateMismatch);
         }
         Ok(())
     }
 
     fn validate_active(
         &self,
-        active: &CodexRegistrationReceiptV1,
-    ) -> Result<(), CodexAdapterError> {
+        active: &ClaudeRegistrationReceiptV1,
+    ) -> Result<(), ClaudeAdapterError> {
         active.validate()?;
         if active.ownership != self.ownership
             || active.source_receipt_sha256 != self.source_receipt_sha256
             || active.source_content_root_sha256 != self.source_content_root_sha256
             || active.marketplace_entry_sha256 != self.entry_sha256
         {
-            return Err(CodexAdapterError::RegistrationConflict);
+            return Err(ClaudeAdapterError::RegistrationConflict);
         }
         Ok(())
     }
@@ -1005,7 +1075,7 @@ impl<'a> ExecutableCodexRegistration<'a> {
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
-enum CodexJournalKind {
+enum ClaudeJournalKind {
     Apply,
     Repair,
     Remove,
@@ -1014,10 +1084,10 @@ enum CodexJournalKind {
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
-struct CodexRegistrationJournalV1 {
+struct ClaudeRegistrationJournalV1 {
     schema_version: u32,
     transaction_id: String,
-    kind: CodexJournalKind,
+    kind: ClaudeJournalKind,
     prior_marketplace_present: bool,
     prior_marketplace: Value,
     prior_marketplace_sha256: String,
@@ -1028,43 +1098,43 @@ struct CodexRegistrationJournalV1 {
 
 fn classify_registration(
     marketplace: &Value,
-    source: Option<&CodexSourceEvidence>,
-    state: Option<&CodexRegistrationStateV1>,
+    source: Option<&ClaudeSourceEvidence>,
+    state: Option<&ClaudeRegistrationStateV1>,
     recovery: bool,
-) -> Result<CodexRegistrationState, CodexAdapterError> {
+) -> Result<ClaudeRegistrationState, ClaudeAdapterError> {
     if recovery {
-        return Ok(CodexRegistrationState::RecoveryRequired);
+        return Ok(ClaudeRegistrationState::RecoveryRequired);
     }
     let entries = qiongli_entries(marketplace)?;
     if entries.len() > 1 {
-        return Ok(CodexRegistrationState::Conflict);
+        return Ok(ClaudeRegistrationState::Conflict);
     }
     let active = state.and_then(|state| state.active.as_ref());
     match (entries.first(), active) {
-        (None, None) => Ok(CodexRegistrationState::Absent),
-        (Some(_), None) => Ok(CodexRegistrationState::Conflict),
-        (None, Some(_)) => Ok(CodexRegistrationState::Drifted),
+        (None, None) => Ok(ClaudeRegistrationState::Absent),
+        (Some(_), None) => Ok(ClaudeRegistrationState::Conflict),
+        (None, Some(_)) => Ok(ClaudeRegistrationState::Drifted),
         (Some(entry), Some(active)) => {
             if source.is_some_and(|source| {
                 source.receipt_sha256 == active.source_receipt_sha256
                     && source.content_root_sha256 == active.source_content_root_sha256
             }) && value_digest(entry)? == active.marketplace_entry_sha256
             {
-                Ok(CodexRegistrationState::Registered)
+                Ok(ClaudeRegistrationState::Registered)
             } else {
-                Ok(CodexRegistrationState::Drifted)
+                Ok(ClaudeRegistrationState::Drifted)
             }
         }
     }
 }
 
-fn validate_plugin_source(path: &Path) -> Result<CodexSourceEvidence, CodexAdapterError> {
-    let target = crate::approve_codex_plugin_bundle_target(path)
-        .map_err(|_| CodexAdapterError::SourceInvalid)?;
-    let verified =
-        crate::verify_codex_plugin_bundle(&target).map_err(|_| CodexAdapterError::SourceInvalid)?;
+fn validate_plugin_source(path: &Path) -> Result<ClaudeSourceEvidence, ClaudeAdapterError> {
+    let target = crate::approve_claude_plugin_bundle_target(path)
+        .map_err(|_| ClaudeAdapterError::SourceInvalid)?;
+    let verified = crate::verify_claude_plugin_bundle(&target)
+        .map_err(|_| ClaudeAdapterError::SourceInvalid)?;
     let receipt = verified.receipt();
-    Ok(CodexSourceEvidence {
+    Ok(ClaudeSourceEvidence {
         receipt_sha256: verified.receipt_sha256().to_string(),
         content_root_sha256: receipt.package_content_root_sha256.clone(),
         artifact: receipt.artifact.clone(),
@@ -1074,31 +1144,24 @@ fn validate_plugin_source(path: &Path) -> Result<CodexSourceEvidence, CodexAdapt
 fn marketplace_entry() -> Value {
     json!({
         "name": "qiongli",
-        "source": {
-            "source": "local",
-            "path": CODEX_PLUGIN_SOURCE_MARKETPLACE_PATH
-        },
-        "policy": {
-            "installation": "AVAILABLE",
-            "authentication": "ON_INSTALL"
-        },
-        "category": "Education"
+        "source": CLAUDE_PLUGIN_SOURCE_MARKETPLACE_PATH
     })
 }
 
-fn marketplace_entry_digest() -> Result<String, CodexAdapterError> {
+fn marketplace_entry_digest() -> Result<String, ClaudeAdapterError> {
     value_digest(&marketplace_entry())
 }
 
 fn default_marketplace() -> Value {
     json!({
-        "name": "personal",
-        "interface": { "displayName": "Personal" },
+        "name": "qiongli-local",
+        "description": "Local Qiongli-managed Claude Code plugins.",
+        "owner": { "name": "Qiongli" },
         "plugins": []
     })
 }
 
-fn read_marketplace(path: &Path) -> Result<MarketplaceSnapshot, CodexAdapterError> {
+fn read_marketplace(path: &Path) -> Result<MarketplaceSnapshot, ClaudeAdapterError> {
     if !path_exists(path)? {
         let document = default_marketplace();
         return Ok(MarketplaceSnapshot {
@@ -1109,7 +1172,7 @@ fn read_marketplace(path: &Path) -> Result<MarketplaceSnapshot, CodexAdapterErro
     }
     let bytes = read_bounded_config_file(path, MAX_DOCUMENT_BYTES)?;
     let document: Value =
-        serde_json::from_slice(&bytes).map_err(|_| CodexAdapterError::MarketplaceInvalid)?;
+        serde_json::from_slice(&bytes).map_err(|_| ClaudeAdapterError::MarketplaceInvalid)?;
     validate_marketplace_document(&document)?;
     Ok(MarketplaceSnapshot {
         present: true,
@@ -1118,74 +1181,82 @@ fn read_marketplace(path: &Path) -> Result<MarketplaceSnapshot, CodexAdapterErro
     })
 }
 
-fn validate_marketplace_document(document: &Value) -> Result<(), CodexAdapterError> {
+fn validate_marketplace_document(document: &Value) -> Result<(), ClaudeAdapterError> {
     let object = document
         .as_object()
-        .ok_or(CodexAdapterError::MarketplaceInvalid)?;
-    if object
-        .get("plugins")
-        .is_some_and(|plugins| !plugins.is_array())
+        .ok_or(ClaudeAdapterError::MarketplaceInvalid)?;
+    if object.get("name").and_then(Value::as_str) != Some("qiongli-local")
+        || object
+            .get("owner")
+            .and_then(Value::as_object)
+            .and_then(|owner| owner.get("name"))
+            .and_then(Value::as_str)
+            .is_none_or(str::is_empty)
+        || object
+            .get("plugins")
+            .is_none_or(|plugins| !plugins.is_array())
     {
-        return Err(CodexAdapterError::MarketplaceInvalid);
+        return Err(ClaudeAdapterError::MarketplaceInvalid);
     }
     if qiongli_entries(document)?.len() > 1 {
-        return Err(CodexAdapterError::RegistrationConflict);
+        return Err(ClaudeAdapterError::RegistrationConflict);
     }
     Ok(())
 }
 
-fn qiongli_entries(document: &Value) -> Result<Vec<&Value>, CodexAdapterError> {
+fn qiongli_entries(document: &Value) -> Result<Vec<&Value>, ClaudeAdapterError> {
     let object = document
         .as_object()
-        .ok_or(CodexAdapterError::MarketplaceInvalid)?;
+        .ok_or(ClaudeAdapterError::MarketplaceInvalid)?;
     let Some(plugins) = object.get("plugins") else {
         return Ok(Vec::new());
     };
     let plugins = plugins
         .as_array()
-        .ok_or(CodexAdapterError::MarketplaceInvalid)?;
+        .ok_or(ClaudeAdapterError::MarketplaceInvalid)?;
     Ok(plugins
         .iter()
         .filter(|entry| entry.get("name").and_then(Value::as_str) == Some(ENTRY_KEY))
         .collect())
 }
 
-fn insert_marketplace_entry(document: &Value) -> Result<Value, CodexAdapterError> {
+fn insert_marketplace_entry(document: &Value) -> Result<Value, ClaudeAdapterError> {
     if !qiongli_entries(document)?.is_empty() {
-        return Err(CodexAdapterError::RegistrationConflict);
+        return Err(ClaudeAdapterError::RegistrationConflict);
     }
     let mut object = document
         .as_object()
         .cloned()
-        .ok_or(CodexAdapterError::MarketplaceInvalid)?;
+        .ok_or(ClaudeAdapterError::MarketplaceInvalid)?;
     object
         .entry("name")
-        .or_insert_with(|| Value::String("personal".to_string()));
-    object.entry("interface").or_insert_with(|| {
-        json!({
-            "displayName": "Personal"
-        })
-    });
+        .or_insert_with(|| Value::String("qiongli-local".to_string()));
+    object
+        .entry("description")
+        .or_insert_with(|| Value::String("Local Qiongli-managed Claude Code plugins.".to_string()));
+    object
+        .entry("owner")
+        .or_insert_with(|| json!({ "name": "Qiongli" }));
     let plugins = object
         .entry("plugins")
         .or_insert_with(|| Value::Array(Vec::new()))
         .as_array_mut()
-        .ok_or(CodexAdapterError::MarketplaceInvalid)?;
+        .ok_or(ClaudeAdapterError::MarketplaceInvalid)?;
     plugins.push(marketplace_entry());
     Ok(Value::Object(object))
 }
 
-fn remove_marketplace_entry(document: &Value) -> Result<Value, CodexAdapterError> {
+fn remove_marketplace_entry(document: &Value) -> Result<Value, ClaudeAdapterError> {
     let mut object = document
         .as_object()
         .cloned()
-        .ok_or(CodexAdapterError::MarketplaceInvalid)?;
+        .ok_or(ClaudeAdapterError::MarketplaceInvalid)?;
     let Some(plugins) = object.get_mut("plugins") else {
         return Ok(Value::Object(object));
     };
     let plugins = plugins
         .as_array_mut()
-        .ok_or(CodexAdapterError::MarketplaceInvalid)?;
+        .ok_or(ClaudeAdapterError::MarketplaceInvalid)?;
     plugins.retain(|entry| entry.get("name").and_then(Value::as_str) != Some(ENTRY_KEY));
     Ok(Value::Object(object))
 }
@@ -1195,51 +1266,51 @@ fn activate_marketplace(
     prior: &MarketplaceSnapshot,
     next: &Value,
     transaction_id: &str,
-) -> Result<(), CodexAdapterError> {
+) -> Result<(), ClaudeAdapterError> {
     prepare_marketplace_parent(path)?;
     let observed = read_marketplace(path)?;
     if observed.present != prior.present || observed.digest_sha256 != prior.digest_sha256 {
-        return Err(CodexAdapterError::ObservedStateMismatch);
+        return Err(ClaudeAdapterError::ObservedStateMismatch);
     }
     write_marketplace_document(path, next, transaction_id, prior.present)?;
-    let committed = read_marketplace(path).map_err(|_| CodexAdapterError::RecoveryRequired)?;
+    let committed = read_marketplace(path).map_err(|_| ClaudeAdapterError::RecoveryRequired)?;
     if !committed.present || committed.digest_sha256 != document_digest(next)? {
-        return Err(CodexAdapterError::RecoveryRequired);
+        return Err(ClaudeAdapterError::RecoveryRequired);
     }
     Ok(())
 }
 
 fn rollback_after_activation<T>(
-    target: &CodexUserTarget,
-    journal: &CodexRegistrationJournalV1,
-    original: CodexAdapterError,
-) -> Result<T, CodexAdapterError> {
+    target: &ClaudeUserTarget,
+    journal: &ClaudeRegistrationJournalV1,
+    original: ClaudeAdapterError,
+) -> Result<T, ClaudeAdapterError> {
     if restore_prior_marketplace(&target.marketplace_path, journal).is_ok()
         && finish_journal(&target.state_root).is_ok()
     {
         Err(original)
     } else {
-        Err(CodexAdapterError::RecoveryRequired)
+        Err(ClaudeAdapterError::RecoveryRequired)
     }
 }
 
 fn recover_after_state_failure<T>(
-    target: &CodexUserTarget,
-    journal: &CodexRegistrationJournalV1,
-    _original: CodexAdapterError,
-) -> Result<T, CodexAdapterError> {
+    target: &ClaudeUserTarget,
+    journal: &ClaudeRegistrationJournalV1,
+    _original: ClaudeAdapterError,
+) -> Result<T, ClaudeAdapterError> {
     // State activation may already have happened even when durability or
     // verification reports an error. Restore the marketplace when it is still
     // safe to do so, but retain the journal until a recovery path can prove the
     // state receipt outcome.
     let _ = restore_prior_marketplace(&target.marketplace_path, journal);
-    Err(CodexAdapterError::RecoveryRequired)
+    Err(ClaudeAdapterError::RecoveryRequired)
 }
 
 fn restore_prior_marketplace(
     path: &Path,
-    journal: &CodexRegistrationJournalV1,
-) -> Result<(), CodexAdapterError> {
+    journal: &ClaudeRegistrationJournalV1,
+) -> Result<(), ClaudeAdapterError> {
     let current = read_marketplace(path)?;
     if current.present == journal.prior_marketplace_present
         && current.digest_sha256 == journal.prior_marketplace_sha256
@@ -1247,7 +1318,7 @@ fn restore_prior_marketplace(
         return Ok(());
     }
     if current.digest_sha256 != journal.next_marketplace_sha256 {
-        return Err(CodexAdapterError::RollbackFailed);
+        return Err(ClaudeAdapterError::RollbackFailed);
     }
     if journal.prior_marketplace_present {
         write_marketplace_document(
@@ -1258,14 +1329,14 @@ fn restore_prior_marketplace(
         )?;
     } else {
         fs::remove_file(path)
-            .map_err(|error| CodexAdapterError::PersistenceFailed(error.kind()))?;
-        sync_directory(path.parent().ok_or(CodexAdapterError::UnsafePath)?)?;
+            .map_err(|error| ClaudeAdapterError::PersistenceFailed(error.kind()))?;
+        sync_directory(path.parent().ok_or(ClaudeAdapterError::UnsafePath)?)?;
     }
     let restored = read_marketplace(path)?;
     if restored.present != journal.prior_marketplace_present
         || restored.digest_sha256 != journal.prior_marketplace_sha256
     {
-        return Err(CodexAdapterError::RollbackFailed);
+        return Err(ClaudeAdapterError::RollbackFailed);
     }
     Ok(())
 }
@@ -1275,18 +1346,18 @@ fn write_marketplace_document(
     document: &Value,
     transaction_id: &str,
     replace_existing: bool,
-) -> Result<(), CodexAdapterError> {
+) -> Result<(), ClaudeAdapterError> {
     validate_marketplace_document(document)?;
     let mut bytes =
-        serde_json::to_vec_pretty(document).map_err(|_| CodexAdapterError::MarketplaceInvalid)?;
+        serde_json::to_vec_pretty(document).map_err(|_| ClaudeAdapterError::MarketplaceInvalid)?;
     bytes.push(b'\n');
     if bytes.len() as u64 > MAX_DOCUMENT_BYTES {
-        return Err(CodexAdapterError::DocumentTooLarge);
+        return Err(ClaudeAdapterError::DocumentTooLarge);
     }
-    let parent = path.parent().ok_or(CodexAdapterError::UnsafePath)?;
+    let parent = path.parent().ok_or(ClaudeAdapterError::UnsafePath)?;
     let staging = parent.join(format!(".marketplace.json.qiongli-stage-{transaction_id}"));
     if path_exists(&staging)? {
-        return Err(CodexAdapterError::RecoveryRequired);
+        return Err(ClaudeAdapterError::RecoveryRequired);
     }
     let mut file = create_private_new_file(&staging)?;
     if let Err(error) = write_sync_file(&mut file, &bytes) {
@@ -1304,14 +1375,14 @@ fn write_marketplace_document(
 
 fn persist_registration_state(
     root: &Path,
-    state: &CodexRegistrationStateV1,
+    state: &ClaudeRegistrationStateV1,
     transaction_id: &str,
-) -> Result<(), CodexAdapterError> {
+) -> Result<(), ClaudeAdapterError> {
     let bytes = state.to_canonical_json()?;
     let destination = root.join(STATE_FILE_NAME);
     let staging = root.join(format!("{STATE_FILE_NAME}.stage-{transaction_id}"));
     if path_exists(&staging)? {
-        return Err(CodexAdapterError::RecoveryRequired);
+        return Err(ClaudeAdapterError::RecoveryRequired);
     }
     let mut file = create_private_new_file(&staging)?;
     if let Err(error) = write_sync_file(&mut file, &bytes) {
@@ -1328,26 +1399,26 @@ fn persist_registration_state(
     sync_directory(root)?;
     let committed = read_private_file(&destination, MAX_DOCUMENT_BYTES)?;
     if committed != bytes {
-        return Err(CodexAdapterError::RecoveryRequired);
+        return Err(ClaudeAdapterError::RecoveryRequired);
     }
     Ok(())
 }
 
 fn load_registration_state(
     root: &Path,
-) -> Result<Option<CodexRegistrationStateV1>, CodexAdapterError> {
+) -> Result<Option<ClaudeRegistrationStateV1>, ClaudeAdapterError> {
     let path = root.join(STATE_FILE_NAME);
     if !path_exists(&path)? {
         return Ok(None);
     }
-    CodexRegistrationStateV1::from_json(&read_private_file(&path, MAX_DOCUMENT_BYTES)?).map(Some)
+    ClaudeRegistrationStateV1::from_json(&read_private_file(&path, MAX_DOCUMENT_BYTES)?).map(Some)
 }
 
 fn persist_new_journal(
     root: &Path,
-    journal: &CodexRegistrationJournalV1,
-) -> Result<(), CodexAdapterError> {
-    if journal.schema_version != CODEX_ADAPTER_SCHEMA_VERSION
+    journal: &ClaudeRegistrationJournalV1,
+) -> Result<(), ClaudeAdapterError> {
+    if journal.schema_version != CLAUDE_ADAPTER_SCHEMA_VERSION
         || !valid_identifier(&journal.transaction_id)
         || !valid_lower_hex(&journal.prior_marketplace_sha256, 64)
         || !valid_lower_hex(&journal.next_marketplace_sha256, 64)
@@ -1358,15 +1429,15 @@ fn persist_new_journal(
         || journal.started_at_unix > JCS_MAX_SAFE_INTEGER
         || document_digest(&journal.prior_marketplace)? != journal.prior_marketplace_sha256
     {
-        return Err(CodexAdapterError::ReceiptInvalid);
+        return Err(ClaudeAdapterError::ReceiptInvalid);
     }
     let path = root.join(JOURNAL_FILE_NAME);
     if path_exists(&path)? {
-        return Err(CodexAdapterError::RecoveryRequired);
+        return Err(ClaudeAdapterError::RecoveryRequired);
     }
     let bytes = canonical_json(journal)?;
     if bytes.len() as u64 > MAX_DOCUMENT_BYTES {
-        return Err(CodexAdapterError::DocumentTooLarge);
+        return Err(ClaudeAdapterError::DocumentTooLarge);
     }
     let mut file = create_private_new_file(&path)?;
     write_sync_file(&mut file, &bytes)?;
@@ -1374,45 +1445,41 @@ fn persist_new_journal(
     sync_directory(root)
 }
 
-fn finish_journal(root: &Path) -> Result<(), CodexAdapterError> {
+fn finish_journal(root: &Path) -> Result<(), ClaudeAdapterError> {
     let path = root.join(JOURNAL_FILE_NAME);
-    fs::remove_file(path).map_err(|error| CodexAdapterError::PersistenceFailed(error.kind()))?;
+    fs::remove_file(path).map_err(|error| ClaudeAdapterError::PersistenceFailed(error.kind()))?;
     sync_directory(root)
 }
 
-fn acquire_lock(root: &Path) -> Result<File, CodexAdapterError> {
+fn acquire_lock(root: &Path) -> Result<File, ClaudeAdapterError> {
     validate_directory(root, true)?;
     let path = root.join(LOCK_FILE_NAME);
     let file = open_or_create_private_lock(&path)?;
     match file.try_lock() {
         Ok(()) => Ok(file),
-        Err(TryLockError::WouldBlock) => Err(CodexAdapterError::LockBusy),
-        Err(TryLockError::Error(error)) => Err(CodexAdapterError::PersistenceFailed(error.kind())),
+        Err(TryLockError::WouldBlock) => Err(ClaudeAdapterError::LockBusy),
+        Err(TryLockError::Error(error)) => Err(ClaudeAdapterError::PersistenceFailed(error.kind())),
     }
 }
 
-fn prepare_marketplace_parent(path: &Path) -> Result<(), CodexAdapterError> {
-    let home = path
+fn prepare_marketplace_parent(path: &Path) -> Result<(), ClaudeAdapterError> {
+    let metadata_root = path.parent().ok_or(ClaudeAdapterError::UnsafePath)?;
+    let state_root = metadata_root
         .parent()
-        .and_then(Path::parent)
-        .and_then(Path::parent)
-        .ok_or(CodexAdapterError::UnsafePath)?;
-    validate_home(home)?;
-    let agents = home.join(".agents");
-    ensure_private_directory(&agents)?;
-    let plugins = agents.join("plugins");
-    ensure_private_directory(&plugins)?;
+        .ok_or(ClaudeAdapterError::UnsafePath)?;
+    validate_directory(state_root, true)?;
+    ensure_private_directory(metadata_root)?;
     Ok(())
 }
 
-fn ensure_private_directory(path: &Path) -> Result<(), CodexAdapterError> {
+fn ensure_private_directory(path: &Path) -> Result<(), ClaudeAdapterError> {
     match fs::symlink_metadata(path) {
         Ok(_) => validate_directory(path, false),
         Err(error) if error.kind() == io::ErrorKind::NotFound => {
             create_private_directory(path)?;
             validate_directory(path, true)
         }
-        Err(error) => Err(CodexAdapterError::PersistenceFailed(error.kind())),
+        Err(error) => Err(ClaudeAdapterError::PersistenceFailed(error.kind())),
     }
 }
 
@@ -1420,14 +1487,14 @@ fn validate_optional_directory_chain(
     home: &Path,
     components: &[&str],
     private_final: bool,
-) -> Result<(), CodexAdapterError> {
+) -> Result<(), ClaudeAdapterError> {
     let mut current = home.to_path_buf();
     let mut missing = false;
     for (index, component) in components.iter().enumerate() {
         current.push(component);
         if missing {
             if path_exists(&current)? {
-                return Err(CodexAdapterError::UnsafePath);
+                return Err(ClaudeAdapterError::UnsafePath);
             }
             continue;
         }
@@ -1440,23 +1507,23 @@ fn validate_optional_directory_chain(
     Ok(())
 }
 
-fn validate_home(path: &Path) -> Result<(), CodexAdapterError> {
+fn validate_home(path: &Path) -> Result<(), ClaudeAdapterError> {
     if !path.is_absolute() || has_lexical_traversal(path) {
-        return Err(CodexAdapterError::HomeUnavailable);
+        return Err(ClaudeAdapterError::HomeUnavailable);
     }
-    validate_directory(path, false).map_err(|_| CodexAdapterError::HomeUnavailable)
+    validate_directory(path, false).map_err(|_| ClaudeAdapterError::HomeUnavailable)
 }
 
-fn validate_directory(path: &Path, private: bool) -> Result<(), CodexAdapterError> {
+fn validate_directory(path: &Path, private: bool) -> Result<(), ClaudeAdapterError> {
     let metadata = fs::symlink_metadata(path).map_err(|error| {
         if error.kind() == io::ErrorKind::NotFound {
-            CodexAdapterError::UnsafePath
+            ClaudeAdapterError::UnsafePath
         } else {
-            CodexAdapterError::PersistenceFailed(error.kind())
+            ClaudeAdapterError::PersistenceFailed(error.kind())
         }
     })?;
     if metadata.file_type().is_symlink() || is_reparse_point(&metadata) || !metadata.is_dir() {
-        return Err(CodexAdapterError::UnsafePath);
+        return Err(ClaudeAdapterError::UnsafePath);
     }
     validate_directory_security(path, &metadata, private)
 }
@@ -1466,7 +1533,7 @@ fn validate_directory_security(
     _path: &Path,
     metadata: &Metadata,
     private: bool,
-) -> Result<(), CodexAdapterError> {
+) -> Result<(), ClaudeAdapterError> {
     use std::os::unix::fs::{MetadataExt, PermissionsExt};
 
     let mode = metadata.permissions().mode();
@@ -1474,7 +1541,7 @@ fn validate_directory_security(
         || mode & 0o022 != 0
         || (private && mode & 0o077 != 0)
     {
-        return Err(CodexAdapterError::UnsafePath);
+        return Err(ClaudeAdapterError::UnsafePath);
     }
     Ok(())
 }
@@ -1484,15 +1551,15 @@ fn validate_directory_security(
     path: &Path,
     _metadata: &Metadata,
     private: bool,
-) -> Result<(), CodexAdapterError> {
+) -> Result<(), ClaudeAdapterError> {
     if private {
         qiongli_windows_security::open_owner_only_directory(path)
             .map(|_| ())
-            .map_err(|_| CodexAdapterError::UnsafePath)
+            .map_err(|_| ClaudeAdapterError::UnsafePath)
     } else {
         qiongli_windows_security::open_directory_no_reparse(path)
             .map(|_| ())
-            .map_err(|_| CodexAdapterError::UnsafePath)
+            .map_err(|_| ClaudeAdapterError::UnsafePath)
     }
 }
 
@@ -1501,129 +1568,129 @@ fn validate_directory_security(
     _path: &Path,
     _metadata: &Metadata,
     _private: bool,
-) -> Result<(), CodexAdapterError> {
-    Err(CodexAdapterError::UnsupportedPlatform)
+) -> Result<(), ClaudeAdapterError> {
+    Err(ClaudeAdapterError::UnsupportedPlatform)
 }
 
-fn read_bounded_config_file(path: &Path, max: u64) -> Result<Vec<u8>, CodexAdapterError> {
+fn read_bounded_config_file(path: &Path, max: u64) -> Result<Vec<u8>, ClaudeAdapterError> {
     let linked = validate_config_file(path)?;
     if linked.len() > max {
-        return Err(CodexAdapterError::DocumentTooLarge);
+        return Err(ClaudeAdapterError::DocumentTooLarge);
     }
     let file =
-        File::open(path).map_err(|error| CodexAdapterError::PersistenceFailed(error.kind()))?;
+        File::open(path).map_err(|error| ClaudeAdapterError::PersistenceFailed(error.kind()))?;
     let opened = file
         .metadata()
-        .map_err(|error| CodexAdapterError::PersistenceFailed(error.kind()))?;
-    let before = Handle::from_path(path).map_err(|_| CodexAdapterError::UnsafePath)?;
+        .map_err(|error| ClaudeAdapterError::PersistenceFailed(error.kind()))?;
+    let before = Handle::from_path(path).map_err(|_| ClaudeAdapterError::UnsafePath)?;
     let cloned = file
         .try_clone()
-        .map_err(|error| CodexAdapterError::PersistenceFailed(error.kind()))?;
-    let after = Handle::from_file(cloned).map_err(|_| CodexAdapterError::UnsafePath)?;
+        .map_err(|error| ClaudeAdapterError::PersistenceFailed(error.kind()))?;
+    let after = Handle::from_file(cloned).map_err(|_| ClaudeAdapterError::UnsafePath)?;
     if before != after || opened.len() != linked.len() {
-        return Err(CodexAdapterError::UnsafePath);
+        return Err(ClaudeAdapterError::UnsafePath);
     }
     read_bounded(file, max)
 }
 
-fn read_private_file(path: &Path, max: u64) -> Result<Vec<u8>, CodexAdapterError> {
+fn read_private_file(path: &Path, max: u64) -> Result<Vec<u8>, ClaudeAdapterError> {
     validate_private_file(path)?;
     read_bounded_config_file(path, max)
 }
 
-fn read_bounded(file: File, max: u64) -> Result<Vec<u8>, CodexAdapterError> {
+fn read_bounded(file: File, max: u64) -> Result<Vec<u8>, ClaudeAdapterError> {
     let mut bytes = Vec::new();
     file.take(max + 1)
         .read_to_end(&mut bytes)
-        .map_err(|error| CodexAdapterError::PersistenceFailed(error.kind()))?;
+        .map_err(|error| ClaudeAdapterError::PersistenceFailed(error.kind()))?;
     if bytes.len() as u64 > max {
-        return Err(CodexAdapterError::DocumentTooLarge);
+        return Err(ClaudeAdapterError::DocumentTooLarge);
     }
     Ok(bytes)
 }
 
-fn validate_config_file(path: &Path) -> Result<Metadata, CodexAdapterError> {
+fn validate_config_file(path: &Path) -> Result<Metadata, ClaudeAdapterError> {
     let metadata = fs::symlink_metadata(path)
-        .map_err(|error| CodexAdapterError::PersistenceFailed(error.kind()))?;
+        .map_err(|error| ClaudeAdapterError::PersistenceFailed(error.kind()))?;
     if metadata.file_type().is_symlink() || is_reparse_point(&metadata) || !metadata.is_file() {
-        return Err(CodexAdapterError::UnsafePath);
+        return Err(ClaudeAdapterError::UnsafePath);
     }
     validate_config_file_security(&metadata)?;
     Ok(metadata)
 }
 
 #[cfg(unix)]
-fn validate_config_file_security(metadata: &Metadata) -> Result<(), CodexAdapterError> {
+fn validate_config_file_security(metadata: &Metadata) -> Result<(), ClaudeAdapterError> {
     use std::os::unix::fs::{MetadataExt, PermissionsExt};
     if metadata.nlink() != 1
         || metadata.uid() != rustix::process::geteuid().as_raw()
         || metadata.permissions().mode() & 0o022 != 0
     {
-        return Err(CodexAdapterError::UnsafePath);
+        return Err(ClaudeAdapterError::UnsafePath);
     }
     Ok(())
 }
 
 #[cfg(windows)]
-fn validate_config_file_security(_metadata: &Metadata) -> Result<(), CodexAdapterError> {
+fn validate_config_file_security(_metadata: &Metadata) -> Result<(), ClaudeAdapterError> {
     Ok(())
 }
 
 #[cfg(not(any(unix, windows)))]
-fn validate_config_file_security(_metadata: &Metadata) -> Result<(), CodexAdapterError> {
-    Err(CodexAdapterError::UnsupportedPlatform)
+fn validate_config_file_security(_metadata: &Metadata) -> Result<(), ClaudeAdapterError> {
+    Err(ClaudeAdapterError::UnsupportedPlatform)
 }
 
 #[cfg(unix)]
-fn validate_private_file(path: &Path) -> Result<(), CodexAdapterError> {
+fn validate_private_file(path: &Path) -> Result<(), ClaudeAdapterError> {
     use std::os::unix::fs::PermissionsExt;
     let metadata = validate_config_file(path)?;
     if metadata.permissions().mode() & 0o777 != 0o600 {
-        return Err(CodexAdapterError::ReceiptInvalid);
+        return Err(ClaudeAdapterError::ReceiptInvalid);
     }
     Ok(())
 }
 
 #[cfg(windows)]
-fn validate_private_file(path: &Path) -> Result<(), CodexAdapterError> {
+fn validate_private_file(path: &Path) -> Result<(), ClaudeAdapterError> {
     qiongli_windows_security::open_owner_only_file(path)
         .map(|_| ())
-        .map_err(|_| CodexAdapterError::ReceiptInvalid)
+        .map_err(|_| ClaudeAdapterError::ReceiptInvalid)
 }
 
 #[cfg(not(any(unix, windows)))]
-fn validate_private_file(_path: &Path) -> Result<(), CodexAdapterError> {
-    Err(CodexAdapterError::UnsupportedPlatform)
+fn validate_private_file(_path: &Path) -> Result<(), ClaudeAdapterError> {
+    Err(ClaudeAdapterError::UnsupportedPlatform)
 }
 
 #[cfg(unix)]
-fn create_private_directory(path: &Path) -> Result<(), CodexAdapterError> {
+fn create_private_directory(path: &Path) -> Result<(), ClaudeAdapterError> {
     use std::os::unix::fs::DirBuilderExt;
     let mut builder = fs::DirBuilder::new();
     builder.mode(0o700);
     builder
         .create(path)
-        .map_err(|error| CodexAdapterError::PersistenceFailed(error.kind()))
+        .map_err(|error| ClaudeAdapterError::PersistenceFailed(error.kind()))
 }
 
 #[cfg(windows)]
-fn create_private_directory(path: &Path) -> Result<(), CodexAdapterError> {
+fn create_private_directory(path: &Path) -> Result<(), ClaudeAdapterError> {
     qiongli_windows_security::create_owner_only_directory(path)
         .map(|_| ())
         .map_err(|error| {
-            CodexAdapterError::PersistenceFailed(
+            ClaudeAdapterError::PersistenceFailed(
                 error.io_kind().unwrap_or(io::ErrorKind::PermissionDenied),
             )
         })
 }
 
 #[cfg(not(any(unix, windows)))]
-fn create_private_directory(_path: &Path) -> Result<(), CodexAdapterError> {
-    Err(CodexAdapterError::UnsupportedPlatform)
+fn create_private_directory(_path: &Path) -> Result<(), ClaudeAdapterError> {
+    Err(ClaudeAdapterError::UnsupportedPlatform)
 }
 
 #[cfg(unix)]
-fn create_private_new_file(path: &Path) -> Result<File, CodexAdapterError> {
+fn create_private_new_file(path: &Path) -> Result<File, ClaudeAdapterError> {
     use std::os::unix::fs::OpenOptionsExt;
     OpenOptions::new()
         .create_new(true)
@@ -1632,20 +1699,20 @@ fn create_private_new_file(path: &Path) -> Result<File, CodexAdapterError> {
         .open(path)
         .map_err(|error| {
             if error.kind() == io::ErrorKind::AlreadyExists {
-                CodexAdapterError::RecoveryRequired
+                ClaudeAdapterError::RecoveryRequired
             } else {
-                CodexAdapterError::PersistenceFailed(error.kind())
+                ClaudeAdapterError::PersistenceFailed(error.kind())
             }
         })
 }
 
 #[cfg(windows)]
-fn create_private_new_file(path: &Path) -> Result<File, CodexAdapterError> {
+fn create_private_new_file(path: &Path) -> Result<File, ClaudeAdapterError> {
     qiongli_windows_security::create_owner_only_new_file(path).map_err(|error| {
         if error.io_kind() == Some(io::ErrorKind::AlreadyExists) {
-            CodexAdapterError::RecoveryRequired
+            ClaudeAdapterError::RecoveryRequired
         } else {
-            CodexAdapterError::PersistenceFailed(
+            ClaudeAdapterError::PersistenceFailed(
                 error.io_kind().unwrap_or(io::ErrorKind::PermissionDenied),
             )
         }
@@ -1653,12 +1720,12 @@ fn create_private_new_file(path: &Path) -> Result<File, CodexAdapterError> {
 }
 
 #[cfg(not(any(unix, windows)))]
-fn create_private_new_file(_path: &Path) -> Result<File, CodexAdapterError> {
-    Err(CodexAdapterError::UnsupportedPlatform)
+fn create_private_new_file(_path: &Path) -> Result<File, ClaudeAdapterError> {
+    Err(ClaudeAdapterError::UnsupportedPlatform)
 }
 
 #[cfg(unix)]
-fn open_or_create_private_lock(path: &Path) -> Result<File, CodexAdapterError> {
+fn open_or_create_private_lock(path: &Path) -> Result<File, ClaudeAdapterError> {
     use std::os::unix::fs::OpenOptionsExt;
     let file = OpenOptions::new()
         .create(true)
@@ -1667,29 +1734,29 @@ fn open_or_create_private_lock(path: &Path) -> Result<File, CodexAdapterError> {
         .write(true)
         .mode(0o600)
         .open(path)
-        .map_err(|error| CodexAdapterError::PersistenceFailed(error.kind()))?;
+        .map_err(|error| ClaudeAdapterError::PersistenceFailed(error.kind()))?;
     validate_private_file(path)?;
     Ok(file)
 }
 
 #[cfg(windows)]
-fn open_or_create_private_lock(path: &Path) -> Result<File, CodexAdapterError> {
+fn open_or_create_private_lock(path: &Path) -> Result<File, ClaudeAdapterError> {
     qiongli_windows_security::open_or_create_owner_only_lock(path).map_err(|error| {
-        CodexAdapterError::PersistenceFailed(
+        ClaudeAdapterError::PersistenceFailed(
             error.io_kind().unwrap_or(io::ErrorKind::PermissionDenied),
         )
     })
 }
 
 #[cfg(not(any(unix, windows)))]
-fn open_or_create_private_lock(_path: &Path) -> Result<File, CodexAdapterError> {
-    Err(CodexAdapterError::UnsupportedPlatform)
+fn open_or_create_private_lock(_path: &Path) -> Result<File, ClaudeAdapterError> {
+    Err(ClaudeAdapterError::UnsupportedPlatform)
 }
 
-fn write_sync_file(file: &mut File, bytes: &[u8]) -> Result<(), CodexAdapterError> {
+fn write_sync_file(file: &mut File, bytes: &[u8]) -> Result<(), ClaudeAdapterError> {
     file.write_all(bytes)
         .and_then(|()| file.sync_all())
-        .map_err(|error| CodexAdapterError::PersistenceFailed(error.kind()))
+        .map_err(|error| ClaudeAdapterError::PersistenceFailed(error.kind()))
 }
 
 #[cfg(unix)]
@@ -1697,9 +1764,9 @@ fn replace_file(
     source: &Path,
     destination: &Path,
     _replace_existing: bool,
-) -> Result<(), CodexAdapterError> {
+) -> Result<(), ClaudeAdapterError> {
     fs::rename(source, destination)
-        .map_err(|error| CodexAdapterError::PersistenceFailed(error.kind()))
+        .map_err(|error| ClaudeAdapterError::PersistenceFailed(error.kind()))
 }
 
 #[cfg(windows)]
@@ -1707,10 +1774,10 @@ fn replace_file(
     source: &Path,
     destination: &Path,
     replace_existing: bool,
-) -> Result<(), CodexAdapterError> {
+) -> Result<(), ClaudeAdapterError> {
     qiongli_windows_security::move_file_write_through(source, destination, replace_existing)
         .map_err(|error| {
-            CodexAdapterError::PersistenceFailed(
+            ClaudeAdapterError::PersistenceFailed(
                 error.io_kind().unwrap_or(io::ErrorKind::PermissionDenied),
             )
         })
@@ -1721,32 +1788,32 @@ fn replace_file(
     _source: &Path,
     _destination: &Path,
     _replace_existing: bool,
-) -> Result<(), CodexAdapterError> {
-    Err(CodexAdapterError::UnsupportedPlatform)
+) -> Result<(), ClaudeAdapterError> {
+    Err(ClaudeAdapterError::UnsupportedPlatform)
 }
 
 #[cfg(unix)]
-fn sync_directory(path: &Path) -> Result<(), CodexAdapterError> {
+fn sync_directory(path: &Path) -> Result<(), ClaudeAdapterError> {
     File::open(path)
         .and_then(|directory| directory.sync_all())
-        .map_err(|error| CodexAdapterError::PersistenceFailed(error.kind()))
+        .map_err(|error| ClaudeAdapterError::PersistenceFailed(error.kind()))
 }
 
 #[cfg(windows)]
-fn sync_directory(_path: &Path) -> Result<(), CodexAdapterError> {
+fn sync_directory(_path: &Path) -> Result<(), ClaudeAdapterError> {
     Ok(())
 }
 
 #[cfg(not(any(unix, windows)))]
-fn sync_directory(_path: &Path) -> Result<(), CodexAdapterError> {
-    Err(CodexAdapterError::UnsupportedPlatform)
+fn sync_directory(_path: &Path) -> Result<(), ClaudeAdapterError> {
+    Err(ClaudeAdapterError::UnsupportedPlatform)
 }
 
-fn path_exists(path: &Path) -> Result<bool, CodexAdapterError> {
+fn path_exists(path: &Path) -> Result<bool, ClaudeAdapterError> {
     match fs::symlink_metadata(path) {
         Ok(_) => Ok(true),
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(false),
-        Err(error) => Err(CodexAdapterError::PersistenceFailed(error.kind())),
+        Err(error) => Err(ClaudeAdapterError::PersistenceFailed(error.kind())),
     }
 }
 
@@ -1763,15 +1830,23 @@ fn state_root_path(home: &Path) -> PathBuf {
         .fold(home.to_path_buf(), |path, component| path.join(component))
 }
 
-fn canonical_json<T: Serialize>(value: &T) -> Result<Vec<u8>, CodexAdapterError> {
-    serde_json_canonicalizer::to_vec(value).map_err(|_| CodexAdapterError::ReceiptInvalid)
+fn plugin_source_path(home: &Path) -> PathBuf {
+    PLUGIN_SOURCE_RELATIVE_PATH
+        .iter()
+        .fold(state_root_path(home), |path, component| {
+            path.join(component)
+        })
 }
 
-fn document_digest(value: &Value) -> Result<String, CodexAdapterError> {
+fn canonical_json<T: Serialize>(value: &T) -> Result<Vec<u8>, ClaudeAdapterError> {
+    serde_json_canonicalizer::to_vec(value).map_err(|_| ClaudeAdapterError::ReceiptInvalid)
+}
+
+fn document_digest(value: &Value) -> Result<String, ClaudeAdapterError> {
     value_digest(value)
 }
 
-fn value_digest(value: &Value) -> Result<String, CodexAdapterError> {
+fn value_digest(value: &Value) -> Result<String, ClaudeAdapterError> {
     Ok(sha256_hex(&canonical_json(value)?))
 }
 
@@ -1789,11 +1864,11 @@ fn lower_hex(bytes: &[u8]) -> String {
     encoded
 }
 
-fn next_generation(state: Option<&CodexRegistrationStateV1>) -> Result<u64, CodexAdapterError> {
+fn next_generation(state: Option<&ClaudeRegistrationStateV1>) -> Result<u64, ClaudeAdapterError> {
     state
         .map_or(Some(1), |state| state.generation.checked_add(1))
         .filter(|generation| *generation <= JCS_MAX_SAFE_INTEGER)
-        .ok_or(CodexAdapterError::ReceiptInvalid)
+        .ok_or(ClaudeAdapterError::ReceiptInvalid)
 }
 
 fn transaction_id() -> String {
@@ -1801,29 +1876,29 @@ fn transaction_id() -> String {
         .duration_since(UNIX_EPOCH)
         .map_or(0, |duration| duration.as_nanos());
     let counter = NEXT_TRANSACTION_ID.fetch_add(1, Ordering::Relaxed);
-    format!("codex-{}-{nanos}-{counter}", std::process::id())
+    format!("claude-{}-{nanos}-{counter}", std::process::id())
 }
 
 fn lifecycle_disposition(
-    kind: CodexRegistrationLifecycleKind,
-) -> CodexRegistrationLifecycleDisposition {
+    kind: ClaudeRegistrationLifecycleKind,
+) -> ClaudeRegistrationLifecycleDisposition {
     match kind {
-        CodexRegistrationLifecycleKind::Removed => CodexRegistrationLifecycleDisposition::Removed,
-        CodexRegistrationLifecycleKind::RolledBack => {
-            CodexRegistrationLifecycleDisposition::RolledBack
+        ClaudeRegistrationLifecycleKind::Removed => ClaudeRegistrationLifecycleDisposition::Removed,
+        ClaudeRegistrationLifecycleKind::RolledBack => {
+            ClaudeRegistrationLifecycleDisposition::RolledBack
         }
     }
 }
 
 fn already_lifecycle_disposition(
-    kind: CodexRegistrationLifecycleKind,
-) -> CodexRegistrationLifecycleDisposition {
+    kind: ClaudeRegistrationLifecycleKind,
+) -> ClaudeRegistrationLifecycleDisposition {
     match kind {
-        CodexRegistrationLifecycleKind::Removed => {
-            CodexRegistrationLifecycleDisposition::AlreadyRemoved
+        ClaudeRegistrationLifecycleKind::Removed => {
+            ClaudeRegistrationLifecycleDisposition::AlreadyRemoved
         }
-        CodexRegistrationLifecycleKind::RolledBack => {
-            CodexRegistrationLifecycleDisposition::AlreadyRolledBack
+        ClaudeRegistrationLifecycleKind::RolledBack => {
+            ClaudeRegistrationLifecycleDisposition::AlreadyRolledBack
         }
     }
 }
@@ -1897,13 +1972,13 @@ mod tests {
     use crate::{
         Architecture, GrantMode, GrantSignatureV1, GrantVerificationContext, InstallerKind,
         IntegrationScope, LaunchGrantV1, OperatingSystem, ReleaseChannel, SignatureAlgorithm,
-        SignedLaunchGrantV1, TrustedPublicKey, approve_codex_plugin_bundle_target,
-        approve_install_plan, compose_codex_plugin_bundle, launch_grant_signing_bytes,
+        SignedLaunchGrantV1, TrustedPublicKey, approve_claude_plugin_bundle_target,
+        approve_install_plan, compose_claude_plugin_bundle, launch_grant_signing_bytes,
     };
 
     const NOW: u64 = 1_750_100_000;
-    const PLUGIN_MANIFEST_RELATIVE_PATH: &str = ".codex-plugin/plugin.json";
-    const TEST_BINARY_BYTES: &[u8] = b"qiongli native Codex fixture\n";
+    const PLUGIN_MANIFEST_RELATIVE_PATH: &str = ".claude-plugin/plugin.json";
+    const TEST_BINARY_BYTES: &[u8] = b"qiongli native Claude fixture\n";
     static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
     static PACK: OnceLock<BuiltResourcePack> = OnceLock::new();
 
@@ -1915,14 +1990,14 @@ mod tests {
     impl Fixture {
         fn empty(name: &str) -> Self {
             let base = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("../../target/qiongli-platform-codex-tests");
-            fs::create_dir_all(&base).expect("Codex test base must exist");
+                .join("../../target/qiongli-platform-claude-tests");
+            fs::create_dir_all(&base).expect("Claude test base must exist");
             let requested = base.join(format!(
                 "{name}-{}-{}",
                 std::process::id(),
                 NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed)
             ));
-            fs::create_dir(&requested).expect("Codex test container must exist");
+            fs::create_dir(&requested).expect("Claude test container must exist");
             let container = fs::canonicalize(requested).expect("test container must canonicalize");
             let home = container.join("home");
             create_private_test_directory(&home);
@@ -1935,18 +2010,22 @@ mod tests {
             create_private_test_directory(&qiongli);
             let plugins = qiongli.join("plugins");
             create_private_test_directory(&plugins);
-            let codex = plugins.join("codex");
-            create_private_test_directory(&codex);
-            let source = codex.join(PLUGIN_SOURCE_LEAF);
-            let binary = fixture.container.join("qiongli-codex-fixture-binary");
-            fs::write(&binary, TEST_BINARY_BYTES).expect("Codex test binary must write");
+            let claude = plugins.join("claude-code");
+            create_private_test_directory(&claude);
+            let marketplace = claude.join("qiongli-local");
+            create_private_test_directory(&marketplace);
+            let marketplace_plugins = marketplace.join("plugins");
+            create_private_test_directory(&marketplace_plugins);
+            let source = marketplace_plugins.join("qiongli");
+            let binary = fixture.container.join("qiongli-claude-fixture-binary");
+            fs::write(&binary, TEST_BINARY_BYTES).expect("Claude test binary must write");
             set_test_executable_mode(&binary);
             let artifact = test_artifact();
             let (verified_grant, _) = verified_test_grant(&artifact);
-            let target = approve_codex_plugin_bundle_target(&source)
-                .expect("Codex test bundle target must approve");
-            compose_codex_plugin_bundle(test_pack(), &verified_grant, &binary, &target)
-                .expect("Codex test plugin bundle must compose");
+            let target = approve_claude_plugin_bundle_target(&source)
+                .expect("Claude test bundle target must approve");
+            compose_claude_plugin_bundle(test_pack(), &verified_grant, &binary, &target)
+                .expect("Claude test plugin bundle must compose");
             fixture
         }
 
@@ -1969,7 +2048,7 @@ mod tests {
         ) -> (
             VerifiedInstallPlan,
             ApprovedInstallPlan,
-            CodexRegistrationExecutor,
+            ClaudeRegistrationExecutor,
         ) {
             let artifact = test_artifact();
             let binary_digest = test_binary_digest();
@@ -1981,26 +2060,26 @@ mod tests {
                 binary_sha256: &binary_digest,
                 resource_pack_sha256: test_pack().pack_sha256(),
                 requested_mode: GrantMode::LiteMcp,
-                requested_scope: IntegrationScope::CodexLocal,
+                requested_scope: IntegrationScope::ClaudeCodeLocal,
             };
-            let target = discover_codex_user(&self.home).expect("Codex target must discover");
-            let executor = CodexRegistrationExecutor::new(target.clone());
-            let preview = preview_codex_registration(
+            let target = discover_claude_user(&self.home).expect("Claude target must discover");
+            let executor = ClaudeRegistrationExecutor::new(target.clone());
+            let preview = preview_claude_registration(
                 &target,
                 InstallPlanMetadataV1 {
-                    plan_id: "r3c-codex-test".to_string(),
+                    plan_id: "r3c-claude-test".to_string(),
                     created_at_unix: NOW,
                     expires_at_unix: NOW + 600,
                 },
                 &verified_grant,
             )
-            .expect("Codex plan must preview");
+            .expect("Claude plan must preview");
             let verified = preview
                 .plan
                 .verify(std::slice::from_ref(&trusted), &context)
-                .expect("Codex plan must verify");
+                .expect("Claude plan must verify");
             let approval = approve_install_plan(&verified, &EXACT_APPROVALS, NOW)
-                .expect("Codex plan must approve");
+                .expect("Claude plan must approve");
             (verified, approval, executor)
         }
     }
@@ -2038,7 +2117,7 @@ mod tests {
             binary_sha256: binary_digest.clone(),
             resource_pack_sha256: test_pack().pack_sha256().to_string(),
             allowed_modes: vec![GrantMode::LiteMcp],
-            integration_scopes: vec![IntegrationScope::CodexLocal],
+            integration_scopes: vec![IntegrationScope::ClaudeCodeLocal],
             not_before_unix: NOW - 60,
             expires_at_unix: NOW + 3_600,
         };
@@ -2048,12 +2127,12 @@ mod tests {
             grant,
             signature: GrantSignatureV1 {
                 algorithm: SignatureAlgorithm::Ed25519,
-                key_id: "codex-test-key".to_string(),
+                key_id: "claude-test-key".to_string(),
                 value_hex: encode_hex(&signature.to_bytes()),
             },
         };
         let trusted =
-            TrustedPublicKey::new("codex-test-key", signing_key.verifying_key().to_bytes())
+            TrustedPublicKey::new("claude-test-key", signing_key.verifying_key().to_bytes())
                 .unwrap();
         let context = GrantVerificationContext {
             now_unix: NOW,
@@ -2062,11 +2141,11 @@ mod tests {
             binary_sha256: &binary_digest,
             resource_pack_sha256: test_pack().pack_sha256(),
             requested_mode: GrantMode::LiteMcp,
-            requested_scope: IntegrationScope::CodexLocal,
+            requested_scope: IntegrationScope::ClaudeCodeLocal,
         };
         let verified = signed
             .verify(std::slice::from_ref(&trusted), &context)
-            .expect("Codex test grant must verify");
+            .expect("Claude test grant must verify");
         (verified, trusted)
     }
 
@@ -2074,7 +2153,7 @@ mod tests {
     fn set_test_executable_mode(path: &Path) {
         use std::os::unix::fs::PermissionsExt;
         fs::set_permissions(path, fs::Permissions::from_mode(0o700))
-            .expect("Codex test binary must be executable");
+            .expect("Claude test binary must be executable");
     }
 
     #[cfg(not(unix))]
@@ -2098,19 +2177,19 @@ mod tests {
                 "workflow",
             ];
             let source = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("../../target/qiongli-platform-codex-pack-source");
+                .join("../../target/qiongli-platform-claude-pack-source");
             let _ = fs::remove_dir_all(&source);
-            fs::create_dir_all(&source).expect("Codex pack source must create");
+            fs::create_dir_all(&source).expect("Claude pack source must create");
             for directory in DIRECTORIES {
                 fs::create_dir(source.join(directory)).expect("canonical directory must create");
                 match directory {
                     ".claude-plugin" => fs::write(
-                        source.join(".claude-plugin/plugin.json"),
-                        br#"{"name":"qiongli","version":"2.0.0-alpha.1","skills":"./skills/","mcpServers":"./.mcp.json"}"#,
+                        source.join(PLUGIN_MANIFEST_RELATIVE_PATH),
+                        br#"{"name":"qiongli","version":"2.0.0-alpha.1","skills":"./"}"#,
                     )
                     .expect("Claude manifest must write"),
                     ".codex-plugin" => fs::write(
-                        source.join(PLUGIN_MANIFEST_RELATIVE_PATH),
+                        source.join(".codex-plugin/plugin.json"),
                         br#"{"name":"qiongli","version":"2.0.0-alpha.1","skills":"./"}"#,
                     )
                     .expect("Codex manifest must write"),
@@ -2118,7 +2197,7 @@ mod tests {
                         source.join("workflow/SKILL.md"),
                         b"---\nname: qiongli\ndescription: test\n---\n",
                     )
-                    .expect("Codex skill must write"),
+                    .expect("Claude skill must write"),
                     _ => fs::write(
                         source.join(directory).join("entry.txt"),
                         directory.as_bytes(),
@@ -2129,7 +2208,7 @@ mod tests {
             fs::write(source.join("skills-core.md"), b"core\n").unwrap();
             fs::write(source.join("skills-summary.md"), b"summary\n").unwrap();
             let resources = collect_canonical_sources(&source)
-                .expect("synthetic content must collect for Codex tests");
+                .expect("synthetic content must collect for Claude tests");
             build_resource_pack(
                 &ResourcePackBuildMetadata {
                     pack_id: "qiongli-core".to_string(),
@@ -2145,22 +2224,25 @@ mod tests {
             .inspect(|_| {
                 let _ = fs::remove_dir_all(source);
             })
-            .expect("Codex test pack must build")
+            .expect("Claude test pack must build")
         });
         LOADED.get_or_init(|| {
             load_resource_pack(built.core_bytes(), built.pack_sha256())
-                .expect("Codex test pack must load")
+                .expect("Claude test pack must load")
         })
     }
 
     #[test]
     fn discovery_is_read_only_and_redacted() {
         let fixture = Fixture::empty("discovery");
-        let target = discover_codex_user(&fixture.home).expect("empty target must discover");
-        assert_eq!(target.summary.source, CodexSourceState::Missing);
-        assert_eq!(target.summary.marketplace, CodexMarketplaceState::Missing);
-        assert_eq!(target.summary.registration, CodexRegistrationState::Absent);
-        assert!(!fixture.home.join(".agents").exists());
+        let target = discover_claude_user(&fixture.home).expect("empty target must discover");
+        assert_eq!(
+            target.summary.skills_plugin,
+            ClaudeSkillsPluginState::Missing
+        );
+        assert_eq!(target.summary.source, ClaudeSourceState::Missing);
+        assert_eq!(target.summary.marketplace, ClaudeMarketplaceState::Missing);
+        assert_eq!(target.summary.registration, ClaudeRegistrationState::Absent);
         assert!(!fixture.home.join(".qiongli").exists());
         let rendered = format!("{target:?}");
         assert!(!rendered.contains(fixture.home.to_string_lossy().as_ref()));
@@ -2169,39 +2251,69 @@ mod tests {
     }
 
     #[test]
+    fn skills_directory_discovery_requires_an_exact_verified_bundle() {
+        let fixture = Fixture::empty("skills-directory");
+        let claude_config = fixture.home.join(".claude");
+        create_private_test_directory(&claude_config);
+        let skills = claude_config.join("skills");
+        create_private_test_directory(&skills);
+        let plugin = skills.join("qiongli");
+        let binary = fixture.container.join("qiongli-claude-skills-binary");
+        fs::write(&binary, TEST_BINARY_BYTES).unwrap();
+        set_test_executable_mode(&binary);
+        let artifact = test_artifact();
+        let (grant, _) = verified_test_grant(&artifact);
+        let target = approve_claude_plugin_bundle_target(&plugin).unwrap();
+        compose_claude_plugin_bundle(test_pack(), &grant, &binary, &target).unwrap();
+
+        let discovered = discover_claude_user_with_config(&fixture.home, &claude_config).unwrap();
+        assert_eq!(
+            discovered.summary.skills_plugin,
+            ClaudeSkillsPluginState::Ready
+        );
+        fs::write(plugin.join(PLUGIN_MANIFEST_RELATIVE_PATH), b"{}").unwrap();
+        let drifted = discover_claude_user_with_config(&fixture.home, &claude_config).unwrap();
+        assert_eq!(
+            drifted.summary.skills_plugin,
+            ClaudeSkillsPluginState::Conflict
+        );
+    }
+
+    #[test]
     fn preview_apply_verify_replay_and_remove_preserve_unrelated_entries() {
         let fixture = Fixture::with_source("lifecycle");
         fixture.write_marketplace(&json!({
-            "name": "personal",
-            "interface": {"displayName": "My Plugins", "theme": "blue"},
+            "name": "qiongli-local",
+            "description": "Custom local marketplace.",
+            "owner": {"name": "Qiongli", "team": "research"},
             "custom": {"keep": true},
             "plugins": [{
                 "name": "other",
-                "source": {"source": "local", "path": "./plugins/other"}
+                "source": "./plugins/other"
             }]
         }));
         let (plan, approval, executor) = fixture.plan();
         let applied = executor.apply(&plan, &approval, NOW + 1).unwrap();
         assert_eq!(
             applied.disposition,
-            CodexRegistrationDisposition::Registered
+            ClaudeRegistrationDisposition::Registered
         );
         assert!(!applied.cleanup_required);
         assert_eq!(executor.verify().unwrap().receipt, applied.receipt);
         let replay = executor.apply(&plan, &approval, NOW + 2).unwrap();
         assert_eq!(
             replay.disposition,
-            CodexRegistrationDisposition::AlreadyRegistered
+            ClaudeRegistrationDisposition::AlreadyRegistered
         );
         let document = fixture.marketplace();
         assert_eq!(document["custom"]["keep"], true);
-        assert_eq!(document["interface"]["theme"], "blue");
+        assert_eq!(document["owner"]["team"], "research");
         assert_eq!(document["plugins"].as_array().unwrap().len(), 2);
 
         let removed = executor.remove(NOW + 3).unwrap();
         assert_eq!(
             removed.disposition,
-            CodexRegistrationLifecycleDisposition::Removed
+            ClaudeRegistrationLifecycleDisposition::Removed
         );
         let after = fixture.marketplace();
         assert_eq!(after["plugins"].as_array().unwrap().len(), 1);
@@ -2209,7 +2321,7 @@ mod tests {
         assert_eq!(after["custom"]["keep"], true);
         assert_eq!(
             executor.remove(NOW + 4).unwrap().disposition,
-            CodexRegistrationLifecycleDisposition::AlreadyRemoved
+            ClaudeRegistrationLifecycleDisposition::AlreadyRemoved
         );
     }
 
@@ -2221,18 +2333,21 @@ mod tests {
         let without = remove_marketplace_entry(&fixture.marketplace()).unwrap();
         fixture.write_marketplace(&without);
         assert_eq!(
-            discover_codex_user(&fixture.home)
+            discover_claude_user(&fixture.home)
                 .unwrap()
                 .summary
                 .registration,
-            CodexRegistrationState::Drifted
+            ClaudeRegistrationState::Drifted
         );
         let repaired = executor.repair(&plan, &approval, NOW + 2).unwrap();
-        assert_eq!(repaired.disposition, CodexRegistrationDisposition::Repaired);
+        assert_eq!(
+            repaired.disposition,
+            ClaudeRegistrationDisposition::Repaired
+        );
         assert!(executor.verify().is_ok());
         assert_eq!(
             executor.rollback(NOW + 3).unwrap().disposition,
-            CodexRegistrationLifecycleDisposition::RolledBack
+            ClaudeRegistrationLifecycleDisposition::RolledBack
         );
     }
 
@@ -2240,17 +2355,17 @@ mod tests {
     fn conflict_drift_and_recovery_states_fail_closed() {
         let conflict = Fixture::with_source("conflict");
         conflict.write_marketplace(&json!({
+            "name": "qiongli-local",
+            "owner": {"name": "Qiongli"},
             "plugins": [{
                 "name": "qiongli",
-                "source": {"source": "local", "path": "./someone-else"},
-                "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
-                "category": "Education"
+                "source": "./someone-else"
             }]
         }));
-        let target = discover_codex_user(&conflict.home).unwrap();
+        let target = discover_claude_user(&conflict.home).unwrap();
         assert_eq!(
             target.summary.registration,
-            CodexRegistrationState::Conflict
+            ClaudeRegistrationState::Conflict
         );
 
         let drift = Fixture::with_source("drift");
@@ -2263,11 +2378,11 @@ mod tests {
             .iter_mut()
             .find(|entry| entry["name"] == "qiongli")
             .unwrap();
-        entry["source"]["path"] = Value::String("./changed".to_string());
+        entry["source"] = Value::String("./changed".to_string());
         drift.write_marketplace(&document);
         assert_eq!(
             executor.verify().unwrap_err(),
-            CodexAdapterError::RegistrationDrift
+            ClaudeAdapterError::RegistrationDrift
         );
 
         let recovery = Fixture::with_source("recovery");
@@ -2276,11 +2391,11 @@ mod tests {
         write_sync_file(&mut journal, b"pending").unwrap();
         drop(journal);
         assert_eq!(
-            discover_codex_user(&recovery.home)
+            discover_claude_user(&recovery.home)
                 .unwrap()
                 .summary
                 .registration,
-            CodexRegistrationState::RecoveryRequired
+            ClaudeRegistrationState::RecoveryRequired
         );
     }
 
@@ -2293,8 +2408,8 @@ mod tests {
         write_sync_file(&mut file, b"{not-json").unwrap();
         drop(file);
         assert_eq!(
-            discover_codex_user(&fixture.home).unwrap_err(),
-            CodexAdapterError::MarketplaceInvalid
+            discover_claude_user(&fixture.home).unwrap_err(),
+            ClaudeAdapterError::MarketplaceInvalid
         );
 
         fs::remove_file(path).unwrap();
@@ -2326,12 +2441,12 @@ mod tests {
     #[test]
     fn post_activation_failure_restores_prior_document_or_retains_recovery_evidence() {
         let restored = Fixture::with_source("rollback-restored");
-        let target = discover_codex_user(&restored.home).unwrap();
+        let target = discover_claude_user(&restored.home).unwrap();
         let next = insert_marketplace_entry(&target.marketplace.document).unwrap();
-        let journal = CodexRegistrationJournalV1 {
-            schema_version: CODEX_ADAPTER_SCHEMA_VERSION,
+        let journal = ClaudeRegistrationJournalV1 {
+            schema_version: CLAUDE_ADAPTER_SCHEMA_VERSION,
             transaction_id: "rollback-restored".to_string(),
-            kind: CodexJournalKind::Apply,
+            kind: ClaudeJournalKind::Apply,
             prior_marketplace_present: target.marketplace.present,
             prior_marketplace: target.marketplace.document.clone(),
             prior_marketplace_sha256: target.marketplace.digest_sha256.clone(),
@@ -2351,21 +2466,21 @@ mod tests {
             rollback_after_activation::<()>(
                 &target,
                 &journal,
-                CodexAdapterError::PersistenceFailed(io::ErrorKind::PermissionDenied)
+                ClaudeAdapterError::PersistenceFailed(io::ErrorKind::PermissionDenied)
             )
             .unwrap_err(),
-            CodexAdapterError::PersistenceFailed(io::ErrorKind::PermissionDenied)
+            ClaudeAdapterError::PersistenceFailed(io::ErrorKind::PermissionDenied)
         );
         assert!(!marketplace_path(&restored.home).exists());
         assert!(!target.state_root.join(JOURNAL_FILE_NAME).exists());
 
         let ambiguous = Fixture::with_source("rollback-ambiguous");
-        let target = discover_codex_user(&ambiguous.home).unwrap();
+        let target = discover_claude_user(&ambiguous.home).unwrap();
         let next = insert_marketplace_entry(&target.marketplace.document).unwrap();
-        let journal = CodexRegistrationJournalV1 {
-            schema_version: CODEX_ADAPTER_SCHEMA_VERSION,
+        let journal = ClaudeRegistrationJournalV1 {
+            schema_version: CLAUDE_ADAPTER_SCHEMA_VERSION,
             transaction_id: "rollback-ambiguous".to_string(),
-            kind: CodexJournalKind::Apply,
+            kind: ClaudeJournalKind::Apply,
             prior_marketplace_present: target.marketplace.present,
             prior_marketplace: target.marketplace.document.clone(),
             prior_marketplace_sha256: target.marketplace.digest_sha256.clone(),
@@ -2388,21 +2503,21 @@ mod tests {
             rollback_after_activation::<()>(
                 &target,
                 &journal,
-                CodexAdapterError::PersistenceFailed(io::ErrorKind::PermissionDenied)
+                ClaudeAdapterError::PersistenceFailed(io::ErrorKind::PermissionDenied)
             )
             .unwrap_err(),
-            CodexAdapterError::RecoveryRequired
+            ClaudeAdapterError::RecoveryRequired
         );
         assert_eq!(ambiguous.marketplace()["concurrent"], true);
         assert!(target.state_root.join(JOURNAL_FILE_NAME).is_file());
 
         let state_ambiguous = Fixture::with_source("state-ambiguous");
-        let target = discover_codex_user(&state_ambiguous.home).unwrap();
+        let target = discover_claude_user(&state_ambiguous.home).unwrap();
         let next = insert_marketplace_entry(&target.marketplace.document).unwrap();
-        let journal = CodexRegistrationJournalV1 {
-            schema_version: CODEX_ADAPTER_SCHEMA_VERSION,
+        let journal = ClaudeRegistrationJournalV1 {
+            schema_version: CLAUDE_ADAPTER_SCHEMA_VERSION,
             transaction_id: "state-ambiguous".to_string(),
-            kind: CodexJournalKind::Apply,
+            kind: ClaudeJournalKind::Apply,
             prior_marketplace_present: target.marketplace.present,
             prior_marketplace: target.marketplace.document.clone(),
             prior_marketplace_sha256: target.marketplace.digest_sha256.clone(),
@@ -2422,10 +2537,10 @@ mod tests {
             recover_after_state_failure::<()>(
                 &target,
                 &journal,
-                CodexAdapterError::PersistenceFailed(io::ErrorKind::PermissionDenied)
+                ClaudeAdapterError::PersistenceFailed(io::ErrorKind::PermissionDenied)
             )
             .unwrap_err(),
-            CodexAdapterError::RecoveryRequired
+            ClaudeAdapterError::RecoveryRequired
         );
         assert!(!marketplace_path(&state_ambiguous.home).exists());
         assert!(target.state_root.join(JOURNAL_FILE_NAME).is_file());
@@ -2435,26 +2550,24 @@ mod tests {
     fn source_drift_and_oversized_marketplace_are_rejected() {
         let drift = Fixture::with_source("source-drift");
         fs::write(
-            state_root_path(&drift.home)
-                .join(PLUGIN_SOURCE_LEAF)
-                .join(PLUGIN_MANIFEST_RELATIVE_PATH),
+            plugin_source_path(&drift.home).join(PLUGIN_MANIFEST_RELATIVE_PATH),
             b"{}",
         )
         .unwrap();
         assert_eq!(
-            discover_codex_user(&drift.home).unwrap_err(),
-            CodexAdapterError::SourceInvalid
+            discover_claude_user(&drift.home).unwrap_err(),
+            ClaudeAdapterError::SourceInvalid
         );
 
-        let oversized = Fixture::empty("oversized");
+        let oversized = Fixture::with_source("oversized");
         let path = marketplace_path(&oversized.home);
         prepare_marketplace_parent(&path).unwrap();
         let file = create_private_new_file(&path).unwrap();
         file.set_len(MAX_DOCUMENT_BYTES + 1).unwrap();
         drop(file);
         assert_eq!(
-            discover_codex_user(&oversized.home).unwrap_err(),
-            CodexAdapterError::DocumentTooLarge
+            discover_claude_user(&oversized.home).unwrap_err(),
+            ClaudeAdapterError::DocumentTooLarge
         );
     }
 
@@ -2480,6 +2593,6 @@ mod tests {
 
     #[cfg(not(any(unix, windows)))]
     fn create_private_test_directory(_path: &Path) {
-        panic!("Codex adapter tests require Unix or Windows");
+        panic!("Claude adapter tests require Unix or Windows");
     }
 }

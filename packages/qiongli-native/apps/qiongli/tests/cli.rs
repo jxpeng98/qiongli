@@ -538,6 +538,9 @@ fn install_status_is_read_only_and_truthful_for_source_builds() {
     assert_eq!(value["contracts"]["codex_adapter"], 1);
     assert_eq!(value["contracts"]["codex_registration_receipt"], 1);
     assert_eq!(value["contracts"]["codex_registration_state"], 1);
+    assert_eq!(value["contracts"]["claude_adapter"], 1);
+    assert_eq!(value["contracts"]["claude_registration_receipt"], 1);
+    assert_eq!(value["contracts"]["claude_registration_state"], 1);
     assert!(value["current_target"]["os"].is_string());
     assert!(value["current_target"]["arch"].is_string());
     assert_eq!(value["transaction_engine"], "grant-and-approval-gated");
@@ -547,7 +550,7 @@ fn install_status_is_read_only_and_truthful_for_source_builds() {
     assert_eq!(value["targets"][0]["family"], "codex-local");
     assert_eq!(value["targets"][1]["family"], "claude-code-local");
     assert_eq!(value["targets"][0]["state"], "adapter-engine-ready");
-    assert_eq!(value["targets"][1]["state"], "contract-only");
+    assert_eq!(value["targets"][1]["state"], "adapter-engine-ready");
 }
 
 #[test]
@@ -576,6 +579,47 @@ fn codex_install_status_discovers_without_writing_or_leaking_home() {
 }
 
 #[test]
+fn claude_install_status_discovers_without_writing_or_leaking_home() {
+    let fixture = Fixture::new("claude-discovery-private-canary");
+    let claude_config_root = fixture.root.join("claude-config-private-canary");
+    let output = fixture_command(Path::new(env!("CARGO_BIN_EXE_qiongli")), &fixture)
+        .args(["install", "claude", "status"])
+        .env("CLAUDE_CONFIG_DIR", &claude_config_root)
+        .output()
+        .expect("configured native qiongli binary should discover Claude state");
+    assert!(output.status.success(), "{}", public_output(&output));
+    assert!(output.stderr.is_empty());
+    let value = parse_json(&output);
+    assert_eq!(value["schema_version"], 1);
+    assert_eq!(value["command"], "install-claude-status");
+    assert_eq!(value["target"]["skills_plugin"], "missing");
+    assert_eq!(value["target"]["source"], "missing");
+    assert_eq!(value["target"]["marketplace"], "missing");
+    assert_eq!(value["target"]["registration"], "absent");
+    assert_eq!(
+        value["target"]["skills_plugin_path"],
+        "<claude-config>/skills/qiongli"
+    );
+    assert_eq!(
+        value["target"]["marketplace_path"],
+        "<user-home>/.qiongli/plugins/claude-code/qiongli-local/.claude-plugin/marketplace.json"
+    );
+    assert_eq!(
+        value["target"]["plugin_source_path"],
+        "<user-home>/.qiongli/plugins/claude-code/qiongli-local/plugins/qiongli"
+    );
+    assert_eq!(value["target"]["marketplace_source"], "./plugins/qiongli");
+    assert_eq!(value["launch_grant"], "unavailable");
+    assert_eq!(value["preview"], "unavailable");
+    assert_eq!(value["apply"], "unavailable");
+    assert_eq!(value["activation"], "reload-or-client-action-required");
+    assert!(!claude_config_root.exists());
+    assert!(!fixture.home.join(".qiongli").exists());
+    assert!(!public_output(&output).contains(fixture.home.to_string_lossy().as_ref()));
+    assert!(!public_output(&output).contains(claude_config_root.to_string_lossy().as_ref()));
+}
+
+#[test]
 fn invalid_invocations_and_environment_fail_without_echoing_private_values() {
     let cases: &[(&[&str], Option<&str>)] = &[
         (&[], None),
@@ -592,6 +636,10 @@ fn invalid_invocations_and_environment_fail_without_echoing_private_values() {
         (&["install"], None),
         (
             &["install", "status", "extra-private-canary"],
+            Some("extra-private-canary"),
+        ),
+        (
+            &["install", "claude", "extra-private-canary"],
             Some("extra-private-canary"),
         ),
         (

@@ -1,3 +1,5 @@
+mod claude;
+mod claude_bundle;
 mod codex;
 mod codex_bundle;
 mod error;
@@ -6,6 +8,26 @@ mod identity;
 mod plan;
 mod transaction;
 
+pub use claude::{
+    CLAUDE_ADAPTER_SCHEMA_VERSION, CLAUDE_MARKETPLACE_SYMBOLIC_PATH,
+    CLAUDE_PLUGIN_SOURCE_MARKETPLACE_PATH, CLAUDE_PLUGIN_SOURCE_SYMBOLIC_PATH,
+    CLAUDE_REGISTRATION_RECEIPT_SCHEMA_VERSION, CLAUDE_REGISTRATION_STATE_SCHEMA_VERSION,
+    CLAUDE_SKILLS_PLUGIN_SYMBOLIC_PATH, ClaudeAdapterError, ClaudeDiscoverySummaryV1,
+    ClaudeMarketplaceState, ClaudeRegistrationCommit, ClaudeRegistrationDisposition,
+    ClaudeRegistrationEffect, ClaudeRegistrationExecutor, ClaudeRegistrationLifecycleCommit,
+    ClaudeRegistrationLifecycleDisposition, ClaudeRegistrationLifecycleKind,
+    ClaudeRegistrationLifecycleReceiptV1, ClaudeRegistrationPreview, ClaudeRegistrationReceiptV1,
+    ClaudeRegistrationState, ClaudeRegistrationStateV1, ClaudeRegistrationVerification,
+    ClaudeSkillsPluginState, ClaudeSourceState, ClaudeUserTarget, discover_claude_user,
+    discover_claude_user_with_config, preview_claude_registration,
+};
+pub use claude_bundle::{
+    CLAUDE_PLUGIN_BUNDLE_RECEIPT_FILE, CLAUDE_PLUGIN_BUNDLE_RECEIPT_SCHEMA_VERSION,
+    ClaudePluginBundleEntryV1, ClaudePluginBundleError, ClaudePluginBundleKind,
+    ClaudePluginBundleReceiptV1, ClaudePluginBundleTarget, VerifiedClaudePluginBundle,
+    approve_claude_plugin_bundle_target, compose_claude_plugin_bundle, remove_claude_plugin_bundle,
+    verify_claude_plugin_bundle,
+};
 pub use codex::{
     CODEX_ADAPTER_SCHEMA_VERSION, CODEX_MARKETPLACE_SYMBOLIC_PATH,
     CODEX_PLUGIN_SOURCE_MARKETPLACE_PATH, CODEX_PLUGIN_SOURCE_SYMBOLIC_PATH,

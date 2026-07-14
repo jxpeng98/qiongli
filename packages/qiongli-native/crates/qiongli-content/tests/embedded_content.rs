@@ -9,7 +9,8 @@ use qiongli_content::{
     temporary_materialization_target,
 };
 
-const DIRECTORY_ROOTS: [&str; 11] = [
+const DIRECTORY_ROOTS: [&str; 12] = [
+    ".claude-plugin",
     ".codex-plugin",
     "distribution",
     "mcp-contracts",

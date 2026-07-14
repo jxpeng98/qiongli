@@ -694,7 +694,7 @@ const fn root_allowed_for_target(root: SymbolicRoot, target: &TargetDescriptorV1
         }
         SymbolicRoot::ClaudeMarketplaceSource => {
             matches!(target.family, LocalTargetFamily::ClaudeCodeLocal)
-                && matches!(target.scope, InstallScope::Repository)
+                && matches!(target.scope, InstallScope::User)
         }
     }
 }

@@ -26,7 +26,7 @@ Cargo, or another language runtime to start.
 `qiongli-content` freezes three projections: `skill-only`,
 `marketplace-lite` (alias `lite`), and `full`. Its synthetic golden fixture
 tests the format contract without binding the crate to the uncommitted working
-copy of canonical content. FND-202B collects only the 13 allowlisted roots under
+copy of canonical content. FND-202B collects only the 14 allowlisted roots under
 `content/`, normalizes and sorts portable paths, and rejects links, path
 collisions, unsupported file types, and bounded count/size violations.
 FND-202C writes a 20-byte versioned header, an RFC 8785 canonical manifest, and
@@ -66,7 +66,7 @@ backup cleanup path, instead of being indistinguishable from a pre-commit
 failure.
 
 FND-202F turns that content pipeline into a self-contained product resource.
-The committed `qiongli-core.lock.json` freezes the accepted 1.19 metadata, 419
+The committed `qiongli-core.lock.json` freezes the accepted 1.19 metadata, 420
 entries, content-root SHA-256, and whole-pack SHA-256. The `qiongli` Cargo build
 script collects canonical sources, deterministically rebuilds the pack, and
 fails closed unless both identities match the canonical lock. It writes only
@@ -347,7 +347,7 @@ promotion, and committed verification. Existing targets, unmanaged data,
 links, reparse points, hard links, permission drift, extra or missing files,
 receipt drift, and signed binary or content mismatch fail closed.
 
-The normal Rust test copies the product binary, builds the full 419-entry
+The normal Rust test copies the product binary, builds the full 420-entry
 embedded projection into the generated plugin layout, and launches the bundled
 MCP with an empty `PATH`. A separate explicit acceptance test uses an isolated
 home and `CODEX_HOME`, validates the generated root with Plugin Creator, asks

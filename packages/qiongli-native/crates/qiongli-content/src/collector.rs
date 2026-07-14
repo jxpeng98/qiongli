@@ -266,7 +266,12 @@ struct SourceSpec {
     source_match: SourceMatch,
 }
 
-const CANONICAL_SOURCES: [SourceSpec; 13] = [
+const CANONICAL_SOURCES: [SourceSpec; 14] = [
+    SourceSpec {
+        path: ".claude-plugin",
+        resource_kind: ResourceKind::Workflow,
+        source_match: SourceMatch::Directory,
+    },
     SourceSpec {
         path: ".codex-plugin",
         resource_kind: ResourceKind::Workflow,
