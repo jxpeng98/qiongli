@@ -181,6 +181,9 @@ fn root_and_nested_help_use_stdout_and_return_success() {
         assert!(String::from_utf8_lossy(&output.stdout).contains("Usage:"));
         assert!(output.stderr.is_empty());
     }
+
+    let root = run(&["--help"]);
+    assert!(String::from_utf8_lossy(&root.stdout).contains("qiongli ui"));
 }
 
 #[test]
@@ -623,7 +626,10 @@ fn claude_install_status_discovers_without_writing_or_leaking_home() {
 fn invalid_invocations_and_environment_fail_without_echoing_private_values() {
     let cases: &[(&[&str], Option<&str>)] = &[
         (&[], None),
-        (&["ui"], None),
+        (
+            &["ui", "extra-private-canary"],
+            Some("extra-private-canary"),
+        ),
         (&["content"], None),
         (&["content", "help"], None),
         (

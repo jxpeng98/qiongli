@@ -1,0 +1,861 @@
+use eframe::egui::{
+    self, Color32, ComboBox, Frame, Grid, Id, Modal, RichText, ScrollArea, TextEdit, Ui,
+};
+
+use crate::{
+    CapabilityView, DesktopEvent, DesktopIntent, DesktopSection, DesktopService, DesktopSnapshotV1,
+    IntegrationTarget, OperationPreview, PrivateText, ProviderKind, StatusCode,
+};
+
+const TWO_COLUMN_MINIMUM_WIDTH: f32 = 760.0;
+const NAVIGATION_WIDTH: f32 = 168.0;
+
+#[derive(Clone, Copy)]
+struct Feedback {
+    status: StatusCode,
+    message: &'static str,
+    code: &'static str,
+}
+
+pub struct QiongliDesktopApp {
+    service: Box<dyn DesktopService>,
+    snapshot: DesktopSnapshotV1,
+    section: DesktopSection,
+    provider: ProviderKind,
+    public_email: String,
+    feedback: Option<Feedback>,
+    preview: Option<OperationPreview>,
+}
+
+impl QiongliDesktopApp {
+    #[must_use]
+    pub fn new(mut service: Box<dyn DesktopService>) -> Self {
+        let mut snapshot = service.snapshot();
+        let feedback = snapshot.validate().err().map(|error| {
+            quarantine_invalid_snapshot(&mut snapshot);
+            Feedback {
+                status: StatusCode::Invalid,
+                message: "The desktop snapshot was rejected. No operation is available.",
+                code: error.code(),
+            }
+        });
+        Self {
+            service,
+            snapshot,
+            section: DesktopSection::Overview,
+            provider: ProviderKind::Crossref,
+            public_email: String::new(),
+            feedback,
+            preview: None,
+        }
+    }
+
+    pub fn show(&mut self, ui: &mut Ui) {
+        configure_visuals(ui);
+        let mut intent = None;
+        Frame::central_panel(ui.style()).show(ui, |ui| {
+            render_header(ui, &self.snapshot);
+            if let Some(feedback) = self.feedback {
+                ui.separator();
+                render_feedback(ui, feedback);
+            }
+            ui.add_space(8.0);
+            if ui.available_width() >= TWO_COLUMN_MINIMUM_WIDTH {
+                ui.horizontal_top(|ui| {
+                    ui.vertical(|ui| {
+                        ui.set_width(NAVIGATION_WIDTH);
+                        render_side_navigation(ui, &mut self.section);
+                    });
+                    ui.separator();
+                    ui.vertical(|ui| {
+                        ui.set_min_width(ui.available_width());
+                        intent = self.render_current_view(ui);
+                    });
+                });
+            } else {
+                render_compact_navigation(ui, &mut self.section);
+                ui.separator();
+                intent = self.render_current_view(ui);
+            }
+
+            if intent.is_some() {
+                ui.separator();
+                ui.horizontal(|ui| {
+                    ui.spinner();
+                    ui.label("Working. No background process has been started.");
+                });
+            }
+        });
+
+        if let Some(dialog_intent) = self.render_preview(ui.ctx()) {
+            intent = Some(dialog_intent);
+        }
+        if let Some(intent) = intent {
+            self.dispatch(intent);
+            ui.ctx().request_repaint();
+        }
+    }
+
+    fn render_current_view(&mut self, ui: &mut Ui) -> Option<DesktopIntent> {
+        ScrollArea::vertical()
+            .id_salt("desktop-content")
+            .auto_shrink([false, false])
+            .show(ui, |ui| match self.section {
+                DesktopSection::Overview => render_overview(ui, &self.snapshot),
+                DesktopSection::Skills => render_skills(ui, &self.snapshot),
+                DesktopSection::Mcp => render_mcp(ui, &self.snapshot),
+                DesktopSection::Providers => self.render_providers(ui),
+                DesktopSection::Integrations => render_integrations(ui, &self.snapshot),
+                DesktopSection::Diagnostics => render_diagnostics(ui, &self.snapshot),
+            })
+            .inner
+    }
+
+    fn render_providers(&mut self, ui: &mut Ui) -> Option<DesktopIntent> {
+        section_heading(
+            ui,
+            "Providers",
+            "Read-only readiness from the redacted global configuration.",
+        );
+        Grid::new("provider-status-grid")
+            .num_columns(4)
+            .striped(true)
+            .spacing([24.0, 8.0])
+            .show(ui, |ui| {
+                ui.strong("Provider");
+                ui.strong("Enabled");
+                ui.strong("Readiness");
+                ui.strong("Secret reference");
+                ui.end_row();
+                for provider in self.snapshot.config.providers {
+                    ui.label(provider.provider.label());
+                    ui.label(if provider.enabled { "Yes" } else { "No" });
+                    ui.label(provider.readiness.label());
+                    ui.label(if provider.secret_reference_present {
+                        "Present (redacted)"
+                    } else {
+                        "Not present"
+                    });
+                    ui.end_row();
+                }
+            });
+
+        ui.add_space(24.0);
+        ui.heading("Public setting preview");
+        ui.label(
+            "Validate a public contact email through the typed service boundary. This alpha never stores it.",
+        );
+        ui.add_space(8.0);
+        ui.horizontal(|ui| {
+            ui.label("Provider");
+            ComboBox::from_id_salt("provider-public-setting")
+                .selected_text(self.provider.label())
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.provider, ProviderKind::Crossref, "Crossref");
+                    ui.selectable_value(&mut self.provider, ProviderKind::OpenAlex, "OpenAlex");
+                });
+        });
+        let label = ui.label("Public contact email");
+        ui.add(
+            TextEdit::singleline(&mut self.public_email)
+                .id_salt("provider-public-email")
+                .hint_text("researcher@example.org")
+                .char_limit(320)
+                .desired_width(360.0),
+        )
+        .labelled_by(label.id);
+        ui.label("The value is cleared after preview and is never included in feedback or logs.");
+        ui.add_space(8.0);
+        let enabled = self.snapshot.capabilities.provider_preview;
+        if ui
+            .add_enabled(enabled, egui::Button::new("Preview provider setting"))
+            .clicked()
+        {
+            self.feedback = None;
+            let public_email = PrivateText::new(std::mem::take(&mut self.public_email));
+            return Some(DesktopIntent::PreviewProviderPublicSetting {
+                provider: self.provider,
+                public_email,
+            });
+        }
+        if !enabled {
+            ui.label("Provider preview is unavailable in this build.");
+        }
+        None
+    }
+
+    fn render_preview(&mut self, context: &egui::Context) -> Option<DesktopIntent> {
+        let preview = self.preview?;
+        let mut intent = None;
+        let response = Modal::new(Id::new("operation-preview")).show(context, |ui| {
+            ui.set_max_width(460.0);
+            ui.heading(preview.title);
+            ui.label(preview.summary);
+            if let Some(reason) = preview.blocked_reason {
+                ui.label(format!("Blocked: {reason}"));
+            }
+            ui.add_space(12.0);
+            ui.horizontal(|ui| {
+                if ui.button("Cancel preview").clicked() {
+                    intent = Some(DesktopIntent::CancelOperation {
+                        token: preview.token,
+                    });
+                }
+                if ui
+                    .add_enabled(preview.can_confirm, egui::Button::new("Confirm operation"))
+                    .clicked()
+                {
+                    intent = Some(DesktopIntent::ConfirmOperation {
+                        token: preview.token,
+                    });
+                }
+            });
+            if !preview.can_confirm {
+                ui.label("Confirmation is unavailable in this source-build alpha.");
+            }
+        });
+        if intent.is_none() && response.should_close() {
+            intent = Some(DesktopIntent::CancelOperation {
+                token: preview.token,
+            });
+        }
+        intent
+    }
+
+    fn dispatch(&mut self, intent: DesktopIntent) {
+        match self.service.execute(intent) {
+            DesktopEvent::SnapshotReplaced(snapshot) => match snapshot.validate() {
+                Ok(()) => {
+                    self.snapshot = snapshot;
+                    self.feedback = Some(Feedback {
+                        status: StatusCode::Ready,
+                        message: "The read-only desktop snapshot was refreshed.",
+                        code: "desktop-snapshot-refreshed",
+                    });
+                }
+                Err(error) => {
+                    self.feedback = Some(Feedback {
+                        status: StatusCode::Invalid,
+                        message: "The refreshed snapshot was rejected. Existing data is unchanged.",
+                        code: error.code(),
+                    });
+                }
+            },
+            DesktopEvent::ValidationFailed { code } => {
+                self.feedback = Some(Feedback {
+                    status: StatusCode::Attention,
+                    message: "The request is invalid. No value was stored.",
+                    code,
+                });
+            }
+            DesktopEvent::PreviewReady(preview) => {
+                self.preview = Some(preview);
+                self.feedback = None;
+            }
+            DesktopEvent::Completed { code } => {
+                self.preview = None;
+                self.feedback = Some(Feedback {
+                    status: StatusCode::Ready,
+                    message: "The approved operation completed.",
+                    code,
+                });
+            }
+            DesktopEvent::Cancelled { code } => {
+                self.preview = None;
+                self.feedback = Some(Feedback {
+                    status: StatusCode::Missing,
+                    message: "The preview was cancelled. No changes were made.",
+                    code,
+                });
+            }
+            DesktopEvent::Failed { code } => {
+                self.preview = None;
+                self.feedback = Some(Feedback {
+                    status: StatusCode::Blocked,
+                    message: "The operation is unavailable. No changes were made.",
+                    code,
+                });
+            }
+        }
+    }
+}
+
+fn quarantine_invalid_snapshot(snapshot: &mut DesktopSnapshotV1) {
+    snapshot.product.version = "unavailable".to_owned();
+    snapshot.content.pack_id = "unavailable".to_owned();
+    snapshot.content.content_version = "unavailable".to_owned();
+    snapshot.capabilities = CapabilityView {
+        refresh: false,
+        provider_preview: false,
+        integration_preview: false,
+        apply: false,
+    };
+}
+
+impl eframe::App for QiongliDesktopApp {
+    fn ui(&mut self, ui: &mut Ui, _frame: &mut eframe::Frame) {
+        self.show(ui);
+    }
+}
+
+pub fn run_native(service: Box<dyn DesktopService>) -> eframe::Result {
+    let options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default()
+            .with_title("Qiongli 2")
+            .with_inner_size([1_080.0, 720.0])
+            .with_min_inner_size([680.0, 520.0]),
+        ..Default::default()
+    };
+    eframe::run_native(
+        "Qiongli 2",
+        options,
+        Box::new(move |_creation_context| Ok(Box::new(QiongliDesktopApp::new(service)))),
+    )
+}
+
+fn configure_visuals(ui: &mut Ui) {
+    ui.spacing_mut().item_spacing = egui::vec2(8.0, 8.0);
+    ui.spacing_mut().button_padding = egui::vec2(12.0, 8.0);
+    let dark_mode = ui.visuals().dark_mode;
+    let accent = if dark_mode {
+        Color32::from_rgb(196, 161, 92)
+    } else {
+        Color32::from_rgb(121, 91, 31)
+    };
+    ui.visuals_mut().selection.bg_fill = accent;
+    ui.visuals_mut().hyperlink_color = accent;
+}
+
+fn render_header(ui: &mut Ui, snapshot: &DesktopSnapshotV1) {
+    ui.horizontal(|ui| {
+        ui.heading("Qiongli 2");
+        ui.label(format!("Alpha · {}", snapshot.product.version));
+    });
+    ui.label(format!(
+        "Native academic research manager · {} · {}",
+        snapshot.product.operating_system.label(),
+        snapshot.product.architecture.label()
+    ));
+}
+
+fn render_side_navigation(ui: &mut Ui, section: &mut DesktopSection) {
+    ui.strong("Workspace");
+    ui.add_space(4.0);
+    for destination in DesktopSection::ALL {
+        ui.selectable_value(section, destination, destination.label());
+    }
+}
+
+fn render_compact_navigation(ui: &mut Ui, section: &mut DesktopSection) {
+    ui.horizontal(|ui| {
+        ui.label("View");
+        ComboBox::from_id_salt("desktop-section")
+            .selected_text(section.label())
+            .show_ui(ui, |ui| {
+                for destination in DesktopSection::ALL {
+                    ui.selectable_value(section, destination, destination.label());
+                }
+            });
+    });
+}
+
+fn render_overview(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<DesktopIntent> {
+    section_heading(
+        ui,
+        "Overview",
+        "A read-only view of the embedded research platform and local integrations.",
+    );
+    Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+        ui.strong("Alpha boundary");
+        ui.label(
+            "This window can inspect and preview. It cannot install plugins, write configuration, store secrets, or launch MCP processes.",
+        );
+    });
+    ui.add_space(16.0);
+    Grid::new("overview-status-grid")
+        .num_columns(2)
+        .spacing([32.0, 10.0])
+        .show(ui, |ui| {
+            ui.label("Embedded content");
+            status_label(ui, snapshot.content.status);
+            ui.end_row();
+            ui.label("Global configuration");
+            status_label(ui, snapshot.config.status);
+            ui.end_row();
+            ui.label("Lite MCP");
+            status_label(ui, snapshot.mcp.status);
+            ui.end_row();
+            ui.label("Apply operations");
+            status_label(
+                ui,
+                if snapshot.capabilities.apply {
+                    StatusCode::Ready
+                } else {
+                    StatusCode::Unavailable
+                },
+            );
+            ui.end_row();
+            for integration in snapshot.integrations {
+                ui.label(integration.target.label());
+                status_label(ui, integration.overall);
+                ui.end_row();
+            }
+        });
+    ui.add_space(16.0);
+    if ui
+        .add_enabled(
+            snapshot.capabilities.refresh,
+            egui::Button::new("Refresh overview"),
+        )
+        .clicked()
+    {
+        return Some(DesktopIntent::Refresh);
+    }
+    None
+}
+
+fn render_skills(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<DesktopIntent> {
+    section_heading(
+        ui,
+        "Skills",
+        "Verified academic workflow content embedded in this executable.",
+    );
+    ui.label(format!("Pack: {}", snapshot.content.pack_id));
+    ui.label(format!(
+        "Content version: {}",
+        snapshot.content.content_version
+    ));
+    ui.label(format!("Entries: {}", snapshot.content.entry_count));
+    ui.add_space(12.0);
+    Grid::new("profile-grid")
+        .num_columns(3)
+        .striped(true)
+        .spacing([24.0, 8.0])
+        .show(ui, |ui| {
+            ui.strong("Profile");
+            ui.strong("Resource kinds");
+            ui.strong("Purpose");
+            ui.end_row();
+            for profile in snapshot.content.profiles {
+                ui.label(profile.profile.id());
+                ui.label(profile.included_resource_kinds.to_string());
+                ui.label(profile.profile.description());
+                ui.end_row();
+            }
+        });
+    ui.add_space(12.0);
+    ui.add_enabled(false, egui::Button::new("Materialize selected profile"));
+    ui.label("Materialization is unavailable until an approved target-selection service exists.");
+    None
+}
+
+fn render_mcp(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<DesktopIntent> {
+    section_heading(
+        ui,
+        "MCP",
+        "Dependency-free Lite MCP contract served by the canonical native binary.",
+    );
+    Grid::new("mcp-grid")
+        .num_columns(2)
+        .spacing([32.0, 10.0])
+        .show(ui, |ui| {
+            ui.label("Status");
+            status_label(ui, snapshot.mcp.status);
+            ui.end_row();
+            ui.label("Profile");
+            ui.label(snapshot.mcp.profile.id());
+            ui.end_row();
+            ui.label("Transport");
+            ui.label("stdio");
+            ui.end_row();
+            ui.label("Public tools");
+            ui.label(snapshot.mcp.public_tool_count.to_string());
+            ui.end_row();
+        });
+    ui.add_space(12.0);
+    ui.monospace("qiongli mcp serve --profile marketplace-lite --transport stdio");
+    ui.label(
+        "No Python, Node.js, Rust toolchain, or separate MCP runtime is required after packaging.",
+    );
+    ui.add_space(12.0);
+    ui.add_enabled(false, egui::Button::new("Start Lite MCP test"));
+    ui.label("Process launch and supervision are not part of R3F.");
+    None
+}
+
+fn render_integrations(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<DesktopIntent> {
+    section_heading(
+        ui,
+        "Integrations",
+        "Local Codex and Claude Code discovery through accepted read-only adapters.",
+    );
+    let mut intent = None;
+    for integration in snapshot.integrations {
+        Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+            ui.horizontal(|ui| {
+                ui.heading(integration.target.label());
+                status_label(ui, integration.overall);
+            });
+            ui.label(format!(
+                "Symbolic location: {}",
+                integration.symbolic_location.label()
+            ));
+            Grid::new(("integration-grid", integration.target.label()))
+                .num_columns(2)
+                .spacing([24.0, 6.0])
+                .show(ui, |ui| {
+                    ui.label("Plugin source");
+                    status_label(ui, integration.source);
+                    ui.end_row();
+                    ui.label("Marketplace");
+                    status_label(ui, integration.marketplace);
+                    ui.end_row();
+                    if let Some(direct_package) = integration.direct_package {
+                        ui.label("Direct skills package");
+                        status_label(ui, direct_package);
+                        ui.end_row();
+                    }
+                    ui.label("Registration");
+                    status_label(ui, integration.registration);
+                    ui.end_row();
+                    ui.label("Activation");
+                    ui.label(integration.activation.label());
+                    ui.end_row();
+                });
+            let button_label = match integration.target {
+                IntegrationTarget::Codex => "Preview Codex installation",
+                IntegrationTarget::ClaudeCode => "Preview Claude Code installation",
+            };
+            if ui
+                .add_enabled(
+                    snapshot.capabilities.integration_preview,
+                    egui::Button::new(button_label),
+                )
+                .clicked()
+            {
+                intent = Some(DesktopIntent::PreviewIntegration {
+                    target: integration.target,
+                });
+            }
+        });
+        ui.add_space(12.0);
+    }
+    ui.label(
+        "Claude Desktop, Codex Desktop marketplace bypass, cloud surfaces, and public marketplace publication are not supported by this alpha.",
+    );
+    intent
+}
+
+fn render_diagnostics(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<DesktopIntent> {
+    section_heading(
+        ui,
+        "Diagnostics",
+        "Fixed, path-free health checks and remediation codes.",
+    );
+    Grid::new("diagnostic-grid")
+        .num_columns(4)
+        .striped(true)
+        .spacing([24.0, 8.0])
+        .show(ui, |ui| {
+            ui.strong("Check");
+            ui.strong("Status");
+            ui.strong("Blocking");
+            ui.strong("Remediation");
+            ui.end_row();
+            for diagnostic in snapshot.diagnostics {
+                ui.label(diagnostic.check.label());
+                status_label(ui, diagnostic.status);
+                ui.label(if diagnostic.blocking { "Yes" } else { "No" });
+                ui.monospace(diagnostic.remediation.code());
+                ui.end_row();
+            }
+        });
+    ui.add_space(12.0);
+    if ui
+        .add_enabled(
+            snapshot.capabilities.refresh,
+            egui::Button::new("Refresh diagnostics"),
+        )
+        .clicked()
+    {
+        return Some(DesktopIntent::Refresh);
+    }
+    None
+}
+
+fn section_heading(ui: &mut Ui, title: &str, description: &str) {
+    ui.heading(title);
+    ui.label(description);
+    ui.add_space(12.0);
+}
+
+fn status_label(ui: &mut Ui, status: StatusCode) {
+    let color = if status.requires_attention() {
+        ui.visuals().warn_fg_color
+    } else if status == StatusCode::Ready {
+        ui.visuals().hyperlink_color
+    } else {
+        ui.visuals().weak_text_color()
+    };
+    ui.label(RichText::new(status.label()).color(color).strong());
+}
+
+fn render_feedback(ui: &mut Ui, feedback: Feedback) {
+    ui.horizontal_wrapped(|ui| {
+        status_label(ui, feedback.status);
+        ui.label(feedback.message);
+        ui.monospace(feedback.code);
+    });
+}
+
+#[cfg(test)]
+mod tests {
+    use egui_kittest::{Harness, kittest::Queryable};
+
+    use super::*;
+    use crate::model::sample_snapshot;
+    use crate::{DesktopEvent, DesktopIntent, OperationToken};
+
+    struct FakeService {
+        snapshot: DesktopSnapshotV1,
+    }
+
+    impl DesktopService for FakeService {
+        fn snapshot(&mut self) -> DesktopSnapshotV1 {
+            self.snapshot.clone()
+        }
+
+        fn execute(&mut self, intent: DesktopIntent) -> DesktopEvent {
+            match intent {
+                DesktopIntent::Refresh => DesktopEvent::SnapshotReplaced(self.snapshot.clone()),
+                DesktopIntent::PreviewProviderPublicSetting { .. } => {
+                    DesktopEvent::ValidationFailed {
+                        code: "provider-public-setting-invalid",
+                    }
+                }
+                DesktopIntent::PreviewIntegration { .. } => {
+                    DesktopEvent::PreviewReady(OperationPreview {
+                        token: OperationToken::new(7),
+                        title: "Test operation preview",
+                        summary: "A bounded fake service preview.",
+                        can_confirm: true,
+                        blocked_reason: None,
+                    })
+                }
+                DesktopIntent::ConfirmOperation { token } => {
+                    assert_eq!(token, OperationToken::new(7));
+                    DesktopEvent::Completed {
+                        code: "test-operation-completed",
+                    }
+                }
+                DesktopIntent::CancelOperation { token } => {
+                    assert_eq!(token, OperationToken::new(7));
+                    DesktopEvent::Cancelled {
+                        code: "test-operation-cancelled",
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn accesskit_navigation_reaches_all_six_views() {
+        let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 720.0], 1.0);
+        for (destination, marker) in [
+            (
+                "Skills",
+                "Verified academic workflow content embedded in this executable.",
+            ),
+            (
+                "MCP",
+                "Dependency-free Lite MCP contract served by the canonical native binary.",
+            ),
+            (
+                "Providers",
+                "Read-only readiness from the redacted global configuration.",
+            ),
+            (
+                "Integrations",
+                "Local Codex and Claude Code discovery through accepted read-only adapters.",
+            ),
+            (
+                "Diagnostics",
+                "Fixed, path-free health checks and remediation codes.",
+            ),
+            (
+                "Overview",
+                "A read-only view of the embedded research platform and local integrations.",
+            ),
+        ] {
+            harness.get_by_label(destination).click_accesskit();
+            let _ = harness.run();
+            assert!(harness.query_all_by_value(marker).next().is_some());
+        }
+    }
+
+    #[test]
+    fn keyboard_activation_reaches_a_navigation_destination() {
+        let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 720.0], 1.0);
+        harness.get_by_label("Skills").focus();
+        let _ = harness.run();
+        harness.key_press(egui::Key::Enter);
+        let _ = harness.run();
+
+        assert!(
+            harness
+                .query_all_by_value(
+                    "Verified academic workflow content embedded in this executable.",
+                )
+                .next()
+                .is_some()
+        );
+    }
+
+    #[test]
+    fn provider_feedback_does_not_echo_transient_input() {
+        let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 720.0], 1.0);
+        harness.get_by_label("Providers").click_accesskit();
+        let _ = harness.run();
+        harness.get_by_label("Public contact email").focus();
+        let _ = harness.run();
+        harness
+            .get_by_label("Public contact email")
+            .type_text("private-canary@example.org");
+        let _ = harness.run();
+        harness
+            .get_by_label("Preview provider setting")
+            .click_accesskit();
+        let _ = harness.run();
+
+        let feedback = harness.state().feedback.expect("feedback must be set");
+        assert_eq!(feedback.code, "provider-public-setting-invalid");
+        assert!(
+            harness
+                .query_all_by_value("The request is invalid. No value was stored.")
+                .next()
+                .is_some()
+        );
+        let tree = format!("{harness:?}");
+        assert!(!tree.contains("private-canary@example.org"));
+    }
+
+    #[test]
+    fn invalid_initial_snapshot_is_quarantined_without_echoing_dynamic_text() {
+        let mut snapshot = sample_snapshot();
+        snapshot.product.version = "/private/initial-snapshot-canary".to_owned();
+
+        let harness = desktop_harness(snapshot, [1_080.0, 720.0], 1.0);
+
+        assert_eq!(harness.state().snapshot.product.version, "unavailable");
+        assert_eq!(
+            harness.state().snapshot.capabilities,
+            CapabilityView {
+                refresh: false,
+                provider_preview: false,
+                integration_preview: false,
+                apply: false,
+            }
+        );
+        assert!(
+            harness
+                .query_all_by_value("The desktop snapshot was rejected. No operation is available.")
+                .next()
+                .is_some()
+        );
+        assert!(!format!("{harness:?}").contains("initial-snapshot-canary"));
+    }
+
+    #[test]
+    fn typed_preview_can_confirm_and_cancel() {
+        let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 720.0], 1.0);
+        harness.get_by_label("Integrations").click_accesskit();
+        let _ = harness.run();
+        harness
+            .get_by_label("Preview Codex installation")
+            .click_accesskit();
+        let _ = harness.run();
+        assert!(
+            harness
+                .query_all_by_value("Test operation preview")
+                .next()
+                .is_some()
+        );
+        harness.get_by_label("Confirm operation").click_accesskit();
+        let _ = harness.run();
+        assert!(
+            harness
+                .query_all_by_value("test-operation-completed")
+                .next()
+                .is_some()
+        );
+
+        harness
+            .get_by_label("Preview Claude Code installation")
+            .click_accesskit();
+        let _ = harness.run();
+        harness.get_by_label("Cancel preview").click_accesskit();
+        let _ = harness.run();
+        assert!(
+            harness
+                .query_all_by_value("test-operation-cancelled")
+                .next()
+                .is_some()
+        );
+    }
+
+    #[test]
+    fn progress_and_recovery_states_are_accessible() {
+        let mut snapshot = sample_snapshot();
+        snapshot.config.status = StatusCode::RecoveryRequired;
+        snapshot.diagnostics[1].status = StatusCode::RecoveryRequired;
+        let mut harness = desktop_harness(snapshot, [1_080.0, 720.0], 1.0);
+        assert!(
+            harness
+                .query_all_by_value("Recovery required")
+                .next()
+                .is_some()
+        );
+
+        harness.get_by_label("Refresh overview").click_accesskit();
+        harness.step();
+        assert!(
+            harness
+                .query_all_by_value("Working. No background process has been started.")
+                .next()
+                .is_some()
+        );
+        harness.step();
+        assert!(
+            harness
+                .query_all_by_value("desktop-snapshot-refreshed")
+                .next()
+                .is_some()
+        );
+    }
+
+    #[test]
+    fn critical_controls_survive_supported_widths_and_scales() {
+        for scale in [1.0, 1.5, 2.0] {
+            let normal = desktop_harness(sample_snapshot(), [1_080.0, 720.0], scale);
+            assert!(normal.query_by_label("Diagnostics").is_some());
+            assert!(normal.query_by_label("Refresh overview").is_some());
+
+            let narrow = desktop_harness(sample_snapshot(), [680.0, 520.0], scale);
+            assert!(narrow.query_by_label("View").is_some());
+            assert!(narrow.query_by_label("Refresh overview").is_some());
+            assert!(narrow.query_by_label("Alpha boundary").is_some());
+        }
+    }
+
+    fn desktop_harness(
+        snapshot: DesktopSnapshotV1,
+        size: [f32; 2],
+        pixels_per_point: f32,
+    ) -> Harness<'static, QiongliDesktopApp> {
+        let app = QiongliDesktopApp::new(Box::new(FakeService { snapshot }));
+        Harness::builder()
+            .with_size(size)
+            .with_pixels_per_point(pixels_per_point)
+            .build_ui_state(|ui, app| app.show(ui), app)
+    }
+}

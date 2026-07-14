@@ -53,11 +53,12 @@ apps/qiongli
   +-> qiongli-platform
 
 qiongli-ui
-  -> eframe / egui only
+  -> eframe / egui / zeroize only
 ```
 
 `qiongli-ui` does not depend on config, content, runtime, platform, the app, or
-concrete filesystem paths. The app adapter converts existing redacted service
+concrete filesystem paths. Its only non-UI dependency is `zeroize`, used for
+transient public-form input. The app adapter converts existing redacted service
 objects into UI-owned enums and counts. No eframe or egui type crosses back
 into a service crate.
 

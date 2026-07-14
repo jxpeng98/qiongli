@@ -23,6 +23,14 @@ fn main() -> ExitCode {
                 }
             }
         }
+        qiongli::ProductAction::LaunchDesktop => {
+            if qiongli::run_desktop(environment, content).is_ok() {
+                ExitCode::SUCCESS
+            } else {
+                eprintln!("error: desktop-ui-start-failed");
+                ExitCode::FAILURE
+            }
+        }
     }
 }
 

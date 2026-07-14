@@ -14,6 +14,7 @@ qiongli-config = { path = "../../crates/qiongli-config" }
 qiongli-content = { path = "../../crates/qiongli-content" }
 qiongli-platform = { path = "../../crates/qiongli-platform" }
 qiongli-runtime = { path = "../../crates/qiongli-runtime", features = ["embedded-content", "native-config"] }
+qiongli-ui = { path = "../../crates/qiongli-ui" }
 serde.workspace = true
 serde_json.workspace = true
 

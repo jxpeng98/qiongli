@@ -399,6 +399,45 @@ execution, public marketplace publication, managed in-place upgrade, release
 artifacts, UI, Full MCP, agent execution, and orchestrator execution remain
 unavailable.
 
+## R3F native desktop manager
+
+The canonical executable now has one Rust-native desktop mode:
+
+```text
+qiongli ui
+```
+
+`qiongli-ui` owns only bounded presentation models, typed intents and events,
+stock egui views, and the eframe application. The product composition root
+builds a read-only snapshot from the verified embedded pack, redacted global
+configuration, the 12-tool Lite MCP contract, and Codex and Claude Code local
+discovery. The snapshot contains typed states, counts, symbolic locations, and
+fixed remediation codes; it does not contain concrete paths, email addresses,
+API keys, secret references, environment values, or raw service documents.
+
+The window provides Overview, Skills, MCP, Providers, Integrations, and
+Diagnostics views. Refresh and provider/integration previews cross the typed
+service boundary. Provider preview accepts only a transient public contact
+email and clears it after submission. The production adapter validates that
+input but keeps config writes and every install confirmation unavailable.
+Closing the window does not persist eframe state.
+
+The UI pins eframe, egui, and egui_kittest 0.35.0, using native wgpu and
+AccessKit without a webview, JavaScript frontend, glow renderer, or persistence
+feature. Headless AccessKit tests cover all six views, keyboard activation,
+labelled input, non-echoing feedback, confirmation/cancel, progress and
+recovery states, narrow and normal widths, and 100%, 150%, and 200% scale.
+These tests do not replace later packaged-window and target screen-reader
+acceptance.
+
+R3F remains a source-build alpha boundary. It does not install, remove, update,
+or activate plugins; write provider configuration or secrets; launch or
+supervise MCP from the window; package a desktop application; or claim Claude
+Desktop, cloud/web, public marketplace, Full MCP, agent, orchestrator, updater,
+signing, or release readiness. Building from source requires the pinned Rust
+toolchain; a future packaged executable must not require that toolchain at
+runtime.
+
 ## R1 command contract (retained)
 
 The native executable composes the verified embedded pack and versioned global

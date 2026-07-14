@@ -21,7 +21,7 @@ use serde::Serialize;
 
 const OUTPUT_SCHEMA_VERSION: u32 = 1;
 
-const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli --version\n  qiongli --help\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli install status\n  qiongli install codex status\n  qiongli install claude status\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
+const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli --version\n  qiongli --help\n  qiongli ui\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli install status\n  qiongli install codex status\n  qiongli install claude status\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
 
 const CONTENT_USAGE: &str = "Qiongli embedded content\n\nUsage:\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli content --help\n";
 
@@ -47,6 +47,27 @@ impl CommandEnvironment {
             claude_config_root: nonempty_environment_path("CLAUDE_CONFIG_DIR"),
         }
     }
+
+    #[cfg(test)]
+    pub(crate) fn with_paths(
+        configured_root: Option<OsString>,
+        platform_home: Option<PathBuf>,
+        claude_config_root: Option<PathBuf>,
+    ) -> Self {
+        Self {
+            configured_root,
+            platform_home,
+            claude_config_root,
+        }
+    }
+
+    pub(crate) fn platform_home(&self) -> Option<&Path> {
+        self.platform_home.as_deref()
+    }
+
+    pub(crate) fn claude_config_root(&self) -> Option<&Path> {
+        self.claude_config_root.as_deref()
+    }
 }
 
 pub struct CliOutput {
@@ -58,6 +79,7 @@ pub struct CliOutput {
 pub enum ProductAction {
     Output(CliOutput),
     ServeLiteMcpStdio,
+    LaunchDesktop,
 }
 
 impl CliOutput {
@@ -116,6 +138,9 @@ pub fn run_cli(
         ProductAction::ServeLiteMcpStdio => {
             CliOutput::operation_failure("streaming-command-requires-product-entrypoint")
         }
+        ProductAction::LaunchDesktop => {
+            CliOutput::operation_failure("desktop-command-requires-product-entrypoint")
+        }
     }
 }
 
@@ -134,6 +159,7 @@ pub fn prepare_action(
         Command::Version => {
             CliOutput::success_text(format!("qiongli {}\n", env!("CARGO_PKG_VERSION")))
         }
+        Command::Ui => return ProductAction::LaunchDesktop,
         Command::ContentHelp => CliOutput::success_text(CONTENT_USAGE),
         Command::ContentList => content_list(content),
         Command::ContentMaterialize { profile, target } => {
@@ -161,6 +187,7 @@ pub fn prepare_action(
 enum Command {
     Help,
     Version,
+    Ui,
     ContentHelp,
     ContentList,
     ContentMaterialize {
@@ -202,9 +229,10 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
         "config" => parse_config_args(&args[1..]),
         "install" => parse_install_args(&args[1..]),
         "mcp" => parse_mcp_args(&args[1..]),
+        "ui" if args.len() == 1 => Ok(Command::Ui),
         "status" if args.len() == 1 => Ok(Command::Status),
         "doctor" if args.len() == 1 => Ok(Command::Doctor),
-        "-h" | "--help" | "--version" | "status" | "doctor" => {
+        "-h" | "--help" | "--version" | "ui" | "status" | "doctor" => {
             Err(global_usage_error("unexpected extra argument"))
         }
         _ => Err(global_usage_error("unknown command or option")),
@@ -926,6 +954,7 @@ mod tests {
     fn parser_accepts_the_frozen_command_families() {
         assert_eq!(parse_args(args(&["--help"])), Ok(Command::Help));
         assert_eq!(parse_args(args(&["--version"])), Ok(Command::Version));
+        assert_eq!(parse_args(args(&["ui"])), Ok(Command::Ui));
         assert_eq!(
             parse_args(args(&["content", "list"])),
             Ok(Command::ContentList)
@@ -1012,6 +1041,29 @@ mod tests {
             "7",
         ]));
         assert_eq!(first, second);
+    }
+
+    #[test]
+    fn library_cli_boundary_does_not_launch_product_entrypoint_modes() {
+        let content = crate::embedded_content().unwrap();
+        let environment = CommandEnvironment::default();
+        let ui = run_cli(args(&["ui"]), &environment, &content);
+        assert_eq!(ui.exit_code(), 1);
+        assert_eq!(
+            ui.stderr(),
+            "error: desktop-command-requires-product-entrypoint\n"
+        );
+
+        let mcp = run_cli(
+            args(&["mcp", "serve", "--profile", "lite", "--transport", "stdio"]),
+            &environment,
+            &content,
+        );
+        assert_eq!(mcp.exit_code(), 1);
+        assert_eq!(
+            mcp.stderr(),
+            "error: streaming-command-requires-product-entrypoint\n"
+        );
     }
 
     #[test]
