@@ -43,6 +43,10 @@ unicode-normalization = "0.1.25"
 url = "2.5.8"
 zeroize = "1.9.0"
 
+[profile.test]
+# Keep the canonical test binary inside the bounded plugin-composer input limit.
+strip = "debuginfo"
+
 [workspace.lints.rust]
 unsafe_code = "forbid"
 rust_2018_idioms = { level = "deny", priority = -1 }
