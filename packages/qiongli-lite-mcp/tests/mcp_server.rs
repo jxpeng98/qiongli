@@ -98,6 +98,21 @@ fn search_rejects_unsupported_or_out_of_range_arguments_before_network() {
         assert_eq!(response["error"]["code"], -32602, "{response}");
         assert_eq!(response["error"]["message"], expected_message);
     }
+
+    let oversized = server.handle(McpRequest {
+        jsonrpc: "2.0".to_string(),
+        id: Some(json!(4)),
+        method: "tools/call".to_string(),
+        params: Some(json!({
+            "name": "qiongli_literature_search",
+            "arguments": {"query": "x".repeat(4097)}
+        })),
+    });
+    assert_eq!(oversized["error"]["code"], -32602);
+    assert_eq!(
+        oversized["error"]["message"],
+        "search query exceeds the byte limit"
+    );
 }
 
 #[test]

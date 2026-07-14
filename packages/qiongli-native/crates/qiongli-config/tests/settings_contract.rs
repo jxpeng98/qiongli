@@ -1,6 +1,6 @@
 use qiongli_config::{
-    EmailAddress, GlobalSettings, ProviderReadiness, SecretRef, SecretStore, SecretStoreError,
-    SecretStoreStatus, UnavailableSecretStore,
+    EmailAddress, GlobalSettings, MAX_SECRET_VALUE_BYTES, ProviderReadiness, SecretRef,
+    SecretStore, SecretStoreError, SecretStoreStatus, SecretValue, UnavailableSecretStore,
 };
 use qiongli_content::ProfileId;
 
@@ -35,6 +35,15 @@ fn unavailable_secret_store_has_no_fallback() {
         SecretStoreError::Unavailable.remediation_code(),
         "secure-store-not-implemented"
     );
+}
+
+#[test]
+fn secret_values_are_constructible_bounded_and_redacted() {
+    let value = SecretValue::new(b"secret-canary".to_vec()).unwrap();
+    assert_eq!(value.as_bytes(), b"secret-canary");
+    assert_eq!(format!("{value:?}"), "<redacted-secret-value>");
+    assert!(SecretValue::new(Vec::new()).is_err());
+    assert!(SecretValue::new(vec![b'x'; MAX_SECRET_VALUE_BYTES + 1]).is_err());
 }
 
 #[test]

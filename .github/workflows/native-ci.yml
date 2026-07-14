@@ -183,7 +183,7 @@ jobs:
           RUSTFLAGS: ""
         run: cargo fmt --manifest-path packages/qiongli-lite-mcp/Cargo.toml --all -- --check
 
-      - name: Run focused Lite protocol and server tests
+      - name: Run focused Lite runtime compatibility tests
         env:
           CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
           CARGO_BUILD_RUSTC_WRAPPER: ""
@@ -195,4 +195,11 @@ jobs:
           RUSTFLAGS: ""
         run: >-
           cargo test --manifest-path packages/qiongli-lite-mcp/Cargo.toml
-          --locked --test mcp_protocol --test mcp_server
+          --locked
+          --test mcp_protocol
+          --test mcp_server
+          --test provider_http
+          --test providers
+          --test search_orchestration
+          --test literature_planning_mcp
+          --test searchplan

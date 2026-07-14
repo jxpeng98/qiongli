@@ -12,7 +12,9 @@ use crate::config::provider_config::{
 use crate::config::wizard::{start_config_wizard, ConfigWizardOptions, WizardError};
 use crate::orchestrator::preview::{build_task_plan, TaskPlanInput};
 use crate::providers::runtime::ProviderRuntime;
-use crate::providers::search::{execute_search, SearchInput, PROVIDER_ORDER};
+use crate::providers::search::{
+    execute_bounded_search, limit_for, SearchInput, SearchRequest, PROVIDER_ORDER,
+};
 use crate::searchplan::{
     build_search_plan, normalize_identifier, SearchPlanInput, PLAN_PROVIDER_ORDER,
 };
@@ -340,6 +342,17 @@ impl McpServer {
             per_provider_limit,
             total_limit,
         };
+        let request = match SearchRequest::from_raw(
+            &input.query,
+            input.search_mode.as_deref(),
+            providers.as_deref(),
+            None,
+            Some(limit_for(&input)),
+            input.total_limit,
+        ) {
+            Ok(request) => request,
+            Err(error) => return self.error(id, -32602, error.to_string()),
+        };
         let runtime = match self.search_runtime() {
             Ok(runtime) => runtime,
             Err(error) => return self.tool_error(id, error),
@@ -366,7 +379,10 @@ impl McpServer {
                 .map(|provider| (*provider).to_string())
                 .collect(),
         });
-        let output = execute_search(&runtime, &input, providers.as_deref());
+        let output = match execute_bounded_search(&runtime, &request) {
+            Ok(output) => output,
+            Err(_) => return self.tool_error(id, "provider search was cancelled".to_string()),
+        };
         self.tool_result(
             id,
             json!({

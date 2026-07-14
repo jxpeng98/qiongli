@@ -52,6 +52,7 @@ impl Error for SecretRefError {}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SecretStoreStatus {
+    Available,
     Unavailable,
 }
 
@@ -82,11 +83,38 @@ pub struct SecretValue {
 }
 
 impl SecretValue {
+    pub fn new(bytes: impl Into<Vec<u8>>) -> Result<Self, SecretValueError> {
+        let bytes = bytes.into();
+        if bytes.is_empty() || bytes.len() > MAX_SECRET_VALUE_BYTES {
+            return Err(SecretValueError);
+        }
+        Ok(Self {
+            bytes: Zeroizing::new(bytes),
+        })
+    }
+
     #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         self.bytes.as_slice()
     }
 }
+
+impl Debug for SecretValue {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter.write_str("<redacted-secret-value>")
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SecretValueError;
+
+impl Display for SecretValueError {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter.write_str("invalid-secret-value")
+    }
+}
+
+impl Error for SecretValueError {}
 
 pub trait SecretStore: Send + Sync {
     fn status(&self) -> SecretStoreStatus;

@@ -12,11 +12,23 @@ description = "Shared native Qiongli runtime contracts and protocol primitives"
 [features]
 default = []
 embedded-content = ["dep:qiongli-content"]
+native-config = ["dep:qiongli-config"]
 
 [dependencies]
+qiongli-config = { path = "../qiongli-config", optional = true }
 qiongli-content = { path = "../qiongli-content", optional = true }
+quick-xml.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+thiserror.workspace = true
+url.workspace = true
+zeroize.workspace = true
+
+[target.'cfg(not(windows))'.dependencies]
+reqwest = { workspace = true, features = ["rustls-tls"] }
+
+[target.'cfg(windows)'.dependencies]
+reqwest = { workspace = true, features = ["native-tls"] }
 
 [lints]
 workspace = true

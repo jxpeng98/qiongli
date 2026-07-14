@@ -205,6 +205,36 @@ impl ResolvedProviderConfig {
         Ok(resolve_provider_file(&file, |_| None))
     }
 
+    pub(crate) fn runtime_access(&self) -> qiongli_runtime::providers::ProviderAccess {
+        use qiongli_runtime::providers::{
+            ProviderAccess, ProviderAvailability, ProviderField, PROVIDER_ORDER,
+        };
+
+        let mut builder = ProviderAccess::builder();
+        for provider in PROVIDER_ORDER {
+            let provider_name = provider.as_str();
+            let availability = if !self.is_enabled(provider_name) {
+                ProviderAvailability::Disabled
+            } else if self.is_configured(provider_name) {
+                ProviderAvailability::Ready
+            } else if matches!(provider_name, "crossref") {
+                ProviderAvailability::NeedsPublicSetting
+            } else {
+                ProviderAvailability::NeedsSecret
+            };
+            builder.set_availability(provider, availability);
+            for (field_name, field) in [
+                ("api_key", ProviderField::ApiKey),
+                ("email", ProviderField::Email),
+            ] {
+                if let Some(value) = self.value(provider_name, field_name) {
+                    builder.set_value(provider, field, value);
+                }
+            }
+        }
+        builder.build()
+    }
+
     fn provider(&self, provider: &str) -> Option<&ResolvedProvider> {
         self.providers.get(&normalize_provider(provider))
     }

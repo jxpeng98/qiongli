@@ -32,59 +32,59 @@ MCP claims closed until binary-level MCP dispatch is implemented later.
   provider clients, search orchestration, MCP validation, and focused tests.
 - [x] Freeze provider identity, access/status, request bounds, network policy,
   cancellation limitations, compatibility extraction, CI, and nonclaims.
-- [ ] Commit the design and plan before production changes.
+- [x] Commit the design and plan before production changes.
 
 ## Task 2 — Add Shared Provider Access
 
-- [ ] Add canonical provider identities, aliases, order, and redacted status.
-- [ ] Add non-serializable zeroizing in-memory provider access.
-- [ ] Add an optional `qiongli-config` adapter that resolves references only
+- [x] Add canonical provider identities, aliases, order, and redacted status.
+- [x] Add non-serializable zeroizing in-memory provider access.
+- [x] Add an optional `qiongli-config` adapter that resolves references only
   through `SecretStore` and distinguishes unavailable storage.
-- [ ] Test default arXiv readiness, disabled providers, missing secret,
+- [x] Test default arXiv readiness, disabled providers, missing secret,
   unavailable secret storage, and secret/reference redaction.
 
 ## Task 3 — Extract Provider Clients
 
-- [ ] Move the five accepted provider request/response implementations into
+- [x] Move the five accepted provider request/response implementations into
   `qiongli-runtime` without changing production endpoints.
-- [ ] Share a blocking HTTP client with 3-second connect timeout, 15-second
+- [x] Share a blocking HTTP client with 3-second connect timeout, 15-second
   request timeout, disabled redirects, and a 4 MiB body bound.
-- [ ] Add sanitized typed HTTP, timeout, transport, decode, endpoint, and
+- [x] Add sanitized typed HTTP, timeout, transport, decode, endpoint, and
   cancellation failures.
-- [ ] Add cooperative cancellation checks around request boundaries and the
+- [x] Add cooperative cancellation checks around request boundaries and the
   PubMed two-step flow.
-- [ ] Preserve hidden loopback endpoint injection for deterministic tests only.
+- [x] Preserve hidden loopback endpoint injection for deterministic tests only.
 
 ## Task 4 — Add Bounded Search
 
-- [ ] Add canonical validated search mode, provider selection, query, and
+- [x] Add canonical validated search mode, provider selection, query, and
   per-provider/total limits.
-- [ ] Move concurrent fan-out, canonical ordering, diagnostics, deduplication,
+- [x] Move concurrent fan-out, canonical ordering, diagnostics, deduplication,
   and final limiting into the shared runtime.
-- [ ] Retain the old `SearchInput` compatibility facade over the same kernel.
-- [ ] Move deterministic search-plan generation into the shared runtime.
-- [ ] Test invalid bounds before networking, cancellation, fixtures,
+- [x] Retain the old `SearchInput` compatibility facade over the same kernel.
+- [x] Move deterministic search-plan generation into the shared runtime.
+- [x] Test invalid bounds before networking, cancellation, fixtures,
   deduplication, partial failure, all-failure, order, and limits.
 
 ## Task 5 — Reduce Old Lite
 
-- [ ] Add one resolved-config-to-runtime-access adapter at the compatibility
+- [x] Add one resolved-config-to-runtime-access adapter at the compatibility
   edge.
-- [ ] Replace old provider HTTP/parser/search modules with shared re-exports or
+- [x] Replace old provider HTTP/parser/search modules with shared re-exports or
   thin constructors.
-- [ ] Replace old search planning with a shared re-export.
-- [ ] Keep legacy persistence/wizard/env behavior outside the native path.
-- [ ] Confirm there is no duplicate Rust provider/search kernel left.
+- [x] Replace old search planning with a shared re-export.
+- [x] Keep legacy persistence/wizard/env behavior outside the native path.
+- [x] Confirm there is no duplicate Rust provider/search kernel left.
 
 ## Task 6 — Gate And Record
 
-- [ ] Expand Linux compatibility CI to provider HTTP, parser, orchestration,
+- [x] Expand Linux compatibility CI to provider HTTP, parser, orchestration,
   literature planning, and search-plan tests.
-- [ ] Run native boundary, format, locked check, strict Clippy, and all native
+- [x] Run native boundary, format, locked check, strict Clippy, and all native
   Rust tests.
-- [ ] Run Windows MSVC cross-target check and strict Clippy.
-- [ ] Run all focused old Lite Rust compatibility tests without live services.
-- [ ] Audit secrets, endpoint injection, error rendering, and cancellation
+- [x] Run Windows MSVC cross-target check and strict Clippy.
+- [x] Run all focused old Lite Rust compatibility tests without live services.
+- [x] Audit secrets, endpoint injection, error rendering, and cancellation
   claims.
 - [ ] Commit and push the cohesive implementation to rolling Draft PR #63.
 - [ ] Require exact-head boundary, Linux, macOS, Windows, and focused Lite jobs

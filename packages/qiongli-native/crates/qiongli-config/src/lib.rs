@@ -20,6 +20,6 @@ pub use redaction::{
 };
 pub use secret::{
     MAX_SECRET_VALUE_BYTES, SecretRef, SecretRefError, SecretStore, SecretStoreError,
-    SecretStoreStatus, SecretValue, UnavailableSecretStore,
+    SecretStoreStatus, SecretValue, SecretValueError, UnavailableSecretStore,
 };
 pub use store::{CommitOutcome, GLOBAL_SETTINGS_FILE, GlobalSettingsStore};

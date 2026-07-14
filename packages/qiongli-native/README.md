@@ -125,6 +125,28 @@ through thin compatibility modules. This checkpoint does not add an MCP mode
 to the native executable and does not migrate provider, evidence, Zotero, or
 orchestration-preview behavior.
 
+## R2B shared provider kernel
+
+`qiongli-runtime` now owns the five-provider access/status model, bounded HTTP
+policy, response normalization, concurrent search, diagnostics, deduplication,
+cooperative cancellation, and deterministic search planning. Canonical search
+requests cap queries at 4,096 bytes, per-provider results at 200, and combined
+results at 1,000. Provider HTTP disables redirects and implicit proxy discovery,
+uses 3-second connection and 15-second request timeouts, and reads at most
+4 MiB per response.
+
+The optional native-config adapter resolves secret references only through
+`SecretStore`; it does not read legacy provider files or environment aliases.
+The old Lite package retains those compatibility inputs at its edge, converts
+resolved values into the shared in-memory access model, and re-exports the
+shared provider/search implementations. Access values are zeroizing and
+non-serializable; public status and failures remain redacted.
+
+R2B still does not add `qiongli mcp serve`, provider-management CLI/UI, a
+production secure-store backend, evidence/Zotero extraction, or an installable
+native release. Canonical MCP availability remains closed until binary-level
+initialize, tools/list, and tools/call tests pass.
+
 ## R1 command contract
 
 The native executable composes the verified embedded pack and versioned global

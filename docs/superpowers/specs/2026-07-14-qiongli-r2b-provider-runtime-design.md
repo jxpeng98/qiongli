@@ -120,10 +120,20 @@ The shared HTTP client freezes the already accepted Lite protections:
 | request timeout | 15 seconds |
 | maximum response body | 4 MiB |
 | redirects | disabled |
+| implicit system/environment proxy discovery | disabled |
 
 HTTP, decode, invalid-endpoint, timeout, transport, and cancellation failures
 are typed and sanitized. Provider credentials use only their provider-specific
 header or query placement and never appear in diagnostics.
+
+Proxy routing can be added later only through an explicit typed and redacted
+native setting. R2B does not allow process environment to redirect credentialed
+provider requests.
+
+TLS uses bundled Rustls roots on non-Windows targets and the operating
+system's SChannel through `native-tls` on Windows. This keeps Windows binaries
+free of a user-installed TLS runtime and keeps the declared Windows
+cross-target gate buildable without importing a foreign C SDK.
 
 Cancellation is cooperative. The runtime checks a shared cancellation token
 before scheduling work, before and after each request, and between PubMed's
