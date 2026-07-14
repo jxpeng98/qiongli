@@ -60,9 +60,14 @@ impl GlobalSettingsStore {
         match self.load_state() {
             Ok(state) => {
                 let cleanup_required = state.present && self.has_cleanup_artifact();
+                let config_state = if cleanup_required {
+                    ConfigState::RecoveryRequired
+                } else {
+                    readable_state(state.present)
+                };
                 RedactedConfigStatus::loaded(
                     &self.root,
-                    readable_state(state.present),
+                    config_state,
                     &state.loaded,
                     cleanup_required,
                 )
@@ -736,4 +741,241 @@ fn is_reparse_point(metadata: &Metadata) -> bool {
 #[cfg(not(windows))]
 fn is_reparse_point(_metadata: &Metadata) -> bool {
     false
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use std::collections::BTreeSet;
+    use std::ffi::OsStr;
+    use std::fs::OpenOptions;
+    use std::path::{Path, PathBuf};
+
+    use qiongli_content::ProfileId;
+
+    use super::*;
+
+    static NEXT_TEST: AtomicU64 = AtomicU64::new(0);
+
+    struct TestFixture {
+        compatibility_root: PathBuf,
+    }
+
+    impl TestFixture {
+        fn new(name: &str) -> Self {
+            let native_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .and_then(Path::parent)
+                .expect("config crate must live below the native workspace");
+            let compatibility_root =
+                native_root
+                    .join("target/qiongli-config-unit-tests")
+                    .join(format!(
+                        "{name}-{}-{}",
+                        std::process::id(),
+                        NEXT_TEST.fetch_add(1, Ordering::Relaxed)
+                    ));
+            let _ = fs::remove_dir_all(&compatibility_root);
+            Self { compatibility_root }
+        }
+
+        fn store(&self) -> GlobalSettingsStore {
+            let root = crate::resolve_config_root(
+                Some(OsStr::new(&self.compatibility_root)),
+                Path::new("/home/qiongli-test"),
+            )
+            .unwrap();
+            GlobalSettingsStore::new(root)
+        }
+
+        fn settings_path(&self) -> PathBuf {
+            self.compatibility_root
+                .join("v2")
+                .join(GLOBAL_SETTINGS_FILE)
+        }
+
+        fn state_root(&self) -> PathBuf {
+            self.compatibility_root.join("v2")
+        }
+    }
+
+    impl Drop for TestFixture {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.compatibility_root);
+        }
+    }
+
+    struct TestFaults {
+        points: BTreeSet<FaultPoint>,
+    }
+
+    impl TestFaults {
+        fn one(point: FaultPoint) -> Self {
+            Self {
+                points: BTreeSet::from([point]),
+            }
+        }
+
+        fn paired(first: FaultPoint, second: FaultPoint) -> Self {
+            Self {
+                points: BTreeSet::from([first, second]),
+            }
+        }
+    }
+
+    impl PersistenceFaults for TestFaults {
+        fn check(&self, point: FaultPoint) -> Result<(), ConfigError> {
+            if self.points.contains(&point) {
+                Err(ConfigError::PersistenceFailed {
+                    stage: fault_stage(point),
+                    kind: io::ErrorKind::Other,
+                })
+            } else {
+                Ok(())
+            }
+        }
+    }
+
+    #[test]
+    fn fault_before_activation_preserves_prior_bytes_and_revision() {
+        for point in [
+            FaultPoint::AfterLock,
+            FaultPoint::AfterCurrentRead,
+            FaultPoint::AfterStagingSync,
+            FaultPoint::AfterRecoverySync,
+        ] {
+            let fixture = TestFixture::new("pre-activation");
+            let store = fixture.store();
+            store.replace(0, GlobalSettings::default()).unwrap();
+            let before = fs::read(fixture.settings_path()).unwrap();
+            let result = store.replace_unix_with(1, next_settings(), &TestFaults::one(point));
+            assert!(matches!(result, Err(ConfigError::PersistenceFailed { .. })));
+            assert_eq!(fs::read(fixture.settings_path()).unwrap(), before);
+            assert_eq!(store.load().unwrap().revision, 1);
+            assert!(transaction_files(&fixture.state_root()).is_empty());
+        }
+    }
+
+    #[test]
+    fn fault_after_activation_rolls_back_prior_bytes_and_revision() {
+        for point in [
+            FaultPoint::AfterActivation,
+            FaultPoint::BeforeCommitDirectorySync,
+        ] {
+            let fixture = TestFixture::new("post-activation");
+            let store = fixture.store();
+            store.replace(0, GlobalSettings::default()).unwrap();
+            let before = fs::read(fixture.settings_path()).unwrap();
+            let result = store.replace_unix_with(1, next_settings(), &TestFaults::one(point));
+            assert!(matches!(result, Err(ConfigError::PersistenceFailed { .. })));
+            assert_eq!(fs::read(fixture.settings_path()).unwrap(), before);
+            assert_eq!(store.load().unwrap().revision, 1);
+            assert!(transaction_files(&fixture.state_root()).is_empty());
+        }
+    }
+
+    #[test]
+    fn failed_first_activation_restores_absence() {
+        for point in [
+            FaultPoint::AfterActivation,
+            FaultPoint::BeforeCommitDirectorySync,
+        ] {
+            let fixture = TestFixture::new("first-write-rollback");
+            let store = fixture.store();
+            let result = store.replace_unix_with(0, next_settings(), &TestFaults::one(point));
+            assert!(matches!(result, Err(ConfigError::PersistenceFailed { .. })));
+            assert!(!fixture.settings_path().exists());
+            assert_eq!(store.load().unwrap().revision, 0);
+            assert!(transaction_files(&fixture.state_root()).is_empty());
+        }
+    }
+
+    #[test]
+    fn cleanup_fault_reports_committed_revision_and_recovery_marker() {
+        let fixture = TestFixture::new("cleanup");
+        let store = fixture.store();
+        store.replace(0, GlobalSettings::default()).unwrap();
+        let outcome = store
+            .replace_unix_with(
+                1,
+                next_settings(),
+                &TestFaults::one(FaultPoint::DuringCleanup),
+            )
+            .unwrap();
+        assert_eq!(outcome.revision, 2);
+        assert!(outcome.cleanup_required);
+        assert_eq!(store.load().unwrap().revision, 2);
+        assert_eq!(transaction_files(&fixture.state_root()).len(), 1);
+        let status = store.status();
+        assert_eq!(status.state, ConfigState::RecoveryRequired);
+        assert!(status.cleanup_required);
+    }
+
+    #[test]
+    fn rollback_fault_returns_recovery_required_without_false_success() {
+        let fixture = TestFixture::new("rollback-failure");
+        let store = fixture.store();
+        store.replace(0, GlobalSettings::default()).unwrap();
+        let result = store.replace_unix_with(
+            1,
+            next_settings(),
+            &TestFaults::paired(FaultPoint::AfterActivation, FaultPoint::DuringRollback),
+        );
+        assert_eq!(result, Err(ConfigError::RecoveryRequired));
+        assert_eq!(store.load().unwrap().revision, 2);
+        assert_eq!(transaction_files(&fixture.state_root()).len(), 1);
+        assert_eq!(store.status().state, ConfigState::RecoveryRequired);
+    }
+
+    #[test]
+    fn held_lock_times_out_without_changing_live_bytes() {
+        let fixture = TestFixture::new("lock-timeout");
+        let store = fixture.store();
+        store.replace(0, GlobalSettings::default()).unwrap();
+        let before = fs::read(fixture.settings_path()).unwrap();
+        let lock = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(fixture.state_root().join(LOCK_FILE))
+            .unwrap();
+        lock.lock().unwrap();
+        let mut contender = store.clone();
+        contender.lock_timeout = Duration::from_millis(20);
+        assert_eq!(
+            contender.replace(1, next_settings()),
+            Err(ConfigError::LockBusy)
+        );
+        assert_eq!(fs::read(fixture.settings_path()).unwrap(), before);
+    }
+
+    fn next_settings() -> GlobalSettings {
+        GlobalSettings {
+            default_profile: ProfileId::Full,
+            ..GlobalSettings::default()
+        }
+    }
+
+    fn transaction_files(state_root: &Path) -> Vec<String> {
+        let mut files = fs::read_dir(state_root)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+            .filter(|name| {
+                name.starts_with(STAGING_FILE_PREFIX) || name.starts_with(RECOVERY_FILE_PREFIX)
+            })
+            .collect::<Vec<_>>();
+        files.sort();
+        files
+    }
+
+    const fn fault_stage(point: FaultPoint) -> PersistenceStage {
+        match point {
+            FaultPoint::AfterLock => PersistenceStage::AcquireLock,
+            FaultPoint::AfterCurrentRead => PersistenceStage::ReadCurrent,
+            FaultPoint::AfterStagingSync => PersistenceStage::SyncStaging,
+            FaultPoint::AfterRecoverySync => PersistenceStage::CreateRecovery,
+            FaultPoint::AfterActivation => PersistenceStage::Activate,
+            FaultPoint::BeforeCommitDirectorySync => PersistenceStage::SyncDirectory,
+            FaultPoint::DuringCleanup => PersistenceStage::Cleanup,
+            FaultPoint::DuringRollback => PersistenceStage::Rollback,
+        }
+    }
 }

@@ -70,6 +70,20 @@ fn missing_state_returns_revision_zero_without_writing() {
 }
 
 #[test]
+#[cfg(windows)]
+fn windows_replace_fails_before_any_filesystem_mutation() {
+    let fixture = Fixture::new("windows-write-unsupported");
+    assert!(!fixture.compatibility_root.exists());
+
+    assert_eq!(
+        fixture.store().replace(0, GlobalSettings::default()),
+        Err(ConfigError::UnsupportedPlatformSecurity)
+    );
+
+    assert!(!fixture.compatibility_root.exists());
+}
+
+#[test]
 fn valid_state_loads_without_rewriting_bytes() {
     let fixture = Fixture::new("valid");
     let document = valid_document();
