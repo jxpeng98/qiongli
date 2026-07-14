@@ -1,6 +1,6 @@
 # Qiongli R2E Native Lite MCP Vertical Implementation Plan
 
-Status: in progress
+Status: complete
 
 Date: July 14, 2026
 
@@ -37,67 +37,68 @@ adapter.
 - [x] Freeze exact CLI grammar, protocol behavior, tool ownership, secure-store
   boundary, copied-binary proof, nonclaims, and R3 handoff.
 - [x] Write design and implementation plan before production changes.
-- [ ] Commit and push the design checkpoint on the rolling branch.
+- [x] Commit and push the design checkpoint on the rolling branch.
 
 ## Task 2 — Complete Shared Lite Inputs
 
-- [ ] Move bounded search-plan argument parsing and aliases into the shared
+- [x] Move bounded search-plan argument parsing and aliases into the shared
   runtime with typed static errors.
-- [ ] Add strict literature-search object parsing, provider selection, modes,
+- [x] Add strict literature-search object parsing, provider selection, modes,
   and limits to the shared runtime.
-- [ ] Delegate both parsers from the old Lite server and remove duplicate
+- [x] Delegate both parsers from the old Lite server and remove duplicate
   helper kernels.
-- [ ] Cover unknown, missing, type-invalid, duplicate, oversized, alias, year,
+- [x] Cover unknown, missing, type-invalid, duplicate, oversized, alias, year,
   mode, and redaction-canary inputs.
 
 ## Task 3 — Add Shared MCP Server
 
-- [ ] Implement JSON-RPC request parsing, notification suppression, static
+- [x] Implement JSON-RPC request parsing, notification suppression, static
   errors, malformed-JSON recovery, and framing-preserving responses.
-- [ ] Load tools from `LiteToolRegistry` and dispatch only resolved typed
+- [x] Load tools from `LiteToolRegistry` and dispatch only resolved typed
   domain handlers.
-- [ ] Compose redacted native config/literature status and production bounded
+- [x] Compose redacted native config/literature status and production bounded
   provider search.
-- [ ] Compose shared search plan, evidence, Zotero fallback/export, and
+- [x] Compose shared search plan, evidence, Zotero fallback/export, and
   orchestration previews.
-- [ ] Validate save/configure inputs and return fixed unavailable-safe tool
+- [x] Validate save/configure inputs and return fixed unavailable-safe tool
   errors without writes, listeners, secret echo, or path disclosure.
-- [ ] Add defense-in-depth credential-key redaction to structured and text
+- [x] Add defense-in-depth credential-key redaction to structured and text
   tool results.
-- [ ] Test every public Lite name and both framing modes directly.
+- [x] Test every public Lite name and both framing modes directly.
 
 ## Task 4 — Expose Canonical Binary Mode
 
-- [ ] Add the exact `mcp serve --profile lite|marketplace-lite --transport
-  stdio` grammar, help, duplicate/unknown rejection, and Full-profile closure.
-- [ ] Add a typed product action so stdio serving bypasses one-shot CLI output.
-- [ ] Compose the verified embedded registry and native provider settings in
+- [x] Add the exact
+  `mcp serve --profile lite|marketplace-lite --transport stdio` grammar, help,
+  duplicate/unknown rejection, and Full-profile closure.
+- [x] Add a typed product action so stdio serving bypasses one-shot CLI output.
+- [x] Compose the verified embedded registry and native provider settings in
   the app crate with `UnavailableSecretStore`.
-- [ ] Keep initialize/list available when config is missing or invalid while
+- [x] Keep initialize/list available when config is missing or invalid while
   returning fixed dependent-tool errors for invalid config.
-- [ ] Ensure stdout is MCP-only and EOF exits cleanly.
+- [x] Ensure stdout is MCP-only and EOF exits cleanly.
 
 ## Task 5 — Prove The Vertical Slice
 
-- [ ] Add a copied-binary test with isolated config, empty `PATH`, initialize,
+- [x] Add a copied-binary test with isolated config, empty `PATH`, initialize,
   notification, tools/list, safe tools/call, unavailable mutation, and EOF.
-- [ ] Assert all 12 frozen names, structured output, alias year equality,
+- [x] Assert all 12 frozen names, structured output, alias year equality,
   preview safety flags, disabled Zotero fallback, and secret/path redaction.
-- [ ] Test invalid CLI modes before stdin and test line plus Content-Length
+- [x] Test invalid CLI modes before stdin and test line plus Content-Length
   sessions.
-- [ ] Run native boundary, format, locked check, strict Clippy, and all native
+- [x] Run native boundary, format, locked check, strict Clippy, and all native
   Rust tests.
-- [ ] Run focused old Lite compatibility tests and Windows MSVC cross-target
+- [x] Run focused old Lite compatibility tests and Windows MSVC cross-target
   check/Clippy without Python, Node, or live services.
 
 ## Task 6 — Checkpoint And Record
 
-- [ ] Commit and push the cohesive R2E implementation to rolling Draft PR #63.
-- [ ] Require exact-head boundary, Linux, macOS, Windows, and focused Lite jobs
+- [x] Commit and push the cohesive R2E implementation to rolling Draft PR #63.
+- [x] Require exact-head boundary, Linux, macOS, Windows, and focused Lite jobs
   to pass.
-- [ ] Record observed commit IDs, test counts, timings, and explicit nonclaims
+- [x] Record observed commit IDs, test counts, timings, and explicit nonclaims
   in this plan, the accelerated roadmap, native README, and PR body.
-- [ ] Mark R2 complete only if the copied-binary and exact-head gates pass;
+- [x] Mark R2 complete only if the copied-binary and exact-head gates pass;
   otherwise leave R2E in progress with a factual blocker.
 
 ## Required Commands
@@ -122,3 +123,36 @@ serves initialize, all 12 Lite definitions, and bounded safe calls over stdio;
 both Rust entrypoints share request/domain kernels; unavailable config writes
 fail safely; required local and exact-head CI gates pass; and packaging,
 launch-grant, Marketplace, Full MCP, agent, and release claims remain closed.
+
+## Execution Receipt
+
+- Design and implementation plan: `51887f4c`.
+- Canonical native Lite MCP implementation: `fce20f46`.
+- The canonical `qiongli` command now accepts only explicit Lite/stdio serving;
+  Full profile, alternate transports, missing options, duplicates, unknowns,
+  and non-UTF-8 control values fail before service initialization.
+- One shared server owns line and `Content-Length` framing, JSON-RPC/MCP,
+  notification suppression, the embedded 12-name registry, typed dispatch,
+  status/search, evidence, Zotero fallback/export, and preview orchestration.
+- The old Lite adapter deleted 408 lines net from its server by delegating
+  search-plan and literature-search parsing to the shared runtime; no second
+  Rust provider/search request parser remains there.
+- Valid native provider-save and wizard calls are strictly validated and then
+  return fixed `capability-unavailable` tool errors. The secret canary is not
+  echoed, no local path is returned, and no config write or listener occurs.
+- The copied product binary passed initialize, exact 12-name tools/list,
+  bounded calls across every safe domain, secret/path redaction, notification
+  suppression, and clean EOF with an empty `PATH` and isolated native config.
+- Local evidence passed the 2.x boundary, native and Lite format, locked native
+  check, strict native and Lite Clippy, all 148 native Rust tests, all 69
+  focused old Lite compatibility tests, and Windows MSVC cross-target
+  check/Clippy.
+- Native CI run `29330582098` passed exact implementation head
+  `fce20f469d6cc691dcd9ea74d822a8dcf75bdb38`: boundary in 5s, focused Lite in
+  38s, Linux in 1m08s, macOS in 1m08s, and real Windows in 2m00s. Cloudflare
+  Pages also passed on PR #63.
+- No Python or Node suite, live scholarly provider, live Zotero/Companion,
+  filesystem mutation handler, loopback listener, browser/process/agent
+  launch, UI, installer, packaging, or release flow ran or became a native R2
+  capability. Signed launch grants, secure-store mutation, Marketplace
+  activation, Full MCP, and installable alpha qualification remain R3 or later.

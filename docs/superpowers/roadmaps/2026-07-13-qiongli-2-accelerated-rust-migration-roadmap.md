@@ -472,16 +472,43 @@ R2D is complete on July 14, 2026:
   process, shell, environment lookup, or agent backend was added or required.
   The canonical executable still exposes no MCP mode.
 
-R2E design is approved and implementation is in progress on July 14, 2026.
-The dependency-contiguous batch composes a canonical native Lite MCP stdio
-vertical slice from the shared registry, framing, typed dispatch, and already
-migrated domain services. Native MCP availability remains unclaimed until
-copied-binary initialize, tools/list, and bounded tools/call tests pass.
-Provider secret mutation and wizard ownership remain unavailable-safe until a
-production secure-store and explicit UI/CLI boundary exist; R2E must not guess
-or add a plaintext fallback. The copied-binary proof is a development vertical
-gate, not a release plugin, signed-launch-grant, Marketplace, or packaging
-claim; those remain R3 work.
+R2E and the R2 native Lite vertical are complete on July 14, 2026:
+
+- design checkpoint `51887f4c` freezes the closed Lite/stdio command, shared
+  protocol and handler ownership, unavailable-safe credential boundary,
+  copied-binary gate, release nonclaims, and R3 handoff;
+- implementation checkpoint `fce20f46` exposes
+  `qiongli mcp serve --profile lite --transport stdio` from the canonical
+  executable, with `marketplace-lite` as the only profile alias and no Full or
+  alternate transport escalation;
+- one shared runtime server owns bounded line and `Content-Length` framing,
+  JSON-RPC/MCP lifecycle methods and notifications, the embedded 12-name Lite
+  registry, typed domain dispatch, and bounded output/error redaction;
+- native config and literature status use the shared provider-access model and
+  the opaque `<managed-native-config>` identifier; secret references resolve
+  only through `SecretStore`, with no environment or 1.x plaintext fallback;
+- valid save-provider and wizard calls are validated and return fixed
+  unavailable tool errors without writing config, starting a listener,
+  launching a browser, or echoing the supplied value;
+- shared search-plan and literature-search parsers now serve both Rust
+  entrypoints, removing 408 lines net of duplicate compatibility-server code;
+- the copied canonical binary passed initialize, exact 12-name tools/list,
+  bounded domain calls, line/Content-Length behavior, notification
+  suppression, secret/path redaction, and EOF with an empty `PATH`;
+- the local gate passed boundary, native and Lite format, locked native check,
+  strict native and Lite Clippy, all 148 native tests, all 69 focused Lite
+  compatibility tests, and Windows MSVC cross-target check/Clippy;
+- Native CI run `29330582098` passed exact implementation head
+  `fce20f469d6cc691dcd9ea74d822a8dcf75bdb38`: boundary in 5s, focused Lite in
+  38s, Linux in 1m08s, macOS in 1m08s, and real Windows in 2m00s; and
+- no Python/Node suite, live provider/Zotero service, config mutation,
+  loopback listener, process, browser, UI, installer, packaging, launch grant,
+  Marketplace activation, Full MCP, or agent backend was added or required.
+
+R2 is therefore complete for the development vertical. This does not make the
+binary an installable alpha or a release plugin. Production secure-store
+mutation, signed artifact-bound launch grants, target packaging, host
+installation/repair, and clean-machine installed-product proof remain R3.
 
 Deliverables:
 
@@ -617,9 +644,11 @@ superseded head is not reported as current-head evidence.
    `2513c52f`;
 8. R2D shared route/task-plan preview and typed dispatch is complete at
    `5509d2c1`;
-9. R2E canonical native Lite MCP stdio design is approved; implement and prove
-   the copied-binary vertical slice without creating another branch or PR;
-10. continue into R3 and prepare alpha.1 only after the complete vertical gate.
+9. R2E canonical native Lite MCP stdio vertical slice is complete at
+   `fce20f46`, including copied-binary and exact-head CI proof;
+10. continue into R3 on the same rolling branch and Draft PR, beginning with
+    the install-plan/platform boundary and signed Lite launch-grant contract;
+11. prepare alpha.1 only after the complete installed-product vertical gate.
 
 ## Program Done
 
