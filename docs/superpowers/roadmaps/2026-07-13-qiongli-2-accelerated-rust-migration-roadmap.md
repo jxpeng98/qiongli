@@ -1,8 +1,7 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; R1 and R2 complete, with the R3A install-plan and
-signed Lite launch-grant implementation complete locally and exact-head CI
-pending
+Status: active execution; R1, R2, and R3A are complete, with R3B transactional
+managed installation next
 
 Decision date: July 13, 2026
 
@@ -56,7 +55,7 @@ checkpoint `f2a6fbe6`. The first shared Lite runtime extraction is complete at
 `d7f2d64f`. Work continues through provider/domain behavior rather than
 returning to another legacy inventory or Python parity phase.
 
-R3A reaches its local implementation checkpoint at `60c2ddc5`. It defines the
+R3A reaches its implementation checkpoint at `60c2ddc5`. It defines the
 signed Lite launch-grant and declarative install-plan trust boundary and adds
 truthful read-only `qiongli install status`; it does not yet install, mutate,
 discover, register, activate, package, or release anything.
@@ -539,7 +538,7 @@ Exit gate:
 
 Purpose: turn the native services into a usable local product.
 
-R3A is implementation-complete locally on July 14, 2026:
+R3A is complete on July 14, 2026:
 
 - design checkpoint `60c50526` freezes exact Lite artifact identity, injected
   Ed25519 trust, deterministic typed plans, bounded parsing, and nonclaims;
@@ -549,10 +548,13 @@ R3A is implementation-complete locally on July 14, 2026:
 - the canonical source binary exposes read-only `qiongli install status` and
   truthfully reports launch grant, preview, and apply as unavailable;
 - local gates passed the native boundary, format, locked check, strict Clippy,
-  all 161 native Rust tests, and Windows MSVC cross-target check/Clippy; and
+  all 161 native Rust tests, and Windows MSVC cross-target check/Clippy;
+- Native CI run `29332864357` passed exact implementation-and-local-receipt
+  head `a971ae1e`: boundary in 8s, Lite compatibility in 37s, Linux in 1m08s,
+  macOS in 1m05s, and real Windows in 2m19s; Cloudflare Pages also passed; and
 - no production signing key, signed release artifact, filesystem executor,
   receipt, adapter, real client activation, Marketplace/Desktop install,
-  package, or release exists yet. Exact-head CI remains pending until push.
+  package, or release exists yet.
 
 R3B is the next dependency-contiguous batch: implement the transactional
 current-user filesystem executor, managed ownership receipts, and deterministic
@@ -675,9 +677,10 @@ superseded head is not reported as current-head evidence.
 9. R2E canonical native Lite MCP stdio vertical slice is complete at
    `fce20f46`, including copied-binary and exact-head CI proof;
 10. R3A install-plan/platform boundary and signed Lite launch-grant contracts
-    are implementation-complete at `60c2ddc5`; exact-head CI is pending push;
-11. after R3A acceptance, continue with R3B transactional managed installation
-    on the same rolling branch and Draft PR;
+    are complete at `60c2ddc5`, with exact implementation-head Native CI run
+    `29332864357` and Cloudflare Pages green;
+11. continue with R3B transactional managed installation on the same rolling
+    branch and Draft PR;
 12. prepare alpha.1 only after the complete installed-product vertical gate.
 
 ## Program Done

@@ -1,6 +1,6 @@
 # Qiongli R3A Install Plan And Lite Launch Grant Implementation Plan
 
-Status: implementation complete locally; exact-head CI pending
+Status: complete
 
 Date: July 14, 2026
 
@@ -76,9 +76,9 @@ canonical app unpackaged and expose only truthful read-only install status.
 - [x] Run Windows MSVC cross-target check and strict Clippy.
 - [x] Review public errors/output for secrets, paths, attacker input, and false
   installation claims.
-- [ ] Commit and push the implementation checkpoint to rolling Draft PR #63.
-- [ ] Require exact-head boundary, Linux, macOS, and Windows jobs to pass.
-- [ ] Update this receipt, roadmap, native README, and PR body with observed
+- [x] Commit and push the implementation checkpoint to rolling Draft PR #63.
+- [x] Require exact-head boundary, Linux, macOS, and Windows jobs to pass.
+- [x] Update this receipt, roadmap, native README, and PR body with observed
   evidence only.
 
 ## Required Commands
@@ -104,7 +104,7 @@ source binary reports that it is not packaged or installable; and required
 local plus exact-head CI gates pass without making adapter, mutation, UI, or
 release claims.
 
-## Execution Receipt — Local Implementation Checkpoint
+## Execution Receipt
 
 - Design and implementation plan checkpoint: `60c50526`.
 - Platform contract implementation checkpoint:
@@ -127,5 +127,7 @@ release claims.
   key, publisher trust root, signed artifact, real install plan, filesystem
   executor, host discovery, client activation, packaging, or release was
   added or exercised.
-- Exact-head Native CI and Cloudflare evidence remain pending until this
-  checkpoint is pushed to Draft PR #63.
+- Native CI run `29332864357` passed exact implementation-and-local-receipt
+  head `a971ae1ecba9f19b85e7dbe3b782b40a69502cf8`: boundary in 8s, focused
+  Lite compatibility in 37s, Linux in 1m08s, macOS in 1m05s, and real Windows
+  in 2m19s. Cloudflare Pages also passed on Draft PR #63.
