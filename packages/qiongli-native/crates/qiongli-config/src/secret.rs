@@ -20,6 +20,10 @@ impl SecretRef {
         }
         Ok(Self(value.to_owned()))
     }
+
+    pub(crate) fn raw(&self) -> &str {
+        &self.0
+    }
 }
 
 impl Debug for SecretRef {

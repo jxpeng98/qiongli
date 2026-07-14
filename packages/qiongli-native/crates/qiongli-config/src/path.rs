@@ -2,9 +2,12 @@ use std::ffi::OsStr;
 use std::fmt::{self, Debug, Formatter};
 use std::path::{Component, Path, PathBuf};
 
+use serde::Serialize;
+
 use crate::ConfigError;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum ConfigRootSource {
     Default,
     Override,
