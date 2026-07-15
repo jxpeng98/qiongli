@@ -1,6 +1,6 @@
 # Qiongli R3M Lite Alpha.1 Release Candidate Execution Plan
 
-Status: active
+Status: active; Tasks 1-5 complete, exact-head release gates pending
 
 Date: July 15, 2026
 
@@ -72,25 +72,42 @@ publish without explicit maintainer authority.
 
 ## Task 5 — Prove The Candidate
 
-- [ ] Build an authority-injected current-target test candidate with distinct
+- [x] Build an authority-injected current-target test candidate with distinct
   ephemeral release and launch-grant keys.
-- [ ] Run CLI, embedded skills, UI startup preflight, and Lite MCP outside the
+- [x] Run CLI, embedded skills, UI startup preflight, and Lite MCP outside the
   checkout with an empty `PATH`.
-- [ ] Run isolated Codex and Claude Code apply/diagnose/remove and rollback
+- [x] Run isolated Codex and Claude Code apply/diagnose/remove and rollback
   journeys without reading normal user state.
-- [ ] Run explicit real-client and displayed-window checks when the required
-  external host is available; label unavailable gates truthfully.
-- [ ] Assert no runtime dependency on Rust, Python, Node, Cargo, npm, or pip.
+- [x] Label the real-client, displayed-window, and production-signing gates as
+  `not-run` with explicit external-boundary reasons; execute them only when the
+  required host and maintainer authority are provided.
+- [x] Assert no runtime dependency on Rust, Python, Node, Cargo, npm, or pip.
+
+Observed local evidence uses the current-target macOS aarch64 portable archive
+with product source commit `54f958c388cf54f060a0d322f058176d34935b40`.
+The extracted product completed the entire acceptance journey outside the
+checkout with an empty runtime `PATH`. The evidence records successful
+candidate-file closure, embedded skills, UI preflight, Lite MCP, both isolated
+client lifecycles, wrong/partial approval rejection, fresh-step compensation,
+and unrelated-state preservation. It also records `publication_allowed: false`;
+this is development evidence, not production-signing or public-release
+authority. Exact-head Linux evidence is delegated to Native CI.
 
 ## Task 6 — Accept Or Block Publication
 
-- [ ] Run format, locked workspace check, strict Clippy, complete native tests,
+- [x] Run format, locked workspace check, strict Clippy, complete native tests,
   focused Lite compatibility, Windows check/Clippy, and frozen boundary.
 - [ ] Commit and push cohesive R3M checkpoints to rolling Draft PR #63.
 - [ ] Require exact-head Native CI and Cloudflare Pages to pass.
 - [ ] Bind and review the exact release notes and current-target artifacts.
 - [ ] Record any external signing, real-client, UI, or clean-machine blocker;
   do not create a tag or public release without explicit maintainer authority.
+
+Local Task 6 development gates pass: native and Lite formatting, the frozen
+2.x boundary, locked all-target/all-feature native check, strict host Clippy,
+the complete native workspace test suite, all 69 focused Lite compatibility
+tests, and Windows MSVC locked check plus strict Clippy. The external gates and
+exact-head remote checks remain pending as listed above.
 
 ## Required Development Commands
 

@@ -1,7 +1,8 @@
 # Qiongli 2 Accelerated Rust Migration Roadmap
 
-Status: active execution; R1, R2, and R3A-R3L are complete; R3M release
-candidate and clean-machine acceptance are next
+Status: active execution; R1, R2, and R3A-R3L are complete; the R3M signed
+candidate journey and isolated zero-language-runtime acceptance are complete,
+while exact-head CI and external publication gates remain
 
 Decision date: July 13, 2026
 
@@ -905,13 +906,19 @@ discover managed roots, invoke client CLIs, mutate client-owned caches or
 enablement, support desktop/cloud Marketplace bypass, display a clean-machine
 window, publish artifacts, provide an updater, or publish Alpha.1.
 
-The remaining Lite Alpha.1 path is one bounded R3M batch:
+The remaining Lite Alpha.1 path is the release-gate tail of one bounded R3M
+batch:
 
-1. R3M assembles the accepted portable payload and target-specific plugin
-   sources into the advertised current-target release candidate, performs the
-   clean-machine zero-language-runtime CLI/UI/install/diagnose/remove journey,
-   records release notes and limitations, and only then publishes Lite
-   `v2.0.0-alpha.1`.
+1. R3M now assembles the accepted portable payload and target-specific plugin
+   sources into an exact three-file signed current-target candidate. An
+   isolated outside-checkout harness passes the empty-`PATH`
+   CLI/skills/UI-preflight/Lite-MCP/Codex/Claude lifecycle, rejection,
+   compensation, and unrelated-state checks with ephemeral in-memory test
+   keys. Native CI reproduces that non-publishing evidence on Linux.
+2. Exact-head Native CI and Cloudflare Pages must pass. Real-client,
+   displayed-window, production-signing, and maintainer publication authority
+   remain explicitly external gates before Lite `v2.0.0-alpha.1` can be
+   published.
 
 Full MCP, agents, ToolHost, orchestration, and updater work remain R4 and target
 the next Alpha rather than blocking the bounded Lite Alpha.1 publication.

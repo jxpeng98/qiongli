@@ -767,6 +767,37 @@ publish Alpha.1, provision production private keys, or claim Claude Desktop,
 Codex/ChatGPT Marketplace bypass, cloud execution, updater, notarization,
 SBOM, provenance, or cross-target readiness.
 
+### Non-publishing candidate acceptance
+
+Maintainers and Native CI can assemble and exercise an ephemeral test-signed
+candidate with the repository example:
+
+```text
+cargo run --manifest-path packages/qiongli-native/Cargo.toml \
+  --package qiongli \
+  --example native_candidate_acceptance \
+  --locked \
+  -- \
+  --output <absolute-new-directory-outside-checkout> \
+  --source-commit <exact-40-or-64-character-lowercase-object-id>
+```
+
+The output parent must already exist and pass the same trusted-path rules as a
+release target. The harness creates distinct ephemeral release and launch keys
+in memory, persists only the canonical public authority, builds one
+authority/source-bound Release binary, and verifies that the candidate
+directory contains exactly the archive, signed candidate JSON, and signed
+release notes.
+
+Acceptance extracts and runs only that binary from outside the checkout with
+an empty `PATH` and isolated homes. It covers version, embedded skills,
+materialization, UI startup preflight, the public Lite MCP tool list, Codex and
+Claude Code preview/apply/verify/remove, wrong and partial approvals, fresh-step
+compensation, and unrelated-state preservation. The generated
+`acceptance-evidence.json` is explicitly non-publishing. Real-client UI,
+displayed-window, and production-signing gates remain `not-run` with reasons
+until their external environments and maintainer authority are provided.
+
 ## R1 command contract (retained)
 
 The native executable composes the verified embedded pack and versioned global
