@@ -8,6 +8,7 @@ license.workspace = true
 repository.workspace = true
 publish.workspace = true
 description = "Canonical native Qiongli product executable"
+default-run = "qiongli"
 
 [dependencies]
 qiongli-config = { path = "../../crates/qiongli-config" }

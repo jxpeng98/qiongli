@@ -711,9 +711,8 @@ fn claude_install_status_discovers_without_writing_or_leaking_home() {
 }
 
 #[test]
-fn invalid_invocations_and_environment_fail_without_echoing_private_values() {
+fn invalid_explicit_invocations_and_environment_fail_without_echoing_private_values() {
     let cases: &[(&[&str], Option<&str>)] = &[
-        (&[], None),
         (
             &["ui", "extra-private-canary"],
             Some("extra-private-canary"),

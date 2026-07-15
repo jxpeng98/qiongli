@@ -745,19 +745,128 @@ impl eframe::App for QiongliDesktopApp {
     }
 }
 
-pub fn run_native(service: Box<dyn DesktopService>) -> eframe::Result {
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct DesktopApplicationMetadata {
+    product_name: &'static str,
+    window_title: &'static str,
+    version: &'static str,
+    application_identifier: &'static str,
+    license: &'static str,
+    startup_error_code: &'static str,
+}
+
+impl DesktopApplicationMetadata {
+    #[must_use]
+    pub const fn new(
+        product_name: &'static str,
+        window_title: &'static str,
+        version: &'static str,
+        application_identifier: &'static str,
+        license: &'static str,
+        startup_error_code: &'static str,
+    ) -> Self {
+        Self {
+            product_name,
+            window_title,
+            version,
+            application_identifier,
+            license,
+            startup_error_code,
+        }
+    }
+
+    #[must_use]
+    pub const fn product_name(self) -> &'static str {
+        self.product_name
+    }
+
+    #[must_use]
+    pub const fn window_title(self) -> &'static str {
+        self.window_title
+    }
+
+    #[must_use]
+    pub const fn version(self) -> &'static str {
+        self.version
+    }
+
+    #[must_use]
+    pub const fn application_identifier(self) -> &'static str {
+        self.application_identifier
+    }
+
+    #[must_use]
+    pub const fn license(self) -> &'static str {
+        self.license
+    }
+
+    #[must_use]
+    pub const fn startup_error_code(self) -> &'static str {
+        self.startup_error_code
+    }
+}
+
+pub fn run_native_application(
+    metadata: DesktopApplicationMetadata,
+    service: Box<dyn DesktopService>,
+) -> eframe::Result {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_title("Qiongli 2")
+            .with_title(metadata.window_title())
+            .with_app_id(metadata.application_identifier())
+            .with_icon(application_icon())
             .with_inner_size([1_080.0, 720.0])
             .with_min_inner_size([680.0, 520.0]),
         ..Default::default()
     };
     eframe::run_native(
-        "Qiongli 2",
+        metadata.product_name(),
         options,
         Box::new(move |_creation_context| Ok(Box::new(QiongliDesktopApp::new(service)))),
     )
+}
+
+fn application_icon() -> egui::IconData {
+    const SIZE: u32 = 64;
+    const BACKGROUND: [u8; 4] = [24, 30, 43, 255];
+    const ACCENT: [u8; 4] = [196, 161, 92, 255];
+    const TRANSPARENT: [u8; 4] = [0, 0, 0, 0];
+
+    let mut rgba = Vec::with_capacity((SIZE * SIZE * 4) as usize);
+    for y in 0..SIZE {
+        for x in 0..SIZE {
+            let x = i32::try_from(x).expect("icon coordinate must fit i32");
+            let y = i32::try_from(y).expect("icon coordinate must fit i32");
+            let corner_x = if x < 12 { 12 } else { 51 };
+            let corner_y = if y < 12 { 12 } else { 51 };
+            let corner_dx = x - corner_x;
+            let corner_dy = y - corner_y;
+            let inside_rounded_square = (12..=51).contains(&x)
+                || (12..=51).contains(&y)
+                || corner_dx * corner_dx + corner_dy * corner_dy <= 64;
+
+            let dx = x - 30;
+            let dy = y - 29;
+            let distance_squared = dx * dx + dy * dy;
+            let q_ring = (196..=400).contains(&distance_squared);
+            let q_tail = (39..=53).contains(&x) && (39..=53).contains(&y) && (x - y).abs() <= 3;
+
+            let pixel = if !inside_rounded_square {
+                TRANSPARENT
+            } else if q_ring || q_tail {
+                ACCENT
+            } else {
+                BACKGROUND
+            };
+            rgba.extend_from_slice(&pixel);
+        }
+    }
+
+    egui::IconData {
+        rgba,
+        width: SIZE,
+        height: SIZE,
+    }
 }
 
 fn configure_visuals(ui: &mut Ui) {
@@ -1050,6 +1159,20 @@ mod tests {
 
     struct FakeService {
         snapshot: DesktopSnapshotV1,
+    }
+
+    #[test]
+    fn native_application_icon_is_complete_and_product_coloured() {
+        let icon = application_icon();
+        assert_eq!(icon.width, 64);
+        assert_eq!(icon.height, 64);
+        assert_eq!(icon.rgba.len(), 64 * 64 * 4);
+        assert!(icon.rgba.chunks_exact(4).any(|pixel| pixel == [0, 0, 0, 0]));
+        assert!(
+            icon.rgba
+                .chunks_exact(4)
+                .any(|pixel| pixel == [196, 161, 92, 255])
+        );
     }
 
     fn fake_mcp_self_test(state: McpSelfTestState) -> McpSelfTestView {

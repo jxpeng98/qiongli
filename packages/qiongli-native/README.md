@@ -841,6 +841,18 @@ discover Codex and Claude Code without gaining write authority. Release-grade
 real-client receipts remain an external acceptance requirement when usable
 client binaries and validators are available.
 
+R3N Batch 3 implementation is complete. Running `qiongli` without arguments
+now opens the same native UI composition as `qiongli ui`; explicit CLI and
+machine-readable modes retain their existing parser and output contracts. A
+new `qiongli-desktop` activation binary is deliberately thin: it locates only
+the sibling canonical runtime and starts UI mode. Windows builds use the GUI
+subsystem and `CREATE_NO_WINDOW`, so desktop activation does not leave a
+console window while all product logic and embedded content remain in the
+canonical executable. The window now carries the Qiongli product name,
+version, MIT license, `io.github.jxpeng98.qiongli` application identifier,
+fixed startup error metadata, and a product-specific icon. Platform `.app`,
+Windows portable, and AppImage assembly remains Batch 4.
+
 ## R1 command contract (retained)
 
 The native executable composes the verified embedded pack and versioned global

@@ -1,6 +1,6 @@
 # Qiongli R3N Alpha.1 Desktop Application Closure Execution Plan
 
-Status: Batch 2 implementation complete; external client receipts deferred; Batch 3 ready
+Status: Batch 3 implementation complete; external client receipts deferred; Batch 4 ready
 
 Date: July 15, 2026
 
@@ -104,20 +104,48 @@ Implemented evidence:
 
 ## Batch 3 — Add The Desktop Application Entry
 
-- [ ] Extract one reusable native app composition entry from the current
+- [x] Extract one reusable native app composition entry from the current
   `qiongli ui` command path.
-- [ ] Make desktop/no-argument activation open the UI while preserving every
+- [x] Make desktop/no-argument activation open the UI while preserving every
   explicit CLI command and machine-readable output contract.
-- [ ] Add only the minimum platform launcher boundary needed to avoid a
+- [x] Add only the minimum platform launcher boundary needed to avoid a
   persistent console window on Windows; keep all product logic in shared Rust
   services.
-- [ ] Add product name, version, icon, application identifier, license, and
+- [x] Add product name, version, icon, application identifier, license, and
   startup-error metadata.
-- [ ] Test CLI/UI dispatch, repeated launches, invalid embedded content, missing
+- [x] Test CLI/UI dispatch, repeated launches, invalid embedded content, missing
   config home, renderer failure, and no-language-runtime startup.
 
-**Checkpoint:** A development application bundle can be opened without typing
-`qiongli ui`, and CLI commands behave exactly as before.
+**Checkpoint:** A development desktop activation entry is available without
+typing `qiongli ui`, and CLI commands behave exactly as before. OS package
+assembly remains Batch 4.
+
+Implemented evidence:
+
+- The canonical `qiongli` executable now routes no-argument activation through
+  a reusable desktop application composition entry. Every explicit command
+  continues through the existing strict parser and output contracts, while
+  `qiongli ui` remains available for terminal and host activation.
+- `qiongli-desktop` is a cross-platform thin launcher. It resolves only the
+  sibling canonical executable and invokes its UI mode; it contains no product
+  services or embedded content. On Windows it is a GUI-subsystem executable
+  and starts the canonical child with `CREATE_NO_WINDOW`, preventing a
+  persistent console without creating a second product implementation.
+- Native window metadata now has the fixed application identifier
+  `io.github.jxpeng98.qiongli`, package version and license, fixed startup error
+  codes, and a Qiongli-specific RGBA window icon. The identifier is also bound
+  to the eframe viewport rather than inheriting an egui default.
+- Tests cover empty versus explicit dispatch, metadata, icon completeness,
+  sibling-only launcher resolution, invalid embedded content, renderer
+  failure, and two consecutive startup validations without a config home.
+- Format, workspace check, workspace Clippy, all workspace test targets, and
+  the 2.x change boundary pass. The loopback-only Zotero tests require a test
+  environment that permits binding a local listener; they pass there after
+  the restricted sandbox rejects the bind with `Operation not permitted`.
+- The Windows MSVC desktop target checks successfully, and a native startup
+  preflight succeeds with an empty `PATH`. On macOS the debug launcher is about
+  1 MiB versus about 88 MiB for the canonical debug runtime, confirming that
+  product bytes were not duplicated into the launcher.
 
 ## Batch 4 — Package The Three Desktop Targets
 

@@ -29,7 +29,7 @@ use crate::native_cli::{
 
 const OUTPUT_SCHEMA_VERSION: u32 = 1;
 
-const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli --version\n  qiongli --help\n  qiongli ui [--startup-check]\n  qiongli ui --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli install status\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate <preview|apply|verify|remove> [options]\n  qiongli install native <preview|apply|verify|remove> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
+const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli\n  qiongli --version\n  qiongli --help\n  qiongli ui [--startup-check]\n  qiongli ui --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli install status\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate <preview|apply|verify|remove> [options]\n  qiongli install native <preview|apply|verify|remove> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
 
 const CONTENT_USAGE: &str = "Qiongli embedded content\n\nUsage:\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli content --help\n";
 
@@ -309,8 +309,11 @@ struct UsageError {
 
 fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, UsageError> {
     let args = args.into_iter().collect::<Vec<_>>();
+    if args.is_empty() {
+        return Ok(Command::Ui);
+    }
     let Some(command) = args.first().and_then(|value| value.to_str()) else {
-        return Err(global_usage_error("a command or option is required"));
+        return Err(global_usage_error("command or option is not valid text"));
     };
 
     match command {
@@ -1550,6 +1553,7 @@ mod tests {
 
     #[test]
     fn parser_accepts_the_frozen_command_families() {
+        assert_eq!(parse_args(args(&[])), Ok(Command::Ui));
         assert_eq!(parse_args(args(&["--help"])), Ok(Command::Help));
         assert_eq!(parse_args(args(&["--version"])), Ok(Command::Version));
         assert_eq!(parse_args(args(&["ui"])), Ok(Command::Ui));
@@ -1787,6 +1791,13 @@ mod tests {
     fn library_cli_boundary_does_not_launch_product_entrypoint_modes() {
         let content = crate::embedded_content().unwrap();
         let environment = CommandEnvironment::default();
+        let no_args = run_cli(args(&[]), &environment, &content);
+        assert_eq!(no_args.exit_code(), 1);
+        assert_eq!(
+            no_args.stderr(),
+            "error: desktop-command-requires-product-entrypoint\n"
+        );
+
         let ui = run_cli(args(&["ui"]), &environment, &content);
         assert_eq!(ui.exit_code(), 1);
         assert_eq!(
@@ -1821,7 +1832,6 @@ mod tests {
     #[test]
     fn parser_rejects_missing_duplicate_unknown_and_private_values() {
         for values in [
-            vec![],
             vec!["content"],
             vec!["content", "list", "extra"],
             vec!["content", "materialize", "--profile", "full"],

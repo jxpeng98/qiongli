@@ -75,7 +75,8 @@ pub fn run_desktop_with_activation_sessions(
         return Err(DesktopLaunchError);
     }
     let service = NativeDesktopService::new(environment, content, sessions);
-    qiongli_ui::run_native(Box::new(service)).map_err(|_| DesktopLaunchError)
+    qiongli_ui::run_native_application(crate::desktop_application_metadata(), Box::new(service))
+        .map_err(|_| DesktopLaunchError)
 }
 
 pub fn run_desktop_with_candidate_sessions(
@@ -93,7 +94,8 @@ pub fn run_desktop_with_candidate_sessions(
         return Err(DesktopLaunchError);
     }
     let service = NativeDesktopService::new_with_candidate_sessions(environment, content, sessions);
-    qiongli_ui::run_native(Box::new(service)).map_err(|_| DesktopLaunchError)
+    qiongli_ui::run_native_application(crate::desktop_application_metadata(), Box::new(service))
+        .map_err(|_| DesktopLaunchError)
 }
 
 pub(crate) fn validate_desktop_startup(
@@ -2144,6 +2146,15 @@ mod tests {
         fn pick_folder(&mut self) -> Option<PathBuf> {
             self.path.take()
         }
+    }
+
+    #[test]
+    fn startup_validation_is_repeatable_without_a_config_home() {
+        let environment = CommandEnvironment::with_paths(None, None, None);
+        let content = crate::embedded_content().expect("embedded content must load");
+
+        assert_eq!(validate_desktop_startup(&environment, &content), Ok(()));
+        assert_eq!(validate_desktop_startup(&environment, &content), Ok(()));
     }
 
     #[test]

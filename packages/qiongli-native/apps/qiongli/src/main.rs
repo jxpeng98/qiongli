@@ -3,12 +3,23 @@ use std::io::{self, BufReader};
 use std::process::ExitCode;
 
 fn main() -> ExitCode {
+    let args = env::args_os().skip(1).collect::<Vec<_>>();
+    if args.is_empty() {
+        return match qiongli::run_desktop_application() {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(error) => {
+                eprintln!("error: {}", error.reason_code());
+                ExitCode::FAILURE
+            }
+        };
+    }
+
     let environment = qiongli::CommandEnvironment::from_process();
     let content = match qiongli::embedded_content() {
         Ok(content) => content,
         Err(_) => return render_output(qiongli::failed_embedded_content_output()),
     };
-    match qiongli::prepare_action(env::args_os().skip(1), &environment, &content) {
+    match qiongli::prepare_action(args, &environment, &content) {
         qiongli::ProductAction::Output(output) => render_output(output),
         qiongli::ProductAction::ServeLiteMcpStdio => {
             let stdin = io::stdin();
@@ -27,7 +38,7 @@ fn main() -> ExitCode {
             if qiongli::run_desktop(environment, content).is_ok() {
                 ExitCode::SUCCESS
             } else {
-                eprintln!("error: desktop-ui-start-failed");
+                eprintln!("error: {}", qiongli::DESKTOP_STARTUP_ERROR_CODE);
                 ExitCode::FAILURE
             }
         }
@@ -37,7 +48,7 @@ fn main() -> ExitCode {
             {
                 ExitCode::SUCCESS
             } else {
-                eprintln!("error: desktop-ui-start-failed");
+                eprintln!("error: {}", qiongli::DESKTOP_STARTUP_ERROR_CODE);
                 ExitCode::FAILURE
             }
         }

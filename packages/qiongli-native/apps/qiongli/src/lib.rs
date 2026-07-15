@@ -1,9 +1,14 @@
+mod application;
 mod candidate_cli;
 mod command;
 mod desktop;
+mod desktop_contract;
 mod mcp;
 mod native_cli;
 
+pub use application::{
+    DesktopApplicationError, desktop_application_metadata, run_desktop_application,
+};
 pub use command::{
     CliOutput, CommandEnvironment, ProductAction, failed_embedded_content_output, prepare_action,
     run_cli,
@@ -11,6 +16,11 @@ pub use command::{
 pub use desktop::{
     DesktopActivationSession, DesktopCandidateSession, DesktopLaunchError, run_desktop,
     run_desktop_with_activation_sessions, run_desktop_with_candidate_sessions,
+};
+pub use desktop_contract::{
+    DESKTOP_APPLICATION_IDENTIFIER, DESKTOP_CONTENT_ERROR_CODE, DESKTOP_PRODUCT_LICENSE,
+    DESKTOP_PRODUCT_NAME, DESKTOP_PRODUCT_VERSION, DESKTOP_RUNTIME_ERROR_CODE,
+    DESKTOP_STARTUP_ERROR_CODE, DESKTOP_WINDOW_TITLE,
 };
 pub use mcp::serve_lite_mcp;
 use qiongli_content::{EmbeddedContent, ResourcePackLoaderError};
