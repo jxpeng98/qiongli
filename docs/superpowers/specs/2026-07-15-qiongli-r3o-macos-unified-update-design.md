@@ -159,8 +159,9 @@ as test canaries must remain unread and unchanged.
    and signed metadata verification without download or mutation.
 3. Add the bounded HTTPS archive downloader, private exact-byte staging,
    cancellation/concurrency handling, and deterministic byte-integrity tests.
-4. Exercise manifest and archive transport through an isolated TLS fault
-   matrix, including redirects, timeouts, interruption, and concurrent cancel.
+4. Exercise the production manifest/archive validators through isolated
+   response and stream fault fixtures, including redirects, timeouts,
+   interruption, and concurrent cancel, without weakening production HTTPS.
 5. Add staged macOS verification, bundled helper, journaled A/B replacement,
    relaunch/health/rollback, and fault-injection tests.
 6. Add receipt inventory and staged-runtime reconciliation for installed

@@ -315,12 +315,16 @@ impl UpdateStateStore {
                 use std::os::unix::fs::DirBuilderExt;
                 let mut builder = fs::DirBuilder::new();
                 builder.mode(0o700);
-                builder.create(self.root.state_root()).map_err(|error| {
-                    ConfigError::PersistenceFailed {
-                        stage: PersistenceStage::CreateStore,
-                        kind: error.kind(),
+                match builder.create(self.root.state_root()) {
+                    Ok(()) => {}
+                    Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {}
+                    Err(error) => {
+                        return Err(ConfigError::PersistenceFailed {
+                            stage: PersistenceStage::CreateStore,
+                            kind: error.kind(),
+                        });
                     }
-                })?;
+                }
                 let metadata = fs::symlink_metadata(self.root.state_root()).map_err(|error| {
                     ConfigError::PersistenceFailed {
                         stage: PersistenceStage::Inspect,
@@ -894,6 +898,44 @@ mod tests {
             store.replace(0, UpdateState::initial(UpdateStreamPreference::Beta)),
             Err(ConfigError::RevisionConflict { observed: 1 })
         );
+        let _ = fs::remove_dir_all(compatibility);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn concurrent_first_writes_share_the_lock_and_one_revision_wins() {
+        use std::sync::{Arc, Barrier};
+
+        let root = test_root("concurrent-first-write");
+        let compatibility = root.compatibility_root().to_path_buf();
+        let store = UpdateStateStore::new(root, UpdateStreamPreference::Beta);
+        let barrier = Arc::new(Barrier::new(2));
+        let mut handles = Vec::new();
+        for _ in 0..2 {
+            let store = store.clone();
+            let barrier = Arc::clone(&barrier);
+            handles.push(std::thread::spawn(move || {
+                barrier.wait();
+                store.replace(0, UpdateState::initial(UpdateStreamPreference::Stable))
+            }));
+        }
+
+        let results: Vec<_> = handles
+            .into_iter()
+            .map(|handle| handle.join().unwrap())
+            .collect();
+        assert_eq!(results.iter().filter(|result| result.is_ok()).count(), 1);
+        assert_eq!(
+            results
+                .iter()
+                .filter(|result| matches!(
+                    result,
+                    Err(ConfigError::RevisionConflict { observed: 1 })
+                ))
+                .count(),
+            1
+        );
+        assert_eq!(store.load().unwrap().revision, 1);
         let _ = fs::remove_dir_all(compatibility);
     }
 

@@ -1,6 +1,6 @@
 # Qiongli R3O macOS Unified Update Execution Plan
 
-Status: Batch 2B implemented and locally accepted; Batch 2C next
+Status: Batch 2C implemented and locally accepted; Batch 3 next
 
 Date: July 15, 2026
 
@@ -135,16 +135,32 @@ Implemented evidence:
 
 ## Batch 2C — Exercise The Network Fault Matrix
 
-- [ ] Add an isolated TLS fixture transport for manifest and archive responses
-  without weakening production HTTPS validation.
-- [ ] Prove offline, refused connection, timeout, redirect loops, disallowed
+- [x] Add an isolated response/stream fixture layer that exercises the same
+  manifest and archive validators without weakening production HTTPS policy.
+- [x] Prove offline, refused connection, timeout, redirect loops, disallowed
   redirect hosts, compressed responses, missing/incorrect lengths, and read
   interruption return fixed path-redacted errors.
-- [ ] Add barrier-controlled concurrent download/cancel tests and confirm only
+- [x] Add barrier-controlled concurrent download/cancel tests and confirm only
   one expected-revision reservation can own a staged transaction.
 
 **Checkpoint:** Deterministic transport faults cannot leave executable,
 unbounded, ambiguous, or orphaned update bytes.
+
+Implemented evidence:
+
+- Production manifest and archive responses now pass through isolated status,
+  encoding, final-URL, and advertised-length validators before bounded reads;
+  the production clients remain HTTPS-only with fixed endpoints/hosts.
+- Deterministic response and stream fixtures cover redirects, redirect limits,
+  disallowed hosts, compressed bodies, missing/incorrect lengths, oversized
+  bodies, offline/refused/timeout reason codes, and interrupted reads.
+- Every archive fetch failure removes its private transaction and leaves no
+  partial or activated archive. Errors remain fixed reason codes without local
+  paths.
+- Barrier-controlled tests prove two callers using revision zero cannot both
+  reserve a transaction, and a concurrent cancel wins without leaving bytes.
+  The test also found and fixed a first-write directory initialization race so
+  both callers now serialize through the revision lock.
 
 ## Batch 3 — Stage And Replace The macOS Application
 
@@ -214,6 +230,22 @@ double-clicked macOS application without Terminal.
 
 **Checkpoint:** The public ledger proves one usable, signed, notarized, safely
 updateable macOS arm64 Alpha.1. Windows and Linux remain explicitly deferred.
+
+## Alpha.1 Remaining Critical Path
+
+After Batch 2C, the unsigned code-complete macOS candidate is three
+implementation batches away:
+
+1. Batch 3: staged app verification, native replacement helper, health commit,
+   and rollback;
+2. Batch 4: receipt-owned Skills/MCP/Codex/Claude Code reconciliation; and
+3. Batch 5: the double-clicked desktop update experience and packaged journeys.
+
+Public `v2.0.0-alpha.1` then has one external publication gate (Batch 6): exact
+artifacts, Developer ID signing/notarization, clean-machine macOS acceptance,
+signed stream metadata, and exact-head CI/ledger evidence. Signing credentials
+and release authority remain intentionally outside the repository until that
+gate.
 
 ## Fast Validation Loop
 

@@ -640,31 +640,44 @@ impl ManifestFetcher for ReqwestManifestFetcher {
             .header(ACCEPT_ENCODING, "identity")
             .send()
             .map_err(map_reqwest_error)?;
-        if response.status() != StatusCode::OK {
-            return Err("native-update-manifest-response-invalid");
-        }
-        if response
-            .headers()
-            .get(CONTENT_ENCODING)
-            .is_some_and(|value| value.as_bytes() != b"identity")
-        {
-            return Err("native-update-manifest-encoding-invalid");
-        }
-        if response.content_length().is_some_and(|length| {
-            length > qiongli_platform::MAX_NATIVE_UPDATE_MANIFEST_BYTES as u64
-        }) {
-            return Err("native-update-manifest-too-large");
-        }
-        let mut bytes = Vec::new();
-        response
-            .take((qiongli_platform::MAX_NATIVE_UPDATE_MANIFEST_BYTES + 1) as u64)
-            .read_to_end(&mut bytes)
-            .map_err(|_| "native-update-manifest-read-failed")?;
-        if bytes.len() > qiongli_platform::MAX_NATIVE_UPDATE_MANIFEST_BYTES {
-            return Err("native-update-manifest-too-large");
-        }
-        Ok(bytes)
+        validate_manifest_response(
+            response.status(),
+            response.headers().get(CONTENT_ENCODING),
+            response.content_length(),
+        )?;
+        read_manifest_body(response)
     }
+}
+
+fn validate_manifest_response(
+    status: StatusCode,
+    content_encoding: Option<&reqwest::header::HeaderValue>,
+    content_length: Option<u64>,
+) -> Result<(), &'static str> {
+    if status != StatusCode::OK {
+        return Err("native-update-manifest-response-invalid");
+    }
+    if unsupported_content_encoding(content_encoding) {
+        return Err("native-update-manifest-encoding-invalid");
+    }
+    if content_length
+        .is_some_and(|length| length > qiongli_platform::MAX_NATIVE_UPDATE_MANIFEST_BYTES as u64)
+    {
+        return Err("native-update-manifest-too-large");
+    }
+    Ok(())
+}
+
+fn read_manifest_body(reader: impl Read) -> Result<Vec<u8>, &'static str> {
+    let mut bytes = Vec::new();
+    reader
+        .take((qiongli_platform::MAX_NATIVE_UPDATE_MANIFEST_BYTES + 1) as u64)
+        .read_to_end(&mut bytes)
+        .map_err(|_| "native-update-manifest-read-failed")?;
+    if bytes.len() > qiongli_platform::MAX_NATIVE_UPDATE_MANIFEST_BYTES {
+        return Err("native-update-manifest-too-large");
+    }
+    Ok(bytes)
 }
 
 trait ArchiveFetcher {
@@ -693,9 +706,7 @@ impl ArchiveFetcher for ReqwestArchiveFetcher {
             .connect_timeout(CONNECT_TIMEOUT)
             .timeout(ARCHIVE_REQUEST_TIMEOUT)
             .redirect(Policy::custom(|attempt| {
-                if attempt.previous().len() >= MAX_ARCHIVE_REDIRECTS
-                    || !allowed_archive_transport_url(attempt.url())
-                {
+                if !archive_redirect_allowed(attempt.url(), attempt.previous().len()) {
                     attempt.stop()
                 } else {
                     attempt.follow()
@@ -710,18 +721,13 @@ impl ArchiveFetcher for ReqwestArchiveFetcher {
             .header(ACCEPT_ENCODING, "identity")
             .send()
             .map_err(map_archive_reqwest_error)?;
-        if response.status() != StatusCode::OK || !allowed_archive_transport_url(response.url()) {
-            return Err("native-update-archive-response-invalid");
-        }
-        if unsupported_content_encoding(response.headers().get(CONTENT_ENCODING)) {
-            return Err("native-update-archive-encoding-invalid");
-        }
-        if response
-            .content_length()
-            .is_some_and(|length| length != manifest.archive_size_bytes)
-        {
-            return Err("native-update-archive-size-mismatch");
-        }
+        validate_archive_response(
+            response.status(),
+            response.url(),
+            response.headers().get(CONTENT_ENCODING),
+            response.content_length(),
+            manifest.archive_size_bytes,
+        )?;
         stage_archive_from_reader(
             response,
             transaction_root,
@@ -730,6 +736,25 @@ impl ArchiveFetcher for ReqwestArchiveFetcher {
             &manifest.archive_sha256,
         )
     }
+}
+
+fn validate_archive_response(
+    status: StatusCode,
+    final_url: &reqwest::Url,
+    content_encoding: Option<&reqwest::header::HeaderValue>,
+    content_length: Option<u64>,
+    expected_size: u64,
+) -> Result<(), &'static str> {
+    if status != StatusCode::OK || !allowed_archive_transport_url(final_url) {
+        return Err("native-update-archive-response-invalid");
+    }
+    if unsupported_content_encoding(content_encoding) {
+        return Err("native-update-archive-encoding-invalid");
+    }
+    if content_length.is_some_and(|length| length != expected_size) {
+        return Err("native-update-archive-size-mismatch");
+    }
+    Ok(())
 }
 
 fn stage_archive_from_reader(
@@ -805,6 +830,10 @@ fn allowed_archive_transport_url(url: &reqwest::Url) -> bool {
         && url.fragment().is_none()
 }
 
+fn archive_redirect_allowed(url: &reqwest::Url, previous_redirects: usize) -> bool {
+    previous_redirects < MAX_ARCHIVE_REDIRECTS && allowed_archive_transport_url(url)
+}
+
 fn unsupported_content_encoding(value: Option<&reqwest::header::HeaderValue>) -> bool {
     value.is_some_and(|value| {
         value
@@ -869,7 +898,9 @@ fn map_archive_reqwest_error(error: reqwest::Error) -> &'static str {
 
 #[cfg(all(test, unix))]
 mod tests {
+    use std::io;
     use std::path::Path;
+    use std::sync::{Arc, Barrier};
 
     use ed25519_dalek::{Signer, SigningKey};
     use qiongli_config::{UpdateState, resolve_config_root};
@@ -921,6 +952,136 @@ mod tests {
                 &manifest.archive_file_name,
                 manifest.archive_size_bytes,
                 &manifest.archive_sha256,
+            )
+        }
+    }
+
+    struct ErrorManifestFetcher(&'static str);
+
+    impl ManifestFetcher for ErrorManifestFetcher {
+        fn fetch(&self, _endpoint: &str) -> Result<Vec<u8>, &'static str> {
+            Err(self.0)
+        }
+    }
+
+    struct ErrorArchiveFetcher(&'static str);
+
+    impl ArchiveFetcher for ErrorArchiveFetcher {
+        fn fetch(
+            &self,
+            _verified: &VerifiedNativeUpdateManifest,
+            _transaction_root: &Path,
+        ) -> Result<(), &'static str> {
+            Err(self.0)
+        }
+    }
+
+    struct InterruptingReader {
+        emitted: bool,
+    }
+
+    impl Read for InterruptingReader {
+        fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
+            if self.emitted {
+                return Err(io::Error::new(
+                    io::ErrorKind::ConnectionReset,
+                    "fixture stream interrupted",
+                ));
+            }
+            self.emitted = true;
+            let count = buffer.len().min(8);
+            buffer[..count].copy_from_slice(&ARCHIVE_BYTES[..count]);
+            Ok(count)
+        }
+    }
+
+    struct InterruptingArchiveFetcher;
+
+    impl ArchiveFetcher for InterruptingArchiveFetcher {
+        fn fetch(
+            &self,
+            verified: &VerifiedNativeUpdateManifest,
+            transaction_root: &Path,
+        ) -> Result<(), &'static str> {
+            let manifest = verified.manifest();
+            stage_archive_from_reader(
+                InterruptingReader { emitted: false },
+                transaction_root,
+                &manifest.archive_file_name,
+                manifest.archive_size_bytes,
+                &manifest.archive_sha256,
+            )
+        }
+    }
+
+    struct BarrierManifestFetcher {
+        bytes: Vec<u8>,
+        barrier: Arc<Barrier>,
+    }
+
+    impl ManifestFetcher for BarrierManifestFetcher {
+        fn fetch(&self, _endpoint: &str) -> Result<Vec<u8>, &'static str> {
+            self.barrier.wait();
+            Ok(self.bytes.clone())
+        }
+    }
+
+    struct BlockingArchiveFetcher {
+        entered: Arc<Barrier>,
+        release: Arc<Barrier>,
+    }
+
+    impl ArchiveFetcher for BlockingArchiveFetcher {
+        fn fetch(
+            &self,
+            verified: &VerifiedNativeUpdateManifest,
+            transaction_root: &Path,
+        ) -> Result<(), &'static str> {
+            self.entered.wait();
+            self.release.wait();
+            let manifest = verified.manifest();
+            stage_archive_from_reader(
+                ARCHIVE_BYTES,
+                transaction_root,
+                &manifest.archive_file_name,
+                manifest.archive_size_bytes,
+                &manifest.archive_sha256,
+            )
+        }
+    }
+
+    struct ResponseFixture {
+        status: StatusCode,
+        final_url: reqwest::Url,
+        content_encoding: Option<reqwest::header::HeaderValue>,
+        content_length: Option<u64>,
+    }
+
+    impl ResponseFixture {
+        fn valid() -> Self {
+            Self {
+                status: StatusCode::OK,
+                final_url: reqwest::Url::parse("https://github.com/qiongli.zip").unwrap(),
+                content_encoding: Some(reqwest::header::HeaderValue::from_static("identity")),
+                content_length: None,
+            }
+        }
+
+        fn validate_manifest(&self) -> Result<(), &'static str> {
+            validate_manifest_response(
+                self.status,
+                self.content_encoding.as_ref(),
+                self.content_length,
+            )
+        }
+
+        fn validate_archive(&self, expected_size: u64) -> Result<(), &'static str> {
+            validate_archive_response(
+                self.status,
+                &self.final_url,
+                self.content_encoding.as_ref(),
+                self.content_length,
+                expected_size,
             )
         }
     }
@@ -1183,6 +1344,108 @@ mod tests {
     }
 
     #[test]
+    fn response_and_stream_fixtures_cover_the_transport_fault_matrix() {
+        let valid = ResponseFixture::valid();
+        assert_eq!(valid.validate_manifest(), Ok(()));
+        assert_eq!(valid.validate_archive(ARCHIVE_BYTES.len() as u64), Ok(()));
+        assert_eq!(read_manifest_body(ARCHIVE_BYTES).unwrap(), ARCHIVE_BYTES);
+
+        let mut fixture = ResponseFixture::valid();
+        fixture.status = StatusCode::FOUND;
+        assert_eq!(
+            fixture.validate_manifest(),
+            Err("native-update-manifest-response-invalid")
+        );
+        assert_eq!(
+            fixture.validate_archive(ARCHIVE_BYTES.len() as u64),
+            Err("native-update-archive-response-invalid")
+        );
+
+        let mut fixture = ResponseFixture::valid();
+        fixture.content_encoding = Some(reqwest::header::HeaderValue::from_static("gzip"));
+        assert_eq!(
+            fixture.validate_manifest(),
+            Err("native-update-manifest-encoding-invalid")
+        );
+        assert_eq!(
+            fixture.validate_archive(ARCHIVE_BYTES.len() as u64),
+            Err("native-update-archive-encoding-invalid")
+        );
+
+        let mut fixture = ResponseFixture::valid();
+        fixture.content_length =
+            Some(u64::try_from(qiongli_platform::MAX_NATIVE_UPDATE_MANIFEST_BYTES).unwrap() + 1);
+        assert_eq!(
+            fixture.validate_manifest(),
+            Err("native-update-manifest-too-large")
+        );
+        fixture.content_length = Some(ARCHIVE_BYTES.len() as u64 + 1);
+        assert_eq!(
+            fixture.validate_archive(ARCHIVE_BYTES.len() as u64),
+            Err("native-update-archive-size-mismatch")
+        );
+
+        let oversized = vec![0_u8; qiongli_platform::MAX_NATIVE_UPDATE_MANIFEST_BYTES + 1];
+        assert_eq!(
+            read_manifest_body(oversized.as_slice()),
+            Err("native-update-manifest-too-large")
+        );
+
+        let mut fixture = ResponseFixture::valid();
+        fixture.final_url = reqwest::Url::parse("https://example.com/qiongli.zip").unwrap();
+        assert_eq!(
+            fixture.validate_archive(ARCHIVE_BYTES.len() as u64),
+            Err("native-update-archive-response-invalid")
+        );
+    }
+
+    #[test]
+    fn offline_refused_timeout_and_interrupted_fetches_are_fixed_and_redacted() {
+        let release_key = SigningKey::from_bytes(&[91_u8; 32]);
+        let authority = authority(&release_key);
+
+        for (name, error) in [
+            ("manifest-offline", "native-update-manifest-fetch-failed"),
+            ("manifest-refused", "native-update-manifest-fetch-failed"),
+            ("manifest-timeout", "native-update-manifest-timeout"),
+        ] {
+            let (store, root) = store(name);
+            let observed = execute_with_fetchers(
+                UpdateCliCommand::Check,
+                &store,
+                Some(&authority),
+                &runtime(),
+                &ErrorManifestFetcher(error),
+                &NoopArchiveFetcher,
+            )
+            .unwrap_err();
+            assert_redacted_error(observed, error, &root);
+            assert!(!root.exists());
+        }
+
+        for (name, error) in [
+            ("archive-offline", "native-update-archive-fetch-failed"),
+            ("archive-refused", "native-update-archive-fetch-failed"),
+            ("archive-timeout", "native-update-archive-timeout"),
+        ] {
+            assert_archive_failure(
+                name,
+                &authority,
+                &release_key,
+                &ErrorArchiveFetcher(error),
+                error,
+            );
+        }
+        assert_archive_failure(
+            "archive-interrupted",
+            &authority,
+            &release_key,
+            &InterruptingArchiveFetcher,
+            "native-update-archive-read-failed",
+        );
+    }
+
+    #[test]
     fn archive_transport_redirect_policy_rejects_downgrade_and_unknown_hosts() {
         for rejected in [
             "http://github.com/qiongli.zip",
@@ -1200,6 +1463,191 @@ mod tests {
             )
             .unwrap()
         ));
+        let allowed = reqwest::Url::parse(
+            "https://release-assets.githubusercontent.com/qiongli.zip?token=ephemeral",
+        )
+        .unwrap();
+        assert!(archive_redirect_allowed(
+            &allowed,
+            MAX_ARCHIVE_REDIRECTS - 1
+        ));
+        assert!(!archive_redirect_allowed(&allowed, MAX_ARCHIVE_REDIRECTS));
+        assert!(!archive_redirect_allowed(
+            &reqwest::Url::parse("https://example.com/qiongli.zip").unwrap(),
+            0
+        ));
+    }
+
+    #[test]
+    fn concurrent_downloads_allow_only_one_expected_revision_reservation() {
+        let release_key = SigningKey::from_bytes(&[91_u8; 32]);
+        let authority = authority(&release_key);
+        let manifest = signed_manifest(&release_key, "2.0.0-alpha.2")
+            .to_canonical_json()
+            .unwrap();
+        let (store, root) = store("concurrent-reservation");
+        let barrier = Arc::new(Barrier::new(2));
+        let mut handles = Vec::new();
+
+        for _ in 0..2 {
+            let store = store.clone();
+            let authority = authority.clone();
+            let bytes = manifest.clone();
+            let barrier = Arc::clone(&barrier);
+            handles.push(std::thread::spawn(move || {
+                execute_with_fetchers(
+                    UpdateCliCommand::Download {
+                        expected_revision: 0,
+                    },
+                    &store,
+                    Some(&authority),
+                    &runtime(),
+                    &BarrierManifestFetcher { bytes, barrier },
+                    &FixedArchiveFetcher(ARCHIVE_BYTES.to_vec()),
+                )
+            }));
+        }
+
+        let results: Vec<_> = handles
+            .into_iter()
+            .map(|handle| handle.join().unwrap())
+            .collect();
+        assert_eq!(results.iter().filter(|result| result.is_ok()).count(), 1);
+        assert_eq!(
+            results
+                .iter()
+                .filter(|result| matches!(result, Err("revision-conflict")))
+                .count(),
+            1
+        );
+        let loaded = store.load().unwrap();
+        assert_eq!(loaded.revision, 2);
+        assert_eq!(
+            loaded.state.active_transaction.unwrap().phase,
+            UpdateTransactionPhase::Downloaded
+        );
+        execute_with_fetchers(
+            UpdateCliCommand::Cancel {
+                expected_revision: 2,
+            },
+            &store,
+            None,
+            &runtime(),
+            &FixedFetcher(Vec::new()),
+            &NoopArchiveFetcher,
+        )
+        .unwrap();
+        assert_eq!(
+            std::fs::read_dir(root.join("v2/updates/staging"))
+                .unwrap()
+                .count(),
+            0
+        );
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn concurrent_cancel_wins_without_leaving_download_bytes() {
+        let release_key = SigningKey::from_bytes(&[91_u8; 32]);
+        let authority = authority(&release_key);
+        let manifest = signed_manifest(&release_key, "2.0.0-alpha.2")
+            .to_canonical_json()
+            .unwrap();
+        let (store, root) = store("concurrent-cancel");
+        let entered = Arc::new(Barrier::new(2));
+        let release = Arc::new(Barrier::new(2));
+        let download_store = store.clone();
+        let download_entered = Arc::clone(&entered);
+        let download_release = Arc::clone(&release);
+        let handle = std::thread::spawn(move || {
+            execute_with_fetchers(
+                UpdateCliCommand::Download {
+                    expected_revision: 0,
+                },
+                &download_store,
+                Some(&authority),
+                &runtime(),
+                &FixedFetcher(manifest),
+                &BlockingArchiveFetcher {
+                    entered: download_entered,
+                    release: download_release,
+                },
+            )
+        });
+
+        entered.wait();
+        let reserved = store.load().unwrap();
+        assert_eq!(reserved.revision, 1);
+        assert_eq!(
+            reserved.state.active_transaction.unwrap().phase,
+            UpdateTransactionPhase::Downloading
+        );
+        let cancelled = execute_with_fetchers(
+            UpdateCliCommand::Cancel {
+                expected_revision: 1,
+            },
+            &store,
+            None,
+            &runtime(),
+            &FixedFetcher(Vec::new()),
+            &NoopArchiveFetcher,
+        )
+        .unwrap();
+        assert_eq!(serde_json::to_value(cancelled).unwrap()["revision"], 3);
+        release.wait();
+        assert_eq!(
+            handle.join().unwrap(),
+            Err("native-update-state-cleanup-required")
+        );
+
+        let loaded = store.load().unwrap();
+        assert_eq!(loaded.revision, 3);
+        assert!(loaded.state.active_transaction.is_none());
+        assert_eq!(
+            std::fs::read_dir(root.join("v2/updates/staging"))
+                .unwrap()
+                .count(),
+            0
+        );
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    fn assert_archive_failure(
+        name: &str,
+        authority: &NativeReleaseAuthority,
+        release_key: &SigningKey,
+        archive_fetcher: &impl ArchiveFetcher,
+        expected_error: &'static str,
+    ) {
+        let signed = signed_manifest(release_key, "2.0.0-alpha.2");
+        let (store, root) = store(name);
+        let observed = execute_with_fetchers(
+            UpdateCliCommand::Download {
+                expected_revision: 0,
+            },
+            &store,
+            Some(authority),
+            &runtime(),
+            &FixedFetcher(signed.to_canonical_json().unwrap()),
+            archive_fetcher,
+        )
+        .unwrap_err();
+        assert_redacted_error(observed, expected_error, &root);
+        let loaded = store.load().unwrap();
+        assert_eq!(loaded.revision, 3);
+        assert!(loaded.state.active_transaction.is_none());
+        assert_eq!(
+            std::fs::read_dir(root.join("v2/updates/staging"))
+                .unwrap()
+                .count(),
+            0
+        );
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    fn assert_redacted_error(observed: &'static str, expected: &'static str, root: &Path) {
+        assert_eq!(observed, expected);
+        assert!(!observed.contains(root.to_string_lossy().as_ref()));
     }
 
     fn runtime() -> UpdateRuntimeContext<'static> {
