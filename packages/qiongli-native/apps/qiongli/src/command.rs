@@ -13,21 +13,23 @@ use qiongli_platform::{
     ARTIFACT_IDENTITY_SCHEMA_VERSION, Architecture, CLAUDE_ADAPTER_SCHEMA_VERSION,
     CLAUDE_REGISTRATION_RECEIPT_SCHEMA_VERSION, CLAUDE_REGISTRATION_STATE_SCHEMA_VERSION,
     CODEX_ADAPTER_SCHEMA_VERSION, CODEX_REGISTRATION_RECEIPT_SCHEMA_VERSION,
-    CODEX_REGISTRATION_STATE_SCHEMA_VERSION, ClaudeDiscoverySummaryV1, CodexDiscoverySummaryV1,
-    INSTALL_PLAN_SCHEMA_VERSION, INSTALL_RECEIPT_SCHEMA_VERSION, LAUNCH_GRANT_SCHEMA_VERSION,
-    LocalTargetFamily, NATIVE_PAYLOAD_INSTALL_RECEIPT_SCHEMA_VERSION,
-    NATIVE_RELEASE_AUTHORITY_SCHEMA_VERSION, NATIVE_RELEASE_ENVELOPE_SCHEMA_VERSION,
-    NativeReleaseAuthority, OperatingSystem, discover_claude_user_with_config, discover_codex_user,
+    CODEX_REGISTRATION_STATE_SCHEMA_VERSION, ClaudeDiscoverySummaryV1, ClientActivationTarget,
+    CodexDiscoverySummaryV1, INSTALL_PLAN_SCHEMA_VERSION, INSTALL_RECEIPT_SCHEMA_VERSION,
+    LAUNCH_GRANT_SCHEMA_VERSION, LocalTargetFamily, NATIVE_PAYLOAD_INSTALL_RECEIPT_SCHEMA_VERSION,
+    NATIVE_RELEASE_AUTHORITY_SCHEMA_VERSION, NATIVE_RELEASE_CANDIDATE_SCHEMA_VERSION,
+    NATIVE_RELEASE_ENVELOPE_SCHEMA_VERSION, NativeReleaseAuthority, OperatingSystem,
+    discover_claude_user_with_config, discover_codex_user,
 };
 use serde::Serialize;
 
+use crate::candidate_cli::{CandidateCliCommand, CandidateReceiptOptions, CandidateReleaseOptions};
 use crate::native_cli::{
     NativeCliCommand, NativeClientTarget, NativeReceiptOptions, NativeReleaseOptions,
 };
 
 const OUTPUT_SCHEMA_VERSION: u32 = 1;
 
-const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli --version\n  qiongli --help\n  qiongli ui [--startup-check]\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli install status\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install native <preview|apply|verify|remove> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
+const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli --version\n  qiongli --help\n  qiongli ui [--startup-check]\n  qiongli ui --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli install status\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate <preview|apply|verify|remove> [options]\n  qiongli install native <preview|apply|verify|remove> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
 
 const CONTENT_USAGE: &str = "Qiongli embedded content\n\nUsage:\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli content --help\n";
 
@@ -35,7 +37,7 @@ const CONFIG_USAGE: &str = "Qiongli global config\n\nUsage:\n  qiongli config sh
 
 const MCP_USAGE: &str = "Qiongli native MCP\n\nUsage:\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli mcp --help\n";
 
-const INSTALL_USAGE: &str = "Qiongli native installation\n\nUsage:\n  qiongli install status\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install native preview --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude>\n  qiongli install native apply --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli install native verify --managed-root <absolute-path> --install-id <native-payload-id>\n  qiongli install native remove --managed-root <absolute-path> --install-id <native-payload-id> --approve-filesystem-write\n  qiongli install --help\n";
+const INSTALL_USAGE: &str = "Qiongli native installation\n\nUsage:\n  qiongli install status\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate preview --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli install candidate apply --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude> --expected-approval-digest <sha256> --approve-filesystem-write --approve-client-config-change --approve-host-trust\n  qiongli install candidate verify --target <codex|claude> --install-id <native-payload-id>\n  qiongli install candidate remove --target <codex|claude> --install-id <native-payload-id> --approve-filesystem-write --approve-client-config-change\n  qiongli install native preview --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude>\n  qiongli install native apply --release <release.json> --archive <archive> --managed-root <absolute-path> --target <codex|claude> --expected-plan-digest <sha256> --approve-filesystem-write\n  qiongli install native verify --managed-root <absolute-path> --install-id <native-payload-id>\n  qiongli install native remove --managed-root <absolute-path> --install-id <native-payload-id> --approve-filesystem-write\n  qiongli install --help\n";
 
 #[derive(Clone, Default)]
 pub struct CommandEnvironment {
@@ -86,6 +88,7 @@ pub enum ProductAction {
     Output(CliOutput),
     ServeLiteMcpStdio,
     LaunchDesktop,
+    LaunchDesktopWithCandidate(Box<crate::DesktopCandidateSession>),
 }
 
 impl CliOutput {
@@ -147,6 +150,9 @@ pub fn run_cli(
         ProductAction::LaunchDesktop => {
             CliOutput::operation_failure("desktop-command-requires-product-entrypoint")
         }
+        ProductAction::LaunchDesktopWithCandidate(_) => {
+            CliOutput::operation_failure("desktop-command-requires-product-entrypoint")
+        }
     }
 }
 
@@ -183,6 +189,45 @@ pub(crate) fn prepare_action_with_release_authority(
             CliOutput::success_text(format!("qiongli {}\n", env!("CARGO_PKG_VERSION")))
         }
         Command::Ui => return ProductAction::LaunchDesktop,
+        Command::UiCandidate(options) => {
+            let authority = match authority {
+                Some(authority) => authority,
+                None => {
+                    return ProductAction::Output(CliOutput::operation_failure(
+                        "native-release-authority-unavailable",
+                    ));
+                }
+            };
+            let source_commit = match crate::embedded_source_commit() {
+                Some(source_commit) => source_commit,
+                None => {
+                    return ProductAction::Output(CliOutput::operation_failure(
+                        "native-source-commit-unavailable",
+                    ));
+                }
+            };
+            let now_unix = match crate::candidate_cli::now_unix() {
+                Ok(now_unix) => now_unix,
+                Err(reason_code) => {
+                    return ProductAction::Output(CliOutput::operation_failure(reason_code));
+                }
+            };
+            let prepared = match crate::candidate_cli::prepare_candidate(
+                &options,
+                authority,
+                source_commit,
+                content,
+                now_unix,
+            ) {
+                Ok(prepared) => prepared,
+                Err(reason_code) => {
+                    return ProductAction::Output(CliOutput::operation_failure(reason_code));
+                }
+            };
+            return ProductAction::LaunchDesktopWithCandidate(Box::new(
+                crate::DesktopCandidateSession::new(prepared.into_verified()),
+            ));
+        }
         Command::UiStartupCheck => ui_startup_check(environment, content),
         Command::ContentHelp => CliOutput::success_text(CONTENT_USAGE),
         Command::ContentList => content_list(content),
@@ -199,6 +244,18 @@ pub(crate) fn prepare_action_with_release_authority(
         Command::InstallStatus => install_status(authority),
         Command::InstallCodexStatus => install_codex_status(environment),
         Command::InstallClaudeStatus => install_claude_status(environment),
+        Command::InstallCandidate(command) => {
+            match crate::candidate_cli::execute(
+                command,
+                authority,
+                crate::embedded_source_commit(),
+                environment.platform_home(),
+                content,
+            ) {
+                Ok(output) => json_output(&output, 0),
+                Err(reason_code) => CliOutput::operation_failure(reason_code),
+            }
+        }
         Command::InstallNative(command) => {
             match crate::native_cli::execute(command, authority, content) {
                 Ok(output) => json_output(&output, 0),
@@ -218,6 +275,7 @@ enum Command {
     Help,
     Version,
     Ui,
+    UiCandidate(CandidateReleaseOptions),
     UiStartupCheck,
     ContentHelp,
     ContentList,
@@ -235,6 +293,7 @@ enum Command {
     InstallStatus,
     InstallCodexStatus,
     InstallClaudeStatus,
+    InstallCandidate(CandidateCliCommand),
     InstallNative(NativeCliCommand),
     McpHelp,
     McpServeLiteStdio,
@@ -267,6 +326,8 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
         {
             Ok(Command::UiStartupCheck)
         }
+        "ui" if args.len() > 1 => parse_candidate_release_options(&args[1..], false)
+            .map(|parsed| Command::UiCandidate(parsed.options)),
         "status" if args.len() == 1 => Ok(Command::Status),
         "doctor" if args.len() == 1 => Ok(Command::Doctor),
         "-h" | "--help" | "--version" | "ui" | "status" | "doctor" => {
@@ -295,6 +356,13 @@ fn parse_install_args(args: &[OsString]) -> Result<Command, UsageError> {
         {
             Ok(Command::InstallClaudeStatus)
         }
+        "candidate"
+            if args.get(1).and_then(|value| value.to_str()) == Some("--help")
+                && args.len() == 2 =>
+        {
+            Ok(Command::InstallHelp)
+        }
+        "candidate" => parse_candidate_install_args(&args[1..]).map(Command::InstallCandidate),
         "native"
             if args.get(1).and_then(|value| value.to_str()) == Some("--help")
                 && args.len() == 2 =>
@@ -307,6 +375,196 @@ fn parse_install_args(args: &[OsString]) -> Result<Command, UsageError> {
         }
         _ => Err(install_usage_error("unknown install subcommand")),
     }
+}
+
+fn parse_candidate_install_args(args: &[OsString]) -> Result<CandidateCliCommand, UsageError> {
+    let Some(subcommand) = args.first().and_then(|value| value.to_str()) else {
+        return Err(install_usage_error(
+            "a candidate install subcommand is required",
+        ));
+    };
+    match subcommand {
+        "preview" => parse_candidate_release_options(&args[1..], false)
+            .map(|parsed| CandidateCliCommand::Preview(parsed.options)),
+        "apply" => parse_candidate_release_options(&args[1..], true).and_then(|parsed| {
+            Ok(CandidateCliCommand::Apply {
+                options: parsed.options,
+                expected_approval_digest: parsed.expected_approval_digest.ok_or_else(|| {
+                    install_usage_error("expected candidate approval digest is required")
+                })?,
+            })
+        }),
+        "verify" => {
+            parse_candidate_receipt_options(&args[1..], false).map(CandidateCliCommand::Verify)
+        }
+        "remove" => {
+            parse_candidate_receipt_options(&args[1..], true).map(CandidateCliCommand::Remove)
+        }
+        "--help" if args.len() == 1 => Err(install_usage_error(
+            "use qiongli install --help for candidate install options",
+        )),
+        "--help" => Err(install_usage_error("unexpected candidate install argument")),
+        _ => Err(install_usage_error("unknown candidate install subcommand")),
+    }
+}
+
+struct ParsedCandidateReleaseOptions {
+    options: CandidateReleaseOptions,
+    expected_approval_digest: Option<String>,
+}
+
+fn parse_candidate_release_options(
+    args: &[OsString],
+    apply: bool,
+) -> Result<ParsedCandidateReleaseOptions, UsageError> {
+    let mut candidate = None;
+    let mut archive = None;
+    let mut release_notes = None;
+    let mut target = None;
+    let mut expected_approval_digest = None;
+    let mut filesystem_approved = false;
+    let mut config_approved = false;
+    let mut host_trust_approved = false;
+    let mut index = 0;
+    while index < args.len() {
+        let option = args[index]
+            .to_str()
+            .ok_or_else(|| install_usage_error("candidate install option is not valid UTF-8"))?;
+        let approval = match option {
+            "--approve-filesystem-write" => Some(&mut filesystem_approved),
+            "--approve-client-config-change" => Some(&mut config_approved),
+            "--approve-host-trust" => Some(&mut host_trust_approved),
+            _ => None,
+        };
+        if let Some(approved) = approval {
+            if !apply || *approved {
+                return Err(install_usage_error(
+                    "candidate install approval is unexpected or duplicate",
+                ));
+            }
+            *approved = true;
+            index += 1;
+            continue;
+        }
+        let value = args
+            .get(index + 1)
+            .ok_or_else(|| install_usage_error("candidate install option value is required"))?;
+        match option {
+            "--candidate" if candidate.is_none() => candidate = nonempty_path(value),
+            "--archive" if archive.is_none() => archive = nonempty_path(value),
+            "--release-notes" if release_notes.is_none() => release_notes = nonempty_path(value),
+            "--target" if target.is_none() => {
+                target =
+                    Some(parse_candidate_target(value).ok_or_else(|| {
+                        install_usage_error("candidate install target is invalid")
+                    })?);
+            }
+            "--expected-approval-digest" if apply && expected_approval_digest.is_none() => {
+                expected_approval_digest =
+                    Some(parse_sha256(value).ok_or_else(|| {
+                        install_usage_error("candidate approval digest is invalid")
+                    })?);
+            }
+            "--candidate"
+            | "--archive"
+            | "--release-notes"
+            | "--target"
+            | "--expected-approval-digest" => {
+                return Err(install_usage_error(
+                    "candidate install option is unexpected or duplicate",
+                ));
+            }
+            _ => return Err(install_usage_error("unknown candidate install option")),
+        }
+        if matches!(option, "--candidate" | "--archive" | "--release-notes") && value.is_empty() {
+            return Err(install_usage_error("candidate install path is empty"));
+        }
+        index += 2;
+    }
+    if apply && !(filesystem_approved && config_approved && host_trust_approved) {
+        return Err(install_usage_error(
+            "all candidate install approvals are required",
+        ));
+    }
+    Ok(ParsedCandidateReleaseOptions {
+        options: CandidateReleaseOptions {
+            candidate: candidate
+                .ok_or_else(|| install_usage_error("release candidate path is required"))?,
+            archive: archive
+                .ok_or_else(|| install_usage_error("candidate archive path is required"))?,
+            release_notes: release_notes
+                .ok_or_else(|| install_usage_error("release notes path is required"))?,
+            target: target
+                .ok_or_else(|| install_usage_error("candidate install target is required"))?,
+        },
+        expected_approval_digest,
+    })
+}
+
+fn parse_candidate_receipt_options(
+    args: &[OsString],
+    remove: bool,
+) -> Result<CandidateReceiptOptions, UsageError> {
+    let mut target = None;
+    let mut install_id = None;
+    let mut filesystem_approved = false;
+    let mut config_approved = false;
+    let mut index = 0;
+    while index < args.len() {
+        let option = args[index]
+            .to_str()
+            .ok_or_else(|| install_usage_error("candidate install option is not valid UTF-8"))?;
+        let approval = match option {
+            "--approve-filesystem-write" => Some(&mut filesystem_approved),
+            "--approve-client-config-change" => Some(&mut config_approved),
+            _ => None,
+        };
+        if let Some(approved) = approval {
+            if !remove || *approved {
+                return Err(install_usage_error(
+                    "candidate remove approval is unexpected or duplicate",
+                ));
+            }
+            *approved = true;
+            index += 1;
+            continue;
+        }
+        let value = args
+            .get(index + 1)
+            .ok_or_else(|| install_usage_error("candidate install option value is required"))?;
+        match option {
+            "--target" if target.is_none() => {
+                target =
+                    Some(parse_candidate_target(value).ok_or_else(|| {
+                        install_usage_error("candidate install target is invalid")
+                    })?);
+            }
+            "--install-id" if install_id.is_none() => {
+                install_id = Some(
+                    parse_native_install_id(value)
+                        .ok_or_else(|| install_usage_error("candidate install ID is invalid"))?,
+                );
+            }
+            "--target" | "--install-id" => {
+                return Err(install_usage_error(
+                    "candidate install option is unexpected or duplicate",
+                ));
+            }
+            _ => return Err(install_usage_error("unknown candidate install option")),
+        }
+        index += 2;
+    }
+    if remove && !(filesystem_approved && config_approved) {
+        return Err(install_usage_error(
+            "all candidate remove approvals are required",
+        ));
+    }
+    Ok(CandidateReceiptOptions {
+        target: target
+            .ok_or_else(|| install_usage_error("candidate install target is required"))?,
+        install_id: install_id
+            .ok_or_else(|| install_usage_error("candidate install ID is required"))?,
+    })
 }
 
 fn parse_native_install_args(args: &[OsString]) -> Result<NativeCliCommand, UsageError> {
@@ -495,6 +753,14 @@ fn parse_native_client_target(value: &OsStr) -> Option<NativeClientTarget> {
     match value.to_str()? {
         "codex" => Some(NativeClientTarget::Codex),
         "claude" => Some(NativeClientTarget::Claude),
+        _ => None,
+    }
+}
+
+fn parse_candidate_target(value: &OsStr) -> Option<ClientActivationTarget> {
+    match value.to_str()? {
+        "codex" => Some(ClientActivationTarget::Codex),
+        "claude" => Some(ClientActivationTarget::ClaudeCode),
         _ => None,
     }
 }
@@ -839,6 +1105,7 @@ fn install_status(authority: Option<&NativeReleaseAuthority>) -> CliOutput {
     let (Some(os), Some(arch)) = (OperatingSystem::current(), Architecture::current()) else {
         return CliOutput::operation_failure("unsupported-build-target");
     };
+    let candidate_ready = authority.is_some() && crate::embedded_source_commit().is_some();
     json_output(
         &InstallStatusOutput {
             schema_version: OUTPUT_SCHEMA_VERSION,
@@ -848,6 +1115,7 @@ fn install_status(authority: Option<&NativeReleaseAuthority>) -> CliOutput {
                 launch_grant: LAUNCH_GRANT_SCHEMA_VERSION,
                 release_authority: NATIVE_RELEASE_AUTHORITY_SCHEMA_VERSION,
                 release_envelope: NATIVE_RELEASE_ENVELOPE_SCHEMA_VERSION,
+                release_candidate: NATIVE_RELEASE_CANDIDATE_SCHEMA_VERSION,
                 install_plan: INSTALL_PLAN_SCHEMA_VERSION,
                 install_receipt: INSTALL_RECEIPT_SCHEMA_VERSION,
                 native_payload_install_receipt: NATIVE_PAYLOAD_INSTALL_RECEIPT_SCHEMA_VERSION,
@@ -870,13 +1138,23 @@ fn install_status(authority: Option<&NativeReleaseAuthority>) -> CliOutput {
             } else {
                 "unavailable"
             },
-            preview: if authority.is_some() {
-                "signed-release-required"
+            source_commit: if crate::embedded_source_commit().is_some() {
+                "embedded"
             } else {
                 "unavailable"
             },
-            apply: if authority.is_some() {
-                "signed-release-and-approval-required"
+            candidate: if candidate_ready {
+                "signed-current-target-required"
+            } else {
+                "unavailable"
+            },
+            preview: if candidate_ready {
+                "signed-candidate-required"
+            } else {
+                "unavailable"
+            },
+            apply: if candidate_ready {
+                "signed-candidate-and-approval-required"
             } else {
                 "unavailable"
             },
@@ -1134,6 +1412,8 @@ struct InstallStatusOutput {
     current_target: InstallBuildTarget,
     transaction_engine: &'static str,
     release_authority: &'static str,
+    source_commit: &'static str,
+    candidate: &'static str,
     launch_grant: &'static str,
     preview: &'static str,
     apply: &'static str,
@@ -1170,6 +1450,7 @@ struct InstallContractVersions {
     launch_grant: u32,
     release_authority: u32,
     release_envelope: u32,
+    release_candidate: u32,
     install_plan: u32,
     install_receipt: u32,
     native_payload_install_receipt: u32,
@@ -1277,6 +1558,25 @@ mod tests {
             Ok(Command::UiStartupCheck)
         );
         assert_eq!(
+            parse_args(args(&[
+                "ui",
+                "--candidate",
+                "/approved/qiongli.candidate.json",
+                "--archive",
+                "/approved/qiongli.zip",
+                "--release-notes",
+                "/approved/qiongli.release-notes.md",
+                "--target",
+                "codex",
+            ])),
+            Ok(Command::UiCandidate(CandidateReleaseOptions {
+                candidate: PathBuf::from("/approved/qiongli.candidate.json"),
+                archive: PathBuf::from("/approved/qiongli.zip"),
+                release_notes: PathBuf::from("/approved/qiongli.release-notes.md"),
+                target: ClientActivationTarget::Codex,
+            }))
+        );
+        assert_eq!(
             parse_args(args(&["content", "list"])),
             Ok(Command::ContentList)
         );
@@ -1319,6 +1619,29 @@ mod tests {
         );
         assert_eq!(
             parse_args(args(&[
+                "install",
+                "candidate",
+                "preview",
+                "--candidate",
+                "/approved/qiongli.candidate.json",
+                "--archive",
+                "/approved/qiongli.zip",
+                "--release-notes",
+                "/approved/qiongli.release-notes.md",
+                "--target",
+                "claude",
+            ])),
+            Ok(Command::InstallCandidate(CandidateCliCommand::Preview(
+                CandidateReleaseOptions {
+                    candidate: PathBuf::from("/approved/qiongli.candidate.json"),
+                    archive: PathBuf::from("/approved/qiongli.zip"),
+                    release_notes: PathBuf::from("/approved/qiongli.release-notes.md"),
+                    target: ClientActivationTarget::ClaudeCode,
+                }
+            )))
+        );
+        assert_eq!(
+            parse_args(args(&[
                 "mcp",
                 "serve",
                 "--profile",
@@ -1351,6 +1674,44 @@ mod tests {
         assert_eq!(first, second);
 
         let digest = "a".repeat(64);
+        let first = parse_args(args(&[
+            "install",
+            "candidate",
+            "apply",
+            "--candidate",
+            "/approved/qiongli.candidate.json",
+            "--archive",
+            "/approved/qiongli.zip",
+            "--release-notes",
+            "/approved/qiongli.release-notes.md",
+            "--target",
+            "codex",
+            "--expected-approval-digest",
+            &digest,
+            "--approve-filesystem-write",
+            "--approve-client-config-change",
+            "--approve-host-trust",
+        ]));
+        let second = parse_args(args(&[
+            "install",
+            "candidate",
+            "apply",
+            "--approve-host-trust",
+            "--target",
+            "codex",
+            "--release-notes",
+            "/approved/qiongli.release-notes.md",
+            "--approve-filesystem-write",
+            "--expected-approval-digest",
+            &digest,
+            "--archive",
+            "/approved/qiongli.zip",
+            "--approve-client-config-change",
+            "--candidate",
+            "/approved/qiongli.candidate.json",
+        ]));
+        assert_eq!(first, second);
+
         let first = parse_args(args(&[
             "install",
             "native",
@@ -1495,6 +1856,33 @@ mod tests {
                 "codex",
                 "--expected-plan-digest",
                 "a",
+                "--approve-filesystem-write",
+            ],
+            vec![
+                "install",
+                "candidate",
+                "apply",
+                "--candidate",
+                "/approved/qiongli.candidate.json",
+                "--archive",
+                "/approved/qiongli.zip",
+                "--release-notes",
+                "/approved/qiongli.release-notes.md",
+                "--target",
+                "codex",
+                "--expected-approval-digest",
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "--approve-filesystem-write",
+                "--approve-client-config-change",
+            ],
+            vec![
+                "install",
+                "candidate",
+                "remove",
+                "--target",
+                "codex",
+                "--install-id",
+                "native-payload-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 "--approve-filesystem-write",
             ],
             vec![

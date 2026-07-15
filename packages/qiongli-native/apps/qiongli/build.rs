@@ -14,6 +14,8 @@ const PACK_FILE: &str = "qiongli-core.qlpack";
 const DIGEST_FILE: &str = "qiongli-core.qlpack.sha256";
 const RELEASE_AUTHORITY_FILE: &str = "qiongli-native-release-authority.json";
 const RELEASE_AUTHORITY_ENV: &str = "QIONGLI_NATIVE_RELEASE_AUTHORITY_FILE";
+const SOURCE_COMMIT_FILE: &str = "qiongli-native-source-commit.txt";
+const SOURCE_COMMIT_ENV: &str = "QIONGLI_NATIVE_SOURCE_COMMIT";
 
 fn main() {
     if let Err(error) = build_embedded_assets() {
@@ -24,7 +26,43 @@ fn main() {
 fn build_embedded_assets() -> Result<(), Box<dyn Error>> {
     build_embedded_pack()?;
     build_embedded_release_authority()?;
+    build_embedded_source_commit()?;
     Ok(())
+}
+
+fn build_embedded_source_commit() -> Result<(), Box<dyn Error>> {
+    println!("cargo:rerun-if-env-changed={SOURCE_COMMIT_ENV}");
+    let source_commit = match env::var_os(SOURCE_COMMIT_ENV) {
+        None => String::new(),
+        Some(value) => {
+            let value = value.to_str().ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "native source commit is not valid UTF-8",
+                )
+            })?;
+            if !valid_source_commit(value) {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "native source commit must be 40 or 64 lowercase hexadecimal characters",
+                )
+                .into());
+            }
+            value.to_string()
+        }
+    };
+    let out_dir = env::var_os("OUT_DIR")
+        .map(PathBuf::from)
+        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "Cargo OUT_DIR is unavailable"))?;
+    fs::write(out_dir.join(SOURCE_COMMIT_FILE), source_commit.as_bytes())?;
+    Ok(())
+}
+
+fn valid_source_commit(value: &str) -> bool {
+    matches!(value.len(), 40 | 64)
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 fn build_embedded_pack() -> Result<(), Box<dyn Error>> {

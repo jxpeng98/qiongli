@@ -539,6 +539,7 @@ fn install_status_is_read_only_and_truthful_for_source_builds() {
     assert_eq!(value["contracts"]["launch_grant"], 1);
     assert_eq!(value["contracts"]["release_authority"], 1);
     assert_eq!(value["contracts"]["release_envelope"], 1);
+    assert_eq!(value["contracts"]["release_candidate"], 1);
     assert_eq!(value["contracts"]["install_plan"], 1);
     assert_eq!(value["contracts"]["install_receipt"], 1);
     assert_eq!(value["contracts"]["native_payload_install_receipt"], 1);
@@ -552,6 +553,8 @@ fn install_status_is_read_only_and_truthful_for_source_builds() {
     assert!(value["current_target"]["arch"].is_string());
     assert_eq!(value["transaction_engine"], "grant-and-approval-gated");
     assert_eq!(value["release_authority"], "unavailable");
+    assert_eq!(value["source_commit"], "unavailable");
+    assert_eq!(value["candidate"], "unavailable");
     assert_eq!(value["launch_grant"], "unavailable");
     assert_eq!(value["preview"], "unavailable");
     assert_eq!(value["apply"], "unavailable");
@@ -566,6 +569,7 @@ fn install_status_is_read_only_and_truthful_for_source_builds() {
 #[test]
 fn source_build_has_no_release_authority_and_cannot_preview_native_install() {
     assert!(qiongli::embedded_release_authority().unwrap().is_none());
+    assert!(qiongli::embedded_source_commit().is_none());
     let fixture = Fixture::new("native-preview-source-build-private-canary");
     let release = fixture.root.join("release-private-canary.json");
     let archive = fixture.root.join("archive-private-canary.zip");
@@ -599,6 +603,45 @@ fn source_build_has_no_release_authority_and_cannot_preview_native_install() {
     assert!(!public.contains(archive.to_string_lossy().as_ref()));
     assert!(!public.contains(managed.to_string_lossy().as_ref()));
     assert!(!managed.exists());
+
+    let candidate = fixture.root.join("candidate-private-canary.json");
+    let notes = fixture.root.join("notes-private-canary.md");
+    for prefix in [
+        vec![
+            OsString::from("install"),
+            OsString::from("candidate"),
+            OsString::from("preview"),
+        ],
+        vec![OsString::from("ui")],
+    ] {
+        let mut args = prefix;
+        args.extend([
+            OsString::from("--candidate"),
+            candidate.clone().into_os_string(),
+            OsString::from("--archive"),
+            archive.clone().into_os_string(),
+            OsString::from("--release-notes"),
+            notes.clone().into_os_string(),
+            OsString::from("--target"),
+            OsString::from("codex"),
+        ]);
+        let output = run_configured_os(
+            Path::new(env!("CARGO_BIN_EXE_qiongli")),
+            &fixture,
+            &args,
+            true,
+        );
+        assert_eq!(output.status.code(), Some(1));
+        assert!(output.stdout.is_empty());
+        assert_eq!(
+            output.stderr,
+            b"error: native-release-authority-unavailable\n"
+        );
+        let public = public_output(&output);
+        assert!(!public.contains(candidate.to_string_lossy().as_ref()));
+        assert!(!public.contains(archive.to_string_lossy().as_ref()));
+        assert!(!public.contains(notes.to_string_lossy().as_ref()));
+    }
 }
 
 #[test]

@@ -9,9 +9,10 @@ use crate::codex::prepare_codex_plugin_source_target;
 use crate::{
     ArtifactIdentityV1, ClaudeAdapterError, ClaudePluginBundleError, ClaudePluginBundleTarget,
     ClientActivationTarget, CodexAdapterError, CodexPluginBundleError, CodexPluginBundleTarget,
-    VerifiedNativeReleaseCandidate, compose_claude_plugin_bundle, compose_codex_plugin_bundle,
-    remove_claude_plugin_bundle, remove_codex_plugin_bundle, verify_claude_plugin_bundle,
-    verify_codex_plugin_bundle,
+    VerifiedNativeReleaseCandidate, approve_claude_plugin_bundle_target,
+    approve_codex_plugin_bundle_target, compose_claude_plugin_bundle, compose_codex_plugin_bundle,
+    discover_claude_user, discover_codex_user, remove_claude_plugin_bundle,
+    remove_codex_plugin_bundle, verify_claude_plugin_bundle, verify_codex_plugin_bundle,
 };
 
 #[derive(Clone, Debug)]
@@ -118,6 +119,38 @@ pub fn prepare_native_candidate_plugin_source_target(
                 inner: NativeCandidatePluginSourceTargetKind::ClaudeCode(inner),
             })
             .map_err(NativeCandidatePluginSourceError::ClaudeAdapter),
+    }
+}
+
+/// Re-opens one fixed existing Qiongli plugin source without creating paths.
+///
+/// This is the receipt-backed diagnose/remove boundary. The target adapter
+/// first validates the supplied current-user home and its fixed path chain;
+/// no caller-selected plugin path is accepted.
+pub fn discover_native_candidate_plugin_source_target(
+    home: impl AsRef<Path>,
+    target: ClientActivationTarget,
+) -> Result<NativeCandidatePluginSourceTarget, NativeCandidatePluginSourceError> {
+    let home = home.as_ref();
+    match target {
+        ClientActivationTarget::Codex => {
+            discover_codex_user(home).map_err(NativeCandidatePluginSourceError::CodexAdapter)?;
+            approve_codex_plugin_bundle_target(home.join(".qiongli/plugins/codex/qiongli"))
+                .map(|inner| NativeCandidatePluginSourceTarget {
+                    inner: NativeCandidatePluginSourceTargetKind::Codex(inner),
+                })
+                .map_err(NativeCandidatePluginSourceError::CodexBundle)
+        }
+        ClientActivationTarget::ClaudeCode => {
+            discover_claude_user(home).map_err(NativeCandidatePluginSourceError::ClaudeAdapter)?;
+            approve_claude_plugin_bundle_target(
+                home.join(".qiongli/plugins/claude-code/qiongli-local/plugins/qiongli"),
+            )
+            .map(|inner| NativeCandidatePluginSourceTarget {
+                inner: NativeCandidatePluginSourceTargetKind::ClaudeCode(inner),
+            })
+            .map_err(NativeCandidatePluginSourceError::ClaudeBundle)
+        }
     }
 }
 

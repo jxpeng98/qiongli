@@ -11,23 +11,23 @@ use qiongli_content::{
     load_resource_pack,
 };
 use qiongli_platform::{
-    AllowedRootV1, ClaudeRegistrationDisposition, ClaudeRegistrationExecutor,
-    ClientActivationTarget, CodexAdapterError, CodexRegistrationDisposition,
-    CodexRegistrationExecutor, GrantMode, GrantSignatureV1, InstallDisposition, InstallerKind,
-    IntegrationScope, LaunchGrantV1, ManagedNativePayloadExecutor,
-    NativeCandidateLocalInstallError, NativeCandidatePluginSourceDisposition,
-    NativeCandidatePluginSourceError, NativeCandidateRegistrationCommit, NativeClientPluginGrantV1,
-    NativeReleaseAuthority, NativeReleaseCandidateError, NativeReleaseCandidateVerificationContext,
+    ClaudeRegistrationDisposition, ClientActivationTarget, CodexAdapterError,
+    CodexRegistrationDisposition, GrantMode, GrantSignatureV1, InstallDisposition, InstallerKind,
+    IntegrationScope, LaunchGrantV1, NativeCandidateLocalInstallError,
+    NativeCandidatePluginSourceDisposition, NativeCandidatePluginSourceError,
+    NativeCandidateRegistrationCommit, NativeClientPluginGrantV1, NativeReleaseAuthority,
+    NativeReleaseCandidateError, NativeReleaseCandidateVerificationContext,
     NativeReleaseSignatureV1, ReleaseChannel, SignatureAlgorithm, SignedLaunchGrantV1,
-    SignedNativeReleaseCandidateV1, SignedNativeReleaseEnvelopeV1, SymbolicRoot,
-    apply_native_release_candidate_local, approve_managed_root, approve_native_artifact_target,
+    SignedNativeReleaseCandidateV1, SignedNativeReleaseEnvelopeV1, TransactionError,
+    apply_native_release_candidate_local, approve_native_artifact_target,
     approve_native_portable_archive_target, build_native_release_candidate,
     build_native_release_envelope, compose_native_artifact, compose_native_portable_archive,
-    current_target_native_artifact_identity, discover_claude_user, discover_codex_user,
-    launch_grant_signing_bytes, materialize_native_candidate_plugin_source, native_artifact_id,
+    current_target_native_artifact_identity, launch_grant_signing_bytes,
+    materialize_native_candidate_plugin_source, native_artifact_id,
     native_portable_archive_file_name, native_release_candidate_signing_bytes,
     native_release_envelope_signing_bytes, prepare_native_candidate_plugin_source_target,
-    remove_native_candidate_plugin_source, verify_native_candidate_plugin_source,
+    remove_native_candidate_plugin_source, remove_native_release_candidate_local,
+    verify_native_candidate_plugin_source, verify_native_release_candidate_local,
 };
 use serde_json::json;
 
@@ -479,21 +479,8 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
     );
     assert_eq!(fs::read(canary).unwrap(), b"preserve");
 
-    let codex_managed_path = fixture.root.join("codex-managed");
-    create_private_directory(&codex_managed_path);
-    let codex_root = AllowedRootV1 {
-        id: "candidate-codex-data".to_string(),
-        root: SymbolicRoot::QiongliManagedData,
-    };
-    let codex_managed = approve_managed_root(&codex_root, &codex_managed_path).unwrap();
-    let codex_install = apply_native_release_candidate_local(
-        &content,
-        &codex,
-        &home,
-        codex_managed.clone(),
-        NOW + 2,
-    )
-    .expect("Codex candidate journey must apply");
+    let codex_install = apply_native_release_candidate_local(&content, &codex, &home, NOW + 2)
+        .expect("Codex candidate journey must apply");
     assert_eq!(
         codex_install.payload.disposition,
         InstallDisposition::Applied
@@ -507,14 +494,8 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
         NativeCandidateRegistrationCommit::Codex(ref commit)
             if commit.disposition == CodexRegistrationDisposition::Registered
     ));
-    let codex_replay = apply_native_release_candidate_local(
-        &content,
-        &codex,
-        &home,
-        codex_managed.clone(),
-        NOW + 3,
-    )
-    .expect("Codex candidate journey must replay");
+    let codex_replay = apply_native_release_candidate_local(&content, &codex, &home, NOW + 3)
+        .expect("Codex candidate journey must replay");
     assert_eq!(
         codex_replay.payload.disposition,
         InstallDisposition::AlreadyApplied
@@ -528,34 +509,58 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
         NativeCandidateRegistrationCommit::Codex(ref commit)
             if commit.disposition == CodexRegistrationDisposition::AlreadyRegistered
     ));
-    CodexRegistrationExecutor::new(discover_codex_user(&home).unwrap())
-        .remove(NOW + 4)
-        .unwrap();
-    let codex_source =
-        prepare_native_candidate_plugin_source_target(&home, ClientActivationTarget::Codex)
-            .unwrap();
-    remove_native_candidate_plugin_source(&codex_source).unwrap();
-    ManagedNativePayloadExecutor::new(codex_managed)
-        .remove(&codex_install.payload.receipt.install_id, &content, NOW + 5)
-        .unwrap();
+    let codex_verified = verify_native_release_candidate_local(
+        &content,
+        &home,
+        ClientActivationTarget::Codex,
+        &codex_install.payload.receipt.install_id,
+    )
+    .unwrap();
+    assert_eq!(codex_verified.source, codex_install.source.verification);
+    assert!(
+        verify_native_release_candidate_local(
+            &content,
+            &home,
+            ClientActivationTarget::ClaudeCode,
+            &codex_install.payload.receipt.install_id,
+        )
+        .is_err()
+    );
+    let recovery_marker = home
+        .join(".qiongli/native/payloads")
+        .join(".qiongli-native-payload-transaction.json");
+    fs::write(&recovery_marker, b"recovery-canary").unwrap();
+    assert_eq!(
+        verify_native_release_candidate_local(
+            &content,
+            &home,
+            ClientActivationTarget::Codex,
+            &codex_install.payload.receipt.install_id,
+        )
+        .unwrap_err(),
+        NativeCandidateLocalInstallError::Transaction(TransactionError::RecoveryRequired)
+    );
+    fs::remove_file(recovery_marker).unwrap();
+    remove_native_release_candidate_local(
+        &content,
+        &home,
+        ClientActivationTarget::Codex,
+        &codex_install.payload.receipt.install_id,
+        NOW + 4,
+    )
+    .unwrap();
+    assert!(
+        !home
+            .join(".qiongli/native/payloads")
+            .join(&artifact_id)
+            .exists()
+    );
 
     let claude_home = fixture.root.join("claude-home");
     create_private_directory(&claude_home);
-    let claude_managed_path = fixture.root.join("claude-managed");
-    create_private_directory(&claude_managed_path);
-    let claude_root = AllowedRootV1 {
-        id: "candidate-claude-data".to_string(),
-        root: SymbolicRoot::QiongliManagedData,
-    };
-    let claude_managed = approve_managed_root(&claude_root, &claude_managed_path).unwrap();
-    let claude_install = apply_native_release_candidate_local(
-        &content,
-        &claude,
-        &claude_home,
-        claude_managed.clone(),
-        NOW + 2,
-    )
-    .expect("Claude candidate journey must apply");
+    let claude_install =
+        apply_native_release_candidate_local(&content, &claude, &claude_home, NOW + 2)
+            .expect("Claude candidate journey must apply");
     assert_eq!(
         claude_install.payload.disposition,
         InstallDisposition::Applied
@@ -569,22 +574,43 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
         NativeCandidateRegistrationCommit::ClaudeCode(ref commit)
             if commit.disposition == ClaudeRegistrationDisposition::Registered
     ));
-    ClaudeRegistrationExecutor::new(discover_claude_user(&claude_home).unwrap())
-        .remove(NOW + 4)
-        .unwrap();
-    let claude_source = prepare_native_candidate_plugin_source_target(
+    verify_native_release_candidate_local(
+        &content,
         &claude_home,
         ClientActivationTarget::ClaudeCode,
+        &claude_install.payload.receipt.install_id,
     )
     .unwrap();
-    remove_native_candidate_plugin_source(&claude_source).unwrap();
-    ManagedNativePayloadExecutor::new(claude_managed)
-        .remove(
-            &claude_install.payload.receipt.install_id,
+    let claude_binary = claude_home
+        .join(".qiongli/plugins/claude-code/qiongli-local/plugins/qiongli/bin")
+        .join(format!("qiongli{}", std::env::consts::EXE_SUFFIX));
+    let healthy_binary = fs::read(&claude_binary).unwrap();
+    fs::write(&claude_binary, b"drift").unwrap();
+    assert!(
+        verify_native_release_candidate_local(
             &content,
-            NOW + 5,
+            &claude_home,
+            ClientActivationTarget::ClaudeCode,
+            &claude_install.payload.receipt.install_id,
         )
-        .unwrap();
+        .is_err()
+    );
+    fs::write(&claude_binary, healthy_binary).unwrap();
+    verify_native_release_candidate_local(
+        &content,
+        &claude_home,
+        ClientActivationTarget::ClaudeCode,
+        &claude_install.payload.receipt.install_id,
+    )
+    .unwrap();
+    remove_native_release_candidate_local(
+        &content,
+        &claude_home,
+        ClientActivationTarget::ClaudeCode,
+        &claude_install.payload.receipt.install_id,
+        NOW + 4,
+    )
+    .unwrap();
 
     let conflict_home = fixture.root.join("conflict-home");
     create_private_directory(&conflict_home);
@@ -603,25 +629,17 @@ fn signed_candidate_verifies_both_target_capabilities_and_rejects_tampering() {
     .unwrap();
     let marketplace_path = agent_plugins.join("marketplace.json");
     fs::write(&marketplace_path, &conflict_marketplace).unwrap();
-    let conflict_managed_path = fixture.root.join("conflict-managed");
-    create_private_directory(&conflict_managed_path);
-    let conflict_root = AllowedRootV1 {
-        id: "candidate-conflict-data".to_string(),
-        root: SymbolicRoot::QiongliManagedData,
-    };
-    let conflict_managed = approve_managed_root(&conflict_root, &conflict_managed_path).unwrap();
     assert_eq!(
-        apply_native_release_candidate_local(
-            &content,
-            &codex,
-            &conflict_home,
-            conflict_managed,
-            NOW + 6,
-        )
-        .unwrap_err(),
+        apply_native_release_candidate_local(&content, &codex, &conflict_home, NOW + 6,)
+            .unwrap_err(),
         NativeCandidateLocalInstallError::Codex(CodexAdapterError::RegistrationConflict)
     );
-    assert!(!conflict_managed_path.join(&artifact_id).exists());
+    assert!(
+        !conflict_home
+            .join(".qiongli/native/payloads")
+            .join(&artifact_id)
+            .exists()
+    );
     assert!(
         !conflict_home
             .join(".qiongli/plugins/codex/qiongli")

@@ -690,13 +690,82 @@ window, and starts no subprocess. Acceptance runs the command from a copied
 current-target artifact outside the checkout with an empty `PATH`, so it cannot
 silently depend on Python, Node.js, Cargo, or another language runtime.
 
-R3L does not assemble the R3K portable payload and target-specific PluginBundle
-into a release candidate, create/discover managed roots, select production
-keys, invoke Codex or Claude CLIs, modify client-owned settings or enablement,
-support Claude Desktop or cloud surfaces, display a clean-machine window,
-publish Alpha.1, provide an updater, or claim signing/notarization,
-checksum/SBOM/provenance, cross-target, or clean-machine release acceptance.
-Those gates remain R3M.
+R3L itself does not assemble the R3K portable payload and target-specific
+PluginBundle into a release candidate. The R3M successor below composes that
+local candidate journey; production signing, publication, client-owned
+enablement, cloud surfaces, updater behavior, and the remaining acceptance
+gates stay separate.
+
+## R3M signed candidate product journey
+
+Release builds additionally provide the exact lowercase 40- or 64-character
+source object ID through `QIONGLI_NATIVE_SOURCE_COMMIT`. The build validates and
+embeds that value beside the public release authority. Neither value is read
+from the runtime environment, and neither contains private signing material.
+Source builds without both inputs fail candidate preview/apply closed.
+
+The authenticated candidate is exactly one same-directory three-file set with
+derived filenames: the portable archive, canonical signed candidate JSON, and
+signed release notes. Product commands accept those files and a client target,
+but no managed root or plugin-source path:
+
+```text
+qiongli install candidate preview \
+  --candidate <artifact-id>.candidate.json \
+  --archive <artifact-id>.zip \
+  --release-notes <artifact-id>.release-notes.md \
+  --target <codex|claude>
+
+qiongli install candidate apply <same file and target options> \
+  --expected-approval-digest <preview-sha256> \
+  --approve-filesystem-write \
+  --approve-client-config-change \
+  --approve-host-trust
+
+qiongli install candidate verify \
+  --target <codex|claude> \
+  --install-id <native-payload-id>
+
+qiongli install candidate remove <same target and install ID> \
+  --approve-filesystem-write \
+  --approve-client-config-change
+```
+
+Preview performs no write and emits only versioned, symbolic-path output. Its
+approval digest binds both the signed candidate digest and selected target.
+Apply re-verifies the complete candidate and derives the fixed owner-private
+payload root `<user-home>/.qiongli/native/payloads` plus the fixed Codex or
+Claude Code source path. It then applies and immediately verifies payload,
+source, and registration receipts as one closed identity chain. A fresh later
+failure compensates only fresh earlier steps in reverse order.
+
+Verify and remove require no candidate, authority, source-commit input, or
+unexpired release. They reopen only the fixed current-user paths and require
+the payload, PluginBundle, and registration receipts to agree on target,
+artifact, binary, pack, grant, and source identities. Remove verifies first and
+then removes registration, source, and payload in reverse order. A partial
+remove fails with recovery-required evidence rather than deleting unverified
+state.
+
+The native manager can open the same verified candidate session without a
+second installer implementation:
+
+```text
+qiongli ui \
+  --candidate <artifact-id>.candidate.json \
+  --archive <artifact-id>.zip \
+  --release-notes <artifact-id>.release-notes.md \
+  --target <codex|claude>
+```
+
+Its operation token owns the verified in-memory candidate, shows the same
+target-bound approval digest and three approvals, and calls the same local
+apply pipeline on confirmation. Qiongli still does not drive client UI or
+modify client-owned cache, enablement, reload, or trust state; those remain
+explicit host actions. This implementation does not itself create a tag,
+publish Alpha.1, provision production private keys, or claim Claude Desktop,
+Codex/ChatGPT Marketplace bypass, cloud execution, updater, notarization,
+SBOM, provenance, or cross-target readiness.
 
 ## R1 command contract (retained)
 

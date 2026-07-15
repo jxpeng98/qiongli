@@ -26,15 +26,20 @@ pub use activation::{
     preview_client_activation,
 };
 pub use candidate_install::{
-    NativeCandidateLocalInstallCommit, NativeCandidateLocalInstallError,
-    NativeCandidateRegistrationCommit, apply_native_release_candidate_local,
+    NATIVE_CANDIDATE_MANAGED_ROOT_SYMBOLIC_PATH, NativeCandidateLocalInstallCommit,
+    NativeCandidateLocalInstallError, NativeCandidateLocalRemoveCommit,
+    NativeCandidateLocalVerification, NativeCandidateRegistrationCommit,
+    NativeCandidateRegistrationLifecycleCommit, NativeCandidateRegistrationVerification,
+    apply_native_release_candidate_local, discover_native_candidate_managed_root,
+    prepare_native_candidate_managed_root, remove_native_release_candidate_local,
+    verify_native_release_candidate_local,
 };
 pub use candidate_source::{
     NativeCandidatePluginSourceCommit, NativeCandidatePluginSourceDisposition,
     NativeCandidatePluginSourceError, NativeCandidatePluginSourceTarget,
-    NativeCandidatePluginSourceVerification, materialize_native_candidate_plugin_source,
-    prepare_native_candidate_plugin_source_target, remove_native_candidate_plugin_source,
-    verify_native_candidate_plugin_source,
+    NativeCandidatePluginSourceVerification, discover_native_candidate_plugin_source_target,
+    materialize_native_candidate_plugin_source, prepare_native_candidate_plugin_source_target,
+    remove_native_candidate_plugin_source, verify_native_candidate_plugin_source,
 };
 pub use claude::{
     CLAUDE_ADAPTER_SCHEMA_VERSION, CLAUDE_MARKETPLACE_SYMBOLIC_PATH,

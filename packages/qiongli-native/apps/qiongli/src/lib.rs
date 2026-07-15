@@ -1,3 +1,4 @@
+mod candidate_cli;
 mod command;
 mod desktop;
 mod mcp;
@@ -8,7 +9,8 @@ pub use command::{
     run_cli,
 };
 pub use desktop::{
-    DesktopActivationSession, DesktopLaunchError, run_desktop, run_desktop_with_activation_sessions,
+    DesktopActivationSession, DesktopCandidateSession, DesktopLaunchError, run_desktop,
+    run_desktop_with_activation_sessions, run_desktop_with_candidate_sessions,
 };
 pub use mcp::serve_lite_mcp;
 use qiongli_content::{EmbeddedContent, ResourcePackLoaderError};
@@ -25,6 +27,11 @@ static EMBEDDED_RELEASE_AUTHORITY_BYTES: &[u8] = include_bytes!(concat!(
     "/qiongli-native-release-authority.json"
 ));
 
+const EMBEDDED_SOURCE_COMMIT: &str = include_str!(concat!(
+    env!("OUT_DIR"),
+    "/qiongli-native-source-commit.txt"
+));
+
 pub fn embedded_content() -> Result<EmbeddedContent, ResourcePackLoaderError> {
     EmbeddedContent::load(EMBEDDED_PACK_BYTES, EMBEDDED_PACK_SHA256)
 }
@@ -37,5 +44,14 @@ pub fn embedded_release_authority()
         let authority = NativeReleaseAuthority::from_json(EMBEDDED_RELEASE_AUTHORITY_BYTES)?;
         authority.validate_product_version(env!("CARGO_PKG_VERSION"))?;
         Ok(Some(authority))
+    }
+}
+
+#[must_use]
+pub const fn embedded_source_commit() -> Option<&'static str> {
+    if EMBEDDED_SOURCE_COMMIT.is_empty() {
+        None
+    } else {
+        Some(EMBEDDED_SOURCE_COMMIT)
     }
 }

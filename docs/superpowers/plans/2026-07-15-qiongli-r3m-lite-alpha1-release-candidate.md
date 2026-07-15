@@ -61,14 +61,14 @@ publish without explicit maintainer authority.
 
 ## Task 4 — Expose The Product Journey
 
-- [ ] Add closed candidate preview/apply/verify/remove CLI grammar and versioned
+- [x] Add closed candidate preview/apply/verify/remove CLI grammar and versioned
   redacted output.
-- [ ] Create only fixed owner-private Qiongli roots derived from the current
+- [x] Create only fixed owner-private Qiongli roots derived from the current
   user boundary; accept no model/MCP-selected path.
-- [ ] Connect the same prepared target sessions to the native desktop manager.
-- [ ] Keep wrong digest, partial approval, stale candidate, drift, and recovery
+- [x] Connect the same prepared target sessions to the native desktop manager.
+- [x] Keep wrong digest, partial approval, stale candidate, drift, and recovery
   states fail closed.
-- [ ] Make remove receipt-backed and independent of expired release inputs.
+- [x] Make remove receipt-backed and independent of expired release inputs.
 
 ## Task 5 — Prove The Candidate
 

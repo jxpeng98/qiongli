@@ -9,7 +9,8 @@ use qiongli_platform::{
     ClientActivationCoordinator, ClientActivationDisposition, ClientActivationHandle,
     ClientActivationPreview, ClientActivationTarget, CodexAdapterError, CodexMarketplaceState,
     CodexRegistrationState, CodexSourceState, InstallPlanMetadataV1, OperatingSystem,
-    TrustedPublicKey, VerifiedLaunchGrant, approve_install_plan, discover_claude_user_with_config,
+    TrustedPublicKey, VerifiedLaunchGrant, VerifiedNativeReleaseCandidate,
+    apply_native_release_candidate_local, approve_install_plan, discover_claude_user_with_config,
     discover_codex_user, preview_client_activation,
 };
 use qiongli_runtime::LITE_PUBLIC_TOOL_NAMES;
@@ -59,6 +60,24 @@ pub fn run_desktop_with_activation_sessions(
         return Err(DesktopLaunchError);
     }
     let service = NativeDesktopService::new(environment, content, sessions);
+    qiongli_ui::run_native(Box::new(service)).map_err(|_| DesktopLaunchError)
+}
+
+pub fn run_desktop_with_candidate_sessions(
+    environment: CommandEnvironment,
+    content: EmbeddedContent,
+    sessions: Vec<DesktopCandidateSession>,
+) -> Result<(), DesktopLaunchError> {
+    if sessions.len() > 2
+        || sessions.iter().enumerate().any(|(index, session)| {
+            sessions[..index]
+                .iter()
+                .any(|prior| prior.target == session.target)
+        })
+    {
+        return Err(DesktopLaunchError);
+    }
+    let service = NativeDesktopService::new_with_candidate_sessions(environment, content, sessions);
     qiongli_ui::run_native(Box::new(service)).map_err(|_| DesktopLaunchError)
 }
 
@@ -185,11 +204,97 @@ impl Debug for DesktopActivationSession {
     }
 }
 
+pub struct DesktopCandidateSession {
+    target: IntegrationTarget,
+    candidate: VerifiedNativeReleaseCandidate,
+    pending: bool,
+}
+
+impl DesktopCandidateSession {
+    #[must_use]
+    pub fn new(candidate: VerifiedNativeReleaseCandidate) -> Self {
+        Self {
+            target: integration_target(candidate.target()),
+            candidate,
+            pending: false,
+        }
+    }
+
+    fn preview(
+        &mut self,
+        token: OperationToken,
+        now_unix: u64,
+    ) -> Result<OperationPreview, &'static str> {
+        if now_unix < self.candidate.candidate().not_before_unix {
+            return Err("native-release-candidate-not-yet-valid");
+        }
+        if now_unix >= self.candidate.candidate().expires_at_unix {
+            return Err("native-release-candidate-expired");
+        }
+        self.pending = true;
+        Ok(OperationPreview {
+            token,
+            title: match self.target {
+                IntegrationTarget::Codex => "Codex candidate installation preview",
+                IntegrationTarget::ClaudeCode => "Claude Code candidate installation preview",
+            },
+            summary: "Install the verified native payload and fixed local Qiongli source, then register it. Client-owned enablement remains a host action.",
+            plan_digest_sha256: Some(crate::candidate_cli::candidate_approval_digest(
+                self.candidate.signed_payload_sha256(),
+                self.candidate.target(),
+            )),
+            approvals_required: OperationApproval::ACTIVATION.to_vec(),
+            can_confirm: true,
+            blocked_reason: None,
+        })
+    }
+
+    fn confirm(
+        &mut self,
+        content: &EmbeddedContent,
+        home: &std::path::Path,
+        now_unix: u64,
+    ) -> Result<&'static str, &'static str> {
+        if !std::mem::take(&mut self.pending) {
+            return Err("desktop-candidate-preview-missing");
+        }
+        let commit =
+            apply_native_release_candidate_local(content.pack(), &self.candidate, home, now_unix)
+                .map_err(|error| error.reason_code())?;
+        Ok(match commit.payload.disposition {
+            qiongli_platform::InstallDisposition::Applied => "native-candidate-install-applied",
+            qiongli_platform::InstallDisposition::AlreadyApplied => {
+                "native-candidate-install-already-applied"
+            }
+            qiongli_platform::InstallDisposition::Repaired => "native-candidate-install-repaired",
+            qiongli_platform::InstallDisposition::AlreadyHealthy => {
+                "native-candidate-install-already-healthy"
+            }
+        })
+    }
+
+    fn cancel(&mut self) {
+        self.pending = false;
+    }
+}
+
+impl Debug for DesktopCandidateSession {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("DesktopCandidateSession")
+            .field("target", &self.target)
+            .field("candidate_digest", &"<verified-candidate>")
+            .field("pending", &self.pending)
+            .finish()
+    }
+}
+
 struct NativeDesktopService {
     environment: CommandEnvironment,
     content: EmbeddedContent,
     active_operation: Option<PendingDesktopOperation>,
     activation_sessions: Vec<DesktopActivationSession>,
+    candidate_sessions: Vec<DesktopCandidateSession>,
 }
 
 #[derive(Clone, Copy)]
@@ -199,12 +304,18 @@ enum PendingDesktopOperation {
         token: OperationToken,
         target: IntegrationTarget,
     },
+    Candidate {
+        token: OperationToken,
+        target: IntegrationTarget,
+    },
 }
 
 impl PendingDesktopOperation {
     const fn token(self) -> OperationToken {
         match self {
-            Self::Blocked(token) | Self::Activation { token, .. } => token,
+            Self::Blocked(token)
+            | Self::Activation { token, .. }
+            | Self::Candidate { token, .. } => token,
         }
     }
 }
@@ -220,6 +331,21 @@ impl NativeDesktopService {
             content,
             active_operation: None,
             activation_sessions,
+            candidate_sessions: Vec::new(),
+        }
+    }
+
+    fn new_with_candidate_sessions(
+        environment: CommandEnvironment,
+        content: EmbeddedContent,
+        candidate_sessions: Vec<DesktopCandidateSession>,
+    ) -> Self {
+        Self {
+            environment,
+            content,
+            active_operation: None,
+            activation_sessions: Vec::new(),
+            candidate_sessions,
         }
     }
 
@@ -262,6 +388,20 @@ impl NativeDesktopService {
             Ok(now_unix) => now_unix,
             Err(code) => return DesktopEvent::Failed { code },
         };
+        if let Some(session) = self
+            .candidate_sessions
+            .iter_mut()
+            .find(|session| session.target == target)
+        {
+            return match session.preview(token, now_unix) {
+                Ok(preview) => {
+                    self.active_operation =
+                        Some(PendingDesktopOperation::Candidate { token, target });
+                    DesktopEvent::PreviewReady(preview)
+                }
+                Err(code) => DesktopEvent::Failed { code },
+            };
+        }
         let Some(session) = self
             .activation_sessions
             .iter_mut()
@@ -299,6 +439,14 @@ impl NativeDesktopService {
         {
             session.cancel();
         }
+        if let Some(PendingDesktopOperation::Candidate { target, .. }) = self.active_operation
+            && let Some(session) = self
+                .candidate_sessions
+                .iter_mut()
+                .find(|session| session.target == target)
+        {
+            session.cancel();
+        }
         self.active_operation = None;
     }
 }
@@ -306,7 +454,8 @@ impl NativeDesktopService {
 impl DesktopService for NativeDesktopService {
     fn snapshot(&mut self) -> DesktopSnapshotV1 {
         let mut snapshot = build_snapshot(&self.environment, &self.content);
-        snapshot.capabilities.apply = !self.activation_sessions.is_empty();
+        snapshot.capabilities.apply =
+            !self.activation_sessions.is_empty() || !self.candidate_sessions.is_empty();
         snapshot
     }
 
@@ -358,6 +507,28 @@ impl DesktopService for NativeDesktopService {
                             };
                         };
                         match now_unix().and_then(|now_unix| session.confirm(now_unix)) {
+                            Ok(code) => DesktopEvent::Completed { code },
+                            Err(code) => DesktopEvent::Failed { code },
+                        }
+                    }
+                    PendingDesktopOperation::Candidate { target, .. } => {
+                        let Some(home) = self.environment.platform_home() else {
+                            return DesktopEvent::Failed {
+                                code: "native-candidate-home-unavailable",
+                            };
+                        };
+                        let Some(session) = self
+                            .candidate_sessions
+                            .iter_mut()
+                            .find(|session| session.target == target)
+                        else {
+                            return DesktopEvent::Failed {
+                                code: "desktop-candidate-session-missing",
+                            };
+                        };
+                        match now_unix()
+                            .and_then(|now_unix| session.confirm(&self.content, home, now_unix))
+                        {
                             Ok(code) => DesktopEvent::Completed { code },
                             Err(code) => DesktopEvent::Failed { code },
                         }
