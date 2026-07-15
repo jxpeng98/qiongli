@@ -30,7 +30,8 @@ operations:
 
 1. resolve its own executable directory;
 2. select only the documented sibling canonical executable;
-3. start that executable in explicit `ui` mode; and
+3. start that executable in explicit `ui` mode, optionally with the one fixed
+   `--startup-check` preflight used by package acceptance; and
 4. display one fixed startup failure dialog when resolution, start, or exit
    fails.
 
@@ -89,8 +90,9 @@ Rejected because it does not provide a normal double-clickable application.
   package manager, or language runtime.
 - Package assembly accepts only bounded regular native binaries for the exact
   target, records both hashes, and rejects symlink or archive-layout drift.
-- The launcher passes only the fixed `ui` argument and does not forward model,
-  config, credential, path, or network input.
+- The launcher passes only the fixed `ui` argument and, for package acceptance,
+  the fixed `--startup-check` argument. It does not forward model, config,
+  credential, path, network, or arbitrary CLI input.
 - Failure messages use fixed public codes and never render filesystem paths,
   environment values, or child-process output.
 - Signing keys and platform trust decisions remain outside the launcher and

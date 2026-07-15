@@ -150,8 +150,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: Linux AppDir
-            artifact-label: linux-appdir
+          - platform: Linux AppImage
+            artifact-label: linux-appimage
             os: ubuntu-latest
           - platform: macOS application
             artifact-label: macos-app
@@ -224,6 +224,119 @@ jobs:
             --source-commit "$SOURCE_COMMIT"
 
           echo "root=$package_root" >> "$GITHUB_OUTPUT"
+
+      - name: Build and verify pinned Linux AppImage
+        if: runner.os == 'Linux'
+        shell: bash
+        env:
+          APPIMAGETOOL_SHA256: a6d71e2b6cd66f8e8d16c37ad164658985e0cf5fcaa950c90a482890cb9d13e0
+          APPIMAGETOOL_URL: https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+          CARGO_BUILD_RUSTC_WRAPPER: ""
+          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+          CARGO_BUILD_RUSTFLAGS: ""
+          CARGO_ENCODED_RUSTFLAGS: ""
+          RUSTC_WORKSPACE_WRAPPER: ""
+          RUSTC_WRAPPER: ""
+          RUSTFLAGS: ""
+          QIONGLI_NATIVE_SOURCE_COMMIT: ${{ github.sha }}
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          package_root="${{ steps.desktop-package.outputs.root }}"
+          tool="$RUNNER_TEMP/appimagetool-x86_64.AppImage"
+          curl \
+            --fail \
+            --location \
+            --proto '=https' \
+            --tlsv1.2 \
+            --output "$tool" \
+            "$APPIMAGETOOL_URL"
+          printf '%s  %s\n' "$APPIMAGETOOL_SHA256" "$tool" | sha256sum --check --strict
+          chmod 700 "$tool"
+
+          appdir_archive_count=$(find "$package_root" -maxdepth 1 -type f -name '*.appdir.zip' -print | wc -l | tr -d ' ')
+          [[ "$appdir_archive_count" -eq 1 ]]
+          appdir_archive=$(find "$package_root" -maxdepth 1 -type f -name '*.appdir.zip' -print -quit)
+          appdir_stage="$RUNNER_TEMP/qiongli-appdir-$SOURCE_COMMIT"
+          mkdir -m 700 "$appdir_stage"
+          unzip -q "$appdir_archive" -d "$appdir_stage"
+          appdir="$appdir_stage/Qiongli.AppDir"
+          [[ -x "$appdir/AppRun" ]]
+          [[ -x "$appdir/qiongli-cli" ]]
+          [[ -f "$appdir/.DirIcon" ]]
+
+          version_output=$("$appdir/qiongli-cli" --version)
+          product_version="${version_output#qiongli }"
+          [[ "$product_version" =~ ^[0-9A-Za-z.-]+$ ]]
+          appimage="$package_root/Qiongli-$product_version-x86_64.AppImage"
+          source_date_epoch=$(git show -s --format=%ct "$SOURCE_COMMIT")
+          ARCH=x86_64 SOURCE_DATE_EPOCH="$source_date_epoch" \
+            "$tool" --appimage-extract-and-run "$appdir" "$appimage"
+          chmod 700 "$appimage"
+
+          extraction_root="$RUNNER_TEMP/qiongli-appimage-extraction-$SOURCE_COMMIT"
+          mkdir -m 700 "$extraction_root"
+          (
+            cd "$extraction_root"
+            "$appimage" --appimage-extract >/dev/null
+          )
+
+          cargo run \
+            --manifest-path packages/qiongli-native/Cargo.toml \
+            --package qiongli \
+            --example native_linux_appimage \
+            --release \
+            --locked \
+            -- \
+            --package-root "$package_root" \
+            --appdir-package "$appdir_archive" \
+            --desktop-manifest "$package_root/qiongli-desktop-package.manifest.json" \
+            --desktop-receipt "$package_root/qiongli-desktop-package.receipt.json" \
+            --appimagetool "$tool" \
+            --appimage "$appimage" \
+            --extracted-appdir "$extraction_root/squashfs-root" \
+            --source-commit "$SOURCE_COMMIT"
+
+      - name: Verify packaged desktop startup entry
+        shell: bash
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          package_root="${{ steps.desktop-package.outputs.root }}"
+          activation_root="$RUNNER_TEMP/qiongli-desktop-activation-$SOURCE_COMMIT"
+          mkdir "$activation_root"
+          mkdir "$activation_root/home"
+
+          case "${{ runner.os }}" in
+            Linux)
+              launcher_count=$(find "$package_root" -maxdepth 1 -type f -name '*.AppImage' -print | wc -l | tr -d ' ')
+              [[ "$launcher_count" -eq 1 ]]
+              launcher=$(find "$package_root" -maxdepth 1 -type f -name '*.AppImage' -print -quit)
+              APPIMAGE_EXTRACT_AND_RUN=1 HOME="$activation_root/home" PATH="" \
+                "$launcher" --startup-check
+              ;;
+            macOS)
+              archive_count=$(find "$package_root" -maxdepth 1 -type f -name '*.app.zip' -print | wc -l | tr -d ' ')
+              [[ "$archive_count" -eq 1 ]]
+              archive=$(find "$package_root" -maxdepth 1 -type f -name '*.app.zip' -print -quit)
+              ditto -x -k "$archive" "$activation_root"
+              HOME="$activation_root/home" PATH="" \
+                "$activation_root/Qiongli.app/Contents/MacOS/Qiongli" --startup-check
+              ;;
+            Windows)
+              archive_count=$(find "$package_root" -maxdepth 1 -type f -name '*.zip' -print | wc -l | tr -d ' ')
+              [[ "$archive_count" -eq 1 ]]
+              archive=$(find "$package_root" -maxdepth 1 -type f -name '*.zip' -print -quit)
+              tar -xf "$archive" -C "$activation_root"
+              HOME="$activation_root/home" PATH="" \
+                "$activation_root/Qiongli/Qiongli.exe" --startup-check
+              ;;
+            *)
+              exit 1
+              ;;
+          esac
 
       - name: Upload explicitly non-publishing desktop package
         uses: actions/upload-artifact@v4

@@ -604,6 +604,11 @@ fn build_payload_entries(
         ],
         OperatingSystem::Linux => vec![
             payload(
+                "Qiongli.AppDir/.DirIcon",
+                LogicalMode::Regular,
+                icon_png.to_vec(),
+            ),
+            payload(
                 launcher_path(artifact.os),
                 LogicalMode::Executable,
                 launcher_binary.to_vec(),
@@ -794,6 +799,7 @@ fn expected_payload_paths(os: OperatingSystem) -> BTreeSet<String> {
             "Qiongli/qiongli.png",
         ],
         OperatingSystem::Linux => &[
+            "Qiongli.AppDir/.DirIcon",
             "Qiongli.AppDir/AppRun",
             "Qiongli.AppDir/LICENSE",
             "Qiongli.AppDir/qiongli-cli",

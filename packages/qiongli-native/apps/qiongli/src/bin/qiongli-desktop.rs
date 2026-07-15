@@ -1,6 +1,7 @@
 #![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
 
 use std::env;
+use std::ffi::OsStr;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -38,11 +39,38 @@ fn main() -> ExitCode {
     reason = "the desktop launcher starts only its sibling canonical Qiongli binary, never an external language runtime"
 )]
 fn launch_canonical_desktop() -> io::Result<bool> {
+    let mode = parse_launch_mode(env::args_os().skip(1))?;
     let current_executable = env::current_exe()?;
     let mut command = Command::new(canonical_executable_path(&current_executable)?);
     command.arg("ui");
+    if mode == DesktopLaunchMode::StartupCheck {
+        command.arg("--startup-check");
+    }
     configure_desktop_child(&mut command);
     command.status().map(|status| status.success())
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum DesktopLaunchMode {
+    Window,
+    StartupCheck,
+}
+
+fn parse_launch_mode(
+    arguments: impl IntoIterator<Item = impl AsRef<OsStr>>,
+) -> io::Result<DesktopLaunchMode> {
+    let arguments = arguments
+        .into_iter()
+        .map(|argument| argument.as_ref().to_owned())
+        .collect::<Vec<_>>();
+    match arguments.as_slice() {
+        [] => Ok(DesktopLaunchMode::Window),
+        [argument] if argument == "--startup-check" => Ok(DesktopLaunchMode::StartupCheck),
+        _ => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "desktop launcher accepts only the internal startup check",
+        )),
+    }
 }
 
 fn canonical_executable_path(current_executable: &Path) -> io::Result<PathBuf> {
@@ -116,6 +144,22 @@ mod tests {
         assert_ne!(
             packaged_canonical_executable_name(),
             development_canonical_executable_name()
+        );
+    }
+
+    #[test]
+    fn launcher_accepts_only_window_or_internal_startup_check() {
+        assert_eq!(
+            parse_launch_mode(std::iter::empty::<&OsStr>()).unwrap(),
+            DesktopLaunchMode::Window
+        );
+        assert_eq!(
+            parse_launch_mode([OsStr::new("--startup-check")]).unwrap(),
+            DesktopLaunchMode::StartupCheck
+        );
+        assert!(parse_launch_mode([OsStr::new("--help")]).is_err());
+        assert!(
+            parse_launch_mode([OsStr::new("--startup-check"), OsStr::new("unexpected")]).is_err()
         );
     }
 }

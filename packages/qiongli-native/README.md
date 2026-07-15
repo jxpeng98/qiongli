@@ -853,12 +853,15 @@ version, MIT license, `io.github.jxpeng98.qiongli` application identifier,
 fixed startup error metadata, and a product-specific icon. Platform `.app`,
 Windows portable, and AppImage assembly is handled in Batch 4.
 
-R3N Batch 4 package foundation is implemented. A single Rust composer now
-produces deterministic, verified development artifacts for all three target
-families: a macOS `Qiongli.app` in `.app.zip`, a Windows portable application
-ZIP, and a Linux AppDir ZIP. The Linux output is not yet an AppImage. All three
-artifacts are labelled `assembled-unpublished` and remain unsuitable for
-public distribution until their target activation and release gates pass.
+R3N Batch 4 package finalization is implemented for exact-head CI acceptance.
+A single Rust composer produces deterministic, verified source artifacts for
+all three target families: a macOS `Qiongli.app` in `.app.zip`, a Windows
+portable application ZIP, and a Linux AppDir ZIP. Linux CI converts the exact
+verified AppDir into a Type 2 AppImage with a digest-pinned official
+`appimagetool`, extracts the result, and verifies every file, mode, manifest,
+and digest before writing a separate AppImage receipt. All artifacts remain
+labelled `assembled-unpublished` and unsuitable for public distribution until
+their target activation and release gates pass.
 
 Each desktop manifest is independent of the R3M three-file candidate and binds
 the desktop archive to the exact portable artifact identity and manifest,
@@ -867,10 +870,12 @@ pack, application metadata, license, and every archive entry. Verification
 rejects layout, mode, order, size, hash, or source drift before output is
 accepted.
 
-The CI workflow builds and verifies release-mode artifacts on macOS, Windows,
-and Linux in a parallel matrix and retains them for seven days as explicitly
-non-publishing evidence. The package command may also be run by maintainers
-after building both binaries with the same exact source-commit binding:
+The CI workflow builds release-mode artifacts on macOS, Windows, and Linux in
+a parallel matrix, runs the actual packaged launcher through its fixed startup
+preflight with an empty runtime `PATH`, and retains the results for seven days
+as explicitly non-publishing evidence. The package command may also be run by
+maintainers after building both binaries with the same exact source-commit
+binding:
 
 ```text
 QIONGLI_NATIVE_SOURCE_COMMIT=<exact-clean-head> cargo build \
@@ -889,10 +894,15 @@ QIONGLI_NATIVE_SOURCE_COMMIT=<exact-clean-head> cargo run \
 The command requires a fresh absolute output directory outside the source
 checkout under a trusted, non-shared parent and writes exactly the target archive,
 `qiongli-desktop-package.manifest.json`, and
-`qiongli-desktop-package.receipt.json`. It does not sign, notarize, publish,
-install, remove, create a DMG, create an AppImage, or prove Finder/Explorer
-activation. Those remaining Batch 4/5 gates must use the exact committed CI
-head; a dirty-tree smoke package is never release evidence.
+`qiongli-desktop-package.receipt.json`. On Linux, CI additionally emits the
+AppImage and `qiongli-linux-appimage.receipt.json`. The source composer does
+not sign, notarize, publish, install, remove, or create a DMG. The automated
+startup preflight does not claim a human Finder/Explorer/file-manager launch or
+accessibility pass. Those Batch 5 gates must use the exact committed candidate;
+a dirty-tree smoke package is never release evidence.
+
+Target-specific install, CLI, removal, trust, and architecture guidance is in
+`docs/advanced/native-desktop-alpha.md` and its Chinese counterpart.
 
 ## R1 command contract (retained)
 

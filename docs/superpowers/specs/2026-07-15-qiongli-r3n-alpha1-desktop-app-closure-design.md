@@ -1,6 +1,6 @@
 # Qiongli R3N Alpha.1 Desktop Application Closure Design
 
-Status: implementation in progress; Batches 1-3 accepted locally, Batch 4 package foundation implemented
+Status: implementation in progress; Batches 1-3 accepted, Batch 4 finalization awaiting exact-head CI and manual activation
 
 Date: July 15, 2026
 

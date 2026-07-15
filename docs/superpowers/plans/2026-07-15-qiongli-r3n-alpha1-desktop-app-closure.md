@@ -1,6 +1,6 @@
 # Qiongli R3N Alpha.1 Desktop Application Closure Execution Plan
 
-Status: Batch 4 package foundation implemented; target activation and AppImage acceptance pending
+Status: Batch 4 AppImage and packaged-startup implementation complete locally; exact-head CI and manual activation pending
 
 Date: July 15, 2026
 
@@ -156,13 +156,14 @@ Implemented evidence:
 - [ ] Produce a macOS `.app` and distributable archive/DMG with Finder launch.
 - [ ] Produce a Windows desktop GUI executable and portable package with
   Explorer launch and no persistent console window.
-- [ ] Produce a Linux AppImage with icon and desktop metadata.
+- [x] Produce a Linux AppImage with icon and desktop metadata using a
+  digest-pinned official Type 2 builder and reverse payload verification.
 - [x] Bind each desktop artifact to the R3M product, version, source,
   executable, and embedded-pack identity without weakening the three-file
   portable candidate contract.
 - [x] Add CI jobs which assemble and structurally inspect all three packages;
   upload only explicitly non-publishing artifacts until signing gates pass.
-- [ ] Document target-specific installation, CLI access, removal, trust
+- [x] Document target-specific installation, CLI access, removal, trust
   prompts, and unsupported architectures truthfully.
 
 **Checkpoint:** CI produces one desktop-activatable artifact for macOS,
@@ -170,7 +171,7 @@ Windows, and Linux from the same exact source and embedded pack.
 
 Implemented foundation evidence:
 
-- The new desktop-package manifest is separate from the accepted R3M
+- The desktop-package manifest is separate from the accepted R3M
   three-file portable candidate. It records `assembled-unpublished`, the exact
   source artifact and manifest hash, product source commit, canonical binary,
   launcher, embedded pack, application metadata, every package entry, and a
@@ -183,13 +184,23 @@ Implemented foundation evidence:
   Windows receives a GUI `Qiongli.exe`, canonical `qiongli-cli.exe`, external
   manifest, PNG icon, license, and package manifest. Linux currently receives
   a standard `Qiongli.AppDir` with `AppRun`, canonical CLI, desktop entry, PNG
-  icon, license, and package manifest; a real AppImage remains open.
+  icon, license, and package manifest, which the Linux job finalizes into a
+  real Type 2 AppImage.
 - The package command stages bounded regular files in owner-private storage,
   verifies the resulting archive before writing output, cleans staging, and
   emits exactly the target archive, canonical manifest, and public receipt.
-- Native CI now runs package assembly as a parallel three-platform release
-  matrix and uploads seven-day artifacts named explicitly as non-publishing.
-  The first remote matrix run is still required before this is CI evidence.
+- Native CI runs package assembly as a parallel three-platform release matrix
+  and uploads seven-day artifacts named explicitly as non-publishing. Exact
+  AppDir-source matrix run `29414548962` passed macOS, Windows, and Linux on
+  implementation head `33d91af8`.
+- Linux finalization now requires the official Type 2 `appimagetool` asset with
+  a source-controlled SHA-256 pin. It reverse-extracts the AppImage and a Rust
+  finalizer verifies the tool, source ZIP/manifest/receipt chain, Type 2 magic,
+  exact file set, modes, and hashes before emitting a separate non-publishing
+  AppImage receipt.
+- The thin desktop launcher accepts only normal window activation or one fixed
+  `--startup-check` package preflight. CI uses the real packaged launcher with
+  an empty `PATH`; arbitrary CLI input is not forwarded through the launcher.
 - Focused layout, identity, tamper, source-binding, application asset, and
   launcher tests pass. The optimized integration fixture completes in about
   0.3 seconds instead of copying full debug binaries. A local macOS release
@@ -197,11 +208,11 @@ Implemented foundation evidence:
   the implementation was uncommitted during that smoke run, it is mechanism
   evidence only and not exact-head release evidence.
 
-Remaining Batch 4 work is deliberately narrower: execute the CI matrix,
-perform normal macOS and Windows desktop activation checks, convert the Linux
-AppDir into a real AppImage, and then write installation/removal/trust guidance
-against the observed packages. Signing, notarization, and clean-machine
-acceptance remain Batch 5.
+Remaining Batch 4 work is deliberately narrower: obtain exact-head CI evidence
+for the Type 2 AppImage and packaged startup entries, then perform normal
+no-argument macOS, Windows, and Linux desktop activation checks. Signing,
+notarization, human accessibility review, and clean-machine acceptance remain
+Batch 5.
 
 ## Batch 5 — Reaccept Alpha.1
 

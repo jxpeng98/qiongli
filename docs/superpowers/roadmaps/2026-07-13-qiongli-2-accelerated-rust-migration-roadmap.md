@@ -1078,6 +1078,13 @@ superseded head is not reported as current-head evidence.
     Linux x86-64 CI acceptance green. The technical receipt is
     `tooling/release/acceptance/v2.0.0-alpha.1-r3m-readiness.md`; publication is
     blocked by its external-gate ledger and has not been run.
+23. R3N Batches 1-3 close the observed settings, Skills destination, MCP
+    self-test, source discovery, and native application-entry gaps. Batch 4
+    package-source matrix run `29414548962` passed at `33d91af8`; Type 2 Linux
+    AppImage finalization, packaged-launcher startup preflight, and truthful
+    target guidance are implemented on the rolling branch and await their own
+    exact-head CI evidence. Normal desktop activation, real-client evidence,
+    signing, and clean-machine interactive acceptance remain open gates.
 
 ## Program Done
 
