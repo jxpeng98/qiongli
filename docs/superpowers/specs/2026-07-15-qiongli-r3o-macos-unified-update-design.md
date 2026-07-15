@@ -158,15 +158,17 @@ as test canaries must remain unread and unchanged.
 2. Add v2 update preferences/state, fixed-endpoint CLI status/check/channel,
    and signed metadata verification without download or mutation.
 3. Add the bounded HTTPS archive downloader, private exact-byte staging,
-   cancellation/concurrency handling, and fixture server tests.
-4. Add staged macOS verification, bundled helper, journaled A/B replacement,
+   cancellation/concurrency handling, and deterministic byte-integrity tests.
+4. Exercise manifest and archive transport through an isolated TLS fault
+   matrix, including redirects, timeouts, interruption, and concurrent cancel.
+5. Add staged macOS verification, bundled helper, journaled A/B replacement,
    relaunch/health/rollback, and fault-injection tests.
-5. Add receipt inventory and staged-runtime reconciliation for installed
+6. Add receipt inventory and staged-runtime reconciliation for installed
    Skills, MCP, Codex, and Claude Code surfaces.
-6. Add the Overview Update card and packaged end-to-end journeys from Alpha.1
+7. Add the Overview Update card and packaged end-to-end journeys from Alpha.1
    to a later signed fixture, including offline, stale, corrupt, read-only, and
    rollback cases.
-7. Generate production stream metadata and the exact-head macOS Alpha.1
+8. Generate production stream metadata and the exact-head macOS Alpha.1
    publication ledger after Developer ID signing and notarization.
 
 ## Deferred Work

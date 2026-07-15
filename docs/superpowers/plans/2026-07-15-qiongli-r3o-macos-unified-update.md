@@ -1,6 +1,6 @@
 # Qiongli R3O macOS Unified Update Execution Plan
 
-Status: Batch 2A implemented and locally accepted; Batch 2B next
+Status: Batch 2B implemented and locally accepted; Batch 2C next
 
 Date: July 15, 2026
 
@@ -99,23 +99,52 @@ Implemented evidence:
   the embedded release authority and macOS Team ID, and returns
   `download: not-started` and `install: not-started` after verification.
 - Focused config, platform, CLI, parser, and Clippy checks pass locally with
-  warnings denied. Cross-compiling the config library for Windows also passes;
-  full Windows cross-Clippy remains a target-toolchain limitation on macOS and
-  continues to run in target-native CI.
+  warnings denied. Cross-target Windows Clippy for the complete `qiongli`
+  application and all its targets also passes locally; target-native full
+  workspace coverage remains in CI.
 
 ## Batch 2B — Download Exact Bytes Into Private Staging
 
-- [ ] Implement bounded HTTPS archive fetch with timeouts, response-size
+- [x] Implement bounded HTTPS archive fetch with timeouts, response-size
   limits, redirect revalidation, and the verified allowlisted host policy.
-- [ ] Stream the archive into owner-private staging while checking exact size
+- [x] Stream the archive into owner-private staging while checking exact size
   and SHA-256; remove incomplete or mismatched bytes.
-- [ ] Add explicit cancellation and concurrency semantics without persisting a
+- [x] Add explicit cancellation and concurrency semantics without persisting a
   device identifier or making the staged archive executable.
-- [ ] Test with an isolated fixture server plus offline, redirect, timeout,
-  oversized, corrupt, stale-generation, and concurrent-check cases.
+- [x] Cover exact private staging, corrupt, incomplete, oversized, redirect
+  policy, stale revision, active transaction, and cancellation with focused
+  deterministic tests.
 
 **Checkpoint:** CLI can truthfully report and download one verified newer
 macOS update without changing the installed application.
+
+Implemented evidence:
+
+- `qiongli update download --expected-revision <revision>` rechecks the fixed
+  signed manifest, reserves a `Downloading` transaction, and streams no more
+  than the signed byte count into a random owner-private staging directory.
+- Redirects remain HTTPS-only and must stay on the exact GitHub release host
+  allowlist. The final response must be HTTP 200 with identity encoding; any
+  advertised length must equal the signed length.
+- The partial file is never exposed under the signed archive name. Exact size,
+  SHA-256, file sync, no-replace hard-link activation, and directory sync must
+  all pass before the transaction becomes `Downloaded`.
+- Failure removes partial/final bytes and clears the reserved transaction when
+  safe. `qiongli update cancel --expected-revision <revision>` removes a
+  Downloading/Downloaded staging transaction without touching the app.
+
+## Batch 2C — Exercise The Network Fault Matrix
+
+- [ ] Add an isolated TLS fixture transport for manifest and archive responses
+  without weakening production HTTPS validation.
+- [ ] Prove offline, refused connection, timeout, redirect loops, disallowed
+  redirect hosts, compressed responses, missing/incorrect lengths, and read
+  interruption return fixed path-redacted errors.
+- [ ] Add barrier-controlled concurrent download/cancel tests and confirm only
+  one expected-revision reservation can own a staged transaction.
+
+**Checkpoint:** Deterministic transport faults cannot leave executable,
+unbounded, ambiguous, or orphaned update bytes.
 
 ## Batch 3 — Stage And Replace The macOS Application
 
@@ -193,6 +222,8 @@ Batch-local tests run before the normal native workspace gate:
 ```text
 cargo test --manifest-path packages/qiongli-native/Cargo.toml \
   -p qiongli-platform native_update
+cargo test --manifest-path packages/qiongli-native/Cargo.toml \
+  -p qiongli update
 cargo fmt --manifest-path packages/qiongli-native/Cargo.toml --all -- --check
 cargo check --manifest-path packages/qiongli-native/Cargo.toml \
   --workspace --all-targets --all-features --locked

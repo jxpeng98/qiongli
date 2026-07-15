@@ -60,7 +60,9 @@ pub enum UpdateReleaseChannel {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum UpdateTransactionPhase {
+    Downloading,
     Downloaded,
+    Cancelling,
     Staged,
     ReconciliationPrepared,
     AwaitingExit,

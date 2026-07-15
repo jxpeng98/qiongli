@@ -2918,6 +2918,7 @@ dependencies = [
  "qiongli-windows-security",
  "reqwest",
  "rfd",
+ "rustix 1.1.4",
  "serde",
  "serde_json",
  "serde_json_canonicalizer",

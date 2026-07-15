@@ -31,13 +31,13 @@ use crate::update_cli::UpdateCliCommand;
 
 const OUTPUT_SCHEMA_VERSION: u32 = 1;
 
-const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli\n  qiongli --version\n  qiongli --help\n  qiongli ui [--startup-check]\n  qiongli ui --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli update status\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli install status\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate <preview|apply|verify|remove> [options]\n  qiongli install native <preview|apply|verify|remove> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
+const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli\n  qiongli --version\n  qiongli --help\n  qiongli ui [--startup-check]\n  qiongli ui --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli update status\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update download --expected-revision <revision>\n  qiongli update cancel --expected-revision <revision>\n  qiongli install status\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate <preview|apply|verify|remove> [options]\n  qiongli install native <preview|apply|verify|remove> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
 
 const CONTENT_USAGE: &str = "Qiongli embedded content\n\nUsage:\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli content --help\n";
 
 const CONFIG_USAGE: &str = "Qiongli global config\n\nUsage:\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli config --help\n";
 
-const UPDATE_USAGE: &str = "Qiongli native update\n\nUsage:\n  qiongli update status\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update --help\n";
+const UPDATE_USAGE: &str = "Qiongli native update\n\nUsage:\n  qiongli update status\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update download --expected-revision <revision>\n  qiongli update cancel --expected-revision <revision>\n  qiongli update --help\n";
 
 const MCP_USAGE: &str = "Qiongli native MCP\n\nUsage:\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli mcp --help\n";
 
@@ -980,9 +980,26 @@ fn parse_update_args(args: &[OsString]) -> Result<Command, UsageError> {
         "status" if args.len() == 1 => Ok(Command::Update(UpdateCliCommand::Status)),
         "check" if args.len() == 1 => Ok(Command::Update(UpdateCliCommand::Check)),
         "channel" => parse_update_channel_options(&args[1..]),
+        "download" => parse_update_expected_revision(&args[1..]).map(|expected_revision| {
+            Command::Update(UpdateCliCommand::Download { expected_revision })
+        }),
+        "cancel" => parse_update_expected_revision(&args[1..]).map(|expected_revision| {
+            Command::Update(UpdateCliCommand::Cancel { expected_revision })
+        }),
         "--help" | "status" | "check" => Err(update_usage_error("unexpected extra argument")),
         _ => Err(update_usage_error("unknown update subcommand")),
     }
+}
+
+fn parse_update_expected_revision(args: &[OsString]) -> Result<u64, UsageError> {
+    if args.len() != 2
+        || args.first().and_then(|value| value.to_str()) != Some("--expected-revision")
+    {
+        return Err(update_usage_error(
+            "exactly one expected revision option is required",
+        ));
+    }
+    parse_revision(&args[1]).ok_or_else(|| update_usage_error("expected revision is invalid"))
 }
 
 fn parse_update_channel_options(args: &[OsString]) -> Result<Command, UsageError> {
@@ -1702,6 +1719,18 @@ mod tests {
             Ok(Command::Update(UpdateCliCommand::Check))
         );
         assert_eq!(
+            parse_args(args(&["update", "download", "--expected-revision", "3",])),
+            Ok(Command::Update(UpdateCliCommand::Download {
+                expected_revision: 3,
+            }))
+        );
+        assert_eq!(
+            parse_args(args(&["update", "cancel", "--expected-revision", "3",])),
+            Ok(Command::Update(UpdateCliCommand::Cancel {
+                expected_revision: 3,
+            }))
+        );
+        assert_eq!(
             parse_args(args(&[
                 "update",
                 "channel",
@@ -1977,6 +2006,8 @@ mod tests {
             vec!["update"],
             vec!["update", "status", "extra"],
             vec!["update", "channel", "--expected-revision", "0"],
+            vec!["update", "download"],
+            vec!["update", "cancel", "--expected-revision", "not-a-number"],
             vec![
                 "update",
                 "channel",

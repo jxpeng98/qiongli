@@ -19,10 +19,18 @@ qiongli-ui = { path = "../../crates/qiongli-ui" }
 getrandom.workspace = true
 png.workspace = true
 rfd.workspace = true
-reqwest = { workspace = true, features = ["rustls-tls"] }
 serde.workspace = true
 serde_json.workspace = true
 sha2.workspace = true
+
+[target.'cfg(not(windows))'.dependencies]
+reqwest = { workspace = true, features = ["rustls-tls"] }
+
+[target.'cfg(windows)'.dependencies]
+reqwest = { workspace = true, features = ["native-tls"] }
+
+[target.'cfg(unix)'.dependencies]
+rustix.workspace = true
 
 [build-dependencies]
 qiongli-content = { path = "../../crates/qiongli-content" }

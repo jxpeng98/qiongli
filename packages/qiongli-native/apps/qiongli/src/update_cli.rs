@@ -1,16 +1,25 @@
-use std::io::Read;
+#[cfg(unix)]
+use std::fs::OpenOptions;
+use std::fs::{self, File};
+use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use qiongli_config::{UpdateStateStore, UpdateStreamPreference};
+use qiongli_config::{
+    UpdateActiveTransaction, UpdateState, UpdateStateStore, UpdateStreamPreference,
+    UpdateTransactionPhase,
+};
 use qiongli_platform::{
     Architecture, NativeReleaseAuthority, NativeUpdateDisposition, NativeUpdateStream,
     NativeUpdateVerificationContext, OperatingSystem, SignedNativeUpdateManifestV1,
+    VerifiedNativeUpdateManifest,
 };
 use reqwest::StatusCode;
 use reqwest::blocking::Client;
 use reqwest::header::{ACCEPT, ACCEPT_ENCODING, CONTENT_ENCODING};
 use reqwest::redirect::Policy;
 use serde::Serialize;
+use sha2::{Digest, Sha256};
 
 const STABLE_MANIFEST_ENDPOINT: &str = "https://qiongli.dev/updates/v2/stable/macos-aarch64.json";
 const BETA_MANIFEST_ENDPOINT: &str = "https://qiongli.dev/updates/v2/beta/macos-aarch64.json";
@@ -21,6 +30,11 @@ const ARCHIVE_HOSTS: &[&str] = &[
 ];
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
+const ARCHIVE_REQUEST_TIMEOUT: Duration = Duration::from_secs(10 * 60);
+const MAX_ARCHIVE_REDIRECTS: usize = 3;
+const ARCHIVE_BUFFER_BYTES: usize = 64 * 1024;
+const STAGED_MANIFEST_FILE: &str = "update-manifest.json";
+const PARTIAL_ARCHIVE_FILE: &str = ".archive.partial";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum UpdateCliCommand {
@@ -30,6 +44,12 @@ pub(crate) enum UpdateCliCommand {
         stream: UpdateStreamPreference,
     },
     Check,
+    Download {
+        expected_revision: u64,
+    },
+    Cancel {
+        expected_revision: u64,
+    },
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
@@ -38,6 +58,8 @@ pub(crate) enum UpdateCliOutput {
     Status(UpdateStatusOutput),
     Channel(UpdateChannelOutput),
     Check(UpdateCheckOutput),
+    Download(UpdateDownloadOutput),
+    Cancel(UpdateCancelOutput),
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
@@ -84,13 +106,42 @@ pub(crate) struct UpdateCheckOutput {
     install: &'static str,
 }
 
+#[derive(Debug, Eq, PartialEq, Serialize)]
+pub(crate) struct UpdateDownloadOutput {
+    schema_version: u32,
+    command: &'static str,
+    revision: u64,
+    transaction_id: String,
+    target_version: String,
+    generation: u64,
+    archive_file_name: String,
+    archive_size_bytes: u64,
+    archive_sha256: String,
+    staging: &'static str,
+    install: &'static str,
+    cleanup_required: bool,
+}
+
+#[derive(Debug, Eq, PartialEq, Serialize)]
+pub(crate) struct UpdateCancelOutput {
+    schema_version: u32,
+    command: &'static str,
+    revision: u64,
+    transaction_id: String,
+    staging: &'static str,
+    cleanup_required: bool,
+}
+
 pub(crate) fn execute(
     command: UpdateCliCommand,
     store: &UpdateStateStore,
     authority: Option<&NativeReleaseAuthority>,
     expected_macos_team_id: Option<&str>,
 ) -> Result<UpdateCliOutput, &'static str> {
-    let now_unix = if matches!(command, UpdateCliCommand::Check) {
+    let now_unix = if matches!(
+        command,
+        UpdateCliCommand::Check | UpdateCliCommand::Download { .. }
+    ) {
         now_unix()?
     } else {
         0
@@ -102,15 +153,23 @@ pub(crate) fn execute(
         now_unix,
         expected_macos_team_id,
     };
-    execute_with_fetcher(command, store, authority, &runtime, &ReqwestManifestFetcher)
+    execute_with_fetchers(
+        command,
+        store,
+        authority,
+        &runtime,
+        &ReqwestManifestFetcher,
+        &ReqwestArchiveFetcher,
+    )
 }
 
-fn execute_with_fetcher(
+fn execute_with_fetchers(
     command: UpdateCliCommand,
     store: &UpdateStateStore,
     authority: Option<&NativeReleaseAuthority>,
     runtime: &UpdateRuntimeContext<'_>,
-    fetcher: &impl ManifestFetcher,
+    manifest_fetcher: &impl ManifestFetcher,
+    archive_fetcher: &impl ArchiveFetcher,
 ) -> Result<UpdateCliOutput, &'static str> {
     let loaded = store.load().map_err(|error| error.reason_code())?;
     match command {
@@ -137,7 +196,7 @@ fn execute_with_fetcher(
                 "unavailable"
             },
             manifest_source: "qiongli-managed",
-            download: "not-started",
+            download: update_download_status(&loaded.state),
             install: "not-started",
         })),
         UpdateCliCommand::Channel {
@@ -161,39 +220,11 @@ fn execute_with_fetcher(
             }))
         }
         UpdateCliCommand::Check => {
-            if runtime.os != Some(OperatingSystem::Macos)
-                || runtime.arch != Some(Architecture::Aarch64)
-            {
-                return Err("native-update-target-unsupported");
-            }
             if loaded.state.active_transaction.is_some() {
                 return Err("native-update-transaction-active");
             }
-            let authority = authority.ok_or("native-update-release-authority-unavailable")?;
-            let team_id = runtime
-                .expected_macos_team_id
-                .ok_or("native-update-macos-team-id-unavailable")?;
-            let endpoint = manifest_endpoint(loaded.state.selected_stream);
-            let bytes = fetcher.fetch(endpoint)?;
-            let signed = SignedNativeUpdateManifestV1::from_json(&bytes)
-                .map_err(|error| error.reason_code())?;
-            let selected_stream = native_stream(loaded.state.selected_stream);
-            let authority_floor = authority.minimum_release_generation().saturating_sub(1);
-            let context = NativeUpdateVerificationContext {
-                now_unix: runtime.now_unix,
-                last_accepted_generation: loaded
-                    .state
-                    .last_accepted_generation
-                    .max(authority_floor),
-                current_version: runtime.current_version,
-                selected_stream,
-                expected_macos_team_id: team_id,
-                allowed_download_hosts: ARCHIVE_HOSTS,
-                allow_current_version: true,
-            };
-            let verified = signed
-                .verify(authority.release_keys(), &context)
-                .map_err(|error| error.reason_code())?;
+            let verified =
+                fetch_verified_manifest(&loaded.state, authority, runtime, manifest_fetcher)?;
             let manifest = verified.manifest();
             Ok(UpdateCliOutput::Check(UpdateCheckOutput {
                 schema_version: 1,
@@ -216,7 +247,368 @@ fn execute_with_fetcher(
                 install: "not-started",
             }))
         }
+        UpdateCliCommand::Download { expected_revision } => {
+            if loaded.revision != expected_revision {
+                return Err("revision-conflict");
+            }
+            if loaded.state.active_transaction.is_some() {
+                return Err("native-update-transaction-active");
+            }
+            let verified =
+                fetch_verified_manifest(&loaded.state, authority, runtime, manifest_fetcher)?;
+            if verified.disposition() != NativeUpdateDisposition::Available {
+                return Err("native-update-not-available");
+            }
+            download_verified_update(
+                store,
+                loaded.state,
+                expected_revision,
+                verified,
+                archive_fetcher,
+            )
+            .map(UpdateCliOutput::Download)
+        }
+        UpdateCliCommand::Cancel { expected_revision } => {
+            cancel_download(store, loaded.state, loaded.revision, expected_revision)
+                .map(UpdateCliOutput::Cancel)
+        }
     }
+}
+
+fn fetch_verified_manifest(
+    state: &UpdateState,
+    authority: Option<&NativeReleaseAuthority>,
+    runtime: &UpdateRuntimeContext<'_>,
+    fetcher: &impl ManifestFetcher,
+) -> Result<VerifiedNativeUpdateManifest, &'static str> {
+    if runtime.os != Some(OperatingSystem::Macos) || runtime.arch != Some(Architecture::Aarch64) {
+        return Err("native-update-target-unsupported");
+    }
+    let authority = authority.ok_or("native-update-release-authority-unavailable")?;
+    let team_id = runtime
+        .expected_macos_team_id
+        .ok_or("native-update-macos-team-id-unavailable")?;
+    let endpoint = manifest_endpoint(state.selected_stream);
+    let bytes = fetcher.fetch(endpoint)?;
+    let signed =
+        SignedNativeUpdateManifestV1::from_json(&bytes).map_err(|error| error.reason_code())?;
+    let authority_floor = authority.minimum_release_generation().saturating_sub(1);
+    let context = NativeUpdateVerificationContext {
+        now_unix: runtime.now_unix,
+        last_accepted_generation: state.last_accepted_generation.max(authority_floor),
+        current_version: runtime.current_version,
+        selected_stream: native_stream(state.selected_stream),
+        expected_macos_team_id: team_id,
+        allowed_download_hosts: ARCHIVE_HOSTS,
+        allow_current_version: true,
+    };
+    signed
+        .verify(authority.release_keys(), &context)
+        .map_err(|error| error.reason_code())
+}
+
+fn update_download_status(state: &UpdateState) -> &'static str {
+    match state
+        .active_transaction
+        .as_ref()
+        .map(|transaction| transaction.phase)
+    {
+        None => "not-started",
+        Some(UpdateTransactionPhase::Downloading) => "in-progress",
+        Some(UpdateTransactionPhase::Cancelling) => "cancelling",
+        Some(_) => "staged",
+    }
+}
+
+fn download_verified_update(
+    store: &UpdateStateStore,
+    mut state: UpdateState,
+    expected_revision: u64,
+    verified: VerifiedNativeUpdateManifest,
+    archive_fetcher: &impl ArchiveFetcher,
+) -> Result<UpdateDownloadOutput, &'static str> {
+    let transaction_id = new_transaction_id()?;
+    let manifest = verified.manifest();
+    let target_version = manifest.artifact.version.clone();
+    let generation = manifest.generation;
+    let archive_file_name = manifest.archive_file_name.clone();
+    let archive_size_bytes = manifest.archive_size_bytes;
+    let archive_sha256 = manifest.archive_sha256.clone();
+    let signed_manifest = verified
+        .signed_manifest()
+        .to_canonical_json()
+        .map_err(|error| error.reason_code())?;
+    state.active_transaction = Some(UpdateActiveTransaction {
+        transaction_id: transaction_id.clone(),
+        target_version: target_version.clone(),
+        phase: UpdateTransactionPhase::Downloading,
+    });
+    let reservation = store
+        .replace(expected_revision, state.clone())
+        .map_err(|error| error.reason_code())?;
+    if reservation.cleanup_required {
+        return Err("native-update-state-cleanup-required");
+    }
+
+    let staging = match prepare_transaction_staging(store, &transaction_id, &signed_manifest) {
+        Ok(staging) => staging,
+        Err(error) => {
+            return cleanup_failed_download(
+                store,
+                state,
+                reservation.revision,
+                &transaction_id,
+                error,
+            );
+        }
+    };
+    if let Err(error) = archive_fetcher.fetch(&verified, &staging) {
+        return cleanup_failed_download(store, state, reservation.revision, &transaction_id, error);
+    }
+
+    state
+        .active_transaction
+        .as_mut()
+        .ok_or("native-update-transaction-missing")?
+        .phase = UpdateTransactionPhase::Downloaded;
+    let outcome = store
+        .replace(reservation.revision, state)
+        .map_err(|error| error.reason_code())?;
+    Ok(UpdateDownloadOutput {
+        schema_version: 1,
+        command: "update-download",
+        revision: outcome.revision,
+        transaction_id,
+        target_version,
+        generation,
+        archive_file_name,
+        archive_size_bytes,
+        archive_sha256,
+        staging: "owner-private",
+        install: "not-started",
+        cleanup_required: outcome.cleanup_required,
+    })
+}
+
+fn cleanup_failed_download(
+    store: &UpdateStateStore,
+    mut state: UpdateState,
+    expected_revision: u64,
+    transaction_id: &str,
+    original_error: &'static str,
+) -> Result<UpdateDownloadOutput, &'static str> {
+    state
+        .active_transaction
+        .as_mut()
+        .ok_or("native-update-transaction-missing")?
+        .phase = UpdateTransactionPhase::Cancelling;
+    let cancellation = match store.replace(expected_revision, state.clone()) {
+        Ok(outcome) if !outcome.cleanup_required => outcome,
+        Ok(_) | Err(_) => return Err("native-update-state-cleanup-required"),
+    };
+    if discard_transaction_staging(store, transaction_id).is_err() {
+        return Err("native-update-staging-cleanup-required");
+    }
+    state.active_transaction = None;
+    match store.replace(cancellation.revision, state) {
+        Ok(outcome) if !outcome.cleanup_required => Err(original_error),
+        Ok(_) | Err(_) => Err("native-update-state-cleanup-required"),
+    }
+}
+
+fn cancel_download(
+    store: &UpdateStateStore,
+    mut state: UpdateState,
+    observed_revision: u64,
+    expected_revision: u64,
+) -> Result<UpdateCancelOutput, &'static str> {
+    if observed_revision != expected_revision {
+        return Err("revision-conflict");
+    }
+    let transaction = state
+        .active_transaction
+        .as_ref()
+        .ok_or("native-update-transaction-missing")?;
+    if !matches!(
+        transaction.phase,
+        UpdateTransactionPhase::Downloading
+            | UpdateTransactionPhase::Downloaded
+            | UpdateTransactionPhase::Cancelling
+    ) {
+        return Err("native-update-transaction-not-cancellable");
+    }
+    let transaction_id = transaction.transaction_id.clone();
+    let cancellation_revision = if transaction.phase == UpdateTransactionPhase::Cancelling {
+        observed_revision
+    } else {
+        state
+            .active_transaction
+            .as_mut()
+            .ok_or("native-update-transaction-missing")?
+            .phase = UpdateTransactionPhase::Cancelling;
+        let outcome = store
+            .replace(expected_revision, state.clone())
+            .map_err(|error| error.reason_code())?;
+        if outcome.cleanup_required {
+            return Err("native-update-state-cleanup-required");
+        }
+        outcome.revision
+    };
+    discard_transaction_staging(store, &transaction_id)?;
+    state.active_transaction = None;
+    let outcome = store
+        .replace(cancellation_revision, state)
+        .map_err(|error| error.reason_code())?;
+    Ok(UpdateCancelOutput {
+        schema_version: 1,
+        command: "update-cancel",
+        revision: outcome.revision,
+        transaction_id,
+        staging: "removed",
+        cleanup_required: outcome.cleanup_required,
+    })
+}
+
+fn new_transaction_id() -> Result<String, &'static str> {
+    let mut bytes = [0_u8; 16];
+    getrandom::fill(&mut bytes).map_err(|_| "native-update-transaction-id-unavailable")?;
+    Ok(format!("update-{}", encode_lower_hex(&bytes)))
+}
+
+fn prepare_transaction_staging(
+    store: &UpdateStateStore,
+    transaction_id: &str,
+    signed_manifest: &[u8],
+) -> Result<PathBuf, &'static str> {
+    let staging_root = store.staging_root();
+    let updates_root = staging_root
+        .parent()
+        .ok_or("native-update-staging-unavailable")?;
+    let state_root = updates_root
+        .parent()
+        .ok_or("native-update-staging-unavailable")?;
+    ensure_private_directory(state_root, false)?;
+    ensure_private_directory(updates_root, true)?;
+    ensure_private_directory(&staging_root, true)?;
+    let transaction_root = staging_root.join(transaction_id);
+    create_new_private_directory(&transaction_root)?;
+    if let Err(error) = write_new_private_file(
+        &transaction_root.join(STAGED_MANIFEST_FILE),
+        signed_manifest,
+    )
+    .and_then(|()| sync_directory(&transaction_root))
+    .and_then(|()| sync_directory(&staging_root))
+    {
+        let _ = fs::remove_dir_all(&transaction_root);
+        return Err(error);
+    }
+    Ok(transaction_root)
+}
+
+fn discard_transaction_staging(
+    store: &UpdateStateStore,
+    transaction_id: &str,
+) -> Result<(), &'static str> {
+    let staging_root = store.staging_root();
+    let metadata = match fs::symlink_metadata(&staging_root) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(_) => return Err("native-update-staging-cleanup-required"),
+    };
+    validate_private_directory(&metadata)?;
+    let transaction_root = staging_root.join(transaction_id);
+    let metadata = match fs::symlink_metadata(&transaction_root) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(_) => return Err("native-update-staging-cleanup-required"),
+    };
+    validate_private_directory(&metadata)?;
+    fs::remove_dir_all(&transaction_root).map_err(|_| "native-update-staging-cleanup-required")?;
+    sync_directory(&staging_root)
+}
+
+fn ensure_private_directory(path: &Path, create: bool) -> Result<(), &'static str> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) => validate_private_directory(&metadata),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound && create => {
+            create_new_private_directory(path)
+        }
+        Err(_) => Err("native-update-staging-unavailable"),
+    }
+}
+
+#[cfg(unix)]
+fn create_new_private_directory(path: &Path) -> Result<(), &'static str> {
+    use std::os::unix::fs::DirBuilderExt;
+
+    let mut builder = fs::DirBuilder::new();
+    builder.mode(0o700);
+    builder
+        .create(path)
+        .map_err(|_| "native-update-staging-unavailable")?;
+    let metadata = fs::symlink_metadata(path).map_err(|_| "native-update-staging-unavailable")?;
+    validate_private_directory(&metadata)
+}
+
+#[cfg(not(unix))]
+fn create_new_private_directory(_path: &Path) -> Result<(), &'static str> {
+    Err("native-update-target-unsupported")
+}
+
+#[cfg(unix)]
+fn validate_private_directory(metadata: &fs::Metadata) -> Result<(), &'static str> {
+    use std::os::unix::fs::MetadataExt;
+
+    if metadata.file_type().is_symlink()
+        || !metadata.is_dir()
+        || metadata.uid() != rustix::process::geteuid().as_raw()
+        || metadata.mode() & 0o077 != 0
+    {
+        return Err("native-update-staging-unsafe");
+    }
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn validate_private_directory(_metadata: &fs::Metadata) -> Result<(), &'static str> {
+    Err("native-update-target-unsupported")
+}
+
+#[cfg(unix)]
+fn write_new_private_file(path: &Path, bytes: &[u8]) -> Result<(), &'static str> {
+    let mut file = open_new_private_file(path)?;
+    file.write_all(bytes)
+        .and_then(|()| file.flush())
+        .and_then(|()| file.sync_all())
+        .map_err(|_| "native-update-staging-write-failed")
+}
+
+#[cfg(not(unix))]
+fn write_new_private_file(_path: &Path, _bytes: &[u8]) -> Result<(), &'static str> {
+    Err("native-update-target-unsupported")
+}
+
+#[cfg(unix)]
+fn open_new_private_file(path: &Path) -> Result<File, &'static str> {
+    use std::os::unix::fs::OpenOptionsExt;
+
+    OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .mode(0o600)
+        .open(path)
+        .map_err(|_| "native-update-staging-write-failed")
+}
+
+#[cfg(not(unix))]
+fn open_new_private_file(_path: &Path) -> Result<File, &'static str> {
+    Err("native-update-target-unsupported")
+}
+
+fn sync_directory(path: &Path) -> Result<(), &'static str> {
+    File::open(path)
+        .and_then(|file| file.sync_all())
+        .map_err(|_| "native-update-staging-sync-failed")
 }
 
 struct UpdateRuntimeContext<'a> {
@@ -275,6 +667,169 @@ impl ManifestFetcher for ReqwestManifestFetcher {
     }
 }
 
+trait ArchiveFetcher {
+    fn fetch(
+        &self,
+        verified: &VerifiedNativeUpdateManifest,
+        transaction_root: &Path,
+    ) -> Result<(), &'static str>;
+}
+
+struct ReqwestArchiveFetcher;
+
+impl ArchiveFetcher for ReqwestArchiveFetcher {
+    fn fetch(
+        &self,
+        verified: &VerifiedNativeUpdateManifest,
+        transaction_root: &Path,
+    ) -> Result<(), &'static str> {
+        let manifest = verified.manifest();
+        let source = reqwest::Url::parse(&manifest.archive_url)
+            .map_err(|_| "native-update-archive-url-invalid")?;
+        if !allowed_archive_transport_url(&source) {
+            return Err("native-update-archive-url-invalid");
+        }
+        let client = Client::builder()
+            .connect_timeout(CONNECT_TIMEOUT)
+            .timeout(ARCHIVE_REQUEST_TIMEOUT)
+            .redirect(Policy::custom(|attempt| {
+                if attempt.previous().len() >= MAX_ARCHIVE_REDIRECTS
+                    || !allowed_archive_transport_url(attempt.url())
+                {
+                    attempt.stop()
+                } else {
+                    attempt.follow()
+                }
+            }))
+            .user_agent(concat!("qiongli-native-update/", env!("CARGO_PKG_VERSION")))
+            .build()
+            .map_err(|_| "native-update-http-client-unavailable")?;
+        let response = client
+            .get(source)
+            .header(ACCEPT, "application/octet-stream")
+            .header(ACCEPT_ENCODING, "identity")
+            .send()
+            .map_err(map_archive_reqwest_error)?;
+        if response.status() != StatusCode::OK || !allowed_archive_transport_url(response.url()) {
+            return Err("native-update-archive-response-invalid");
+        }
+        if unsupported_content_encoding(response.headers().get(CONTENT_ENCODING)) {
+            return Err("native-update-archive-encoding-invalid");
+        }
+        if response
+            .content_length()
+            .is_some_and(|length| length != manifest.archive_size_bytes)
+        {
+            return Err("native-update-archive-size-mismatch");
+        }
+        stage_archive_from_reader(
+            response,
+            transaction_root,
+            &manifest.archive_file_name,
+            manifest.archive_size_bytes,
+            &manifest.archive_sha256,
+        )
+    }
+}
+
+fn stage_archive_from_reader(
+    mut reader: impl Read,
+    transaction_root: &Path,
+    archive_file_name: &str,
+    expected_size: u64,
+    expected_sha256: &str,
+) -> Result<(), &'static str> {
+    if !safe_file_name(archive_file_name) {
+        return Err("native-update-archive-name-invalid");
+    }
+    let partial = transaction_root.join(PARTIAL_ARCHIVE_FILE);
+    let destination = transaction_root.join(archive_file_name);
+    let result = (|| {
+        let mut file = open_new_private_file(&partial)?;
+        let mut hasher = Sha256::new();
+        let mut total = 0_u64;
+        let mut buffer = [0_u8; ARCHIVE_BUFFER_BYTES];
+        loop {
+            let count = reader
+                .read(&mut buffer)
+                .map_err(|_| "native-update-archive-read-failed")?;
+            if count == 0 {
+                break;
+            }
+            total = total
+                .checked_add(count as u64)
+                .ok_or("native-update-archive-size-mismatch")?;
+            if total > expected_size {
+                return Err("native-update-archive-size-mismatch");
+            }
+            file.write_all(&buffer[..count])
+                .map_err(|_| "native-update-staging-write-failed")?;
+            hasher.update(&buffer[..count]);
+        }
+        if total != expected_size {
+            return Err("native-update-archive-size-mismatch");
+        }
+        let observed_sha256 = encode_lower_hex(&hasher.finalize());
+        if observed_sha256 != expected_sha256 {
+            return Err("native-update-archive-digest-mismatch");
+        }
+        file.flush()
+            .and_then(|()| file.sync_all())
+            .map_err(|_| "native-update-staging-write-failed")?;
+        drop(file);
+        fs::hard_link(&partial, &destination)
+            .map_err(|_| "native-update-staging-activate-failed")?;
+        if fs::remove_file(&partial).is_err() {
+            let _ = fs::remove_file(&destination);
+            return Err("native-update-staging-activate-failed");
+        }
+        sync_directory(transaction_root)
+    })();
+    if result.is_err() {
+        let _ = fs::remove_file(&partial);
+        let _ = fs::remove_file(&destination);
+    }
+    result
+}
+
+fn allowed_archive_transport_url(url: &reqwest::Url) -> bool {
+    url.scheme() == "https"
+        && url.host_str().is_some_and(|host| {
+            ARCHIVE_HOSTS
+                .iter()
+                .any(|allowed| host.eq_ignore_ascii_case(allowed))
+        })
+        && url.username().is_empty()
+        && url.password().is_none()
+        && url.port().is_none()
+        && url.fragment().is_none()
+}
+
+fn unsupported_content_encoding(value: Option<&reqwest::header::HeaderValue>) -> bool {
+    value.is_some_and(|value| {
+        value
+            .to_str()
+            .map_or(true, |value| !value.eq_ignore_ascii_case("identity"))
+    })
+}
+
+fn safe_file_name(value: &str) -> bool {
+    !value.is_empty()
+        && value != "."
+        && value != ".."
+        && !value.bytes().any(|byte| matches!(byte, b'/' | b'\\' | 0))
+}
+
+fn encode_lower_hex(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut output = String::with_capacity(bytes.len().saturating_mul(2));
+    for byte in bytes {
+        output.push(char::from(HEX[usize::from(byte >> 4)]));
+        output.push(char::from(HEX[usize::from(byte & 0x0f)]));
+    }
+    output
+}
+
 const fn manifest_endpoint(stream: UpdateStreamPreference) -> &'static str {
     match stream {
         UpdateStreamPreference::Stable => STABLE_MANIFEST_ENDPOINT,
@@ -304,6 +859,14 @@ fn map_reqwest_error(error: reqwest::Error) -> &'static str {
     }
 }
 
+fn map_archive_reqwest_error(error: reqwest::Error) -> &'static str {
+    if error.is_timeout() {
+        "native-update-archive-timeout"
+    } else {
+        "native-update-archive-fetch-failed"
+    }
+}
+
 #[cfg(all(test, unix))]
 mod tests {
     use std::path::Path;
@@ -321,6 +884,7 @@ mod tests {
 
     const NOW: u64 = 1_750_000_000;
     const TEAM_ID: &str = "ABC123DEFG";
+    const ARCHIVE_BYTES: &[u8] = b"qiongli-signed-archive-fixture";
 
     struct FixedFetcher(Vec<u8>);
 
@@ -330,16 +894,48 @@ mod tests {
         }
     }
 
+    struct NoopArchiveFetcher;
+
+    impl ArchiveFetcher for NoopArchiveFetcher {
+        fn fetch(
+            &self,
+            _verified: &VerifiedNativeUpdateManifest,
+            _transaction_root: &Path,
+        ) -> Result<(), &'static str> {
+            Err("unexpected-archive-fetch")
+        }
+    }
+
+    struct FixedArchiveFetcher(Vec<u8>);
+
+    impl ArchiveFetcher for FixedArchiveFetcher {
+        fn fetch(
+            &self,
+            verified: &VerifiedNativeUpdateManifest,
+            transaction_root: &Path,
+        ) -> Result<(), &'static str> {
+            let manifest = verified.manifest();
+            stage_archive_from_reader(
+                self.0.as_slice(),
+                transaction_root,
+                &manifest.archive_file_name,
+                manifest.archive_size_bytes,
+                &manifest.archive_sha256,
+            )
+        }
+    }
+
     #[test]
     fn status_and_channel_are_revision_safe_and_do_not_require_release_authority() {
         let (store, root) = store("status");
         let runtime = runtime();
-        let status = execute_with_fetcher(
+        let status = execute_with_fetchers(
             UpdateCliCommand::Status,
             &store,
             None,
             &runtime,
             &FixedFetcher(Vec::new()),
+            &NoopArchiveFetcher,
         )
         .unwrap();
         let json = serde_json::to_value(status).unwrap();
@@ -348,7 +944,7 @@ mod tests {
         assert_eq!(json["release_authority"], "unavailable");
         assert!(!root.exists());
 
-        let changed = execute_with_fetcher(
+        let changed = execute_with_fetchers(
             UpdateCliCommand::Channel {
                 expected_revision: 0,
                 stream: UpdateStreamPreference::Stable,
@@ -357,13 +953,14 @@ mod tests {
             None,
             &runtime,
             &FixedFetcher(Vec::new()),
+            &NoopArchiveFetcher,
         )
         .unwrap();
         let json = serde_json::to_value(changed).unwrap();
         assert_eq!(json["revision"], 1);
         assert_eq!(json["selected_stream"], "stable");
         assert_eq!(
-            execute_with_fetcher(
+            execute_with_fetchers(
                 UpdateCliCommand::Channel {
                     expected_revision: 0,
                     stream: UpdateStreamPreference::Beta,
@@ -372,6 +969,7 @@ mod tests {
                 None,
                 &runtime,
                 &FixedFetcher(Vec::new()),
+                &NoopArchiveFetcher,
             ),
             Err("revision-conflict")
         );
@@ -385,12 +983,13 @@ mod tests {
         let signed = signed_manifest(&release_key, "2.0.0-alpha.2");
         let fetcher = FixedFetcher(signed.to_canonical_json().unwrap());
         let (store, root) = store("check");
-        let output = execute_with_fetcher(
+        let output = execute_with_fetchers(
             UpdateCliCommand::Check,
             &store,
             Some(&authority),
             &runtime(),
             &fetcher,
+            &NoopArchiveFetcher,
         )
         .unwrap();
         let json = serde_json::to_value(output).unwrap();
@@ -401,7 +1000,14 @@ mod tests {
         assert!(!root.exists());
 
         assert_eq!(
-            execute_with_fetcher(UpdateCliCommand::Check, &store, None, &runtime(), &fetcher,),
+            execute_with_fetchers(
+                UpdateCliCommand::Check,
+                &store,
+                None,
+                &runtime(),
+                &fetcher,
+                &NoopArchiveFetcher,
+            ),
             Err("native-update-release-authority-unavailable")
         );
     }
@@ -417,12 +1023,13 @@ mod tests {
         state.last_accepted_generation = 2;
         store.replace(0, state).unwrap();
 
-        let output = execute_with_fetcher(
+        let output = execute_with_fetchers(
             UpdateCliCommand::Check,
             &store,
             Some(&authority),
             &runtime(),
             &fetcher,
+            &NoopArchiveFetcher,
         )
         .unwrap();
         let json = serde_json::to_value(output).unwrap();
@@ -430,6 +1037,169 @@ mod tests {
         assert_eq!(json["generation"], 2);
         assert_eq!(store.load().unwrap().revision, 1);
         let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn download_stages_exact_private_bytes_and_cancel_removes_the_transaction() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let release_key = SigningKey::from_bytes(&[91_u8; 32]);
+        let authority = authority(&release_key);
+        let signed = signed_manifest(&release_key, "2.0.0-alpha.2");
+        let archive_file_name = signed.manifest.archive_file_name.clone();
+        let manifest_fetcher = FixedFetcher(signed.to_canonical_json().unwrap());
+        let archive_fetcher = FixedArchiveFetcher(ARCHIVE_BYTES.to_vec());
+        let (store, root) = store("download");
+
+        let output = execute_with_fetchers(
+            UpdateCliCommand::Download {
+                expected_revision: 0,
+            },
+            &store,
+            Some(&authority),
+            &runtime(),
+            &manifest_fetcher,
+            &archive_fetcher,
+        )
+        .unwrap();
+        let json = serde_json::to_value(output).unwrap();
+        assert_eq!(json["command"], "update-download");
+        assert_eq!(json["revision"], 2);
+        assert_eq!(json["install"], "not-started");
+        let transaction_id = json["transaction_id"].as_str().unwrap();
+        let transaction_root = root.join("v2/updates/staging").join(transaction_id);
+        let archive = transaction_root.join(&archive_file_name);
+        assert_eq!(std::fs::read(&archive).unwrap(), ARCHIVE_BYTES);
+        assert_eq!(
+            std::fs::metadata(&archive).unwrap().permissions().mode() & 0o777,
+            0o600
+        );
+        assert_eq!(
+            std::fs::metadata(&transaction_root)
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o777,
+            0o700
+        );
+        let staged_manifest = transaction_root.join(STAGED_MANIFEST_FILE);
+        assert!(staged_manifest.is_file());
+        assert_eq!(
+            std::fs::metadata(staged_manifest)
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o777,
+            0o600
+        );
+        assert_eq!(
+            store
+                .load()
+                .unwrap()
+                .state
+                .active_transaction
+                .unwrap()
+                .phase,
+            UpdateTransactionPhase::Downloaded
+        );
+
+        assert_eq!(
+            execute_with_fetchers(
+                UpdateCliCommand::Download {
+                    expected_revision: 0,
+                },
+                &store,
+                Some(&authority),
+                &runtime(),
+                &manifest_fetcher,
+                &archive_fetcher,
+            ),
+            Err("revision-conflict")
+        );
+        let cancelled = execute_with_fetchers(
+            UpdateCliCommand::Cancel {
+                expected_revision: 2,
+            },
+            &store,
+            None,
+            &runtime(),
+            &FixedFetcher(Vec::new()),
+            &NoopArchiveFetcher,
+        )
+        .unwrap();
+        let json = serde_json::to_value(cancelled).unwrap();
+        assert_eq!(json["revision"], 4);
+        assert_eq!(json["staging"], "removed");
+        assert!(!transaction_root.exists());
+        assert!(store.load().unwrap().state.active_transaction.is_none());
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn corrupt_incomplete_or_oversized_download_is_removed_and_clears_active_state() {
+        let release_key = SigningKey::from_bytes(&[91_u8; 32]);
+        let authority = authority(&release_key);
+        let signed = signed_manifest(&release_key, "2.0.0-alpha.2");
+        let manifest_fetcher = FixedFetcher(signed.to_canonical_json().unwrap());
+
+        for (name, bytes, expected_error) in [
+            (
+                "corrupt",
+                b"qiongli-signed-archive-fixturf".to_vec(),
+                "native-update-archive-digest-mismatch",
+            ),
+            (
+                "oversized",
+                [ARCHIVE_BYTES, b"unexpected"].concat(),
+                "native-update-archive-size-mismatch",
+            ),
+            (
+                "incomplete",
+                ARCHIVE_BYTES[..ARCHIVE_BYTES.len() - 1].to_vec(),
+                "native-update-archive-size-mismatch",
+            ),
+        ] {
+            let (store, root) = store(name);
+            assert_eq!(
+                execute_with_fetchers(
+                    UpdateCliCommand::Download {
+                        expected_revision: 0,
+                    },
+                    &store,
+                    Some(&authority),
+                    &runtime(),
+                    &manifest_fetcher,
+                    &FixedArchiveFetcher(bytes),
+                ),
+                Err(expected_error)
+            );
+            let loaded = store.load().unwrap();
+            assert_eq!(loaded.revision, 3);
+            assert!(loaded.state.active_transaction.is_none());
+            let staging = root.join("v2/updates/staging");
+            assert_eq!(std::fs::read_dir(staging).unwrap().count(), 0);
+            let _ = std::fs::remove_dir_all(root);
+        }
+    }
+
+    #[test]
+    fn archive_transport_redirect_policy_rejects_downgrade_and_unknown_hosts() {
+        for rejected in [
+            "http://github.com/qiongli.zip",
+            "https://example.com/qiongli.zip",
+            "https://user@github.com/qiongli.zip",
+            "https://github.com/qiongli.zip#fragment",
+        ] {
+            assert!(!allowed_archive_transport_url(
+                &reqwest::Url::parse(rejected).unwrap()
+            ));
+        }
+        assert!(allowed_archive_transport_url(
+            &reqwest::Url::parse(
+                "https://release-assets.githubusercontent.com/qiongli.zip?token=ephemeral"
+            )
+            .unwrap()
+        ));
     }
 
     fn runtime() -> UpdateRuntimeContext<'static> {
@@ -501,8 +1271,8 @@ mod tests {
                 "https://github.com/jxpeng98/qiongli/releases/download/v{version}/{archive_file_name}"
             ),
             archive_file_name,
-            archive_size_bytes: 42_000_000,
-            archive_sha256: "1".repeat(64),
+            archive_size_bytes: ARCHIVE_BYTES.len() as u64,
+            archive_sha256: encode_lower_hex(&Sha256::digest(ARCHIVE_BYTES)),
             desktop_manifest_sha256: "2".repeat(64),
             signing_receipt_sha256: "3".repeat(64),
             resource_pack_sha256: "4".repeat(64),
@@ -543,12 +1313,13 @@ mod tests {
         });
         store.replace(0, state).unwrap();
         assert_eq!(
-            execute_with_fetcher(
+            execute_with_fetchers(
                 UpdateCliCommand::Check,
                 &store,
                 None,
                 &runtime(),
                 &FixedFetcher(Vec::new()),
+                &NoopArchiveFetcher,
             ),
             Err("native-update-transaction-active")
         );
