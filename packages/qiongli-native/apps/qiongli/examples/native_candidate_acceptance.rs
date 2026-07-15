@@ -10,18 +10,20 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use ed25519_dalek::{Signer, SigningKey};
 use qiongli_platform::{
-    Architecture, ArtifactIdentityV1, ClientActivationTarget, GrantMode, GrantSignatureV1,
+    Architecture, ArtifactIdentityV1, CLAUDE_PLUGIN_BUNDLE_RECEIPT_FILE,
+    CODEX_PLUGIN_BUNDLE_RECEIPT_FILE, ClientActivationTarget, GrantMode, GrantSignatureV1,
     InstallerKind, IntegrationScope, LaunchGrantV1, MAX_NATIVE_RELEASE_NOTES_BYTES,
     NativeClientPluginGrantV1, NativeReleaseAuthority, NativeReleaseSignatureV1, OperatingSystem,
     ReleaseChannel, SignatureAlgorithm, SignedLaunchGrantV1, SignedNativeReleaseCandidateV1,
-    SignedNativeReleaseEnvelopeV1, approve_native_artifact_target,
+    SignedNativeReleaseEnvelopeV1, approve_claude_plugin_bundle_target,
+    approve_codex_plugin_bundle_target, approve_native_artifact_target,
     approve_native_portable_archive_target, build_native_release_candidate,
     build_native_release_envelope, compose_native_artifact, compose_native_portable_archive,
     current_target_native_artifact_identity, extract_native_portable_archive,
     launch_grant_signing_bytes, native_artifact_binary_path, native_artifact_id,
     native_portable_archive_file_name, native_release_candidate_file_name,
     native_release_candidate_signing_bytes, native_release_envelope_signing_bytes,
-    native_release_notes_file_name,
+    native_release_notes_file_name, verify_claude_plugin_bundle, verify_codex_plugin_bundle,
 };
 use qiongli_runtime::LITE_PUBLIC_TOOL_NAMES;
 use serde_json::{Value, json};
@@ -217,12 +219,13 @@ fn run() -> Result<(), &'static str> {
             .map_err(|_| "candidate-acceptance-runtime-binary-invalid")?,
     );
 
-    let checks = run_acceptance(
+    let acceptance = run_acceptance(
         &arguments.output,
         &runtime_binary,
         &candidate_path,
         &archive_path,
         &notes_path,
+        &arguments.external_clients,
     )?;
     let evidence = json!({
         "schema_version": 1,
@@ -250,12 +253,9 @@ fn run() -> Result<(), &'static str> {
                 "sha256": notes_sha256
             }
         },
-        "checks": checks,
+        "checks": acceptance.checks,
         "external_gates": {
-            "real_client": {
-                "status": "not-run",
-                "reason": "external-client-not-provided"
-            },
+            "real_client": acceptance.real_client,
             "displayed_window": {
                 "status": "not-run",
                 "reason": "interactive-display-not-provided"
@@ -280,6 +280,18 @@ fn run() -> Result<(), &'static str> {
 struct Arguments {
     output: PathBuf,
     source_commit: String,
+    external_clients: ExternalClients,
+}
+
+struct ExternalClients {
+    codex: Option<CodexClient>,
+    claude: Option<PathBuf>,
+}
+
+struct CodexClient {
+    binary: PathBuf,
+    validator: PathBuf,
+    validator_python: PathBuf,
 }
 
 impl Arguments {
@@ -287,6 +299,10 @@ impl Arguments {
         let values = values.into_iter().collect::<Vec<_>>();
         let mut output = None;
         let mut source_commit = None;
+        let mut codex_binary = None;
+        let mut plugin_validator = None;
+        let mut plugin_validator_python = None;
+        let mut claude_binary = None;
         let mut index = 0;
         while index < values.len() {
             let option = values[index]
@@ -300,12 +316,34 @@ impl Arguments {
                 "--source-commit" if source_commit.is_none() => {
                     source_commit = value.to_str().map(ToOwned::to_owned)
                 }
+                "--codex-bin" if codex_binary.is_none() => {
+                    codex_binary = Some(PathBuf::from(value))
+                }
+                "--plugin-validator" if plugin_validator.is_none() => {
+                    plugin_validator = Some(PathBuf::from(value))
+                }
+                "--plugin-validator-python" if plugin_validator_python.is_none() => {
+                    plugin_validator_python = Some(PathBuf::from(value))
+                }
+                "--claude-bin" if claude_binary.is_none() => {
+                    claude_binary = Some(PathBuf::from(value))
+                }
                 _ => return Err("candidate-acceptance-usage-invalid"),
             }
             index += 2;
         }
         let output = output.ok_or("candidate-acceptance-usage-invalid")?;
         let source_commit = source_commit.ok_or("candidate-acceptance-usage-invalid")?;
+        let codex = match (codex_binary, plugin_validator, plugin_validator_python) {
+            (None, None, None) => None,
+            (Some(binary), Some(validator), Some(validator_python)) => Some(CodexClient {
+                binary: valid_external_file(binary)?,
+                validator: valid_external_file(validator)?,
+                validator_python: valid_external_file(validator_python)?,
+            }),
+            _ => return Err("candidate-acceptance-usage-invalid"),
+        };
+        let claude = claude_binary.map(valid_external_file).transpose()?;
         if !output.is_absolute()
             || output.exists()
             || !valid_source_commit(&source_commit)
@@ -317,8 +355,22 @@ impl Arguments {
         Ok(Self {
             output,
             source_commit,
+            external_clients: ExternalClients { codex, claude },
         })
     }
+}
+
+fn valid_external_file(path: PathBuf) -> Result<PathBuf, &'static str> {
+    if !path.is_absolute() {
+        return Err("candidate-acceptance-usage-invalid");
+    }
+    let canonical = fs::canonicalize(path).map_err(|_| "candidate-acceptance-usage-invalid")?;
+    let metadata =
+        fs::symlink_metadata(&canonical).map_err(|_| "candidate-acceptance-usage-invalid")?;
+    if !metadata.is_file() || metadata.len() == 0 {
+        return Err("candidate-acceptance-usage-invalid");
+    }
+    Ok(canonical)
 }
 
 fn authority_bytes(
@@ -671,13 +723,19 @@ fn plugin_grant(
     })
 }
 
+struct AcceptanceOutcome {
+    checks: Value,
+    real_client: Value,
+}
+
 fn run_acceptance(
     root: &Path,
     binary: &Path,
     candidate: &Path,
     archive: &Path,
     notes: &Path,
-) -> Result<Value, &'static str> {
+    external_clients: &ExternalClients,
+) -> Result<AcceptanceOutcome, &'static str> {
     let product_home = create_child_directory(root, "product-home")?;
     let version = run_product(binary, root, &product_home, [OsStr::new("--version")])?;
     let version_text = String::from_utf8(version.stdout)
@@ -729,6 +787,14 @@ fn run_acceptance(
     }
     run_mcp(binary, root, &product_home)?;
 
+    let mut codex_client_evidence = json!({
+        "status": "not-run",
+        "reason": "external-client-not-provided"
+    });
+    let mut claude_client_evidence = json!({
+        "status": "not-run",
+        "reason": "external-client-not-provided"
+    });
     for (target, directory) in [("codex", "codex-home"), ("claude", "claude-home")] {
         let home = create_child_directory(root, directory)?;
         let canary = home.join("unrelated-user-canary");
@@ -847,6 +913,19 @@ fn run_acceptance(
         if parse_output_json(&verify)?["state"] != "healthy" {
             return Err("candidate-acceptance-verify-output-invalid");
         }
+        match target {
+            "codex" => {
+                if let Some(client) = &external_clients.codex {
+                    codex_client_evidence = run_real_codex_client(root, &home, client)?;
+                }
+            }
+            "claude" => {
+                if let Some(client) = &external_clients.claude {
+                    claude_client_evidence = run_real_claude_client(root, &home, client)?;
+                }
+            }
+            _ => return Err("candidate-acceptance-client-target-invalid"),
+        }
         let remove = run_product(
             binary,
             root,
@@ -871,19 +950,453 @@ fn run_acceptance(
         }
     }
 
+    let real_client_status = match (
+        external_clients.codex.is_some(),
+        external_clients.claude.is_some(),
+    ) {
+        (true, true) => ("passed", Value::Null),
+        (false, false) => (
+            "not-run",
+            Value::String("external-client-not-provided".to_string()),
+        ),
+        _ => (
+            "partial",
+            Value::String("both-external-clients-required".to_string()),
+        ),
+    };
+    Ok(AcceptanceOutcome {
+        checks: json!({
+            "runtime_path": "empty",
+            "checkout_boundary": "outside-checkout",
+            "version": "passed",
+            "embedded_skills": "passed",
+            "ui_startup_preflight": "passed",
+            "lite_mcp": "passed",
+            "codex_local_lifecycle": "passed",
+            "claude_code_local_lifecycle": "passed",
+            "digest_and_partial_approval_rejection": "passed",
+            "fresh_failure_compensation": "passed",
+            "unrelated_state_preservation": "passed"
+        }),
+        real_client: json!({
+            "status": real_client_status.0,
+            "reason": real_client_status.1,
+            "isolation": "fresh-home-and-client-config",
+            "candidate_backed": external_clients.codex.is_some() || external_clients.claude.is_some(),
+            "codex": codex_client_evidence,
+            "claude_code": claude_client_evidence
+        }),
+    })
+}
+
+fn run_real_codex_client(
+    root: &Path,
+    home: &Path,
+    client: &CodexClient,
+) -> Result<Value, &'static str> {
+    let source_root = home.join(".qiongli/plugins/codex/qiongli");
+    let source_target = approve_codex_plugin_bundle_target(&source_root)
+        .map_err(|_| "candidate-acceptance-codex-source-invalid")?;
+    let source = verify_codex_plugin_bundle(&source_target)
+        .map_err(|_| "candidate-acceptance-codex-source-invalid")?;
+    let source_receipt_sha256 = source.receipt_sha256().to_string();
+
+    let mut validator = Command::new(&client.validator_python);
+    validator
+        .arg(&client.validator)
+        .arg(&source_root)
+        .env("HOME", home)
+        .env("USERPROFILE", home)
+        .env("XDG_CACHE_HOME", home.join(".cache"))
+        .env("XDG_CONFIG_HOME", home.join(".config"))
+        .env("XDG_DATA_HOME", home.join(".local/share"))
+        .env("PYTHONNOUSERSITE", "1");
+    run_external_command(
+        validator,
+        "candidate-acceptance-codex-validator-start-failed",
+        "candidate-acceptance-codex-validator-failed",
+    )?;
+
+    let codex_home = ensure_private_child_directory(home, ".codex")?;
+    let version = run_external_command(
+        isolated_codex_command(&client.binary, home, &codex_home, [OsStr::new("--version")]),
+        "candidate-acceptance-codex-start-failed",
+        "candidate-acceptance-codex-version-failed",
+    )?;
+    let version = public_client_version(&version.stdout, root)?;
+    run_external_command(
+        isolated_codex_command(
+            &client.binary,
+            home,
+            &codex_home,
+            [
+                OsStr::new("plugin"),
+                OsStr::new("add"),
+                OsStr::new("--json"),
+                OsStr::new("qiongli@personal"),
+            ],
+        ),
+        "candidate-acceptance-codex-start-failed",
+        "candidate-acceptance-codex-install-failed",
+    )?;
+    let listed = run_external_command(
+        isolated_codex_command(
+            &client.binary,
+            home,
+            &codex_home,
+            [
+                OsStr::new("plugin"),
+                OsStr::new("list"),
+                OsStr::new("--json"),
+            ],
+        ),
+        "candidate-acceptance-codex-start-failed",
+        "candidate-acceptance-codex-list-failed",
+    )?;
+    if !String::from_utf8_lossy(&listed.stdout).contains("qiongli") {
+        return Err("candidate-acceptance-codex-list-invalid");
+    }
+    let cached_root = find_cached_bundle(
+        &codex_home.join("plugins/cache"),
+        CODEX_PLUGIN_BUNDLE_RECEIPT_FILE,
+        0,
+    )?
+    .ok_or("candidate-acceptance-codex-cache-missing")?;
+    let cached_target = approve_codex_plugin_bundle_target(&cached_root)
+        .map_err(|_| "candidate-acceptance-codex-cache-invalid")?;
+    let cached = verify_codex_plugin_bundle(&cached_target)
+        .map_err(|_| "candidate-acceptance-codex-cache-invalid")?;
+    if cached.receipt_sha256() != source_receipt_sha256 {
+        return Err("candidate-acceptance-codex-cache-drift");
+    }
+    run_cached_mcp(&cached_root.join(&cached.receipt().binary_path), root, home)?;
+    run_external_command(
+        isolated_codex_command(
+            &client.binary,
+            home,
+            &codex_home,
+            [
+                OsStr::new("plugin"),
+                OsStr::new("remove"),
+                OsStr::new("--json"),
+                OsStr::new("qiongli@personal"),
+            ],
+        ),
+        "candidate-acceptance-codex-start-failed",
+        "candidate-acceptance-codex-remove-failed",
+    )?;
+    let after = run_external_command(
+        isolated_codex_command(
+            &client.binary,
+            home,
+            &codex_home,
+            [
+                OsStr::new("plugin"),
+                OsStr::new("list"),
+                OsStr::new("--json"),
+            ],
+        ),
+        "candidate-acceptance-codex-start-failed",
+        "candidate-acceptance-codex-list-failed",
+    )?;
+    if String::from_utf8_lossy(&after.stdout).contains("qiongli") {
+        return Err("candidate-acceptance-codex-remove-invalid");
+    }
+
     Ok(json!({
-        "runtime_path": "empty",
-        "checkout_boundary": "outside-checkout",
-        "version": "passed",
-        "embedded_skills": "passed",
-        "ui_startup_preflight": "passed",
-        "lite_mcp": "passed",
-        "codex_local_lifecycle": "passed",
-        "claude_code_local_lifecycle": "passed",
-        "digest_and_partial_approval_rejection": "passed",
-        "fresh_failure_compensation": "passed",
-        "unrelated_state_preservation": "passed"
+        "status": "passed",
+        "client_version": version,
+        "plugin_creator_valid": true,
+        "candidate_source_receipt_sha256": source_receipt_sha256,
+        "client_install_succeeded": true,
+        "client_listed_plugin": true,
+        "client_cache_verified": true,
+        "cached_mcp_empty_path_succeeded": true,
+        "client_remove_succeeded": true,
+        "client_absence_verified": true,
+        "lite_tool_count": LITE_PUBLIC_TOOL_NAMES.len()
     }))
+}
+
+fn run_real_claude_client(root: &Path, home: &Path, client: &Path) -> Result<Value, &'static str> {
+    let marketplace_root = home.join(".qiongli/plugins/claude-code/qiongli-local");
+    let source_root = marketplace_root.join("plugins/qiongli");
+    let source_target = approve_claude_plugin_bundle_target(&source_root)
+        .map_err(|_| "candidate-acceptance-claude-source-invalid")?;
+    let source = verify_claude_plugin_bundle(&source_target)
+        .map_err(|_| "candidate-acceptance-claude-source-invalid")?;
+    let source_receipt_sha256 = source.receipt_sha256().to_string();
+    let claude_config = ensure_private_child_directory(home, ".claude")?;
+
+    let version = run_external_command(
+        isolated_claude_command(client, home, &claude_config, [OsStr::new("--version")]),
+        "candidate-acceptance-claude-start-failed",
+        "candidate-acceptance-claude-version-failed",
+    )?;
+    let version = public_client_version(&version.stdout, root)?;
+    run_external_command(
+        isolated_claude_command(
+            client,
+            home,
+            &claude_config,
+            [
+                OsStr::new("plugin"),
+                OsStr::new("validate"),
+                OsStr::new("--strict"),
+                marketplace_root.as_os_str(),
+            ],
+        ),
+        "candidate-acceptance-claude-start-failed",
+        "candidate-acceptance-claude-validator-failed",
+    )?;
+    run_external_command(
+        isolated_claude_command(
+            client,
+            home,
+            &claude_config,
+            [
+                OsStr::new("plugin"),
+                OsStr::new("marketplace"),
+                OsStr::new("add"),
+                marketplace_root.as_os_str(),
+                OsStr::new("--scope"),
+                OsStr::new("user"),
+            ],
+        ),
+        "candidate-acceptance-claude-start-failed",
+        "candidate-acceptance-claude-marketplace-add-failed",
+    )?;
+    run_external_command(
+        isolated_claude_command(
+            client,
+            home,
+            &claude_config,
+            [
+                OsStr::new("plugin"),
+                OsStr::new("install"),
+                OsStr::new("qiongli@qiongli-local"),
+                OsStr::new("--scope"),
+                OsStr::new("user"),
+            ],
+        ),
+        "candidate-acceptance-claude-start-failed",
+        "candidate-acceptance-claude-install-failed",
+    )?;
+    let listed = run_external_command(
+        isolated_claude_command(
+            client,
+            home,
+            &claude_config,
+            [
+                OsStr::new("plugin"),
+                OsStr::new("list"),
+                OsStr::new("--json"),
+            ],
+        ),
+        "candidate-acceptance-claude-start-failed",
+        "candidate-acceptance-claude-list-failed",
+    )?;
+    if !String::from_utf8_lossy(&listed.stdout).contains("qiongli@qiongli-local") {
+        return Err("candidate-acceptance-claude-list-invalid");
+    }
+    let cached_root = find_cached_bundle(
+        &claude_config.join("plugins/cache"),
+        CLAUDE_PLUGIN_BUNDLE_RECEIPT_FILE,
+        0,
+    )?
+    .ok_or("candidate-acceptance-claude-cache-missing")?;
+    let cached_target = approve_claude_plugin_bundle_target(&cached_root)
+        .map_err(|_| "candidate-acceptance-claude-cache-invalid")?;
+    let cached = verify_claude_plugin_bundle(&cached_target)
+        .map_err(|_| "candidate-acceptance-claude-cache-invalid")?;
+    if cached.receipt_sha256() != source_receipt_sha256 {
+        return Err("candidate-acceptance-claude-cache-drift");
+    }
+    run_cached_mcp(&cached_root.join(&cached.receipt().binary_path), root, home)?;
+    run_external_command(
+        isolated_claude_command(
+            client,
+            home,
+            &claude_config,
+            [
+                OsStr::new("plugin"),
+                OsStr::new("uninstall"),
+                OsStr::new("qiongli@qiongli-local"),
+                OsStr::new("--scope"),
+                OsStr::new("user"),
+            ],
+        ),
+        "candidate-acceptance-claude-start-failed",
+        "candidate-acceptance-claude-remove-failed",
+    )?;
+    run_external_command(
+        isolated_claude_command(
+            client,
+            home,
+            &claude_config,
+            [
+                OsStr::new("plugin"),
+                OsStr::new("marketplace"),
+                OsStr::new("remove"),
+                OsStr::new("qiongli-local"),
+            ],
+        ),
+        "candidate-acceptance-claude-start-failed",
+        "candidate-acceptance-claude-marketplace-remove-failed",
+    )?;
+    let after = run_external_command(
+        isolated_claude_command(
+            client,
+            home,
+            &claude_config,
+            [
+                OsStr::new("plugin"),
+                OsStr::new("list"),
+                OsStr::new("--json"),
+            ],
+        ),
+        "candidate-acceptance-claude-start-failed",
+        "candidate-acceptance-claude-list-failed",
+    )?;
+    if String::from_utf8_lossy(&after.stdout).contains("qiongli@qiongli-local") {
+        return Err("candidate-acceptance-claude-remove-invalid");
+    }
+
+    Ok(json!({
+        "status": "passed",
+        "client_version": version,
+        "strict_plugin_validation": true,
+        "candidate_source_receipt_sha256": source_receipt_sha256,
+        "local_marketplace_added": true,
+        "client_install_succeeded": true,
+        "client_listed_plugin": true,
+        "client_cache_verified": true,
+        "cached_mcp_empty_path_succeeded": true,
+        "client_remove_succeeded": true,
+        "client_absence_verified": true,
+        "lite_tool_count": LITE_PUBLIC_TOOL_NAMES.len()
+    }))
+}
+
+fn isolated_codex_command<I, S>(binary: &Path, home: &Path, codex_home: &Path, args: I) -> Command
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
+    let mut command = Command::new(binary);
+    command
+        .args(args)
+        .env("HOME", home)
+        .env("USERPROFILE", home)
+        .env("CODEX_HOME", codex_home)
+        .env("XDG_CACHE_HOME", home.join(".cache"))
+        .env("XDG_CONFIG_HOME", home.join(".config"))
+        .env("XDG_DATA_HOME", home.join(".local/share"))
+        .env("NO_COLOR", "1");
+    command
+}
+
+fn isolated_claude_command<I, S>(
+    binary: &Path,
+    home: &Path,
+    claude_config: &Path,
+    args: I,
+) -> Command
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
+    let mut command = Command::new(binary);
+    command
+        .args(args)
+        .env("HOME", home)
+        .env("USERPROFILE", home)
+        .env("CLAUDE_CONFIG_DIR", claude_config)
+        .env("XDG_CACHE_HOME", home.join(".cache"))
+        .env("XDG_CONFIG_HOME", home.join(".config"))
+        .env("XDG_DATA_HOME", home.join(".local/share"))
+        .env("NO_COLOR", "1");
+    command
+}
+
+fn run_external_command(
+    mut command: Command,
+    start_error: &'static str,
+    failure_error: &'static str,
+) -> Result<Output, &'static str> {
+    let output = command.output().map_err(|_| start_error)?;
+    if output.stdout.len().saturating_add(output.stderr.len()) > 4 * 1024 * 1024 {
+        return Err(failure_error);
+    }
+    if !output.status.success() {
+        return Err(failure_error);
+    }
+    Ok(output)
+}
+
+fn public_client_version(bytes: &[u8], private_root: &Path) -> Result<String, &'static str> {
+    let version = std::str::from_utf8(bytes)
+        .map_err(|_| "candidate-acceptance-client-version-invalid")?
+        .trim();
+    if version.is_empty()
+        || version.len() > 256
+        || version.chars().any(char::is_control)
+        || version.contains(private_root.to_string_lossy().as_ref())
+    {
+        return Err("candidate-acceptance-client-version-invalid");
+    }
+    Ok(version.to_string())
+}
+
+fn find_cached_bundle(
+    root: &Path,
+    receipt_file: &str,
+    depth: usize,
+) -> Result<Option<PathBuf>, &'static str> {
+    if depth > 8 || !root.exists() {
+        return Ok(None);
+    }
+    let root_metadata =
+        fs::symlink_metadata(root).map_err(|_| "candidate-acceptance-client-cache-invalid")?;
+    if root_metadata.file_type().is_symlink() || !root_metadata.is_dir() {
+        return Err("candidate-acceptance-client-cache-invalid");
+    }
+    let mut entry_count = 0_usize;
+    for entry in fs::read_dir(root).map_err(|_| "candidate-acceptance-client-cache-invalid")? {
+        entry_count = entry_count.saturating_add(1);
+        if entry_count > 4_096 {
+            return Err("candidate-acceptance-client-cache-invalid");
+        }
+        let entry = entry.map_err(|_| "candidate-acceptance-client-cache-invalid")?;
+        let metadata = fs::symlink_metadata(entry.path())
+            .map_err(|_| "candidate-acceptance-client-cache-invalid")?;
+        if metadata.file_type().is_symlink() || !metadata.is_dir() {
+            continue;
+        }
+        let path = entry.path();
+        if path.join(receipt_file).is_file() {
+            return Ok(Some(path));
+        }
+        if let Some(found) = find_cached_bundle(&path, receipt_file, depth.saturating_add(1))? {
+            return Ok(Some(found));
+        }
+    }
+    Ok(None)
+}
+
+fn ensure_private_child_directory(root: &Path, leaf: &str) -> Result<PathBuf, &'static str> {
+    let path = root.join(leaf);
+    if path.exists() {
+        let metadata = fs::symlink_metadata(&path)
+            .map_err(|_| "candidate-acceptance-directory-create-failed")?;
+        if metadata.file_type().is_symlink() || !metadata.is_dir() {
+            return Err("candidate-acceptance-directory-create-failed");
+        }
+        Ok(path)
+    } else {
+        create_private_directory(&path)?;
+        Ok(path)
+    }
 }
 
 fn run_mcp(binary: &Path, root: &Path, home: &Path) -> Result<(), &'static str> {
@@ -900,6 +1413,38 @@ fn run_mcp(binary: &Path, root: &Path, home: &Path) -> Result<(), &'static str> 
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
+    run_mcp_command(command, root)
+}
+
+fn run_cached_mcp(executable: &Path, root: &Path, home: &Path) -> Result<(), &'static str> {
+    let mut command = Command::new(executable);
+    command
+        .env_clear()
+        .env("PATH", "")
+        .env("HOME", home)
+        .env("USERPROFILE", home)
+        .env("QIONGLI_CONFIG_HOME", home.join(".qiongli/config"))
+        .current_dir(root)
+        .args([
+            "mcp",
+            "serve",
+            "--transport",
+            "stdio",
+            "--profile",
+            "marketplace-lite",
+        ])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    for name in ["SYSTEMROOT", "WINDIR", "TEMP", "TMP", "TMPDIR"] {
+        if let Some(value) = env::var_os(name) {
+            command.env(name, value);
+        }
+    }
+    run_mcp_command(command, root)
+}
+
+fn run_mcp_command(mut command: Command, root: &Path) -> Result<(), &'static str> {
     let mut child = command
         .spawn()
         .map_err(|_| "candidate-acceptance-mcp-start-failed")?;
@@ -1147,6 +1692,31 @@ fn now_unix() -> Result<u64, &'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn codex_external_client_arguments_are_all_or_nothing() {
+        let output = env::temp_dir().join("qiongli-candidate-argument-output");
+        let result = Arguments::parse([
+            OsString::from("--output"),
+            output.into_os_string(),
+            OsString::from("--source-commit"),
+            OsString::from("0000000000000000000000000000000000000000"),
+            OsString::from("--codex-bin"),
+            OsString::from("/missing/codex"),
+        ]);
+        assert!(matches!(result, Err("candidate-acceptance-usage-invalid")));
+    }
+
+    #[test]
+    fn public_client_versions_reject_private_paths_and_control_bytes() {
+        let root = Path::new("/private/acceptance-root");
+        assert_eq!(
+            public_client_version(b"codex-cli 1.2.3\n", root).unwrap(),
+            "codex-cli 1.2.3"
+        );
+        assert!(public_client_version(b"line-one\nline-two", root).is_err());
+        assert!(public_client_version(b"client /private/acceptance-root", root).is_err());
+    }
 
     #[cfg(any(unix, windows))]
     #[test]

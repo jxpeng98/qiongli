@@ -871,6 +871,36 @@ cleanup. They remain external acceptance tests rather than normal CI because
 the supported client installations and Plugin Creator validator are not Rust
 workspace dependencies.
 
+The Alpha.1 candidate acceptance executable can also bind both real-client
+journeys to the same ephemeral test-signed candidate instead of separately
+composed test bundles. All tool paths must resolve from absolute paths; the
+Codex binary requires the Plugin Creator validator and an explicit Python
+interpreter that can import PyYAML as external development-only inputs. The
+output root must be a fresh private directory outside the checkout and outside
+recognized shared temporary roots:
+
+```text
+cargo run --manifest-path packages/qiongli-native/Cargo.toml \
+  --package qiongli --example native_candidate_acceptance --locked -- \
+  --output <fresh-private-output> \
+  --source-commit <exact-source-object-id> \
+  --codex-bin <absolute-real-codex-binary> \
+  --plugin-validator <absolute-validate_plugin.py> \
+  --plugin-validator-python <absolute-python-with-pyyaml> \
+  --claude-bin <absolute-real-claude-binary>
+```
+
+The executable applies each candidate into a separate fresh home, lets the
+real client install and cache the registered source, verifies the cached
+receipt, launches the cached Lite MCP with an empty `PATH`, removes the client
+installation, verifies absence, and then performs Qiongli candidate removal.
+It records client versions and digest-only evidence without paths. Supplying no
+external client arguments preserves the normal CI journey and records the
+real-client gate as `not-run`; supplying only one client records `partial`.
+Every form remains `publication_allowed: false` and uses memory-only ephemeral
+test keys, so production signing and final-source regeneration remain separate
+maintainer gates.
+
 R3N Batch 3 implementation is complete. Running `qiongli` without arguments
 now opens the same native UI composition as `qiongli ui`; explicit CLI and
 machine-readable modes retain their existing parser and output contracts. A
