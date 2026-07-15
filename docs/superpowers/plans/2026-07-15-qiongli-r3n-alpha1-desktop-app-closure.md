@@ -1,6 +1,6 @@
 # Qiongli R3N Alpha.1 Desktop Application Closure Execution Plan
 
-Status: Batch 5 macOS packaged UI journey accepted; external release gates remain
+Status: Batch 5 macOS packaged UI journey accepted; R3O unified update and external macOS release gates remain
 
 Date: July 15, 2026
 
@@ -9,8 +9,8 @@ Branch: `feat/2x-native-alpha1`
 Rolling PR: `#63`
 
 **Goal:** Close the five observed desktop acceptance gaps and produce a useful,
-dependency-free, double-clickable Lite Alpha.1 application on macOS, Windows,
-and Linux.
+dependency-free, double-clickable Lite Alpha.1 application on macOS arm64.
+Windows and Linux remain non-publishing CI targets until a later alpha.
 
 **Design:**
 `docs/superpowers/specs/2026-07-15-qiongli-r3n-alpha1-desktop-app-closure-design.md`
@@ -222,7 +222,7 @@ remain Batch 5 gates.
 ## Batch 5 — Reaccept Alpha.1
 
 - [ ] Run packaged clean-machine startup and interactive window acceptance for
-  macOS, Windows, and Linux without Rust, Python, Node, Cargo, npm, or pip.
+  macOS arm64 without Rust, Python, Node, Cargo, npm, or pip.
 - [ ] Run keyboard, scale, basic screen-reader, settings persistence, Skills
   lifecycle, MCP self-test, and discovery journeys in the packaged app.
   - [x] Complete the macOS packaged settings-persistence, Skills lifecycle,
@@ -230,16 +230,16 @@ remain Batch 5 gates.
     journey.
   - [x] Add exact-package macOS receipt/manifest verification, isolated
     empty-`PATH` startup, and request-only LaunchServices preflight evidence.
-  - [ ] Complete manual macOS scale and VoiceOver acceptance.
-  - [ ] Complete the corresponding Windows and Linux interactive journeys.
+  - [ ] Complete manual macOS clean-machine, scale, contrast, and VoiceOver
+    acceptance.
 - [ ] Run real Codex and Claude Code discovery plus candidate-backed install,
   diagnose, and remove on supported isolated clients.
   - [x] Complete the non-publishing, ephemeral-test-signed macOS candidate
     journey against actual Codex and Claude Code clients.
   - [ ] Regenerate the same evidence from the final accepted source and
     production-signed candidate.
-- [ ] Apply external macOS signing/notarization, Windows Authenticode, and
-  signed Linux release metadata only through maintainer-controlled boundaries.
+- [ ] Apply external macOS signing/notarization only through the
+  maintainer-controlled boundary.
   - [x] Add an exact-package macOS signing/notarization entry point, a
     credential-free ad-hoc mechanism test, and a missing-credential
     production failure probe.
@@ -247,11 +247,20 @@ remain Batch 5 gates.
     `notarytool` Keychain profile against the final accepted source package.
 - [ ] Regenerate the signed candidate, desktop artifact descriptors, release
   notes, checksums, and readiness receipt from the final exact head.
+- [ ] Complete R3O stable/beta unified update, staged replacement, rollback,
+  and receipt-owned content reconciliation on packaged macOS arm64.
 - [ ] Require exact-head Native CI and every recorded publication gate before
   moving PR #63 from Draft or creating `v2.0.0-alpha.1`.
 
-**Checkpoint:** The readiness receipt proves a usable cross-platform desktop
-application, not only a CLI-mode startup preflight.
+**Checkpoint:** The readiness receipt proves a usable and safely updateable
+macOS arm64 desktop application, not only a CLI-mode startup preflight.
+
+Deferred, not passed:
+
+- Windows and Linux interactive journeys, platform signing, updater executors,
+  and publication move to a later alpha.
+- Their CI compilation and structural package jobs remain useful
+  non-publishing regression evidence and are not Alpha.1 publication gates.
 
 Current non-publishing Batch 5 evidence:
 
@@ -338,14 +347,17 @@ cargo test --manifest-path packages/qiongli-native/Cargo.toml \
 ```
 
 Batch 4 now has target package build/inspection jobs. Batch 5 adds the slower
-packaged clean-machine and real-client acceptance once, against the final
-candidate rather than after every implementation commit.
+packaged macOS clean-machine and real-client acceptance once, against the final
+candidate rather than after every implementation commit. R3O adds focused
+update-contract and macOS replacement tests; it does not require Windows/Linux
+interactive acceptance for Alpha.1.
 
 ## Completion Definition
 
-R3N and R3 are complete only when the five reported failures are closed in a
-packaged application, all three OS-family artifacts have clean-machine launch
-evidence, source discovery is truthful, state mutation remains typed and
-approved, and the final release ledger binds the exact accepted head. Until
-then, R3M remains accepted technical evidence but Alpha.1 publication remains
-blocked.
+R3N and the Alpha.1 closure are complete only when the five reported failures
+are closed in the packaged macOS arm64 application, source discovery is
+truthful, state mutation remains typed and approved, R3O proves a complete
+Qiongli 2-only update and rollback, and the final release ledger binds the
+exact accepted head. Windows/Linux publication readiness is intentionally
+deferred. Until the remaining macOS and R3O gates pass, R3M remains accepted
+technical evidence but Alpha.1 publication remains blocked.

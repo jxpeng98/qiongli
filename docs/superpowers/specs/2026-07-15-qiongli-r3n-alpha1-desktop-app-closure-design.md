@@ -1,6 +1,6 @@
 # Qiongli R3N Alpha.1 Desktop Application Closure Design
 
-Status: implementation in progress; Batches 1-3 accepted, Batch 4 finalization awaiting exact-head CI and manual activation
+Status: implementation in progress; macOS arm64 is the Alpha.1 publication target and R3O owns unified update closure
 
 Date: July 15, 2026
 
@@ -19,7 +19,7 @@ to five observed acceptance failures:
 3. MCP cannot run a health check from the window.
 4. Ordinary source sessions do not discover local Codex and Claude Code
    integrations usefully.
-5. The UI is a CLI mode, not a double-clickable cross-platform application.
+5. The UI is a CLI mode, not a double-clickable desktop application.
 
 These are Alpha.1 release blockers. R3M's signed candidate and lifecycle work
 remain valid release-core evidence, but Alpha.1 is not ready until R3N passes.
@@ -139,16 +139,17 @@ requires a manual or automated receipt from supported real Codex and Claude
 Code installations; a test double cannot be described as real-client
 evidence.
 
-## Cross-Platform Application Packaging
+## Application Packaging And Alpha.1 Scope
 
-Alpha.1 adds one desktop-activatable artifact for each supported operating
-system family:
+The common packaging work continues to produce non-publishing engineering
+artifacts for each supported operating-system family. ADR 0209 narrows the
+first published Alpha.1 to macOS arm64:
 
-| Platform | Minimum Alpha.1 application artifact | Activation requirement |
+| Platform | Current artifact | Alpha.1 publication status |
 |---|---|---|
-| macOS | `.app` distributed in a signed archive or DMG | Finder activation opens the UI without Terminal |
-| Windows | desktop GUI executable in a signed portable package | Explorer activation opens the UI without a persistent console window |
-| Linux | AppImage with desktop metadata and icon | file-manager or installed desktop launcher opens the UI |
+| macOS arm64 | `.app` in a signed/notarized archive | Required; Finder activation opens the UI without Terminal |
+| Windows | desktop GUI executable in a portable package | Deferred; CI artifact remains non-publishing |
+| Linux | AppImage with desktop metadata and icon | Deferred; CI artifact remains non-publishing |
 
 The packages include the canonical native executable, embedded resource pack,
 icons/metadata, licenses, and only the native runtime libraries required by the
@@ -168,11 +169,16 @@ unsigned bytes to the previously accepted three-file candidate contract.
 After R3N, the release candidate and release notes are regenerated from the
 final exact head.
 
-Normal macOS Gatekeeper and Windows trust claims require maintainer-controlled
-code-signing/notarization or Authenticode evidence. Development packages may
-be unsigned but must be labelled non-publishing. Linux publishes signed release
-metadata and checksums. Private keys remain outside the repository, product,
-logs, artifacts, and runtime environment output.
+Normal macOS Gatekeeper claims require maintainer-controlled Developer ID
+signing and notarization evidence. Development and deferred-platform packages
+must be labelled non-publishing. Private keys remain outside the repository,
+product, logs, artifacts, and runtime environment output.
+
+R3O adds the complete application updater as an Alpha.1 blocker. It replaces
+the 1.x split software/content update with stable and beta update streams,
+staged macOS application replacement, rollback, and receipt-owned content
+reconciliation. Its detailed contract is recorded separately so update
+authority does not leak into UI or packaging code.
 
 ## UI And Service Intents
 
@@ -204,11 +210,14 @@ head:
   cancellation, provider-unready, and contract-failure states;
 - source and packaged sessions discover real supported Codex and Claude Code
   installations without gaining unauthorized apply authority;
-- macOS, Windows, and Linux application artifacts launch through normal
-  desktop activation on clean machines without language runtimes;
+- the macOS arm64 application launches through normal desktop activation on a
+  clean machine without language runtimes;
 - the packaged window passes navigation, keyboard, scale, basic screen-reader,
   restart-persistence, and startup-failure checks;
-- every artifact is identity/digest bound and publication claims match the
+- the stable/beta unified updater accepts only 2.x-or-newer complete
+  applications and restores the old application plus managed content on
+  failure;
+- every published artifact is identity/digest bound and publication claims match the
   signing and real-client evidence actually recorded; and
 - the regenerated Alpha.1 candidate, notes, native CI, and publication ledger
   refer to the same final source and artifact set.
@@ -217,7 +226,9 @@ head:
 
 - Full MCP or a long-running MCP process supervisor in the UI;
 - agents, ToolHost, direct model backends, or the orchestrator;
-- updater, managed in-place upgrade, or state import;
+- Windows and Linux interactive acceptance, signing, updater execution, and
+  publication for Alpha.1;
+- Qiongli 1.x import, migration, compatibility reads, cleanup, or rollback;
 - new credential-store backends or secret-reference editing;
 - Claude Desktop, Codex Desktop/ChatGPT Marketplace bypass, cloud/web
   execution, or public Marketplace distribution;
