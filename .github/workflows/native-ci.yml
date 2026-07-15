@@ -329,7 +329,10 @@ jobs:
               archive_count=$(find "$package_root" -maxdepth 1 -type f -name '*.zip' -print | wc -l | tr -d ' ')
               [[ "$archive_count" -eq 1 ]]
               archive=$(find "$package_root" -maxdepth 1 -type f -name '*.zip' -print -quit)
-              tar -xf "$(cygpath -u "$archive")" -C "$(cygpath -u "$activation_root")"
+              ARCHIVE_PATH="$(cygpath -w "$archive")" \
+                DESTINATION_PATH="$(cygpath -w "$activation_root")" \
+                powershell.exe -NoLogo -NoProfile -NonInteractive -Command \
+                '$ErrorActionPreference = "Stop"; Expand-Archive -LiteralPath $env:ARCHIVE_PATH -DestinationPath $env:DESTINATION_PATH -Force'
               HOME="$activation_root/home" PATH="" \
                 "$activation_root/Qiongli/Qiongli.exe" --startup-check
               ;;
