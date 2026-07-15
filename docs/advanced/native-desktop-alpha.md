@@ -36,6 +36,30 @@ still depends on the operating-system facilities required by a Type 2 AppImage
 and the native window stack. Clean-machine compatibility is not claimed until
 the final readiness receipt records it.
 
+## Repeatable macOS Preflight
+
+Maintainers and clean-machine testers can verify one exact downloaded macOS
+artifact without using Python, Node.js, or Rust:
+
+```text
+tooling/scripts/macos_alpha1_acceptance.sh \
+  --artifact-dir <absolute-artifact-directory> \
+  --expected-source-commit <exact-package-source> \
+  --expected-package-sha256 <digest-from-the-trusted-run-record> \
+  --output <absolute-new-receipt.json> \
+  --launchservices-preflight
+```
+
+Take the expected digest and source identity from the trusted CI or release
+record, not only from files beside the downloaded archive. The command verifies
+the package and bundle, runs the packaged launcher with an isolated home and
+empty `PATH`, and optionally exercises LaunchServices with the fixed
+auto-exiting startup check. It writes no machine paths to the receipt.
+
+This is automated engineering evidence. A successful result does not assert
+that the host is clean, that a normal window was observed, or that scale,
+VoiceOver, contrast, signing, notarization, and publication gates passed.
+
 The desktop launcher intentionally opens only UI mode. Use the explicit
 `qiongli-cli` executable on macOS or Windows, or the companion portable CLI on
 Linux, for terminal commands. The AppImage is not an arbitrary CLI argument

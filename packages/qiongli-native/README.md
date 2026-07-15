@@ -961,8 +961,28 @@ startup preflight does not claim a human Finder/Explorer/file-manager launch or
 accessibility pass. Those Batch 5 gates must use the exact committed candidate;
 a dirty-tree smoke package is never release evidence.
 
+The macOS package job also runs the repository acceptance entry point and
+uploads its path-redacted receipt with the package:
+
+```text
+tooling/scripts/macos_alpha1_acceptance.sh \
+  --artifact-dir <absolute-downloaded-artifact-directory> \
+  --expected-source-commit <exact-package-source> \
+  --expected-package-sha256 <trusted-package-digest> \
+  --output <absolute-new-receipt.json>
+```
+
+The verifier binds the external expected digest, composer receipt, external
+and bundle manifests, fixed Alpha.1 identity, bundle metadata, launcher and
+canonical binary digests, and an isolated empty-`PATH` startup. On a target
+macOS host, `--launchservices-preflight` additionally sends the fixed internal
+`--startup-check` through `/usr/bin/open` and waits for the app to exit. It
+does not bypass Gatekeeper or claim a displayed window. Every generated
+receipt keeps clean-machine, manual scale, VoiceOver, contrast, production
+signing, and publication gates open.
+
 Target-specific install, CLI, removal, trust, and architecture guidance is in
-`docs/advanced/native-desktop-alpha.md` and its Chinese counterpart.
+`docs/advanced/native-desktop-alpha.md`.
 
 ## R1 command contract (retained)
 
