@@ -1,6 +1,6 @@
 # Qiongli R3N Alpha.1 Desktop Application Closure Execution Plan
 
-Status: Batch 4 AppImage and packaged-startup implementation complete locally; exact-head CI and manual activation pending
+Status: Batch 5 local real-client and macOS packaged-window acceptance in progress; external release gates remain
 
 Date: July 15, 2026
 
@@ -208,11 +208,16 @@ Implemented foundation evidence:
   the implementation was uncommitted during that smoke run, it is mechanism
   evidence only and not exact-head release evidence.
 
-Remaining Batch 4 work is deliberately narrower: obtain exact-head CI evidence
-for the Type 2 AppImage and packaged startup entries, then perform normal
-no-argument macOS, Windows, and Linux desktop activation checks. Signing,
-notarization, human accessibility review, and clean-machine acceptance remain
-Batch 5.
+Exact-head Native CI run `29419027524` passed all nine jobs for branch head
+`d988070c` and PR merge candidate `ef253403`, including the Type 2 AppImage and
+the real packaged startup entries on macOS, Windows, and Linux with an empty
+`PATH`. A downloaded copy of that exact macOS artifact also opened the
+no-argument `Qiongli 2` window from an isolated home and config root; macOS
+Accessibility exposed the six navigation destinations and labelled Skills
+controls. This local-machine result is not a clean-machine, keyboard, scale,
+or human screen-reader acceptance. Normal Windows and Linux desktop activation,
+production signing/notarization, and cross-platform clean-machine acceptance
+remain Batch 5 gates.
 
 ## Batch 5 — Reaccept Alpha.1
 
@@ -231,6 +236,23 @@ Batch 5.
 
 **Checkpoint:** The readiness receipt proves a usable cross-platform desktop
 application, not only a CLI-mode startup preflight.
+
+Current non-publishing Batch 5 evidence:
+
+- Actual Codex CLI `0.144.4` passed isolated Plugin Creator validation,
+  personal Marketplace registration, install, list/enablement, cache receipt
+  verification, empty-`PATH` Lite MCP, client remove, absence verification,
+  and receipt-owned catalog removal.
+- Actual Claude Code `2.1.209` passed strict validation, skills-directory
+  discovery, local Marketplace registration, install, cache receipt
+  verification, empty-`PATH` Lite MCP, uninstall, Marketplace removal, and
+  absence verification.
+- The tested client binaries and configuration roots were explicit and
+  isolated. A Python environment with PyYAML was used only by the external
+  Plugin Creator development validator; no Qiongli product path used Python.
+- These local results do not yet close the unchecked real-client gate: final
+  candidate-backed diagnose/remove evidence must be regenerated from the
+  final exact source alongside the signed publication ledger.
 
 ## Fast Validation Loop
 

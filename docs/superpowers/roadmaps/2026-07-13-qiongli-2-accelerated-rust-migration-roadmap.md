@@ -1079,12 +1079,20 @@ superseded head is not reported as current-head evidence.
     `tooling/release/acceptance/v2.0.0-alpha.1-r3m-readiness.md`; publication is
     blocked by its external-gate ledger and has not been run.
 23. R3N Batches 1-3 close the observed settings, Skills destination, MCP
-    self-test, source discovery, and native application-entry gaps. Batch 4
-    package-source matrix run `29414548962` passed at `33d91af8`; Type 2 Linux
-    AppImage finalization, packaged-launcher startup preflight, and truthful
-    target guidance are implemented on the rolling branch and await their own
-    exact-head CI evidence. Normal desktop activation, real-client evidence,
-    signing, and clean-machine interactive acceptance remain open gates.
+    self-test, source discovery, and native application-entry gaps. Batch 4 is
+    accepted as automated engineering evidence at `d988070c`: exact-head run
+    `29419027524` passed all nine jobs, including Type 2 Linux AppImage
+    finalization and actual packaged-launcher startup on macOS, Windows, and
+    Linux with an empty `PATH`. Its outputs remain non-publishing.
+24. R3N Batch 5 has local partial evidence: actual Codex CLI `0.144.4` and
+    Claude Code `2.1.209` passed isolated local-plugin/cache/MCP lifecycle
+    checks, and the exact CI macOS package displayed the `Qiongli 2` window
+    with labelled Accessibility navigation and Skills controls. The Codex
+    external test now verifies client remove, absence, and receipt-owned
+    catalog cleanup. This is not three-platform clean-machine or human
+    accessibility acceptance; final candidate regeneration, production
+    signing/notarization, Windows/Linux interactive evidence, and explicit
+    publication authorization remain open gates.
 
 ## Program Done
 

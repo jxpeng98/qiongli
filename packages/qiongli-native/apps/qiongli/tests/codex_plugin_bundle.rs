@@ -502,9 +502,16 @@ fn real_codex_clean_client_installs_enables_caches_and_launches_bundle() {
         .expect("Codex registration plan must verify");
     let approval = approve_install_plan(&verified_plan, &APPROVALS, NOW)
         .expect("Codex registration must approve");
-    executor
+    let registration = executor
         .apply(&verified_plan, &approval, NOW + 1)
         .expect("isolated personal marketplace must register");
+    assert_eq!(
+        executor
+            .verify()
+            .expect("isolated personal marketplace must verify")
+            .receipt,
+        registration.receipt
+    );
 
     let codex_home = fixture.codex_home();
     let codex = std::env::var_os("QIONGLI_CODEX_BIN")
@@ -549,6 +556,21 @@ fn real_codex_clean_client_installs_enables_caches_and_launches_bundle() {
     assert!(responses.contains("\"serverInfo\""));
     assert!(responses.contains("\"qiongli_task_plan\""));
 
+    let remove = isolated_codex_command(&codex, &fixture, &codex_home)
+        .args(["plugin", "remove", "--json", "qiongli@personal"])
+        .output()
+        .expect("Codex plugin remove must start");
+    assert!(remove.status.success(), "{}", public_output(&remove));
+    let after = isolated_codex_command(&codex, &fixture, &codex_home)
+        .args(["plugin", "list", "--json"])
+        .output()
+        .expect("Codex final plugin list must start");
+    assert!(after.status.success(), "{}", public_output(&after));
+    assert!(!String::from_utf8_lossy(&after.stdout).contains("qiongli"));
+    executor
+        .remove(NOW + 2)
+        .expect("Qiongli personal marketplace entry must remove");
+
     let version_text = String::from_utf8_lossy(&version.stdout).trim().to_string();
     println!(
         "{}",
@@ -564,6 +586,9 @@ fn real_codex_clean_client_installs_enables_caches_and_launches_bundle() {
             "client_enablement_recorded": true,
             "client_cache_verified": true,
             "cached_mcp_empty_path_succeeded": true,
+            "client_remove_succeeded": true,
+            "client_absence_verified": true,
+            "marketplace_catalog_remove_succeeded": true,
             "lite_tool_count": LITE_PUBLIC_TOOL_NAMES.len()
         }))
         .unwrap()

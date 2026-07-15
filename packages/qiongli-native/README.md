@@ -841,6 +841,36 @@ discover Codex and Claude Code without gaining write authority. Release-grade
 real-client receipts remain an external acceptance requirement when usable
 client binaries and validators are available.
 
+Batch 5 real-client checks deliberately require absolute paths to the actual
+client executables rather than version-manager shims. The tests replace the
+client home/config roots with isolated directories, so a shim which resolves
+tools from the ordinary home can produce false failures. Codex also uses the
+Plugin Creator validator; its Python interpreter must provide PyYAML. That
+interpreter is an external development validator dependency and is never
+copied into, launched by, or required by the Qiongli product bundle.
+
+```text
+QIONGLI_CODEX_BIN=<absolute-real-codex-binary> \
+QIONGLI_PLUGIN_VALIDATOR=<absolute-validate_plugin.py> \
+QIONGLI_PLUGIN_VALIDATOR_PYTHON=<absolute-python-with-pyyaml> \
+cargo test --manifest-path packages/qiongli-native/Cargo.toml \
+  --package qiongli --test codex_plugin_bundle --locked \
+  real_codex_clean_client_installs_enables_caches_and_launches_bundle -- \
+  --ignored --exact --nocapture
+
+QIONGLI_CLAUDE_BIN=<absolute-real-claude-binary> \
+cargo test --manifest-path packages/qiongli-native/Cargo.toml \
+  --package qiongli --test claude_plugin_bundle --locked \
+  real_claude_clean_client_discovers_and_installs_both_local_forms -- \
+  --ignored --exact --nocapture
+```
+
+Both tests isolate client-owned state, verify the receipt-backed cached bundle,
+run that bundle's Lite MCP with an empty `PATH`, and exercise client and Qiongli
+cleanup. They remain external acceptance tests rather than normal CI because
+the supported client installations and Plugin Creator validator are not Rust
+workspace dependencies.
+
 R3N Batch 3 implementation is complete. Running `qiongli` without arguments
 now opens the same native UI composition as `qiongli ui`; explicit CLI and
 machine-readable modes retain their existing parser and output contracts. A
