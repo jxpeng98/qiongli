@@ -3,10 +3,13 @@ use eframe::egui::{
 };
 use zeroize::Zeroizing;
 
+use std::time::Duration;
+
 use crate::{
     CapabilityView, DesktopEvent, DesktopIntent, DesktopSection, DesktopService, DesktopSnapshotV1,
-    GlobalSettingsPatch, IntegrationTarget, OperationKind, OperationPreview, PrivateDisplayText,
-    PrivateText, ProfileKind, ProviderKind, PublicSettingChange, StatusCode,
+    GlobalSettingsPatch, IntegrationTarget, McpSelfTestState, McpSelfTestView, OperationKind,
+    OperationPreview, PrivateDisplayText, PrivateText, ProfileKind, ProviderKind,
+    PublicSettingChange, StatusCode,
 };
 
 const TWO_COLUMN_MINIMUM_WIDTH: f32 = 760.0;
@@ -76,6 +79,7 @@ pub struct QiongliDesktopApp {
     global_settings: Option<GlobalSettingsEditor>,
     skills_profile: ProfileKind,
     skills_destination: Option<PrivateDisplayText>,
+    mcp_self_test: Option<McpSelfTestView>,
     feedback: Option<Feedback>,
     preview: Option<OperationPreview>,
 }
@@ -101,12 +105,28 @@ impl QiongliDesktopApp {
             global_settings: None,
             skills_profile: ProfileKind::SkillOnly,
             skills_destination: None,
+            mcp_self_test: None,
             feedback,
             preview: None,
         }
     }
 
     pub fn show(&mut self, ui: &mut Ui) {
+        if self
+            .mcp_self_test
+            .as_ref()
+            .is_some_and(|test| test.state == McpSelfTestState::Running)
+        {
+            let event = self.service.execute(DesktopIntent::PollLiteMcpSelfTest);
+            self.handle_event(event);
+            if self
+                .mcp_self_test
+                .as_ref()
+                .is_some_and(|test| test.state == McpSelfTestState::Running)
+            {
+                ui.ctx().request_repaint_after(Duration::from_millis(50));
+            }
+        }
         configure_visuals(ui);
         let mut intent = None;
         Frame::central_panel(ui.style()).show(ui, |ui| {
@@ -159,7 +179,7 @@ impl QiongliDesktopApp {
             .show(ui, |ui| match self.section {
                 DesktopSection::Overview => self.render_overview(ui),
                 DesktopSection::Skills => self.render_skills(ui),
-                DesktopSection::Mcp => render_mcp(ui, &self.snapshot),
+                DesktopSection::Mcp => render_mcp(ui, &self.snapshot, self.mcp_self_test.as_ref()),
                 DesktopSection::Providers => self.render_providers(ui),
                 DesktopSection::Integrations => render_integrations(ui, &self.snapshot),
                 DesktopSection::Diagnostics => render_diagnostics(ui, &self.snapshot),
@@ -571,7 +591,12 @@ impl QiongliDesktopApp {
     }
 
     fn dispatch(&mut self, intent: DesktopIntent) {
-        match self.service.execute(intent) {
+        let event = self.service.execute(intent);
+        self.handle_event(event);
+    }
+
+    fn handle_event(&mut self, event: DesktopEvent) {
+        match event {
             DesktopEvent::SnapshotReplaced(snapshot) => match snapshot.validate() {
                 Ok(()) => {
                     self.snapshot = snapshot;
@@ -589,6 +614,42 @@ impl QiongliDesktopApp {
                     });
                 }
             },
+            DesktopEvent::McpSelfTestUpdated(self_test) => {
+                if !self_test.validate() {
+                    self.mcp_self_test = None;
+                    self.feedback = Some(Feedback {
+                        status: StatusCode::Invalid,
+                        message: "The MCP self-test result was rejected.",
+                        code: "mcp-self-test-result-invalid",
+                    });
+                    return;
+                }
+                let state = self_test.state;
+                self.mcp_self_test = Some(self_test);
+                self.feedback = match state {
+                    McpSelfTestState::Running => None,
+                    McpSelfTestState::Passed => Some(Feedback {
+                        status: StatusCode::Ready,
+                        message: "The bounded Lite MCP self-test passed.",
+                        code: "mcp-self-test-passed",
+                    }),
+                    McpSelfTestState::Failed => Some(Feedback {
+                        status: StatusCode::Blocked,
+                        message: "The Lite MCP self-test found a blocking failure.",
+                        code: "mcp-self-test-failed",
+                    }),
+                    McpSelfTestState::Cancelled => Some(Feedback {
+                        status: StatusCode::Missing,
+                        message: "The Lite MCP self-test was cancelled.",
+                        code: "mcp-self-test-cancelled",
+                    }),
+                    McpSelfTestState::TimedOut => Some(Feedback {
+                        status: StatusCode::Blocked,
+                        message: "The Lite MCP self-test reached its fixed timeout.",
+                        code: "mcp-self-test-timed-out",
+                    }),
+                };
+            }
             DesktopEvent::SkillsDestinationSelected { display_path } => {
                 self.skills_destination = Some(display_path);
                 self.feedback = Some(Feedback {
@@ -671,6 +732,8 @@ fn quarantine_invalid_snapshot(snapshot: &mut DesktopSnapshotV1) {
         config_edit: false,
         skills_materialize: false,
         provider_preview: false,
+        mcp_self_test: false,
+        integration_discovery: false,
         integration_preview: false,
         apply: false,
     };
@@ -743,7 +806,11 @@ fn render_compact_navigation(ui: &mut Ui, section: &mut DesktopSection) {
     });
 }
 
-fn render_mcp(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<DesktopIntent> {
+fn render_mcp(
+    ui: &mut Ui,
+    snapshot: &DesktopSnapshotV1,
+    self_test: Option<&McpSelfTestView>,
+) -> Option<DesktopIntent> {
     section_heading(
         ui,
         "MCP",
@@ -772,9 +839,62 @@ fn render_mcp(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<DesktopIntent
         "No Python, Node.js, Rust toolchain, or separate MCP runtime is required after packaging.",
     );
     ui.add_space(12.0);
-    ui.add_enabled(false, egui::Button::new("Start Lite MCP test"));
-    ui.label("Process launch and supervision are not part of R3F.");
-    None
+    let running = self_test.is_some_and(|test| test.state == McpSelfTestState::Running);
+    let mut intent = None;
+    ui.horizontal(|ui| {
+        if ui
+            .add_enabled(
+                snapshot.capabilities.mcp_self_test && !running,
+                egui::Button::new("Run Lite MCP self-test"),
+            )
+            .clicked()
+        {
+            intent = Some(DesktopIntent::RunLiteMcpSelfTest);
+        }
+        if ui
+            .add_enabled(running, egui::Button::new("Cancel MCP self-test"))
+            .clicked()
+        {
+            intent = Some(DesktopIntent::CancelLiteMcpSelfTest);
+        }
+        if running {
+            ui.spinner();
+            ui.label("Running bounded offline checks…");
+        }
+    });
+    ui.label("The default self-test performs no network request and no mutation.");
+
+    if let Some(self_test) = self_test {
+        ui.add_space(12.0);
+        ui.heading(format!("Self-test: {}", self_test.state.label()));
+        Grid::new("mcp-self-test-grid")
+            .num_columns(4)
+            .striped(true)
+            .spacing([24.0, 8.0])
+            .show(ui, |ui| {
+                ui.strong("Check");
+                ui.strong("Status");
+                ui.strong("Code");
+                ui.strong("Remediation");
+                ui.end_row();
+                for check in self_test.checks {
+                    ui.label(check.check.label());
+                    status_label(ui, check.status);
+                    ui.monospace(check.code);
+                    ui.monospace(check.remediation);
+                    ui.end_row();
+                }
+            });
+        ui.label(format!(
+            "Tools: {} · Providers ready: {}/{} · Clients registered: {}/{} discovered",
+            self_test.public_tool_count,
+            self_test.ready_provider_count,
+            self_test.enabled_provider_count,
+            self_test.registered_client_count,
+            self_test.discovered_client_count,
+        ));
+    }
+    intent
 }
 
 fn render_integrations(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<DesktopIntent> {
@@ -784,6 +904,17 @@ fn render_integrations(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<Desk
         "Local Codex and Claude Code discovery through accepted read-only adapters.",
     );
     let mut intent = None;
+    if ui
+        .add_enabled(
+            snapshot.capabilities.integration_discovery,
+            egui::Button::new("Refresh integration discovery"),
+        )
+        .clicked()
+    {
+        return Some(DesktopIntent::RefreshIntegrationDiscovery);
+    }
+    ui.label("Discovery is read-only and does not require a signed release candidate.");
+    ui.add_space(12.0);
     for integration in snapshot.integrations {
         Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
             ui.horizontal(|ui| {
@@ -794,6 +925,13 @@ fn render_integrations(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<Desk
                 "Symbolic location: {}",
                 integration.symbolic_location.label()
             ));
+            ui.strong(integration.discovery.label());
+            if integration.candidate_required {
+                ui.label("Candidate required for install");
+            } else if integration.discovery == crate::IntegrationDiscoveryState::DiscoveredUnmanaged
+            {
+                ui.label("Installation authority is available for this session.");
+            }
             Grid::new(("integration-grid", integration.target.label()))
                 .num_columns(2)
                 .spacing([24.0, 6.0])
@@ -914,6 +1052,36 @@ mod tests {
         snapshot: DesktopSnapshotV1,
     }
 
+    fn fake_mcp_self_test(state: McpSelfTestState) -> McpSelfTestView {
+        use crate::{McpSelfTestCheckId, McpSelfTestCheckView};
+
+        McpSelfTestView {
+            state,
+            checks: McpSelfTestCheckId::ALL.map(|check| McpSelfTestCheckView {
+                check,
+                status: match state {
+                    McpSelfTestState::Running | McpSelfTestState::Cancelled => StatusCode::Missing,
+                    McpSelfTestState::Passed => StatusCode::Ready,
+                    McpSelfTestState::Failed => StatusCode::Invalid,
+                    McpSelfTestState::TimedOut => StatusCode::Blocked,
+                },
+                code: match state {
+                    McpSelfTestState::Running => "check-pending",
+                    McpSelfTestState::Passed => "check-passed",
+                    McpSelfTestState::Failed => "check-failed",
+                    McpSelfTestState::Cancelled => "check-cancelled",
+                    McpSelfTestState::TimedOut => "check-timed-out",
+                },
+                remediation: "none",
+            }),
+            public_tool_count: 12,
+            enabled_provider_count: 0,
+            ready_provider_count: 0,
+            discovered_client_count: 0,
+            registered_client_count: 0,
+        }
+    }
+
     impl DesktopService for FakeService {
         fn snapshot(&mut self) -> DesktopSnapshotV1 {
             self.snapshot.clone()
@@ -921,7 +1089,15 @@ mod tests {
 
         fn execute(&mut self, intent: DesktopIntent) -> DesktopEvent {
             match intent {
-                DesktopIntent::Refresh => DesktopEvent::SnapshotReplaced(self.snapshot.clone()),
+                DesktopIntent::Refresh | DesktopIntent::RefreshIntegrationDiscovery => {
+                    DesktopEvent::SnapshotReplaced(self.snapshot.clone())
+                }
+                DesktopIntent::RunLiteMcpSelfTest | DesktopIntent::PollLiteMcpSelfTest => {
+                    DesktopEvent::McpSelfTestUpdated(fake_mcp_self_test(McpSelfTestState::Passed))
+                }
+                DesktopIntent::CancelLiteMcpSelfTest => DesktopEvent::McpSelfTestUpdated(
+                    fake_mcp_self_test(McpSelfTestState::Cancelled),
+                ),
                 DesktopIntent::PreviewGlobalSettingsPatch(_) => {
                     DesktopEvent::PreviewReady(OperationPreview {
                         token: OperationToken::new(7),
@@ -1039,6 +1215,53 @@ mod tests {
             harness.get_by_label(destination).click_accesskit();
             let _ = harness.run();
             assert!(harness.query_all_by_value(marker).next().is_some());
+        }
+    }
+
+    #[test]
+    fn mcp_self_test_control_reports_bounded_checks() {
+        let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 820.0], 1.0);
+        harness.get_by_label("MCP").click_accesskit();
+        let _ = harness.run();
+        harness
+            .get_by_label("Run Lite MCP self-test")
+            .click_accesskit();
+        let _ = harness.run();
+
+        for value in [
+            "Self-test: Passed",
+            "Exact tools registry",
+            "Offline dispatch",
+            "Tools: 12 · Providers ready: 0/0 · Clients registered: 0/0 discovered",
+            "The default self-test performs no network request and no mutation.",
+        ] {
+            assert!(
+                harness.query_all_by_value(value).next().is_some(),
+                "missing MCP self-test marker: {value}"
+            );
+        }
+    }
+
+    #[test]
+    fn integrations_distinguish_discovery_management_and_authority() {
+        let mut snapshot = sample_snapshot();
+        snapshot.integrations[0].discovery = crate::IntegrationDiscoveryState::DiscoveredUnmanaged;
+        snapshot.integrations[0].candidate_required = true;
+        let mut harness = desktop_harness(snapshot, [1_080.0, 820.0], 1.0);
+        harness.get_by_label("Integrations").click_accesskit();
+        let _ = harness.run();
+
+        let _ = harness.get_by_label("Refresh integration discovery");
+
+        for value in [
+            "Discovered but unmanaged",
+            "Candidate required for install",
+            "Discovery is read-only and does not require a signed release candidate.",
+        ] {
+            assert!(
+                harness.query_all_by_value(value).next().is_some(),
+                "missing integration discovery marker: {value}"
+            );
         }
     }
 
@@ -1218,6 +1441,8 @@ mod tests {
                 config_edit: false,
                 skills_materialize: false,
                 provider_preview: false,
+                mcp_self_test: false,
+                integration_discovery: false,
                 integration_preview: false,
                 apply: false,
             }

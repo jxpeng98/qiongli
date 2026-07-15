@@ -1,6 +1,6 @@
 # Qiongli R3N Alpha.1 Desktop Application Closure Execution Plan
 
-Status: Batch 1 complete; Batch 2 ready
+Status: Batch 2 implementation complete; external client receipts deferred; Batch 3 ready
 
 Date: July 15, 2026
 
@@ -59,22 +59,48 @@ Implemented evidence:
 
 ## Batch 2 — Add MCP Health And Real Discovery
 
-- [ ] Add a bounded asynchronous Lite MCP self-test service using the canonical
+- [x] Add a bounded asynchronous Lite MCP self-test service using the canonical
   registry and dispatcher.
-- [ ] Report initialize, exact tools list, offline dispatch, redacted provider
+- [x] Report initialize, exact tools list, offline dispatch, redacted provider
   readiness, and discovered client-registration state.
-- [ ] Add timeout/cancel handling and keep network/mutation out of the default
+- [x] Add timeout/cancel handling and keep network/mutation out of the default
   test.
-- [ ] Decouple Codex and Claude Code discovery from signed-candidate apply
+- [x] Decouple Codex and Claude Code discovery from signed-candidate apply
   authority in source and packaged sessions.
-- [ ] Distinguish not discovered, discovered unmanaged, managed, drifted, and
+- [x] Distinguish not discovered, discovered unmanaged, managed, drifted, and
   candidate-required states with fixed remediation.
-- [ ] Test isolated adapters and record real-client evidence when supported
-  clients are available.
+- [x] Test isolated adapters with missing, discovered-unmanaged, managed,
+  drifted, conflict, and recovery classifications.
+- [ ] Record release-grade real-client evidence when supported client binaries
+  and their required validators are available.
 
 **Checkpoint:** The MCP button produces actionable evidence, and the
 Integrations page discovers local Codex and Claude Code even in an ordinary
 source session.
+
+Implemented evidence:
+
+- `Run Lite MCP self-test` executes the embedded Marketplace Lite registry and
+  the same `LiteMcpServer` dispatcher as stdio mode on a named worker thread.
+  It checks initialize, exact ordered public tools, and the offline
+  `qiongli_task_plan` route without starting a process or making a network or
+  mutation request.
+- The UI polls typed progress without blocking the render loop, disables
+  duplicate starts, exposes cancellation, and enforces a five-second service
+  deadline. Window/service drop also signals cancellation.
+- Provider readiness and client registration are reported only as bounded
+  counts, fixed statuses, reason codes, and remediation codes.
+- Read-only client discovery recognizes a normal Codex `.codex` config root
+  and the selected/default Claude Code config root without requiring a signed
+  candidate. Candidate or grant sessions remain the only apply authority.
+- Integrations render `client not discovered`, `discovered but unmanaged`,
+  `managed`, `drifted`, `conflict`, `recovery required`, and `candidate required
+  for install` independently rather than collapsing them into `missing`.
+- UI/AccessKit and isolated desktop-service tests cover success, attention,
+  cancellation, timeout, discovery, and authority separation. A real Claude
+  receipt was attempted but the locally advertised executable was an invalid
+  mise shim; the Codex receipt remains unavailable because the required Plugin
+  Creator validator is not installed. Neither is claimed as passed evidence.
 
 ## Batch 3 — Add The Desktop Application Entry
 

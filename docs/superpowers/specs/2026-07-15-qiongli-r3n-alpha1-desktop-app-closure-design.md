@@ -1,6 +1,6 @@
 # Qiongli R3N Alpha.1 Desktop Application Closure Design
 
-Status: implementation in progress; Batch 1 accepted locally
+Status: implementation in progress; Batches 1-2 accepted locally, external client receipts pending
 
 Date: July 15, 2026
 

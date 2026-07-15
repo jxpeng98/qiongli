@@ -830,6 +830,17 @@ profile. Filesystem and config mutations require typed, digest-bound
 confirmation; selected paths and public-setting input are excluded from Debug
 output. Credential-store backends remain outside this batch.
 
+R3N Batch 2 implementation is also complete. MCP now runs a bounded,
+cancellable, five-second offline self-test against the canonical embedded
+registry and `LiteMcpServer` dispatcher. Results cover initialize, the exact
+ordered tools registry, offline task-plan dispatch, redacted provider
+readiness, and local client registration with fixed remediation codes. The
+Integrations view separately reports client discovery, Qiongli management
+state, and candidate-backed install authority, so ordinary source sessions can
+discover Codex and Claude Code without gaining write authority. Release-grade
+real-client receipts remain an external acceptance requirement when usable
+client binaries and validators are available.
+
 ## R1 command contract (retained)
 
 The native executable composes the verified embedded pack and versioned global

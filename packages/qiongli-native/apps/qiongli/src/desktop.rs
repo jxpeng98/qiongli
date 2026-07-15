@@ -1,6 +1,6 @@
 use qiongli_config::{
     ConfigError, ConfigState, EmailAddress, GlobalSettings, ProviderReadiness,
-    RedactedConfigStatus, RedactedProviderStatus,
+    RedactedConfigStatus, RedactedProviderStatus, UnavailableSecretStore,
 };
 use qiongli_content::{
     EmbeddedContent, MaterializationReceiptV1, MaterializationTarget, ProfileId,
@@ -16,21 +16,29 @@ use qiongli_platform::{
     apply_native_release_candidate_local, approve_install_plan, discover_claude_user_with_config,
     discover_codex_user, preview_client_activation,
 };
-use qiongli_runtime::LITE_PUBLIC_TOOL_NAMES;
+use qiongli_runtime::mcp::{LiteMcpServer, MCP_PROTOCOL_VERSION};
+use qiongli_runtime::providers::ProviderAccess;
+use qiongli_runtime::{LITE_PUBLIC_TOOL_NAMES, LiteToolRegistry};
 use qiongli_ui::{
     ActivationPolicy, ArchitectureView, CapabilityView, ConfigView, ContentView,
     DESKTOP_SNAPSHOT_SCHEMA_VERSION, DesktopEvent, DesktopIntent, DesktopService,
     DesktopSnapshotV1, DiagnosticCheckId, DiagnosticCheckView, GlobalSettingsPatch,
-    IntegrationTarget, IntegrationView, McpView, OperatingSystemView, OperationApproval,
-    OperationKind, OperationPreview, OperationToken, PrivateDisplayText, ProductView, ProfileKind,
-    ProfileView, ProviderKind, ProviderReadinessView, ProviderView, PublicSettingChange,
-    RemediationCode, StatusCode, SymbolicLocation,
+    IntegrationDiscoveryState, IntegrationTarget, IntegrationView, McpSelfTestCheckId,
+    McpSelfTestCheckView, McpSelfTestState, McpSelfTestView, McpView, OperatingSystemView,
+    OperationApproval, OperationKind, OperationPreview, OperationToken, PrivateDisplayText,
+    ProductView, ProfileKind, ProfileView, ProviderKind, ProviderReadinessView, ProviderView,
+    PublicSettingChange, RemediationCode, StatusCode, SymbolicLocation,
 };
+use serde_json::json;
 use sha2::{Digest, Sha256};
 
 use std::fmt::{self, Debug, Formatter};
+use std::fs;
 use std::path::{Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, mpsc};
+use std::thread;
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crate::command::{CommandEnvironment, config_store};
 
@@ -38,6 +46,7 @@ use crate::command::{CommandEnvironment, config_store};
 pub struct DesktopLaunchError;
 
 const ACTIVATION_PLAN_TTL_SECONDS: u64 = 600;
+const MCP_SELF_TEST_TIMEOUT: Duration = Duration::from_secs(5);
 const ACTIVATION_APPROVALS: [ApprovalRequirement; 3] = [
     ApprovalRequirement::FilesystemWrite,
     ApprovalRequirement::ClientConfigChange,
@@ -299,6 +308,279 @@ impl Debug for DesktopCandidateSession {
     }
 }
 
+#[derive(Clone, Copy)]
+struct McpSelfTestCounts {
+    enabled_providers: usize,
+    ready_providers: usize,
+    discovered_clients: usize,
+    registered_clients: usize,
+}
+
+struct McpSelfTestInput {
+    server: LiteMcpServer,
+    counts: McpSelfTestCounts,
+}
+
+trait McpSelfTestExecutor: Send + Sync {
+    fn run(&self, input: McpSelfTestInput, cancelled: Arc<AtomicBool>) -> McpSelfTestView;
+}
+
+struct NativeMcpSelfTestExecutor;
+
+impl McpSelfTestExecutor for NativeMcpSelfTestExecutor {
+    fn run(&self, input: McpSelfTestInput, cancelled: Arc<AtomicBool>) -> McpSelfTestView {
+        if cancelled.load(Ordering::Acquire) {
+            return terminal_mcp_self_test(McpSelfTestState::Cancelled, input.counts);
+        }
+
+        let initialize = input.server.handle(json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {}
+        }));
+        let initialize_ready = initialize.as_ref().is_some_and(|response| {
+            response
+                .pointer("/result/protocolVersion")
+                .and_then(|value| value.as_str())
+                == Some(MCP_PROTOCOL_VERSION)
+                && response.pointer("/result/capabilities/tools").is_some()
+        });
+
+        if cancelled.load(Ordering::Acquire) {
+            return terminal_mcp_self_test(McpSelfTestState::Cancelled, input.counts);
+        }
+        let tools = input.server.handle(json!({
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "tools/list",
+            "params": {}
+        }));
+        let tools_ready = tools.as_ref().is_some_and(|response| {
+            response
+                .pointer("/result/tools")
+                .and_then(|value| value.as_array())
+                .is_some_and(|tools| {
+                    tools.len() == LITE_PUBLIC_TOOL_NAMES.len()
+                        && tools
+                            .iter()
+                            .zip(LITE_PUBLIC_TOOL_NAMES)
+                            .all(|(tool, expected)| {
+                                tool.get("name").and_then(|value| value.as_str()) == Some(expected)
+                            })
+                })
+        });
+
+        if cancelled.load(Ordering::Acquire) {
+            return terminal_mcp_self_test(McpSelfTestState::Cancelled, input.counts);
+        }
+        let offline_dispatch = input.server.handle(json!({
+            "jsonrpc": "2.0",
+            "id": 3,
+            "method": "tools/call",
+            "params": {
+                "name": "qiongli_task_plan",
+                "arguments": {
+                    "task_id": "desktop-self-test",
+                    "paper_type": "review",
+                    "topic": "offline self-test"
+                }
+            }
+        }));
+        let offline_ready = offline_dispatch.as_ref().is_some_and(|response| {
+            response.get("result").is_some() && response.get("error").is_none()
+        });
+
+        let provider_check = if input.counts.enabled_providers == 0 {
+            mcp_check(
+                McpSelfTestCheckId::ProviderReadiness,
+                StatusCode::Attention,
+                "no-provider-enabled",
+            )
+        } else if input.counts.ready_providers == input.counts.enabled_providers {
+            mcp_check(
+                McpSelfTestCheckId::ProviderReadiness,
+                StatusCode::Ready,
+                "enabled-providers-ready",
+            )
+        } else {
+            mcp_check(
+                McpSelfTestCheckId::ProviderReadiness,
+                StatusCode::Attention,
+                "provider-configuration-attention",
+            )
+        };
+        let client_check = if input.counts.discovered_clients == 0 {
+            mcp_check(
+                McpSelfTestCheckId::ClientRegistration,
+                StatusCode::Attention,
+                "no-client-discovered",
+            )
+        } else if input.counts.registered_clients == input.counts.discovered_clients {
+            mcp_check(
+                McpSelfTestCheckId::ClientRegistration,
+                StatusCode::Ready,
+                "discovered-clients-registered",
+            )
+        } else {
+            mcp_check(
+                McpSelfTestCheckId::ClientRegistration,
+                StatusCode::Attention,
+                "client-registration-attention",
+            )
+        };
+        let checks = [
+            mcp_check(
+                McpSelfTestCheckId::EmbeddedContract,
+                StatusCode::Ready,
+                "embedded-contract-ready",
+            ),
+            mcp_check(
+                McpSelfTestCheckId::Initialize,
+                if initialize_ready {
+                    StatusCode::Ready
+                } else {
+                    StatusCode::Invalid
+                },
+                if initialize_ready {
+                    "mcp-initialize-ready"
+                } else {
+                    "mcp-initialize-invalid"
+                },
+            ),
+            mcp_check(
+                McpSelfTestCheckId::ToolRegistry,
+                if tools_ready {
+                    StatusCode::Ready
+                } else {
+                    StatusCode::Invalid
+                },
+                if tools_ready {
+                    "exact-tool-registry-ready"
+                } else {
+                    "tool-registry-drifted"
+                },
+            ),
+            mcp_check(
+                McpSelfTestCheckId::OfflineDispatch,
+                if offline_ready {
+                    StatusCode::Ready
+                } else {
+                    StatusCode::Invalid
+                },
+                if offline_ready {
+                    "offline-dispatch-ready"
+                } else {
+                    "offline-dispatch-failed"
+                },
+            ),
+            provider_check,
+            client_check,
+        ];
+        let state = if initialize_ready && tools_ready && offline_ready {
+            McpSelfTestState::Passed
+        } else {
+            McpSelfTestState::Failed
+        };
+        mcp_self_test_view(state, checks, input.counts)
+    }
+}
+
+struct ActiveMcpSelfTest {
+    receiver: mpsc::Receiver<McpSelfTestView>,
+    cancelled: Arc<AtomicBool>,
+    deadline: Instant,
+    running: McpSelfTestView,
+}
+
+fn mcp_check(
+    check: McpSelfTestCheckId,
+    status: StatusCode,
+    code: &'static str,
+) -> McpSelfTestCheckView {
+    McpSelfTestCheckView {
+        check,
+        status,
+        code,
+        remediation: mcp_check_remediation(check, status),
+    }
+}
+
+const fn mcp_check_remediation(check: McpSelfTestCheckId, status: StatusCode) -> &'static str {
+    if matches!(status, StatusCode::Ready | StatusCode::Missing) {
+        return "none";
+    }
+    match check {
+        McpSelfTestCheckId::EmbeddedContract | McpSelfTestCheckId::ToolRegistry => {
+            "reinstall-qiongli"
+        }
+        McpSelfTestCheckId::Initialize => "upgrade-qiongli",
+        McpSelfTestCheckId::OfflineDispatch => "retry-mcp-self-test",
+        McpSelfTestCheckId::ProviderReadiness => "configure-enabled-providers",
+        McpSelfTestCheckId::ClientRegistration => "refresh-integration-discovery",
+    }
+}
+
+fn mcp_self_test_view(
+    state: McpSelfTestState,
+    checks: [McpSelfTestCheckView; 6],
+    counts: McpSelfTestCounts,
+) -> McpSelfTestView {
+    McpSelfTestView {
+        state,
+        checks,
+        public_tool_count: LITE_PUBLIC_TOOL_NAMES.len(),
+        enabled_provider_count: counts.enabled_providers,
+        ready_provider_count: counts.ready_providers,
+        discovered_client_count: counts.discovered_clients,
+        registered_client_count: counts.registered_clients,
+    }
+}
+
+fn pending_mcp_self_test(counts: McpSelfTestCounts) -> McpSelfTestView {
+    mcp_self_test_view(
+        McpSelfTestState::Running,
+        McpSelfTestCheckId::ALL
+            .map(|check| mcp_check(check, StatusCode::Missing, "self-test-check-pending")),
+        counts,
+    )
+}
+
+fn terminal_mcp_self_test(state: McpSelfTestState, counts: McpSelfTestCounts) -> McpSelfTestView {
+    let (status, code) = match state {
+        McpSelfTestState::Cancelled => (StatusCode::Missing, "self-test-cancelled"),
+        McpSelfTestState::TimedOut => (StatusCode::Blocked, "self-test-timed-out"),
+        McpSelfTestState::Failed => (StatusCode::Invalid, "self-test-failed"),
+        McpSelfTestState::Running | McpSelfTestState::Passed => {
+            (StatusCode::Invalid, "self-test-state-invalid")
+        }
+    };
+    let mut view = mcp_self_test_view(
+        state,
+        McpSelfTestCheckId::ALL.map(|check| mcp_check(check, status, code)),
+        counts,
+    );
+    for check in &mut view.checks {
+        check.remediation = if state == McpSelfTestState::Cancelled {
+            "none"
+        } else {
+            "retry-mcp-self-test"
+        };
+    }
+    view
+}
+
+fn contract_failure_mcp_self_test(counts: McpSelfTestCounts) -> McpSelfTestView {
+    let mut view = terminal_mcp_self_test(McpSelfTestState::Failed, counts);
+    view.public_tool_count = 0;
+    view.checks[0] = mcp_check(
+        McpSelfTestCheckId::EmbeddedContract,
+        StatusCode::Invalid,
+        "embedded-contract-invalid",
+    );
+    view
+}
+
 trait FolderPicker {
     fn pick_folder(&mut self) -> Option<PathBuf>;
 }
@@ -319,6 +601,9 @@ struct NativeDesktopService {
     active_operation: Option<PendingDesktopOperation>,
     folder_picker: Box<dyn FolderPicker>,
     selected_skills_target: Option<MaterializationTarget>,
+    mcp_self_test: Option<ActiveMcpSelfTest>,
+    mcp_self_test_executor: Arc<dyn McpSelfTestExecutor>,
+    mcp_self_test_timeout: Duration,
     activation_sessions: Vec<DesktopActivationSession>,
     candidate_sessions: Vec<DesktopCandidateSession>,
 }
@@ -350,6 +635,14 @@ enum PendingDesktopOperation {
     },
 }
 
+impl Drop for NativeDesktopService {
+    fn drop(&mut self) {
+        if let Some(active) = &self.mcp_self_test {
+            active.cancelled.store(true, Ordering::Release);
+        }
+    }
+}
+
 impl PendingDesktopOperation {
     const fn token(&self) -> OperationToken {
         match self {
@@ -375,6 +668,9 @@ impl NativeDesktopService {
             active_operation: None,
             folder_picker: Box::new(NativeFolderPicker),
             selected_skills_target: None,
+            mcp_self_test: None,
+            mcp_self_test_executor: Arc::new(NativeMcpSelfTestExecutor),
+            mcp_self_test_timeout: MCP_SELF_TEST_TIMEOUT,
             activation_sessions,
             candidate_sessions: Vec::new(),
         }
@@ -391,6 +687,9 @@ impl NativeDesktopService {
             active_operation: None,
             folder_picker: Box::new(NativeFolderPicker),
             selected_skills_target: None,
+            mcp_self_test: None,
+            mcp_self_test_executor: Arc::new(NativeMcpSelfTestExecutor),
+            mcp_self_test_timeout: MCP_SELF_TEST_TIMEOUT,
             activation_sessions: Vec::new(),
             candidate_sessions,
         }
@@ -408,9 +707,110 @@ impl NativeDesktopService {
             active_operation: None,
             folder_picker,
             selected_skills_target: None,
+            mcp_self_test: None,
+            mcp_self_test_executor: Arc::new(NativeMcpSelfTestExecutor),
+            mcp_self_test_timeout: MCP_SELF_TEST_TIMEOUT,
             activation_sessions: Vec::new(),
             candidate_sessions: Vec::new(),
         }
+    }
+
+    fn start_mcp_self_test(&mut self) -> DesktopEvent {
+        if let Some(active) = &self.mcp_self_test {
+            return DesktopEvent::McpSelfTestUpdated(active.running.clone());
+        }
+        let snapshot = build_snapshot(&self.environment, &self.content);
+        let counts = mcp_self_test_counts(&snapshot);
+        let registry = match LiteToolRegistry::from_embedded_content(&self.content) {
+            Ok(registry) => registry,
+            Err(_) => {
+                return DesktopEvent::McpSelfTestUpdated(contract_failure_mcp_self_test(counts));
+            }
+        };
+        let server = match config_store(&self.environment).and_then(|store| store.load()) {
+            Ok(loaded) => {
+                let access =
+                    ProviderAccess::from_global_settings(&loaded.settings, &UnavailableSecretStore);
+                LiteMcpServer::production("qiongli", env!("CARGO_PKG_VERSION"), registry, access)
+            }
+            Err(_) => {
+                LiteMcpServer::config_unavailable("qiongli", env!("CARGO_PKG_VERSION"), registry)
+            }
+        };
+        let running = pending_mcp_self_test(counts);
+        let cancelled = Arc::new(AtomicBool::new(false));
+        let worker_cancelled = Arc::clone(&cancelled);
+        let executor = Arc::clone(&self.mcp_self_test_executor);
+        let (sender, receiver) = mpsc::sync_channel(1);
+        let spawn = thread::Builder::new()
+            .name("qiongli-mcp-self-test".to_owned())
+            .spawn(move || {
+                let result = executor.run(McpSelfTestInput { server, counts }, worker_cancelled);
+                let _ = sender.send(result);
+            });
+        if spawn.is_err() {
+            return DesktopEvent::McpSelfTestUpdated(terminal_mcp_self_test(
+                McpSelfTestState::Failed,
+                counts,
+            ));
+        }
+        let now = Instant::now();
+        self.mcp_self_test = Some(ActiveMcpSelfTest {
+            receiver,
+            cancelled,
+            deadline: now.checked_add(self.mcp_self_test_timeout).unwrap_or(now),
+            running: running.clone(),
+        });
+        DesktopEvent::McpSelfTestUpdated(running)
+    }
+
+    fn poll_mcp_self_test(&mut self) -> DesktopEvent {
+        let Some(active) = self.mcp_self_test.as_ref() else {
+            return DesktopEvent::Failed {
+                code: "mcp-self-test-not-running",
+            };
+        };
+        if Instant::now() >= active.deadline {
+            let active = self
+                .mcp_self_test
+                .take()
+                .expect("validated MCP self-test remains active");
+            active.cancelled.store(true, Ordering::Release);
+            return DesktopEvent::McpSelfTestUpdated(terminal_mcp_self_test(
+                McpSelfTestState::TimedOut,
+                mcp_counts_from_view(&active.running),
+            ));
+        }
+        match active.receiver.try_recv() {
+            Ok(result) => {
+                self.mcp_self_test = None;
+                DesktopEvent::McpSelfTestUpdated(result)
+            }
+            Err(mpsc::TryRecvError::Empty) => {
+                DesktopEvent::McpSelfTestUpdated(active.running.clone())
+            }
+            Err(mpsc::TryRecvError::Disconnected) => {
+                let counts = mcp_counts_from_view(&active.running);
+                self.mcp_self_test = None;
+                DesktopEvent::McpSelfTestUpdated(terminal_mcp_self_test(
+                    McpSelfTestState::Failed,
+                    counts,
+                ))
+            }
+        }
+    }
+
+    fn cancel_mcp_self_test(&mut self) -> DesktopEvent {
+        let Some(active) = self.mcp_self_test.take() else {
+            return DesktopEvent::Failed {
+                code: "mcp-self-test-not-running",
+            };
+        };
+        active.cancelled.store(true, Ordering::Release);
+        DesktopEvent::McpSelfTestUpdated(terminal_mcp_self_test(
+            McpSelfTestState::Cancelled,
+            mcp_counts_from_view(&active.running),
+        ))
     }
 
     fn next_operation_token() -> Result<OperationToken, &'static str> {
@@ -870,17 +1270,87 @@ fn lower_hex(bytes: &[u8]) -> String {
     value
 }
 
+fn mcp_self_test_counts(snapshot: &DesktopSnapshotV1) -> McpSelfTestCounts {
+    McpSelfTestCounts {
+        enabled_providers: snapshot
+            .config
+            .providers
+            .iter()
+            .filter(|provider| provider.enabled)
+            .count(),
+        ready_providers: snapshot
+            .config
+            .providers
+            .iter()
+            .filter(|provider| {
+                provider.enabled && provider.readiness == ProviderReadinessView::Ready
+            })
+            .count(),
+        discovered_clients: snapshot
+            .integrations
+            .iter()
+            .filter(|integration| {
+                !matches!(
+                    integration.discovery,
+                    IntegrationDiscoveryState::NotDiscovered
+                        | IntegrationDiscoveryState::Unavailable
+                )
+            })
+            .count(),
+        registered_clients: snapshot
+            .integrations
+            .iter()
+            .filter(|integration| {
+                integration.registration == StatusCode::Ready
+                    && !matches!(
+                        integration.discovery,
+                        IntegrationDiscoveryState::NotDiscovered
+                            | IntegrationDiscoveryState::Unavailable
+                    )
+            })
+            .count(),
+    }
+}
+
+const fn mcp_counts_from_view(view: &McpSelfTestView) -> McpSelfTestCounts {
+    McpSelfTestCounts {
+        enabled_providers: view.enabled_provider_count,
+        ready_providers: view.ready_provider_count,
+        discovered_clients: view.discovered_client_count,
+        registered_clients: view.registered_client_count,
+    }
+}
+
 impl DesktopService for NativeDesktopService {
     fn snapshot(&mut self) -> DesktopSnapshotV1 {
         let mut snapshot = build_snapshot(&self.environment, &self.content);
         snapshot.capabilities.apply =
             !self.activation_sessions.is_empty() || !self.candidate_sessions.is_empty();
+        for integration in &mut snapshot.integrations {
+            let authority_available = self
+                .activation_sessions
+                .iter()
+                .any(|session| session.target == integration.target)
+                || self
+                    .candidate_sessions
+                    .iter()
+                    .any(|session| session.target == integration.target);
+            integration.candidate_required = integration.discovery
+                == IntegrationDiscoveryState::DiscoveredUnmanaged
+                && !authority_available;
+        }
         snapshot
     }
 
     fn execute(&mut self, intent: DesktopIntent) -> DesktopEvent {
         match intent {
             DesktopIntent::Refresh => DesktopEvent::SnapshotReplaced(self.snapshot()),
+            DesktopIntent::RunLiteMcpSelfTest => self.start_mcp_self_test(),
+            DesktopIntent::PollLiteMcpSelfTest => self.poll_mcp_self_test(),
+            DesktopIntent::CancelLiteMcpSelfTest => self.cancel_mcp_self_test(),
+            DesktopIntent::RefreshIntegrationDiscovery => {
+                DesktopEvent::SnapshotReplaced(self.snapshot())
+            }
             DesktopIntent::PreviewGlobalSettingsPatch(patch) => self.preview_global_settings(patch),
             DesktopIntent::SelectSkillsDestination => self.select_skills_destination(),
             DesktopIntent::PreviewSkillsMaterialization { profile } => {
@@ -1111,6 +1581,8 @@ fn build_snapshot(
             config_edit,
             skills_materialize: OperatingSystem::current().is_some(),
             provider_preview: true,
+            mcp_self_test: true,
+            integration_discovery: true,
             integration_preview: true,
             apply: false,
         },
@@ -1249,6 +1721,16 @@ fn codex_snapshot(environment: &CommandEnvironment) -> (IntegrationView, Diagnos
     };
     match discover_codex_user(home) {
         Ok(target) => {
+            let client_discovered = match discover_client_config_root(&home.join(".codex")) {
+                Ok(discovered) => discovered,
+                Err(()) => {
+                    return unavailable_integration(
+                        IntegrationTarget::Codex,
+                        StatusCode::Unavailable,
+                        RemediationCode::InspectCodexLocal,
+                    );
+                }
+            };
             let summary = target.summary();
             let source = match summary.source {
                 CodexSourceState::Missing => StatusCode::Missing,
@@ -1262,7 +1744,13 @@ fn codex_snapshot(environment: &CommandEnvironment) -> (IntegrationView, Diagnos
             integration_result(
                 IntegrationView {
                     target: IntegrationTarget::Codex,
-                    overall: integration_overall(source, marketplace, None, registration),
+                    discovery: integration_discovery(client_discovered, registration),
+                    candidate_required: false,
+                    overall: if client_discovered {
+                        integration_overall(source, marketplace, None, registration)
+                    } else {
+                        StatusCode::Missing
+                    },
                     source,
                     marketplace,
                     direct_package: None,
@@ -1293,8 +1781,18 @@ fn claude_snapshot(environment: &CommandEnvironment) -> (IntegrationView, Diagno
     let config_root = environment
         .claude_config_root()
         .map_or_else(|| home.join(".claude"), ToOwned::to_owned);
-    match discover_claude_user_with_config(home, config_root) {
+    match discover_claude_user_with_config(home, &config_root) {
         Ok(target) => {
+            let client_discovered = match discover_client_config_root(&config_root) {
+                Ok(discovered) => discovered,
+                Err(()) => {
+                    return unavailable_integration(
+                        IntegrationTarget::ClaudeCode,
+                        StatusCode::Unavailable,
+                        RemediationCode::InspectClaudeCodeLocal,
+                    );
+                }
+            };
             let summary = target.summary();
             let source = match summary.source {
                 ClaudeSourceState::Missing => StatusCode::Missing,
@@ -1313,12 +1811,13 @@ fn claude_snapshot(environment: &CommandEnvironment) -> (IntegrationView, Diagno
             integration_result(
                 IntegrationView {
                     target: IntegrationTarget::ClaudeCode,
-                    overall: integration_overall(
-                        source,
-                        marketplace,
-                        Some(direct_package),
-                        registration,
-                    ),
+                    discovery: integration_discovery(client_discovered, registration),
+                    candidate_required: false,
+                    overall: if client_discovered {
+                        integration_overall(source, marketplace, Some(direct_package), registration)
+                    } else {
+                        StatusCode::Missing
+                    },
                     source,
                     marketplace,
                     direct_package: Some(direct_package),
@@ -1358,6 +1857,41 @@ fn integration_result(
     )
 }
 
+fn discover_client_config_root(path: &Path) -> Result<bool, ()> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_symlink() => Err(()),
+        Ok(metadata) if metadata.is_dir() => Ok(true),
+        Ok(_) => Err(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(_) => Err(()),
+    }
+}
+
+const fn integration_discovery(
+    client_discovered: bool,
+    registration: StatusCode,
+) -> IntegrationDiscoveryState {
+    if !client_discovered {
+        return IntegrationDiscoveryState::NotDiscovered;
+    }
+    match registration {
+        StatusCode::Ready => IntegrationDiscoveryState::Managed,
+        StatusCode::Drifted => IntegrationDiscoveryState::Drifted,
+        StatusCode::Conflict => IntegrationDiscoveryState::Conflict,
+        StatusCode::RecoveryRequired => IntegrationDiscoveryState::RecoveryRequired,
+        StatusCode::Missing => IntegrationDiscoveryState::DiscoveredUnmanaged,
+        StatusCode::Attention
+        | StatusCode::Unavailable
+        | StatusCode::Disabled
+        | StatusCode::Blocked
+        | StatusCode::Invalid
+        | StatusCode::FutureSchema
+        | StatusCode::Insecure
+        | StatusCode::Busy
+        | StatusCode::WriteUnsupported => IntegrationDiscoveryState::Unavailable,
+    }
+}
+
 fn unavailable_integration(
     target: IntegrationTarget,
     status: StatusCode,
@@ -1379,6 +1913,8 @@ fn unavailable_integration(
     };
     let view = IntegrationView {
         target,
+        discovery: IntegrationDiscoveryState::Unavailable,
+        candidate_required: false,
         overall: status,
         source: status,
         marketplace: status,
@@ -1593,6 +2129,17 @@ mod tests {
         path: Option<PathBuf>,
     }
 
+    struct CancelAwareExecutor;
+
+    impl McpSelfTestExecutor for CancelAwareExecutor {
+        fn run(&self, input: McpSelfTestInput, cancelled: Arc<AtomicBool>) -> McpSelfTestView {
+            while !cancelled.load(Ordering::Acquire) {
+                thread::yield_now();
+            }
+            terminal_mcp_self_test(McpSelfTestState::Cancelled, input.counts)
+        }
+    }
+
     impl FolderPicker for FakeFolderPicker {
         fn pick_folder(&mut self) -> Option<PathBuf> {
             self.path.take()
@@ -1664,6 +2211,125 @@ mod tests {
                 code: "operation-preview-cancelled",
             }
         );
+    }
+
+    #[test]
+    fn source_session_discovers_clients_without_install_authority() {
+        assert_eq!(
+            integration_discovery(true, StatusCode::Ready),
+            IntegrationDiscoveryState::Managed
+        );
+        assert_eq!(
+            integration_discovery(true, StatusCode::Drifted),
+            IntegrationDiscoveryState::Drifted
+        );
+        assert_eq!(
+            integration_discovery(true, StatusCode::Conflict),
+            IntegrationDiscoveryState::Conflict
+        );
+        assert_eq!(
+            integration_discovery(true, StatusCode::RecoveryRequired),
+            IntegrationDiscoveryState::RecoveryRequired
+        );
+        let root = isolated_root("source-discovery");
+        let home = root.join("home");
+        let claude_config = home.join(".claude");
+        fs::create_dir_all(&home).unwrap();
+        let environment =
+            CommandEnvironment::with_paths(None, Some(home.clone()), Some(claude_config.clone()));
+        let content = crate::embedded_content().unwrap();
+        let mut service = NativeDesktopService::new(environment.clone(), content, Vec::new());
+
+        let missing = service.snapshot();
+        assert!(missing.integrations.iter().all(|integration| {
+            integration.discovery == IntegrationDiscoveryState::NotDiscovered
+                && !integration.candidate_required
+        }));
+
+        fs::create_dir_all(home.join(".codex")).unwrap();
+        fs::create_dir_all(&claude_config).unwrap();
+        let discovered = service.snapshot();
+        assert!(discovered.integrations.iter().all(|integration| {
+            integration.discovery == IntegrationDiscoveryState::DiscoveredUnmanaged
+                && integration.candidate_required
+                && integration.registration == StatusCode::Missing
+        }));
+        assert!(!discovered.capabilities.apply);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn lite_mcp_self_test_uses_exact_registry_and_offline_dispatch() {
+        let root = isolated_root("mcp-self-test");
+        let home = root.join("home");
+        fs::create_dir_all(home.join(".codex")).unwrap();
+        fs::create_dir_all(home.join(".claude")).unwrap();
+        let environment = CommandEnvironment::with_paths(None, Some(home), None);
+        let content = crate::embedded_content().unwrap();
+        let mut service = NativeDesktopService::new(environment, content, Vec::new());
+
+        let DesktopEvent::McpSelfTestUpdated(started) =
+            service.execute(DesktopIntent::RunLiteMcpSelfTest)
+        else {
+            panic!("self-test must return bounded progress");
+        };
+        assert_eq!(started.state, McpSelfTestState::Running);
+        let completed = (0..1_000)
+            .find_map(|_| {
+                let DesktopEvent::McpSelfTestUpdated(view) =
+                    service.execute(DesktopIntent::PollLiteMcpSelfTest)
+                else {
+                    panic!("self-test poll must return typed progress");
+                };
+                if view.state == McpSelfTestState::Running {
+                    thread::sleep(Duration::from_millis(1));
+                    None
+                } else {
+                    Some(view)
+                }
+            })
+            .expect("bounded self-test must complete");
+        assert_eq!(completed.state, McpSelfTestState::Passed);
+        assert!(completed.validate());
+        assert_eq!(completed.public_tool_count, LITE_PUBLIC_TOOL_NAMES.len());
+        assert!(
+            completed.checks[..4]
+                .iter()
+                .all(|check| check.status == StatusCode::Ready)
+        );
+        assert_eq!(completed.discovered_client_count, 2);
+        assert_eq!(completed.registered_client_count, 0);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn lite_mcp_self_test_supports_cancel_and_fixed_timeout() {
+        let root = isolated_root("mcp-self-test-timeout");
+        let home = root.join("home");
+        fs::create_dir_all(&home).unwrap();
+        let environment = CommandEnvironment::with_paths(None, Some(home), None);
+        let content = crate::embedded_content().unwrap();
+        let mut service = NativeDesktopService::new(environment, content, Vec::new());
+        service.mcp_self_test_executor = Arc::new(CancelAwareExecutor);
+
+        let _ = service.execute(DesktopIntent::RunLiteMcpSelfTest);
+        let DesktopEvent::McpSelfTestUpdated(cancelled) =
+            service.execute(DesktopIntent::CancelLiteMcpSelfTest)
+        else {
+            panic!("cancellation must return a typed result");
+        };
+        assert_eq!(cancelled.state, McpSelfTestState::Cancelled);
+
+        service.mcp_self_test_timeout = Duration::ZERO;
+        let _ = service.execute(DesktopIntent::RunLiteMcpSelfTest);
+        let DesktopEvent::McpSelfTestUpdated(timed_out) =
+            service.execute(DesktopIntent::PollLiteMcpSelfTest)
+        else {
+            panic!("timeout must return a typed result");
+        };
+        assert_eq!(timed_out.state, McpSelfTestState::TimedOut);
+        assert!(timed_out.validate());
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

@@ -7,6 +7,8 @@ const MAX_DISPLAY_TEXT_BYTES: usize = 128;
 const MAX_CONTENT_ENTRIES: usize = 100_000;
 const MAX_PUBLIC_TOOLS: usize = 256;
 const MAX_RESOURCE_KINDS: usize = 32;
+const MAX_PROVIDERS: usize = 5;
+const MAX_INTEGRATIONS: usize = 2;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DesktopSection {
@@ -380,6 +382,123 @@ pub struct McpView {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum McpSelfTestState {
+    Running,
+    Passed,
+    Failed,
+    Cancelled,
+    TimedOut,
+}
+
+impl McpSelfTestState {
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Running => "Running",
+            Self::Passed => "Passed",
+            Self::Failed => "Failed",
+            Self::Cancelled => "Cancelled",
+            Self::TimedOut => "Timed out",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum McpSelfTestCheckId {
+    EmbeddedContract,
+    Initialize,
+    ToolRegistry,
+    OfflineDispatch,
+    ProviderReadiness,
+    ClientRegistration,
+}
+
+impl McpSelfTestCheckId {
+    pub const ALL: [Self; 6] = [
+        Self::EmbeddedContract,
+        Self::Initialize,
+        Self::ToolRegistry,
+        Self::OfflineDispatch,
+        Self::ProviderReadiness,
+        Self::ClientRegistration,
+    ];
+
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::EmbeddedContract => "Embedded contract",
+            Self::Initialize => "MCP initialize",
+            Self::ToolRegistry => "Exact tools registry",
+            Self::OfflineDispatch => "Offline dispatch",
+            Self::ProviderReadiness => "Provider readiness",
+            Self::ClientRegistration => "Client registration",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct McpSelfTestCheckView {
+    pub check: McpSelfTestCheckId,
+    pub status: StatusCode,
+    pub code: &'static str,
+    pub remediation: &'static str,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct McpSelfTestView {
+    pub state: McpSelfTestState,
+    pub checks: [McpSelfTestCheckView; 6],
+    pub public_tool_count: usize,
+    pub enabled_provider_count: usize,
+    pub ready_provider_count: usize,
+    pub discovered_client_count: usize,
+    pub registered_client_count: usize,
+}
+
+impl McpSelfTestView {
+    #[must_use]
+    pub fn validate(&self) -> bool {
+        let state_valid = match self.state {
+            McpSelfTestState::Running | McpSelfTestState::Cancelled => self
+                .checks
+                .iter()
+                .all(|check| check.status == StatusCode::Missing),
+            McpSelfTestState::Passed => {
+                self.checks[..4]
+                    .iter()
+                    .all(|check| check.status == StatusCode::Ready)
+                    && self.checks[4..].iter().all(|check| {
+                        matches!(check.status, StatusCode::Ready | StatusCode::Attention)
+                    })
+            }
+            McpSelfTestState::Failed => self.checks[..4]
+                .iter()
+                .any(|check| check.status != StatusCode::Ready),
+            McpSelfTestState::TimedOut => self
+                .checks
+                .iter()
+                .all(|check| check.status == StatusCode::Blocked),
+        };
+        state_valid
+            && self.checks.map(|check| check.check) == McpSelfTestCheckId::ALL
+            && self.public_tool_count <= MAX_PUBLIC_TOOLS
+            && self.enabled_provider_count <= MAX_PROVIDERS
+            && self.ready_provider_count <= self.enabled_provider_count
+            && self.discovered_client_count <= MAX_INTEGRATIONS
+            && self.registered_client_count <= self.discovered_client_count
+            && self.checks.iter().all(|check| {
+                [check.code, check.remediation].iter().all(|value| {
+                    !value.is_empty()
+                        && value.len() <= MAX_DISPLAY_TEXT_BYTES
+                        && value.bytes().all(|byte| {
+                            byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-'
+                        })
+                })
+            })
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ProviderView {
     pub provider: ProviderKind,
     pub enabled: bool,
@@ -399,8 +518,36 @@ pub struct ConfigView {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IntegrationDiscoveryState {
+    NotDiscovered,
+    DiscoveredUnmanaged,
+    Managed,
+    Drifted,
+    Conflict,
+    RecoveryRequired,
+    Unavailable,
+}
+
+impl IntegrationDiscoveryState {
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::NotDiscovered => "Client not discovered",
+            Self::DiscoveredUnmanaged => "Discovered but unmanaged",
+            Self::Managed => "Managed",
+            Self::Drifted => "Managed installation drifted",
+            Self::Conflict => "Conflicting installation",
+            Self::RecoveryRequired => "Recovery required",
+            Self::Unavailable => "Discovery unavailable",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct IntegrationView {
     pub target: IntegrationTarget,
+    pub discovery: IntegrationDiscoveryState,
+    pub candidate_required: bool,
     pub overall: StatusCode,
     pub source: StatusCode,
     pub marketplace: StatusCode,
@@ -424,6 +571,8 @@ pub struct CapabilityView {
     pub config_edit: bool,
     pub skills_materialize: bool,
     pub provider_preview: bool,
+    pub mcp_self_test: bool,
+    pub integration_discovery: bool,
     pub integration_preview: bool,
     pub apply: bool,
 }
@@ -639,6 +788,10 @@ impl OperationKind {
 
 pub enum DesktopIntent {
     Refresh,
+    RunLiteMcpSelfTest,
+    PollLiteMcpSelfTest,
+    CancelLiteMcpSelfTest,
+    RefreshIntegrationDiscovery,
     PreviewGlobalSettingsPatch(GlobalSettingsPatch),
     SelectSkillsDestination,
     PreviewSkillsMaterialization {
@@ -710,6 +863,7 @@ fn valid_lower_sha256(value: &str) -> bool {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DesktopEvent {
     SnapshotReplaced(DesktopSnapshotV1),
+    McpSelfTestUpdated(McpSelfTestView),
     SkillsDestinationSelected { display_path: PrivateDisplayText },
     ValidationFailed { code: &'static str },
     PreviewReady(OperationPreview),
@@ -775,6 +929,8 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
         integrations: [
             IntegrationView {
                 target: IntegrationTarget::Codex,
+                discovery: IntegrationDiscoveryState::NotDiscovered,
+                candidate_required: false,
                 overall: StatusCode::Missing,
                 source: StatusCode::Missing,
                 marketplace: StatusCode::Missing,
@@ -785,6 +941,8 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
             },
             IntegrationView {
                 target: IntegrationTarget::ClaudeCode,
+                discovery: IntegrationDiscoveryState::NotDiscovered,
+                candidate_required: false,
                 overall: StatusCode::Missing,
                 source: StatusCode::Missing,
                 marketplace: StatusCode::Missing,
@@ -831,6 +989,8 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
             config_edit: true,
             skills_materialize: true,
             provider_preview: true,
+            mcp_self_test: true,
+            integration_discovery: true,
             integration_preview: true,
             apply: false,
         },
@@ -852,6 +1012,23 @@ mod tests {
             approvals_required: OperationApproval::ACTIVATION.to_vec(),
             can_confirm: true,
             blocked_reason: None,
+        }
+    }
+
+    fn valid_mcp_self_test() -> McpSelfTestView {
+        McpSelfTestView {
+            state: McpSelfTestState::Passed,
+            checks: McpSelfTestCheckId::ALL.map(|check| McpSelfTestCheckView {
+                check,
+                status: StatusCode::Ready,
+                code: "check-ready",
+                remediation: "none",
+            }),
+            public_tool_count: 12,
+            enabled_provider_count: 2,
+            ready_provider_count: 2,
+            discovered_client_count: 1,
+            registered_client_count: 1,
         }
     }
 
@@ -879,6 +1056,23 @@ mod tests {
             snapshot.validate().map_err(SnapshotValidationError::code),
             Err("product-version-invalid")
         );
+    }
+
+    #[test]
+    fn mcp_self_test_rejects_reordered_or_unbounded_results() {
+        let mut view = valid_mcp_self_test();
+        assert!(view.validate());
+
+        view.checks.swap(0, 1);
+        assert!(!view.validate());
+
+        let mut view = valid_mcp_self_test();
+        view.registered_client_count = 2;
+        assert!(!view.validate());
+
+        let mut view = valid_mcp_self_test();
+        view.checks[0].code = "NOT_CANONICAL";
+        assert!(!view.validate());
     }
 
     #[test]
