@@ -228,6 +228,8 @@ remain Batch 5 gates.
   - [x] Complete the macOS packaged settings-persistence, Skills lifecycle,
     MCP self-test, source-discovery, automated Tab-order, and keyboard-activation
     journey.
+  - [x] Add exact-package macOS receipt/manifest verification, isolated
+    empty-`PATH` startup, and request-only LaunchServices preflight evidence.
   - [ ] Complete manual macOS scale and VoiceOver acceptance.
   - [ ] Complete the corresponding Windows and Linux interactive journeys.
 - [ ] Run real Codex and Claude Code discovery plus candidate-backed install,
@@ -285,6 +287,18 @@ Current non-publishing Batch 5 evidence:
   VoiceOver, contrast, or human keyboard acceptance.
 - The exact non-publishing evidence is recorded in
   `tooling/release/acceptance/v2.0.0-alpha.1-r3n-macos-packaged-ui.md`.
+- Implementation commits `9c95ae67` and `1ae1fcaa` add a reusable macOS
+  acceptance entry point, invoke it in the exact package job, and distinguish
+  a LaunchServices request from process or displayed-window observation.
+  Exact Native CI run `29438832633` passed all nine jobs at branch head
+  `1ae1fcaa`; macOS artifact `8352644966` includes the path-redacted automated
+  receipt for package source `62edf98b`, and the same downloaded artifact
+  returned `request-accepted` through the optional local LaunchServices path.
+  The bound evidence is
+  `tooling/release/acceptance/v2.0.0-alpha.1-r3n-macos-preflight.md`.
+- This closes the repeatable macOS automated-preflight mechanism only. It does
+  not close clean-machine window observation, manual scale/VoiceOver/contrast,
+  production signing, or the deferred Windows/Linux interactive gates.
 
 ## Fast Validation Loop
 

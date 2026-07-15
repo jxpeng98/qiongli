@@ -1108,6 +1108,18 @@ superseded head is not reported as current-head evidence.
     `publication_allowed: false`. Final production-signed regeneration,
     remaining macOS gates, deferred Windows/Linux interactive evidence, and
     explicit publication authorization remain open.
+26. R3N Batch 5 now has a repeatable macOS exact-package preflight at
+    implementation head `1ae1fcaa`. Native CI run `29438832633` passed all
+    nine jobs and macOS artifact `8352644966` contains a path-redacted receipt
+    that binds package source `62edf98b`, archive and manifest digests, bundle
+    identity, extracted layout, and isolated empty-`PATH` startup. The same
+    downloaded artifact returned `request-accepted` through the optional
+    LaunchServices path; the receipt still records `displayed_window:
+    not-observed`, `publication_allowed: false`, and all human, clean-machine,
+    and production-signing gates as open. Exact evidence is
+    `tooling/release/acceptance/v2.0.0-alpha.1-r3n-macos-preflight.md`.
+    Windows/Linux interactive acceptance remains explicitly deferred rather
+    than inferred from their successful automated CI jobs.
 
 ## Program Done
 
