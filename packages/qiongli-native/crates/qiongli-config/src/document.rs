@@ -462,7 +462,7 @@ fn exact_object<'a>(
     Ok(object)
 }
 
-fn parse_unique_json(bytes: &[u8]) -> Result<Value, ConfigError> {
+pub(crate) fn parse_unique_json(bytes: &[u8]) -> Result<Value, ConfigError> {
     let mut deserializer = serde_json::Deserializer::from_slice(bytes);
     let UniqueValue(value) =
         UniqueValue::deserialize(&mut deserializer).map_err(|_| ConfigError::InvalidDocument)?;

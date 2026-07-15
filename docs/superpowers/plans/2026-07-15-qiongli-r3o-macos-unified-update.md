@@ -1,6 +1,6 @@
 # Qiongli R3O macOS Unified Update Execution Plan
 
-Status: Batch 1 accepted; Batch 2 next
+Status: Batch 2A implemented and locally accepted; Batch 2B next
 
 Date: July 15, 2026
 
@@ -65,19 +65,52 @@ Implemented evidence:
   runtime, so later R3O batches retain the focused loop until checkpoint or
   publication gates.
 
-## Batch 2 — Persist Preference And Download Exact Bytes
+## Batch 2A — Persist Preference And Check Signed Metadata
 
-- [ ] Add a versioned v2 update state document with selected stream, last
+- [x] Add a versioned v2 update state document with selected stream, last
   accepted generation, last-known-good identity, and active transaction.
-- [ ] Default prerelease builds to Beta and stable builds to Stable; make a
+- [x] Default prerelease builds to Beta and stable builds to Stable; make a
   stream change an expected-revision transaction.
-- [ ] Add `qiongli update status`, `check`, and stream selection with stable
-  JSON and human output.
-- [ ] Implement bounded HTTPS fetch with timeouts, response-size limits,
-  redirect revalidation, allowlisted hosts, cancellation, and no persistent
-  device identifier.
+- [x] Add `qiongli update status`, `check`, and stream selection with stable
+  JSON output. Human-readable control remains in the typed desktop UI rather
+  than adding a second CLI output contract.
+- [x] Fetch only the fixed Qiongli-owned Stable/Beta manifest endpoints with
+  connect/request timeouts, identity encoding, no redirects, and a strict
+  response-size limit; do not create a persistent device identifier.
+- [x] Verify the fetched canonical signature, release authority, generation,
+  stream, exact macOS arm64 identity, Team ID, version, archive host, size, and
+  digests without writing state or starting a download.
+- [x] Cover read-only status, revision-safe channel changes, signed check,
+  missing release authority, active transactions, and strict CLI parsing with
+  focused Rust tests.
+
+**Checkpoint:** CLI can truthfully report state and identify one verified
+current or newer macOS update without downloading bytes or changing the
+installed application.
+
+Implemented evidence:
+
+- Update state is independent from global settings under the v2 config root,
+  uses owner-private atomic Unix persistence, and rejects legacy versions,
+  duplicate JSON keys, unknown fields, invalid digests, and stale revisions.
+- Prerelease builds select Beta by default; only Stable and Beta are accepted,
+  and stream mutation requires the caller's observed revision.
+- `update check` has no caller-supplied URL. It uses fixed Qiongli endpoints,
+  the embedded release authority and macOS Team ID, and returns
+  `download: not-started` and `install: not-started` after verification.
+- Focused config, platform, CLI, parser, and Clippy checks pass locally with
+  warnings denied. Cross-compiling the config library for Windows also passes;
+  full Windows cross-Clippy remains a target-toolchain limitation on macOS and
+  continues to run in target-native CI.
+
+## Batch 2B — Download Exact Bytes Into Private Staging
+
+- [ ] Implement bounded HTTPS archive fetch with timeouts, response-size
+  limits, redirect revalidation, and the verified allowlisted host policy.
 - [ ] Stream the archive into owner-private staging while checking exact size
   and SHA-256; remove incomplete or mismatched bytes.
+- [ ] Add explicit cancellation and concurrency semantics without persisting a
+  device identifier or making the staged archive executable.
 - [ ] Test with an isolated fixture server plus offline, redirect, timeout,
   oversized, corrupt, stale-generation, and concurrent-check cases.
 

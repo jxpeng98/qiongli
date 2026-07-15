@@ -12,6 +12,7 @@ description = "Versioned native Qiongli state and secret-reference boundary"
 [dependencies]
 qiongli-content = { path = "../qiongli-content" }
 rustix.workspace = true
+semver.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 zeroize.workspace = true

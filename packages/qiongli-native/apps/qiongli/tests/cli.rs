@@ -7,6 +7,8 @@ use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[cfg(unix)]
+use qiongli_config::UPDATE_STATE_FILE;
 use qiongli_config::{
     EmailAddress, GLOBAL_SETTINGS_FILE, GlobalSettings, GlobalSettingsStore, resolve_config_root,
 };
@@ -165,6 +167,66 @@ fn version_uses_the_workspace_package_version() {
         format!("qiongli {}\n", env!("CARGO_PKG_VERSION"))
     );
     assert!(output.stderr.is_empty());
+}
+
+#[cfg(unix)]
+#[test]
+fn update_status_and_channel_use_independent_revision_safe_state_without_path() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let fixture = Fixture::new("update-state");
+    let executable = Path::new(env!("CARGO_BIN_EXE_qiongli"));
+    let run_update = |args: &[&str]| {
+        let mut command = fixture_command(executable, &fixture);
+        command.env("PATH", "").args(args);
+        command
+            .output()
+            .expect("configured update command should start without PATH")
+    };
+
+    let status = run_update(&["update", "status"]);
+    assert!(status.status.success(), "{}", public_output(&status));
+    let status_json = parse_json(&status);
+    assert_eq!(status_json["command"], "update-status");
+    assert_eq!(status_json["revision"], 0);
+    assert_eq!(status_json["selected_stream"], "beta");
+    assert!(!fixture.config_root.exists());
+
+    let changed = run_update(&[
+        "update",
+        "channel",
+        "--expected-revision",
+        "0",
+        "--stream",
+        "stable",
+    ]);
+    assert!(changed.status.success(), "{}", public_output(&changed));
+    let changed_json = parse_json(&changed);
+    assert_eq!(changed_json["command"], "update-channel");
+    assert_eq!(changed_json["revision"], 1);
+    assert_eq!(changed_json["selected_stream"], "stable");
+
+    let update_state = fixture.state_root().join(UPDATE_STATE_FILE);
+    assert!(update_state.is_file());
+    assert_eq!(
+        fs::metadata(&update_state).unwrap().permissions().mode() & 0o777,
+        0o600
+    );
+    assert!(!fixture.settings_path().exists());
+
+    let stale = run_update(&[
+        "update",
+        "channel",
+        "--expected-revision",
+        "0",
+        "--stream",
+        "beta",
+    ]);
+    assert_eq!(stale.status.code(), Some(1));
+    assert_eq!(
+        String::from_utf8_lossy(&stale.stderr),
+        "error: revision-conflict\n"
+    );
 }
 
 #[test]

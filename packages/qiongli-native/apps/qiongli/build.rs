@@ -16,6 +16,8 @@ const RELEASE_AUTHORITY_FILE: &str = "qiongli-native-release-authority.json";
 const RELEASE_AUTHORITY_ENV: &str = "QIONGLI_NATIVE_RELEASE_AUTHORITY_FILE";
 const SOURCE_COMMIT_FILE: &str = "qiongli-native-source-commit.txt";
 const SOURCE_COMMIT_ENV: &str = "QIONGLI_NATIVE_SOURCE_COMMIT";
+const MACOS_TEAM_ID_FILE: &str = "qiongli-macos-team-id.txt";
+const MACOS_TEAM_ID_ENV: &str = "QIONGLI_MACOS_EXPECTED_TEAM_ID";
 
 fn main() {
     if let Err(error) = build_embedded_assets() {
@@ -27,6 +29,39 @@ fn build_embedded_assets() -> Result<(), Box<dyn Error>> {
     build_embedded_pack()?;
     build_embedded_release_authority()?;
     build_embedded_source_commit()?;
+    build_embedded_macos_team_id()?;
+    Ok(())
+}
+
+fn build_embedded_macos_team_id() -> Result<(), Box<dyn Error>> {
+    println!("cargo:rerun-if-env-changed={MACOS_TEAM_ID_ENV}");
+    let team_id = match env::var_os(MACOS_TEAM_ID_ENV) {
+        None => String::new(),
+        Some(value) => {
+            let value = value.to_str().ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "macOS Team ID is not valid UTF-8",
+                )
+            })?;
+            if value.len() != 10
+                || !value
+                    .bytes()
+                    .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit())
+            {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "macOS Team ID must be 10 uppercase ASCII letters or digits",
+                )
+                .into());
+            }
+            value.to_string()
+        }
+    };
+    let out_dir = env::var_os("OUT_DIR")
+        .map(PathBuf::from)
+        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "Cargo OUT_DIR is unavailable"))?;
+    fs::write(out_dir.join(MACOS_TEAM_ID_FILE), team_id.as_bytes())?;
     Ok(())
 }
 

@@ -5,6 +5,7 @@ mod desktop;
 mod desktop_contract;
 mod mcp;
 mod native_cli;
+mod update_cli;
 
 pub use application::{
     DesktopApplicationAssetError, DesktopApplicationError, desktop_application_icon_png,
@@ -43,6 +44,9 @@ const EMBEDDED_SOURCE_COMMIT: &str = include_str!(concat!(
     "/qiongli-native-source-commit.txt"
 ));
 
+const EMBEDDED_MACOS_TEAM_ID: &str =
+    include_str!(concat!(env!("OUT_DIR"), "/qiongli-macos-team-id.txt"));
+
 pub fn embedded_content() -> Result<EmbeddedContent, ResourcePackLoaderError> {
     EmbeddedContent::load(EMBEDDED_PACK_BYTES, EMBEDDED_PACK_SHA256)
 }
@@ -64,5 +68,14 @@ pub const fn embedded_source_commit() -> Option<&'static str> {
         None
     } else {
         Some(EMBEDDED_SOURCE_COMMIT)
+    }
+}
+
+#[must_use]
+pub const fn embedded_macos_team_id() -> Option<&'static str> {
+    if EMBEDDED_MACOS_TEAM_ID.is_empty() {
+        None
+    } else {
+        Some(EMBEDDED_MACOS_TEAM_ID)
     }
 }

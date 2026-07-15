@@ -129,9 +129,9 @@ pub use native_release::{
     native_release_envelope_signing_bytes,
 };
 pub use native_update::{
-    MAX_NATIVE_UPDATE_MANIFEST_BYTES, NATIVE_UPDATE_MANIFEST_SCHEMA_VERSION, NativeUpdateError,
-    NativeUpdateManifestV1, NativeUpdateStream, NativeUpdateVerificationContext,
-    SignedNativeUpdateManifestV1, VerifiedNativeUpdateManifest,
+    MAX_NATIVE_UPDATE_MANIFEST_BYTES, NATIVE_UPDATE_MANIFEST_SCHEMA_VERSION,
+    NativeUpdateDisposition, NativeUpdateError, NativeUpdateManifestV1, NativeUpdateStream,
+    NativeUpdateVerificationContext, SignedNativeUpdateManifestV1, VerifiedNativeUpdateManifest,
     native_update_manifest_signing_bytes,
 };
 pub use plan::{

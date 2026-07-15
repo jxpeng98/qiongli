@@ -3,7 +3,8 @@ use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 
 use qiongli_config::{
-    ConfigError, ConfigState, GlobalSettingsStore, RedactedConfigStatus, resolve_config_root,
+    ConfigError, ConfigState, GlobalSettingsStore, RedactedConfigStatus, UpdateStateStore,
+    UpdateStreamPreference, resolve_config_root,
 };
 use qiongli_content::{
     EmbeddedContent, MaterializationAuthorization, ProfileId, ProfileProjection,
@@ -26,14 +27,17 @@ use crate::candidate_cli::{CandidateCliCommand, CandidateReceiptOptions, Candida
 use crate::native_cli::{
     NativeCliCommand, NativeClientTarget, NativeReceiptOptions, NativeReleaseOptions,
 };
+use crate::update_cli::UpdateCliCommand;
 
 const OUTPUT_SCHEMA_VERSION: u32 = 1;
 
-const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli\n  qiongli --version\n  qiongli --help\n  qiongli ui [--startup-check]\n  qiongli ui --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli install status\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate <preview|apply|verify|remove> [options]\n  qiongli install native <preview|apply|verify|remove> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
+const USAGE: &str = "Qiongli native platform\n\nUsage:\n  qiongli\n  qiongli --version\n  qiongli --help\n  qiongli ui [--startup-check]\n  qiongli ui --candidate <candidate.json> --archive <archive> --release-notes <notes.md> --target <codex|claude>\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli update status\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli install status\n  qiongli install codex status\n  qiongli install claude status\n  qiongli install candidate <preview|apply|verify|remove> [options]\n  qiongli install native <preview|apply|verify|remove> [options]\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli status\n  qiongli doctor\n\nProfiles:\n  skill-only | marketplace-lite | lite | full\n\nOptions:\n  -h, --help  Print help\n  --version   Print the native product version\n";
 
 const CONTENT_USAGE: &str = "Qiongli embedded content\n\nUsage:\n  qiongli content list\n  qiongli content materialize --profile <profile> --target <absolute-path>\n  qiongli content --help\n";
 
 const CONFIG_USAGE: &str = "Qiongli global config\n\nUsage:\n  qiongli config show\n  qiongli config set --expected-revision <revision> --default-profile <profile>\n  qiongli config --help\n";
+
+const UPDATE_USAGE: &str = "Qiongli native update\n\nUsage:\n  qiongli update status\n  qiongli update channel --expected-revision <revision> --stream <stable|beta>\n  qiongli update check\n  qiongli update --help\n";
 
 const MCP_USAGE: &str = "Qiongli native MCP\n\nUsage:\n  qiongli mcp serve --profile <lite|marketplace-lite> --transport stdio\n  qiongli mcp --help\n";
 
@@ -240,6 +244,26 @@ pub(crate) fn prepare_action_with_release_authority(
             expected_revision,
             default_profile,
         } => config_set(environment, expected_revision, default_profile),
+        Command::UpdateHelp => CliOutput::success_text(UPDATE_USAGE),
+        Command::Update(command) => {
+            let store = match update_store(environment) {
+                Ok(store) => store,
+                Err(error) => {
+                    return ProductAction::Output(CliOutput::operation_failure(
+                        error.reason_code(),
+                    ));
+                }
+            };
+            match crate::update_cli::execute(
+                command,
+                &store,
+                authority,
+                crate::embedded_macos_team_id(),
+            ) {
+                Ok(output) => json_output(&output, 0),
+                Err(reason_code) => CliOutput::operation_failure(reason_code),
+            }
+        }
         Command::InstallHelp => CliOutput::success_text(INSTALL_USAGE),
         Command::InstallStatus => install_status(authority),
         Command::InstallCodexStatus => install_codex_status(environment),
@@ -289,6 +313,8 @@ enum Command {
         expected_revision: u64,
         default_profile: ProfileId,
     },
+    UpdateHelp,
+    Update(UpdateCliCommand),
     InstallHelp,
     InstallStatus,
     InstallCodexStatus,
@@ -321,6 +347,7 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Command, Usage
         "--version" if args.len() == 1 => Ok(Command::Version),
         "content" => parse_content_args(&args[1..]),
         "config" => parse_config_args(&args[1..]),
+        "update" => parse_update_args(&args[1..]),
         "install" => parse_install_args(&args[1..]),
         "mcp" => parse_mcp_args(&args[1..]),
         "ui" if args.len() == 1 => Ok(Command::Ui),
@@ -944,6 +971,59 @@ fn parse_config_set_options(args: &[OsString]) -> Result<Command, UsageError> {
     })
 }
 
+fn parse_update_args(args: &[OsString]) -> Result<Command, UsageError> {
+    let Some(subcommand) = args.first().and_then(|value| value.to_str()) else {
+        return Err(update_usage_error("an update subcommand is required"));
+    };
+    match subcommand {
+        "--help" if args.len() == 1 => Ok(Command::UpdateHelp),
+        "status" if args.len() == 1 => Ok(Command::Update(UpdateCliCommand::Status)),
+        "check" if args.len() == 1 => Ok(Command::Update(UpdateCliCommand::Check)),
+        "channel" => parse_update_channel_options(&args[1..]),
+        "--help" | "status" | "check" => Err(update_usage_error("unexpected extra argument")),
+        _ => Err(update_usage_error("unknown update subcommand")),
+    }
+}
+
+fn parse_update_channel_options(args: &[OsString]) -> Result<Command, UsageError> {
+    let mut expected_revision = None;
+    let mut stream = None;
+    let mut index = 0;
+    while index < args.len() {
+        let option = args[index]
+            .to_str()
+            .ok_or_else(|| update_usage_error("update option is not valid UTF-8"))?;
+        let value = args
+            .get(index + 1)
+            .ok_or_else(|| update_usage_error("update option value is required"))?;
+        match option {
+            "--expected-revision" if expected_revision.is_none() => {
+                expected_revision = Some(
+                    parse_revision(value)
+                        .ok_or_else(|| update_usage_error("expected revision is invalid"))?,
+                );
+            }
+            "--stream" if stream.is_none() => {
+                stream = Some(match value.to_str() {
+                    Some("stable") => UpdateStreamPreference::Stable,
+                    Some("beta") => UpdateStreamPreference::Beta,
+                    _ => return Err(update_usage_error("update stream is invalid")),
+                });
+            }
+            "--expected-revision" | "--stream" => {
+                return Err(update_usage_error("duplicate update option"));
+            }
+            _ => return Err(update_usage_error("unknown update option")),
+        }
+        index += 2;
+    }
+    Ok(Command::Update(UpdateCliCommand::Channel {
+        expected_revision: expected_revision
+            .ok_or_else(|| update_usage_error("expected revision is required"))?,
+        stream: stream.ok_or_else(|| update_usage_error("update stream is required"))?,
+    }))
+}
+
 fn parse_profile(value: &OsStr) -> Option<ProfileId> {
     match value.to_str()? {
         "skill-only" => Some(ProfileId::SkillOnly),
@@ -979,6 +1059,13 @@ const fn config_usage_error(message: &'static str) -> UsageError {
     UsageError {
         message,
         usage: CONFIG_USAGE,
+    }
+}
+
+const fn update_usage_error(message: &'static str) -> UsageError {
+    UsageError {
+        message,
+        usage: UPDATE_USAGE,
     }
 }
 
@@ -1292,6 +1379,24 @@ pub(crate) fn config_store(
     Ok(GlobalSettingsStore::new(root))
 }
 
+fn update_store(environment: &CommandEnvironment) -> Result<UpdateStateStore, ConfigError> {
+    let home = environment
+        .platform_home
+        .as_deref()
+        .ok_or(ConfigError::HomeUnavailable)?;
+    let root = resolve_config_root(environment.configured_root.as_deref(), home)?;
+    Ok(UpdateStateStore::new(root, default_update_stream()))
+}
+
+fn default_update_stream() -> UpdateStreamPreference {
+    let version = env!("CARGO_PKG_VERSION");
+    if version.contains("-alpha.") || version.contains("-beta.") {
+        UpdateStreamPreference::Beta
+    } else {
+        UpdateStreamPreference::Stable
+    }
+}
+
 fn content_summary(content: &EmbeddedContent) -> ContentSummary<'_> {
     let manifest = content.pack().manifest();
     ContentSummary {
@@ -1588,6 +1693,28 @@ mod tests {
             parse_args(args(&["config", "show"])),
             Ok(Command::ConfigShow)
         );
+        assert_eq!(
+            parse_args(args(&["update", "status"])),
+            Ok(Command::Update(UpdateCliCommand::Status))
+        );
+        assert_eq!(
+            parse_args(args(&["update", "check"])),
+            Ok(Command::Update(UpdateCliCommand::Check))
+        );
+        assert_eq!(
+            parse_args(args(&[
+                "update",
+                "channel",
+                "--expected-revision",
+                "3",
+                "--stream",
+                "stable",
+            ])),
+            Ok(Command::Update(UpdateCliCommand::Channel {
+                expected_revision: 3,
+                stream: UpdateStreamPreference::Stable,
+            }))
+        );
         assert_eq!(parse_args(args(&["status"])), Ok(Command::Status));
         assert_eq!(parse_args(args(&["doctor"])), Ok(Command::Doctor));
         assert_eq!(
@@ -1847,6 +1974,18 @@ mod tests {
             ],
             vec!["config", "set", "--expected-revision", "not-a-number"],
             vec!["config", "set", "--api-key", "private-canary"],
+            vec!["update"],
+            vec!["update", "status", "extra"],
+            vec!["update", "channel", "--expected-revision", "0"],
+            vec![
+                "update",
+                "channel",
+                "--expected-revision",
+                "0",
+                "--stream",
+                "alpha",
+            ],
+            vec!["update", "check", "--url", "https://private-canary"],
             vec!["status", "extra"],
             vec!["mcp"],
             vec!["mcp", "serve", "--profile", "lite"],

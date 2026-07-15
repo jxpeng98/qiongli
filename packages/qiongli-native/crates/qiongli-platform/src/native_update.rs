@@ -30,6 +30,12 @@ pub enum NativeUpdateStream {
     Beta,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum NativeUpdateDisposition {
+    Current,
+    Available,
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct NativeUpdateManifestV1 {
@@ -147,9 +153,6 @@ impl SignedNativeUpdateManifestV1 {
         if context.now_unix >= self.manifest.expires_at_unix {
             return Err(NativeUpdateError::Expired);
         }
-        if self.manifest.generation <= context.last_accepted_generation {
-            return Err(NativeUpdateError::GenerationReplayed);
-        }
         if self.manifest.stream != context.selected_stream {
             return Err(NativeUpdateError::StreamMismatch);
         }
@@ -175,8 +178,24 @@ impl SignedNativeUpdateManifestV1 {
         if target.major < 2 {
             return Err(NativeUpdateError::LegacyTargetVersion);
         }
-        if target <= current {
+        if target < current || (target == current && !context.allow_current_version) {
             return Err(NativeUpdateError::VersionNotNewer);
+        }
+        let disposition = if target == current {
+            NativeUpdateDisposition::Current
+        } else {
+            NativeUpdateDisposition::Available
+        };
+        let generation_is_stale = match disposition {
+            NativeUpdateDisposition::Current => {
+                self.manifest.generation < context.last_accepted_generation
+            }
+            NativeUpdateDisposition::Available => {
+                self.manifest.generation <= context.last_accepted_generation
+            }
+        };
+        if generation_is_stale {
+            return Err(NativeUpdateError::GenerationReplayed);
         }
         let minimum_updater = parse_product_version(&self.manifest.minimum_updater_version)
             .ok_or(NativeUpdateError::InvalidManifest)?;
@@ -206,6 +225,7 @@ impl SignedNativeUpdateManifestV1 {
             signed_payload_sha256: sha256_hex(&signing_bytes),
             release_key_id: key.key_id().to_string(),
             verified_at_unix: context.now_unix,
+            disposition,
         })
     }
 
@@ -232,6 +252,7 @@ pub struct NativeUpdateVerificationContext<'a> {
     pub selected_stream: NativeUpdateStream,
     pub expected_macos_team_id: &'a str,
     pub allowed_download_hosts: &'a [&'a str],
+    pub allow_current_version: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -240,6 +261,7 @@ pub struct VerifiedNativeUpdateManifest {
     signed_payload_sha256: String,
     release_key_id: String,
     verified_at_unix: u64,
+    disposition: NativeUpdateDisposition,
 }
 
 impl VerifiedNativeUpdateManifest {
@@ -266,6 +288,11 @@ impl VerifiedNativeUpdateManifest {
     #[must_use]
     pub const fn verified_at_unix(&self) -> u64 {
         self.verified_at_unix
+    }
+
+    #[must_use]
+    pub const fn disposition(&self) -> NativeUpdateDisposition {
+        self.disposition
     }
 }
 
@@ -560,6 +587,7 @@ mod tests {
             selected_stream,
             expected_macos_team_id: TEAM_ID,
             allowed_download_hosts: HOSTS,
+            allow_current_version: false,
         }
     }
 
@@ -677,6 +705,16 @@ mod tests {
                 &context("2.0.0-alpha.2", NativeUpdateStream::Beta)
             ),
             Err(NativeUpdateError::VersionNotNewer)
+        );
+        let mut allow_current = context("2.0.0-alpha.2", NativeUpdateStream::Beta);
+        allow_current.allow_current_version = true;
+        allow_current.last_accepted_generation = 9;
+        assert_eq!(
+            update
+                .verify(&[trusted_key()], &allow_current)
+                .unwrap()
+                .disposition(),
+            NativeUpdateDisposition::Current
         );
         assert_eq!(
             update.verify(
