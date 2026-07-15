@@ -2,8 +2,8 @@
 
 use std::env;
 use std::ffi::{OsStr, OsString};
-use std::fs;
-use std::io::Write as _;
+use std::fs::{self, File, Metadata};
+use std::io::{self, Read as _, Write as _};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -30,6 +30,7 @@ const LAUNCH_KEY_ID: &str = "alpha1-acceptance-launch-key";
 const GENERATION: u64 = 1;
 const RELEASE_VALIDITY_SECONDS: u64 = 3_600;
 const CANDIDATE_VALIDITY_SECONDS: u64 = 1_800;
+const MAX_STAGED_PRODUCT_BYTES: u64 = 128 * 1024 * 1024;
 const NOTES: &[u8] = b"# Qiongli 2.0.0-alpha.1 acceptance candidate\n\n\
 Test-signed, assembled-unpublished current-target Lite candidate. Supports the native CLI, UI \
 startup preflight, embedded skills, Lite MCP, and receipt-backed Codex local and Claude Code \
@@ -71,7 +72,7 @@ fn run() -> Result<(), &'static str> {
     NativeReleaseAuthority::from_json(&authority_bytes)
         .map_err(|_| "candidate-acceptance-authority-invalid")?;
 
-    let product_binary = build_product(&build_root, &authority_path, &arguments.source_commit)?;
+    let built_product = build_product(&build_root, &authority_path, &arguments.source_commit)?;
     let content =
         qiongli::embedded_content().map_err(|_| "candidate-acceptance-embedded-content-invalid")?;
     let artifact =
@@ -82,9 +83,16 @@ fn run() -> Result<(), &'static str> {
     let artifact_target =
         approve_native_artifact_target(staging_root.join(&artifact_id), &artifact)
             .map_err(|_| "candidate-acceptance-artifact-target-invalid")?;
+    let product_binary = staging_root.join(format!(
+        ".qiongli-acceptance-source{}",
+        env::consts::EXE_SUFFIX
+    ));
+    stage_product_binary(&built_product, &product_binary)?;
     let assembled =
-        compose_native_artifact(content.pack(), &artifact, &product_binary, &artifact_target)
-            .map_err(|_| "candidate-acceptance-artifact-compose-failed")?;
+        compose_native_artifact(content.pack(), &artifact, &product_binary, &artifact_target);
+    let source_cleanup = fs::remove_file(&product_binary);
+    let assembled = assembled.map_err(|error| error.reason_code())?;
+    source_cleanup.map_err(|_| "candidate-acceptance-source-cleanup-failed")?;
 
     let archive_name = native_portable_archive_file_name(&artifact)
         .map_err(|_| "candidate-acceptance-archive-name-invalid")?;
@@ -364,6 +372,126 @@ fn shared_build_root() -> Result<PathBuf, &'static str> {
         .and_then(Path::parent)
         .map(|root| root.join("target/qiongli-native-candidate-acceptance-build"))
         .ok_or("candidate-acceptance-build-root-unavailable")
+}
+
+fn stage_product_binary(source: &Path, destination: &Path) -> Result<(), &'static str> {
+    let metadata =
+        fs::symlink_metadata(source).map_err(|_| "candidate-acceptance-product-source-invalid")?;
+    if metadata.file_type().is_symlink()
+        || !metadata.is_file()
+        || metadata.len() == 0
+        || metadata.len() > MAX_STAGED_PRODUCT_BYTES
+    {
+        return Err("candidate-acceptance-product-source-invalid");
+    }
+    let result = (|| {
+        let mut source = File::open(source)
+            .map_err(|_| "candidate-acceptance-product-source-invalid")?
+            .take(MAX_STAGED_PRODUCT_BYTES.saturating_add(1));
+        let mut destination_file = create_private_product_file(destination)?;
+        let copied = io::copy(&mut source, &mut destination_file)
+            .map_err(|_| "candidate-acceptance-product-stage-failed")?;
+        destination_file
+            .sync_all()
+            .map_err(|_| "candidate-acceptance-product-stage-failed")?;
+        drop(destination_file);
+        if copied != metadata.len() || copied > MAX_STAGED_PRODUCT_BYTES {
+            return Err("candidate-acceptance-product-stage-failed");
+        }
+        set_product_executable(destination)?;
+        verify_staged_product(destination)
+    })();
+    if result.is_err() {
+        let _ = fs::remove_file(destination);
+    }
+    result
+}
+
+#[cfg(unix)]
+fn create_private_product_file(path: &Path) -> Result<File, &'static str> {
+    use std::fs::OpenOptions;
+    use std::os::unix::fs::OpenOptionsExt;
+
+    OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .mode(0o700)
+        .open(path)
+        .map_err(|_| "candidate-acceptance-product-stage-failed")
+}
+
+#[cfg(windows)]
+fn create_private_product_file(path: &Path) -> Result<File, &'static str> {
+    qiongli_windows_security::create_owner_only_new_file(path)
+        .map_err(|_| "candidate-acceptance-product-stage-failed")
+}
+
+#[cfg(not(any(unix, windows)))]
+fn create_private_product_file(_path: &Path) -> Result<File, &'static str> {
+    Err("candidate-acceptance-platform-unsupported")
+}
+
+#[cfg(unix)]
+fn set_product_executable(path: &Path) -> Result<(), &'static str> {
+    use std::os::unix::fs::PermissionsExt;
+
+    fs::set_permissions(path, fs::Permissions::from_mode(0o700))
+        .map_err(|_| "candidate-acceptance-product-stage-failed")
+}
+
+#[cfg(not(unix))]
+fn set_product_executable(_path: &Path) -> Result<(), &'static str> {
+    Ok(())
+}
+
+fn verify_staged_product(path: &Path) -> Result<(), &'static str> {
+    let metadata =
+        fs::symlink_metadata(path).map_err(|_| "candidate-acceptance-staged-product-invalid")?;
+    if metadata.file_type().is_symlink()
+        || !metadata.is_file()
+        || metadata.len() == 0
+        || metadata.len() > MAX_STAGED_PRODUCT_BYTES
+    {
+        return Err("candidate-acceptance-staged-product-invalid");
+    }
+    verify_staged_product_security(path, &metadata)
+}
+
+#[cfg(unix)]
+fn verify_staged_product_security(path: &Path, metadata: &Metadata) -> Result<(), &'static str> {
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+
+    let parent = path
+        .parent()
+        .ok_or("candidate-acceptance-staged-product-invalid")?;
+    let parent_metadata =
+        fs::symlink_metadata(parent).map_err(|_| "candidate-acceptance-staged-product-invalid")?;
+    if !parent_metadata.is_dir()
+        || parent_metadata.uid() != metadata.uid()
+        || parent_metadata.permissions().mode() & 0o077 != 0
+        || metadata.nlink() != 1
+        || metadata.permissions().mode() & 0o111 == 0
+    {
+        return Err("candidate-acceptance-staged-product-invalid");
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+fn verify_staged_product_security(path: &Path, _metadata: &Metadata) -> Result<(), &'static str> {
+    let file = qiongli_windows_security::open_owner_only_file(path)
+        .map_err(|_| "candidate-acceptance-staged-product-invalid")?;
+    let facts = qiongli_windows_security::handle_facts(&file)
+        .map_err(|_| "candidate-acceptance-staged-product-invalid")?;
+    if facts.number_of_links != 1 {
+        return Err("candidate-acceptance-staged-product-invalid");
+    }
+    Ok(())
+}
+
+#[cfg(not(any(unix, windows)))]
+fn verify_staged_product_security(_path: &Path, _metadata: &Metadata) -> Result<(), &'static str> {
+    Err("candidate-acceptance-platform-unsupported")
 }
 
 fn outside_checkout(output: &Path) -> bool {
@@ -919,4 +1047,56 @@ fn now_unix() -> Result<u64, &'static str> {
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_secs())
         .map_err(|_| "candidate-acceptance-clock-unavailable")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn staged_product_normalizes_a_hard_linked_cargo_style_source() {
+        let mut nonce = [0_u8; 16];
+        getrandom::fill(&mut nonce).expect("test nonce must be available");
+        let root = env::temp_dir().join(format!(
+            "qiongli-native-candidate-source-test-{}",
+            encode_hex(&nonce)
+        ));
+        create_private_directory(&root).expect("test root must be private");
+        let source = root.join(format!("source{}", env::consts::EXE_SUFFIX));
+        fs::write(&source, b"candidate-source-bytes").expect("source must write");
+        set_product_executable(&source).expect("source must be executable");
+        let linked = root.join(format!("source-linked{}", env::consts::EXE_SUFFIX));
+        fs::hard_link(&source, &linked).expect("source hard link must be available");
+        assert_eq!(link_count(&source), 2);
+
+        let staged = root.join(format!("staged{}", env::consts::EXE_SUFFIX));
+        stage_product_binary(&source, &staged).expect("staging must succeed");
+
+        assert_eq!(link_count(&staged), 1);
+        assert_eq!(
+            fs::read(&staged).expect("staged bytes must read"),
+            b"candidate-source-bytes"
+        );
+        fs::remove_dir_all(root).expect("test root must clean up");
+    }
+
+    #[cfg(unix)]
+    fn link_count(path: &Path) -> u64 {
+        use std::os::unix::fs::MetadataExt;
+
+        fs::symlink_metadata(path)
+            .expect("link metadata must exist")
+            .nlink()
+    }
+
+    #[cfg(windows)]
+    fn link_count(path: &Path) -> u64 {
+        let file = File::open(path).expect("linked file must open");
+        u64::from(
+            qiongli_windows_security::handle_facts(&file)
+                .expect("link facts must be available")
+                .number_of_links,
+        )
+    }
 }

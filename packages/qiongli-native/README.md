@@ -785,9 +785,10 @@ cargo run --manifest-path packages/qiongli-native/Cargo.toml \
 The output parent must already exist and pass the same trusted-path rules as a
 release target. The harness creates distinct ephemeral release and launch keys
 in memory, persists only the canonical public authority, builds one
-authority/source-bound Release binary, and verifies that the candidate
+authority/source-bound Release binary, normalizes Cargo output into a fresh
+owner-private single-link artifact source, and verifies that the candidate
 directory contains exactly the archive, signed candidate JSON, and signed
-release notes.
+release notes. The normalized source is removed immediately after composition.
 
 Acceptance extracts and runs only that binary from outside the checkout with
 an empty `PATH` and isolated homes. It covers version, embedded skills,
