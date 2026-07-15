@@ -1,6 +1,6 @@
 # Qiongli R3N Alpha.1 Desktop Application Closure Execution Plan
 
-Status: Batch 5 local real-client and macOS packaged-window acceptance in progress; external release gates remain
+Status: Batch 5 macOS packaged UI journey accepted; external release gates remain
 
 Date: July 15, 2026
 
@@ -225,6 +225,11 @@ remain Batch 5 gates.
   macOS, Windows, and Linux without Rust, Python, Node, Cargo, npm, or pip.
 - [ ] Run keyboard, scale, basic screen-reader, settings persistence, Skills
   lifecycle, MCP self-test, and discovery journeys in the packaged app.
+  - [x] Complete the macOS packaged settings-persistence, Skills lifecycle,
+    MCP self-test, source-discovery, automated Tab-order, and keyboard-activation
+    journey.
+  - [ ] Complete manual macOS scale and VoiceOver acceptance.
+  - [ ] Complete the corresponding Windows and Linux interactive journeys.
 - [ ] Run real Codex and Claude Code discovery plus candidate-backed install,
   diagnose, and remove on supported isolated clients.
 - [ ] Apply external macOS signing/notarization, Windows Authenticode, and
@@ -253,6 +258,19 @@ Current non-publishing Batch 5 evidence:
 - These local results do not yet close the unchecked real-client gate: final
   candidate-backed diagnose/remove evidence must be regenerated from the
   final exact source alongside the signed publication ledger.
+- Exact Native CI run `29421269995` passed all nine jobs for branch head
+  `1ebca2be`; its macOS artifact was downloaded by artifact id `8345427437` and
+  verified against the package archive, manifest, and receipt hashes.
+- The packaged macOS arm64 App completed global-settings save and restart,
+  343-entry Skills materialize/verify/remove, the offline 12-tool Lite MCP
+  self-test, and Codex plus Claude Code `Discovered but unmanaged` refresh with
+  an empty `PATH` and isolated state.
+- macOS Accessibility exposed labelled roles and states. Real Tab traversal
+  reached all six navigation controls, and Space activated the focused
+  Diagnostics control. This automated evidence does not replace manual scale,
+  VoiceOver, contrast, or human keyboard acceptance.
+- The exact non-publishing evidence is recorded in
+  `tooling/release/acceptance/v2.0.0-alpha.1-r3n-macos-packaged-ui.md`.
 
 ## Fast Validation Loop
 

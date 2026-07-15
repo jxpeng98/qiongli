@@ -1086,13 +1086,18 @@ superseded head is not reported as current-head evidence.
     Linux with an empty `PATH`. Its outputs remain non-publishing.
 24. R3N Batch 5 has local partial evidence: actual Codex CLI `0.144.4` and
     Claude Code `2.1.209` passed isolated local-plugin/cache/MCP lifecycle
-    checks, and the exact CI macOS package displayed the `Qiongli 2` window
-    with labelled Accessibility navigation and Skills controls. The Codex
-    external test now verifies client remove, absence, and receipt-owned
-    catalog cleanup. This is not three-platform clean-machine or human
-    accessibility acceptance; final candidate regeneration, production
-    signing/notarization, Windows/Linux interactive evidence, and explicit
-    publication authorization remain open gates.
+    checks, including Codex client remove, absence, and receipt-owned catalog
+    cleanup. Exact Native CI run `29421269995` passed all nine jobs at branch
+    head `1ebca2be`. Its macOS arm64 package completed settings save/restart,
+    the 343-entry Skills materialize/verify/remove lifecycle, the empty-`PATH`
+    12-tool Lite MCP self-test, Codex and Claude Code discovered-unmanaged
+    refresh, deterministic Tab traversal, and Space activation through macOS
+    Accessibility. The bound non-publishing receipt is
+    `tooling/release/acceptance/v2.0.0-alpha.1-r3n-macos-packaged-ui.md`. This
+    is not three-platform clean-machine or human accessibility acceptance;
+    final candidate regeneration, production signing/notarization,
+    Windows/Linux interactive evidence, and explicit publication authorization
+    remain open gates.
 
 ## Program Done
 
