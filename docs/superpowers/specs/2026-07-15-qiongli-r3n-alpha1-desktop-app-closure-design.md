@@ -1,6 +1,6 @@
 # Qiongli R3N Alpha.1 Desktop Application Closure Design
 
-Status: implementation in progress; Batches 1-2 accepted locally, external client receipts pending
+Status: implementation in progress; Batches 1-3 accepted locally, Batch 4 package foundation implemented
 
 Date: July 15, 2026
 
@@ -38,6 +38,9 @@ desktop activation -> native application entry -> qiongli-ui -> typed services
 qiongli ui          -> native application entry -> qiongli-ui -> typed services
 qiongli <command>   -> command entry            -> the same domain services
 ```
+
+ADR 0208 records the target-specific launcher exception without modifying the
+frozen ADR 0201 baseline.
 
 A platform may require a thin launcher executable or bundle metadata. Such a
 launcher may select desktop mode and report startup failure, but it may not own

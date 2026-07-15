@@ -17,6 +17,7 @@ qiongli-platform = { path = "../../crates/qiongli-platform" }
 qiongli-runtime = { path = "../../crates/qiongli-runtime", features = ["embedded-content", "native-config"] }
 qiongli-ui = { path = "../../crates/qiongli-ui" }
 getrandom.workspace = true
+png.workspace = true
 rfd.workspace = true
 serde.workspace = true
 serde_json.workspace = true

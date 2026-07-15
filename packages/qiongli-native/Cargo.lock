@@ -2909,6 +2909,7 @@ version = "2.0.0-alpha.1"
 dependencies = [
  "ed25519-dalek",
  "getrandom 0.3.4",
+ "png",
  "qiongli-config",
  "qiongli-content",
  "qiongli-platform",
@@ -2953,6 +2954,7 @@ version = "2.0.0-alpha.1"
 dependencies = [
  "crc32fast",
  "ed25519-dalek",
+ "png",
  "qiongli-content",
  "qiongli-windows-security",
  "rustix 1.1.4",

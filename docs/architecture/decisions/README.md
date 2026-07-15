@@ -18,6 +18,7 @@ decision must be recorded as a new superseding ADR.
 | `ARC-201E` | [ADR 0205](0205-deterministic-resource-pack.md) | Accepted | Deterministic embedded resource pack |
 | `ARC-201F` | [ADR 0206](0206-declarative-install-plan-and-client-trust.md) | Accepted | Declarative install plan and client trust |
 | `ARC-201G` | [ADR 0207](0207-release-channel-and-artifact-identity.md) | Accepted | Release channel and artifact identity |
+| `ARC-208` | [ADR 0208](0208-target-specific-desktop-launcher.md) | Accepted | Target-specific desktop launcher |
 
 ## Decision lifecycle
 

@@ -814,7 +814,7 @@ pub fn run_native_application(
         viewport: egui::ViewportBuilder::default()
             .with_title(metadata.window_title())
             .with_app_id(metadata.application_identifier())
-            .with_icon(application_icon())
+            .with_icon(native_application_icon())
             .with_inner_size([1_080.0, 720.0])
             .with_min_inner_size([680.0, 520.0]),
         ..Default::default()
@@ -826,7 +826,8 @@ pub fn run_native_application(
     )
 }
 
-fn application_icon() -> egui::IconData {
+#[must_use]
+pub fn native_application_icon() -> egui::IconData {
     const SIZE: u32 = 64;
     const BACKGROUND: [u8; 4] = [24, 30, 43, 255];
     const ACCENT: [u8; 4] = [196, 161, 92, 255];
@@ -1163,7 +1164,7 @@ mod tests {
 
     #[test]
     fn native_application_icon_is_complete_and_product_coloured() {
-        let icon = application_icon();
+        let icon = native_application_icon();
         assert_eq!(icon.width, 64);
         assert_eq!(icon.height, 64);
         assert_eq!(icon.rgba.len(), 64 * 64 * 4);

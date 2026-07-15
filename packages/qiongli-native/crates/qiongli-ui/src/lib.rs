@@ -1,7 +1,9 @@
 mod app;
 mod model;
 
-pub use app::{DesktopApplicationMetadata, QiongliDesktopApp, run_native_application};
+pub use app::{
+    DesktopApplicationMetadata, QiongliDesktopApp, native_application_icon, run_native_application,
+};
 pub use model::{
     ActivationPolicy, ArchitectureView, CapabilityView, ConfigView, ContentView,
     DESKTOP_SNAPSHOT_SCHEMA_VERSION, DesktopEvent, DesktopIntent, DesktopSection, DesktopService,

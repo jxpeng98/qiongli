@@ -52,16 +52,30 @@ fn canonical_executable_path(current_executable: &Path) -> io::Result<PathBuf> {
             "desktop launcher has no parent directory",
         )
     })?;
-    Ok(directory.join(canonical_executable_name()))
+    let packaged = directory.join(packaged_canonical_executable_name());
+    if packaged.is_file() {
+        return Ok(packaged);
+    }
+    Ok(directory.join(development_canonical_executable_name()))
 }
 
 #[cfg(target_os = "windows")]
-const fn canonical_executable_name() -> &'static str {
+const fn packaged_canonical_executable_name() -> &'static str {
+    "qiongli-cli.exe"
+}
+
+#[cfg(not(target_os = "windows"))]
+const fn packaged_canonical_executable_name() -> &'static str {
+    "qiongli-cli"
+}
+
+#[cfg(target_os = "windows")]
+const fn development_canonical_executable_name() -> &'static str {
     "qiongli.exe"
 }
 
 #[cfg(not(target_os = "windows"))]
-const fn canonical_executable_name() -> &'static str {
+const fn development_canonical_executable_name() -> &'static str {
     "qiongli"
 }
 
@@ -97,7 +111,11 @@ mod tests {
         let launcher = Path::new("/application/bin/qiongli-desktop");
         assert_eq!(
             canonical_executable_path(launcher).expect("launcher path must resolve"),
-            Path::new("/application/bin").join(canonical_executable_name())
+            Path::new("/application/bin").join(development_canonical_executable_name())
+        );
+        assert_ne!(
+            packaged_canonical_executable_name(),
+            development_canonical_executable_name()
         );
     }
 }

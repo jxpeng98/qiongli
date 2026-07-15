@@ -142,6 +142,97 @@ jobs:
           RUSTFLAGS: ""
         run: cargo test --manifest-path packages/qiongli-native/Cargo.toml --workspace --all-targets --all-features --locked
 
+  desktop-package-assembly:
+    name: Non-publishing desktop package (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Linux AppDir
+            artifact-label: linux-appdir
+            os: ubuntu-latest
+          - platform: macOS application
+            artifact-label: macos-app
+            os: macos-latest
+          - platform: Windows portable
+            artifact-label: windows-portable
+            os: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pinned native Rust
+        uses: dtolnay/rust-toolchain@1.97.0
+
+      - name: Reject injected target-specific Rust flags
+        shell: bash
+        run: |
+          injected=0
+          while IFS='=' read -r name value; do
+            case "$name" in
+              CARGO_TARGET_*_RUSTFLAGS)
+                if [[ -n "$value" ]]; then
+                  echo "Unexpected Rust compiler override: $name" >&2
+                  injected=1
+                fi
+                ;;
+            esac
+          done < <(env)
+          [[ "$injected" -eq 0 ]]
+
+      - name: Assemble and verify exact-source desktop package
+        id: desktop-package
+        shell: bash
+        env:
+          CARGO_HOME: ${{ runner.temp }}/qiongli-cargo-home
+          CARGO_BUILD_RUSTC_WRAPPER: ""
+          CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER: ""
+          CARGO_BUILD_RUSTFLAGS: ""
+          CARGO_ENCODED_RUSTFLAGS: ""
+          RUSTC_WORKSPACE_WRAPPER: ""
+          RUSTC_WRAPPER: ""
+          RUSTFLAGS: ""
+          QIONGLI_NATIVE_SOURCE_COMMIT: ${{ github.sha }}
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          executable_suffix=""
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            executable_suffix=".exe"
+          fi
+          target_dir="$GITHUB_WORKSPACE/packages/qiongli-native/target/release"
+          package_root="$RUNNER_TEMP/qiongli-desktop-package-$SOURCE_COMMIT"
+
+          cargo build \
+            --manifest-path packages/qiongli-native/Cargo.toml \
+            --package qiongli \
+            --release \
+            --bins \
+            --locked
+          cargo run \
+            --manifest-path packages/qiongli-native/Cargo.toml \
+            --package qiongli \
+            --example native_desktop_package \
+            --release \
+            --locked \
+            -- \
+            --canonical "$target_dir/qiongli$executable_suffix" \
+            --launcher "$target_dir/qiongli-desktop$executable_suffix" \
+            --output "$package_root" \
+            --source-commit "$SOURCE_COMMIT"
+
+          echo "root=$package_root" >> "$GITHUB_OUTPUT"
+
+      - name: Upload explicitly non-publishing desktop package
+        uses: actions/upload-artifact@v4
+        with:
+          name: qiongli-desktop-${{ matrix.artifact-label }}-${{ github.sha }}
+          path: ${{ steps.desktop-package.outputs.root }}
+          if-no-files-found: error
+          retention-days: 7
+
   lite-runtime-compatibility:
     name: R2 Lite compatibility (Linux)
     runs-on: ubuntu-latest

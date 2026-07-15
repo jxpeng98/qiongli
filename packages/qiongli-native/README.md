@@ -851,7 +851,48 @@ console window while all product logic and embedded content remain in the
 canonical executable. The window now carries the Qiongli product name,
 version, MIT license, `io.github.jxpeng98.qiongli` application identifier,
 fixed startup error metadata, and a product-specific icon. Platform `.app`,
-Windows portable, and AppImage assembly remains Batch 4.
+Windows portable, and AppImage assembly is handled in Batch 4.
+
+R3N Batch 4 package foundation is implemented. A single Rust composer now
+produces deterministic, verified development artifacts for all three target
+families: a macOS `Qiongli.app` in `.app.zip`, a Windows portable application
+ZIP, and a Linux AppDir ZIP. The Linux output is not yet an AppImage. All three
+artifacts are labelled `assembled-unpublished` and remain unsuitable for
+public distribution until their target activation and release gates pass.
+
+Each desktop manifest is independent of the R3M three-file candidate and binds
+the desktop archive to the exact portable artifact identity and manifest,
+product source commit, canonical executable, thin launcher, embedded resource
+pack, application metadata, license, and every archive entry. Verification
+rejects layout, mode, order, size, hash, or source drift before output is
+accepted.
+
+The CI workflow builds and verifies release-mode artifacts on macOS, Windows,
+and Linux in a parallel matrix and retains them for seven days as explicitly
+non-publishing evidence. The package command may also be run by maintainers
+after building both binaries with the same exact source-commit binding:
+
+```text
+QIONGLI_NATIVE_SOURCE_COMMIT=<exact-clean-head> cargo build \
+  --manifest-path packages/qiongli-native/Cargo.toml \
+  --package qiongli --release --bins --locked
+
+QIONGLI_NATIVE_SOURCE_COMMIT=<exact-clean-head> cargo run \
+  --manifest-path packages/qiongli-native/Cargo.toml \
+  --package qiongli --example native_desktop_package --release --locked -- \
+  --canonical <absolute-path-to-release-qiongli-or-qiongli.exe> \
+  --launcher <absolute-path-to-release-qiongli-desktop-or-qiongli-desktop.exe> \
+  --output <absolute-new-output-directory> \
+  --source-commit <exact-clean-head>
+```
+
+The command requires a fresh absolute output directory outside the source
+checkout under a trusted, non-shared parent and writes exactly the target archive,
+`qiongli-desktop-package.manifest.json`, and
+`qiongli-desktop-package.receipt.json`. It does not sign, notarize, publish,
+install, remove, create a DMG, create an AppImage, or prove Finder/Explorer
+activation. Those remaining Batch 4/5 gates must use the exact committed CI
+head; a dirty-tree smoke package is never release evidence.
 
 ## R1 command contract (retained)
 

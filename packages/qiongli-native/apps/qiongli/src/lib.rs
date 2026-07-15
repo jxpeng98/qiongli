@@ -7,7 +7,8 @@ mod mcp;
 mod native_cli;
 
 pub use application::{
-    DesktopApplicationError, desktop_application_metadata, run_desktop_application,
+    DesktopApplicationAssetError, DesktopApplicationError, desktop_application_icon_png,
+    desktop_application_metadata, run_desktop_application,
 };
 pub use command::{
     CliOutput, CommandEnvironment, ProductAction, failed_embedded_content_output, prepare_action,

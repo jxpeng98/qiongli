@@ -1,6 +1,6 @@
 # Qiongli R3N Alpha.1 Desktop Application Closure Execution Plan
 
-Status: Batch 3 implementation complete; external client receipts deferred; Batch 4 ready
+Status: Batch 4 package foundation implemented; target activation and AppImage acceptance pending
 
 Date: July 15, 2026
 
@@ -131,6 +131,8 @@ Implemented evidence:
   services or embedded content. On Windows it is a GUI-subsystem executable
   and starts the canonical child with `CREATE_NO_WINDOW`, preventing a
   persistent console without creating a second product implementation.
+- ADR 0208 records this target-specific exception while restoring frozen ADR
+  0201 byte-for-byte to the accepted 2.x architecture baseline.
 - Native window metadata now has the fixed application identifier
   `io.github.jxpeng98.qiongli`, package version and license, fixed startup error
   codes, and a Qiongli-specific RGBA window icon. The identifier is also bound
@@ -149,20 +151,57 @@ Implemented evidence:
 
 ## Batch 4 — Package The Three Desktop Targets
 
+- [x] Add one deterministic package composer for macOS `.app.zip`, Windows
+  portable ZIP, and Linux AppDir ZIP development artifacts.
 - [ ] Produce a macOS `.app` and distributable archive/DMG with Finder launch.
 - [ ] Produce a Windows desktop GUI executable and portable package with
   Explorer launch and no persistent console window.
 - [ ] Produce a Linux AppImage with icon and desktop metadata.
-- [ ] Bind each desktop artifact to the R3M product, version, source,
+- [x] Bind each desktop artifact to the R3M product, version, source,
   executable, and embedded-pack identity without weakening the three-file
   portable candidate contract.
-- [ ] Add CI jobs which assemble and structurally inspect all three packages;
+- [x] Add CI jobs which assemble and structurally inspect all three packages;
   upload only explicitly non-publishing artifacts until signing gates pass.
 - [ ] Document target-specific installation, CLI access, removal, trust
   prompts, and unsupported architectures truthfully.
 
 **Checkpoint:** CI produces one desktop-activatable artifact for macOS,
 Windows, and Linux from the same exact source and embedded pack.
+
+Implemented foundation evidence:
+
+- The new desktop-package manifest is separate from the accepted R3M
+  three-file portable candidate. It records `assembled-unpublished`, the exact
+  source artifact and manifest hash, product source commit, canonical binary,
+  launcher, embedded pack, application metadata, every package entry, and a
+  deterministic entry content root.
+- Package verification reparses the stored ZIP, validates the exact target
+  layout, modes, hashes, resource identity, source binding, and application
+  metadata, and rejects added, removed, reordered, or modified bytes.
+- macOS receives `Qiongli.app` with `Info.plist`, a thin `Qiongli` launcher,
+  the canonical `qiongli-cli`, ICNS icon, MIT license, and package manifest.
+  Windows receives a GUI `Qiongli.exe`, canonical `qiongli-cli.exe`, external
+  manifest, PNG icon, license, and package manifest. Linux currently receives
+  a standard `Qiongli.AppDir` with `AppRun`, canonical CLI, desktop entry, PNG
+  icon, license, and package manifest; a real AppImage remains open.
+- The package command stages bounded regular files in owner-private storage,
+  verifies the resulting archive before writing output, cleans staging, and
+  emits exactly the target archive, canonical manifest, and public receipt.
+- Native CI now runs package assembly as a parallel three-platform release
+  matrix and uploads seven-day artifacts named explicitly as non-publishing.
+  The first remote matrix run is still required before this is CI evidence.
+- Focused layout, identity, tamper, source-binding, application asset, and
+  launcher tests pass. The optimized integration fixture completes in about
+  0.3 seconds instead of copying full debug binaries. A local macOS release
+  smoke run produced and verified the expected six-entry `.app.zip`; because
+  the implementation was uncommitted during that smoke run, it is mechanism
+  evidence only and not exact-head release evidence.
+
+Remaining Batch 4 work is deliberately narrower: execute the CI matrix,
+perform normal macOS and Windows desktop activation checks, convert the Linux
+AppDir into a real AppImage, and then write installation/removal/trust guidance
+against the observed packages. Signing, notarization, and clean-machine
+acceptance remain Batch 5.
 
 ## Batch 5 — Reaccept Alpha.1
 
@@ -202,7 +241,7 @@ cargo test --manifest-path packages/qiongli-native/Cargo.toml \
 ./scripts/check_2x_native_change_boundary.sh --base-ref origin/2.x
 ```
 
-Batch 4 adds target package build/inspection jobs. Batch 5 adds the slower
+Batch 4 now has target package build/inspection jobs. Batch 5 adds the slower
 packaged clean-machine and real-client acceptance once, against the final
 candidate rather than after every implementation commit.
 

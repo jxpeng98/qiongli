@@ -54,13 +54,6 @@ such a launcher contains no product services, contracts, mutable state,
 provider logic, updater, or embedded content and is not a second Qiongli
 runtime. Its target and digest remain bound to the same installer identity.
 
-The Windows console-subsystem constraint activates this exception for desktop
-packaging. `qiongli-desktop` is a GUI-subsystem launcher which resolves only
-the sibling canonical `qiongli` executable and starts its UI mode with
-`CREATE_NO_WINDOW`. The same launcher boundary may be used by macOS and Linux
-packages for a uniform bundle layout. It contains no product implementation or
-resource pack; the canonical executable remains the sole runtime.
-
 Local plugin packages that require a process carry the same target-specific
 binary and a signed launch grant. The grant binds product version, target,
 binary digest, resource-pack digest, integration scope, and the maximum allowed

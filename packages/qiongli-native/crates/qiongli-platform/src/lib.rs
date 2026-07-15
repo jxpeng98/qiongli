@@ -5,6 +5,7 @@ mod claude;
 mod claude_bundle;
 mod codex;
 mod codex_bundle;
+mod desktop_package;
 mod error;
 mod grant;
 mod identity;
@@ -79,6 +80,13 @@ pub use codex_bundle::{
     CodexPluginBundleReceiptV1, CodexPluginBundleTarget, VerifiedCodexPluginBundle,
     approve_codex_plugin_bundle_target, compose_codex_plugin_bundle, remove_codex_plugin_bundle,
     verify_codex_plugin_bundle,
+};
+pub use desktop_package::{
+    DESKTOP_PACKAGE_MANIFEST_FILE, DESKTOP_PACKAGE_MANIFEST_SCHEMA_VERSION,
+    DesktopApplicationMetadataV1, DesktopPackageEntryV1, DesktopPackageError, DesktopPackageInput,
+    DesktopPackageKind, DesktopPackageManifestV1, DesktopPackageRecordType, DesktopPackageStatus,
+    VerifiedDesktopPackage, compose_desktop_package, desktop_package_file_name,
+    verify_desktop_package,
 };
 pub use error::PlatformError;
 pub use grant::{
