@@ -804,6 +804,32 @@ compensation, and unrelated-state preservation. The generated
 displayed-window, and production-signing gates remain `not-run` with reasons
 until their external environments and maintainer authority are provided.
 
+## R3N Alpha.1 desktop application rebaseline
+
+Interactive review of the R3F/R3M window found five Alpha.1 blockers: the
+window cannot edit supported global settings, select a Skills destination, run
+a Lite MCP self-test, usefully discover Codex and Claude Code from an ordinary
+source session, or launch as a double-clickable cross-platform application.
+R3M remains accepted signed-candidate core evidence, but it no longer closes
+the Alpha.1 product milestone by itself.
+
+R3N adds those five behaviors through the existing typed services and packages
+the same native product as a macOS application, Windows desktop application,
+and Linux AppImage/desktop launcher. Full MCP, agents, ToolHost, orchestrator,
+updater, cloud execution, and public Marketplace distribution remain later
+milestones. The authoritative scope and execution order are recorded in:
+
+- `docs/superpowers/specs/2026-07-15-qiongli-r3n-alpha1-desktop-app-closure-design.md`
+- `docs/superpowers/plans/2026-07-15-qiongli-r3n-alpha1-desktop-app-closure.md`
+
+R3N Batch 1 is implemented. Overview can preview and atomically save the
+supported non-secret global settings with optimistic revision checks. Skills
+can select a destination through the native operating-system folder dialog,
+then preview, materialize, verify, and receipt-safely remove an embedded
+profile. Filesystem and config mutations require typed, digest-bound
+confirmation; selected paths and public-setting input are excluded from Debug
+output. Credential-store backends remain outside this batch.
+
 ## R1 command contract (retained)
 
 The native executable composes the verified embedded pack and versioned global

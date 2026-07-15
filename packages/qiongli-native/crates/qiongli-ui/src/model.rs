@@ -1,3 +1,5 @@
+use std::fmt::{self, Debug, Formatter};
+
 use zeroize::Zeroizing;
 
 pub const DESKTOP_SNAPSHOT_SCHEMA_VERSION: u32 = 1;
@@ -382,6 +384,7 @@ pub struct ProviderView {
     pub provider: ProviderKind,
     pub enabled: bool,
     pub readiness: ProviderReadinessView,
+    pub public_setting_present: bool,
     pub secret_reference_present: bool,
 }
 
@@ -418,6 +421,8 @@ pub struct DiagnosticCheckView {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CapabilityView {
     pub refresh: bool,
+    pub config_edit: bool,
+    pub skills_materialize: bool,
     pub provider_preview: bool,
     pub integration_preview: bool,
     pub apply: bool,
@@ -542,6 +547,41 @@ impl PrivateText {
     }
 }
 
+#[derive(Clone, Eq, PartialEq)]
+pub struct PrivateDisplayText(Zeroizing<String>);
+
+impl PrivateDisplayText {
+    #[must_use]
+    pub fn new(value: String) -> Self {
+        Self(Zeroizing::new(value))
+    }
+
+    #[must_use]
+    pub fn expose(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
+impl Debug for PrivateDisplayText {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter.write_str("<private-display-text>")
+    }
+}
+
+pub enum PublicSettingChange {
+    Keep,
+    Clear,
+    Replace(PrivateText),
+}
+
+pub struct GlobalSettingsPatch {
+    pub expected_revision: u64,
+    pub default_profile: ProfileKind,
+    pub providers_enabled: [bool; 5],
+    pub openalex_email: PublicSettingChange,
+    pub crossref_email: PublicSettingChange,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct OperationToken(u128);
 
@@ -576,8 +616,36 @@ impl OperationApproval {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OperationKind {
+    Activation,
+    GlobalSettings,
+    SkillsMaterialization,
+    SkillsRemoval,
+}
+
+impl OperationKind {
+    #[must_use]
+    const fn approvals(self) -> &'static [OperationApproval] {
+        match self {
+            Self::Activation => &OperationApproval::ACTIVATION,
+            Self::GlobalSettings => &[OperationApproval::ClientConfigChange],
+            Self::SkillsMaterialization | Self::SkillsRemoval => {
+                &[OperationApproval::FilesystemWrite]
+            }
+        }
+    }
+}
+
 pub enum DesktopIntent {
     Refresh,
+    PreviewGlobalSettingsPatch(GlobalSettingsPatch),
+    SelectSkillsDestination,
+    PreviewSkillsMaterialization {
+        profile: ProfileKind,
+    },
+    VerifySkillsMaterialization,
+    PreviewSkillsRemoval,
     PreviewProviderPublicSetting {
         provider: ProviderKind,
         public_email: PrivateText,
@@ -596,8 +664,10 @@ pub enum DesktopIntent {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OperationPreview {
     pub token: OperationToken,
+    pub kind: OperationKind,
     pub title: &'static str,
     pub summary: &'static str,
+    pub display_target: Option<PrivateDisplayText>,
     pub plan_digest_sha256: Option<String>,
     pub approvals_required: Vec<OperationApproval>,
     pub can_confirm: bool,
@@ -607,8 +677,17 @@ pub struct OperationPreview {
 impl OperationPreview {
     pub(crate) fn validate(&self) -> bool {
         if self.can_confirm {
+            let display_target_valid = match self.kind {
+                OperationKind::SkillsMaterialization | OperationKind::SkillsRemoval => {
+                    self.display_target.is_some()
+                }
+                OperationKind::Activation | OperationKind::GlobalSettings => {
+                    self.display_target.is_none()
+                }
+            };
             self.blocked_reason.is_none()
-                && self.approvals_required == OperationApproval::ACTIVATION
+                && self.approvals_required == self.kind.approvals()
+                && display_target_valid
                 && self
                     .plan_digest_sha256
                     .as_deref()
@@ -631,6 +710,7 @@ fn valid_lower_sha256(value: &str) -> bool {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DesktopEvent {
     SnapshotReplaced(DesktopSnapshotV1),
+    SkillsDestinationSelected { display_path: PrivateDisplayText },
     ValidationFailed { code: &'static str },
     PreviewReady(OperationPreview),
     Completed { code: &'static str },
@@ -687,6 +767,7 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
                 provider,
                 enabled: false,
                 readiness: ProviderReadinessView::Disabled,
+                public_setting_present: false,
                 secret_reference_present: false,
             }),
             cleanup_required: false,
@@ -747,6 +828,8 @@ pub(crate) fn sample_snapshot() -> DesktopSnapshotV1 {
         ],
         capabilities: CapabilityView {
             refresh: true,
+            config_edit: true,
+            skills_materialize: true,
             provider_preview: true,
             integration_preview: true,
             apply: false,
@@ -761,8 +844,10 @@ mod tests {
     fn confirmable_preview() -> OperationPreview {
         OperationPreview {
             token: OperationToken::new(1),
+            kind: OperationKind::Activation,
             title: "Activation preview",
             summary: "A bounded activation preview.",
+            display_target: None,
             plan_digest_sha256: Some("a".repeat(64)),
             approvals_required: OperationApproval::ACTIVATION.to_vec(),
             can_confirm: true,
@@ -818,5 +903,19 @@ mod tests {
         preview.approvals_required.clear();
         preview.blocked_reason = Some("activation-unavailable");
         assert!(preview.validate());
+
+        preview = confirmable_preview();
+        preview.kind = OperationKind::GlobalSettings;
+        assert!(!preview.validate());
+        preview.approvals_required = vec![OperationApproval::ClientConfigChange];
+        assert!(preview.validate());
+
+        preview = confirmable_preview();
+        preview.kind = OperationKind::SkillsMaterialization;
+        preview.approvals_required = vec![OperationApproval::FilesystemWrite];
+        assert!(!preview.validate());
+        preview.display_target = Some(PrivateDisplayText::new("/selected-folder".to_owned()));
+        assert!(preview.validate());
+        assert!(!format!("{preview:?}").contains("selected-folder"));
     }
 }

@@ -23,8 +23,8 @@ pub use manifest::{
 pub use materializer::{
     MATERIALIZATION_RECEIPT_FILE, MATERIALIZATION_RECEIPT_VERSION, MaterializationAuthorization,
     MaterializationError, MaterializationReceiptV1, MaterializationTarget, MaterializedEntry,
-    approve_materialization_target, materialize_profile, temporary_materialization_target,
-    verify_materialization,
+    approve_materialization_target, materialize_profile, remove_materialization,
+    temporary_materialization_target, verify_materialization,
 };
 pub use pack_lock::{RESOURCE_PACK_LOCK_VERSION, ResourcePackLockError, ResourcePackLockV1};
 pub use writer::{

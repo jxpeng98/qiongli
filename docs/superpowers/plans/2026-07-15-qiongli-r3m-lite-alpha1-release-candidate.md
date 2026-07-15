@@ -1,8 +1,14 @@
 # Qiongli R3M Lite Alpha.1 Release Candidate Execution Plan
 
-Status: implementation complete; publication blocked by recorded external gates
+Status: release-candidate core complete; Alpha.1 publication blocked by R3N
+desktop closure and recorded external gates
 
 Date: July 15, 2026
+
+Rebaseline: R3M evidence remains accepted, but the displayed-window review
+found five Alpha.1 product blockers. R3N now owns global-settings editing,
+Skills destination selection, MCP self-test, source-session client discovery,
+and cross-platform desktop packaging. R3M no longer completes R3 by itself.
 
 **Goal:** Assemble, install, and accept one current-target dependency-free Lite
 Alpha.1 release candidate without placing signing private keys in the product,
@@ -151,9 +157,12 @@ R3M is complete only when the exact signed current-target candidate supports
 the advertised CLI, UI, Lite MCP, Codex local, and Claude Code local journeys
 from isolated extracted bytes; managed apply, diagnose, remove, rollback, and
 unrelated-state preservation pass; exact release limitations are bound and
-reviewed; and every required external gate is recorded. Completion permits an
-explicit Alpha.1 publication decision but does not itself publish.
+reviewed; and every required external gate is recorded. Completion originally
+permitted an explicit Alpha.1 publication decision but does not do so after the
+R3N rebaseline.
 
-The implementation side of this definition is complete at `8d5a4233`. The
-separate publication decision is blocked by the external gates in the readiness
-receipt; completion does not convert test signatures into release authority.
+The R3M implementation side of this definition is complete at `8d5a4233`. The
+overall Alpha.1 implementation is not complete until R3N passes on a newer
+exact head. Publication remains blocked by R3N plus the external gates in the
+readiness receipt; R3M completion does not convert test signatures into release
+authority.

@@ -479,6 +479,84 @@ pub fn verify_materialization(
     }
 }
 
+/// Removes a verified Qiongli-managed materialization and no other tree.
+///
+/// The target is pinned and verified before it is moved to a private sibling
+/// quarantine. The quarantine is verified again before recursive removal. If
+/// the post-rename state becomes ambiguous, the quarantine is retained and a
+/// cleanup-required error is returned rather than deleting unverified bytes.
+pub fn remove_materialization(
+    target: &MaterializationTarget,
+) -> Result<MaterializationReceiptV1, MaterializationError> {
+    validate_target_path(&target.path)?;
+    validate_target_filesystem(&target.path)?;
+    let parent = target
+        .path
+        .parent()
+        .expect("validated materialization targets always have a parent");
+    validate_target_parent_policy(parent, target.authorization)?;
+    let _lock = TargetLock::acquire(target)?;
+
+    let before = Handle::from_path(&target.path)
+        .map_err(|error| MaterializationError::io("pin managed target", &target.path, &error))?;
+    let receipt = verify_materialization(target)?;
+    let after = Handle::from_path(&target.path)
+        .map_err(|error| MaterializationError::io("repin managed target", &target.path, &error))?;
+    if before != after {
+        return Err(MaterializationError::TargetChanged {
+            path: target.path.clone(),
+        });
+    }
+
+    let quarantine = unique_sibling_path(parent, target_leaf(&target.path)?, "remove")?;
+    fs::rename(&target.path, &quarantine).map_err(|error| {
+        MaterializationError::io("move target to quarantine", &target.path, &error)
+    })?;
+    if let Err(error) = sync_directory(parent) {
+        return Err(removal_cleanup_error(&target.path, &quarantine, &error));
+    }
+
+    let quarantined = approve_materialization_target(&quarantine)
+        .map_err(|error| removal_cleanup_error(&target.path, &quarantine, &error))?;
+    let quarantine_before = Handle::from_path(&quarantine)
+        .map_err(|error| MaterializationError::io("pin removal quarantine", &quarantine, &error))?;
+    let observed = verify_materialization(&quarantined)
+        .map_err(|error| removal_cleanup_error(&target.path, &quarantine, &error))?;
+    let quarantine_after = Handle::from_path(&quarantine).map_err(|error| {
+        MaterializationError::io("repin removal quarantine", &quarantine, &error)
+    })?;
+    if observed != receipt || quarantine_before != quarantine_after {
+        return Err(MaterializationError::CommittedWithCleanupFailure {
+            path: target.path.clone(),
+            backup_path: Some(quarantine),
+            detail: "removal quarantine identity or receipt changed".to_owned(),
+        });
+    }
+
+    fs::remove_dir_all(&quarantine)
+        .map_err(|error| removal_cleanup_error(&target.path, &quarantine, &error))?;
+    if let Err(error) = sync_directory(parent) {
+        return Err(MaterializationError::CommittedWithCleanupFailure {
+            path: target.path.clone(),
+            backup_path: None,
+            detail: error.to_string(),
+        });
+    }
+    Ok(receipt)
+}
+
+fn removal_cleanup_error(
+    target: &Path,
+    quarantine: &Path,
+    error: &impl Display,
+) -> MaterializationError {
+    MaterializationError::CommittedWithCleanupFailure {
+        path: target.to_path_buf(),
+        backup_path: Some(quarantine.to_path_buf()),
+        detail: error.to_string(),
+    }
+}
+
 fn build_receipt(
     pack: &LoadedResourcePack<'_>,
     profile: ProfileId,

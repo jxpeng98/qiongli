@@ -11,9 +11,15 @@ Branch: `feat/2x-native-alpha1`
 
 Rolling PR: `#63`
 
+Rebaseline notice: the July 15 displayed-window review found five product gaps
+which are now owned by R3N. This document remains the accepted signed-candidate
+core design, but R3M alone no longer closes R3 or permits Alpha.1 publication.
+See `2026-07-15-qiongli-r3n-alpha1-desktop-app-closure-design.md`.
+
 ## Outcome
 
-R3M closes the bounded Lite Alpha.1 slice. It joins the accepted R3H portable
+R3M closes the bounded Lite Alpha.1 release-candidate core. It joins the
+accepted R3H portable
 archive, R3J signed release envelope, R3D/R3E target-specific PluginBundle
 grants, R3K embedded release authority, and R3L activation coordinator behind
 one signed release-candidate contract.
@@ -212,14 +218,17 @@ requires all of the following:
 - explicit maintainer authorization to create the tag and GitHub prerelease.
 
 Until every gate is recorded, PR #63 remains Draft and no tag or public release
-is created.
+is created. The R3N global-settings, Skills destination, MCP self-test,
+source-session discovery, desktop packaging, and packaged-window acceptance
+gates are additional mandatory publication gates after the July 15 rebaseline.
 
 ## Non-Claims
 
-R3M Lite Alpha.1 does not complete Full MCP, direct model backends, executing
-agents, ToolHost, full orchestration, updater, in-place upgrade, state import,
-Tier 1 cross-target matrix, Claude Desktop, Codex Desktop/ChatGPT Marketplace
-bypass, cloud/web execution, or public Marketplace distribution. OS package
-signing/notarization, SBOM, provenance, and stable update metadata remain R5
-unless separately implemented and evidenced before publication.
-
+R3M itself does not complete the R3N desktop application closure, Full MCP,
+direct model backends, executing agents, ToolHost, full orchestration, updater,
+in-place upgrade, state import, Tier 1 cross-target matrix, Claude Desktop,
+Codex Desktop/ChatGPT Marketplace bypass, cloud/web execution, or public
+Marketplace distribution. OS package signing/notarization is promoted to R3N
+for advertised Alpha.1 desktop targets; SBOM, provenance, and stable update
+metadata remain R5 unless separately implemented and evidenced before
+publication.

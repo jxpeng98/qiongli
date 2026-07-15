@@ -1,6 +1,6 @@
 # Qiongli 2 Native Acceleration Design
 
-Status: approved for roadmap integration on July 13, 2026
+Status: approved; Alpha.1 desktop-app scope rebaselined on July 15, 2026
 
 Base: `2.x` after PR #62, merge commit `ebd2d7bef651fcbd22a7310aa50f9945604fa9eb`
 
@@ -217,27 +217,76 @@ Exit criteria:
 ### R3 — Alpha.1 native product slice
 
 R3 joins content, config, Lite runtime, platform integration, and a minimal
-desktop manager.
+desktop application. The July 15 interactive review showed that a window which
+only renders status is not an acceptable Alpha.1 product. R3M therefore closes
+the signed candidate core but does not close R3 or permit publication. R3N is
+the final Alpha.1 implementation batch and promotes the prototype into an
+installable cross-platform application.
 
 Scope:
 
 - typed `InstallPlan` preview, apply, verify, repair, remove, and rollback;
 - supported Codex and Claude local adapters;
-- egui views for Skills, MCP, Providers, Integrations, and Diagnostics;
+- egui views for Overview, Skills, MCP, Providers, Integrations, and
+  Diagnostics;
+- read and edit the supported global settings through the existing versioned
+  config service, with optimistic revision checks and explicit save feedback;
+- choose and approve a Skills materialization directory through a native
+  folder picker, then verify or remove only the receipt-owned materialization;
+- run a bounded Lite MCP self-test from the MCP view and report initialization,
+  tool-registry, provider-readiness, and failure-remediation results;
+- discover Codex and Claude Code from an ordinary source/development session,
+  independently of signed-candidate installation authority;
+- package the same native product as a double-clickable macOS, Windows, and
+  Linux desktop application while retaining its explicit CLI modes;
 - CLI and UI calls through the same service layer;
-- current advertised target artifact and clean-machine startup evidence.
+- signed current-target artifacts and clean-machine application evidence.
 
 Exit criteria:
 
-- a clean machine can start the CLI and UI without Rust, Python, or Node;
-- the user can inspect embedded skills, configure a provider, start Lite MCP,
-  register one Codex and one Claude local surface, diagnose status, and remove
-  the managed integration;
+- a clean machine can start the CLI and launch the packaged application from
+  the operating-system shell without Rust, Python, Node, Cargo, npm, or pip;
+- the user can inspect and update supported global settings, restart the app,
+  and observe the persisted revision without exposing secret values;
+- the user can select a Skills destination, preview the exact operation,
+  materialize the selected profile, verify it, and remove only managed files;
+- the MCP view can complete a bounded native Lite self-test without spawning a
+  language runtime and can distinguish runtime, provider, and client-registration
+  failures;
+- source and packaged sessions can discover installed Codex and Claude Code,
+  while mutation remains separately gated by an authenticated release
+  candidate and explicit approvals;
+- macOS `.app`, Windows desktop executable/package, and Linux AppImage/desktop
+  launcher artifacts open by normal desktop activation and use the same typed
+  services as `qiongli ui`;
+- the user can register one Codex and one Claude local surface, diagnose status,
+  and remove the managed integration;
 - release notes state the actual target and incomplete Full-runtime boundary;
-- all required alpha.1 native checks pass on the merge candidate.
+- displayed-window, keyboard, scaling, and basic screen-reader acceptance plus
+  all required Alpha.1 native checks pass on the exact merge candidate.
 
 R3 completion allows the Draft PR to become Ready and permits
 `v2.0.0-alpha.1` preparation.
+
+#### R3N — Alpha.1 desktop application closure
+
+R3N is deliberately one short closure batch on the existing rolling branch,
+not a new architecture phase or PR. It is implemented in five dependency-
+ordered checkpoints:
+
+1. global-settings edit/save and Skills destination materialization;
+2. Lite MCP self-test and source-session Codex/Claude Code discovery;
+3. no-argument/desktop launcher composition using the existing UI and service
+   layer;
+4. macOS, Windows, and Linux application packaging; and
+5. packaged-window, clean-machine, real-client, signing, and release-candidate
+   regeneration acceptance.
+
+R3N does not add Full MCP, agents, ToolHost, the orchestrator, an updater, cloud
+execution, or public Marketplace distribution. Those boundaries remain R4 or
+later. R3N also does not permit UI code to write config, materialize content,
+launch a test, or inspect client roots directly; every operation crosses an
+existing or narrowly extended typed service boundary.
 
 ### R4 — Full native runtime
 
@@ -249,13 +298,57 @@ R4 targets `v2.0.0-alpha.2` rather than reopening the alpha.1 branch.
 
 ### R5 — Native cutover and beta
 
-The final migration milestone adds the complete Tier 1 artifact matrix,
+The final runtime migration milestone adds the complete Tier 1 artifact matrix,
 state-import and rollback acceptance, signed update metadata, packaging
 evidence, and removal of Python/Node production invocation.
 
 R5 completion permits `v2.0.0-beta.1`. Beta hardening and stable promotion are
 separate release decisions based on observed defects, not legacy parity-suite
 completion.
+
+### R5B — Legacy Python and Node source retirement
+
+R5B begins only after `v2.0.0-beta.1` has been accepted and the R5 evidence
+proves that no supported product, installer, plugin, MCP, agent, orchestrator,
+packaging, update, or recovery path invokes Python or Node. Runtime cutover and
+source deletion are separate gates: R5 removes production invocation; R5B
+removes superseded implementation from the active `2.x` tree.
+
+R5B removes:
+
+- the `packages/python-qiongli` product implementation after every advertised
+  capability has an accepted Rust owner;
+- Python-only product tests, entry points, packaging metadata, and compatibility
+  adapters which no longer protect a supported path; and
+- superseded Node product/runtime code once its native replacement and
+  distribution path have the same acceptance evidence.
+
+R5B preserves:
+
+- the protected `release/1.x-python` branch and its critical-fix policy;
+- immutable normalized Python, Rust Lite, and Node oracle fixtures, schemas,
+  checksums, package-tree evidence, and release acceptance receipts; and
+- non-product repository automation that still uses Python or Node only when it
+  is explicitly inventoried, has no installed-product/runtime role, and has a
+  named migration or retention decision.
+
+R5B exit criteria:
+
+- repository and package audits find no Python or Node production invocation,
+  dependency, executable entry point, or published product payload;
+- deleting the retired sources does not reduce the accepted native capability,
+  migration, rollback, or release evidence;
+- native CI, the Tier 1 package matrix, clean-machine installation, update,
+  rollback, and removal acceptance pass from the deletion head;
+- surviving maintenance scripts are documented as build/repository tooling and
+  cannot become hidden user runtime dependencies; and
+- stable promotion documentation points legacy maintenance to
+  `release/1.x-python` rather than retaining a second product implementation on
+  `2.x`.
+
+R5B completion is required before `v2.0.0` stable promotion. It does not require
+rewriting every repository maintenance script in Rust merely because that
+script is implemented in Python or Node.
 
 ## Long-Flow Development Loop
 

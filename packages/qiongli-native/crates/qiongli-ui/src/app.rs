@@ -1,10 +1,12 @@
 use eframe::egui::{
     self, Color32, ComboBox, Frame, Grid, Id, Modal, RichText, ScrollArea, TextEdit, Ui,
 };
+use zeroize::Zeroizing;
 
 use crate::{
     CapabilityView, DesktopEvent, DesktopIntent, DesktopSection, DesktopService, DesktopSnapshotV1,
-    IntegrationTarget, OperationPreview, PrivateText, ProviderKind, StatusCode,
+    GlobalSettingsPatch, IntegrationTarget, OperationKind, OperationPreview, PrivateDisplayText,
+    PrivateText, ProfileKind, ProviderKind, PublicSettingChange, StatusCode,
 };
 
 const TWO_COLUMN_MINIMUM_WIDTH: f32 = 760.0;
@@ -17,12 +19,63 @@ struct Feedback {
     code: &'static str,
 }
 
+struct GlobalSettingsEditor {
+    revision: u64,
+    default_profile: ProfileKind,
+    providers_enabled: [bool; 5],
+    openalex_setting_present: bool,
+    crossref_setting_present: bool,
+    openalex_email: Zeroizing<String>,
+    crossref_email: Zeroizing<String>,
+    clear_openalex_email: bool,
+    clear_crossref_email: bool,
+}
+
+impl GlobalSettingsEditor {
+    fn from_snapshot(snapshot: &DesktopSnapshotV1) -> Option<Self> {
+        Some(Self {
+            revision: snapshot.config.revision?,
+            default_profile: snapshot.config.default_profile?,
+            providers_enabled: snapshot.config.providers.map(|provider| provider.enabled),
+            openalex_setting_present: snapshot.config.providers[0].public_setting_present,
+            crossref_setting_present: snapshot.config.providers[2].public_setting_present,
+            openalex_email: Zeroizing::new(String::new()),
+            crossref_email: Zeroizing::new(String::new()),
+            clear_openalex_email: false,
+            clear_crossref_email: false,
+        })
+    }
+
+    fn patch(&self) -> GlobalSettingsPatch {
+        GlobalSettingsPatch {
+            expected_revision: self.revision,
+            default_profile: self.default_profile,
+            providers_enabled: self.providers_enabled,
+            openalex_email: public_setting_change(&self.openalex_email, self.clear_openalex_email),
+            crossref_email: public_setting_change(&self.crossref_email, self.clear_crossref_email),
+        }
+    }
+}
+
+fn public_setting_change(value: &str, clear: bool) -> PublicSettingChange {
+    if clear {
+        PublicSettingChange::Clear
+    } else if value.trim().is_empty() {
+        PublicSettingChange::Keep
+    } else {
+        PublicSettingChange::Replace(PrivateText::new(value.to_owned()))
+    }
+}
+
 pub struct QiongliDesktopApp {
     service: Box<dyn DesktopService>,
     snapshot: DesktopSnapshotV1,
     section: DesktopSection,
     provider: ProviderKind,
     public_email: String,
+    global_settings: Option<GlobalSettingsEditor>,
+    skills_profile: ProfileKind,
+    skills_destination: Option<PrivateDisplayText>,
     feedback: Option<Feedback>,
     preview: Option<OperationPreview>,
 }
@@ -45,6 +98,9 @@ impl QiongliDesktopApp {
             section: DesktopSection::Overview,
             provider: ProviderKind::Crossref,
             public_email: String::new(),
+            global_settings: None,
+            skills_profile: ProfileKind::SkillOnly,
+            skills_destination: None,
             feedback,
             preview: None,
         }
@@ -101,14 +157,292 @@ impl QiongliDesktopApp {
             .id_salt("desktop-content")
             .auto_shrink([false, false])
             .show(ui, |ui| match self.section {
-                DesktopSection::Overview => render_overview(ui, &self.snapshot),
-                DesktopSection::Skills => render_skills(ui, &self.snapshot),
+                DesktopSection::Overview => self.render_overview(ui),
+                DesktopSection::Skills => self.render_skills(ui),
                 DesktopSection::Mcp => render_mcp(ui, &self.snapshot),
                 DesktopSection::Providers => self.render_providers(ui),
                 DesktopSection::Integrations => render_integrations(ui, &self.snapshot),
                 DesktopSection::Diagnostics => render_diagnostics(ui, &self.snapshot),
             })
             .inner
+    }
+
+    fn render_overview(&mut self, ui: &mut Ui) -> Option<DesktopIntent> {
+        section_heading(
+            ui,
+            "Overview",
+            "Inspect the native research platform and manage supported global settings.",
+        );
+        Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+            ui.strong("Alpha boundary");
+            ui.label(if self.snapshot.capabilities.apply {
+                "This trusted release session can activate a verified local plugin only after exact preview confirmation. Secrets and MCP processes remain unavailable."
+            } else {
+                "This source-build window can edit supported public settings and materialize embedded Skills. Plugin installation still requires a trusted release session."
+            });
+        });
+        ui.add_space(16.0);
+        Grid::new("overview-status-grid")
+            .num_columns(2)
+            .spacing([32.0, 10.0])
+            .show(ui, |ui| {
+                ui.label("Embedded content");
+                status_label(ui, self.snapshot.content.status);
+                ui.end_row();
+                ui.label("Global configuration");
+                status_label(ui, self.snapshot.config.status);
+                ui.end_row();
+                ui.label("Lite MCP");
+                status_label(ui, self.snapshot.mcp.status);
+                ui.end_row();
+                ui.label("Apply operations");
+                status_label(
+                    ui,
+                    if self.snapshot.capabilities.apply {
+                        StatusCode::Ready
+                    } else {
+                        StatusCode::Unavailable
+                    },
+                );
+                ui.end_row();
+                for integration in self.snapshot.integrations {
+                    ui.label(integration.target.label());
+                    status_label(ui, integration.overall);
+                    ui.end_row();
+                }
+            });
+        ui.add_space(16.0);
+        ui.horizontal(|ui| {
+            if ui
+                .add_enabled(
+                    self.snapshot.capabilities.refresh,
+                    egui::Button::new("Refresh overview"),
+                )
+                .clicked()
+            {
+                return Some(DesktopIntent::Refresh);
+            }
+            if ui
+                .add_enabled(
+                    self.snapshot.capabilities.config_edit,
+                    egui::Button::new("Edit global settings"),
+                )
+                .clicked()
+            {
+                self.global_settings = GlobalSettingsEditor::from_snapshot(&self.snapshot);
+                self.feedback = None;
+            }
+            None
+        })
+        .inner
+        .or_else(|| self.render_global_settings_editor(ui))
+    }
+
+    fn render_global_settings_editor(&mut self, ui: &mut Ui) -> Option<DesktopIntent> {
+        let Some(editor) = self.global_settings.as_mut() else {
+            if !self.snapshot.capabilities.config_edit {
+                ui.label("Global settings cannot be edited in the current configuration state.");
+            }
+            return None;
+        };
+        ui.add_space(16.0);
+        let mut cancel = false;
+        let mut preview = false;
+        Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
+            ui.heading("Global settings");
+            ui.label(format!("Editing revision {}", editor.revision));
+            ui.label("Stored secret values and references remain read-only in Alpha.1.");
+            ui.add_space(8.0);
+
+            ui.horizontal(|ui| {
+                ui.label("Default profile");
+                ComboBox::from_id_salt("global-default-profile")
+                    .selected_text(editor.default_profile.id())
+                    .show_ui(ui, |ui| {
+                        for profile in ProfileKind::ALL {
+                            ui.selectable_value(&mut editor.default_profile, profile, profile.id());
+                        }
+                    });
+            });
+
+            ui.add_space(8.0);
+            ui.strong("Providers");
+            for (index, provider) in ProviderKind::ALL.into_iter().enumerate() {
+                ui.checkbox(
+                    &mut editor.providers_enabled[index],
+                    format!("Enable {}", provider.label()),
+                );
+            }
+
+            ui.add_space(8.0);
+            let openalex_label = ui.label("OpenAlex public contact email");
+            ui.add_enabled(
+                !editor.clear_openalex_email,
+                TextEdit::singleline(&mut *editor.openalex_email)
+                    .id_salt("global-openalex-email")
+                    .hint_text(if editor.openalex_setting_present {
+                        "Stored value retained when blank"
+                    } else {
+                        "researcher@example.org"
+                    })
+                    .char_limit(320)
+                    .desired_width(360.0),
+            )
+            .labelled_by(openalex_label.id);
+            ui.add_enabled(
+                editor.openalex_setting_present,
+                egui::Checkbox::new(
+                    &mut editor.clear_openalex_email,
+                    "Clear stored OpenAlex public email",
+                ),
+            );
+
+            let crossref_label = ui.label("Crossref public contact email");
+            ui.add_enabled(
+                !editor.clear_crossref_email,
+                TextEdit::singleline(&mut *editor.crossref_email)
+                    .id_salt("global-crossref-email")
+                    .hint_text(if editor.crossref_setting_present {
+                        "Stored value retained when blank"
+                    } else {
+                        "researcher@example.org"
+                    })
+                    .char_limit(320)
+                    .desired_width(360.0),
+            )
+            .labelled_by(crossref_label.id);
+            ui.add_enabled(
+                editor.crossref_setting_present,
+                egui::Checkbox::new(
+                    &mut editor.clear_crossref_email,
+                    "Clear stored Crossref public email",
+                ),
+            );
+            ui.label("Blank replacement fields preserve existing public values.");
+
+            ui.add_space(12.0);
+            ui.horizontal(|ui| {
+                if ui.button("Cancel settings edit").clicked() {
+                    cancel = true;
+                }
+                if ui.button("Preview settings changes").clicked() {
+                    preview = true;
+                }
+            });
+        });
+        if cancel {
+            self.global_settings = None;
+            self.feedback = Some(Feedback {
+                status: StatusCode::Missing,
+                message: "The settings edit was cancelled. No changes were made.",
+                code: "global-settings-edit-cancelled",
+            });
+            None
+        } else if preview {
+            Some(DesktopIntent::PreviewGlobalSettingsPatch(
+                self.global_settings
+                    .as_ref()
+                    .expect("settings editor remains available")
+                    .patch(),
+            ))
+        } else {
+            None
+        }
+    }
+
+    fn render_skills(&mut self, ui: &mut Ui) -> Option<DesktopIntent> {
+        section_heading(
+            ui,
+            "Skills",
+            "Select, materialize, and verify embedded academic workflow content.",
+        );
+        ui.label(format!("Pack: {}", self.snapshot.content.pack_id));
+        ui.label(format!(
+            "Content version: {}",
+            self.snapshot.content.content_version
+        ));
+        ui.label(format!("Entries: {}", self.snapshot.content.entry_count));
+        ui.add_space(12.0);
+        Grid::new("profile-grid")
+            .num_columns(3)
+            .striped(true)
+            .spacing([24.0, 8.0])
+            .show(ui, |ui| {
+                ui.strong("Profile");
+                ui.strong("Resource kinds");
+                ui.strong("Purpose");
+                ui.end_row();
+                for profile in self.snapshot.content.profiles {
+                    ui.label(profile.profile.id());
+                    ui.label(profile.included_resource_kinds.to_string());
+                    ui.label(profile.profile.description());
+                    ui.end_row();
+                }
+            });
+
+        ui.add_space(16.0);
+        ui.horizontal(|ui| {
+            ui.label("Profile to materialize");
+            ComboBox::from_id_salt("skills-profile")
+                .selected_text(self.skills_profile.id())
+                .show_ui(ui, |ui| {
+                    for profile in ProfileKind::ALL {
+                        ui.selectable_value(&mut self.skills_profile, profile, profile.id());
+                    }
+                });
+        });
+        if ui
+            .add_enabled(
+                self.snapshot.capabilities.skills_materialize,
+                egui::Button::new("Choose Skills destination"),
+            )
+            .clicked()
+        {
+            self.feedback = None;
+            return Some(DesktopIntent::SelectSkillsDestination);
+        }
+        if let Some(destination) = &self.skills_destination {
+            ui.label("Selected destination");
+            ui.monospace(destination.expose());
+        } else {
+            ui.label("No destination selected. Choose an empty or Qiongli-managed folder.");
+        }
+        ui.add_space(8.0);
+        let destination_ready =
+            self.skills_destination.is_some() && self.snapshot.capabilities.skills_materialize;
+        ui.horizontal(|ui| {
+            if ui
+                .add_enabled(
+                    destination_ready,
+                    egui::Button::new("Preview Skills materialization"),
+                )
+                .clicked()
+            {
+                return Some(DesktopIntent::PreviewSkillsMaterialization {
+                    profile: self.skills_profile,
+                });
+            }
+            if ui
+                .add_enabled(
+                    destination_ready,
+                    egui::Button::new("Verify Skills materialization"),
+                )
+                .clicked()
+            {
+                return Some(DesktopIntent::VerifySkillsMaterialization);
+            }
+            if ui
+                .add_enabled(
+                    destination_ready,
+                    egui::Button::new("Remove Skills materialization"),
+                )
+                .clicked()
+            {
+                return Some(DesktopIntent::PreviewSkillsRemoval);
+            }
+            None
+        })
+        .inner
     }
 
     fn render_providers(&mut self, ui: &mut Ui) -> Option<DesktopIntent> {
@@ -191,6 +525,10 @@ impl QiongliDesktopApp {
             ui.set_max_width(460.0);
             ui.heading(preview.title);
             ui.label(preview.summary);
+            if let Some(target) = &preview.display_target {
+                ui.label("Selected destination");
+                ui.monospace(target.expose());
+            }
             if let Some(digest) = &preview.plan_digest_sha256 {
                 ui.label("Exact plan digest");
                 ui.monospace(digest);
@@ -251,6 +589,14 @@ impl QiongliDesktopApp {
                     });
                 }
             },
+            DesktopEvent::SkillsDestinationSelected { display_path } => {
+                self.skills_destination = Some(display_path);
+                self.feedback = Some(Feedback {
+                    status: StatusCode::Ready,
+                    message: "The Skills destination was selected and validated.",
+                    code: "skills-destination-selected",
+                });
+            }
             DesktopEvent::ValidationFailed { code } => {
                 self.feedback = Some(Feedback {
                     status: StatusCode::Attention,
@@ -272,10 +618,17 @@ impl QiongliDesktopApp {
                 }
             }
             DesktopEvent::Completed { code } => {
+                let completed_kind = self.preview.as_ref().map(|preview| preview.kind);
                 self.preview = None;
                 let snapshot = self.service.snapshot();
                 if snapshot.validate().is_ok() {
                     self.snapshot = snapshot;
+                    if completed_kind == Some(OperationKind::GlobalSettings) {
+                        self.global_settings = None;
+                    }
+                    if completed_kind == Some(OperationKind::SkillsRemoval) {
+                        self.skills_destination = None;
+                    }
                     self.feedback = Some(Feedback {
                         status: StatusCode::Ready,
                         message: "The approved operation completed.",
@@ -315,6 +668,8 @@ fn quarantine_invalid_snapshot(snapshot: &mut DesktopSnapshotV1) {
     snapshot.content.content_version = "unavailable".to_owned();
     snapshot.capabilities = CapabilityView {
         refresh: false,
+        config_edit: false,
+        skills_materialize: false,
         provider_preview: false,
         integration_preview: false,
         apply: false,
@@ -386,98 +741,6 @@ fn render_compact_navigation(ui: &mut Ui, section: &mut DesktopSection) {
                 }
             });
     });
-}
-
-fn render_overview(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<DesktopIntent> {
-    section_heading(
-        ui,
-        "Overview",
-        "A read-only view of the embedded research platform and local integrations.",
-    );
-    Frame::group(ui.style()).inner_margin(12).show(ui, |ui| {
-        ui.strong("Alpha boundary");
-        ui.label(if snapshot.capabilities.apply {
-            "This trusted release session can activate a verified local plugin only after exact preview confirmation. It cannot store secrets or launch MCP processes."
-        } else {
-            "This source-build window can inspect and preview. It cannot install plugins, write configuration, store secrets, or launch MCP processes."
-        });
-    });
-    ui.add_space(16.0);
-    Grid::new("overview-status-grid")
-        .num_columns(2)
-        .spacing([32.0, 10.0])
-        .show(ui, |ui| {
-            ui.label("Embedded content");
-            status_label(ui, snapshot.content.status);
-            ui.end_row();
-            ui.label("Global configuration");
-            status_label(ui, snapshot.config.status);
-            ui.end_row();
-            ui.label("Lite MCP");
-            status_label(ui, snapshot.mcp.status);
-            ui.end_row();
-            ui.label("Apply operations");
-            status_label(
-                ui,
-                if snapshot.capabilities.apply {
-                    StatusCode::Ready
-                } else {
-                    StatusCode::Unavailable
-                },
-            );
-            ui.end_row();
-            for integration in snapshot.integrations {
-                ui.label(integration.target.label());
-                status_label(ui, integration.overall);
-                ui.end_row();
-            }
-        });
-    ui.add_space(16.0);
-    if ui
-        .add_enabled(
-            snapshot.capabilities.refresh,
-            egui::Button::new("Refresh overview"),
-        )
-        .clicked()
-    {
-        return Some(DesktopIntent::Refresh);
-    }
-    None
-}
-
-fn render_skills(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<DesktopIntent> {
-    section_heading(
-        ui,
-        "Skills",
-        "Verified academic workflow content embedded in this executable.",
-    );
-    ui.label(format!("Pack: {}", snapshot.content.pack_id));
-    ui.label(format!(
-        "Content version: {}",
-        snapshot.content.content_version
-    ));
-    ui.label(format!("Entries: {}", snapshot.content.entry_count));
-    ui.add_space(12.0);
-    Grid::new("profile-grid")
-        .num_columns(3)
-        .striped(true)
-        .spacing([24.0, 8.0])
-        .show(ui, |ui| {
-            ui.strong("Profile");
-            ui.strong("Resource kinds");
-            ui.strong("Purpose");
-            ui.end_row();
-            for profile in snapshot.content.profiles {
-                ui.label(profile.profile.id());
-                ui.label(profile.included_resource_kinds.to_string());
-                ui.label(profile.profile.description());
-                ui.end_row();
-            }
-        });
-    ui.add_space(12.0);
-    ui.add_enabled(false, egui::Button::new("Materialize selected profile"));
-    ui.label("Materialization is unavailable until an approved target-selection service exists.");
-    None
 }
 
 fn render_mcp(ui: &mut Ui, snapshot: &DesktopSnapshotV1) -> Option<DesktopIntent> {
@@ -659,6 +922,57 @@ mod tests {
         fn execute(&mut self, intent: DesktopIntent) -> DesktopEvent {
             match intent {
                 DesktopIntent::Refresh => DesktopEvent::SnapshotReplaced(self.snapshot.clone()),
+                DesktopIntent::PreviewGlobalSettingsPatch(_) => {
+                    DesktopEvent::PreviewReady(OperationPreview {
+                        token: OperationToken::new(7),
+                        kind: OperationKind::GlobalSettings,
+                        title: "Global settings preview",
+                        summary: "A bounded fake settings preview.",
+                        display_target: None,
+                        plan_digest_sha256: Some("7".repeat(64)),
+                        approvals_required: vec![crate::OperationApproval::ClientConfigChange],
+                        can_confirm: true,
+                        blocked_reason: None,
+                    })
+                }
+                DesktopIntent::SelectSkillsDestination => DesktopEvent::SkillsDestinationSelected {
+                    display_path: PrivateDisplayText::new(
+                        "/private/fake-skills-destination".to_owned(),
+                    ),
+                },
+                DesktopIntent::PreviewSkillsMaterialization { .. } => {
+                    DesktopEvent::PreviewReady(OperationPreview {
+                        token: OperationToken::new(7),
+                        kind: OperationKind::SkillsMaterialization,
+                        title: "Skills materialization preview",
+                        summary: "A bounded fake Skills preview.",
+                        display_target: Some(PrivateDisplayText::new(
+                            "/private/fake-skills-destination".to_owned(),
+                        )),
+                        plan_digest_sha256: Some("7".repeat(64)),
+                        approvals_required: vec![crate::OperationApproval::FilesystemWrite],
+                        can_confirm: true,
+                        blocked_reason: None,
+                    })
+                }
+                DesktopIntent::VerifySkillsMaterialization => DesktopEvent::Completed {
+                    code: "skills-materialization-verified",
+                },
+                DesktopIntent::PreviewSkillsRemoval => {
+                    DesktopEvent::PreviewReady(OperationPreview {
+                        token: OperationToken::new(7),
+                        kind: OperationKind::SkillsRemoval,
+                        title: "Skills removal preview",
+                        summary: "A bounded fake Skills removal preview.",
+                        display_target: Some(PrivateDisplayText::new(
+                            "/private/fake-skills-destination".to_owned(),
+                        )),
+                        plan_digest_sha256: Some("7".repeat(64)),
+                        approvals_required: vec![crate::OperationApproval::FilesystemWrite],
+                        can_confirm: true,
+                        blocked_reason: None,
+                    })
+                }
                 DesktopIntent::PreviewProviderPublicSetting { .. } => {
                     DesktopEvent::ValidationFailed {
                         code: "provider-public-setting-invalid",
@@ -667,8 +981,10 @@ mod tests {
                 DesktopIntent::PreviewIntegration { .. } => {
                     DesktopEvent::PreviewReady(OperationPreview {
                         token: OperationToken::new(7),
+                        kind: OperationKind::Activation,
                         title: "Test operation preview",
                         summary: "A bounded fake service preview.",
+                        display_target: None,
                         plan_digest_sha256: Some("7".repeat(64)),
                         approvals_required: crate::OperationApproval::ACTIVATION.to_vec(),
                         can_confirm: true,
@@ -697,7 +1013,7 @@ mod tests {
         for (destination, marker) in [
             (
                 "Skills",
-                "Verified academic workflow content embedded in this executable.",
+                "Select, materialize, and verify embedded academic workflow content.",
             ),
             (
                 "MCP",
@@ -717,7 +1033,7 @@ mod tests {
             ),
             (
                 "Overview",
-                "A read-only view of the embedded research platform and local integrations.",
+                "Inspect the native research platform and manage supported global settings.",
             ),
         ] {
             harness.get_by_label(destination).click_accesskit();
@@ -737,7 +1053,122 @@ mod tests {
         assert!(
             harness
                 .query_all_by_value(
-                    "Verified academic workflow content embedded in this executable.",
+                    "Select, materialize, and verify embedded academic workflow content.",
+                )
+                .next()
+                .is_some()
+        );
+    }
+
+    #[test]
+    fn global_settings_editor_is_labelled_and_uses_typed_confirmation() {
+        let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 900.0], 1.0);
+        harness
+            .get_by_label("Edit global settings")
+            .click_accesskit();
+        let _ = harness.run();
+
+        assert!(harness.query_by_label("Default profile").is_some());
+        assert!(harness.query_by_label("Enable Crossref").is_some());
+        assert!(
+            harness
+                .query_by_label("OpenAlex public contact email")
+                .is_some()
+        );
+        assert!(
+            harness
+                .query_by_label("Crossref public contact email")
+                .is_some()
+        );
+
+        harness.get_by_label("Enable Crossref").click_accesskit();
+        let _ = harness.run();
+        harness
+            .get_by_label("Preview settings changes")
+            .click_accesskit();
+        let _ = harness.run();
+        assert!(
+            harness
+                .query_all_by_value("Global settings preview")
+                .next()
+                .is_some()
+        );
+        assert!(
+            harness
+                .query_all_by_value("• Client configuration change")
+                .next()
+                .is_some()
+        );
+        harness.get_by_label("Confirm operation").click_accesskit();
+        let _ = harness.run();
+        assert!(
+            harness
+                .query_all_by_value("test-operation-completed")
+                .next()
+                .is_some()
+        );
+        assert!(harness.query_by_label("Cancel settings edit").is_none());
+    }
+
+    #[test]
+    fn skills_destination_can_preview_and_verify() {
+        let mut harness = desktop_harness(sample_snapshot(), [1_080.0, 900.0], 1.0);
+        harness.get_by_label("Skills").click_accesskit();
+        let _ = harness.run();
+        harness
+            .get_by_label("Choose Skills destination")
+            .click_accesskit();
+        let _ = harness.run();
+        assert!(
+            harness
+                .query_all_by_value("/private/fake-skills-destination")
+                .next()
+                .is_some()
+        );
+        harness
+            .get_by_label("Preview Skills materialization")
+            .click_accesskit();
+        let _ = harness.run();
+        assert!(
+            harness
+                .query_all_by_value("Skills materialization preview")
+                .next()
+                .is_some()
+        );
+        assert!(
+            harness
+                .query_all_by_value("• Filesystem write")
+                .next()
+                .is_some()
+        );
+        harness.get_by_label("Cancel preview").click_accesskit();
+        let _ = harness.run();
+        harness
+            .get_by_label("Verify Skills materialization")
+            .click_accesskit();
+        let _ = harness.run();
+        assert!(
+            harness
+                .query_all_by_value("skills-materialization-verified")
+                .next()
+                .is_some()
+        );
+        harness
+            .get_by_label("Remove Skills materialization")
+            .click_accesskit();
+        let _ = harness.run();
+        assert!(
+            harness
+                .query_all_by_value("Skills removal preview")
+                .next()
+                .is_some()
+        );
+        harness.get_by_label("Confirm operation").click_accesskit();
+        let _ = harness.run();
+        assert!(
+            harness
+                .query_all_by_value(
+                    "No destination selected. Choose an empty or Qiongli-managed folder.",
                 )
                 .next()
                 .is_some()
@@ -784,6 +1215,8 @@ mod tests {
             harness.state().snapshot.capabilities,
             CapabilityView {
                 refresh: false,
+                config_edit: false,
+                skills_materialize: false,
                 provider_preview: false,
                 integration_preview: false,
                 apply: false,

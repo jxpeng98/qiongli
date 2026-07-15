@@ -9,6 +9,11 @@ Roadmap slice: `R3F / UI-201` plus the read-only, service-backed portion of
 
 Scope: one native desktop shell in the canonical Qiongli executable
 
+Supersession note: R3F remains the accepted prototype boundary. Its read-only
+and unpackaged non-claims are promoted to Alpha.1 implementation requirements
+by R3N after the July 15 interactive review; see
+`2026-07-15-qiongli-r3n-alpha1-desktop-app-closure-design.md`.
+
 ## Outcome
 
 R3F adds the first Rust-native Qiongli desktop manager without weakening the

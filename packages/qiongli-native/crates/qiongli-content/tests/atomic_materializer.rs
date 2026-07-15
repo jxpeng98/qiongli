@@ -8,8 +8,8 @@ use qiongli_content::{
     CompatibleProduct, LogicalMode, MATERIALIZATION_RECEIPT_FILE, MATERIALIZATION_RECEIPT_VERSION,
     MaterializationAuthorization, MaterializationError, ProfileId, ResourcePackBuildMetadata,
     approve_materialization_target, build_resource_pack, collect_canonical_sources,
-    load_resource_pack, materialize_profile, temporary_materialization_target,
-    verify_materialization,
+    load_resource_pack, materialize_profile, remove_materialization,
+    temporary_materialization_target, verify_materialization,
 };
 
 const DIRECTORY_ROOTS: [&str; 12] = [
@@ -238,6 +238,32 @@ fn materializes_only_the_selected_profile_with_a_canonical_managed_receipt() {
     );
 
     assert_logical_modes(target.path());
+}
+
+#[test]
+fn removes_only_a_verified_managed_materialization() {
+    let tree = TestTree::new();
+    let built = tree.build("1.19.0-beta.1");
+    let loaded =
+        load_resource_pack(built.core_bytes(), built.pack_sha256()).expect("test pack must load");
+    let target = approve_materialization_target(tree.target("managed-remove"))
+        .expect("test target must be approved");
+    let unrelated = tree.target("unrelated.txt");
+    fs::write(&unrelated, b"preserve").expect("unrelated sibling must be written");
+    let receipt = materialize_profile(&loaded, "skill-only", &target)
+        .expect("verified profile must materialize");
+
+    assert_eq!(
+        remove_materialization(&target).expect("managed tree must remove"),
+        receipt
+    );
+    assert!(!target.path().exists());
+    assert_eq!(fs::read(unrelated).unwrap(), b"preserve");
+    assert!(matches!(
+        remove_materialization(&target),
+        Err(MaterializationError::MissingManagedTarget { .. })
+            | Err(MaterializationError::Io { .. })
+    ));
 }
 
 #[test]

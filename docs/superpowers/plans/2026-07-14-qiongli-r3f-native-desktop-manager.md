@@ -4,6 +4,10 @@ Date: 2026-07-14
 
 Status: accepted at exact implementation-and-CI head `4d706033`
 
+Supersession note: this remains accepted prototype evidence, but the Alpha.1
+desktop milestone now continues in R3N to add operable settings, Skills path
+selection, MCP self-test, source-session discovery, and application packaging.
+
 Branch: `feat/2x-native-alpha1`
 
 Rolling PR: `#63`
