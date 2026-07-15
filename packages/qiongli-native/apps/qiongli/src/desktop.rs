@@ -2118,7 +2118,7 @@ const fn claude_error_remediation(error: ClaudeAdapterError) -> RemediationCode 
 mod tests {
     use std::ffi::OsString;
     use std::fs;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
     use std::sync::atomic::{AtomicU64, Ordering};
 
     use qiongli_config::SecretRef;
@@ -2546,11 +2546,41 @@ mod tests {
 
     fn isolated_root(name: &str) -> PathBuf {
         let sequence = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
-        fs::canonicalize(std::env::temp_dir())
-            .unwrap()
-            .join(format!(
-                "qiongli-r3f-{name}-{}-{sequence}",
-                std::process::id()
-            ))
+        let native_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .and_then(Path::parent)
+            .expect("app crate must live below the native workspace");
+        let fixture_base = native_root.join("target/qiongli-desktop-service-tests");
+        fs::create_dir_all(&fixture_base).expect("desktop fixture base must be created");
+        let root = fixture_base.join(format!(
+            "qiongli-r3f-{name}-{}-{sequence}",
+            std::process::id()
+        ));
+        create_private_directory(&root);
+        root
+    }
+
+    #[cfg(unix)]
+    fn create_private_directory(path: &Path) {
+        use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
+
+        let mut builder = fs::DirBuilder::new();
+        builder.mode(0o700);
+        builder
+            .create(path)
+            .expect("private directory must be created");
+        fs::set_permissions(path, fs::Permissions::from_mode(0o700))
+            .expect("private directory mode must be retained");
+    }
+
+    #[cfg(windows)]
+    fn create_private_directory(path: &Path) {
+        qiongli_windows_security::create_owner_only_directory(path)
+            .expect("owner-only Windows directory must be created");
+    }
+
+    #[cfg(not(any(unix, windows)))]
+    fn create_private_directory(path: &Path) {
+        fs::create_dir(path).expect("private directory must be created");
     }
 }
