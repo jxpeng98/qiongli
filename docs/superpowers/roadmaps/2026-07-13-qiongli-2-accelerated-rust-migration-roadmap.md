@@ -1098,6 +1098,16 @@ superseded head is not reported as current-head evidence.
     final candidate regeneration, production signing/notarization,
     Windows/Linux interactive evidence, and explicit publication authorization
     remain open gates.
+25. R3N Batch 5 now has candidate-bound real-client technical evidence at
+    implementation head `5f421543`. One ephemeral-test-signed macOS aarch64
+    candidate completed isolated actual Codex CLI `0.144.4` and Claude Code
+    `2.1.209` install, cache verification, cached empty-`PATH` 12-tool Lite MCP,
+    client cleanup, absence verification, and Qiongli candidate verify/remove.
+    The digest-only receipt is
+    `tooling/release/acceptance/v2.0.0-alpha.1-r3n-real-clients.md` and records
+    `publication_allowed: false`. Final production-signed regeneration,
+    remaining macOS gates, deferred Windows/Linux interactive evidence, and
+    explicit publication authorization remain open.
 
 ## Program Done
 

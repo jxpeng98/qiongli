@@ -71,7 +71,7 @@ Implemented evidence:
   candidate-required states with fixed remediation.
 - [x] Test isolated adapters with missing, discovered-unmanaged, managed,
   drifted, conflict, and recovery classifications.
-- [ ] Record release-grade real-client evidence when supported client binaries
+- [x] Record release-grade real-client evidence when supported client binaries
   and their required validators are available.
 
 **Checkpoint:** The MCP button produces actionable evidence, and the
@@ -232,6 +232,10 @@ remain Batch 5 gates.
   - [ ] Complete the corresponding Windows and Linux interactive journeys.
 - [ ] Run real Codex and Claude Code discovery plus candidate-backed install,
   diagnose, and remove on supported isolated clients.
+  - [x] Complete the non-publishing, ephemeral-test-signed macOS candidate
+    journey against actual Codex and Claude Code clients.
+  - [ ] Regenerate the same evidence from the final accepted source and
+    production-signed candidate.
 - [ ] Apply external macOS signing/notarization, Windows Authenticode, and
   signed Linux release metadata only through maintainer-controlled boundaries.
 - [ ] Regenerate the signed candidate, desktop artifact descriptors, release
@@ -255,9 +259,19 @@ Current non-publishing Batch 5 evidence:
 - The tested client binaries and configuration roots were explicit and
   isolated. A Python environment with PyYAML was used only by the external
   Plugin Creator development validator; no Qiongli product path used Python.
-- These local results do not yet close the unchecked real-client gate: final
-  candidate-backed diagnose/remove evidence must be regenerated from the
-  final exact source alongside the signed publication ledger.
+- Those earlier separately composed local results did not close the
+  candidate-bound gate. Final production evidence must still be regenerated
+  from the final exact source alongside the signed publication ledger.
+- Implementation head `5f421543` adds one candidate-bound external-client
+  path. Its macOS aarch64 run used actual Codex CLI `0.144.4` and Claude Code
+  `2.1.209`, verified each client cache against the candidate-materialized
+  source receipt, launched the cached 12-tool Lite MCP with an empty `PATH`,
+  and completed client plus Qiongli cleanup and absence checks. The digest-only
+  receipt is
+  `tooling/release/acceptance/v2.0.0-alpha.1-r3n-real-clients.md`.
+- That receipt remains non-publishing and ephemeral-test-signed. It closes the
+  implementation-head real-client mechanism, not the final production-signed
+  candidate regeneration gate.
 - Exact Native CI run `29421269995` passed all nine jobs for branch head
   `1ebca2be`; its macOS artifact was downloaded by artifact id `8345427437` and
   verified against the package archive, manifest, and receipt hashes.
