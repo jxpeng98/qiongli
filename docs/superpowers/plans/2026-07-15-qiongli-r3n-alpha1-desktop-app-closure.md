@@ -304,6 +304,18 @@ Current non-publishing Batch 5 evidence:
 - This closes the repeatable macOS automated-preflight mechanism only. It does
   not close clean-machine window observation, manual scale/VoiceOver/contrast,
   production signing, or the deferred Windows/Linux interactive gates.
+- Implementation head `8d04320c` adds the maintainer macOS signing and
+  notarization entry point. Exact Native CI run `29442084912` passed all nine
+  jobs; its macOS package job proved that missing production credentials fail
+  without an output, then passed exact-source snapshotting, ad-hoc nested
+  signing, hardened-runtime and bundle verification, final-archive round-trip
+  verification, and non-publishing receipt generation. Uploaded artifact
+  `8353961942` binds unsigned package SHA-256 `2b121a8b...` and signing-test
+  receipt SHA-256 `32743354...`. The exact evidence is
+  `tooling/release/acceptance/v2.0.0-alpha.1-r3n-macos-signing-boundary.md`.
+- That evidence accepts the signing mechanism only. Developer ID signing,
+  Notary service submission, stapling, production Gatekeeper assessment, and
+  the final production ledger remain unrun.
 
 ## Fast Validation Loop
 
