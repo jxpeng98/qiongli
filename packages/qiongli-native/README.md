@@ -789,6 +789,11 @@ authority/source-bound Release binary, normalizes Cargo output into a fresh
 owner-private single-link artifact source, and verifies that the candidate
 directory contains exactly the archive, signed candidate JSON, and signed
 release notes. The normalized source is removed immediately after composition.
+The release notes are rendered from a reviewed template for the exact current
+OS, architecture, artifact identity, and three candidate filenames before the
+candidate is signed. Acceptance evidence records each candidate file's exact
+name, byte length, and SHA-256 so review does not depend on an unbound generic
+notes document or an inferred target.
 
 Acceptance extracts and runs only that binary from outside the checkout with
 an empty `PATH` and isolated homes. It covers version, embedded skills,

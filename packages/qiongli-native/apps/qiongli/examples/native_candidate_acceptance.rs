@@ -10,8 +10,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use ed25519_dalek::{Signer, SigningKey};
 use qiongli_platform::{
-    ClientActivationTarget, GrantMode, GrantSignatureV1, InstallerKind, IntegrationScope,
-    LaunchGrantV1, NativeClientPluginGrantV1, NativeReleaseAuthority, NativeReleaseSignatureV1,
+    Architecture, ArtifactIdentityV1, ClientActivationTarget, GrantMode, GrantSignatureV1,
+    InstallerKind, IntegrationScope, LaunchGrantV1, MAX_NATIVE_RELEASE_NOTES_BYTES,
+    NativeClientPluginGrantV1, NativeReleaseAuthority, NativeReleaseSignatureV1, OperatingSystem,
     ReleaseChannel, SignatureAlgorithm, SignedLaunchGrantV1, SignedNativeReleaseCandidateV1,
     SignedNativeReleaseEnvelopeV1, approve_native_artifact_target,
     approve_native_portable_archive_target, build_native_release_candidate,
@@ -24,6 +25,7 @@ use qiongli_platform::{
 };
 use qiongli_runtime::LITE_PUBLIC_TOOL_NAMES;
 use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
 
 const RELEASE_KEY_ID: &str = "alpha1-acceptance-release-key";
 const LAUNCH_KEY_ID: &str = "alpha1-acceptance-launch-key";
@@ -31,13 +33,7 @@ const GENERATION: u64 = 1;
 const RELEASE_VALIDITY_SECONDS: u64 = 3_600;
 const CANDIDATE_VALIDITY_SECONDS: u64 = 1_800;
 const MAX_STAGED_PRODUCT_BYTES: u64 = 128 * 1024 * 1024;
-const NOTES: &[u8] = b"# Qiongli 2.0.0-alpha.1 acceptance candidate\n\n\
-Test-signed, assembled-unpublished current-target Lite candidate. Supports the native CLI, UI \
-startup preflight, embedded skills, Lite MCP, and receipt-backed Codex local and Claude Code \
-local source registration. Client install, enablement, trust, and reload remain host actions. \
-Full MCP, executing agents, ToolHost, full orchestration, Claude Desktop, Codex/ChatGPT \
-Marketplace bypass, cloud execution, updater behavior, public publication, OS \
-signing/notarization, SBOM, provenance, and cross-target packages are not claimed.\n";
+const RELEASE_NOTES_TEMPLATE: &str = include_str!("native_alpha1_release_notes.md.tmpl");
 
 fn main() {
     if let Err(code) = run() {
@@ -102,6 +98,20 @@ fn run() -> Result<(), &'static str> {
     let archive =
         compose_native_portable_archive(content.pack(), &artifact_target, &archive_target)
             .map_err(|_| "candidate-acceptance-archive-compose-failed")?;
+    let candidate_name = native_release_candidate_file_name(&artifact)
+        .map_err(|_| "candidate-acceptance-candidate-name-invalid")?;
+    let notes_name = native_release_notes_file_name(&artifact)
+        .map_err(|_| "candidate-acceptance-notes-name-invalid")?;
+    let notes = render_release_notes(
+        &artifact,
+        &artifact_id,
+        &archive_name,
+        &candidate_name,
+        &notes_name,
+    )?;
+    let notes_size_bytes =
+        u64::try_from(notes.len()).map_err(|_| "candidate-acceptance-notes-size-invalid")?;
+    let notes_sha256 = sha256_hex(&notes);
 
     let now_unix = now_unix()?;
     let portable_grant = sign_grant(
@@ -163,7 +173,7 @@ fn run() -> Result<(), &'static str> {
                 now_unix,
             )?,
         ],
-        NOTES,
+        &notes,
         now_unix,
         now_unix.saturating_add(CANDIDATE_VALIDITY_SECONDS),
     )
@@ -180,20 +190,17 @@ fn run() -> Result<(), &'static str> {
             value_hex: encode_hex(&candidate_signature.to_bytes()),
         },
     };
-    let candidate_name = native_release_candidate_file_name(&artifact)
-        .map_err(|_| "candidate-acceptance-candidate-name-invalid")?;
     let candidate_path = candidate_root.join(&candidate_name);
-    fs::write(
-        &candidate_path,
-        signed_candidate
-            .to_canonical_json()
-            .map_err(|_| "candidate-acceptance-candidate-serialization-failed")?,
-    )
-    .map_err(|_| "candidate-acceptance-candidate-write-failed")?;
-    let notes_name = native_release_notes_file_name(&artifact)
-        .map_err(|_| "candidate-acceptance-notes-name-invalid")?;
+    let candidate_bytes = signed_candidate
+        .to_canonical_json()
+        .map_err(|_| "candidate-acceptance-candidate-serialization-failed")?;
+    let candidate_size_bytes = u64::try_from(candidate_bytes.len())
+        .map_err(|_| "candidate-acceptance-candidate-size-invalid")?;
+    let candidate_sha256 = sha256_hex(&candidate_bytes);
+    fs::write(&candidate_path, &candidate_bytes)
+        .map_err(|_| "candidate-acceptance-candidate-write-failed")?;
     let notes_path = candidate_root.join(&notes_name);
-    fs::write(&notes_path, NOTES).map_err(|_| "candidate-acceptance-notes-write-failed")?;
+    fs::write(&notes_path, &notes).map_err(|_| "candidate-acceptance-notes-write-failed")?;
     assert_exact_candidate_files(
         &candidate_root,
         [&archive_name, &candidate_name, &notes_name],
@@ -226,6 +233,23 @@ fn run() -> Result<(), &'static str> {
         "source_commit": arguments.source_commit,
         "artifact": artifact,
         "candidate_files": [archive_name, candidate_name, notes_name],
+        "candidate_set": {
+            "archive": {
+                "file": archive.file_name(),
+                "size_bytes": archive.size_bytes(),
+                "sha256": archive.archive_sha256()
+            },
+            "candidate": {
+                "file": candidate_name,
+                "size_bytes": candidate_size_bytes,
+                "sha256": candidate_sha256
+            },
+            "release_notes": {
+                "file": notes_name,
+                "size_bytes": notes_size_bytes,
+                "sha256": notes_sha256
+            }
+        },
         "checks": checks,
         "external_gates": {
             "real_client": {
@@ -372,6 +396,72 @@ fn shared_build_root() -> Result<PathBuf, &'static str> {
         .and_then(Path::parent)
         .map(|root| root.join("target/qiongli-native-candidate-acceptance-build"))
         .ok_or("candidate-acceptance-build-root-unavailable")
+}
+
+fn render_release_notes(
+    artifact: &ArtifactIdentityV1,
+    artifact_id: &str,
+    archive_name: &str,
+    candidate_name: &str,
+    notes_name: &str,
+) -> Result<Vec<u8>, &'static str> {
+    let replacements = [
+        ("{{version}}", artifact.version.as_str()),
+        ("{{os}}", operating_system(artifact.os)),
+        ("{{arch}}", architecture(artifact.arch)),
+        ("{{artifact_id}}", artifact_id),
+        ("{{archive_name}}", archive_name),
+        ("{{candidate_name}}", candidate_name),
+        ("{{notes_name}}", notes_name),
+    ];
+    let mut rendered = RELEASE_NOTES_TEMPLATE.to_string();
+    for (token, value) in replacements {
+        if !rendered.contains(token) {
+            return Err("candidate-acceptance-notes-template-token-missing");
+        }
+        rendered = rendered.replace(token, value);
+    }
+    let required_claims = [
+        artifact_id,
+        archive_name,
+        candidate_name,
+        notes_name,
+        "empty runtime PATH",
+        "Codex local",
+        "Claude Code local",
+        "Full MCP",
+        "Alpha.2",
+        "recovery-required",
+        "does not authorize publication",
+    ];
+    if rendered.contains("{{") {
+        return Err("candidate-acceptance-notes-template-token-unresolved");
+    }
+    if required_claims
+        .into_iter()
+        .any(|claim| !rendered.contains(claim))
+    {
+        return Err("candidate-acceptance-notes-required-claim-missing");
+    }
+    if rendered.is_empty() || rendered.len() > MAX_NATIVE_RELEASE_NOTES_BYTES {
+        return Err("candidate-acceptance-notes-size-invalid");
+    }
+    Ok(rendered.into_bytes())
+}
+
+const fn operating_system(value: OperatingSystem) -> &'static str {
+    match value {
+        OperatingSystem::Macos => "macos",
+        OperatingSystem::Windows => "windows",
+        OperatingSystem::Linux => "linux",
+    }
+}
+
+const fn architecture(value: Architecture) -> &'static str {
+    match value {
+        Architecture::Aarch64 => "aarch64",
+        Architecture::X86_64 => "x86-64",
+    }
 }
 
 fn stage_product_binary(source: &Path, destination: &Path) -> Result<(), &'static str> {
@@ -1025,6 +1115,11 @@ fn encode_hex(bytes: &[u8]) -> String {
     output
 }
 
+fn sha256_hex(bytes: &[u8]) -> String {
+    let digest = Sha256::digest(bytes);
+    encode_hex(&digest)
+}
+
 fn valid_sha256(value: &str) -> bool {
     value.len() == 64
         && value
@@ -1079,6 +1174,45 @@ mod tests {
             b"candidate-source-bytes"
         );
         fs::remove_dir_all(root).expect("test root must clean up");
+    }
+
+    #[test]
+    fn release_notes_bind_the_exact_current_target_and_limitations() {
+        let artifact = current_target_native_artifact_identity(
+            env!("CARGO_PKG_VERSION"),
+            ReleaseChannel::Alpha,
+        )
+        .expect("current target must be supported");
+        let artifact_id = native_artifact_id(&artifact).expect("artifact ID must be valid");
+        let archive_name =
+            native_portable_archive_file_name(&artifact).expect("archive name must be valid");
+        let candidate_name =
+            native_release_candidate_file_name(&artifact).expect("candidate name must be valid");
+        let notes_name =
+            native_release_notes_file_name(&artifact).expect("notes name must be valid");
+
+        let notes = render_release_notes(
+            &artifact,
+            &artifact_id,
+            &archive_name,
+            &candidate_name,
+            &notes_name,
+        )
+        .expect("release notes must render");
+        let notes = String::from_utf8(notes).expect("release notes must be UTF-8");
+        let normalized_notes = notes.split_whitespace().collect::<Vec<_>>().join(" ");
+
+        assert!(normalized_notes.contains(&format!(
+            "`{} / {}`",
+            operating_system(artifact.os),
+            architecture(artifact.arch)
+        )));
+        assert!(normalized_notes.contains(&artifact_id));
+        assert!(
+            normalized_notes
+                .contains("displayed window and accessibility evidence remain external")
+        );
+        assert!(!notes.contains("{{"));
     }
 
     #[cfg(unix)]
