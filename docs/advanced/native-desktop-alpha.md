@@ -54,7 +54,9 @@ Take the expected digest and source identity from the trusted CI or release
 record, not only from files beside the downloaded archive. The command verifies
 the package and bundle, runs the packaged launcher with an isolated home and
 empty `PATH`, and optionally exercises LaunchServices with the fixed
-auto-exiting startup check. It writes no machine paths to the receipt.
+auto-exiting startup check. The LaunchServices result records request
+acceptance only; it is not process or displayed-window observation. The
+receipt contains no machine paths.
 
 This is automated engineering evidence. A successful result does not assert
 that the host is clean, that a normal window was observed, or that scale,

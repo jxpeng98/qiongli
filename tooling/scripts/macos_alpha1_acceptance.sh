@@ -204,15 +204,16 @@ HOME="$stage/home" PATH="" "$launcher" --startup-check >"$stage/startup.stdout" 
 
 launchservices_status="not-run"
 if [[ "$launchservices_preflight" == "true" ]]; then
-  /usr/bin/open -n -W \
+  /usr/bin/open -n \
     --env "HOME=$stage/home" \
     --env "PATH=" \
     --stdout "$stage/launchservices.stdout" \
     --stderr "$stage/launchservices.stderr" \
     "$app" --args --startup-check || fail "launchservices-preflight-failed"
+  /bin/sleep 2
   [[ "$(/usr/bin/stat -f '%z' "$stage/launchservices.stdout")" -le 65536 ]] || fail "launchservices-output-too-large"
   [[ "$(/usr/bin/stat -f '%z' "$stage/launchservices.stderr")" -le 65536 ]] || fail "launchservices-output-too-large"
-  launchservices_status="passed"
+  launchservices_status="request-accepted"
 fi
 
 receipt="$stage/acceptance-receipt.json"
@@ -233,7 +234,7 @@ insert_string "$receipt" checks.receipt_binding "passed"
 insert_string "$receipt" checks.manifest_binding "passed"
 insert_string "$receipt" checks.extracted_bundle_layout "passed"
 insert_string "$receipt" checks.empty_path_startup "passed"
-insert_string "$receipt" checks.launchservices_preflight "$launchservices_status"
+insert_string "$receipt" checks.launchservices_request "$launchservices_status"
 /usr/bin/plutil -insert open_gates -dictionary -s "$receipt"
 insert_string "$receipt" open_gates.clean_machine "not-asserted"
 insert_string "$receipt" open_gates.displayed_window "not-observed"

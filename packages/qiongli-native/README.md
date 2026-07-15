@@ -976,10 +976,11 @@ The verifier binds the external expected digest, composer receipt, external
 and bundle manifests, fixed Alpha.1 identity, bundle metadata, launcher and
 canonical binary digests, and an isolated empty-`PATH` startup. On a target
 macOS host, `--launchservices-preflight` additionally sends the fixed internal
-`--startup-check` through `/usr/bin/open` and waits for the app to exit. It
-does not bypass Gatekeeper or claim a displayed window. Every generated
-receipt keeps clean-machine, manual scale, VoiceOver, contrast, production
-signing, and publication gates open.
+`--startup-check` through `/usr/bin/open`. A zero exit records only that
+LaunchServices accepted the request; it does not prove that the process was
+observed or that a window appeared. The command does not bypass Gatekeeper.
+Every generated receipt keeps clean-machine, manual scale, VoiceOver,
+contrast, production signing, and publication gates open.
 
 Target-specific install, CLI, removal, trust, and architecture guidance is in
 `docs/advanced/native-desktop-alpha.md`.
